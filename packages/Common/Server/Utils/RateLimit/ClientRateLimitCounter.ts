@@ -236,6 +236,65 @@ export default class ClientRateLimitCounter {
   }
 
   /*
+   * Takes one request back off counters countFixed counted it under, for a
+   * request that ended before it did what it was counted for: DECR each
+   * key, in one pipeline. Called by the same request moments after it
+   * counted, so each key is still there with its expiry; one Redis lost in
+   * between comes back below zero, and is given an expiry too, so that it
+   * is not left behind without one.
+   */
+  public static async uncountFixed(data: {
+    redis: ClientType;
+    keys: Array<string>;
+    ttlSeconds: number;
+  }): Promise<void> {
+    if (data.keys.length === 0) {
+      return;
+    }
+
+    const pipeline: ReturnType<ClientType["pipeline"]> = data.redis.pipeline();
+
+    for (const key of data.keys) {
+      pipeline.decr(key);
+    }
+
+    const results: PipelineResults = ClientRateLimitCounter.readResults(
+      (await pipeline.exec()) as PipelineResults | null,
+      data.keys.length,
+    );
+
+    const lostKeys: Array<string> = data.keys.filter(
+      (_key: string, index: number): boolean => {
+        const value: unknown = ClientRateLimitCounter.readResult(
+          results[index],
+        );
+
+        return typeof value === "number" && value < 0;
+      },
+    );
+
+    if (lostKeys.length === 0) {
+      return;
+    }
+
+    const expirePipeline: ReturnType<ClientType["pipeline"]> =
+      data.redis.pipeline();
+
+    for (const key of lostKeys) {
+      expirePipeline.expire(key, data.ttlSeconds);
+    }
+
+    const expireResults: PipelineResults = ClientRateLimitCounter.readResults(
+      (await expirePipeline.exec()) as PipelineResults | null,
+      lostKeys.length,
+    );
+
+    for (const expireResult of expireResults) {
+      ClientRateLimitCounter.readResult(expireResult);
+    }
+  }
+
+  /*
    * INCR each key in one pipeline, set the expiry of each key this request
    * created, and answer the first key over its limit.
    */

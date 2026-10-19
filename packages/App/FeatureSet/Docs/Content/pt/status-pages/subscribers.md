@@ -78,6 +78,40 @@ A página **Inscrever-se** tem um submenu com uma aba para cada canal ligado; co
 
 O botão de envio diz **Inscrever-se**. Uma inscrição por SMS, Slack, Microsoft Teams ou webhook mostra *Você foi inscrito com sucesso.* Uma inscrição por e-mail diz que um link de confirmação foi enviado e para verificar a pasta de spam se ele não chegar (veja [Dupla confirmação por e-mail](#dupla-confirmação-por-e-mail)). As abas **E-mail**, **SMS**, **Slack** e **MS Teams** também têm a divisão **Nova inscrição** / **Gerenciar inscrição existente**, para que quem já se inscreveu possa voltar às suas preferências sem procurar uma mensagem antiga.
 
+## Limites de inscrições e links
+
+Cada inscrição envia ao seu contato uma mensagem na hora, um e-mail de confirmação, um SMS, uma mensagem do Slack ou do Microsoft Teams ou uma chamada de webhook, e **Enviar link de gerenciamento** também. Para que ninguém possa usar uma página de status para enviar mensagens a pessoas que não as pediram, ou para inflar os custos de SMS do seu projeto, os dois são limitados para a rede de cada visitante e para cada contato. Os limites ficam muito acima do que as pessoas fazem: um escritório inteiro pode se inscrever junto durante um incidente.
+
+| O que é limitado | Limite |
+| --- | --- |
+| Inscrições a partir de uma rede | 60 em 15 minutos |
+| Inscrições e links de gerenciamento por SMS a partir de uma rede, juntos | 10 em 15 minutos |
+| Links de gerenciamento pedidos a partir de uma rede | 30 em 15 minutos |
+| Inscrições de um endereço de e-mail, um número de telefone, um canal do Slack ou do Microsoft Teams, ou um webhook, em todas as páginas de status juntas | 10 em uma hora |
+| Links de gerenciamento para um endereço de e-mail ou número de telefone em todas as páginas de status juntas, ou para um nome de workspace do Slack ou do Microsoft Teams em uma página de status | 5 em uma hora |
+
+Passado um limite, a API responde `429` com um cabeçalho `Retry-After`, em segundos, e o visitante é informado de que houve inscrições ou links demais a partir da sua rede, ou para aquele contato, e de que deve tentar de novo mais tarde. Nada é criado nem enviado, e o seu projeto não vê nada disso: nenhum inscrito é adicionado, e nenhuma mensagem é enviada ou paga. Os limites de links de gerenciamento contam cada pedido, haja ou não uma inscrição correspondente, então não servem para descobrir quem está inscrito. Um endereço de e-mail é contado não importa como seja escrito, em maiúsculas, com um `+tag` ou, no Gmail, com pontos, e um número de telefone não importa como seja digitado. Uma inscrição aceita um endereço de e-mail: uma lista de endereços é recusada.
+
+Cada limite por rede também conta juntos os endereços de um mesmo IPv6 /64, com dez vezes o seu número. As janelas são fixas, não deslizantes. Se o limitador de taxa não puder ser alcançado, as inscrições e os links de gerenciamento por e-mail, Slack, Microsoft Teams e webhook seguem sem ser contados, e os por SMS são recusados com `503` até ele voltar, porque cada SMS é pago. Alterar ou cancelar uma inscrição pelo seu próprio link nunca é limitado, e também não é a sua equipe adicionar inscritos no painel ou pela API.
+
+Um usuário privado que pede um link para redefinir a senha na página de login da página de status é limitado da mesma forma: 5 e-mails de redefinição para um endereço em uma hora, em todas as páginas de status juntas, e 30 a partir de uma rede em 15 minutos.
+
+Em uma instalação auto-hospedada, estas variáveis de ambiente do app do OneUptime alteram os limites:
+
+| Variável | Padrão | O que define |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | A janela dos limites por rede, em segundos. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | A janela dos limites por contato, em segundos. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Inscrições a partir de um endereço por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Inscrições e links de gerenciamento por SMS a partir de um endereço por janela, juntos. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Links de gerenciamento pedidos a partir de um endereço por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Inscrições de um contato por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Links de gerenciamento para um contato por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Redefinições de senha de usuários privados pedidas a partir de um endereço por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | E-mails de redefinição de senha de usuários privados para um endereço por janela. |
+
+Nem o `config.env` nem os valores do chart do Helm os repassam: adicione-os você mesmo ao ambiente do contêiner `app`, com `app.extraEnv`, ou o `extraEnv` do chart inteiro, no chart do Helm, ou em um `docker-compose.override.yml` para o Docker Compose. `TRUSTED_PROXY_HOPS` decide qual endereço os limites por rede contam.
+
 ## Deixar o assinante escolher recursos e tipos de evento
 
 Por padrão, um assinante recebe tudo o que está na página. Dois interruptores no cartão **Escolhas dos assinantes** em **Configurações de assinantes** mudam isso, e cada um é salvo assim que você o muda:

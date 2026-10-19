@@ -78,6 +78,40 @@ La pagina **Iscriviti** ha un sottomenu con una scheda per ogni canale attivo; c
 
 Il pulsante di invio dice **Iscriviti**. Un'iscrizione via SMS, Slack, Microsoft Teams o webhook mostra *Iscrizione effettuata con successo.* Un'iscrizione via email dice che è stato inviato un link di conferma e di controllare la cartella spam se non arriva (vedete [Doppia conferma per le email](#doppia-conferma-per-le-email)). Le schede **E-mail**, **SMS**, **Slack** e **MS Teams** hanno anche la divisione **Nuova iscrizione** / **Gestisci iscrizione esistente**, così chi è già iscritto può tornare alle proprie preferenze senza cercare un vecchio messaggio.
 
+## Limiti per iscrizioni e link
+
+Ogni iscrizione invia subito un messaggio al suo contatto, un'email di conferma, un SMS, un messaggio Slack o Microsoft Teams o una chiamata webhook, e lo stesso fa **Invia link di gestione**. Perché nessuno possa usare una pagina di stato per inviare messaggi a persone che non li hanno chiesti, o per far salire i costi SMS del vostro progetto, entrambi sono limitati per la rete di ogni visitatore e per ogni contatto. I limiti sono molto al di sopra di ciò che fanno le persone: un intero ufficio può iscriversi insieme durante un incidente.
+
+| Cosa è limitato | Limite |
+| --- | --- |
+| Iscrizioni da una rete | 60 in 15 minuti |
+| Iscrizioni e link di gestione via SMS da una rete, insieme | 10 in 15 minuti |
+| Link di gestione chiesti da una rete | 30 in 15 minuti |
+| Iscrizioni di un indirizzo email, un numero di telefono, un canale Slack o Microsoft Teams, o un webhook, su tutte le pagine di stato insieme | 10 in un'ora |
+| Link di gestione per un indirizzo email o un numero di telefono su tutte le pagine di stato insieme, o per un nome di workspace Slack o Microsoft Teams su una pagina di stato | 5 in un'ora |
+
+Oltre un limite, l'API risponde `429` con un'intestazione `Retry-After`, in secondi, e al visitatore viene detto che ci sono state troppe iscrizioni o troppi link dalla sua rete, o per quel contatto, e di riprovare più tardi. Non viene creato né inviato nulla, e il vostro progetto non ne vede nulla: nessun iscritto viene aggiunto, e nessun messaggio viene inviato o pagato. I limiti dei link di gestione contano ogni richiesta, che un'iscrizione corrisponda o no, quindi non servono a scoprire chi è iscritto. Un indirizzo email viene contato comunque sia scritto, in maiuscolo, con un `+tag` o, per Gmail, con i punti, e un numero di telefono comunque sia digitato. Un'iscrizione accetta un solo indirizzo email: un elenco di indirizzi viene rifiutato.
+
+Ogni limite per rete conta anche insieme gli indirizzi di uno stesso IPv6 /64, con dieci volte il suo numero. Le finestre sono fisse, non scorrevoli. Se il limitatore di frequenza non è raggiungibile, le iscrizioni e i link di gestione via email, Slack, Microsoft Teams e webhook proseguono senza essere contati, e quelli via SMS vengono rifiutati con `503` finché non torna, perché ogni SMS si paga. Modificare o annullare un'iscrizione dal suo stesso link non è mai limitato, e nemmeno l'aggiunta di iscritti da parte del vostro team nella dashboard o tramite l'API.
+
+Un utente privato che chiede un link per reimpostare la password nella pagina di accesso della pagina di stato è limitato allo stesso modo: 5 email di reimpostazione a un indirizzo in un'ora, su tutte le pagine di stato insieme, e 30 da una rete in 15 minuti.
+
+In un'installazione self-hosted, queste variabili d'ambiente dell'app OneUptime cambiano i limiti:
+
+| Variabile | Predefinito | Cosa imposta |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | La finestra dei limiti per rete, in secondi. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | La finestra dei limiti per contatto, in secondi. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Iscrizioni da un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Iscrizioni e link di gestione via SMS da un indirizzo per finestra, insieme. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Link di gestione chiesti da un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Iscrizioni di un contatto per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Link di gestione per un contatto per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Reimpostazioni della password di utenti privati chieste da un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Email di reimpostazione della password di utenti privati a un indirizzo per finestra. |
+
+Né `config.env` né i valori del chart Helm le trasmettono: aggiungetele voi all'ambiente del container `app`, con `app.extraEnv`, o con l'`extraEnv` dell'intero chart, nel chart Helm, oppure in un `docker-compose.override.yml` per Docker Compose. `TRUSTED_PROXY_HOPS` decide quale indirizzo contano i limiti per rete.
+
 ## Lasciare che gli iscritti scelgano risorse e tipi di evento
 
 Per impostazione predefinita un iscritto riceve tutto ciò che c'è sulla pagina. Due interruttori nella scheda **Scelte degli iscritti** in **Impostazioni iscritti** lo cambiano, e ciascuno si salva appena lo cambiate:

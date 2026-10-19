@@ -78,6 +78,40 @@ La page **S'abonner** a un sous-menu avec un onglet par canal activé ; avec un 
 
 Le bouton d'envoi s'intitule **S'abonner**. Une inscription par SMS, Slack, Microsoft Teams ou webhook affiche *Vous avez été abonné avec succès.* Une inscription par e-mail indique qu'un lien de confirmation a été envoyé et qu'il faut vérifier le dossier des indésirables s'il n'arrive pas (voir [Double confirmation par e-mail](#double-confirmation-par-e-mail)). Les onglets **E-mail**, **SMS**, **Slack** et **MS Teams** portent aussi la séparation **Nouvel abonnement** / **Gérer l'abonnement existant**, pour qu'une personne déjà abonnée retrouve ses préférences sans chercher un vieux message.
 
+## Limites des inscriptions et des liens
+
+Chaque inscription envoie aussitôt un message à son contact, un e-mail de confirmation, un SMS, un message Slack ou Microsoft Teams ou un appel de webhook, et **Envoyer le lien de gestion** aussi. Pour que personne ne puisse se servir d'une page de statut pour envoyer des messages à des gens qui ne les ont pas demandés, ni pour faire grimper les coûts SMS de votre projet, les deux sont limités pour le réseau de chaque visiteur et pour chaque contact. Les limites sont bien au-dessus de ce que font les gens : tout un bureau peut s'inscrire ensemble pendant un incident.
+
+| Ce qui est limité | Limite |
+| --- | --- |
+| Inscriptions depuis un réseau | 60 en 15 minutes |
+| Inscriptions et liens de gestion par SMS depuis un réseau, ensemble | 10 en 15 minutes |
+| Liens de gestion demandés depuis un réseau | 30 en 15 minutes |
+| Inscriptions d'une adresse e-mail, d'un numéro de téléphone, d'un canal Slack ou Microsoft Teams, ou d'un webhook, sur toutes les pages de statut ensemble | 10 en une heure |
+| Liens de gestion pour une adresse e-mail ou un numéro de téléphone sur toutes les pages de statut ensemble, ou pour un nom d'espace de travail Slack ou Microsoft Teams sur une page de statut | 5 en une heure |
+
+Au-delà d'une limite, l'API répond `429` avec un en-tête `Retry-After`, en secondes, et le visiteur apprend qu'il y a eu trop d'inscriptions ou de liens depuis son réseau, ou pour ce contact, et qu'il doit réessayer plus tard. Rien n'est créé ni envoyé, et votre projet n'en voit rien : aucun abonné n'est ajouté, et aucun message n'est envoyé ni payé. Les limites des liens de gestion comptent chaque demande, qu'un abonnement corresponde ou non, si bien qu'elles ne permettent pas de savoir qui est abonné. Une adresse e-mail est comptée quelle que soit sa graphie, en majuscules, avec un `+tag` ou, pour Gmail, avec des points, et un numéro de téléphone quelle que soit sa saisie. Une inscription prend une seule adresse e-mail : une liste d'adresses est refusée.
+
+Chaque limite par réseau compte aussi ensemble les adresses d'un même IPv6 /64, avec dix fois son nombre. Les fenêtres sont fixes, pas glissantes. Si le limiteur de débit est injoignable, les inscriptions et les liens de gestion par e-mail, Slack, Microsoft Teams et webhook continuent sans être comptés, et ceux par SMS sont refusés avec `503` jusqu'à son retour, car chaque SMS est payé. Modifier ou annuler un abonnement depuis son propre lien n'est jamais limité, pas plus que l'ajout d'abonnés par votre équipe dans le tableau de bord ou via l'API.
+
+Un utilisateur privé qui demande un lien de réinitialisation du mot de passe sur la page de connexion de la page de statut est limité de la même façon : 5 e-mails de réinitialisation vers une adresse en une heure, sur toutes les pages de statut ensemble, et 30 depuis un réseau en 15 minutes.
+
+Sur une installation auto-hébergée, ces variables d'environnement de l'application OneUptime changent les limites :
+
+| Variable | Par défaut | Ce qu'elle définit |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | La fenêtre des limites par réseau, en secondes. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | La fenêtre des limites par contact, en secondes. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Inscriptions depuis une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Inscriptions et liens de gestion par SMS depuis une adresse par fenêtre, ensemble. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Liens de gestion demandés depuis une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Inscriptions d'un contact par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Liens de gestion pour un contact par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Réinitialisations de mot de passe d'utilisateurs privés demandées depuis une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | E-mails de réinitialisation de mot de passe d'utilisateurs privés vers une adresse par fenêtre. |
+
+Ni `config.env` ni les valeurs du chart Helm ne les transmettent : ajoutez-les vous-même à l'environnement du conteneur `app`, avec `app.extraEnv`, ou le `extraEnv` global du chart, dans le chart Helm, ou dans un `docker-compose.override.yml` pour Docker Compose. `TRUSTED_PROXY_HOPS` décide quelle adresse comptent les limites par réseau.
+
 ## Laisser les abonnés choisir ressources et types d'événements
 
 Par défaut, un abonné reçoit tout ce qui concerne la page. Deux interrupteurs de la carte **Choix des abonnés** sur **Paramètres des abonnés** changent cela, et chacun s'enregistre dès que vous le basculez :
