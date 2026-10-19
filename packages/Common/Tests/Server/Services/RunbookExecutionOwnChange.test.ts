@@ -10,6 +10,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * RunbookExecutionService hands every update that finishes a runbook
@@ -36,9 +37,7 @@ function update(data: Record<string, unknown>): unknown {
 }
 
 describe("RunbookExecutionService records finished runbooks as changes", () => {
-  let recordSpy: jest.SpiedFunction<
-    typeof OwnChangeRecorder.recordRunbookExecutions
-  >;
+  let recordSpy: SpyInstance<typeof OwnChangeRecorder.recordRunbookExecutions>;
 
   beforeEach(() => {
     recordSpy = jest

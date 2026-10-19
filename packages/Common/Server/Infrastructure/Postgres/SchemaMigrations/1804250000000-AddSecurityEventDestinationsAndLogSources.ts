@@ -14,11 +14,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Both tables are new, so their indexes and foreign keys are built while
  * nothing writes to them.
  */
-export class AddSecurityEventDestinationsAndLogSources1804200000000
+export class AddSecurityEventDestinationsAndLogSources1804250000000
   implements MigrationInterface
 {
   public name: string =
-    "AddSecurityEventDestinationsAndLogSources1804200000000";
+    "AddSecurityEventDestinationsAndLogSources1804250000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

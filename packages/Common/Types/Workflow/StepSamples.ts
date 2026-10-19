@@ -21,6 +21,7 @@
  */
 
 import { JSONObject, JSONValue } from "../JSON";
+import { splitCapitalRunsBeforeWords } from "../../Utils/CapitalRuns";
 import {
   TRUNCATED_VALUE_SUFFIX,
   WorkflowStepStatus,
@@ -161,9 +162,10 @@ const SENSITIVE_WORD_PAIRS: Array<[string, string]> = [
 type KeyWordsFunction = (key: string) => Array<string>;
 
 const keyWords: KeyWordsFunction = (key: string): Array<string> => {
-  return key
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+  return splitCapitalRunsBeforeWords(
+    key.replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
+    " ",
+  )
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((word: string) => {

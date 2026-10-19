@@ -43,7 +43,7 @@ describe("registry wiring", () => {
       readSquashed(
         "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
       ),
-    ).toContain("AddSecurityEventDestinationsAndLogSources1804200000000,");
+    ).toContain("AddSecurityEventDestinationsAndLogSources1804250000000,");
   });
 
   test("both cron jobs are imported in Workers/Index.ts, and each runs every minute", () => {

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import RemediationExecutionRunner, {
@@ -197,7 +198,7 @@ describe("the investigation", () => {
 });
 
 describe("the round's context", () => {
-  let read: jest.SpiedFunction<typeof RecentChangesContext.read>;
+  let read: SpyInstance<typeof RecentChangesContext.read>;
 
   const suggestion: AutoRemediationSuggestion = {
     id: ObjectID.generate(),

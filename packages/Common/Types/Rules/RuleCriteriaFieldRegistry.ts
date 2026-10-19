@@ -17,6 +17,18 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "titlePattern",
     "descriptionPattern",
   ],
+  /*
+   * Which resolved incidents OneUptime AI drafts a postmortem for: an
+   * investigation rule's incident share, read by the same matcher.
+   */
+  AIPostmortemRule: [
+    "monitors",
+    "incidentSeverities",
+    "labels",
+    "monitorLabels",
+    "titlePattern",
+    "descriptionPattern",
+  ],
   AlertEpisodeLabelRule: [
     "alertSeverities",
     "episodeLabels",

@@ -34,6 +34,7 @@ import {
   AI_LANE_ADVANCED_SECTION_TEST_ID,
   AiLane,
   AiLaneAdvancedCard,
+  AiLaneAdvancedCardTitles,
   PROJECT_AI_ADVANCED_SECTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { DASHBOARD_SHARING_ADVANCED_SECTION_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Sharing/DashboardSharingCopy";
@@ -49,6 +50,12 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { CARD_FRAME_CLASS_NAME } from "../../../UI/Components/Card/Card";
 import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  FoldedSectionItem,
+  FoldedSectionItemsShown,
+  foldedSectionItem,
+  getFoldedSectionItemsShown,
+} from "../../../UI/Components/FoldedSection/FoldedSectionItem";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -237,9 +244,10 @@ const namedSectionTitles: NamedSectionTitlesFunction = (
   });
 };
 
-const INCIDENT_TITLES: Record<AiLaneAdvancedCard, string> =
+const INCIDENT_TITLES: AiLaneAdvancedCardTitles[AiLane.Incident] =
   AI_LANE_ADVANCED_CARD_TITLES[AiLane.Incident];
-const ALERT_TITLES: Record<AiLaneAdvancedCard, string> =
+// Alerts have no postmortem, so no postmortem rules.
+const ALERT_TITLES: AiLaneAdvancedCardTitles[AiLane.Alert] =
   AI_LANE_ADVANCED_CARD_TITLES[AiLane.Alert];
 
 const PAGES: Array<MoreSettingsPage> = [
@@ -255,10 +263,11 @@ const PAGES: Array<MoreSettingsPage> = [
       INCIDENT_TITLES[AiLaneAdvancedCard.WhichAreInvestigated],
       INCIDENT_TITLES[AiLaneAdvancedCard.InvestigationLimits],
       INCIDENT_TITLES[AiLaneAdvancedCard.RemediationRules],
+      INCIDENT_TITLES[AiLaneAdvancedCard.PostmortemRules],
       INCIDENT_TITLES[AiLaneAdvancedCard.DailyLimits],
     ],
     namesSectionsByTitle: true,
-    tableCount: 2,
+    tableCount: 3,
   },
   {
     name: "Alerts -> AI -> Settings",
@@ -445,10 +454,28 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
 
     const names: Array<string> = listedNames(moreSettings(page));
 
-    expect(names.length).toBe(namedSectionTitles(page).length);
+    /*
+     * A folded header names a few of what it holds and counts the rest
+     * ("2 more"), as every folded section does (FOLDED_SECTION_MAX_ITEMS).
+     */
+    const expected: FoldedSectionItemsShown = getFoldedSectionItemsShown(
+      namedSectionTitles(page).map((title: string): FoldedSectionItem => {
+        return foldedSectionItem(title);
+      }),
+    );
+
+    expect(names.length).toBe(expected.shown.length);
+    expect(
+      moreSettings(page)?.querySelector("[data-testid='folded-section-more']")
+        ?.textContent || "",
+    ).toBe(expected.hiddenCount > 0 ? `${expected.hiddenCount} more` : "");
 
     if (page.namesSectionsByTitle) {
-      expect(names).toEqual(namedSectionTitles(page));
+      expect(names).toEqual(
+        expected.shown.map((item: FoldedSectionItem): string => {
+          return item.title;
+        }),
+      );
     }
   });
 

@@ -401,8 +401,17 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   );
                 }
 
+                /*
+                 * A plain yes/no field says nothing when it is no, as the
+                 * table's quiet dash does. A column that draws its own
+                 * element says what it says either way - a rule's Status
+                 * is "Disabled" as surely as "Enabled", and a card that
+                 * left it out drew a disabled rule like an enabled one.
+                 */
                 const value: React.ReactNode =
-                  column.key && column.type === FieldType.Boolean
+                  column.key &&
+                  column.type === FieldType.Boolean &&
+                  !column.getElement
                     ? props.item[column.key]
                       ? getColumnContent(column)
                       : null

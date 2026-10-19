@@ -11,6 +11,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * RunnerJobService.submitResult and the changes OneUptime AI makes: a
@@ -26,9 +27,7 @@ const AGENT_ID: ObjectID = new ObjectID("7a1c3e50-0000-4000-8000-000000000002");
 describe("RunnerJobService.submitResult records OneUptime AI's own changes", () => {
   let returned: Array<Record<string, unknown>>;
   let sqls: Array<string>;
-  let recordSpy: jest.SpiedFunction<
-    typeof OwnChangeRecorder.recordAiCommandResult
-  >;
+  let recordSpy: SpyInstance<typeof OwnChangeRecorder.recordAiCommandResult>;
 
   beforeEach(() => {
     returned = [];

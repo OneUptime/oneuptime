@@ -101,6 +101,11 @@ interface SettingsPageCase {
   cards: {
     which: string;
   };
+  /*
+   * What folded More settings says the defaults do: an incident is also
+   * given a postmortem draft when it resolves (an alert has no postmortem).
+   */
+  defaultsSummary: string;
 }
 
 const PAGES: Array<SettingsPageCase> = [
@@ -129,6 +134,8 @@ const PAGES: Array<SettingsPageCase> = [
     cards: {
       which: "Which alerts are investigated",
     },
+    defaultsSummary:
+      "Every alert is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
   },
   {
     name: "Incidents",
@@ -155,6 +162,8 @@ const PAGES: Array<SettingsPageCase> = [
     cards: {
       which: "Which incidents are investigated",
     },
+    defaultsSummary:
+      "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.",
   },
 ];
 
@@ -377,9 +386,7 @@ describe.each(
       () => {
         expect(
           screen.getByTestId("collapsible-section-summary"),
-        ).toHaveTextContent(
-          `Every ${page.kind} is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.`,
-        );
+        ).toHaveTextContent(page.defaultsSummary);
       },
       { timeout: WAIT_TIMEOUT },
     );

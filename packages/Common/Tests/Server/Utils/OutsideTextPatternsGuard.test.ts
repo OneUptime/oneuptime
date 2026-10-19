@@ -34,10 +34,32 @@ import path from "path";
  *    SCIM members filter) is never a run of white space read again from
  *    each of its characters;
  *  - a run of white space that holds a line break is made one space with
- *    collapseLineBreakRuns.
+ *    collapseLineBreakRuns;
+ *  - a stack frame line (V8, Python, Ruby, C#, PHP) is read by
+ *    StackFrameLines, never by a pattern whose lazy name or file can start
+ *    inside the white space before it;
+ *  - an error log's first line (a Go panic, a Java thread, a dotted type)
+ *    is read by LogExceptionText, never with a run of white space before a
+ *    "(.*)$" a line separator can stop;
+ *  - a model's "Label: value" line is read by findLabelledValues, never by
+ *    a pattern whose white space runs on around a "**" at every line start;
+ *  - a run of capitals before a word is split by
+ *    splitCapitalRunsBeforeWords;
+ *  - what dig printed is read by DigOutput, never by a pattern tried from
+ *    every "flags:" of a line;
+ *  - a kubectl message with something between two phrases is looked for
+ *    from the first time its first phrase is written on a line;
+ *  - the frame viewer reads a stack trace's lines (a Python header, a
+ *    frame's "at", call and location, a Go module's path) with
+ *    StackTraceLineText, and every pattern left in it reads the traces that
+ *    were slow quickly.
  *
  * And every pattern of these shapes, wherever it is, reads the texts that
  * were slow in well under two seconds.
+ *
+ * Further down: the files that read outside text take a run that ends it
+ * off from its end, and find an image, a link, a bracketed part or a pair
+ * of delimiters once.
  * ---------------------------------------------------------------------------
  */
 
@@ -53,6 +75,8 @@ interface Family {
   mustFind: ReadonlyArray<string>;
   // The shapes the family was written in before, which the rule refuses.
   oldShapes: ReadonlyArray<string>;
+  // Where an old shape would be written, for a family held to some files only.
+  exampleFile?: string | undefined;
   slowTexts: ReadonlyArray<string>;
 }
 
@@ -97,6 +121,49 @@ const OR_BETWEEN_RUNS_SHAPE: RegExp = /\\s\+or\\s\+/i;
 
 // The same, tried only where a run of white space starts.
 const OR_FROM_RUN_START_SHAPE: RegExp = /\(\?<!\\s\)\\s\+or\\s\+/i;
+
+// A stack frame's grammar, read with a lazy name or file.
+const isFrameLinePattern: (source: string) => boolean = (
+  source: string,
+): boolean => {
+  return (
+    (source.startsWith("^at\\s+") && source.includes("(.+?)")) ||
+    source.startsWith('^File\\s+"(.+?)"') ||
+    source.startsWith("^(.+?):(\\d+):in") ||
+    source.startsWith("^#\\d+\\s+(.+?)")
+  );
+};
+
+// White space, a "**" and white space, at a label line's start.
+const SPACE_STARS_SPACE: string = "\\s*\\**\\s*";
+
+// A run of capitals, then a capital and a lower-case letter.
+const CAPITAL_RUN_BEFORE_WORD: string = "([A-Z]+)([A-Z][a-z])";
+
+// What dig prints its flags after.
+const DIG_FLAGS: RegExp = /flags:/i;
+
+// The kubectl messages with something between two phrases.
+const KUBECTL_PHRASES: RegExp =
+  /The connection to the server|is forbidden: User/;
+
+// Looked for from a line's first phrase: ^(?:(?!<phrase>).)*<phrase>.
+const FROM_FIRST_PHRASE: string = "^(?:(?!";
+
+// The Dashboard's frame viewer: every pattern in it reads a stack trace.
+const STACK_TRACE_PRESENTATION_FILE: string =
+  "packages/App/FeatureSet/Dashboard/src/Utils/StackTracePresentation.ts";
+const STACK_TRACE_LINE_TEXT_FILE: string =
+  "packages/App/FeatureSet/Dashboard/src/Utils/StackTraceLineText.ts";
+
+// What the frame viewer read a trace's lines with before StackTraceLineText.
+const FRAME_VIEWER_SHAPES_BEFORE: ReadonlyArray<string> = [
+  "^\\s*Traceback \\(most recent call last\\):\\s*$",
+  "^(\\s*at\\s+)(.*)$",
+  "^(.*?)(\\s*\\()([^()]*)(\\))$",
+  "(?:^|[/\\\\])[^\\s]*:\\d+(?::\\d+)?$",
+  "[/\\\\]pkg[/\\\\]mod[/\\\\](.+?)@v[\\d.]+",
+];
 
 const FAMILIES: ReadonlyArray<Family> = [
   {
@@ -245,6 +312,147 @@ const FAMILIES: ReadonlyArray<Family> = [
     oldShapes: ["\\s*[\\r\\n]+\\s*"],
     slowTexts: [repeat(" ", LENGTH) + "x\n", repeat("\t", LENGTH) + "\u0000\r"],
   },
+  {
+    name: "a stack frame line's name or file, read as the fewest characters up to what follows",
+    isMember: (pattern: SourcePattern): boolean => {
+      return isFrameLinePattern(pattern.source);
+    },
+    breaksRule: (): string => {
+      return "read the frame line with StackFrameLines";
+    },
+    mustFind: [],
+    oldShapes: [
+      "^at\\s+eval\\s+\\(eval\\s+at\\s+(.+?)\\s+\\((.+?):(\\d+):(\\d+)\\)",
+      "^at\\s+(.+?)\\s+\\((.+?):(\\d+):(\\d+)\\)$",
+      "^at\\s+(.+?)\\s+\\((.+?):(\\d+)\\)$",
+      "^at\\s+(.+?):(\\d+):(\\d+)$",
+      '^File\\s+"(.+?)",\\s+line\\s+(\\d+)(?:,\\s+in\\s+(.+))?$',
+      "^(.+?):(\\d+):in\\s+[`'](.+?)'$",
+      "^at\\s+(.+?)\\s+in\\s+(.+?):line\\s+(\\d+)$",
+      "^#\\d+\\s+(.+?)\\((\\d+)\\):\\s+(.+)$",
+    ],
+    slowTexts: [
+      "at x" + repeat("\t(", LENGTH),
+      "#0 x" + repeat("(0):\t", LENGTH) + "\rz",
+    ],
+  },
+  {
+    name: "an error log's first line, a run of white space before the rest of it",
+    exampleFile: "packages/Common/Server/Utils/Telemetry/Example.ts",
+    isMember: (pattern: SourcePattern): boolean => {
+      return (
+        pattern.file.includes("/Telemetry/") &&
+        (pattern.source.endsWith("\\s*(.*)$") ||
+          pattern.source.endsWith("\\s+(.*)$"))
+      );
+    },
+    breaksRule: (): string => {
+      return "read the line with LogExceptionText";
+    },
+    mustFind: [],
+    oldShapes: [
+      "^panic:\\s*(.*)$",
+      '^Exception in thread\\s+"[^"]*"\\s+(.*)$',
+      "^([A-Za-z_][\\w.$]*\\.[A-Za-z_][\\w.$]*):\\s*(.*)$",
+    ],
+    slowTexts: [
+      "panic:" + repeat("\t", LENGTH / 10) + "y" + LINE_SEPARATOR + "x",
+    ],
+  },
+  {
+    name: "a model's label line, white space around a ** at every line start",
+    isMember: (pattern: SourcePattern): boolean => {
+      return pattern.source.includes(SPACE_STARS_SPACE);
+    },
+    breaksRule: (): string => {
+      return "read the label lines with findLabelledValues (LabelledAnswerLines)";
+    },
+    mustFind: [],
+    oldShapes: [
+      "^\\s*\\**\\s*selectedrunbook\\s*\\**\\s*[:=]\\s*\\**\\s*([a-z0-9-]{8,64}|none)\\b",
+      "^\\s*\\**\\s*classification\\s*\\**\\s*[:=]\\s*\\**\\s*(code-fault|user-error|expected-denial|infrastructure|unknown)\\b",
+    ],
+    slowTexts: [repeat("\n", LENGTH / 100) + "*"],
+  },
+  {
+    name: "a run of capitals before a word, split",
+    isMember: (pattern: SourcePattern): boolean => {
+      return pattern.source.includes(CAPITAL_RUN_BEFORE_WORD);
+    },
+    breaksRule: (): string => {
+      return "split it with splitCapitalRunsBeforeWords (Utils/CapitalRuns)";
+    },
+    mustFind: [],
+    oldShapes: ["([A-Z]+)([A-Z][a-z])"],
+    slowTexts: [repeat("A", LENGTH) + "\u0000AAa"],
+  },
+  {
+    name: "what dig printed, read from every flags:",
+    exampleFile: "packages/Probe/Utils/Monitors/Example.ts",
+    isMember: (pattern: SourcePattern): boolean => {
+      return (
+        pattern.file.startsWith("packages/Probe/") &&
+        DIG_FLAGS.test(pattern.source) &&
+        pattern.source !== "flags:"
+      );
+    },
+    breaksRule: (): string => {
+      return "read dig's output with DigOutput";
+    },
+    mustFind: [],
+    oldShapes: ["flags:.*\\bad\\b", "flags:\\s*([^;]+);"],
+    slowTexts: [repeat("flags:", LENGTH), "FLAGS:" + repeat("\t", LENGTH)],
+  },
+  {
+    name: "a kubectl message with something between two phrases",
+    isMember: (pattern: SourcePattern): boolean => {
+      return (
+        KUBECTL_PHRASES.test(pattern.source) &&
+        (pattern.source.includes(".+") || pattern.source.includes(".*"))
+      );
+    },
+    breaksRule: (pattern: SourcePattern): string | null => {
+      return pattern.source.startsWith(FROM_FIRST_PHRASE) &&
+        pattern.flags.includes("m")
+        ? null
+        : "look for it from the first phrase of each line: ^(?:(?!<phrase>).)*<phrase>, with the m flag";
+    },
+    mustFind: [
+      "packages/Common/Server/Utils/AI/ClusterAccess/KubectlJobRunner.ts",
+    ],
+    oldShapes: [
+      "The connection to the server .+ was refused",
+      ' is forbidden: User ".*" cannot ',
+    ],
+    slowTexts: [
+      repeat("The connection to the server d", LENGTH),
+      repeat(' is forbidden: User "', LENGTH),
+    ],
+  },
+  {
+    name: "a stack trace's lines in the frame viewer",
+    exampleFile: STACK_TRACE_PRESENTATION_FILE,
+    isMember: (pattern: SourcePattern): boolean => {
+      return (
+        pattern.file === STACK_TRACE_PRESENTATION_FILE ||
+        pattern.file === STACK_TRACE_LINE_TEXT_FILE
+      );
+    },
+    breaksRule: (pattern: SourcePattern): string | null => {
+      return FRAME_VIEWER_SHAPES_BEFORE.includes(pattern.source)
+        ? "read the line with StackTraceLineText"
+        : null;
+    },
+    mustFind: [STACK_TRACE_PRESENTATION_FILE],
+    oldShapes: FRAME_VIEWER_SHAPES_BEFORE,
+    slowTexts: [
+      repeat("\n", LENGTH) + "x",
+      "at x" + repeat(" ", LENGTH) + "y",
+      "at" + repeat(" ", LENGTH) + "x" + LINE_SEPARATOR + "y",
+      "at " + repeat("a/", LENGTH) + "b",
+      repeat("/pkg/mod/", LENGTH),
+    ],
+  },
 ];
 
 const PRODUCT_PATTERNS: Array<SourcePattern> = listProductFiles()
@@ -281,7 +489,7 @@ describe.each(FAMILIES)("$name", (family: Family) => {
   test("the guard recognises the shapes the family was written in before", () => {
     for (const source of family.oldShapes) {
       const old: SourcePattern = {
-        file: "packages/Common/Utils/Example.ts",
+        file: family.exampleFile || "packages/Common/Utils/Example.ts",
         line: 1,
         name: null,
         source: source,
@@ -333,6 +541,197 @@ describe.each(FAMILIES)("$name", (family: Family) => {
 
     expect(slow).toEqual([]);
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * In the files that read text somebody outside wrote - a URL a project
+ * saved, a host name an application reported, a model's answer, a probe's
+ * failure line - a run that ends the text comes off with withoutTrailingRun
+ * (TrailingRuns), never with a pattern such as /\/+$/ tried from every
+ * character of every run; and an image, a link, a bracketed part or a pair
+ * of delimiters is found once, never looked for again from every opener.
+ * ---------------------------------------------------------------------------
+ */
+const TRAILING_RUN_READERS: ReadonlyArray<[string, string]> = [
+  [
+    "packages/Common/Server/Utils/DataSource/Connectors/ElasticsearchConnector.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/DataSource/Connectors/LokiConnector.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/DataSource/Connectors/PrometheusConnector.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/DataSource/Connectors/RestApiConnector.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityClient.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/SecurityEvent/Connectors/Okta/OktaClient.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/SecurityEvent/Connectors/Splunk/SplunkClient.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Utils/SecurityEvent/Connectors/MicrosoftSentinelNormalizer.ts",
+    "withoutTrailingSlashes(",
+  ],
+  ["packages/Common/Server/Utils/LLM/LLMService.ts", "withoutTrailingSlashes("],
+  [
+    "packages/Common/Utils/LLM/LlmProviderEndpoint.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/Monitor/Criteria/ServerMonitorCriteria.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Server/Utils/CodeRepository/CodeRepository.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Common/Utils/VMware/VMwareVCenterAddress.ts",
+    "withoutTrailingSlashes(",
+  ],
+  [
+    "packages/Probe/Utils/Monitors/MonitorTypes/ExternalStatusPageMonitor.ts",
+    "withoutTrailingSlashes(",
+  ],
+  ["packages/Common/Utils/Telemetry/NetworkHost.ts", "withoutTrailingDots("],
+  ["packages/Common/Utils/ProbeNetworkFailureUtil.ts", "withoutTrailingDots("],
+  [
+    "packages/Common/Utils/Monitor/MonitoringIntervalUtil.ts",
+    "withoutTrailingDots(",
+  ],
+  ["packages/Probe/Utils/Domain/DomainName.ts", "withoutTrailingDots("],
+  ["packages/Probe/Jobs/Discovery/FetchScans.ts", "withoutTrailingRun("],
+  [
+    "packages/Common/Server/Utils/AI/Chat/ChatAgentRunner.ts",
+    "withoutTrailingRun(",
+  ],
+  [
+    "packages/Common/Server/Utils/AI/SRE/InvestigationTldr.ts",
+    "withoutTrailingRun(",
+  ],
+  [
+    "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData.ts",
+    "withoutTrailingRun(",
+  ],
+];
+
+// One atom - an escape, a bracket class or a plain character.
+const SINGLE_ATOM: RegExp = /^(?:\\.|\[(?:\\.|[^\]\\])*\]|[^\\[\]()|*+?{}^$])$/;
+
+// One atom repeated to the end of the text: "\/+$", "[.\s]+$", "^-+|-+$".
+const isTrailingRunPattern: (source: string) => boolean = (
+  source: string,
+): boolean => {
+  const trailing: string = source.slice(source.lastIndexOf("|") + 1);
+
+  if (!trailing.endsWith("+$")) {
+    return false;
+  }
+
+  const atom: string = trailing.slice(0, -2);
+
+  return (
+    SINGLE_ATOM.test(atom) &&
+    (source === trailing || source === `^${atom}+|${trailing}`)
+  );
+};
+
+// A pair or a bracket looked for again from every opener.
+const FROM_EVERY_OPENER: ReadonlyArray<string> = [
+  "(?=\\S)([\\s\\S]*?\\S)",
+  "\\[([^\\]]*)\\]\\(",
+  "\\[([^\\]]+)\\]\\(",
+  "\\[[^\\]]*\\]",
+];
+
+const OPENER_READERS: ReadonlyArray<string> = [
+  "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData.ts",
+  "packages/Common/Server/Utils/Monitor/IncomingRequestIncidentGrouping.ts",
+];
+
+describe("the files that read outside text take a run that ends it off from its end", () => {
+  test("the guard knows a run that ends a text when it sees one", () => {
+    for (const source of [
+      "\\/+$",
+      "\\.+$",
+      "[.\\s]+$",
+      "[\\s.,;:]+$",
+      "^-+|-+$",
+      "_+$",
+    ]) {
+      expect({ source, run: isTrailingRunPattern(source) }).toEqual({
+        source,
+        run: true,
+      });
+    }
+
+    for (const source of [":\\d+$", "\\/chat\\/completions$", "a\\.+$"]) {
+      expect({ source, run: isTrailingRunPattern(source) }).toEqual({
+        source,
+        run: false,
+      });
+    }
+  });
+
+  test.each(TRAILING_RUN_READERS)("%s", (file: string, reader: string) => {
+    if (file.startsWith("ee/") && !EE_IS_CHECKED_OUT) {
+      return;
+    }
+
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_DIRECTORY, file),
+      "utf8",
+    );
+    const runs: Array<string> = patternsInSource(file, text)
+      .filter((pattern: SourcePattern): boolean => {
+        return isTrailingRunPattern(pattern.source);
+      })
+      .map((pattern: SourcePattern): string => {
+        return `${pattern.line}: /${pattern.source}/`;
+      });
+
+    expect({ file, runs }).toEqual({ file, runs: [] });
+    expect({ file, reader, used: text.includes(reader) }).toEqual({
+      file,
+      reader,
+      used: true,
+    });
+  });
+
+  test.each(OPENER_READERS)(
+    "%s finds each opener's match once",
+    (file: string) => {
+      const text: string = fs.readFileSync(
+        path.join(REPOSITORY_DIRECTORY, file),
+        "utf8",
+      );
+      const fromEveryOpener: Array<string> = patternsInSource(file, text)
+        .filter((pattern: SourcePattern): boolean => {
+          return FROM_EVERY_OPENER.some((shape: string): boolean => {
+            return pattern.source.includes(shape);
+          });
+        })
+        .map((pattern: SourcePattern): string => {
+          return `${pattern.line}: /${pattern.source}/`;
+        });
+
+      expect({ file, fromEveryOpener }).toEqual({ file, fromEveryOpener: [] });
+    },
+  );
 });
 
 describe("the readers each family is held to are the ones the product uses", () => {
@@ -398,6 +797,79 @@ describe("the readers each family is held to are the ones the product uses", () 
     [
       "packages/Common/Server/Services/IncidentEpisodeService.ts",
       ["clearPlaceholders("],
+    ],
+    [
+      "packages/Common/Server/Utils/Telemetry/StackTraceParser.ts",
+      [
+        "readV8EvalFrame(",
+        "readV8FrameWithParens(",
+        "readV8FrameWithParensNoColumn(",
+        "readV8FrameWithoutParens(",
+        "readPythonFrame(",
+        "readRubyFrame(",
+        "readCSharpFrameWithFile(",
+        "readPhpFrame(",
+      ],
+    ],
+    [
+      "packages/Common/Server/Utils/Telemetry/LogExceptionExtractor.ts",
+      [
+        "looksLikeStackTrace(",
+        "readAfterJavaThreadPrefix(",
+        "readAfterGoPanic(",
+        "readQualifiedTypeLine(",
+      ],
+    ],
+    [
+      "packages/Common/Server/Utils/CodeRepository/StackTraceRepoResolver.ts",
+      ["findPathsWithLineNumber("],
+    ],
+    [
+      "packages/Probe/Utils/Monitors/MonitorTypes/DnsMonitor.ts",
+      ["digOutputHasAuthenticatedData("],
+    ],
+    [
+      "packages/Probe/Utils/Monitors/MonitorTypes/DnssecMonitor.ts",
+      ["readDigFlagsField("],
+    ],
+    [
+      "packages/Common/Server/Utils/AI/Remediation/RemediationPlanRunner.ts",
+      ["findLabelledValues("],
+    ],
+    [
+      "packages/Common/Server/Utils/AI/SRE/Insights/InsightTriageRunner.ts",
+      ["findLabelledValues("],
+    ],
+    [
+      "packages/Common/Server/Utils/AI/SRE/InvestigationTldr.ts",
+      ["stripBlockMarkers("],
+    ],
+    [
+      "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData.ts",
+      ["withoutDelimiterPairs(", "IMAGE_OR_UNCLOSED", "LINK_OR_UNCLOSED"],
+    ],
+    [
+      "packages/Common/Server/Utils/Monitor/IncomingRequestIncidentGrouping.ts",
+      ["BRACKETED_PART"],
+    ],
+    ["packages/Common/Types/Text.ts", ["splitCapitalRunsBeforeWords("]],
+    [
+      "packages/Common/Types/Workflow/StepSamples.ts",
+      ["splitCapitalRunsBeforeWords("],
+    ],
+    [
+      "packages/Common/Server/Utils/Database/PostgresErrorTranslator.ts",
+      ["splitCapitalRunsBeforeWords("],
+    ],
+    [
+      STACK_TRACE_PRESENTATION_FILE,
+      [
+        "hasPythonTracebackHeaderLine(",
+        "readAtFrameLine(",
+        "readCallWithLocation(",
+        "endsWithFileLocation(",
+        "readGoModulePath(",
+      ],
     ],
   ])("%s", (file: string, calls: Array<string>) => {
     const text: string = fs.readFileSync(

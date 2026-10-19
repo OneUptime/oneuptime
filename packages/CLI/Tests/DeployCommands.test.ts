@@ -13,6 +13,8 @@ import {
 import * as ConfigManager from "../Core/ConfigManager";
 import { buildProgram } from "../Program";
 import * as fs from "fs";
+import { createServer, IncomingMessage, Server, ServerResponse } from "http";
+import { AddressInfo } from "net";
 import * as os from "os";
 import * as path from "path";
 
@@ -183,6 +185,8 @@ describe("sendChangeEvents", () => {
       "x-oneuptime-token": "key-1",
     });
     expect(request["data"]).toEqual({ events: [{ title: "Deploy" }] });
+    // The key is in the headers: a redirect is followed only on this server.
+    expect(request["options"]).toEqual({ sameServerRedirectsOnly: true });
   });
 
   it("an error answer is thrown as an API error", async () => {
@@ -199,6 +203,160 @@ describe("sendChangeEvents", () => {
         events: [{ title: "Deploy" }],
       }),
     ).rejects.toThrow("API error (401)");
+  });
+});
+
+/*
+ * Over real HTTP, two servers on this machine: the instance the events are
+ * sent to and another one. The ingestion key travels in a header, and an
+ * HTTP client hands a redirected request's headers to wherever the redirect
+ * points, so the request follows a redirect only on the instance's own
+ * server.
+ */
+describe("sendChangeEvents over HTTP", () => {
+  interface Received {
+    url: string;
+    headers: IncomingMessage["headers"];
+    body: string;
+  }
+
+  interface TestServer {
+    http: Server;
+    origin: string;
+    received: Array<Received>;
+    // Where a request to a path is redirected, and with which status.
+    redirects: Map<string, { status: number; location: string }>;
+  }
+
+  const startServer: () => Promise<TestServer> =
+    async (): Promise<TestServer> => {
+      const received: Array<Received> = [];
+      const redirects: Map<string, { status: number; location: string }> =
+        new Map();
+
+      const http: Server = createServer(
+        (req: IncomingMessage, res: ServerResponse) => {
+          let body: string = "";
+
+          req.on("data", (chunk: Buffer) => {
+            body += chunk.toString("utf8");
+          });
+
+          req.on("end", () => {
+            received.push({
+              url: req.url || "",
+              headers: req.headers,
+              body: body,
+            });
+
+            const redirect: { status: number; location: string } | undefined =
+              redirects.get(req.url || "");
+
+            if (redirect) {
+              res.writeHead(redirect.status, { location: redirect.location });
+              res.end();
+              return;
+            }
+
+            res.writeHead(200, { "content-type": "application/json" });
+            res.end(JSON.stringify({ ingested: 1, skipped: 0 }));
+          });
+        },
+      );
+
+      await new Promise<void>((resolve: () => void) => {
+        http.listen(0, "127.0.0.1", resolve);
+      });
+
+      return {
+        http: http,
+        origin: `http://127.0.0.1:${(http.address() as AddressInfo).port}`,
+        received: received,
+        redirects: redirects,
+      };
+    };
+
+  const stopServer: (server: TestServer) => Promise<void> = async (
+    server: TestServer,
+  ): Promise<void> => {
+    await new Promise<void>((resolve: () => void) => {
+      server.http.close(() => {
+        resolve();
+      });
+    });
+  };
+
+  let instance: TestServer;
+  let otherServer: TestServer;
+
+  beforeAll(async () => {
+    instance = await startServer();
+    otherServer = await startServer();
+  });
+
+  afterAll(async () => {
+    await stopServer(instance);
+    await stopServer(otherServer);
+  });
+
+  afterEach(() => {
+    instance.received.length = 0;
+    instance.redirects.clear();
+    otherServer.received.length = 0;
+    otherServer.redirects.clear();
+  });
+
+  it.each([301, 302, 303, 307, 308])(
+    "a %s to another server is not followed: the key never reaches it",
+    async (status: number) => {
+      instance.redirects.set(CHANGE_EVENTS_INGEST_PATH, {
+        status: status,
+        location: `${otherServer.origin}/collect`,
+      });
+
+      await expect(
+        sendChangeEvents({
+          instanceUrl: instance.origin,
+          ingestionKey: "key-not-to-leak",
+          events: [{ title: "Deploy" }],
+        }),
+      ).rejects.toThrow(otherServer.origin);
+
+      expect(instance.received).toHaveLength(1);
+      expect(instance.received[0]!.headers["x-oneuptime-token"]).toBe(
+        "key-not-to-leak",
+      );
+      expect(otherServer.received).toEqual([]);
+    },
+  );
+
+  it("a redirect on the instance's own server is followed, key and events with it", async () => {
+    instance.redirects.set(CHANGE_EVENTS_INGEST_PATH, {
+      status: 307,
+      location: `${instance.origin}/moved${CHANGE_EVENTS_INGEST_PATH}`,
+    });
+
+    await expect(
+      sendChangeEvents({
+        instanceUrl: instance.origin,
+        ingestionKey: "key-1",
+        events: [{ title: "Deploy" }],
+      }),
+    ).resolves.toEqual({ ingested: 1, skipped: 0 });
+
+    expect(
+      instance.received.map((request: Received): string => {
+        return request.url;
+      }),
+    ).toEqual([
+      CHANGE_EVENTS_INGEST_PATH,
+      `/moved${CHANGE_EVENTS_INGEST_PATH}`,
+    ]);
+    expect(instance.received[1]!.headers["x-oneuptime-token"]).toBe("key-1");
+    expect(JSON.parse(instance.received[1]!.body)).toEqual({
+      events: [{ title: "Deploy" }],
+    });
+    expect(otherServer.received).toEqual([]);
   });
 });
 

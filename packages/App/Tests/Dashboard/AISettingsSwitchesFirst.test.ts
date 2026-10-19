@@ -180,12 +180,15 @@ const OFF_FOR_NEW_PROJECTS: Array<string> = [
   "enableAlertInstrumentationFixTasks",
 ];
 
-// The cards under More settings that hold Project columns, not rules.
-const COLUMN_CARDS: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS.filter(
-  (card: AiLaneAdvancedCard): boolean => {
-    return !isAiLaneRulesCard(card);
-  },
-);
+/*
+ * The cards under More settings that hold Project columns, not rules: the
+ * same three on both pages.
+ */
+const COLUMN_CARDS: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS[
+  AiLane.Incident
+].filter((card: AiLaneAdvancedCard): boolean => {
+  return !isAiLaneRulesCard(card);
+});
 
 // Every switch on the pages, the ones under a switch too.
 const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
@@ -809,11 +812,16 @@ describe("what folded Advanced says", () => {
     return state;
   }
 
+  /*
+   * What a lane's rules tables read: investigation and remediation rules on
+   * both pages, and postmortem rules on the incidents' (0 unless said).
+   */
   function readRules(
     state: AiLaneAdvancedState,
-    counts: { investigation: number; remediation: number },
+    counts: { investigation: number; remediation: number; postmortem?: number },
+    lane: AiLane = AiLane.Incident,
   ): AiLaneAdvancedState {
-    return recordAiLaneAdvancedRules({
+    let read: AiLaneAdvancedState = recordAiLaneAdvancedRules({
       state: recordAiLaneAdvancedRules({
         state,
         card: AiLaneAdvancedCard.InvestigationRules,
@@ -822,11 +830,21 @@ describe("what folded Advanced says", () => {
       card: AiLaneAdvancedCard.RemediationRules,
       count: counts.remediation,
     });
+
+    if (lane === AiLane.Incident) {
+      read = recordAiLaneAdvancedRules({
+        state: read,
+        card: AiLaneAdvancedCard.PostmortemRules,
+        count: counts.postmortem || 0,
+      });
+    }
+
+    return read;
   }
 
   test("the three cards hold the lane's six limits, two each, once, and the two rules tables none", () => {
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
-      for (const card of AI_LANE_ADVANCED_CARDS) {
+      for (const card of AI_LANE_ADVANCED_CARDS[lane]) {
         if (isAiLaneRulesCard(card)) {
           expect([card, getAiLaneAdvancedCardColumns(lane, card)]).toEqual([
             card,
@@ -835,7 +853,7 @@ describe("what folded Advanced says", () => {
         }
       }
 
-      const columns: Array<string> = AI_LANE_ADVANCED_CARDS.flatMap(
+      const columns: Array<string> = AI_LANE_ADVANCED_CARDS[lane].flatMap(
         (card: AiLaneAdvancedCard): Array<string> => {
           return getAiLaneAdvancedCardColumns(lane, card);
         },
@@ -860,16 +878,29 @@ describe("what folded Advanced says", () => {
         readRules(read(AiLane.Incident, {}), none),
       ),
     ).toBe(
-      "Every incident is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
+      "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.",
     );
     expect(
       getAiLaneAdvancedSummary(
         AiLane.Alert,
-        readRules(read(AiLane.Alert, {}), none),
+        readRules(read(AiLane.Alert, {}), none, AiLane.Alert),
       ),
     ).toBe(
       "Every alert is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
     );
+  });
+
+  test("on the incident page, until the postmortem rules have read too, it claims nothing", () => {
+    expect(
+      getAiLaneAdvancedSummary(
+        AiLane.Incident,
+        readRules(
+          read(AiLane.Incident, {}),
+          { investigation: 0, remediation: 0 },
+          AiLane.Alert,
+        ),
+      ),
+    ).toBeUndefined();
   });
 
   test("until both rules tables have read, it claims nothing about the defaults", () => {
@@ -892,6 +923,7 @@ describe("what folded Advanced says", () => {
     for (const counts of [
       { investigation: 1, remediation: 0 },
       { investigation: 0, remediation: 2 },
+      { investigation: 0, remediation: 0, postmortem: 3 },
     ]) {
       const state: AiLaneAdvancedState = readRules(
         read(AiLane.Incident, {}),
@@ -968,10 +1000,14 @@ describe("what folded Advanced says", () => {
   });
 
   test("a rules table reading again replaces its count", () => {
-    let state: AiLaneAdvancedState = readRules(read(AiLane.Alert, {}), {
-      investigation: 3,
-      remediation: 0,
-    });
+    let state: AiLaneAdvancedState = readRules(
+      read(AiLane.Alert, {}),
+      {
+        investigation: 3,
+        remediation: 0,
+      },
+      AiLane.Alert,
+    );
 
     expect(isAiLaneAdvancedConfigured(AiLane.Alert, state)).toBe(true);
 

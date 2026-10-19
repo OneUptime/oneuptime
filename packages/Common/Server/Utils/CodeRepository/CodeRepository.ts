@@ -7,6 +7,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { withoutTrailingSlashes } from "../../../Utils/TrailingRuns";
 
 export default class CodeRepositoryUtil {
   @CaptureSpan()
@@ -59,7 +60,7 @@ export default class CodeRepositoryUtil {
   }): Promise<string> {
     await this.runGitCommand(data.repoPath, ["clone", data.repoUrl]);
 
-    const normalizedUrl: string = data.repoUrl.trim().replace(/\/+$/g, "");
+    const normalizedUrl: string = withoutTrailingSlashes(data.repoUrl.trim());
     const lastSegment: string =
       normalizedUrl.split("/").pop() || normalizedUrl.split(":").pop() || "";
     const folderName: string = lastSegment.replace(/\.git$/i, "");

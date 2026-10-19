@@ -1,3 +1,4 @@
+import { splitCapitalRunsBeforeWords } from "../CapitalRuns";
 import { JSONObject } from "../../Types/JSON";
 import { Hcl, HclExpression, HclObjectAttribute } from "./Hcl";
 
@@ -47,9 +48,10 @@ const SECRET_KEY_QUALIFIERS: ReadonlyArray<string> = [
 
 // A field name's words: "webhookSecretKey" -> webhook, secret, key; "x-api-key" -> x, api, key.
 function getFieldNameWords(name: string): Array<string> {
-  return name
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+  return splitCapitalRunsBeforeWords(
+    name.replace(/([a-z\d])([A-Z])/g, "$1 $2"),
+    " ",
+  )
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((word: string): boolean => {

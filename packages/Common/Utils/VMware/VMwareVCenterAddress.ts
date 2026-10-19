@@ -1,3 +1,5 @@
+import { withoutTrailingSlashes } from "../TrailingRuns";
+
 /*
  * The address a person types for a vCenter, read the one way the server, the
  * dashboard and the probe all agree on.
@@ -43,7 +45,6 @@ export type VCenterAddressResult =
 const SCHEME_PATTERN: RegExp = /^([a-z][a-z0-9+.-]*):\/\//i;
 const WHITESPACE_PATTERN: RegExp = /\s/;
 const IPV4_PATTERN: RegExp = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-const TRAILING_SLASHES_PATTERN: RegExp = /\/+$/;
 
 /*
  * The paths a browser shows for vCenter - its SDK and the vSphere Client - and
@@ -132,9 +133,7 @@ export default class VMwareVCenterAddress {
       return { error: INVALID_ADDRESS_MESSAGE };
     }
 
-    const path: string = parsed.pathname
-      .replace(TRAILING_SLASHES_PATTERN, "")
-      .toLowerCase();
+    const path: string = withoutTrailingSlashes(parsed.pathname).toLowerCase();
 
     if (path && !ACCEPTED_PATHS.includes(path)) {
       return {

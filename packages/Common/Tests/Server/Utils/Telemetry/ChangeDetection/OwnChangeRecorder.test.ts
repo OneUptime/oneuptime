@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
@@ -58,11 +59,9 @@ interface Submission {
 
 let submissions: Array<Submission>;
 let claimed: Set<string>;
-let jobLookup: jest.SpiedFunction<typeof RunnerJobService.findOneById>;
-let runLookup: jest.SpiedFunction<typeof AIRunService.findOneById>;
-let executionLookup: jest.SpiedFunction<
-  typeof RunbookExecutionService.findOneById
->;
+let jobLookup: SpyInstance<typeof RunnerJobService.findOneById>;
+let runLookup: SpyInstance<typeof AIRunService.findOneById>;
+let executionLookup: SpyInstance<typeof RunbookExecutionService.findOneById>;
 
 function kubectlJob(overrides: JSONObject = {}): JSONObject {
   return {

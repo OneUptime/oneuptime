@@ -1,3 +1,4 @@
+import { splitCapitalRunsBeforeWords } from "Common/Utils/CapitalRuns";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
@@ -28,9 +29,10 @@ const humanizeFieldName: (field: string) => string = (
   if (!field) {
     return "";
   }
-  const spaced: string = field
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+  const spaced: string = splitCapitalRunsBeforeWords(
+    field.replace(/([a-z\d])([A-Z])/g, "$1 $2"),
+    " ",
+  )
     .replace(/[_-]+/g, " ")
     .trim();
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
