@@ -5,6 +5,7 @@ import {
   redactDsns,
   redactPasswordSettings,
 } from "Common/Utils/DatabaseErrorRedaction";
+import { withoutTrailingStatementTerminators } from "Common/Utils/DataSource/SqlStatementTerminators";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
@@ -461,13 +462,6 @@ const SINGLE_QUOTED_OR_UNCLOSED: RegExp =
 const DOUBLE_QUOTED_OR_UNCLOSED: RegExp =
   /"(?:[^"\\]|\\.|"")*"|("(?:[^"\\]|\\.|"")*)/g;
 
-/*
- * The statement terminators at the end of a query, and the white space after
- * them. Tried only where a run of ";" starts, so a run that is not at the end
- * is read once rather than again from each of its ";".
- */
-const TRAILING_STATEMENT_TERMINATORS: RegExp = /(?<!;);+\s*$/g;
-
 export class SqlQueryValidator {
   /**
    * Remove SQL line (`-- ...`) and block (`/* ... *\/`) comments so structural
@@ -518,7 +512,7 @@ export class SqlQueryValidator {
     let normalized: string = this.stripComments(query).trim();
 
     // Drop trailing semicolons (a single trailing terminator is fine).
-    normalized = normalized.replace(TRAILING_STATEMENT_TERMINATORS, "").trim();
+    normalized = withoutTrailingStatementTerminators(normalized).trim();
 
     if (!normalized) {
       return "SQL query is empty.";
@@ -984,9 +978,9 @@ export default class SqlMonitor {
     const cursorName: string = "oneuptime_sql_monitor_cursor";
 
     // Strip any trailing terminator so it can be embedded in DECLARE ... CURSOR.
-    const cursorQuery: string = config.query
-      .replace(TRAILING_STATEMENT_TERMINATORS, "")
-      .trim();
+    const cursorQuery: string = withoutTrailingStatementTerminators(
+      config.query,
+    ).trim();
 
     try {
       /*
@@ -1055,9 +1049,9 @@ export default class SqlMonitor {
       };
     }
 
-    const query: string = config.query
-      .replace(TRAILING_STATEMENT_TERMINATORS, "")
-      .trim();
+    const query: string = withoutTrailingStatementTerminators(
+      config.query,
+    ).trim();
 
     const connection: MySqlConnection =
       await createMySqlConnection(connectionOptions);
@@ -1263,9 +1257,9 @@ export default class SqlMonitor {
     const { config, statementTimeoutInMs, connectionTimeoutInMs, maxRows } =
       input;
 
-    const query: string = config.query
-      .replace(TRAILING_STATEMENT_TERMINATORS, "")
-      .trim();
+    const query: string = withoutTrailingStatementTerminators(
+      config.query,
+    ).trim();
 
     /*
      * Teardown is bounded so a still-in-flight (e.g. cancelled) request can

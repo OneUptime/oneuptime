@@ -58,7 +58,13 @@ export interface FeedItemMarkdown {
   moreTextInMarkdown: string;
 }
 
-const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})(.*)$/;
+/*
+ * The fence's run is taken whole (nothing of its kind may follow it), as the
+ * pattern took it first anyway: on a line the rest of which cannot be read
+ * to its end - it holds a line separator other than "\n" - every shorter run
+ * was tried in turn, each reading the rest of the line again.
+ */
+const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
 const FENCE_CLOSE_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})[ \t]*$/;
 
 /*
