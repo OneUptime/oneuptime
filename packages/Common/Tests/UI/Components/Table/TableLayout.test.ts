@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   TABLE_ACTIONS_CONTENT_CLASS_NAME,
   TABLE_BODY_CELL_CLASS_NAME,
+  TABLE_CARD_LIST_ITEM_CLASS_NAME,
   TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
   TABLE_CELL_EDGE_PADDING_LEFT_CLASS_NAME,
   TABLE_CELL_EDGE_PADDING_RIGHT_CLASS_NAME,
@@ -482,6 +483,33 @@ describe("a row on a phone", () => {
         "min-w-0",
       ]),
     );
+  });
+
+  /*
+   * A card has no column to keep to and no pointer to show a name cut short
+   * in full: the alerts list named an alert's monitor only in Affected
+   * Resources, and a phone read "oneuptime-test - High Node Memory
+   * Utili..." and no more. An item of a list runs onto the next line
+   * instead, and a name with no place to break breaks anywhere rather than
+   * push the card past the screen's edge.
+   */
+  test("an item of a list in a card runs onto the next line, never cut short", () => {
+    expect(tokens(TABLE_CARD_LIST_ITEM_CLASS_NAME)).toEqual([
+      "[overflow-wrap:anywhere]",
+    ]);
+
+    for (const cut of [
+      "truncate",
+      "whitespace-nowrap",
+      "overflow-hidden",
+      "text-ellipsis",
+      "line-clamp-1",
+    ]) {
+      expect(tokens(TABLE_CARD_LIST_ITEM_CLASS_NAME)).not.toContain(cut);
+    }
+
+    // A row's cell still keeps each item to its line.
+    expect(tokens(TABLE_LIST_ITEM_CLASS_NAME)).toContain("truncate");
   });
 });
 

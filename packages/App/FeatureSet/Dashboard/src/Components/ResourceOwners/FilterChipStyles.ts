@@ -21,9 +21,13 @@
 export const FACET_FILTER_BAR_CLASS_NAME: string =
   "-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-2";
 
-// The pill: shape, border, fill and hover. The colours come from below.
+/*
+ * The pill: shape, border, fill and hover. The colours come from below.
+ * Never wider than the place it is given (max-w-full): a dropdown chip's
+ * place is never wider than the bar (FILTER_CHIP_PLACE_CLASSES).
+ */
 export const FILTER_CHIP_BOX_CLASSES: string =
-  "relative inline-flex rounded-full border transition-all";
+  "relative inline-flex max-w-full rounded-full border transition-all";
 
 /*
  * The chip's own button covers the whole pill: its -1px margin and clear 1px
@@ -31,7 +35,25 @@ export const FILTER_CHIP_BOX_CLASSES: string =
  * they sit on a chip that is one button.
  */
 export const FILTER_CHIP_TRIGGER_CLASSES: string =
-  "group -m-px inline-flex items-center gap-1.5 rounded-full border border-transparent px-2.5 py-1 text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1";
+  "group -m-px inline-flex min-w-0 items-center gap-1.5 rounded-full border border-transparent px-2.5 py-1 text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1";
+
+/*
+ * Where a dropdown chip sits in the bar (FilterChipDropdown): its popover
+ * hangs from it, and it is never wider than the bar. A chosen value can be
+ * long - "Monitor · oneuptime-test - High Node Memory Utilization", picked
+ * on the alerts list - and the chip ran past the card's edge on a phone,
+ * the whole page scrolling sideways with it.
+ */
+export const FILTER_CHIP_PLACE_CLASSES: string =
+  "relative inline-block min-w-0 max-w-full";
+
+/*
+ * What a dropdown chip says - its name, and the value picked: on one line,
+ * ending in "..." where the bar ends, the whole of it under the pointer
+ * (showFullValueWhenCutShort). The chip's button is still named by all of
+ * it.
+ */
+export const FILTER_CHIP_TEXT_CLASSES: string = "min-w-0 truncate";
 
 export const FILTER_CHIP_ACTIVE_CLASSES: string =
   "border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-100";
@@ -47,7 +69,7 @@ export const FILTER_CHIP_POPOVER_CLASSES: string =
  * which is laid over it (right-2.5: the button's px-2.5).
  */
 export const FILTER_CHIP_CLEAR_PLACE_CLASSES: string =
-  "ml-0.5 inline-flex h-4 w-4";
+  "ml-0.5 inline-flex h-4 w-4 shrink-0";
 
 export const FILTER_CHIP_CLEAR_CLASSES: string =
   "absolute right-2.5 top-1/2 inline-flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-full text-indigo-400 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";

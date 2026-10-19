@@ -1,6 +1,6 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { DetailValueContext } from "../Detail/DetailValueContext";
-import { TableCellContext } from "./TableCellContext";
+import { TableCardContext, TableCellContext } from "./TableCellContext";
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
@@ -219,20 +219,24 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
    * A table's rows draw their cells as a table does - a record's labels on
    * the row's one line, the first two and "+N"; nothing to list as a quiet
    * dash (TableCellContext) - even where the table itself is drawn inside a
-   * detail card's value (DetailValueContext).
+   * detail card's value (DetailValueContext). On a phone each row is a card
+   * (TableCardContext), where a list's long names run onto the next line
+   * instead of ending in "...".
    */
   return (
     <DetailValueContext.Provider value={false}>
       <TableCellContext.Provider value={true}>
-        {props.enableDragAndDrop ? (
-          <Droppable droppableId={props.dragAndDropScope || ""}>
-            {(provided: DroppableProvided) => {
-              return getBody(provided);
-            }}
-          </Droppable>
-        ) : (
-          getBody()
-        )}
+        <TableCardContext.Provider value={Boolean(props.isMobile)}>
+          {props.enableDragAndDrop ? (
+            <Droppable droppableId={props.dragAndDropScope || ""}>
+              {(provided: DroppableProvided) => {
+                return getBody(provided);
+              }}
+            </Droppable>
+          ) : (
+            getBody()
+          )}
+        </TableCardContext.Provider>
       </TableCellContext.Provider>
     </DetailValueContext.Provider>
   );

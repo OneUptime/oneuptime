@@ -1,10 +1,13 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import { useIsDetailValue } from "../Detail/DetailValueContext";
 import PlaceholderText from "../Detail/PlaceholderText";
-import { useIsTableCell } from "../Table/TableCellContext";
+import { useIsTableCard, useIsTableCell } from "../Table/TableCellContext";
 import TableEmptyValue from "../Table/TableEmptyValue";
 import { showFullValueWhenCutShort } from "../Table/FullValueTitle";
-import { TABLE_LIST_ITEM_CLASS_NAME } from "../Table/TableLayout";
+import {
+  TABLE_CARD_LIST_ITEM_CLASS_NAME,
+  TABLE_LIST_ITEM_CLASS_NAME,
+} from "../Table/TableLayout";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
@@ -34,6 +37,7 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
   const [showMoreItems, setShowMoreItems] = React.useState<boolean>(false);
   const isDetailValue: boolean = useIsDetailValue();
   const isTableCell: boolean = useIsTableCell();
+  const isTableCard: boolean = useIsTableCard();
 
   if (!props.items || props.items.length === 0) {
     /*
@@ -77,12 +81,22 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
   /*
    * In a table's cell, each item keeps to its line and ends in "..." when
    * it is wider than the column, its whole text under the pointer
-   * (TABLE_LIST_ITEM_CLASS_NAME).
+   * (TABLE_LIST_ITEM_CLASS_NAME). In a phone's card there is no column to
+   * keep to and no pointer: a long name runs onto the next line
+   * (TABLE_CARD_LIST_ITEM_CLASS_NAME).
    */
   const getItem: (item: TGenericObject, key: number) => ReactElement = (
     item: TGenericObject,
     key: number,
   ): ReactElement => {
+    if (isTableCard) {
+      return (
+        <div key={key} className={TABLE_CARD_LIST_ITEM_CLASS_NAME}>
+          {props.getEachElement(item)}
+        </div>
+      );
+    }
+
     if (isTableCell) {
       return (
         <div
