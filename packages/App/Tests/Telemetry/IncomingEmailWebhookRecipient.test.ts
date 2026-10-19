@@ -14,7 +14,11 @@ import { JSONObject } from "Common/Types/JSON";
  * before it reaches the queue.
  *
  * The provider is the real SendGridInboundProvider, so its parsing of the
- * webhook form is part of what is exercised.
+ * webhook form is part of what is exercised, and the route's handlers run in
+ * the order it mounts them: the check that a request was posted to the
+ * installation's own address first, then (stood in for here) the multipart
+ * parser, then the handler. IncomingEmailWebhookSecretOverHttp holds the
+ * check to its rule over HTTP.
  */
 
 const DOMAIN: string = "inbound.oneuptime.example";
@@ -28,16 +32,43 @@ const mockRegisteredHandlers: Record<
   (req: ExpressRequest, res: ExpressResponse) => Promise<void>
 > = {};
 
+type MockHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: (error?: unknown) => void,
+) => unknown;
+
+/*
+ * The route's handlers, run as Express runs them: each in the order it is
+ * mounted, the next one only when the one before calls next().
+ */
 jest.mock("Common/Server/Utils/Express", () => {
   return {
     __esModule: true,
     default: {
       getRouter: () => {
         return {
-          post: (uri: string, ...handlers: Array<unknown>) => {
-            mockRegisteredHandlers[uri] = handlers[
-              handlers.length - 1
-            ] as (typeof mockRegisteredHandlers)[string];
+          post: (uri: string, ...handlers: Array<MockHandler>) => {
+            mockRegisteredHandlers[uri] = async (
+              req: ExpressRequest,
+              res: ExpressResponse,
+            ): Promise<void> => {
+              for (const handler of handlers) {
+                let calledNext: boolean = false;
+
+                await handler(req, res, (error?: unknown) => {
+                  if (error) {
+                    throw error;
+                  }
+
+                  calledNext = true;
+                });
+
+                if (!calledNext) {
+                  return;
+                }
+              }
+            };
           },
         };
       },
@@ -45,10 +76,19 @@ jest.mock("Common/Server/Utils/Express", () => {
   };
 });
 
+// The body arrives already parsed, as SendGrid's multipart form would be.
 jest.mock("Common/Server/Middleware/MultipartFormData", () => {
   return {
     __esModule: true,
-    default: jest.fn(),
+    default: jest.fn(
+      (
+        _req: ExpressRequest,
+        _res: ExpressResponse,
+        next: (error?: unknown) => void,
+      ) => {
+        next();
+      },
+    ),
   };
 });
 
@@ -121,6 +161,8 @@ jest.mock(
 );
 
 import Response from "Common/Server/Utils/Response";
+import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
+import Exception from "Common/Types/Exception/Exception";
 import TelemetryQueueService from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 // Importing the router module registers the route on the mocked router.
 import "../../FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail";
@@ -133,6 +175,8 @@ const sendJsonMock: MockedFn =
   Response.sendJsonObjectResponse as unknown as MockedFn;
 const sendErrorMock: MockedFn =
   Response.sendErrorResponse as unknown as MockedFn;
+const multipartMock: MockedFn =
+  MultipartFormDataMiddleware as unknown as MockedFn;
 
 type InvokeRouteFunction = (input: {
   to: string;
@@ -196,6 +240,19 @@ const errorMessage: ErrorMessageFunction = (): string => {
       | Error
       | undefined
   )?.message as string;
+};
+
+type ErrorStatusFunction = () => number;
+
+// The status the refusal answers with: its exception's code.
+const errorStatus: ErrorStatusFunction = (): number => {
+  expect(sendErrorMock).toHaveBeenCalledTimes(1);
+
+  return (
+    (sendErrorMock.mock.calls as unknown as Array<Array<unknown>>)[0]![2] as
+      | Exception
+      | undefined
+  )?.code as number;
 };
 
 beforeEach(() => {
@@ -300,7 +357,18 @@ describe("mail that is not for a monitor", () => {
     });
 
     expect(addJobMock).not.toHaveBeenCalled();
-    expect(errorMessage()).toBe("Invalid webhook signature");
+    expect(multipartMock).not.toHaveBeenCalled();
+    expect(errorMessage()).toBe(
+      "The webhook URL does not end with this server's INBOUND_EMAIL_WEBHOOK_SECRET.",
+    );
+    expect(errorStatus()).toBe(403);
+  });
+
+  test("a request with the right webhook secret is parsed once", async () => {
+    await invokeRoute({ to: `nightly-backups@${DOMAIN}` });
+
+    expect(multipartMock).toHaveBeenCalledTimes(1);
+    expect(addJobMock).toHaveBeenCalledTimes(1);
   });
 });
 

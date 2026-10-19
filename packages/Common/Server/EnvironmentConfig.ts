@@ -1911,5 +1911,63 @@ export const InboundEmailProvider: InboundEmailProviderType =
 export const InboundEmailDomain: string | undefined =
   process.env["INBOUND_EMAIL_DOMAIN"] || undefined;
 
+/*
+ * THE INBOUND EMAIL WEBHOOK SECRET (INBOUND_EMAIL_WEBHOOK_SECRET)
+ *
+ * The mail provider delivers every email sent to the inbound domain by
+ * posting it to /incoming-email/sendgrid/<secret>, an address anybody can
+ * reach. What is delivered there becomes an Incoming Email monitor's or a
+ * workflow's email: it opens and resolves incidents and alerts and starts
+ * workflows. The last part of that address is the one thing that tells the
+ * provider's deliveries from anybody else's, so a delivery is taken only
+ * when it ends with this installation's own secret.
+ *
+ * InboundEmailWebhookSecret is the value as the operator set it, whitespace
+ * around it ignored, or undefined when there is none the installation may
+ * use: unset or blank, a value this repository ships (isShippedSecretValue),
+ * or a placeholder the setup guide prints (PublishedInboundEmailWebhookSecrets,
+ * whatever its case). Without one, every delivery is refused, as nothing
+ * could tell the provider's from anybody else's: the webhook answers 503,
+ * which the provider retries for up to three days, so the mail sent while an
+ * operator sets the secret arrives once it is set.
+ */
+export const PublishedInboundEmailWebhookSecrets: ReadonlyArray<string> = [
+  "your_secret",
+  "your-secret",
+  "replace-with-a-strong-random-secret",
+];
+
+export function getUsableInboundEmailWebhookSecret(
+  value: string | null | undefined,
+): string | undefined {
+  if (typeof value !== "string" || isShippedSecretValue(value)) {
+    return undefined;
+  }
+
+  const trimmed: string = value.trim();
+
+  if (PublishedInboundEmailWebhookSecrets.includes(trimmed.toLowerCase())) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
 export const InboundEmailWebhookSecret: string | undefined =
-  process.env["INBOUND_EMAIL_WEBHOOK_SECRET"] || undefined;
+  getUsableInboundEmailWebhookSecret(
+    process.env["INBOUND_EMAIL_WEBHOOK_SECRET"],
+  );
+
+export const InboundEmailSetupDocsUrl: string =
+  "https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email#configure-oneuptime";
+
+/*
+ * Said once at boot by the app (App/Index.ts) when incoming email is on
+ * (INBOUND_EMAIL_DOMAIN) and there is no secret it may use, or null: every
+ * delivery is refused until there is, and the provider says so to no one.
+ * Names the setting and what to set it to, never a value.
+ */
+export const InboundEmailWebhookSecretWarning: string | null =
+  InboundEmailDomain && !InboundEmailWebhookSecret
+    ? `INBOUND_EMAIL_DOMAIN is set, but INBOUND_EMAIL_WEBHOOK_SECRET is unset, blank or a placeholder from the OneUptime repository or its docs, so nothing proves an email was delivered by SendGrid. OneUptime refuses every email delivered to the inbound domain until it is set (with 503, which SendGrid retries for up to three days), and none reaches an Incoming Email monitor or a workflow. If the Destination URL in SendGrid's Inbound Parse settings already ends with a long random value of your own, set INBOUND_EMAIL_WEBHOOK_SECRET to that value. Otherwise change that URL first, to end with a new long random value (https://<your OneUptime host>/incoming-email/sendgrid/<the new value>), and then set INBOUND_EMAIL_WEBHOOK_SECRET to the same value, so that SendGrid retries the emails sent in between instead of having them refused for a wrong secret. With Docker Compose, set it in config.env and run npm start; with Helm, set inboundEmail.webhookSecret and upgrade the release. See ${InboundEmailSetupDocsUrl}.`
+    : null;
