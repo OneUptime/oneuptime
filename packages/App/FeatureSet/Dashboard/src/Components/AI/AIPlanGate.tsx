@@ -70,7 +70,7 @@ const AIPlanGate: FunctionComponent = (): ReactElement => {
       title={
         <span>
           <TranslatedSentence
-            template="This project is on the {{plan}} plan, so AI requests will be declined. {{upgradeLink}} to use AI chat, tasks, and code repositories."
+            template="This project is on the {{plan}} plan, so AI requests will be declined. {{upgradeLink}} to use AI chat and Code."
             values={{ plan: currentPlan || "" }}
             slots={{
               upgradeLink: (

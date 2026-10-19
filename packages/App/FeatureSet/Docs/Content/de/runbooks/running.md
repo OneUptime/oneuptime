@@ -133,11 +133,11 @@ Der Schalter **Dieses Runbook ausführen** des Runbooks ist auf seiner Seite **E
 :::
 
 :::details Ein Schritt ist fehlgeschlagen, weil ihm ein Runner oder Anmeldedaten fehlen
-Die Meldung lautet zum Beispiel "Bash step is missing a Runner. Pick one under Runbooks → Runners." Der Schritt wurde ohne **Runner** gespeichert, oder ein SSH- oder Kubernetes-Schritt ohne **Anmeldedaten**. Öffnen Sie die **Schritte** des Runbooks, wählen Sie, was dem Schritt fehlt, klicken Sie auf **Schritte speichern** und führen Sie das Runbook erneut aus.
+Die Meldung lautet zum Beispiel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Der Schritt wurde ohne **Runner** gespeichert, oder ein SSH- oder Kubernetes-Schritt ohne **Anmeldedaten**. Ein JavaScript-Schritt braucht nur dann einen eigenen Runner, wenn kein [globaler Runner](/docs/runbooks/agents#globale-runner) ihn ausführen kann. Öffnen Sie die **Schritte** des Runbooks, wählen Sie, was dem Schritt fehlt, klicken Sie auf **Schritte speichern** und führen Sie das Runbook erneut aus.
 :::
 
 :::details Ein Schritt ist fehlgeschlagen, weil kein Runbook-Agent ihn übernommen hat
-Die Meldung lautet "No runbook agent picked up this step before the wait window expired." Der Runner des Schritts hat den Job nicht innerhalb seines Übernahme-Timeouts übernommen. Prüfen Sie unter **Runbooks → Runbook-Agents**, dass der Runner **Verbunden** ist und **Führt Runbooks aus** an ist. Siehe [Runbook-Agents](/docs/runbooks/agents#fehlerbehebung).
+Die Meldung lautet "No runbook agent picked up this step before the wait window expired." Der Runner des Schritts hat den Job nicht innerhalb seines Übernahme-Timeouts übernommen. Prüfen Sie unter **Runbooks → Runbook-Agents**, dass der Runner **Verbunden** ist und **Führt Runbooks aus** an ist. Siehe [Runbook-Agents](/docs/runbooks/agents#fehlerbehebung). Ein Schritt auf einem globalen Runner meldet stattdessen "No global Runner picked up this step before the wait window expired.": Führen Sie das Runbook erneut aus, erhöhen Sie das Übernahme-Timeout des Schritts, oder wählen Sie einen Ihrer eigenen Runner.
 :::
 
 :::details Der Lauf wartet seit Stunden

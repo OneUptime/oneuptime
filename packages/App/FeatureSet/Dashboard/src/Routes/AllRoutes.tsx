@@ -27,7 +27,7 @@ export { default as FormsRoutes } from "./FormsRoutes";
 export { default as StatusPagesRoutes } from "./StatusPagesRoutes";
 export { default as DashboardRoutes } from "./DashboardRoutes";
 export { default as ServiceRoutes } from "./ServiceRoutes";
-export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
+export { default as CodeRoutes } from "./CodeRoutes";
 export { default as KubernetesRoutes } from "./KubernetesRoutes";
 export { default as DockerRoutes } from "./DockerRoutes";
 export { default as NetworkDeviceRoutes } from "./NetworkDeviceRoutes";
@@ -45,7 +45,6 @@ export { default as CloudResourceRoutes } from "./CloudResourceRoutes";
 export { default as DatabaseRoutes } from "./DatabaseRoutes";
 export { default as MessageQueueRoutes } from "./MessageQueueRoutes";
 export { default as RumApplicationRoutes } from "./RumApplicationRoutes";
-export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 export { default as AIInsightsRoutes } from "./AIInsightsRoutes";
 
 // Settings

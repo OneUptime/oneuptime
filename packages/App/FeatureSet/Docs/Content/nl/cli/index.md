@@ -82,6 +82,7 @@ De lijst toont elk soort record waarmee je kunt werken, en de opdracht ervan, zo
 | `oneuptime login <api-key> <instance-url>` | Slaat een API-sleutel en een adres op als context | [Authenticatie](/docs/cli/authentication#inloggen) |
 | `oneuptime context list`, `use`, `current`, `delete` | Toont, wisselt, laat zien en verwijdert opgeslagen contexten | [Authenticatie](/docs/cli/authentication#contexten) |
 | `oneuptime whoami` | Toont de URL en API-sleutel die de volgende opdracht gebruikt | [Authenticatie](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken) |
+| `oneuptime deploy` | Legt een deploy, of een andere wijziging, vast voor grafieken en OneUptime AI | [Deploys en wijzigingen](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Werkt met één soort record | [Bewerkingen op bronnen](/docs/cli/resource-operations) |
 | `oneuptime resources` | Toont de soorten records, met hun opdrachten | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Drukt de versie van de CLI af | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-version) |

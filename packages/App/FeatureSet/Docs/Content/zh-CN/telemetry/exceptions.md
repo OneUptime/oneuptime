@@ -113,9 +113,9 @@ flowchart TB
 | --- | --- |
 | **Fix this exception with AI** | 修复根本原因。用 **Fix with AI** 启动它。 |
 | **Generate Regression Test** | 添加一个测试，在缺陷修复之前它会一直失败。 |
-| **Improve Error Handling** | 针对预期内的错误：更早地校验输入，让用户数据不出现在消息中，并把错误标记为已处理。 |
+| **改进错误处理** | 针对预期内的错误：更早地校验输入，让用户数据不出现在消息中，并把错误标记为已处理。 |
 
-AI 首先需要三样东西：一个 LLM 提供商、一个通过 GitHub App 连接的 GitHub 仓库，以及一个在线运行任务的 AI 代理。页面会逐一检查，并链接到缺少的部分。异常处于已解决或已归档状态时，这些任务会暂停。参见 [修复任务](/docs/ai/ai-agent)。
+AI 首先需要三样东西：一个 LLM 提供商、一个通过 GitHub App 连接的 GitHub 仓库，以及一个在线运行任务的 AI 代理。页面会逐一检查，并链接到缺少的部分。异常处于已解决或已归档状态时，这些任务会暂停。参见 [代码](/docs/ai/ai-agent)。
 
 ## 异常洞察
 
@@ -140,6 +140,6 @@ AI 首先需要三样东西：一个 LLM 提供商、一个通过 GitHub App 连
 :::cards
 - [异常监控](/docs/monitor/exceptions-monitor): 在异常激增时收到警报。
 - [源代码映射](/docs/telemetry/source-maps): 为浏览器代码提供可读的堆栈跟踪。
-- [修复任务](/docs/ai/ai-agent): AI 如何修复代码并打开 pull request。
+- [代码](/docs/ai/ai-agent): AI 如何修复代码并打开 pull request。
 - [跟踪浏览器](/docs/telemetry/traces-explorer): 查看异常发生时所在的请求。
 :::

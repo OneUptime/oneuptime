@@ -30,11 +30,11 @@ De twee staan los van elkaar, en je kunt er één of allebei gebruiken. De GitHu
 
 ## Je repository's koppelen
 
-Open **Producten → Code → Taken**, dan **Code-repositories**, en klik op **Connect with GitHub App**. GitHub vraagt waar de app moet worden geïnstalleerd en welke repository's ze mag gebruiken. Elke repository in de installatie wordt geïmporteerd, en blijft bijgewerkt wanneer je repository's aan de installatie toevoegt of eruit haalt.
+Open **Producten → Code** en klik op **GitHub verbinden**. GitHub vraagt waar de app moet worden geïnstalleerd en welke repository's ze mag gebruiken. Elke repository in de installatie wordt geïmporteerd, en blijft bijgewerkt wanneer je repository's aan de installatie toevoegt of eruit haalt.
 
-Als de app al op het account is geïnstalleerd, voor een ander project of rechtstreeks vanuit GitHub, klik dan op **Een bestaande installatie koppelen**, onder de kaart **Connect with GitHub App**, in plaats van haar opnieuw te installeren. Daarvoor is een GitHub-account nodig dat de installatie beheert: de eigenaar van een persoonlijk account, of iemand met admin-rechten op elke repository waartoe de installatie toegang heeft, zoals een eigenaar van de organisatie die heeft.
+Als de app al op het account is geïnstalleerd, voor een ander project of rechtstreeks vanuit GitHub, klik dan op **Een bestaande installatie koppelen**, onder **GitHub verbinden**, in plaats van haar opnieuw te installeren. Daarvoor is een GitHub-account nodig dat de installatie beheert: de eigenaar van een persoonlijk account, of iemand met admin-rechten op elke repository waartoe de installatie toegang heeft, zoals een eigenaar van de organisatie die heeft.
 
-Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: [GitHub-integratie](/docs/self-hosted/github-integration) laat zien hoe je die maakt. Daarna openen [Hersteltaken](/docs/ai/ai-agent) pull requests in je repository's, en de pagina [GitHub App](/docs/ai/github-app) laat zien wat de app doet wanneer je haar noemt in een issue of een pull request.
+Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: [GitHub-integratie](/docs/self-hosted/github-integration) laat zien hoe je die maakt. Daarna opent AI vanuit [Code](/docs/ai/ai-agent) pull requests in je repository's, en de pagina [GitHub App](/docs/ai/github-app) laat zien wat de app doet wanneer je haar noemt in een issue of een pull request.
 
 ## Voordat je begint
 

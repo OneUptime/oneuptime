@@ -239,8 +239,16 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       `Getting access token for ${repo.organizationName}/${repo.repositoryName}...`,
     );
 
+    /*
+     * The run's id goes with the token request, so the server links the
+     * run to the repository it found (the task then shows on that
+     * repository's page in Code) - the open pull request cap still applies.
+     */
     const tokenData: RepositoryToken =
-      await context.backendAPI.getRepositoryToken(repo.id);
+      await context.backendAPI.getRepositoryToken(
+        repo.id,
+        context.taskId.toString(),
+      );
 
     // Clone the repository
     await this.log(

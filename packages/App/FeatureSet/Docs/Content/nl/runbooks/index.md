@@ -35,7 +35,7 @@ flowchart TB
 
 Elke run van een runbook is een **uitvoering**. Bij de start worden de stappen van het runbook erop gekopieerd en loopt OneUptime ze op volgorde af. Een Manual-stap, of een stap die goedkeuring nodig heeft, pauzeert de uitvoering tot iemand handelt.
 
-HTTP- en AI-stappen lopen op de OneUptime Worker. JavaScript-, Bash-, SSH- en Kubernetes-stappen lopen op een [Runner](/docs/runbooks/agents) die u in uw eigen infrastructuur installeert, zodat uw scripts nooit op de servers van OneUptime draaien. De status, uitvoer en foutmelding van elke stap worden vastgelegd op de uitvoering, die bij het incident, de waarschuwing of het evenement blijft waarvoor ze liep.
+HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en Kubernetes-stappen lopen op een [Runner](/docs/runbooks/agents) die u in uw eigen infrastructuur installeert, zodat die scripts nooit op de servers van OneUptime draaien. Een JavaScript-stap loopt ook op een van uw Runners of, als hij er geen kiest, op een [globale Runner](/docs/runbooks/agents#globale-runners), in een sandbox die alleen het internet bereikt. De status, uitvoer en foutmelding van elke stap worden vastgelegd op de uitvoering, die bij het incident, de waarschuwing of het evenement blijft waarvoor ze liep.
 
 ## Kernbegrippen
 
@@ -46,9 +46,9 @@ HTTP- en AI-stappen lopen op de OneUptime Worker. JavaScript-, Bash-, SSH- en Ku
 | **Runbook-regel** | Een regel die automatisch een of meer runbooks koppelt aan incidenten, waarschuwingen of geplande onderhoudsevenementen die aan de voorwaarden voldoen: hun monitoren, ernst, labels, monitorlabels, titel of beschrijving. |
 | **Uitvoering** | Eén run van een runbook. Ontstaat wanneer een regel afgaat, wanneer iemand op een evenement op **Runbook uitvoeren** klikt, of wanneer iemand op het runbook zelf op **Run Now** klikt. Bevat een momentopname van de stappen en de status en uitvoer van elke stap. |
 | **Momentopname** | De bevroren kopie van de stappen van het runbook die op elke uitvoering staat. U kunt het runbook later bewerken zonder de geschiedenis van eerdere uitvoeringen te herschrijven. |
-| **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en Kubernetes-stappen uit die hem noemen. Ook wel runbook-agent genoemd. |
+| **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en Kubernetes-stappen uit die hem noemen. Ook wel runbook-agent genoemd. Een globale Runner, een van de Runners die OneUptime voor elk project draait, voert de JavaScript-stappen uit die er geen noemen. |
 | **Inloggegeven** | Beheerde SSH- of Kubernetes-toegang die SSH- en Kubernetes-stappen gebruiken. Versleuteld opgeslagen en alleen overhandigd aan de Runners waaraan u het toewijst. |
-| **Geheim** | Eén waarde, zoals een API-token, die een Bash- of JavaScript-script gebruikt als `{{runbookSecrets.NAME}}`. Versleuteld opgeslagen en alleen overhandigd aan de Runners waaraan u het toewijst. |
+| **Geheim** | Eén waarde, zoals een API-token, die een Bash- of JavaScript-script gebruikt als `{{runbookSecrets.NAME}}`. Versleuteld opgeslagen en alleen overhandigd aan de Runners waaraan u het toewijst. Globale Runners krijgen het alleen als u dat toestaat. |
 
 ## Staptypen
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 Een monitor opent incident `INC-4821 · db-primary connection timeout`. De regel komt overeen en er start een uitvoering:
 
-- Stap 1 (JavaScript) loopt op de Runner die u ervoor hebt gekozen. De returnwaarde, zoals `{ lagMs: 412 }`, wordt vastgelegd.
+- Stap 1 (JavaScript) loopt op de Runner die u ervoor hebt gekozen. De returnwaarde, zoals `{ lagMs: 412 }`, wordt vastgelegd. Een stap die geen Runner kiest, loopt op een globale Runner.
 - Stap 2 (Manual) pauzeert de uitvoering, die **Wacht op u** toont. De persoon met dienst controleert het dashboard en klikt op **Mark complete**.
 - Stap 3 (HTTP request) loopt, en het antwoord op de `POST` wordt vastgelegd.
 - Stap 4 (Manual) pauzeert de uitvoering opnieuw tot iemand de stap voltooit.
@@ -170,7 +170,7 @@ De uitvoering blijft op de pagina **Runbooks** van het incident. Wanneer u de po
 
 :::cards
 - [Een runbook schrijven](/docs/runbooks/authoring): Uw eerste runbook en de stappen maken.
-- [Runbook-agenten](/docs/runbooks/agents): Een Runner installeren voordat u een JavaScript-, Bash-, SSH- of Kubernetes-stap schrijft.
+- [Runbook-agenten](/docs/runbooks/agents): Een Runner installeren voordat u een Bash-, SSH- of Kubernetes-stap schrijft.
 - [Runbook-regels](/docs/runbooks/rules): Runbooks automatisch starten wanneer incidenten ontstaan.
 - [Runbook-configuratie & veiligheid](/docs/runbooks/configuration): Limieten, time-outs, machtigingen en beveiliging.
 :::

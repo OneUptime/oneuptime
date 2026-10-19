@@ -14,7 +14,7 @@ Un provider LLM è il modello dietro ogni funzionalità di IA di OneUptime: inda
 - **Indagini**: OneUptime AI indaga sui nuovi incidenti e avvisi e pubblica nella timeline un'analisi della causa principale con le fonti. Vedi [AI SRE](/docs/ai/ai-sre).
 - **Domande**: **Ask AI** risponde a partire dai dati del tuo progetto, con una fonte per ogni affermazione. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 - **Bozze**: **Draft with AI** nelle note di incidenti, avvisi e manutenzioni programmate, e i postmortem, scritti su richiesta o quando un incidente si risolve.
-- **Codice**: pull request che correggono eccezioni, tracce lente e le cause trovate dalle indagini, da OneUptime o da GitHub. Vedi [Attività di correzione](/docs/ai/ai-agent).
+- **Codice**: pull request che correggono eccezioni, tracce lente e le cause trovate dalle indagini, da OneUptime o da GitHub. Vedi [Codice](/docs/ai/ai-agent).
 - **Tutto il resto**: il triage di AI Insights, i passaggi di IA dei flussi di lavoro e dei runbook, e le risposte in Slack e Microsoft Teams.
 
 ## Quale provider usa l'IA
@@ -301,7 +301,7 @@ Sei ancora bloccato? Cerca il tuo errore nelle [issue GitHub di OneUptime](https
 ## Passi successivi
 
 :::cards
-- [Attività di correzione](/docs/ai/ai-agent): Le pull request che scrive il tuo provider, e dove partono.
+- [Codice](/docs/ai/ai-agent): Le pull request che scrive il tuo provider, e dove partono.
 - [AI SRE](/docs/ai/ai-sre): Cosa fa OneUptime AI con il provider una volta che ne ha uno.
 - [Chiedi all'IA](/docs/ai/ask-ai): Fai una domanda al tuo progetto, e cambia il provider di una conversazione.
 :::

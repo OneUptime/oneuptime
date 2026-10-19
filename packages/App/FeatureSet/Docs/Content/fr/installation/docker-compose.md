@@ -139,6 +139,7 @@ La dernière commande affiche `0` : il ne reste aucun secret factice. La boucle 
 | `REGISTER_PROBE_KEY` | L'enregistrement des sondes auprès de votre instance. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Les sondes globales que Docker Compose peut exécuter (`probe-1` tourne par défaut). |
 | `ONEUPTIME_RUNNER_KEY` | Le Runner intégré. |
+| `GLOBAL_RUNNER_KEY` | Le Runner global intégré, qui exécute les étapes JavaScript de tous les projets. |
 
 > [!IMPORTANT]
 > Définissez les secrets avant le premier démarrage, et conservez-les ensuite. PostgreSQL ne prend son mot de passe qu'à la création de sa base, et modifier `ENCRYPTION_SECRET` plus tard rend illisible toute valeur chiffrée avec l'ancien. Si `DATABASE_PASSWORD` est encore le secret factice au premier démarrage, `npm start` lui donne une valeur aléatoire avant que PostgreSQL ne crée sa base.

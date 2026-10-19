@@ -260,8 +260,8 @@ describe("parseAIFixReadinessResponse", () => {
 describe("getReadinessCheckLink", () => {
   test.each([
     ["llmProvider", PageMap.SETTINGS_AI_LLM_PROVIDERS],
-    ["repositoryConnected", PageMap.CODE_REPOSITORY],
-    ["repositoryResolved", PageMap.CODE_REPOSITORY],
+    ["repositoryConnected", PageMap.CODE],
+    ["repositoryResolved", PageMap.CODE],
     ["agentAvailable", PageMap.RUNBOOKS_RUNNERS],
   ])("links %s to the page that fixes it", (id: string, pageMap: PageMap) => {
     const link: ReturnType<typeof getReadinessCheckLink> =

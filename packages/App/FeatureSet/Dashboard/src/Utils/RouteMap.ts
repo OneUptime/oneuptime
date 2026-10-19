@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ON_CALL_RULES_PAGE_PATH } from "Common/Types/NotificationRule/OnCallRuleKind";
 import { getDeveloperDocsRouteMapEntries } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import { MOVED_CODE_ROOT_PATHS } from "../Routes/MovedPagePaths";
 
 export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
@@ -75,10 +76,17 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_ARCHIVED]: `archived`,
 };
 
-export const CodeRepositoryRoutePath: Dictionary<string> = {
-  [PageMap.CODE_REPOSITORY_VIEW]: `${RouteParams.ModelID}`,
-  [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
-  [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+/*
+ * Code, under /code: the repositories are the mount itself, a repository's
+ * pages hang off repositories/:id, and a task's off tasks/:id - tasks are
+ * addressed on their own, so a task with no repository still has a page.
+ */
+export const CodeRoutePath: Dictionary<string> = {
+  [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
+  [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
+  [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
+  [PageMap.CODE_TASK_VIEW]: `tasks/${RouteParams.ModelID}`,
+  [PageMap.CODE_TASK_VIEW_LOG]: `tasks/${RouteParams.ModelID}/log`,
 };
 
 export const KubernetesRoutePath: Dictionary<string> = {
@@ -709,13 +717,6 @@ export const FormsRoutePath: Dictionary<string> = {
   [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
   [PageMap.FORM_VIEW_DUPLICATE]: `${RouteParams.ModelID}/duplicate`,
   [PageMap.FORM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
-};
-
-export const AIAgentTasksRoutePath: Dictionary<string> = {
-  [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
-  [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
-  [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: `${RouteParams.ModelID}/pull-requests`,
-  [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
 /*
@@ -2793,32 +2794,49 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  // Code Repository
+  // Code
 
-  [PageMap.CODE_REPOSITORY_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/code-repository/*`,
-  ),
+  [PageMap.CODE_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/code/*`),
 
-  [PageMap.CODE_REPOSITORY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/code-repository`,
-  ),
+  [PageMap.CODE]: new Route(`/dashboard/${RouteParams.ProjectID}/code`),
 
   [PageMap.CODE_REPOSITORY_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/code-repository/${
-      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW]
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW]
     }`,
   ),
 
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/code-repository/${
-      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_DELETE]
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_DELETE]
     }`,
   ),
 
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/code-repository/${
-      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
     }`,
+  ),
+
+  [PageMap.CODE_TASK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_TASK_VIEW]
+    }`,
+  ),
+
+  [PageMap.CODE_TASK_VIEW_LOG]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_TASK_VIEW_LOG]
+    }`,
+  ),
+
+  // Where Tasks and Code Repositories used to be: they forward to Code.
+  [PageMap.MOVED_AI_AGENT_TASKS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/${MOVED_CODE_ROOT_PATHS.tasks}/*`,
+  ),
+
+  [PageMap.MOVED_CODE_REPOSITORY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/${MOVED_CODE_ROOT_PATHS.repositories}/*`,
   ),
 
   // Kubernetes
@@ -7462,39 +7480,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_GROUP_VIEW_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
       MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_ALERTS]
-    }`,
-  ),
-
-  // AI Agents section (tasks, agents, MCP server)
-  [PageMap.AI_AGENT_TASKS_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/*`,
-  ),
-
-  [PageMap.AI_AGENT_TASKS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents`,
-  ),
-
-  [PageMap.AI_AGENT_TASK_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW]
-    }`,
-  ),
-
-  [PageMap.AI_AGENT_TASK_VIEW_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_LOGS]
-    }`,
-  ),
-
-  [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]
-    }`,
-  ),
-
-  [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
     }`,
   ),
 

@@ -4,7 +4,7 @@
 #
 #   docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml up -d
 #
-# It adds the home container and leaves the runner out.
+# It adds the home container and leaves the runner and the global Runner out.
 
 services:
   home:
@@ -24,3 +24,16 @@ services:
   runner:
     profiles:
       - billing-disabled
+
+  # The bundled global Runner runs the same image as the runner, so it is left
+  # out with it.
+  global-runner:
+    profiles:
+      - billing-disabled
+
+  # And turned off where it is set up, as config.env's GLOBAL_RUNNER_REPLICAS=0
+  # does: the app removes its row, so no project waits for a global Runner
+  # this stack never starts.
+  app:
+    environment:
+      GLOBAL_RUNNER_REPLICAS: "0"

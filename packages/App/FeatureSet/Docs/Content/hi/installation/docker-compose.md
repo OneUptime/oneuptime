@@ -139,6 +139,7 @@ grep -c "please-change-this" config.env
 | `REGISTER_PROBE_KEY` | आपके इंस्टेंस में प्रोब रजिस्टर करना। |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | वे ग्लोबल प्रोब जिन्हें Docker Compose चला सकता है (`probe-1` डिफ़ॉल्ट रूप से चलता है)। |
 | `ONEUPTIME_RUNNER_KEY` | साथ आने वाला Runner। |
+| `GLOBAL_RUNNER_KEY` | साथ आने वाला ग्लोबल Runner, जो हर प्रोजेक्ट के JavaScript चरण चलाता है। |
 
 > [!IMPORTANT]
 > सीक्रेट पहली बार शुरू करने से पहले सेट करें, और बाद में उन्हें न बदलें। PostgreSQL अपना पासवर्ड सिर्फ़ डेटाबेस बनाते समय लेता है, और बाद में `ENCRYPTION_SECRET` बदलने से पुराने से एन्क्रिप्ट किया हर मान पढ़ा नहीं जा सकता। अगर पहली बार शुरू करते समय `DATABASE_PASSWORD` अब भी प्लेसहोल्डर है, तो PostgreSQL के अपना डेटाबेस बनाने से पहले `npm start` उसे एक रैंडम मान देता है।

@@ -72,6 +72,20 @@ const RUNNER_VIEW: Array<string> = [
   "RunnerView.tsx",
 ];
 const STEPS_PAGE: Array<string> = ["Pages", "Runbook", "View", "Steps.tsx"];
+/*
+ * The step editor's Runner picker, and what it loads: one component every
+ * page that picks a Runner shares, with the global Runners first.
+ */
+const RUNNER_PICKER: Array<string> = [
+  "Components",
+  "Runner",
+  "RunnerPicker.tsx",
+];
+const RUNNER_CHOICES: Array<string> = [
+  "Components",
+  "Runner",
+  "RunnerChoices.ts",
+];
 const STATUS_COMPONENT: Array<string> = [
   "Components",
   "Runner",
@@ -167,7 +181,12 @@ const NEW_STRINGS: Array<string> = [
   "People and teams who own this runner. They are alerted when its status changes.",
   "Add a teammate or a team so they are alerted when this runner's status changes.",
   "Self-hosted Runners that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the Runner that should run it.",
-  "No Runners yet. Create one, then run the Docker command on a host inside your infrastructure.",
+  /*
+   * The Runners page with no Runner of the project's own says what one is
+   * for, in one sentence, instead of "No Runners yet".
+   */
+  "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.",
+  "Add a Runner of your own.",
   "No Runners.",
   "more Runners",
   "Runner Key",
@@ -353,11 +372,15 @@ describe("no page decides liveness from connectionStatus", () => {
    * never run and they have no way to know it.
    */
   test("the runbook step picker derives its label from lastAlive", () => {
-    const source: string = readCode(...STEPS_PAGE);
+    const source: string = readCode(...RUNNER_CHOICES);
 
-    expect(source).toContain("getRunnerLiveStatus(a.lastAlive)");
+    // The project's own Runners, and the global Runners, alike.
+    expect(source).toContain("getRunnerLiveStatus(runner.lastAlive)");
     expect(source).toContain("lastAlive: true");
     expect(source).not.toContain("connectionStatus: true");
+    // And the step editor draws the shared picker over what it loaded.
+    expect(readCode(...STEPS_PAGE)).toContain("<RunnerPicker");
+    expect(readCode(...STEPS_PAGE)).toContain("RunnerChoicesLoader.load(");
   });
 
   /*
@@ -368,9 +391,9 @@ describe("no page decides liveness from connectionStatus", () => {
    * literals here would pass just as happily with the mapping inverted.
    */
   test("the step picker labels through the shared helper", () => {
-    const source: string = readCode(...STEPS_PAGE);
+    const source: string = readCode(...RUNNER_PICKER);
 
-    expect(source).toContain("getRunnerLiveStatusLabel(a.liveStatus)");
+    expect(source).toContain("getRunnerLiveStatusLabel(option.liveStatus)");
     expect(source).not.toContain('return "never connected"');
     expect(source).not.toContain('return "disconnected"');
   });
@@ -381,11 +404,12 @@ describe("no page decides liveness from connectionStatus", () => {
    * up on its own before it is joined.
    */
   test("the step picker translates the status word", () => {
-    const source: string = readCode(...STEPS_PAGE);
+    const source: string = readCode(...RUNNER_PICKER);
 
     expect(source).toContain(
-      "translateString(getRunnerLiveStatusLabel(a.liveStatus))",
+      "const label: string = getRunnerLiveStatusLabel(option.liveStatus);",
     );
+    expect(source).toContain("return translateString(label) || label;");
   });
 });
 

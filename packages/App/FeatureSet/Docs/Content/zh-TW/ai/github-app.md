@@ -29,12 +29,12 @@ flowchart TB
     R --> O["同一則留言，<br/>改寫為結果"]
 ```
 
-它與 [修正任務](/docs/ai/ai-agent) 使用同一個代理程式和同一個 Runner，預算也相同；只有觸發方式不同。
+它與 [程式碼](/docs/ai/ai-agent) 使用同一個代理程式和同一個 Runner，預算也相同；只有觸發方式不同。
 
 ## 開始之前
 
-- 儲存庫必須透過 GitHub App **連線到一個 OneUptime 專案**：在 **任務 → 程式碼儲存庫** 下連線它（開啟 **產品 → 程式碼 → 任務**）。自行託管的執行個體需要先有自己的 GitHub App：請參閱 [GitHub 整合](/docs/self-hosted/github-integration)。如果該應用程式已安裝在 GitHub 帳號上，請在那裡點選 **連接現有安裝**，而不是再次安裝。
-- 必須有一個開啟了 **執行 AI 程式碼修復** 的 Runner 在線上：就是執行 [修正任務](/docs/ai/ai-agent) 的那個 Runner。沒有它，命令會被接受，然後在 30 分鐘後失敗，並提示沒有代理程式領取它們。
+- 儲存庫必須透過 GitHub App **連線到一個 OneUptime 專案**：在 **產品 → 程式碼** 中連線它。自行託管的執行個體需要先有自己的 GitHub App：請參閱 [GitHub 整合](/docs/self-hosted/github-integration)。如果該應用程式已安裝在 GitHub 帳號上，請在那裡點選 **連接現有安裝**，而不是再次安裝。
+- 必須有一個開啟了 **執行 AI 程式碼修復** 的 Runner 在線上：就是執行 [程式碼](/docs/ai/ai-agent) 中任務的那個 Runner。沒有它，命令會被接受，然後在 30 分鐘後失敗，並提示沒有代理程式領取它們。
 - GitHub App 需要 **Read & write** 層級的 **Issues** 權限，而且必須訂閱 [需要訂閱的事件](#需要訂閱的事件) 中列出的 webhook 事件。
 
 ## 命令
@@ -106,7 +106,7 @@ should cover the 429 case
 
 每條啟動工作的命令都是一次完整的代理程式執行：一次複製，最多 40 次 LLM 呼叫和 100,000 個輸出權杖，以及在你設定了的情況下儲存庫的建置和測試命令。
 
-GitHub 命令是事件和警示之外的 AI 工作，因此不適用每日修正任務限制；當專案設定了自己的每日 AI 限制時，這些限制適用。唯一的其他限制，就是已經約束 [修正任務](/docs/ai/ai-agent) 的那一個：
+GitHub 命令是事件和警示之外的 AI 工作，因此不適用每日修正任務限制；當專案設定了自己的每日 AI 限制時，這些限制適用。唯一的其他限制，就是已經約束 [程式碼](/docs/ai/ai-agent) 中任務的那一個：
 
 - **未關閉拉取請求的上限**（儲存庫 **設定** 頁面上的 **Max Open Fix Pull Requests**）。在你選擇 **設定上限** 之前，**AI 修正提取要求** 為 **無限制**；選擇 **無** 會阻止該儲存庫上的 AI 修正拉取請求。審查和修訂不受此限制：兩者都不會向你的審查佇列新增拉取請求。
 
@@ -148,7 +148,7 @@ issue 文字、拉取請求描述、diff 和留言都會成為代理程式提示
 ## 疑難排解
 
 :::details 提及它時什麼都沒發生
-先檢查 handle：它是應用程式的 slug，而不是顯示名稱。然後檢查儲存庫是否已連線到專案（**任務 → 程式碼儲存庫**）、**Respond to GitHub Commands** 是否已開啟，以及你的 GitHub App 是否已訂閱上述事件。
+先檢查 handle：它是應用程式的 slug，而不是顯示名稱。然後檢查儲存庫是否已連線到專案（在 **產品 → 程式碼** 中）、**Respond to GitHub Commands** 是否已開啟，以及你的 GitHub App 是否已訂閱上述事件。
 :::
 
 :::details 它回覆 😕 反應卻什麼都不說
@@ -170,7 +170,7 @@ issue 文字、拉取請求描述、diff 和留言都會成為代理程式提示
 ## 後續步驟
 
 :::cards
-- [修正任務](/docs/ai/ai-agent): 同一個代理程式，從例外、追蹤或調查啟動。
+- [程式碼](/docs/ai/ai-agent): 同一個代理程式，在儲存庫中提出請求，或從例外、追蹤或調查啟動。
 - [GitHub 整合](/docs/self-hosted/github-integration): 在自行託管的執行個體上建立並設定 GitHub App。
 - [Runbook 代理程式](/docs/runbooks/agents): 執行每次執行的 worker。
 :::

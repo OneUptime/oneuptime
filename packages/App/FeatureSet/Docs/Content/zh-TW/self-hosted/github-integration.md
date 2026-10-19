@@ -2,13 +2,13 @@
 
 使用你自己擁有的 GitHub App 將自行託管的 OneUptime 連接到 GitHub。從 OneUptime 安裝應用程式後，安裝中的儲存庫會匯入到你的專案並保持同步，AI 修正任務會建立 pull request，團隊也可以在 GitHub 中提及該應用程式，把工作交給它。
 
-本頁面向執行 OneUptime 伺服器的人員：你只需建立一次應用程式，之後每個專案都從 **程式碼儲存庫** 連接它。
+本頁面向執行 OneUptime 伺服器的人員：你只需建立一次應用程式，之後每個專案都從 **程式碼** 連接它。
 
 :::cards
 - [建立 GitHub App](#建立-github-app): 使用正確的 URL、權限和事件註冊應用程式。
 - [設定 OneUptime](#設定-oneuptime): 把應用程式的六個值交給伺服器。
 - [連接儲存庫](#連接儲存庫): 從 OneUptime 安裝應用程式，或連接現有安裝。
-- [疑難排解](#疑難排解): 程式碼儲存庫中的訊息代表什麼。
+- [疑難排解](#疑難排解): 程式碼中的訊息代表什麼。
 :::
 
 ## 運作方式
@@ -20,7 +20,7 @@ sequenceDiagram
     participant B as 你的瀏覽器
     participant O as OneUptime
     participant G as GitHub
-    B->>O: Connect with GitHub App
+    B->>O: 連接 GitHub
     O-->>B: 重新導向到應用程式的安裝頁面
     B->>G: 安裝並授權應用程式
     G-->>B: 重新導向到<br/>/api/github/auth/callback
@@ -58,7 +58,7 @@ sequenceDiagram
 | **Callback URL** | `https://your-oneuptime-domain.com/api/github/auth/callback` |
 | **Request user authorization (OAuth) during installation** | 開啟。**這是必要的**：請參閱下方說明。 |
 | **Setup URL** | 如果 GitHub 允許填寫，則為 `https://your-oneuptime-domain.com/api/github/auth/callback`（見下文）。 |
-| **Redirect on update** | 選用。有人在 GitHub 上變更安裝後，OneUptime 會把他們帶到 **程式碼儲存庫**。 |
+| **Redirect on update** | 選用。有人在 GitHub 上變更安裝後，OneUptime 會把他們帶到 **程式碼**。 |
 | **Webhook URL** | `https://your-oneuptime-domain.com/api/github/webhook`，並將 Webhook 設為 **Active**。 |
 | **Webhook secret** | 一個較長的隨機字串。請記下它：它就是 `GITHUB_APP_WEBHOOK_SECRET`。**必要**：OneUptime 會拒絕未簽署的 Webhook，因此不設定 `GITHUB_APP_WEBHOOK_SECRET` 會讓儲存庫同步停止，而不是接受未經驗證的內容。 |
 
@@ -159,14 +159,14 @@ gitHubApp:
 `privateKey` 也可以直接使用 PEM 本身，寫成多行區塊（`privateKey: |`）。用 `helm upgrade` 套用變更。
 :::
 
-OneUptime 恢復執行後，**程式碼儲存庫** 會顯示 **Connect with GitHub App**，而不是 **GitHub App is not configured on this server**。
+OneUptime 恢復執行後，**程式碼** 會顯示 **連接 GitHub**，而不是 **此伺服器未設定 GitHub App**。
 
 ### 環境變數參考
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | 值 |
 | --- | --- | --- |
 | `GITHUB_APP_ID` | `gitHubApp.id` | **App ID**。用來以應用程式身分驗證。 |
-| `GITHUB_APP_NAME` | `gitHubApp.name` | 應用程式的名稱。直接使用顯示名稱即可，包括空格和大寫字母：安裝連結和應用程式的 `@mention` 代號使用 GitHub 回報的應用程式 slug，只有在 OneUptime 無法詢問 GitHub 時，才由這個名稱產生（小寫，空格換成連字號）。沒有它，**程式碼儲存庫** 無法連接。 |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | 應用程式的名稱。直接使用顯示名稱即可，包括空格和大寫字母：安裝連結和應用程式的 `@mention` 代號使用 GitHub 回報的應用程式 slug，只有在 OneUptime 無法詢問 GitHub 時，才由這個名稱產生（小寫，空格換成連字號）。沒有它，**程式碼** 無法連接儲存庫。 |
 | `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | **Client ID**。用來驗證是誰安裝了應用程式。 |
 | `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | 你產生的 client secret。需要與 client ID 一起使用。 |
 | `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | 私密金鑰：PEM，或以 base64 編碼的 PEM。 |
@@ -180,14 +180,14 @@ OneUptime 恢復執行後，**程式碼儲存庫** 會顯示 **Connect with GitH
 
 :::steps
 1. 登入你的 OneUptime 儀表板
-2. 前往 **產品** > **任務** > **程式碼儲存庫**
-3. 點選 **Connect with GitHub App**。OneUptime 會帶你前往 GitHub
+2. 前往 **產品** > **程式碼**
+3. 點選 **連接 GitHub**。OneUptime 會帶你前往 GitHub
 4. 選擇要安裝應用程式的組織或帳號，並選擇它可以存取哪些儲存庫：**All repositories**（所有現有及未來的儲存庫）或 **Only select repositories**
 5. 點選 **Install**
-6. GitHub 會把你送回 **程式碼儲存庫**，安裝中的每個儲存庫都會被匯入。之後加入安裝或從中移除的儲存庫會自動保持同步。
+6. GitHub 會把你送回 **程式碼**，安裝中的每個儲存庫都會被匯入。之後加入安裝或從中移除的儲存庫會自動保持同步。
 :::
 
-**如果應用程式已安裝在該帳號上**（為另一個專案安裝，或直接從 GitHub 安裝），再次安裝並不會連接它：GitHub 只會開啟該安裝的設定，而且不會把你送回來。請改為點選 **Connect with GitHub App** 卡片下方的 **連接現有安裝**。你登入 GitHub 後，OneUptime 會連接你的 GitHub 帳號管理的安裝。如果它管理多個安裝，**程式碼儲存庫** 會列出它們：選擇專案要使用其儲存庫的那個帳號。
+**如果應用程式已安裝在該帳號上**（為另一個專案安裝，或直接從 GitHub 安裝），再次安裝並不會連接它：GitHub 只會開啟該安裝的設定，而且不會把你送回來。請改為點選 **連接 GitHub** 下方的 **連接現有安裝**。你登入 GitHub 後，OneUptime 會連接你的 GitHub 帳號管理的安裝。如果它管理多個安裝，**程式碼** 會列出它們：選擇專案要使用其儲存庫的那個帳號。
 
 **誰可以連接。** 連接會把安裝中的儲存庫匯入專案，因此需要新增程式碼儲存庫的權限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或擁有 **Create Code Repository** 的團隊。封鎖該權限的團隊會收回它。在 OneUptime Cloud 上，程式碼儲存庫需要 Growth 方案或更高方案。對其他人來說，卡片會被鎖定，並說明需要什麼。在 GitHub 上，安裝或連接應用程式的帳號必須管理該安裝：個人帳號的擁有者，或對該安裝可存取的每個儲存庫都有 admin 權限的人，組織的擁有者就有這種權限。只對其中某個儲存庫有讀取權限是不夠的。
 
@@ -218,7 +218,7 @@ callback 是一次 [瀏覽器重新導向](https://docs.github.com/en/apps/creat
 ### 驗證存取並了解限制
 
 :::steps
-1. 從 **程式碼儲存庫** 連接一個安裝。
+1. 從 **程式碼** 連接一個安裝。
 2. 在 GitHub App 的設定中開啟 **Advanced** 並查看 **Recent Deliveries**。重新遞送一次，確認閘道轉送了它，且 OneUptime 接受了它。
 3. 在安裝中加入或移除一個測試儲存庫，檢查 OneUptime 中的儲存庫清單是否跟著變化。
 :::
@@ -234,23 +234,23 @@ GitHub 文件說明了 [遞送診斷](https://docs.github.com/en/webhooks/testin
 
 ### 連接沒有完成
 
-當 GitHub 把你送回而安裝沒有連接時，**程式碼儲存庫** 會顯示 **GitHub 未連接**，並以你的語言用一句話說明原因。頁面的其餘部分照常載入，所以你可以直接在那裡重新連接。頁面從不顯示 GitHub 本身的回覆：它和原因一起記錄在 OneUptime 伺服器日誌中。
+當 GitHub 把你送回而安裝沒有連接時，**程式碼** 會顯示 **GitHub 未連接**，並以你的語言用一句話說明原因。頁面的其餘部分照常載入，所以你可以直接在那裡重新連接。頁面從不顯示 GitHub 本身的回覆：它和原因一起記錄在 OneUptime 伺服器日誌中。
 
 | 頁面顯示 | 該怎麼做 |
 | --- | --- |
-| **"此連接連結無效、已過期或已被使用。請重新開始。"** | 連結只能在發起它的瀏覽器中使用一次，有效 15 分鐘。從 **程式碼儲存庫** 重新開始，並在 15 分鐘內以同一個瀏覽器在 GitHub 上完成。從 GitHub 上的應用程式頁面安裝應用程式，並不會把它連接到任何專案：要連接在那裡建立的安裝，請點選 **連接現有安裝**。 |
+| **"此連接連結無效、已過期或已被使用。請重新開始。"** | 連結只能在發起它的瀏覽器中使用一次，有效 15 分鐘。從 **程式碼** 重新開始，並在 15 分鐘內以同一個瀏覽器在 GitHub 上完成。從 GitHub 上的應用程式頁面安裝應用程式，並不會把它連接到任何專案：要連接在那裡建立的安裝，請點選 **連接現有安裝**。 |
 | **"您沒有將程式碼儲存庫新增至此專案的權限。"** | 連接需要新增程式碼儲存庫的權限（請參閱 [連接儲存庫](#連接儲存庫)）。請專案管理員授予該權限。GitHub 把你送回時會再次檢查，因此在這段期間被撤銷的權限也會在這裡結束連接。 |
 | **"連接 GitHub 需要 ... 方案。"** | 在 OneUptime Cloud 上，程式碼儲存庫需要這句話所提到的方案。升級專案的方案，然後重新連接。 |
 | **"GitHub 未確認是誰安裝了此應用程式，因此無法驗證這個安裝。"** | 在 GitHub App 的設定中開啟 **Request user authorization (OAuth) during installation**（請參閱 [建立 GitHub App](#建立-github-app)），然後重新連接。 |
 | **"OneUptime 無法確認您的 GitHub 帳號可以管理此安裝。"** | 完成安裝的 GitHub 帳號並不管理該安裝（誰可以管理，請參閱 [連接儲存庫](#連接儲存庫)）。應用程式仍安裝在 GitHub 上，因此請讓管理該安裝的人用 **連接現有安裝** 來連接它。 |
 | **"GitHub 沒有傳回安裝資訊。"** | 當組織成員請求應用程式而不是直接安裝時，組織的擁有者必須先核准請求。核准後，由管理該安裝的人用 **連接現有安裝** 來連接它。 |
-| **"您的 GitHub 帳號尚未管理此應用程式的任何安裝。"** | 你登入所用的 GitHub 帳號沒有管理此應用程式的任何安裝（誰可以管理，請參閱 [連接儲存庫](#連接儲存庫)）。如果該帳號上還沒有安裝應用程式，請用 **Connect with GitHub App** 安裝。如果已經安裝，請用管理該安裝的帳號登入 GitHub 後重新連接，或請管理它的人來連接。 |
+| **"您的 GitHub 帳號尚未管理此應用程式的任何安裝。"** | 你登入所用的 GitHub 帳號沒有管理此應用程式的任何安裝（誰可以管理，請參閱 [連接儲存庫](#連接儲存庫)）。如果該帳號上還沒有安裝應用程式，請用 **連接 GitHub** 安裝。如果已經安裝，請用管理該安裝的帳號登入 GitHub 後重新連接，或請管理它的人來連接。 |
 | **"此 OneUptime 伺服器未設定 GitHub App。"** | 同時設定 `GITHUB_APP_CLIENT_ID` 和 `GITHUB_APP_CLIENT_SECRET`（請參閱 [設定 OneUptime](#設定-oneuptime)），然後重新啟動 OneUptime。 |
 | **"OneUptime 無法完成連接。請再試一次。"** | GitHub 回傳了錯誤，或在完成過程中某個請求或寫入失敗。OneUptime 伺服器日誌會說明是哪一種。請再試一次；如果問題持續，請檢查日誌和 GitHub App 的設定。 |
 
 ### 其他問題
 
-:::details 程式碼儲存庫顯示「GitHub App is not configured on this server」
+:::details 程式碼顯示「此伺服器未設定 GitHub App」
 未設定 `GITHUB_APP_NAME`。將它設為應用程式的確切名稱，並一併設定其他五個值，然後重新啟動 OneUptime。
 :::
 
@@ -267,7 +267,7 @@ GitHub App 中的 webhook secret 與 `GITHUB_APP_WEBHOOK_SECRET` 不一致、`GI
 :::
 
 :::details 儲存庫或修正任務因驗證錯誤而失敗
-OneUptime 使用 `GITHUB_APP_ID` 和 `GITHUB_APP_PRIVATE_KEY` 以應用程式身分驗證。檢查 App ID 是否正確，以及金鑰是否為完整的 PEM（包含 `BEGIN` 和 `END` 行），或以 base64 編碼的該 PEM。如果應用程式已從 GitHub 解除安裝，請從 **程式碼儲存庫** 重新連接。
+OneUptime 使用 `GITHUB_APP_ID` 和 `GITHUB_APP_PRIVATE_KEY` 以應用程式身分驗證。檢查 App ID 是否正確，以及金鑰是否為完整的 PEM（包含 `BEGIN` 和 `END` 行），或以 base64 編碼的該 PEM。如果應用程式已從 GitHub 解除安裝，請從 **程式碼** 重新連接。
 :::
 
 :::details 安裝後缺少儲存庫
@@ -290,6 +290,6 @@ OneUptime 使用 `GITHUB_APP_ID` 和 `GITHUB_APP_PRIVATE_KEY` 以應用程式身
 
 :::cards
 - [在 GitHub 中使用 OneUptime](/docs/ai/github-app): 可以對應用程式下達的指令，以及誰可以下達。
-- [修正任務](/docs/ai/ai-agent): AI 代理程式如何建立修正 pull request。
+- [程式碼](/docs/ai/ai-agent): AI 代理程式如何建立修正 pull request。
 - [私有網路存取](/docs/self-hosted/private-network-access): 讓工作流程和 Webhook 連到內部工具。
 :::

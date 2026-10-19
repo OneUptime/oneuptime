@@ -5312,12 +5312,12 @@ describe("InvestigationPanel says what happened in a notice, not a box", () => {
     );
     expect(notice).toHaveAttribute("role", "alert");
     expect(notice).toHaveTextContent(
-      "Could not create the fix taskNo connected repository exists. View AI tasks.",
+      "Could not create the fix taskNo connected repository exists. Open Code.",
     );
     expect(boxesInside(notice)).toEqual([]);
     expect(notice.querySelector(".text-red-600")).not.toBeNull();
     expect(
-      within(notice).getByRole("link", { name: "View AI tasks" }),
+      within(notice).getByRole("link", { name: "Open Code" }),
     ).toBeVisible();
   });
 

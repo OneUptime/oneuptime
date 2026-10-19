@@ -124,18 +124,32 @@ describe("the shared Runner's Docker Compose environment is minimal", () => {
       fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
     );
 
+    /*
+     * The key's value, whatever variable carries it: the bundled global
+     * Runner reads its own key from a variable of the same name.
+     */
     const holders = Object.keys(compose.services)
       .filter((name) => {
         const environment = compose.services[name].environment || {};
 
-        return Object.prototype.hasOwnProperty.call(
-          environment,
-          "ONEUPTIME_RUNNER_KEY",
-        );
+        return Object.values(environment).some((value) => {
+          return value === runnerEnv.ONEUPTIME_RUNNER_KEY;
+        });
       })
       .sort();
 
+    expect(runnerEnv.ONEUPTIME_RUNNER_KEY).toBe("${ONEUPTIME_RUNNER_KEY}");
     expect(holders).toEqual(["app", "runner"]);
+  });
+
+  test("the bundled global Runner holds a key of its own, not the shared Runner's", () => {
+    const compose = yaml.load(
+      fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
+    );
+
+    expect(
+      compose.services["global-runner"].environment.ONEUPTIME_RUNNER_KEY,
+    ).toBe("${GLOBAL_RUNNER_KEY}");
   });
 
   test("holds none of the server's runtime secrets", () => {

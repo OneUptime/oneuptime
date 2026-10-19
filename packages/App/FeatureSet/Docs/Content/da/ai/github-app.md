@@ -29,12 +29,12 @@ flowchart TB
     R --> O["Den samme kommentar,<br/>omskrevet med<br/>resultatet"]
 ```
 
-Det er den samme agent og den samme Runner som ved [Rettelsesopgaver](/docs/ai/ai-agent), med de samme budgetter; kun udløseren er en anden.
+Det er den samme agent og den samme Runner som i [Kode](/docs/ai/ai-agent), med de samme budgetter; kun udløseren er en anden.
 
 ## Før du starter
 
-- Repositoriet skal være **forbundet til et OneUptime-projekt** via GitHub App: forbind det under **Opgaver → Koderepositorier** (åbn **Produkter → Kode → Opgaver**). En selvhostet instans skal først have sin egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration). Hvis appen allerede er installeret på GitHub-kontoen, så klik på **Forbind en eksisterende installation** dér i stedet for at installere den igen.
-- En Runner med **Kører AI-koderettelser** skal være online: den samme Runner, som udfører [Rettelsesopgaver](/docs/ai/ai-agent). Uden en bliver kommandoer accepteret og mislykkes så efter 30 minutter med en besked om, at ingen agent tog dem.
+- Repositoriet skal være **forbundet til et OneUptime-projekt** via GitHub App: forbind det i **Produkter → Kode**. En selvhostet instans skal først have sin egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration). Hvis appen allerede er installeret på GitHub-kontoen, så klik på **Forbind en eksisterende installation** dér i stedet for at installere den igen.
+- En Runner med **Kører AI-koderettelser** skal være online: den samme Runner, som udfører opgaverne i [Kode](/docs/ai/ai-agent). Uden en bliver kommandoer accepteret og mislykkes så efter 30 minutter med en besked om, at ingen agent tog dem.
 - GitHub App skal have tilladelsen **Issues** med **Read & write** og skal abonnere på webhook-hændelserne under [Hvad der skal abonneres på](#hvad-der-skal-abonneres-på).
 
 ## Kommandoerne
@@ -106,7 +106,7 @@ Den ignorerer også alle kommentarer skrevet af en bot, sine egne inklusive, og 
 
 Hver kommando, der starter arbejde, er en fuld agentkørsel: en klon, op til 40 LLM-kald og 100.000 output-tokens samt dit repositories build- og testkommandoer, når du har sat dem.
 
-GitHub-kommandoer er AI-arbejde uden for hændelser og advarsler, så ingen daglig grænse for rettelsesopgaver gælder for dem; projektets egne daglige AI-grænser gør, når projektet sætter dem. Den eneste anden grænse er den, der allerede gælder for [Rettelsesopgaver](/docs/ai/ai-agent):
+GitHub-kommandoer er AI-arbejde uden for hændelser og advarsler, så ingen daglig grænse for rettelsesopgaver gælder for dem; projektets egne daglige AI-grænser gør, når projektet sætter dem. Den eneste anden grænse er den, der allerede gælder for opgaverne i [Kode](/docs/ai/ai-agent):
 
 - **Loftet over åbne pull requests** (**Max Open Fix Pull Requests** på repositoriets side **Indstillinger**). **AI-rettelses-pull requests** står på **Ingen grænse**, indtil du vælger **En grænse**, eller **Ingen**, som blokerer AI-rettelses-pull-requests i det repositorie. Gennemgange og revisioner er undtaget: ingen af dem føjer en pull request til din gennemgangskø.
 
@@ -148,7 +148,7 @@ Behandl en pull request, som AI'en skrev, som du ville behandle en fra en ny bid
 ## Fejlfinding
 
 :::details Der sker intet, når jeg nævner den
-Kontrollér først handlet: det er appens slug, ikke dens visningsnavn. Kontrollér derefter, at repositoriet er forbundet til et projekt (**Opgaver → Koderepositorier**), at **Respond to GitHub Commands** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
+Kontrollér først handlet: det er appens slug, ikke dens visningsnavn. Kontrollér derefter, at repositoriet er forbundet til et projekt (i **Produkter → Kode**), at **Respond to GitHub Commands** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
 :::
 
 :::details Den reagerer med 😕 og siger intet
@@ -170,7 +170,7 @@ En revision kræver en branch i dette repositorie. Bed i stedet om en gennemgang
 ## Næste trin
 
 :::cards
-- [Rettelsesopgaver](/docs/ai/ai-agent): Den samme agent, startet fra en undtagelse, et spor eller en undersøgelse.
+- [Kode](/docs/ai/ai-agent): Den samme agent, spurgt i et repositorie eller startet fra en undtagelse, et spor eller en undersøgelse.
 - [GitHub-integration](/docs/self-hosted/github-integration): Opret og konfigurer GitHub App på en selvhostet instans.
 - [Runbook-agenter](/docs/runbooks/agents): Workeren, der udfører hver kørsel.
 :::

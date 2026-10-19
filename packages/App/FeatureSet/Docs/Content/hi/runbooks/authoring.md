@@ -12,7 +12,7 @@
 ## शुरू करने से पहले
 
 - **Runbook लिखने वाली भूमिका।** Project Owner, Project Admin और Runbook Admin Runbook बनाते हैं और उनके चरण सहेजते हैं। विस्तृत अनुमतियों के साथ आपको **Create Runbook** और **Edit Runbook** चाहिए। [अनुमतियाँ](/docs/runbooks/configuration#अनुमतियाँ) देखें।
-- **JavaScript, Bash, SSH और Kubernetes चरणों के लिए एक Runner।** ये चरण आपके अपने इंफ्रास्ट्रक्चर में एक [Runner](/docs/runbooks/agents) पर चलते हैं, कभी OneUptime Worker पर नहीं। पहले एक इंस्टॉल करें।
+- **Bash, SSH और Kubernetes चरणों के लिए एक Runner।** ये चरण आपके अपने इंफ्रास्ट्रक्चर में एक [Runner](/docs/runbooks/agents) पर चलते हैं, कभी OneUptime Worker पर नहीं। पहले एक इंस्टॉल करें। JavaScript चरण एक [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) पर चलता है, जब तक आप अपना कोई Runner न चुनें।
 - **SSH और Kubernetes चरणों के लिए एक क्रेडेंशियल, और उसे पढ़ने की अनुमति।** [Runbook क्रेडेंशियल](/docs/runbooks/credentials) देखें। कोई चरण क्रेडेंशियल का नाम तभी ले सकता है जब आप Runbook क्रेडेंशियल पढ़ सकते हों: Project Owner, Project Admin या **Read Runbook Credential**। Runbook Admin में यह शामिल नहीं है।
 - **AI चरणों के लिए एक LLM प्रदाता।** [LLM प्रदाता](/docs/ai/llm-provider) देखें।
 
@@ -72,13 +72,13 @@
 
 ### JavaScript
 
-JavaScript का एक स्निपेट, जो आपके अपने इंफ्रास्ट्रक्चर में एक [Runbook एजेंट](/docs/runbooks/agents) पर `isolated-vm` सैंडबॉक्स में चलता है, OneUptime Worker पर नहीं।
+JavaScript का एक स्निपेट, जो OneUptime Worker पर नहीं, बल्कि एक [Runbook एजेंट](/docs/runbooks/agents) पर `isolated-vm` सैंडबॉक्स में चलता है: आपके किसी Runner पर, या चरण कोई न चुने तो एक [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) पर।
 
 | फ़ील्ड | यह क्या करता है | डिफ़ॉल्ट |
 | --- | --- | --- |
-| **Runner** | वह Runner जो चरण चलाता है। केवल वही Runner जॉब क्लेम कर सकता है। | — |
+| **Runner** | वह Runner जो चरण चलाता है: **ग्लोबल Runner**, या आपका कोई Runner। केवल आपका चुना हुआ Runner जॉब क्लेम कर सकता है; **ग्लोबल Runner** वाले चरण को कोई भी ग्लोबल Runner क्लेम कर सकता है। | **ग्लोबल Runner**, जब कोई हो |
 | **Script** | चलाने के लिए JavaScript। किसी मान को दर्ज करने के लिए उसे `return` करें; `console.log` की हर पंक्ति भी दर्ज होती है। थ्रो की गई त्रुटि चरण को विफल कर देती है। | — |
-| **निष्पादन टाइमआउट** | सैंडबॉक्स हटाने से पहले Runner स्निपेट को कितनी देर चलने देता है। | 30 सेकंड |
+| **निष्पादन टाइमआउट** | सैंडबॉक्स हटाने से पहले Runner स्निपेट को कितनी देर चलने देता है। ग्लोबल Runner उसे अधिक से अधिक 5 मिनट चलने देता है। | 30 सेकंड |
 | **उठाने का टाइमआउट** | Worker कितनी देर तक Runner के जॉब क्लेम करने की प्रतीक्षा करता है। | 2 मिनट |
 
 ```javascript

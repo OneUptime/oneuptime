@@ -12,7 +12,7 @@ Un runbook si scrive come elenco ordinato di passaggi nella sua pagina **Passagg
 ## Prima di iniziare
 
 - **Un ruolo che scrive runbook.** Project Owner, Project Admin e Runbook Admin creano runbook e ne salvano i passaggi. Con autorizzazioni granulari ti servono **Create Runbook** e **Edit Runbook**. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
-- **Un Runner, per i passaggi JavaScript, Bash, SSH e Kubernetes.** Questi passaggi vengono eseguiti su un [Runner](/docs/runbooks/agents) nella tua infrastruttura, mai sul Worker di OneUptime. Installane uno prima.
+- **Un Runner, per i passaggi Bash, SSH e Kubernetes.** Questi passaggi vengono eseguiti su un [Runner](/docs/runbooks/agents) nella tua infrastruttura, mai sul Worker di OneUptime. Installane uno prima. Un passaggio JavaScript viene eseguito su un [Runner globale](/docs/runbooks/agents#runner-globali), a meno che tu non scelga uno dei tuoi.
 - **Una credenziale, per i passaggi SSH e Kubernetes, e l'autorizzazione a leggerla.** Vedi [Credenziali dei runbook](/docs/runbooks/credentials). Un passaggio può indicare una credenziale solo se puoi leggere le credenziali dei runbook: Project Owner, Project Admin o **Read Runbook Credential**. Runbook Admin non la include.
 - **Un provider LLM, per i passaggi IA.** Vedi [Provider LLM](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Usalo per ciò che solo una persona può verificare o fare: «Conferma nella das
 
 ### JavaScript
 
-Un frammento di JavaScript, eseguito in una sandbox `isolated-vm` su un [agente di runbook](/docs/runbooks/agents) nella tua infrastruttura, non sul Worker di OneUptime.
+Un frammento di JavaScript, eseguito in una sandbox `isolated-vm` su un [agente di runbook](/docs/runbooks/agents), non sul Worker di OneUptime: su uno dei tuoi, oppure su un [Runner globale](/docs/runbooks/agents#runner-globali) quando il passaggio non ne sceglie nessuno.
 
 | Campo | Cosa fa | Predefinito |
 | --- | --- | --- |
-| **Runner** | Il Runner che esegue il passaggio. Solo quel Runner può prendere in carico il lavoro. | — |
+| **Runner** | Il Runner che esegue il passaggio: **Runner globale**, oppure uno dei tuoi. Solo il Runner che scegli può prendere in carico il lavoro; qualsiasi Runner globale può prendere in carico un passaggio su **Runner globale**. | **Runner globale**, se ce n'è uno |
 | **Script** | Il JavaScript da eseguire. Restituisci un valore con `return` per acquisirlo; anche ogni riga di `console.log` viene acquisita. Lanciare un errore fa fallire il passaggio. | — |
-| **Timeout di esecuzione** | Quanto tempo il Runner lascia girare il frammento prima di distruggere la sandbox. | 30 secondi |
+| **Timeout di esecuzione** | Quanto tempo il Runner lascia girare il frammento prima di distruggere la sandbox. Un Runner globale lo lascia girare al massimo 5 minuti. | 30 secondi |
 | **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
 
 ```javascript

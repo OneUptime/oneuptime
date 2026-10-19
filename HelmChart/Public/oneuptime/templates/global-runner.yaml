@@ -1,0 +1,133 @@
+{{- if and .Values.globalRunner.enabled (not .Values.deployment.disableDeployments) }}
+{{- /*
+The bundled global Runner (Common/Types/Runner/BundledGlobalRunner.ts): it runs
+the runbook JavaScript steps of every project that uses global Runners, each in
+a sandbox of its own that reaches the internet only. It is the ordinary Runner
+image started with a fixed id and its own key, and it holds nothing else: no
+cluster key (oneuptime.env.oneuptimeSecret), none of the server's settings
+(oneuptime.env.common / oneuptime.env.runtime), no ServiceAccount token. The
+server keeps its row from the same key (GLOBAL_RUNNER_KEY, which
+oneuptime.env.globalRunner hands the app, the worker and the migrate job). The
+global-runner chart test holds this.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "global-runner" }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "global-runner" }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    {{- if $.Values.deployment.includeTimestampLabel }}
+    date: "{{ now | unixEpoch }}"
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "global-runner" }}
+  replicas: {{ $.Values.globalRunner.replicaCount }}
+  strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "global-runner" }}
+        {{- if $.Values.deployment.includeTimestampLabel }}
+        date: "{{ now | unixEpoch }}"
+        {{- end }}
+        appname: oneuptime
+    spec:
+      automountServiceAccountToken: false
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.globalRunner.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.globalRunner.podSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- with ($.Values.globalRunner.affinity | default $.Values.affinity) }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "global-runner" "Constraints" $.Values.globalRunner.topologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      nodeSelector:
+        {{- include "oneuptime.nodeSelector" ($.Values.globalRunner.nodeSelector | default $.Values.nodeSelector) | nindent 8 }}
+      {{- /*
+      Its own extra volumes and env only, never the chart-wide ones: those are
+      set for the server's pods and may hold their secrets, and this pod runs
+      every project's steps.
+      */}}
+      {{- with $.Values.globalRunner.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "global-runner" "ImageName" "runner") }}
+          name: {{ printf "%s-%s" $.Release.Name "global-runner" }}
+          {{- if $.Values.globalRunner.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.globalRunner.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            - name: LOG_LEVEL
+              value: {{ $.Values.logLevel }}
+            - name: PORT
+              value: {{ $.Values.globalRunner.ports.http | squote }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+              value: {{ $.Values.openTelemetryExporter.endpoint }}
+            {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "global-runner")) | nindent 12 }}
+            - name: ONEUPTIME_URL
+              value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
+            # Common/Types/Runner/BundledGlobalRunner.ts BUNDLED_GLOBAL_RUNNER_ID
+            - name: ONEUPTIME_RUNNER_ID
+              value: "00000000-0000-0000-0000-000000000002"
+            - name: ONEUPTIME_RUNNER_KEY
+              {{- include "oneuptime.globalRunnerKeyValue" $ | nindent 14 }}
+            - name: ONEUPTIME_RUNNER_CONCURRENCY
+              value: {{ $.Values.globalRunner.concurrency | squote }}
+            {{- /*
+            The server tells it it is global and serves it JavaScript steps only;
+            these say the same on the host, whatever the server says.
+            */}}
+            - name: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES
+              value: "false"
+            - name: ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS
+              value: "false"
+            {{- if $.Values.globalRunner.disableTelemetryCollection }}
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.globalRunner.disableTelemetryCollection | quote }}
+            {{- end }}
+            {{- if $.Values.globalRunner.enableProfiling }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.globalRunner.enableProfiling | quote }}
+            {{- end }}
+            {{- with $.Values.globalRunner.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $.Values.globalRunner.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - containerPort: {{ $.Values.globalRunner.ports.http }}
+              protocol: TCP
+              name: http
+          {{- if $.Values.globalRunner.resources }}
+          resources:
+            {{- toYaml $.Values.globalRunner.resources | nindent 12 }}
+          {{- end }}
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+{{- end }}

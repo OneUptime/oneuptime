@@ -35,7 +35,7 @@ flowchart TB
 
 Ogni esecuzione di un runbook è un'**esecuzione**. All'avvio, i passaggi del runbook vengono copiati su di essa e OneUptime li esegue in ordine. Un passaggio Manual, o un passaggio che richiede approvazione, mette in pausa l'esecuzione finché qualcuno non agisce.
 
-I passaggi HTTP e IA vengono eseguiti sul Worker di OneUptime. I passaggi JavaScript, Bash, SSH e Kubernetes vengono eseguiti su un [Runner](/docs/runbooks/agents) che installi nella tua infrastruttura, quindi i tuoi script non girano mai sui server di OneUptime. Lo stato, l'output e il messaggio di errore di ogni passaggio vengono registrati sull'esecuzione, che resta legata all'incidente, all'avviso o all'evento per cui è stata eseguita.
+I passaggi HTTP e IA vengono eseguiti sul Worker di OneUptime. I passaggi Bash, SSH e Kubernetes vengono eseguiti su un [Runner](/docs/runbooks/agents) che installi nella tua infrastruttura, quindi quegli script non girano mai sui server di OneUptime. Un passaggio JavaScript viene eseguito anch'esso su uno dei tuoi Runner oppure, se non ne sceglie nessuno, su un [Runner globale](/docs/runbooks/agents#runner-globali), in una sandbox che raggiunge solo internet. Lo stato, l'output e il messaggio di errore di ogni passaggio vengono registrati sull'esecuzione, che resta legata all'incidente, all'avviso o all'evento per cui è stata eseguita.
 
 ## Concetti chiave
 
@@ -46,9 +46,9 @@ I passaggi HTTP e IA vengono eseguiti sul Worker di OneUptime. I passaggi JavaSc
 | **Regola di runbook** | Una regola che collega automaticamente uno o più runbook agli incidenti, agli avvisi o agli eventi di manutenzione programmata che soddisfano le sue condizioni: i loro monitor, la gravità, le etichette, le etichette dei monitor, il titolo o la descrizione. |
 | **Esecuzione** | Un'esecuzione di un runbook. Viene creata quando scatta una regola, quando qualcuno fa clic su **Esegui Runbook** su un evento o quando qualcuno fa clic su **Run Now** sul runbook stesso. Contiene un'istantanea dei passaggi e lo stato e l'output di ciascuno. |
 | **Istantanea** | La copia congelata dei passaggi del runbook che vive su ogni esecuzione. Puoi modificare il runbook in seguito senza riscrivere la storia delle esecuzioni passate. |
-| **Runner** | Un piccolo agente che esegui su un host della tua infrastruttura. Esegue i passaggi JavaScript, Bash, SSH e Kubernetes che lo indicano. Detto anche agente di runbook. |
+| **Runner** | Un piccolo agente che esegui su un host della tua infrastruttura. Esegue i passaggi JavaScript, Bash, SSH e Kubernetes che lo indicano. Detto anche agente di runbook. Un Runner globale, uno di quelli che OneUptime esegue per ogni progetto, esegue i passaggi JavaScript che non ne nominano nessuno. |
 | **Credenziale** | Accesso SSH o Kubernetes gestito, usato dai passaggi SSH e Kubernetes. Cifrata a riposo e consegnata solo ai Runner a cui la assegni. |
-| **Segreto** | Un singolo valore, come un token API, che uno script Bash o JavaScript usa come `{{runbookSecrets.NAME}}`. Cifrato a riposo e consegnato solo ai Runner a cui lo assegni. |
+| **Segreto** | Un singolo valore, come un token API, che uno script Bash o JavaScript usa come `{{runbookSecrets.NAME}}`. Cifrato a riposo e consegnato solo ai Runner a cui lo assegni. I Runner globali lo ricevono solo se lo consenti. |
 
 ## Tipi di passaggio
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 Un monitor apre l'incidente `INC-4821 · db-primary connection timeout`. La regola corrisponde e parte un'esecuzione:
 
-- Il passaggio 1 (JavaScript) viene eseguito sul Runner che hai scelto per lui. Il suo valore di ritorno, ad esempio `{ lagMs: 412 }`, viene acquisito.
+- Il passaggio 1 (JavaScript) viene eseguito sul Runner che hai scelto per lui. Il suo valore di ritorno, ad esempio `{ lagMs: 412 }`, viene acquisito. Un passaggio che non sceglie alcun Runner viene eseguito su un Runner globale.
 - Il passaggio 2 (Manual) mette in pausa l'esecuzione, che mostra **In attesa di te**. Chi è reperibile controlla la dashboard e fa clic su **Mark complete**.
 - Il passaggio 3 (HTTP request) viene eseguito e la risposta al `POST` viene acquisita.
 - Il passaggio 4 (Manual) mette di nuovo in pausa l'esecuzione finché qualcuno non lo completa.
@@ -170,7 +170,7 @@ L'esecuzione resta nella pagina **Runbook** dell'incidente. Quando scrivi il pos
 
 :::cards
 - [Scrivere un runbook](/docs/runbooks/authoring): Creare il tuo primo runbook e i suoi passaggi.
-- [Agenti di runbook](/docs/runbooks/agents): Installare un Runner prima di scrivere un passaggio JavaScript, Bash, SSH o Kubernetes.
+- [Agenti di runbook](/docs/runbooks/agents): Installare un Runner prima di scrivere un passaggio Bash, SSH o Kubernetes.
 - [Regole di runbook](/docs/runbooks/rules): Avviare i runbook automaticamente alla creazione degli incidenti.
 - [Configurazione e sicurezza dei runbook](/docs/runbooks/configuration): Limiti, timeout, autorizzazioni e protezione.
 :::

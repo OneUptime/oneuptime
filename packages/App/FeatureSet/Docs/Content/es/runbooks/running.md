@@ -133,11 +133,11 @@ El interruptor **Ejecutar este runbook** del runbook está desactivado, en su p�
 :::
 
 :::details Un paso falló porque le falta un Runner o una credencial
-El mensaje dice, por ejemplo, "Bash step is missing a Runner. Pick one under Runbooks → Runners." El paso se guardó sin **Runner**, o un paso SSH o Kubernetes sin **Credencial**. Abre los **Pasos** del runbook, elige lo que le falta al paso, haz clic en **Guardar pasos** y vuelve a ejecutar el runbook.
+El mensaje dice, por ejemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." El paso se guardó sin **Runner**, o un paso SSH o Kubernetes sin **Credencial**. Un paso JavaScript necesita un Runner propio solo cuando ningún [Runner global](/docs/runbooks/agents#runners-globales) puede ejecutarlo. Abre los **Pasos** del runbook, elige lo que le falta al paso, haz clic en **Guardar pasos** y vuelve a ejecutar el runbook.
 :::
 
 :::details Un paso falló porque ningún agente de runbook lo tomó
-El mensaje dice "No runbook agent picked up this step before the wait window expired." El Runner del paso no reclamó el trabajo dentro de su tiempo de espera de reclamación. Comprueba en **Runbooks → Agentes de runbook** que el Runner está **Conectado** y que **Ejecuta runbooks** está activado. Consulta [Agentes de runbook](/docs/runbooks/agents#solución-de-problemas).
+El mensaje dice "No runbook agent picked up this step before the wait window expired." El Runner del paso no reclamó el trabajo dentro de su tiempo de espera de reclamación. Comprueba en **Runbooks → Agentes de runbook** que el Runner está **Conectado** y que **Ejecuta runbooks** está activado. Consulta [Agentes de runbook](/docs/runbooks/agents#solución-de-problemas). Un paso en un Runner global dice en cambio "No global Runner picked up this step before the wait window expired.": vuelve a ejecutar el runbook, sube el tiempo de espera de reclamación del paso o elige uno de tus propios Runners.
 :::
 
 :::details La ejecución lleva horas esperando

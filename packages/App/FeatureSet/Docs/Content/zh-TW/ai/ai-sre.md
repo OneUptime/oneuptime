@@ -53,6 +53,7 @@ flowchart TB
 - 該基礎設施上在事件發生前 30 分鐘內觸發的警示，或仍未解決的警示，依從新到舊排列，例如慢速網站背後那台主機的 CPU 過高警示。私人警示不會列出。
 - 基礎設施本身的指標，依照人們閱讀它們的方式讀取。`system.cpu.utilization` 和 `system.memory.utilization` 等主機指標依每個狀態各回報一次，各狀態加起來是 100%，因此對它們整體取一個平均值沒有任何意義。OneUptime AI 逐一讀取每個狀態（忙碌的 CPU 是 user 加 system），並可依容器、依掛載點或依任何其他屬性讀取任何指標。
 - Docker 或 Podman 主機的容器：依 CPU、記憶體或重新啟動次數排在最前的容器，以及已停止回報資料的容器。已停止的容器不會傳送零，而是什麼都不傳送，因此整台主機的數字會把它掩蓋。
+- 事件或警示發生前 2 小時內記錄的變更（部署、Kubernetes 滾動更新、設定變更以及 OneUptime 執行的修正），以及其中哪些因其服務的遙測資料而成為可疑變更：即某個服務在變更之後立即明顯變差。請參閱 [部署與變更](/docs/telemetry/change-events)。
 
 **AI Investigation** 卡片上的調查活動會說明它讀取了多少則未解決或最近的警示，以及是在哪些資源上。
 
@@ -205,6 +206,8 @@ AI 代理程式頁面上的 **修正** 有四種設定（chart 的 `aiAgent.fixe
   - 另一輪無人值守的 OneUptime AI 仍在變更同一叢集，或仍在驗證該叢集上的某個修正——同一個監測器的警示和事件是常見情況——或者無法檢查這一點；
   - 這是在某個回復未完成的修正之後的後續一輪。
 
+**先回復。** 當 OneUptime 將叢集上的某次 Kubernetes 滾動更新標記為該事件的可疑變更時（請參閱 [部署與變更](/docs/telemetry/change-events)），OneUptime AI 會在任何其他修正之前先嘗試回復它。OneUptime 根據記錄下來的變更建構 `kubectl rollout undo`，絕不依據模型寫出的內容；它會像叢集所處模式下的任何安全變更一樣，直接執行或等待核准。如果該 Deployment 在那次滾動更新之後又有了變更，就不會提供這項回復，因為那樣撤銷的將是後來的那次變更。
+
 **安全的** 變更只涉及恰好一個具名物件：`rollout restart/undo/pause/resume`、`scale` （縮放到 0 以外的任何值）、刪除一個具名 Pod、`cordon`/`uncordon`，以及對一個具名的 Pod、Deployment、StatefulSet、DaemonSet、ReplicaSet、Job 或 CronJob 使用一般鍵（不是 `*.kubernetes.io/…` 或 `*.k8s.io/…` 這樣的保留鍵）執行 `label`/`annotate`。原則允許的其他一切都 **風險較高**：對不帶名稱的類型使用相同的動詞（`rollout restart deployment`）、作用於多個物件、帶選擇器或帶 `--all`；`scale` 到 0；刪除 Job；`taint`；`drain`；`patch`；`set image/env/resources`；`create`；帶 `--force` 刪除；以及對任何其他類型或使用保留鍵新增標籤或註解。
 
 有些界限在 **每種** 模式下都成立，包括略過核准，任何允許清單項目都無法改變它們：
@@ -282,7 +285,7 @@ chart 的 RBAC 是獨立於原則的另一層，它限制的是 AI 代理程式�
 
 透過 API 或 Terraform，這三者是各自獨立的專案欄位，伺服器會儲存您寫入的內容：`enableAutomaticIncidentRemediation` 開啟修正，拉取請求只在它開啟且其自身欄位也開啟時才會開啟——`enableAutomaticIncidentCodeFixes` 和 `enableIncidentInstrumentationFixTasks`（警示對應 `enableAutomaticAlertRemediation`、`enableAutomaticAlertCodeFixes` 和 `enableAlertInstrumentationFixTasks`）。伺服器不會自行開啟或關閉其中任何一個，因此若要連同拉取請求一起開啟修正，請在一個請求中設定全部三個。
 
-決定把握程度的同一種受約束、經伺服器驗證的分類，也決定儲存庫變更是否合適。只有被肯定地歸類為程式碼修正時，才會提供或自動開啟拉取請求。沒有收集到經伺服器驗證的證據、建議非程式碼補救措施或分類失敗的調查，永遠不會開啟拉取請求——建立 PR 的失敗方向一律是什麼也不做。其他一切都與手動按鈕相同：拉取請求以可供審查的狀態開啟，需要透過 GitHub App 連線的儲存庫和具備程式碼修正能力的 Runner，在設定了相應限制時計入該訊號類型的每日修正任務限制和儲存庫的未關閉 PR 上限，並且每個事件或警示同時最多只能有一個作用中的修正任務。調查本身保持唯讀——修正作為一個單獨的、完整記錄日誌的代理程式任務執行。有關修正拉取請求的運作方式，包括每個拉取請求開啟之前執行的建置和測試驗證，請參閱 [修正任務](/docs/ai/ai-agent)。
+決定把握程度的同一種受約束、經伺服器驗證的分類，也決定儲存庫變更是否合適。只有被肯定地歸類為程式碼修正時，才會提供或自動開啟拉取請求。沒有收集到經伺服器驗證的證據、建議非程式碼補救措施或分類失敗的調查，永遠不會開啟拉取請求——建立 PR 的失敗方向一律是什麼也不做。其他一切都與手動按鈕相同：拉取請求以可供審查的狀態開啟，需要透過 GitHub App 連線的儲存庫和具備程式碼修正能力的 Runner，在設定了相應限制時計入該訊號類型的每日修正任務限制和儲存庫的未關閉 PR 上限，並且每個事件或警示同時最多只能有一個作用中的修正任務。調查本身保持唯讀——修正作為一個單獨的、完整記錄日誌的代理程式任務執行。有關修正拉取請求的運作方式，包括每個拉取請求開啟之前執行的建置和測試驗證，請參閱 [程式碼](/docs/ai/ai-agent)。
 
 ## 哪些事件會被調查和修正
 
@@ -382,7 +385,7 @@ AI 設定和自動補救規則以前位於 `…/settings/ai` 和 `…/settings/a
 在 OneUptime Cloud 上，使用全域提供商的 OneUptime AI 由專案的 AI 點數支付，位於 **專案設定 → 人工智慧 → AI 點數**。點數用完時會發生什麼，取決於同一頁面上的 **自動儲值**：
 
 - **自動儲值開啟**：第一個發現點數已用完的 AI 呼叫會新增自動儲值所設定的金額，從專案的卡片扣款，然後執行。在同一時刻到達的呼叫只會扣款一次。在點數低於其門檻時開啟自動儲值，會立即新增點數，就像簡訊和通話餘額的自動儲值那樣。
-- **自動儲值關閉**：OneUptime AI 停止。每次 AI 呼叫都會被拒絕，並說明誰可以在哪裡新增點數：「A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.」每次被拒絕的呼叫都會以 **Insufficient Balance** 狀態列在 AI 日誌（**專案設定 → 人工智慧 → AI 日誌**）中。自動調查和事後分析草稿不會啟動，AI 代理程式頁面和 AI 任務頁面會顯示專案的 AI 點數已用完。
+- **自動儲值關閉**：OneUptime AI 停止。每次 AI 呼叫都會被拒絕，並說明誰可以在哪裡新增點數：「A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.」每次被拒絕的呼叫都會以 **Insufficient Balance** 狀態列在 AI 日誌（**專案設定 → 人工智慧 → AI 日誌**）中。自動調查和事後分析草稿不會啟動，AI 代理程式頁面和程式碼會顯示專案的 AI 點數已用完。
 - **自動儲值無法從卡片扣款** （沒有付款方式，或卡片被拒絕）：OneUptime AI 以同樣的方式停止，擁有者會收到說明儲值失敗的電子郵件。自動儲值會在一小時後再次嘗試扣款。手動新增點數或再次儲存自動儲值會立即重試。在此之前，**AI 點數** 會在頂端向開啟它的每個人說明這一點：會請專案擁有者或擁有 **Manage Billing** 的人檢查付款方式或新增點數，其他人則會被告知誰可以處理。
 
 **專案擁有者會收到電子郵件** ，在 OneUptime AI 第一次因點數不足而停止時：當花掉最後點數的呼叫完成時，或者當某次 AI 呼叫被拒絕或某次調查被略過時。郵件會說明該怎麼做，並連結到 **AI 點數**。每次點數用完時寄送一次；新增點數後，下一次用完時會再寄送一封。
@@ -460,6 +463,6 @@ AI 設定和自動補救規則以前位於 `…/settings/ai` 和 `…/settings/a
 
 :::cards
 - [基礎設施 AI 代理程式](/docs/ai/infrastructure-ai-agents): 讓 OneUptime AI 查看 Docker、Proxmox、VMware、Ceph、資料庫和主機的內部。
-- [修正任務](/docs/ai/ai-agent): 修正拉取請求是如何撰寫和檢查的。
+- [程式碼](/docs/ai/ai-agent): 修正拉取請求是如何撰寫和檢查的。
 - [詢問 AI](/docs/ai/ask-ai): 在任何頁面詢問專案中的任何內容。
 :::

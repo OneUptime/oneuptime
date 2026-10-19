@@ -1,12 +1,28 @@
+import ChangeEvent from "../../../../Models/AnalyticsModels/ChangeEvent";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import Service from "../../../../Models/DatabaseModels/Service";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
+import {
+  AIChatCitationTarget,
+  AIChatCitationTargetType,
+} from "../../../../Types/AI/AIChatTypes";
+import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import {
+  ChangeEventFields,
+  describeChangeEventFields,
+  readChangeEventFields,
+} from "../../../../Utils/Telemetry/ChangeEventFields";
+import ChangeEventService from "../../../Services/ChangeEventService";
 import MonitorStatusTimelineService from "../../../Services/MonitorStatusTimelineService";
 import ScheduledMaintenanceService from "../../../Services/ScheduledMaintenanceService";
+import ServiceService from "../../../Services/ServiceService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
@@ -22,9 +38,9 @@ import {
 /*
  * Gate on Monitor read permissions. This is defense-in-depth only: every
  * source query below runs under the requesting user's props, so a user who
- * cannot see monitors / exceptions / maintenance simply gets no rows from that
- * source — never another user's data. Resolved lazily to avoid the
- * import-time circular-dependency TypeError other tools document.
+ * cannot see monitors / exceptions / maintenance / change events simply gets
+ * no rows from that source — never another user's data. Resolved lazily to
+ * avoid the import-time circular-dependency TypeError other tools document.
  */
 let cachedReadPermissions: Array<Permission> | null = null;
 const resolveReadPermissions: () => Array<Permission> =
@@ -36,24 +52,34 @@ const resolveReadPermissions: () => Array<Permission> =
   };
 
 // One normalized entry in the merged "what changed" feed.
-interface ChangeEvent {
+interface FeedEntry {
   at: Date;
   change: string;
   detail: string;
+  // The change event's id, for get_change_details.
+  changeId?: string | undefined;
 }
+
+// The longest title a change event's line keeps.
+const MAX_CHANGE_TITLE_LENGTH: number = 300;
 
 export const RecentChangesTool: ObservabilityTool = {
   name: "recent_changes",
   description:
-    "Get a single chronological feed of what changed in a time window: newly-seen exceptions, monitor status changes (up/down), and scheduled maintenance overlapping the window. This is the highest-yield way to answer 'what changed right before this started?' during root-cause analysis — call it with the window around when a problem began.",
+    "Get a single chronological feed of what changed in a time window: deploys and Kubernetes rollouts (with the version before and after and the commit, when known), config changes, rollbacks, fixes OneUptime AI ran and runbooks OneUptime ran, newly-seen exceptions (with the release they were first seen in), monitor status changes (up/down), and scheduled maintenance overlapping the window. This is the highest-yield way to answer 'what changed right before this started?' during root-cause analysis — call it with the window around when a problem began. Pass serviceId to see only one service's deploys and new exceptions. Each change event carries a changeId: call get_change_details with it for the commits and pull requests a deploy shipped.",
   inputSchema: {
     type: "object",
     properties: {
       ...TimeRangeSchemaProperties,
+      serviceId: {
+        type: "string",
+        description:
+          "Optional service ID: only that service's deploys, changes and new exceptions. Monitor status changes and maintenance are listed either way.",
+      },
       limitPerSource: {
         type: "number",
         description:
-          "Maximum items to pull from each source (exceptions, monitor changes, maintenance) before merging. Default 15, max 30.",
+          "Maximum items to pull from each source (change events, exceptions, monitor changes, maintenance) before merging. Default 15, max 30.",
       },
     },
   },
@@ -77,20 +103,82 @@ export const RecentChangesTool: ObservabilityTool = {
       max: 30,
     });
 
-    const events: Array<ChangeEvent> = [];
+    const serviceId: ObjectID | undefined = ToolArgs.getObjectID(
+      args,
+      "serviceId",
+    );
 
-    // 1) Newly-seen exceptions — their first occurrence falls inside the window.
+    const events: Array<FeedEntry> = [];
+
+    /*
+     * 1) Change events: deploys and rollouts, config changes, rollbacks, the
+     *    fixes OneUptime AI ran and the runbooks OneUptime ran.
+     */
     try {
+      const changeQuery: JSONObject = {
+        time: new InBetween(startTime, endTime),
+      };
+
+      if (serviceId) {
+        changeQuery["primaryEntityId"] = serviceId;
+      }
+
+      const changes: Array<ChangeEvent> = await ChangeEventService.findBy({
+        query: changeQuery as never,
+        select: {
+          _id: true,
+          time: true,
+          eventType: true,
+          title: true,
+          primaryEntityId: true,
+          attributes: true,
+        } as never,
+        sort: { time: SortOrder.Descending } as never,
+        limit: limitPerSource,
+        skip: 0,
+        props: ctx.props,
+      });
+
+      const serviceNames: Dictionary<string> = await getServiceNames(
+        changes,
+        ctx,
+      );
+
+      for (const change of changes) {
+        if (!change.time) {
+          continue;
+        }
+
+        events.push({
+          at: change.time,
+          change: change.eventType || "change",
+          detail: describeChangeEvent(change, serviceNames),
+          changeId: change._id?.toString(),
+        });
+      }
+    } catch (error) {
+      logger.debug(`recent_changes: change events source skipped: ${error}`);
+    }
+
+    // 2) Newly-seen exceptions — their first occurrence falls inside the window.
+    try {
+      const exceptionQuery: JSONObject = {
+        firstSeenAt: QueryHelper.inBetween(startTime, endTime),
+      };
+
+      if (serviceId) {
+        exceptionQuery["primaryEntityId"] = serviceId;
+      }
+
       const exceptions: Array<TelemetryException> =
         await TelemetryExceptionService.findBy({
-          query: {
-            firstSeenAt: QueryHelper.inBetween(startTime, endTime),
-          } as never,
+          query: exceptionQuery as never,
           select: {
             message: true,
             exceptionType: true,
             firstSeenAt: true,
             occuranceCount: true,
+            firstSeenInRelease: true,
           },
           sort: { firstSeenAt: SortOrder.Descending },
           limit: limitPerSource,
@@ -102,17 +190,20 @@ export const RecentChangesTool: ObservabilityTool = {
         if (!exception.firstSeenAt) {
           continue;
         }
+        const release: string = exception.firstSeenInRelease
+          ? `, first seen in ${exception.firstSeenInRelease}`
+          : "";
         events.push({
           at: exception.firstSeenAt,
           change: "new_exception",
-          detail: `${exception.exceptionType || "Exception"}: ${exception.message || ""} (x${exception.occuranceCount ?? 0})`,
+          detail: `${exception.exceptionType || "Exception"}: ${exception.message || ""} (x${exception.occuranceCount ?? 0}${release})`,
         });
       }
     } catch (error) {
       logger.debug(`recent_changes: exceptions source skipped: ${error}`);
     }
 
-    // 2) Monitor status changes (up/down) inside the window.
+    // 3) Monitor status changes (up/down) inside the window.
     try {
       const statusChanges: Array<MonitorStatusTimeline> =
         await MonitorStatusTimelineService.findBy({
@@ -145,7 +236,7 @@ export const RecentChangesTool: ObservabilityTool = {
     }
 
     /*
-     * 3) Scheduled maintenance overlapping the window (started before it ended,
+     * 4) Scheduled maintenance overlapping the window (started before it ended,
      *    ends after it started).
      */
     try {
@@ -182,27 +273,121 @@ export const RecentChangesTool: ObservabilityTool = {
     }
 
     // Merge into one chronological feed, most recent first.
-    events.sort((a: ChangeEvent, b: ChangeEvent) => {
+    events.sort((a: FeedEntry, b: FeedEntry) => {
       return b.at.getTime() - a.at.getTime();
     });
 
-    const rows: Array<JSONObject> = events.map((event: ChangeEvent) => {
-      return {
+    const rows: Array<JSONObject> = events.map((event: FeedEntry) => {
+      const row: JSONObject = {
         at: event.at,
         change: event.change,
         detail: event.detail,
       };
+
+      if (event.changeId) {
+        row["changeId"] = event.changeId;
+      }
+
+      return row;
     });
 
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    /*
+     * One service's feed opens that service's page, where its deploys are
+     * drawn on its charts. A project-wide feed has no single page.
+     */
+    const citationTarget: AIChatCitationTarget | undefined = serviceId
+      ? {
+          type: AIChatCitationTargetType.ServiceView,
+          params: { serviceId: serviceId.toString() },
+        }
+      : undefined;
+
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
       citationLabel: `Changes ${startTime.toISOString()} → ${endTime.toISOString()} (${serialized.rowCount} events)`,
+      ...(citationTarget ? { citationTarget } : {}),
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
     };
   },
 };
+
+/*
+ * The names of the services the change events belong to, read with the
+ * caller's own permissions: a service the caller cannot see is left
+ * unnamed rather than named.
+ */
+async function getServiceNames(
+  changes: Array<ChangeEvent>,
+  ctx: ToolContext,
+): Promise<Dictionary<string>> {
+  const ids: Array<string> = Array.from(
+    new Set<string>(
+      changes
+        .map((change: ChangeEvent) => {
+          return change.primaryEntityId?.toString() || "";
+        })
+        .filter(Boolean),
+    ),
+  );
+
+  const names: Dictionary<string> = {};
+
+  if (ids.length === 0) {
+    return names;
+  }
+
+  try {
+    const services: Array<Service> = await ServiceService.findBy({
+      query: {
+        _id: QueryHelper.any(
+          ids.map((id: string) => {
+            return new ObjectID(id);
+          }),
+        ),
+      } as never,
+      select: { _id: true, name: true },
+      limit: ids.length,
+      skip: 0,
+      props: ctx.props,
+    });
+
+    for (const service of services) {
+      if (service._id && service.name) {
+        names[service._id.toString()] = service.name;
+      }
+    }
+  } catch (error) {
+    logger.debug(`recent_changes: service names skipped: ${error}`);
+  }
+
+  return names;
+}
+
+/*
+ * "checkout: Deploy 2.3.1 (2.3.0 → 2.3.1, commit 1a2b3c4, production,
+ * recorded from the change-events API)". The title is whatever a pipeline
+ * posted, so the serializer redacts and caps it like any other field.
+ */
+export function describeChangeEvent(
+  change: ChangeEvent,
+  serviceNames: Dictionary<string>,
+): string {
+  const serviceName: string | undefined = change.primaryEntityId
+    ? serviceNames[change.primaryEntityId.toString()]
+    : undefined;
+  const title: string = (change.title || "Change").slice(
+    0,
+    MAX_CHANGE_TITLE_LENGTH,
+  );
+  const fields: ChangeEventFields = readChangeEventFields(
+    (change.attributes as Dictionary<unknown>) || {},
+  );
+  const facts: string = describeChangeEventFields(fields);
+
+  return `${serviceName ? `${serviceName}: ` : ""}${title}${facts ? ` (${facts})` : ""}`;
+}

@@ -1,6 +1,7 @@
 import ObjectID from "Common/Types/ObjectID";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI, { RecordPullRequestOptions } from "../Utils/BackendAPI";
+import { CodeTaskOutcomeReport } from "Common/Types/AI/CodeTask";
 
 // Base interface for task result data
 export interface TaskResultData {
@@ -74,6 +75,13 @@ export interface TaskResult {
 
   // List of PR URLs created
   pullRequestUrls?: Array<string>;
+
+  /*
+   * What a request from Code ended with - the AI's reply, the files it
+   * changed and their diff, where they went, and whether it asked a
+   * question. Reported with the Completed status, for the conversation.
+   */
+  outcome?: CodeTaskOutcomeReport;
 }
 
 // Interface that all task handlers must implement

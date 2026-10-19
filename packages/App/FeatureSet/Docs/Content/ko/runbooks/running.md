@@ -133,11 +133,11 @@ Runbook의 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼져 
 :::
 
 :::details Runner나 자격 증명이 없어서 단계가 실패함
-메시지는 예를 들어 "Bash step is missing a Runner. Pick one under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었거나, SSH 또는 Kubernetes 단계가 **Credential** 없이 저장되었습니다. Runbook의 **단계**를 열어 빠진 것을 고르고 **Save Steps**를 클릭한 뒤 Runbook을 다시 실행하세요.
+메시지는 예를 들어 "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었거나, SSH 또는 Kubernetes 단계가 **Credential** 없이 저장되었습니다. JavaScript 단계에 자체 Runner가 필요한 것은 그 단계를 실행할 수 있는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)가 없을 때뿐입니다. Runbook의 **단계**를 열어 빠진 것을 고르고 **Save Steps**를 클릭한 뒤 Runbook을 다시 실행하세요.
 :::
 
 :::details 어떤 Runbook 에이전트도 가져가지 않아서 단계가 실패함
-메시지는 "No runbook agent picked up this step before the wait window expired."입니다. 단계의 Runner가 claim timeout 안에 작업을 가져가지 않았습니다. **런북 → Runbook 에이전트**에서 Runner가 **연결됨**이고 **런북 실행**이 켜져 있는지 확인하세요. [Runbook 에이전트](/docs/runbooks/agents#문제-해결)를 참조하세요.
+메시지는 "No runbook agent picked up this step before the wait window expired."입니다. 단계의 Runner가 claim timeout 안에 작업을 가져가지 않았습니다. **런북 → Runbook 에이전트**에서 Runner가 **연결됨**이고 **런북 실행**이 켜져 있는지 확인하세요. [Runbook 에이전트](/docs/runbooks/agents#문제-해결)를 참조하세요. 글로벌 Runner의 단계는 대신 "No global Runner picked up this step before the wait window expired."라고 알립니다. Runbook을 다시 실행하거나, 단계의 claim timeout을 늘리거나, 내 Runner 중 하나를 고르세요.
 :::
 
 :::details 실행이 몇 시간째 기다리고 있음

@@ -12,7 +12,7 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 ## 시작하기 전에
 
 - **Runbook을 작성할 수 있는 역할.** Project Owner, Project Admin, Runbook Admin은 Runbook을 만들고 단계를 저장할 수 있습니다. 세분화된 권한을 쓰는 경우 **Create Runbook**과 **Edit Runbook**이 필요합니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
-- **JavaScript, Bash, SSH, Kubernetes 단계를 위한 Runner.** 이 단계들은 OneUptime Worker가 아니라 자체 인프라의 [Runner](/docs/runbooks/agents)에서 실행됩니다. 먼저 하나를 설치하세요.
+- **Bash, SSH, Kubernetes 단계를 위한 Runner.** 이 단계들은 OneUptime Worker가 아니라 자체 인프라의 [Runner](/docs/runbooks/agents)에서 실행됩니다. 먼저 하나를 설치하세요. JavaScript 단계는 내 Runner 중 하나를 고르지 않으면 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)에서 실행됩니다.
 - **SSH와 Kubernetes 단계를 위한 자격 증명과 그것을 읽을 권한.** [Runbook 자격 증명](/docs/runbooks/credentials)을 참조하세요. 단계는 Runbook 자격 증명을 읽을 수 있는 경우에만 자격 증명을 지정할 수 있습니다. Project Owner, Project Admin 또는 **Read Runbook Credential**이 필요하며, Runbook Admin에는 포함되지 않습니다.
 - **AI 단계를 위한 LLM 공급자.** [LLM 공급자](/docs/ai/llm-provider)를 참조하세요.
 
@@ -72,13 +72,13 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 
 ### JavaScript
 
-OneUptime Worker가 아니라 자체 인프라의 [Runbook 에이전트](/docs/runbooks/agents)에서 `isolated-vm` 샌드박스로 실행되는 JavaScript 코드입니다.
+OneUptime Worker가 아니라 [Runbook 에이전트](/docs/runbooks/agents)에서 `isolated-vm` 샌드박스로 실행되는 JavaScript 코드입니다. 내 Runner 중 하나에서 실행되거나, 단계가 아무것도 고르지 않으면 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)에서 실행됩니다.
 
 | 필드 | 하는 일 | 기본값 |
 | --- | --- | --- |
-| **Runner** | 단계를 실행하는 Runner입니다. 이 Runner만 작업을 가져갈 수 있습니다. | — |
+| **Runner** | 단계를 실행하는 Runner입니다. **글로벌 Runner** 또는 내 Runner 중 하나입니다. 고른 Runner만 작업을 가져갈 수 있으며, **글로벌 Runner**로 지정된 단계는 어느 글로벌 Runner든 가져갈 수 있습니다. | 있으면 **글로벌 Runner** |
 | **Script** | 실행할 JavaScript입니다. 값을 기록하려면 `return`으로 반환하세요. `console.log`의 각 줄도 기록됩니다. 오류가 발생하면 단계가 실패합니다. | — |
-| **실행 제한 시간** | Runner가 샌드박스를 정리하기 전까지 코드를 실행하게 두는 시간입니다. | 30초 |
+| **실행 제한 시간** | Runner가 샌드박스를 정리하기 전까지 코드를 실행하게 두는 시간입니다. 글로벌 Runner에서는 최대 5분입니다. | 30초 |
 | **가져가기 제한 시간** | Worker가 Runner가 작업을 가져가기를 기다리는 시간입니다. | 2분 |
 
 ```javascript

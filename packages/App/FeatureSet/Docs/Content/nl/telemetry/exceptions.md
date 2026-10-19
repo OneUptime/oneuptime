@@ -113,9 +113,9 @@ De pagina **AI Assistance** biedt drie taken. Elke taak loopt als AI-taak die ee
 | --- | --- |
 | **Fix this exception with AI** | Verhelpt de oorzaak. Start de taak met **Fix with AI**. |
 | **Generate Regression Test** | Voegt een test toe die faalt totdat de bug is verholpen. |
-| **Improve Error Handling** | Voor verwachte fouten: controleert invoer eerder, houdt gebruikersgegevens uit berichten en markeert de fout als afgehandeld. |
+| **Foutafhandeling verbeteren** | Voor verwachte fouten: controleert invoer eerder, houdt gebruikersgegevens uit berichten en markeert de fout als afgehandeld. |
 
-AI heeft eerst drie dingen nodig: een LLM-provider, een GitHub-repository die via de GitHub App is gekoppeld, en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Hersteltaken](/docs/ai/ai-agent).
+AI heeft eerst drie dingen nodig: een LLM-provider, een GitHub-repository die via de GitHub App is gekoppeld, en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Code](/docs/ai/ai-agent).
 
 ## Inzichten in uitzonderingen
 
@@ -140,6 +140,6 @@ Een nieuw voorval heropent een opgeloste uitzondering met opzet: de fout treedt 
 :::cards
 - [Uitzonderingen-monitor](/docs/monitor/exceptions-monitor): Een melding krijgen als uitzonderingen sterk toenemen.
 - [Source maps](/docs/telemetry/source-maps): Leesbare stacktraces voor browsercode.
-- [Hersteltaken](/docs/ai/ai-agent): Hoe AI code verbetert en pull requests opent.
+- [Code](/docs/ai/ai-agent): Hoe AI code verbetert en pull requests opent.
 - [Traceverkenner](/docs/telemetry/traces-explorer): Het verzoek zien waarin een uitzondering optrad.
 :::

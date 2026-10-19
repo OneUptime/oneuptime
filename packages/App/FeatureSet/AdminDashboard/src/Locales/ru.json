@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Глобальные зонды",
+    "globalRunners": "Глобальные Runner-ы",
     "dataRetention": "Хранение данных",
     "globalAiAgents": "Глобальные AI-агенты",
     "globalLlmProviders": "Глобальные LLM-провайдеры",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Мониторинг",
     "settingsGlobalProbes": "Глобальные зонды",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Глобальные Runner-ы",
     "settingsDataRetention": "Хранение данных",
     "settingsAi": "ИИ",
     "settingsGlobalAiAgents": "Глобальные AI-агенты",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Вот ваш ключ зонда. Пожалуйста, держите его в секрете.",
         "probeIdLabel": "ID зонда:",
         "probeKeyLabel": "Ключ зонда:"
+      },
+      "globalRunners": {
+        "cardTitle": "Глобальные Runner-ы",
+        "cardDescription": "Runner-ы, которые OneUptime запускает для всех проектов. Они выполняют шаги JavaScript, каждый в песочнице с доступом только в интернет.",
+        "noItems": "Добавьте глобальный Runner. Создайте его, затем запустите командой из пункта «Показать ID и ключ».",
+        "showIdKey": "Показать ID и ключ",
+        "keyModalTitle": "Ключ глобального Runner-а",
+        "keyModalDescription": "Запустите этот глобальный Runner на хосте с доступом в интернет. Храните его ключ в секрете: тот, у кого он есть, может забирать шаги JavaScript всех проектов, использующих глобальные Runner-ы.",
+        "runnerIdLabel": "ID Runner-а:",
+        "runnerKeyLabel": "Ключ Runner-а:",
+        "commandLabel": "Выполните на вашем Docker-хосте",
+        "neverConnected": "Никогда не подключался"
       },
       "aiAgents": {
         "bannerTitle": "Нужна помощь с настройкой глобальных AI-агентов?",

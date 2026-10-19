@@ -223,7 +223,9 @@ jobs:
               test-navigation-search-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
-          # when this group took 23.5 minutes.
+          # when this group took 23.5 minutes. Global Runners (about a
+          # minute, Chromium only) joined it at 15.4 minutes, the lightest
+          # group on 2026-10-18's run.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -235,6 +237,7 @@ jobs:
               test-status-page-search-ui
               test-label-rule-transfer-ui
               test-list-delete-ui
+              test-global-runners-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -250,7 +253,8 @@ jobs:
           # 24.5 of the job's 30 minutes on a slow runner. Calendar Feed and
           # Status Page Theme moved to groups 4 and 1 when this group reached
           # 28.5 minutes, and its last five suites to group 6 when it took
-          # 25.5.
+          # 25.5. Code (about 5 minutes: a laptop and a phone) joined it at
+          # 14.2 to 16.4 minutes, the most room of the six.
           - group: 5
             browsers: chromium
             suites: >-
@@ -268,6 +272,7 @@ jobs:
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
+              test-code-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -417,8 +422,12 @@ jobs:
             output/playwright/episode-bulk-add-ui/test-results
             output/playwright/runbook-triggers-ui/*.png
             output/playwright/runbook-triggers-ui/test-results
+            output/playwright/global-runners-ui/*.png
+            output/playwright/global-runners-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
+            output/playwright/code-ui/*.png
+            output/playwright/code-ui/test-results
             output/playwright/infrastructure-first-run-ui/*.png
             output/playwright/infrastructure-first-run-ui/test-results
             output/playwright/custom-roles-ui/*.png

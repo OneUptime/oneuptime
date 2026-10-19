@@ -29,12 +29,12 @@ flowchart TB
     R --> O["El mismo comentario,<br/>reescrito con<br/>el resultado"]
 ```
 
-Es el mismo agente y el mismo Runner que en las [Tareas de corrección](/docs/ai/ai-agent), con los mismos presupuestos; solo cambia el disparador.
+Es el mismo agente y el mismo Runner que en [Código](/docs/ai/ai-agent), con los mismos presupuestos; solo cambia el disparador.
 
 ## Antes de empezar
 
-- El repositorio tiene que estar **conectado a un proyecto de OneUptime** mediante la GitHub App: conéctalo en **Tareas → Repositorios de código** (abre **Productos → Código → Tareas**). Una instancia autoalojada necesita primero su propia GitHub App: consulta [Integración con GitHub](/docs/self-hosted/github-integration). Si la app ya está instalada en la cuenta de GitHub, haz clic allí en **Conectar una instalación existente** en lugar de volver a instalarla.
-- Tiene que haber en línea un Runner con **Ejecuta correcciones de código con IA**: el mismo Runner que lleva a cabo las [Tareas de corrección](/docs/ai/ai-agent). Sin él, los comandos se aceptan y fallan a los 30 minutos, con un mensaje de que ningún agente los tomó.
+- El repositorio tiene que estar **conectado a un proyecto de OneUptime** mediante la GitHub App: conéctalo en **Productos → Código**. Una instancia autoalojada necesita primero su propia GitHub App: consulta [Integración con GitHub](/docs/self-hosted/github-integration). Si la app ya está instalada en la cuenta de GitHub, haz clic allí en **Conectar una instalación existente** en lugar de volver a instalarla.
+- Tiene que haber en línea un Runner con **Ejecuta correcciones de código con IA**: el mismo Runner que lleva a cabo las tareas de [Código](/docs/ai/ai-agent). Sin él, los comandos se aceptan y fallan a los 30 minutos, con un mensaje de que ningún agente los tomó.
 - La GitHub App necesita el permiso **Issues** con **Read & write** y tiene que estar suscrita a los eventos de webhook de [A qué suscribirse](#a-qué-suscribirse).
 
 ## Los comandos
@@ -106,7 +106,7 @@ También ignora todos los comentarios escritos por un bot, incluidos los suyos, 
 
 Cada comando que inicia trabajo es una ejecución completa del agente: un clon, hasta 40 llamadas al LLM y 100.000 tokens de salida, y los comandos de compilación y prueba de tu repositorio cuando los has definido.
 
-Los comandos de GitHub son trabajo de IA fuera de los incidentes y las alertas, así que no se les aplica ningún límite diario de tareas de corrección; sí se aplican los límites diarios de IA del propio proyecto, cuando el proyecto los fija. El único otro límite es el que ya rige las [Tareas de corrección](/docs/ai/ai-agent):
+Los comandos de GitHub son trabajo de IA fuera de los incidentes y las alertas, así que no se les aplica ningún límite diario de tareas de corrección; sí se aplican los límites diarios de IA del propio proyecto, cuando el proyecto los fija. El único otro límite es el que ya rige las tareas de [Código](/docs/ai/ai-agent):
 
 - **El tope de pull requests abiertos** (**Máximo de pull requests de corrección abiertas**, en la página **Ajustes** del repositorio). **Pull requests de corrección con IA** está en **Sin límite** hasta que eliges **Un límite**, o **Ninguno**, que bloquea los pull requests de corrección de IA en ese repositorio. Las reseñas y las revisiones están exentas: ninguna añade un pull request a tu cola de revisión.
 
@@ -148,7 +148,7 @@ Trata un pull request que escribió la IA como tratarías uno de un colaborador 
 ## Solución de problemas
 
 :::details No pasa nada cuando la menciono
-Comprueba primero el identificador: es el slug de la app, no su nombre visible. Después comprueba que el repositorio está conectado a un proyecto (**Tareas → Repositorios de código**), que **Responder a comandos de GitHub** está activado y que tu GitHub App está suscrita a los eventos de arriba.
+Comprueba primero el identificador: es el slug de la app, no su nombre visible. Después comprueba que el repositorio está conectado a un proyecto (en **Productos → Código**), que **Responder a comandos de GitHub** está activado y que tu GitHub App está suscrita a los eventos de arriba.
 :::
 
 :::details Reacciona con 😕 y no dice nada
@@ -170,7 +170,7 @@ Una revisión necesita una rama en este repositorio. Pide una reseña en su luga
 ## Próximos pasos
 
 :::cards
-- [Tareas de corrección](/docs/ai/ai-agent): El mismo agente, iniciado desde una excepción, una traza o una investigación.
+- [Código](/docs/ai/ai-agent): El mismo agente, al que se le pide algo en un repositorio o iniciado desde una excepción, una traza o una investigación.
 - [Integración con GitHub](/docs/self-hosted/github-integration): Crea y configura la GitHub App en una instancia autoalojada.
 - [Agentes de runbook](/docs/runbooks/agents): El worker que lleva a cabo cada ejecución.
 :::
