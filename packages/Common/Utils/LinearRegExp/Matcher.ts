@@ -342,8 +342,16 @@ class CodeUnitClasses {
 export const MAX_KEPT_AUTOMATA_BYTES: number = 64 * 1024 * 1024;
 export const MAX_AUTOMATON_BYTES: number = 16 * 1024 * 1024;
 
-// What a state costs besides its arrays: the object, its key's entry.
-const STATE_OVERHEAD_BYTES: number = 128;
+/*
+ * What a state costs besides what its arrays hold: the object, its three
+ * typed arrays' own headers, its key's entry. And what an automaton costs
+ * besides its program's and its own arrays' contents: the objects, a dozen
+ * typed arrays' headers, its tables of classes and states, and the program
+ * it keeps alive. Measured on V8, so that a store of many small automata
+ * holds what it says it holds.
+ */
+const STATE_OVERHEAD_BYTES: number = 512;
+const AUTOMATON_OVERHEAD_BYTES: number = 8 * 1024;
 
 class AutomatonStore {
   private readonly forwardAutomata: Map<Program, LazyDfa> = new Map<
@@ -438,7 +446,11 @@ class AutomatonStore {
       return;
     }
 
-    for (const oldest of Array.from(this.recency.keys())) {
+    /*
+     * Read from the least recently read on, dropping as it goes: a store of
+     * thousands of automata is not copied for every state kept.
+     */
+    for (const oldest of this.recency.keys()) {
       if (this.keptBytes <= MAX_KEPT_AUTOMATA_BYTES) {
         return;
       }
@@ -534,7 +546,11 @@ class LazyDfa {
     }
 
     // The program's four arrays and this automaton's four, per step.
-    this.bytes = 32 * program.ops.length + 4 * this.classes.count + setBytes;
+    this.bytes =
+      AUTOMATON_OVERHEAD_BYTES +
+      32 * program.ops.length +
+      4 * this.classes.count +
+      setBytes;
   }
 
   /*

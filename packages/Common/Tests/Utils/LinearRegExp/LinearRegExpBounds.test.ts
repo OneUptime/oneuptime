@@ -341,6 +341,30 @@ describe("what the matcher keeps between questions", () => {
     expect(getKeptAutomataCount()).toBeLessThan(24);
   });
 
+  test("many small automata are counted at what each really holds, so a few thousand fill the store", () => {
+    clearKeptAutomata();
+
+    /*
+     * Each automaton keeps its program, its tables and a dozen typed arrays
+     * however small its pattern: some eight kilobytes on V8. Counted at a
+     * fraction of that, tens of thousands of small patterns - each save of
+     * a pattern asks it something - would hold five times the store's
+     * limit.
+     */
+    for (let index: number = 0; index < 20000; index++) {
+      new LinearRegExp(`x${index}y|z${index}`).test("some text x1y here");
+      expect(getKeptAutomataBytes()).toBeLessThanOrEqual(
+        MAX_KEPT_AUTOMATA_BYTES,
+      );
+    }
+
+    expect(getKeptAutomataCount()).toBeLessThanOrEqual(
+      MAX_KEPT_AUTOMATA_BYTES / (8 * 1024),
+    );
+    expect(getKeptAutomataCount()).toBeGreaterThan(1000);
+    clearKeptAutomata();
+  });
+
   test("one automaton never holds more than its own limit", () => {
     clearKeptAutomata();
 

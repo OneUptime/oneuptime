@@ -70,7 +70,8 @@ function forget(key: string): void {
 
 // Drops the least recently used patterns until this one fits.
 function makeRoom(entry: CachedPattern): void {
-  for (const oldest of Array.from(cache.keys())) {
+  // From the least recently used on, dropping as it goes.
+  for (const oldest of cache.keys()) {
     if (
       cache.size < MAX_CACHED_PATTERNS &&
       cachedSteps + entry.steps <= MAX_CACHED_PATTERN_STEPS &&
