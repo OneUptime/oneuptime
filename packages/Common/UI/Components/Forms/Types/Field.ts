@@ -106,11 +106,11 @@ export interface FormFieldCollapsibleSection<TEntity> {
    */
   openWhenConfigured?: boolean | undefined;
   /*
-   * Folded, the header lists the fields the section holds by name - "Declared
-   * At · Initial State · Labels" - with the set ones as chips that say what
-   * they are set to. For a section whose title does not say what is in it:
-   * More fields. Left out, a folded header shows only the fields that are
-   * set (FoldedSection).
+   * Folded, the header lists the fields the section holds by name, the set
+   * ones with what they are set to - "More fields · Declared At, Initial
+   * State: Identified, Labels: 2". For a section whose title does not say
+   * what is in it: More fields. Left out, a folded header shows only the
+   * fields that are set (FoldedSection).
    */
   listFieldsWhileFolded?: boolean | undefined;
   /*

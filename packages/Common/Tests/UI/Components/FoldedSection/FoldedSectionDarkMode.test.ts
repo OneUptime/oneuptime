@@ -200,13 +200,13 @@ describe("folded sections in the dark theme", () => {
         /*
          * More fields' line: the title a quiet link that darkens on hover,
          * its chevron, the dot after it, the names in grey and the set ones
-         * a shade darker.
+         * a shade darker (text-gray-600, a step under a field's label).
          */
         "text-indigo-600",
         "group-hover:text-indigo-800",
         "text-indigo-500",
         "group-hover:text-indigo-700",
-        "text-gray-700",
+        "text-gray-600",
       ]),
     );
 

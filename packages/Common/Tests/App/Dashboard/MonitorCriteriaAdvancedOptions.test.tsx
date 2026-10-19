@@ -249,7 +249,7 @@ describe("the incident's More fields", () => {
         advancedOptions().querySelector(
           "[data-testid='folded-section-item'][data-item-set='true']",
         ),
-      ).toHaveClass("font-medium", "text-gray-700");
+      ).toHaveClass("font-medium", "text-gray-600");
       // A line has no icon tile, set or not.
       expect(
         advancedOptions().querySelector("[data-testid='folded-section-icon']"),

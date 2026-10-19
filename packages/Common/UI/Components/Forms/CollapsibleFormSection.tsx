@@ -27,8 +27,9 @@ import React, {
  *
  * Folded, its header says what is inside:
  *   - a section that lists its fields (More fields, whose title says
- *     nothing of what it holds) names them, the set ones as chips that say
- *     what they are set to, with its summary sentences under them;
+ *     nothing of what it holds) names them after its title, the set ones
+ *     with what they are set to ("More fields · Description, Labels: 2"),
+ *     with its summary sentences under them;
  *   - any other section shows its summary sentences when it has them - they
  *     say what is set already - and otherwise the chips of its set fields;
  *   - a section that says it is configured but has no set field to show

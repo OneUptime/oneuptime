@@ -443,10 +443,13 @@ describe("BasicForm Advanced sections", () => {
       "Auto Resolve",
       "Note",
     ]);
-    // What is set is a shade darker than the names around it.
+    /*
+     * What is set is a shade darker than the names around it - and a step
+     * quieter than the form's own labels (text-gray-700).
+     */
     expect(setItem("Show on Create: On")).toHaveClass(
       "font-medium",
-      "text-gray-700",
+      "text-gray-600",
     );
     expect(screen.queryByTestId("folded-section-icon")).toBeNull();
     expect(screen.queryByText("Configured")).toBeNull();
@@ -989,7 +992,7 @@ describe("BasicForm More fields with a custom element that keeps its value elsew
     ]);
     expect(
       setItem("Reopen recently resolved episodes: 30 minutes"),
-    ).toHaveClass("text-gray-700");
+    ).toHaveClass("text-gray-600");
 
     /*
      * Off again: its carrier now holds what the control handed over last,

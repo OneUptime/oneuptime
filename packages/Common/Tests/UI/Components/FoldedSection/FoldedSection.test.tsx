@@ -363,14 +363,19 @@ describe("More fields is one quiet line", () => {
       }),
     ).toEqual(["false", "true", "true", "true"]);
 
-    // The names are the list's grey; what is set is darker and medium.
+    /*
+     * The names are the list's grey; what is set is a shade darker and
+     * medium - and still a step quieter than a field's own label
+     * (text-gray-700), so "Labels: 2" never reads as a label.
+     */
     expect(screen.getByTestId("folded-section-contents")).toHaveClass(
       "text-gray-500",
     );
     expect(items[0]!.className).toBe("");
 
     for (const item of items.slice(1)) {
-      expect(item).toHaveClass("font-medium", "text-gray-700");
+      expect(item).toHaveClass("font-medium", "text-gray-600");
+      expect(item).not.toHaveClass("text-gray-700");
     }
 
     expect(description()).toBe(
@@ -387,7 +392,7 @@ describe("More fields is one quiet line", () => {
 
     expect(item).toHaveAttribute("data-item-set", "true");
     expect(item).toHaveTextContent(/^Description$/);
-    expect(item).toHaveClass("text-gray-700");
+    expect(item).toHaveClass("font-medium", "text-gray-600");
   });
 
   test("keeps a long list short: four names at most, then how many more", () => {
@@ -523,8 +528,10 @@ describe("More fields is one quiet line", () => {
     expect(screen.getByTestId("folded-section-badge")).toHaveTextContent(
       "Configured",
     );
+    // As a set item reads: what is in force, a shade darker than the names.
     expect(screen.getByTestId("folded-section-badge")).toHaveClass(
-      "text-gray-700",
+      "font-medium",
+      "text-gray-600",
     );
     expect(header()).toHaveAccessibleDescription("Configured");
   });
@@ -925,5 +932,167 @@ describe("in German", () => {
       screen.getByRole("button", { name: "Weitere Einstellungen" }),
     ).toBeInTheDocument();
     expect(fold()).toHaveAttribute("data-variant", "card");
+  });
+});
+
+/*
+ * The line's commas are words on screen now - the card's pills needed
+ * none - so they are written the way the reader's script writes a list:
+ * the ideographic comma, with no space after it, in Japanese and Chinese,
+ * the Arabic comma in Persian (Utils/ListSeparator).
+ */
+describe("in Japanese, Chinese and Persian, the line is punctuated their way", () => {
+  function readLocale(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "..",
+          "App",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          "Locales",
+          `${language}.json`,
+        ),
+        "utf8",
+      ),
+    );
+  }
+
+  const instances: Map<string, i18n> = new Map<string, i18n>();
+
+  beforeAll(async () => {
+    for (const language of ["ja", "zh-CN", "fa"]) {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        resources: { [language]: { translation: readLocale(language) } },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+
+      instances.set(language, instance);
+    }
+  });
+
+  function renderIn(language: string, element: ReactElement): void {
+    render(
+      <I18nextProvider i18n={instances.get(language)!}>
+        {element}
+      </I18nextProvider>,
+    );
+  }
+
+  // Declared At, three set ones, then three more names.
+  const LONG_ITEMS: Array<FoldedSectionItem> = [
+    ...DECLARE_ITEMS,
+    { key: "description", title: "Description", isSet: false },
+    { key: "rootCause", title: "Root Cause", isSet: false },
+    { key: "remediationNotes", title: "Remediation Notes", isSet: false },
+  ];
+
+  test.each([
+    ["ja", "、", ""],
+    ["zh-CN", "、", ""],
+    ["fa", "،", " "],
+  ])(
+    "%s: names, values and how many more, each with the separator its script writes",
+    (language: string, mark: string, space: string) => {
+      const locale: Record<string, string> = readLocale(language);
+
+      renderIn(
+        language,
+        <FoldedSection title={MORE_FIELDS_SECTION_TITLE} items={LONG_ITEMS}>
+          <span>inside</span>
+        </FoldedSection>,
+      );
+
+      const entries: Array<string> = [
+        locale["Declared At"]!,
+        `${locale["Initial State"]}: ${locale["Investigating"]}`,
+        `${locale["Labels"]}: 2`,
+        `${locale["Private Incident"]}: ${locale["On"]}`,
+        // The count as the language writes it: ۳ in Persian.
+        locale["{{count}} more"]!.replace(
+          "{{count}}",
+          (3).toLocaleString(language),
+        ),
+      ];
+
+      for (const entry of entries) {
+        expect(entry).not.toContain("undefined");
+      }
+
+      const contents: HTMLElement = screen.getByTestId(
+        "folded-section-contents",
+      );
+
+      // On screen: the mark after every entry but the last, then the space.
+      expect(contents.textContent).toBe(entries.join(`${mark}${space}`));
+      expect(contents.textContent).not.toContain(",");
+
+      // Each entry still wraps whole, its mark with it.
+      const units: Array<Element> = Array.from(contents.children);
+
+      expect(units).toHaveLength(entries.length);
+
+      units.forEach((unit: Element, index: number) => {
+        expect(unit).toHaveClass("inline-block");
+        expect(unit.textContent).toBe(
+          index < entries.length - 1
+            ? `${entries[index]}${mark}`
+            : entries[index],
+        );
+      });
+    },
+  );
+
+  test("names a locale has not translated keep their English commas", () => {
+    renderIn(
+      "ja",
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        items={[
+          { key: "tier", title: "Customer Tier", isSet: false },
+          { key: "impact", title: "Customer Impact", isSet: false },
+        ]}
+      >
+        <span>inside</span>
+      </FoldedSection>,
+    );
+
+    // The title is Japanese; the names, and so their list, are English.
+    expect(
+      screen.getByRole("button", { name: readLocale("ja")["More fields"] }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("folded-section-contents").textContent).toBe(
+      "Customer Tier, Customer Impact",
+    );
+  });
+
+  test("a card reads its pills out with the same separator", () => {
+    renderIn(
+      "ja",
+      <FoldedSection title={NAMED_SECTION_TITLE} items={DECLARE_ITEMS}>
+        <span>inside</span>
+      </FoldedSection>,
+    );
+
+    const separators: Array<string | null> = Array.from(
+      screen
+        .getByTestId("folded-section-contents")
+        .querySelectorAll(".sr-only"),
+    ).map((element: Element): string | null => {
+      return element.textContent;
+    });
+
+    expect(separators).toEqual(["、", "、", "、"]);
   });
 });

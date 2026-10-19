@@ -24,8 +24,9 @@ export interface FoldedSectionItem {
   // English, as the field or card is titled: looked up when it is drawn.
   title: string;
   /*
-   * Holds something other than empty or its default: drawn as a chip, with
-   * its value, so what is in force shows while the section is folded.
+   * Holds something other than empty or its default: named with its value,
+   * a shade darker on a line and as a chip on a card, so what is in force
+   * shows while the section is folded.
    */
   isSet: boolean;
   /*

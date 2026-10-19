@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import { getListSeparator } from "../../Utils/ListSeparator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
@@ -74,7 +75,10 @@ export interface ComponentProps {
   icon?: IconProp | undefined;
   // Under the title while open.
   description?: string | ReactElement | undefined;
-  // Folded: what is inside, set ones as chips.
+  /*
+   * Folded: what is inside, and what each set one is set to - a line's
+   * names, a card's pills and chips.
+   */
   items?: Array<FoldedSectionItem> | undefined;
   /*
    * Folded: what the section is set to or what its defaults do, as whole
@@ -163,18 +167,57 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
     describedBy.push(descriptionId);
   }
 
+  // An item as it reads: its name, and what a set one is set to.
+  const getItemWords: (item: FoldedSectionItem) => {
+    title: string;
+    value: string | undefined;
+  } = (
+    item: FoldedSectionItem,
+  ): { title: string; value: string | undefined } => {
+    return {
+      title: translate(item.title),
+      value:
+        item.isSet && item.value
+          ? item.translateValue
+            ? translate(item.value)
+            : item.value
+          : undefined,
+    };
+  };
+
+  const moreText: string = translator.translatePlural(
+    { one: "{{count}} more", other: "{{count}} more" },
+    hiddenCount,
+  );
+
+  const badgeText: string = translate(props.badge || "");
+
+  /*
+   * What goes between two things listed, the way their script writes it
+   * (Utils/ListSeparator): "Description, Labels", "説明、ラベル",
+   * "توضیحات، برچسب‌ها". The names decide - not what a value or "3 more"
+   * is written in - so names a locale has not translated keep their English
+   * commas.
+   */
+  const listSeparator: string = getListSeparator(
+    shown.map((item: FoldedSectionItem): string => {
+      return getItemWords(item).title;
+    }),
+  );
+
   /*
    * Between two things listed: the pills are apart on screen already; a
-   * screen reader hears a comma, so the names are not read as one.
+   * screen reader hears the separator, so the names are not read as one.
    */
   const renderSeparator: () => ReactElement = (): ReactElement => {
-    return <span className="sr-only">, </span>;
+    return <span className="sr-only">{listSeparator}</span>;
   };
 
   const renderItem: (item: FoldedSectionItem) => ReactElement = (
     item: FoldedSectionItem,
   ): ReactElement => {
-    const title: string = translate(item.title);
+    const { title, value }: { title: string; value: string | undefined } =
+      getItemWords(item);
 
     if (!item.isSet) {
       return (
@@ -188,12 +231,6 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
         </span>
       );
     }
-
-    const value: string | undefined = item.value
-      ? item.translateValue
-        ? translate(item.value)
-        : item.value
-      : undefined;
 
     return (
       <span
@@ -229,13 +266,15 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
   if (variant === FOLDED_SECTION_LINE) {
     /*
      * What is inside, as words: the names in grey, and each one that is
-     * set as its name and value a shade darker ("Labels: 2"), so what is in
-     * force still stands out without a chip.
+     * set as its name and value a shade darker and medium ("Labels: 2"),
+     * so what is in force still stands out without a chip - and still a
+     * step quieter than the form's own field labels (text-gray-700).
      */
     const renderLineItem: (item: FoldedSectionItem) => ReactElement = (
       item: FoldedSectionItem,
     ): ReactElement => {
-      const title: string = translate(item.title);
+      const { title, value }: { title: string; value: string | undefined } =
+        getItemWords(item);
 
       if (!item.isSet) {
         return (
@@ -249,18 +288,12 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
         );
       }
 
-      const value: string | undefined = item.value
-        ? item.translateValue
-          ? translate(item.value)
-          : item.value
-        : undefined;
-
       return (
         <span
           data-testid="folded-section-item"
           data-item-key={item.key}
           data-item-set="true"
-          className="font-medium text-gray-700"
+          className="font-medium text-gray-600"
         >
           {title}
           {value ? `: ${value}` : ""}
@@ -278,12 +311,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
 
       if (hiddenCount > 0) {
         lineEntries.push(
-          <span data-testid="folded-section-more">
-            {translator.translatePlural(
-              { one: "{{count}} more", other: "{{count}} more" },
-              hiddenCount,
-            )}
-          </span>,
+          <span data-testid="folded-section-more">{moreText}</span>,
         );
       }
     }
@@ -291,13 +319,21 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
     if (showBadge) {
       lineEntries.push(
         <span
-          className="font-medium text-gray-700"
+          className="font-medium text-gray-600"
           data-testid="folded-section-badge"
         >
-          {translate(props.badge || "")}
+          {badgeText}
         </span>,
       );
     }
+
+    /*
+     * The separator's mark goes with the entry before it ("Labels,"), and
+     * the space after it - where the script writes one - between the two:
+     * "説明、ラベル" has none.
+     */
+    const listMark: string = listSeparator.trimEnd();
+    const listSpace: string = listSeparator.endsWith(" ") ? " " : "";
 
     const showAfterTitle: boolean =
       showContents || showBadge || showDescription;
@@ -393,10 +429,10 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
                        */
                       return (
                         <Fragment key={index}>
-                          {index > 0 ? " " : ""}
+                          {index > 0 ? listSpace : ""}
                           <span className="inline-block max-w-full">
                             {entry}
-                            {index < lineEntries.length - 1 ? "," : ""}
+                            {index < lineEntries.length - 1 ? listMark : ""}
                           </span>
                         </Fragment>
                       );
@@ -553,10 +589,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
                     className="px-1 font-medium"
                     data-testid="folded-section-more"
                   >
-                    {translator.translatePlural(
-                      { one: "{{count}} more", other: "{{count}} more" },
-                      hiddenCount,
-                    )}
+                    {moreText}
                   </span>
                 </>
               ) : (
@@ -569,7 +602,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
                     className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                     data-testid="folded-section-badge"
                   >
-                    {translate(props.badge || "")}
+                    {badgeText}
                   </span>
                 </>
               ) : (
