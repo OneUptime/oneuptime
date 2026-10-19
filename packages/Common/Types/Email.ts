@@ -4,6 +4,7 @@ import BadDataException from "./Exception/BadDataException";
 import { JSONObject, JSONValue, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
+import { refusedValue } from "../Utils/RefusedValue";
 
 const nonBusinessEmailDomains: Array<string> = [
   "gmail",
@@ -72,7 +73,9 @@ export default class Email extends DatabaseProperty {
       this._email = value;
       this._isMalformed = false;
     } else {
-      throw new BadDataException(`Email ${value} is not in valid format.`);
+      throw new BadDataException(
+        `Email ${refusedValue(value)} is not in valid format.`,
+      );
     }
   }
 
@@ -122,7 +125,7 @@ export default class Email extends DatabaseProperty {
   private static fromStoredValueLenient(value: unknown): Email {
     if (typeof value !== "string") {
       throw new BadDataException(
-        `Email ${String(value)} is not in valid format.`,
+        `Email ${refusedValue(value)} is not in valid format.`,
       );
     }
 
@@ -209,7 +212,7 @@ export default class Email extends DatabaseProperty {
        */
       if (typeof value !== "string" || !value.trim()) {
         throw new BadDataException(
-          `Email ${String(value ?? "")} is not in valid format.`,
+          `Email ${refusedValue(value ?? "")} is not in valid format.`,
         );
       }
 
@@ -263,7 +266,7 @@ export default class Email extends DatabaseProperty {
        */
       if (value instanceof Email && value.isMalformed()) {
         throw new BadDataException(
-          `Email ${value.toString()} is not in valid format.`,
+          `Email ${refusedValue(value.toString())} is not in valid format.`,
         );
       }
 

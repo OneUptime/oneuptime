@@ -1,6 +1,10 @@
 import OnlineCheck from "../../OnlineCheck";
 import MonitorRetry from "../MonitorRetry";
 import logger from "Common/Server/Utils/Logger";
+import {
+  redactDsns,
+  redactPasswordSettings,
+} from "Common/Utils/DatabaseErrorRedaction";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
@@ -438,6 +442,32 @@ const FORBIDDEN_CONSTRUCTS: Array<RegExp> = [
   /\b(?:xp_|sp_)\w+/i,
 ];
 
+/*
+ * The query is a project's own text, and every probe - a shared one too -
+ * reads it before each check, so these patterns read it in time in line
+ * with its length.
+ *
+ * A comment or a literal that is never closed is matched whole by the second
+ * alternative and left as it is, as when nothing matched it, and the search
+ * goes on after it - where the first alternative alone was tried again from
+ * every opening inside it, each time reading on to the end of the text.
+ * Nothing inside it opens one that closes: no comment's end comes after an
+ * unclosed comment's opening, and every quote inside an unclosed literal is
+ * an escaped one, so a literal opened there ends where it does.
+ */
+const BLOCK_COMMENT_OR_UNCLOSED: RegExp = /\/\*[\s\S]*?\*\/|(\/\*[\s\S]*)/g;
+const SINGLE_QUOTED_OR_UNCLOSED: RegExp =
+  /'(?:[^'\\]|\\.|'')*'|('(?:[^'\\]|\\.|'')*)/g;
+const DOUBLE_QUOTED_OR_UNCLOSED: RegExp =
+  /"(?:[^"\\]|\\.|"")*"|("(?:[^"\\]|\\.|"")*)/g;
+
+/*
+ * The statement terminators at the end of a query, and the white space after
+ * them. Tried only where a run of ";" starts, so a run that is not at the end
+ * is read once rather than again from each of its ";".
+ */
+const TRAILING_STATEMENT_TERMINATORS: RegExp = /(?<!;);+\s*$/g;
+
 export class SqlQueryValidator {
   /**
    * Remove SQL line (`-- ...`) and block (`/* ... *\/`) comments so structural
@@ -445,7 +475,12 @@ export class SqlQueryValidator {
    */
   public static stripComments(query: string): string {
     return query
-      .replace(/\/\*[\s\S]*?\*\//g, " ") // block comments
+      .replace(
+        BLOCK_COMMENT_OR_UNCLOSED,
+        (comment: string, unclosed: string | undefined): string => {
+          return unclosed === undefined ? " " : comment;
+        },
+      ) // block comments
       .replace(/--[^\n]*/g, " "); // line comments
   }
 
@@ -455,8 +490,18 @@ export class SqlQueryValidator {
    */
   public static stripStringLiterals(query: string): string {
     return query
-      .replace(/'(?:[^'\\]|\\.|'')*'/g, "''")
-      .replace(/"(?:[^"\\]|\\.|"")*"/g, '""');
+      .replace(
+        SINGLE_QUOTED_OR_UNCLOSED,
+        (literal: string, unclosed: string | undefined): string => {
+          return unclosed === undefined ? "''" : literal;
+        },
+      )
+      .replace(
+        DOUBLE_QUOTED_OR_UNCLOSED,
+        (literal: string, unclosed: string | undefined): string => {
+          return unclosed === undefined ? '""' : literal;
+        },
+      );
   }
 
   /**
@@ -473,7 +518,7 @@ export class SqlQueryValidator {
     let normalized: string = this.stripComments(query).trim();
 
     // Drop trailing semicolons (a single trailing terminator is fine).
-    normalized = normalized.replace(/;+\s*$/g, "").trim();
+    normalized = normalized.replace(TRAILING_STATEMENT_TERMINATORS, "").trim();
 
     if (!normalized) {
       return "SQL query is empty.";
@@ -543,9 +588,10 @@ export default class SqlMonitor {
 
     /*
      * Redact any connection URIs (postgres://user:pass@host/db,
-     * mysql://..., sqlserver://...).
+     * mysql://..., sqlserver://...). The message is whatever the database
+     * sent back, so it is read in time in line with its length.
      */
-    message = message.replace(/[a-zA-Z]+:\/\/[^\s]*@[^\s]*/g, "[redacted-dsn]");
+    message = redactDsns(message, "[redacted-dsn]");
 
     /*
      * Redact password / pwd key-value pairs from connection-string style
@@ -553,10 +599,7 @@ export default class SqlMonitor {
      * and `:` separators and quoted/braced/space-containing values so the
      * redaction is not truncated at the first space.
      */
-    message = message.replace(
-      /(password|pwd)\s*[=:]\s*(\{[^}]*\}|"[^"]*"|'[^']*'|[^;\r\n]+)/gi,
-      "$1=***",
-    );
+    message = redactPasswordSettings(message);
 
     return message;
   }
@@ -941,7 +984,9 @@ export default class SqlMonitor {
     const cursorName: string = "oneuptime_sql_monitor_cursor";
 
     // Strip any trailing terminator so it can be embedded in DECLARE ... CURSOR.
-    const cursorQuery: string = config.query.replace(/;+\s*$/g, "").trim();
+    const cursorQuery: string = config.query
+      .replace(TRAILING_STATEMENT_TERMINATORS, "")
+      .trim();
 
     try {
       /*
@@ -1010,7 +1055,9 @@ export default class SqlMonitor {
       };
     }
 
-    const query: string = config.query.replace(/;+\s*$/g, "").trim();
+    const query: string = config.query
+      .replace(TRAILING_STATEMENT_TERMINATORS, "")
+      .trim();
 
     const connection: MySqlConnection =
       await createMySqlConnection(connectionOptions);
@@ -1216,7 +1263,9 @@ export default class SqlMonitor {
     const { config, statementTimeoutInMs, connectionTimeoutInMs, maxRows } =
       input;
 
-    const query: string = config.query.replace(/;+\s*$/g, "").trim();
+    const query: string = config.query
+      .replace(TRAILING_STATEMENT_TERMINATORS, "")
+      .trim();
 
     /*
      * Teardown is bounded so a still-in-flight (e.g. cancelled) request can

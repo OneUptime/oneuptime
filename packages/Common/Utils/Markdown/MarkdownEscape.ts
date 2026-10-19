@@ -239,7 +239,14 @@ export const escapeMarkdownValue: EscapeMarkdownValueFunction = (
  * in the viewer's timezone. "" (no span at all) for an empty value.
  */
 
-const CODE_SPAN_LINE_BREAK_PATTERN: RegExp = /\s*[\r\n]+\s*/g;
+/*
+ * A run of white space that holds a line break becomes one space. Each run
+ * is read once, whole: a pattern that looked for the line break inside the
+ * run from every one of its characters read a long run of spaces again from
+ * each of them.
+ */
+const WHITE_SPACE_RUN_PATTERN: RegExp = /\s+/g;
+const HAS_LINE_BREAK_PATTERN: RegExp = /[\r\n]/;
 const BACKTICK_RUN_PATTERN: RegExp = /`+/g;
 
 // A "<" with something after it that is not already broken.
@@ -257,7 +264,9 @@ export const markdownCodeSpan: MarkdownCodeSpanFunction = (
   }
 
   const text: string = String(value)
-    .replace(CODE_SPAN_LINE_BREAK_PATTERN, " ")
+    .replace(WHITE_SPACE_RUN_PATTERN, (run: string): string => {
+      return HAS_LINE_BREAK_PATTERN.test(run) ? " " : run;
+    })
     .trim()
     .replace(OPEN_ANGLE_BRACKET_PATTERN, `<${WORD_JOINER}`);
 

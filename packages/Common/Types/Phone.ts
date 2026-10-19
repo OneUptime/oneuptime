@@ -3,6 +3,7 @@ import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
+import { refusedValue } from "../Utils/RefusedValue";
 
 export default class Phone extends DatabaseProperty {
   private _phone: string = "";
@@ -79,7 +80,9 @@ export default class Phone extends DatabaseProperty {
     const re: RegExp = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,7}$/; // regex for international phone numbers format based on (ITU-T E.123)
     const isValid: boolean = re.test(v);
     if (!isValid) {
-      throw new BadDataException(`Phone is not in valid format: ${v}`);
+      throw new BadDataException(
+        `Phone is not in valid format: ${refusedValue(v)}`,
+      );
     }
     this._phone = v;
   }

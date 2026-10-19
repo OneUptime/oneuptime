@@ -65,11 +65,11 @@ import {
   TemplateExpression,
   TemplateExpressionKind,
   componentReturnValueReference,
-  getTemplateExpressionRegex,
   parseReferencePath,
   parseTemplateExpressions,
   variableReference,
 } from "../../../Types/Workflow/TemplateSyntax";
+import { replaceTemplatePlaceholders } from "../../../Utils/TemplatePlaceholders";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import {
@@ -3161,9 +3161,11 @@ describe("request bodies and other JSON arguments", () => {
           continue;
         }
 
-        const masked: string = (value as string).replace(
-          getTemplateExpressionRegex(),
-          "__reference__",
+        const masked: string = replaceTemplatePlaceholders(
+          value as string,
+          (): string => {
+            return "__reference__";
+          },
         );
         let error: string = "";
 

@@ -1,4 +1,5 @@
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
+import { refusedValue } from "../Utils/RefusedValue";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
@@ -70,7 +71,9 @@ export default class Color extends DatabaseProperty {
     const result: RegExpExecArray | null = re.exec(color.toString());
 
     if (!result) {
-      throw new BadDataException("Invalid color: " + color.toString());
+      throw new BadDataException(
+        "Invalid color: " + refusedValue(color.toString()),
+      );
     }
 
     return {

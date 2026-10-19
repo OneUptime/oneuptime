@@ -1,6 +1,13 @@
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Text from "../../../Types/Text";
+import {
+  TemplatePlaceholder,
+  findEachOpening,
+  findTemplatePlaceholders,
+  replaceLoopVariablePlaceholders,
+  replaceTemplatePlaceholders,
+} from "../../../Utils/TemplatePlaceholders";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import VMRunner from "./VMRunner";
@@ -233,10 +240,14 @@ export default class VMUtil {
     ) {
       let valueToReplaceInPlaceCopy: string = valueToReplaceInPlace.toString();
 
-      const regex: RegExp = /{{(.*?)}}/g; // Find all matches of the regular expression and capture the word between the braces {{x}} => x
-
-      const firstMatch: RegExpMatchArray | null =
-        valueToReplaceInPlaceCopy.match(/{{(.*?)}}/);
+      /*
+       * The first {{x}} in the template, x captured. Placeholders are read
+       * with the TemplatePlaceholders helpers - "{{", the fewest characters
+       * other than a line break, "}}" - in time in line with the template's
+       * length.
+       */
+      const firstMatch: TemplatePlaceholder | undefined =
+        findTemplatePlaceholders(valueToReplaceInPlaceCopy, 1)[0];
 
       /*
        * The whole template is a single placeholder, so it becomes the raw
@@ -250,8 +261,8 @@ export default class VMUtil {
        * resolve is rendered like any other template, and so left as written.
        */
       const rawValue: JSONValue | undefined =
-        firstMatch && firstMatch[0] === valueToReplaceInPlaceCopy.trim()
-          ? VMUtil.deepFind(storageMap, firstMatch[1]!)
+        firstMatch && firstMatch.text === valueToReplaceInPlaceCopy.trim()
+          ? VMUtil.deepFind(storageMap, firstMatch.inner)
           : undefined;
 
       if (rawValue !== undefined) {
@@ -293,14 +304,17 @@ export default class VMUtil {
           writeValue: writeValue,
           budget: { remaining: MAX_EACH_BLOCKS_PER_EXPANSION },
           renderText: (text: string): string => {
-            return text.replace(
-              regex,
-              (placeholder: string, variable: string): string => {
-                const value: JSONValue = VMUtil.deepFind(storageMap, variable);
+            return replaceTemplatePlaceholders(
+              text,
+              (placeholder: TemplatePlaceholder): string => {
+                const value: JSONValue = VMUtil.deepFind(
+                  storageMap,
+                  placeholder.inner,
+                );
 
                 // Skip replacement if the variable is not found in the storageMap.
                 if (value === undefined) {
-                  return placeholder;
+                  return placeholder.text;
                 }
 
                 return writeValue(value);
@@ -402,7 +416,6 @@ export default class VMUtil {
     renderText: (text: string) => string;
   }): string {
     const template: string = data.template;
-    const openTag: RegExp = /\{\{#each\s+(.*?)\}\}/g;
 
     let output: string = "";
     let pendingText: string = "";
@@ -410,8 +423,10 @@ export default class VMUtil {
 
     while (data.budget.remaining > 0) {
       // Find the next (outermost) {{#each ...}} tag
-      openTag.lastIndex = position;
-      const openMatch: RegExpExecArray | null = openTag.exec(template);
+      const openMatch: TemplatePlaceholder | null = findEachOpening(
+        template,
+        position,
+      );
 
       if (!openMatch) {
         break; // no more {{#each}} blocks
@@ -419,9 +434,9 @@ export default class VMUtil {
 
       data.budget.remaining--;
 
-      const blockStart: number = openMatch.index;
-      const arrayPath: string = openMatch[1]!.trim();
-      const bodyStart: number = blockStart + openMatch[0]!.length;
+      const blockStart: number = openMatch.start;
+      const arrayPath: string = openMatch.inner.trim();
+      const bodyStart: number = openMatch.end;
 
       pendingText += template.slice(position, blockStart);
 
@@ -562,14 +577,17 @@ export default class VMUtil {
     const replaceVariables: ReplaceVariablesFunction = (
       text: string,
     ): string => {
-      // Function form — see the note on the same call in replaceValueInPlace.
-      return text.replace(
-        /\{\{((?!#each\b|\/each\b|@index\b).*?)\}\}/g,
-        (placeholder: string, variable: string): string => {
+      /*
+       * Every {{name}} that is not a loop's own tag. Function form - see the
+       * note on the same call in replaceValueInPlace.
+       */
+      return replaceLoopVariablePlaceholders(
+        text,
+        (placeholder: TemplatePlaceholder): string => {
           for (const candidate of scope.lookupChain) {
             const foundValue: JSONValue = VMUtil.deepFind(
               candidate,
-              variable.trim(),
+              placeholder.inner.trim(),
             );
 
             if (foundValue !== undefined) {
@@ -577,7 +595,7 @@ export default class VMUtil {
             }
           }
 
-          return placeholder; // leave unresolved
+          return placeholder.text; // leave unresolved
         },
       );
     };
