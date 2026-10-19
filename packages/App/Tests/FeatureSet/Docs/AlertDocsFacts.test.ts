@@ -90,6 +90,9 @@ function readPackageFile(relative: string): string {
 // Every **bold** name in a piece of markdown, in order.
 const BOLD: RegExp = /\*\*([^*\n]+)\*\*/g;
 
+// A table column's title in the Dashboard's source: `title: "Severity",`.
+const COLUMN_TITLE: RegExp = /title: "([^"\n]+)",/g;
+
 function boldNames(markdown: string): Array<string> {
   return Array.from(markdown.matchAll(BOLD)).map(
     (match: RegExpMatchArray): string => {
@@ -430,6 +433,22 @@ describe("the overview's side menu table is the Alerts side menu", () => {
       }).toEqual({ column, drawn: true });
     }
 
+    /*
+     * Every column the list draws, in its order - and no Monitor column:
+     * the list dropped it, since Affected Resources names the monitor.
+     */
+    expect(columns).toEqual(
+      Array.from(columnsSource.matchAll(COLUMN_TITLE)).map(
+        (match: RegExpMatchArray): string => {
+          return match[1] as string;
+        },
+      ),
+    );
+    expect(columns).not.toContain("Monitor");
+    expect(columnsPart).toContain(
+      "**Affected Resources** (the alert's monitor first)",
+    );
+
     expect(boldNames(actionsPart || "")).toEqual([
       "Change State",
       "Add Labels",
@@ -453,6 +472,40 @@ describe("the overview's side menu table is the Alerts side menu", () => {
       'DECLARE_INCIDENT_ACTION_TITLE: string = "Declare Incident"',
     );
     expect(alertsTable).toContain("ModalTableBulkDefaultActions.Delete");
+  });
+
+  it("says Affected Resources names the alert's monitor first, as the list draws it", () => {
+    const alertsTable: string = readDashboardSource(
+      "Components/Alert/AlertsTable.tsx",
+    );
+    const cell: string = readDashboardSource(
+      "Components/AffectedResources/AffectedResourcesCell.tsx",
+    );
+    const listSentence: string = paragraphAfter(table, "The list shows ");
+
+    expect(listSentence).toContain(
+      "**Affected Resources** (the alert's monitor first)",
+    );
+
+    // The list hands the cell the alert's monitor ahead of the rest...
+    const monitorAt: number = alertsTable.indexOf(
+      "monitors: alert.monitor ? [alert.monitor] : [],",
+    );
+
+    expect(monitorAt).toBeGreaterThan(-1);
+    expect(monitorAt).toBeLessThan(
+      alertsTable.indexOf("hosts: alert.hosts || [],"),
+    );
+
+    // ...and the cell lists monitors before anything else.
+    const monitorsListedAt: number = cell.indexOf(
+      "for (const monitor of props.monitors || [])",
+    );
+
+    expect(monitorsListedAt).toBeGreaterThan(-1);
+    expect(monitorsListedAt).toBeLessThan(
+      cell.indexOf("for (const host of props.hosts || [])"),
+    );
   });
 });
 
