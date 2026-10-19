@@ -89,7 +89,7 @@ Clique em um span em qualquer visualização para abrir o painel dele, com abas 
 Um traço grande carrega 500 spans por vez. Clique no botão no fim do traço para carregar mais, ou todos.
 
 > [!TIP]
-> **Fix performance with AI** procura no traço um padrão de desempenho conhecido: uma consulta N+1, um span que ocupa quase todo o tempo, ou chamadas feitas uma após a outra que poderiam rodar em paralelo. Quando encontra um, inicia uma tarefa de IA que abre um pull request para corrigi-lo. Veja [Tarefas de correção](/docs/ai/ai-agent).
+> **Fix performance with AI** procura no traço um padrão de desempenho conhecido: uma consulta N+1, um span que ocupa quase todo o tempo, ou chamadas feitas uma após a outra que poderiam rodar em paralelo. Quando encontra um, inicia uma tarefa de IA que abre um pull request para corrigi-lo. Veja [Código](/docs/ai/ai-agent).
 
 ## Transformar seus spans em gráficos
 

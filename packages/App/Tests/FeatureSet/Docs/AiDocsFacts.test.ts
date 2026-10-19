@@ -1,7 +1,7 @@
 import {
   AI_SRE,
   ASK_AI,
-  FIX_TASKS,
+  CODE_PAGE,
   GITHUB_APP,
   INFRASTRUCTURE_AI_AGENTS,
   LLM_PROVIDERS,
@@ -33,6 +33,10 @@ import AIChatPermissionMode, {
 } from "Common/Types/AI/AIChatPermissionMode";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixSwitches";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  CODE_TASK_LIMITS,
+  CODE_TASK_LOG_WINDOWS_IN_HOURS,
+} from "Common/Types/AI/CodeTask";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import LlmType from "Common/Types/LLM/LlmType";
 import { describe, expect, it } from "@jest/globals";
@@ -383,39 +387,201 @@ describe("Ask AI", () => {
   });
 });
 
-describe("Fix Tasks", () => {
+describe("Code", () => {
   const starts: Array<Array<string>> = tableWithHeader(
-    englishSection(FIX_TASKS, "## Where fix tasks start"),
+    englishSection(CODE_PAGE, "## Where fix tasks start"),
     "Where",
   );
 
-  it("lists Tasks under Products → Code, with the task's Overview, Logs and Pull Requests", () => {
+  it("opens Code from Products, a repository's Tasks and Settings, and each turn's Log", () => {
     const items: string = flat(dashboardSource("Utils/NavigationItems.tsx"));
-    const taskMenu: string = dashboardSource(
-      "Pages/AIAgentTasks/View/SideMenu.tsx",
+    const repositoryMenu: string = dashboardSource(
+      "Pages/Code/Repository/SideMenu.tsx",
     );
-    const codeMenu: string = dashboardSource(
-      "Components/Code/CodeSideMenu.tsx",
-    );
-    const run: string = flat(
-      englishSection(FIX_TASKS, "## How a fix run works"),
-    );
+    const turn: string = dashboardSource("Components/Code/CodeTaskTurn.tsx");
+    const page: string = flat(englishPage(CODE_PAGE));
 
-    expect(items).toContain('title: t("navbar.items.aiAgentsTitle", "Tasks")');
+    expect(items).toContain('title: t("navbar.items.codeTitle", "Code")');
     expect(items).toContain("category: codeCategory,");
-    expect(codeMenu).toContain('title: "Tasks"');
-    expect(codeMenu).toContain('title: "Code Repositories"');
+    expect(items).not.toContain("navbar.items.aiAgentsTitle");
+    expect(repositoryMenu).toContain('title: "Tasks"');
+    expect(repositoryMenu).toContain('title: "Settings"');
+    expect(turn).toContain('translator.translateText("Log")');
 
-    for (const item of ["Overview", "Logs", "Pull Requests"]) {
-      expect(taskMenu).toContain(`title: "${item}"`);
-      expect(run).toContain(bold(item));
+    expect(page).toContain(
+      `Every task is listed in its repository under ${bold("Products → Code")}`,
+    );
+    expect(page).toContain(`each turn's ${bold("Log")} has a line`);
+    // Code is one product: no Tasks page under it, and nothing under AI.
+    expect(page).not.toContain("Products → Code → Tasks");
+    expect(page).not.toContain("**AI** > **Tasks**");
+  });
+
+  it("asks AI in a repository with the words its page draws", () => {
+    const tasks: string = dashboardSource("Pages/Code/Repository/Tasks.tsx");
+    const composer: string = dashboardSource(
+      "Components/Code/CodeComposer.tsx",
+    );
+    const connect: string = dashboardSource(
+      "Components/Code/GitHubConnect.tsx",
+    );
+    const ask: string = flat(
+      englishSection(CODE_PAGE, "## Ask AI in a repository"),
+    );
+
+    expect(tasks).toContain('translator.translateText("Try asking")');
+    expect(tasks).toContain(
+      'sendLabel={translator.translateTemplate("Start task")}',
+    );
+    expect(composer).toContain('translator.translateText("Add context")');
+    // Enter sends; Shift + Enter starts a new line.
+    expect(composer).toContain('event.key === "Enter" &&');
+    expect(composer).toContain("!event.shiftKey &&");
+    expect(connect).toContain('translator.translateText("Connect GitHub")');
+
+    for (const label of [
+      "Products → Code",
+      "Connect GitHub",
+      "Try asking",
+      "Add context",
+      "Start task",
+    ]) {
+      expect(ask).toContain(bold(label));
     }
 
-    expect(run).toContain(
-      `Every task is listed under ${bold("Products → Code → Tasks")}`,
+    expect(ask).toContain(`Click ${bold("Start task")}, or press Enter.`);
+  });
+
+  it("lists every kind of context as Add context offers it, with the limits the server holds", () => {
+    const copy: string = dashboardSource("Components/Code/CodeTaskCopy.ts");
+    const builder: string = readRepoFile(
+      "Common/Server/Utils/AI/CodeTask/CodeTaskContextBuilder.ts",
     );
-    // Tasks is in the Code group, never under AI.
-    expect(englishPage(FIX_TASKS)).not.toContain("**AI** > **Tasks**");
+    const ask: string = englishSection(CODE_PAGE, "## Ask AI in a repository");
+    const rows: Array<Array<string>> = tableWithHeader(ask, "Context");
+    const labels: Array<string> = [
+      "File or folder",
+      "Note",
+      "Link",
+      "Incident",
+      "Alert",
+      "Exception",
+      "Monitor",
+      "Trace",
+      "Logs",
+    ];
+
+    for (const label of labels) {
+      expect(copy).toContain(`label: translationKey("${label}"),`);
+    }
+
+    // In the menu's order, the incident and the alert in one row.
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      bold("File or folder"),
+      bold("Note"),
+      bold("Link"),
+      `${bold("Incident")} or ${bold("Alert")}`,
+      bold("Exception"),
+      bold("Monitor"),
+      bold("Trace"),
+      bold("Logs"),
+    ]);
+
+    expect(numberConstant(builder, "LOG_LINES")).toBe(20);
+    expect(CODE_TASK_LOG_WINDOWS_IN_HOURS).toEqual([1, 24, 168]);
+    expect(rowStartingWith(rows, bold("Logs"))[1]).toBe(
+      "The latest 20 log lines that contain your search, from the last hour, day or week.",
+    );
+    expect(flat(ask)).toContain(
+      `A request carries at most ${CODE_TASK_LIMITS.maxContextItems} pieces of context.`,
+    );
+    // What AI reads of a record is redacted as the AI toolbox redacts.
+    expect(builder).toContain(
+      "ToolResultSerializer.redactAndOmitEmbeddedData(text).text",
+    );
+    expect(flat(ask)).toContain(
+      "Tokens, keys, passwords and email addresses in what OneUptime reads are redacted before AI sees them",
+    );
+  });
+
+  it("names a task's states as its page draws them, with Stop and Try again", () => {
+    const copy: string = dashboardSource("Components/Code/CodeTaskCopy.ts");
+    const conversation: string = dashboardSource(
+      "Pages/Code/Task/Conversation.tsx",
+    );
+    const turn: string = dashboardSource("Components/Code/CodeTaskTurn.tsx");
+    const states: Array<Array<string>> = tableWithHeader(
+      englishSection(CODE_PAGE, "## A task's conversation"),
+      "State",
+    );
+
+    expect(copy).toContain(
+      'export const QUEUED_LABEL: string = translationKey("Queued");',
+    );
+
+    for (const state of [
+      "Working…",
+      "Waiting for you",
+      "Done",
+      "Failed",
+      "Stopped",
+    ]) {
+      expect(copy).toContain(`label: translationKey("${state}"),`);
+    }
+
+    expect(
+      states.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(
+      [
+        "Queued",
+        "Working…",
+        "Waiting for you",
+        "Done",
+        "Failed",
+        "Stopped",
+      ].map(bold),
+    );
+    expect(conversation).toContain('translator.translateText("Stop")');
+    expect(turn).toContain('translator.translateText("Try again")');
+    expect(rowStartingWith(states, bold("Working…"))[1]).toContain(
+      `${bold("Stop")} stops it`,
+    );
+    expect(rowStartingWith(states, bold("Failed"))[1]).toContain(
+      `${bold("Try again")} asks the same again.`,
+    );
+  });
+
+  it("continues a task on its pull request's branch, and lets only editors ask, reply, stop and read the diff", () => {
+    const handler: string = readRepoFile(
+      "Runner/TaskHandlers/CodeRequestTaskHandler.ts",
+    );
+    const api: string = readRepoFile("Common/Server/API/CodeTaskAPI.ts");
+    const access: string = readRepoFile(
+      "Common/Server/Utils/AI/CodeTask/CodeTaskAccess.ts",
+    );
+    const section: string = flat(
+      englishSection(CODE_PAGE, "## A task's conversation"),
+    );
+
+    expect(handler).toContain(
+      "const branchName: string = details.workingBranch || details.newBranchName;",
+    );
+    expect(section).toContain(
+      "Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open.",
+    );
+    expect(access).toContain(
+      "await ModelPermission.checkUpdatePermissionByModel<CodeRepository>({",
+    );
+    expect(api).toContain("canSeeChanges: canAsk,");
+    expect(section).toContain(
+      "Anyone who can read a repository reads its tasks. Asking AI, replying and stopping a task take permission to edit the repository, and so does seeing a change's diff: everyone else sees which files changed.",
+    );
   });
 
   it("names every button that starts a fix task, as the Dashboard draws it", () => {
@@ -487,7 +653,7 @@ describe("Fix Tasks", () => {
       menu.indexOf('<SideMenuSection title="Resolve">'),
     );
     expect(
-      flat(englishSection(FIX_TASKS, "## Where fix tasks start")),
+      flat(englishSection(CODE_PAGE, "## Where fix tasks start")),
     ).toContain(
       `open the exception under ${bold("Products → Observability → Exceptions")} and choose ${bold("AI Assistance")} in its side menu`,
     );
@@ -498,7 +664,7 @@ describe("Fix Tasks", () => {
       "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
     );
     const run: string = flat(
-      englishSection(FIX_TASKS, "## How a fix run works"),
+      englishSection(CODE_PAGE, "## How a fix run works"),
     );
     const calls: number = numberConstant(
       completion,
@@ -520,7 +686,7 @@ describe("Fix Tasks", () => {
     );
     const prefix: string = stringConstant(handler, "branchPrefix");
 
-    expect(flat(englishSection(FIX_TASKS, "## How a fix run works"))).toContain(
+    expect(flat(englishSection(CODE_PAGE, "## How a fix run works"))).toContain(
       `A fix of an exception is named \`${prefix}\` followed by the first characters of the run's id.`,
     );
   });
@@ -530,7 +696,7 @@ describe("Fix Tasks", () => {
       "Runner/Utils/BuildVerification.ts",
     );
     const section: string = flat(
-      englishSection(FIX_TASKS, "## Verification before the pull request"),
+      englishSection(CODE_PAGE, "## Verification before the pull request"),
     );
     const minutes: number =
       numberConstant(verification, "VERIFICATION_COMMAND_TIMEOUT_MS") / 60000;
@@ -547,10 +713,10 @@ describe("Fix Tasks", () => {
 
   it("gives the verification commands the repository Settings page's titles and placeholders", () => {
     const settings: string = flat(
-      dashboardSource("Pages/CodeRepository/View/Settings.tsx"),
+      dashboardSource("Pages/Code/Repository/Settings.tsx"),
     );
     const commands: Array<Array<string>> = tableWithHeader(
-      englishSection(FIX_TASKS, "## Verification before the pull request"),
+      englishSection(CODE_PAGE, "## Verification before the pull request"),
       "Command",
     );
 
@@ -575,7 +741,7 @@ describe("Fix Tasks", () => {
       "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue.ts",
     );
     const fails: string = flat(
-      englishSection(FIX_TASKS, "## When a fix fails"),
+      englishSection(CODE_PAGE, "## When a fix fails"),
     );
 
     expect(numberConstant(stuck, "RUN_HEARTBEAT_TIMEOUT_MINUTES")).toBe(12);
@@ -605,15 +771,15 @@ describe("Fix Tasks", () => {
     expect(install).toContain(
       "const dockerCommand: string = `docker run --name ${RUNNER_CONTAINER_NAME} --restart unless-stopped \\\\",
     );
-    expect(englishPage(FIX_TASKS)).toContain(command);
+    expect(englishPage(CODE_PAGE)).toContain(command);
     expect(install).toContain(
       "only a Project Owner, Project Admin or Runbook Admin can read it",
     );
-    expect(flat(englishPage(FIX_TASKS))).toContain(
+    expect(flat(englishPage(CODE_PAGE))).toContain(
       "The command embeds the Runner's secret key, which only a Project Owner, Project Admin or Runbook Admin can read.",
     );
     // The key is not shown once and lost: those roles can read it again.
-    expect(englishPage(FIX_TASKS)).not.toContain("The key is shown once");
+    expect(englishPage(CODE_PAGE)).not.toContain("The key is shown once");
   });
 
   it("says Runs AI Code Fixes starts off, and that the bundled Runner runs by default", () => {
@@ -634,10 +800,10 @@ describe("Fix Tasks", () => {
     );
     expect(values).toContain("runner:\n  enabled: true");
     expect(compose).toContain("  runner:\n");
-    expect(flat(englishPage(FIX_TASKS))).toContain(
+    expect(flat(englishPage(CODE_PAGE))).toContain(
       `Turn on ${bold("Runs AI Code Fixes")} on the Runner. It is off by default`,
     );
-    expect(flat(englishPage(FIX_TASKS))).toContain(
+    expect(flat(englishPage(CODE_PAGE))).toContain(
       "The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default)",
     );
   });
@@ -647,7 +813,7 @@ describe("Fix Tasks", () => {
       "Common/Server/Utils/CodeRepository/StackTraceRepoResolver.ts",
     );
     const before: string = flat(
-      englishSection(FIX_TASKS, "## Before you begin"),
+      englishSection(CODE_PAGE, "## Before you begin"),
     );
 
     expect(resolver).toContain(
@@ -663,7 +829,7 @@ describe("Fix Tasks", () => {
       readRepoFile("Common/Models/DatabaseModels/CodeRepository.ts"),
     );
     const prerequisites: Array<Array<string>> = tableWithHeader(
-      englishSection(FIX_TASKS, "## Before you begin"),
+      englishSection(CODE_PAGE, "## Before you begin"),
       "What",
     );
 
@@ -680,13 +846,13 @@ describe("Fix Tasks", () => {
 
   it("sends an account that already has the app to Connect an existing installation", () => {
     const prerequisites: Array<Array<string>> = tableWithHeader(
-      englishSection(FIX_TASKS, "## Before you begin"),
+      englishSection(CODE_PAGE, "## Before you begin"),
       "What",
     );
 
-    expect(
-      dashboardSource("Pages/CodeRepository/CodeRepository.tsx"),
-    ).toContain('"Connect an existing installation"');
+    expect(dashboardSource("Components/Code/GitHubConnect.tsx")).toContain(
+      '"Connect an existing installation"',
+    );
     expect(
       rowStartingWith(
         prerequisites,
@@ -701,13 +867,13 @@ describe("Fix Tasks", () => {
     const agent: string = readRepoFile("Runner/CodeAgents/InHouseCodeAgent.ts");
 
     expect(agent).toContain("toolResult.substring(0, 300)");
-    expect(flat(englishSection(FIX_TASKS, "## Privacy"))).toContain(
+    expect(flat(englishSection(CODE_PAGE, "## Privacy"))).toContain(
       "The task's log keeps the first 300 characters of each step's output",
     );
   });
 
   it("names the Base URL of the Ollama example as an address the server can reach", () => {
-    expect(englishPage(FIX_TASKS)).toContain(
+    expect(englishPage(CODE_PAGE)).toContain(
       "GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434",
     );
   });
@@ -812,9 +978,9 @@ describe("GitHub App", () => {
   });
 
   it("sends an account that already has the app to Connect an existing installation", () => {
-    expect(
-      dashboardSource("Pages/CodeRepository/CodeRepository.tsx"),
-    ).toContain('"Connect an existing installation"');
+    expect(dashboardSource("Components/Code/GitHubConnect.tsx")).toContain(
+      '"Connect an existing installation"',
+    );
     expect(englishPage(GITHUB_APP)).toContain(
       `click ${bold("Connect an existing installation")} there instead of installing it again.`,
     );
@@ -822,7 +988,7 @@ describe("GitHub App", () => {
 
   it("names the repository's settings as its Settings page draws them, with the trigger label's default", () => {
     const settings: string = flat(
-      dashboardSource("Pages/CodeRepository/View/Settings.tsx"),
+      dashboardSource("Pages/Code/Repository/Settings.tsx"),
     );
     const page: string = flat(englishPage(GITHUB_APP));
 
@@ -874,12 +1040,11 @@ describe("GitHub App", () => {
     );
   });
 
-  it("connects a repository under Tasks → Code Repositories, opened from Products → Code → Tasks", () => {
+  it("connects a repository in Products → Code", () => {
     const page: string = englishPage(GITHUB_APP);
 
-    expect(page).toContain(
-      `connect it under ${bold("Tasks → Code Repositories")} (open ${bold("Products → Code → Tasks")})`,
-    );
+    expect(page).toContain(`connect it in ${bold("Products → Code")}.`);
+    expect(page).not.toContain("Code Repositories");
   });
 });
 

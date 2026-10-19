@@ -66,7 +66,7 @@ Runner 只持有自己的 ID 和金鑰。其他一切都隨它認領的工作一
 | **描述** | **Runner** | 選用。用一句話說明這台主機能連到什麼。 |
 | **標籤** | **Runner** （在 **更多欄位** 下） | 選用。 |
 | **執行操作手冊** | **功能** | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
-| **執行 AI 程式碼修復** | **功能** | 預設關閉。讓它為 AI 程式碼修復開啟提取要求；請參閱 [Fix Tasks](/docs/ai/ai-agent)。 |
+| **執行 AI 程式碼修復** | **功能** | 預設關閉。讓它為 AI 程式碼修復開啟提取要求；請參閱 [程式碼](/docs/ai/ai-agent)。 |
 | **執行 AI 修復指令** | **功能** | 預設關閉。讓 AI 自動修復在其上執行經過原則檢查的指令。為持有 SSH 憑證的 Runner 開啟此項需要讀取 Runbook 憑證的權限；請參閱 [執行 OneUptime AI 指令的 Runner](/docs/runbooks/credentials#執行-oneuptime-ai-指令的-runner)。 |
 
 Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。

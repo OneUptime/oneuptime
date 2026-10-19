@@ -1,10 +1,12 @@
-# Åtgärdsuppgifter
+# Kod
 
-En åtgärdsuppgift är en pull request som OneUptime AI skriver i din kod. Du startar en från ett undantag, ett spår, en tjänst eller en utredning, eller så startar OneUptime en på egen hand; en [Runner](/docs/runbooks/agents) klonar repositoriet, skriver ändringen på en ny branch, bygger och testar den och öppnar en pull request. En människa granskar och mergar var och en: Runnern kan pusha brancher och öppna pull requests, inget mer.
+Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skulle be en kodagent: rätta en bugg, skriva tester, förklara koden, göra en ändring. Kod öppnas på dina anslutna repositorier; ett repositoriums sida rymmer dess uppgifter och rutan där du ber om saker; en uppgifts sida är en konversation som du kan svara i. OneUptime startar också uppgifter på egen hand, från undantag, spår och utredningar. En [Runner](/docs/runbooks/agents) klonar repositoriet, skriver ändringen på en ny branch, bygger och testar den och öppnar en pull request. En människa granskar och mergar var och en: Runnern kan pusha brancher och öppna pull requests, inget mer.
 
 :::cards
+- [Be AI om något i ett repositorium](#be-ai-om-något-i-ett-repositorium): En begäran med dina egna ord, med den kontext den behöver.
+- [En uppgifts konversation](#en-uppgifts-konversation): Vad AI gjorde, vad den ändrade, och ditt svar.
 - [Så går en åtgärdskörning till](#så-går-en-åtgärdskörning-till): Från ett klick till en pull request, steg för steg.
-- [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar): Knapparna som startar en, och vad varje pull request gör.
+- [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar): Uppgifterna som OneUptime startar, och vad varje pull request gör.
 - [Innan du börjar](#innan-du-börjar): En modell, ett anslutet repository och en Runner.
 - [När en åtgärd misslyckas](#när-en-åtgärd-misslyckas): Vad som händer med en körning som fallerar, fastnar eller väntar.
 :::
@@ -12,11 +14,61 @@ En åtgärdsuppgift är en pull request som OneUptime AI skriver i din kod. Du s
 > [!TIP]
 > Du kan också starta det här från GitHub. Nämn OneUptime GitHub App i en issue eller en pull request, så implementerar, reviderar eller granskar den direkt där: se [GitHub App](/docs/ai/github-app). Det är samma agent, samma Runner och samma budgetar; bara utlösaren skiljer sig.
 
+## Be AI om något i ett repositorium
+
+:::steps
+### Öppna ett repositorium
+
+Öppna **Produkter → Kod**. Där står projektets repositorier, vart och ett med uppgifterna som AI arbetar med, de som väntar på dig och dess öppna pull requests. Finns det inga ännu erbjuder Kod **Anslut GitHub** (se [Innan du börjar](#innan-du-börjar)).
+
+### Säg vad du vill
+
+Skriv ändringen, buggen eller frågan med dina egna ord på repositoriets sida. Ett repositorium utan uppgifter föreslår några under **Prova att be om**.
+
+### Lägg till kontext
+
+Klicka på **Lägg till kontext** för att ge AI det den behöver: en fil eller mapp i repositoriet, en anteckning, en länk eller en post i projektet. OneUptime läser varje post när du skickar begäran, med dina behörigheter, och sparar vad AI fick.
+
+### Starta uppgiften
+
+Klicka på **Starta uppgift**, eller tryck på Enter. Uppgiftens sida öppnas, och AI:s arbete visas där medan det sker.
+:::
+
+| Kontext | Vad AI får |
+| --- | --- |
+| **Fil eller mapp** | En sökväg i repositoriet, som AI läser först. |
+| **Anteckning** | Text som du klistrar in: ett fel, en specifikation, en loggrad. |
+| **Länk** | En webbadress, som referens. |
+| **Incident** eller **Larm** | Dess tillstånd, beskrivning och grundorsak, så som de är när du skickar begäran. |
+| **Undantag** | Dess meddelande och stack trace. |
+| **Övervakning** | Dess typ, status och beskrivning. |
+| **Spår** | Dess spans: deras namn, tider och fel. |
+| **Loggar** | De senaste 20 loggraderna som innehåller din sökning, från den senaste timmen, dagen eller veckan. |
+
+En begäran bär högst 10 kontextdelar. Token, nycklar, lösenord och e-postadresser i det som OneUptime läser maskeras innan AI ser dem, som överallt där OneUptime AI läser dina data.
+
+## En uppgifts konversation
+
+En uppgifts sida är en konversation: vad som efterfrågades och kontexten som lades till, sedan AI:s tur – stegen den tar medan den tar dem (filerna den läste och redigerade, vad den sökte efter, kommandona den körde), dess svar, filerna den ändrade med deras diff, och pull requesten. Överst på sidan står hur det går för uppgiften:
+
+| Tillstånd | Vad det betyder |
+| --- | --- |
+| **I kö** | Den väntar på att en Runner ska ta den. |
+| **Arbetar…** | AI arbetar med den. **Stoppa** stoppar den; det den har pushat ligger kvar på branchen. |
+| **Väntar på dig** | AI har ställt en fråga. Svara på den i rutan nedanför. |
+| **Klar** | AI är klar: dess svar, och pull requesten när den ändrade kod. |
+| **Misslyckades** | Turen kunde inte slutföras, och säger varför. **Försök igen** ber om samma sak igen. |
+| **Stoppad** | Någon stoppade den. **Försök igen** ber om samma sak igen. |
+
+För att följa upp skriver du i rutan längst ned: svara AI, lägg till kontext eller be om ändringar. Varje svar är nästa tur i samma uppgift: den arbetar på samma branch och pushar till samma pull request så länge den är öppen. En uppgift tar en tur i taget, så rutan väntar medan AI arbetar. Varje turs **Logg** är den ordagranna redogörelsen för vad den gjorde.
+
+Den som kan läsa ett repositorium läser dess uppgifter. Att be AI om något, svara och stoppa en uppgift kräver behörighet att redigera repositoriet, och det gör även att se en ändrings diff: alla andra ser vilka filer som har ändrats. Uppgifterna som OneUptime startar på egen hand (nedan) finns också i sitt repositorium, som konversationer du kan svara i.
+
 ## Så går en åtgärdskörning till
 
 ```mermaid title="Från ett klick till en pull request"
 flowchart TB
-    S["Fix with AI eller en<br/>automatisk utlösare"] --> Q["En åtgärdsuppgift<br/>ställs i kö"]
+    S["En begäran, en<br/>knapp eller en utlösare"] --> Q["En åtgärdsuppgift<br/>ställs i kö"]
     Q --> R["En Runner som kör<br/>AI-kodfixar<br/>plockar upp den"]
     R --> C["Den klonar repositoriet<br/>och skapar en branch"]
     C --> A["Kodagenten<br/>skriver ändringen"]
@@ -26,15 +78,15 @@ flowchart TB
     P --> H["En person granskar<br/>och mergar den"]
 ```
 
-1. Du klickar på **Fix with AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
+1. Du klickar på **Starta uppgift** i ett repositorium, eller på **Fix with AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
 2. Uppgiften ställs i kö, och en ledig Runner med **Kör AI-kodfixar** påslaget plockar upp den.
-3. Runnern hämtar uppgiftens kontext. För ett undantag är det dess typ, dess meddelande och dess stack trace.
-4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id.
+3. Runnern hämtar uppgiftens kontext. För en begäran är det dess ord, kontexten som lades till och konversationen hittills; för ett undantag dess typ, dess meddelande och dess stack trace.
+4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id. Ett svar arbetar i stället på branchen för uppgiftens öppna pull request.
 5. En kodagent, driven av ditt projekts LLM-leverantör, läser koden och skriver ändringen. OneUptime-servern gör LLM-anropen, så Runnern har aldrig din leverantörs API-nyckel, och varje anrop mäts och listas i AI-loggarna.
 6. Om repositoriet har kontrollkommandon bygger och testar en egen Runner ändringen innan den committar något, och lämnar tillbaka ett fel till kodagenten att reparera (se [Kontroll före pull requesten](#kontroll-före-pull-requesten)).
-7. Runnern committar, pushar branchen, öppnar pull requesten och tar bort arbetsytan.
+7. Runnern committar, pushar branchen, öppnar pull requesten (för en begäran bara när den ändrade kod) och tar bort arbetsytan.
 
-Sidan som uppgiften startades från visar dess status live. Varje uppgift listas under **Produkter → Kod → Uppgifter**: öppna en för dess **Översikt**, dess **Loggar** (en rad för varje fil som Runnern läste eller skrev och varje kommando den körde) och dess **Pull-förfrågningar**.
+Sidan som uppgiften startades från visar dess status live. Varje uppgift listas i sitt repositorium under **Produkter → Kod**: dess sida är dess konversation, och varje turs **Logg** har en rad för varje fil som Runnern läste eller skrev och varje kommando den körde.
 
 Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM-anrop** och **100 000 utdatatokens**. En körning som når någon av dem avslutas med en sammanfattning av arbetet hittills i stället för att gå i loop. Åtgärdskörningar räknas också mot projektets dagliga AI-gränser, när projektet sätter dem.
 
@@ -44,11 +96,11 @@ Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM
 | --- | --- | --- |
 | Ett undantags sida **AI Assistance** | **Fix with AI** | Åtgärdar buggen bakom undantaget. |
 | Ett undantags sida **AI Assistance** | **Generate Regression Test** | Lägger till ett test som återskapar undantaget och fallerar tills buggen är åtgärdad. |
-| Ett undantags sida **AI Assistance** | **Improve Error Handling** | För ett förväntat fel, som ogiltig indata: tar bort användardata ur meddelandet, validerar indata tidigare och markerar felet som hanterat, utan att ändra beteendet. |
+| Ett undantags sida **AI Assistance** | **Förbättra felhantering** | För ett förväntat fel, som ogiltig indata: tar bort användardata ur meddelandet, validerar indata tidigare och markerar felet som hanterat, utan att ändra beteendet. |
 | En incidents eller ett larms kort **AI Investigation** | **Open Fix PR from this analysis** | Åtgärdar grundorsaken som utredningen publicerade (se [Automatiska kodåtgärder från utredningar](#automatiska-kodåtgärder-från-utredningar)). |
 | Ett spår | **Fix performance with AI** | Åtgärdar det långsamma mönstret som hittades i spåret, som N+1-frågor eller ett enda dominerande långsamt span. |
-| En tjänsts sida **Loggar** | **Improve Logging** | Gör tjänstens loggar strukturerade, med rätt allvarlighetsgrad och kopplade till dess spår, utan att ändra beteendet. |
-| En tjänsts sida **Spår** | **Improve Tracing** | Lägger till spans och attribut där tjänstens tracing saknas, utan att ändra beteendet. |
+| En tjänsts sida **Loggar** | **Förbättra loggning** | Gör tjänstens loggar strukturerade, med rätt allvarlighetsgrad och kopplade till dess spår, utan att ändra beteendet. |
+| En tjänsts sida **Spår** | **Förbättra spårning** | Lägger till spans och attribut där tjänstens tracing saknas, utan att ändra beteendet. |
 
 För att öppna ett undantags sida **AI Assistance**, öppna undantaget under **Produkter → Observerbarhet → Undantag** och välj **AI Assistance** i dess sidomeny. Ett löst eller arkiverat undantag måste först markeras som olöst.
 
@@ -56,7 +108,7 @@ OneUptime AI startar också åtgärdsuppgifter på egen hand: från en utredning
 
 ## Kontroll före pull requesten
 
-Ett kodrepository kan ha upp till tre kontrollkommandon på sin sida **Inställningar**, under **Kodrepositorier**:
+Ett repositorium kan ha upp till tre kontrollkommandon på sin sida **Inställningar** i Kod:
 
 | Kommando | Exempel | När det körs |
 | --- | --- | --- |
@@ -76,12 +128,12 @@ Kommandona är repositoryinställningar som ditt team skriver och som körs på 
 
 ## Innan du börjar
 
-En åtgärdsuppgift behöver tre saker. Undantagets sida **AI Assistance** kontrollerar alla tre innan den erbjuder att starta, och säger vad som saknas.
+En uppgift behöver tre saker. Ett repositoriums sida i Kod och undantagets sida **AI Assistance** kontrollerar alla tre innan de erbjuder att starta, och säger vad som saknas.
 
 | Vad | OneUptime Cloud | Självhostad |
 | --- | --- | --- |
 | En LLM-leverantör | Inget att ställa in: ett projekt utan egen leverantör använder den globala leverantören, betald med projektets AI-krediter. En egen leverantör, under **Projektinställningar → AI → LLM-leverantörer**, går först. | Sätt miljövariablerna `GLOBAL_LLM_PROVIDER_*` en gång på servern, eller lägg till en leverantör i projektet. |
-| Ett repository anslutet via GitHub App | **Produkter → Kod → Uppgifter**, sedan **Kodrepositorier** och **Connect with GitHub App**. Om appen redan är installerad på GitHub-kontot klickar du i stället på **Anslut en befintlig installation**: den ansluts inte av att installera den igen. Kräver Growth-planen. | Samma sak, när din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
+| Ett repository anslutet via GitHub App | **Produkter → Kod**, sedan **Anslut GitHub**. Om appen redan är installerad på GitHub-kontot klickar du i stället på **Anslut en befintlig installation**: den ansluts inte av att installera den igen. Kräver Growth-planen. | Samma sak, när din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
 | En Runner som kör AI-kodfixar | Inget att drifta: OneUptimes delade Runners gör det. | Docker Compose-tjänsten `runner`, eller Helm-chartets Runner (`runner.enabled`, påslagen som standard), registrerar sig själv och kör AI-kodfixar. |
 
 På en självhostad instans är den globala leverantören ett block i `config.env` (Docker Compose) eller i dina Helm-värden. För en självhostad Ollama:
@@ -151,7 +203,7 @@ Allt annat är som med knappen:
 ## När en åtgärd misslyckas
 
 :::details Körningen fallerar
-Åtgärden kunde inte tillämpas, repositoriet kunde inte nås eller LLM-anropet misslyckades. Sidan som uppgiften startades från visar orsaken och erbjuder att försöka igen. Uppgiftens sida **Loggar** har hela körningsloggen.
+Åtgärden kunde inte tillämpas, repositoriet kunde inte nås eller LLM-anropet misslyckades. Uppgiftens konversation, och sidan som den startades från, visar orsaken och erbjuder att försöka igen. Turens **Logg** har hela körningsloggen.
 :::
 
 :::details Runnern stannar mitt i en körning

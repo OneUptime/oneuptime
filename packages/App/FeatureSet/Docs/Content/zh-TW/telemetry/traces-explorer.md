@@ -89,7 +89,7 @@ flowchart TB
 大型追蹤每次載入 500 個 span。點選追蹤底部的按鈕可以載入更多，或全部載入。
 
 > [!TIP]
-> **Fix performance with AI** 會在追蹤中尋找已知的效能模式：N+1 查詢、一個占用大部分時間的 span，或本可以平行卻依序執行的呼叫。找到後，它會啟動一個 AI 任務，開啟一個修正該問題的 pull request。請參閱 [修正任務](/docs/ai/ai-agent)。
+> **Fix performance with AI** 會在追蹤中尋找已知的效能模式：N+1 查詢、一個占用大部分時間的 span，或本可以平行卻依序執行的呼叫。找到後，它會啟動一個 AI 任務，開啟一個修正該問題的 pull request。請參閱 [程式碼](/docs/ai/ai-agent)。
 
 ## 用圖表展示 span
 

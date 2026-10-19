@@ -14,7 +14,7 @@ Ein LLM-Anbieter ist das Modell hinter jeder KI-Funktion in OneUptime: Untersuch
 - **Untersuchungen**: OneUptime AI untersucht neue Vorfälle und Warnungen und veröffentlicht eine belegte Ursachenanalyse in der Zeitleiste. Siehe [AI SRE](/docs/ai/ai-sre).
 - **Fragen**: **KI fragen** antwortet aus den Daten Ihres Projekts, mit einem Beleg für jede Aussage. Siehe [KI fragen](/docs/ai/ask-ai).
 - **Entwürfe**: **Mit KI entwerfen** in den Notizen von Vorfällen, Warnungen und geplanten Wartungen sowie Postmortems, auf Anfrage entworfen oder wenn ein Vorfall gelöst wird.
-- **Code**: Pull Requests, die Ausnahmen, langsame Traces und die von Untersuchungen gefundenen Ursachen beheben, aus OneUptime oder aus GitHub. Siehe [Korrekturaufgaben](/docs/ai/ai-agent).
+- **Code**: Pull Requests, die Ausnahmen, langsame Traces und die von Untersuchungen gefundenen Ursachen beheben, aus OneUptime oder aus GitHub. Siehe [Code](/docs/ai/ai-agent).
 - **Alles andere**: die Triage von AI Insights, die KI-Schritte von Workflows und Runbooks und Antworten in Slack und Microsoft Teams.
 
 ## Welchen Anbieter die KI verwendet
@@ -301,7 +301,7 @@ Kommen Sie nicht weiter? Suchen Sie Ihren Fehler in den [GitHub-Issues von OneUp
 ## Nächste Schritte
 
 :::cards
-- [Korrekturaufgaben](/docs/ai/ai-agent): Pull Requests, die Ihr Anbieter schreibt, und wo sie starten.
+- [Code](/docs/ai/ai-agent): Pull Requests, die Ihr Anbieter schreibt, und wo sie starten.
 - [AI SRE](/docs/ai/ai-sre): Was OneUptime AI mit dem Anbieter tut, sobald es einen hat.
 - [KI fragen](/docs/ai/ask-ai): Stellen Sie Ihrem Projekt eine Frage, und wechseln Sie den Anbieter einer Unterhaltung.
 :::

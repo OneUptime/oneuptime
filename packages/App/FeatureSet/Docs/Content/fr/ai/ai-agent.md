@@ -1,10 +1,12 @@
-# Tâches de correction
+# Code
 
-Une tâche de correction est une pull request que OneUptime AI écrit dans votre code. Vous en lancez une depuis une exception, une trace, un service ou une investigation, ou OneUptime en lance une de lui-même ; un [Runner](/docs/runbooks/agents) clone le dépôt, écrit la modification sur une nouvelle branche, la compile et la teste, puis ouvre une pull request. Une personne relit et fusionne chacune d'elles : le Runner peut pousser des branches et ouvrir des pull requests, rien de plus.
+Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dépôts, comme vous le demanderiez à un agent de code : corriger un bug, écrire des tests, expliquer le code, faire une modification. Code s'ouvre sur vos dépôts connectés ; la page d'un dépôt contient ses tâches et la zone où vous demandez ; la page d'une tâche est une conversation à laquelle vous pouvez répondre. OneUptime lance aussi des tâches de lui-même, à partir d'exceptions, de traces et d'investigations. Un [Runner](/docs/runbooks/agents) clone le dépôt, écrit la modification sur une nouvelle branche, la compile et la teste, puis ouvre une pull request. Une personne relit et fusionne chacune d'elles : le Runner peut pousser des branches et ouvrir des pull requests, rien de plus.
 
 :::cards
+- [Demander à l'IA dans un dépôt](#demander-à-lia-dans-un-dépôt): Une demande avec vos propres mots, et le contexte dont elle a besoin.
+- [La conversation d'une tâche](#la-conversation-dune-tâche): Ce que l'IA a fait, ce qu'elle a modifié, et votre réponse.
 - [Déroulement d'une exécution de correction](#déroulement-dune-exécution-de-correction): D'un clic à une pull request, étape par étape.
-- [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction): Les boutons qui en lancent une, et ce que fait chaque pull request.
+- [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction): Les tâches que OneUptime lance, et ce que fait chaque pull request.
 - [Avant de commencer](#avant-de-commencer): Un modèle, un dépôt connecté et un Runner.
 - [Quand une correction échoue](#quand-une-correction-échoue): Ce qui arrive à une exécution qui échoue, se bloque ou attend.
 :::
@@ -12,11 +14,61 @@ Une tâche de correction est une pull request que OneUptime AI écrit dans votre
 > [!TIP]
 > Vous pouvez aussi lancer cela depuis GitHub. Mentionnez la GitHub App de OneUptime dans une issue ou une pull request, et elle implémente, révise ou relit sur place : voir [GitHub App](/docs/ai/github-app). C'est le même agent, le même Runner et les mêmes budgets ; seul le déclencheur change.
 
+## Demander à l'IA dans un dépôt
+
+:::steps
+### Ouvrir un dépôt
+
+Ouvrez **Produits → Code**. La page liste les dépôts du projet, chacun avec les tâches sur lesquelles l'IA travaille, celles qui vous attendent et ses pull requests ouvertes. S'il n'y en a encore aucun, elle propose **Connecter GitHub** (voir [Avant de commencer](#avant-de-commencer)).
+
+### Dire ce que vous voulez
+
+Sur la page du dépôt, écrivez la modification, le bug ou la question avec vos propres mots. Un dépôt qui n'a encore aucune tâche en suggère quelques-unes sous **Essayez de demander**.
+
+### Ajouter du contexte
+
+Cliquez sur **Ajouter du contexte** pour donner à l'IA ce dont elle a besoin : un fichier ou un dossier du dépôt, une note, un lien ou un enregistrement du projet. OneUptime lit chaque enregistrement au moment où vous envoyez la demande, avec vos permissions, et conserve ce que l'IA a reçu.
+
+### Lancer la tâche
+
+Cliquez sur **Lancer la tâche**, ou appuyez sur Entrée. La page de la tâche s'ouvre, et le travail de l'IA s'y affiche au fur et à mesure.
+:::
+
+| Contexte | Ce que reçoit l'IA |
+| --- | --- |
+| **Fichier ou dossier** | Un chemin dans le dépôt, que l'IA lit en premier. |
+| **Note** | Un texte que vous collez : une erreur, une spécification, une ligne de log. |
+| **Lien** | Une adresse web, comme référence. |
+| **Incident** ou **Alerte** | Son état, sa description et sa cause racine, tels qu'ils sont quand vous envoyez la demande. |
+| **Exception** | Son message et sa stack trace. |
+| **Moniteur** | Son type, son statut et sa description. |
+| **Trace** | Ses spans : leurs noms, leurs durées et leurs erreurs. |
+| **Journaux** | Les 20 dernières lignes de log qui contiennent votre recherche, sur la dernière heure, le dernier jour ou la dernière semaine. |
+
+Une demande porte au plus 10 éléments de contexte. Les jetons, clés, mots de passe et adresses e-mail présents dans ce que OneUptime lit sont masqués avant que l'IA ne les voie, comme partout où OneUptime AI lit vos données.
+
+## La conversation d'une tâche
+
+La page d'une tâche est une conversation : ce qui a été demandé et le contexte ajouté, puis le tour de l'IA – ses étapes, affichées au fur et à mesure (les fichiers qu'elle a lus et modifiés, ce qu'elle a cherché, les commandes qu'elle a exécutées), sa réponse, les fichiers qu'elle a modifiés avec leur diff, et la pull request. Le haut de la page indique où en est la tâche :
+
+| État | Ce que cela signifie |
+| --- | --- |
+| **En file d'attente** | Elle attend qu'un Runner la prenne. |
+| **En cours…** | L'IA y travaille. **Arrêter** l'arrête ; ce qu'elle a poussé reste sur la branche. |
+| **En attente de votre part** | L'IA a posé une question. Répondez-y dans la zone en dessous. |
+| **Terminé** | L'IA a fini : sa réponse, et la pull request si elle a modifié du code. |
+| **Échec** | Le tour n'a pas pu aboutir, et dit pourquoi. **Réessayer** redemande la même chose. |
+| **Arrêté** | Quelqu'un l'a arrêtée. **Réessayer** redemande la même chose. |
+
+Pour donner suite, écrivez dans la zone en bas : répondez à l'IA, ajoutez du contexte ou demandez des modifications. Chaque réponse est le tour suivant de la même tâche : elle travaille sur la même branche et pousse vers la même pull request tant que celle-ci est ouverte. Une tâche ne fait qu'un tour à la fois, donc la zone attend pendant que l'IA travaille. Le **Journal** de chaque tour est le relevé exact de ce qu'il a fait.
+
+Toute personne qui peut lire un dépôt lit ses tâches. Demander à l'IA, répondre et arrêter une tâche demandent la permission de modifier le dépôt, tout comme voir le diff d'une modification : les autres voient quels fichiers ont changé. Les tâches que OneUptime lance de lui-même (ci-dessous) figurent aussi dans leur dépôt, comme des conversations auxquelles vous pouvez répondre.
+
 ## Déroulement d'une exécution de correction
 
 ```mermaid title="D'un clic à une pull request"
 flowchart TB
-    S["Fix with AI ou un<br/>déclencheur automatique"] --> Q["Une tâche de<br/>correction est<br/>mise en file"]
+    S["Une demande, un<br/>bouton ou un<br/>déclencheur"] --> Q["Une tâche de<br/>correction est<br/>mise en file"]
     Q --> R["Un Runner qui exécute<br/>les corrections de<br/>code IA la prend"]
     R --> C["Il clone le dépôt<br/>et crée une branche"]
     C --> A["L'agent de code<br/>écrit la modification"]
@@ -26,15 +78,15 @@ flowchart TB
     P --> H["Une personne la relit<br/>et la fusionne"]
 ```
 
-1. Vous cliquez sur **Fix with AI** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
+1. Vous cliquez sur **Lancer la tâche** dans un dépôt, ou sur **Fix with AI** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
 2. La tâche est mise en file, et un Runner disponible avec **Exécute les corrections de code IA** activé la prend.
-3. Le Runner récupère le contexte de la tâche. Pour une exception, ce sont son type, son message et sa stack trace.
-4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution.
+3. Le Runner récupère le contexte de la tâche. Pour une demande, ce sont ses mots, le contexte ajouté et la conversation jusque-là ; pour une exception, son type, son message et sa stack trace.
+4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
 5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA.
 6. Si le dépôt a des commandes de vérification, votre propre Runner compile et teste la modification avant de committer quoi que ce soit, et renvoie un échec à l'agent de code pour qu'il le répare (voir [Vérification avant la pull request](#vérification-avant-la-pull-request)).
-7. Le Runner committe, pousse la branche, ouvre la pull request et supprime l'espace de travail.
+7. Le Runner committe, pousse la branche, ouvre la pull request (pour une demande, seulement si elle a modifié du code) et supprime l'espace de travail.
 
-La page d'où la tâche a été lancée affiche son état en direct. Chaque tâche est listée sous **Produits → Code → Tâches** : ouvrez-en une pour voir sa **Vue d'ensemble**, ses **Journaux** (une ligne pour chaque fichier que le Runner a lu ou écrit et pour chaque commande qu'il a exécutée) et ses **Demandes de tirage**.
+La page d'où la tâche a été lancée affiche son état en direct. Chaque tâche est listée dans son dépôt sous **Produits → Code** : sa page est sa conversation, et le **Journal** de chaque tour a une ligne pour chaque fichier que le Runner a lu ou écrit et pour chaque commande qu'il a exécutée.
 
 Chaque exécution est tenue à des budgets que le serveur impose : au plus **40 appels au LLM** et **100 000 tokens de sortie**. Une exécution qui en atteint un se termine par un résumé du travail accompli jusque-là au lieu de tourner en boucle. Les exécutions de correction comptent aussi dans les limites quotidiennes d'IA du projet, quand le projet en fixe.
 
@@ -47,8 +99,8 @@ Chaque exécution est tenue à des budgets que le serveur impose : au plus **40 
 | La page **Assistance IA** d'une exception | **Améliorer la gestion des erreurs** | Pour une erreur attendue, comme une saisie invalide : retire les données utilisateur du message, valide la saisie plus tôt et marque l'erreur comme gérée, sans changer le comportement. |
 | La carte **Investigation IA** d'un incident ou d'une alerte | **Ouvrir une PR de correctif à partir de cette analyse** | Corrige la cause racine publiée par l'investigation (voir [Corrections de code automatiques à partir des investigations](#corrections-de-code-automatiques-à-partir-des-investigations)). |
 | Une trace | **Corriger les performances avec l'IA** | Corrige le schéma lent trouvé dans la trace, comme des requêtes N+1 ou un seul span lent dominant. |
-| La page **Journaux** d'un service | **Improve Logging** | Rend les logs du service structurés, au bon niveau de gravité et reliés à ses traces, sans changer le comportement. |
-| La page **Traces** d'un service | **Improve Tracing** | Ajoute des spans et des attributs là où le tracing du service manque, sans changer le comportement. |
+| La page **Journaux** d'un service | **Améliorer la journalisation** | Rend les logs du service structurés, au bon niveau de gravité et reliés à ses traces, sans changer le comportement. |
+| La page **Traces** d'un service | **Améliorer le traçage** | Ajoute des spans et des attributs là où le tracing du service manque, sans changer le comportement. |
 
 Pour ouvrir la page **Assistance IA** d'une exception, ouvrez l'exception sous **Produits → Observabilité → Exceptions** et choisissez **Assistance IA** dans son menu latéral. Une exception résolue ou archivée doit d'abord être marquée comme non résolue.
 
@@ -56,7 +108,7 @@ OneUptime AI lance aussi des tâches de correction de lui-même : à partir d'un
 
 ## Vérification avant la pull request
 
-Un dépôt de code peut porter jusqu'à trois commandes de vérification sur sa page **Paramètres**, sous **Dépôts de code** :
+Un dépôt peut porter jusqu'à trois commandes de vérification sur sa page **Paramètres** dans Code :
 
 | Commande | Exemple | Quand elle s'exécute |
 | --- | --- | --- |
@@ -76,12 +128,12 @@ Les commandes sont des paramètres du dépôt que votre équipe écrit, exécut�
 
 ## Avant de commencer
 
-Une tâche de correction a besoin de trois choses. La page **Assistance IA** de l'exception vérifie les trois avant de proposer de démarrer, et indique ce qui manque.
+Une tâche a besoin de trois choses. La page d'un dépôt dans Code et la page **Assistance IA** de l'exception vérifient les trois avant de proposer de démarrer, et indiquent ce qui manque.
 
 | Quoi | OneUptime Cloud | Auto-hébergé |
 | --- | --- | --- |
 | Un fournisseur LLM | Rien à configurer : un projet sans fournisseur propre utilise le fournisseur global, payé sur les crédits IA du projet. Un fournisseur à vous, sous **Paramètres du projet → IA → Fournisseurs LLM**, passe en premier. | Définissez une fois les variables d'environnement `GLOBAL_LLM_PROVIDER_*` sur le serveur, ou ajoutez un fournisseur au projet. |
-| Un dépôt connecté via la GitHub App | **Produits → Code → Tâches**, puis **Dépôts de code** et **Se connecter avec l'application GitHub**. Si l'application est déjà installée sur le compte GitHub, cliquez plutôt sur **Connecter une installation existante** : l'installer de nouveau ne la connecte pas. Nécessite le plan Growth. | Pareil, une fois que votre instance a une GitHub App (voir [Intégration GitHub](/docs/self-hosted/github-integration)). |
+| Un dépôt connecté via la GitHub App | **Produits → Code**, puis **Connecter GitHub**. Si l'application est déjà installée sur le compte GitHub, cliquez plutôt sur **Connecter une installation existante** : l'installer de nouveau ne la connecte pas. Nécessite le plan Growth. | Pareil, une fois que votre instance a une GitHub App (voir [Intégration GitHub](/docs/self-hosted/github-integration)). |
 | Un Runner qui exécute les corrections de code IA | Rien à faire tourner : les Runners partagés de OneUptime s'en chargent. | Le service `runner` de Docker Compose, ou le Runner du chart Helm (`runner.enabled`, activé par défaut), s'enregistre tout seul et exécute les corrections de code IA. |
 
 Sur une instance auto-hébergée, le fournisseur global est un bloc de `config.env` (Docker Compose) ou de vos valeurs Helm. Pour un Ollama auto-hébergé :
@@ -151,7 +203,7 @@ Tout le reste correspond au bouton :
 ## Quand une correction échoue
 
 :::details L'exécution échoue
-La correction n'a pas pu être appliquée, le dépôt n'a pas pu être joint ou l'appel au LLM a échoué. La page d'où la tâche a été lancée affiche la raison et propose de réessayer. La page **Journaux** de la tâche contient le journal complet de l'exécution.
+La correction n'a pas pu être appliquée, le dépôt n'a pas pu être joint ou l'appel au LLM a échoué. La conversation de la tâche, et la page d'où elle a été lancée, affichent la raison et proposent de réessayer. Le **Journal** du tour contient le journal complet de l'exécution.
 :::
 
 :::details Le Runner s'arrête au milieu d'une exécution

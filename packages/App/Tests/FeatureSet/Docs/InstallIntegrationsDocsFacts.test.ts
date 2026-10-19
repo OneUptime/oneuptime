@@ -134,8 +134,7 @@ const SOURCES: Record<string, string> = {
   githubUtil: `${COMMON_SERVER}/Utils/CodeRepository/GitHub/GitHub.ts`,
   githubWebhookEvents: `${COMMON_SERVER}/Utils/CodeRepository/GitHub/GitHubWebhookEvents.ts`,
   githubConversation: `${COMMON_SERVER}/Utils/CodeRepository/GitHub/GitHubConversation.ts`,
-  codeRepositoryPage: `${DASHBOARD}/Pages/CodeRepository/CodeRepository.tsx`,
-  codeSideMenu: `${DASHBOARD}/Components/Code/CodeSideMenu.tsx`,
+  gitHubConnect: `${DASHBOARD}/Components/Code/GitHubConnect.tsx`,
   navigationItems: `${DASHBOARD}/Utils/NavigationItems.tsx`,
   navBar: "packages/Common/UI/Components/Navbar/NavBar.tsx",
 };
@@ -2652,11 +2651,11 @@ describe("GitHub Integration, against the server and Code Repositories", () => {
     );
   });
 
-  it("Code Repositories shows Connect with GitHub App once the app is set up, and says so when it is not", () => {
-    const repositories: string = readSource("codeRepositoryPage");
+  it("Code shows Connect GitHub once the app is set up, and says so when it is not", () => {
+    const repositories: string = readSource("gitHubConnect");
 
     expect(repositories).toContain(
-      'translator.translateText("Connect with GitHub App")',
+      'translator.translateText("Connect GitHub")',
     );
     expect(repositories).toContain(
       '"GitHub App is not configured on this server"',
@@ -2665,22 +2664,18 @@ describe("GitHub Integration, against the server and Code Repositories", () => {
       'translationKey("GitHub was not connected")',
     );
     expect(page).toContain(
-      "**Code Repositories** shows **Connect with GitHub App** instead of **GitHub App is not configured on this server**.",
+      "**Code** shows **Connect GitHub** instead of **GitHub App is not configured on this server**.",
     );
-    expect(page).toContain(
-      "**Code Repositories** says **GitHub was not connected**",
-    );
+    expect(page).toContain("**Code** says **GitHub was not connected**");
   });
 
-  it("Code Repositories is under Products > Tasks", () => {
+  it("Code is in the Products menu", () => {
     expect(readSource("navBar")).toContain('props.moreMenuTitle || "Products"');
     expect(readSource("navigationItems")).toContain(
-      'title: t("navbar.items.aiAgentsTitle", "Tasks"),',
+      'title: t("navbar.items.codeTitle", "Code"),',
     );
-    expect(readSource("codeSideMenu")).toContain('title: "Code Repositories",');
-    expect(page).toContain(
-      "Navigate to **Products** > **Tasks** > **Code Repositories**",
-    );
+    expect(page).toContain("Navigate to **Products** > **Code**");
+    expect(page).not.toContain("Code Repositories");
   });
 
   it("on OneUptime Cloud, adding a code repository needs the Growth plan", () => {

@@ -30,11 +30,11 @@ Les deux sont indépendantes, et vous pouvez utiliser l'une, l'autre ou les deux
 
 ## Connecter vos dépôts
 
-Ouvrez **Produits → Code → Tâches**, puis **Dépôts de code**, et cliquez sur **Se connecter avec l'application GitHub**. GitHub demande où installer l'application et quels dépôts elle peut utiliser. Chaque dépôt de l'installation est importé, et reste à jour quand vous ajoutez des dépôts à l'installation ou que vous les en retirez.
+Ouvrez **Produits → Code** et cliquez sur **Connecter GitHub**. GitHub demande où installer l'application et quels dépôts elle peut utiliser. Chaque dépôt de l'installation est importé, et reste à jour quand vous ajoutez des dépôts à l'installation ou que vous les en retirez.
 
-Si l'application est déjà installée sur le compte, pour un autre projet ou directement depuis GitHub, cliquez sur **Connecter une installation existante**, sous la carte **Se connecter avec l'application GitHub**, au lieu de la réinstaller. Il faut pour cela un compte GitHub qui administre l'installation : le propriétaire d'un compte personnel, ou une personne disposant du droit admin sur chaque dépôt auquel l'installation a accès, comme un propriétaire de l'organisation.
+Si l'application est déjà installée sur le compte, pour un autre projet ou directement depuis GitHub, cliquez sur **Connecter une installation existante**, sous **Connecter GitHub**, au lieu de la réinstaller. Il faut pour cela un compte GitHub qui administre l'installation : le propriétaire d'un compte personnel, ou une personne disposant du droit admin sur chaque dépôt auquel l'installation a accès, comme un propriétaire de l'organisation.
 
-Une instance auto-hébergée a d'abord besoin de sa propre application GitHub : [Intégration GitHub](/docs/self-hosted/github-integration) montre comment la créer. Ensuite, les [Tâches de correction](/docs/ai/ai-agent) ouvrent des pull requests dans vos dépôts, et la page [GitHub App](/docs/ai/github-app) montre ce que fait l'application quand vous la mentionnez dans une issue ou une pull request.
+Une instance auto-hébergée a d'abord besoin de sa propre application GitHub : [Intégration GitHub](/docs/self-hosted/github-integration) montre comment la créer. Ensuite, l'IA ouvre des pull requests dans vos dépôts depuis [Code](/docs/ai/ai-agent), et la page [GitHub App](/docs/ai/github-app) montre ce que fait l'application quand vous la mentionnez dans une issue ou une pull request.
 
 ## Avant de commencer
 

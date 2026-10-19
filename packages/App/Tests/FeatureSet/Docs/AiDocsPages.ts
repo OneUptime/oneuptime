@@ -17,7 +17,7 @@ export interface AiDocsPageEntry {
 export const ASK_AI: string = "ai/ask-ai";
 export const AI_SRE: string = "ai/ai-sre";
 export const INFRASTRUCTURE_AI_AGENTS: string = "ai/infrastructure-ai-agents";
-export const FIX_TASKS: string = "ai/ai-agent";
+export const CODE_PAGE: string = "ai/ai-agent";
 export const GITHUB_APP: string = "ai/github-app";
 export const LLM_PROVIDERS: string = "ai/llm-provider";
 export const MCP_SERVER: string = "ai/mcp-server";
@@ -37,7 +37,7 @@ export const AI_PAGES: ReadonlyArray<AiDocsPageEntry> = [
   { page: ASK_AI, navTitle: "Ask AI" },
   { page: AI_SRE, navTitle: "AI SRE" },
   { page: INFRASTRUCTURE_AI_AGENTS, navTitle: "Infrastructure AI Agents" },
-  { page: FIX_TASKS, navTitle: "Fix Tasks" },
+  { page: CODE_PAGE, navTitle: "Code" },
   { page: GITHUB_APP, navTitle: "GitHub App" },
   { page: LLM_PROVIDERS, navTitle: "LLM Providers" },
   { page: MCP_SERVER, navTitle: "MCP Server" },
@@ -129,7 +129,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Checked again",
     ],
     [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
-    [FIX_TASKS]: ["Fix with AI"],
+    [CODE_PAGE]: ["Fix with AI"],
     [LLM_PROVIDERS]: [
       "OpenAI Compatible",
       '"…points to an address OneUptime is not allowed to connect to"',
@@ -312,7 +312,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "The Docker and Podman socket is root on the host.",
     "The Host AI agent is root on the host.",
   ],
-  [FIX_TASKS]: [
+  [CODE_PAGE]: [
     "40 LLM calls",
     "100,000 output tokens",
     "2",

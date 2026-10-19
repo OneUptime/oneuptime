@@ -2,13 +2,13 @@
 
 Connectez votre OneUptime auto-hébergé à GitHub avec une GitHub App qui vous appartient. Une fois l'application installée depuis OneUptime, les dépôts de l'installation sont importés dans votre projet et maintenus synchronisés, les tâches de correction IA ouvrent des pull requests, et votre équipe peut confier du travail à l'application depuis GitHub en la mentionnant.
 
-Cette page s'adresse à la personne qui administre le serveur OneUptime : vous créez l'application une fois, puis chaque projet la connecte depuis **Dépôts de code**.
+Cette page s'adresse à la personne qui administre le serveur OneUptime : vous créez l'application une fois, puis chaque projet la connecte depuis **Code**.
 
 :::cards
 - [Créer la GitHub App](#créer-la-github-app): Enregistrer l'application avec les bonnes URL, permissions et événements.
 - [Configurer OneUptime](#configurer-oneuptime): Donner au serveur les six valeurs de l'application.
 - [Connecter des dépôts](#connecter-des-dépôts): Installer l'application depuis OneUptime, ou connecter une installation existante.
-- [Dépannage](#dépannage): Ce que signifient les messages de Dépôts de code.
+- [Dépannage](#dépannage): Ce que signifient les messages dans Code.
 :::
 
 ## Fonctionnement
@@ -20,7 +20,7 @@ sequenceDiagram
     participant B as Votre navigateur
     participant O as OneUptime
     participant G as GitHub
-    B->>O: Se connecter avec<br/>l'application GitHub
+    B->>O: Connecter GitHub
     O-->>B: Redirection vers la<br/>page d'installation<br/>de l'application
     B->>G: Installer et autoriser<br/>l'application
     G-->>B: Redirection vers<br/>/api/github/auth/callback
@@ -58,7 +58,7 @@ Sélectionnez **New GitHub App**.
 | **Callback URL** | `https://your-oneuptime-domain.com/api/github/auth/callback` |
 | **Request user authorization (OAuth) during installation** | Activé. **C'est obligatoire** : voir la note ci-dessous. |
 | **Setup URL** | `https://your-oneuptime-domain.com/api/github/auth/callback`, si GitHub vous laisse en saisir une (voir ci-dessous). |
-| **Redirect on update** | Facultatif. Après qu'une personne a modifié une installation sur GitHub, OneUptime la ramène sur **Dépôts de code**. |
+| **Redirect on update** | Facultatif. Après qu'une personne a modifié une installation sur GitHub, OneUptime la ramène sur **Code**. |
 | **Webhook URL** | `https://your-oneuptime-domain.com/api/github/webhook`, avec le webhook **Active**. |
 | **Webhook secret** | Une longue chaîne aléatoire. Notez-la : c'est `GITHUB_APP_WEBHOOK_SECRET`. **Obligatoire** : OneUptime rejette les webhooks non signés, donc laisser `GITHUB_APP_WEBHOOK_SECRET` vide arrête la synchronisation des dépôts au lieu d'accepter des charges utiles non vérifiées. |
 
@@ -159,14 +159,14 @@ gitHubApp:
 `privateKey` accepte aussi le PEM lui-même, sous forme de bloc multiligne (`privateKey: |`). Appliquez la modification avec `helm upgrade`.
 :::
 
-Une fois OneUptime revenu, **Dépôts de code** affiche **Se connecter avec l'application GitHub** au lieu de **L'application GitHub n'est pas configurée sur ce serveur**.
+Une fois OneUptime revenu, **Code** affiche **Connecter GitHub** au lieu de **L'application GitHub n'est pas configurée sur ce serveur**.
 
 ### Référence des variables d'environnement
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | Valeur |
 | --- | --- | --- |
 | `GITHUB_APP_ID` | `gitHubApp.id` | L'**App ID**. Sert à s'authentifier en tant que l'application. |
-| `GITHUB_APP_NAME` | `gitHubApp.name` | Le nom de l'application. Le nom d'affichage convient, espaces et majuscules compris : le lien d'installation et l'identifiant `@mention` de l'application utilisent le slug que GitHub indique pour l'application, et ne sont dérivés de ce nom (en minuscules, espaces remplacées par des tirets) que si OneUptime ne peut pas interroger GitHub. Sans lui, **Dépôts de code** ne peut pas se connecter. |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | Le nom de l'application. Le nom d'affichage convient, espaces et majuscules compris : le lien d'installation et l'identifiant `@mention` de l'application utilisent le slug que GitHub indique pour l'application, et ne sont dérivés de ce nom (en minuscules, espaces remplacées par des tirets) que si OneUptime ne peut pas interroger GitHub. Sans lui, **Code** ne peut pas connecter de dépôts. |
 | `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | Le **Client ID**. Nécessaire pour vérifier qui a installé l'application. |
 | `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | Le client secret que vous avez généré. Nécessaire avec le client ID. |
 | `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | La clé privée : le PEM, ou le PEM encodé en base64. |
@@ -180,14 +180,14 @@ Lancez la connexion depuis OneUptime, pas depuis la page de l'application sur Gi
 
 :::steps
 1. Connectez-vous à votre tableau de bord OneUptime
-2. Allez dans **Produits** > **Tâches** > **Dépôts de code**
-3. Cliquez sur **Se connecter avec l'application GitHub**. OneUptime vous emmène sur GitHub
+2. Allez dans **Produits** > **Code**
+3. Cliquez sur **Connecter GitHub**. OneUptime vous emmène sur GitHub
 4. Sélectionnez l'organisation ou le compte sur lequel installer l'application, et choisissez à quels dépôts elle peut accéder : **All repositories** (tous les dépôts actuels et futurs) ou **Only select repositories**
 5. Cliquez sur **Install**
-6. GitHub vous renvoie sur **Dépôts de code**, et chaque dépôt de l'installation est importé. Les dépôts ajoutés à l'installation ou retirés plus tard sont synchronisés automatiquement.
+6. GitHub vous renvoie sur **Code**, et chaque dépôt de l'installation est importé. Les dépôts ajoutés à l'installation ou retirés plus tard sont synchronisés automatiquement.
 :::
 
-**Quand l'application est déjà installée sur le compte**, pour un autre projet ou directement depuis GitHub, l'installer de nouveau ne la connecte pas : GitHub ouvre les paramètres de l'installation et ne vous renvoie jamais. Cliquez plutôt sur **Connecter une installation existante**, sous la carte **Se connecter avec l'application GitHub**. Vous vous connectez à GitHub, et OneUptime connecte l'installation qu'administre votre compte GitHub. S'il en administre plusieurs, **Dépôts de code** les affiche : choisissez le compte dont le projet doit utiliser les dépôts.
+**Quand l'application est déjà installée sur le compte**, pour un autre projet ou directement depuis GitHub, l'installer de nouveau ne la connecte pas : GitHub ouvre les paramètres de l'installation et ne vous renvoie jamais. Cliquez plutôt sur **Connecter une installation existante**, sous **Connecter GitHub**. Vous vous connectez à GitHub, et OneUptime connecte l'installation qu'administre votre compte GitHub. S'il en administre plusieurs, **Code** les affiche : choisissez le compte dont le projet doit utiliser les dépôts.
 
 **Qui peut connecter.** La connexion importe les dépôts de l'installation dans le projet : elle exige donc la permission d'ajouter des dépôts de code : **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, ou une équipe avec **Create Code Repository**. Une équipe qui bloque la permission la retire. Sur OneUptime Cloud, les dépôts de code exigent le forfait Growth ou supérieur. Pour toute autre personne, la carte est verrouillée et indique ce qu'il faut. Sur GitHub, le compte qui installe ou connecte l'application doit administrer l'installation : le propriétaire d'un compte personnel, ou une personne disposant du droit admin sur chaque dépôt auquel l'installation a accès, comme un propriétaire de l'organisation. Un accès en lecture à l'un de ses dépôts ne suffit pas.
 
@@ -218,7 +218,7 @@ Si vous restreignez aussi les IP sources des webhooks, utilisez les plages `hook
 ### Vérifier l'accès et comprendre les limites
 
 :::steps
-1. Connectez une installation depuis **Dépôts de code**.
+1. Connectez une installation depuis **Code**.
 2. Dans les paramètres de la GitHub App, ouvrez **Advanced** et consultez **Recent Deliveries**. Relivrez une livraison et confirmez que la passerelle la transfère et que OneUptime l'accepte.
 3. Ajoutez ou retirez un dépôt de test de l'installation, et vérifiez que la liste des dépôts dans OneUptime suit.
 :::
@@ -234,23 +234,23 @@ Le [paramètre d'accès au réseau privé](/docs/self-hosted/private-network-acc
 
 ### La connexion n'a pas abouti
 
-Quand GitHub vous renvoie et que l'installation n'a pas été connectée, **Dépôts de code** affiche **GitHub n'a pas été connecté**, avec une phrase dans votre langue qui en donne la raison. Le reste de la page se charge normalement, vous pouvez donc vous reconnecter sur place. Elle n'affiche jamais ce que GitHub a lui-même répondu : cela figure dans le log du serveur OneUptime, avec la raison.
+Quand GitHub vous renvoie et que l'installation n'a pas été connectée, **Code** affiche **GitHub n'a pas été connecté**, avec une phrase dans votre langue qui en donne la raison. Le reste de la page se charge normalement, vous pouvez donc vous reconnecter sur place. Elle n'affiche jamais ce que GitHub a lui-même répondu : cela figure dans le log du serveur OneUptime, avec la raison.
 
 | La page indique | Que faire |
 | --- | --- |
-| **"Ce lien de connexion n'est pas valide, a expiré ou a déjà été utilisé. Veuillez recommencer."** | Le lien fonctionne une fois, pendant 15 minutes, dans le navigateur qui l'a lancé. Recommencez depuis **Dépôts de code** et terminez sur GitHub en moins de 15 minutes, dans le même navigateur. Installer l'application depuis sa page sur GitHub ne la connecte à aucun projet : pour connecter une installation faite là-bas, cliquez sur **Connecter une installation existante**. |
+| **"Ce lien de connexion n'est pas valide, a expiré ou a déjà été utilisé. Veuillez recommencer."** | Le lien fonctionne une fois, pendant 15 minutes, dans le navigateur qui l'a lancé. Recommencez depuis **Code** et terminez sur GitHub en moins de 15 minutes, dans le même navigateur. Installer l'application depuis sa page sur GitHub ne la connecte à aucun projet : pour connecter une installation faite là-bas, cliquez sur **Connecter une installation existante**. |
 | **"Vous n'avez pas l'autorisation d'ajouter des dépôts de code à ce projet."** | La connexion exige la permission d'ajouter des dépôts de code (voir [Connecter des dépôts](#connecter-des-dépôts)). Demandez à un administrateur du projet de vous l'accorder. Elle est vérifiée de nouveau quand GitHub vous renvoie ; une permission retirée entre-temps met donc fin à la connexion ici aussi. |
 | **"Connecter GitHub demande le forfait ...."** | Sur OneUptime Cloud, les dépôts de code exigent le forfait que nomme la phrase. Passez le projet à ce forfait, puis reconnectez-vous. |
 | **"GitHub n'a pas confirmé qui a installé l'application, l'installation n'a donc pas pu être vérifiée."** | Activez **Request user authorization (OAuth) during installation** dans les paramètres de la GitHub App (voir [Créer la GitHub App](#créer-la-github-app)), puis reconnectez-vous. |
 | **"OneUptime n'a pas pu confirmer que votre compte GitHub peut gérer cette installation."** | Le compte GitHub qui a terminé l'installation ne l'administre pas (voir [Connecter des dépôts](#connecter-des-dépôts) pour savoir qui l'administre). L'application reste installée sur GitHub : demandez à une personne qui administre l'installation de la connecter avec **Connecter une installation existante**. |
 | **"GitHub n'a renvoyé aucune installation."** | Quand un membre de l'organisation demande l'application au lieu de l'installer, un propriétaire de l'organisation doit d'abord approuver la demande. Ensuite, une personne qui administre l'installation la connecte avec **Connecter une installation existante**. |
-| **"Votre compte GitHub ne gère encore aucune installation de l'application."** | Le compte GitHub avec lequel vous vous êtes connecté n'administre aucune installation de l'application (voir [Connecter des dépôts](#connecter-des-dépôts) pour savoir qui l'administre). Si l'application n'est pas encore installée sur le compte, installez-la avec **Se connecter avec l'application GitHub**. Si elle l'est, recommencez en étant connecté à GitHub avec un compte qui administre l'installation, ou demandez-le à une personne qui l'administre. |
+| **"Votre compte GitHub ne gère encore aucune installation de l'application."** | Le compte GitHub avec lequel vous vous êtes connecté n'administre aucune installation de l'application (voir [Connecter des dépôts](#connecter-des-dépôts) pour savoir qui l'administre). Si l'application n'est pas encore installée sur le compte, installez-la avec **Connecter GitHub**. Si elle l'est, recommencez en étant connecté à GitHub avec un compte qui administre l'installation, ou demandez-le à une personne qui l'administre. |
 | **"La GitHub App n'est pas configurée sur ce serveur OneUptime."** | Définissez à la fois `GITHUB_APP_CLIENT_ID` et `GITHUB_APP_CLIENT_SECRET` (voir [Configurer OneUptime](#configurer-oneuptime)) et redémarrez OneUptime. |
 | **"OneUptime n'a pas pu terminer la connexion. Veuillez réessayer."** | GitHub a répondu par une erreur, ou une requête ou une écriture a échoué pendant la finalisation. Le log du serveur OneUptime précise laquelle. Réessayez ; si cela se reproduit, consultez le log et les paramètres de la GitHub App. |
 
 ### Autres problèmes
 
-:::details Dépôts de code indique « L'application GitHub n'est pas configurée sur ce serveur »
+:::details Code indique « L'application GitHub n'est pas configurée sur ce serveur »
 `GITHUB_APP_NAME` n'est pas défini. Définissez-le sur le nom exact de l'application, avec les cinq autres valeurs, et redémarrez OneUptime.
 :::
 
@@ -267,7 +267,7 @@ Vérifiez que l'URL du webhook est joignable publiquement en HTTPS, puis consult
 :::
 
 :::details Les dépôts ou les tâches de correction échouent avec une erreur d'authentification
-OneUptime s'authentifie en tant que l'application avec `GITHUB_APP_ID` et `GITHUB_APP_PRIVATE_KEY`. Vérifiez que l'App ID est correct et que la clé est le PEM complet, y compris ses lignes `BEGIN` et `END`, ou ce PEM encodé en base64. Si l'application a été désinstallée de GitHub, reconnectez-la depuis **Dépôts de code**.
+OneUptime s'authentifie en tant que l'application avec `GITHUB_APP_ID` et `GITHUB_APP_PRIVATE_KEY`. Vérifiez que l'App ID est correct et que la clé est le PEM complet, y compris ses lignes `BEGIN` et `END`, ou ce PEM encodé en base64. Si l'application a été désinstallée de GitHub, reconnectez-la depuis **Code**.
 :::
 
 :::details Des dépôts manquent après l'installation
@@ -290,6 +290,6 @@ Donnez à l'application **Issues: Read and write** et abonnez-la aux événement
 
 :::cards
 - [Travailler avec OneUptime depuis GitHub](/docs/ai/github-app): Les commandes qu'on peut donner à l'application, et qui peut les donner.
-- [Tâches de correction](/docs/ai/ai-agent): Comment l'agent IA ouvre des pull requests de correction.
+- [Code](/docs/ai/ai-agent): Comment l'agent IA ouvre des pull requests de correction.
 - [Accès au réseau privé](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre les outils internes.
 :::

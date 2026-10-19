@@ -66,7 +66,7 @@ Runner 只持有自己的 ID 和密钥。其他一切都随它领取的作业一
 | **描述** | **Runner** | 可选。用一句话说明这台主机能访问什么。 |
 | **标签** | **Runner** （在 **更多字段** 下） | 可选。 |
 | **执行运行手册** | **功能** | 默认开启。允许此 Runner 领取 Runbook 步骤。 |
-| **执行 AI 代码修复** | **功能** | 默认关闭。允许它为 AI 代码修复打开拉取请求；参见 [Fix Tasks](/docs/ai/ai-agent)。 |
+| **执行 AI 代码修复** | **功能** | 默认关闭。允许它为 AI 代码修复打开拉取请求；参见 [代码](/docs/ai/ai-agent)。 |
 | **执行 AI 补救命令** | **功能** | 默认关闭。允许 AI 自动修复在其上运行经过策略检查的命令。为持有 SSH 凭据的 Runner 开启此项需要读取 Runbook 凭据的权限；参见 [运行 OneUptime AI 命令的 Runner](/docs/runbooks/credentials#运行-oneuptime-ai-命令的-runner)。 |
 
 Runner 会在下一次心跳时获取功能的变更，无需重启。
