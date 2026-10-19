@@ -37,6 +37,11 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
   its icon and opening its page; the Monitor chip still narrows the list to
   a monitor's alerts (by `monitorId`); a phone's card has no Monitor line;
   the names read at WCAG AA in the dark theme;
+- a phone's card names each resource in full, a long name running onto a
+  second line beside its icon (one with nowhere to break, `?data=long`,
+  breaks anyway); a row on a laptop keeps it to one line, ending in "...",
+  the whole name under the pointer; a chip with a long monitor picked stays
+  inside the bar on a phone, its words ending in "...";
 - every row is 48px and its hairline, whatever it holds - text, pills,
   labels, avatars, a dash, the row's buttons, a drag grip - each part on the
   row's 24px line;
