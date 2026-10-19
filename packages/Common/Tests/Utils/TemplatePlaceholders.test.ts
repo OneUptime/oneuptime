@@ -1,6 +1,7 @@
 import VMUtil from "../../Server/Utils/VM/VMAPI";
 import { createWhatsAppMessageFromTemplate } from "../../Server/Utils/WhatsAppTemplateUtil";
 import { checkJsonSyntax } from "../../Types/Code/JsonSyntax";
+import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import WhatsAppTemplateMessages, {
   WhatsAppTemplateId,
   renderWhatsAppTemplate,
@@ -228,20 +229,19 @@ describe("placeholders are found as they were", () => {
       }).toEqual({ templateId, rendered: before });
 
       // The message a notification sends, its dashboard link filled in.
-      const message: {
-        body: string;
-        templateVariables: Record<string, string>;
-      } = createWhatsAppMessageFromTemplate({
-        templateKey: templateId,
-        templateVariables: variables,
-      });
+      const message: WhatsAppMessagePayload = createWhatsAppMessageFromTemplate(
+        {
+          templateKey: templateId,
+          templateVariables: variables,
+        },
+      );
 
       expect({ templateId, body: message.body }).toEqual({
         templateId,
         body: template.replace(
           /\{\{(.*?)\}\}/g,
           (_whole: string, key: string): string => {
-            return message.templateVariables[key]!;
+            return message.templateVariables?.[key] ?? "";
           },
         ),
       });
