@@ -57,6 +57,10 @@ import { AddressInfo } from "net";
  *
  * The routes are read from the source (ClusterKeyRoutes), so a route that
  * takes the cluster key and is not exercised here fails the first test.
+ *
+ * Every caller that holds the cluster key is one of OneUptime's own services,
+ * calling from a private network address, so a key from one is never
+ * counted: nothing sent from beside those services gets them refused.
  */
 
 // The Redis every copy of the product here is handed.
@@ -383,6 +387,39 @@ async function post(
   };
 }
 
+// A request that reaches the app with no proxy in between, as the app's own services send it.
+async function postDirect(url: string, key: string): Promise<Answer> {
+  const response: globalThis.Response = await fetch(
+    `${installation.origin}${url}`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        clusterkey: key,
+      },
+      body: JSON.stringify({}),
+    },
+  );
+
+  const text: string = await response.text();
+  let parsed: JSONObject | null = null;
+
+  try {
+    parsed = JSON.parse(text) as JSONObject;
+  } catch {
+    parsed = null;
+  }
+
+  return {
+    status: response.status,
+    message: (parsed?.["message"] as string | undefined) ?? null,
+    passed:
+      response.status === 200 &&
+      parsed?.["clusterKeyCheck"] === CHECK_PASSED["clusterKeyCheck"],
+    retryAfter: response.headers.get("retry-after"),
+  };
+}
+
 function hostOf(index: number, prefix: string = "2001:db8:44:55"): string {
   return `${prefix}:${(index >> 16).toString(16)}:${(index & 0xffff).toString(16)}:a:b`;
 }
@@ -605,6 +642,160 @@ describe("OneUptime's own traffic is never refused", () => {
     }
 
     expect(redis.keys()).toEqual([]);
+  });
+
+  test.each([
+    ["the server itself, as the bundled Nginx names it", "172.18.0.1"],
+    ["a pod", "10.42.0.17"],
+    ["an IPv6 container network", "fd00::8"],
+  ])(
+    "from %s (%s), wrong keys sent to every route before the right key count nothing: every route lets it through",
+    async (_label: string, from: string) => {
+      for (let round: number = 0; round < 3; round++) {
+        for (const routeUnderTest of installation.routes) {
+          expect({
+            url: routeUnderTest.url,
+            answer: await post(
+              routeUnderTest.url,
+              from,
+              `guess-${round}-${routeUnderTest.url}`,
+            ),
+          }).toEqual({
+            url: routeUnderTest.url,
+            answer: {
+              status: 400,
+              message: INVALID_KEY_MESSAGE,
+              passed: false,
+              retryAfter: null,
+            },
+          });
+        }
+      }
+
+      for (const routeUnderTest of installation.routes) {
+        expect({
+          url: routeUnderTest.url,
+          passed: (await post(routeUnderTest.url, from, installation.rightKey))
+            .passed,
+        }).toEqual({ url: routeUnderTest.url, passed: true });
+      }
+
+      expect(redis.sent).toEqual([]);
+      expect(redis.keys()).toEqual([]);
+
+      // No client was said to be over the limit.
+      expect(
+        mockWarnings.filter((line: string): boolean => {
+          return line.includes("different wrong cluster keys");
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test("a service that calls the app with no proxy in between is never counted: every route lets its right key through after any number of wrong ones", async () => {
+    for (let round: number = 0; round < 3; round++) {
+      for (const routeUnderTest of installation.routes) {
+        expect(
+          (await postDirect(routeUnderTest.url, `guess-${round}`)).status,
+        ).toBe(400);
+      }
+    }
+
+    for (const routeUnderTest of installation.routes) {
+      expect({
+        url: routeUnderTest.url,
+        passed: (await postDirect(routeUnderTest.url, installation.rightKey))
+          .passed,
+      }).toEqual({ url: routeUnderTest.url, passed: true });
+    }
+
+    expect(redis.sent).toEqual([]);
+  });
+
+  test("an older Runner registering from the server itself keeps registering, header or body, whatever was sent from there before it", async () => {
+    const from: string = "172.18.0.1";
+
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS * 2;
+      guess++
+    ) {
+      const response: globalThis.Response = await fetch(
+        `${installation.origin}/api/ai-agent/register`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-forwarded-for": from,
+          },
+          body: JSON.stringify({ clusterKey: `guess-${guess}` }),
+        },
+      );
+
+      expect(response.status).toBe(400);
+      expect(
+        (await post("/api/ai-agent/register", from, `header-guess-${guess}`))
+          .status,
+      ).toBe(400);
+    }
+
+    const bodyResponse: globalThis.Response = await fetch(
+      `${installation.origin}/api/ai-agent/register`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": from,
+        },
+        body: JSON.stringify({ clusterKey: installation.rightKey }),
+      },
+    );
+
+    expect(bodyResponse.status).toBe(200);
+    expect(
+      (await post("/api/ai-agent/register", from, installation.rightKey))
+        .passed,
+    ).toBe(true);
+    expect(redis.sent).toEqual([]);
+  });
+
+  test("a public address beside them is still counted, and refused on every route once over the limit", async () => {
+    const from: string = "203.0.113.150";
+
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
+      expect(
+        (await post("/api/notification/email/send", from, `guess-${guess}`))
+          .status,
+      ).toBe(400);
+    }
+
+    expect(
+      (await post("/api/notification/email/send", from, "one-too-many"))
+        .status,
+    ).toBe(429);
+
+    for (const routeUnderTest of installation.routes) {
+      expect({
+        url: routeUnderTest.url,
+        status: (await post(routeUnderTest.url, from, installation.rightKey))
+          .status,
+      }).toEqual({ url: routeUnderTest.url, status: 429 });
+    }
+
+    // The private address beside it is untouched.
+    expect(
+      (
+        await post(
+          "/api/notification/email/send",
+          "172.18.0.1",
+          installation.rightKey,
+        )
+      ).passed,
+    ).toBe(true);
   });
 
   test("with Valkey away, keys are compared as they always were", async () => {

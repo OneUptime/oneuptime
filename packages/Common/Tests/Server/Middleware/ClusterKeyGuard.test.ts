@@ -62,7 +62,9 @@ import ts from "typescript";
  *   - both checks count the different wrong keys a client sends
  *     (WrongClusterKeyLimit) in one place, after the key is compared and
  *     before the request is answered as right or wrong, and nothing else
- *     counts them.
+ *     counts them; a key from a private network address, where every one of
+ *     OneUptime's own services calls from, is never counted or refused, by
+ *     the rule every wrong-key limit keeps (WrongKeyLimit).
  *
  * App's Tests/ClusterKey/ClusterKeyRoutesOverHttp sends every value this
  * repository ships to every route found here, and
@@ -889,11 +891,13 @@ describe("every check counts the different wrong keys a client sends, in one pla
   // Calling next, writing to res or answering through Response.
   const ANSWERS_A_REQUEST: RegExp = /\b(?:next|res)\(|Response\./;
 
-  // The bodies of ClusterKeyAuthorization's methods, comments removed, on one line each.
-  function methodBodies(): Record<string, string> {
+  // The bodies of a file's methods (ClusterKeyAuthorization's unless named), comments removed, on one line each.
+  function methodBodies(
+    relativePath: string = CLUSTER_KEY_AUTHORIZATION,
+  ): Record<string, string> {
     const sourceFile: ts.SourceFile = ts.createSourceFile(
-      "ClusterKeyAuthorization.ts",
-      codeOf(CLUSTER_KEY_AUTHORIZATION),
+      path.basename(relativePath),
+      codeOf(relativePath),
       ts.ScriptTarget.Latest,
       true,
       ts.ScriptKind.TS,
@@ -1022,6 +1026,45 @@ describe("every check counts the different wrong keys a client sends, in one pla
     expect(core).toContain("ClientRateLimitCounter.countDifferent<string>({");
     expect(core).toContain("value: data.wrongKey,");
     expect(core).not.toMatch(/\bclusterkey\b/i);
+  });
+
+  test("a key from a private network address is never counted, nor refused: WrongKeyLimit leaves such a client alone before it counts anything, for every limit built on it", () => {
+    const check: string = methodBodies(WRONG_KEY_LIMIT)["check"] || "";
+
+    const placed: number = check.indexOf(
+      "const clientIp: string = WrongKeyLimit.getClientIp(data.req);",
+    );
+    const leftAlone: number = check.indexOf(
+      "if (WrongKeyLimit.isPrivateNetworkAddress(clientIp)) { return null; }",
+    );
+    const counted: number = check.indexOf(
+      "ClientRateLimitCounter.countDifferent<string>({",
+    );
+
+    expect(placed).toBeGreaterThan(-1);
+    expect(leftAlone).toBeGreaterThan(placed);
+    expect(counted).toBeGreaterThan(leftAlone);
+
+    // Nothing is read, counted or answered for the client before that.
+    expect(check.slice(0, leftAlone)).not.toMatch(
+      /\bawait\b|ClientRateLimitCounter|logger\./,
+    );
+
+    // The cluster key's limit is one of those limits, asked with no way around the rule.
+    expect(codeOf(WRONG_CLUSTER_KEY_LIMIT)).toContain(
+      "const LIMIT: WrongKeyLimit = new WrongKeyLimit({",
+    );
+
+    // The private networks are listed once, there: no other rate limit keeps a list of its own.
+    expect(
+      productFilesWhoseCodeMatches(/\bnew net\.BlockList\(/).filter(
+        (relativePath: string): boolean => {
+          return relativePath.startsWith(
+            "packages/Common/Server/Utils/RateLimit/",
+          );
+        },
+      ),
+    ).toEqual([WRONG_KEY_LIMIT]);
   });
 
   test("the Runner's registration hands a request that carries no cluster key anywhere to the Runner's own key, and nothing else", () => {

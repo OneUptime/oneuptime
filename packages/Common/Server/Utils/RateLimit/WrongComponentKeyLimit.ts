@@ -5,7 +5,6 @@ import TokenSigningKey from "../TokenSigningKey";
 import WrongKeyLimit, { WrongKeyRefusal } from "./WrongKeyLimit";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import crypto from "crypto";
-import net from "net";
 
 /*
  * WRONG PROBE, RUNNER AND AI AGENT KEYS, COUNTED FOR THE CLIENT THAT SENDS
@@ -57,33 +56,13 @@ import net from "net";
  *
  * NOT ON A PRIVATE NETWORK ADDRESS
  *
- * A client over the limit is refused whichever key it carries, the right one
- * too, so the limit must never count an address OneUptime's own probes, its
- * shared Runner and the agents beside it share with other callers. They call
- * from a private network address - a container network, a cluster's pod
- * network, the server itself - and such an address is often not one
- * caller's alone: a proxy, a load balancer or a container network can show
- * many callers as one. So a key presented from a private network address
- * (RFC 1918, loopback, link-local, IPv6 unique local; PRIVATE_NETWORKS
- * below) is compared as it always was and never counted, and nothing is read
- * or kept for it. Every other address is counted. The address is the one the
- * proxies TRUSTED_PROXY_HOPS counts wrote (WrongKeyLimit.getClientIp), so an
- * address a caller writes in front of its own changes nothing.
+ * Like every wrong-key limit, a key presented from a private network address
+ * is compared as it always was and never counted (WrongKeyLimit, NOT ON A
+ * PRIVATE NETWORK ADDRESS): the bundled probes, the shared Runner and the
+ * agents beside them call from one, so nothing sent from beside them can get
+ * them refused. Here that is asked before anything else, so nothing is looked
+ * up, read or kept for such a key either.
  */
-
-/*
- * The private network addresses whose keys are not counted. An IPv4 address
- * written as IPv6 (::ffff:10.0.0.1) is read as the IPv4 address it is.
- */
-const PRIVATE_NETWORKS: net.BlockList = new net.BlockList();
-PRIVATE_NETWORKS.addSubnet("10.0.0.0", 8, "ipv4");
-PRIVATE_NETWORKS.addSubnet("172.16.0.0", 12, "ipv4");
-PRIVATE_NETWORKS.addSubnet("192.168.0.0", 16, "ipv4");
-PRIVATE_NETWORKS.addSubnet("127.0.0.0", 8, "ipv4");
-PRIVATE_NETWORKS.addSubnet("169.254.0.0", 16, "ipv4");
-PRIVATE_NETWORKS.addAddress("::1", "ipv6");
-PRIVATE_NETWORKS.addSubnet("fc00::", 7, "ipv6");
-PRIVATE_NETWORKS.addSubnet("fe80::", 10, "ipv6");
 
 // The window a client's different wrong keys are counted in.
 export const WRONG_COMPONENT_KEY_WINDOW_SECONDS: number = 15 * 60;
@@ -326,26 +305,11 @@ export default class WrongComponentKeyLimit {
 
   /*
    * Whether a client address is a private network address, whose keys are
-   * not counted (NOT ON A PRIVATE NETWORK ADDRESS above). Anything that is
-   * not an address - "unknown", the client every caller that cannot be
-   * placed shares - is counted.
+   * not counted (NOT ON A PRIVATE NETWORK ADDRESS above): the one rule every
+   * wrong-key limit keeps (WrongKeyLimit.isPrivateNetworkAddress).
    */
   public static isPrivateNetworkAddress(address: string): boolean {
-    const text: string = typeof address === "string" ? address : "";
-
-    // An IPv6 link-local address may carry its zone ("fe80::1%eth0").
-    const bare: string = text.includes(":") ? text.split("%")[0] || "" : text;
-    const family: number = net.isIP(bare);
-
-    if (family === 4) {
-      return PRIVATE_NETWORKS.check(bare, "ipv4");
-    }
-
-    if (family === 6) {
-      return PRIVATE_NETWORKS.check(bare, "ipv6");
-    }
-
-    return false;
+    return WrongKeyLimit.isPrivateNetworkAddress(address);
   }
 
   /*
@@ -373,9 +337,7 @@ export default class WrongComponentKeyLimit {
 
   // Whether a request comes from a private network address.
   private static isFromPrivateNetwork(req: ExpressRequest): boolean {
-    return WrongComponentKeyLimit.isPrivateNetworkAddress(
-      WrongKeyLimit.getClientIp(req),
-    );
+    return WrongKeyLimit.isFromPrivateNetwork(req);
   }
 
   /*
