@@ -4,6 +4,7 @@ import CodeBlockerNotice from "../../../Components/Code/CodeBlockerNotice";
 import CodeComposer from "../../../Components/Code/CodeComposer";
 import { getRecipeLabel } from "../../../Components/Code/CodeTaskCopy";
 import CodeTaskStateBadge from "../../../Components/Code/CodeTaskStateBadge";
+import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
 import CodeTaskTurn from "../../../Components/Code/CodeTaskTurn";
 import {
   getRepositoryFullName,
@@ -112,37 +113,17 @@ const CodeTaskConversation: FunctionComponent<
       return null;
     }
 
-    const links: Array<Link> = [
-      {
-        title: "Project",
-        to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-      },
-      {
-        title: "Code",
-        to: RouteUtil.populateRouteParams(RouteMap[PageMap.CODE] as Route),
-      },
-    ];
-
-    if (data.repository) {
-      links.push({
-        title: data.repository.name,
-        to: getRepositoryRoute(data.repository.id),
-        isRecordName: true,
-      });
-    }
-
-    links.push({
-      title: data.task.taskNumber
-        ? translator.translateTemplate("Task #{{number}}", {
-            number: data.task.taskNumber.toString(),
-          })
-        : translator.translateTemplate("Task"),
-      to: Navigation.getCurrentRoute(),
-      isRecordName: true,
+    return getCodeTaskTrail({
+      taskId: taskId,
+      response: data,
+      translator: translator,
     });
-
-    return links;
-  }, [data?.repository?.id, data?.task.taskNumber, translator.language]);
+  }, [
+    data?.repository?.id,
+    data?.repository?.name,
+    data?.task.taskNumber,
+    translator.language,
+  ]);
 
   usePageBreadcrumbLinks(breadcrumbs);
 
@@ -165,8 +146,10 @@ const CodeTaskConversation: FunctionComponent<
 
   const turns: Array<CodeTaskTurnJSON> = data.turns;
   const latestTurn: CodeTaskTurnJSON | undefined = turns[turns.length - 1];
-  const openPullRequest: CodeTaskTurnJSON["pullRequests"][number] | undefined =
+  // The task's pull request: open, or merged or closed since.
+  const pullRequest: CodeTaskTurnJSON["pullRequests"][number] | undefined =
     data.task.pullRequest;
+  const isPullRequestOpen: boolean = pullRequest?.state === "open";
   const title: string =
     data.task.title ||
     translator.translateTemplate(getRecipeLabel(data.task.recipe));
@@ -213,7 +196,7 @@ const CodeTaskConversation: FunctionComponent<
       return (
         <p
           data-testid="code-task-no-repository"
-          className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600"
         >
           {translator.translateText(
             "This task is not linked to a repository, so AI cannot continue it. Start a new task from a repository.",
@@ -230,9 +213,9 @@ const CodeTaskConversation: FunctionComponent<
       return (
         <div
           data-testid="code-task-working-footer"
-          className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
+          className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3"
         >
-          <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-indigo-200 border-t-indigo-600 motion-safe:animate-spin" />
+          {/* The turn above already shows AI at work; this says what it means for the reader. */}
           <p className="min-w-0 flex-1 text-sm text-gray-600">
             {translator.translateText(
               "AI is working on this. You can reply when it finishes.",
@@ -291,14 +274,23 @@ const CodeTaskConversation: FunctionComponent<
             bottomRef.current?.scrollIntoView?.({ block: "end" });
           }}
           footer={
-            openPullRequest?.state === "open" ? (
-              <p className="text-xs text-gray-500">
-                {translator.translateTemplate(
-                  "Changes you ask for are pushed to pull request #{{number}}.",
-                  { number: openPullRequest.number?.toString() || "" },
-                )}
-              </p>
-            ) : undefined
+            /*
+             * Where a change goes: the open pull request, or - none open,
+             * or it was merged or closed - a new branch and pull request.
+             */
+            <p
+              data-testid="code-task-composer-footer"
+              className="text-xs leading-5 text-gray-500"
+            >
+              {isPullRequestOpen
+                ? translator.translateTemplate(
+                    "Changes you ask for are pushed to pull request #{{number}}.",
+                    { number: pullRequest?.number?.toString() || "" },
+                  )
+                : translator.translateText(
+                    "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
+                  )}
+            </p>
           }
         />
       </div>
@@ -351,21 +343,41 @@ const CodeTaskConversation: FunctionComponent<
           ) : (
             <></>
           )}
-          {openPullRequest?.url ? (
-            <LinkComponent
-              to={URL.fromString(openPullRequest.url)}
-              openInNewTab={true}
-              dataTestId="code-task-pull-request"
-              className="inline-flex items-center gap-1.5 font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              <>
-                <Icon icon={IconProp.GitHub} className="h-4 w-4" />
-                {translator.translateTemplate("Pull request #{{number}}", {
-                  number: openPullRequest.number?.toString() || "",
-                })}
-                <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-              </>
-            </LinkComponent>
+          {pullRequest?.url ? (
+            <span className="inline-flex items-center gap-2">
+              <LinkComponent
+                to={URL.fromString(pullRequest.url)}
+                openInNewTab={true}
+                dataTestId="code-task-pull-request"
+                className="inline-flex items-center gap-1.5 font-medium text-indigo-600 hover:text-indigo-500"
+              >
+                <>
+                  <Icon icon={IconProp.GitHub} className="h-4 w-4" />
+                  {translator.translateTemplate("Pull request #{{number}}", {
+                    number: pullRequest.number?.toString() || "",
+                  })}
+                  <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+                </>
+              </LinkComponent>
+              {/* Open is the usual state, so only merged and closed are said. */}
+              {pullRequest.state === "merged" ||
+              pullRequest.state === "closed" ? (
+                <span
+                  data-testid="code-task-pull-request-state"
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    pullRequest.state === "merged"
+                      ? "bg-violet-50 text-violet-700"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {pullRequest.state === "merged"
+                    ? translator.translateText("Merged")
+                    : translator.translateText("Closed")}
+                </span>
+              ) : (
+                <></>
+              )}
+            </span>
           ) : (
             <></>
           )}

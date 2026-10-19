@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "En projektägare eller någon med Manage Billing kan lägga till AI-krediter.",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "En projektägare eller någon med Manage Billing kan slå på AI under Projektinställningar → AI → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} väntar på dig",
   "{{count}} working": "{{count}} pågår",
   "{{count}} working_one": "{{count}} pågår",
-  "{{label}} asked": "{{label}} bad om"
+  "{{label}} asked": "{{label}} bad om",
+  "A link must be a full web address, starting with https:// or http://.": "En länk måste vara en fullständig webbadress som börjar med https:// eller http://.",
+  "A path cannot hold control characters.": "En sökväg får inte innehålla kontrolltecken.",
+  "A path must stay inside the repository (no '..').": "En sökväg måste stanna inom arkivet (inga '..').",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "En projektadministratör kan lägga till en LLM-leverantör under Projektinställningar → AI → LLM-leverantörer.",
+  "A project admin can set up a Runner in Runbooks → Runners.": "En projektadministratör kan konfigurera en runbook-agent under Runbooks → Runbook-agenter.",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "Ett spår-ID består av 32 (eller 16) hexadecimala tecken, så som det visas på spårets sida.",
+  "AI could not finish.": "AI kunde inte slutföra."
 }

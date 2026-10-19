@@ -1,4 +1,5 @@
 import { CodeRepositoryListItem } from "./CodeApi";
+import CodeMetaList from "./CodeMetaList";
 import CodeTimeAgo from "./CodeTimeAgo";
 import { GitHubMark } from "./GitHubConnect";
 import PageMap from "../../Utils/PageMap";
@@ -58,6 +59,43 @@ const RepositoryCard: FunctionComponent<ComponentProps> = (
   const repository: CodeRepositoryListItem = props.repository;
   const fullName: string = getRepositoryFullName(repository);
   const stats: CodeRepositoryListItem["stats"] = repository.stats;
+
+  // How many tasks, the open pull requests, and when anything last happened.
+  const getStatItems: () => Array<ReactElement> = (): Array<ReactElement> => {
+    const items: Array<ReactElement> = [
+      <span key="tasks">
+        {stats.taskCount > 0
+          ? translator.translatePlural(
+              { one: "{{count}} task", other: "{{count}} tasks" },
+              stats.taskCount,
+            )
+          : translator.translateText("No tasks yet")}
+      </span>,
+    ];
+
+    if (stats.openPullRequests > 0) {
+      items.push(
+        <span key="pull-requests" className="inline-flex items-center gap-1">
+          <Icon icon={IconProp.GitHub} className="h-3.5 w-3.5 text-gray-400" />
+          {translator.translatePlural(
+            {
+              one: "{{count}} open pull request",
+              other: "{{count}} open pull requests",
+            },
+            stats.openPullRequests,
+          )}
+        </span>,
+      );
+    }
+
+    if (stats.lastActivityAt) {
+      items.push(
+        <CodeTimeAgo key="last-activity" date={stats.lastActivityAt} />,
+      );
+    }
+
+    return items;
+  };
 
   return (
     <Link
@@ -154,48 +192,11 @@ const RepositoryCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div
-          data-testid="code-repository-stats"
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
-        >
-          <span className="whitespace-nowrap">
-            {stats.taskCount > 0
-              ? translator.translatePlural(
-                  { one: "{{count}} task", other: "{{count}} tasks" },
-                  stats.taskCount,
-                )
-              : translator.translateText("No tasks yet")}
-          </span>
-          {stats.openPullRequests > 0 ? (
-            <>
-              <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                <Icon
-                  icon={IconProp.GitHub}
-                  className="h-3.5 w-3.5 text-gray-400"
-                />
-                {translator.translatePlural(
-                  {
-                    one: "{{count}} open pull request",
-                    other: "{{count}} open pull requests",
-                  },
-                  stats.openPullRequests,
-                )}
-              </span>
-            </>
-          ) : (
-            <></>
-          )}
-          {stats.lastActivityAt ? (
-            <>
-              <CodeTimeAgo
-                date={stats.lastActivityAt}
-                className="whitespace-nowrap"
-              />
-            </>
-          ) : (
-            <></>
-          )}
-        </div>
+        <CodeMetaList
+          dataTestId="code-repository-stats"
+          className="text-xs text-gray-500"
+          items={getStatItems()}
+        />
       </div>
     </Link>
   );

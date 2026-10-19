@@ -20,6 +20,7 @@ import Exception from "Common/Types/Exception/Exception";
 import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
 import { DropdownChange } from "Common/UI/Components/Dropdown/DropdownChange";
 import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -95,6 +96,28 @@ const KIND_DESCRIPTIONS: Record<CodeTaskContextType, string> = {
   ),
 };
 
+// How much of a note its chip shows, cut at a word.
+export const NOTE_CHIP_LENGTH: number = 60;
+
+/*
+ * A note's chip: its first words on one line, ending in "…" when there is
+ * more. The whole note is the chip's tooltip.
+ */
+export const getNoteChipLabel: (text: string) => string = (
+  text: string,
+): string => {
+  const line: string = text.split(/\s+/).join(" ").trim();
+
+  if (line.length <= NOTE_CHIP_LENGTH) {
+    return line;
+  }
+
+  const cut: string = line.substring(0, NOTE_CHIP_LENGTH);
+  const lastSpace: number = cut.lastIndexOf(" ");
+
+  return `${(lastSpace > NOTE_CHIP_LENGTH / 2 ? cut.substring(0, lastSpace) : cut).trimEnd()}…`;
+};
+
 const LOG_WINDOW_LABELS: Record<number, string> = {
   1: translationKey("Last hour"),
   24: translationKey("Last day"),
@@ -103,8 +126,6 @@ const LOG_WINDOW_LABELS: Record<number, string> = {
 
 const INPUT_CLASS_NAME: string =
   "block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
-
-const LABEL_CLASS_NAME: string = "block text-sm font-medium text-gray-700";
 
 export interface ComponentProps {
   kind: CodeTaskContextType;
@@ -168,7 +189,7 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
       case CodeTaskContextType.File:
         return input.path || "";
       case CodeTaskContextType.Note:
-        return (input.text || "").split(/\s+/).join(" ").substring(0, 60);
+        return getNoteChipLabel(input.text || "");
       case CodeTaskContextType.Link:
         return input.title || input.url || "";
       case CodeTaskContextType.Trace:
@@ -236,9 +257,11 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
 
         {props.kind === CodeTaskContextType.File ? (
           <div>
-            <label htmlFor="code-context-path" className={LABEL_CLASS_NAME}>
-              {translator.translateText("Path in the repository")}
-            </label>
+            <FieldLabelElement
+              htmlFor="code-context-path"
+              title="Path in the repository"
+              required={true}
+            />
             <input
               id="code-context-path"
               data-testid="code-context-path"
@@ -259,9 +282,11 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
 
         {props.kind === CodeTaskContextType.Note ? (
           <div>
-            <label htmlFor="code-context-note" className={LABEL_CLASS_NAME}>
-              {translator.translateText("Note")}
-            </label>
+            <FieldLabelElement
+              htmlFor="code-context-note"
+              title="Note"
+              required={true}
+            />
             <textarea
               id="code-context-note"
               data-testid="code-context-note"
@@ -283,9 +308,11 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
         {props.kind === CodeTaskContextType.Link ? (
           <>
             <div>
-              <label htmlFor="code-context-url" className={LABEL_CLASS_NAME}>
-                {translator.translateText("Web address")}
-              </label>
+              <FieldLabelElement
+                htmlFor="code-context-url"
+                title="Web address"
+                required={true}
+              />
               <input
                 id="code-context-url"
                 data-testid="code-context-url"
@@ -302,12 +329,10 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div>
-              <label
+              <FieldLabelElement
                 htmlFor="code-context-link-title"
-                className={LABEL_CLASS_NAME}
-              >
-                {translator.translateText("Name (optional)")}
-              </label>
+                title="Name"
+              />
               <input
                 id="code-context-link-title"
                 data-testid="code-context-link-title"
@@ -326,9 +351,11 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
 
         {props.kind === CodeTaskContextType.Trace ? (
           <div>
-            <label htmlFor="code-context-trace" className={LABEL_CLASS_NAME}>
-              {translator.translateText("Trace ID")}
-            </label>
+            <FieldLabelElement
+              htmlFor="code-context-trace"
+              title="Trace ID"
+              required={true}
+            />
             <input
               id="code-context-trace"
               data-testid="code-context-trace"
@@ -350,9 +377,11 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
         {props.kind === CodeTaskContextType.Logs ? (
           <>
             <div>
-              <label htmlFor="code-context-logs" className={LABEL_CLASS_NAME}>
-                {translator.translateText("Log lines that contain")}
-              </label>
+              <FieldLabelElement
+                htmlFor="code-context-logs"
+                title="Log lines that contain"
+                required={true}
+              />
               <input
                 id="code-context-logs"
                 data-testid="code-context-logs"
@@ -367,16 +396,14 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div>
-              <span className={LABEL_CLASS_NAME}>
-                {translator.translateText("Service (optional)")}
-              </span>
+              <FieldLabelElement title="Service" />
               <div className="mt-1">
                 <EntityDropdown
                   modelType={Service}
                   labelField="name"
                   valueField="_id"
                   placeholder={translator.translateText("Any service")}
-                  ariaLabel={translator.translateText("Service (optional)")}
+                  ariaLabel={translator.translateText("Service")}
                   dataTestId="code-context-logs-service"
                   value={serviceId || null}
                   onChange={(
@@ -388,7 +415,7 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             <fieldset>
-              <legend className={LABEL_CLASS_NAME}>
+              <legend className="block text-sm font-medium text-gray-700">
                 {translator.translateText("Time range")}
               </legend>
               <div className="mt-2 inline-flex rounded-lg bg-gray-100 p-0.5">

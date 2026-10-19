@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "프로젝트 소유자 또는 Manage Billing 권한이 있는 사람이 AI 크레딧을 추가할 수 있습니다.",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "프로젝트 소유자 또는 Manage Billing 권한이 있는 사람이 프로젝트 설정 → AI → AI Features에서 AI를 켤 수 있습니다.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} waiting for you",
   "{{count}} working": "{{count}}개 작업 중",
   "{{count}} working_one": "{{count}} working",
-  "{{label}} asked": "{{label}}의 요청"
+  "{{label}} asked": "{{label}}의 요청",
+  "A link must be a full web address, starting with https:// or http://.": "링크는 https:// 또는 http://로 시작하는 전체 웹 주소여야 합니다.",
+  "A path cannot hold control characters.": "경로에는 제어 문자를 넣을 수 없습니다.",
+  "A path must stay inside the repository (no '..').": "경로는 저장소 안에 있어야 합니다('..' 사용 불가).",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "프로젝트 관리자가 프로젝트 설정 → AI → LLM 공급자에서 LLM 공급자를 추가할 수 있습니다.",
+  "A project admin can set up a Runner in Runbooks → Runners.": "프로젝트 관리자가 런북 → Runbook 에이전트에서 Runbook 에이전트를 설정할 수 있습니다.",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "트레이스 ID는 트레이스 페이지에 표시된 대로 32자(또는 16자)의 16진수 문자입니다.",
+  "AI could not finish.": "AI가 작업을 마치지 못했습니다."
 }

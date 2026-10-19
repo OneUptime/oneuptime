@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "En projektejer eller en person med Manage Billing kan tilføje AI-kreditter.",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "En projektejer eller en person med Manage Billing kan slå AI til under Projektindstillinger → AI → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} venter på dig",
   "{{count}} working": "{{count}} i gang",
   "{{count}} working_one": "{{count}} i gang",
-  "{{label}} asked": "{{label}} spurgte"
+  "{{label}} asked": "{{label}} spurgte",
+  "A link must be a full web address, starting with https:// or http://.": "Et link skal være en fuld webadresse, der begynder med https:// eller http://.",
+  "A path cannot hold control characters.": "En sti må ikke indeholde kontroltegn.",
+  "A path must stay inside the repository (no '..').": "En sti skal blive inden for repositoriet (ingen '..').",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "En projektadministrator kan tilføje en LLM-udbyder under Projektindstillinger → AI → LLM-udbydere.",
+  "A project admin can set up a Runner in Runbooks → Runners.": "En projektadministrator kan opsætte en runbook-agent under Runbooks → Runbook-agenter.",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "Et spor-ID består af 32 (eller 16) hexadecimale tegn, som det står på sporets side.",
+  "AI could not finish.": "AI kunne ikke gøre det færdigt."
 }

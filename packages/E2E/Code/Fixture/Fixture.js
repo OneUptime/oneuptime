@@ -23,7 +23,9 @@
  *   - other=1           tasks that have no repository (Other tasks)
  *   - github=unconfigured  a server with no GitHub App (server.js)
  *   - plan=free         billing on and the Free plan: the plan gate answers
- *   - role=viewer       may read the repositories' tasks, not ask AI
+ *                       on Code's first page, and every repository and
+ *                       task answers PlanRequired
+ *   - role=viewer      may read the repositories' tasks, not ask AI
  *                       (NoPermission); member: may ask (Project Member);
  *                       the default is a project owner
  *   - blocker=<type>    what stops AI working (CodeTaskBlockerType): every
@@ -755,6 +757,13 @@ const BLOCKER_MESSAGES = {
 };
 
 function blockerFor(repository) {
+  // The plan comes before permission, as the server's gate asks (CodeTaskGate).
+  if (params.get("plan") === "free") {
+    return {
+      type: CodeTaskBlockerType.PlanRequired,
+      message: BLOCKER_MESSAGES[CodeTaskBlockerType.PlanRequired],
+    };
+  }
   if (!CAN_ASK) {
     return {
       type: CodeTaskBlockerType.NoPermission,

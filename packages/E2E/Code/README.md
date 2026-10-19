@@ -42,12 +42,16 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   pull request with its diff;
 - Enter sending and Shift + Enter a new line; a refused request keeping what
   was typed; every reason AI cannot work said above the request box with the
-  link that fixes it, and nothing sendable;
+  link that fixes it, and nothing sendable; the plan said once there, with
+  no banner above it (`?plan=free`); a member who may ask AI but not turn it
+  on told who can (`?role=member`), not sent to a switch they cannot flip;
 - a member who may only read: every task, which files changed but not the
   diff, and why they cannot ask;
 - a reply continuing the same task on the same pull request, a question
-  waiting for an answer, Stop and Try again, a failed turn and why, a task
-  OneUptime started from an exception, a turn's Log and back, and the trail;
+  waiting for an answer, live steps ending in "Working on it…" and Stop, Try
+  again, a failed turn and why, a task OneUptime started from an exception
+  (its kind said once, its merged pull request at the top), a turn's Log and
+  back under the task's own trail, and the trail;
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back to an old Code Repositories address still saying
   GitHub connected;

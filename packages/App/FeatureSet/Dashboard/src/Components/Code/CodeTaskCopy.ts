@@ -312,7 +312,9 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
  * (a permission they have to ask for, a limit that resets at midnight). AI
  * credits are not here: only a project owner or someone with Manage Billing
  * may add them, so CodeBlockerNotice asks first and links AI Credits only
- * for them (CODE_TASK_ADD_AI_CREDITS), telling everyone else who can.
+ * for them (CODE_TASK_ADD_AI_CREDITS), telling everyone else who can. It
+ * asks the same before linking the AI switch, LLM providers and Runners
+ * (CODE_TASK_BLOCKER_WHO_CAN_FIX).
  */
 export interface CodeTaskBlockerFix {
   pageMap: PageMap;
@@ -351,6 +353,47 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
     title: translationKey("Set up a Runner"),
   },
 };
+
+/*
+ * What someone who may not make a blocker's fix reads instead of its link:
+ * who can, and where (CodeBlockerNotice asks who may). AI credits say it
+ * with WHO_CAN_ADD_AI_CREDITS, as the AI Credits page does.
+ */
+export const CODE_TASK_BLOCKER_WHO_CAN_FIX: Partial<
+  Record<CodeTaskBlockerType, string>
+> = {
+  [CodeTaskBlockerType.AiDisabled]: translationKey(
+    "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  ),
+  [CodeTaskBlockerType.NoLlmProvider]: translationKey(
+    "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
+  ),
+  [CodeTaskBlockerType.NoAgent]: translationKey(
+    "A project admin can set up a Runner in Runbooks → Runners.",
+  ),
+};
+
+/*
+ * What the Add context dialog says when a piece of context breaks the
+ * shared rules (CodeTaskContextInputUtil, which the server reads it with
+ * too). The rules write in English; these are the refusals a person can
+ * reach from the dialog - an empty field cannot be added and every input is
+ * capped at its limit - kept as keys so the dialog's alert draws them in the
+ * reader's language. A test holds them to the rules' own words.
+ */
+export const CODE_CONTEXT_REFUSALS: Array<string> = [
+  translationKey("A path must stay inside the repository (no '..')."),
+  translationKey("A path cannot hold control characters."),
+  translationKey(
+    "A link must be a full web address, starting with https:// or http://.",
+  ),
+  translationKey(
+    "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.",
+  ),
+];
+
+// What a failed turn says above its reason: plain words, not "turn".
+export const CODE_TURN_FAILED: string = translationKey("AI could not finish.");
 
 /*
  * What a person can ask AI in a repository with no tasks yet. Each fills

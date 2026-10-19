@@ -36,9 +36,10 @@ export const describeStep: (
 /*
  * What the AI did in a turn, step by step, in plain words: the files it
  * read and edited, what it searched for, the commands it ran, the pull
- * request it opened. While it works, the latest steps show as they happen;
- * once it is done they fold into one line, opened on demand - the reply is
- * what a person reads first.
+ * request it opened. While it works, the latest steps show as they happen,
+ * ending in "Working on it…" where the next one will appear; once it is
+ * done they fold into one line, opened on demand - the reply is what a
+ * person reads first.
  */
 const CodeTaskSteps: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -197,6 +198,18 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
                 </li>
               );
             })}
+            {props.isLive ? (
+              <li
+                role="status"
+                data-testid="code-task-steps-working"
+                className="flex items-start gap-2 leading-5 text-gray-500"
+              >
+                <span className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-indigo-200 border-t-indigo-600 motion-safe:animate-spin" />
+                <span>{translator.translateText("Working on it…")}</span>
+              </li>
+            ) : (
+              <></>
+            )}
           </ol>
         </div>
       ) : (

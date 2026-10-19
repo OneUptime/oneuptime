@@ -1,5 +1,4 @@
 import PageComponentProps from "../../PageComponentProps";
-import AIPlanGate from "../../../Components/AI/AIPlanGate";
 import CodeApi, {
   CodeRepositoryResponse,
 } from "../../../Components/Code/CodeApi";
@@ -39,7 +38,8 @@ import React, {
  * AI working here (permission, plan, the AI switch, a disconnected
  * repository, no LLM provider or credits, a limit, no Runner) is said right
  * above it with the link that fixes it, and the box sends nothing until it
- * is fixed. A repository with no task yet suggests what to ask. Sending
+ * is fixed. The plan is said there too, once: the page draws no plan banner
+ * of its own above it (the server's PlanRequired is the same check). A repository with no task yet suggests what to ask. Sending
  * opens the new task's conversation, where the AI's work shows as it
  * happens.
  */
@@ -103,8 +103,6 @@ const CodeRepositoryTasks: FunctionComponent<
 
   return (
     <div className="space-y-5">
-      <AIPlanGate />
-
       <div
         data-testid="code-repository-header"
         className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500"

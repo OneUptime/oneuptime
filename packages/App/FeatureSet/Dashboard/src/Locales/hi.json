@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "प्रोजेक्ट का मालिक या Manage Billing वाला कोई व्यक्ति AI क्रेडिट जोड़ सकता है।",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "प्रोजेक्ट का मालिक या Manage Billing वाला कोई व्यक्ति प्रोजेक्ट सेटिंग्स → एआई → AI Features में AI चालू कर सकता है।",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} आपकी प्रतीक्षा में",
   "{{count}} working": "{{count}} पर काम जारी",
   "{{count}} working_one": "{{count}} पर काम जारी",
-  "{{label}} asked": "{{label}} ने माँगा"
+  "{{label}} asked": "{{label}} ने माँगा",
+  "A link must be a full web address, starting with https:// or http://.": "लिंक https:// या http:// से शुरू होने वाला पूरा वेब पता होना चाहिए।",
+  "A path cannot hold control characters.": "पथ में नियंत्रण वर्ण नहीं हो सकते।",
+  "A path must stay inside the repository (no '..').": "पथ रिपॉजिटरी के अंदर ही रहना चाहिए ('..' नहीं)।",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "प्रोजेक्ट एडमिन प्रोजेक्ट सेटिंग्स → एआई → LLM प्रदाता में LLM प्रदाता जोड़ सकता है।",
+  "A project admin can set up a Runner in Runbooks → Runners.": "प्रोजेक्ट एडमिन रनबुक → Runbook एजेंट में Runbook एजेंट सेट कर सकता है।",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "ट्रेस ID में 32 (या 16) हेक्साडेसिमल वर्ण होते हैं, जैसे वह ट्रेस के पेज पर दिखता है।",
+  "AI could not finish.": "AI पूरा नहीं कर सका।"
 }

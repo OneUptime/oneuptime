@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} waiting for you",
   "{{count}} working": "{{count}} working",
   "{{count}} working_one": "{{count}} working",
-  "{{label}} asked": "{{label}} asked"
+  "{{label}} asked": "{{label}} asked",
+  "A link must be a full web address, starting with https:// or http://.": "A link must be a full web address, starting with https:// or http://.",
+  "A path cannot hold control characters.": "A path cannot hold control characters.",
+  "A path must stay inside the repository (no '..').": "A path must stay inside the repository (no '..').",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
+  "A project admin can set up a Runner in Runbooks → Runners.": "A project admin can set up a Runner in Runbooks → Runners.",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.",
+  "AI could not finish.": "AI could not finish."
 }

@@ -1,9 +1,6 @@
 import CodeApi, { CodeTaskListResponse } from "./CodeApi";
-import {
-  CODE_TASK_ASKED_BY,
-  CODE_TASK_STATE_COPY,
-  getRecipeLabel,
-} from "./CodeTaskCopy";
+import CodeMetaList from "./CodeMetaList";
+import { CODE_TASK_ASKED_BY, getRecipeLabel } from "./CodeTaskCopy";
 import CodeTaskStateBadge from "./CodeTaskStateBadge";
 import CodeTimeAgo from "./CodeTimeAgo";
 import PageMap from "../../Utils/PageMap";
@@ -263,57 +260,32 @@ export const CodeTaskRow: FunctionComponent<{
     );
   }
 
+  /*
+   * The state is said once, by its badge: beside the title on a laptop, and
+   * leading the meta line on a phone, so the title keeps the width there.
+   */
   return (
     <li data-testid="code-task-row" data-task-state={task.state}>
       <Link
         to={getTaskRoute(task.id)}
         className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
       >
-        <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center">
-          <Icon
-            icon={
-              task.state === CodeTaskState.Working
-                ? IconProp.Sparkles
-                : CODE_TASK_STATE_COPY[task.state].icon
-            }
-            className={`h-4 w-4 ${
-              task.state === CodeTaskState.Working
-                ? "text-indigo-500"
-                : task.state === CodeTaskState.WaitingForYou
-                  ? "text-amber-500"
-                  : task.state === CodeTaskState.Failed
-                    ? "text-red-500"
-                    : task.state === CodeTaskState.Done
-                      ? "text-emerald-500"
-                      : "text-gray-400"
-            }`}
-          />
-        </div>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 break-words text-sm font-medium text-gray-900">
             {title}
           </p>
-          <div
-            data-testid="code-task-row-meta"
-            className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
-          >
-            {/* On a phone the state leads the line, so the title keeps the width. */}
-            <CodeTaskStateBadge
-              state={task.state}
-              isQueued={task.isQueued}
-              className="sm:hidden"
-            />
-            {meta.map((item: ReactElement, index: number) => {
-              return (
-                <span
-                  key={item.key || index}
-                  className="inline-flex items-center whitespace-nowrap"
-                >
-                  {item}
-                </span>
-              );
-            })}
-          </div>
+          <CodeMetaList
+            dataTestId="code-task-row-meta"
+            className="mt-1 text-xs text-gray-500"
+            leading={
+              <CodeTaskStateBadge
+                state={task.state}
+                isQueued={task.isQueued}
+                className="mr-1 sm:hidden"
+              />
+            }
+            items={meta}
+          />
         </div>
         <CodeTaskStateBadge
           state={task.state}

@@ -31,6 +31,7 @@ import Permission from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
@@ -80,6 +81,7 @@ const INCIDENT_ID: string = "3f4a5b6c-7d8e-4f9a-8b1c-d2e3f4a5b6c7";
 const EXCEPTION_ID: string = "4a5b6c7d-8e9f-4a0b-9c2d-e3f4a5b6c7d8";
 
 const translation: i18n = createInstance();
+const germanTranslation: i18n = createInstance();
 
 beforeAll(async () => {
   Element.prototype.scrollIntoView = (): void => {};
@@ -90,6 +92,15 @@ beforeAll(async () => {
     resources: { en: { translation: englishLocale } },
     interpolation: { escapeValue: false },
   });
+  await germanTranslation.use(initReactI18next).init({
+    lng: "de",
+    fallbackLng: "en",
+    resources: {
+      en: { translation: englishLocale },
+      de: { translation: germanLocale },
+    },
+    interpolation: { escapeValue: false },
+  });
 });
 
 afterEach(() => {
@@ -98,6 +109,38 @@ afterEach(() => {
 
 function draw(element: ReactElement): void {
   render(<I18nextProvider i18n={translation}>{element}</I18nextProvider>);
+}
+
+function drawInGerman(element: ReactElement): void {
+  render(<I18nextProvider i18n={germanTranslation}>{element}</I18nextProvider>);
+}
+
+/*
+ * The signed-in person's permissions, as the permission snapshot hands them
+ * to every gate - or (null) a snapshot that has not arrived yet.
+ */
+function grant(permissions: Array<Permission> | null): void {
+  jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue(permissions || []);
+  jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(
+    permissions
+      ? {
+          projectId: new ObjectID(PROJECT_ID),
+          userId: ObjectID.generate(),
+          permissions: permissions.map((permission: Permission) => {
+            return {
+              permission: permission,
+              labelIds: [],
+              _type: "UserPermission",
+            };
+          }),
+          _type: "UserTenantAccessPermission",
+        }
+      : null,
+  );
 }
 
 function steps(count: number, kind: CodeTaskStepKind): Array<CodeTaskStepJSON> {
@@ -199,7 +242,7 @@ describe("a turn: what was asked", () => {
     expect(chips[1]!.querySelector(".font-mono")).not.toBeNull();
   });
 
-  test("a task OneUptime started says what started it, its kind, and links the record", () => {
+  test("a task OneUptime started says what started it and links the record - its kind is the header's to say", () => {
     draw(
       <ol>
         <CodeTaskTurn
@@ -220,7 +263,8 @@ describe("a turn: what was asked", () => {
 
     const origin: HTMLElement = screen.getByTestId("code-turn-origin");
     expect(origin).toHaveTextContent("OneUptime");
-    expect(origin).toHaveTextContent("Fix Exception");
+    // Said once on the page: the header's pill names the kind.
+    expect(origin).not.toHaveTextContent("Fix Exception");
     expect(origin).toHaveTextContent(
       "OneUptime started this task from an exception: TypeError: x is undefined",
     );
@@ -312,7 +356,7 @@ describe("a turn: the AI's side", () => {
     );
   });
 
-  test("working: Working…, how long so far, its Log and its latest steps", () => {
+  test("working: Working…, how long so far, its Log and its latest steps - ending where the next one will appear", () => {
     draw(
       <ol>
         <CodeTaskTurn
@@ -333,14 +377,107 @@ describe("a turn: the AI's side", () => {
       "Working…",
     );
     expect(reply).toHaveTextContent("so far");
-    expect(screen.getByTestId("code-turn-working")).toHaveTextContent(
-      "Working on it…",
-    );
     expect(within(reply).getByRole("link", { name: "Log" })).toHaveAttribute(
       "href",
       "/dashboard/x/code/tasks/y/log",
     );
     expect(screen.getAllByTestId("code-task-step")).toHaveLength(3);
+
+    // "Working on it…" is said once, as the last line of the live steps.
+    const working: HTMLElement = screen.getByTestId("code-task-steps-working");
+    expect(working).toHaveTextContent("Working on it…");
+    expect(working).toHaveAttribute("role", "status");
+    const list: HTMLElement = working.parentElement as HTMLElement;
+    expect(list.lastElementChild).toBe(working);
+    expect(screen.queryByTestId("code-turn-working")).toBeNull();
+    expect(screen.getAllByText("Working on it…")).toHaveLength(1);
+  });
+
+  test("working before its first step: Working on it…, on its own line", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            status: AIRunStatus.Running,
+            state: CodeTaskState.Working,
+            completedAt: undefined,
+            steps: [],
+          })}
+        />
+      </ol>,
+    );
+
+    expect(screen.getByTestId("code-turn-working")).toHaveTextContent(
+      "Working on it…",
+    );
+    expect(screen.queryByTestId("code-task-steps-working")).toBeNull();
+  });
+
+  test.each([
+    [9 * 60000, "worked 9 minutes"],
+    [65 * 60000, "worked 1 hour, 5 minutes"],
+    [20 * 1000, "worked less than a minute"],
+  ])(
+    "how long a turn took is said in words (%s ms: %s)",
+    (took: number, words: string) => {
+      const completedAt: number = Date.now() - 50 * 60000;
+      draw(
+        <ol>
+          <CodeTaskTurn
+            isLatest={true}
+            turn={turn({
+              startedAt: new Date(completedAt - took).toISOString(),
+              completedAt: new Date(completedAt).toISOString(),
+            })}
+          />
+        </ol>,
+      );
+
+      expect(screen.getByTestId("code-turn-duration").textContent).toBe(words);
+    },
+  );
+
+  test("in German, how long a turn took is German too - unit, plural and all", () => {
+    const completedAt: number = Date.now() - 50 * 60000;
+    drawInGerman(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            startedAt: new Date(completedAt - 9 * 60000).toISOString(),
+            completedAt: new Date(completedAt).toISOString(),
+          })}
+        />
+      </ol>,
+    );
+
+    const duration: HTMLElement = screen.getByTestId("code-turn-duration");
+    expect(duration).toHaveTextContent("9 Minuten gearbeitet");
+    expect(duration).not.toHaveTextContent("min");
+  });
+
+  test("a turn's byline facts read on the page's gray: never gray-400", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          logRoute={new Route("/log")}
+          turn={turn({})}
+        />
+      </ol>,
+    );
+
+    const reply: HTMLElement = screen.getByTestId("code-turn-reply");
+    expect(screen.getByTestId("code-turn-duration").className).toContain(
+      "text-gray-500",
+    );
+    expect(
+      within(reply).getByRole("link", { name: "Log" }).className,
+    ).toContain("text-gray-500");
+    for (const time of Array.from(document.querySelectorAll("time"))) {
+      expect(time.className).not.toContain("text-gray-400");
+    }
   });
 
   test("done: the reply, the files it changed, and the pull request it opened", async () => {
@@ -550,7 +687,9 @@ describe("a turn: the AI's side", () => {
     );
 
     const failed: HTMLElement = screen.getByTestId("code-turn-failed");
-    expect(failed).toHaveTextContent("This turn failed.");
+    // Plain words, not the conversation's inner workings ("turn").
+    expect(failed).toHaveTextContent("AI could not finish.");
+    expect(failed).not.toHaveTextContent("turn");
     expect(failed).toHaveTextContent("npm run build failed.");
     await userEvent.click(
       within(failed).getByRole("button", { name: "Try again" }),
@@ -838,6 +977,21 @@ describe("a task row", () => {
             : "both";
       }),
     ).toEqual(["phone", "laptop"]);
+    // The badge is the state's one mark: no icon column beside the title.
+    expect(within(row).getByRole("link").querySelectorAll("svg")).toHaveLength(
+      1,
+    );
+
+    // The facts read apart: a dot between each, hidden from screen readers.
+    const dots: Array<HTMLElement> =
+      within(meta).getAllByTestId("code-meta-dot");
+    expect(dots).toHaveLength(3);
+    for (const dot of dots) {
+      expect(dot).toHaveAttribute("aria-hidden", "true");
+    }
+    expect(meta.textContent).toMatch(
+      /^Done#12·Asked by Ada Lovelace·.+·PR #418$/,
+    );
   });
 
   test("a task OneUptime started is named by its record and its kind, said once", () => {
@@ -918,6 +1072,11 @@ describe("a repository's card", () => {
     expect(stats).toHaveTextContent("7 tasks");
     expect(stats).toHaveTextContent("3 open pull requests");
     expect(stats).toHaveTextContent("5 minutes ago");
+    // Three facts, two dots between them.
+    expect(within(stats).getAllByTestId("code-meta-dot")).toHaveLength(2);
+    expect(stats.textContent).toBe(
+      "7 tasks·3 open pull requests·5 minutes ago",
+    );
     expect(
       within(card).queryByTestId("code-repository-not-connected"),
     ).toBeNull();
@@ -990,6 +1149,8 @@ describe("what stops AI working", () => {
       fix: string,
       pathEnd: string,
     ) => {
+      // A project owner may make every one of these fixes.
+      grant([Permission.ProjectUser, Permission.ProjectOwner]);
       draw(
         <CodeBlockerNotice
           blocker={{ type, message: "The server's words." }}
@@ -1005,40 +1166,94 @@ describe("what stops AI working", () => {
     },
   );
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * The AI switch, LLM providers and Runners are linked only for someone
+   * the page they open would let make the fix; everyone else is told who
+   * can, and nobody is told anything before their permissions arrive.
+   */
+  describe("a fix only some may make", () => {
+    test.each([
+      [
+        CodeTaskBlockerType.AiDisabled,
+        Permission.ManageProjectBilling,
+        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+      ],
+      [
+        CodeTaskBlockerType.NoLlmProvider,
+        Permission.CreateProjectLlm,
+        "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
+      ],
+      [
+        CodeTaskBlockerType.NoAgent,
+        Permission.CreateRunner,
+        "A project admin can set up a Runner in Runbooks → Runners.",
+      ],
+    ])(
+      "%s: linked for someone with %s, who can for everyone else",
+      (type: CodeTaskBlockerType, allowed: Permission, whoCan: string) => {
+        grant([Permission.ProjectUser, allowed]);
+        draw(<CodeBlockerNotice blocker={{ type, message: "x" }} />);
+        expect(screen.getByTestId("code-blocker-fix")).toBeInTheDocument();
+        expect(screen.queryByTestId("code-blocker-who-can")).toBeNull();
+        cleanup();
+        jest.restoreAllMocks();
+
+        // A role that may edit repositories but not this: told who can.
+        grant([Permission.ProjectUser, Permission.EditCodeRepository]);
+        draw(<CodeBlockerNotice blocker={{ type, message: "x" }} />);
+        expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
+        expect(screen.getByTestId("code-blocker-who-can")).toHaveTextContent(
+          whoCan,
+        );
+        cleanup();
+        jest.restoreAllMocks();
+
+        // Before the permissions arrive: the sentence alone.
+        grant(null);
+        draw(<CodeBlockerNotice blocker={{ type, message: "x" }} />);
+        expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
+        expect(screen.queryByTestId("code-blocker-who-can")).toBeNull();
+      },
+    );
+
+    test("a project member who may ask AI but not turn it on is told who can", () => {
+      grant([Permission.ProjectUser, Permission.ProjectMember]);
+      draw(
+        <CodeBlockerNotice
+          blocker={{ type: CodeTaskBlockerType.AiDisabled, message: "x" }}
+        />,
+      );
+      expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
+      expect(screen.getByTestId("code-blocker-who-can")).toHaveTextContent(
+        "Manage Billing",
+      );
+    });
+
+    test("the plan, the bill and a disconnected repository are linked for everyone", () => {
+      for (const type of [
+        CodeTaskBlockerType.PlanRequired,
+        CodeTaskBlockerType.SubscriptionUnpaid,
+        CodeTaskBlockerType.RepositoryNotConnected,
+      ]) {
+        grant(null);
+        draw(<CodeBlockerNotice blocker={{ type, message: "x" }} />);
+        expect(screen.getByTestId("code-blocker-fix")).toBeInTheDocument();
+        cleanup();
+        jest.restoreAllMocks();
+      }
+    });
+  });
+
   /*
    * AI credits are added by a project owner or someone with Manage Billing:
    * only they are sent to AI Credits, everyone else is told who can, and
    * nobody is told anything before their permissions have arrived.
    */
   describe("out of AI credits", () => {
-    function grant(permissions: Array<Permission> | null): void {
-      jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
-      jest
-        .spyOn(PermissionUtil, "getAllPermissions")
-        .mockReturnValue(permissions || []);
-      jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
-      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(
-        permissions
-          ? {
-              projectId: new ObjectID(PROJECT_ID),
-              userId: ObjectID.generate(),
-              permissions: permissions.map((permission: Permission) => {
-                return {
-                  permission: permission,
-                  labelIds: [],
-                  _type: "UserPermission",
-                };
-              }),
-              _type: "UserTenantAccessPermission",
-            }
-          : null,
-      );
-    }
-
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
     test.each([
       [Permission.ProjectOwner, true],
       [Permission.ManageProjectBilling, true],

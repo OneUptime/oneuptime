@@ -1214,7 +1214,7 @@ describe("the AI agent emails send their owners to a page that exists", () => {
 
     expect(english.navbar.items["codeTitle"]).toBe("Code");
     expect(template).toContain(
-      "Code tells you whether an AI agent is online for this project",
+      "Open Code to see whether AI can work in your repositories right now.",
     );
     expect(template).toContain('buttonText="Open Code"');
     expect(template).not.toContain("Tasks");

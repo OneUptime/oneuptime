@@ -48,6 +48,7 @@ const CodeRepositorySettings: FunctionComponent<
           title: "Repository Details",
         }}
         isEditable={true}
+        editButtonText="Edit Details"
         formFields={[
           {
             field: {

@@ -144,14 +144,29 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return (
         <div
           data-testid="code-repositories-loading"
+          role="status"
           className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
         >
+          <span className="sr-only">
+            {translator.translateText("Loading…")}
+          </span>
+          {/* Cards shaped like the ones on their way: a mark, a name, a line of facts. */}
           {[0, 1, 2].map((index: number) => {
             return (
               <div
                 key={index}
-                className="h-36 animate-pulse rounded-xl border border-gray-200 bg-white"
-              />
+                aria-hidden="true"
+                className="flex h-36 flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 motion-safe:animate-pulse" />
+                  <div className="flex-1 space-y-2 pt-1">
+                    <div className="h-3.5 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
+                    <div className="h-3 w-1/3 rounded bg-gray-100 motion-safe:animate-pulse" />
+                  </div>
+                </div>
+                <div className="mt-auto h-3 w-2/3 rounded bg-gray-100 motion-safe:animate-pulse" />
+              </div>
             );
           })}
         </div>
@@ -276,12 +291,12 @@ const TasksWithoutRepository: FunctionComponent = (): ReactElement => {
     <section
       data-testid="code-tasks-without-repository"
       aria-labelledby="code-tasks-without-repository-heading"
-      className="rounded-xl border border-gray-200 bg-white"
+      className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <div className="border-b border-gray-100 px-5 py-4">
+      <div className="border-b border-gray-100 px-4 py-3.5 sm:px-5">
         <h2
           id="code-tasks-without-repository-heading"
-          className="text-sm font-semibold text-gray-900"
+          className="text-base font-semibold text-gray-900"
         >
           {translator.translateText("Other tasks")}
         </h2>

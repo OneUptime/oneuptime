@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "Владелец проекта или пользователь с правом Manage Billing может добавить кредиты ИИ.",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "Владелец проекта или пользователь с правом Manage Billing может включить ИИ в разделе «Настройки проекта → ИИ → AI Features».",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} ждёт вас",
   "{{count}} working": "В работе: {{count}}",
   "{{count}} working_one": "В работе: {{count}}",
-  "{{label}} asked": "{{label}} попросил(а)"
+  "{{label}} asked": "{{label}} попросил(а)",
+  "A link must be a full web address, starting with https:// or http://.": "Ссылка должна быть полным веб-адресом, начинающимся с https:// или http://.",
+  "A path cannot hold control characters.": "Путь не может содержать управляющие символы.",
+  "A path must stay inside the repository (no '..').": "Путь должен оставаться внутри репозитория (без '..').",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "Администратор проекта может добавить провайдера LLM в разделе «Настройки проекта → ИИ → Провайдеры LLM».",
+  "A project admin can set up a Runner in Runbooks → Runners.": "Администратор проекта может настроить агента runbook-ов в разделе «Сборники инструкций → Агенты runbook-ов».",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "ID трассировки состоит из 32 (или 16) шестнадцатеричных символов, как на странице трассировки.",
+  "AI could not finish.": "ИИ не смог закончить."
 }

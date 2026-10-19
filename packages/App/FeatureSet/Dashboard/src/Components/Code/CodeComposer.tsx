@@ -54,6 +54,24 @@ export interface ComponentProps {
 
 const MAX_TEXTAREA_HEIGHT_PX: number = 280;
 
+/*
+ * What a chip says on hover: the whole of what it stands for - a note's
+ * text, a link's address - where the chip itself shows only the start.
+ */
+export const getChipTooltip: (draft: CodeContextDraft) => string = (
+  draft: CodeContextDraft,
+): string => {
+  if (draft.input.type === CodeTaskContextType.Note && draft.input.text) {
+    return draft.input.text;
+  }
+
+  if (draft.input.type === CodeTaskContextType.Link && draft.input.url) {
+    return draft.input.url;
+  }
+
+  return draft.label;
+};
+
 const SPINNER_CLASS_NAME: string =
   "h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin";
 
@@ -226,7 +244,12 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
                     icon={CODE_TASK_CONTEXT_KINDS[kind].icon}
                     className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
                   />
-                  <span className="truncate" title={draft.label}>
+                  <span
+                    className={`truncate ${
+                      kind === CodeTaskContextType.File ? "font-mono" : ""
+                    }`}
+                    title={getChipTooltip(draft)}
+                  >
                     {draft.label}
                   </span>
                   <button
@@ -295,23 +318,31 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
           </MoreMenu>
 
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-[11px] text-gray-400 max-sm:hidden">
-              <TranslatedSentence
-                template="{{enter}} to send · {{shiftEnter}} for a new line"
-                slots={{
-                  enter: (
-                    <kbd className="font-sans font-medium text-gray-500">
-                      Enter
-                    </kbd>
-                  ),
-                  shiftEnter: (
-                    <kbd className="font-sans font-medium text-gray-500">
-                      Shift + Enter
-                    </kbd>
-                  ),
-                }}
-              />
-            </span>
+            {/* How to send, for a box that can send: none on a phone. */}
+            {props.isDisabled ? (
+              <></>
+            ) : (
+              <span
+                data-testid="code-composer-keys"
+                className="text-[11px] text-gray-500 max-sm:hidden"
+              >
+                <TranslatedSentence
+                  template="{{enter}} to send · {{shiftEnter}} for a new line"
+                  slots={{
+                    enter: (
+                      <kbd className="font-sans font-medium text-gray-600">
+                        Enter
+                      </kbd>
+                    ),
+                    shiftEnter: (
+                      <kbd className="font-sans font-medium text-gray-600">
+                        Shift + Enter
+                      </kbd>
+                    ),
+                  }}
+                />
+              </span>
+            )}
             <button
               type="button"
               data-testid="code-composer-send"

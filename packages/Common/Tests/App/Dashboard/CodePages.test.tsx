@@ -31,8 +31,16 @@ import {
   CodeTaskTurnJSON,
 } from "../../../Types/AI/CodeTask";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { JSONObject } from "../../../Types/JSON";
+import Link from "../../../Types/Link";
+import { PageBreadcrumbsContext } from "../../../UI/Components/Page/Page";
+import API from "../../../UI/Utils/API/API";
 import Navigation from "../../../UI/Utils/Navigation";
+import ProjectUtil from "../../../UI/Utils/Project";
+import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
@@ -104,6 +112,66 @@ jest.mock(
   },
 );
 
+/*
+ * BILLING_ENABLED is read where it is used, so it is a getter here: the
+ * environment's own value unless a test sets one (CI turns billing on, a
+ * local run has it off), so every other test reads as it would anyway.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+  const mocked: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      const override: boolean | undefined = (
+        globalThis as unknown as { __codePagesBilling: boolean | undefined }
+      ).__codePagesBilling;
+
+      return override === undefined
+        ? Boolean(actual["BILLING_ENABLED"])
+        : override;
+    },
+  });
+
+  return mocked;
+});
+
+// The plans a cloud install defines (test-setup.sh), for a test that turns billing on.
+const PLAN_ENV: Record<string, string> = {
+  SUBSCRIPTION_PLAN_BASIC:
+    "Free,price_basic_monthly,price_basic_yearly,0,0,1,0",
+  SUBSCRIPTION_PLAN_GROWTH:
+    "Growth,price_growth_monthly,price_growth_yearly,22,20,2,14",
+  SUBSCRIPTION_PLAN_SCALE:
+    "Scale,price_scale_monthly,price_scale_yearly,99,84,3,14",
+  SUBSCRIPTION_PLAN_ENTERPRISE:
+    "Enterprise,price_enterprise_monthly,price_enterprise_yearly,-1,-1,4,14",
+};
+
+const savedPlanEnv: Record<string, string | undefined> = {};
+
+function setBilling(enabled: boolean | undefined): void {
+  (
+    globalThis as unknown as { __codePagesBilling: boolean | undefined }
+  ).__codePagesBilling = enabled;
+
+  for (const key of Object.keys(PLAN_ENV)) {
+    if (enabled) {
+      savedPlanEnv[key] = process.env[key];
+      process.env[key] = PLAN_ENV[key];
+    } else if (key in savedPlanEnv) {
+      if (savedPlanEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = savedPlanEnv[key];
+      }
+      delete savedPlanEnv[key];
+    }
+  }
+}
+
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
     __esModule: true,
@@ -126,6 +194,7 @@ import CodeRepositoryTasks from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import CodeTaskConversation, {
   CODE_TASK_POLL_MS,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Conversation";
+import CodeTaskLog from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Log";
 import { CodeRepositoryListItem } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 
 const REPOSITORY_ID: string = "6c7d8e9f-0a1b-4c2d-9e3f-4a5b6c7d8e9f";
@@ -176,6 +245,7 @@ afterEach(() => {
   jest.useRealTimers();
   navigateMock.mockRestore();
   delete process.env["GITHUB_APP_NAME"];
+  setBilling(undefined);
 });
 
 const PAGE_PROPS: {
@@ -403,6 +473,46 @@ describe("Code: the repositories first", () => {
       skip: 0,
       limit: 20,
     });
+  });
+
+  test("on a plan without AI: the plan banner, and nothing read", async () => {
+    setBilling(true);
+    const planSpy: SpyInstance<() => PlanType | null> = jest
+      .spyOn(ProjectUtil, "getCurrentPlan")
+      .mockReturnValue(PlanType.Free);
+
+    try {
+      draw(<CodePage {...PAGE_PROPS} />);
+
+      expect(
+        await screen.findByText("AI requires the Growth plan"),
+      ).toBeInTheDocument();
+      expect(getRepositoriesMock).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("code-repositories-loading")).toBeNull();
+    } finally {
+      planSpy.mockRestore();
+    }
+  });
+
+  test("while they load, the placeholders are cards in the making, and a screen reader hears Loading", () => {
+    getRepositoriesMock.mockReturnValue(new Promise(() => {}) as never);
+    draw(<CodePage {...PAGE_PROPS} />);
+
+    const loading: HTMLElement = screen.getByTestId(
+      "code-repositories-loading",
+    );
+    expect(loading).toHaveAttribute("role", "status");
+    expect(loading).toHaveTextContent("Loading…");
+    // Each placeholder has a mark, a name and a line of facts, not a blank box.
+    const cards: Array<Element> = Array.from(
+      loading.querySelectorAll("[aria-hidden='true']"),
+    );
+    expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      expect(
+        card.querySelectorAll(".bg-gray-100").length,
+      ).toBeGreaterThanOrEqual(4);
+    }
   });
 
   test("a failed read says why and tries again", async () => {
@@ -639,6 +749,65 @@ describe("a repository's page: ask AI", () => {
     expect(screen.queryByTestId("code-examples")).toBeNull();
   });
 
+  test("on a plan without AI, the plan is said once - in the request box, with the link that upgrades it", async () => {
+    setBilling(true);
+    const planSpy: SpyInstance<() => PlanType | null> = jest
+      .spyOn(ProjectUtil, "getCurrentPlan")
+      .mockReturnValue(PlanType.Free);
+    getRepositoryMock.mockResolvedValue(
+      repositoryAnswer({
+        blocker: {
+          type: CodeTaskBlockerType.PlanRequired,
+          message: "AI in Code needs the Growth plan or above.",
+        },
+      }) as never,
+    );
+    listTasksMock.mockResolvedValue({
+      tasks: [summary()],
+      count: 1,
+      skip: 0,
+      limit: 20,
+    } as never);
+
+    try {
+      draw(<CodeRepositoryTasks {...PAGE_PROPS} />);
+
+      const notice: HTMLElement = await screen.findByTestId("code-blocker");
+      expect(notice).toHaveAttribute("data-blocker", "PlanRequired");
+      expect(within(notice).getByTestId("code-blocker-fix")).toHaveTextContent(
+        "Upgrade the plan",
+      );
+      // No plan banner above it saying the same again.
+      expect(screen.queryByText("AI requires the Growth plan")).toBeNull();
+      expect(screen.getAllByText(/Growth plan/)).toHaveLength(1);
+    } finally {
+      planSpy.mockRestore();
+    }
+  });
+
+  test("a box that cannot send says nothing about how to send", async () => {
+    getRepositoryMock.mockResolvedValue(
+      repositoryAnswer({
+        blocker: {
+          type: CodeTaskBlockerType.DailyLimitReached,
+          message: "This project used its daily AI token limit.",
+        },
+      }) as never,
+    );
+    listTasksMock.mockResolvedValue({
+      tasks: [summary()],
+      count: 1,
+      skip: 0,
+      limit: 20,
+    } as never);
+
+    draw(<CodeRepositoryTasks {...PAGE_PROPS} />);
+
+    await screen.findByTestId("code-blocker");
+    expect(screen.getByTestId("code-composer-input")).toBeDisabled();
+    expect(screen.queryByTestId("code-composer-keys")).toBeNull();
+  });
+
   test("a member who may only read: the reason, no box, and the tasks - or where they will show", async () => {
     getRepositoryMock.mockResolvedValue(
       repositoryAnswer({
@@ -772,6 +941,46 @@ describe("a task's conversation", () => {
     expect(composer).toHaveTextContent(
       "Changes you ask for are pushed to pull request #418.",
     );
+  });
+
+  test("a merged pull request says so at the top, and replies go to a new one", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({
+          pullRequest: {
+            number: 402,
+            url: "https://github.com/acme/checkout-api/pull/402",
+            state: "merged",
+          },
+        }),
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const header: HTMLElement = await screen.findByTestId("code-task-header");
+    expect(
+      within(header).getByTestId("code-task-pull-request-state"),
+    ).toHaveTextContent("Merged");
+    expect(screen.getByTestId("code-task-pull-request")).toHaveAttribute(
+      "href",
+      "https://github.com/acme/checkout-api/pull/402",
+    );
+
+    const footer: HTMLElement = screen.getByTestId("code-task-composer-footer");
+    expect(footer).toHaveTextContent(
+      "AI works on a new branch and opens a pull request for you to review when it changes code.",
+    );
+    expect(footer).not.toHaveTextContent("#402");
+  });
+
+  test("an open pull request needs no word for its state", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer() as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    await screen.findByTestId("code-task-pull-request");
+    expect(screen.queryByTestId("code-task-pull-request-state")).toBeNull();
   });
 
   test("a reply continues the same task, then the page reads it again", async () => {
@@ -1011,12 +1220,112 @@ describe("a task's conversation", () => {
 
     draw(<CodeTaskConversation {...PAGE_PROPS} />);
 
-    expect(
-      await screen.findByTestId("code-task-no-repository"),
-    ).toHaveTextContent(
+    const notice: HTMLElement = await screen.findByTestId(
+      "code-task-no-repository",
+    );
+    expect(notice).toHaveTextContent(
       "This task is not linked to a repository, so AI cannot continue it.",
     );
+    // A box of its own on the page's gray, not gray on gray.
+    expect(notice.className).toContain("border");
+    expect(notice.className).toContain("bg-white");
     expect(screen.queryByTestId("code-composer-input")).toBeNull();
+  });
+
+  test("while AI works, the box's place says what that means - one spinner on the page, in the turn", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Working }),
+        turns: [
+          turn({
+            status: AIRunStatus.Running,
+            state: CodeTaskState.Working,
+            completedAt: undefined,
+            steps: [
+              {
+                sequence: 1,
+                kind: "Read" as never,
+                subject: "src/a.ts",
+                isError: false,
+              },
+            ],
+          }),
+        ],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const footer: HTMLElement = await screen.findByTestId(
+      "code-task-working-footer",
+    );
+    expect(footer).toHaveTextContent(
+      "AI is working on this. You can reply when it finishes.",
+    );
+    expect(footer.querySelector(".motion-safe\\:animate-spin")).toBeNull();
+    expect(
+      document.querySelectorAll(".motion-safe\\:animate-spin"),
+    ).toHaveLength(1);
+  });
+
+  test("a turn's Log: the trail names the repository and the task, then Log", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer() as never);
+    const postSpy: SpyInstance<typeof API.post> = jest
+      .spyOn(API, "post")
+      .mockResolvedValue(
+        new HTTPResponse<JSONObject>(
+          200,
+          {
+            run: { _id: TASK_ID, status: AIRunStatus.Completed },
+            events: [],
+            llmLogs: [],
+            canReadContent: true,
+          },
+          {},
+        ) as never,
+      );
+    const trails: Array<Array<Link> | null> = [];
+
+    try {
+      render(
+        <I18nextProvider i18n={translation}>
+          <PageBreadcrumbsContext.Provider
+            value={(links: Array<Link> | null) => {
+              trails.push(links);
+            }}
+          >
+            <MemoryRouter
+              initialEntries={[
+                `/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}/log`,
+              ]}
+            >
+              <Routes>
+                <RouterRoute
+                  path="/dashboard/:projectId/code/tasks/:id/log"
+                  element={<CodeTaskLog {...PAGE_PROPS} />}
+                />
+              </Routes>
+            </MemoryRouter>
+          </PageBreadcrumbsContext.Provider>
+        </I18nextProvider>,
+      );
+
+      await waitFor(() => {
+        expect(
+          (trails[trails.length - 1] || []).map((link: Link) => {
+            return link.title;
+          }),
+        ).toEqual(["Project", "Code", "checkout-api", "Task #12", "Log"]);
+      });
+      expect(getTaskMock).toHaveBeenCalledWith(TASK_ID);
+      const trail: Array<Link> = trails[trails.length - 1] || [];
+      expect(trail[3]?.to.toString()).toBe(
+        `/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`,
+      );
+      expect(trail[2]?.isRecordName).toBe(true);
+    } finally {
+      postSpy.mockRestore();
+    }
   });
 
   test("a task that cannot be read says so and tries again", async () => {

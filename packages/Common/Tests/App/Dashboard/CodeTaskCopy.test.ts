@@ -11,10 +11,13 @@ import {
   CodeTaskStepKind,
 } from "../../../Types/AI/CodeTask";
 import {
+  CODE_CONTEXT_REFUSALS,
   CODE_TASK_ADD_AI_CREDITS,
   CODE_TASK_ASKED_BY,
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
+  CODE_TASK_BLOCKER_WHO_CAN_FIX,
+  CODE_TURN_FAILED,
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_MENU_ORDER,
   CODE_TASK_CONTEXT_RECORD_PAGES,
@@ -116,6 +119,9 @@ const SENTENCES: Array<string> = Array.from(
       },
     ),
     CODE_TASK_ADD_AI_CREDITS,
+    ...(Object.values(CODE_TASK_BLOCKER_WHO_CAN_FIX) as Array<string>),
+    ...CODE_CONTEXT_REFUSALS,
+    CODE_TURN_FAILED,
     ...CODE_TASK_EXAMPLE_REQUESTS,
   ]),
 ).sort();
@@ -251,6 +257,41 @@ describe("Code's words are complete", () => {
       CODE_TASK_BLOCKER_FIXES[CodeTaskBlockerType.RepositoryNotConnected]
         ?.pageMap,
     ).toBe(PageMap.CODE);
+  });
+
+  test("a fix only some may make says who can instead, for each blocker that has one", () => {
+    const gated: Array<CodeTaskBlockerType> = [
+      CodeTaskBlockerType.AiDisabled,
+      CodeTaskBlockerType.NoLlmProvider,
+      CodeTaskBlockerType.NoAgent,
+    ];
+
+    for (const type of gated) {
+      expect(CODE_TASK_BLOCKER_FIXES[type]).toBeTruthy();
+      expect(CODE_TASK_BLOCKER_WHO_CAN_FIX[type]).toBeTruthy();
+    }
+    expect(Object.keys(CODE_TASK_BLOCKER_WHO_CAN_FIX).sort()).toEqual(
+      [...gated].sort(),
+    );
+    // Each names where the fix is made, as the link would have opened it.
+    expect(
+      CODE_TASK_BLOCKER_WHO_CAN_FIX[CodeTaskBlockerType.AiDisabled],
+    ).toContain("Project Settings → AI → AI Features");
+    expect(
+      CODE_TASK_BLOCKER_WHO_CAN_FIX[CodeTaskBlockerType.NoLlmProvider],
+    ).toContain("Project Settings → AI → LLM Providers");
+    expect(
+      CODE_TASK_BLOCKER_WHO_CAN_FIX[CodeTaskBlockerType.NoAgent],
+    ).toContain("Runbooks → Runners");
+  });
+
+  test("a failed turn is said in plain words, and the dialog's refusals are sentences", () => {
+    expect(CODE_TURN_FAILED).toBe("AI could not finish.");
+    expect(CODE_TURN_FAILED.toLowerCase()).not.toContain("turn");
+    expect(CODE_CONTEXT_REFUSALS.length).toBeGreaterThan(0);
+    for (const refusal of CODE_CONTEXT_REFUSALS) {
+      expect(refusal.endsWith(".")).toBe(true);
+    }
   });
 
   test("the examples are requests a person could send as they are", () => {

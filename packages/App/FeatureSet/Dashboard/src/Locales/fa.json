@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "مالک پروژه یا کسی که Manage Billing دارد می‌تواند اعتبار هوش مصنوعی اضافه کند.",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "مالک پروژه یا کسی که Manage Billing دارد می‌تواند هوش مصنوعی را در «تنظیمات پروژه ← هوش مصنوعی ← AI Features» روشن کند.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} در انتظار شما",
   "{{count}} working": "{{count}} در حال کار",
   "{{count}} working_one": "{{count}} در حال کار",
-  "{{label}} asked": "{{label}} درخواست کرد"
+  "{{label}} asked": "{{label}} درخواست کرد",
+  "A link must be a full web address, starting with https:// or http://.": "پیوند باید یک نشانی وب کامل باشد که با https:// یا http:// شروع شود.",
+  "A path cannot hold control characters.": "مسیر نمی‌تواند نویسه‌های کنترلی داشته باشد.",
+  "A path must stay inside the repository (no '..').": "مسیر باید درون مخزن بماند (بدون '..').",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "مدیر پروژه می‌تواند در «تنظیمات پروژه ← هوش مصنوعی ← ارائه‌دهندگان LLM» یک ارائه‌دهنده LLM اضافه کند.",
+  "A project admin can set up a Runner in Runbooks → Runners.": "مدیر پروژه می‌تواند در «رانبوک‌ها ← Runnerها» یک Runner راه‌اندازی کند.",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "شناسه ترِیس ۳۲ (یا ۱۶) نویسه شانزده‌دهی است، همان‌طور که در صفحه ترِیس دیده می‌شود.",
+  "AI could not finish.": "هوش مصنوعی نتوانست کار را تمام کند."
 }

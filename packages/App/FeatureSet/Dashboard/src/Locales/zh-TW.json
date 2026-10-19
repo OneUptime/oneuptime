@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "專案擁有者或具有 Manage Billing 權限的人可以新增 AI 點數。",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "專案擁有者或具有 Manage Billing 權限的人可以在「專案設定 → 人工智慧 → AI Features」中開啟 AI。",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} waiting for you",
   "{{count}} working": "{{count}} 個進行中",
   "{{count}} working_one": "{{count}} working",
-  "{{label}} asked": "{{label}} 提出的要求"
+  "{{label}} asked": "{{label}} 提出的要求",
+  "A link must be a full web address, starting with https:// or http://.": "連結必須是以 https:// 或 http:// 開頭的完整網址。",
+  "A path cannot hold control characters.": "路徑不能包含控制字元。",
+  "A path must stay inside the repository (no '..').": "路徑必須位於儲存庫內（不能使用 '..'）。",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "專案管理員可以在「專案設定 → 人工智慧 → LLM 提供商」中新增 LLM 提供商。",
+  "A project admin can set up a Runner in Runbooks → Runners.": "專案管理員可以在「運行手冊 → Runbook 代理程式」中設定 Runbook 代理程式。",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "追蹤 ID 由 32（或 16）個十六進位字元組成，與追蹤頁面上顯示的一致。",
+  "AI could not finish.": "AI 未能完成。"
 }

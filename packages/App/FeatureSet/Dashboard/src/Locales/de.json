@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "Ein Projektinhaber oder jemand mit Manage Billing kann KI-Guthaben hinzufügen.",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "Ein Projektinhaber oder jemand mit Manage Billing kann die KI unter Projekteinstellungen → KI → KI-Funktionen einschalten.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} wartet auf Sie",
   "{{count}} working": "{{count}} in Arbeit",
   "{{count}} working_one": "{{count}} in Arbeit",
-  "{{label}} asked": "{{label}} hat gefragt"
+  "{{label}} asked": "{{label}} hat gefragt",
+  "A link must be a full web address, starting with https:// or http://.": "Ein Link muss eine vollständige Webadresse sein, die mit https:// oder http:// beginnt.",
+  "A path cannot hold control characters.": "Ein Pfad darf keine Steuerzeichen enthalten.",
+  "A path must stay inside the repository (no '..').": "Ein Pfad muss innerhalb des Repositorys bleiben (kein '..').",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "Ein Projektadministrator kann unter Projekteinstellungen → KI → LLM-Anbieter einen LLM-Anbieter hinzufügen.",
+  "A project admin can set up a Runner in Runbooks → Runners.": "Ein Projektadministrator kann unter Runbooks → Runbook-Agents einen Runbook-Agent einrichten.",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "Eine Trace-ID besteht aus 32 (oder 16) Hexadezimalzeichen, so wie sie auf der Seite des Traces steht.",
+  "AI could not finish.": "Die KI konnte das nicht abschließen."
 }

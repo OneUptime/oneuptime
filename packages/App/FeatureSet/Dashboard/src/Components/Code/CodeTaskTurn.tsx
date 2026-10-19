@@ -7,11 +7,17 @@ import {
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_RECORD_PAGES,
   CODE_TASK_ORIGIN_SENTENCES,
-  getRecipeLabel,
+  CODE_TURN_FAILED,
 } from "./CodeTaskCopy";
 import CodeTaskStateBadge from "./CodeTaskStateBadge";
 import CodeTaskSteps from "./CodeTaskSteps";
 import CodeTimeAgo from "./CodeTimeAgo";
+import {
+  EventDurationPart,
+  formatEventDurationParts,
+  getEventDurationParts,
+  LESS_THAN_A_MINUTE,
+} from "../../Utils/EventDuration";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -52,6 +58,42 @@ const MESSAGE_BODY_CLASS_NAME: string =
 
 // How long a queued turn waits before the page says what to check.
 export const SLOW_QUEUE_IN_MINUTES: number = 5;
+
+/*
+ * A turn's byline facts - when it was asked, how long AI worked, its Log -
+ * in a gray that still reads on the page's gray (gray-400 did not).
+ */
+const BYLINE_FACT_CLASS_NAME: string = "text-xs text-gray-500";
+
+/*
+ * How long a turn has taken, or took, in the reader's words: "8 minutes",
+ * "1 hour, 5 minutes", "8 Minuten" - the two largest units, as the
+ * Dashboard's other durations say them. Under a minute is "less than a
+ * minute".
+ */
+export const getTurnDurationText: (data: {
+  start: Date;
+  end: Date;
+  translator: Translator;
+}) => string = (data: {
+  start: Date;
+  end: Date;
+  translator: Translator;
+}): string => {
+  const parts: Array<EventDurationPart> = getEventDurationParts(
+    data.start,
+    data.end,
+    { maxUnits: 2 },
+  );
+
+  if (parts.length === 0) {
+    return (
+      data.translator.translateText(LESS_THAN_A_MINUTE) || LESS_THAN_A_MINUTE
+    );
+  }
+
+  return formatEventDurationParts(parts, data.translator.language);
+};
 
 export interface ComponentProps {
   turn: CodeTaskTurnJSON;
@@ -295,15 +337,18 @@ const TurnDuration: FunctionComponent<{ turn: CodeTaskTurnJSON }> = (props: {
     ? new Date(props.turn.completedAt)
     : OneUptimeDate.getCurrentDate();
 
-  const duration: string =
-    OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(start, end);
-
-  if (!duration) {
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return <></>;
   }
 
+  const duration: string = getTurnDurationText({
+    start,
+    end,
+    translator,
+  });
+
   return (
-    <span className="text-xs text-gray-400">
+    <span data-testid="code-turn-duration" className={BYLINE_FACT_CLASS_NAME}>
       {props.turn.completedAt
         ? translator.translateTemplate("worked {{duration}}", { duration })
         : translator.translateTemplate("{{duration}} so far", { duration })}
@@ -347,7 +392,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
             </span>
             <CodeTimeAgo
               date={turn.createdAt}
-              className="text-xs text-gray-400"
+              className={BYLINE_FACT_CLASS_NAME}
             />
           </div>
           <div className={MESSAGE_BODY_CLASS_NAME}>
@@ -407,12 +452,10 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
             <span className="text-sm font-semibold text-gray-900">
               OneUptime
             </span>
-            <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-              {translator.translateText(getRecipeLabel(turn.recipe))}
-            </span>
+            {/* What kind of task it is, the header already says. */}
             <CodeTimeAgo
               date={turn.createdAt}
-              className="text-xs text-gray-400"
+              className={BYLINE_FACT_CLASS_NAME}
             />
           </div>
           <div className={MESSAGE_BODY_CLASS_NAME}>
@@ -458,7 +501,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           {props.logRoute && !isQueued ? (
             <Link
               to={props.logRoute}
-              className="text-xs font-medium text-gray-400 hover:text-gray-600"
+              className="text-xs font-medium text-gray-500 hover:text-gray-700 hover:underline"
             >
               <>{translator.translateText("Log")}</>
             </Link>
@@ -467,7 +510,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           )}
         </div>
         <div className={`${MESSAGE_BODY_CLASS_NAME} space-y-3`}>
-          {isWorking ? (
+          {isWorking && (isQueued || turn.steps.length === 0) ? (
             <div
               role="status"
               data-testid="code-turn-working"
@@ -600,7 +643,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
               />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">
-                  {translator.translateText("This turn failed.")}
+                  {translator.translateText(CODE_TURN_FAILED)}
                 </p>
                 {turn.errorMessage ? (
                   <p className="mt-0.5 break-words text-red-700">

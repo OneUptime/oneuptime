@@ -20663,7 +20663,7 @@
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
   "A project owner or someone with Manage Billing can add AI credits.": "Een projecteigenaar of iemand met Manage Billing kan AI-tegoeden toevoegen.",
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "Een projecteigenaar of iemand met Manage Billing kan AI inschakelen in Projectinstellingen → AI → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
   "AI is composing a fix…": "AI is composing a fix…",
@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} wacht op jou",
   "{{count}} working": "{{count}} bezig",
   "{{count}} working_one": "{{count}} bezig",
-  "{{label}} asked": "{{label}} vroeg"
+  "{{label}} asked": "{{label}} vroeg",
+  "A link must be a full web address, starting with https:// or http://.": "Een link moet een volledig webadres zijn dat begint met https:// of http://.",
+  "A path cannot hold control characters.": "Een pad mag geen besturingstekens bevatten.",
+  "A path must stay inside the repository (no '..').": "Een pad moet binnen de repository blijven (geen '..').",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "Een projectbeheerder kan een LLM-provider toevoegen in Projectinstellingen → AI → LLM-providers.",
+  "A project admin can set up a Runner in Runbooks → Runners.": "Een projectbeheerder kan een runbook-agent instellen in Runbooks → Runbook-agenten.",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "Een trace-ID bestaat uit 32 (of 16) hexadecimale tekens, zoals op de pagina van de trace.",
+  "AI could not finish.": "AI kon dit niet afmaken."
 }

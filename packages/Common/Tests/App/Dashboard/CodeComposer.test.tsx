@@ -23,10 +23,12 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import {
   CODE_TASK_LIMITS,
   CodeTaskContextInput,
+  CodeTaskContextInputUtil,
   CodeTaskContextType,
 } from "../../../Types/AI/CodeTask";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -100,9 +102,15 @@ jest.mock("../../../UI/Components/EntityDropdown/EntityDropdown", () => {
 });
 
 import CodeComposer from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeComposer";
+import {
+  getNoteChipLabel,
+  NOTE_CHIP_LENGTH,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeContextModal";
+import { CODE_CONTEXT_REFUSALS } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskCopy";
 
 const INCIDENT_ID: string = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
 const translation: i18n = createInstance();
+const germanTranslation: i18n = createInstance();
 
 let onSend: MockFunction;
 
@@ -112,6 +120,15 @@ beforeAll(async () => {
     lng: "en",
     fallbackLng: "en",
     resources: { en: { translation: englishLocale } },
+    interpolation: { escapeValue: false },
+  });
+  await germanTranslation.use(initReactI18next).init({
+    lng: "de",
+    fallbackLng: "en",
+    resources: {
+      en: { translation: englishLocale },
+      de: { translation: germanLocale },
+    },
     interpolation: { escapeValue: false },
   });
 });
@@ -127,9 +144,10 @@ afterEach(() => {
 
 function renderComposer(
   props: Partial<React.ComponentProps<typeof CodeComposer>> = {},
+  language: i18n = translation,
 ): void {
   render(
-    <I18nextProvider i18n={translation}>
+    <I18nextProvider i18n={language}>
       <CodeComposer
         label="What should AI do?"
         placeholder="Describe the change"
@@ -323,6 +341,152 @@ describe("sending", () => {
     expect(document.body).toHaveTextContent(
       "Enter to send · Shift + Enter for a new line",
     );
+  });
+
+  test("a box that cannot send says nothing about how to send", () => {
+    renderComposer({ isDisabled: true });
+    expect(screen.queryByTestId("code-composer-keys")).toBeNull();
+    expect(document.body).not.toHaveTextContent("Enter to send");
+  });
+});
+
+describe("what a chip shows", () => {
+  test("a path reads as code, as it does in the conversation", async () => {
+    renderComposer();
+    await openContextDialog(CodeTaskContextType.File);
+    await userEvent.type(
+      screen.getByTestId("code-context-path"),
+      "src/payments/client.ts",
+    );
+    await submitDialog();
+
+    expect(chips()[0]!.querySelector(".font-mono")).toHaveTextContent(
+      "src/payments/client.ts",
+    );
+  });
+
+  test("a long note shows its first words, ending at a word with …; the whole note is on hover", async () => {
+    const note: string =
+      "It fails about one run in ten on CI, never locally. The error is a timeout after 5000 ms in the payment mock.";
+    renderComposer();
+    await openContextDialog(CodeTaskContextType.Note);
+    fireEvent.change(screen.getByTestId("code-context-note"), {
+      target: { value: note },
+    });
+    await submitDialog();
+
+    const label: HTMLElement = chips()[0]!.querySelector(
+      "span[title]",
+    ) as HTMLElement;
+    expect(label.textContent).toBe(
+      "It fails about one run in ten on CI, never locally. The…",
+    );
+    expect(label).toHaveAttribute("title", note);
+  });
+
+  test("a link shows its name, and its address on hover", async () => {
+    renderComposer();
+    await openContextDialog(CodeTaskContextType.Link);
+    await userEvent.type(
+      screen.getByTestId("code-context-url"),
+      "https://github.com/acme/api/actions/runs/1",
+    );
+    await userEvent.type(
+      screen.getByTestId("code-context-link-title"),
+      "The failing run",
+    );
+    await submitDialog();
+
+    const label: HTMLElement = chips()[0]!.querySelector(
+      "span[title]",
+    ) as HTMLElement;
+    expect(label.textContent).toBe("The failing run");
+    expect(label).toHaveAttribute(
+      "title",
+      "https://github.com/acme/api/actions/runs/1",
+    );
+  });
+
+  test.each([
+    ["Fix it", "Fix it"],
+    ["  spaces\n\nand   lines  ", "spaces and lines"],
+    ["word ".repeat(30).trim(), `${"word ".repeat(12).trim()}…`],
+    ["x".repeat(NOTE_CHIP_LENGTH + 10), `${"x".repeat(NOTE_CHIP_LENGTH)}…`],
+  ])("a note chip of %j reads %j", (text: string, label: string) => {
+    expect(getNoteChipLabel(text)).toBe(label);
+    expect(getNoteChipLabel(text).length).toBeLessThanOrEqual(
+      NOTE_CHIP_LENGTH + 1,
+    );
+  });
+});
+
+describe("the dialog speaks the reader's language", () => {
+  /*
+   * The rules the dialog checks with are the server's, in English; the
+   * refusals a person can reach are keys the locales translate. Each must be
+   * the rules' own words, or the reader sees English after all.
+   */
+  test("each refusal it keeps is the rules' own sentence, and the rules refuse nothing else a person can type", () => {
+    const refusals: Array<string> = [];
+    const reachable: Array<Record<string, unknown>> = [
+      { type: CodeTaskContextType.File, path: "../secrets.env" },
+      { type: CodeTaskContextType.File, path: "src/a\u0007b.ts" },
+      { type: CodeTaskContextType.Link, url: "not a link" },
+      { type: CodeTaskContextType.Link, url: "ftp://example.com/file" },
+      { type: CodeTaskContextType.Trace, traceId: "nope" },
+    ];
+
+    for (const raw of reachable) {
+      try {
+        CodeTaskContextInputUtil.readItem(raw);
+        refusals.push("(accepted)");
+      } catch (error) {
+        refusals.push((error as Error).message);
+      }
+    }
+
+    for (const refusal of refusals) {
+      expect(CODE_CONTEXT_REFUSALS).toContain(refusal);
+    }
+    // Every key is one of them: none is kept for a refusal that no longer exists.
+    for (const key of CODE_CONTEXT_REFUSALS) {
+      expect(refusals).toContain(key);
+    }
+  });
+
+  test("in German, a path out of the repository is refused in German", async () => {
+    renderComposer({}, germanTranslation);
+    await userEvent.click(screen.getByTestId("code-add-context"));
+    await userEvent.click(
+      await screen.findByTestId(`code-add-context-${CodeTaskContextType.File}`),
+    );
+    await userEvent.type(
+      screen.getByTestId("code-context-path"),
+      "../secrets.env",
+    );
+    await submitDialog();
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Ein Pfad muss innerhalb des Repositorys bleiben (kein '..').",
+    );
+  });
+
+  test("an optional field says so the way every form does", async () => {
+    renderComposer();
+    await openContextDialog(CodeTaskContextType.Link);
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    const address: HTMLElement = within(dialog).getByText("Web address");
+    expect(address.closest("label")).toHaveAttribute("for", "code-context-url");
+    expect(address.closest("label")).not.toHaveTextContent("(Optional)");
+
+    const name: HTMLElement = within(dialog).getByText("Name");
+    expect(name.closest("label")).toHaveAttribute(
+      "for",
+      "code-context-link-title",
+    );
+    expect(name.closest("label")).toHaveTextContent("Name (Optional)");
+    expect(dialog).not.toHaveTextContent("(optional)");
   });
 });
 

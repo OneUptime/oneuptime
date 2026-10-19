@@ -5,6 +5,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -43,6 +44,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import LinkComponent from "Common/UI/Components/Link/Link";
+import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
+import Link from "Common/Types/Link";
+import CodeApi, { CodeTaskResponse } from "../../../Components/Code/CodeApi";
+import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
@@ -484,6 +489,46 @@ const CodeTaskLogPage: FunctionComponent<
   const [error, setError] = useState<string | undefined>(undefined);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const signatureRef: React.MutableRefObject<string> = useRef<string>("");
+  const [task, setTask] = useState<CodeTaskResponse | null>(null);
+
+  /*
+   * The task, read once for the trail - Code > the repository > Task #42 >
+   * Log - which the address alone cannot name. A task that cannot be read
+   * keeps the address's trail.
+   */
+  useEffect(() => {
+    if (!id || !ObjectID.isValidUUID(id)) {
+      return;
+    }
+
+    CodeApi.getTask(id)
+      .then((response: CodeTaskResponse) => {
+        setTask(response);
+      })
+      .catch(() => {
+        // The trail stays Code > Task > Log.
+      });
+  }, [id]);
+
+  const breadcrumbs: Array<Link> | null = useMemo(() => {
+    if (!task || !id) {
+      return null;
+    }
+
+    return getCodeTaskTrail({
+      taskId: id,
+      response: task,
+      translator: translator,
+      isLog: true,
+    });
+  }, [
+    task?.repository?.id,
+    task?.repository?.name,
+    task?.task.taskNumber,
+    translator.language,
+  ]);
+
+  usePageBreadcrumbLinks(breadcrumbs);
 
   const fetchData: () => Promise<void> =
     useCallback(async (): Promise<void> => {

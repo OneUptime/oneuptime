@@ -31180,5 +31180,12 @@
   "{{count}} waiting for you_one": "{{count}} waiting for you",
   "{{count}} working": "{{count}} 件が作業中",
   "{{count}} working_one": "{{count}} working",
-  "{{label}} asked": "{{label}} の依頼"
+  "{{label}} asked": "{{label}} の依頼",
+  "A link must be a full web address, starting with https:// or http://.": "リンクは https:// または http:// で始まる完全な Web アドレスにしてください。",
+  "A path cannot hold control characters.": "パスに制御文字を含めることはできません。",
+  "A path must stay inside the repository (no '..').": "パスはリポジトリ内にとどめてください（'..' は使えません）。",
+  "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.": "プロジェクト管理者が「プロジェクト設定 → AI → LLM プロバイダー」で LLM プロバイダーを追加できます。",
+  "A project admin can set up a Runner in Runbooks → Runners.": "プロジェクト管理者が「Runbook → Runner」で Runner をセットアップできます。",
+  "A trace ID is 32 (or 16) hexadecimal characters, as it appears on the trace's page.": "トレース ID は、トレースのページに表示されている 32 文字（または 16 文字）の 16 進数です。",
+  "AI could not finish.": "AI は完了できませんでした。"
 }

@@ -439,6 +439,17 @@ test.describe("a repository's page: ask AI", () => {
         rows.nth(index).locator("[data-testid='code-task-state']:visible"),
       ).toHaveCount(1);
     }
+    /*
+     * The badge is the state's one mark: no icon column beside the title,
+     * and the facts read apart, a dot between each.
+     */
+    await expect(rows.nth(1).getByRole("link").locator("svg")).toHaveCount(1);
+    await expect(
+      rows
+        .nth(1)
+        .getByTestId("code-task-row-meta")
+        .getByTestId("code-meta-dot"),
+    ).toHaveCount(3);
 
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repository");
@@ -716,6 +727,48 @@ test.describe("a repository's page: ask AI", () => {
     });
   }
 
+  test("on the Free plan, the plan is said once - in the request box, with Upgrade the plan", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openRepository(page, REPOSITORY.checkout, "plan=free");
+
+    const notice: Locator = page.getByTestId("code-blocker");
+    await expect(notice).toHaveAttribute("data-blocker", "PlanRequired");
+    await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
+      "Upgrade the plan",
+    );
+    // No plan banner above it saying the same again.
+    await expect(page.getByText("AI requires the Growth plan")).toHaveCount(0);
+    await expect(composerInput(page)).toBeDisabled();
+  });
+
+  test("a member who may ask AI but not turn it on is told who can, not sent to a switch they cannot flip", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openRepository(
+      page,
+      REPOSITORY.checkout,
+      "blocker=AiDisabled&role=member",
+    );
+
+    const notice: Locator = page.getByTestId("code-blocker");
+    await expect(notice).toContainText("AI is turned off for this project.");
+    await expect(notice.getByTestId("code-blocker-fix")).toHaveCount(0);
+    await expect(notice.getByTestId("code-blocker-who-can")).toHaveText(
+      "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+    );
+    // A box that cannot send says nothing about how to send.
+    await expect(page.getByTestId("code-composer-keys")).toHaveCount(0);
+  });
+
   test("a repository the GitHub App cannot reach says so, and links Connect GitHub", async ({
     page,
   }: {
@@ -930,8 +983,20 @@ test.describe("a task's conversation", () => {
     await expect(page.getByTestId("code-task-step").first()).toBeVisible({
       timeout: 20000,
     });
-    // Live steps are open, without a fold to click.
+    /*
+     * Live steps are open, without a fold to click, and end where the next
+     * one will appear; the page shows one spinner, there.
+     */
     await expect(page.getByTestId("code-task-steps-toggle")).toHaveCount(0);
+    await expect(page.getByTestId("code-task-steps-working")).toHaveText(
+      "Working on it…",
+    );
+    await expect(page.getByTestId("code-turn-working")).toHaveCount(0);
+    await expect(
+      page
+        .getByTestId("code-task-working-footer")
+        .locator("[class*='animate-spin']"),
+    ).toHaveCount(0);
     await screenshot(page, testInfo, "code-task-working");
 
     await page.getByTestId("code-task-stop").click();
@@ -961,7 +1026,7 @@ test.describe("a task's conversation", () => {
     await openTask(page, TASK.failed);
 
     const failed: Locator = page.getByTestId("code-turn-failed");
-    await expect(failed).toContainText("This turn failed.");
+    await expect(failed).toContainText("AI could not finish.");
     await expect(failed).toContainText(
       "npm run build still failed after 2 repair attempts",
     );
@@ -990,7 +1055,11 @@ test.describe("a task's conversation", () => {
     await expect(origin).toContainText(
       "OneUptime started this task from an exception",
     );
-    await expect(origin).toContainText("Fix Exception");
+    // Its kind is said once, at the top.
+    await expect(page.getByTestId("code-task-header")).toContainText(
+      "Fix Exception",
+    );
+    await expect(origin).not.toContainText("Fix Exception");
     await expect(
       origin.getByRole("link", {
         name: "TypeError: Cannot read properties of undefined (reading 'amount')",
@@ -1001,6 +1070,13 @@ test.describe("a task's conversation", () => {
     );
     await expect(page.getByTestId("code-turn-pull-request")).toContainText(
       "Merged",
+    );
+    // The top says it too, and a reply goes to a new pull request.
+    await expect(page.getByTestId("code-task-pull-request-state")).toHaveText(
+      "Merged",
+    );
+    await expect(page.getByTestId("code-task-composer-footer")).toHaveText(
+      "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
     );
   });
 
@@ -1019,6 +1095,11 @@ test.describe("a task's conversation", () => {
       `${taskPath(TASK.retries)}/log?turn=${TASK.retries}`,
     );
     await expect(page.getByText("Session Log")).toBeVisible();
+    // The trail names the repository and the task, as the conversation's does.
+    const trail: Locator = page.locator("nav[aria-label='Breadcrumb']");
+    await expect(trail).toContainText("checkout-api");
+    await expect(trail).toContainText("Task #12");
+    await expect(trail).toContainText("Log");
 
     await page.getByTestId("code-task-log-back").click();
     await expect(page).toHaveURL(taskPath(TASK.retries));
@@ -1199,5 +1280,9 @@ test.describe("dark mode and other languages", () => {
     await expect(
       page.getByTestId("code-turn-pull-request").first(),
     ).toContainText("Pull Request #418 geöffnet");
+    // How long AI worked, German unit and all.
+    await expect(page.getByTestId("code-turn-duration").first()).toHaveText(
+      "8 Minuten gearbeitet",
+    );
   });
 });
