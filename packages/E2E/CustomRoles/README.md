@@ -22,7 +22,8 @@ The suite drives custom roles the way a person does:
   empty page, and the built-in roles folded under it, opening to all forty;
 - the Teams menu: Roles in its Settings section, first, above Custom Fields;
   Settings folded on All Teams, open by itself on Roles, a role's page and
-  Custom Fields; and Roles reached from All Teams on a phone;
+  Custom Fields; and Roles reached from All Teams on a phone, whose menu
+  button's two lines ("Navigate to", "Settings / Roles") start at one edge;
 - Create Custom Role: a name and the built-in roles it bundles, each sent as
   its own permission of the role for every resource, then the new role's page;
   and a pick the server refuses (`?refuse=AlertMember`): the role is kept, and
@@ -36,9 +37,10 @@ The suite drives custom roles the way a person does:
   a label, Give to a Team offering only the teams that could take it, Remove
   saying what the team keeps, and a rename reaching the breadcrumb trail;
 - a team's Permissions page: its custom roles above its own permissions, the
-  role's copies left out of its own list, Add Custom Role offering only the
-  roles the team does not have, and the page as it always was in a project with
-  no custom role (`?roles=none`);
+  card's "Roles" a link to the Roles page (in German too), the role's copies
+  left out of its own list, Add Custom Role offering only the roles the team
+  does not have, and the page as it always was in a project with no custom
+  role (`?roles=none`);
 - Create Team: the custom roles after the built-in ones, only those the user
   could give (`?user=editor`), a search box once there are many
   (`?roles=many`), and the team opening on its Members page;
