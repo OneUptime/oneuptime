@@ -168,6 +168,13 @@ export default class WrongComponentKeyLimit {
     isKeyRight: boolean;
     componentExists: () => Promise<boolean>;
   }): Promise<WrongKeyRefusal | null> {
+    const limit: WrongKeyLimit = KINDS[data.kind].limit;
+
+    // Valkey away: keys are compared as always, and nothing is read to count.
+    if (!limit.isCounting()) {
+      return null;
+    }
+
     const subject: string | null = WrongComponentKeyLimit.canonicalId(
       data.componentId,
     );
@@ -195,7 +202,7 @@ export default class WrongComponentKeyLimit {
       );
     }
 
-    return await KINDS[data.kind].limit.check({
+    return await limit.check({
       req: data.req,
       wrongKey: wrongKey,
       subject: subject,

@@ -2,9 +2,10 @@
  * ---------------------------------------------------------------------------
  * The in-cluster Runner's registration, and the agent key it presents.
  *
- * A Runner given ONEUPTIME_SECRET registers as the global agent every
- * project shares (POST /api/ai-agent/register), under its
- * ONEUPTIME_RUNNER_KEY. OneUptime refuses a value its repository ships
+ * The installation's shared Runner (ONEUPTIME_RUNNER_SHARED=true) registers
+ * as the global agent every project shares (POST /api/ai-agent/register),
+ * with and under its ONEUPTIME_RUNNER_KEY. OneUptime refuses a value its
+ * repository ships
  * ("secret", a "please-change-this-to-random-value" placeholder) as an
  * agent key, so a Runner holding one:
  *
@@ -76,10 +77,6 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 type RegisterModule = typeof import("../../Services/RegisterRunner");
 
-// A cluster key of the operator's own: the Runner's other credential is fine.
-const OPERATOR_CLUSTER_KEY: string =
-  "9d4c2b7e1f3a5c8e0b6d4f2a7c9e1b3d5f7a9c2e4b6d8f0a";
-
 const SHIPPED_RUNNER_KEYS: Array<[string, string]> = [
   [
     "the placeholder config.example.env ships",
@@ -103,12 +100,15 @@ const OPERATOR_RUNNER_KEYS: Array<[string, string]> = [
   ["one that only starts like the old fallback", "secretive-runner-key-17"],
 ];
 
-// A Runner started in cluster-scoped mode with this ONEUPTIME_RUNNER_KEY.
+// The shared Runner, started with this ONEUPTIME_RUNNER_KEY and no cluster key.
 function loadRunner(runnerKey: string): RegisterModule {
   const savedClusterKey: string | undefined = process.env["ONEUPTIME_SECRET"];
+  const savedShared: string | undefined =
+    process.env["ONEUPTIME_RUNNER_SHARED"];
   const savedRunnerKey: string | undefined =
     process.env["ONEUPTIME_RUNNER_KEY"];
-  process.env["ONEUPTIME_SECRET"] = OPERATOR_CLUSTER_KEY;
+  delete process.env["ONEUPTIME_SECRET"];
+  process.env["ONEUPTIME_RUNNER_SHARED"] = "true";
   process.env["ONEUPTIME_RUNNER_KEY"] = runnerKey;
 
   let loaded: RegisterModule | null = null;
@@ -123,6 +123,12 @@ function loadRunner(runnerKey: string): RegisterModule {
       delete process.env["ONEUPTIME_SECRET"];
     } else {
       process.env["ONEUPTIME_SECRET"] = savedClusterKey;
+    }
+
+    if (savedShared === undefined) {
+      delete process.env["ONEUPTIME_RUNNER_SHARED"];
+    } else {
+      process.env["ONEUPTIME_RUNNER_SHARED"] = savedShared;
     }
 
     if (savedRunnerKey === undefined) {
@@ -166,7 +172,7 @@ describe.each(SHIPPED_RUNNER_KEYS)(
 
       expect(told).toHaveLength(1);
       expect(runner.SHIPPED_RUNNER_KEY_RUNNER_MESSAGE).toContain(
-        "Set ONEUPTIME_RUNNER_KEY to a long random value on this Runner",
+        "Set ONEUPTIME_RUNNER_KEY to the same long random value on this Runner and the OneUptime app",
       );
       expect(
         errorLog.some((line: string) => {
@@ -235,21 +241,29 @@ describe("the errors a setting the repository ships raises", () => {
   test("name the setting an operator sets, and are treated alike", () => {
     const runner: RegisterModule = loadRunner(OPERATOR_RUNNER_KEYS[0]![1]);
 
-    const clusterKeyError: Error = new runner.ShippedClusterKeyError();
     const runnerKeyError: Error = new runner.ShippedRunnerKeyError();
+    const projectRunnerKeyError: Error =
+      new runner.ShippedProjectRunnerKeyError();
 
-    expect(clusterKeyError).toBeInstanceOf(runner.ShippedSecretSettingError);
     expect(runnerKeyError).toBeInstanceOf(runner.ShippedSecretSettingError);
-    expect(
-      (clusterKeyError as InstanceType<typeof runner.ShippedSecretSettingError>)
-        .setting,
-    ).toBe("ONEUPTIME_SECRET");
+    expect(projectRunnerKeyError).toBeInstanceOf(
+      runner.ShippedSecretSettingError,
+    );
     expect(
       (runnerKeyError as InstanceType<typeof runner.ShippedSecretSettingError>)
         .setting,
     ).toBe("ONEUPTIME_RUNNER_KEY");
     expect(runnerKeyError.message).toBe(
       runner.SHIPPED_RUNNER_KEY_RUNNER_MESSAGE,
+    );
+
+    /*
+     * A shipped ONEUPTIME_SECRET is no such setting any more: the Runner
+     * registers with its own key and sends no cluster key it may not send.
+     */
+    expect(Object.keys(runner)).not.toContain("ShippedClusterKeyError");
+    expect(Object.keys(runner)).not.toContain(
+      "SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE",
     );
   });
 });

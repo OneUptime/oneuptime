@@ -118,6 +118,16 @@ export default class WrongKeyLimit {
   }
 
   /*
+   * Whether wrong keys are counted at all just now: false while Valkey cannot
+   * be reached, when every key is compared as it always was (FAILS OPEN
+   * above). A caller that would read something only to count a wrong key
+   * asks this first.
+   */
+  public isCounting(): boolean {
+    return Boolean(Redis.getClient()) && Redis.isConnected();
+  }
+
+  /*
    * For a request that presented a key, once the key was compared: the
    * refusal to answer it with when its client is over the limit - the wrong
    * key it presented counted first, when it was wrong - or null, when it may

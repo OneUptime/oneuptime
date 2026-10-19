@@ -6,6 +6,7 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
 import Response from "../../../Server/Utils/Response";
 import {
@@ -84,11 +85,13 @@ describe("FixFromIncident task-details investigation snapshot", () => {
     projectId = ObjectID.generate();
     taskId = ObjectID.generate();
 
-    jest.spyOn(CodeFixAgentAuth, "resolveAgentIdentity").mockResolvedValue({
-      id: ObjectID.generate(),
-      projectId,
-      source: CodeFixAgentSource.AIAgent,
-    });
+    jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
+      credentialCheckProving({
+        id: ObjectID.generate(),
+        projectId,
+        source: CodeFixAgentSource.AIAgent,
+      }),
+    );
     jest
       .spyOn(CodeFixAgentAuth, "deniesAccessToProject")
       .mockReturnValue(false);
