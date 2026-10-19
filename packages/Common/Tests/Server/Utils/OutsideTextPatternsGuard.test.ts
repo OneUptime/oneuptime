@@ -48,7 +48,11 @@ import path from "path";
  *  - what dig printed is read by DigOutput, never by a pattern tried from
  *    every "flags:" of a line;
  *  - a kubectl message with something between two phrases is looked for
- *    from the first time its first phrase is written on a line.
+ *    from the first time its first phrase is written on a line;
+ *  - the frame viewer reads a stack trace's lines (a Python header, a
+ *    frame's "at", call and location, a Go module's path) with
+ *    StackTraceLineText, and every pattern left in it reads the traces that
+ *    were slow quickly.
  *
  * And every pattern of these shapes, wherever it is, reads the texts that
  * were slow in well under two seconds.
@@ -145,6 +149,21 @@ const KUBECTL_PHRASES: RegExp =
 
 // Looked for from a line's first phrase: ^(?:(?!<phrase>).)*<phrase>.
 const FROM_FIRST_PHRASE: string = "^(?:(?!";
+
+// The Dashboard's frame viewer: every pattern in it reads a stack trace.
+const STACK_TRACE_PRESENTATION_FILE: string =
+  "packages/App/FeatureSet/Dashboard/src/Utils/StackTracePresentation.ts";
+const STACK_TRACE_LINE_TEXT_FILE: string =
+  "packages/App/FeatureSet/Dashboard/src/Utils/StackTraceLineText.ts";
+
+// What the frame viewer read a trace's lines with before StackTraceLineText.
+const FRAME_VIEWER_SHAPES_BEFORE: ReadonlyArray<string> = [
+  "^\\s*Traceback \\(most recent call last\\):\\s*$",
+  "^(\\s*at\\s+)(.*)$",
+  "^(.*?)(\\s*\\()([^()]*)(\\))$",
+  "(?:^|[/\\\\])[^\\s]*:\\d+(?::\\d+)?$",
+  "[/\\\\]pkg[/\\\\]mod[/\\\\](.+?)@v[\\d.]+",
+];
 
 const FAMILIES: ReadonlyArray<Family> = [
   {
@@ -408,6 +427,30 @@ const FAMILIES: ReadonlyArray<Family> = [
     slowTexts: [
       repeat("The connection to the server d", LENGTH),
       repeat(' is forbidden: User "', LENGTH),
+    ],
+  },
+  {
+    name: "a stack trace's lines in the frame viewer",
+    exampleFile: STACK_TRACE_PRESENTATION_FILE,
+    isMember: (pattern: SourcePattern): boolean => {
+      return (
+        pattern.file === STACK_TRACE_PRESENTATION_FILE ||
+        pattern.file === STACK_TRACE_LINE_TEXT_FILE
+      );
+    },
+    breaksRule: (pattern: SourcePattern): string | null => {
+      return FRAME_VIEWER_SHAPES_BEFORE.includes(pattern.source)
+        ? "read the line with StackTraceLineText"
+        : null;
+    },
+    mustFind: [STACK_TRACE_PRESENTATION_FILE],
+    oldShapes: FRAME_VIEWER_SHAPES_BEFORE,
+    slowTexts: [
+      repeat("\n", LENGTH) + "x",
+      "at x" + repeat(" ", LENGTH) + "y",
+      "at" + repeat(" ", LENGTH) + "x" + LINE_SEPARATOR + "y",
+      "at " + repeat("a/", LENGTH) + "b",
+      repeat("/pkg/mod/", LENGTH),
     ],
   },
 ];
@@ -817,6 +860,16 @@ describe("the readers each family is held to are the ones the product uses", () 
     [
       "packages/Common/Server/Utils/Database/PostgresErrorTranslator.ts",
       ["splitCapitalRunsBeforeWords("],
+    ],
+    [
+      STACK_TRACE_PRESENTATION_FILE,
+      [
+        "hasPythonTracebackHeaderLine(",
+        "readAtFrameLine(",
+        "readCallWithLocation(",
+        "endsWithFileLocation(",
+        "readGoModulePath(",
+      ],
     ],
   ])("%s", (file: string, calls: Array<string>) => {
     const text: string = fs.readFileSync(
