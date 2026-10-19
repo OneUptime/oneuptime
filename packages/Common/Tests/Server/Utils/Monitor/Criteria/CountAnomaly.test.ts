@@ -7,6 +7,9 @@ import {
   AnomalyDetectionMethod,
   FilterType,
 } from "../../../../../Types/Monitor/CriteriaFilter";
+import InBetween from "../../../../../Types/BaseDatabase/InBetween";
+import OneUptimeDate from "../../../../../Types/Date";
+import JSONFunctions from "../../../../../Types/JSONFunctions";
 
 /*
  * Pure math behind the span/log count anomaly criteria. The baseline
@@ -217,5 +220,43 @@ describe("CountAnomaly.evaluate", () => {
       filterType: FilterType.GreaterThan,
     });
     expect(evaluation!.breaches).toBe(false);
+  });
+});
+
+/*
+ * The log/trace criteria read the baseline of the hour their window sits
+ * in, so they need where the window they counted ends - earlier than now
+ * while the ingest queue is behind.
+ */
+describe("CountAnomaly.getWindowEnd", () => {
+  const end: Date = new Date("2026-10-05T02:55:00.000Z");
+  const window: InBetween<Date> = new InBetween(
+    new Date("2026-10-05T02:50:00.000Z"),
+    end,
+  );
+
+  test("the end of a span query's time range", () => {
+    expect(CountAnomaly.getWindowEnd(window).getTime()).toBe(end.getTime());
+  });
+
+  test("the end of a log query's time range, read in its JSON form", () => {
+    expect(
+      CountAnomaly.getWindowEnd(
+        JSONFunctions.anyObjectToJSONObject({ time: window })["time"],
+      ).getTime(),
+    ).toBe(end.getTime());
+  });
+
+  test("now when the query has no time range", () => {
+    const now: Date = new Date("2026-10-05T03:05:00.000Z");
+    const dateSpy: jest.SpyInstance = jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(now);
+
+    try {
+      expect(CountAnomaly.getWindowEnd(undefined)).toBe(now);
+    } finally {
+      dateSpy.mockRestore();
+    }
   });
 });

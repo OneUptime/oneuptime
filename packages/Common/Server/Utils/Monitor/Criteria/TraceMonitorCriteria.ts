@@ -121,15 +121,16 @@ export default class TraceMonitorCriteria {
         ),
         spanStatusCodes: traceMonitorStep?.spanStatuses,
         /*
-         * The count covers the window that ends now, so read the baseline of
-         * the hour that window mostly sits in. Keying it on "now" compares a
-         * window that has just crossed the top of the hour against the NEXT
-         * hour's baseline: after a busy hour that fires for a few minutes, and
-         * after a quiet one it goes deaf for as long.
+         * Read the baseline of the hour the counted window mostly sits in:
+         * the hour of its middle. Keying it on "now" compares a window that
+         * has just crossed the top of the hour against the NEXT hour's
+         * baseline: after a busy hour that fires for a few minutes, and after
+         * a quiet one it goes deaf for as long. The window ends where its
+         * query says - before now while the ingest queue is behind.
          */
         hourOfWeek: MetricBaselineServiceClass.computeHourOfWeek(
           OneUptimeDate.addRemoveSeconds(
-            OneUptimeDate.getCurrentDate(),
+            CountAnomaly.getWindowEnd(input.traceResponse.spanQuery?.startTime),
             -windowSeconds / 2,
           ),
         ),
