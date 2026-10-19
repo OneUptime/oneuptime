@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "Leyendo la cronología de la alerta",
   "Reading the incident timeline": "Leyendo la cronología del incidente",
   "Searching past incidents": "Buscando incidentes anteriores",
-  "Ranked by": "Ordenado por"
+  "Ranked by": "Ordenado por",
+  "Found {{count}} suspects among the recent changes": "Se encontraron {{count}} sospechosos entre los cambios recientes",
+  "Found {{count}} suspects among the recent changes_one": "Se encontró {{count}} sospechoso entre los cambios recientes",
+  "No recent changes recorded": "No hay cambios recientes registrados",
+  "Read what a change shipped": "Se leyó lo que incluyó un cambio",
+  "Read {{count}} recent changes; no suspect": "Se leyeron {{count}} cambios recientes; ninguno sospechoso",
+  "Read {{count}} recent changes; no suspect_one": "Se leyó {{count}} cambio reciente; no es sospechoso",
+  "AI fix": "Corrección de IA"
 }

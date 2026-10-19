@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "De tijdlijn van de waarschuwing lezen",
   "Reading the incident timeline": "De tijdlijn van het incident lezen",
   "Searching past incidents": "Eerdere incidenten doorzoeken",
-  "Ranked by": "Gesorteerd op"
+  "Ranked by": "Gesorteerd op",
+  "Found {{count}} suspects among the recent changes": "{{count}} verdachten gevonden onder de recente wijzigingen",
+  "Found {{count}} suspects among the recent changes_one": "{{count}} verdachte gevonden onder de recente wijzigingen",
+  "No recent changes recorded": "Geen recente wijzigingen vastgelegd",
+  "Read what a change shipped": "Inhoud van een wijziging gelezen",
+  "Read {{count}} recent changes; no suspect": "{{count}} recente wijzigingen gelezen; geen verdachte",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} recente wijziging gelezen; niet verdacht",
+  "AI fix": "AI-oplossing"
 }

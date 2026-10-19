@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "Zeitachse der Warnung wird gelesen",
   "Reading the incident timeline": "Zeitachse des Vorfalls wird gelesen",
   "Searching past incidents": "Frühere Vorfälle werden durchsucht",
-  "Ranked by": "Sortiert nach"
+  "Ranked by": "Sortiert nach",
+  "Found {{count}} suspects among the recent changes": "{{count}} verdächtige Änderungen unter den letzten Änderungen gefunden",
+  "Found {{count}} suspects among the recent changes_one": "{{count}} verdächtige Änderung unter den letzten Änderungen gefunden",
+  "No recent changes recorded": "Keine letzten Änderungen erfasst",
+  "Read what a change shipped": "Inhalt einer Änderung gelesen",
+  "Read {{count}} recent changes; no suspect": "{{count}} letzte Änderungen gelesen; keine verdächtig",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} letzte Änderung gelesen; nicht verdächtig",
+  "AI fix": "KI-Korrektur"
 }

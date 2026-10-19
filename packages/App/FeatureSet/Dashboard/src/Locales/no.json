@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "Leser varselets tidslinje",
   "Reading the incident timeline": "Leser hendelsens tidslinje",
   "Searching past incidents": "Søker i tidligere hendelser",
-  "Ranked by": "Sortert etter"
+  "Ranked by": "Sortert etter",
+  "Found {{count}} suspects among the recent changes": "Fant {{count}} mistenkte blant de siste endringene",
+  "Found {{count}} suspects among the recent changes_one": "Fant {{count}} mistenkt blant de siste endringene",
+  "No recent changes recorded": "Ingen nylige endringer registrert",
+  "Read what a change shipped": "Leste innholdet i en endring",
+  "Read {{count}} recent changes; no suspect": "Leste {{count}} nylige endringer; ingen mistenkt",
+  "Read {{count}} recent changes; no suspect_one": "Leste {{count}} nylig endring; ikke mistenkt",
+  "AI fix": "AI-retting"
 }

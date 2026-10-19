@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "خواندن خط زمانی هشدار",
   "Reading the incident timeline": "خواندن خط زمانی حادثه",
   "Searching past incidents": "جست‌وجوی حادثه‌های گذشته",
-  "Ranked by": "مرتب‌سازی بر اساس"
+  "Ranked by": "مرتب‌سازی بر اساس",
+  "Found {{count}} suspects among the recent changes": "{{count}} مورد مشکوک در میان تغییرهای اخیر پیدا شد",
+  "Found {{count}} suspects among the recent changes_one": "{{count}} مورد مشکوک در میان تغییرهای اخیر پیدا شد",
+  "No recent changes recorded": "هیچ تغییر اخیری ثبت نشده است",
+  "Read what a change shipped": "محتوای یک تغییر خوانده شد",
+  "Read {{count}} recent changes; no suspect": "{{count}} تغییر اخیر خوانده شد؛ هیچ‌کدام مشکوک نیست",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} تغییر اخیر خوانده شد؛ مشکوک نیست",
+  "AI fix": "اصلاح هوش مصنوعی"
 }

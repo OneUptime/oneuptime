@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "अलर्ट की टाइमलाइन पढ़ी जा रही है",
   "Reading the incident timeline": "घटना की टाइमलाइन पढ़ी जा रही है",
   "Searching past incidents": "पिछली घटनाएँ खोजी जा रही हैं",
-  "Ranked by": "क्रम का आधार"
+  "Ranked by": "क्रम का आधार",
+  "Found {{count}} suspects among the recent changes": "हाल के परिवर्तनों में {{count}} संदिग्ध मिले",
+  "Found {{count}} suspects among the recent changes_one": "हाल के परिवर्तनों में {{count}} संदिग्ध मिला",
+  "No recent changes recorded": "कोई हाल का परिवर्तन दर्ज नहीं",
+  "Read what a change shipped": "एक परिवर्तन की सामग्री पढ़ी",
+  "Read {{count}} recent changes; no suspect": "{{count}} हाल के परिवर्तन पढ़े; कोई संदिग्ध नहीं",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} हाल का परिवर्तन पढ़ा; संदिग्ध नहीं",
+  "AI fix": "AI सुधार"
 }

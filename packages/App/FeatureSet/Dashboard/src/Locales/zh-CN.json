@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "正在读取警报时间线",
   "Reading the incident timeline": "正在读取事件时间线",
   "Searching past incidents": "正在搜索过去的事件",
-  "Ranked by": "排序依据"
+  "Ranked by": "排序依据",
+  "Found {{count}} suspects among the recent changes": "在最近的更改中发现 {{count}} 个可疑项",
+  "Found {{count}} suspects among the recent changes_one": "在最近的更改中发现 {{count}} 个可疑项",
+  "No recent changes recorded": "没有记录到最近的更改",
+  "Read what a change shipped": "已读取更改的内容",
+  "Read {{count}} recent changes; no suspect": "已读取 {{count}} 个最近的更改；没有可疑项",
+  "Read {{count}} recent changes; no suspect_one": "已读取 {{count}} 个最近的更改；没有可疑项",
+  "AI fix": "AI 修复"
 }

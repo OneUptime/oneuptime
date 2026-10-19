@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "Læser advarslens tidslinje",
   "Reading the incident timeline": "Læser hændelsens tidslinje",
   "Searching past incidents": "Søger i tidligere hændelser",
-  "Ranked by": "Sorteret efter"
+  "Ranked by": "Sorteret efter",
+  "Found {{count}} suspects among the recent changes": "Fandt {{count}} mistænkte blandt de seneste ændringer",
+  "Found {{count}} suspects among the recent changes_one": "Fandt {{count}} mistænkt blandt de seneste ændringer",
+  "No recent changes recorded": "Ingen seneste ændringer registreret",
+  "Read what a change shipped": "Læste indholdet af en ændring",
+  "Read {{count}} recent changes; no suspect": "Læste {{count}} seneste ændringer; ingen mistænkt",
+  "Read {{count}} recent changes; no suspect_one": "Læste {{count}} seneste ændring; ikke mistænkt",
+  "AI fix": "AI-rettelse"
 }

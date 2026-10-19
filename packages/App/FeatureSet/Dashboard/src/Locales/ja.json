@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "アラートのタイムラインを読み取り中",
   "Reading the incident timeline": "インシデントのタイムラインを読み取り中",
   "Searching past incidents": "過去のインシデントを検索中",
-  "Ranked by": "並べ替え"
+  "Ranked by": "並べ替え",
+  "Found {{count}} suspects among the recent changes": "最近の変更の中に疑わしい変更が {{count}} 件見つかりました",
+  "Found {{count}} suspects among the recent changes_one": "最近の変更の中に疑わしい変更が {{count}} 件見つかりました",
+  "No recent changes recorded": "最近の変更は記録されていません",
+  "Read what a change shipped": "変更の内容を読み取りました",
+  "Read {{count}} recent changes; no suspect": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
+  "Read {{count}} recent changes; no suspect_one": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
+  "AI fix": "AI による修正"
 }

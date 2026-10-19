@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "正在讀取警示時間軸",
   "Reading the incident timeline": "正在讀取事件時間軸",
   "Searching past incidents": "正在搜尋過去的事件",
-  "Ranked by": "排序依據"
+  "Ranked by": "排序依據",
+  "Found {{count}} suspects among the recent changes": "在最近的變更中發現 {{count}} 個可疑項目",
+  "Found {{count}} suspects among the recent changes_one": "在最近的變更中發現 {{count}} 個可疑項目",
+  "No recent changes recorded": "沒有記錄到最近的變更",
+  "Read what a change shipped": "已讀取變更的內容",
+  "Read {{count}} recent changes; no suspect": "已讀取 {{count}} 個最近的變更；沒有可疑項目",
+  "Read {{count}} recent changes; no suspect_one": "已讀取 {{count}} 個最近的變更；沒有可疑項目",
+  "AI fix": "AI 修復"
 }

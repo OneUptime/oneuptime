@@ -244,6 +244,27 @@ export interface AIRunEventResultSummary {
    * (ProgressLog events; see Server/Utils/AI/SRE/IncidentFollowUpCheck).
    */
   followUpCheck?: FollowUpCheckActivity | undefined;
+  /*
+   * The changes recorded before an investigation's subject, and how many of
+   * them its service's telemetry made suspects (ProgressLog events; see
+   * Server/Utils/AI/SRE/RecentChangesContext). Worded in the reader's
+   * language by the run's activity; `message` is the English.
+   */
+  recentChanges?: RecentChangesActivity | undefined;
+}
+
+// What an investigation read about the changes recorded before its subject.
+export interface RecentChangesActivity {
+  // The changes listed in the starting context.
+  changeCount: number;
+  // How many of them were followed by a jump in their service's telemetry.
+  suspectCount: number;
+  // How many of them had their service's telemetry checked.
+  checkedCount: number;
+  // True when more changes were recorded than were listed.
+  hasMoreChanges: boolean;
+  // How far before the subject a change counted.
+  lookbackMinutes: number;
 }
 
 // What an investigation read about its subject's linked infrastructure.

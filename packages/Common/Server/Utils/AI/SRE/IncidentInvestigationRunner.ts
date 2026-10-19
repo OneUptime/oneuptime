@@ -66,6 +66,7 @@ import WorkspaceNotificationText from "../../Workspace/WorkspaceNotificationText
 import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
+import RecentChangesContext, { RecentChanges } from "./RecentChangesContext";
 import IncidentFollowUpCheck, {
   FollowUpCheckContext,
 } from "./IncidentFollowUpCheck";
@@ -449,12 +450,13 @@ export default class AIIncidentInvestigationRunner {
        * alerts on it (issue #4786). Enrichment only: a read that fails
        * leaves the context as it was.
        */
+      let linked: LinkedInfrastructure | null = null;
+
       try {
-        const linked: LinkedInfrastructure | null =
-          await LinkedInfrastructureContext.readForIncident({
-            projectId,
-            incidentId,
-          });
+        linked = await LinkedInfrastructureContext.readForIncident({
+          projectId,
+          incidentId,
+        });
         const linkedNote: AIRunEventResultSummary | null =
           LinkedInfrastructureContext.buildActivityNote(linked);
 
@@ -467,6 +469,35 @@ export default class AIIncidentInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not read the linked infrastructure of incident ${incidentId.toString()}; investigating it without it: ${error}`,
+        );
+      }
+
+      /*
+       * The changes recorded before the incident - deploys, rollouts, config
+       * changes, OneUptime's own fixes - and which of them its services'
+       * telemetry makes suspects (RecentChangesContext). Enrichment only: a
+       * read that fails leaves the context as it was.
+       */
+      try {
+        const recentChanges: RecentChanges | null =
+          await RecentChangesContext.read({
+            projectId,
+            subjectKind: "incident",
+            subjectId: incidentId,
+            linked,
+          });
+        const changesNote: AIRunEventResultSummary | null =
+          RecentChangesContext.buildActivityNote(recentChanges);
+
+        contextSummary +=
+          RecentChangesContext.buildContextSection(recentChanges);
+
+        if (changesNote) {
+          contextNotes.push(changesNote);
+        }
+      } catch (error) {
+        logger.error(
+          `AI: could not read the recent changes of incident ${incidentId.toString()}; investigating it without them: ${error}`,
         );
       }
 

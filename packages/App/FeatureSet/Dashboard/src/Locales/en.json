@@ -30066,5 +30066,12 @@
   "Reading the alert timeline": "Reading the alert timeline",
   "Reading the incident timeline": "Reading the incident timeline",
   "Searching past incidents": "Searching past incidents",
-  "Ranked by": "Ranked by"
+  "Ranked by": "Ranked by",
+  "Found {{count}} suspects among the recent changes": "Found {{count}} suspects among the recent changes",
+  "Found {{count}} suspects among the recent changes_one": "Found {{count}} suspect among the recent changes",
+  "No recent changes recorded": "No recent changes recorded",
+  "Read what a change shipped": "Read what a change shipped",
+  "Read {{count}} recent changes; no suspect": "Read {{count}} recent changes; no suspect",
+  "Read {{count}} recent changes; no suspect_one": "Read {{count}} recent change; no suspect",
+  "AI fix": "AI fix"
 }
