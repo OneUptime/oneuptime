@@ -160,16 +160,21 @@ export FAKE_IMAGES_DIR="$IMAGES_DIR"
 
 RUNS_FILE="${IMAGES_DIR}/runs"
 
-# Writes an image's docker-inspect .Config. The version label is optional.
+# The App image's CMD: npm start's command through sh, which execs node.
+# Single-quoted so the heredoc below leaves its ${NODE_OPTIONS...} alone.
+GOOD_CMD='["sh","-c","export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts"]'
+
+# Writes an image's docker-inspect .Config. The version label and the CMD
+# (GOOD_CMD unless given) are optional.
 write_config() {
-	local image="$1" edition="$2" licenses="$3" user="$4" transpile="$5" is_ee="$6" oneuptime_edition="$7" version="${8:-}"
+	local image="$1" edition="$2" licenses="$3" user="$4" transpile="$5" is_ee="$6" oneuptime_edition="$7" version="${8:-}" cmd="${9:-$GOOD_CMD}"
 	local env_entries="\"PATH=/usr/local/bin\",\"TS_NODE_TRANSPILE_ONLY=${transpile}\",\"IS_ENTERPRISE_EDITION=${is_ee}\""
 	if [[ -n "$oneuptime_edition" ]]; then
 		env_entries="${env_entries},\"ONEUPTIME_EDITION=${oneuptime_edition}\""
 	fi
 	mkdir -p "${IMAGES_DIR}/${image}"
 	cat > "${IMAGES_DIR}/${image}/config.json" <<EOF
-{"User":"${user}","Cmd":["npm","start"],"Env":[${env_entries}],"Labels":{"com.oneuptime.edition":"${edition}","org.opencontainers.image.licenses":"${licenses}","org.opencontainers.image.version":"${version}"}}
+{"User":"${user}","Cmd":${cmd},"Env":[${env_entries}],"Labels":{"com.oneuptime.edition":"${edition}","org.opencontainers.image.licenses":"${licenses}","org.opencontainers.image.version":"${version}"}}
 EOF
 }
 
@@ -585,6 +590,13 @@ status=0
 output="$(run_check --image ee-root --edition enterprise)" || status=$?
 assert_eq 1 "$status" "fails an image that runs as root"
 assert_contains "$output" "❌ runs as the node user" "names the user"
+
+good_enterprise ee-npm-start
+write_config ee-npm-start enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 1 true enterprise "" '["npm","start"]'
+status=0
+output="$(run_check --image ee-npm-start --edition enterprise)" || status=$?
+assert_eq 1 "$status" "fails an image that starts through npm"
+assert_contains "$output" "❌ CMD execs node itself, without npm" "names the CMD"
 
 good_enterprise ee-typecheck-at-boot
 write_config ee-typecheck-at-boot enterprise "Apache-2.0 AND LicenseRef-OneUptime-Enterprise" node 0 true enterprise
