@@ -206,7 +206,7 @@ are fine, one per version. The status names the others still open.
 | Labels | Whose move | What to do |
 | --- | --- | --- |
 | `New-Package`, `Azure-Pipeline-Passed`, `Validation-Completed`, `Moderator-Approved`, `Internal-Error-*`, `Validation-Retry` | Microsoft's | Nothing. Internal errors are their pipeline's, and they retry |
-| `Needs-CLA` | Ours | From the account that opened the pull request, comment `@microsoft-github-policy-service agree company="HackerBay, Inc."`. It was agreed on #455532 on 18 October 2026, and the agreement covers later pull requests. The bot sometimes adds the label before it notices the agreement. Commenting again clears it |
+| `Needs-CLA` | Ours | The bot asks on every pull request, so the publish job comments `@microsoft-github-policy-service agree company="HackerBay, Inc."` on each one it opens, and on one with the label when it runs again. If the label stays, post that comment by hand from the account that opened the pull request. The bot takes the label off within a minute |
 | `Needs-Author-Feedback`, `Changes-Requested` | Ours | Read the moderator's comment and answer from the same account. The bot closes a pull request that waits on its author for too long |
 | Any `...-Error` or `...-Failed` label, e.g. `Validation-Installation-Error`, `Error-Hash-Mismatch` | Ours | Read the validation comment, which links the logs. Fix the `winget` section of `.goreleaser.yaml`, then replace the pull request (below) or let the next release bring the fix |
 | `Possible-Duplicate` | Ours | Two pull requests add the same new package. Keep the one a moderator is reviewing and close the other if asked |
@@ -295,6 +295,11 @@ change.
   07:36 UTC, before the cask's fix (#5041) was merged. It is the first with the
   arm64 MSI built as an x64 package, so it installs in `C:\Program Files`
   (both MSIs are x64 packages that install per machine). Its cask still uses
-  `postflight`.
+  `postflight`. Its winget pull request,
+  [#455948](https://github.com/microsoft/winget-pkgs/pull/455948), got
+  `Needs-CLA` like the two before it, so the CLA agreement was posted by hand
+  again, and the publish job now posts it on every pull request it opens.
 - **14.0.76**: the first built with the cask Homebrew 7 does not warn about
-  (`postflight_steps`). Its release run started at 12:07 UTC on 19 October.
+  (`postflight_steps`). Its release run started at 12:07 UTC on 19 October,
+  before the publish job posted the CLA agreement, so its winget pull request
+  needs the agreement by hand.
