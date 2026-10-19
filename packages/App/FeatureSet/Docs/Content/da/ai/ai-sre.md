@@ -53,6 +53,7 @@ En undersøgelse starter ved hændelsen eller advarslen og ved den infrastruktur
 - Advarslerne på den infrastruktur, der blev åbnet i de 30 minutter før hændelsen eller stadig er åbne, de nyeste først, som advarslen om høj CPU på værten bag et langsomt site. Private advarsler udelades.
 - Infrastrukturens egne metrikker, læst sådan som mennesker læser dem. Værtsmetrikker som `system.cpu.utilization` og `system.memory.utilization` rapporteres én gang pr. tilstand, og tilstandene giver tilsammen 100 %, så ét gennemsnit over dem alle siger intet. OneUptime AI læser dem én tilstand ad gangen (optaget CPU er user plus system), og enhver metrik pr. container, pr. monteringspunkt eller efter enhver anden attribut.
 - Containerne på en Docker- eller Podman-vært: de travleste efter CPU, hukommelse eller genstarter, og dem, der holdt op med at rapportere. En stoppet container sender intet i stedet for nul, så tallene for hele værten skjuler den.
+- De ændringer, der er registreret i de 2 timer før hændelsen eller advarslen (udrulninger, Kubernetes-rollouts, konfigurationsændringer og de rettelser, OneUptime kørte), og hvilke af dem dens tjenesters telemetri gør til mistænkte: en tjeneste, der blev målbart dårligere lige efter en ændring. Se [Udrulninger og ændringer](/docs/telemetry/change-events).
 
 Undersøgelsens aktivitet på kortet **AI Investigation** fortæller, hvor mange åbne eller nye advarsler den læste, og på hvilke ressourcer.
 

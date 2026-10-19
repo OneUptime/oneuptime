@@ -53,6 +53,7 @@ En utredning utgår från incidenten eller larmet och från infrastrukturen den 
 - Larmen på den infrastrukturen som öppnades under de 30 minuterna före incidenten eller fortfarande är öppna, de nyaste först, som larmet om hög CPU på värden bakom en långsam webbplats. Privata larm utelämnas.
 - Infrastrukturens egna mätvärden, lästa så som människor läser dem. Värdmätvärden som `system.cpu.utilization` och `system.memory.utilization` rapporteras en gång per tillstånd, och tillstånden summerar till 100 %, så ett medelvärde över dem alla säger ingenting. OneUptime AI läser dem ett tillstånd i taget (upptagen CPU är user plus system), och vilket mätvärde som helst per container, per monteringspunkt eller efter vilket annat attribut som helst.
 - Containrarna på en Docker- eller Podman-värd: de mest belastade efter CPU, minne eller omstarter, och de som slutade rapportera. En stoppad container skickar ingenting i stället för noll, så siffrorna för hela värden döljer den.
+- Ändringarna som registrerades under de 2 timmarna före incidenten eller larmet (driftsättningar, utrullningar i Kubernetes, konfigurationsändringar och de åtgärder som OneUptime körde) och vilka av dem som tjänsternas telemetri gör misstänkta: en tjänst som blev mätbart sämre direkt efter en ändring. Se [Driftsättningar och ändringar](/docs/telemetry/change-events).
 
 Utredningens aktivitet på kortet **AI Investigation** säger hur många öppna eller nya larm den läste, och på vilka resurser.
 

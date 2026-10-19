@@ -53,6 +53,7 @@ Un'indagine parte dall'incidente o dall'avviso e dall'infrastruttura a cui è co
 - Gli avvisi su quell'infrastruttura aperti nei 30 minuti prima dell'incidente, o ancora aperti, dal più recente, come l'avviso di CPU alta dell'host dietro un sito lento. Gli avvisi privati sono esclusi.
 - Le metriche proprie dell'infrastruttura, lette come le leggono le persone. Le metriche di host come `system.cpu.utilization` e `system.memory.utilization` sono riportate una volta per stato, e gli stati sommano al 100%, quindi una media su tutti non dice nulla. OneUptime AI le legge uno stato alla volta (la CPU occupata è user più system), e qualsiasi metrica per container, per punto di montaggio o per qualsiasi altro attributo.
 - I container di un host Docker o Podman: i più carichi per CPU, memoria o riavvii, e quelli che hanno smesso di inviare dati. Un container fermo non invia nulla invece di zero, quindi i numeri dell'intero host lo nascondono.
+- Le modifiche registrate nelle 2 ore prima dell'incidente o dell'avviso (deploy, rollout di Kubernetes, modifiche di configurazione e le correzioni eseguite da OneUptime) e quali di esse la telemetria dei suoi servizi rende sospette: un servizio peggiorato in modo misurabile subito dopo una modifica. Vedi [Deploy e modifiche](/docs/telemetry/change-events).
 
 L'attività dell'indagine nella scheda **AI Investigation** dice quanti avvisi aperti o recenti ha letto e su quali risorse.
 

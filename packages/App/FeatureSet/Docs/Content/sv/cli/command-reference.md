@@ -6,7 +6,7 @@ Varje kommando i CLI:n `oneuptime`, med dess argument, alternativ och standardv�
 - [Globala alternativ](#globala-alternativ): Alternativen som varje kommando tar.
 - [Inloggning och kontexter](#inloggning-och-kontexter): login och context-kommandona.
 - [Resurskommandon](#resurskommandon): list, get, create, update, delete och count.
-- [Andra kommandon](#andra-kommandon): whoami, resources, version och help.
+- [Andra kommandon](#andra-kommandon): deploy, whoami, resources, version och help.
 :::
 
 ## Kommandona
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>och varje resurs"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## Globala alternativ
@@ -222,6 +222,31 @@ Varje operation är en begäran till API:et, med nyckeln i headern `APIKey`. `<p
 
 ## Andra kommandon
 
+### `oneuptime deploy`
+
+Registrerar en driftsättning, eller en annan ändring, från en pipeline: den ritas i tjänstens diagram och läses av OneUptime AI när den utreder en incident. Kommandot skriver med en intagningsnyckel för telemetri, inte med en API-nyckel. Se [Driftsättningar och ändringar](/docs/telemetry/change-events).
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| Alternativ | Krävs | Vad det är | Standard |
+| --- | --- | --- | --- |
+| `--service <name>` | Nej | Tjänsten som driftsattes | En ändring för hela projektet |
+| `--service-version <version>` | Nej | Den driftsatta versionen | |
+| `--previous-version <version>` | Nej | Versionen som den ersatte | |
+| `--commit <sha>` | Nej | Den driftsatta committen | |
+| `--repository <url>` | Nej | Repositoryt som committen finns i | |
+| `--branch <name>` | Nej | Den driftsatta branchen | |
+| `--pull-request <number>` | Nej | Den driftsatta pull requesten | |
+| `--environment <name>` | Nej | Miljön som driftsättningen gjordes i | |
+| `--title <title>` | Nej | Ändringens titel; krävs för alla sorters ändringar utom driftsättningar | `Deploy <version>` |
+| `--description <text>` | Nej | Detaljer om ändringen | |
+| `--type <type>` | Nej | Typen av ändring, till exempel `config-change` eller `rollback` | `deployment` |
+| `--time <time>` | Nej | När den hände, till exempel `2026-10-19T10:00:00Z` | Nu |
+| `--attribute <key=value...>` | Nej | Fler attribut, som `key=value`, ett eller flera | |
+| `--ingestion-key <key>` | Nej | En intagningsnyckel för telemetri från projektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 Visar URL:en och API-nyckeln som nästa kommando kommer att använda, med nyckeln maskerad, och kontexten de kommer från. Den anropar inte OneUptime. Se [Kontrollera vad CLI:n kommer att använda](/docs/cli/authentication#kontrollera-vad-clin-kommer-att-använda).
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | API-nyckeln, när ingen `--api-key`-flagga anger en |
 | `ONEUPTIME_URL` | Adressen till ditt OneUptime, när ingen `--url`-flagga anger en |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Intagningsnyckeln för telemetri som `oneuptime deploy` skriver med, när ingen `--ingestion-key`-flagga anger en |
 | `NO_COLOR` | Satt till valfritt värde stänger den av färger |
 
 ## Filer

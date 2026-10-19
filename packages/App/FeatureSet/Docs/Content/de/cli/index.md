@@ -82,6 +82,7 @@ Die Liste zeigt jede Art von Datensatz, mit der Sie arbeiten können, und ihren 
 | `oneuptime login <api-key> <instance-url>` | Speichert einen API-Schlüssel und eine Adresse als Kontext | [Authentifizierung](/docs/cli/authentication#anmelden) |
 | `oneuptime context list`, `use`, `current`, `delete` | Listet, wechselt, zeigt und löscht gespeicherte Kontexte | [Authentifizierung](/docs/cli/authentication#kontexte) |
 | `oneuptime whoami` | Zeigt die URL und den API-Schlüssel, die der nächste Befehl verwendet | [Authentifizierung](/docs/cli/authentication#prüfen-was-die-cli-verwenden-wird) |
+| `oneuptime deploy` | Zeichnet einen Deploy oder eine andere Änderung für die Diagramme und OneUptime AI auf | [Deploys und Änderungen](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbeitet mit einer Art von Datensatz | [Ressourcenoperationen](/docs/cli/resource-operations) |
 | `oneuptime resources` | Listet die Arten von Datensätzen mit ihren Befehlen auf | [Befehlsreferenz](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Gibt die Version der CLI aus | [Befehlsreferenz](/docs/cli/command-reference#oneuptime-version) |

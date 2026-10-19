@@ -82,6 +82,7 @@ oneuptime resources
 | `oneuptime login <api-key> <instance-url>` | 将 API 密钥和地址保存为上下文 | [认证](/docs/cli/authentication#登录) |
 | `oneuptime context list`, `use`, `current`, `delete` | 列出、切换、显示和删除已保存的上下文 | [认证](/docs/cli/authentication#上下文) |
 | `oneuptime whoami` | 显示下一条命令将使用的 URL 和 API 密钥 | [认证](/docs/cli/authentication#检查-cli-将使用什么) |
+| `oneuptime deploy` | 为图表和 OneUptime AI 记录一次部署或其他变更 | [部署与变更](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 处理一种记录 | [资源操作](/docs/cli/resource-operations) |
 | `oneuptime resources` | 列出各种记录及其命令 | [命令参考](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | 打印 CLI 的版本 | [命令参考](/docs/cli/command-reference#oneuptime-version) |

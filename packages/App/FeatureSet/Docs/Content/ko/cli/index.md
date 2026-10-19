@@ -82,6 +82,7 @@ oneuptime resources
 | `oneuptime login <api-key> <instance-url>` | API 키와 주소를 컨텍스트로 저장합니다 | [인증](/docs/cli/authentication#로그인) |
 | `oneuptime context list`, `use`, `current`, `delete` | 저장된 컨텍스트를 나열, 전환, 표시, 삭제합니다 | [인증](/docs/cli/authentication#컨텍스트) |
 | `oneuptime whoami` | 다음 명령이 사용할 URL과 API 키를 보여 줍니다 | [인증](/docs/cli/authentication#cli가-사용할-값-확인) |
+| `oneuptime deploy` | 차트와 OneUptime AI를 위해 배포나 다른 변경을 기록합니다 | [배포 및 변경 사항](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 한 종류의 레코드를 다룹니다 | [리소스 작업](/docs/cli/resource-operations) |
 | `oneuptime resources` | 레코드 종류를 명령과 함께 나열합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | CLI 버전을 출력합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-version) |
