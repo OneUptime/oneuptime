@@ -332,6 +332,7 @@ import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
 import UserSession from "./UserSession";
 import UserProjectSsoConsent from "./UserProjectSsoConsent";
+import UserProjectSsoIdentity from "./UserProjectSsoIdentity";
 import UserCall from "./UserCall";
 // Notification Methods
 import UserEmail from "./UserEmail";
@@ -526,6 +527,7 @@ import ServiceFeed from "./ServiceFeed";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
+import ProjectSCIMUser from "./ProjectSCIMUser";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
 import MarketplaceSubscription from "./MarketplaceSubscription";
@@ -933,6 +935,7 @@ const AllModelTypes: Array<{
 
   UserSession,
   UserProjectSsoConsent,
+  UserProjectSsoIdentity,
   UserTotpAuth,
   UserTwoFactorBackupCode,
   UserWebAuthn,
@@ -982,6 +985,7 @@ const AllModelTypes: Array<{
 
   ProjectSCIM,
   ProjectSCIMLog,
+  ProjectSCIMUser,
   StatusPageSCIMLog,
 
   KubernetesCluster,

@@ -40,7 +40,8 @@ OneUptime læser kun få ting fra den assertion, din IdP sender:
 | Recipient og Destination | Skal være udbyderens **Reply URL**, den adresse, svaret blev sendt til. |
 | `NotBefore` og `NotOnOrAfter` | Svaret accepteres kun, så længe de tillader det, og senest 10 minutter efter, at det blev udstedt, med 3 minutters spillerum for ure, der ikke går ens. |
 | Name ID | Personens e-mailadresse. Den skal være en gyldig e-mailadresse. |
-| `http://schemas.microsoft.com/identity/claims/displayname` | Personens navn, som bruges, når OneUptime opretter kontoen. Valgfri. |
+| Navneattributter | Personens navn, som bruges, når OneUptime opretter kontoen: et visningsnavn (`displayName` eller `http://schemas.microsoft.com/identity/claims/displayname`) eller et for- og efternavn (`firstName` og `lastName` eller claimene `givenname` og `surname`, som Microsoft Entra ID sender som standard). Valgfri. |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | Personens objekt-ID, som Microsoft Entra ID sender som standard. Det første login via udbyderen knytter kontoen til det, og et senere login, der angiver kontoens e-mailadresse med et andet objekt-ID, afvises. Valgfri. |
 
 Hvert svar logger kun ind én gang. Sendes det igen, for eksempel når du går tilbage i browseren efter at have logget ind, afvises det: log ind igen.
 
@@ -133,14 +134,15 @@ Keycloak er en populær open source-løsning til identitets- og adgangsstyring. 
    Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen. Du bør blive sendt til Keycloaks loginside og tilbage til OneUptime.
 :::
 @tab Microsoft Entra ID
-Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudbaserede identitetstjeneste. Du skal bruge en lejer, der understøtter virksomhedsapplikationer med SAML-SSO, og administratoradgang til både Entra ID og OneUptime.
+Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudbaserede identitetstjeneste. Du skal bruge en lejer, der understøtter virksomhedsapplikationer med SAML-SSO, og administratoradgang til både Entra ID og OneUptime. Findes OneUptime i Microsoft Entra-applikationsgalleriet, så tilføj appen derfra på OneUptime Cloud: den leveres med de claims, OneUptime læser, og mønstrene for OneUptimes URL'er.
 
 :::steps
 1. **Opret en virksomhedsapplikation i Entra ID**
 
    - Log ind i [Microsoft Entra admin center](https://entra.microsoft.com)
-   - Gå til **Identity** > **Applications** > **Enterprise applications**, klik på **+ New application** og derefter på **+ Create your own application**
-   - Indtast et navn (f.eks. "OneUptime"), vælg **Integrate any other application you don't find in the gallery (Non-gallery)**, og klik på **Create**
+   - Gå til **Identity** > **Applications** > **Enterprise applications**, og klik på **+ New application**
+   - Fra galleriet: søg efter OneUptime, vælg den, og klik på **Create**
+   - Ellers: klik på **+ Create your own application**, indtast et navn (f.eks. "OneUptime"), vælg **Integrate any other application you don't find in the gallery (Non-gallery)**, og klik på **Create**
 
 2. **Kopiér Entra ID's SAML-værdier**
 
@@ -169,10 +171,10 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudba
 
 5. **Send e-mailen som Name ID**
 
-   Klik på **Edit** under **Attributes & Claims**:
+   Klik på **Edit** under **Attributes & Claims**. Applikationen fra galleriet har allerede disse indstillinger: kontrollér dem.
    - Sæt **Unique User Identifier (Name ID)** til brugerens e-mailadresse: `user.mail`, eller `user.userprincipalname`, hvor det er e-mailadressen
    - Sæt **Name identifier format** til `Email address`
-   - Tilføj eventuelt et claim med navnet `http://schemas.microsoft.com/identity/claims/displayname` og kildeattributten `user.displayname`, så nye konti får personens navn. OneUptime ignorerer de øvrige claims
+   - Behold Entra ID's standardclaims: nye konti får personens navn fra `givenname` og `surname`, og kontoen knyttes til personens objekt-ID, `objectidentifier`. Tilføj eventuelt et claim med navnet `http://schemas.microsoft.com/identity/claims/displayname` og kildeattributten `user.displayname`, så nye konti i stedet får visningsnavnet. OneUptime ignorerer de øvrige claims
 
 6. **Tildel brugere og grupper**
 
@@ -183,13 +185,14 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudba
    Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen. Du bør blive sendt til Microsofts loginside og tilbage til OneUptime.
 :::
 @tab Okta
-Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organisation med administratoradgang og administratoradgang til OneUptime.
+Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organisation med administratoradgang og administratoradgang til OneUptime. Findes OneUptime i Okta Integration Network, så tilføj appen derfra på OneUptime Cloud: den logger personer ind fra OneUptimes side **Log ind med SSO** og fra deres Okta-dashboard, giver dem en konto ved deres første login og beder om to ID'er i stedet for OneUptimes URL'er.
 
 :::steps
-1. **Opret en SAML-applikation i Okta**
+1. **Føj OneUptime til Okta**
 
-   - Gå til **Applications** > **Applications** i Okta Admin Console, og klik på **Create App Integration**
-   - Vælg **SAML 2.0**, og klik på **Next**, indtast "OneUptime" som **App name**, og klik på **Next**
+   - Gå til **Applications** > **Applications** i Okta Admin Console
+   - Fra Okta Integration Network: klik på **Browse App Catalog**, søg efter OneUptime, og klik på **Add Integration**. Okta beder om **OneUptime Project ID** og **OneUptime SSO Provider ID**, før OneUptime kan vise dem: indtast `0` i begge indtil videre; du erstatter dem i trin 4. Klik på **Done**, og fortsæt med trin 2
+   - Ellers: klik på **Create App Integration**, vælg **SAML 2.0**, og klik på **Next**, indtast "OneUptime" som **App name**, og klik på **Next**
    - Okta beder om OneUptimes URL'er, før den viser sine egne. Indtast indtil videre din OneUptime-adresse (for eksempel `https://oneuptime.com`) som **Single sign-on URL** og som **Audience URI (SP Entity ID)**: du erstatter begge i trin 4
    - Sæt **Name ID format** til `EmailAddress` og **Application username** til `Email`
    - Klik på **Next**, vælg **I'm an Okta customer adding an internal app**, og klik på **Finish**
@@ -212,11 +215,16 @@ Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organi
 
 4. **Giv Okta OneUptimes URL'er**
 
-   Klik på **Edit** under **SAML Settings** på applikationens fane **General** og derefter på **Next**, og angiv:
+   For applikationen fra Okta Integration Network skal du klikke på **Edit** under **App Settings** på fanen **General** og angive:
+   - **OneUptime Project ID** og **OneUptime SSO Provider ID**: de to ID'er i **Identifier (Entity ID)** fra OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+
+   Klik på **Save**, og kontrollér, at **Application username format** er `Email` på fanen **Sign On**.
+
+   For din egen applikation skal du klikke på **Edit** under **SAML Settings** på fanen **General** og derefter på **Next** og angive:
    - **Single sign-on URL**: **Reply URL (Assertion Consumer Service URL)** fra OneUptime
    - **Audience URI (SP Entity ID)**: **Identifier (Entity ID)** fra OneUptime
 
-   Tilføj eventuelt en attribute statement med navnet `http://schemas.microsoft.com/identity/claims/displayname` og værdien `user.firstName + " " + user.lastName`, så nye konti får personens navn. Klik på **Next** og derefter på **Finish**.
+   Tilføj eventuelt attribute statements med navnene `firstName`, med værdien `user.firstName`, og `lastName`, med værdien `user.lastName`, så nye konti får personens navn. Klik på **Next** og derefter på **Finish**.
 
 5. **Tildel personer**
 
@@ -347,6 +355,10 @@ Svaret nåede frem til OneUptime senere, end din IdP tillader, eller mere end 10
 
 :::details "SAML response was already used"
 Hvert svar fra din IdP logger kun ind én gang. Går du tilbage i browseren efter at have logget ind, eller genindlæser du den side, din IdP sendte dig igennem, sendes det samme svar igen: log ind igen, fra OneUptime eller fra din IdP.
+:::
+
+:::details "This account is linked to someone else."
+Microsoft Entra ID loggede en person ind med e-mailadressen på en konto, der via denne udbyder er knyttet til et andet objekt-ID: en anden person har nu adressen i Entra ID, eller personens Entra ID-konto er blevet oprettet igen. OneUptime afviser loginforsøget, så den, der får adressen næste gang, ikke kan bruge kontoen. Hvis kontoen tilhører personen, så fjern vedkommende fra projektet, og tilføj vedkommende igen: ved næste login knyttes kontoen til personens nye objekt-ID.
 :::
 
 :::details Login mislykkes med en signatur- eller certifikatfejl
