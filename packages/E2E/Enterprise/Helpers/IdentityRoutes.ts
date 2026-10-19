@@ -105,13 +105,17 @@ const SCIM_REFUSAL: ScimProbeExpectation = {
 };
 
 /*
- * NotAuthorizedException is 422 (Common/Types/Exception/ExceptionCode.ts),
- * and it comes from the SCIM authorization middleware - which only runs
- * because the licence gate in front of it let the request through.
+ * The SCIM authorization middleware's answer - which only comes because the
+ * licence gate in front of it let the request through. It answers a refused
+ * credential itself, 401 in the SCIM error format with how to authenticate
+ * (ee/Server/Identity/Middleware/SCIMAuthorization.ts, sendScimError), as
+ * Okta's SCIM spec test checks (#5029); Express's error handler would have
+ * said 422 with { error }, which an identity provider cannot read.
  */
 const BEARER_TOKEN_REQUIRED: ScimProbeExpectation = {
-  status: 422,
+  status: 401,
   bodyContains: "Bearer token is required for SCIM authentication",
+  isScimError: true,
 };
 
 export const SCIM_PROBES: ReadonlyArray<ScimProbe> = [

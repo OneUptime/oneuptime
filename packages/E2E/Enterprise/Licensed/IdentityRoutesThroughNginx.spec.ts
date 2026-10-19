@@ -9,7 +9,7 @@ import {
   identityRouteUrl,
   sendSsoRouteProbe,
 } from "../../Tests/Helpers/SsoRoutes";
-import { SCIM_PROBES } from "../Helpers/IdentityRoutes";
+import { SCIM_ERROR_SCHEMA_URN, SCIM_PROBES } from "../Helpers/IdentityRoutes";
 import { assertLicensedEnterpriseStack } from "../Helpers/StackGuard";
 import { APIRequestContext, APIResponse, expect, test } from "@playwright/test";
 
@@ -95,6 +95,23 @@ test.describe("Identity routes through nginx (licensed stack)", () => {
           expect(body, `${url} answered the wrong body. ${found}`).toContain(
             probe.licensed.bodyContains,
           );
+        }
+
+        if (probe.licensed.isScimError) {
+          // RFC 7644 section 3.12: the shape an identity provider can read.
+          const parsed: Record<string, unknown> = JSON.parse(body) as Record<
+            string,
+            unknown
+          >;
+
+          expect(
+            parsed["schemas"],
+            `${url} must answer a SCIM error body. ${found}`,
+          ).toContain(SCIM_ERROR_SCHEMA_URN);
+          expect(
+            parsed["status"],
+            `${url} must report its status as SCIM spells it, a string. ${found}`,
+          ).toBe(String(probe.licensed.status));
         }
       });
     }
