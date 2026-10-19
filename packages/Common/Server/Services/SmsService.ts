@@ -9,6 +9,7 @@ import URL from "../../Types/API/URL";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import Phone from "../../Types/Phone";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import SMS from "../../Types/SMS/SMS";
 import API from "../../Utils/API";
@@ -78,8 +79,13 @@ export class SmsService extends BaseService {
             authToken: options.customTwilioConfig.authToken!,
             primaryPhoneNumber:
               options.customTwilioConfig.primaryPhoneNumber.toString(),
+            // A list, not one joined string: the Notification service picks from it by country code.
             secondaryPhoneNumbers:
-              options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
+              options.customTwilioConfig.secondaryPhoneNumbers?.map(
+                (phoneNumber: Phone): string => {
+                  return phoneNumber.toString();
+                },
+              ),
           }
         : undefined,
       incidentId: options.incidentId?.toString(),
