@@ -42,8 +42,11 @@ export type MetricCatalogPlatform =
  * docker_stats declares container.cpu.utilization and
  * container.memory.percent with the unit "1" but sends 0–100. Taking the
  * declared "1" would render 85.3 as "8530.00%", and — worse — a threshold
- * typed in "%" would convert every sample ×100 and fire forever. kubeletstats
- * declares k8s.node.cpu.utilization as "1" but it is a cores gauge.
+ * typed in "%" would convert every sample ×100 and fire forever. (Ingest now
+ * records those two as "%" — ContainerStatsPercentUnit — and the agents send
+ * "%", so the declared unit agrees with the catalog for data sent since.)
+ * kubeletstats declares k8s.node.cpu.utilization as "1" but it is a cores
+ * gauge.
  *
  * The declared unit is the fallback for everything the catalog does not
  * know, which is how k8s.node.allocatable_memory reads "258 GB" instead of

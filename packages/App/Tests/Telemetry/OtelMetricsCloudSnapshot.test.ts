@@ -16,8 +16,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   - the unit conversions per metric name — the awsecscontainermetrics
  *     receiver's *.cpu.utilized is ALREADY a percent (never multiplied by
  *     100, whatever the unit string), *.memory.utilized is megabytes,
- *     *.memory.usage is bytes, and the docker_stats-style
- *     container.cpu.utilization keeps its ratio-unless-"%" rule;
+ *     *.memory.usage is bytes, and container.cpu.utilization keeps its
+ *     ratio-unless-"%" rule (docker_stats' percent arrives as "%");
  *   - task-level (ecs.task.*) points beat container-level points for the
  *     same instance in either arrival order — a task has several
  *     containers and they all resolve to the same task id;
@@ -164,7 +164,12 @@ describe("cloud snapshot unit conversions", () => {
     ["ecs.task.cpu.utilized", undefined, 12, 12],
     ["container.cpu.utilized", "Percent", 12.25, 12.25],
     ["container.cpu.utilized", "1", 0.75, 0.75],
-    // docker_stats: a [0, 1] ratio unless the unit says "%".
+    /*
+     * A [0, 1] ratio unless the unit says "%". docker_stats' own percent
+     * reaches this fold as "%": the metric loop reads its declared "1" as
+     * "%" (ContainerStatsPercentUnit), so only another producer's "1" is
+     * multiplied here.
+     */
     ["container.cpu.utilization", "1", 0.5, 50],
     ["container.cpu.utilization", undefined, 0.25, 25],
     ["container.cpu.utilization", "%", 42, 42],
