@@ -43,7 +43,7 @@ export const VideoCallConnectProviders: Array<ConnectProvider> = [
 /*
  * The page a Slack or Microsoft Teams connection was started from, and goes
  * back to: the project's settings, or the person's own settings in the
- * project. A GitHub installation is always started from Code Repositories,
+ * project. A GitHub installation is always started from Code,
  * and a video call provider from Project Settings > Workspace > Video Calls.
  */
 export enum ConnectStartPage {

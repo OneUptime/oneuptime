@@ -274,7 +274,7 @@ export default class ConnectCallback {
   /*
    * The page a connection to `provider` started from, in the state's project:
    * Slack and Microsoft Teams in the project's settings, or the person's own
-   * settings when it was started there; GitHub on Code Repositories.
+   * settings when it was started there; GitHub on Code.
    */
   public static getPageUrl(data: {
     provider: ConnectProvider;

@@ -515,7 +515,8 @@ export class Service extends DatabaseService<Model> {
    *
    * CodeFix only, on purpose: chat turns and investigations share this table
    * but are not tasks, and numbering them would advance the counter on every
-   * Ask-AI message — the AI Tasks list would then read #7, #31, #244.
+   * Ask-AI message — a repository's tasks in Code would then read #7,
+   * #31, #244.
    *
    * Best-effort. The counter needs Redis (Semaphore) and a second write; a
    * blip there must not lose a fix run, because the number is a display

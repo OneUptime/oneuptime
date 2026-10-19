@@ -49,7 +49,8 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   waiting for an answer, Stop and Try again, a failed turn and why, a task
   OneUptime started from an exception, a turn's Log and back, and the trail;
 - the old addresses forwarding with their ids, query strings and hashes, and
-  GitHub's way back to Code Repositories still saying GitHub connected;
+  GitHub's way back to an old Code Repositories address still saying
+  GitHub connected;
 - dark mode (`?theme=dark`) and German (`?lang=de`).
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,

@@ -5948,7 +5948,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
 
-    // AI code-fix readiness — the gates the AI Tasks page renders
+    // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);
 
     // What a project's AI used today, against its own daily AI limits
