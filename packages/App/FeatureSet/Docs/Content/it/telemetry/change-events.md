@@ -109,6 +109,8 @@ OneUptime decide quale modifica è sospetta in base a questi numeri, non a ciò 
 
 Quando la modifica sospetta è un rollout Kubernetes su un cluster le cui [correzioni IA](/docs/ai/ai-sre#come-funzionano-le-correzioni) sono attive, OneUptime AI ne fa prima il rollback, con un `kubectl rollout undo` che OneUptime costruisce a partire dalla modifica registrata. Un deploy che rilascia codice viene annullato tramite i suoi commit: l'indagine indica il commit o la pull request che ha causato il problema, così una [pull request di correzione](/docs/ai/ai-sre#correzioni-automatiche-del-codice) può annullare esattamente quello.
 
+OneUptime controlla anche ogni deploy da solo, che qualcuno venga avvisato o no. Trascorsi i 30 minuti dopo un deploy, li confronta con i 30 minuti prima secondo le stesse soglie e, quando il servizio è peggiorato, un [AI Insight](/docs/ai/ai-sre#insight-rilevamento-proattivo) indica il deploy su quel servizio.
+
 In un'indagine e in [Chiedi all'IA](/docs/ai/ask-ai), `recent_changes` elenca le modifiche in qualsiasi finestra di tempo, e `get_change_details` mostra che cosa ha rilasciato un deploy: i commit dal deploy precedente del servizio, i loro autori, le pull request e i file che hanno toccato. Per questo servono il commit sulla modifica e un repository collegato tramite la [GitHub App](/docs/ai/github-app).
 
 ## Riferimento
