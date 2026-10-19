@@ -131,8 +131,9 @@ jobs:
           MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT: ${{ vars.MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT }}
         run: python3 HelmChart/Marketplace/automation/release_plan.py
 
-  # The marketplace suite on the chart as it was released: every edition built, linted,
-  # rendered and checked the way its marketplace checks it, and the automation's unit tests.
+  # The automation's unit tests on this repository's charts, then the marketplace suite on the
+  # charts as they were released: every edition built, linted, rendered and checked the way its
+  # marketplace checks it.
   test:
     needs: prepare
     if: needs.prepare.outputs.release == 'true' && needs.prepare.outputs.any == 'true'
@@ -143,13 +144,16 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+      # They test this repository's code, so on its charts: a release's may predate it.
+      - name: Run the automation's unit tests
+        run: python3 -m unittest discover -s HelmChart/Marketplace -p 'test_*.py'
       - name: Take the released chart
         uses: ./.github/actions/marketplace-edition
         with:
           version: ${{ needs.prepare.outputs.version }}
           release-sha: ${{ needs.prepare.outputs.release_sha }}
-      # The charts here are the release's: MARKETPLACE_RELEASED_CHARTS lets the EKS add-on's unit
-      # tests skip a release from before the add-on, as the suite's own add-on checks do.
+      # The charts here are the release's: MARKETPLACE_RELEASED_CHARTS tells the suite so, and it
+      # skips what a release from before an edition cannot have (and the unit tests, run above).
       - name: Run the marketplace chart suite
         env:
           MARKETPLACE_RELEASED_CHARTS: ${{ needs.prepare.outputs.version }}
