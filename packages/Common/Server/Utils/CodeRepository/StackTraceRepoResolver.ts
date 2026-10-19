@@ -18,6 +18,11 @@ import {
   SuggestableRepository,
   computeLinkSuggestions,
 } from "./ServiceRepoLinkSuggester";
+import {
+  isAsciiLetterCode,
+  isDigitCode,
+  isWordCode,
+} from "../../../Utils/RegExpCharacterClasses";
 
 const WINDOWS_DRIVE_RE: RegExp = /^[A-Za-z]:\//;
 const FILE_EXTENSION_RE: RegExp = /\.[A-Za-z0-9]+$/;
@@ -76,9 +81,166 @@ const DEPENDENCY_FRAME_MARKERS: Array<string> = [
  * Ruby (`from /app/lib/x.rb:1`), Go (`\t/app/pkg/x.go:12 +0x1b`) and Java
  * (`at com.acme.X.method(X.java:12)` — the opening parenthesis is not a path
  * character, so only the reliable basename `X.java` is captured).
+ *
+ * Found exactly as the global pattern
+ *   ((?:[A-Za-z]:)?[\w.\-/\\@+~]+\.[A-Za-z][A-Za-z0-9]{0,9}):\d+
+ * found them (group 1 of each match, left to right), in time in line with
+ * the line's length. That pattern was tried again from every character of a
+ * run of path characters, each try reading on to the end of the run - a
+ * stack trace is whatever an application sent, and a long run with no
+ * ":<line>" after its extension took time that grows with the square of its
+ * length. Here each run is read a fixed number of times: a ":" cannot be a
+ * path character, so every start in a run reaches the same end, and the
+ * run's first start that can work is the only one to ask.
  */
-const PATH_WITH_LINE_REGEX: RegExp =
-  /((?:[A-Za-z]:)?[\w.\-/\\@+~]+\.[A-Za-z][A-Za-z0-9]{0,9}):\d+/g;
+const DOT: number = 0x2e;
+const COLON: number = 0x3a;
+
+// The path characters other than \w and ".": - / \ @ + ~
+const OTHER_PATH_CODES: ReadonlySet<number> = new Set<number>([
+  0x2d, 0x2f, 0x5c, 0x40, 0x2b, 0x7e,
+]);
+
+type IsPathCodeFunction = (code: number) => boolean;
+
+// A path character, as [\w.\-/\\@+~] matches it.
+const isPathCode: IsPathCodeFunction = (code: number): boolean => {
+  return isWordCode(code) || code === DOT || OTHER_PATH_CODES.has(code);
+};
+
+// The longest extension: [A-Za-z][A-Za-z0-9]{0,9}.
+const MAX_EXTENSION_LENGTH: number = 10;
+
+type LocationEndFunction = (
+  line: string,
+  firstDot: number,
+  runEnd: number,
+) => number;
+
+/*
+ * Where ".<extension>:<digits>" ends, for a run of path characters that ends
+ * at `runEnd` - the extension runs from its last "." to the run's end, and a
+ * ":" and a digit follow - or -1. The "." may be no earlier than `firstDot`,
+ * so the path before it is not empty.
+ */
+const locationEnd: LocationEndFunction = (
+  line: string,
+  firstDot: number,
+  runEnd: number,
+): number => {
+  if (
+    line.charCodeAt(runEnd) !== COLON ||
+    !isDigitCode(line.charCodeAt(runEnd + 1))
+  ) {
+    return -1;
+  }
+
+  // The extension holds no ".", so it starts after the run's last one.
+  let dot: number = runEnd - 1;
+  const earliestDot: number = Math.max(
+    firstDot,
+    runEnd - 1 - MAX_EXTENSION_LENGTH,
+  );
+
+  while (dot >= earliestDot && line.charCodeAt(dot) !== DOT) {
+    dot--;
+  }
+
+  if (dot < earliestDot || dot === runEnd - 1) {
+    return -1;
+  }
+
+  if (!isAsciiLetterCode(line.charCodeAt(dot + 1))) {
+    return -1;
+  }
+
+  for (let index: number = dot + 2; index < runEnd; index++) {
+    const code: number = line.charCodeAt(index);
+
+    if (!isAsciiLetterCode(code) && !isDigitCode(code)) {
+      return -1;
+    }
+  }
+
+  let end: number = runEnd + 1;
+
+  while (end < line.length && isDigitCode(line.charCodeAt(end))) {
+    end++;
+  }
+
+  return end;
+};
+
+type PathRunEndFunction = (line: string, from: number) => number;
+
+const pathRunEnd: PathRunEndFunction = (line: string, from: number): number => {
+  let index: number = from;
+
+  while (index < line.length && isPathCode(line.charCodeAt(index))) {
+    index++;
+  }
+
+  return index;
+};
+
+export type FindPathsWithLineNumberFunction = (line: string) => Array<string>;
+
+export const findPathsWithLineNumber: FindPathsWithLineNumberFunction = (
+  line: string,
+): Array<string> => {
+  const paths: Array<string> = [];
+  let position: number = 0;
+
+  while (position < line.length) {
+    let start: number = position;
+
+    while (start < line.length && !isPathCode(line.charCodeAt(start))) {
+      start++;
+    }
+
+    if (start >= line.length) {
+      break;
+    }
+
+    const runEnd: number = pathRunEnd(line, start);
+
+    // From the run's first character, with no drive letter.
+    if (start < runEnd - 1) {
+      const end: number = locationEnd(line, start + 1, runEnd);
+
+      if (end !== -1) {
+        paths.push(line.slice(start, runEnd));
+        position = end;
+        continue;
+      }
+    }
+
+    /*
+     * From its last character, as a drive letter ("C:"): the path is the run
+     * after the ":". No other start in the run can work.
+     */
+    const driveLetter: number = runEnd - 1;
+
+    if (
+      isAsciiLetterCode(line.charCodeAt(driveLetter)) &&
+      line.charCodeAt(runEnd) === COLON &&
+      isPathCode(line.charCodeAt(runEnd + 1))
+    ) {
+      const pathEnd: number = pathRunEnd(line, runEnd + 1);
+      const end: number = locationEnd(line, runEnd + 2, pathEnd);
+
+      if (end !== -1) {
+        paths.push(line.slice(driveLetter, pathEnd));
+        position = end;
+        continue;
+      }
+    }
+
+    position = runEnd;
+  }
+
+  return paths;
+};
 
 // Python traceback frames: `File "/app/src/x.py", line 1`.
 const PYTHON_FRAME_REGEX: RegExp = /File\s+"([^"]+)"\s*,\s*line\s+\d+/g;
@@ -159,10 +321,8 @@ export const extractCandidatePathsFromStackTrace: ExtractCandidatePathsFromStack
         }
       }
 
-      for (const match of line.matchAll(PATH_WITH_LINE_REGEX)) {
-        if (match[1]) {
-          rawPaths.push(match[1]);
-        }
+      for (const path of findPathsWithLineNumber(line)) {
+        rawPaths.push(path);
       }
 
       for (const rawPath of rawPaths) {
