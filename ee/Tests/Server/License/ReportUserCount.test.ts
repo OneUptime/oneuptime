@@ -359,6 +359,14 @@ describe("EnterpriseLicense:ReportUserCount", () => {
   });
 
   describe("what it reports", () => {
+    it("keeps its redirects on the licence server: it carries the licence key", async () => {
+      await runTick();
+
+      expect(
+        (apiPost.mock.calls[0]![0] as JSONObject)["options"] as JSONObject,
+      ).toEqual({ sameServerRedirectsOnly: true });
+    });
+
     it("sends the key, the seat count, this instance's identity and its version", async () => {
       await runTick();
 

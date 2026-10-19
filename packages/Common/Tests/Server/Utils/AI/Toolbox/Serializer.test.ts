@@ -195,6 +195,51 @@ describe("ToolResultSerializer.redact - counting", () => {
   test("matches from different rules add up", () => {
     expect(countOf("a@b.com from 10.0.0.1")).toBe(2);
   });
+
+  test("each private key block counts once, however many lines it spans", () => {
+    const key: string = [
+      "-----BEGIN OPENSSH PRIVATE KEY-----",
+      "b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQ",
+      "QyNTUxOQAAACDtDLd4XyzQ5wTfR1bB0gK2PlPvUQe",
+      "-----END OPENSSH PRIVATE KEY-----",
+    ].join("\n");
+
+    expect(ToolResultSerializer.redact(`${key}\nand\n${key}`)).toEqual({
+      text: "[redacted-private-key]\nand\n[redacted-private-key]",
+      count: 2,
+    });
+  });
+});
+
+/*
+ * A tool result is text from outside - a log line, a span attribute,
+ * whatever an instrumented service wrote - so a private key block is found
+ * in it in time in line with its length, however many BEGIN lines it holds
+ * with no END after them: a million characters of each worst case, each in
+ * well under 2 seconds (one pattern with a lazy body took about two
+ * seconds for 400,000 characters, and four times as long for twice that).
+ */
+describe("ToolResultSerializer.redact - private key blocks in a long text", () => {
+  test.each([
+    [
+      "BEGIN lines with no END",
+      "-----BEGIN RSA PRIVATE KEY-----".repeat(1000000 / 31),
+    ],
+    [
+      "BEGIN lines with END lines that never close",
+      "-----BEGIN RSA PRIVATE KEY----------END RSA ".repeat(1000000 / 45),
+    ],
+    [
+      "BEGIN lines on lines of their own",
+      "-----BEGIN PRIVATE KEY-----\n".repeat(1000000 / 28),
+    ],
+  ])("%s", (_label: string, text: string) => {
+    const startedAt: number = Date.now();
+
+    expect(ToolResultSerializer.redact(text).count).toBe(0);
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
 });
 
 describe("ToolResultSerializer.serializeRows", () => {

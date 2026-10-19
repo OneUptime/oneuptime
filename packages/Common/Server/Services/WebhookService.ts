@@ -132,6 +132,9 @@ export class WebhookService extends BaseService {
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
+      options: {
+        sameServerRedirectsOnly: true,
+      },
     });
   }
 }

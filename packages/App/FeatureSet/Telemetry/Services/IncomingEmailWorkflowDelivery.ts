@@ -105,6 +105,9 @@ export default class IncomingEmailWorkflowDelivery {
         headers: {
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
+        options: {
+          sameServerRedirectsOnly: true,
+        },
       });
 
     if (result instanceof HTTPErrorResponse) {

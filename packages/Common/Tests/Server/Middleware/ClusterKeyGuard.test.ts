@@ -12,6 +12,10 @@ import {
   findClusterKeyMiddlewareUses,
   findClusterKeyRoutes,
 } from "../TestingUtils/ClusterKeyRoutes";
+import {
+  keepsRedirectsOnServer,
+  propertyOf,
+} from "../TestingUtils/KeyCarryingRequests";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -41,7 +45,10 @@ import ts from "typescript";
  *     only the Runner's registration is handed the one that also reads a
  *     body;
  *   - every route that takes it is called by OneUptime's own code, and every
- *     file that presents it presents it to such a route, in the header;
+ *     file that presents it presents it to such a route, in the header, in a
+ *     request that follows a redirect only on the server it was sent to
+ *     (sameServerRedirectsOnly - an HTTP client hands a redirected request's
+ *     headers to wherever the redirect points);
  *   - only the app's own code (App, Common) and the Runner present the key,
  *     because only processes that load the installation's token signing key
  *     at boot (App/Index.ts) know the key an installation that kept a shipped
@@ -695,7 +702,7 @@ describe("the routes that take the cluster key, and who calls them", () => {
     );
   });
 
-  test("every file that presents the key puts it in the headers of a POST it makes, once for each route it calls", () => {
+  test("every file that presents the key puts it in the headers of a POST it makes, once for each route it calls, and the POST keeps its redirects on its server", () => {
     const shapes: Record<string, Array<string>> = {};
     const expected: Record<string, Array<string>> = {};
 
@@ -708,7 +715,7 @@ describe("the routes that take the cluster key, and who calls them", () => {
           return entry.caller === relativePath;
         },
       ).map((): string => {
-        return "the headers of an API.post";
+        return "the headers of an API.post that keeps its redirects on its server";
       });
 
       const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -734,10 +741,23 @@ describe("the routes that take the cluster key, and who calls them", () => {
             post.expression.getText(sourceFile) === "API.post" &&
             post.arguments[0] === options;
 
+          const keepsItsRedirects: boolean =
+            inPostHeaders &&
+            keepsRedirectsOnServer(
+              propertyOf(
+                options as ts.ObjectLiteralExpression,
+                "options",
+                sourceFile,
+              ),
+              sourceFile,
+            );
+
           shapes[relativePath]!.push(
-            inPostHeaders
-              ? "the headers of an API.post"
-              : placeOf(relativePath, sourceFile, post),
+            inPostHeaders && keepsItsRedirects
+              ? "the headers of an API.post that keeps its redirects on its server"
+              : inPostHeaders
+                ? `${placeOf(relativePath, sourceFile, post)} follows redirects off its server`
+                : placeOf(relativePath, sourceFile, post),
           );
         }
 

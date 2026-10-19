@@ -110,7 +110,14 @@ function Expect-Installed([string] $Version, [string] $ProgramFrom, [string] $Wh
     $listed = ($installed | ForEach-Object { "$($_.DisplayName) $($_.DisplayVersion)" }) -join ', '
     Expect ($installed.Count -eq 1 -and $installed[0].DisplayVersion -eq $Version) `
         "$When, Windows lists [$listed], not one agent at $Version."
-    Expect (Test-Path $Program) "$When, $Program is missing."
+    if (-not (Test-Path $Program)) {
+        # Say where the installer put it instead: the 32-bit Program Files is
+        # where a 32-bit package's ProgramFiles64Folder lands.
+        $elsewhere = @(@($env:ProgramFiles, ${env:ProgramFiles(x86)}) | Where-Object { $_ } |
+            ForEach-Object { Join-Path $_ 'OneUptimeInfrastructureAgent\oneuptime-infrastructure-agent.exe' } |
+            Where-Object { Test-Path $_ }) -join ', '
+        Fail "$When, $Program is missing (found: [$elsewhere])."
+    }
     Expect ((Get-FileHash $Program).Hash -eq (Get-FileHash $ProgramFrom).Hash) `
         "$When, $Program is not the $Version build."
 }

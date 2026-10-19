@@ -203,6 +203,14 @@ export const reportUserCount: () => Promise<void> =
           userEmailHashes: userEmailHashes,
           masterAdminEmails: masterAdminEmails,
         },
+        options: {
+          /*
+           * The licence key and the administrators' addresses go to the
+           * licence server and nowhere else: a redirect is followed only
+           * on that server.
+           */
+          sameServerRedirectsOnly: true,
+        },
       });
 
     if (!response.isSuccess()) {
