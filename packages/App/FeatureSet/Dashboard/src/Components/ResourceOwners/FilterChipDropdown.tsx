@@ -15,8 +15,11 @@ import {
 } from "./FilterChipDropdownTypes";
 import {
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
+  FILTER_CHIP_PLACE_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
+  FILTER_CHIP_TEXT_CLASSES,
 } from "./FilterChipStyles";
+import { showFullValueWhenCutShort } from "Common/UI/Components/Table/FullValueTitle";
 import FilterChipButton from "./FilterChipButton";
 import {
   translatableTerm,
@@ -485,7 +488,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="relative inline-block">
+    <div className={FILTER_CHIP_PLACE_CLASSES}>
       <FilterChipButton
         isActive={isChipActive}
         isExpanded={isComponentVisible}
@@ -505,14 +508,21 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
               // Empty-operator only: keep the category icon as a hint.
               <Icon
                 icon={props.emptyIcon}
-                className="h-3.5 w-3.5 text-indigo-500"
+                className="h-3.5 w-3.5 shrink-0 text-indigo-500"
               />
             ) : null}
-            <span className="whitespace-nowrap">
+            <span
+              className={FILTER_CHIP_TEXT_CLASSES}
+              onMouseEnter={showFullValueWhenCutShort}
+            >
               <span className="text-indigo-500/80">
                 {translator.translateText(props.label)}
               </span>
-              <span className="mx-1 text-indigo-300">·</span>
+              {/*
+               * Spaces rather than margins around the dot, so the words
+               * read "Monitor · ..." aloud and under the pointer too.
+               */}
+              <span className="text-indigo-300">{" · "}</span>
               <span className="font-semibold">
                 {isEmptyOperator
                   ? translator.translateText(FILTER_OPERATOR_LABELS[operator])
@@ -529,15 +539,18 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
             {props.emptyIcon && (
               <Icon
                 icon={props.emptyIcon}
-                className="h-3.5 w-3.5 text-gray-400"
+                className="h-3.5 w-3.5 shrink-0 text-gray-400"
               />
             )}
-            <span className="whitespace-nowrap">
+            <span
+              className={FILTER_CHIP_TEXT_CLASSES}
+              onMouseEnter={showFullValueWhenCutShort}
+            >
               {translator.translateText(props.label)}
             </span>
             <Icon
               icon={IconProp.ChevronDown}
-              className="h-3 w-3 text-gray-400 transition-transform group-aria-expanded:rotate-180"
+              className="h-3 w-3 shrink-0 text-gray-400 transition-transform group-aria-expanded:rotate-180"
             />
           </>
         )}
@@ -686,12 +699,23 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                         >
                           <span className="flex min-w-0 items-center gap-2.5">
                             <Avatar option={option} />
+                            {/*
+                             * A name wider than the list - "oneuptime-test -
+                             * Pod CPU Satu..." - ends in "...", the whole of
+                             * it under the pointer.
+                             */}
                             <span className="min-w-0">
-                              <span className="block truncate font-medium">
+                              <span
+                                className="block truncate font-medium"
+                                onMouseEnter={showFullValueWhenCutShort}
+                              >
                                 {option.label}
                               </span>
                               {option.sublabel && (
-                                <span className="block truncate text-xs text-gray-400">
+                                <span
+                                  className="block truncate text-xs text-gray-400"
+                                  onMouseEnter={showFullValueWhenCutShort}
+                                >
                                   {option.sublabel}
                                 </span>
                               )}

@@ -825,6 +825,76 @@ test.describe("the Alerts list of the screenshot", () => {
     );
   });
 
+  /*
+   * With the column gone, the Monitor chip is how a list of one monitor's
+   * alerts is asked for. A chip said its whole value on one line that could
+   * not shrink: on a phone, "Monitor · oneuptime-test - High Node Memory
+   * Utilization" ran past the card's edge, and the page scrolled sideways.
+   */
+  test("on a phone, the Monitor chip with a monitor picked stays inside the card: its words end in '...', the whole of them under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+
+    await bar.getByRole("button", { name: "Monitor", exact: true }).click();
+    await page.getByRole("option", { name: FIRST_MONITOR }).click();
+    await page.getByTestId("fixture-trail").click();
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(page.locator("#alerts-table-body > div")).toHaveCount(1);
+
+    const chip: Locator = bar
+      .getByTestId("filter-chip")
+      .filter({ hasText: FIRST_MONITOR });
+    const chipBox: Box = await box(chip);
+    const barBox: Box = await box(bar);
+
+    expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(
+      barBox.x + barBox.width + 1,
+    );
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    // Its words: the chip's name and the monitor, cut short at the bar's end.
+    const words: Locator = chip.locator("span.truncate").first();
+    const cut: { text: string; isCutShort: boolean; ellipsis: string } =
+      await words.evaluate((element: Element) => {
+        return {
+          text: (element as HTMLElement).innerText,
+          isCutShort: element.scrollWidth > element.clientWidth,
+          ellipsis: getComputedStyle(element).textOverflow,
+        };
+      });
+
+    expect(cut.text).toBe(`Monitor · ${FIRST_MONITOR}`);
+    expect(cut.isCutShort).toBe(true);
+    expect(cut.ellipsis).toBe("ellipsis");
+
+    // The clear button keeps its place inside the pill.
+    const clearBox: Box = await box(
+      chip.getByRole("button", { name: "Clear Monitor filter" }),
+    );
+
+    expect(clearBox.x + clearBox.width).toBeLessThanOrEqual(
+      chipBox.x + chipBox.width,
+    );
+
+    await words.hover();
+
+    await expect(words).toHaveAttribute("title", `Monitor · ${FIRST_MONITOR}`);
+
+    await screenshot(page, "alerts-filtered-by-monitor-390");
+  });
+
   test("in the dark theme, the monitor's and the cluster's names read at WCAG AA", async ({
     page,
   }: {
