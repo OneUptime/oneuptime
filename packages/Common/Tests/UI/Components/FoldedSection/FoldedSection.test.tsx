@@ -562,13 +562,16 @@ describe("More fields is one quiet line", () => {
     expect(screen.queryByText("·")).toBeNull();
   });
 
-  test("the title is a quiet link: indigo, medium, darker on hover", () => {
+  test("the title is a quiet link: indigo, medium, darker and underlined on hover", () => {
     renderSection({ items: NOTHING_SET });
 
     expect(screen.getByTestId("folded-section-title")).toHaveClass(
       "font-medium",
       "text-indigo-600",
       "group-hover:text-indigo-800",
+      // The cue the dark theme keeps, where both indigos are one colour.
+      "group-hover:underline",
+      "underline-offset-2",
     );
     expect(header()).toHaveClass(
       "group",

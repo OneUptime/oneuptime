@@ -987,9 +987,9 @@ describe("BasicForm More fields with a custom element that keeps its value elsew
     expect(setChips()).toEqual([
       "Reopen recently resolved episodes: 30 minutes",
     ]);
-    expect(setItem("Reopen recently resolved episodes: 30 minutes")).toHaveClass(
-      "text-gray-700",
-    );
+    expect(
+      setItem("Reopen recently resolved episodes: 30 minutes"),
+    ).toHaveClass("text-gray-700");
 
     /*
      * Off again: its carrier now holds what the control handed over last,

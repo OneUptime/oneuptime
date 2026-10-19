@@ -351,9 +351,14 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
                * wrap onto the next, under the title.
                */}
               <span className="whitespace-nowrap">
+                {/*
+                 * A quiet link, as the product's others are: indigo, and
+                 * underlined under the pointer - the cue the dark theme
+                 * keeps, where both indigos are one colour.
+                 */}
                 <span
                   id={titleId}
-                  className="font-medium text-indigo-600 transition-colors duration-150 group-hover:text-indigo-800"
+                  className="font-medium text-indigo-600 underline-offset-2 transition-colors duration-150 group-hover:text-indigo-800 group-hover:underline"
                   data-testid="folded-section-title"
                 >
                   {translate(props.title)}

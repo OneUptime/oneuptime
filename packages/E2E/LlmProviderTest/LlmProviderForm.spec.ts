@@ -314,6 +314,108 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     await shoot(page, "form-connection-more-fields");
   });
 
+  /*
+   * "Can we make this more subtle, this needs to be done across the
+   * project for more fields. Takes up too much real estate right now." -
+   * the maintainer, on the More fields card: a framed box with an icon tile,
+   * a bold title and a row of pills, as tall as two rows of the form. It is
+   * one quiet line now. Measured here in a real browser, where jsdom can
+   * only read class names.
+   */
+  test("More fields is one quiet line: no frame, no tile, one row of text, its fields opened in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page);
+    await pick(page, "Mistral");
+
+    const fold: Locator = dialog(page).getByTestId("folded-section");
+    const more: Locator = dialog(page).getByRole("button", {
+      name: "More fields",
+      exact: true,
+    });
+
+    await expect(fold).toHaveAttribute("data-variant", "line");
+    // What is inside, after the title, on the same line.
+    await expect(more).toContainText(/^More fields\s*·\s*Description/);
+
+    // One row of text: about 28 pixels, where the card was 74.
+    const folded: { height: number } | null = await fold.boundingBox();
+    expect(folded!.height).toBeLessThanOrEqual(32);
+
+    // No frame, no ground of its own, no shadow, no icon tile.
+    expect(
+      await fold.evaluate((element: Element) => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return {
+          border: style.borderTopWidth,
+          background: style.backgroundColor,
+          shadow: style.boxShadow,
+        };
+      }),
+    ).toEqual({
+      border: "0px",
+      background: "rgba(0, 0, 0, 0)",
+      shadow: "none",
+    });
+    await expect(dialog(page).getByTestId("folded-section-icon")).toHaveCount(
+      0,
+    );
+
+    // It starts where the fields start, as part of the form.
+    const name: { x: number; width: number } | null =
+      await nameInput(page).boundingBox();
+    const chevron: { x: number } | null = await dialog(page)
+      .getByTestId("folded-section-chevron")
+      .boundingBox();
+    expect(Math.abs(chevron!.x - name!.x)).toBeLessThanOrEqual(2);
+
+    await more.click();
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+
+    // Open, its fields follow the line: as wide as the Name field, no box.
+    const description: Locator = dialog(page).getByPlaceholder(
+      "What this provider is for.",
+    );
+    await expect(description).toBeVisible();
+
+    const opened: { x: number; width: number } | null =
+      await description.boundingBox();
+    expect(Math.abs(opened!.x - name!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(opened!.width - name!.width)).toBeLessThanOrEqual(1);
+    await expect(more).toHaveText(/^More fields$/);
+
+    await shoot(page, "form-connection-more-fields-line");
+  });
+
+  test("at phone width More fields wraps its names under its title, inside the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openCreate(page);
+    await pick(page, "Mistral");
+
+    const more: Locator = dialog(page).getByRole("button", {
+      name: "More fields",
+      exact: true,
+    });
+    const box: { x: number; width: number; height: number } | null =
+      await more.boundingBox();
+
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    // A few short lines of text at most, never the card it was.
+    expect(box!.height).toBeLessThanOrEqual(80);
+    expect(
+      await page.evaluate(() => {
+        return document.documentElement.scrollWidth;
+      }),
+    ).toBeLessThanOrEqual(390);
+    await shoot(page, "form-connection-more-fields-line-phone");
+  });
+
   test("at phone width the cards are one to a row, and the dialog fits", async ({
     page,
   }: {
