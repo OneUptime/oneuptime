@@ -1251,11 +1251,12 @@ class CiSetupTest(unittest.TestCase):
         self.assertIn("--sku Basic", script)
         self.assertNotIn("Standard", script)
         purge = ci_setup.azure_purge_command(READY_AZURE)
-        self.assertIn("--keep 3", purge)
         self.assertIn(r"--filter 'com\.oneuptime\.enterprise:.*'", purge)
         self.assertIn("--filter 'oneuptime/.*:.*'", purge)
-        # By count, whatever the release pace, with a day's grace for a release being published.
-        self.assertIn("--ago 1d ", purge)
+        # The newest release only, but never one from the last 7 days: Microsoft copies a release
+        # while it certifies it (up to 2 business days), and serves buyers from its own copy.
+        self.assertIn("--keep 1 ", purge)
+        self.assertIn("--ago 7d ", purge)
         self.assertIn("--untagged", purge)
 
     def test_the_azure_purge_runs_daily_and_a_changed_rule_takes_effect(self) -> None:

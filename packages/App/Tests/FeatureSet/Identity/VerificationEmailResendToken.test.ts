@@ -1017,26 +1017,9 @@ describe("generate", () => {
     return "a".repeat(length - domain.length) + domain;
   };
 
-  /*
-   * An Email holds one mailbox of at most MAX_EMAIL_ADDRESS_LENGTH
-   * characters, so an address past the cap reaches generate only as a value
-   * that is not one: handed in here the way "an address that does not parse"
-   * is, below.
-   */
-  type UncheckedAddressFunction = (address: string) => Email;
-
-  const uncheckedAddress: UncheckedAddressFunction = (
-    address: string,
-  ): Email => {
-    return {
-      toString: (): string => {
-        return address;
-      },
-    } as unknown as Email;
-  };
-
-  it("mints a token for the longest address there is, inside the length cap", () => {
-    expect(MAX_EMAIL_ADDRESS_LENGTH).toBeLessThan(LONGEST_ADDRESS_THAT_FITS);
+  it("mints a token for the longest address an Email holds, inside the length cap", () => {
+    // No address an Email holds reaches the payload cap.
+    expect(LONGEST_ADDRESS_THAT_FITS).toBeGreaterThan(MAX_EMAIL_ADDRESS_LENGTH);
 
     const address: string = addressOfLength(MAX_EMAIL_ADDRESS_LENGTH);
     const token: string | null = VerificationEmailResendToken.generate({
@@ -1050,21 +1033,33 @@ describe("generate", () => {
     expect(verifyAt(token)!.email.toString()).toBe(address);
   });
 
-  it("returns null, rather than a token the route would refuse, one character past the cap", () => {
+  /*
+   * A longer address is not an Email, but one stored before the length check
+   * still reads as one, kept as stored and marked malformed.
+   */
+  it("returns null, rather than a token the route would refuse, for a stored address one character longer", () => {
+    const email: Email = Email.fromDatabase(
+      addressOfLength(MAX_EMAIL_ADDRESS_LENGTH + 1),
+    )!;
+
+    expect(email.isMalformed()).toBe(true);
     expect(
       VerificationEmailResendToken.generate({
         userId: new ObjectID(USER_ID),
-        email: uncheckedAddress(addressOfLength(LONGEST_ADDRESS_THAT_FITS + 1)),
+        email,
         now: NOW,
       }),
     ).toBeNull();
   });
 
-  it("returns null for an absurdly long address", () => {
+  it("returns null for an absurdly long stored address, past the length cap too", () => {
+    const email: Email = Email.fromDatabase(addressOfLength(5000))!;
+
+    expect(email.isMalformed()).toBe(true);
     expect(
       VerificationEmailResendToken.generate({
         userId: new ObjectID(USER_ID),
-        email: uncheckedAddress(addressOfLength(5000)),
+        email,
         now: NOW,
       }),
     ).toBeNull();
