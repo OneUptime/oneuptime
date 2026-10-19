@@ -1723,6 +1723,25 @@ describe("MetricType persistence across batches (the real catalog writer)", () =
       .mockImplementation(async (input: unknown) => {
         relationWrites.push(input);
       });
+    // The junction as the reconcile reads it: the stored row's services.
+    jest
+      .spyOn(MetricTypeService, "findAttachedServiceIds")
+      .mockImplementation(async (input: { serviceIds: Array<ObjectID> }) => {
+        const stored: Array<string> = (existingRow?.services || []).map(
+          (service: Service) => {
+            return service.id!.toString();
+          },
+        );
+        return new Set<string>(
+          input.serviceIds
+            .map((id: ObjectID) => {
+              return id.toString();
+            })
+            .filter((id: string) => {
+              return stored.includes(id);
+            }),
+        );
+      });
     jest
       .spyOn(MetricTypeService, "updateOneById")
       .mockImplementation(async (input: unknown) => {
