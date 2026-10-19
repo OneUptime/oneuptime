@@ -25,7 +25,7 @@
     "serviceName": "oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog"
   },
   "aws-eks-addon": {
-    "ready": false,
+    "ready": true,
     "registry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime",
     "productId": "prod-stb4grzn53gbw",
     "sellerAlias": "oneuptime"
