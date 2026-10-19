@@ -26,6 +26,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import URL from "Common/Types/API/URL";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import { useAsyncEffect } from "use-async-effect";
@@ -99,16 +100,24 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <span>
       {translator.translateText(GlobalRunnersCopy.onlyCardDescription)}{" "}
       <span data-testid="add-global-runners-hint">
-        {translator.translateText(GlobalRunnersCopy.addGlobalRunnersHint)}{" "}
-        <Link
-          to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
-            ADMIN_GLOBAL_RUNNERS_ROUTE,
-          )}
-          openInNewTab={true}
-          className="underline"
-        >
-          {translator.translateText(GlobalRunnersCopy.addGlobalRunnersLink)}
-        </Link>
+        <TranslatedSentence
+          template={GlobalRunnersCopy.addGlobalRunnersHint}
+          slots={{
+            location: (
+              <Link
+                to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
+                  ADMIN_GLOBAL_RUNNERS_ROUTE,
+                )}
+                openInNewTab={true}
+                className="underline"
+              >
+                {translator.translateText(
+                  GlobalRunnersCopy.addGlobalRunnersLink,
+                )}
+              </Link>
+            ),
+          }}
+        />
       </span>
     </span>
   ) : (

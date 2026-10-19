@@ -624,7 +624,13 @@ describe("Runbooks -> Runners, on a server with no global Runner", () => {
       { timeout: WAIT_TIMEOUT },
     );
 
-    expect(hint).toHaveTextContent(GlobalRunnersCopy.addGlobalRunnersHint);
+    // One sentence, the link where the template's {{location}} is.
+    expect(hint).toHaveTextContent(
+      GlobalRunnersCopy.addGlobalRunnersHint.replace(
+        "{{location}}",
+        GlobalRunnersCopy.addGlobalRunnersLink,
+      ),
+    );
 
     const link: HTMLElement = within(hint).getByText(
       GlobalRunnersCopy.addGlobalRunnersLink,

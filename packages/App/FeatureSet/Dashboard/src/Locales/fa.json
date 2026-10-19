@@ -31035,7 +31035,7 @@
   "Global Runners Can Use It": "Runnerهای سراسری می‌توانند از آن استفاده کنند",
   "Global Runners can use this secret": "Runnerهای سراسری می‌توانند از این راز استفاده کنند",
   "JavaScript steps that do not pick a Runner of their own run on the global Runners.": "گام‌های JavaScript که Runner خودشان را انتخاب نکنند، روی Runnerهای سراسری اجرا می‌شوند.",
-  "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "گام‌های JavaScript که Runner خودشان را انتخاب نکنند، تا وقتی یکی از Runnerهای شما را انتخاب نکنند شکست می‌خورند، و گام‌هایی که اکنون منتظر یک Runner سراسری هستند اجرا نمی‌شوند.",
+  "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "گام‌های JavaScript که Runner خودشان را انتخاب نکنند، تا وقتی یکی از Runnerهای شما را انتخاب نکنند شکست می‌خورند، و گام‌هایی که اکنون منتظر یک Runner سراسری هستند اجرا نمی‌شوند.",
   "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.": "گذرواژه‌ها، توکن‌ها و کلیدهای API که اسکریپت‌های رانبوک شما استفاده می‌کنند. یک راز فقط به Runnerهایی می‌رسد که شما اجازه دهید.",
   "Run JavaScript in a sandbox and use what it returns.": "JavaScript را در یک سندباکس اجرا کنید و از آنچه برمی‌گرداند استفاده کنید.",
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.": "OneUptime آن را برای همه پروژه‌ها اجرا می‌کند، در سندباکسی که فقط به اینترنت دسترسی دارد.",
@@ -31051,7 +31051,6 @@
   "Stop using global Runners?": "استفاده از Runnerهای سراسری متوقف شود؟",
   "The Runners you installed that get this secret.": "Runnerهایی که نصب کرده‌اید و این راز را می‌گیرند.",
   "This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there.": "این پروژه از Runnerهای سراسری استفاده نمی‌کند. در {{location}} یک Runner از خودتان اضافه کنید، یا Runnerهای سراسری را همان‌جا روشن کنید.",
-  "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:": "این سرور هیچ Runner سراسری ندارد. یکی اضافه کنید تا هر پروژه بتواند بدون نصب Runner گام‌های JavaScript را اجرا کند:",
   "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.": "این گام Runnerی را انتخاب کرده که دیگر جزو Runnerهای این پروژه نیست، بنابراین هنگام اجرا شکست می‌خورد. Runner دیگری انتخاب کنید.",
   "Use Global Runners": "استفاده از Runnerهای سراسری",
   "Use global Runners": "استفاده از Runnerهای سراسری",
@@ -31059,5 +31058,7 @@
   "Your Runners that can use this secret": "Runnerهای شما که می‌توانند از این راز استفاده کنند",
   "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "گام‌های {{stepType}} روی یکی از Runnerهای خودتان، درون شبکه‌تان، اجرا می‌شوند. در {{location}} یکی اضافه کنید و سپس آن را اینجا انتخاب کنید.",
   "This project does not use global Runners: pick one of your Runners for this step.": "این پروژه از Runnerهای سراسری استفاده نمی‌کند: یکی از Runnerهای خودتان را برای این گام انتخاب کنید.",
-  "Your Runners": "Runnerهای شما"
+  "Your Runners": "Runnerهای شما",
+  "Add global Runners in {{location}}.": "Runnerهای سراسری را در {{location}} اضافه کنید.",
+  "Global Runners appear here when OneUptime runs one.": "Runnerهای سراسری وقتی OneUptime یکی را اجرا کند، اینجا نمایش داده می‌شوند."
 }

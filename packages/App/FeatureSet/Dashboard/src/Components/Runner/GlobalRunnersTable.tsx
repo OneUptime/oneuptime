@@ -53,7 +53,7 @@ const GlobalRunnersTable: FunctionComponent<ComponentProps> = (
         // The Status cell renders from lastAlive.
         lastAlive: true,
       }}
-      noItemsMessage={GlobalRunnersCopy.globalCardDescription}
+      noItemsMessage={GlobalRunnersCopy.globalEmptyMessage}
       filters={[]}
       columns={[
         {

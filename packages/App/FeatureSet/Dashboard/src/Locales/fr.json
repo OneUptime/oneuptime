@@ -31035,7 +31035,7 @@
   "Global Runners Can Use It": "Utilisable par les agents Runbook globaux",
   "Global Runners can use this secret": "Les agents Runbook globaux peuvent utiliser ce secret",
   "JavaScript steps that do not pick a Runner of their own run on the global Runners.": "Les étapes JavaScript qui ne choisissent pas leur propre agent Runbook s'exécutent sur les agents Runbook globaux.",
-  "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "Les étapes JavaScript qui ne choisissent pas leur propre agent Runbook échoueront jusqu'à ce qu'elles choisissent l'un des vôtres, et les étapes qui attendent en ce moment un agent Runbook global ne s'exécuteront pas.",
+  "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "Les étapes JavaScript qui ne choisissent pas leur propre agent Runbook échoueront jusqu'à ce qu'elles choisissent l'un des vôtres, et les étapes qui attendent en ce moment un agent Runbook global ne s'exécuteront pas.",
   "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.": "Mots de passe, jetons et clés d'API utilisés par les scripts de vos runbooks. Un secret n'atteint que les agents Runbook que vous autorisez.",
   "Run JavaScript in a sandbox and use what it returns.": "Exécuter du JavaScript dans un bac à sable et utiliser ce qu'il renvoie.",
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.": "Exécuté par OneUptime pour chaque projet, dans un bac à sable qui n'accède qu'à Internet.",
@@ -31051,7 +31051,6 @@
   "Stop using global Runners?": "Ne plus utiliser les agents Runbook globaux ?",
   "The Runners you installed that get this secret.": "Les agents Runbook que vous avez installés qui reçoivent ce secret.",
   "This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there.": "Ce projet n'utilise pas les agents Runbook globaux. Ajoutez votre propre agent Runbook dans {{location}}, ou activez-y les agents Runbook globaux.",
-  "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:": "Ce serveur n'a aucun agent Runbook global. Ajoutez-en un pour que chaque projet puisse exécuter des étapes JavaScript sans installer d'agent Runbook :",
   "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.": "Cette étape a choisi un agent Runbook qui ne fait plus partie des agents Runbook de ce projet ; elle échouera donc à son exécution. Choisissez un autre agent Runbook.",
   "Use Global Runners": "Utiliser les agents Runbook globaux",
   "Use global Runners": "Utiliser les agents Runbook globaux",
@@ -31059,5 +31058,7 @@
   "Your Runners that can use this secret": "Vos agents Runbook qui peuvent utiliser ce secret",
   "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "Les étapes {{stepType}} s'exécutent sur l'un de vos propres agents Runbook, dans votre réseau. Ajoutez-en un dans {{location}}, puis choisissez-le ici.",
   "This project does not use global Runners: pick one of your Runners for this step.": "Ce projet n'utilise pas les agents Runbook globaux : choisissez l'un de vos agents Runbook pour cette étape.",
-  "Your Runners": "Vos agents Runbook"
+  "Your Runners": "Vos agents Runbook",
+  "Add global Runners in {{location}}.": "Ajoutez des agents Runbook globaux dans {{location}}.",
+  "Global Runners appear here when OneUptime runs one.": "Les agents Runbook globaux apparaissent ici lorsque OneUptime en exécute un."
 }

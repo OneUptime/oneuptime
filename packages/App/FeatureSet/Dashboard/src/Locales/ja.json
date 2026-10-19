@@ -31035,7 +31035,7 @@
   "Global Runners Can Use It": "グローバル Runner が使用可能",
   "Global Runners can use this secret": "グローバル Runner がこのシークレットを使用できる",
   "JavaScript steps that do not pick a Runner of their own run on the global Runners.": "自社の Runner を選択していない JavaScript ステップは、グローバル Runner で実行されます。",
-  "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "自社の Runner を選択していない JavaScript ステップは、自社の Runner を選択するまで失敗します。また、現在グローバル Runner を待っているステップは実行されません。",
+  "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "自社の Runner を選択していない JavaScript ステップは、自社の Runner を選択するまで失敗します。また、現在グローバル Runner を待っているステップは実行されません。",
   "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.": "Runbook のスクリプトが使うパスワード、トークン、API キーです。シークレットは、許可した Runner にだけ渡されます。",
   "Run JavaScript in a sandbox and use what it returns.": "JavaScript をサンドボックスで実行し、その戻り値を使います。",
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.": "OneUptime がすべてのプロジェクトのために動かします。インターネットにだけ届くサンドボックスで実行されます。",
@@ -31051,7 +31051,6 @@
   "Stop using global Runners?": "グローバル Runner の使用をやめますか？",
   "The Runners you installed that get this secret.": "インストール済みの Runner のうち、このシークレットを受け取るもの。",
   "This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there.": "このプロジェクトはグローバル Runner を使用していません。{{location}} で自社の Runner を追加するか、そこでグローバル Runner をオンにしてください。",
-  "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:": "このサーバーにはグローバル Runner がありません。Runner をインストールしなくてもすべてのプロジェクトが JavaScript ステップを実行できるように、追加してください:",
   "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.": "このステップは、もうこのプロジェクトの Runner ではない Runner を選択しているため、実行時に失敗します。別の Runner を選択してください。",
   "Use Global Runners": "グローバル Runner を使用",
   "Use global Runners": "グローバル Runner を使用",
@@ -31059,5 +31058,7 @@
   "Your Runners that can use this secret": "このシークレットを使用できる自社の Runner",
   "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}} のステップは、ネットワーク内の自社の Runner で実行されます。{{location}} で追加し、ここで選択してください。",
   "This project does not use global Runners: pick one of your Runners for this step.": "このプロジェクトはグローバル Runner を使用していません。このステップには自社の Runner を 1 つ選んでください。",
-  "Your Runners": "自社の Runner"
+  "Your Runners": "自社の Runner",
+  "Add global Runners in {{location}}.": "{{location}} でグローバル Runner を追加してください。",
+  "Global Runners appear here when OneUptime runs one.": "OneUptime がグローバル Runner を動かすと、ここに表示されます。"
 }

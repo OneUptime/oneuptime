@@ -249,7 +249,7 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     await expect(modal).toBeVisible();
     await expect(modal).toContainText("Stop using global Runners?");
     await expect(modal).toContainText(
-      "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.",
+      "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.",
     );
     await screenshot(page, "stop-using-global-runners");
     await modal.getByRole("button", { name: "Cancel" }).click();
@@ -369,7 +369,7 @@ test.describe("Runbooks → Runners on a server with no global Runner", () => {
 
     const hint: Locator = page.getByTestId("add-global-runners-hint");
     await expect(hint).toContainText(
-      "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:",
+      "Add global Runners in Admin Dashboard → Global Runners.",
     );
     const link: Locator = hint.getByRole("link", {
       name: "Admin Dashboard → Global Runners",

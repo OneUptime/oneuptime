@@ -31035,7 +31035,7 @@
   "Global Runners Can Use It": "글로벌 Runner 사용 가능",
   "Global Runners can use this secret": "글로벌 Runner가 이 시크릿을 사용할 수 있음",
   "JavaScript steps that do not pick a Runner of their own run on the global Runners.": "자체 Runner를 선택하지 않은 JavaScript 단계는 글로벌 Runner에서 실행됩니다.",
-  "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "자체 Runner를 선택하지 않은 JavaScript 단계는 내 Runner 중 하나를 선택할 때까지 실패하며, 지금 글로벌 Runner를 기다리는 단계는 실행되지 않습니다.",
+  "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "자체 Runner를 선택하지 않은 JavaScript 단계는 내 Runner 중 하나를 선택할 때까지 실패하며, 지금 글로벌 Runner를 기다리는 단계는 실행되지 않습니다.",
   "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.": "런북 스크립트가 사용하는 비밀번호, 토큰, API 키입니다. 시크릿은 허용한 Runner에만 전달됩니다.",
   "Run JavaScript in a sandbox and use what it returns.": "샌드박스에서 JavaScript를 실행하고 반환값을 사용합니다.",
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.": "OneUptime이 모든 프로젝트를 위해 실행하며, 인터넷에만 닿는 샌드박스에서 실행됩니다.",
@@ -31051,7 +31051,6 @@
   "Stop using global Runners?": "글로벌 Runner 사용을 중지할까요?",
   "The Runners you installed that get this secret.": "직접 설치한 Runner 중 이 시크릿을 받는 Runner입니다.",
   "This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there.": "이 프로젝트는 글로벌 Runner를 사용하지 않습니다. {{location}}에서 직접 설치한 Runner를 추가하거나 그곳에서 글로벌 Runner를 켜세요.",
-  "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:": "이 서버에는 글로벌 Runner가 없습니다. Runner를 설치하지 않고도 모든 프로젝트가 JavaScript 단계를 실행할 수 있도록 하나를 추가하세요:",
   "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.": "이 단계는 더 이상 이 프로젝트의 Runner가 아닌 Runner를 선택했으므로 실행될 때 실패합니다. 다른 Runner를 선택하세요.",
   "Use Global Runners": "글로벌 Runner 사용",
   "Use global Runners": "글로벌 Runner 사용",
@@ -31059,5 +31058,7 @@
   "Your Runners that can use this secret": "이 시크릿을 사용할 수 있는 내 Runner",
   "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}} 단계는 네트워크 안에 직접 설치한 Runner에서 실행됩니다. {{location}}에서 하나를 추가한 다음 여기에서 선택하세요.",
   "This project does not use global Runners: pick one of your Runners for this step.": "이 프로젝트는 글로벌 Runner를 사용하지 않습니다. 이 단계에 사용할 내 Runner를 하나 선택하세요.",
-  "Your Runners": "내 Runner"
+  "Your Runners": "내 Runner",
+  "Add global Runners in {{location}}.": "{{location}}에서 글로벌 Runner를 추가하세요.",
+  "Global Runners appear here when OneUptime runs one.": "OneUptime이 글로벌 Runner를 실행하면 여기에 표시됩니다."
 }

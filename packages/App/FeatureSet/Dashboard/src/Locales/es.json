@@ -31035,7 +31035,7 @@
   "Global Runners Can Use It": "Los Runners globales pueden usarlo",
   "Global Runners can use this secret": "Los Runners globales pueden usar este secreto",
   "JavaScript steps that do not pick a Runner of their own run on the global Runners.": "Los pasos de JavaScript que no eligen un Runner propio se ejecutan en los Runners globales.",
-  "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "Los pasos de JavaScript que no eligen un Runner propio fallarán hasta que elijan uno de los tuyos, y los pasos que ahora esperan un Runner global no se ejecutarán.",
+  "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "Los pasos de JavaScript que no eligen un Runner propio fallarán hasta que elijan uno de los tuyos, y los pasos que ahora esperan un Runner global no se ejecutarán.",
   "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.": "Contraseñas, tokens y claves de API que usan los scripts de tus runbooks. Un secreto solo llega a los Runners que tú permites.",
   "Run JavaScript in a sandbox and use what it returns.": "Ejecuta JavaScript en un entorno aislado y usa lo que devuelve.",
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.": "Lo ejecuta OneUptime para todos los proyectos, en un entorno aislado que solo llega a internet.",
@@ -31051,7 +31051,6 @@
   "Stop using global Runners?": "¿Dejar de usar los Runners globales?",
   "The Runners you installed that get this secret.": "Los Runners que instalaste que reciben este secreto.",
   "This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there.": "Este proyecto no usa Runners globales. Añade un Runner propio en {{location}} o activa allí los Runners globales.",
-  "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:": "Este servidor no tiene Runners globales. Añade uno para que cada proyecto pueda ejecutar pasos de JavaScript sin instalar un Runner:",
   "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.": "Este paso eligió un Runner que ya no es uno de los Runners de este proyecto, así que fallará al ejecutarse. Elige otro Runner.",
   "Use Global Runners": "Usar Runners globales",
   "Use global Runners": "Usar Runners globales",
@@ -31059,5 +31058,7 @@
   "Your Runners that can use this secret": "Tus Runners que pueden usar este secreto",
   "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "Los pasos de {{stepType}} se ejecutan en un Runner propio, dentro de tu red. Añade uno en {{location}} y luego elígelo aquí.",
   "This project does not use global Runners: pick one of your Runners for this step.": "Este proyecto no usa Runners globales: elige uno de tus Runners para este paso.",
-  "Your Runners": "Tus Runners"
+  "Your Runners": "Tus Runners",
+  "Add global Runners in {{location}}.": "Añade Runners globales en {{location}}.",
+  "Global Runners appear here when OneUptime runs one.": "Los Runners globales aparecen aquí cuando OneUptime ejecuta uno."
 }

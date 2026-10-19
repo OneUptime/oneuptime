@@ -31035,7 +31035,7 @@
   "Global Runners Can Use It": "全局 Runner 可使用",
   "Global Runners can use this secret": "全局 Runner 可以使用此密钥",
   "JavaScript steps that do not pick a Runner of their own run on the global Runners.": "未选择自己的 Runner 的 JavaScript 步骤会在全局 Runner 上运行。",
-  "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "未选择自己的 Runner 的 JavaScript 步骤会一直失败，直到选择您的某个 Runner；此刻正在等待全局 Runner 的步骤也不会运行。",
+  "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "未选择自己的 Runner 的 JavaScript 步骤会一直失败，直到选择您的某个 Runner；此刻正在等待全局 Runner 的步骤也不会运行。",
   "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.": "您的运行手册脚本使用的密码、令牌和 API 密钥。密钥只会交给您允许使用它的 Runner。",
   "Run JavaScript in a sandbox and use what it returns.": "在沙箱中运行 JavaScript，并使用它返回的结果。",
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.": "由 OneUptime 为所有项目运行，在只能访问互联网的沙箱中执行。",
@@ -31051,7 +31051,6 @@
   "Stop using global Runners?": "停止使用全局 Runner？",
   "The Runners you installed that get this secret.": "您安装的、会获得此密钥的 Runner。",
   "This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there.": "此项目不使用全局 Runner。请在 {{location}} 中添加您自己的 Runner，或在那里开启全局 Runner。",
-  "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:": "此服务器没有全局 Runner。添加一个，所有项目无需安装 Runner 即可运行 JavaScript 步骤：",
   "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.": "此步骤选择的 Runner 已不再属于此项目，因此运行时会失败。请选择其他 Runner。",
   "Use Global Runners": "使用全局 Runner",
   "Use global Runners": "使用全局 Runner",
@@ -31059,5 +31058,7 @@
   "Your Runners that can use this secret": "可以使用此密钥的您的 Runner",
   "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}} 步骤在您网络中您自己的 Runner 上运行。请在 {{location}} 中添加一个，然后在这里选择它。",
   "This project does not use global Runners: pick one of your Runners for this step.": "此项目不使用全局 Runner：请为此步骤选择您自己的一个 Runner。",
-  "Your Runners": "您的 Runner"
+  "Your Runners": "您的 Runner",
+  "Add global Runners in {{location}}.": "在{{location}}中添加全局 Runner。",
+  "Global Runners appear here when OneUptime runs one.": "OneUptime 运行全局 Runner 后，它们会显示在这里。"
 }

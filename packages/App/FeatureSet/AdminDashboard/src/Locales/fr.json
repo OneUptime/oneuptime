@@ -532,7 +532,7 @@
       },
       "globalRunners": {
         "cardTitle": "Agents Runbook globaux",
-        "cardDescription": "Des agents Runbook que OneUptime exécute pour chaque projet. Ils exécutent les étapes JavaScript des runbooks, chacune dans son propre bac à sable qui n'accède qu'à Internet. L'un d'eux tourne avec ce serveur ; ajoutez-en d'autres pour exécuter des étapes sur d'autres hôtes. Les projets les utilisent, sauf s'ils les désactivent.",
+        "cardDescription": "Des agents Runbook que OneUptime exécute pour chaque projet. Ils exécutent les étapes JavaScript des runbooks, chacune dans son propre bac à sable qui n'accède qu'à Internet. L'un d'eux tourne avec ce serveur ; ajoutez-en d'autres pour exécuter des étapes sur d'autres hôtes.",
         "noItems": "Créez un agent Runbook global, puis démarrez-le avec la commande de « Afficher l'ID et la clé ».",
         "showIdKey": "Afficher l'ID et la clé",
         "keyModalTitle": "Clé de l'agent Runbook global",

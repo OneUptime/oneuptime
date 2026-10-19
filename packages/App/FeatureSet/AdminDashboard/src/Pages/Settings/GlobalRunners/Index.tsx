@@ -134,6 +134,12 @@ const Settings: FunctionComponent = (): ReactElement => {
             validation: {
               minLength: 2,
             },
+            /*
+             * The column's description is about a project's Runners (the
+             * reserved kubernetes-agent/ names); the title and placeholder
+             * say what this is.
+             */
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -143,6 +149,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Runs JavaScript steps for every project.",
+            // The column only said "Optional description for this agent".
+            hideColumnDescription: true,
           },
         ]}
         selectMoreFields={{

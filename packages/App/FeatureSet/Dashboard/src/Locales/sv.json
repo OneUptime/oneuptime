@@ -31035,7 +31035,7 @@
   "Global Runners Can Use It": "Globala Runners får använda den",
   "Global Runners can use this secret": "Globala Runners får använda den här hemligheten",
   "JavaScript steps that do not pick a Runner of their own run on the global Runners.": "JavaScript-steg som inte väljer en egen Runner körs på de globala Runners.",
-  "JavaScript steps that do not pick a Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "JavaScript-steg som inte väljer en egen Runner misslyckas tills de väljer en av dina, och steg som just nu väntar på en global Runner körs inte.",
+  "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.": "JavaScript-steg som inte väljer en egen Runner misslyckas tills de väljer en av dina, och steg som just nu väntar på en global Runner körs inte.",
   "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.": "Lösenord, token och API-nycklar som dina runbook-skript använder. En hemlighet når bara de Runners du tillåter.",
   "Run JavaScript in a sandbox and use what it returns.": "Kör JavaScript i en sandlåda och använd det den returnerar.",
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.": "Körs av OneUptime för alla projekt, i en sandlåda som bara når internet.",
@@ -31051,7 +31051,6 @@
   "Stop using global Runners?": "Sluta använda globala Runners?",
   "The Runners you installed that get this secret.": "De Runners du har installerat som får den här hemligheten.",
   "This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there.": "Det här projektet använder inte globala Runners. Lägg till en egen Runner under {{location}}, eller slå på de globala Runners där.",
-  "This server has no global Runners. Add one so every project can run JavaScript steps without installing a Runner:": "Den här servern har inga globala Runners. Lägg till en så att alla projekt kan köra JavaScript-steg utan att installera en Runner:",
   "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.": "Det här steget har valt en Runner som inte längre hör till det här projektets Runners, så det misslyckas när det körs. Välj en annan Runner.",
   "Use Global Runners": "Använd globala Runners",
   "Use global Runners": "Använd globala Runners",
@@ -31059,5 +31058,7 @@
   "Your Runners that can use this secret": "Dina Runners som får använda den här hemligheten",
   "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}}-steg körs på en av dina egna Runners, i ditt nätverk. Lägg till en under {{location}} och välj den sedan här.",
   "This project does not use global Runners: pick one of your Runners for this step.": "Det här projektet använder inte globala Runners: välj en av dina Runners för det här steget.",
-  "Your Runners": "Dina Runners"
+  "Your Runners": "Dina Runners",
+  "Add global Runners in {{location}}.": "Lägg till globala Runners i {{location}}.",
+  "Global Runners appear here when OneUptime runs one.": "Globala Runners visas här när OneUptime kör en."
 }
