@@ -1,7 +1,9 @@
 import RunnerJobService, {
+  GLOBAL_RUNNER_CLAIM_LOCK_KEY,
   describeRunnerJobTimeout,
 } from "../../../Server/Services/RunnerJobService";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import ProjectLimitLock from "../../../Server/Utils/Database/ProjectLimitLock";
 import logger from "../../../Server/Utils/Logger";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -43,7 +45,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const EXECUTION_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
-const RUNNER_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const RUNNER_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
 const GLOBAL_RUNNER_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
 );
@@ -183,30 +187,72 @@ interface CapturedQuery {
 }
 
 describe("claimNextGlobalJob", () => {
-  let queries: Array<CapturedQuery>;
+  // Every statement, in order, and whether it ran in the claim's transaction.
+  let queries: Array<CapturedQuery & { inTransaction: boolean }>;
   let answer: Array<Record<string, unknown>>;
 
   beforeEach(() => {
     queries = [];
     answer = [];
 
+    const record: (
+      inTransaction: boolean,
+    ) => (sql: string, params: Array<unknown>) => Promise<unknown> = (
+      inTransaction: boolean,
+    ): ((sql: string, params: Array<unknown>) => Promise<unknown>) => {
+      return async (sql: string, params: Array<unknown>): Promise<unknown> => {
+        queries.push({ sql, params, inTransaction });
+        if (sql === ProjectLimitLock.LOCK_STATEMENT) {
+          return [];
+        }
+        // UPDATE ... RETURNING comes back as [rows, count].
+        return [answer, answer.length];
+      };
+    };
+
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue({
-      query: jest
+      query: jest.fn().mockImplementation(record(false)),
+      transaction: jest
         .fn()
         .mockImplementation(
-          async (sql: string, params: Array<unknown>): Promise<unknown> => {
-            queries.push({ sql, params });
-            // UPDATE ... RETURNING comes back as [rows, count].
-            return [answer, answer.length];
+          async (
+            run: (manager: { query: unknown }) => Promise<unknown>,
+          ): Promise<unknown> => {
+            return await run({
+              query: jest.fn().mockImplementation(record(true)),
+            });
           },
         ),
     } as never);
   });
 
+  // The claim itself: every statement but the lock.
   function claimQuery(): CapturedQuery {
-    expect(queries).toHaveLength(1);
-    return queries[0]!;
+    const claims: Array<CapturedQuery> = queries.filter(
+      (query: CapturedQuery): boolean => {
+        return query.sql !== ProjectLimitLock.LOCK_STATEMENT;
+      },
+    );
+    expect(claims).toHaveLength(1);
+    return claims[0]!;
   }
+
+  test("takes its turn: the claim lock first, then the claim, in one transaction", async () => {
+    await RunnerJobService.claimNextGlobalJob({ agentId: GLOBAL_RUNNER_ID });
+
+    expect(
+      queries.map((query: CapturedQuery & { inTransaction: boolean }) => {
+        return {
+          isLock: query.sql === ProjectLimitLock.LOCK_STATEMENT,
+          inTransaction: query.inTransaction,
+        };
+      }),
+    ).toEqual([
+      { isLock: true, inTransaction: true },
+      { isLock: false, inTransaction: true },
+    ]);
+    expect(queries[0]!.params).toEqual([GLOBAL_RUNNER_CLAIM_LOCK_KEY]);
+  });
 
   test("asks for nothing at all when every requested type is one global Runners never run", async () => {
     await expect(
@@ -371,9 +417,7 @@ describe("a global job that timed out says so in its own words", () => {
   });
 
   test("went silent mid-step", () => {
-    expect(
-      describeRunnerJobTimeout({ ...base, kind: "lease_expired" }),
-    ).toBe(
+    expect(describeRunnerJobTimeout({ ...base, kind: "lease_expired" })).toBe(
       "The global Runner running this step stopped responding. It may have restarted. Check what the step was doing before you run the runbook again, or pick one of your own Runners for the step.",
     );
   });

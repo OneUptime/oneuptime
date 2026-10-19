@@ -335,7 +335,11 @@ describePostgres("the global Runners' claim, in Postgres", () => {
     const busy: ObjectID = await insertProject({});
     const other: ObjectID = await insertProject({});
 
-    for (let index: number = 0; index < MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT;
+      index++
+    ) {
       await insertJob({
         projectId: busy,
         status:
@@ -370,7 +374,11 @@ describePostgres("the global Runners' claim, in Postgres", () => {
   test("a project's steps on its own Runners do not count against its share of the global Runners", async () => {
     const project: ObjectID = await insertProject({});
 
-    for (let index: number = 0; index < MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT + 2; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT + 2;
+      index++
+    ) {
       await insertJob({
         projectId: project,
         runsOnGlobalRunner: false,
@@ -420,5 +428,38 @@ describePostgres("the global Runners' claim, in Postgres", () => {
         })
         .sort(),
     );
+  });
+
+  /*
+   * Each claim counts the project's steps in flight before it takes one.
+   * Claims made at the same moment used to count side by side, each see
+   * room, and each take one more; they now take their turn, so the share
+   * holds however many global Runners ask at once.
+   */
+  test("global Runners claiming at the same moment never take more of one project's steps than its share", async () => {
+    const project: ObjectID = await insertProject({});
+    const waiting: number = MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT * 3;
+
+    for (let index: number = 0; index < waiting; index++) {
+      await insertJob({ projectId: project, createdSecondsAgo: 100 - index });
+    }
+
+    const claims: Array<RunnerJob | null> = await Promise.all(
+      Array.from({ length: waiting }, (_value: unknown, index: number) => {
+        return claim(index % 2 === 0 ? GLOBAL_RUNNER : OTHER_GLOBAL_RUNNER);
+      }),
+    );
+
+    expect(
+      claims.filter((job: RunnerJob | null): boolean => {
+        return Boolean(job);
+      }),
+    ).toHaveLength(MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT);
+
+    const inFlight: Array<{ count: string }> = await database.query(
+      `SELECT COUNT(*) AS count FROM "${schema}"."RunnerJob" WHERE "projectId" = $1 AND "status" = $2`,
+      [project.toString(), RunnerJobStatus.Claimed],
+    );
+    expect(Number(inFlight[0]!.count)).toBe(MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT);
   });
 });

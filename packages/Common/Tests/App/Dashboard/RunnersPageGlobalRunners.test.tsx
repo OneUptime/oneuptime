@@ -632,9 +632,11 @@ describe("Runbooks -> Runners, on a server with no global Runner", () => {
     const anchor: HTMLAnchorElement | null = link.closest("a");
 
     expect(anchor).not.toBeNull();
-    expect(anchor!.getAttribute("href") || "").toMatch(
-      new RegExp(`${ADMIN_GLOBAL_RUNNERS_ROUTE.replace(/\//g, "\\/")}$`),
-    );
+    const href: string = anchor!.getAttribute("href") || "";
+    expect({
+      href,
+      endsWithRoute: href.endsWith(ADMIN_GLOBAL_RUNNERS_ROUTE),
+    }).toEqual({ href, endsWithRoute: true });
     expect(anchor!.getAttribute("target")).toBe("_blank");
     expect(ADMIN_GLOBAL_RUNNERS_ROUTE).toBe("/settings/global-runners");
   });

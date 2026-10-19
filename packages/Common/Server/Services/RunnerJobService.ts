@@ -77,6 +77,11 @@ import {
   MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT,
   canGlobalRunnersRunStepType,
 } from "../../Types/Runner/GlobalRunnerWork";
+import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
+import { EntityManager } from "typeorm";
+
+// The advisory lock every global Runner claim takes (claimNextGlobalJob).
+export const GLOBAL_RUNNER_CLAIM_LOCK_KEY: string = "global-runner-claim";
 
 /*
  * The cluster remediation modes in which a kubectl job for remediation may
@@ -2117,17 +2122,37 @@ export class Service extends DatabaseService<Model> {
                 j."leaseExpiresAt";
     `;
 
-    const rows: Array<JSONObject> = unwrapRows(
-      await dataSource.query(sql, [
-        RunnerJobStatus.Pending,
-        RunnerJobOrigin.Runbook,
-        stepTypes,
-        RunnerJobStatus.Claimed,
-        RunnerJobStatus.Running,
-        MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT,
-        data.agentId.toString(),
-        leaseMs.toString(),
-      ]),
+    /*
+     * One global claim at a time. The statement counts a project's steps in
+     * flight and takes one more only while there is room, but two claims
+     * made at the same moment each read the count before the other's claim
+     * commits, see room, and take one each: a project could hold as many
+     * global Runner slots as there were Runners asking at once. A
+     * transaction-scoped advisory lock (as ProjectLimitLock takes for a
+     * project's limits) makes each claim read the count once every claim
+     * before it has committed, so no project holds more than
+     * MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT. A claim is one indexed statement,
+     * so the wait is short; the lock goes with the transaction.
+     */
+    const rows: Array<JSONObject> = await dataSource.transaction(
+      async (manager: EntityManager): Promise<Array<JSONObject>> => {
+        await manager.query(ProjectLimitLock.LOCK_STATEMENT, [
+          GLOBAL_RUNNER_CLAIM_LOCK_KEY,
+        ]);
+
+        return unwrapRows(
+          await manager.query(sql, [
+            RunnerJobStatus.Pending,
+            RunnerJobOrigin.Runbook,
+            stepTypes,
+            RunnerJobStatus.Claimed,
+            RunnerJobStatus.Running,
+            MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT,
+            data.agentId.toString(),
+            leaseMs.toString(),
+          ]),
+        );
+      },
     );
 
     if (!rows || rows.length === 0) {
