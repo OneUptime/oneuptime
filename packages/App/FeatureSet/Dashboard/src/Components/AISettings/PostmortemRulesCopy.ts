@@ -28,9 +28,12 @@ import {
  * is wrapped in translationKey() so npm run i18n:extract finds it.
  */
 
-// The card, and what an empty one says.
+/*
+ * The card, and what an empty one says. Two lines beside the card's title
+ * at most (ShortDescriptionsGuard: 210 characters).
+ */
 export const POSTMORTEM_RULES_CARD_DESCRIPTION: string = translationKey(
-  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for matching incidents, in the templates you choose. The first rule that matches decides - drag to reorder.",
 );
 
 /*

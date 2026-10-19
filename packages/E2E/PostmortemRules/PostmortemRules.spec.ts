@@ -50,7 +50,7 @@ const STANDARD_OUTLINE_NAME: string = "Draft with the standard outline";
 const DEFAULTS_SUMMARY: string =
   "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.";
 const CARD_DESCRIPTION: string =
-  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.";
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for matching incidents, in the templates you choose. The first rule that matches decides - drag to reorder.";
 const CARD_DESCRIPTION_WITHOUT_TEMPLATES: string =
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.";
 // The empty table: its message, drawn as a title and a line under it.

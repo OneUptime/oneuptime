@@ -292,8 +292,10 @@ describe("the postmortem rules table", () => {
       description: POSTMORTEM_RULES_CARD_DESCRIPTION,
     });
     expect(POSTMORTEM_RULES_CARD_DESCRIPTION).toBe(
-      "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.",
+      "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for matching incidents, in the templates you choose. The first rule that matches decides - drag to reorder.",
     );
+    // Two lines beside the card's title, as every card's description.
+    expect(POSTMORTEM_RULES_CARD_DESCRIPTION.length).toBeLessThanOrEqual(210);
     expect(props["noItemsMessage"]).toBe(POSTMORTEM_RULES_NO_ITEMS_MESSAGE);
     expect(POSTMORTEM_RULES_NO_ITEMS_MESSAGE).toBe(
       "No rules. Every resolved incident gets a postmortem draft.",

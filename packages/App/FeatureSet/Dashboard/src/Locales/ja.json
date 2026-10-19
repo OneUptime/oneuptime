@@ -31244,7 +31244,7 @@
   "Postmortem rules": "ポストモーテムルール",
   "Standard outline": "標準の構成",
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "調査・修正するインシデントやポストモーテムの下書きを作成するインシデントと、調査および 1 日あたりの AI 作業の上限。",
-  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "ルールがない場合、OneUptime AI は解決したインシデントすべてについてポストモーテムの下書きを作成します。ルールを追加すると、いずれかのルールに一致するインシデントだけが下書きの対象になり、下書きに使うテンプレートも選べます。最初に一致したルールが適用されます。ルールをドラッグすると順序を変更できます。",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for matching incidents, in the templates you choose. The first rule that matches decides - drag to reorder.": "ルールがない場合、OneUptime AI は解決したインシデントすべてについてポストモーテムの下書きを作成します。ルールを追加すると、一致するインシデントだけを、選んだテンプレートで下書きします。最初に一致したルールが適用されます。ドラッグで並べ替えできます。",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "ルールがない場合、OneUptime AI は解決したインシデントすべてについてポストモーテムの下書きを作成します。ルールを追加すると、いずれかのルールに一致するインシデントだけが下書きの対象になります。",
   "e.g. Draft with Database outage": "例: Database outage で下書き",
   "{{count}} more templates": "ほか {{count}} 件のテンプレート",
