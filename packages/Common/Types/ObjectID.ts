@@ -5,6 +5,7 @@ import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
 import Zod from "../Utils/Schema/Zod";
+import { refusedValue } from "../Utils/RefusedValue";
 
 // UUID validation regex - matches standard UUID format
 const UUID_REGEX: RegExp =
@@ -142,7 +143,7 @@ export default class ObjectID extends DatabaseProperty {
   public static validateUUID(id: string): void {
     if (!ObjectID.isValidUUID(id.toString())) {
       throw new BadDataException(
-        `Invalid ID format: "${id}". Expected a valid UUID (e.g., "550e8400-e29b-41d4-a716-446655440000").`,
+        `Invalid ID format: "${refusedValue(id)}". Expected a valid UUID (e.g., "550e8400-e29b-41d4-a716-446655440000").`,
       );
     }
   }

@@ -26,6 +26,10 @@ import WhatsAppTemplateMessages, {
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
+import {
+  TemplatePlaceholder,
+  findTemplatePlaceholders,
+} from "Common/Utils/TemplatePlaceholders";
 import { useTranslation } from "react-i18next";
 
 /*
@@ -52,16 +56,18 @@ type ExtractTemplateVariables = (template: string) => Array<string>;
 const extractTemplateVariables: ExtractTemplateVariables = (
   template: string,
 ): Array<string> => {
-  const matches: RegExpMatchArray | null = template.match(/\{\{(.*?)\}\}/g);
+  const placeholders: Array<TemplatePlaceholder> =
+    findTemplatePlaceholders(template);
 
-  if (!matches) {
+  if (placeholders.length === 0) {
     return [];
   }
 
   const uniqueVariables: Set<string> = new Set<string>();
 
-  for (const match of matches) {
-    const variable: string = match.replace("{{", "").replace("}}", "").trim();
+  for (const placeholder of placeholders) {
+    // What stands between the braces: the text without its "{{" and "}}".
+    const variable: string = placeholder.inner.trim();
 
     if (variable) {
       uniqueVariables.add(variable);

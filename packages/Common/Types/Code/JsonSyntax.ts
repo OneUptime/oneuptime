@@ -1,7 +1,8 @@
+import { hasEachBlock } from "../Workflow/TemplateSyntax";
 import {
-  getTemplateExpressionRegex,
-  hasEachBlock,
-} from "../Workflow/TemplateSyntax";
+  TemplatePlaceholder,
+  replaceTemplatePlaceholders,
+} from "../../Utils/TemplatePlaceholders";
 import JSON5 from "json5";
 
 /*
@@ -636,15 +637,15 @@ const maskTemplates: MaskTemplatesFunction = (
     [];
   let removed: number = 0;
 
-  const masked: string = text.replace(
-    getTemplateExpressionRegex(),
-    (match: string, _expression: string, offset: number): string => {
+  const masked: string = replaceTemplatePlaceholders(
+    text,
+    (placeholder: TemplatePlaceholder): string => {
       spans.push({
-        maskedAt: offset - removed,
-        originalAt: offset,
-        length: match.length,
+        maskedAt: placeholder.start - removed,
+        originalAt: placeholder.start,
+        length: placeholder.text.length,
       });
-      removed += match.length - 1;
+      removed += placeholder.text.length - 1;
       return "1";
     },
   );
