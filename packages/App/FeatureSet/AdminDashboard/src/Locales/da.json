@@ -44,7 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Globale probes",
-    "globalRunners": "Globale Runners",
+    "globalRunners": "Globale Runnere",
     "dataRetention": "Dataopbevaring",
     "globalAiAgents": "Globale AI-agenter",
     "globalLlmProviders": "Globale LLM-udbydere",
@@ -113,7 +113,7 @@
     "settingsMonitoring": "Overvågning",
     "settingsGlobalProbes": "Globale probes",
     "settingsRunbooks": "Runbooks",
-    "settingsGlobalRunners": "Globale Runners",
+    "settingsGlobalRunners": "Globale Runnere",
     "settingsDataRetention": "Dataopbevaring",
     "settingsAi": "AI",
     "settingsGlobalAiAgents": "Globale AI-agenter",
@@ -531,7 +531,7 @@
         "probeKeyLabel": "Probe-nøgle:"
       },
       "globalRunners": {
-        "cardTitle": "Globale Runners",
+        "cardTitle": "Globale Runnere",
         "cardDescription": "Runners, som OneUptime kører for alle projekter. De kører JavaScript-trin i runbooks, hvert i sin egen sandkasse, der kun når internettet. Projekter bruger dem, medmindre de slår dem fra.",
         "noItems": "Opret en global Runner, og start den derefter med kommandoen under »Vis ID og nøgle«.",
         "showIdKey": "Vis ID og nøgle",
