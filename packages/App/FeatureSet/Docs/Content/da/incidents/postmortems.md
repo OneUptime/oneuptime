@@ -80,6 +80,16 @@ Med **Skriv et udkast til en postmortem, når en hændelse er løst** slået til
 - Den kræver, at AI er slået til for projektet, og stopper resten af dagen, når projektet når sine daglige AI-grænser. Se [Automatisk postmortem](/docs/ai/ai-sre#automatisk-postmortem).
 - Er transskriptionen af hændelsens opkald stadig på vej, når hændelsen løses, venter den, til OneUptime AI har læst den, så udkastet medtager, hvad der blev sagt i opkaldet: op til seks timer, mens Zoom eller Google Meet forbereder transskriptionen. Se [Optag og transskribér hvert opkald](/docs/workspace-connections/video-calls#optag-og-transskribér-hvert-opkald).
 
+#### Vælg, hvilke hændelser der får et udkast, og dets skabelon
+
+Uden regler får hver løst hændelse et udkast i OneUptime AI's standardopbygning. **Postmortem-regler** under **Yderligere indstillinger** på samme side ændrer det:
+
+- En regel matcher **Alle hændelser** eller **Kun hændelser, der opfylder betingelserne** på monitorer, alvorligheder, labels, monitorlabels, titel og beskrivelse, som en undersøgelsesregel gør.
+- Dens **Skabeloner** er de postmortem-skabeloner, udkastet må følge. Uden nogen følger udkastet standardopbygningen; med én følger det den skabelon; med flere den, som OneUptime AI finder passer bedst til hændelsen. Udkastets indlæg i feedet nævner den skabelon, det fulgte.
+- Den første aktiverede regel, der matcher hændelsen, afgør det, regnet fra toppen af listen: træk en regel for at flytte den. En hændelse, som ingen regel matcher, får intet udkast, og det får ingen hændelse, så længe reglerne ikke kan læses.
+- **Skriv et udkast til en postmortem, når en hændelse er løst** er stadig den eneste kontakt, der slår udkast fra. Regler afgør kun de udkast, OneUptime AI skriver af sig selv: **Generate with AI** tilbyder alle opbygninger, uanset hvad reglerne siger.
+- Det kræver rollen Project Owner eller Project Admin at oprette, redigere og omsortere regler. På OneUptime Cloud kræver skabeloner Growth-planen: under den afgør reglerne stadig, hvilke hændelser der får et udkast, og hvert udkast følger standardopbygningen.
+
 ## Offentliggør den på din statusside
 
 En offentliggjort postmortem er hændelsens afsluttende opdatering til dine kunder: statussiden viser noten, fremhævet i hændelsens tidslinje, med dens vedhæftninger til download.
@@ -153,7 +163,7 @@ Tjek tre ting: **Offentliggør på statussiden** er slået til, noten er ikke to
 :::
 
 :::details Der kom intet AI-udkast, da hændelsen blev løst
-Hændelsen havde allerede en note, postmortem var allerede offentliggjort, eller **Skriv et udkast til en postmortem, når en hændelse er løst** er slået fra. AI skal være slået til for projektet, og projektet må ikke have nået sine daglige AI-grænser. Er transskriptionen af hændelsens opkald på vej, kommer udkastet, når OneUptime AI har læst den.
+Hændelsen havde allerede en note, postmortem var allerede offentliggjort, ingen postmortem-regel matchede den, eller **Skriv et udkast til en postmortem, når en hændelse er løst** er slået fra. AI skal være slået til for projektet, og projektet må ikke have nået sine daglige AI-grænser. Er transskriptionen af hændelsens opkald på vej, kommer udkastet, når OneUptime AI har læst den.
 :::
 
 ## Næste trin

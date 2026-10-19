@@ -80,6 +80,16 @@ Com **Redigir um post-mortem quando um incidente é resolvido** ligado, o OneUpt
 - Ele exige que a IA esteja ligada para o projeto, e para pelo resto do dia assim que o projeto atinge os seus limites diários de IA. Veja [Post-mortem automático](/docs/ai/ai-sre#post-mortem-automático).
 - Quando a transcrição da chamada do incidente ainda está a caminho no momento em que o incidente é resolvido, ele espera até que o OneUptime AI a leia, para que o rascunho inclua o que foi dito na chamada: até seis horas enquanto o Zoom ou o Google Meet prepara a transcrição. Veja [Gravar e transcrever todas as chamadas](/docs/workspace-connections/video-calls#gravar-e-transcrever-todas-as-chamadas).
 
+#### Escolher quais incidentes recebem um rascunho, e o modelo dele
+
+Sem regras, cada incidente resolvido recebe um rascunho, na estrutura padrão do OneUptime AI. As **Regras de post-mortem**, em **Mais configurações** na mesma página, mudam isso:
+
+- Uma regra corresponde a **Todos os incidentes**, ou a **Somente os incidentes que atendem às condições** sobre monitores, severidades, labels, labels de monitor, título e descrição, como faz uma regra de investigação.
+- Os **Modelos** dela são os modelos de post-mortem que o rascunho pode seguir. Sem nenhum, o rascunho segue a estrutura padrão; com um, esse modelo; com vários, o que o OneUptime AI considera mais adequado ao incidente. A publicação do rascunho no feed cita o modelo que ele seguiu.
+- Decide a primeira regra habilitada que corresponde ao incidente, a partir do topo da lista: arraste uma regra para mudar a posição dela. Um incidente ao qual nenhuma regra corresponde não recebe rascunho, e nenhum incidente recebe enquanto as regras não puderem ser lidas.
+- **Redigir um post-mortem quando um incidente é resolvido** continua sendo a única chave que desliga os rascunhos. As regras decidem só os rascunhos que o OneUptime AI escreve por conta própria: **Generate with AI** oferece todas as estruturas, digam elas o que disserem.
+- Criar, editar e reordenar regras exige o papel Project Owner ou Project Admin. No OneUptime Cloud, os modelos exigem o plano Growth: abaixo dele, as regras continuam decidindo quais incidentes recebem um rascunho, e cada rascunho segue a estrutura padrão.
+
 ## Publicá-lo na sua página de status
 
 Um post-mortem publicado é a atualização final do incidente para os seus clientes: a página de status exibe a nota, em destaque na linha do tempo do incidente, com os anexos para baixar.
@@ -153,7 +163,7 @@ Verifique três coisas: **Publicar na Página de status** está ligado, a nota n
 :::
 
 :::details Nenhum rascunho da IA apareceu quando o incidente foi resolvido
-O incidente já tinha uma nota, o post-mortem já estava publicado, ou **Redigir um post-mortem quando um incidente é resolvido** está desligado. A IA precisa estar ligada para o projeto, e o projeto não pode ter atingido os seus limites diários de IA. Quando a transcrição da chamada do incidente está a caminho, o rascunho chega assim que o OneUptime AI a lê.
+O incidente já tinha uma nota, o post-mortem já estava publicado, nenhuma regra de post-mortem correspondeu a ele, ou **Redigir um post-mortem quando um incidente é resolvido** está desligado. A IA precisa estar ligada para o projeto, e o projeto não pode ter atingido os seus limites diários de IA. Quando a transcrição da chamada do incidente está a caminho, o rascunho chega assim que o OneUptime AI a lê.
 :::
 
 ## Próximos passos
