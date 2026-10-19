@@ -119,11 +119,13 @@ spec:
             {{- end }}
             {{- if .Values.ebpf.contextPropagation }}
             # Inject a W3C `traceparent` into outbound traffic so traces link
-            # across services. OFF unless explicitly opted into, because every
-            # mode rewrites traffic that is already in flight (in-place buffer
-            # widening for plaintext HTTP, a TC-injected TCP option for TLS and
-            # raw TCP) and a bad rewrite stalls the connection rather than just
-            # losing a span. Mode comes from
+            # across services, on another node too. On by default; off when
+            # set false, and when a values file has no such key (a release
+            # carried forward with --reuse-values from a chart before it).
+            # Every mode rewrites traffic that is already in flight (in-place
+            # buffer widening for plaintext HTTP, a TC-injected TCP option for
+            # TLS and raw TCP), and a bad rewrite stalls the connection rather
+            # than just losing a span. Mode comes from
             # `.Values.ebpf.contextPropagationMode` — `headers` (default, the
             # narrowest), `tcp`, or `all`. No kernel version makes this inert:
             # below 5.17 OBI falls back to bounded-scan variants and still

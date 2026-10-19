@@ -14,9 +14,10 @@
 #       is told how to upgrade without --reuse-values;
 #   (b) a release on an older chart's values (chartDefaultsVersion older, or
 #       missing on a chart from before it) is warned, with the collector tag
-#       named when it is not this chart's default, the OBI tag likewise (when
-#       eBPF is on), and gets the exact upgrade that fixes it for this
-#       release, Helm 3.14+ and older;
+#       named when it is not this chart's default, the OBI tag likewise and
+#       ebpf.contextPropagation when it is off (both when eBPF is on), and
+#       gets the exact upgrade that fixes it for this release, Helm 3.14+ and
+#       older;
 #   (c) a values file that copies an older chart's defaults is named as the
 #       other cause, with its own fix: the upgrades for (b) keep the copy the
 #       release stored, so they cannot clear it.
@@ -135,6 +136,43 @@ tests:
           pattern: "  - ebpf\\.image\\.tag is \"v0\\.13\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
       - matchRegexRaw:
           pattern: "\nAfter --reuse-values, apply this chart's defaults and keep the values you set\n"
+
+  # The charts before this one shipped ebpf.contextPropagation off, and a
+  # --reuse-values upgrade carries that into this one, which turns it on.
+  - it: names ebpf.contextPropagation a stale release keeps off, and says the fix keeps it if set on purpose
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+      ebpf.contextPropagation: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nStale here:\n  - ebpf\\.contextPropagation is off; this chart turns it on by default, so a\n    call to a pod on another node joins the caller's trace\\. Kept if you set\n    it yourself\\.\nAfter --reuse-values"
+      - notMatchRegexRaw:
+          pattern: "ebpf\\.image\\.tag"
+
+  - it: names ebpf.contextPropagation a release from before the key has no value for
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+      ebpf.contextPropagation: null
+    asserts:
+      - matchRegexRaw:
+          pattern: "\n  - ebpf\\.contextPropagation is off; this chart turns it on by default"
+
+  - it: names no ebpf.contextPropagation when eBPF is off
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+      ebpf.enabled: false
+      ebpf.contextPropagation: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nWARNING: this release did not get this chart's defaults\\.\n"
+      - notMatchRegexRaw:
+          pattern: "contextPropagation"
 
   - it: names no OBI tag when eBPF is off, but still warns and names the collector tag
     release:
