@@ -110,6 +110,17 @@ Jede aktivierte Regel läuft, wenn eine Ressource angelegt wird, im Dashboard od
 
 Eine Regel, die Sie heute schreiben, gilt für die Ressourcen, die danach angelegt werden. Um sie auf die Ressourcen anzuwenden, die Sie schon haben, verwenden Sie **Jetzt ausführen** – siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now). Beschriftungsregeln lassen sich auch zwischen Projekten kopieren – siehe [Beschriftungsregeln importieren und exportieren](/docs/configuration/label-rule-import-export).
 
+## Muster
+
+Ein Muster in den Bedingungen einer Regel ist ein regulärer Ausdruck in der Syntax von JavaScript, etwa `^checkout-.*`, und ignoriert Groß- und Kleinschreibung. OneUptime führt es in einer Zeit aus, die nur mit dem gelesenen Text wächst, wie auch immer das Muster geschrieben ist. Lookaheads und Lookbehinds funktionieren, etwa `^prod-(?!test)` und `(?<=db-)\d+`.
+
+Zwei Arten von Mustern können so nicht laufen. Eine Regel mit einem davon wird beim Speichern abgelehnt, ob im Dashboard, über die API, mit Terraform oder bei einem Import, mit einer Meldung, die sagt, was zu ändern ist:
+
+- Ein Rückverweis wie `\1` oder `\k<name>`, der noch einmal trifft, was eine frühere Gruppe getroffen hat.
+- Ein Muster, das zu groß zum Ausführen ist, etwa eines, das einen Teil tausendfach wiederholt.
+
+Eine Regel, die schon früher mit einem davon gespeichert wurde, trifft auf nichts zu, bis Sie ihr Muster ändern. Das gilt für jede Art von Regel mit Mustern, nicht nur für Beschriftungs- und Besitzerregeln.
+
 ## Nächste Schritte
 
 :::cards

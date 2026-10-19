@@ -22,6 +22,7 @@ import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RuleCriteriaMatcher, {
   LegacyFilterCorrelation,
 } from "../../Utils/Rules/RuleCriteriaMatcher";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 type EnqueueExecutionFn = (data: {
   runbookExecutionId: ObjectID;
@@ -583,8 +584,7 @@ class RunbookRuleEngineServiceClass {
     rule: RunbookRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in runbook rule ${rule.id}: ${pattern}`);
       return false;

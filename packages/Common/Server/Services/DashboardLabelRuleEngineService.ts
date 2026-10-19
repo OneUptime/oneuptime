@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class DashboardLabelRuleEngineServiceClass
   implements RuleRunEngine<Dashboard, DashboardLabelRule>
@@ -286,8 +287,7 @@ class DashboardLabelRuleEngineServiceClass
     rule: DashboardLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in dashboard label rule ${rule.id}: ${pattern}`,

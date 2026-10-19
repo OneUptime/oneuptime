@@ -8,11 +8,15 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
-import { compileScrubRuleCustomRegex } from "Common/Types/Telemetry/ScrubRule";
+import {
+  compileScrubRuleCustomRegex,
+  ScrubRegExp,
+  scrubRegExpFromBuiltIn,
+} from "Common/Types/Telemetry/ScrubRule";
 
 interface CompiledRule {
   rule: LogScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -93,7 +97,7 @@ export class LogScrubRuleService {
     const compiledPatterns: Array<CompiledRule> = [];
 
     for (const rule of rules) {
-      const regex: RegExp | null = this.getRegexForPattern(
+      const regex: ScrubRegExp | null = this.getRegexForPattern(
         rule.patternType as string,
         rule.customRegex as string | undefined,
       );
@@ -111,7 +115,7 @@ export class LogScrubRuleService {
   private static getRegexForPattern(
     patternType: string,
     customRegex?: string,
-  ): RegExp | null {
+  ): ScrubRegExp | null {
     if (patternType === LogScrubPatternType.Custom) {
       /*
        * Null for a pattern that is empty or does not compile: the rule
@@ -129,13 +133,13 @@ export class LogScrubRuleService {
      * skipped entirely by scrubString.
      */
     if (patternType === LogScrubPatternType.SensitiveKeys) {
-      return new RegExp(SENSITIVE_KEY_REGEX.source, SENSITIVE_KEY_REGEX.flags);
+      return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
     const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
     if (builtIn) {
-      // Return a new instance so lastIndex is independent per use
-      return new RegExp(builtIn.source, builtIn.flags);
+      // An instance of its own, so lastIndex is independent per use.
+      return scrubRegExpFromBuiltIn(builtIn);
     }
 
     return null;
@@ -232,13 +236,10 @@ export class LogScrubRuleService {
         continue;
       }
 
-      // Reset lastIndex for global regex
-      regex.lastIndex = 0;
-
       const action: string =
         (rule.scrubAction as string) || LogScrubAction.Redact;
 
-      result = result.replace(regex, (match: string) => {
+      result = regex.replace(result, (match: string): string => {
         return this.applyScrubAction(match, action, patternType);
       });
     }

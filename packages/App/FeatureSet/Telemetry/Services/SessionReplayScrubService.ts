@@ -1,3 +1,4 @@
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
@@ -45,7 +46,7 @@ import LogScrubRuleService from "./LogScrubRuleService";
  */
 export interface CompiledScrubRule {
   rule: LogScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 }
 
 /*
@@ -464,8 +465,6 @@ export default class SessionReplayScrubService {
         continue;
       }
 
-      compiled.regex.lastIndex = 0;
-
       if (compiled.regex.test(key)) {
         state.stringsScrubbed++;
 
@@ -509,15 +508,8 @@ export default class SessionReplayScrubService {
       const action: string =
         (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
 
-      /*
-       * The compiled patterns are global, so lastIndex must be reset before
-       * every use or a second string is scanned from wherever the previous
-       * match ended.
-       */
-      compiled.regex.lastIndex = 0;
-
-      const replaced: string = result.replace(
-        compiled.regex,
+      const replaced: string = compiled.regex.replace(
+        result,
         (match: string): string => {
           return this.applyScrubAction(match, action, patternType);
         },

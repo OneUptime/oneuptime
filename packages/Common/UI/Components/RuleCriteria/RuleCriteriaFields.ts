@@ -12,6 +12,7 @@ import {
   RULE_CRITERIA_MAX_STRING_LENGTH,
 } from "../../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
+import { PatternProblemReason } from "../../../Utils/LinearRegExp/PatternProblem";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import type Field from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -138,6 +139,8 @@ export const RuleCriteriaCopy: {
   readonly chooseAtLeastOneValueProblem: string;
   readonly enterANumberProblem: string;
   readonly invalidPatternProblem: string;
+  readonly backReferencePatternProblem: string;
+  readonly tooLargePatternProblem: string;
   readonly invalidAddressRangeProblem: string;
   readonly tooLongProblem: string;
   readonly tooManyValuesProblem: string;
@@ -180,6 +183,14 @@ export const RuleCriteriaCopy: {
   enterANumberProblem: "Enter a number.",
   invalidPatternProblem:
     "Enter a valid pattern: a regular expression such as ^api-.* or a * wildcard such as *api*.",
+  /*
+   * A regular expression the rule engines cannot run (Utils/LinearRegExp):
+   * the same words as a scrub rule's form, so both share a translation.
+   */
+  backReferencePatternProblem:
+    "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.",
+  tooLargePatternProblem:
+    "This pattern is too large to run. Shorten it, or repeat its parts fewer times.",
   invalidAddressRangeProblem:
     "Enter an address range such as 10.0.0.0/24 or 10.16-22.0-255.1-254.",
   tooLongProblem: "Use {{max}} characters or fewer.",
@@ -828,11 +839,22 @@ export function getRuleCriteriaFilterProblem<TEntity>(
     isRuleCriteriaPatternOperator(filter.operator) &&
     !RulePatternMatchUtil.isSupportedPattern(value)
   ) {
-    return {
-      text: isRuleCriteriaAddressRangeField(field)
-        ? RuleCriteriaCopy.invalidAddressRangeProblem
-        : RuleCriteriaCopy.invalidPatternProblem,
-    };
+    if (isRuleCriteriaAddressRangeField(field)) {
+      return { text: RuleCriteriaCopy.invalidAddressRangeProblem };
+    }
+
+    const cannotRun: PatternProblemReason | null =
+      RulePatternMatchUtil.getRegexProblemReason(value);
+
+    if (cannotRun === PatternProblemReason.BackReference) {
+      return { text: RuleCriteriaCopy.backReferencePatternProblem };
+    }
+
+    if (cannotRun === PatternProblemReason.TooLarge) {
+      return { text: RuleCriteriaCopy.tooLargePatternProblem };
+    }
+
+    return { text: RuleCriteriaCopy.invalidPatternProblem };
   }
 
   return null;

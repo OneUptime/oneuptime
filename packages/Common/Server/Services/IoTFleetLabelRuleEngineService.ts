@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class IoTFleetLabelRuleEngineServiceClass
   implements RuleRunEngine<IoTFleet, IoTFleetLabelRule>
@@ -286,8 +287,7 @@ class IoTFleetLabelRuleEngineServiceClass
     rule: IoTFleetLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in IoT fleet label rule ${rule.id}: ${pattern}`,

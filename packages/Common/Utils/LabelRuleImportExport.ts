@@ -806,6 +806,13 @@ export default class LabelRuleImportExport {
         ? RulePatternMatchUtil.isSupportedPattern(value)
         : RulePatternMatchUtil.isValidRegex(value);
       if (!valid) {
+        const cannotRun: string | null =
+          RulePatternMatchUtil.getCannotRunMessage(title, value);
+
+        if (cannotRun) {
+          throw new BadDataException(cannotRun);
+        }
+
         throw new BadDataException(
           `${title} is not a valid ${acceptsWildcards ? "regular expression or wildcard pattern" : "regular expression"}.`,
         );

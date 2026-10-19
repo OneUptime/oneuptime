@@ -127,6 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **Undtagelser kommer fra den rensede post.** En undtagelse, der findes i en logpost, laves efter rensningen, og de regler, der renser span-hændelser, renser også de undtagelser, der er registreret på dem.
 - **Session Replays renses også.** Scrub-regler for protokoller kører også over Session Replay-optagelser, oven i den maskering, optageren foretager i browseren.
 - **Regler kører i listens rækkefølge.** Hver regel ser det, reglerne før den efterlod.
+- **Et brugerdefineret mønster tager tid i forhold til posten.** Det beholder JavaScripts syntaks og svar, lookaheads og lookbehinds medregnet, uanset hvordan det er skrevet. En tilbagehenvisning, som `\1`, kan ikke køres på den måde: en regel med en sådan afvises, når du gemmer den, ligesom et mønster, der er for stort til at blive kørt. Hvis det at finde hvert match ville kræve, at en lang værdi blev læst igen og igen, renser reglen hele værdien.
 
 ## Se, hvad et filter kasserede
 
@@ -143,7 +144,7 @@ Se på **Dropped**-tælleren og tidspunktet for **Last Dropped** for hvert drop-
 :::
 
 :::details En brugerdefineret scrub-regel siger Maskerer intet
-Dens mønster er tomt eller ikke et gyldigt regulært udtryk, så den renser intet. Redigér reglen, og giv den et mønster, der matcher mindst ét tegn.
+Dens mønster er tomt, ikke et gyldigt regulært udtryk eller kan ikke køres, fordi det for eksempel har en tilbagehenvisning som `\1`, så den renser intet. Redigér reglen, og giv den et mønster, der matcher mindst ét tegn.
 :::
 
 :::details Gamle poster viser stadig de data, en ny regel renser

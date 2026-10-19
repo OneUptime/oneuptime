@@ -110,6 +110,17 @@ Hver aktivert regel kjører når en ressurs opprettes, fra dashbordet eller via 
 
 En regel du skriver i dag, gjelder ressursene som opprettes etterpå. For å bruke den på dem du allerede har, bruker du **Run Now**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Etikettregler kan også kopieres mellom prosjekter: se [Importere og eksportere etikettregler](/docs/configuration/label-rule-import-export).
 
+## Mønstre
+
+Et mønster i en regels betingelser er et regulært uttrykk i JavaScripts syntaks, som `^checkout-.*`, og skiller ikke mellom store og små bokstaver. OneUptime kjører det på en tid som bare vokser med teksten det leser, uansett hvordan mønsteret er skrevet. Lookaheads og lookbehinds virker, som `^prod-(?!test)` og `(?<=db-)\d+`.
+
+To slags mønstre kan ikke kjøres på den måten. En regel med ett av dem avvises når du lagrer den, fra dashbordet, API-et, Terraform eller en import, med en melding som sier hva du må endre:
+
+- En tilbakereferanse, som `\1` eller `\k<name>`, som treffer igjen det en tidligere gruppe traff.
+- Et mønster som er for stort til å kjøres, som ett som gjentar en del tusenvis av ganger.
+
+En regel som tidligere er lagret med ett av dem, treffer ingenting før du endrer mønsteret dens. Det gjelder for alle slags regler med mønstre, ikke bare etikett- og eierregler.
+
 ## Neste steg
 
 :::cards

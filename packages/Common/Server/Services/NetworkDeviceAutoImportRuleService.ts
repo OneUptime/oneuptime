@@ -765,6 +765,15 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
+    const cannotRun: string | null = RulePatternMatchUtil.getCannotRunMessage(
+      title,
+      pattern,
+    );
+
+    if (cannotRun) {
+      throw new BadDataException(cannotRun);
+    }
+
     throw new BadDataException(
       `${title} is neither a valid regular expression nor a '*' wildcard pattern, so it would never match: ${pattern}`,
     );
