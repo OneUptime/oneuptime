@@ -14,8 +14,13 @@ import logger, {
 } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import TokenSigningKey from "../Utils/TokenSigningKey";
+import WrongClusterKeyLimit, {
+  WRONG_CLUSTER_KEYS_MESSAGE,
+  WrongClusterKeyRefusal,
+} from "../Utils/RateLimit/WrongClusterKeyLimit";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import crypto from "crypto";
 
@@ -71,6 +76,15 @@ import crypto from "crypto";
  * getClusterKeyHeaders, and no route hands the headers it is sent to
  * anything a project can read without taking these two out first
  * (withoutClusterKeyHeaders).
+ *
+ * NOT ONE GUESS AFTER ANOTHER
+ *
+ * A client may present only so many different wrong keys in a quarter of an
+ * hour (WrongClusterKeyLimit); after that, every request it makes to these
+ * routes is refused until the quarter of an hour ends, its key not compared,
+ * right or wrong. A request with the right key is never counted, so
+ * OneUptime's own traffic is never refused for being busy, and a service
+ * that still sends an old key sends one wrong key, not one per request.
  */
 
 // What the installation's own cluster key is derived for, and nothing else.
@@ -120,6 +134,9 @@ function namesClusterKey(name: string): boolean {
 
 // Where a request presented the key from.
 type PresentedFrom = "header" | "older Runner body";
+
+// What WrongClusterKeyLimit keeps of a presented key that is not text.
+const NOT_TEXT_WRONG_KEY: string = "not-text";
 
 export default class ClusterKeyAuthorization {
   @CaptureSpan()
@@ -211,6 +228,24 @@ export default class ClusterKeyAuthorization {
       crypto.createHash("sha256").update(presented, "utf8").digest(),
       crypto.createHash("sha256").update(expected, "utf8").digest(),
     );
+  }
+
+  /*
+   * What WrongClusterKeyLimit keeps of a wrong key: an HMAC of it, as it
+   * travelled, under the installation's own key - so the wrong keys Valkey
+   * holds say nothing about any of them, though one may be a near miss or
+   * another installation's key. Anything that is not text is one wrong key,
+   * whatever it holds: it can never be the key.
+   */
+  public static getWrongKeyDigest(presented: unknown): string {
+    if (typeof presented !== "string") {
+      return NOT_TEXT_WRONG_KEY;
+    }
+
+    return crypto
+      .createHmac("sha256", ClusterKeyAuthorization.getClusterKey())
+      .update(presented, "utf8")
+      .digest("hex");
   }
 
   /*
@@ -366,7 +401,34 @@ export default class ClusterKeyAuthorization {
       );
     }
 
-    if (!ClusterKeyAuthorization.isAcceptedClusterKey(presented)) {
+    const isAccepted: boolean =
+      ClusterKeyAuthorization.isAcceptedClusterKey(presented);
+
+    /*
+     * The key is compared first, so that checking the client and counting
+     * a wrong key are one step (WrongClusterKeyLimit). A client over the
+     * limit is refused whichever key it sent: once it has sent too many
+     * wrong keys, it learns nothing from the next one.
+     */
+    const refusal: WrongClusterKeyRefusal | null =
+      await WrongClusterKeyLimit.check({
+        req: req,
+        wrongKey: isAccepted
+          ? null
+          : ClusterKeyAuthorization.getWrongKeyDigest(presented),
+      });
+
+    if (refusal) {
+      ClusterKeyAuthorization.setRetryAfter(res, refusal.retryAfterSeconds);
+
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new TooManyRequestsException(WRONG_CLUSTER_KEYS_MESSAGE),
+      );
+    }
+
+    if (!isAccepted) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -382,5 +444,15 @@ export default class ClusterKeyAuthorization {
     }
 
     return next();
+  }
+
+  // When a refused client may try again, for a response that can carry it.
+  private static setRetryAfter(
+    res: ExpressResponse,
+    retryAfterSeconds: number,
+  ): void {
+    if (typeof res.setHeader === "function") {
+      res.setHeader("Retry-After", String(retryAfterSeconds));
+    }
   }
 }
