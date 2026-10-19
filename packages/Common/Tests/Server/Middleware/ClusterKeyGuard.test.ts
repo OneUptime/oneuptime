@@ -898,8 +898,9 @@ describe("every check counts the different wrong keys a client sends, in one pla
     const compared: number = authorize.indexOf(
       "const isAccepted: boolean = ClusterKeyAuthorization.isAcceptedClusterKey(presented);",
     );
+    // Asked for every key it compared, the right one too: never skipped.
     const asked: number = authorize.indexOf(
-      "await WrongClusterKeyLimit.check({ req: req, wrongKey: isAccepted ? null : ClusterKeyAuthorization.getWrongKeyDigest(presented), });",
+      "const refusal: WrongClusterKeyRefusal | null = await WrongClusterKeyLimit.check({ req: req, wrongKey: isAccepted ? null : ClusterKeyAuthorization.getWrongKeyDigest(presented), });",
     );
     const refused: number = authorize.indexOf(
       "if (refusal) { ClusterKeyAuthorization.setRetryAfter(res, refusal.retryAfterSeconds); return Response.sendErrorResponse(req, res, new TooManyRequestsException(WRONG_CLUSTER_KEYS_MESSAGE)); }",
