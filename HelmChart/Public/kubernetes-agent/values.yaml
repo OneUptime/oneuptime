@@ -1046,9 +1046,14 @@ ebpf:
   #
   # Turn it on deliberately, on a non-production cluster first, and leave it
   # off on any node whose traffic you cannot afford to have stall. Traces,
-  # RED metrics, and the service map all still work without it; what you
-  # lose is only the automatic stitching of spans across a service boundary
-  # for apps that don't propagate `traceparent` themselves.
+  # RED metrics, and the service map all still work without it. What you
+  # lose is the link from a call to the span of the pod that answers it when
+  # the two run on different nodes: on one node OBI matches the two ends of
+  # the TCP connection itself, but across nodes only the injected
+  # `traceparent` carries the link, so the pod that answers starts a trace of
+  # its own. OBI reads a `traceparent` only with this on (`trackRequestHeaders`
+  # below is set with it), so one an app sends itself does not link OBI's
+  # spans across nodes either.
   #
   # There is NO kernel version at which turning this on is inert, so do not
   # rule the agent out as a suspect because a node is "too old". Kernel 5.17
@@ -1104,6 +1109,23 @@ ebpf:
   # templates — "POST /api/items/:id" — do not come from this agent: OBI reads
   # them from the app's files whether it is on or not; see `routes` below.)
   #
+  # The agent ties a call to its request through the socket the call goes
+  # out on, and OBI learns a socket only when it sees it opened (connect()
+  # or accept()) in a process it already traces. A connection the app opened
+  # before OBI attached to it is never tied to a request: typically a
+  # database pool or Redis client connected at boot, in a pod started while
+  # OBI was still working through a rollout - and every open connection when
+  # this DaemonSet restarts. A call on such a connection goes under
+  # whichever request in that process most recently began, which on a busy
+  # server is usually another one, so the request that made it shows none of
+  # its calls. Calls made outside any request (a timer, a queue worker) are
+  # handled the same way: they join the trace of the request that last
+  # began, with no parent when that request had already finished. A client
+  # that replaces its connections after a lifetime (pg-pool's
+  # `maxLifetimeSeconds`, HikariCP's `maxLifetime`) is tied again within that
+  # lifetime; one that never reconnects stays this way until the app
+  # restarts.
+  #
   # The inspector is open only while the agent is injected — about a second,
   # a few on a loaded node — and closed again; it is never reachable from
   # outside the pod. Node itself prints that it was, so each app logs
@@ -1114,8 +1136,8 @@ ebpf:
   #
   # OBI skips the injection for a process that handles SIGUSR1 itself. Turn
   # this off if your security policy forbids an inspector socket in your pods,
-  # even a brief loopback-only one; Node.js traces then keep working,
-  # unlinked.
+  # even a brief loopback-only one; Node.js traces then keep working, with
+  # every call under whichever request most recently began, as above.
   nodejs:
     enabled: true
 
