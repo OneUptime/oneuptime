@@ -2421,18 +2421,40 @@ export class Service extends ProjectReferencesService<Model> {
     ).toString();
 
     /*
-     * A phone subscriber that is not confirmed - a visitor who signed up by
-     * text message - is texted the link that confirms it, and nothing else
-     * until it is opened. A confirmed one is told it is subscribed, when it
-     * was created to be.
+     * A phone subscriber created unconfirmed - a visitor who signed up by
+     * text message (onBeforeCreate writes the column every time) - is
+     * texted the link that confirms it, and nothing else until it is
+     * opened. A confirmed one is told it is subscribed, when it was created
+     * to be.
      */
-    const isPhoneToConfirm: boolean = !createdItem.isSubscriptionConfirmed;
+    const isPhoneToConfirm: boolean =
+      createdItem.isSubscriptionConfirmed === false;
+
+    /*
+     * The code the link carries, as onBeforeCreate minted it - read back if
+     * the saved row came without it. A link without its code confirms
+     * nothing, so none is sent.
+     */
+    const confirmationCode: string = isPhoneToConfirm
+      ? createdItem.subscriptionConfirmationToken ||
+        (createdItem.id
+          ? (
+              await this.findOneById({
+                id: createdItem.id,
+                select: { subscriptionConfirmationToken: true },
+                props: { isRoot: true, ignoreHooks: true },
+              })
+            )?.subscriptionConfirmationToken || ""
+          : "")
+      : "";
 
     if (
       createdItem.statusPageId &&
       createdItem.subscriberPhone &&
       createdItem._id &&
-      (isPhoneToConfirm || createdItem.sendYouHaveSubscribedMessage)
+      (isPhoneToConfirm
+        ? Boolean(confirmationCode)
+        : createdItem.sendYouHaveSubscribedMessage)
     ) {
       logger.debug(
         isPhoneToConfirm
@@ -2482,8 +2504,7 @@ export class Service extends ProjectReferencesService<Model> {
               statusPageName: statusPageName,
               confirmationUrl: this.getConfirmSubscriptionLink({
                 statusPageUrl: statusPageURL,
-                confirmationToken:
-                  createdItem.subscriptionConfirmationToken || "",
+                confirmationToken: confirmationCode,
                 statusPageSubscriberId: createdItem.id!,
               }).toString(),
             })

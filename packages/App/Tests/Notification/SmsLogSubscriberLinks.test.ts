@@ -231,6 +231,44 @@ async function sendYouHaveSubscribedSms(): Promise<void> {
   await Promise.all(pendingSends);
 }
 
+/*
+ * The text a visitor who signed up by SMS is sent: the link that confirms
+ * the subscription, with its code.
+ */
+const CONFIRMATION_CODE: string = "482913";
+
+async function sendConfirmationSms(): Promise<void> {
+  const created: StatusPageSubscriber = new StatusPageSubscriber();
+  created._id = SUBSCRIBER_ID;
+  created.projectId = PROJECT_ID;
+  created.statusPageId = new ObjectID(STATUS_PAGE_ID);
+  created.subscriberPhone = new Phone(SUBSCRIBER_PHONE);
+  created.sendYouHaveSubscribedMessage = true;
+  created.isSubscriptionConfirmed = false;
+  created.subscriptionConfirmationToken = CONFIRMATION_CODE;
+  created.unsubscribeToken = TOKEN;
+
+  await (
+    StatusPageSubscriberService as unknown as {
+      onCreateSuccess: (
+        onCreate: OnCreate<StatusPageSubscriber>,
+        createdItem: StatusPageSubscriber,
+      ) => Promise<StatusPageSubscriber>;
+    }
+  ).onCreateSuccess(
+    {
+      createBy: { data: created, props: { isRoot: true } },
+      carryForward: {
+        statusPage: publicStatusPage(),
+        replacedSubscriberIds: [],
+      },
+    },
+    created,
+  );
+
+  await Promise.all(pendingSends);
+}
+
 // "Send Management Link" on the page's Subscribe page, for the phone.
 async function sendManageSubscriptionSms(): Promise<void> {
   const error: Error | undefined = await callRoute(
@@ -495,6 +533,43 @@ describe("a status page subscriber's texts in the SMS log", () => {
     for (const link of links) {
       expect(link.segment).toBe(`${SUBSCRIBER_ID}-[redacted]`);
     }
+  });
+
+  test("a sign-up by text: the phone gets the link that confirms it, whole; the log keeps it with the code redacted, and that confirms nothing", async () => {
+    subscribers.get(SUBSCRIBER_ID)!["isSubscriptionConfirmed"] = false;
+    subscribers.get(SUBSCRIBER_ID)!["subscriptionConfirmationToken"] =
+      CONFIRMATION_CODE;
+
+    await sendConfirmationSms();
+
+    const confirmationUrl: string = `${STATUS_PAGE_URL}/confirm-subscription/${SUBSCRIBER_ID}?verification-token=`;
+
+    expect(delivered).toEqual([
+      `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmationUrl}${CONFIRMATION_CODE}`,
+    ]);
+
+    const logged: Array<string> = await smsLogAsReader();
+
+    expect(logged).toEqual([
+      `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmationUrl}[redacted]`,
+    ]);
+    expect(logged.join("\n")).not.toContain(CONFIRMATION_CODE);
+
+    // What the log shows, tried on the confirm route: nothing confirmed.
+    for (const code of ["[redacted]", "", SUBSCRIBER_ID]) {
+      await callRoute(
+        "GET",
+        "/status-page/confirm-subscription/:statusPageSubscriberId",
+        {
+          params: { statusPageSubscriberId: SUBSCRIBER_ID },
+          query: { "verification-token": code },
+        },
+      );
+    }
+
+    expect(subscribers.get(SUBSCRIBER_ID)!["isSubscriptionConfirmed"]).toBe(
+      false,
+    );
   });
 
   test("a member with Read SMS Log may not read the subscribers themselves", async () => {
