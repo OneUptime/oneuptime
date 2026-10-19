@@ -24,9 +24,16 @@
  * GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY and ONEUPTIME_RUNNER_KEY: nothing
  * stored depends on them in a way a fresh value breaks (a probe or the Runner
  * re-registers under its new key), and every container that needs one reads
- * the same file. The datastore passwords and ENCRYPTION_SECRET are the
- * operator's to set (PostgreSQL takes its password once, and a new
- * ENCRYPTION_SECRET makes what is encrypted unreadable).
+ * the same file. So are the passwords of the ClickHouse and the Valkey that
+ * Docker Compose runs (CLICKHOUSE_PASSWORD, VALKEY_PASSWORD or the
+ * REDIS_PASSWORD it was called before): both take their password from
+ * config.env every time their container starts, so a new value reaches them
+ * and every container that signs in to them together, ClickHouse's data kept
+ * (ComposeDatastorePasswordRuntime.test.js runs that for real). A password for
+ * a datastore OneUptime does not run is left as it is, and the operator told.
+ * PostgreSQL's password has a step of its own (GenerateDatabasePassword.js:
+ * PostgreSQL takes it only when it creates its database), and ENCRYPTION_SECRET
+ * is the operator's to set (a new one makes what is encrypted unreadable).
  */
 
 const fs = require("fs");
@@ -47,11 +54,15 @@ const TEMPLATE = fs.readFileSync(CONFIG_EXAMPLE_PATH, "utf8");
 
 const {
   GENERATED_SECRETS,
+  BUNDLED_DATASTORE_PASSWORDS,
   SHIPPED_FALLBACK,
   PLACEHOLDER_MARK,
   isPlaceholderValue,
+  readSettings,
+  datastorePasswordDecisions,
   replacePlaceholderSecrets,
   describeReplacedSecrets,
+  describeExternalDatastorePassword,
   describeUnchangedConfig,
   init,
 } = require(SCRIPT_PATH);
@@ -198,6 +209,8 @@ describe("replacePlaceholderSecrets", () => {
     expect(result.replaced).toEqual([
       "ONEUPTIME_SECRET",
       "REGISTER_PROBE_KEY",
+      "CLICKHOUSE_PASSWORD",
+      "VALKEY_PASSWORD",
       "GLOBAL_PROBE_1_KEY",
       "GLOBAL_PROBE_2_KEY",
       "ONEUPTIME_RUNNER_KEY",
@@ -225,10 +238,12 @@ describe("replacePlaceholderSecrets", () => {
         return was.slice(0, was.indexOf("="));
       });
 
-    // Only the five shared keys changed, each once.
+    // Only the five shared keys and the two bundled datastores' passwords changed, each once.
     expect(changedKeys).toEqual([
       "ONEUPTIME_SECRET",
       "REGISTER_PROBE_KEY",
+      "CLICKHOUSE_PASSWORD",
+      "VALKEY_PASSWORD",
       "GLOBAL_PROBE_1_KEY",
       "GLOBAL_PROBE_2_KEY",
       "ONEUPTIME_RUNNER_KEY",
@@ -265,17 +280,28 @@ describe("replacePlaceholderSecrets", () => {
     }
   });
 
-  test("leaves the datastore passwords and ENCRYPTION_SECRET for the operator to set", () => {
+  test("leaves DATABASE_PASSWORD to its own step and ENCRYPTION_SECRET to the operator", () => {
     const result = replacePlaceholderSecrets(TEMPLATE, fakeSecret);
 
-    for (const key of [
-      "ENCRYPTION_SECRET",
-      "DATABASE_PASSWORD",
-      "CLICKHOUSE_PASSWORD",
-      "VALKEY_PASSWORD",
-    ]) {
+    for (const key of ["ENCRYPTION_SECRET", "DATABASE_PASSWORD"]) {
       expect(valueOf(result.contents, key)).toBe(valueOf(TEMPLATE, key));
+      expect(result.replaced).not.toContain(key);
     }
+  });
+
+  test("gives the ClickHouse and Valkey that config.example.env points at a new password each", () => {
+    const result = replacePlaceholderSecrets(TEMPLATE);
+
+    expect(valueOf(TEMPLATE, "CLICKHOUSE_HOST")).toBe("clickhouse");
+    expect(valueOf(TEMPLATE, "VALKEY_HOST")).toBe("valkey");
+
+    const clickhouse = valueOf(result.contents, "CLICKHOUSE_PASSWORD");
+    const valkey = valueOf(result.contents, "VALKEY_PASSWORD");
+
+    expect(clickhouse).toMatch(HEX_256_BITS);
+    expect(valkey).toMatch(HEX_256_BITS);
+    expect(clickhouse).not.toBe(valkey);
+    expect(result.leftForOperator).toEqual([]);
   });
 
   test.each([
@@ -369,21 +395,317 @@ describe("replacePlaceholderSecrets", () => {
     expect(
       describeReplacedSecrets(["ONEUPTIME_SECRET", "REGISTER_PROBE_KEY"]),
     ).toBe(
-      "config.env: ONEUPTIME_SECRET, REGISTER_PROBE_KEY still held the placeholder from config.example.env, so each was set to a new random value. These are the keys OneUptime's own services, probes and the bundled Runner present to each other; OneUptime refuses the public placeholder for every one of them, and each container reads its value from config.env.",
+      "config.env: ONEUPTIME_SECRET, REGISTER_PROBE_KEY still held the placeholder from config.example.env, so each was set to a new random value. ONEUPTIME_SECRET and REGISTER_PROBE_KEY are keys OneUptime's own services, probes and the bundled Runner present to each other; OneUptime refuses the public placeholder for every one of them, and each container reads its value from config.env.",
+    );
+  });
+
+  test("says what it did for one key", () => {
+    expect(describeReplacedSecrets(["ONEUPTIME_RUNNER_KEY"])).toBe(
+      "config.env: ONEUPTIME_RUNNER_KEY still held the placeholder from config.example.env, so each was set to a new random value. ONEUPTIME_RUNNER_KEY is a key OneUptime's own services, probes and the bundled Runner present to each other; OneUptime refuses the public placeholder for every one of them, and each container reads its value from config.env.",
+    );
+  });
+
+  test("says what it did for the datastores' passwords, and what else needs the new value", () => {
+    expect(
+      describeReplacedSecrets(["CLICKHOUSE_PASSWORD", "VALKEY_PASSWORD"]),
+    ).toBe(
+      "config.env: CLICKHOUSE_PASSWORD, VALKEY_PASSWORD still held the placeholder from config.example.env, so each was set to a new random value. The bundled ClickHouse and Valkey take their new password as this start recreates them, together with every container that signs in to them; anything else that signs in to them needs the new value from config.env.",
+    );
+    expect(describeReplacedSecrets(["REDIS_PASSWORD"])).toBe(
+      "config.env: REDIS_PASSWORD still held the placeholder from config.example.env, so each was set to a new random value. The bundled Valkey takes its new password as this start recreates it, together with every container that signs in to it; anything else that signs in to it needs the new value from config.env.",
+    );
+  });
+
+  test("says both when it set keys and passwords, as a new install's first start does", () => {
+    const message = describeReplacedSecrets(
+      replacePlaceholderSecrets(TEMPLATE, fakeSecret).replaced,
+    );
+
+    expect(message).toContain(
+      "ONEUPTIME_SECRET, REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY and ONEUPTIME_RUNNER_KEY are keys",
+    );
+    expect(message).toContain("The bundled ClickHouse and Valkey take their");
+  });
+});
+
+/*
+ * The passwords of the datastores Docker Compose runs. Any start may give
+ * them a new value, an existing install's too, but only while config.env
+ * points at those datastores: a password for one OneUptime does not run
+ * belongs to that server.
+ */
+describe("the passwords of the datastores Docker Compose runs", () => {
+  // A config.env with just these lines, and what one run makes of it.
+  function run(lines) {
+    return replacePlaceholderSecrets(`${lines.join("\n")}\n`, fakeSecret);
+  }
+
+  test("are the ClickHouse and the Valkey docker-compose.yml runs, by the names Compose reads", () => {
+    expect(
+      BUNDLED_DATASTORE_PASSWORDS.map((entry) => {
+        return [
+          entry.datastore,
+          entry.passwordSettings,
+          entry.hostSettings,
+          entry.bundledHosts,
+        ];
+      }),
+    ).toEqual([
+      [
+        "ClickHouse",
+        ["CLICKHOUSE_PASSWORD"],
+        ["CLICKHOUSE_HOST"],
+        ["clickhouse"],
+      ],
+      [
+        "Valkey",
+        ["VALKEY_PASSWORD", "REDIS_PASSWORD"],
+        ["VALKEY_HOST", "REDIS_HOST"],
+        ["valkey", "redis"],
+      ],
+    ]);
+
+    const production = yaml.load(
+      fs.readFileSync(path.join(REPO_ROOT, "docker-compose.yml"), "utf8"),
+    );
+    const base = yaml.load(
+      fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
+    );
+
+    // The production stack runs both, from the base file's services.
+    expect(production.services.clickhouse.extends.service).toBe("clickhouse");
+    expect(production.services.valkey.extends.service).toBe("valkey");
+
+    // ClickHouse takes CLICKHOUSE_PASSWORD from the environment it starts with.
+    expect(base.services.clickhouse.environment.CLICKHOUSE_PASSWORD).toBe(
+      "${CLICKHOUSE_PASSWORD}",
+    );
+
+    // Valkey takes it on its command line, from either name, keeps nothing on
+    // disk, and answers to "redis" as well.
+    expect(base.services.valkey.command).toBe(
+      'valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}" --save "" --appendonly no',
+    );
+    expect(base.services.valkey.networks.oneuptime.aliases).toEqual(["redis"]);
+
+    // Every container that signs in to them reads the same names.
+    expect(base["x-common-runtime-variables"].CLICKHOUSE_PASSWORD).toBe(
+      "${CLICKHOUSE_PASSWORD}",
+    );
+    expect(base["x-common-runtime-variables"].VALKEY_PASSWORD).toBe(
+      "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}",
+    );
+  });
+
+  test("an existing install's placeholders get new values too, as any start may give them", () => {
+    const result = run([
+      "CLICKHOUSE_HOST=clickhouse",
+      `CLICKHOUSE_PASSWORD=${PLACEHOLDER}`,
+      "VALKEY_HOST=valkey",
+      `VALKEY_PASSWORD=${PLACEHOLDER}`,
+    ]);
+
+    expect(result.replaced).toEqual(["CLICKHOUSE_PASSWORD", "VALKEY_PASSWORD"]);
+    expect(
+      isPlaceholderValue(valueOf(result.contents, "CLICKHOUSE_PASSWORD")),
+    ).toBe(false);
+    expect(
+      isPlaceholderValue(valueOf(result.contents, "VALKEY_PASSWORD")),
+    ).toBe(false);
+  });
+
+  test.each([
+    ["the old fallback", "secret"],
+    ["a quoted placeholder", `"${PLACEHOLDER}"`],
+    ["a placeholder with something added", `${PLACEHOLDER}-2`],
+  ])("replaces %s", (_label, value) => {
+    const result = run([
+      "CLICKHOUSE_HOST=clickhouse",
+      `CLICKHOUSE_PASSWORD=${value}`,
+    ]);
+
+    expect(result.replaced).toEqual(["CLICKHOUSE_PASSWORD"]);
+  });
+
+  test.each([
+    ["an operator's own password", "3b9f1c7e5a2d48f6b0e9c3a7d1f5b8e2"],
+    ["a blank password", ""],
+  ])("leaves %s alone, and says nothing", (_label, value) => {
+    const contents = `CLICKHOUSE_HOST=clickhouse\nCLICKHOUSE_PASSWORD=${value}\nVALKEY_HOST=valkey\nVALKEY_PASSWORD=${value}\n`;
+    const result = replacePlaceholderSecrets(contents, fakeSecret);
+
+    expect(result.contents).toBe(contents);
+    expect(result.replaced).toEqual([]);
+    expect(result.leftForOperator).toEqual([]);
+  });
+
+  test.each([
+    ["a quoted host", '"clickhouse"'],
+    ["a host in capitals", "ClickHouse"],
+    ["a padded host", "  clickhouse "],
+  ])("knows the bundled ClickHouse by %s", (_label, host) => {
+    const result = run([
+      `CLICKHOUSE_HOST=${host}`,
+      `CLICKHOUSE_PASSWORD=${PLACEHOLDER}`,
+    ]);
+
+    expect(result.replaced).toEqual(["CLICKHOUSE_PASSWORD"]);
+  });
+
+  test.each([
+    ["a managed ClickHouse", "clickhouse.example.internal"],
+    ["an address", "10.0.4.17"],
+    ["no host at all", ""],
+  ])(
+    "leaves a placeholder for %s as it is, and the operator is told",
+    (_label, host) => {
+      const contents = `CLICKHOUSE_HOST=${host}\nCLICKHOUSE_PASSWORD=${PLACEHOLDER}\n`;
+      const result = replacePlaceholderSecrets(contents, fakeSecret);
+
+      expect(result.contents).toBe(contents);
+      expect(result.replaced).toEqual([]);
+      expect(
+        result.leftForOperator.map((entry) => {
+          return entry.datastore;
+        }),
+      ).toEqual(["ClickHouse"]);
+    },
+  );
+
+  test("leaves a placeholder for a cache OneUptime does not run as it is", () => {
+    const contents = `VALKEY_HOST=my-cache.example.internal\nVALKEY_PASSWORD=${PLACEHOLDER}\n`;
+    const result = replacePlaceholderSecrets(contents, fakeSecret);
+
+    expect(result.contents).toBe(contents);
+    expect(
+      result.leftForOperator.map((entry) => {
+        return entry.datastore;
+      }),
+    ).toEqual(["Valkey"]);
+  });
+
+  test("the last assignment of the host decides, as the shell's export does", () => {
+    const external = run([
+      "CLICKHOUSE_HOST=clickhouse",
+      `CLICKHOUSE_PASSWORD=${PLACEHOLDER}`,
+      "CLICKHOUSE_HOST=clickhouse.example.internal",
+    ]);
+    expect(external.replaced).toEqual([]);
+
+    const bundled = run([
+      "CLICKHOUSE_HOST=clickhouse.example.internal",
+      `CLICKHOUSE_PASSWORD=${PLACEHOLDER}`,
+      "CLICKHOUSE_HOST=clickhouse",
+    ]);
+    expect(bundled.replaced).toEqual(["CLICKHOUSE_PASSWORD"]);
+  });
+
+  describe("a config.env from before Valkey was called Valkey", () => {
+    test("REDIS_HOST=redis and a placeholder REDIS_PASSWORD: the bundled cache, so it gets a new value", () => {
+      const result = run(["REDIS_HOST=redis", `REDIS_PASSWORD=${PLACEHOLDER}`]);
+
+      expect(result.replaced).toEqual(["REDIS_PASSWORD"]);
+      expect(valueOf(result.contents, "REDIS_PASSWORD")).toMatch(
+        /^generated-\d+$/,
+      );
+    });
+
+    test("an empty VALKEY_PASSWORD falls back to REDIS_PASSWORD, which gets the new value", () => {
+      const result = run([
+        "VALKEY_HOST=valkey",
+        "VALKEY_PASSWORD=",
+        `REDIS_PASSWORD=${PLACEHOLDER}`,
+      ]);
+
+      expect(result.replaced).toEqual(["REDIS_PASSWORD"]);
+      expect(valueOf(result.contents, "VALKEY_PASSWORD")).toBe("");
+    });
+
+    test("both names at the placeholder get one value, so whichever Compose reads, Valkey and the app agree", () => {
+      const result = run([
+        "VALKEY_HOST=valkey",
+        `VALKEY_PASSWORD=${PLACEHOLDER}`,
+        `REDIS_PASSWORD=${PLACEHOLDER}`,
+      ]);
+
+      expect(result.replaced).toEqual(["VALKEY_PASSWORD", "REDIS_PASSWORD"]);
+      expect(valueOf(result.contents, "VALKEY_PASSWORD")).toBe(
+        valueOf(result.contents, "REDIS_PASSWORD"),
+      );
+    });
+
+    test("a VALKEY_PASSWORD of the operator's own wins, so a leftover placeholder REDIS_PASSWORD is not touched", () => {
+      const contents = `VALKEY_HOST=valkey\nVALKEY_PASSWORD=3b9f1c7e5a2d48f6b0e9c3a7d1f5b8e2\nREDIS_PASSWORD=${PLACEHOLDER}\n`;
+      const result = replacePlaceholderSecrets(contents, fakeSecret);
+
+      expect(result.contents).toBe(contents);
+      expect(result.replaced).toEqual([]);
+    });
+
+    test("an empty VALKEY_HOST falls back to REDIS_HOST to decide whose cache it is", () => {
+      const bundled = run([
+        "VALKEY_HOST=",
+        "REDIS_HOST=redis",
+        `VALKEY_PASSWORD=${PLACEHOLDER}`,
+      ]);
+      expect(bundled.replaced).toEqual(["VALKEY_PASSWORD"]);
+
+      const external = run([
+        "VALKEY_HOST=",
+        "REDIS_HOST=cache.example.internal",
+        `VALKEY_PASSWORD=${PLACEHOLDER}`,
+      ]);
+      expect(external.replaced).toEqual([]);
+      expect(external.leftForOperator).toHaveLength(1);
+    });
+  });
+
+  test("decides from the settings as npm start exports them", () => {
+    const settings = readSettings(
+      `# CLICKHOUSE_HOST=elsewhere\nCLICKHOUSE_HOST="clickhouse"\r\nCLICKHOUSE_PASSWORD='${PLACEHOLDER}'\n`,
+    );
+
+    expect(settings.get("CLICKHOUSE_HOST")).toBe("clickhouse");
+    expect(settings.get("CLICKHOUSE_PASSWORD")).toBe(PLACEHOLDER);
+    expect(
+      datastorePasswordDecisions(settings).map((decision) => {
+        return [decision.entry.datastore, decision.decision];
+      }),
+    ).toEqual([
+      ["ClickHouse", "generate"],
+      ["Valkey", "nothing"],
+    ]);
+  });
+
+  test("the warning names the setting and the host, and says what to do", () => {
+    const [clickhouse, valkey] = BUNDLED_DATASTORE_PASSWORDS;
+
+    expect(describeExternalDatastorePassword(clickhouse)).toBe(
+      "WARNING: CLICKHOUSE_PASSWORD in config.env is still the placeholder from config.example.env, which is public, and CLICKHOUSE_HOST points at a ClickHouse that Docker Compose does not run, so it was left as it is. Give that ClickHouse a long random password, and set CLICKHOUSE_PASSWORD to it.",
+    );
+    expect(describeExternalDatastorePassword(valkey)).toBe(
+      "WARNING: VALKEY_PASSWORD in config.env is still the placeholder from config.example.env, which is public, and VALKEY_HOST points at a Valkey that Docker Compose does not run, so it was left as it is. Give that Valkey a long random password, and set VALKEY_PASSWORD to it.",
     );
   });
 });
 
 const GENERATED_KEY_LINE =
-  /^(ONEUPTIME_SECRET|REGISTER_PROBE_KEY|GLOBAL_PROBE_1_KEY|GLOBAL_PROBE_2_KEY|ONEUPTIME_RUNNER_KEY)=.*$/gm;
+  /^(ONEUPTIME_SECRET|REGISTER_PROBE_KEY|GLOBAL_PROBE_1_KEY|GLOBAL_PROBE_2_KEY|ONEUPTIME_RUNNER_KEY|CLICKHOUSE_PASSWORD|VALKEY_PASSWORD)=.*$/gm;
 
 describe("the script, run the way npm start and configure.sh run it", () => {
-  test("a config.env copied from config.example.env gets random shared keys and nothing else changes", () => {
+  test("a config.env copied from config.example.env gets random shared keys and datastore passwords, and nothing else changes", () => {
     const run = runScript(workspace(), TEMPLATE);
 
-    for (const key of GENERATED_SECRETS) {
+    for (const key of [
+      ...GENERATED_SECRETS,
+      "CLICKHOUSE_PASSWORD",
+      "VALKEY_PASSWORD",
+    ]) {
       expect(valueOf(run.contents, key)).toMatch(HEX_256_BITS);
     }
+
+    // PostgreSQL's password is GenerateDatabasePassword.js's to set.
+    expect(valueOf(run.contents, "DATABASE_PASSWORD")).toBe(PLACEHOLDER);
 
     // Everything but the generated keys' lines is byte-for-byte unchanged.
     expect(run.contents.replace(GENERATED_KEY_LINE, "")).toBe(
@@ -415,6 +737,37 @@ describe("the script, run the way npm start and configure.sh run it", () => {
     expect(run.contents).toBe(contents);
     expect(run.stdout).toBe("");
     expect(fs.statSync(configPath).mtimeMs).toBe(modifiedBefore);
+  });
+
+  test("a placeholder for a datastore OneUptime does not run is left, and the operator told on every start", () => {
+    const dir = workspace();
+    const contents = `CLICKHOUSE_HOST=clickhouse.example.internal\nCLICKHOUSE_PASSWORD=${PLACEHOLDER}\n`;
+    const configPath = path.join(dir, "config.env");
+
+    for (const pass of [1, 2]) {
+      fs.mkdirSync(path.join(dir, "Scripts", "Install"), { recursive: true });
+      fs.copyFileSync(
+        SCRIPT_PATH,
+        path.join(dir, "Scripts", "Install", "ReplacePlaceholderSecrets.js"),
+      );
+
+      if (pass === 1) {
+        fs.writeFileSync(configPath, contents);
+      }
+
+      const started = spawnSync(
+        process.execPath,
+        ["./Scripts/Install/ReplacePlaceholderSecrets.js"],
+        { cwd: dir, encoding: "utf8" },
+      );
+
+      expect(started.status).toBe(0);
+      expect(started.stdout).toBe("");
+      expect(started.stderr.trim()).toBe(
+        describeExternalDatastorePassword(BUNDLED_DATASTORE_PASSWORDS[0]),
+      );
+      expect(fs.readFileSync(configPath, "utf8")).toBe(contents);
+    }
   });
 
   test("without a config.env it does nothing, and creates none", () => {
@@ -639,6 +992,46 @@ describe("where it runs", () => {
     expect(merge).toBeGreaterThan(-1);
     expect(replace).toBeGreaterThan(merge);
     expect(read).toBeGreaterThan(replace);
+  });
+
+  /*
+   * What `npm start` hands Compose once the script has run: the values it
+   * made, for the datastores and for everything that signs in to them, read
+   * by Compose itself from the exported config.env.
+   */
+  test("Compose renders the new datastore passwords for the datastores and the app alike", () => {
+    const { hasDockerCompose, renderCompose } = require("./Utils/ComposePorts");
+
+    if (!hasDockerCompose()) {
+      // Ops Config Test runs on a runner with Docker; a laptop without it skips.
+      expect(process.env.CI).toBeFalsy();
+      return;
+    }
+
+    const run = runScript(workspace(), TEMPLATE);
+    const exported = readSettings(run.contents);
+    const rendered = renderCompose(
+      ["docker-compose.yml"],
+      Object.fromEntries(exported),
+    );
+    const clickhousePassword = exported.get("CLICKHOUSE_PASSWORD");
+    const valkeyPassword = exported.get("VALKEY_PASSWORD");
+
+    expect(clickhousePassword).toMatch(HEX_256_BITS);
+    expect(valkeyPassword).toMatch(HEX_256_BITS);
+    expect(rendered.services.clickhouse.environment.CLICKHOUSE_PASSWORD).toBe(
+      clickhousePassword,
+    );
+    expect(rendered.services.app.environment.CLICKHOUSE_PASSWORD).toBe(
+      clickhousePassword,
+    );
+    expect(rendered.services.valkey.command).toContain(valkeyPassword);
+    expect(rendered.services.app.environment.VALKEY_PASSWORD).toBe(
+      valkeyPassword,
+    );
+    expect(rendered.services.app.environment.REDIS_PASSWORD).toBe(
+      valkeyPassword,
+    );
   });
 
   /*

@@ -38,6 +38,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { IsBillingEnabled, isShippedSecretValue } from "../EnvironmentConfig";
 import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
+import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
@@ -497,6 +498,9 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.key = ObjectID.generate().toString();
     }
 
+    // Never a value this repository ships, whoever writes it (ComponentKeyWrite).
+    ComponentKeyWrite.assertCreatedKey(createBy.data.key, "a probe");
+
     if (!createBy.data.probeVersion) {
       createBy.data.probeVersion = new Version("1.0.0");
     }
@@ -671,6 +675,9 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    // A key it writes is never a value this repository ships (ComponentKeyWrite).
+    ComponentKeyWrite.assertUpdatedKey(updateBy.data, "a probe");
 
     const carryForward: any = {
       probesToNotifyOwners: [],

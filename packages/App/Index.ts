@@ -39,6 +39,8 @@ import StartupGate from "Common/Server/Utils/StartupGate";
 import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
 import {
   ClusterKeyWarning,
+  DatastorePasswordWarning,
+  RegisterProbeKeyWarning,
   RunDatabaseMigrationsOnBoot,
 } from "Common/Server/EnvironmentConfig";
 import "ejs";
@@ -134,6 +136,20 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      */
     if (ClusterKeyWarning) {
       logger.warn(ClusterKeyWarning);
+    }
+
+    /*
+     * The other secrets an installation may still hold at a value the
+     * repository ships, said once each: REGISTER_PROBE_KEY, without which
+     * every global probe's registration is refused, and the datastore
+     * passwords, which the app cannot change for a datastore.
+     */
+    if (RegisterProbeKeyWarning) {
+      logger.warn(RegisterProbeKeyWarning);
+    }
+
+    if (DatastorePasswordWarning) {
+      logger.warn(DatastorePasswordWarning);
     }
 
     // Connect to Redis

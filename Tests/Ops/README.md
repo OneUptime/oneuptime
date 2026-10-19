@@ -33,11 +33,13 @@ Test" workflow provides both:
   one against a vulnerable npm installed from the registry, one inside
   `node:26-alpine3.24` through the real `.dockerignore`. The workflow sets it
   on the jest step too.
-- **docker, and postgres:15.** `RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1` turns on
-  `ComposeDatabaseRuntime.test.js`, which starts PostgreSQL from
+- **docker, and the datastore images.** `RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`
+  turns on `ComposeDatabaseRuntime.test.js`, which starts PostgreSQL from
   `docker-compose.yml` for real (on a free port, in a project of its own that
-  it removes with its volume). The workflow sets it on the jest step, and the
-  suite checks that it does.
+  it removes with its volume), and `ComposeDatastorePasswordRuntime.test.js`,
+  which does the same with its ClickHouse and Valkey (they publish no port).
+  The workflow sets it on the jest step, and the first suite checks that it
+  does.
 
 or from the repo root:
 
@@ -135,6 +137,17 @@ guide's "Change the database password" block is run as written, pasted whole:
 while PostgreSQL is not running it changes nothing, and while it runs it
 changes the password in PostgreSQL and in `config.env`. Its
 `docker-compose.override.yml` example is applied.
+
+### `ComposeDatastorePasswordRuntime.test.js`
+
+The ClickHouse and Valkey `docker-compose.yml` runs, for real
+(`RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`), through what an upgraded install goes
+through: both started with the `config.example.env` placeholders and a row
+written to ClickHouse, then `Scripts/Install/ReplacePlaceholderSecrets.js` run
+on that `config.env`, then both started again as `npm start` goes on to do.
+They are recreated, sign in with the new random passwords and refuse the
+placeholders, ClickHouse still holds the row, neither publishes a port, and a
+further start changes nothing.
 
 ### `GenerateDatabasePassword.test.js`
 

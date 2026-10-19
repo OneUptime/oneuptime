@@ -2816,9 +2816,18 @@ cloudnative-pg:
 # The operator is cluster-scoped and installs its CRDs via pre-install/pre-upgrade
 # Helm hooks. Full operator values: https://github.com/Altinity/clickhouse-operator/tree/master/deploy/helm/clickhouse-operator
 altinity-clickhouse-operator:
-  # The operator manages ClickHouse using its own "clickhouse_operator" user. Override
-  # these for production (the password is otherwise a well-known default).
+  # The operator manages ClickHouse with a user of its own, "clickhouse_operator".
+  # This chart renders that user's credentials Secret itself (secret.create stays
+  # false), under the name the operator reads it by: the operator chart's own
+  # Secret would give every installation the same password.
+  #
+  # Leave password empty to have the chart generate a random one on install and
+  # keep it on upgrade; an installation whose Secret already holds a password keeps
+  # that one. Set it to a long random value of your own to change it (then restart
+  # the operator: see HelmChart/Docs/Clickhouse.md), or when the chart is rendered
+  # with `helm template` (as Argo CD does), which cannot look up the stored one and
+  # would make a new one on every render.
   secret:
-    create: true
+    create: false
     username: clickhouse_operator
-    password: clickhouse_operator_password
+    password: ""

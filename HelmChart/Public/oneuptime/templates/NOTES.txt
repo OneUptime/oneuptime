@@ -76,6 +76,23 @@ network addresses (RFC-1918, CGNAT, IPv6 unique-local) through them. Loopback,
 link-local and cloud metadata addresses stay blocked.
 {{- end }}
 {{- end }}
+{{- if .Values.clickhouseOperator.altinity.enabled }}
+{{- if eq (include "oneuptime.altinityOperator.password" .) (include "oneuptime.altinityOperator.shippedPassword" .) }}
+
+ACTION RECOMMENDED -- the ClickHouse operator's own user still has the password
+its chart ships to every installation.
+
+The Altinity operator manages ClickHouse with its own user, clickhouse_operator.
+ClickHouse lets that user in only from the operator's pod, but its password should
+still be this installation's own. Set altinity-clickhouse-operator.secret.password
+to a long random value (openssl rand -hex 32 makes one), run helm upgrade, then
+restart the operator so it reads the new password and gives it to ClickHouse:
+
+kubectl rollout restart deployment/{{ include "oneuptime.altinityOperator.fullname" . }} --namespace={{ include "oneuptime.altinityOperator.namespace" . }}
+
+A new installation gets a random password of its own. Details: HelmChart/Docs/Clickhouse.md
+{{- end }}
+{{- end }}
 {{- if and (include "oneuptime.kedaOperatorInstalled" .) (not .Values.keda.enabled) }}
 
 The bundled KEDA operator is installed, but this release renders no ScaledObject
