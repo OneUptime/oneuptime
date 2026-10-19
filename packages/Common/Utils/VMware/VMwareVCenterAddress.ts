@@ -133,9 +133,7 @@ export default class VMwareVCenterAddress {
       return { error: INVALID_ADDRESS_MESSAGE };
     }
 
-    const path: string = withoutTrailingSlashes(
-      parsed.pathname,
-    ).toLowerCase();
+    const path: string = withoutTrailingSlashes(parsed.pathname).toLowerCase();
 
     if (path && !ACCEPTED_PATHS.includes(path)) {
       return {

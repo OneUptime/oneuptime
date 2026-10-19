@@ -44,9 +44,7 @@ export const isWhiteSpaceCode: IsCodeFunction = (code: number): boolean => {
  * return, and the line and paragraph separators. Each of them is also
  * white space.
  */
-export const isLineTerminatorCode: IsCodeFunction = (
-  code: number,
-): boolean => {
+export const isLineTerminatorCode: IsCodeFunction = (code: number): boolean => {
   return code === 0x0a || code === 0x0d || code === 0x2028 || code === 0x2029;
 };
 

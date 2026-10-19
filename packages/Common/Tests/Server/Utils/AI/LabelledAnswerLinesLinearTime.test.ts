@@ -89,7 +89,10 @@ const WORST_ANSWERS: Array<[string, string]> = [
     "a label, then blank lines and tabs",
     "SELECTEDRUNBOOK\n" + repeat("\t\n", LENGTH) + "N",
   ],
-  ["labels with no value, line after line", repeat("Classification:\n", LENGTH)],
+  [
+    "labels with no value, line after line",
+    repeat("Classification:\n", LENGTH),
+  ],
   ["stars and white space", repeat(" * \n", LENGTH) + "x"],
   ["a label on every line", repeat("classification: x\n", LENGTH)],
 ];
@@ -226,9 +229,9 @@ describe("the values found are the values the pattern found", () => {
     const classification: Labelled = LABELLED[1]!;
 
     for (const [answer, value] of [
-      ["  *      * classification ** : ** unknown", "unknown"],
+      ["  *   \u2028  * classification ** : ** unknown", "unknown"],
       ["*\n**Classification:** code-fault", "code-fault"],
-      ["**  classification = user-error", "user-error"],
+      ["**\u2029 classification = user-error", "user-error"],
     ]) {
       expect(valuesBefore(classification, answer!)).toEqual([value]);
       expect({
@@ -300,7 +303,30 @@ describe("the values found are the values the pattern found", () => {
     for (const raw of generatedTexts(
       40000,
       2718,
-      ['"', "'", "`", "“", "”", "‘", "’", " ", "\t", "\n", ".", ",", ";", ":", "!", "?", "…", "#", "Title:", "x", "Disk full", "\u00a0"],
+      [
+        '"',
+        "'",
+        "`",
+        "“",
+        "”",
+        "‘",
+        "’",
+        " ",
+        "\t",
+        "\n",
+        ".",
+        ",",
+        ";",
+        ":",
+        "!",
+        "?",
+        "…",
+        "#",
+        "Title:",
+        "x",
+        "Disk full",
+        "\u00a0",
+      ],
       14,
     )) {
       if (sanitizeGeneratedTitle(raw) !== titleBefore(raw)) {

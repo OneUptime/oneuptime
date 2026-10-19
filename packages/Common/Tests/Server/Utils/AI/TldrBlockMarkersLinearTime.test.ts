@@ -64,7 +64,10 @@ const WORST_TEXTS: Array<[string, string]> = [
   ["markers on blank lines", repeat(">\n", LENGTH)],
   ["indented markers", repeat("   > ", LENGTH) + "x"],
   ["a run of line breaks", repeat("\n", LENGTH) + "# x"],
-  ["digits before a stack", repeat("1", LENGTH / 2) + "\n" + repeat("> ", LENGTH / 2)],
+  [
+    "digits before a stack",
+    repeat("1", LENGTH / 2) + "\n" + repeat("> ", LENGTH / 2),
+  ],
 ];
 
 const WORST_LABELS: Array<[string, string]> = [
@@ -74,13 +77,16 @@ const WORST_LABELS: Array<[string, string]> = [
 ];
 
 describe("text built to be slow is read quickly", () => {
-  test.each(WORST_TEXTS)("%s, stripped of block markers", (_label: string, text: string) => {
-    expect(
-      timeOf(() => {
-        stripBlockMarkers(text);
-      }),
-    ).toBeLessThan(2000);
-  });
+  test.each(WORST_TEXTS)(
+    "%s, stripped of block markers",
+    (_label: string, text: string) => {
+      expect(
+        timeOf(() => {
+          stripBlockMarkers(text);
+        }),
+      ).toBeLessThan(2000);
+    },
+  );
 
   test.each([...WORST_TEXTS, ...WORST_LABELS])(
     "%s, as a TL;DR and as a report's summary",

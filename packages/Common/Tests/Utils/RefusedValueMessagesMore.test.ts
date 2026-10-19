@@ -37,7 +37,8 @@ const messageOf: (run: () => unknown) => string = (
   throw new Error("expected the value to be refused");
 };
 
-const CUT: string = "x".repeat(MAX_REFUSED_VALUE_LENGTH) + REFUSED_VALUE_CUT_MARK;
+const CUT: string =
+  "x".repeat(MAX_REFUSED_VALUE_LENGTH) + REFUSED_VALUE_CUT_MARK;
 
 describe("a long refused value is cut in the message", () => {
   test("a monitor template's do-not-sync field", () => {
@@ -48,7 +49,10 @@ describe("a long refused value is cut in the message", () => {
     ).toBe(`Unsupported do not sync field: ${CUT}.`);
     expect(
       messageOf(() => {
-        return MonitorTemplateSyncFieldUtil.parse(["nope"], MonitorType.Website);
+        return MonitorTemplateSyncFieldUtil.parse(
+          ["nope"],
+          MonitorType.Website,
+        );
       }),
     ).toBe("Unsupported do not sync field: nope.");
   });

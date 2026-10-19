@@ -44,7 +44,8 @@ const timeOf: (run: () => unknown) => number = (run: () => unknown): number => {
   return Date.now() - startedAt;
 };
 
-const DOMAIN_RECORD_FILE: string = "packages/Probe/Utils/Domain/DomainRecord.ts";
+const DOMAIN_RECORD_FILE: string =
+  "packages/Probe/Utils/Domain/DomainRecord.ts";
 
 // A failure reason in the naming note, as the note quotes it.
 const quotedReason: (reason: string) => string = (reason: string): string => {
@@ -65,9 +66,15 @@ const quotedReason: (reason: string) => string = (reason: string): string => {
 
 describe("text built to be slow is trimmed quickly", () => {
   test.each([
-    ["a run of dots that does not end the name", repeat(".", LENGTH) + "\u0000."],
+    [
+      "a run of dots that does not end the name",
+      repeat(".", LENGTH) + "\u0000.",
+    ],
     ["dots between letters", repeat("a.", LENGTH) + "x"],
-    ["a pasted address with a long run of dots", "https://" + repeat(".", LENGTH) + "x/"],
+    [
+      "a pasted address with a long run of dots",
+      "https://" + repeat(".", LENGTH) + "x/",
+    ],
   ])("a domain name of %s", (_label: string, name: string) => {
     expect(
       timeOf(() => {
@@ -77,7 +84,10 @@ describe("text built to be slow is trimmed quickly", () => {
   });
 
   test.each([
-    ["a run of tabs before a record id that does not end it", "x" + repeat("\t", LENGTH) + "\u0000\t#\u0000 x"],
+    [
+      "a run of tabs before a record id that does not end it",
+      "x" + repeat("\t", LENGTH) + "\u0000\t#\u0000 x",
+    ],
     ["spaces before a hash", "2026-01-01" + repeat(" ", LENGTH) + "#x y"],
     ["record ids over and over", repeat(" #1", LENGTH)],
   ])("a registration date of %s", (_label: string, date: string) => {

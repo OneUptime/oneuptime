@@ -153,10 +153,7 @@ export const findLabelledValues: FindLabelledValuesFunction = (data: {
       const separatorCode: number = text.charCodeAt(separator);
 
       if (separatorCode === COLON || separatorCode === EQUALS) {
-        const valueStart: number = afterWhiteSpaceAndStars(
-          text,
-          separator + 1,
-        );
+        const valueStart: number = afterWhiteSpaceAndStars(text, separator + 1);
 
         value.lastIndex = valueStart;
 

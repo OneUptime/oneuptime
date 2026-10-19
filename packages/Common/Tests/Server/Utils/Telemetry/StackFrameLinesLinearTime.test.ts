@@ -61,7 +61,10 @@ const WORST_LINES: Array<[string, string]> = [
     "an eval frame with a run of tabs",
     "at\teval\t(eval\tat\t" + repeat("\t", LENGTH) + "\teval\t(eval",
   ],
-  ["an eval frame with space-( pairs", "at eval (eval at x" + repeat(" (", LENGTH)],
+  [
+    "an eval frame with space-( pairs",
+    "at eval (eval at x" + repeat(" (", LENGTH),
+  ],
   [
     "an eval frame with a location after every paren",
     "at eval (eval at x" + repeat(" (\r:1:2)", LENGTH),
@@ -70,18 +73,31 @@ const WORST_LINES: Array<[string, string]> = [
     "a Python file with candidates before a line separator",
     'File "x' + repeat('",\tline\t0,\tin\tx', LENGTH) + "\rz",
   ],
-  ["a Python file with a run of tabs", 'File\t"\u0000",\tline\t0,\tin\t' + repeat("\t", LENGTH) + 'e",'],
-  ["Ruby candidates with no closing quote", "x" + repeat(":0:in `x", LENGTH) + "z"],
+  [
+    "a Python file with a run of tabs",
+    'File\t"\u0000",\tline\t0,\tin\t' + repeat("\t", LENGTH) + 'e",',
+  ],
+  [
+    "Ruby candidates with no closing quote",
+    "x" + repeat(":0:in `x", LENGTH) + "z",
+  ],
   ["Ruby with a run of digits", repeat(":0", LENGTH)],
   ["C# with in after in", "at x" + repeat(" in x", LENGTH) + "z"],
   [
     "C# with tabs around an n",
     "at\t" + repeat("\t", HALF) + "n" + repeat("\t", HALF) + "in\tx",
   ],
-  ["PHP candidates before a line separator", "#0 x" + repeat("(0):\t", LENGTH) + "\rz"],
+  [
+    "PHP candidates before a line separator",
+    "#0 x" + repeat("(0):\t", LENGTH) + "\rz",
+  ],
   [
     "PHP with tabs around a location",
-    "#0\t" + repeat("\t", HALF) + "(0):\t" + repeat("\t", HALF) + LINE_SEPARATOR,
+    "#0\t" +
+      repeat("\t", HALF) +
+      "(0):\t" +
+      repeat("\t", HALF) +
+      LINE_SEPARATOR,
   ],
   ["Go file names", repeat(".go:1 ", LENGTH)],
   ["browser frames", repeat("a@", LENGTH)],
@@ -129,7 +145,16 @@ const READERS: ReadonlyArray<Reader> = [
     name: "a V8 eval frame",
     read: readV8EvalFrame,
     before: /^at\s+eval\s+\(eval\s+at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/,
-    alphabet: [...COMMON_PIECES, "eval", "(eval", "at", ":1:2)", ":3:", " (", "\t("],
+    alphabet: [
+      ...COMMON_PIECES,
+      "eval",
+      "(eval",
+      "at",
+      ":1:2)",
+      ":3:",
+      " (",
+      "\t(",
+    ],
     frames: [
       "at eval (eval at foo (/app/x.js:1:2)",
       "at  eval (eval  at   ( (x:1:2)",
@@ -193,7 +218,16 @@ const READERS: ReadonlyArray<Reader> = [
     name: "a Ruby frame",
     read: readRubyFrame,
     before: /^(.+?):(\d+):in\s+[`'](.+?)'$/,
-    alphabet: [...COMMON_PIECES, ":in", ":1:in `", ":2:in '", "'", "`", "in", ":3:in\t'"],
+    alphabet: [
+      ...COMMON_PIECES,
+      ":in",
+      ":1:in `",
+      ":2:in '",
+      "'",
+      "`",
+      "in",
+      ":3:in\t'",
+    ],
     frames: [
       "/app/a.rb:12:in `block in run'",
       "a:1:in 'b'",
@@ -205,7 +239,16 @@ const READERS: ReadonlyArray<Reader> = [
     name: "a C# frame with a file",
     read: readCSharpFrameWithFile,
     before: /^at\s+(.+?)\s+in\s+(.+?):line\s+(\d+)$/,
-    alphabet: [...COMMON_PIECES, "in", " in ", "\tin\t", ":line", ":line ", ":line 4", "line"],
+    alphabet: [
+      ...COMMON_PIECES,
+      "in",
+      " in ",
+      "\tin\t",
+      ":line",
+      ":line ",
+      ":line 4",
+      "line",
+    ],
     frames: [
       "at A.B() in /x.cs:line 4",
       "at   in  x:line 4",
@@ -219,7 +262,12 @@ const READERS: ReadonlyArray<Reader> = [
     read: readPhpFrame,
     before: /^#\d+\s+(.+?)\((\d+)\):\s+(.+)$/,
     alphabet: [...COMMON_PIECES, "(1):", "(12): ", "):", "#", "(3):\t"],
-    frames: ["#0 /a.php(12): A->b()", "#1  (2): x", "#0 x(1):  ", "#0 a(1): b(2): c"],
+    frames: [
+      "#0 /a.php(12): A->b()",
+      "#1  (2): x",
+      "#0 x(1):  ",
+      "#0 a(1): b(2): c",
+    ],
   },
 ];
 
@@ -284,9 +332,10 @@ describe("a line built to be slow is read quickly", () => {
       for (const reader of READERS) {
         expect({
           reader: reader.name,
-          fast: timeOf(() => {
-            reader.read(line);
-          }) < 2000,
+          fast:
+            timeOf(() => {
+              reader.read(line);
+            }) < 2000,
         }).toEqual({ reader: reader.name, fast: true });
       }
     },

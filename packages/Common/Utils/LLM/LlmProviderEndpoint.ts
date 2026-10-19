@@ -47,7 +47,6 @@ export interface AzureOpenAIRequestEndpoint {
 // "https://host:port" and the rest. The authority ends at the first slash.
 const ORIGIN_AND_PATH: RegExp = /^([a-z][a-z0-9+.-]*:\/\/)([^/]*)(.*)$/i;
 
-
 const USER_INFO: RegExp = /^.*@/;
 
 const PORT: RegExp = /:\d+$/;

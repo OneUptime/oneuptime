@@ -98,20 +98,21 @@ describe("the parts taken off are the parts the pattern took off", () => {
   });
 
   test("a group is still named after the path's last named segment", () => {
-    const items: ReturnType<typeof IncomingRequestIncidentGrouping.extractItems> =
-      IncomingRequestIncidentGrouping.extractItems({
-        requestBody: {
-          alerts: [
-            { labels: { alertname: "Disk full" } },
-            { labels: { alertname: "CPU high" } },
-          ],
-        },
-        grouping: {
-          groupByJSONPath: "requestBody.alerts[*].labels.alertname",
-        },
-      } as unknown as Parameters<
-        typeof IncomingRequestIncidentGrouping.extractItems
-      >[0]);
+    const items: ReturnType<
+      typeof IncomingRequestIncidentGrouping.extractItems
+    > = IncomingRequestIncidentGrouping.extractItems({
+      requestBody: {
+        alerts: [
+          { labels: { alertname: "Disk full" } },
+          { labels: { alertname: "CPU high" } },
+        ],
+      },
+      grouping: {
+        groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+      },
+    } as unknown as Parameters<
+      typeof IncomingRequestIncidentGrouping.extractItems
+    >[0]);
 
     expect(
       items.map((item: { labels: Record<string, unknown> }) => {

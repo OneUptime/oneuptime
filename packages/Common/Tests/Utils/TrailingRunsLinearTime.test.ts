@@ -154,7 +154,13 @@ describe("what comes off is what the pattern took off", () => {
   });
 
   test.each([
-    ["white space", (code: number): boolean => isWhiteSpaceCode(code), /\s+$/],
+    [
+      "white space",
+      (code: number): boolean => {
+        return isWhiteSpaceCode(code);
+      },
+      /\s+$/,
+    ],
     [
       "full stops and white space",
       (code: number): boolean => {
@@ -236,13 +242,19 @@ describe("what comes off is what the pattern took off", () => {
     expect(withoutTrailingDots("example.com.")).toBe("example.com");
     expect(withoutTrailingRun("", isWhiteSpaceCode)).toBe("");
     expect(
-      buildPrometheusApiUrl("https://prometheus.example.com//", "/api/v1/query", {
-        query: "up",
-      }),
+      buildPrometheusApiUrl(
+        "https://prometheus.example.com//",
+        "/api/v1/query",
+        {
+          query: "up",
+        },
+      ),
     ).toBe("https://prometheus.example.com/api/v1/query?query=up");
     expect(normalizeHost("db.example.com.")).toBe("db.example.com");
     expect(
-      LlmProviderEndpoint.splitBaseUrl("https://contoso.openai.azure.com/openai/"),
+      LlmProviderEndpoint.splitBaseUrl(
+        "https://contoso.openai.azure.com/openai/",
+      ),
     ).toEqual(
       expect.objectContaining({
         origin: "https://contoso.openai.azure.com",

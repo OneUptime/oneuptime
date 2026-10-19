@@ -275,42 +275,40 @@ const colonDigitsStartBefore: ColonDigitsBeforeFunction = (
 };
 
 // ^at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)$
-export const readV8FrameWithParens: (line: string) => FrameLineMatch | null =
-  (line: string): FrameLineMatch | null => {
-    if (!line.startsWith("at") || !isCodeAt(line, line.length - 1, CLOSE_PAREN)) {
-      return null;
-    }
+export const readV8FrameWithParens: (line: string) => FrameLineMatch | null = (
+  line: string,
+): FrameLineMatch | null => {
+  if (!line.startsWith("at") || !isCodeAt(line, line.length - 1, CLOSE_PAREN)) {
+    return null;
+  }
 
-    const columnStart: number = colonDigitsStartBefore(line, line.length - 1);
+  const columnStart: number = colonDigitsStartBefore(line, line.length - 1);
 
-    if (columnStart === -1) {
-      return null;
-    }
+  if (columnStart === -1) {
+    return null;
+  }
 
-    const lineNumberStart: number = colonDigitsStartBefore(
-      line,
-      columnStart - 1,
-    );
+  const lineNumberStart: number = colonDigitsStartBefore(line, columnStart - 1);
 
-    if (lineNumberStart === -1) {
-      return null;
-    }
+  if (lineNumberStart === -1) {
+    return null;
+  }
 
-    const fileEnd: number = lineNumberStart - 1;
-    const head: NameAndParen | null = readAtNameParen(line, 2, fileEnd);
+  const fileEnd: number = lineNumberStart - 1;
+  const head: NameAndParen | null = readAtNameParen(line, 2, fileEnd);
 
-    if (!head) {
-      return null;
-    }
+  if (!head) {
+    return null;
+  }
 
-    return [
-      line,
-      line.slice(head.nameStart, head.nameEnd),
-      line.slice(head.paren + 1, fileEnd),
-      line.slice(lineNumberStart, columnStart - 1),
-      line.slice(columnStart, line.length - 1),
-    ];
-  };
+  return [
+    line,
+    line.slice(head.nameStart, head.nameEnd),
+    line.slice(head.paren + 1, fileEnd),
+    line.slice(lineNumberStart, columnStart - 1),
+    line.slice(columnStart, line.length - 1),
+  ];
+};
 
 // ^at\s+(.+?)\s+\((.+?):(\d+)\)$
 export const readV8FrameWithParensNoColumn: (
@@ -320,10 +318,7 @@ export const readV8FrameWithParensNoColumn: (
     return null;
   }
 
-  const lineNumberStart: number = colonDigitsStartBefore(
-    line,
-    line.length - 1,
-  );
+  const lineNumberStart: number = colonDigitsStartBefore(line, line.length - 1);
 
   if (lineNumberStart === -1) {
     return null;
@@ -363,10 +358,7 @@ export const readV8FrameWithoutParens: (
     return null;
   }
 
-  const lineNumberStart: number = colonDigitsStartBefore(
-    line,
-    columnStart - 1,
-  );
+  const lineNumberStart: number = colonDigitsStartBefore(line, columnStart - 1);
 
   if (lineNumberStart === -1) {
     return null;
@@ -660,126 +652,127 @@ export const readV8EvalFrame: (line: string) => FrameLineMatch | null = (
  * ":line". The name is the shortest that is followed by white space, "in",
  * white space and a file that holds no line terminator.
  */
-export const readCSharpFrameWithFile: (line: string) => FrameLineMatch | null =
-  (line: string): FrameLineMatch | null => {
-    if (!line.startsWith("at")) {
-      return null;
-    }
-
-    const lineNumberStart: number = digitsStartBefore(line, line.length);
-
-    if (lineNumberStart === line.length) {
-      return null;
-    }
-
-    const lineLabelEnd: number = whiteSpaceStartBefore(line, lineNumberStart);
-
-    if (
-      lineLabelEnd === lineNumberStart ||
-      lineLabelEnd < 5 ||
-      !line.startsWith(":line", lineLabelEnd - 5)
-    ) {
-      return null;
-    }
-
-    const fileEnd: number = lineLabelEnd - 5;
-    const lastTerminatorBeforeFileEnd: number = lastLineTerminatorBefore(
-      line,
-      fileEnd,
-    );
-
-    type FileFunction = (inStart: number) => [number, number] | null;
-
-    // The file after the "in" at `inStart`, or null.
-    const fileAfter: FileFunction = (
-      inStart: number,
-    ): [number, number] | null => {
-      const runStart: number = inStart + 2;
-      const fileStart: number = whiteSpaceEnd(line, runStart);
-
-      if (fileStart === runStart || fileStart > fileEnd) {
-        return null;
-      }
-
-      if (fileStart < fileEnd) {
-        return lastTerminatorBeforeFileEnd >= fileStart
-          ? null
-          : [fileStart, fileEnd];
-      }
-
-      // The white space ran up to ":line": its last character is the file.
-      const given: number = fileStart - 1;
-
-      return given > runStart && !isLineTerminatorCode(line.charCodeAt(given))
-        ? [given, fileEnd]
-        : null;
-    };
-
-    const nameRunStart: number = 2;
-    const nameStart: number = whiteSpaceEnd(line, nameRunStart);
-
-    if (nameStart === nameRunStart) {
-      return null;
-    }
-
-    const firstTerminator: number = firstLineTerminator(line, nameStart);
-
-    type MatchFunction = (
-      name: [number, number],
-      file: [number, number],
-    ) => FrameLineMatch;
-
-    const toMatch: MatchFunction = (
-      name: [number, number],
-      file: [number, number],
-    ): FrameLineMatch => {
-      return [
-        line,
-        line.slice(name[0], name[1]),
-        line.slice(file[0], file[1]),
-        line.slice(lineNumberStart),
-      ];
-    };
-
-    let runStart: number = -1;
-
-    for (let index: number = nameStart + 1; index < line.length; index++) {
-      if (isWhiteSpaceCode(line.charCodeAt(index))) {
-        if (runStart === -1) {
-          runStart = index;
-        }
-
-        continue;
-      }
-
-      if (runStart !== -1) {
-        if (runStart > firstTerminator) {
-          break;
-        }
-
-        if (line.startsWith("in", index)) {
-          const file: [number, number] | null = fileAfter(index);
-
-          if (file) {
-            return toMatch([nameStart, runStart], file);
-          }
-        }
-      }
-
-      runStart = -1;
-    }
-
-    if (line.startsWith("in", nameStart)) {
-      const file: [number, number] | null = fileAfter(nameStart);
-      const name: number = givenBackCharacter(line, nameRunStart, nameStart);
-
-      if (file && name !== -1) {
-        return toMatch([name, name + 1], file);
-      }
-    }
-
+export const readCSharpFrameWithFile: (
+  line: string,
+) => FrameLineMatch | null = (line: string): FrameLineMatch | null => {
+  if (!line.startsWith("at")) {
     return null;
+  }
+
+  const lineNumberStart: number = digitsStartBefore(line, line.length);
+
+  if (lineNumberStart === line.length) {
+    return null;
+  }
+
+  const lineLabelEnd: number = whiteSpaceStartBefore(line, lineNumberStart);
+
+  if (
+    lineLabelEnd === lineNumberStart ||
+    lineLabelEnd < 5 ||
+    !line.startsWith(":line", lineLabelEnd - 5)
+  ) {
+    return null;
+  }
+
+  const fileEnd: number = lineLabelEnd - 5;
+  const lastTerminatorBeforeFileEnd: number = lastLineTerminatorBefore(
+    line,
+    fileEnd,
+  );
+
+  type FileFunction = (inStart: number) => [number, number] | null;
+
+  // The file after the "in" at `inStart`, or null.
+  const fileAfter: FileFunction = (
+    inStart: number,
+  ): [number, number] | null => {
+    const runStart: number = inStart + 2;
+    const fileStart: number = whiteSpaceEnd(line, runStart);
+
+    if (fileStart === runStart || fileStart > fileEnd) {
+      return null;
+    }
+
+    if (fileStart < fileEnd) {
+      return lastTerminatorBeforeFileEnd >= fileStart
+        ? null
+        : [fileStart, fileEnd];
+    }
+
+    // The white space ran up to ":line": its last character is the file.
+    const given: number = fileStart - 1;
+
+    return given > runStart && !isLineTerminatorCode(line.charCodeAt(given))
+      ? [given, fileEnd]
+      : null;
   };
+
+  const nameRunStart: number = 2;
+  const nameStart: number = whiteSpaceEnd(line, nameRunStart);
+
+  if (nameStart === nameRunStart) {
+    return null;
+  }
+
+  const firstTerminator: number = firstLineTerminator(line, nameStart);
+
+  type MatchFunction = (
+    name: [number, number],
+    file: [number, number],
+  ) => FrameLineMatch;
+
+  const toMatch: MatchFunction = (
+    name: [number, number],
+    file: [number, number],
+  ): FrameLineMatch => {
+    return [
+      line,
+      line.slice(name[0], name[1]),
+      line.slice(file[0], file[1]),
+      line.slice(lineNumberStart),
+    ];
+  };
+
+  let runStart: number = -1;
+
+  for (let index: number = nameStart + 1; index < line.length; index++) {
+    if (isWhiteSpaceCode(line.charCodeAt(index))) {
+      if (runStart === -1) {
+        runStart = index;
+      }
+
+      continue;
+    }
+
+    if (runStart !== -1) {
+      if (runStart > firstTerminator) {
+        break;
+      }
+
+      if (line.startsWith("in", index)) {
+        const file: [number, number] | null = fileAfter(index);
+
+        if (file) {
+          return toMatch([nameStart, runStart], file);
+        }
+      }
+    }
+
+    runStart = -1;
+  }
+
+  if (line.startsWith("in", nameStart)) {
+    const file: [number, number] | null = fileAfter(nameStart);
+    const name: number = givenBackCharacter(line, nameRunStart, nameStart);
+
+    if (file && name !== -1) {
+      return toMatch([name, name + 1], file);
+    }
+  }
+
+  return null;
+};
 
 /*
  * ---------------------------------------------------------------------------
@@ -1053,7 +1046,10 @@ export const readRubyFrame: (line: string) => FrameLineMatch | null = (
 
     const lineNumberEnd: number = digitsEnd(line, fileEnd + 1);
 
-    if (lineNumberEnd === fileEnd + 1 || !line.startsWith(":in", lineNumberEnd)) {
+    if (
+      lineNumberEnd === fileEnd + 1 ||
+      !line.startsWith(":in", lineNumberEnd)
+    ) {
       continue;
     }
 

@@ -98,30 +98,44 @@ describe("a line built to be slow is read quickly", () => {
 
 describe("each message is found where it was found before", () => {
   test.each([
-    ["the refused connection", REFUSED_BEFORE, (): RegExp => REFUSED_NOW, [
-      "The connection to the server ",
-      "The connection to the server",
-      " was refused",
-      "was refused",
-      "x",
-      " ",
-      "\r",
-      "\u2028",
-      "\n",
-      "T",
-    ]],
-    ["the forbidden user", FORBIDDEN_BEFORE, (): RegExp => FORBIDDEN_NOW, [
-      ' is forbidden: User "',
-      ' is forbidden: User ',
-      '" cannot ',
-      '"',
-      "x",
-      " ",
-      "\r",
-      "\u2028",
-      "\n",
-      "cannot",
-    ]],
+    [
+      "the refused connection",
+      REFUSED_BEFORE,
+      (): RegExp => {
+        return REFUSED_NOW;
+      },
+      [
+        "The connection to the server ",
+        "The connection to the server",
+        " was refused",
+        "was refused",
+        "x",
+        " ",
+        "\r",
+        "\u2028",
+        "\n",
+        "T",
+      ],
+    ],
+    [
+      "the forbidden user",
+      FORBIDDEN_BEFORE,
+      (): RegExp => {
+        return FORBIDDEN_NOW;
+      },
+      [
+        ' is forbidden: User "',
+        " is forbidden: User ",
+        '" cannot ',
+        '"',
+        "x",
+        " ",
+        "\r",
+        "\u2028",
+        "\n",
+        "cannot",
+      ],
+    ],
   ])(
     "%s, on forty thousand drawn lines",
     (

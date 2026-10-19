@@ -336,7 +336,9 @@ const FAMILIES: ReadonlyArray<Family> = [
       '^Exception in thread\\s+"[^"]*"\\s+(.*)$',
       "^([A-Za-z_][\\w.$]*\\.[A-Za-z_][\\w.$]*):\\s*(.*)$",
     ],
-    slowTexts: ["panic:" + repeat("\t", LENGTH / 10) + "y" + LINE_SEPARATOR + "x"],
+    slowTexts: [
+      "panic:" + repeat("\t", LENGTH / 10) + "y" + LINE_SEPARATOR + "x",
+    ],
   },
   {
     name: "a model's label line, white space around a ** at every line start",
@@ -542,7 +544,10 @@ const TRAILING_RUN_READERS: ReadonlyArray<[string, string]> = [
     "withoutTrailingSlashes(",
   ],
   ["packages/Common/Server/Utils/LLM/LLMService.ts", "withoutTrailingSlashes("],
-  ["packages/Common/Utils/LLM/LlmProviderEndpoint.ts", "withoutTrailingSlashes("],
+  [
+    "packages/Common/Utils/LLM/LlmProviderEndpoint.ts",
+    "withoutTrailingSlashes(",
+  ],
   [
     "packages/Common/Server/Utils/Monitor/Criteria/ServerMonitorCriteria.ts",
     "withoutTrailingSlashes(",
@@ -639,33 +644,30 @@ describe("the files that read outside text take a run that ends it off from its 
     }
   });
 
-  test.each(TRAILING_RUN_READERS)(
-    "%s",
-    (file: string, reader: string) => {
-      if (file.startsWith("ee/") && !EE_IS_CHECKED_OUT) {
-        return;
-      }
+  test.each(TRAILING_RUN_READERS)("%s", (file: string, reader: string) => {
+    if (file.startsWith("ee/") && !EE_IS_CHECKED_OUT) {
+      return;
+    }
 
-      const text: string = fs.readFileSync(
-        path.join(REPOSITORY_DIRECTORY, file),
-        "utf8",
-      );
-      const runs: Array<string> = patternsInSource(file, text)
-        .filter((pattern: SourcePattern): boolean => {
-          return isTrailingRunPattern(pattern.source);
-        })
-        .map((pattern: SourcePattern): string => {
-          return `${pattern.line}: /${pattern.source}/`;
-        });
-
-      expect({ file, runs }).toEqual({ file, runs: [] });
-      expect({ file, reader, used: text.includes(reader) }).toEqual({
-        file,
-        reader,
-        used: true,
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_DIRECTORY, file),
+      "utf8",
+    );
+    const runs: Array<string> = patternsInSource(file, text)
+      .filter((pattern: SourcePattern): boolean => {
+        return isTrailingRunPattern(pattern.source);
+      })
+      .map((pattern: SourcePattern): string => {
+        return `${pattern.line}: /${pattern.source}/`;
       });
-    },
-  );
+
+    expect({ file, runs }).toEqual({ file, runs: [] });
+    expect({ file, reader, used: text.includes(reader) }).toEqual({
+      file,
+      reader,
+      used: true,
+    });
+  });
 
   test.each(OPENER_READERS)(
     "%s finds each opener's match once",

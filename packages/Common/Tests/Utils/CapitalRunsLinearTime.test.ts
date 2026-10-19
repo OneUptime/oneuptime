@@ -41,7 +41,10 @@ const timeOf: (run: () => unknown) => number = (run: () => unknown): number => {
 const CAPITAL_RUN_BEFORE_WORD_BEFORE: RegExp = /([A-Z]+)([A-Z][a-z])/g;
 
 const WORST_TEXTS: Array<[string, string]> = [
-  ["a run of capitals no lower-case letter follows", repeat("A", LENGTH) + "\u0000AAa"],
+  [
+    "a run of capitals no lower-case letter follows",
+    repeat("A", LENGTH) + "\u0000AAa",
+  ],
   ["capitals and digits", repeat("A1", LENGTH)],
   ["runs of capitals between words", repeat("AAAAAAAAAa", LENGTH)],
 ];
@@ -57,51 +60,54 @@ describe("a long run of capitals is split quickly", () => {
     }
   });
 
-  test.each(WORST_TEXTS)("%s, through every reader that splits names", (_label: string, text: string) => {
-    const readers: Array<[string, () => unknown]> = [
-      [
-        "Text.fromPascalCaseToReadable",
-        (): unknown => {
-          return Text.fromPascalCaseToReadable(text);
-        },
-      ],
-      [
-        "a workflow sample's key",
-        (): unknown => {
-          return isSensitiveSampleKey(text);
-        },
-      ],
-      [
-        "a Terraform attribute name",
-        (): unknown => {
-          return toTerraformSnakeCase(text);
-        },
-      ],
-      [
-        "a table's name in the workflow picker",
-        (): unknown => {
-          return tableNameToWords(text);
-        },
-      ],
-      [
-        "a database column named in an error",
-        (): unknown => {
-          return (
-            PostgresErrorTranslator as unknown as {
-              humanizeColumnName: (name: string) => string;
-            }
-          ).humanizeColumnName(text);
-        },
-      ],
-    ];
+  test.each(WORST_TEXTS)(
+    "%s, through every reader that splits names",
+    (_label: string, text: string) => {
+      const readers: Array<[string, () => unknown]> = [
+        [
+          "Text.fromPascalCaseToReadable",
+          (): unknown => {
+            return Text.fromPascalCaseToReadable(text);
+          },
+        ],
+        [
+          "a workflow sample's key",
+          (): unknown => {
+            return isSensitiveSampleKey(text);
+          },
+        ],
+        [
+          "a Terraform attribute name",
+          (): unknown => {
+            return toTerraformSnakeCase(text);
+          },
+        ],
+        [
+          "a table's name in the workflow picker",
+          (): unknown => {
+            return tableNameToWords(text);
+          },
+        ],
+        [
+          "a database column named in an error",
+          (): unknown => {
+            return (
+              PostgresErrorTranslator as unknown as {
+                humanizeColumnName: (name: string) => string;
+              }
+            ).humanizeColumnName(text);
+          },
+        ],
+      ];
 
-    for (const [reader, run] of readers) {
-      expect({ reader, fast: timeOf(run) < 2000 }).toEqual({
-        reader,
-        fast: true,
-      });
-    }
-  });
+      for (const [reader, run] of readers) {
+        expect({ reader, fast: timeOf(run) < 2000 }).toEqual({
+          reader,
+          fast: true,
+        });
+      }
+    },
+  );
 });
 
 describe("the separator goes where the pattern put it", () => {
@@ -112,7 +118,24 @@ describe("the separator goes where the pattern put it", () => {
     for (const text of generatedTexts(
       40000,
       9973,
-      ["A", "B", "Z", "a", "b", "z", "0", "_", "-", " ", "ID", "OIDC", "Provider", "é", "\u212a", "$1"],
+      [
+        "A",
+        "B",
+        "Z",
+        "a",
+        "b",
+        "z",
+        "0",
+        "_",
+        "-",
+        " ",
+        "ID",
+        "OIDC",
+        "Provider",
+        "é",
+        "\u212a",
+        "$1",
+      ],
       12,
     )) {
       for (const separator of [" ", "_"]) {

@@ -112,7 +112,9 @@ describe("a summary built to be slow is flattened quickly", () => {
         clipText(text, LENGTH + 8);
       }),
     ).toBeLessThan(2000);
-    expect(clipText(text, LENGTH + 8)).toBe(text.slice(0, LENGTH + 7) + "\u2026");
+    expect(clipText(text, LENGTH + 8)).toBe(
+      text.slice(0, LENGTH + 7) + "\u2026",
+    );
   });
 });
 
@@ -185,7 +187,22 @@ describe("the plain text is word for word what it was", () => {
     for (const text of generatedTexts(
       40000,
       5309,
-      [" ", "\t", "a", "bc", ".", ",", ";", ":", "!", "?", "—", "–", "-", "\u2028"],
+      [
+        " ",
+        "\t",
+        "a",
+        "bc",
+        ".",
+        ",",
+        ";",
+        ":",
+        "!",
+        "?",
+        "—",
+        "–",
+        "-",
+        "\u2028",
+      ],
       20,
     )) {
       const maxLength: number = 1 + (index % 12);

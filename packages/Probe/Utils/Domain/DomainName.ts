@@ -4,7 +4,6 @@ import { withoutTrailingDots } from "Common/Utils/TrailingRuns";
 const LABEL_PATTERN: RegExp = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 const ALL_DIGITS_PATTERN: RegExp = /^[0-9]+$/;
 
-
 /*
  * People paste "https://example.com/pricing" into a field labelled "Domain
  * Name" often enough that it is worth accepting. Everything here is about

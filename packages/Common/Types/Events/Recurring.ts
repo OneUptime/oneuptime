@@ -103,8 +103,8 @@ export default class Recurring extends DatabaseProperty {
           break;
         default:
           throw new BadDataException(
-          "Invalid Interval Type: " + refusedValue(intervalType),
-        );
+            "Invalid Interval Type: " + refusedValue(intervalType),
+          );
       }
 
       const intervalsToAdd: number = Math.ceil(diff / intervalMillis);

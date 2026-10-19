@@ -503,7 +503,11 @@ const withoutDelimiterPairs: WithoutDelimiterPairsFunction = (
   ): number => {
     const kept: { from: number; at: number } = closings[which]!;
 
-    if (kept.from !== -1 && kept.from <= from && (kept.at === -1 || kept.at >= from)) {
+    if (
+      kept.from !== -1 &&
+      kept.from <= from &&
+      (kept.at === -1 || kept.at >= from)
+    ) {
       return kept.at;
     }
 
@@ -520,14 +524,23 @@ const withoutDelimiterPairs: WithoutDelimiterPairsFunction = (
     return at;
   };
 
+  // Which delimiter is written at `at`, the first listed one first; -1 for none.
+  const delimiterAt: (at: number) => number = (at: number): number => {
+    for (let which: number = 0; which < delimiters.length; which++) {
+      if (text.startsWith(delimiters[which]!, at)) {
+        return which;
+      }
+    }
+
+    return -1;
+  };
+
   let result: string = "";
   let copiedUpTo: number = 0;
   let index: number = 0;
 
   while (index < text.length) {
-    const which: number = delimiters.findIndex((delimiter: string): boolean => {
-      return text.startsWith(delimiter, index);
-    });
+    const which: number = delimiterAt(index);
 
     if (which === -1) {
       index++;

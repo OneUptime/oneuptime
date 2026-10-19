@@ -111,10 +111,7 @@ describe("the paths found are the paths the pattern found", () => {
       });
     }
 
-    expect(findPathsWithLineNumber("a.js:12b.js:3")).toEqual([
-      "a.js",
-      "b.js",
-    ]);
+    expect(findPathsWithLineNumber("a.js:12b.js:3")).toEqual(["a.js", "b.js"]);
     expect(findPathsWithLineNumber("C:/app/src/a.ts:3:4")).toEqual([
       "C:/app/src/a.ts",
     ]);
