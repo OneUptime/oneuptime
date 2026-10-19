@@ -43,7 +43,7 @@ flowchart LR
 
 | 구성 요소 | 위치 | 하는 일 |
 | --- | --- | --- |
-| **Sources** | **Connections** | 로그, OneUptime이 가져오는 보안 제품, 그리고 보내는 모든 것 |
+| **소스** | **Connections** | 로그, OneUptime이 가져오는 보안 제품, 그리고 보내는 모든 것 |
 | **Detections** | **Detections** | 모든 이벤트에서 위협을 찾는 Sigma 규칙과 위협 인텔리전스 피드 |
 | **Security Cases** | **Security Cases** | 찾은 것을 관련된 사용자, 호스트 또는 주소별로 묶은 것 |
 | **Playbooks** | **Playbooks** | 새 케이스에서 실행되는 단계: 정보 보강, 알림, 인시던트 생성, 격리 |

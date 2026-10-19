@@ -16589,7 +16589,7 @@
   "Source maps that unminify this service's browser stack traces, matched by release (service.version). Kept for 90 days.": "이 서비스의 브라우저 스택 트레이스를 원래 코드로 되돌리는 소스 맵으로, 릴리스(service.version)로 매칭합니다. 90일간 보관됩니다.",
   "Source → Destination": "Source → Destination",
   "Source → Target": "Source → Target",
-  "Sources": "Sources",
+  "Sources": "소스",
   "Sources reporting logs": "Sources reporting logs",
   "South Africa": "South Africa",
   "South Georgia and the South Sandwich Islands": "South Georgia and the South Sandwich Islands",

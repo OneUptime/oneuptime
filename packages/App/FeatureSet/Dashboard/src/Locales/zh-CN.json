@@ -16589,7 +16589,7 @@
   "Source maps that unminify this service's browser stack traces, matched by release (service.version). Kept for 90 days.": "用于还原此服务浏览器堆栈跟踪的 Source Map，按版本（service.version）匹配。保留 90 天。",
   "Source → Destination": "Source → Destination",
   "Source → Target": "Source → Target",
-  "Sources": "Sources",
+  "Sources": "来源",
   "Sources reporting logs": "Sources reporting logs",
   "South Africa": "South Africa",
   "South Georgia and the South Sandwich Islands": "South Georgia and the South Sandwich Islands",

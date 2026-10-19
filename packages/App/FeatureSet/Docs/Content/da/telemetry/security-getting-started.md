@@ -43,7 +43,7 @@ flowchart LR
 
 | Del | Hvor | Hvad den gør |
 | --- | --- | --- |
-| **Sources** | **Connections** | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og alt, hvad du sender |
+| **Kilder** | **Connections** | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og alt, hvad du sender |
 | **Detections** | **Detections** | Sigma-regler og feeds med trusselsintelligens, der leder efter trusler i hver hændelse |
 | **Security Cases** | **Security Cases** | Det, der blev fundet, grupperet efter den bruger, vært eller adresse, det handler om |
 | **Playbooks** | **Playbooks** | Trin, der kører på nye sager: beriger dem, giver besked, åbner en hændelse eller inddæmmer |

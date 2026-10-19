@@ -22,6 +22,7 @@ import {
 import StackedDayBars, {
   StackedSeries,
 } from "../../Components/SecurityOverview/StackedDayBars";
+import { formatCompactDurationInMinutes } from "../../Utils/CompactDuration";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -45,7 +46,6 @@ import SecurityDetectionSource, {
 import {
   RuleCount,
   TacticCount,
-  formatDurationInMinutes,
 } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -487,8 +487,9 @@ const SecurityOverviewPage: FunctionComponent<
                   translator.translateText("Mean Time to Acknowledge") ||
                   "Mean Time to Acknowledge"
                 }
-                value={formatDurationInMinutes(
+                value={formatCompactDurationInMinutes(
                   metrics.meanTimeToAcknowledgeInMinutes,
+                  translator.language,
                 )}
                 description={translator.translateTemplate(
                   "Last {{days}} days",
@@ -505,8 +506,9 @@ const SecurityOverviewPage: FunctionComponent<
                   translator.translateText("Mean Time to Contain") ||
                   "Mean Time to Contain"
                 }
-                value={formatDurationInMinutes(
+                value={formatCompactDurationInMinutes(
                   metrics.meanTimeToContainInMinutes,
+                  translator.language,
                 )}
                 description={translator.translateTemplate(
                   "Last {{days}} days",
@@ -523,8 +525,9 @@ const SecurityOverviewPage: FunctionComponent<
                   translator.translateText("Mean Time to Close") ||
                   "Mean Time to Close"
                 }
-                value={formatDurationInMinutes(
+                value={formatCompactDurationInMinutes(
                   metrics.meanTimeToCloseInMinutes,
+                  translator.language,
                 )}
                 description={translator.translatePlural(
                   {

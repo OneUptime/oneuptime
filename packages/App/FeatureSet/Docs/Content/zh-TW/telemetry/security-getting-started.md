@@ -43,7 +43,7 @@ flowchart LR
 
 | 部分 | 位置 | 作用 |
 | --- | --- | --- |
-| **Sources** | **Connections** | 您的日誌、OneUptime 輪詢的安全產品，以及您傳送的一切 |
+| **來源** | **Connections** | 您的日誌、OneUptime 輪詢的安全產品，以及您傳送的一切 |
 | **Detections** | **Detections** | 在每個事件中尋找威脅的 Sigma 規則和威脅情資來源 |
 | **Security Cases** | **Security Cases** | 找到的內容，依其涉及的使用者、主機或位址分組 |
 | **Playbooks** | **Playbooks** | 在新案件上執行的步驟：補充資訊、傳送通知、建立事件或進行圍堵 |

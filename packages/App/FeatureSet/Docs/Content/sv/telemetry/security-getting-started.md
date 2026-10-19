@@ -43,7 +43,7 @@ flowchart LR
 
 | Del | Var | Vad den gör |
 | --- | --- | --- |
-| **Sources** | **Connections** | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och allt du skickar |
+| **Källor** | **Connections** | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och allt du skickar |
 | **Detections** | **Detections** | Sigma-regler och flöden med hotunderrättelser som letar efter hot i varje händelse |
 | **Security Cases** | **Security Cases** | Det som hittades, grupperat efter användaren, värden eller adressen det gäller |
 | **Playbooks** | **Playbooks** | Steg som körs på nya ärenden: berikar dem, meddelar, öppnar en incident eller begränsar |

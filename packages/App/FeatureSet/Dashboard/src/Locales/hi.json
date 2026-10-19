@@ -16589,7 +16589,7 @@
   "Source maps that unminify this service's browser stack traces, matched by release (service.version). Kept for 90 days.": "इस सेवा के ब्राउज़र स्टैक ट्रेस को अनमिनिफ़ाई करने वाले सोर्स मैप, रिलीज़ (service.version) से मिलाए जाते हैं। 90 दिन तक रखे जाते हैं।",
   "Source → Destination": "Source → Destination",
   "Source → Target": "Source → Target",
-  "Sources": "Sources",
+  "Sources": "स्रोत",
   "Sources reporting logs": "Sources reporting logs",
   "South Africa": "South Africa",
   "South Georgia and the South Sandwich Islands": "South Georgia and the South Sandwich Islands",

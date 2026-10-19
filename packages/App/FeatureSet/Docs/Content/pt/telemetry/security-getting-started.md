@@ -43,7 +43,7 @@ flowchart LR
 
 | Parte | Onde | O que faz |
 | --- | --- | --- |
-| **Sources** | **Connections** | Seus logs, os produtos de segurança que o OneUptime consulta e tudo o que você envia |
+| **Fontes** | **Connections** | Seus logs, os produtos de segurança que o OneUptime consulta e tudo o que você envia |
 | **Detections** | **Detections** | Regras Sigma e feeds de inteligência de ameaças que procuram ameaças em cada evento |
 | **Security Cases** | **Security Cases** | O que foi encontrado, agrupado pelo usuário, host ou endereço a que se refere |
 | **Playbooks** | **Playbooks** | Etapas que rodam nos casos novos: enriquecê-los, notificar, abrir um incidente ou conter |

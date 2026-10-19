@@ -43,7 +43,7 @@ flowchart LR
 
 | Onderdeel | Waar | Wat het doet |
 | --- | --- | --- |
-| **Sources** | **Connections** | Uw logs, de beveiligingsproducten die OneUptime opvraagt en alles wat u stuurt |
+| **Bronnen** | **Connections** | Uw logs, de beveiligingsproducten die OneUptime opvraagt en alles wat u stuurt |
 | **Detections** | **Detections** | Sigma-regels en feeds met dreigingsinformatie die in elke gebeurtenis naar bedreigingen zoeken |
 | **Security Cases** | **Security Cases** | Wat er gevonden is, gegroepeerd per gebruiker, host of adres waar het om gaat |
 | **Playbooks** | **Playbooks** | Stappen die op nieuwe zaken draaien: ze verrijken, waarschuwen, een incident openen of indammen |
