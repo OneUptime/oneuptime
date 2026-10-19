@@ -64,7 +64,7 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Test before saving**. Le test se connecte et lit les incidents avec les valeurs du formulaire, et n'enregistre rien, un secret erroné ou un rôle manquant apparaît donc avant que la connexion existe. Cliquez ensuite sur **Suivant**, donnez à la connexion un **Nom**, et créez-la.
+Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test se connecte et lit les incidents avec les valeurs du formulaire, et n'enregistre rien, un secret erroné ou un rôle manquant apparaît donc avant que la connexion existe. Cliquez ensuite sur **Suivant**, donnez à la connexion un **Nom**, et créez-la.
 :::
 
 | Réglage | Où le trouver |

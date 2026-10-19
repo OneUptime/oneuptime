@@ -47,3 +47,13 @@ export const DETECTION_MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
 
 // One alert per distinct group value per cycle, at most.
 export const DETECTION_MAX_GROUPS_PER_EVALUATION: number = 100;
+
+/*
+ * How far behind the clock a rule reads. An event reaches the table a
+ * little after it happened - through the ingest queue, a connection's poll
+ * or the scan of "Your logs" a minute later - and a rule that read right up
+ * to now would already have moved past it. Reading up to two minutes ago,
+ * every event is in the table before a rule reads its moment, and is
+ * counted once.
+ */
+export const DETECTION_EVALUATION_DELAY_IN_SECONDS: number = 120;

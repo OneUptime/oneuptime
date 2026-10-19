@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Ouvrir Threat Intel
 
-Ouvrez **Produits → Événements de sécurité → Threat Intel**.
+Ouvrez **Produits → Événements de sécurité → Détections → Threat Intel**.
 
 ### Créer le flux
 

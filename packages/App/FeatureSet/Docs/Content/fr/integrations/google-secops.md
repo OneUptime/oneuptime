@@ -7,6 +7,7 @@ Faites entrer les alertes et les détections de [Google SecOps](https://cloud.go
 - [Configurer le connecteur géré](#configurer-le-connecteur-géré): Une clé de compte de service, et le formulaire de la connexion.
 - [Fonctionnement des interrogations du connecteur](#fonctionnement-des-interrogations-du-connecteur): Trois lectures de chaque fenêtre, et leurs budgets.
 - [Dépannage](#dépannage): Ce que dit Dernière erreur, et ce qu'il faut faire.
+- [Envoyer des événements de sécurité à Google SecOps](#envoyer-des-événements-de-sécurité-à-google-secops): Les détections de OneUptime, dans Google SecOps.
 :::
 
 ## Choisir comment se connecter
@@ -100,14 +101,14 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### Tester avant d'enregistrer
 
-Sélectionnez **Test these settings** sous **Test before saving** avant d'enregistrer. Le test s'exécute avec les valeurs du formulaire sans rien enregistrer, une clé mal formée, un rôle manquant ou une mauvaise instance est donc repéré avant que la connexion existe. Dans le formulaire de modification, le même bouton teste la **Région**, l'**Instance resource name** et le **Data to import** affichés à l'écran avec la clé enregistrée ; un champ d'identifiants laissé vide garde la clé enregistrée. Quand quelque chose de testé diffère de ce que la connexion a enregistré, y compris une clé nouvellement saisie, aucune ligne d'historique d'exécution n'est enregistrée, car la connexion n'a pas encore ces réglages.
+Sélectionnez **Test these settings** sous **Tester avant d'enregistrer** avant d'enregistrer. Le test s'exécute avec les valeurs du formulaire sans rien enregistrer, une clé mal formée, un rôle manquant ou une mauvaise instance est donc repéré avant que la connexion existe. Dans le formulaire de modification, le même bouton teste la **Région**, l'**Nom de ressource de l'instance** et le **Data to import** affichés à l'écran avec la clé enregistrée ; un champ d'identifiants laissé vide garde la clé enregistrée. Quand quelque chose de testé diffère de ce que la connexion a enregistré, y compris une clé nouvellement saisie, aucune ligne d'historique d'exécution n'est enregistrée, car la connexion n'a pas encore ces réglages.
 :::
 
 | Réglage | Où le trouver | Obligatoire |
 | --- | --- | --- |
 | **Région** | Le point de terminaison régional de Google SecOps (`us`, `europe`, `asia-southeast1`, ...) qui correspond à l'emplacement de votre nom de ressource d'instance. Il n'y a pas de valeur par défaut, pour qu'un locataire hors des États-Unis ne puisse pas enregistrer le mauvais point de terminaison par accident. | Oui |
-| **Instance resource name** | Dans Google SecOps, **SIEM Settings → Profile** : `projects/{project}/locations/{location}/instances/{instance}`. | Oui |
-| **Service account JSON** | Google Cloud, l'onglet **Keys** du compte de service. Collez le fichier de clé JSON entier. En écriture seule : chiffré au repos, jamais renvoyé par l'API, plus jamais affiché sur la page. Utilisez **Update credentials** sur la connexion pour le renouveler. | Oui |
+| **Nom de ressource de l'instance** | Dans Google SecOps, **SIEM Settings → Profile** : `projects/{project}/locations/{location}/instances/{instance}`. | Oui |
+| **JSON du compte de service** | Google Cloud, l'onglet **Keys** du compte de service. Collez le fichier de clé JSON entier. En écriture seule : chiffré au repos, jamais renvoyé par l'API, plus jamais affiché sur la page. Utilisez **Update credentials** sur la connexion pour le renouveler. | Oui |
 | **Data to import** | Les **Alertes** sont toujours importées, car l'API des alertes de Google les renvoie toujours. Sélectionnez **Détections** pour importer aussi les correspondances de règles qui n'ont pas généré d'alerte. Cela ne transfère pas les événements UDM bruts : transférez-les vous-même, comme ci-dessus. | Alertes toujours |
 
 L'étape d'interrogation du formulaire demande un **Nom**, une **Description** facultative, le réglage **Activé** de la connexion, et le **Poll Interval (Minutes)** : un nombre entier de `1` à `1440`, `5` par défaut. Toute valeur hors de cette plage est refusée à l'enregistrement.
@@ -160,7 +161,7 @@ Une interrogation Partial conserve aussi ses avertissements dans **Dernière err
 
 **Tester la connexion**, sur la ligne de la connexion ou dans **Diagnostics**, s'exécute de façon synchrone dans le processus de l'API. Le test n'a pas besoin d'un worker d'arrière-plan, et c'est justement pour cela qu'il peut vous dire quand aucun worker ne tourne. La liste des vérifications :
 
-1. **Configuration** : chaque champ est présent et bien formé : une **Région** prise en charge qui correspond à l'emplacement de l'instance, un **Instance resource name** de la bonne forme, et une clé **Service account JSON** avec `client_email`, une `private_key` lisible et un `token_uri` Google. Rien n'est contacté si cela échoue.
+1. **Configuration** : chaque champ est présent et bien formé : une **Région** prise en charge qui correspond à l'emplacement de l'instance, un **Nom de ressource de l'instance** de la bonne forme, et une clé **JSON du compte de service** avec `client_email`, une `private_key` lisible et un `token_uri` Google. Rien n'est contacté si cela échoue.
 2. **Authenticate with Google** : la clé est échangée contre un jeton d'accès auprès du point de terminaison OAuth de Google, avant que Chronicle soit contacté.
 3. **Read rule detections**, **Read curated rule detections** et **Read the alerts view** : une sonde d'un seul enregistrement pour chaque passe sur les 24 dernières heures. La vérification des règles sélectionnées lit les comptes des règles sélectionnées sur les 7 derniers jours et sonde la règle sélectionnée qui a le plus de détections ; si aucune règle sélectionnée ne s'est déclenchée cette semaine-là, elle réussit sans rien à sonder. Une lecture des règles sélectionnées qui reçoit `400`, `403` ou `404` est un avertissement, car le locataire n'a peut-être simplement pas accès aux règles sélectionnées.
 4. **Detections available to import** : ce que Google a avec la sélection **Data to import** enregistrée et avec l'autre (Alertes seules, ou Alertes et **Détections**) sur les 24 dernières heures et les 7 derniers jours : le nombre de correspondances de la vue des alertes et une page de recherche par heure de création par plage, indiqués comme un nombre ou comme `1000+`. Quand la sélection enregistrée n'a rien mais que l'autre a quelque chose, la vérification avertit : vos règles créent des détections, mais les alertes n'y sont pas activées. Modifiez la connexion et sélectionnez **Détections** sous **Data to import**, ou activez les alertes sur les règles dans Google SecOps.
@@ -211,6 +212,32 @@ Google SecOps stocke la gravité d'une détection à des endroits différents se
 4. **Le résultat `$risk_score` de la règle**, si la règle ne définit aucune gravité, classé selon les [plages recommandées par Google](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax) : 90–100 Critical, 80–89 High, 50–79 Medium, 20–49 Low, 1–19 Informational. OneUptime n'utilise qu'un score que la règle définit elle-même. Il ignore le `riskScore` que Google remplit pour les règles qui n'en ont pas (40 pour les règles qui alertent, 15 sinon), car cette valeur par défaut ne dit rien de la gravité de la détection.
 
 Une détection qu'aucun de ces éléments ne classe est affichée comme Unknown. Pour classer une règle personnalisée, ajoutez une gravité à sa section `meta` dans Google SecOps, par exemple `severity = "High"`, ou définissez `$risk_score` dans sa section `outcome`. Les détections que la règle crée ensuite sont importées avec cette gravité.
+
+## Envoyer des événements de sécurité à Google SecOps
+
+OneUptime peut aussi envoyer ce qu'il trouve à Google SecOps, pour que le SIEM dans lequel travaille votre équipe voie les détections de OneUptime à côté des siennes. Chaque événement de sécurité est importé comme événement UDM : une connexion comme `USER_LOGIN`, un lancement de processus comme `PROCESS_LAUNCH`, une connexion réseau comme `NETWORK_CONNECTION` et tout le reste comme `GENERIC_EVENT`, avec sa gravité, ses tags MITRE ATT&CK et la règle qui l'a trouvé.
+
+:::steps
+### Créer une clé qui peut importer des événements
+
+Dans Google Cloud, créez un compte de service dans le projet auquel votre instance SecOps est liée, et attribuez-lui un rôle doté de l'autorisation `chronicle.events.import`, comme **Chronicle API Editor** (`roles/chronicle.editor`). Dans son onglet **Keys**, ajoutez une clé de type **JSON** et téléchargez-la.
+
+### Ajouter la destination
+
+Ouvrez **Produits → Événements de sécurité → Connexions**. Sous **Envoyer vers votre SIEM**, cliquez sur **Ajouter une destination**. Choisissez la **Région**, renseignez le **Nom de ressource de l'instance** comme pour le connecteur ci-dessus et collez la clé dans **JSON du compte de service**.
+
+### Envoyer un événement de test
+
+Cliquez sur **Envoyer un événement de test**. Un `GENERIC_EVENT` du produit `OneUptime Security Events` part vers Google SecOps avec les paramètres du formulaire, et rien n'est enregistré. Il apparaît dans Google SecOps en quelques minutes.
+
+### Choisir ce qui est envoyé
+
+Sous **Ce qu'il faut envoyer**, gardez **Détections uniquement**, c'est-à-dire ce qu'ont trouvé vos règles et votre renseignement sur les menaces et les alertes levées par vos produits connectés, ou choisissez **Tous les événements de sécurité**. Cliquez sur **Commencer l'envoi**.
+:::
+
+- Une destination envoie les événements qui arrivent à partir du moment où elle est enregistrée, jamais l'historique du projet, et envoie les nouveaux chaque minute.
+- Les alertes que OneUptime a importées de Google SecOps ne lui sont jamais renvoyées.
+- Quand Google SecOps ne répond pas ou refuse un lot, la destination garde sa place et réessaie à l'exécution suivante. Son **Statut** indique alors **En échec**, et **Voir l'erreur** montre ce qu'a répondu Google SecOps.
 
 ## Dépannage
 
@@ -279,7 +306,7 @@ Si la même erreur persiste, ouvrez **Voir l'erreur** depuis la colonne **Action
 
 Google SecOps avait auparavant sa propre carte de connexions, sa propre API et son propre programme d'interrogation. C'est désormais un fournisseur des Security Event Connections, et la mise à niveau déplace pour vous les connexions existantes.
 
-- **Les connexions sont déplacées automatiquement.** Quand la version mise à niveau exécute ses migrations de données, chaque connexion Google SecOps est copiée dans les Security Event Connections avec le fournisseur `google-secops`. Elle garde son ID, son nom, sa **Région**, son **Instance resource name**, sa clé de compte de service, son état **Activé**, son intervalle d'interrogation, sa sélection **Data to import**, son curseur d'interrogation, Dernière interrogation, Dernière interrogation réussie, Dernier événement importé et Dernière erreur, pour que l'interrogation reprenne là où elle s'était arrêtée. Le connecteur garde l'identité `Google` / `Google SecOps` sous laquelle l'ancien importait, les détections déjà importées comptent donc comme **Already imported** au lieu d'être stockées deux fois.
+- **Les connexions sont déplacées automatiquement.** Quand la version mise à niveau exécute ses migrations de données, chaque connexion Google SecOps est copiée dans les Security Event Connections avec le fournisseur `google-secops`. Elle garde son ID, son nom, sa **Région**, son **Nom de ressource de l'instance**, sa clé de compte de service, son état **Activé**, son intervalle d'interrogation, sa sélection **Data to import**, son curseur d'interrogation, Dernière interrogation, Dernière interrogation réussie, Dernier événement importé et Dernière erreur, pour que l'interrogation reprenne là où elle s'était arrêtée. Le connecteur garde l'identité `Google` / `Google SecOps` sous laquelle l'ancien importait, les détections déjà importées comptent donc comme **Already imported** au lieu d'être stockées deux fois.
 - **L'historique récent des exécutions suit.** Les 500 exécutions les plus récentes de chaque connexion sont copiées dans son historique d'exécution dans **Diagnostics**. Une exécution encore en file ou en cours est copiée comme en échec avec `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **Les anciennes lignes sont désactivées, pas supprimées.** Un ancien worker encore actif pendant un déploiement progressif ne peut donc pas interroger la même instance une seconde fois. Revenir à une version avec l'ancien connecteur exige de réactiver ces lignes.
 - **Une connexion qui ne peut pas être déplacée reste où elle était.** Une connexion sans clé enregistrée, ou dont la clé ne peut pas être déchiffrée avec le `ENCRYPTION_SECRET` de ce serveur, est sautée et nommée dans le journal du worker ; ajoutez-la de nouveau sous **Produits → Événements de sécurité → Connexions**. Une connexion dont les réglages enregistrés ne passent plus la validation actuelle est quand même déplacée, et ses interrogations échouent avec un message qui nomme le champ jusqu'à ce que vous la modifiiez. Une connexion qu'une erreur passagère de base de données a interrompue est déplacée quand la migration s'exécute de nouveau au prochain démarrage d'un worker, et l'interrogation reprend depuis son curseur copié.

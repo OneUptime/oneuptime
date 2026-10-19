@@ -120,7 +120,7 @@ Un mensaje más largo, con un título largo o una descripción larga que puso un
 
 ### Cuando un aviso no se envía
 
-Un aviso que no se envía indica el motivo en los **Registros de guardia** de la persona (Ajustes de usuario): su fila muestra **Error**, y su mensaje de estado da la razón. Ya no se queda en **Sending**. El mensaje dice una de estas cosas:
+Un aviso que no se envía indica el motivo en los **Registros de guardia** de la persona (Ajustes de usuario): su fila muestra **Error**, y su mensaje de estado da la razón. Ya no se queda en **Enviando**. El mensaje dice una de estas cosas:
 
 - el saldo del proyecto no pudo pagarlo, y quién puede añadir saldo;
 - el canal está apagado en el proyecto, y quién puede encenderlo.

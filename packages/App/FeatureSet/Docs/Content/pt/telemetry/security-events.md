@@ -27,22 +27,23 @@ flowchart TB
 
 Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele:
 
-| Página | Seção | Para que serve |
+| Página | Entrada do menu | Para que serve |
 | --- | --- | --- |
-| **Visão geral** | Visão geral | O que precisa de alguém agora, e com que rapidez os casos são tratados |
-| **Security Cases** | Visão geral | A fila do que foi detectado, agrupado pelo assunto de cada caso |
-| **Eventos** | Investigação | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
-| **Correlacionar** | Investigação | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
-| **Entidades** | Investigação | Os usuários, hosts e endereços que os seus achados mais citam |
-| **Detection Rules** | Detecção | Regras Sigma que rodam em uma programação e abrem casos |
-| **Rule Library** | Detecção | Regras de detecção prontas para adicionar |
-| **ATT&CK Coverage** | Detecção | As técnicas MITRE ATT&CK que as suas regras cobrem |
-| **Threat Intel** | Detecção | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
-| **Monitores** | Detecção | Os monitores de eventos de segurança do projeto |
-| **Playbooks** | Resposta | Etapas que rodam nos casos, sozinhas ou manualmente |
-| **Playbook Runs** | Resposta | O que cada playbook fez, e as etapas aguardando aprovação |
-| **Connections** | Origens | Produtos de segurança que o OneUptime consulta em busca de registros novos |
-| **Guia de configuração** | Origens | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
+| **Visão geral** | Visão geral | Como a segurança está configurada, o que precisa de alguém agora e com que rapidez os casos são tratados |
+| **Security Cases** | Security Cases | A fila do que foi detectado, agrupado pelo assunto de cada caso |
+| **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
+| **Entidades** | Eventos | Os usuários, hosts e endereços que os seus achados mais citam |
+| **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
+| **Detection Rules** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
+| **Rule Library** | Detections | Regras de detecção prontas para adicionar, com as recomendadas marcadas |
+| **Threat Intel** | Detections | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
+| **ATT&CK Coverage** | Detections | As técnicas MITRE ATT&CK que as suas regras cobrem |
+| **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
+| **Playbook Runs** | Playbooks | O que cada playbook fez, e as etapas aguardando aprovação |
+| **Connections** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
+| **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
+
+As páginas de uma entrada do menu abrem como abas no topo da página. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
 
 ## Antes de começar
 
@@ -153,6 +154,10 @@ Para enviar logs de segurança que você já coleta, como os do auditd, do syslo
 
 A aba **Guia de configuração** tem esses trechos com o seu próprio host e a sua chave já preenchidos.
 
+### Encontrar eventos de segurança nos seus logs
+
+O cartão **Seus logs**, no topo de **Connections**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH, comando sudo, registro de auditoria do Kubernetes, mudança no AWS CloudTrail e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+
 ### Conecte um produto de segurança
 
 **Connections** consulta um produto de segurança por você e importa os registros novos dele como eventos de segurança. Uma conexão guarda as configurações do produto e uma credencial criptografada; um worker a consulta no intervalo que você define e pula os registros que já importou.
@@ -233,7 +238,7 @@ flowchart TB
 ### Crie uma regra
 
 :::steps
-1. Abra **Produtos → Security Events → Detection Rules** e clique em **Criar: Detection Rule**.
+1. Abra **Produtos → Security Events → Detections** e clique em **Criar: Detection Rule**.
 2. Em **Sigma Rule**, cole o YAML da regra em **Sigma Rule (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
 3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
 4. Em **Ao corresponder**, deixe **Open a Case on Match** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
@@ -292,11 +297,11 @@ O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra
 
 ### Quando uma regra roda
 
-O OneUptime verifica a cada minuto quais regras habilitadas já passaram do intervalo desde a última execução. Cada execução lê os eventos cujo horário do evento cai entre a execução anterior e agora, e depois avança:
+O OneUptime verifica a cada minuto quais regras habilitadas já passaram do intervalo desde a última execução. Cada execução lê os eventos cujo horário do evento cai entre a execução anterior e dois minutos atrás, e depois avança. Os dois minutos dão tempo aos eventos que ainda estão a caminho, como uma linha de log lida um minuto depois de escrita:
 
 - As janelas vêm uma depois da outra, não deslizam. Com um intervalo de 10 minutos, falhas às 09:58 e às 10:01 podem cair em execuções diferentes e são contadas separadamente, então deixe folga ao escolher um limite.
 - Depois de uma lacuna, como uma queda do worker ou uma regra reativada, a próxima execução cobre a lacuna inteira, até as últimas 24 horas.
-- Um evento que chega atrasado, com um horário anterior à última execução da regra, é salvo e pode ser pesquisado, mas essa regra nunca o lê.
+- Um evento que chega com mais de dois minutos de atraso, depois que uma execução já cobriu o seu horário, é salvo e pode ser pesquisado, mas essa regra nunca o lê.
 - No máximo 100 grupos disparam por execução: os de contagens mais altas.
 
 ### Gravidade
@@ -329,7 +334,7 @@ Os achados são eventos comuns: pesquise-os em **Eventos** e faça pivô sobre e
 
 ## Monitores de eventos de segurança
 
-Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Security Events** como tipo; **Security Events → Monitores** lista todos.
+Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Security Events** como tipo; ele aparece lá junto com seus outros monitores.
 
 O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço de telemetria** e **Filtrar por atributos** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. Os critérios dele verificam **Security Event Count**.
 
@@ -368,7 +373,7 @@ Confira a chave em `x-oneuptime-token` e o caminho, `/security-events/v1/ingest`
 :::
 
 :::details Uma regra nunca corresponde
-Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Last Error** na linha dela. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
+Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Último erro** na linha dela. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu

@@ -7,6 +7,7 @@ Bring [Google SecOps](https://cloud.google.com/security/products/security-operat
 - [Set up the managed connector](#set-up-the-managed-connector): A service account key, and the connection's form.
 - [How the connector polls](#how-the-connector-polls): Three reads of every window, and their budgets.
 - [Troubleshooting](#troubleshooting): What Last Error says, and what to do.
+- [Send security events to Google SecOps](#send-security-events-to-google-secops): OneUptime's detections, in Google SecOps.
 :::
 
 ## Choose how to connect
@@ -211,6 +212,32 @@ Google SecOps stores a detection's severity in different places depending on who
 4. **The rule's `$risk_score` outcome**, if the rule sets no severity, graded with [Google's recommended ranges](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax): 90–100 Critical, 80–89 High, 50–79 Medium, 20–49 Low, 1–19 Informational. OneUptime only uses a score the rule sets itself. It ignores the `riskScore` Google fills in for rules without one (40 for alerting rules, 15 otherwise), because that default says nothing about how severe the detection is.
 
 A detection that none of these grade is shown as Unknown. To grade a custom rule, add a severity to its `meta` section in Google SecOps, for example `severity = "High"`, or set `$risk_score` in its `outcome` section. Detections the rule creates after that are imported with that severity.
+
+## Send security events to Google SecOps
+
+OneUptime can also send what it finds to Google SecOps, so the SIEM your team works in sees OneUptime's detections next to its own. Each security event is imported as a UDM event: a sign-in as `USER_LOGIN`, a process launch as `PROCESS_LAUNCH`, a network connection as `NETWORK_CONNECTION` and anything else as `GENERIC_EVENT`, with its severity, its MITRE ATT&CK tags and the rule that found it.
+
+:::steps
+### Create a key that can import events
+
+In Google Cloud, create a service account on the project your SecOps instance is bound to, and grant it a role with the `chronicle.events.import` permission, such as **Chronicle API Editor** (`roles/chronicle.editor`). On its **Keys** tab, add a key of type **JSON** and download it.
+
+### Add the destination
+
+Open **Products → Security Events → Connections**. Under **Send to your SIEM**, click **Add destination**. Choose the **Region**, fill in the **Instance resource name** as for the connector above, and paste the key into **Service account JSON**.
+
+### Send a test event
+
+Click **Send a test event**. One `GENERIC_EVENT` from the product `OneUptime Security Events` goes to Google SecOps with the settings on the form, and nothing is saved. It shows in Google SecOps within a few minutes.
+
+### Choose what to send
+
+Under **What to send**, keep **Detections only**, what your rules and threat intel found and the alerts your connected products raised, or choose **All security events**. Click **Start sending**.
+:::
+
+- A destination sends the events that arrive from the moment it is saved, never the project's history, and sends new ones every minute.
+- Alerts OneUptime imported from Google SecOps are never sent back to it.
+- When Google SecOps does not answer or refuses a batch, the destination keeps its place and tries again on the next run. Its **Status** reads **Failing**, and **View Error** says what Google SecOps answered.
 
 ## Troubleshooting
 

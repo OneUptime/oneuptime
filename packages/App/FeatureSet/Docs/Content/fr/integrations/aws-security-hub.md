@@ -64,7 +64,7 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Test before saving**. Le test signe une requête avec les valeurs du formulaire, sans rien stocker : une mauvaise clé ou une autorisation manquante apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
+Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test signe une requête avec les valeurs du formulaire, sans rien stocker : une mauvaise clé ou une autorisation manquante apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
 :::
 
 | Réglage | Ce qu'il faut saisir |

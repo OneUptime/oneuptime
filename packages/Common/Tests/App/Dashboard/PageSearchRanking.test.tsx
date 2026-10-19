@@ -244,14 +244,17 @@ describe("a name many pages share gives way to a distinctive one", () => {
     ).toBeGreaterThan(1);
   });
 
-  test("'monitors' opens the Monitors product before Security Events' Monitors tab", () => {
+  test("'monitors' opens the Monitors product, where Security Events monitors are listed too", () => {
     const listed: Array<string> = rows("monitors");
 
     expect(listed[0]).toBe("Monitors");
-    // Security Events lists its Monitors page in its menu's Detect section.
-    expect(listed.indexOf("All Monitors — Monitors")).toBeLessThan(
-      listed.indexOf("Monitors — Security Events › Detect"),
-    );
+    expect(listed).toContain("All Monitors — Monitors");
+    // Security Events has no Monitors page of its own any more.
+    expect(
+      listed.filter((row: string): boolean => {
+        return row.includes("Security Events");
+      }),
+    ).toEqual([]);
   });
 
   test("'slack' lists every Slack page, Project Settings first", () => {

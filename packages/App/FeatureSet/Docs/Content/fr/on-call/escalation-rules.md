@@ -120,7 +120,7 @@ Un message plus long, avec un titre long ou une longue description qu'un modèle
 
 ### Quand une alerte n'est pas envoyée
 
-Une alerte non envoyée indique pourquoi dans les **Journaux d'astreinte** de la personne (Paramètres utilisateur) : sa ligne affiche **Erreur**, et son message d'état en donne la raison. Elle ne reste plus bloquée sur **Sending**. Le message indique l'une de ces raisons :
+Une alerte non envoyée indique pourquoi dans les **Journaux d'astreinte** de la personne (Paramètres utilisateur) : sa ligne affiche **Erreur**, et son message d'état en donne la raison. Elle ne reste plus bloquée sur **Envoi en cours**. Le message indique l'une de ces raisons :
 
 - le solde du projet n'a pas pu la payer, et qui peut ajouter du solde ;
 - le canal est désactivé dans le projet, et qui peut l'activer.

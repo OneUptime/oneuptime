@@ -129,7 +129,8 @@ import { AddCodeTasks1804050000000 } from "./1804050000000-AddCodeTasks";
 import { AddCodeTaskIndexesAndKey1804100000000 } from "./1804100000000-AddCodeTaskIndexesAndKey";
 import { AddIncidentVideoCallCalendarEvent1804150000000 } from "./1804150000000-AddIncidentVideoCallCalendarEvent";
 import { AddAIPostmortemRules1804200000000 } from "./1804200000000-AddAIPostmortemRules";
-import { AddRunbookVariable1804250000000 } from "./1804250000000-AddRunbookVariable";
+import { AddSecurityEventDestinationsAndLogSources1804250000000 } from "./1804250000000-AddSecurityEventDestinationsAndLogSources";
+import { AddRunbookVariable1804265000000 } from "./1804265000000-AddRunbookVariable";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1461,5 +1462,6 @@ export default [
   AddCodeTaskIndexesAndKey1804100000000,
   AddIncidentVideoCallCalendarEvent1804150000000,
   AddAIPostmortemRules1804200000000,
-  AddRunbookVariable1804250000000,
+  AddSecurityEventDestinationsAndLogSources1804250000000,
+  AddRunbookVariable1804265000000,
 ];

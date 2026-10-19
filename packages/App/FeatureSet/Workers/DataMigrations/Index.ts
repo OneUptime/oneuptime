@@ -767,7 +767,7 @@ const DataMigrations: Array<DataMigrationBase> = [
    * variables its key, password or kubeconfig went into, and every SSH and
    * Kubernetes step is rewritten to a script that uses them, doing what it
    * did. The legacy secrets table and the credentials stay. After
-   * AddRunbookVariable1804250000000; idempotent; no other ordering
+   * AddRunbookVariable1804265000000; idempotent; no other ordering
    * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
    * asserts for itself.
    */

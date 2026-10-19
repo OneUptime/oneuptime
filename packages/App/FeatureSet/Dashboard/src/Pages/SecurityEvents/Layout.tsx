@@ -1,6 +1,7 @@
 import { getSecurityEventsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import SecurityEventsPageTabs from "../../Components/SecurityEvents/SecurityEventsPageTabs";
 import SecurityEventsSideMenu from "./SideMenu";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -10,7 +11,8 @@ import { Outlet } from "react-router-dom";
 /*
  * Every Security Events page but a case's and a playbook's, which open on
  * their own full-width pages. The menu is the product's map
- * (SecurityEventsNavigation.ts).
+ * (SecurityEventsNavigation.ts); the pages behind one entry show their tabs
+ * above the page.
  */
 const SecurityEventsLayout: FunctionComponent<
   PageComponentProps
@@ -23,6 +25,7 @@ const SecurityEventsLayout: FunctionComponent<
       breadcrumbLinks={getSecurityEventsBreadcrumbs(path)}
       sideMenu={<SecurityEventsSideMenu />}
     >
+      <SecurityEventsPageTabs />
       <Outlet />
     </Page>
   );

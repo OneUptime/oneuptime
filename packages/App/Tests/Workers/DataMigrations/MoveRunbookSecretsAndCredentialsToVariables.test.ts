@@ -85,7 +85,7 @@ describe("MoveRunbookSecretsAndCredentialsToVariables", () => {
 
     test("the schema migration that makes the variables' tables is registered: data migrations run after it", () => {
       expect(fs.readFileSync(SCHEMA_MIGRATIONS_INDEX, "utf8")).toContain(
-        "AddRunbookVariable1804250000000,",
+        "AddRunbookVariable1804265000000,",
       );
     });
 

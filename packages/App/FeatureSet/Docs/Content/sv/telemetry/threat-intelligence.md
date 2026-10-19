@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Gå till Threat Intel
 
-Öppna **Produkter → Security Events → Threat Intel**.
+Öppna **Produkter → Security Events → Detections → Threat Intel**.
 
 ### Skapa flödet
 

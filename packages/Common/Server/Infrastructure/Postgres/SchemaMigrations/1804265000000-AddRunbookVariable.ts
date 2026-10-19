@@ -15,8 +15,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Two new tables: every index is built and every foreign key checked on an
  * empty table, so no existing table is scanned.
  */
-export class AddRunbookVariable1804250000000 implements MigrationInterface {
-  public name: string = "AddRunbookVariable1804250000000";
+export class AddRunbookVariable1804265000000 implements MigrationInterface {
+  public name: string = "AddRunbookVariable1804265000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

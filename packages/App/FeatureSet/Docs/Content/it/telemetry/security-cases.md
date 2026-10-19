@@ -188,7 +188,7 @@ Un'email o un post senza un messaggio proprio invia un riepilogo del caso.
 
 ### Esecuzioni e approvazioni
 
-Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events → Playbook Runs**, passo per passo:
+Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events → Playbooks → Playbook Runs**, passo per passo:
 
 | Stato dell'esecuzione | Significa |
 | --- | --- |
@@ -199,7 +199,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events →
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
-Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo e nella cronologia del caso. **Playbook Runs** si apre sulle esecuzioni in attesa di approvazione, e la sua voce di menu le conta.
+Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo e nella cronologia del caso. **Playbook Runs** si apre sulle esecuzioni in attesa di approvazione, e la voce di menu **Playbooks** le conta.
 
 Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un riavvio, viene ripresa: un'esecuzione in coda viene rimessa in coda dopo 2 minuti, e un'esecuzione che tace da 30 minuti viene segnata come non riuscita.
 
@@ -208,16 +208,16 @@ Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un
 **Prodotti → Security Events → Panoramica** è dove si apre il prodotto:
 
 - I casi aperti assegnati a te, i casi aperti che nessuno ha preso in carico, e i passi dei playbook in attesa di approvazione.
-- **Mean Time to Acknowledge**, **Mean Time to Contain** e **Mean Time to Close**, sui casi aperti negli ultimi 30 giorni: dall'apertura di un caso fino a quando qualcuno lo prende in carico (assegnandolo a una persona, o spostandolo fuori da Nuovo), fino a Contained e fino a Chiuso. Un caso ancora in attesa non entra nel calcolo della media.
+- **Tempo medio di presa in carico**, **Tempo medio di contenimento** e **Tempo medio di chiusura**, sui casi aperti negli ultimi 30 giorni: dall'apertura di un caso fino a quando qualcuno lo prende in carico (assegnandolo a una persona, o spostandolo fuori da Nuovo), fino a Contained e fino a Chiuso. Un caso ancora in attesa non entra nel calcolo della media.
 - I casi aperti ogni giorno negli ultimi 30 giorni, per priorità, e i rilevamenti generati ogni giorno negli ultimi 14 giorni, per origine.
 - I casi aperti per priorità e per stato, i verdetti degli ultimi 30 giorni, le tattiche ATT&CK alla base dei casi, i rilevamenti scattati più spesso e le entità nominate dal maggior numero di risultanze.
 
-Un progetto che non ha ancora né casi né rilevamenti mostra, sopra tutto questo, i tre passaggi per configurarlo.
+Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i rilevamenti, i casi e i playbook, ciascuno con i suoi numeri. Un progetto che non l'ha ancora configurata vede lì **Attiva quanto consigliato** e **Invia un attacco di prova**; vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started). Quando nulla richiede qualcuno, la pagina dice **Tutto tranquillo**, e i grafici compaiono non appena c'è qualcosa da mostrare.
 
 ## Trovare le minacce
 
 - **Entità** classifica gli utenti, gli host, gli indirizzi e gli hash che le tue risultanze nominano più spesso, nell'ultimo giorno, nell'ultima settimana o nell'ultimo mese, e cerca qualsiasi valore in 30 giorni di eventi.
-- **Rule Library** contiene regole di rilevamento pronte all'uso, per le minacce a identità, endpoint, cloud, rete, web e Kubernetes. Ognuna è una regola Sigma scritta per i campi in cui viene normalizzata ogni origine collegata. **Aggiungi regola** la crea come una tua regola di rilevamento, attiva, che apre casi anziché avvisi; modificala in **Detection Rules** come qualsiasi altra.
+- **Rule Library** contiene regole di rilevamento pronte all'uso, per le minacce a identità, endpoint, cloud, rete, web e Kubernetes. Ognuna è una regola Sigma scritta per i campi in cui viene normalizzata ogni origine collegata. **Aggiungi regola** la crea come una tua regola di rilevamento, attiva, che apre casi anziché avvisi; modificala in **Detection Rules** come qualsiasi altra. Le regole segnate come **Consigliati** trovano minacce nei dati che OneUptime ha già, e un pulsante aggiunge quelle che non hai ancora.
 - **ATT&CK Coverage** disegna la matrice MITRE ATT&CK con evidenziate le tecniche coperte dalle tue regole abilitate, e contorna quelle che coprirebbe una regola della libreria.
 
 ## Automatizzare

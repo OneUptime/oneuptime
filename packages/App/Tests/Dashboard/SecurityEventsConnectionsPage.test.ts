@@ -550,7 +550,7 @@ describe("Security events connections route shape", () => {
 });
 
 describe("Security events connections page content", () => {
-  test("the page is the reseller gate in front of the shared connections table", () => {
+  test("the page is the reseller gate in front of your logs, your security tools and your SIEM, in that order", () => {
     expect(connectionsPageSource).toContain(
       'import SecurityEventConnectionsTable from "../../Components/SecurityEvents/SecurityEventConnectionsTable"',
     );
@@ -558,10 +558,21 @@ describe("Security events connections page content", () => {
       "props.currentProject?.reseller?.enableTelemetryFeatures === false",
     );
     expect(connectionsPageSource).toContain(RESELLER_GATE_MESSAGE);
-    expect(connectionsPageSource).toContain(
-      "return <SecurityEventConnectionsTable />;",
+
+    const logs: number = connectionsPageSource.indexOf(
+      "<SecurityLogsSourceCard />",
     );
-    // One list: no second, provider-specific table next to the shared one.
+    const tools: number = connectionsPageSource.indexOf(
+      "<SecurityEventConnectionsTable />",
+    );
+    const siem: number = connectionsPageSource.indexOf(
+      "<SecurityEventDestinationsTable />",
+    );
+
+    expect(logs).toBeGreaterThan(-1);
+    expect(tools).toBeGreaterThan(logs);
+    expect(siem).toBeGreaterThan(tools);
+    // One list of security tools: no second, provider-specific table beside it.
     expect(connectionsPageSource).not.toContain("<ModelTable");
     expect(connectionsPageSource).not.toContain("GoogleSecOps");
 

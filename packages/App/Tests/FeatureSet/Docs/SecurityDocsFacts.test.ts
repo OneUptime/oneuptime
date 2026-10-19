@@ -26,6 +26,13 @@ import {
   buildThreatIntelFeedMonitorPrefill,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsMonitorPrefill";
 import {
+  SECURITY_EVENTS_MENU,
+  SECURITY_EVENTS_TAB_GROUPS,
+  SecurityEventsMenuItem,
+  SecurityEventsTab,
+  SecurityEventsTabGroup,
+} from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import {
   SECURITY_EVENTS,
   THREAT_INTELLIGENCE,
 } from "./AiObservabilityDocsPages";
@@ -66,6 +73,7 @@ import {
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
   DETECTION_DISTINCT_COUNT_ATTRIBUTE,
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
   DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
   DETECTION_FINDING_CLASS_NAME,
@@ -204,14 +212,6 @@ const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const LINE_BREAK: RegExp = /\n/;
 const WHITESPACE: RegExp = /\s+/g;
 const NUMBERED_STEP: RegExp = /^\d\. /;
-// An entry of the product's menu: `page: PageMap.SECURITY_EVENTS, title: "Events",`.
-const MENU_ITEM: RegExp = /page: PageMap\.\w+,\s*title: "([^"]+)",/g;
-// A section of the product's menu: `title: "Detect", items: [`.
-const MENU_SECTION: RegExp =
-  /title: "([^"]+)",\s*(?:startsCollapsed: (?:true|false),\s*)?items: \[/g;
-// Where each of the menu's sections starts, to split the source by section.
-const MENU_SECTION_START: RegExp =
-  /title: "[^"]+",\s*(?:startsCollapsed: (?:true|false),\s*)?items: \[/;
 // One option of the monitor's window dropdown: `label: "Last 5 seconds",`.
 const WINDOW_OPTION: RegExp = /label: "(Last [^"]+)",/g;
 // A string array of a source read as text: `const NAME: Array<string> = [ ... ];`.
@@ -475,62 +475,50 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("names the product's menu entries, and their sections, in the order the product draws them", () => {
-    const navigation: string = source("navigation");
-    const titles: Array<string> = allMatches(navigation, MENU_ITEM, 1);
-    const sections: Array<string> = allMatches(navigation, MENU_SECTION, 1);
+  it("names every page, and the menu entry it sits under, in the order the product draws them", () => {
+    /*
+     * Each menu entry, then the pages behind it as the tabs list them: a
+     * page of its own (Overview, Security Cases) is the entry's own title.
+     */
+    const expected: Array<[string, string]> = SECURITY_EVENTS_MENU.flatMap(
+      (item: SecurityEventsMenuItem): Array<[string, string]> => {
+        const group: SecurityEventsTabGroup | undefined =
+          SECURITY_EVENTS_TAB_GROUPS.find(
+            (candidate: SecurityEventsTabGroup): boolean => {
+              return candidate.menuPage === item.page;
+            },
+          );
 
-    expect(titles).toEqual([
+        return group
+          ? group.tabs.map((tab: SecurityEventsTab): [string, string] => {
+              return [`**${tab.title}**`, item.title];
+            })
+          : [[`**${item.title}**`, item.title]];
+      },
+    );
+
+    expect(
+      SECURITY_EVENTS_MENU.map((item: SecurityEventsMenuItem): string => {
+        return item.title;
+      }),
+    ).toEqual([
       "Overview",
       "Security Cases",
       "Events",
-      "Correlate",
-      "Entities",
-      "Detection Rules",
-      "Rule Library",
-      "ATT&CK Coverage",
-      "Threat Intel",
-      "Monitors",
+      "Detections",
       "Playbooks",
-      "Playbook Runs",
       "Connections",
-      "Setup Guide",
     ]);
-    expect(sections).toEqual([
-      "Overview",
-      "Investigate",
-      "Detect",
-      "Respond",
-      "Sources",
-    ]);
-
-    const rows: Array<Array<string>> = rowsOf(page, "How it works");
-
-    expect(firstCells(rows)).toEqual(
-      titles.map((title: string): string => {
-        return `**${title}**`;
-      }),
-    );
-
-    // Each entry's section, as the menu groups it: the sections' entries in order.
-    const sectionOfEntry: Array<string> = [];
-    const sectionBodies: Array<string> = navigation
-      .split(MENU_SECTION_START)
-      .slice(1);
-
-    sectionBodies.forEach((body: string, index: number): void => {
-      const entryCount: number = allMatches(body, MENU_ITEM, 1).length;
-
-      for (let entry: number = 0; entry < entryCount; entry++) {
-        sectionOfEntry.push(sections[index] as string);
-      }
-    });
-
     expect(
-      rows.map((row: Array<string>): string => {
-        return row[1] as string;
-      }),
-    ).toEqual(sectionOfEntry);
+      rowsOf(page, "How it works").map(
+        (row: Array<string>): [string, string] => {
+          return [row[0] as string, row[1] as string];
+        },
+      ),
+    ).toEqual(expected);
+    expect(page).toContain(
+      "The pages behind one menu entry open as tabs across the top of the page.",
+    );
   });
 
   it("says only Project Owner, Project Admin and the three Security roles read security data, as the event model allows", () => {
@@ -1244,8 +1232,20 @@ describe("the Security Events page", () => {
     expect(steps[5]).toContain(
       "**Write Detection Finding on Match** (on) and how matches are counted",
     );
+    // Detections opens on Detection Rules, its first tab.
+    expect(
+      SECURITY_EVENTS_TAB_GROUPS.find(
+        (group: SecurityEventsTabGroup): boolean => {
+          return group.tabs[0]?.title === "Detection Rules";
+        },
+      )?.menuPage,
+    ).toBe(
+      SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
+        return item.title === "Detections";
+      })?.page,
+    );
     expect(page).toContain(
-      "Open **Products → Security Events → Detection Rules** and click **Create Detection Rule**.",
+      "Open **Products → Security Events → Detections** and click **Create Detection Rule**.",
     );
   });
 
@@ -1553,6 +1553,15 @@ describe("the Security Events page", () => {
     expect(page).toContain(
       "OneUptime checks every minute for enabled rules whose interval has passed since their last run.",
     );
+    // Each run stops two minutes short of now, for events still on their way.
+    expect(DETECTION_EVALUATION_DELAY_IN_SECONDS).toBe(2 * 60);
+    expect(evaluator).toContain("DETECTION_EVALUATION_DELAY_IN_SECONDS");
+    expect(page).toContain(
+      "Each run reads the events whose event time falls between the previous run and two minutes ago, then moves on.",
+    );
+    expect(page).toContain(
+      "- An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.",
+    );
     expect(page).toContain(
       "the next run covers the whole gap, up to the last 24 hours.",
     );
@@ -1785,10 +1794,23 @@ describe("the Threat Intelligence page", () => {
     return new Date(`${String(value).replace(" ", "T")}Z`).getTime();
   }
 
-  it("opens the feeds from Products → Security Events → Threat Intel", () => {
-    expect(source("navigation")).toContain('title: "Threat Intel",');
+  it("opens the feeds from Products → Security Events → Detections → Threat Intel", () => {
+    const detections: SecurityEventsTabGroup | undefined =
+      SECURITY_EVENTS_TAB_GROUPS.find(
+        (group: SecurityEventsTabGroup): boolean => {
+          return group.tabs.some((tab: SecurityEventsTab): boolean => {
+            return tab.title === "Threat Intel";
+          });
+        },
+      );
+
+    expect(
+      SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
+        return item.page === detections?.menuPage;
+      })?.title,
+    ).toBe("Detections");
     expect(page).toContain(
-      "Open **Products → Security Events → Threat Intel**.",
+      "Open **Products → Security Events → Detections → Threat Intel**.",
     );
   });
 

@@ -53,7 +53,7 @@ Abra **Produtos → Security Events → Connections** (`/dashboard/{projectId}/s
 
 ### Testar antes de salvar
 
-Clique em **Test these settings** em **Test before saving**. O teste entra e lê alertas com os valores do formulário, e não salva nada, então a nuvem errada ou um escopo que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
+Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e lê alertas com os valores do formulário, e não salva nada, então a nuvem errada ou um escopo que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
 :::
 
 | Configuração | O que informar |
@@ -109,7 +109,7 @@ Quando uma execução não consegue passar do cursor salvo de jeito nenhum, por 
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Partial**, e **Last Error** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Partial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
 
 Uma execução que falha por completo, com um erro do Falcon, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria a cada tentativa. Mudar o **Poll Interval (Minutes)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -139,7 +139,7 @@ Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca import
 
 ## Solução de problemas
 
-O **Last Error** da conexão, e cada verificação que falha, guardam a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copy Error** na caixa de diálogo para copiá-lo. Leia o prefixo primeiro.
+O **Último erro** da conexão, e cada verificação que falha, guardam a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Leia o prefixo primeiro.
 
 :::details Last Error começa com `CrowdStrike Falcon token request`
 - `CrowdStrike Falcon token request failed (HTTP 401)` ou `(HTTP 403)`: o Falcon recusou o ID e o segredo do cliente de API, antes de a Alerts API ser contatada. Verifique que **Falcon cloud** é a nuvem do seu CID, já que um cliente de outra nuvem é recusado aqui, que **Client ID** é o do cliente e que **Client secret** é o segredo emitido com ele. Se o segredo se perdeu, redefina-o no console do Falcon e salve-o com **Update credentials**.

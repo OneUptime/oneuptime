@@ -17,6 +17,8 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import { ResponseJSON } from "@clickhouse/client";
+import ObjectID from "../../Types/ObjectID";
+import { SECURITY_LOG_PREFILTER } from "../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 
 /*
  * Group values longer than this are cut, in the query itself so that two
@@ -77,9 +79,136 @@ function toCount(value: unknown): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+/*
+ * One page of a project's logs that arrived in a window and hold a security
+ * record's words (SECURITY_LOG_PREFILTER): what the log scan of "Your
+ * logs" reads.
+ */
+export interface FindSecurityLogCandidatesData {
+  projectId: ObjectID;
+  // Exclusive.
+  arrivedAfter: Date;
+  // Inclusive.
+  arrivedUntil: Date;
+  /*
+   * Logs written before this are left out: the table is sorted by when a
+   * log was written, so this keeps the read to its recent parts.
+   */
+  happenedAfter: Date;
+  limit: number;
+  offset: number;
+}
+
+// The most of a log's body the scan reads: a security record is never longer.
+export const SECURITY_LOG_SCAN_MAX_BODY_LENGTH: number = 256 * 1024;
+
 export class LogService extends AnalyticsDatabaseService<Log> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Log, database: clickhouseDatabase });
+  }
+
+  /*
+   * The prefilter as a ClickHouse condition on the body, every word bound as
+   * a parameter: a line holds one of `anyOf`, or matches one of the groups.
+   */
+  public static buildSecurityLogPrefilter(): Statement {
+    const statement: Statement = SQL`(multiSearchAnyCaseInsensitive(body, ${{
+      type: TableColumnType.ArrayText,
+      value: [...SECURITY_LOG_PREFILTER.anyOf],
+    }})`;
+
+    for (const group of SECURITY_LOG_PREFILTER.groups) {
+      statement.append(
+        SQL` OR (positionCaseInsensitive(body, ${{
+          type: TableColumnType.Text,
+          value: group.requires,
+        }}) > 0 AND multiSearchAnyCaseInsensitive(body, ${{
+          type: TableColumnType.ArrayText,
+          value: [...group.anyOf],
+        }})`,
+      );
+
+      if (group.noneOf && group.noneOf.length > 0) {
+        statement.append(
+          SQL` AND (NOT multiSearchAnyCaseInsensitive(body, ${{
+            type: TableColumnType.ArrayText,
+            value: [...group.noneOf],
+          }})`,
+        );
+
+        if (group.unlessAnyOf && group.unlessAnyOf.length > 0) {
+          statement.append(
+            SQL` OR multiSearchAnyCaseInsensitive(body, ${{
+              type: TableColumnType.ArrayText,
+              value: [...group.unlessAnyOf],
+            }})`,
+          );
+        }
+
+        statement.append(")");
+      }
+
+      statement.append(")");
+    }
+
+    statement.append(")");
+
+    return statement;
+  }
+
+  /*
+   * A page of one project's logs that arrived in a window and may hold a
+   * security record. Only the candidate lines leave the database, and only
+   * the first SECURITY_LOG_SCAN_MAX_BODY_LENGTH characters of each. Always
+   * one project's: the project is the first condition.
+   */
+  @CaptureSpan()
+  public async findSecurityLogCandidates(
+    data: FindSecurityLogCandidatesData,
+  ): Promise<Array<JSONObject>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT _id, time, createdAt, primaryEntityId, attributes, substring(body, 1, ${{
+      type: TableColumnType.Number,
+      value: SECURITY_LOG_SCAN_MAX_BODY_LENGTH,
+    }}) AS body FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.happenedAfter,
+      }} AND createdAt > ${{
+        type: TableColumnType.Date,
+        value: data.arrivedAfter,
+      }} AND createdAt <= ${{
+        type: TableColumnType.Date,
+        value: data.arrivedUntil,
+      }} AND `,
+    );
+    statement.append(LogService.buildSecurityLogPrefilter());
+    statement.append(
+      SQL` ORDER BY createdAt ASC, _id ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)),
+      }} OFFSET ${{
+        type: TableColumnType.Number,
+        value: Math.max(0, Math.trunc(data.offset)),
+      }}`,
+    );
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 60 }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
+
+    return (response.data || []) as Array<JSONObject>;
   }
 
   /*

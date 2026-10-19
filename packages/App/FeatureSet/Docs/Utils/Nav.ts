@@ -878,6 +878,10 @@ const DocsNav: NavGroup[] = [
     section: "Observability",
     links: [
       {
+        title: "Get Started with Security",
+        url: "/docs/telemetry/security-getting-started",
+      },
+      {
         title: "Security Events (SIEM)",
         url: "/docs/telemetry/security-events",
       },

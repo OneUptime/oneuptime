@@ -53,7 +53,7 @@ Falcon 显示的基础 URL 会告诉你 CID 所在的云。**API clients and key
 
 ### 保存之前先测试
 
-点击 **Test before saving** 下的 **Test these settings**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此选错的云或缺失的范围会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
+点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此选错的云或缺失的范围会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
 :::
 
 | 设置 | 填写什么 |
@@ -109,7 +109,7 @@ Falcon 的警报查询无法翻页超过 10,000 个结果（`limit` 加 `offset`
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **Partial**，**Last Error** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
 
 因 Falcon 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为太重而无法及时响应的窗口每次重试都会超时。更改 **Poll Interval (Minutes)** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -139,7 +139,7 @@ Falcon 的警报查询无法翻页超过 10,000 个结果（`limit` 加 `offset`
 
 ## 故障排除
 
-连接的 **Last Error** 和每个失败的检查都会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **Copy Error** 复制。请先阅读前缀。
+连接的 **最近错误** 和每个失败的检查都会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。请先阅读前缀。
 
 :::details Last Error 以 `CrowdStrike Falcon token request` 开头
 - `CrowdStrike Falcon token request failed (HTTP 401)` 或 `(HTTP 403)`：在联系 Alerts API 之前，Falcon 就拒绝了 API 客户端的 ID 和密钥。请检查 **Falcon cloud** 是否为你的 CID 所在的云（来自其他云的客户端会在这里被拒绝），**客户端 ID** 是否属于该客户端，以及 **Client secret** 是否为随它一起颁发的密钥。如果密钥丢失，请在 Falcon 控制台中重置它，并用 **Update credentials** 保存。

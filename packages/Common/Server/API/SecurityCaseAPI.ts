@@ -38,6 +38,15 @@ import Response from "../Utils/Response";
 import SecurityPlaybookActions from "../Utils/SecurityPlaybook/SecurityPlaybookActions";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
+import SecurityLogSource from "../../Models/DatabaseModels/SecurityLogSource";
+import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
+import SecuritySetup, {
+  SecuritySetupStatus,
+  SecuritySetupTestResult,
+  TurnOnRecommendedOptions,
+  TurnOnRecommendedResult,
+} from "../Utils/SecurityEvent/SecuritySetup";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -81,6 +90,9 @@ function readWholeNumber(
  *   POST /security-case/entity-activity    how active some values have been
  *   POST /security-case/top-entities       the values the findings name most
  *   POST /security-case/:caseId/declare-incident
+ *   POST /security-case/setup/status       how security is set up
+ *   POST /security-case/setup/turn-on-recommended
+ *   POST /security-case/setup/test         a simulated attack, end to end
  *
  * Every read is made with the caller's own props, so the figures are of the
  * cases, detections and events the caller may read, and nothing else.
@@ -324,6 +336,165 @@ export default class SecurityCaseAPI extends BaseAPI<
             incidentId: result.incident.id!.toString(),
             incidentNumber: result.incidentNumber,
           });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * The Overview's "Get started": the pipeline's figures, read with the
+     * caller's own permissions (a figure they may not read is 0).
+     */
+    this.router.post(
+      `${basePath}/setup/status`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityCase,
+            props,
+            errorMessage:
+              "Reading how security is set up takes a Security role, or Project Owner or Project Admin.",
+          });
+
+          const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+            projectId,
+            props,
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            status as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * The one click: "Your logs" as a source, the recommended rules and the
+     * Enrich New Cases playbook. Each part is done as the caller, and asked
+     * for only if the caller could do it through its own endpoint, so the
+     * route opens no door the CRUD API keeps shut.
+     */
+    this.router.post(
+      `${basePath}/setup/turn-on-recommended`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const body: JSONObject = readBody(req);
+          const options: TurnOnRecommendedOptions = {
+            logs: body["logs"] !== false,
+            detections: body["detections"] !== false,
+            playbook: body["playbook"] !== false,
+          };
+
+          if (options.logs) {
+            CommonAPI.assertCanCreateTable({
+              modelType: SecurityLogSource,
+              props,
+              errorMessage:
+                "Turning on your logs as a security source takes Security Admin, or Project Owner or Project Admin.",
+            });
+          }
+
+          if (options.detections) {
+            CommonAPI.assertCanCreateTable({
+              modelType: DetectionRule,
+              props,
+              errorMessage:
+                "Turning on detection rules takes a role that can create them.",
+            });
+          }
+
+          if (options.playbook) {
+            CommonAPI.assertCanCreateTable({
+              modelType: SecurityPlaybook,
+              props,
+              errorMessage:
+                "Turning on a playbook takes a role that can create playbooks.",
+            });
+          }
+
+          const result: TurnOnRecommendedResult =
+            await SecuritySetup.turnOnRecommended({
+              projectId,
+              props,
+              options,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            result as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * The setup test: a simulated attack through the real pipeline. It
+     * writes security events and may add the brute force rule, so it takes
+     * a role that can do both.
+     */
+    this.router.post(
+      `${basePath}/setup/test`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityEvent().getCreatePermissions(),
+            errorMessage:
+              "Running a test takes a role that can create security events.",
+          });
+
+          CommonAPI.assertCanCreateTable({
+            modelType: DetectionRule,
+            props,
+            errorMessage:
+              "Running a test takes a role that can create detection rules.",
+          });
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityCase,
+            props,
+            errorMessage: "Running a test takes a role that can read cases.",
+          });
+
+          const result: SecuritySetupTestResult = await SecuritySetup.runTest({
+            projectId,
+            props,
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            result as unknown as JSONObject,
+          );
         } catch (error) {
           next(error);
         }

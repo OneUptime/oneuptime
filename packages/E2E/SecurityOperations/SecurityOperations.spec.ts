@@ -22,7 +22,7 @@ import path from "path";
  * does not model.
  */
 
-const PORT: string = "4234";
+const PORT: string = process.env["SECURITY_OPERATIONS_FIXTURE_PORT"] || "4234";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 
@@ -55,6 +55,7 @@ interface OpenOptions {
   height?: number;
   theme?: "dark";
   empty?: boolean;
+  quiet?: boolean;
   role?: "viewer";
 }
 
@@ -133,6 +134,9 @@ async function open(
   if (options.empty) {
     params.set("empty", "1");
   }
+  if (options.quiet) {
+    params.set("quiet", "1");
+  }
   if (options.role) {
     params.set("role", options.role);
   }
@@ -146,6 +150,21 @@ async function open(
     await document.fonts.load("600 14px Inter");
     await document.fonts.ready;
   });
+}
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Where a visible element is drawn; failing the test when it is not drawn.
+async function boxOf(locator: Locator): Promise<Box> {
+  await expect(locator).toBeVisible();
+  const box: Box | null = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  return box!;
 }
 
 async function fixture(page: Page): Promise<FixtureState> {
@@ -203,6 +222,20 @@ function sideMenuLink(page: Page, title: string): Locator {
   });
 }
 
+// One stage of the Overview's pipeline: Sources, Detections, Security Cases, Playbooks.
+function stage(page: Page, key: string): Locator {
+  return page.getByTestId(`security-pipeline-${key}`);
+}
+
+function gettingStarted(page: Page): Locator {
+  return page.getByTestId("security-getting-started");
+}
+
+// The tabs across the top of a page whose menu entry holds several.
+function tabs(page: Page): Locator {
+  return page.getByTestId("security-events-tabs");
+}
+
 /*
  * ---------------------------------------------------------------------------
  * Overview
@@ -257,8 +290,63 @@ test.describe("the overview", () => {
     );
     expect(routes.sort()).toEqual([
       "/security-case/overview",
+      "/security-case/setup/status",
       "/security-case/top-entities",
     ]);
+  });
+
+  test("draws how Security works here across the top: each stage's figure, linked to its page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH);
+
+    await expect(stage(page, "sources")).toContainText("2 sources");
+    await expect(stage(page, "sources")).toContainText(
+      "18,432 events in 24 hours",
+    );
+    await expect(stage(page, "detections")).toContainText("6 rules on");
+    await expect(stage(page, "detections")).toContainText(
+      "3 of 19 recommended",
+    );
+    await expect(stage(page, "cases")).toContainText("6 open cases");
+    // What the open cases are, which the figures below no longer repeat.
+    await expect(stage(page, "cases")).toContainText("2 critical · 2 high");
+    await expect(stage(page, "playbooks")).toContainText("3 playbooks on");
+    await expect(
+      page
+        .getByRole("group", { name: "Security operations figures" })
+        .getByText("Open Cases", { exact: true }),
+    ).toHaveCount(0);
+    // At 1440 beside the side menu, every stage's figures sit on their lines.
+    for (const key of ["sources", "detections", "cases", "playbooks"]) {
+      const lines: number = await stage(page, key).evaluate(
+        (element: Element): number => {
+          const detail: Element | null =
+            element.querySelector("a > div:last-child");
+          if (!detail) {
+            return 0;
+          }
+          const style: CSSStyleDeclaration = getComputedStyle(detail);
+          return Math.round(
+            detail.getBoundingClientRect().height /
+              parseFloat(style.lineHeight),
+          );
+        },
+      );
+      expect(lines, `${key}'s line under its figure`).toBe(1);
+    }
+    // Set up, so no Get started; something waits, so no All quiet.
+    await expect(gettingStarted(page)).toHaveCount(0);
+    await expect(page.getByTestId("security-all-quiet")).toHaveCount(0);
+
+    await stage(page, "detections").getByRole("link").click();
+    await expect(page).toHaveURL(new RegExp(`${PRODUCT}/detection-rules$`));
+    await expect(
+      tabs(page).getByRole("link", { name: "Detection Rules" }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(sideMenuLink(page, "Detections")).toHaveClass(/bg-indigo-50/);
   });
 
   test("dark theme", async ({ page }: { page: Page }) => {
@@ -267,21 +355,189 @@ test.describe("the overview", () => {
     await screenshot(page, "overview-dark");
   });
 
-  test("a project with nothing yet is shown the three steps that set it up", async ({
+  test("a new project sets Security up in two clicks: everything recommended, then a test attack that opens a case", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, OVERVIEW_PATH, { empty: true });
 
-    await expect(page.getByText("Bring in security events")).toBeVisible();
-    await expect(page.getByText("Turn on detections")).toBeVisible();
-    await expect(page.getByText("Respond automatically")).toBeVisible();
+    await expect(
+      gettingStarted(page).getByRole("heading", {
+        name: "Set up Security in a minute",
+      }),
+    ).toBeVisible();
+    await expect(gettingStarted(page)).toContainText("0 of 4 done");
+    // The card alone tells the story; the pipeline would say it again, in amber.
+    await expect(page.getByTestId("security-pipeline")).toHaveCount(0);
+    // Its buttons sit under its sentence, the main one first.
+    await expect(
+      page.getByTestId("security-getting-started-actions").getByRole("button"),
+    ).toHaveText(["Turn on recommended", "Send a test attack"]);
+    // Nothing to chart yet, and no queue of zeros.
+    await expect(page.getByText("Cases Opened")).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "0 open cases assigned to you" }),
+    ).toHaveCount(0);
+    await screenshot(page, "overview-get-started");
+
+    await page.getByTestId("security-turn-on-recommended").click();
+    await expect(page.getByTestId("security-turned-on")).toContainText(
+      "Done. 19 detection rules are on, your logs are checked for security events and every new case is enriched.",
+    );
+    await expect(gettingStarted(page)).toContainText("3 of 4 done");
+    // Nothing left to turn on: the test attack is the next step, and the main button.
+    await expect(
+      page.getByTestId("security-getting-started-actions").getByRole("button"),
+    ).toHaveText(["Send a test attack"]);
+
+    await gettingStarted(page).getByTestId("security-run-setup-test").click();
+    const result: Locator = page.getByTestId("security-setup-test-result");
+    await expect(result).toContainText(
+      "The test opened case CASE-150: a brute force attempt from one address.",
+    );
+    await expect(gettingStarted(page)).toContainText("4 of 4 done");
+    await expect(
+      gettingStarted(page).getByRole("heading", { name: "Security is set up" }),
+    ).toBeVisible();
+    // The case it opened is in the queue now, waiting for somebody.
+    await expect(
+      page.getByRole("link", { name: "1 open case nobody has picked up" }),
+    ).toBeVisible();
+    await screenshot(page, "overview-set-up");
+
+    const routes: Array<string> = (await fixture(page)).apiRequests.map(
+      (request: { url: string }): string => {
+        return new URL(request.url).pathname.replace(/^.*\/api/, "");
+      },
+    );
+    expect(
+      routes.filter((route: string): boolean => {
+        return (
+          route.startsWith("/security-case/setup/turn-on") ||
+          route === "/security-case/setup/test"
+        );
+      }),
+    ).toEqual([
+      "/security-case/setup/turn-on-recommended",
+      "/security-case/setup/test",
+    ]);
+
+    await result.getByRole("link", { name: /Open the case/ }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`${PRODUCT}/cases/20000000-0000-4000-8000-000000000150$`),
+    );
+    await expect(
+      page
+        .getByText("Brute force from one IP address from 203.0.113.77")
+        .first(),
+    ).toBeVisible({ timeout: 30000 });
+  });
+
+  test("Done puts the finished card away and the pipeline takes its place; Dismiss puts it away for good", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await page.getByTestId("security-turn-on-recommended").click();
+    await expect(page.getByTestId("security-turned-on")).toBeVisible();
+    await gettingStarted(page).getByTestId("security-run-setup-test").click();
+    await expect(
+      gettingStarted(page).getByRole("heading", { name: "Security is set up" }),
     ).toBeVisible();
 
-    await screenshot(page, "overview-empty");
+    await page.getByTestId("security-getting-started-done").click();
+    await expect(gettingStarted(page)).toHaveCount(0);
+    await expect(stage(page, "sources")).toContainText("1 source");
+    await expect(stage(page, "detections")).toContainText("19 rules on");
+    await expect(stage(page, "cases")).toContainText("1 open case");
+    await expect(stage(page, "playbooks")).toContainText("1 playbook on");
+
+    // A project that is not set up, whose people do not want the card.
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await gettingStarted(page)
+      .getByTestId("security-getting-started-dismiss")
+      .click();
+    await expect(gettingStarted(page)).toHaveCount(0);
+    await expect(stage(page, "sources")).toHaveAttribute("data-ready", "false");
+    await expect(stage(page, "sources")).toContainText("Not set up");
+    await screenshot(page, "overview-dismissed");
+
+    // Remembered in the browser: the next visit opens on the pipeline.
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await expect(page.getByTestId("security-pipeline")).toBeVisible();
+    await expect(gettingStarted(page)).toHaveCount(0);
+  });
+
+  test("a viewer is shown who can set Security up, not only grey buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true, role: "viewer" });
+
+    await expect(
+      page.getByTestId("security-turn-on-recommended"),
+    ).toBeDisabled();
+    await expect(page.getByTestId("security-run-setup-test")).toBeDisabled();
+    await expect(
+      page.getByTestId("security-getting-started-locked"),
+    ).toHaveText(
+      "Ask a Project Owner, Project Admin or Security Admin to set Security up.",
+    );
+  });
+
+  test("Get started in the dark theme and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true, theme: "dark" });
+    await expect(gettingStarted(page)).toBeVisible();
+    await screenshot(page, "overview-get-started-dark");
+
+    await open(page, OVERVIEW_PATH, { empty: true, width: 390 });
+    await expect(gettingStarted(page)).toBeVisible();
+    // The two buttons stack under the text, each the card's width.
+    const turnOn: { width: number } | null = await page
+      .getByTestId("security-turn-on-recommended")
+      .boundingBox();
+    const card: { width: number } | null =
+      await gettingStarted(page).boundingBox();
+    expect(turnOn!.width).toBeGreaterThan(card!.width * 0.75);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    // The main button is on the first screen of a phone, nothing above the card.
+    const turnOnTop: { y: number } | null = await page
+      .getByTestId("security-turn-on-recommended")
+      .boundingBox();
+    expect(turnOnTop!.y).toBeLessThan(844);
+    await screenshot(page, "overview-get-started-phone");
+  });
+
+  test("a project set up and quiet says All quiet, offers the test attack, and charts nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { quiet: true });
+
+    const quiet: Locator = page.getByTestId("security-all-quiet");
+    await expect(
+      quiet.getByRole("heading", { name: "All quiet" }),
+    ).toBeVisible();
+    await expect(quiet.getByTestId("security-run-setup-test")).toBeVisible();
+    await expect(gettingStarted(page)).toHaveCount(0);
+    await expect(page.getByText("Cases Opened")).toHaveCount(0);
+    for (const key of ["sources", "detections", "cases", "playbooks"]) {
+      await expect(stage(page, key)).toHaveAttribute("data-ready", "true");
+    }
+    await expect(stage(page, "cases")).toContainText("None open");
+    await screenshot(page, "overview-all-quiet");
+
+    await open(page, OVERVIEW_PATH, { quiet: true, theme: "dark" });
+    await expect(quiet).toBeVisible();
+    await screenshot(page, "overview-all-quiet-dark");
   });
 });
 
@@ -709,7 +965,115 @@ test.describe("detections", () => {
       timeout: 30000,
     });
     await expect(page.getByText("Added", { exact: true })).toHaveCount(6);
+
+    /*
+     * The two buttons share the title's line and the description runs under
+     * them, the card's whole width: beside them it stood four lines tall in
+     * English, five in German.
+     */
+    const header: Locator = page
+      .getByTestId("card")
+      .filter({
+        has: page.getByRole("heading", { name: "Rule Library", exact: true }),
+      })
+      .getByTestId("card-header");
+    await expect(header).toHaveAttribute("data-header-layout", "toolbar");
+    const headerBox: Box = await boxOf(header);
+    const actionsBox: Box = await boxOf(
+      header.getByTestId("card-header-actions"),
+    );
+    const descriptionBox: Box = await boxOf(
+      header.getByTestId("card-description"),
+    );
+    expect(descriptionBox.y).toBeGreaterThanOrEqual(
+      actionsBox.y + actionsBox.height,
+    );
+    expect(descriptionBox.width).toBeGreaterThan(headerBox.width * 0.9);
     await screenshot(page, "rule-library-desktop", { fullPage: false });
+  });
+
+  test("the rule library marks the recommended rules and adds the missing ones in one click", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH);
+    await expect(page.getByText("Added").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(
+      page.locator('[data-testid^="rule-library-recommended-"]'),
+    ).toHaveCount(19);
+
+    await page.getByTestId("rule-library-category-recommended").click();
+    await expect(
+      page.locator('[data-testid^="rule-library-entry-"]'),
+    ).toHaveCount(19);
+
+    await page
+      .getByRole("button", { name: "Add 16 Recommended Rules" })
+      .click();
+    // All nineteen are the project's now: the three it had and sixteen more.
+    await expect(page.getByText("Added", { exact: true })).toHaveCount(19);
+    await expect(
+      page.getByRole("button", { name: /Recommended Rules?$/ }),
+    ).toHaveCount(0);
+  });
+
+  test("the pages behind Detections are tabs, each its own address, with the menu entry lit on every one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH);
+    await expect(tabs(page)).toBeVisible({ timeout: 30000 });
+    await expect(tabs(page).getByRole("link")).toHaveText([
+      "Detection Rules",
+      "Rule Library",
+      "Threat Intel",
+      "ATT&CK Coverage",
+    ]);
+    await expect(
+      tabs(page).getByRole("link", { name: "Rule Library" }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(sideMenuLink(page, "Detections")).toHaveClass(/bg-indigo-50/);
+
+    await tabs(page).getByRole("link", { name: "ATT&CK Coverage" }).click();
+    await expect(page).toHaveURL(new RegExp(`${ATTACK_COVERAGE_PATH}$`));
+    await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
+    await expect(sideMenuLink(page, "Detections")).toHaveClass(/bg-indigo-50/);
+
+    // On a phone the row scrolls inside itself, never the page.
+    await open(page, RULE_LIBRARY_PATH, { width: 390 });
+    await expect(tabs(page)).toBeVisible({ timeout: 30000 });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+  });
+
+  test("the side menu is six entries, no sections", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH);
+    for (const title of [
+      "Overview",
+      "Security Cases",
+      "Events",
+      "Detections",
+      "Playbooks",
+      "Connections",
+    ]) {
+      await expect(sideMenuLink(page, title).first()).toBeVisible();
+    }
+    for (const retired of [
+      "Correlate",
+      "Rule Library",
+      "Monitors",
+      "Setup Guide",
+    ]) {
+      await expect(sideMenuLink(page, retired)).toHaveCount(0);
+    }
+    await screenshot(page, "side-menu-desktop", { fullPage: false });
   });
 
   test("entities ranks what the findings name most", async ({
@@ -737,6 +1101,8 @@ test.describe("detections", () => {
 test.describe("every page fits the screen", () => {
   const PAGES: ReadonlyArray<[string, string, string]> = [
     ["overview", OVERVIEW_PATH, "Riskiest Entities"],
+    ["get started", `${OVERVIEW_PATH}?empty=1`, "Set up Security in a minute"],
+    ["all quiet", `${OVERVIEW_PATH}?quiet=1`, "All quiet"],
     ["cases", CASES_PATH, "CASE-142"],
     ["case", SPRAY_CASE_PATH, "475 events"],
     ["entities", ENTITIES_PATH, "203.0.113.47"],

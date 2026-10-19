@@ -17,6 +17,7 @@
   "AB:CD:EF:...",
   "AI",
   "API",
+  "AWS CloudTrail",
   "Acme Corp",
   "Acme, Inc.",
   "Azure Monitor",
@@ -138,6 +139,7 @@
   "openai",
   "openid email profile",
   "src/api/users.ts",
+  "sudo",
   "whsec_…",
   "{ \"Authorization\": \"Bearer ...\" }",
   "{ \"message\": \"...\" }"

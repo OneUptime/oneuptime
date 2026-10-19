@@ -172,8 +172,10 @@ describe("registry wiring", () => {
     const navigation: string = readSquashed(
       "App/FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation.ts",
     );
-    expect(navigation).toContain('title: "Threat Intel",');
-    expect(navigation).toContain("page: PageMap.SECURITY_EVENTS_THREAT_INTEL,");
+    // A tab beside Detection Rules, under the Detections menu entry.
+    expect(navigation).toContain(
+      '{ page: PageMap.SECURITY_EVENTS_THREAT_INTEL, title: "Threat Intel" }',
+    );
     expect(
       readSquashed(
         "App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout.tsx",

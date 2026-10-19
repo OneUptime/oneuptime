@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Перейдите в Threat Intel
 
-Откройте **Продукты → Security Events → Threat Intel**.
+Откройте **Продукты → Security Events → Detections → Threat Intel**.
 
 ### Создайте фид
 

@@ -585,6 +585,10 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
+import SecurityLogSourceService, {
+  Service as SecurityLogSourceServiceType,
+} from "Common/Server/Services/SecurityLogSourceService";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -1602,6 +1606,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
@@ -3898,6 +3903,20 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityEventConnectionAPI().getRouter(),
+    );
+
+    // Where security events are sent, and "Your logs" as a source.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityEventDestinationAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityLogSource, SecurityLogSourceServiceType>(
+        SecurityLogSource,
+        SecurityLogSourceService,
+      ).getRouter(),
     );
 
     // Security cases and playbooks: the SOAR half of the Security product.
