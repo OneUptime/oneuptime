@@ -81,8 +81,8 @@ import crypto from "crypto";
  *
  * A client may present only so many different wrong keys in a quarter of an
  * hour (WrongClusterKeyLimit); after that, every request it makes to these
- * routes is refused until the quarter of an hour ends, its key not compared,
- * right or wrong. A request with the right key is never counted, so
+ * routes is refused until the quarter of an hour ends, whichever key it
+ * carries, right or wrong. A request with the right key is never counted, so
  * OneUptime's own traffic is never refused for being busy, and a service
  * that still sends an old key sends one wrong key, not one per request.
  */

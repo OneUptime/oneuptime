@@ -9,22 +9,21 @@ import ClientRateLimitCounter, {
 /*
  * WRONG CLUSTER KEYS, COUNTED FOR THE CLIENT THAT SENDS THEM.
  *
- * The routes that take OneUptime's cluster key (ClusterKeyAuthorization)
- * answer whoever reaches them, and several sit behind the ingress, where
- * anyone can. The key is what keeps them OneUptime's own: a long random value
- * when npm start, npm run update or the Helm chart chose it, or a key derived
- * from the installation's own token signing key. But ONEUPTIME_SECRET is the
- * operator's to set, and nothing limited how many keys one caller could try
- * against a short one set by hand.
+ * The routes that take OneUptime's cluster key (ClusterKeyAuthorization) let
+ * through only a caller that presents the installation's own key: a long
+ * random value when npm start, npm run update or the Helm chart chose it, a
+ * key derived from the installation's own token signing key, or whatever the
+ * operator set ONEUPTIME_SECRET to. Like every route that takes a
+ * credential, they limit how many wrong ones one caller may try, here.
  *
  * THE RULE
  *
  * One client may present WRONG_CLUSTER_KEYS_PER_ADDRESS different wrong keys
  * in a quarter of an hour. The next different wrong key is refused (429), and
  * so is every request the client makes to these routes until the quarter of
- * an hour ends, its key not compared at all, right or wrong: comparing it
- * would leave the limit no limit on guessing. A request with the right key is
- * never counted.
+ * an hour ends, whichever key it carries, right or wrong: answering a right
+ * key as right would leave the limit no limit on guessing. A request with the
+ * right key is never counted.
  *
  * WHY DIFFERENT KEYS, NOT REQUESTS
  *
