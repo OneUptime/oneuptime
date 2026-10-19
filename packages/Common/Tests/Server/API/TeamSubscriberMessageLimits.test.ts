@@ -89,11 +89,14 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 import Redis from "../../../Server/Infrastructure/Redis";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
 import PublicMessageRateLimit, {
+  PublicMessageChannel,
   PublicMessageContact,
   PublicMessageKind,
 } from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import Email from "../../../Types/Email";
+import Phone from "../../../Types/Phone";
+import URL from "../../../Types/API/URL";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -562,6 +565,145 @@ describe("every way the team adds a subscriber is held to it", () => {
       }
     }
   });
+});
+
+/*
+ * Which contacts a create is counted for: the ones it sends a message to,
+ * read from the subscriber as onBeforeCreate leaves it. A flag that is not
+ * set is the column's default - told - so a create that leaves it out is
+ * counted for the message it will be sent.
+ */
+describe("the contacts a create is counted for", () => {
+  const email: Email = new Email(ADDRESS);
+  const phone: Phone = new Phone(PHONE);
+
+  const contactOf: Record<string, PublicMessageContact> = {
+    email: PublicMessageRateLimit.forEmail(email),
+    phone: PublicMessageRateLimit.forPhone(phone),
+    slack: PublicMessageRateLimit.forWebhook(
+      PublicMessageChannel.Slack,
+      URL.fromString(SLACK),
+    ),
+    teams: PublicMessageRateLimit.forWebhook(
+      PublicMessageChannel.MicrosoftTeams,
+      URL.fromString(TEAMS),
+    ),
+    webhook: PublicMessageRateLimit.forWebhook(
+      PublicMessageChannel.Webhook,
+      URL.fromString(WEBHOOK),
+    ),
+  };
+
+  test.each([
+    [
+      "an address subscribed now and told nothing: none",
+      {
+        subscriberEmail: email,
+        isSubscriptionConfirmed: true,
+        sendYouHaveSubscribedMessage: false,
+      },
+      [],
+    ],
+    [
+      "an address subscribed now, the flag left out: it is told",
+      { subscriberEmail: email, isSubscriptionConfirmed: true },
+      ["email"],
+    ],
+    [
+      "an address asked to confirm: its confirmation",
+      {
+        subscriberEmail: email,
+        isSubscriptionConfirmed: false,
+        sendYouHaveSubscribedMessage: false,
+      },
+      ["email"],
+    ],
+    [
+      "a number added and told nothing: none",
+      {
+        subscriberPhone: phone,
+        isSubscriptionConfirmed: true,
+        sendYouHaveSubscribedMessage: false,
+      },
+      [],
+    ],
+    [
+      "a number added, the flag left out: it is told",
+      { subscriberPhone: phone, isSubscriptionConfirmed: true },
+      ["phone"],
+    ],
+    [
+      "a number to confirm: its confirmation",
+      {
+        subscriberPhone: phone,
+        isSubscriptionConfirmed: false,
+        sendYouHaveSubscribedMessage: false,
+      },
+      ["phone"],
+    ],
+    [
+      "a Slack channel, the flag left out: it is told",
+      {
+        slackIncomingWebhookUrl: URL.fromString(SLACK),
+        isSubscriptionConfirmed: true,
+      },
+      ["slack"],
+    ],
+    [
+      "a Slack channel told nothing: none",
+      {
+        slackIncomingWebhookUrl: URL.fromString(SLACK),
+        isSubscriptionConfirmed: true,
+        sendYouHaveSubscribedMessage: false,
+      },
+      [],
+    ],
+    [
+      "a Microsoft Teams channel told",
+      {
+        microsoftTeamsIncomingWebhookUrl: URL.fromString(TEAMS),
+        isSubscriptionConfirmed: true,
+        sendYouHaveSubscribedMessage: true,
+      },
+      ["teams"],
+    ],
+    [
+      "a webhook, the flag left out: it is told",
+      {
+        subscriberWebhook: URL.fromString(WEBHOOK),
+        isSubscriptionConfirmed: true,
+      },
+      ["webhook"],
+    ],
+    [
+      "every channel, subscribed now and told nothing: none",
+      {
+        subscriberEmail: email,
+        subscriberPhone: phone,
+        slackIncomingWebhookUrl: URL.fromString(SLACK),
+        microsoftTeamsIncomingWebhookUrl: URL.fromString(TEAMS),
+        subscriberWebhook: URL.fromString(WEBHOOK),
+        isSubscriptionConfirmed: true,
+        sendYouHaveSubscribedMessage: false,
+      },
+      [],
+    ],
+  ] as Array<[string, Partial<StatusPageSubscriber>, Array<string>]>)(
+    "%s",
+    (
+      _label: string,
+      subscriber: Partial<StatusPageSubscriber>,
+      counted: Array<string>,
+    ) => {
+      expect(
+        StatusPageSubscriberService.getContactsMessagedOnCreate(subscriber),
+      ).toEqual(
+        counted.map((channel: string): PublicMessageContact => {
+          return contactOf[channel] as PublicMessageContact;
+        }),
+      );
+    },
+  );
 });
 
 describe("while the counter cannot be reached", () => {
