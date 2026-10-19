@@ -80,7 +80,7 @@ sequenceDiagram
 
 ### OAuth 2.0 클라이언트 자격 증명
 
-일부 ID 공급자는 Bearer 토큰을 보관하지 않고 대신 OAuth 2.0 클라이언트 자격 증명을 요구합니다. Microsoft Entra 애플리케이션 갤러리의 OneUptime 앱이 그렇습니다. 프로젝트의 연결이든 상태 페이지의 연결이든 모든 연결은 **SCIM Base URL**과 같은 대화 상자의 **OAuth 2.0 Client Credentials** 아래에 이 자격 증명이 있습니다.
+일부 ID 공급자는 Bearer 토큰을 보관하지 않고 대신 OAuth 2.0 클라이언트 자격 증명을 요구합니다. 프로젝트의 연결이든 상태 페이지의 연결이든 모든 연결은 **SCIM Base URL**과 같은 대화 상자의 **OAuth 2.0 Client Credentials** 아래에 이 자격 증명이 있습니다.
 
 - **Token Endpoint**: ID 공급자가 액세스 토큰을 받는 곳입니다. 모든 연결에서 같으며, OneUptime Cloud에서는 `https://oneuptime.com/identity/scim/oauth/token`입니다.
 - **Client ID**: 연결의 ID입니다.
@@ -145,7 +145,7 @@ Microsoft Entra ID는 SCIM 프로비저닝을 갖춘 엔터프라이즈급 ID �
 - OneUptime Cloud에서 **Scale** 플랜 이상을 사용하는 OneUptime 프로젝트.
 - Microsoft Entra ID와 OneUptime 모두에 대한 관리자 액세스.
 
-OneUptime Cloud에서는 Microsoft Entra 애플리케이션 갤러리에 OneUptime이 있으면 그곳에서 추가하세요. 이 애플리케이션은 연결의 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)으로 프로비저닝하며, 아래의 특성 매핑이 미리 들어 있습니다. SSO용으로 이미 추가했다면 그 애플리케이션을 사용하세요.
+Microsoft Entra 애플리케이션 갤러리의 OneUptime 앱은 SSO(Single Sign-On)용입니다. 프로비저닝에는 SSO용으로 갤러리에서 OneUptime을 이미 추가했더라도 아래와 같이 애플리케이션을 직접 만들어 사용하세요.
 
 :::steps
 #### Entra ID용 SCIM 연결 만들기
@@ -165,23 +165,21 @@ OneUptime Cloud에서는 Microsoft Entra 애플리케이션 갤러리에 OneUpti
 
 1. [Microsoft Entra admin center](https://entra.microsoft.com)에 로그인합니다
 2. **Identity** > **Applications** > **Enterprise applications**로 이동합니다
-3. **+ New application**을 클릭합니다
-4. 갤러리에서 추가하는 경우: OneUptime을 검색하여 선택하고 **Create**를 클릭합니다
-5. 그 밖의 경우: **+ Create your own application**을 클릭하고, 이름(예: "OneUptime")을 입력한 다음 **Integrate any other application you don't find in the gallery (Non-gallery)** 옵션을 선택하고 **Create**를 클릭합니다
+3. **+ New application**을 클릭한 다음 **+ Create your own application**을 클릭합니다
+4. 이름(예: "OneUptime")을 입력합니다
+5. **Integrate any other application you don't find in the gallery (Non-gallery)** 옵션을 선택하고 **Create**를 클릭합니다
 
 #### Entra ID를 OneUptime에 연결
 
 1. OneUptime 엔터프라이즈 애플리케이션에서 **Provisioning**으로 이동하여 **Get started**를 클릭합니다
 2. **Provisioning Mode**를 **Automatic**으로 설정합니다
-3. **Admin Credentials**에서 다음을 설정합니다.
-   - 갤러리에서 추가한 애플리케이션이라면 **Tenant URL**을 OneUptime의 **SCIM Base URL**로, **Token Endpoint**를 OneUptime의 **Token Endpoint**로, **Client Identifier**를 OneUptime의 **Client ID**로, **Client Secret**을 **Make Client Secret**으로 만든 시크릿으로 설정합니다
-   - 직접 만든 애플리케이션이라면 **Tenant URL**을 OneUptime의 **SCIM Base URL**(예: `https://oneuptime.com/identity/scim/v2/<scim-id>`)로, **Secret Token**을 **Bearer Token**으로 설정합니다
+3. **Admin Credentials**에서 **Tenant URL**을 OneUptime의 **SCIM Base URL**(예: `https://oneuptime.com/identity/scim/v2/<scim-id>`)로, **Secret Token**을 **Bearer Token**으로 설정합니다
 4. **Test Connection**을 클릭하여 구성을 확인한 다음 **Save**를 클릭합니다
 
 #### Entra ID에서 사용자 특성 매핑
 
 1. Provisioning 섹션에서 **Mappings**를 클릭한 다음 **Provision Azure Active Directory Users**를 클릭합니다
-2. 다음 특성 매핑을 구성하고, 필요 없는 매핑은 제거한 다음 **Save**를 클릭합니다. 갤러리에서 추가한 애플리케이션에는 이 매핑이 미리 들어 있습니다.
+2. 다음 특성 매핑을 구성하고, 필요 없는 매핑은 제거한 다음 **Save**를 클릭합니다.
 
 | Azure AD 특성                                                 | OneUptime SCIM 특성            | 필수 여부 |
 | ------------------------------------------------------------- | ------------------------------ | --------- |
@@ -403,7 +401,7 @@ OneUptime Cloud에서 SCIM 프로비저닝은 프로젝트가 **Scale** 이상�
 먼저 **프로젝트 설정** > **보안** > **SCIM**(또는 상태 페이지의 **SCIM** 페이지)의 **로그** 탭을 확인하세요. ID 공급자가 보낸 SCIM 요청이 상태와 함께 나열되며, **세부 정보 보기**로 요청과 OneUptime의 응답을 볼 수 있습니다.
 
 :::details Entra ID: Test Connection이 실패함
-**Tenant URL**이 OneUptime에 표시된 **SCIM Base URL**과 정확히 같고, **Secret Token**이 현재 **Bearer Token**인지 확인하세요. **Bearer 토큰 재설정** 후에는 이전 토큰이 더 이상 작동하지 않습니다. 갤러리에서 추가한 애플리케이션이라면 **Token Endpoint**를 확인하고, **Client Identifier**가 연결의 **Client ID**인지, **Client Secret**이 만료되거나 삭제되지 않았는지 확인하세요. 그런 시크릿으로는 액세스 토큰이 발급되지 않습니다. **Make New Client Secret**으로 새 시크릿을 만드세요.
+**Tenant URL**이 OneUptime에 표시된 **SCIM Base URL**과 정확히 같고, **Secret Token**이 현재 **Bearer Token**인지 확인하세요. **Bearer 토큰 재설정** 후에는 이전 토큰이 더 이상 작동하지 않습니다.
 :::
 
 :::details Okta: API 자격 증명 테스트가 실패하거나 요청이 401 Unauthorized를 받음

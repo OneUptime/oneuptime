@@ -80,7 +80,7 @@ sequenceDiagram
 
 ### OAuth 2.0 क्लाइंट क्रेडेंशियल
 
-कुछ पहचान प्रदाता bearer टोकन नहीं रखते, और इसके बजाय OAuth 2.0 क्लाइंट क्रेडेंशियल माँगते हैं: Microsoft Entra ऐप्लिकेशन गैलरी का OneUptime ऐप ऐसा ही करता है। हर कनेक्शन, चाहे वह प्रोजेक्ट का हो या स्थिति पृष्ठ का, इन्हें उसी डायलॉग में दिखाता है जिसमें उसका **SCIM Base URL** है, **OAuth 2.0 Client Credentials** के नीचे:
+कुछ पहचान प्रदाता bearer टोकन नहीं रखते, और इसके बजाय OAuth 2.0 क्लाइंट क्रेडेंशियल माँगते हैं। हर कनेक्शन, चाहे वह प्रोजेक्ट का हो या स्थिति पृष्ठ का, इन्हें उसी डायलॉग में दिखाता है जिसमें उसका **SCIM Base URL** है, **OAuth 2.0 Client Credentials** के नीचे:
 
 - **Token Endpoint**: वह पता जहाँ से आपका पहचान प्रदाता अपने एक्सेस टोकन लेता है। यह हर कनेक्शन के लिए एक ही है: OneUptime Cloud पर `https://oneuptime.com/identity/scim/oauth/token`।
 - **Client ID**: कनेक्शन का ID।
@@ -145,7 +145,7 @@ Microsoft Entra ID, SCIM प्रोविजनिंग के साथ ए�
 - OneUptime Cloud पर **Scale** प्लान या उससे ऊपर का एक OneUptime प्रोजेक्ट।
 - Microsoft Entra ID और OneUptime दोनों में व्यवस्थापक पहुँच।
 
-OneUptime Cloud पर, अगर Microsoft Entra ऐप्लिकेशन गैलरी में OneUptime सूचीबद्ध है, तो उसे वहीं से जोड़ें: वह कनेक्शन के [OAuth 2.0 क्लाइंट क्रेडेंशियल](#oauth-20-क्लाइंट-क्रेडेंशियल) से प्रोविजन करता है, और नीचे दी गई गुण मैपिंग उसमें पहले से होती हैं। अगर आपने उसे SSO के लिए पहले ही जोड़ लिया है, तो उसी ऐप्लिकेशन का उपयोग करें।
+Microsoft Entra ऐप्लिकेशन गैलरी का OneUptime ऐप सिंगल साइन-ऑन के लिए है। प्रोविजनिंग के लिए, नीचे बताए अनुसार अपना खुद का ऐप्लिकेशन बनाएँ, भले ही आपने SSO के लिए OneUptime को गैलरी से जोड़ा हो।
 
 :::steps
 #### Entra ID के लिए SCIM कनेक्शन बनाएँ
@@ -165,23 +165,21 @@ OneUptime Cloud पर, अगर Microsoft Entra ऐप्लिकेशन �
 
 1. [Microsoft Entra admin center](https://entra.microsoft.com) में साइन इन करें
 2. **Identity** > **Applications** > **Enterprise applications** पर जाएँ
-3. **+ New application** पर क्लिक करें
-4. गैलरी से: OneUptime खोजें, उसे चुनें और **Create** पर क्लिक करें
-5. नहीं तो: **+ Create your own application** पर क्लिक करें, एक नाम दर्ज करें (जैसे, "OneUptime"), **Integrate any other application you don't find in the gallery (Non-gallery)** चुनें और **Create** पर क्लिक करें
+3. **+ New application** पर क्लिक करें, फिर **+ Create your own application** पर
+4. एक नाम दर्ज करें (जैसे, "OneUptime")
+5. **Integrate any other application you don't find in the gallery (Non-gallery)** चुनें और **Create** पर क्लिक करें
 
 #### Entra ID को OneUptime से जोड़ें
 
 1. अपने OneUptime एंटरप्राइज़ ऐप्लिकेशन में **Provisioning** पर जाएँ और **Get started** पर क्लिक करें
 2. **Provisioning Mode** को **Automatic** पर सेट करें
-3. **Admin Credentials** के नीचे:
-   - गैलरी वाले ऐप्लिकेशन के लिए **Tenant URL** को OneUptime के **SCIM Base URL** पर, **Token Endpoint** को उसके **Token Endpoint** पर, **Client Identifier** को उसके **Client ID** पर, और **Client Secret** को उस सीक्रेट पर सेट करें जो आप **Make Client Secret** से बनाते हैं
-   - अपने खुद के ऐप्लिकेशन के लिए **Tenant URL** को OneUptime के **SCIM Base URL** (जैसे, `https://oneuptime.com/identity/scim/v2/<scim-id>`) पर और **Secret Token** को **Bearer Token** पर सेट करें
+3. **Admin Credentials** के नीचे **Tenant URL** को OneUptime के **SCIM Base URL** (जैसे, `https://oneuptime.com/identity/scim/v2/<scim-id>`) पर और **Secret Token** को **Bearer Token** पर सेट करें
 4. कॉन्फ़िगरेशन जाँचने के लिए **Test Connection** पर क्लिक करें, फिर **Save** पर
 
 #### Entra ID में उपयोगकर्ता गुण मैप करें
 
 1. Provisioning अनुभाग में **Mappings** पर क्लिक करें, फिर **Provision Azure Active Directory Users** पर
-2. नीचे दिए गुण मैपिंग कॉन्फ़िगर करें, जिनकी ज़रूरत नहीं उन्हें हटाएँ, और **Save** पर क्लिक करें। गैलरी वाले ऐप्लिकेशन में ये पहले से होती हैं:
+2. नीचे दिए गुण मैपिंग कॉन्फ़िगर करें, जिनकी ज़रूरत नहीं उन्हें हटाएँ, और **Save** पर क्लिक करें:
 
 | Azure AD गुण                                                  | OneUptime SCIM गुण             | आवश्यक   |
 | ------------------------------------------------------------- | ------------------------------ | -------- |
@@ -403,7 +401,7 @@ OneUptime Cloud पर SCIM प्रोविजनिंग तभी पू�
 **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **SCIM** (या स्थिति पृष्ठ के **SCIM** पृष्ठ) के नीचे **लॉग** टैब से शुरू करें। यह आपके पहचान प्रदाता के भेजे SCIM अनुरोधों को उनकी स्थिति के साथ सूचीबद्ध करता है, और **विवरण देखें** अनुरोध और OneUptime का जवाब दिखाता है।
 
 :::details Entra ID: Test Connection विफल होता है
-जाँचें कि **Tenant URL** बिल्कुल वही **SCIM Base URL** है जो OneUptime दिखाता है, और **Secret Token** मौजूदा **Bearer Token** है। **Bearer टोकन रीसेट करें** के बाद पुराना टोकन काम करना बंद कर देता है। गैलरी वाले ऐप्लिकेशन के साथ **Token Endpoint** जाँचें, यह जाँचें कि **Client Identifier** कनेक्शन का **Client ID** है, और यह भी कि **Client Secret** समाप्त या हटाया नहीं गया है: समाप्त या हटाए गए सीक्रेट से कोई एक्सेस टोकन जारी नहीं होता। **Make New Client Secret** से नया सीक्रेट बनाएँ।
+जाँचें कि **Tenant URL** बिल्कुल वही **SCIM Base URL** है जो OneUptime दिखाता है, और **Secret Token** मौजूदा **Bearer Token** है। **Bearer टोकन रीसेट करें** के बाद पुराना टोकन काम करना बंद कर देता है।
 :::
 
 :::details Okta: API क्रेडेंशियल परीक्षण विफल होता है, या अनुरोधों को 401 Unauthorized मिलता है

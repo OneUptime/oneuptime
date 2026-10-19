@@ -80,7 +80,7 @@ sequenceDiagram
 
 ### Учётные данные клиента OAuth 2.0
 
-Некоторые поставщики удостоверений не хранят bearer-токен и вместо этого запрашивают учётные данные клиента OAuth 2.0: так делает приложение OneUptime в галерее приложений Microsoft Entra. У каждого подключения, будь то подключение проекта или страницы состояния, они есть в том же диалоге, что и его **SCIM Base URL**, в разделе **OAuth 2.0 Client Credentials**:
+Некоторые поставщики удостоверений не хранят bearer-токен и вместо этого запрашивают учётные данные клиента OAuth 2.0. У каждого подключения, будь то подключение проекта или страницы состояния, они есть в том же диалоге, что и его **SCIM Base URL**, в разделе **OAuth 2.0 Client Credentials**:
 
 - **Token Endpoint**: адрес, по которому ваш поставщик удостоверений получает токены доступа. Он один для всех подключений: `https://oneuptime.com/identity/scim/oauth/token` в OneUptime Cloud.
 - **Client ID**: идентификатор подключения.
@@ -145,7 +145,7 @@ Microsoft Entra ID обеспечивает управление удостов�
 - Проект OneUptime на плане **Scale** или выше в OneUptime Cloud.
 - Права администратора и в Microsoft Entra ID, и в OneUptime.
 
-В OneUptime Cloud, если OneUptime есть в галерее приложений Microsoft Entra, добавьте его оттуда: такое приложение предоставляет доступ по [учётным данным клиента OAuth 2.0](#учётные-данные-клиента-oauth-20) подключения, и в нём уже есть сопоставления атрибутов, приведённые ниже. Если вы уже добавили его для SSO, используйте это приложение.
+Приложение OneUptime в галерее приложений Microsoft Entra предназначено для единого входа. Для предоставления доступа создайте собственное приложение, как описано ниже, даже если вы добавили OneUptime из галереи для SSO.
 
 :::steps
 #### Создайте подключение SCIM для Entra ID
@@ -165,23 +165,21 @@ Microsoft Entra ID обеспечивает управление удостов�
 
 1. Войдите в [Microsoft Entra admin center](https://entra.microsoft.com)
 2. Перейдите в **Identity** > **Applications** > **Enterprise applications**
-3. Нажмите **+ New application**
-4. Из галереи: найдите OneUptime, выберите его и нажмите **Create**
-5. Иначе: нажмите **+ Create your own application**, введите имя (например, "OneUptime"), выберите **Integrate any other application you don't find in the gallery (Non-gallery)** и нажмите **Create**
+3. Нажмите **+ New application**, затем **+ Create your own application**
+4. Введите имя (например, "OneUptime")
+5. Выберите **Integrate any other application you don't find in the gallery (Non-gallery)** и нажмите **Create**
 
 #### Подключите Entra ID к OneUptime
 
 1. В корпоративном приложении OneUptime перейдите в **Provisioning** и нажмите **Get started**
 2. Задайте **Provisioning Mode** равным **Automatic**
-3. В разделе **Admin Credentials**:
-   - Для приложения из галереи задайте **Tenant URL** равным **SCIM Base URL** из OneUptime, **Token Endpoint** — его **Token Endpoint**, **Client Identifier** — его **Client ID**, а **Client Secret** — секрету, который вы создадите кнопкой **Make Client Secret**
-   - Для собственного приложения задайте **Tenant URL** равным **SCIM Base URL** из OneUptime (например, `https://oneuptime.com/identity/scim/v2/<scim-id>`), а **Secret Token** — равным **Bearer Token**
+3. В разделе **Admin Credentials** задайте **Tenant URL** равным **SCIM Base URL** из OneUptime (например, `https://oneuptime.com/identity/scim/v2/<scim-id>`), а **Secret Token** — равным **Bearer Token**
 4. Нажмите **Test Connection**, чтобы проверить конфигурацию, затем нажмите **Save**
 
 #### Сопоставьте атрибуты пользователей в Entra ID
 
 1. В разделе Provisioning нажмите **Mappings**, затем **Provision Azure Active Directory Users**
-2. Настройте следующие сопоставления атрибутов, удалите ненужные и нажмите **Save**. В приложении из галереи они уже есть:
+2. Настройте следующие сопоставления атрибутов, удалите ненужные и нажмите **Save**:
 
 | Атрибут Azure AD                                              | Атрибут SCIM в OneUptime       | Обязательный  |
 | ------------------------------------------------------------- | ------------------------------ | ------------- |
@@ -403,7 +401,7 @@ Okta обеспечивает гибкое управление удостове
 Начните с вкладки **Журналы** в разделе **Настройки проекта** > **Безопасность** > **SCIM** (или на странице **SCIM** страницы состояния). Она перечисляет запросы SCIM, которые отправил ваш поставщик удостоверений, с их статусом, а **Просмотреть подробности** показывает запрос и ответ OneUptime.
 
 :::details Entra ID: Test Connection завершается ошибкой
-Убедитесь, что **Tenant URL** в точности совпадает с **SCIM Base URL**, который показывает OneUptime, а **Secret Token** — с текущим **Bearer Token**. После **Сбросить Bearer-токен** старый токен перестаёт работать. Для приложения из галереи проверьте **Token Endpoint**, а также что **Client Identifier** — это **Client ID** подключения и что срок **Client Secret** не истёк и секрет не удалён: иначе токен доступа по нему не выдаётся. Создайте новый секрет кнопкой **Make New Client Secret**.
+Убедитесь, что **Tenant URL** в точности совпадает с **SCIM Base URL**, который показывает OneUptime, а **Secret Token** — с текущим **Bearer Token**. После **Сбросить Bearer-токен** старый токен перестаёт работать.
 :::
 
 :::details Okta: проверка учётных данных API не проходит или запросы получают 401 Unauthorized
