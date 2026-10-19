@@ -30,3 +30,10 @@ services:
   global-runner:
     profiles:
       - billing-disabled
+
+  # And turned off where it is set up, as config.env's GLOBAL_RUNNER_REPLICAS=0
+  # does: the app removes its row, so no project waits for a global Runner
+  # this stack never starts.
+  app:
+    environment:
+      GLOBAL_RUNNER_REPLICAS: "0"

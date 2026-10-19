@@ -184,6 +184,15 @@ describe("the bundled global Runner in Docker Compose", () => {
       profiles: ["billing-disabled"],
     });
   });
+
+  test("the SaaS e2e stack turns it off in the app too, so no project waits for it", () => {
+    const billing = yaml.load(read("packages/E2E/docker-compose.billing.yml"));
+
+    // The setting the app's seed reads: zero replicas removes the row.
+    expect(billing.services.app).toEqual({
+      environment: { GLOBAL_RUNNER_REPLICAS: "0" },
+    });
+  });
 });
 
 describe("the bundled global Runner's key at install", () => {
