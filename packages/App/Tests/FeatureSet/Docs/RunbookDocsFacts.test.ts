@@ -2194,10 +2194,9 @@ describe("a runbook's own side menu", () => {
   );
 
   // The menu, its Developer section put where the menu adds it.
-  const viewMenu: Array<DashboardMenuSection> = menuSections(
-    VIEW_MENU_SOURCE,
-    { "{getDeveloperSideMenuSection(": developerSection() },
-  );
+  const viewMenu: Array<DashboardMenuSection> = menuSections(VIEW_MENU_SOURCE, {
+    "{getDeveloperSideMenuSection(": developerSection(),
+  });
 
   const sectionTitles: Array<string> = viewMenu.map(
     (menuSection: DashboardMenuSection): string => {
@@ -2212,7 +2211,10 @@ describe("a runbook's own side menu", () => {
    * pages, in bold, in the order the menu draws them.
    */
   function overviewMenuTable(): Array<DashboardMenuSection> {
-    const where: string = section(INDEX, "Where runbooks live in the dashboard");
+    const where: string = section(
+      INDEX,
+      "Where runbooks live in the dashboard",
+    );
     const start: number = where.indexOf(TABLE_HEADER);
 
     expect({ table: TABLE_HEADER, found: start >= 0 }).toEqual({

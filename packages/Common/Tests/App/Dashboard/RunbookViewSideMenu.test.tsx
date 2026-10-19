@@ -287,7 +287,11 @@ const ACTIVE_LINK_CLASSES: Array<string> = [
   "font-semibold",
 ];
 
-const FOLDED_BODY_CLASSES: Array<string> = ["max-h-0", "opacity-0", "invisible"];
+const FOLDED_BODY_CLASSES: Array<string> = [
+  "max-h-0",
+  "opacity-0",
+  "invisible",
+];
 
 interface MenuPage {
   title: string;
@@ -621,7 +625,10 @@ describe("opening a folded section", () => {
     });
 
     expectOpen("Logs");
-    expect(entry("Logs", "Executions")).toHaveAttribute("href", EXECUTIONS_PATH);
+    expect(entry("Logs", "Executions")).toHaveAttribute(
+      "href",
+      EXECUTIONS_PATH,
+    );
 
     await act(async () => {
       fireEvent.click(sectionToggle("Logs"));
@@ -709,9 +716,11 @@ function trailTitles(path: string): Array<string> {
 }
 
 describe("the trail above each page of a runbook", () => {
-  test.each(RUNBOOK_MENU.filter((page: MenuPage): boolean => {
-    return page.title !== "Overview";
-  }))(
+  test.each(
+    RUNBOOK_MENU.filter((page: MenuPage): boolean => {
+      return page.title !== "Overview";
+    }),
+  )(
     "the $title page reads Project > Runbooks > View Runbook > $title",
     (page: MenuPage) => {
       expect(trailTitles(page.path)).toEqual([
@@ -750,9 +759,10 @@ describe("the trail above each page of a runbook", () => {
         titles: ["Project", "Runbooks", "View Runbook"],
       });
       for (const sectionOnly of ["Basic", "Logs", "Advanced"]) {
-        expect({ page: page.name, names: titles.includes(sectionOnly) }).toEqual(
-          { page: page.name, names: false },
-        );
+        expect({
+          page: page.name,
+          names: titles.includes(sectionOnly),
+        }).toEqual({ page: page.name, names: false });
       }
     }
   });
@@ -760,13 +770,22 @@ describe("the trail above each page of a runbook", () => {
 
 describe("the pages kept their addresses", () => {
   test.each([
-    [PageMap.RUNBOOK_VIEW_EXECUTIONS, "/dashboard/:projectId/runbooks/:id/executions"],
+    [
+      PageMap.RUNBOOK_VIEW_EXECUTIONS,
+      "/dashboard/:projectId/runbooks/:id/executions",
+    ],
     [
       PageMap.RUNBOOK_VIEW_EXECUTION,
       "/dashboard/:projectId/runbooks/:id/executions/:subModelId",
     ],
-    [PageMap.RUNBOOK_VIEW_TRIGGERS, "/dashboard/:projectId/runbooks/:id/triggers"],
-    [PageMap.RUNBOOK_VIEW_SETTINGS, "/dashboard/:projectId/runbooks/:id/settings"],
+    [
+      PageMap.RUNBOOK_VIEW_TRIGGERS,
+      "/dashboard/:projectId/runbooks/:id/triggers",
+    ],
+    [
+      PageMap.RUNBOOK_VIEW_SETTINGS,
+      "/dashboard/:projectId/runbooks/:id/settings",
+    ],
   ])("%s is still %s", (key: PageMap, pattern: string) => {
     expect(RouteMap[key]!.toString()).toBe(pattern);
   });

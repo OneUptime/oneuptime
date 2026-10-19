@@ -207,9 +207,7 @@ test.describe("a runbook's side menu", () => {
         await page.evaluate((): string => {
           const focused: Element | null = document.activeElement;
           return (
-            focused?.getAttribute("href") ||
-            focused?.textContent?.trim() ||
-            ""
+            focused?.getAttribute("href") || focused?.textContent?.trim() || ""
           );
         }),
       );
