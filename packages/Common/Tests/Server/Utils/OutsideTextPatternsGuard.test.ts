@@ -797,7 +797,7 @@ describe("the readers each family is held to are the ones the product uses", () 
     ],
     [
       "packages/Common/Server/Utils/AI/SRE/InvestigationTldr.ts",
-      ["stripBlockMarkers(", "afterLeadingMatches("],
+      ["stripBlockMarkers("],
     ],
     [
       "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData.ts",
