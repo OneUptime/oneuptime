@@ -382,7 +382,7 @@ function checkSynthetic(agent, exported) {
     fail(`${agent}:\n  ${problems.join("\n  ")}`);
   }
   console.log(
-    `    ok      ${CPU_TIME_METRIC} and ${MEMORY_PERCENT_METRIC} unchanged but for the "%" unit`,
+    `    ok      ${CPU_TIME_METRIC} unchanged; ${MEMORY_PERCENT_METRIC} the same values, in "%" and described as a percent of the memory limit`,
   );
 }
 
@@ -462,6 +462,9 @@ function checkReal(agent, exported, container, percent, tolerance) {
     if (point.unit !== "%" || point.type !== "gauge") {
       problems.push(`${CPU_METRIC} is a ${point.type} in "${point.unit}"`);
     }
+    if (point.description !== CPU_DESCRIPTION) {
+      problems.push(`${CPU_METRIC} is described "${point.description}"`);
+    }
     if (!inRange) {
       problems.push(`${line}: not within ${tolerance} of ${percent}%`);
     }
@@ -489,6 +492,11 @@ function checkReal(agent, exported, container, percent, tolerance) {
   for (const [time, point] of memory) {
     if (point.unit !== "%") {
       problems.push(`${MEMORY_PERCENT_METRIC} is in "${point.unit}", not "%"`);
+    }
+    if (point.description !== MEMORY_DESCRIPTION) {
+      problems.push(
+        `${MEMORY_PERCENT_METRIC} is described "${point.description}"`,
+      );
     }
     const used = usage.get(time);
     const of = limit.get(time);
