@@ -120,7 +120,7 @@ En lengre melding, med en lang tittel eller en lang beskrivelse som en mal har s
 
 ### Når et varsel ikke sendes
 
-Et varsel som ikke sendes, sier hvorfor i personens **Vaktlogger** (Brukerinnstillinger): raden viser **Feil**, og statusmeldingen gir årsaken. Det blir ikke lenger stående på **Sending**. Meldingen sier ett av dette:
+Et varsel som ikke sendes, sier hvorfor i personens **Vaktlogger** (Brukerinnstillinger): raden viser **Feil**, og statusmeldingen gir årsaken. Det blir ikke lenger stående på **Sender**. Meldingen sier ett av dette:
 
 - prosjektets saldo kunne ikke betale for det, og hvem som kan fylle på saldoen;
 - kanalen er slått av i prosjektet, og hvem som kan slå den på.

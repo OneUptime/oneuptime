@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Apri Threat Intel
 
-Apri **Prodotti → Security Events → Threat Intel**.
+Apri **Prodotti → Security Events → Detections → Threat Intel**.
 
 ### Crea il feed
 

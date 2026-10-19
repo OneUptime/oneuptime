@@ -68,7 +68,8 @@ export class Service extends DatabaseService<Model> {
    * connector parses the document itself.
    */
   public static validateFields(data: {
-    definition: SecurityEventConnectorDefinition;
+    // Only its title is read, so a SIEM destination's definition fits too.
+    definition: Pick<SecurityEventConnectorDefinition, "title">;
     fields: Array<ConnectorField>;
     values: JSONObject;
     label: string;
@@ -328,7 +329,11 @@ export class Service extends DatabaseService<Model> {
    * silently a no-op that leaves the credential in place.
    */
   public static mergeSecrets(data: {
-    definition: SecurityEventConnectorDefinition;
+    // A SIEM destination's definition has the same title and secret fields.
+    definition: Pick<
+      SecurityEventConnectorDefinition,
+      "title" | "secretFields"
+    >;
     stored: JSONObject;
     provided: JSONObject;
   }): JSONObject {

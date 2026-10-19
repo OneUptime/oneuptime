@@ -5,10 +5,14 @@ import {
   readRuleAttackTags,
 } from "../../Components/SecurityEvents/AttackCoverage";
 import {
+  LibraryRuleFilter,
   LibraryRuleView,
+  RECOMMENDED_FILTER,
   getLibraryRuleViews,
+  getRecommendedRulesNotAdded,
   isLibraryRuleAdded,
 } from "../../Components/SecurityEvents/RuleLibraryUtil";
+import SecurityCaseApi from "../../Components/SecurityCase/SecurityCaseApi";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -149,9 +153,7 @@ const RuleLibraryPage: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [existing, setExisting] = useState<Array<string>>([]);
-  const [category, setCategory] = useState<DetectionRuleLibraryCategory | "">(
-    "",
-  );
+  const [category, setCategory] = useState<LibraryRuleFilter>("");
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [addingIds, setAddingIds] = useState<Array<string>>([]);
@@ -159,6 +161,9 @@ const RuleLibraryPage: FunctionComponent<
     null,
   );
   const [confirmAddAll, setConfirmAddAll] = useState<boolean>(false);
+  const [isTurningOnRecommended, setIsTurningOnRecommended] =
+    useState<boolean>(false);
+  const [readCount, setReadCount] = useState<number>(0);
 
   const createGate: PermissionGateResult = PermissionGate.check(
     new DetectionRule(),
@@ -189,7 +194,7 @@ const RuleLibraryPage: FunctionComponent<
     };
 
     void load();
-  }, []);
+  }, [readCount]);
 
   const views: Array<LibraryRuleView> = useMemo(() => {
     return getLibraryRuleViews({
@@ -247,6 +252,34 @@ const RuleLibraryPage: FunctionComponent<
     setAddingIds([]);
   };
 
+  /*
+   * The recommended rules in one click, through the same server call as
+   * the Overview's "Turn on recommended": it adds the missing ones and
+   * turns back on any that were turned off.
+   */
+  const turnOnRecommended: () => Promise<void> = async (): Promise<void> => {
+    setError("");
+    setIsTurningOnRecommended(true);
+
+    try {
+      await SecurityCaseApi.turnOnRecommended({
+        logs: false,
+        detections: true,
+        playbook: false,
+      });
+      setReadCount((count: number): number => {
+        return count + 1;
+      });
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsTurningOnRecommended(false);
+  };
+
+  const recommendedNotAdded: Array<DetectionRuleLibraryEntry> =
+    getRecommendedRulesNotAdded(existing);
+
   const notAdded: Array<DetectionRuleLibraryEntry> = views
     .filter((view: LibraryRuleView): boolean => {
       return !view.isAdded;
@@ -259,8 +292,40 @@ const RuleLibraryPage: FunctionComponent<
     <div className="space-y-6">
       <Card
         title="Rule Library"
-        description="Ready-made detections, such as brute force or impossible travel. Adding one creates a detection rule you can change under Detection Rules."
+        description="Ready-made detections, such as brute force or impossible travel. Adding one creates a detection rule you can change under Detection Rules. Start with the recommended ones."
+        /*
+         * Two wide buttons beside the description squeezed it into a column
+         * five lines tall in German; here it runs under both, the card's
+         * whole width.
+         */
+        headerLayout="toolbar"
         buttons={[
+          ...(recommendedNotAdded.length > 0
+            ? [
+                {
+                  title: translator.translatePlural(
+                    {
+                      one: "Add {{count}} Recommended Rule",
+                      other: "Add {{count}} Recommended Rules",
+                    },
+                    recommendedNotAdded.length,
+                  ),
+                  icon: IconProp.Star,
+                  buttonStyle: ButtonStyleType.PRIMARY,
+                  isLoading: isTurningOnRecommended,
+                  disabled:
+                    !createGate.isAllowed ||
+                    isTurningOnRecommended ||
+                    addingIds.length > 0,
+                  tooltip: createGate.isAllowed
+                    ? undefined
+                    : createGate.disabledReason,
+                  onClick: () => {
+                    void turnOnRecommended();
+                  },
+                },
+              ]
+            : []),
           {
             title: translator.translatePlural(
               { one: "Add {{count}} Rule", other: "Add All {{count}} Rules" },
@@ -282,13 +347,27 @@ const RuleLibraryPage: FunctionComponent<
         ]}
       >
         <div className="space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap gap-1">
+          <div className="space-y-3">
+            <div className="w-full sm:max-w-sm">
+              <Input
+                placeholder="Search rules"
+                value={search}
+                onChange={(value: string) => {
+                  setSearch(value);
+                }}
+              />
+            </div>
+            <div
+              className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+              data-testid="rule-library-filters"
+            >
               {(
-                ["", ...DETECTION_RULE_LIBRARY_CATEGORIES] as Array<
-                  DetectionRuleLibraryCategory | ""
-                >
-              ).map((item: DetectionRuleLibraryCategory | ""): ReactElement => {
+                [
+                  "",
+                  RECOMMENDED_FILTER,
+                  ...DETECTION_RULE_LIBRARY_CATEGORIES,
+                ] as Array<LibraryRuleFilter>
+              ).map((item: LibraryRuleFilter): ReactElement => {
                 const isActive: boolean = item === category;
 
                 return (
@@ -297,7 +376,7 @@ const RuleLibraryPage: FunctionComponent<
                     type="button"
                     aria-pressed={isActive}
                     data-testid={`rule-library-category-${item || "all"}`}
-                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-indigo-50 text-indigo-700"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -308,25 +387,22 @@ const RuleLibraryPage: FunctionComponent<
                   >
                     {item ? (
                       <Icon
-                        icon={CATEGORY_ICONS[item]}
+                        icon={
+                          item === RECOMMENDED_FILTER
+                            ? IconProp.Star
+                            : CATEGORY_ICONS[item]
+                        }
                         className="h-3.5 w-3.5"
                       />
                     ) : (
                       <></>
                     )}
-                    {translator.translateText(item || "All")}
+                    {item === RECOMMENDED_FILTER
+                      ? translator.translateText("Recommended")
+                      : translator.translateText(item || "All")}
                   </button>
                 );
               })}
-            </div>
-            <div className="w-full md:w-72">
-              <Input
-                placeholder="Search rules"
-                value={search}
-                onChange={(value: string) => {
-                  setSearch(value);
-                }}
-              />
             </div>
           </div>
 
@@ -350,33 +426,36 @@ const RuleLibraryPage: FunctionComponent<
                     className="flex flex-col rounded-lg border border-gray-200 bg-white p-4"
                     data-testid={`rule-library-entry-${view.entry.id}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-2.5">
-                        <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500">
-                          <Icon
-                            icon={CATEGORY_ICONS[view.entry.category]}
-                            className="h-4 w-4"
-                          />
-                        </span>
-                        <div className="min-w-0">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500">
+                        <Icon
+                          icon={CATEGORY_ICONS[view.entry.category]}
+                          className="h-4 w-4"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <p className="text-sm font-semibold text-gray-900">
                             {view.entry.title}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            {translator.translateText(view.entry.category)}
-                            {" · "}
-                            {view.entry.dataSource}
-                          </p>
+                          {view.isRecommended ? (
+                            <div
+                              className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700"
+                              data-testid={`rule-library-recommended-${view.entry.id}`}
+                            >
+                              <Icon icon={IconProp.Star} className="h-3 w-3" />
+                              {translator.translateText("Recommended")}
+                            </div>
+                          ) : (
+                            <></>
+                          )}
                         </div>
+                        <p className="text-xs text-gray-500">
+                          {translator.translateText(view.entry.category)}
+                          {" · "}
+                          {view.entry.dataSource}
+                        </p>
                       </div>
-                      {view.isAdded ? (
-                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                          <Icon icon={IconProp.Check} className="h-3 w-3" />
-                          {translator.translateText("Added")}
-                        </span>
-                      ) : (
-                        <></>
-                      )}
                     </div>
                     <p className="mt-2 flex-1 text-sm text-gray-600">
                       {view.entry.description}
@@ -387,7 +466,18 @@ const RuleLibraryPage: FunctionComponent<
                         techniques={tags?.techniques || []}
                       />
                     </div>
-                    <div className="mt-4 flex items-center justify-end gap-2">
+                    <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                      {view.isAdded ? (
+                        <div
+                          className="mr-auto inline-flex items-center gap-1 text-sm font-medium text-emerald-700"
+                          data-testid={`rule-library-added-${view.entry.id}`}
+                        >
+                          <Icon icon={IconProp.Check} className="h-4 w-4" />
+                          {translator.translateText("Added")}
+                        </div>
+                      ) : (
+                        <></>
+                      )}
                       <Button
                         title="View Rule"
                         icon={IconProp.Code}

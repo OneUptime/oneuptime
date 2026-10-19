@@ -26,6 +26,8 @@ export const CIRCUIT_BREAKER: string = "telemetry/ai-agent-circuit-breaker";
 export const SECURITY_EVENTS: string = "telemetry/security-events";
 export const THREAT_INTELLIGENCE: string = "telemetry/threat-intelligence";
 export const SECURITY_CASES: string = "telemetry/security-cases";
+export const SECURITY_GETTING_STARTED: string =
+  "telemetry/security-getting-started";
 
 // The AI observability pages of task 24a.
 export const AI_OBSERVABILITY_PAGES: ReadonlyArray<DocsPageEntry> = [
@@ -43,8 +45,12 @@ export const AI_TOOLING_PAGES: ReadonlyArray<DocsPageEntry> = [
   { page: CIRCUIT_BREAKER, navTitle: "AI Agent Circuit Breakers" },
 ];
 
-// The Security group's pages, also task 24b.
+/*
+ * The Security group's pages, also task 24b, and the getting-started page
+ * the Security overhaul put first in the group.
+ */
 export const SECURITY_PAGES: ReadonlyArray<DocsPageEntry> = [
+  { page: SECURITY_GETTING_STARTED, navTitle: "Get Started with Security" },
   { page: SECURITY_EVENTS, navTitle: "Security Events (SIEM)" },
   { page: THREAT_INTELLIGENCE, navTitle: "Threat Intelligence (STIX/TAXII)" },
   { page: SECURITY_CASES, navTitle: "Security Cases and Playbooks (SOAR)" },

@@ -56,7 +56,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### 저장하기 전에 테스트
 
-**Test before saving** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 로그인해 알림을 읽지만 아무것도 저장하지 않으므로, 잘못된 시크릿이나 빠진 동의를 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
+**저장하기 전에 테스트** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 로그인해 알림을 읽지만 아무것도 저장하지 않으므로, 잘못된 시크릿이나 빠진 동의를 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
 :::
 
 | 설정 | 찾는 위치 |
@@ -116,7 +116,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 더 긴 구간에서 이미 가져온 알림은 중복으로 건너뜁니다.
 2. **다시 늘리기.** 구간을 끝까지 읽으면 커서가 그 끝으로 옮겨지고, 다음 구간은 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 알림이 2,000개보다 많으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **Last Error**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 알림이 2,000개보다 많으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
 알림 하나를 보안 이벤트로 읽어 들이지 못한 경우처럼 다른 이유로 **Partial**이 된 실행도, 같은 시작점에서 같은 방식으로 다시 시도됩니다. **Poll Interval (Minutes)** 값을 바꿔도 이 중 어느 것도 바뀌지 않습니다. 이 값은 폴링이 얼마나 자주 시작되는지를 정할 뿐, 구간이 어디서 시작되는지는 정하지 않습니다.
 
@@ -146,7 +146,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 ## 문제 해결
 
-연결의 **Last Error**는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **Copy Error**로 복사합니다. 먼저 접두사를 읽으세요.
+연결의 **마지막 오류**는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 먼저 접두사를 읽으세요.
 
 :::details Last Error가 `Microsoft Defender XDR token request`로 시작함
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID가 토큰 발급을 거부했으므로 Graph에는 연결하지 않았습니다. 메시지는 Entra의 `error` 코드에 따른 힌트로 끝납니다:
@@ -178,7 +178,7 @@ Defender 포털에서 알림의 `createdDateTime`을 **Diagnostics**에 있는 �
 
 - 연결이 생기기 전에 생성된 알림은 첫 24시간 되돌아보기보다 오래되었습니다. **Import this time range**로 가져오세요.
 - **Partial** 실행은 알림 2,000개 한도에서 멈춘 것입니다. 다음 폴링은 같은 시작점에서 더 짧은 구간을 읽으므로, 그 알림을 담은 구간을 끝까지 읽으면 알림을 가져옵니다.
-- **Last Error**에 폴링이 넘어간 1분이 적혀 있으면, 그 1분을 **Import this time range**로 가져오세요.
+- **마지막 오류**에 폴링이 넘어간 1분이 적혀 있으면, 그 1분을 **Import this time range**로 가져오세요.
 :::
 
 :::details 같은 알림이 두 번 나타남

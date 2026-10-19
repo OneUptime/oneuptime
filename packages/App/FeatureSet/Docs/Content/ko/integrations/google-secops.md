@@ -7,6 +7,7 @@
 - [관리형 커넥터 설정](#관리형-커넥터-설정): 서비스 계정 키와 연결 양식.
 - [커넥터의 폴링 방식](#커넥터의-폴링-방식): 모든 구간을 세 가지로 읽는 방법과 각각의 예산.
 - [문제 해결](#문제-해결): Last Error가 말하는 내용과 할 일.
+- [Google SecOps로 보안 이벤트 보내기](#google-secops로-보안-이벤트-보내기): OneUptime의 탐지를 Google SecOps에서.
 :::
 
 ## 연결 방법 선택
@@ -100,14 +101,14 @@ Google SecOps에서 **SIEM Settings → Profile**을 엽니다. 인스턴스 리
 
 ### 저장하기 전에 테스트
 
-저장하기 전에 **Test before saving** 아래의 **Test these settings**를 선택합니다. 테스트는 아무것도 저장하지 않고 양식의 값으로 실행되므로, 형식이 잘못된 키, 빠진 역할, 잘못된 인스턴스를 연결이 생기기 전에 잡아냅니다. 편집 양식에서는 같은 버튼이 화면에 표시된 **지역**, **Instance resource name**, **Data to import**를 저장된 키와 함께 테스트합니다. 자격 증명 필드를 비워 두면 저장된 키가 유지됩니다. 새로 입력한 키를 포함해 테스트한 값이 연결에 저장된 값과 다르면, 연결이 아직 그 설정을 갖고 있지 않으므로 실행 기록 행이 남지 않습니다.
+저장하기 전에 **저장하기 전에 테스트** 아래의 **Test these settings**를 선택합니다. 테스트는 아무것도 저장하지 않고 양식의 값으로 실행되므로, 형식이 잘못된 키, 빠진 역할, 잘못된 인스턴스를 연결이 생기기 전에 잡아냅니다. 편집 양식에서는 같은 버튼이 화면에 표시된 **지역**, **인스턴스 리소스 이름**, **Data to import**를 저장된 키와 함께 테스트합니다. 자격 증명 필드를 비워 두면 저장된 키가 유지됩니다. 새로 입력한 키를 포함해 테스트한 값이 연결에 저장된 값과 다르면, 연결이 아직 그 설정을 갖고 있지 않으므로 실행 기록 행이 남지 않습니다.
 :::
 
 | 설정 | 찾는 위치 | 필수 |
 | --- | --- | --- |
 | **지역** | 인스턴스 리소스 이름의 위치와 일치하는 Google SecOps 지역 엔드포인트(`us`, `europe`, `asia-southeast1`, ...). 기본값이 없으므로, 미국 밖의 테넌트가 실수로 잘못된 엔드포인트를 저장하는 일은 없습니다. | 예 |
-| **Instance resource name** | Google SecOps **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | 예 |
-| **Service account JSON** | Google Cloud, 서비스 계정의 **Keys** 탭. JSON 키 파일 전체를 붙여 넣습니다. 쓰기 전용: 저장 시 암호화되며, API가 반환하지 않고, 페이지에 다시 표시되지 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. | 예 |
+| **인스턴스 리소스 이름** | Google SecOps **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | 예 |
+| **서비스 계정 JSON** | Google Cloud, 서비스 계정의 **Keys** 탭. JSON 키 파일 전체를 붙여 넣습니다. 쓰기 전용: 저장 시 암호화되며, API가 반환하지 않고, 페이지에 다시 표시되지 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. | 예 |
 | **Data to import** | Google의 알림 API는 항상 알림을 반환하므로 **알림**은 항상 가져옵니다. 알림을 만들지 않은 규칙 일치도 가져오려면 **Detections**를 선택합니다. 원시 UDM 이벤트는 전달하지 않습니다. 그것은 위와 같이 직접 전달하세요. | 알림은 항상 |
 
 양식의 폴링 단계에서는 **이름**, 선택 사항인 **설명**, 연결의 **활성화됨** 여부, 그리고 **Poll Interval (Minutes)** 값을 묻습니다. 이 값은 `1`부터 `1440`까지의 정수이며 기본값은 `5`입니다. 그 범위를 벗어난 값은 저장할 때 거부됩니다.
@@ -121,7 +122,7 @@ Google SecOps에서 **SIEM Settings → Profile**을 엽니다. 인스턴스 리
 **Health**는 이벤트를 하나라도 가져온 뒤에야 **Last poll succeeded**로 표시됩니다. 그전까지 성공하고 있는 연결은 **Polling, no events imported yet**으로 표시되며, 이것이 연결 테스트로 조사해야 할 상태입니다. 그 밖의 상태는 **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused**, **Waiting for first poll**입니다. 상태에 마우스를 올리면 의미가 표시됩니다.
 
 > [!NOTE]
-> 커넥터는 Chronicle `v1alpha` 레거시 탐지 및 알림 API를 사용하며, Google은 이를 정식 출시 전(pre-GA) 단계로 제공합니다. 폴링이 실패하면 연결의 **Last Error** 필드에 실패한 단계를 나타내는 접두사와 함께, 자격 증명을 가린 전체 오류 메시지가 저장됩니다. Chronicle이 `200`으로 응답하면서 본문 안에 거부를 담는 경우도 마찬가지입니다. 연결의 **작업** 열에서 **오류 보기**를 선택해 메시지를 읽은 다음, 대화 상자의 **Copy Error**로 복사해 지원팀에 보내세요.
+> 커넥터는 Chronicle `v1alpha` 레거시 탐지 및 알림 API를 사용하며, Google은 이를 정식 출시 전(pre-GA) 단계로 제공합니다. 폴링이 실패하면 연결의 **마지막 오류** 필드에 실패한 단계를 나타내는 접두사와 함께, 자격 증명을 가린 전체 오류 메시지가 저장됩니다. Chronicle이 `200`으로 응답하면서 본문 안에 거부를 담는 경우도 마찬가지입니다. 연결의 **작업** 열에서 **오류 보기**를 선택해 메시지를 읽은 다음, 대화 상자의 **오류 복사**로 복사해 지원팀에 보내세요.
 
 ## 커넥터의 폴링 방식
 
@@ -152,15 +153,15 @@ flowchart TB
 
 1. **좁히기.** Google의 검색 엔드포인트는 가장 새로운 탐지부터 반환하므로, 일찍 멈춘 폴링에는 다시 시작할 지점이 없습니다. 폴링은 **Partial**로 기록되고, 커서는 그대로 머물며, 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽고 `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 경고를 남깁니다. 구간이 한도 안에 들어올 때까지 1분까지 계속 절반으로 줄입니다.
 2. **다시 늘리기.** 완전한 폴링마다 다음 구간이 최대 24시간까지 두 배가 되므로, 폭주는 연결을 영구적으로 느리게 만드는 대신 짧은 폴링 몇 번으로 끝납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 탐지가 있으면, 더 새로운 탐지가 계속 도착하도록 폴링이 커서를 그 1분 너머로 옮깁니다. 실행은 **Partial**이 되고 **Last Error**의 맨 앞에 같은 문장이 옵니다: `More records were created in the one minute from {start} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 한 번의 실행으로 읽을 수 있는 만큼 되찾으려면 **Diagnostics**를 열고, 그 1분을 포함하는 사용자 지정 범위를 고른 다음(범위 입력은 현지 시각을 쓰고, 메시지는 UTC입니다) **Import this time range**를 실행합니다. 가져오기에는 폴링과 같은 실행당 한도가 있습니다. 이미 가져온 탐지는 건너뜁니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 탐지가 있으면, 더 새로운 탐지가 계속 도착하도록 폴링이 커서를 그 1분 너머로 옮깁니다. 실행은 **Partial**이 되고 **마지막 오류**의 맨 앞에 같은 문장이 옵니다: `More records were created in the one minute from {start} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 한 번의 실행으로 읽을 수 있는 만큼 되찾으려면 **Diagnostics**를 열고, 그 1분을 포함하는 사용자 지정 범위를 고른 다음(범위 입력은 현지 시각을 쓰고, 메시지는 UTC입니다) **Import this time range**를 실행합니다. 가져오기에는 폴링과 같은 실행당 한도가 있습니다. 이미 가져온 탐지는 건너뜁니다.
 
-Partial 폴링은 경고도 **Last Error**에 저장하며, 경고는 완전한 폴링이 지울 때까지 남습니다. 완전히 실패한 폴링(레코드가 너무 많아서가 아니라 오류 때문)은 커서와 구간 길이를 유지하고 다음 주기에 다시 시도됩니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽습니다(`The source did not answer in time for this window; the next poll reads a {n} minute window from the same starting point.`). 그렇지 않으면 제시간에 응답할 수 없을 만큼 무거운 구간이 재시도할 때마다 시간 초과될 것이기 때문입니다. 폴링 간격을 줄여도 이 중 어느 것도 바뀌지 않습니다. 구간은 폴링이 얼마나 자주 실행되는지가 아니라, 커서와 마지막 폴링의 결과로 정해집니다.
+Partial 폴링은 경고도 **마지막 오류**에 저장하며, 경고는 완전한 폴링이 지울 때까지 남습니다. 완전히 실패한 폴링(레코드가 너무 많아서가 아니라 오류 때문)은 커서와 구간 길이를 유지하고 다음 주기에 다시 시도됩니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽습니다(`The source did not answer in time for this window; the next poll reads a {n} minute window from the same starting point.`). 그렇지 않으면 제시간에 응답할 수 없을 만큼 무거운 구간이 재시도할 때마다 시간 초과될 것이기 때문입니다. 폴링 간격을 줄여도 이 중 어느 것도 바뀌지 않습니다. 구간은 폴링이 얼마나 자주 실행되는지가 아니라, 커서와 마지막 폴링의 결과로 정해집니다.
 
 ## 연결 테스트
 
 연결 행이나 **Diagnostics**에 있는 **연결 테스트**는 API 프로세스에서 동기적으로 실행됩니다. 백그라운드 워커가 필요 없으며, 바로 그래서 실행 중인 워커가 없을 때 그 사실을 알려 줄 수 있습니다. 체크리스트:
 
-1. **구성**: 모든 필드가 있고 올바른 형식인지. 인스턴스의 위치와 일치하는 지원되는 **지역**, 올바른 형태의 **Instance resource name**, 그리고 `client_email`, 읽을 수 있는 `private_key`, Google `token_uri`를 가진 **Service account JSON** 키. 이 검사가 실패하면 아무 곳에도 연결하지 않습니다.
+1. **구성**: 모든 필드가 있고 올바른 형식인지. 인스턴스의 위치와 일치하는 지원되는 **지역**, 올바른 형태의 **인스턴스 리소스 이름**, 그리고 `client_email`, 읽을 수 있는 `private_key`, Google `token_uri`를 가진 **서비스 계정 JSON** 키. 이 검사가 실패하면 아무 곳에도 연결하지 않습니다.
 2. **Authenticate with Google**: Chronicle에 연결하기 전에 Google의 OAuth 엔드포인트에서 키를 액세스 토큰으로 교환합니다.
 3. **Read rule detections**, **Read curated rule detections**, **Read the alerts view**: 지난 24시간에 대해 각 패스로 레코드 하나를 시험 삼아 읽습니다. 큐레이션 검사는 지난 7일 동안의 큐레이션된 규칙 개수를 읽고 탐지가 가장 많은 큐레이션된 규칙을 시험합니다. 그 일주일 동안 발동한 큐레이션된 규칙이 없으면 시험할 것 없이 통과합니다. `400`, `403` 또는 `404`로 응답한 큐레이션 읽기는 경고입니다. 테넌트에 큐레이션된 규칙 접근 권한이 없을 뿐일 수 있기 때문입니다.
 4. **Detections available to import**: 지난 24시간과 지난 7일 동안, 저장된 **Data to import** 선택과 다른 선택(알림만, 또는 알림과 **Detections**)으로 Google에 있는 것. 범위마다 알림 뷰의 일치 개수와 생성 시각 검색 한 페이지를 읽어 숫자 또는 `1000+`로 보고합니다. 저장된 선택으로는 아무것도 없는데 다른 선택으로는 있으면 검사가 경고합니다. 규칙이 탐지를 만들지만 그 규칙에 알림이 켜져 있지 않은 것입니다. 연결을 편집해 **Data to import** 아래에서 **Detections**를 선택하거나, Google SecOps에서 규칙의 알림을 켜세요.
@@ -212,6 +213,32 @@ Google SecOps는 누가 규칙을 작성했느냐에 따라 탐지의 심각도�
 
 이 중 어느 것으로도 등급이 매겨지지 않은 탐지는 Unknown으로 표시됩니다. 사용자 지정 규칙에 등급을 매기려면 Google SecOps에서 규칙의 `meta` 섹션에 `severity = "High"`처럼 심각도를 추가하거나, `outcome` 섹션에서 `$risk_score`를 설정하세요. 그 뒤로 규칙이 만드는 탐지는 그 심각도로 가져옵니다.
 
+## Google SecOps로 보안 이벤트 보내기
+
+OneUptime은 찾은 것을 Google SecOps로도 보낼 수 있으므로, 팀이 사용하는 SIEM에서 OneUptime의 탐지를 자체 탐지와 나란히 볼 수 있습니다. 각 보안 이벤트는 UDM 이벤트로 가져옵니다. 로그인은 `USER_LOGIN`, 프로세스 시작은 `PROCESS_LAUNCH`, 네트워크 연결은 `NETWORK_CONNECTION`, 나머지는 `GENERIC_EVENT`가 되며, 심각도, MITRE ATT&CK 태그, 이를 찾은 규칙이 함께 붙습니다.
+
+:::steps
+### 이벤트를 가져올 수 있는 키 만들기
+
+Google Cloud에서 SecOps 인스턴스가 연결된 프로젝트에 서비스 계정을 만들고, **Chronicle API Editor**(`roles/chronicle.editor`)처럼 `chronicle.events.import` 권한이 있는 역할을 부여합니다. 해당 계정의 **Keys** 탭에서 **JSON** 유형의 키를 추가하고 다운로드합니다.
+
+### 대상 추가하기
+
+**제품 → Security Events → Connections**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **인스턴스 리소스 이름**을 입력한 다음, 키를 **서비스 계정 JSON**에 붙여 넣습니다.
+
+### 테스트 이벤트 보내기
+
+**테스트 이벤트 보내기**를 클릭합니다. 제품 `OneUptime Security Events`의 `GENERIC_EVENT` 하나가 양식의 설정으로 Google SecOps에 전송되며, 아무것도 저장되지 않습니다. 몇 분 안에 Google SecOps에 표시됩니다.
+
+### 보낼 내용 선택하기
+
+**보낼 내용**에서 **탐지만**(규칙과 위협 인텔리전스가 찾은 것과 연결된 제품이 발생시킨 알림)을 그대로 두거나 **모든 보안 이벤트**를 선택합니다. **전송 시작**을 클릭합니다.
+:::
+
+- 대상은 저장된 순간부터 들어오는 이벤트를 보내며 프로젝트의 기록은 보내지 않고, 새 이벤트를 매분 보냅니다.
+- OneUptime이 Google SecOps에서 가져온 알림은 Google SecOps로 다시 보내지 않습니다.
+- Google SecOps가 응답하지 않거나 배치를 거부하면 대상은 위치를 유지한 채 다음 실행에서 다시 시도합니다. **상태**는 **실패 중**으로 표시되고, **오류 보기**에서 Google SecOps의 응답을 확인할 수 있습니다.
+
 ## 문제 해결
 
 :::details 사용자 지정 규칙의 탐지는 심각도가 Unknown이고 큐레이션된 탐지는 등급이 매겨짐
@@ -243,7 +270,7 @@ Diagnostics에서 정확한 시간 구간, 시간 기준, 저장된 **Data to im
 :::
 
 :::details Last Error가 채워져 있음
-폴링을 시도했는데 그 안의 무언가가 실패했거나, 폴링이 구간 전체를 읽지 못했거나, 스케줄러가 폴링을 대기열에 넣지 못한 것입니다. 실패한 폴링의 경우 이 필드에는 자격 증명을 가린 전체 오류 메시지가 저장됩니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 전체 메시지를 열고, 대화 상자의 **Copy Error**로 복사해 지원팀에 보내세요. 이 필드는 다음 완전한 폴링에서 지워지고 **오류 보기** 작업도 사라지지만, 실행 기록에는 남습니다. 먼저 접두사를 읽으세요. `More records were created in the one minute from`으로 시작하는 메시지는 실패가 아니라 건너뛴 그 1분입니다. 위의 **Health가 Partial import임** 항목을 참고하세요. HTTP 상태를 담는 접두사는 네 가지뿐이므로, 상태가 없는 메시지가 OneUptime 쪽 결함의 증거는 아닙니다:
+폴링을 시도했는데 그 안의 무언가가 실패했거나, 폴링이 구간 전체를 읽지 못했거나, 스케줄러가 폴링을 대기열에 넣지 못한 것입니다. 실패한 폴링의 경우 이 필드에는 자격 증명을 가린 전체 오류 메시지가 저장됩니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 전체 메시지를 열고, 대화 상자의 **오류 복사**로 복사해 지원팀에 보내세요. 이 필드는 다음 완전한 폴링에서 지워지고 **오류 보기** 작업도 사라지지만, 실행 기록에는 남습니다. 먼저 접두사를 읽으세요. `More records were created in the one minute from`으로 시작하는 메시지는 실패가 아니라 건너뛴 그 1분입니다. 위의 **Health가 Partial import임** 항목을 참고하세요. HTTP 상태를 담는 접두사는 네 가지뿐이므로, 상태가 없는 메시지가 OneUptime 쪽 결함의 증거는 아닙니다:
 
 - `Google token exchange failed (HTTP ...)`: Chronicle에 연결하기도 전에 Google의 OAuth 엔드포인트에서 서비스 계정 자격 증명이 거부되었습니다. 대개 형식이 잘못되었거나, 폐기되었거나, 다른 프로젝트의 키입니다.
 - `Google token exchange returned ...`: 같은 OAuth 엔드포인트가 응답했지만 쓸 수 없는 내용이었습니다. `access_token`이 없거나 본문이 JSON이 아닙니다. 여전히 Chronicle에 연결하기 전이며, 대개 키 자체가 아니라 중간에 있는 프록시나 게이트웨이 때문입니다.
@@ -271,15 +298,15 @@ OAuth 토큰 교환에 성공했다면 Google이 서비스 계정 자격 증명�
 1. **실행 중인 앱과 워커 이미지 버전**을 확인합니다. 로컬 커넥터 소스 파일을 업데이트하거나 서비스 계정 JSON을 다시 업로드해도 배포된 컨테이너는 업데이트되지 않습니다. 폴링 작업을 실행하는 모든 앱이나 전용 워커에 커넥터 수정이 담긴 이미지를 배포하세요. 직접 이미지를 빌드한다면 수정된 소스로 다시 빌드하고 새로운 불변 태그로 배포하세요. 이전 이미지로 파드를 다시 시작하는 것만으로는 부족합니다.
 2. [Google API 레퍼런스](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView)와 비교해 알림 뷰 요청을 확인합니다. 요청은 `timeRange.startTime`, `timeRange.endTime`, `snapshotQuery=`(빈 값은 모든 알림 상태를 포함), `alertListOptions.maxReturnedAlerts`, 그리고 저장된 **Data to import** 선택에서 명시적으로 설정한 `includeNonAlertingDetections`를 사용합니다. 그 엔드포인트에 `pageSize`나 `pageToken`을 보내면 안 됩니다. 두 생성 시각 패스는 [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections)와 `legacySearchCuratedDetections`를 사용하며, 여기서는 `ruleId`, `listBasis`, `alertState`, `pageSize`, `pageToken`이 문서화된 매개변수이고, 그 실패에는 대신 탐지 검색 접두사가 붙습니다. `legacySearchCuratedDetections`는 항상 큐레이션된 규칙 ID 하나를 받으며, `-`는 절대 받지 않습니다. 닫힌 알림을 제외하는 필터로 대신하지 마세요. 탐지를 잃게 됩니다.
 3. 전체 `projects/{project}/locations/{location}/instances/{instance}` 리소스를 Google SecOps 테넌트 설정의 값과 비교합니다. instance 부분은 SecOps 인스턴스 ID여야 합니다. 연결의 표시 이름이나 서비스 계정 이름으로 대신할 수 없습니다. 지역 엔드포인트가 인스턴스 위치와 일치하는지 확인합니다.
-4. 롤아웃이 끝난 뒤 구성된 다음 폴링 간격까지 기다립니다. 완전한 폴링이 끝나면 **Last Polled**가 앞으로 나아가고 **Last Error**가 지워져야 합니다. 구간에 탐지가 있다면 **제품 → Security Events** 아래에 나타나야 합니다. 조용한 구간이라면 가져온 이벤트가 0개인 것이 정상일 수 있습니다.
+4. 롤아웃이 끝난 뒤 구성된 다음 폴링 간격까지 기다립니다. 완전한 폴링이 끝나면 **Last Polled**가 앞으로 나아가고 **마지막 오류**가 지워져야 합니다. 구간에 탐지가 있다면 **제품 → Security Events** 아래에 나타나야 합니다. 조용한 구간이라면 가져온 이벤트가 0개인 것이 정상일 수 있습니다.
 
-같은 오류가 계속되면 연결의 **작업** 열에서 **오류 보기**를 열고, 대화 상자의 **Copy Error**를 사용해 그 메시지와 이미지 태그 또는 다이제스트, 지역, 인스턴스 리소스 이름을 지원팀에 제공하세요. 기록된 메시지의 자격 증명은 가려져 있습니다. 서비스 계정 비공개 키, JWT 어설션, 액세스 토큰을 따로 보내지 마세요. 업그레이드 전에 기록된 오류는 이미 잘려 있을 수 있으며, 이후 실패한 폴링이 전체 메시지를 기록합니다. 실패한 폴링은 다시 시도하기 위해 구간을 유지하고, 부분 폴링은 다음 구간을 좁히거나 Last Error에 적힌 1분을 넘어갑니다. 예약된 따라잡기는 실행마다 최대 24시간을 처리합니다.
+같은 오류가 계속되면 연결의 **작업** 열에서 **오류 보기**를 열고, 대화 상자의 **오류 복사**를 사용해 그 메시지와 이미지 태그 또는 다이제스트, 지역, 인스턴스 리소스 이름을 지원팀에 제공하세요. 기록된 메시지의 자격 증명은 가려져 있습니다. 서비스 계정 비공개 키, JWT 어설션, 액세스 토큰을 따로 보내지 마세요. 업그레이드 전에 기록된 오류는 이미 잘려 있을 수 있으며, 이후 실패한 폴링이 전체 메시지를 기록합니다. 실패한 폴링은 다시 시도하기 위해 구간을 유지하고, 부분 폴링은 다음 구간을 좁히거나 Last Error에 적힌 1분을 넘어갑니다. 예약된 따라잡기는 실행마다 최대 24시간을 처리합니다.
 
 ## 이전 Google SecOps 커넥터에서 업그레이드
 
 Google SecOps에는 예전에 자체 연결 카드, API, 폴러가 있었습니다. 이제는 Security Event Connections의 공급자 중 하나이며, 업그레이드하면 기존 연결이 자동으로 옮겨집니다.
 
-- **연결은 자동으로 옮겨집니다.** 업그레이드한 릴리스가 데이터 마이그레이션을 실행하면, 모든 Google SecOps 연결이 공급자 `google-secops`로 Security Event Connections에 복사됩니다. ID, 이름, **지역**, **Instance resource name**, 서비스 계정 키, **활성화됨** 상태, 폴링 간격, **Data to import** 선택, 폴링 커서, Last Polled, Last Successful Poll, Last Event Imported, Last Error가 유지되므로, 폴링은 멈춘 곳에서 다시 시작합니다. 커넥터는 이전 커넥터가 가져올 때 쓰던 `Google` / `Google SecOps` ID를 유지하므로, 이미 가져온 탐지는 두 번 저장되지 않고 **Already imported**로 세어집니다.
+- **연결은 자동으로 옮겨집니다.** 업그레이드한 릴리스가 데이터 마이그레이션을 실행하면, 모든 Google SecOps 연결이 공급자 `google-secops`로 Security Event Connections에 복사됩니다. ID, 이름, **지역**, **인스턴스 리소스 이름**, 서비스 계정 키, **활성화됨** 상태, 폴링 간격, **Data to import** 선택, 폴링 커서, Last Polled, Last Successful Poll, Last Event Imported, Last Error가 유지되므로, 폴링은 멈춘 곳에서 다시 시작합니다. 커넥터는 이전 커넥터가 가져올 때 쓰던 `Google` / `Google SecOps` ID를 유지하므로, 이미 가져온 탐지는 두 번 저장되지 않고 **Already imported**로 세어집니다.
 - **최근 실행 기록도 함께 옮겨집니다.** 각 연결의 최근 실행 500개가 **Diagnostics**에 있는 그 연결의 실행 기록에 복사됩니다. 아직 대기 중이거나 실행 중이던 실행은 `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`와 함께 실패로 복사됩니다.
 - **이전 행은 삭제되지 않고 비활성화됩니다.** 그래서 롤링 배포 중에 아직 실행 중인 이전 워커가 같은 인스턴스를 두 번 폴링할 수 없습니다. 이전 커넥터가 있는 릴리스로 롤백하려면 그 행들을 다시 활성화해야 합니다.
 - **옮길 수 없는 연결은 원래 자리에 남습니다.** 저장된 키가 없거나, 이 서버의 `ENCRYPTION_SECRET`으로 키를 복호화할 수 없는 연결은 건너뛰고 워커 로그에 이름이 남습니다. **제품 → Security Events → Connections**에서 다시 추가하세요. 저장된 설정이 오늘의 검증을 더 이상 통과하지 못하는 연결도 옮겨지지만, 편집할 때까지 그 폴링은 해당 필드를 밝힌 메시지와 함께 실패합니다. 일시적인 데이터베이스 오류로 중단된 연결은 다음 워커 시작 시 마이그레이션이 다시 실행될 때 옮겨지며, 폴링은 복사된 커서에서 다시 시작합니다.

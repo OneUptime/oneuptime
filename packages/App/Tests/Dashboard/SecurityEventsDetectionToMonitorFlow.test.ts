@@ -63,11 +63,6 @@ function stripComments(source: string): string {
     .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
 
-const monitorsPageSource: string = readDashboardSource(
-  "Pages",
-  "SecurityEvents",
-  "Monitors.tsx",
-);
 const detectionRulesSource: string = readDashboardSource(
   "Pages",
   "SecurityEvents",
@@ -161,7 +156,13 @@ beforeAll(async () => {
   };
 });
 
-describe("Security Events monitors page wiring", () => {
+/*
+ * Security Events monitors are monitors like any other: they are listed,
+ * and filtered by type, under Monitors. The old Security Events > Monitors
+ * address still works - it opens Monitors - so a bookmark or a docs link
+ * never lands on an empty page.
+ */
+describe("the old Security Events monitors address", () => {
   test("the page key exists and has a route path segment", () => {
     expect(PageMap.SECURITY_EVENTS_MONITORS).toBeTruthy();
     expect(SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_MONITORS]).toBe(
@@ -178,20 +179,22 @@ describe("Security Events monitors page wiring", () => {
     );
   });
 
-  test("the route is registered in SecurityEventsRoutes", () => {
-    expect(routesSource).toContain(
-      'import SecurityEventsMonitorsPage from "../Pages/SecurityEvents/Monitors"',
-    );
-    expect(routesSource).toContain(
+  test("the route opens Monitors, replacing the old address in history", () => {
+    const source: string = stripComments(routesSource);
+
+    expect(source).toContain(
       "SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_MONITORS]",
     );
-    expect(routesSource).toContain("<SecurityEventsMonitorsPage");
+    expect(source).toContain("<Navigate");
+    expect(source).toContain("replace={true}");
+    expect(source).toContain("RouteMap[PageMap.MONITORS] as Route");
+    expect(source).not.toContain("SecurityEventsMonitorsPage");
   });
 
-  test("the monitor link is is in the Security Events side menu", () => {
-    expect(navigationSource).toContain('title: "Monitors",');
+  test("the address is a redirect, not an entry of the Security Events menu", () => {
+    expect(navigationSource).not.toContain('title: "Monitors",');
     expect(navigationSource).toContain(
-      "page: PageMap.SECURITY_EVENTS_MONITORS,",
+      "export const SECURITY_EVENTS_REDIRECTED_PAGES: Array<PageMap> = [\n  PageMap.SECURITY_EVENTS_MONITORS,",
     );
   });
 
@@ -202,56 +205,14 @@ describe("Security Events monitors page wiring", () => {
     expect(layoutSource).toContain("sideMenu={<SecurityEventsSideMenu />}");
   });
 
-  test("the monitors page has a breadcrumb trail", () => {
+  test("the old address has no trail of its own: it opens Monitors at once", () => {
     const pattern: string = RouteUtil.getRouteString(
       PageMap.SECURITY_EVENTS_MONITORS,
     );
 
     setNavigationLocation(pattern.replace(RouteParams.ProjectID, "proj-1"));
 
-    const trail: Array<Link> | undefined =
-      getSecurityEventsBreadcrumbs(pattern);
-
-    expect(trail).toBeDefined();
-    expect(
-      trail!.map((link: Link) => {
-        return link.title;
-      }),
-    ).toEqual(["Project", "Security Events", "Monitors"]);
-  });
-});
-
-describe("Security Events monitors page", () => {
-  test("scopes the table to Security Events monitors", () => {
-    expect(monitorsPageSource).toContain(
-      "monitorType: MonitorType.SecurityEvents",
-    );
-  });
-
-  test("uses its own filter-state key so it cannot share URL state with the main monitors table", () => {
-    expect(monitorsPageSource).toContain(
-      'tableId: "security-events-monitors-table"',
-    );
-  });
-
-  test("replaces the built-in create button with a permission-gated, type-preselecting deep link", () => {
-    const source: string = stripComments(monitorsPageSource);
-
-    expect(source).toContain("disableCreate={true}");
-    expect(source).toContain("PermissionGate.gateCardButton");
-    expect(source).toContain("RouteMap[PageMap.MONITOR_CREATE] as Route");
-    expect(source).toContain("monitorType: MonitorType.SecurityEvents");
-    /*
-     * The deep link must go through the monitor create PAGE — never an
-     * inline create form, which would bypass the pay-as-you-go consent
-     * gate that page carries.
-     */
-    expect(source).not.toContain("FormType.Create");
-  });
-
-  test("keeps the reseller telemetry gate the other pages have", () => {
-    expect(monitorsPageSource).toContain("enableTelemetryFeatures === false");
-    expect(monitorsPageSource).toContain("<ErrorMessage");
+    expect(getSecurityEventsBreadcrumbs(pattern)).toBeUndefined();
   });
 });
 

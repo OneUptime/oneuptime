@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Threat Intel पर जाएँ
 
-**उत्पाद → Security Events → Threat Intel** खोलें।
+**उत्पाद → Security Events → Detections → Threat Intel** खोलें।
 
 ### फ़ीड बनाएँ
 

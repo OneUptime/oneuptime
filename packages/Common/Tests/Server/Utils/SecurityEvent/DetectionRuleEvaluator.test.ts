@@ -42,10 +42,10 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../../../Server/Services/OpenTelemetryIngestService";
 import logger from "../../../../Server/Utils/Logger";
-import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import {
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
 } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
@@ -60,7 +60,14 @@ import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { JSONObject } from "../../../../Types/JSON";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import { getJestSpyOn } from "../../../Spy";
-import SecurityCaseIngest from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
+import SecurityCaseIngest, {
+  SecurityDetectionSignal,
+} from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
+import {
+  SQL,
+  Statement,
+} from "../../../../Server/Utils/AnalyticsDatabase/Statement";
+import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import {
   INCIDENT_STATE_IDS,
   idsOfAnyFilter,
@@ -121,6 +128,7 @@ function buildRule(
     shouldCreateAlert?: boolean;
     shouldWriteDetectionFinding?: boolean;
     shouldCreateIncident?: boolean;
+    shouldCreateCase?: boolean;
     alertSeverityId?: ObjectID;
     incidentSeverityId?: ObjectID;
     lastEvaluatedAt?: Date;
@@ -159,6 +167,10 @@ function buildRule(
 
   if (options.shouldCreateIncident !== undefined) {
     rule.shouldCreateIncident = options.shouldCreateIncident;
+  }
+
+  if (options.shouldCreateCase !== undefined) {
+    rule.shouldCreateCase = options.shouldCreateCase;
   }
 
   if (options.alertSeverityId !== undefined) {
@@ -1196,6 +1208,30 @@ describe("DetectionRuleEvaluator", () => {
       );
     }
 
+    /*
+     * A run reads up to DETECTION_EVALUATION_DELAY_IN_SECONDS behind the
+     * clock: an event still on its way in - through the ingest queue, a
+     * connection's poll or the scan of "Your logs" - is in the table before
+     * a rule reads its moment.
+     */
+    const READ_UNTIL: Date = OneUptimeDate.addRemoveSeconds(
+      NOW,
+      -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+    );
+
+    test("a run reads up to two minutes behind the clock", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule());
+
+      expect(DETECTION_EVALUATION_DELAY_IN_SECONDS).toBe(120);
+      expect(findMatchesArg(spies).endTime.getTime()).toBe(
+        READ_UNTIL.getTime(),
+      );
+    });
+
     test("the first run looks back one evaluation interval", async () => {
       freezeNow();
 
@@ -1207,9 +1243,9 @@ describe("DetectionRuleEvaluator", () => {
 
       const args: FindDetectionMatchesData = findMatchesArg(spies);
 
-      expect(args.endTime.getTime()).toBe(NOW.getTime());
+      expect(args.endTime.getTime()).toBe(READ_UNTIL.getTime());
       expect(args.startTime.getTime()).toBe(
-        OneUptimeDate.addRemoveMinutes(NOW, -10).getTime(),
+        OneUptimeDate.addRemoveMinutes(READ_UNTIL, -10).getTime(),
       );
     });
 
@@ -1241,11 +1277,49 @@ describe("DetectionRuleEvaluator", () => {
 
       expect(findMatchesArg(spies).startTime.getTime()).toBe(
         OneUptimeDate.addRemoveMinutes(
-          NOW,
+          READ_UNTIL,
           -DETECTION_MAX_LOOKBACK_IN_MINUTES,
         ).getTime(),
       );
       expect(DETECTION_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
+    });
+
+    test("a rule is due on the clock it reads by, so its windows stay as long as its interval", async () => {
+      freezeNow();
+
+      const evaluate: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      // Last read up to five minutes before READ_UNTIL: exactly due.
+      const dueRule: DetectionRule = buildRule({
+        id: new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaab01"),
+        evaluationIntervalInMinutes: 5,
+        lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(READ_UNTIL, -5),
+      });
+
+      // Last read up to four minutes before: due in a minute, not now.
+      const notYetDue: DetectionRule = buildRule({
+        id: new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaab02"),
+        evaluationIntervalInMinutes: 5,
+        lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(READ_UNTIL, -4),
+      });
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        dueRule,
+        notYetDue,
+      ] as never);
+
+      await DetectionRuleEvaluator.evaluateAllDueRules();
+
+      const evaluated: Array<string> = evaluate.mock.calls.map(
+        (call: Array<unknown>): string => {
+          return (call[0] as DetectionRule).id!.toString();
+        },
+      );
+
+      expect(evaluated).toEqual([dueRule.id!.toString()]);
     });
 
     test("the next run starts where this one ended", async () => {
@@ -2004,6 +2078,148 @@ describe("DetectionRuleEvaluator", () => {
       // Explicitly null, not merely absent — the column has to be cleared.
       expect(writes[1]!.lastError).toBeNull();
       expect(writes[1]!.lastEvaluatedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  /*
+   * The setup test (SecuritySetup.runTest) sends simulated sign-in failures
+   * through the real engine. The rule reads only the test's own events,
+   * over the test's window, and its matches open a case - marked as the
+   * test's, so only playbooks that stay inside OneUptime run on it - and
+   * nothing else: no alert, no incident, no finding, and the rule's own
+   * schedule untouched.
+   */
+  describe("a setup test", () => {
+    const TEST_START: Date = new Date("2026-10-19T11:50:00.000Z");
+    const TEST_END: Date = new Date("2026-10-19T12:01:00.000Z");
+    const RESTRICT_TO: Statement = SQL`productName = ${{
+      type: TableColumnType.Text,
+      value: "OneUptime setup test",
+    }}`;
+
+    function setupTestGroup(): DetectionMatchGroup {
+      return {
+        groupValue: "203.0.113.77",
+        matchCount: 12,
+        distinctCount: 0,
+        sampleMessage: "Simulated failed sign-in",
+        sampleObservables: ["203.0.113.77", "setup-test-user"],
+      };
+    }
+
+    test("reads only the test's events, over the test's window", async () => {
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule(), {
+        setupTest: {
+          restrictTo: RESTRICT_TO,
+          startTime: TEST_START,
+          endTime: TEST_END,
+        },
+      });
+
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
+
+      expect(args.startTime).toEqual(TEST_START);
+      expect(args.endTime).toEqual(TEST_END);
+      expect(args.whereFragment.query).toContain(") AND (productName = ");
+      expect(Object.values(args.whereFragment.query_params)).toContain(
+        "OneUptime setup test",
+      );
+    });
+
+    test("its matches open a case marked as the test's, and nothing else", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: [setupTestGroup()],
+        severities: [buildSeverity("0001", "High")],
+        incidentSeverities: [buildIncidentSeverity("0001", "High")],
+      });
+      const record: Spy = getJestSpyOn(
+        SecurityCaseIngest,
+        "recordDetections",
+      ).mockResolvedValue({
+        casesOpened: 1,
+        detectionsAdded: 1,
+        detectionsRepeated: 0,
+      } as never);
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(
+          buildRule({
+            shouldCreateAlert: true,
+            shouldCreateIncident: true,
+            shouldWriteDetectionFinding: true,
+          }),
+          {
+            setupTest: {
+              restrictTo: RESTRICT_TO,
+              startTime: TEST_START,
+              endTime: TEST_END,
+            },
+          },
+        );
+
+      expect(result.casesOpened).toBe(1);
+      expect(result.alertsCreated).toBe(0);
+      expect(result.incidentsCreated).toBe(0);
+      expect(result.findingsWritten).toBe(0);
+      expect(spies.alertCreate).not.toHaveBeenCalled();
+      expect(spies.incidentCreate).not.toHaveBeenCalled();
+      expect(spies.insertJsonRows).not.toHaveBeenCalled();
+
+      const signals: Array<SecurityDetectionSignal> = record.mock
+        .calls[0]![0] as Array<SecurityDetectionSignal>;
+
+      expect(signals).toHaveLength(1);
+      expect(signals[0]!.isSetupTest).toBe(true);
+      expect(signals[0]!.groupValue).toBe("203.0.113.77");
+
+      // The rule's own schedule is left as it was.
+      expect(spies.updateOneById).not.toHaveBeenCalled();
+    });
+
+    test("opens the case even for a rule told not to open cases", async () => {
+      installSpies({ groups: [setupTestGroup()] });
+      const record: Spy = getJestSpyOn(
+        SecurityCaseIngest,
+        "recordDetections",
+      ).mockResolvedValue({
+        casesOpened: 1,
+        detectionsAdded: 1,
+        detectionsRepeated: 0,
+      } as never);
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ shouldCreateCase: false }),
+        {
+          setupTest: {
+            restrictTo: RESTRICT_TO,
+            startTime: TEST_START,
+            endTime: TEST_END,
+          },
+        },
+      );
+
+      expect(record).toHaveBeenCalledTimes(1);
+    });
+
+    test("a real run's signals are never marked as a test's", async () => {
+      installSpies({ groups: [setupTestGroup()] });
+      const record: Spy = getJestSpyOn(
+        SecurityCaseIngest,
+        "recordDetections",
+      ).mockResolvedValue({
+        casesOpened: 1,
+        detectionsAdded: 1,
+        detectionsRepeated: 0,
+      } as never);
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule());
+
+      const signals: Array<SecurityDetectionSignal> = record.mock
+        .calls[0]![0] as Array<SecurityDetectionSignal>;
+
+      expect(signals[0]!.isSetupTest).toBeUndefined();
     });
   });
 });

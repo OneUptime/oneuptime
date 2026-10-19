@@ -48,7 +48,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 保存之前先测试
 
-点击 **Test before saving** 下的 **Test these settings**。测试会用表单中的值进行身份验证并运行你的搜索，不保存任何内容，所以错误的端口或缺少的角色会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
+点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值进行身份验证并运行你的搜索，不保存任何内容，所以错误的端口或缺少的角色会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
 :::
 
 | 设置 | 填写什么 |
@@ -119,7 +119,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的 notable event 继续到达。这次运行仍为 **Partial**，**Last Error** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的 notable event 继续到达。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容。
 
 因 Splunk 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **Poll Interval (Minutes)** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -149,7 +149,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 ## 故障排除
 
-连接的 **Last Error** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **Copy Error** 复制。请先阅读前缀。
+连接的 **最近错误** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。请先阅读前缀。
 
 :::details Last Error 以 `Splunk Enterprise Security authentication request` 开头
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`：Splunk 拒绝说明调用者是谁。

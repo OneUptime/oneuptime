@@ -64,7 +64,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 儲存之前先測試
 
-點選 **Test before saving** 下的 **Test these settings**。測試會用表單中的值登入並讀取事件，但不會儲存任何內容，因此錯誤的密碼或缺失的角色會在連線存在之前暴露出來。然後點選 **下一步**，為連線填寫 **名稱** 並建立它。
+點選 **儲存前測試** 下的 **Test these settings**。測試會用表單中的值登入並讀取事件，但不會儲存任何內容，因此錯誤的密碼或缺失的角色會在連線存在之前暴露出來。然後點選 **下一步**，為連線填寫 **名稱** 並建立它。
 :::
 
 | 設定 | 在哪裡找到 |
@@ -131,7 +131,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 1. **縮小。** 下一次輪詢從同一個起點讀取長度減半的時間窗，並不斷減半，直到某個時間窗能被完整讀取，最短為一分鐘。執行的警告會說明這一點：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢復。** 一個時間窗被完整讀取後，下一個時間窗的長度會再次加倍，最長為 24 小時。
-3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的事件繼續到達。這次執行仍為 **Partial**，**Last Error** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，即可找回一次執行能讀取的內容。
+3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的事件繼續到達。這次執行仍為 **Partial**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，即可找回一次執行能讀取的內容。
 
 因 Microsoft Entra ID 或 Azure Resource Manager 的錯誤而徹底失敗的執行，會保留游標和時間窗長度，下一次輪詢會再次讀取同一個時間窗。唯一的例外是請求逾時：游標保持不變，但下一個時間窗的長度減半，因為太重而無法及時回應的時間窗每次重試都會逾時。更改 **Poll Interval (Minutes)** 不會改變以上任何一點：它決定輪詢多久開始一次，而不是時間窗從哪裡開始。
 
@@ -161,7 +161,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 ## 疑難排解
 
-連線的 **Last Error** 會保留完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首。連線出錯時，在它的 **操作** 欄中選擇 **檢視錯誤** 來閱讀，並在對話方塊中用 **Copy Error** 複製。請先閱讀字首。
+連線的 **最近的錯誤** 會保留完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首。連線出錯時，在它的 **操作** 欄中選擇 **檢視錯誤** 來閱讀，並在對話方塊中用 **複製錯誤** 複製。請先閱讀字首。
 
 :::details Last Error 以 `Microsoft Sentinel token request` 開頭
 - `Microsoft Sentinel token request failed (HTTP ...)`：Microsoft Entra ID 拒絕頒發權杖，所以根本沒有連線到 Azure。訊息會引用 Entra 的代碼：

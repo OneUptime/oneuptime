@@ -261,6 +261,42 @@ export function getSecurityPlaybookAction(
   );
 }
 
+/*
+ * The categories whose steps only read and write the case inside OneUptime:
+ * nobody is told, paged or escalated to, and nothing outside is changed.
+ */
+export const SECURITY_PLAYBOOK_INSIDE_CATEGORIES: ReadonlyArray<SecurityPlaybookActionCategory> =
+  [
+    SecurityPlaybookActionCategory.Case,
+    SecurityPlaybookActionCategory.Investigate,
+  ];
+
+/*
+ * Whether every step of a playbook's stored steps stays inside OneUptime. A
+ * step this cannot read counts as one that does not, so the answer errs on
+ * the side of not running.
+ */
+export function doStepsStayInsideOneUptime(steps: unknown): boolean {
+  if (!Array.isArray(steps)) {
+    return false;
+  }
+
+  return steps.every((step: unknown): boolean => {
+    if (!step || typeof step !== "object" || Array.isArray(step)) {
+      return false;
+    }
+
+    const action: SecurityPlaybookActionDefinition | undefined =
+      getSecurityPlaybookAction(
+        (step as { action?: unknown }).action as string | undefined,
+      );
+
+    return Boolean(
+      action && SECURITY_PLAYBOOK_INSIDE_CATEGORIES.includes(action.category),
+    );
+  });
+}
+
 export function isSecurityPlaybookActionType(
   value: unknown,
 ): value is SecurityPlaybookActionType {

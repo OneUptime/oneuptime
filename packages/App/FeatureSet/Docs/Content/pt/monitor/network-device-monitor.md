@@ -199,7 +199,7 @@ Todo lugar que mostra um dispositivo — a lista Devices, a página Devices de u
 | **Sem monitor** | O dispositivo usa a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado) e nada está vinculado. | Vincule um monitor, ou volte a sondagem pela sonda. |
 | **SNMP failing** | Ativo no ping, mas o último walk SNMP falhou. | Confira as credenciais, o agente SNMP ou uma ACL. |
 
-A lista **Devices** tem um filtro **SNMP** com três valores: **OK** (o último walk deu certo), **Failing** (o último walk falhou) e **Not configured** (só ping, sem credenciais, ou nunca consultado). "Quais dispositivos têm credenciais que pararam de funcionar" está a um clique. A coluna **Interfaces (Up / Down)** da lista mostra **Sem SNMP** em vez de `0 / 0` para um dispositivo que recebe ping e nunca passa por walk: zero portas funcionando seria outra afirmação, e errada.
+A lista **Devices** tem um filtro **SNMP** com três valores: **OK** (o último walk deu certo), **Com falha** (o último walk falhou) e **Not configured** (só ping, sem credenciais, ou nunca consultado). "Quais dispositivos têm credenciais que pararam de funcionar" está a um clique. A coluna **Interfaces (Up / Down)** da lista mostra **Sem SNMP** em vez de `0 / 0` para um dispositivo que recebe ping e nunca passa por walk: zero portas funcionando seria outra afirmação, e errada.
 
 ## Credenciais SNMP e perfis de credenciais
 
