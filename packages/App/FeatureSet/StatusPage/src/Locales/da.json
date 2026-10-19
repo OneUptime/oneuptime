@@ -244,7 +244,9 @@
     },
     "confirm": {
       "title": "Bekræft abonnement",
-      "success": "Abonnement bekræftet"
+      "success": "Abonnement bekræftet",
+      "linkNotValid": "Dette link til at bekræfte dit abonnement er udløbet eller ugyldigt. Et link virker i 24 timer, efter det er sendt. Abonner igen for at få et nyt.",
+      "subscribeAgain": "Abonner igen"
     },
     "unsubscribe": {
       "title": "Afmeld",
