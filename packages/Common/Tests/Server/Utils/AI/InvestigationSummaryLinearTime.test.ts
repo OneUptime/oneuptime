@@ -220,11 +220,7 @@ describe("each rule changes exactly what it changed before", () => {
       10,
     )) {
       const expected: string = text.replace(LEADING_LABEL_LINE_BEFORE, "");
-      // Sticky: tried where the text starts, as "^" was.
-      const actual: string = text.replace(
-        new RegExp(now.source, now.flags),
-        "",
-      );
+      const actual: string = text.replace(now, "");
 
       if (expected !== text) {
         changed++;

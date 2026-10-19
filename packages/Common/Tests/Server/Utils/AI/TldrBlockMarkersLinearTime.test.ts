@@ -7,18 +7,18 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * ---------------------------------------------------------------------------
- * A TL;DR'S LABELS AND BLOCK MARKERS COME OFF IN TIME IN LINE WITH ITS
- * LENGTH, EXACTLY AS THE ROUNDS TOOK THEM OFF.
+ * A TL;DR'S BLOCK MARKERS COME OFF IN TIME IN LINE WITH ITS LENGTH,
+ * EXACTLY AS THE ROUNDS TOOK THEM OFF.
  *
  * A TL;DR, and an investigation report's section when there is none, is
  * flattened to plain text: its leading "TL;DR" / "Summary" labels, then the
  * block markers of every line ("> ## cause", "- - cause"), each taken off
- * to a fixed point. Each round of that took off one label, or one marker
- * per line, and copied the whole text - a report of a few thousand stacked
+ * to a fixed point. Each round of the markers took off one marker per line
+ * and built the whole text again - a report of a few thousand stacked
  * markers meant a few thousand copies of it, on the list routes that show a
- * run's summary. The labels now come off one after another from where the
- * last ended, and stripBlockMarkers looks again only where something can
- * have changed - giving exactly what the rounds gave, in the same order.
+ * run's summary. stripBlockMarkers looks again only where something can
+ * have changed, giving exactly what the rounds gave. Stacked labels, taken
+ * off one per round from the start of the text, are held to the same time.
  * ---------------------------------------------------------------------------
  */
 
