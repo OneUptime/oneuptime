@@ -82,6 +82,8 @@ interface DockerfileStage {
 // CMD forms that hand control to `npm start`.
 const CMD_NPM_START_EXEC_FORM: RegExp = /CMD\s*\[\s*"npm"\s*,\s*"start"\s*\]/;
 const CMD_NPM_START_SHELL_FORM: RegExp = /CMD\s+npm\s+start/;
+// An exec-form CMD line, its JSON array captured.
+const CMD_EXEC_FORM_LINE: RegExp = /^CMD\s*(\[.*\])\s*$/m;
 const CMD_INVOKES_TS_NODE: RegExp = /CMD.*ts-node\/register/;
 const TRANSPILE_ONLY_ENV: RegExp = /ENV\s+TS_NODE_TRANSPILE_ONLY=1/;
 const CMD_PRECOMPILED_ENTRYPOINT: RegExp =
@@ -570,15 +572,30 @@ describe("Container boot configuration", () => {
       },
     );
 
+    /*
+     * #5056: the stage runs package.json's start script itself, through sh,
+     * so node is the container's one Node.js process. Under `npm start`, npm
+     * stayed as node's parent, and OBI's Node.js agent (SIGUSR1, then the
+     * inspector on 127.0.0.1:9229, which every process in the pod shares)
+     * could land in npm instead of the app.
+     */
     test.each(finalStages)(
-      "%s: the %s stage boots with CMD npm start",
+      "%s: the %s stage boots package.json's start script through sh, never npm",
       (service: string, name: string) => {
         const body: string = stageNamed(service, name)?.body ?? "";
+        const startScript: string | null =
+          SERVICE_IMAGES.find((image: ServiceImage): boolean => {
+            return image.service === service;
+          })?.startScript ?? null;
+        const cmd: RegExpMatchArray | null = body.match(CMD_EXEC_FORM_LINE);
 
+        expect(startScript).not.toBeNull();
+        expect(cmd).not.toBeNull();
+        expect(JSON.parse(cmd![1]!)).toEqual(["sh", "-c", startScript]);
         expect(
           CMD_NPM_START_EXEC_FORM.test(body) ||
             CMD_NPM_START_SHELL_FORM.test(body),
-        ).toBe(true);
+        ).toBe(false);
       },
     );
 
