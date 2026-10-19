@@ -53,6 +53,7 @@ Een onderzoek begint bij het incident of de waarschuwing en bij de infrastructuu
 - De waarschuwingen op die infrastructuur die in de 30 minuten vóór het incident zijn geopend, of nog open staan, de nieuwste eerst, zoals de waarschuwing voor hoge CPU van de host achter een trage site. Privéwaarschuwingen worden weggelaten.
 - De eigen metrics van de infrastructuur, gelezen zoals mensen ze lezen. Hostmetrics zoals `system.cpu.utilization` en `system.memory.utilization` worden één keer per status gerapporteerd, en de statussen tellen op tot 100%, dus één gemiddelde over alle zegt niets. OneUptime AI leest ze status voor status (bezette CPU is user plus system), en elke metric per container, per koppelpunt of naar elk ander attribuut.
 - De containers van een Docker- of Podman-host: de drukste naar CPU, geheugen of herstarts, en de containers die niets meer melden. Een gestopte container stuurt niets in plaats van nul, dus de cijfers van de hele host verbergen hem.
+- De wijzigingen die zijn vastgelegd in de 2 uur vóór het incident of de waarschuwing (deploys, Kubernetes-rollouts, configuratiewijzigingen en de fixes die OneUptime uitvoerde), en welke daarvan door de telemetrie van de bijbehorende services verdacht worden: een service die direct na een wijziging meetbaar slechter werd. Zie [Deploys en wijzigingen](/docs/telemetry/change-events).
 
 De activiteit van het onderzoek op de kaart **AI Investigation** zegt hoeveel open of recente waarschuwingen het heeft gelezen, en op welke resources.
 

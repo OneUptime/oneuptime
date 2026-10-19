@@ -82,6 +82,7 @@ La liste montre chaque type d'enregistrement avec lequel vous pouvez travailler,
 | `oneuptime login <api-key> <instance-url>` | Enregistre une clé API et une adresse comme contexte | [Authentification](/docs/cli/authentication#se-connecter) |
 | `oneuptime context list`, `use`, `current`, `delete` | Liste, change, affiche et supprime les contextes enregistrés | [Authentification](/docs/cli/authentication#contextes) |
 | `oneuptime whoami` | Affiche l'URL et la clé API que la prochaine commande utilisera | [Authentification](/docs/cli/authentication#vérifier-ce-que-la-cli-va-utiliser) |
+| `oneuptime deploy` | Enregistre un déploiement, ou un autre changement, pour les graphiques et OneUptime AI | [Déploiements et changements](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Travaille avec un type d'enregistrement | [Opérations sur les ressources](/docs/cli/resource-operations) |
 | `oneuptime resources` | Liste les types d'enregistrements, avec leurs commandes | [Référence des commandes](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Affiche la version de la CLI | [Référence des commandes](/docs/cli/command-reference#oneuptime-version) |

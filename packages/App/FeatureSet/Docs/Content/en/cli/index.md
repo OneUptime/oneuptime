@@ -82,6 +82,7 @@ The list shows every kind of record you can work with, and its command, such as 
 | `oneuptime login <api-key> <instance-url>` | Saves an API key and an address as a context | [Authentication](/docs/cli/authentication#log-in) |
 | `oneuptime context list`, `use`, `current`, `delete` | Lists, switches, shows and deletes saved contexts | [Authentication](/docs/cli/authentication#contexts) |
 | `oneuptime whoami` | Shows the URL and API key the next command will use | [Authentication](/docs/cli/authentication#check-what-the-cli-will-use) |
+| `oneuptime deploy` | Records a deploy, or another change, for charts and OneUptime AI | [Deploys and Changes](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Works with one kind of record | [Resource Operations](/docs/cli/resource-operations) |
 | `oneuptime resources` | Lists the kinds of record, with their commands | [Command Reference](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Prints the CLI's version | [Command Reference](/docs/cli/command-reference#oneuptime-version) |

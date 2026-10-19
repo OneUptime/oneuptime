@@ -53,6 +53,7 @@ En undersøkelse starter ved hendelsen eller varselet og ved infrastrukturen den
 - Varslene på den infrastrukturen som ble åpnet i de 30 minuttene før hendelsen, eller som fortsatt er åpne, de nyeste først, som varselet om høy CPU på verten bak et tregt nettsted. Private varsler utelates.
 - Infrastrukturens egne metrikker, lest slik folk leser dem. Vertsmetrikker som `system.cpu.utilization` og `system.memory.utilization` rapporteres én gang per tilstand, og tilstandene summerer til 100 %, så ett gjennomsnitt over alle sier ingenting. OneUptime AI leser dem én tilstand om gangen (opptatt CPU er user pluss system), og enhver metrikk per container, per monteringspunkt eller etter et hvilket som helst annet attributt.
 - Containerne på en Docker- eller Podman-vert: de travleste etter CPU, minne eller omstarter, og de som sluttet å rapportere. En stoppet container sender ingenting i stedet for null, så tallene for hele verten skjuler den.
+- Endringene som er registrert i de 2 timene før hendelsen eller varselet (utrullinger, Kubernetes-rollouts, konfigurasjonsendringer og rettelsene OneUptime kjørte), og hvilke av dem telemetrien til tjenestene gjør til mistenkte: en tjeneste som ble målbart dårligere rett etter en endring. Se [Utrullinger og endringer](/docs/telemetry/change-events).
 
 Undersøkelsens aktivitet på kortet **AI Investigation** sier hvor mange åpne eller nye varsler den leste, og på hvilke ressurser.
 

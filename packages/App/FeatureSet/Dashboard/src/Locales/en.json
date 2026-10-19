@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.",
   "JavaScript, needs a Runner": "JavaScript, needs a Runner",
   "Bash script, needs a Runner": "Bash script, needs a Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Stored encrypted. Only the Runners you let use it can read it."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Stored encrypted. Only the Runners you let use it can read it.",
+  "Found {{count}} suspects among the recent changes": "Found {{count}} suspects among the recent changes",
+  "Found {{count}} suspects among the recent changes_one": "Found {{count}} suspect among the recent changes",
+  "No recent changes recorded": "No recent changes recorded",
+  "Read what a change shipped": "Read what a change shipped",
+  "Read {{count}} recent changes; no suspect": "Read {{count}} recent changes; no suspect",
+  "Read {{count}} recent changes; no suspect_one": "Read {{count}} recent change; no suspect",
+  "AI fix": "AI fix"
 }

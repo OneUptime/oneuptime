@@ -267,6 +267,7 @@ describe("describeCitationTargetPage", () => {
     [AIChatCitationTargetType.Probes, "Probes"],
     [AIChatCitationTargetType.SecurityEvents, "Security events"],
     [AIChatCitationTargetType.OnCallPolicyView, "On-call policy"],
+    [AIChatCitationTargetType.ServiceView, "Service"],
   ])("%s opens %s", (targetType: AIChatCitationTargetType, page: string) => {
     expect(describeCitationTargetPage(targetType)).toBe(page);
   });

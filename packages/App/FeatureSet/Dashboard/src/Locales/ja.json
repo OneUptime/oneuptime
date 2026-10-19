@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "現在接続中のグローバル Runner はありません。取得のタイムアウトまでにどの Runner も取得しなければ、このステップは失敗します。",
   "JavaScript, needs a Runner": "JavaScript、Runner が必要",
   "Bash script, needs a Runner": "Bash スクリプト、Runner が必要",
-  "Stored encrypted. Only the Runners you let use it can read it.": "暗号化して保存されます。使用を許可した Runner だけが読み取れます。"
+  "Stored encrypted. Only the Runners you let use it can read it.": "暗号化して保存されます。使用を許可した Runner だけが読み取れます。",
+  "Found {{count}} suspects among the recent changes": "最近の変更の中に疑わしい変更が {{count}} 件見つかりました",
+  "Found {{count}} suspects among the recent changes_one": "最近の変更の中に疑わしい変更が {{count}} 件見つかりました",
+  "No recent changes recorded": "最近の変更は記録されていません",
+  "Read what a change shipped": "変更の内容を読み取りました",
+  "Read {{count}} recent changes; no suspect": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
+  "Read {{count}} recent changes; no suspect_one": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
+  "AI fix": "AI による修正"
 }

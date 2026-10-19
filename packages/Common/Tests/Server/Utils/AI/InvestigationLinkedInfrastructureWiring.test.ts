@@ -17,6 +17,7 @@ import LinkedInfrastructureContext, {
 import IncidentFollowUpCheck, {
   FollowUpCheckContext,
 } from "../../../../Server/Utils/AI/SRE/IncidentFollowUpCheck";
+import RecentChangesContext from "../../../../Server/Utils/AI/SRE/RecentChangesContext";
 import RemediationHandoff from "../../../../Server/Utils/AI/SRE/RemediationHandoff";
 import KubernetesClusterAiAccessService from "../../../../Server/Services/KubernetesClusterAiAccessService";
 import ResourceAiAccessService from "../../../../Server/Services/ResourceAiAccessService";
@@ -173,6 +174,8 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
     readContext = jest
       .spyOn(IncidentFollowUpCheck, "readContext")
       .mockResolvedValue(followUpContext());
+    // The recent changes have a wiring test of their own.
+    jest.spyOn(RecentChangesContext, "read").mockResolvedValue(null);
     handoff = jest
       .spyOn(RemediationHandoff, "runForSettledInvestigation")
       .mockImplementation(async (): Promise<void> => {

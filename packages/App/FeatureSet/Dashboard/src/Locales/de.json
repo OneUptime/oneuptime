@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "Gerade ist kein globaler Runner verbunden. Der Schritt schlägt fehl, wenn ihn keiner innerhalb seines Übernahme-Timeouts übernimmt.",
   "JavaScript, needs a Runner": "JavaScript, braucht einen Runner",
   "Bash script, needs a Runner": "Bash-Skript, braucht einen Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Wird verschlüsselt gespeichert. Nur die Runner, denen Sie es erlauben, können es lesen."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Wird verschlüsselt gespeichert. Nur die Runner, denen Sie es erlauben, können es lesen.",
+  "Found {{count}} suspects among the recent changes": "{{count}} verdächtige Änderungen unter den letzten Änderungen gefunden",
+  "Found {{count}} suspects among the recent changes_one": "{{count}} verdächtige Änderung unter den letzten Änderungen gefunden",
+  "No recent changes recorded": "Keine letzten Änderungen erfasst",
+  "Read what a change shipped": "Inhalt einer Änderung gelesen",
+  "Read {{count}} recent changes; no suspect": "{{count}} letzte Änderungen gelesen; keine verdächtig",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} letzte Änderung gelesen; nicht verdächtig",
+  "AI fix": "KI-Korrektur"
 }

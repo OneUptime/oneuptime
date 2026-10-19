@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "اکنون هیچ Runner سراسری متصل نیست. اگر هیچ Runnerی گام را در مهلت برداشتن آن برندارد، گام شکست می‌خورد.",
   "JavaScript, needs a Runner": "JavaScript، به یک Runner نیاز دارد",
   "Bash script, needs a Runner": "اسکریپت Bash، به یک Runner نیاز دارد",
-  "Stored encrypted. Only the Runners you let use it can read it.": "رمزگذاری‌شده ذخیره می‌شود. فقط Runnerهایی که اجازه استفاده از آن را می‌دهید می‌توانند آن را بخوانند."
+  "Stored encrypted. Only the Runners you let use it can read it.": "رمزگذاری‌شده ذخیره می‌شود. فقط Runnerهایی که اجازه استفاده از آن را می‌دهید می‌توانند آن را بخوانند.",
+  "Found {{count}} suspects among the recent changes": "{{count}} مورد مشکوک در میان تغییرهای اخیر پیدا شد",
+  "Found {{count}} suspects among the recent changes_one": "{{count}} مورد مشکوک در میان تغییرهای اخیر پیدا شد",
+  "No recent changes recorded": "هیچ تغییر اخیری ثبت نشده است",
+  "Read what a change shipped": "محتوای یک تغییر خوانده شد",
+  "Read {{count}} recent changes; no suspect": "{{count}} تغییر اخیر خوانده شد؛ هیچ‌کدام مشکوک نیست",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} تغییر اخیر خوانده شد؛ مشکوک نیست",
+  "AI fix": "اصلاح هوش مصنوعی"
 }

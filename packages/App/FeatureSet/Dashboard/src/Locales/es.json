@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "Ahora mismo no hay ningún Runner global conectado. El paso falla si ninguno lo reclama dentro de su tiempo de espera de reclamación.",
   "JavaScript, needs a Runner": "JavaScript, necesita un Runner",
   "Bash script, needs a Runner": "Script de Bash, necesita un Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Se guarda cifrado. Solo los Runners a los que permitas usarlo pueden leerlo."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Se guarda cifrado. Solo los Runners a los que permitas usarlo pueden leerlo.",
+  "Found {{count}} suspects among the recent changes": "Se encontraron {{count}} sospechosos entre los cambios recientes",
+  "Found {{count}} suspects among the recent changes_one": "Se encontró {{count}} sospechoso entre los cambios recientes",
+  "No recent changes recorded": "No hay cambios recientes registrados",
+  "Read what a change shipped": "Se leyó lo que incluyó un cambio",
+  "Read {{count}} recent changes; no suspect": "Se leyeron {{count}} cambios recientes; ninguno sospechoso",
+  "Read {{count}} recent changes; no suspect_one": "Se leyó {{count}} cambio reciente; no es sospechoso",
+  "AI fix": "Corrección de IA"
 }

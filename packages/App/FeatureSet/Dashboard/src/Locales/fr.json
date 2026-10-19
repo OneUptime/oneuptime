@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "Aucun agent Runbook global n'est connecté pour le moment. L'étape échoue si aucun ne la prend en charge avant la fin de son délai de prise en charge.",
   "JavaScript, needs a Runner": "JavaScript, nécessite un agent Runbook",
   "Bash script, needs a Runner": "Script Bash, nécessite un agent Runbook",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Stocké chiffré. Seuls les agents Runbook que vous autorisez peuvent le lire."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Stocké chiffré. Seuls les agents Runbook que vous autorisez peuvent le lire.",
+  "Found {{count}} suspects among the recent changes": "{{count}} suspects trouvés parmi les modifications récentes",
+  "Found {{count}} suspects among the recent changes_one": "{{count}} suspect trouvé parmi les modifications récentes",
+  "No recent changes recorded": "Aucune modification récente enregistrée",
+  "Read what a change shipped": "Contenu d'une modification lu",
+  "Read {{count}} recent changes; no suspect": "{{count}} modifications récentes lues ; aucune suspecte",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} modification récente lue ; non suspecte",
+  "AI fix": "Correctif IA"
 }

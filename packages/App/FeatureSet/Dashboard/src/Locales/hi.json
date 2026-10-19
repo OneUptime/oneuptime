@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "अभी कोई ग्लोबल Runner कनेक्ट नहीं है। अगर उठाने के टाइमआउट के भीतर कोई Runner इसे नहीं उठाता, तो यह चरण विफल हो जाता है।",
   "JavaScript, needs a Runner": "JavaScript, Runner चाहिए",
   "Bash script, needs a Runner": "Bash स्क्रिप्ट, Runner चाहिए",
-  "Stored encrypted. Only the Runners you let use it can read it.": "एन्क्रिप्ट करके रखा जाता है। सिर्फ़ वही Runner इसे पढ़ सकते हैं जिन्हें आप इसकी अनुमति देते हैं।"
+  "Stored encrypted. Only the Runners you let use it can read it.": "एन्क्रिप्ट करके रखा जाता है। सिर्फ़ वही Runner इसे पढ़ सकते हैं जिन्हें आप इसकी अनुमति देते हैं।",
+  "Found {{count}} suspects among the recent changes": "हाल के परिवर्तनों में {{count}} संदिग्ध मिले",
+  "Found {{count}} suspects among the recent changes_one": "हाल के परिवर्तनों में {{count}} संदिग्ध मिला",
+  "No recent changes recorded": "कोई हाल का परिवर्तन दर्ज नहीं",
+  "Read what a change shipped": "एक परिवर्तन की सामग्री पढ़ी",
+  "Read {{count}} recent changes; no suspect": "{{count}} हाल के परिवर्तन पढ़े; कोई संदिग्ध नहीं",
+  "Read {{count}} recent changes; no suspect_one": "{{count}} हाल का परिवर्तन पढ़ा; संदिग्ध नहीं",
+  "AI fix": "AI सुधार"
 }

@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "Ingen global Runner er tilkoblet akkurat nå. Trinnet feiler hvis ingen tar det innen tidsavbruddet for overtakelse.",
   "JavaScript, needs a Runner": "JavaScript, trenger en Runner",
   "Bash script, needs a Runner": "Bash-skript, trenger en Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Lagres kryptert. Bare Runnerne du lar bruke den, kan lese den."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Lagres kryptert. Bare Runnerne du lar bruke den, kan lese den.",
+  "Found {{count}} suspects among the recent changes": "Fant {{count}} mistenkte blant de siste endringene",
+  "Found {{count}} suspects among the recent changes_one": "Fant {{count}} mistenkt blant de siste endringene",
+  "No recent changes recorded": "Ingen nylige endringer registrert",
+  "Read what a change shipped": "Leste innholdet i en endring",
+  "Read {{count}} recent changes; no suspect": "Leste {{count}} nylige endringer; ingen mistenkt",
+  "Read {{count}} recent changes; no suspect_one": "Leste {{count}} nylig endring; ikke mistenkt",
+  "AI fix": "AI-retting"
 }

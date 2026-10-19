@@ -53,6 +53,7 @@ Uma investigação parte do incidente ou do alerta e da infraestrutura à qual e
 - Os alertas nessa infraestrutura abertos nos 30 minutos antes do incidente, ou ainda abertos, os mais novos primeiro, como o alerta de CPU alta do host por trás de um site lento. Alertas privados ficam de fora.
 - As métricas da própria infraestrutura, lidas como as pessoas as leem. Métricas de host como `system.cpu.utilization` e `system.memory.utilization` são reportadas uma vez por estado, e os estados somam 100%, então uma média de todos não diz nada. A OneUptime AI as lê um estado de cada vez (CPU ocupada é user mais system), e qualquer métrica por contêiner, por ponto de montagem ou por qualquer outro atributo.
 - Os contêineres de um host Docker ou Podman: os mais ocupados por CPU, memória ou reinicializações, e os que pararam de enviar dados. Um contêiner parado não envia nada em vez de zero, então os números do host inteiro o escondem.
+- As alterações registradas nas 2 horas antes do incidente ou do alerta (deploys, rollouts do Kubernetes, alterações de configuração e as correções que o OneUptime executou) e quais delas a telemetria dos serviços vinculados torna suspeitas: um serviço que ficou mensuravelmente pior logo depois de uma alteração. Veja [Deploys e alterações](/docs/telemetry/change-events).
 
 A atividade da investigação no cartão **AI Investigation** diz quantos alertas abertos ou recentes ela leu e em quais recursos.
 

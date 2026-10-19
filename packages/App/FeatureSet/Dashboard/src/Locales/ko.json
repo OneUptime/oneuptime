@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "지금 연결된 글로벌 Runner가 없습니다. 가져가기 제한 시간 안에 어떤 Runner도 가져가지 않으면 이 단계는 실패합니다.",
   "JavaScript, needs a Runner": "JavaScript, Runner 필요",
   "Bash script, needs a Runner": "Bash 스크립트, Runner 필요",
-  "Stored encrypted. Only the Runners you let use it can read it.": "암호화되어 저장됩니다. 사용을 허용한 Runner만 읽을 수 있습니다."
+  "Stored encrypted. Only the Runners you let use it can read it.": "암호화되어 저장됩니다. 사용을 허용한 Runner만 읽을 수 있습니다.",
+  "Found {{count}} suspects among the recent changes": "최근 변경 사항 중 의심되는 변경 {{count}}개를 찾았습니다",
+  "Found {{count}} suspects among the recent changes_one": "최근 변경 사항 중 의심되는 변경 {{count}}개를 찾았습니다",
+  "No recent changes recorded": "기록된 최근 변경 사항이 없습니다",
+  "Read what a change shipped": "변경 사항의 내용을 읽었습니다",
+  "Read {{count}} recent changes; no suspect": "최근 변경 사항 {{count}}개를 읽었습니다. 의심되는 항목은 없습니다",
+  "Read {{count}} recent changes; no suspect_one": "최근 변경 사항 {{count}}개를 읽었습니다. 의심되는 항목은 없습니다",
+  "AI fix": "AI 수정"
 }

@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "目前沒有已連線的全域 Runner。如果在領取逾時內沒有 Runner 領取，此步驟將失敗。",
   "JavaScript, needs a Runner": "JavaScript，需要 Runner",
   "Bash script, needs a Runner": "Bash 指令碼，需要 Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "加密儲存。只有您允許使用的 Runner 才能讀取。"
+  "Stored encrypted. Only the Runners you let use it can read it.": "加密儲存。只有您允許使用的 Runner 才能讀取。",
+  "Found {{count}} suspects among the recent changes": "在最近的變更中發現 {{count}} 個可疑項目",
+  "Found {{count}} suspects among the recent changes_one": "在最近的變更中發現 {{count}} 個可疑項目",
+  "No recent changes recorded": "沒有記錄到最近的變更",
+  "Read what a change shipped": "已讀取變更的內容",
+  "Read {{count}} recent changes; no suspect": "已讀取 {{count}} 個最近的變更；沒有可疑項目",
+  "Read {{count}} recent changes; no suspect_one": "已讀取 {{count}} 個最近的變更；沒有可疑項目",
+  "AI fix": "AI 修復"
 }

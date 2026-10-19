@@ -303,6 +303,111 @@ export default abstract class GlobalCache {
   }
 
   /*
+   * Atomic swap: set the key to `value` and return what it held before, or
+   * null when it held nothing.
+   *
+   * For "what was the last X before this one": two workers that read with
+   * `getString()` and then write with `setString()` can both read the same
+   * old value, and both report a change from it. The swap answers each
+   * caller with exactly the value its own write replaced.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async swapString(
+    namespace: string,
+    key: string,
+    value: string,
+    options?: CacheSetOptions,
+  ): Promise<string | null> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const expiresInSeconds: number =
+      options?.expiresInSeconds ?? OneUptimeDate.getSecondsInDays(30);
+
+    const result: unknown = await client.eval(
+      "local previous = redis.call('GET', KEYS[1]) " +
+        "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]) " +
+        "return previous",
+      1,
+      `${namespace}-${key}`,
+      value,
+      String(expiresInSeconds),
+    );
+
+    // A missing key comes back from the script as nil (null here).
+    return typeof result === "string" && result !== "" ? result : null;
+  }
+
+  /*
+   * SET NX that keeps a live key alive: creates the key with `value` and
+   * returns true when it does not exist; otherwise extends its expiry and
+   * returns false - in one atomic evaluation.
+   *
+   * For "has this been seen lately": with setStringIfNotExists alone, the
+   * key's expiry counts from the FIRST sighting, so a value seen every
+   * minute is forgotten once that expiry runs out and is "new" again.
+   * Extending it on every sighting counts from the last.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async setStringIfNotExistsOrExtend(
+    namespace: string,
+    key: string,
+    value: string,
+    options?: CacheSetOptions,
+  ): Promise<boolean> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const expiresInSeconds: number =
+      options?.expiresInSeconds ?? OneUptimeDate.getSecondsInDays(30);
+
+    const result: unknown = await client.eval(
+      "if redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2], 'NX') then return 1 end " +
+        "redis.call('EXPIRE', KEYS[1], ARGV[2]) " +
+        "return 0",
+      1,
+      `${namespace}-${key}`,
+      value,
+      String(expiresInSeconds),
+    );
+
+    return result === 1;
+  }
+
+  // Extends a key's expiry. False when there is no such key.
+  @CaptureSpan()
+  public static async extendExpiry(
+    namespace: string,
+    key: string,
+    options: CacheSetOptions,
+  ): Promise<boolean> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: number = await client.expire(
+      `${namespace}-${key}`,
+      options.expiresInSeconds,
+    );
+
+    return result === 1;
+  }
+
+  /*
    * Spread a fence TTL over [ttl, ttl + 25%].
    *
    * A fixed TTL makes every fence for a fleet of rows expire in lockstep once

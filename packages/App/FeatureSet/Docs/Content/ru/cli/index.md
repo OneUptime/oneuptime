@@ -82,6 +82,7 @@ oneuptime resources
 | `oneuptime login <api-key> <instance-url>` | Сохраняет API-ключ и адрес как контекст | [Аутентификация](/docs/cli/authentication#вход) |
 | `oneuptime context list`, `use`, `current`, `delete` | Выводит, переключает, показывает и удаляет сохранённые контексты | [Аутентификация](/docs/cli/authentication#контексты) |
 | `oneuptime whoami` | Показывает URL и API-ключ, которые использует следующая команда | [Аутентификация](/docs/cli/authentication#проверьте-что-будет-использовать-cli) |
+| `oneuptime deploy` | Записывает развёртывание или другое изменение для графиков и OneUptime AI | [Развёртывания и изменения](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Работает с одним видом записей | [Операции с ресурсами](/docs/cli/resource-operations) |
 | `oneuptime resources` | Выводит виды записей с их командами | [Справочник команд](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Выводит версию CLI | [Справочник команд](/docs/cli/command-reference#oneuptime-version) |

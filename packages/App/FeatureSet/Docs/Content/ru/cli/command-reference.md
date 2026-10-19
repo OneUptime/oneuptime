@@ -6,7 +6,7 @@
 - [Глобальные параметры](#глобальные-параметры): Параметры, которые принимает каждая команда.
 - [Вход и контексты](#вход-и-контексты): login и команды context.
 - [Команды ресурсов](#команды-ресурсов): list, get, create, update, delete и count.
-- [Другие команды](#другие-команды): whoami, resources, version и help.
+- [Другие команды](#другие-команды): deploy, whoami, resources, version и help.
 :::
 
 ## Команды
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>и каждый ресурс"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## Глобальные параметры
@@ -222,6 +222,31 @@ CLI выпускается вместе с OneUptime, поэтому `oneuptime 
 
 ## Другие команды
 
+### `oneuptime deploy`
+
+Записывает развёртывание или другое изменение из конвейера: оно отображается на графиках сервиса, и OneUptime AI читает его, когда расследует инцидент. Команда пишет с ключом приёма телеметрии, а не с API-ключом. См. [Развёртывания и изменения](/docs/telemetry/change-events).
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| Параметр | Обязателен | Что это | По умолчанию |
+| --- | --- | --- | --- |
+| `--service <name>` | Нет | Сервис, который был развёрнут | Изменение для всего проекта |
+| `--service-version <version>` | Нет | Развёрнутая версия | |
+| `--previous-version <version>` | Нет | Версия, которую она заменила | |
+| `--commit <sha>` | Нет | Развёрнутый коммит | |
+| `--repository <url>` | Нет | Репозиторий, в котором находится коммит | |
+| `--branch <name>` | Нет | Развёрнутая ветка | |
+| `--pull-request <number>` | Нет | Развёрнутый pull request | |
+| `--environment <name>` | Нет | Окружение, в которое выполнено развёртывание | |
+| `--title <title>` | Нет | Заголовок изменения; обязателен для любого вида изменения, кроме развёртывания | `Deploy <version>` |
+| `--description <text>` | Нет | Подробности изменения | |
+| `--type <type>` | Нет | Вид изменения, например `config-change` или `rollback` | `deployment` |
+| `--time <time>` | Нет | Когда оно произошло, например `2026-10-19T10:00:00Z` | Сейчас |
+| `--attribute <key=value...>` | Нет | Дополнительные атрибуты в виде `key=value`, один или несколько | |
+| `--ingestion-key <key>` | Нет | Ключ приёма телеметрии проекта | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 Показывает URL и API-ключ, которые использует следующая команда, с замаскированным ключом, и контекст, из которого они взяты. Она не обращается к OneUptime. См. [Проверьте, что будет использовать CLI](/docs/cli/authentication#проверьте-что-будет-использовать-cli).
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | API-ключ, когда его не задаёт флаг `--api-key` |
 | `ONEUPTIME_URL` | Адрес вашего OneUptime, когда его не задаёт флаг `--url` |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ключ приёма телеметрии, с которым пишет `oneuptime deploy`, когда его не задаёт флаг `--ingestion-key` |
 | `NO_COLOR` | Заданная с любым значением, отключает цвета |
 
 ## Файлы

@@ -31220,5 +31220,12 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "Сейчас ни один глобальный Runner не подключён. Шаг завершится ошибкой, если ни один Runner не возьмёт его в пределах тайм-аута получения.",
   "JavaScript, needs a Runner": "JavaScript, нужен Runner",
   "Bash script, needs a Runner": "Bash-скрипт, нужен Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Хранится в зашифрованном виде. Прочитать его могут только Runner-ы, которым вы это разрешили."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Хранится в зашифрованном виде. Прочитать его могут только Runner-ы, которым вы это разрешили.",
+  "Found {{count}} suspects among the recent changes": "Подозрительных среди недавних изменений: {{count}}",
+  "Found {{count}} suspects among the recent changes_one": "Найдено {{count}} подозрительное изменение среди недавних",
+  "No recent changes recorded": "Недавних изменений не зафиксировано",
+  "Read what a change shipped": "Прочитано содержимое изменения",
+  "Read {{count}} recent changes; no suspect": "Прочитано недавних изменений: {{count}}; подозрительных нет",
+  "Read {{count}} recent changes; no suspect_one": "Прочитано {{count}} недавнее изменение; не подозрительное",
+  "AI fix": "Исправление ИИ"
 }

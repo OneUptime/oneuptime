@@ -12,6 +12,7 @@ import {
   isObiNodeInspectorSpan,
 } from "../Utils/ObiNodeInspectorSpan";
 import OneUptimeDate from "Common/Types/Date";
+import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -1336,10 +1337,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           (spanContext.resourceAttributes[
             "resource.service.version"
           ] as string) || "";
-        const environment: string =
-          (spanContext.resourceAttributes[
-            "resource.deployment.environment"
-          ] as string) || "";
+        const environment: string = readDeploymentEnvironment(
+          spanContext.resourceAttributes,
+          { prefix: "resource." },
+        );
 
         // Parse stack trace into structured frames
         let parsedFramesJson: string = "[]";
