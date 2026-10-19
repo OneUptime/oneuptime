@@ -312,6 +312,14 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "get_change_details",
+    {
+      description: "Read what a change shipped",
+      icon: IconProp.Bolt,
+      category: "Changes",
+    },
+  ],
+  [
     "list_code_repositories",
     {
       description: "Listed code repositories",
