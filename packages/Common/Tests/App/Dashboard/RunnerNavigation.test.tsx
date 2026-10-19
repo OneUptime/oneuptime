@@ -147,12 +147,16 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     ]);
   });
 
-  test("the section holds Runners and Credentials, at their Runbooks URLs", async () => {
+  test("the section holds Runners and AI Access, at their Runbooks URLs", async () => {
+    /*
+     * AI Access is the page Runner Credentials was: what OneUptime AI's
+     * commands reach through a Runner. Runbook steps use variables now.
+     */
     await renderMenu(<RunbookSideMenu />);
 
     expect(linksIn("Runners")).toEqual([
       { title: "Runners", href: RUNNERS_PATH },
-      { title: "Credentials", href: CREDENTIALS_PATH },
+      { title: "AI Access", href: CREDENTIALS_PATH },
     ]);
   });
 
@@ -162,7 +166,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     expect(linksIn("Runners")).toEqual([
       { title: "Runners", href: routeFor(PageMap.RUNBOOKS_RUNNERS) },
       {
-        title: "Credentials",
+        title: "AI Access",
         href: routeFor(PageMap.RUNBOOKS_RUNNER_CREDENTIALS),
       },
     ]);
@@ -182,7 +186,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
       { title: "Executions", href: `${RUNBOOKS}/executions` },
     ]);
     expect(linksIn("Settings")).toEqual([
-      { title: "Secrets", href: `${RUNBOOKS}/settings/secrets` },
+      { title: "Global Variables", href: `${RUNBOOKS}/settings/variables` },
       { title: "Owner Rules", href: `${RUNBOOKS}/settings/owner-rules` },
       { title: "Label Rules", href: `${RUNBOOKS}/settings/label-rules` },
     ]);
@@ -220,7 +224,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
   test.each([
     ["the Runners list", RUNNERS_PATH],
     ["a Runner's page", RUNNER_VIEW_PATH],
-    ["Runner Credentials", CREDENTIALS_PATH],
+    ["AI Access", CREDENTIALS_PATH],
   ])(
     "Runners opens by itself on %s",
     async (_name: string, pagePath: string) => {
@@ -234,7 +238,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
 
   test.each([
     ["Runners", RUNNERS_PATH],
-    ["Credentials", CREDENTIALS_PATH],
+    ["AI Access", CREDENTIALS_PATH],
   ])(
     "%s is the highlighted entry on its own page, and the only one",
     async (title: string, pagePath: string) => {
@@ -276,7 +280,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     await renderMenu(<RunbookSideMenu />);
 
     expect(mobileSummaryText()).toContain("Runners");
-    expect(mobileSummaryText()).toContain("Credentials");
+    expect(mobileSummaryText()).toContain("AI Access");
   });
 });
 
@@ -346,11 +350,7 @@ describe("the Runner pages' breadcrumbs lead back through Runbooks", () => {
       "Runners",
       "View Runner",
     ],
-    [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: [
-      "Project",
-      "Runbooks",
-      "Runner Credentials",
-    ],
+    [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: ["Project", "Runbooks", "AI Access"],
   };
 
   const RUNNER_PAGES: Array<string> = Object.keys(RunbookRoutePath).filter(
@@ -424,15 +424,15 @@ describe("the Runner pages' breadcrumbs lead back through Runbooks", () => {
   });
 
   test("the Runbooks pages that were already there kept their trails", () => {
-    visit(PageMap.RUNBOOKS_SECRETS);
+    visit(PageMap.RUNBOOKS_VARIABLES);
 
     expect(
       getRunbooksBreadcrumbs(
-        RouteUtil.getRouteString(PageMap.RUNBOOKS_SECRETS),
+        RouteUtil.getRouteString(PageMap.RUNBOOKS_VARIABLES),
       )!.map((link: Link): string => {
         return link.title;
       }),
-    ).toEqual(["Project", "Runbooks", "Secrets"]);
+    ).toEqual(["Project", "Runbooks", "Global Variables"]);
     expect(
       getRunbooksBreadcrumbs(
         RouteUtil.getRouteString(PageMap.RUNBOOK_VIEW_STEPS),

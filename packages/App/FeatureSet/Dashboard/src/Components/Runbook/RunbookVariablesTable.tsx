@@ -164,8 +164,20 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
         labelField: "name",
         valueField: "_id",
       },
-      // With global Runners, a secret may be theirs alone.
-      required: false,
+      /*
+       * A secret no Runner may use would fill in nothing: it needs Runners
+       * of the project's own unless global Runners may use it - and on a
+       * server with none, always.
+       */
+      required: (values: FormValues<RunbookVariable>): boolean => {
+        return (
+          isSecretValue(values) &&
+          !(
+            hasGlobalRunners &&
+            Boolean((values as JSONObject)["isAvailableToGlobalRunners"])
+          )
+        );
+      },
       description: YOUR_RUNNERS_DESCRIPTION,
       placeholder: "Select Runners",
       showIf: isSecretValue,
