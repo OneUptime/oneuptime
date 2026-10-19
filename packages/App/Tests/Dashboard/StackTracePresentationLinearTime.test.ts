@@ -123,14 +123,22 @@ const WORST_TRACES: Array<[string, string]> = [
   ],
 ];
 
+/*
+ * A frame's file name is as long as the frame's line. Each "/pkg/mod/" of
+ * these once read on to the end of the name, and a name of a few hundred
+ * thousand characters took seconds: the names here are longer than the
+ * traces above.
+ */
+const FILE_NAME_LENGTH: number = 4 * LENGTH;
+
 const WORST_FILE_NAMES: Array<[string, string]> = [
-  ["a run of module folders", repeat("/pkg/mod/", LENGTH)],
-  ["module folders each with a name", repeat("/pkg/mod/x", LENGTH)],
+  ["a run of module folders", repeat("/pkg/mod/", FILE_NAME_LENGTH)],
+  ["module folders each with a name", repeat("/pkg/mod/x", FILE_NAME_LENGTH)],
   [
     "module folders, a line break, then a version",
-    repeat("\\pkg\\mod\\x", LENGTH) + "\n@v1.2.3",
+    repeat("\\pkg\\mod\\x", FILE_NAME_LENGTH) + "\n@v1.2.3",
   ],
-  ["versions with no number", repeat("/pkg/mod/a@v", LENGTH)],
+  ["versions with no number", repeat("/pkg/mod/a@v", FILE_NAME_LENGTH)],
 ];
 
 describe("a stack trace built to be slow is shown quickly", () => {
