@@ -20,6 +20,7 @@ import {
   DashboardTemplateType,
   getTemplateConfig,
 } from "../../../Types/Dashboard/DashboardTemplates";
+import Email from "../../../Types/Email";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
@@ -809,7 +810,8 @@ describe("widgets", () => {
           {
             ...apiTextWidget(),
             arguments: {
-              owner: { _type: "Email", value: "not an email" },
+              // An address that is not text was never one: it cannot be read.
+              owner: { _type: "Email", value: 42 },
             },
           },
           {
@@ -825,11 +827,39 @@ describe("widgets", () => {
       expect(idsOf(config)).toEqual([TEXT_WIDGET_ID, SECOND_WIDGET_ID]);
       expect((config.components[0]!.arguments as JSONObject)["owner"]).toEqual({
         _type: "Email",
-        value: "not an email",
+        value: 42,
       });
       expect(
         (config.components[1]!.arguments as JSONObject)["monitorId"],
       ).toBeInstanceOf(ObjectID);
+    });
+
+    test("a widget holding an address stored before the one-mailbox check is read, the address as stored", () => {
+      const config: DashboardViewConfig = StoredDashboardViewConfig.read({
+        components: [
+          {
+            ...apiTextWidget(),
+            arguments: {
+              owner: { _type: "Email", value: "Ops <ops@acme.example>" },
+              monitorId: { _type: "ObjectID", value: SECOND_WIDGET_ID },
+            },
+          },
+        ],
+      });
+
+      expectDrawable(config);
+
+      const widgetArguments: JSONObject = config.components[0]!
+        .arguments as JSONObject;
+
+      /*
+       * Read like the widget's other arguments, not kept as JSON: the
+       * address can be shown, though it cannot be saved back as it is.
+       */
+      expect(widgetArguments["owner"]).toBeInstanceOf(Email);
+      expect((widgetArguments["owner"] as Email).isMalformed()).toBe(true);
+      expect(String(widgetArguments["owner"])).toBe("ops <ops@acme.example>");
+      expect(widgetArguments["monitorId"]).toBeInstanceOf(ObjectID);
     });
   });
 });
