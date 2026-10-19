@@ -6070,8 +6070,9 @@ function StubPage(props) {
 }
 
 const STUB_PAGES = [
-  [PageMap.AI_AGENT_TASK_VIEW, "AI Agent Task"],
-  [PageMap.AI_AGENT_TASKS, "AI Agent Tasks"],
+  // Where a fix task the AI Investigation card started leads: Code.
+  [PageMap.CODE_TASK_VIEW, "Code Task"],
+  [PageMap.CODE, "Code"],
   [PageMap.MONITOR_VIEW, "Monitor"],
   // What the Affected Resources card links to with ?resources=many.
   [PageMap.HOST_VIEW, "Host"],

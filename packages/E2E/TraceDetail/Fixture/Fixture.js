@@ -1069,9 +1069,10 @@ createRoot(document.getElementById("root")).render(
         >
           <Route index element={<TraceViewPage />} />
         </Route>
+        {/* A task's conversation in Code, where View task progress leads. */}
         <Route
-          path="/dashboard/:projectId/ai/agents/:taskId"
-          element={<PlaceholderPage title="AI Agent Task" testId="ai-task-page" />}
+          path="/dashboard/:projectId/code/tasks/:taskId"
+          element={<PlaceholderPage title="Code Task" testId="ai-task-page" />}
         />
         <Route
           path="/dashboard/:projectId/traces"

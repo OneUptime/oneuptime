@@ -981,7 +981,7 @@ function AITaskPage() {
   const { taskId } = useParams();
   return (
     <main className="mx-auto max-w-3xl px-8 py-16">
-      <h1 className="text-xl font-semibold text-gray-900">AI Agent Task</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Code Task</h1>
       <p data-testid="ai-task-page" className="mt-2 text-sm text-gray-600">
         {taskId}
       </p>
@@ -1043,8 +1043,9 @@ createRoot(document.getElementById("root")).render(
             element={section(ExceptionDetailSection.Settings)}
           />
         </Route>
+        {/* A task's conversation in Code, where a started fix leads. */}
         <Route
-          path="/dashboard/:projectId/ai/agents/:taskId"
+          path="/dashboard/:projectId/code/tasks/:taskId"
           element={<AITaskPage />}
         />
         <Route

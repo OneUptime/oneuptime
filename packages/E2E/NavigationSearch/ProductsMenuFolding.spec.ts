@@ -592,7 +592,9 @@ test.describe("the desktop products menu", () => {
       "false",
     );
     await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length + 1);
-    await expect(page.getByRole("option").last()).toContainText("Tasks");
+    // Code's one product: its repositories, their tasks and asking AI.
+    await expect(page.getByRole("option").last()).toContainText("Code");
+    await expect(page.getByRole("option").last()).not.toContainText("Tasks");
   });
 
   test("the essentials fold for the moment, and are open again on the next visit", async ({
