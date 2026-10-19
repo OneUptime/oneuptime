@@ -285,7 +285,7 @@ Agenten skal køre som root for at læse `/var/run/docker.sock`. Kontrollér, at
 3. Kontrollér, at indtagelsesnøglen er gyldig og ikke er udløbet.
 :::
 
-:::details Containerens CPU er en flad linje nær nul
+:::details Containerens CPU er en flad linje
 En ældre agent sender receiveren `docker_stats`' eget CPU-tal. Siden collector 0.150.0 beregner receiveren det ud fra en enkelt statistikmåling: al den CPU, en container har brugt, siden den startede, divideret med al den CPU, værten har brugt, siden den bootede. Linjen bevæger sig knap og følger ikke belastningen, mens `container.cpu.usage.total` gør. [Opgradér agenten](#opgradering-af-agenten): fra sin anden måling sender den den CPU, hver container brugte i hvert interval på 30 sekunder. Målinger, der allerede er gemt, forbliver som de var.
 :::
 

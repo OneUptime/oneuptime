@@ -285,7 +285,7 @@ De agent moet als root draaien om `/var/run/docker.sock` te lezen. Controleer of
 3. Controleer of de ingestiesleutel geldig is en niet is verlopen.
 :::
 
-:::details Container-CPU is een vlakke lijn rond nul
+:::details Container-CPU is een vlakke lijn
 Een oudere agent stuurt het eigen CPU-cijfer van de receiver `docker_stats`. Sinds collector 0.150.0 berekent de receiver dat uit één statistiekmeting: alle CPU die een container sinds zijn start heeft gebruikt, gedeeld door alle CPU die de host sinds het opstarten heeft gebruikt. De lijn beweegt nauwelijks en volgt de belasting niet, terwijl `container.cpu.usage.total` dat wel doet. [Upgrade de agent](#de-agent-upgraden): vanaf zijn tweede meting stuurt hij de CPU die elke container in elk interval van 30 seconden heeft gebruikt. Al opgeslagen metingen blijven zoals ze waren.
 :::
 

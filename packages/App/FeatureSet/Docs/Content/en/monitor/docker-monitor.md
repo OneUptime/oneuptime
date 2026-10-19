@@ -282,7 +282,7 @@ OneUptime identifies a host by `resource.host.name`, which the agent takes from 
 :::
 
 :::details A CPU alert never fires
-Group the query by `resource.container.name` and aggregate with **Maximum**, as the **High Container CPU Usage** template does. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold. If a container's CPU is a flat line near zero whatever its load, the host runs an older agent: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent).
+Group the query by `resource.container.name` and aggregate with **Maximum**, as the **High Container CPU Usage** template does. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold. If a container's CPU is a flat line whatever its load, the host runs an older agent: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent).
 :::
 
 :::details The restart-loop or throttling template stopped alerting

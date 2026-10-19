@@ -285,7 +285,7 @@ Agenten måste köras som root för att läsa `/var/run/docker.sock`. Kontroller
 3. Kontrollera att intagningsnyckeln är giltig och inte har gått ut.
 :::
 
-:::details Containerns CPU är en platt linje nära noll
+:::details Containerns CPU är en platt linje
 En äldre agent skickar mottagaren `docker_stats` egen CPU-siffra. Sedan collector 0.150.0 räknar mottagaren ut den från en enda statistikmätning: all CPU som en container har använt sedan den startade, delat med all CPU som värden har använt sedan den senast startades. Linjen rör sig knappt och följer inte belastningen, medan `container.cpu.usage.total` gör det. [Uppgradera agenten](#uppgradera-agenten): från sin andra mätning skickar den den CPU som varje container använde under varje intervall på 30 sekunder. Mätningar som redan har sparats förblir som de var.
 :::
 

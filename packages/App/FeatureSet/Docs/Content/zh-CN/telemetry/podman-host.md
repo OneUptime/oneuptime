@@ -284,7 +284,7 @@ podman run -d ... -e DOCKER_API_VERSION= ...
 3. 检查摄取密钥是否有效且未过期。
 :::
 
-:::details 容器 CPU 是一条接近零的平线
+:::details 容器 CPU 是一条平线
 旧版代理发送的是 `docker_stats` 接收器自己算出的 CPU 值，它需要当前读数之前的那次统计读数，而 Podman 的 Docker 兼容 API 从不发送它：接收器会用容器自启动以来用掉的全部 CPU，除以主机自开机以来用掉的全部 CPU。这条线几乎不动，也不随负载变化，而 `container.cpu.usage.total` 会随负载变化。[升级代理](#升级代理)：从第二次读数起，它会发送每个容器在每个 30 秒间隔内用掉的 CPU。已存储的读数保持不变。
 :::
 

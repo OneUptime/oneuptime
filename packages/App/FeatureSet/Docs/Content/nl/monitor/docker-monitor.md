@@ -282,7 +282,7 @@ OneUptime herkent een host aan `resource.host.name`, die de agent uit `DOCKER_HO
 :::
 
 :::details Een CPU-waarschuwing gaat nooit af
-Groepeer de query op `resource.container.name` en aggregeer met **Maximum**, zoals het sjabloon **High Container CPU Usage** doet. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig. Is de CPU van een container een vlakke lijn rond nul, wat de belasting ook is, dan draait er een oudere agent op de host: [upgrade die](/docs/telemetry/docker-host#de-agent-upgraden).
+Groepeer de query op `resource.container.name` en aggregeer met **Maximum**, zoals het sjabloon **High Container CPU Usage** doet. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig. Is de CPU van een container een vlakke lijn, wat de belasting ook is, dan draait er een oudere agent op de host: [upgrade die](/docs/telemetry/docker-host#de-agent-upgraden).
 :::
 
 :::details Het sjabloon voor herstartlussen of afknijpen waarschuwt niet meer

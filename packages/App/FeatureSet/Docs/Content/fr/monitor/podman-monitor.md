@@ -285,7 +285,7 @@ OneUptime identifie un hôte par `resource.host.name`, que l'agent tire de `PODM
 :::
 
 :::details Une alerte CPU ne se déclenche jamais
-Regroupez la requête par `resource.container.name`, comme le fait le modèle **High Container CPU Usage**, pour que chaque conteneur soit jugé séparément. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé. Si le CPU d'un conteneur reste une ligne plate proche de zéro quelle que soit sa charge, l'hôte exécute un agent plus ancien : [mettez-le à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent).
+Regroupez la requête par `resource.container.name`, comme le fait le modèle **High Container CPU Usage**, pour que chaque conteneur soit jugé séparément. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé. Si le CPU d'un conteneur reste une ligne plate quelle que soit sa charge, l'hôte exécute un agent plus ancien : [mettez-le à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent).
 :::
 
 :::details L'alerte sur le nombre de redémarrages ne se rétablit jamais

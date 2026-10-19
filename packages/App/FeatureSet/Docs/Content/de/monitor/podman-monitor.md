@@ -285,7 +285,7 @@ OneUptime erkennt einen Host an `resource.host.name`, den der Agent aus `PODMAN_
 :::
 
 :::details Eine CPU-Warnung löst nie aus
-Gruppieren Sie die Abfrage nach `resource.container.name`, wie es die Vorlage **High Container CPU Usage** tut, damit jeder Container einzeln beurteilt wird. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie nahe null, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/podman-host#agent-aktualisieren).
+Gruppieren Sie die Abfrage nach `resource.container.name`, wie es die Vorlage **High Container CPU Usage** tut, damit jeder Container einzeln beurteilt wird. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/podman-host#agent-aktualisieren).
 :::
 
 :::details Die Warnung zur Neustartzahl klingt nie ab

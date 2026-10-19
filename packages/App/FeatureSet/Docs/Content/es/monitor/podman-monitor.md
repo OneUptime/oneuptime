@@ -285,7 +285,7 @@ OneUptime identifica un host por `resource.host.name`, que el agente toma de `PO
 :::
 
 :::details Una alerta de CPU nunca se dispara
-Agrupe la consulta por `resource.container.name`, como hace la plantilla **High Container CPU Usage**, para que cada contenedor se juzgue por separado. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto. Si la CPU de un contenedor es una línea plana cerca de cero sea cual sea su carga, el host ejecuta un agente antiguo: [actualícelo](/docs/telemetry/podman-host#actualizar-el-agente).
+Agrupe la consulta por `resource.container.name`, como hace la plantilla **High Container CPU Usage**, para que cada contenedor se juzgue por separado. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto. Si la CPU de un contenedor es una línea plana sea cual sea su carga, el host ejecuta un agente antiguo: [actualícelo](/docs/telemetry/podman-host#actualizar-el-agente).
 :::
 
 :::details La alerta del número de reinicios nunca se resuelve

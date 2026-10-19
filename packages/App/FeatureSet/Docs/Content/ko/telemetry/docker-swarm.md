@@ -238,7 +238,7 @@ docker version --format '{{ .Server.APIVersion }}'
 클러스터 이름은 `DOCKER_SWARM_CLUSTER_NAME`에서 옵니다. `.env`에서 바꾸고 `docker compose up -d`를 실행하세요. 새 이름은 기존 클러스터의 이름을 바꾸는 대신 새 클러스터를 등록합니다.
 :::
 
-:::details 작업 CPU가 0 근처의 평평한 선으로 나타남
+:::details 작업 CPU가 평평한 선으로 나타남
 오래된 `otel-collector-config.yaml`은 `docker_stats` 리시버가 직접 계산한 CPU 값을 보냅니다. Collector 0.150.0부터 리시버는 이 값을 통계 측정 한 번으로 계산합니다. 컨테이너가 시작된 뒤 사용한 전체 CPU를 노드가 부팅된 뒤 사용한 전체 CPU로 나눈 값입니다. 이 선은 거의 움직이지 않고 부하를 따라가지 않지만 `container.cpu.usage.total`은 따라갑니다. Collector 버전은 바뀌지 않았으므로 경고 표시가 나타나지 않습니다. [에이전트 업그레이드](#에이전트-업그레이드)에 나온 대로 에이전트 파일을 다시 내려받으세요. 두 번째 측정부터 Collector는 각 컨테이너가 30초 간격마다 사용한 CPU를 보냅니다. 이미 저장된 측정값은 그대로 남습니다.
 :::
 

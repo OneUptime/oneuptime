@@ -282,7 +282,7 @@ OneUptime 通过 `resource.host.name` 识别主机，代理从 `DOCKER_HOST_NAME
 :::
 
 :::details CPU 警报从不触发
-像 **High Container CPU Usage** 模板那样，按 `resource.container.name` 对查询分组，并用 **最大值** 聚合。在繁忙主机上对所有容器取平均值，会被空闲的容器拉低。请记住 100% 表示一个完整的核心，所以允许使用多个核心的容器需要更高的阈值。如果某个容器的 CPU 无论负载如何都是一条接近零的平线，说明主机运行的是旧版代理：[请升级它](/docs/telemetry/docker-host#升级代理)。
+像 **High Container CPU Usage** 模板那样，按 `resource.container.name` 对查询分组，并用 **最大值** 聚合。在繁忙主机上对所有容器取平均值，会被空闲的容器拉低。请记住 100% 表示一个完整的核心，所以允许使用多个核心的容器需要更高的阈值。如果某个容器的 CPU 无论负载如何都是一条平线，说明主机运行的是旧版代理：[请升级它](/docs/telemetry/docker-host#升级代理)。
 :::
 
 :::details 重启循环或节流模板不再报警

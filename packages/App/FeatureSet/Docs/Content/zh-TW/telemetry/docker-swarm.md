@@ -238,7 +238,7 @@ docker version --format '{{ .Server.APIVersion }}'
 叢集的名稱來自 `DOCKER_SWARM_CLUSTER_NAME`。在 `.env` 中變更它並執行 `docker compose up -d`：新名稱會註冊一個新叢集，而不是重新命名舊叢集。
 :::
 
-:::details 任務 CPU 是一條接近零的平線
+:::details 任務 CPU 是一條平線
 舊版 `otel-collector-config.yaml` 傳送的是 `docker_stats` 接收器自己算出的 CPU 值。從 Collector 0.150.0 起，接收器只根據一次統計讀數來計算它：容器自啟動以來用掉的全部 CPU，除以節點自開機以來用掉的全部 CPU。這條線幾乎不動，也不隨負載變化，而 `container.cpu.usage.total` 會隨負載變化。Collector 版本沒有變更，所以不會出現警告標誌：請依照 [升級代理程式](#升級代理程式) 重新下載代理程式的檔案。從第二次讀數起，Collector 就會傳送每個容器在每個 30 秒間隔內用掉的 CPU。已儲存的讀數保持不變。
 :::
 

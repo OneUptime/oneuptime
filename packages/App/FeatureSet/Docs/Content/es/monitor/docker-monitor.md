@@ -282,7 +282,7 @@ OneUptime identifica un host por `resource.host.name`, que el agente toma de `DO
 :::
 
 :::details Una alerta de CPU nunca se dispara
-Agrupe la consulta por `resource.container.name` y agregue con **Máximo**, como hace la plantilla **High Container CPU Usage**. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto. Si la CPU de un contenedor es una línea plana cerca de cero sea cual sea su carga, el host ejecuta un agente antiguo: [actualícelo](/docs/telemetry/docker-host#actualizar-el-agente).
+Agrupe la consulta por `resource.container.name` y agregue con **Máximo**, como hace la plantilla **High Container CPU Usage**. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto. Si la CPU de un contenedor es una línea plana sea cual sea su carga, el host ejecuta un agente antiguo: [actualícelo](/docs/telemetry/docker-host#actualizar-el-agente).
 :::
 
 :::details La plantilla de bucle de reinicios o de limitación dejó de alertar

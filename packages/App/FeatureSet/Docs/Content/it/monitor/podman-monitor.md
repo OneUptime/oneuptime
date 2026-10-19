@@ -285,7 +285,7 @@ OneUptime identifica un host tramite `resource.host.name`, che l'agente prende d
 :::
 
 :::details Un avviso sulla CPU non scatta mai
-Raggruppate la query per `resource.container.name`, come fa il modello **High Container CPU Usage**, così ogni container viene giudicato separatamente. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta. Se la CPU di un container è una linea piatta vicina allo zero qualunque sia il suo carico, sull'host gira un agente più vecchio: [aggiornatelo](/docs/telemetry/podman-host#aggiornare-lagent).
+Raggruppate la query per `resource.container.name`, come fa il modello **High Container CPU Usage**, così ogni container viene giudicato separatamente. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta. Se la CPU di un container è una linea piatta qualunque sia il suo carico, sull'host gira un agente più vecchio: [aggiornatelo](/docs/telemetry/podman-host#aggiornare-lagent).
 :::
 
 :::details L'avviso sul numero di riavvii non si risolve mai

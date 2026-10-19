@@ -285,7 +285,7 @@ OneUptime identifierar en värd med `resource.host.name`, som agenten tar från 
 :::
 
 :::details En CPU-varning utlöses aldrig
-Gruppera frågan efter `resource.container.name`, som mallen **High Container CPU Usage** gör, så att varje container bedöms för sig. Ett genomsnitt över alla containrar på en upptagen värd dras ned av de inaktiva. Kom ihåg att 100 % betyder en hel kärna, så en container som får använda flera kärnor behöver en högre tröskel. Om en containers CPU är en platt linje nära noll oavsett belastning kör värden en äldre agent: [uppgradera den](/docs/telemetry/podman-host#uppgradera-agenten).
+Gruppera frågan efter `resource.container.name`, som mallen **High Container CPU Usage** gör, så att varje container bedöms för sig. Ett genomsnitt över alla containrar på en upptagen värd dras ned av de inaktiva. Kom ihåg att 100 % betyder en hel kärna, så en container som får använda flera kärnor behöver en högre tröskel. Om en containers CPU är en platt linje oavsett belastning kör värden en äldre agent: [uppgradera den](/docs/telemetry/podman-host#uppgradera-agenten).
 :::
 
 :::details Varningen för antal omstarter upphör aldrig

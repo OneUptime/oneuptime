@@ -284,7 +284,7 @@ De agent moet als root draaien om `/run/podman/podman.sock` te lezen. Controleer
 3. Controleer of de ingestiesleutel geldig is en niet is verlopen.
 :::
 
-:::details Container-CPU is een vlakke lijn rond nul
+:::details Container-CPU is een vlakke lijn
 Een oudere agent stuurt het eigen CPU-cijfer van de receiver `docker_stats`, dat de statistiekmeting vóór de huidige nodig heeft, en de Docker-compatibele API van Podman stuurt die nooit mee: de receiver deelt alle CPU die een container sinds zijn start heeft gebruikt door alle CPU die de host sinds het opstarten heeft gebruikt. De lijn beweegt nauwelijks en volgt de belasting niet, terwijl `container.cpu.usage.total` dat wel doet. [Upgrade de agent](#de-agent-upgraden): vanaf zijn tweede meting stuurt hij de CPU die elke container in elk interval van 30 seconden heeft gebruikt. Al opgeslagen metingen blijven zoals ze waren.
 :::
 

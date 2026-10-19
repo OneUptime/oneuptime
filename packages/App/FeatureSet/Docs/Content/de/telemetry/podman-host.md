@@ -284,7 +284,7 @@ Der Agent muss als root laufen, um `/run/podman/podman.sock` zu lesen. Prüfen S
 3. Prüfen Sie, ob der Ingestion-Schlüssel gültig und nicht abgelaufen ist.
 :::
 
-:::details Container-CPU ist eine flache Linie nahe null
+:::details Container-CPU ist eine flache Linie
 Ein älterer Agent sendet den eigenen CPU-Wert des Receivers `docker_stats`, der den Stats-Messwert vor dem aktuellen braucht, und die Docker-kompatible API von Podman sendet ihn nie: Der Receiver teilt die gesamte CPU, die ein Container seit seinem Start verbraucht hat, durch die gesamte CPU, die der Host seit seinem Booten verbraucht hat. Die Linie bewegt sich kaum und folgt der Last nicht, `container.cpu.usage.total` dagegen schon. [Aktualisieren Sie den Agenten](#agent-aktualisieren): Ab seinem zweiten Messwert sendet er die CPU, die jeder Container in jedem 30-Sekunden-Intervall verbraucht hat. Bereits gespeicherte Messwerte bleiben, wie sie waren.
 :::
 

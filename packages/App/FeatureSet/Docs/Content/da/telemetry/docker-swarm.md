@@ -238,7 +238,7 @@ Sæt `DOCKER_API_VERSION` til den værdi i `.env`, og kør `docker compose up -d
 Klyngens navn kommer fra `DOCKER_SWARM_CLUSTER_NAME`. Ændr det i `.env`, og kør `docker compose up -d`: Et nyt navn registrerer en ny klynge i stedet for at omdøbe den gamle.
 :::
 
-:::details Opgavernes CPU er en flad linje nær nul
+:::details Opgavernes CPU er en flad linje
 En ældre `otel-collector-config.yaml` sender receiveren `docker_stats`' eget CPU-tal. Siden collector 0.150.0 beregner receiveren det ud fra en enkelt statistikmåling: al den CPU, en container har brugt, siden den startede, divideret med al den CPU, noden har brugt, siden den bootede. Linjen bevæger sig knap og følger ikke belastningen, mens `container.cpu.usage.total` gør. Collector-versionen har ikke ændret sig, så der vises intet advarselstegn: Download agentens filer igen, som [Opgradering af agenten](#opgradering-af-agenten) viser. Fra sin anden måling sender collectoren derefter den CPU, hver container brugte i hvert interval på 30 sekunder. Målinger, der allerede er gemt, forbliver som de var.
 :::
 

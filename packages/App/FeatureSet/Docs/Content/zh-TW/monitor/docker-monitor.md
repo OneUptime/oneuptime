@@ -282,7 +282,7 @@ OneUptime 以 `resource.host.name` 識別主機，代理程式從 `DOCKER_HOST_N
 :::
 
 :::details CPU 警示從不觸發
-像 **High Container CPU Usage** 範本一樣，依 `resource.container.name` 將查詢分組，並以 **最大值** 彙總。在忙碌的主機上對所有容器取平均值，會被閒置的容器拉低。請記得 100% 表示一個完整的核心，所以允許使用多個核心的容器需要更高的閾值。如果某個容器的 CPU 無論負載如何都是一條接近零的平線，表示主機執行的是舊版代理程式：[請升級它](/docs/telemetry/docker-host#升級代理程式)。
+像 **High Container CPU Usage** 範本一樣，依 `resource.container.name` 將查詢分組，並以 **最大值** 彙總。在忙碌的主機上對所有容器取平均值，會被閒置的容器拉低。請記得 100% 表示一個完整的核心，所以允許使用多個核心的容器需要更高的閾值。如果某個容器的 CPU 無論負載如何都是一條平線，表示主機執行的是舊版代理程式：[請升級它](/docs/telemetry/docker-host#升級代理程式)。
 :::
 
 :::details 重新啟動迴圈或節流範本不再發出警示

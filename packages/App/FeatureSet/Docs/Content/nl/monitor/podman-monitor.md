@@ -285,7 +285,7 @@ OneUptime herkent een host aan `resource.host.name`, die de agent uit `PODMAN_HO
 :::
 
 :::details Een CPU-waarschuwing gaat nooit af
-Groepeer de query op `resource.container.name`, zoals het sjabloon **High Container CPU Usage** doet, zodat elke container afzonderlijk wordt beoordeeld. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig. Is de CPU van een container een vlakke lijn rond nul, wat de belasting ook is, dan draait er een oudere agent op de host: [upgrade die](/docs/telemetry/podman-host#de-agent-upgraden).
+Groepeer de query op `resource.container.name`, zoals het sjabloon **High Container CPU Usage** doet, zodat elke container afzonderlijk wordt beoordeeld. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig. Is de CPU van een container een vlakke lijn, wat de belasting ook is, dan draait er een oudere agent op de host: [upgrade die](/docs/telemetry/podman-host#de-agent-upgraden).
 :::
 
 :::details De waarschuwing voor het aantal herstarts herstelt nooit

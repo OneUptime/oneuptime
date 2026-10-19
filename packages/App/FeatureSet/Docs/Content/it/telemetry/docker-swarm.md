@@ -238,7 +238,7 @@ Imposta `DOCKER_API_VERSION` su quel valore in `.env` ed esegui `docker compose 
 Il nome del cluster viene da `DOCKER_SWARM_CLUSTER_NAME`. Cambialo in `.env` ed esegui `docker compose up -d`: un nuovo nome registra un nuovo cluster invece di rinominare quello vecchio.
 :::
 
-:::details La CPU dei task è una linea piatta vicina allo zero
+:::details La CPU dei task è una linea piatta
 Un `otel-collector-config.yaml` più vecchio invia il valore di CPU calcolato dal receiver `docker_stats` stesso. Dal collector 0.150.0 il receiver lo ricava da una sola lettura delle statistiche: tutta la CPU usata da un container dal suo avvio, divisa per tutta la CPU usata dal nodo dal suo boot. La linea si muove appena e non segue il carico, mentre `container.cpu.usage.total` sì. La versione del collector non è cambiata, quindi non compare nessun segnale di avviso: scarica di nuovo i file dell'agent come mostra [Aggiornare l'agent](#aggiornare-lagent). Dalla sua seconda lettura in poi il collector invia allora la CPU usata da ogni container in ogni intervallo di 30 secondi. Le letture già salvate restano com'erano.
 :::
 

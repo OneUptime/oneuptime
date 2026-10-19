@@ -285,7 +285,7 @@ O agente precisa ser executado como root para ler `/var/run/docker.sock`. Verifi
 3. Verifique se a chave de ingestão é válida e não expirou.
 :::
 
-:::details A CPU dos contêineres é uma linha plana perto de zero
+:::details A CPU dos contêineres é uma linha plana
 Um agente mais antigo envia o valor de CPU calculado pelo próprio receiver `docker_stats`. Desde o coletor 0.150.0, o receiver o calcula a partir de uma única leitura de estatísticas: toda a CPU que um contêiner usou desde que iniciou, dividida por toda a CPU que o host usou desde que foi ligado. A linha mal se move e não acompanha a carga, enquanto `container.cpu.usage.total` acompanha. [Atualize o agente](#atualizando-o-agente): a partir da segunda leitura, ele envia a CPU que cada contêiner usou em cada intervalo de 30 segundos. As leituras já armazenadas ficam como estavam.
 :::
 

@@ -282,7 +282,7 @@ OneUptime erkennt einen Host an `resource.host.name`, den der Agent aus `DOCKER_
 :::
 
 :::details Eine CPU-Warnung löst nie aus
-Gruppieren Sie die Abfrage nach `resource.container.name` und aggregieren Sie mit **Maximum**, wie es die Vorlage **High Container CPU Usage** tut. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie nahe null, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/docker-host#agent-aktualisieren).
+Gruppieren Sie die Abfrage nach `resource.container.name` und aggregieren Sie mit **Maximum**, wie es die Vorlage **High Container CPU Usage** tut. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/docker-host#agent-aktualisieren).
 :::
 
 :::details Die Vorlage für Neustartschleifen oder Drosselung warnt nicht mehr

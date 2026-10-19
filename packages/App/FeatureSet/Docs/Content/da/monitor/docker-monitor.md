@@ -282,7 +282,7 @@ OneUptime identificerer en vært ud fra `resource.host.name`, som agenten tager 
 :::
 
 :::details En CPU-advarsel udløses aldrig
-Gruppér forespørgslen efter `resource.container.name`, og aggregér med **Maksimum**, som skabelonen **High Container CPU Usage** gør. Et gennemsnit over alle containere på en travl vært trækkes ned af de inaktive. Husk, at 100 % betyder én hel kerne, så en container, der må bruge flere kerner, har brug for en højere tærskel. Er en containers CPU en flad linje nær nul uanset belastningen, kører værten en ældre agent: [opgradér den](/docs/telemetry/docker-host#opgradering-af-agenten).
+Gruppér forespørgslen efter `resource.container.name`, og aggregér med **Maksimum**, som skabelonen **High Container CPU Usage** gør. Et gennemsnit over alle containere på en travl vært trækkes ned af de inaktive. Husk, at 100 % betyder én hel kerne, så en container, der må bruge flere kerner, har brug for en højere tærskel. Er en containers CPU en flad linje uanset belastningen, kører værten en ældre agent: [opgradér den](/docs/telemetry/docker-host#opgradering-af-agenten).
 :::
 
 :::details Skabelonen for genstartsløkker eller drosling holdt op med at advare

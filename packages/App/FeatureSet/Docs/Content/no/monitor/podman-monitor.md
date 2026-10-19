@@ -285,7 +285,7 @@ OneUptime identifiserer en vert etter `resource.host.name`, som agenten tar fra 
 :::
 
 :::details Et CPU-varsel utløses aldri
-Grupper spørringen etter `resource.container.name`, slik malen **High Container CPU Usage** gjør, så hver container vurderes for seg. Et gjennomsnitt over alle containere på en travel vert trekkes ned av de inaktive. Husk at 100 % betyr én hel kjerne, så en container som får bruke flere kjerner, trenger en høyere terskel. Er CPU-en til en container en flat linje nær null uansett belastning, kjører verten en eldre agent: [oppgrader den](/docs/telemetry/podman-host#oppgradere-agenten).
+Grupper spørringen etter `resource.container.name`, slik malen **High Container CPU Usage** gjør, så hver container vurderes for seg. Et gjennomsnitt over alle containere på en travel vert trekkes ned av de inaktive. Husk at 100 % betyr én hel kjerne, så en container som får bruke flere kjerner, trenger en høyere terskel. Er CPU-en til en container en flat linje uansett belastning, kjører verten en eldre agent: [oppgrader den](/docs/telemetry/podman-host#oppgradere-agenten).
 :::
 
 :::details Varselet om antall omstarter opphører aldri
