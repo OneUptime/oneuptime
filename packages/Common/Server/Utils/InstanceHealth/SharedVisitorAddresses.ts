@@ -15,7 +15,8 @@ import { DataSource } from "typeorm";
  * that address instead of theirs. In the setups OneUptime ships that is
  *
  *   - Docker Compose with visitors over IPv6 on a network without IPv6
- *     (ENABLE_IPV6): Docker passes them on from the network's gateway;
+ *     (turned on in docker-compose.override.yml): Docker passes them on
+ *     from the network's gateway;
  *   - a proxy of the operator's own in front that TRUSTED_PROXY_HOPS does
  *     not count: everyone is the proxy;
  *   - the Helm chart's gateway Service under Kubernetes' default

@@ -321,25 +321,30 @@ OneUptime räknar varje besökare efter adressen som besökaren ansluter från: 
 
 | Uppsättning | Inställning |
 | --- | --- |
-| Folk når OneUptime över IPv6, till exempel genom en `AAAA`-post | `ENABLE_IPV6=true` |
+| Folk når OneUptime över IPv6, till exempel genom en `AAAA`-post | IPv6 på OneUptimes nätverk, i `docker-compose.override.yml` |
 | Din egen omvända proxy står framför OneUptime | `TRUSTED_PROXY_HOPS=2`, med ingressen publicerad på `127.0.0.1` (se [Använd din egen omvända proxy](#använd-din-egen-omvända-proxy)) |
 
-Utan `ENABLE_IPV6=true` lämnar Docker vidare varje besökare som kommer över IPv6 till OneUptime från en egen adress, och OneUptime räknar dem alla som en besökare: en persons misslyckade inloggningar kan låsa ute de andra. Att slå på IPv6 kräver Docker Engine 27 eller senare.
+Utan IPv6 på OneUptimes nätverk lämnar Docker vidare varje besökare som kommer över IPv6 till OneUptime från en egen adress, och OneUptime räknar dem alla som en besökare: en persons misslyckade inloggningar kan låsa ute de andra. Att slå på IPv6 kräver Docker Engine 27 eller senare (`docker version` visar din).
 
 :::steps
 ### Slå på IPv6
 
-```ini title="config.env"
-ENABLE_IPV6=true
+Skapa `docker-compose.override.yml` bredvid `docker-compose.yml`, eller lägg till detta i den du har; `npm start` och `npm run update` läser den:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### Starta om OneUptime
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose skapar om OneUptimes nätverk med IPv6, och containrarna i det. Dina data behålls.
+OneUptime stannar och startar igen med IPv6 på sitt nätverk. Dina data behålls. Docker kan inte ta bort ett nätverk som en egen container fortfarande är ansluten till, till exempel en omvänd proxy: koppla först bort den från OneUptimes nätverk och anslut den igen efteråt. Stannar `npm start` med `has active endpoints` kopplar du bort den och kör `npm stop` och `npm start` igen.
 
 ### Kontrollera nätverket
 

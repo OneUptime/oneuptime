@@ -321,25 +321,30 @@ OneUptime tæller hver besøgende efter den adresse, vedkommende forbinder fra: 
 
 | Opsætning | Indstilling |
 | --- | --- |
-| Folk når OneUptime via IPv6, for eksempel gennem en `AAAA`-post | `ENABLE_IPV6=true` |
+| Folk når OneUptime via IPv6, for eksempel gennem en `AAAA`-post | IPv6 på OneUptimes netværk, i `docker-compose.override.yml` |
 | Din egen reverse proxy står foran OneUptime | `TRUSTED_PROXY_HOPS=2`, med ingressen udgivet på `127.0.0.1` (se [Brug din egen reverse proxy](#brug-din-egen-reverse-proxy)) |
 
-Uden `ENABLE_IPV6=true` giver Docker hver besøgende, der kommer via IPv6, videre til OneUptime fra én adresse af sin egen, og OneUptime tæller dem alle som én besøgende: én persons mislykkede logins kan låse de andre ude. At slå IPv6 til kræver Docker Engine 27 eller nyere.
+Uden IPv6 på OneUptimes netværk giver Docker hver besøgende, der kommer via IPv6, videre til OneUptime fra én adresse af sin egen, og OneUptime tæller dem alle som én besøgende: én persons mislykkede logins kan låse de andre ude. At slå IPv6 til kræver Docker Engine 27 eller nyere (`docker version` viser din).
 
 :::steps
 ### Slå IPv6 til
 
-```ini title="config.env"
-ENABLE_IPV6=true
+Opret `docker-compose.override.yml` ved siden af `docker-compose.yml`, eller føj dette til den, du har; `npm start` og `npm run update` læser den:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### Genstart OneUptime
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose genskaber OneUptimes netværk med IPv6, og containerne på det. Dine data bevares.
+OneUptime stopper og starter igen med IPv6 på sit netværk. Dine data bevares. Docker kan ikke fjerne et netværk, som en container af din egen stadig er forbundet til, for eksempel en reverse proxy: frakobl den først fra OneUptimes netværk, og forbind den igen bagefter. Stopper `npm start` med `has active endpoints`, så frakobl den og kør `npm stop` og `npm start` igen.
 
 ### Tjek netværket
 

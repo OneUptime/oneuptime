@@ -1004,7 +1004,7 @@
   "Visitors share an address": "访客共用一个地址",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "在过去 30 天内，有多人从同一个私有网络地址登录。OneUptime 会把他们算作同一个访客，因此一个人的登录失败可能会把其他人锁在外面。",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "通常是 OneUptime 前面的某个组件用它自己的地址把每个访客转交过来：",
-  "Docker Compose: set {{ipv6}} when people come over IPv6, and {{hops}} behind a proxy of your own on the server.": "Docker Compose：如果有人通过 IPv6 访问，请设置 {{ipv6}}；如果在服务器上使用自己的代理，请设置 {{hops}}。",
+  "Docker Compose: turn IPv6 on for OneUptime's network in {{file}} when people come over IPv6, and set {{hops}} behind a proxy of your own on the server.": "Docker Compose：如果有人通过 IPv6 访问，请在 {{file}} 中为 OneUptime 的网络开启 IPv6；如果在服务器上使用自己的代理，请设置 {{hops}}。",
   "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes：在 Helm chart 的 values 中设置 {{setting}}。",
   "Nothing needs to change if these people share one computer or one VPN.": "如果这些人共用一台电脑或同一个 VPN，则无需更改任何内容。",
   "{{count}} people": "{{count}} 人",

@@ -321,25 +321,30 @@ OneUptime telt elke bezoeker op het adres waarvandaan hij verbinding maakt: de a
 
 | Opstelling | Instelling |
 | --- | --- |
-| Mensen bereiken OneUptime via IPv6, bijvoorbeeld via een `AAAA`-record | `ENABLE_IPV6=true` |
+| Mensen bereiken OneUptime via IPv6, bijvoorbeeld via een `AAAA`-record | IPv6 op het netwerk van OneUptime, in `docker-compose.override.yml` |
 | Uw eigen reverse proxy staat voor OneUptime | `TRUSTED_PROXY_HOPS=2`, met de ingress gepubliceerd op `127.0.0.1` (zie [Uw eigen reverse proxy gebruiken](#uw-eigen-reverse-proxy-gebruiken)) |
 
-Zonder `ENABLE_IPV6=true` geeft Docker elke bezoeker die via IPv6 komt vanaf een eigen adres door aan OneUptime, en OneUptime telt hen allemaal als één bezoeker: de mislukte aanmeldingen van één persoon kunnen de anderen buitensluiten. IPv6 aanzetten vraagt Docker Engine 27 of nieuwer.
+Zonder IPv6 op het netwerk van OneUptime geeft Docker elke bezoeker die via IPv6 komt vanaf een eigen adres door aan OneUptime, en OneUptime telt hen allemaal als één bezoeker: de mislukte aanmeldingen van één persoon kunnen de anderen buitensluiten. IPv6 aanzetten vraagt Docker Engine 27 of nieuwer (`docker version` toont de uwe).
 
 :::steps
 ### Zet IPv6 aan
 
-```ini title="config.env"
-ENABLE_IPV6=true
+Maak `docker-compose.override.yml` aan naast `docker-compose.yml`, of voeg dit toe aan het bestand dat u al hebt; `npm start` en `npm run update` lezen het:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### Herstart OneUptime
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose maakt het netwerk van OneUptime opnieuw aan met IPv6, en de containers erop. Uw gegevens blijven bewaard.
+OneUptime stopt en start opnieuw, met IPv6 op zijn netwerk. Uw gegevens blijven bewaard. Docker kan geen netwerk verwijderen waaraan nog een eigen container gekoppeld is, zoals een reverse proxy: ontkoppel die eerst van het netwerk van OneUptime en koppel hem daarna weer. Stopt `npm start` met `has active endpoints`, ontkoppel hem dan en voer `npm stop` en `npm start` opnieuw uit.
 
 ### Controleer het netwerk
 

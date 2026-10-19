@@ -321,25 +321,30 @@ OneUptime zählt jeden Besucher nach der Adresse, von der aus er sich verbindet:
 
 | Setup | Einstellung |
 | --- | --- |
-| Personen erreichen OneUptime über IPv6, zum Beispiel über einen `AAAA`-Eintrag | `ENABLE_IPV6=true` |
+| Personen erreichen OneUptime über IPv6, zum Beispiel über einen `AAAA`-Eintrag | IPv6 im Netzwerk von OneUptime, in `docker-compose.override.yml` |
 | Ihr eigener Reverse Proxy steht vor OneUptime | `TRUSTED_PROXY_HOPS=2`, mit dem Ingress veröffentlicht auf `127.0.0.1` (siehe [Einen eigenen Reverse Proxy verwenden](#einen-eigenen-reverse-proxy-verwenden)) |
 
-Ohne `ENABLE_IPV6=true` reicht Docker jeden Besucher, der über IPv6 kommt, von einer eigenen Adresse aus an OneUptime weiter, und OneUptime zählt sie alle als einen Besucher: Die fehlgeschlagenen Anmeldungen einer Person können die anderen aussperren. Um IPv6 einzuschalten, brauchen Sie Docker Engine 27 oder neuer.
+Ohne IPv6 im Netzwerk von OneUptime reicht Docker jeden Besucher, der über IPv6 kommt, von einer eigenen Adresse aus an OneUptime weiter, und OneUptime zählt sie alle als einen Besucher: Die fehlgeschlagenen Anmeldungen einer Person können die anderen aussperren. Um IPv6 einzuschalten, brauchen Sie Docker Engine 27 oder neuer (`docker version` zeigt Ihre).
 
 :::steps
 ### IPv6 einschalten
 
-```ini title="config.env"
-ENABLE_IPV6=true
+Legen Sie `docker-compose.override.yml` neben `docker-compose.yml` an, oder ergänzen Sie Ihre vorhandene Datei; `npm start` und `npm run update` lesen sie:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### OneUptime neu starten
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose erstellt das Netzwerk von OneUptime mit IPv6 neu, und die Container darin. Ihre Daten bleiben erhalten.
+OneUptime hält an und startet wieder, mit IPv6 in seinem Netzwerk. Ihre Daten bleiben erhalten. Docker kann kein Netzwerk entfernen, mit dem ein eigener Container noch verbunden ist, etwa ein Reverse Proxy: Trennen Sie ihn vorher vom Netzwerk von OneUptime und verbinden Sie ihn danach wieder. Bricht `npm start` mit `has active endpoints` ab, trennen Sie ihn und führen dann `npm stop` und `npm start` erneut aus.
 
 ### Das Netzwerk prüfen
 

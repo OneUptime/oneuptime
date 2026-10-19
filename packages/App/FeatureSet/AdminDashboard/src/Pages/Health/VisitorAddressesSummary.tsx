@@ -73,7 +73,7 @@ export const VISITOR_ADDRESSES_COPY: {
   cause:
     "Usually something in front of OneUptime hands it every visitor from an address of its own:",
   compose:
-    "Docker Compose: set {{ipv6}} when people come over IPv6, and {{hops}} behind a proxy of your own on the server.",
+    "Docker Compose: turn IPv6 on for OneUptime's network in {{file}} when people come over IPv6, and set {{hops}} behind a proxy of your own on the server.",
   kubernetes: "Kubernetes: set {{setting}} in the Helm chart's values.",
   nothingToChange:
     "Nothing needs to change if these people share one computer or one VPN.",
@@ -232,7 +232,10 @@ const VisitorAddressesSummary: FunctionComponent = (): ReactElement => {
           )}
           {unlisted > 0 ? (
             <li className="px-3 py-2 text-sm text-gray-500">
-              {translator.translatePlural(VISITOR_ADDRESSES_COPY.more, unlisted)}
+              {translator.translatePlural(
+                VISITOR_ADDRESSES_COPY.more,
+                unlisted,
+              )}
             </li>
           ) : (
             <></>
@@ -246,7 +249,7 @@ const VisitorAddressesSummary: FunctionComponent = (): ReactElement => {
               <TranslatedSentence
                 template={VISITOR_ADDRESSES_COPY.compose}
                 slots={{
-                  ipv6: <Setting text="ENABLE_IPV6=true" />,
+                  file: <Setting text="docker-compose.override.yml" />,
                   hops: <Setting text="TRUSTED_PROXY_HOPS=2" />,
                 }}
               />
@@ -262,7 +265,9 @@ const VisitorAddressesSummary: FunctionComponent = (): ReactElement => {
               />
             </li>
           </ul>
-          <p>{translator.translateText(VISITOR_ADDRESSES_COPY.nothingToChange)}</p>
+          <p>
+            {translator.translateText(VISITOR_ADDRESSES_COPY.nothingToChange)}
+          </p>
         </div>
       </div>
     </Card>

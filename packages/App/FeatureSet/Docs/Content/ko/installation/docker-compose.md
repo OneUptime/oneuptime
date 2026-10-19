@@ -321,25 +321,30 @@ OneUptime은 방문자가 접속해 오는 주소로 각 방문자를 셉니다.
 
 | 구성 | 설정 |
 | --- | --- |
-| 사람들이 IPv6로 OneUptime에 접속함(예: `AAAA` 레코드를 통해) | `ENABLE_IPV6=true` |
+| 사람들이 IPv6로 OneUptime에 접속함(예: `AAAA` 레코드를 통해) | `docker-compose.override.yml`에서 OneUptime 네트워크의 IPv6 켜기 |
 | OneUptime 앞에 직접 운영하는 리버스 프록시가 있음 | `TRUSTED_PROXY_HOPS=2`, 그리고 `127.0.0.1`에 공개한 ingress([직접 운영하는 리버스 프록시 사용](#직접-운영하는-리버스-프록시-사용) 참고) |
 
-`ENABLE_IPV6=true`가 없으면 Docker는 IPv6로 온 방문자를 모두 자신의 주소 하나에서 OneUptime으로 넘기고, OneUptime은 이들을 모두 한 명의 방문자로 셉니다. 그러면 한 사람의 로그인 실패로 다른 사람들이 잠길 수 있습니다. IPv6를 켜려면 Docker Engine 27 이상이 필요합니다.
+OneUptime 네트워크에 IPv6가 없으면 Docker는 IPv6로 온 방문자를 모두 자신의 주소 하나에서 OneUptime으로 넘기고, OneUptime은 이들을 모두 한 명의 방문자로 셉니다. 그러면 한 사람의 로그인 실패로 다른 사람들이 잠길 수 있습니다. IPv6를 켜려면 Docker Engine 27 이상이 필요합니다(`docker version`으로 확인할 수 있습니다).
 
 :::steps
 ### IPv6 켜기
 
-```ini title="config.env"
-ENABLE_IPV6=true
+`docker-compose.override.yml`을 `docker-compose.yml` 옆에 만들거나, 이미 있는 파일에 다음을 추가하세요. `npm start`와 `npm run update`가 이 파일을 읽습니다.
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### OneUptime 다시 시작
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose가 OneUptime의 네트워크를 IPv6와 함께 다시 만들고, 그 위의 컨테이너도 다시 만듭니다. 데이터는 그대로 유지됩니다.
+OneUptime이 멈췄다가 네트워크에 IPv6가 켜진 상태로 다시 시작합니다. 데이터는 그대로 유지됩니다. 직접 만든 컨테이너(예: 리버스 프록시)가 아직 연결된 네트워크는 Docker가 지울 수 없으니, 먼저 OneUptime 네트워크에서 연결을 끊고 나중에 다시 연결하세요. `npm start`가 `has active endpoints`로 멈추면 연결을 끊고 `npm stop`과 `npm start`를 다시 실행하세요.
 
 ### 네트워크 확인
 

@@ -321,25 +321,30 @@ OneUptime हर विज़िटर को उस पते से गिन�
 
 | सेटअप | सेटिंग |
 | --- | --- |
-| लोग IPv6 से OneUptime तक पहुँचते हैं, उदाहरण के लिए `AAAA` रिकॉर्ड के ज़रिए | `ENABLE_IPV6=true` |
+| लोग IPv6 से OneUptime तक पहुँचते हैं, उदाहरण के लिए `AAAA` रिकॉर्ड के ज़रिए | OneUptime के नेटवर्क पर IPv6, `docker-compose.override.yml` में |
 | OneUptime के सामने आपकी अपनी रिवर्स प्रॉक्सी है | `TRUSTED_PROXY_HOPS=2`, और ingress `127.0.0.1` पर प्रकाशित ([अपनी ख़ुद की रिवर्स प्रॉक्सी इस्तेमाल करें](#अपनी-ख़ुद-की-रिवर्स-प्रॉक्सी-इस्तेमाल-करें) देखें) |
 
-`ENABLE_IPV6=true` के बिना Docker IPv6 से आने वाले हर विज़िटर को अपने एक ही पते से OneUptime तक भेजता है, और OneUptime उन सभी को एक ही विज़िटर गिनता है: एक व्यक्ति के असफल साइन-इन दूसरों को बाहर कर सकते हैं। IPv6 चालू करने के लिए Docker Engine 27 या नया चाहिए।
+OneUptime के नेटवर्क पर IPv6 के बिना Docker IPv6 से आने वाले हर विज़िटर को अपने एक ही पते से OneUptime तक भेजता है, और OneUptime उन सभी को एक ही विज़िटर गिनता है: एक व्यक्ति के असफल साइन-इन दूसरों को बाहर कर सकते हैं। IPv6 चालू करने के लिए Docker Engine 27 या नया चाहिए (`docker version` आपका संस्करण दिखाता है)।
 
 :::steps
 ### IPv6 चालू करें
 
-```ini title="config.env"
-ENABLE_IPV6=true
+`docker-compose.override.yml` को `docker-compose.yml` के बगल में बनाएँ, या जो फ़ाइल आपके पास है उसमें यह जोड़ें; `npm start` और `npm run update` उसे पढ़ते हैं:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### OneUptime फिर से शुरू करें
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose OneUptime के नेटवर्क को IPv6 के साथ दोबारा बनाता है, और उस पर चलने वाले कंटेनर भी। आपका डेटा बना रहता है।
+OneUptime रुकता है, और अपने नेटवर्क पर IPv6 के साथ फिर से शुरू होता है। आपका डेटा बना रहता है। जिस नेटवर्क से आपका अपना कोई कंटेनर, जैसे रिवर्स प्रॉक्सी, अभी जुड़ा है, उसे Docker हटा नहीं सकता: उसे पहले OneUptime के नेटवर्क से अलग करें और बाद में फिर से जोड़ें। अगर `npm start` `has active endpoints` के साथ रुक जाए, तो उसे अलग करें और `npm stop` व `npm start` फिर से चलाएँ।
 
 ### नेटवर्क जाँचें
 

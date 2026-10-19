@@ -68,14 +68,14 @@ ensure_placeholder_certificate() {
 #
 # The address the app counts a visitor by is the one this ingress accepts the
 # connection from, so a visitor who comes over IPv6 has to reach it over IPv6.
-# Where the ingress's network has IPv6 (Docker Compose with ENABLE_IPV6=true,
-# a dual-stack Kubernetes cluster), Docker and Kubernetes hand such a
-# connection to the ingress over IPv6, with the visitor's own address, and
-# only an ingress listening there accepts it. So unless NGINX_LISTEN_ADDRESS
-# names the one address to listen on, every listen on 7849 and 7850 has an
-# IPv6 twin on [::] (IPv6 only, next to the IPv4 one) whenever this kernel
-# has IPv6 at all. On a network without IPv6 the twin has nothing but ::1 to
-# listen on, and nothing changes.
+# Where the ingress's network has IPv6 (Docker Compose with IPv6 turned on in
+# docker-compose.override.yml, a dual-stack Kubernetes cluster), Docker and
+# Kubernetes hand such a connection to the ingress over IPv6, with the
+# visitor's own address, and only an ingress listening there accepts it. So
+# unless NGINX_LISTEN_ADDRESS names the one address to listen on, every
+# listen on 7849 and 7850 has an IPv6 twin on [::] (IPv6 only, next to the
+# IPv4 one) whenever this kernel has IPv6 at all. On a network without IPv6
+# the twin has nothing but ::1 to listen on, and nothing changes.
 #
 # A kernel without IPv6 (booted with ipv6.disable=1) has no
 # /proc/net/if_inet6, and nginx could not open an IPv6 socket there: no twin.

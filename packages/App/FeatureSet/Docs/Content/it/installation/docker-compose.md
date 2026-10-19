@@ -321,25 +321,30 @@ OneUptime conta ogni visitatore in base all'indirizzo da cui si collega: i limit
 
 | Configurazione | Impostazione |
 | --- | --- |
-| Le persone raggiungono OneUptime via IPv6, ad esempio tramite un record `AAAA` | `ENABLE_IPV6=true` |
+| Le persone raggiungono OneUptime via IPv6, ad esempio tramite un record `AAAA` | IPv6 sulla rete di OneUptime, in `docker-compose.override.yml` |
 | Il tuo reverse proxy sta davanti a OneUptime | `TRUSTED_PROXY_HOPS=2`, con l'ingress pubblicato su `127.0.0.1` (vedi [Usare il tuo reverse proxy](#usare-il-tuo-reverse-proxy)) |
 
-Senza `ENABLE_IPV6=true`, Docker passa a OneUptime ogni visitatore che arriva via IPv6 da un indirizzo proprio, e OneUptime li conta tutti come un solo visitatore: gli accessi non riusciti di una persona possono bloccare le altre. Attivare IPv6 richiede Docker Engine 27 o successivo.
+Senza IPv6 sulla rete di OneUptime, Docker passa a OneUptime ogni visitatore che arriva via IPv6 da un indirizzo proprio, e OneUptime li conta tutti come un solo visitatore: gli accessi non riusciti di una persona possono bloccare le altre. Attivare IPv6 richiede Docker Engine 27 o successivo (`docker version` mostra la tua).
 
 :::steps
 ### Attiva IPv6
 
-```ini title="config.env"
-ENABLE_IPV6=true
+Crea `docker-compose.override.yml` accanto a `docker-compose.yml`, oppure aggiungi questo a quello che hai già; `npm start` e `npm run update` lo leggono:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### Riavvia OneUptime
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose ricrea la rete di OneUptime con IPv6, e i container che vi si trovano. I tuoi dati restano.
+OneUptime si ferma e riparte con IPv6 sulla sua rete. I tuoi dati restano. Docker non può rimuovere una rete a cui è ancora collegato un tuo container, come un reverse proxy: scollegalo prima dalla rete di OneUptime e ricollegalo dopo. Se `npm start` si ferma con `has active endpoints`, scollegalo ed esegui di nuovo `npm stop` e `npm start`.
 
 ### Controlla la rete
 

@@ -1004,7 +1004,7 @@
   "Visitors share an address": "Besucher teilen sich eine Adresse",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "In den letzten 30 Tagen haben sich mehrere Personen von derselben privaten Netzwerkadresse aus angemeldet. OneUptime zählt sie als einen Besucher, daher können die fehlgeschlagenen Anmeldungen einer Person die anderen aussperren.",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Meist reicht etwas vor OneUptime jeden Besucher von einer eigenen Adresse aus weiter:",
-  "Docker Compose: set {{ipv6}} when people come over IPv6, and {{hops}} behind a proxy of your own on the server.": "Docker Compose: Setzen Sie {{ipv6}}, wenn Personen über IPv6 kommen, und {{hops}} hinter einem eigenen Proxy auf dem Server.",
+  "Docker Compose: turn IPv6 on for OneUptime's network in {{file}} when people come over IPv6, and set {{hops}} behind a proxy of your own on the server.": "Docker Compose: Schalten Sie in {{file}} IPv6 für das Netzwerk von OneUptime ein, wenn Personen über IPv6 kommen, und setzen Sie {{hops}} hinter einem eigenen Proxy auf dem Server.",
   "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: Setzen Sie {{setting}} in den Werten des Helm-Charts.",
   "Nothing needs to change if these people share one computer or one VPN.": "Wenn diese Personen einen Computer oder ein VPN gemeinsam nutzen, muss nichts geändert werden.",
   "{{count}} people": "{{count}} Personen",

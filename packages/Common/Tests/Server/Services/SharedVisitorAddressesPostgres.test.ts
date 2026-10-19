@@ -39,7 +39,7 @@ import { DataSource } from "typeorm";
  * SHARED_VISITOR_ADDRESSES_TEST_DATABASE_HOST / _PORT (default
  * localhost:5400, Scripts/Dev/docker-compose.dev.yml).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_SHARED_VISITOR_ADDRESSES_TESTS"] === "true"
     ? describe
     : describe.skip;

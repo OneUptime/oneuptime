@@ -1509,11 +1509,11 @@ API, SSO, or the Slack and Microsoft Teams apps.
 - **Visitors keep their own address in more setups.** OneUptime counts a
   visitor by the address they connect from, for its sign-in limits, its other
   limits per address and its IP allowlists. Its ingress now listens on IPv6 as
-  well as IPv4, and `ENABLE_IPV6=true` in `config.env` turns IPv6 on for
-  Docker Compose's network (Docker Engine 27 or later), so that a visitor who
-  comes over IPv6 keeps their own address instead of one Docker passes them on
-  from. If a reverse proxy of your own on the same server is the way in,
-  publish the ingress on `127.0.0.1` only
+  well as IPv4, and IPv6 can be turned on for Docker Compose's network in
+  `docker-compose.override.yml` (Docker Engine 27 or later), so that a visitor
+  who comes over IPv6 keeps their own address instead of one Docker passes
+  them on from. If a reverse proxy of your own on the same server is the way
+  in, publish the ingress on `127.0.0.1` only
   (`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`), so that visitors reach OneUptime
   through the proxy alone. With Helm,
   `nginx.service.externalTrafficPolicy: Local` keeps each visitor's address

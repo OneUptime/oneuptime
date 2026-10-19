@@ -321,25 +321,30 @@ OneUptime teller hver besøkende etter adressen vedkommende kobler til fra: pål
 
 | Oppsett | Innstilling |
 | --- | --- |
-| Folk når OneUptime over IPv6, for eksempel gjennom en `AAAA`-post | `ENABLE_IPV6=true` |
+| Folk når OneUptime over IPv6, for eksempel gjennom en `AAAA`-post | IPv6 på OneUptimes nettverk, i `docker-compose.override.yml` |
 | Din egen reverse proxy står foran OneUptime | `TRUSTED_PROXY_HOPS=2`, med ingressen publisert på `127.0.0.1` (se [Bruk din egen reverse proxy](#bruk-din-egen-reverse-proxy)) |
 
-Uten `ENABLE_IPV6=true` sender Docker hver besøkende som kommer over IPv6 videre til OneUptime fra én adresse av sin egen, og OneUptime teller dem alle som én besøkende: én persons mislykkede pålogginger kan låse de andre ute. Å slå på IPv6 krever Docker Engine 27 eller nyere.
+Uten IPv6 på OneUptimes nettverk sender Docker hver besøkende som kommer over IPv6 videre til OneUptime fra én adresse av sin egen, og OneUptime teller dem alle som én besøkende: én persons mislykkede pålogginger kan låse de andre ute. Å slå på IPv6 krever Docker Engine 27 eller nyere (`docker version` viser din).
 
 :::steps
 ### Slå på IPv6
 
-```ini title="config.env"
-ENABLE_IPV6=true
+Opprett `docker-compose.override.yml` ved siden av `docker-compose.yml`, eller legg dette til i den du har; `npm start` og `npm run update` leser den:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### Start OneUptime på nytt
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose lager OneUptimes nettverk på nytt med IPv6, og containerne på det. Dataene dine beholdes.
+OneUptime stopper og starter igjen med IPv6 på nettverket sitt. Dataene dine beholdes. Docker kan ikke fjerne et nettverk som en egen container fortsatt er koblet til, for eksempel en reverse proxy: koble den fra OneUptimes nettverk først, og koble den til igjen etterpå. Stopper `npm start` med `has active endpoints`, kobler du den fra og kjører `npm stop` og `npm start` på nytt.
 
 ### Sjekk nettverket
 

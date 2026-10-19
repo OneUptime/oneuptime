@@ -321,25 +321,30 @@ O OneUptime conta cada visitante pelo endereço de onde ele se conecta: os limit
 
 | Configuração | Ajuste |
 | --- | --- |
-| As pessoas alcançam o OneUptime por IPv6, por exemplo por um registro `AAAA` | `ENABLE_IPV6=true` |
+| As pessoas alcançam o OneUptime por IPv6, por exemplo por um registro `AAAA` | IPv6 na rede do OneUptime, no `docker-compose.override.yml` |
 | Seu próprio proxy reverso fica na frente do OneUptime | `TRUSTED_PROXY_HOPS=2`, com o ingress publicado em `127.0.0.1` (veja [Usar seu próprio proxy reverso](#usar-seu-próprio-proxy-reverso)) |
 
-Sem `ENABLE_IPV6=true`, o Docker repassa ao OneUptime cada visitante que chega por IPv6 a partir de um endereço próprio, e o OneUptime conta todos eles como um único visitante: as tentativas de login malsucedidas de uma pessoa podem bloquear as outras. Ativar o IPv6 exige o Docker Engine 27 ou mais recente.
+Sem IPv6 na rede do OneUptime, o Docker repassa ao OneUptime cada visitante que chega por IPv6 a partir de um endereço próprio, e o OneUptime conta todos eles como um único visitante: as tentativas de login malsucedidas de uma pessoa podem bloquear as outras. Ativar o IPv6 exige o Docker Engine 27 ou mais recente (o `docker version` mostra a sua).
 
 :::steps
 ### Ative o IPv6
 
-```ini title="config.env"
-ENABLE_IPV6=true
+Crie o `docker-compose.override.yml` ao lado do `docker-compose.yml`, ou acrescente isto ao que você já tem; o `npm start` e o `npm run update` o leem:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### Reinicie o OneUptime
 
 ```bash
+npm stop
 npm start
 ```
 
-O Docker Compose recria a rede do OneUptime com IPv6, e os contêineres que estão nela. Seus dados são mantidos.
+O OneUptime para e inicia de novo com IPv6 na rede dele. Seus dados são mantidos. O Docker não consegue remover uma rede à qual um contêiner seu ainda está conectado, como um proxy reverso: desconecte-o antes da rede do OneUptime e conecte-o de novo depois. Se o `npm start` parar com `has active endpoints`, desconecte-o e execute de novo o `npm stop` e o `npm start`.
 
 ### Verifique a rede
 

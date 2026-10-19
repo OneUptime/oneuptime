@@ -6,11 +6,12 @@
  * accepted the connection from, which it appends to X-Forwarded-For. A visitor
  * who comes over IPv6 is counted by their own address only when their
  * connection reaches the ingress over IPv6: where the ingress's network has
- * IPv6 (Docker Compose with ENABLE_IPV6=true, a dual-stack Kubernetes
- * cluster), Docker and Kubernetes hand it such a connection on IPv6, and only
- * an ingress listening there accepts it. So unless NGINX_LISTEN_ADDRESS names
- * the one address to listen on, envsubst-on-templates.sh gives every listen
- * on 7849 and 7850 an IPv6 twin, whenever the kernel has IPv6.
+ * IPv6 (Docker Compose with IPv6 turned on in docker-compose.override.yml, a
+ * dual-stack Kubernetes cluster), Docker and Kubernetes hand it such a
+ * connection on IPv6, and only an ingress listening there accepts it. So
+ * unless NGINX_LISTEN_ADDRESS names the one address to listen on,
+ * envsubst-on-templates.sh gives every listen on 7849 and 7850 an IPv6 twin,
+ * whenever the kernel has IPv6.
  *
  * NGINX_LISTEN_OPTIONS are options of a listening socket, which nginx takes
  * once for each address and port. The template writes them on the
@@ -60,7 +61,8 @@ function isOnPath(binary, args = ["--version"]) {
   return !probe.error && probe.status === 0;
 }
 
-const hasShellAndEnvsubst = isOnPath("sh", ["-c", "exit 0"]) && isOnPath("envsubst");
+const hasShellAndEnvsubst =
+  isOnPath("sh", ["-c", "exit 0"]) && isOnPath("envsubst");
 const scriptSkipReason = hasShellAndEnvsubst
   ? false
   : "sh or envsubst not on PATH";
@@ -294,7 +296,10 @@ test("every listen on the ingress ports in the template is followed by its IPv6 
       /^\s*listen \$\{NGINX_LISTEN_ADDRESS\}7849;/,
       "${NGINX_IPV6_LISTEN_DIRECTIVE}",
     ],
-    [/^\$\{PROVISION_SSL_LISTEN_DIRECTIVE\}$/, "${PROVISION_SSL_IPV6_LISTEN_DIRECTIVE}"],
+    [
+      /^\$\{PROVISION_SSL_LISTEN_DIRECTIVE\}$/,
+      "${PROVISION_SSL_IPV6_LISTEN_DIRECTIVE}",
+    ],
   ];
 
   for (const [listenLine, twin] of twins) {
@@ -342,9 +347,8 @@ test("NGINX_LISTEN_OPTIONS is written on the default_server listen of each port,
 
   // The primary's listen on 7850, which PROVISION_SSL adds, takes none.
   const script = fs.readFileSync(SCRIPT_PATH, "utf8");
-  const provisionListen = /export PROVISION_SSL_LISTEN_DIRECTIVE="([^"]*)"/.exec(
-    script,
-  );
+  const provisionListen =
+    /export PROVISION_SSL_LISTEN_DIRECTIVE="([^"]*)"/.exec(script);
 
   assert.ok(provisionListen, "the script no longer exports the 7850 listen");
   assert.equal(
@@ -359,11 +363,11 @@ test("NGINX_LISTEN_OPTIONS is written on the default_server listen of each port,
   assert.ok(provisionTwin, "the script no longer exports the 7850 twin");
   assert.equal(provisionTwin[1], "${NGINX_IPV6_LISTEN_SSL_DIRECTIVE}");
   assert.deepEqual(
-    [...script.matchAll(/^\s*NGINX_IPV6_LISTEN_SSL_DIRECTIVE="([^"]*)"$/gm)].map(
-      (match) => {
-        return match[1];
-      },
-    ),
+    [
+      ...script.matchAll(/^\s*NGINX_IPV6_LISTEN_SSL_DIRECTIVE="([^"]*)"$/gm),
+    ].map((match) => {
+      return match[1];
+    }),
     ["    listen [::]:7850 ssl;", ""],
   );
 });
@@ -380,7 +384,8 @@ test(
 
     assert.deepEqual(exported, ingressListenEnvironment({ listenAddress: "" }));
     assert.deepEqual(exported, {
-      NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE: "    listen [::]:7849 default_server;",
+      NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE:
+        "    listen [::]:7849 default_server;",
       NGINX_IPV6_LISTEN_SSL_DEFAULT_DIRECTIVE:
         "    listen [::]:7850 ssl default_server;",
       NGINX_IPV6_LISTEN_DIRECTIVE: "    listen [::]:7849;",
@@ -817,7 +822,10 @@ test(
       assert.ok(listening, `nginx did not start: ${output}`);
 
       // The primary server (the installation's own HOST) and the default one.
-      for (const hostHeader of ["oneuptime.example.com", "status.example.org"]) {
+      for (const hostHeader of [
+        "oneuptime.example.com",
+        "status.example.org",
+      ]) {
         const overIpv6 = await getThrough("::1", httpPort, hostHeader);
 
         assert.equal(overIpv6.status, 200, overIpv6.body);

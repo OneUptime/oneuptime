@@ -18,9 +18,11 @@ import path from "path";
  *
  * OneUptime counts a visitor by the address its ingress accepted the
  * connection from. The note (installation/upgrading, "Other changes in 14")
- * says what changed for that: the ingress listens on IPv6 too,
- * ENABLE_IPV6=true turns IPv6 on for Docker Compose's network, a proxy on the
- * same server publishes the ingress on 127.0.0.1, the Helm chart's
+ * says what changed for that: the ingress listens on IPv6 too, IPv6 for
+ * Docker Compose's network is turned on in docker-compose.override.yml (the
+ * compose files OneUptime ships leave the network as installs made it, so an
+ * upgrade never recreates it), a proxy on the same server publishes the
+ * ingress on 127.0.0.1, the Helm chart's
  * nginx.service.externalTrafficPolicy (and helm install / helm upgrade saying
  * so while it is unset), the Admin Dashboard's OneUptime Health page, and
  * NGINX_LISTEN_OPTIONS working again. It sits after the note on the global
@@ -33,7 +35,8 @@ const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 const REPO_ROOT: string = path.resolve(PACKAGES_DIR, "..");
 
 const NOTE_LEAD: string = "Visitors keep their own address in more setups.";
-const PREVIOUS_LEAD: string = "**Every install runs a global Runner of its own.**";
+const PREVIOUS_LEAD: string =
+  "**Every install runs a global Runner of its own.**";
 const POINTER_START: string = "- See [API and endpoint changes]";
 
 const GUIDE: string = "installation/docker-compose";
@@ -90,7 +93,7 @@ describe("the English upgrade note on visitor addresses", () => {
 
   it("says what changed, and what to set", () => {
     for (const claim of [
-      "Its ingress now listens on IPv6 as well as IPv4, and `ENABLE_IPV6=true` in `config.env` turns IPv6 on for Docker Compose's network (Docker Engine 27 or later)",
+      "Its ingress now listens on IPv6 as well as IPv4, and IPv6 can be turned on for Docker Compose's network in `docker-compose.override.yml` (Docker Engine 27 or later)",
       "publish the ingress on `127.0.0.1` only (`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`)",
       "With Helm, `nginx.service.externalTrafficPolicy: Local` keeps each visitor's address through a load balancer that passes it on; while that is unset, `helm install` and `helm upgrade` say so.",
       "**Admin Dashboard → OneUptime Health** says when several people sign in from one private network address.",
@@ -107,30 +110,32 @@ describe("the English upgrade note on visitor addresses", () => {
 });
 
 describe("the note and the guide are true to the install", () => {
-  it("Docker Compose turns IPv6 on for OneUptime's network only when ENABLE_IPV6 says so, and ships it off", () => {
+  it("Docker Compose's network is the one installs made: IPv6 is the operator's override, never the shipped files'", () => {
+    /*
+     * Docker Compose recreates a network whose settings change, and cannot
+     * while a container it does not manage is attached: an upgrade that
+     * changed the shipped network would stop such an install. So the shipped
+     * files keep the network exactly as it was, and IPv6 is turned on in
+     * docker-compose.override.yml (Tests/Ops/ComposeVisitorAddresses.test.js
+     * merges the guide's snippet with the real files).
+     */
     for (const file of [
       "docker-compose.yml",
       "docker-compose.base.yml",
       "Scripts/Dev/docker-compose.dev.yml",
     ]) {
       const compose: string = source(file);
-      const network: string = compose.slice(
-        compose.indexOf("networks:\n  oneuptime:\n    driver: bridge\n"),
-      );
 
-      expect({ file, block: network.length > 0 }).toEqual({
+      expect({
         file,
-        block: true,
-      });
-      expect({ file, setting: network.includes("    enable_ipv6: ${ENABLE_IPV6:-false}\n") }).toEqual({
-        file,
-        setting: true,
-      });
+        network: compose.endsWith(
+          "\nnetworks:\n  oneuptime:\n    driver: bridge\n",
+        ),
+        ipv6: compose.includes("enable_ipv6"),
+      }).toEqual({ file, network: true, ipv6: false });
     }
 
-    expect(source("config.example.env").split("\n")).toContain(
-      "ENABLE_IPV6=false",
-    );
+    expect(source("config.example.env")).not.toMatch(/^ENABLE_IPV6=/m);
   });
 
   it("the ingress has an IPv6 twin for every listen, unless NGINX_LISTEN_ADDRESS names one address", () => {
@@ -187,9 +192,7 @@ describe("the note and the guide are true to the install", () => {
       source(
         "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/VisitorAddressesSummary.tsx",
       ),
-    ).toContain(
-      '"/docs/installation/docker-compose#visitor-addresses";',
-    );
+    ).toContain('"/docs/installation/docker-compose#visitor-addresses";');
   });
 });
 
@@ -204,14 +207,16 @@ describe("the Docker Compose guide's section", () => {
     );
   });
 
-  it("names the setting of each setup, and how to turn IPv6 on and check it", () => {
+  it("names the setting of each setup, and how to turn IPv6 on, restart and check it", () => {
     for (const line of [
-      "| People reach OneUptime over IPv6, for example through an `AAAA` record | `ENABLE_IPV6=true` |",
+      "| People reach OneUptime over IPv6, for example through an `AAAA` record | IPv6 on OneUptime's network, in `docker-compose.override.yml` |",
       "| Your own reverse proxy is in front of OneUptime | `TRUSTED_PROXY_HOPS=2`, with the ingress published on `127.0.0.1` (see [Use your own reverse proxy](#use-your-own-reverse-proxy)) |",
-      'ENABLE_IPV6=true\n```',
+      'Create `docker-compose.override.yml` next to `docker-compose.yml`, or add this to the one you have; `npm start` and `npm run update` read it:\n\n```yaml title="docker-compose.override.yml"\nnetworks:\n  oneuptime:\n    enable_ipv6: true\n```',
+      "```bash\nnpm stop\nnpm start\n```",
+      "disconnect it from OneUptime's network first, and connect it again afterwards. If `npm start` stops with `has active endpoints`, disconnect it, then run `npm stop` and `npm start` again.",
       "docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6",
       'It prints `"EnableIPv6": true,`.',
-      "Turning IPv6 on needs Docker Engine 27 or later.",
+      "Turning IPv6 on needs Docker Engine 27 or later (`docker version` shows yours).",
     ]) {
       expect({ line, said: section.includes(line) }).toEqual({
         line,
@@ -222,7 +227,7 @@ describe("the Docker Compose guide's section", () => {
 
   it("publishes the ingress on the loopback address when a proxy on the server is in front", () => {
     expect(english).toContain(
-      "```ini title=\"config.env\"\nONEUPTIME_HTTP_PORT=127.0.0.1:8080\nSTATUS_PAGE_HTTPS_PORT=127.0.0.1:8443\n",
+      '```ini title="config.env"\nONEUPTIME_HTTP_PORT=127.0.0.1:8080\nSTATUS_PAGE_HTTPS_PORT=127.0.0.1:8443\n',
     );
     expect(english).toContain(
       "let only the proxy reach ports 80 and 443 with your cloud provider's firewall",

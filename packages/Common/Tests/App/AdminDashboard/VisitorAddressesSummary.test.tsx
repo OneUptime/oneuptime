@@ -34,10 +34,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     nothing shared, an error, an answer that is not one;
  *   - lists the shared addresses, how many people each, and how many more
  *     there are;
- *   - names the settings that change it - ENABLE_IPV6=true and
- *     TRUSTED_PROXY_HOPS=2 with Docker Compose,
- *     nginx.service.externalTrafficPolicy: Local with the Helm chart - and
- *     opens the guides that say how;
+ *   - names the settings that change it - IPv6 for OneUptime's network in
+ *     docker-compose.override.yml and TRUSTED_PROXY_HOPS=2 with Docker
+ *     Compose, nginx.service.externalTrafficPolicy: Local with the Helm
+ *     chart - and opens the guides that say how;
  *   - reads in every language the Admin Dashboard speaks, with the settings
  *     exactly as written.
  *
@@ -201,9 +201,7 @@ describe("summarizeVisitorAddresses", () => {
     expect(summarizeVisitorAddresses(null)).toBeNull();
     expect(summarizeVisitorAddresses(undefined)).toBeNull();
     expect(summarizeVisitorAddresses({})).toBeNull();
-    expect(
-      summarizeVisitorAddresses({ ...SHARED, checked: false }),
-    ).toBeNull();
+    expect(summarizeVisitorAddresses({ ...SHARED, checked: false })).toBeNull();
     expect(
       summarizeVisitorAddresses({ ...SHARED, checked: "true" }),
     ).toBeNull();
@@ -332,12 +330,12 @@ describe("the card", () => {
     });
 
     expect(settings).toEqual([
-      "ENABLE_IPV6=true",
+      "docker-compose.override.yml",
       "TRUSTED_PROXY_HOPS=2",
       "nginx.service.externalTrafficPolicy: Local",
     ]);
     expect(card.textContent).toContain(
-      "Docker Compose: set ENABLE_IPV6=true when people come over IPv6, and TRUSTED_PROXY_HOPS=2 behind a proxy of your own on the server.",
+      "Docker Compose: turn IPv6 on for OneUptime's network in docker-compose.override.yml when people come over IPv6, and set TRUSTED_PROXY_HOPS=2 behind a proxy of your own on the server.",
     );
     expect(card.textContent).toContain(
       "Kubernetes: set nginx.service.externalTrafficPolicy: Local in the Helm chart's values.",
@@ -428,12 +426,13 @@ describe("the card in every language", () => {
         const value: unknown = entries[key];
 
         expect([key, typeof value]).toEqual([key, "string"]);
-        expect([key, ((value as string).match(PLACEHOLDER) || []).sort()]).toEqual(
-          [
-            key,
-            (key.replace(ONE_FORM_SUFFIX, "").match(PLACEHOLDER) || []).sort(),
-          ],
-        );
+        expect([
+          key,
+          ((value as string).match(PLACEHOLDER) || []).sort(),
+        ]).toEqual([
+          key,
+          (key.replace(ONE_FORM_SUFFIX, "").match(PLACEHOLDER) || []).sort(),
+        ]);
       }
 
       for (const sentence of SENTENCES) {
@@ -444,10 +443,7 @@ describe("the card in every language", () => {
           continue;
         }
 
-        expect([sentence, entries[sentence]]).not.toEqual([
-          sentence,
-          sentence,
-        ]);
+        expect([sentence, entries[sentence]]).not.toEqual([sentence, sentence]);
       }
     },
   );
@@ -470,7 +466,7 @@ describe("the card in every language", () => {
       );
       expect(text).toContain(
         String(entries[VISITOR_ADDRESSES_COPY.compose])
-          .replace("{{ipv6}}", "ENABLE_IPV6=true")
+          .replace("{{file}}", "docker-compose.override.yml")
           .replace("{{hops}}", "TRUSTED_PROXY_HOPS=2"),
       );
       expect(text).toContain(

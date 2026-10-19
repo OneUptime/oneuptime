@@ -321,25 +321,30 @@ OneUptime 依訪客連線時所用的位址來計算每位訪客：登入限制�
 
 | 部署 | 設定 |
 | --- | --- |
-| 有人透過 IPv6 存取 OneUptime，例如透過 `AAAA` 記錄 | `ENABLE_IPV6=true` |
+| 有人透過 IPv6 存取 OneUptime，例如透過 `AAAA` 記錄 | 在 `docker-compose.override.yml` 中為 OneUptime 的網路開啟 IPv6 |
 | OneUptime 前面有你自己的反向代理 | `TRUSTED_PROXY_HOPS=2`，並且 ingress 發布在 `127.0.0.1` 上（請參閱[使用你自己的反向代理](#使用你自己的反向代理)） |
 
-沒有 `ENABLE_IPV6=true` 時，Docker 會用它自己的一個位址把每位透過 IPv6 來的訪客轉交給 OneUptime，OneUptime 就會把他們全部算作同一位訪客：一個人的登入失敗可能會把其他人鎖在外面。開啟 IPv6 需要 Docker Engine 27 或更新版本。
+OneUptime 的網路沒有開啟 IPv6 時，Docker 會用它自己的一個位址把每位透過 IPv6 來的訪客轉交給 OneUptime，OneUptime 就會把他們全部算作同一位訪客：一個人的登入失敗可能會把其他人鎖在外面。開啟 IPv6 需要 Docker Engine 27 或更新版本（`docker version` 會顯示你的版本）。
 
 :::steps
 ### 開啟 IPv6
 
-```ini title="config.env"
-ENABLE_IPV6=true
+建立 `docker-compose.override.yml`（放在 `docker-compose.yml` 旁邊），或把以下內容加到你已有的檔案中；`npm start` 和 `npm run update` 會讀取它：
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### 重新啟動 OneUptime
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose 會帶著 IPv6 重新建立 OneUptime 的網路，以及其中的容器。你的資料會保留。
+OneUptime 會先停止，再於網路開啟 IPv6 的情況下重新啟動。你的資料會保留。如果你自己的容器（例如反向代理）仍連接在 OneUptime 的網路上，Docker 無法刪除這個網路：請先把它從 OneUptime 的網路中斷連線，之後再連接回來。如果 `npm start` 因 `has active endpoints` 而停止，請中斷它的連線，然後再次執行 `npm stop` 和 `npm start`。
 
 ### 檢查網路
 

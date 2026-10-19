@@ -321,25 +321,30 @@ OneUptime هر بازدیدکننده را با نشانی‌ای می‌شما�
 
 | چیدمان | تنظیم |
 | --- | --- |
-| افراد از راه IPv6 به OneUptime می‌رسند، برای نمونه از راه یک رکورد `AAAA` | `ENABLE_IPV6=true` |
+| افراد از راه IPv6 به OneUptime می‌رسند، برای نمونه از راه یک رکورد `AAAA` | IPv6 روی شبکهٔ OneUptime، در `docker-compose.override.yml` |
 | پراکسی معکوس خودتان جلوی OneUptime است | `TRUSTED_PROXY_HOPS=2`، با ingress منتشرشده روی `127.0.0.1` ([استفاده از پراکسی معکوس خودتان](#استفاده-از-پراکسی-معکوس-خودتان) را ببینید) |
 
-بدون `ENABLE_IPV6=true`، Docker هر بازدیدکننده‌ای را که از راه IPv6 می‌آید از یک نشانی خودش به OneUptime می‌سپارد و OneUptime همهٔ آن‌ها را یک بازدیدکننده می‌شمارد: ورودهای ناموفق یک نفر می‌تواند دیگران را مسدود کند. روشن کردن IPv6 به Docker Engine ۲۷ یا تازه‌تر نیاز دارد.
+بدون IPv6 روی شبکهٔ OneUptime، Docker هر بازدیدکننده‌ای را که از راه IPv6 می‌آید از یک نشانی خودش به OneUptime می‌سپارد و OneUptime همهٔ آن‌ها را یک بازدیدکننده می‌شمارد: ورودهای ناموفق یک نفر می‌تواند دیگران را مسدود کند. روشن کردن IPv6 به Docker Engine ۲۷ یا تازه‌تر نیاز دارد (`docker version` نسخهٔ شما را نشان می‌دهد).
 
 :::steps
 ### IPv6 را روشن کنید
 
-```ini title="config.env"
-ENABLE_IPV6=true
+`docker-compose.override.yml` را کنار `docker-compose.yml` بسازید، یا این را به فایلی که دارید بیفزایید؛ `npm start` و `npm run update` آن را می‌خوانند:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
 ```
 
 ### OneUptime را دوباره اجرا کنید
 
 ```bash
+npm stop
 npm start
 ```
 
-Docker Compose شبکهٔ OneUptime را با IPv6 از نو می‌سازد، و کانتینرهای روی آن را هم. داده‌های شما می‌مانند.
+OneUptime می‌ایستد و با IPv6 روی شبکه‌اش دوباره راه می‌افتد. داده‌های شما می‌مانند. Docker شبکه‌ای را که کانتینری از آن خودتان، مانند یک پراکسی معکوس، هنوز به آن وصل است نمی‌تواند پاک کند: نخست آن را از شبکهٔ OneUptime جدا کنید و پس از آن دوباره وصلش کنید. اگر `npm start` با `has active endpoints` متوقف شد، آن را جدا کنید و `npm stop` و `npm start` را دوباره اجرا کنید.
 
 ### شبکه را بررسی کنید
 
