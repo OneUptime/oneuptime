@@ -538,6 +538,57 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
   });
 });
 
+/*
+ * A key that is not text is no key at all: a number, a list or an object is
+ * refused like a shipped value, whoever writes it, and so is a null written
+ * over a key - none could have been made by the server, and a list holding
+ * a placeholder would reach the column as text containing it.
+ */
+describe.each(KINDS)("$component's key that is not text", (kind: Kind) => {
+  beforeEach(() => {
+    table = useInMemoryTable(kind.service, [storedRow(kind)]);
+  });
+
+  test.each([
+    ["a number", 1234567890],
+    ["a list holding a placeholder", ["please-change-this-to-random-value"]],
+    ["an object", { value: "please-change-this-to-random-value" }],
+    ["true", true],
+  ])(
+    "%s is refused by the server itself on create, and nothing is stored",
+    async (_label: string, key: unknown) => {
+      const model: BaseModel = new kind.modelType();
+      (model as unknown as JSONObject)["projectId"] = PROJECT_ID;
+      (model as unknown as JSONObject)["name"] = `Odd ${kind.noun}`;
+      (model as unknown as Record<string, unknown>)["key"] = key;
+
+      await expect(
+        kind.service.create({ data: model, props: { isRoot: true } }),
+      ).rejects.toThrow(ComponentKeyWrite.refusal(kind.component));
+      expect(table.inserts).toHaveLength(0);
+    },
+  );
+
+  test.each([
+    ["a number", 1234567890],
+    ["a list holding a placeholder", ["please-change-this-to-random-value"]],
+    ["an object", { value: "please-change-this-to-random-value" }],
+    ["null", null],
+  ])(
+    "%s is refused on update, and the stored key stays",
+    async (_label: string, key: unknown) => {
+      await expect(
+        kind.service.updateOneById({
+          id: new ObjectID(ROW_ID),
+          data: { key: key } as never,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(ComponentKeyWrite.refusal(kind.component));
+      expect(table.get(ROW_ID)!["key"]).toBe(STORED_KEY);
+    },
+  );
+});
+
 describe("the refusal", () => {
   test.each(KINDS)(
     "names $component, says why, and says what to do instead",
