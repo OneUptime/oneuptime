@@ -13,6 +13,7 @@ import VideoCallConnectionService, {
 } from "../../../Services/VideoCallConnectionService";
 import { VideoCallOAuthAccessToken } from "../OAuth/VideoCallOAuth";
 import GoogleMeetClient from "../Providers/GoogleMeetClient";
+import MicrosoftTeamsMeetingClient from "../Providers/MicrosoftTeamsMeetingClient";
 import ZoomMeetingClient, {
   ZoomAccessToken,
 } from "../Providers/ZoomMeetingClient";
@@ -21,6 +22,7 @@ import VideoCallConnectionSettingsUtil, {
 } from "../VideoCallConnectionSettings";
 import VideoCallHttpClient from "../VideoCallHttpClient";
 import GoogleMeetTranscriptClient from "./GoogleMeetTranscriptClient";
+import MicrosoftTeamsTranscriptClient from "./MicrosoftTeamsTranscriptClient";
 import {
   VideoCallTranscriptRead,
   transcriptUnavailable,
@@ -33,33 +35,36 @@ import ZoomTranscriptClient from "./ZoomTranscriptClient";
  * the meeting (VideoCallConnectionService.getSettings), read as root, never
  * returned.
  *
- * Only a Zoom or Google Meet meeting OneUptime created can be read
- * (canReadVideoCallTranscriptFromProvider). For every other call the answer
- * says how to add the transcript instead:
+ * Only a meeting OneUptime created can be read: a Zoom or Google Meet
+ * meeting, or a Microsoft Teams meeting it put on its organizer's calendar
+ * (canReadVideoCallTranscriptFromProvider). For every other call the
+ * answer says how to add the transcript instead:
  *
- *   - Microsoft Teams: Graph has no transcripts for an online meeting
- *     created with no calendar event, which is how OneUptime creates one
- *     (and reading any needs OnlineMeetingTranscript.Read.All, admin
- *     consent and the tenant allowing transcript access). Teams lets
- *     anyone in the meeting download its transcript as a .vtt file.
+ *   - Any other Microsoft Teams meeting: Graph has no transcripts for an
+ *     online meeting created with no calendar event, which is how
+ *     OneUptime creates one while Record and transcribe incident calls is
+ *     off. Teams lets anyone in the meeting download its transcript as a
+ *     .vtt file.
  *   - A Slack huddle: Slack has no API for a huddle's transcript.
  *   - A link of one's own: a meeting OneUptime knows nothing about.
  */
+// The call whose transcript is read, as its row has it.
+export interface VideoCallTranscriptReaderCall {
+  provider?: VideoCallProvider | undefined;
+  videoCallConnectionId?: ObjectID | undefined;
+  externalMeetingId?: string | undefined;
+  externalCalendarEventId?: string | undefined;
+  // When the call started: Microsoft Teams no longer has a meeting long over.
+  startedAt?: Date | undefined;
+}
+
 export default class VideoCallTranscriptReader {
   public static async read(data: {
-    call: {
-      provider?: VideoCallProvider | undefined;
-      videoCallConnectionId?: ObjectID | undefined;
-      externalMeetingId?: string | undefined;
-    };
+    call: VideoCallTranscriptReaderCall;
     projectId: ObjectID;
     http?: VideoCallHttpClient | undefined;
   }): Promise<VideoCallTranscriptRead> {
-    const call: {
-      provider?: VideoCallProvider | undefined;
-      videoCallConnectionId?: ObjectID | undefined;
-      externalMeetingId?: string | undefined;
-    } = data.call;
+    const call: VideoCallTranscriptReaderCall = data.call;
 
     if (!canReadVideoCallTranscriptFromProvider(call)) {
       return VideoCallTranscriptReader.getNotSupported(call.provider);
@@ -162,6 +167,71 @@ export default class VideoCallTranscriptReader {
           ownerLabel: connection.connectedAccount || undefined,
         });
       }
+
+      if (settings.provider === VideoCallProvider.MicrosoftTeams) {
+        const accessToken: string = isSignIn
+          ? (
+              await VideoCallTranscriptReader.getSignInToken({
+                connection,
+                http,
+              })
+            ).accessToken
+          : await new MicrosoftTeamsMeetingClient(
+              {
+                tenantId: VideoCallConnectionSettingsUtil.readString(
+                  settings.config,
+                  "tenantId",
+                ),
+                clientId: VideoCallConnectionSettingsUtil.readString(
+                  settings.config,
+                  "clientId",
+                ),
+                clientSecret: VideoCallConnectionSettingsUtil.readSecret(
+                  settings.secrets,
+                  "clientSecret",
+                ),
+                organizerUserId: VideoCallConnectionSettingsUtil.readString(
+                  settings.config,
+                  "organizerUserId",
+                ),
+                lobbyBypass: VideoCallConnectionSettingsUtil.readString(
+                  settings.config,
+                  "lobbyBypass",
+                ),
+              },
+              http,
+            ).getAccessToken();
+
+        const grantedScope: JSONValue | undefined = settings.secrets["scope"];
+
+        return await MicrosoftTeamsTranscriptClient.readTranscript({
+          http,
+          accessToken,
+          organizer: isSignIn
+            ? {
+                path: "/me",
+                label:
+                  connection.connectedAccount || "the Microsoft Teams account",
+                isSignIn: true,
+              }
+            : MicrosoftTeamsMeetingClient.getAppOrganizer({
+                organizerUserId: VideoCallConnectionSettingsUtil.readString(
+                  settings.config,
+                  "organizerUserId",
+                ),
+                clientId: VideoCallConnectionSettingsUtil.readString(
+                  settings.config,
+                  "clientId",
+                ),
+              }),
+          meetingId,
+          grantedScope:
+            isSignIn && typeof grantedScope === "string"
+              ? grantedScope
+              : undefined,
+          callStartedAt: call.startedAt,
+        });
+      }
     } catch (error) {
       /*
        * A provider that does not answer, or answers with a 5xx or a rate
@@ -188,7 +258,7 @@ export default class VideoCallTranscriptReader {
       case VideoCallProvider.MicrosoftTeams:
         return transcriptUnavailable(
           VideoCallTranscriptUnavailableReason.NotSupported,
-          "Microsoft Teams does not let apps read the transcript of a meeting OneUptime started. In Teams, open the meeting's Recap, download the transcript as a .vtt file, and add it here.",
+          "Microsoft Teams lets apps read the transcripts only of meetings on a calendar, and OneUptime started this one without putting it on its organizer's calendar. In Teams, open the meeting's Recap, download the transcript as a .vtt file, and add it here.",
         );
       case VideoCallProvider.SlackHuddle:
         return transcriptUnavailable(

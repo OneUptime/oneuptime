@@ -110,7 +110,7 @@ describe("getCallTranscriptView - whether a call has a transcript", () => {
     expect(getCallTranscriptView(call, NOW).source).toBeNull();
   });
 
-  test("a Zoom or Google Meet meeting started with a connection can be asked for its transcript; Teams and a link cannot", () => {
+  test("a Zoom or Google Meet meeting started with a connection, or a Teams meeting put on a calendar, can be asked for its transcript; any other Teams meeting and a link cannot", () => {
     const canAsk: (call: IncidentVideoCall) => boolean = (
       call: IncidentVideoCall,
     ): boolean => {
@@ -126,6 +126,14 @@ describe("getCallTranscriptView - whether a call has a transcript", () => {
     expect(
       canAsk(transcriptCall({ provider: VideoCallProvider.MicrosoftTeams })),
     ).toBe(false);
+    expect(
+      canAsk(
+        transcriptCall({
+          provider: VideoCallProvider.MicrosoftTeams,
+          onCalendar: true,
+        }),
+      ),
+    ).toBe(true);
     expect(
       canAsk(
         transcriptCall({

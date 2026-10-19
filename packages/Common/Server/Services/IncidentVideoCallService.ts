@@ -205,10 +205,16 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * A call the provider records and transcribes: OneUptime gets its
-     * transcript once it is over (IncidentCallTranscriptFetch).
+     * transcript once it is over (IncidentCallTranscriptFetch). One the
+     * provider could not be set up to record says why on its card.
      */
     if (carryForward.recordsAndTranscribes) {
       await IncidentCallTranscriptFetch.watchNewCall(createdItem);
+    } else if (carryForward.notRecordedReason) {
+      await IncidentCallTranscriptFetch.markNotRecorded({
+        call: createdItem,
+        reason: carryForward.notRecordedReason,
+      });
     }
 
     return createdItem;

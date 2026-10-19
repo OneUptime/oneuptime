@@ -12489,6 +12489,77 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expectNoErrorStates(page);
   });
 
+  /*
+   * Microsoft Teams: a meeting OneUptime put on its organizer's calendar is
+   * waited on and read like a Zoom one; one it could not put there started
+   * unrecorded, and its card says why from the start.
+   */
+  test("a Microsoft Teams call on its organizer's calendar is waited on, and Get from Microsoft Teams reads it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=teams-recorded");
+
+    const card: Locator = callsCard(page);
+
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveText(
+      "OneUptime gets it from Microsoft Teams once the call is over, and OneUptime AI reads it.",
+    );
+
+    await card
+      .getByRole("button", { name: "Get from Microsoft Teams" })
+      .click();
+
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "11 minutes · 3 speakers · Read from Microsoft Teams",
+    );
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveCount(0);
+    expect(
+      await transcriptRequests(page, "POST", "transcript/from-provider"),
+    ).toHaveLength(1);
+    expect(
+      await plainText(
+        feedEntry(incidentFeed(page), "transcript").getByTestId(
+          "feed-entry-lead",
+        ),
+      ),
+    ).toBe(
+      "Maya Chen added the call's transcript from Microsoft Teams: 11 minutes, 3 speakers, 12 remarks.",
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("a Microsoft Teams call OneUptime could not put on a calendar says so from the start, with how to set it up, and Add transcript", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=teams-not-recorded");
+
+    const card: Locator = callsCard(page);
+    const stopped: Locator = card.getByTestId("call-transcript-fetch-stopped");
+
+    await expect(stopped).toHaveAttribute("data-reason", "PermissionMissing");
+    await expect(stopped).toContainText(
+      "The Microsoft Teams connection is not allowed to read transcripts yet.",
+    );
+    await expect(
+      stopped.getByRole("link", { name: "How to set it up" }),
+    ).toHaveAttribute(
+      "href",
+      /\/docs\/workspace-connections\/video-calls#call-transcripts$/,
+    );
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveCount(0);
+    // Never on a calendar: there is nothing to get, so it is added by hand.
+    await expect(card.getByTestId("call-transcript-get")).toHaveCount(0);
+    await expect(
+      card.getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+    await screenshotElement(card, "teams-call-not-recorded");
+    await expectNoErrorStates(page);
+  });
+
   test("what OneUptime AI read in the call is OneUptime AI's note in the incident's feed, the cause marked as a suggestion", async ({
     page,
   }: {

@@ -217,6 +217,12 @@ export interface TranscriptCallData {
   title?: string | undefined;
   // Started with one of the project's connections, so its provider can be asked.
   withConnection?: boolean | undefined;
+  /*
+   * A Microsoft Teams meeting OneUptime put on its organizer's calendar, as
+   * it does while it records incident calls: its provider can be asked.
+   * Any other Teams meeting has no connection or meeting id here.
+   */
+  onCalendar?: boolean | undefined;
   info?: VideoCallTranscriptInfo | null | undefined;
   source?: VideoCallTranscriptSource | undefined;
   addedMinutesAgo?: number | undefined;
@@ -258,6 +264,12 @@ export function transcriptCall(
   ) {
     call.videoCallConnectionId = ObjectID.generate();
     call.externalMeetingId = "81234567890";
+  }
+
+  if (call.provider === VideoCallProvider.MicrosoftTeams && data.onCalendar) {
+    call.videoCallConnectionId = ObjectID.generate();
+    call.externalMeetingId = "MSpkYzE3Njc0Yy04MWQ5LTRhZGItYmZi";
+    call.externalCalendarEventId = "AAMkAGI2TG93AAA=";
   }
 
   if (data.info) {

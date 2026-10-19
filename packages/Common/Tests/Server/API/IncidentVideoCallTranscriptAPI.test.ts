@@ -548,6 +548,50 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
     );
   });
 
+  test("a Teams call is read with the calendar event its meeting belongs to, and when it started", async () => {
+    const started: Date = new Date("2026-10-19T08:30:00.000Z");
+    call!.provider = VideoCallProvider.MicrosoftTeams;
+    call!.externalMeetingId = "MSpkYzE3Njc0Yy04MWQ5";
+    call!.externalCalendarEventId = "AAMkAGI2TG93AAA=";
+    call!.createdAt = started;
+    jest.spyOn(VideoCallTranscriptReader, "read").mockResolvedValue({
+      found: true,
+      lines: [
+        { offsetInSeconds: 1, speaker: "Priya Shah", text: "Rolling back." },
+      ],
+      format: TranscriptText.detectFormat(""),
+    });
+
+    await handlerOf("post", PROVIDER_ROUTE)(request(), res, next);
+
+    expect(IncidentVideoCallService.findOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          externalMeetingId: true,
+          externalCalendarEventId: true,
+          createdAt: true,
+        }),
+      }),
+    );
+    expect(VideoCallTranscriptReader.read).toHaveBeenCalledWith({
+      call: {
+        provider: VideoCallProvider.MicrosoftTeams,
+        videoCallConnectionId: CONNECTION,
+        externalMeetingId: "MSpkYzE3Njc0Yy04MWQ5",
+        externalCalendarEventId: "AAMkAGI2TG93AAA=",
+        startedAt: started,
+      },
+      projectId: PROJECT,
+    });
+
+    const item: JSONObject = (
+      IncidentFeedService.createIncidentFeedItem as unknown as jest.Mock
+    ).mock.calls[0]![0] as JSONObject;
+    expect(item["feedInfoInMarkdown"]).toBe(
+      "📝 added the call's transcript from **Microsoft Teams**: 1 speaker, 1 remark.",
+    );
+  });
+
   /*
    * Record and transcribe incident calls: a person who gets (or adds) the
    * transcript before OneUptime does takes it from here - OneUptime stops

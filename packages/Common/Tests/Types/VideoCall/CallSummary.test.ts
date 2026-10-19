@@ -302,11 +302,12 @@ describe("the call's transcript and summary values", () => {
   });
 
   /*
-   * Microsoft Graph has no transcripts for meetings created the way
-   * OneUptime creates them, Slack has no API for a huddle's, and a link of
-   * one's own is a meeting OneUptime knows nothing about.
+   * Microsoft Graph has transcripts only for meetings on a calendar, which
+   * is how OneUptime creates a Teams meeting while it records incident
+   * calls; Slack has no API for a huddle's, and a link of one's own is a
+   * meeting OneUptime knows nothing about.
    */
-  test("only a Zoom or Google Meet meeting OneUptime created can be read from its provider", () => {
+  test("a Zoom or Google Meet meeting OneUptime created, or a Teams meeting it put on a calendar, can be read from its provider", () => {
     const connection: string = "3a4b5c6d-7e8f-4a0b-8c2d-3e4f5a6b7c8d";
 
     expect(
@@ -323,17 +324,55 @@ describe("the call's transcript and summary values", () => {
         externalMeetingId: "spaces/abc",
       }),
     ).toBe(true);
+    expect(
+      canReadVideoCallTranscriptFromProvider({
+        provider: VideoCallProvider.MicrosoftTeams,
+        videoCallConnectionId: connection,
+        externalMeetingId: "MSpkYzE3Njc0Yy04MWQ5",
+        externalCalendarEventId: "AAMkAGI2TG93AAA=",
+      }),
+    ).toBe(true);
+
+    // A Teams meeting with no calendar event: Graph keeps no transcript of it for apps.
+    for (const externalCalendarEventId of [undefined, null, ""]) {
+      expect(
+        canReadVideoCallTranscriptFromProvider({
+          provider: VideoCallProvider.MicrosoftTeams,
+          videoCallConnectionId: connection,
+          externalMeetingId: "MSpkYzE3Njc0Yy04MWQ5",
+          externalCalendarEventId,
+        }),
+      ).toBe(false);
+    }
+
+    // A calendar event is no use without the connection and the meeting.
+    expect(
+      canReadVideoCallTranscriptFromProvider({
+        provider: VideoCallProvider.MicrosoftTeams,
+        externalMeetingId: "MSpkYzE3Njc0Yy04MWQ5",
+        externalCalendarEventId: "AAMkAGI2TG93AAA=",
+      }),
+    ).toBe(false);
+    expect(
+      canReadVideoCallTranscriptFromProvider({
+        provider: VideoCallProvider.MicrosoftTeams,
+        videoCallConnectionId: connection,
+        externalCalendarEventId: "AAMkAGI2TG93AAA=",
+      }),
+    ).toBe(false);
 
     for (const provider of [
-      VideoCallProvider.MicrosoftTeams,
       VideoCallProvider.SlackHuddle,
       VideoCallProvider.CustomLink,
+      "Webex",
+      undefined,
     ]) {
       expect(
         canReadVideoCallTranscriptFromProvider({
           provider,
           videoCallConnectionId: connection,
           externalMeetingId: "x",
+          externalCalendarEventId: "AAMkAGI2TG93AAA=",
         }),
       ).toBe(false);
     }
