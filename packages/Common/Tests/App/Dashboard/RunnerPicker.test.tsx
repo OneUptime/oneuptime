@@ -414,7 +414,8 @@ describe("what the picker loads", () => {
 
   test("the project's own Runners by the project, the global ones from their route, and the project's switch", async () => {
     stubLists();
-    const getItem: jest.SpiedFunction<typeof ModelAPI.getItem> = jest
+    // What the test reads of the spy: the calls it was made with.
+    const getItem: { mock: { calls: Array<Array<unknown>> } } = jest
       .spyOn(ModelAPI, "getItem")
       .mockImplementation(async (): Promise<never> => {
         return Object.assign(new Project(), {
