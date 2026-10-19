@@ -2,9 +2,12 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ForbiddenException from "Common/Types/Exception/ForbiddenException";
+import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
 import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
@@ -23,6 +26,77 @@ import IncomingEmailMonitorAddress, {
 
 const router: ExpressRouter = Express.getRouter();
 
+export const INBOUND_EMAIL_NOT_CONFIGURED_MESSAGE: string =
+  "Inbound email is not configured. Please set the INBOUND_EMAIL_DOMAIN environment variable.";
+
+export const INBOUND_EMAIL_NO_WEBHOOK_SECRET_MESSAGE: string =
+  "Incoming email is not ready on this server: set INBOUND_EMAIL_WEBHOOK_SECRET to a long random value of its own.";
+
+export const INBOUND_EMAIL_WRONG_WEBHOOK_SECRET_MESSAGE: string =
+  "The webhook URL does not end with this server's INBOUND_EMAIL_WEBHOOK_SECRET.";
+
+/*
+ * Who may deliver an email, decided from the address a request was posted to
+ * before its body is read, so a request that cannot prove it comes from the
+ * mail provider is refused without parsing a byte of what it sent:
+ *
+ *   - incoming email off (no INBOUND_EMAIL_DOMAIN): 400, as it always was;
+ *   - no webhook secret the installation may use (unset, blank, or a value
+ *     the repository or the setup guide publishes): 503 for every delivery,
+ *     as nothing could tell the provider's from anybody else's. SendGrid
+ *     retries a 5xx for up to three days, so the mail sent while an operator
+ *     sets the secret arrives once it is set; the app says what to set when
+ *     it starts (EnvironmentConfig.InboundEmailWebhookSecretWarning);
+ *   - an address that does not end with the installation's secret: 403.
+ */
+const refuseUnlessFromMailProvider: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!InboundEmailProviderFactory.isConfigured()) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(INBOUND_EMAIL_NOT_CONFIGURED_MESSAGE),
+      );
+    }
+
+    const provider: InboundEmailProvider =
+      InboundEmailProviderFactory.getProvider();
+
+    if (!provider.hasWebhookSecret()) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new ServiceUnavailableException(INBOUND_EMAIL_NO_WEBHOOK_SECRET_MESSAGE),
+      );
+    }
+
+    const isFromProvider: boolean = await provider.validateWebhook({
+      headers: req.headers as Record<string, string>,
+      pathSecret: req.params["secret"] || "",
+    });
+
+    if (!isFromProvider) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new ForbiddenException(INBOUND_EMAIL_WRONG_WEBHOOK_SECRET_MESSAGE),
+      );
+    }
+
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+};
+
 /*
  * Webhook endpoint for SendGrid inbound emails
  * SendGrid sends data as multipart/form-data
@@ -33,9 +107,12 @@ const router: ExpressRouter = Express.getRouter();
  * trigger (workflow-{key}@). Each address the email was delivered to is
  * queued as a job of its own, and the queue worker decides whether a monitor
  * or a workflow really owns it.
+ *
+ * Only a request refuseUnlessFromMailProvider lets through has its body read.
  */
 router.post(
   "/incoming-email/sendgrid/:secret",
+  refuseUnlessFromMailProvider,
   MultipartFormDataMiddleware,
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
@@ -50,37 +127,8 @@ router.post(
         getLogAttributesFromRequest(req as any),
       );
 
-      // Check if inbound email is configured
-      if (!InboundEmailProviderFactory.isConfigured()) {
-        logger.error(
-          "Inbound email is not configured",
-          getLogAttributesFromRequest(req as any),
-        );
-        throw new BadDataException(
-          "Inbound email is not configured. Please set the INBOUND_EMAIL_DOMAIN environment variable.",
-        );
-      }
-
       const provider: InboundEmailProvider =
         InboundEmailProviderFactory.getProvider();
-
-      // Get the secret from the URL path if provided
-      const pathSecret: string = req.params["secret"] || "";
-
-      // Validate the webhook request (secret from path takes precedence)
-      const isValid: boolean = await provider.validateWebhook({
-        headers: req.headers as Record<string, string>,
-        body: req.body as JSONObject,
-        pathSecret: pathSecret,
-      });
-
-      if (!isValid) {
-        logger.error(
-          "Invalid webhook signature",
-          getLogAttributesFromRequest(req as any),
-        );
-        throw new BadDataException("Invalid webhook signature");
-      }
 
       // Parse the inbound email
       const parsedEmail: ParsedInboundEmail = await provider.parseInboundEmail(
