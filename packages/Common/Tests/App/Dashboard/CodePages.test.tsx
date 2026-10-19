@@ -1270,7 +1270,7 @@ describe("a task's conversation", () => {
 
   test("a turn's Log: the trail names the repository and the task, then Log", async () => {
     getTaskMock.mockResolvedValue(taskAnswer() as never);
-    const postSpy: SpyInstance<typeof API.post> = jest
+    const postSpy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(API, "post")
       .mockResolvedValue(
         new HTTPResponse<JSONObject>(
