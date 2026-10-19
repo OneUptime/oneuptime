@@ -97,6 +97,11 @@ import PublicMessageRateLimit, {
   PublicMessageRateLimitScope,
 } from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import { RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE } from "../../../Types/Runbook/RunbookWebhook";
+import ClusterKeyAuthorization from "../../../Server/Middleware/ClusterKeyAuthorization";
+import {
+  WRONG_CLUSTER_KEYS_MESSAGE,
+  WRONG_CLUSTER_KEYS_PER_ADDRESS,
+} from "../../../Server/Utils/RateLimit/WrongClusterKeyLimit";
 import Exception from "../../../Types/Exception/Exception";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
@@ -483,6 +488,69 @@ function runbookWebhookSurface(): Surface {
 }
 
 /*
+ * The routes that take OneUptime's cluster key: a different wrong key every
+ * time, so every request is a new guess. One the limit lets through is
+ * answered as the wrong key it is (400), never let through; one it refuses
+ * is answered 429, with Retry-After.
+ */
+function wrongClusterKeySurface(): Surface {
+  let sent: number = 0;
+
+  return {
+    name: "wrong cluster keys",
+    send: async (address: string): Promise<Answer> => {
+      sent++;
+
+      const headers: Record<string, string> = {};
+      const res: ExpressResponse = {
+        setHeader: (name: string, value: string): void => {
+          headers[name] = value;
+        },
+      } as unknown as ExpressResponse;
+
+      let continued: boolean = false;
+      const before: number = sendErrorResponseMock.mock.calls.length;
+
+      await ClusterKeyAuthorization.isAuthorizedServiceMiddleware(
+        requestFrom(address, {
+          headers: {
+            "x-forwarded-for": address,
+            clusterkey: `wrong-cluster-key-${sent}`,
+          },
+        }),
+        res,
+        ((): void => {
+          continued = true;
+        }) as NextFunction,
+      );
+
+      expect(continued).toBe(false);
+
+      const error: Exception = sendErrorResponseMock.mock.calls[
+        before
+      ]![2] as Exception;
+
+      if (error.code === ExceptionCode.BadDataException) {
+        expect(error.message).toBe("Invalid cluster key provided");
+
+        return { allowed: true, message: undefined, retryAfter: undefined };
+      }
+
+      expect(error.code).toBe(ExceptionCode.TooManyRequestsException);
+
+      return {
+        allowed: false,
+        message: error.message,
+        retryAfter: headers["Retry-After"],
+      };
+    },
+    perResource: WRONG_CLUSTER_KEYS_PER_ADDRESS,
+    perClient: WRONG_CLUSTER_KEYS_PER_ADDRESS,
+    refusal: WRONG_CLUSTER_KEYS_MESSAGE,
+  };
+}
+
+/*
  * Every limit that counts a client address. The shipped per-address numbers
  * are restated where the limiter does not expose them, so a change to one
  * has to be made on purpose.
@@ -568,6 +636,7 @@ function everySurface(): Array<Surface> {
     publicMessageSurface(PublicMessageKind.StatusPagePasswordReset),
     publicMessageSurface(PublicMessageKind.PasswordReset),
     publicMessageSurface(PublicMessageKind.SignUpEmail),
+    wrongClusterKeySurface(),
   ];
 }
 
