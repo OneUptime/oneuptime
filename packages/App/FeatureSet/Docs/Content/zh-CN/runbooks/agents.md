@@ -1,10 +1,11 @@
 # Runbook 代理
 
-**Runbook 代理** 在仪表板中称为 **Runner** ，是一个小型的自托管进程，它 **在你自己的基础设施中** 运行 Runbook 的 JavaScript、Bash、SSH 和 Kubernetes 步骤。OneUptime Worker 从不运行你的脚本：它把脚本放入队列，由步骤作者选择的 Runner 领取每个作业、运行它并发回结果。本页面向安装和运维 Runner 的人员。
+**Runbook 代理** 在仪表板中称为 **Runner** ，是一个小型的自托管进程，它 **在你自己的基础设施中** 运行 Runbook 的 JavaScript、Bash、SSH 和 Kubernetes 步骤。OneUptime Worker 从不运行你的脚本：它把脚本放入队列，由步骤作者选择的 Runner 领取每个作业、运行它并发回结果。本页面向安装和运维 Runner 的人员。 未选择 Runner 的 JavaScript 步骤改为在 [全局 Runner](#全局-runner) 上运行，即 OneUptime 为所有项目运行的 Runner。
 
 :::cards
 - [安装 Runner](#安装-runner): 五步完成，从仪表板到已连接的容器。
 - [为步骤指定 Runner](#为步骤指定-runner): 把步骤绑定到应运行它的 Runner。
+- [全局 Runner](#全局-runner): OneUptime 为所有项目运行的 Runner，以及它们运行什么。
 - [超时](#超时): 领取超时和执行超时，以及两者如何配合。
 - [环境变量](#环境变量): 容器启动时读取的内容。
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. 你在 OneUptime 中创建一个 Runner。OneUptime 为它生成一个 ID 和一个密钥。
 2. 你在自己基础设施中的一台主机上运行 Runner 容器，并提供该 ID、密钥和你的 OneUptime URL。
 3. Runner 每 5 秒向 OneUptime 请求一次工作，每 60 秒报告一次自己仍在运行。
-4. 编写 JavaScript、Bash、SSH 或 Kubernetes 步骤时，你从下拉列表中选择 Runner。步骤会绑定到该 Runner。
+4. 编写 JavaScript、Bash、SSH 或 Kubernetes 步骤时，你从下拉列表中选择 Runner。步骤会绑定到该 Runner。 JavaScript 步骤可以保留下拉列表为它选择的 **全局 Runner** 。
 5. 步骤运行时，Worker 会把一个 `targetAgentId` 设置为该 Runner 的作业放入队列。只有该 Runner 能领取它。
 6. Runner 在本地运行作业（Bash 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 和 Kubernetes 使用步骤的凭据建立 SSH 连接或调用集群的 API 服务器），记录结果并发回。Worker 用该结果继续执行 Runbook。
 
@@ -48,6 +49,35 @@ Runner 只持有自己的 ID 和密钥。其他一切都随它领取的作业一
 - **可达范围。** 大多数有用的步骤作用于 _你的_ 基础设施（“重启这个服务”“在我们的内部数据库中查一条记录”），而不是 OneUptime 的。
 
 有了 Runner，这些步骤在你掌控的主机上运行，由你决定这台主机可以做什么。HTTP 请求和 AI 步骤仍在 Worker 上运行，因为它们不需要你网络中的任何东西。
+
+## 全局 Runner
+
+全局 Runner 是 OneUptime 为所有项目运行的 Runner。未选择自己 Runner 的 JavaScript 步骤会在其中一个上运行，因此你可以在安装任何东西之前就编写它。 **运行手册 → Runbook 代理** 在 **全局 Runner** 下列出它们，位于你自己的 Runner 上方；JavaScript 步骤的 **Runner** 下拉列表会首先提供 **全局 Runner** 。
+
+| | 全局 Runner | 你自己的 Runner |
+| --- | --- | --- |
+| 运行的步骤 | JavaScript | JavaScript、Bash、SSH 和 Kubernetes |
+| 步骤可以访问的地址 | 公共互联网地址 | 其主机可以访问的地址 |
+| 步骤的最长运行时间 | 5 分钟 | 1 小时 |
+| Runbook 密钥 | 你允许全局 Runner 使用的密钥 | 你分配给它的密钥 |
+| 凭据 | 无 | 你分配给它的凭据 |
+
+全局 Runner 运行许多项目的步骤，因此每个步骤都与其他所有步骤相互隔离：
+
+- 每个步骤都在自己的 `isolated-vm` 沙箱中运行，该沙箱为这个步骤创建，并在步骤结束后丢弃：没有文件、没有进程、没有环境变量，也不会从一个步骤保留任何东西到下一个步骤。
+- 它的 HTTP 请求只能到达公共互联网地址，绝不会到达私有地址、环回地址、链路本地地址或云元数据端点，因此全局 Runner 永远无法访问你的网络。
+- 只有当密钥的 **全局 Runner 可以使用此密钥** 开关已打开时，它才会获得该 Runbook 密钥，并且只用于该密钥所属项目的步骤。它永远不会获得凭据。
+- 一个项目在全局 Runner 上同时最多运行三个步骤，因此没有项目能独占它们。
+
+对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。
+
+### 全局 Runner 从哪里来
+
+在 OneUptime Cloud 上，由 OneUptime 运行它们。自托管安装默认运行一个自己的全局 Runner，就像它运行自己的全局探针一样：Docker Compose 中的 `global-runner` 服务，以及 Helm chart 中的 `globalRunner` 部署。它持有自己的密钥 `GLOBAL_RUNNER_KEY`，不持有服务器的任何其他东西。
+
+主管理员可以添加更多全局 Runner，以便从其他主机运行步骤：在 Admin Dashboard 中依次打开 **设置** 、 **全局 Runner** ，创建一个，然后在可以访问互联网的主机上运行其 **显示 ID 和密钥** 给出的命令。
+
+要关闭内置的全局 Runner，请在 Docker Compose 的 `config.env` 中设置 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中将 `globalRunner.enabled` 设为 `false`。完全没有全局 Runner 时， **运行手册 → Runbook 代理** 只列出你自己的 Runner，每个 JavaScript 步骤都要选择其中一个。
 
 ## 开始之前
 
@@ -66,7 +96,7 @@ Runner 只持有自己的 ID 和密钥。其他一切都随它领取的作业一
 | **描述** | **Runner** | 可选。用一句话说明这台主机能访问什么。 |
 | **标签** | **Runner** （在 **更多字段** 下） | 可选。 |
 | **执行运行手册** | **功能** | 默认开启。允许此 Runner 领取 Runbook 步骤。 |
-| **执行 AI 代码修复** | **功能** | 默认关闭。允许它为 AI 代码修复打开拉取请求；参见 [Fix Tasks](/docs/ai/ai-agent)。 |
+| **执行 AI 代码修复** | **功能** | 默认关闭。允许它为 AI 代码修复打开拉取请求；参见 [代码](/docs/ai/ai-agent)。 |
 | **执行 AI 补救命令** | **功能** | 默认关闭。允许 AI 自动修复在其上运行经过策略检查的命令。为持有 SSH 凭据的 Runner 开启此项需要读取 Runbook 凭据的权限；参见 [运行 OneUptime AI 命令的 Runner](/docs/runbooks/credentials#运行-oneuptime-ai-命令的-runner)。 |
 
 Runner 会在下一次心跳时获取功能的变更，无需重启。
@@ -114,11 +144,11 @@ docker rm -f oneuptime-runner
 
 ### 选择 Runner
 
-步骤的 **Runner** 下拉列表会列出项目中的所有 Runner 以及它们是否已连接。如果项目中还没有 Runner，步骤会提示这一点，并引导你前往 **Runbooks › Runners** 。
+步骤的 **Runner** 下拉列表会列出项目中的所有 Runner 以及它们是否已连接。如果项目中还没有 Runner，步骤会提示这一点，并引导你前往 **Runbooks › Runners** 。 JavaScript 步骤的下拉列表还会首先提供 **全局 Runner** ，并在你选择自己的 Runner 之前一直选中它。
 
 ### 保存步骤
 
-点击 **Save Steps** 。执行到达该步骤时，Worker 会为该 Runner 的 ID 放入一个作业，只有该 Runner 能领取它。
+点击 **Save Steps** 。执行到达该步骤时，Worker 会为该 Runner 的 ID 放入一个作业，只有该 Runner 能领取它。 选择 **全局 Runner** 的步骤会等待任意一个空闲的全局 Runner。
 :::
 
 Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中运行，无法访问文件系统或进程；它可以用 `axios` 调用公开的 HTTP API，但不能调用私有网络上的地址。SSH 和 Kubernetes 步骤使用步骤指定的 [凭据](/docs/runbooks/credentials)，该凭据必须已分配给同一个 Runner。
@@ -176,7 +206,7 @@ Runner 领取作业时会获得一个短租约（默认 30 秒）。步骤运行
 
 ### 没有在线的代理
 
-如果步骤运行时所选 Runner 处于离线状态，作业会以 `Pending` 等待到 claim timeout 结束，然后步骤失败，消息为“No runbook agent picked up this step before the wait window expired.”在正式运行 Runbook 之前，可以在 **Runbook 代理** 页面上检查覆盖情况。
+如果步骤运行时所选 Runner 处于离线状态，作业会以 `Pending` 等待到 claim timeout 结束，然后步骤失败，消息为“No runbook agent picked up this step before the wait window expired.”在正式运行 Runbook 之前，可以在 **Runbook 代理** 页面上检查覆盖情况。 全局 Runner 上的步骤则会失败，消息为“No global Runner picked up this step before the wait window expired.”
 
 ### 输出上限
 
@@ -235,6 +265,7 @@ docker rm -f oneuptime-runner
 
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` —— 管理代理记录。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色）—— `RunbookAdmin` 构建 Runbook、其规则以及运行它们的 Runner，并运行 Runbook。`RunbookMember` 打开 Runbook 及其执行并运行它们（启动执行、完成或跳过其步骤、取消执行），但不创建、更改或删除任何 Runbook 或 Runner。`RunbookViewer` 只读取 Runbook 及其执行，什么也不运行。`RunbookAdmin` 包含上述所有细粒度权限。
+- 全局 Runner 不属于任何项目：只有主管理员可以在 Admin Dashboard 中添加、更改或删除全局 Runner。任何能读取项目 Runner 的人都能看到它们，而关闭 **使用全局 Runner** 需要编辑项目的权限。
 
 触发 Runbook（从而把其步骤发送给 Runner）需要一个运行 Runbook 的角色——`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin` 或 `RunbookMember`——或 `CreateRunbookExecution`；完成、跳过或取消执行还接受 `EditRunbookExecution`。角色只运行其范围所及的 Runbook。
 
@@ -247,7 +278,7 @@ docker rm -f oneuptime-runner
 | 端点 | 用途 |
 | --- | --- |
 | `POST /heartbeat` | 存活信号。更新 Runner 的最后出现时间、版本和主机信息，并返回项目授予它的功能。 |
-| `POST /claim-next-job` | 以原子方式领取指向此 Runner ID 的、最早的 `Pending` 作业。没有任务时返回 `{ job: null }`。 |
+| `POST /claim-next-job` | 以原子方式领取指向此 Runner ID 的、最早的 `Pending` 作业。没有任务时返回 `{ job: null }`。 全局 Runner 则领取正在等待任意全局 Runner 的最早步骤。 |
 | `POST /job/:jobId/heartbeat` | 为作业续租。租约已过期或作业已结束时返回 404。 |
 | `POST /job/:jobId/result` | 提交最终结果。如果租约已经转移，则忽略。 |
 | `POST /disconnect` | 正常关闭时注销。 |
@@ -274,6 +305,10 @@ Runner 领取了作业，然后停止续租：它崩溃了、重启了或断网�
 
 :::details Runner 日志显示“No capability is enabled”
 此 Runner 的所有功能都已关闭。在 OneUptime 中 Runner 的页面上开启 **执行运行手册** 。它会在下一次心跳时获取该变更。
+:::
+
+:::details 全局 Runner 上的步骤失败，因为全局 Runner 不能使用某个 Runbook 密钥
+该步骤引用的 Runbook 密钥关闭了 **全局 Runner 可以使用此密钥** 开关，因此全局 Runner 没有获得它，步骤也没有运行。错误中会写出该密钥的名称。在 **运行手册 → 设置 → 密钥** 中为它打开该开关，或者为该步骤选择你自己的 Runner。
 :::
 
 ## 后续步骤

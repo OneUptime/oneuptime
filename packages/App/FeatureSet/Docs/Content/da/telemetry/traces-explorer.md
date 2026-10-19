@@ -89,7 +89,7 @@ Klik på et span i en vilkårlig visning for at åbne dets panel med faner for d
 Et stort spor indlæser 500 spans ad gangen. Klik på knappen nederst i sporet for at indlæse flere eller dem alle.
 
 > [!TIP]
-> **Fix performance with AI** leder i sporet efter et kendt ydeevnemønster: en N+1-forespørgsel, et span, der tager det meste af tiden, eller kald efter hinanden, der kunne køre parallelt. Når den finder et, starter den en AI-opgave, der åbner en pull request med rettelsen. Se [Rettelsesopgaver](/docs/ai/ai-agent).
+> **Fix performance with AI** leder i sporet efter et kendt ydeevnemønster: en N+1-forespørgsel, et span, der tager det meste af tiden, eller kald efter hinanden, der kunne køre parallelt. Når den finder et, starter den en AI-opgave, der åbner en pull request med rettelsen. Se [Kode](/docs/ai/ai-agent).
 
 ## Vis dine spans i diagrammer
 

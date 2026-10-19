@@ -178,6 +178,8 @@ Extrae campos estructurados de una línea con forma fija. Un patrón grok es una
 
 Una captura se guarda como texto salvo que le dé un tipo: `%{NUMBER:status:int}` la guarda como número. Los tipos son `int`, `long`, `float`, `double`, `boolean` y `string`. Compruebe un patrón con una línea de ejemplo en **Prueba tu patrón** antes de guardarlo.
 
+Un patrón grok se ejecuta en un tiempo que solo crece con la línea que lee, se escriba como se escriba, y conserva la sintaxis de JavaScript: las búsquedas anticipadas y retrospectivas funcionan. Un patrón que no puede ejecutarse así, por ejemplo uno con una referencia inversa como `\1`, se rechaza al guardarlo, con un mensaje que dice qué cambiar.
+
 | Cuerpo del registro | Patrón | Atributos añadidos |
 | --- | --- | --- |
 | `10.0.1.5 - GET /health 200` | `%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}` | client_ip, method, path, status |

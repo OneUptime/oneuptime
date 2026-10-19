@@ -139,6 +139,7 @@ Det sista kommandot skriver ut `0`: Ingen platshållare är kvar. Loopen använd
 | `REGISTER_PROBE_KEY` | Registrering av prober hos din instans. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globala prober som Docker Compose kan köra (`probe-1` körs som standard). |
 | `ONEUPTIME_RUNNER_KEY` | Den medföljande Runnern. |
+| `GLOBAL_RUNNER_KEY` | Den medföljande globala Runnern, som kör alla projekts JavaScript-steg. |
 
 > [!IMPORTANT]
 > Ange hemligheterna före första starten och behåll dem sedan. PostgreSQL tar bara sitt lösenord när den skapar sin databas, och om du ändrar `ENCRYPTION_SECRET` senare blir varje värde som krypterats med det gamla oläsligt. Är `DATABASE_PASSWORD` fortfarande platshållaren vid första starten ger `npm start` den ett slumpmässigt värde innan PostgreSQL skapar sin databas.

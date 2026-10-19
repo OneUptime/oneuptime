@@ -21,6 +21,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class AlertEpisodePrivacyRuleEngineServiceClass
   implements RuleRunEngine<AlertEpisode, AlertEpisodePrivacyRule>
@@ -307,8 +308,7 @@ class AlertEpisodePrivacyRuleEngineServiceClass
     rule: AlertEpisodePrivacyRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in alert episode privacy rule ${rule.id}: ${pattern}`,

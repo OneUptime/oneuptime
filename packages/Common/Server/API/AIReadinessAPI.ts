@@ -17,8 +17,9 @@ import CodeFixReadiness from "../Utils/AI/CodeFix/CodeFixReadiness";
 /*
  * Project-wide "can AI actually do anything here?" — the gates a CodeFix run
  * passes through, answered for the whole project rather than one exception.
- * The AI Tasks page renders this instead of a static prerequisites banner, so
- * what the user reads reflects what the server would actually decide.
+ * Code's request box asks CodeTaskGate instead, which shares the LLM and
+ * agent checks below, so what the user reads reflects what the server would
+ * actually decide.
  *
  * The per-exception equivalent lives at
  * GET /telemetry-exception/ai-fix-readiness/:id; both share the checks in

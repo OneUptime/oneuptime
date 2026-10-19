@@ -14,7 +14,7 @@ En LLM-udbyder er modellen bag hver AI-funktion i OneUptime: undersøgelser, Sp�
 - **Undersøgelser**: OneUptime AI undersøger nye hændelser og advarsler og slår en årsagsanalyse med kilder op på tidslinjen. Se [AI SRE](/docs/ai/ai-sre).
 - **Spørgsmål**: **Ask AI** svarer ud fra dit projekts data, med en kilde til hver påstand. Se [Spørg AI](/docs/ai/ask-ai).
 - **Udkast**: **Draft with AI** i noterne til hændelser, advarsler og planlagt vedligeholdelse samt postmortems, skrevet på forespørgsel eller når en hændelse løses.
-- **Kode**: pull requests, der retter undtagelser, langsomme spor og de årsager, undersøgelser finder, fra OneUptime eller fra GitHub. Se [Rettelsesopgaver](/docs/ai/ai-agent).
+- **Kode**: pull requests, der retter undtagelser, langsomme spor og de årsager, undersøgelser finder, fra OneUptime eller fra GitHub. Se [Kode](/docs/ai/ai-agent).
 - **Alt andet**: triage i AI Insights, AI-trinene i workflows og runbooks samt svar i Slack og Microsoft Teams.
 
 ## Hvilken udbyder AI bruger
@@ -301,7 +301,7 @@ Sidder du stadig fast? Søg efter din fejl i [OneUptimes GitHub-issues](https://
 ## Næste trin
 
 :::cards
-- [Rettelsesopgaver](/docs/ai/ai-agent): Pull requests, som din udbyder skriver, og hvor de starter.
+- [Kode](/docs/ai/ai-agent): Pull requests, som din udbyder skriver, og hvor de starter.
 - [AI SRE](/docs/ai/ai-sre): Hvad OneUptime AI gør med udbyderen, når den har en.
 - [Spørg AI](/docs/ai/ask-ai): Stil dit projekt et spørgsmål, og skift en samtales udbyder.
 :::

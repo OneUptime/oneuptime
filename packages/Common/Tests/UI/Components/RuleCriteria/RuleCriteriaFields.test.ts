@@ -765,6 +765,34 @@ describe("what a person is told about a condition", () => {
     ).toBeNull();
   });
 
+  test("a pattern the rules cannot run says why, and what to change", () => {
+    expect(
+      problem("(db)-\\1", INCIDENT_TITLE, RuleCriteriaOperator.MatchesPattern),
+    ).toBe(RuleCriteriaCopy.backReferencePatternProblem);
+    expect(
+      problem(
+        "(?<host>db)-\\k<host>",
+        INCIDENT_TITLE,
+        RuleCriteriaOperator.MatchesPattern,
+      ),
+    ).toBe(RuleCriteriaCopy.backReferencePatternProblem);
+    expect(
+      problem("a{20000}", INCIDENT_TITLE, RuleCriteriaOperator.MatchesPattern),
+    ).toBe(RuleCriteriaCopy.tooLargePatternProblem);
+    // Look-aheads and look-behinds run.
+    expect(
+      problem(
+        "^prod-(?!test)(?<=prod-)\\w+",
+        INCIDENT_TITLE,
+        RuleCriteriaOperator.MatchesPattern,
+      ),
+    ).toBeNull();
+    // An address range field keeps its own words.
+    expect(
+      problem("(10)\\1", IP_ADDRESS, RuleCriteriaOperator.MatchesPattern),
+    ).toBe(RuleCriteriaCopy.invalidAddressRangeProblem);
+  });
+
   test("a condition on a field the page no longer offers says so", () => {
     expect(problem("db", undefined)).toBe(RuleCriteriaCopy.fieldUnavailable);
   });

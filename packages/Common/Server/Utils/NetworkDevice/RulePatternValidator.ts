@@ -37,6 +37,15 @@ export default class NetworkDeviceRulePatternValidator {
       return;
     }
 
+    const cannotRun: string | null = RulePatternMatchUtil.getCannotRunMessage(
+      title,
+      pattern,
+    );
+
+    if (cannotRun) {
+      throw new BadDataException(cannotRun);
+    }
+
     throw new BadDataException(
       `${title} "${pattern}" is not a valid regular expression, and contains no '*' wildcard to fall back on, so it would never match a network device. Use a regex such as core-switch-.* or a wildcard such as *0664*.`,
     );

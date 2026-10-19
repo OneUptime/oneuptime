@@ -202,7 +202,7 @@ const ORIGINAL_LOCATIONS = {
       lines: [
         "    const current = await this.warehouse.getStock(sku);",
         "    if (current.version !== expectedVersion) {",
-        "      span.addEvent(\"inventory.version_mismatch\", { sku });",
+        '      span.addEvent("inventory.version_mismatch", { sku });',
         "      // A concurrent order changed the row since we read it.",
         "      throw new InventoryReservationError(sku, quantity, orderId);",
         "    }",
@@ -335,7 +335,10 @@ function makeOccurrence(index) {
       : index === 0
         ? TRACE_ID
         : `${String(index).padStart(2, "0")}${TRACE_ID.slice(2)}`;
-  record.spanId = index === 0 ? SPAN_ID : `${String(index).padStart(2, "0")}${SPAN_ID.slice(2)}`;
+  record.spanId =
+    index === 0
+      ? SPAN_ID
+      : `${String(index).padStart(2, "0")}${SPAN_ID.slice(2)}`;
   record.sessionId = index % 3 === 0 ? SESSION_ID : "";
   record.parsedFrames =
     framesMode === "raw" ? "[]" : JSON.stringify(PARSED_FRAMES);
@@ -825,7 +828,9 @@ async function handleApi(method, options) {
   }
 
   if (url.includes("/telemetry/traces/histogram")) {
-    return ok({ buckets: spansMode === "empty" ? [] : statusHistogram(body, "error") });
+    return ok({
+      buckets: spansMode === "empty" ? [] : statusHistogram(body, "error"),
+    });
   }
 
   if (url.includes("/telemetry/traces/facets")) {
@@ -981,7 +986,7 @@ function AITaskPage() {
   const { taskId } = useParams();
   return (
     <main className="mx-auto max-w-3xl px-8 py-16">
-      <h1 className="text-xl font-semibold text-gray-900">AI Agent Task</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Code Task</h1>
       <p data-testid="ai-task-page" className="mt-2 text-sm text-gray-600">
         {taskId}
       </p>
@@ -1043,8 +1048,9 @@ createRoot(document.getElementById("root")).render(
             element={section(ExceptionDetailSection.Settings)}
           />
         </Route>
+        {/* A task's conversation in Code, where a started fix leads. */}
         <Route
-          path="/dashboard/:projectId/ai/agents/:taskId"
+          path="/dashboard/:projectId/code/tasks/:taskId"
           element={<AITaskPage />}
         />
         <Route

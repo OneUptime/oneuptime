@@ -133,11 +133,11 @@ L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page 
 :::
 
 :::details Une étape a échoué parce qu'il lui manque un agent Runbook ou un identifiant
-Le message indique par exemple "Bash step is missing a Runner. Pick one under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**, ou une étape SSH ou Kubernetes sans **Identifiant**. Ouvrez les **Étapes** du runbook, choisissez ce qui manque à l'étape, cliquez sur **Save Steps** et relancez le runbook.
+Le message indique par exemple "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." L'étape a été enregistrée sans **Agent Runbook**, ou une étape SSH ou Kubernetes sans **Identifiant**. Une étape JavaScript n'a besoin d'un agent à elle que si aucun [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) ne peut l'exécuter. Ouvrez les **Étapes** du runbook, choisissez ce qui manque à l'étape, cliquez sur **Save Steps** et relancez le runbook.
 :::
 
 :::details Une étape a échoué parce qu'aucun agent de runbook ne l'a prise en charge
-Le message indique "No runbook agent picked up this step before the wait window expired." L'agent Runbook de l'étape n'a pas pris la tâche en charge dans son délai de prise en charge. Vérifiez sous **Runbooks → Agents de runbook** que l'agent est **Connecté** et que **Exécute les runbooks** est activé. Voir [Agents de runbook](/docs/runbooks/agents#dépannage).
+Le message indique "No runbook agent picked up this step before the wait window expired." L'agent Runbook de l'étape n'a pas pris la tâche en charge dans son délai de prise en charge. Vérifiez sous **Runbooks → Agents de runbook** que l'agent est **Connecté** et que **Exécute les runbooks** est activé. Voir [Agents de runbook](/docs/runbooks/agents#dépannage). Une étape sur un agent Runbook global indique plutôt "No global Runner picked up this step before the wait window expired." : relancez le runbook, augmentez le délai de prise en charge de l'étape, ou choisissez l'un de vos propres agents.
 :::
 
 :::details L'exécution attend depuis des heures

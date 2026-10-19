@@ -1503,7 +1503,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                             <Link
                               className="font-medium text-indigo-600 hover:text-indigo-800"
                               to={RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                                RouteMap[PageMap.CODE_TASK_VIEW] as Route,
                                 { modelId: fixTaskRunId },
                               )}
                             >
@@ -1526,10 +1526,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                       <Link
                         className="font-medium text-indigo-600 hover:text-indigo-800"
                         to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+                          RouteMap[PageMap.CODE] as Route,
                         )}
                       >
-                        {translator.translateText("View AI tasks")}
+                        {translator.translateText("Open Code")}
                       </Link>
                       .
                     </InvestigationNotice>

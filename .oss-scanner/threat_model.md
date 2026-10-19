@@ -40,6 +40,7 @@ and several agents are collector configuration plus shell installers.
 | `ingress` | `packages/Nginx` | nginx in front of everything: TLS, routing, custom domains for status pages and dashboards, and the ACME certificates for them. | Internet |
 | `probe-1` | `packages/Probe` | A global probe: runs monitors (HTTP, ping, port, DNS, SSL, SNMP, SQL, custom JavaScript, synthetic browser checks, ...) and reports results to `app` with a probe key. | Outbound to monitored targets |
 | `runner` | `packages/Runner` | Runs runbook steps (Bash, JavaScript, SSH, kubectl) and AI code fixes (clones a project's repository and opens pull requests), claimed from `app` with a runner key. Customers run their own Runner inside their network. | Outbound only |
+| `global-runner` | `packages/Runner` | The bundled global Runner: the Runner image started with a fixed id and its own key (`GLOBAL_RUNNER_KEY`), and nothing else (no cluster key, none of the server's settings). It runs the runbook JavaScript steps of every project that uses global Runners, each in its own isolated-vm sandbox that reaches public addresses only; never Bash, SSH or Kubernetes steps, a credential, an AI command or a code fix. | Outbound only, to public addresses |
 | `postgres` | schema in `packages/Common/Server/Infrastructure/Postgres` | Projects, users, configuration, incidents: everything but telemetry. | Internal only |
 | `clickhouse` | `Clickhouse/`, `packages/Common/Server/Utils/AnalyticsDatabase` | Telemetry: logs, traces, metrics, profiles, monitor results. | Internal only |
 | `valkey` | `packages/Common/Server/Infrastructure` | Cache, queues (BullMQ), locks and rate limits. | Internal only |
@@ -147,13 +148,17 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
    tenant-written script; custom HTML and JavaScript are served only on a
    project's own custom domain
    (`packages/Common/Server/Utils/StatusPageCustomizationAccess.ts`).
-5. **Sandboxes.** Custom JavaScript monitors and workflow JavaScript run in
-   isolated-vm (`packages/Common/Server/Utils/VM/VMRunner.ts`); synthetic
-   monitors run Playwright under a separate user per check, with resource and
-   capability limits (`packages/Probe/Utils/Monitors/SyntheticRuntime`).
-   Code there may do what its sandbox offers, and nothing more: no access to
-   the host process, its environment, its files or credentials, other checks,
-   or other projects.
+5. **Sandboxes.** Custom JavaScript monitors, workflow JavaScript and the
+   runbook JavaScript steps a global Runner runs for every project
+   (`packages/Common/Types/Runner/GlobalRunnerWork.ts`) run in isolated-vm
+   (`packages/Common/Server/Utils/VM/VMRunner.ts`); synthetic monitors run
+   Playwright under a separate user per check, with resource and capability
+   limits (`packages/Probe/Utils/Monitors/SyntheticRuntime`). Code there may
+   do what its sandbox offers, and nothing more: no access to the host
+   process, its environment, its files or credentials, other checks, other
+   steps, or other projects. A global Runner is handed a step's script with
+   only the runbook secrets that step's own project let global Runners use,
+   and never a credential.
 6. **Network egress from shared infrastructure.** Requests to URLs a user
    chooses (webhooks, workflow HTTP calls, sandboxed HTTP, data sources, SSO
    metadata, external status pages, monitors) go through
@@ -162,8 +167,9 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
    `packages/Probe/Utils/PrivateNetworkMonitorPolicy.ts`. Loopback,
    link-local and cloud metadata addresses are refused in every deployment;
    private ranges are refused unless the operator allows them; global probes
-   on OneUptime Cloud are public-only. A custom probe reaching its own
-   network is its purpose.
+   on OneUptime Cloud are public-only, and global Runners are public-only in
+   every deployment. A custom probe or Runner reaching its own network is its
+   purpose.
 7. **Credentials and secrets.** Session tokens, API, ingestion, probe and
    runner keys, OAuth tokens for Slack, Microsoft Teams and GitHub, LLM keys,
    SMTP and Twilio credentials, monitor secrets and data-source passwords are
@@ -173,7 +179,9 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
 8. **Agents and runners in customers' infrastructure** accept work only from
    their own project, and only work their configuration allows (for example
    the Kubernetes AI agent's access level, or a runbook's execute
-   permission). The server cannot make them do more.
+   permission). The server cannot make them do more. A global Runner, which
+   no project owns, is served only JavaScript steps of projects that use
+   global Runners, and refuses anything else it is handed.
 9. **AI.** Investigations and chats read telemetry, notes and monitored
    content that attackers can write. Whatever that text says, the AI acts
    only inside the invoking project, with the permissions its user and the

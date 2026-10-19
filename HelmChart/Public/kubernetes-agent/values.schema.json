@@ -890,6 +890,16 @@
           "items": { "type": "string", "minLength": 1 },
           "description": "Span attributes OBI exports in addition to the chart's fixed set (OBI's defaults plus service.peer.name), e.g. 'http.request.body.size', 'http.response.body.size', 'obi.http.response.observed', 'db.query.text' (raw query text, may carry personal data). Rendered into OBI's attributes.select.traces.include; entries are trimmed, blanks and repeats dropped, and '*' is ignored. null (a values file from before this key) means none."
         },
+        "bufferSizes": {
+          "type": ["object", "null"],
+          "properties": {
+            "postgres": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 },
+            "mysql": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 },
+            "mssql": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 }
+          },
+          "additionalProperties": false,
+          "description": "Bytes of each PostgreSQL, MySQL or SQL Server request (and, separately, each response) OBI copies to read it: OBI's ebpf.buffer_sizes. 0 keeps OBI's small fixed capture, which stops db.query.text at about 250 characters and can miss a long statement sent with bound parameters. 4096 covers most ORM statements; a buffer costs agent CPU and memory in proportion to database traffic. At most 65535. null (a values file from before this key) means 0."
+        },
         "dropDatabaseServerSpans": {
           "type": "boolean",
           "description": "Drop the span OBI records inside a database server (db.system.name set, kind SERVER), linked or not. It duplicates the caller's client span: a one-span trace when the caller runs on another node, a doubled database call inside the request trace when it runs on the same node. Spans pushed by application SDKs are never touched, and database metrics are unaffected."

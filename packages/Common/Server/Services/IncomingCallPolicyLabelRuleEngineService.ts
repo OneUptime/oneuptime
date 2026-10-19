@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class IncomingCallPolicyLabelRuleEngineServiceClass
   implements RuleRunEngine<IncomingCallPolicy, IncomingCallPolicyLabelRule>
@@ -288,8 +289,7 @@ class IncomingCallPolicyLabelRuleEngineServiceClass
     rule: IncomingCallPolicyLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in incoming call policy label rule ${rule.id}: ${pattern}`,

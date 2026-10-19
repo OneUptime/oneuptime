@@ -1101,7 +1101,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/ai/infrastructure-ai-agents",
       },
       {
-        title: "Fix Tasks",
+        title: "Code",
         url: "/docs/ai/ai-agent",
       },
       {

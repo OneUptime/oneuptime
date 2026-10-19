@@ -8,6 +8,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RuleCriteriaMatcher from "../../../Utils/Rules/RuleCriteriaMatcher";
 import logger from "../Logger";
 import MonitorRuleCriteriaCache from "./MonitorRuleCriteriaCache";
+import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
 
 /*
  * Whether an incident or an alert matches a rule that decides what OneUptime
@@ -370,8 +371,7 @@ export default class IncidentAlertRuleMatcher {
     ruleKind: string,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex pattern in ${ruleKind} ${rule.id}: ${pattern}`,

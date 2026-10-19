@@ -452,7 +452,7 @@ const NAMED_SETTINGS: ReadonlyArray<{ title: string; page: string }> = [
   },
   {
     title: "Max Open Fix Pull Requests",
-    page: "Pages/CodeRepository/View/Settings.tsx",
+    page: "Pages/Code/Repository/Settings.tsx",
   },
 ];
 

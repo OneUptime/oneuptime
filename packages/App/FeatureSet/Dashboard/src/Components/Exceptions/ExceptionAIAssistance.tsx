@@ -197,10 +197,9 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
 
   const navigateToTask: (taskId: string) => void = (taskId: string): void => {
     Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-        { modelId: taskId },
-      ),
+      RouteUtil.populateRouteParams(RouteMap[PageMap.CODE_TASK_VIEW] as Route, {
+        modelId: taskId,
+      }),
     );
   };
 

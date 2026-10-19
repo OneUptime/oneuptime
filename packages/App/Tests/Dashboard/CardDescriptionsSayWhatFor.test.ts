@@ -447,7 +447,7 @@ const TITLE_SAYS_IT_ALL: Array<[string, string]> = [
     "Incoming Call Policy Details",
   ],
   ["Pages/OnCallDuty/OnCallDutyPolicy/Index.tsx", "On-Call Policy Details"],
-  ["Pages/CodeRepository/View/Index.tsx", "Repository Details"],
+  ["Pages/Code/Repository/Settings.tsx", "Repository Details"],
   [
     "Pages/StatusPages/AnnouncementView.tsx",
     "Status Page Announcement Details",

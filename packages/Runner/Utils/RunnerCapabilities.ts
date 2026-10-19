@@ -5,6 +5,7 @@ import {
   ENABLE_RUNBOOKS_OVERRIDE,
   IS_CLUSTER_SCOPED,
 } from "../Config";
+import GlobalRunnerMode from "./GlobalRunnerMode";
 
 export interface RunnerCapabilitySet {
   canRunRunbooks: boolean;
@@ -64,6 +65,20 @@ export default class RunnerCapabilities {
       canRunCodeFixTasks: ENABLE_CODE_FIXES_OVERRIDE === true,
       canRunAiCommands: false,
     };
+
+    /*
+     * A global Runner runs runbook steps for every project and nothing else:
+     * code fixes and AI commands act in one project's repositories and
+     * systems, so they stay off here whatever was granted (GlobalRunnerMode).
+     */
+    if (GlobalRunnerMode.isActive()) {
+      return {
+        canRunRunbooks:
+          granted.canRunRunbooks && ENABLE_RUNBOOKS_OVERRIDE !== false,
+        canRunCodeFixTasks: false,
+        canRunAiCommands: false,
+      };
+    }
 
     return {
       canRunRunbooks:

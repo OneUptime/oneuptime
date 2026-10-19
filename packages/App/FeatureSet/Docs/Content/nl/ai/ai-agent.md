@@ -1,10 +1,12 @@
-# Hersteltaken
+# Code
 
-Een hersteltaak is een pull request die OneUptime AI in je code schrijft. Je start er een vanuit een uitzondering, een trace, een service of een onderzoek, of OneUptime start er zelf een; een [Runner](/docs/runbooks/agents) kloont de repository, schrijft de wijziging op een nieuwe branch, bouwt en test die, en opent een pull request. Een mens beoordeelt en merget elke pull request: de Runner kan branches pushen en pull requests openen, meer niet.
+Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je een codeeragent zou vragen: een bug oplossen, tests schrijven, de code uitleggen, een wijziging maken. Code opent op je gekoppelde repository's; de pagina van een repository bevat zijn taken en het vak waarin je vraagt; de pagina van een taak is een gesprek waarin je kunt antwoorden. OneUptime start ook zelf taken, vanuit uitzonderingen, traces en onderzoeken. Een [Runner](/docs/runbooks/agents) kloont de repository, schrijft de wijziging op een nieuwe branch, bouwt en test die, en opent een pull request. Een mens beoordeelt en merget elke pull request: de Runner kan branches pushen en pull requests openen, meer niet.
 
 :::cards
+- [AI vragen in een repository](#ai-vragen-in-een-repository): Een verzoek in je eigen woorden, met de context die het nodig heeft.
+- [Het gesprek van een taak](#het-gesprek-van-een-taak): Wat AI deed, wat het wijzigde, en jouw antwoord.
 - [Hoe een herstelrun verloopt](#hoe-een-herstelrun-verloopt): Van een klik tot een pull request, stap voor stap.
-- [Waar hersteltaken starten](#waar-hersteltaken-starten): De knoppen die er een starten, en wat elke pull request doet.
+- [Waar hersteltaken starten](#waar-hersteltaken-starten): De taken die OneUptime start, en wat elke pull request doet.
 - [Voordat je begint](#voordat-je-begint): Een model, een gekoppelde repository en een Runner.
 - [Als een herstel mislukt](#als-een-herstel-mislukt): Wat er gebeurt met een run die een fout geeft, vastloopt of wacht.
 :::
@@ -12,11 +14,61 @@ Een hersteltaak is een pull request die OneUptime AI in je code schrijft. Je sta
 > [!TIP]
 > Je kunt dit ook vanuit GitHub starten. Noem de OneUptime GitHub App in een issue of een pull request en hij implementeert, herziet of beoordeelt ter plekke: zie [GitHub App](/docs/ai/github-app). Het is dezelfde agent, dezelfde Runner en hetzelfde budget; alleen de trigger verschilt.
 
+## AI vragen in een repository
+
+:::steps
+### Open een repository
+
+Open **Producten → Code**. Daar staan de repository's van het project, elk met de taken waaraan AI werkt, de taken die op jou wachten en zijn open pull requests. Is er nog geen, dan biedt Code **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)).
+
+### Zeg wat je wilt
+
+Schrijf op de pagina van de repository de wijziging, de bug of de vraag in je eigen woorden. Een repository zonder taken stelt er onder **Probeer te vragen** een paar voor.
+
+### Voeg context toe
+
+Klik op **Context toevoegen** om AI te geven wat het nodig heeft: een bestand of map van de repository, een notitie, een koppeling of een record van het project. OneUptime leest elk record wanneer je het verzoek verstuurt, met jouw rechten, en bewaart wat AI kreeg.
+
+### Start de taak
+
+Klik op **Taak starten** of druk op Enter. De pagina van de taak opent, en het werk van AI verschijnt daar terwijl het gebeurt.
+:::
+
+| Context | Wat AI krijgt |
+| --- | --- |
+| **Bestand of map** | Een pad in de repository, dat AI als eerste leest. |
+| **Notitie** | Tekst die je plakt: een fout, een specificatie, een logregel. |
+| **Koppeling** | Een webadres, als referentie. |
+| **Incident** of **Waarschuwing** | De status, de beschrijving en de hoofdoorzaak, zoals die zijn wanneer je het verzoek verstuurt. |
+| **Uitzondering** | Het bericht en de stack trace. |
+| **Monitor** | Het type, de status en de beschrijving. |
+| **Trace** | De spans: hun namen, tijden en fouten. |
+| **Logboeken** | De nieuwste 20 logregels die je zoekterm bevatten, uit het afgelopen uur, de afgelopen dag of de afgelopen week. |
+
+Een verzoek bevat hooguit 10 stukken context. Tokens, sleutels, wachtwoorden en e-mailadressen in wat OneUptime leest, worden afgeschermd voordat AI ze ziet, zoals overal waar OneUptime AI je gegevens leest.
+
+## Het gesprek van een taak
+
+De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde context, dan de beurt van AI – de stappen die het zet terwijl het ze zet (de bestanden die het las en bewerkte, waarnaar het zocht, de opdrachten die het uitvoerde), zijn antwoord, de bestanden die het wijzigde met hun diff, en de pull request. Bovenaan de pagina staat hoe de taak ervoor staat:
+
+| Status | Wat het betekent |
+| --- | --- |
+| **In de wachtrij** | Hij wacht tot een Runner hem oppakt. |
+| **Bezig…** | AI is ermee bezig. **Stoppen** stopt hem; wat AI al pushte, blijft op de branch. |
+| **Wacht op u** | AI heeft een vraag gesteld. Beantwoord die in het vak hieronder. |
+| **Klaar** | AI is klaar: zijn antwoord, en de pull request als het code wijzigde. |
+| **Mislukt** | De beurt kon niet worden afgerond, en zegt waarom. **Opnieuw proberen** vraagt hetzelfde nog eens. |
+| **Gestopt** | Iemand heeft hem gestopt. **Opnieuw proberen** vraagt hetzelfde nog eens. |
+
+Om verder te gaan, schrijf je in het vak onderaan: antwoord AI, voeg context toe of vraag om wijzigingen. Elk antwoord is de volgende beurt van dezelfde taak: die werkt op dezelfde branch en pusht naar dezelfde pull request zolang die open is. Een taak doet één beurt tegelijk, dus het vak wacht terwijl AI werkt. Het **Logboek** van elke beurt is het letterlijke verslag van wat die deed.
+
+Wie een repository kan lezen, leest zijn taken. AI iets vragen, antwoorden en een taak stoppen vereisen het recht om de repository te bewerken, en dat geldt ook voor de diff van een wijziging bekijken: alle anderen zien welke bestanden er veranderd zijn. De taken die OneUptime zelf start (hieronder) staan ook in hun repository, als gesprekken waarin je kunt antwoorden.
+
 ## Hoe een herstelrun verloopt
 
 ```mermaid title="Van een klik tot een pull request"
 flowchart TB
-    S["Fix with AI of een<br/>automatische trigger"] --> Q["Een hersteltaak<br/>komt in de wachtrij"]
+    S["Een verzoek, een<br/>knop of een trigger"] --> Q["Een hersteltaak<br/>komt in de wachtrij"]
     Q --> R["Een Runner die AI-<br/>codecorrecties uitvoert<br/>pakt de taak op"]
     R --> C["Hij kloont de repository<br/>en maakt een branch"]
     C --> A["De code-agent<br/>schrijft de wijziging"]
@@ -26,15 +78,15 @@ flowchart TB
     P --> H["Een mens beoordeelt<br/>en merget de pull request"]
 ```
 
-1. Je klikt op **Fix with AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
+1. Je klikt op **Taak starten** in een repository, of op **Fix with AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
 2. De taak komt in de wachtrij, en een beschikbare Runner met **Voert AI-codecorrecties uit** ingeschakeld pakt hem op.
-3. De Runner haalt de context van de taak op. Bij een uitzondering zijn dat het type, het bericht en de stack trace.
-4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run.
+3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
+4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
 5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs.
 6. Heeft de repository controleopdrachten, dan bouwt en test een eigen Runner de wijziging voordat hij iets commit, en geeft hij een fout terug aan de code-agent om te herstellen (zie [Controle vóór de pull request](#controle-vóór-de-pull-request)).
-7. De Runner commit, pusht de branch, opent de pull request en verwijdert de werkruimte.
+7. De Runner commit, pusht de branch, opent de pull request (bij een verzoek alleen als er code is gewijzigd) en verwijdert de werkruimte.
 
-De pagina waarop de taak is gestart, toont live de status. Elke taak staat onder **Producten → Code → Taken**: open er een voor het **Overzicht**, de **Logboeken** (een regel voor elk bestand dat de Runner las of schreef en elke opdracht die hij uitvoerde) en de **Pull requests**.
+De pagina waarop de taak is gestart, toont live de status. Elke taak staat in zijn repository onder **Producten → Code**: zijn pagina is zijn gesprek, en het **Logboek** van elke beurt heeft een regel voor elk bestand dat de Runner las of schreef en elke opdracht die hij uitvoerde.
 
 Elke run is gebonden aan budgetten die de server afdwingt: hoogstens **40 LLM-aanroepen** en **100.000 uitvoertokens**. Een run die er een bereikt, stopt met een samenvatting van het werk tot dan toe in plaats van in een lus te blijven draaien. Herstelruns tellen ook mee voor de dagelijkse AI-limieten van het project, als het project die instelt.
 
@@ -44,11 +96,11 @@ Elke run is gebonden aan budgetten die de server afdwingt: hoogstens **40 LLM-aa
 | --- | --- | --- |
 | De pagina **AI Assistance** van een uitzondering | **Fix with AI** | Herstelt de bug achter de uitzondering. |
 | De pagina **AI Assistance** van een uitzondering | **Generate Regression Test** | Voegt een test toe die de uitzondering reproduceert en faalt tot de bug is hersteld. |
-| De pagina **AI Assistance** van een uitzondering | **Improve Error Handling** | Voor een verwachte fout, zoals ongeldige invoer: haalt gebruikersgegevens uit het bericht, valideert de invoer eerder en markeert de fout als afgehandeld, zonder het gedrag te veranderen. |
+| De pagina **AI Assistance** van een uitzondering | **Foutafhandeling verbeteren** | Voor een verwachte fout, zoals ongeldige invoer: haalt gebruikersgegevens uit het bericht, valideert de invoer eerder en markeert de fout als afgehandeld, zonder het gedrag te veranderen. |
 | De kaart **AI Investigation** van een incident of een waarschuwing | **Open Fix PR from this analysis** | Herstelt de hoofdoorzaak die het onderzoek plaatste (zie [Automatische codeherstellingen uit onderzoeken](#automatische-codeherstellingen-uit-onderzoeken)). |
 | Een trace | **Fix performance with AI** | Herstelt het trage patroon dat in de trace is gevonden, zoals N+1-query's of één dominante trage span. |
-| De pagina **Logboeken** van een service | **Improve Logging** | Maakt de logs van de service gestructureerd, met de juiste ernst en gekoppeld aan zijn traces, zonder het gedrag te veranderen. |
-| De pagina **Traces** van een service | **Improve Tracing** | Voegt spans en attributen toe waar de tracing van de service ontbreekt, zonder het gedrag te veranderen. |
+| De pagina **Logboeken** van een service | **Logging verbeteren** | Maakt de logs van de service gestructureerd, met de juiste ernst en gekoppeld aan zijn traces, zonder het gedrag te veranderen. |
+| De pagina **Traces** van een service | **Tracing verbeteren** | Voegt spans en attributen toe waar de tracing van de service ontbreekt, zonder het gedrag te veranderen. |
 
 Om de pagina **AI Assistance** van een uitzondering te openen, open je de uitzondering onder **Producten → Observability → Uitzonderingen** en kies je **AI Assistance** in het zijmenu. Een opgeloste of gearchiveerde uitzondering moet eerst als onopgelost worden gemarkeerd.
 
@@ -56,7 +108,7 @@ OneUptime AI start hersteltaken ook zelf: vanuit een onderzoek dat een codewijzi
 
 ## Controle vóór de pull request
 
-Een coderepository kan tot drie controleopdrachten hebben op zijn pagina **Instellingen**, onder **Code-repositories**:
+Een repository kan tot drie controleopdrachten hebben op zijn pagina **Instellingen** in Code:
 
 | Opdracht | Voorbeeld | Wanneer die draait |
 | --- | --- | --- |
@@ -76,12 +128,12 @@ De opdrachten zijn repository-instellingen die je team schrijft en die op je eig
 
 ## Voordat je begint
 
-Een hersteltaak heeft drie dingen nodig. De pagina **AI Assistance** van de uitzondering controleert alle drie voordat ze aanbiedt te starten, en zegt wat er ontbreekt.
+Een taak heeft drie dingen nodig. De pagina van een repository in Code en de pagina **AI Assistance** van de uitzondering controleren alle drie voordat ze aanbieden te starten, en zeggen wat er ontbreekt.
 
 | Wat | OneUptime Cloud | Zelf gehost |
 | --- | --- | --- |
 | Een LLM-provider | Niets in te stellen: een project zonder eigen provider gebruikt de globale provider, betaald uit de AI-tegoeden van het project. Een eigen provider, onder **Projectinstellingen → AI → LLM-providers**, gaat voor. | Stel de omgevingsvariabelen `GLOBAL_LLM_PROVIDER_*` eenmalig in op de server, of voeg een provider toe aan het project. |
-| Een repository gekoppeld via de GitHub App | **Producten → Code → Taken**, dan **Code-repositories** en **Connect with GitHub App**. Is de app al op het GitHub-account geïnstalleerd, klik dan in plaats daarvan op **Een bestaande installatie koppelen**: opnieuw installeren koppelt hem niet. Vereist het Growth-abonnement. | Hetzelfde, zodra je instantie een GitHub App heeft (zie [GitHub-integratie](/docs/self-hosted/github-integration)). |
+| Een repository gekoppeld via de GitHub App | **Producten → Code**, dan **GitHub verbinden**. Is de app al op het GitHub-account geïnstalleerd, klik dan in plaats daarvan op **Een bestaande installatie koppelen**: opnieuw installeren koppelt hem niet. Vereist het Growth-abonnement. | Hetzelfde, zodra je instantie een GitHub App heeft (zie [GitHub-integratie](/docs/self-hosted/github-integration)). |
 | Een Runner die AI-codecorrecties uitvoert | Niets te draaien: de gedeelde Runners van OneUptime doen het. | De service `runner` van Docker Compose, of de Runner van de Helm-chart (`runner.enabled`, standaard aan), registreert zichzelf en voert AI-codecorrecties uit. |
 
 Op een zelf gehoste instantie is de globale provider één blok in `config.env` (Docker Compose) of in je Helm-waarden. Voor een zelf gehoste Ollama:
@@ -151,7 +203,7 @@ Al het andere is gelijk aan de knop:
 ## Als een herstel mislukt
 
 :::details De run geeft een fout
-Het herstel kon niet worden toegepast, de repository was niet bereikbaar of de LLM-aanroep mislukte. De pagina waarop de taak is gestart, toont de reden en biedt aan het opnieuw te proberen. De pagina **Logboeken** van de taak bevat het volledige runlog.
+Het herstel kon niet worden toegepast, de repository was niet bereikbaar of de LLM-aanroep mislukte. Het gesprek van de taak, en de pagina waarop die is gestart, tonen de reden en bieden aan het opnieuw te proberen. Het **Logboek** van de beurt bevat het volledige runlog.
 :::
 
 :::details De Runner stopt midden in een run
@@ -159,7 +211,7 @@ Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout b
 :::
 
 :::details Geen Runner pakt de taak op
-Een taak die langer dan 30 minuten wacht terwijl er geen Runner met **Voert AI-codecorrecties uit** verbonden is, mislukt met een melding om de Runner te controleren, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt.
+Een taak die langer dan 30 minuten wacht terwijl er geen Runner met **Voert AI-codecorrecties uit** verbonden is, mislukt met een melding om de Runner te controleren, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
 :::
 
 ## Privacy

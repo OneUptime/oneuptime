@@ -161,8 +161,6 @@ const DASHBOARD_SRC: string = path.join(
  * takes a resource id gets one.
  */
 const VIEW_MENUS_WITHOUT_DEVELOPER_PAGES: Readonly<Record<string, string>> = {
-  "Pages/AIAgentTasks/View/SideMenu.tsx":
-    "An AI agent's task run: the agent creates it, and it is not configuration anyone manages.",
   "Pages/AIInsights/View/SideMenu.tsx":
     "An AI insight is written by OneUptime AI; the API cannot create one, so there is nothing to manage as code.",
   "Pages/Exceptions/View/SideMenu.tsx":

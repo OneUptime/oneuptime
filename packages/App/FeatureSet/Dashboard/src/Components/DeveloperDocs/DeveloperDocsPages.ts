@@ -245,9 +245,9 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       scope: DeveloperDocsScope.View,
       tableName: "Service",
     },
-    // Code repositories
+    // Code: the repositories
     {
-      pageKey: PageMap.CODE_REPOSITORY,
+      pageKey: PageMap.CODE,
       scope: DeveloperDocsScope.List,
       tableName: "CodeRepository",
     },

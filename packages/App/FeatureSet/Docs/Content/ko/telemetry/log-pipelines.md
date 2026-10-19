@@ -178,6 +178,8 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 캡처는 유형을 지정하지 않으면 텍스트로 저장됩니다. `%{NUMBER:status:int}` 는 숫자로 저장합니다. 유형은 `int`, `long`, `float`, `double`, `boolean`, `string` 입니다. 저장하기 전에 **Test Your Pattern** 에서 샘플 줄로 패턴을 확인하세요.
 
+Grok 패턴은 어떻게 쓰든 읽는 줄의 길이에 비례해서만 늘어나는 시간 안에 실행되며, JavaScript 구문을 그대로 유지합니다. 전방 탐색과 후방 탐색도 동작합니다. `\1` 같은 역참조가 있는 패턴처럼 그렇게 실행할 수 없는 패턴은 저장할 때 거부되며, 무엇을 바꿔야 하는지 알려 주는 메시지가 표시됩니다.
+
 | 로그 본문 | 패턴 | 추가되는 속성 |
 | --- | --- | --- |
 | `10.0.1.5 - GET /health 200` | `%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}` | client_ip, method, path, status |

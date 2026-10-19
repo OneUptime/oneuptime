@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Global Probes",
+    "globalRunners": "Global Runners",
     "dataRetention": "Data Retention",
     "globalAiAgents": "Global AI Agents",
     "globalLlmProviders": "Global LLM Providers",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Monitoring",
     "settingsGlobalProbes": "Global Probes",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Global Runners",
     "settingsDataRetention": "Data Retention",
     "settingsAi": "AI",
     "settingsGlobalAiAgents": "Global AI Agents",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Here is your probe key. Please keep this a secret.",
         "probeIdLabel": "Probe ID:",
         "probeKeyLabel": "Probe Key:"
+      },
+      "globalRunners": {
+        "cardTitle": "Global Runners",
+        "cardDescription": "Runners OneUptime runs for every project. They run JavaScript steps, each in a sandbox that reaches the internet only.",
+        "noItems": "Add a global Runner. Create one, then start it with the command under Show ID and Key.",
+        "showIdKey": "Show ID and Key",
+        "keyModalTitle": "Global Runner Key",
+        "keyModalDescription": "Start this global Runner on a host that can reach the internet. Keep its key secret: whoever holds it can take the JavaScript steps of every project that uses global Runners.",
+        "runnerIdLabel": "Runner ID:",
+        "runnerKeyLabel": "Runner Key:",
+        "commandLabel": "Run on your Docker host",
+        "neverConnected": "Never connected"
       },
       "aiAgents": {
         "bannerTitle": "Need help with setting up Global AI Agents?",

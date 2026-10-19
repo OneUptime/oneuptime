@@ -110,6 +110,17 @@ Every enabled rule runs when a resource is created, from the dashboard or throug
 
 A rule you write today applies to the resources created after it. To apply it to the ones you already have, use **Run Now** — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). Label rules can also be copied between projects — see [Import and Export Label Rules](/docs/configuration/label-rule-import-export).
 
+## Patterns
+
+A pattern in a rule's conditions is a regular expression in JavaScript's syntax, such as `^checkout-.*`, and ignores case. OneUptime runs it in time that grows only in line with the text it reads, however the pattern is written. Look-aheads and look-behinds work, such as `^prod-(?!test)` and `(?<=db-)\d+`.
+
+Two kinds of pattern cannot run that way. A rule with one is refused when you save it, from the dashboard, the API, Terraform or an import, with a message that says what to change:
+
+- A back-reference, such as `\1` or `\k<name>`, which matches again what an earlier group matched.
+- A pattern too large to run, such as one that repeats a part thousands of times.
+
+A rule saved with one before matches nothing until you change its pattern. This holds for every kind of rule that has patterns, not only label and owner rules.
+
 ## Next steps
 
 :::cards

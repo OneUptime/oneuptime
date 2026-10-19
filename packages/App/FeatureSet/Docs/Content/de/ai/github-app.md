@@ -29,12 +29,12 @@ flowchart TB
     R --> O["Derselbe Kommentar,<br/>neu geschrieben mit<br/>dem Ergebnis"]
 ```
 
-Es ist derselbe Agent und derselbe Runner wie bei den [Korrekturaufgaben](/docs/ai/ai-agent), mit denselben Budgets; nur der Auslöser unterscheidet sich.
+Es ist derselbe Agent und derselbe Runner wie in [Code](/docs/ai/ai-agent), mit denselben Budgets; nur der Auslöser unterscheidet sich.
 
 ## Bevor Sie beginnen
 
-- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein: Verbinden Sie es unter **Aufgaben → Code-Repositories** (öffnen Sie **Produkte → Code → Aufgaben**). Eine selbst gehostete Instanz braucht zuerst eine eigene GitHub App: siehe [GitHub-Integration](/docs/self-hosted/github-integration). Ist die App auf dem GitHub-Konto bereits installiert, klicken Sie dort auf **Vorhandene Installation verbinden**, statt sie erneut zu installieren.
-- Ein Runner mit **Führt KI-Codekorrekturen aus** muss online sein: derselbe Runner, der die [Korrekturaufgaben](/docs/ai/ai-agent) ausführt. Ohne ihn werden Befehle angenommen und schlagen nach 30 Minuten fehl, mit dem Hinweis, dass kein Agent sie übernommen hat.
+- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein: Verbinden Sie es unter **Produkte → Code**. Eine selbst gehostete Instanz braucht zuerst eine eigene GitHub App: siehe [GitHub-Integration](/docs/self-hosted/github-integration). Ist die App auf dem GitHub-Konto bereits installiert, klicken Sie dort auf **Vorhandene Installation verbinden**, statt sie erneut zu installieren.
+- Ein Runner mit **Führt KI-Codekorrekturen aus** muss online sein: derselbe Runner, der die Aufgaben in [Code](/docs/ai/ai-agent) ausführt. Ohne ihn werden Befehle angenommen und schlagen nach 30 Minuten fehl, mit dem Hinweis, dass kein Agent sie übernommen hat.
 - Die GitHub App braucht die Berechtigung **Issues** mit **Read & write** und muss die Webhook-Ereignisse unter [Was abonniert werden muss](#was-abonniert-werden-muss) abonniert haben.
 
 ## Die Befehle
@@ -106,7 +106,7 @@ Sie ignoriert außerdem jeden Kommentar, den ein Bot geschrieben hat, ihre eigen
 
 Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie die Build- und Testbefehle Ihres Repositorys, wenn Sie sie gesetzt haben.
 
-GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, daher gilt für sie kein tägliches Limit für Korrekturaufgaben; die eigenen täglichen KI-Limits des Projekts gelten, wenn das Projekt sie festlegt. Die einzige weitere Grenze ist die, die bereits für [Korrekturaufgaben](/docs/ai/ai-agent) gilt:
+GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, daher gilt für sie kein tägliches Limit für Korrekturaufgaben; die eigenen täglichen KI-Limits des Projekts gelten, wenn das Projekt sie festlegt. Die einzige weitere Grenze ist die, die bereits für die Aufgaben in [Code](/docs/ai/ai-agent) gilt:
 
 - **Die Obergrenze für offene Pull Requests** (**Max. offene Korrektur-Pull-Requests** auf der Seite **Einstellungen** des Repositorys). **KI-Korrektur-Pull-Requests** steht auf **Kein Limit**, bis Sie **Ein Limit** wählen, oder auf **Keine**, was KI-Korrektur-Pull-Requests in diesem Repository blockiert. Reviews und Überarbeitungen sind ausgenommen: Keines davon fügt Ihrer Review-Warteschlange einen Pull Request hinzu.
 
@@ -148,7 +148,7 @@ Behandeln Sie einen Pull Request, den die KI geschrieben hat, wie einen von eine
 ## Fehlerbehebung
 
 :::details Nichts passiert, wenn ich sie erwähne
-Prüfen Sie zuerst das Handle: Es ist der Slug der App, nicht ihr Anzeigename. Prüfen Sie dann, ob das Repository mit einem Projekt verbunden ist (**Aufgaben → Code-Repositories**), ob **Auf GitHub-Befehle reagieren** eingeschaltet ist und ob Ihre GitHub App die obigen Ereignisse abonniert hat.
+Prüfen Sie zuerst das Handle: Es ist der Slug der App, nicht ihr Anzeigename. Prüfen Sie dann, ob das Repository mit einem Projekt verbunden ist (unter **Produkte → Code**), ob **Auf GitHub-Befehle reagieren** eingeschaltet ist und ob Ihre GitHub App die obigen Ereignisse abonniert hat.
 :::
 
 :::details Sie reagiert mit 😕 und sagt nichts
@@ -170,7 +170,7 @@ Eine Überarbeitung braucht einen Branch in diesem Repository. Bitten Sie stattd
 ## Nächste Schritte
 
 :::cards
-- [Korrekturaufgaben](/docs/ai/ai-agent): Derselbe Agent, gestartet aus einer Ausnahme, einem Trace oder einer Untersuchung.
+- [Code](/docs/ai/ai-agent): Derselbe Agent, in einem Repository gefragt oder aus einer Ausnahme, einem Trace oder einer Untersuchung gestartet.
 - [GitHub-Integration](/docs/self-hosted/github-integration): Die GitHub App auf einer selbst gehosteten Instanz anlegen und konfigurieren.
 - [Runbook-Agents](/docs/runbooks/agents): Der Worker, der jeden Lauf ausführt.
 :::

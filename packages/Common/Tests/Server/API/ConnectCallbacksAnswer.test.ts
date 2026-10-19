@@ -477,7 +477,7 @@ describe("Every connect callback answers on the page it came from", () => {
   }
 
   function codeRepositoryPage(): string {
-    return `${DashboardClientUrl.toString()}/${projectId.toString()}/code-repository`;
+    return `${DashboardClientUrl.toString()}/${projectId.toString()}/code`;
   }
 
   function connectReturnPage(): string {
@@ -1563,7 +1563,7 @@ describe("Every connect callback answers on the page it came from", () => {
       return startFlow("/api/github/install-url", "installUrl");
     }
 
-    test("connects, and goes back to Code Repositories with the installation", async () => {
+    test("connects, and goes back to Code with the installation", async () => {
       const { state, browser } = await startGitHub();
 
       const response: ProbeResponse = await callback(
@@ -1669,7 +1669,7 @@ describe("Every connect callback answers on the page it came from", () => {
       expectNothingWritten();
     });
 
-    test("someone who may no longer add code repositories is told so on Code Repositories", async () => {
+    test("someone who may no longer add code repositories is told so in Code", async () => {
       const { state, browser } = await startGitHub();
       callbackMembership = [Permission.Viewer];
 
@@ -1684,7 +1684,7 @@ describe("Every connect callback answers on the page it came from", () => {
       expectNothingWritten();
     });
 
-    test("a project that dropped below the plan is told which plan it needs, on Code Repositories", async () => {
+    test("a project that dropped below the plan is told which plan it needs, in Code", async () => {
       setTestBillingEnabled(true);
       const { state, browser } = await startGitHub();
       getCurrentPlan.mockImplementation(async () => {
@@ -1720,7 +1720,7 @@ describe("Every connect callback answers on the page it came from", () => {
       expect(importRepositories).not.toHaveBeenCalled();
     });
 
-    test("a check that fails is answered plainly on Code Repositories", async () => {
+    test("a check that fails is answered plainly in Code", async () => {
       const { state, browser } = await startGitHub();
       (
         WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock
@@ -1738,7 +1738,7 @@ describe("Every connect callback answers on the page it came from", () => {
       expect(verifyInstallation).not.toHaveBeenCalled();
     });
 
-    test("a link that cannot be used is answered on the Dashboard, which opens Code Repositories", async () => {
+    test("a link that cannot be used is answered on the Dashboard, which opens Code", async () => {
       const response: ProbeResponse = await callback(GITHUB_CALLBACK, {
         installation_id: "424242",
         code: "github-oauth-code",
@@ -1751,7 +1751,7 @@ describe("Every connect callback answers on the page it came from", () => {
       expectNothingWritten();
     });
 
-    test("GitHub's own redirect after an installation is changed there goes to Code Repositories, with nothing to refuse", async () => {
+    test("GitHub's own redirect after an installation is changed there goes to Code, with nothing to refuse", async () => {
       // "Redirect on update": GitHub sends no state of ours.
       const response: ProbeResponse = await callback(GITHUB_CALLBACK, {
         installation_id: "424242",
@@ -1769,10 +1769,10 @@ describe("Every connect callback answers on the page it came from", () => {
      * An install made on GitHub itself - from the app's Marketplace listing
      * or its page - comes back with an installation and a code but no state
      * of ours. Nothing says which project it is for, so nothing is connected
-     * and the code is left unused; Code Repositories says the app is
+     * and the code is left unused; Code says the app is
      * installed and offers to connect it.
      */
-    test("an install made on GitHub itself goes to Code Repositories saying so, and connects nothing", async () => {
+    test("an install made on GitHub itself goes to Code saying so, and connects nothing", async () => {
       const response: ProbeResponse = await callback(GITHUB_CALLBACK, {
         installation_id: "424242",
         code: "github-oauth-code",

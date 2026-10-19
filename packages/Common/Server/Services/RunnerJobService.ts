@@ -72,6 +72,17 @@ import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCo
 import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { redactResourceCommandOutput } from "../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
 import QueryHelper from "../Types/Database/QueryHelper";
+import {
+  GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS,
+  GLOBAL_RUNNER_STEP_TYPES,
+  MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT,
+  canGlobalRunnersRunStepType,
+} from "../../Types/Runner/GlobalRunnerWork";
+import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
+import { EntityManager } from "typeorm";
+
+// The advisory lock every global Runner claim takes (claimNextGlobalJob).
+export const GLOBAL_RUNNER_CLAIM_LOCK_KEY: string = "global-runner-claim";
 
 /*
  * The cluster remediation modes in which a kubectl job for remediation may
@@ -293,7 +304,17 @@ export function describeRunnerJobTimeout(data: {
    * agent ("the Docker AI agent").
    */
   resourceType?: AiResourceType | null | undefined;
+  /*
+   * The job waited for any global Runner (RunnerJob.runsOnGlobalRunner)
+   * rather than one Runner of the project's own, so the text names them
+   * and what the project can do about it.
+   */
+  runsOnGlobalRunner?: boolean | undefined;
 }): string {
+  if (data.runsOnGlobalRunner) {
+    return describeGlobalRunnerJobTimeout(data);
+  }
+
   if (
     data.stepType === RunbookStepType.ResourceCommand &&
     AI_COMMAND_JOB_ORIGINS.includes(data.origin || RunnerJobOrigin.Runbook)
@@ -350,6 +371,37 @@ export function describeRunnerJobTimeout(data: {
 
 function describeSeconds(milliseconds: number): string {
   return `${Math.max(1, Math.round(milliseconds / 1000))}s`;
+}
+
+/*
+ * The same three reasons for a step that waited for the global Runners -
+ * the ones OneUptime runs for every project - instead of one of the
+ * project's own. A global Runner runs a JavaScript step in a sandbox that
+ * is thrown away with it, so a step that was picked up and then went silent
+ * changed nothing but what its own requests did.
+ */
+function describeGlobalRunnerJobTimeout(data: {
+  kind: RunnerJobTimeoutKind;
+  wasClaimed?: boolean | undefined;
+  executionTimeoutInMs: number;
+}): string {
+  const kind: RunnerJobTimeoutKind =
+    data.kind === "overall" && data.wasClaimed === false
+      ? "unclaimed"
+      : data.kind;
+
+  switch (kind) {
+    case "unclaimed":
+      return `No global Runner picked up this step before the wait window expired. The global Runners may be busy with other steps or offline. Run the runbook again, raise the step's claim timeout, or pick one of your own Runners for the step.`;
+    case "lease_expired":
+      return `The global Runner running this step stopped responding. It may have restarted. Check what the step was doing before you run the runbook again, or pick one of your own Runners for the step.`;
+    default:
+      return `This step did not finish within its execution timeout (${describeSeconds(
+        data.executionTimeoutInMs,
+      )}) on a global Runner, which runs a step for ${Math.round(
+        GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS / 60_000,
+      )} minutes at most. Make the script finish sooner, raise the step's timeout, or pick one of your own Runners for the step.`;
+  }
 }
 
 /*
@@ -622,13 +674,43 @@ export class Service extends DatabaseService<Model> {
     runbookExecutionId: ObjectID;
     stepId: string;
     stepType: RunbookStepType;
-    targetAgentId: ObjectID;
+    /*
+     * The one Runner that may claim the job - or, with runsOnGlobalRunner,
+     * none: any global Runner may (GlobalRunnerChoice decided which).
+     */
+    targetAgentId?: ObjectID | undefined;
+    runsOnGlobalRunner?: boolean | undefined;
     script: string;
     timeoutInMs: number;
     claimTimeoutInMs?: number | undefined;
     payload?: JSONObject | undefined;
   }): Promise<Model> {
-    if (!data.targetAgentId) {
+    if (data.runsOnGlobalRunner) {
+      /*
+       * A job waits for one Runner or for the global Runners, never both:
+       * a global job names no Runner, so no Runner of any project's own can
+       * be handed it, and the global Runners are never handed a job aimed at
+       * one Runner.
+       */
+      if (data.targetAgentId) {
+        throw new BadDataException(
+          "A step runs on the Runner it picked or on a global Runner, not both.",
+        );
+      }
+
+      /*
+       * The second check of what a global Runner may run (GlobalRunnerWork):
+       * whatever decided to send the step here, only what can be kept apart
+       * project by project on a shared host is ever written for one.
+       */
+      if (!canGlobalRunnersRunStepType(data.stepType)) {
+        throw new BadDataException(
+          `Global Runners do not run ${String(data.stepType)} steps. They run ${GLOBAL_RUNNER_STEP_TYPES.join(
+            ", ",
+          )} steps only.`,
+        );
+      }
+    } else if (!data.targetAgentId) {
       throw new BadDataException(
         "targetAgentId is required to dispatch a step to a Runner.",
       );
@@ -672,13 +754,24 @@ export class Service extends DatabaseService<Model> {
     row.origin = RunnerJobOrigin.Runbook;
     row.stepId = data.stepId;
     row.stepType = data.stepType;
-    row.targetAgentId = data.targetAgentId;
+    if (data.runsOnGlobalRunner) {
+      row.runsOnGlobalRunner = true;
+    } else {
+      row.targetAgentId = data.targetAgentId!;
+    }
     // The column is NOT NULL, so a payload-carrying job stores "" rather than null.
     row.script = data.script || "";
     if (data.payload) {
       row.payload = data.payload;
     }
-    row.timeoutInMs = data.timeoutInMs;
+    /*
+     * A global Runner shares its time between every project, so it runs a
+     * step for GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS at most, whatever
+     * the step asked for. Stored on the job, which is what the Runner reads.
+     */
+    row.timeoutInMs = data.runsOnGlobalRunner
+      ? Math.min(data.timeoutInMs, GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS)
+      : data.timeoutInMs;
     row.status = RunnerJobStatus.Pending;
     row.claimDeadlineAt = claimDeadlineAt;
 
@@ -1802,6 +1895,8 @@ export class Service extends DatabaseService<Model> {
         exitCode: true,
         errorMessage: true,
         createdAt: true,
+        // A re-attached global job keeps the global window (StepExecutors).
+        runsOnGlobalRunner: true,
       },
       sort: { createdAt: SortOrder.Descending },
       limit: 1,
@@ -1926,6 +2021,157 @@ export class Service extends DatabaseService<Model> {
     job.stepType = r["stepType"] as RunbookStepType;
     job.targetAgentId = new ObjectID(String(r["targetAgentId"]));
     job.script = String(r["script"]);
+    if (r["payload"] && typeof r["payload"] === "object") {
+      job.payload = r["payload"] as JSONObject;
+    }
+    job.timeoutInMs = Number(r["timeoutInMs"]);
+    job.status = r["status"] as RunnerJobStatus;
+    if (r["claimedAt"]) {
+      job.claimedAt = new Date(String(r["claimedAt"]));
+    }
+    if (r["leaseExpiresAt"]) {
+      job.leaseExpiresAt = new Date(String(r["leaseExpiresAt"]));
+    }
+    job.assignedAgentId = data.agentId;
+    return job;
+  }
+
+  /*
+   * Atomically claim, for a global Runner, the oldest Pending job that waits
+   * for any global Runner (runsOnGlobalRunner) - from whichever project.
+   * FOR UPDATE SKIP LOCKED, so global Runners claiming at once never take
+   * the same job.
+   *
+   * What keeps one project's steps apart from another's here:
+   *
+   *   - only a job written for the global Runners is ever served (never one
+   *     aimed at a project's own Runner), only a runbook's own step, and
+   *     only a type a global Runner runs (GlobalRunnerWork) - the request
+   *     may narrow that list, never widen it;
+   *   - never a job of a project that has turned global Runners off
+   *     (Project.useGlobalRunners), read on this claim, so turning them off
+   *     also holds the steps already waiting;
+   *   - never more than MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT of one project's
+   *     jobs at once, so no project keeps the global Runners to itself;
+   *   - the job comes back with its own project's id, which is the only
+   *     project the ingress then reads secrets and inputs from.
+   */
+  @CaptureSpan()
+  public async claimNextGlobalJob(data: {
+    agentId: ObjectID;
+    leaseMs?: number | undefined;
+    allowedStepTypes?: Array<RunbookStepType> | undefined;
+  }): Promise<Model | null> {
+    const stepTypes: Array<RunbookStepType> = (
+      data.allowedStepTypes ?? [...GLOBAL_RUNNER_STEP_TYPES]
+    ).filter((stepType: RunbookStepType): boolean => {
+      return canGlobalRunnersRunStepType(stepType);
+    });
+
+    if (stepTypes.length === 0) {
+      return null;
+    }
+
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      throw new BadDataException("Database is not connected");
+    }
+
+    const leaseMs: number = data.leaseMs ?? DEFAULT_LEASE_MS;
+
+    const sql: string = `
+      WITH claimed AS (
+        SELECT j."_id" FROM "RunnerJob" j
+        WHERE j."runsOnGlobalRunner" = true
+          AND j."targetAgentId" IS NULL
+          AND j."status" = $1
+          AND j."origin" = $2
+          AND j."stepType" = ANY($3::text[])
+          AND j."claimDeadlineAt" > NOW()
+          AND j."deletedAt" IS NULL
+          AND EXISTS (
+            SELECT 1 FROM "Project" p
+            WHERE p."_id" = j."projectId"
+              AND p."useGlobalRunners" = true
+              AND p."deletedAt" IS NULL
+          )
+          AND (
+            SELECT COUNT(*) FROM "RunnerJob" r
+            WHERE r."projectId" = j."projectId"
+              AND r."runsOnGlobalRunner" = true
+              AND r."status" IN ($4, $5)
+              AND r."deletedAt" IS NULL
+          ) < $6
+        ORDER BY j."createdAt" ASC
+        LIMIT 1
+        FOR UPDATE OF j SKIP LOCKED
+      )
+      UPDATE "RunnerJob" j
+      SET "status" = $4,
+          "assignedAgentId" = $7::uuid,
+          "claimedAt" = NOW(),
+          "leaseExpiresAt" = NOW() + ($8 || ' milliseconds')::interval,
+          "updatedAt" = NOW(),
+          "version" = j."version" + 1
+      FROM claimed
+      WHERE j."_id" = claimed."_id"
+      RETURNING j."_id", j."projectId", j."runbookExecutionId", j."origin",
+                j."stepId", j."stepType", j."script", j."payload",
+                j."timeoutInMs", j."status", j."claimedAt",
+                j."leaseExpiresAt";
+    `;
+
+    /*
+     * One global claim at a time. The statement counts a project's steps in
+     * flight and takes one more only while there is room, but two claims
+     * made at the same moment each read the count before the other's claim
+     * commits, see room, and take one each: a project could hold as many
+     * global Runner slots as there were Runners asking at once. A
+     * transaction-scoped advisory lock (as ProjectLimitLock takes for a
+     * project's limits) makes each claim read the count once every claim
+     * before it has committed, so no project holds more than
+     * MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT. A claim is one indexed statement,
+     * so the wait is short; the lock goes with the transaction.
+     */
+    const rows: Array<JSONObject> = await dataSource.transaction(
+      async (manager: EntityManager): Promise<Array<JSONObject>> => {
+        await manager.query(ProjectLimitLock.LOCK_STATEMENT, [
+          GLOBAL_RUNNER_CLAIM_LOCK_KEY,
+        ]);
+
+        return unwrapRows(
+          await manager.query(sql, [
+            RunnerJobStatus.Pending,
+            RunnerJobOrigin.Runbook,
+            stepTypes,
+            RunnerJobStatus.Claimed,
+            RunnerJobStatus.Running,
+            MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT,
+            data.agentId.toString(),
+            leaseMs.toString(),
+          ]),
+        );
+      },
+    );
+
+    if (!rows || rows.length === 0) {
+      return null;
+    }
+
+    const r: JSONObject = rows[0]!;
+    const job: Model = new Model();
+    job._id = String(r["_id"]);
+    job.projectId = new ObjectID(String(r["projectId"]));
+    if (r["runbookExecutionId"]) {
+      job.runbookExecutionId = new ObjectID(String(r["runbookExecutionId"]));
+    }
+    job.origin = (r["origin"] as RunnerJobOrigin) || RunnerJobOrigin.Runbook;
+    job.stepId = String(r["stepId"]);
+    job.stepType = r["stepType"] as RunbookStepType;
+    job.runsOnGlobalRunner = true;
+    job.script = String(r["script"] ?? "");
     if (r["payload"] && typeof r["payload"] === "object") {
       job.payload = r["payload"] as JSONObject;
     }
@@ -2210,6 +2456,8 @@ export class Service extends DatabaseService<Model> {
           // A resource command names its resource's AI agent.
           targetResourceAiAgentId: true,
           resourceType: true,
+          // A step that waited for the global Runners says so.
+          runsOnGlobalRunner: true,
         },
         props: { isRoot: true },
       });
@@ -2258,6 +2506,7 @@ export class Service extends DatabaseService<Model> {
             executionTimeoutInMs: data.executionTimeoutInMs,
             isForKubernetesAiAgent: Boolean(job.targetKubernetesAiAgentId),
             resourceType: job.resourceType,
+            runsOnGlobalRunner: job.runsOnGlobalRunner === true,
           }),
         });
       }

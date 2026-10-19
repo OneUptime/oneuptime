@@ -1,3 +1,7 @@
+import {
+  describePatternProblemReason,
+  PatternProblemReason,
+} from "../../Utils/LinearRegExp/PatternProblem";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
@@ -72,6 +76,10 @@ export function getScrubRuleCustomRegexRefusal(
       return "A Custom Regex rule needs a regular expression to match. Without one it scrubs nothing. Enter the pattern, or pick another pattern type.";
     case ScrubRuleCustomRegexProblem.Invalid:
       return `The custom pattern is not a valid regular expression (${check.reason || "it does not compile"}), so the rule would scrub nothing. Fix the pattern, or pick another pattern type.`;
+    case ScrubRuleCustomRegexProblem.CannotRun:
+      return `The custom pattern ${describePatternProblemReason(
+        check.cannotRunReason ?? PatternProblemReason.BackReference,
+      )} Until then the rule would scrub nothing.`;
     case ScrubRuleCustomRegexProblem.MatchesEmptyText:
     default:
       return `The custom pattern matches empty text, so it would put its replacement between every character of your ${options.recordNoun}. Make it match at least one character.`;

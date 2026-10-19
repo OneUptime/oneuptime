@@ -231,7 +231,7 @@ export default class FixFromIncidentTaskTrigger {
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
-        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the fix pull request. Connect one under Tasks > Code Repositories.",
+        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the fix pull request. Connect one in Code.",
       );
     }
 
@@ -249,7 +249,7 @@ export default class FixFromIncidentTaskTrigger {
 
     if (existingRun) {
       throw new BadDataException(
-        `A fix pull request task is already queued or running for this ${subjectLabel}. Track its progress on the AI > Tasks page.`,
+        `A fix pull request task is already queued or running for this ${subjectLabel}. Track its progress in Code.`,
       );
     }
 

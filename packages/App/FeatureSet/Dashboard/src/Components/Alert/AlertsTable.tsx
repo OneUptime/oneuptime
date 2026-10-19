@@ -33,8 +33,8 @@ import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorElement from "../Monitor/Monitor";
 import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
+import { getAffectedResourcesExportValue } from "../AffectedResources/AffectedResourceNames";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners, {
   ResourceFacet,
@@ -57,7 +57,9 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Route from "Common/Types/API/Route";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
-import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
+import AffectedResourcesCell, {
+  ComponentProps as AffectedResourcesCellProps,
+} from "../AffectedResources/AffectedResourcesCell";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -114,6 +116,50 @@ export interface ComponentProps {
    */
   createFrom?: CreateFromRecordAddress | undefined;
 }
+
+/*
+ * The Affected Resources column's own id, under which a viewer's show/hide
+ * and column order are kept (ModelTable/ColumnPreference).
+ *
+ * The list had a Monitor column beside this one, naming the same monitor on
+ * every row. That column is gone: Affected Resources names the monitor,
+ * first. Left to its derived id ("hosts", its first field), the column would
+ * stay off for anyone who had switched it off while the Monitor column named
+ * the monitor - and their list would name no monitor at all. A new id comes
+ * back on once for them; the stale "monitor" and "hosts" entries are dropped
+ * when a layout is read (sanitizeColumnPreference).
+ */
+export const ALERTS_AFFECTED_RESOURCES_COLUMN_ID: string = "affected-resources";
+
+type GetAlertAffectedResourcesFunction = (
+  alert: Alert,
+) => AffectedResourcesCellProps;
+
+/*
+ * What an alert's Affected Resources names, for its cell and its CSV alike:
+ * the monitor the alert is about first, as on the overview's Affected
+ * Resources card, then everything else linked to it.
+ */
+export const getAlertAffectedResources: GetAlertAffectedResourcesFunction = (
+  alert: Alert,
+): AffectedResourcesCellProps => {
+  return {
+    monitors: alert.monitor ? [alert.monitor] : [],
+    hosts: alert.hosts || [],
+    kubernetesClusters: alert.kubernetesClusters || [],
+    dockerHosts: alert.dockerHosts || [],
+    podmanHosts: alert.podmanHosts || [],
+    proxmoxClusters: alert.proxmoxClusters || [],
+    vmwareVCenters: alert.vmwareVCenters || [],
+    cephClusters: alert.cephClusters || [],
+    storageArrays: alert.storageArrays || [],
+    dockerSwarmClusters: alert.dockerSwarmClusters || [],
+    iotFleets: alert.iotFleets || [],
+    databaseServers: alert.databaseServers || [],
+    services: alert.services || [],
+    serviceLevelObjectives: alert.serviceLevelObjectives || [],
+  };
+};
 
 const AlertsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -914,23 +960,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            field: {
-              monitor: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Monitor",
-            type: FieldType.Entity,
-            getElement: (item: Alert): ReactElement => {
-              if (!item.monitor) {
-                return <></>;
-              }
-              return <MonitorElement monitor={item.monitor} showIcon={true} />;
-            },
-          },
-          {
+            id: ALERTS_AFFECTED_RESOURCES_COLUMN_ID,
             field: {
               hosts: {
                 name: true,
@@ -999,13 +1029,12 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
               /*
-               * The monitor the alert was raised on, listed first like on the
-               * overview's Affected Resources card. The Monitor column names
-               * it too, but left out here a monitor's alert read "No
-               * resources." in this column. Declared rather than borrowed
-               * from the Monitor column so the cell still gets it if that
-               * column is ever dropped, and as a secondary key so hosts stays
-               * the column's primary field.
+               * The monitor the alert is about, listed first, as on the
+               * overview's Affected Resources card. The list has no Monitor
+               * column: this is where a row names its monitor. A secondary
+               * key, so hosts stays the column's primary field; the table's
+               * relation select asks for it on every read
+               * (getRelationSelectFromColumns).
                */
               monitor: {
                 name: true,
@@ -1018,22 +1047,16 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: Alert): ReactElement => {
               return (
-                <AffectedResourcesCell
-                  monitors={item.monitor ? [item.monitor] : []}
-                  hosts={item.hosts || []}
-                  kubernetesClusters={item.kubernetesClusters || []}
-                  dockerHosts={item.dockerHosts || []}
-                  podmanHosts={item.podmanHosts || []}
-                  proxmoxClusters={item.proxmoxClusters || []}
-                  vmwareVCenters={item.vmwareVCenters || []}
-                  cephClusters={item.cephClusters || []}
-                  storageArrays={item.storageArrays || []}
-                  dockerSwarmClusters={item.dockerSwarmClusters || []}
-                  iotFleets={item.iotFleets || []}
-                  databaseServers={item.databaseServers || []}
-                  services={item.services || []}
-                  serviceLevelObjectives={item.serviceLevelObjectives || []}
-                />
+                <AffectedResourcesCell {...getAlertAffectedResources(item)} />
+              );
+            },
+            /*
+             * The cell's names in the cell's order. Read field by field, the
+             * file would put the monitor last, after every other resource.
+             */
+            getExportValue: (item: Alert): string => {
+              return getAffectedResourcesExportValue(
+                getAlertAffectedResources(item),
               );
             },
           },

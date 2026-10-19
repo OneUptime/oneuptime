@@ -530,6 +530,46 @@ export default class RunnerJob extends BaseModel {
   public targetAgentId?: ObjectID = undefined;
 
   /*
+   * The job waits for any global Runner instead of one Runner: a step that
+   * picked no Runner of its own, in a project that uses global Runners
+   * (GlobalRunnerChoice). Such a job has no targetAgentId; a global Runner
+   * claims it (RunnerJobService.claimNextGlobalJob), which writes its own id
+   * to assignedAgentId as every claim does. Only the global Runners ever
+   * claim such a job, and they never claim any other.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Runs on a Global Runner",
+    description:
+      "Whether any of OneUptime's global Runners may claim this job, instead of the one Runner it targets.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public runsOnGlobalRunner?: boolean = undefined;
+
+  /*
    * The Kubernetes AI agent an AI kubectl job is targeted at, when the
    * cluster is reached through its agent rather than a Runner. An AI kubectl
    * job sets exactly one of targetAgentId (a Runner) and this; only the named

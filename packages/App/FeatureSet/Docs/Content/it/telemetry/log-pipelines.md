@@ -178,6 +178,8 @@ Estrae campi strutturati da una riga di forma fissa. Un modello grok è un'espre
 
 Una cattura viene memorizzata come testo, a meno che non le diate un tipo: `%{NUMBER:status:int}` la memorizza come numero. I tipi sono `int`, `long`, `float`, `double`, `boolean` e `string`. Verificate un modello su una riga di esempio in **Test Your Pattern** prima di salvarlo.
 
+Un modello grok viene eseguito in un tempo che cresce solo con la riga che legge, comunque sia scritto, e mantiene la sintassi di JavaScript: i lookahead e i lookbehind funzionano. Un modello che non può essere eseguito così, per esempio uno con un riferimento all'indietro come `\1`, viene rifiutato al salvataggio, con un messaggio che dice cosa cambiare.
+
 | Corpo del log | Modello | Attributi aggiunti |
 | --- | --- | --- |
 | `10.0.1.5 - GET /health 200` | `%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}` | client_ip, method, path, status |

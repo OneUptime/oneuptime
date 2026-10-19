@@ -30,11 +30,11 @@ I due sono indipendenti, e puoi usarne uno o entrambi. La GitHub App lavora nei 
 
 ## Collegare i tuoi repository
 
-Apri **Prodotti → Codice → Attività**, poi **Repository di codice**, e fai clic su **Connect with GitHub App**. GitHub chiede dove installare l'app e quali repository può usare. Ogni repository dell'installazione viene importato, e resta allineato quando aggiungi repository all'installazione o li togli.
+Apri **Prodotti → Codice** e fai clic su **Connetti GitHub**. GitHub chiede dove installare l'app e quali repository può usare. Ogni repository dell'installazione viene importato, e resta allineato quando aggiungi repository all'installazione o li togli.
 
-Se l'app è già installata sull'account, per un altro progetto o direttamente da GitHub, fai clic su **Collega un'installazione esistente**, sotto la scheda **Connect with GitHub App**, invece di installarla di nuovo. Serve un account GitHub che amministri l'installazione: il proprietario di un account personale, o chi ha il permesso di amministratore su ogni repository a cui l'installazione può accedere, come ce l'ha un proprietario dell'organizzazione.
+Se l'app è già installata sull'account, per un altro progetto o direttamente da GitHub, fai clic su **Collega un'installazione esistente**, sotto **Connetti GitHub**, invece di installarla di nuovo. Serve un account GitHub che amministri l'installazione: il proprietario di un account personale, o chi ha il permesso di amministratore su ogni repository a cui l'installazione può accedere, come ce l'ha un proprietario dell'organizzazione.
 
-Un'istanza self-hosted ha prima bisogno di una sua GitHub App: [Integrazione GitHub](/docs/self-hosted/github-integration) mostra come crearla. Da lì in poi, le [Attività di correzione](/docs/ai/ai-agent) aprono pull request nei tuoi repository, e la pagina [GitHub App](/docs/ai/github-app) mostra cosa fa l'app quando la menzioni in una issue o in una pull request.
+Un'istanza self-hosted ha prima bisogno di una sua GitHub App: [Integrazione GitHub](/docs/self-hosted/github-integration) mostra come crearla. Da lì in poi, l'IA apre pull request nei tuoi repository da [Codice](/docs/ai/ai-agent), e la pagina [GitHub App](/docs/ai/github-app) mostra cosa fa l'app quando la menzioni in una issue o in una pull request.
 
 ## Prima di iniziare
 

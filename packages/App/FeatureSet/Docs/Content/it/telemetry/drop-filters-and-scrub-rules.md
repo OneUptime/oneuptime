@@ -127,6 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **Le eccezioni nascono dal record mascherato.** Un'eccezione trovata in un log viene creata dopo il mascheramento, e le regole che mascherano gli eventi degli span mascherano anche le eccezioni registrate su di essi.
 - **Anche le Session Replay vengono mascherate.** Le regole di mascheramento dei log vengono eseguite anche sulle registrazioni di Session Replay, oltre al mascheramento che il registratore fa nel browser.
 - **Le regole vengono eseguite nell'ordine dell'elenco.** Ogni regola vede ciò che hanno lasciato le regole precedenti.
+- **Un pattern personalizzato richiede un tempo in proporzione al record.** Mantiene la sintassi e le risposte di JavaScript, lookahead e lookbehind compresi, comunque sia scritto. Un riferimento all'indietro, come `\1`, non può essere eseguito così: una regola che ne contiene uno viene rifiutata al salvataggio, come un pattern troppo grande per essere eseguito. Se per trovare ogni corrispondenza si dovesse rileggere più volte un valore lungo, la regola maschera l'intero valore.
 
 ## Verificare che cosa ha scartato un filtro
 
@@ -143,7 +144,7 @@ Guardate il conteggio **Dropped** e l'ora del **Last Dropped** di ogni filtro di
 :::
 
 :::details Una regola di mascheramento personalizzata indica Non pulisce nulla
-Il suo pattern è vuoto o non è un'espressione regolare valida, quindi non maschera nulla. Modificate la regola e datele un pattern che corrisponda ad almeno un carattere.
+Il suo pattern è vuoto, non è un'espressione regolare valida o non può essere eseguito, per esempio perché contiene un riferimento all'indietro come `\1`, quindi non maschera nulla. Modificate la regola e datele un pattern che corrisponda ad almeno un carattere.
 :::
 
 :::details I record vecchi mostrano ancora i dati che una nuova regola maschera

@@ -93,6 +93,7 @@ import {
 import {
   LOG_SCRUB_RULE_DEFAULTS,
   SCRUB_RULE_REGEX_FLAGS,
+  ScrubRegExp,
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
 import TelemetryIngestionKeyPolicy, {
@@ -1503,7 +1504,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     "App/FeatureSet/Telemetry/Services/OtelTracesIngestService.ts",
   );
 
-  type GetRegex = (patternType: string, customRegex?: string) => RegExp | null;
+  type GetRegex = (
+    patternType: string,
+    customRegex?: string,
+  ) => ScrubRegExp | null;
 
   const getRegexForPattern: GetRegex = (
     LogScrubRuleService as unknown as { getRegexForPattern: GetRegex }
@@ -1514,18 +1518,18 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     patternType: string,
     action: string,
     fields: string = LogScrubField.Both,
-  ): { rule: LogScrubRule; regex: RegExp } {
+  ): { rule: LogScrubRule; regex: ScrubRegExp } {
     const rule: LogScrubRule = new LogScrubRule();
     rule.patternType = patternType;
     rule.scrubAction = action;
     rule.fieldsToScrub = fields;
 
-    return { rule, regex: getRegexForPattern(patternType) as RegExp };
+    return { rule, regex: getRegexForPattern(patternType) as ScrubRegExp };
   }
 
   function scrubbedBody(
     body: string,
-    rules: Array<{ rule: LogScrubRule; regex: RegExp }>,
+    rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
   ): string {
     return LogScrubRuleService.scrubLog(
       { body, attributes: {} },
@@ -1937,21 +1941,25 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         });
 
         for (const example of written) {
-          const regex: RegExp = getRegexForPattern(patternType) as RegExp;
+          const regex: ScrubRegExp = getRegexForPattern(
+            patternType,
+          ) as ScrubRegExp;
 
           expect({
             patternType,
             example,
-            whole: example.replace(regex, ""),
+            whole: regex.replace(example, (): string => {
+              return "";
+            }),
           }).toEqual({ patternType, example, whole: "" });
         }
       },
     );
 
     // The keys a sensitive-keys rule catches, whatever their values.
-    const keyRegex: RegExp = getRegexForPattern(
+    const keyRegex: ScrubRegExp = getRegexForPattern(
       LogScrubPatternType.SensitiveKeys,
-    ) as RegExp;
+    ) as ScrubRegExp;
 
     for (const key of inlineCodes(rows[5]?.[1] || "")) {
       expect({ key, caught: keyRegex.test(key) }).toEqual({

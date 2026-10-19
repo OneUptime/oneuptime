@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class RumApplicationLabelRuleEngineServiceClass
   implements RuleRunEngine<RumApplication, RumApplicationLabelRule>
@@ -273,8 +274,7 @@ class RumApplicationLabelRuleEngineServiceClass
 
   private testRegex(pattern: string, value: string): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in RUM application label rule: ${pattern}`);
       return false;

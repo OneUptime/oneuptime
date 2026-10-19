@@ -41,6 +41,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class ScheduledMaintenanceLabelRuleEngineServiceClass
   implements RuleRunEngine<ScheduledMaintenance, ScheduledMaintenanceLabelRule>
@@ -767,8 +768,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
     rule: ScheduledMaintenanceLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in scheduled maintenance label rule ${rule.id}: ${pattern}`,

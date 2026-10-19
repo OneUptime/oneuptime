@@ -4916,6 +4916,109 @@
             },
             "additionalProperties": false
         },
+        "globalRunner": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "replicaCount": {
+                    "type": "integer"
+                },
+                "concurrency": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "disableTelemetryCollection": {
+                    "type": "boolean"
+                },
+                "enableProfiling": {
+                    "type": "boolean"
+                },
+                "key": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "passwordKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ports": {
+                    "type": "object",
+                    "properties": {
+                        "http": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "resources": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "nodeSelector": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "containerSecurityContext": {
+                    "type": "object"
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
         "vllm": {
             "type": "object",
             "properties": {

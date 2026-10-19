@@ -405,8 +405,19 @@ describe("the Runner pages, rendered", () => {
       .spyOn(ModelAPI, "getList")
       .mockImplementation(
         async (args: unknown): Promise<ListResult<Runner>> => {
+          /*
+           * The global Runners - the ones OneUptime runs for every project -
+           * are read from a route of their own; this instance has none.
+           */
+          const readsGlobalRunners: boolean = String(
+            (args as { requestOptions?: { overrideRequestUrl?: unknown } })
+              .requestOptions?.overrideRequestUrl || "",
+          ).endsWith("/runner/global-runners");
           const data: Array<Runner> =
-            (args as { modelType?: unknown }).modelType === Runner ? rows : [];
+            (args as { modelType?: unknown }).modelType === Runner &&
+            !readsGlobalRunners
+              ? rows
+              : [];
           return { data, count: data.length, skip: 0, limit: 10 };
         },
       );
