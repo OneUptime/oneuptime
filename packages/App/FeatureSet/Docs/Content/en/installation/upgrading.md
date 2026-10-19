@@ -1492,7 +1492,9 @@ API, SSO, or the Slack and Microsoft Teams apps.
   probe, Runner or agent, or its registrations, are answered with `429` until
   the quarter of an hour ends, the right key included. A probe or Runner that
   still sends the key it had before a reset sends one wrong key however often it
-  calls, so it is never refused for it.
+  calls, so it is never refused for it. Keys sent from a private network
+  address, which is where the bundled probes and Runner call from, are not
+  counted at all, so nothing sent beside them can get them refused.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

@@ -5,7 +5,7 @@ import {
   otherChangesItems,
 } from "./UpgradingDocsNotes";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import {
+import WrongComponentKeyLimit, {
   WRONG_COMPONENT_KEYS_PER_ADDRESS,
   WRONG_COMPONENT_KEY_WINDOW_SECONDS,
 } from "Common/Server/Utils/RateLimit/WrongComponentKeyLimit";
@@ -26,7 +26,9 @@ import path from "path";
  *     and the app logs that it should be updated;
  *   - wrong probe, Runner and AI agent keys, and wrong REGISTER_PROBE_KEY and
  *     ONEUPTIME_RUNNER_KEY values, are counted: ten different ones from one
- *     address in a quarter of an hour, then 429 until it ends.
+ *     address in a quarter of an hour, then 429 until it ends; keys from a
+ *     private network address, where the bundled probes and Runner call
+ *     from, are not counted.
  *
  * The notes sit after the note on the inbound email webhook secret
  * (InboundEmailWebhookSecretUpgradeDocs) and before the endpoint pointer,
@@ -197,6 +199,36 @@ describe("the note on wrong probe and Runner keys", () => {
         claim,
         said: true,
       });
+    }
+  });
+
+  it("says keys from a private network address are not counted, as the code does", () => {
+    const claim: string =
+      "Keys sent from a private network address, which is where the bundled probes and Runner call from, are not counted at all, so nothing sent beside them can get them refused.";
+
+    expect({ claim, said: WRONG_KEYS_NOTE.includes(claim) }).toEqual({
+      claim,
+      said: true,
+    });
+
+    // The bundled probes' and Runner's addresses: a container network's gateway, a pod, the server.
+    for (const address of [
+      "172.18.0.1",
+      "10.42.0.17",
+      "127.0.0.1",
+      "fd00::8",
+    ]) {
+      expect({
+        address,
+        private: WrongComponentKeyLimit.isPrivateNetworkAddress(address),
+      }).toEqual({ address, private: true });
+    }
+
+    for (const address of ["203.0.113.9", "2001:db8::9", "100.64.0.1"]) {
+      expect({
+        address,
+        private: WrongComponentKeyLimit.isPrivateNetworkAddress(address),
+      }).toEqual({ address, private: false });
     }
   });
 });
