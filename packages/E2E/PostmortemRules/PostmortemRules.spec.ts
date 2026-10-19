@@ -188,7 +188,11 @@ const pickOption: (
     exact: true,
   });
 
-  if (!(await choice.isVisible().catch(() => false))) {
+  const isListed: boolean = await choice.isVisible().catch((): boolean => {
+    return false;
+  });
+
+  if (!isListed) {
     await picker.focus();
     await page.keyboard.press("ArrowDown");
   }

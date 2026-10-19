@@ -149,7 +149,10 @@ describe("Postmortem rules under More settings", () => {
       ),
     );
     expect(
-      getAiLaneAdvancedCardTitle(AiLane.Alert, AiLaneAdvancedCard.PostmortemRules),
+      getAiLaneAdvancedCardTitle(
+        AiLane.Alert,
+        AiLaneAdvancedCard.PostmortemRules,
+      ),
     ).toBe("");
   });
 
@@ -258,7 +261,9 @@ describe("Postmortem rules under More settings", () => {
   test("the table is the postmortem rules, drag-ordered, asking Match then Draft", () => {
     const table: string = readSource(TABLE);
 
-    expect(table).toContain("<ModelTable<AIPostmortemRule> modelType={AIPostmortemRule}");
+    expect(table).toContain(
+      "<ModelTable<AIPostmortemRule> modelType={AIPostmortemRule}",
+    );
     expect(table).toContain("enableDragAndDrop={true}");
     expect(table).toContain('dragDropIndexField="order"');
     expect(table).toContain('sortBy="order"');
@@ -283,7 +288,7 @@ describe("Postmortem rules under More settings", () => {
       );
 
       expect([file, source.includes('from "react"')]).toEqual([file, false]);
-      expect([file, source.includes(".tsx\"")]).toEqual([file, false]);
+      expect([file, source.includes('.tsx"')]).toEqual([file, false]);
     }
 
     // The form helpers name rules after templates with the shared rule-name code.
@@ -347,9 +352,10 @@ describe("Postmortem rules: translations", () => {
         expect([text, translations[text]]).not.toEqual([text, text]);
 
         for (const placeholder of text.match(/\{\{\w+\}\}/g) || []) {
-          expect([text, String(translations[text]).includes(placeholder)]).toEqual(
-            [text, true],
-          );
+          expect([
+            text,
+            String(translations[text]).includes(placeholder),
+          ]).toEqual([text, true]);
         }
       }
 
