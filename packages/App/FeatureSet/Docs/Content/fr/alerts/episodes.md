@@ -67,7 +67,7 @@ Cliquez sur **Créer une règle personnalisée** sous les modèles, ou sur **Cr�
 Sous **Quelles alertes**, **Toutes les alertes**, où démarre une nouvelle règle, regroupe chaque nouvelle alerte. Pour la restreindre, choisissez **Uniquement les alertes qui correspondent aux conditions** et ajoutez des conditions sur les moniteurs, les gravités, les étiquettes, les titres et les descriptions. Cliquez ensuite sur **Créer une règle de regroupement d'alertes**.
 :::
 
-Tout ce qu'une règle peut faire d'autre est replié sous **Plus de champs**, à la fin de l'étape **Regroupement**, en trois groupes. Replié, son en-tête nomme ce qu'il contient et affiche sous forme de puce chaque paramètre que la règle utilise, si bien que modifier une règle ne masque jamais ce qu'elle fait.
+Tout ce qu'une règle peut faire d'autre est replié sous **Plus de champs**, à la fin de l'étape **Regroupement**, en trois groupes. Replié, son en-tête nomme ce qu'il contient et indique la valeur de chaque paramètre que la règle utilise, si bien que modifier une règle ne masque jamais ce qu'elle fait.
 
 | Groupe                          | Paramètres                                                                                                 |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |

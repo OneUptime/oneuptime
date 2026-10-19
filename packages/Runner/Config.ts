@@ -26,10 +26,12 @@ import logger from "Common/Server/Utils/Logger";
  *   - PROJECT-SCOPED (what customers install): ONEUPTIME_RUNNER_ID +
  *     ONEUPTIME_RUNNER_KEY, created in the dashboard. The Runner only ever
  *     sees work belonging to that one project.
- *   - CLUSTER-SCOPED (OneUptime's own deployment): a cluster key
- *     auto-registers the Runner to serve every project. This mode is for
- *     the in-cluster `runner` service only and must never be handed to a
- *     customer install.
+ *   - CLUSTER-SCOPED (OneUptime's own deployment): the installation's
+ *     shared Runner auto-registers to serve every project, with its
+ *     ONEUPTIME_RUNNER_KEY, which the OneUptime app holds too. This mode is
+ *     for the in-cluster `runner` service only, and works only where the
+ *     app was given the Runner's key: it is never handed to a customer
+ *     install.
  */
 
 if (!process.env["ONEUPTIME_URL"]) {
@@ -41,8 +43,32 @@ export const ONEUPTIME_BASE_URL: URL = URL.fromString(
   process.env["ONEUPTIME_URL"]!,
 );
 
-// Cluster-key mode auto-registers and derives its own id; project mode does not.
-export const IS_CLUSTER_SCOPED: boolean = HasClusterKey;
+/*
+ * THE SHARED RUNNER
+ *
+ * The runner service of Docker Compose and the Helm chart is the
+ * installation's shared Runner: it serves AI code fixes for every project
+ * that has no Runner of its own, as the installation's global AI agent. It
+ * registers itself with its ONEUPTIME_RUNNER_KEY, which its deployment gives
+ * the OneUptime app as well, so it needs no id from the dashboard and no
+ * cluster key. Its deployment says so with ONEUPTIME_RUNNER_SHARED=true:
+ * only "true" (any case) turns it on, so a typo leaves a Runner that needs
+ * an id, and says so, rather than one that tries to be the shared Runner.
+ *
+ * A deployment of an earlier release said so by giving the Runner the
+ * cluster key (ONEUPTIME_SECRET) instead, and such a Runner still is the
+ * shared Runner (HasClusterKey).
+ */
+export function parseSharedRunnerSwitch(value: string | undefined): boolean {
+  return (value || "").trim().toLowerCase() === "true";
+}
+
+export const IS_SHARED_RUNNER: boolean = parseSharedRunnerSwitch(
+  process.env["ONEUPTIME_RUNNER_SHARED"],
+);
+
+// Cluster scope auto-registers and is given its id; project mode is not.
+export const IS_CLUSTER_SCOPED: boolean = IS_SHARED_RUNNER || HasClusterKey;
 
 /*
  * KUBERNETES-AGENT MODE (deprecated): the Runner that kubernetes-agent Helm

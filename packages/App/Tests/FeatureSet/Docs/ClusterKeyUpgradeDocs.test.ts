@@ -207,15 +207,19 @@ describe("the English upgrade note on a placeholder ONEUPTIME_SECRET", () => {
     );
   });
 
-  it("says what the Runner does until then, and that an installation with its own key sees no change", () => {
+  it("asks for a value of its own only where something of the operator's calls OneUptime with it, and says an installation with its own key sees no change", () => {
     expect(ENGLISH_NOTE).toContain(
-      "until then the Runner logs what to set and does not register",
-    );
-    expect(source("packages/Runner/Services/RegisterRunner.ts")).toContain(
-      "This in-cluster Runner cannot register",
+      "and a script of yours calls OneUptime with `ONEUPTIME_SECRET`, give it a long random value",
     );
     expect(ENGLISH_NOTE).toContain(
       "An installation that set its own `ONEUPTIME_SECRET` sees no change.",
+    );
+  });
+
+  it("says nothing of the Runner, which registers with its own key and holds no ONEUPTIME_SECRET (SharedRunnerOwnKeyUpgradeDocs)", () => {
+    expect(ENGLISH_NOTE).not.toContain("Runner");
+    expect(source("packages/Runner/Services/RegisterRunner.ts")).not.toContain(
+      "ShippedClusterKeyError",
     );
   });
 

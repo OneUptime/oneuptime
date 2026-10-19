@@ -18,10 +18,7 @@ import OwnersPicker, {
 } from "Common/UI/Components/PeoplePicker/OwnersPicker";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -385,7 +382,6 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
        */}
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        icon={MORE_SECTION_ICON}
         description="Auto-resolve and remediation settings"
         items={moreFieldsItems}
         dataTestId="criteria-incident-more-fields"

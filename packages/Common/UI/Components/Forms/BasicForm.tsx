@@ -1267,6 +1267,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               listFieldsWhileFolded={Boolean(
                                 section.listFieldsWhileFolded,
                               )}
+                              variant={section.variant}
                               icon={section.icon}
                               hasError={group.some(
                                 (field: Field<T>): boolean => {

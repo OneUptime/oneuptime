@@ -189,10 +189,12 @@ homebrew_casks:
     # The caveats and the quarantine step, written as Ruby here rather than
     # in GoReleaser's caveats and hooks fields.
     #
-    # Caveats: GoReleaser writes each line of its caveats field as a string
+    # Caveats: one heredoc keeps every line, whichever GoReleaser writes the
+    # cask. GoReleaser 2.13 writes each line of its caveats field as a string
     # of its own in a `caveats do` block, and Ruby keeps only the block's last
-    # one, so brew showed only the line about restarting after an upgrade.
-    # One heredoc keeps every line.
+    # one, so a cask it wrote showed only the line about restarting after an
+    # upgrade. (The newer GoReleaser release.yml installs, `~> v2`, writes a
+    # heredoc itself.)
     #
     # Quarantine: the binary is not notarized, and Homebrew quarantines what
     # a cask downloads, so Gatekeeper would refuse to run it. The step takes

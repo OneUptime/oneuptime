@@ -63,8 +63,10 @@ flowchart TB
 - `PublishHomebrewCask.sh` commits the cask to the tap. A tap holds one
   version of a cask, so it never replaces a newer one.
 - `PublishWingetManifests.sh` opens the pull request to `microsoft/winget-pkgs`
-  from a fork, through the GitHub API (winget-pkgs is too big to clone).
-  Microsoft's checks validate it, and a bot or a moderator merges it.
+  from a fork, through the GitHub API (winget-pkgs is too big to clone), and
+  agrees to Microsoft's CLA on it for HackerBay, Inc.: the CLA bot asks on
+  every pull request. Microsoft's checks validate it, and a bot or a moderator
+  merges it.
 
 ## One-time setup
 
@@ -123,10 +125,12 @@ same tree to S3 behind CloudFront and keep the domain: only
    fine-grained token cannot open a pull request on a repository its owner
    does not own.
 3. Watch the first pull request ("New package: OneUptime.InfrastructureAgent
-   version ..."). Microsoft's CLA bot asks the account to agree once, by
-   commenting `@microsoft-github-policy-service agree company="HackerBay, Inc."`,
-   and a moderator reviews a new package. Later versions merge once they pass
-   validation.
+   version ..."): a moderator reviews a new package, and later versions merge
+   once they pass validation. Microsoft's CLA bot asks the account to agree
+   on every pull request, so the job comments
+   `@microsoft-github-policy-service agree company="HackerBay, Inc."` on each
+   one it opens. The account agrees for HackerBay, Inc.: an account for
+   another organization needs that changed in the script.
 
 ## Checking a release
 

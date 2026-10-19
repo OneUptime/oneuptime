@@ -2,6 +2,7 @@ import AIAgentDataAPI from "../../../Server/API/AIAgentDataAPI";
 import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
@@ -115,11 +116,13 @@ describe("POST /ai-agent-data/get-repository-token", () => {
     ownInstallationId = "11111111";
 
     // The agent key is project-scoped and self-issued in the attacker's project.
-    jest.spyOn(CodeFixAgentAuth, "resolveAgentIdentity").mockResolvedValue({
-      id: ObjectID.generate(),
-      projectId: attackerProjectId,
-      source: CodeFixAgentSource.AIAgent,
-    });
+    jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
+      credentialCheckProving({
+        id: ObjectID.generate(),
+        projectId: attackerProjectId,
+        source: CodeFixAgentSource.AIAgent,
+      }),
+    );
 
     findRepositorySpy = jest.spyOn(CodeRepositoryService, "findOneById");
 
@@ -319,8 +322,8 @@ describe("POST /ai-agent-data/get-repository-token", () => {
   describe("pre-existing guards still hold", () => {
     test("rejects invalid agent credentials before reading anything", async () => {
       jest
-        .spyOn(CodeFixAgentAuth, "resolveAgentIdentity")
-        .mockResolvedValue(null);
+        .spyOn(CodeFixAgentAuth, "checkCredential")
+        .mockResolvedValue(credentialCheckProving(null));
 
       await callRoute();
 

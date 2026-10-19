@@ -661,8 +661,22 @@ describe(`${SCRIPTS}/PublishWingetManifests.sh`, () => {
     "OneUptime.InfrastructureAgent.installer.yaml",
     "OneUptime.InfrastructureAgent.locale.en-US.yaml",
   ];
+  // What the account comments to agree to Microsoft's CLA: the bot asks on
+  // every pull request.
+  const CLA_AGREEMENT =
+    '@microsoft-github-policy-service agree company="HackerBay, Inc."';
   let work = "";
   let runs = 0;
+
+  // The pull request a run opened.
+  function pullRequestOf(result) {
+    return result.writes.find((call) => {
+      return (
+        call.method === "POST" &&
+        call.endpoint === "repos/microsoft/winget-pkgs/pulls"
+      );
+    });
+  }
 
   // The GitHub API as the script asks it, answered from a JSON state file.
   const FAKE_GH = `#!/usr/bin/env node
@@ -724,7 +738,7 @@ if (method === "GET" && endpoint === "user") {
 } else if (method === "GET" && (match = endpoint.match(/^repos\\/[^/]+\\/winget-pkgs\\/git\\/ref\\/heads\\/(.*)$/))) {
   (state.forkBranches || []).includes(match[1]) ? answer("{}") : notFound();
 } else if (method === "POST" && endpoint === "repos/" + upstream + "/pulls") {
-  answer("https://github.com/microsoft/winget-pkgs/pull/4242");
+  answer("4242 https://github.com/microsoft/winget-pkgs/pull/4242");
 } else if (method !== "GET") {
   answer("{}");
 } else {
@@ -842,8 +856,8 @@ if (method === "GET" && endpoint === "user") {
       );
     });
 
-    const pull = rest[MANIFESTS.length];
-    expect(rest).toHaveLength(MANIFESTS.length + 1);
+    const [pull, agreement] = rest.slice(MANIFESTS.length);
+    expect(rest).toHaveLength(MANIFESTS.length + 2);
     expect(pull).toEqual(
       expect.objectContaining({
         method: "POST",
@@ -857,13 +871,23 @@ if (method === "GET" && endpoint === "user") {
         base: "master",
       }),
     );
+    expect(agreement).toEqual(
+      expect.objectContaining({
+        method: "POST",
+        endpoint: "repos/microsoft/winget-pkgs/issues/4242/comments",
+        fields: { body: CLA_AGREEMENT },
+      }),
+    );
+    expect(result.stdout).toContain(
+      "Agreed to Microsoft's CLA for HackerBay, Inc. on #4242.",
+    );
   });
 
   test("calls the first one a new package", () => {
     const result = publish({ state: { upstreamPaths: [] } });
 
     expect(result.status).toBe(0);
-    expect(result.writes[result.writes.length - 1].fields.title).toBe(
+    expect(pullRequestOf(result).fields.title).toBe(
       `New package: OneUptime.InfrastructureAgent version ${VERSION}`,
     );
   });
@@ -880,13 +904,53 @@ if (method === "GET" && endpoint === "user") {
       state: {
         openPulls: {
           [`oneuptime-bot:${BRANCH}`]:
-            "https://github.com/microsoft/winget-pkgs/pull/4000",
+            "4000 https://github.com/microsoft/winget-pkgs/pull/4000 false",
         },
       },
     });
     expect(waiting.status).toBe(0);
-    expect(waiting.stdout).toContain("already waiting");
+    expect(waiting.stdout).toContain(
+      "already waiting in https://github.com/microsoft/winget-pkgs/pull/4000",
+    );
     expect(waiting.writes).toEqual([]);
+  });
+
+  test("agrees to the CLA on a pull request a re-run finds waiting with the Needs-CLA label, and opens nothing", () => {
+    const result = publish({
+      state: {
+        openPulls: {
+          [`oneuptime-bot:${BRANCH}`]:
+            "4001 https://github.com/microsoft/winget-pkgs/pull/4001 true",
+        },
+      },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.writes).toEqual([
+      expect.objectContaining({
+        method: "POST",
+        endpoint: "repos/microsoft/winget-pkgs/issues/4001/comments",
+        fields: { body: CLA_AGREEMENT },
+      }),
+    ]);
+  });
+
+  test("tries the CLA agreement again, then stops saying what to comment, leaving the pull request open", () => {
+    const result = publish({ state: { failing: "/issues/4242/comments" } });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toContain(
+      "Opened https://github.com/microsoft/winget-pkgs/pull/4242",
+    );
+    expect(result.stderr).toContain(
+      `could not post the CLA agreement on #4242; comment it there by hand from the account that opened it: ${CLA_AGREEMENT}`,
+    );
+    expect(
+      result.calls.filter((call) => {
+        return call.endpoint.endsWith("/issues/4242/comments");
+      }),
+    ).toHaveLength(4);
+    expect(pullRequestOf(result)).toBeDefined();
   });
 
   test("moves a branch a stopped run left behind, instead of making it again", () => {
@@ -910,9 +974,7 @@ if (method === "GET" && endpoint === "user") {
 
     expect(result.status).toBe(0);
     expect(result.calls.some((call) => call.endpoint === "user")).toBe(false);
-    expect(result.writes[result.writes.length - 1].fields.head).toBe(
-      `OneUptime:${BRANCH}`,
-    );
+    expect(pullRequestOf(result).fields.head).toBe(`OneUptime:${BRANCH}`);
   });
 
   test("stops, writing nothing, without a fork of winget-pkgs", () => {

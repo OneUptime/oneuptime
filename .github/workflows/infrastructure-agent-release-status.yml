@@ -15,8 +15,8 @@ name: Infrastructure Agent Release Status
 #               anything brew calls deprecated in the cask (InstallFromHomebrew.sh).
 #
 # After every release run; every day, because the Pages deploy and winget's review
-# outlast the release run; by hand, for any version; and for a pull request that
-# changes these checks. It reads public repositories and the live site only, so it
+# outlast the release run; by hand, for any version; and for a pull request into
+# master that changes these checks. It reads public repositories and the live site only, so it
 # needs no secret, and it publishes nothing.
 
 # Supersede in-flight runs for the same branch/PR: only the newest state needs checking.
@@ -38,7 +38,11 @@ on:
         description: "The release (#.#.#). Empty takes the latest."
         type: string
         default: ""
+  # Into master only. A release's gate pull request (release-x.y.z into release)
+  # carries every file master changed, these included, and this checks the live
+  # state of the release before it, not the one the gate is for.
   pull_request:
+    branches: [master]
     paths:
       - ".github/workflows/infrastructure-agent-release-status.yml"
       - "Scripts/PackageManagers/ReleaseStatus.sh"

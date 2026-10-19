@@ -45,10 +45,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { getNoDataPolicyMoreFieldsItems } from "./MonitorMoreFields";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
@@ -1543,7 +1540,6 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                */}
               <FoldedSection
                 title={MORE_FIELDS_SECTION_TITLE}
-                icon={MORE_SECTION_ICON}
                 items={getNoDataPolicyMoreFieldsItems(
                   criteriaFilter?.metricMonitorOptions?.onNoDataPolicy,
                 )}

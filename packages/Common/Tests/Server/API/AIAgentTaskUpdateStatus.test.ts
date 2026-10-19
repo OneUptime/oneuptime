@@ -2,6 +2,7 @@ import AIAgentTaskAPI from "../../../Server/API/AIAgentTaskAPI";
 import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
@@ -138,11 +139,13 @@ describe("POST /ai-agent-task/update-task-status", () => {
     runId = ObjectID.generate();
     storedContext = { github: githubContext() };
 
-    jest.spyOn(CodeFixAgentAuth, "resolveAgentIdentity").mockResolvedValue({
-      id: ObjectID.generate(),
-      projectId: projectId,
-      source: CodeFixAgentSource.Runner,
-    });
+    jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
+      credentialCheckProving({
+        id: ObjectID.generate(),
+        projectId: projectId,
+        source: CodeFixAgentSource.Runner,
+      }),
+    );
 
     // The run as the database holds it, answering only what was selected.
     findRunSpy = jest

@@ -56,18 +56,16 @@ export default class AIAgentTaskAPI {
       `${API_BASE_PATH}/get-pending-task`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const data: JSONObject = req.body;
-
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
-          if (!aiAgent || !aiAgent.id) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+          if (!aiAgent) {
+            return;
           }
 
           /*
@@ -133,18 +131,16 @@ export default class AIAgentTaskAPI {
       `${API_BASE_PATH}/get-pending-task-count`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const data: JSONObject = req.body;
-
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           /* Count queued code-fix runs */
@@ -188,16 +184,16 @@ export default class AIAgentTaskAPI {
         try {
           const data: JSONObject = req.body;
 
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           /* Validate required fields */
