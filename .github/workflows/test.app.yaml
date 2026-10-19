@@ -225,7 +225,8 @@ jobs:
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
           # minute, Chromium only) joined it at 15.4 minutes, the lightest
-          # group on 2026-10-18's run.
+          # group on 2026-10-18's run, and Runbook Variables (about a minute
+          # and a half with its bundle, Chromium only) beside it.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -238,6 +239,7 @@ jobs:
               test-label-rule-transfer-ui
               test-list-delete-ui
               test-global-runners-ui
+              test-runbook-variables-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -424,6 +426,8 @@ jobs:
             output/playwright/runbook-triggers-ui/test-results
             output/playwright/global-runners-ui/*.png
             output/playwright/global-runners-ui/test-results
+            output/playwright/runbook-variables-ui/*.png
+            output/playwright/runbook-variables-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
             output/playwright/code-ui/*.png
