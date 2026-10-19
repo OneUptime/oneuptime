@@ -335,4 +335,27 @@ describe("the palette lists Roles under Teams › Settings", () => {
       "Custom Fields — Teams › Settings",
     );
   });
+
+  /*
+   * A role is a named set of permissions. With Roles folded under Settings,
+   * a search in the words of what it is for has to find it.
+   */
+  test.each([["permission sets"], ["permission set"]])(
+    "'%s' puts Roles first",
+    (query: string) => {
+      openPalette();
+
+      expect(rows(query)[0]).toBe("Roles — Teams › Settings");
+    },
+  );
+
+  test("'permissions' lists Roles beside All Teams, where a team's permissions are", () => {
+    openPalette();
+
+    const listed: Array<string> = rows("permissions");
+
+    expect(listed).toContain("Roles — Teams › Settings");
+    expect(listed).toContain("All Teams — Teams");
+    expect(listed.length).toBeLessThanOrEqual(8);
+  });
 });

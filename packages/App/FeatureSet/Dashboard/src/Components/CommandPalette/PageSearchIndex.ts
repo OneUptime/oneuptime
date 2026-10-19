@@ -2549,12 +2549,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.TEAM_ROLES,
             title: "Roles",
             icon: IconProp.Identification,
+            /*
+             * A role is a named set of permissions, and it now waits in a
+             * folded section: a search for permissions finds it too.
+             */
             keywords: [
               "custom roles",
               "custom role",
               "create role",
               "built-in roles",
               "rbac",
+              "permission sets",
+              "permissions",
             ],
           },
           customFields(PageMap.TEAM_CUSTOM_FIELDS),
