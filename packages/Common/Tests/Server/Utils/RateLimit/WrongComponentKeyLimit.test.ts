@@ -207,7 +207,10 @@ describe("a probe's, a Runner's or an AI agent's own key, counted for that one c
     ["a Runner or an AI agent", ComponentKeyKind.Agent as const],
   ])(
     "ten different wrong keys for %s are let through to be answered as wrong; the next is refused, and so is its right key, from that client alone",
-    async (_label: string, kind: ComponentKeyKind.Probe | ComponentKeyKind.Agent) => {
+    async (
+      _label: string,
+      kind: ComponentKeyKind.Probe | ComponentKeyKind.Agent,
+    ) => {
       for (
         let index: number = 0;
         index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
@@ -547,7 +550,11 @@ describe("a probe's, a Runner's or an AI agent's own key, counted for that one c
   test("a new window starts the count again", async () => {
     jest.useFakeTimers({ now: new Date("2026-10-19T08:00:00.000Z") });
 
-    for (let index: number = 0; index <= WRONG_COMPONENT_KEYS_PER_ADDRESS; index++) {
+    for (
+      let index: number = 0;
+      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
       await presentComponentKey({
         from: CLIENT,
         key: `guess-${index}`,
@@ -604,7 +611,11 @@ describe("an IPv6 host is counted for its /64 as well", () => {
 
     // An IPv4 client and another /64 are not.
     expect(
-      await presentComponentKey({ from: CLIENT, key: "right", isKeyRight: true }),
+      await presentComponentKey({
+        from: CLIENT,
+        key: "right",
+        isKeyRight: true,
+      }),
     ).toBeNull();
     expect(
       await presentComponentKey({
@@ -716,7 +727,13 @@ describe("REGISTER_PROBE_KEY and the shared Runner's key, counted for the client
   });
 
   test("a shipped or non-text registration key is never counted", async () => {
-    for (const key of ["secret", "please-change-this-to-random-value", "", 7, null] as Array<unknown>) {
+    for (const key of [
+      "secret",
+      "please-change-this-to-random-value",
+      "",
+      7,
+      null,
+    ] as Array<unknown>) {
       expect(
         await presentRegistrationKey({ from: CLIENT, key, isKeyRight: false }),
       ).toBeNull();
@@ -754,7 +771,11 @@ describe("what Valkey keeps of a wrong key", () => {
       WrongComponentKeyLimit.digestOf(ComponentKeyKind.Probe, PROBE_A, key),
       WrongComponentKeyLimit.digestOf(ComponentKeyKind.Probe, PROBE_B, key),
       WrongComponentKeyLimit.digestOf(ComponentKeyKind.Agent, PROBE_A, key),
-      WrongComponentKeyLimit.digestOf(ComponentKeyKind.ProbeRegistration, "", key),
+      WrongComponentKeyLimit.digestOf(
+        ComponentKeyKind.ProbeRegistration,
+        "",
+        key,
+      ),
       WrongComponentKeyLimit.digestOf(ComponentKeyKind.SharedRunner, "", key),
     ]);
 
@@ -809,7 +830,11 @@ describe("Valkey away, slow or failing: keys are compared as always", () => {
     mockRedisState.client = null;
 
     expect(
-      await presentRegistrationKey({ from: CLIENT, key: "x", isKeyRight: false }),
+      await presentRegistrationKey({
+        from: CLIENT,
+        key: "x",
+        isKeyRight: false,
+      }),
     ).toBeNull();
   });
 
@@ -832,8 +857,10 @@ describe("Valkey away, slow or failing: keys are compared as always", () => {
 
     expect(
       mockWarnings.filter((line: string): boolean => {
-        return line ===
-          "WrongComponentKeyLimit: the wrong agent key count failed, so those keys are compared without it";
+        return (
+          line ===
+          "WrongComponentKeyLimit: the wrong agent key count failed, so those keys are compared without it"
+        );
       }),
     ).toHaveLength(1);
   });
@@ -943,7 +970,9 @@ describe("canonicalId", () => {
       expect(WrongComponentKeyLimit.canonicalId(notAnId)).toBeNull();
     }
 
-    expect(WrongComponentKeyLimit.canonicalId(42 as unknown as string)).toBeNull();
+    expect(
+      WrongComponentKeyLimit.canonicalId(42 as unknown as string),
+    ).toBeNull();
   });
 
   test("answers a megabyte of text at once", () => {
@@ -996,26 +1025,30 @@ describe("the limits are kept apart in Valkey", () => {
   });
 
   test("each limit is a WrongKeyLimit, which counts with the one script", () => {
-    expect(new WrongKeyLimit({
-      scope: "a test",
-      reporter: "test",
-      countedKeys: "test keys",
-      keyPrefix: "test:wrong-keys:",
-      perAddress: 1,
-      windowSeconds: 60,
-      countFailedMessage: "test",
-    }).isCounting()).toBe(true);
+    expect(
+      new WrongKeyLimit({
+        scope: "a test",
+        reporter: "test",
+        countedKeys: "test keys",
+        keyPrefix: "test:wrong-keys:",
+        perAddress: 1,
+        windowSeconds: 60,
+        countFailedMessage: "test",
+      }).isCounting(),
+    ).toBe(true);
 
     mockRedisState.connected = false;
 
-    expect(new WrongKeyLimit({
-      scope: "a test",
-      reporter: "test",
-      countedKeys: "test keys",
-      keyPrefix: "test:wrong-keys:",
-      perAddress: 1,
-      windowSeconds: 60,
-      countFailedMessage: "test",
-    }).isCounting()).toBe(false);
+    expect(
+      new WrongKeyLimit({
+        scope: "a test",
+        reporter: "test",
+        countedKeys: "test keys",
+        keyPrefix: "test:wrong-keys:",
+        perAddress: 1,
+        windowSeconds: 60,
+        countFailedMessage: "test",
+      }).isCounting(),
+    ).toBe(false);
   });
 });

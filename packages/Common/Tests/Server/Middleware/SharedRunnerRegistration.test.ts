@@ -120,15 +120,24 @@ function loadInstallation(runnerKey: string | undefined): Installation {
       /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
       loaded = {
-        ClusterKeyAuthorization:
-          middleware["default"] as unknown as ClusterKeyAuthorizationClass,
+        ClusterKeyAuthorization: middleware[
+          "default"
+        ] as unknown as ClusterKeyAuthorizationClass,
         messages: {
-          notSet: runnerKeyModule["SHARED_RUNNER_KEY_NOT_SET_MESSAGE"] as string,
-          missing: runnerKeyModule["SHARED_RUNNER_KEY_MISSING_MESSAGE"] as string,
-          shipped: runnerKeyModule["SHIPPED_SHARED_RUNNER_KEY_MESSAGE"] as string,
+          notSet: runnerKeyModule[
+            "SHARED_RUNNER_KEY_NOT_SET_MESSAGE"
+          ] as string,
+          missing: runnerKeyModule[
+            "SHARED_RUNNER_KEY_MISSING_MESSAGE"
+          ] as string,
+          shipped: runnerKeyModule[
+            "SHIPPED_SHARED_RUNNER_KEY_MESSAGE"
+          ] as string,
           wrong: runnerKeyModule["WRONG_SHARED_RUNNER_KEY_MESSAGE"] as string,
           tooMany: limits["WRONG_SHARED_RUNNER_KEYS_MESSAGE"] as string,
-          invalidClusterKey: middleware["INVALID_CLUSTER_KEY_MESSAGE"] as string,
+          invalidClusterKey: middleware[
+            "INVALID_CLUSTER_KEY_MESSAGE"
+          ] as string,
           clusterKeyInUrl: middleware["CLUSTER_KEY_IN_URL_MESSAGE"] as string,
           runnerClusterKey: middleware["RUNNER_CLUSTER_KEY_MESSAGE"] as string,
           olderRunner: middleware["OLDER_RUNNER_CLUSTER_KEY_MESSAGE"] as string,
@@ -279,9 +288,9 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
       ` ${OPERATOR_RUNNER_KEY}`,
       encodeURIComponent(` ${OPERATOR_RUNNER_KEY}`),
     ]) {
-      expect(await register(app, OTHER_CLIENT, withRunnerKey(wrong))).toStrictEqual(
-        refusedWith(app.messages.wrong!),
-      );
+      expect(
+        await register(app, OTHER_CLIENT, withRunnerKey(wrong)),
+      ).toStrictEqual(refusedWith(app.messages.wrong!));
     }
   });
 

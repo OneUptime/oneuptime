@@ -24,7 +24,7 @@
  */
 
 import { JSONObject } from "Common/Types/JSON";
-import { createServer, Server } from "http";
+import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
 
 jest.mock("Common/Types/Sleep", () => {
@@ -186,20 +186,24 @@ function loadRunner(
   origin: string,
   deployment: Record<string, string | undefined>,
 ): Runner {
-  return withEnvironment({ ONEUPTIME_URL: origin, ...deployment }, (): Runner => {
-    let loaded: Runner | null = null;
+  return withEnvironment(
+    { ONEUPTIME_URL: origin, ...deployment },
+    (): Runner => {
+      let loaded: Runner | null = null;
 
-    jest.isolateModules(() => {
-      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-      loaded = {
-        Register: require("../../Services/RegisterRunner"),
-        LocalCache: require("Common/Server/Infrastructure/LocalCache").default,
-      };
-      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-    });
+      jest.isolateModules(() => {
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+        loaded = {
+          Register: require("../../Services/RegisterRunner"),
+          LocalCache: require("Common/Server/Infrastructure/LocalCache")
+            .default,
+        };
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+      });
 
-    return loaded!;
-  });
+      return loaded!;
+    },
+  );
 }
 
 // What this release's docker-compose.yml and Helm chart give the shared Runner.
@@ -341,21 +345,23 @@ describe("what never registers", () => {
 describe("the request on the wire", () => {
   test("this release's Runner sends no cluster key in any header, and its own key only in the body", async () => {
     const seen: Array<{ headers: JSONObject; body: string; url: string }> = [];
-    const http: Server = createServer((req, res) => {
-      let body: string = "";
-      req.on("data", (chunk: Buffer) => {
-        body += chunk.toString("utf8");
-      });
-      req.on("end", () => {
-        seen.push({
-          headers: req.headers as JSONObject,
-          body: body,
-          url: req.url || "",
+    const http: Server = createServer(
+      (req: IncomingMessage, res: ServerResponse) => {
+        let body: string = "";
+        req.on("data", (chunk: Buffer) => {
+          body += chunk.toString("utf8");
         });
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ _id: AGENT_ID }));
-      });
-    });
+        req.on("end", () => {
+          seen.push({
+            headers: req.headers as JSONObject,
+            body: body,
+            url: req.url || "",
+          });
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(JSON.stringify({ _id: AGENT_ID }));
+        });
+      },
+    );
 
     await new Promise<void>((resolve: () => void) => {
       http.listen(0, "127.0.0.1", resolve);

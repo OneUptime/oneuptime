@@ -427,9 +427,7 @@ describe.each(OPERATOR_CLUSTER_KEYS)(
       );
       // The message names the setting, never its value.
       expect(warnLog.join("\n")).not.toContain(clusterKey);
-      expect(warnLog.join("\n")).not.toContain(
-        encodeURIComponent(clusterKey),
-      );
+      expect(warnLog.join("\n")).not.toContain(encodeURIComponent(clusterKey));
     });
 
     test("a refusal from the server is retried with the usual backoff, not the slowest interval", async () => {

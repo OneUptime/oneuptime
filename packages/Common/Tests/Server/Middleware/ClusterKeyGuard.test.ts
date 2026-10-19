@@ -623,7 +623,15 @@ describe("only processes that can know the installation's key present it", () =>
     const holds: string =
       code.split("public static holdsClusterKey(): boolean {")[1] || "";
 
-    expect(holds.split("}")[0]!.split(/\s+/).join(" ")).toContain(
+    // Read as one line, however the condition is wrapped.
+    const condition: string = holds
+      .split("}")[0]!
+      .split(/\s+/)
+      .join(" ")
+      .replace(/\( /g, "(")
+      .replace(/ \)/g, ")");
+
+    expect(condition).toContain(
       "if (!HasClusterKey || ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) { return false;",
     );
 

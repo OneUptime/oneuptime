@@ -68,18 +68,26 @@ interface RegistryRow {
 
 // The shared Runner's global agent, a project Runner, one with code fixes off.
 const GLOBAL_AGENT_ID: string = "11111111-2222-4333-8444-555555555555";
-const GLOBAL_AGENT_KEY: string = "global-agent-key-5e8b1d4f7a0c3e6b9d2f5a8c1e4b7d0a";
+const GLOBAL_AGENT_KEY: string =
+  "global-agent-key-5e8b1d4f7a0c3e6b9d2f5a8c1e4b7d0a";
 const PROJECT_RUNNER_ID: string = "66666666-7777-4888-9999-aaaaaaaaaaaa";
-const PROJECT_RUNNER_KEY: string = "project-runner-key-0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c";
+const PROJECT_RUNNER_KEY: string =
+  "project-runner-key-0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c";
 const RUNBOOK_RUNNER_ID: string = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff";
-const RUNBOOK_RUNNER_KEY: string = "runbook-runner-key-a1b2c3d4e5f60718293a4b5c6d7e8f90";
+const RUNBOOK_RUNNER_KEY: string =
+  "runbook-runner-key-a1b2c3d4e5f60718293a4b5c6d7e8f90";
 const PROJECT_ID: string = "12121212-3434-4565-8787-909090909090";
 
 const CLIENT: string = "203.0.113.90";
 const OTHER_CLIENT: string = "198.51.100.91";
 
 let registry: Map<string, RegistryRow>;
-let lookups: Array<{ table: string; query: JSONObject }>;
+interface Lookup {
+  table: string;
+  query: JSONObject;
+}
+
+let lookups: Array<Lookup>;
 
 /*
  * An id as Postgres reads a uuid: in any case, with or without braces, and
@@ -260,9 +268,10 @@ describe("the right key", () => {
 
     expect(redis.sets.size).toBe(0);
 
-    const check: CodeFixCredentialCheck = await CodeFixAgentAuth.checkCredential(
-      pair(RUNBOOK_RUNNER_ID, RUNBOOK_RUNNER_KEY),
-    );
+    const check: CodeFixCredentialCheck =
+      await CodeFixAgentAuth.checkCredential(
+        pair(RUNBOOK_RUNNER_ID, RUNBOOK_RUNNER_KEY),
+      );
 
     expect(check.identity).toBeNull();
     expect(check.isKeyRight).toBe(true);
@@ -272,88 +281,84 @@ describe("the right key", () => {
 describe.each([
   ["the shared Runner's global agent", GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY],
   ["a project Runner", PROJECT_RUNNER_ID, PROJECT_RUNNER_KEY],
-])(
-  "wrong keys for %s",
-  (_label: string, agentId: string, rightKey: string) => {
-    test("ten different ones from a client are answered as wrong; then every request it sends for that agent is refused, the right key too", async () => {
-      for (
-        let index: number = 0;
-        index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
-        index++
-      ) {
-        expect(
-          await authenticate(CLIENT, pair(agentId, `guess-${index}`)),
-        ).toStrictEqual({
-          identity: null,
-          status: 400,
-          message: INVALID_CODE_FIX_AGENT_MESSAGE,
-          retryAfter: null,
-        });
-      }
-
-      for (const key of ["guess-eleven", rightKey]) {
-        const answered: Answered = await authenticate(CLIENT, pair(agentId, key));
-
-        expect(answered.identity).toBeNull();
-        expect(answered.status).toBe(429);
-        expect(answered.message).toBe(WRONG_AGENT_KEYS_MESSAGE);
-        expect(Number(answered.retryAfter)).toBeGreaterThanOrEqual(1);
-      }
-
-      // Another client with the right key, and this client for another agent: let through.
+])("wrong keys for %s", (_label: string, agentId: string, rightKey: string) => {
+  test("ten different ones from a client are answered as wrong; then every request it sends for that agent is refused, the right key too", async () => {
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
       expect(
-        (await authenticate(OTHER_CLIENT, pair(agentId, rightKey))).identity,
-      ).not.toBeNull();
+        await authenticate(CLIENT, pair(agentId, `guess-${index}`)),
+      ).toStrictEqual({
+        identity: null,
+        status: 400,
+        message: INVALID_CODE_FIX_AGENT_MESSAGE,
+        retryAfter: null,
+      });
+    }
 
-      const otherAgent: [string, string] =
-        agentId === GLOBAL_AGENT_ID
-          ? [PROJECT_RUNNER_ID, PROJECT_RUNNER_KEY]
-          : [GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY];
+    for (const key of ["guess-eleven", rightKey]) {
+      const answered: Answered = await authenticate(CLIENT, pair(agentId, key));
 
+      expect(answered.identity).toBeNull();
+      expect(answered.status).toBe(429);
+      expect(answered.message).toBe(WRONG_AGENT_KEYS_MESSAGE);
+      expect(Number(answered.retryAfter)).toBeGreaterThanOrEqual(1);
+    }
+
+    // Another client with the right key, and this client for another agent: let through.
+    expect(
+      (await authenticate(OTHER_CLIENT, pair(agentId, rightKey))).identity,
+    ).not.toBeNull();
+
+    const otherAgent: [string, string] =
+      agentId === GLOBAL_AGENT_ID
+        ? [PROJECT_RUNNER_ID, PROJECT_RUNNER_KEY]
+        : [GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY];
+
+    expect(
+      (await authenticate(CLIENT, pair(otherAgent[0], otherAgent[1]))).identity,
+    ).not.toBeNull();
+  });
+
+  test("one old key, sent again and again, is never refused", async () => {
+    for (let call: number = 0; call < 100; call++) {
       expect(
-        (await authenticate(CLIENT, pair(otherAgent[0], otherAgent[1])))
-          .identity,
-      ).not.toBeNull();
-    });
-
-    test("one old key, sent again and again, is never refused", async () => {
-      for (let call: number = 0; call < 100; call++) {
-        expect(
-          (await authenticate(CLIENT, pair(agentId, "the-key-before-the-reset")))
-            .status,
-        ).toBe(400);
-      }
-
-      expect(
-        (await authenticate(CLIENT, pair(agentId, rightKey))).identity,
-      ).not.toBeNull();
-    });
-
-    test("the id spelled in upper case, or in braces, is the same agent: no new count", async () => {
-      const spellings: Array<string> = [
-        agentId,
-        agentId.toUpperCase(),
-        `{${agentId}}`,
-      ];
-
-      for (
-        let index: number = 0;
-        index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
-        index++
-      ) {
-        await authenticate(
-          CLIENT,
-          pair(spellings[index % spellings.length]!, `guess-${index}`),
-        );
-      }
-
-      expect(
-        (await authenticate(CLIENT, pair(agentId.toUpperCase(), "guess-x")))
+        (await authenticate(CLIENT, pair(agentId, "the-key-before-the-reset")))
           .status,
-      ).toBe(429);
-    });
-  },
-);
+      ).toBe(400);
+    }
+
+    expect(
+      (await authenticate(CLIENT, pair(agentId, rightKey))).identity,
+    ).not.toBeNull();
+  });
+
+  test("the id spelled in upper case, or in braces, is the same agent: no new count", async () => {
+    const spellings: Array<string> = [
+      agentId,
+      agentId.toUpperCase(),
+      `{${agentId}}`,
+    ];
+
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      await authenticate(
+        CLIENT,
+        pair(spellings[index % spellings.length]!, `guess-${index}`),
+      );
+    }
+
+    expect(
+      (await authenticate(CLIENT, pair(agentId.toUpperCase(), "guess-x")))
+        .status,
+    ).toBe(429);
+  });
+});
 
 describe("what is never counted", () => {
   test("an id no agent or Runner has: answered as wrong, never refused, and Valkey keeps nothing", async () => {
@@ -362,9 +367,9 @@ describe("what is never counted", () => {
         .toString(16)
         .padStart(12, "0")}`;
 
-      expect((await authenticate(CLIENT, pair(id, `guess-${index}`))).status).toBe(
-        400,
-      );
+      expect(
+        (await authenticate(CLIENT, pair(id, `guess-${index}`))).status,
+      ).toBe(400);
     }
 
     expect(redis.sets.size).toBe(0);
@@ -429,9 +434,11 @@ describe("checkCredential and resolveAgentIdentity", () => {
       isKeyRight: false,
     });
     expect(
-      (await CodeFixAgentAuth.checkCredential(
-        pair(GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY),
-      )).isKeyRight,
+      (
+        await CodeFixAgentAuth.checkCredential(
+          pair(GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY),
+        )
+      ).isKeyRight,
     ).toBe(true);
     expect(
       (
@@ -452,13 +459,17 @@ describe("checkCredential and resolveAgentIdentity", () => {
       pair(GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY),
     );
 
-    expect(lookups.every((lookup) => "key" in lookup.query)).toBe(true);
+    expect(
+      lookups.every((lookup: Lookup): boolean => {
+        return "key" in lookup.query;
+      }),
+    ).toBe(true);
 
     lookups.length = 0;
     await authenticate(CLIENT, pair(GLOBAL_AGENT_ID, "wrong"));
 
     expect(
-      lookups.filter((lookup) => {
+      lookups.filter((lookup: Lookup): boolean => {
         return !("key" in lookup.query);
       }),
     ).toHaveLength(1);

@@ -106,7 +106,8 @@ const KEY_CHECKS: Array<KeyCheck> = [
     file: AI_AGENT_API,
     from: "/alive`",
     to: "global-ai-agents`",
-    compared: "await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey,",
+    compared:
+      "await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey,",
     inOrder: [
       "const aiAgent: AIAgent | null = await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey, },",
       "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: aiAgentId.toString(), presentedKey: aiAgentKey, isKeyRight: Boolean(aiAgent),",
@@ -123,7 +124,7 @@ const KEY_CHECKS: Array<KeyCheck> = [
     compared: "await CodeFixAgentAuth.checkCredential(data);",
     inOrder: [
       "const check: CodeFixCredentialCheck = await CodeFixAgentAuth.checkCredential(data);",
-      "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: agentId.toString(), presentedKey: data[\"aiAgentKey\"], isKeyRight: check.isKeyRight,",
+      'await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: agentId.toString(), presentedKey: data["aiAgentKey"], isKeyRight: check.isKeyRight,',
       "return await CodeFixAgentAuth.agentOrRunnerExists(agentId);",
       "if (refusal) { WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusal); return null; }",
       "if (!check.identity) { Response.sendErrorResponse(req, res, new BadDataException(INVALID_CODE_FIX_AGENT_MESSAGE)); return null; }",
@@ -134,7 +135,8 @@ const KEY_CHECKS: Array<KeyCheck> = [
     file: PROBE_REGISTRATION,
     from: '"/register"',
     to: "const probeName: string | undefined",
-    compared: "SecretKeyComparison.timingSafeEqual(registerProbeKey, RegisterProbeKey.toString());",
+    compared:
+      "SecretKeyComparison.timingSafeEqual(registerProbeKey, RegisterProbeKey.toString());",
     inOrder: [
       "const isRegisterProbeKeyRight: boolean = SecretKeyComparison.timingSafeEqual(registerProbeKey, RegisterProbeKey.toString());",
       "await WrongComponentKeyLimit.checkRegistrationKey({ req: req, kind: ComponentKeyKind.ProbeRegistration, presentedKey: registerProbeKey, isKeyRight: isRegisterProbeKeyRight, });",
@@ -146,7 +148,8 @@ const KEY_CHECKS: Array<KeyCheck> = [
     file: SHARED_RUNNER_KEY_AUTHORIZATION,
     from: "public static async authorizeRegistration(",
     to: "private static getPresentedRunnerKey(",
-    compared: "SecretKeyComparison.timingSafeEqual(presented, SharedRunnerKey);",
+    compared:
+      "SecretKeyComparison.timingSafeEqual(presented, SharedRunnerKey);",
     inOrder: [
       "if (IsSharedRunnerKeyShipped) {",
       "if (isShippedSecretValue(presented)) {",
@@ -198,6 +201,9 @@ const CODE_FIX_ROUTE_FILES: Record<string, number> = {
   "packages/Common/Server/API/AIAgentTaskLogAPI.ts": 1,
   "packages/Common/Server/API/AIAgentGitHubAPI.ts": 1,
 };
+
+// What answers a request: between a key's lookup and the limit, nothing may.
+const ANSWERS: RegExp = /\bnext\(|Response\.send|answerRefusal\(/;
 
 /*
  * Every product file that reads a component's key from a request: one of
@@ -305,29 +311,30 @@ function segmentOf(check: KeyCheck): string {
 }
 
 describe("every check of a component's key asks the limit, in the order the rule needs", () => {
-  test.each(KEY_CHECKS.map((check: KeyCheck) => [check.file, check]))(
-    "%s",
-    (_file: unknown, check: unknown) => {
-      const keyCheck: KeyCheck = check as KeyCheck;
-      const segment: string = segmentOf(keyCheck);
+  test.each(
+    KEY_CHECKS.map((check: KeyCheck) => {
+      return [check.file, check];
+    }),
+  )("%s", (_file: unknown, check: unknown) => {
+    const keyCheck: KeyCheck = check as KeyCheck;
+    const segment: string = segmentOf(keyCheck);
 
-      expect(segment.length).toBeGreaterThan(0);
+    expect(segment.length).toBeGreaterThan(0);
 
-      let position: number = 0;
+    let position: number = 0;
 
-      for (const snippet of keyCheck.inOrder) {
-        const found: number = segment.indexOf(snippet, position);
+    for (const snippet of keyCheck.inOrder) {
+      const found: number = segment.indexOf(snippet, position);
 
-        expect({ file: keyCheck.file, snippet, found: found >= 0 }).toEqual({
-          file: keyCheck.file,
-          snippet,
-          found: true,
-        });
+      expect({ file: keyCheck.file, snippet, found: found >= 0 }).toEqual({
+        file: keyCheck.file,
+        snippet,
+        found: true,
+      });
 
-        position = found + snippet.length;
-      }
-    },
-  );
+      position = found + snippet.length;
+    }
+  });
 
   test("each asks the limit once, and nothing answers the request between the lookup and the question", () => {
     for (const check of KEY_CHECKS) {
@@ -356,9 +363,7 @@ describe("every check of a component's key asks the limit, in the order the rule
 
       expect({
         file: check.file,
-        answersBetween: /\bnext\(|Response\.send|answerRefusal\(/.test(
-          segment.slice(lookup, asked),
-        ),
+        answersBetween: ANSWERS.test(segment.slice(lookup, asked)),
       }).toEqual({ file: check.file, answersBetween: false });
     }
   });
@@ -366,10 +371,9 @@ describe("every check of a component's key asks the limit, in the order the rule
 
 describe("nothing else checks a component's key, or asks the limit", () => {
   test.each(
-    LOOKUP_CALLERS.map((entry: { call: RegExp; callers: Array<string> }) => [
-      entry.call.source,
-      entry,
-    ]),
+    LOOKUP_CALLERS.map((entry: { call: RegExp; callers: Array<string> }) => {
+      return [entry.call.source, entry];
+    }),
   )("%s", (_source: unknown, entry: unknown) => {
     const lookup: { call: RegExp; callers: Array<string> } = entry as {
       call: RegExp;
@@ -387,9 +391,9 @@ describe("nothing else checks a component's key, or asks the limit", () => {
     for (const relativePath of productFilesWhoseCodeMatches(
       /\bCodeFixAgentAuth\.authenticate\(/,
     )) {
-      routes[relativePath] = codeOf(relativePath).split(
-        "CodeFixAgentAuth.authenticate(req, res)",
-      ).length - 1;
+      routes[relativePath] =
+        codeOf(relativePath).split("CodeFixAgentAuth.authenticate(req, res)")
+          .length - 1;
     }
 
     expect(routes).toEqual(CODE_FIX_ROUTE_FILES);
@@ -433,7 +437,11 @@ describe("nothing else checks a component's key, or asks the limit", () => {
 });
 
 describe("the agents whose keys are left out of the count", () => {
-  test.each(Object.keys(SERVER_MADE_KEY_CHECKS).map((file: string) => [file]))(
+  test.each(
+    Object.keys(SERVER_MADE_KEY_CHECKS).map((file: string) => {
+      return [file];
+    }),
+  )(
     "%s checks a key the server made, kept as a hash nobody may write or read",
     (file: string) => {
       if (!hasEe && file.startsWith("ee/")) {
@@ -460,7 +468,7 @@ describe("the agents whose keys are left out of the count", () => {
       const service: string = collapsed(codeOf(entry.service));
 
       expect(service).toContain(
-        "return crypto.randomBytes(AGENT_KEY_BYTES).toString(\"hex\");",
+        'return crypto.randomBytes(AGENT_KEY_BYTES).toString("hex");',
       );
       expect(service).toContain("Service.doesKeyMatchHash(");
 

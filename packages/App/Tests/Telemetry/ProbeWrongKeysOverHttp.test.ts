@@ -40,7 +40,6 @@ import {
 import { JSONObject } from "Common/Types/JSON";
 import {
   afterAll,
-  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -109,7 +108,14 @@ function fleetProbeId(index: number): string {
  */
 function probeTable(query: JSONObject): JSONObject | null {
   const asRead: (id: string) => string = (id: string): string => {
-    return id.toLowerCase().split("-").join("").split("{").join("").split("}").join("");
+    return id
+      .toLowerCase()
+      .split("-")
+      .join("")
+      .split("{")
+      .join("")
+      .split("}")
+      .join("");
   };
 
   const id: string | undefined = Object.keys(PROBES).find(
@@ -180,8 +186,10 @@ beforeAll(async () => {
       return data;
     });
 
-    probeIngest = require("../../FeatureSet/Telemetry/API/ProbeIngest/Probe").default;
-    registration = require("../../FeatureSet/Telemetry/API/ProbeIngest/Register").default;
+    probeIngest =
+      require("../../FeatureSet/Telemetry/API/ProbeIngest/Probe").default;
+    registration =
+      require("../../FeatureSet/Telemetry/API/ProbeIngest/Register").default;
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
   });
 
@@ -282,7 +290,9 @@ async function post(
             resolve({
               status: response.statusCode || 0,
               body: text ? (JSON.parse(text) as JSONObject) : {},
-              retryAfter: Array.isArray(retryAfter) ? retryAfter[0] : retryAfter,
+              retryAfter: Array.isArray(retryAfter)
+                ? retryAfter[0]
+                : retryAfter,
             });
           });
         },

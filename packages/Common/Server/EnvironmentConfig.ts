@@ -647,7 +647,8 @@ export const ClusterKeyWarning: string | null = IsClusterKeyShipped
  * registers only as a Runner of an earlier release does, with the cluster
  * key.
  */
-export const SharedRunnerKey: string = process.env["ONEUPTIME_RUNNER_KEY"] || "";
+export const SharedRunnerKey: string =
+  process.env["ONEUPTIME_RUNNER_KEY"] || "";
 
 export const IsSharedRunnerKeyShipped: boolean = isShippedSecretValue(
   process.env["ONEUPTIME_RUNNER_KEY"],

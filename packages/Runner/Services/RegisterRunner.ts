@@ -778,7 +778,10 @@ export default class Register {
    * Runner needs none.
    */
   public static holdsClusterKey(): boolean {
-    if (!HasClusterKey || ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) {
+    if (
+      !HasClusterKey ||
+      ClusterKeyAuthorization.isConfiguredClusterKeyShipped()
+    ) {
       return false;
     }
 

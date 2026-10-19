@@ -127,7 +127,14 @@ function tableLookup(
   return async (findBy: unknown): Promise<unknown> => {
     const query: JSONObject = (findBy as { query: JSONObject }).query;
     const asRead: (id: string) => string = (id: string): string => {
-      return id.toLowerCase().split("-").join("").split("{").join("").split("}").join("");
+      return id
+        .toLowerCase()
+        .split("-")
+        .join("")
+        .split("{")
+        .join("")
+        .split("}")
+        .join("");
     };
 
     const id: string | undefined = Object.keys(table).find(
@@ -284,7 +291,9 @@ async function post(
             resolve({
               status: response.statusCode || 0,
               body: text ? (JSON.parse(text) as JSONObject) : {},
-              retryAfter: Array.isArray(retryAfter) ? retryAfter[0] : retryAfter,
+              retryAfter: Array.isArray(retryAfter)
+                ? retryAfter[0]
+                : retryAfter,
             });
           });
         },
@@ -380,13 +389,8 @@ describe("a Runner's key on the runbook protocol", () => {
         .status,
     ).toBe(200);
     expect(
-      (
-        await runbookHeartbeat(
-          CLIENT,
-          OTHER_RUNNER,
-          RUNNERS[OTHER_RUNNER]!.key,
-        )
-      ).status,
+      (await runbookHeartbeat(CLIENT, OTHER_RUNNER, RUNNERS[OTHER_RUNNER]!.key))
+        .status,
     ).toBe(200);
   });
 
@@ -483,7 +487,9 @@ describe("the shared Runner's global agent, on the code-fix protocol and its hea
       );
 
       expect(result.status).toBe(400);
-      expect(result.body["message"]).toBe("Invalid AI Agent ID or AI Agent Key");
+      expect(result.body["message"]).toBe(
+        "Invalid AI Agent ID or AI Agent Key",
+      );
     }
 
     // Ten wrong keys tried nothing past the limit: the right one still works.
@@ -504,8 +510,13 @@ describe("the shared Runner's global agent, on the code-fix protocol and its hea
 
     // The shared Runner itself, from its own address.
     expect(
-      (await agentAlive(OTHER_CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key))
-        .status,
+      (
+        await agentAlive(
+          OTHER_CLIENT,
+          GLOBAL_AGENT,
+          AI_AGENTS[GLOBAL_AGENT]!.key,
+        )
+      ).status,
     ).toBe(200);
     expect(
       (
@@ -550,9 +561,9 @@ describe("what is never counted", () => {
 
   test("a Runner's id on the AI agent heartbeat, which only AI agents use: never let in there, so never counted there", async () => {
     for (let index: number = 0; index < 20; index++) {
-      expect(
-        (await agentAlive(CLIENT, RUNNER, `guess-${index}`)).status,
-      ).toBe(400);
+      expect((await agentAlive(CLIENT, RUNNER, `guess-${index}`)).status).toBe(
+        400,
+      );
     }
 
     expect(redis.sets.size).toBe(0);
