@@ -78,19 +78,19 @@ describe("the English upgrade note on the bundled datastores' passwords", () => 
     // inlineCode lists a text's code spans sorted, each as often as it appears.
     expect(inlineCode(ENGLISH_NOTE)).toEqual(
       [
-      "CLICKHOUSE_PASSWORD",
-      "VALKEY_PASSWORD",
-      "config.env",
-      "config.example.env",
-      "npm start",
-      "npm run update",
-      "CLICKHOUSE_HOST",
-      "VALKEY_HOST",
-      "config.env",
-      "npm start",
-      "REGISTER_PROBE_KEY",
-      "clickhouseOperator.altinity.enabled",
-      "helm upgrade",
+        "CLICKHOUSE_PASSWORD",
+        "VALKEY_PASSWORD",
+        "config.env",
+        "config.example.env",
+        "npm start",
+        "npm run update",
+        "CLICKHOUSE_HOST",
+        "VALKEY_HOST",
+        "config.env",
+        "npm start",
+        "REGISTER_PROBE_KEY",
+        "clickhouseOperator.altinity.enabled",
+        "helm upgrade",
       ].sort(),
     );
   });
@@ -199,7 +199,9 @@ describe("the note is true to the code", () => {
       );
     }
 
-    expect(source("packages/Common/Server/Services/RunnerService.ts")).toContain(
+    expect(
+      source("packages/Common/Server/Services/RunnerService.ts"),
+    ).toContain(
       "if (isShippedSecretValue(data.agentKey)) {\n      return null;\n    }",
     );
   });
@@ -230,7 +232,9 @@ describe("the note is true to the code", () => {
       '{{- $stored := ((lookup "v1" "Secret" (include "oneuptime.altinityOperator.namespace" .) (include "oneuptime.altinityOperator.fullname" .)).data) | default dict -}}',
     );
 
-    const notes: string = source("HelmChart/Public/oneuptime/templates/NOTES.txt");
+    const notes: string = source(
+      "HelmChart/Public/oneuptime/templates/NOTES.txt",
+    );
     expect(notes).toContain(
       "ACTION RECOMMENDED -- the ClickHouse operator's own user still has the password",
     );

@@ -26,9 +26,7 @@ interface EnvironmentConfigShape {
   ShippedDatastorePasswordSettings: Array<string>;
   DatastorePasswordWarning: string | null;
   ChangeDatabasePasswordDocsUrl: string;
-  describeShippedDatastorePasswords: (
-    settings: Array<string>,
-  ) => string | null;
+  describeShippedDatastorePasswords: (settings: Array<string>) => string | null;
 }
 
 /* <repo>/Common/Tests/Server -> <repo> */
@@ -98,11 +96,7 @@ afterEach(() => {
 });
 
 describe("RegisterProbeKeyWarning", () => {
-  it.each([
-    ["unset", undefined],
-    ["blank", "   "],
-    ...SHIPPED_VALUES,
-  ])(
+  it.each([["unset", undefined], ["blank", "   "], ...SHIPPED_VALUES])(
     "is said when REGISTER_PROBE_KEY is %s",
     async (_label: string, value: string | undefined) => {
       const config: EnvironmentConfigShape = await load({

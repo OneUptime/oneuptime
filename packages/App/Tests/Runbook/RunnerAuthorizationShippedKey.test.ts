@@ -49,8 +49,14 @@ const REAL_KEY: string = "33333333-3333-4333-8333-333333333333";
 const SHIPPED_KEYS: Array<[string, string]> = [
   ["the old fallback", "secret"],
   ["the placeholder", "please-change-this-to-random-value"],
-  ["a bundled probe's placeholder", "probe-2-please-change-this-to-random-value"],
-  ["a placeholder with something added", "please-change-this-to-random-value-x"],
+  [
+    "a bundled probe's placeholder",
+    "probe-2-please-change-this-to-random-value",
+  ],
+  [
+    "a placeholder with something added",
+    "please-change-this-to-random-value-x",
+  ],
   ["a padded placeholder", "  please-change-this-to-random-value  "],
   ["a key of spaces", "    "],
 ];

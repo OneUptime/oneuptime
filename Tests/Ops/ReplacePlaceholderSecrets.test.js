@@ -451,7 +451,12 @@ describe("the passwords of the datastores Docker Compose runs", () => {
         ];
       }),
     ).toEqual([
-      ["ClickHouse", ["CLICKHOUSE_PASSWORD"], ["CLICKHOUSE_HOST"], ["clickhouse"]],
+      [
+        "ClickHouse",
+        ["CLICKHOUSE_PASSWORD"],
+        ["CLICKHOUSE_HOST"],
+        ["clickhouse"],
+      ],
       [
         "Valkey",
         ["VALKEY_PASSWORD", "REDIS_PASSWORD"],
@@ -501,8 +506,12 @@ describe("the passwords of the datastores Docker Compose runs", () => {
     ]);
 
     expect(result.replaced).toEqual(["CLICKHOUSE_PASSWORD", "VALKEY_PASSWORD"]);
-    expect(isPlaceholderValue(valueOf(result.contents, "CLICKHOUSE_PASSWORD"))).toBe(false);
-    expect(isPlaceholderValue(valueOf(result.contents, "VALKEY_PASSWORD"))).toBe(false);
+    expect(
+      isPlaceholderValue(valueOf(result.contents, "CLICKHOUSE_PASSWORD")),
+    ).toBe(false);
+    expect(
+      isPlaceholderValue(valueOf(result.contents, "VALKEY_PASSWORD")),
+    ).toBe(false);
   });
 
   test.each([

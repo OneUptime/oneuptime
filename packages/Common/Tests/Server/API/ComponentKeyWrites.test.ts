@@ -133,8 +133,14 @@ const SHIPPED_KEYS: Array<[string, string]> = [
     "the placeholder config.example.env ships",
     "please-change-this-to-random-value",
   ],
-  ["a bundled probe's placeholder", "probe-1-please-change-this-to-random-value"],
-  ["a placeholder with something added", "please-change-this-to-random-value-2"],
+  [
+    "a bundled probe's placeholder",
+    "probe-1-please-change-this-to-random-value",
+  ],
+  [
+    "a placeholder with something added",
+    "please-change-this-to-random-value-2",
+  ],
   ["a padded placeholder", "  please-change-this-to-random-value  "],
   ["a padded fallback", " secret "],
   ["a key of spaces", "   "],
@@ -303,10 +309,7 @@ async function update(
   });
 }
 
-function expectShippedKeyRefusal(
-  kind: Kind,
-  error: Error | undefined,
-): void {
+function expectShippedKeyRefusal(kind: Kind, error: Error | undefined): void {
   expect(error).toBeInstanceOf(BadDataException);
   expect((error as Error).message).toBe(
     ComponentKeyWrite.refusal(kind.component),
@@ -444,10 +447,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
       expect(keyWriters(kind, "update").length).toBeGreaterThan(0);
     });
 
-    test.each([
-      ...SHIPPED_KEYS,
-      ["an empty key", ""] as [string, string],
-    ])(
+    test.each([...SHIPPED_KEYS, ["an empty key", ""] as [string, string]])(
       "%s is refused, and the stored key stays",
       async (_label: string, key: string) => {
         const { error } = await update(kind, { key: key });
