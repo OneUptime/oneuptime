@@ -1,6 +1,7 @@
 import RunnerAuthorization from "../Middleware/RunnerAuthorization";
 import { RunnerExpressRequest } from "../Types/Request";
 import RunbookSecretsUtil from "../Utils/Secrets";
+import { getSecretNamesNotIn } from "../Utils/SecretNames";
 import RunbookCredentialsUtil from "../Utils/Credentials";
 import RunnerService, {
   Service as RunnerServiceClass,
@@ -725,12 +726,17 @@ export default class RunnerIngressAPI {
        * step, saying which and how to fix it - rather than running it with
        * the placeholder where the value should be.
        */
-      const notAvailable: Array<string> = RunbookSecretsUtil.getSecretNamesNotIn(
-        {
-          script: scriptToSend,
-          secrets,
-        },
-      );
+      const notAvailable: Array<string> = getSecretNamesNotIn({
+        script: scriptToSend,
+        available: secrets
+          .filter((secret: RunbookSecret): boolean => {
+            // A secret with no value would leave its placeholder unfilled.
+            return Boolean(secret.name && secret.secretValue);
+          })
+          .map((secret: RunbookSecret): string => {
+            return secret.name as string;
+          }),
+      });
 
       if (notAvailable.length > 0) {
         await RunnerJobService.submitResult({

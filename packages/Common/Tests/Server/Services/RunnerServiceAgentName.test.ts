@@ -429,6 +429,8 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
 
       const agent: Runner = new Runner();
       agent.name = "kubernetes-agent/prod";
+      // Registration names the cluster's project: a Runner belongs to one, or is global.
+      agent.projectId = PROJECT_ID;
 
       await expect(
         hooks.onBeforeCreate({

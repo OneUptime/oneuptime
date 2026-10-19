@@ -246,7 +246,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(Service.getReservedAgentNameRefusal());
     }
 
-    Service.holdToGlobalRunnerShape(createBy.data);
+    Service.holdToGlobalRunnerShape(createBy.data, createBy.props.tenantId);
 
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
@@ -668,9 +668,13 @@ export class Service extends ProjectReferencesService<Model> {
    * OneUptime or a master admin may write isGlobalRunner at all (the column
    * takes no one's create permission).
    */
-  public static holdToGlobalRunnerShape(data: Model): void {
+  public static holdToGlobalRunnerShape(
+    data: Model,
+    // The project the create is made in, which the create stamps on the row.
+    tenantId?: ObjectID | undefined,
+  ): void {
     if (data.isGlobalRunner === true) {
-      if (data.projectId || data.project) {
+      if (data.projectId || data.project || tenantId) {
         throw new BadDataException(GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE);
       }
 
@@ -688,7 +692,7 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    if (!data.projectId && !data.project) {
+    if (!data.projectId && !data.project && !tenantId) {
       throw new BadDataException(RUNNER_WITHOUT_PROJECT_MESSAGE);
     }
   }

@@ -5,12 +5,6 @@ import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import RunbookSecretService from "Common/Server/Services/RunbookSecretService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
-import {
-  TemplatePlaceholder,
-  findTemplatePlaceholders,
-} from "Common/Utils/TemplatePlaceholders";
-
-const RUNBOOK_SECRETS_PREFIX: string = "runbookSecrets.";
 
 export default class RunbookSecretsUtil {
   /*
@@ -64,54 +58,6 @@ export default class RunbookSecretsUtil {
         isRoot: true,
       },
     });
-  }
-
-  /*
-   * The runbook secrets a script names ({{runbookSecrets.NAME}}), each once,
-   * in the order it names them - read with the same placeholder reader that
-   * fills them in, in time in line with the script's length.
-   */
-  public static getSecretNamesInScript(script: string): Array<string> {
-    const names: Array<string> = [];
-
-    for (const placeholder of findTemplatePlaceholders(script || "")) {
-      const inner: string = (placeholder as TemplatePlaceholder).inner.trim();
-
-      if (!inner.startsWith(RUNBOOK_SECRETS_PREFIX)) {
-        continue;
-      }
-
-      const name: string = inner.slice(RUNBOOK_SECRETS_PREFIX.length).trim();
-
-      if (name && !names.includes(name)) {
-        names.push(name);
-      }
-    }
-
-    return names;
-  }
-
-  /*
-   * The secrets a script names that are not among `secrets` - for a step on
-   * a global Runner, the ones its project has not let global Runners use (or
-   * that do not exist). Such a step is failed with their names rather than
-   * run with a placeholder where the value should be.
-   */
-  public static getSecretNamesNotIn(data: {
-    script: string;
-    secrets: Array<RunbookSecret>;
-  }): Array<string> {
-    const available: Set<string> = new Set<string>(
-      data.secrets.map((secret: RunbookSecret): string => {
-        return secret.name || "";
-      }),
-    );
-
-    return RunbookSecretsUtil.getSecretNamesInScript(data.script).filter(
-      (name: string): boolean => {
-        return !available.has(name);
-      },
-    );
   }
 
   public static populateInScript(data: {
