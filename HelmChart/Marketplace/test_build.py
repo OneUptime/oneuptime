@@ -10,6 +10,7 @@ runs these, then renders each built edition with helm.
 """
 
 import json
+import os
 import re
 import shutil
 import sys
@@ -564,6 +565,60 @@ def subschemas(schema: Dict[str, Any], path: Tuple[str, ...] = ()) -> List[Tuple
     return found
 
 
+def released_agent_chart_predates_the_add_on() -> bool:
+    """
+    True only where the checkout holds a release's charts - the Marketplace Release workflow's test
+    job sets MARKETPLACE_RELEASED_CHARTS to that release - and the release's Kubernetes agent chart
+    is from before the EKS add-on. Such a release has no add-on to check, and build.py refuses to
+    build one from it, as the marketplace suite's own add-on checks skip it. Anywhere else (this
+    repository's charts) the add-on's tests always run.
+    """
+    if not os.environ.get("MARKETPLACE_RELEASED_CHARTS", "").strip():
+        return False
+
+    values = build.ValuesEditor((build.AGENT_CHART / "values.yaml").read_text())
+
+    try:
+        values.get_scalar(["oneuptime", "existingSecretName"])
+    except KeyError:
+        return True
+
+    return False
+
+
+SKIP_A_RELEASE_FROM_BEFORE_THE_ADD_ON = unittest.skipIf(
+    released_agent_chart_predates_the_add_on(),
+    f"{build.EKS_ADDON_PREDATES}: the charts here are a release's (MARKETPLACE_RELEASED_CHARTS)",
+)
+
+
+class ReleasedChartsTest(unittest.TestCase):
+    """Built on agent charts of its own: the checkout's may itself be a release's, old or new."""
+
+    def agent_chart(self, directory: Path, with_the_add_on: bool) -> Path:
+        chart: Path = directory / ("new" if with_the_add_on else "old")
+        chart.mkdir()
+        secret: str = '  existingSecretName: ""\n' if with_the_add_on else ""
+        (chart / "values.yaml").write_text('oneuptime:\n  url: ""\n' + secret)
+        return chart
+
+    def predates(self, chart: Path, released: str) -> bool:
+        with mock.patch.dict(os.environ, {"MARKETPLACE_RELEASED_CHARTS": released}):
+            with mock.patch.object(build, "AGENT_CHART", chart):
+                return released_agent_chart_predates_the_add_on()
+
+    def test_skips_the_add_on_only_for_a_release_from_before_it(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertTrue(self.predates(self.agent_chart(Path(directory), False), "14.0.72"))
+            self.assertFalse(self.predates(self.agent_chart(Path(directory), True), "14.0.74"))
+
+    def test_never_skips_this_repository_s_charts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            # An agent chart here that lost the add-on's value fails the add-on's tests.
+            self.assertFalse(self.predates(self.agent_chart(Path(directory), False), ""))
+
+
+@SKIP_A_RELEASE_FROM_BEFORE_THE_ADD_ON
 class EksAddonConfigurationSchemaTest(unittest.TestCase):
     def schema(self) -> Dict[str, Any]:
         return build.load_json(build.EKS_ADDON_DIR / "configuration-schema.json")
@@ -674,6 +729,7 @@ class EksAddonConfigurationSchemaTest(unittest.TestCase):
             self.assertEqual(schema_errors(schema, value), [], value)
 
 
+@SKIP_A_RELEASE_FROM_BEFORE_THE_ADD_ON
 class EksAddonBuildTest(unittest.TestCase):
     def setUp(self) -> None:
         self.out: Path = Path(tempfile.mkdtemp())
