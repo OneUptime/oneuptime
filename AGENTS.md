@@ -104,11 +104,12 @@ what customers must do after a permission change.
 
 OneUptime Cloud's GitHub Apps (OneUptime for oneuptime.com, OneUptime Test for test.oneuptime.com) are configured on
 GitHub, not in this repository: merging code changes none of their settings. Before changing what the code needs
-from an app - a token permission, a webhook event, the install or sign-in callback, the webhook route - read
+from an app - a token permission, a webhook event, the install or sign-in callback, the webhook route - or the app's
+GitHub Marketplace listing, read
 [the GitHub App guide](packages/Common/Server/Utils/CodeRepository/GitHub/RELEASING.md). It names the apps and the
 organization that owns them, lists every setting the code depends on and what breaks without it, and says in which
-order to change the app and the code, how to test end to end on test.oneuptime.com, and where publisher verification
-and the GitHub Marketplace stand.
+order to change the app and the code, how to test end to end on test.oneuptime.com, where publisher verification
+stands, and what the GitHub Marketplace listing holds and how to change it.
 
 ### Cloud marketplace listings
 
