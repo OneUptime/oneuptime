@@ -80,7 +80,7 @@ sequenceDiagram
 
 ### OAuth 2.0 客户端凭据
 
-有些身份提供商不保存 Bearer 令牌，而是要求提供 OAuth 2.0 客户端凭据：Microsoft Entra 应用程序库中的 OneUptime 应用就是如此。每个连接，无论属于项目还是状态页面，都在显示其 **SCIM Base URL** 的同一个对话框中、**OAuth 2.0 Client Credentials** 下方提供这些凭据：
+有些身份提供商不保存 Bearer 令牌，而是要求提供 OAuth 2.0 客户端凭据。每个连接，无论属于项目还是状态页面，都在显示其 **SCIM Base URL** 的同一个对话框中、**OAuth 2.0 Client Credentials** 下方提供这些凭据：
 
 - **Token Endpoint**：您的身份提供商获取访问令牌的地址。所有连接都相同：在 OneUptime Cloud 上为 `https://oneuptime.com/identity/scim/oauth/token`。
 - **Client ID**：连接的 ID。
@@ -145,7 +145,7 @@ Microsoft Entra ID 提供带有 SCIM 预配的企业级身份管理。您需要�
 - OneUptime Cloud 上使用 **Scale** 或更高套餐的 OneUptime 项目。
 - Microsoft Entra ID 和 OneUptime 的管理员访问权限。
 
-在 OneUptime Cloud 上，如果 Microsoft Entra 应用程序库中列出了 OneUptime，请从那里添加：它使用连接的 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据) 进行预配，并自带下面的属性映射。如果您已经为 SSO 添加过它，请使用那个应用程序。
+Microsoft Entra 应用程序库中的 OneUptime 应用用于单点登录。要进行预配，即使您已经为 SSO 从应用程序库添加了 OneUptime，也请按下面的步骤创建您自己的应用程序。
 
 :::steps
 #### 为 Entra ID 创建 SCIM 连接
@@ -165,23 +165,21 @@ Microsoft Entra ID 提供带有 SCIM 预配的企业级身份管理。您需要�
 
 1. 登录 [Microsoft Entra admin center](https://entra.microsoft.com)
 2. 导航至 **Identity** > **Applications** > **Enterprise applications**
-3. 点击 **+ New application**
-4. 从应用程序库添加：搜索 OneUptime，选中它，然后点击 **Create**
-5. 否则：点击 **+ Create your own application**，输入名称（例如 "OneUptime"），选择 **Integrate any other application you don't find in the gallery (Non-gallery)**，然后点击 **Create**
+3. 点击 **+ New application**，然后点击 **+ Create your own application**
+4. 输入名称（例如 "OneUptime"）
+5. 选择 **Integrate any other application you don't find in the gallery (Non-gallery)**，然后点击 **Create**
 
 #### 将 Entra ID 连接到 OneUptime
 
 1. 在您的 OneUptime 企业应用程序中前往 **Provisioning**，点击 **Get started**
 2. 将 **Provisioning Mode** 设为 **Automatic**
-3. 在 **Admin Credentials** 下：
-   - 对于从应用程序库添加的应用程序，将 **Tenant URL** 设为 OneUptime 的 **SCIM Base URL**，将 **Token Endpoint** 设为 OneUptime 的 **Token Endpoint**，将 **Client Identifier** 设为 OneUptime 的 **Client ID**，并将 **Client Secret** 设为您用 **Make Client Secret** 创建的密钥
-   - 对于您自己创建的应用程序，将 **Tenant URL** 设为 OneUptime 的 **SCIM Base URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`），将 **Secret Token** 设为 **Bearer Token**
+3. 在 **Admin Credentials** 下，将 **Tenant URL** 设为 OneUptime 的 **SCIM Base URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`），将 **Secret Token** 设为 **Bearer Token**
 4. 点击 **Test Connection** 验证配置，然后点击 **Save**
 
 #### 在 Entra ID 中映射用户属性
 
 1. 在 Provisioning 部分点击 **Mappings**，然后点击 **Provision Azure Active Directory Users**
-2. 配置以下属性映射，移除不需要的映射，然后点击 **Save**。从应用程序库添加的应用程序已自带这些映射：
+2. 配置以下属性映射，移除不需要的映射，然后点击 **Save**：
 
 | Azure AD 属性                                                 | OneUptime SCIM 属性            | 是否必填 |
 | ------------------------------------------------------------- | ------------------------------ | -------- |
@@ -403,7 +401,7 @@ OneUptime 的 SCIM 实现遵循 SCIM v2.0 规范，可与任何兼容的身份�
 先查看 **项目设置** > **安全** > **SCIM**（或状态页面的 **SCIM** 页面）中的 **日志** 选项卡。它会列出您的身份提供商发送的 SCIM 请求及其状态，**查看详情** 会显示请求以及 OneUptime 的响应。
 
 :::details Entra ID: Test Connection 失败
-请检查 **Tenant URL** 是否与 OneUptime 显示的 **SCIM Base URL** 完全一致，以及 **Secret Token** 是否为当前的 **Bearer Token**。执行 **重置 Bearer 令牌** 后，旧令牌将不再有效。对于从应用程序库添加的应用程序，请检查 **Token Endpoint**，确认 **Client Identifier** 是连接的 **Client ID**，并确认 **Client Secret** 没有过期或被删除：过期或被删除的密钥无法换取访问令牌。请用 **Make New Client Secret** 创建一个新的密钥。
+请检查 **Tenant URL** 是否与 OneUptime 显示的 **SCIM Base URL** 完全一致，以及 **Secret Token** 是否为当前的 **Bearer Token**。执行 **重置 Bearer 令牌** 后，旧令牌将不再有效。
 :::
 
 :::details Okta: API 凭据测试失败，或请求收到 401 Unauthorized
