@@ -25,6 +25,10 @@ const SCREENSHOTS: string = path.resolve(
   "../../../output/playwright/llm-provider-test-ui",
 );
 
+// Kanji, hiragana or katakana: a name the Japanese locale translated.
+const JAPANESE_SCRIPT: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
 const CARDS_IN_ORDER: Array<string> = [
   "OpenAI",
   "Anthropic",
@@ -414,6 +418,86 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
       }),
     ).toBeLessThanOrEqual(390);
     await shoot(page, "form-connection-more-fields-line-phone");
+  });
+
+  /*
+   * The line's commas are text on screen, so they are written the way
+   * Japanese writes a list: 、 with no space after it. With no space to
+   * break at, the names still wrap between one another - each whole - and
+   * stay inside a phone's screen.
+   */
+  test("in Japanese, More fields lists its names with 、 and wraps them whole at phone width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 320, height: 760 });
+    await open(page, "page=list&lang=ja");
+    await page
+      .getByRole("button", { name: "LLM プロバイダーを作成" })
+      .first()
+      .click();
+    await expect(card(page, "Mistral")).toBeVisible();
+    await card(page, "Mistral").click();
+    await next(page).click();
+
+    const more: Locator = dialog(page).getByRole("button", {
+      name: "その他の項目",
+      exact: true,
+    });
+    await expect(more).toBeVisible();
+
+    const contents: Locator = more.getByTestId("folded-section-contents");
+    const names: Array<string> = (
+      await more.getByTestId("folded-section-item").allTextContents()
+    ).map((name: string): string => {
+      return name.trim();
+    });
+
+    expect(names.length).toBeGreaterThan(1);
+    // Japanese names, listed with 、 and no space after it - never ", ".
+    expect(names.join("")).toMatch(JAPANESE_SCRIPT);
+    expect(((await contents.textContent()) || "").trim()).toBe(
+      names.join("、"),
+    );
+
+    // Each name wraps whole, its 、 with it: one line of text per entry.
+    const entries: Array<{ x: number; y: number; height: number }> =
+      await contents.evaluate(
+        (element: Element): Array<{ x: number; y: number; height: number }> => {
+          return Array.from(element.children).map((child: Element) => {
+            const rect: DOMRect = child.getBoundingClientRect();
+            return { x: rect.x, y: rect.y, height: rect.height };
+          });
+        },
+      );
+
+    expect(entries.length).toBe(names.length);
+
+    for (const entry of entries) {
+      expect(entry.height).toBeLessThanOrEqual(26);
+    }
+
+    /*
+     * At this width the list takes more than one line, and starts each
+     * line under the title, never off the screen.
+     */
+    const rows: Set<number> = new Set<number>(
+      entries.map((entry: { y: number }): number => {
+        return Math.round(entry.y);
+      }),
+    );
+    expect(rows.size).toBeGreaterThan(1);
+
+    const box: { x: number; width: number } | null = await more.boundingBox();
+    expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+    expect(
+      await page.evaluate(() => {
+        return document.documentElement.scrollWidth;
+      }),
+    ).toBeLessThanOrEqual(320);
+
+    await shoot(page, "form-connection-more-fields-line-ja-phone");
   });
 
   test("at phone width the cards are one to a row, and the dialog fits", async ({
