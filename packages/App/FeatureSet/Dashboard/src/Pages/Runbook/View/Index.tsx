@@ -67,7 +67,11 @@ import {
 } from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
 import {
   RUNBOOK_ADD_STEPS_BUTTON_TEST_ID,
+  RUNBOOK_LAST_RUN_LINK_TEST_ID,
+  RUNBOOK_LAST_RUN_TILE_TEST_ID,
   RUNBOOK_NO_STEPS_TEST_ID,
+  RUNBOOK_TOTAL_RUNS_LINK_TEST_ID,
+  RUNBOOK_TOTAL_RUNS_TILE_TEST_ID,
   RunbookOverviewCopy,
   RunbookOverviewFacts,
   getRunNowLockedReason,
@@ -76,6 +80,31 @@ import {
 } from "../../../Components/Runbook/RunbookOverviewState";
 import RunbookTurnedOffBanner from "../../../Components/Runbook/RunbookTurnedOffBanner";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import Link from "Common/UI/Components/Link/Link";
+
+/*
+ * The Activity card's tiles. Last Run and Total Runs are the Overview's way
+ * to the runs, which the side menu keeps in its folded Logs section, so each
+ * is a real link: its label, stretched over the whole tile (the pattern of
+ * the Runbook Steps headers). The keyboard reaches it, a middle click opens
+ * a new tab, and its focus ring draws round the tile. They used to be tiles
+ * with a click handler, which the keyboard never reached, and which took a
+ * click on the last run's incident or alert link to the run instead.
+ */
+const ACTIVITY_TILE_CLASS_NAME: string =
+  "relative rounded-xl border border-gray-200 bg-white p-4";
+const LINKED_ACTIVITY_TILE_CLASS_NAME: string = `${ACTIVITY_TILE_CLASS_NAME} hover:border-indigo-300 hover:shadow-sm transition`;
+const ACTIVITY_TILE_LABEL_CLASS_NAME: string =
+  "text-xs font-medium text-gray-500 uppercase tracking-wide mb-2";
+const ACTIVITY_TILE_LINK_CLASS_NAME: string =
+  "after:absolute after:inset-0 after:rounded-xl focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500";
+/*
+ * What started the last run sits above the stretched link: its own link
+ * (an incident, an alert, a maintenance event) opens what it names, and a
+ * click on its words falls through to the run.
+ */
+const ABOVE_TILE_LINK_CLASS_NAME: string =
+  "relative z-10 pointer-events-none [&_a]:pointer-events-auto";
 
 function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
   switch (status) {
@@ -363,25 +392,20 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const lastStartedAt: Date | undefined =
     lastExec?.startedAt || lastExec?.createdAt;
 
-  const goToExecution: (executionId: string) => void = (
-    executionId: string,
-  ) => {
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(
+  /*
+   * Where the Last Run and Total Runs tiles lead: the Overview's own way to
+   * the runs, which the side menu keeps under its folded Logs section.
+   */
+  const lastRunRoute: Route | null = lastExec?._id
+    ? RouteUtil.populateRouteParams(
         RouteMap[PageMap.RUNBOOK_VIEW_EXECUTION] as Route,
-        { modelId, subModelId: executionId },
-      ),
-    );
-  };
-
-  const goToExecutionsList: () => void = () => {
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        RouteMap[PageMap.RUNBOOK_VIEW_EXECUTIONS] as Route,
-        { modelId },
-      ),
-    );
-  };
+        { modelId, subModelId: lastExec._id.toString() },
+      )
+    : null;
+  const executionsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.RUNBOOK_VIEW_EXECUTIONS] as Route,
+    { modelId },
+  );
 
   return (
     <Fragment>
@@ -546,15 +570,25 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
           )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div
-              className={`rounded-xl border border-gray-200 bg-white p-4 ${lastExec?._id ? "cursor-pointer hover:border-indigo-300 hover:shadow-sm transition" : ""}`}
-              onClick={() => {
-                if (lastExec?._id) {
-                  goToExecution(lastExec._id as unknown as string);
-                }
-              }}
+              className={
+                lastRunRoute
+                  ? LINKED_ACTIVITY_TILE_CLASS_NAME
+                  : ACTIVITY_TILE_CLASS_NAME
+              }
+              data-testid={RUNBOOK_LAST_RUN_TILE_TEST_ID}
             >
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                {translator.translateText("Last Run")}
+              <div className={ACTIVITY_TILE_LABEL_CLASS_NAME}>
+                {lastRunRoute ? (
+                  <Link
+                    to={lastRunRoute}
+                    className={ACTIVITY_TILE_LINK_CLASS_NAME}
+                    dataTestId={RUNBOOK_LAST_RUN_LINK_TEST_ID}
+                  >
+                    {translator.translateText("Last Run")}
+                  </Link>
+                ) : (
+                  translator.translateText("Last Run")
+                )}
               </div>
               {!stats.isLoaded ? (
                 <div className="text-sm text-gray-400">
@@ -575,7 +609,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         )
                       : null}
                   </div>
-                  <div className="mt-1">
+                  <div className={`mt-1 ${ABOVE_TILE_LINK_CLASS_NAME}`}>
                     {triggerSourceElement(lastExec, translator)}
                   </div>
                 </div>
@@ -605,11 +639,17 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
             </div>
 
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-indigo-300 hover:shadow-sm transition"
-              onClick={goToExecutionsList}
+              className={LINKED_ACTIVITY_TILE_CLASS_NAME}
+              data-testid={RUNBOOK_TOTAL_RUNS_TILE_TEST_ID}
             >
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                {translator.translateText("Total Runs")}
+              <div className={ACTIVITY_TILE_LABEL_CLASS_NAME}>
+                <Link
+                  to={executionsRoute}
+                  className={ACTIVITY_TILE_LINK_CLASS_NAME}
+                  dataTestId={RUNBOOK_TOTAL_RUNS_LINK_TEST_ID}
+                >
+                  {translator.translateText("Total Runs")}
+                </Link>
               </div>
               <div className="text-3xl font-semibold text-gray-900">
                 {stats.isLoaded ? stats.totalRuns : "—"}
@@ -619,11 +659,15 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
               </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+            <div className={ACTIVITY_TILE_CLASS_NAME}>
+              <div className={ACTIVITY_TILE_LABEL_CLASS_NAME}>
                 {translator.translateText("Outcomes")}
               </div>
-              <div className="flex items-baseline gap-3 text-sm">
+              {/*
+               * Wraps rather than running past the tile when the two
+               * counts are long words ("3 abgeschlossen 1 fehlgeschlagen").
+               */}
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
                 <div className="flex items-center gap-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
                   <span className="font-semibold text-gray-900">

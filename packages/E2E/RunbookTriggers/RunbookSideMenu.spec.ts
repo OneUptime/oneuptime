@@ -26,6 +26,12 @@ import path from "path";
  * page inside it - a run's page included - and the phone menu opens a
  * section without closing. The same steps open Triggers here as in the
  * deployed suite (Tests/Dashboard/RunbookTriggers.spec.ts).
+ *
+ * The runbook opens on its real Overview, whose Activity card is the way to
+ * the runs that is always in sight: Last Run and Total Runs are links
+ * stretched over their tiles, clicked here where a person clicks them,
+ * reached from the keyboard, and the last run's own incident link still
+ * opens the incident.
  */
 
 const PORT: string = process.env["RUNBOOK_TRIGGERS_FIXTURE_PORT"] || "4327";
@@ -36,6 +42,17 @@ const RUNBOOK_PATH: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}`;
 const EXECUTIONS_PATH: string = `${RUNBOOK_PATH}/executions`;
 const TRIGGERS_PATH: string = `${RUNBOOK_PATH}/triggers`;
 const SETTINGS_PATH: string = `${RUNBOOK_PATH}/settings`;
+// The incident the fixture's ?lastrunby=incident run was started for.
+const INCIDENT_PATH: string = `/dashboard/${PROJECT_ID}/incidents/70000000-0000-4000-8000-0000000000a7`;
+
+/*
+ * The Overview's Activity tiles that lead to the runs, and their links
+ * (RunbookOverviewState in the Dashboard's Components/Runbook).
+ */
+const LAST_RUN_TILE: string = "runbook-last-run";
+const LAST_RUN_LINK: string = "runbook-last-run-link";
+const TOTAL_RUNS_TILE: string = "runbook-total-runs";
+const TOTAL_RUNS_LINK: string = "runbook-total-runs-link";
 
 const SECTIONS: ReadonlyArray<string> = [
   "Basic",
@@ -163,6 +180,19 @@ function crumbs(page: Page): Locator {
   return page.getByRole("navigation", { name: "Breadcrumb" });
 }
 
+/*
+ * A person's click at the middle of an element. Playwright's own click
+ * refuses an element another one covers, and covering its tile is what a
+ * stretched link is for.
+ */
+async function clickAt(page: Page, target: Locator): Promise<void> {
+  const box: { x: number; y: number; width: number; height: number } | null =
+    await target.boundingBox();
+
+  expect(box, "the element to click is drawn").not.toBeNull();
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+}
+
 test.describe("a runbook's side menu", () => {
   test("on the Overview only Basic is open: Executions and Triggers are out of sight", async ({
     page,
@@ -199,21 +229,30 @@ test.describe("a runbook's side menu", () => {
 
     await sectionToggle(menu, "Basic").focus();
 
+    /*
+     * Every stop in the menu, until the keyboard leaves it for the page
+     * (whose Total Runs links to the runs too, from the Overview itself).
+     */
     const reached: Array<string> = [];
-    // Basic's two rows and five folded toggles, and then some.
     for (let press: number = 0; press < 12; press++) {
       await page.keyboard.press("Tab");
-      reached.push(
-        await page.evaluate((): string => {
-          const focused: Element | null = document.activeElement;
-          return (
-            focused?.getAttribute("href") || focused?.textContent?.trim() || ""
-          );
-        }),
-      );
+      const stop: string | null = await page.evaluate((): string | null => {
+        const focused: Element | null = document.activeElement;
+        if (!focused?.closest("aside[role='navigation']")) {
+          return null;
+        }
+        return (
+          focused.getAttribute("href") || focused.textContent?.trim() || ""
+        );
+      });
+      if (stop === null) {
+        break;
+      }
+      reached.push(stop);
     }
 
-    expect(reached).toContain(`${RUNBOOK_PATH}/steps`);
+    // Basic's two rows, then the five folded sections' titles: nothing else.
+    expect(reached).toEqual([RUNBOOK_PATH, `${RUNBOOK_PATH}/steps`, ...FOLDED]);
     expect(reached).not.toContain(EXECUTIONS_PATH);
     expect(reached).not.toContain(TRIGGERS_PATH);
     expect(reached).not.toContain(SETTINGS_PATH);
@@ -242,9 +281,8 @@ test.describe("a runbook's side menu", () => {
 
     // Back to the Overview: the menu stays as it was left.
     await link(menu, RUNBOOK_PATH).click();
-    await expect(page.getByTestId("fixture-page-not-modelled")).toHaveText(
-      RUNBOOK_PATH,
-    );
+    await expectPath(page, RUNBOOK_PATH);
+    await expect(page.getByTestId(TOTAL_RUNS_TILE)).toBeVisible();
     await expectOpen(menu, "Logs");
     expect(await isMarked(link(menu, RUNBOOK_PATH))).toBe(true);
   });
@@ -359,6 +397,158 @@ test.describe("a runbook's side menu", () => {
     expect(surface).not.toBe("rgb(255, 255, 255)");
 
     await screenshot(page, "triggers-dark");
+  });
+});
+
+/*
+ * With Executions folded under Logs, the Overview's Activity card is the way
+ * to the runs that is always in sight: Last Run opens that run, Total Runs
+ * the list of every run. Each is a link stretched over its tile, which the
+ * keyboard reaches; what started the last run keeps its own link.
+ */
+test.describe("the Overview's way to the runs", () => {
+  test("a click anywhere on Total Runs opens every run, with Logs opened by itself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+    const tile: Locator = page.getByTestId(TOTAL_RUNS_TILE);
+
+    await expect(tile).toContainText("4");
+    await expectFolded(menu, "Logs");
+
+    // On the count, away from the link's own words.
+    await clickAt(page, tile.getByText("4", { exact: true }));
+
+    await expectPath(page, EXECUTIONS_PATH);
+    await expect(page.locator("tbody tr")).toHaveCount(4);
+    await expectOpen(menu, "Logs");
+    expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
+  });
+
+  test("a click on Last Run opens that run, with Executions marked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+    const tile: Locator = page.getByTestId(LAST_RUN_TILE);
+
+    // On the words saying what started it: they let the click through.
+    await clickAt(page, tile.getByText("From 203.0.113.24"));
+
+    await expectPath(page, `${EXECUTIONS_PATH}/${WEBHOOK_RUN_ID}`);
+    await expect(page.getByTestId("runbook-run-trigger")).toContainText(
+      "From 203.0.113.24",
+    );
+    await expectOpen(menu, "Logs");
+    expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
+  });
+
+  test("the keyboard reaches Last Run, then Total Runs, ringing the tile, and Enter opens the runs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    await expect(page.getByTestId(TOTAL_RUNS_TILE)).toContainText("4");
+
+    await page.getByRole("button", { name: "Run Now" }).focus();
+
+    const reached: Array<string> = [];
+    for (let press: number = 0; press < 6; press++) {
+      await page.keyboard.press("Tab");
+      const testId: string = await page.evaluate((): string => {
+        return document.activeElement?.getAttribute("data-testid") || "";
+      });
+      reached.push(testId);
+      if (testId === TOTAL_RUNS_LINK) {
+        break;
+      }
+    }
+
+    expect(reached).toContain(LAST_RUN_LINK);
+    expect(reached[reached.length - 1]).toBe(TOTAL_RUNS_LINK);
+    expect(reached.indexOf(LAST_RUN_LINK)).toBeLessThan(
+      reached.indexOf(TOTAL_RUNS_LINK),
+    );
+
+    // The focus ring is drawn by the link's ::after, round its whole tile.
+    const ring: { shadow: string; covers: boolean } = await page
+      .getByTestId(TOTAL_RUNS_LINK)
+      .evaluate((element: Element): { shadow: string; covers: boolean } => {
+        const after: CSSStyleDeclaration = getComputedStyle(element, "::after");
+        const tile: Element = element.closest(
+          "[data-testid='runbook-total-runs']",
+        ) as Element;
+        const tileBox: DOMRect = tile.getBoundingClientRect();
+        return {
+          shadow: after.boxShadow,
+          covers:
+            after.position === "absolute" &&
+            Math.abs(parseFloat(after.width) - tileBox.width) <= 2 &&
+            Math.abs(parseFloat(after.height) - tileBox.height) <= 2,
+        };
+      });
+    expect(ring.shadow).not.toBe("none");
+    expect(ring.covers).toBe(true);
+
+    await page.keyboard.press("Enter");
+    await expectPath(page, EXECUTIONS_PATH);
+    await expectOpen(desktopMenu(page), "Logs");
+  });
+
+  test("an incident that started the last run opens from its own link inside the tile", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "lastrunby=incident");
+    const tile: Locator = page.getByTestId(LAST_RUN_TILE);
+    const incident: Locator = tile.getByRole("link", {
+      name: "Checkout is down",
+    });
+
+    await expect(incident).toBeVisible();
+    await incident.click();
+
+    // The incident's page, not the run the tile links to.
+    await expectPath(page, INCIDENT_PATH);
+    await expect(page.getByTestId("fixture-page-not-modelled")).toHaveText(
+      INCIDENT_PATH,
+    );
+  });
+
+  test("in German, the Outcomes counts stay inside their tile", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "lang=de");
+    const tile: Locator = page
+      .getByText("Ergebnisse", { exact: true })
+      .locator("xpath=..");
+
+    await expect(tile).toContainText("fehlgeschlagen");
+
+    const pastTheEdge: Array<string> = await tile.evaluate(
+      (element: Element): Array<string> => {
+        const right: number = element.getBoundingClientRect().right;
+        return Array.from(element.querySelectorAll("span"))
+          .filter((span: Element): boolean => {
+            return span.getBoundingClientRect().right > right + 0.5;
+          })
+          .map((span: Element): string => {
+            return span.textContent || "";
+          });
+      },
+    );
+    expect(pastTheEdge).toEqual([]);
+
+    await screenshot(page, "overview-de");
   });
 });
 

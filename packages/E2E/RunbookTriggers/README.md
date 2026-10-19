@@ -45,9 +45,10 @@ The suite drives the page the way a person does:
 
 `RunbookSideMenu.spec.ts` opens the fixture with `?menu=1`, which puts the
 pages inside the runbook's real view layout (`Pages/Runbook/View/Layout.tsx`:
-its header, breadcrumbs and side menu, mounted once as in the Dashboard) and
-draws a stand-in for the pages the fixture does not model. It checks the
-menu the way a person meets it:
+its header, breadcrumbs and side menu, mounted once as in the Dashboard),
+with the runbook's real Overview (`Pages/Runbook/View/Index.tsx`) at its own
+address, and draws a stand-in for the pages the fixture does not model. It
+checks the menu the way a person meets it:
 
 - on the Overview only Basic is open; Executions (under Logs) and Triggers
   and Settings (under Settings) are out of sight and skipped by the keyboard;
@@ -56,7 +57,12 @@ menu the way a person meets it:
 - a bookmarked Triggers page opens Settings by itself, and a run's page opens
   Logs with Executions marked;
 - dark mode, and a phone, where the menu button names the section and page
-  and opening a section does not close the menu.
+  and opening a section does not close the menu;
+- the Overview's own way to the runs: a click anywhere on Total Runs opens
+  the runs and on Last Run that run, each opening Logs by itself; the
+  keyboard reaches both tiles, whose focus ring draws round the tile; a last
+  run started for an incident (`?lastrunby=incident`) opens the incident from
+  its own link; and in German the Outcomes counts stay inside their tile.
 
 `Fixture/Fixture.js` records every save (`updates`), key read and reset and
 webhook call (`webhookCalls`, with its URL, body and headers) on

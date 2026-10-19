@@ -117,14 +117,14 @@ const readRuns: ReadRunsFunction = async (
  *
  * Against a real project and server: a runbook's Triggers page (in its side
  * menu's Settings section, folded until opened) sets up a schedule through
- * its dialog, the server
- * stores its cron and zone, and the Worker starts a run on it within a
- * couple of minutes, recorded as started by the schedule; pausing it is the
- * switch alone. The webhook's switch gives the runbook a URL, shown masked
- * until asked for; a POST to it starts a run that carries the values sent,
- * a GET starts nothing, a wrong key is not found, and a runbook that is
- * turned off refuses it in words. A temporary project isolates it and is
- * deleted even when the test fails. Growth, as the other runbook suites.
+ * its dialog, the server stores its cron and zone, and the Worker starts a
+ * run on it within a couple of minutes, recorded as started by the schedule;
+ * pausing it is the switch alone. The webhook's switch gives the runbook a
+ * URL, shown masked until asked for; a POST to it starts a run that carries
+ * the values sent, a GET starts nothing, a wrong key is not found, and a
+ * runbook that is turned off refuses it in words. A temporary project
+ * isolates it and is deleted even when the test fails. Growth, as the other
+ * runbook suites.
  *
  * cd packages/E2E && HOST=localhost HTTP_PROTOCOL=http \
  *   npx playwright test Tests/Dashboard/RunbookTriggers.spec.ts \

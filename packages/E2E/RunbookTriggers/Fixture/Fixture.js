@@ -1,6 +1,7 @@
 /*
  * Offline fixture for a runbook's Triggers page (Pages/Runbook/View/Triggers),
- * its Executions list and one run's page.
+ * its Executions list and one run's page - and, inside the runbook's view
+ * layout (?menu=1), its Overview.
  *
  * Only the ModelAPI / API data boundary, the plain client the webhook test
  * calls through, and the synthetic user's permission snapshot are replaced.
@@ -27,6 +28,8 @@
  *   - runbook=off          the runbook turned off; nosteps: no steps yet
  *   - queued=1             a scheduled run waiting for the one before it
  *   - lastrun=1            the schedule has started a run before
+ *   - lastrunby=incident   the newest run was started for an incident (its
+ *                          rule), which the Overview's Last Run links to
  *   - test=refused         the webhook refuses the test request (403)
  *   - keyrefused=1         the server refuses to show the key (422)
  *   - delay=<ms>           how long a save takes, so its state can be seen
@@ -38,8 +41,8 @@
  *                          from page to page as in the Dashboard; the pages
  *                          this fixture does not model are a stand-in there
  *                          (data-testid fixture-page-not-modelled).
- *                          page=overview opens the runbook's own address,
- *                          where the Overview is such a stand-in
+ *                          page=overview opens the runbook's own address:
+ *                          its real Overview, with its Activity card
  *
  * What the page sends is recorded on window.__fixture: `updates` (each
  * updateById's data), `keyReads`, `keyResets` and `webhookCalls` (the URL,
@@ -63,6 +66,7 @@ import RunbookTriggersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Run
 import RunbookExecutionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Executions";
 import RunbookExecutionPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView";
 import RunbookViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Layout";
+import RunbookOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Index";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import User from "Common/Models/DatabaseModels/User";
@@ -292,6 +296,21 @@ const RUNS = [
   }),
 ];
 
+/*
+ * ?lastrunby=incident: the newest run was started for an incident, by its
+ * runbook rule. The Overview's Last Run names the incident, a link of its
+ * own inside the tile that links to the run.
+ */
+const INCIDENT_ID = "70000000-0000-4000-8000-0000000000a7";
+if (params.get("lastrunby") === "incident") {
+  RUNS[0] = run({
+    id: RUN_IDS.webhook,
+    status: RunbookExecutionStatus.Completed,
+    at: new Date(now - 4 * 60000),
+  });
+  RUNS[0].incident = { _id: INCIDENT_ID, title: "Checkout is down" };
+}
+
 // ---- who is signed in -------------------------------------------------------
 
 const READS = [
@@ -373,7 +392,13 @@ ModelAPI.getList = async (options) => {
 };
 
 ModelAPI.getCount = async () => RUNS.length;
-ModelAPI.count = async () => RUNS.length;
+// The Overview counts the runs, and those that completed and failed.
+ModelAPI.count = async (options) => {
+  const status = options && options.query && options.query.status;
+  return status
+    ? RUNS.filter((item) => item.status === status).length
+    : RUNS.length;
+};
 
 ModelAPI.updateById = async (options) => {
   const data = { ...options.data };
@@ -569,7 +594,10 @@ createRoot(document.getElementById("root")).render(
     {withMenu ? (
       <Routes>
         <PageRoute path={BASE} element={<MenuShell />}>
-          <PageRoute index element={<NotModelled />} />
+          <PageRoute
+            index
+            element={<InLayout component={RunbookOverviewPage} />}
+          />
           <PageRoute
             path="triggers"
             element={<InLayout component={RunbookTriggersPage} />}
@@ -584,6 +612,11 @@ createRoot(document.getElementById("root")).render(
           />
           <PageRoute path="*" element={<NotModelled />} />
         </PageRoute>
+        {/* Where a link out of the runbook lands: an incident's page. */}
+        <PageRoute
+          path="/dashboard/:projectId/incidents/:incidentId"
+          element={<NotModelled />}
+        />
       </Routes>
     ) : (
       <Routes>
