@@ -22,7 +22,8 @@ import {
  * These hold the rule's edges, through the real routes (SubscriberWorld):
  *
  *  - a sign-up says nothing about its own day, its code or its state: what
- *    it sends of them is never taken;
+ *    it sends of them is never taken - and the team's create mints its own
+ *    code too;
  *  - nothing else done to a waiting subscription - a manage link asked
  *    for, its manage page saved, the team's note on it - moves its day on;
  *  - a new subscription replaces only a subscription of its own contact,
@@ -286,6 +287,47 @@ describe("what a sign-up sends about its own day, code and state is not taken", 
   );
 });
 
+describe("what the team sends of a code is not taken either", () => {
+  test("a subscriber the team asks to confirm first, created with a code of the team's: it gets a code of its own, and the team's confirms nothing", async () => {
+    expect(
+      (
+        await teamAdd({
+          subscriberEmail: EMAIL,
+          isSubscriptionConfirmed: false,
+          subscriptionConfirmationToken: "482913",
+        })
+      ).error,
+    ).toBeUndefined();
+
+    const rows: Array<StoredRow> = rowsOf(world);
+    expect(rows).toHaveLength(1);
+
+    const row: StoredRow = rows[0]!;
+    const code: unknown = row["subscriptionConfirmationToken"];
+
+    expect(code).not.toBe("482913");
+    expect(StatusPageSubscriberConfirmationCode.isCurrent(code)).toBe(true);
+    expect(confirmationEmailsSent()).toBe(1);
+
+    jest.mocked(Response.sendErrorResponse).mockClear();
+    await confirm(String(row["_id"]), "482913");
+    expect(
+      (
+        jest.mocked(Response.sendErrorResponse).mock.calls[0]?.[2] as
+          | Exception
+          | undefined
+      )?.message,
+    ).toBe("Subscriber not found or confirmation token is invalid");
+    expect(row["isSubscriptionConfirmed"]).toBe(false);
+
+    // The link the email carries confirms it.
+    jest.mocked(Response.sendErrorResponse).mockClear();
+    await confirm(String(row["_id"]), String(code));
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(row["isSubscriptionConfirmed"]).toBe(true);
+  });
+});
+
 describe("nothing done to a waiting subscription moves its day on", () => {
   test("asking for a manage link, saving its manage page and the team's note on it leave its day where it began", async () => {
     const signedUpAt: number = Date.now();
@@ -353,7 +395,10 @@ describe("nothing done to a waiting subscription moves its day on", () => {
 
 describe("a new subscription replaces only its own contact's run-out subscription, on its own page", () => {
   test("another contact's, another page's and a confirmed one stay, however old", async () => {
-    const replaced: StoredRow = stored({ email: EMAIL, sentAgo: 2 * DAY });
+    /*
+     * Run out too, newer and stored first: a removal that reached past the
+     * contact's own subscriptions on the page would come to them first.
+     */
     const otherContact: StoredRow = stored({
       email: OTHER_EMAIL,
       sentAgo: 2 * DAY,
@@ -363,6 +408,7 @@ describe("a new subscription replaces only its own contact's run-out subscriptio
       pageId: pageIdOf(1),
       sentAgo: 2 * DAY,
     });
+    const replaced: StoredRow = stored({ email: EMAIL, sentAgo: 3 * DAY });
     const confirmedLongAgo: StoredRow = stored({
       email: EMAIL,
       pageId: pageIdOf(2),

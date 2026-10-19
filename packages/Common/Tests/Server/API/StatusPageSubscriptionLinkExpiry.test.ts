@@ -18,10 +18,8 @@ import {
  * confirms the subscription; nothing else is sent to the contact until it
  * is opened. That subscription used to wait for its confirmation for good,
  * and to hold its contact on the page all that time: signing the contact up
- * again was told it was subscribed already, and sent nothing. So whoever
- * signed an address or a number up first kept its owner from ever
- * subscribing to that page - its owner was told it was subscribed, and was
- * not - and a link stayed good for as long as the subscription waited.
+ * again was told it was subscribed already, and sent nothing, and a link
+ * stayed good for as long as the subscription waited.
  *
  * Now a link works for a day after it is sent
  * (StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS):
