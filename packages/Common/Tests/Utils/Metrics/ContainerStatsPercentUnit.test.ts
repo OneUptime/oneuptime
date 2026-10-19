@@ -29,22 +29,25 @@ describe("ContainerStatsPercentUnit.getStoredUnit", () => {
     [PODMAN_STATS_RECEIVER_SCOPE_NAME, "container.memory.percent"],
     ["otelcol/podmanreceiver", "container.cpu.percent"],
     ["otelcol/podmanreceiver", "container.memory.percent"],
-  ])("%s's %s, declared '1', is stored as '%'", (scopeName, metricName) => {
-    expect(
-      ContainerStatsPercentUnit.getStoredUnit({
-        scopeName,
-        metricName,
-        declaredUnit: "1",
-      }),
-    ).toBe("%");
-    expect(
-      ContainerStatsPercentUnit.isPercentDeclaredAsFraction({
-        scopeName,
-        metricName,
-        declaredUnit: "1",
-      }),
-    ).toBe(true);
-  });
+  ])(
+    "%s's %s, declared '1', is stored as '%'",
+    (scopeName: string, metricName: string) => {
+      expect(
+        ContainerStatsPercentUnit.getStoredUnit({
+          scopeName,
+          metricName,
+          declaredUnit: "1",
+        }),
+      ).toBe("%");
+      expect(
+        ContainerStatsPercentUnit.isPercentDeclaredAsFraction({
+          scopeName,
+          metricName,
+          declaredUnit: "1",
+        }),
+      ).toBe(true);
+    },
+  );
 
   test("the metric name is matched the way ingest stores it (lowercased), and stray spaces do not matter", () => {
     expect(
@@ -77,7 +80,11 @@ describe("ContainerStatsPercentUnit.getStoredUnit", () => {
     [DOCKER_STATS_RECEIVER_SCOPE_NAME, "container.memory.percent", ""],
   ])(
     "scope %p, %s declared %p keeps its declared unit",
-    (scopeName, metricName, declaredUnit) => {
+    (
+      scopeName: string | undefined,
+      metricName: string,
+      declaredUnit: string | undefined,
+    ) => {
       expect(
         ContainerStatsPercentUnit.getStoredUnit({
           scopeName,
@@ -189,7 +196,11 @@ describe("ContainerStatsPercentUnit.keepsStoredPercentUnit", () => {
     ["http.server.duration", "%", "1"],
   ])(
     "%s stored %p, incoming %p: the incoming unit is not held back",
-    (metricName, storedUnit, incomingUnit) => {
+    (
+      metricName: string,
+      storedUnit: string | undefined,
+      incomingUnit: string | undefined,
+    ) => {
       expect(
         ContainerStatsPercentUnit.keepsStoredPercentUnit({
           metricName,

@@ -110,8 +110,10 @@ function setupIngest(platform: Platform): Spies {
   jest
     .spyOn(service, "submitMetricsBuffer")
     .mockImplementation(async (...args: Array<unknown>): Promise<void> => {
-      // (rows, pendingAcks, force): the batch's rows are flushed with force
-      // at its end, then cleared.
+      /*
+       * (rows, pendingAcks, force): the batch's rows are flushed with force
+       * at its end, then cleared.
+       */
       const rows: Array<JSONObject> = args[0] as Array<JSONObject>;
       if (args[2] === true) {
         for (const row of rows) {
@@ -387,9 +389,7 @@ describe("the agent as it is now: the CPU percent over each interval, in '%'", (
         request(scrapeBlocks(scrape)),
       );
 
-      const units: Dictionary<string | undefined> = catalogUnits(
-        spies.catalog,
-      );
+      const units: Dictionary<string | undefined> = catalogUnits(spies.catalog);
       expect(units["container.cpu.utilization"]).toBe("%");
       expect(units["container.memory.percent"]).toBe("%");
       expect(units["container.cpu.usage.total"]).toBe("ns");
@@ -538,25 +538,25 @@ describe("other producers of the same names keep the unit they declared", () => 
     expect(catalogUnits(spies.catalog)["container.cpu.utilization"]).toBe("1");
   });
 
-  test.each<[string | undefined, string, string | undefined, string | undefined]>(
-    [
-      // No scope: nothing says whose percent this is.
-      [undefined, "container.memory.percent", "1", "1"],
-      // Another receiver's metric of the same name.
-      ["my.company/collector", "container.memory.percent", "1", "1"],
-      // A docker_stats metric that is not one of its percents.
-      [DOCKER_STATS_SCOPE, "container.cpu.shares", "1", "1"],
-      // Already "%".
-      [DOCKER_STATS_SCOPE, "container.memory.percent", "%", "%"],
-      // No unit at all: left as it is.
-      [DOCKER_STATS_SCOPE, "container.memory.percent", undefined, undefined],
-      // podman_stats' percents.
-      [PODMAN_STATS_SCOPE, "container.cpu.percent", "1", "%"],
-      [PODMAN_STATS_SCOPE, "container.memory.percent", "1", "%"],
-      // podman_stats has no container.cpu.utilization.
-      [PODMAN_STATS_SCOPE, "container.cpu.utilization", "1", "1"],
-    ],
-  )(
+  test.each<
+    [string | undefined, string, string | undefined, string | undefined]
+  >([
+    // No scope: nothing says whose percent this is.
+    [undefined, "container.memory.percent", "1", "1"],
+    // Another receiver's metric of the same name.
+    ["my.company/collector", "container.memory.percent", "1", "1"],
+    // A docker_stats metric that is not one of its percents.
+    [DOCKER_STATS_SCOPE, "container.cpu.shares", "1", "1"],
+    // Already "%".
+    [DOCKER_STATS_SCOPE, "container.memory.percent", "%", "%"],
+    // No unit at all: left as it is.
+    [DOCKER_STATS_SCOPE, "container.memory.percent", undefined, undefined],
+    // podman_stats' percents.
+    [PODMAN_STATS_SCOPE, "container.cpu.percent", "1", "%"],
+    [PODMAN_STATS_SCOPE, "container.memory.percent", "1", "%"],
+    // podman_stats has no container.cpu.utilization.
+    [PODMAN_STATS_SCOPE, "container.cpu.utilization", "1", "1"],
+  ])(
     "scope %s, %s declared %s: recorded as %s",
     async (
       scopeName: string | undefined,

@@ -287,7 +287,9 @@ function checkSynthetic(agent, exported) {
   const expected = [...EXPECTED_CPU].sort();
 
   for (const line of expected) {
-    console.log(`    ${got.includes(line) ? "ok     " : "MISSING"} ${CPU_METRIC} ${line}`);
+    console.log(
+      `    ${got.includes(line) ? "ok     " : "MISSING"} ${CPU_METRIC} ${line}`,
+    );
   }
   for (const line of got.filter((entry) => {
     return !expected.includes(entry);
@@ -308,7 +310,9 @@ function checkSynthetic(agent, exported) {
       problems.push(`${CPU_METRIC} is described "${point.description}"`);
     }
     if (point.scope !== DOCKER_STATS_SCOPE) {
-      problems.push(`${CPU_METRIC} left the docker_stats scope (${point.scope})`);
+      problems.push(
+        `${CPU_METRIC} left the docker_stats scope (${point.scope})`,
+      );
     }
     // The interval it covers: the previous scrape to this one.
     const covered = (BigInt(point.time) - BigInt(point.start)) / SECOND_NANO;
@@ -407,7 +411,9 @@ function realConfig(agent, dir, interval) {
 
   const socket = String(receiver.endpoint).replace("unix://", "");
   if (!socket.startsWith("/")) {
-    fail(`${agent}: the receiver's endpoint is not a unix socket: ${receiver.endpoint}`);
+    fail(
+      `${agent}: the receiver's endpoint is not a unix socket: ${receiver.endpoint}`,
+    );
   }
   process.stdout.write(socket);
 }
@@ -479,7 +485,9 @@ function checkReal(agent, exported, container, percent, tolerance) {
     const used = usage.get(time);
     const of = limit.get(time);
     if (!used || !of || of.value <= 0) {
-      problems.push(`no memory usage and limit beside ${MEMORY_PERCENT_METRIC}`);
+      problems.push(
+        `no memory usage and limit beside ${MEMORY_PERCENT_METRIC}`,
+      );
       continue;
     }
     const expected = (used.value / of.value) * 100;

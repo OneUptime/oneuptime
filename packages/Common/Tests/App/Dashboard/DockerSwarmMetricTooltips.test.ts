@@ -680,7 +680,9 @@ describe("CPU and memory texts match what the rows actually carry", () => {
       "const metricUnit: string =",
       ";\n",
     );
-    expect(metricLoopUnit).toContain("ContainerStatsPercentUnit.getStoredUnit(");
+    expect(metricLoopUnit).toContain(
+      "ContainerStatsPercentUnit.getStoredUnit(",
+    );
     expect(metricLoopUnit).toContain("scopeName: scopeName");
 
     const taskBuffer: string = between(
@@ -695,7 +697,9 @@ describe("CPU and memory texts match what the rows actually carry", () => {
       "private static cpuValueToPercent(",
       "\n  }\n",
     );
-    expect(cpuToPercent).toContain('if (unit === "%") {\n      return rawValue;');
+    expect(cpuToPercent).toContain(
+      'if (unit === "%") {\n      return rawValue;',
+    );
 
     for (const text of [T.taskCpu, T.taskCpuColumn]) {
       expect(text).toMatch(/100% is one full CPU core/);

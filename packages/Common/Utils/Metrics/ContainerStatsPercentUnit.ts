@@ -35,7 +35,8 @@ export const PODMAN_STATS_RECEIVER_SCOPE_NAME: string =
 // What older collectors called the same two receivers.
 const LEGACY_DOCKER_STATS_RECEIVER_SCOPE_NAME: string =
   "otelcol/dockerstatsreceiver";
-const LEGACY_PODMAN_STATS_RECEIVER_SCOPE_NAME: string = "otelcol/podmanreceiver";
+const LEGACY_PODMAN_STATS_RECEIVER_SCOPE_NAME: string =
+  "otelcol/podmanreceiver";
 
 export const CONTAINER_CPU_UTILIZATION_METRIC: string =
   "container.cpu.utilization";
@@ -113,9 +114,7 @@ export default class ContainerStatsPercentUnit {
     const percentMetrics: ReadonlySet<string> | undefined =
       PERCENT_METRICS_BY_SCOPE_NAME.get((input.scopeName || "").trim());
 
-    return Boolean(
-      percentMetrics?.has(input.metricName.trim().toLowerCase()),
-    );
+    return Boolean(percentMetrics?.has(input.metricName.trim().toLowerCase()));
   }
 
   /**

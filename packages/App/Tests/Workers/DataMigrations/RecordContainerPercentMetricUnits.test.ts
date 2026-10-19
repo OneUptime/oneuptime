@@ -125,12 +125,10 @@ describe("RecordContainerPercentMetricUnits", () => {
       infoLogs.push(String(message));
       return undefined;
     });
-    jest
-      .spyOn(logger, "error")
-      .mockImplementation((message: unknown): void => {
-        errorLogs.push(String(message));
-        return undefined;
-      });
+    jest.spyOn(logger, "error").mockImplementation((message: unknown): void => {
+      errorLogs.push(String(message));
+      return undefined;
+    });
   });
 
   afterEach(() => {
@@ -277,9 +275,9 @@ describe("RecordContainerPercentMetricUnits", () => {
   });
 
   test("a failure to read stops the chain rather than being swallowed", async () => {
-    jest.spyOn(MetricTypeService, "findBy").mockRejectedValue(
-      new Error("db down"),
-    );
+    jest
+      .spyOn(MetricTypeService, "findBy")
+      .mockRejectedValue(new Error("db down"));
 
     await expect(
       new RecordContainerPercentMetricUnits().migrate(),

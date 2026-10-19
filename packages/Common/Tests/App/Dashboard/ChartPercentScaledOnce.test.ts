@@ -79,15 +79,14 @@ function drawn(input: {
 }): number {
   const metricName: string = input.queryConfig.metricQueryData.filterData
     .metricName as string;
-  const [converted] = MetricResultUnitConverter.convertQueryResultsToDisplayUnit(
-    {
+  const [converted] =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
       queryConfigs: [input.queryConfig],
       results: [{ data: [point(input.stored, input.nodeName)] }],
       nativeUnitByMetricName: new Map<string, string>([
         [metricName.toLowerCase(), input.catalogUnit],
       ]),
-    },
-  ) as [AggregatedResult];
+    }) as [AggregatedResult];
   const row: AggregatedModel = converted.data[0]!;
   return input.queryConfig.transformValue
     ? input.queryConfig.transformValue(row.value, row)
@@ -98,10 +97,7 @@ const FOUR_CORE_CLUSTER: NodeAllocatableCpu =
   KubernetesCpuUtils.buildAllocatable(new Map<string, number>([[NODE, 4]]));
 
 describe("Kubernetes CPU charts: cores over the node's allocatable cores, scaled once", () => {
-  test.each([
-    "container.cpu.utilization",
-    "k8s.pod.cpu.utilization",
-  ])(
+  test.each(["container.cpu.utilization", "k8s.pod.cpu.utilization"])(
     "regression: %s at 0.05 cores on a 4-core node draws 1.25%, not 125%",
     (metricName: string) => {
       const value: number = drawn({
