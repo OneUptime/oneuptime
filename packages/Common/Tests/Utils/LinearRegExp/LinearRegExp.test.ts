@@ -381,7 +381,7 @@ describe("how much work one question may take", () => {
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 
-  test("the same pattern answers a short text: the floor covers a large pattern's first states", () => {
+  test("the same pattern answers a short text: the allowance for its size covers a large pattern's first states", () => {
     expect(linear(EXPLODING, "", false).test(`${randomAb(300)}Q`)).toBe(true);
   });
 
