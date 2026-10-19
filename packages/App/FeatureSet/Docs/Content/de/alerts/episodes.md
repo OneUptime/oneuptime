@@ -67,7 +67,7 @@ Klicken Sie unter den Vorlagen auf **Eigene Regel erstellen** oder, sobald Sie R
 Unter **Welche Warnungen** gruppiert **Alle Warnungen**, womit eine neue Regel beginnt, jede neue Warnung. Um sie einzugrenzen, wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und fügen Bedingungen zu Monitoren, Schweregraden, Beschriftungen, Titeln und Beschreibungen hinzu. Klicken Sie dann auf **Gruppierungsregel für Warnungen erstellen**.
 :::
 
-Alles Weitere, was eine Regel kann, ist unter **Weitere Felder** am Ende des Schritts **Gruppierung** eingeklappt, in drei Gruppen. Eingeklappt nennt seine Kopfzeile, was er enthält, und zeigt jede Einstellung, die die Regel nutzt, als Chip, sodass beim Bearbeiten einer Regel nie verborgen bleibt, was sie tut.
+Alles Weitere, was eine Regel kann, ist unter **Weitere Felder** am Ende des Schritts **Gruppierung** eingeklappt, in drei Gruppen. Eingeklappt nennt seine Kopfzeile, was er enthält, und sagt, worauf jede Einstellung steht, die die Regel nutzt, sodass beim Bearbeiten einer Regel nie verborgen bleibt, was sie tut.
 
 | Gruppe                                | Einstellungen                                                                                              |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
