@@ -389,6 +389,17 @@ function prepareStep(job: ClaimedJob): PreparedStep {
     const script: string = job.payload["script"] as string;
     const kubeconfig: string = getKubeconfigFromCredential(job.credential);
 
+    /*
+     * A credential that is not a kubeconfig is refused rather than ignored:
+     * ignoring it would run the script with this Runner's own access - a
+     * cluster the step never named.
+     */
+    if (job.credential && !kubeconfig.trim()) {
+      return refuseStep(
+        "This kubectl step was handed a credential that is not a kubeconfig, so it was not run.",
+      );
+    }
+
     return {
       isRefused: false,
       run: (): Promise<ExecResult> => {

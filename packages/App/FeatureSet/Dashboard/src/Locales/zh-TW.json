@@ -31155,5 +31155,6 @@
   "{{command}} · on {{runner}}": "{{command}} · 在 {{runner}} 上",
   "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.": "{{name}} 不是密鑰變數，因此該步驟執行時會失敗。請將私密金鑰、密碼和 kubeconfig 保存在密鑰變數中。",
   "No passphrase": "無複雜密碼",
-  "this runbook's Variables": "此運行手冊的變數"
+  "this runbook's Variables": "此運行手冊的變數",
+  "The user and the machine to sign in to, as you would write them after ssh.": "要登入的使用者和機器，寫法與 ssh 後面的相同。"
 }

@@ -31155,5 +31155,6 @@
   "{{command}} · on {{runner}}": "{{command}} · {{runner}}에서",
   "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.": "{{name}}은(는) 시크릿이 아니므로 실행 시 단계가 실패합니다. 키, 비밀번호, kubeconfig는 시크릿 변수에 보관하세요.",
   "No passphrase": "암호 문구 없음",
-  "this runbook's Variables": "이 런북의 변수"
+  "this runbook's Variables": "이 런북의 변수",
+  "The user and the machine to sign in to, as you would write them after ssh.": "로그인할 사용자와 머신으로, ssh 뒤에 쓰는 것과 같은 형식입니다."
 }

@@ -31155,5 +31155,6 @@
   "{{command}} · on {{runner}}": "{{command}} · {{runner}} 上",
   "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.": "{{name}} はシークレットではないため、実行時にステップは失敗します。鍵、パスワード、kubeconfig はシークレット変数に保存してください。",
   "No passphrase": "パスフレーズなし",
-  "this runbook's Variables": "この Runbook の変数"
+  "this runbook's Variables": "この Runbook の変数",
+  "The user and the machine to sign in to, as you would write them after ssh.": "サインインするユーザーとマシンです。ssh の後に書くのと同じ形で入力します。"
 }

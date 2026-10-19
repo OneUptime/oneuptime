@@ -86,6 +86,10 @@ export const SSH_TARGET_TITLE: string = translationKey("SSH to");
 
 export const SSH_TARGET_PLACEHOLDER: string = "deploy@10.0.4.21";
 
+export const SSH_TARGET_HELP: string = translationKey(
+  "The user and the machine to sign in to, as you would write them after ssh.",
+);
+
 export const SSH_TARGET_NEEDS_USER: string = translationKey(
   "Add the user to sign in as, before an @: deploy@10.0.4.21.",
 );

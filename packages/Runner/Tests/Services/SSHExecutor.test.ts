@@ -2,13 +2,16 @@
  * ---------------------------------------------------------------------------
  * Unit tests for SSHExecutor.
  *
- * SSHExecutor runs one runbook command on a remote host and closes the
- * connection per step. The tests here never touch a real host: ssh2's Client
- * is replaced with a controllable EventEmitter-backed fake so every case
+ * SSHExecutor runs one runbook step on a remote host and closes the
+ * connection per step: a script with bash (`bash -c '<script>'`), or a
+ * command - a step written before scripts, or one OneUptime AI composed -
+ * verbatim. The tests here never touch a real host: ssh2's Client is
+ * replaced with a controllable EventEmitter-backed fake so every case
  * asserts on the executor's contract — what it validates before dialing, the
- * ConnectConfig it hands ssh2, that it sends the author's command verbatim,
- * how it maps exit codes to success, how connection/exec/timeout failures are
- * surfaced, and that runaway output is bounded to MAX_OUTPUT_BYTES.
+ * ConnectConfig it hands ssh2, what it asks the machine to run, how it maps
+ * exit codes to success, how connection/exec/timeout failures are surfaced,
+ * and that runaway output is bounded to MAX_OUTPUT_BYTES.
+ * SSHExecutorScriptOverSsh runs scripts against a real SSH server.
  *
  * The failure branches matter most: a step that hangs or a host that refuses
  * the connection must resolve to a clean failure result, never leave the
@@ -16,7 +19,10 @@
  * ---------------------------------------------------------------------------
  */
 
-import SSHExecutor, { SSHExecResult } from "../../Services/SSHExecutor";
+import SSHExecutor, {
+  SSHExecResult,
+  getSshCommandToRun,
+} from "../../Services/SSHExecutor";
 import { Client } from "ssh2";
 import { JSONObject } from "Common/Types/JSON";
 import type { EventEmitter as NodeEventEmitter } from "events";
@@ -150,17 +156,24 @@ describe("SSHExecutor.execute input validation (never dials the host)", () => {
     expect(sshMock.__instances).toHaveLength(0);
   });
 
-  test("fails when there is no command to run", async () => {
-    const result: SSHExecResult = await SSHExecutor.execute({
-      payload: {},
-      credential: GOOD_CREDENTIAL,
-      timeoutInMs: 1000,
-    });
+  test.each([
+    ["nothing", {}],
+    ["an empty script and an empty command", { script: "", command: "" }],
+    ["a script of white space", { script: "  \n\t " }],
+  ])(
+    "fails when there is nothing to run: %s",
+    async (_label: string, payload: JSONObject) => {
+      const result: SSHExecResult = await SSHExecutor.execute({
+        payload,
+        credential: GOOD_CREDENTIAL,
+        timeoutInMs: 1000,
+      });
 
-    expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("no command");
-    expect(sshMock.__instances).toHaveLength(0);
-  });
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toBe("SSH step has no script to run.");
+      expect(sshMock.__instances).toHaveLength(0);
+    },
+  );
 
   test("fails when the credential has neither a private key nor a password", async () => {
     const result: SSHExecResult = await SSHExecutor.execute({
@@ -216,6 +229,37 @@ describe("SSHExecutor.execute connection config", () => {
     expect(client.connectConfig).not.toHaveProperty("privateKey");
 
     client.emit("ready");
+    client.stream!.emit("close", 0);
+    await promise;
+  });
+
+  test("runs a script with bash, quoted whole for the machine's shell", async () => {
+    const script: string = "hostname\nuptime";
+    const promise: Promise<SSHExecResult> = SSHExecutor.execute({
+      payload: { script },
+      credential: GOOD_CREDENTIAL,
+      timeoutInMs: 5000,
+    });
+
+    const client: MockClientLike = lastClient();
+    client.emit("ready");
+    expect(client.execCommand).toBe("bash -c 'hostname\nuptime'");
+
+    client.stream!.emit("close", 0);
+    await promise;
+  });
+
+  test("a script beside a command - as a server sends it, for older Runners - runs the script", async () => {
+    const promise: Promise<SSHExecResult> = SSHExecutor.execute({
+      payload: { script: "df -h", command: "df -h" },
+      credential: GOOD_CREDENTIAL,
+      timeoutInMs: 5000,
+    });
+
+    const client: MockClientLike = lastClient();
+    client.emit("ready");
+    expect(client.execCommand).toBe("bash -c 'df -h'");
+
     client.stream!.emit("close", 0);
     await promise;
   });
@@ -394,5 +438,37 @@ describe("SSHExecutor.execute output bounding", () => {
     expect(result.output.length).toBe(
       50000 + "\n... [output truncated]".length,
     );
+  });
+});
+
+/*
+ * What the machine's login shell is handed: bash, and the script as ONE
+ * single-quoted word - so the login shell expands nothing in it, and bash
+ * gets it exactly as the runbook's author wrote it.
+ */
+describe("getSshCommandToRun", () => {
+  test.each([
+    ["one line", "uptime", "bash -c uptime"],
+    ["two lines", "hostname\nuptime", "bash -c 'hostname\nuptime'"],
+    [
+      "single quotes, which end the quoting and are put back escaped",
+      "echo 'hi'",
+      "bash -c 'echo '\\''hi'\\'''",
+    ],
+    [
+      "dollars, backticks and double quotes, kept for bash",
+      'echo "$HOME" `id -u` $(date)',
+      "bash -c 'echo \"$HOME\" `id -u` $(date)'",
+    ],
+  ])("a script with %s", (_label: string, script: string, expected: string) => {
+    expect(getSshCommandToRun({ script })).toBe(expected);
+  });
+
+  test("a command is sent as it is, and only when there is no script", () => {
+    expect(getSshCommandToRun({ command: "echo 'hi' | wc -c" })).toBe(
+      "echo 'hi' | wc -c",
+    );
+    expect(getSshCommandToRun({ script: "   ", command: "ls" })).toBe("ls");
+    expect(getSshCommandToRun({})).toBe("");
   });
 });

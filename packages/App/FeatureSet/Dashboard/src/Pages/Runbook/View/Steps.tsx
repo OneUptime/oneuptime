@@ -42,6 +42,7 @@ import {
   RUNNER_OWN_KUBECONFIG_LABEL,
   SSH_EXAMPLES,
   SSH_PASSPHRASE_TITLE,
+  SSH_TARGET_HELP,
   SSH_PORT_TITLE,
   SSH_SIGN_IN_TITLE,
   ScriptExample,
@@ -859,7 +860,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <button
                 key={ex.label}
                 type="button"
-                title={ex.description}
+                title={translator.translateText(ex.description)}
                 onClick={() => {
                   args.onInsert(ex.code);
                 }}
@@ -870,7 +871,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   size={SizeProp.Smaller}
                   className="h-3 w-3"
                 />
-                {ex.label}
+                {/* English constants, looked up as they are drawn. */}
+                {translator.translateText(ex.label)}
               </button>
             );
           })}
@@ -1601,7 +1603,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <SshTargetInput
           host={config.host || ""}
           username={config.username || ""}
-          helperText="The user and the machine to sign in to, as you would write them after ssh."
+          helperText={SSH_TARGET_HELP}
           dataTestId={`runbook-step-${idx}-ssh-target`}
           onChange={(target: SshTarget) => {
             updateConfig(idx, {

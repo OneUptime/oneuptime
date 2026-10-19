@@ -31155,5 +31155,6 @@
   "{{command}} · on {{runner}}": "{{command}} · {{runner}} पर",
   "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.": "{{name}} सीक्रेट नहीं है, इसलिए चलने पर चरण विफल होगा। की, पासवर्ड और kubeconfig को सीक्रेट वेरिएबल में रखें।",
   "No passphrase": "कोई पासफ़्रेज़ नहीं",
-  "this runbook's Variables": "इस रनबुक के वेरिएबल"
+  "this runbook's Variables": "इस रनबुक के वेरिएबल",
+  "The user and the machine to sign in to, as you would write them after ssh.": "साइन इन करने के लिए उपयोगकर्ता और मशीन, जैसे आप उन्हें ssh के बाद लिखते हैं।"
 }
