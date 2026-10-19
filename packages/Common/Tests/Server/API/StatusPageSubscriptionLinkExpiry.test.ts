@@ -142,8 +142,6 @@ import {
   textsSent,
 } from "./SubscriberWorld";
 
-type MockedFn = ReturnType<typeof jest.fn>;
-
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
 const DAY: number = 24 * HOUR;
