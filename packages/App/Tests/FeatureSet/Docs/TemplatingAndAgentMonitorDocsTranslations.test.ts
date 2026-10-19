@@ -226,7 +226,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Outbound HTTPS",
     "Tailer image version.",
     "Severity filtering.",
-    "This is off by default.",
+    "This is on by default.",
     "desynchronizes",
     "Off by default.",
     "JSON log line",

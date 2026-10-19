@@ -80,7 +80,7 @@ Wer schon ein OneUptime-Konto hatte, tritt auf OneUptime Cloud bei, sobald er di
 
 ### OAuth-2.0-Client-Anmeldedaten
 
-Manche Identitätsanbieter speichern kein Bearer-Token, sondern verlangen stattdessen OAuth-2.0-Client-Anmeldedaten: So macht es die OneUptime-App im Microsoft-Entra-Anwendungskatalog. Jede Verbindung, ob die eines Projekts oder die einer Statusseite, hat sie im selben Dialog wie ihre **SCIM Base URL**, unter **OAuth 2.0 Client Credentials**:
+Manche Identitätsanbieter speichern kein Bearer-Token, sondern verlangen stattdessen OAuth-2.0-Client-Anmeldedaten. Jede Verbindung, ob die eines Projekts oder die einer Statusseite, hat sie im selben Dialog wie ihre **SCIM Base URL**, unter **OAuth 2.0 Client Credentials**:
 
 - **Token Endpoint**: die Adresse, von der Ihr Identitätsanbieter seine Zugriffstokens holt. Sie ist für jede Verbindung dieselbe: `https://oneuptime.com/identity/scim/oauth/token` auf OneUptime Cloud.
 - **Client ID**: die ID der Verbindung.
@@ -145,7 +145,7 @@ Microsoft Entra ID bietet Identitätsverwaltung für Unternehmen mit SCIM-Bereit
 - Ein OneUptime-Projekt mit dem Plan **Scale** oder höher auf OneUptime Cloud.
 - Administratorzugriff auf Microsoft Entra ID und OneUptime.
 
-Führt der Microsoft-Entra-Anwendungskatalog OneUptime auf, fügen Sie die App auf OneUptime Cloud von dort hinzu: Sie stellt mit den [OAuth-2.0-Client-Anmeldedaten](#oauth-20-client-anmeldedaten) der Verbindung bereit und bringt die Attributzuordnungen unten schon mit. Haben Sie sie bereits für SSO hinzugefügt, verwenden Sie diese Anwendung.
+Die OneUptime-App im Microsoft-Entra-Anwendungskatalog ist für Single Sign-On gedacht. Für die Bereitstellung legen Sie wie unten beschrieben Ihre eigene Anwendung an, auch wenn Sie OneUptime für SSO aus dem Katalog hinzugefügt haben.
 
 :::steps
 #### Die SCIM-Verbindung für Entra ID anlegen
@@ -165,23 +165,21 @@ Führt der Microsoft-Entra-Anwendungskatalog OneUptime auf, fügen Sie die App a
 
 1. Melden Sie sich im [Microsoft Entra admin center](https://entra.microsoft.com) an
 2. Gehen Sie zu **Identity** > **Applications** > **Enterprise applications**
-3. Klicken Sie auf **+ New application**
-4. Aus dem Katalog: Suchen Sie nach OneUptime, wählen Sie es aus und klicken Sie auf **Create**
-5. Andernfalls: Klicken Sie auf **+ Create your own application**, geben Sie einen Namen ein (z. B. "OneUptime"), wählen Sie **Integrate any other application you don't find in the gallery (Non-gallery)** und klicken Sie auf **Create**
+3. Klicken Sie auf **+ New application** und dann auf **+ Create your own application**
+4. Geben Sie einen Namen ein (z. B. "OneUptime")
+5. Wählen Sie **Integrate any other application you don't find in the gallery (Non-gallery)** und klicken Sie auf **Create**
 
 #### Entra ID mit OneUptime verbinden
 
 1. Gehen Sie in Ihrer OneUptime-Unternehmensanwendung zu **Provisioning** und klicken Sie auf **Get started**
 2. Setzen Sie **Provisioning Mode** auf **Automatic**
-3. Unter **Admin Credentials**:
-   - Setzen Sie bei der Anwendung aus dem Katalog die **Tenant URL**, den **Token Endpoint** und den **Client Identifier** jeweils auf die **SCIM Base URL**, den **Token Endpoint** und die **Client ID** aus OneUptime und das **Client Secret** auf ein Secret, das Sie mit **Make Client Secret** erstellen
-   - Setzen Sie bei Ihrer eigenen Anwendung die **Tenant URL** auf die **SCIM Base URL** aus OneUptime (z. B. `https://oneuptime.com/identity/scim/v2/<scim-id>`) und das **Secret Token** auf das **Bearer Token**
+3. Setzen Sie unter **Admin Credentials** die **Tenant URL** auf die **SCIM Base URL** aus OneUptime (z. B. `https://oneuptime.com/identity/scim/v2/<scim-id>`) und das **Secret Token** auf das **Bearer Token**
 4. Klicken Sie auf **Test Connection**, um die Konfiguration zu prüfen, und dann auf **Save**
 
 #### Benutzerattribute in Entra ID zuordnen
 
 1. Klicken Sie im Bereich Provisioning auf **Mappings** und dann auf **Provision Azure Active Directory Users**
-2. Richten Sie die folgenden Attributzuordnungen ein, entfernen Sie nicht benötigte und klicken Sie auf **Save**. Die Anwendung aus dem Katalog bringt sie schon mit:
+2. Richten Sie die folgenden Attributzuordnungen ein, entfernen Sie nicht benötigte und klicken Sie auf **Save**:
 
 | Azure-AD-Attribut                                             | SCIM-Attribut von OneUptime    | Erforderlich |
 | ------------------------------------------------------------- | ------------------------------ | ------------ |
@@ -403,7 +401,7 @@ Unterhalb von **Scale** listen **Projekteinstellungen** > **Sicherheit** > **SCI
 Beginnen Sie mit dem Tab **Protokolle** unter **Projekteinstellungen** > **Sicherheit** > **SCIM** (oder auf der Seite **SCIM** der Statusseite). Er listet die SCIM-Anfragen auf, die Ihr Identitätsanbieter gesendet hat, mit ihrem Status, und **Details anzeigen** zeigt die Anfrage und die Antwort von OneUptime.
 
 :::details Entra ID: Test Connection schlägt fehl
-Prüfen Sie, dass die **Tenant URL** genau die **SCIM Base URL** ist, wie OneUptime sie zeigt, und dass das **Secret Token** das aktuelle **Bearer Token** ist. Nach **Bearer-Token zurücksetzen** funktioniert das alte Token nicht mehr. Prüfen Sie bei der Anwendung aus dem Katalog den **Token Endpoint**, dass der **Client Identifier** die **Client ID** der Verbindung ist und dass das **Client Secret** weder abgelaufen noch gelöscht ist: Sonst wird damit kein Zugriffstoken ausgestellt. Erstellen Sie mit **Make New Client Secret** ein neues.
+Prüfen Sie, dass die **Tenant URL** genau die **SCIM Base URL** ist, wie OneUptime sie zeigt, und dass das **Secret Token** das aktuelle **Bearer Token** ist. Nach **Bearer-Token zurücksetzen** funktioniert das alte Token nicht mehr.
 :::
 
 :::details Okta: Der Test der API-Zugangsdaten schlägt fehl oder Anfragen erhalten 401 Unauthorized

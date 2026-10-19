@@ -67,7 +67,7 @@ Haz clic en **Crear regla personalizada** debajo de las plantillas, o en **Crear
 En **Qué alertas**, **Todas las alertas**, donde empieza una regla nueva, agrupa todas las alertas nuevas. Para acotarla, elige **Solo las alertas que cumplen las condiciones** y añade condiciones sobre monitores, gravedades, etiquetas, títulos y descripciones. Después haz clic en **Crear regla de agrupación de alertas**.
 :::
 
-Todo lo demás que puede hacer una regla está plegado en **Más campos**, al final del paso **Agrupación**, en tres grupos. Plegado, su encabezado nombra lo que contiene y muestra como una ficha cada ajuste que usa la regla, así que editar una regla nunca oculta lo que hace.
+Todo lo demás que puede hacer una regla está plegado en **Más campos**, al final del paso **Agrupación**, en tres grupos. Plegado, su encabezado nombra lo que contiene y dice el valor de cada ajuste que usa la regla, así que editar una regla nunca oculta lo que hace.
 
 | Grupo                            | Ajustes                                                                                                    |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |

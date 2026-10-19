@@ -221,16 +221,16 @@ OBI 會傳送幾種訊號。每一種都可以用 `--set ebpf.features.<key>=fal
 
 ### 跨服務連結追蹤
 
-OBI 也能讓追蹤跨越一次呼叫延續下去：當 Pod A 透過 HTTP 或 gRPC 呼叫 Pod B 時，B 端的 Span 會加入 A 的追蹤，兩個應用程式中都不需要 SDK。**此功能預設關閉。** 閱讀下面的警告後，用 `--set ebpf.contextPropagation=true` 開啟它。
+OBI 也會讓追蹤跨越一次呼叫延續下去：當 Pod A 透過 HTTP 或 gRPC 呼叫 Pod B 時，B 端的 Span 會加入 A 的追蹤，兩個應用程式中都不需要 SDK。**此功能預設開啟。** 沒有它時，對另一個節點上 Pod 的呼叫會開始一筆獨立的追蹤；在同一個節點上，OBI 會自行將兩端連結起來。如果遇到下面警告中所述的問題，請用 `--set ebpf.contextPropagation=false` 關閉它。
 
 | 選項 | 預設值 | 作用 |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | 關閉 | 把 W3C `traceparent` 寫入輸出流量，使 Span 在服務之間連結起來。 |
+| `ebpf.contextPropagation` | 開啟 | 把 W3C `traceparent` 寫入輸出流量，使 Span 在服務之間連結起來。 |
 | `ebpf.contextPropagationMode` | `headers` | 方式：`headers`(HTTP/1.1 請求標頭，範圍最窄)、`tcp`(TCP 選項，透過 Linux Traffic Control)或 `all`(兩者都用)。僅在 `contextPropagation` 開啟時讀取。 |
 | `ebpf.trackRequestHeaders` | 開啟 | 在核心中追蹤請求標頭，使接收端在一般 HTTP 伺服器上也能找到 `traceparent`。僅在 `contextPropagation` 開啟時生效。 |
 
 > [!WARNING]
-> 每種傳播模式都會修改已經在傳輸中的流量。對於一般 HTTP，OBI 會在核心中擴大輸出請求以容納標頭；對於 TLS 和原始 TCP，它會從 Traffic Control 掛鉤加入一個 TCP 選項，重寫封包及其總和檢查碼。如果之後連線的位元組計數沒有被精確修正，資料串流就會 **失去同步**：經過 nginx 這類 Proxy 的傳輸一旦回應超過約 64 KB 就會中途卡住，直到連線逾時。小請求仍能正常運作，因此看起來像是應用程式或 Proxy 的錯誤。沒有哪個核心版本能讓這種重寫消失。追蹤、請求指標和服務地圖在沒有它的情況下都能運作；服務中的 OpenTelemetry SDK 完全不需要核心重寫就能連結追蹤。如果你要開啟它，請先在非正式環境的叢集上試用，並檢查經過 Proxy 的大型傳輸。
+> 每種傳播模式都會修改已經在傳輸中的流量。對於一般 HTTP，OBI 會在核心中擴大輸出請求以容納標頭；對於 TLS 和原始 TCP，它會從 Traffic Control 掛鉤加入一個 TCP 選項，重寫封包及其總和檢查碼。如果之後連線的位元組計數沒有被精確修正，資料串流就會 **失去同步**：經過 nginx 這類 Proxy 的傳輸一旦回應超過約 64 KB 就會中途卡住，直到連線逾時。小請求仍能正常運作，因此看起來像是應用程式或 Proxy 的錯誤。沒有哪個核心版本能讓這種重寫消失。如果在安裝代理程式之後，經過 Proxy 的大型傳輸卡住，或是服務網格或 eBPF 網路外掛程式開始導致 Pod 失敗，請關閉內容傳播：追蹤、請求指標和服務地圖在沒有它的情況下都能運作，而服務中的 OpenTelemetry SDK 完全不需要核心重寫就能連結追蹤。使用 `--reuse-values` 升級的代理程式會保留原本的值，而較早的 Chart 預設關閉此功能：請使用 `--reset-then-reuse-values` 升級，以採用新的預設值。
 
 ### 將日誌連結到追蹤
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI 在執行，但沒有追蹤送達。** 設定 `--set ebpf.printTraces=true` 並再次查看 OBI 的日誌。如果那裡有 Span，表示匯出到 OneUptime 失敗：請檢查 URL 和擷取金鑰。如果那裡沒有 Span，可能是流量被 OBI 無法讀取的 TLS 程式庫(例如靜態連結的程式庫)加密了。
 :::
 
-:::details 開啟追蹤連結後，大型傳輸卡住
-這是 `ebpf.contextPropagation` 在重寫流量：請參閱 [跨服務連結追蹤](#跨服務連結追蹤) 中的警告。用 `--set ebpf.contextPropagation=false` 關閉它。
+:::details 安裝代理程式後，大型傳輸卡住
+這是預設開啟的 `ebpf.contextPropagation` 在重寫流量：請參閱 [跨服務連結追蹤](#跨服務連結追蹤) 中的警告。用 `--set ebpf.contextPropagation=false` 關閉它。
 :::
 
 :::details 開啟日誌連結後，應用程式以結束代碼 139 當機

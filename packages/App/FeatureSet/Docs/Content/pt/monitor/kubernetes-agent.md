@@ -221,16 +221,16 @@ O OBI envia vários tipos de sinal. Cada um pode ser desativado com `--set ebpf.
 
 ### Ligar traces entre serviços
 
-O OBI também pode levar o trace através de uma chamada: quando o pod A chama o pod B via HTTP ou gRPC, o span do lado de B se junta ao trace de A, sem SDK em nenhuma das aplicações. **Isso vem desativado por padrão.** Ative com `--set ebpf.contextPropagation=true`, depois de ler o aviso abaixo.
+O OBI também leva o trace através de uma chamada: quando o pod A chama o pod B via HTTP ou gRPC, o span do lado de B se junta ao trace de A, sem SDK em nenhuma das aplicações. **Isso vem ativado por padrão.** Sem isso, uma chamada para um pod em outro nó inicia um trace próprio; no mesmo nó, o OBI liga as duas pontas sozinho. Desative com `--set ebpf.contextPropagation=false` se você se deparar com o problema descrito no aviso abaixo.
 
 | Opção | Padrão | O que faz |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | desativado | Escreve um `traceparent` W3C no tráfego de saída, para que os spans se liguem entre serviços. |
+| `ebpf.contextPropagation` | ativado | Escreve um `traceparent` W3C no tráfego de saída, para que os spans se liguem entre serviços. |
 | `ebpf.contextPropagationMode` | `headers` | Como: `headers` (cabeçalhos de requisição HTTP/1.1, o mais restrito), `tcp` (uma opção TCP, via Linux Traffic Control) ou `all` (ambos). Só é lido quando `contextPropagation` está ativado. |
 | `ebpf.trackRequestHeaders` | ativado | Acompanha os cabeçalhos de requisição no kernel, para que o lado receptor encontre o `traceparent` também em servidores HTTP simples. Só tem efeito quando `contextPropagation` está ativado. |
 
 > [!WARNING]
-> Todo modo de propagação altera um tráfego que já está em trânsito. Para HTTP simples, o OBI aumenta a requisição de saída no kernel para caber o cabeçalho; para TLS e TCP puro, ele adiciona uma opção TCP a partir de um hook do Traffic Control, reescrevendo o pacote e o seu checksum. Quando a contagem de bytes da conexão não é então corrigida com exatidão, o fluxo se **dessincroniza**: transferências por um proxy como o nginx travam no meio, assim que uma resposta passa de cerca de 64 KB, até a conexão expirar. Requisições pequenas continuam funcionando, então parece um bug da aplicação ou do proxy. Nenhuma versão do kernel faz a reescrita desaparecer. Traces, métricas de requisições e o mapa de serviços funcionam todos sem ela; um SDK do OpenTelemetry nos seus serviços liga os traces sem nenhuma reescrita no kernel. Se você a ativar, teste primeiro em um cluster que não seja de produção, e verifique transferências grandes pelo seu proxy.
+> Todo modo de propagação altera um tráfego que já está em trânsito. Para HTTP simples, o OBI aumenta a requisição de saída no kernel para caber o cabeçalho; para TLS e TCP puro, ele adiciona uma opção TCP a partir de um hook do Traffic Control, reescrevendo o pacote e o seu checksum. Quando a contagem de bytes da conexão não é então corrigida com exatidão, o fluxo se **dessincroniza**: transferências por um proxy como o nginx travam no meio, assim que uma resposta passa de cerca de 64 KB, até a conexão expirar. Requisições pequenas continuam funcionando, então parece um bug da aplicação ou do proxy. Nenhuma versão do kernel faz a reescrita desaparecer. Se transferências grandes pelo seu proxy travarem depois que você instalar o agente, ou se pods começarem a falhar por causa de um service mesh ou de um plugin de rede eBPF, desative a propagação: traces, métricas de requisições e o mapa de serviços funcionam todos sem ela, e um SDK do OpenTelemetry nos seus serviços liga os traces sem nenhuma reescrita no kernel. Um agente atualizado com `--reuse-values` mantém o valor que tinha, e os charts anteriores vinham com a propagação desativada: atualize com `--reset-then-reuse-values` para aplicar o novo padrão.
 
 ### Ligar logs a traces
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **O OBI roda, mas nenhum trace chega.** Defina `--set ebpf.printTraces=true` e leia o log do OBI de novo. Spans ali significam que a exportação para o OneUptime falha: confira a URL e a chave de ingestão. Nenhum span ali pode significar que o tráfego é criptografado por uma biblioteca TLS que o OBI não consegue ler, como uma ligada estaticamente.
 :::
 
-:::details Transferências grandes travam depois de ativar a ligação de traces
-É o `ebpf.contextPropagation` reescrevendo o tráfego: veja o aviso em [Ligar traces entre serviços](#ligar-traces-entre-serviços). Desative com `--set ebpf.contextPropagation=false`.
+:::details Transferências grandes travam depois de instalar o agente
+É o `ebpf.contextPropagation`, ativado por padrão, reescrevendo o tráfego: veja o aviso em [Ligar traces entre serviços](#ligar-traces-entre-serviços). Desative com `--set ebpf.contextPropagation=false`.
 :::
 
 :::details Aplicações travam com o código de saída 139 depois de ativar a ligação de logs

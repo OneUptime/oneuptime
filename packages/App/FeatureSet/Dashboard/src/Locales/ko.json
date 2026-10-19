@@ -31016,10 +31016,10 @@
   "Up to {{limit}} open at once": "동시에 최대 {{limit}}개",
   "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다.",
   "Call transcripts": "통화 녹취록",
-  "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.": "인시던트의 Zoom 또는 Google Meet 통화에 참여한 모든 사람에게 녹화 또는 녹취 중임이 표시됩니다. 조직에서 이러한 통화의 녹화를 허용하는지 확인하세요. Zoom은 계정이 오디오 녹취록을 켠 상태로 클라우드에 녹화할 때 녹취록을 보관합니다.",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "이 통화에 참여한 모든 사람에게 녹화 중임이 표시됩니다. 조직에서 이를 허용하는지 확인하세요. Zoom은 오디오 녹취록을 켠 클라우드 녹화도 필요합니다.",
   "Keep what was said on every incident call, without anyone remembering to.": "누가 기억하지 않아도 모든 인시던트 통화에서 나눈 대화를 남깁니다.",
   "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams 통화, Slack 허들, 회의 링크는 녹화되지 않습니다. 녹취록은 직접 추가하세요.",
-  "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.": "OneUptime은 시작하는 모든 인시던트 통화를 녹화하고 녹취하도록 Zoom과 Google Meet에 요청하고, 통화가 끝나면 녹취록을 인시던트에 추가합니다. 그런 다음 OneUptime AI가 나눈 대화를 인시던트 피드에 게시하고, 포스트모템 초안에도 반영합니다.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom과 Google Meet는 OneUptime이 시작하는 각 인시던트 통화를 녹화하고 녹취합니다. OneUptime은 녹취록을 추가하고 인시던트 피드에 요약합니다.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "통화가 끝나면 OneUptime이 {{provider}}에서 가져오고, OneUptime AI가 읽습니다.",
   "Postmortem Draft Waiting Since": "포스트모템 초안 대기 시작 시각",
   "Record and Transcribe Incident Calls": "인시던트 통화 녹화 및 녹취",
@@ -31030,6 +31030,8 @@
   "Transcript Fetch Reason": "녹취록 가져오기 사유",
   "Transcript Fetch Status": "녹취록 가져오기 상태",
   "Video Call Summary": "화상 통화 요약",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "아무것도 받지 않습니다. 확인을 위해 보낸 링크가 열리기 전에 만료되었습니다. 다시 가입하게 하거나 직접 다시 추가할 수 있습니다.",
+  "Link Expired": "링크 만료됨",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "이 패턴은 \\1처럼 앞의 그룹이 일치한 내용을 다시 참조합니다. 패턴은 읽는 텍스트의 길이에 비례하는 시간 안에 실행되는데, 역참조는 그렇게 할 수 없습니다. 역참조 없이 패턴을 작성하세요.",
   "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "이 패턴은 너무 커서 실행할 수 없습니다. 패턴을 줄이거나 각 부분의 반복 횟수를 줄이세요."
 }

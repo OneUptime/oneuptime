@@ -2,6 +2,7 @@ import AIAgentDataAPI from "../../../Server/API/AIAgentDataAPI";
 import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
@@ -122,13 +123,13 @@ describe("POST /ai-agent-data/record-pull-request", () => {
     rows = [];
 
     jest
-      .spyOn(CodeFixAgentAuth, "resolveAgentIdentity")
+      .spyOn(CodeFixAgentAuth, "checkCredential")
       .mockImplementation(async () => {
-        return {
+        return credentialCheckProving({
           id: agentId,
           projectId: projectId,
           source: agentSource,
-        };
+        });
       });
 
     jest
@@ -514,11 +515,13 @@ describe("POST /ai-agent-data/record-pull-request", () => {
   });
 
   test("refuses a run of another project", async () => {
-    jest.spyOn(CodeFixAgentAuth, "resolveAgentIdentity").mockResolvedValue({
-      id: agentId,
-      projectId: ObjectID.generate(),
-      source: CodeFixAgentSource.Runner,
-    });
+    jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
+      credentialCheckProving({
+        id: agentId,
+        projectId: ObjectID.generate(),
+        source: CodeFixAgentSource.Runner,
+      }),
+    );
 
     await record(recordBody());
 

@@ -173,8 +173,9 @@ describe("the note is true to the code", () => {
     const codeFixAuth: string = source(
       "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentAuth.ts",
     );
+    // A shipped key proves no identity, whatever the registries hold.
     expect(codeFixAuth).toContain(
-      "if (isShippedSecretValue(agentKey)) {\n      return null;\n    }",
+      "if (isShippedSecretValue(agentKey)) {\n      return { identity: null, agentId: agentId, isKeyRight: false };\n    }",
     );
 
     const aiAgentApi: string = source(

@@ -37,14 +37,14 @@ export const CallRecordingSwitchCopy: {
   ),
   switchTitle: translationKey("Record and transcribe incident calls"),
   switchDescription: translationKey(
-    "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.",
+    "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.",
   ),
   switchNote: translationKey(
     "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.",
   ),
   turnOnConfirmTitle: translationKey("Record and transcribe incident calls?"),
   turnOnConfirmDescription: translationKey(
-    "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.",
+    "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.",
   ),
   turnOnConfirmButton: translationKey("Turn on"),
 };

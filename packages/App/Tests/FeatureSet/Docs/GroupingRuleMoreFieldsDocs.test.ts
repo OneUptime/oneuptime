@@ -7,11 +7,16 @@ import path from "path";
  * steps - Episode Lifecycle, Details, On-Call & Ownership. It is gone:
  * everything a rule can do beyond grouping is folded under More fields at
  * the end of the Grouping step, in those three groups, and its folded
- * header names what it holds and draws each setting a rule uses as a chip.
- * The docs describe the form a reader will see, so they say so - in every
- * language that covers grouping rules - and never send anyone looking for
- * the switch again.
+ * header - one quiet line - names what it holds and says what each setting
+ * a rule uses is set to. The docs describe the form a reader will see, so
+ * they say so - in every language that covers grouping rules - and never
+ * send anyone looking for the switch again, nor for a chip: More fields
+ * draws none since it became a line.
  */
+
+// The folded line's way of naming a set setting, in English.
+const SAYS_WHAT_IT_IS_SET_TO: string =
+  "each setting a rule uses says what it is set to";
 
 const CONTENT_DIR: string = path.join(
   __dirname,
@@ -117,7 +122,7 @@ describe("the docs on the grouping rule form", () => {
         }),
       ).toEqual(groups);
 
-      // The chips, as the folded header writes them.
+      // The settings that are set, as the folded line writes them.
       expect(settings).toContain("On-Call Duty Policies: 2");
       expect(settings).toContain(
         "Reopen recently resolved episodes: 30 minutes",
@@ -135,10 +140,21 @@ describe("the docs on the grouping rule form", () => {
       "Opening it adds no step: **Create Incident Grouping Rule** is on **Which Incidents**, the last step.",
     );
     expect(settings).toContain("so editing a rule never hides what it does");
+    expect(settings).toContain(SAYS_WHAT_IT_IS_SET_TO);
     // The old default assignee is called out on the folded header.
     expect(settings).toContain(
-      "a **Default assignee** chip, and a sentence under it asking you to settle it",
+      "— **Default assignee**, and a sentence under it asking you to settle it —",
     );
+    // More fields is a quiet line: what is set on it is no chip.
+    expect(settings).not.toContain("**Default assignee** chip");
+    expect(settings).not.toContain("is a chip that says what it is set to");
+
+    const episodes: string = read("en", "alerts/episodes");
+
+    expect(episodes).toContain(
+      "says what each setting the rule uses is set to, so editing a rule never hides what it does",
+    );
+    expect(episodes).not.toContain("as a chip");
     // No three steps to walk through any more.
     expect(settings).not.toContain("adds three steps");
     expect(settings).not.toContain("walks through them without asking");

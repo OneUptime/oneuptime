@@ -363,6 +363,7 @@ describe("status page subscribers: one contact once per page", () => {
     manager: EntityManager;
     statements: Array<string>;
     finds: Array<Record<string, unknown>>;
+    selects: Array<Record<string, unknown>>;
   }
 
   /*
@@ -377,6 +378,7 @@ describe("status page subscribers: one contact once per page", () => {
       manager: {} as EntityManager,
       statements: [],
       finds: [],
+      selects: [],
     };
 
     transaction.manager = {
@@ -388,9 +390,11 @@ describe("status page subscribers: one contact once per page", () => {
         return {
           find: async (options: {
             where: Record<string, unknown>;
+            select: Record<string, unknown>;
           }): Promise<Array<unknown>> => {
             transaction.statements.push("find");
             transaction.finds.push(options.where);
+            transaction.selects.push(options.select);
 
             return rows.map((row: Record<string, unknown>): unknown => {
               return Object.assign(new StatusPageSubscriber(), row);
@@ -423,10 +427,22 @@ describe("status page subscribers: one contact once per page", () => {
       await expect(limit!.check(free.manager)).resolves.toBeUndefined();
       expect(free.statements).toEqual(["find"]);
       expect(String(free.finds[0]!["statusPageId"])).toBe(PAGE_ID.toString());
+      /*
+       * Of each subscription of the contact, what says whether it holds
+       * the contact still: cancelled or not, confirmed or not, and when its
+       * link to confirm was sent.
+       */
+      expect(free.selects[0]).toEqual(
+        expect.objectContaining({
+          isUnsubscribed: true,
+          isSubscriptionConfirmed: true,
+          createdAt: true,
+        }),
+      );
     }
   });
 
-  test("refused when the page has the contact subscribed; let through when it has only cancelled it", async () => {
+  test("refused when the page has the contact subscribed, or waiting for a confirmation whose link works; let through when it has only cancelled it, or its link has run out", async () => {
     readsPlan(PlanType.Growth);
 
     const limit: CreateLimit | null = await createLimitOf(
@@ -434,10 +450,17 @@ describe("status page subscribers: one contact once per page", () => {
       createBy(),
     );
 
+    const HOUR: number = 60 * 60 * 1000;
+
     await expect(
       limit!.check(
         contactTransaction([
-          { _id: ObjectID.generate().toString(), isUnsubscribed: false },
+          {
+            _id: ObjectID.generate().toString(),
+            isUnsubscribed: false,
+            isSubscriptionConfirmed: true,
+            createdAt: new Date(Date.now() - 400 * 24 * HOUR),
+          },
         ]).manager,
       ),
     ).rejects.toThrow(new BadDataException(CONTACT_ALREADY_SUBSCRIBED_MESSAGE));
@@ -445,7 +468,38 @@ describe("status page subscribers: one contact once per page", () => {
     await expect(
       limit!.check(
         contactTransaction([
-          { _id: ObjectID.generate().toString(), isUnsubscribed: true },
+          {
+            _id: ObjectID.generate().toString(),
+            isUnsubscribed: false,
+            isSubscriptionConfirmed: false,
+            createdAt: new Date(Date.now() - 23 * HOUR),
+          },
+        ]).manager,
+      ),
+    ).rejects.toThrow(new BadDataException(CONTACT_ALREADY_SUBSCRIBED_MESSAGE));
+
+    await expect(
+      limit!.check(
+        contactTransaction([
+          {
+            _id: ObjectID.generate().toString(),
+            isUnsubscribed: true,
+            isSubscriptionConfirmed: true,
+            createdAt: new Date(Date.now() - HOUR),
+          },
+        ]).manager,
+      ),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      limit!.check(
+        contactTransaction([
+          {
+            _id: ObjectID.generate().toString(),
+            isUnsubscribed: false,
+            isSubscriptionConfirmed: false,
+            createdAt: new Date(Date.now() - 25 * HOUR),
+          },
         ]).manager,
       ),
     ).resolves.toBeUndefined();
@@ -472,7 +526,14 @@ describe("status page subscribers: one contact once per page", () => {
     await expect(
       limit!.check(
         contactTransaction(
-          [{ _id: ObjectID.generate().toString(), isUnsubscribed: false }],
+          [
+            {
+              _id: ObjectID.generate().toString(),
+              isUnsubscribed: false,
+              isSubscriptionConfirmed: true,
+              createdAt: new Date(),
+            },
+          ],
           0,
         ).manager,
       ),

@@ -35,6 +35,18 @@ export function useInMemorySubscriberCreates(
       }).length;
     },
     save: async (_tableName: string, row: unknown): Promise<unknown> => {
+      /*
+       * Postgres writes a new row's Created At itself (its default, now()):
+       * read from the app's clock here, so a suite that moves Date.now
+       * moves it too - a subscription's link to confirm works for a day
+       * from it.
+       */
+      const record: Record<string, unknown> = row as Record<string, unknown>;
+
+      if (!record["createdAt"]) {
+        record["createdAt"] = new Date(Date.now());
+      }
+
       return await subscribers.repository.save(row);
     },
     find: async (

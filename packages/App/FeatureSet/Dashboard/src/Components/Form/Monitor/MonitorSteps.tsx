@@ -7,10 +7,7 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
@@ -704,7 +701,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       {hasLoadedOptions ? (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
-          icon={MORE_SECTION_ICON}
           // The gap MonitorStep leaves between its own sections (space-y-6).
           className="mt-6"
           isCollapsed={isAdvancedCollapsed}

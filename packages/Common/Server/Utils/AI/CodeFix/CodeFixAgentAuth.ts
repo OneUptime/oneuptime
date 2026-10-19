@@ -3,10 +3,21 @@ import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../../Services/RunnerService";
 import { isShippedSecretValue } from "../../../EnvironmentConfig";
+import { ExpressRequest, ExpressResponse } from "../../Express";
+import Response from "../../Response";
+import WrongComponentKeyLimit, {
+  ComponentKeyKind,
+} from "../../RateLimit/WrongComponentKeyLimit";
+import { WrongKeyRefusal } from "../../RateLimit/WrongKeyLimit";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import Runner from "../../../../Models/DatabaseModels/Runner";
+
+// What every code-fix route answers a pair that proves no code-fix identity.
+export const INVALID_CODE_FIX_AGENT_MESSAGE: string =
+  "Invalid AI Agent ID or AI Agent Key";
 
 /*
  * Which registry the presented credentials matched. Consumers that write the
@@ -23,6 +34,18 @@ export interface CodeFixAgentIdentity {
   id: ObjectID;
   projectId?: ObjectID | undefined;
   source: CodeFixAgentSource;
+}
+
+/*
+ * What a pair proved: the code-fix identity, when it may do code-fix work;
+ * the id it named, when it named one; and whether its key is the key of the
+ * AI agent or Runner of that id, whether or not that one may do code-fix
+ * work.
+ */
+export interface CodeFixCredentialCheck {
+  identity: CodeFixAgentIdentity | null;
+  agentId: ObjectID | null;
+  isKeyRight: boolean;
 }
 
 /*
@@ -50,21 +73,114 @@ export interface CodeFixAgentIdentity {
  * before the row became an agent row) keeps it; the one agent-row rule
  * (RunnerService's isKubernetesAgentRunnerRow: the server-owned name
  * marker, or an agent posture) is applied here too.
+ *
+ * Every code-fix route authenticates a request through authenticate, which
+ * also counts the different wrong keys a client presents for an agent or a
+ * Runner (WrongComponentKeyLimit): a client that sent too many is refused
+ * for that agent, whichever key it carries, until its window ends - before
+ * either registry is read.
  */
 export default class CodeFixAgentAuth {
-  public static async resolveAgentIdentity(
-    data: JSONObject,
+  /*
+   * Authenticates a code-fix protocol request by the aiAgentId/aiAgentKey
+   * pair its body carries: the identity it proves, or null once the request
+   * is answered - 400 for a pair that proves no code-fix identity, 429 for a
+   * client that sent too many different wrong keys for that agent or Runner.
+   */
+  public static async authenticate(
+    req: ExpressRequest,
+    res: ExpressResponse,
   ): Promise<CodeFixAgentIdentity | null> {
-    if (!data["aiAgentId"] || !data["aiAgentKey"]) {
+    const data: JSONObject =
+      req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? (req.body as JSONObject)
+        : {};
+
+    /*
+     * A client that sent too many different wrong keys for this agent or
+     * Runner is refused before either registry is read.
+     */
+    const presentedAgentId: ObjectID | null =
+      CodeFixAgentAuth.getPresentedAgentId(data);
+
+    if (presentedAgentId) {
+      const refusedBeforeLookup: WrongKeyRefusal | null =
+        await WrongComponentKeyLimit.checkBeforeLookup({
+          req: req,
+          kind: ComponentKeyKind.Agent,
+          componentId: presentedAgentId.toString(),
+        });
+
+      if (refusedBeforeLookup) {
+        WrongComponentKeyLimit.answerRefusal(
+          req,
+          res,
+          ComponentKeyKind.Agent,
+          refusedBeforeLookup,
+        );
+
+        return null;
+      }
+    }
+
+    const check: CodeFixCredentialCheck =
+      await CodeFixAgentAuth.checkCredential(data);
+
+    const agentId: ObjectID | null = check.agentId;
+
+    if (agentId) {
+      const refusal: WrongKeyRefusal | null =
+        await WrongComponentKeyLimit.checkComponentKey({
+          req: req,
+          kind: ComponentKeyKind.Agent,
+          componentId: agentId.toString(),
+          presentedKey: data["aiAgentKey"],
+          isKeyRight: check.isKeyRight,
+          componentExists: async (): Promise<boolean> => {
+            return await CodeFixAgentAuth.agentOrRunnerExists(agentId);
+          },
+        });
+
+      if (refusal) {
+        WrongComponentKeyLimit.answerRefusal(
+          req,
+          res,
+          ComponentKeyKind.Agent,
+          refusal,
+        );
+
+        return null;
+      }
+    }
+
+    if (!check.identity) {
+      Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException(INVALID_CODE_FIX_AGENT_MESSAGE),
+      );
+
       return null;
     }
 
-    let agentId: ObjectID;
+    return check.identity;
+  }
 
-    try {
-      agentId = new ObjectID(data["aiAgentId"] as string);
-    } catch {
-      return null;
+  // The identity a pair proves, or null.
+  public static async resolveAgentIdentity(
+    data: JSONObject,
+  ): Promise<CodeFixAgentIdentity | null> {
+    return (await CodeFixAgentAuth.checkCredential(data)).identity;
+  }
+
+  // What a pair proves (CodeFixCredentialCheck).
+  public static async checkCredential(
+    data: JSONObject,
+  ): Promise<CodeFixCredentialCheck> {
+    const agentId: ObjectID | null = CodeFixAgentAuth.getPresentedAgentId(data);
+
+    if (!agentId) {
+      return { identity: null, agentId: null, isKeyRight: false };
     }
 
     const agentKey: string = data["aiAgentKey"] as string;
@@ -79,7 +195,7 @@ export default class CodeFixAgentAuth {
      * every code-fix route at once.
      */
     if (isShippedSecretValue(agentKey)) {
-      return null;
+      return { identity: null, agentId: agentId, isKeyRight: false };
     }
 
     const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
@@ -98,9 +214,13 @@ export default class CodeFixAgentAuth {
 
     if (aiAgent && aiAgent.id) {
       return {
-        id: aiAgent.id,
-        projectId: aiAgent.projectId,
-        source: CodeFixAgentSource.AIAgent,
+        identity: {
+          id: aiAgent.id,
+          projectId: aiAgent.projectId,
+          source: CodeFixAgentSource.AIAgent,
+        },
+        agentId: agentId,
+        isKeyRight: true,
       };
     }
 
@@ -129,13 +249,53 @@ export default class CodeFixAgentAuth {
       !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
     ) {
       return {
-        id: runner.id,
-        projectId: runner.projectId,
-        source: CodeFixAgentSource.Runner,
+        identity: {
+          id: runner.id,
+          projectId: runner.projectId,
+          source: CodeFixAgentSource.Runner,
+        },
+        agentId: agentId,
+        isKeyRight: true,
       };
     }
 
-    return null;
+    /*
+     * A Runner whose key this is, but that may not do code-fix work: no
+     * identity here, though the key is right, so it is never counted as a
+     * wrong one.
+     */
+    return {
+      identity: null,
+      agentId: agentId,
+      isKeyRight: Boolean(runner),
+    };
+  }
+
+  /*
+   * The id a pair names, when the pair names one and carries a key; null
+   * otherwise.
+   */
+  public static getPresentedAgentId(data: JSONObject): ObjectID | null {
+    if (!data["aiAgentId"] || !data["aiAgentKey"]) {
+      return null;
+    }
+
+    try {
+      return new ObjectID(data["aiAgentId"] as string);
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * Whether an AI agent or a Runner has this id: asked only for a key that
+   * matched neither, so that a wrong key is counted only for one there is.
+   */
+  public static async agentOrRunnerExists(agentId: ObjectID): Promise<boolean> {
+    return (
+      (await AIAgentService.hasAIAgentWithId(agentId)) ||
+      (await RunnerService.hasRunnerWithId(agentId))
+    );
   }
 
   /*

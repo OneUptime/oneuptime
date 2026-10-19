@@ -1,9 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { getDatabaseMonitorMoreFieldsItems } from "../MonitorMoreFields";
 import DatabaseAuthenticationField from "../DatabaseAuthenticationField";
 import DatabasePasswordField from "../DatabasePasswordField";
@@ -515,7 +512,6 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
        */}
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        icon={MORE_SECTION_ICON}
         items={getDatabaseMonitorMoreFieldsItems({
           config: props.monitorStepDatabaseMonitor,
           enabledMetricGroupCount: DEFAULT_DATABASE_METRIC_GROUPS.filter(

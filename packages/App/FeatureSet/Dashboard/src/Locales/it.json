@@ -31016,10 +31016,10 @@
   "Up to {{limit}} open at once": "Fino a {{limit}} aperte contemporaneamente",
   "Gets nothing until they open the link we texted them.": "Non riceve nulla finché non apre il link che gli abbiamo inviato via SMS.",
   "Call transcripts": "Trascrizioni delle chiamate",
-  "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.": "Tutti i partecipanti a una chiamata Zoom o Google Meet di un incidente vedono che viene registrata o trascritta. Verifica che la tua organizzazione consenta di registrare queste chiamate. Zoom conserva una trascrizione quando l'account registra nel cloud con la trascrizione audio attiva.",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Tutti i partecipanti a queste chiamate vedono che vengono registrate. Verifica che la tua organizzazione lo consenta. Zoom richiede anche la registrazione nel cloud con la trascrizione audio attiva.",
   "Keep what was said on every incident call, without anyone remembering to.": "Conserva ciò che è stato detto in ogni chiamata di incidente, senza che nessuno debba ricordarsene.",
   "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Le chiamate Microsoft Teams, gli huddle di Slack e i link alle riunioni non vengono registrati: aggiungi le loro trascrizioni a mano.",
-  "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.": "OneUptime chiede a Zoom e Google Meet di registrare e trascrivere ogni chiamata di incidente che avvia, e aggiunge la trascrizione all'incidente al termine della chiamata. OneUptime AI pubblica poi quanto è stato detto nel feed dell'incidente, e la bozza del post-mortem ne tiene conto.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom e Google Meet registrano e trascrivono ogni chiamata di incidente avviata da OneUptime. OneUptime aggiunge la trascrizione e la riassume nel feed dell'incidente.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime la ottiene da {{provider}} al termine della chiamata, e OneUptime AI la legge.",
   "Postmortem Draft Waiting Since": "Bozza del post-mortem in attesa dal",
   "Record and Transcribe Incident Calls": "Registra e trascrivi le chiamate degli incidenti",
@@ -31030,6 +31030,8 @@
   "Transcript Fetch Reason": "Motivo del recupero della trascrizione",
   "Transcript Fetch Status": "Stato del recupero della trascrizione",
   "Video Call Summary": "Riepilogo della videochiamata",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Non riceve nulla: il link di conferma che gli abbiamo inviato è scaduto prima che lo aprisse. Può iscriversi di nuovo, oppure puoi aggiungerlo di nuovo.",
+  "Link Expired": "Link scaduto",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Questo pattern rimanda a ciò che ha trovato un gruppo precedente, come \\1. I pattern vengono eseguiti in un tempo che cresce solo con il testo che leggono, cosa che un riferimento all'indietro non consente. Scrivi il pattern senza di esso.",
   "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Questo pattern è troppo grande per essere eseguito. Accorcialo o ripetine le parti meno volte."
 }

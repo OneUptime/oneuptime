@@ -102,6 +102,15 @@ import {
   WRONG_CLUSTER_KEYS_MESSAGE,
   WRONG_CLUSTER_KEYS_PER_ADDRESS,
 } from "../../../Server/Utils/RateLimit/WrongClusterKeyLimit";
+import WrongComponentKeyLimit, {
+  ComponentKeyKind,
+  WRONG_AGENT_KEYS_MESSAGE,
+  WRONG_COMPONENT_KEYS_PER_ADDRESS,
+  WRONG_PROBE_KEYS_MESSAGE,
+  WRONG_PROBE_REGISTRATION_KEYS_MESSAGE,
+  WRONG_SHARED_RUNNER_KEYS_MESSAGE,
+} from "../../../Server/Utils/RateLimit/WrongComponentKeyLimit";
+import { WrongKeyRefusal } from "../../../Server/Utils/RateLimit/WrongKeyLimit";
 import Exception from "../../../Types/Exception/Exception";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
@@ -551,6 +560,81 @@ function wrongClusterKeySurface(): Surface {
 }
 
 /*
+ * Wrong probe, Runner and AI agent keys (WrongComponentKeyLimit): every
+ * request presents another wrong key. A probe's or an agent's key is counted
+ * for that one component, so every request here is about one probe or one
+ * Runner, whichever resource it names; REGISTER_PROBE_KEY and the shared
+ * Runner's key are counted for the client alone. Each answers a refused
+ * client 429 with Retry-After.
+ */
+function wrongComponentKeySurface(
+  name: string,
+  kind: ComponentKeyKind,
+  refusal: string,
+): Surface {
+  let sent: number = 0;
+
+  return {
+    name: name,
+    send: async (address: string): Promise<Answer> => {
+      sent++;
+
+      const presentedKey: string = `wrong-${kind}-key-${sent}`;
+      const refused: WrongKeyRefusal | null =
+        kind === ComponentKeyKind.Probe || kind === ComponentKeyKind.Agent
+          ? await WrongComponentKeyLimit.checkComponentKey({
+              req: requestFrom(address),
+              kind: kind,
+              componentId: idOf(1),
+              presentedKey: presentedKey,
+              isKeyRight: false,
+              componentExists: async (): Promise<boolean> => {
+                return true;
+              },
+            })
+          : await WrongComponentKeyLimit.checkRegistrationKey({
+              req: requestFrom(address),
+              kind: kind,
+              presentedKey: presentedKey,
+              isKeyRight: false,
+            });
+
+      if (!refused) {
+        return { allowed: true, message: undefined, retryAfter: undefined };
+      }
+
+      const headers: Record<string, string> = {};
+
+      WrongComponentKeyLimit.answerRefusal(
+        requestFrom(address),
+        {
+          setHeader: (headerName: string, value: string): void => {
+            headers[headerName] = value;
+          },
+        } as unknown as ExpressResponse,
+        kind,
+        refused,
+      );
+
+      const error: Exception = sendErrorResponseMock.mock.calls[
+        sendErrorResponseMock.mock.calls.length - 1
+      ]![2] as Exception;
+
+      expect(error.code).toBe(ExceptionCode.TooManyRequestsException);
+
+      return {
+        allowed: false,
+        message: error.message,
+        retryAfter: headers["Retry-After"],
+      };
+    },
+    perResource: WRONG_COMPONENT_KEYS_PER_ADDRESS,
+    perClient: WRONG_COMPONENT_KEYS_PER_ADDRESS,
+    refusal: refusal,
+  };
+}
+
+/*
  * Every limit that counts a client address. The shipped per-address numbers
  * are restated where the limiter does not expose them, so a change to one
  * has to be made on purpose.
@@ -637,6 +721,26 @@ function everySurface(): Array<Surface> {
     publicMessageSurface(PublicMessageKind.PasswordReset),
     publicMessageSurface(PublicMessageKind.SignUpEmail),
     wrongClusterKeySurface(),
+    wrongComponentKeySurface(
+      "wrong keys for one probe",
+      ComponentKeyKind.Probe,
+      WRONG_PROBE_KEYS_MESSAGE,
+    ),
+    wrongComponentKeySurface(
+      "wrong keys for one Runner or AI agent",
+      ComponentKeyKind.Agent,
+      WRONG_AGENT_KEYS_MESSAGE,
+    ),
+    wrongComponentKeySurface(
+      "wrong probe registration keys",
+      ComponentKeyKind.ProbeRegistration,
+      WRONG_PROBE_REGISTRATION_KEYS_MESSAGE,
+    ),
+    wrongComponentKeySurface(
+      "wrong shared Runner keys",
+      ComponentKeyKind.SharedRunner,
+      WRONG_SHARED_RUNNER_KEYS_MESSAGE,
+    ),
   ];
 }
 

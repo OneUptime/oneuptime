@@ -338,8 +338,10 @@ const expected = Object.assign(
     routes: null,
     logCorrelation: false,
     populateTraceContext: false,
-    contextPropagation: "disabled",
-    trackRequestHeaders: false,
+    // On by default (ebpf.contextPropagation), in headers mode, reading the
+    // traceparent it receives as well.
+    contextPropagation: "headers",
+    trackRequestHeaders: true,
     tracePrinter: "disabled",
     nodejs: true,
     excludeOtelInstrumentedServices: true,
@@ -581,6 +583,7 @@ ebpf:
   nodejs:
     enabled: false
   excludeOtelInstrumentedServices: false
+  contextPropagation: false
 EOF
 
 variant defaults '{}'
@@ -602,7 +605,7 @@ variant all-on \
 # `application` (HTTP/gRPC RED metrics and body sizes). There is no OBI token
 # for "none".
 variant all-off \
-  '{"features":["application"],"nodejs":false,"excludeOtelInstrumentedServices":false}' \
+  '{"features":["application"],"nodejs":false,"excludeOtelInstrumentedServices":false,"contextPropagation":"disabled","trackRequestHeaders":false}' \
   -f "${WORK_DIR}/all-off.yaml"
 # The profiler correlates samples with spans through OBI's traces_ctx_v1 pin,
 # which v0.14 only fills when asked to (or for its own log enricher).

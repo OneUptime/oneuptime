@@ -301,6 +301,11 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
     { english: "Unsubscribe", key: "subscribe.update.unsubscribe" },
     { english: "Unsubscribe", key: "subscribe.unsubscribe.confirmButton" },
     { english: "Confirm Subscription", key: "subscribe.confirm.title" },
+    // The confirm page's way on from a link that has expired.
+    {
+      english: "Subscribe again",
+      key: "subscribe.confirm.subscribeAgain",
+    },
     { english: "Active Announcements", key: "announcements.active" },
     { english: "Past Announcements", key: "announcements.past" },
     { english: "Announced at", key: "announcements.announcedAt" },
@@ -332,6 +337,7 @@ const STATUS_PAGE_APP_MESSAGES: Record<string, Array<string>> = {
     "subscribe.subscribedSuccessfully",
     "subscribe.sms.confirmationSent",
     "subscribe.confirm.success",
+    "subscribe.confirm.linkNotValid",
     "subscribe.unsubscribe.confirmPrompt",
     "subscribe.update.saved",
     "subscribe.preferences.summary.everything",
@@ -454,6 +460,8 @@ const PROSE: Record<string, Array<string>> = {
     "One subscription per contact.",
     "What your team sends counts too.",
     "Signups by SMS confirm too.",
+    "A confirmation link works for 24 hours.",
+    "Signing up again.",
     "A monitor group stands for every monitor in it.",
     "A subscriber chooses among its own page's resources.",
     "Unconfirmed means silent.",

@@ -221,16 +221,16 @@ OBI envía varios tipos de señal. Cada uno puede desactivarse con `--set ebpf.f
 
 ### Enlazar trazas entre servicios
 
-OBI también puede llevar la traza a través de una llamada: cuando el pod A llama al pod B por HTTP o gRPC, el span del lado de B se une a la traza de A, sin SDK en ninguna de las dos aplicaciones. **Está desactivado por defecto.** Actívelo con `--set ebpf.contextPropagation=true`, después de leer la advertencia de abajo.
+OBI también lleva la traza a través de una llamada: cuando el pod A llama al pod B por HTTP o gRPC, el span del lado de B se une a la traza de A, sin SDK en ninguna de las dos aplicaciones. **Está activado por defecto.** Sin ello, una llamada a un pod de otro nodo empieza una traza propia; en el mismo nodo, OBI enlaza los dos extremos por sí mismo. Desactívelo con `--set ebpf.contextPropagation=false` si se encuentra con el problema descrito en la advertencia de abajo.
 
 | Opción | Predeterminado | Qué hace |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | desactivado | Escribe un `traceparent` W3C en el tráfico saliente, para que los spans se enlacen entre servicios. |
+| `ebpf.contextPropagation` | activado | Escribe un `traceparent` W3C en el tráfico saliente, para que los spans se enlacen entre servicios. |
 | `ebpf.contextPropagationMode` | `headers` | Cómo: `headers` (cabeceras de solicitud HTTP/1.1, lo más acotado), `tcp` (una opción TCP, a través de Linux Traffic Control) o `all` (ambos). Solo se lee cuando `contextPropagation` está activado. |
 | `ebpf.trackRequestHeaders` | activado | Sigue las cabeceras de solicitud en el kernel, para que el lado receptor encuentre el `traceparent` también en servidores HTTP simples. Solo tiene efecto cuando `contextPropagation` está activado. |
 
 > [!WARNING]
-> Todos los modos de propagación modifican tráfico que ya está en curso. Para HTTP simple, OBI amplía la solicitud saliente en el kernel para que quepa la cabecera; para TLS y TCP sin procesar añade una opción TCP desde un hook de Traffic Control, reescribiendo el paquete y su suma de comprobación. Si la contabilidad de bytes de la conexión no se corrige entonces con exactitud, el flujo se **desincroniza**: las transferencias a través de un proxy como nginx se cuelgan a mitad, en cuanto una respuesta supera unos 64 KB, hasta que la conexión agota su tiempo de espera. Las solicitudes pequeñas siguen funcionando, así que parece un fallo de la aplicación o del proxy. Ninguna versión del kernel hace desaparecer la reescritura. Las trazas, las métricas de solicitudes y el mapa de servicios funcionan sin ella; un SDK de OpenTelemetry en sus servicios enlaza las trazas sin ninguna reescritura en el kernel. Si la activa, pruébela primero en un clúster que no sea de producción y compruebe las transferencias grandes a través de su proxy.
+> Todos los modos de propagación modifican tráfico que ya está en curso. Para HTTP simple, OBI amplía la solicitud saliente en el kernel para que quepa la cabecera; para TLS y TCP sin procesar añade una opción TCP desde un hook de Traffic Control, reescribiendo el paquete y su suma de comprobación. Si la contabilidad de bytes de la conexión no se corrige entonces con exactitud, el flujo se **desincroniza**: las transferencias a través de un proxy como nginx se cuelgan a mitad, en cuanto una respuesta supera unos 64 KB, hasta que la conexión agota su tiempo de espera. Las solicitudes pequeñas siguen funcionando, así que parece un fallo de la aplicación o del proxy. Ninguna versión del kernel hace desaparecer la reescritura. Si las transferencias grandes a través de su proxy se atascan después de instalar el agente, o si un service mesh o un plugin de red eBPF empieza a hacer fallar pods, desactívela: las trazas, las métricas de solicitudes y el mapa de servicios funcionan sin ella, y un SDK de OpenTelemetry en sus servicios enlaza las trazas sin ninguna reescritura en el kernel. Un agente actualizado con `--reuse-values` conserva el valor que tenía, y los charts anteriores la traían desactivada: actualice con `--reset-then-reuse-values` para aplicar el nuevo valor predeterminado.
 
 ### Enlazar registros con trazas
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI se ejecuta, pero no llegan trazas.** Establezca `--set ebpf.printTraces=true` y vuelva a leer el registro de OBI. Si aparecen spans ahí, la exportación a OneUptime falla: compruebe la URL y la clave de ingesta. Si no aparecen, puede que el tráfico esté cifrado por una biblioteca TLS que OBI no puede leer, como una enlazada estáticamente.
 :::
 
-:::details Las transferencias grandes se cuelgan tras activar el enlace de trazas
-Es `ebpf.contextPropagation` reescribiendo el tráfico: consulte la advertencia en [Enlazar trazas entre servicios](#enlazar-trazas-entre-servicios). Desactívelo con `--set ebpf.contextPropagation=false`.
+:::details Las transferencias grandes se cuelgan tras instalar el agente
+Es `ebpf.contextPropagation`, activado por defecto, reescribiendo el tráfico: consulte la advertencia en [Enlazar trazas entre servicios](#enlazar-trazas-entre-servicios). Desactívelo con `--set ebpf.contextPropagation=false`.
 :::
 
 :::details Las aplicaciones fallan con el código de salida 139 tras activar el enlace de registros
