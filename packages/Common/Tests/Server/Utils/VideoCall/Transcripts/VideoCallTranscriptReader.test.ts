@@ -510,7 +510,11 @@ describe("VideoCallTranscriptReader - Microsoft Teams", () => {
     const { result, fetcher } = await read(TEAMS_CALL, [
       {
         status: 200,
-        body: { token_type: "Bearer", expires_in: 3599, access_token: "app-token" },
+        body: {
+          token_type: "Bearer",
+          expires_in: 3599,
+          access_token: "app-token",
+        },
       },
       TRANSCRIPTS,
       CONTENT,
@@ -551,7 +555,11 @@ describe("VideoCallTranscriptReader - Microsoft Teams", () => {
     const { result } = await read(TEAMS_CALL, [
       {
         status: 200,
-        body: { token_type: "Bearer", expires_in: 3599, access_token: "app-token" },
+        body: {
+          token_type: "Bearer",
+          expires_in: 3599,
+          access_token: "app-token",
+        },
       },
       {
         status: 403,
@@ -566,9 +574,7 @@ describe("VideoCallTranscriptReader - Microsoft Teams", () => {
 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.PermissionMissing,
-      message: expect.stringContaining(
-        `-Identity "${ORGANIZER_ID}"`,
-      ),
+      message: expect.stringContaining(`-Identity "${ORGANIZER_ID}"`),
     });
   });
 

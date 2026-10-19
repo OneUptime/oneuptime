@@ -207,8 +207,10 @@ describe("IncidentVideoCallService create", () => {
         carryForward: {},
       });
 
-    const recorded: OnCreate<IncidentVideoCall> =
-      await build().onBeforeCreate({ data: call(), props: USER_PROPS });
+    const recorded: OnCreate<IncidentVideoCall> = await build().onBeforeCreate({
+      data: call(),
+      props: USER_PROPS,
+    });
 
     expect(recorded.createBy.data.externalCalendarEventId).toBe(
       "AAMkAGI2TG93AAA=",

@@ -31029,5 +31029,6 @@
   "Transcript Fetch Next Attempt At": "Volgende poging om transcriptie op te halen",
   "Transcript Fetch Reason": "Reden bij ophalen van transcriptie",
   "Transcript Fetch Status": "Status van ophalen van transcriptie",
-  "Video Call Summary": "Samenvatting van videogesprek"
+  "Video Call Summary": "Samenvatting van videogesprek",
+  "Provider Calendar Event ID": "ID van de agenda-afspraak bij de provider"
 }

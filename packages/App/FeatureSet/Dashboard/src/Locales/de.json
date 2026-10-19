@@ -31029,5 +31029,6 @@
   "Transcript Fetch Next Attempt At": "Nächster Transkriptabruf am",
   "Transcript Fetch Reason": "Grund des Transkriptabrufs",
   "Transcript Fetch Status": "Status des Transkriptabrufs",
-  "Video Call Summary": "Zusammenfassung des Videoanrufs"
+  "Video Call Summary": "Zusammenfassung des Videoanrufs",
+  "Provider Calendar Event ID": "Kalenderereignis-ID des Anbieters"
 }

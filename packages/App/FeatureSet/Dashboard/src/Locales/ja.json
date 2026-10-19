@@ -31029,5 +31029,6 @@
   "Transcript Fetch Next Attempt At": "文字起こし取得の次回試行日時",
   "Transcript Fetch Reason": "文字起こし取得の理由",
   "Transcript Fetch Status": "文字起こし取得のステータス",
-  "Video Call Summary": "ビデオ通話の要約"
+  "Video Call Summary": "ビデオ通話の要約",
+  "Provider Calendar Event ID": "プロバイダーのカレンダー イベント ID"
 }

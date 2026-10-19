@@ -449,11 +449,10 @@ describe("MicrosoftTeamsMeetingClient - a meeting that records and transcribes i
 
     try {
       let waited: boolean = false;
-      const wait: Promise<void> = MicrosoftTeamsMeetingClient.waitBeforeLookingAgain(
-        1000,
-      ).then(() => {
-        waited = true;
-      });
+      const wait: Promise<void> =
+        MicrosoftTeamsMeetingClient.waitBeforeLookingAgain(1000).then(() => {
+          waited = true;
+        });
 
       jest.advanceTimersByTime(999);
       await Promise.resolve();
@@ -670,11 +669,19 @@ describe("MicrosoftTeamsMeetingClient - when Graph says no, the call starts unre
       VideoCallTranscriptUnavailableReason.PermissionMissing,
       /did not let the app find the Teams meeting of the calendar event/,
     );
-    expect(methodsOf(fetcher)).toEqual(["POST", "POST", "GET", "DELETE", "POST"]);
+    expect(methodsOf(fetcher)).toEqual([
+      "POST",
+      "POST",
+      "GET",
+      "DELETE",
+      "POST",
+    ]);
   });
 
   test("options Graph refuses: the event is taken back, in Graph's words", async () => {
-    const refused: Array<[ScriptedResponse, VideoCallTranscriptUnavailableReason, RegExp]> = [
+    const refused: Array<
+      [ScriptedResponse, VideoCallTranscriptUnavailableReason, RegExp]
+    > = [
       [
         graphError(
           400,
@@ -797,9 +804,8 @@ describe("MicrosoftTeamsMeetingClient - when Graph says no, the call starts unre
         return await fetcher.fetch(url, init);
       };
 
-      const meeting: VideoCallMeeting = await newClient(fetch).createMeeting(
-        recordedRequest(),
-      );
+      const meeting: VideoCallMeeting =
+        await newClient(fetch).createMeeting(recordedRequest());
 
       expect(methods).toEqual(scenario.requests);
       expect(meeting).toEqual({

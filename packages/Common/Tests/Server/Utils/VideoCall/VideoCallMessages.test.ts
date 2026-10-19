@@ -88,7 +88,8 @@ describe("VideoCallMessages", () => {
       const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
         announcement({
           provider: VideoCallProvider.MicrosoftTeams,
-          joinUrl: "https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0",
+          joinUrl:
+            "https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0",
           recordsAndTranscribes: true,
         }),
       ).toString();

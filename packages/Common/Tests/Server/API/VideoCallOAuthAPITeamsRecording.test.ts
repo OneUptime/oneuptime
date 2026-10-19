@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
 import VideoCallConnectionService from "../../../Server/Services/VideoCallConnectionService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -150,10 +151,8 @@ describe("Connecting Microsoft Teams for a project that records its calls", () =
   let app: RunningApp;
   let projectId: ObjectID;
   let userId: ObjectID;
-  let isRecording: jest.SpiedFunction<typeof IncidentCallRecordingSetting.isOn>;
-  let exchangeCode: jest.SpiedFunction<
-    MicrosoftTeamsMeetingsOAuthApp["exchangeCode"]
-  >;
+  let isRecording: SpyInstance<typeof IncidentCallRecordingSetting.isOn>;
+  let exchangeCode: SpyInstance<MicrosoftTeamsMeetingsOAuthApp["exchangeCode"]>;
 
   beforeAll(async () => {
     const VideoCallOAuthAPI: any = (
@@ -244,9 +243,7 @@ describe("Connecting Microsoft Teams for a project that records its calls", () =
   }
 
   function scopesOf(started: ProbeResponse): Array<string> {
-    return queryOf(
-      (started.body as JSONObject)["authorizationUrl"] as string,
-    )
+    return queryOf((started.body as JSONObject)["authorizationUrl"] as string)
       .get("scope")!
       .split(" ");
   }
@@ -277,9 +274,7 @@ describe("Connecting Microsoft Teams for a project that records its calls", () =
       ...MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES,
     ]);
     expect(isRecording).toHaveBeenCalledTimes(1);
-    expect(isRecording.mock.calls[0]![0].toString()).toBe(
-      projectId.toString(),
-    );
+    expect(isRecording.mock.calls[0]![0].toString()).toBe(projectId.toString());
   });
 
   test("a project that does not record its calls asks for the meeting permission alone", async () => {

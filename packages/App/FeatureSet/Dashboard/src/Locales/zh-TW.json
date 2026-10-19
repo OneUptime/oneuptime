@@ -31029,5 +31029,6 @@
   "Transcript Fetch Next Attempt At": "逐字稿取得下次嘗試時間",
   "Transcript Fetch Reason": "逐字稿取得原因",
   "Transcript Fetch Status": "逐字稿取得狀態",
-  "Video Call Summary": "視訊通話摘要"
+  "Video Call Summary": "視訊通話摘要",
+  "Provider Calendar Event ID": "提供者行事曆事件 ID"
 }

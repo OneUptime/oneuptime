@@ -304,14 +304,16 @@ describe("a call the provider could not be set up to record", () => {
       reason: VideoCallTranscriptUnavailableReason.NotSupported,
     });
 
-    const checkedAt: Date = writes[0]!["transcriptFetchCheckedAt"] as unknown as Date;
+    const checkedAt: Date = writes[0]![
+      "transcriptFetchCheckedAt"
+    ] as unknown as Date;
     expect(checkedAt.getTime()).toBeGreaterThanOrEqual(before);
     expect(checkedAt.getTime()).toBeLessThanOrEqual(Date.now());
   });
 
   test("a call with no id writes nothing", async () => {
     await IncidentCallTranscriptFetch.markNotRecorded({
-      call: { projectId: PROJECT, incidentId: INCIDENT },
+      call: { id: null, projectId: PROJECT, incidentId: INCIDENT },
       reason: VideoCallTranscriptUnavailableReason.NotSupported,
     });
 
@@ -330,7 +332,9 @@ describe("a call the provider could not be set up to record", () => {
       }),
     ).resolves.toBeUndefined();
     expect(errorLog).toHaveBeenCalledWith(
-      expect.stringContaining("Could not record why an incident call is not recorded"),
+      expect.stringContaining(
+        "Could not record why an incident call is not recorded",
+      ),
       expect.objectContaining({
         projectId: PROJECT.toString(),
         incidentId: INCIDENT.toString(),

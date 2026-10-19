@@ -41,8 +41,10 @@ const ORGANIZER_ID: string = "99999999-8888-7777-6666-555555555555";
 const CLIENT_ID: string = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
 // A Graph meeting id is base64: its "=" is sent encoded.
-const MEETING_ID: string = "MSo1N2Y5ZGFjYy03MWJmLTQ3NDMtYjQxMy01M2EdFGkdRWHJlQ==";
-const ENCODED_MEETING_ID: string = "MSo1N2Y5ZGFjYy03MWJmLTQ3NDMtYjQxMy01M2EdFGkdRWHJlQ%3D%3D";
+const MEETING_ID: string =
+  "MSo1N2Y5ZGFjYy03MWJmLTQ3NDMtYjQxMy01M2EdFGkdRWHJlQ==";
+const ENCODED_MEETING_ID: string =
+  "MSo1N2Y5ZGFjYy03MWJmLTQ3NDMtYjQxMy01M2EdFGkdRWHJlQ%3D%3D";
 
 const APP_ORGANIZER: MicrosoftTeamsMeetingOrganizer = {
   path: `/users/${ORGANIZER_ID}`,
@@ -305,7 +307,13 @@ describe("MicrosoftTeamsTranscriptClient - reading a meeting's transcript", () =
       {
         status: 200,
         body: {
-          value: [null, "text", [], { meetingId: MEETING_ID }, FIRST_TRANSCRIPT],
+          value: [
+            null,
+            "text",
+            [],
+            { meetingId: MEETING_ID },
+            FIRST_TRANSCRIPT,
+          ],
         },
       },
       contentOf(FIRST_VTT),
@@ -364,7 +372,11 @@ describe("MicrosoftTeamsTranscriptClient - reading a meeting's transcript", () =
     ]);
 
     expect(linesOf(result)).toEqual([
-      { offsetInSeconds: 0, speaker: "Priya Shah", text: "...so that is the plan." },
+      {
+        offsetInSeconds: 0,
+        speaker: "Priya Shah",
+        text: "...so that is the plan.",
+      },
       { offsetInSeconds: 3.12, speaker: "Marco Rossi", text: "Agreed." },
     ]);
   });
@@ -466,7 +478,9 @@ describe("MicrosoftTeamsTranscriptClient - when there is no transcript to read",
 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.NotSupported,
-      message: expect.stringMatching(/no Microsoft Teams meeting for this call/),
+      message: expect.stringMatching(
+        /no Microsoft Teams meeting for this call/,
+      ),
     });
     expect(fetcher.requests).toHaveLength(0);
   });
@@ -478,7 +492,8 @@ describe("MicrosoftTeamsTranscriptClient - when Graph says no", () => {
       const { result } = await read([
         graphError({
           status: 403,
-          message: "Graph API access to transcripts is disabled for this tenant.",
+          message:
+            "Graph API access to transcripts is disabled for this tenant.",
           innerCode: GRAPH_TRANSCRIPTS_DISABLED_CODE,
           innerKey,
         }),
@@ -626,7 +641,9 @@ describe("MicrosoftTeamsTranscriptClient - when Graph says no", () => {
 
     expect(unavailable(app.result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.ConnectionProblem,
-      message: expect.stringMatching(/did not accept the app registration's token/),
+      message: expect.stringMatching(
+        /did not accept the app registration's token/,
+      ),
     });
   });
 
@@ -651,15 +668,12 @@ describe("MicrosoftTeamsTranscriptClient - when Graph says no", () => {
       message: expect.stringMatching(/for 60 days after it ends/),
     });
 
-    const recent: { result: VideoCallTranscriptRead } = await read(
-      [notFound],
-      {
-        now,
-        callStartedAt: new Date(
-          now.getTime() - (MICROSOFT_TEAMS_MEETING_RETENTION_IN_DAYS - 1) * day,
-        ),
-      },
-    );
+    const recent: { result: VideoCallTranscriptRead } = await read([notFound], {
+      now,
+      callStartedAt: new Date(
+        now.getTime() - (MICROSOFT_TEAMS_MEETING_RETENTION_IN_DAYS - 1) * day,
+      ),
+    });
 
     expect(unavailable(recent.result).reason).toBe(
       VideoCallTranscriptUnavailableReason.NoMeeting,

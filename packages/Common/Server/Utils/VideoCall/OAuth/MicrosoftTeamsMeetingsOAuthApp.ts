@@ -115,7 +115,9 @@ export default class MicrosoftTeamsMeetingsOAuthApp
    * What a refresh asks for: never more than the sign-in asked for, so the
    * recording permissions only when it was granted them.
    */
-  public static getRefreshScopes(grantedScope: string | undefined): Array<string> {
+  public static getRefreshScopes(
+    grantedScope: string | undefined,
+  ): Array<string> {
     return [
       ...MICROSOFT_TEAMS_MEETINGS_REFRESH_SCOPES,
       ...MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS.filter(

@@ -31029,5 +31029,6 @@
   "Transcript Fetch Next Attempt At": "Neste forsøk på å hente transkripsjon",
   "Transcript Fetch Reason": "Årsak ved henting av transkripsjon",
   "Transcript Fetch Status": "Status for henting av transkripsjon",
-  "Video Call Summary": "Sammendrag av videosamtale"
+  "Video Call Summary": "Sammendrag av videosamtale",
+  "Provider Calendar Event ID": "Leverandørens kalenderhendelses-ID"
 }

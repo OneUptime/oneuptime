@@ -186,7 +186,10 @@ export default class MicrosoftTeamsTranscriptClient {
       )) {
         lines.push(
           line.offsetInSeconds !== undefined && shiftInSeconds > 0
-            ? { ...line, offsetInSeconds: line.offsetInSeconds + shiftInSeconds }
+            ? {
+                ...line,
+                offsetInSeconds: line.offsetInSeconds + shiftInSeconds,
+              }
             : line,
         );
       }

@@ -31029,5 +31029,6 @@
   "Transcript Fetch Next Attempt At": "Следующая попытка получить расшифровку",
   "Transcript Fetch Reason": "Причина при получении расшифровки",
   "Transcript Fetch Status": "Статус получения расшифровки",
-  "Video Call Summary": "Сводка видеозвонка"
+  "Video Call Summary": "Сводка видеозвонка",
+  "Provider Calendar Event ID": "ID события календаря у провайдера"
 }

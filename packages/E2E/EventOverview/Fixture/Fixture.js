@@ -79,10 +79,16 @@
  *            "Checked again", and the feed holds both reports.
  *   ?calls=  none (default) | zoom | teams | reading | stuck | transcript
  *            | not-enough | accepted | dismissed | failed | skipped | two
+ *            | waiting | fetch-stopped | summary | teams-recorded
+ *            | teams-not-recorded
  *            Incident #1042's video calls (issue #4875). "zoom": a Zoom
  *            meeting a workspace rule started, no transcript yet; "teams": a
- *            Microsoft Teams meeting (only Add transcript: Microsoft lets
- *            no app read it). The rest are the Zoom meeting with its
+ *            Microsoft Teams meeting not on a calendar (only Add transcript:
+ *            Microsoft lets no app read it); "teams-recorded": one OneUptime
+ *            put on its organizer's calendar to record it, waiting for its
+ *            transcript (Get from Microsoft Teams); "teams-not-recorded":
+ *            one that could not be put on a calendar, stopped from the
+ *            start with why. The rest are the Zoom meeting with its
  *            transcript: OneUptime AI reading it, stuck reading it, done with
  *            a suggested root cause (transcript), done with "not enough was
  *            said" (not-enough), its suggestion used (accepted) or dismissed,
@@ -419,6 +425,9 @@ const CALL_MODES = [
   "waiting",
   "fetch-stopped",
   "summary",
+  // The same for Microsoft Teams: on its organizer's calendar, or not.
+  "teams-recorded",
+  "teams-not-recorded",
 ];
 const callsMode = CALL_MODES.includes(params.get("calls"))
   ? params.get("calls")
@@ -5383,6 +5392,34 @@ if (callsMode === "teams") {
   incidentCall(1, TEAMS_CALL);
 }
 
+/*
+ * Record and transcribe incident calls, for Microsoft Teams: a meeting
+ * OneUptime put on its organizer's calendar, so Graph lets it read the
+ * transcript - waiting for it once the call is over - and one it could not
+ * put there (the connection lacks the calendar permission), which started
+ * unrecorded and was stopped from the start with why.
+ */
+if (callsMode === "teams-recorded") {
+  incidentCall(1, {
+    ...TEAMS_CALL,
+    externalCalendarEventId: "AAMkAGI2TG93AAA=",
+    createdByUser: undefined,
+    createdByUserId: undefined,
+    workspaceNotificationRuleId: uuid("89100000", 2),
+    transcriptFetchStatus: "Waiting",
+    transcriptFetchNextAttemptAt: at("18:25"),
+  });
+}
+
+if (callsMode === "teams-not-recorded") {
+  incidentCall(1, {
+    ...TEAMS_CALL,
+    transcriptFetchStatus: "Stopped",
+    transcriptFetchReason: "PermissionMissing",
+    transcriptFetchCheckedAt: at("18:02"),
+  });
+}
+
 if (callsMode === "reading") {
   incidentCall(1, {
     ...ZOOM_CALL,
@@ -5560,7 +5597,7 @@ function announceCallTranscript(record, source, info) {
   const details = TranscriptText.describeInfo(info);
   const feedInfoInMarkdown =
     source === "Provider"
-      ? `📝 added the call's transcript from **Zoom**: ${details}.`
+      ? `📝 added the call's transcript from **${record.provider === "MicrosoftTeams" ? "Microsoft Teams" : "Zoom"}**: ${details}.`
       : `📝 added a transcript of the **${record.provider === "MicrosoftTeams" ? "Microsoft Teams meeting" : "Zoom meeting"}**: ${details}.`;
 
   insert(IncidentFeed, {

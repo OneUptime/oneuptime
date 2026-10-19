@@ -309,9 +309,7 @@ describe("VideoCallMeetingFactory with a sign-in", () => {
     expect(fetcher.requests[2]!.url).toBe(
       "https://graph.microsoft.com/v1.0/me/onlineMeetings/meeting-1",
     );
-    expect(
-      JSON.parse(fetcher.requests[2]!.init.body!) as JSONObject,
-    ).toEqual(
+    expect(JSON.parse(fetcher.requests[2]!.init.body!) as JSONObject).toEqual(
       expect.objectContaining({
         recordAutomatically: true,
         allowTranscription: true,

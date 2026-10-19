@@ -368,7 +368,9 @@ describe("a call OneUptime gets the transcript of by itself", () => {
       within(stopped).getByTestId("call-transcript-fetch-set-up-docs"),
     ).toHaveAttribute(
       "href",
-      expect.stringContaining("/docs/workspace-connections/video-calls#call-transcripts"),
+      expect.stringContaining(
+        "/docs/workspace-connections/video-calls#call-transcripts",
+      ),
     );
     expect(screen.queryByTestId("call-transcript-waiting")).toBeNull();
     // Never on a calendar: nothing to get, so it is added by hand.
