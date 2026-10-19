@@ -29,7 +29,10 @@ import {
  * subscription's own code confirms it.
  *
  * These walk the route as it runs, against the subscriber service's real
- * lookup; only the table is held in memory.
+ * lookup; only the table is held in memory. Each sign-up's link was sent an
+ * hour ago, well inside the day it works for; a link that has run out, and
+ * a six-digit code from before codes were 32 characters, have their own
+ * suite (StatusPageSubscriptionLinkExpiry.test.ts).
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -115,8 +118,8 @@ const STATUS_PAGE_ID: string = "6b000000-0000-4000-8000-000000000001";
 const PENDING_ID: string = "6c000000-0000-4000-8000-000000000001";
 const OTHER_PENDING_ID: string = "6c000000-0000-4000-8000-000000000002";
 
-const CODE: string = "482913";
-const OTHER_CODE: string = "605127";
+const CODE: string = "3f1c9a7be2d84f0a9c6b5e4d3a2f1e0d";
+const OTHER_CODE: string = "8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d";
 
 const NOT_FOUND_MESSAGE: string =
   "Subscriber not found or confirmation token is invalid";
@@ -168,7 +171,8 @@ function pendingRow(data: { id: string; code: string }): StoredRow {
     subscriptionConfirmationToken: data.code,
     unsubscribeToken: "7b".repeat(32),
     isUnsubscribed: false,
-    createdAt: new Date("2026-10-01T09:00:00.000Z"),
+    // Sent an hour ago: its link works for a day.
+    createdAt: new Date(Date.now() - 60 * 60 * 1000),
   };
 }
 

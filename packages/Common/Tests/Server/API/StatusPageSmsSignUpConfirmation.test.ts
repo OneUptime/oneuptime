@@ -83,7 +83,7 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 });
 
 import StatusPageSubscriberService, {
-  ALREADY_SUBSCRIBED_MESSAGE,
+  CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE,
   ONE_CONTACT_PER_SIGN_UP_MESSAGE,
   SubscriptionConfirmationOutcome,
   getConfirmSubscriptionTextMessage,
@@ -216,14 +216,14 @@ describe("a visitor signing up by text", () => {
     ]);
   });
 
-  test("the text names the page, says what to do when it was not them, and ends with the link", async () => {
+  test("the text names the page, says how long the link works and what to do when it was not them, and ends with the link", async () => {
     await signUp("192.0.2.1", { subscriberPhone: PHONE });
 
     const row: StoredRow = onlyRow();
     const message: string = textsSent(world)[0]!.message;
 
     expect(message).toBe(
-      `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmationUrlOf(row)}`,
+      `Confirm your subscription to Acme Status by text message within 24 hours. Not you? Ignore this and you will not be subscribed. ${confirmationUrlOf(row)}`,
     );
     expect(message.endsWith(confirmationUrlOf(row))).toBe(true);
     // Not the welcome: nothing says it is subscribed yet.
@@ -240,8 +240,10 @@ describe("a visitor signing up by text", () => {
     expect(world.teamsPosts).not.toHaveBeenCalled();
   });
 
-  test("signing the number up again while it waits sends nothing more: the visitor is told it is subscribed already", async () => {
+  test("signing the number up again while its link works sends nothing more: the visitor is told the link was sent, and when it runs out", async () => {
     await signUp("192.0.2.1", { subscriberPhone: PHONE });
+
+    world.advance(60 * 60 * 1000);
 
     for (const spelling of [PHONE, "14155550100", "0014155550100"]) {
       const answer: Answer = await signUp("192.0.2.9", {
@@ -250,11 +252,15 @@ describe("a visitor signing up by text", () => {
 
       expect([spelling, answer.error?.message]).toEqual([
         spelling,
-        ALREADY_SUBSCRIBED_MESSAGE,
+        CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE,
       ]);
+      expect(answer.error?.code).toBe(429);
+      // The 23 hours its link has left.
+      expect(answer.retryAfter).toBe(String(23 * 60 * 60));
     }
 
     expect(world.texts).toHaveBeenCalledTimes(1);
+    expect(rowsOf(world)).toHaveLength(1);
   });
 });
 
@@ -534,7 +540,31 @@ describe("opening the link", () => {
     });
   });
 
-  test("a request whose update another one beat to it sends nothing", async () => {
+  test("a request whose update another opening of the link beat to it sends nothing", async () => {
+    await signUp("192.0.2.1", { subscriberPhone: PHONE });
+
+    const row: StoredRow = onlyRow();
+
+    // The other request confirmed it between this one's read and its write.
+    jest
+      .spyOn(StatusPageSubscriberService, "updateOneBy")
+      .mockImplementation(async (): Promise<number> => {
+        row["isSubscriptionConfirmed"] = true;
+        return 0;
+      });
+
+    const outcome: SubscriptionConfirmationOutcome =
+      await StatusPageSubscriberService.confirmSubscription({
+        subscriberId: String(row["_id"]),
+        code: String(row["subscriptionConfirmationToken"]),
+      });
+
+    expect(outcome).toBe(SubscriptionConfirmationOutcome.AlreadyConfirmed);
+    expect(world.texts).toHaveBeenCalledTimes(1);
+    expect(world.emails).not.toHaveBeenCalled();
+  });
+
+  test("a request whose update something else beat to it, leaving the subscription unconfirmed, confirmed nothing and sends nothing", async () => {
     await signUp("192.0.2.1", { subscriberPhone: PHONE });
 
     const row: StoredRow = onlyRow();
@@ -549,7 +579,8 @@ describe("opening the link", () => {
         code: String(row["subscriptionConfirmationToken"]),
       });
 
-    expect(outcome).toBe(SubscriptionConfirmationOutcome.AlreadyConfirmed);
+    expect(outcome).toBe(SubscriptionConfirmationOutcome.NotFound);
+    expect(row["isSubscriptionConfirmed"]).toBe(false);
     expect(world.texts).toHaveBeenCalledTimes(1);
     expect(world.emails).not.toHaveBeenCalled();
   });
@@ -603,17 +634,17 @@ describe("opening the link", () => {
     const [first, second] = rowsOf(world) as [StoredRow, StoredRow];
 
     // Two codes known to differ, as two random ones almost always do.
-    first["subscriptionConfirmationToken"] = "111111";
-    second["subscriptionConfirmationToken"] = "222222";
+    first["subscriptionConfirmationToken"] = "1".repeat(32);
+    second["subscriptionConfirmationToken"] = "2".repeat(32);
 
-    await confirm(String(first["_id"]), "222222");
-    await confirm(String(second["_id"]), "111111");
+    await confirm(String(first["_id"]), "2".repeat(32));
+    await confirm(String(second["_id"]), "1".repeat(32));
 
     expect(first["isSubscriptionConfirmed"]).toBe(false);
     expect(second["isSubscriptionConfirmed"]).toBe(false);
     expect(world.texts).toHaveBeenCalledTimes(2);
 
-    await confirm(String(second["_id"]), "222222");
+    await confirm(String(second["_id"]), "2".repeat(32));
 
     expect(first["isSubscriptionConfirmed"]).toBe(false);
     expect(second["isSubscriptionConfirmed"]).toBe(true);
@@ -628,13 +659,14 @@ describe("opening the link", () => {
       statusPageId: WORLD_PAGE_ID,
       subscriberPhone: PHONE,
       isSubscriptionConfirmed: false,
-      subscriptionConfirmationToken: "123456",
+      subscriptionConfirmationToken: "c".repeat(32),
       sendYouHaveSubscribedMessage: false,
       unsubscribeToken: "5c".repeat(32),
+      createdAt: new Date(Date.now()),
       version: 1,
     });
 
-    await confirm(id, "123456");
+    await confirm(id, "c".repeat(32));
 
     expect(world.subscribers.get(id)!["isSubscriptionConfirmed"]).toBe(true);
     expect(world.texts).not.toHaveBeenCalled();
@@ -759,7 +791,7 @@ describe("the code in the link", () => {
     },
   );
 
-  test("of six digits, as a link sent before carries, still confirms its own subscription", async () => {
+  test("of six digits, as a link sent before carries, still confirms its own subscription inside its day", async () => {
     const id: string = ObjectID.generate().toString();
 
     world.subscribers.rows.push({
@@ -771,6 +803,7 @@ describe("the code in the link", () => {
       subscriptionConfirmationToken: "482913",
       sendYouHaveSubscribedMessage: false,
       unsubscribeToken: "5d".repeat(32),
+      createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
       version: 1,
     });
 

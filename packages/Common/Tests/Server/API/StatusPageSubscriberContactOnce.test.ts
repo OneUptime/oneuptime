@@ -87,6 +87,8 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 
 import StatusPageSubscriberService, {
   ALREADY_SUBSCRIBED_MESSAGE,
+  CONFIRMATION_LINK_SENT_TO_EMAIL_MESSAGE,
+  CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE,
   CONTACT_ALREADY_SUBSCRIBED_MESSAGE,
   SUBSCRIBER_CONTACT_LIMIT_NAME,
 } from "../../../Server/Services/StatusPageSubscriberService";
@@ -107,6 +109,7 @@ import {
   WORLD_PAGE_ID,
   WORLD_PROJECT_ID,
   callRoute,
+  confirm,
   pageIdOf,
   registerSubscriberRoutes,
   rowsOf,
@@ -218,7 +221,7 @@ function signUpsCountedFor(
 }
 
 describe("a visitor signing up a phone number", () => {
-  test("one number typed every way on one page: one subscriber, and every other spelling is told it is subscribed already", async () => {
+  test("one number typed every way on one page: one subscriber, and every other spelling is told the link to confirm it was sent already", async () => {
     const answers: Array<Answer> = await signUps(
       ONE_NUMBER_TYPED_EVERY_WAY.map(
         (subscriberPhone: string): Record<string, unknown> => {
@@ -230,7 +233,7 @@ describe("a visitor signing up a phone number", () => {
     expect(answers[0]!.error).toBeUndefined();
     expect(refusedWith(answers.slice(1))).toEqual(
       ONE_NUMBER_TYPED_EVERY_WAY.slice(1).map((): string => {
-        return ALREADY_SUBSCRIBED_MESSAGE;
+        return CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE;
       }),
     );
 
@@ -246,6 +249,38 @@ describe("a visitor signing up a phone number", () => {
     expect(
       signUpsCountedFor(PublicMessageRateLimit.forPhone("+14155550100")),
     ).toBe(1);
+  });
+
+  test("once the number has confirmed, every other spelling is told it is subscribed already", async () => {
+    await signUp("192.0.2.1", { subscriberPhone: "+14155550100" });
+
+    const row: StoredRow = rowsOf(world)[0]!;
+
+    await confirm(
+      String(row["_id"]),
+      String(row["subscriptionConfirmationToken"]),
+    );
+    expect(row["isSubscriptionConfirmed"]).toBe(true);
+
+    // A week on: a confirmed subscription holds its number for good.
+    world.advance(7 * 24 * 60 * 60 * 1000);
+
+    const answers: Array<Answer> = await signUps(
+      ONE_NUMBER_TYPED_EVERY_WAY.slice(1).map(
+        (subscriberPhone: string): Record<string, unknown> => {
+          return { subscriberPhone };
+        },
+      ),
+    );
+
+    expect(refusedWith(answers)).toEqual(
+      ONE_NUMBER_TYPED_EVERY_WAY.slice(1).map((): string => {
+        return ALREADY_SUBSCRIBED_MESSAGE;
+      }),
+    );
+    expect(rowsOf(world)).toHaveLength(1);
+    // The link, and the welcome once it was opened.
+    expect(world.texts).toHaveBeenCalledTimes(2);
   });
 
   test("every spelling is refused hour after hour, so no number piles up on a page", async () => {
@@ -412,10 +447,11 @@ describe("an email address", () => {
       { subscriberEmail: " SUBSCRIBER@EXAMPLE.COM " },
     ]);
 
+    // The first is asked to confirm; the link to it is the one sent.
     expect(refusedWith(answers)).toEqual([
       undefined,
-      ALREADY_SUBSCRIBED_MESSAGE,
-      ALREADY_SUBSCRIBED_MESSAGE,
+      CONFIRMATION_LINK_SENT_TO_EMAIL_MESSAGE,
+      CONFIRMATION_LINK_SENT_TO_EMAIL_MESSAGE,
     ]);
     expect(rowsOf(world)).toHaveLength(1);
     expect(world.emails).toHaveBeenCalledTimes(1);
@@ -644,6 +680,8 @@ describe("decided with the INSERT, under the page's lock", () => {
             isUnsubscribed: false,
             isSubscriptionConfirmed: false,
             unsubscribeToken: "5c".repeat(32),
+            // Written just now: its link to confirm works for a day.
+            createdAt: new Date(Date.now()),
             version: 1,
           });
 
@@ -659,7 +697,9 @@ describe("decided with the INSERT, under the page's lock", () => {
       subscriberPhone: "+14155550100",
     });
 
-    expect(answer.error?.message).toBe(ALREADY_SUBSCRIBED_MESSAGE);
+    expect(answer.error?.message).toBe(
+      CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE,
+    );
     expect(rowsOf(world)).toHaveLength(1);
     expect(world.texts).not.toHaveBeenCalled();
     expect(
