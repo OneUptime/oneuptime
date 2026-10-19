@@ -1,8 +1,8 @@
 # Custom Roles fixture
 
 An offline harness for the real Teams pages a custom role lives on: Teams >
-Roles (`packages/App/FeatureSet/Dashboard/src/Pages/Teams/Roles.tsx`), a role's
-own page (`Pages/Teams/RoleView.tsx`), a team's Permissions page
+Settings > Roles (`packages/App/FeatureSet/Dashboard/src/Pages/Teams/Roles.tsx`),
+a role's own page (`Pages/Teams/RoleView.tsx`), a team's Permissions page
 (`Pages/Teams/View/Permissions.tsx`) and Create Team on the Teams list
 (`Pages/Teams/Index.tsx`). It mounts the production `TeamsRoutes`, bundled with
 the app's esbuild config, Tailwind, theme and font, replaces only the
@@ -20,6 +20,9 @@ The suite drives custom roles the way a person does:
 
 - the Roles page: each role with its permission count and description, the
   empty page, and the built-in roles folded under it, opening to all forty;
+- the Teams menu: Roles in its Settings section, first, above Custom Fields;
+  Settings folded on All Teams, open by itself on Roles, a role's page and
+  Custom Fields; and Roles reached from All Teams on a phone;
 - Create Custom Role: a name and the built-in roles it bundles, each sent as
   its own permission of the role for every resource, then the new role's page;
   and a pick the server refuses (`?refuse=AlertMember`): the role is kept, and
