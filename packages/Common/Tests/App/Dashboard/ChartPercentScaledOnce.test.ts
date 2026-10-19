@@ -8,6 +8,8 @@ import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * A percent on a chart is scaled to a percent ONCE.
@@ -147,6 +149,76 @@ describe("Kubernetes CPU charts: cores over the node's allocatable cores, scaled
     }
   });
 
+  /*
+   * Without an allocatable reading - the lookup still loading (null), or
+   * the cluster sends no k8s.node.allocatable_cpu (an empty lookup) - the
+   * chart draws percent of ONE core. The transform gets cores as stored,
+   * so it scales them itself: returning them as they were drew 0.05 cores
+   * as "0.05%", 100 times too low.
+   */
+  test.each([
+    ["while the lookup loads", null],
+    ["when the cluster sends no allocatable CPU", "empty"],
+  ])(
+    "regression: no allocatable reading (%s) draws percent of one core, whatever the catalog unit",
+    (_label: string, lookup: string | null) => {
+      const allocatable: NodeAllocatableCpu | null =
+        lookup === null
+          ? null
+          : KubernetesCpuUtils.buildAllocatable(new Map<string, number>());
+
+      for (const metricName of [
+        "container.cpu.utilization",
+        "k8s.pod.cpu.utilization",
+      ]) {
+        for (const catalogUnit of ["1", "%", ""]) {
+          const value: number = drawn({
+            queryConfig: query({
+              metricName,
+              legendUnit: "%",
+              transformValue:
+                KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
+            }),
+            stored: 0.05,
+            catalogUnit,
+          });
+
+          expect(value).toBeCloseTo(5, 10);
+          expect(ValueFormatter.formatValue(value, "%")).toBe("5.00%");
+        }
+      }
+    },
+  );
+
+  test("regression: a node page whose node object has not loaded draws percent of one core", () => {
+    for (const unknownCores of [0, -1, Number.NaN]) {
+      expect(
+        drawn({
+          queryConfig: query({
+            metricName: "k8s.node.cpu.utilization",
+            legendUnit: "%",
+            transformValue:
+              KubernetesCpuUtils.makeScalarCpuPercentTransform(unknownCores),
+          }),
+          stored: 3,
+          catalogUnit: "1",
+        }),
+      ).toBeCloseTo(300, 10);
+    }
+  });
+
+  test("percent of one core is cores times 100", () => {
+    expect(KubernetesCpuUtils.coresToPercentOfOneCore(0.25)).toBeCloseTo(
+      25,
+      10,
+    );
+    expect(KubernetesCpuUtils.coresToPercentOfOneCore(2.5)).toBeCloseTo(
+      250,
+      10,
+    );
+    expect(KubernetesCpuUtils.coresToPercentOfOneCore(0)).toBe(0);
+  });
+
   test("a pod on a node with no allocatable reading falls back to the cluster's average node", () => {
     const twoNodes: NodeAllocatableCpu = KubernetesCpuUtils.buildAllocatable(
       new Map<string, number>([
@@ -167,6 +239,60 @@ describe("Kubernetes CPU charts: cores over the node's allocatable cores, scaled
         nodeName: "node-unknown",
       }),
     ).toBeCloseTo(10, 10);
+  });
+});
+
+/*
+ * Every Kubernetes CPU query carries the transform from its first fetch,
+ * with the allocatable lookup as it stands (null while it loads). A query
+ * with a transform is fetched without the unit conversion, so the chart
+ * never depends on the unit the metric catalog holds for a cores metric -
+ * and a transform that only came once the lookup had loaded ran on values
+ * the first fetch had already converted (MetricViewTransformRefetch).
+ */
+const KUBERNETES_VIEW_DIRECTORY: string = path.resolve(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View",
+);
+const CPU_TRANSFORM_CALL: RegExp = /makeCpuPercentTransform\(/g;
+const CPU_TRANSFORM_ALWAYS_PASSED: RegExp =
+  /transformValue: KubernetesCpuUtils\.makeCpuPercentTransform\(allocatable\),/g;
+
+describe("the Kubernetes pages pass the CPU transform on every CPU query", () => {
+  const pages: Array<{ name: string; source: string }> = fs
+    .readdirSync(KUBERNETES_VIEW_DIRECTORY)
+    .filter((name: string) => {
+      return name.endsWith(".tsx");
+    })
+    .map((name: string) => {
+      return {
+        name,
+        source: fs.readFileSync(
+          path.join(KUBERNETES_VIEW_DIRECTORY, name),
+          "utf-8",
+        ),
+      };
+    });
+
+  test("each call passes the lookup as it is, never only once it has loaded", () => {
+    let calls: number = 0;
+    const conditional: Array<string> = [];
+
+    for (const page of pages) {
+      const callCount: number = (page.source.match(CPU_TRANSFORM_CALL) || [])
+        .length;
+      const alwaysCount: number = (
+        page.source.match(CPU_TRANSFORM_ALWAYS_PASSED) || []
+      ).length;
+      calls += callCount;
+      if (callCount !== alwaysCount) {
+        conditional.push(page.name);
+      }
+    }
+
+    expect(conditional).toEqual([]);
+    // Pod (2), container, the five workloads, namespace and Insights (2).
+    expect(calls).toBeGreaterThanOrEqual(11);
   });
 });
 

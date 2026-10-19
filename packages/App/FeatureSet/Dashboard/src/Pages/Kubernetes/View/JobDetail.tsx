@@ -159,9 +159,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
     },
     getSeries: getSeries,
-    transformValue: allocatable
-      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
-      : undefined,
+    transformValue: KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
   };
 
   const memoryQuery: MetricQueryConfigData = {
