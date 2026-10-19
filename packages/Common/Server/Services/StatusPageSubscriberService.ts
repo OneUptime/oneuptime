@@ -341,10 +341,8 @@ export const CONTACT_ALREADY_SUBSCRIBED_MESSAGE: string =
 
 /*
  * What a visitor's sign-up that names more than one contact is told. A
- * sign-up is confirmed, and welcomed, on the one contact that signed up:
- * the code in a confirmation link is the subscription's own, so a link
- * opened from one contact would confirm every other contact named with it,
- * and start sending to them.
+ * subscription has one confirmation code, and is confirmed, and welcomed,
+ * by the one contact that signed up.
  */
 export const ONE_CONTACT_PER_SIGN_UP_MESSAGE: string =
   "Please sign up one email address, phone number, Slack channel, Microsoft Teams channel or webhook at a time.";
@@ -2891,10 +2889,9 @@ Stay informed about service availability! 🚀`.toString();
    * subscribed, on its email or by text.
    *
    * Once, however many requests open the link at the same moment - a double
-   * tap, a phone that loads the page twice, or a number's owner opening it
-   * over and over to be texted again. The update names the subscription as
-   * it was read - not confirmed, at the version read - so the first request
-   * to write it confirms it and the others match no row (DatabaseService's
+   * tap, a page loaded twice. The update names the subscription as it was
+   * read - not confirmed, at the version read - so the first request to
+   * write it confirms it and the others match no row (DatabaseService's
    * compare-and-set on the version): only that one sends the welcome.
    */
   @CaptureSpan()

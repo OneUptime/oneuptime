@@ -259,12 +259,9 @@ describe("a visitor signing up by text", () => {
 });
 
 /*
- * A subscription is confirmed by the contact that signed up: the code in its
- * link is the subscription's own, so a sign-up naming a phone number beside
- * an inbox, a chat channel or a webhook its visitor reads would let them
- * confirm the number from there - and the number would be texted every
- * notification without its owner having said yes. So a visitor signs up one
- * contact at a time, as each of the Subscribe page's forms sends it.
+ * A subscription has one confirmation code, and is confirmed by the one
+ * contact that signed up. So a visitor signs up one contact at a time, as
+ * each of the Subscribe page's forms sends it.
  */
 describe("a sign-up names one contact", () => {
   const CONTACTS: Record<string, JSONObject> = {
