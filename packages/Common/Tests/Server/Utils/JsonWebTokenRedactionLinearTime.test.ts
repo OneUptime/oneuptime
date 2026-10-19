@@ -58,6 +58,8 @@ const WORST_CASES: Array<[string, string]> = [
 interface Redactor {
   name: string;
   redact: (text: string) => string;
+  // What the redactor puts where a token was.
+  tokenMarker: string;
 }
 
 const REDACTORS: Array<Redactor> = [
@@ -66,36 +68,42 @@ const REDACTORS: Array<Redactor> = [
     redact: (text: string): string => {
       return redactLogString(text);
     },
+    tokenMarker: REDACTED,
   },
   {
     name: "tool result redaction",
     redact: (text: string): string => {
       return ToolResultSerializer.redact(text).text;
     },
+    tokenMarker: "[redacted-jwt]",
   },
   {
     name: "exception fingerprinting",
     redact: (text: string): string => {
       return normalizeExceptionText(text);
     },
+    tokenMarker: "<JWT>",
   },
   {
     name: "exception message sanitizing",
     redact: (text: string): string => {
       return sanitizeExceptionMessage(text);
     },
+    tokenMarker: "<JWT>",
   },
   {
     name: "cluster output redaction",
     redact: (text: string): string => {
       return KubectlOutputRedactor.redact(text).text;
     },
+    tokenMarker: "[redacted-jwt]",
   },
   {
     name: "resource output redaction",
     redact: (text: string): string => {
       return GenericOutputRedactor.redact(text).text;
     },
+    tokenMarker: "[redacted-jwt]",
   },
 ];
 
@@ -120,19 +128,19 @@ const LONG_HEADER_TOKEN: string = `eyJ${"x5cMIIC".repeat(700)}.eyJzdWIiOiIxMjM0N
 // A token with many claims.
 const LONG_PAYLOAD_TOKEN: string = `eyJhbGciOiJIUzI1NiJ9.eyJ${"Z3JvdXBz".repeat(2600)}.${SIGNATURE}`;
 
+/*
+ * In text that names no credential, so it is the token rule itself - not a
+ * rule for an Authorization header or a key name - that has to find it.
+ */
 describe.each(REDACTORS)("$name still finds a token", (redactor: Redactor) => {
   test.each([
     ["an ordinary token", ORDINARY_TOKEN],
     ["a token with a header of kilobytes", LONG_HEADER_TOKEN],
     ["a token with a payload of tens of kilobytes", LONG_PAYLOAD_TOKEN],
   ])("%s", (_label: string, token: string) => {
-    const output: string = redactor.redact(
-      `request failed: Authorization: Bearer ${token} rejected`,
+    expect(redactor.redact(`failed with ${token} at login`)).toBe(
+      `failed with ${redactor.tokenMarker} at login`,
     );
-
-    expect(output.includes(SIGNATURE)).toBe(false);
-    expect(output.includes(token)).toBe(false);
-    expect(output.startsWith("request failed:")).toBe(true);
   });
 });
 
