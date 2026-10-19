@@ -88,7 +88,10 @@ import crypto from "crypto";
  * routes is refused until the quarter of an hour ends, whichever key it
  * carries, right or wrong. A request with the right key is never counted, so
  * OneUptime's own traffic is never refused for being busy, and a service
- * that still sends an old key sends one wrong key, not one per request.
+ * that still sends an old key sends one wrong key, not one per request. A key
+ * presented from a private network address, where every one of OneUptime's
+ * own services calls from, is never counted at all, so nothing sent from
+ * beside them can get them refused.
  */
 
 // What the installation's own cluster key is derived for, and nothing else.
