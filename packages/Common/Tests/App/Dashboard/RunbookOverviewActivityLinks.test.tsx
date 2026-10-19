@@ -256,7 +256,7 @@ describe("Total Runs leads to every run of the runbook", () => {
 
     expect(link.tagName).toBe("A");
     expect(link.getAttribute("href")).toBe(EXECUTIONS_PATH);
-    expect(link).toHaveTextContent(/^Total Runs$/);
+    expect(link.textContent).toBe("Total Runs");
     expect(
       screen.getByRole("link", { name: "Total Runs" }),
     ).toBeInTheDocument();
