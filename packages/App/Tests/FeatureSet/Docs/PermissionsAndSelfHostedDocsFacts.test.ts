@@ -80,6 +80,7 @@ const SOURCES: Record<string, string> = {
   receiptQueue: `${COMMON_SERVER}/Infrastructure/ExpoPushReceiptQueue.ts`,
   inboundFactory: `${COMMON_SERVER}/Services/InboundEmail/InboundEmailProviderFactory.ts`,
   sendGridProvider: `${COMMON_SERVER}/Services/InboundEmail/Providers/SendGridInboundProvider.ts`,
+  inboundProvider: `${COMMON_SERVER}/Services/InboundEmail/InboundEmailProvider.ts`,
   incomingEmailApi:
     "packages/App/FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail.ts",
   monitorAddress:
@@ -1675,7 +1676,7 @@ describe("SendGrid Inbound Email, against the server, the chart and the ingress"
     expect(page).toContain("Incoming email is off until it is set.");
   });
 
-  it("answers on the route the page gives, which needs its final segment, and checks the secret only when one is set", () => {
+  it("answers on the route the page gives, which needs its final segment, and takes an email only when that segment is the secret", () => {
     const api: string = readSource("incomingEmailApi");
 
     expect(api).toContain('"/incoming-email/sendgrid/:secret",');
@@ -1683,22 +1684,60 @@ describe("SendGrid Inbound Email, against the server, the chart and the ingress"
     expect(httpsPathsIn(withoutFences(page))).toContain(
       "/incoming-email/sendgrid/YOUR_SECRET",
     );
-    expect(page).toContain("The route requires the final path segment.");
+    expect(page).toContain(
+      "The route requires the final path segment, and OneUptime takes an email only when that segment is the secret.",
+    );
 
+    // SendGrid's delivery is the one posted to an address that ends with the secret.
     const provider: string = readSource("sendGridProvider");
-    const validate: string = provider.slice(
-      provider.indexOf("public async validateWebhook("),
+    const check: string = provider.slice(
+      provider.indexOf("protected async isFromProvider("),
       provider.indexOf("public extractSecretKeyFromEmail("),
     );
 
-    expect(validate).toContain("if (this.config.webhookSecret) {");
+    expect(check).toContain(
+      "return SecretKeyComparison.timingSafeEqual(\n      data.pathSecret,\n      data.webhookSecret,\n    );",
+    );
+  });
+
+  it("refuses every email with 503 until the secret is set, or while it is a placeholder from the page", () => {
+    // Every provider: no secret, no email, before the provider is asked.
+    const base: string = readSource("inboundProvider");
+    const validate: string = base.slice(
+      base.indexOf("public async validateWebhook("),
+      base.indexOf("protected abstract isFromProvider("),
+    );
+
     expect(validate).toContain(
-      "return data.pathSecret === this.config.webhookSecret;",
+      "if (!webhookSecret) {\n      return false;\n    }",
     );
-    expect(validate).toContain("return true;");
+
+    // Said to the caller with 503, which SendGrid retries.
+    const api: string = readSource("incomingEmailApi");
+    const missing: string = api.slice(
+      api.indexOf("if (!provider.hasWebhookSecret()) {"),
+      api.indexOf("const isFromProvider: boolean"),
+    );
+
+    expect(missing).toContain("new ServiceUnavailableException(");
+    expect(missing).toContain("INBOUND_EMAIL_NO_WEBHOOK_SECRET_MESSAGE");
     expect(page).toContain(
-      "OneUptime checks its value when the secret is configured; leaving the variable empty disables that check.",
+      "Until the secret is set, every email is refused with `503`, which SendGrid retries for up to three days.",
     );
+    expect(page).toContain(
+      "`INBOUND_EMAIL_WEBHOOK_SECRET` is required: OneUptime refuses every email while it is empty or still a placeholder from this page.",
+    );
+
+    // What counts as no secret: unset, blank, shipped, or the page's placeholders.
+    const environment: string = readSource("environmentConfig");
+
+    for (const placeholder of [
+      '"your_secret",',
+      '"your-secret",',
+      '"replace-with-a-strong-random-secret",',
+    ]) {
+      expect(environment).toContain(placeholder);
+    }
   });
 
   it("routes /incoming-email through the ingress to the app, whose logs the page sends readers to", () => {

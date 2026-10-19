@@ -286,6 +286,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Check the public webhook route:",
     "Check firewall rules:",
     "Verify the SSL certificate:",
+    "Check the webhook secret:",
     "Verify the criteria:",
     "Check the monitor:",
     "Review the monitor's summary:",
