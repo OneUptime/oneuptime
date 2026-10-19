@@ -596,6 +596,42 @@ describe("GUARD: every model's files reach a caller only when they may see them"
  * that read records as OneUptime itself, with a select their author wrote,
  * hold the files they read to the workflow's project.
  */
+/*
+ * The query builder statements in a service's source that could hand records
+ * back: every getRepository().createQueryBuilder(...) chain, to the end of its
+ * statement, except one that only writes - its first call is update(),
+ * delete(), softDelete() or insert(), and it never asks for rows back
+ * (returning(), getOne(), getMany(), getRawOne(), getRawMany(),
+ * getManyAndCount(), getOneOrFail(), stream()). A compare-and-set UPDATE,
+ * such as IncidentService's end of a postmortem draft's wait (#5046), reads
+ * nothing.
+ */
+const QUERY_BUILDER: RegExp =
+  /getRepository\(\)\s*\.\s*createQueryBuilder\s*\(/g;
+const WRITES_FIRST: RegExp =
+  /^[^)]*\)\s*\.\s*(update|delete|softDelete|insert)\s*\(/;
+const ASKS_FOR_ROWS: RegExp =
+  /\.\s*(returning|getOne|getMany|getRawOne|getRawMany|getManyAndCount|getOneOrFail|stream)\s*\(/;
+
+function queryBuilderReads(source: string): Array<string> {
+  const reads: Array<string> = [];
+
+  for (const match of source.matchAll(QUERY_BUILDER)) {
+    const start: number = (match.index || 0) + match[0].length;
+    const end: number = source.indexOf(";", start);
+    const statement: string = source.slice(
+      start,
+      end === -1 ? source.length : end,
+    );
+
+    if (!WRITES_FIRST.test(statement) || ASKS_FOR_ROWS.test(statement)) {
+      reads.push((match[0] + statement).replace(/\s+/g, " ").slice(0, 120));
+    }
+  }
+
+  return reads;
+}
+
 describe("GUARD: every read of a record's files goes through the check", () => {
   const SERVICES_DIR: string = path.resolve(
     __dirname,
@@ -625,15 +661,49 @@ describe("GUARD: every read of a record's files goes through the check", () => {
 
       for (const pattern of [
         /override\s+async\s+(findBy|findOneBy|findOneById|findAllBy)\s*\(/,
-        /getRepository\(\)\s*\.\s*(find|findOne|findBy|findOneBy|createQueryBuilder)\s*\(/,
+        /getRepository\(\)\s*\.\s*(find|findOne|findBy|findOneBy)\s*\(/,
       ]) {
         expect({ table, match: source.match(pattern)?.[0] || null }).toEqual({
           table,
           match: null,
         });
       }
+
+      // Its own query builders only write: none hands a record back.
+      expect({ table, reads: queryBuilderReads(source) }).toEqual({
+        table,
+        reads: [],
+      });
     },
   );
+
+  test("tells a query builder that only writes from one that hands records back", () => {
+    const writes: string = `const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({ postmortemDraftWaitingSince: null })
+      .where('"_id" = :id', { id })
+      .execute();`;
+
+    expect(queryBuilderReads(writes)).toEqual([]);
+    expect(
+      queryBuilderReads(
+        "await this.getRepository().createQueryBuilder().delete().where('x').execute();",
+      ),
+    ).toEqual([]);
+
+    for (const reads of [
+      "const rows = await this.getRepository().createQueryBuilder('incident').where('x').getMany();",
+      "const row = await this.getRepository().createQueryBuilder().select('*').getRawOne();",
+      "await this.getRepository().createQueryBuilder().update(Model).set({}).returning('*').execute();",
+      "const query = this.getRepository().createQueryBuilder('incident')",
+    ]) {
+      expect({ reads, found: queryBuilderReads(reads).length }).toEqual({
+        reads,
+        found: 1,
+      });
+    }
+  });
 
   test("DatabaseService checks the files of every read made for a caller", () => {
     const source: string = fs.readFileSync(
