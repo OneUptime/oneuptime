@@ -241,6 +241,8 @@ ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 # above). Without this, ts-node/register redoes it on every container start
 # before the probe comes up. See App/Dockerfile.tpl for the full rationale.
 ENV TS_NODE_TRANSPILE_ONLY=1
-#Run the app
-CMD [ "npm", "start" ]
+# Run the app: package.json's start script, through sh instead of npm, so npm
+# is not a second Node.js process beside the probe. tini stays PID 1 and reaps
+# Chromium's children. See App/Dockerfile.tpl for why.
+CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 {{ end }}
