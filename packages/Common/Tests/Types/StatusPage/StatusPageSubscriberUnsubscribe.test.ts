@@ -399,6 +399,59 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials", () => {
       );
     }
   });
+
+  /*
+   * A visitor who signs up by text is texted the link that confirms the
+   * subscription, and the SMS log keeps the text: its code is the whole of
+   * what confirms it, so it is kept out of the log as a token is.
+   */
+  const confirmation: string = `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=482913`;
+  const confirmationRedacted: string = `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=[redacted]`;
+
+  test("replaces the code of a link that confirms a subscription, and keeps the id", () => {
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmation}`,
+      ),
+    ).toBe(
+      `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmationRedacted}`,
+    );
+  });
+
+  test("a confirmation link on the page's own address, or run into more text, is caught too", () => {
+    const ownAddress: string = `https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/confirm-subscription/${SUBSCRIBER_ID}?verification-token=000123`;
+
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `${ownAddress} and ${confirmation}xyz`,
+      ),
+    ).toBe(
+      `https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/confirm-subscription/${SUBSCRIBER_ID}?verification-token=[redacted] and ${confirmationRedacted}xyz`,
+    );
+  });
+
+  test("a message with every kind of link keeps no credential", () => {
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `${confirmation} ${link}`,
+    );
+
+    expect(result).toBe(`${confirmationRedacted} ${redacted}`);
+    expect(result).not.toContain("482913");
+    expect(result).not.toContain(TOKEN);
+  });
+
+  test("leaves a confirmation link with no code, or a code of another page's query, alone", () => {
+    const untouched: string = [
+      `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}`,
+      `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=`,
+      `https://status.acme.com/incidents/${SUBSCRIBER_ID}?verification-token=482913`,
+      `https://status.acme.com/confirm-subscription/not-an-id?verification-token=482913`,
+    ].join(" ");
+
+    expect(StatusPageSubscriberUnsubscribe.redactCredentials(untouched)).toBe(
+      untouched,
+    );
+  });
 });
 
 /*
@@ -427,6 +480,17 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials on long text", () =>
       `/unsubscribe/${SUBSCRIBER_ID}-`.repeat(Math.ceil(LENGTH / 50)),
     ],
     ["hex alone", "a".repeat(LENGTH)],
+    [
+      "confirmation route segments with no id",
+      "/confirm-subscription/".repeat(Math.ceil(LENGTH / 22)),
+    ],
+    [
+      "confirmation links with no code, run into one another",
+      `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=`.repeat(
+        Math.ceil(LENGTH / 78),
+      ),
+    ],
+    ["digits alone", "7".repeat(LENGTH)],
   ])(
     "%s: answered in well under two seconds",
     (_label: string, text: string) => {
