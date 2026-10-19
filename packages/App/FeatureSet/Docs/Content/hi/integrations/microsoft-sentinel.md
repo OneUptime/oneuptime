@@ -64,7 +64,7 @@ Azure portal में Log Analytics वर्कस्पेस खोलें
 
 ### सहेजने से पहले इसे टेस्ट करें
 
-**Test before saving** के नीचे **Test these settings** पर क्लिक करें। टेस्ट फ़ॉर्म के मानों से साइन इन करके घटनाएं पढ़ता है, और कुछ सहेजता नहीं, इसलिए गलत सीक्रेट या छूटा हुआ रोल कनेक्शन बनने से पहले ही सामने आ जाता है। फिर **अगला** पर क्लिक करें, कनेक्शन को एक **नाम** दें, और उसे बनाएं।
+**सहेजने से पहले टेस्ट करें** के नीचे **Test these settings** पर क्लिक करें। टेस्ट फ़ॉर्म के मानों से साइन इन करके घटनाएं पढ़ता है, और कुछ सहेजता नहीं, इसलिए गलत सीक्रेट या छूटा हुआ रोल कनेक्शन बनने से पहले ही सामने आ जाता है। फिर **अगला** पर क्लिक करें, कनेक्शन को एक **नाम** दें, और उसे बनाएं।
 :::
 
 | सेटिंग | कहां मिलेगी |
@@ -131,7 +131,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 1. **छोटा करें।** अगला पोल उसी शुरुआती बिंदु से आधी लंबाई की विंडो पढ़ता है, और तब तक आधा करता रहता है जब तक कोई विंडो पूरी न पढ़ी जाए, कम से कम एक मिनट तक। रन की चेतावनी यही बताती है: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **वापस बढ़ाएं।** किसी विंडो के पूरा पढ़े जाने के बाद अगली विंडो फिर दोगुनी होती है, ज़्यादा से ज़्यादा 24 घंटे तक।
-3. **एक मिनट से आगे बढ़ें।** अगर एक मिनट में भी एक पोल की क्षमता से ज़्यादा हो, तो पोलिंग उससे आगे बढ़ जाती है, ताकि नई घटनाएं आती रहें। रन **Partial** ही रहता है, और **Last Error** में लिखा होता है `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` एक रन जितना पढ़ सकता है उतना वापस पाने के लिए उस मिनट को **Import this time range** से इम्पोर्ट करें।
+3. **एक मिनट से आगे बढ़ें।** अगर एक मिनट में भी एक पोल की क्षमता से ज़्यादा हो, तो पोलिंग उससे आगे बढ़ जाती है, ताकि नई घटनाएं आती रहें। रन **Partial** ही रहता है, और **पिछली त्रुटि** में लिखा होता है `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` एक रन जितना पढ़ सकता है उतना वापस पाने के लिए उस मिनट को **Import this time range** से इम्पोर्ट करें।
 
 जो रन Microsoft Entra ID या Azure Resource Manager की किसी त्रुटि से पूरी तरह विफल होता है, वह कर्सर और विंडो लंबाई नहीं बदलता, और अगला पोल वही विंडो फिर से पढ़ता है। एकमात्र अपवाद वह अनुरोध है जिसका समय खत्म हो गया: कर्सर वहीं रहता है, पर अगली विंडो आधी लंबी होती है, क्योंकि समय पर जवाब के लिए बहुत भारी विंडो हर कोशिश में टाइम आउट होगी। **Poll Interval (Minutes)** बदलने से इनमें से कुछ नहीं बदलता: यह तय करता है कि पोल कितनी बार शुरू हो, न कि उसकी विंडो कहां से शुरू हो।
 
@@ -161,7 +161,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 ## समस्या निवारण
 
-कनेक्शन का **Last Error** पूरा त्रुटि संदेश रखता है, क्रेडेंशियल छिपाकर, एक ऐसे प्रीफ़िक्स के पीछे जो विफल हुए चरण का नाम बताता है। जब किसी कनेक्शन में त्रुटि हो, तो उसे पढ़ने के लिए उसके **क्रियाएँ** कॉलम में **त्रुटि देखें** चुनें, और कॉपी करने के लिए डायलॉग में **Copy Error**। पहले प्रीफ़िक्स पढ़ें।
+कनेक्शन का **पिछली त्रुटि** पूरा त्रुटि संदेश रखता है, क्रेडेंशियल छिपाकर, एक ऐसे प्रीफ़िक्स के पीछे जो विफल हुए चरण का नाम बताता है। जब किसी कनेक्शन में त्रुटि हो, तो उसे पढ़ने के लिए उसके **क्रियाएँ** कॉलम में **त्रुटि देखें** चुनें, और कॉपी करने के लिए डायलॉग में **त्रुटि कॉपी करें**। पहले प्रीफ़िक्स पढ़ें।
 
 :::details Last Error `Microsoft Sentinel token request` से शुरू होता है
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID ने टोकन जारी करने से मना कर दिया, इसलिए Azure से कभी संपर्क नहीं हुआ। संदेश में Entra का कोड होता है:

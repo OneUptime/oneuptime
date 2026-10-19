@@ -243,14 +243,8 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   // The pages a settings menu is mostly opened for.
   "Alerts & Notifications",
   "Datastores",
-  /*
-   * Security Events' working sections: an analyst digs into events and
-   * entities, and decides the playbook steps waiting for approval (the
-   * count beside Playbook Runs must stay on screen). Its Detect and Sources
-   * sections are setting things up, and fold away.
-   */
+  // Where an exception is dug into (an exception's own page).
   "Investigate",
-  "Respond",
 ];
 
 /*

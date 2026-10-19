@@ -56,7 +56,7 @@ Anteckna när hemligheten upphör att gälla. Den dagen stoppas avsökningen med
 
 ### Testa den innan du sparar
 
-Klicka på **Test these settings** under **Test before saving**. Testet loggar in och läser larm med värdena i formuläret, och sparar ingenting, så en felaktig hemlighet eller ett saknat medgivande syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
+Klicka på **Test these settings** under **Testa innan du sparar**. Testet loggar in och läser larm med värdena i formuläret, och sparar ingenting, så en felaktig hemlighet eller ett saknat medgivande syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
 :::
 
 | Inställning | Var du hittar den |
@@ -116,7 +116,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Larm som redan har importerats från det längre fönstret hoppas över som dubbletter.
 2. **Växa igen.** När ett fönster har lästs helt flyttas markören till dess slut, och nästa fönster är dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än 2 000 larm går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Partial**, och **Last Error** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än 2 000 larm går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Partial**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
 
 En körning som är **Partial** av en annan anledning, till exempel ett larm som inte kunde läsas som en säkerhetshändelse, försöks igen på samma sätt, från samma startpunkt. Att ändra **Poll Interval (Minutes)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
@@ -146,7 +146,7 @@ Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar
 
 ## Felsökning
 
-Anslutningens **Last Error** sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Copy Error** i dialogrutan för att kopiera det. Läs prefixet först.
+Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Kopiera fel** i dialogrutan för att kopiera det. Läs prefixet först.
 
 :::details Last Error börjar med `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID vägrade att utfärda en token, så Graph kontaktades aldrig. Meddelandet slutar med en ledtråd utifrån Entras `error`-kod:
@@ -178,7 +178,7 @@ Jämför larmets `createdDateTime` i Defender-portalen med körningens fönster 
 
 - Ett larm som skapades innan anslutningen fanns är äldre än den första tillbakablicken på 24 timmar. Importera det med **Import this time range**.
 - En körning som är **Partial** stoppades av gränsen på 2 000 larm. Nästa avsökning läser ett kortare fönster från samma start, så larmet importeras så snart ett fönster som innehåller det har lästs helt.
-- Om **Last Error** namnger en minut som avsökningen gick förbi importerar du den minuten med **Import this time range**.
+- Om **Senaste fel** namnger en minut som avsökningen gick förbi importerar du den minuten med **Import this time range**.
 :::
 
 :::details Samma larm visas två gånger

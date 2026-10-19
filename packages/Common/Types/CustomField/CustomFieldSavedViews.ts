@@ -60,7 +60,6 @@ export const CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS: Record<
   MonitorCustomField: [
     "all-monitors-table",
     "archived-monitors-table",
-    "security-events-monitors-table",
     // AI / LLM → Alerts: the AI / LLM monitors.
     "llm-alerts-monitors-table",
   ],

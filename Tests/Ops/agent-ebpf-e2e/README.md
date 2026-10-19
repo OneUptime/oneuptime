@@ -16,7 +16,8 @@ OBI's config unprivileged. Only this test shows, on a real kernel, that:
 - Node.js 26 is detected as Node.js and OBI's Node.js agent is injected, so a
   request's own Postgres and HTTP calls land in that request's trace;
 - the collector's trace filters, `k8s.cluster.name`, `service.peer.name`, the
-  harvested route names and the discovery exclusions hold on real OBI output;
+  route names the chart's route settings give and the discovery exclusions
+  hold on real OBI output;
 - profiles reach OneUptime's `/otlp/v1/profiles` path, OBI keeps the app's span
   context in the `traces_ctx_v1` map it pins to bpffs, and the profiler tags
   the app's CPU samples with that span context.
@@ -187,7 +188,7 @@ measured 94.2-99.6% and 99.8-100%.
 | TR-8  | `k8s.cluster.name` on every span sent through the agent                                                                          |
 | TR-9  | `k8s.cluster.name` on every metric resource sent through the agent, OBI's metrics among them                                     |
 | TR-10 | `service.peer.name` on at least 99% of the app's CLIENT spans, and `downstream` on its `GET /ping`                               |
-| TR-11 | at least 95% of the app's server spans are named by its 4 Express routes (`GET /api/items/:id`, ...), and all 4 appear           |
+| TR-11 | the app's server spans are named from their paths: none `GET /api/items/:id`, at least 95% under 4 names (see below)             |
 | TR-12 | no spans from the `sleeper` or from an excluded namespace                                                                        |
 | TR-13 | the app's background `GET /tick` arrives as a parentless OBI CLIENT span; with `ebpf.dropUnlinkedClientCalls` on, none such does |
 | PR-1  | profiler pods Ready, 0 restarts                                                                                                  |
@@ -211,6 +212,19 @@ that the analyzer recognizes OBI's real spans. With
 `filter/ebpf-unlinked-client` and TR-13 requires that no such span, from any
 workload, reaches the sink.
 
+The chart does not have OBI harvest Node.js route templates by default
+(`ebpf.routes.disabledHarvesters: ["nodejs"]`, rendered as
+`discovery.disabled_route_harvesters`), so OBI names the app's server spans
+from their paths, with an id-like segment as `*`: `GET /api/items/*`, and, from
+OBI v0.14.0, `GET /*/hash` for `/cpu/hash`. TR-11 then requires that no span
+is named `GET /api/items/:id`, a template only a harvest finds (that shows the
+setting reached OBI), and that at least 95% of the spans fall under 4 names,
+each holding at least 15% (the load generator sends the 4 routes in turn). A
+name per item id fails it, and so do all the routes under one name. With
+`E2E_HELM_ARGS='--set ebpf.routes.disabledHarvesters={}'` the render turns no
+language off, and TR-11 requires that at least 95% of the spans are named by
+the 4 Express routes (`GET /api/items/:id`, ...), and that all 4 appear.
+
 PR-7 never fails. OBI v0.14.0 leaves `traces_ctx_v1` entries keyed by threads
 it does not instrument (a containerd shim, runc, another cluster's containerd),
 so the profiler links some of their samples to unknown trace IDs. PR-6 makes
@@ -223,7 +237,8 @@ but missing, the root-namespace profiler's capture fails PR-5. With
 Negative controls, on an arm64 KinD cluster: `E2E_BPFFS=false` fails exactly
 PR-2, PR-4 and PR-5 (OBI-5 is skipped, as asked, and OBI logs its bpffs
 warning); `E2E_OBI_IMAGE=otel/ebpf-instrument:v0.13.0` fails exactly OBI-6
-(Node 26 taken for Rust), OBI-7, TR-3, TR-4 and TR-11 (v0.13 always filled
+(Node 26 taken for Rust), OBI-7, TR-3, TR-4 and TR-11 (measured while OBI
+still harvested Node.js routes; v0.13 always filled
 `traces_ctx_v1`, so PR-4 to PR-6 pass); and, in a run before the
 root-namespace profiler was added,
 `E2E_HELM_ARGS="--set profiling.obiProcessContext=false"` failed only PR-4.

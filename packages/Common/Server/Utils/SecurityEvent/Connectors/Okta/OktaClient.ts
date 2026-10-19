@@ -12,6 +12,7 @@ import {
 } from "../../../LogRedaction";
 import { ConnectorTransport } from "../Types";
 import { linkHeaderUrls } from "../../../../../Utils/LinkHeader";
+import { withoutTrailingSlashes } from "../../../../../Utils/TrailingRuns";
 
 /*
  * Minimal Okta client for the System Log connector.
@@ -147,7 +148,7 @@ export default class OktaClient {
    * "https://acme.okta.com/" does not produce "//api/v1/logs".
    */
   public static buildBaseUrl(orgUrl: string): string {
-    return orgUrl.trim().replace(/\/+$/, "");
+    return withoutTrailingSlashes(orgUrl.trim());
   }
 
   public getBaseUrl(): string {

@@ -1140,3 +1140,62 @@ export function getDetectionRuleLibraryEntry(
     },
   );
 }
+
+/*
+ * The rules a project turns on first, in one click (Security Events >
+ * Overview, the Rule Library's "Turn on recommended rules"): the ones that
+ * find something in data most projects already have or can send in
+ * minutes - sign-in failures from any source, and what "Your logs" reads
+ * (SecurityLogFormat): sudo commands on Linux hosts, attacks on web
+ * servers, Kubernetes audit logs and AWS CloudTrail. A rule only reads its
+ * own kind of event, so one whose kind never arrives costs one quick query
+ * per run and never fires.
+ *
+ * The rules that need one product's events (Okta, an EDR, a firewall) wait
+ * in the library until that product is connected.
+ */
+export const RECOMMENDED_DETECTION_RULE_IDS: ReadonlyArray<string> = [
+  // Identity, from any source of sign-ins (SSH and sudo included).
+  "acf2a37e-301a-46de-87c7-d4343f3a8445",
+  "c6b500e1-8b3c-4be3-b303-ef90a0355345",
+  "e16d3ff9-32d3-4180-b4fc-c3c2fd4ca835",
+  // Linux commands, from sudo or an EDR.
+  "aee4cdc7-f786-4023-a636-135397c6ff49",
+  "deeb8c3e-02d1-465e-bc88-83b49be848b5",
+  "738efe94-2259-4435-b346-f52c488409a0",
+  "bbfee430-70b5-4d88-83aa-ef34aca8a8aa",
+  // AWS CloudTrail.
+  "e431079d-c7d4-4ae3-9bfc-b6407f2697b8",
+  "0a8c9dcc-c2b4-46a0-8b41-8ac0c8b532a1",
+  "3d89d3d5-2b7e-4650-bee7-dac72b6704c3",
+  "388b42f9-2239-40bb-bf1a-2a476ad099c0",
+  "066bf906-3932-4e5d-9920-131825734ea0",
+  "2917bec0-2331-4e59-bdd4-a81211529156",
+  // Attacks on web servers.
+  "cfdf6ad4-7138-4201-8a1c-6bf962335cee",
+  "68d61e5d-79d2-4f41-8c1b-c017f6d0bd52",
+  "866b7566-304e-442b-b1ad-ca08264af493",
+  // Kubernetes audit logs.
+  "1ce3af71-a3d5-409a-b477-34e4a734aa83",
+  "44e60520-facd-443a-bf1f-8c741819be91",
+  "f18675fc-8708-44ff-9393-13e9c15250c0",
+];
+
+export function isRecommendedDetectionRule(
+  entry: Pick<DetectionRuleLibraryEntry, "id">,
+): boolean {
+  return RECOMMENDED_DETECTION_RULE_IDS.includes(entry.id);
+}
+
+// The recommended rules, in the library's order.
+export function getRecommendedDetectionRules(): Array<DetectionRuleLibraryEntry> {
+  return DETECTION_RULE_LIBRARY.filter(
+    (entry: DetectionRuleLibraryEntry): boolean => {
+      return isRecommendedDetectionRule(entry);
+    },
+  );
+}
+
+// The rule a setup test fires: many failed sign-ins from one address.
+export const SETUP_TEST_DETECTION_RULE_ID: string =
+  "acf2a37e-301a-46de-87c7-d4343f3a8445";

@@ -7,14 +7,16 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup } from "@testing-library/react";
+import { RenderResult, cleanup } from "@testing-library/react";
 import * as React from "react";
 
 /*
- * The Security Events side menu, rendered against the real RouteMap: every
- * entry links to the route its page is registered under, the page you are
- * on is the one entry lit, and the counts beside Cases and Playbook Runs ask
- * for what is waiting - the open cases, and the runs held for approval.
+ * The Security Events side menu, rendered against the real RouteMap: six
+ * entries and no sections, every entry linking to the route its page is
+ * registered under, the entry of the page you are on lit - on each of its
+ * tabs too (Rule Library under Detections, Playbook Runs under Playbooks) -
+ * and the counts beside Security Cases and Playbooks asking for what is
+ * waiting: the open cases, and the runs held for approval.
  *
  * ModelAPI.count backs the badges; it is stubbed inline because jest.mock is
  * hoisted above the imports.
@@ -42,60 +44,71 @@ import {
   DESKTOP_WIDTH,
   MenuLink,
   PROJECT_ID,
-  activeLinkTitles,
-  allLinks,
   goTo,
-  linksIn,
   renderMenu,
   routeFor,
   sectionTitlesInOrder,
   setViewportWidth,
 } from "./SideMenuHarness";
 
-async function renderSecurityMenu(): Promise<void> {
-  await renderMenu(<SecurityEventsSideMenu />);
+async function renderSecurityMenu(): Promise<RenderResult> {
+  return await renderMenu(<SecurityEventsSideMenu />);
 }
 
-const EXPECTED: Array<{ section: string; links: Array<[string, string]> }> = [
-  {
-    section: "Overview",
-    links: [
-      ["Overview", PageMap.SECURITY_EVENTS_OVERVIEW],
-      ["Security Cases", PageMap.SECURITY_CASES],
-    ],
-  },
-  {
-    section: "Investigate",
-    links: [
-      ["Events", PageMap.SECURITY_EVENTS],
-      ["Correlate", PageMap.SECURITY_EVENTS_CORRELATE],
-      ["Entities", PageMap.SECURITY_EVENTS_ENTITIES],
-    ],
-  },
-  {
-    section: "Detect",
-    links: [
-      ["Detection Rules", PageMap.SECURITY_EVENTS_DETECTION_RULES],
-      ["Rule Library", PageMap.SECURITY_EVENTS_RULE_LIBRARY],
-      ["ATT&CK Coverage", PageMap.SECURITY_EVENTS_ATTACK_COVERAGE],
-      ["Threat Intel", PageMap.SECURITY_EVENTS_THREAT_INTEL],
-      ["Monitors", PageMap.SECURITY_EVENTS_MONITORS],
-    ],
-  },
-  {
-    section: "Respond",
-    links: [
-      ["Playbooks", PageMap.SECURITY_PLAYBOOKS],
-      ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
-    ],
-  },
-  {
-    section: "Sources",
-    links: [
-      ["Connections", PageMap.SECURITY_EVENTS_CONNECTIONS],
-      ["Setup Guide", PageMap.SECURITY_EVENTS_DOCUMENTATION],
-    ],
-  },
+function entryTitle(anchor: HTMLAnchorElement): string {
+  return (
+    anchor.querySelector("span.truncate")?.textContent ??
+    anchor.textContent ??
+    ""
+  ).trim();
+}
+
+function menuLinks(rendered: RenderResult): Array<HTMLAnchorElement> {
+  return Array.from(rendered.container.querySelectorAll("a"));
+}
+
+function entries(rendered: RenderResult): Array<MenuLink> {
+  return menuLinks(rendered).map((anchor: HTMLAnchorElement): MenuLink => {
+    return {
+      title: entryTitle(anchor),
+      href: anchor.getAttribute("href") ?? "",
+    };
+  });
+}
+
+// The tinted row with the rail: SideMenuItem's active classes.
+function litTitles(rendered: RenderResult): Array<string> {
+  return menuLinks(rendered)
+    .filter((anchor: HTMLAnchorElement): boolean => {
+      return anchor.className.split(/\s+/).includes("bg-indigo-50");
+    })
+    .map(entryTitle);
+}
+
+const EXPECTED: Array<[string, string]> = [
+  ["Overview", PageMap.SECURITY_EVENTS_OVERVIEW],
+  ["Security Cases", PageMap.SECURITY_CASES],
+  ["Events", PageMap.SECURITY_EVENTS],
+  ["Detections", PageMap.SECURITY_EVENTS_DETECTION_RULES],
+  ["Playbooks", PageMap.SECURITY_PLAYBOOKS],
+  ["Connections", PageMap.SECURITY_EVENTS_CONNECTIONS],
+];
+
+// Every page the menu reaches, and the one entry lit on it.
+const LIT_ON: Array<[string, string]> = [
+  [PageMap.SECURITY_EVENTS_OVERVIEW, "Overview"],
+  [PageMap.SECURITY_CASES, "Security Cases"],
+  [PageMap.SECURITY_EVENTS, "Events"],
+  [PageMap.SECURITY_EVENTS_ENTITIES, "Events"],
+  [PageMap.SECURITY_EVENTS_CORRELATE, "Events"],
+  [PageMap.SECURITY_EVENTS_DETECTION_RULES, "Detections"],
+  [PageMap.SECURITY_EVENTS_RULE_LIBRARY, "Detections"],
+  [PageMap.SECURITY_EVENTS_THREAT_INTEL, "Detections"],
+  [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, "Detections"],
+  [PageMap.SECURITY_PLAYBOOKS, "Playbooks"],
+  [PageMap.SECURITY_PLAYBOOK_RUNS, "Playbooks"],
+  [PageMap.SECURITY_EVENTS_CONNECTIONS, "Connections"],
+  [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Connections"],
 ];
 
 describe("Security Events side menu", () => {
@@ -109,53 +122,56 @@ describe("Security Events side menu", () => {
     cleanup();
   });
 
-  test("renders its sections in the order the work goes", async () => {
-    await renderSecurityMenu();
+  test("is six entries, in the order the work goes, with no sections to open or close", async () => {
+    const rendered: RenderResult = await renderSecurityMenu();
 
-    expect(sectionTitlesInOrder()).toEqual(
-      EXPECTED.map((entry: { section: string }): string => {
-        return entry.section;
+    expect(sectionTitlesInOrder()).toEqual([]);
+    expect(
+      entries(rendered).map((link: MenuLink): string => {
+        return link.title;
+      }),
+    ).toEqual(
+      EXPECTED.map(([title]: [string, string]): string => {
+        return title;
+      }),
+    );
+    expect(
+      rendered.container.querySelectorAll("button[aria-expanded]"),
+    ).toHaveLength(0);
+  });
+
+  test("links every entry to the route its page is registered under", async () => {
+    const rendered: RenderResult = await renderSecurityMenu();
+
+    expect(
+      entries(rendered).map((link: MenuLink): [string, string] => {
+        return [link.title, link.href];
+      }),
+    ).toEqual(
+      EXPECTED.map(([title, page]: [string, string]): [string, string] => {
+        return [title, routeFor(page)];
       }),
     );
   });
 
-  test("links every entry to the route its page is registered under", async () => {
-    await renderSecurityMenu();
+  test("gives every entry an icon", async () => {
+    const rendered: RenderResult = await renderSecurityMenu();
 
-    for (const entry of EXPECTED) {
-      expect(
-        linksIn(entry.section).map((link: MenuLink): [string, string] => {
-          return [link.title, link.href];
-        }),
-      ).toEqual(
-        entry.links.map(([title, page]: [string, string]): [string, string] => {
-          return [title, routeFor(page)];
-        }),
-      );
+    for (const anchor of menuLinks(rendered)) {
+      expect([
+        entryTitle(anchor),
+        anchor.querySelector("svg") !== null,
+      ]).toEqual([entryTitle(anchor), true]);
     }
   });
 
-  test("lists no page twice", async () => {
-    await renderSecurityMenu();
-
-    const hrefs: Array<string> = allLinks().map((link: MenuLink): string => {
-      return link.href;
-    });
-
-    expect(new Set(hrefs).size).toBe(hrefs.length);
-  });
-
-  test.each(
-    EXPECTED.flatMap((entry: { links: Array<[string, string]> }) => {
-      return entry.links;
-    }),
-  )(
-    "lights %s, and only it, on its own page",
-    async (title: string, page: string) => {
+  test.each(LIT_ON)(
+    "on %s, lights %s and nothing else",
+    async (page: string, title: string) => {
       goTo(routeFor(page));
-      await renderSecurityMenu();
+      const rendered: RenderResult = await renderSecurityMenu();
 
-      expect(activeLinkTitles()).toEqual([title]);
+      expect(litTitles(rendered)).toEqual([title]);
     },
   );
 
@@ -163,12 +179,12 @@ describe("Security Events side menu", () => {
     goTo(
       `/dashboard/${PROJECT_ID}/security-events/cases/44444444-4444-4444-8444-444444444444`,
     );
-    await renderSecurityMenu();
+    const rendered: RenderResult = await renderSecurityMenu();
 
-    expect(activeLinkTitles()).toEqual([]);
+    expect(litTitles(rendered)).toEqual([]);
   });
 
-  test("counts the open cases and the runs waiting for approval", async () => {
+  test("counts the open cases beside Security Cases and the runs waiting for approval beside Playbooks", async () => {
     await renderSecurityMenu();
 
     const cases: { model: string; query: unknown } | undefined =

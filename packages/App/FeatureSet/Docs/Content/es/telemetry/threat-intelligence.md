@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abre Inteligencia de amenazas
 
-Abre **Productos → Eventos de seguridad → Inteligencia de amenazas**.
+Abre **Productos → Eventos de seguridad → Detecciones → Inteligencia de amenazas**.
 
 ### Crea el feed
 

@@ -19,6 +19,7 @@ import {
   readStringArray,
   readValue,
 } from "../NormalizerHelpers";
+import { withoutTrailingSlashes } from "../../TrailingRuns";
 
 /*
  * Microsoft Sentinel incident (Azure Resource Manager
@@ -95,7 +96,7 @@ function definition(): SecurityEventConnectorDefinition {
  * is what a person recognizes from the Sentinel UI.
  */
 function lastPathSegment(value: string): string {
-  const trimmed: string = value.trim().replace(/\/+$/, "");
+  const trimmed: string = withoutTrailingSlashes(value.trim());
   const index: number = trimmed.lastIndexOf("/");
 
   return index === -1 ? trimmed : trimmed.substring(index + 1);

@@ -179,9 +179,9 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
            * tablet widths: stacked lets them drop under the title.
            */
           headerLayout: "stacked",
-          title: "Security Event Connections",
+          title: "Your security tools",
           description:
-            "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps as OCSF security events. Test access, run a poll, and inspect imports on demand.",
+            "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",
           buttons: [
             {
               title: "Add connection",

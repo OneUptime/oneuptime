@@ -53,7 +53,7 @@ Den basis-URL, Falcon viste, fortæller dig, hvilken sky dit CID ligger i. Siden
 
 ### Test den, før du gemmer
 
-Klik på **Test these settings** under **Test before saving**. Testen logger på og læser advarsler med værdierne i formularen og gemmer intet, så den forkerte sky eller et manglende omfang viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+Klik på **Test these settings** under **Test, før du gemmer**. Testen logger på og læser advarsler med værdierne i formularen og gemmer intet, så den forkerte sky eller et manglende omfang viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
 :::
 
 | Indstilling | Hvad du skal angive |
@@ -109,7 +109,7 @@ Når en kørsel slet ikke kan komme forbi den gemte markør, for eksempel fordi 
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Partial**, og **Last Error** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Partial**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
 
 En kørsel, der mislykkes helt, med en fejl fra Falcon, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Poll Interval (Minutes)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
@@ -139,7 +139,7 @@ Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig
 
 ## Fejlfinding
 
-Forbindelsens **Last Error** og hver mislykket kontrol gemmer hele fejlmeddelelsen, med legitimationsoplysninger maskeret, bag et præfiks, der navngiver det trin, der mislykkedes. Når en forbindelse har en fejl, vælger du **Vis fejl** i dens kolonne **Handlinger** for at læse den og **Copy Error** i dialogboksen for at kopiere den. Læs præfikset først.
+Forbindelsens **Seneste fejl** og hver mislykket kontrol gemmer hele fejlmeddelelsen, med legitimationsoplysninger maskeret, bag et præfiks, der navngiver det trin, der mislykkedes. Når en forbindelse har en fejl, vælger du **Vis fejl** i dens kolonne **Handlinger** for at læse den og **Kopiér fejl** i dialogboksen for at kopiere den. Læs præfikset først.
 
 :::details Last Error starter med `CrowdStrike Falcon token request`
 - `CrowdStrike Falcon token request failed (HTTP 401)` eller `(HTTP 403)`: Falcon afviste API-klientens ID og hemmelighed, før Alerts API blev kontaktet. Kontrollér, at **Falcon cloud** er dit CID's sky, da en klient fra en anden sky afvises her, at **Klient-ID** er klientens, og at **Client secret** er den hemmelighed, der blev udstedt med den. Hvis hemmeligheden er gået tabt, så nulstil den i Falcon-konsollen, og gem den med **Update credentials**.

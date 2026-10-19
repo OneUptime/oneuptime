@@ -3,10 +3,10 @@
 An offline harness for the two Security Events pages of a project that has neither sent nor
 connected anything yet:
 
-| Page | Route (from `RouteMap`) | Production components |
-|---|---|---|
-| Security Events | `SECURITY_EVENTS` `/dashboard/:projectId/security-events` | `Pages/SecurityEvents/{Layout,Index}`, `SecurityEventsViewer` inside `TelemetryViewer`, `SecurityEventsEmptyState`, `SecurityEventsNoResults` |
-| Connections | `SECURITY_EVENTS_CONNECTIONS` `/dashboard/:projectId/security-events/connections` | `Pages/SecurityEvents/{Layout,Connections}`, `SecurityEventConnectionsTable` inside `ModelTable`, `SecurityEventConnectionsEmptyState`, `SecurityEventProviderTile`, `SecurityEventConnectionFormModal` |
+| Page            | Route (from `RouteMap`)                                                           | Production components                                                                                                                                                                                                                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Security Events | `SECURITY_EVENTS` `/dashboard/:projectId/security-events`                         | `Pages/SecurityEvents/{Layout,Index}`, `SecurityEventsViewer` inside `TelemetryViewer`, `SecurityEventsEmptyState`, `SecurityEventsNoResults`                                                                                                                                                                                               |
+| Connections     | `SECURITY_EVENTS_CONNECTIONS` `/dashboard/:projectId/security-events/connections` | `Pages/SecurityEvents/{Layout,Connections}`, `SecurityLogsSourceCard` (Your logs), `SecurityEventConnectionsTable` inside `ModelTable`, `SecurityEventConnectionsEmptyState`, `SecurityEventProviderTile`, `SecurityEventConnectionFormModal`, `SecurityEventDestinationsTable` and `SecurityEventDestinationFormModal` (Send to your SIEM) |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu)
 and both pages with esbuild, serves them with the same Tailwind build, `tailwind.config` and
@@ -24,7 +24,8 @@ Stubbed:
 
 - The data boundary: `ModelAPI`, `AnalyticsModelAPI` and `API`. Every table answers empty, so
   both pages show their empty state. The search bar's attribute lookup answers with no
-  attributes.
+  attributes. Turning Your logs on is the one write modelled: it creates the project's
+  `SecurityLogSource`, which the card then reads back.
 - The signed-in user ("Maya Chen" of a generic "Acme Commerce" workspace) and her
   permissions. The fixture header says the data is synthetic
   ("Preview workspace · Synthetic data").
@@ -34,10 +35,10 @@ Stubbed:
   with a stub and aborts everything else.
 - The side menu's counts beside Cases and Playbook Runs (`ModelAPI.count` of the open cases
   and of the runs waiting for approval) answer 0.
-- The side menu's other pages (Overview, Cases, Correlate, Entities, Detection Rules, Rule
-  Library, ATT&CK Coverage, Threat Intel, Monitors, Playbooks, Playbook Runs, Setup Guide)
-  render a small stub page with `data-testid="stub-page"` and `data-page="<PageMap key>"`, so a
-  test can tell where a link went.
+- The menu's other pages (Overview, Cases, Correlate, Entities, Detection Rules, Rule
+  Library, ATT&CK Coverage, Threat Intel, Playbooks, Playbook Runs, Setup Guide) render a small
+  stub page with `data-testid="stub-page"` and `data-page="<PageMap key>"`, so a test can tell
+  where a link went.
 
 The clock is pinned: the spec fixes the browser clock to `2026-09-22T12:00:00Z`.
 
@@ -45,15 +46,16 @@ The clock is pinned: the spec fixes the browser clock to `2026-09-22T12:00:00Z`.
 
 Query parameters, parsed once per page load:
 
-| Parameter | Values |
-|---|---|
-| `?role=` | `owner` (default) or `viewer`: Security Viewer only, so it can read connections but not create them. Both Add connection buttons are disabled, the reason is written out under the hero button and the tiles become a static "Supported products" list. |
-| `?theme=` | `dark` adds `html.dark` (done in `server.js`, before the bundle runs) |
+| Parameter  | Values                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `?role=`   | `owner` (default) or `viewer`: Security Viewer only, so it can read connections but not create them. Both Add connection buttons are disabled, the reason is written out under the hero button and the tiles become a static "Supported products" list.                                                                                                                                                                                                                                                |
+| `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `?latest=` | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
+| `?siem=`   | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
 
 ## What the fixture records
 
-`window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `listRequests`
+`window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `siem`, `listRequests`
 (analytics lists carry `analytics: true`), `countRequests`, `aggregateRequests`,
 `apiRequests`, `creates` and `unhandled`. Anything a page reads that the fixture does not
 model (a model table, an analytics query or an API URL), and any create, answers empty and
@@ -61,7 +63,14 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 
 ## What the spec covers
 
-`SecurityEventsEmptyStates.spec.ts` (32 tests):
+`SecurityEventsEmptyStates.spec.ts` (39 tests):
+
+- **Connections, top to bottom**: Your logs, Your security tools, Send to your SIEM; the Your
+  logs switch turns the logs on in one press and says when the first check runs, and a
+  viewer cannot flip it; Send to Google SecOps opens its form on the SIEM's own settings, its
+  test event waiting for the settings; with SIEMs (`?siem=rows`) each row says what it is
+  sent under its name and how sending goes, and the table fits its card at 1280 and 1440,
+  its status never under the sticky actions; dark theme and a phone.
 
 - **Connections empty state**: rendered by the table as its no-items message, inside the
   table card above its Refresh? link and the pagination; header (badge, heading,
@@ -125,19 +134,24 @@ checkout might be running, stop it first or run with `CI=1`.
 Screenshots (2x) land in `output/playwright/security-events-empty-states-ui/`, named
 `*-synthetic.png` because everything in them is fabricated:
 
-| Screenshot | What it shows |
-|---|---|
-| `connections-desktop` | Connections at 1440 |
-| `connections-tablet` | Connections at 768 |
-| `connections-mobile` | Connections at 390, full page |
-| `connections-dark` | Connections in the dark theme |
-| `connections-viewer` | Connections for a Security Viewer |
-| `connections-preselected-modal` | Add connection after clicking the CrowdStrike Falcon tile |
-| `connections-tile-hover` | The tiles with the pointer on CrowdStrike Falcon |
-| `connections-tile-focus` | The tiles with keyboard focus on CrowdStrike Falcon |
-| `events-desktop` | Security Events at 1440 |
-| `events-dark` | Security Events in the dark theme |
-| `events-mobile` | Security Events at 390, full page |
+| Screenshot                      | What it shows                                                                     |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `connections-cards-desktop`     | Connections at 1440, full page: Your logs, Your security tools, Send to your SIEM |
+| `connections-cards-dark`        | The same in the dark theme                                                        |
+| `connections-cards-phone`       | The same at 390                                                                   |
+| `connections-siem-form-desktop` | Send to Google SecOps, the form's first step                                      |
+| `connections-siem-rows-desktop` | Send to your SIEM with three SIEMs, at 1440                                       |
+| `connections-desktop`           | Connections at 1440                                                               |
+| `connections-tablet`            | Connections at 768                                                                |
+| `connections-mobile`            | Connections at 390, full page                                                     |
+| `connections-dark`              | Connections in the dark theme                                                     |
+| `connections-viewer`            | Connections for a Security Viewer                                                 |
+| `connections-preselected-modal` | Add connection after clicking the CrowdStrike Falcon tile                         |
+| `connections-tile-hover`        | The tiles with the pointer on CrowdStrike Falcon                                  |
+| `connections-tile-focus`        | The tiles with keyboard focus on CrowdStrike Falcon                               |
+| `events-desktop`                | Security Events at 1440                                                           |
+| `events-dark`                   | Security Events in the dark theme                                                 |
+| `events-mobile`                 | Security Events at 390, full page                                                 |
 
 ## Poke at it by hand
 

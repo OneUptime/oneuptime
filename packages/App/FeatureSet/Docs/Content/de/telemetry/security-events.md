@@ -27,22 +27,23 @@ flowchart TB
 
 Öffnen Sie **Produkte → Sicherheitsereignisse**, unter **Observability**. Sein Menü:
 
-| Seite | Bereich | Wofür sie da ist |
+| Seite | Menüeintrag | Wofür sie da ist |
 | --- | --- | --- |
-| **Übersicht** | Übersicht | Was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden |
-| **Security Cases** | Übersicht | Die Warteschlange mit allem Erkannten, gruppiert nach dem, worum es jeweils geht |
-| **Ereignisse** | Untersuchen | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
-| **Korrelieren** | Untersuchen | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
-| **Entitäten** | Untersuchen | Die Benutzer, Hosts und Adressen, die Ihre Befunde am häufigsten nennen |
-| **Erkennungsregeln** | Detect | Sigma-Regeln, die nach Zeitplan laufen und Fälle eröffnen |
-| **Rule Library** | Detect | Fertige Erkennungsregeln zum Hinzufügen |
-| **ATT&CK Coverage** | Detect | Die Techniken von MITRE ATT&CK, die Ihre Regeln abdecken |
-| **Threat Intel** | Detect | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
-| **Monitore** | Detect | Die Monitore des Projekts für Sicherheitsereignisse |
-| **Playbooks** | Respond | Schritte, die auf Fällen laufen, von selbst oder per Hand |
-| **Playbook Runs** | Respond | Was jedes Playbook getan hat, und die Schritte, die auf Genehmigung warten |
-| **Verbindungen** | Quellen | Sicherheitsprodukte, die OneUptime nach neuen Datensätzen abfragt |
-| **Einrichtungsanleitung** | Quellen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
+| **Übersicht** | Übersicht | Wie Sicherheit eingerichtet ist, was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden |
+| **Security Cases** | Security Cases | Die Warteschlange mit allem Erkannten, gruppiert nach dem, worum es jeweils geht |
+| **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
+| **Entitäten** | Ereignisse | Die Benutzer, Hosts und Adressen, die Ihre Befunde am häufigsten nennen |
+| **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
+| **Erkennungsregeln** | Erkennungen | Sigma-Regeln, die nach Zeitplan laufen und Fälle eröffnen |
+| **Rule Library** | Erkennungen | Fertige Erkennungsregeln zum Hinzufügen, die empfohlenen markiert |
+| **Threat Intel** | Erkennungen | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
+| **ATT&CK Coverage** | Erkennungen | Die Techniken von MITRE ATT&CK, die Ihre Regeln abdecken |
+| **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
+| **Playbook Runs** | Playbooks | Was jedes Playbook getan hat, und die Schritte, die auf Genehmigung warten |
+| **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
+| **Einrichtungsanleitung** | Verbindungen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
+
+Die Seiten hinter einem Menüeintrag öffnen sich als Tabs oben auf der Seite. Neu bei Sicherheit? [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started) richtet sie mit zwei Klicks ein.
 
 ## Bevor Sie beginnen
 
@@ -153,6 +154,10 @@ Um Sicherheitslogs zu senden, die Sie schon sammeln, etwa von auditd, syslog ode
 
 Der Tab **Einrichtungsanleitung** hat diese Snippets mit Ihrem eigenen Host und Schlüssel ausgefüllt.
 
+### Sicherheitsereignisse in Ihren Logs finden
+
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH-Anmeldung, jeder sudo-Befehl, jeder Kubernetes-Audit-Eintrag, jede AWS-CloudTrail-Änderung und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+
 ### Ein Sicherheitsprodukt verbinden
 
 **Verbindungen** fragt ein Sicherheitsprodukt für Sie ab und importiert seine neuen Datensätze als Sicherheitsereignisse. Eine Verbindung enthält die Einstellungen des Produkts und verschlüsselte Zugangsdaten; ein Worker fragt sie in dem Intervall ab, das Sie festlegen, und überspringt bereits importierte Datensätze.
@@ -233,7 +238,7 @@ flowchart TB
 ### Eine Regel erstellen
 
 :::steps
-1. Öffnen Sie **Produkte → Sicherheitsereignisse → Erkennungsregeln** und klicken Sie auf **Erkennungsregel erstellen**.
+1. Öffnen Sie **Produkte → Sicherheitsereignisse → Erkennungen** und klicken Sie auf **Erkennungsregel erstellen**.
 2. Fügen Sie unter **Sigma-Regel** das YAML der Regel in **Sigma-Regel (YAML)** ein. Es wird beim Speichern geparst, sodass ein Fehler im Formular erscheint.
 3. Der **Name** füllt sich aus dem `title` der Regel: Überschreiben Sie ihn, um die Regel anders zu nennen. Eine neue Regel läuft; **Aktiviert** steht in ihrem Bearbeitungsformular.
 4. Lassen Sie unter **Bei Treffer** die Option **Open a Case on Match** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
@@ -292,11 +297,11 @@ Gruppierung und eindeutige Zählung nehmen dieselben Feldnamen wie die Regel. Mi
 
 ### Wann eine Regel läuft
 
-OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem letzten Lauf hinter sich haben. Jeder Lauf liest die Ereignisse, deren Ereigniszeit zwischen dem vorigen Lauf und jetzt liegt, und geht dann weiter:
+OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem letzten Lauf hinter sich haben. Jeder Lauf liest die Ereignisse, deren Ereigniszeit zwischen dem vorigen Lauf und vor zwei Minuten liegt, und geht dann weiter. Die zwei Minuten lassen Ereignissen Zeit, die noch unterwegs sind, etwa einer Logzeile, die eine Minute nach dem Schreiben gelesen wird:
 
 - Die Fenster liegen lückenlos hintereinander, sie gleiten nicht. Bei einem Intervall von 10 Minuten können Fehlschläge um 09:58 und 10:01 in verschiedene Läufe fallen und werden getrennt gezählt, also lassen Sie bei der Wahl eines Schwellenwerts Spielraum.
 - Nach einer Lücke, etwa einem Worker-Ausfall oder einer wieder eingeschalteten Regel, deckt der nächste Lauf die ganze Lücke ab, bis zu den letzten 24 Stunden.
-- Ein Ereignis, das spät ankommt, mit einer Zeit vor dem letzten Lauf der Regel, wird gespeichert und ist durchsuchbar, aber diese Regel liest es nie.
+- Ein Ereignis, das mehr als zwei Minuten zu spät ankommt, nachdem ein Lauf seine Zeit schon abgedeckt hat, wird gespeichert und ist durchsuchbar, aber diese Regel liest es nie.
 - Pro Lauf lösen höchstens 100 Gruppen aus: die mit den höchsten Zählungen.
 
 ### Schweregrad
@@ -329,7 +334,7 @@ Befunde sind gewöhnliche Ereignisse: Durchsuchen Sie sie unter **Ereignisse** u
 
 ## Monitore für Sicherheitsereignisse
 
-Ein Monitor für Sicherheitsereignisse zählt die Ereignisse, die auf seine Filter passen, über ein gleitendes Fenster und wendet die üblichen Monitorkriterien auf die Zählung an: Er ändert den Status des Monitors, öffnet Warnungen oder Vorfälle und alarmiert die Bereitschaft. Erstellen Sie einen unter **Monitore → Monitor erstellen**, mit **Sicherheitsereignisse** als Typ; **Sicherheitsereignisse → Monitore** listet sie alle auf.
+Ein Monitor für Sicherheitsereignisse zählt die Ereignisse, die auf seine Filter passen, über ein gleitendes Fenster und wendet die üblichen Monitorkriterien auf die Zählung an: Er ändert den Status des Monitors, öffnet Warnungen oder Vorfälle und alarmiert die Bereitschaft. Erstellen Sie einen unter **Monitore → Monitor erstellen**, mit **Sicherheitsereignisse** als Typ; dort wird er mit Ihren anderen Monitoren aufgeführt.
 
 Sein Formular zeigt **Ereignisse überwachen, die diesen Text enthalten**, **Sicherheitsereignisse überwachen für (Zeit)**, **Ereignisschweregrad** und **Ereignisklasse**. **Nach Telemetrie-Dienst filtern** und **Nach Attributen filtern** warten unter **Weitere Felder**, dessen Kopf die zeigt, die ein Monitor nutzt. Seine Kriterien prüfen **Security Event Count**.
 

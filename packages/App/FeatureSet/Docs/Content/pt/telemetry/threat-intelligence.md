@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abra Threat Intel
 
-Abra **Produtos → Security Events → Threat Intel**.
+Abra **Produtos → Security Events → Detections → Threat Intel**.
 
 ### Crie o feed
 

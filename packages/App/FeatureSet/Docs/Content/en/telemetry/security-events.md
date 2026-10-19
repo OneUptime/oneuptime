@@ -27,22 +27,23 @@ flowchart TB
 
 Open **Products → Security Events**, under **Observability**. Its menu:
 
-| Page | Section | What it is for |
+| Page | Menu entry | What it is for |
 | --- | --- | --- |
-| **Overview** | Overview | What needs someone now, and how fast cases are handled |
-| **Security Cases** | Overview | The queue of what was detected, grouped by what it is about |
-| **Events** | Investigate | Search and filter every event, and open one to see all its fields |
-| **Correlate** | Investigate | A graph of the events that share a host, a user or an IP address |
-| **Entities** | Investigate | The users, hosts and addresses your findings name most |
-| **Detection Rules** | Detect | Sigma rules that run on a schedule and open cases |
-| **Rule Library** | Detect | Ready-made detection rules to add |
-| **ATT&CK Coverage** | Detect | The MITRE ATT&CK techniques your rules cover |
-| **Threat Intel** | Detect | STIX/TAXII feeds of known-bad indicators |
-| **Monitors** | Detect | The project's Security Events monitors |
-| **Playbooks** | Respond | Steps that run on cases, by themselves or by hand |
-| **Playbook Runs** | Respond | What each playbook did, and the steps waiting for approval |
-| **Connections** | Sources | Security products that OneUptime polls for new records |
-| **Setup Guide** | Sources | Snippets to send events, filled in with your ingestion key |
+| **Overview** | Overview | How Security is set up, what needs someone now, and how fast cases are handled |
+| **Security Cases** | Security Cases | The queue of what was detected, grouped by what it is about |
+| **Events** | Events | Search and filter every event, and open one to see all its fields |
+| **Entities** | Events | The users, hosts and addresses your findings name most |
+| **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
+| **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
+| **Rule Library** | Detections | Ready-made detection rules to add, the recommended ones marked |
+| **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
+| **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
+| **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
+| **Playbook Runs** | Playbooks | What each playbook did, and the steps waiting for approval |
+| **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
+| **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
+
+The pages behind one menu entry open as tabs across the top of the page. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
 ## Before you begin
 
@@ -153,6 +154,10 @@ To send security logs you already collect, such as auditd, syslog or Falco, add 
 
 The **Setup Guide** tab has these snippets with your own host and key filled in.
 
+### Find security events in your logs
+
+**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH sign-in, sudo command, Kubernetes audit record, AWS CloudTrail change and web attack in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
+
 ### Connect a security product
 
 **Connections** polls a security product for you and imports its new records as security events. A connection holds the product's settings and an encrypted credential; a worker polls it on the interval you set and skips records it already imported.
@@ -233,7 +238,7 @@ flowchart TB
 ### Create a rule
 
 :::steps
-1. Open **Products → Security Events → Detection Rules** and click **Create Detection Rule**.
+1. Open **Products → Security Events → Detections** and click **Create Detection Rule**.
 2. In **Sigma Rule**, paste the rule's YAML into **Sigma Rule (YAML)**. It is parsed when you save, so a mistake shows in the form.
 3. The **Name** fills in from the rule's `title`: type over it to call the rule something else. A new rule runs; **Enabled** is on its edit form.
 4. In **On Match**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
@@ -292,11 +297,11 @@ Group By and Distinct Count take the same field names as the rule. With them, th
 
 ### When a rule runs
 
-OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events whose event time falls between the previous run and now, then moves on:
+OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events whose event time falls between the previous run and two minutes ago, then moves on. The two minutes leave room for events still on their way, such as a log line read a minute after it was written:
 
 - Windows are back to back, not rolling. With a 10-minute interval, failures at 09:58 and 10:01 can land in different runs and are counted apart, so leave headroom when you choose a threshold.
 - After a gap, such as a worker outage or a rule turned back on, the next run covers the whole gap, up to the last 24 hours.
-- An event that arrives late, with a time from before the rule's last run, is stored and searchable, but that rule never reads it.
+- An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.
 - At most 100 groups fire per run: the ones with the highest counts.
 
 ### Severity
@@ -329,7 +334,7 @@ Findings are ordinary events: search them in **Events** and pivot on them in **C
 
 ## Security Events monitors
 
-A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; **Security Events → Monitors** lists them all.
+A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; it is listed there with your other monitors.
 
 Its form shows **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** and **Event Class**. **Filter by Telemetry Service** and **Filter by Attributes** wait under **More fields**, whose header shows the ones a monitor uses. Its criteria check **Security Event Count**.
 

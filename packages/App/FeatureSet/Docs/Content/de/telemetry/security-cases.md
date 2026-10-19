@@ -188,7 +188,7 @@ Eine E-Mail oder ein Beitrag ohne eigene Nachricht sendet eine Zusammenfassung d
 
 ### Ausführungen und Genehmigungen
 
-Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbook Runs** aufgelistet, Schritt für Schritt:
+Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbooks → Playbook Runs** aufgelistet, Schritt für Schritt:
 
 | Status der Ausführung | Bedeutung |
 | --- | --- |
@@ -199,7 +199,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
-Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt und in der Zeitachse des Falls festgehalten. **Playbook Runs** öffnet mit den Ausführungen, die auf Genehmigung warten, und sein Menüeintrag zählt sie.
+Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Approve** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt und in der Zeitachse des Falls festgehalten. **Playbook Runs** öffnet mit den Ausführungen, die auf Genehmigung warten, und der Menüeintrag **Playbooks** zählt sie.
 
 Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, wird wieder aufgegriffen: Eine Ausführung in der Warteschlange wird nach 2 Minuten erneut eingereiht, und eine Ausführung, die sich 30 Minuten lang nicht gemeldet hat, gilt als fehlgeschlagen.
 
@@ -208,16 +208,16 @@ Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, 
 **Produkte → Sicherheitsereignisse → Übersicht** ist die Seite, mit der das Produkt öffnet:
 
 - Die offenen Fälle, die Ihnen zugewiesen sind, die offenen Fälle, die noch niemand übernommen hat, und die Playbook-Schritte, die auf Genehmigung warten.
-- **Mean Time to Acknowledge**, **Mean Time to Contain** und **Mean Time to Close**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn aus „Neu“ herausholt), bis „Contained“ und bis „Geschlossen“. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
+- **Mittlere Zeit bis zur Bestätigung**, **Mittlere Zeit bis zur Eindämmung** und **Mittlere Zeit bis zum Schließen**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn aus „Neu“ herausholt), bis „Contained“ und bis „Geschlossen“. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
 - Die pro Tag eröffneten Fälle über 30 Tage, nach Priorität, und die pro Tag ausgelösten Erkennungen über 14 Tage, nach Quelle.
 - Die offenen Fälle nach Priorität und nach Status, die Bewertungen der letzten 30 Tage, die ATT&CK-Taktiken hinter den Fällen, die am häufigsten ausgelösten Erkennungen und die Entitäten, die in den meisten Befunden vorkommen.
 
-Ein Projekt, das noch keine Fälle und keine Erkennungen hat, zeigt darüber die drei Schritte, mit denen es eingerichtet wird.
+Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erkennungen, Fälle und Playbooks, jeweils mit ihren Zahlen. Ein Projekt, das sie noch nicht eingerichtet hat, sieht dort **Empfohlenes aktivieren** und **Testangriff senden**; siehe [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started). Braucht nichts jemanden, sagt die Seite **Alles ruhig**, und die Diagramme erscheinen, sobald es etwas darzustellen gibt.
 
 ## Bedrohungen finden
 
 - **Entitäten** ordnet die Benutzer, Hosts, Adressen und Hashes, die Ihre Befunde am häufigsten nennen, über den letzten Tag, die letzte Woche oder den letzten Monat, und schlägt jeden Wert in den Ereignissen von 30 Tagen nach.
-- **Rule Library** enthält fertige Erkennungsregeln für Bedrohungen rund um Identität, Endpunkte, Cloud, Netzwerk, Web und Kubernetes. Jede ist eine Sigma-Regel, geschrieben für die Felder, auf die jede verbundene Quelle normalisiert wird. **Regel hinzufügen** legt sie als Ihre eigene Erkennungsregel an, eingeschaltet und so eingestellt, dass sie Fälle statt Warnungen eröffnet; ändern Sie sie unter **Erkennungsregeln** wie jede andere.
+- **Rule Library** enthält fertige Erkennungsregeln für Bedrohungen rund um Identität, Endpunkte, Cloud, Netzwerk, Web und Kubernetes. Jede ist eine Sigma-Regel, geschrieben für die Felder, auf die jede verbundene Quelle normalisiert wird. **Regel hinzufügen** legt sie als Ihre eigene Erkennungsregel an, eingeschaltet und so eingestellt, dass sie Fälle statt Warnungen eröffnet; ändern Sie sie unter **Erkennungsregeln** wie jede andere. Die mit **Empfohlen** markierten Regeln finden Bedrohungen in Daten, die OneUptime bereits hat, und eine Schaltfläche fügt die hinzu, die Ihnen noch fehlen.
 - **ATT&CK Coverage** zeichnet die Matrix von MITRE ATT&CK, hebt die Techniken hervor, die Ihre aktivierten Regeln abdecken, und umrandet die, die eine Regel aus der Bibliothek abdecken würde.
 
 ## Automatisieren

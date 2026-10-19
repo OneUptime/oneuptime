@@ -56,7 +56,7 @@ Noter når hemmeligheten utløper. Den dagen stopper pollingen med `Microsoft De
 
 ### Test den før du lagrer
 
-Klikk på **Test these settings** under **Test before saving**. Testen logger på og leser varsler med verdiene i skjemaet, og lagrer ingenting, så en feil hemmelighet eller et manglende samtykke viser seg før tilkoblingen finnes. Klikk deretter på **Neste**, gi tilkoblingen et **Navn**, og opprett den.
+Klikk på **Test these settings** under **Test før du lagrer**. Testen logger på og leser varsler med verdiene i skjemaet, og lagrer ingenting, så en feil hemmelighet eller et manglende samtykke viser seg før tilkoblingen finnes. Klikk deretter på **Neste**, gi tilkoblingen et **Navn**, og opprett den.
 :::
 
 | Innstilling | Hvor du finner den |
@@ -116,7 +116,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Snevre inn.** Den neste pollen leser et vindu som er halvparten så langt, fra det samme startpunktet, og fortsetter å halvere til et vindu leses helt, ned til ett minutt. Kjøringens advarsel sier det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Varsler som allerede er importert fra det lengre vinduet, hoppes over som duplikater.
 2. **Vokse igjen.** Når et vindu er lest helt, flyttes markøren til slutten av det, og det neste vinduet er igjen dobbelt så langt, opptil 24 timer.
-3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn 2 000 varsler, går pollingen forbi det, slik at nyere varsler fortsetter å komme. Kjøringen forblir **Partial**, og **Last Error** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese.
+3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn 2 000 varsler, går pollingen forbi det, slik at nyere varsler fortsetter å komme. Kjøringen forblir **Partial**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese.
 
 En kjøring som er **Partial** av en annen grunn, for eksempel et varsel som ikke kunne leses som en sikkerhetshendelse, prøves på nytt på samme måte, fra det samme startpunktet. Å endre **Poll Interval (Minutes)** endrer ingenting av dette: det avgjør hvor ofte en poll starter, ikke hvor vinduet begynner.
 
@@ -146,7 +146,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 
 ## Feilsøking
 
-**Last Error** for tilkoblingen lagrer hele feilmeldingen, med legitimasjon maskert, bak et prefiks som navngir trinnet som mislyktes. Når en tilkobling har en feil, velger du **Vis feil** i kolonnen **Handlinger** for å lese den, og **Copy Error** i dialogboksen for å kopiere den. Les prefikset først.
+**Siste feil** for tilkoblingen lagrer hele feilmeldingen, med legitimasjon maskert, bak et prefiks som navngir trinnet som mislyktes. Når en tilkobling har en feil, velger du **Vis feil** i kolonnen **Handlinger** for å lese den, og **Kopier feil** i dialogboksen for å kopiere den. Les prefikset først.
 
 :::details Last Error starter med `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID nektet å utstede et token, så Graph ble aldri kontaktet. Meldingen slutter med et hint ut fra `error`-koden fra Entra:
@@ -178,7 +178,7 @@ Sammenlign varselets `createdDateTime` i Defender-portalen med kjøringens vindu
 
 - Et varsel som ble opprettet før tilkoblingen fantes, er eldre enn det første tilbakeblikket på 24 timer. Importer det med **Import this time range**.
 - En kjøring som er **Partial**, ble stoppet av grensen på 2 000 varsler. Den neste pollen leser et kortere vindu fra den samme starten, så varselet importeres så snart et vindu som inneholder det, er lest helt.
-- Hvis **Last Error** navngir et minutt pollingen gikk forbi, importerer du det minuttet med **Import this time range**.
+- Hvis **Siste feil** navngir et minutt pollingen gikk forbi, importerer du det minuttet med **Import this time range**.
 :::
 
 :::details Det samme varselet vises to ganger

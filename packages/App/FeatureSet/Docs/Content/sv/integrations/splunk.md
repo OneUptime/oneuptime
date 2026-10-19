@@ -48,7 +48,7 @@ Vill du hellre autentisera med ett lösenord hoppar du över det här steget och
 
 ### Testa den innan du sparar
 
-Klicka på **Test these settings** under **Test before saving**. Testet autentiserar och kör din sökning med värdena i formuläret och sparar ingenting, så en fel port eller en saknad roll syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
+Klicka på **Test these settings** under **Testa innan du sparar**. Testet autentiserar och kör din sökning med värdena i formuläret och sparar ingenting, så en fel port eller en saknad roll syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
 :::
 
 | Inställning | Vad du anger |
@@ -119,7 +119,7 @@ När en körning inte alls kommer förbi den sparade markören gör OneUptime i 
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Växa igen.** När ett fönster har lästs helt är nästa dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare notable events fortsätter att komma. Körningen förblir **Partial**, och **Last Error** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare notable events fortsätter att komma. Körningen förblir **Partial**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
 
 En körning som misslyckas helt, med ett fel från Splunk, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Poll Interval (Minutes)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
@@ -149,7 +149,7 @@ Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar
 
 ## Felsökning
 
-Anslutningens **Last Error** sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Copy Error** i dialogrutan för att kopiera det. Läs prefixet först.
+Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Kopiera fel** i dialogrutan för att kopiera det. Läs prefixet först.
 
 :::details Last Error börjar med `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk vägrade säga vem anroparen är.

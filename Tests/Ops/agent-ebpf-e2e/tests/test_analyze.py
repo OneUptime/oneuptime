@@ -25,8 +25,14 @@ ANALYZE = os.path.join(HERE, '..', 'analyze.py')
 CLUSTER = 'agent-ebpf-e2e'
 APPS, CLIENT = 'e2e-worker', 'e2e-control-plane'
 APP_PID = '4242'
-ROUTES = [('GET', 'GET /api/items/:id', '/api/items/:id'), ('POST', 'POST /api/orders', '/api/orders'),
-          ('GET', 'GET /status/ready', '/status/ready'), ('GET', 'GET /cpu/hash', '/cpu/hash')]
+# Each of the app's routes: its method, the Express template OBI's Node.js
+# route harvest finds, the load generator's name for it, and the name OBI gives
+# its requests from their paths when it does not harvest Node.js routes (the
+# chart's default), as OBI v0.14.0 named them in CI.
+ROUTES = [('GET', 'GET /api/items/:id', '/api/items/:id', 'GET /api/items/*'),
+          ('POST', 'POST /api/orders', '/api/orders', 'POST /api/orders'),
+          ('GET', 'GET /status/ready', '/status/ready', 'GET /status/ready'),
+          ('GET', 'GET /cpu/hash', '/cpu/hash', 'GET /*/hash')]
 EXCLUDE = ['*/sh', '*/bash', '*/busybox', '*/otelcol*', '*/obi']
 # Every check analyze.py reports with profiling on. A check that is dropped
 # or renamed fails test_every_check_reports.
@@ -43,6 +49,9 @@ CLIENT_FILTER_RENDER = ('    traces:\n      receivers:\n        - otlp\n      pr
                         '        # Before the user\'s filters and the sampler too. It never matches\n'
                         '        # a span filter/ebpf-unlinked-db does, so their order is free.\n'
                         '        - filter/ebpf-unlinked-client\n        - batch\n')
+# OBI's discovery as the chart renders ebpf.routes.disabledHarvesters'
+# default, ["nodejs"]. With nothing turned off the key is not written.
+NODE_HARVEST_OFF_RENDER = '  disabled_route_harvesters:\n    - "nodejs"\n'
 
 
 def kv(key, value):
@@ -68,7 +77,7 @@ def unlinked_client_call(name='GET /ping', kind=3, parent='', attrs=None):
 class Capture:
     """A healthy capture as plain Python data; tests mutate it, then write()."""
 
-    def __init__(self, requests=400, seed=7, host_profiler=False, client_filter=False):
+    def __init__(self, requests=400, seed=7, host_profiler=False, client_filter=False, node_harvest=False):
         rng = random.Random(seed)
         # kind: run.sh's second profiler, in the host's root PID namespace,
         # where the app has another PID than the one its node gives it
@@ -105,7 +114,12 @@ class Capture:
         ]
         self.render = ('discovery:\n  exclude_instrument:\n' +
                        ''.join('    - exe_path: "%s"\n' % g for g in EXCLUDE) +
-                       '    - k8s_namespace: "kube-system"\n  attributes:\n')
+                       '    - k8s_namespace: "kube-system"\n')
+        if not node_harvest:
+            # the chart's default; node_harvest is
+            # E2E_HELM_ARGS='--set ebpf.routes.disabledHarvesters={}'
+            self.render += NODE_HARVEST_OFF_RENDER
+        self.render += '  attributes:\n'
         if client_filter:
             # rendered with ebpf.dropUnlinkedClientCalls=true
             self.render += CLIENT_FILTER_RENDER
@@ -117,10 +131,11 @@ class Capture:
         self.spans = []  # (resource dict, span dict)
         self.app_spans = []
         for i in range(per * len(ROUTES)):
-            method, name, route = ROUTES[i % len(ROUTES)]
+            method, harvested, _, from_path = ROUTES[i % len(ROUTES)]
+            name = harvested if node_harvest else from_path
             t = hexid(rng, 16)
             srv = {'traceId': t, 'spanId': hexid(rng, 8), 'parentSpanId': '', 'name': name, 'kind': 2,
-                   'attributes': [kv('http.request.method', method), kv('http.route', route)]}
+                   'attributes': [kv('http.request.method', method), kv('http.route', name.split(' ', 1)[1])]}
             proc = {'traceId': t, 'spanId': hexid(rng, 8), 'parentSpanId': srv['spanId'], 'name': 'processing',
                     'kind': 1, 'attributes': []}
             calls = [
@@ -315,6 +330,22 @@ class Healthy(unittest.TestCase):
         self.assertEqual(rc, 0, outp)
         self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-7'}, outp)
 
+    def test_node_route_harvest_on_passes_everything(self):
+        # E2E_HELM_ARGS='--set ebpf.routes.disabledHarvesters={}': the Express
+        # routes are harvested, and TR-11 holds the spans to them
+        rc, status, outp = run(Capture(host_profiler=True, node_harvest=True))
+        self.assertEqual(rc, 0, outp)
+        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-7'}, outp)
+        self.assertIn('"harvestedPct": 100.0', outp)
+
+    def test_node_route_harvest_off_names_the_spans_from_their_paths(self):
+        # the chart's default: what CI runs
+        rc, status, outp = run(Capture())
+        self.assertEqual(rc, 0, outp)
+        self.assertEqual(status['TR-11'], 'PASS', outp)
+        self.assertIn('"harvestedTemplates": 0, "top4Pct": 100.0', outp)
+        self.assertIn('"GET /api/items/*": 100', outp)
+
     def test_unlinked_client_calls_reported_while_the_switch_is_off(self):
         # the chart's default: what the switch would drop is measured, the
         # app's background call among it, and nothing else fails
@@ -462,7 +493,7 @@ class EachFaultFailsItsCheck(unittest.TestCase):
         # a render (or a parser) that loses the globs must not pass OBI-8 by
         # having nothing to match
         c = Capture()
-        c.render = 'discovery:\n  attributes:\n'
+        c.render = 'discovery:\n' + NODE_HARVEST_OFF_RENDER + '  attributes:\n'
         self.assertOnlyFails(c, ['OBI-8'])
 
     def test_excluded_namespace_instrumented(self):
@@ -632,8 +663,9 @@ class EachFaultFailsItsCheck(unittest.TestCase):
         c.spans = [(r, s) for r, s in c.spans if s['name'] != 'GET /ping']
         self.assertOnlyFails(c, ['TR-4', 'TR-10'])
 
+    # TR-11 with Node.js harvesting on (E2E_HELM_ARGS='--set ebpf.routes.disabledHarvesters={}')
     def test_routes_not_harvested(self):
-        c = Capture()
+        c = Capture(node_harvest=True)
         for _, s in c.spans:
             if s['name'] == 'GET /api/items/:id':
                 s['name'] = 'GET /api/items/*'
@@ -641,7 +673,7 @@ class EachFaultFailsItsCheck(unittest.TestCase):
 
     def test_most_server_spans_not_named_by_a_harvested_route(self):
         # every route still seen once, but most requests named heuristically
-        c = Capture()
+        c = Capture(node_harvest=True)
         seen = set()
         for _, s in c.spans:
             if s['kind'] == 2 and s['name'].startswith(('GET /', 'POST /')) and s['name'] != 'GET /ping':
@@ -653,7 +685,7 @@ class EachFaultFailsItsCheck(unittest.TestCase):
     def test_rare_route_not_harvested(self):
         # >=95% of the requests are named by their routes, but the rarest
         # route never is
-        c = Capture()
+        c = Capture(node_harvest=True)
         rare = [s['traceId'] for _, s in c.spans if s['name'] == 'GET /status/ready']
         gone = set(rare[4:])
         c.spans = [(r, s) for r, s in c.spans if s['traceId'] not in gone]
@@ -662,6 +694,50 @@ class EachFaultFailsItsCheck(unittest.TestCase):
                 s['name'] = 'GET /status/*'
         c.loadgen['total'] -= len(gone)
         c.loadgen['stats']['/status/ready'] = {'n': 4, 'codes': {'200': 4}}
+        self.assertOnlyFails(c, ['TR-11'])
+
+    def test_other_languages_turned_off_still_harvest_nodejs(self):
+        # the list is read, not just found: Python off leaves Node.js on, so the
+        # spans named from their paths fail the harvest check
+        c = Capture()
+        c.render = c.render.replace(NODE_HARVEST_OFF_RENDER, '  disabled_route_harvesters:\n    - "python"\n')
+        self.assertOnlyFails(c, ['TR-11'])
+
+    def test_harvester_list_named_only_in_a_comment_is_not_the_setting(self):
+        c = Capture()
+        c.render = c.render.replace(NODE_HARVEST_OFF_RENDER, '  # disabled_route_harvesters:\n  #   - "nodejs"\n')
+        self.assertOnlyFails(c, ['TR-11'])
+
+    # TR-11 with Node.js harvesting off: the chart's default
+    def test_harvester_list_as_a_flow_sequence(self):
+        c = Capture()
+        c.render = c.render.replace(NODE_HARVEST_OFF_RENDER, '  disabled_route_harvesters: ["python", "nodejs"]\n')
+        rc, status, outp = run(c)
+        self.assertEqual(rc, 0, outp)
+        self.assertIn('"harvestedTemplates": 0', outp)
+
+    def test_harvested_template_while_harvesting_is_off(self):
+        # the setting never reached OBI: it harvested the Express route anyway
+        c = Capture()
+        for _, s in c.spans:
+            if s['kind'] == 2 and s['name'] == 'GET /api/items/*':
+                s['name'] = 'GET /api/items/:id'
+        self.assertOnlyFails(c, ['TR-11'])
+
+    def test_one_name_per_item_id(self):
+        # the path's id kept in the name: a name per request of that route
+        c = Capture()
+        for i, (_, s) in enumerate(c.spans):
+            if s['kind'] == 2 and s['name'] == 'GET /api/items/*':
+                s['name'] = 'GET /api/items/%d' % i
+        self.assertOnlyFails(c, ['TR-11'])
+
+    def test_every_route_under_one_name(self):
+        # the path dropped altogether: 2 names for 4 routes
+        c = Capture()
+        for _, s in c.spans:
+            if s['kind'] == 2 and s['name'] in [r[3] for r in ROUTES]:
+                s['name'] = s['name'].split(' ', 1)[0] + ' /**'
         self.assertOnlyFails(c, ['TR-11'])
 
     def test_span_from_excluded_workload(self):

@@ -1,3 +1,4 @@
+import { splitCapitalRunsBeforeWords } from "../CapitalRuns";
 import DatabaseBaseModel, {
   DatabaseBaseModelType,
 } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -198,9 +199,7 @@ export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
  * "APIKey" -> api_key.
  */
 export function toTerraformSnakeCase(value: string): string {
-  return value
-    .replace(/['`]/g, "")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+  return splitCapitalRunsBeforeWords(value.replace(/['`]/g, ""), "_")
     .replace(/([a-z\d])([A-Z])/g, "$1_$2")
     .toLowerCase()
     .replace(/^_/, "")

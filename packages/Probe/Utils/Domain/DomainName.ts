@@ -1,4 +1,5 @@
 import { domainToASCII } from "node:url";
+import { withoutTrailingDots } from "Common/Utils/TrailingRuns";
 
 const LABEL_PATTERN: RegExp = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 const ALL_DIGITS_PATTERN: RegExp = /^[0-9]+$/;
@@ -31,8 +32,11 @@ export default class DomainNameUtil {
     // Strip a port.
     normalized = normalized.split(":")[0] || "";
 
-    // Strip the root label's trailing dot.
-    normalized = normalized.replace(/\.+$/, "");
+    /*
+     * Strip the root label's trailing dot. A monitor's domain name is
+     * whatever a project typed, so the run is read once from the end.
+     */
+    normalized = withoutTrailingDots(normalized);
 
     /*
      * Registries, the IANA bootstrap registry and WHOIS servers all key on

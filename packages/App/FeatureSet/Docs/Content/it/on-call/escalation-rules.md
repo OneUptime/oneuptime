@@ -120,7 +120,7 @@ Un messaggio più lungo, con un titolo lungo o una descrizione lunga inserita da
 
 ### Quando un avviso non viene inviato
 
-Un avviso non inviato indica il motivo nei **Registri di reperibilità** della persona (Impostazioni utente): la sua riga mostra **Errore** e il suo messaggio di stato ne dà la ragione. Non resta più su **Sending**. Il messaggio dice una di queste cose:
+Un avviso non inviato indica il motivo nei **Registri di reperibilità** della persona (Impostazioni utente): la sua riga mostra **Errore** e il suo messaggio di stato ne dà la ragione. Non resta più su **Invio in corso**. Il messaggio dice una di queste cose:
 
 - il saldo del progetto non ha potuto pagarlo, e chi può aggiungere saldo;
 - il canale è disattivato nel progetto, e chi può attivarlo.

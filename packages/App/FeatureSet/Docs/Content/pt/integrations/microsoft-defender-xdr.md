@@ -56,7 +56,7 @@ Abra **Produtos → Security Events → Connections** (`/dashboard/{projectId}/s
 
 ### Testar antes de salvar
 
-Clique em **Test these settings** em **Test before saving**. O teste entra e lê alertas com os valores do formulário, e não salva nada, então um segredo errado ou um consentimento que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
+Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e lê alertas com os valores do formulário, e não salva nada, então um segredo errado ou um consentimento que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
 :::
 
 | Configuração | Onde encontrar |
@@ -116,7 +116,7 @@ A [List alerts_v2](https://learn.microsoft.com/en-us/graph/api/security-list-ale
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Os alertas já importados da janela mais longa são pulados como duplicatas.
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, o cursor vai para o fim dela, e a janela seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais de 2.000 alertas, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Partial**, e **Last Error** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais de 2.000 alertas, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Partial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
 
 Uma execução **Partial** por outro motivo, como um alerta que não pôde ser lido como evento de segurança, é tentada de novo do mesmo jeito, a partir do mesmo ponto de partida. Mudar o **Poll Interval (Minutes)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -146,7 +146,7 @@ Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca import
 
 ## Solução de problemas
 
-O **Last Error** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copy Error** na caixa de diálogo para copiá-lo. Leia o prefixo primeiro.
+O **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Leia o prefixo primeiro.
 
 :::details Last Error começa com `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: o Microsoft Entra ID se recusou a emitir um token, então o Graph nunca foi contatado. A mensagem termina com uma dica, conforme o código `error` do Entra:
@@ -178,7 +178,7 @@ Compare o `createdDateTime` do alerta no portal do Defender com a janela da exec
 
 - Um alerta criado antes de a conexão existir é mais antigo do que o primeiro olhar de 24 horas para trás. Importe-o com **Import this time range**.
 - Uma execução **Partial** foi interrompida pelo limite de 2.000 alertas. A consulta seguinte lê uma janela mais curta a partir do mesmo início, então o alerta é importado assim que uma janela que o contém é lida por inteiro.
-- Se **Last Error** nomear um minuto que a consulta pulou, importe esse minuto com **Import this time range**.
+- Se **Último erro** nomear um minuto que a consulta pulou, importe esse minuto com **Import this time range**.
 :::
 
 :::details O mesmo alerta aparece duas vezes

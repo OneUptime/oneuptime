@@ -27,22 +27,23 @@ flowchart TB
 
 Åpne **Produkter → Security Events**, under **Observerbarhet**. Menyen:
 
-| Side | Seksjon | Hva den er til |
+| Side | Menypunkt | Hva den er til |
 | --- | --- | --- |
-| **Oversikt** | Oversikt | Det som trenger noen nå, og hvor raskt saker blir håndtert |
-| **Security Cases** | Oversikt | Køen over det som er oppdaget, gruppert etter hva det gjelder |
-| **Hendelser** | Investigate | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
-| **Korreler** | Investigate | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
-| **Entiteter** | Investigate | Brukerne, vertene og adressene som funnene dine nevner oftest |
-| **Detection Rules** | Detect | Sigma-regler som kjører etter en tidsplan og åpner saker |
-| **Rule Library** | Detect | Ferdige deteksjonsregler du kan legge til |
-| **ATT&CK Coverage** | Detect | MITRE ATT&CK-teknikkene som reglene dine dekker |
-| **Threat Intel** | Detect | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
-| **Monitorer** | Detect | Prosjektets monitorer for sikkerhetshendelser |
-| **Playbooks** | Respond | Steg som kjører på saker, av seg selv eller manuelt |
-| **Playbook Runs** | Respond | Hva hver playbook gjorde, og stegene som venter på godkjenning |
-| **Connections** | Sources | Sikkerhetsprodukter som OneUptime henter nye poster fra |
-| **Oppsettveiledning** | Sources | Kodesnutter for å sende hendelser, fylt ut med ingestion-nøkkelen din |
+| **Oversikt** | Oversikt | Hvordan sikkerhet er satt opp, hva som trenger noen nå, og hvor raskt saker blir behandlet |
+| **Security Cases** | Security Cases | Køen over det som er oppdaget, gruppert etter hva det gjelder |
+| **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
+| **Entiteter** | Hendelser | Brukerne, vertene og adressene som funnene dine nevner oftest |
+| **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
+| **Detection Rules** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
+| **Rule Library** | Detections | Ferdige deteksjonsregler å legge til, med de anbefalte merket |
+| **Threat Intel** | Detections | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
+| **ATT&CK Coverage** | Detections | MITRE ATT&CK-teknikkene som reglene dine dekker |
+| **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
+| **Playbook Runs** | Playbooks | Hva hver playbook gjorde, og stegene som venter på godkjenning |
+| **Connections** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
+| **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med ingestion-nøkkelen din |
+
+Sidene bak ett menypunkt åpnes som faner øverst på siden. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
 
 ## Før du begynner
 
@@ -153,6 +154,10 @@ For å sende sikkerhetslogger du allerede samler inn, for eksempel auditd, syslo
 
 Fanen **Oppsettveiledning** har disse kodesnuttene med din egen vert og nøkkel fylt ut.
 
+### Finn sikkerhetshendelser i loggene dine
+
+Kortet **Loggene dine**, øverst på **Connections**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH-pålogging, sudo-kommando, Kubernetes-revisjonsoppføring, AWS CloudTrail-endring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
+
 ### Koble til et sikkerhetsprodukt
 
 **Connections** henter data fra et sikkerhetsprodukt for deg og importerer de nye postene som sikkerhetshendelser. En tilkobling inneholder produktets innstillinger og en kryptert legitimasjon; en worker henter fra den med intervallet du angir, og hopper over poster den allerede har importert.
@@ -233,7 +238,7 @@ flowchart TB
 ### Opprett en regel
 
 :::steps
-1. Åpne **Produkter → Security Events → Detection Rules**, og klikk på **Opprett Detection Rule**.
+1. Åpne **Produkter → Security Events → Detections**, og klikk på **Opprett Detection Rule**.
 2. Lim inn regelens YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkes når du lagrer, så en feil vises i skjemaet.
 3. **Navn** fylles inn fra regelens `title`: skriv over det for å kalle regelen noe annet. En ny regel kjører; **Aktivert** står i redigeringsskjemaet.
 4. La **Open a Case on Match** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.
@@ -292,11 +297,11 @@ Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier te
 
 ### Når en regel kjører
 
-OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått siden forrige kjøring. Hver kjøring leser hendelsene der hendelsestidspunktet ligger mellom forrige kjøring og nå, og går deretter videre:
+OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått siden forrige kjøring. Hver kjøring leser hendelsene der hendelsestidspunktet ligger mellom forrige kjøring og for to minutter siden, og går deretter videre. De to minuttene gir rom for hendelser som fortsatt er på vei, for eksempel en logglinje som leses et minutt etter at den ble skrevet:
 
 - Vinduene ligger etter hverandre og glir ikke. Med et intervall på 10 minutter kan feil kl. 09:58 og 10:01 havne i ulike kjøringer og telles hver for seg, så legg inn margin når du velger en terskel.
 - Etter et opphold, for eksempel et worker-avbrudd eller en regel som er slått på igjen, dekker neste kjøring hele oppholdet, opptil de siste 24 timene.
-- En hendelse som kommer sent, med et tidspunkt fra før regelens forrige kjøring, lagres og er søkbar, men den regelen leser den aldri.
+- En hendelse som kommer mer enn to minutter for sent, etter at en kjøring har dekket tidspunktet, lagres og er søkbar, men den regelen leser den aldri.
 - Høyst 100 grupper slår til per kjøring: de med høyest telling.
 
 ### Alvorlighetsgrad
@@ -329,7 +334,7 @@ Funn er vanlige hendelser: søk etter dem under **Hendelser** og pivoter på dem
 
 ## Monitorer for sikkerhetshendelser
 
-En monitor for sikkerhetshendelser teller hendelsene som treffer filtrene, over et glidende vindu, og kjører de vanlige monitorkriteriene på tellingen: den endrer monitorens status, åpner varsler eller hendelser (incidents), og varsler vakthavende. Opprett en under **Overvåkere → Opprett monitor**, med **Security Events** som type; **Security Events → Monitorer** viser dem alle.
+En monitor for sikkerhetshendelser teller hendelsene som treffer filtrene, over et glidende vindu, og kjører de vanlige monitorkriteriene på tellingen: den endrer monitorens status, åpner varsler eller hendelser (incidents), og varsler vakthavende. Opprett en under **Overvåkere → Opprett monitor**, med **Security Events** som type; den vises der sammen med de andre monitorene dine.
 
 Skjemaet viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Hendelsesklasse**. **Filtrer etter telemetritjeneste** og **Filtrer etter attributter** venter under **Flere felt**, der overskriften viser hvilke en monitor bruker. Kriteriene sjekker **Security Event Count**.
 
@@ -368,7 +373,7 @@ Sjekk nøkkelen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Sj
 :::
 
 :::details En regel treffer aldri
-Sjekk at den er **Aktivert**, og les **Last Evaluated** og **Last Error** i raden. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
+Sjekk at den er **Aktivert**, og les **Last Evaluated** og **Siste feil** i raden. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
 :::
 
 :::details En regel traff, men ingen varsler ble åpnet

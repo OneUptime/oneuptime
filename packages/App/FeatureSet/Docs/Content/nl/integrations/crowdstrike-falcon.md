@@ -53,7 +53,7 @@ Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/
 
 ### Testen voordat je opslaat
 
-Klik op **Test these settings** onder **Test before saving**. De test meldt zich aan en leest waarschuwingen met de waarden uit het formulier, en slaat niets op, dus de verkeerde cloud of een ontbrekend bereik komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
+Klik op **Test these settings** onder **Testen voor het opslaan**. De test meldt zich aan en leest waarschuwingen met de waarden uit het formulier, en slaat niets op, dus de verkeerde cloud of een ontbrekend bereik komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
 :::
 
 | Instelling | Wat je invult |
@@ -109,7 +109,7 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, bijvoorbeeld om
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Partial**, en **Last Error** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere waarschuwingen blijven binnenkomen. De run blijft **Partial**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
 
 Een run die volledig mislukt, met een fout van Falcon, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Poll Interval (Minutes)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll start, niet waar zijn venster begint.
 
@@ -139,7 +139,7 @@ Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert 
 
 ## Problemen oplossen
 
-De **Last Error** van de verbinding, en elke mislukte controle, bewaren de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Copy Error** in het dialoogvenster om hem te kopiëren. Lees eerst het voorvoegsel.
+De **Laatste fout** van de verbinding, en elke mislukte controle, bewaren de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Fout kopiëren** in het dialoogvenster om hem te kopiëren. Lees eerst het voorvoegsel.
 
 :::details Last Error begint met `CrowdStrike Falcon token request`
 - `CrowdStrike Falcon token request failed (HTTP 401)` of `(HTTP 403)`: Falcon weigerde de ID en het geheim van de API-client, voordat de Alerts API werd benaderd. Controleer of **Falcon cloud** de cloud van je CID is, omdat een client uit een andere cloud hier wordt geweigerd, of **Client-ID** die van de client is, en of **Client secret** het geheim is dat ermee is uitgegeven. Is het geheim kwijt, stel het dan opnieuw in in de Falcon-console en sla het op met **Update credentials**.

@@ -199,7 +199,7 @@ Ogni punto che mostra un dispositivo — l'elenco Devices, la pagina Devices di 
 | **Nessun monitor** | Il dispositivo usa l'[override con monitor associato](#loverride-con-monitor-associato) e nulla è associato. | Associa un monitor, o riportalo al polling tramite sonda. |
 | **SNMP failing** | Attivo al ping, ma l'ultimo walk SNMP è fallito. | Controlla le credenziali, l'agente SNMP o un'ACL. |
 
-L'elenco **Devices** ha un filtro **SNMP** con tre valori: **OK** (l'ultimo walk è riuscito), **Failing** (l'ultimo walk è fallito) e **Not configured** (solo ping, senza credenziali o mai interrogato). «Quali dispositivi hanno credenziali che hanno smesso di funzionare» è a un clic di distanza. La colonna **Interfaces (Up / Down)** dell'elenco riporta **Senza SNMP** invece di `0 / 0` per un dispositivo che riceve il ping e non viene mai sottoposto a walk: zero porte funzionanti sarebbe un'affermazione diversa, e sbagliata.
+L'elenco **Devices** ha un filtro **SNMP** con tre valori: **OK** (l'ultimo walk è riuscito), **In errore** (l'ultimo walk è fallito) e **Not configured** (solo ping, senza credenziali o mai interrogato). «Quali dispositivi hanno credenziali che hanno smesso di funzionare» è a un clic di distanza. La colonna **Interfaces (Up / Down)** dell'elenco riporta **Senza SNMP** invece di `0 / 0` per un dispositivo che riceve il ping e non viene mai sottoposto a walk: zero porte funzionanti sarebbe un'affermazione diversa, e sbagliata.
 
 ## Credenziali SNMP e profili di credenziali
 

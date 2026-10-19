@@ -6,6 +6,7 @@ import {
 } from "../CustomField/CustomFieldVariableKey";
 import BadDataException from "../Exception/BadDataException";
 import StatusPageSubscriberNotificationEventType from "./StatusPageSubscriberNotificationEventType";
+import { refusedValue } from "../../Utils/RefusedValue";
 import SubscriberNotificationTemplateCompiler from "./SubscriberNotificationTemplateCompiler";
 
 export interface SubscriberNotificationTemplateVariable {
@@ -452,7 +453,9 @@ export default class SubscriberNotificationTemplateVariables {
         ];
 
       default:
-        throw new BadDataException(`Unknown event type: ${eventType}`);
+        throw new BadDataException(
+          `Unknown event type: ${refusedValue(eventType)}`,
+        );
     }
   }
 
