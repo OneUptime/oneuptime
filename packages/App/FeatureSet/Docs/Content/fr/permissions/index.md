@@ -140,7 +140,7 @@ La liste complète est dans la [Référence des autorisations](/docs/permissions
 Un rôle personnalisé est un ensemble d'autorisations que vous nommez une fois et donnez à des équipes : par exemple un « Intervenant incidents » fait de `IncidentMember`, `AlertMember` et `OnCallViewer`, ou un « Chef d'équipe ». Chaque équipe à qui vous le donnez reçoit les mêmes autorisations, et vous les modifiez pour toutes ces équipes à un seul endroit. Sur OneUptime Cloud, les rôles personnalisés demandent l'offre Scale, comme la modification des autorisations d'une équipe.
 
 :::steps
-1. Ouvrez **Équipes** dans le menu **Produits**, sous **Paramètres**, puis **Rôles**, et cliquez sur **Créer : Rôle personnalisé**.
+1. Ouvrez **Équipes** dans le menu **Produits**, sous **Paramètres**. Dépliez **Paramètres** dans le menu latéral, choisissez **Rôles** et cliquez sur **Créer : Rôle personnalisé**.
 2. Saisissez son **Nom** et choisissez sous **Autorisations** les rôles intégrés qu'il regroupe, pour chaque ressource du projet. La description se trouve sous **Plus de champs**.
 3. Créez le rôle. Il s'ouvre sur sa page, où **Ajouter un rôle** ajoute un autre rôle intégré et **Ajouter une permission** (dans le menu **⋯** de la carte) une autorisation unique, chacune avec une portée et des étiquettes, comme sur une équipe.
 4. Cliquez sur **Donner à une équipe** sous **Équipes ayant ce rôle**. La page **Autorisations** d'une équipe propose aussi **Ajouter un rôle personnalisé**, et **Créer une équipe** propose sous **Accès** les rôles personnalisés que vous pourriez donner.
