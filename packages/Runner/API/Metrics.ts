@@ -50,6 +50,7 @@ router.get(
           url: pendingTaskCountUrl,
           data: requestBody,
           headers: {},
+          options: RunnerAPIRequest.getDefaultRequestOptions(),
         });
 
       if (result instanceof HTTPErrorResponse) {

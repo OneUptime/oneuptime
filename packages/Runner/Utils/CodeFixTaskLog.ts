@@ -35,6 +35,7 @@ export default class AIAgentTaskLog {
           severity: options.severity,
           message: options.message,
         },
+        options: RunnerAPIRequest.getDefaultRequestOptions(),
       });
 
       if (!result.isSuccess()) {

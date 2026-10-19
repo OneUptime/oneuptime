@@ -159,6 +159,9 @@ export class WhatsAppService extends BaseService {
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
+      options: {
+        sameServerRedirectsOnly: true,
+      },
     });
   }
 }

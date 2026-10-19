@@ -455,6 +455,9 @@ export class Service extends ProjectReferencesService<Model> {
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
+      options: {
+        sameServerRedirectsOnly: true,
+      },
     });
   }
 }

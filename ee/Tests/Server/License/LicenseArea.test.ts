@@ -435,6 +435,15 @@ describe("License area - init(): refreshing an unverified license at boot", () =
     expect(API.post).toHaveBeenCalledTimes(1);
     expect(store.row!["enterpriseLicenseToken"]).toBe(signed);
     expect(licensing.getCachedSnapshot()?.verification).toBe("verified");
+
+    // The licence key it carries goes to the licence server alone.
+    expect(
+      (
+        (API.post as unknown as jest.Mock).mock.calls[0]![0] as {
+          options?: unknown;
+        }
+      ).options,
+    ).toEqual({ sameServerRedirectsOnly: true });
   });
 
   /*
