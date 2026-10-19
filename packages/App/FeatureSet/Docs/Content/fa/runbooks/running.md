@@ -132,8 +132,12 @@ stateDiagram-v2
 کلید **اجرای این رانبوک** رانبوک در صفحه **تنظیمات** آن خاموش است، یا هیچ گام ذخیره‌شده‌ای ندارد. کلید را روشن کنید، یا گام اضافه کنید، و روی **Save Steps** کلیک کنید. **نمای کلی** آن می‌گوید کدام است، با **روشن کردن رانبوک** یا **افزودن گام‌ها**.
 :::
 
-:::details گامی شکست خورد چون Runner یا اعتبارنامه ندارد
-پیام برای نمونه این است: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» گام بدون **Runner** ذخیره شده، یا یک گام SSH یا Kubernetes بدون **Credential**. گام JavaScript فقط وقتی به Runner خودش نیاز دارد که هیچ [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری) نتواند اجرایش کند. صفحه **گام‌ها** در رانبوک را باز کنید، آنچه گام کم دارد را انتخاب کنید، روی **Save Steps** کلیک کنید و رانبوک را دوباره اجرا کنید.
+:::details گامی شکست خورد چون Runner ندارد
+پیام برای نمونه این است: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» گام بدون **Runner** ذخیره شده. گام JavaScript فقط وقتی به Runner خودش نیاز دارد که هیچ [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری) نتواند اجرایش کند. صفحه **گام‌ها** در رانبوک را باز کنید، Runner گام را انتخاب کنید، روی **Save Steps** کلیک کنید و رانبوک را دوباره اجرا کنید.
+:::
+
+:::details گامی شکست خورد چون نام متغیرهایی را می‌برد که نمی‌تواند از آن‌ها استفاده کند
+پیام با "This step names variables it cannot use, so it was not run:" شروع می‌شود و برای هر متغیر می‌گوید چه چیزی نادرست است و کجا باید درستش کرد: متغیری با آن نام نیست، راز مقداری ندارد، یا Runner گام اجازهٔ استفاده از آن را ندارد. متغیر را بسازید یا نامش را در گام درست کنید، یا بگذارید Runner از راز استفاده کند، سپس رانبوک را دوباره اجرا کنید. [متغیرهای رانبوک](/docs/runbooks/variables) را ببینید.
 :::
 
 :::details گامی شکست خورد چون هیچ عامل رانبوکی آن را برنداشت

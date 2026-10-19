@@ -4,7 +4,7 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 
 :::cards
 - [Runbook 만들기](#runbook-만들기): 빈 Runbook부터 저장된 단계까지.
-- [단계 유형](#단계-유형): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes, AI.
+- [단계 유형](#단계-유형): Manual, JavaScript, HTTP request, Bash, SSH, kubectl, AI.
 - [실패 처리와 승인](#실패-처리와-승인): 단계가 실패하거나 성공하면 어떻게 되는지.
 - [따라 해 보는 예](#따라-해-보는-예): 5단계 데이터베이스 페일오버.
 :::
@@ -12,8 +12,8 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 ## 시작하기 전에
 
 - **Runbook을 작성할 수 있는 역할.** Project Owner, Project Admin, Runbook Admin은 Runbook을 만들고 단계를 저장할 수 있습니다. 세분화된 권한을 쓰는 경우 **Create Runbook**과 **Edit Runbook**이 필요합니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
-- **Bash, SSH, Kubernetes 단계를 위한 Runner.** 이 단계들은 OneUptime Worker가 아니라 자체 인프라의 [Runner](/docs/runbooks/agents)에서 실행됩니다. 먼저 하나를 설치하세요. JavaScript 단계는 내 Runner 중 하나를 고르지 않으면 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)에서 실행됩니다.
-- **SSH와 Kubernetes 단계를 위한 자격 증명과 그것을 읽을 권한.** [Runbook 자격 증명](/docs/runbooks/credentials)을 참조하세요. 단계는 Runbook 자격 증명을 읽을 수 있는 경우에만 자격 증명을 지정할 수 있습니다. Project Owner, Project Admin 또는 **Read Runbook Credential**이 필요하며, Runbook Admin에는 포함되지 않습니다.
+- **Bash, SSH, kubectl 단계를 위한 Runner.** 이 단계들은 OneUptime Worker가 아니라 자체 인프라의 [Runner](/docs/runbooks/agents)에서 실행됩니다. 먼저 하나를 설치하세요. JavaScript 단계는 내 Runner 중 하나를 고르지 않으면 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)에서 실행됩니다.
+- **SSH와 kubectl 단계를 위한 시크릿 변수.** 단계가 로그인에 쓰는 키, 비밀번호 또는 kubeconfig는 시크릿 [Runbook 변수](/docs/runbooks/variables)입니다. 변수는 Project Owner와 Project Admin이 만들고, Runbook Admin은 자신이 작성하는 단계에서 변수를 고릅니다. kubectl 단계는 대신 Runner 자체 액세스를 사용할 수 있습니다.
 - **AI 단계를 위한 LLM 공급자.** [LLM 공급자](/docs/ai/llm-provider)를 참조하세요.
 
 ## Runbook 만들기
@@ -29,7 +29,7 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 
 ### 단계 추가
 
-**Start your runbook** 아래에서 첫 단계의 유형을 고릅니다. 마지막 단계 아래에서는 **Add another step**이 같은 일곱 가지 유형을 보여 줍니다. 각 단계는 **제목**, **설명**(Markdown, 대응자에게 표시됨), 유형별 설정과 함께 열립니다. Runbook에 단계가 하나 있으면 카드 위쪽의 **단계 추가**로 Manual 단계를 추가할 수 있습니다.
+**Start your runbook** 아래에서 첫 단계의 유형을 고릅니다. 마지막 단계 아래에서는 **Add another step**이 같은 일곱 가지 유형을 보여 줍니다. 각 단계는 **제목**과 유형에 필요한 항목과 함께 열리고, **설명**과 제한 시간 같은 나머지는 **추가 필드** 아래에 접혀 있습니다. Runbook에 단계가 하나 있으면 카드 위쪽의 **단계 추가**로 Manual 단계를 추가할 수 있습니다.
 
 ### 단계 순서 정하기
 
@@ -42,15 +42,15 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 
 ## 단계의 구성
 
-모든 단계에는 다음 필드가 있습니다.
+모든 단계에는 다음 필드가 있습니다. 자동 단계는 **제목**과 유형별 설정을 보여 주고, 나머지는 설정된 항목을 알려 주는 **추가 필드** 아래에 접어 둡니다.
 
 | 필드 | 용도 |
 | --- | --- |
 | **제목** | 단계 목록과 각 실행에 표시되는 짧은 레이블입니다. |
-| **설명** | 대응자를 위한 선택적 맥락이며 Markdown으로 씁니다. Manual 단계에서는 담당자가 읽는 지시 사항입니다. |
+| **설명** | 대응자를 위한 선택적 맥락이며 Markdown으로 쓰고, **추가 필드** 아래에 있습니다. Manual 단계에서는 담당자가 읽는 지시 사항이며 제목 아래에 표시됩니다. |
 | **실패 시 계속** | 자동 단계에만 해당합니다. 켜면 단계가 실패해도 실행이 멈추지 않고 다음 단계가 실행됩니다. |
 | **승인 필요** | 자동 단계에만 해당합니다. 켜면 Runbook이 이 단계 다음에 일시 중지하고, 다음 단계를 실행하기 전에 사람이 승인하기를 기다립니다. 스위치 이름은 **다음 단계를 실행하기 전에 승인 필요**입니다. |
-| 유형별 설정 | 스크립트, URL, Runner, 자격 증명 또는 프롬프트입니다. [단계 유형](#단계-유형)을 참조하세요. |
+| 유형별 설정 | 스크립트, URL, Runner, 시크릿 변수 또는 프롬프트입니다. [단계 유형](#단계-유형)을 참조하세요. |
 
 ## 단계 유형
 
@@ -60,9 +60,11 @@ Runbook은 **단계** 페이지에서 순서 있는 단계 목록으로 작성�
 | [JavaScript](#javascript) | Runner | Runner |
 | [HTTP request](#http-request) | OneUptime Worker | 없음 |
 | [Bash](#bash) | Runner | Runner |
-| [SSH](#ssh) | Runner | Runner와 SSH 자격 증명 |
-| [Kubernetes](#kubernetes) | Runner | Runner와 Kubernetes 자격 증명 |
+| [SSH](#ssh) | Runner | Runner와 로그인에 쓸 시크릿 변수 |
+| [kubectl](#kubectl) | Runner | Runner와, kubeconfig 변수 또는 Runner 자체 액세스 |
 | [AI](#ai) | OneUptime Worker | LLM 공급자 |
+
+아래의 모든 단계에서 제한 시간, **설명**, **실패 시 계속**, **승인 필요**는 단계의 **추가 필드** 아래에 있으며, AI 단계의 공급자와 맥락 스위치도 마찬가지입니다.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 실행이 이 단계에 도달했을 때 선택한 Runner가 오프라인이면, 단계는 **claim timeout**(기본 2분)까지 기다린 뒤 시간 초과로 실패합니다. Bash 단계에 의존하기 전에 **런북 → Runbook 에이전트**에서 에이전트를 추가하세요.
 
 > [!TIP]
-> 비밀번호와 토큰을 스크립트에 넣지 마세요. Runbook 시크릿으로 저장하고 Bash나 JavaScript 스크립트에 `{{runbookSecrets.NAME}}`을 쓰면, Runner가 값이 채워진 스크립트를 받습니다. [스크립트용 시크릿](/docs/runbooks/credentials#스크립트용-시크릿)을 참조하세요.
+> 비밀번호와 토큰을 스크립트에 넣지 마세요. 시크릿 [Runbook 변수](/docs/runbooks/variables)로 저장하고, 값이 들어갈 자리에 `{{global.variables.NAME}}`를 쓰세요. Runner는 값이 채워진 스크립트를 받고, 단계 출력에서는 그 자리에 `[REDACTED]`가 표시됩니다.
 
 ### SSH
 
-Runner가 SSH로 접근할 수 있는 호스트에서 명령 하나를 실행합니다. Bash 단계의 `ssh host cmd`와 달리, 접근 수단은 Runner 디스크의 개인 키가 아니라 관리되는 [자격 증명](/docs/runbooks/credentials)입니다. 자격 증명은 저장 시 암호화되고, 특정 Runner에 할당되며, API로 다시 읽을 수 없습니다.
+SSH로 머신에 로그인해 그곳에서 bash 스크립트를 실행합니다. 연결은 Runner가 열기 때문에 머신은 Runner에서만 닿으면 되고, 단계가 로그인에 쓰는 키나 비밀번호는 시크릿 [Runbook 변수](/docs/runbooks/variables)이며 단계에 적히지 않습니다.
 
 | 필드 | 하는 일 |
 | --- | --- |
-| **Runner** | 연결을 여는 Runner입니다. 네트워크를 통해 호스트에 접근할 수 있어야 합니다. |
-| **Credential** | 호스트, 포트, 사용자, 키 또는 비밀번호를 가진 SSH 자격 증명입니다. 선택한 Runner에 할당되어 있어야 하며, 그렇지 않으면 잘못된 접근 권한으로 실행되는 대신 단계가 실패합니다. |
-| **Command** | 자격 증명의 사용자로 원격 호스트에서 실행됩니다. 출력은 최대 50 KB까지 기록되며, 0이 아닌 종료 코드는 단계를 실패시킵니다. |
-| **실행 제한 시간** | 연결, 인증, 명령 실행을 모두 포함하므로 멈춘 명령이 단계를 계속 붙잡아 둘 수 없습니다. 기본값은 30초입니다. |
+| **Runner** | 연결을 여는 Runner입니다. 네트워크를 통해 머신에 접근할 수 있어야 합니다. |
+| **SSH 대상** | `ssh` 뒤에 쓰는 것처럼 사용자와 머신을 씁니다: `deploy@10.0.4.21`. |
+| **로그인 방법** | 개인 키나 비밀번호를 담은 시크릿 변수입니다. 어느 쪽인지는 값으로 판단합니다. 시크릿 변수만 표시되며, 단계의 Runner가 고른 변수를 사용할 수 없으면 단계가 알려 줍니다. |
+| **Bash 스크립트** | 머신에서 로그인한 사용자로 `bash`로 실행됩니다. 출력은 50 KB까지 기록되며, 종료 코드가 0이 아니면 단계가 실패합니다. |
+| **포트** | **추가 필드** 아래에 있습니다. 비워 두면 22입니다. |
+| **키 암호 문구** | **추가 필드** 아래에 있습니다. 암호 문구가 있는 키의 암호 문구를 담은 시크릿 변수입니다. |
+| **실행 제한 시간** | 연결, 로그인, 스크립트 실행을 모두 포함하므로 멈춘 스크립트가 단계를 계속 열어 둘 수 없습니다. 기본값은 30초입니다. |
 | **가져가기 제한 시간** | Worker가 Runner가 작업을 가져가기를 기다리는 시간입니다. 기본값은 2분입니다. |
 
-### Kubernetes
+예를 들어 서비스를 다시 시작하고 다시 올라왔는지 보여 주려면 다음과 같이 합니다.
 
-클러스터의 워크로드를 다시 시작하거나 확장합니다. 작업은 의도적으로 닫힌 집합입니다. 임의의 객체를 바꿀 수 있는 단계는 클러스터 관리자 셸과 같으며, 이 단계 유형은 흔한 해결 조치를 자동 해결에 쓸 수 있을 만큼 안전하게 만들기 위해 존재합니다.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+클러스터에 kubectl 명령을 실행합니다. 스크립트는 `kubectl`이 포함된 Runner에서 bash로 실행되며 `KUBECONFIG`가 클러스터를 가리킵니다. 어떤 kubectl 명령도, 그 주변의 어떤 bash도 쓸 수 있습니다.
 
 | 필드 | 하는 일 |
 | --- | --- |
-| **Runner** | 클러스터의 API 서버를 호출하는 Runner입니다. API 서버에 접근할 수 있어야 합니다. |
-| **Credential** | Kubernetes 자격 증명입니다. API 서버의 URL, 서비스 계정 토큰, 클러스터의 CA를 가집니다. 그 서비스 계정은 Runbook에 필요한 것만 허용하는 역할에 바인딩하세요. |
-| **작업** | **Restart workload**는 파드 템플릿을 변경해 컨트롤러가 `kubectl rollout restart`처럼 파드를 다시 만들게 합니다. **Scale workload**는 레플리카 수를 설정합니다. |
-| **Workload kind** | **Deployment**, **StatefulSet** 또는 **DaemonSet**. |
-| **네임스페이스**와 **Workload name** | 작업 대상 워크로드입니다. |
-| **레플리카** | 확장할 때만 사용합니다. 0도 허용됩니다. 워크로드를 비우는 것도 정당한 해결 조치입니다. DaemonSet은 노드마다 파드 하나를 실행하므로 확장할 수 없습니다. 대신 다시 시작하세요. |
-| **실행 제한 시간** | Runner가 API 서버가 변경을 받아들이기를 기다리는 시간입니다. 기본값은 30초입니다. |
+| **Runner** | kubectl을 실행하는 Runner입니다. 클러스터의 API 서버에 접근할 수 있어야 합니다. |
+| **Kubeconfig** | 클러스터의 kubeconfig를 담은 시크릿 변수, 또는 **Runner 자체 액세스**입니다. 후자는 Runner 자체 kubeconfig를 쓰거나, 클러스터 안에서 실행될 때는 그 서비스 계정을 씁니다. Runner는 kubeconfig를 자신만 읽을 수 있는 파일에 쓰고, 스크립트가 끝나면 삭제합니다. |
+| **Script** | kubectl 명령입니다. 출력은 50 KB까지 기록되며, 종료 코드가 0이 아니면 단계가 실패합니다. |
+| **실행 제한 시간** | Runner가 `SIGKILL`로 멈추기 전까지 스크립트를 실행하도록 두는 시간입니다. 기본값은 30초입니다. |
 | **가져가기 제한 시간** | Worker가 Runner가 작업을 가져가기를 기다리는 시간입니다. 기본값은 2분입니다. |
 
-API 서버가 변경을 거부하면 서버 자체의 메시지가 단계에 표시되므로, 권한 오류를 보면 어떤 역할 바인딩을 넓혀야 하는지 알 수 있습니다.
+예를 들어 Deployment를 다시 시작하고 새 Pod가 준비될 때까지 기다리려면 다음과 같이 합니다.
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+각 스크립트 아래의 **Examples — click to insert**로 이와 같은 자주 쓰는 스크립트를 넣을 수 있습니다. kubeconfig의 사용자에게는 스크립트가 하는 일만 허용하세요. 스크립트가 작업하는 namespace의 Role에, 사용하는 verb만 줍니다. API 서버가 명령을 거부하면 kubectl 자체 메시지가 단계 출력에 남으므로, 권한 오류를 보고 어느 RoleBinding을 넓혀야 하는지 알 수 있습니다.
 
 ### AI
 
@@ -224,5 +240,5 @@ flowchart TB
 - [Runbook 실행](/docs/runbooks/running): 실행을 시작하고 단계를 완료, 승인 또는 건너뜁니다.
 - [Runbook 규칙](/docs/runbooks/rules): 일치하는 인시던트에서 이 Runbook을 자동으로 시작합니다.
 - [Runbook 에이전트](/docs/runbooks/agents): 스크립트 단계에 필요한 Runner를 설치합니다.
-- [Runbook 자격 증명](/docs/runbooks/credentials): SSH와 Kubernetes 단계에 관리되는 접근 권한을 줍니다.
+- [Runbook 변수](/docs/runbooks/variables): 호스트, 키, 비밀번호, kubeconfig를 단계 밖에 둡니다.
 :::

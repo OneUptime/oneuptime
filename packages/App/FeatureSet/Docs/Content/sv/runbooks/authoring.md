@@ -4,7 +4,7 @@ Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den 
 
 :::cards
 - [Skapa ett runbook](#skapa-ett-runbook): Från ett tomt runbook till sparade steg.
-- [Stegtyper](#stegtyper): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes och AI.
+- [Stegtyper](#stegtyper): Manual, JavaScript, HTTP request, Bash, SSH, kubectl och AI.
 - [Felhantering och godkännanden](#felhantering-och-godkännanden): Vad som händer när ett steg misslyckas eller lyckas.
 - [Ett genomgånget exempel](#ett-genomgånget-exempel): En databas-failover i fem steg.
 :::
@@ -12,8 +12,8 @@ Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den 
 ## Innan du börjar
 
 - **En roll som skriver runbooks.** Project Owner, Project Admin och Runbook Admin skapar runbooks och sparar deras steg. Med detaljerade behörigheter behöver du **Create Runbook** och **Edit Runbook**. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
-- **En Runner, för Bash-, SSH- och Kubernetes-steg.** De här stegen körs på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installera en först. Ett JavaScript-steg körs på en [global Runner](/docs/runbooks/agents#globala-runners) om du inte väljer en av dina egna.
-- **En autentiseringsuppgift, för SSH- och Kubernetes-steg, och behörighet att läsa den.** Se [Runbook-autentiseringsuppgifter](/docs/runbooks/credentials). Ett steg kan bara peka på en autentiseringsuppgift om du får läsa runbook-autentiseringsuppgifter: Project Owner, Project Admin eller **Read Runbook Credential**. Runbook Admin omfattar inte det.
+- **En Runner, för Bash-, SSH- och kubectl-steg.** De här stegen körs på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installera en först. Ett JavaScript-steg körs på en [global Runner](/docs/runbooks/agents#globala-runners) om du inte väljer en av dina egna.
+- **En hemlig variabel, för SSH- och kubectl-steg.** Den nyckel, det lösenord eller den kubeconfig som ett steg loggar in med är en hemlig [runbook-variabel](/docs/runbooks/variables). Project Owner och Project Admin skapar variabler, och Runbook Admin väljer dem i de steg den skriver. Ett kubectl-steg kan i stället använda Runnerns egen åtkomst.
 - **En LLM-leverantör, för AI-steg.** Se [LLM-leverantörer](/docs/ai/llm-provider).
 
 ## Skapa ett runbook
@@ -29,7 +29,7 @@ Klicka på **Skapa Runbook**, ange ett **Namn** och eventuellt en **Beskrivning*
 
 ### Lägg till steg
 
-Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel**, sin **Beskrivning** (Markdown, visas för den som hanterar incidenten) och inställningarna för sin typ. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
+Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel** och det som dess typ behöver; resten, till exempel dess **Beskrivning** och tidsgränser, är hopfällt under **Fler fält**. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
 
 ### Ordna stegen
 
@@ -42,15 +42,15 @@ Klicka på **Save Steps**. Tills du gör det visar redigeraren **Osparade ändri
 
 ## Hur ett steg är uppbyggt
 
-Varje steg har de här fälten:
+Varje steg har de här fälten. Ett automatiserat steg visar sin **Titel** och inställningarna för sin typ och fäller ihop resten under **Fler fält**, som visar vad av det som är satt:
 
 | Fält | Syfte |
 | --- | --- |
 | **Titel** | En kort etikett som visas i steglistan och vid varje körning. |
-| **Beskrivning** | Valfri kontext för den som hanterar incidenten, i Markdown. På ett Manual-steg är det den instruktion personen läser. |
+| **Beskrivning** | Valfri kontext för den som hanterar incidenten, i Markdown, under **Fler fält**. På ett Manual-steg är det den instruktion personen läser, visad under titeln. |
 | **Fortsätt vid fel** | Bara automatiserade steg. När den är påslagen stoppar ett steg som misslyckas inte körningen: nästa steg körs ändå. |
 | **Kräv godkännande** | Bara automatiserade steg. När den är påslagen pausar runbooket efter det här steget och väntar på att en person godkänner innan nästa steg körs. Brytaren heter **Kräv godkännande innan nästa steg körs**. |
-| Typspecifika inställningar | Skriptet, URL:en, Runnern, autentiseringsuppgiften eller prompten. Se [Stegtyper](#stegtyper). |
+| Typspecifika inställningar | Skriptet, URL:en, Runnern, en hemlig variabel eller prompten. Se [Stegtyper](#stegtyper). |
 
 ## Stegtyper
 
@@ -60,9 +60,11 @@ Varje steg har de här fälten:
 | [JavaScript](#javascript) | En Runner | En Runner |
 | [HTTP request](#http-request) | OneUptime Worker | Ingenting |
 | [Bash](#bash) | En Runner | En Runner |
-| [SSH](#ssh) | En Runner | En Runner och en SSH-autentiseringsuppgift |
-| [Kubernetes](#kubernetes) | En Runner | En Runner och en Kubernetes-autentiseringsuppgift |
+| [SSH](#ssh) | En Runner | En Runner och en hemlig variabel att logga in med |
+| [kubectl](#kubectl) | En Runner | En Runner och en kubeconfig-variabel eller Runnerns egen åtkomst |
 | [AI](#ai) | OneUptime Worker | En LLM-leverantör |
+
+I varje steg nedan ligger tidsgränserna, **Beskrivning**, **Fortsätt vid fel** och **Kräv godkännande** under stegets **Fler fält**, och det gör även ett AI-stegs leverantör och kontextbrytare.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 Om den valda Runnern är offline när körningen når det här steget väntar steget upp till **claim timeout** (2 minuter som standard) och misslyckas sedan på grund av tidsgräns. Lägg till en agent under **Runbooks → Runbook-agenter** innan du räknar med ett Bash-steg.
 
 > [!TIP]
-> Håll lösenord och tokens utanför skriptet. Spara dem som runbook-hemligheter och skriv `{{runbookSecrets.NAME}}` i ett Bash- eller JavaScript-skript: Runnern tar emot skriptet med värdet ifyllt. Se [Hemligheter för skript](/docs/runbooks/credentials#hemligheter-för-skript).
+> Håll lösenord och tokens utanför skriptet. Spara dem som hemliga [runbook-variabler](/docs/runbooks/variables) och skriv `{{global.variables.NAME}}` där värdet ska stå: Runnern får skriptet med värdet ifyllt, och stegets utdata visar `[REDACTED]` i dess ställe.
 
 ### SSH
 
-Kör ett kommando på en värd som Runnern kan nå via SSH. Till skillnad från `ssh host cmd` i ett Bash-steg är åtkomsten en hanterad [autentiseringsuppgift](/docs/runbooks/credentials) i stället för en privat nyckel på Runnerns disk: krypterad i vila, tilldelad vissa Runners och aldrig läsbar igen via API:et.
+Logga in på en maskin över SSH och kör ett bash-skript där. Runnern öppnar anslutningen, så maskinen behöver bara kunna nås från Runnern, och den nyckel eller det lösenord som steget loggar in med är en hemlig [runbook-variabel](/docs/runbooks/variables) som aldrig skrivs i steget.
 
 | Fält | Vad det gör |
 | --- | --- |
-| **Runner** | Den Runner som öppnar anslutningen. Den måste kunna nå värden över nätverket. |
-| **Credential** | En SSH-autentiseringsuppgift med värd, port, användare och nyckel eller lösenord. Den måste vara tilldelad den Runner du valde, annars misslyckas steget i stället för att köras med fel åtkomst. |
-| **Command** | Körs på fjärrvärden som autentiseringsuppgiftens användare. Output registreras upp till 50 KB, och en slutkod som inte är noll får steget att misslyckas. |
-| **Tidsgräns för körning** | Täcker anslutning, autentisering och körning av kommandot tillsammans, så att ett kommando som hänger sig inte kan hålla steget öppet. Standard 30 sekunder. |
+| **Runner** | Den Runner som öppnar anslutningen. Den måste kunna nå maskinen över nätverket. |
+| **SSH till** | Användaren och maskinen, som du skulle skriva dem efter `ssh`: `deploy@10.0.4.21`. |
+| **Logga in med** | Den hemliga variabel som innehåller den privata nyckeln eller lösenordet; värdet visar vilket det är. Bara hemliga variabler erbjuds, och steget säger till när dess Runner inte får använda den valda. |
+| **Bash-skript** | Körs med `bash` på maskinen som den användare steget loggar in som. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
+| **Port** | Under **Fler fält**. 22 när den lämnas tom. |
+| **Nyckelns lösenfras** | Under **Fler fält**. Den hemliga variabel som innehåller lösenfrasen för en nyckel som har en. |
+| **Tidsgräns för körning** | Täcker anslutning, inloggning och körning av skriptet tillsammans, så att ett skript som hänger sig inte kan hålla steget öppet. Standard 30 sekunder. |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
 
-### Kubernetes
+Till exempel för att starta om en tjänst och visa att den kom tillbaka:
 
-Starta om eller skala en arbetsbelastning i ett kluster. Åtgärderna är avsiktligt en sluten uppsättning: ett steg som kunde ändra godtyckliga objekt vore ett administratörsskal för klustret, och den här stegtypen finns för att göra de vanliga åtgärderna säkra nog för automatisk åtgärd.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Kör kubectl-kommandon mot ett kluster. Skriptet körs med bash på Runnern, som levereras med `kubectl`, med `KUBECONFIG` pekande på klustret: alla kubectl-kommandon fungerar, och det gör all bash runt dem också.
 
 | Fält | Vad det gör |
 | --- | --- |
-| **Runner** | Den Runner som anropar klustrets API-server. Den måste kunna nå den. |
-| **Credential** | En Kubernetes-autentiseringsuppgift: API-serverns URL, en serviceaccount-token och klustrets CA. Bind den serviceaccounten till en roll som bara tillåter det dina runbooks behöver. |
-| **Åtgärd** | **Restart workload** ändrar podmallen så att kontrollern återskapar poddarna, som `kubectl rollout restart` gör. **Scale workload** anger antalet repliker. |
-| **Workload kind** | **Distribution**, **StatefulSet** eller **DaemonSet**. |
-| **Namnrymd** och **Workload name** | Den arbetsbelastning som åtgärden gäller. |
-| **Repliker** | Bara vid skalning. Noll är tillåtet: att tömma en arbetsbelastning är en legitim åtgärd. Ett DaemonSet kör en pod per nod och kan inte skalas; starta om det i stället. |
-| **Tidsgräns för körning** | Hur länge Runnern väntar på att API-servern godtar ändringen. Standard 30 sekunder. |
+| **Runner** | Den Runner som kör kubectl. Den måste kunna nå klustrets API-server. |
+| **Kubeconfig** | Den hemliga variabel som innehåller klustrets kubeconfig, eller **Runnerns egen åtkomst**: Runnerns egen kubeconfig, eller dess tjänstkonto när den körs i klustret. Runnern skriver en kubeconfig till en fil som bara den kan läsa, och tar bort den när skriptet slutar. |
+| **Script** | kubectl-kommandona. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
+| **Tidsgräns för körning** | Hur länge Runnern låter skriptet köras innan den stoppar det med `SIGKILL`. Standard 30 sekunder. |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
 
-Om API-servern avvisar ändringen visas dess eget meddelande på steget, så ett behörighetsfel talar om vilken rollbindning du behöver utöka.
+Till exempel för att starta om en deployment och vänta tills dess nya poddar är redo:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Examples — click to insert**, under varje skript, fyller i vanliga skript som dessa. Ge kubeconfigens användare bara det som dina skript gör: en Role i de namespaces där de verkar, med de verb de använder. Om API-servern nekar ett kommando står kubectls eget meddelande i stegets utdata, så ett behörighetsfel talar om vilken role binding du ska utöka.
 
 ### AI
 
@@ -224,5 +240,5 @@ Den som hanterar incidenten ser steg 1 köras, bockar av steg 2, ser steg 3 kör
 - [Köra ett runbook](/docs/runbooks/running): Starta en körning och slutför, godkänn eller hoppa över dess steg.
 - [Runbook-regler](/docs/runbooks/rules): Starta det här runbooket automatiskt vid matchande incidenter.
 - [Runbook-agenter](/docs/runbooks/agents): Installera den Runner som dina skriptsteg behöver.
-- [Runbook-autentiseringsuppgifter](/docs/runbooks/credentials): Ge SSH- och Kubernetes-steg hanterad åtkomst.
+- [Runbook-variabler](/docs/runbooks/variables): Håll värdar, nycklar, lösenord och kubeconfigs utanför dina steg.
 :::

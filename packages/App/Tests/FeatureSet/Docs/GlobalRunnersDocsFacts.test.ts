@@ -28,7 +28,7 @@ import path from "path";
  *   - what a global Runner runs (GlobalRunnerWork), for how long, how many
  *     of one project's steps at once, and what it is handed;
  *   - the Dashboard words the pages name (the Runners page, the step picker,
- *     the Secrets form, the project's switch) are the ones drawn;
+ *     the variables form, the project's switch) are the ones drawn;
  *   - where they come from: the bundled one (Docker Compose global-runner,
  *     Helm globalRunner, GLOBAL_RUNNER_KEY), how it is turned off
  *     (GLOBAL_RUNNER_REPLICAS=0, globalRunner.enabled), and the Admin
@@ -50,7 +50,7 @@ const AGENTS: string = readPage("en", "runbooks/agents");
 const INDEX: string = readPage("en", "runbooks/index");
 const AUTHORING: string = readPage("en", "runbooks/authoring");
 const RUNNING: string = readPage("en", "runbooks/running");
-const CREDENTIALS: string = readPage("en", "runbooks/credentials");
+const VARIABLES: string = readPage("en", "runbooks/variables");
 const CONFIGURATION: string = readPage("en", "runbooks/configuration");
 const COMPOSE: string = readPage("en", "installation/docker-compose");
 
@@ -62,8 +62,19 @@ const GLOBAL_RUNNERS_COPY: string = readSource(
 const RUNNER_PICKER_MODEL: string = readSource(
   `${DASHBOARD}/Components/Runner/RunnerPickerModel.ts`,
 );
-const SECRETS_PAGE: string = readSource(
-  `${DASHBOARD}/Pages/Runbook/Secrets.tsx`,
+// The variables form, which asks who may use a secret.
+const VARIABLES_TABLE: string = readSource(
+  `${DASHBOARD}/Components/Runbook/RunbookVariablesTable.tsx`,
+);
+const VARIABLE_COPY: string = readSource(
+  `${DASHBOARD}/Components/Runbook/RunbookVariableCopy.ts`,
+);
+// The one rule for which variables a step's Runner is handed.
+const VARIABLE_RESOLVER: string = readSource(
+  "packages/Common/Server/Utils/Runbook/RunbookVariableResolver.ts",
+);
+const VARIABLE_PROBLEMS: string = readSource(
+  "packages/Common/Types/Runbook/RunbookVariableProblems.ts",
 );
 const RUNNER_JOB_SERVICE: string = readSource(
   "packages/Common/Server/Services/RunnerJobService.ts",
@@ -133,15 +144,18 @@ describe("the Global Runners section of runbooks/agents", () => {
     for (const sentence of [
       "Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it",
       "Its HTTP requests reach public internet addresses only, never a private, loopback or link-local address or a cloud metadata endpoint, so a global Runner never reaches your network.",
-      "It gets a runbook secret only when the secret's **Global Runners can use this secret** switch is on, and only for a step of the secret's own project. It never gets a credential.",
+      "It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project. It never gets a credential.",
     ]) {
       expect(SECTION).toContain(sentence);
     }
 
     // The secrets a global Runner is handed: its step's own project's, switched on.
-    expect(
-      readSource("packages/App/FeatureSet/Runbook/Utils/Secrets.ts"),
-    ).toContain("isAvailableToGlobalRunners: true,");
+    expect(VARIABLE_RESOLVER).toContain(
+      'if (data.access.kind === "global-runner") {',
+    );
+    expect(VARIABLE_RESOLVER).toContain(
+      "return toStoredBoolean(data.row.isAvailableToGlobalRunners) === true",
+    );
     // A credential is failed, not handed over.
     expect(RUNNER_INGRESS).toContain("GLOBAL_RUNNER_CREDENTIAL_REFUSAL");
   });
@@ -154,9 +168,10 @@ describe("the Global Runners section of runbooks/agents", () => {
       'switchTitle: translationKey("Use global Runners")',
     );
     expect(RUNNER_PICKER_MODEL).toContain('translationKey("Global Runner")');
-    expect(SECRETS_PAGE).toContain(
-      'title: "Global Runners can use this secret",',
+    expect(VARIABLE_COPY.replace(/\s+/g, " ")).toContain(
+      'GLOBAL_RUNNERS_CAN_USE_TITLE: string = translationKey( "Global Runners can use it", );',
     );
+    expect(VARIABLES_TABLE).toContain("title: GLOBAL_RUNNERS_CAN_USE_TITLE,");
 
     expect(SECTION).toContain("lists them under **Global Runners**");
     expect(SECTION).toContain("offers **Global Runner** first");
@@ -234,16 +249,19 @@ describe("the server's words the pages quote", () => {
     expect(RUNNING).toContain(`"${message}"`);
   });
 
-  it("a step that names a secret global Runners may not use", () => {
-    expect(RUNNER_INGRESS).toContain(
-      "which global Runners may not use, so it was not run.",
+  it("a step that names a secret its Runner may not use", () => {
+    expect(VARIABLE_PROBLEMS).toContain(
+      "This step names variables it cannot use, so it was not run: ${text}.",
+    );
+    expect(VARIABLE_PROBLEMS).toContain(
+      'turn on "Global Runners can use it" for',
     );
     expect(AGENTS).toContain(
-      ":::details A step on a global Runner fails because global Runners may not use a runbook secret",
+      ":::details A step fails because its Runner may not use a secret variable",
     );
-    expect(AGENTS).toContain("The error names the secret.");
-    expect(CREDENTIALS).toContain(
-      "A step on a global Runner that names a secret global Runners may not use fails, naming the secret, rather than running without it.",
+    expect(AGENTS).toContain("The error names the secret and what to change.");
+    expect(VARIABLES).toContain(
+      "A step that names a secret its Runner may not use fails, naming the secret and what to change, and nothing is handed over.",
     );
   });
 });
@@ -257,10 +275,10 @@ describe("the other runbook pages", () => {
       "on a [global Runner](/docs/runbooks/agents#global-runners), in a sandbox that reaches the internet only.",
     );
     expect(AUTHORING).not.toContain(
-      "**A Runner, for JavaScript, Bash, SSH and Kubernetes steps.**",
+      "**A Runner, for JavaScript, Bash, SSH and kubectl steps.**",
     );
     expect(AUTHORING).toContain(
-      "**A Runner, for Bash, SSH and Kubernetes steps.**",
+      "**A Runner, for Bash, SSH and kubectl steps.**",
     );
   });
 
@@ -270,10 +288,10 @@ describe("the other runbook pages", () => {
     );
   });
 
-  it("say the Secrets form asks about global Runners on a server that has them", () => {
-    expect(SECRETS_PAGE).toContain("hasGlobalRunners");
-    expect(CREDENTIALS).toContain(
-      "On a server with [global Runners](/docs/runbooks/agents#global-runners), **Global Runners can use this secret** also lets this project's steps that run on a global Runner use it.",
+  it("say the variables form asks about global Runners on a server that has them", () => {
+    expect(VARIABLES_TABLE).toContain("...(hasGlobalRunners");
+    expect(VARIABLES).toContain(
+      "On a server with [global Runners](/docs/runbooks/agents#global-runners), **Global Runners can use it** also lets this project's steps that run on a global Runner use the secret: it starts on while the project uses global Runners.",
     );
   });
 });

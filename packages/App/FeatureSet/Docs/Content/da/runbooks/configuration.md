@@ -19,7 +19,7 @@ flowchart TB
     end
     subgraph yours["Din infrastruktur"]
         runner["Runner"]
-        onrunner["JavaScript- og Bash-trin<br/>SSH- og Kubernetes-trin"]
+        onrunner["JavaScript- og Bash-trin<br/>SSH- og kubectl-trin"]
     end
     person["En person"]
     worker --> onworker
@@ -34,19 +34,19 @@ flowchart TB
 | JavaScript | En Runner | I en `isolated-vm`-sandkasse. |
 | HTTP request | OneUptime Worker | Et udgående HTTP-kald. |
 | Bash | En Runner | `bash -c <script>`. |
-| SSH | En Runner | En SSH-forbindelse med en [loginoplysning](/docs/runbooks/credentials). |
-| Kubernetes | En Runner | Et kald til klyngens API-server med en loginoplysning. |
+| SSH | En Runner | En SSH-forbindelse, der kører scriptet med bash på maskinen, logget ind med en hemmelig [variabel](/docs/runbooks/variables). |
+| kubectl | En Runner | `bash -c <script>`, med `KUBECONFIG` pegende på klyngen. |
 | AI | OneUptime Worker | Et kald til projektets LLM-udbyder. |
 
 ## Sådan sendes Runner-trin ud
 
-JavaScript-, Bash-, SSH- og Kubernetes-trin **kører aldrig på OneUptime Worker**. De sendes som jobs til en bestemt [runbook-agent](/docs/runbooks/agents): en lille proces, du installerer på en vært i din egen infrastruktur. Et JavaScript-trin, der ikke vælger nogen, går til de [globale Runnere](/docs/runbooks/agents#globale-runnere), som OneUptime kører for alle projekter.
+JavaScript-, Bash-, SSH- og kubectl-trin **kører aldrig på OneUptime Worker**. De sendes som jobs til en bestemt [runbook-agent](/docs/runbooks/agents): en lille proces, du installerer på en vært i din egen infrastruktur. Et JavaScript-trin, der ikke vælger nogen, går til de [globale Runnere](/docs/runbooks/agents#globale-runnere), som OneUptime kører for alle projekter.
 
 Udsendelsesmodellen:
 
 1. Den, der skriver runbook-trinnet, vælger en Runner på rullelisten.
 2. Når trinnet kører, indsætter Workeren en række i `RunnerJob` med `targetAgentId` sat til den Runners ID og status `Pending`. Et JavaScript-trin, der ikke valgte nogen, får i et projekt, der bruger globale Runnere, i stedet `runsOnGlobalRunner`.
-3. Netop den Runner (og kun den) overtager jobbet atomisk, kører det lokalt — Bash via `bash -c <script>`, JavaScript i en `isolated-vm`-sandkasse, SSH og Kubernetes med trinnets loginoplysning — og sender resultatet tilbage. Enhver global Runner må overtage et job med `runsOnGlobalRunner`.
+3. Netop den Runner (og kun den) overtager jobbet atomisk, kører det lokalt — Bash og kubectl via `bash -c <script>`, JavaScript i en `isolated-vm`-sandkasse, SSH gennem en forbindelse til maskinen, hver med de variabler, den nævner, indsat — og sender resultatet tilbage. Enhver global Runner må overtage et job med `runsOnGlobalRunner`.
 4. Workeren fortsætter runbooket med resultatet.
 
 Der findes ikke længere et miljøflag `RUNBOOK_BASH_ENABLED`. Om disse trin virker i en installation, afhænger alene af, om projektet har en forbundet Runner med **Kører runbooks** slået til. Et JavaScript-trin virker også på en global Runner.
@@ -56,13 +56,13 @@ Der findes ikke længere et miljøflag `RUNBOOK_BASH_ENABLED`. Om disse trin vir
 | Grænse | Værdi | Gælder for |
 | --- | --- | --- |
 | Output pr. trin | **50 KB**. Længere output skæres af med en markør. | Hvert automatiseret trin |
-| Udførelsestimeout | **30 sekunder** som standard | JavaScript-, Bash-, SSH- og Kubernetes-trin |
+| Udførelsestimeout | **30 sekunder** som standard | JavaScript-, Bash-, SSH- og kubectl-trin |
 | Anmodningstimeout | **30 sekunder** som standard | HTTP request-trin |
-| Overtagelsestimeout | **2 minutter** som standard: hvor længe Workeren venter på, at den valgte Runner overtager jobbet, før det fejles | JavaScript-, Bash-, SSH- og Kubernetes-trin |
+| Overtagelsestimeout | **2 minutter** som standard: hvor længe Workeren venter på, at den valgte Runner overtager jobbet, før det fejles | JavaScript-, Bash-, SSH- og kubectl-trin |
 | Timeoutinterval | **1 sekund til 1 time** | Hver timeout |
 | Venter på en person | Ingen grænse | Manual-trin og godkendelser |
 
-Angiv timeouts pr. trin på runbookets side **Trin**; lad et felt være tomt for at beholde standarden. En værdi uden for intervallet begrænses, når trinnet kører, så en fejlindtastet konfiguration hverken kan slå timeouten fra eller holde en Worker-plads optaget i det uendelige.
+Angiv timeouts pr. trin under trinnets **Flere felter** på runbookets side **Trin**; lad et felt være tomt for at beholde standarden. En værdi uden for intervallet begrænses, når trinnet kører, så en fejlindtastet konfiguration hverken kan slå timeouten fra eller holde en Worker-plads optaget i det uendelige.
 
 ## Tilladelser
 
@@ -78,7 +78,7 @@ En rolle kører de runbooks, dens omfang når. En tildeling af `RunbookMember`, 
 
 Et runbooks tidsplan og webhook starter kørsler, uden at nogen er til stede, så det kræver tilladelse til at redigere runbooket og til at køre det at sætte en af dem op, og det samme gælder for at se dets webhook-URL. At slå dem fra kræver kun tilladelse til at redigere det. Se [Runbook-udløsere](/docs/runbooks/triggers#hvem-må-sætte-udløsere-op).
 
-Loginoplysninger og hemmeligheder ligger uden for `RunbookAdmin`. At administrere dem kræver `ProjectOwner` eller `ProjectAdmin` eller tilladelserne `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` og `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Se [Runbook-loginoplysninger](/docs/runbooks/credentials).
+Runbook-variabler og loginoplysninger ligger uden for `RunbookAdmin`, som kun læser variabler for at vælge dem i de trin, den skriver. At administrere variabler kræver `ProjectOwner` eller `ProjectAdmin` eller tilladelserne `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` og `ReadRunbookSecret`: runbook-hemmelighedernes tilladelser, som beholdt deres navne, da hemmeligheder blev til variabler. At administrere loginoplysninger kræver `ProjectOwner` eller `ProjectAdmin` eller `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential` og `ReadRunbookCredential`. Se [Runbook-variabler](/docs/runbooks/variables) og [AI-adgang](/docs/runbooks/credentials).
 
 Ejerreglerne og etiketreglerne under **Runbooks → Indstillinger** ligger også uden for `RunbookAdmin`. At administrere dem kræver `ProjectOwner` eller `ProjectAdmin` eller tilladelserne `CreateRunbookOwnerRule` og `CreateRunbookLabelRule` og deres modstykker til redigering, sletning og læsning.
 
@@ -92,12 +92,12 @@ Når et manuelt trin afkrydses via API'et, sættes udførelsen i kø igen for at
 
 ## Hærdningsnoter
 
-- **JavaScript, Bash, SSH og Kubernetes** kører på en Runner-vært, du kontrollerer, ikke på OneUptime Worker. JavaScript kører i sit eget `isolated-vm`-isolat med 128 MB hukommelse og uden adgang til Runnerens filsystem eller processer; det kan sende HTTP-anmodninger med `axios`, men anmodninger til private netværk, loopback- og link-local-adresser afvises. Bash kører via `bash -c`, med en timeout, der håndhæves på Runneren. Et JavaScript-trin, der ikke vælger nogen, kører i stedet på en global Runner.
+- **JavaScript, Bash, SSH og kubectl** kører på en Runner-vært, du kontrollerer, ikke på OneUptime Worker. JavaScript kører i sit eget `isolated-vm`-isolat med 128 MB hukommelse og uden adgang til Runnerens filsystem eller processer; det kan sende HTTP-anmodninger med `axios`, men anmodninger til private netværk, loopback- og link-local-adresser afvises. Bash kører via `bash -c`, med en timeout, der håndhæves på Runneren. Et JavaScript-trin, der ikke vælger nogen, kører i stedet på en global Runner.
 - **HTTP-trin** bruger en tilladende statusvalidering, så et 4xx- eller 5xx-svar registreres som et mislykket trin i stedet for at blive kastet som en undtagelse, og det registrerede output viser, hvad modparten faktisk returnerede. Omdirigeringer følges ikke. Workeren kalder aldrig loopback- eller link-local-adresser, f.eks. et cloud-metadataendpoint; på OneUptime Cloud afviser den også private netværksadresser, og en selvhostet OneUptime afviser dem med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **AI-trin** ser aldrig private hændelsesnoter eller beskeder fra Slack og Microsoft Teams, og tidligere trins output gennemsøges for hemmeligheder, som sløres, før det når modellen. Indlejrede billeder og lange kodede data udelades af prompten. Se [AI](/docs/runbooks/authoring#ai).
-- **Globale Runnere** kører kun JavaScript-trin, hvert i en sandkasse, der oprettes til trinnet og smides væk bagefter, som kun når offentlige internetadresser, i højst 5 minutter og med højst tre trin fra ét projekt ad gangen. De får kun de runbook-hemmeligheder fra trinnets eget projekt, der er slået til for globale Runnere, og aldrig loginoplysninger; den medfølgende har sin egen nøgle og intet andet fra serveren. Se [Globale Runnere](/docs/runbooks/agents#globale-runnere).
+- **Globale Runnere** kører kun JavaScript-trin, hvert i en sandkasse, der oprettes til trinnet og smides væk bagefter, som kun når offentlige internetadresser, i højst 5 minutter og med højst tre trin fra ét projekt ad gangen. De får kun de hemmelige variabler fra trinnets eget projekt, der er slået til for globale Runnere, og aldrig loginoplysninger; den medfølgende har sin egen nøgle og intet andet fra serveren. Se [Globale Runnere](/docs/runbooks/agents#globale-runnere).
 - **Godkendelse af Runners** sker med ID og hemmelig nøgle, sat som miljøvariabler på Runner-containeren. På serveren kommer Runnerens gældende identitet fra den databaserække, der hører til det fremviste ID og den fremviste nøgle: en klient kan ikke udgive sig for at være en anden Runner, heller ikke med en kompromitteret nøgle.
-- **Loginoplysninger og hemmeligheder** er krypteret i hvile, returneres aldrig af API'et og udleveres kun til de Runners, de er tildelt, når disse overtager et trin. En runbook-hemmelighed gives også til en global Runner, der overtager et trin fra hemmelighedens eget projekt, når hemmeligheden lader globale Runnere bruge den.
+- **Hemmelige variabler og loginoplysninger** er krypteret i hvile, returneres aldrig af API'et og udleveres kun til de Runnere, de viser, når de overtager et trin eller en kommando, der nævner dem. En hemmelig variabel udleveres også til en global Runner, der overtager et trin i variablens eget projekt, når variablen lader globale Runnere bruge den. Runneren erstatter hver hemmelighed, et trin fik, med `[REDACTED]` i det, trinnet udskriver, og OneUptime gør det igen, før det gemmer outputtet.
 
 ## Databasetabeller
 
@@ -108,8 +108,8 @@ Når et manuelt trin afkrydses via API'et, sættes udførelsen i kø igen for at
 | `RunbookRule` | Regler for automatisk start med en diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance), en mange-til-mange-relation til de runbooks, der skal startes, og det, de matcher på: en JSON-kolonne `criteria` (betingelserne) plus mange-til-mange-links til monitorer, hændelsesalvorligheder, advarselsalvorligheder, etiketter og monitoretiketter samt mønstre for titel, beskrivelse, monitornavn og monitorbeskrivelse. |
 | `Runner` | Én række pr. installeret Runner: navn, hemmelig nøgle, `lastAlive`, `connectionStatus`, værtsoplysninger og funktioner. En global Runner har `isGlobalRunner` sat og intet projekt. |
 | `RunnerJob` | Én række pr. trin sendt til en Runner: `targetAgentId` (den Runner, trinnets forfatter valgte), trintype, script eller nyttelast, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` eller `Cancelled`), overtagelsesfrist, lease, output og exitkode. `runsOnGlobalRunner` markerer et trin, som enhver global Runner må overtage. |
-| `RunbookCredential` | SSH- og Kubernetes-loginoplysninger med krypterede hemmelige felter og de Runners, de er tildelt. |
-| `RunbookSecret` | Runbook-hemmeligheder, krypteret, og de Runners, der må modtage dem. |
+| `RunbookCredential` | De SSH- og Kubernetes-loginoplysninger, som OneUptime AI's kommandoer bruger, med krypterede hemmelige felter, og de Runnere, de er tildelt. |
+| `RunbookVariable` | Runbook-variabler: projektets globale og et runbooks egne, som nævner det i `runbookId`; en hemmeligheds værdi krypteret, og de Runnere, der må modtage en hemmelighed. |
 
 ## Driftstips
 
@@ -121,6 +121,6 @@ Når et manuelt trin afkrydses via API'et, sættes udførelsen i kø igen for at
 
 :::cards
 - [Runbook-agenter](/docs/runbooks/agents): Installer, drift og fejlfind Runners.
-- [Runbook-loginoplysninger](/docs/runbooks/credentials): Administreret SSH- og Kubernetes-adgang og hemmeligheder til scripts.
+- [Runbook-variabler](/docs/runbooks/variables): De værdier og hemmeligheder, trin bruger, og de Runnere, der modtager dem.
 - [Brugere, teams og tilladelser](/docs/permissions/index): Hvordan roller, etiketter og teams afgør, hvem der kører hvad.
 :::

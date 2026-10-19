@@ -4,7 +4,7 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 
 :::cards
 - [Ein Runbook erstellen](#ein-runbook-erstellen): Vom leeren Runbook zu gespeicherten Schritten.
-- [Schritttypen](#schritttypen): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes und AI.
+- [Schritttypen](#schritttypen): Manual, JavaScript, HTTP request, Bash, SSH, kubectl und AI.
 - [Fehlerbehandlung und Freigaben](#fehlerbehandlung-und-freigaben): Was passiert, nachdem ein Schritt fehlschlägt oder gelingt.
 - [Ein durchgespieltes Beispiel](#ein-durchgespieltes-beispiel): Ein Datenbank-Failover in fünf Schritten.
 :::
@@ -12,8 +12,8 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 ## Bevor Sie beginnen
 
 - **Eine Rolle, die Runbooks schreibt.** Project Owner, Project Admin und Runbook Admin erstellen Runbooks und speichern ihre Schritte. Mit granularen Berechtigungen brauchen Sie **Create Runbook** und **Edit Runbook**. Siehe [Berechtigungen](/docs/runbooks/configuration#berechtigungen).
-- **Ein Runner, für Bash-, SSH- und Kubernetes-Schritte.** Diese Schritte laufen auf einem [Runner](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur, nie auf dem OneUptime Worker. Installieren Sie zuerst einen. Ein JavaScript-Schritt läuft auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), es sei denn, Sie wählen einen Ihrer eigenen.
-- **Anmeldedaten, für SSH- und Kubernetes-Schritte, und die Berechtigung, sie zu lesen.** Siehe [Runbook-Anmeldedaten](/docs/runbooks/credentials). Ein Schritt kann Anmeldedaten nur benennen, wenn Sie Runbook-Anmeldedaten lesen dürfen: Project Owner, Project Admin oder **Read Runbook Credential**. Runbook Admin enthält das nicht.
+- **Ein Runner, für Bash-, SSH- und kubectl-Schritte.** Diese Schritte laufen auf einem [Runner](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur, nie auf dem OneUptime Worker. Installieren Sie zuerst einen. Ein JavaScript-Schritt läuft auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), es sei denn, Sie wählen einen Ihrer eigenen.
+- **Eine geheime Variable, für SSH- und kubectl-Schritte.** Der Schlüssel, das Passwort oder die kubeconfig, mit denen sich ein Schritt anmeldet, ist eine geheime [Runbook-Variable](/docs/runbooks/variables). Project Owner und Project Admin erstellen Variablen, und Runbook Admin wählt sie in den Schritten aus, die er schreibt. Ein kubectl-Schritt kann stattdessen den eigenen Zugriff des Runners verwenden.
 - **Ein LLM-Anbieter, für KI-Schritte.** Siehe [LLM-Anbieter](/docs/ai/llm-provider).
 
 ## Ein Runbook erstellen
@@ -29,7 +29,7 @@ Klicken Sie auf **Runbook erstellen**, geben Sie einen **Name** und optional ein
 
 ### Schritte hinzufügen
 
-Unter **Ihr Runbook beginnen** wählen Sie den Typ des ersten Schritts; unter dem letzten Schritt bietet **Weiteren Schritt hinzufügen** dieselben sieben Typen an. Jeder Schritt öffnet sich mit seinem **Titel**, seiner **Beschreibung** (Markdown, für die reagierende Person sichtbar) und den Einstellungen seines Typs. Sobald das Runbook einen Schritt hat, fügt **Schritt hinzufügen** oben auf der Karte einen Manual-Schritt hinzu.
+Unter **Ihr Runbook beginnen** wählen Sie den Typ des ersten Schritts; unter dem letzten Schritt bietet **Weiteren Schritt hinzufügen** dieselben sieben Typen an. Jeder Schritt öffnet sich mit seinem **Titel** und dem, was sein Typ braucht; der Rest, etwa seine **Beschreibung** und die Timeouts, ist unter **Weitere Felder** eingeklappt. Sobald das Runbook einen Schritt hat, fügt **Schritt hinzufügen** oben auf der Karte einen Manual-Schritt hinzu.
 
 ### Die Schritte ordnen
 
@@ -42,15 +42,15 @@ Klicken Sie auf **Schritte speichern**. Bis dahin zeigt der Editor **Nicht gespe
 
 ## Aufbau eines Schritts
 
-Jeder Schritt hat diese Felder:
+Jeder Schritt hat diese Felder. Ein automatisierter Schritt zeigt seinen **Titel** und die Einstellungen seines Typs und klappt den Rest unter **Weitere Felder** ein, das sagt, was davon gesetzt ist:
 
 | Feld | Zweck |
 | --- | --- |
 | **Titel** | Eine kurze Bezeichnung, in der Schrittliste und in jedem Lauf angezeigt. |
-| **Beschreibung** | Optionaler Kontext für die reagierende Person, in Markdown. Bei einem Manual-Schritt ist sie die Anweisung, die die Person liest. |
+| **Beschreibung** | Optionaler Kontext für die reagierende Person, in Markdown, unter **Weitere Felder**. Bei einem Manual-Schritt ist sie die Anweisung, die die Person liest, und steht unter dem Titel. |
 | **Bei Fehler fortfahren** | Nur automatisierte Schritte. Ist es an, stoppt ein fehlschlagender Schritt den Lauf nicht: Der nächste Schritt läuft trotzdem. |
 | **Genehmigung erforderlich** | Nur automatisierte Schritte. Ist es an, pausiert das Runbook nach diesem Schritt und wartet auf die Zustimmung einer Person, bevor der nächste Schritt läuft. Der Schalter heißt **Genehmigung erforderlich, bevor der nächste Schritt ausgeführt wird**. |
-| Typspezifische Einstellungen | Das Skript, die URL, der Runner, die Anmeldedaten oder der Prompt. Siehe [Schritttypen](#schritttypen). |
+| Typspezifische Einstellungen | Das Skript, die URL, der Runner, eine geheime Variable oder der Prompt. Siehe [Schritttypen](#schritttypen). |
 
 ## Schritttypen
 
@@ -60,9 +60,11 @@ Jeder Schritt hat diese Felder:
 | [JavaScript](#javascript) | Einem Runner | Einen Runner |
 | [HTTP request](#http-request) | Dem OneUptime Worker | Nichts |
 | [Bash](#bash) | Einem Runner | Einen Runner |
-| [SSH](#ssh) | Einem Runner | Einen Runner und SSH-Anmeldedaten |
-| [Kubernetes](#kubernetes) | Einem Runner | Einen Runner und Kubernetes-Anmeldedaten |
+| [SSH](#ssh) | Einem Runner | Einen Runner und eine geheime Variable zum Anmelden |
+| [kubectl](#kubectl) | Einem Runner | Einen Runner und eine kubeconfig-Variable oder den eigenen Zugriff des Runners |
 | [AI](#ai) | Dem OneUptime Worker | Einen LLM-Anbieter |
+
+In jedem der folgenden Schritte stehen die Timeouts, die **Beschreibung**, **Bei Fehler fortfahren** und **Genehmigung erforderlich** unter **Weitere Felder** des Schritts, ebenso der Anbieter und die Kontextschalter eines KI-Schritts.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 Ist der gewählte Runner offline, wenn der Lauf diesen Schritt erreicht, wartet der Schritt bis zum **Übernahme-Timeout** (standardmäßig 2 Minuten) und schlägt dann wegen Zeitüberschreitung fehl. Fügen Sie unter **Runbooks → Runbook-Agents** einen Agenten hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
 
 > [!TIP]
-> Halten Sie Passwörter und Tokens aus dem Skript heraus. Speichern Sie sie als Runbook-Geheimnisse und schreiben Sie `{{runbookSecrets.NAME}}` in ein Bash- oder JavaScript-Skript: Der Runner erhält das Skript mit eingesetztem Wert. Siehe [Geheimnisse für Skripte](/docs/runbooks/credentials#geheimnisse-für-skripte).
+> Halten Sie Passwörter und Tokens aus dem Skript heraus. Speichern Sie sie als geheime [Runbook-Variablen](/docs/runbooks/variables) und schreiben Sie `{{global.variables.NAME}}` dorthin, wo der Wert hingehört: Der Runner erhält das Skript mit eingesetztem Wert, und die Ausgabe des Schritts zeigt an seiner Stelle `[REDACTED]`.
 
 ### SSH
 
-Einen Befehl auf einem Host ausführen, den der Runner per SSH erreicht. Anders als `ssh host cmd` in einem Bash-Schritt ist der Zugang verwaltete [Anmeldedaten](/docs/runbooks/credentials) statt eines privaten Schlüssels auf der Festplatte des Runners: im Ruhezustand verschlüsselt, bestimmten Runnern zugewiesen und über die API nie wieder lesbar.
+Sich per SSH an einem Rechner anmelden und dort ein Bash-Skript ausführen. Der Runner öffnet die Verbindung, daher muss der Rechner nur vom Runner aus erreichbar sein, und der Schlüssel oder das Passwort, mit dem sich der Schritt anmeldet, ist eine geheime [Runbook-Variable](/docs/runbooks/variables), die nie im Schritt steht.
 
 | Feld | Was es tut |
 | --- | --- |
-| **Runner** | Der Runner, der die Verbindung öffnet. Er muss den Host über das Netz erreichen können. |
-| **Anmeldedaten** | SSH-Anmeldedaten mit Host, Port, Benutzer und Schlüssel oder Passwort. Sie müssen dem gewählten Runner zugewiesen sein, sonst schlägt der Schritt fehl, statt mit dem falschen Zugang zu laufen. |
-| **Befehl** | Läuft auf dem entfernten Host als Benutzer der Anmeldedaten. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
-| **Ausführungs-Timeout** | Umfasst Verbinden, Authentifizieren und Ausführen des Befehls zusammen, sodass ein hängender Befehl den Schritt nicht offen halten kann. Standard 30 Sekunden. |
+| **Runner** | Der Runner, der die Verbindung öffnet. Er muss den Rechner über das Netz erreichen können. |
+| **SSH zu** | Der Benutzer und der Rechner, so wie Sie sie nach `ssh` schreiben würden: `deploy@10.0.4.21`. |
+| **Anmelden mit** | Die geheime Variable, die den privaten Schlüssel oder das Passwort enthält; der Wert sagt, was es ist. Es werden nur geheime Variablen angeboten, und der Schritt sagt, wenn sein Runner die gewählte nicht nutzen darf. |
+| **Bash-Skript** | Läuft mit `bash` auf dem Rechner, als der Benutzer, mit dem sich der Schritt anmeldet. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
+| **Port** | Unter **Weitere Felder**. 22, wenn leer gelassen. |
+| **Passphrase des Schlüssels** | Unter **Weitere Felder**. Die geheime Variable, die die Passphrase eines Schlüssels enthält, der eine hat. |
+| **Ausführungs-Timeout** | Umfasst Verbinden, Anmelden und Ausführen des Skripts zusammen, sodass ein hängendes Skript den Schritt nicht offen halten kann. Standard 30 Sekunden. |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. Standard 2 Minuten. |
 
-### Kubernetes
+Zum Beispiel, um einen Dienst neu zu starten und zu zeigen, dass er wieder läuft:
 
-Eine Workload in einem Cluster neu starten oder skalieren. Die Aktionen sind bewusst eine geschlossene Menge: Ein Schritt, der beliebige Objekte ändern könnte, wäre eine Cluster-Admin-Shell, und dieser Schritttyp gibt es, um die üblichen Behebungen sicher genug für die automatische Behebung zu machen.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+kubectl-Befehle gegen einen Cluster ausführen. Das Skript läuft mit bash auf dem Runner, der `kubectl` mitbringt, wobei `KUBECONFIG` auf den Cluster zeigt: Jeder kubectl-Befehl funktioniert, und ebenso jedes Bash drumherum.
 
 | Feld | Was es tut |
 | --- | --- |
-| **Runner** | Der Runner, der den API-Server des Clusters aufruft. Er muss ihn erreichen können. |
-| **Anmeldedaten** | Kubernetes-Anmeldedaten: die URL des API-Servers, ein Dienstkonto-Token und die CA des Clusters. Binden Sie dieses Dienstkonto an eine Rolle, die nur erlaubt, was Ihre Runbooks brauchen. |
-| **Aktion** | **Workload neu starten** ändert das Pod-Template, sodass der Controller die Pods neu erstellt, wie es `kubectl rollout restart` tut. **Workload skalieren** setzt die Anzahl der Replikate. |
-| **Workload-Art** | **Bereitstellung**, **StatefulSet** oder **DaemonSet**. |
-| **Namespace** und **Workload-Name** | Die Workload, auf die gewirkt wird. |
-| **Replikate** | Nur beim Skalieren. Null ist erlaubt: Eine Workload leerlaufen zu lassen, ist eine legitime Behebung. Ein DaemonSet läuft mit einem Pod pro Knoten und lässt sich nicht skalieren; starten Sie es stattdessen neu. |
-| **Ausführungs-Timeout** | Wie lange der Runner darauf wartet, dass der API-Server die Änderung annimmt. Standard 30 Sekunden. |
+| **Runner** | Der Runner, der kubectl ausführt. Er muss den API-Server des Clusters erreichen können. |
+| **Kubeconfig** | Die geheime Variable, die die kubeconfig des Clusters enthält, oder **Der eigene Zugriff des Runners**: die eigene kubeconfig des Runners oder sein Dienstkonto, wenn er im Cluster läuft. Der Runner schreibt eine kubeconfig in eine Datei, die nur er lesen kann, und entfernt sie, wenn das Skript endet. |
+| **Skript** | Die kubectl-Befehle. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
+| **Ausführungs-Timeout** | Wie lange der Runner das Skript laufen lässt, bevor er es mit `SIGKILL` stoppt. Standard 30 Sekunden. |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. Standard 2 Minuten. |
 
-Lehnt der API-Server die Änderung ab, wird seine eigene Meldung am Schritt angezeigt, sodass ein Berechtigungsfehler Ihnen sagt, welche Rollenbindung Sie erweitern müssen.
+Zum Beispiel, um ein Deployment neu zu starten und zu warten, bis seine neuen Pods bereit sind:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Beispiele — zum Einfügen klicken**, unter jedem Skript, setzt übliche Skripte wie diese ein. Geben Sie dem Benutzer der kubeconfig nur, was Ihre Skripte tun: eine Role in den Namespaces, in denen sie wirken, mit den Verben, die sie verwenden. Lehnt der API-Server einen Befehl ab, steht die eigene Meldung von kubectl in der Ausgabe des Schritts, sodass ein Berechtigungsfehler Ihnen sagt, welche Rollenbindung Sie erweitern müssen.
 
 ### AI
 
@@ -224,5 +240,5 @@ Die reagierende Person sieht Schritt 1 laufen, hakt Schritt 2 ab, sieht Schritt 
 - [Ein Runbook ausführen](/docs/runbooks/running): Einen Lauf starten und seine Schritte abschließen, genehmigen oder überspringen.
 - [Runbook-Regeln](/docs/runbooks/rules): Dieses Runbook automatisch bei passenden Vorfällen starten.
 - [Runbook-Agents](/docs/runbooks/agents): Den Runner installieren, den Ihre Skriptschritte brauchen.
-- [Runbook-Anmeldedaten](/docs/runbooks/credentials): SSH- und Kubernetes-Schritten verwalteten Zugang geben.
+- [Runbook-Variablen](/docs/runbooks/variables): Hosts, Schlüssel, Passwörter und kubeconfigs aus Ihren Schritten heraushalten.
 :::

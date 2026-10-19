@@ -4,7 +4,7 @@ U schrijft een runbook als een geordende lijst stappen op de pagina **Stappen** 
 
 :::cards
 - [Een runbook maken](#een-runbook-maken): Van een leeg runbook naar opgeslagen stappen.
-- [Staptypen](#staptypen): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes en AI.
+- [Staptypen](#staptypen): Manual, JavaScript, HTTP request, Bash, SSH, kubectl en AI.
 - [Foutafhandeling en goedkeuringen](#foutafhandeling-en-goedkeuringen): Wat er gebeurt nadat een stap mislukt of slaagt.
 - [Een uitgewerkt voorbeeld](#een-uitgewerkt-voorbeeld): Een database-failover in vijf stappen.
 :::
@@ -12,8 +12,8 @@ U schrijft een runbook als een geordende lijst stappen op de pagina **Stappen** 
 ## Voordat u begint
 
 - **Een rol die runbooks schrijft.** Project Owner, Project Admin en Runbook Admin maken runbooks en slaan de stappen op. Met gedetailleerde machtigingen hebt u **Create Runbook** en **Edit Runbook** nodig. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
-- **Een Runner, voor Bash-, SSH- en Kubernetes-stappen.** Deze stappen lopen op een [Runner](/docs/runbooks/agents) in uw eigen infrastructuur, nooit op de OneUptime Worker. Installeer er eerst een. Een JavaScript-stap loopt op een [globale Runner](/docs/runbooks/agents#globale-runners), tenzij u een van uw eigen Runners kiest.
-- **Een inloggegeven, voor SSH- en Kubernetes-stappen, en de machtiging om het te lezen.** Zie [Runbook-inloggegevens](/docs/runbooks/credentials). Een stap kan alleen een inloggegeven noemen als u runbook-inloggegevens mag lezen: Project Owner, Project Admin of **Read Runbook Credential**. Runbook Admin bevat dat niet.
+- **Een Runner, voor Bash-, SSH- en kubectl-stappen.** Deze stappen lopen op een [Runner](/docs/runbooks/agents) in uw eigen infrastructuur, nooit op de OneUptime Worker. Installeer er eerst een. Een JavaScript-stap loopt op een [globale Runner](/docs/runbooks/agents#globale-runners), tenzij u een van uw eigen Runners kiest.
+- **Een geheime variabele, voor SSH- en kubectl-stappen.** De sleutel, het wachtwoord of de kubeconfig waarmee een stap zich aanmeldt, is een geheime [runbookvariabele](/docs/runbooks/variables). Project Owner en Project Admin maken variabelen aan, en Runbook Admin kiest ze in de stappen die hij schrijft. Een kubectl-stap kan in plaats daarvan de eigen toegang van de Runner gebruiken.
 - **Een LLM-provider, voor AI-stappen.** Zie [LLM-providers](/docs/ai/llm-provider).
 
 ## Een runbook maken
@@ -29,7 +29,7 @@ Klik op **Runbook aanmaken**, voer een **Naam** in en eventueel een **Beschrijvi
 
 ### Stappen toevoegen
 
-Kies onder **Start your runbook** het type van de eerste stap; onder de laatste stap biedt **Add another step** dezelfde zeven typen. Elke stap opent met zijn **Titel**, zijn **Beschrijving** (Markdown, zichtbaar voor wie reageert) en de instellingen van zijn type. Zodra het runbook een stap heeft, voegt **Stap toevoegen** bovenaan de kaart een Manual-stap toe.
+Kies onder **Start your runbook** het type van de eerste stap; onder de laatste stap biedt **Add another step** dezelfde zeven typen. Elke stap opent met zijn **Titel** en wat zijn type nodig heeft; de rest, zoals zijn **Beschrijving** en de time-outs, is ingeklapt onder **Meer velden**. Zodra het runbook een stap heeft, voegt **Stap toevoegen** bovenaan de kaart een Manual-stap toe.
 
 ### De stappen ordenen
 
@@ -42,15 +42,15 @@ Klik op **Save Steps**. Tot u dat doet, toont de editor **Niet-opgeslagen wijzig
 
 ## Opbouw van een stap
 
-Elke stap heeft deze velden:
+Elke stap heeft deze velden. Een geautomatiseerde stap toont zijn **Titel** en de instellingen van zijn type, en klapt de rest in onder **Meer velden**, dat zegt wat daarvan is ingesteld:
 
 | Veld | Doel |
 | --- | --- |
 | **Titel** | Een kort label, zichtbaar in de stappenlijst en in elke uitvoering. |
-| **Beschrijving** | Optionele context voor wie reageert, in Markdown. Bij een Manual-stap is dit de instructie die die persoon leest. |
+| **Beschrijving** | Optionele context voor wie reageert, in Markdown, onder **Meer velden**. Bij een Manual-stap is dit de instructie die die persoon leest, getoond onder de titel. |
 | **Doorgaan bij fout** | Alleen geautomatiseerde stappen. Als dit aan staat, stopt een mislukte stap de uitvoering niet: de volgende stap loopt toch. |
 | **Goedkeuring vereisen** | Alleen geautomatiseerde stappen. Als dit aan staat, pauzeert het runbook na deze stap en wacht het tot iemand goedkeurt voordat de volgende stap loopt. De schakelaar heet **Goedkeuring vereisen voordat de volgende stap wordt uitgevoerd**. |
-| Typespecifieke instellingen | Het script, de URL, de Runner, het inloggegeven of de prompt. Zie [Staptypen](#staptypen). |
+| Typespecifieke instellingen | Het script, de URL, de Runner, een geheime variabele of de prompt. Zie [Staptypen](#staptypen). |
 
 ## Staptypen
 
@@ -60,9 +60,11 @@ Elke stap heeft deze velden:
 | [JavaScript](#javascript) | Een Runner | Een Runner |
 | [HTTP request](#http-request) | De OneUptime Worker | Niets |
 | [Bash](#bash) | Een Runner | Een Runner |
-| [SSH](#ssh) | Een Runner | Een Runner en een SSH-inloggegeven |
-| [Kubernetes](#kubernetes) | Een Runner | Een Runner en een Kubernetes-inloggegeven |
+| [SSH](#ssh) | Een Runner | Een Runner en een geheime variabele om mee aan te melden |
+| [kubectl](#kubectl) | Een Runner | Een Runner, en een kubeconfig-variabele of de eigen toegang van de Runner |
 | [AI](#ai) | De OneUptime Worker | Een LLM-provider |
+
+In elke stap hieronder staan de time-outs, de **Beschrijving**, **Doorgaan bij fout** en **Goedkeuring vereisen** onder **Meer velden** van de stap, net als de provider en de contextschakelaars van een AI-stap.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 Is de gekozen Runner offline wanneer de uitvoering deze stap bereikt, dan wacht de stap tot de **claim timeout** (standaard 2 minuten) en mislukt dan door een time-out. Voeg een agent toe onder **Runbooks → Runbook-agenten** voordat u op een Bash-stap vertrouwt.
 
 > [!TIP]
-> Houd wachtwoorden en tokens uit het script. Sla ze op als runbook-geheimen en schrijf `{{runbookSecrets.NAME}}` in een Bash- of JavaScript-script: de Runner krijgt het script met de waarde al ingevuld. Zie [Geheimen voor scripts](/docs/runbooks/credentials#geheimen-voor-scripts).
+> Houd wachtwoorden en tokens uit het script. Sla ze op als geheime [runbookvariabelen](/docs/runbooks/variables) en schrijf `{{global.variables.NAME}}` waar de waarde moet komen: de Runner krijgt het script met de waarde ingevuld, en de uitvoer van de stap toont `[REDACTED]` op die plek.
 
 ### SSH
 
-Eén opdracht uitvoeren op een host die de Runner via SSH bereikt. Anders dan `ssh host cmd` in een Bash-stap is de toegang een beheerd [inloggegeven](/docs/runbooks/credentials) in plaats van een privésleutel op de schijf van de Runner: versleuteld opgeslagen, toegewezen aan bepaalde Runners en nooit terug te lezen via de API.
+Meld u via SSH aan op een machine en voer daar een bash-script uit. De Runner opent de verbinding, dus de machine hoeft alleen bereikbaar te zijn vanaf de Runner, en de sleutel of het wachtwoord waarmee de stap zich aanmeldt, is een geheime [runbookvariabele](/docs/runbooks/variables), die nooit in de stap staat.
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Runner** | De Runner die de verbinding opent. Hij moet de host via het netwerk kunnen bereiken. |
-| **Credential** | Een SSH-inloggegeven met de host, poort, gebruiker en sleutel of wachtwoord. Het moet aan de gekozen Runner zijn toegewezen; anders mislukt de stap in plaats van met de verkeerde toegang te lopen. |
-| **Command** | Uitgevoerd op de externe host als de gebruiker van het inloggegeven. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
-| **Uitvoeringstime-out** | Omvat verbinden, authenticeren en de opdracht uitvoeren samen, zodat een opdracht die blijft hangen de stap niet open kan houden. Standaard 30 seconden. |
+| **Runner** | De Runner die de verbinding opent. Hij moet de machine via het netwerk kunnen bereiken. |
+| **SSH naar** | De gebruiker en de machine, zoals u ze na `ssh` zou schrijven: `deploy@10.0.4.21`. |
+| **Aanmelden met** | De geheime variabele die de privésleutel of het wachtwoord bevat; de waarde zegt welke het is. Alleen geheime variabelen worden aangeboden, en de stap meldt het wanneer zijn Runner de gekozen variabele niet mag gebruiken. |
+| **Bash-script** | Loopt met `bash` op de machine, als de gebruiker waarmee de stap zich aanmeldt. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
+| **Poort** | Onder **Meer velden**. 22 als het leeg blijft. |
+| **Wachtwoordzin van de sleutel** | Onder **Meer velden**. De geheime variabele die de wachtwoordzin bevat van een sleutel die er een heeft. |
+| **Uitvoeringstime-out** | Omvat verbinden, aanmelden en het script uitvoeren samen, zodat een vastgelopen script de stap niet open kan houden. Standaard 30 seconden. |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
 
-### Kubernetes
+Bijvoorbeeld om een dienst te herstarten en te tonen dat hij weer draait:
 
-Een workload in een cluster herstarten of schalen. De acties zijn bewust een gesloten set: een stap die willekeurige objecten kan wijzigen, zou een cluster-admin-shell zijn, en dit staptype bestaat om de gangbare herstelacties veilig genoeg te maken voor automatisch herstel.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Voer kubectl-opdrachten uit op een cluster. Het script loopt met bash op de Runner, die `kubectl` meelevert, met `KUBECONFIG` dat naar het cluster wijst: elke kubectl-opdracht werkt, en ook elke bash eromheen.
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Runner** | De Runner die de API-server van het cluster aanroept. Hij moet die kunnen bereiken. |
-| **Credential** | Een Kubernetes-inloggegeven: de URL van de API-server, een serviceaccounttoken en de CA van het cluster. Koppel dat serviceaccount aan een rol die alleen toestaat wat uw runbooks nodig hebben. |
-| **Actie** | **Restart workload** wijzigt het pod-sjabloon zodat de controller de pods opnieuw aanmaakt, zoals `kubectl rollout restart` doet. **Scale workload** stelt het aantal replica's in. |
-| **Workload kind** | **Implementatie**, **StatefulSet** of **DaemonSet**. |
-| **Naamruimte** en **Workload name** | De workload waarop wordt ingegrepen. |
-| **Replica's** | Alleen bij schalen. Nul is toegestaan: een workload leeglopen is een legitieme herstelactie. Een DaemonSet draait één pod per node en kan niet worden geschaald; herstart hem in plaats daarvan. |
-| **Uitvoeringstime-out** | Hoe lang de Runner wacht tot de API-server de wijziging accepteert. Standaard 30 seconden. |
+| **Runner** | De Runner die kubectl uitvoert. Hij moet de API-server van het cluster kunnen bereiken. |
+| **Kubeconfig** | De geheime variabele die de kubeconfig van het cluster bevat, of **De eigen toegang van de Runner**: de eigen kubeconfig van de Runner, of zijn serviceaccount als hij in het cluster draait. De Runner schrijft een kubeconfig naar een bestand dat alleen hij kan lezen, en verwijdert het als het script eindigt. |
+| **Script** | De kubectl-opdrachten. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
+| **Uitvoeringstime-out** | Hoe lang de Runner het script laat lopen voordat hij het met `SIGKILL` stopt. Standaard 30 seconden. |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
 
-Weigert de API-server de wijziging, dan verschijnt zijn eigen melding bij de stap, zodat een machtigingsfout u vertelt welke rolkoppeling u moet verruimen.
+Bijvoorbeeld om een deployment te herstarten en te wachten tot de nieuwe pods klaar zijn:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Examples — click to insert**, onder elk script, vult veelgebruikte scripts zoals deze in. Geef de gebruiker van de kubeconfig alleen wat uw scripts doen: een Role in de namespaces waarin ze werken, met de verbs die ze gebruiken. Als de API-server een opdracht weigert, staat de eigen melding van kubectl in de uitvoer van de stap, zodat een machtigingsfout u vertelt welke role binding u moet uitbreiden.
 
 ### AI
 
@@ -224,5 +240,5 @@ Wie reageert, ziet stap 1 lopen, vinkt stap 2 af, ziet stap 3 lopen, vinkt stap 
 - [Een runbook uitvoeren](/docs/runbooks/running): Een uitvoering starten, en de stappen voltooien, goedkeuren of overslaan.
 - [Runbook-regels](/docs/runbooks/rules): Dit runbook automatisch starten bij overeenkomende incidenten.
 - [Runbook-agenten](/docs/runbooks/agents): De Runner installeren die uw scriptstappen nodig hebben.
-- [Runbook-inloggegevens](/docs/runbooks/credentials): SSH- en Kubernetes-stappen beheerde toegang geven.
+- [Runbook-variabelen](/docs/runbooks/variables): Hosts, sleutels, wachtwoorden en kubeconfigs uit uw stappen houden.
 :::

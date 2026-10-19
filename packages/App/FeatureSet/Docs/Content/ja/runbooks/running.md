@@ -132,8 +132,12 @@ Runbook の実行は次の 5 つの方法で作成されます。
 Runbook の **設定** ページで **この Runbook を実行** スイッチがオフになっているか、保存済みのステップがありません。スイッチをオンにするかステップを追加し、 **ステップを保存** をクリックします。Runbook の **概要** にどちらかが表示され、 **Runbook をオンにする** または **ステップを追加** で解決できます。
 :::
 
-:::details Runner または認証情報がないためにステップが失敗した
-メッセージはたとえば「This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.」です。ステップが **Runner** なしで保存されたか、SSH または Kubernetes のステップが **認証情報** なしで保存されました。JavaScript のステップに自社の Runner が必要なのは、それを実行できる [グローバル Runner](/docs/runbooks/agents#グローバル-runner) がない場合だけです。Runbook の **ステップ** を開き、足りないものを選んで **ステップを保存** をクリックし、Runbook を再実行します。
+:::details Runner がないためにステップが失敗した
+メッセージはたとえば「This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.」です。ステップが **Runner** なしで保存されました。JavaScript のステップに自社の Runner が必要なのは、それを実行できる [グローバル Runner](/docs/runbooks/agents#グローバル-runner) がない場合だけです。Runbook の **ステップ** を開き、ステップの Runner を選んで **ステップを保存** をクリックし、Runbook を再実行します。
+:::
+
+:::details 使えない変数を指定しているためにステップが失敗した
+メッセージは "This step names variables it cannot use, so it was not run:" で始まり、変数ごとに何が問題でどこで直すかを示します。その名前の変数がない、シークレットに値がない、またはステップの Runner がそれを使えない、のいずれかです。変数を作成するか、ステップ内の名前を直すか、Runner がシークレットを使えるようにしてから、Runbook をもう一度実行してください。[Runbook の変数](/docs/runbooks/variables) を参照してください。
 :::
 
 :::details どの Runbook エージェントもステップを取得しなかったために失敗した

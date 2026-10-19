@@ -945,7 +945,7 @@ describe("the AI SRE page's cluster-access section", () => {
     );
 
     for (const expected of [
-      "**Runbooks → Runners → Credentials**",
+      "**Runbooks → Runners → AI Access**",
       "**Runs AI Remediation Commands**",
       "**AI Access Runner** and **AI Access Credential**",
       "**Switch to the AI agent**",

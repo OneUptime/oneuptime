@@ -1,6 +1,6 @@
 # Runbook 代理程式
 
-**Runbook 代理程式** 在儀表板中稱為 **Runner** ，是一個小型的自行託管處理程序，它 **在您自己的基礎架構中** 執行 Runbook 的 JavaScript、Bash、SSH 和 Kubernetes 步驟。OneUptime Worker 絕不會執行您的指令碼：它把指令碼放入佇列，由步驟作者選擇的 Runner 認領每項工作、執行它並傳回結果。本頁面向安裝和維運 Runner 的人員。 未選擇 Runner 的 JavaScript 步驟改為在 [全域 Runner](#全域-runner) 上執行，也就是 OneUptime 為所有專案執行的 Runner。
+**Runbook 代理程式** 在儀表板中稱為 **Runner** ，是一個小型的自行託管處理程序，它 **在您自己的基礎架構中** 執行 Runbook 的 JavaScript、Bash、SSH 和 kubectl 步驟。OneUptime Worker 絕不會執行您的指令碼：它把指令碼放入佇列，由步驟作者選擇的 Runner 認領每項工作、執行它並傳回結果。本頁面向安裝和維運 Runner 的人員。 未選擇 Runner 的 JavaScript 步驟改為在 [全域 Runner](#全域-runner) 上執行，也就是 OneUptime 為所有專案執行的 Runner。
 
 :::cards
 - [安裝 Runner](#安裝-runner): 五個步驟，從儀表板到已連線的容器。
@@ -33,13 +33,13 @@ flowchart TB
 1. 您在 OneUptime 中建立一個 Runner。OneUptime 會為它產生一個 ID 和一把秘密金鑰。
 2. 您在自己基礎架構中的一台主機上執行 Runner 容器，並提供該 ID、金鑰和您的 OneUptime URL。
 3. Runner 每 5 秒向 OneUptime 要求一次工作，每 60 秒回報一次自己仍在運作。
-4. 撰寫 JavaScript、Bash、SSH 或 Kubernetes 步驟時，您從下拉式清單中選擇 Runner。步驟會繫結到該 Runner。 JavaScript 步驟可以保留下拉式清單為它選擇的 **全域 Runner** 。
+4. 撰寫 JavaScript、Bash、SSH 或 kubectl 步驟時，您從下拉式清單中選擇 Runner。步驟會繫結到該 Runner。 JavaScript 步驟可以保留下拉式清單為它選擇的 **全域 Runner** 。
 5. 步驟執行時，Worker 會把一項 `targetAgentId` 設為該 Runner 的工作放入佇列。只有該 Runner 能認領它。
-6. Runner 在本機執行工作（Bash 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 和 Kubernetes 使用步驟的憑證建立 SSH 連線或呼叫叢集的 API 伺服器），記錄結果並傳回。Worker 以該結果繼續執行 Runbook。
+6. Runner 在本機執行該工作（Bash 和 kubectl 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 使用在機器上以 bash 執行指令碼的 SSH 連線），記錄結果，隱藏其中步驟的機密，然後回傳。Worker 用該結果繼續執行 Runbook。
 
 Runner 只需要連到您 OneUptime 執行個體的 **對外 HTTPS** 。它不接受任何連入連線。
 
-Runner 只持有自己的 ID 和金鑰。其他一切都隨它認領的工作一起送達：填入了指派給它的 [Runbook 密鑰](/docs/runbooks/credentials#供指令碼使用的密鑰) 的指令碼，或 SSH、Kubernetes 步驟指定的 [憑證](/docs/runbooks/credentials)。因此，任何持有 Runner 金鑰的人都能以該 Runner 的身分行事：請像對待指派給它的憑證一樣對待這把金鑰。
+Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一起收到：已填入其引用的 [Runbook 變數](/docs/runbooks/variables) 的指令碼，以及 SSH 步驟的金鑰或密碼，或 kubectl 步驟的 kubeconfig。只有在機密允許時，它才會收到該機密。因此任何持有 Runner 金鑰的人都能以該 Runner 的身分行事：請像對待它可以使用的機密一樣對待這個金鑰。
 
 ## 為什麼指令碼在 Runner 上執行
 
@@ -56,17 +56,17 @@ Runner 只持有自己的 ID 和金鑰。其他一切都隨它認領的工作一
 
 | | 全域 Runner | 您自己的 Runner |
 | --- | --- | --- |
-| 執行的步驟 | JavaScript | JavaScript、Bash、SSH 和 Kubernetes |
+| 執行的步驟 | JavaScript | JavaScript、Bash、SSH 和 kubectl |
 | 步驟可以存取的位址 | 公用網際網路位址 | 其主機可以存取的位址 |
 | 步驟的最長執行時間 | 5 分鐘 | 1 小時 |
-| Runbook 密鑰 | 您允許全域 Runner 使用的密鑰 | 您指派給它的密鑰 |
+| 機密變數 | 您允許全域 Runner 使用的那些 | 列出了它的那些 |
 | 憑證 | 無 | 您指派給它的憑證 |
 
 全域 Runner 會執行許多專案的步驟，因此每個步驟都與其他所有步驟彼此隔離：
 
 - 每個步驟都在自己的 `isolated-vm` 沙箱中執行，這個沙箱為該步驟建立，並在步驟結束後丟棄：沒有檔案、沒有處理程序、沒有環境變數，也不會從一個步驟保留任何東西到下一個步驟。
 - 它的 HTTP 請求只能到達公用網際網路位址，絕不會到達私人、回送或鏈路本機位址或雲端中繼資料端點，因此全域 Runner 永遠無法存取您的網路。
-- 只有當密鑰的 **全域 Runner 可以使用此密鑰** 開關已開啟時，它才會取得該 Runbook 密鑰，而且只用於該密鑰所屬專案的步驟。它永遠不會取得憑證。
+- 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。它永遠不會收到憑證。
 - 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
 
 對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。
@@ -140,7 +140,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### 新增在 Runner 上執行的步驟
 
-在 Runbook 的 **步驟** 中新增 JavaScript、Bash、SSH 或 Kubernetes 步驟。
+在 Runbook 的 **步驟** 中新增 JavaScript、Bash、SSH 或 kubectl 步驟。
 
 ### 選擇 Runner
 
@@ -151,7 +151,7 @@ docker rm -f oneuptime-runner
 點選 **Save Steps** 。執行到達該步驟時，Worker 會為該 Runner 的 ID 放入一項工作，只有該 Runner 能認領它。 選擇 **全域 Runner** 的步驟會等待任何一個空閒的全域 Runner。
 :::
 
-Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中執行，無法存取檔案系統或處理程序；它可以用 `axios` 呼叫公開的 HTTP API，但無法呼叫私人網路上的位址。SSH 和 Kubernetes 步驟使用步驟指定的 [憑證](/docs/runbooks/credentials)，而該憑證必須已指派給同一個 Runner。
+Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中執行，無法存取檔案系統或處理程序；它可以用 `axios` 呼叫公開的 HTTP API，但無法呼叫私人網路上的位址。SSH 和 kubectl 步驟使用機密 [Runbook 變數](/docs/runbooks/variables) 登入，該變數必須在 **可以使用它的 Runner** 中列出步驟的 Runner。
 
 需要多個 Runner？分別建立，並為每個步驟指定合適的 Runner。若要備援，可以再執行一個 Runner 並把步驟分配給兩者，或者準備一個步驟指向另一個 Runner 的備用 Runbook。
 
@@ -166,7 +166,7 @@ Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中
 | **領取逾時** | 2 分鐘 | Worker 等待所選 Runner 認領工作的時間。如果 Runner 沒有及時認領，步驟會因逾時而失敗，Runbook 則繼續進行（或停止，取決於 **失敗時繼續** ）。 |
 | **執行逾時** | 30 秒 | Runner 在停止步驟之前允許其執行的時間。Bash 會收到 `SIGKILL`；JavaScript 的沙箱會被拆除。 |
 
-兩者都可以按步驟設定。開啟 **Runbooks › 您的 Runbook › 步驟** ，展開步驟，並在其設定中填寫 **執行逾時** 和 **領取逾時** （以秒為單位）。留空則使用預設值。每種逾時都接受 1 秒到 1 小時；超出該範圍的值會在步驟執行時被限制在範圍內。
+兩者都可以按步驟設定。開啟 **Runbooks › 您的 Runbook › 步驟** ，展開步驟，並在其 **更多欄位** 中填寫 **執行逾時** 和 **領取逾時** （以秒為單位）。留空則使用預設值。每種逾時都接受 1 秒到 1 小時；超出該範圍的值會在步驟執行時被限制在範圍內。
 
 Worker 的總等待時間是 `claim timeout + execution timeout + a few seconds`。請選擇適合該步驟的值。
 
@@ -307,14 +307,18 @@ Runner 認領了工作，然後停止續約：它當機了、重新啟動了或�
 此 Runner 的所有功能都已關閉。請在 OneUptime 中 Runner 的頁面上開啟 **執行操作手冊** 。它會在下一次心跳時取得此變更。
 :::
 
-:::details 全域 Runner 上的步驟失敗，因為全域 Runner 不能使用某個 Runbook 密鑰
-該步驟引用的 Runbook 密鑰關閉了 **全域 Runner 可以使用此密鑰** 開關，因此全域 Runner 沒有取得它，步驟也沒有執行。錯誤中會寫出該密鑰的名稱。請在 **運行手冊 → 設定 → 密鑰** 中為它開啟該開關，或為該步驟選擇您自己的 Runner。
+:::details 步驟失敗，因為其 Runner 不能使用某個機密變數
+該步驟引用的機密變數不允許其 Runner 使用，因此 Runner 沒有收到它，步驟也沒有執行。錯誤會指出該機密以及需要修改的內容。在 **運行手冊 → 設定 → 全域變數** 或 Runbook 的 **設定 → 變數** 中，把該 Runner 加入 **可以使用它的 Runner** ，或者對於全域 Runner 上的步驟，開啟 **全域 Runner 可以使用** 。也可以選擇一個機密允許的 Runner。
+:::
+
+:::details kubectl 步驟失敗，因為其 Runner 太舊
+步驟失敗並顯示 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." 早於 kubectl 指令碼的 Runner 無法執行指令碼。按 [讓代理程式保持最新](#5-讓代理程式保持最新) 中的說明更新 Runner，然後再次執行 Runbook。
 :::
 
 ## 後續步驟
 
 :::cards
 - [撰寫 Runbook](/docs/runbooks/authoring): 撰寫在您的 Runner 上執行的步驟。
-- [Runbook 憑證](/docs/runbooks/credentials): 為 SSH 和 Kubernetes 步驟提供受管存取權。
+- [Runbook 變數](/docs/runbooks/variables): 步驟使用的值和機密，以及接收它們的 Runner。
 - [Runbook 設定與安全](/docs/runbooks/configuration): 限制、權限和強化。
 :::
