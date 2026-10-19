@@ -107,6 +107,8 @@ For opptil 4 av dem som nevner en tjeneste, leser OneUptime tjenestens telemetri
 
 OneUptime avgjør hvilken endring som er mistenkt ut fra disse tallene, ikke ut fra hva tittelen på en endring sier. Undersøkelsen sjekker en mistenkt endring først, sier om den forårsaket hendelsen, og sier om det å rulle den tilbake er den raskeste trygge rettelsen.
 
+Når den mistenkte endringen er en Kubernetes-rollout på en klynge der [AI-rettelser](/docs/ai/ai-sre#slik-fungerer-rettelser) er slått på, ruller OneUptime AI den tilbake først, med en `kubectl rollout undo` som OneUptime bygger ut fra den registrerte endringen. En utrulling som leverer kode, rulles tilbake gjennom commitene sine: undersøkelsen nevner commiten eller pull requesten som forårsaket problemet, så en [pull-forespørsel med en rettelse](/docs/ai/ai-sre#automatiske-koderettelser) kan rulle tilbake nøyaktig den.
+
 I en undersøkelse og i [Ask AI](/docs/ai/ask-ai) lister `recent_changes` endringene i et hvilket som helst tidsvindu, og `get_change_details` viser hva en utrulling leverte: commitene siden tjenestens forrige utrulling, forfatterne deres, pull requestene og filene de endret. Det krever commiten på endringen og et repository som er koblet til via [GitHub App](/docs/ai/github-app).
 
 ## Referanse

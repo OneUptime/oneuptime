@@ -107,6 +107,8 @@ Para até 4 delas que indicam um serviço, o OneUptime lê a telemetria do servi
 
 O OneUptime decide qual alteração é suspeita a partir desses números, não do que diz o título de uma alteração. A investigação verifica primeiro uma alteração suspeita, diz se ela causou o incidente e diz se revertê-la é a correção segura mais rápida.
 
+Quando a alteração suspeita é um rollout do Kubernetes em um cluster cujas [correções de IA](/docs/ai/ai-sre#como-as-correções-funcionam) estão ativadas, a OneUptime AI o reverte primeiro, com um `kubectl rollout undo` que o OneUptime monta a partir da alteração registrada. Um deploy que entrega código é revertido pelos seus commits: a investigação aponta o commit ou o pull request que causou o problema, para que um [pull request de correção](/docs/ai/ai-sre#correções-automáticas-de-código) possa reverter exatamente isso.
+
 Em uma investigação e no [Ask AI](/docs/ai/ask-ai), `recent_changes` lista as alterações de qualquer janela de tempo, e `get_change_details` mostra o que um deploy entregou: os commits desde o deploy anterior do serviço, os autores deles, os pull requests e os arquivos que eles alteraram. Isso exige o commit na alteração e um repositório conectado pelo [GitHub App](/docs/ai/github-app).
 
 ## Referência

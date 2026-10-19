@@ -107,6 +107,8 @@ For up to four of them that name a service, OneUptime reads the service's teleme
 
 OneUptime decides which change is a suspect from these numbers, not from what a change's title says. The investigation checks a suspect first, says whether it caused the incident, and says whether rolling it back is the fastest safe fix.
 
+When the suspect is a Kubernetes rollout on a cluster whose [AI fixes](/docs/ai/ai-sre#how-fixes-work) are on, OneUptime AI rolls it back first, with a `kubectl rollout undo` that OneUptime builds from the recorded change. A deploy that ships code is rolled back through its commits: the investigation names the commit or pull request that broke things, so a [fix pull request](/docs/ai/ai-sre#automatic-code-fixes) can revert exactly that.
+
 In an investigation and in [Ask AI](/docs/ai/ask-ai), `recent_changes` lists the changes in any window, and `get_change_details` shows what a deploy shipped: the commits since the service's previous deploy, their authors, the pull requests and the files they touched. That needs the commit on the change and a repository connected through the [GitHub App](/docs/ai/github-app).
 
 ## Reference

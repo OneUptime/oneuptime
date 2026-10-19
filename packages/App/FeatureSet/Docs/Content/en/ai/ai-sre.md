@@ -206,6 +206,8 @@ flowchart TB
   - another unattended OneUptime AI round is still changing, or still verifying a fix on, the same cluster — an alert and an incident of one monitor are the usual case — or that cannot be checked;
   - it is the follow-up round after a fix whose rollback did not complete.
 
+**Rollback first.** When OneUptime marked a Kubernetes rollout on the cluster a suspect for the incident (see [Deploys and Changes](/docs/telemetry/change-events)), OneUptime AI tries rolling it back before any other fix. OneUptime builds the `kubectl rollout undo` from the recorded change, never from what the model writes, and it runs or waits for approval like any safe change in the cluster's mode. It is not offered when the Deployment changed again after that rollout, because the undo would then undo the later change.
+
 A **safe** change touches exactly one named object: `rollout restart/undo/pause/resume`, `scale` (to anything but 0), deleting a named pod, `cordon`/`uncordon`, and `label`/`annotate` on one named pod, Deployment, StatefulSet, DaemonSet, ReplicaSet, Job or CronJob with an ordinary key (not a reserved one such as `*.kubernetes.io/…` or `*.k8s.io/…`). Everything else the policy allows is **riskier**: the same verbs on a bare kind (`rollout restart deployment`), on several objects, with a selector or with `--all`; `scale` to 0; deleting a job; `taint`; `drain`; `patch`; `set image/env/resources`; `create`; deleting with `--force`; and labels or annotations on any other kind or with a reserved key.
 
 Some lines hold in **every** mode, Bypass approval included, and no allowlist entry changes them:

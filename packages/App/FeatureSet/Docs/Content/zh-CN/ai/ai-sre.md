@@ -206,6 +206,8 @@ AI 代理页面上的 **修复** 有四种设置（chart 的 `aiAgent.fixes`：`
   - 另一轮无人值守的 OneUptime AI 仍在更改同一集群，或仍在验证该集群上的某个修复——同一个监视器的警报和事件是常见情况——或者无法检查这一点；
   - 这是在某个回滚未完成的修复之后的后续一轮。
 
+**先回滚。** 当 OneUptime 将集群上的某次 Kubernetes 滚动更新标记为该事件的可疑变更时（参见 [部署与变更](/docs/telemetry/change-events)），OneUptime AI 会在任何其他修复之前先尝试回滚它。OneUptime 根据记录下来的变更构建 `kubectl rollout undo`，绝不依据模型写出的内容；它会像集群所处模式下的任何安全更改一样，直接运行或等待批准。如果该 Deployment 在那次滚动更新之后又发生了变化，就不会提供这一回滚，因为那样撤销的将是后来的那次变更。
+
 **安全的** 更改只涉及恰好一个具名对象：`rollout restart/undo/pause/resume`、`scale` （缩放到 0 以外的任何值）、删除一个具名 Pod、`cordon`/`uncordon`，以及对一个具名的 Pod、Deployment、StatefulSet、DaemonSet、ReplicaSet、Job 或 CronJob 使用普通键（不是 `*.kubernetes.io/…` 或 `*.k8s.io/…` 这样的保留键）执行 `label`/`annotate`。策略允许的其他一切都 **风险较高**：对不带名称的类型使用相同的动词（`rollout restart deployment`）、作用于多个对象、带选择器或带 `--all`；`scale` 到 0；删除 Job；`taint`；`drain`；`patch`；`set image/env/resources`；`create`；带 `--force` 删除；以及对任何其他类型或使用保留键添加标签或注解。
 
 有些界限在 **每种** 模式下都成立，包括跳过批准，任何允许列表条目都无法改变它们：

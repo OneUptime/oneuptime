@@ -107,6 +107,8 @@ Per un massimo di 4 di esse che nominano un servizio, OneUptime legge la telemet
 
 OneUptime decide quale modifica è sospetta in base a questi numeri, non a ciò che dice il titolo di una modifica. L'indagine controlla per prima una modifica sospetta, dice se ha causato l'incidente e dice se annullarla con un rollback è la correzione sicura più rapida.
 
+Quando la modifica sospetta è un rollout Kubernetes su un cluster le cui [correzioni IA](/docs/ai/ai-sre#come-funzionano-le-correzioni) sono attive, OneUptime AI ne fa prima il rollback, con un `kubectl rollout undo` che OneUptime costruisce a partire dalla modifica registrata. Un deploy che rilascia codice viene annullato tramite i suoi commit: l'indagine indica il commit o la pull request che ha causato il problema, così una [pull request di correzione](/docs/ai/ai-sre#correzioni-automatiche-del-codice) può annullare esattamente quello.
+
 In un'indagine e in [Chiedi all'IA](/docs/ai/ask-ai), `recent_changes` elenca le modifiche in qualsiasi finestra di tempo, e `get_change_details` mostra che cosa ha rilasciato un deploy: i commit dal deploy precedente del servizio, i loro autori, le pull request e i file che hanno toccato. Per questo servono il commit sulla modifica e un repository collegato tramite la [GitHub App](/docs/ai/github-app).
 
 ## Riferimento

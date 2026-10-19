@@ -206,6 +206,8 @@ AI 에이전트 페이지의 **수정** 에는 네 가지 설정이 있습니다
   - OneUptime AI의 다른 무인 라운드가 아직 같은 클러스터를 변경하거나 그곳의 수정을 검증하는 중일 때(같은 모니터의 경고와 인시던트가 흔한 경우입니다), 또는 그것을 확인할 수 없을 때;
   - 롤백이 완료되지 않은 수정 후의 후속 라운드일 때.
 
+**롤백이 먼저입니다.** OneUptime이 클러스터의 Kubernetes 롤아웃을 인시던트의 의심 대상으로 표시했다면([배포 및 변경 사항](/docs/telemetry/change-events) 참조), OneUptime AI는 다른 어떤 수정보다 먼저 그 롤아웃을 롤백해 봅니다. OneUptime은 `kubectl rollout undo` 를 모델이 쓴 내용이 아니라 항상 기록된 변경으로부터 만들며, 이 명령은 클러스터의 모드에서 다른 안전한 변경과 똑같이 실행되거나 승인을 기다립니다. 그 롤아웃 이후 Deployment가 다시 바뀌었다면 이 롤백은 제안되지 않습니다. 되돌리면 나중의 변경까지 되돌리게 되기 때문입니다.
+
 **안전한** 변경은 이름이 지정된 객체 정확히 하나만 건드립니다: `rollout restart/undo/pause/resume`, `scale`(0을 제외한 값으로), 이름이 지정된 파드 삭제, `cordon`/`uncordon`, 그리고 이름이 지정된 Pod, Deployment, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob 하나에 일반 키(`*.kubernetes.io/…` 나 `*.k8s.io/…` 같은 예약된 키가 아닌 것)로 하는 `label`/`annotate` 입니다. 정책이 허용하는 그 밖의 모든 것은 **더 위험합니다**: 이름 없는 종류에 대한 같은 동사(`rollout restart deployment`), 여러 객체에 대한 것, 선택기나 `--all` 을 쓰는 것, 0으로의 `scale`, 작업 삭제, `taint`, `drain`, `patch`, `set image/env/resources`, `create`, `--force` 로 삭제, 그리고 다른 종류에 하거나 예약된 키로 하는 레이블이나 어노테이션입니다.
 
 일부 선은 승인 건너뛰기 를 포함한 **모든** 모드에서 지켜지며, 허용 목록의 어떤 항목도 이를 바꾸지 못합니다:

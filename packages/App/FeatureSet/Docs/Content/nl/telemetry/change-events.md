@@ -107,6 +107,8 @@ Voor maximaal 4 daarvan die een service noemen, leest OneUptime de telemetrie va
 
 OneUptime bepaalt welke wijziging verdacht is op basis van deze cijfers, niet op basis van wat de titel van een wijziging zegt. Het onderzoek controleert eerst een verdachte wijziging, zegt of die het incident heeft veroorzaakt, en zegt of terugdraaien de snelste veilige fix is.
 
+Als de verdachte wijziging een Kubernetes-rollout is op een cluster waarvan de [AI-fixes](/docs/ai/ai-sre#zo-werken-fixes) aan staan, draait OneUptime AI die eerst terug, met een `kubectl rollout undo` die OneUptime samenstelt uit de vastgelegde wijziging. Een deploy die code uitrolt, wordt teruggedraaid via zijn commits: het onderzoek noemt de commit of pull request die het probleem veroorzaakte, zodat een [pull request met een fix](/docs/ai/ai-sre#automatische-codefixes) precies die kan terugdraaien.
+
 In een onderzoek en in [Ask AI](/docs/ai/ask-ai) toont `recent_changes` de wijzigingen in elk tijdvenster, en laat `get_change_details` zien wat een deploy heeft uitgerold: de commits sinds de vorige deploy van de service, hun auteurs, de pull requests en de bestanden die ze hebben gewijzigd. Daarvoor zijn de commit bij de wijziging en een repository nodig die is gekoppeld via de [GitHub App](/docs/ai/github-app).
 
 ## Referentie
