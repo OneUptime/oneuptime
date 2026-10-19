@@ -436,6 +436,19 @@ const compileCache: Map<string, CompiledGrokPattern | BadDataException> =
 
 export const MAX_CACHED_GROK_PATTERNS: number = 500;
 
+/*
+ * And how many matcher steps the cached patterns may hold together: a grok
+ * pattern compiles to up to MAX_GROK_STEPS, and the patterns are written by
+ * the people of every project.
+ */
+export const MAX_CACHED_GROK_STEPS: number = 2_000_000;
+
+let cachedGrokSteps: number = 0;
+
+function grokStepsOf(entry: CompiledGrokPattern | BadDataException): number {
+  return entry instanceof BadDataException ? 0 : entry.regex.steps;
+}
+
 export function compileGrokPatternCached(pattern: string): CompiledGrokPattern {
   const cached: CompiledGrokPattern | BadDataException | undefined =
     compileCache.get(pattern);
@@ -457,16 +470,21 @@ export function compileGrokPatternCached(pattern: string): CompiledGrokPattern {
       err instanceof BadDataException ? err : new BadDataException(String(err));
   }
 
-  if (compileCache.size >= MAX_CACHED_GROK_PATTERNS) {
-    // Insertion-ordered: drop the oldest entry to bound the cache.
-    const oldestKey: string | undefined = compileCache.keys().next().value;
-
-    if (oldestKey !== undefined) {
-      compileCache.delete(oldestKey);
+  // Insertion-ordered: drop the oldest entries to bound the cache.
+  for (const oldestKey of Array.from(compileCache.keys())) {
+    if (
+      compileCache.size < MAX_CACHED_GROK_PATTERNS &&
+      cachedGrokSteps + grokStepsOf(result) <= MAX_CACHED_GROK_STEPS
+    ) {
+      break;
     }
+
+    cachedGrokSteps -= grokStepsOf(compileCache.get(oldestKey)!);
+    compileCache.delete(oldestKey);
   }
 
   compileCache.set(pattern, result);
+  cachedGrokSteps += grokStepsOf(result);
 
   if (result instanceof BadDataException) {
     throw result;
@@ -475,9 +493,15 @@ export function compileGrokPatternCached(pattern: string): CompiledGrokPattern {
   return result;
 }
 
+/** How many matcher steps the cached compilations hold, for tests. */
+export function getCachedGrokSteps(): number {
+  return cachedGrokSteps;
+}
+
 /** Test seam: forget every cached compilation. */
 export function clearGrokCompileCache(): void {
   compileCache.clear();
+  cachedGrokSteps = 0;
 }
 
 /*

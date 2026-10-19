@@ -99,6 +99,25 @@ function assertionHolds(kind: number, text: string, position: number): boolean {
   }
 }
 
+/*
+ * A yes or no for every position of a text, one bit each: where a
+ * look-around holds, where a match can start. A text of tens of megabytes
+ * and a pattern of many look-arounds would otherwise ask for a byte per
+ * position per look-around.
+ */
+export function newPositionBits(textLength: number): Uint8Array {
+  // Positions 0 .. textLength, the end of the text included.
+  return new Uint8Array((textLength >>> 3) + 1);
+}
+
+export function setPositionBit(bits: Uint8Array, position: number): void {
+  bits[position >>> 3] = bits[position >>> 3]! | (1 << (position & 7));
+}
+
+export function positionBit(bits: Uint8Array, position: number): number {
+  return (bits[position >>> 3]! >>> (position & 7)) & 1;
+}
+
 // Whether the step at pc, one that reads a code unit, reads this one.
 function readsCodeUnit(
   program: Program,
@@ -130,17 +149,17 @@ function readsCodeUnit(
  * each step of the pattern per code unit - but for a pattern of thousands of
  * steps whose automaton keeps meeting new states, "in line" can still be
  * a minute for a megabyte. So the visits are counted, and a question about a
- * text may take at most WORK_PER_CODE_UNIT of them per code unit (and
- * WORK_FLOOR whatever the text, for a large pattern's first states): the time
- * is then in line with the text with a small multiple, whatever the pattern.
- * A real pattern needs a few visits per code unit once its states are met;
- * one built to need more is stopped with PatternWorkLimitError, and the
- * caller decides what that means (a rule does not match, a scrub rule
- * scrubs the whole value).
+ * text may take at most WORK_PER_CODE_UNIT of them per code unit, plus
+ * WORK_PER_STEP per step of the pattern for the first states a large pattern
+ * meets: the time is then in line with the text and the pattern, with a
+ * small multiple, whatever the pattern. A real pattern needs a few visits
+ * per code unit once its states are met; one built to need more is stopped
+ * with PatternWorkLimitError, and the caller decides what that means (a rule
+ * does not match, a scrub rule scrubs the whole value).
  */
 
 export const WORK_PER_CODE_UNIT: number = 128;
-export const WORK_FLOOR: number = 4_000_000;
+export const WORK_PER_STEP: number = 64;
 
 export class WorkMeter {
   private used: number = 0;
@@ -150,10 +169,13 @@ export class WorkMeter {
     this.limit = limit;
   }
 
-  // The meter for one question about a text of this length.
-  public static forText(length: number): WorkMeter {
+  /*
+   * The meter for one question about a text of this length, asked of a
+   * pattern of this many steps (CompiledPattern.totalSteps).
+   */
+  public static forText(length: number, patternSteps: number): WorkMeter {
     return new WorkMeter(
-      Math.max(WORK_FLOOR, WORK_PER_CODE_UNIT * (length + 1)),
+      WORK_PER_CODE_UNIT * (length + 1) + WORK_PER_STEP * patternSteps,
     );
   }
 
@@ -241,15 +263,22 @@ class CodeUnitClasses {
     addRange(0x0d, 0x0d);
     addRange(0x2028, 0x2029);
 
+    // Each class once: many steps of a large pattern read the same one.
+    const setsRead: Set<number> = new Set<number>();
+
     for (let pc: number = 0; pc < program.ops.length; pc++) {
       if (program.ops[pc] === OP_CHARACTER) {
         addRange(program.argA[pc]!, program.argA[pc]!);
       } else if (program.ops[pc] === OP_SET) {
-        const set: CharacterSet = program.sets[program.argA[pc]!]!;
+        setsRead.add(program.argA[pc]!);
+      }
+    }
 
-        for (let index: number = 0; index < set.ranges.length; index += 2) {
-          addRange(set.ranges[index]!, set.ranges[index + 1]!);
-        }
+    for (const setIndex of setsRead) {
+      const set: CharacterSet = program.sets[setIndex]!;
+
+      for (let index: number = 0; index < set.ranges.length; index += 2) {
+        addRange(set.ranges[index]!, set.ranges[index + 1]!);
       }
     }
 
@@ -294,13 +323,170 @@ class CodeUnitClasses {
 }
 
 /*
- * One program's automaton for one direction of reading. Kept with the
- * program (see dfaFor), so every text read builds on the states earlier
- * texts met.
+ * ---------------------------------------------------------------------------
+ * The automata kept between questions, within a bound of memory.
+ * ---------------------------------------------------------------------------
+ *
+ * A program's automaton keeps the states it meets, so the next text is read
+ * at one table lookup per code unit. Patterns come and go - the caches of
+ * compiled patterns drop the least recently used - and a pattern can be
+ * built to meet many large states. So every automaton is kept here, with an
+ * estimate of the memory it holds (its states, and the program it reads),
+ * and together they hold at most MAX_KEPT_AUTOMATA_BYTES: when keeping more
+ * would pass that, the automata read least recently are dropped, to be built
+ * again from nothing if their pattern is asked again. One automaton holds at
+ * most MAX_AUTOMATON_BYTES; past that it reads on without keeping new states,
+ * at the cost per code unit of reading without an automaton - which the work
+ * meter bounds.
+ */
+export const MAX_KEPT_AUTOMATA_BYTES: number = 64 * 1024 * 1024;
+export const MAX_AUTOMATON_BYTES: number = 16 * 1024 * 1024;
+
+// What a state costs besides its arrays: the object, its key's entry.
+const STATE_OVERHEAD_BYTES: number = 128;
+
+class AutomatonStore {
+  private readonly forwardAutomata: Map<Program, LazyDfa> = new Map<
+    Program,
+    LazyDfa
+  >();
+  private readonly backwardAutomata: Map<Program, LazyDfa> = new Map<
+    Program,
+    LazyDfa
+  >();
+  // Every kept automaton, the one read least recently first.
+  private readonly recency: Map<LazyDfa, true> = new Map<LazyDfa, true>();
+  private keptBytes: number = 0;
+
+  // What all kept automata hold together (an estimate, in bytes).
+  public get bytes(): number {
+    return this.keptBytes;
+  }
+
+  // How many automata are kept.
+  public get size(): number {
+    return this.recency.size;
+  }
+
+  // The program's automaton for this direction: the kept one, or a new one.
+  public automatonFor(program: Program, forwards: boolean): LazyDfa {
+    const byProgram: Map<Program, LazyDfa> = forwards
+      ? this.forwardAutomata
+      : this.backwardAutomata;
+    let automaton: LazyDfa | undefined = byProgram.get(program);
+
+    if (automaton === undefined) {
+      automaton = new LazyDfa(program, forwards, this);
+      byProgram.set(program, automaton);
+      this.keptBytes += automaton.bytes;
+    } else {
+      this.recency.delete(automaton);
+    }
+
+    this.recency.set(automaton, true);
+    this.makeRoom(automaton);
+
+    return automaton;
+  }
+
+  public holds(automaton: LazyDfa): boolean {
+    return this.recency.has(automaton);
+  }
+
+  /*
+   * Whether the automaton may keep a state of this many bytes more; when it
+   * may, they are counted as kept.
+   */
+  public reserve(automaton: LazyDfa, bytes: number): boolean {
+    if (
+      !this.recency.has(automaton) ||
+      automaton.bytes + bytes > MAX_AUTOMATON_BYTES
+    ) {
+      return false;
+    }
+
+    this.keptBytes += bytes;
+    this.makeRoom(automaton);
+
+    if (this.keptBytes > MAX_KEPT_AUTOMATA_BYTES) {
+      // Only what this automaton holds is left, and it is too much.
+      this.keptBytes -= bytes;
+      return false;
+    }
+
+    return true;
+  }
+
+  // The automaton forgot states that held this many bytes.
+  public released(automaton: LazyDfa, bytes: number): void {
+    if (this.recency.has(automaton)) {
+      this.keptBytes -= bytes;
+    }
+  }
+
+  // Test seam: forget every automaton.
+  public clear(): void {
+    this.forwardAutomata.clear();
+    this.backwardAutomata.clear();
+    this.recency.clear();
+    this.keptBytes = 0;
+  }
+
+  // Drops the automata read least recently until the rest fit; never `keep`.
+  private makeRoom(keep: LazyDfa): void {
+    if (this.keptBytes <= MAX_KEPT_AUTOMATA_BYTES) {
+      return;
+    }
+
+    for (const oldest of Array.from(this.recency.keys())) {
+      if (this.keptBytes <= MAX_KEPT_AUTOMATA_BYTES) {
+        return;
+      }
+
+      if (oldest !== keep) {
+        this.drop(oldest);
+      }
+    }
+  }
+
+  private drop(automaton: LazyDfa): void {
+    this.recency.delete(automaton);
+    (automaton.forwards ? this.forwardAutomata : this.backwardAutomata).delete(
+      automaton.program,
+    );
+    this.keptBytes -= automaton.bytes;
+  }
+}
+
+const automata: AutomatonStore = new AutomatonStore();
+
+// What the kept automata hold, for tests and diagnostics.
+export function getKeptAutomataBytes(): number {
+  return automata.bytes;
+}
+
+export function getKeptAutomataCount(): number {
+  return automata.size;
+}
+
+// Test seam: forget every kept automaton.
+export function clearKeptAutomata(): void {
+  automata.clear();
+}
+
+/*
+ * One program's automaton for one direction of reading. Kept in the store
+ * above, so every text read builds on the states earlier texts met.
  */
 class LazyDfa {
-  private readonly program: Program;
-  private readonly forwards: boolean;
+  public readonly program: Program;
+  public readonly forwards: boolean;
+  /*
+   * What the automaton holds, in bytes (an estimate): the program it reads
+   * and its own arrays, and the states it keeps.
+   */
+  public bytes: number;
+  private readonly store: AutomatonStore;
   private readonly classes: CodeUnitClasses;
   // The look-around answers the program reads, and each step's bit of them.
   private readonly lookaroundTables: Array<number>;
@@ -308,6 +494,8 @@ class LazyDfa {
   private readonly combinations: number;
   private readonly states: Array<DfaState> = [];
   private readonly stateByKey: Map<string, number> = new Map<string, number>();
+  // What the kept states hold, in bytes.
+  private statesBytes: number = 0;
   private readonly marks: Int32Array;
   private mark: number = 0;
   private readonly stack: Int32Array;
@@ -316,11 +504,16 @@ class LazyDfa {
   // The meter of the scan under way.
   private meter: WorkMeter = new WorkMeter(Infinity);
 
-  public constructor(program: Program, forwards: boolean) {
+  public constructor(
+    program: Program,
+    forwards: boolean,
+    store: AutomatonStore,
+  ) {
     this.program = program;
     this.forwards = forwards;
+    this.store = store;
     this.classes = new CodeUnitClasses(program);
-    this.lookaroundTables = LazyDfa.lookaroundsOf(program);
+    this.lookaroundTables = Array.from(program.lookaroundsRead);
     this.bitOfStep = new Int32Array(program.ops.length).fill(-1);
 
     for (let pc: number = 0; pc < program.ops.length; pc++) {
@@ -333,21 +526,15 @@ class LazyDfa {
     this.marks = new Int32Array(program.ops.length);
     this.stack = new Int32Array(program.ops.length + 1);
     this.found = new Int32Array(program.ops.length);
-  }
 
-  public static lookaroundsOf(program: Program): Array<number> {
-    const tables: Array<number> = [];
+    let setBytes: number = 0;
 
-    for (let pc: number = 0; pc < program.ops.length; pc++) {
-      if (
-        program.ops[pc] === OP_LOOKAROUND &&
-        !tables.includes(program.argA[pc]!)
-      ) {
-        tables.push(program.argA[pc]!);
-      }
+    for (const set of program.sets) {
+      setBytes += 64 + 8 * set.ranges.length;
     }
 
-    return tables;
+    // The program's four arrays and this automaton's four, per step.
+    this.bytes = 32 * program.ops.length + 4 * this.classes.count + setBytes;
   }
 
   /*
@@ -369,15 +556,14 @@ class LazyDfa {
        * Full from earlier texts: start this one afresh rather than read it
        * all with states that are not kept.
        */
-      this.states.length = 0;
-      this.stateByKey.clear();
+      this.forgetStates();
     }
 
     const forwards: boolean = this.forwards;
     const firstCodeUnits: CharacterSet | null = this.program.firstCodeUnits;
-    const idleStates: Array<number | undefined> = [];
+    const idleStates: Array<DfaState | undefined> = [];
     let position: number = forwards ? 0 : text.length;
-    let state: DfaState = this.states[this.stateFor([], BEHIND_NOTHING)]!;
+    let state: DfaState = this.stateFor([], BEHIND_NOTHING);
 
     for (;;) {
       const hasAhead: boolean = forwards
@@ -401,14 +587,14 @@ class LazyDfa {
         position = this.nextCandidate(firstCodeUnits, text, position);
 
         const behind: number = this.behindAt(text, position);
-        let idle: number | undefined = idleStates[behind];
+        let idle: DfaState | undefined = idleStates[behind];
 
         if (idle === undefined) {
           idle = this.stateFor([], behind);
           idleStates[behind] = idle;
         }
 
-        state = this.states[idle]!;
+        state = idle;
         continue;
       }
 
@@ -444,7 +630,7 @@ class LazyDfa {
 
           next = this.states[computed]!;
         } else {
-          // The automaton is full: carry on with a state that is not kept.
+          // Not kept: carry on with the ways themselves as the state.
           move = this.reachedEnd ? 1 : 0;
           next = computed;
         }
@@ -518,7 +704,8 @@ class LazyDfa {
     let combination: number = 0;
 
     for (let bit: number = 0; bit < this.lookaroundTables.length; bit++) {
-      combination |= tables[this.lookaroundTables[bit]!]![position]! << bit;
+      combination |=
+        positionBit(tables[this.lookaroundTables[bit]!]!, position) << bit;
     }
 
     return combination;
@@ -615,11 +802,21 @@ class LazyDfa {
     return foundLength;
   }
 
+  // Whether the automaton keeps as many moves as it may.
   private isFull(): boolean {
     return (
       (this.states.length + 1) * this.classes.count * this.combinations >
-      MAX_DFA_MOVES
+        MAX_DFA_MOVES || this.bytes >= MAX_AUTOMATON_BYTES
     );
+  }
+
+  // Forgets every state kept, so a new text starts afresh.
+  private forgetStates(): void {
+    this.states.length = 0;
+    this.stateByKey.clear();
+    this.store.released(this, this.statesBytes);
+    this.bytes -= this.statesBytes;
+    this.statesBytes = 0;
   }
 
   private assertionHoldsHere(
@@ -684,7 +881,7 @@ class LazyDfa {
 
   /*
    * The state after reading `ahead` from `state`: a kept state's index or,
-   * once the automaton is full, a state that is not kept. Sets
+   * when no more can be kept, a state that is not kept. Sets
    * this.reachedEnd for the position before the code unit.
    */
   private computeMove(
@@ -707,32 +904,31 @@ class LazyDfa {
     const behind: number = this.behindAfter(ahead);
     this.reachedEnd = reachedEnd;
 
+    return this.keptStateFor(next, behind);
+  }
+
+  // The state of these ways: kept when it can be (see keptStateFor).
+  private stateFor(pcs: Array<number>, behind: number): DfaState {
+    const kept: DfaState | number = this.keptStateFor(pcs, behind);
+
+    return typeof kept === "number" ? this.states[kept]! : kept;
+  }
+
+  /*
+   * The kept state of these ways - an index - or, when the automaton is full
+   * or the store has no room, a state that is not kept, which carries no
+   * moves: every move from it is worked out again.
+   */
+  private keptStateFor(pcs: Array<number>, behind: number): DfaState | number {
     if (this.isFull()) {
-      // No more states are kept: the ways themselves are the next state.
-      return {
-        pcs: Int32Array.from(next),
-        behind: behind,
-        moves: null,
-        ends: null,
-      };
+      return { pcs: Int32Array.from(pcs), behind: behind, moves: null, ends: null };
     }
 
     // A set of ways: their order does not matter for where one ends.
-    next.sort((left: number, right: number): number => {
+    pcs.sort((left: number, right: number): number => {
       return left - right;
     });
 
-    const key: string = `${behind}:${next.join(",")}`;
-    const existing: number | undefined = this.stateByKey.get(key);
-
-    if (existing !== undefined) {
-      return existing;
-    }
-
-    return this.addState(key, Int32Array.from(next), behind);
-  }
-
-  private stateFor(pcs: Array<number>, behind: number): number {
     const key: string = `${behind}:${pcs.join(",")}`;
     const existing: number | undefined = this.stateByKey.get(key);
 
@@ -740,19 +936,29 @@ class LazyDfa {
       return existing;
     }
 
-    return this.addState(key, Int32Array.from(pcs), behind);
-  }
+    const moveCount: number = this.classes.count * this.combinations;
+    // The key is digits, commas and a colon: one byte a character.
+    const bytes: number =
+      STATE_OVERHEAD_BYTES +
+      4 * moveCount +
+      this.combinations +
+      4 * pcs.length +
+      key.length;
 
-  private addState(key: string, pcs: Int32Array, behind: number): number {
+    if (!this.store.reserve(this, bytes)) {
+      return { pcs: Int32Array.from(pcs), behind: behind, moves: null, ends: null };
+    }
+
+    this.bytes += bytes;
+    this.statesBytes += bytes;
     this.states.push({
-      pcs: pcs,
+      pcs: Int32Array.from(pcs),
       behind: behind,
-      moves: new Int32Array(this.classes.count * this.combinations).fill(
-        MOVE_UNKNOWN,
-      ),
+      moves: new Int32Array(moveCount).fill(MOVE_UNKNOWN),
       ends: new Int8Array(this.combinations).fill(-1),
     });
     this.stateByKey.set(key, this.states.length - 1);
+
     return this.states.length - 1;
   }
 }
@@ -849,7 +1055,7 @@ class StepWalker {
         }
 
         if (op === OP_LOOKAROUND) {
-          if (this.tables[argA[pc]!]![position] !== argB[pc]) {
+          if (positionBit(this.tables[argA[pc]!]!, position) !== argB[pc]) {
             break;
           }
 
@@ -960,15 +1166,6 @@ function scanByWays(
  * ---------------------------------------------------------------------------
  */
 
-const forwardAutomata: WeakMap<Program, LazyDfa> = new WeakMap<
-  Program,
-  LazyDfa
->();
-const backwardAutomata: WeakMap<Program, LazyDfa> = new WeakMap<
-  Program,
-  LazyDfa
->();
-
 function scanProgram(
   program: Program,
   forwards: boolean,
@@ -977,21 +1174,13 @@ function scanProgram(
   meter: WorkMeter,
   onMatch: (position: number) => boolean,
 ): boolean {
-  if (LazyDfa.lookaroundsOf(program).length > MAX_DFA_LOOKAROUNDS) {
+  if (program.lookaroundsRead.length > MAX_DFA_LOOKAROUNDS) {
     return scanByWays(program, forwards, text, tables, meter, onMatch);
   }
 
-  const automata: WeakMap<Program, LazyDfa> = forwards
-    ? forwardAutomata
-    : backwardAutomata;
-  let automaton: LazyDfa | undefined = automata.get(program);
-
-  if (automaton === undefined) {
-    automaton = new LazyDfa(program, forwards);
-    automata.set(program, automaton);
-  }
-
-  return automaton.scan(text, tables, meter, onMatch);
+  return automata
+    .automatonFor(program, forwards)
+    .scan(text, tables, meter, onMatch);
 }
 
 // Whether the pattern matches anywhere in the text.
@@ -1007,7 +1196,7 @@ export function testProgram(
 }
 
 /*
- * The answers of every look-around of a pattern for one text: tables[i][p] is
+ * The answers of every look-around of a pattern for one text: bit p of tables[i] is
  * 1 when look-around i's body matches at position p (without its negation) -
  * a look-behind's body ending at p, read forwards; a look-ahead's body
  * starting at p, its steps compiled backwards and read backwards.
@@ -1020,7 +1209,7 @@ export function computeLookaroundTables(
   const tables: Array<Uint8Array> = [];
 
   for (const lookaround of compiled.lookarounds) {
-    const answers: Uint8Array = new Uint8Array(text.length + 1);
+    const answers: Uint8Array = newPositionBits(text.length);
 
     scanProgram(
       lookaround.program,
@@ -1029,7 +1218,7 @@ export function computeLookaroundTables(
       tables,
       meter,
       (position: number): boolean => {
-        answers[position] = 1;
+        setPositionBit(answers, position);
         return false;
       },
     );
@@ -1041,7 +1230,7 @@ export function computeLookaroundTables(
 }
 
 /*
- * Where a match of the pattern can start: starts[p] is 1 when some match
+ * Where a match of the pattern can start: bit p of starts is 1 when some match
  * starts at p. One backwards reading of the pattern compiled backwards.
  */
 export function computeMatchStarts(
@@ -1050,7 +1239,7 @@ export function computeMatchStarts(
   tables: ReadonlyArray<Uint8Array>,
   meter: WorkMeter,
 ): Uint8Array {
-  const starts: Uint8Array = new Uint8Array(text.length + 1);
+  const starts: Uint8Array = newPositionBits(text.length);
 
   scanProgram(
     compiled.reversed,
@@ -1059,7 +1248,7 @@ export function computeMatchStarts(
     tables,
     meter,
     (position: number): boolean => {
-      starts[position] = 1;
+      setPositionBit(starts, position);
       return false;
     },
   );
@@ -1082,11 +1271,15 @@ export interface AnchoredOutcome {
 }
 
 /*
- * The ordered machine's arrays, kept per program: a grok pattern has
- * thousands of steps, and allocating its lists for every log line would cost
- * more than reading the line.
+ * The ordered machine's arrays: a grok pattern has thousands of steps, and
+ * allocating its lists for every log line would cost more than reading the
+ * line. One set serves every program - the machine never runs inside itself
+ * - grown to the largest program it has run, so what it holds does not grow
+ * with how many patterns are kept.
  */
 interface AnchoredWorkspace {
+  // How many ways the arrays have room for.
+  size: number;
   marks: Int32Array;
   // Marks below this one belong to earlier positions or earlier runs.
   mark: number;
@@ -1100,32 +1293,36 @@ interface AnchoredWorkspace {
 
 const MARK_RESET_AT: number = 0x3fffffff;
 
-const anchoredWorkspaces: WeakMap<Program, AnchoredWorkspace> = new WeakMap<
-  Program,
-  AnchoredWorkspace
->();
+function newWorkspace(size: number): AnchoredWorkspace {
+  return {
+    size: size,
+    marks: new Int32Array(size),
+    mark: 0,
+    stackPcs: new Int32Array(size + 1),
+    stackSlots: new Array<Array<number>>(size + 1),
+    firstPcs: new Int32Array(size),
+    firstSlots: new Array<Array<number>>(size),
+    secondPcs: new Int32Array(size),
+    secondSlots: new Array<Array<number>>(size),
+  };
+}
+
+let sharedWorkspace: AnchoredWorkspace = newWorkspace(0);
 
 function workspaceFor(program: Program): AnchoredWorkspace {
-  let workspace: AnchoredWorkspace | undefined =
-    anchoredWorkspaces.get(program);
+  // A way is a step and a count up to the program's scope width.
+  const size: number = program.ops.length * program.scopeWidth;
 
-  if (workspace === undefined) {
-    const size: number = program.ops.length * program.scopeWidth;
-
-    workspace = {
-      marks: new Int32Array(size),
-      mark: 0,
-      stackPcs: new Int32Array(size + 1),
-      stackSlots: new Array<Array<number>>(size + 1),
-      firstPcs: new Int32Array(size),
-      firstSlots: new Array<Array<number>>(size),
-      secondPcs: new Int32Array(size),
-      secondSlots: new Array<Array<number>>(size),
-    };
-    anchoredWorkspaces.set(program, workspace);
+  if (sharedWorkspace.size < size) {
+    sharedWorkspace = newWorkspace(size);
   }
 
-  return workspace;
+  return sharedWorkspace;
+}
+
+// How many ways the shared arrays have room for, for tests.
+export function getAnchoredWorkspaceSize(): number {
+  return sharedWorkspace.size;
 }
 
 /*
@@ -1217,9 +1414,11 @@ export function execAnchored(
       let slots: Array<number> = stackSlots[stackLength]!;
       /*
        * Slots are shared until a way writes to them; then the way takes a
-       * copy of its own, once, until it splits again.
+       * copy of its own, once, until it splits again. A copy is counted as
+       * work in line with its length.
        */
       let owned: boolean = false;
+      const copyCost: number = 1 + (startSlots.length >>> 3);
 
       for (;;) {
         const way: number = wayOf(pc, slots, position);
@@ -1254,6 +1453,7 @@ export function execAnchored(
             if (!owned) {
               slots = slots.slice();
               owned = true;
+              visits += copyCost;
             }
 
             slots[slot] = position;
@@ -1268,6 +1468,7 @@ export function execAnchored(
             if (!owned) {
               slots = slots.slice();
               owned = true;
+              visits += copyCost;
             }
 
             slots.fill(-1, argA[pc]!, argB[pc]!);
@@ -1282,6 +1483,7 @@ export function execAnchored(
             if (!owned) {
               slots = slots.slice();
               owned = true;
+              visits += copyCost;
             }
 
             slots[argA[pc]!] = position;
@@ -1311,7 +1513,7 @@ export function execAnchored(
         }
 
         if (op === OP_LOOKAROUND) {
-          if (tables[argA[pc]!]![position] !== argB[pc]) {
+          if (positionBit(tables[argA[pc]!]!, position) !== argB[pc]) {
             break;
           }
 

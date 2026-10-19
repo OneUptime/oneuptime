@@ -9,17 +9,43 @@ import {
  *
  * A rule's pattern is matched against every alert, monitor or log line the
  * rule looks at; compiling it each time would cost more than matching. The
- * compiled pattern - with the states its matcher has met so far - is kept
- * here, the least recently used dropped first. A pattern that cannot be
- * compiled is kept too, so it is refused once rather than once per record.
+ * compiled pattern is kept here, the least recently used dropped first. A
+ * pattern that cannot be compiled is kept too, so it is refused once rather
+ * than once per record.
+ *
+ * Bounded twice: by how many patterns, and by how many steps they compiled
+ * to together - a short pattern such as .{0,4000} compiles to thousands of
+ * steps, and the patterns kept here are written by the people of every
+ * project.
  */
 
-export const MAX_CACHED_PATTERNS: number = 256;
+export const MAX_CACHED_PATTERNS: number = 1024;
+export const MAX_CACHED_PATTERN_STEPS: number = 1_000_000;
 
 const cache: Map<string, LinearRegExp | Error> = new Map<
   string,
   LinearRegExp | Error
 >();
+let cachedSteps: number = 0;
+
+function stepsOf(entry: LinearRegExp | Error): number {
+  return entry instanceof LinearRegExp ? entry.steps : 0;
+}
+
+// Drops the least recently used patterns until one of `steps` more fits.
+function makeRoom(steps: number): void {
+  for (const oldest of Array.from(cache.keys())) {
+    if (
+      cache.size < MAX_CACHED_PATTERNS &&
+      cachedSteps + steps <= MAX_CACHED_PATTERN_STEPS
+    ) {
+      return;
+    }
+
+    cachedSteps -= stepsOf(cache.get(oldest)!);
+    cache.delete(oldest);
+  }
+}
 
 /*
  * The pattern compiled for linear-time matching, from the cache when it was
@@ -60,15 +86,9 @@ export function getLinearRegExp(
     compiled = error instanceof Error ? error : new Error(String(error));
   }
 
-  if (cache.size >= MAX_CACHED_PATTERNS) {
-    const oldest: string | undefined = cache.keys().next().value;
-
-    if (oldest !== undefined) {
-      cache.delete(oldest);
-    }
-  }
-
+  makeRoom(stepsOf(compiled));
   cache.set(key, compiled);
+  cachedSteps += stepsOf(compiled);
 
   if (compiled instanceof Error) {
     throw compiled;
@@ -104,7 +124,13 @@ export function describePatternProblem(error: unknown): string | null {
   return describePatternProblemReason(error.reason);
 }
 
+// How many steps the cached patterns compiled to together, for tests.
+export function getCachedPatternSteps(): number {
+  return cachedSteps;
+}
+
 // Test seam: forget every compiled pattern.
 export function clearLinearRegExpCache(): void {
   cache.clear();
+  cachedSteps = 0;
 }

@@ -67,13 +67,30 @@ export const ASSERT_NOT_WORD_BOUNDARY: number = 5;
  */
 export const DEFAULT_MAX_STEPS: number = 10_000;
 
+/*
+ * How many look-arounds a pattern may hold - counting those that compile to
+ * the same steps once. Each is worked out for the whole text before a match
+ * is looked for: one reading of the text and one answer per code unit, per
+ * look-around. The grok library holds two.
+ */
+export const MAX_LOOKAROUNDS: number = 32;
+
+/*
+ * How deep repeats whose body can match nothing may sit inside one another,
+ * such as ((a*)*)* - three. Telling apart two ways at one step reads that
+ * deep (scopeOf below), and the ordered machine keeps a mark per step per
+ * depth. A pattern deeper is refused as too large.
+ */
+export const MAX_EMPTY_REPEAT_NESTING: number = 8;
+
 export interface Program {
   ops: Int32Array;
   argA: Int32Array;
   argB: Int32Array;
   sets: Array<CharacterSet>;
   /*
-   * 2 slots per group (group 0 is the whole match), then one per
+   * 2 slots per group (group 0 is the whole match) when the program saves
+   * what groups capture, else 2 for the whole match; then one per
    * PROGRESS_START register.
    */
   slotCount: number;
@@ -93,6 +110,11 @@ export interface Program {
   scopes: Array<Int32Array>;
   // One more than the deepest such nesting: how many counts there can be.
   scopeWidth: number;
+  /*
+   * The look-arounds whose answers the program's LOOKAROUND steps read,
+   * each once, in the order the steps first name them.
+   */
+  lookaroundsRead: Int32Array;
 }
 
 export interface LookaroundProgram {
@@ -118,6 +140,8 @@ export interface CompiledPattern {
   lookarounds: Array<LookaroundProgram>;
   captureCount: number;
   captureNames: Array<string | null>;
+  // Steps in every program above together: what the pattern costs to keep.
+  totalSteps: number;
 }
 
 interface EmitMode {
@@ -246,6 +270,13 @@ class ProgramBuilder {
 
   // The steps emitted from now on sit in the repetition of this register.
   public enterScope(register: number): void {
+    if (this.scopeStack.length >= MAX_EMPTY_REPEAT_NESTING) {
+      throw new PatternProblemError(
+        PatternProblemReason.TooLarge,
+        `The pattern nests repeats that can match nothing more than ${MAX_EMPTY_REPEAT_NESTING} deep.`,
+      );
+    }
+
     this.scopeStack.push(register);
     this.updateScope();
   }
@@ -331,8 +362,12 @@ class Compiler {
   }
 
   public compileMain(pattern: ParsedPattern): Program {
+    /*
+     * Without captures no group's slots are ever written: the ways carry the
+     * whole match's two, and the registers.
+     */
     const builder: ProgramBuilder = this.newBuilder(
-      2 * (pattern.captureCount + 1),
+      this.options.captures ? 2 * (pattern.captureCount + 1) : 2,
     );
 
     builder.emit(OP_SAVE, 0);
@@ -362,6 +397,17 @@ class Compiler {
         return Int32Array.from(registers);
       },
     );
+    const lookaroundsRead: Array<number> = [];
+
+    for (let pc: number = 0; pc < builder.ops.length; pc++) {
+      if (
+        builder.ops[pc] === OP_LOOKAROUND &&
+        !lookaroundsRead.includes(builder.argA[pc]!)
+      ) {
+        lookaroundsRead.push(builder.argA[pc]!);
+      }
+    }
+
     const program: Program = {
       ops: Int32Array.from(builder.ops),
       argA: Int32Array.from(builder.argA),
@@ -376,6 +422,7 @@ class Compiler {
         scopes.reduce((deepest: number, registers: Int32Array): number => {
           return Math.max(deepest, registers.length);
         }, 0),
+      lookaroundsRead: Int32Array.from(lookaroundsRead),
     };
 
     program.firstCodeUnits = computeFirstCodeUnits(program);
@@ -622,6 +669,13 @@ class Compiler {
     let index: number | undefined = this.lookaroundIndexBySteps.get(stepsKey);
 
     if (index === undefined) {
+      if (this.lookarounds.length >= MAX_LOOKAROUNDS) {
+        throw new PatternProblemError(
+          PatternProblemReason.TooLarge,
+          `The pattern holds more than ${MAX_LOOKAROUNDS} look-aheads and look-behinds.`,
+        );
+      }
+
       this.lookarounds.push({ behind: node.behind, program: program });
       index = this.lookarounds.length - 1;
       this.lookaroundIndexBySteps.set(stepsKey, index);
@@ -655,6 +709,11 @@ function computeFirstCodeUnits(program: Program): CharacterSet | null {
   const visited: Uint8Array = new Uint8Array(program.ops.length);
   const stack: Array<number> = [0];
   const pairs: Array<number> = [];
+  /*
+   * The classes met, each once - set index times two, plus one when read
+   * negated: many alternatives of a large pattern start with the same class.
+   */
+  const classesMet: Set<number> = new Set<number>();
 
   while (stack.length > 0) {
     const pc: number = stack.pop()!;
@@ -677,8 +736,20 @@ function computeFirstCodeUnits(program: Program): CharacterSet | null {
     }
 
     if (op === OP_SET) {
-      const set: CharacterSet = program.sets[program.argA[pc]!]!;
-      pairs.push(...(program.argB[pc] === 1 ? set.complement() : set).ranges);
+      const classKey: number =
+        program.argA[pc]! * 2 + (program.argB[pc] === 1 ? 1 : 0);
+
+      if (!classesMet.has(classKey)) {
+        classesMet.add(classKey);
+
+        const set: CharacterSet = program.sets[program.argA[pc]!]!;
+
+        for (const bound of (program.argB[pc] === 1 ? set.complement() : set)
+          .ranges) {
+          pairs.push(bound);
+        }
+      }
+
       continue;
     }
 
@@ -716,5 +787,11 @@ export function compilePattern(
     lookarounds: compiler.lookarounds,
     captureCount: pattern.captureCount,
     captureNames: pattern.captureNames,
+    totalSteps: compiler.lookarounds.reduce(
+      (steps: number, lookaround: LookaroundProgram): number => {
+        return steps + lookaround.program.ops.length;
+      },
+      main.ops.length + reversed.ops.length,
+    ),
   };
 }

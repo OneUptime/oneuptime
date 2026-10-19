@@ -111,14 +111,46 @@ export function getCaseVariants(codeUnit: number): Array<number> {
 }
 
 /*
+ * Classes closed over case, by the members they were written with. A
+ * pattern - or two patterns - often repeat a class ([a-z0-9] in every part
+ * of a grok pattern), and closing a class that spans most of the code units
+ * reads every code unit with a case variant: once per class, not once per
+ * use. Bounded: emptied when full.
+ */
+export const MAX_CACHED_CLOSURES: number = 512;
+
+const closures: Map<string, CharacterSet> = new Map<string, CharacterSet>();
+
+/*
  * Every code unit a case-insensitive class of these members matches: each
  * member, and every code unit that shares a member's canonical form.
  */
 export function closeOverCase(set: CharacterSet): CharacterSet {
-  getCanonicalForms();
+  const key: string = set.key();
+  const cached: CharacterSet | undefined = closures.get(key);
 
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const closed: CharacterSet = computeClosure(set);
+
+  if (closures.size >= MAX_CACHED_CLOSURES) {
+    closures.clear();
+  }
+
+  closures.set(key, closed);
+
+  return closed;
+}
+
+function computeClosure(set: CharacterSet): CharacterSet {
+  const forms: Uint16Array = getCanonicalForms();
   const variants: Uint16Array = codeUnitsWithCaseVariants!;
-  const pairs: Array<number> = [...set.ranges];
+  const members: Uint16Array = orbitMembers!;
+  const starts: Int32Array = orbitStart!;
+  // The case variants the class does not hold yet, as [code unit, code unit] pairs.
+  const added: Array<number> = [];
 
   for (let index: number = 0; index < set.ranges.length; index += 2) {
     const first: number = set.ranges[index]!;
@@ -143,11 +175,25 @@ export function closeOverCase(set: CharacterSet): CharacterSet {
       position < variants.length && variants[position]! <= last;
       position++
     ) {
-      for (const variant of getCaseVariants(variants[position]!)) {
-        pairs.push(variant, variant);
+      const form: number = forms[variants[position]!]!;
+
+      for (
+        let member: number = starts[form]!;
+        member < starts[form + 1]!;
+        member++
+      ) {
+        const variant: number = members[member]!;
+
+        if (!set.has(variant)) {
+          added.push(variant, variant);
+        }
       }
     }
   }
 
-  return CharacterSet.fromPairs(pairs);
+  if (added.length === 0) {
+    return set;
+  }
+
+  return CharacterSet.fromPairs(set.ranges.concat(added));
 }

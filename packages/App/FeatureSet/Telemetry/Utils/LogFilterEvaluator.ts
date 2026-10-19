@@ -1,6 +1,7 @@
 import { JSONObject } from "Common/Types/JSON";
 import escapeRegExp from "Common/Utils/RegExpEscape";
 import LinearRegExp from "Common/Utils/LinearRegExp/LinearRegExp";
+import { getLinearRegExp } from "Common/Utils/LinearRegExp/PatternCache";
 import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
 
 /*
@@ -436,7 +437,8 @@ function compileExpr(expr: FilterExpression): void {
           const pattern: string = escapeRegExp(raw)
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
-          comp.likeRegex = new LinearRegExp(`^${pattern}$`, "i");
+          // Too large to run: compileFilter's catch makes the filter match nothing.
+          comp.likeRegex = getLinearRegExp(`^${pattern}$`, "i");
         }
       } else if (comp.operator === "IN") {
         const values: Array<string> = comp.value as Array<string>;
@@ -506,7 +508,12 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
           const pattern: string = escapeRegExp(raw)
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
-          return likeMatches(new LinearRegExp(`^${pattern}$`, "i"), fieldVal);
+          try {
+            return likeMatches(getLinearRegExp(`^${pattern}$`, "i"), fieldVal);
+          } catch {
+            // A LIKE pattern too large to run matches nothing.
+            return false;
+          }
         }
         case "IN": {
           // Pre-compiled Set lookup. O(1) vs the old Array.includes.

@@ -1,11 +1,13 @@
 import { parsePattern, PatternFlags } from "./Parser";
 import { ParsedPattern } from "./Syntax";
+import { PatternProblemError, PatternProblemReason } from "./PatternProblem";
 import { CompiledPattern, compilePattern, DEFAULT_MAX_STEPS } from "./Program";
 import {
   AnchoredOutcome,
   computeLookaroundTables,
   computeMatchStarts,
   execAnchored,
+  positionBit,
   testProgram,
   WorkMeter,
 } from "./Matcher";
@@ -28,9 +30,11 @@ import {
  *
  * What it refuses (PatternProblemError, see PatternProblem.ts): a
  * back-reference (\1, \k<name>), which no matcher can run in linear time; a
- * pattern that compiles to more steps than maxSteps; and, when captures are
- * asked for, a capturing group inside (?=...) or (?<=...). A pattern that is
- * not a regular expression at all throws the SyntaxError the running
+ * pattern too large - longer than MAX_PATTERN_LENGTH, compiling to more steps
+ * than maxSteps, nesting groups or empty-matching repeats too deep, or
+ * holding too many look-arounds (Parser.ts, Program.ts); and, when captures
+ * are asked for, a capturing group inside (?=...) or (?<=...). A pattern
+ * that is not a regular expression at all throws the SyntaxError the running
  * engine's RegExp throws for it, word for word.
  *
  * Every question - test, exec, replace, matchAll - may take a number of
@@ -66,6 +70,14 @@ export interface LinearRegExpMatch {
 
 const SUPPORTED_FLAGS: string = "gims";
 
+/*
+ * The longest pattern compiled, in code units: compiling costs time in line
+ * with the pattern, and a pattern a person writes - a rule's, a scrub
+ * rule's - or a grok pattern expanded from its library (at most 20,000) is
+ * shorter.
+ */
+export const MAX_PATTERN_LENGTH: number = 20_000;
+
 export default class LinearRegExp {
   public readonly source: string;
   public readonly flags: string;
@@ -97,6 +109,13 @@ export default class LinearRegExp {
      */
     LinearRegExp.checkSyntax(source, flags);
 
+    if (source.length > MAX_PATTERN_LENGTH) {
+      throw new PatternProblemError(
+        PatternProblemReason.TooLarge,
+        `The pattern is longer than ${MAX_PATTERN_LENGTH} characters.`,
+      );
+    }
+
     this.source = source;
     this.flags = flags;
     this.global = flags.includes("g");
@@ -110,12 +129,37 @@ export default class LinearRegExp {
       multiline: this.multiline,
       dotAll: this.dotAll,
     };
-    const parsed: ParsedPattern = parsePattern(source, patternFlags);
-
-    this.compiled = compilePattern(parsed, {
+    this.compiled = LinearRegExp.compile(source, patternFlags, {
       captures: this.capturesGroups,
       maxSteps: options?.maxSteps ?? DEFAULT_MAX_STEPS,
     });
+  }
+
+  private static compile(
+    source: string,
+    flags: PatternFlags,
+    options: { captures: boolean; maxSteps: number },
+  ): CompiledPattern {
+    try {
+      const parsed: ParsedPattern = parsePattern(source, flags);
+
+      return compilePattern(parsed, options);
+    } catch (error: unknown) {
+      /*
+       * Reading and compiling call themselves once per group; the limits on
+       * nesting keep that well inside the stack, and a pattern that still
+       * runs out of it is refused as too large rather than thrown as an
+       * error of the engine.
+       */
+      if (error instanceof RangeError) {
+        throw new PatternProblemError(
+          PatternProblemReason.TooLarge,
+          "The pattern is too large to compile.",
+        );
+      }
+
+      throw error;
+    }
   }
 
   private static checkSyntax(source: string, flags: string): void {
@@ -128,9 +172,17 @@ export default class LinearRegExp {
     return this.compiled.captureCount;
   }
 
+  /*
+   * How many steps the pattern compiled to, its look-arounds and the copy
+   * read backwards included: what it costs to keep.
+   */
+  public get steps(): number {
+    return this.compiled.totalSteps;
+  }
+
   // Whether the pattern matches anywhere in the text.
   public test(text: string): boolean {
-    const meter: WorkMeter = WorkMeter.forText(text.length);
+    const meter: WorkMeter = this.meterFor(text);
 
     return testProgram(
       this.compiled.main,
@@ -149,7 +201,7 @@ export default class LinearRegExp {
       return null;
     }
 
-    const meter: WorkMeter = WorkMeter.forText(text.length);
+    const meter: WorkMeter = this.meterFor(text);
     const tables: Array<Uint8Array> = this.tablesFor(text, meter);
     const starts: Uint8Array = computeMatchStarts(
       this.compiled,
@@ -233,7 +285,7 @@ export default class LinearRegExp {
     onMatch: (slots: Array<number>) => void,
   ): void {
     // One meter for every search: together they read the text in line with it.
-    const meter: WorkMeter = WorkMeter.forText(text.length);
+    const meter: WorkMeter = this.meterFor(text);
     const tables: Array<Uint8Array> = this.tablesFor(text, meter);
     const starts: Uint8Array = computeMatchStarts(
       this.compiled,
@@ -279,7 +331,7 @@ export default class LinearRegExp {
     meter: WorkMeter;
   }): Array<number> | null {
     for (let start: number = data.from; start <= data.text.length; start++) {
-      if (data.starts[start] !== 1) {
+      if (positionBit(data.starts, start) !== 1) {
         continue;
       }
 
@@ -298,6 +350,11 @@ export default class LinearRegExp {
     }
 
     return null;
+  }
+
+  // The work one question about this text may take (Matcher.ts, WorkMeter).
+  private meterFor(text: string): WorkMeter {
+    return WorkMeter.forText(text.length, this.compiled.totalSteps);
   }
 
   private tablesFor(text: string, meter: WorkMeter): Array<Uint8Array> {

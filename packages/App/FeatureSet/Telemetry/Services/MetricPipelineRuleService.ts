@@ -13,6 +13,10 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 import LinearRegExp from "Common/Utils/LinearRegExp/LinearRegExp";
+import {
+  clearLinearRegExpCache,
+  getLinearRegExp,
+} from "Common/Utils/LinearRegExp/PatternCache";
 import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
 
 export interface MetricRulesForProject {
@@ -40,37 +44,35 @@ const ruleCache: InMemoryTTLCache<MetricRulesForProject> =
  * linear-time matcher (Utils/LinearRegExp): JavaScript's syntax and answers,
  * in time in line with the value. A back-reference (\1) cannot run that
  * way; such a filter is invalid like any pattern that does not compile.
+ * The compiled patterns are kept in the matcher's own cache
+ * (getLinearRegExp), bounded by the steps they hold; this memo only
+ * remembers which patterns were warned about.
  */
 const REGEX_MEMO_MAX_ENTRIES: number = 1000;
-const compiledRegexByPattern: Map<string, LinearRegExp | null> = new Map();
+const warnedInvalidPatterns: Set<string> = new Set<string>();
 
 function getCompiledRegex(
   pattern: string,
   ruleId: string,
 ): LinearRegExp | null {
-  let regex: LinearRegExp | null | undefined =
-    compiledRegexByPattern.get(pattern);
+  try {
+    return getLinearRegExp(pattern);
+  } catch (err) {
+    if (!warnedInvalidPatterns.has(pattern)) {
+      if (warnedInvalidPatterns.size >= REGEX_MEMO_MAX_ENTRIES) {
+        warnedInvalidPatterns.clear();
+      }
 
-  if (regex === undefined) {
-    if (compiledRegexByPattern.size >= REGEX_MEMO_MAX_ENTRIES) {
-      compiledRegexByPattern.clear();
-    }
-
-    try {
-      regex = new LinearRegExp(pattern);
-    } catch (err) {
+      warnedInvalidPatterns.add(pattern);
       logger.warn(
         `Invalid regex "${pattern}" (first seen on MetricPipelineRule ${ruleId}; warned once per pattern — every rule using it treats the filter as non-matching): ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
-      regex = null;
     }
 
-    compiledRegexByPattern.set(pattern, regex);
+    return null;
   }
-
-  return regex;
 }
 
 /*
@@ -487,6 +489,8 @@ export default class MetricPipelineRuleService {
   // Testing helper — clears the in-memory caches.
   public static clearCache(): void {
     ruleCache.clear();
-    compiledRegexByPattern.clear();
+    warnedInvalidPatterns.clear();
+    // The compiled patterns too, so a pattern is compiled again.
+    clearLinearRegExpCache();
   }
 }

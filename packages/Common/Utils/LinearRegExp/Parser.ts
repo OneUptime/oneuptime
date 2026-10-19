@@ -40,6 +40,15 @@ export const LINE_TERMINATOR_SET: CharacterSet = CharacterSet.fromPairs([
 const DOT_SET: CharacterSet = LINE_TERMINATOR_SET.complement();
 const ALL_SET: CharacterSet = CharacterSet.all();
 
+/*
+ * How deep groups may sit inside one another. JavaScript takes any depth;
+ * reading and compiling a group inside a group calls itself, so a pattern
+ * nested thousands deep would run out of stack - here, and when its
+ * program is compiled. A pattern nested deeper is refused as too large.
+ * The deepest grok pattern nests a few dozen.
+ */
+export const MAX_GROUP_NESTING: number = 256;
+
 export interface PatternFlags {
   ignoreCase: boolean;
   multiline: boolean;
@@ -101,6 +110,8 @@ class Parser {
   private readonly hasNamedGroups: boolean;
   private nextCapture: number = 1;
   private readonly captureNames: Array<string | null> = [];
+  // How many groups the parser is inside.
+  private depth: number = 0;
 
   public constructor(source: string, flags: PatternFlags) {
     this.source = source;
@@ -445,6 +456,23 @@ class Parser {
   }
 
   private parseGroup(): { node: SyntaxNode; quantifiable: boolean } {
+    if (this.depth >= MAX_GROUP_NESTING) {
+      throw new PatternProblemError(
+        PatternProblemReason.TooLarge,
+        `The pattern nests groups more than ${MAX_GROUP_NESTING} deep.`,
+      );
+    }
+
+    this.depth++;
+
+    try {
+      return this.parseGroupBody();
+    } finally {
+      this.depth--;
+    }
+  }
+
+  private parseGroupBody(): { node: SyntaxNode; quantifiable: boolean } {
     if (this.peek(1) !== 0x3f) {
       // ( ... ): a capturing group.
       this.position++;

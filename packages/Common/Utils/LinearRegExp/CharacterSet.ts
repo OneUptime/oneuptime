@@ -25,6 +25,8 @@ export default class CharacterSet {
   private readonly asciiBits: Uint32Array;
   // The ranges above ASCII, each clipped to start at 128 at the lowest.
   private readonly highRanges: Uint32Array;
+  // key(), once it has been asked for.
+  private cachedKey: string | null = null;
 
   private constructor(ranges: Array<number>) {
     this.ranges = ranges;
@@ -70,19 +72,25 @@ export default class CharacterSet {
    * inclusive and must lie within 0..0xFFFF, first <= last.
    */
   public static fromPairs(pairs: ReadonlyArray<number>): CharacterSet {
-    const ranges: Array<[number, number]> = [];
+    const count: number = pairs.length >>> 1;
+    /*
+     * Each range as one number - where it starts in the high half, where it
+     * ends in the low half - so one numeric sort of a typed array orders
+     * them by where they start, without an object per range.
+     */
+    const packed: Uint32Array = new Uint32Array(count);
 
-    for (let index: number = 0; index + 1 < pairs.length; index += 2) {
-      ranges.push([pairs[index]!, pairs[index + 1]!]);
+    for (let index: number = 0; index < count; index++) {
+      packed[index] = pairs[index * 2]! * 0x10000 + pairs[index * 2 + 1]!;
     }
 
-    ranges.sort((left: [number, number], right: [number, number]): number => {
-      return left[0] - right[0];
-    });
+    packed.sort();
 
     const merged: Array<number> = [];
 
-    for (const [first, last] of ranges) {
+    for (let index: number = 0; index < count; index++) {
+      const first: number = packed[index]! >>> 16;
+      const last: number = packed[index]! & 0xffff;
       const previousLast: number | undefined = merged[merged.length - 1];
 
       if (previousLast !== undefined && first <= previousLast + 1) {
@@ -158,7 +166,7 @@ export default class CharacterSet {
   }
 
   public union(other: CharacterSet): CharacterSet {
-    return CharacterSet.fromPairs([...this.ranges, ...other.ranges]);
+    return CharacterSet.fromPairs(this.ranges.concat(other.ranges));
   }
 
   public complement(): CharacterSet {
@@ -184,6 +192,10 @@ export default class CharacterSet {
 
   // A key two sets share exactly when they hold the same code units.
   public key(): string {
-    return this.ranges.join(",");
+    if (this.cachedKey === null) {
+      this.cachedKey = this.ranges.join(",");
+    }
+
+    return this.cachedKey;
   }
 }
