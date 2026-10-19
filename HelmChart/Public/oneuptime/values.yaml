@@ -2734,7 +2734,11 @@ inboundEmail:
   # The domain configured for inbound email (e.g., inbound.yourdomain.com)
   # Required for the Incoming Email Monitor feature to work
   domain:
-  # Optional webhook secret for validating incoming webhooks from the email provider
+  # Required once domain is set: a long random value of your own (openssl rand
+  # -hex 32 makes one), which the Destination URL in SendGrid's Inbound Parse
+  # settings ends with: https://<your OneUptime host>/incoming-email/sendgrid/<this value>.
+  # While it is empty, OneUptime refuses every email SendGrid delivers, and
+  # helm install / helm upgrade say so.
   webhookSecret:
 
 # BullMQ Queue Dashboard (Bull Board)
