@@ -134,9 +134,9 @@ describe("service entity key for a Service the resource never names", () => {
     const metadata: TelemetryServiceMetadata = await IngestProbe.resolve({
       attributes: stringAttributes({
         "container.runtime": "docker",
-        "container.name": "elasticsearch-ve-frt-elk2",
-        "container.id": "9f2c1b7a4e51",
-        "host.name": "h556",
+        "container.name": "shop-postgres-1",
+        "container.id": "0123456789ab",
+        "host.name": "web-1",
       }),
     });
 
@@ -158,7 +158,7 @@ describe("service entity key for a Service the resource never names", () => {
       req: {
         headers: { "x-oneuptime-service-name": "checkout" },
       } as unknown as ExpressRequest,
-      attributes: stringAttributes({ "host.name": "h556" }),
+      attributes: stringAttributes({ "host.name": "web-1" }),
     });
 
     expect(metadata.scalarEntityKeys?.serviceEntityKey).toBe(
@@ -173,7 +173,7 @@ describe("service entity key for a Service the resource never names", () => {
       } as unknown as ExpressRequest,
       attributes: stringAttributes({
         "service.name": "from-resource",
-        "host.name": "h556",
+        "host.name": "web-1",
       }),
     });
 
@@ -185,17 +185,23 @@ describe("service entity key for a Service the resource never names", () => {
 
   /*
    * entity_refs are an authority boundary: a producer that declares its
-   * entities owns the set, and a synthesized name must not add to it.
+   * entities owns the set, and a synthesized name must not add to it. A
+   * usable ref never reads `service.name`, so the case that needs the guard
+   * is a ref the extractor cannot use (its id key is absent): extraction
+   * then falls back to the heuristic resolvers, which would read a
+   * synthesized `service.name`.
    */
-  test("entity_refs keep their authority over the synthesized name", async () => {
+  test("entity_refs keep their authority on the heuristic fallback", async () => {
     const metadata: TelemetryServiceMetadata = await IngestProbe.resolve({
       req: {
         headers: { "x-oneuptime-service-name": "checkout" },
       } as unknown as ExpressRequest,
-      attributes: stringAttributes({ "host.name": "h556" }),
-      entityRefs: [{ type: "host", idKeys: ["host.name"] }],
+      attributes: stringAttributes({ "host.name": "web-1" }),
+      entityRefs: [{ type: "host", idKeys: ["host.id"] }],
     });
 
+    // The heuristic fallback ran: the Host comes from host.name.
+    expect(metadata.scalarEntityKeys?.hostEntityKey).toBeTruthy();
     expect(metadata.scalarEntityKeys?.serviceEntityKey).toBe("");
     expect(metadata.entityKeys).not.toContain(
       keyForService(PROJECT_ID.toString(), "checkout"),

@@ -1174,9 +1174,11 @@ export default abstract class OtelIngestBaseService {
      * registry alike, and the key matches the `keyForService` the
      * name-only paths (syslog / fluent) already stamp.
      *
-     * Only when the resource is silent — an explicit `service.name` is
-     * already this exact name — and only on the heuristic path: a producer
-     * that sent `entity_refs` is authoritative and is not second-guessed.
+     * Only when the resource is silent — a `service.name` the producer sent
+     * is never replaced — and only on the heuristic path: a producer that
+     * sent `entity_refs` is authoritative and is not second-guessed, even
+     * when none of its refs is usable and extraction falls back to the
+     * heuristic resolvers.
      */
     if (
       metadata.primaryEntityType === ServiceType.OpenTelemetry &&
