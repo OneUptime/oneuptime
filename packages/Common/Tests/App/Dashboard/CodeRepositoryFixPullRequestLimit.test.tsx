@@ -331,3 +331,30 @@ describe("the GitHub trigger label", () => {
     expect(label!.showIf!(off)).toBe(false);
   });
 });
+
+describe("the page's two cards", () => {
+  /*
+   * Code calls it a repository: the cards' buttons and their dialogs name
+   * what each edits - its details, its settings - not the model's own
+   * "Code Repository" ("Edit Code Repository" titled both dialogs).
+   */
+  test("each card's button and dialog name what it edits", () => {
+    render(
+      <CodeRepositorySettings {...({} as unknown as PageComponentProps)} />,
+    );
+
+    const cards: Array<Record<string, unknown>> = mockDetails.slice(-2);
+    expect(
+      cards.map((card: Record<string, unknown>) => {
+        return [
+          (card["cardProps"] as { title: string }).title,
+          card["editButtonText"],
+          card["editModalTitle"],
+        ];
+      }),
+    ).toEqual([
+      ["Repository Details", "Edit Details", "Repository Details"],
+      ["Repository Settings", "Edit Settings", "Repository Settings"],
+    ]);
+  });
+});

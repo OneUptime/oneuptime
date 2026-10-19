@@ -60,8 +60,8 @@ const RepositoryCard: FunctionComponent<ComponentProps> = (
   const fullName: string = getRepositoryFullName(repository);
   const stats: CodeRepositoryListItem["stats"] = repository.stats;
 
-  // How many tasks, the open pull requests, and when anything last happened.
-  const getStatItems: () => Array<ReactElement> = (): Array<ReactElement> => {
+  // How many tasks, and the open pull requests.
+  const getCountItems: () => Array<ReactElement> = (): Array<ReactElement> => {
     const items: Array<ReactElement> = [
       <span key="tasks">
         {stats.taskCount > 0
@@ -85,12 +85,6 @@ const RepositoryCard: FunctionComponent<ComponentProps> = (
             stats.openPullRequests,
           )}
         </span>,
-      );
-    }
-
-    if (stats.lastActivityAt) {
-      items.push(
-        <CodeTimeAgo key="last-activity" date={stats.lastActivityAt} />,
       );
     }
 
@@ -192,11 +186,25 @@ const RepositoryCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <CodeMetaList
-          dataTestId="code-repository-stats"
-          className="text-xs text-gray-500"
-          items={getStatItems()}
-        />
+        {/*
+         * The counts on the left, when anything last happened on the
+         * right: on a narrow card the time wraps under them whole, with no
+         * dot to start its line.
+         */}
+        <div
+          data-testid="code-repository-stats"
+          className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-gray-500"
+        >
+          <CodeMetaList items={getCountItems()} />
+          {stats.lastActivityAt ? (
+            <CodeTimeAgo
+              date={stats.lastActivityAt}
+              className="whitespace-nowrap"
+            />
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
     </Link>
   );

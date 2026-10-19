@@ -282,14 +282,14 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1.5">
+        <div className="flex flex-wrap items-center gap-2 px-2.5 pb-2.5 pt-1.5">
           <MoreMenu
             isDisabled={props.isDisabled || isContextFull}
             isMenuLeftAligned={true}
             dataTestId="code-add-context"
             elementToBeShownInsteadOfButton={
               <span
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${
                   props.isDisabled || isContextFull
                     ? "text-gray-300"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -350,7 +350,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 void send();
               }}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
                 canSend
                   ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500"
                   : "cursor-not-allowed bg-gray-100 text-gray-400"

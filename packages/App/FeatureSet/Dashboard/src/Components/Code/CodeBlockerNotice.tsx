@@ -130,7 +130,9 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
       data-testid="code-blocker"
       data-blocker={props.blocker.type}
       className={`flex items-start gap-3 rounded-lg px-4 py-3 text-sm ${
-        isPermission ? "bg-gray-50 text-gray-700" : "bg-amber-50 text-amber-900"
+        isPermission
+          ? "bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200"
+          : "bg-amber-50 text-amber-900"
       }`}
     >
       <Icon

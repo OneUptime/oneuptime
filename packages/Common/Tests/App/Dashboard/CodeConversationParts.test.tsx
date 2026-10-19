@@ -1072,11 +1072,10 @@ describe("a repository's card", () => {
     expect(stats).toHaveTextContent("7 tasks");
     expect(stats).toHaveTextContent("3 open pull requests");
     expect(stats).toHaveTextContent("5 minutes ago");
-    // Three facts, two dots between them.
-    expect(within(stats).getAllByTestId("code-meta-dot")).toHaveLength(2);
-    expect(stats.textContent).toBe(
-      "7 tasks·3 open pull requests·5 minutes ago",
-    );
+    // The counts read apart, a dot between them; the time stands on its own.
+    expect(within(stats).getAllByTestId("code-meta-dot")).toHaveLength(1);
+    expect(stats.textContent).toBe("7 tasks·3 open pull requests5 minutes ago");
+    expect(stats.lastElementChild?.tagName).toBe("TIME");
     expect(
       within(card).queryByTestId("code-repository-not-connected"),
     ).toBeNull();

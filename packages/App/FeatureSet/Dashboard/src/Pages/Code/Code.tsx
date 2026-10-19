@@ -212,9 +212,9 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 {data.repositories.length}
               </span>
             </h2>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div className="ml-auto flex flex-wrap items-center gap-2 max-sm:w-full">
               {data.repositories.length > REPOSITORY_SEARCH_THRESHOLD ? (
-                <div className="relative">
+                <div className="relative max-sm:w-full">
                   <Icon
                     icon={IconProp.Search}
                     className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"

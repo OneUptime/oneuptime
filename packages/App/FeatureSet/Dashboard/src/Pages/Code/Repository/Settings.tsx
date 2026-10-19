@@ -49,6 +49,7 @@ const CodeRepositorySettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Details"
+        editModalTitle="Repository Details"
         formFields={[
           {
             field: {
@@ -145,6 +146,7 @@ const CodeRepositorySettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Settings"
+        editModalTitle="Repository Settings"
         formSteps={[
           { title: "Pull Requests", id: "pull-requests" },
           { title: "GitHub Commands", id: "github-commands" },

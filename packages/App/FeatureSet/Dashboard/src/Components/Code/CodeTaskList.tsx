@@ -281,7 +281,7 @@ export const CodeTaskRow: FunctionComponent<{
               <CodeTaskStateBadge
                 state={task.state}
                 isQueued={task.isQueued}
-                className="mr-1 sm:hidden"
+                className="ml-3 sm:hidden"
               />
             }
             items={meta}
