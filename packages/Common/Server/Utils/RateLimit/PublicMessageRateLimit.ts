@@ -33,7 +33,10 @@ import Phone from "../../../Types/Phone";
  *    (POST /identity/status-page/forgot-password);
  *  - forgetting an account's password (POST /identity/forgot-password);
  *  - signing up for an account (POST /identity/signup), which emails the
- *    address signed up with.
+ *    address signed up with;
+ *  - signing in to an account whose address is not verified yet (each step
+ *    of a sign-in, Authentication.ts login()), which emails that address a
+ *    fresh verification link - the email a sign-up sends, counted with it.
  *
  * Nothing in front of these routes counts what they send, so each of them
  * asks this limiter right before it sends - a message is a message to
@@ -52,11 +55,17 @@ import Phone from "../../../Types/Phone";
  *    together. Without it a caller with many addresses still sends one
  *    person as many messages as it likes.
  *
- * A contact's counter is spent only by a request its caller's own counters
- * let through, so a caller who is already refused cannot keep a contact's
- * allowance used up from one address. One that is let through and spends it
- * has sent that contact the message too: a password reset or a manage link
- * that works, which its owner can use.
+ * A contact's counter counts the messages sent to it. It is spent only by a
+ * request its caller's own counters let through, so a caller who is already
+ * refused cannot keep a contact's allowance used up from one address; and a
+ * request that ends with nothing sent to a contact gives that contact its
+ * count back - one refused for another contact it names (consume), or a
+ * sign-up refused or failed before anything went out (giveBack on the
+ * permit assertMaySend hands the route). One that spends it has sent that
+ * contact the message too: a password reset or a link that works, which its
+ * owner can use. Manage links are the one exception, on purpose: they are
+ * counted whether or not a subscription matches, so that a refusal says
+ * nothing about who is subscribed.
  *
  * The limits are sized for people, generously, because the people behind
  * one address - an office, a campus, a carrier's network - sign up together
@@ -88,7 +97,11 @@ export enum PublicMessageKind {
   // POST /identity/forgot-password.
   PasswordReset = "password-reset",
 
-  // POST /identity/signup: a new account's welcome, or an invitation's link.
+  /*
+   * POST /identity/signup: a new account's welcome, or an invitation's
+   * link; and the verification link a sign-in to an address not verified
+   * yet sends.
+   */
   SignUpEmail = "sign-up-email",
 }
 
@@ -149,6 +162,25 @@ export interface PublicMessageRateLimitDecision {
 
   // True only for the first refusal of a window: the one worth a log line.
   isFirstRejectionInWindow?: boolean | undefined;
+
+  /*
+   * The contacts' counter keys this request was counted under, when it was
+   * let through with the counter at hand: what a permit gives back
+   * (PublicMessageSendPermit) when the request ends with nothing sent.
+   */
+  countedContactKeys?: Array<string> | undefined;
+}
+
+/*
+ * What assertMaySend hands a route it lets through. A route that creates
+ * something before it sends - a status page sign-up, an account - calls
+ * giveBack when that is refused or fails before anything has gone out: its
+ * contacts were sent nothing, so each gets its count back, and nobody can
+ * use up a contact's allowance with requests that send it nothing. The
+ * caller's own counters stay spent. Never throws, and gives back once.
+ */
+export interface PublicMessageSendPermit {
+  giveBack: () => Promise<void>;
 }
 
 export interface PublicMessageKindConfig {
@@ -375,14 +407,18 @@ export const PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE: string =
   "Please enter one email address.";
 
 /*
- * One mailbox, written the way the sign-up and reset forms take it: a local
- * part and a domain, neither holding an @, a separator, white space, a
- * quote, an angle bracket or a backslash. A contact is one mailbox, so
- * anything else - "a@x.com,b@y.com" above all - is refused rather than
- * counted as one. Linear: neither class can take the @ the two sides meet
- * at.
+ * One mailbox, written the way the sign-up and reset forms take it (in
+ * lower case, as it is tested): a local part of RFC 5322 words joined by
+ * dots - letters, digits and !#$%&'*+/=?^_`{|}~- - and a domain of dotted
+ * labels. A contact is one mailbox, so anything else is refused rather than
+ * counted as one: a list ("a@x.com,b@y.com"), a name and an address, a
+ * group ("x:a@x.com"), a quoted local part or a trailing dot - mail
+ * senders read each of them as the addresses inside it, not as the text
+ * written. Linear, and only ever handed 254 characters: no class can take
+ * the dot or the @ that ends its repeat.
  */
-const ONE_MAILBOX: RegExp = /^[^\s@,;<>()"'\\[\]]+@[^\s@,;<>()"'\\[\]]+$/;
+const ONE_MAILBOX: RegExp =
+  /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
 /*
  * No mailbox is longer than this (RFC 5321 leaves 254 characters for an
@@ -394,6 +430,12 @@ const MAX_EMAIL_ADDRESS_LENGTH: number = 254;
 const DOTS_IGNORED_DOMAINS: Array<string> = ["gmail.com", "googlemail.com"];
 
 const NOT_A_DIGIT: RegExp = /\D/g;
+
+/*
+ * How most of the world dials out of its country: a number written after
+ * "00" is the number written after "+".
+ */
+const INTERNATIONAL_CALL_PREFIX: string = "00";
 
 /*
  * Redis namespace for every counter here, so a SCAN for these keys never
@@ -500,12 +542,19 @@ export default class PublicMessageRateLimit {
 
   /*
    * A phone number as a contact: its digits. A number is stored as it was
-   * typed, so "+1 415 555 0100" and "+14155550100" are one phone.
+   * typed, so "+1 415 555 0100", "+14155550100" and "0014155550100" are one
+   * phone.
    */
   public static forPhone(phone: Phone | string): PublicMessageContact {
+    let digits: string = phone.toString().replace(NOT_A_DIGIT, "");
+
+    if (digits.startsWith(INTERNATIONAL_CALL_PREFIX)) {
+      digits = digits.slice(INTERNATIONAL_CALL_PREFIX.length);
+    }
+
     return {
       channel: PublicMessageChannel.TextMessage,
-      canonical: phone.toString().replace(NOT_A_DIGIT, ""),
+      canonical: digits,
     };
   }
 
@@ -672,8 +721,31 @@ export default class PublicMessageRateLimit {
         });
 
       if (!contactRefusal) {
-        return { outcome: PublicMessageRateLimitOutcome.Allowed };
+        return {
+          outcome: PublicMessageRateLimitOutcome.Allowed,
+          countedContactKeys: contactCounters.map(
+            (counter: FixedRateLimitCounterSpec<number>): string => {
+              return counter.key;
+            },
+          ),
+        };
       }
+
+      /*
+       * Refused for one contact: nothing is sent to any of them, so the
+       * others the request names get their count back. The one that
+       * refused keeps it, over its limit until its window ends.
+       */
+      await PublicMessageRateLimit.giveBackContacts({
+        kind: data.kind,
+        keys: contactCounters
+          .filter((counter: FixedRateLimitCounterSpec<number>): boolean => {
+            return counter.scope !== contactRefusal.scope;
+          })
+          .map((counter: FixedRateLimitCounterSpec<number>): string => {
+            return counter.key;
+          }),
+      });
 
       return {
         outcome: PublicMessageRateLimitOutcome.RateLimited,
@@ -698,18 +770,19 @@ export default class PublicMessageRateLimit {
 
   /*
    * For a route about to send a message of `kind` to `contacts`: counts it
-   * (consume) and returns when it may go on, or throws - a
+   * (consume) and returns a permit when it may go on, or throws - a
    * PublicMessageRateLimitException (429, carrying when to come back) when
    * a counter has had enough, and while the counter cannot be reached a
    * ServiceUnavailableException (503) for a request that would send a text
    * message. Call it before anything is created or sent, after the
-   * request's own checks.
+   * request's own checks; a route that creates something first gives the
+   * permit back when that ends with nothing sent (PublicMessageSendPermit).
    */
   public static async assertMaySend(data: {
     req: ExpressRequest;
     kind: PublicMessageKind;
     contacts: Array<PublicMessageContact>;
-  }): Promise<void> {
+  }): Promise<PublicMessageSendPermit> {
     const clientIp: string = PublicMessageRateLimit.resolveClientIp(data.req);
 
     const decision: PublicMessageRateLimitDecision =
@@ -762,6 +835,74 @@ export default class PublicMessageRateLimit {
         logger.warn(
           `PublicMessageRateLimit: rate limit counter unavailable, sending ${data.kind} uncounted`,
         );
+      }
+    }
+
+    return PublicMessageRateLimit.permitFor({
+      kind: data.kind,
+      keys: decision.countedContactKeys || [],
+    });
+  }
+
+  /*
+   * The permit for a request let through: giveBack hands its contacts their
+   * count back, once.
+   */
+  private static permitFor(data: {
+    kind: PublicMessageKind;
+    keys: Array<string>;
+  }): PublicMessageSendPermit {
+    let isGivenBack: boolean = false;
+
+    return {
+      giveBack: async (): Promise<void> => {
+        if (isGivenBack) {
+          return;
+        }
+
+        isGivenBack = true;
+
+        await PublicMessageRateLimit.giveBackContacts({
+          kind: data.kind,
+          keys: data.keys,
+        });
+      },
+    };
+  }
+
+  /*
+   * One count back on each of these contact counters, for a request that
+   * sent them nothing. A failure is logged and swallowed: it leaves the
+   * contact counted for a message it was not sent, which ends with the
+   * window, and it must never turn a refusal into a send or hide the error
+   * the request ended with.
+   */
+  private static async giveBackContacts(data: {
+    kind: PublicMessageKind;
+    keys: Array<string>;
+  }): Promise<void> {
+    if (data.keys.length === 0) {
+      return;
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      return;
+    }
+
+    try {
+      await ClientRateLimitCounter.uncountFixed({
+        redis: client,
+        keys: data.keys,
+        ttlSeconds: CONFIG.contactWindowSeconds * TTL_MULTIPLIER,
+      });
+    } catch (err) {
+      if (PublicMessageRateLimit.shouldLogCounterUnavailable(data.kind)) {
+        logger.warn(
+          `PublicMessageRateLimit: could not give ${data.kind} counts back`,
+        );
+        logger.warn(err);
       }
     }
   }

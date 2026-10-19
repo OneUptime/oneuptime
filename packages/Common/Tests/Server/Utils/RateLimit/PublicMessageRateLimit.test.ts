@@ -20,7 +20,8 @@ import {
  *  - the caller's counter of each kind, and its text messages of every kind
  *    together, per address and per IPv6 /64;
  *  - each contact's counter of each kind, from every caller together, spent
- *    only by a request the caller's own counters let through;
+ *    only by a request the caller's own counters let through, and given
+ *    back by a request that ends with nothing sent to it;
  *  - how a contact is told apart from another: one mailbox however it is
  *    spelled, one phone however it is typed, one webhook as its address;
  *  - a list of email addresses is refused, never counted as one;
@@ -29,7 +30,8 @@ import {
  *    refused, anything else goes out uncounted.
  *
  * The routes are driven end to end in StatusPageSubscriberMessageLimits.test.ts
- * (Common) and PublicMessageLimits.test.ts (App, the identity routes).
+ * (Common), and in App by PasswordResetAndSignUpEmailLimits.test.ts and
+ * StatusPagePasswordResetLimits.test.ts (the identity routes).
  */
 
 jest.mock("../../../../Server/Infrastructure/Redis", () => {
@@ -72,6 +74,7 @@ import PublicMessageRateLimit, {
   PublicMessageRateLimitException,
   PublicMessageRateLimitOutcome,
   PublicMessageRateLimitScope,
+  PublicMessageSendPermit,
 } from "../../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import FakeCounterRedis from "../../TestingUtils/Redis/FakeCounterRedis";
 import URL from "../../../../Types/API/URL";
@@ -125,6 +128,9 @@ function phoneOf(index: number): PublicMessageContact {
     `+1415555${String(index).padStart(4, "0")}`,
   );
 }
+
+// What assertMaySend hands a request it lets through.
+const A_PERMIT: unknown = { giveBack: expect.any(Function) };
 
 let redis: FakeCounterRedis;
 let currentTime: number;
@@ -439,6 +445,62 @@ describe("a contact is one mailbox, one phone, one channel", () => {
     }).toThrow(PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE);
   });
 
+  test("a mailbox written with any of RFC 5322's characters is one mailbox, apostrophes included", () => {
+    for (const value of [
+      "o'brien@example.com",
+      "d'angelo.smith@example.co.uk",
+      "first.last@mail.example.com",
+      "a!b#c$d%e&f'g*h/i=j?k^l_m`n{o|p}q~r-s@example.com",
+      "user@123.example",
+      "x@a-b.example.com",
+    ]) {
+      expect([value, PublicMessageRateLimit.forEmail(value).channel]).toEqual([
+        value,
+        PublicMessageChannel.Email,
+      ]);
+    }
+
+    expect(
+      PublicMessageRateLimit.forEmail("O'Brien@Example.com").canonical,
+    ).toBe("o'brien@example.com");
+  });
+
+  test("a group, a comment, a quoted or dotted-out local part, an address literal or a trailing dot is refused", () => {
+    for (const value of [
+      "x:victim@example.com",
+      "group:victim@example.com;",
+      "a:b:victim@example.com",
+      "victim@example.com:",
+      "victim@example.com.",
+      ".victim@example.com",
+      "victim.@example.com",
+      "vic..tim@example.com",
+      "victim(comment)@example.com",
+      "victim@example.com (comment)",
+      '"victim"@example.com',
+      "victim@[192.0.2.1]",
+      "victim@-example.com",
+      "victim@example-.com",
+      "victim@exam_ple.com",
+      "victim@example",
+      "victim\\@example.com",
+      "vïctim@example.com",
+    ]) {
+      let refusal: unknown = null;
+
+      try {
+        PublicMessageRateLimit.forEmail(value);
+      } catch (error) {
+        refusal = error;
+      }
+
+      expect([value, (refusal as BadDataException | null)?.message]).toEqual([
+        value,
+        PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+      ]);
+    }
+  });
+
   test("the one-mailbox check takes time in line with the text, however long", () => {
     const worstCases: Array<string> = [
       "a".repeat(400000),
@@ -478,6 +540,15 @@ describe("a contact is one mailbox, one phone, one channel", () => {
     expect(key("+14155550100")).toBe(key("+1 (415) 555-0100"));
     expect(key("+14155550100")).toBe(key("14155550100"));
     expect(key("+14155550100")).not.toBe(key("+14155550101"));
+
+    // Dialled out of the country with 00, as most of the world does.
+    expect(key("+14155550100")).toBe(key("0014155550100"));
+    expect(key("+14155550100")).toBe(key("00 1 415 555 0100"));
+    expect(PublicMessageRateLimit.forPhone("0044 7911 123456").canonical).toBe(
+      "447911123456",
+    );
+    // One leading 0 is a number of its own, as it is to a phone network.
+    expect(key("+14155550100")).not.toBe(key("014155550100"));
     expect(
       PublicMessageRateLimit.forPhone(new Phone("+14155550100")).canonical,
     ).toBe("14155550100");
@@ -1056,6 +1127,211 @@ describe("a contact's counter, from every caller together", () => {
   });
 });
 
+describe("a contact is counted for the messages it is sent", () => {
+  // The count a contact's counter holds for a kind, in this window.
+  function contactCount(
+    kind: PublicMessageKind,
+    contact: PublicMessageContact,
+  ): number {
+    const keys: Array<string> = redis
+      .keysHolding(`:k:${PublicMessageRateLimit.getContactKey(contact)}:`)
+      .filter((key: string): boolean => {
+        return key.includes(`:${kind}:`);
+      });
+
+    return keys.reduce((total: number, key: string): number => {
+      return total + redis.count(key);
+    }, 0);
+  }
+
+  async function permitFor(
+    kind: PublicMessageKind,
+    contacts: Array<PublicMessageContact>,
+    from: string = CLIENT,
+  ): Promise<PublicMessageSendPermit> {
+    return await PublicMessageRateLimit.assertMaySend({
+      req: requestFrom(from),
+      kind: kind,
+      contacts: contacts,
+    });
+  }
+
+  test("a request refused for one contact gives the other contacts it names their count back", async () => {
+    const victim: PublicMessageContact =
+      PublicMessageRateLimit.forEmail("victim@example.com");
+    const spent: PublicMessageContact = phoneOf(1);
+
+    // A phone that has had its ten sign-ups this hour.
+    await allowedOf(10, (index: number) => {
+      return consume(
+        PublicMessageKind.StatusPageSignUp,
+        [spent],
+        `192.0.2.${index + 1}`,
+      );
+    });
+
+    // Sign-ups naming the victim's address beside it, again and again.
+    for (let index: number = 0; index < 20; index++) {
+      const decision: PublicMessageRateLimitDecision = await consume(
+        PublicMessageKind.StatusPageSignUp,
+        [victim, spent],
+        `198.51.100.${index + 1}`,
+      );
+
+      expect(decision.scope).toBe(PublicMessageRateLimitScope.Contact);
+      expect(decision.contact).toEqual(spent);
+    }
+
+    // Nothing was sent to the victim, so nothing is counted against it.
+    expect(contactCount(PublicMessageKind.StatusPageSignUp, victim)).toBe(0);
+
+    /*
+     * The phone that refused keeps every count, over its limit until its
+     * window ends - so only its first refusal is the first of the window.
+     */
+    expect(contactCount(PublicMessageKind.StatusPageSignUp, spent)).toBe(30);
+    expect(
+      (
+        await allowedOf(11, (index: number) => {
+          return consume(
+            PublicMessageKind.StatusPageSignUp,
+            [victim],
+            `192.0.2.${100 + index}`,
+          );
+        })
+      ).allowed,
+    ).toBe(10);
+  });
+
+  test("a permit gives its contacts their count back, once, and the caller's count stays spent", async () => {
+    const permit: PublicMessageSendPermit = await permitFor(
+      PublicMessageKind.StatusPageSignUp,
+      [emailOf(1), phoneOf(1)],
+    );
+
+    expect(contactCount(PublicMessageKind.StatusPageSignUp, emailOf(1))).toBe(
+      1,
+    );
+    expect(contactCount(PublicMessageKind.StatusPageSignUp, phoneOf(1))).toBe(
+      1,
+    );
+
+    await permit.giveBack();
+    await permit.giveBack();
+
+    expect(contactCount(PublicMessageKind.StatusPageSignUp, emailOf(1))).toBe(
+      0,
+    );
+    expect(contactCount(PublicMessageKind.StatusPageSignUp, phoneOf(1))).toBe(
+      0,
+    );
+    expect(redis.commandsSent("decr")).toHaveLength(2);
+
+    // The caller's sign-up and its text are still counted.
+    const callerKeys: Array<string> = redis.keysHolding(`:c:${CLIENT}:`);
+
+    expect(callerKeys).toHaveLength(2);
+
+    for (const key of callerKeys) {
+      expect([key, redis.count(key)]).toEqual([key, 1]);
+    }
+  });
+
+  test("a contact whose every request ended with nothing sent keeps its whole allowance", async () => {
+    const victim: PublicMessageContact =
+      PublicMessageRateLimit.forEmail("victim@example.com");
+
+    for (let index: number = 0; index < 25; index++) {
+      const permit: PublicMessageSendPermit = await permitFor(
+        PublicMessageKind.SignUpEmail,
+        [victim],
+        `192.0.2.${index + 1}`,
+      );
+
+      await permit.giveBack();
+    }
+
+    expect(
+      (
+        await allowedOf(6, (index: number) => {
+          return consume(
+            PublicMessageKind.SignUpEmail,
+            [victim],
+            `198.51.100.${index + 1}`,
+          );
+        })
+      ).allowed,
+    ).toBe(5);
+  });
+
+  test("a permit for a request let through uncounted gives nothing back", async () => {
+    isConnectedMock.mockReturnValue(false);
+
+    const permit: PublicMessageSendPermit = await permitFor(
+      PublicMessageKind.PasswordReset,
+      [emailOf(1)],
+    );
+
+    isConnectedMock.mockReturnValue(true);
+    await permit.giveBack();
+
+    expect(redis.sent).toEqual([]);
+  });
+
+  test("a give-back that fails is logged and swallowed, and never turns a refusal into a send", async () => {
+    redis.failCommand = (command: { name: string }): Error | null => {
+      return command.name === "decr" ? new Error("READONLY replica") : null;
+    };
+
+    const permit: PublicMessageSendPermit = await permitFor(
+      PublicMessageKind.StatusPageSignUp,
+      [emailOf(1)],
+    );
+
+    await expect(permit.giveBack()).resolves.toBeUndefined();
+    expect(
+      loggerWarnMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        return String(call[0]).includes("could not give");
+      }),
+    ).toHaveLength(1);
+
+    // A refusal whose give-back fails is still a refusal.
+    await allowedOf(10, (index: number) => {
+      return consume(
+        PublicMessageKind.StatusPageSignUp,
+        [phoneOf(1)],
+        `192.0.2.${index + 1}`,
+      );
+    });
+
+    expect(
+      (
+        await consume(
+          PublicMessageKind.StatusPageSignUp,
+          [emailOf(2), phoneOf(1)],
+          OTHER_CLIENT,
+        )
+      ).outcome,
+    ).toBe(PublicMessageRateLimitOutcome.RateLimited);
+  });
+
+  test("a key Redis lost before the give-back is not left behind without an expiry", async () => {
+    const permit: PublicMessageSendPermit = await permitFor(
+      PublicMessageKind.PasswordReset,
+      [emailOf(1)],
+    );
+    const key: string = redis.keysHolding(":k:")[0]!;
+
+    redis.counters.delete(key);
+    redis.expiries.delete(key);
+
+    await permit.giveBack();
+
+    expect(redis.count(key)).toBe(-1);
+    expect(redis.expiries.get(key)).toEqual([2 * 60 * 60]);
+  });
+});
+
 describe("assertMaySend: what the routes call", () => {
   test("lets a request through without a word", async () => {
     await expect(
@@ -1064,7 +1340,7 @@ describe("assertMaySend: what the routes call", () => {
         kind: PublicMessageKind.PasswordReset,
         contacts: [emailOf(1)],
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual(A_PERMIT);
   });
 
   test("refuses with 429, the kind's words and when to come back, and logs the first refusal once", async () => {
@@ -1172,7 +1448,7 @@ describe("while the counter cannot be reached", () => {
             kind: kind,
             contacts: [emailOf(index)],
           }),
-        ).resolves.toBeUndefined();
+        ).resolves.toEqual(A_PERMIT);
       }
 
       expect(redis.sent).toEqual([]);
@@ -1232,7 +1508,7 @@ describe("while the counter cannot be reached", () => {
         kind: PublicMessageKind.PasswordReset,
         contacts: [emailOf(1)],
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual(A_PERMIT);
 
     redis.failNextExec = new Error("connection reset");
 

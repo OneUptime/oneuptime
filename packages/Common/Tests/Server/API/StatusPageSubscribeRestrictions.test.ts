@@ -136,7 +136,7 @@ describe("StatusPageAPI - who may sign up on a status page that takes only its p
      */
     jest
       .spyOn(PublicMessageRateLimit, "assertMaySend")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
 
     created = [];
     signedInEmail = null;

@@ -588,7 +588,7 @@ describe("StatusPageAPI manage-subscription templates", () => {
      */
     jest
       .spyOn(PublicMessageRateLimit, "assertMaySend")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
 
     pageToSend = statusPageFixture({ withCustomSmtpAndSms: true });
     templatesByMethod = {};

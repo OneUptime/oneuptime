@@ -6,6 +6,7 @@ import PublicMessageRateLimit, {
   PublicMessageChannel,
   PublicMessageContact,
   PublicMessageKind,
+  PublicMessageSendPermit,
 } from "../Utils/RateLimit/PublicMessageRateLimit";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
 import IncidentEpisodeService from "../Services/IncidentEpisodeService";
@@ -4091,18 +4092,26 @@ export default class StatusPageAPI extends BaseAPI<
        * counted first, against the caller and against each contact
        * (PublicMessageRateLimit), and refused when either has had enough.
        */
-      await PublicMessageRateLimit.assertMaySend({
-        req: req,
-        kind: PublicMessageKind.StatusPageSignUp,
-        contacts: this.getSignUpContacts(statusPageSubscriber),
-      });
+      const permit: PublicMessageSendPermit =
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.StatusPageSignUp,
+          contacts: this.getSignUpContacts(statusPageSubscriber),
+        });
 
       /*
        * A sign-up, not a subscriber the team added (Is Added By Team stays
        * off); the resources it names are ones this page shows a visitor.
+       * One refused or failed before anything was sent - already
+       * subscribed, a check of the page or a webhook, a value too long -
+       * gives its contacts their count back: only messages sent count
+       * against a contact. The caller's own count stays spent.
        */
       await StatusPageSubscriberService.createFromStatusPageSignUp(
         statusPageSubscriber,
+        {
+          onNothingSent: permit.giveBack,
+        },
       );
     }
 

@@ -101,6 +101,7 @@ import IdentityRateLimit, {
 } from "Common/Server/Middleware/IdentityRateLimit";
 import PublicMessageRateLimit, {
   PublicMessageKind,
+  PublicMessageSendPermit,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import { URL as NodeURL } from "url";
@@ -784,20 +785,31 @@ router.post(
          * caller and per address (PublicMessageRateLimit), so nothing is
          * created for a sign-up that is refused.
          */
-        await PublicMessageRateLimit.assertMaySend({
-          req: req,
-          kind: PublicMessageKind.SignUpEmail,
-          contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
-        });
+        const permit: PublicMessageSendPermit =
+          await PublicMessageRateLimit.assertMaySend({
+            req: req,
+            kind: PublicMessageKind.SignUpEmail,
+            contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
+          });
 
         const user: User = partialUser;
 
-        savedUser = await UserService.createUserOnSignup({
-          user: user,
-          props: {
-            isRoot: true,
-          },
-        });
+        try {
+          savedUser = await UserService.createUserOnSignup({
+            user: user,
+            props: {
+              isRoot: true,
+            },
+          });
+        } catch (err) {
+          /*
+           * No account, so no welcome email: the address gets its count
+           * back, and only emails sent count against it. The caller's own
+           * count stays spent.
+           */
+          await permit.giveBack();
+          throw err;
+        }
       }
 
       const host: Hostname = await DatabaseConfig.getHost();
@@ -1313,8 +1325,10 @@ router.post(
  *
  *  - /login (and the SSO paths) still send verification mail without this
  *    policy. They are bounded by their own limiter and by needing the
- *    password (or an identity provider's assertion) first, but mail they send
- *    is not refused by the cooldown here -- it only counts toward it.
+ *    password (or an identity provider's assertion) first -- and /login's by
+ *    the limit on the emails a sign-up sends to one address
+ *    (PublicMessageRateLimit) -- but mail they send is not refused by the
+ *    cooldown here -- it only counts toward it.
  *
  *  - Rows created by other flows (invitations, SSO confirmations, email
  *    changes) count toward the cooldown and the hourly cap, so a user who has
@@ -2666,6 +2680,19 @@ const login: LoginFunction = async (options: {
        * reset link proves the mailbox and so verifies the address on the way.
        */
       if (!alreadySavedUser.isEmailVerified) {
+        /*
+         * The link is the same "please verify" email a sign-up sends, so it
+         * is counted with them, per caller and per address
+         * (PublicMessageRateLimit): an address is sent so many of them in
+         * an hour, from sign-ups and sign-ins together, however many
+         * callers ask.
+         */
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.SignUpEmail,
+          contacts: [PublicMessageRateLimit.forEmail(alreadySavedUser.email!)],
+        });
+
         await AuthenticationEmail.sendVerificationEmail(alreadySavedUser);
 
         return Response.sendErrorResponse(
@@ -3341,6 +3368,8 @@ const login: LoginFunction = async (options: {
       new BadDataException("Invalid login: Email or password does not match."),
     );
   } catch (err) {
+    // A verification link refused for its rate limits says when to come back.
+    PublicMessageRateLimit.setRetryAfterFor(res, err);
     return next(err);
   }
 };

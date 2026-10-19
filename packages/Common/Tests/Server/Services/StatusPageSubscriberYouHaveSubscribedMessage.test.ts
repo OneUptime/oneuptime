@@ -228,7 +228,7 @@ beforeEach(() => {
    */
   jest
     .spyOn(PublicMessageRateLimit, "assertMaySend")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
 
   jest
     .spyOn(StatusPageService, "getStatusPageURL")

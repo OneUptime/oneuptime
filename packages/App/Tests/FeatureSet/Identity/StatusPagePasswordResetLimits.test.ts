@@ -440,6 +440,15 @@ describe("POST /status-page/forgot-password", () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
+  it("a reader whose address has an apostrophe in it is sent a reset like anyone", async () => {
+    addReader("o'brien@example.com");
+
+    expect(
+      (await forgotPassword("o'brien@example.com", CALLER)).error,
+    ).toBeNull();
+    expect(sendMail).toHaveBeenCalledTimes(1);
+  });
+
   it("while the counter cannot be reached, the reset email goes out as it always did", async () => {
     isRedisConnected = false;
 

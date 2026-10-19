@@ -11,6 +11,7 @@ import PublicMessageRateLimit, {
   PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
   PublicMessageKind,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import ObjectID from "Common/Types/ObjectID";
@@ -45,6 +46,11 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *    hour, and five registration emails to one invited address in an hour;
  *  - that a refused sign-up creates no account, and that claiming an
  *    invitation with its token - which sends nothing - is never counted;
+ *  - that a sign-up whose account cannot be created gives its address the
+ *    count back (only emails sent count against an address), while the
+ *    caller's own count stays spent;
+ *  - that signing in to an address not verified yet - which emails it a
+ *    fresh link - shares the address's five with its sign-up;
  *  - that a list of addresses is refused rather than sent to;
  *  - and, while the counter cannot be reached, that the emails go out
  *    uncounted, as they did before.
@@ -140,6 +146,7 @@ type UserRow = {
 };
 
 const users: Map<string, UserRow> = new Map<string, UserRow>();
+const ACCOUNT_PASSWORD: string = "violet river lantern";
 const userUpdateOneBy: jest.Mock = jest.fn();
 const userCreateUserOnSignup: jest.Mock = jest.fn();
 const userUpdateOneByIdAndFetch: jest.Mock = jest.fn();
@@ -182,6 +189,12 @@ jest.mock("Common/Server/Services/UserService", () => {
       create: jest.fn(),
       createUserOnSignup: (...args: Array<unknown>): unknown => {
         return userCreateUserOnSignup(...args);
+      },
+      // The one password every account here has.
+      verifyHashedColumnValue: (data: {
+        plainValue?: unknown;
+      }): Promise<boolean> => {
+        return Promise.resolve(data.plainValue === ACCOUNT_PASSWORD);
       },
       countBy: jest.fn(),
     },
@@ -300,12 +313,16 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
 });
 
 const sendCompleteRegistrationEmail: jest.Mock = jest.fn();
+const sendVerificationEmail: jest.Mock = jest.fn();
 
 jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
     __esModule: true,
     default: {
-      sendVerificationEmail: jest.fn(),
+      sendVerificationEmail: (...args: Array<unknown>): unknown => {
+        sendVerificationEmail(...args);
+        return Promise.resolve();
+      },
       sendCompleteRegistrationEmail: (...args: Array<unknown>): unknown => {
         sendCompleteRegistrationEmail(...args);
         return Promise.resolve();
@@ -622,6 +639,15 @@ describe("POST /forgot-password", () => {
     expectRefused(refusals[0], RESET_FROM_NETWORK);
   });
 
+  it("an account whose address has an apostrophe in it is sent its reset like any other", async () => {
+    register("o'brien@example.com", "$scrypt$stored-hash");
+
+    expect(
+      (await forgotPassword("o'brien@example.com", CALLER)).error,
+    ).toBeNull();
+    expect(sendMail).toHaveBeenCalledTimes(1);
+  });
+
   it("an hour on, the account's owner is sent a reset again", async () => {
     await acceptedOf(6, () => {
       return forgotPassword(VICTIM_EMAIL, CALLER);
@@ -720,12 +746,173 @@ describe.each([
     expect(sendMail).not.toHaveBeenCalled();
   });
 
+  it("an address written as a group is refused, and no account is created or emailed; one with an apostrophe signs up", async () => {
+    for (const email of [
+      "x:newcomer@example.com",
+      "a:b:newcomer@example.com",
+    ]) {
+      const answer: Answer = await signUp(email, CALLER);
+
+      expect([email, answer.error?.message]).toEqual([
+        email,
+        PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+      ]);
+    }
+
+    expect(userCreateUserOnSignup).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+
+    expect((await signUp("o'brien@example.com", CALLER)).error).toBeNull();
+    expect(userCreateUserOnSignup).toHaveBeenCalledTimes(1);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+  });
+
   it("while the counter cannot be reached, a new account is created and welcomed as it always was", async () => {
     isRedisConnected = false;
 
     expect((await signUp("new@example.com", CALLER)).error).toBeNull();
     expect(userCreateUserOnSignup).toHaveBeenCalledTimes(1);
     expect(sendMail).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe.each([
+  ["on the hosted service", true],
+  ["self-hosted", false],
+])(
+  "POST /signup %s, when the account cannot be created",
+  (_where: string, billingEnabled: boolean) => {
+    beforeEach(() => {
+      mockBillingEnabled = billingEnabled;
+      userCreateUserOnSignup.mockRejectedValue(
+        new BadDataException(
+          "companyName length cannot be more than 100 characters",
+        ),
+      );
+    });
+
+    it("sends nothing, and the address keeps its five sign-up emails", async () => {
+      for (let index: number = 0; index < 20; index++) {
+        const answer: Answer = await signUp(
+          "newcomer@example.com",
+          `192.0.2.${index + 1}`,
+        );
+
+        expect(answer.error?.message).toBe(
+          "companyName length cannot be more than 100 characters",
+        );
+      }
+
+      expect(sendMail).not.toHaveBeenCalled();
+
+      userCreateUserOnSignup.mockImplementation(
+        async (data: Record<string, any>): Promise<unknown> => {
+          const user: Record<string, any> = data["user"] as Record<string, any>;
+          user["_id"] = "53000000-0000-4000-8000-0000000000ee";
+          return user;
+        },
+      );
+
+      const { accepted, refusals } = await acceptedOf(6, (index: number) => {
+        return signUp("newcomer@example.com", `198.51.100.${index + 1}`);
+      });
+
+      expect(accepted).toBe(5);
+      expect(sendMail).toHaveBeenCalledTimes(5);
+      expectRefused(refusals[0], SIGN_UP_FOR_ADDRESS);
+    });
+
+    it("the caller's own count is spent all the same", async () => {
+      await acceptedOf(60, (index: number) => {
+        return signUp(`failing${index}@example.com`, CALLER);
+      });
+
+      expectRefused(
+        await signUp("one-more@example.com", CALLER),
+        SIGN_UP_FROM_NETWORK,
+      );
+    });
+  },
+);
+
+describe("POST /login to an address not verified yet", () => {
+  async function signIn(
+    email: string,
+    from: string,
+    password: string = ACCOUNT_PASSWORD,
+  ): Promise<Answer> {
+    return await post(
+      "/login",
+      { data: { email: email, password: password } },
+      from,
+    );
+  }
+
+  beforeEach(() => {
+    // Signed up on the hosted service, its welcome link not followed yet.
+    register("unverified@example.com", "$scrypt$stored-hash");
+  });
+
+  it("mails a fresh link on each sign-in: five in the hour, from caller after caller, then refused with when to come back", async () => {
+    const { accepted, refusals } = await acceptedOf(20, (index: number) => {
+      return signIn("unverified@example.com", `192.0.2.${index + 1}`);
+    });
+
+    // Every sign-in is refused - the address is not verified - but only five mailed it.
+    expect(accepted).toBe(0);
+    expect(sendVerificationEmail).toHaveBeenCalledTimes(5);
+    expect(refusals.slice(0, 5)).toEqual(
+      Array(5).fill({
+        error: expect.objectContaining({
+          message: expect.stringContaining("Email is not verified."),
+        }),
+        retryAfter: undefined,
+      }),
+    );
+    expectRefused(refusals[5], SIGN_UP_FOR_ADDRESS);
+    expectRefused(refusals[19], SIGN_UP_FOR_ADDRESS);
+  });
+
+  it("shares the address's five with the email its sign-up sent", async () => {
+    users.delete("unverified@example.com");
+
+    expect((await signUp("unverified@example.com", CALLER)).error).toBeNull();
+    expect(sendMail).toHaveBeenCalledTimes(1);
+
+    register("unverified@example.com", "$scrypt$stored-hash");
+
+    await acceptedOf(10, (index: number) => {
+      return signIn("unverified@example.com", `198.51.100.${index + 1}`);
+    });
+
+    expect(sendVerificationEmail).toHaveBeenCalledTimes(4);
+  });
+
+  it("a wrong password mails nothing and counts nothing", async () => {
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signIn(
+        "unverified@example.com",
+        `192.0.2.${index + 1}`,
+        "a wrong guess",
+      );
+
+      expect(answer.error?.message).toBe(
+        "Invalid login: Email or password does not match.",
+      );
+    }
+
+    expect(sendVerificationEmail).not.toHaveBeenCalled();
+    expect(redisClient.keys()).toEqual([]);
+  });
+
+  it("while the counter cannot be reached, the link goes out as it always did", async () => {
+    isRedisConnected = false;
+
+    for (let index: number = 0; index < 8; index++) {
+      await signIn("unverified@example.com", CALLER);
+    }
+
+    expect(sendVerificationEmail).toHaveBeenCalledTimes(8);
   });
 });
 

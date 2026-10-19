@@ -311,7 +311,7 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
      */
     jest
       .spyOn(PublicMessageRateLimit, "assertMaySend")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
 
     statusPageId = ObjectID.generate();
     projectId = ObjectID.generate();

@@ -341,7 +341,7 @@ beforeEach(() => {
    */
   jest
     .spyOn(PublicMessageRateLimit, "assertMaySend")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
   delivered = [];
   pendingSends = [];
 

@@ -13,10 +13,11 @@ import ts from "typescript";
  * The routes anyone can call without signing in that send a message to a
  * contact the request names - a status page sign-up, a status page manage
  * link, a status page private user's password reset, an account's password
- * reset, the emails an account sign-up sends - are each limited per caller
- * and per contact by PublicMessageRateLimit.assertMaySend. The route suites
- * drive each one (StatusPageSubscriberMessageLimits.test.ts here; in App,
- * PasswordResetAndSignUpEmailLimits.test.ts and
+ * reset, the emails an account sign-up sends, and the verification link a
+ * sign-in to an address not verified yet sends - are each limited per
+ * caller and per contact by PublicMessageRateLimit.assertMaySend. The route
+ * suites drive each one (StatusPageSubscriberMessageLimits.test.ts here; in
+ * App, PasswordResetAndSignUpEmailLimits.test.ts and
  * StatusPagePasswordResetLimits.test.ts); this guard holds the wiring
  * itself, read from the code with its comments removed:
  *
@@ -33,11 +34,13 @@ interface PublicMessageRoute {
   file: string;
 
   /*
-   * The handler: a method of the file's class, or the arrow function of a
-   * route registered on its router (the path it is registered under).
+   * The handler: a method of the file's class, the arrow function of a
+   * route registered on its router (the path it is registered under), or a
+   * function the file's routes share (the name it is declared under).
    */
   method?: string | undefined;
   routePath?: string | undefined;
+  functionName?: string | undefined;
 
   kind: PublicMessageKind;
 
@@ -89,6 +92,18 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
       // A new account, and its welcome.
       ["UserService.createUserOnSignup(", "MailService.sendMail("],
     ],
+  },
+  {
+    /*
+     * Every sign-in step (/login, /verify-totp-auth, /verify-webauthn-auth,
+     * /verify-backup-code, /verify-totp-enrolment) runs login(), which
+     * mails an address not verified yet a fresh link - the same email a
+     * sign-up sends, so the same kind.
+     */
+    file: AUTHENTICATION,
+    functionName: "login",
+    kind: PublicMessageKind.SignUpEmail,
+    branches: [["AuthenticationEmail.sendVerificationEmail("]],
   },
   {
     file: STATUS_PAGE_AUTHENTICATION,
@@ -172,19 +187,63 @@ function findRouteHandler(
   return found;
 }
 
+// The function a file declares under `name`: const name = ..., or function name.
+function findFunction(
+  sourceFile: ts.SourceFile,
+  name: string,
+): ts.Node | undefined {
+  let found: ts.Node | undefined = undefined;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name &&
+      node.initializer &&
+      (ts.isArrowFunction(node.initializer) ||
+        ts.isFunctionExpression(node.initializer))
+    ) {
+      found = node.initializer;
+      return;
+    }
+
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name &&
+      node.name.text === name
+    ) {
+      found = node;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return found;
+}
+
 function handlerCodeOf(route: {
   file: string;
   method?: string | undefined;
   routePath?: string | undefined;
+  functionName?: string | undefined;
 }): string {
   const sourceFile: ts.SourceFile = sourceOf(route.file);
-  const handler: ts.Node | undefined = route.method
-    ? findMethod(sourceFile, route.method)
-    : findRouteHandler(sourceFile, route.routePath!);
+  let handler: ts.Node | undefined = undefined;
+
+  if (route.method) {
+    handler = findMethod(sourceFile, route.method);
+  } else if (route.functionName) {
+    handler = findFunction(sourceFile, route.functionName);
+  } else {
+    handler = findRouteHandler(sourceFile, route.routePath!);
+  }
 
   if (!handler) {
     throw new Error(
-      `${route.file}: no handler ${route.method || route.routePath}`,
+      `${route.file}: no handler ${route.method || route.functionName || route.routePath}`,
     );
   }
 
@@ -290,7 +349,7 @@ function wiringProblems(
 }
 
 function nameOf(route: PublicMessageRoute): string {
-  return `${route.file} ${route.method || route.routePath}`;
+  return `${route.file} ${route.method || route.functionName || route.routePath}`;
 }
 
 describe("every public route that sends to a caller-named contact asks first", () => {
@@ -341,9 +400,13 @@ describe("nothing else asks, and every kind is asked for", () => {
 
   test("every kind is a listed route's", () => {
     expect(
-      PUBLIC_MESSAGE_ROUTES.map((route: PublicMessageRoute): string => {
-        return route.kind;
-      }).sort(),
+      Array.from(
+        new Set<string>(
+          PUBLIC_MESSAGE_ROUTES.map((route: PublicMessageRoute): string => {
+            return route.kind;
+          }),
+        ),
+      ).sort(),
     ).toEqual(Object.values(PublicMessageKind).sort());
   });
 
@@ -436,6 +499,27 @@ describe("the guard's own reading", () => {
         method: "manageExistingSubscription",
       }),
     ).toContain("sendManageSubscriptionLinks");
+    expect(
+      handlerCodeOf({ file: AUTHENTICATION, functionName: "login" }),
+    ).toContain("verifyHashedColumnValue");
+  });
+
+  test("finds a function declared either way, and nothing that is not one", () => {
+    const sourceFile: ts.SourceFile = ts.createSourceFile(
+      "x.ts",
+      "const login = async () => { sendLink(); };\nfunction logout() { forget(); }\nconst limit = 5;\n",
+      ts.ScriptTarget.Latest,
+      true,
+    );
+
+    expect(codeOf(findFunction(sourceFile, "login")!, sourceFile)).toContain(
+      "sendLink()",
+    );
+    expect(codeOf(findFunction(sourceFile, "logout")!, sourceFile)).toContain(
+      "forget()",
+    );
+    expect(findFunction(sourceFile, "limit")).toBeUndefined();
+    expect(findFunction(sourceFile, "missing")).toBeUndefined();
   });
 
   test("reads code, not the comments around it", () => {

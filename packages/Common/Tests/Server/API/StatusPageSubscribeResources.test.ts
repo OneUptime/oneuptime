@@ -194,7 +194,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
      */
     jest
       .spyOn(PublicMessageRateLimit, "assertMaySend")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
 
     resourceLookups = [];
     heldResourceIds = [];

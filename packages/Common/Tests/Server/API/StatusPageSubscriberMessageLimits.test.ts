@@ -120,6 +120,7 @@ import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/M
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
@@ -656,6 +657,30 @@ describe("signing up on a status page", () => {
     expect(emails).not.toHaveBeenCalled();
   });
 
+  test("an address written as a group, or with a trailing dot, is refused; one with an apostrophe signs up", async () => {
+    for (const subscriberEmail of [
+      "x:victim@example.com",
+      "group:victim@example.com;",
+      "victim@example.com.",
+    ]) {
+      const answer: Answer = await signUp(VISITOR, { subscriberEmail });
+
+      expect([subscriberEmail, answer.error?.message]).toEqual([
+        subscriberEmail,
+        PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+      ]);
+    }
+
+    expect(subscribers.rows).toHaveLength(0);
+    expect(emails).not.toHaveBeenCalled();
+
+    expect(
+      (await signUp(VISITOR, { subscriberEmail: "o'brien@example.com" })).error,
+    ).toBeUndefined();
+    expect(subscribers.rows).toHaveLength(1);
+    expect(emails).toHaveBeenCalledTimes(1);
+  });
+
   test("the hosts of one IPv6 /64 sign up ten addresses' worth, then the /64 is refused", async () => {
     const networkLimit: number = getIpv6NetworkRateLimit(60);
 
@@ -758,6 +783,217 @@ describe("signing up on a status page", () => {
     );
     expect(subscribers.rows).toHaveLength(1);
     expect(texts).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A contact's sign-ups count the sign-ups that sent it something. One refused
+ * or failed before anything went out leaves the contact's allowance as it
+ * was: otherwise anyone could use up a person's sign-ups with requests that
+ * are refused anyway, and that person could not subscribe anywhere for the
+ * rest of the hour. The caller's own count is spent all the same.
+ */
+describe("a contact's sign-ups count only the sign-ups that sent it something", () => {
+  const VICTIM_EMAIL: string = "victim@example.com";
+  const VICTIM_PHONE: string = "+14155550123";
+
+  // The victim's own sign-ups, page after page: how many go through.
+  async function victimSignUps(
+    body: JSONObject,
+    count: number = 11,
+  ): Promise<{ accepted: number; refusals: Array<Answer> }> {
+    return await acceptedOf(count, (index: number) => {
+      return signUp(`198.51.100.${index + 1}`, body, pageIdOf(index + 1));
+    });
+  }
+
+  test("signed up again where it is already subscribed: refused, and the address keeps its ten", async () => {
+    storedSubscriber("52000000-0000-4000-8000-000000000020", PAGE_ID)[
+      "subscriberEmail"
+    ] = VICTIM_EMAIL;
+
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+      });
+
+      expect(answer.error?.message).toBe(
+        "You are already subscribed to this status page.",
+      );
+    }
+
+    expect(emails).not.toHaveBeenCalled();
+
+    const { accepted, refusals } = await victimSignUps({
+      subscriberEmail: VICTIM_EMAIL,
+    });
+
+    expect(accepted).toBe(10);
+    expect(emails).toHaveBeenCalledTimes(10);
+    expectRefused(
+      refusals[0],
+      "Too many sign-ups for this email address in the last hour. Please try again later.",
+    );
+  });
+
+  test("named beside a Slack address that is not one: refused, and the address keeps its ten", async () => {
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+        slackIncomingWebhookUrl: "https://example.net/not-a-slack-webhook",
+      });
+
+      expect(answer.error?.message).toBe("Invalid Slack Incoming Webhook URL.");
+    }
+
+    expect(subscribers.rows).toHaveLength(0);
+    expect(
+      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
+    ).toBe(10);
+  });
+
+  test("named beside a webhook the page may not call: refused, and the address keeps its ten", async () => {
+    jest
+      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
+      .mockRejectedValue(
+        new BadDataException("Webhook URL points at a private address."),
+      );
+
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+        subscriberWebhook: "https://10.0.0.5/hook",
+      });
+
+      expect(answer.error?.message).toBe(
+        "Webhook URL points at a private address.",
+      );
+    }
+
+    jest
+      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
+      .mockResolvedValue(undefined);
+
+    expect(
+      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
+    ).toBe(10);
+  });
+
+  test("named with a value too long to keep: refused, and the address keeps its ten", async () => {
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+        slackWorkspaceName: "w".repeat(5000),
+      });
+
+      expect(answer.error?.message).toContain("slackWorkspaceName length");
+    }
+
+    expect(subscribers.rows).toHaveLength(0);
+    expect(
+      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
+    ).toBe(10);
+  });
+
+  test("a phone signed up where the project sends no texts: refused, and the phone keeps its ten", async () => {
+    jest
+      .spyOn(ProjectService, "isSMSNotificationsEnabled")
+      .mockResolvedValue(false);
+
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberPhone: VICTIM_PHONE,
+      });
+
+      expect(answer.error?.message).toBe(
+        "SMS subscribers not enabled for this status page.",
+      );
+    }
+
+    jest
+      .spyOn(ProjectService, "isSMSNotificationsEnabled")
+      .mockResolvedValue(true);
+
+    const { accepted } = await victimSignUps({ subscriberPhone: VICTIM_PHONE });
+
+    expect(accepted).toBe(10);
+    expect(texts).toHaveBeenCalledTimes(10);
+  });
+
+  test("named beside a phone that has had its ten: refused for the phone, and the address keeps its ten", async () => {
+    await acceptedOf(10, (index: number) => {
+      return signUp(
+        `203.0.113.${index + 1}`,
+        { subscriberPhone: VICTIM_PHONE },
+        pageIdOf(index),
+      );
+    });
+
+    for (let index: number = 0; index < 20; index++) {
+      expectRefused(
+        await signUp(`192.0.2.${index + 1}`, {
+          subscriberEmail: VICTIM_EMAIL,
+          subscriberPhone: VICTIM_PHONE,
+        }),
+        "Too many sign-ups for this phone number in the last hour. Please try again later.",
+      );
+    }
+
+    expect(
+      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
+    ).toBe(10);
+  });
+
+  test("the visitor's own count is spent by its refused sign-ups all the same", async () => {
+    storedSubscriber("52000000-0000-4000-8000-000000000021", PAGE_ID)[
+      "subscriberEmail"
+    ] = VICTIM_EMAIL;
+
+    for (let index: number = 0; index < 60; index++) {
+      await signUp(VISITOR, { subscriberEmail: VICTIM_EMAIL });
+    }
+
+    expectRefused(
+      await signUp(VISITOR, { subscriberEmail: "someone-else@example.com" }),
+      SIGN_UP_REFUSAL,
+    );
+  });
+
+  test("a sign-up that fails once its subscriber is written - its text already sent - keeps its count", async () => {
+    jest
+      .spyOn(DatabaseConfig, "getHost")
+      .mockRejectedValue(new Error("settings unavailable"));
+
+    for (let index: number = 0; index < 10; index++) {
+      const answer: Answer = await signUp(
+        `192.0.2.${index + 1}`,
+        {
+          subscriberPhone: VICTIM_PHONE,
+          subscriberEmail: `p${index}@x.example`,
+        },
+        pageIdOf(index),
+      );
+
+      expect(answer.error?.message).toBe("settings unavailable");
+    }
+
+    // Each was written and texted before its confirmation email failed.
+    expect(subscribers.rows).toHaveLength(10);
+    expect(texts).toHaveBeenCalledTimes(10);
+
+    jest
+      .spyOn(DatabaseConfig, "getHost")
+      .mockResolvedValue(new Hostname("oneuptime.example.com"));
+
+    expectRefused(
+      await signUp(
+        "192.0.2.200",
+        { subscriberPhone: VICTIM_PHONE },
+        pageIdOf(PAGE_COUNT - 1),
+      ),
+      "Too many sign-ups for this phone number in the last hour. Please try again later.",
+    );
+    expect(texts).toHaveBeenCalledTimes(10);
   });
 });
 
