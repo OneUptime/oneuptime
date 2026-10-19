@@ -95,6 +95,21 @@ enum CodeFixTaskType {
    * Triggered by "@oneuptime review" or by requesting a review from the app.
    */
   GitHubPullRequestReview = "GitHubPullRequestReview",
+  /*
+   * Do what a person asked, in their own words, in one repository: started
+   * from that repository's page in Code, or as a reply in any task's
+   * conversation there (Common/Server/Utils/AI/CodeTask). The request, the
+   * context the person added (notes, links, files, OneUptime records) and,
+   * for a reply, the conversation so far are captured into
+   * AIRun.taskContext.request; the repository is AIRun.codeRepositoryId.
+   *
+   * A reply (AIRun.codeTaskId set) builds on the task's open pull request:
+   * it checks out that pull request's branch and pushes to it. A first
+   * request, or a reply in a task with no open pull request, works on a new
+   * branch and opens a pull request only when it changes code. It may also
+   * just answer, or ask the person a question, and change nothing.
+   */
+  CodeRequest = "CodeRequest",
 }
 
 export default CodeFixTaskType;
@@ -161,6 +176,7 @@ export class CodeFixTaskTypeHelper {
       case CodeFixTaskType.GitHubIssueFix:
       case CodeFixTaskType.GitHubPullRequestRevision:
       case CodeFixTaskType.GitHubPullRequestReview:
+      case CodeFixTaskType.CodeRequest:
         return CodeFixContextKind.TaskContext;
       default:
         return CodeFixContextKind.TelemetryException;
@@ -212,6 +228,61 @@ export class CodeFixTaskTypeHelper {
       taskType !== CodeFixTaskType.GitHubPullRequestRevision &&
       taskType !== CodeFixTaskType.GitHubPullRequestReview
     );
+  }
+
+  /*
+   * The recipe a person starts by asking, in Code: a repository's request
+   * box, or a reply in a task's conversation.
+   */
+  public static isCodeRequest(
+    taskType: CodeFixTaskType | string | null | undefined,
+  ): boolean {
+    return taskType === CodeFixTaskType.CodeRequest;
+  }
+
+  /*
+   * The recipes a Runner that does not say which it can do is given.
+   *
+   * A Runner names the recipes it has a handler for when it asks for work
+   * (get-pending-task's `supportedTaskTypes`). One built before it did can
+   * still be online, and handed a recipe it has no handler for it fails the
+   * run at once ("No handler registered"). So such a Runner is only given
+   * the recipes every Runner has had - every recipe but the ones added since.
+   * A request from Code waits for a Runner that can do it instead.
+   */
+  public static getTaskTypesForRunnersThatDoNotSay(): Array<CodeFixTaskType> {
+    return Object.values(CodeFixTaskType).filter(
+      (taskType: CodeFixTaskType): boolean => {
+        return taskType !== CodeFixTaskType.CodeRequest;
+      },
+    );
+  }
+
+  /*
+   * The recipes a Runner said it can do, read from its request: unknown
+   * names are dropped, and an absent or malformed list means it did not say
+   * (null).
+   */
+  public static readSupportedTaskTypes(
+    value: unknown,
+  ): Array<CodeFixTaskType> | null {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+
+    const supported: Array<CodeFixTaskType> = [];
+
+    for (const entry of value) {
+      if (
+        typeof entry === "string" &&
+        CodeFixTaskTypeHelper.isValidTaskType(entry) &&
+        !supported.includes(entry)
+      ) {
+        supported.push(entry);
+      }
+    }
+
+    return supported;
   }
 
   public static isValidTaskType(value: string): value is CodeFixTaskType {
