@@ -80,6 +80,9 @@ const WORST_TEXTS: Array<[string, string]> = [
  */
 const LONG_NUMBER_LENGTH: number = 2400000;
 
+// As a TL;DR and as a report's summary, the markers come off twice.
+const LONG_NUMBER_REPORT_LENGTH: number = 1600000;
+
 const linesOfMarkersThenANumber: (unit: string, length: number) => string = (
   unit: string,
   length: number,
@@ -145,7 +148,10 @@ describe("text built to be slow is read quickly", () => {
   test.each(MARKER_UNITS)(
     "lines of %j, each one shorter, then a long number, as a TL;DR and as a report's summary",
     (unit: string) => {
-      const text: string = linesOfMarkersThenANumber(unit, LONG_NUMBER_LENGTH);
+      const text: string = linesOfMarkersThenANumber(
+        unit,
+        LONG_NUMBER_REPORT_LENGTH,
+      );
 
       expect(
         timeOf(() => {
