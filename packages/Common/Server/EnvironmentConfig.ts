@@ -426,6 +426,34 @@ export const PostgresIdleTimeoutMs: number = parseInt(
 );
 
 /*
+ * pg-pool connection lifetime (ms). A connection older than this is closed
+ * and replaced: right away when it is idle, otherwise as soon as the query or
+ * transaction using it gives it back - never in the middle of one. Without
+ * it, the connections a busy process opens at boot stay open for as long as
+ * the process lives, and that hides its queries from anything that only
+ * sees a connection being opened:
+ *
+ *   - The Kubernetes agent's eBPF instrumentation ties a Node.js query to the
+ *     request that ran it through the socket the query goes out on, and it
+ *     learns a socket only when it sees it opened. A pod started while the
+ *     agent was still attaching to others (a rollout), or running when the
+ *     agent restarts, had its pool open before the agent could see it: every
+ *     query on it lands under whichever request most recently began - on a
+ *     pod busy with telemetry ingest, nearly always one of those - and the
+ *     request that ran it shows no database calls at all.
+ *   - A new PgBouncer or Postgres replica behind DATABASE_HOST only ever gets
+ *     the connections opened after it came up.
+ *
+ * Replacing a connection costs one new connection to PgBouncer or Postgres,
+ * once per connection per lifetime. Set to 0 to keep connections for as long
+ * as they stay healthy.
+ */
+export const PostgresConnectionMaxLifetimeMs: number = parseInt(
+  process.env["DATABASE_CONNECTION_MAX_LIFETIME_MS"] || "600000",
+  10,
+);
+
+/*
  * TCP keepalive initial delay (ms) for Postgres sockets. When the client
  * process dies ungracefully (SIGKILL, OOM, crash) or a network partition cuts
  * the link, Postgres has no way to know the client is gone and the backend
