@@ -31227,5 +31227,6 @@
   "Read what a change shipped": "변경 사항의 내용을 읽었습니다",
   "Read {{count}} recent changes; no suspect": "최근 변경 사항 {{count}}개를 읽었습니다. 의심되는 항목은 없습니다",
   "Read {{count}} recent changes; no suspect_one": "최근 변경 사항 {{count}}개를 읽었습니다. 의심되는 항목은 없습니다",
-  "AI fix": "AI 수정"
+  "AI fix": "AI 수정",
+  "Deploy Regression": "Deploy Regression"
 }

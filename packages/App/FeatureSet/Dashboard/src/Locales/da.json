@@ -31227,5 +31227,6 @@
   "Read what a change shipped": "Læste indholdet af en ændring",
   "Read {{count}} recent changes; no suspect": "Læste {{count}} seneste ændringer; ingen mistænkt",
   "Read {{count}} recent changes; no suspect_one": "Læste {{count}} seneste ændring; ikke mistænkt",
-  "AI fix": "AI-rettelse"
+  "AI fix": "AI-rettelse",
+  "Deploy Regression": "Deploy Regression"
 }
