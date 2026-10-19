@@ -109,20 +109,16 @@ function setupIngest(platform: Platform): Spies {
   jest.spyOn(service, "runBatchHostEnrichment").mockResolvedValue(undefined);
   jest
     .spyOn(service, "submitMetricsBuffer")
-    .mockImplementation(
-      async (
-        rows: Array<JSONObject>,
-        _pendingAcks: unknown,
-        force: boolean,
-      ): Promise<void> => {
-        // The batch's rows are flushed with force at its end, then cleared.
-        if (force) {
-          for (const row of rows) {
-            storedRows.push({ ...row });
-          }
+    .mockImplementation(async (...args: Array<unknown>): Promise<void> => {
+      // (rows, pendingAcks, force): the batch's rows are flushed with force
+      // at its end, then cleared.
+      const rows: Array<JSONObject> = args[0] as Array<JSONObject>;
+      if (args[2] === true) {
+        for (const row of rows) {
+          storedRows.push({ ...row });
         }
-      },
-    );
+      }
+    });
   for (const method of DISCOVERIES_RETURNING_NULL) {
     if (typeof service[method] === "function") {
       jest.spyOn(service, method).mockResolvedValue(null);
