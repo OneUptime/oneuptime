@@ -15,7 +15,10 @@ import GitHubCommits, {
   GitHubCommitRange,
 } from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCommits";
 import * as CodeTools from "../../../../../Server/Utils/AI/Toolbox/CodeTools";
-import { GetChangeDetailsTool } from "../../../../../Server/Utils/AI/Toolbox/ChangeTools";
+import {
+  GetChangeDetailsTool,
+  isPreviousDeployOf,
+} from "../../../../../Server/Utils/AI/Toolbox/ChangeTools";
 import AIToolbox from "../../../../../Server/Utils/AI/Toolbox/Index";
 import {
   ToolContext,
@@ -356,6 +359,7 @@ describe("get_change_details", () => {
 
   test("GitHub failing leaves the change described", async () => {
     compare.mockRejectedValue(new Error("rate limited"));
+    getCommit.mockRejectedValue(new Error("rate limited"));
 
     const result: ToolExecutionResult = await run();
 
@@ -363,6 +367,81 @@ describe("get_change_details", () => {
     expect(result.dataForLlm).toContain(
       "kind=note | text=The commits this change shipped could not be read from GitHub.",
     );
+  });
+
+  /*
+   * The previous deploy's commit may not be in the repository (a pipeline
+   * posted another repository's commit) or may have been force-pushed
+   * away: GitHub answers 404 and the deploy's own commit is still worth
+   * listing.
+   */
+  test("a compare GitHub cannot make falls back to the commit itself", async () => {
+    compare.mockRejectedValue(new Error("404 No common ancestor"));
+
+    const result: ToolExecutionResult = await run();
+
+    expect(getCommit).toHaveBeenCalledTimes(1);
+    expect(listPullRequests).toHaveBeenCalledTimes(1);
+    expect(result.dataForLlm).toContain(
+      "- kind=range | repository=acme/checkout | commits=1 | note=the previous deploy's commit (1a2b3c4) could not be compared with this one, so only this commit is listed",
+    );
+    expect(result.dataForLlm).toContain("- kind=pull_request | number=482");
+    expect(result.dataForLlm).not.toContain("kind=note");
+  });
+
+  test("a deploy of an older commit than the previous one is a rollback", async () => {
+    compare.mockResolvedValue({
+      status: "behind",
+      totalCommits: 0,
+      commits: [],
+      files: [],
+      isTruncated: false,
+    });
+
+    const result: ToolExecutionResult = await run();
+
+    expect(result.dataForLlm).toContain(
+      "- kind=range | repository=acme/checkout | from=1a2b3c4 | commits=0 | status=behind | note=this commit is older than the previous deploy's (1a2b3c4): the change rolled back",
+    );
+  });
+
+  test("the previous deploy is the one in the same environment and repository", async () => {
+    const STAGING: string = "4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e";
+    const OTHER_REPOSITORY: string = "5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f";
+    earlier = [
+      // The same commit, abbreviated: not the deploy before this one.
+      change({
+        _id: ObjectID.generate().toString(),
+        attributes: { "vcs.ref.head.revision": HEAD.slice(0, 7) },
+      }),
+      change({
+        _id: ObjectID.generate().toString(),
+        attributes: {
+          "vcs.ref.head.revision": STAGING,
+          "deployment.environment.name": "staging",
+        },
+      }),
+      change({
+        _id: ObjectID.generate().toString(),
+        attributes: {
+          "vcs.ref.head.revision": OTHER_REPOSITORY,
+          "vcs.repository.url.full": "https://github.com/acme/payments",
+        },
+      }),
+      change({
+        _id: ObjectID.generate().toString(),
+        attributes: {
+          "vcs.ref.head.revision": BASE,
+          "deployment.environment.name": "Production",
+          "vcs.repository.url.full": "git@github.com:acme/checkout.git",
+        },
+      }),
+    ];
+
+    await run();
+
+    expect(compare).toHaveBeenCalledTimes(1);
+    expect(compare.mock.calls[0]![0].base).toBe(BASE);
   });
 
   test("a deploy with no commit says how to send one", async () => {
@@ -436,5 +515,89 @@ describe("get_change_details", () => {
     expect(GetChangeDetailsTool.requiredPermissions).toEqual(
       new Monitor().getReadPermissions(),
     );
+  });
+});
+
+describe("isPreviousDeployOf", () => {
+  const current: {
+    commitSha: string;
+    environment: string;
+    repositoryUrl: string;
+  } = {
+    commitSha: HEAD,
+    environment: "production",
+    repositoryUrl: "https://github.com/acme/checkout",
+  };
+
+  test("another commit of the same environment and repository is", () => {
+    expect(isPreviousDeployOf(current, { ...current, commitSha: BASE })).toBe(
+      true,
+    );
+  });
+
+  test("an earlier change that names no environment or repository may be", () => {
+    expect(isPreviousDeployOf(current, { commitSha: BASE })).toBe(true);
+    expect(isPreviousDeployOf({ commitSha: HEAD }, current)).toBe(false);
+    expect(
+      isPreviousDeployOf({ commitSha: HEAD }, { ...current, commitSha: BASE }),
+    ).toBe(true);
+  });
+
+  test("a change with no commit, or with this one, is not", () => {
+    expect(isPreviousDeployOf(current, { environment: "production" })).toBe(
+      false,
+    );
+    expect(isPreviousDeployOf(current, { commitSha: HEAD.toUpperCase() })).toBe(
+      false,
+    );
+    expect(isPreviousDeployOf(current, { commitSha: HEAD.slice(0, 8) })).toBe(
+      false,
+    );
+    expect(
+      isPreviousDeployOf({ commitSha: HEAD.slice(0, 7) }, { commitSha: HEAD }),
+    ).toBe(false);
+  });
+
+  test("another environment is not, whatever its case", () => {
+    expect(
+      isPreviousDeployOf(current, {
+        commitSha: BASE,
+        environment: "staging",
+      }),
+    ).toBe(false);
+    expect(
+      isPreviousDeployOf(current, {
+        commitSha: BASE,
+        environment: "PRODUCTION",
+      }),
+    ).toBe(true);
+  });
+
+  test("another repository is not, however its address is written", () => {
+    expect(
+      isPreviousDeployOf(current, {
+        commitSha: BASE,
+        repositoryUrl: "https://github.com/acme/payments",
+      }),
+    ).toBe(false);
+    for (const repositoryUrl of [
+      "git@github.com:acme/checkout.git",
+      "https://github.com/ACME/Checkout/",
+      "acme/checkout",
+    ]) {
+      expect(
+        isPreviousDeployOf(current, { commitSha: BASE, repositoryUrl }),
+      ).toBe(true);
+    }
+    // Addresses that are not GitHub's are compared as written.
+    expect(
+      isPreviousDeployOf(
+        { ...current, repositoryUrl: "https://gitlab.example.com/acme/x" },
+        {
+          commitSha: BASE,
+          repositoryUrl: "https://gitlab.example.com/acme/y",
+        },
+      ),
+    ).toBe(false);
   });
 });

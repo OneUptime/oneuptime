@@ -72,6 +72,11 @@ export interface ChangeCode {
   repository: GitHubRepositoryName;
   // The commit of the service's previous deploy, when one was found.
   baseCommitSha?: string | undefined;
+  /*
+   * The previous deploy's commit, when GitHub could not compare it with
+   * this one (it is not in the repository, or was force-pushed away).
+   */
+  uncomparedBaseCommitSha?: string | undefined;
   range?: GitHubCommitRange | undefined;
   commit?: GitHubCommitSummary | undefined;
   files?: Array<GitHubChangedFile> | undefined;
@@ -291,15 +296,24 @@ export function describeCodeRows(code: ChangeCode): Array<JSONObject> {
   const repository: string = `${code.repository.owner}/${code.repository.name}`;
 
   if (code.range) {
+    const from: string = code.baseCommitSha
+      ? shortCommitSha(code.baseCommitSha)
+      : "";
+    let note: string | undefined = undefined;
+
+    if (code.range.status === "behind") {
+      note = `this commit is older than the previous deploy's (${from}): the change rolled back`;
+    } else if (code.range.isTruncated) {
+      note = "more commits or files than listed";
+    }
+
     rows.push({
       kind: "range",
       repository,
-      from: code.baseCommitSha ? shortCommitSha(code.baseCommitSha) : "",
+      from,
       commits: code.range.totalCommits,
       status: code.range.status,
-      ...(code.range.isTruncated
-        ? { note: "more commits or files than listed" }
-        : {}),
+      ...(note ? { note } : {}),
     });
 
     for (const commit of code.range.commits) {
@@ -318,7 +332,9 @@ export function describeCodeRows(code: ChangeCode): Array<JSONObject> {
       kind: "range",
       repository,
       commits: 1,
-      note: "no earlier deploy of this service names a commit, so only this commit is listed",
+      note: code.uncomparedBaseCommitSha
+        ? `the previous deploy's commit (${shortCommitSha(code.uncomparedBaseCommitSha)}) could not be compared with this one, so only this commit is listed`
+        : "no earlier deploy of this service names a commit, so only this commit is listed",
     });
     rows.push(commitRow(code.commit));
   }
@@ -422,8 +438,61 @@ async function findChangeRepository(data: {
 }
 
 /*
+ * Whether an earlier change of a service can be the deploy before this one,
+ * the base a compare starts from: another commit, in the same environment
+ * and the same repository whenever both name theirs. A staging deploy is
+ * not what production ran before, and another repository's commit is not
+ * in this one.
+ */
+export function isPreviousDeployOf(
+  current: ChangeEventFields,
+  earlier: ChangeEventFields,
+): boolean {
+  const currentSha: string = (current.commitSha || "").toLowerCase();
+  const earlierSha: string = (earlier.commitSha || "").toLowerCase();
+
+  // The same commit, also when one of them is abbreviated.
+  if (
+    !earlierSha ||
+    (currentSha &&
+      (currentSha.startsWith(earlierSha) || earlierSha.startsWith(currentSha)))
+  ) {
+    return false;
+  }
+
+  if (
+    current.environment &&
+    earlier.environment &&
+    current.environment.toLowerCase() !== earlier.environment.toLowerCase()
+  ) {
+    return false;
+  }
+
+  if (current.repositoryUrl && earlier.repositoryUrl) {
+    const currentName: GitHubRepositoryName | null =
+      GitHubCommits.parseRepositoryName(current.repositoryUrl);
+    const earlierName: GitHubRepositoryName | null =
+      GitHubCommits.parseRepositoryName(earlier.repositoryUrl);
+
+    const isSameRepository: boolean =
+      currentName && earlierName
+        ? currentName.owner.toLowerCase() === earlierName.owner.toLowerCase() &&
+          currentName.name.toLowerCase() === earlierName.name.toLowerCase()
+        : current.repositoryUrl.trim().toLowerCase() ===
+          earlier.repositoryUrl.trim().toLowerCase();
+
+    if (!isSameRepository) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*
  * The commit of the deploy before this one, of the same service: the base
- * a compare starts from. Searched among the service's earlier changes.
+ * a compare starts from. Searched among the service's earlier changes
+ * (isPreviousDeployOf).
  */
 async function findPreviousCommit(data: {
   change: ChangeEvent;
@@ -444,12 +513,12 @@ async function findPreviousCommit(data: {
   });
 
   for (const change of earlier) {
-    const sha: string | undefined = readChangeEventFields(
+    const fields: ChangeEventFields = readChangeEventFields(
       (change.attributes as Dictionary<unknown>) || {},
-    ).commitSha;
+    );
 
-    if (sha && sha !== data.fields.commitSha) {
-      return sha;
+    if (isPreviousDeployOf(data.fields, fields)) {
+      return fields.commitSha;
     }
   }
 
@@ -520,12 +589,22 @@ async function readChangeCode(data: {
       })
     : undefined;
 
+  let uncomparedBase: string | undefined = undefined;
+
   if (base && GitHubCommits.isCommitSha(base)) {
-    return {
-      repository: name,
-      baseCommitSha: base,
-      range: await GitHubCommits.compare({ ...target, base, head }),
-    };
+    try {
+      return {
+        repository: name,
+        baseCommitSha: base,
+        range: await GitHubCommits.compare({ ...target, base, head }),
+      };
+    } catch (error) {
+      // The previous commit is not in this repository, or was force-pushed away.
+      logger.debug(
+        `get_change_details: could not compare ${shortCommitSha(base)} with ${shortCommitSha(head)}: ${error}`,
+      );
+      uncomparedBase = base;
+    }
   }
 
   const [commit, pullRequests]: [
@@ -538,6 +617,7 @@ async function readChangeCode(data: {
 
   return {
     repository: name,
+    ...(uncomparedBase ? { uncomparedBaseCommitSha: uncomparedBase } : {}),
     commit: commit.commit,
     files: commit.files,
     pullRequests,
