@@ -42,6 +42,12 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 #   the cleanup CronJobs run bitnami/kubectl against the in-cluster API server,
 #   which is trusted through the ServiceAccount CA the kubelet projects. There
 #   is no external endpoint for an operator's CA to apply to.
+#
+#   the bundled global Runner runs the runbook steps of every project that uses
+#   global Runners. The chart-wide extras are written for the server's pods and
+#   may carry their secrets, so it takes only its own (globalRunner.extraEnv,
+#   .extraVolumes, .extraVolumeMounts); tests/global-runner_test.yaml holds that
+#   template by template, and the skipped-but-wired check below holds it here.
 SKIP_WORKLOADS=(
     oneuptime-postgresql
     oneuptime-valkey
@@ -49,6 +55,7 @@ SKIP_WORKLOADS=(
     oneuptime-clickhouse-keeper
     cleanup-crashloopbackoff-pods
     cleanup-completed-pods
+    oneuptime-global-runner
 )
 
 # Every workload the chart runs, switched on at once.
