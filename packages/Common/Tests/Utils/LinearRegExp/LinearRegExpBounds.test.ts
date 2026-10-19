@@ -556,6 +556,19 @@ describe("what the caches of compiled patterns keep", () => {
     clearLinearRegExpCache();
     expect(getCachedPatternCharacters()).toBe(0);
     expect(getCachedPatternCount()).toBe(0);
+
+    // A refusal is kept by its text, and the engine's message quotes it again.
+    const refused: string = `${padding}(`;
+    expect(tryGetLinearRegExp(refused)).toBeNull();
+    expect(getCachedPatternCharacters()).toBeGreaterThan(2 * refused.length);
+
+    // A compiled pattern by its text, and the text it keeps as its source.
+    clearLinearRegExpCache();
+    const compiled: LinearRegExp = getLinearRegExp(`${padding}x`);
+    expect(getCachedPatternCharacters()).toBeGreaterThanOrEqual(
+      2 * compiled.source.length,
+    );
+    clearLinearRegExpCache();
   });
 
   test("a grok pattern longer than may be written is refused each time, and never kept", () => {
