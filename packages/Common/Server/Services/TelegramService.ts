@@ -146,6 +146,9 @@ export class TelegramService extends BaseService {
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
+      options: {
+        sameServerRedirectsOnly: true,
+      },
     });
   }
 }

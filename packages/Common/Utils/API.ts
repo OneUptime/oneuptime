@@ -29,6 +29,7 @@ import HTTPResponseBodyReader, {
   HTTPResponseBodyBudget,
 } from "./HTTPResponseBodyReader";
 import HostAddressUtil from "./HostAddressUtil";
+import { getSameServerRedirectCheck } from "./SameServerRedirect";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkFailure,
   ProbeNetworkFailureKind,
@@ -125,6 +126,16 @@ export interface RequestOptions {
   totalTimeoutInMs?: number | undefined;
   timeout?: number | undefined;
   doNotFollowRedirects?: boolean | undefined;
+  /*
+   * For a request that carries a key OneUptime's own components present -
+   * the cluster key, a probe's key, a Runner's key: a redirect is followed
+   * only while it stays on the server the request was sent to (the same
+   * address, or that address moved from http to https), and anywhere else
+   * the request fails instead (SameServerRedirect). An HTTP client sends a
+   * redirected request's headers, and a 307 or 308's body, to wherever the
+   * redirect points.
+   */
+  sameServerRedirectsOnly?: boolean | undefined;
   /*
    * Explicit byte ceilings for callers that return tenant-selected remote
    * content. Axios otherwise accepts an unlimited response/request body.
@@ -653,6 +664,12 @@ export default class API {
 
       if (options?.doNotFollowRedirects) {
         axiosOptions.maxRedirects = 0;
+      }
+
+      if (options?.sameServerRedirectsOnly) {
+        axiosOptions.beforeRedirect = getSameServerRedirectCheck(
+          options?.dispatchUrl ?? url.toString(),
+        );
       }
 
       if (options?.maxContentLength !== undefined) {

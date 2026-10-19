@@ -155,6 +155,7 @@ export default class TaskLogger {
             ? { toolResult: entry.toolResult }
             : {}),
         },
+        options: RunnerAPIRequest.getDefaultRequestOptions(),
       });
 
       if (!result.isSuccess()) {

@@ -348,6 +348,7 @@ const PROSE_LEADS: Array<string> = [
   "The bundled Runner no longer runs a repository's commands, and holds only what it needs.",
   "Wrong two-factor codes are counted for the account, wherever they come from.",
   "A global probe and the bundled Runner no longer authenticate with a key the repository ships.",
+  "Probes, Runners, the infrastructure agent and OneUptime's own services follow redirects only on the server they call.",
   "The bundled ClickHouse and Valkey get passwords of their own.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",

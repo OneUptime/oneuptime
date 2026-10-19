@@ -17,11 +17,11 @@ import path from "path";
  * A global probe runs every project's monitors and the bundled Runner serves
  * every project's AI code fixes, so a key that is public in the repository
  * must never let a caller be one of them. The note (installation/upgrading,
- * "Other changes in 14") sits after the wrong-two-factor-codes note and before the
- * bundled datastores' passwords note, names the four keys it is about and where an operator
- * sets them, and every translation carries it in the English note's place
- * with the English note's code. What it claims is what the server and the
- * install script do:
+ * "Other changes in 14") sits after the wrong-two-factor-codes note and
+ * before the note on redirects (KeyCarryingRedirectsUpgradeDocs), names the
+ * four keys it is about and where an operator sets them, and every
+ * translation carries it in the English note's place with the English
+ * note's code. What it claims is what the server and the install script do:
  *
  *   - ProbeIngest/Register refuses to register a global probe when
  *     REGISTER_PROBE_KEY is a shipped value, and refuses a shipped probe key;
@@ -40,9 +40,9 @@ const NOTE_LEAD: string =
 // The note before it (the wrong-two-factor-codes note, TwoFactorWrongCodesDocs).
 const PREVIOUS_LEAD: string =
   "**Wrong two-factor codes are counted for the account, wherever they come from.**";
-// The note after it (the bundled datastores' passwords, DatastorePasswordUpgradeDocs).
+// The note after it (KeyCarryingRedirectsUpgradeDocs).
 const NEXT_LEAD: string =
-  "**The bundled ClickHouse and Valkey get passwords of their own.**";
+  "**Probes, Runners, the infrastructure agent and OneUptime's own services follow redirects only on the server they call.**";
 
 const KEYS: Array<string> = [
   "REGISTER_PROBE_KEY",
@@ -71,7 +71,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the global-probe and Runner keys", () => {
-  it("is a note of the 13 → 14 changes, once, after the wrong-two-factor-codes note and before the bundled datastores' passwords note", () => {
+  it("is a note of the 13 → 14 changes, once, after the wrong-two-factor-codes note and before the note on redirects", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

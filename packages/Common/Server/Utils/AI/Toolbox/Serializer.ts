@@ -1,5 +1,6 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import PromptText from "../../../../Utils/AI/PromptText";
+import { replacePrivateKeyBlocks } from "../../../../Utils/PrivateKeyBlocks";
 
 /*
  * Prepares tool results for the LLM prompt: redacts likely secrets/PII,
@@ -26,11 +27,21 @@ export const MAX_ROWS: number = 50;
 export const MAX_FIELD_LENGTH: number = 4000;
 export const MAX_PAYLOAD_BYTES: number = 64 * 1024;
 
-interface RedactionRule {
-  name: string;
-  regex: RegExp;
-  replacement: string;
-}
+/*
+ * A rule is a pattern and what replaces each match, or - where one pattern
+ * cannot read a text in time in line with its length - a function that
+ * reads the text itself and says how many it replaced.
+ */
+type RedactionRule =
+  | {
+      name: string;
+      regex: RegExp;
+      replacement: string;
+    }
+  | {
+      name: string;
+      redact: (text: string) => { text: string; count: number };
+    };
 
 /*
  * These are security redactions, not the fingerprint-normalization regexes
@@ -49,13 +60,15 @@ const REDACTION_RULES: Array<RedactionRule> = [
   },
   {
     /*
-     * PEM private key blocks (RSA/EC/OPENSSH/PGP…). Match the whole
-     * BEGIN…END block, including newlines, so no key material leaks.
+     * PEM private key blocks (RSA/EC/OPENSSH/PGP…). The whole BEGIN…END
+     * block, including newlines, so no key material leaks - read by
+     * PrivateKeyBlocks, in time in line with the text's length however many
+     * BEGIN lines it holds with no END after them.
      */
     name: "private-key",
-    regex:
-      /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g,
-    replacement: "[redacted-private-key]",
+    redact: (text: string): { text: string; count: number } => {
+      return replacePrivateKeyBlocks(text, "[redacted-private-key]");
+    },
   },
   {
     name: "aws-access-key-id",
@@ -136,6 +149,10 @@ export default class ToolResultSerializer {
     text: string,
     rule: RedactionRule,
   ): { text: string; count: number } {
+    if ("redact" in rule) {
+      return rule.redact(text);
+    }
+
     let count: number = 0;
 
     const result: string = text.replace(

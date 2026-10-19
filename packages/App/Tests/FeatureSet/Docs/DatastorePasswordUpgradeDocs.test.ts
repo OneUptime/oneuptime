@@ -15,7 +15,8 @@ import path from "path";
  * held to the code that makes it true.
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
- * global-probe and Runner keys note and before the endpoint pointer, and
+ * note on redirects (KeyCarryingRedirectsUpgradeDocs) and before the
+ * endpoint pointer, and
  * every translation carries it in the English note's place with the English
  * note's code. What it claims is what the code does:
  *
@@ -37,9 +38,9 @@ const REPO_ROOT: string = path.resolve(PACKAGES_DIR, "..");
 
 const NOTE_LEAD: string =
   "**The bundled ClickHouse and Valkey get passwords of their own.**";
-// The note before it (the global-probe and Runner keys, ProbeRunnerKeyUpgradeDocs).
+// The note before it (KeyCarryingRedirectsUpgradeDocs).
 const PREVIOUS_LEAD: string =
-  "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
+  "**Probes, Runners, the infrastructure agent and OneUptime's own services follow redirects only on the server they call.**";
 const POINTER_START: string = "- See [API and endpoint changes]";
 
 const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
@@ -59,7 +60,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the bundled datastores' passwords", () => {
-  it("is a note of the 13 → 14 changes, once, after the global-probe and Runner keys note and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on redirects and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

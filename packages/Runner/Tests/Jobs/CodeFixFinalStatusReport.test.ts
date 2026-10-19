@@ -101,10 +101,19 @@ const NO_FIX_FOUND: TaskResult = {
 const FAILURE_MESSAGE: string =
   "The code agent could not complete: budget exhausted";
 
+/*
+ * Every request to OneUptime carries the Runner's key, so each keeps its
+ * redirects on the server it was sent to (RunnerAPIRequest).
+ */
+const NOT_RETRIED: JSONObject = {
+  sameServerRedirectsOnly: true,
+};
+
 const RETRIED: JSONObject = {
   retries: 3,
   exponentialBackoff: true,
   retryOnlyOnRetryableErrors: true,
+  sameServerRedirectsOnly: true,
 };
 
 const ACCEPTED: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
@@ -295,10 +304,10 @@ describe("the report that closes a code-fix task", () => {
     expect(claims).toHaveLength(2);
 
     for (const claim of claims) {
-      expect(claim.options).toBeUndefined();
+      expect(claim.options).toEqual(NOT_RETRIED);
     }
 
-    expect(reportOf(AIAgentTaskStatus.InProgress).options).toBeUndefined();
+    expect(reportOf(AIAgentTaskStatus.InProgress).options).toEqual(NOT_RETRIED);
   });
 
   test("a finished task reports its status once, after the heartbeat", async () => {

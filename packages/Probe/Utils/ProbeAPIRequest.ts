@@ -54,6 +54,11 @@ export default class ProbeAPIRequest {
    * sites: whatever route is added next gets the same failure reporting for
    * free. `timeout` may be overridden by callers with their own deadline
    * (the syslog/NetFlow/SNMP-trap forwarders flush on a much shorter one).
+   *
+   * Every one of those requests carries the probe's key, so a redirect is
+   * followed only while it stays on the server it was sent to
+   * (sameServerRedirectsOnly): an HTTP client hands a redirected request's
+   * headers, and a 307 or 308's body, to wherever the redirect points.
    */
   public static getDefaultRequestOptions(
     url: URL,
@@ -63,6 +68,7 @@ export default class ProbeAPIRequest {
 
     return {
       ...ProxyConfig.getRequestProxyAgents(url),
+      sameServerRedirectsOnly: true,
       timeout: options?.timeout ?? PROBE_API_REQUEST_TIMEOUT_IN_MS,
       onRequestComplete: (outcome: RequestOutcome): void => {
         ProbeApiDiagnostics.onRequestComplete(inFlightRequestId, outcome);
