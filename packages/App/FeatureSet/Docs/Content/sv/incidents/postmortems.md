@@ -80,6 +80,16 @@ Med **Skriv ett utkast till efteranalys när en incident är löst** påslaget s
 - Den kräver att AI är påslaget för projektet, och stannar för dagen så snart projektet når sina dagliga AI-gränser. Se [Automatisk efteranalys](/docs/ai/ai-sre#automatisk-efteranalys).
 - Om transkriptionen av incidentens samtal fortfarande är på väg när incidenten löses väntar den tills OneUptime AI har läst transkriptionen, så att utkastet tar med vad som sades i samtalet: upp till sex timmar medan leverantören tar fram transkriptionen. Se [Spela in och transkribera varje samtal](/docs/workspace-connections/video-calls#spela-in-och-transkribera-varje-samtal).
 
+#### Välj vilka incidenter som får ett utkast, och dess mall
+
+Utan regler får varje löst incident ett utkast i OneUptime AI:s standardupplägg. **Postmortem-regler**, under **Fler inställningar** på samma sida, ändrar det:
+
+- En regel matchar **Alla incidenter**, eller **Endast incidenter som uppfyller villkoren** på monitorer, allvarlighetsgrader, etiketter, monitoretiketter, rubrik och beskrivning, så som en utredningsregel gör.
+- Dess **Mallar** är de mallar för efteranalys som utkastet får följa. Utan någon följer utkastet standardupplägget; med en, den mallen; med flera, den som OneUptime AI bedömer passar incidenten bäst. Utkastets inlägg i flödet nämner mallen det följde.
+- Den första aktiverade regeln som matchar incidenten avgör, räknat från toppen av listan: dra en regel för att flytta den. En incident som ingen regel matchar får inget utkast, och det får ingen incident så länge reglerna inte kan läsas.
+- **Skriv ett utkast till efteranalys när en incident är löst** är fortfarande den enda brytaren som stänger av utkast. Regler avgör bara de utkast som OneUptime AI skriver på egen hand: **Generate with AI** erbjuder alla upplägg, oavsett vad reglerna säger.
+- Att skapa, redigera och ordna om regler kräver rollen Project Owner eller Project Admin. På OneUptime Cloud kräver mallar Growth-planen: under den avgör reglerna fortfarande vilka incidenter som får ett utkast, och varje utkast följer standardupplägget.
+
 ## Publicera den på din statussida
 
 En publicerad efteranalys är incidentens avslutande uppdatering för dina kunder: statussidan visar anteckningen, framhävd i incidentens tidslinje, med dess bilagor att ladda ned.
@@ -153,7 +163,7 @@ Kontrollera tre saker: **Publicera på statussidan** är påslaget, anteckningen
 :::
 
 :::details Inget AI-utkast dök upp när incidenten löstes
-Incidenten hade redan en anteckning, efteranalysen var redan publicerad, eller så är **Skriv ett utkast till efteranalys när en incident är löst** avstängt. AI måste vara påslaget för projektet, och projektet får inte ha nått sina dagliga AI-gränser. När incidentens samtal har en transkription på väg kommer utkastet först när OneUptime AI har läst den.
+Incidenten hade redan en anteckning, efteranalysen var redan publicerad, ingen postmortem-regel matchade den, eller så är **Skriv ett utkast till efteranalys när en incident är löst** avstängt. AI måste vara påslaget för projektet, och projektet får inte ha nått sina dagliga AI-gränser. När incidentens samtal har en transkription på väg kommer utkastet först när OneUptime AI har läst den.
 :::
 
 ## Nästa steg

@@ -244,10 +244,11 @@ describe("incident and alert AI settings separation", () => {
       limits: Array<string>,
     ) => {
       // The rules tables under More settings hold rules, not Project columns.
-      const columnCards: Array<AiLaneAdvancedCard> =
-        AI_LANE_ADVANCED_CARDS.filter((card: AiLaneAdvancedCard): boolean => {
-          return !isAiLaneRulesCard(card);
-        });
+      const columnCards: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS[
+        lane
+      ].filter((card: AiLaneAdvancedCard): boolean => {
+        return !isAiLaneRulesCard(card);
+      });
 
       expect(cards).toHaveLength(columnCards.length);
 

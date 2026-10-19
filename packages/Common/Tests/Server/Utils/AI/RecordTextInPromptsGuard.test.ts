@@ -170,6 +170,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The run's own analysis, written by the model: no record text.",
   "packages/Common/Server/Utils/AI/SRE/InvestigationTldr.ts":
     "The run's own analysis, written by the model: no record text.",
+  "packages/Common/Server/Utils/AI/SRE/PostmortemTemplatePick.ts":
+    "Which postmortem template fits an incident: its title, description and root cause, and each template's description and outline, every one a field held to a length.",
   "packages/Common/Server/Utils/AI/SRE/InvestigationGrader.ts":
     "The recorded root cause as a field of MAX_ROOT_CAUSE_CHARS.",
   "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts":

@@ -80,6 +80,16 @@ Con **Redactar un post mortem cuando se resuelve un incidente** activado, OneUpt
 - Requiere que la IA esté activada para el proyecto, y se detiene durante el día en cuanto el proyecto alcanza sus límites diarios de IA. Consulte [Post mortem automático](/docs/ai/ai-sre#post-mortem-automático).
 - Si la transcripción de la llamada del incidente aún está en camino cuando se resuelve el incidente, espera a que OneUptime AI la lea, para que el borrador recoja lo que se dijo en la llamada: hasta seis horas mientras el proveedor prepara la transcripción. Consulte [Grabar y transcribir cada llamada](/docs/workspace-connections/video-calls#grabar-y-transcribir-cada-llamada).
 
+#### Elegir qué incidentes reciben un borrador, y su plantilla
+
+Sin reglas, cada incidente resuelto recibe un borrador, con el esquema estándar de OneUptime AI. Las **Reglas de post mortem**, en **Más ajustes** de la misma página, cambian eso:
+
+- Una regla coincide con **Todos los incidentes**, o con **Solo los incidentes que cumplen las condiciones** sobre monitores, gravedades, etiquetas, etiquetas de monitor, título y descripción, como hace una regla de investigación.
+- Sus **Plantillas** son las plantillas de post mortem que puede seguir el borrador. Sin ninguna, el borrador sigue el esquema estándar; con una, esa plantilla; con varias, la que OneUptime AI considera que mejor se ajusta al incidente. La publicación del borrador en el feed nombra la plantilla que siguió.
+- Decide la primera regla habilitada que coincide con el incidente, empezando por arriba de la lista: arrastre una regla para cambiar su posición. Un incidente con el que no coincide ninguna regla no recibe borrador, y tampoco ningún incidente mientras no se puedan leer las reglas.
+- **Redactar un post mortem cuando se resuelve un incidente** sigue siendo el único interruptor que desactiva los borradores. Las reglas solo deciden los borradores que OneUptime AI escribe por su cuenta: **Generar con IA** ofrece todos los esquemas, digan lo que digan.
+- Crear, editar y reordenar reglas requiere el rol Project Owner o Project Admin. En OneUptime Cloud, las plantillas requieren el plan Growth: por debajo de él, las reglas siguen decidiendo qué incidentes reciben un borrador, y cada borrador sigue el esquema estándar.
+
 ## Publicarlo en su página de estado
 
 Un post mortem publicado es la última actualización del incidente para sus clientes: la página de estado muestra la nota, destacada en la cronología del incidente, con sus adjuntos para descargar.
@@ -153,7 +163,7 @@ Compruebe tres cosas: **Publicar en la página de estado** está activado, la no
 :::
 
 :::details No apareció ningún borrador de IA cuando se resolvió el incidente
-El incidente ya tenía una nota, el post mortem ya estaba publicado, o **Redactar un post mortem cuando se resuelve un incidente** está desactivado. La IA debe estar activada para el proyecto, y el proyecto no debe haber alcanzado sus límites diarios de IA. Si la transcripción de la llamada del incidente está en camino, el borrador llega en cuanto OneUptime AI la ha leído.
+El incidente ya tenía una nota, el post mortem ya estaba publicado, ninguna regla de post mortem coincidió con él, o **Redactar un post mortem cuando se resuelve un incidente** está desactivado. La IA debe estar activada para el proyecto, y el proyecto no debe haber alcanzado sus límites diarios de IA. Si la transcripción de la llamada del incidente está en camino, el borrador llega en cuanto OneUptime AI la ha leído.
 :::
 
 ## Próximos pasos

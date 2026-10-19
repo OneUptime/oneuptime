@@ -80,6 +80,16 @@ Ist **Postmortem entwerfen, wenn ein Vorfall gelöst wird** eingeschaltet, entwi
 - Er erfordert, dass KI für das Projekt eingeschaltet ist, und hält für den Tag an, sobald das Projekt seine täglichen KI-Limits erreicht. Siehe [Auto-Postmortem](/docs/ai/ai-sre#automatisches-postmortem).
 - Ist das Transkript des Anrufs zum Vorfall noch unterwegs, wenn der Vorfall behoben wird, wartet er, bis OneUptime AI es gelesen hat, damit der Entwurf berücksichtigt, was im Anruf gesagt wurde: bis zu sechs Stunden, während der Anbieter das Transkript vorbereitet. Siehe [Jeden Anruf aufzeichnen und transkribieren](/docs/workspace-connections/video-calls#jeden-anruf-aufzeichnen-und-transkribieren).
 
+#### Festlegen, welche Vorfälle einen Entwurf erhalten, und mit welcher Vorlage
+
+Ohne Regel erhält jeder gelöste Vorfall einen Entwurf in der Standardgliederung von OneUptime AI. **Postmortem-Regeln** unter **Weitere Einstellungen** auf derselben Seite ändern das:
+
+- Eine Regel passt auf **Alle Vorfälle** oder auf **Nur Vorfälle, die den Bedingungen entsprechen** zu Monitoren, Schweregraden, Labels, Monitor-Labels, Titel und Beschreibung, so wie eine Untersuchungsregel.
+- Ihre **Vorlagen** sind die Postmortem-Vorlagen, denen der Entwurf folgen darf. Ohne Vorlage folgt der Entwurf der Standardgliederung; mit einer dieser Vorlage; mit mehreren der, die nach Einschätzung von OneUptime AI am besten zum Vorfall passt. Der Beitrag des Entwurfs im Feed nennt die Vorlage, der er gefolgt ist.
+- Es entscheidet die erste aktivierte Regel, die auf den Vorfall passt, von oben in der Liste gezählt: Ziehen Sie eine Regel, um ihre Position zu ändern. Ein Vorfall, auf den keine Regel passt, erhält keinen Entwurf, und solange sich die Regeln nicht lesen lassen, erhält ihn kein Vorfall.
+- **Postmortem entwerfen, wenn ein Vorfall gelöst wird** bleibt der einzige Schalter, der Entwürfe ausschaltet. Regeln entscheiden nur über die Entwürfe, die OneUptime AI von sich aus schreibt: **Mit KI generieren** bietet jede Gliederung an, was auch immer sie sagen.
+- Regeln anlegen, bearbeiten und umsortieren erfordert die Rolle Project Owner oder Project Admin. In OneUptime Cloud erfordern Vorlagen den Growth-Plan: Darunter entscheiden Regeln weiterhin, welche Vorfälle einen Entwurf erhalten, und jeder Entwurf folgt der Standardgliederung.
+
 ## Es auf Ihrer Statusseite veröffentlichen
 
 Ein veröffentlichtes Postmortem ist das abschließende Update des Vorfalls für Ihre Kunden: Die Statusseite zeigt die Notiz, hervorgehoben in der Zeitleiste des Vorfalls, mit ihren Anhängen zum Herunterladen.
@@ -153,7 +163,7 @@ Prüfen Sie drei Dinge: **Auf Statusseite veröffentlichen** ist eingeschaltet, 
 :::
 
 :::details Kein KI-Entwurf erschien, als der Vorfall behoben wurde
-Der Vorfall hatte bereits eine Notiz, das Postmortem war schon veröffentlicht, oder **Postmortem entwerfen, wenn ein Vorfall gelöst wird** ist aus. KI muss für das Projekt eingeschaltet sein, und das Projekt darf seine täglichen KI-Limits nicht erreicht haben. Ist das Transkript des Anrufs zum Vorfall noch unterwegs, kommt der Entwurf, sobald OneUptime AI es gelesen hat.
+Der Vorfall hatte bereits eine Notiz, das Postmortem war schon veröffentlicht, keine Postmortem-Regel passte auf ihn, oder **Postmortem entwerfen, wenn ein Vorfall gelöst wird** ist aus. KI muss für das Projekt eingeschaltet sein, und das Projekt darf seine täglichen KI-Limits nicht erreicht haben. Ist das Transkript des Anrufs zum Vorfall noch unterwegs, kommt der Entwurf, sobald OneUptime AI es gelesen hat.
 :::
 
 ## Nächste Schritte

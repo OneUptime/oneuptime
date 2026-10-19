@@ -507,6 +507,16 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
   { file: "Common/Server/Utils/AI/SRE/ConfidenceSignal.ts", delivery: "skip" },
   { file: "Common/Server/Utils/AI/SRE/InvestigationTldr.ts", delivery: "skip" },
   /*
+   * Picking which of a postmortem rule's templates an automatic draft
+   * follows: the draft is gated on the switch before it starts
+   * (IncidentPostmortemRunner.isEnabledForProject), and a refusal here takes
+   * the rule's first template rather than failing the draft.
+   */
+  {
+    file: "Common/Server/Utils/AI/SRE/PostmortemTemplatePick.ts",
+    delivery: "skip",
+  },
+  /*
    * Reading an incident call's transcript runs in the background: start()
    * checks the switch first and stores "Skipped" with the sentence that
    * says where to turn it on, and a refusal while it reads is stored on the

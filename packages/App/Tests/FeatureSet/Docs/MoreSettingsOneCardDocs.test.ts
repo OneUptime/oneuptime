@@ -41,9 +41,23 @@ describe("AI SRE: the limits folded under More settings", () => {
 
   it("says what the folded header names, and shows the table or section a set rule or limit is in", () => {
     expect(page).toContain(
-      "Folded, **More settings** names the two rules tables and the three sections and says what the defaults do",
+      "Folded, **More settings** names its rules tables and the three sections (on the incident page, four of them and how many more) and says what the defaults do",
     );
     expect(page).toContain("shows the table or section that holds it.");
+    expect(page).not.toContain("names the two rules tables");
+  });
+
+  /*
+   * The incident page holds a third rules table, the postmortem rules, and
+   * its folded line says drafts happen by default too (ProjectAiSettingsCopy).
+   */
+  it("names the postmortem rules on the incident page, and the drafts among the defaults", () => {
+    expect(page).toContain(
+      "and, on the incident page, the postmortem rules (see [Auto-postmortem](#auto-postmortem)),",
+    );
+    expect(page).toContain(
+      "every one is fixed while fixing is on, every resolved incident gets a postmortem draft, and nothing limits how much OneUptime AI does",
+    );
   });
 
   it("places the project's own daily limits in More settings' Daily limits section", () => {
