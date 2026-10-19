@@ -110,6 +110,7 @@ import {
   getSloStatusChangedFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
 import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
+import { collapseLineBreakRuns } from "Common/Utils/LineBreakRuns";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -2243,8 +2244,6 @@ function renderBurnRateOutputCopy(data: {
   };
 }
 
-const TITLE_LINE_BREAK_PATTERN: RegExp = /\s*[\r\n]+\s*/g;
-
 /*
  * Alert.title and Incident.title are required varchar(ColumnLength.LongText)
  * columns. A template the rule service accepted can still render past that once
@@ -2261,7 +2260,7 @@ function toRecordTitle(
   const title: string =
     renderedTitle === null
       ? defaultTitle
-      : renderedTitle.replace(TITLE_LINE_BREAK_PATTERN, " ");
+      : collapseLineBreakRuns(renderedTitle);
 
   const usableTitle: string = title.trim() === "" ? defaultTitle : title;
 

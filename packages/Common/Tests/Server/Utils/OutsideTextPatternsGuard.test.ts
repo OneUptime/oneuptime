@@ -25,10 +25,16 @@ import path from "path";
  *  - a "{{...}}" placeholder, found by "the fewest characters up to }}", is
  *    read through TemplatePlaceholders, whose patterns take a "{{" with no
  *    "}}" on its line with the rest of the line;
+ *  - a "{{...}}" the grouping engines clear (no "}" inside it) is cleared
+ *    with clearPlaceholders, which takes a "{{" that starts none up to the
+ *    next "}";
  *  - a fence line's run of backticks or tildes, followed by the rest of the
  *    line to its end, is taken whole;
- *  - the telemetry list grammar's " OR " is never a run of white space read
- *    again from each of its characters.
+ *  - an " OR " between runs of white space (the telemetry list grammar, a
+ *    SCIM members filter) is never a run of white space read again from
+ *    each of its characters;
+ *  - a run of white space that holds a line break is made one space with
+ *    collapseLineBreakRuns.
  *
  * And every pattern of these shapes, wherever it is, reads the texts that
  * were slow in well under two seconds.
@@ -65,6 +71,32 @@ const TEMPLATE_PLACEHOLDERS_FILE: string =
   "packages/Common/Utils/TemplatePlaceholders.ts";
 const SQL_TERMINATORS_FILE: string =
   "packages/Common/Utils/DataSource/SqlStatementTerminators.ts";
+const GROUPING_TEMPLATE_FILE: string =
+  "packages/Common/Server/Utils/Rules/GroupingRuleEpisodeTemplate.ts";
+const SCIM_BELOW_PLAN_FILE: string =
+  "ee/Server/Identity/Utils/SCIMBelowPlan.ts";
+
+// ee/ is removed before the Common Test job runs; its files are read when it is there.
+const EE_IS_CHECKED_OUT: boolean = fs.existsSync(
+  path.join(REPOSITORY_DIRECTORY, "ee"),
+);
+
+// "{{", a class of anything but "}" (in a group or not), "}}" - escaped or not.
+const BRACED_PLACEHOLDER_SHAPE: RegExp =
+  /\\\{\\\{\(?\[\^\}\]\+\)?\\\}\\\}|\{\{\(?\[\^\}\]\+\)?\}\}/;
+
+/*
+ * The last alternative that takes a "{{" that starts none up to the next
+ * "}": "|\{\{[^}]*" (or unescaped).
+ */
+const UNCLOSED_BRACES_ALTERNATIVE: RegExp =
+  /\|\\\{\\\{\[\^\}\]\*|\|\{\{\[\^\}\]\*/;
+
+// White space, "or" in any case, white space: "\s+or\s+".
+const OR_BETWEEN_RUNS_SHAPE: RegExp = /\\s\+or\\s\+/i;
+
+// The same, tried only where a run of white space starts.
+const OR_FROM_RUN_START_SHAPE: RegExp = /\(\?<!\\s\)\\s\+or\\s\+/i;
 
 const FAMILIES: ReadonlyArray<Family> = [
   {
@@ -166,16 +198,52 @@ const FAMILIES: ReadonlyArray<Family> = [
     ],
   },
   {
-    name: "the telemetry list grammar's OR between runs of white space",
+    name: "an OR between runs of white space",
     isMember: (pattern: SourcePattern): boolean => {
-      return pattern.source.includes("\\s+OR\\s+");
+      return OR_BETWEEN_RUNS_SHAPE.test(pattern.source);
+    },
+    breaksRule: (pattern: SourcePattern): string | null => {
+      return OR_FROM_RUN_START_SHAPE.test(pattern.source)
+        ? null
+        : "split with splitOnListSeparators, look for \\sOR\\s, or try it only where a run of white space starts: (?<!\\s)\\s+or\\s+";
+    },
+    mustFind: EE_IS_CHECKED_OUT ? [SCIM_BELOW_PLAN_FILE] : [],
+    oldShapes: ["\\s+OR\\s+|,", ",|\\s+OR\\s+", "\\s+or\\s+"],
+    slowTexts: [
+      repeat("\t", LENGTH) + "x",
+      repeat(" ", LENGTH) + "ORx",
+      repeat(" \t", LENGTH) + "order",
+    ],
+  },
+  {
+    name: "a {{...}} with no } inside it, cleared",
+    isMember: (pattern: SourcePattern): boolean => {
+      return BRACED_PLACEHOLDER_SHAPE.test(pattern.source);
+    },
+    breaksRule: (pattern: SourcePattern): string | null => {
+      return UNCLOSED_BRACES_ALTERNATIVE.test(pattern.source)
+        ? null
+        : 'clear placeholders with clearPlaceholders (GroupingRuleEpisodeTemplate), or take a "{{" that starts none up to the next "}" in a last alternative: |\\{\\{[^}]*';
+    },
+    mustFind: [GROUPING_TEMPLATE_FILE, "Scripts/I18n/ValidateLocales.js"],
+    oldShapes: ["\\{\\{[^}]+\\}\\}", "\\{\\{([^}]+)\\}\\}", "{{[^}]+}}"],
+    slowTexts: [
+      repeat("{", LENGTH),
+      repeat("{{a", LENGTH),
+      repeat("{{", LENGTH) + "}",
+    ],
+  },
+  {
+    name: "a run of white space that holds a line break, made one space",
+    isMember: (pattern: SourcePattern): boolean => {
+      return pattern.source.includes("\\s*[\\r\\n]+\\s*");
     },
     breaksRule: (): string => {
-      return "split with splitOnListSeparators, or look for \\sOR\\s";
+      return "make each run one space with collapseLineBreakRuns";
     },
     mustFind: [],
-    oldShapes: ["\\s+OR\\s+|,", ",|\\s+OR\\s+"],
-    slowTexts: [repeat("\t", LENGTH) + "x", repeat(" ", LENGTH) + "ORx"],
+    oldShapes: ["\\s*[\\r\\n]+\\s*"],
+    slowTexts: [repeat(" ", LENGTH) + "x\n", repeat("\t", LENGTH) + "\u0000\r"],
   },
 ];
 
@@ -301,6 +369,35 @@ describe("the readers each family is held to are the ones the product uses", () 
     [
       "packages/Common/Types/Telemetry/TelemetrySearchQuery.ts",
       ["splitOnListSeparators("],
+    ],
+    [
+      "packages/Common/Utils/Markdown/MarkdownEscape.ts",
+      ["collapseLineBreakRuns("],
+    ],
+    [
+      "packages/Common/Server/Utils/Monitor/MonitorCriteriaObservationBuilder.ts",
+      ["collapseLineBreakRuns("],
+    ],
+    [
+      "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
+      ["collapseLineBreakRuns("],
+    ],
+    [GROUPING_TEMPLATE_FILE, ["clearPlaceholders("]],
+    [
+      "packages/Common/Server/Services/AlertGroupingEngineService.ts",
+      ["clearPlaceholders(", "clearPlaceholdersExcept("],
+    ],
+    [
+      "packages/Common/Server/Services/IncidentGroupingEngineService.ts",
+      ["clearPlaceholders(", "clearPlaceholdersExcept("],
+    ],
+    [
+      "packages/Common/Server/Services/AlertEpisodeService.ts",
+      ["clearPlaceholders("],
+    ],
+    [
+      "packages/Common/Server/Services/IncidentEpisodeService.ts",
+      ["clearPlaceholders("],
     ],
   ])("%s", (file: string, calls: Array<string>) => {
     const text: string = fs.readFileSync(

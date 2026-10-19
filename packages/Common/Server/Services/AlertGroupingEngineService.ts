@@ -35,6 +35,7 @@ import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { GroupingOptions } from "../../Utils/StartingStage";
 import EpisodeGroupingKey from "../Utils/Rules/EpisodeGroupingKey";
 import {
+  clearPlaceholders,
   clearPlaceholdersExcept,
   replaceAllLiterally,
 } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
@@ -1247,7 +1248,7 @@ class AlertGroupingEngineServiceClass {
     result = result.replace(/\{\{alertCount\}\}/g, alertCount.toString());
 
     // Clean up any remaining unknown placeholders
-    result = result.replace(/\{\{[^}]+\}\}/g, "");
+    result = clearPlaceholders(result);
 
     return result;
   }

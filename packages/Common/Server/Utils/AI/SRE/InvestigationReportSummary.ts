@@ -64,8 +64,14 @@ export interface InvestigationReportConclusion {
 const LIST_ITEM_MARKER_REGEX: RegExp = /^[ \t]{0,3}(?:[-*+]|\d{1,3}[.)])[ \t]+/;
 const BLANK_LINE_REGEX: RegExp = /^[ \t]*$/;
 const LINE_ENDING_REGEX: RegExp = /\r\n?/g;
-// "dry [C1]." leaves "dry ." behind once the citation is gone.
-const SPACE_BEFORE_PUNCTUATION_REGEX: RegExp = /[ \t]+([.,;:!?])/g;
+/*
+ * "dry [C1]." leaves "dry ." behind once the citation is gone. Tried only
+ * where a run of spaces starts: the report is what a model wrote, and tried
+ * from every space of a run no punctuation follows, each try read on to the
+ * end of the run. Every run that is followed by punctuation is taken whole
+ * either way.
+ */
+const SPACE_BEFORE_PUNCTUATION_REGEX: RegExp = /(?<![ \t])[ \t]+([.,;:!?])/g;
 
 function withoutCitations(text: string): string {
   return text
