@@ -164,30 +164,39 @@ delivery refused in between is lost.
 ## The Integration Console (paste-ready)
 
 Create the integration in **Dashboard → Integrations → Integrations
-Console → Create**, as the team that will own it (Pro plan).
+Console → Create**, as the team that will own it. It exists: `oneuptime`,
+on the Vercel team `one-uptime`, made on 19 October 2026 (see
+[History](#history)). The team was on the Hobby plan, which was enough to
+create it.
+
+Until Vercel approves the provider application, the console has no Base URL,
+Redirect Login URL or Products: the rows and the [Product](#product) section
+marked _after approval_ wait for it.
 
 ### Integration
 
-| Field                            | Value                                                                                                   |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Name                             | OneUptime                                                                                               |
-| URL Slug                         | `oneuptime` (if free; the listing is `vercel.com/integrations/<slug>`)                                  |
-| Developer                        | HackerBay, Inc.                                                                                         |
-| Contact email                    | A maintainer's (private)                                                                                |
-| Support contact email            | A support address a maintainer chooses (public)                                                         |
-| Short Description (≤ 40)         | `Uptime, logs, traces and status pages`                                                                 |
-| Category                         | Observability                                                                                           |
-| Website                          | `https://oneuptime.com`                                                                                 |
-| Documentation URL                | `https://oneuptime.com/docs/integrations/vercel`                                                        |
-| EULA URL                         | `https://oneuptime.com/legal/terms`                                                                     |
-| Privacy Policy URL               | `https://oneuptime.com/legal/privacy`                                                                   |
-| Support URL                      | `https://oneuptime.com/support`                                                                         |
-| Redirect URL                     | Leave **empty**: OneUptime has no connectable-account (OAuth) flow, and the checklist says to remove it |
-| Base URL                         | `https://oneuptime.com/api/marketplace/vercel`                                                          |
-| Redirect Login URL               | `https://oneuptime.com/identity/vercel/sso`                                                             |
-| Webhook URL                      | `https://oneuptime.com/api/marketplace/vercel/webhook`                                                  |
-| Configuration URL                | Leave empty                                                                                             |
-| Installation-level Billing Plans | **Off**: plans are per resource                                                                         |
+| Field                            | Value                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name                             | OneUptime                                                                                                                                                                                                                                                                                            |
+| URL Slug                         | `oneuptime` (if free; the listing is `vercel.com/integrations/<slug>`)                                                                                                                                                                                                                               |
+| Developer                        | HackerBay, Inc.                                                                                                                                                                                                                                                                                      |
+| Contact email                    | `vercel-marketplace@oneuptime.com` (private)                                                                                                                                                                                                                                                         |
+| Support contact email            | `support@oneuptime.com` (public)                                                                                                                                                                                                                                                                     |
+| Short Description (≤ 40)         | `Uptime, logs, traces and status pages`                                                                                                                                                                                                                                                              |
+| Category                         | Observability                                                                                                                                                                                                                                                                                        |
+| Website                          | `https://oneuptime.com`                                                                                                                                                                                                                                                                              |
+| Documentation URL                | `https://oneuptime.com/docs/integrations/vercel`                                                                                                                                                                                                                                                     |
+| EULA URL                         | `https://oneuptime.com/legal/terms`                                                                                                                                                                                                                                                                  |
+| Privacy Policy URL               | `https://oneuptime.com/legal/privacy`                                                                                                                                                                                                                                                                |
+| Support URL                      | `https://oneuptime.com/support`                                                                                                                                                                                                                                                                      |
+| Redirect URL                     | `https://oneuptime.com/docs/integrations/vercel` until the approval. The console wants either a Redirect URL or the Base URL and Redirect Login URL, and offers those only after the approval. Then clear it: OneUptime has no connectable-account (OAuth) flow, and the checklist says to remove it |
+| Base URL                         | `https://oneuptime.com/api/marketplace/vercel` (_after approval_)                                                                                                                                                                                                                                    |
+| Redirect Login URL               | `https://oneuptime.com/identity/vercel/sso` (_after approval_)                                                                                                                                                                                                                                       |
+| Webhook URL                      | `https://oneuptime.com/api/marketplace/vercel/webhook`                                                                                                                                                                                                                                               |
+| Configuration URL                | Leave empty                                                                                                                                                                                                                                                                                          |
+| Import Resource URL              | Leave empty                                                                                                                                                                                                                                                                                          |
+| Installation-level Billing Plans | **Off**: plans are per resource (_after approval_)                                                                                                                                                                                                                                                   |
+| Visibility                       | **Private** while testing: the Marketplace page answers 404, and only the owning team and the **Allowed Teams** (5 at most) see it. Public at go-live                                                                                                                                                |
 
 **Overview (≤ 768 characters):**
 
@@ -195,28 +204,42 @@ Console → Create**, as the team that will own it (Pro plan).
 OneUptime is one observability platform for your Vercel projects: uptime monitoring, status pages, on-call, incidents, logs, traces and metrics, built on OpenTelemetry. Add a OneUptime resource and connect your projects: they get the OpenTelemetry settings @vercel/otel reads, so traces arrive with no setup; a log drain and a trace drain send Vercel's own logs and spans; and each project's production domain gets an uptime monitor on a status page. Sign in with Vercel and pay on your Vercel invoice, at the prices on oneuptime.com/pricing.
 ```
 
-**Additional information (≤ 1,024 characters):** what is billed (the plan's
-per-user price, $1 per active monitor per month, telemetry per GB, all
-during the trial free), that drains are Pro/Enterprise and billed by Vercel,
-and the support link.
+**Extended Description (≤ 240 characters):**
+
+```text
+Uptime monitoring, status pages, on-call, incidents, logs, traces and metrics for your Vercel projects, built on OpenTelemetry. Sign in with Vercel and pay on your Vercel invoice.
+```
+
+**Additional information (≤ 1,024 characters):**
+
+```markdown
+**What's billed**: the plan's price per user, $1 per active monitor per month, and telemetry per GB, at the prices on oneuptime.com/pricing. Nothing is billed during the plan's trial. Every plan needs a payment method in Vercel, the Free plan included, because monitors and telemetry are billed as you use them.
+
+**Drains**: log and trace drains need Vercel's Pro or Enterprise plan, and Vercel bills the data they send. Traces from @vercel/otel work on every plan.
+
+**Docs and support**: https://oneuptime.com/docs/integrations/vercel, and support@oneuptime.com.
+```
 
 **API Scopes:**
 
-| Scope                      | Access | Why                                                                                                               |
-| -------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
-| Projects (`project`)       | Read   | The production domain of a project connected before it had one (`GET /v9/projects/{id}/domains`), for its monitor |
-| Deployments (`deployment`) | Read   | The deployment webhooks                                                                                           |
-| Everything else            | None   |                                                                                                                   |
+| Scope                      | Access     | Why                                                                                                               |
+| -------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| Integration Configuration  | Read       | The least the console allows                                                                                      |
+| Integration Resource       | Read/Write | The installation token's resource calls: updating a resource's secrets, deleting a resource, resource events      |
+| Projects (`project`)       | Read       | The production domain of a project connected before it had one (`GET /v9/projects/{id}/domains`), for its monitor |
+| Deployments (`deployment`) | Read       | The deployment webhooks                                                                                           |
+| Everything else            | None       |                                                                                                                   |
 
-**Webhook events:** `deployment.succeeded`, `deployment.promoted` (if
-listed), `integration-configuration.removed`, and every marketplace and
-resource event the console offers - `marketplace.invoice.*`,
-`marketplace.member.changed`, `integration-resource.project-connected` and
-`-disconnected` (they may be sent to native integrations without a
-checkbox; tick them where there is one). Turn on the permission that adds
-`userEmail` to `marketplace.member.changed`, where the console offers it:
-without it, someone who leaves the Vercel team stays in its OneUptime
-projects until a project admin removes them.
+**Webhook events:** tick `deployment.succeeded`, `deployment.promoted`,
+`deployment.ready`, `integration-resource.project-connected`,
+`integration-resource.project-disconnected` and
+`marketplace.member.changed`. Vercel subscribes every integration to
+`marketplace.invoice.*`, `integration-configuration.removed` and
+`deployment.integration.action.*` itself, and they cannot be turned off.
+Turn on the permission that adds `userEmail` to `marketplace.member.changed`
+where the console offers it; it was not in the console on 19 October 2026,
+before the approval. Without it, someone who leaves the Vercel team stays
+in its OneUptime projects until a project admin removes them.
 
 **Credentials:** the client ID and secret are `VERCEL_MARKETPLACE_CLIENT_ID`
 and `VERCEL_MARKETPLACE_CLIENT_SECRET`. Store them in the production
@@ -227,6 +250,14 @@ dark mode. Source: `packages/Home/Static/img/OneUptimePNG/`. **Feature media:**
 1 to 8 images, 16:9, 1920×1080, non-transparent PNG, each a real product
 component with a description (not a full-window screenshot); the first one
 becomes the listing's Open Graph image. A maintainer approves every image.
+
+On the listing since 19 October 2026: the full OneUptime logo on white, and
+five images captured that day from test.oneuptime.com and the live
+status.oneuptime.com, each a page cropped below the app's header, with a
+caption. In order: the status page (the Open Graph image), metrics, logs,
+traces, trace insights. To make new ones, capture at 1440×810 CSS pixels at
+2× and frame them at 1920×1080. Use a project whose data shows nothing
+private: the test project's top log error carried a person's email address.
 
 ### Product
 
@@ -310,23 +341,27 @@ its own, which a maintainer creates.
 
 1. **Apply** (maintainer) at
    [vercel.com/marketplace/program](https://vercel.com/marketplace/program#become-a-provider):
-   company name, contact, email, website. Vercel reviews and gets in touch;
-   it opens a shared Slack channel `#shared-<company>`.
+   company name, contact, email, website, then the product, the use case,
+   marketing, users, the pricing page and AI. Vercel reviews and gets in
+   touch; it opens a shared Slack channel `#shared-<company>`. _Done on
+   19 October 2026._
 2. **Create the integration** in the Integration Console as above, from the
-   Vercel team that will own it (Pro plan), accepting Vercel's terms and, for
-   billing, the Integrations Agreement (maintainer). Share the team ID and the
-   integration's URL slug with Vercel in the shared channel, as Vercel asks.
-3. **Deploy the settings** to production and check:
+   Vercel team that will own it, accepting Vercel's Integrations Marketplace
+   Agreement (maintainer). Share the team ID and the integration's URL slug
+   with Vercel in the shared channel, as Vercel asks. _Done on 19 October
+   2026, Private, with the placeholder Redirect URL._
+3. **After the approval**, set the Base URL and Redirect Login URL, clear
+   the Redirect URL, and add the [Product](#product).
+4. **Deploy the settings** to production and check:
    `curl -s -o /dev/null -w '%{http_code}' https://oneuptime.com/api/marketplace/vercel/v1/products/oneuptime/plans`
    answers `403` (it wants Vercel's token: the route is live) rather than
    `404` (not configured).
-4. **Ask Vercel to turn on** what only it can for a test integration first:
+5. **Ask Vercel to turn on** what only it can for a test integration first:
    secrets rotation (Request Secrets Rotation is implemented), and anything
    else it gates.
-5. **Test with a private or draft integration** (ask Vercel how; its
-   Visibility options are not documented) from a test Vercel team, through
-   the [testing checklist](#testing-checklist).
-6. **Email integrations@vercel.com** to ask for the review - a maintainer's
+6. **Test while it is Private**, from the owning team or a test team added
+   under **Allowed Teams**, through the [testing checklist](#testing-checklist).
+7. **Email integrations@vercel.com** to ask for the review - a maintainer's
    decision. Vercel gives feedback, then a final walkthrough call.
 
 ## Testing checklist
@@ -431,20 +466,25 @@ is in brackets.
 6. Invoice lines with price `0.01` and a quantity in usage units: acceptable
    on Vercel's invoices? [Yes, as on the other marketplaces.]
 7. Fees and payout terms of the Integrations Agreement.
-8. How to keep the integration private while testing.
+8. Must a provider's team be on the Pro plan? [The integration was made on
+   a Hobby team, and the console allowed it.]
 9. Does Vercel take a month's invoice lines for a resource deleted during
    that month, by the deleted resource's ID? [Assumed: its usage up to the
    deletion is on the month's invoice. If Vercel refuses the lines, the
    invoice fails and is retried each hour, and `lastBillingError` on the
    installation says why.]
+10. Does the approval make the existing integration native, keeping its
+    client ID and secret? [Assumed: the native fields appear on it.]
 
 ## History
 
 Add a row for every submission, approval, rejection and go-live.
 
-| Date | What happened | Who |
-| ---- | ------------- | --- |
-|      |               |     |
+| Date       | What happened                                                                                                                                            | Who            |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 2026-10-19 | Marketplace provider application submitted: HackerBay, Inc., contact `vercel-marketplace@oneuptime.com`                                                  | Nawaz Dhandala |
+| 2026-10-19 | Integration `oneuptime` made on the team `one-uptime`, Private, Integrations Marketplace Agreement accepted, placeholder Redirect URL until the approval | Nawaz Dhandala |
+| 2026-10-19 | Featured images: five captures from test.oneuptime.com and status.oneuptime.com                                                                          | Nawaz Dhandala |
 
 ## Notes for agents driving the browser
 
@@ -456,3 +496,12 @@ Add a row for every submission, approval, rejection and go-live.
   maintainer's go-ahead for that exact action, in chat.
 - The client secret is shown once: hand it to the maintainer for the
   production secrets, never paste it into a file in the repository.
+- The maintainer uploads files (the logo, featured images): the browser
+  tools cannot choose a file. Put the file where they can drag it in.
+- The featured images reorder only by a press-and-hold drag, which neither
+  an agent's drag nor the keyboard sets off. Ask the maintainer to drag them,
+  or have them uploaded one at a time in the order wanted: each upload goes
+  at the end, and a multi-file upload can arrive reversed.
+- The Browser pane's screenshots are scaled down. For listing images, drive a
+  separate Chrome with a throwaway profile the maintainer signs in to, and
+  capture at an exact size.
