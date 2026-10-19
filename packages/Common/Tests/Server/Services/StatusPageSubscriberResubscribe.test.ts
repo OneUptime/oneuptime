@@ -355,6 +355,44 @@ describe("onBeforeCreate", () => {
   });
 });
 
+describe("holdsItsContact", () => {
+  const NOW: number = Date.UTC(2032, 5, 1, 12);
+
+  test.each([
+    ["on and confirmed, a year ago", false, true, 365 * 24, true],
+    ["on and confirmed, at an age that cannot be told", false, true, null, true],
+    ["on and waiting, its link sent an hour ago", false, false, 1, true],
+    ["on and waiting, its link sent a minute short of a day ago", false, false, 24 - 1 / 60, true],
+    ["on and waiting, its link sent a day ago", false, false, 24, false],
+    ["on and waiting, its link sent a year ago", false, false, 365 * 24, false],
+    ["on and waiting, at an age that cannot be told", false, false, null, false],
+    ["cancelled, confirmed", true, true, 1, false],
+    ["cancelled, waiting, its link sent an hour ago", true, false, 1, false],
+  ])(
+    "%s: %s",
+    (
+      _label: string,
+      isUnsubscribed: boolean,
+      isSubscriptionConfirmed: boolean,
+      hoursAgo: number | null,
+      holds: boolean,
+    ) => {
+      expect(
+        StatusPageSubscriberService.holdsItsContact(
+          {
+            isUnsubscribed: isUnsubscribed,
+            isSubscriptionConfirmed: isSubscriptionConfirmed,
+            ...(hoursAgo === null
+              ? {}
+              : { createdAt: new Date(NOW - hoursAgo * HOUR) }),
+          },
+          NOW,
+        ),
+      ).toBe(holds);
+    },
+  );
+});
+
 describe("onCreateSuccess", () => {
   function created(): StatusPageSubscriber {
     const row: StatusPageSubscriber = subscriber();
@@ -422,7 +460,8 @@ describe("onCreateSuccess", () => {
     const runOut: Record<string, unknown> = (
       deleteBy.mock.calls[1]![0] as { query: Record<string, unknown> }
     ).query;
-    expect(runOut["isUnsubscribed"]).toBe(false);
+    // Cancelled or not: a waiting subscription whose link ran out holds nothing.
+    expect(runOut["isUnsubscribed"]).toBeUndefined();
     expect(runOut["isSubscriptionConfirmed"]).toBe(false);
 
     // Sent at least a day ago, asked as each row is deleted.

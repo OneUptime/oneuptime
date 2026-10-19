@@ -384,6 +384,49 @@ export function rowsOf(
   });
 }
 
+type RowUpdate = (
+  where: unknown,
+  set: StoredRow,
+) => Promise<{ affected: number }>;
+
+/*
+ * The subscriber table keeping `row`'s version as Postgres does: an UPDATE
+ * that names a version writes the row only while it still holds that
+ * version, and moves it on in the same step, under the row's lock
+ * (DatabaseService's compare-and-set, and the statement that gives up a
+ * short confirmation code). The in-memory table keeps no version of its
+ * own; the row starts at version 1.
+ */
+export function keepVersionsAsPostgresDoes(
+  world: SubscriberWorld,
+  row: StoredRow,
+): void {
+  row["version"] = 1;
+
+  const update: RowUpdate =
+    world.subscribers.repository.update.getMockImplementation() as RowUpdate;
+
+  world.subscribers.repository.update.mockImplementation(
+    async (where: unknown, set: StoredRow): Promise<{ affected: number }> => {
+      const { version, ...rowOf } = where as StoredRow;
+      const target: StoredRow | undefined = world.subscribers.get(
+        String(rowOf["_id"]),
+      );
+
+      if (target && version !== undefined) {
+        // Decided and moved on at once, as one UPDATE statement does.
+        if (target["version"] !== version) {
+          return { affected: 0 };
+        }
+
+        target["version"] = Number(version) + 1;
+      }
+
+      return await update(rowOf, set);
+    },
+  );
+}
+
 // What each text sent said, in order.
 export function textsSent(
   world: SubscriberWorld,

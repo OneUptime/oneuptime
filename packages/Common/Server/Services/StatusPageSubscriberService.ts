@@ -2689,7 +2689,6 @@ export class Service extends ProjectReferencesService<Model> {
           _id: QueryHelper.any(replacedSubscriberIds),
           projectId: createdItem.projectId,
           statusPageId: createdItem.statusPageId,
-          isUnsubscribed: false,
           isSubscriptionConfirmed: false,
           createdAt: QueryHelper.lessThanEqualTo(
             new Date(

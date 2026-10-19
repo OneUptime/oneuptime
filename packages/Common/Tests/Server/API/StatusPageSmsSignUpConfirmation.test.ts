@@ -107,6 +107,7 @@ import {
   WORLD_PAGE_ID,
   WORLD_PROJECT_ID,
   confirm,
+  keepVersionsAsPostgresDoes,
   registerSubscriberRoutes,
   rowsOf,
   setUpSubscriberWorld,
@@ -149,43 +150,9 @@ function unsubscribeUrlOf(row: StoredRow): string {
   }).toString();
 }
 
-type RowUpdate = (
-  where: unknown,
-  set: StoredRow,
-) => Promise<{ affected: number }>;
-
-/*
- * The subscriber table keeping `row`'s version as Postgres does: an UPDATE
- * that names a version writes the row only while it still holds that
- * version, and moves it on in the same step, under the row's lock
- * (DatabaseService's compare-and-set). The in-memory table keeps no
- * version of its own.
- */
+// The subscriber table keeping `row`'s version as Postgres does (SubscriberWorld).
 function writeVersionsAsPostgresDoes(row: StoredRow): void {
-  row["version"] = 1;
-
-  const update: RowUpdate =
-    world.subscribers.repository.update.getMockImplementation() as RowUpdate;
-
-  world.subscribers.repository.update.mockImplementation(
-    async (where: unknown, set: StoredRow): Promise<{ affected: number }> => {
-      const { version, ...rowOf } = where as StoredRow;
-      const target: StoredRow | undefined = world.subscribers.get(
-        String(rowOf["_id"]),
-      );
-
-      if (target && version !== undefined) {
-        // Decided and moved on at once, as one UPDATE statement does.
-        if (target["version"] !== version) {
-          return { affected: 0 };
-        }
-
-        target["version"] = Number(version) + 1;
-      }
-
-      return await update(rowOf, set);
-    },
-  );
+  keepVersionsAsPostgresDoes(world, row);
 }
 
 describe("a visitor signing up by text", () => {

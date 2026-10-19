@@ -411,10 +411,10 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials", () => {
   test("replaces the code of a link that confirms a subscription, and keeps the id", () => {
     expect(
       StatusPageSubscriberUnsubscribe.redactCredentials(
-        `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmation}`,
+        `Confirm your subscription to Acme Status by text message within 24 hours. Not you? Ignore this and you will not be subscribed. ${confirmation}`,
       ),
     ).toBe(
-      `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmationRedacted}`,
+      `Confirm your subscription to Acme Status by text message within 24 hours. Not you? Ignore this and you will not be subscribed. ${confirmationRedacted}`,
     );
   });
 
