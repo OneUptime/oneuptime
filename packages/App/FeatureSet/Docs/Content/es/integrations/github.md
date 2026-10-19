@@ -30,11 +30,11 @@ Las dos son independientes, y puedes usar una, la otra o ambas. La GitHub App tr
 
 ## Conectar tus repositorios
 
-Abre **Productos → Código → Tareas**, luego **Repositorios de código**, y haz clic en **Conectar con la GitHub App**. GitHub pregunta dónde instalar la app y qué repositorios puede usar. Cada repositorio de la instalación se importa, y se mantiene al día cuando añades repositorios a la instalación o los quitas.
+Abre **Productos → Código** y haz clic en **Conectar GitHub**. GitHub pregunta dónde instalar la app y qué repositorios puede usar. Cada repositorio de la instalación se importa, y se mantiene al día cuando añades repositorios a la instalación o los quitas.
 
-Si la app ya está instalada en la cuenta, para otro proyecto o directamente desde GitHub, haz clic en **Conectar una instalación existente**, debajo de la tarjeta **Conectar con la GitHub App**, en lugar de volver a instalarla. Para ello hace falta una cuenta de GitHub que administre la instalación: el propietario de una cuenta personal, o alguien con permiso de administrador en cada repositorio al que la instalación puede acceder, como lo tiene un propietario de la organización.
+Si la app ya está instalada en la cuenta, para otro proyecto o directamente desde GitHub, haz clic en **Conectar una instalación existente**, debajo de **Conectar GitHub**, en lugar de volver a instalarla. Para ello hace falta una cuenta de GitHub que administre la instalación: el propietario de una cuenta personal, o alguien con permiso de administrador en cada repositorio al que la instalación puede acceder, como lo tiene un propietario de la organización.
 
-Una instancia autoalojada necesita primero una GitHub App propia: [Integración con GitHub](/docs/self-hosted/github-integration) muestra cómo crearla. A partir de ahí, las [Tareas de corrección](/docs/ai/ai-agent) abren pull requests en tus repositorios, y la página [GitHub App](/docs/ai/github-app) muestra lo que hace la app cuando la mencionas en un issue o en una pull request.
+Una instancia autoalojada necesita primero una GitHub App propia: [Integración con GitHub](/docs/self-hosted/github-integration) muestra cómo crearla. A partir de ahí, la IA abre pull requests en tus repositorios desde [Código](/docs/ai/ai-agent), y la página [GitHub App](/docs/ai/github-app) muestra lo que hace la app cuando la mencionas en un issue o en una pull request.
 
 ## Antes de empezar
 

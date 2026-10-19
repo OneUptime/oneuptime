@@ -21,10 +21,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * the client secret - made by the server, shown here once, and kept there
  * only as a hash (ee/Server/Identity/API/SCIMOAuthClientSecret.ts).
  *
- * For identity providers that will not keep a long-lived bearer token:
- * Microsoft Entra ID's gallery app asks for these. Making a new secret keeps
- * the one before working until it expires or is deleted here, so the
- * identity provider can be given the new one with no gap in provisioning.
+ * For identity providers that will not keep a long-lived bearer token and
+ * ask for these instead. Making a new secret keeps the one before working
+ * until it expires or is deleted here, so the identity provider can be given
+ * the new one with no gap in provisioning.
  */
 
 export type ScimOAuthConnectionType = "project" | "status-page";
@@ -165,8 +165,7 @@ const ScimOAuthClientCredentials: FunctionComponent<ComponentProps> = (
       </p>
       <p className="text-xs text-gray-500 mb-3">
         For identity providers that ask for a token endpoint, client ID and
-        client secret instead of a bearer token, such as the OneUptime app in
-        the Microsoft Entra ID gallery.
+        client secret instead of a bearer token.
       </p>
 
       <div className="space-y-3">

@@ -527,6 +527,46 @@ button when it is set; the secret is in oneuptime.env.runtime.
 - name: IP_WHITELIST
   value: {{ default "" $.Values.ipWhitelist | quote }}
 {{- include "oneuptime.env.globalLlmProvider" $ }}
+{{- include "oneuptime.env.globalRunner" $ }}
+{{- end }}
+
+{{/*
+The bundled global Runner's key, for the server's pods (see
+templates/global-runner.yaml): the App keeps the global Runner's row from it on
+every boot (App/FeatureSet/Workers/StartupMigrations/SeedBundledGlobalRunner),
+the migrate Job included, which runs the same startup migrations. Emitted only
+while globalRunner.enabled: without it - or with globalRunner.replicaCount 0 -
+the next boot removes the row, so no project lists a global Runner nobody runs.
+*/}}
+{{- define "oneuptime.env.globalRunner" }}
+{{- if (($.Values.globalRunner).enabled) }}
+- name: GLOBAL_RUNNER_KEY
+  {{- include "oneuptime.globalRunnerKeyValue" $ | nindent 2 }}
+- name: GLOBAL_RUNNER_REPLICAS
+  value: {{ $.Values.globalRunner.replicaCount | squote }}
+{{- end }}
+{{- end }}
+
+{{/*
+Where the bundled global Runner's key comes from, as an env var's value: the
+literal globalRunner.key, a Secret the user manages
+(globalRunner.existingSecret), or the release Secret's global-runner-key,
+which templates/secrets.yaml generates once and keeps.
+*/}}
+{{- define "oneuptime.globalRunnerKeyValue" }}
+{{- if $.Values.globalRunner.key }}
+value: {{ $.Values.globalRunner.key | quote }}
+{{- else if (($.Values.globalRunner.existingSecret).name) }}
+valueFrom:
+  secretKeyRef:
+    name: {{ ($.Values.globalRunner.existingSecret).name }}
+    key: {{ ($.Values.globalRunner.existingSecret).passwordKey }}
+{{- else }}
+valueFrom:
+  secretKeyRef:
+    name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+    key: global-runner-key
+{{- end }}
 {{- end }}
 
 {{/*
@@ -589,6 +629,30 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
       name: {{ printf "%s-%s" $.Release.Name "secrets"  }}
       key: oneuptime-secret
   {{- end }}
+  {{- end }}
+{{- end }}
+
+{{/*
+ONEUPTIME_RUNNER_KEY, the shared Runner's key: the Runner registers as the
+installation's shared Runner with it, and the app lets it register with it,
+so the runner and app Deployments read it from the same place - runner.key,
+runner.existingSecret, or the key this chart generates into
+`<release>-secrets` (templates/secrets.yaml, while runner.enabled).
+*/}}
+{{- define "oneuptime.env.runnerKey" }}
+- name: ONEUPTIME_RUNNER_KEY
+  {{- if $.Values.runner.key }}
+  value: {{ $.Values.runner.key | quote }}
+  {{- else if (($.Values.runner.existingSecret).name) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ ($.Values.runner.existingSecret).name }}
+      key: {{ ($.Values.runner.existingSecret).passwordKey }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+      key: runner-key
   {{- end }}
 {{- end }}
 

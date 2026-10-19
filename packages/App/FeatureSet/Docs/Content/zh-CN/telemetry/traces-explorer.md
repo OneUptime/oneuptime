@@ -89,7 +89,7 @@ flowchart TB
 大型追踪每次加载 500 个 span。点击追踪底部的按钮可以加载更多，或全部加载。
 
 > [!TIP]
-> **Fix performance with AI** 会在追踪中查找已知的性能模式：N+1 查询、一个占用大部分时间的 span，或本可以并行却依次执行的调用。找到后，它会启动一个 AI 任务，打开一个修复该问题的 pull request。参见 [修复任务](/docs/ai/ai-agent)。
+> **Fix performance with AI** 会在追踪中查找已知的性能模式：N+1 查询、一个占用大部分时间的 span，或本可以并行却依次执行的调用。找到后，它会启动一个 AI 任务，打开一个修复该问题的 pull request。参见 [代码](/docs/ai/ai-agent)。
 
 ## 用图表展示 span
 

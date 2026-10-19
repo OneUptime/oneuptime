@@ -394,8 +394,8 @@ describe("Grok - compiled patterns are reusable", () => {
   it("does not carry match state between calls", () => {
     const compiled: CompiledGrokPattern = compileGrokPattern("%{WORD:word}");
 
-    expect(compiled.regex.global).toBe(false);
-    expect(compiled.regex.sticky).toBe(false);
+    // No g or y flag: nothing carries over from one record to the next.
+    expect(compiled.regex.flags).toBe("");
 
     for (let i: number = 0; i < 5; i++) {
       expect(matchGrokPattern(compiled, "alpha beta")).toEqual({

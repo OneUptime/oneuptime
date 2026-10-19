@@ -74,7 +74,7 @@ export default class TelemetryImprovementTaskTrigger {
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
-        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the pull request. Connect one under Tasks > Code Repositories.",
+        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the pull request. Connect one in Code.",
       );
     }
 
@@ -95,7 +95,7 @@ export default class TelemetryImprovementTaskTrigger {
           data.taskType === CodeFixTaskType.ImproveLogging
             ? "improve-logging"
             : "improve-tracing"
-        } task is already queued or running for this service. Track its progress on the AI > Tasks page.`,
+        } task is already queued or running for this service. Track its progress in Code.`,
       );
     }
 

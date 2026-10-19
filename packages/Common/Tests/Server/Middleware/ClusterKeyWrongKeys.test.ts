@@ -13,6 +13,7 @@ import {
   WRONG_CLUSTER_KEYS_PER_ADDRESS,
   WRONG_CLUSTER_KEY_WINDOW_SECONDS,
 } from "../../../Server/Utils/RateLimit/WrongClusterKeyLimit";
+import { WRONG_KEY_COUNT_TIMEOUT_MS } from "../../../Server/Utils/RateLimit/WrongKeyLimit";
 import { getIpv6NetworkRateLimit } from "../../../Server/Utils/ClientIp";
 import { JSONObject } from "../../../Types/JSON";
 import {
@@ -47,6 +48,9 @@ import crypto from "crypto";
  *   - requests refused before a key is compared - no key, a key in the URL,
  *     a value this repository ships - count nothing;
  *   - an IPv6 /64 is counted too, with room for ten addresses;
+ *   - a key from a private network address, where every one of OneUptime's
+ *     own services calls from, is never counted, so nothing sent from beside
+ *     them can get their right key refused;
  *   - keys sent together buy no extra tries;
  *   - what Valkey keeps of a wrong key is an HMAC under the installation's
  *     key, never the key;
@@ -678,6 +682,230 @@ describe("a forged X-Forwarded-For entry changes nothing", () => {
   });
 });
 
+/*
+ * Every caller that holds the cluster key is one of OneUptime's own services,
+ * and each calls from a private network address: the app and its workers
+ * over the installation's own network, straight to the app, and a Runner of
+ * an earlier release from the server itself, through the bundled Nginx, which
+ * names the container network's gateway for it. Such an address is often not
+ * one caller's alone, so a key from one is never counted: nothing sent from
+ * beside those services can get their right key refused.
+ */
+describe("a cluster key from a private network address is never counted", () => {
+  // The address the bundled Nginx names for a caller on the server itself.
+  const GATEWAY: string = "172.18.0.1";
+
+  // A request that reaches the app with no proxy in between.
+  function directFrom(
+    peer: string,
+    carries: { header?: unknown; body?: unknown },
+  ): JSONObject {
+    const headers: JSONObject = {};
+
+    if (carries.header !== undefined) {
+      headers["clusterkey"] = carries.header as string;
+    }
+
+    return {
+      headers: headers,
+      socket: { remoteAddress: peer } as unknown as JSONObject,
+      query: {},
+      params: {},
+      body: (carries.body as JSONObject) || {},
+    };
+  }
+
+  test("wrong key after wrong key from one, and the right key from the same address is still let through; nothing is read or kept", async () => {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS * 3;
+      guess++
+    ) {
+      expect(await present(GATEWAY, `guess-${guess}`)).toEqual(WRONG);
+    }
+
+    expect(await present(GATEWAY, RIGHT_KEY)).toEqual(LET_THROUGH);
+
+    expect(redis.sent).toEqual([]);
+    expect(redis.keys()).toEqual([]);
+    expect(mockWarnings).toEqual([]);
+  });
+
+  test("a Runner of an earlier release registers from the server itself, header or body, whatever was sent from there before it", async () => {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS * 2;
+      guess++
+    ) {
+      expect(await present(GATEWAY, `guess-${guess}`)).toEqual(WRONG);
+      expect(
+        await present(
+          GATEWAY,
+          `runner-guess-${guess}`,
+          "isAuthorizedRunnerRegistrationMiddleware",
+        ),
+      ).toEqual(WRONG);
+      expect(
+        await send(
+          requestFrom(GATEWAY, { body: { clusterKey: `body-guess-${guess}` } }),
+          "isAuthorizedRunnerRegistrationMiddleware",
+        ),
+      ).toEqual(WRONG);
+    }
+
+    expect(
+      await present(
+        GATEWAY,
+        RIGHT_KEY,
+        "isAuthorizedRunnerRegistrationMiddleware",
+      ),
+    ).toEqual(LET_THROUGH);
+    expect(
+      await send(
+        requestFrom(GATEWAY, { body: { clusterKey: RIGHT_KEY } }),
+        "isAuthorizedRunnerRegistrationMiddleware",
+      ),
+    ).toEqual(LET_THROUGH);
+
+    expect(redis.sent).toEqual([]);
+  });
+
+  test.each([
+    ["the app's own address on its container network", "172.18.0.5"],
+    ["a pod's address", "10.42.0.17"],
+    [
+      "a pod's address, as a dual-stack listener reports it",
+      "::ffff:10.42.0.17",
+    ],
+    ["the server itself", "127.0.0.1"],
+    ["the server itself, over IPv6", "::1"],
+  ])(
+    "a service that calls the app directly, from %s (%s), is never counted",
+    async (_label: string, peer: string) => {
+      for (let guess: number = 1; guess <= 30; guess++) {
+        expect(
+          await send(directFrom(peer, { header: `guess-${guess}` })),
+        ).toEqual(WRONG);
+      }
+
+      expect(await send(directFrom(peer, { header: RIGHT_KEY }))).toEqual(
+        LET_THROUGH,
+      );
+      expect(
+        await send(
+          directFrom(peer, { header: RIGHT_KEY }),
+          "isAuthorizedRunnerRegistrationMiddleware",
+        ),
+      ).toEqual(LET_THROUGH);
+      expect(redis.sent).toEqual([]);
+    },
+  );
+
+  test.each([
+    ["10.0.0.0/8", "10.0.0.1"],
+    ["10.0.0.0/8, its last address", "10.255.255.254"],
+    ["172.16.0.0/12", "172.16.0.1"],
+    ["172.16.0.0/12, its last address", "172.31.255.254"],
+    ["192.168.0.0/16", "192.168.1.20"],
+    ["loopback", "127.0.0.1"],
+    ["loopback, anywhere in 127.0.0.0/8", "127.10.0.3"],
+    ["IPv4 link-local", "169.254.12.7"],
+    ["IPv6 loopback", "::1"],
+    ["IPv6 unique local, fc00::/7", "fd12:3456:789a::5"],
+    ["IPv6 unique local, its fc half", "fc00::7"],
+    ["IPv6 link-local", "fe80::1"],
+    ["a private IPv4 address written as IPv6", "::ffff:10.1.2.3"],
+  ])(
+    "%s (%s): never counted, and the right key let through after any number of wrong ones",
+    async (_label: string, address: string) => {
+      for (
+        let guess: number = 1;
+        guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS + 1;
+        guess++
+      ) {
+        expect(await present(address, `guess-${guess}`)).toEqual(WRONG);
+      }
+
+      expect(await present(address, RIGHT_KEY)).toEqual(LET_THROUGH);
+      expect(redis.sent).toEqual([]);
+    },
+  );
+
+  test.each([
+    ["just below 10.0.0.0/8", "9.255.255.255"],
+    ["just above 10.0.0.0/8", "11.0.0.1"],
+    ["just below 172.16.0.0/12", "172.15.255.254"],
+    ["just above 172.16.0.0/12", "172.32.0.1"],
+    ["just above 192.168.0.0/16", "192.169.0.1"],
+    ["shared address space, 100.64.0.0/10", "100.64.0.1"],
+    ["just above 169.254.0.0/16", "169.255.0.1"],
+    ["documentation, on the internet's side", "203.0.113.9"],
+    ["a public IPv4 address written as IPv6", "::ffff:203.0.113.9"],
+    ["a global IPv6 address", "2001:db8:1:2::9"],
+    ["IPv6 just below fc00::/7", "fbff::1"],
+    ["the retired IPv6 site-local prefix", "fec0::1"],
+    ["6to4, written over a private IPv4 address", "2002:a00:1::1"],
+    ["the translation prefix, over a private IPv4 address", "64:ff9b::a00:1"],
+  ])(
+    "%s (%s): counted like any client",
+    async (_label: string, address: string) => {
+      for (
+        let guess: number = 1;
+        guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+        guess++
+      ) {
+        expect(await present(address, `guess-${guess}`)).toEqual(WRONG);
+      }
+
+      expect(await present(address, "one-too-many")).toEqual(
+        refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
+      );
+      expect(await present(address, RIGHT_KEY)).toEqual(
+        refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
+      );
+    },
+  );
+
+  test("a client that cannot be placed is counted, as every such caller is one client", async () => {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
+      expect(await present("not-an-address", `guess-${guess}`)).toEqual(WRONG);
+    }
+
+    expect(await present("not-an-address", "one-too-many")).toEqual(
+      refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
+    );
+    expect(redis.keysHolding(":unknown:").length).toBeGreaterThan(0);
+  });
+
+  test("a private address a caller writes into X-Forwarded-For itself changes nothing: the address the bundled Nginx wrote is counted", async () => {
+    const real: string = "203.0.113.140";
+
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
+      expect(
+        await present(`10.0.0.${guess}, ${real}`, `guess-${guess}`),
+      ).toEqual(WRONG);
+    }
+
+    expect(await present(`${GATEWAY}, ${real}`, "one-too-many")).toEqual(
+      refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
+    );
+    expect(await present(`127.0.0.1, ${real}`, RIGHT_KEY)).toEqual(
+      refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
+    );
+
+    // The private address only the caller named is untouched.
+    expect(await present(GATEWAY, RIGHT_KEY)).toEqual(LET_THROUGH);
+  });
+});
+
 describe("what Valkey keeps of a wrong key", () => {
   test("an HMAC of it under the installation's key: never the key, nor a plain hash of it", async () => {
     const address: string = "203.0.113.60";
@@ -775,4 +1003,21 @@ describe("when the count cannot be made, keys are compared as they always were",
 
     expect(await present(address, RIGHT_KEY)).toEqual(LET_THROUGH);
   });
+
+  test(`a count Valkey does not answer is not waited for past ${WRONG_KEY_COUNT_TIMEOUT_MS} ms: the key is compared`, async () => {
+    redis.stallEvals = true;
+
+    const started: number = performance.now();
+
+    expect(await present(address, RIGHT_KEY)).toEqual(LET_THROUGH);
+    expect(await present(address, "guess-1")).toEqual(WRONG);
+
+    const waited: number = performance.now() - started;
+
+    expect(waited).toBeGreaterThanOrEqual(2 * WRONG_KEY_COUNT_TIMEOUT_MS - 100);
+    expect(waited).toBeLessThan(2 * WRONG_KEY_COUNT_TIMEOUT_MS + 3000);
+
+    // The late answers are not lost, nor thrown anywhere.
+    expect(redis.releaseStalledEvals()).toBe(2);
+  }, 20000);
 });

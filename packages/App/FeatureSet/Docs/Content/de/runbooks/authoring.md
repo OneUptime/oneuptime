@@ -12,7 +12,7 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 ## Bevor Sie beginnen
 
 - **Eine Rolle, die Runbooks schreibt.** Project Owner, Project Admin und Runbook Admin erstellen Runbooks und speichern ihre Schritte. Mit granularen Berechtigungen brauchen Sie **Create Runbook** und **Edit Runbook**. Siehe [Berechtigungen](/docs/runbooks/configuration#berechtigungen).
-- **Ein Runner, für JavaScript-, Bash-, SSH- und Kubernetes-Schritte.** Diese Schritte laufen auf einem [Runner](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur, nie auf dem OneUptime Worker. Installieren Sie zuerst einen.
+- **Ein Runner, für Bash-, SSH- und Kubernetes-Schritte.** Diese Schritte laufen auf einem [Runner](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur, nie auf dem OneUptime Worker. Installieren Sie zuerst einen. Ein JavaScript-Schritt läuft auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), es sei denn, Sie wählen einen Ihrer eigenen.
 - **Anmeldedaten, für SSH- und Kubernetes-Schritte, und die Berechtigung, sie zu lesen.** Siehe [Runbook-Anmeldedaten](/docs/runbooks/credentials). Ein Schritt kann Anmeldedaten nur benennen, wenn Sie Runbook-Anmeldedaten lesen dürfen: Project Owner, Project Admin oder **Read Runbook Credential**. Runbook Admin enthält das nicht.
 - **Ein LLM-Anbieter, für KI-Schritte.** Siehe [LLM-Anbieter](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Nutzen Sie ihn für das, was nur ein Mensch prüfen oder tun kann: „Bestätige
 
 ### JavaScript
 
-Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur läuft, nicht auf dem OneUptime Worker.
+Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox auf einem [Runbook-Agent](/docs/runbooks/agents) läuft, nicht auf dem OneUptime Worker: auf einem Ihrer eigenen, oder auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), wenn der Schritt keinen wählt.
 
 | Feld | Was es tut | Standard |
 | --- | --- | --- |
-| **Runner** | Der Runner, der den Schritt ausführt. Nur dieser Runner darf den Job übernehmen. | — |
+| **Runner** | Der Runner, der den Schritt ausführt: **Globaler Runner** oder einer Ihrer eigenen. Nur der Runner, den Sie wählen, darf den Job übernehmen; einen Schritt auf **Globaler Runner** darf jeder globale Runner übernehmen. | **Globaler Runner**, wenn es einen gibt |
 | **Skript** | Das auszuführende JavaScript. Geben Sie mit `return` einen Wert zurück, um ihn zu erfassen; jede Zeile aus `console.log` wird ebenfalls erfasst. Ein geworfener Fehler lässt den Schritt fehlschlagen. | — |
-| **Ausführungs-Timeout** | Wie lange der Runner das Snippet laufen lässt, bevor er die Sandbox abbaut. | 30 Sekunden |
+| **Ausführungs-Timeout** | Wie lange der Runner das Snippet laufen lässt, bevor er die Sandbox abbaut. Ein globaler Runner lässt es höchstens 5 Minuten laufen. | 30 Sekunden |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. | 2 Minuten |
 
 ```javascript

@@ -1,7 +1,9 @@
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { BUNDLED_GLOBAL_RUNNER_ID } from "../../Types/Runner/BundledGlobalRunner";
 import Exception from "../../Types/Exception/Exception";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -41,6 +43,48 @@ import {
   parseKubernetesRunnerPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import crypto from "crypto";
+import Select from "../Types/Database/Select";
+import PositiveNumber from "../../Types/PositiveNumber";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+
+/*
+ * What a global Runner row is, in the words every refusal about one uses.
+ * A global Runner is one the OneUptime server runs for every project: no
+ * project owns it (projectId is empty), only OneUptime or a master admin
+ * creates it (Admin Dashboard -> Settings -> Global Runners), and it runs
+ * runbook steps only - never AI code fixes or AI remediation commands,
+ * which act in a project's own repositories and systems.
+ */
+export const GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE: string =
+  "A global Runner belongs to no project: OneUptime runs it for every project. Create it under Admin Dashboard → Settings → Global Runners, or create a Runner of this project's own under Runbooks → Runners.";
+
+export const RUNNER_WITHOUT_PROJECT_MESSAGE: string =
+  "A Runner belongs to a project, or is a global Runner that OneUptime runs for every project. Create one under Runbooks → Runners in your project.";
+
+export const GLOBAL_RUNNER_CHANGED_MESSAGE: string =
+  "Whether a Runner is global, and which project a Runner belongs to, is set when it is created and never changed. Create a new Runner instead.";
+
+/*
+ * The bundled global Runner - the one every install runs (Helm
+ * globalRunner, Docker Compose global-runner) - is kept by the server from
+ * GLOBAL_RUNNER_KEY on every boot, so deleting it would only bring it back.
+ * It is turned off where it runs.
+ */
+export const BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE: string =
+  "This global Runner comes with this server, which sets it up again on its next start. To turn it off, set globalRunner.enabled to false in the Helm chart, or GLOBAL_RUNNER_REPLICAS=0 in Docker Compose's config.env.";
+
+export const GLOBAL_RUNNER_CAPABILITY_MESSAGE: string =
+  'A global Runner runs runbook steps only. "Runs AI Code Fixes" and "Runs AI Remediation Commands" stay off for it: they act in a project\'s own repositories and systems, so they run on a Runner of that project\'s own.';
+
+// The global Runner columns anyone signed in may read (RunnerAPI's listing).
+export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {
+  _id: true,
+  name: true,
+  description: true,
+  lastAlive: true,
+  canRunRunbooks: true,
+  isGlobalRunner: true,
+};
 
 /*
  * Runner.name is a ShortText column, so the agent Runner row's name is
@@ -213,6 +257,8 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(Service.getReservedAgentNameRefusal());
     }
 
+    Service.holdToGlobalRunnerShape(createBy.data, createBy.props.tenantId);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -286,6 +332,15 @@ export class Service extends ProjectReferencesService<Model> {
      */
     ComponentKeyWrite.assertUpdatedKey(updateBy.data, "a Runner");
 
+    /*
+     * Whether a Runner is global, and the project it belongs to, are set
+     * when it is created and never written again - root and master admins
+     * included: a project's own Runner turned global would be handed every
+     * project's steps, and a global one moved into a project would keep
+     * the key every project's steps were handed to.
+     */
+    Service.assertNotMovedInOrOutOfGlobal(updateBy.data);
+
     if (updateBy.props.isRoot) {
       return { updateBy, carryForward: null };
     }
@@ -329,10 +384,24 @@ export class Service extends ProjectReferencesService<Model> {
         name: true,
         hostInfo: true,
         canRunAiCommands: true,
+        isGlobalRunner: true,
       },
     );
 
     for (const runner of runners) {
+      /*
+       * A global Runner runs runbook steps only (a master admin may pause
+       * them with "Runs Runbooks"): code fixes and AI commands act in one
+       * project's repositories and systems.
+       */
+      if (
+        runner.isGlobalRunner &&
+        (data["canRunCodeFixTasks"] === true ||
+          data["canRunAiCommands"] === true)
+      ) {
+        throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
+      }
+
       /*
        * Any change to the stored text is a rename, surrounding whitespace
        * included: registration finds its row by the exact (lowercased) name,
@@ -459,6 +528,44 @@ export class Service extends ProjectReferencesService<Model> {
         return column !== "canRunAiCommands" && data[column] !== undefined;
       })
     );
+  }
+
+  /*
+   * The bundled global Runner is never deleted through the API, a master
+   * admin's included (BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE): the server's own
+   * startup sync (root) is the only one that removes it. The rows the delete
+   * removes are read as every delete hook reads them, and the delete is held
+   * to them (findRowsAndHoldDeleteToThem), so it removes no row this did not
+   * see.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.isRoot) {
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        {
+          _id: true,
+        },
+      );
+
+      if (Service.includesBundledGlobalRunner(rows)) {
+        throw new BadDataException(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE);
+      }
+    }
+
+    return await super.onBeforeDelete(deleteBy);
+  }
+
+  // Whether these rows include the bundled global Runner.
+  public static includesBundledGlobalRunner(rows: Array<Model>): boolean {
+    return rows.some((row: Model): boolean => {
+      return (
+        (row._id?.toString() || "").toLowerCase() ===
+        BUNDLED_GLOBAL_RUNNER_ID.toLowerCase()
+      );
+    });
   }
 
   // Right before the write: the lock its check was made under is still the update's.
@@ -602,8 +709,124 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * A Runner is a project's own (projectId set) or global (isGlobalRunner,
+   * no project) - never both, never neither. A global one runs runbook
+   * steps only, so its other capabilities are written off. Whoever creates
+   * it: a project's create always carries its project (the tenant), and only
+   * OneUptime or a master admin may write isGlobalRunner at all (the column
+   * takes no one's create permission).
+   */
+  public static holdToGlobalRunnerShape(
+    data: Model,
+    // The project the create is made in, which the create stamps on the row.
+    tenantId?: ObjectID | undefined,
+  ): void {
+    if (data.isGlobalRunner === true) {
+      if (data.projectId || data.project || tenantId) {
+        throw new BadDataException(GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE);
+      }
+
+      if (data.canRunCodeFixTasks === true || data.canRunAiCommands === true) {
+        throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
+      }
+
+      data.canRunCodeFixTasks = false;
+      data.canRunAiCommands = false;
+
+      if (data.canRunRunbooks === undefined || data.canRunRunbooks === null) {
+        data.canRunRunbooks = true;
+      }
+
+      return;
+    }
+
+    if (!data.projectId && !data.project && !tenantId) {
+      throw new BadDataException(RUNNER_WITHOUT_PROJECT_MESSAGE);
+    }
+  }
+
+  /*
+   * Refuses an update that writes isGlobalRunner or the project a Runner
+   * belongs to (see onBeforeUpdate). A column it leaves out, or writes as
+   * undefined, is not written.
+   */
+  public static assertNotMovedInOrOutOfGlobal(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    const written: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of ["isGlobalRunner", "projectId", "project"]) {
+      if (written[column] !== undefined) {
+        throw new BadDataException(GLOBAL_RUNNER_CHANGED_MESSAGE);
+      }
+    }
+  }
+
+  /*
+   * Whether the server has a global Runner that takes runbook steps - one
+   * of the three facts the "global by default" rule reads (RunnerChoice).
+   * Whether it is online right now is left to the claim timeout: a global
+   * Runner that is restarting picks the step up when it is back.
+   */
+  @CaptureSpan()
+  public async hasGlobalRunnerForRunbooks(): Promise<boolean> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        isGlobalRunner: true,
+        canRunRunbooks: true,
+      },
+      props: { isRoot: true },
+    });
+
+    return count.toNumber() > 0;
+  }
+
+  /*
+   * The global Runners, as anyone signed in may see them: the columns of
+   * GLOBAL_RUNNER_PUBLIC_SELECT only - never a key, a host or a version.
+   * Read as OneUptime: no project owns them, so no project's read reaches
+   * them.
+   */
+  @CaptureSpan()
+  public async findGlobalRunners(): Promise<Array<Model>> {
+    return await this.findBy({
+      query: { isGlobalRunner: true },
+      select: GLOBAL_RUNNER_PUBLIC_SELECT,
+      sort: { name: SortOrder.Ascending },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
   private static getReservedAgentNameRefusal(): string {
     return `Runner names starting with "${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/" are reserved for the in-cluster Runners the Kubernetes agent chart registers (with --set aiAccess.enabled=true). Choose another name.`;
+  }
+
+  /*
+   * Whether a Runner with this id exists. Asked only for a key that did not
+   * match it, so that a wrong key is counted only for a Runner there is
+   * (WrongComponentKeyLimit): an id no Runner has can never be let in,
+   * whatever key comes with it.
+   */
+  @CaptureSpan()
+  public async hasRunnerWithId(runnerId: ObjectID): Promise<boolean> {
+    const runner: Model | null = await this.findOneBy({
+      query: {
+        _id: runnerId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(runner);
   }
 
   @CaptureSpan()
@@ -645,6 +868,8 @@ export class Service extends ProjectReferencesService<Model> {
          * decide whether a credential-less kubectl job may be served.
          */
         hostInfo: true,
+        // A global Runner is served the global jobs, and nothing else.
+        isGlobalRunner: true,
       },
       props: { isRoot: true },
     });

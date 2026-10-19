@@ -64,7 +64,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De lijst
 
 **Waarschuwingen** en **Episoden** zijn open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. De configuratie van waarschuwingen staat hier, niet in **Projectinstellingen**.
 
-De lijst toont **Waarschuwingsnummer**, **Titel**, **Status**, **Ernst**, **Monitor**, **Getroffen resources**, **Aangemaakt**, **Duur**, **Labels** en **Eigenaren**. Selecteer waarschuwingen om er meerdere tegelijk te bewerken: **Status wijzigen**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Koppelen aan incident**, **Incident melden** of verwijderen.
+De lijst toont **Waarschuwingsnummer**, **Titel**, **Status**, **Ernst**, **Getroffen resources** (eerst de monitor van de waarschuwing), **Aangemaakt**, **Duur**, **Labels** en **Eigenaren**. Selecteer waarschuwingen om er meerdere tegelijk te bewerken: **Status wijzigen**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Koppelen aan incident**, **Incident melden** of verwijderen.
 
 ## Een waarschuwing met de hand aanmaken
 

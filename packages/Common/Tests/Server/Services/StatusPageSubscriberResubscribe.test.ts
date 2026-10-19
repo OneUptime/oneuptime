@@ -6,6 +6,7 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService, {
   CONTACT_ALREADY_SUBSCRIBED_MESSAGE,
 } from "../../../Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberConfirmationCode from "../../../Server/Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import Email from "../../../Types/Email";
@@ -49,6 +50,11 @@ jest.mock("../../../Server/Utils/Logger");
  * subscription, whichever row a database happens to return first. The team
  * is told which rule it runs into (a visitor signing up is told they are
  * subscribed already: StatusPageSubscriberContactOnce.test.ts).
+ *
+ * A subscription still waiting for its confirmation is active while the
+ * link to it works - a day after it was sent - and is replaced like a
+ * cancelled one once the link has run out
+ * (StatusPageSubscriptionLinkExpiry.test.ts walks it through the routes).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -93,6 +99,9 @@ function subscriber(): StatusPageSubscriber {
   return row;
 }
 
+const HOUR: number = 60 * 60 * 1000;
+
+// A subscription of the contact, confirmed a week ago: on, or cancelled since.
 function existingSubscription(
   isUnsubscribed: boolean,
   id: ObjectID = OLD_SUBSCRIBER_ID,
@@ -100,6 +109,21 @@ function existingSubscription(
   const row: StatusPageSubscriber = new StatusPageSubscriber();
   row._id = id.toString();
   row.isUnsubscribed = isUnsubscribed;
+  row.isSubscriptionConfirmed = true;
+  row.createdAt = new Date(Date.now() - 7 * 24 * HOUR);
+  return row;
+}
+
+// A subscription of the contact waiting for its confirmation, sent `hoursAgo`.
+function waitingSubscription(
+  hoursAgo: number,
+  id: ObjectID = OLD_SUBSCRIBER_ID,
+): StatusPageSubscriber {
+  const row: StatusPageSubscriber = new StatusPageSubscriber();
+  row._id = id.toString();
+  row.isUnsubscribed = false;
+  row.isSubscriptionConfirmed = false;
+  row.createdAt = new Date(Date.now() - hoursAgo * HOUR);
   return row;
 }
 
@@ -247,6 +271,79 @@ describe("onBeforeCreate", () => {
     ]);
   });
 
+  test("a contact whose subscription waits for its confirmation, its link sent an hour ago, is refused, and nothing is removed", async () => {
+    contactHas([waitingSubscription(1)]);
+
+    await expect(
+      hooks.onBeforeCreate({ data: subscriber(), props: { isRoot: true } }),
+    ).rejects.toThrow(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+
+    expect(deleteBy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["a day ago", 24],
+    ["two days ago", 48],
+    ["a year ago", 365 * 24],
+  ])(
+    "a contact whose subscription waited for its confirmation since %s, its link run out, is let through, and that subscription is replaced",
+    async (_when: string, hoursAgo: number) => {
+      contactHas([waitingSubscription(hoursAgo)]);
+
+      const result: OnCreate<StatusPageSubscriber> = await hooks.onBeforeCreate(
+        {
+          data: subscriber(),
+          props: { isRoot: true },
+        },
+      );
+
+      expect(replacedIds(result)).toEqual([OLD_SUBSCRIBER_ID.toString()]);
+      // Not yet: only once the new subscription exists (onCreateSuccess).
+      expect(deleteBy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a waiting subscription whose age cannot be told is taken as run out", async () => {
+    const row: StatusPageSubscriber = waitingSubscription(1);
+    delete (row as unknown as Record<string, unknown>)["createdAt"];
+    contactHas([row]);
+
+    const result: OnCreate<StatusPageSubscriber> = await hooks.onBeforeCreate({
+      data: subscriber(),
+      props: { isRoot: true },
+    });
+
+    expect(replacedIds(result)).toEqual([OLD_SUBSCRIBER_ID.toString()]);
+  });
+
+  test("a run-out waiting subscription beside a confirmed one still refuses: the confirmed one holds the contact", async () => {
+    contactHas([
+      waitingSubscription(48, OLD_SUBSCRIBER_ID),
+      existingSubscription(false, OLDER_SUBSCRIBER_ID),
+    ]);
+
+    await expect(
+      hooks.onBeforeCreate({ data: subscriber(), props: { isRoot: true } }),
+    ).rejects.toThrow(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+  });
+
+  test("a cancelled subscription and a run-out waiting one are both replaced", async () => {
+    contactHas([
+      existingSubscription(true, OLD_SUBSCRIBER_ID),
+      waitingSubscription(30, OLDER_SUBSCRIBER_ID),
+    ]);
+
+    const result: OnCreate<StatusPageSubscriber> = await hooks.onBeforeCreate({
+      data: subscriber(),
+      props: { isRoot: true },
+    });
+
+    expect(replacedIds(result)).toEqual([
+      OLD_SUBSCRIBER_ID.toString(),
+      OLDER_SUBSCRIBER_ID.toString(),
+    ]);
+  });
+
   test("a new contact replaces nothing", async () => {
     contactHas([]);
 
@@ -259,6 +356,62 @@ describe("onBeforeCreate", () => {
   });
 });
 
+describe("holdsItsContact", () => {
+  const NOW: number = Date.UTC(2032, 5, 1, 12);
+
+  test.each([
+    ["on and confirmed, a year ago", false, true, 365 * 24, true],
+    [
+      "on and confirmed, at an age that cannot be told",
+      false,
+      true,
+      null,
+      true,
+    ],
+    ["on and waiting, its link sent an hour ago", false, false, 1, true],
+    [
+      "on and waiting, its link sent a minute short of a day ago",
+      false,
+      false,
+      24 - 1 / 60,
+      true,
+    ],
+    ["on and waiting, its link sent a day ago", false, false, 24, false],
+    ["on and waiting, its link sent a year ago", false, false, 365 * 24, false],
+    [
+      "on and waiting, at an age that cannot be told",
+      false,
+      false,
+      null,
+      false,
+    ],
+    ["cancelled, confirmed", true, true, 1, false],
+    ["cancelled, waiting, its link sent an hour ago", true, false, 1, false],
+  ])(
+    "%s: %s",
+    (
+      _label: string,
+      isUnsubscribed: boolean,
+      isSubscriptionConfirmed: boolean,
+      hoursAgo: number | null,
+      holds: boolean,
+    ) => {
+      expect(
+        StatusPageSubscriberService.holdsItsContact(
+          {
+            isUnsubscribed: isUnsubscribed,
+            isSubscriptionConfirmed: isSubscriptionConfirmed,
+            ...(hoursAgo === null
+              ? {}
+              : { createdAt: new Date(NOW - hoursAgo * HOUR) }),
+          },
+          NOW,
+        ),
+      ).toBe(holds);
+    },
+  );
+});
+
 describe("onCreateSuccess", () => {
   function created(): StatusPageSubscriber {
     const row: StatusPageSubscriber = subscriber();
@@ -266,7 +419,11 @@ describe("onCreateSuccess", () => {
     return row;
   }
 
-  test("the cancelled rows go once the new subscription exists, and only cancelled rows of the same page and project", async () => {
+  test("the rows it replaces go once the new subscription exists: cancelled ones, and waiting ones whose link has run out, of the same page and project", async () => {
+    // One moment for the delete and for the rows it is asked about.
+    const now: number = Date.UTC(2032, 5, 1, 12);
+    jest.spyOn(Date, "now").mockReturnValue(now);
+
     const row: StatusPageSubscriber = created();
 
     await hooks.onCreateSuccess(
@@ -280,34 +437,72 @@ describe("onCreateSuccess", () => {
       row,
     );
 
-    expect(deleteBy).toHaveBeenCalledTimes(1);
-    const request: {
-      query: Record<string, unknown>;
-      limit: number;
-      skip: number;
-      props: Record<string, unknown>;
-    } = deleteBy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      limit: number;
-      skip: number;
-      props: Record<string, unknown>;
+    // The cancelled ones, then the waiting ones whose link has run out.
+    expect(deleteBy).toHaveBeenCalledTimes(2);
+
+    for (const call of deleteBy.mock.calls) {
+      const request: {
+        query: Record<string, unknown>;
+        limit: number;
+        skip: number;
+        props: Record<string, unknown>;
+      } = call[0] as {
+        query: Record<string, unknown>;
+        limit: number;
+        skip: number;
+        props: Record<string, unknown>;
+      };
+      // QueryHelper.any: the ids are its one parameter, under a random name.
+      const pinned: FindOperator<unknown> = request.query[
+        "_id"
+      ] as FindOperator<unknown>;
+      expect(pinned).toBeInstanceOf(FindOperator);
+      expect(Object.values(pinned.objectLiteralParameters || {})).toEqual([
+        [OLD_SUBSCRIBER_ID.toString(), OLDER_SUBSCRIBER_ID.toString()],
+      ]);
+      expect(String(request.query["projectId"])).toBe(PROJECT_ID.toString());
+      expect(String(request.query["statusPageId"])).toBe(
+        STATUS_PAGE_ID.toString(),
+      );
+      expect(request.limit).toBe(2);
+      expect(request.skip).toBe(0);
+      expect(request.props).toEqual({ ignoreHooks: true, isRoot: true });
+    }
+
+    const cancelled: Record<string, unknown> = (
+      deleteBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(cancelled["isUnsubscribed"]).toBe(true);
+    expect(cancelled["isSubscriptionConfirmed"]).toBeUndefined();
+    expect(cancelled["createdAt"]).toBeUndefined();
+
+    const runOut: Record<string, unknown> = (
+      deleteBy.mock.calls[1]![0] as { query: Record<string, unknown> }
+    ).query;
+    // Cancelled or not: a waiting subscription whose link ran out holds nothing.
+    expect(runOut["isUnsubscribed"]).toBeUndefined();
+    expect(runOut["isSubscriptionConfirmed"]).toBe(false);
+
+    // Sent at least a day ago, asked as each row is deleted.
+    const sentAt: (hoursAgo: number) => { createdAt: Date } = (
+      hoursAgo: number,
+    ): { createdAt: Date } => {
+      return { createdAt: new Date(Date.now() - hoursAgo * HOUR) };
     };
-    // QueryHelper.any: the ids are its one parameter, under a random name.
-    const pinned: FindOperator<unknown> = request.query[
-      "_id"
-    ] as FindOperator<unknown>;
-    expect(pinned).toBeInstanceOf(FindOperator);
-    expect(Object.values(pinned.objectLiteralParameters || {})).toEqual([
-      [OLD_SUBSCRIBER_ID.toString(), OLDER_SUBSCRIBER_ID.toString()],
-    ]);
-    expect(String(request.query["projectId"])).toBe(PROJECT_ID.toString());
-    expect(String(request.query["statusPageId"])).toBe(
-      STATUS_PAGE_ID.toString(),
+
+    expect(
+      rowMatchesWhere(sentAt(24), { createdAt: runOut["createdAt"] }),
+    ).toBe(true);
+    expect(
+      rowMatchesWhere(sentAt(500), { createdAt: runOut["createdAt"] }),
+    ).toBe(true);
+    expect(
+      rowMatchesWhere(sentAt(23.9), { createdAt: runOut["createdAt"] }),
+    ).toBe(false);
+    expect(rowMatchesWhere(sentAt(0), { createdAt: runOut["createdAt"] })).toBe(
+      false,
     );
-    expect(request.query["isUnsubscribed"]).toBe(true);
-    expect(request.limit).toBe(2);
-    expect(request.skip).toBe(0);
-    expect(request.props).toEqual({ ignoreHooks: true, isRoot: true });
+    expect(StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS).toBe(24);
   });
 
   test("a subscription that replaces nothing removes nothing", async () => {

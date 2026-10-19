@@ -127,6 +127,7 @@ Les **Champs à nettoyer** valent **Les deux (corps et attributs)** pour une rè
 - **Les exceptions viennent de l'enregistrement masqué.** Une exception trouvée dans un journal est créée après le masquage, et les règles qui masquent les événements de span masquent aussi les exceptions enregistrées sur eux.
 - **Les Session Replays sont masqués aussi.** Les règles de masquage des journaux s'appliquent aussi aux enregistrements de Session Replay, en plus du masquage que fait l'enregistreur dans le navigateur.
 - **Les règles s'exécutent dans l'ordre de la liste.** Chaque règle voit ce que les règles précédentes ont laissé.
+- **Un modèle personnalisé prend un temps à la mesure de l'enregistrement.** Il garde la syntaxe et les réponses de JavaScript, assertions avant et arrière comprises, quelle que soit la façon dont il est écrit. Une référence arrière, comme `\1`, ne peut pas s'exécuter ainsi : une règle qui en contient une est refusée à l'enregistrement, tout comme un modèle trop grand pour être exécuté. S'il fallait relire une longue valeur encore et encore pour trouver chaque correspondance, la règle masque la valeur entière.
 
 ## Vérifier ce qu'un filtre a supprimé
 
@@ -143,7 +144,7 @@ Regardez le compteur **Abandonné** et la date du **Dernier abandon** de chaque 
 :::
 
 :::details Une règle de masquage personnalisée indique Ne nettoie rien
-Son modèle est vide ou n'est pas une expression régulière valide, elle ne masque donc rien. Modifiez la règle et donnez-lui un modèle qui correspond à au moins un caractère.
+Son modèle est vide, n'est pas une expression régulière valide ou ne peut pas s'exécuter, par exemple parce qu'il contient une référence arrière comme `\1`, elle ne masque donc rien. Modifiez la règle et donnez-lui un modèle qui correspond à au moins un caractère.
 :::
 
 :::details D'anciens enregistrements montrent encore les données qu'une nouvelle règle masque

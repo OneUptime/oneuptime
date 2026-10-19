@@ -14,6 +14,7 @@ import logger, {
 } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import TokenSigningKey from "../Utils/TokenSigningKey";
+import SharedRunnerKeyAuthorization from "./SharedRunnerKeyAuthorization";
 import WrongClusterKeyLimit, {
   WRONG_CLUSTER_KEYS_MESSAGE,
   WrongClusterKeyRefusal,
@@ -30,15 +31,14 @@ import crypto from "crypto";
  * A route behind isAuthorizedServiceMiddleware does what only OneUptime
  * itself may ask for - send an email, an SMS, a call or a message with the
  * installation's own accounts, run a workflow, write telemetry for any
- * project, register a Runner that fixes code for every project. A caller
- * proves it is one of this installation's own services by presenting the
- * installation's cluster key.
+ * project. A caller proves it is one of this installation's own services by
+ * presenting the installation's cluster key.
  *
  * ONEUPTIME_SECRET, WHEN THE OPERATOR CHOSE ONE
  *
  * It is ONEUPTIME_SECRET, exactly as it always was, so services that share
- * it - the app, the workers and the in-cluster Runner - keep calling each
- * other across the upgrade.
+ * it - the app and the workers - keep calling each other across the
+ * upgrade.
  *
  * NEVER A VALUE THIS REPOSITORY SHIPS
  *
@@ -53,12 +53,16 @@ import crypto from "crypto";
  * operator. And a shipped value is refused from every caller, whatever this
  * installation's own key is.
  *
- * The in-cluster Runner cannot derive that key - it never reads the
- * database - so it registers only on an installation whose operator gave it
- * and the app the same ONEUPTIME_SECRET. npm start and npm run update put a
- * random one in config.env for Docker Compose
- * (Scripts/Install/ReplacePlaceholderSecrets.js), and the Helm chart
- * generates one.
+ * THE SHARED RUNNER HOLDS NO CLUSTER KEY
+ *
+ * The shared Runner registers as the installation's global AI agent with its
+ * own key, ONEUPTIME_RUNNER_KEY, which its deployment gives the app as well
+ * (SharedRunnerKeyAuthorization): the Runner's registration
+ * (isAuthorizedRunnerRegistrationMiddleware) hands a request that carries no
+ * cluster key there. A Runner of an earlier release, or one whose deployment
+ * still gives it ONEUPTIME_SECRET, presents the cluster key instead, and is
+ * let through with it as before, while the app logs that the Runner and its
+ * deployment should be updated.
  *
  * IN A HEADER, AND NOWHERE ELSE
  *
@@ -69,8 +73,8 @@ import crypto from "crypto";
  * refused, whatever else it carries. Never in the body either - with one
  * exception, for as long as Runners of earlier releases are about: the
  * Runner's registration (isAuthorizedRunnerRegistrationMiddleware) also
- * takes the clusterKey field of its JSON body, where those Runners put it,
- * and logs that the Runner should be updated.
+ * takes the clusterKey field of its JSON body, where the oldest of those
+ * Runners put it, and logs that the Runner should be updated.
  *
  * Every OneUptime service presents the key to these routes alone, through
  * getClusterKeyHeaders, and no route hands the headers it is sent to
@@ -84,7 +88,10 @@ import crypto from "crypto";
  * routes is refused until the quarter of an hour ends, whichever key it
  * carries, right or wrong. A request with the right key is never counted, so
  * OneUptime's own traffic is never refused for being busy, and a service
- * that still sends an old key sends one wrong key, not one per request.
+ * that still sends an old key sends one wrong key, not one per request. A key
+ * presented from a private network address, where every one of OneUptime's
+ * own services calls from, is never counted at all, so nothing sent from
+ * beside them can get them refused.
  */
 
 // What the installation's own cluster key is derived for, and nothing else.
@@ -98,7 +105,10 @@ export const CLUSTER_KEY_IN_URL_MESSAGE: string =
   'OneUptime takes the cluster key only in the "clusterkey" request header, never in the URL, which proxies and access logs keep. Send it in the header, and if it was sent in a URL, change ONEUPTIME_SECRET on the OneUptime app and on every service that uses it.';
 
 export const OLDER_RUNNER_CLUSTER_KEY_MESSAGE: string =
-  'A Runner registered with the cluster key in its request body, as Runners of earlier releases send it. Update that Runner to the release the OneUptime app runs: it sends the key in the "clusterkey" request header.';
+  "A Runner registered with the cluster key in its request body, as Runners of earlier releases send it. Update that Runner to the release the OneUptime app runs: it registers with its own key, ONEUPTIME_RUNNER_KEY, and holds no cluster key.";
+
+export const RUNNER_CLUSTER_KEY_MESSAGE: string =
+  "A Runner registered with the cluster key (ONEUPTIME_SECRET), as Runners of earlier releases, and Runners whose deployment still gives them ONEUPTIME_SECRET, do. Update the Runner, and its docker-compose.yml or Helm chart, to the release the OneUptime app runs: the Runner then registers with its own key, ONEUPTIME_RUNNER_KEY, which the app holds too, and ONEUPTIME_SECRET leaves its environment.";
 
 export const INVALID_CLUSTER_KEY_MESSAGE: string =
   "Invalid cluster key provided";
@@ -132,8 +142,11 @@ function namesClusterKey(name: string): boolean {
   );
 }
 
-// Where a request presented the key from.
-type PresentedFrom = "header" | "older Runner body";
+/*
+ * Where a request presented the key from: a header, the header of the
+ * Runner's registration, or the body of an earlier release's Runner's.
+ */
+type PresentedFrom = "header" | "Runner header" | "older Runner body";
 
 // What WrongClusterKeyLimit keeps of a presented key that is not text.
 const NOT_TEXT_WRONG_KEY: string = "not-text";
@@ -338,11 +351,15 @@ export default class ClusterKeyAuthorization {
   }
 
   /*
-   * The in-cluster Runner's registration: the key in a request header, as
-   * the Runner of this release sends it - or, from a Runner of an earlier
-   * release, in the clusterKey field of the request's JSON body, so that a
-   * Runner a release behind the app still registers, during a rolling
-   * upgrade or after it.
+   * The shared Runner's registration. A Runner of this release carries no
+   * cluster key at all: it is handed to SharedRunnerKeyAuthorization, which
+   * lets it through with the Runner's own key. A Runner of an earlier
+   * release - or one whose deployment still gives it ONEUPTIME_SECRET -
+   * presents the cluster key in a request header, or, from the oldest of
+   * them, in the clusterKey field of the request's JSON body, and is let
+   * through with it as before, so that a Runner a release behind the app
+   * still registers, during a rolling upgrade or after it. A request whose
+   * URL names the key is refused, as everywhere.
    */
   @CaptureSpan()
   public static async isAuthorizedRunnerRegistrationMiddleware(
@@ -352,16 +369,30 @@ export default class ClusterKeyAuthorization {
   ): Promise<void> {
     const inHeader: unknown =
       ClusterKeyAuthorization.getPresentedClusterKey(req);
+    const inOlderBody: unknown =
+      inHeader === undefined
+        ? ClusterKeyAuthorization.getOlderRunnerClusterKey(req)
+        : undefined;
+
+    if (
+      inHeader === undefined &&
+      inOlderBody === undefined &&
+      !ClusterKeyAuthorization.carriesClusterKeyInUrl(req)
+    ) {
+      return await SharedRunnerKeyAuthorization.authorizeRegistration(
+        req,
+        res,
+        next,
+      );
+    }
 
     return await ClusterKeyAuthorization.authorize({
       req: req,
       res: res,
       next: next,
-      presented:
-        inHeader !== undefined
-          ? inHeader
-          : ClusterKeyAuthorization.getOlderRunnerClusterKey(req),
-      presentedFrom: inHeader !== undefined ? "header" : "older Runner body",
+      presented: inHeader !== undefined ? inHeader : inOlderBody,
+      presentedFrom:
+        inHeader !== undefined ? "Runner header" : "older Runner body",
     });
   }
 
@@ -439,6 +470,13 @@ export default class ClusterKeyAuthorization {
     if (data.presentedFrom === "older Runner body") {
       logger.warn(
         OLDER_RUNNER_CLUSTER_KEY_MESSAGE,
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+    }
+
+    if (data.presentedFrom === "Runner header") {
+      logger.warn(
+        RUNNER_CLUSTER_KEY_MESSAGE,
         getLogAttributesFromRequest(req as RequestLike),
       );
     }

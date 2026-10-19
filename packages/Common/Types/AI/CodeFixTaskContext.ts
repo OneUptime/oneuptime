@@ -1,6 +1,7 @@
 import GitHubCommandType, {
   GitHubCommentKind,
 } from "../CodeRepository/GitHubCommand";
+import { CodeTaskRequest } from "./CodeTask";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -201,6 +202,36 @@ export interface CodeFixTaskContext {
    * came from and must report back to.
    */
   github?: GitHubTaskContext | undefined;
+  /*
+   * CodeRequest: what a person asked in this turn, in Code, and the context
+   * they added to it (see Types/AI/CodeTask). The repository is the run's
+   * codeRepositoryId, and the turns before this one are the runs of the same
+   * task (codeTaskId).
+   */
+  request?: CodeTaskRequest | undefined;
+}
+
+/*
+ * Treat partial, empty and malformed JSON as no request: a CodeRequest run
+ * that cannot say what was asked is not executable.
+ */
+export function getCodeTaskRequest(
+  taskContext: CodeFixTaskContext | null | undefined,
+): CodeTaskRequest | null {
+  const request: CodeTaskRequest | undefined = taskContext?.request;
+
+  if (
+    !request ||
+    typeof request.message !== "string" ||
+    request.message.trim().length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    message: request.message,
+    context: Array.isArray(request.context) ? request.context : [],
+  };
 }
 
 /*

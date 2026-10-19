@@ -12,7 +12,7 @@ You write a runbook as an ordered list of steps on its **Steps** page. This page
 ## Before you begin
 
 - **A role that writes runbooks.** Project Owner, Project Admin and Runbook Admin create runbooks and save their steps. With granular permissions, you need **Create Runbook** and **Edit Runbook**. See [Permissions](/docs/runbooks/configuration#permissions).
-- **A Runner, for JavaScript, Bash, SSH and Kubernetes steps.** These steps run on a [Runner](/docs/runbooks/agents) inside your own infrastructure, never on the OneUptime Worker. Install one first.
+- **A Runner, for Bash, SSH and Kubernetes steps.** These steps run on a [Runner](/docs/runbooks/agents) inside your own infrastructure, never on the OneUptime Worker. Install one first. A JavaScript step runs on a [global Runner](/docs/runbooks/agents#global-runners) unless you pick one of yours.
 - **A credential, for SSH and Kubernetes steps, and permission to read it.** See [Runbook Credentials](/docs/runbooks/credentials). A step can name a credential only when you may read runbook credentials: Project Owner, Project Admin, or **Read Runbook Credential**. Runbook Admin does not include it.
 - **An LLM provider, for AI steps.** See [LLM Providers](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Use it for what only a human can check or do: "Confirm traffic has moved to the 
 
 ### JavaScript
 
-A snippet of JavaScript, run in an `isolated-vm` sandbox on a [Runbook Agent](/docs/runbooks/agents) inside your own infrastructure, not on the OneUptime Worker.
+A snippet of JavaScript, run in an `isolated-vm` sandbox on a [Runbook Agent](/docs/runbooks/agents), not on the OneUptime Worker: on one of yours, or on a [global Runner](/docs/runbooks/agents#global-runners) when the step picks none.
 
 | Field | What it does | Default |
 | --- | --- | --- |
-| **Runner** | The Runner that runs the step. Only that Runner may claim the job. | — |
+| **Runner** | The Runner that runs the step: **Global Runner**, or one of yours. Only the Runner you pick may claim the job; any global Runner may claim a step on **Global Runner**. | **Global Runner**, when there is one |
 | **Script** | The JavaScript to run. `return` a value to capture it; each `console.log` line is captured too. Throwing an error fails the step. | — |
-| **Execution timeout** | How long the Runner lets the snippet run before tearing the sandbox down. | 30 seconds |
+| **Execution timeout** | How long the Runner lets the snippet run before tearing the sandbox down. A global Runner runs it for 5 minutes at most. | 30 seconds |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. | 2 minutes |
 
 ```javascript

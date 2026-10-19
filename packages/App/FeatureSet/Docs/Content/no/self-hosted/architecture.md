@@ -55,6 +55,7 @@ flowchart TB
 | Telemetry writer | En del av `app` | `telemetryWriter` (av som standard) | Et lag med fast størrelse som gjør hver ClickHouse-innsetting, slik at innsettingene holder seg begrenset uansett hvor langt workerne skalerer. |
 | Probe | `probe-1` | `probes` | Kjører monitorkontroller og sender resultatene tilbake. Hver medfølgende probe er en global probe som alle prosjekter kan bruke. |
 | Runner | `runner` | `runner` | Instansens egen Runner, som kan kjøre AI-koderettinger for alle prosjekter. Runbook-trinn kjører på [Runnere](/docs/runbooks/agents) som du installerer der de skal kjøre. |
+| Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globale-runnere): den kjører JavaScript-trinnene til alle prosjekter som ikke velger sin egen Runner, hvert i en sandkasse som bare når internett. Den har sin egen nøkkel og ingenting annet fra serveren. |
 | PostgreSQL | `postgres` | `postgresql`, eller `postgresOperator.cnpg` | Prosjekter, monitorer, hendelser, brukere og alle andre innstillinger og tilstander. |
 | ClickHouse | `clickhouse` | `clickhouse`, eller `clickhouseOperator.altinity` | Logger, metrikker, traces, unntak, profiler og monitorlogger. |
 | Valkey | `valkey` | `valkey` | Hurtigbufferen, jobbkøene og kortvarig tilstand som ventende push-kvitteringer. |

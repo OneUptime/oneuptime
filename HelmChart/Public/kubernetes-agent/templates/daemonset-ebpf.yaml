@@ -119,11 +119,13 @@ spec:
             {{- end }}
             {{- if .Values.ebpf.contextPropagation }}
             # Inject a W3C `traceparent` into outbound traffic so traces link
-            # across services. OFF unless explicitly opted into, because every
-            # mode rewrites traffic that is already in flight (in-place buffer
-            # widening for plaintext HTTP, a TC-injected TCP option for TLS and
-            # raw TCP) and a bad rewrite stalls the connection rather than just
-            # losing a span. Mode comes from
+            # across services, on another node too. On by default; off when
+            # set false, and when a values file has no such key (a release
+            # carried forward with --reuse-values from a chart before it).
+            # Every mode rewrites traffic that is already in flight (in-place
+            # buffer widening for plaintext HTTP, a TC-injected TCP option for
+            # TLS and raw TCP), and a bad rewrite stalls the connection rather
+            # than just losing a span. Mode comes from
             # `.Values.ebpf.contextPropagationMode` — `headers` (default, the
             # narrowest), `tcp`, or `all`. No kernel version makes this inert:
             # below 5.17 OBI falls back to bounded-scan variants and still
@@ -134,6 +136,27 @@ spec:
             {{- if .Values.ebpf.trackRequestHeaders }}
             - name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
               value: "true"
+            {{- end }}
+            {{- end }}
+            {{- $bufferSizes := .Values.ebpf.bufferSizes | default dict }}
+            {{- $sqlBuffers := dict }}
+            {{- range $protocol := list "postgres" "mysql" "mssql" }}
+            {{- $bytes := index $bufferSizes $protocol | default 0 | int }}
+            {{- if gt $bytes 0 }}
+            {{- $_ := set $sqlBuffers $protocol $bytes }}
+            {{- end }}
+            {{- end }}
+            {{- if $sqlBuffers }}
+            # Copy up to this many bytes of each database request (and,
+            # separately, each response) so OBI reads whole statements
+            # (ebpf.bufferSizes). Its small fixed capture stops db.query.text
+            # at about 250 characters and can miss a long statement sent with
+            # bound parameters altogether. Unset or 0 copies nothing extra.
+            {{- range $protocol := list "postgres" "mysql" "mssql" }}
+            {{- if hasKey $sqlBuffers $protocol }}
+            - name: OTEL_EBPF_BPF_BUFFER_SIZE_{{ upper $protocol }}
+              value: {{ get $sqlBuffers $protocol | quote }}
+            {{- end }}
             {{- end }}
             {{- end }}
             # OTLP HTTP export to the in-cluster collector (the

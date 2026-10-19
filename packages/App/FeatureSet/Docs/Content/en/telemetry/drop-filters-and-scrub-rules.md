@@ -127,6 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **Exceptions come from the scrubbed record.** An exception found in a log is made after scrubbing, and the rules that scrub span events also scrub the exceptions recorded on them.
 - **Session replays are scrubbed too.** Log scrub rules also run over session replay recordings, behind the masking the recorder does in the browser.
 - **Rules run in the order of the list.** Each rule sees what the rules before it left.
+- **A custom pattern takes time in line with the record.** It keeps JavaScript's syntax and answers, look-aheads and look-behinds included, however it is written. A back-reference, such as `\1`, cannot run that way: a rule with one is refused when you save it, as is a pattern too large to run. If finding every match would read a long value over and over, the rule scrubs the whole value.
 
 ## Check what a filter dropped
 
@@ -143,7 +144,7 @@ Look at the **Dropped** count and **Last Dropped** time of each drop filter. Tur
 :::
 
 :::details A custom scrub rule says Scrubs nothing
-Its pattern is empty or not a valid regular expression, so it scrubs nothing. Edit the rule and give it a pattern that matches at least one character.
+Its pattern is empty, is not a valid regular expression, or cannot run, such as one with a back-reference like `\1`, so it scrubs nothing. Edit the rule and give it a pattern that matches at least one character.
 :::
 
 :::details Old records still show the data a new rule scrubs

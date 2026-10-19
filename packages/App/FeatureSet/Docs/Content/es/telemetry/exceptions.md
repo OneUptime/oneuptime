@@ -115,7 +115,7 @@ La página **Asistencia de IA** ofrece tres tareas. Cada una se ejecuta como una
 | **Generar prueba de regresión** | Añade una prueba que falla hasta que se corrija el error. |
 | **Mejorar el manejo de errores** | Para errores esperados: valida antes la entrada, mantiene los datos de usuario fuera de los mensajes y marca el error como gestionado. |
 
-La IA necesita antes tres cosas: un proveedor de LLM, un repositorio de GitHub conectado mediante la GitHub App y un agente de IA en línea que ejecute la tarea. La página comprueba cada una y enlaza a lo que falte. Las tareas se pausan mientras la excepción está resuelta o archivada. Consulte [Tareas de corrección](/docs/ai/ai-agent).
+La IA necesita antes tres cosas: un proveedor de LLM, un repositorio de GitHub conectado mediante la GitHub App y un agente de IA en línea que ejecute la tarea. La página comprueba cada una y enlaza a lo que falte. Las tareas se pausan mientras la excepción está resuelta o archivada. Consulte [Código](/docs/ai/ai-agent).
 
 ## Análisis de excepciones
 
@@ -140,6 +140,6 @@ Una ocurrencia nueva reabre una excepción resuelta a propósito: el error sigue
 :::cards
 - [Monitor de excepciones](/docs/monitor/exceptions-monitor): Recibir alertas cuando las excepciones se disparen.
 - [Source maps](/docs/telemetry/source-maps): Stack traces legibles para código de navegador.
-- [Tareas de corrección](/docs/ai/ai-agent): Cómo la IA corrige código y abre pull requests.
+- [Código](/docs/ai/ai-agent): Cómo la IA corrige código y abre pull requests.
 - [Explorador de trazas](/docs/telemetry/traces-explorer): Ver la solicitud en la que ocurrió una excepción.
 :::

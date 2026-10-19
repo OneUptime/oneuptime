@@ -6,11 +6,12 @@ import { translationKey } from "../../Utils/TranslateTemplate";
  * "The advanced section in the form should be called something better ...
  * show what things are inside it when collapsed (small summary of things)."
  * - the maintainer. A fold that only says "More fields" hides what is in it
- * as well as the old "Advanced" did, so its header lists the fields (or, on
- * a page, the cards) it holds - "Declared At · Initial State · Labels ·
- * Private Incident" - and draws the ones that are set as small chips with
- * what they are set to ("Labels: 2", "Private Incident: On"). Nobody has to
- * open a fold to learn what is in it or whether anything in it is in force.
+ * as well as the old "Advanced" did, so it lists the fields (or, on a page,
+ * the cards) it holds, and the ones that are set with what they are set to
+ * ("Labels: 2", "Private Incident: On"): a form's More fields as one quiet
+ * line ("More fields · Declared At, Labels: 2, Private Incident: On"), a
+ * page's More settings as pills and chips on its card. Nobody has to open
+ * a fold to learn what is in it or whether anything in it is in force.
  *
  * Forms work their items out from their fields
  * (Forms/Utils/FoldedFormFields.ts); a page names its cards itself
@@ -23,8 +24,9 @@ export interface FoldedSectionItem {
   // English, as the field or card is titled: looked up when it is drawn.
   title: string;
   /*
-   * Holds something other than empty or its default: drawn as a chip, with
-   * its value, so what is in force shows while the section is folded.
+   * Holds something other than empty or its default: named with its value,
+   * a shade darker on a line and as a chip on a card, so what is in force
+   * shows while the section is folded.
    */
   isSet: boolean;
   /*
@@ -38,11 +40,14 @@ export interface FoldedSectionItem {
 }
 
 /*
- * How many unset names a folded header lists before it says how many more
- * there are: a "small summary of things", not the form again. Set items are
- * always listed - they are what a reader must not miss.
+ * How many names a folded header lists before it says how many more there
+ * are: a "small summary of things", not the form again - and, for More
+ * fields, one quiet line of text where it can be ("More fields · Declared
+ * At, Labels: 2, Private Incident: On, 3 more"). Set items are always
+ * listed - they are what a reader must not miss - and take their places
+ * first; the unset names fill the places left, in their order.
  */
-export const FOLDED_SECTION_MAX_UNSET_ITEMS: number = 4;
+export const FOLDED_SECTION_MAX_ITEMS: number = 4;
 
 // Said after the names listed, for the rest: "Labels · 3 more".
 export const FOLDED_SECTION_MORE_ITEMS: { one: string; other: string } = {
@@ -63,24 +68,29 @@ export interface FoldedSectionItemsShown {
 
 export type GetFoldedSectionItemsShownFunction = (
   items: Array<FoldedSectionItem>,
-  maxUnsetItems?: number,
+  maxItems?: number,
 ) => FoldedSectionItemsShown;
 
 /*
  * Which items a folded header lists: every set one, and unset ones in their
- * order up to the limit. One left over is listed rather than counted - "1
- * more" takes as much room as the name it stands for.
+ * order in the places the set ones leave, up to the limit. One left over is
+ * listed rather than counted - "1 more" takes as much room as the name it
+ * stands for.
  */
 export const getFoldedSectionItemsShown: GetFoldedSectionItemsShownFunction = (
   items: Array<FoldedSectionItem>,
-  maxUnsetItems: number = FOLDED_SECTION_MAX_UNSET_ITEMS,
+  maxItems: number = FOLDED_SECTION_MAX_ITEMS,
 ): FoldedSectionItemsShown => {
-  const unsetCount: number = items.filter((item: FoldedSectionItem) => {
-    return !item.isSet;
+  const setCount: number = items.filter((item: FoldedSectionItem) => {
+    return item.isSet;
   }).length;
 
-  const limit: number =
-    unsetCount - maxUnsetItems <= 1 ? unsetCount : Math.max(0, maxUnsetItems);
+  const unsetCount: number = items.length - setCount;
+
+  // The places the set items leave for the unset ones.
+  const room: number = Math.max(0, maxItems - setCount);
+
+  const limit: number = unsetCount - room <= 1 ? unsetCount : room;
 
   const shown: Array<FoldedSectionItem> = [];
   let unsetShown: number = 0;

@@ -133,11 +133,11 @@ Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstill
 :::
 
 :::details Et trin fejlede, fordi det mangler en Runner eller en loginoplysning
-Meddelelsen lyder for eksempel "Bash step is missing a Runner. Pick one under Runbooks → Runners." Trinnet blev gemt uden **Runner**, eller et SSH- eller Kubernetes-trin uden **Credential**. Åbn runbookets **Trin**, vælg det, trinnet mangler, klik på **Save Steps**, og kør runbooket igen.
+Meddelelsen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Trinnet blev gemt uden **Runner**, eller et SSH- eller Kubernetes-trin uden **Credential**. Et JavaScript-trin har kun brug for sin egen Runner, når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan køre det. Åbn runbookets **Trin**, vælg det, trinnet mangler, klik på **Save Steps**, og kør runbooket igen.
 :::
 
 :::details Et trin fejlede, fordi ingen runbook-agent tog det
-Meddelelsen lyder "No runbook agent picked up this step before the wait window expired." Trinnets Runner overtog ikke jobbet inden for sin claim timeout. Kontrollér under **Runbooks → Runbook-agenter**, at Runneren er **Forbundet**, og at **Kører runbooks** er slået til. Se [Runbook-agenter](/docs/runbooks/agents#fejlfinding).
+Meddelelsen lyder "No runbook agent picked up this step before the wait window expired." Trinnets Runner overtog ikke jobbet inden for sin claim timeout. Kontrollér under **Runbooks → Runbook-agenter**, at Runneren er **Forbundet**, og at **Kører runbooks** er slået til. Se [Runbook-agenter](/docs/runbooks/agents#fejlfinding). Et trin på en global Runner melder i stedet "No global Runner picked up this step before the wait window expired.": Kør runbooket igen, hæv trinnets claim timeout, eller vælg en af dine egne Runnere.
 :::
 
 :::details Kørslen har ventet i timevis

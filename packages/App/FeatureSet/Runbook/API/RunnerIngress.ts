@@ -1,6 +1,7 @@
 import RunnerAuthorization from "../Middleware/RunnerAuthorization";
 import { RunnerExpressRequest } from "../Types/Request";
 import RunbookSecretsUtil from "../Utils/Secrets";
+import { getSecretNamesNotIn } from "../Utils/SecretNames";
 import RunbookCredentialsUtil from "../Utils/Credentials";
 import RunnerService, {
   Service as RunnerServiceClass,
@@ -37,6 +38,10 @@ import logger from "Common/Server/Utils/Logger";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import {
+  GLOBAL_RUNNER_STEP_TYPES,
+  canGlobalRunnersRunStepType,
+} from "Common/Types/Runner/GlobalRunnerWork";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -53,6 +58,34 @@ export interface RunInputsForJob {
 
 export default class RunnerIngressAPI {
   public router!: ExpressRouter;
+
+  /*
+   * Why a step on a global Runner that names runbook secrets global Runners
+   * may not use was not run: their names (never their values), and the two
+   * ways out.
+   */
+  public static describeSecretsNotForGlobalRunners(
+    names: Array<string>,
+  ): string {
+    const shown: Array<string> = names.slice(0, 5).map((name: string) => {
+      return `"${name.length > 80 ? `${name.slice(0, 80)}…` : name}"`;
+    });
+
+    const more: string =
+      names.length > shown.length
+        ? ` and ${names.length - shown.length} more`
+        : "";
+
+    return `This step uses the runbook secret${names.length === 1 ? "" : "s"} ${shown.join(
+      ", ",
+    )}${more}, which global Runners may not use, so it was not run. Turn on "Global Runners can use this secret" for ${
+      names.length === 1 ? "it" : "them"
+    } under Runbooks → Settings → Secrets, or pick one of your own Runners for the step.`;
+  }
+
+  // Why a job naming a credential is failed for a global Runner.
+  public static readonly GLOBAL_RUNNER_CREDENTIAL_REFUSAL: string =
+    "This step needs a credential, and global Runners are never handed one: they run JavaScript steps for every project, in a sandbox. It was not run. Pick one of your own Runners for the step, assigned to the credential.";
 
   // Why a job naming a credential is failed for a kubernetes-agent Runner.
   public static readonly AGENT_RUNNER_CREDENTIAL_REFUSAL: string =
@@ -293,24 +326,50 @@ export default class RunnerIngressAPI {
         ...(hostInfoValue ? { hostInfo: hostInfoValue } : {}),
       });
 
-      /*
-       * Hand the Runner back the capabilities this project granted it. The
-       * dashboard is the control plane: toggling a capability off here stops
-       * the Runner starting that loop on its next boot, and the claim path
-       * rejects it in the meantime — so an operator never has to touch the
-       * container to revoke one.
-       */
-      return Response.sendJsonObjectResponse(req, res, {
-        status: "ok",
-        capabilities: {
-          canRunRunbooks: agent.canRunRunbooks !== false,
-          canRunCodeFixTasks: agent.canRunCodeFixTasks === true,
-          canRunAiCommands: agent.canRunAiCommands === true,
-        },
-      });
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        RunnerIngressAPI.getHeartbeatAnswer(agent),
+      );
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * What a heartbeat answers: the capabilities the Runner may use. The
+   * dashboard is the control plane: toggling a capability off stops the
+   * Runner starting that loop, and the claim path rejects it in the
+   * meantime - so an operator never has to touch the container to revoke
+   * one.
+   *
+   * A global Runner is told it is one, and that it runs runbook steps only
+   * (a master admin may pause even those with "Runs Runbooks"): it then
+   * asks only for what global Runners run, and refuses anything else it is
+   * handed. The server serves it no other work whatever it asks for.
+   */
+  public static getHeartbeatAnswer(agent: Runner): JSONObject {
+    if (agent.isGlobalRunner) {
+      return {
+        status: "ok",
+        isGlobalRunner: true,
+        globalStepTypes: [...GLOBAL_RUNNER_STEP_TYPES],
+        capabilities: {
+          canRunRunbooks: agent.canRunRunbooks !== false,
+          canRunCodeFixTasks: false,
+          canRunAiCommands: false,
+        },
+      };
+    }
+
+    return {
+      status: "ok",
+      capabilities: {
+        canRunRunbooks: agent.canRunRunbooks !== false,
+        canRunCodeFixTasks: agent.canRunCodeFixTasks === true,
+        canRunAiCommands: agent.canRunAiCommands === true,
+      },
+    };
   }
 
   public async claimNextJob(
@@ -320,7 +379,29 @@ export default class RunnerIngressAPI {
   ): Promise<void> {
     try {
       const agent: Runner | undefined = req.runner;
-      if (!agent || !agent.id || !agent.projectId) {
+      if (!agent || !agent.id) {
+        throw new BadDataException("Agent not found on request");
+      }
+
+      /*
+       * A global Runner belongs to no project and takes the steps that wait
+       * for any global Runner, from every project that uses them - and
+       * nothing else (RunnerIngressAPI.claimGlobalJob).
+       */
+      if (agent.isGlobalRunner) {
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          await RunnerIngressAPI.claimGlobalJob({
+            agent,
+            requestedStepTypes: RunnerIngressAPI.parseRequestedStepTypes(
+              ((req.body as JSONObject) || {})["stepTypes"],
+            ),
+          }),
+        );
+      }
+
+      if (!agent.projectId) {
         throw new BadDataException("Agent not found on request");
       }
 
@@ -441,7 +522,10 @@ export default class RunnerIngressAPI {
         !AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
       ) {
         const secrets: Array<RunbookSecret> =
-          await RunbookSecretsUtil.loadForAgent(agent.id);
+          await RunbookSecretsUtil.loadForAgent({
+            agentId: agent.id,
+            projectId: agent.projectId,
+          });
         scriptToSend = RunbookSecretsUtil.populateInScript({
           script: scriptToSend,
           secrets,
@@ -571,6 +655,134 @@ export default class RunnerIngressAPI {
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * A claim by a global Runner: the next step that waits for any global
+   * Runner (RunnerJobService.claimNextGlobalJob - only a runbook's own step,
+   * only a type global Runners run, never of a project that turned them
+   * off), handed over the way a project's own Runner is handed its step,
+   * with everything read from the step's OWN project:
+   *
+   *   - its script, with the secrets of that project its people let global
+   *     Runners use filled in (RunbookSecretsUtil.loadForGlobalRunnerJob);
+   *   - the inputs and trigger of the run it belongs to, from that project;
+   *   - never a credential: a step that names one is failed, not handed
+   *     over (global Runners run no SSH or Kubernetes step, and the job
+   *     could only carry one if something wrote it around the enqueue).
+   *
+   * A global Runner whose "Runs Runbooks" is off takes nothing.
+   */
+  public static async claimGlobalJob(data: {
+    agent: Runner;
+    requestedStepTypes: Array<RunbookStepType> | undefined;
+  }): Promise<JSONObject> {
+    const agent: Runner = data.agent;
+
+    if (!agent.id || agent.canRunRunbooks === false) {
+      return { job: null };
+    }
+
+    const allowedStepTypes: Array<RunbookStepType> = (
+      data.requestedStepTypes || [...GLOBAL_RUNNER_STEP_TYPES]
+    ).filter((stepType: RunbookStepType): boolean => {
+      return canGlobalRunnersRunStepType(stepType);
+    });
+
+    if (allowedStepTypes.length === 0) {
+      return { job: null };
+    }
+
+    const job: RunnerJob | null = await RunnerJobService.claimNextGlobalJob({
+      agentId: agent.id,
+      allowedStepTypes,
+    });
+
+    if (!job || !job.projectId) {
+      return { job: null };
+    }
+
+    const payload: JSONObject = (job.payload as JSONObject) || {};
+
+    if (payload["credentialId"]) {
+      await RunnerJobService.submitResult({
+        jobId: job.id!,
+        agentId: agent.id,
+        success: false,
+        errorMessage: RunnerIngressAPI.GLOBAL_RUNNER_CREDENTIAL_REFUSAL,
+      });
+
+      return { job: null };
+    }
+
+    let scriptToSend: string = job.script ?? "";
+
+    if (scriptToSend) {
+      const secrets: Array<RunbookSecret> =
+        await RunbookSecretsUtil.loadForGlobalRunnerJob({
+          projectId: job.projectId,
+        });
+
+      /*
+       * A secret the step names that global Runners may not use fails the
+       * step, saying which and how to fix it - rather than running it with
+       * the placeholder where the value should be.
+       */
+      const notAvailable: Array<string> = getSecretNamesNotIn({
+        script: scriptToSend,
+        available: secrets
+          .filter((secret: RunbookSecret): boolean => {
+            // A secret with no value would leave its placeholder unfilled.
+            return Boolean(secret.name && secret.secretValue);
+          })
+          .map((secret: RunbookSecret): string => {
+            return secret.name as string;
+          }),
+      });
+
+      if (notAvailable.length > 0) {
+        await RunnerJobService.submitResult({
+          jobId: job.id!,
+          agentId: agent.id,
+          success: false,
+          errorMessage:
+            RunnerIngressAPI.describeSecretsNotForGlobalRunners(notAvailable),
+        });
+
+        return { job: null };
+      }
+
+      scriptToSend = RunbookSecretsUtil.populateInScript({
+        script: scriptToSend,
+        secrets,
+      });
+    }
+
+    const runInputs: RunInputsForJob | null =
+      await RunnerIngressAPI.getRunInputsForJob({
+        job,
+        projectId: job.projectId,
+        isAgentRunnerRow: false,
+      });
+
+    return {
+      job: {
+        jobId: job.id?.toString(),
+        ...(job.runbookExecutionId
+          ? { runbookExecutionId: job.runbookExecutionId.toString() }
+          : {}),
+        origin: job.origin || RunnerJobOrigin.Runbook,
+        stepId: job.stepId,
+        stepType: job.stepType,
+        script: scriptToSend,
+        timeoutInMs: job.timeoutInMs,
+        leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
+        runsOnGlobalRunner: true,
+        ...(runInputs
+          ? { inputs: runInputs.inputs, trigger: runInputs.trigger }
+          : {}),
+      },
+    };
   }
 
   /*

@@ -54,6 +54,15 @@ const STEP_FORM: string = fs.readFileSync(
   "utf8",
 );
 
+const WHITESPACE: RegExp = /\s+/g;
+
+/*
+ * The form as code, without its whitespace: a prop reads the same however
+ * deep its field sits and however the formatter breaks its line (Retry
+ * Count on Error sits in the code card's More fields line).
+ */
+const STEP_FORM_CODE: string = STEP_FORM.replace(WHITESPACE, "");
+
 function readLocale(locale: string): Record<string, unknown> {
   return JSON.parse(
     fs.readFileSync(path.join(LOCALES_DIR, `${locale}.json`), "utf8"),
@@ -110,7 +119,7 @@ describe("the form", () => {
     expect(STEP_FORM).toContain(
       "description={SyntheticMonitorCopy.screenTypeDescription}",
     );
-    expect(STEP_FORM).toContain(
+    expect(STEP_FORM_CODE).toContain(
       "description={SyntheticMonitorCopy.retryCountOnErrorDescription}",
     );
     expect(STEP_FORM).toContain(

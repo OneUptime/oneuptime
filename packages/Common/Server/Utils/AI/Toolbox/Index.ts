@@ -51,6 +51,7 @@ import {
   SecurityEventSummaryTool,
 } from "./SecurityEventTools";
 import { RecentChangesTool } from "./RecentChangesTools";
+import { GetChangeDetailsTool } from "./ChangeTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
@@ -151,6 +152,7 @@ export default class AIToolbox {
     QueryTracesTool,
     GetTraceTool,
     RecentChangesTool,
+    GetChangeDetailsTool,
     /*
      * Source code (read-only). Closes the loop from a telemetry signal to the
      * code that produced it — see CodeTools for the narrower trust posture.

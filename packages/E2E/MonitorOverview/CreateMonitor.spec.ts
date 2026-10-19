@@ -1310,6 +1310,80 @@ test.describe("Create Monitor's plainer fields", () => {
 
     await screenshot(page, "create-monitor-retries-tooltip");
   });
+
+  /*
+   * "Can we make this more subtle, this needs to be done across the
+   * project for more fields. Takes up too much real estate right now." -
+   * the maintainer, on the More fields card. The monitor form draws its own
+   * More fields (a fold titled More fields, not a field of a form's list),
+   * and it is the same quiet line as every form's.
+   */
+  test("the request settings' More fields is the same quiet line as every form's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    const form: Locator = await openCreate(page, "?monitorType=Website");
+
+    await nameInput(form).fill("Storefront");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+
+    const moreFields: Locator = page.getByTestId("monitor-step-more-fields");
+    await expect(moreFields).toBeVisible({ timeout: 60000 });
+    await expect(moreFields).toHaveAttribute("data-variant", "line");
+
+    /*
+     * In the Monitor Target card, under the URL: no card of its own any
+     * more, so drawn after the card it would open its fields loose between
+     * two cards.
+     */
+    // The card nearest the title: the page's own card holds this one too.
+    const target: Locator = page
+      .getByText("Monitor Target", { exact: true })
+      .locator("xpath=ancestor::*[@data-testid='card'][1]");
+    await expect(target).toHaveCount(1);
+    await expect(target.getByTestId("monitor-step-more-fields")).toHaveCount(1);
+
+    const url: { y: number } | null = await target
+      .getByPlaceholder("https://example.com")
+      .boundingBox();
+    const line: { y: number } | null = await moreFields.boundingBox();
+    expect(line!.y).toBeGreaterThan(url!.y);
+
+    const header: Locator = moreFields.getByTestId("folded-section-header");
+    await expect(header).toHaveAttribute("aria-expanded", "false");
+    await expect(header).toHaveAccessibleName("More fields");
+    // What it holds, after its title.
+    await expect(header).toContainText(/^More fields\s*·\s*\S/);
+
+    // A line or two of text, never the card it was; no frame, no tile.
+    const folded: { height: number } | null = await moreFields.boundingBox();
+    expect(folded!.height).toBeLessThanOrEqual(56);
+
+    const frame: () => Promise<string> = async (): Promise<string> => {
+      return await moreFields.evaluate((element: Element) => {
+        return getComputedStyle(element).borderTopWidth;
+      });
+    };
+
+    expect(await frame()).toBe("0px");
+    await expect(moreFields.getByTestId("folded-section-icon")).toHaveCount(0);
+
+    await header.click();
+    await expect(header).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      moreFields.getByText(
+        "How many times to try again before the check fails. Up to 3.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    // Open, still no box: its fields follow the line.
+    expect(await frame()).toBe("0px");
+
+    await screenshot(page, "create-monitor-more-fields-line");
+  });
 });
 
 /*

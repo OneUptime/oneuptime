@@ -15,7 +15,9 @@ bundles quietly fell back to the Community UI or whose ee/ no longer loads.
 
 Image metadata (docker image inspect):
   - labels com.oneuptime.edition and org.opencontainers.image.licenses
-  - USER node, CMD npm start, TS_NODE_TRANSPILE_ONLY=1
+  - USER node, TS_NODE_TRANSPILE_ONLY=1, and a CMD that runs npm start's
+    command through sh, which execs node: npm would stay behind as a second
+    Node.js process, and OBI's Node.js agent can land in it instead of the app
   - IS_ENTERPRISE_EDITION=true|false (informational)
   - ONEUPTIME_EDITION=enterprise on the Enterprise image (the loader's marker
     that ee/ must load) and unset on the Community image
@@ -116,6 +118,7 @@ import sys
 edition = sys.argv[1]
 config = json.loads(sys.argv[2])
 labels = config.get("Labels") or {}
+cmd = config.get("Cmd") or []
 env = {}
 for entry in config.get("Env") or []:
     key, _, value = entry.partition("=")
@@ -132,7 +135,9 @@ checks = [
     ("label org.opencontainers.image.licenses is " + expected_licenses,
      labels.get("org.opencontainers.image.licenses") == expected_licenses),
     ("runs as the node user", config.get("User") == "node"),
-    ("CMD is npm start", config.get("Cmd") == ["npm", "start"]),
+    ("CMD execs node itself, without npm",
+     len(cmd) == 3 and cmd[:2] == ["sh", "-c"]
+     and "exec node " in cmd[2] and "npm" not in cmd[2]),
     ("boots transpile-only (TS_NODE_TRANSPILE_ONLY=1)",
      env.get("TS_NODE_TRANSPILE_ONLY") == "1"),
     ("IS_ENTERPRISE_EDITION is " + ("true" if edition == "enterprise" else "false"),

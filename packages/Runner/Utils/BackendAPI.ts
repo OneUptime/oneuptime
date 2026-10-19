@@ -9,6 +9,7 @@ import {
   ImplicatedSpan,
   PerformanceFinding,
 } from "Common/Types/AI/CodeFixTaskContext";
+import { CodeTaskAgentDetails } from "Common/Types/AI/CodeTask";
 import {
   LLMMessage,
   LLMToolCall,
@@ -750,6 +751,56 @@ export default class BackendAPI {
       files: data.files || [],
       filesTruncated: Boolean(data.filesTruncated),
       comments: data.comments || [],
+    };
+  }
+
+  /*
+   * Everything a request from Code needs for one turn: the repository, the
+   * branch to work on, what is asked now and the conversation before it.
+   * As for GitHub runs, only the run is named; the server derives the rest.
+   */
+  public async getCodeTaskDetails(
+    taskId: string,
+  ): Promise<CodeTaskAgentDetails> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/get-code-task-details",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...RunnerAPIRequest.getDefaultRequestBody(),
+        taskId: taskId,
+      },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
+    });
+
+    if (!response.isSuccess()) {
+      const errorMessage: string =
+        (response.data as JSONObject)?.["message"]?.toString() ||
+        "Failed to get the request's details";
+      throw new Error(errorMessage);
+    }
+
+    const data: CodeTaskAgentDetails =
+      response.data as unknown as CodeTaskAgentDetails;
+
+    if (!data.repository || !data.request) {
+      throw new Error(
+        "The server sent no repository or request for this task.",
+      );
+    }
+
+    return {
+      ...data,
+      workingBranch: data.workingBranch || null,
+      pullRequest: data.pullRequest || null,
+      conversation: data.conversation || [],
+      omittedTurns: data.omittedTurns || 0,
+      request: {
+        message: data.request.message || "",
+        context: data.request.context || [],
+      },
     };
   }
 

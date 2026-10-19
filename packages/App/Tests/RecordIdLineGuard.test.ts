@@ -635,8 +635,6 @@ describe("when the record was created and last updated, on details cards", () =>
         "packages/App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Index.tsx createdAt Created At",
         "packages/App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/Index.tsx createdAt Created At",
         "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/AnnouncementView.tsx updatedAt Updated",
-        // A Detail drawn by hand, with no ID: its line is just Created.
-        "packages/App/FeatureSet/Dashboard/src/Pages/AIAgentTasks/View/Index.tsx createdAt Created At",
       ]),
     );
     // The Community Edition checkout has no ee/, and must still pass.

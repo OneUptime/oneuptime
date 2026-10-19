@@ -24,6 +24,9 @@ import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 import PositiveNumber from "../../Types/PositiveNumber";
 import GitHubRunReply from "../Utils/CodeRepository/GitHub/GitHubRunReply";
+import CodeTaskOutcomeReader, {
+  CodeTaskOutcomeRead,
+} from "../Utils/AI/CodeTask/CodeTaskOutcomeReader";
 
 /*
  * The agent worker's task protocol. The route names and request shapes are
@@ -53,18 +56,16 @@ export default class AIAgentTaskAPI {
       `${API_BASE_PATH}/get-pending-task`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const data: JSONObject = req.body;
-
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
-          if (!aiAgent || !aiAgent.id) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+          if (!aiAgent) {
+            return;
           }
 
           /*
@@ -77,6 +78,13 @@ export default class AIAgentTaskAPI {
             await AIRunService.claimNextQueuedCodeFixRun({
               aiAgentId: aiAgent.id,
               projectId: aiAgent.projectId,
+              /*
+               * The recipes this Runner has handlers for. A Runner built
+               * before it said is handed only the recipes every Runner has.
+               */
+              supportedTaskTypes: CodeFixTaskTypeHelper.readSupportedTaskTypes(
+                (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
+              ),
             });
 
           if (!run) {
@@ -123,18 +131,16 @@ export default class AIAgentTaskAPI {
       `${API_BASE_PATH}/get-pending-task-count`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const data: JSONObject = req.body;
-
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           /* Count queued code-fix runs */
@@ -178,16 +184,16 @@ export default class AIAgentTaskAPI {
         try {
           const data: JSONObject = req.body;
 
-          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          /*
+           * Validate agent credentials (AIAgent fleet or a Runner). A request
+           * that proves none is answered there: 400, or 429 for a client
+           * that sent too many different wrong keys for that agent.
+           */
           const aiAgent: CodeFixAgentIdentity | null =
-            await CodeFixAgentAuth.resolveAgentIdentity(data);
+            await CodeFixAgentAuth.authenticate(req, res);
 
           if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
+            return;
           }
 
           /* Validate required fields */
@@ -238,6 +244,19 @@ export default class AIAgentTaskAPI {
             status === AIAgentTaskStatus.Completed
               ? data["unrecordedPullRequests"]
               : undefined;
+
+          /*
+           * What a code task's turn ended with: the AI's reply, the files it
+           * changed and their diff, and whether it asked the person a
+           * question (see Types/AI/CodeTask). Read, checked and capped by
+           * CodeTaskOutcomeReader; Runners that predate it send none, and
+           * the turn is kept as before.
+           */
+          const outcomeRead: CodeTaskOutcomeRead | null =
+            status === AIAgentTaskStatus.Completed ||
+            status === AIAgentTaskStatus.NoFixFound
+              ? CodeTaskOutcomeReader.read(data["outcome"])
+              : null;
 
           /* Validate status value */
           const validStatuses: Array<AIAgentTaskStatus> = [
@@ -385,6 +404,18 @@ export default class AIAgentTaskAPI {
                     ? { errorMessage: statusMessage }
                     : {}),
                   ...(taskContext ? { taskContext: taskContext } : {}),
+                  ...(outcomeRead
+                    ? {
+                        taskOutcome: outcomeRead.outcome,
+                        // Only a turn that finished can wait for an answer.
+                        needsUserInput:
+                          outcomeRead.needsInput &&
+                          toStatus === AIRunStatus.Completed,
+                        ...(outcomeRead.changes
+                          ? { codeChanges: outcomeRead.changes }
+                          : {}),
+                      }
+                    : {}),
                 },
               });
 

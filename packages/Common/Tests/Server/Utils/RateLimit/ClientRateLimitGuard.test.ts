@@ -119,10 +119,13 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
 /*
  * The limits that count a client in Redis, each through
  * ClientRateLimitCounter.count - or countDifferent, which counts the
- * different values a client presents (the wrong cluster keys it sent) under
- * its address and /64 alike. Each one's behaviour under a host that rotates
- * through its /64 is driven in RateLimitsCountIpv6Networks.test.ts (and
- * LicenseServerRateLimit.test.ts in ee/).
+ * different values a client presents under its address and /64 alike: the
+ * wrong keys it sent, counted by WrongKeyLimit, on which the cluster key's
+ * limit (WrongClusterKeyLimit) and the probe, Runner and AI agent keys'
+ * (WrongComponentKeyLimit) are built, and which leaves a key from a private
+ * network address uncounted for all of them. Each one's behaviour under a host that
+ * rotates through its /64 is driven in RateLimitsCountIpv6Networks.test.ts
+ * (and LicenseServerRateLimit.test.ts in ee/).
  */
 const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/IdentityRateLimit.ts",
@@ -133,7 +136,7 @@ const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/McpOAuthRateLimit.ts",
   "packages/Common/Server/Utils/Runbook/RunbookWebhookRateLimit.ts",
   "packages/Common/Server/Utils/RateLimit/PublicMessageRateLimit.ts",
-  "packages/Common/Server/Utils/RateLimit/WrongClusterKeyLimit.ts",
+  "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts",
   "ee/Server/LicenseServer/LicenseServerRateLimit.ts",
 ];
 

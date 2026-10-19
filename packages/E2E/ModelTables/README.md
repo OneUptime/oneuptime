@@ -14,6 +14,10 @@ The pages:
   screenshot ("Incident Number" over two lines, "No labels attached." and
   "No owners." on every row, a long Duration, the Actions column out of
   sight);
+- `/dashboard/<project>/alerts` - the Alerts list of the maintainer's
+  screenshot of it: alerts raised on monitors of the oneuptime-test cluster,
+  each linked to the cluster too, then one created by hand about a database
+  and one linked to nothing;
 - `/dashboard/<project>/monitors` - Monitors (status dots, labels, owners);
 - `/dashboard/<project>/status-pages` - Status Pages (a long name beside a
   column of prose);
@@ -28,6 +32,16 @@ The pages:
 The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
 
 - the header row is one quiet line ("Incident Number" no longer breaks);
+- the Alerts list names each row's monitor once: no Monitor column, and
+  Affected Resources lists the monitor first, then the cluster, each beside
+  its icon and opening its page; the Monitor chip still narrows the list to
+  a monitor's alerts (by `monitorId`); a phone's card has no Monitor line;
+  the names read at WCAG AA in the dark theme;
+- a phone's card names each resource in full, a long name running onto a
+  second line beside its icon (one with nowhere to break, `?data=long`,
+  breaks anyway); a row on a laptop keeps it to one line, ending in "...",
+  the whole name under the pointer; a chip with a long monitor picked stays
+  inside the bar on a phone, its words ending in "...";
 - every row is 48px and its hairline, whatever it holds - text, pills,
   labels, avatars, a dash, the row's buttons, a drag grip - each part on the
   row's 24px line;

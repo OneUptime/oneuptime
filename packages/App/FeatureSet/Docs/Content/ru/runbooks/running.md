@@ -133,11 +133,11 @@ stateDiagram-v2
 :::
 
 :::details Шаг завершился сбоем, потому что у него нет Runner-а или учётных данных
-Сообщение, например, такое: «Bash step is missing a Runner. Pick one under Runbooks → Runners.» Шаг был сохранён без **Runner**, или шаг SSH либо Kubernetes — без **Credential**. Откройте **Шаги** runbook-а, выберите недостающее, нажмите **Save Steps** и запустите runbook снова.
+Сообщение, например, такое: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» Шаг был сохранён без **Runner**, или шаг SSH либо Kubernetes — без **Credential**. Шагу JavaScript собственный Runner нужен, только когда ни один [глобальный Runner](/docs/runbooks/agents#глобальные-runner-ы) не может его выполнить. Откройте **Шаги** runbook-а, выберите недостающее, нажмите **Save Steps** и запустите runbook снова.
 :::
 
 :::details Шаг завершился сбоем, потому что его не забрал ни один агент runbook-ов
-Сообщение: «No runbook agent picked up this step before the wait window expired.» Runner шага не забрал задание в пределах своего claim timeout. Проверьте в **Сборники инструкций → Агенты runbook-ов**, что Runner в состоянии **Подключено** и что **Выполняет сценарии** включено. См. [Агенты runbook-ов](/docs/runbooks/agents#устранение-неполадок).
+Сообщение: «No runbook agent picked up this step before the wait window expired.» Runner шага не забрал задание в пределах своего claim timeout. Проверьте в **Сборники инструкций → Агенты runbook-ов**, что Runner в состоянии **Подключено** и что **Выполняет сценарии** включено. См. [Агенты runbook-ов](/docs/runbooks/agents#устранение-неполадок). Шаг на глобальном Runner-е вместо этого сообщает «No global Runner picked up this step before the wait window expired.»: запустите runbook снова, увеличьте claim timeout шага или выберите один из собственных Runner-ов.
 :::
 
 :::details Выполнение ждёт уже несколько часов

@@ -252,7 +252,9 @@ const App: () => JSX.Element = () => {
 
   /*
    * The channels whose Subscribe page has a Manage Existing Subscription tab,
-   * for the unsubscribe page's way to a new link.
+   * for the unsubscribe page's way to a new link - and, of them, email and
+   * SMS for the Confirm Subscription page's, when a link to confirm has
+   * expired.
    */
   const manageLinkChannels: ManageLinkChannels = {
     enableEmailSubscribers: enableEmailSubscribers,
@@ -723,6 +725,7 @@ const App: () => JSX.Element = () => {
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
+                signUpChannels={manageLinkChannels}
               />
             }
           />
@@ -1223,6 +1226,7 @@ const App: () => JSX.Element = () => {
                 pageRoute={
                   RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route
                 }
+                signUpChannels={manageLinkChannels}
               />
             }
           />

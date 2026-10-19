@@ -89,7 +89,7 @@ Haga clic en un span en cualquier vista para abrir su panel, con pestañas para 
 Una traza grande carga 500 spans cada vez. Haga clic en el botón al final de la traza para cargar más, o todos.
 
 > [!TIP]
-> **Corregir el rendimiento con IA** busca en la traza un patrón de rendimiento conocido: una consulta N+1, un span que ocupa casi todo el tiempo, o llamadas hechas una tras otra que podrían ir en paralelo. Si encuentra uno, inicia una tarea de IA que abre un pull request para corregirlo. Consulte [Tareas de corrección](/docs/ai/ai-agent).
+> **Corregir el rendimiento con IA** busca en la traza un patrón de rendimiento conocido: una consulta N+1, un span que ocupa casi todo el tiempo, o llamadas hechas una tras otra que podrían ir en paralelo. Si encuentra uno, inicia una tarea de IA que abre un pull request para corregirlo. Consulte [Código](/docs/ai/ai-agent).
 
 ## Representar sus spans en gráficos
 

@@ -12,6 +12,7 @@ import {
   isObiNodeInspectorSpan,
 } from "../Utils/ObiNodeInspectorSpan";
 import OneUptimeDate from "Common/Types/Date";
+import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -74,6 +75,7 @@ import TracePipelineService, {
 import LlmModelPriceService from "./LlmModelPriceService";
 import { LlmModelPrice } from "Common/Types/Telemetry/LlmCostCatalog";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
   TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
@@ -85,7 +87,7 @@ import TelemetryFanInWriter, {
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 };
 
 type ParsedUnixNano = {
@@ -1335,10 +1337,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           (spanContext.resourceAttributes[
             "resource.service.version"
           ] as string) || "";
-        const environment: string =
-          (spanContext.resourceAttributes[
-            "resource.deployment.environment"
-          ] as string) || "";
+        const environment: string = readDeploymentEnvironment(
+          spanContext.resourceAttributes,
+          { prefix: "resource." },
+        );
 
         // Parse stack trace into structured frames
         let parsedFramesJson: string = "[]";

@@ -338,12 +338,16 @@ const expected = Object.assign(
     routes: null,
     logCorrelation: false,
     populateTraceContext: false,
-    contextPropagation: "disabled",
-    trackRequestHeaders: false,
+    // On by default (ebpf.contextPropagation), in headers mode, reading the
+    // traceparent it receives as well.
+    contextPropagation: "headers",
+    trackRequestHeaders: true,
     tracePrinter: "disabled",
     nodejs: true,
     excludeOtelInstrumentedServices: true,
     traceAttributes: DEFAULT_SPAN_ATTRIBUTES.concat(["service.peer.name"]),
+    // No database capture buffers (ebpf.bufferSizes) unless asked for.
+    bufferSizes: { postgres: 0, mysql: 0, mssql: 0 },
   },
   JSON.parse(overrides),
 );
@@ -523,6 +527,16 @@ const propagation = get(effective, "ebpf.context_propagation");
 check(`ebpf.context_propagation = ${expected.contextPropagation}`, propagation === expected.contextPropagation, propagation);
 const trackHeaders = get(effective, "ebpf.track_request_headers");
 check(`ebpf.track_request_headers = ${expected.trackRequestHeaders}`, trackHeaders === expected.trackRequestHeaders, trackHeaders);
+// Each buffer comes from its own env var; one OBI did not read would leave
+// the statements of that database cut at about 250 characters, silently.
+for (const protocol of ["postgres", "mysql", "mssql"]) {
+  const bytes = get(effective, `ebpf.buffer_sizes.${protocol}`);
+  check(
+    `ebpf.buffer_sizes.${protocol} = ${expected.bufferSizes[protocol]}`,
+    Number(bytes || 0) === expected.bufferSizes[protocol],
+    bytes,
+  );
+}
 check(`trace_printer = ${expected.tracePrinter}`, effective.trace_printer === expected.tracePrinter, effective.trace_printer);
 const kube = get(effective, "attributes.kubernetes") || {};
 check(
@@ -581,6 +595,7 @@ ebpf:
   nodejs:
     enabled: false
   excludeOtelInstrumentedServices: false
+  contextPropagation: false
 EOF
 
 variant defaults '{}'
@@ -602,7 +617,7 @@ variant all-on \
 # `application` (HTTP/gRPC RED metrics and body sizes). There is no OBI token
 # for "none".
 variant all-off \
-  '{"features":["application"],"nodejs":false,"excludeOtelInstrumentedServices":false}' \
+  '{"features":["application"],"nodejs":false,"excludeOtelInstrumentedServices":false,"contextPropagation":"disabled","trackRequestHeaders":false}' \
   -f "${WORK_DIR}/all-off.yaml"
 # The profiler correlates samples with spans through OBI's traces_ctx_v1 pin,
 # which v0.14 only fills when asked to (or for its own log enricher).
@@ -610,6 +625,10 @@ variant profiling '{"populateTraceContext":true}' --set profiling.enabled=true
 variant span-metrics-off \
   '{"features":["application","application_service_graph","network","stats_tcp_rtt","stats_tcp_failed_connections","stats_tcp_retransmits"]}' \
   --set ebpf.features.spanMetrics=false
+# Whole SQL statements: buffers for PostgreSQL and MySQL, none for SQL Server.
+variant sql-buffers \
+  '{"bufferSizes":{"postgres":4096,"mysql":2048,"mssql":0}}' \
+  --set ebpf.bufferSizes.postgres=4096 --set ebpf.bufferSizes.mysql=2048
 # v0.13.0, what a --reuse-values upgrade from chart 14.0.12 keeps (README,
 # "Troubleshooting"), also deprecates application_span, and has to take the
 # same render, minus the v0.14-only span-attribute selection. Loaded in

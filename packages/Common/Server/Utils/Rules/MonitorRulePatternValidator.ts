@@ -44,6 +44,15 @@ export default class MonitorRulePatternValidator {
       return;
     }
 
+    const cannotRun: string | null = RulePatternMatchUtil.getCannotRunMessage(
+      title,
+      pattern,
+    );
+
+    if (cannotRun) {
+      throw new BadDataException(cannotRun);
+    }
+
     throw new BadDataException(
       `${title} "${pattern}" is not a valid regular expression, and contains no '*' wildcard to fall back on, so it would never match a monitor. Use a regex such as api-.* or a wildcard such as *api*.`,
     );

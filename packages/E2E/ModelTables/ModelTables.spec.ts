@@ -5,8 +5,10 @@ import path from "path";
 /*
  * Tables (ModelTable -> BaseModelTable -> Table) in real Chromium, against
  * the offline fixture (ModelTables/Fixture): the real Incidents list of the
- * maintainer's screenshot, Monitors, Status Pages, Teams, a list put in order
- * by dragging (Device Roles) and a gallery of every kind of column.
+ * maintainer's screenshot, the Alerts list of another (each row's monitor
+ * named once, in Affected Resources), Monitors, Status Pages, Teams, a list
+ * put in order by dragging (Device Roles) and a gallery of every kind of
+ * column.
  *
  * The maintainer's ask: "How can we improve the UI of the model table so we
  * make it easier for people to understand and use, and make it cleaner and
@@ -29,6 +31,7 @@ import path from "path";
 
 const PROJECT: string = "10000000-0000-4000-8000-000000000001";
 const INCIDENTS: string = `/dashboard/${PROJECT}/incidents`;
+const ALERTS: string = `/dashboard/${PROJECT}/alerts`;
 const MONITORS: string = `/dashboard/${PROJECT}/monitors`;
 const STATUS_PAGES: string = `/dashboard/${PROJECT}/status-pages`;
 const TEAMS: string = `/dashboard/${PROJECT}/settings/teams`;
@@ -51,7 +54,11 @@ interface Box {
 }
 
 interface FixtureRecord {
-  listRequests: Array<{ tableName: string; limit: number }>;
+  listRequests: Array<{
+    tableName: string;
+    limit: number;
+    query: Record<string, unknown>;
+  }>;
   updates: Array<{ tableName: string; id: string; data: unknown }>;
   navigations: Array<string>;
   unmodelled: Array<string>;
@@ -430,6 +437,499 @@ test.describe("the Incidents list of the screenshot", () => {
     expect(style.borderTopWidth).toBe("0px");
     expect(style.boxShadow).toBe("none");
     expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+});
+
+/*
+ * The maintainer, on the alerts list: "why do we have a monitors column when
+ * we have monitors in the affected resources anyway? You can remove them in
+ * the UI". The screenshot: a Monitor column naming "oneuptime-test - High
+ * Node Memory Utili..." beside Affected Resources naming the same monitor
+ * again, then the cluster, on every row. The Monitor column is gone.
+ */
+test.describe("the Alerts list of the screenshot", () => {
+  const ALERT_COLUMNS: Array<string> = [
+    "Alert Number",
+    "Title",
+    "State",
+    "Severity",
+    "Affected Resources",
+    "Created",
+    "Duration",
+    "Labels",
+    "Owners",
+  ];
+
+  // The fixture's alerts, newest first, and the monitors they were raised on.
+  const FIRST_MONITOR: string = "oneuptime-test - High Node Memory Utilization";
+  const PENDING_MONITOR: string = "oneuptime-test - Pod Stuck in Pending";
+  const ROW_MONITORS: Array<string> = [
+    FIRST_MONITOR,
+    "oneuptime-test - Pod CPU Saturating Containers",
+    PENDING_MONITOR,
+    "oneuptime-test - HPA Saturated at Max Replicas",
+  ];
+  const CLUSTER: string = "oneuptime-test";
+  const PENDING_MONITOR_ID: string = "60000000-0000-4000-8000-000000000013";
+  const FIRST_MONITOR_ID: string = "60000000-0000-4000-8000-000000000011";
+
+  function rows(page: Page): Locator {
+    return bodyRows(page, "alerts-table");
+  }
+
+  /*
+   * The columns' names in the header row: not the select box's or the
+   * Actions column's, which a screen reader alone hears.
+   */
+  async function columnTitles(page: Page): Promise<Array<string>> {
+    return (await header(page).allInnerTexts())
+      .map((title: string): string => {
+        return title.trim();
+      })
+      .filter((title: string): boolean => {
+        return (
+          title.length > 0 && !["Select all items", "Actions"].includes(title)
+        );
+      });
+  }
+
+  // A row's cell under the column of that name.
+  async function cell(
+    page: Page,
+    row: Locator,
+    title: string,
+  ): Promise<Locator> {
+    const titles: Array<string> = (await header(page).allInnerTexts()).map(
+      (text: string): string => {
+        return text.trim();
+      },
+    );
+    const index: number = titles.indexOf(title);
+
+    expect(index).toBeGreaterThan(-1);
+
+    return row.locator("> td").nth(index);
+  }
+
+  test("each row names its monitor once: no Monitor column, and Affected Resources lists the monitor first, then the cluster", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    expect(await columnTitles(page)).toEqual(ALERT_COLUMNS);
+    await expect(
+      page.getByRole("columnheader", { name: "Monitor", exact: true }),
+    ).toHaveCount(0);
+
+    await expect(rows(page)).toHaveCount(6);
+
+    for (const [index, monitorName] of ROW_MONITORS.entries()) {
+      const row: Locator = rows(page).nth(index);
+      const resources: Locator = (
+        await cell(page, row, "Affected Resources")
+      ).getByRole("link");
+
+      await expect(resources).toHaveText([monitorName, CLUSTER]);
+      // Once in the row, not twice side by side.
+      await expect(row.getByText(monitorName, { exact: true })).toHaveCount(1);
+    }
+
+    // Each name beside its own type's icon: the monitor's, the cluster's.
+    const firstRowLinks: Locator = (
+      await cell(page, rows(page).first(), "Affected Resources")
+    ).getByRole("link");
+
+    for (const link of await firstRowLinks.all()) {
+      await expect(link.locator("svg")).toHaveCount(1);
+    }
+
+    await screenshot(page, "alerts-1280");
+  });
+
+  test("a monitor named in Affected Resources opens the monitor", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    await (await cell(page, rows(page).first(), "Affected Resources"))
+      .getByRole("link", { name: FIRST_MONITOR })
+      .click();
+
+    await expect
+      .poll((): string => {
+        return pathOf(page);
+      })
+      .toBe(`/dashboard/${PROJECT}/monitors/${FIRST_MONITOR_ID}`);
+    await expect(page.getByTestId("fixture-trail")).toHaveText("Monitor");
+  });
+
+  test("an alert with no monitor names what it is about; one linked to nothing shows the quiet dash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    // Created by hand, about a database.
+    await expect(
+      (await cell(page, rows(page).nth(4), "Affected Resources")).getByRole(
+        "link",
+      ),
+    ).toHaveText(["ClickHouse default/oneuptime-clickhouse"]);
+
+    const nothing: Locator = await cell(
+      page,
+      rows(page).nth(5),
+      "Affected Resources",
+    );
+
+    await expect(nothing.getByRole("link")).toHaveCount(0);
+    await expect(nothing.getByTestId("table-empty-value")).toHaveCount(1);
+    await expect(nothing.locator(".sr-only")).toHaveText("No resources.");
+  });
+
+  /*
+   * The column goes, the filter stays: picking a monitor is the Monitor
+   * chip's job, and it asks for that monitor's alerts by monitorId.
+   */
+  test("the Monitor chip still narrows the list to a monitor's alerts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+
+    await bar.getByRole("button", { name: "Monitor", exact: true }).click();
+    await page.getByRole("option", { name: PENDING_MONITOR }).click();
+    // A click anywhere else puts the chip's list away.
+    await page.getByTestId("fixture-trail").click();
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+
+    await expect(rows(page)).toHaveCount(1);
+    await expect(
+      (await cell(page, rows(page).first(), "Affected Resources")).getByRole(
+        "link",
+      ),
+    ).toHaveText([PENDING_MONITOR, CLUSTER]);
+
+    const alertReads: Array<{ query: Record<string, unknown> }> = (
+      await fixture(page)
+    ).listRequests.filter((request: { tableName: string }): boolean => {
+      return request.tableName === "Alert";
+    });
+    const lastRead: { query: Record<string, unknown> } = alertReads[
+      alertReads.length - 1
+    ] as { query: Record<string, unknown> };
+
+    expect(JSON.stringify(lastRead.query["monitorId"])).toContain(
+      PENDING_MONITOR_ID,
+    );
+    expect(
+      (lastRead.query["monitorId"] as { _type?: string } | undefined)?._type,
+    ).toBe("Includes");
+
+    await screenshot(page, "alerts-filtered-by-monitor-1280");
+  });
+
+  test("on a phone, each card names its monitor once, under Affected Resources, with no Monitor line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const cards: Locator = page.locator("#alerts-table-body > div");
+
+    await expect(cards).toHaveCount(6);
+
+    const firstCard: Locator = cards.first();
+    const fields: Array<string> = (
+      await firstCard.locator("dt").allInnerTexts()
+    ).map((name: string): string => {
+      return name.trim();
+    });
+
+    expect(fields).toContain("Affected Resources");
+    expect(fields).not.toContain("Monitor");
+    await expect(
+      firstCard.getByText(FIRST_MONITOR, { exact: true }),
+    ).toHaveCount(1);
+
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "alerts-390");
+  });
+
+  /*
+   * How a resource's name is laid out where it is drawn: whether its box
+   * holds all of it or ends it in "...", the lines its words take, where
+   * each line starts, and where its icon ends.
+   */
+  interface NameLayout {
+    text: string;
+    isCutShort: boolean;
+    endsInEllipsis: boolean;
+    lineLefts: Array<number>;
+    iconRight: number;
+    itemRight: number;
+  }
+
+  async function nameLayout(link: Locator): Promise<NameLayout> {
+    return await link.evaluate((element: Element): NameLayout => {
+      const item: HTMLElement = element.parentElement as HTMLElement;
+      const icon: Element | null = element.querySelector("svg");
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      const lefts: Map<number, number> = new Map();
+      let text: string = "";
+      let node: Node | null = walker.nextNode();
+
+      while (node) {
+        if ((node.textContent || "").trim()) {
+          text += (node.textContent || "").trim();
+          const range: Range = document.createRange();
+          range.selectNodeContents(node);
+          // One line per distinct top: Chrome may split a line in parts.
+          for (const rect of Array.from(range.getClientRects())) {
+            const top: number = Math.round(rect.top);
+            lefts.set(top, Math.min(lefts.get(top) ?? rect.left, rect.left));
+          }
+        }
+        node = walker.nextNode();
+      }
+
+      return {
+        text: text,
+        isCutShort: item.scrollWidth > item.clientWidth,
+        endsInEllipsis: getComputedStyle(item).textOverflow === "ellipsis",
+        lineLefts: Array.from(lefts.keys())
+          .sort((a: number, b: number): number => {
+            return a - b;
+          })
+          .map((top: number): number => {
+            return Math.round(lefts.get(top) as number);
+          }),
+        iconRight: icon ? Math.round(icon.getBoundingClientRect().right) : 0,
+        itemRight: Math.round(item.getBoundingClientRect().right),
+      };
+    });
+  }
+
+  /*
+   * The Monitor field a card had shown the whole name, wrapping. With the
+   * column gone, the card names its monitor under Affected Resources only,
+   * and that list cut it short - "oneuptime-test - High Node Memory
+   * Utili..." - on a screen with no pointer to show the rest.
+   */
+  test("on a phone, a card names its monitor in full: the name runs onto a second line, which starts beside the icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const firstCard: Locator = page.locator("#alerts-table-body > div").first();
+    const layout: NameLayout = await nameLayout(
+      firstCard.getByRole("link", { name: FIRST_MONITOR }),
+    );
+
+    expect(layout.text).toBe(FIRST_MONITOR);
+    expect(layout.isCutShort).toBe(false);
+    expect(layout.endsInEllipsis).toBe(false);
+    // Too long for one line on a phone: two lines, each beside the icon.
+    expect(layout.lineLefts).toHaveLength(2);
+    expect(
+      Math.abs(layout.lineLefts[0]! - layout.lineLefts[1]!),
+    ).toBeLessThanOrEqual(1);
+    expect(layout.lineLefts[1]!).toBeGreaterThanOrEqual(layout.iconRight);
+
+    // The cluster, short enough, keeps to one line.
+    const cluster: NameLayout = await nameLayout(
+      firstCard.getByRole("link", { name: CLUSTER, exact: true }),
+    );
+
+    expect(cluster.lineLefts).toHaveLength(1);
+    expect(cluster.isCutShort).toBe(false);
+  });
+
+  test("on a phone, a monitor's name with nowhere to break breaks anyway, and nothing passes the screen's edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const LONG_MONITOR: string =
+      "oneuptime-test - KubeNodeMemoryUtilizationHighOnGeneralPurposePoolNodesInEuWest1";
+
+    await open(page, `${ALERTS}?data=long`, 390, 900);
+
+    const layout: NameLayout = await nameLayout(
+      page
+        .locator("#alerts-table-body > div")
+        .first()
+        .getByRole("link", { name: LONG_MONITOR }),
+    );
+
+    expect(layout.text).toBe(LONG_MONITOR);
+    expect(layout.isCutShort).toBe(false);
+    expect(layout.lineLefts.length).toBeGreaterThanOrEqual(3);
+    expect(layout.itemRight).toBeLessThanOrEqual(390);
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "alerts-long-390");
+  });
+
+  test("on a laptop, a monitor's name cut short at its column's end shows in full under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    const link: Locator = (
+      await cell(page, rows(page).first(), "Affected Resources")
+    ).getByRole("link", { name: FIRST_MONITOR });
+    const layout: NameLayout = await nameLayout(link);
+
+    // A row keeps each name to its one line, ending in "...".
+    expect(layout.lineLefts).toHaveLength(1);
+    expect(layout.isCutShort).toBe(true);
+    expect(layout.endsInEllipsis).toBe(true);
+
+    await link.hover();
+
+    await expect(link.locator("xpath=..")).toHaveAttribute(
+      "title",
+      FIRST_MONITOR,
+    );
+  });
+
+  /*
+   * With the column gone, the Monitor chip is how a list of one monitor's
+   * alerts is asked for. A chip said its whole value on one line that could
+   * not shrink: on a phone, "Monitor · oneuptime-test - High Node Memory
+   * Utilization" ran past the card's edge, and the page scrolled sideways.
+   */
+  test("on a phone, the Monitor chip with a monitor picked stays inside the card: its words end in '...', the whole of them under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+
+    await bar.getByRole("button", { name: "Monitor", exact: true }).click();
+    await page.getByRole("option", { name: FIRST_MONITOR }).click();
+    await page.getByTestId("fixture-trail").click();
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await expect(page.locator("#alerts-table-body > div")).toHaveCount(1);
+
+    const chip: Locator = bar
+      .getByTestId("filter-chip")
+      .filter({ hasText: FIRST_MONITOR });
+    const chipBox: Box = await box(chip);
+    const barBox: Box = await box(bar);
+
+    expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(
+      barBox.x + barBox.width + 1,
+    );
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    // Its words: the chip's name and the monitor, cut short at the bar's end.
+    const words: Locator = chip.locator("span.truncate").first();
+    const cut: { text: string; isCutShort: boolean; ellipsis: string } =
+      await words.evaluate((element: Element) => {
+        return {
+          text: (element as HTMLElement).innerText,
+          isCutShort: element.scrollWidth > element.clientWidth,
+          ellipsis: getComputedStyle(element).textOverflow,
+        };
+      });
+
+    expect(cut.text).toBe(`Monitor · ${FIRST_MONITOR}`);
+    expect(cut.isCutShort).toBe(true);
+    expect(cut.ellipsis).toBe("ellipsis");
+
+    // The clear button keeps its place inside the pill.
+    const clearBox: Box = await box(
+      chip.getByRole("button", { name: "Clear Monitor filter" }),
+    );
+
+    expect(clearBox.x + clearBox.width).toBeLessThanOrEqual(
+      chipBox.x + chipBox.width,
+    );
+
+    await words.hover();
+
+    await expect(words).toHaveAttribute("title", `Monitor · ${FIRST_MONITOR}`);
+
+    await screenshot(page, "alerts-filtered-by-monitor-390");
+  });
+
+  test("in the dark theme, the monitor's and the cluster's names read at WCAG AA", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${ALERTS}?theme=dark`);
+
+    const resources: Locator = await cell(
+      page,
+      rows(page).first(),
+      "Affected Resources",
+    );
+
+    for (const link of await resources.getByRole("link").all()) {
+      const colours: { color: string; background: string } =
+        await link.evaluate((element: Element) => {
+          // The first box behind the name that paints a background.
+          let behind: Element | null = element;
+          let background: string = "rgba(0, 0, 0, 0)";
+          while (behind) {
+            background = getComputedStyle(behind).backgroundColor;
+            if (background !== "rgba(0, 0, 0, 0)") {
+              break;
+            }
+            behind = behind.parentElement;
+          }
+          return { color: getComputedStyle(element).color, background };
+        });
+
+      expect(
+        contrast(colours.color, colours.background),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+
+    await screenshot(page, "alerts-1280-dark");
   });
 });
 

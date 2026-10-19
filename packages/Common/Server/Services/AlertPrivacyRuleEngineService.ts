@@ -23,6 +23,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class AlertPrivacyRuleEngineServiceClass
   implements RuleRunEngine<Alert, AlertPrivacyRule>
@@ -398,8 +399,7 @@ class AlertPrivacyRuleEngineServiceClass
     rule: AlertPrivacyRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in alert privacy rule ${rule.id}: ${pattern}`);
       return false;

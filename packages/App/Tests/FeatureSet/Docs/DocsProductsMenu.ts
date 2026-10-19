@@ -68,14 +68,17 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
   Inventory: "navbar.items.inventoryTitle",
   /*
    * The AI pages open Ask AI's own page and the AI Insights inbox from the
-   * menu's AI group, and fix tasks from its Code group. Most languages'
-   * menus read "Insights" or "Chat" in English where a flat label of the
-   * same text is translated.
+   * menu's AI group. Most languages' menus read "Insights" or "Chat" in
+   * English where a flat label of the same text is translated.
    */
   Chat: "navbar.items.aiChatTitle",
   Insights: "navbar.items.sentinelInsightsTitle",
-  Tasks: "navbar.items.aiAgentsTitle",
-  // Fix Tasks opens an exception from the menu's Observability group.
+  /*
+   * Code is the one product of the menu's Code group, and reads as the
+   * group does in every language, so "Products → Code" names both.
+   */
+  Code: "navbar.items.codeTitle",
+  // The Code page opens an exception from the menu's Observability group.
   Exceptions: "navbar.items.exceptionsTitle",
   // The Scheduled Maintenance pages open their product from the Essentials.
   "Scheduled Maintenance": "navbar.items.scheduledMaintenanceTitle",

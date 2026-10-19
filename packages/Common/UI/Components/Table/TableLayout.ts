@@ -353,6 +353,19 @@ function namesUtility(className: string | undefined, prefix: string): boolean {
 export const TABLE_LIST_ITEM_CLASS_NAME: string = `truncate ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
 
 /*
+ * The same item in a field of a phone's card (TableCardContext): the card
+ * gives it the screen's width and no pointer shows a name cut short in
+ * full, so a long name runs onto the next line beside its icon, as in a
+ * detail card. On the alerts list, whose Affected Resources is the one
+ * place a row names its monitor, a phone read "oneuptime-test - High Node
+ * Memory Utili..." and no more. A name with no place to break (a host's
+ * address) breaks anywhere rather than push the card past the screen's
+ * edge.
+ */
+export const TABLE_CARD_LIST_ITEM_CLASS_NAME: string =
+  "[overflow-wrap:anywhere]";
+
+/*
  * On a phone a row is a card: the column names over their values, as a
  * detail card writes its fields (the same quiet name, the same reading
  * value), with the row's controls at its top.

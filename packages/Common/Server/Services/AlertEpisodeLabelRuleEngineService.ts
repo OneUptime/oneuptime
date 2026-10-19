@@ -29,6 +29,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class AlertEpisodeLabelRuleEngineServiceClass
   implements RuleRunEngine<AlertEpisode, AlertEpisodeLabelRule>
@@ -385,8 +386,7 @@ class AlertEpisodeLabelRuleEngineServiceClass
     rule: AlertEpisodeLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in alert episode label rule ${rule.id}: ${pattern}`,

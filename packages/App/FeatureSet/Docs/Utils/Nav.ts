@@ -674,6 +674,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/charts-and-time-ranges",
       },
       {
+        title: "Deploys and Changes",
+        url: "/docs/telemetry/change-events",
+      },
+      {
         title: "Log Pipelines",
         url: "/docs/telemetry/log-pipelines",
       },
@@ -1097,7 +1101,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/ai/infrastructure-ai-agents",
       },
       {
-        title: "Fix Tasks",
+        title: "Code",
         url: "/docs/ai/ai-agent",
       },
       {

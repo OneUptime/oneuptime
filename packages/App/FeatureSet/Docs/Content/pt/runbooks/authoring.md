@@ -12,7 +12,7 @@ Você escreve um runbook como uma lista ordenada de etapas na página **Etapas**
 ## Antes de começar
 
 - **Uma função que escreve runbooks.** Project Owner, Project Admin e Runbook Admin criam runbooks e salvam suas etapas. Com permissões granulares, você precisa de **Create Runbook** e **Edit Runbook**. Consulte [Permissões](/docs/runbooks/configuration#permissões).
-- **Um Runner, para etapas JavaScript, Bash, SSH e Kubernetes.** Essas etapas são executadas em um [Runner](/docs/runbooks/agents) dentro da sua própria infraestrutura, nunca no Worker do OneUptime. Instale um primeiro.
+- **Um Runner, para etapas Bash, SSH e Kubernetes.** Essas etapas são executadas em um [Runner](/docs/runbooks/agents) dentro da sua própria infraestrutura, nunca no Worker do OneUptime. Instale um primeiro. Uma etapa JavaScript roda em um [Runner global](/docs/runbooks/agents#runners-globais), a menos que você escolha um dos seus.
 - **Uma credencial, para etapas SSH e Kubernetes, e permissão para lê-la.** Consulte [Credenciais de runbook](/docs/runbooks/credentials). Uma etapa só pode indicar uma credencial se você puder ler as credenciais de runbook: Project Owner, Project Admin ou **Read Runbook Credential**. Runbook Admin não inclui isso.
 - **Um provedor de LLM, para etapas de IA.** Consulte [Provedores de LLM](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Use-a para o que só uma pessoa pode verificar ou fazer: "Confirmar no painel do
 
 ### JavaScript
 
-Um trecho de JavaScript, executado em um sandbox `isolated-vm` em um [agente de runbook](/docs/runbooks/agents) dentro da sua própria infraestrutura, não no Worker do OneUptime.
+Um trecho de JavaScript, executado em um sandbox `isolated-vm` em um [agente de runbook](/docs/runbooks/agents), não no Worker do OneUptime: em um dos seus, ou em um [Runner global](/docs/runbooks/agents#runners-globais) quando a etapa não escolhe nenhum.
 
 | Campo | O que faz | Padrão |
 | --- | --- | --- |
-| **Runner** | O Runner que executa a etapa. Só esse Runner pode assumir o trabalho. | — |
+| **Runner** | O Runner que executa a etapa: **Runner global**, ou um dos seus. Só o Runner que você escolhe pode assumir o trabalho; qualquer Runner global pode assumir uma etapa em **Runner global**. | **Runner global**, quando houver um |
 | **Script** | O JavaScript a executar. Retorne um valor com `return` para capturá-lo; cada linha de `console.log` também é capturada. Lançar um erro faz a etapa falhar. | — |
-| **Tempo limite de execução** | Por quanto tempo o Runner deixa o trecho rodar antes de destruir o sandbox. | 30 segundos |
+| **Tempo limite de execução** | Por quanto tempo o Runner deixa o trecho rodar antes de destruir o sandbox. Um Runner global o deixa rodar no máximo 5 minutos. | 30 segundos |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
 
 ```javascript

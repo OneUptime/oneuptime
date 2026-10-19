@@ -139,6 +139,7 @@ L'ultimo comando stampa `0`: non è rimasto alcun segnaposto. Il ciclo usa GNU `
 | `REGISTER_PROBE_KEY` | La registrazione delle sonde presso la tua istanza. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Le sonde globali che Docker Compose può eseguire (`probe-1` è attiva per impostazione predefinita). |
 | `ONEUPTIME_RUNNER_KEY` | Il Runner incluso. |
+| `GLOBAL_RUNNER_KEY` | Il Runner globale incluso, che esegue i passaggi JavaScript di tutti i progetti. |
 
 > [!IMPORTANT]
 > Imposta i secret prima del primo avvio e poi non cambiarli. PostgreSQL prende la sua password solo quando crea il database, e cambiare `ENCRYPTION_SECRET` in seguito rende illeggibile ogni valore cifrato con quello vecchio. Se al primo avvio `DATABASE_PASSWORD` è ancora il segnaposto, `npm start` le dà un valore casuale prima che PostgreSQL crei il suo database.

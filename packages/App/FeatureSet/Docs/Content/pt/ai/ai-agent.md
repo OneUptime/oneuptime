@@ -1,10 +1,12 @@
-# Tarefas de correção
+# Código
 
-Uma tarefa de correção é um pull request que a OneUptime AI escreve no seu código. Você inicia uma a partir de uma exceção, um trace, um serviço ou uma investigação, ou o OneUptime inicia uma por conta própria; um [Runner](/docs/runbooks/agents) clona o repositório, escreve a alteração em um novo branch, compila e testa a alteração e abre um pull request. Uma pessoa revisa e faz o merge de cada um: o Runner pode enviar branches e abrir pull requests, nada além disso.
+Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, como pediria a um agente de programação: corrigir um bug, escrever testes, explicar o código, fazer uma alteração. Ele abre nos seus repositórios conectados; a página de um repositório tem as tarefas dele e a caixa onde você pede; a página de uma tarefa é uma conversa em que você pode responder. O OneUptime também inicia tarefas por conta própria, a partir de exceções, traces e investigações. Um [Runner](/docs/runbooks/agents) clona o repositório, escreve a alteração em um novo branch, compila e testa a alteração e abre um pull request. Uma pessoa revisa e faz o merge de cada um: o Runner pode enviar branches e abrir pull requests, nada além disso.
 
 :::cards
+- [Pedir à IA em um repositório](#pedir-à-ia-em-um-repositório): Um pedido com as suas próprias palavras, com o contexto de que ele precisa.
+- [A conversa de uma tarefa](#a-conversa-de-uma-tarefa): O que a IA fez, o que ela alterou e a sua resposta.
 - [Como funciona uma execução de correção](#como-funciona-uma-execução-de-correção): De um clique a um pull request, passo a passo.
-- [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam): Os botões que iniciam uma, e o que cada pull request faz.
+- [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam): As tarefas que o OneUptime inicia, e o que cada pull request faz.
 - [Antes de começar](#antes-de-começar): Um modelo, um repositório conectado e um Runner.
 - [Quando uma correção falha](#quando-uma-correção-falha): O que acontece com uma execução que falha, trava ou fica esperando.
 :::
@@ -12,11 +14,61 @@ Uma tarefa de correção é um pull request que a OneUptime AI escreve no seu c�
 > [!TIP]
 > Você também pode iniciar isso pelo GitHub. Mencione a GitHub App do OneUptime em uma issue ou em um pull request e ela implementa, revisa ou avalia ali mesmo: veja [GitHub App](/docs/ai/github-app). É o mesmo agente, o mesmo Runner e os mesmos orçamentos; só o gatilho muda.
 
+## Pedir à IA em um repositório
+
+:::steps
+### Abra um repositório
+
+Abra **Produtos → Código**. Ali estão os repositórios do projeto, cada um com as tarefas em que a IA está trabalhando, as que aguardam você e os pull requests abertos dele. Se ainda não houver nenhum, ele oferece **Conectar o GitHub** (veja [Antes de começar](#antes-de-começar)).
+
+### Diga o que você quer
+
+Na página do repositório, escreva a alteração, o bug ou a pergunta com as suas próprias palavras. Um repositório que ainda não tem tarefas sugere algumas em **Experimente pedir**.
+
+### Adicione contexto
+
+Clique em **Adicionar contexto** para dar à IA o que ela precisa: um arquivo ou uma pasta do repositório, uma nota, um link ou um registro do projeto. O OneUptime lê cada registro quando você envia o pedido, com as suas permissões, e guarda o que a IA recebeu.
+
+### Inicie a tarefa
+
+Clique em **Iniciar tarefa** ou pressione Enter. A página da tarefa abre, e o trabalho da IA aparece ali à medida que acontece.
+:::
+
+| Contexto | O que a IA recebe |
+| --- | --- |
+| **Arquivo ou pasta** | Um caminho no repositório, que a IA lê primeiro. |
+| **Nota** | Um texto que você cola: um erro, uma especificação, uma linha de log. |
+| **Link** | Um endereço web, como referência. |
+| **Incidente** ou **Alerta** | O estado, a descrição e a causa raiz dele, como estão quando você envia o pedido. |
+| **Exceção** | A mensagem e o stack trace dela. |
+| **Monitor** | O tipo, o status e a descrição dele. |
+| **Traço** | Os spans dele: nomes, tempos e erros. |
+| **Registros** | As 20 linhas de log mais recentes que contêm a sua busca, da última hora, do último dia ou da última semana. |
+
+Um pedido leva no máximo 10 itens de contexto. Tokens, chaves, senhas e endereços de e-mail no que o OneUptime lê são ocultados antes que a IA os veja, como em todo lugar em que a OneUptime AI lê os seus dados.
+
+## A conversa de uma tarefa
+
+A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionado, depois a vez da IA – os passos que ela dá à medida que os dá (os arquivos que leu e editou, o que procurou, os comandos que executou), a resposta dela, os arquivos que alterou com o diff deles, e o pull request. O topo da página diz como a tarefa está:
+
+| Estado | O que significa |
+| --- | --- |
+| **Na fila** | Espera que um Runner a assuma. |
+| **Trabalhando…** | A IA está trabalhando nela. **Parar** a interrompe; o que ela enviou continua no branch. |
+| **Aguardando você** | A IA fez uma pergunta. Responda na caixa abaixo. |
+| **Concluído** | A IA terminou: a resposta dela, e o pull request quando alterou código. |
+| **Falhou** | A vez não pôde terminar, e diz por quê. **Tentar novamente** pede o mesmo outra vez. |
+| **Parado** | Alguém a interrompeu. **Tentar novamente** pede o mesmo outra vez. |
+
+Para continuar, escreva na caixa embaixo: responda à IA, adicione contexto ou peça alterações. Cada resposta é a próxima vez da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz uma vez de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada vez é o registro literal do que ela fez.
+
+Quem pode ler um repositório lê as tarefas dele. Pedir à IA, responder e parar uma tarefa exigem permissão para editar o repositório, assim como ver o diff de uma alteração: os demais veem quais arquivos mudaram. As tarefas que o OneUptime inicia por conta própria (abaixo) também ficam no repositório delas, como conversas em que você pode responder.
+
 ## Como funciona uma execução de correção
 
 ```mermaid title="De um clique a um pull request"
 flowchart TB
-    S["Fix with AI ou um<br/>gatilho automático"] --> Q["Uma tarefa de<br/>correção entra<br/>na fila"]
+    S["Um pedido, um<br/>botão ou um<br/>gatilho"] --> Q["Uma tarefa de<br/>correção entra<br/>na fila"]
     Q --> R["Um Runner que executa<br/>correções de código<br/>por IA a assume"]
     R --> C["Ele clona o repositório<br/>e cria um branch"]
     C --> A["O agente de código<br/>escreve a alteração"]
@@ -26,15 +78,15 @@ flowchart TB
     P --> H["Uma pessoa o revisa<br/>e faz o merge"]
 ```
 
-1. Você clica em **Fix with AI** em uma exceção não resolvida, ou outro botão ou gatilho inicia uma tarefa (veja [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam)).
+1. Você clica em **Iniciar tarefa** em um repositório, ou em **Fix with AI** em uma exceção não resolvida, ou outro botão ou gatilho inicia uma tarefa (veja [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam)).
 2. A tarefa entra na fila, e um Runner disponível com **Executa correções de código por IA** ativado a assume.
-3. O Runner busca o contexto da tarefa. Para uma exceção, são o tipo, a mensagem e o stack trace dela.
-4. Ele clona o repositório em um espaço de trabalho próprio e cria um branch. Uma correção de uma exceção se chama `oneuptime-fix-exception-` seguido dos primeiros caracteres do id da execução.
+3. O Runner busca o contexto da tarefa. Para um pedido, são as palavras dele, o contexto adicionado e a conversa até ali; para uma exceção, o tipo, a mensagem e o stack trace dela.
+4. Ele clona o repositório em um espaço de trabalho próprio e cria um branch. Uma correção de uma exceção se chama `oneuptime-fix-exception-` seguido dos primeiros caracteres do id da execução. Uma resposta trabalha, em vez disso, no branch do pull request aberto da tarefa.
 5. Um agente de código, movido pelo provedor de LLM do seu projeto, lê o código e escreve a alteração. O servidor do OneUptime faz as chamadas ao LLM, então o Runner nunca tem a chave de API do seu provedor, e cada chamada é medida e listada nos logs de IA.
 6. Se o repositório tiver comandos de verificação, um Runner próprio compila e testa a alteração antes de fazer qualquer commit, e devolve uma falha ao agente de código para ser corrigida (veja [Verificação antes do pull request](#verificação-antes-do-pull-request)).
-7. O Runner faz o commit, envia o branch, abre o pull request e apaga o espaço de trabalho.
+7. O Runner faz o commit, envia o branch, abre o pull request (para um pedido, só quando alterou código) e apaga o espaço de trabalho.
 
-A página de onde a tarefa foi iniciada mostra o status dela ao vivo. Toda tarefa aparece em **Produtos → Código → Tarefas**: abra uma para ver a **Visão geral**, os **Registros** (uma linha para cada arquivo que o Runner leu ou escreveu e cada comando que executou) e os **Pull Requests**.
+A página de onde a tarefa foi iniciada mostra o status dela ao vivo. Toda tarefa aparece no repositório dela, em **Produtos → Código**: a página dela é a conversa, e o **Registro** de cada vez tem uma linha para cada arquivo que o Runner leu ou escreveu e cada comando que executou.
 
 Cada execução fica dentro de orçamentos que o servidor impõe: no máximo **40 chamadas ao LLM** e **100.000 tokens de saída**. Uma execução que atinge um deles termina com um resumo do trabalho feito até ali em vez de ficar em loop. As execuções de correção também contam para os limites diários de IA do projeto, quando o projeto os define.
 
@@ -44,11 +96,11 @@ Cada execução fica dentro de orçamentos que o servidor impõe: no máximo **4
 | --- | --- | --- |
 | A página **AI Assistance** de uma exceção | **Fix with AI** | Corrige o bug por trás da exceção. |
 | A página **AI Assistance** de uma exceção | **Generate Regression Test** | Adiciona um teste que reproduz a exceção e falha até o bug ser corrigido. |
-| A página **AI Assistance** de uma exceção | **Improve Error Handling** | Para um erro esperado, como uma entrada inválida: tira os dados do usuário da mensagem, valida a entrada mais cedo e marca o erro como tratado, sem mudar o comportamento. |
+| A página **AI Assistance** de uma exceção | **Melhorar o tratamento de erros** | Para um erro esperado, como uma entrada inválida: tira os dados do usuário da mensagem, valida a entrada mais cedo e marca o erro como tratado, sem mudar o comportamento. |
 | O cartão **AI Investigation** de um incidente ou de um alerta | **Open Fix PR from this analysis** | Corrige a causa raiz que a investigação publicou (veja [Correções de código automáticas a partir de investigações](#correções-de-código-automáticas-a-partir-de-investigações)). |
 | Um trace | **Fix performance with AI** | Corrige o padrão lento encontrado no trace, como consultas N+1 ou um único span lento dominante. |
-| A página **Registros** de um serviço | **Improve Logging** | Torna os logs do serviço estruturados, com a severidade certa e ligados aos traces dele, sem mudar o comportamento. |
-| A página **Traços** de um serviço | **Improve Tracing** | Adiciona spans e atributos onde falta tracing no serviço, sem mudar o comportamento. |
+| A página **Registros** de um serviço | **Melhorar os registros** | Torna os logs do serviço estruturados, com a severidade certa e ligados aos traces dele, sem mudar o comportamento. |
+| A página **Traços** de um serviço | **Melhorar o rastreamento** | Adiciona spans e atributos onde falta tracing no serviço, sem mudar o comportamento. |
 
 Para abrir a página **AI Assistance** de uma exceção, abra a exceção em **Produtos → Observabilidade → Exceções** e escolha **AI Assistance** no menu lateral. Uma exceção resolvida ou arquivada precisa primeiro ser marcada como não resolvida.
 
@@ -56,7 +108,7 @@ A OneUptime AI também inicia tarefas de correção por conta própria: a partir
 
 ## Verificação antes do pull request
 
-Um repositório de código pode ter até três comandos de verificação na página **Configurações** dele, em **Repositórios de código**:
+Um repositório pode ter até três comandos de verificação na página **Configurações** dele em Código:
 
 | Comando | Exemplo | Quando é executado |
 | --- | --- | --- |
@@ -76,12 +128,12 @@ Os comandos são configurações do repositório que a sua equipe escreve, execu
 
 ## Antes de começar
 
-Uma tarefa de correção precisa de três coisas. A página **AI Assistance** da exceção verifica as três antes de oferecer o início, e diz o que falta.
+Uma tarefa precisa de três coisas. A página de um repositório em Código e a página **AI Assistance** da exceção verificam as três antes de oferecer o início, e dizem o que falta.
 
 | O quê | OneUptime Cloud | Auto-hospedado |
 | --- | --- | --- |
 | Um provedor de LLM | Nada a configurar: um projeto sem provedor próprio usa o provedor global, pago com os créditos de IA do projeto. Um provedor seu, em **Configurações do projeto → IA → Provedores LLM**, tem prioridade. | Defina uma vez as variáveis de ambiente `GLOBAL_LLM_PROVIDER_*` no servidor, ou adicione um provedor ao projeto. |
-| Um repositório conectado pela GitHub App | **Produtos → Código → Tarefas**, depois **Repositórios de código** e **Connect with GitHub App**. Se a app já estiver instalada na conta do GitHub, clique em **Conectar uma instalação existente** em vez disso: instalá-la de novo não a conecta. Requer o plano Growth. | O mesmo, assim que a sua instância tiver uma GitHub App (veja [Integração com o GitHub](/docs/self-hosted/github-integration)). |
+| Um repositório conectado pela GitHub App | **Produtos → Código**, depois **Conectar o GitHub**. Se a app já estiver instalada na conta do GitHub, clique em **Conectar uma instalação existente** em vez disso: instalá-la de novo não a conecta. Requer o plano Growth. | O mesmo, assim que a sua instância tiver uma GitHub App (veja [Integração com o GitHub](/docs/self-hosted/github-integration)). |
 | Um Runner que executa correções de código por IA | Nada a operar: os Runners compartilhados do OneUptime fazem isso. | O serviço `runner` do Docker Compose, ou o Runner do chart Helm (`runner.enabled`, ativado por padrão), se registra sozinho e executa correções de código por IA. |
 
 Em uma instância auto-hospedada, o provedor global é um bloco do `config.env` (Docker Compose) ou dos seus valores do Helm. Para um Ollama auto-hospedado:
@@ -151,7 +203,7 @@ Todo o resto é igual ao botão:
 ## Quando uma correção falha
 
 :::details A execução falha
-A correção não pôde ser aplicada, o repositório não pôde ser acessado ou a chamada ao LLM falhou. A página de onde a tarefa foi iniciada mostra o motivo e oferece tentar de novo. A página **Registros** da tarefa tem o log completo da execução.
+A correção não pôde ser aplicada, o repositório não pôde ser acessado ou a chamada ao LLM falhou. A conversa da tarefa, e a página de onde ela foi iniciada, mostram o motivo e oferecem tentar de novo. O **Registro** da vez tem o log completo da execução.
 :::
 
 :::details O Runner para no meio de uma execução
@@ -159,7 +211,7 @@ Uma execução cujo heartbeat está em silêncio há mais de 12 minutos é encer
 :::
 
 :::details Nenhum Runner assume a tarefa
-Uma tarefa que espera mais de 30 minutos enquanto nenhum Runner com **Executa correções de código por IA** está conectado falha, com uma mensagem para verificar o Runner, então ela nunca aparece em andamento para sempre. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas.
+Uma tarefa que espera mais de 30 minutos enquanto nenhum Runner com **Executa correções de código por IA** está conectado falha, com uma mensagem para verificar o Runner, então ela nunca aparece em andamento para sempre. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas. Um Runner anterior a Código nunca recebe um pedido de Código: atualize um Runner que você mesmo executa junto com o servidor.
 :::
 
 ## Privacidade

@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class StatusPageLabelRuleEngineServiceClass
   implements RuleRunEngine<StatusPage, StatusPageLabelRule>
@@ -290,8 +291,7 @@ class StatusPageLabelRuleEngineServiceClass
     rule: StatusPageLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in status page label rule ${rule.id}: ${pattern}`,

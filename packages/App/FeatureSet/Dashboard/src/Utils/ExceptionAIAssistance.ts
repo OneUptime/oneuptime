@@ -219,13 +219,13 @@ export function getReadinessCheckLink(
 
   /*
    * The server reports the repository check as "repositoryConnected" (GitHub
-   * App) today and "repositoryResolved" on older releases; both are fixed on
-   * the Code Repositories page.
+   * App) today and "repositoryResolved" on older releases; both are fixed in
+   * Code, where the repositories are connected.
    */
   if (checkId === "repositoryResolved" || checkId === "repositoryConnected") {
     return {
       title: "Connect a Code Repository",
-      pageMap: PageMap.CODE_REPOSITORY,
+      pageMap: PageMap.CODE,
     };
   }
 

@@ -117,14 +117,12 @@ describe("the switch", () => {
 
   /*
    * Microsoft Teams calls are recorded too, once the connection has the
-   * two Graph permissions that takes: the switch says so, by their names.
+   * two Graph permissions that takes: the switch says so, by their names,
+   * and that a connection made by signing in asks for them on Reconnect.
    */
   test("names Microsoft Teams among the providers it records, and the permissions Teams needs first", () => {
     expect(CallRecordingSwitchCopy.switchDescription).toContain(
       "Zoom, Google Meet and Microsoft Teams",
-    );
-    expect(CallRecordingSwitchCopy.turnOnConfirmDescription).toContain(
-      "Zoom, Google Meet or Microsoft Teams",
     );
     expect(CallRecordingSwitchCopy.switchNote).toContain(
       MICROSOFT_TEAMS_CALENDAR_PERMISSION,
@@ -132,6 +130,7 @@ describe("the switch", () => {
     expect(CallRecordingSwitchCopy.switchNote).toContain(
       MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
     );
+    expect(CallRecordingSwitchCopy.switchNote).toContain("reconnect");
     expect(CallRecordingSwitchCopy.switchNote).toContain(
       "Slack huddles and meeting links are not recorded",
     );
@@ -208,16 +207,12 @@ describe("in every Dashboard language", () => {
       expect(note).toContain(MICROSOFT_TEAMS_CALENDAR_PERMISSION);
       expect(note).toContain(MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION);
 
-      // German joins it into a compound: "Microsoft-Teams-Anrufs".
-      for (const sentence of [
-        CallRecordingSwitchCopy.switchDescription,
-        CallRecordingSwitchCopy.turnOnConfirmDescription,
-      ]) {
-        expect({ sentence, translated: locale[sentence] }).toEqual({
-          sentence,
-          translated: expect.stringMatching(/Microsoft[ -]Teams/),
-        });
-      }
+      // A compound may join it: "Microsoft-Teams-Anrufe".
+      const sentence: string = CallRecordingSwitchCopy.switchDescription;
+      expect({ sentence, translated: locale[sentence] }).toEqual({
+        sentence,
+        translated: expect.stringMatching(/Microsoft[ -]Teams/),
+      });
     },
   );
 });

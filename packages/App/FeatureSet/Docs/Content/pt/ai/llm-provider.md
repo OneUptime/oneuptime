@@ -14,7 +14,7 @@ Um provedor de LLM é o modelo por trás de cada recurso de IA do OneUptime: inv
 - **Investigações**: a OneUptime AI investiga novos incidentes e alertas e publica na linha do tempo uma análise de causa raiz com citações. Veja [AI SRE](/docs/ai/ai-sre).
 - **Perguntas**: **Ask AI** responde a partir dos dados do seu projeto, com uma citação em cada afirmação. Veja [Pergunte à IA](/docs/ai/ask-ai).
 - **Rascunhos**: **Draft with AI** nas notas de incidentes, alertas e manutenções programadas, e postmortems, redigidos sob demanda ou quando um incidente é resolvido.
-- **Código**: pull requests que corrigem exceções, traces lentos e as causas que as investigações encontram, a partir do OneUptime ou do GitHub. Veja [Tarefas de correção](/docs/ai/ai-agent).
+- **Código**: pull requests que corrigem exceções, traces lentos e as causas que as investigações encontram, a partir do OneUptime ou do GitHub. Veja [Código](/docs/ai/ai-agent).
 - **Todo o resto**: a triagem do AI Insights, as etapas de IA de fluxos de trabalho e runbooks, e as respostas no Slack e no Microsoft Teams.
 
 ## Qual provedor a IA usa
@@ -301,7 +301,7 @@ Ainda com problemas? Procure o seu erro nas [issues do GitHub do OneUptime](http
 ## Próximos passos
 
 :::cards
-- [Tarefas de correção](/docs/ai/ai-agent): Os pull requests que o seu provedor escreve, e onde eles começam.
+- [Código](/docs/ai/ai-agent): Os pull requests que o seu provedor escreve, e onde eles começam.
 - [AI SRE](/docs/ai/ai-sre): O que a OneUptime AI faz com o provedor depois de tê-lo.
 - [Pergunte à IA](/docs/ai/ask-ai): Faça uma pergunta ao seu projeto, e troque o provedor de uma conversa.
 :::

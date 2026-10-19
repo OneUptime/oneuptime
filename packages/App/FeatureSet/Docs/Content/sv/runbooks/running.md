@@ -133,11 +133,11 @@ Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Ins
 :::
 
 :::details Ett steg misslyckades för att det saknar en Runner eller en autentiseringsuppgift
-Meddelandet lyder till exempel "Bash step is missing a Runner. Pick one under Runbooks → Runners." Steget sparades utan **Runner**, eller ett SSH- eller Kubernetes-steg utan **Credential**. Öppna runbookets **Steg**, välj det som steget saknar, klicka på **Save Steps** och kör runbooket igen.
+Meddelandet lyder till exempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Steget sparades utan **Runner**, eller ett SSH- eller Kubernetes-steg utan **Credential**. Ett JavaScript-steg behöver bara en egen Runner när ingen [global Runner](/docs/runbooks/agents#globala-runners) kan köra det. Öppna runbookets **Steg**, välj det som steget saknar, klicka på **Save Steps** och kör runbooket igen.
 :::
 
 :::details Ett steg misslyckades för att ingen runbook-agent tog det
-Meddelandet lyder "No runbook agent picked up this step before the wait window expired." Stegets Runner tog inte jobbet inom sin claim timeout. Kontrollera under **Runbooks → Runbook-agenter** att Runnern är **Ansluten** och att **Kör Runbooks** är påslaget. Se [Runbook-agenter](/docs/runbooks/agents#felsökning).
+Meddelandet lyder "No runbook agent picked up this step before the wait window expired." Stegets Runner tog inte jobbet inom sin claim timeout. Kontrollera under **Runbooks → Runbook-agenter** att Runnern är **Ansluten** och att **Kör Runbooks** är påslaget. Se [Runbook-agenter](/docs/runbooks/agents#felsökning). Ett steg på en global Runner säger i stället "No global Runner picked up this step before the wait window expired.": kör runbooket igen, höj stegets claim timeout eller välj en av dina egna Runners.
 :::
 
 :::details Körningen har väntat i timmar

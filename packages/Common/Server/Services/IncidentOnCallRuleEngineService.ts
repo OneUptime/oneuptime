@@ -25,6 +25,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class IncidentOnCallRuleEngineServiceClass {
   /**
@@ -506,8 +507,7 @@ class IncidentOnCallRuleEngineServiceClass {
     rule: IncidentOnCallRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex pattern in incident on-call rule ${rule.id}: ${pattern}`,

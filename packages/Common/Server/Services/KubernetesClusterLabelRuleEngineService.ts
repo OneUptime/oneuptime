@@ -22,6 +22,7 @@ import {
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class KubernetesClusterLabelRuleEngineServiceClass
   implements RuleRunEngine<KubernetesCluster, KubernetesClusterLabelRule>
@@ -342,8 +343,7 @@ class KubernetesClusterLabelRuleEngineServiceClass
     rule: KubernetesClusterLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in Kubernetes cluster label rule ${rule.id}: ${pattern}`,

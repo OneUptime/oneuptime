@@ -497,7 +497,7 @@ describe.each(
         "Fix the root cause the investigation found",
       );
       expect(hrefOf(within(task).getByText("Task #12"))).toBe(
-        pathOf(PageMap.AI_AGENT_TASK_VIEW, TASK_ID),
+        pathOf(PageMap.CODE_TASK_VIEW, TASK_ID),
       );
     });
 

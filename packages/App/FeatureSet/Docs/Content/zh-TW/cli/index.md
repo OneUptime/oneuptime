@@ -82,6 +82,7 @@ oneuptime resources
 | `oneuptime login <api-key> <instance-url>` | 將 API 金鑰和位址儲存為情境 | [驗證](/docs/cli/authentication#登入) |
 | `oneuptime context list`, `use`, `current`, `delete` | 列出、切換、顯示和刪除已儲存的情境 | [驗證](/docs/cli/authentication#情境) |
 | `oneuptime whoami` | 顯示下一個命令將使用的 URL 和 API 金鑰 | [驗證](/docs/cli/authentication#檢查-cli-將使用什麼) |
+| `oneuptime deploy` | 為圖表和 OneUptime AI 記錄一次部署或其他變更 | [部署與變更](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 處理一種記錄 | [資源操作](/docs/cli/resource-operations) |
 | `oneuptime resources` | 列出各種記錄及其命令 | [命令參考](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | 印出 CLI 的版本 | [命令參考](/docs/cli/command-reference#oneuptime-version) |

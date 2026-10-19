@@ -16,8 +16,13 @@ import {
   buildChangeEventDbRow,
   extractChangeEventEntries,
   parseChangeEventIngestEntry,
+  resolveChangeEventServiceName,
 } from "../../../../Common/Server/Utils/Telemetry/ChangeEventRow";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  ChangeEventAttribute,
+  ChangeEventSource,
+} from "Common/Utils/Telemetry/ChangeEventFields";
 import logger from "Common/Server/Utils/Logger";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -47,7 +52,12 @@ import TelemetryFanInWriter, {
  *                   "eventType": "deployment",
  *                   "time": "2026-08-24T12:03:00Z",
  *                   "serviceName": "checkout",
- *                   "attributes": { "version": "2.31.0", "sha": "..." } } ] }
+ *                   "version": "2.31.0",
+ *                   "commit": "1a2b3c4d5e6f..." } ] }
+ *
+ * Every stored event says it came from here (oneuptime.change.source =
+ * "api"); the ones OneUptime records itself say otherwise (see
+ * Common/Utils/Telemetry/ChangeEventFields).
  */
 export default class ChangeEventsIngestService extends OtelIngestBaseService {
   @CaptureSpan()
@@ -89,6 +99,13 @@ export default class ChangeEventsIngestService extends OtelIngestBaseService {
 
       const headerServiceName: string = this.getServiceNameFromHeaders(req, "");
 
+      /*
+       * A key pinned to one service writes every event under it, whatever
+       * the body or the header names (see resolveChangeEventServiceName).
+       */
+      const pinnedServiceName: string | null =
+        (req as TelemetryRequest).ingestionKeyPolicy?.pinnedServiceName ?? null;
+
       for (const entry of entries) {
         const parsed: ParsedChangeEventEntry | null =
           parseChangeEventIngestEntry(entry);
@@ -98,11 +115,11 @@ export default class ChangeEventsIngestService extends OtelIngestBaseService {
           continue;
         }
 
-        const serviceName: string =
-          typeof entry["serviceName"] === "string" &&
-          (entry["serviceName"] as string).trim() !== ""
-            ? (entry["serviceName"] as string).trim()
-            : headerServiceName;
+        const serviceName: string = resolveChangeEventServiceName({
+          entry,
+          headerServiceName,
+          pinnedServiceName,
+        });
 
         let serviceMetadata: TelemetryServiceMetadata | null = null;
         let retentionDays: number = DEFAULT_CHANGE_EVENT_RETENTION_IN_DAYS;
@@ -135,6 +152,10 @@ export default class ChangeEventsIngestService extends OtelIngestBaseService {
             projectId,
             serviceMetadata,
             retentionDays,
+            // Posted by a pipeline or the CLI, not recorded by OneUptime.
+            systemAttributes: {
+              [ChangeEventAttribute.Source]: ChangeEventSource.Api,
+            },
           }),
         );
       }

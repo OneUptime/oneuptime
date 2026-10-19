@@ -89,7 +89,7 @@ Klicka på ett span i valfri vy för att öppna dess panel, med flikar för attr
 Ett stort spår läser in 500 spans åt gången. Klicka på knappen längst ned i spåret för att läsa in fler, eller alla.
 
 > [!TIP]
-> **Fix performance with AI** letar efter ett känt prestandamönster i spåret: en N+1-fråga, ett span som tar största delen av tiden, eller anrop som görs efter varandra men som kunde köras parallellt. När den hittar ett startar den en AI-uppgift som öppnar en pull request som rättar det. Se [Åtgärdsuppgifter](/docs/ai/ai-agent).
+> **Fix performance with AI** letar efter ett känt prestandamönster i spåret: en N+1-fråga, ett span som tar största delen av tiden, eller anrop som görs efter varandra men som kunde köras parallellt. När den hittar ett startar den en AI-uppgift som öppnar en pull request som rättar det. Se [Kod](/docs/ai/ai-agent).
 
 ## Visa dina spans i diagram
 

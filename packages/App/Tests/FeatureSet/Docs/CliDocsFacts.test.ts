@@ -512,7 +512,12 @@ describe("the command reference", () => {
       })
       .sort();
 
-    expect(read).toEqual(["NO_COLOR", "ONEUPTIME_API_KEY", "ONEUPTIME_URL"]);
+    expect(read).toEqual([
+      "NO_COLOR",
+      "ONEUPTIME_API_KEY",
+      "ONEUPTIME_TELEMETRY_INGESTION_KEY",
+      "ONEUPTIME_URL",
+    ]);
     expect(
       tableWithHeader(
         englishSection(COMMAND_REFERENCE, "## Environment variables"),

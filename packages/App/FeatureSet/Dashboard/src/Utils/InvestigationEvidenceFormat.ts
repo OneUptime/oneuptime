@@ -312,6 +312,14 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "get_change_details",
+    {
+      description: "Read what a change shipped",
+      icon: IconProp.Bolt,
+      category: "Changes",
+    },
+  ],
+  [
     "list_code_repositories",
     {
       description: "Listed code repositories",
@@ -596,6 +604,7 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.RumApplicationView]: "RUM application",
   [AIChatCitationTargetType.TelemetryResources]: "Infrastructure resources",
   [AIChatCitationTargetType.TelemetryResourceView]: "Infrastructure resource",
+  [AIChatCitationTargetType.ServiceView]: "Service",
   [AIChatCitationTargetType.Exceptions]: "Exceptions",
   [AIChatCitationTargetType.Incidents]: "Incidents",
   [AIChatCitationTargetType.IncidentView]: "Incident",

@@ -51,6 +51,7 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.RumApplicationView]: PageMap.RUM_APPLICATION_VIEW,
   [AIChatCitationTargetType.TelemetryResources]: undefined,
   [AIChatCitationTargetType.TelemetryResourceView]: undefined,
+  [AIChatCitationTargetType.ServiceView]: PageMap.SERVICE_VIEW,
 };
 
 export const targetTypeToIcon: {
@@ -86,6 +87,7 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.RumApplicationView]: IconProp.AltGlobe,
   [AIChatCitationTargetType.TelemetryResources]: IconProp.Server,
   [AIChatCitationTargetType.TelemetryResourceView]: IconProp.Server,
+  [AIChatCitationTargetType.ServiceView]: IconProp.Cube,
 };
 
 export function getRouteForCitationTarget(

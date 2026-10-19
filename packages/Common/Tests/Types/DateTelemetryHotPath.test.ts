@@ -597,50 +597,72 @@ describe("speed", () => {
       dates.push(new Date(time), new Date(time - 60000));
     }
 
-    // Master read the six UTC fields of every stamp: 200,000 reads a run.
+    const runBranch: () => number = (): number => {
+      let length: number = 0;
+      for (const date of dates) {
+        length += OneUptimeDate.toClickhouseDateTime(date).length;
+      }
+      return length;
+    };
+
+    const runMaster: () => number = (): number => {
+      let length: number = 0;
+      for (const date of dates) {
+        length += referenceClickhouseDateTime(date).length;
+      }
+      return length;
+    };
+
+    /*
+     * Master read the six UTC fields of every stamp: 200,000 reads a run.
+     * The branch's are counted in one pass of their own, before any run is
+     * timed, so the count is one pass's and no timed run carries a spy.
+     */
     const yearReads: { mock: { calls: Array<unknown> } } = jest.spyOn(
       Date.prototype,
       "getUTCFullYear",
     ) as unknown as { mock: { calls: Array<unknown> } };
 
-    const branch: FastestRun<number> = fastestRun({
-      run: (): number => {
-        let length: number = 0;
-        for (const date of dates) {
-          length += OneUptimeDate.toClickhouseDateTime(date).length;
-        }
-        return length;
-      },
-      limitInMs: 0,
-    });
+    const counted: number = runBranch();
 
     /*
      * The stamps fall in 160 seconds (10:00:00-10:01:39 and the minute
-     * before), each formatted once over all three runs.
+     * before), each formatted once.
      */
     expect(yearReads.mock.calls.length).toBeGreaterThan(0);
     expect(yearReads.mock.calls.length).toBeLessThanOrEqual(160);
 
     jest.restoreAllMocks();
 
-    const master: FastestRun<number> = fastestRun({
-      run: (): number => {
-        let length: number = 0;
-        for (const date of dates) {
-          length += referenceClickhouseDateTime(date).length;
-        }
-        return length;
-      },
-      limitInMs: 0,
-    });
+    /*
+     * Then the two in turn, five rounds, each keeping its fastest. The batch
+     * of 200,000 Dates is built just before: a collection it leaves behind,
+     * or a busy moment on the runner, now falls on both alike rather than on
+     * whichever was measured first (the branch's three runs, then master's).
+     */
+    let branchMs: number = Number.POSITIVE_INFINITY;
+    let masterMs: number = Number.POSITIVE_INFINITY;
+    let branchLength: number = 0;
+    let masterLength: number = 0;
 
-    expect(branch.result).toBe(master.result);
-    expect(branch.inMs).toBeLessThan(1000);
+    for (let round: number = 0; round < 5; round++) {
+      let startedAt: number = performance.now();
+      branchLength = runBranch();
+      branchMs = Math.min(branchMs, performance.now() - startedAt);
+
+      startedAt = performance.now();
+      masterLength = runMaster();
+      masterMs = Math.min(masterMs, performance.now() - startedAt);
+    }
+
+    expect(branchLength).toBe(counted);
+    expect(branchLength).toBe(masterLength);
+    expect(branchMs).toBeLessThan(1000);
     /*
      * Measured 3-25 times faster (about 3.5 under jest, where master's
      * formatter is quick too); the field reads counted above are what pins
      * the memo, and one and a half leaves room for a noisy runner.
      */
-    expect(branch.inMs * 1.5).toBeLessThan(master.inMs);
+    expect(branchMs * 1.5).toBeLessThan(masterMs);
   });
 });

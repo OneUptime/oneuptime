@@ -6,11 +6,12 @@
  * hold ONLY what it needs to reach the OneUptime server and report telemetry:
  * never the server's runtime secrets.
  *
- * It reaches the server with ONEUPTIME_SECRET (its cluster key) and
- * ONEUPTIME_RUNNER_KEY; its LLM calls are mediated by the server. So its
- * environment is x-common-runner-variables plus a few service-level keys —
- * deliberately NOT a merge of x-common-runtime-variables, the app's whole
- * environment.
+ * It reaches the server with ONEUPTIME_RUNNER_KEY alone, which the app is
+ * given as well, and holds no cluster key (ONEUPTIME_SECRET, which opens every
+ * route OneUptime's own services call each other on); its LLM calls are
+ * mediated by the server. So its environment is x-common-runner-variables
+ * plus a few service-level keys — deliberately NOT a merge of
+ * x-common-runtime-variables, the app's whole environment.
  *
  * This test holds that: it fails the moment the runner service is wired to the
  * app's environment again. It reads the compose file directly (js-yaml resolves
@@ -25,6 +26,7 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 // Server secrets the app runs with that the shared Runner must never hold.
 const FORBIDDEN_SECRET_ENV_NAMES = [
+  "ONEUPTIME_SECRET",
   "ENCRYPTION_SECRET",
   "DATABASE_PASSWORD",
   "DATABASE_SSL_KEY",
@@ -77,7 +79,7 @@ describe("the shared Runner's Docker Compose environment is minimal", () => {
         "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES",
         "ONEUPTIME_RUNNER_ENABLE_RUNBOOKS",
         "ONEUPTIME_RUNNER_KEY",
-        "ONEUPTIME_SECRET",
+        "ONEUPTIME_RUNNER_SHARED",
         "ONEUPTIME_URL",
         "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
         "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
@@ -88,10 +90,66 @@ describe("the shared Runner's Docker Compose environment is minimal", () => {
 
   test("holds what it needs to reach the server", () => {
     expect(runnerEnv.ONEUPTIME_URL).toBe("${ONEUPTIME_RUNNER_ONEUPTIME_URL}");
-    expect(runnerEnv.ONEUPTIME_RUNNER_KEY).toBe("${ONEUPTIME_RUNNER_KEY}");
-    // The cluster key, which it registers and authenticates as the shared
+    // Its own key, which it registers and authenticates as the shared
     // (global) agent with.
-    expect(runnerEnv.ONEUPTIME_SECRET).toBe("${ONEUPTIME_SECRET}");
+    expect(runnerEnv.ONEUPTIME_RUNNER_KEY).toBe("${ONEUPTIME_RUNNER_KEY}");
+    // It is the installation's shared Runner, which registers with that key
+    // and needs no id from the dashboard.
+    expect(runnerEnv.ONEUPTIME_RUNNER_SHARED).toBe("true");
+  });
+
+  test("holds no cluster key, from the shared anchor or the service itself", () => {
+    const compose = yaml.load(
+      fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
+    );
+
+    expect(compose["x-common-runner-variables"]).not.toHaveProperty(
+      "ONEUPTIME_SECRET",
+    );
+    expect(runnerEnv).not.toHaveProperty("ONEUPTIME_SECRET");
+  });
+
+  test("the app is given the same ONEUPTIME_RUNNER_KEY, which it lets the Runner register with", () => {
+    const compose = yaml.load(
+      fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
+    );
+
+    expect(compose.services.app.environment.ONEUPTIME_RUNNER_KEY).toBe(
+      runnerEnv.ONEUPTIME_RUNNER_KEY,
+    );
+  });
+
+  test("no other service is given the Runner's key", () => {
+    const compose = yaml.load(
+      fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
+    );
+
+    /*
+     * The key's value, whatever variable carries it: the bundled global
+     * Runner reads its own key from a variable of the same name.
+     */
+    const holders = Object.keys(compose.services)
+      .filter((name) => {
+        const environment = compose.services[name].environment || {};
+
+        return Object.values(environment).some((value) => {
+          return value === runnerEnv.ONEUPTIME_RUNNER_KEY;
+        });
+      })
+      .sort();
+
+    expect(runnerEnv.ONEUPTIME_RUNNER_KEY).toBe("${ONEUPTIME_RUNNER_KEY}");
+    expect(holders).toEqual(["app", "runner"]);
+  });
+
+  test("the bundled global Runner holds a key of its own, not the shared Runner's", () => {
+    const compose = yaml.load(
+      fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
+    );
+
+    expect(
+      compose.services["global-runner"].environment.ONEUPTIME_RUNNER_KEY,
+    ).toBe("${GLOBAL_RUNNER_KEY}");
   });
 
   test("holds none of the server's runtime secrets", () => {

@@ -515,7 +515,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Where an AI agent's emails, pushes and messages send its owners: the
-   * project's Tasks page, whose readiness card says which agent is online.
+   * project's Code page, where a repository's request box says whether an
+   * agent is online.
    * They linked to an AI Agents page under Project Settings, which was
    * retired when Runners replaced the agent container, so the link opened
    * nothing.
@@ -525,8 +526,31 @@ export class Service extends ProjectReferencesService<Model> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/ai/agents`,
+      `/${projectId.toString()}/code`,
     );
+  }
+
+  /*
+   * Whether an AI agent with this id exists. Asked only for a key that did
+   * not match it, so that a wrong key is counted only for an agent there is
+   * (WrongComponentKeyLimit): an id no agent has can never be let in,
+   * whatever key comes with it.
+   */
+  @CaptureSpan()
+  public async hasAIAgentWithId(aiAgentId: ObjectID): Promise<boolean> {
+    const aiAgent: Model | null = await this.findOneBy({
+      query: {
+        _id: aiAgentId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(aiAgent);
   }
 
   /*

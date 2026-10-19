@@ -1,10 +1,12 @@
-# Fix Tasks
+# Code
 
-A fix task is a pull request OneUptime AI writes in your code. You start one from an exception, a trace, a service or an investigation, or OneUptime starts one on its own; a [Runner](/docs/runbooks/agents) clones the repository, writes the change on a new branch, builds and tests it, and opens a pull request. A person reviews and merges every one: the Runner can push branches and open pull requests, nothing more.
+Code is where you ask OneUptime AI to work in your repositories, the way you would ask a coding agent: fix a bug, write tests, explain the code, make a change. It opens on your connected repositories; a repository's page holds its tasks and the box where you ask; a task's page is a conversation you can reply in. OneUptime starts tasks of its own too, from exceptions, traces and investigations. A [Runner](/docs/runbooks/agents) clones the repository, writes the change on a new branch, builds and tests it, and opens a pull request. A person reviews and merges every one: the Runner can push branches and open pull requests, nothing more.
 
 :::cards
+- [Ask AI in a repository](#ask-ai-in-a-repository): A request in your own words, with the context it needs.
+- [A task's conversation](#a-tasks-conversation): What AI did, what it changed, and your reply.
 - [How a fix run works](#how-a-fix-run-works): From a click to a pull request, step by step.
-- [Where fix tasks start](#where-fix-tasks-start): The buttons that start one, and what each pull request does.
+- [Where fix tasks start](#where-fix-tasks-start): The tasks OneUptime starts, and what each pull request does.
 - [Before you begin](#before-you-begin): A model, a connected repository and a Runner.
 - [When a fix fails](#when-a-fix-fails): What happens to a run that errors, stalls or waits.
 :::
@@ -12,11 +14,61 @@ A fix task is a pull request OneUptime AI writes in your code. You start one fro
 > [!TIP]
 > You can also start this from GitHub. Mention the OneUptime GitHub App on an issue or a pull request and it implements, revises or reviews right there: see [GitHub App](/docs/ai/github-app). It is the same agent, the same Runner and the same budgets; only the trigger differs.
 
+## Ask AI in a repository
+
+:::steps
+### Open a repository
+
+Open **Products → Code**. It lists the project's repositories, each with the tasks AI is working on, the ones waiting for you and its open pull requests. With none yet, it offers **Connect GitHub** (see [Before you begin](#before-you-begin)).
+
+### Say what you want
+
+On the repository's page, write the change, the bug or the question in your own words. A repository with no task yet suggests a few under **Try asking**.
+
+### Add context
+
+Click **Add context** to give AI what it needs: a file or folder of the repository, a note, a link, or a record of the project. OneUptime reads each record when you send the request, with your permissions, and keeps what AI was given.
+
+### Start the task
+
+Click **Start task**, or press Enter. The task's page opens, and AI's work shows there as it happens.
+:::
+
+| Context | What AI is given |
+| --- | --- |
+| **File or folder** | A path in the repository, which AI reads first. |
+| **Note** | Text you paste: an error, a spec, a log line. |
+| **Link** | A web address, as a reference. |
+| **Incident** or **Alert** | Its state, description and root cause, as they are when you send the request. |
+| **Exception** | Its message and stack trace. |
+| **Monitor** | Its type, status and description. |
+| **Trace** | Its spans: their names, timings and errors. |
+| **Logs** | The latest 20 log lines that contain your search, from the last hour, day or week. |
+
+A request carries at most 10 pieces of context. Tokens, keys, passwords and email addresses in what OneUptime reads are redacted before AI sees them, as everywhere OneUptime AI reads your data.
+
+## A task's conversation
+
+A task's page is a conversation: what was asked and the context added, then AI's turn - the steps it takes as it takes them (the files it read and edited, what it searched for, the commands it ran), its reply, the files it changed with their diff, and the pull request. The top of the page says how the task stands:
+
+| State | What it means |
+| --- | --- |
+| **Queued** | It waits for a Runner to pick it up. |
+| **Working…** | AI is on it. **Stop** stops it; what it pushed stays on the branch. |
+| **Waiting for you** | AI asked a question. Answer it in the box below. |
+| **Done** | AI finished: its reply, and the pull request when it changed code. |
+| **Failed** | The turn could not finish, and says why. **Try again** asks the same again. |
+| **Stopped** | Someone stopped it. **Try again** asks the same again. |
+
+To follow up, write in the box at the bottom: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did.
+
+Anyone who can read a repository reads its tasks. Asking AI, replying and stopping a task take permission to edit the repository, and so does seeing a change's diff: everyone else sees which files changed. The tasks OneUptime starts on its own (below) are in their repository too, as conversations you can reply in.
+
 ## How a fix run works
 
 ```mermaid title="From a click to a pull request"
 flowchart TB
-    S["Fix with AI, or<br/>an automatic trigger"] --> Q["A fix task<br/>is queued"]
+    S["A request, a button<br/>or a trigger"] --> Q["A fix task<br/>is queued"]
     Q --> R["A Runner that runs<br/>AI code fixes<br/>picks it up"]
     R --> C["It clones the repository<br/>and makes a branch"]
     C --> A["The code agent<br/>writes the change"]
@@ -26,15 +78,15 @@ flowchart TB
     P --> H["A person reviews<br/>and merges it"]
 ```
 
-1. You click **Fix with AI** on an unresolved exception, or another button or trigger starts a task (see [Where fix tasks start](#where-fix-tasks-start)).
+1. You click **Start task** in a repository, or **Fix with AI** on an unresolved exception, or another button or trigger starts a task (see [Where fix tasks start](#where-fix-tasks-start)).
 2. The task is queued, and an available Runner with **Runs AI Code Fixes** turned on picks it up.
-3. The Runner fetches the task's context. For an exception, that is its type, its message and its stack trace.
-4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id.
+3. The Runner fetches the task's context. For a request, that is its words, the context added and the conversation so far; for an exception, its type, its message and its stack trace.
+4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A reply works on the branch of the task's open pull request instead.
 5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs.
 6. If the repository has verification commands, a Runner of your own builds and tests the change before committing anything, and hands a failure back to the code agent to repair (see [Verification before the pull request](#verification-before-the-pull-request)).
-7. The Runner commits, pushes the branch, opens the pull request, and deletes the workspace.
+7. The Runner commits, pushes the branch, opens the pull request (for a request, only when it changed code), and deletes the workspace.
 
-The page the task was started from shows its live status. Every task is listed under **Products → Code → Tasks**: open one for its **Overview**, its **Logs** (a line for every file the Runner read or wrote and every command it ran) and its **Pull Requests**.
+The page the task was started from shows its live status. Every task is listed in its repository under **Products → Code**: its page is its conversation, and each turn's **Log** has a line for every file the Runner read or wrote and every command it ran.
 
 Each run is held to budgets the server enforces: at most **40 LLM calls** and **100,000 output tokens**. A run that reaches one finishes with a summary of the work so far instead of looping. Fix runs also count toward the project's daily AI limits, when the project sets them.
 
@@ -56,7 +108,7 @@ OneUptime AI also starts fix tasks on its own: from an investigation that finds 
 
 ## Verification before the pull request
 
-A code repository can carry up to three verification commands on its **Settings** page, under **Code Repositories**:
+A repository can carry up to three verification commands on its **Settings** page in Code:
 
 | Command | Example | When it runs |
 | --- | --- | --- |
@@ -76,12 +128,12 @@ The commands are repository settings your team writes, run on your own Runner: t
 
 ## Before you begin
 
-A fix task needs three things. The exception's **AI Assistance** page checks all three before it offers to start, and says what is missing.
+A task needs three things. A repository's page in Code and the exception's **AI Assistance** page check all three before they offer to start, and say what is missing.
 
 | What | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
 | An LLM provider | Nothing to set up: a project with no provider of its own uses the global provider, paid from the project's AI credits. A provider of your own, under **Project Settings → AI → LLM Providers**, comes first. | Set the `GLOBAL_LLM_PROVIDER_*` environment variables once on the server, or add a provider to the project. |
-| A repository connected through the GitHub App | **Products → Code → Tasks**, then **Code Repositories** and **Connect with GitHub App**. If the app is already installed on the GitHub account, click **Connect an existing installation** instead: installing it again does not connect it. Needs the Growth plan. | The same, once your instance has a GitHub App (see [GitHub Integration](/docs/self-hosted/github-integration)). |
+| A repository connected through the GitHub App | **Products → Code**, then **Connect GitHub**. If the app is already installed on the GitHub account, click **Connect an existing installation** instead: installing it again does not connect it. Needs the Growth plan. | The same, once your instance has a GitHub App (see [GitHub Integration](/docs/self-hosted/github-integration)). |
 | A Runner that runs AI code fixes | Nothing to run: OneUptime's shared Runners do it. | The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default), registers itself and runs AI code fixes. |
 
 On a self-hosted instance, the global provider is one block of `config.env` (Docker Compose) or of your Helm values. For a self-hosted Ollama:
@@ -151,7 +203,7 @@ Everything else matches the button:
 ## When a fix fails
 
 :::details The run errors
-The fix could not be applied, the repository could not be reached, or the LLM call failed. The page the task was started from shows the reason and offers to try again. The task's **Logs** page has the full run log.
+The fix could not be applied, the repository could not be reached, or the LLM call failed. The task's conversation, and the page it was started from, show the reason and offer to try again. The turn's **Log** has the full run log.
 :::
 
 :::details The Runner stops in the middle of a run
@@ -159,7 +211,7 @@ A run whose heartbeat has been silent for more than 12 minutes is failed with an
 :::
 
 :::details No Runner picks the task up
-A task that waits more than 30 minutes while no Runner with **Runs AI Code Fixes** is connected fails, with a message to check the Runner, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn.
+A task that waits more than 30 minutes while no Runner with **Runs AI Code Fixes** is connected fails, with a message to check the Runner, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
 :::
 
 ## Privacy

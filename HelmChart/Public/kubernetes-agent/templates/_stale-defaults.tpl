@@ -49,6 +49,9 @@ Returns JSON:
   collectorImageTagStale  bool    stale, and the collector tag is not this
                                   chart's default
   collectorImageTag       string  the collector tag the agent runs
+  contextPropagationStale bool    stale, eBPF is on, and ebpf.contextPropagation
+                                  is not on, which this chart defaults it to
+                                  (the charts before shipped it off)
 Usage: {{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
 */}}
 {{- define "kubernetes-agent.staleDefaults" -}}
@@ -62,7 +65,9 @@ Usage: {{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
 {{- /* The collector runs whatever else is on: the Deployment always does. */ -}}
 {{- $collectorTag := toString ((.Values.image | default dict).tag | default "") -}}
 {{- $collectorImageTagStale := and $stale (ne $collectorTag (include "kubernetes-agent.defaultCollectorImageTag" .)) -}}
-{{- dict "stale" $stale "from" $from "ebpfImageTagStale" $ebpfImageTagStale "ebpfImageTag" $tag "collectorImageTagStale" $collectorImageTagStale "collectorImageTag" $collectorTag | toJson -}}
+{{- /* Off the way the DaemonSet reads it: anything but true, a missing key too. */ -}}
+{{- $contextPropagationStale := and $stale $ebpfOn (ne (toString $ebpf.contextPropagation) "true") -}}
+{{- dict "stale" $stale "from" $from "ebpfImageTagStale" $ebpfImageTagStale "ebpfImageTag" $tag "collectorImageTagStale" $collectorImageTagStale "collectorImageTag" $collectorTag "contextPropagationStale" $contextPropagationStale | toJson -}}
 {{- end -}}
 
 {{/*

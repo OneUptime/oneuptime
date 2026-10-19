@@ -1,6 +1,6 @@
 /*
  * AIAgentService.getLinkInDashboard is the link of an AI agent's owner
- * notifications: the connection-status email's "View Tasks" button, its push
+ * notifications: the connection-status email's "Open Code" button, its push
  * click-through and WhatsApp link, and the owner-added notification's. It
  * used to build /dashboard/<projectId>/settings/ai-agents/<aiAgentId>, the
  * AI Agents page under Project Settings - retired when Runners replaced the
@@ -8,9 +8,10 @@
  * agent by going to Project Settings > AI Agents", a menu entry nobody has.
  * Nothing redirects that path, so every click landed on a missing page.
  *
- * The link is the project's Tasks page now (PageMap.AI_AGENT_TASKS, route
- * /dashboard/<projectId>/ai/agents in the Dashboard's RouteMap), whose
- * readiness card says which agent is online.
+ * The link is the project's Code page now (PageMap.CODE, route
+ * /dashboard/<projectId>/code in the Dashboard's RouteMap), where a
+ * repository's request box says whether an agent is online. (It was the
+ * Tasks page, /ai/agents, which forwards to Code.)
  *
  * Everything below the service boundary is spied - no database.
  */
@@ -39,7 +40,7 @@ const AI_AGENT_ID: ObjectID = new ObjectID(
 const OWNER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
 const DASHBOARD_URL: string = "https://oneuptime.example.com/dashboard";
-const TASKS_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/ai/agents`;
+const CODE_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/code`;
 // The old link, to a page the Dashboard no longer has.
 const RETIRED_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/settings/ai-agents/${AI_AGENT_ID.toString()}`;
 
@@ -66,10 +67,10 @@ describe("AIAgentService.getLinkInDashboard", () => {
       );
     });
 
-    it("points at the project's Tasks page, not the retired AI Agents page", async () => {
+    it("points at the project's Code page, not the retired AI Agents page", async () => {
       const link: URL = await AIAgentService.getLinkInDashboard(PROJECT_ID);
 
-      expect(link.toString()).toBe(TASKS_LINK);
+      expect(link.toString()).toBe(CODE_LINK);
       expect(link.toString()).not.toBe(RETIRED_LINK);
     });
 
@@ -80,7 +81,7 @@ describe("AIAgentService.getLinkInDashboard", () => {
       const link: URL = await AIAgentService.getLinkInDashboard(otherProject);
 
       expect(link.toString()).toBe(
-        `${DASHBOARD_URL}/${otherProject.toString()}/ai/agents`,
+        `${DASHBOARD_URL}/${otherProject.toString()}/code`,
       );
     });
   });
@@ -110,23 +111,23 @@ describe("AIAgentService.getLinkInDashboard", () => {
       }
     });
 
-    it("builds https://<host>/dashboard/<projectId>/ai/agents", async () => {
+    it("builds https://<host>/dashboard/<projectId>/code", async () => {
       const link: URL = await AIAgentService.getLinkInDashboard(PROJECT_ID);
 
       expect(link.toString()).toBe(
-        `https://oneuptime.acme.test/dashboard/${PROJECT_ID.toString()}/ai/agents`,
+        `https://oneuptime.acme.test/dashboard/${PROJECT_ID.toString()}/code`,
       );
     });
   });
 
-  it("is a route the Dashboard has: the Tasks page, and no AI Agents page under Project Settings", () => {
+  it("is a route the Dashboard has: the Code page, and no AI Agents page under Project Settings", () => {
     const routeMap: string = fs.readFileSync(
       path.join(DASHBOARD_SRC, "Utils/RouteMap.ts"),
       "utf8",
     );
 
     expect(routeMap).toContain(
-      "[PageMap.AI_AGENT_TASKS]: new Route(\n    `/dashboard/${RouteParams.ProjectID}/ai/agents`,",
+      "[PageMap.CODE]: new Route(`/dashboard/${RouteParams.ProjectID}/code`),",
     );
     expect(routeMap).not.toContain("ai-agents");
   });
@@ -177,7 +178,7 @@ describe("AIAgentService.getLinkInDashboard", () => {
       });
     });
 
-    it("sends the email button, the push click-through and the WhatsApp link to the Tasks page", async () => {
+    it("sends the email button, the push click-through and the WhatsApp link to the Code page", async () => {
       await AIAgentService.notifyOwnersOnStatusChange({
         aiAgentId: AI_AGENT_ID,
       });
@@ -188,11 +189,11 @@ describe("AIAgentService.getLinkInDashboard", () => {
 
       expect(notification.userId.toString()).toBe(OWNER_ID.toString());
       expect(notification.emailEnvelope.vars["viewAIAgentsLink"]).toBe(
-        TASKS_LINK,
+        CODE_LINK,
       );
-      expect(notification.pushNotificationMessage.clickAction).toBe(TASKS_LINK);
+      expect(notification.pushNotificationMessage.clickAction).toBe(CODE_LINK);
       expect(notification.whatsAppMessage?.templateVariables).toMatchObject({
-        ai_agent_link: TASKS_LINK,
+        ai_agent_link: CODE_LINK,
       });
     });
   });

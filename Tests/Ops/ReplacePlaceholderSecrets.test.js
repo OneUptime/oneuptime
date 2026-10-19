@@ -136,13 +136,14 @@ function fakeSecret() {
 }
 
 describe("the secrets it may set", () => {
-  test("is the cluster key, the probe keys and the Runner key", () => {
+  test("is the cluster key, the probe keys and the Runner keys", () => {
     expect(GENERATED_SECRETS).toEqual([
       "ONEUPTIME_SECRET",
       "REGISTER_PROBE_KEY",
       "GLOBAL_PROBE_1_KEY",
       "GLOBAL_PROBE_2_KEY",
       "ONEUPTIME_RUNNER_KEY",
+      "GLOBAL_RUNNER_KEY",
     ]);
   });
 
@@ -214,6 +215,7 @@ describe("replacePlaceholderSecrets", () => {
       "GLOBAL_PROBE_1_KEY",
       "GLOBAL_PROBE_2_KEY",
       "ONEUPTIME_RUNNER_KEY",
+      "GLOBAL_RUNNER_KEY",
     ]);
 
     // Each got a value of its own; no two share one.
@@ -238,7 +240,7 @@ describe("replacePlaceholderSecrets", () => {
         return was.slice(0, was.indexOf("="));
       });
 
-    // Only the five shared keys and the two bundled datastores' passwords changed, each once.
+    // Only the six shared keys and the two bundled datastores' passwords changed, each once.
     expect(changedKeys).toEqual([
       "ONEUPTIME_SECRET",
       "REGISTER_PROBE_KEY",
@@ -247,6 +249,7 @@ describe("replacePlaceholderSecrets", () => {
       "GLOBAL_PROBE_1_KEY",
       "GLOBAL_PROBE_2_KEY",
       "ONEUPTIME_RUNNER_KEY",
+      "GLOBAL_RUNNER_KEY",
     ]);
   });
 
@@ -422,7 +425,7 @@ describe("replacePlaceholderSecrets", () => {
     );
 
     expect(message).toContain(
-      "ONEUPTIME_SECRET, REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY and ONEUPTIME_RUNNER_KEY are keys",
+      "ONEUPTIME_SECRET, REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY and GLOBAL_RUNNER_KEY are keys",
     );
     expect(message).toContain("The bundled ClickHouse and Valkey take their");
   });
@@ -690,7 +693,7 @@ describe("the passwords of the datastores Docker Compose runs", () => {
 });
 
 const GENERATED_KEY_LINE =
-  /^(ONEUPTIME_SECRET|REGISTER_PROBE_KEY|GLOBAL_PROBE_1_KEY|GLOBAL_PROBE_2_KEY|ONEUPTIME_RUNNER_KEY|CLICKHOUSE_PASSWORD|VALKEY_PASSWORD)=.*$/gm;
+  /^(ONEUPTIME_SECRET|REGISTER_PROBE_KEY|GLOBAL_PROBE_1_KEY|GLOBAL_PROBE_2_KEY|ONEUPTIME_RUNNER_KEY|GLOBAL_RUNNER_KEY|CLICKHOUSE_PASSWORD|VALKEY_PASSWORD)=.*$/gm;
 
 describe("the script, run the way npm start and configure.sh run it", () => {
   test("a config.env copied from config.example.env gets random shared keys and datastore passwords, and nothing else changes", () => {
@@ -930,7 +933,7 @@ describe("a config.env it cannot read or write", () => {
         new Error("EROFS: read-only file system"),
       ),
     ).toBe(
-      "config.env could not be written (EROFS: read-only file system), so its placeholder secrets were not given random values. OneUptime starts anyway, but the bundled probes and Runner do not register while REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_SECRET or ONEUPTIME_RUNNER_KEY still holds the placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one).",
+      "config.env could not be written (EROFS: read-only file system), so its placeholder secrets were not given random values. OneUptime starts anyway, but the bundled probes and Runners do not register while REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY or GLOBAL_RUNNER_KEY still holds the placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one).",
     );
   });
 
@@ -1035,18 +1038,27 @@ describe("where it runs", () => {
   });
 
   /*
-   * The point of setting it in config.env: the app and the bundled Runner
-   * both take ONEUPTIME_SECRET from it, so they share the new value.
+   * The point of setting them in config.env: every container that presents
+   * or checks one of these keys takes it from there, so they share the new
+   * value. The app checks ONEUPTIME_RUNNER_KEY, which the bundled Runner
+   * registers with; the Runner holds no ONEUPTIME_SECRET.
    */
-  test("Docker Compose hands the app and the bundled Runner the same ONEUPTIME_SECRET from config.env", () => {
+  test("Docker Compose hands the app and the bundled Runner the same ONEUPTIME_RUNNER_KEY from config.env, and the Runner no ONEUPTIME_SECRET", () => {
     const compose = yaml.load(
       fs.readFileSync(path.join(REPO_ROOT, "docker-compose.base.yml"), "utf8"),
     );
 
     for (const service of ["app", "runner"]) {
-      expect(compose.services[service].environment.ONEUPTIME_SECRET).toBe(
-        "${ONEUPTIME_SECRET}",
+      expect(compose.services[service].environment.ONEUPTIME_RUNNER_KEY).toBe(
+        "${ONEUPTIME_RUNNER_KEY}",
       );
     }
+
+    expect(compose.services.app.environment.ONEUPTIME_SECRET).toBe(
+      "${ONEUPTIME_SECRET}",
+    );
+    expect(compose.services.runner.environment).not.toHaveProperty(
+      "ONEUPTIME_SECRET",
+    );
   });
 });

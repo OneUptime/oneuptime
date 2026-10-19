@@ -23,6 +23,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class WorkflowOwnerRuleEngineServiceClass
   implements RuleRunEngine<Workflow, WorkflowOwnerRule>
@@ -358,8 +359,7 @@ class WorkflowOwnerRuleEngineServiceClass
     rule: WorkflowOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in workflow owner rule ${rule.id}: ${pattern}`,

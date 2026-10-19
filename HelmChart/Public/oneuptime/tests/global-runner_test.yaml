@@ -1,0 +1,389 @@
+# The bundled global Runner (templates/global-runner.yaml) runs the runbook
+# JavaScript steps of every project that uses global Runners. It is the Runner
+# image started with the fixed id of Common/Types/Runner/BundledGlobalRunner.ts
+# and its own key, and it holds NOTHING else: no cluster key, none of the
+# server's settings, no ServiceAccount token, never the chart-wide extraEnv.
+# The server's pods get the same key as GLOBAL_RUNNER_KEY (the App keeps the
+# global Runner's row from it on every boot, the migrate Job included), and
+# only while the global Runner is on: without it the row is removed, so no
+# project lists a global Runner nobody runs.
+suite: bundled global runner
+release:
+  name: oneuptime
+  namespace: oneuptime
+templates:
+  - templates/global-runner.yaml
+  - templates/app.yaml
+  - templates/worker.yaml
+  - templates/migrate-job.yaml
+  - templates/runner.yaml
+tests:
+  # ---------------------------------------------------------------------------
+  # On by default, as the bundled global probes are.
+  # ---------------------------------------------------------------------------
+  - it: runs by default, from the Runner image
+    templates:
+      - templates/global-runner.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: oneuptime-global-runner
+      - equal:
+          path: spec.replicas
+          value: 1
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: "/runner:"
+
+  - it: starts with the fixed id the server keeps its row under
+    templates:
+      - templates/global-runner.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ID
+            value: "00000000-0000-0000-0000-000000000002"
+
+  - it: reads its key from the release Secret by default
+    templates:
+      - templates/global-runner.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-secrets
+                key: global-runner-key
+
+  - it: reaches the app over the cluster's own address
+    templates:
+      - templates/global-runner.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_URL
+            value: http://oneuptime-app.oneuptime.svc.cluster.local:3002
+
+  - it: runs four steps at once by default, and what globalRunner.concurrency says
+    templates:
+      - templates/global-runner.yaml
+    set:
+      globalRunner.concurrency: 10
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_CONCURRENCY
+            value: "10"
+
+  - it: turns code fixes and AI commands off on the host, whatever the server says
+    templates:
+      - templates/global-runner.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS
+            value: "false"
+
+  # ---------------------------------------------------------------------------
+  # It holds its own key and nothing else.
+  # ---------------------------------------------------------------------------
+  - it: never holds the cluster key, so it can never act as one of the server's own services
+    templates:
+      - templates/global-runner.yaml
+    set:
+      oneuptimeSecret: a-cluster-key-value
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_SECRET
+
+  - it: never holds the server's settings or secrets
+    templates:
+      - templates/global-runner.yaml
+    set:
+      encryptionSecret: an-encryption-secret-value
+      gitHubApp.privateKey: a-github-app-private-key
+      registerProbeKey: a-register-probe-key
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ENCRYPTION_SECRET
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: DATABASE_PASSWORD
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: CLICKHOUSE_PASSWORD
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: VALKEY_PASSWORD
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: GITHUB_APP_PRIVATE_KEY
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: REGISTER_PROBE_KEY
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: GLOBAL_RUNNER_KEY
+
+  - it: carries no ServiceAccount token
+    templates:
+      - templates/global-runner.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: never takes the chart-wide extra env and volumes, which are written for the server's pods
+    templates:
+      - templates/global-runner.yaml
+    set:
+      extraEnv:
+        - name: CHART_WIDE
+          value: for-the-server
+      extraVolumes:
+        - name: chart-wide
+          emptyDir: {}
+      extraVolumeMounts:
+        - name: chart-wide
+          mountPath: /chart-wide
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: CHART_WIDE
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: takes the extra env and volumes set for it alone
+    templates:
+      - templates/global-runner.yaml
+    set:
+      globalRunner:
+        extraEnv:
+          - name: HTTPS_PROXY
+            value: http://proxy.internal:3128
+        extraVolumes:
+          - name: own
+            emptyDir: {}
+        extraVolumeMounts:
+          - name: own
+            mountPath: /own
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HTTPS_PROXY
+            value: http://proxy.internal:3128
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: own
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: own
+            mountPath: /own
+
+  # ---------------------------------------------------------------------------
+  # The server's pods get the same key, from the same place.
+  # ---------------------------------------------------------------------------
+  - it: hands the app the same key
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-secrets
+                key: global-runner-key
+
+  - it: hands the worker the same key
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-secrets
+                key: global-runner-key
+
+  - it: hands the migrate Job the same key, so its startup migrations never remove the row
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-secrets
+                key: global-runner-key
+
+  - it: never hands the global Runner's key to the shared code-fix Runner
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: GLOBAL_RUNNER_KEY
+
+  - it: a literal key reaches the global Runner
+    templates:
+      - templates/global-runner.yaml
+    set:
+      globalRunner.key: a-literal-global-runner-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+            value: a-literal-global-runner-key
+
+  - it: the same literal key reaches the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      globalRunner.key: a-literal-global-runner-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNER_KEY
+            value: a-literal-global-runner-key
+
+  - it: a Secret of the user's serves the key to the global Runner
+    templates:
+      - templates/global-runner.yaml
+    set:
+      globalRunner.existingSecret.name: runner-identity
+      globalRunner.existingSecret.passwordKey: global-runner-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: runner-identity
+                key: global-runner-key
+
+  - it: a Secret of the user's serves the key to the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      globalRunner.existingSecret.name: runner-identity
+      globalRunner.existingSecret.passwordKey: global-runner-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: runner-identity
+                key: global-runner-key
+
+  # ---------------------------------------------------------------------------
+  # Off: no global Runner, and no key for the server, which then removes the row.
+  # ---------------------------------------------------------------------------
+  - it: runs nothing when turned off
+    templates:
+      - templates/global-runner.yaml
+    set:
+      globalRunner.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: gives the app no key when turned off, so the server removes the row
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      globalRunner.enabled: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: GLOBAL_RUNNER_KEY
+
+  - it: runs nothing while deployments are off
+    templates:
+      - templates/global-runner.yaml
+    set:
+      deployment.disableDeployments: true
+    asserts:
+      - hasDocuments:
+          count: 0

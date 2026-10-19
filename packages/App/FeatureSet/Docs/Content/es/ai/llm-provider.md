@@ -14,7 +14,7 @@ Un proveedor de LLM es el modelo detrás de cada función de IA en OneUptime: in
 - **Investigaciones**: OneUptime AI investiga los incidentes y las alertas nuevos y publica en la línea de tiempo un análisis de causa raíz con citas. Consulta [AI SRE](/docs/ai/ai-sre).
 - **Preguntas**: **Preguntar a la IA** responde a partir de los datos de tu proyecto, con una cita en cada afirmación. Consulta [Preguntar a la IA](/docs/ai/ask-ai).
 - **Borradores**: **Redactar con IA** en las notas de incidentes, alertas y mantenimientos programados, y los postmortems, redactados a petición o cuando un incidente se resuelve.
-- **Código**: pull requests que corrigen excepciones, trazas lentas y las causas que encuentran las investigaciones, desde OneUptime o desde GitHub. Consulta [Tareas de corrección](/docs/ai/ai-agent).
+- **Código**: pull requests que corrigen excepciones, trazas lentas y las causas que encuentran las investigaciones, desde OneUptime o desde GitHub. Consulta [Código](/docs/ai/ai-agent).
 - **Todo lo demás**: la clasificación de AI Insights, los pasos de IA de los flujos de trabajo y los runbooks, y las respuestas en Slack y Microsoft Teams.
 
 ## Qué proveedor usa la IA
@@ -301,7 +301,7 @@ Comprueba cómo está escrito el nombre del modelo. En Ollama, descarga primero 
 ## Próximos pasos
 
 :::cards
-- [Tareas de corrección](/docs/ai/ai-agent): Los pull requests que escribe tu proveedor, y dónde empiezan.
+- [Código](/docs/ai/ai-agent): Los pull requests que escribe tu proveedor, y dónde empiezan.
 - [AI SRE](/docs/ai/ai-sre): Lo que hace OneUptime AI con el proveedor una vez que lo tiene.
 - [Preguntar a la IA](/docs/ai/ask-ai): Hazle una pregunta a tu proyecto, y cambia el proveedor de una conversación.
 :::

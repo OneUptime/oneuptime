@@ -6,7 +6,7 @@
 - [ग्लोबल विकल्प](#ग्लोबल-विकल्प): वे विकल्प जो हर कमांड लेती है।
 - [लॉगिन और कॉन्टेक्स्ट](#लॉगिन-और-कॉन्टेक्स्ट): login और context कमांड।
 - [संसाधन कमांड](#संसाधन-कमांड): list, get, create, update, delete और count।
-- [अन्य कमांड](#अन्य-कमांड): whoami, resources, version और help।
+- [अन्य कमांड](#अन्य-कमांड): deploy, whoami, resources, version और help।
 :::
 
 ## कमांड
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>और हर संसाधन"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## ग्लोबल विकल्प
@@ -222,6 +222,31 @@ CLI, OneUptime के साथ रिलीज़ होता है, इस�
 
 ## अन्य कमांड
 
+### `oneuptime deploy`
+
+किसी पाइपलाइन से एक डिप्लॉय, या कोई दूसरा बदलाव, रिकॉर्ड करती है: यह सेवा के चार्ट पर दिखाया जाता है और OneUptime AI किसी घटना की जांच करते समय इसे पढ़ता है। यह API कुंजी से नहीं, बल्कि टेलीमेट्री इंजेशन कुंजी से लिखती है। [डिप्लॉय और बदलाव](/docs/telemetry/change-events) देखें।
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| विकल्प | ज़रूरी | यह क्या है | डिफ़ॉल्ट |
+| --- | --- | --- | --- |
+| `--service <name>` | नहीं | वह सेवा जिसे डिप्लॉय किया गया | पूरे प्रोजेक्ट का बदलाव |
+| `--service-version <version>` | नहीं | डिप्लॉय किया गया संस्करण | |
+| `--previous-version <version>` | नहीं | वह संस्करण जिसकी जगह इसने ली | |
+| `--commit <sha>` | नहीं | डिप्लॉय किया गया कमिट | |
+| `--repository <url>` | नहीं | वह रिपॉजिटरी जिसमें कमिट है | |
+| `--branch <name>` | नहीं | डिप्लॉय की गई ब्रांच | |
+| `--pull-request <number>` | नहीं | डिप्लॉय किया गया पुल रिक्वेस्ट | |
+| `--environment <name>` | नहीं | वह एनवायरनमेंट जिसमें डिप्लॉय किया गया | |
+| `--title <title>` | नहीं | बदलाव का शीर्षक; डिप्लॉय के अलावा किसी दूसरे प्रकार के बदलाव के लिए यह ज़रूरी है | `Deploy <version>` |
+| `--description <text>` | नहीं | बदलाव का विवरण | |
+| `--type <type>` | नहीं | बदलाव का प्रकार, जैसे `config-change` या `rollback` | `deployment` |
+| `--time <time>` | नहीं | यह कब हुआ, जैसे `2026-10-19T10:00:00Z` | अभी |
+| `--attribute <key=value...>` | नहीं | और एट्रिब्यूट, `key=value` के रूप में, एक या ज़्यादा | |
+| `--ingestion-key <key>` | नहीं | प्रोजेक्ट की एक टेलीमेट्री इंजेशन कुंजी | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 वह URL और API कुंजी दिखाती है जिनका अगली कमांड उपयोग करेगी, कुंजी छिपाकर, और वह कॉन्टेक्स्ट जिससे वे आती हैं। यह OneUptime को कॉल नहीं करती। [देखें कि CLI क्या उपयोग करेगा](/docs/cli/authentication#देखें-कि-cli-क्या-उपयोग-करेगा) देखें।
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | API कुंजी, जब कोई `--api-key` फ़्लैग कुंजी न दे |
 | `ONEUPTIME_URL` | आपके OneUptime का पता, जब कोई `--url` फ़्लैग पता न दे |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | वह टेलीमेट्री इंजेशन कुंजी जिससे `oneuptime deploy` लिखती है, जब कोई `--ingestion-key` फ़्लैग कुंजी न दे |
 | `NO_COLOR` | कोई भी मान देने पर रंग बंद करता है |
 
 ## फ़ाइलें

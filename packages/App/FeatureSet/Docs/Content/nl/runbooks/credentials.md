@@ -144,7 +144,7 @@ Bash- en JavaScript-stappen hebben geen veld **Credential**. Om een script een w
 :::steps
 ### Het geheim maken
 
-Klik op **Runbook Secret aanmaken**. Voer in de stap **Geheim** een **Naam** in (letters, cijfers, koppeltekens en underscores), een optionele **Beschrijving** en de **Geheime waarde**. Kies in de stap **Toegang** de Runners onder **Runbook-agents die toegang hebben tot dit geheim**.
+Klik op **Runbook Secret aanmaken**. Voer in de stap **Geheim** een **Naam** in (letters, cijfers, koppeltekens en underscores), een optionele **Beschrijving** en de **Geheime waarde**. Kies in de stap **Toegang** uw Runners onder **Jouw Runners die dit geheim mogen gebruiken**. Op een server met [globale Runners](/docs/runbooks/agents#globale-runners) laat **Globale Runners mogen dit geheim gebruiken** ook de stappen van dit project die op een globale Runner lopen het gebruiken. Voor een nieuw geheim staat het aan zolang het project globale Runners gebruikt.
 
 ### Het in een script gebruiken
 
@@ -156,7 +156,7 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 
-Wanneer een Runner waaraan het geheim is toegewezen de stap oppakt, krijgt hij het script met de waarde al ingevuld.
+Wanneer een Runner waaraan het geheim is toegewezen de stap oppakt, krijgt hij het script met de waarde al ingevuld. Een globale Runner ook, als het geheim globale Runners toestaat het te gebruiken. Een stap op een globale Runner die een geheim noemt dat globale Runners niet mogen gebruiken, mislukt met de naam van het geheim, in plaats van zonder te lopen.
 :::
 
 Net als de geheime velden van een inloggegeven wordt de waarde van een geheim versleuteld opgeslagen en geeft de API die nooit terug: **Geheime waarde bijwerken** vervangt haar. In OneUptime Cloud vereisen runbook-geheimen ook het abonnement **Growth** of hoger.

@@ -82,6 +82,7 @@ oneuptime resources
 | `oneuptime login <api-key> <instance-url>` | API キーとアドレスをコンテキストとして保存します | [認証](/docs/cli/authentication#ログインする) |
 | `oneuptime context list`, `use`, `current`, `delete` | 保存したコンテキストの一覧表示、切り替え、表示、削除 | [認証](/docs/cli/authentication#コンテキスト) |
 | `oneuptime whoami` | 次のコマンドが使う URL と API キーを表示します | [認証](/docs/cli/authentication#cli-が使う値を確認する) |
+| `oneuptime deploy` | グラフと OneUptime AI のために、デプロイやその他の変更を記録します | [デプロイと変更](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 一種類のレコードを扱います | [リソース操作](/docs/cli/resource-operations) |
 | `oneuptime resources` | レコードの種類をそのコマンドとともに一覧表示します | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | CLI のバージョンを表示します | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-version) |

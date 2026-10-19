@@ -19,7 +19,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Pill from "Common/UI/Components/Pill/Pill";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
@@ -34,6 +33,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
 import { SubscriberFormCopy } from "../../../Components/StatusPage/SubscriberFormChoices";
+import SubscriberStatusPill from "../../../Components/StatusPage/SubscriberStatusPill";
 import {
   getSubscriberInternalNoteField,
   getSubscriberStatusFields,
@@ -443,6 +443,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             selectMoreFields={{
               subscriberPhone: true,
               isSubscriptionConfirmed: true,
+              /*
+               * The Status reads when the link to confirm was sent, so it
+               * is read whether or not the viewer shows Subscribed At.
+               */
+              createdAt: true,
             }}
             query={{
               statusPageId: modelId,
@@ -545,27 +550,18 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 title: "Status",
                 type: FieldType.Text,
                 getElement: (item: StatusPageSubscriber): ReactElement => {
-                  if (item["isUnsubscribed"]) {
-                    return <Pill color={Red} text={"Unsubscribed"} />;
-                  }
-
                   /*
-                   * Someone who signed up by SMS on the status page, and
-                   * has not opened the link texted to them yet.
+                   * Someone who signed up by SMS on the status page awaits
+                   * the link texted to them, while it works.
                    */
-                  if (item["isSubscriptionConfirmed"] === false) {
-                    return (
-                      <Pill
-                        color={Yellow}
-                        text={"Awaiting Confirmation"}
-                        tooltip={
-                          SubscriberFormCopy.awaitingTextConfirmationDescription
-                        }
-                      />
-                    );
-                  }
-
-                  return <Pill color={Green} text={"Subscribed"} />;
+                  return (
+                    <SubscriberStatusPill
+                      subscriber={item}
+                      awaitingConfirmationDescription={
+                        SubscriberFormCopy.awaitingTextConfirmationDescription
+                      }
+                    />
+                  );
                 },
               },
               {
