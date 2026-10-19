@@ -74,6 +74,7 @@ import TracePipelineService, {
 import LlmModelPriceService from "./LlmModelPriceService";
 import { LlmModelPrice } from "Common/Types/Telemetry/LlmCostCatalog";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
   TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
@@ -85,7 +86,7 @@ import TelemetryFanInWriter, {
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 };
 
 type ParsedUnixNano = {

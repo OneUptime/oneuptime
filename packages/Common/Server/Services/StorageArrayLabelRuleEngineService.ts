@@ -22,6 +22,7 @@ import {
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class StorageArrayLabelRuleEngineServiceClass
   implements RuleRunEngine<StorageArray, StorageArrayLabelRule>
@@ -319,8 +320,7 @@ class StorageArrayLabelRuleEngineServiceClass
     rule: StorageArrayLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in storage array label rule ${rule.id}: ${pattern}`,

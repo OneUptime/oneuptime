@@ -14,6 +14,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -342,8 +343,12 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       try {
-        const regex: RegExp = new RegExp(rule.incidentTitlePattern, "i");
-        if (!regex.test(incident.title)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentTitlePattern,
+            incident.title,
+          )
+        ) {
           return false;
         }
       } catch {
@@ -362,8 +367,12 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       try {
-        const regex: RegExp = new RegExp(rule.incidentDescriptionPattern, "i");
-        if (!regex.test(incident.description)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentDescriptionPattern,
+            incident.description,
+          )
+        ) {
           return false;
         }
       } catch {

@@ -31031,5 +31031,7 @@
   "Transcript Fetch Status": "Status da busca da transcrição",
   "Video Call Summary": "Resumo da videochamada",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Não recebe nada: o link de confirmação que enviamos expirou antes de ser aberto. A pessoa pode se inscrever novamente, ou você pode adicioná-la de novo.",
-  "Link Expired": "Link expirado"
+  "Link Expired": "Link expirado",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Este padrão remete ao que um grupo anterior encontrou, como \\1. Os padrões são executados em um tempo que só cresce com o texto que leem, o que uma referência retroativa não permite. Escreva o padrão sem ela.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Este padrão é grande demais para ser executado. Encurte-o ou repita suas partes menos vezes."
 }

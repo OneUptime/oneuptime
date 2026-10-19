@@ -142,6 +142,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Exceptions come from the scrubbed record.",
     "Session replays are scrubbed too.",
     "Rules run in the order of the list.",
+    "A custom pattern takes time in line with the record.",
   ],
   [DATA_RETENTION]: [
     "Settings 1 to 5 are retention overrides.",

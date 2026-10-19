@@ -14,6 +14,7 @@ import {
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
+import { PatternProblemReason } from "Common/Utils/LinearRegExp/PatternProblem";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -98,6 +99,19 @@ export const SCRUB_RULE_CUSTOM_REGEX_MATCHES_EMPTY_TEXT: string =
   translationKey(
     "This pattern matches empty text, so it would put its replacement between every character. Make it match at least one character.",
   );
+
+/*
+ * A regular expression the server cannot run (Utils/LinearRegExp): scrub
+ * patterns are run on every log and span, in time that may only grow in line
+ * with the text they read.
+ */
+export const SCRUB_RULE_CUSTOM_REGEX_BACK_REFERENCE: string = translationKey(
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.",
+);
+
+export const SCRUB_RULE_CUSTOM_REGEX_TOO_LARGE: string = translationKey(
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.",
+);
 
 /*
  * Scrub Action's three answers, each with the one line that says what it
@@ -217,6 +231,12 @@ export const getScrubRuleCustomRegexError: (
       return translateTemplate(SCRUB_RULE_CUSTOM_REGEX_INVALID, {
         reason: check.reason || "",
       });
+    case ScrubRuleCustomRegexProblem.CannotRun:
+      return check.cannotRunReason === PatternProblemReason.TooLarge
+        ? translateText(SCRUB_RULE_CUSTOM_REGEX_TOO_LARGE) ||
+            SCRUB_RULE_CUSTOM_REGEX_TOO_LARGE
+        : translateText(SCRUB_RULE_CUSTOM_REGEX_BACK_REFERENCE) ||
+            SCRUB_RULE_CUSTOM_REGEX_BACK_REFERENCE;
     case ScrubRuleCustomRegexProblem.MatchesEmptyText:
     default:
       return (

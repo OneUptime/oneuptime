@@ -12,6 +12,7 @@ import {
   SCRUB_RULE_CUSTOM_PATTERN_TYPE,
   SCRUB_RULE_REGEX_FLAGS,
   SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE,
+  ScrubRegExp,
   ScrubRuleCustomRegexCheck,
   ScrubRuleCustomRegexProblem,
   TRACE_SCRUB_FIELDS,
@@ -93,18 +94,21 @@ describe("the pattern types and fields ingest knows", () => {
 
 describe("compileScrubRuleCustomRegex - what ingest does with a stored pattern", () => {
   test("compiles a pattern with the global flag, case-sensitive", () => {
-    const regex: RegExp | null = compileScrubRuleCustomRegex(
+    const regex: ScrubRegExp | null = compileScrubRuleCustomRegex(
       "\\bSECRET-[A-Z0-9]+\\b",
     );
+    const replaceWithX: () => string = (): string => {
+      return "[X]";
+    };
 
     expect(regex).not.toBeNull();
     expect(regex!.flags).toBe(SCRUB_RULE_REGEX_FLAGS);
     expect(SCRUB_RULE_REGEX_FLAGS).toBe("g");
-    expect("a SECRET-AB12 and SECRET-CD34".replace(regex!, "[X]")).toBe(
+    expect(regex!.replace("a SECRET-AB12 and SECRET-CD34", replaceWithX)).toBe(
       "a [X] and [X]",
     );
     // Case-sensitive: a lower-case token is not matched.
-    expect("secret-ab12".replace(regex!, "[X]")).toBe("secret-ab12");
+    expect(regex!.replace("secret-ab12", replaceWithX)).toBe("secret-ab12");
   });
 
   test("returns null for no pattern at all", () => {
@@ -128,9 +132,9 @@ describe("compileScrubRuleCustomRegex - what ingest does with a stored pattern",
     expect(compileScrubRuleCustomRegex("  ")).not.toBeNull();
   });
 
-  test("hands out a new regex each time, so lastIndex is never shared", () => {
-    const first: RegExp | null = compileScrubRuleCustomRegex("a");
-    const second: RegExp | null = compileScrubRuleCustomRegex("a");
+  test("hands out a new regex each time, so no match state is ever shared", () => {
+    const first: ScrubRegExp | null = compileScrubRuleCustomRegex("a");
+    const second: ScrubRegExp | null = compileScrubRuleCustomRegex("a");
 
     expect(first).not.toBe(second);
   });
