@@ -389,7 +389,7 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
             </div>
             <fieldset>
               <legend className={LABEL_CLASS_NAME}>
-                {translator.translateText("From")}
+                {translator.translateText("Time range")}
               </legend>
               <div className="mt-2 inline-flex rounded-lg bg-gray-100 p-0.5">
                 {CODE_TASK_LOG_WINDOWS_IN_HOURS.map((windowInHours: number) => {

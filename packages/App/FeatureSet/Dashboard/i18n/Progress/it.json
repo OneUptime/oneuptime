@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 16776
+    "keys": 31140,
+    "untranslated": 16755
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -16,9 +16,11 @@
     "ICMP (ping)",
     "Marketplace",
     "Offline",
+    "PR #{{number}}",
     "Pattern {{number}}: {{problem}}",
     "Peer",
     "Provider",
+    "Pull request #{{number}}",
     "Record",
     "Report",
     "Runbook: {{name}}",

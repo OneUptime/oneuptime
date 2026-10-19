@@ -115,6 +115,21 @@ export const ContextChips: FunctionComponent<{
     >
       {props.items.map((item: CodeTaskContextItemJSON, index: number) => {
         const route: Route | URL | null = getContextItemRoute(item);
+        /*
+         * The server keeps an English label beside a search or a trace;
+         * they are worded here in the reader's language from their own
+         * fields. Records keep their own names.
+         */
+        const label: string =
+          item.type === CodeTaskContextType.Logs && item.search
+            ? translator.translateTemplate('Logs matching "{{search}}"', {
+                search: item.search,
+              })
+            : item.type === CodeTaskContextType.Trace && item.traceId
+              ? translator.translateTemplate("Trace {{traceId}}", {
+                  traceId: `${item.traceId.substring(0, 8)}…`,
+                })
+              : item.label;
         const chip: ReactElement = (
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
             <Icon
@@ -125,9 +140,9 @@ export const ContextChips: FunctionComponent<{
               className={`truncate ${
                 item.type === CodeTaskContextType.File ? "font-mono" : ""
               }`}
-              title={item.text || item.label}
+              title={item.text || label}
             >
-              {item.label}
+              {label}
             </span>
           </span>
         );
@@ -207,12 +222,16 @@ const PullRequestLine: FunctionComponent<{
   const pullRequest: CodeTaskPullRequestJSON = props.pullRequest;
   const number: string = pullRequest.number?.toString() || "";
 
+  /*
+   * A pull request is open until someone merges or closes it, so only those
+   * two are said. (The Dashboard's "Open" is the verb - German "Öffnen".)
+   */
   const stateText: string =
     pullRequest.state === "merged"
       ? translator.translateTemplate("Merged")
       : pullRequest.state === "closed"
         ? translator.translateTemplate("Closed")
-        : translator.translateTemplate("Open");
+        : "";
 
   return (
     <div
@@ -229,17 +248,20 @@ const PullRequestLine: FunctionComponent<{
               number,
             })}
       </span>
-      <span
-        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-          pullRequest.state === "merged"
-            ? "bg-violet-50 text-violet-700"
-            : pullRequest.state === "closed"
-              ? "bg-gray-100 text-gray-600"
-              : "bg-emerald-50 text-emerald-700"
-        }`}
-      >
-        {stateText}
-      </span>
+      {stateText ? (
+        <span
+          data-testid="code-turn-pull-request-state"
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            pullRequest.state === "merged"
+              ? "bg-violet-50 text-violet-700"
+              : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          {stateText}
+        </span>
+      ) : (
+        <></>
+      )}
       {pullRequest.url ? (
         <Link
           to={URL.fromString(pullRequest.url)}

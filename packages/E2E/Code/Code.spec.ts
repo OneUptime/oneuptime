@@ -1169,16 +1169,35 @@ test.describe("dark mode and other languages", () => {
     test.skip(isPhone(testInfo), "width-independent");
     await openRepository(page, REPOSITORY.checkout, "lang=de");
 
-    await expect(
-      page.getByTestId("code-ask").getByRole("heading"),
-    ).not.toHaveText("Ask AI to do something");
-    await expect(sendButton(page)).not.toHaveText("Start task");
+    await expect(page.getByTestId("code-ask").getByRole("heading")).toHaveText(
+      "KI um etwas bitten",
+    );
+    await expect(sendButton(page)).toHaveText("Aufgabe starten");
+    await expect(composerInput(page)).toHaveAttribute(
+      "aria-label",
+      "Was soll die KI tun?",
+    );
+    // The AI at work is "being worked on", not the monitor sense of "Working".
     await expect(
       page
         .getByTestId("code-task-row")
         .first()
-        .getByTestId("code-task-state")
-        .first(),
-    ).not.toHaveText("Working");
+        .locator("[data-testid='code-task-state']:visible"),
+    ).toHaveText("Wird bearbeitet…");
+    await expect(
+      page
+        .getByTestId("code-task-row")
+        .nth(1)
+        .getByTestId("code-task-row-meta"),
+    ).toContainText("Gefragt von Ada Lovelace");
+
+    // A task's conversation, in German too.
+    await openTask(page, TASK.retries, "lang=de");
+    await expect(page.getByTestId("code-task-steps-toggle").first()).toHaveText(
+      "7 Schritte · 2 Dateien gelesen · 2 Dateien bearbeitet · 1 Befehl ausgeführt",
+    );
+    await expect(
+      page.getByTestId("code-turn-pull-request").first(),
+    ).toContainText("Pull Request #418 geöffnet");
   });
 });

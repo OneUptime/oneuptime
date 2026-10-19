@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 3715
+    "keys": 31140,
+    "untranslated": 3709
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -248,6 +248,7 @@
     "OpenTelemetry Collector",
     "OpenTofu",
     "PM",
+    "PR #{{number}}",
     "PVE {{version}}",
     "Paraguay",
     "Ping",
@@ -263,6 +264,7 @@
     "PostgreSQL db.prod.internal:5432",
     "Proxies",
     "Puerto Rico",
+    "Pull request #{{number}}",
     "Push",
     "Push: ",
     "RTT",

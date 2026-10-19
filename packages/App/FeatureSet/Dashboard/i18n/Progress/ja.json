@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 1204
+    "keys": 31140,
+    "untranslated": 1203
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -130,6 +130,7 @@
     "OpenTelemetry Collector",
     "OpenTelemetry SDK",
     "OpenTofu",
+    "PR #{{number}}",
     "PVE ID",
     "PVE {{version}}",
     "Ping",

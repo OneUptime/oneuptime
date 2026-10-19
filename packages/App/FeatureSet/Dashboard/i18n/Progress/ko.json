@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 16249
+    "keys": 31140,
+    "untranslated": 16227
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
     "Grafana OnCall API URL",
+    "PR #{{number}}",
     "Runner",
     "Splunk On-Call API ID",
     "VMware vCenter",

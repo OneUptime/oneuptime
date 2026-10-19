@@ -140,7 +140,7 @@ const CodeRepositorySettings: FunctionComponent<
         name="Repository Settings"
         cardProps={{
           title: "Repository Settings",
-          description: "What AI's work in this repository uses.",
+          description: "What AI uses when it works in this repository.",
         }}
         isEditable={true}
         editButtonText="Edit Settings"

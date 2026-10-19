@@ -28,9 +28,13 @@ export interface CodeTaskStateCopy {
   icon: IconProp;
 }
 
+/*
+ * "Working…", not "Working": the Dashboard's "Working" is a monitor that
+ * works (German "Funktioniert"), and the AI at work is something else.
+ */
 export const CODE_TASK_STATE_COPY: Record<CodeTaskState, CodeTaskStateCopy> = {
   [CodeTaskState.Working]: {
-    label: translationKey("Working"),
+    label: translationKey("Working…"),
     badgeClassName: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
     dotClassName: "bg-indigo-500",
     icon: IconProp.Spinner,
