@@ -51,6 +51,8 @@ import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
 import RecentChangesContext, { RecentChanges } from "./RecentChangesContext";
+import InvestigationRuleWait from "./InvestigationRuleWait";
+import { getInvestigationWaitUntil } from "../../../../Types/AI/InvestigationRuleWait";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -90,6 +92,13 @@ export interface AlertGateDecision {
   reason: string;
   // Passed through to the AIRun as the dedupe key for future windows.
   monitorId?: ObjectID | undefined;
+  /*
+   * To investigate, and every investigation rule it matches waits: the
+   * shortest wait, in minutes, from when the alert was created.
+   */
+  waitMinutes?: number | undefined;
+  // When the alert was created: a wait counts from it.
+  createdAt?: Date | undefined;
 }
 
 export default class AIAlertInvestigationRunner {
@@ -108,6 +117,12 @@ export default class AIAlertInvestigationRunner {
    * in one order: what stops OneUptime AI for the whole project first (AI
    * off, no provider, no credits...), then what is true of this alert -
    * created already resolved, then the cost gates.
+   *
+   * An alert whose investigation rules all wait is not queued: it waits
+   * (InvestigationRuleWait), and this returns false, so auto remediation
+   * does not wait for an investigation that may never happen. When the wait
+   * ends, the rule-wait job sends a still-open alert down this path again
+   * (afterWaitMinutes), and everything is decided as of then.
    */
   @CaptureSpan()
   public static async investigateNewAlert(data: {
@@ -118,26 +133,53 @@ export default class AIAlertInvestigationRunner {
      * was recorded, so there is nothing to investigate.
      */
     createdResolved?: boolean | undefined;
+    /*
+     * Set when an investigation rule's wait ended (InvestigationRuleWait):
+     * the wait, in minutes. Whatever stops the investigation now is recorded
+     * as decided after the wait, and the run it queues says it waited.
+     */
+    afterWaitMinutes?: number | undefined;
   }): Promise<boolean> {
     const { alertId, projectId } = data;
     const subject: { alertId: ObjectID; projectId: ObjectID } = {
       alertId,
       projectId,
     };
+    const afterWaitMinutes: number | undefined =
+      data.afterWaitMinutes && data.afterWaitMinutes > 0
+        ? data.afterWaitMinutes
+        : undefined;
+
+    // Why not, on the alert's AI card - decided after its wait, if it waited.
+    const recordSkipped: (
+      code: InvestigationNotStartedCode,
+      budget?: AutonomousBudgetStatus,
+      details?: InvestigationGateDetails,
+    ) => Promise<void> = async (
+      code: InvestigationNotStartedCode,
+      budget?: AutonomousBudgetStatus,
+      details?: InvestigationGateDetails,
+    ): Promise<void> => {
+      await InvestigationEligibility.recordSkipped(
+        subject,
+        code,
+        budget,
+        afterWaitMinutes
+          ? { ...(details || {}), waitMinutes: afterWaitMinutes }
+          : details,
+      );
+    };
 
     try {
       const disabled: InvestigationNotStartedCode | null =
         await AIInvestigationEngine.getDisabledReason(projectId, "Alert");
       if (disabled) {
-        await InvestigationEligibility.recordSkipped(subject, disabled);
+        await recordSkipped(disabled);
         return false;
       }
 
       if (data.createdResolved) {
-        await InvestigationEligibility.recordSkipped(
-          subject,
-          "created_resolved",
-        );
+        await recordSkipped("created_resolved");
         return false;
       }
 
@@ -147,8 +189,7 @@ export default class AIAlertInvestigationRunner {
       });
 
       if (!gate.investigate) {
-        await InvestigationEligibility.recordSkipped(
-          subject,
+        await recordSkipped(
           gate.notStartedCode || "eligibility_check_failed",
           undefined,
           gate.notStartedDetails,
@@ -159,6 +200,46 @@ export default class AIAlertInvestigationRunner {
         return false;
       }
 
+      /*
+       * Every investigation rule it matches waits: it waits until the
+       * shortest wait has passed since it was created, unless that time has
+       * come already (the wait ended, or it was caught up late). When the
+       * wait cannot be written, it is investigated right away rather than
+       * never.
+       */
+      if (gate.waitMinutes && gate.waitMinutes > 0) {
+        const waitUntil: Date = getInvestigationWaitUntil(
+          gate.createdAt || OneUptimeDate.getCurrentDate(),
+          gate.waitMinutes,
+        );
+
+        if (
+          waitUntil.getTime() > OneUptimeDate.getCurrentDate().getTime() &&
+          (await InvestigationRuleWait.startWaiting({
+            lane: "Alert",
+            projectId,
+            subjectId: alertId,
+            waitUntil,
+          }))
+        ) {
+          logger.debug(
+            `AI: alert ${alertId.toString()} waits ${gate.waitMinutes} minutes, until ${waitUntil.toISOString()}, before it is investigated.`,
+          );
+          return false;
+        }
+      }
+
+      /*
+       * A run after a wait (or whose rule waits, caught up late): its
+       * alert's auto remediation did not wait for it, so it says so
+       * (ruleWaitMinutes), and it is the alert's one investigation - the
+       * job, Investigate now and Ask AI may all try to start it at once.
+       */
+      const ruleWaitMinutes: number | undefined =
+        gate.waitMinutes && gate.waitMinutes > 0
+          ? gate.waitMinutes
+          : afterWaitMinutes;
+
       const enqueuedRunId: ObjectID | null = await AIInvestigationQueue.enqueue(
         {
           projectId,
@@ -168,17 +249,26 @@ export default class AIAlertInvestigationRunner {
             code: InvestigationNotStartedCode,
             budget?: AutonomousBudgetStatus,
           ): Promise<void> => {
-            await InvestigationEligibility.recordSkipped(subject, code, budget);
+            await recordSkipped(code, budget);
           },
+          ...(ruleWaitMinutes
+            ? {
+                ruleWaitMinutes,
+                admitInsideSubjectLock: async (): Promise<boolean> => {
+                  return !(await InvestigationRuleWait.hasInvestigationRun({
+                    lane: "Alert",
+                    projectId,
+                    subjectId: alertId,
+                  }));
+                },
+              }
+            : {}),
         },
       );
 
       return enqueuedRunId !== null;
     } catch (error) {
-      await InvestigationEligibility.recordSkipped(
-        subject,
-        "eligibility_check_failed",
-      );
+      await recordSkipped("eligibility_check_failed");
       logger.error(
         `AI: unexpected error enqueueing investigation for alert ${alertId.toString()}: ${error}`,
       );
@@ -198,8 +288,18 @@ export default class AIAlertInvestigationRunner {
     projectId: ObjectID;
     alertId: ObjectID;
     attemptCount: number;
+    /*
+     * Set on an investigation an investigation rule made wait
+     * (InvestigationRuleWait): the alert's auto remediation did not wait
+     * for it, so it never releases remediation when it settles.
+     */
+    ruleWaitMinutes?: number | undefined;
   }): Promise<void> {
     const { aiRunId, projectId, alertId, attemptCount } = data;
+    // Remediation never waited for a run an investigation rule made wait.
+    const isRemediationReleased: boolean = Boolean(
+      data.ruleWaitMinutes && data.ruleWaitMinutes > 0,
+    );
 
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
@@ -352,7 +452,7 @@ export default class AIAlertInvestigationRunner {
           isPermanent: false,
         });
 
-      if (outcome === "finalized") {
+      if (outcome === "finalized" && !isRemediationReleased) {
         await RemediationHandoff.runForSettledInvestigation({
           projectId,
           alertId,
@@ -529,9 +629,15 @@ export default class AIAlertInvestigationRunner {
         /*
          * RCA-first ordering: auto-remediation for this alert was deferred
          * at creation because this investigation was enqueued — release it
-         * now that the run has settled (any terminal outcome).
+         * now that the run has settled (any terminal outcome). A run an
+         * investigation rule made wait releases nothing: remediation did
+         * not wait for it.
          */
         onSettled: async (): Promise<void> => {
+          if (isRemediationReleased) {
+            return;
+          }
+
           await RemediationHandoff.runForSettledInvestigation({
             projectId,
             alertId,
@@ -557,6 +663,8 @@ export default class AIAlertInvestigationRunner {
     const alert: Alert | null = await AlertService.findOneById({
       id: alertId,
       select: {
+        // When it was created: a rule's wait counts from it.
+        createdAt: true,
         // What an investigation rule matches on, and the severity floor.
         title: true,
         description: true,
@@ -679,6 +787,9 @@ export default class AIAlertInvestigationRunner {
       investigate: true,
       reason: "passed severity and dedupe gates",
       monitorId: alert.monitorId,
+      ...(scope.waitMinutes && scope.waitMinutes > 0
+        ? { waitMinutes: scope.waitMinutes, createdAt: alert.createdAt }
+        : {}),
     };
   }
 

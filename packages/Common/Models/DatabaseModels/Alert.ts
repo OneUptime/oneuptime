@@ -126,6 +126,14 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 })
 @Index(["projectId", "currentAlertStateId"]) // Active-alert counters on dashboard
+/*
+ * The alerts an investigation rule makes OneUptime AI wait on: a handful at
+ * any moment, so the index holds only them, and the rule-wait job's "wait
+ * ended" read (aiInvestigationWaitUntil <= now) implies its predicate.
+ */
+@Index(["aiInvestigationWaitUntil"], {
+  where: '"aiInvestigationWaitUntil" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -1908,6 +1916,25 @@ export default class Alert extends BaseModel {
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public aiInvestigationDecision?: InvestigationNotStartedReason = undefined;
+
+  /*
+   * While an investigation rule makes OneUptime AI wait before it
+   * investigates this alert (issue #5074): when the wait ends. The alert is
+   * investigated then if it is still open, and the column is cleared
+   * whatever happens. Null for every other alert. The rule-wait job finds
+   * the ones whose wait has ended through the partial index above
+   * (Server/Utils/AI/SRE/InvestigationRuleWait).
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Investigation Waits Until",
+    description:
+      "Internal: while an investigation rule makes OneUptime AI wait before it investigates this record, when the wait ends.",
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public aiInvestigationWaitUntil?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -38,6 +38,26 @@ export default class InvestigationEligibility {
   ): InvestigationNotStartedReason {
     const kind: string = subject.alertId ? "alert" : "incident";
     const recorded: boolean = source === "recorded";
+    /*
+     * A decision recorded when an investigation rule's wait ended (issue
+     * #5074) rather than when the record was created: its words say so.
+     */
+    const waitMinutes: number | undefined =
+      details?.waitMinutes && details.waitMinutes > 0
+        ? details.waitMinutes
+        : undefined;
+    const isAfterWait: boolean = recorded && waitMinutes !== undefined;
+    // "at creation", or "when the wait ended".
+    const atDecision: string = isAfterWait
+      ? "when the wait ended"
+      : "at creation";
+    // "when this incident was created", or "when this incident's 10-minute wait ended".
+    const whenDecided: string = isAfterWait
+      ? `when this ${kind}'s ${waitMinutes}-minute wait ended`
+      : `when this ${kind} was created`;
+    const whenDecidedAtStart: string = isAfterWait
+      ? `When this ${kind}'s ${waitMinutes}-minute wait ended`
+      : `When this ${kind} was created`;
     const cooldownWindow: string =
       details?.cooldownWindowMinutes !== undefined
         ? `${details.cooldownWindowMinutes}-minute`
@@ -48,10 +68,10 @@ export default class InvestigationEligibility {
     > = {
       ai_disabled: {
         title: recorded
-          ? "Project AI was turned off at creation"
+          ? `Project AI was turned off ${atDecision}`
           : "Project AI is currently turned off",
         description: recorded
-          ? `AI was disabled for this project when this ${kind} was created, so its automatic investigation did not start.`
+          ? `AI was disabled for this project ${whenDecided}, so its automatic investigation did not start.`
           : "AI is currently disabled for this project, so new automatic investigations cannot start.",
         nextStep: recorded
           ? "Review project AI settings (Project Settings → AI → AI Features) for new records. Existing records are not automatically retried when AI is enabled."
@@ -59,19 +79,19 @@ export default class InvestigationEligibility {
       },
       automatic_investigation_disabled: {
         title: recorded
-          ? `Automatic ${kind} investigation was off at creation`
+          ? `Automatic ${kind} investigation was off ${atDecision}`
           : `Automatic ${kind} investigation is currently turned off`,
-        description: `${recorded ? `Automatic investigation was not enabled for ${kind}s when this ${kind} was created.` : `Automatic investigation is not currently enabled for ${kind}s.`} Alerts and incidents have separate investigation settings.`,
+        description: `${recorded ? `Automatic investigation was not enabled for ${kind}s ${whenDecided}.` : `Automatic investigation is not currently enabled for ${kind}s.`} Alerts and incidents have separate investigation settings.`,
         nextStep: recorded
           ? `Review automatic ${kind} investigation settings for new ${kind}s. Enabling investigation later does not automatically retry this ${kind}.`
           : `Enable automatic ${kind} investigation for new ${kind}s. Existing records are not automatically retried.`,
       },
       provider_missing: {
         title: recorded
-          ? "No AI provider was available at creation"
+          ? `No AI provider was available ${atDecision}`
           : "No AI provider is currently available",
         description: recorded
-          ? `Automatic investigation was enabled when this ${kind} was created, but no configured AI provider was available to run it.`
+          ? `Automatic investigation was enabled ${whenDecided}, but no configured AI provider was available to run it.`
           : "Automatic investigation is currently enabled, but this project has no configured AI provider available to run new investigations.",
         nextStep: recorded
           ? "Review the AI provider configuration for new investigations. Configuring a provider later does not automatically retry existing records."
@@ -79,10 +99,10 @@ export default class InvestigationEligibility {
       },
       insufficient_ai_balance: {
         title: recorded
-          ? "The project was out of AI credits at creation"
+          ? `The project was out of AI credits ${atDecision}`
           : "The project is currently out of AI credits",
         description: recorded
-          ? `This project had no AI credits left when this ${kind} was created, so its automatic investigation did not start.`
+          ? `This project had no AI credits left ${whenDecided}, so its automatic investigation did not start.`
           : "This project is currently out of AI credits, so new automatic investigations cannot start.",
         /*
          * Where the credits are, and what adding them does - not who: the
@@ -98,10 +118,10 @@ export default class InvestigationEligibility {
       },
       project_daily_limit_reached: {
         title: recorded
-          ? "The project's daily AI limit had been reached at creation"
+          ? `The project's daily AI limit had been reached ${atDecision}`
           : "The project's daily AI limit is currently reached",
         description: recorded
-          ? `This project had reached one of its own daily AI limits when this ${kind} was created, so its automatic investigation did not start.`
+          ? `This project had reached one of its own daily AI limits ${whenDecided}, so its automatic investigation did not start.`
           : "This project has reached one of its own daily AI limits today, so new automatic investigations cannot start.",
         /*
          * A recorded skip is taken back once the limit no longer stops AI
@@ -114,9 +134,9 @@ export default class InvestigationEligibility {
       },
       severity_below_threshold: {
         title: recorded
-          ? "Severity was below the investigation threshold at creation"
+          ? `Severity was below the investigation threshold ${atDecision}`
           : "Severity is below the current investigation threshold",
-        description: `${recorded ? `When this ${kind} was created, its` : `This ${kind}'s`}${details?.severityName ? ` ${details.severityName}` : ""} severity ${recorded ? "did not meet" : "does not meet"} ${details?.minimumSeverityName ? `the minimum ${details.minimumSeverityName} investigation severity` : "the configured investigation threshold"}.`,
+        description: `${recorded ? `${whenDecidedAtStart}, its` : `This ${kind}'s`}${details?.severityName ? ` ${details.severityName}` : ""} severity ${recorded ? "did not meet" : "does not meet"} ${details?.minimumSeverityName ? `the minimum ${details.minimumSeverityName} investigation severity` : "the configured investigation threshold"}.`,
         nextStep:
           "Review the minimum investigation severity in AI settings. Changes apply to new records and do not retry this record.",
       },
@@ -132,9 +152,15 @@ export default class InvestigationEligibility {
       },
       no_investigation_rule_matched: {
         title: recorded
-          ? `This ${kind} was outside the investigation rules at creation`
+          ? `This ${kind} was outside the investigation rules ${atDecision}`
           : `This ${kind} is currently outside the investigation rules`,
-        description: `${recorded ? `When this ${kind} was created, investigation rules were set up for ${kind}s, and it` : `Investigation rules are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
+        /*
+         * After a wait the record matched a rule when it was created - the
+         * rule that made it wait - so what changed is said instead.
+         */
+        description: isAfterWait
+          ? `An investigation rule made OneUptime AI wait ${waitMinutes} minutes before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} investigation ${details.rulesChecked === 1 ? "rule" : "rules"}` : "the investigation rules"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
+          : `${recorded ? `When this ${kind} was created, investigation rules were set up for ${kind}s, and it` : `Investigation rules are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
         nextStep: recorded
           ? `Review the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`
           : `Review the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Existing records are not automatically retried.`,
@@ -143,6 +169,17 @@ export default class InvestigationEligibility {
         title: `This ${kind} was created already resolved`,
         description: `It was already resolved when it was created, so OneUptime AI did not investigate it automatically.`,
         nextStep: "To look into it anyway, ask OneUptime AI below.",
+      },
+      /*
+       * Only ever recorded when a rule's wait ends (InvestigationRuleWait):
+       * "resolved before the investigation started" also holds when the
+       * record was still open as the wait ended and resolved before the
+       * next check reached it.
+       */
+      resolved_before_investigation: {
+        title: "Resolved before the investigation started",
+        description: `An investigation rule makes OneUptime AI wait${waitMinutes ? ` ${waitMinutes} ${waitMinutes === 1 ? "minute" : "minutes"}` : ""} before it investigates, and investigate only ${kind}s still open then. This ${kind} was resolved first, so it was not investigated.`,
+        nextStep: `To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings.`,
       },
       daily_budget_exhausted: {
         title:
@@ -154,8 +191,8 @@ export default class InvestigationEligibility {
               ? "Daily AI token budget had been reached"
               : "Daily AI token budget is currently exhausted",
         description: budget
-          ? `AI work for ${kind}s ${recorded ? "had used" : "has used"} ${budget.usedTokensToday.toLocaleString("en-US")} of its ${budget.limitInTokens?.toLocaleString("en-US")} token daily allowance ${recorded ? "when checked at creation. No investigation was queued." : "today. The current allowance does not permit a new investigation."}`
-          : `The daily autonomous token allowance for ${kind}s ${recorded ? "had been reached when this record was created, so no investigation was queued." : "is currently exhausted, so new investigations cannot start."}`,
+          ? `AI work for ${kind}s ${recorded ? "had used" : "has used"} ${budget.usedTokensToday.toLocaleString("en-US")} of its ${budget.limitInTokens?.toLocaleString("en-US")} token daily allowance ${recorded ? `when checked ${isAfterWait ? "as its wait ended" : "at creation"}. No investigation was queued.` : "today. The current allowance does not permit a new investigation."}`
+          : `The daily autonomous token allowance for ${kind}s ${recorded ? `had been reached ${isAfterWait ? "when this record's wait ended" : "when this record was created"}, so no investigation was queued.` : "is currently exhausted, so new investigations cannot start."}`,
         nextStep:
           "Review the daily token limit in AI settings. Usage resets at midnight UTC; skipped records are not automatically retried after the reset.",
       },
@@ -204,6 +241,7 @@ export default class InvestigationEligibility {
         : `${reasons[code].description} These are the current conditions; the original decision was not recorded, so they do not confirm why this record was skipped at creation.`,
       source,
       evaluatedAt: new Date().toISOString(),
+      ...(isAfterWait ? { decidedAfterWaitMinutes: waitMinutes } : {}),
     };
   }
 

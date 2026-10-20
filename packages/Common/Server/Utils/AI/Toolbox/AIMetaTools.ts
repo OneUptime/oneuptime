@@ -23,6 +23,11 @@ import AlertService from "../../../Services/AlertService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import PostedRootCause from "../SRE/PostedRootCause";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
+import InvestigationRuleWait, {
+  RuleWaitSubject,
+  StartNowResult,
+  WaitingInvestigation,
+} from "../SRE/InvestigationRuleWait";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -375,8 +380,22 @@ export const GetAIInvestigationTool: ObservabilityTool = {
     });
 
     if (runs.length === 0) {
+      /*
+       * An investigation rule makes OneUptime AI wait before it
+       * investigates this subject (issue #5074): say until when, so the
+       * model neither calls it skipped nor starts one unasked.
+       */
+      const waiting: WaitingInvestigation | null =
+        await InvestigationRuleWait.getWaiting({
+          lane: incidentId ? "Incident" : "Alert",
+          projectId: ctx.projectId,
+          subjectId: (incidentId || alertId)!,
+        });
+
       return {
-        dataForLlm: `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation setting being off, or the daily AI budget). You can offer to start one with start_investigation.`,
+        dataForLlm: waiting
+          ? `No AI investigation has started for ${subject.label} yet: an investigation rule makes OneUptime AI wait ${waiting.waitMinutes} minutes after it was created, and investigate it at ${waiting.waitUntil.toISOString()} only if it is still open then. If the user wants the investigation now, offer to start it with start_investigation, which starts it at once.`
+          : `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation setting being off, or the daily AI budget). You can offer to start one with start_investigation.`,
         rowCount: 0,
         citationLabel: `AI investigation for ${subject.label} (none found)`,
         citationTarget: {
@@ -852,22 +871,46 @@ export const StartInvestigationTool: ObservabilityTool = {
     }
 
     /*
+     * An investigation rule makes OneUptime AI wait before it investigates
+     * this incident or alert (issue #5074): asking for it starts it now, as
+     * the AI card's Investigate now does - one run, which says it waited,
+     * and the wait ends with it (InvestigationRuleWait.startNow).
+     */
+    const waitSubject: RuleWaitSubject = {
+      lane: incidentId ? "Incident" : "Alert",
+      projectId: ctx.projectId,
+      subjectId: (incidentId || alertId)!,
+    };
+    let startedAfterWait: StartNowResult | null = null;
+
+    if (await InvestigationRuleWait.getWaiting(waitSubject)) {
+      startedAfterWait = await InvestigationRuleWait.startNow(waitSubject);
+    }
+
+    /*
      * The SAME durable enqueue path the automatic lanes use: an AIRun in
      * status Queued that the worker poller claims (with an inline kick for
      * happy-path latency). projectId comes from ctx — never from an
      * argument. enqueue never throws; null means the daily autonomous AI
      * budget quiet-skipped it or the enqueue failed.
      */
-    const enqueuedRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
-      projectId: ctx.projectId,
-      subjectIncidentId: incidentId,
-      subjectAlertId: alertId,
-      subjectMonitorId: subject.monitorId,
-    });
+    const enqueuedRunId: ObjectID | null = startedAfterWait
+      ? startedAfterWait.isStarted
+        ? startedAfterWait.runId
+        : null
+      : await AIInvestigationQueue.enqueue({
+          projectId: ctx.projectId,
+          subjectIncidentId: incidentId,
+          subjectAlertId: alertId,
+          subjectMonitorId: subject.monitorId,
+        });
 
     if (!enqueuedRunId) {
       return {
-        dataForLlm: `The investigation for ${subject.label} could not be enqueued — the project's daily autonomous AI token budget may be exhausted, or the enqueue failed. Try again later.`,
+        dataForLlm:
+          startedAfterWait && !startedAfterWait.isStarted
+            ? `The investigation for ${subject.label} could not be started: ${startedAfterWait.message}`
+            : `The investigation for ${subject.label} could not be enqueued — the project's daily autonomous AI token budget may be exhausted, or the enqueue failed. Try again later.`,
         rowCount: 0,
         citationLabel: `Investigation not enqueued for ${subject.label}`,
         citationTarget: {

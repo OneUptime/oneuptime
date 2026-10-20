@@ -103,6 +103,11 @@ export interface QueuedRunRef {
   triggeredByAutoRemediationSuggestionId?: ObjectID | undefined;
   // Set on an incident's follow-up check (IncidentFollowUpCheck).
   followUpForAlertId?: ObjectID | undefined;
+  /*
+   * Set on an investigation an investigation rule made wait
+   * (InvestigationRuleWait): its subject's remediation did not wait for it.
+   */
+  ruleWaitMinutes?: number | undefined;
 }
 
 export default class AIInvestigationQueue {
@@ -156,6 +161,13 @@ export default class AIInvestigationQueue {
      * uses it so two triggers at once can only ever add one run.
      */
     admitInsideSubjectLock?: (() => Promise<boolean>) | undefined;
+    /*
+     * An investigation an investigation rule made wait
+     * (InvestigationRuleWait): the minutes it waited. Its subject's auto
+     * remediation started when the subject was created instead of waiting
+     * for it, so it never hands the subject to remediation when it settles.
+     */
+    ruleWaitMinutes?: number | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
@@ -258,6 +270,9 @@ export default class AIInvestigationQueue {
     if (data.followUpForAlertId) {
       run.followUpForAlertId = data.followUpForAlertId;
     }
+    if (data.ruleWaitMinutes && data.ruleWaitMinutes > 0) {
+      run.ruleWaitMinutes = data.ruleWaitMinutes;
+    }
 
     let createdRun: AIRun | null;
     try {
@@ -323,6 +338,7 @@ export default class AIInvestigationQueue {
       triggeredByAutoRemediationSuggestionId:
         data.subjectAutoRemediationSuggestionId,
       followUpForAlertId: data.followUpForAlertId,
+      ruleWaitMinutes: run.ruleWaitMinutes,
     }).catch((error: Error) => {
       logger.error(
         `AI: inline processing of queued run ${createdRunId?.toString()} failed: ${error}`,
@@ -391,6 +407,7 @@ export default class AIInvestigationQueue {
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
         followUpForAlertId: true,
+        ruleWaitMinutes: true,
       },
       limit: 100,
       skip: 0,
@@ -423,6 +440,7 @@ export default class AIInvestigationQueue {
           triggeredByIncidentId: expired.triggeredByIncidentId,
           triggeredByAlertId: expired.triggeredByAlertId,
           followUpForAlertId: expired.followUpForAlertId,
+          ruleWaitMinutes: expired.ruleWaitMinutes,
         });
       }
     }
@@ -446,6 +464,7 @@ export default class AIInvestigationQueue {
         triggeredByAiInsightId: true,
         triggeredByAutoRemediationSuggestionId: true,
         followUpForAlertId: true,
+        ruleWaitMinutes: true,
       },
       sort: { createdAt: SortOrder.Ascending },
       limit: POLLER_BATCH_SIZE,
@@ -465,6 +484,7 @@ export default class AIInvestigationQueue {
         triggeredByAutoRemediationSuggestionId:
           queued.triggeredByAutoRemediationSuggestionId,
         followUpForAlertId: queued.followUpForAlertId,
+        ruleWaitMinutes: queued.ruleWaitMinutes,
       };
 
       try {
@@ -574,6 +594,7 @@ export default class AIInvestigationQueue {
     triggeredByIncidentId?: ObjectID | undefined;
     triggeredByAlertId?: ObjectID | undefined;
     followUpForAlertId?: ObjectID | undefined;
+    ruleWaitMinutes?: number | undefined;
   }): Promise<"requeued" | "stale" | "noop"> {
     if ((run.attemptCount || 0) < MAX_INVESTIGATION_ATTEMPTS) {
       const requeued: number = await AIRunService.attemptStatusTransition({
@@ -629,7 +650,9 @@ export default class AIInvestigationQueue {
    *
    * An incident's follow-up check never hands off either: its first
    * investigation already released the incident's remediation when it
-   * settled, and a second release would run the rules again.
+   * settled, and a second release would run the rules again. Nor does a
+   * run an investigation rule made wait (ruleWaitMinutes): its subject's
+   * rules ran when it was created, since nothing was queued then.
    */
   private static async handOffSettledInvestigationToRemediation(run: {
     runType?: AIRunType | undefined;
@@ -637,12 +660,17 @@ export default class AIInvestigationQueue {
     triggeredByIncidentId?: ObjectID | undefined;
     triggeredByAlertId?: ObjectID | undefined;
     followUpForAlertId?: ObjectID | undefined;
+    ruleWaitMinutes?: number | undefined;
   }): Promise<void> {
     if (run.runType !== AIRunType.Investigation) {
       return;
     }
 
     if (run.followUpForAlertId) {
+      return;
+    }
+
+    if (run.ruleWaitMinutes && run.ruleWaitMinutes > 0) {
       return;
     }
 
@@ -999,6 +1027,9 @@ export default class AIInvestigationQueue {
         ...(run.followUpForAlertId
           ? { followUpForAlertId: run.followUpForAlertId }
           : {}),
+        ...(run.ruleWaitMinutes
+          ? { ruleWaitMinutes: run.ruleWaitMinutes }
+          : {}),
       });
       return;
     }
@@ -1013,6 +1044,9 @@ export default class AIInvestigationQueue {
         projectId: run.projectId,
         alertId: run.triggeredByAlertId,
         attemptCount: attempt,
+        ...(run.ruleWaitMinutes
+          ? { ruleWaitMinutes: run.ruleWaitMinutes }
+          : {}),
       });
       return;
     }
