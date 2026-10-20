@@ -849,6 +849,7 @@ export default class AIIncidentInvestigationRunner {
         incidentId,
         attemptCount,
         isFollowUp,
+        isRemediationReleased,
         contextSummary,
         promptOmissions,
         contextNotes,
@@ -870,6 +871,8 @@ export default class AIIncidentInvestigationRunner {
     incidentId: ObjectID;
     attemptCount: number;
     isFollowUp: boolean;
+    // Nothing to release when it settles: a follow-up check, or a waited run.
+    isRemediationReleased: boolean;
     contextSummary: string;
     promptOmissions: AIPromptOmissions;
     contextNotes: Array<AIRunEventResultSummary>;
@@ -884,6 +887,7 @@ export default class AIIncidentInvestigationRunner {
       incidentId,
       attemptCount,
       isFollowUp,
+      isRemediationReleased,
       contextSummary,
       promptOmissions,
       contextNotes,

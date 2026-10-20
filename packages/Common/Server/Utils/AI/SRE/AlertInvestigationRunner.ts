@@ -576,6 +576,7 @@ export default class AIAlertInvestigationRunner {
         projectId,
         alertId,
         attemptCount,
+        isRemediationReleased,
         contextSummary,
         promptOmissions,
         contextNotes,
@@ -595,6 +596,8 @@ export default class AIAlertInvestigationRunner {
     projectId: ObjectID;
     alertId: ObjectID;
     attemptCount: number;
+    // Nothing to release when it settles: a run a rule made wait.
+    isRemediationReleased: boolean;
     contextSummary: string;
     promptOmissions: AIPromptOmissions;
     contextNotes: Array<AIRunEventResultSummary>;
@@ -607,6 +610,7 @@ export default class AIAlertInvestigationRunner {
       projectId,
       alertId,
       attemptCount,
+      isRemediationReleased,
       contextSummary,
       promptOmissions,
       contextNotes,
