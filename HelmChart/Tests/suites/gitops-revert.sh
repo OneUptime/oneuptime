@@ -53,9 +53,9 @@ GIT_REPO_URL="http://gitea.${GIT_NAMESPACE}.svc.cluster.local:3000/${GIT_USER}/g
 
 OWNERS="argocd-selfheal argocd-autosync flux flux-helmrelease flux-helmrelease-drift helm"
 CASES="restart undo scale scale-undeclared image resources env env-add patch pause delete-pod delete-workload annotate"
-# A Flux HelmRelease renders only these: the fields a fix changes, plus a
-# deleted workload. Keeps the cluster under one node's pod limit.
-HELMRELEASE_CASES="undo scale image resources env delete-workload"
+# A Flux HelmRelease renders only these: the fixes OneUptime AI runs most,
+# plus a deleted workload. Keeps the cluster under one node's pod limit.
+HELMRELEASE_CASES="restart undo scale image resources delete-workload"
 
 WORK_DIR="$(mktemp -d)"
 PORT_FORWARD_PID=""
@@ -423,10 +423,9 @@ expected_markers_of() {
     esac
 }
 
-# The fixes that change something git (or the chart) declares, and the
-# ones that do not.
+# The fixes that change something git (or the chart) declares. The others
+# add what git does not declare: Argo CD and Helm leave that alone.
 PUT_BACK_CASES="undo scale image resources env patch delete-workload"
-KEPT_CASES="restart scale-undeclared env-add pause annotate"
 
 # Owners that put a change back on their own, not at the next deploy.
 reconciles_on_its_own() {
@@ -439,11 +438,18 @@ reconciles_on_its_own() {
 # What each owner is expected to do with each fix: "on its own", "at the
 # next deploy", "never" (it stays) - or "" for a deleted pod, which its
 # ReplicaSet replaces whoever owns the Deployment.
+#
+# Flux's kustomize-controller takes over the fields kubectl wrote and applies
+# git again, so it also removes what kubectl added: a restart annotation, a
+# pause, an annotation, a variable. Of these fixes only `kubectl scale` of a
+# replica count git does not declare stays.
 expected_outcome_of() {
     # expected_outcome_of <owner> <case>
     local owner="$1" case="$2"
     if [ "$case" = "delete-pod" ]; then
         echo ""
+    elif [ "$owner" = "flux" ] && [ "$case" != "scale-undeclared" ]; then
+        echo "on its own"
     elif [[ " ${PUT_BACK_CASES} " == *" ${case} "* ]]; then
         if reconciles_on_its_own "$owner"; then
             echo "on its own"
