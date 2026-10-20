@@ -27,6 +27,9 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
 
 /*
  * The AI Assistance page reads the setup checklist and the latest task of
@@ -205,7 +208,36 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
+
+/*
+ * The signed-in person's permissions, as the permission snapshot hands them
+ * to every gate - or (null) a snapshot that has not arrived yet.
+ */
+function grant(permissions: Array<Permission> | null): void {
+  jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue(permissions || []);
+  jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(
+    permissions
+      ? {
+          projectId: new ObjectID("10000000-0000-4000-8000-000000000001"),
+          userId: ObjectID.generate(),
+          permissions: permissions.map((permission: Permission) => {
+            return {
+              permission: permission,
+              labelIds: [],
+              _type: "UserPermission",
+            };
+          }),
+          _type: "UserTenantAccessPermission",
+        }
+      : null,
+  );
+}
 
 async function renderAssistance(
   props: { isResolved?: boolean; isArchived?: boolean } = {},
@@ -228,24 +260,65 @@ function card(taskType: string): HTMLElement {
 }
 
 describe("ExceptionAIAssistance", () => {
-  test("with the project's AI switched off, says so and who can turn it on - no task cards, nothing to start", async () => {
-    mockCurrentProject = { enableAi: false };
+  /*
+   * With the project's AI switched off the page says so as Code does (the
+   * tasks it starts are Code's), with the one step that changes it, and
+   * nothing else: no task cards, nothing to start.
+   */
+  describe("with the project's AI switched off", () => {
+    afterEach(() => {
+      mockCurrentProject = null;
+    });
 
-    try {
-      await renderAssistance();
-
-      expect(screen.getByTestId("exception-ai-off")).toHaveTextContent(
-        "AI features are disabled for this project",
-      );
-      expect(screen.getByTestId("exception-ai-off")).toHaveTextContent(
-        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
-      );
+    function expectNothingToStart(): void {
       expect(screen.queryByTestId("exception-ai-ready")).toBeNull();
       expect(screen.queryByTestId("exception-ai-task-FixException")).toBeNull();
       expect(screen.queryByTestId("exception-ai-task-start")).toBeNull();
-    } finally {
-      mockCurrentProject = null;
     }
+
+    test("someone who may turn AI on is offered Turn AI on, to AI Features", async () => {
+      mockCurrentProject = { enableAi: false };
+      grant([Permission.ProjectUser, Permission.ProjectOwner]);
+      await renderAssistance();
+
+      const notice: HTMLElement = screen.getByTestId("exception-ai-off");
+      expect(notice).toHaveTextContent("AI is turned off for this project.");
+      const link: HTMLElement = within(notice).getByTestId("code-blocker-fix");
+      expect(link).toHaveTextContent("Turn AI on");
+      expect(
+        (link.getAttribute("href") || "").endsWith("/settings/ai-features"),
+      ).toBe(true);
+      expect(within(notice).queryByTestId("code-blocker-who-can")).toBeNull();
+      expectNothingToStart();
+    });
+
+    test("everyone else is told who can turn it on", async () => {
+      mockCurrentProject = { enableAi: false };
+      grant([Permission.ProjectUser, Permission.ProjectMember]);
+      await renderAssistance();
+
+      const notice: HTMLElement = screen.getByTestId("exception-ai-off");
+      expect(notice).toHaveTextContent("AI is turned off for this project.");
+      expect(within(notice).queryByTestId("code-blocker-fix")).toBeNull();
+      expect(
+        within(notice).getByTestId("code-blocker-who-can"),
+      ).toHaveTextContent(
+        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+      );
+      expectNothingToStart();
+    });
+
+    test("before the permissions arrive, the sentence alone", async () => {
+      mockCurrentProject = { enableAi: false };
+      grant(null);
+      await renderAssistance();
+
+      const notice: HTMLElement = screen.getByTestId("exception-ai-off");
+      expect(notice).toHaveTextContent("AI is turned off for this project.");
+      expect(within(notice).queryByTestId("code-blocker-fix")).toBeNull();
+      expect(within(notice).queryByTestId("code-blocker-who-can")).toBeNull();
+      expectNothingToStart();
+    });
   });
 
   test("shows one card per task type, ready to start", async () => {

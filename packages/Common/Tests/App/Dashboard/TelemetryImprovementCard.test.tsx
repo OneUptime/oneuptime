@@ -86,6 +86,8 @@ const CREATE_PATH: string =
 function answer(
   suggestion: JSONObject | Error,
   onCreate?: () => Promise<unknown>,
+  // What the suggestion route answers once a start was refused.
+  afterRefusal?: JSONObject,
 ): void {
   postMock.mockImplementation(async (args: PostArgs) => {
     const url: string = args.url.toString();
@@ -93,7 +95,12 @@ function answer(
       if (suggestion instanceof Error) {
         throw suggestion;
       }
-      return new HTTPResponse(200, suggestion, {});
+      const isAfterRefusal: boolean = posts(CREATE_PATH).length > 0;
+      return new HTTPResponse(
+        200,
+        isAfterRefusal && afterRefusal ? afterRefusal : suggestion,
+        {},
+      );
     }
     if (url.includes(CREATE_PATH)) {
       return onCreate
@@ -233,8 +240,7 @@ describe("Improve logging / tracing with AI", () => {
       throw new HTTPErrorResponse(
         400,
         {
-          message:
-            "An improve-tracing task is already queued or running for this service. Track its progress in Code.",
+          message: "This project used today's AI fix runs.",
         },
         {},
       );
@@ -257,8 +263,58 @@ describe("Improve logging / tracing with AI", () => {
       await screen.findByText("Could not create the tracing improvement task"),
     ).toBeInTheDocument();
     expect(
+      screen.getByText("This project used today's AI fix runs."),
+    ).toBeInTheDocument();
+    expect(
       screen.getByTestId("telemetry-improvement-card"),
     ).toBeInTheDocument();
+    // The refusal asked again what the server offers: still the card.
+    expect(posts(TELEMETRY_IMPROVEMENT_SUGGESTION_PATH)).toHaveLength(2);
+  });
+
+  test("refused because the same improvement started meanwhile: a link to it, not an error", async () => {
+    answer(
+      { offer: "Act", aiRunId: null },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "An improve-tracing task is already queued or running for this service. Track its progress in Code.",
+          },
+          {},
+        );
+      },
+      { offer: "InProgress", aiRunId: RUN_ID },
+    );
+    renderCard("ImproveTracing");
+
+    const card: HTMLElement = await screen.findByTestId(
+      "telemetry-improvement-card",
+    );
+    fireEvent.click(
+      within(card).getByRole("button", { name: /Improve Tracing/ }),
+    );
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Improve Tracing",
+      }),
+    );
+
+    const progress: HTMLElement = await screen.findByTestId(
+      "telemetry-improvement-progress",
+    );
+    expect(progress).toHaveTextContent("Tracing improvement in progress");
+    expect(
+      within(progress)
+        .getByText("View task progress")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    expect(
+      screen.queryByText("Could not create the tracing improvement task"),
+    ).toBeNull();
+    expect(screen.queryByTestId("telemetry-improvement-card")).toBeNull();
   });
 
   test("an improvement already on its way: a link to it instead of the card", async () => {

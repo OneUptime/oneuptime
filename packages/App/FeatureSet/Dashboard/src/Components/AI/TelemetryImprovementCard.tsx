@@ -47,6 +47,31 @@ export interface ComponentProps {
   taskType: "ImproveLogging" | "ImproveTracing";
 }
 
+// What the server offers this service now. Throws when it cannot be read.
+const readSuggestion: (data: {
+  serviceId: string;
+  taskType: ComponentProps["taskType"];
+}) => Promise<TelemetryImprovementSuggestion> = async (data: {
+  serviceId: string;
+  taskType: ComponentProps["taskType"];
+}): Promise<TelemetryImprovementSuggestion> => {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        TELEMETRY_IMPROVEMENT_SUGGESTION_PATH,
+      ),
+      data: {
+        telemetryServiceId: data.serviceId,
+        taskType: data.taskType,
+      },
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+  return response instanceof HTTPErrorResponse
+    ? NO_TELEMETRY_IMPROVEMENT_SUGGESTION
+    : parseTelemetryImprovementSuggestion(response.data);
+};
+
 const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
@@ -76,27 +101,14 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
 
     const loadSuggestion: () => Promise<void> = async (): Promise<void> => {
       try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              TELEMETRY_IMPROVEMENT_SUGGESTION_PATH,
-            ),
-            data: {
-              telemetryServiceId: serviceId,
-              taskType: props.taskType,
-            },
-            headers: ModelAPI.getCommonHeaders(),
-          });
+        const answer: TelemetryImprovementSuggestion = await readSuggestion({
+          serviceId,
+          taskType: props.taskType,
+        });
 
-        if (!isCurrent) {
-          return;
+        if (isCurrent) {
+          setSuggestion(answer);
         }
-
-        setSuggestion(
-          response instanceof HTTPErrorResponse
-            ? NO_TELEMETRY_IMPROVEMENT_SUGGESTION
-            : parseTelemetryImprovementSuggestion(response.data),
-        );
       } catch {
         // A suggestion is an offer, never something the page depends on.
         if (isCurrent) {
@@ -135,7 +147,25 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
 
       setAiRunId(((response.data as JSONObject)["aiRunId"] as string) || null);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      /*
+       * Ask again what the server offers: an improvement someone else
+       * started meanwhile is linked like any other on its way, rather than
+       * reported as a refusal. Anything else keeps the card and the reason.
+       */
+      const reason: string = API.getFriendlyMessage(err);
+      let latest: TelemetryImprovementSuggestion | null = null;
+
+      try {
+        latest = await readSuggestion({ serviceId, taskType: props.taskType });
+      } catch {
+        latest = null;
+      }
+
+      if (latest && latest.offer === SuggestionOffer.InProgress) {
+        setSuggestion(latest);
+      } else {
+        setError(reason);
+      }
     }
 
     setIsCreating(false);
