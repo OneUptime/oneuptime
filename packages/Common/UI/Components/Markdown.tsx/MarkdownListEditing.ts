@@ -549,8 +549,16 @@ interface SourceLine {
   item: ListMarker | null;
 }
 
+/*
+ * The spaces after the marker are taken whole ((?![ \t])), so the text after
+ * them is read to the line's end once: tried from each of them, a line
+ * separator after a long run (which "." does not match) was found again
+ * from each, in time that grew with the run's square - for every line of
+ * the note, each time Tab or a list button reads it. The pattern matches
+ * the same lines, with the same groups.
+ */
 const RE_SOURCE_LIST_ITEM: RegExp =
-  /^([ \t]*)([-*+]|\d{1,9}[.)])([ \t]+|$)(.*)$/;
+  /^([ \t]*)([-*+]|\d{1,9}[.)])([ \t]+|$)(?![ \t])(.*)$/;
 const RE_BULLET_MARKER: RegExp = /^[-*+]$/;
 const RE_FENCE_OPEN: RegExp = /^[ \t]*(`{3,}|~{3,})/;
 const RE_LEADING_WHITESPACE: RegExp = /^[ \t]*/;

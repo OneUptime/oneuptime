@@ -10,7 +10,24 @@
  *
  * The editing surface is a contenteditable, so the produced HTML is
  * passed through DOMPurify before being injected by callers.
+ *
+ * Both directions read text whoever wrote the note, description or
+ * postmortem wrote, in the browser of everyone who edits it, so both take
+ * time in line with its length: every pattern here reads a line once
+ * (MarkdownHeadingLine and MarkdownLinkSpans read the shapes no pattern
+ * reads once), the HTML is written back part by part without asking the
+ * text written so far anything, and a table is never written out to many
+ * times the size of what it holds.
  */
+
+import { readHeadingLine, HeadingLine } from "./MarkdownHeadingLine";
+import {
+  findImageSpans,
+  findLinkSpans,
+  LinkSpan,
+  replaceLinkSpans,
+} from "./MarkdownLinkSpans";
+import { withoutTrailingRun } from "../../../Utils/TrailingRuns";
 
 const escapeAttr: (s: string) => string = (s: string): string => {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -46,16 +63,33 @@ const PLACEHOLDER_CLOSE: string = "\u0000";
  * Dropping to `*` means a bare `---` also matches the pattern, so
  * `tryParseTable` additionally requires a pipe in the row: a horizontal rule
  * under a line that happens to contain a pipe must stay a horizontal rule.
+ *
+ * A pipe and the white space either side of it are one optional part, at
+ * the row's start and at its end: written as an optional pipe between two
+ * runs of white space, each split of a run between the two was tried, and
+ * a row with long runs of white space took time that grew with their cube.
+ * It matches the same rows.
  */
 const RE_TABLE_SEPARATOR: RegExp =
-  /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+  /^\s*(?:\|\s*)?:?-+:?\s*(?:\|\s*:?-+:?\s*)*(?:\|\s*)?$/;
 const RE_BLANK_LINE: RegExp = /^\s*$/;
-const RE_FENCE_OPEN: RegExp = /^\s*```\s*([\w-]*)\s*$/;
+/*
+ * The white space after the backticks is taken whole ((?!\s)): when the
+ * language name was empty, the two runs of white space around it shared
+ * one run every way it splits, and a long one took time in its square.
+ */
+const RE_FENCE_OPEN: RegExp = /^\s*```\s*(?!\s)([\w-]*)\s*$/;
 const RE_FENCE_CLOSE: RegExp = /^\s*```\s*$/;
 const RE_HORIZONTAL_RULE: RegExp = /^\s*(---+|\*\*\*+|___+)\s*$/;
-const RE_HEADING: RegExp = /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/;
 const RE_BLOCKQUOTE_LINE: RegExp = /^\s*>/;
-const RE_LIST_ITEM: RegExp = /^(\s*)([-*+]|\d+\.)\s+(.*)$/;
+/*
+ * The white space after a list marker is taken whole ((?!\s)), so the text
+ * after it is read to the line's end once: tried from each character of a
+ * long run of white space, a line separator after it (which "." does not
+ * match) was found again from each, in time that grew with the run's
+ * square. The pattern matches the same lines, with the same groups.
+ */
+const RE_LIST_ITEM: RegExp = /^(\s*)([-*+]|\d+\.)\s+(?!\s)(.*)$/;
 /*
  * A list item that may also be a bare marker ("-", "1.") with nothing after
  * it -- an empty item, as CommonMark and marked read it. The serializer
@@ -65,16 +99,59 @@ const RE_LIST_ITEM: RegExp = /^(\s*)([-*+]|\d+\.)\s+(.*)$/;
  * marker cannot start a list, so a line reading "2021." on its own still
  * is not one.
  */
-const RE_LIST_ITEM_OR_EMPTY: RegExp = /^(\s*)([-*+]|\d+\.)(?:\s+(.*)|\s*)$/;
+const RE_LIST_ITEM_OR_EMPTY: RegExp =
+  /^(\s*)([-*+]|\d+\.)(?:\s+(?!\s)(.*)|\s*)$/;
 const RE_ORDERED_MARKER: RegExp = /^\d+\./;
 const RE_TASK_PREFIX: RegExp = /^\[[ xX]\]\s+/;
-const RE_TASK_ITEM: RegExp = /^\[([ xX])\]\s+(.*)$/;
+const RE_TASK_ITEM: RegExp = /^\[([ xX])\]\s+(?!\s)(.*)$/;
 const RE_WHITESPACE_CHAR: RegExp = /\s/;
+const RE_SHOWN_CHARACTER: RegExp = /\S/;
 const RE_LIST_START: RegExp = /^\s*\d+\s*$/;
 // A template variable, "{{incident.title}}", on one line and with no braces inside.
 const RE_TEMPLATE_VARIABLE: RegExp = /\{\{[^{}\n]*\}\}/g;
 // The line breaks a table cell's text is joined over.
 const RE_LINE_BREAK_RUN: RegExp = /\n+/g;
+const RE_LEADING_LINE_FEEDS: RegExp = /^\n+/;
+
+/*
+ * A small allowlist of inline HTML tags a person may have typed: "<u>",
+ * "</sub>", "<br/>", "<kbd class=x>". One with white space after its name
+ * runs to the next ">" - or, with no ">" after it, to the end of the text,
+ * which is then left as it is (no later tag can end either). Looked for
+ * alone, each "<u " of a run with no ">" after it was read on to the end of
+ * the text again, in time that grew with the square of its length.
+ */
+const RE_ALLOWED_TAG_OR_UNCLOSED: RegExp =
+  /<\/?(?:u|sub|sup|kbd|br)(?:\s[^>]*(?:>|$)|\/?>)/gi;
+
+/*
+ * "***a***", bold and italic at once - or, with no "***" after it that
+ * closes it, the rest of the text, which is left as it is: a later "***"
+ * cannot be closed either. Looked for alone, each "***" that closed nothing
+ * was read on to the end of the text again.
+ */
+const RE_BOLD_ITALIC_OR_UNCLOSED: RegExp =
+  /\*\*\*(?=\S)(?:([\s\S]*?\S)\*\*\*|[\s\S]*)/g;
+
+const LINE_FEED: number = 0x0a;
+
+const isLineFeedCode: (code: number) => boolean = (code: number): boolean => {
+  return code === LINE_FEED;
+};
+
+// How many line feeds end `text`.
+const lineFeedsAtEnd: (text: string) => number = (text: string): number => {
+  let count: number = 0;
+
+  while (
+    count < text.length &&
+    text.charCodeAt(text.length - 1 - count) === LINE_FEED
+  ) {
+    count++;
+  }
+
+  return count;
+};
 
 // A tab advances to the next multiple of four columns, as in CommonMark.
 const TAB_WIDTH: number = 4;
@@ -97,6 +174,21 @@ const MAX_LIST_NESTING_DEPTH: number = 20;
  * reads it as more paragraph text rather than a nested list.
  */
 const TASK_ITEM_CONTENT_INDENT: number = "- ".length;
+
+/*
+ * How many empty cells a table's short rows are filled out with even when
+ * that is more than the cells the table holds: a small table is always a
+ * grid (tryParseTable).
+ */
+const TABLE_FILL_IN_ALLOWANCE: number = 100;
+
+/*
+ * How long a table written back with its columns lined up may be: within
+ * TABLE_LINED_UP_ALWAYS_WITHIN characters, or within TABLE_LINED_UP_TIMES
+ * the length of the table written plainly (tableToMarkdown).
+ */
+const TABLE_LINED_UP_ALWAYS_WITHIN: number = 64000;
+const TABLE_LINED_UP_TIMES: number = 8;
 
 interface InlineToken {
   html: string;
@@ -123,12 +215,10 @@ const renderInline: (raw: string, tokens?: Array<InlineToken>) => string = (
   let s: string = raw;
 
   // Preserve a small allowlist of inline HTML tags users may have typed.
-  s = s.replace(
-    /<\/?(?:u|sub|sup|kbd|br)(?:\s[^>]*)?\/?>/gi,
-    (m: string): string => {
-      return stash(m);
-    },
-  );
+  s = s.replace(RE_ALLOWED_TAG_OR_UNCLOSED, (m: string): string => {
+    // A tag that is not closed is the rest of the text, as it was.
+    return m.endsWith(">") ? stash(m) : m;
+  });
 
   // Inline code first — content is literal and not parsed further.
   s = s.replace(/`([^`\n]+)`/g, (_m: string, code: string): string => {
@@ -136,26 +226,28 @@ const renderInline: (raw: string, tokens?: Array<InlineToken>) => string = (
   });
 
   // Images.
-  s = s.replace(
-    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
-    (_m: string, alt: string, url: string, title?: string): string => {
-      const titleAttr: string = title ? ` title="${escapeAttr(title)}"` : "";
+  s = replaceLinkSpans(
+    s,
+    findImageSpans(s),
+    (image: LinkSpan): string => {
+      const titleAttr: string = image.title
+        ? ` title="${escapeAttr(image.title)}"`
+        : "";
       return stash(
-        `<img alt="${escapeAttr(alt)}" src="${escapeAttr(url)}"${titleAttr}>`,
+        `<img alt="${escapeAttr(image.words)}" src="${escapeAttr(image.address)}"${titleAttr}>`,
       );
     },
   );
 
   // Links.
-  s = s.replace(
-    /\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
-    (_m: string, label: string, url: string, title?: string): string => {
-      const titleAttr: string = title ? ` title="${escapeAttr(title)}"` : "";
-      return stash(
-        `<a href="${escapeAttr(url)}"${titleAttr}>${renderInline(label, tokens)}</a>`,
-      );
-    },
-  );
+  s = replaceLinkSpans(s, findLinkSpans(s), (link: LinkSpan): string => {
+    const titleAttr: string = link.title
+      ? ` title="${escapeAttr(link.title)}"`
+      : "";
+    return stash(
+      `<a href="${escapeAttr(link.address)}"${titleAttr}>${renderInline(link.words, tokens)}</a>`,
+    );
+  });
 
   /*
    * A template's {{variables}} are text, never formatting. An incident custom
@@ -180,8 +272,12 @@ const renderInline: (raw: string, tokens?: Array<InlineToken>) => string = (
    * first "**" with the third star, rendering "<strong>*a</strong>*".
    */
   s = s.replace(
-    /\*\*\*(?=\S)([\s\S]*?\S)\*\*\*/g,
-    (_m: string, inner: string): string => {
+    RE_BOLD_ITALIC_OR_UNCLOSED,
+    (m: string, inner: string | undefined): string => {
+      // A "***" that nothing closes, and the rest of the text after it.
+      if (inner === undefined) {
+        return m;
+      }
       return stash(`<em><strong>${renderInline(inner, tokens)}</strong></em>`);
     },
   );
@@ -391,6 +487,26 @@ const tryParseTable: (
     i++;
   }
 
+  /*
+   * A row with fewer cells than the heading row is filled out with empty
+   * cells, so that the table is a grid in the editor - unless that takes
+   * more empty cells than the table's rows hold and more than
+   * TABLE_FILL_IN_ALLOWANCE: then each row shows the cells it holds. A
+   * heading row of thousands of cells over thousands of one-cell rows is a
+   * few kilobytes of text, and filled out it was millions of cells - more
+   * than the editor could open.
+   */
+  const columns: number = header.cells.length;
+  let heldCells: number = columns;
+  let fillInCells: number = 0;
+  for (const row of body) {
+    const held: number = Math.min(row.cells.length, columns);
+    heldCells += held;
+    fillInCells += columns - held;
+  }
+  const fillIn: boolean =
+    fillInCells <= Math.max(heldCells, TABLE_FILL_IN_ALLOWANCE);
+
   let html: string = "<table><thead><tr>";
   for (const cell of header.cells) {
     html += `<th>${renderInline(cell)}</th>`;
@@ -398,7 +514,10 @@ const tryParseTable: (
   html += "</tr></thead><tbody>";
   for (const row of body) {
     html += "<tr>";
-    for (let c: number = 0; c < header.cells.length; c++) {
+    const cells: number = fillIn
+      ? columns
+      : Math.min(row.cells.length, columns);
+    for (let c: number = 0; c < cells; c++) {
       html += `<td>${renderInline(row.cells[c] || "")}</td>`;
     }
     html += "</tr>";
@@ -465,7 +584,7 @@ const startsBlock: (lines: Array<string>, index: number) => boolean = (
   return (
     RE_FENCE_OPEN.test(line) ||
     RE_HORIZONTAL_RULE.test(line) ||
-    RE_HEADING.test(line) ||
+    readHeadingLine(line) !== null ||
     RE_BLOCKQUOTE_LINE.test(line) ||
     RE_LIST_ITEM.test(line) ||
     tryParseTable(lines, index) !== null
@@ -501,11 +620,17 @@ const renderListItemBody: (item: ParsedListItem, depth: number) => string = (
 
   // Past the nesting cap the rest of the item is text, not another level.
   if (depth >= MAX_LIST_NESTING_DEPTH) {
-    textLines.push(...item.body);
-    return renderInline(textLines.join("\n").replace(/\n+$/, "")).replace(
-      /\n/g,
-      "<br>",
-    );
+    /*
+     * One line at a time: spread into push(), the lines of a long item were
+     * each an argument, and past what a call takes the push threw.
+     */
+    for (const bodyLine of item.body) {
+      textLines.push(bodyLine);
+    }
+    // Its line feeds come off its end read back from the end, once.
+    return renderInline(
+      withoutTrailingRun(textLines.join("\n"), isLineFeedCode),
+    ).replace(/\n/g, "<br>");
   }
 
   let k: number = 0;
@@ -758,12 +883,10 @@ const renderMarkdownBlocks: (md: string, depth: number) => string = (
     }
 
     // Heading.
-    const headingMatch: RegExpMatchArray | null = line.match(RE_HEADING);
-    if (headingMatch) {
+    const heading: HeadingLine | null = readHeadingLine(line);
+    if (heading) {
       flushParagraph();
-      const level: number = (headingMatch[1] || "#").length;
-      const content: string = headingMatch[2] || "";
-      out += `<h${level}>${renderInline(content)}</h${level}>`;
+      out += `<h${heading.level}>${renderInline(heading.text)}</h${heading.level}>`;
       i++;
       continue;
     }
@@ -822,30 +945,41 @@ const collapseBlankLines: (s: string) => string = (s: string): string => {
  * <div> only writes the line break after itself -- so "abc", Enter, "def"
  * saved as "abcdef". Text still open before a <div> ends its line first.
  */
-const breakBeforeDiv: (out: string, child: Node) => string = (
-  out: string,
-  child: Node,
-): string => {
-  const isDiv: boolean =
-    child.nodeType === Node.ELEMENT_NODE &&
-    (child as HTMLElement).tagName.toLowerCase() === "div";
-  if (isDiv && out.length > 0 && !out.endsWith("\n")) {
-    return `${out}\n`;
-  }
-  return out;
+const isDivNode: (node: Node) => boolean = (node: Node): boolean => {
+  return (
+    node.nodeType === Node.ELEMENT_NODE &&
+    (node as HTMLElement).tagName.toLowerCase() === "div"
+  );
 };
 
+/*
+ * Each child in turn, from its first to its last sibling: an index into a
+ * live list of children can be read again from its start for each child.
+ *
+ * Whether the text written so far ends its line is asked of the last part
+ * written, never of the text itself: a string built with += is copied into
+ * one piece each time it is asked anything, and a note typed line by line --
+ * a <div> a line -- took time that grew with the square of its length to
+ * save.
+ */
 const serializeChildren: (node: Node) => string = (node: Node): string => {
   let out: string = "";
-  for (let i: number = 0; i < node.childNodes.length; i++) {
-    const child: ChildNode | undefined = node.childNodes[i] as
-      | ChildNode
-      | undefined;
-    if (!child) {
-      continue;
+  // The last part written that was not empty: what `out` ends with.
+  let lastPart: string = "";
+  for (
+    let child: ChildNode | null = node.firstChild;
+    child;
+    child = child.nextSibling
+  ) {
+    if (isDivNode(child) && out.length > 0 && !lastPart.endsWith("\n")) {
+      out += "\n";
+      lastPart = "\n";
     }
-    out = breakBeforeDiv(out, child);
-    out += serializeNode(child);
+    const part: string = serializeNode(child);
+    if (part.length > 0) {
+      out += part;
+      lastPart = part;
+    }
   }
   return out;
 };
@@ -894,30 +1028,77 @@ const LIST_ITEM_BLOCK_TAGS: Set<string> = new Set<string>([
  * "1. a\n\n   b" came back as "1. a\n   b", marked then rendered the item
  * as the one paragraph "a b", and every save lost another break. Nested
  * lists are not blocks here -- they stay tight under the item's text.
+ *
+ * The parts are kept apart until the end, with what each block asks of the
+ * text before it -- whether it shows anything, how many line feeds end it --
+ * counted as each part is written, and the line feeds that end it taken off
+ * the parts they are in. Asked of the text itself, each block copied all of
+ * it into one piece, and an item holding a block after each line of text
+ * took time that grew with the square of its length.
  */
 const serializeListItemChildren: (li: HTMLElement) => string = (
   li: HTMLElement,
 ): string => {
-  let out: string = "";
-  for (let i: number = 0; i < li.childNodes.length; i++) {
-    const child: ChildNode | undefined = li.childNodes[i] as
-      | ChildNode
-      | undefined;
-    if (!child) {
-      continue;
+  const parts: Array<string> = [];
+  let length: number = 0;
+  // Whether what is written shows anything: whether it trims to "" or not.
+  let showsText: boolean = false;
+  // How many line feeds end what is written.
+  let trailingLineFeeds: number = 0;
+
+  const write: (part: string) => void = (part: string): void => {
+    if (part.length === 0) {
+      return;
     }
+    parts.push(part);
+    length += part.length;
+    if (!showsText && RE_SHOWN_CHARACTER.test(part)) {
+      showsText = true;
+    }
+    const lineFeeds: number = lineFeedsAtEnd(part);
+    trailingLineFeeds =
+      lineFeeds === part.length ? trailingLineFeeds + lineFeeds : lineFeeds;
+  };
+
+  // What /\n*$/ matched, taken off the parts it is in.
+  const takeOffTrailingLineFeeds: () => void = (): void => {
+    while (trailingLineFeeds > 0) {
+      const last: string = parts[parts.length - 1] || "";
+      if (last.length <= trailingLineFeeds) {
+        parts.pop();
+        length -= last.length;
+        trailingLineFeeds -= last.length;
+      } else {
+        parts[parts.length - 1] = last.slice(
+          0,
+          last.length - trailingLineFeeds,
+        );
+        length -= trailingLineFeeds;
+        trailingLineFeeds = 0;
+      }
+    }
+  };
+
+  for (
+    let child: ChildNode | null = li.firstChild;
+    child;
+    child = child.nextSibling
+  ) {
     let part: string = serializeNode(child);
     const isBlock: boolean =
       child.nodeType === Node.ELEMENT_NODE &&
       LIST_ITEM_BLOCK_TAGS.has((child as HTMLElement).tagName.toLowerCase());
-    if (isBlock && out.trim().length > 0 && !out.endsWith("\n\n")) {
-      out = out.replace(/\n*$/, "\n\n");
-      part = part.replace(/^\n+/, "");
+    if (isBlock && showsText && trailingLineFeeds < 2) {
+      takeOffTrailingLineFeeds();
+      write("\n\n");
+      part = part.replace(RE_LEADING_LINE_FEEDS, "");
     }
-    out = breakBeforeDiv(out, child);
-    out += part;
+    if (isDivNode(child) && length > 0 && trailingLineFeeds === 0) {
+      write("\n");
+    }
+    write(part);
   }
-  return out;
+  return parts.join("");
 };
 
 /*
@@ -939,9 +1120,13 @@ const serializeListItems: (list: HTMLElement, ordered: boolean) => string = (
 ): string => {
   let out: string = "";
   let n: number = ordered ? listStartNumber(list) : 1;
-  for (let i: number = 0; i < list.children.length; i++) {
-    const child: Element | null = list.children[i] || null;
-    if (!child || child.tagName.toLowerCase() !== "li") {
+  // Each item in turn, from sibling to sibling (as serializeChildren).
+  for (
+    let child: Element | null = list.firstElementChild;
+    child;
+    child = child.nextElementSibling
+  ) {
+    if (child.tagName.toLowerCase() !== "li") {
       continue;
     }
     const li: HTMLElement = child as HTMLElement;
@@ -988,6 +1173,103 @@ const serializeListItems: (list: HTMLElement, ordered: boolean) => string = (
   return out;
 };
 
+interface TableLengths {
+  // What tableToMarkdown writes lined up: every row padded to every column.
+  linedUp: number;
+  // What plainTable writes.
+  plain: number;
+}
+
+// "| " before a row's cells, " | " between them, " |" and a line feed after.
+const tableRowFrameLength: (cells: number) => number = (
+  cells: number,
+): number => {
+  return 2 + 3 * Math.max(cells - 1, 0) + 2 + 1;
+};
+
+/*
+ * How long a table is written each way, counted without writing it. A row
+ * costs the cells it holds: the columns after its last cell are counted
+ * together (widthsFrom), so a row short of thousands of columns costs no
+ * more than its own cells.
+ */
+const tableLengths: (
+  header: Array<string>,
+  body: Array<Array<string>>,
+  widths: Array<number>,
+) => TableLengths = (
+  header: Array<string>,
+  body: Array<Array<string>>,
+  widths: Array<number>,
+): TableLengths => {
+  const columns: number = widths.length;
+  // The widths of column c and every column after it, added up.
+  const widthsFrom: Array<number> = new Array<number>(columns + 1).fill(0);
+  for (let c: number = columns - 1; c >= 0; c--) {
+    widthsFrom[c] = (widthsFrom[c + 1] || 0) + (widths[c] || 0);
+  }
+
+  // The line feed before the table and the one after it, and its dashes.
+  let linedUp: number =
+    2 + tableRowFrameLength(columns) + (widthsFrom[0] || 0);
+  let plain: number = 2 + tableRowFrameLength(columns) + 3 * columns;
+
+  // The heading row, which plainTable writes with a cell for every column.
+  for (let c: number = 0; c < Math.min(header.length, columns); c++) {
+    plain += (header[c] || "").length;
+  }
+
+  for (const cells of [header, ...body]) {
+    const held: number = Math.min(cells.length, columns);
+    linedUp += tableRowFrameLength(columns) + (widthsFrom[held] || 0);
+    for (let c: number = 0; c < held; c++) {
+      linedUp += Math.max((cells[c] || "").length, widths[c] || 0);
+    }
+  }
+
+  for (const cells of body) {
+    plain += tableRowFrameLength(cells.length);
+    for (const cell of cells) {
+      plain += cell.length;
+    }
+  }
+
+  return { linedUp: linedUp, plain: plain };
+};
+
+/*
+ * A table written plainly, for one that lined up would be many times longer
+ * than what it holds (tableToMarkdown): each cell as it is, three dashes
+ * under each heading, and each row with the cells it holds. The heading row
+ * has a cell for every column, so a cell a row holds past the heading
+ * row's last is still under a heading when the table is read back.
+ */
+const plainTable: (
+  header: Array<string>,
+  body: Array<Array<string>>,
+  columns: number,
+) => string = (
+  header: Array<string>,
+  body: Array<Array<string>>,
+  columns: number,
+): string => {
+  const headings: Array<string> = [];
+  const dashes: Array<string> = [];
+  for (let c: number = 0; c < columns; c++) {
+    headings.push(header[c] || "");
+    dashes.push("---");
+  }
+
+  let out: string = "\n";
+  out += `| ${headings.join(" | ")} |\n`;
+  out += `| ${dashes.join(" | ")} |\n`;
+  for (const row of body) {
+    out += `| ${row.join(" | ")} |\n`;
+  }
+  out += "\n";
+  return out;
+};
+
 const tableToMarkdown: (table: HTMLTableElement) => string = (
   table: HTMLTableElement,
 ): string => {
@@ -1013,8 +1295,15 @@ const tableToMarkdown: (table: HTMLTableElement) => string = (
   const body: Array<Array<string>> = [];
 
   rows.forEach((tr: HTMLTableRowElement, rowIdx: number) => {
-    const cells: Array<Element> = Array.from(tr.children);
-    const texts: Array<string> = cells.map(cellText);
+    // The row's cells, from sibling to sibling (as serializeChildren).
+    const texts: Array<string> = [];
+    for (
+      let cell: Element | null = tr.firstElementChild;
+      cell;
+      cell = cell.nextElementSibling
+    ) {
+      texts.push(cellText(cell));
+    }
     if (rowIdx === 0) {
       header = texts;
     } else {
@@ -1036,6 +1325,22 @@ const tableToMarkdown: (table: HTMLTableElement) => string = (
         widths[c] = len;
       }
     }
+  }
+
+  /*
+   * Lined up, every row is padded out to every column's widest cell: a
+   * table of a few thousand rows with one long cell, or a heading row of
+   * thousands of columns over thousands of short rows, came out hundreds of
+   * megabytes long - written again for every keystroke - and past the
+   * longest string a browser holds, the editor could not save at all. Such
+   * a table is written plainly; any other is lined up as it always was.
+   */
+  const lengths: TableLengths = tableLengths(header, body, widths);
+  if (
+    lengths.linedUp >
+    Math.max(TABLE_LINED_UP_TIMES * lengths.plain, TABLE_LINED_UP_ALWAYS_WITHIN)
+  ) {
+    return plainTable(header, body, widths.length);
   }
 
   const fmtRow: (cells: Array<string>) => string = (
@@ -1118,7 +1423,8 @@ const serializeNode: (node: Node) => string = (node: Node): string => {
         }
       }
       const text: string = (codeEl || el).textContent || "";
-      const trimmed: string = text.replace(/\n+$/, "");
+      // The line feeds that end the code, read back from its end once.
+      const trimmed: string = withoutTrailingRun(text, isLineFeedCode);
       return `\n\`\`\`${lang}\n${trimmed}\n\`\`\`\n\n`;
     }
     case "blockquote": {
