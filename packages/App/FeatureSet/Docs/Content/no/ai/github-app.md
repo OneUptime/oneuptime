@@ -5,6 +5,7 @@ OneUptime GitHub App er mer enn en tilkobling til koden din: du kan snakke med d
 :::cards
 - [Kommandoene](#kommandoene): Hva du skriver i en issue eller en pull request.
 - [Slik ser det ut i tråden](#slik-ser-det-ut-i-tråden): Én kommentar som følger arbeidet.
+- [Gjennomganger med produksjonskontekst](#gjennomganger-med-produksjonskontekst): Hva produksjonen sier om den endrede koden.
 - [Hvem som kan gi den kommandoer](#hvem-som-kan-gi-den-kommandoer): Personer med skrivetilgang, og ingen andre.
 - [Feilsøking](#feilsøking): Når en omtale ikke gjør noe.
 :::
@@ -45,7 +46,7 @@ Hver kommando starter med en omtale av appen. Omtalen kan stå hvor som helst i 
 
 | Kommando | Hva som skjer | Forstås også |
 | --- | --- | --- |
-| `@oneuptime review` | Kloner branchen, leser den endrede koden og koden rundt den, og legger ut en gjennomgang som en kommentar. Endrer ingenting. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime review` | Kloner branchen, leser den endrede koden og koden rundt den, sjekker hva produksjonen sier om den, og legger ut en gjennomgang som en kommentar. Endrer ingenting. | `code review`, `please review`, `can you review`, `review this` |
 | `@oneuptime revise this — <what you want changed>` | Kloner pull requestens egen branch, gjør endringen og pusher nye commits til den branchen. Åpner aldri en andre pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alt du skriver etter omtalen som ikke er en kjent kommando, leses som en forespørsel om revisjon, fordi det nesten alltid er det det er:
@@ -86,6 +87,19 @@ Du kan også gi appen en issue uten en kommentar:
 
 Hvis den ikke finner noe som er verdt å endre, sier den det i stedet for å åpne en spekulativ pull request. Det er et normalt resultat, ikke en feil: gi den mer retning og spør igjen.
 
+## Gjennomganger med produksjonskontekst
+
+OneUptime har telemetrien til koden den gjennomgår, så en gjennomgang kan si det ingen som bare leser diffen, kan si. For tjenestene repositoriet hører til, sjekker den:
+
+- unntakene som er kastet i de endrede filene og funksjonene de siste 7 dagene;
+- hvor travle og hvor trege endepunktene og operasjonene som diffen berører, er;
+- hendelsene som er knyttet til de endrede filene;
+- de nylige utrullingene av tjenestene som OneUptime har markert som regresjoner.
+
+Det den finner, havner under overskriften **Production context** i gjennomgangen, hvert punkt med tallene og tidsvinduet det bygger på, for eksempel: "`chargeCard` kastet `TypeError: Cannot read properties of undefined` 1 240 ganger de siste 7 dagene; denne endringen legger til null-sjekken som stopper det." Når produksjonen ikke viser noe som angår diffen, utelater gjennomgangen overskriften i stedet for å si at alt er i orden.
+
+Den trenger ikke noe oppsett: tjenestene er de OneUptime finner dette repositoriet for, slik den gjør for en retting (se [Produksjonstelemetri i en retting](/docs/ai/ai-agent#produksjonstelemetri-i-en-retting)). Spørringene leser bare, kjører på OneUptime-serveren og leser ingenting fra en annen tjeneste, et annet prosjekt eller en privat hendelse. Et repositorium der tjenestene ikke sender telemetri til prosjektet, gjennomgås bare ut fra koden.
+
 ## Hvem som kan gi den kommandoer
 
 **Bare personer med write-, maintain- eller admin-tilgang til repositoriet.** OneUptime spør GitHub om kommentatorens tillatelse til det repositoriet hver gang; den stoler ikke på merket "contributor" som GitHub viser ved siden av en kommentar, for det beskriver tidligere aktivitet, ikke nåværende tilgang.
@@ -104,7 +118,7 @@ Den ignorerer også alle kommentarer skrevet av en bot, sine egne inkludert, og 
 
 ## Hva det koster, og hvordan du begrenser det
 
-Hver kommando som starter arbeid, er en full agentkjøring: en klon, opptil 40 LLM-kall og 100 000 utdata-tokens, og repositoriets bygge- og testkommandoer når du har satt dem.
+Hver kommando som starter arbeid, er en full agentkjøring: en klon, opptil 40 LLM-kall og 100 000 utdata-tokens, og repositoriets bygge- og testkommandoer når du har satt dem. Produksjonsspørringene til en gjennomgang, høyst 12, teller mot de samme 40 kallene.
 
 GitHub-kommandoer er AI-arbeid utenfor hendelser og varsler, så ingen daglig grense for rettingsoppgaver gjelder for dem; prosjektets egne daglige AI-grenser gjør det, når prosjektet setter dem. Den eneste andre grensen er den som allerede gjelder for oppgavene i [Kode](/docs/ai/ai-agent):
 
