@@ -1011,7 +1011,7 @@ describe("One Status Page per Audience docs", () => {
       });
       expectMenuPath({
         menu: "Pages/StatusPages/View/SideMenu.tsx",
-        section: "Resources",
+        section: "Rules",
         title: "Monitor Rules",
       });
       expectMenuPath({
@@ -1027,7 +1027,9 @@ describe("One Status Page per Audience docs", () => {
         };
 
         expect(guide).toContain(menuPath(language, ["Advanced", "Settings"]));
-        expect(guide).toContain(
+        expect(guide).toContain(menuPath(language, ["Rules", "Monitor Rules"]));
+        // Not the section it left.
+        expect(guide).not.toContain(
           menuPath(language, ["Resources", "Monitor Rules"]),
         );
         expect({

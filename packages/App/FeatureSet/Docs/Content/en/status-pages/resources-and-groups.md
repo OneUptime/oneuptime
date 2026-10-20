@@ -204,12 +204,12 @@ Put your most-asked-about service at the top. Visitors who come to the page duri
 
 ## Add monitors automatically with monitor rules
 
-A monitor rule adds monitors to the page for you: describe the monitors once, and every monitor that matches lands in the group you chose. Rules are under **Resources → Monitor Rules**, beside the Resources screen.
+A monitor rule adds monitors to the page for you: describe the monitors once, and every monitor that matches lands in the group you chose. Find them under **Rules → Monitor Rules**, right below Resources in the page's side menu.
 
 :::steps
 ### Open Monitor Rules
 
-Open the status page, pick **Monitor Rules** in the **Resources** section of its side menu, and click **Create Monitor Rule**.
+Open the status page, pick **Monitor Rules** in the **Rules** section of its side menu (click the section's title if it is folded), and click **Create Monitor Rule**.
 
 ### Say which monitors it matches
 

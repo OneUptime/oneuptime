@@ -81,12 +81,13 @@ Next, in rough order of usefulness:
 
 ## Where everything lives
 
-Once a status page is open, its own left side menu is grouped into nine sections. Use this as a map for the rest of this documentation group.
+Once a status page is open, its own left side menu is grouped into ten sections. Use this as a map for the rest of this documentation group.
 
 | Section | What's in it |
 | --- | --- |
 | **Basic** | **Overview**, **Announcements**, **Owners**. |
-| **Resources** | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**. |
+| **Resources** | A single **Resources** screen — groups on the left, the selected group's monitors on the right. |
+| **Rules** | **Monitor Rules** — rules that add every monitor that matches to the page, now and later. |
 | **Subscribers** | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **Microsoft Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers. |
 | **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |

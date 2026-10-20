@@ -164,7 +164,7 @@ Apri uno SLO per vedere le sue pagine nel menu laterale:
 | **Registri di audit** | Chi ha cambiato lo SLO, le sue regole e i suoi proprietari, e quando. |
 | **Delete SLO** | Elimina lo SLO definitivamente e risolve gli avvisi e gli incidenti di tasso di consumo che aveva aperti. |
 
-**Monitor**, **Monitor Rules** e **Burn Rate Rules** si trovano in una sezione **Configurazione**, e **Proprietari**, **Impostazioni**, **Registri di audit** e **Delete SLO** in una sezione **Management**. Entrambe partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
+**Monitor** si trova in una sezione **Configurazione**, **Monitor Rules** e **Burn Rate Rules** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Registri di audit** e **Delete SLO** in una sezione **Management**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
 
 Quando qualcosa impedisce a uno SLO di misurare, un banner in cima a ciascuna delle sue pagine dice cosa non va e rimanda alla pagina che lo risolve: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 

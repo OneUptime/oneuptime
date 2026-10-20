@@ -81,12 +81,13 @@ Poi, più o meno in ordine di utilità:
 
 ## Dove si trova ogni cosa
 
-Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppato in nove sezioni. Usatelo come mappa per il resto di questa parte della documentazione.
+Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppato in dieci sezioni. Usatelo come mappa per il resto di questa parte della documentazione.
 
 | Sezione | Che cosa contiene |
 | --- | --- |
 | **Base** | **Panoramica**, **Annunci**, **Proprietari**. |
-| **Risorse** | Un'unica schermata **Risorse** (i gruppi a sinistra, i monitor del gruppo selezionato a destra) e **Monitor Rules**. |
+| **Risorse** | Un'unica schermata **Risorse** (i gruppi a sinistra, i monitor del gruppo selezionato a destra). |
+| **Regole** | **Monitor Rules**: regole che aggiungono alla pagina ogni monitor corrispondente, ora e in seguito. |
 | **Iscritti** | **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams**, **Iscritti webhook**, **Impostazioni iscritti**. |
 | **Registri di notifica** | **Registri di notifica**: ciò che è stato inviato agli iscritti. |
 | **Branding** | **Branding** (logo, titolo, favicon, link, piè di pagina, colori e lingue, in un'unica pagina), **Domini personalizzati**, **HTML, CSS e JavaScript**. |

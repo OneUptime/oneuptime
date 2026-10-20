@@ -81,12 +81,13 @@ Deretter, omtrent i rekkefølge etter nytte:
 
 ## Hvor alt ligger
 
-Når du har åpnet en statusside, er den egne venstremenyen delt inn i ni seksjoner. Bruk den som kart for resten av denne delen av dokumentasjonen.
+Når du har åpnet en statusside, er den egne venstremenyen delt inn i ti seksjoner. Bruk den som kart for resten av denne delen av dokumentasjonen.
 
 | Seksjon | Hva den inneholder |
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Kunngjøringer**, **Eiere**. |
-| **Ressurser** | Én skjerm **Ressurser** (gruppene til venstre, monitorene i den valgte gruppen til høyre) og **Monitor Rules**. |
+| **Ressurser** | Én skjerm **Ressurser** (gruppene til venstre, monitorene i den valgte gruppen til høyre). |
+| **Regler** | **Monitor Rules**: regler som legger til hver monitor som samsvarer på siden, nå og senere. |
 | **Abonnenter** | **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnentsinnstillinger**. |
 | **Varsellogger** | **Varsellogger**: hva som er sendt til abonnentene. |
 | **Merkevare** | **Merkevare** (logo, tittel, favicon, lenker, bunntekst, farger og språk, på én side), **Egendefinerte domener**, **HTML, CSS og JavaScript**. |

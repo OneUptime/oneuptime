@@ -12,7 +12,7 @@ import {
  * CREATE A STATUS PAGE MONITOR RULE: WHAT IT MATCHES, THEN WHERE THE
  * MONITORS GO.
  *
- * Status Pages -> a page -> Resources -> Monitor Rules. The form used to
+ * Status Pages -> a page -> Rules -> Monitor Rules. The form used to
  * start with "Basic Info" - a name and a description, asked before anyone
  * had said what the rule was for - then the conditions, then the group. The
  * other rule forms of the product (label, owner, on-call, privacy, SLA and

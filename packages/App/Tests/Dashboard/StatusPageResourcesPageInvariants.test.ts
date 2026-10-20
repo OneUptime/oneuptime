@@ -66,6 +66,9 @@ const RESOURCE_FORM_FIELDS: Array<string> = [
   "StatusPageResourceFormFields.ts",
 ];
 
+// The title of each <SideMenuSection> a menu writes out, in order.
+const SIDE_MENU_SECTION_TITLE: RegExp = /<SideMenuSection\s+title="([^"]+)"/g;
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
@@ -212,22 +215,56 @@ describe("groups and their monitors are one page", () => {
    * Monitor Rules writes resources onto this page, and it is how a group
    * filled from a label stays filled - the whole of #3418. It used to be filed
    * under Advanced, three sections below the screen its work shows up on, and
-   * the person who filed that issue never found it. Somebody populating a
-   * group is standing here.
+   * the person who filed that issue never found it. Then it sat inside
+   * Resources, a row on every visit for something written once. Now it has a
+   * section of its own, folded down to its title like every Rules section
+   * (the maintainer: "Create a new section for rules and have monitor rules
+   * there. The section should be collapsed by default"), right below
+   * Resources: one section from the screen its work shows up on. The Add
+   * Monitors dialog writes the rule for a group filled from a label anyway.
    */
-  test("the rules that write resources sit beside the resources", () => {
+  test("the rules that write resources have a Rules section, right below the resources", () => {
     const sideMenu: string = readCode(...SIDE_MENU);
 
-    const resourcesSection: string | undefined = sideMenu
-      .split('<SideMenuSection title="Resources">')[1]
-      ?.split("</SideMenuSection>")[0];
+    const sectionTitles: Array<string> = Array.from(
+      sideMenu.matchAll(SIDE_MENU_SECTION_TITLE),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
 
-    const advancedSection: string | undefined = sideMenu
-      .split('<SideMenuSection title="Advanced">')[1]
-      ?.split("</SideMenuSection>")[0];
+    const section: (title: string) => string | undefined = (
+      title: string,
+    ): string | undefined => {
+      return sideMenu
+        .split(`<SideMenuSection title="${title}">`)[1]
+        ?.split("</SideMenuSection>")[0];
+    };
 
-    expect(resourcesSection).toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
-    expect(advancedSection).not.toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+    expect(sectionTitles.indexOf("Rules")).toBe(
+      sectionTitles.indexOf("Resources") + 1,
+    );
+    expect(section("Rules")).toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+    expect(section("Resources")).toContain("STATUS_PAGE_VIEW_RESOURCES");
+    expect(section("Resources")).not.toContain(
+      "STATUS_PAGE_VIEW_MONITOR_RULES",
+    );
+    expect(section("Advanced")).not.toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+  });
+
+  /*
+   * Folded by its title, as every Rules section is (SideMenuSectionState):
+   * nothing on the section opens it by default.
+   */
+  test("the Rules section says nothing that would keep it open", () => {
+    const sideMenu: string = readCode(...SIDE_MENU);
+
+    expect(sideMenu).toContain('<SideMenuSection title="Rules">');
+    expect(sideMenu).not.toContain(
+      '<SideMenuSection title="Rules" defaultCollapsed={false}',
+    );
+    expect(sideMenu).not.toContain(
+      '<SideMenuSection title="Rules" collapsible={false}',
+    );
   });
 });
 

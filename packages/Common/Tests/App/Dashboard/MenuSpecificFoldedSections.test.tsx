@@ -437,13 +437,14 @@ describe("a Kubernetes cluster: what a visit starts with stays open", () => {
 });
 
 describe("other resource pages that fold a section of their own", () => {
-  test("a status page: what it shows stays open; its audience and setup fold", async () => {
+  test("a status page: what it shows stays open; its rules, audience and setup fold", async () => {
     goTo(viewRoute(PageMap.STATUS_PAGE_VIEW));
     await renderMenu(<StatusPageSideMenu modelId={new ObjectID(MODEL_ID)} />);
 
     expect(sectionStates()).toEqual([
       { title: "Basic", expanded: true },
       { title: "Resources", expanded: true },
+      { title: "Rules", expanded: false },
       { title: "Subscribers", expanded: false },
       { title: "Notification Logs", expanded: false },
       { title: "Branding", expanded: false },

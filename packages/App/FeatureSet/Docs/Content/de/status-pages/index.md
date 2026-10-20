@@ -81,12 +81,13 @@ Als Nächstes, grob nach Nutzen sortiert:
 
 ## Wo alles liegt
 
-Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in neun Abschnitte gegliedert. Nutzen Sie es als Karte für den Rest dieses Dokumentationsbereichs.
+Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in zehn Abschnitte gegliedert. Nutzen Sie es als Karte für den Rest dieses Dokumentationsbereichs.
 
 | Abschnitt | Was er enthält |
 | --- | --- |
 | **Grundlegend** | **Übersicht**, **Ankündigungen**, **Eigentümer**. |
-| **Ressourcen** | Ein einziger Bildschirm **Ressourcen** – links die Gruppen, rechts die Monitore der gewählten Gruppe – und **Monitor-Regeln**. |
+| **Ressourcen** | Ein einziger Bildschirm **Ressourcen** – links die Gruppen, rechts die Monitore der gewählten Gruppe. |
+| **Regeln** | **Monitor-Regeln** – Regeln, die jeden passenden Monitor der Seite hinzufügen, jetzt und später. |
 | **Abonnenten** | **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten**, **Webhook-Abonnenten**, **Abonnenten-Einstellungen**. |
 | **Benachrichtigungsprotokolle** | **Benachrichtigungsprotokolle** – was an Abonnenten gesendet wurde. |
 | **Branding** | **Branding** (Logo, Titel, Favicon, Links, Fußzeile, Farben und Sprachen, auf einer Seite), **Benutzerdefinierte Domains**, **HTML, CSS und JavaScript**. |

@@ -70,7 +70,7 @@ Maak één pagina per doelgroep, bijvoorbeeld `Site 01` tot en met `Site 10`. Ma
 
 ### De gedeelde monitor op elke pagina zetten
 
-Voeg de gedeelde monitor als resource aan elke pagina toe (zie [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups)). Een regel onder **Middelen → Monitor Rules** kan dat voor u doen op basis van de labels van de monitor.
+Voeg de gedeelde monitor als resource aan elke pagina toe (zie [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups)). Een regel onder **Regels → Monitor Rules** kan dat voor u doen op basis van de labels van de monitor.
 
 ### Alleen incidenten tonen die tot deze pagina zijn beperkt aanzetten
 

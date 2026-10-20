@@ -70,7 +70,7 @@ flowchart TB
 
 ### 把共享监视器放到每个页面上
 
-把共享监视器作为资源添加到每个页面（参见 [状态页资源与分组](/docs/status-pages/resources-and-groups)）。**资源 → Monitor Rules** 下的规则可以根据监视器的标签替你完成这件事。
+把共享监视器作为资源添加到每个页面（参见 [状态页资源与分组](/docs/status-pages/resources-and-groups)）。**规则 → Monitor Rules** 下的规则可以根据监视器的标签替你完成这件事。
 
 ### 打开“仅显示限定到此页面的事件”
 
