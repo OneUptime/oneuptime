@@ -45,7 +45,7 @@ Skabelonerne, efter den kategori, vælgeren viser dem under:
 
 ## Rediger og gem
 
-Et dashboard åbner i visningstilstand, til læsning. For at ændre det åbner du menuen **⋯** i dets værktøjslinje og vælger **Edit Dashboard**. Værktøjslinjen viser **Editing** ved siden af navnet og bytter tidsintervallet og de andre kontroller ud med **Tilføj widget**, **Variabler**, **Annuller** og **Gem ændringer**.
+Et dashboard åbner i visningstilstand, til læsning. For at ændre det åbner du menuen **⋯** i dets værktøjslinje og vælger **Edit Dashboard**. Værktøjslinjen viser **Editing** ved siden af navnet og bytter tidsintervallet og de andre kontroller ud med **Tilføj widget**, **Variabler**, **Annuller** og **Gem ændringer**, med en række nedenunder til dashboardets **Standardtidsrum** og **Standard automatisk opdatering**.
 
 ```mermaid title="Fra at læse et dashboard til at ændre det, og tilbage"
 flowchart TB
@@ -58,7 +58,7 @@ flowchart TB
 
 Dine ændringer er kun dine, indtil du gemmer dem. Intet gemmes, mens du redigerer, så andre ser stadig dashboardet, som det var.
 
-- **Gem ændringer** gemmer widgets, deres placeringer og størrelser, variablerne og intervallet for automatisk opdatering på én gang og går tilbage til visningstilstand. Hvis gemningen afvises, for eksempel fordi du har mistet tilladelsen i mellemtiden, bliver du i redigeringstilstand med dine ændringer, og årsagen står over gitteret.
+- **Gem ændringer** gemmer widgets, deres placeringer og størrelser, variablerne samt standardtidsrummet og den automatiske standardopdatering på én gang og går tilbage til visningstilstand. Hvis gemningen afvises, for eksempel fordi du har mistet tilladelsen i mellemtiden, bliver du i redigeringstilstand med dine ændringer, og årsagen står over gitteret.
 - **Annuller** spørger først, fordi den smider dine ændringer væk: **Kassér ændringer** går tilbage til dashboardet, som det blev gemt, og **Fortsæt med at redigere** fører dig tilbage til dit arbejde.
 
 Mens du redigerer, holder den automatiske opdatering pause, og et zoomet tidsinterval går tilbage til det interval, du valgte.
@@ -98,13 +98,25 @@ For at ændre en widget senere klikker du på den, mens du redigerer. Dens indst
 
 ## Tidsinterval og automatisk opdatering
 
-I visningstilstand angiver værktøjslinjens tidsintervalvælger det vindue, som alle diagram-, tal-, log- og trace-widgets læser. Vælg en forudindstilling fra de seneste 5 minutter til de seneste 3 måneder, eller en brugerdefineret start og slutning. Hver gang dashboardet åbnes, starter det ved den seneste time.
+I visningstilstand angiver værktøjslinjens tidsintervalvælger det vindue, som alle diagram-, tal-, log- og trace-widgets læser. Vælg en forudindstilling fra de seneste 5 minutter til de seneste 3 måneder, eller en brugerdefineret start og slutning. Dashboardet åbner på sit standardtidsrum: den seneste time, medmindre en, der redigerer det, vælger et andet.
 
 Lister over hændelser, advarsler, overvågninger og ressourcer viser deres aktuelle tilstand, uanset tidsintervallet.
 
-Ved siden af tidsintervallet læser menuen for automatisk opdatering hver widget igen med 5 sekunders, 10 sekunders, 30 sekunders, 1 minuts, 5 minutters eller 15 minutters mellemrum og viser en nedtælling til næste opdatering. Lad den være slået fra, mens du undersøger noget, så visningen holder sig stille. For at gøre et interval til dashboardets eget vælger du det, redigerer dashboardet og klikker på **Gem ændringer**: hvert besøg starter så med det.
+Ved siden af tidsintervallet læser menuen for automatisk opdatering hver widget igen med 5 sekunders, 10 sekunders, 30 sekunders, 1 minuts, 5 minutters eller 15 minutters mellemrum og viser en nedtælling til næste opdatering. Lad den være slået fra, mens du undersøger noget, så visningen holder sig stille. Dashboardet åbner med sin automatiske standardopdatering: slået fra, medmindre en, der redigerer det, vælger en anden.
 
 Tidsintervalvælgeren, variablerne og den automatiske opdatering vises, så snart dashboardet har en widget.
+
+### Dashboardets standarder
+
+Mens du redigerer dashboardet, angiver rækken under værktøjslinjens knapper, hvad alle åbner det med: **Standardtidsrum**, en forudindstilling fra de seneste 5 minutter til de seneste 3 måneder, og **Standard automatisk opdatering**. **Gem ændringer** gemmer dem sammen med resten af dashboardet, både for dit team og for de besøgende på dets offentlige link. En brugerdefineret start og slutning kan ikke være en standard: dashboardet ville blive stående på det øjeblik for altid. Rækken vises, så snart dashboardet har en widget.
+
+Dashboards, der er gemt før disse indstillinger, åbner på den seneste time med den automatiske opdatering, de havde. Gennem API'et og Terraform ligger begge i dashboardets `dashboardViewConfig`: `timeRange`, en forudindstilling stavet som i API-referencen, for eksempel `Past 1 Day`, og `refreshInterval`, for eksempel `1m`. Enhver anden værdi afvises.
+
+### Dine egne valg
+
+Det tidsinterval og den automatiske opdatering, du vælger i visningstilstand, gælder kun for dig, og din browser husker dem for hvert dashboard: en genindlæsning, en genstart af browseren eller af en vægskærm åbner dashboardet, som du forlod det. Kun en forudindstilling huskes. Et brugerdefineret interval eller en zoom varer, indtil du forlader siden, så dashboardet aldrig hænger fast i et øjeblik i fortiden.
+
+Det første valg i hver vælger nævner dashboardets standard, som i Standard (Past 1 Day). Vælg det for at gå tilbage til standarden: din browser glemmer dit valg, og dashboardet følger igen sin standard, også når nogen ændrer den senere. Når du selv gemmer nye standarder, ser du dem med det samme.
 
 ### Zoom ind på en spids
 

@@ -163,9 +163,24 @@ describe("every entry point into a dashboard write is permission-gated", () => {
   test("a refused save keeps the user in edit mode with their work", () => {
     const source: string = readSquashed(DASHBOARD_VIEW);
 
-    expect(source).toContain(
-      "if (didSave) { setDashboardMode(DashboardMode.View); }",
+    /*
+     * Only a save that happened leaves edit mode - and moves an editor who
+     * changed a default onto it (issue #5080) - in that order.
+     */
+    const onSaved: string = source.slice(
+      source.indexOf("if (didSave) {"),
+      source.indexOf("if (didSave) {") + 700,
     );
+
+    expect(source.indexOf("if (didSave) {")).toBeGreaterThan(-1);
+    expect(onSaved).toContain(
+      "viewerSettings.applySavedDefaults(configToSave, { followChangedDefaults: true, });",
+    );
+    expect(
+      onSaved.indexOf(
+        "viewerSettings.applySavedDefaults(configToSave, { followChangedDefaults: true, }); setDashboardMode(DashboardMode.View); }",
+      ),
+    ).toBeGreaterThan(-1);
     expect(source).not.toContain(
       "saveDashboardViewConfig().catch((err: Error) => { setError(",
     );

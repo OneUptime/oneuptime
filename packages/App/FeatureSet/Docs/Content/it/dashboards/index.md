@@ -26,7 +26,7 @@ flowchart TB
 | Dashboard | Una pagina: un nome, una griglia di widget, un intervallo di tempo, variabili e un'impostazione di aggiornamento automatico. |
 | Widget | Un riquadro della griglia: un grafico, un numero, un elenco, una mappa, un orologio o un blocco di testo. |
 | Variabile | Un selettore nella barra degli strumenti che restringe ogni widget che la supporta a un servizio, un host o un cliente. |
-| Intervallo di tempo | La finestra che leggono tutti i grafici e i numeri. Parte dall'ultima ora ogni volta che la dashboard si apre. |
+| Intervallo di tempo | La finestra che leggono tutti i grafici e i numeri. Una dashboard si apre sul suo valore predefinito, l'ultima ora a meno che chi la modifica non ne imposti un altro, e ogni lettore può sceglierne uno proprio. |
 | Aggiornamento automatico | Ogni quanto i widget rileggono i loro dati: disattivato, oppure da ogni 5 secondi a ogni 15 minuti. |
 | Lettura e modifica | Una dashboard si apre in lettura. Modificarla è un passaggio a parte, che termina salvando o scartando le modifiche. |
 

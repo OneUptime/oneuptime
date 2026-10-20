@@ -46,7 +46,7 @@ La elección se guarda en tres columnas, que la API y Terraform leen y escriben 
 Un panel público:
 
 - Siempre se abre para leerlo. Los visitantes no pueden editarlo y nunca ven sus controles de edición.
-- Incluye las variables que has añadido. Los visitantes eligen en los mismos selectores que usa tu equipo, y pueden cambiar el intervalo de tiempo, hacer zoom, activar la actualización automática y pasar a pantalla completa.
+- Incluye las variables que has añadido. Los visitantes eligen en los mismos selectores que usa tu equipo, y pueden cambiar el intervalo de tiempo, hacer zoom, activar la actualización automática y pasar a pantalla completa. Se abre con el intervalo de tiempo y la actualización automática predeterminados del panel, y el navegador de cada visitante recuerda sus propias elecciones.
 - Usa la marca que defines en la página **Marca** del panel: título de la página, descripción, logotipo, tema y favicon.
 - Permite a cada visitante cambiar entre el panel claro y el oscuro con un botón de sol o de luna en su barra de herramientas; [Tema](#tema) explica cómo.
 
@@ -197,7 +197,7 @@ Para dar a un panel incrustado el aspecto de tu sitio, añade `?theme=light` o `
 
 ## Enviar un enlace
 
-El enlace público abre el panel con sus valores predeterminados guardados. Para enviar un enlace que se abra en un valor concreto, añádele la variable como `?var-<name>=<value>`, igual que hace la barra de direcciones cuando un visitante elige un valor; los distintos valores se separan con comas. El intervalo de tiempo no forma parte del enlace: cada visita empieza en la última hora. Para abrir el panel con un tema, añade `theme=light`, `theme=dark` o `theme=system`, como describe [Incrustar](#incrustar).
+El enlace público abre el panel con sus valores predeterminados guardados. Para enviar un enlace que se abra en un valor concreto, añádele la variable como `?var-<name>=<value>`, igual que hace la barra de direcciones cuando un visitante elige un valor; los distintos valores se separan con comas. Para que se abra con un intervalo de tiempo o una actualización automática propios, añade del mismo modo `range` y `refresh`: `?range=1d&refresh=1m` se abre en el último día, actualizándose cada minuto, como lo haría una pantalla mural. `range` admite `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` o `3mo`, y `refresh` admite `off`, `5s`, `10s`, `30s`, `1m`, `5m` o `15m`. Prevalecen sobre los valores predeterminados del panel y las elecciones del visitante, que aun así puede cambiarlos. Para abrir el panel con un tema, añade `theme=light`, `theme=dark` o `theme=system`, como describe [Incrustar](#incrustar).
 
 ## Próximos pasos
 
