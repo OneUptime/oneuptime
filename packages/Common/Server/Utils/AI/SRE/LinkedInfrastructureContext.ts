@@ -604,7 +604,7 @@ export default class LinkedInfrastructureContext {
     const name: string = describeLinkedResource(resource);
 
     if (resource.type === LinkedAffectedResourceType.Service) {
-      return `${name} (serviceId: ${resource.id}; query_traces, search_logs and log_histogram take it as serviceId, query_metrics as entityId)`;
+      return `${name} (serviceId: ${resource.id}; query_traces, search_logs, log_histogram and the profile tools take it as serviceId, query_metrics as entityId)`;
     }
 
     if (!kind?.aiResourceType) {

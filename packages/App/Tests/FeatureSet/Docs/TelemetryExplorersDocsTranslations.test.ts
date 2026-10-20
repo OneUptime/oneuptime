@@ -1122,8 +1122,8 @@ describe("the helpers, on these pages' shapes", () => {
   it("tell the Dashboard's labels from the words a page keeps", () => {
     // A filter value no locale words is kept, not drawn.
     expect(dashboardLabels(TRACES_EXPLORER)).not.toContain("Root spans");
-    // A start button no locale words is kept.
-    expect(dashboardLabels(EXCEPTIONS)).not.toContain("Fix with AI");
+    // A start button the locales word is drawn.
+    expect(dashboardLabels(EXCEPTIONS)).toContain("Fix with AI");
     // A tab is drawn.
     expect(dashboardLabels(LOGS_EXPLORER)).toContain("Viewer");
     // A create button is drawn from "Create {{itemName}}" with its thing.

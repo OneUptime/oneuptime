@@ -43,6 +43,11 @@ export enum AIChatCitationTargetType {
   TelemetryResourceView = "TelemetryResourceView",
   // One telemetry service's page; params: { serviceId }.
   ServiceView = "ServiceView",
+  /*
+   * The Profiler; params: { serviceId?, profileType?, startTime?, endTime? }
+   * open it on the profiles the evidence was read from.
+   */
+  Profiles = "Profiles",
 }
 
 export interface AIChatCitationTarget {

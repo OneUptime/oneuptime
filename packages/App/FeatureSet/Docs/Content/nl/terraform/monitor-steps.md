@@ -309,7 +309,7 @@ De `check_on`-waarden die elk monitortype het meest gebruikt. De criteria-editor
 | Logs | `Log Count` |
 | Traces | `Span Count` |
 | Exceptions | `Exception Count` |
-| Profielen | `Profile Count` |
+| Profielen | `Profile Count`, `Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Metrieken | `Metric Value` (metriekfilters kunnen JSON in `metric_monitor_options` krijgen) |
 | Aangepaste code / Synthetic | `Result Value` (kan één veld van de teruggegeven gegevens vergelijken, genoemd in de JSON van `custom_code_monitor_options`, bijv. `jsonencode({ resultValuePath = "status" })` — zie hieronder), `Error`, `Execution Time (in ms)` |

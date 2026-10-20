@@ -156,7 +156,7 @@ flowchart TB
 | SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
 | Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| لاگ‌ها، Security Events، ترِیس‌ها، هوش مصنوعی / LLM، متریک‌ها، استثناها | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (کل پیکربندی مانیتور) |
+| لاگ‌ها، Security Events، ترِیس‌ها، هوش مصنوعی / LLM، متریک‌ها، استثناها، پروفایل‌ها | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (کل پیکربندی مانیتور) |
 | وضعیت پراب | `probeStatusMonitor.probeIds` |
 
 مانیتورهای زیرساخت (Kubernetes، Docker Container، میزبان، Podman Container، Proxmox، Docker Swarm، Ceph، آرایه ذخیره‌سازی، IoT Device) انتخاب‌گر منبع، فیلترها (همه جز میزبان)، کوئری‌های متریک و بازهٔ زمانی کوئری خود را برای محافظت ارائه می‌کنند. نام آن‌ها در **Template sync settings** روی قالبی از همان نوع فهرست شده است.

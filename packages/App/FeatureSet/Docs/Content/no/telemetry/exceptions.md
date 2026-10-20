@@ -111,7 +111,7 @@ Siden **AI Assistance** tilbyr tre oppgaver. Hver kjører som en AI-oppgave som 
 
 | Oppgave | Hva pull requesten gjør |
 | --- | --- |
-| **Fix this exception with AI** | Retter rotårsaken. Start den med **Fix with AI**. |
+| **Fix this exception with AI** | Retter rotårsaken. Start den med **Fiks med AI**. |
 | **Generate Regression Test** | Legger til en test som feiler til feilen er rettet. |
 | **Forbedre feilhåndtering** | For forventede feil: validerer inndata tidligere, holder brukerdata ute av meldinger og merker feilen som håndtert. |
 

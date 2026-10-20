@@ -309,7 +309,7 @@ criteria = [
 | 日誌 | `Log Count` |
 | 追蹤 | `Span Count` |
 | 例外狀況 | `Exception Count` |
-| 效能剖析 | `Profile Count` |
+| 效能剖析 | `Profile Count`、`Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`、`Bad AI Answers`、`AI Answers` |
 | 指標 | `Metric Value`（指標篩選器可以接受 `metric_monitor_options` JSON） |
 | 自訂程式碼 / Synthetic | `Result Value`（可以比較傳回資料中的某個欄位，在 `custom_code_monitor_options` JSON 中指定，例如 `jsonencode({ resultValuePath = "status" })` — 見下文）、`Error`、`Execution Time (in ms)` |

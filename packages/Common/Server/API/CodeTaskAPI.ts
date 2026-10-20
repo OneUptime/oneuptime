@@ -18,6 +18,11 @@ import CodeTaskGate from "../Utils/AI/CodeTask/CodeTaskGate";
 import CodeTaskPresenter from "../Utils/AI/CodeTask/CodeTaskPresenter";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../Utils/AI/CodeTask/CodeTaskStats";
+import SourceLocator, {
+  MAX_FRAMES_LOCATED,
+  SourceFrame,
+  SourceLink,
+} from "../Utils/CodeRepository/SourceLocator";
 import CodeTaskThread, {
   CODE_TASK_TURN_SELECT,
 } from "../Utils/AI/CodeTask/CodeTaskThread";
@@ -58,6 +63,8 @@ import PositiveNumber from "../../Types/PositiveNumber";
  *   POST /code-task/reply/:taskId         reply in a task: its next turn
  *   POST /code-task/retry/:taskId         ask a failed turn again
  *   POST /code-task/stop/:taskId          stop the turn in progress
+ *   POST /code-task/source-links          where running code's files live in
+ *                                         the repositories, with links
  *
  * Every route acts as a signed-in person (a project API key is refused) in
  * the project of the request. Who may read and who may ask is the
@@ -93,6 +100,66 @@ export default class CodeTaskAPI {
     this.route("/code-task/reply/:taskId", this.replyToTask);
     this.route("/code-task/retry/:taskId", this.retryTask);
     this.route("/code-task/stop/:taskId", this.stopTask);
+    this.route("/code-task/source-links", this.getSourceLinks);
+  }
+
+  /*
+   * Where the files of running code live in the project's repositories:
+   * for each frame (a file and a line, as a profile or a stack trace names
+   * it), the repository and path that hold it, and a link to the line -
+   * only in repositories the caller may read and the GitHub App can reach
+   * (SourceLocator). Frames no repository holds for certain get no link.
+   * Body: { frames: [{ fileName, lineNumber }] }.
+   */
+  private async getSourceLinks(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const rawFrames: unknown = body["frames"];
+
+    if (!Array.isArray(rawFrames)) {
+      throw new BadDataException("frames must be a list.");
+    }
+
+    const frames: Array<SourceFrame> = [];
+
+    for (const raw of rawFrames.slice(0, MAX_FRAMES_LOCATED)) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        continue;
+      }
+
+      const frame: JSONObject = raw as JSONObject;
+      const fileName: unknown = frame["fileName"];
+
+      if (
+        typeof fileName !== "string" ||
+        fileName.length === 0 ||
+        fileName.length > 1000
+      ) {
+        continue;
+      }
+
+      const lineNumber: number = Number(frame["lineNumber"]);
+
+      frames.push({
+        fileName,
+        lineNumber:
+          Number.isFinite(lineNumber) && lineNumber > 0
+            ? Math.floor(lineNumber)
+            : 0,
+      });
+    }
+
+    const links: Array<SourceLink> =
+      frames.length > 0
+        ? await SourceLocator.locate({ projectId, props, frames })
+        : [];
+
+    return {
+      links: links as unknown as Array<JSONObject>,
+    };
   }
 
   private route(

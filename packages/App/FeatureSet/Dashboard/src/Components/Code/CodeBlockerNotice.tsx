@@ -41,6 +41,12 @@ export interface ComponentProps {
    * that fix is not linked.
    */
   repositoryId?: string | undefined;
+  /*
+   * Drawn inside a strip of the same amber (the Profiler's Fix with AI):
+   * its icon, words and fix without a box of its own, which would only
+   * indent them in the strip.
+   */
+  isInline?: boolean | undefined;
 }
 
 // A gate's answer as yes, no, or not yet known (the snapshot is on its way).
@@ -146,10 +152,16 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
     <div
       data-testid="code-blocker"
       data-blocker={props.blocker.type}
-      className={`flex items-start gap-3 rounded-lg px-4 py-3 text-sm ${
+      className={`flex items-start text-sm ${
+        props.isInline ? "gap-2" : "gap-3 rounded-lg px-4 py-3"
+      } ${
         isPermission
-          ? "bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200"
-          : "bg-amber-50 text-amber-900"
+          ? props.isInline
+            ? "text-gray-700"
+            : "bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200"
+          : props.isInline
+            ? "text-amber-900"
+            : "bg-amber-50 text-amber-900"
       }`}
     >
       <Icon

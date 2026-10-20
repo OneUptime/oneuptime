@@ -95,6 +95,7 @@ describe("the suggestion helpers", () => {
       [
         "AiSuggestion.ts",
         "CodeFixSuggestion.ts",
+        "ProfileFixSuggestion.ts",
         "SuggestionOffer.ts",
         "TelemetryImprovementSuggestion.ts",
         "TracePerformanceFixSuggestion.ts",
@@ -258,8 +259,30 @@ describe("every Dashboard AI action asks the AI rule", () => {
     "App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel.tsx",
     "App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIAssistance.tsx",
     "App/FeatureSet/Dashboard/src/Pages/Exceptions/View/SideMenu.tsx",
+    "App/FeatureSet/Dashboard/src/Components/Profiles/ProfileFixStrip.tsx",
   ])("%s, which starts an AI code fix, asks it", (file: string) => {
     expect(read(path.join(PACKAGES, file))).toContain("useAiOffered()");
+  });
+
+  /*
+   * The Profiler's Fix with AI draws only what the server's suggestion
+   * route answers (ProfileFixTaskTrigger.getSuggestion, the same gates the
+   * create route enforces), read with the shared parser - and asks nothing
+   * with AI off.
+   */
+  test("the Profiler's fix strip asks the server, and nothing with AI off", () => {
+    const strip: string = withoutComments(
+      read(path.join(DASHBOARD_SRC, "Components/Profiles/ProfileFixStrip.tsx")),
+    );
+    const api: string = read(
+      path.join(DASHBOARD_SRC, "Components/Profiles/ProfilesApi.ts"),
+    );
+
+    expect(strip).toContain("isAiOffered ? requestKey : null");
+    expect(strip).toContain("fetchProfileFixSuggestion(");
+    expect(api).toContain("parseProfileFixSuggestion(");
+    // The rule lives in Common: the strip draws the offer it is given.
+    expect(strip).not.toMatch(/PROFILE_FIX_MIN_|ownShare\s*[<>]=?/);
   });
 
   test("the trace page asks it before it asks the server for a suggestion", () => {
@@ -310,6 +333,7 @@ describe("every server path that creates an AI code-fix task refuses with AI off
     "Common/Server/Utils/AI/SRE/FixPerformanceTaskTrigger.ts",
     "Common/Server/Utils/AI/SRE/TelemetryImprovementTaskTrigger.ts",
     "Common/Server/Services/TelemetryExceptionService.ts",
+    "Common/Server/Utils/AI/SRE/ProfileFixTaskTrigger.ts",
   ])("%s asserts the project's AI switch", (file: string) => {
     expect(read(path.join(PACKAGES, file))).toContain(
       "AIService.assertProjectAIEnabled(",
@@ -327,5 +351,9 @@ describe("every server path that creates an AI code-fix task refuses with AI off
       '"/ai-investigation/telemetry-improvement-suggestion"',
     );
     expect(api).toContain("TelemetryImprovementTaskTrigger.getSuggestion(");
+    expect(api).toContain('"/ai-investigation/profile-fix-suggestion"');
+    expect(api).toContain("ProfileFixTaskTrigger.getSuggestion(");
+    expect(api).toContain('"/ai-investigation/create-profile-fix-task"');
+    expect(api).toContain("ProfileFixTaskTrigger.createFixTask(");
   });
 });

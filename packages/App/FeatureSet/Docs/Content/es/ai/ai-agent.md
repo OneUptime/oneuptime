@@ -44,6 +44,7 @@ Haz clic en **Iniciar tarea** o pulsa Intro. Se abre la página de la tarea, y e
 | **Monitor** | Su tipo, su estado y su descripción. |
 | **Traza** | Sus spans: sus nombres, tiempos y errores. |
 | **Registros** | Las últimas 20 líneas de log que contienen tu búsqueda, de la última hora, el último día o la última semana. |
+| **Perfil de rendimiento** | Adónde va el tiempo de una función en los perfiles de su servicio: quién la llama, qué llama y sus líneas más calientes. |
 
 Una petición lleva como máximo 10 elementos de contexto. Los tokens, claves, contraseñas y direcciones de correo en lo que lee OneUptime se ocultan antes de que la IA los vea, como en todos los sitios donde OneUptime AI lee tus datos.
 
@@ -78,7 +79,7 @@ flowchart TB
     P --> H["Una persona lo revisa<br/>y lo fusiona"]
 ```
 
-1. Haces clic en **Iniciar tarea** en un repositorio, o en **Fix with AI** en una excepción sin resolver, u otro botón o disparador inicia una tarea (consulta [Dónde empiezan las tareas de corrección](#dónde-empiezan-las-tareas-de-corrección)).
+1. Haces clic en **Iniciar tarea** en un repositorio, o en **Corregir con IA** en una excepción sin resolver, u otro botón o disparador inicia una tarea (consulta [Dónde empiezan las tareas de corrección](#dónde-empiezan-las-tareas-de-corrección)).
 2. La tarea se pone en cola en su repositorio, y el Runner que elige el repositorio la toma: uno de tus Runners, o un Runner global cuando no elige ninguno (consulta [Elige el Runner del repositorio](#elige-el-runner-del-repositorio)).
 3. El Runner obtiene el contexto de la tarea. Para una petición, son sus palabras, el contexto añadido y la conversación hasta ahora; para una excepción, su tipo, su mensaje y su stack trace.
 4. Clona el repositorio en un espacio de trabajo propio y crea una rama. Una corrección de una excepción se llama `oneuptime-fix-exception-` seguido de los primeros caracteres del id de la ejecución. Una respuesta trabaja, en cambio, en la rama del pull request abierto de la tarea.
@@ -94,15 +95,16 @@ Cada ejecución está sujeta a presupuestos que impone el servidor: como máximo
 
 | Dónde | Clic | El pull request |
 | --- | --- | --- |
-| La página **Asistencia de IA** de una excepción | **Fix with AI** | Corrige el error detrás de la excepción. |
+| La página **Asistencia de IA** de una excepción | **Corregir con IA** | Corrige el error detrás de la excepción. |
 | La página **Asistencia de IA** de una excepción | **Generar prueba de regresión** | Añade una prueba que reproduce la excepción y falla hasta que se corrige el error. |
 | La página **Asistencia de IA** de una excepción | **Mejorar el manejo de errores** | Para un error esperado, como una entrada no válida: saca los datos de usuario del mensaje, valida la entrada antes y marca el error como gestionado, sin cambiar el comportamiento. |
 | La tarjeta **Investigación de IA** de un incidente o una alerta | **Abrir PR de corrección a partir de este análisis** | Corrige la causa raíz que publicó la investigación (consulta [Correcciones de código automáticas a partir de investigaciones](#correcciones-de-código-automáticas-a-partir-de-investigaciones)). |
 | Una traza que vale la pena corregir | **Acelerar con IA** | Corrige el patrón lento que nombra el botón, como una consulta N+1 o llamadas que podrían ir en paralelo. |
 | La página **Registros** de un servicio | **Mejorar los registros** | Hace que los logs del servicio sean estructurados, con la severidad correcta y vinculados a sus trazas, sin cambiar el comportamiento. |
 | La página **Trazas** de un servicio | **Mejorar el trazado** | Añade spans y atributos donde falta el tracing del servicio, sin cambiar el comportamiento. |
+| Una función en **Perfiles de rendimiento** | **Corregir con IA** | Hace que la función haga el mismo trabajo con menos tiempo o memoria, con su perfil como evidencia. |
 
-Estos botones solo aparecen donde pueden iniciar una tarea. Con la IA desactivada para el proyecto, no aparece ninguno y el menú lateral de una excepción no tiene **Asistencia de IA**. **Mejorar los registros** y **Mejorar el trazado** aparecen en cuanto hay un repositorio conectado, y **Acelerar con IA** solo en una traza que vale la pena corregir (consulte [Explorador de trazas](/docs/telemetry/traces-explorer)).
+Estos botones solo aparecen donde pueden iniciar una tarea. Con la IA desactivada para el proyecto, no aparece ninguno y el menú lateral de una excepción no tiene **Asistencia de IA**. **Mejorar los registros** y **Mejorar el trazado** aparecen en cuanto hay un repositorio conectado, y **Acelerar con IA** solo en una traza que vale la pena corregir (consulte [Explorador de trazas](/docs/telemetry/traces-explorer)). El botón **Corregir con IA** de una función solo aparece en el código propio de la aplicación que ocupa al menos el 5 % del tiempo o la memoria del perfil, o cuya proporción creció 3 puntos o más desde la ventana con la que se compara (consulta [Perfilado continuo](/docs/telemetry/profiles)).
 
 Para abrir la página **Asistencia de IA** de una excepción, abre la excepción en **Productos → Observabilidad → Excepciones** y elige **Asistencia de IA** en su menú lateral. Una excepción resuelta o archivada tiene que marcarse primero como no resuelta.
 

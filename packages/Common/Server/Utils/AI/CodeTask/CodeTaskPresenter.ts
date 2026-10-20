@@ -378,6 +378,14 @@ export default class CodeTaskPresenter {
       "traceId",
       "search",
       "serviceId",
+      // A profile's function and window: its chip opens the Profiler there.
+      "functionName",
+      "fileName",
+      "profileType",
+      "startTime",
+      "endTime",
+      "beforeStartTime",
+      "beforeEndTime",
     ] as const) {
       if (item[key]) {
         json[key] = item[key];

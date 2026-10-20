@@ -25,7 +25,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * embedded in a service, a host or an incident keeps its own message.
  *
  * The Profiler's Overview and All profiles list say it the same way
- * (ProfilesDashboard, ProfileTable). Their empty state was a six-line
+ * (ProfilesOverview, ProfileTable). Their empty state was a six-line
  * paragraph naming Grafana Alloy, eBPF and a Pyroscope SDK for eight
  * languages - the setup guide's job - in a box of its own design.
  *

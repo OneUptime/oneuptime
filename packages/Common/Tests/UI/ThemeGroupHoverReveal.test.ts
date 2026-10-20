@@ -73,16 +73,16 @@ const GROUP_HOVER_GATE: string = "html.dark .group:hover ";
 // The substring the review found missing.
 const NEGATED_HOVER_SUBSTRING: string = "group-[:not(:hover)";
 
-// The converted reveals, relative to the repository root.
+/*
+ * The converted reveals, relative to the repository root. The Profiler's
+ * old overview held the second one (a "click to highlight" hint on its top
+ * functions); the overview that replaced it says what a row does in its
+ * own words, with no hover reveal.
+ */
 const TELEMETRY_FACET_VALUE_ROW_FILE: string =
   "packages/Common/UI/Components/TelemetryViewer/components/TelemetryFacetValueRow.tsx";
-const PROFILES_DASHBOARD_FILE: string =
-  "packages/App/FeatureSet/Dashboard/src/Components/Profiles/ProfilesDashboard.tsx";
 
-const KNOWN_REVEAL_FILES: Array<string> = [
-  TELEMETRY_FACET_VALUE_ROW_FILE,
-  PROFILES_DASHBOARD_FILE,
-];
+const KNOWN_REVEAL_FILES: Array<string> = [TELEMETRY_FACET_VALUE_ROW_FILE];
 
 // The facet row's exclude button after the fix, and before it (git 17084e6b23).
 const CONVERTED_FACET_EXCLUDE_CLASS: string =
@@ -90,7 +90,10 @@ const CONVERTED_FACET_EXCLUDE_CLASS: string =
 const PRE_FIX_FACET_EXCLUDE_CLASS: string =
   "hidden h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-hover:flex";
 
-// The Profiles hint with the template's non-highlighted branch filled in.
+/*
+ * The old Profiler hint with the template's non-highlighted branch filled
+ * in: a second shape for the restore helper to rebuild.
+ */
 const CONVERTED_PROFILES_HINT_CLASS: string =
   "flex-shrink-0 text-[10px] text-gray-400 inline group-[:not(:hover)]:hidden";
 const PRE_FIX_PROFILES_HINT_CLASS: string =
