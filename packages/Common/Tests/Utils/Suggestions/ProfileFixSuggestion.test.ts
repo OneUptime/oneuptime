@@ -167,7 +167,9 @@ describe("what the panel is offered", () => {
     });
 
     expect(offer.offer).toBe(SuggestionOffer.SetUp);
-    expect(offer.blocker!.type).toBe(CodeTaskBlockerType.RepositoryNotConnected);
+    expect(offer.blocker!.type).toBe(
+      CodeTaskBlockerType.RepositoryNotConnected,
+    );
   });
 
   test("Code's gate says no: that step, in Code's words - unless the person may not ask at all", () => {
@@ -245,11 +247,18 @@ describe("the suggestion route's answer", () => {
     ["no offer", {}],
     [
       "a fix for a function the rule would not offer",
-      { ...profileFixSuggestionToJSON(act), evidence: { ...HOT, isOwnCode: false } },
+      {
+        ...profileFixSuggestionToJSON(act),
+        evidence: { ...HOT, isOwnCode: false },
+      },
     ],
     [
       "a fix with nowhere to ask it",
-      { ...profileFixSuggestionToJSON(act), repository: null, repositories: [] },
+      {
+        ...profileFixSuggestionToJSON(act),
+        repository: null,
+        repositories: [],
+      },
     ],
     [
       "a set-up step that does not say what it is",

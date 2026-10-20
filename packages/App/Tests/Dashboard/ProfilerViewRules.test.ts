@@ -85,9 +85,7 @@ beforeAll(async () => {
     });
   }
 
-  Url = await import(
-    "../../FeatureSet/Dashboard/src/Utils/ProfilesUrlState"
-  );
+  Url = await import("../../FeatureSet/Dashboard/src/Utils/ProfilesUrlState");
   View = await import("../../FeatureSet/Dashboard/src/Utils/ProfilesView");
   Prefill = await import(
     "../../FeatureSet/Dashboard/src/Utils/ProfileMonitorPrefill"
@@ -189,7 +187,10 @@ describe("the Profiler's address", () => {
     ["a compare mode this build does not know", "compare=month"],
     ["a deploy compare without its time", "compare=change"],
     ["a file without its function", "file=src%2Fa.ts"],
-    ["a function name of over a thousand characters", `function=${"f".repeat(1001)}`],
+    [
+      "a function name of over a thousand characters",
+      `function=${"f".repeat(1001)}`,
+    ],
   ])("%s is read as the default", (_name: string, query: string) => {
     expect(Url.parseProfilesUrlState(params(query))).toEqual({});
   });
@@ -211,15 +212,13 @@ describe("the Profiler's address", () => {
   });
 
   test("a window of its own wins over a preset, and a change time goes only with a deploy compare", () => {
-    const written: Record<string, string | null> = Url.getProfilesQueryParams(
-      {
-        rangeMinutes: 360,
-        startTime: new Date("2026-10-20T10:00:00.000Z"),
-        endTime: new Date("2026-10-20T11:00:00.000Z"),
-        compare: Url.ProfilesCompareMode.Day,
-        changeTime: new Date("2026-10-20T10:30:00.000Z"),
-      },
-    );
+    const written: Record<string, string | null> = Url.getProfilesQueryParams({
+      rangeMinutes: 360,
+      startTime: new Date("2026-10-20T10:00:00.000Z"),
+      endTime: new Date("2026-10-20T11:00:00.000Z"),
+      compare: Url.ProfilesCompareMode.Day,
+      changeTime: new Date("2026-10-20T10:30:00.000Z"),
+    });
 
     expect(written["rangeMinutes"]).toBeNull();
     expect(written["startTime"]).toBe("2026-10-20T10:00:00.000Z");
@@ -248,9 +247,7 @@ describe("the Profiler's address", () => {
       }
     }
 
-    expect(Url.parseProfilesUrlState(params(search.toString()))).toEqual(
-      state,
-    );
+    expect(Url.parseProfilesUrlState(params(search.toString()))).toEqual(state);
   });
 
   test("the Profiler's route carries the view", () => {
@@ -303,9 +300,9 @@ describe("the windows the Profiler reads", () => {
       isCustom: false,
     });
     // The last hour, by default.
-    expect(
-      View.getProfilesWindow({}, NOW).startTime.getTime(),
-    ).toBe(NOW.getTime() - 60 * MINUTE);
+    expect(View.getProfilesWindow({}, NOW).startTime.getTime()).toBe(
+      NOW.getTime() - 60 * MINUTE,
+    );
 
     const custom: ProfilesWindow = View.getProfilesWindow(
       {
@@ -327,9 +324,7 @@ describe("the windows the Profiler reads", () => {
       NOW,
     );
 
-    expect(pair!.before.startTime.getTime()).toBe(
-      NOW.getTime() - 120 * MINUTE,
-    );
+    expect(pair!.before.startTime.getTime()).toBe(NOW.getTime() - 120 * MINUTE);
     expect(pair!.before.endTime.getTime()).toBe(window.startTime.getTime());
     expect(pair!.after.endTime.getTime()).toBe(NOW.getTime());
   });
@@ -338,21 +333,24 @@ describe("the windows the Profiler reads", () => {
   test.each([
     ["day", 24 * 60],
     ["week", 7 * 24 * 60],
-  ])("%s: the same window, that much earlier", (mode: string, minutes: number) => {
-    const window: ProfilesWindow = View.getProfilesWindow({}, NOW);
-    const pair: ProfilesWindowPair | null = View.getProfilesComparison(
-      { compare: mode as never },
-      window,
-      NOW,
-    );
+  ])(
+    "%s: the same window, that much earlier",
+    (mode: string, minutes: number) => {
+      const window: ProfilesWindow = View.getProfilesWindow({}, NOW);
+      const pair: ProfilesWindowPair | null = View.getProfilesComparison(
+        { compare: mode as never },
+        window,
+        NOW,
+      );
 
-    expect(pair!.before.endTime.getTime()).toBe(
-      NOW.getTime() - minutes * MINUTE,
-    );
-    expect(
-      pair!.before.endTime.getTime() - pair!.before.startTime.getTime(),
-    ).toBe(60 * MINUTE);
-  });
+      expect(pair!.before.endTime.getTime()).toBe(
+        NOW.getTime() - minutes * MINUTE,
+      );
+      expect(
+        pair!.before.endTime.getTime() - pair!.before.startTime.getTime(),
+      ).toBe(60 * MINUTE);
+    },
+  );
 
   test("a deploy: as long as the window either side, no longer than the time since it", () => {
     const window: ProfilesWindow = View.getProfilesWindow({}, NOW);
@@ -391,13 +389,38 @@ describe("the windows the Profiler reads", () => {
 
 describe("the kinds the Profiler offers", () => {
   const activity: Array<ProfileTypeActivity> = [
-    { profileType: "cpu", unit: "nanoseconds", sampleCount: 900, profileCount: 9 },
+    {
+      profileType: "cpu",
+      unit: "nanoseconds",
+      sampleCount: 900,
+      profileCount: 9,
+    },
     // The eBPF profiler's CPU samples: counts, left out of CPU time here.
     { profileType: "samples", unit: "count", sampleCount: 50, profileCount: 2 },
-    { profileType: "inuse_space", unit: "bytes", sampleCount: 300, profileCount: 9 },
-    { profileType: "inuse_objects", unit: "count", sampleCount: 300, profileCount: 9 },
-    { profileType: "custom_metric", unit: "count", sampleCount: 10, profileCount: 1 },
-    { profileType: "mutex", unit: "nanoseconds", sampleCount: 0, profileCount: 0 },
+    {
+      profileType: "inuse_space",
+      unit: "bytes",
+      sampleCount: 300,
+      profileCount: 9,
+    },
+    {
+      profileType: "inuse_objects",
+      unit: "count",
+      sampleCount: 300,
+      profileCount: 9,
+    },
+    {
+      profileType: "custom_metric",
+      unit: "count",
+      sampleCount: 10,
+      profileCount: 1,
+    },
+    {
+      profileType: "mutex",
+      unit: "nanoseconds",
+      sampleCount: 0,
+      profileCount: 0,
+    },
   ];
 
   test("only kinds with data, in the order a person looks for them, one unit each", () => {
@@ -434,7 +457,12 @@ describe("the kinds the Profiler offers", () => {
     expect(
       View.getDefaultProfileSelection(
         View.getProfileKindChoices([
-          { profileType: "alloc_space", unit: "bytes", sampleCount: 5, profileCount: 1 },
+          {
+            profileType: "alloc_space",
+            unit: "bytes",
+            sampleCount: 5,
+            profileCount: 1,
+          },
         ]),
       ),
     ).toBe("allocations");
@@ -442,7 +470,12 @@ describe("the kinds the Profiler offers", () => {
     expect(
       View.getDefaultProfileSelection(
         View.getProfileKindChoices([
-          { profileType: "samples", unit: "count", sampleCount: 5, profileCount: 1 },
+          {
+            profileType: "samples",
+            unit: "count",
+            sampleCount: 5,
+            profileCount: 1,
+          },
         ]),
       ),
     ).toBe("cpu");
@@ -484,10 +517,18 @@ describe("what the headline says", () => {
   const functions: Array<ProfileFunctionRow> = [
     row("JSON.parse", "node:internal/json", { self: 420, total: 420 }),
     row("parseOrder", "src/orders/parse.ts", { self: 0, total: 560, own: 420 }),
-    row("handleCheckout", "src/routes/checkout.ts", { self: 0, total: 950, own: 160 }),
+    row("handleCheckout", "src/routes/checkout.ts", {
+      self: 0,
+      total: 950,
+      own: 160,
+    }),
     row("main", "src/server.ts", { self: 0, total: 1000, own: 5 }),
     row("Socket.write", "node:net", { self: 160, total: 160 }),
-    row("validateCart", "src/cart/validate.ts", { self: 100, total: 100, own: 100 }),
+    row("validateCart", "src/cart/validate.ts", {
+      self: 100,
+      total: 100,
+      own: 100,
+    }),
   ];
 
   test("the leader, the top three, and the own code with the most own-code time", () => {
@@ -507,7 +548,13 @@ describe("what the headline says", () => {
 
   test("when the leader is the application's own code, it is named once", () => {
     const facts: ProfileHeadlineFacts = View.getProfileHeadlineFacts(
-      [row("validateCart", "src/cart/validate.ts", { self: 100, total: 100, own: 100 })],
+      [
+        row("validateCart", "src/cart/validate.ts", {
+          self: 100,
+          total: 100,
+          own: 100,
+        }),
+      ],
       WINDOW,
     );
 
@@ -527,8 +574,16 @@ describe("the rows each ranking lists", () => {
   const rows: Array<ProfileFunctionRow> = [
     row("JSON.parse", "node:internal/json", { self: 420, total: 420 }),
     row("parseOrder", "src/orders/parse.ts", { self: 0, total: 560, own: 420 }),
-    row("handleCheckout", "src/routes/checkout.ts", { self: 0, total: 950, own: 160 }),
-    row("validateCart", "src/cart/validate.ts", { self: 100, total: 100, own: 100 }),
+    row("handleCheckout", "src/routes/checkout.ts", {
+      self: 0,
+      total: 950,
+      own: 160,
+    }),
+    row("validateCart", "src/cart/validate.ts", {
+      self: 100,
+      total: 100,
+      own: 100,
+    }),
     row("Pool.query", "node_modules/pg/lib/pool.js", { self: 50, total: 160 }),
   ];
 
@@ -648,14 +703,19 @@ describe("the rows each ranking lists", () => {
 
 describe("the own code to change, for code that is not", () => {
   test("the own caller of the most time, nearest first", () => {
-    const callers: ProfileTreeNode = tree("JSON.parse", "node:internal/json", 600, [
-      tree("JSON.parse", "node:internal/json", 100, [
-        tree("loadCatalog", "src/catalog.ts", 100),
-      ]),
-      tree("Router.handle", "node_modules/express/lib/router/index.js", 500, [
-        tree("parseOrder", "src/orders/parse.ts", 500),
-      ]),
-    ]);
+    const callers: ProfileTreeNode = tree(
+      "JSON.parse",
+      "node:internal/json",
+      600,
+      [
+        tree("JSON.parse", "node:internal/json", 100, [
+          tree("loadCatalog", "src/catalog.ts", 100),
+        ]),
+        tree("Router.handle", "node_modules/express/lib/router/index.js", 500, [
+          tree("parseOrder", "src/orders/parse.ts", 500),
+        ]),
+      ],
+    );
 
     expect(View.getNearestOwnCaller(callers)).toEqual({
       functionName: "parseOrder",
@@ -682,9 +742,12 @@ describe("a monitor on a function's share", () => {
     [56, 85],
     [90, 95],
     [Number.NaN, 10],
-  ])("a function taking %s%% is watched above %s%%", (share: number, threshold: number) => {
-    expect(View.suggestFunctionShareThreshold(share)).toBe(threshold);
-  });
+  ])(
+    "a function taking %s%% is watched above %s%%",
+    (share: number, threshold: number) => {
+      expect(View.suggestFunctionShareThreshold(share)).toBe(threshold);
+    },
+  );
 
   test("Create Monitor is opened with the service, the function, the kind and the threshold", () => {
     const route: string = View.buildProfileMonitorRoute({
@@ -717,7 +780,9 @@ describe("a monitor on a function's share", () => {
   });
 
   test("a link with no function is no link; anything else that does not hold up reads as its default", () => {
-    expect(Prefill.readProfileMonitorLink(params("profileType=cpu"))).toBeNull();
+    expect(
+      Prefill.readProfileMonitorLink(params("profileType=cpu")),
+    ).toBeNull();
     expect(
       Prefill.readProfileMonitorLink(
         params(
@@ -750,23 +815,24 @@ describe("a monitor on a function's share", () => {
     expect(step.lastXSecondsOfProfiles).toBe(300);
   });
 
-  const SEEDS: Parameters<PrefillModule["buildProfileMonitorCriteria"]>[0]["seeds"] =
-    {
-      operationalMonitorStatusId: new ObjectID(
-        "aaaaaaaa-0000-4000-8000-000000000001",
-      ),
-      unhealthyMonitorStatusId: new ObjectID(
-        "aaaaaaaa-0000-4000-8000-000000000002",
-      ),
-      rankedIncidentSeverityIds: [
-        new ObjectID("bbbbbbbb-0000-4000-8000-000000000001"),
-        new ObjectID("bbbbbbbb-0000-4000-8000-000000000002"),
-      ],
-      rankedAlertSeverityIds: [
-        new ObjectID("cccccccc-0000-4000-8000-000000000001"),
-        new ObjectID("cccccccc-0000-4000-8000-000000000002"),
-      ],
-    };
+  const SEEDS: Parameters<
+    PrefillModule["buildProfileMonitorCriteria"]
+  >[0]["seeds"] = {
+    operationalMonitorStatusId: new ObjectID(
+      "aaaaaaaa-0000-4000-8000-000000000001",
+    ),
+    unhealthyMonitorStatusId: new ObjectID(
+      "aaaaaaaa-0000-4000-8000-000000000002",
+    ),
+    rankedIncidentSeverityIds: [
+      new ObjectID("bbbbbbbb-0000-4000-8000-000000000001"),
+      new ObjectID("bbbbbbbb-0000-4000-8000-000000000002"),
+    ],
+    rankedAlertSeverityIds: [
+      new ObjectID("cccccccc-0000-4000-8000-000000000001"),
+      new ObjectID("cccccccc-0000-4000-8000-000000000002"),
+    ],
+  };
 
   test("an alert above the threshold that resolves itself, and its healthy mirror", () => {
     const instances: Array<MonitorCriteriaInstance> =

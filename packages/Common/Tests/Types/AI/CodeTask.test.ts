@@ -631,11 +631,7 @@ describe("a Profile in a request", () => {
   });
 
   test.each([
-    [
-      "no service",
-      { functionName: "parseOrder" },
-      "Pick the service to add.",
-    ],
+    ["no service", { functionName: "parseOrder" }, "Pick the service to add."],
     [
       "a service that is not an id",
       { serviceId: "checkout", functionName: "parseOrder" },

@@ -41,14 +41,22 @@ const PARSE_ORDER_CALLEES: ProfileTreeNode = node(
   { self: 10, total: 640 },
   [
     node("JSON.parse", "node:internal/json", { self: 420, total: 420 }),
-    node("normalizeLineItems", "src/orders/normalize.ts", { self: 90, total: 150 }, [
-      node("lodash.cloneDeep", "node_modules/lodash/cloneDeep.js", {
+    node(
+      "normalizeLineItems",
+      "src/orders/normalize.ts",
+      { self: 90, total: 150 },
+      [
+        node("lodash.cloneDeep", "node_modules/lodash/cloneDeep.js", {
+          self: 60,
+          total: 60,
+        }),
+      ],
+    ),
+    node("Buffer.concat", "node:buffer", { self: 0, total: 60 }, [
+      node("memcpy", "/lib/x86_64-linux-gnu/libc.so.6", {
         self: 60,
         total: 60,
       }),
-    ]),
-    node("Buffer.concat", "node:buffer", { self: 0, total: 60 }, [
-      node("memcpy", "/lib/x86_64-linux-gnu/libc.so.6", { self: 60, total: 60 }),
     ]),
   ],
 );
@@ -71,25 +79,28 @@ describe("own-code time", () => {
 
   test("is never more than the function's total", () => {
     expect(
-      getOwnCodeValue(
-        node("f", "src/f.ts", { self: 100, total: 50 }),
-      ),
+      getOwnCodeValue(node("f", "src/f.ts", { self: 100, total: 50 })),
     ).toBe(50);
   });
 });
 
 describe("the chains that call a function", () => {
-  const CALLERS: ProfileTreeNode = node("JSON.parse", "node:internal/json", { total: 600 }, [
-    node("parseOrder", "src/orders/parse.ts", { total: 420 }, [
-      node("handleCheckout", "src/routes/checkout.ts", { total: 420 }, [
-        node("main", "src/server.ts", { total: 420 }),
+  const CALLERS: ProfileTreeNode = node(
+    "JSON.parse",
+    "node:internal/json",
+    { total: 600 },
+    [
+      node("parseOrder", "src/orders/parse.ts", { total: 420 }, [
+        node("handleCheckout", "src/routes/checkout.ts", { total: 420 }, [
+          node("main", "src/server.ts", { total: 420 }),
+        ]),
       ]),
-    ]),
-    node("loadCatalog", "src/catalog.ts", { total: 180 }, [
-      node("main", "src/server.ts", { total: 120 }),
-      node("refresh", "src/catalog.ts", { total: 60 }),
-    ]),
-  ]);
+      node("loadCatalog", "src/catalog.ts", { total: 180 }, [
+        node("main", "src/server.ts", { total: 120 }),
+        node("refresh", "src/catalog.ts", { total: 60 }),
+      ]),
+    ],
+  );
 
   test("heaviest first, each following its heaviest caller up to the depth", () => {
     const chains: Array<ProfileCallChain> = getTopCallerChains(CALLERS, {
@@ -134,13 +145,18 @@ describe("what a function spends its time calling", () => {
   });
 
   test("a function met again lower in its own chain (recursion) is counted once", () => {
-    const recursive: ProfileTreeNode = node("walk", "src/tree.ts", { total: 100 }, [
-      node("visit", "src/tree.ts", { total: 100 }, [
-        node("visit", "src/tree.ts", { total: 70 }, [
-          node("visit", "src/tree.ts", { self: 40, total: 40 }),
+    const recursive: ProfileTreeNode = node(
+      "walk",
+      "src/tree.ts",
+      { total: 100 },
+      [
+        node("visit", "src/tree.ts", { total: 100 }, [
+          node("visit", "src/tree.ts", { total: 70 }, [
+            node("visit", "src/tree.ts", { self: 40, total: 40 }),
+          ]),
         ]),
-      ]),
-    ]);
+      ],
+    );
 
     expect(
       getTopCallees(recursive).map((callee: ProfileCallee) => {

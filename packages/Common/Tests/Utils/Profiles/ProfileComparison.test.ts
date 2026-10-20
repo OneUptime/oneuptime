@@ -305,9 +305,9 @@ describe("getNotableSlowdown", () => {
   });
 
   test("names nothing when everything got faster", () => {
-    expect(getNotableSlowdown(compareProfileWindows(AFTER, BEFORE))?.functionName).not.toBe(
-      "parseOrder",
-    );
+    expect(
+      getNotableSlowdown(compareProfileWindows(AFTER, BEFORE))?.functionName,
+    ).not.toBe("parseOrder");
   });
 });
 

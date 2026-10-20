@@ -16,13 +16,13 @@ import {
 
 describe("parseProfileFrame", () => {
   test("reads function, file and line", () => {
-    expect(parseProfileFrame("parseOrder@/app/src/orders/parser.ts:88")).toEqual(
-      {
-        functionName: "parseOrder",
-        fileName: "/app/src/orders/parser.ts",
-        lineNumber: 88,
-      },
-    );
+    expect(
+      parseProfileFrame("parseOrder@/app/src/orders/parser.ts:88"),
+    ).toEqual({
+      functionName: "parseOrder",
+      fileName: "/app/src/orders/parser.ts",
+      lineNumber: 88,
+    });
   });
 
   test("a frame with no line keeps its whole file", () => {
@@ -103,24 +103,68 @@ describe("getProfileFrameOrigin", () => {
   test.each([
     // Applications' own code.
     ["/app/src/orders/parser.ts", "parseOrder", ProfileFrameOrigin.Own],
-    ["/home/runner/work/acme/acme/billing/charge.go", "charge", ProfileFrameOrigin.Own],
+    [
+      "/home/runner/work/acme/acme/billing/charge.go",
+      "charge",
+      ProfileFrameOrigin.Own,
+    ],
     ["src/handlers/checkout.py", "checkout", ProfileFrameOrigin.Own],
     ["C:\\inetpub\\app\\Orders.cs", "Load", ProfileFrameOrigin.Own],
     // Libraries.
-    ["/app/node_modules/express/lib/router/index.js", "handle", ProfileFrameOrigin.Dependency],
-    ["/usr/local/lib/python3.12/site-packages/django/core/handlers/base.py", "get_response", ProfileFrameOrigin.Dependency],
-    ["/usr/lib/python3/dist-packages/requests/api.py", "get", ProfileFrameOrigin.Dependency],
-    ["/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/gin.go", "ServeHTTP", ProfileFrameOrigin.Dependency],
-    ["/app/vendor/github.com/lib/pq/conn.go", "query", ProfileFrameOrigin.Dependency],
-    ["/usr/local/bundle/gems/rack-3.0.8/lib/rack.rb", "call", ProfileFrameOrigin.Dependency],
+    [
+      "/app/node_modules/express/lib/router/index.js",
+      "handle",
+      ProfileFrameOrigin.Dependency,
+    ],
+    [
+      "/usr/local/lib/python3.12/site-packages/django/core/handlers/base.py",
+      "get_response",
+      ProfileFrameOrigin.Dependency,
+    ],
+    [
+      "/usr/lib/python3/dist-packages/requests/api.py",
+      "get",
+      ProfileFrameOrigin.Dependency,
+    ],
+    [
+      "/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/gin.go",
+      "ServeHTTP",
+      ProfileFrameOrigin.Dependency,
+    ],
+    [
+      "/app/vendor/github.com/lib/pq/conn.go",
+      "query",
+      ProfileFrameOrigin.Dependency,
+    ],
+    [
+      "/usr/local/bundle/gems/rack-3.0.8/lib/rack.rb",
+      "call",
+      ProfileFrameOrigin.Dependency,
+    ],
     // Runtimes.
     ["node:internal/timers", "listOnTimeout", ProfileFrameOrigin.Runtime],
-    ["/usr/local/go/src/runtime/proc.go", "runtime.schedule", ProfileFrameOrigin.Runtime],
-    ["/usr/local/lib/python3.12/json/decoder.py", "decode", ProfileFrameOrigin.Runtime],
+    [
+      "/usr/local/go/src/runtime/proc.go",
+      "runtime.schedule",
+      ProfileFrameOrigin.Runtime,
+    ],
+    [
+      "/usr/local/lib/python3.12/json/decoder.py",
+      "decode",
+      ProfileFrameOrigin.Runtime,
+    ],
     ["/usr/lib/python3.11/threading.py", "run", ProfileFrameOrigin.Runtime],
-    ["/usr/local/lib/ruby/3.2.0/json/common.rb", "parse", ProfileFrameOrigin.Runtime],
+    [
+      "/usr/local/lib/ruby/3.2.0/json/common.rb",
+      "parse",
+      ProfileFrameOrigin.Runtime,
+    ],
     // The operating system.
-    ["/lib/x86_64-linux-gnu/libc.so.6", "__memmove_avx_unaligned", ProfileFrameOrigin.Native],
+    [
+      "/lib/x86_64-linux-gnu/libc.so.6",
+      "__memmove_avx_unaligned",
+      ProfileFrameOrigin.Native,
+    ],
     ["/usr/lib/libssl.so", "SSL_read", ProfileFrameOrigin.Native],
     ["[kernel.kallsyms]", "do_syscall_64", ProfileFrameOrigin.Native],
   ])(
@@ -140,9 +184,9 @@ describe("getProfileFrameOrigin", () => {
     expect(getProfileFrameOrigin("", "java.util.HashMap.get")).toBe(
       ProfileFrameOrigin.Runtime,
     );
-    expect(getProfileFrameOrigin("", "System.Text.Json.JsonSerializer.Deserialize")).toBe(
-      ProfileFrameOrigin.Runtime,
-    );
+    expect(
+      getProfileFrameOrigin("", "System.Text.Json.JsonSerializer.Deserialize"),
+    ).toBe(ProfileFrameOrigin.Runtime);
     expect(getProfileFrameOrigin("", "runtime.mallocgc")).toBe(
       ProfileFrameOrigin.Runtime,
     );
