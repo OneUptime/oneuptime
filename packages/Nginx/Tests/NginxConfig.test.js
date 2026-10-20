@@ -33,9 +33,9 @@ const nginxConf = readNginxConf();
 
 const serverBlocks = getServerBlocks(template);
 
-// The third server block is the primary ingress ("localhost ingress $HOST");
-// the first two are the status-page servers, the default servers of the
-// plaintext port 7849 and the TLS port 7850.
+// The third server block is the primary ingress ("localhost ingress", then
+// HOST without its port); the first two are the status-page servers, the
+// default servers of the plaintext port 7849 and the TLS port 7850.
 const primaryServerBlock = serverBlocks.find((block) => {
   return /server_name\s+localhost\s+ingress/.test(block.body);
 });

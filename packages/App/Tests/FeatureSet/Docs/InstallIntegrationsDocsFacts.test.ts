@@ -1240,7 +1240,13 @@ describe("Docker Compose, against the compose files and scripts", () => {
   it("the ingress serves the whole application only on HOST and localhost", () => {
     const ingress: string = readSource("ingressConfig");
 
-    expect(ingress).toContain("server_name localhost ingress ${HOST};");
+    // HOST without its port: nginx compares a server name with the Host minus its port.
+    expect(ingress).toContain(
+      "server_name localhost ingress ${HOST_WITHOUT_PORT};",
+    );
+    expect(readSource("ingressTemplates")).toContain(
+      'export HOST_WITHOUT_PORT="${HOST%%:*}"',
+    );
     expect(ingress).toContain("server_name  _; # All domains.");
     expect(page).toContain(
       "only `HOST` and `localhost` reach the whole application, and any other name, such as the server's IP address, is treated as a status page domain",

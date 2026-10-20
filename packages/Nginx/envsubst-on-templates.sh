@@ -173,6 +173,19 @@ auto_envsubst() {
   done
 }
 
+# The primary server block's name: HOST without its port.
+#
+# nginx compares a server name with the Host a request names minus its port,
+# so a name that keeps HOST's port never matches. HOST keeps one when people
+# reach OneUptime on it (HOST=oneuptime.example.com:8080): the app builds its
+# links with the port and drops it when it tells its own address from a status
+# page's. Named by HOST itself, the primary server answered no request at all:
+# every one fell to the status-page default_server, which does not route
+# /identity, and signing up or in answered "Page not found - /identity/signup".
+# Everything up to the first ":", the rule run.sh's PRIMARY_DOMAIN and the
+# app's own host check use.
+export HOST_WITHOUT_PORT="${HOST%%:*}"
+
 # Upstream connection pooling (keepalive). When enabled, proxy_pass targets the
 # named upstream{} pools (kept in the template above); the pool pins the backend
 # to an address resolved once at load, which is only safe when that address is

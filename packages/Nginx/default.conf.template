@@ -705,7 +705,9 @@ ${PROVISION_SSL_CERTIFICATE_DIRECTIVE}
 ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     http2  on;
 
-    server_name localhost ingress ${HOST}; #All domains
+    # HOST without its port (envsubst-on-templates.sh): nginx compares a server
+    # name with the Host a request names minus its port.
+    server_name localhost ingress ${HOST_WITHOUT_PORT}; #All domains
 
     proxy_busy_buffers_size   512k;
     proxy_buffers   4 512k;
