@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import LogService from "../../../../../Server/Services/LogService";
 import SpanService from "../../../../../Server/Services/SpanService";
 import TraceAggregationService from "../../../../../Server/Services/TraceAggregationService";
@@ -313,24 +314,23 @@ describe("the reads", () => {
   });
 
   test("an operation's p99 is read through the trace analytics table, by name, service and version", async () => {
-    const table: jest.SpiedFunction<
-      typeof TraceAggregationService.getAnalyticsTable
-    > = jest
-      .spyOn(TraceAggregationService, "getAnalyticsTable")
-      .mockResolvedValue([
-        {
-          groupValues: {},
-          count: 1204,
-          errorCount: 0,
-          avgDurationMs: 90,
-          p50DurationMs: 80,
-          p90DurationMs: 200,
-          p95DurationMs: 250,
-          p99DurationMs: 310,
-          minDurationMs: 1,
-          maxDurationMs: 900,
-        },
-      ]);
+    const table: SpyInstance<typeof TraceAggregationService.getAnalyticsTable> =
+      jest
+        .spyOn(TraceAggregationService, "getAnalyticsTable")
+        .mockResolvedValue([
+          {
+            groupValues: {},
+            count: 1204,
+            errorCount: 0,
+            avgDurationMs: 90,
+            p50DurationMs: 80,
+            p90DurationMs: 200,
+            p95DurationMs: 250,
+            p99DurationMs: 310,
+            minDurationMs: 1,
+            maxDurationMs: 900,
+          },
+        ]);
 
     expect(
       await FixProductionTelemetry.measureLatency({

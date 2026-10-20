@@ -32,9 +32,8 @@ const FixProductionVerdict: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const tone: AITaskTone = getFixProductionVerdictTone(props.production);
-  const label: string = translator.translateText(
-    getFixProductionLabel(props.production),
-  );
+  const words: string = getFixProductionLabel(props.production);
+  const label: string = translator.translateText(words) || words;
 
   if (props.isCompact) {
     return (

@@ -159,7 +159,7 @@ function watching(
     deployedAt: DEPLOYED_AT,
     deployedVersion: "2.3.2",
     deployedCommitSha: FIX_SHA,
-    productionBaseline: baseline,
+    productionBaseline: baseline as unknown as JSONObject,
     ...overrides,
   });
 }
@@ -984,9 +984,11 @@ describe("a fix of an incident's root cause", () => {
     });
     expect(
       JSON.stringify(
-        ((alertCount.mock.calls[0]![0] as JSONObject)["query"] as JSONObject)[
-          "monitorId"
-        ],
+        (
+          (alertCount.mock.calls[0]![0] as unknown as JSONObject)[
+            "query"
+          ] as JSONObject
+        )["monitorId"],
       ),
     ).toContain(MONITOR_ID.toString());
     expect(IncidentService.countBy).not.toHaveBeenCalled();
