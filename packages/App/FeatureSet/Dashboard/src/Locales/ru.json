@@ -31965,6 +31965,8 @@
   "No value to group by": "Нет значения для группировки",
   "Not every item has a value to group by": "Не у всех элементов есть значение для группировки",
   "Nothing new to open": "Ничего нового не открыто",
+  "Put back on the cluster: {{fields}}": "Возвращено в кластере: {{fields}}",
+  "Temporary fix": "Временное исправление",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Фоновая проверка повторно прочитала последний запрос. Критерий {{criteria}} открывает по одному на значение только при поступлении запроса.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "В этом запросе нет значения по пути {{path}}, и он сообщил о восстановлении, поэтому критерий {{criteria}} ничего нового не открыл.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "В этом запросе нет значения по пути {{path}}, поэтому критерий {{criteria}} обработал его без группировки — один раз для всего монитора.",

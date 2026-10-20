@@ -31965,6 +31965,8 @@
   "No value to group by": "Ningún valor para agrupar",
   "Not every item has a value to group by": "No todos los elementos tienen un valor para agrupar",
   "Nothing new to open": "Nada nuevo que abrir",
+  "Put back on the cluster: {{fields}}": "Restablecido en el clúster: {{fields}}",
+  "Temporary fix": "Solución temporal",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "La comprobación en segundo plano volvió a leer la última solicitud. El criterio {{criteria}} solo abre uno por valor cuando llega una solicitud.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Esta solicitud no tiene ningún valor en {{path}} e indicó que se recuperó, así que el criterio {{criteria}} no abrió nada nuevo.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Esta solicitud no tiene ningún valor en {{path}}, así que el criterio {{criteria}} la trató sin agrupar, una sola vez para todo el monitor.",

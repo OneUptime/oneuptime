@@ -31965,6 +31965,8 @@
   "No value to group by": "没有可用于分组的值",
   "Not every item has a value to group by": "部分项目没有可用于分组的值",
   "Nothing new to open": "没有需要新打开的内容",
+  "Put back on the cluster: {{fields}}": "已在集群中被改回：{{fields}}",
+  "Temporary fix": "临时修复",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "后台检查重新读取了最后一个请求。条件 {{criteria}} 只会在请求到达时按每个值打开一个。",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "此请求在 {{path}} 处没有值，并报告已恢复，因此条件 {{criteria}} 没有打开任何新内容。",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "此请求在 {{path}} 处没有值，因此条件 {{criteria}} 未进行分组，而是对整个监控器处理了一次。",

@@ -31965,6 +31965,8 @@
   "No value to group by": "Nessun valore per raggruppare",
   "Not every item has a value to group by": "Non tutti gli elementi hanno un valore per raggruppare",
   "Nothing new to open": "Niente di nuovo da aprire",
+  "Put back on the cluster: {{fields}}": "Ripristinato nel cluster: {{fields}}",
+  "Temporary fix": "Correzione temporanea",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Il controllo in background ha riletto l'ultima richiesta. Il criterio {{criteria}} apre un elemento per valore solo quando arriva una richiesta.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Questa richiesta non ha alcun valore in {{path}} e ha segnalato il ripristino, quindi il criterio {{criteria}} non ha aperto nulla di nuovo.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Questa richiesta non ha alcun valore in {{path}}, quindi il criterio {{criteria}} l'ha gestita senza raggruppamento, una sola volta per l'intero monitor.",

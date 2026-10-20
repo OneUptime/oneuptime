@@ -31965,6 +31965,8 @@
   "No value to group by": "Ingen verdi å gruppere etter",
   "Not every item has a value to group by": "Ikke alle elementer har en verdi å gruppere etter",
   "Nothing new to open": "Ingenting nytt å åpne",
+  "Put back on the cluster: {{fields}}": "Satt tilbake i klyngen: {{fields}}",
+  "Temporary fix": "Midlertidig løsning",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Bakgrunnssjekken leste den siste forespørselen på nytt. Kriteriet {{criteria}} åpner bare én per verdi når en forespørsel kommer inn.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Denne forespørselen har ingen verdi i {{path}} og meldte seg gjenopprettet, så kriteriet {{criteria}} åpnet ingenting nytt.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Denne forespørselen har ingen verdi i {{path}}, så kriteriet {{criteria}} behandlet den uten gruppering, én gang for hele monitoren.",

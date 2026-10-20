@@ -14,11 +14,21 @@ import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/Auto
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import {
+  AiRemediationCommand,
+  AiRemediationCommandExecutionStatus,
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
   AiRemediationPlanExecutionStatus,
   AiRemediationRollbackStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import { AiRemediationRevertWatch } from "../../../Types/AutoRemediation/AiRemediationGitOps";
+import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
+import {
+  describeGitOpsOwner,
+  describeLastingFix,
+} from "../../../Utils/AiRemediation/GitOpsOwnership";
+import { describePutBackFields } from "../../../Utils/AiRemediation/KubectlRevertWatch";
+import GitOpsInspector from "../AI/Remediation/GitOpsInspector";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Text from "../../../Types/Text";
@@ -62,6 +72,21 @@ const ROLLBACK_RESUME_LOCK_NAMESPACE: string = "AutoRemediationRollbackResume";
 
 // How many interrupted-rollback candidates one sweep reads.
 const ROLLBACK_RESUME_BATCH_SIZE: number = 50;
+
+/*
+ * How often a fix's object is read while its verification window is open,
+ * to notice the fix put back (KubectlRevertWatch). Argo CD with self-heal
+ * puts a change back within seconds and Flux at its interval; a read every
+ * couple of sweeps notices either well inside the window without reading
+ * the cluster every minute. A conclusion always reads first.
+ */
+const REVERT_CHECK_INTERVAL_MINUTES: number = 2;
+
+// A watched fix verification found put back.
+interface PutBackFinding {
+  command: AiRemediationCommand;
+  watch: AiRemediationRevertWatch;
+}
 
 /*
  * The resume sweep's candidates are only plans whose rollback has NOT
@@ -770,6 +795,48 @@ export default class RemediationVerifier {
     const monitorsOperational: boolean | null =
       await this.areSubjectMonitorsOperational(suggestion);
 
+    /*
+     * A change Argo CD or Flux puts back can be put back at any moment of
+     * the window — Argo CD within seconds, Flux at its next reconciliation,
+     * minutes away — so monitors that recovered right after it prove
+     * nothing yet: such a fix is judged at the end of its window. A change
+     * they do not put back (a restart) needs no wait: the read before the
+     * conclusion still catches one they did put back after all.
+     */
+    const holdsUntilDeadline: boolean = this.getWatchedCommands(plan).some(
+      (command: AiRemediationCommand): boolean => {
+        return (
+          command.gitOps?.reconcilesOnItsOwn === true && command.gitOps.putsBack
+        );
+      },
+    );
+
+    const concluding: boolean =
+      deadlinePassed ||
+      monitorsOperational === null ||
+      (monitorsOperational && !holdsUntilDeadline);
+
+    /*
+     * Was the fix put back? Read every few sweeps while the window is
+     * open, and always before a conclusion: a fix that no longer stands
+     * is never verified, whatever the monitors say.
+     */
+    const putBack: PutBackFinding | null = await this.findPutBackFix({
+      suggestion,
+      plan,
+      force: concluding,
+    });
+
+    if (putBack) {
+      return {
+        status: AutoRemediationVerificationStatus.Failed,
+        note: this.describePutBackFix(putBack),
+        pingWorkspace: true,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
     if (monitorsOperational === null) {
       return {
         status: AutoRemediationVerificationStatus.Skipped,
@@ -781,9 +848,15 @@ export default class RemediationVerifier {
     }
 
     if (monitorsOperational) {
+      if (holdsUntilDeadline && !deadlinePassed) {
+        return null;
+      }
+
       return {
         status: AutoRemediationVerificationStatus.Verified,
-        note: "The AI command remediation completed and the monitor(s) returned to an operational state within the verification window.",
+        note: `The AI command remediation completed and the monitor(s) returned to an operational state within the verification window.${this.describeFixThatWillBePutBack(
+          plan,
+        )}`,
         pingWorkspace: true,
         displayColor: Green500,
         shouldAutoResolve: suggestion.autoResolveOnRecovery === true,
@@ -801,6 +874,161 @@ export default class RemediationVerifier {
     }
 
     return null;
+  }
+
+  // The kubectl changes that ran and whose object is watched.
+  private static getWatchedCommands(
+    plan: AiRemediationCommandPlan,
+  ): Array<AiRemediationCommand> {
+    return plan.commands.filter((command: AiRemediationCommand): boolean => {
+      return (
+        command.stepType === RunbookStepType.Kubectl &&
+        command.execution?.status ===
+          AiRemediationCommandExecutionStatus.Succeeded &&
+        command.revertWatch !== undefined
+      );
+    });
+  }
+
+  /*
+   * Reads each watched fix's object when a read is due (forced, or none in
+   * the last REVERT_CHECK_INTERVAL_MINUTES), records what it found on the
+   * plan, and returns the first fix found put back. A read that fails
+   * finds nothing: the monitors still decide.
+   */
+  private static async findPutBackFix(data: {
+    suggestion: AutoRemediationSuggestion;
+    plan: AiRemediationCommandPlan;
+    force: boolean;
+  }): Promise<PutBackFinding | null> {
+    const { suggestion } = data;
+    const watched: Array<AiRemediationCommand> = this.getWatchedCommands(
+      data.plan,
+    );
+
+    if (watched.length === 0) {
+      return null;
+    }
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const updates: Map<number, AiRemediationRevertWatch> = new Map<
+      number,
+      AiRemediationRevertWatch
+    >();
+    let finding: PutBackFinding | null = null;
+
+    for (const command of watched) {
+      const watch: AiRemediationRevertWatch = command.revertWatch!;
+
+      if (watch.putBackAt) {
+        finding = finding || { command, watch };
+        continue;
+      }
+
+      const lastCheckedAt: number = watch.lastCheckedAt
+        ? new Date(watch.lastCheckedAt).getTime()
+        : Number.NaN;
+      const due: boolean =
+        data.force ||
+        Number.isNaN(lastCheckedAt) ||
+        now.getTime() - lastCheckedAt >=
+          REVERT_CHECK_INTERVAL_MINUTES * 60 * 1000;
+
+      if (!due || !suggestion.projectId || !suggestion.aiRunId) {
+        continue;
+      }
+
+      const projectId: ObjectID = suggestion.projectId;
+      const aiRunId: ObjectID = suggestion.aiRunId;
+
+      const putBackFields: Array<string> | null = await GitOpsInspector.safely(
+        "reading a watched fix's object",
+        () => {
+          return GitOpsInspector.checkRevertWatchOnCluster({
+            projectId,
+            aiRunId,
+            kubernetesClusterId: command.kubernetesClusterId,
+            watch,
+            stepId: `ai-gitops-verify-${command.sequence}`,
+          });
+        },
+      );
+
+      const checked: AiRemediationRevertWatch = {
+        ...watch,
+        lastCheckedAt: now.toISOString(),
+      };
+
+      if (putBackFields && putBackFields.length > 0) {
+        checked.putBackAt = now.toISOString();
+        checked.putBackFields = putBackFields;
+        finding = finding || { command, watch: checked };
+      }
+
+      command.revertWatch = checked;
+      updates.set(command.sequence, checked);
+    }
+
+    if (updates.size > 0 && suggestion.id) {
+      await CommandPlanExecutor.recordRevertChecks({
+        suggestionId: suggestion.id,
+        watches: updates,
+      });
+    }
+
+    return finding;
+  }
+
+  /*
+   * The verification note of a fix found put back: who put it back, what,
+   * and where the lasting change goes. Text from the cluster is quoted
+   * as values (the note is placed into feed Markdown with mdText).
+   */
+  private static describePutBackFix(finding: PutBackFinding): string {
+    const { command, watch } = finding;
+    const object: string = `${watch.kind}/${watch.name}`;
+    const what: string = describePutBackFields(
+      watch,
+      watch.putBackFields || [],
+    );
+    const minutes: number = Math.max(
+      0,
+      Math.round(
+        ((watch.putBackAt ? new Date(watch.putBackAt).getTime() : 0) -
+          new Date(watch.capturedAt).getTime()) /
+          60000,
+      ),
+    );
+    // When verification found it, which is after the owner put it back.
+    const when: string =
+      minutes <= 1 ? "within a minute or two" : `about ${minutes} minutes`;
+
+    if (command.gitOps) {
+      return `The fix did not hold: ${describeGitOpsOwner(command.gitOps)} declares ${command.gitOps.objectKind}/${command.gitOps.objectName} and put back what "${command.command}" changed (${what}); verification found it back ${when} after the fix ran. A kubectl change of what it declares cannot last there: ${describeLastingFix(command.gitOps)}. Escalation continues as normal.`;
+    }
+
+    return `The fix did not hold: something on the cluster put back what "${command.command}" changed on ${object} (${what}) — a GitOps controller, a Helm upgrade, an operator or an autoscaler; verification found it back ${when} after the fix ran. Make the change where ${object} is declared. Escalation continues as normal.`;
+  }
+
+  /*
+   * For a fix verified while its GitOps owner had not put it back yet: it
+   * still will (Argo CD at its next sync, Flux at its next
+   * reconciliation, a Helm release at its next upgrade).
+   */
+  private static describeFixThatWillBePutBack(
+    plan: AiRemediationCommandPlan,
+  ): string {
+    const command: AiRemediationCommand | undefined = this.getWatchedCommands(
+      plan,
+    ).find((candidate: AiRemediationCommand): boolean => {
+      return candidate.gitOps?.putsBack === true;
+    });
+
+    if (!command?.gitOps) {
+      return "";
+    }
+
+    return ` ${describeGitOpsOwner(command.gitOps)} declares ${command.gitOps.objectKind}/${command.gitOps.objectName} and had not put the change back by the end of the window, but its next sync or upgrade will: make the same change where it is declared, so it lasts.`;
   }
 
   private static async isSubjectResolved(

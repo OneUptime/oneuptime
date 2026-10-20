@@ -31965,6 +31965,8 @@
   "No value to group by": "Inget värde att gruppera efter",
   "Not every item has a value to group by": "Alla objekt har inte ett värde att gruppera efter",
   "Nothing new to open": "Inget nytt att öppna",
+  "Put back on the cluster: {{fields}}": "Återställt i klustret: {{fields}}",
+  "Temporary fix": "Tillfällig lösning",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Bakgrundskontrollen läste om den senaste begäran. Kriteriet {{criteria}} öppnar bara en per värde när en begäran kommer in.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Den här begäran har inget värde vid {{path}} och rapporterade återställning, så kriteriet {{criteria}} öppnade inget nytt.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Den här begäran har inget värde vid {{path}}, så kriteriet {{criteria}} hanterade den utan gruppering, en gång för hela monitorn.",

@@ -31965,6 +31965,8 @@
   "No value to group by": "No value to group by",
   "Not every item has a value to group by": "Not every item has a value to group by",
   "Nothing new to open": "Nothing new to open",
+  "Put back on the cluster: {{fields}}": "Put back on the cluster: {{fields}}",
+  "Temporary fix": "Temporary fix",
   "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.",
   "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.",
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.",
