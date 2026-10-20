@@ -299,6 +299,22 @@ jobs:
 
       # Clones the migrated Service table and holds a row lock from a second
       # connection: the SKIP LOCKED heartbeat write must yield AND report it.
+      # Clones the migrated external calendar tables (and the events' key to
+      # their calendar) into an isolated schema: a read's events replace the
+      # old ones whole through the multi-row INSERT and are read back for a
+      # period by the ordinary CRUD query, two readers' claim on one calendar
+      # has one winner, and a deleted calendar takes its events with it.
+      - name: Test the external calendars' SQL against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EXTERNAL_CALENDAR_TESTS: "true"
+          EXTERNAL_CALENDAR_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXTERNAL_CALENDAR_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXTERNAL_CALENDAR_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ScheduledMaintenanceExternalCalendarPostgres.test.ts --forceExit
+
       - name: Test the non-blocking heartbeat write against Postgres
         working-directory: packages/Common
         env:
