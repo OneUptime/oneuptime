@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} item in this request has no value at {{path}}, so it opened nothing of its own.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.",
+  "Default ({{value}})": "Default ({{value}})",
+  "Default auto-refresh": "Default auto-refresh",
+  "Default time range": "Default time range",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "Everyone opens the dashboard on these. Each viewer can still pick their own.",
+  "The time range this dashboard opens on, relative to now.": "The time range this dashboard opens on, relative to now."
 }

@@ -37,7 +37,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { DASHBOARD_TIME_RANGE_FALLBACK } from "Common/Types/Dashboard/DashboardTimeRange";
 import { DASHBOARD_AUTO_REFRESH_FALLBACK } from "Common/Types/Dashboard/DashboardAutoRefresh";
-import { getDefaultChoiceLabel } from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
+import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 
 export interface ComponentProps {
   onEditClick: () => void;

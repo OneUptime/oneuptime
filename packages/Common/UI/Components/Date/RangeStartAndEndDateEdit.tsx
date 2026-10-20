@@ -12,12 +12,15 @@ import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import { getTimeRangeLabel } from "./TimeRangePickerDropdown";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
-import {
-  Translator,
-  translatableTerm,
-  translationKey,
-} from "../../Utils/TranslateTemplate";
+import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  DEFAULT_CHOICE_TEMPLATE,
+  getDefaultChoiceLabel,
+} from "../../Utils/DefaultChoiceLabel";
+
+// The "Default (...)" words are DefaultChoiceLabel's, re-exported for the picker's tests.
+export { DEFAULT_CHOICE_TEMPLATE, getDefaultChoiceLabel };
 
 export interface ComponentProps {
   value?: RangeStartAndEndDateTime | undefined;
@@ -48,21 +51,6 @@ export interface ComponentProps {
 export const DEFAULT_TIME_RANGE_OPTION_TEST_ID: string =
   "time-range-default-option";
 
-/*
- * "Default (Past 1 Day)", "Default (1m)": a dashboard setting's way back to
- * the value the dashboard keeps for everyone, in the reader's language.
- */
-export const DEFAULT_CHOICE_TEMPLATE: string =
-  translationKey("Default ({{value}})");
-
-export const getDefaultChoiceLabel: (data: {
-  translator: Translator;
-  value: string;
-}) => string = (data: { translator: Translator; value: string }): string => {
-  return data.translator.translateTemplate(DEFAULT_CHOICE_TEMPLATE, {
-    value: translatableTerm(data.value),
-  });
-};
 
 /*
  * Quick ranges shown in the left rail, in display order. Custom is handled

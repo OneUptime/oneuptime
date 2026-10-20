@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "이 요청에는 {{path}} 값이 없어서 {{criteria}} 기준은 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "이 요청의 항목 {{count}}개에 {{path}} 값이 없어서, 해당 항목은 따로 아무것도 열지 않았습니다.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "이 요청의 항목 {{count}}개에 {{path}} 값이 없어서, 해당 항목은 따로 아무것도 열지 않았습니다.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "요청이 더 이상 오지 않아 {{criteria}} 기준이 일치했으므로, 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "요청이 더 이상 오지 않아 {{criteria}} 기준이 일치했으므로, 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다.",
+  "Default ({{value}})": "기본값 ({{value}})",
+  "Default auto-refresh": "기본 자동 새로고침",
+  "Default time range": "기본 기간",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "모든 사용자가 이 설정으로 대시보드를 엽니다. 각 사용자는 여전히 직접 선택할 수 있습니다.",
+  "The time range this dashboard opens on, relative to now.": "이 대시보드가 열릴 때의 기간입니다(현재 기준)."
 }

@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Denne forespørselen har ingen verdi i {{path}}, så kriteriet {{criteria}} behandlet den uten gruppering, én gang for hele monitoren.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} elementer i denne forespørselen har ingen verdi i {{path}}, så de åpnet ingenting eget.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} element i denne forespørselen har ingen verdi i {{path}}, så det åpnet ingenting eget.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} slo til fordi forespørslene sluttet å komme, så det behandlet dette uten gruppering, én gang for hele monitoren."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} slo til fordi forespørslene sluttet å komme, så det behandlet dette uten gruppering, én gang for hele monitoren.",
+  "Default ({{value}})": "Standard ({{value}})",
+  "Default auto-refresh": "Standard automatisk oppdatering",
+  "Default time range": "Standard tidsrom",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "Alle åpner dashbordet med disse. Hver seer kan fortsatt velge sine egne.",
+  "The time range this dashboard opens on, relative to now.": "Tidsrommet dette dashbordet åpnes med, i forhold til nå."
 }

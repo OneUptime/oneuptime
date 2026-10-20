@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "此请求在 {{path}} 处没有值，因此条件 {{criteria}} 未进行分组，而是对整个监控器处理了一次。",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "此请求中有 {{count}} 个项目在 {{path}} 处没有值，因此它们没有单独打开任何内容。",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "此请求中有 {{count}} 个项目在 {{path}} 处没有值，因此它们没有单独打开任何内容。",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "由于请求不再到达，条件 {{criteria}} 已匹配，因此它未进行分组，而是对整个监控器处理了一次。"
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "由于请求不再到达，条件 {{criteria}} 已匹配，因此它未进行分组，而是对整个监控器处理了一次。",
+  "Default ({{value}})": "默认（{{value}}）",
+  "Default auto-refresh": "默认自动刷新",
+  "Default time range": "默认时间范围",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "所有人都会以这些设置打开仪表板。每位查看者仍可自行选择。",
+  "The time range this dashboard opens on, relative to now.": "此仪表板打开时的时间范围，相对于现在。"
 }

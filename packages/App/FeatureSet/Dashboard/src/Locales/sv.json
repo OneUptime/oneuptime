@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Den här begäran har inget värde vid {{path}}, så kriteriet {{criteria}} hanterade den utan gruppering, en gång för hela monitorn.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} objekt i den här begäran har inget värde vid {{path}}, så de öppnade inget eget.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} objekt i den här begäran har inget värde vid {{path}}, så det öppnade inget eget.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} matchade eftersom begäranden slutade komma, så det hanterade detta utan gruppering, en gång för hela monitorn."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} matchade eftersom begäranden slutade komma, så det hanterade detta utan gruppering, en gång för hela monitorn.",
+  "Default ({{value}})": "Standard ({{value}})",
+  "Default auto-refresh": "Standard för automatisk uppdatering",
+  "Default time range": "Standardtidsintervall",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "Alla öppnar instrumentpanelen med dessa. Varje tittare kan fortfarande välja egna.",
+  "The time range this dashboard opens on, relative to now.": "Tidsintervallet som den här instrumentpanelen öppnas med, i förhållande till nu."
 }

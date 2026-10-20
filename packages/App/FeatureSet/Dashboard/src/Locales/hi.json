@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "इस अनुरोध में {{path}} पर कोई मान नहीं है, इसलिए मानदंड {{criteria}} ने इसे बिना समूह बनाए, पूरे मॉनिटर के लिए एक बार संभाला।",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "इस अनुरोध के {{count}} आइटम में {{path}} पर कोई मान नहीं है, इसलिए उन्होंने अपना कुछ नहीं खोला।",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "इस अनुरोध के {{count}} आइटम में {{path}} पर कोई मान नहीं है, इसलिए उसने अपना कुछ नहीं खोला।",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "अनुरोध आना बंद हो गए, इसलिए मानदंड {{criteria}} मेल खाया और उसने इसे बिना समूह बनाए, पूरे मॉनिटर के लिए एक बार संभाला।"
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "अनुरोध आना बंद हो गए, इसलिए मानदंड {{criteria}} मेल खाया और उसने इसे बिना समूह बनाए, पूरे मॉनिटर के लिए एक बार संभाला।",
+  "Default ({{value}})": "डिफ़ॉल्ट ({{value}})",
+  "Default auto-refresh": "डिफ़ॉल्ट स्वतः-रिफ्रेश",
+  "Default time range": "डिफ़ॉल्ट समय सीमा",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "सभी लोग डैशबोर्ड इन्हीं के साथ खोलते हैं। हर दर्शक अब भी अपना चुन सकता है।",
+  "The time range this dashboard opens on, relative to now.": "वह समय सीमा जिस पर यह डैशबोर्ड खुलता है, अभी के सापेक्ष।"
 }

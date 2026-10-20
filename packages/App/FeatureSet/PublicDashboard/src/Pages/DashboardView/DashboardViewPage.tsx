@@ -45,7 +45,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import PoweredByFooter from "../../Components/PoweredByFooter";
 import ThemeMenu from "../../Components/ThemeMenu";
 import LogoPlate from "../../Components/LogoPlate";
-import { getDefaultChoiceLabel } from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
+import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { PUBLIC_AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID } from "./DashboardToolbarCopy";

@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "このリクエストには {{path}} の値がないため、条件 {{criteria}} はグループ化せずに、モニター全体として 1 回処理しました。",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "このリクエストの {{count}} 個の項目には {{path}} の値がないため、それらの項目では個別に何も開きませんでした。",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "このリクエストの {{count}} 個の項目には {{path}} の値がないため、それらの項目では個別に何も開きませんでした。",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "リクエストが届かなくなったため、条件 {{criteria}} に一致しました。そのため、グループ化せずに、モニター全体として 1 回処理しました。"
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "リクエストが届かなくなったため、条件 {{criteria}} に一致しました。そのため、グループ化せずに、モニター全体として 1 回処理しました。",
+  "Default ({{value}})": "デフォルト（{{value}}）",
+  "Default auto-refresh": "デフォルトの自動更新",
+  "Default time range": "デフォルトの時間範囲",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "全員がこの設定でダッシュボードを開きます。閲覧者はそれぞれ自分で選び直せます。",
+  "The time range this dashboard opens on, relative to now.": "このダッシュボードを開いたときの時間範囲です（現在を基準）。"
 }

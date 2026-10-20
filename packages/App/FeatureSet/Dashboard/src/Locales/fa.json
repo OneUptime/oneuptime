@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "این درخواست در {{path}} مقداری ندارد، پس معیار {{criteria}} آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} مورد در این درخواست در {{path}} مقداری ندارند، پس چیزی برای خودشان باز نکردند.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} مورد در این درخواست در {{path}} مقداری ندارد، پس چیزی برای خودش باز نکرد.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "معیار {{criteria}} تطبیق یافت چون درخواست‌ها دیگر نمی‌رسند، پس آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "معیار {{criteria}} تطبیق یافت چون درخواست‌ها دیگر نمی‌رسند، پس آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",
+  "Default ({{value}})": "پیش‌فرض ({{value}})",
+  "Default auto-refresh": "تازه‌سازی خودکار پیش‌فرض",
+  "Default time range": "بازه زمانی پیش‌فرض",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "همه داشبورد را با این‌ها باز می‌کنند. هر بیننده همچنان می‌تواند گزینه خودش را انتخاب کند.",
+  "The time range this dashboard opens on, relative to now.": "بازه زمانی‌ای که این داشبورد با آن باز می‌شود، نسبت به اکنون."
 }

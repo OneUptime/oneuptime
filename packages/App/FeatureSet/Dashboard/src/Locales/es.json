@@ -31958,5 +31958,10 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Esta solicitud no tiene ningún valor en {{path}}, así que el criterio {{criteria}} la trató sin agrupar, una sola vez para todo el monitor.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} elementos de esta solicitud no tienen valor en {{path}}, así que no abrieron nada propio.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} elemento de esta solicitud no tiene valor en {{path}}, así que no abrió nada propio.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "El criterio {{criteria}} coincidió porque dejaron de llegar solicitudes, así que lo trató sin agrupar, una sola vez para todo el monitor."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "El criterio {{criteria}} coincidió porque dejaron de llegar solicitudes, así que lo trató sin agrupar, una sola vez para todo el monitor.",
+  "Default ({{value}})": "Predeterminado ({{value}})",
+  "Default auto-refresh": "Actualización automática predeterminada",
+  "Default time range": "Intervalo de tiempo predeterminado",
+  "Everyone opens the dashboard on these. Each viewer can still pick their own.": "Todos abren el panel así. Cada persona puede elegir los suyos.",
+  "The time range this dashboard opens on, relative to now.": "El intervalo de tiempo con el que se abre este panel, relativo a ahora."
 }
