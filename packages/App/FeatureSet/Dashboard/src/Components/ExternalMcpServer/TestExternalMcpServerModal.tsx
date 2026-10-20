@@ -1,6 +1,7 @@
 import {
   EXTERNAL_MCP_SERVER_TEST_COPY,
   EXTERNAL_MCP_SERVER_TOOLS_COPY,
+  EXTERNAL_MCP_SERVER_TOOL_COUNT,
   getExternalMcpServerFailureHint,
 } from "./ExternalMcpServerCopy";
 import ExternalMcpServerToolList from "./ExternalMcpServerToolList";
@@ -89,6 +90,11 @@ const TestExternalMcpServerModal: FunctionComponent<ComponentProps> = (
       ? EXTERNAL_MCP_SERVER_TRANSPORT_TITLES[check.transport]
       : "HTTP";
 
+  // The server's own name for itself, and its version, as it said them.
+  const serverTitle: string = [check?.serverName, check?.serverVersion]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <Modal
       title={EXTERNAL_MCP_SERVER_TEST_COPY.title}
@@ -136,7 +142,7 @@ const TestExternalMcpServerModal: FunctionComponent<ComponentProps> = (
                   ? translator.translateTemplate(
                       EXTERNAL_MCP_SERVER_TEST_COPY.connectedTo,
                       {
-                        server: check.serverName,
+                        server: serverTitle,
                         transport: transportTitle,
                       },
                     )
@@ -155,7 +161,17 @@ const TestExternalMcpServerModal: FunctionComponent<ComponentProps> = (
               </p>
             ) : (
               <div>
-                <p className="text-sm text-gray-600">
+                {/* What it found, counted, then what OneUptime AI does with it. */}
+                <p
+                  className="text-sm font-medium text-gray-900"
+                  data-testid="external-mcp-server-test-tool-count"
+                >
+                  {translator.translatePlural(
+                    EXTERNAL_MCP_SERVER_TOOL_COUNT,
+                    check.tools.length,
+                  )}
+                </p>
+                <p className="mt-0.5 text-sm text-gray-600">
                   {translator.translateText(
                     EXTERNAL_MCP_SERVER_TOOLS_COPY.description,
                   )}

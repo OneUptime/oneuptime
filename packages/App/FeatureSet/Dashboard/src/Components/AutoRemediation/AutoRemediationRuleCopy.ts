@@ -160,10 +160,12 @@ export const AUTO_REMEDIATION_APPROVAL_OPTIONS: Array<CardSelectOption> = [
     /*
      * Said whatever More fields holds: with no runbook picked, a runbook
      * OneUptime AI picks from any of them still waits for approval
-     * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking).
+     * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking), and with
+     * no MCP server picked, every change through one waits too
+     * (McpRemediationRunner).
      */
     description: translationKey(
-      "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.",
+      "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.",
     ),
     icon: IconProp.Bolt,
   },

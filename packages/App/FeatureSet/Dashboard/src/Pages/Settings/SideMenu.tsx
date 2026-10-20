@@ -6,9 +6,14 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import { BILLING_ENABLED } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
+  const externalMcpServerViewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW] as Route,
+  );
+
   /*
    * Every page here is set up once and revisited rarely, so only Basic (the
    * project itself and its labels) starts open. The other sections fold down
@@ -163,6 +168,10 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS] as Route,
             ),
           },
+          // A server's own page keeps it marked: the server is one of these.
+          activeRoute: Navigation.isOnThisPage(externalMcpServerViewRoute)
+            ? externalMcpServerViewRoute
+            : undefined,
           icon: IconProp.PuzzlePiece,
         },
         ...(BILLING_ENABLED

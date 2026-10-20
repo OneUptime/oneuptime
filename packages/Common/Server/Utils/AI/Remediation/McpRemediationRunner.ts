@@ -655,11 +655,7 @@ export default class McpRemediationRunner {
       ExternalMcpToolCallPlanUtil.getSentCalls(plan);
     const proposed: Array<ExternalMcpToolCall> =
       ExternalMcpToolCallPlanUtil.getProposedCalls(plan);
-    const servers: string = ExternalMcpToolCallPlanUtil.getServerNames(plan)
-      .map((name: string): string => {
-        return `"${name}"`;
-      })
-      .join(", ");
+    const servers: string = ExternalMcpToolCallPlanUtil.describeServers(plan);
 
     if (sent.length > 0) {
       const transitioned: number =
@@ -684,8 +680,8 @@ export default class McpRemediationRunner {
       await this.postFeedItem({
         suggestion,
         markdown: failed
-          ? mdText`⚠️ **${getAiName()}'s fix through MCP server ${servers} did not complete** - a change failed. Review the changes on the Remediation card.`.toString()
-          : mdText`⚡ **${getAiName()} fixed this through MCP server ${servers} without asking** (${sent.length} change(s)). Verification is watching the monitors for recovery.`.toString(),
+          ? mdText`⚠️ **${getAiName()}'s fix through ${servers} did not complete** — a change failed. Review the changes on the Remediation card.`.toString()
+          : mdText`⚡ **${getAiName()} fixed this through ${servers} without asking** (${ExternalMcpToolCallPlanUtil.describeChangeCount(sent.length)}). Verification is watching the monitors for recovery.`.toString(),
         pingWorkspace: true,
         displayColor: failed ? Red500 : Green500,
       });
@@ -711,7 +707,7 @@ export default class McpRemediationRunner {
       await this.postFeedItem({
         suggestion,
         markdown:
-          mdText`⚡ **${getAiName()} proposes a fix through MCP server ${servers}** (${proposed.length} change(s)). Review it on the Remediation card and approve it with one click - nothing runs before.`.toString(),
+          mdText`⚡ **${getAiName()} proposes a fix through ${servers}** (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). Review it on the Remediation card: nothing changes until someone approves it.`.toString(),
         pingWorkspace: true,
         displayColor: Indigo500,
       });
@@ -776,7 +772,7 @@ export default class McpRemediationRunner {
     await this.postFeedItem({
       suggestion: data.suggestion,
       markdown:
-        mdText`⚡ **${getAiName()}'s fix through MCP servers was interrupted after it sent ${ExternalMcpToolCallPlanUtil.getSentCalls(plan).length} change(s).** Review them on the Remediation card; verification is watching the monitors.`.toString(),
+        mdText`⚠️ **${getAiName()}'s fix through MCP servers was interrupted after it sent ${ExternalMcpToolCallPlanUtil.describeChangeCount(ExternalMcpToolCallPlanUtil.getSentCalls(plan).length)}.** Review them on the Remediation card; verification is watching the monitors.`.toString(),
       pingWorkspace: true,
       displayColor: Red500,
     });
@@ -951,8 +947,8 @@ export default class McpRemediationRunner {
       await this.postFeedItem({
         suggestion,
         markdown: failed
-          ? mdText`⚠️ **The approved fix through MCP servers did not complete** - a change failed, and the changes after it were skipped. Review them on the Remediation card.`.toString()
-          : mdText`⚡ **The approved fix through MCP servers was made** (${ExternalMcpToolCallPlanUtil.getSentCalls(plan).length} change(s)). Verification is watching the monitors for recovery.`.toString(),
+          ? mdText`⚠️ **The approved fix through MCP servers did not complete** — a change failed, and the changes after it were skipped. Review them on the Remediation card.`.toString()
+          : mdText`⚡ **The approved fix through MCP servers was made** (${ExternalMcpToolCallPlanUtil.describeChangeCount(ExternalMcpToolCallPlanUtil.getSentCalls(plan).length)}). Verification is watching the monitors for recovery.`.toString(),
         pingWorkspace: failed,
         displayColor: failed ? Red500 : Green500,
       });

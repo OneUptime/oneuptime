@@ -219,4 +219,36 @@ export class ExternalMcpToolCallPlanUtil {
 
     return names;
   }
+
+  /*
+   * How the incident's feed - and the Slack or Teams post made from it -
+   * counts a fix's changes: "1 change", "3 changes".
+   */
+  public static describeChangeCount(count: number): string {
+    return count === 1 ? "1 change" : `${count} changes`;
+  }
+
+  /*
+   * The servers a plan reaches, as the feed names them: MCP server "AWS",
+   * MCP servers "AWS" and "GitHub", MCP servers "AWS", "GitHub" and "Azure".
+   */
+  public static describeServers(plan: ExternalMcpToolCallPlan): string {
+    const names: Array<string> = ExternalMcpToolCallPlanUtil.getServerNames(
+      plan,
+    ).map((name: string): string => {
+      return `"${name}"`;
+    });
+
+    if (names.length === 0) {
+      return "MCP servers";
+    }
+
+    if (names.length === 1) {
+      return `MCP server ${names[0]}`;
+    }
+
+    return `MCP servers ${names.slice(0, -1).join(", ")} and ${
+      names[names.length - 1]
+    }`;
+  }
 }

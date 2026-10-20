@@ -61,12 +61,15 @@ export const MCP_TOOL_CALL_LIST_COPY: {
   hideAnswer: string;
   noArguments: string;
   noCalls: string;
+  notShown: string;
 } = {
   madeWithoutAsking: translationKey("Made without asking"),
   showAnswer: translationKey("Show the server's answer"),
   hideAnswer: translationKey("Hide the server's answer"),
   noArguments: translationKey("No arguments"),
   noCalls: translationKey("No changes to make."),
+  // A stored fix that cannot be read (never written by OneUptime itself).
+  notShown: translationKey("The changes of this fix could not be shown."),
 };
 
 // What a call is sent, as the reader sees it: its arguments, indented.

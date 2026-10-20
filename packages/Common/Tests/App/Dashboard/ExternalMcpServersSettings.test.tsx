@@ -105,6 +105,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import {
   EXTERNAL_MCP_SERVER_AUTH_OPTIONS,
   EXTERNAL_MCP_SERVER_FAILURE_HINTS,
+  EXTERNAL_MCP_SERVER_TOOLS_SHOWN,
   ExternalMcpServerStatusKind,
   getExternalMcpServerAuthTitle,
   getExternalMcpServerFailureHint,
@@ -145,6 +146,7 @@ import Field, {
   CustomElementProps,
 } from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import FieldType from "../../../UI/Components/Types/FieldType";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
@@ -394,6 +396,30 @@ describe("the add / edit form", () => {
       ],
     ]);
     expect(EXTERNAL_MCP_SERVER_AUTH_OPTIONS).toHaveLength(4);
+  });
+
+  test("the four cards read top to bottom, each said in one short line", () => {
+    const authType: Field<ExternalMcpServer> = fieldNamed("authType");
+
+    /*
+     * One a row, as the rule dialogs' Approval cards: two columns squeezed
+     * each description into four or five lines, and German titles into two.
+     */
+    expect(authType.cardSelectSingleColumn).toBe(true);
+    expect(authType.cardSelectMaxColumns).toBeUndefined();
+
+    expect(
+      ((authType.cardSelectOptions || []) as Array<CardSelectOption>).map(
+        (option: CardSelectOption) => {
+          return option.description;
+        },
+      ),
+    ).toEqual([
+      "For a server that needs no sign-in.",
+      "An API token or key from the server.",
+      "Headers the server asks for, such as X-API-Key.",
+      "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.",
+    ]);
   });
 
   test.each([
@@ -652,8 +678,20 @@ describe("Test connection", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId("external-mcp-server-test-result"),
-      ).toHaveTextContent("Connected to aws-mcp over Streamable HTTP.");
+      ).toHaveTextContent("aws-mcp 1.4.0 answered over Streamable HTTP.");
     });
+
+    // "Connected" is the headline, said once: the line under it names who.
+    const result: HTMLElement = screen.getByTestId(
+      "external-mcp-server-test-result",
+    );
+    expect(within(result).getByText("Connected")).toBeVisible();
+    expect(result).not.toHaveTextContent("Connected to");
+
+    // What it found, counted, above the list.
+    expect(
+      screen.getByTestId("external-mcp-server-test-tool-count"),
+    ).toHaveTextContent("2 tools");
 
     const tools: Array<HTMLElement> = screen.getAllByTestId(
       "external-mcp-server-tool",
@@ -666,6 +704,26 @@ describe("Test connection", () => {
 
     expect(onTested).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("external-mcp-server-test-again")).toBeVisible();
+  });
+
+  test("a server that does not name itself is the server; one tool is one tool", async () => {
+    answerTestWith({
+      ...CONNECTED,
+      serverName: undefined,
+      serverVersion: undefined,
+      transport: ExternalMcpServerTransport.Sse,
+      tools: [{ name: "describe_instances", readsOnly: true }],
+    } as JSONObject);
+    await openTest();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("external-mcp-server-test-result"),
+      ).toHaveTextContent("The server answered over SSE.");
+    });
+    expect(
+      screen.getByTestId("external-mcp-server-test-tool-count"),
+    ).toHaveTextContent(/^1 tool$/);
   });
 
   test("a server that cannot be reached says why, and what to check", async () => {
@@ -780,11 +838,70 @@ describe("the list", () => {
       tools: true,
     });
 
+    /*
+     * Beside the real side menu (a 938px card at 1280px), "View External
+     * MCP Server" took 200px of every row and a long address pushed Status
+     * out of sight under the row's buttons: the row says View, and the
+     * address is cut short sooner than a name.
+     */
+    expect(table["viewButtonText"]).toBe("View");
+    const urlColumn: { contentClassName?: string } = (
+      table["columns"] as Array<{ title: string; contentClassName?: string }>
+    ).find((column: { title: string }) => {
+      return column.title === "URL";
+    })!;
+    expect(urlColumn.contentClassName).toBe("max-w-[16rem] 2xl:max-w-[24rem]");
+
     // The card says what the page is not: OneUptime's own server.
     render((table["cardProps"] as { description: ReactElement }).description);
     expect(
       screen.getByTestId("external-mcp-servers-own-server-link"),
     ).toHaveTextContent("MCP Server");
+  });
+
+  test("a row's status is one line: the pill, and beside it how many tools", () => {
+    signedInAs([Permission.ProjectOwner]);
+    render(
+      <ExternalMcpServersPage {...({} as unknown as PageComponentProps)} />,
+    );
+
+    const statusColumn: {
+      getElement: (item: ExternalMcpServer) => ReactElement;
+    } = (
+      serverTable()["columns"] as Array<{
+        title: string;
+        getElement: (item: ExternalMcpServer) => ReactElement;
+      }>
+    ).find((column: { title: string }) => {
+      return column.title === "Status";
+    })!;
+
+    render(
+      statusColumn.getElement(
+        Object.assign(new ExternalMcpServer(new ObjectID(SERVER_ID)), {
+          isEnabled: true,
+          lastConnectedAt: new Date(),
+          tools: [
+            { name: "describe_instances", readsOnly: true },
+            { name: "reboot_instance", readsOnly: false },
+            { name: "get_alarms", readsOnly: true },
+          ],
+        }),
+      ),
+    );
+
+    const cell: HTMLElement = screen.getByTestId("external-mcp-server-status");
+    expect(cell).toHaveAttribute(
+      "data-status",
+      ExternalMcpServerStatusKind.Connected,
+    );
+    // Beside the pill, never under it: every row keeps one line.
+    expect(cell).toHaveClass("flex", "items-center", "whitespace-nowrap");
+    expect(cell).not.toHaveClass("flex-col");
+    expect(cell).not.toHaveClass("flex-wrap");
+    expect(
+      within(cell).getByTestId("external-mcp-server-tool-count"),
+    ).toHaveTextContent("3 tools");
   });
 
   test("Test is for whoever may change a server; others find it locked, saying who may", () => {
@@ -887,6 +1004,26 @@ describe("a server's page", () => {
         return Object.keys(field.field || {})[0];
       }),
     );
+
+    // Its ID, on the card's ID line (Detail), for the API and Terraform.
+    const detailFields: Array<{
+      field?: Record<string, unknown>;
+      fieldType?: FieldType;
+    }> = (
+      detail["modelDetailProps"] as {
+        fields: Array<{
+          field?: Record<string, unknown>;
+          fieldType?: FieldType;
+        }>;
+      }
+    ).fields;
+    expect(
+      detailFields.find(
+        (field: { field?: Record<string, unknown> }): boolean => {
+          return Object.keys(field.field || {})[0] === "_id";
+        },
+      )?.fieldType,
+    ).toBe(FieldType.ObjectID);
   });
 
   test("a switch lets OneUptime AI use it; turning it off asks first", async () => {
@@ -943,6 +1080,95 @@ describe("a server's page", () => {
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Test connection",
     );
+  });
+});
+
+describe("a server with many tools", () => {
+  const MANY_TOOLS: Array<{ name: string; readsOnly: boolean }> = Array.from(
+    { length: 14 },
+    (_value: unknown, index: number) => {
+      return { name: `tool_${index + 1}`, readsOnly: index % 3 !== 0 };
+    },
+  );
+
+  beforeEach(() => {
+    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(
+      Object.assign(new ExternalMcpServer(new ObjectID(SERVER_ID)), {
+        isEnabled: true,
+        lastConnectedAt: new Date(),
+        lastCheckedAt: new Date(),
+        transport: ExternalMcpServerTransport.StreamableHttp,
+        tools: MANY_TOOLS,
+      }) as never,
+    );
+  });
+
+  test("its page lists the first ten, and Show all opens the rest", async () => {
+    signedInAs([Permission.ProjectOwner]);
+
+    await act(async () => {
+      render(
+        <ExternalMcpServerViewPage
+          {...({} as unknown as PageComponentProps)}
+        />,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("external-mcp-server-tool")).toHaveLength(
+        EXTERNAL_MCP_SERVER_TOOLS_SHOWN,
+      );
+    });
+    expect(EXTERNAL_MCP_SERVER_TOOLS_SHOWN).toBe(10);
+
+    const toggle: HTMLElement = screen.getByTestId(
+      "external-mcp-server-tools-show-all",
+    );
+    expect(toggle).toHaveTextContent("Show all 14 tools");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // The count is the whole list's, in the card's facts line too.
+    expect(
+      screen.getByTestId("external-mcp-server-tools-card"),
+    ).toHaveTextContent("14 tools");
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    expect(screen.getAllByTestId("external-mcp-server-tool")).toHaveLength(14);
+    expect(toggle).toHaveTextContent("Show fewer");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    expect(screen.getAllByTestId("external-mcp-server-tool")).toHaveLength(10);
+  });
+
+  test("the Test dialog lists every tool, in a box of its own that scrolls", async () => {
+    answerTestWith({ ...CONNECTED, tools: MANY_TOOLS } as JSONObject);
+
+    await act(async () => {
+      render(
+        <TestExternalMcpServerModal
+          externalMcpServerId={SERVER_ID}
+          onClose={() => {}}
+        />,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("external-mcp-server-tool")).toHaveLength(
+        14,
+      );
+    });
+    expect(
+      screen.queryByTestId("external-mcp-server-tools-show-all"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("external-mcp-server-test-tool-count"),
+    ).toHaveTextContent("14 tools");
   });
 });
 

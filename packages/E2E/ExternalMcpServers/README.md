@@ -38,7 +38,13 @@ The suite drives the pages the way a person does:
   first - and its tools with Test connection; an edit starts the secrets
   empty, and leaving them empty keeps them;
 - an empty project, OneUptime AI turned off, a phone, dark mode
-  (`?theme=dark`) and German (`?lang=de`).
+  (`?theme=dark`) and German (`?lang=de`);
+- inside the real Project Settings layout (`?layout=page`: the side menu and
+  the breadcrumbs, so the table is measured at the product's 938px at
+  1280px), a list with a long name and a long address still shows every
+  row's status in full, and a server's page keeps External MCP Servers
+  marked in the menu; a server with many tools (`?servers=many`) lists ten
+  on its page, and Show all opens the rest.
 
 `Fixture/Fixture.js` records every create (`creates`), edit (`edits`), switch
 (`updates`), delete (`deletes`) and Test request (`tests`, with its path, body

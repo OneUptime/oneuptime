@@ -338,9 +338,13 @@ describe("approving and dismissing a fix through MCP servers", () => {
       allowance: { isEveryServer: false, serverIds: [AWS_ID] },
     });
     expect(sendJsonObjectResponseMock).toHaveBeenCalledTimes(1);
-    expect(String(feedSpy.mock.calls[0]![0].feedInfoInMarkdown)).toContain(
-      "Fix through MCP servers approved",
+    const approval: string = String(
+      feedSpy.mock.calls[0]![0].feedInfoInMarkdown,
     );
+    expect(approval).toContain("Fix through MCP servers approved");
+    // The count in words, as the channel reads it: never "1 change(s)".
+    expect(approval).toContain("(1 change)");
+    expect(approval).not.toContain("change(s)");
   });
 
   test("a click that lost to someone else's makes nothing", async () => {
@@ -435,7 +439,7 @@ describe("approving and dismissing a fix through MCP servers", () => {
     const feed: { feedInfoInMarkdown: string; workspaceNotification: unknown } =
       feedSpy.mock.calls[0]![0];
     expect(feed.feedInfoInMarkdown).toContain(
-      "2 change(s) through MCP servers had ALREADY been made",
+      "2 changes through MCP servers had ALREADY been made",
     );
     expect(feed.feedInfoInMarkdown).toContain("nothing was undone");
     expect(feed.workspaceNotification).toEqual({

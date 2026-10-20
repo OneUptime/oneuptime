@@ -91,29 +91,29 @@ export const EXTERNAL_MCP_SERVER_FIELD_COPY: {
   ),
 };
 
-// The Authentication choices, as cards.
+/*
+ * The Authentication choices, as cards: one a row (the form draws them in a
+ * single column), each said in one short line, so the four read top to
+ * bottom like the rule dialogs' Approval cards - in every language.
+ */
 export const EXTERNAL_MCP_SERVER_AUTH_OPTIONS: Array<CardSelectOption> = [
   {
     value: ExternalMcpServerAuthType.None,
     title: translationKey("No sign-in"),
-    description: translationKey(
-      "The server needs no sign-in, or it is reached only from your network.",
-    ),
+    description: translationKey("For a server that needs no sign-in."),
     icon: IconProp.Globe,
   },
   {
     value: ExternalMcpServerAuthType.BearerToken,
     title: translationKey("Bearer token"),
-    description: translationKey(
-      "An API token or key from the server. Most hosted MCP servers hand one out.",
-    ),
+    description: translationKey("An API token or key from the server."),
     icon: IconProp.Key,
   },
   {
     value: ExternalMcpServerAuthType.Headers,
     title: translationKey("Custom headers"),
     description: translationKey(
-      "Headers of the server's own, such as X-API-Key.",
+      "Headers the server asks for, such as X-API-Key.",
     ),
     icon: IconProp.List,
   },
@@ -189,6 +189,17 @@ export const EXTERNAL_MCP_SERVER_TOOL_COUNT: PluralTemplate = {
   other: "{{count}} tools",
 };
 
+/*
+ * A server can offer up to 200 tools: its page lists the first
+ * EXTERNAL_MCP_SERVER_TOOLS_SHOWN, and this opens the rest.
+ */
+export const EXTERNAL_MCP_SERVER_TOOLS_SHOWN: number = 10;
+
+export const EXTERNAL_MCP_SERVER_SHOW_ALL_TOOLS: PluralTemplate = {
+  one: "Show all {{count}} tool",
+  other: "Show all {{count}} tools",
+};
+
 export const EXTERNAL_MCP_SERVER_TOOL_BADGES: {
   readsOnly: string;
   mayChange: string;
@@ -231,7 +242,7 @@ export const EXTERNAL_MCP_SERVER_SWITCH_COPY: {
 } = {
   cardTitle: translationKey("OneUptime AI"),
   cardDescription: translationKey(
-    "Whether OneUptime AI may use this server in investigations and fixes.",
+    "Turn the server off without deleting it. Its address and sign-in are kept.",
   ),
   title: translationKey("Let OneUptime AI use this server"),
   on: translationKey(
@@ -273,8 +284,9 @@ export const EXTERNAL_MCP_SERVER_TEST_COPY: {
     "Connecting to the MCP server and reading its tools…",
   ),
   connected: translationKey("Connected"),
-  connectedTo: translationKey("Connected to {{server}} over {{transport}}."),
-  connectedOver: translationKey("Connected over {{transport}}."),
+  // Under "Connected": who answered, by the server's own name, and how.
+  connectedTo: translationKey("{{server}} answered over {{transport}}."),
+  connectedOver: translationKey("The server answered over {{transport}}."),
   failed: translationKey("Could not connect"),
   testAgain: translationKey("Test again"),
   test: translationKey("Test"),
@@ -360,7 +372,7 @@ export const RULE_MCP_SERVERS_FIELD_COPY: {
     "OneUptime AI may use all of your MCP servers while it investigates. Pick some to let it use only those.",
   ),
   remediationDescription: translationKey(
-    "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those, and to let Fix without asking use them.",
+    "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those.",
   ),
   manageHint: translationKey(
     "Add and manage MCP servers on the {{externalMcpServersLink}} page.",

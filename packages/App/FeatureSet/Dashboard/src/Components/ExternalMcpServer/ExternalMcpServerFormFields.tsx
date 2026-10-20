@@ -259,7 +259,11 @@ export const getExternalMcpServerFormFields: () => Array<
       // Each card says what it is: the column's sentence would not.
       hideColumnDescription: true,
       cardSelectOptions: EXTERNAL_MCP_SERVER_AUTH_OPTIONS,
-      cardSelectMaxColumns: 2,
+      /*
+       * One card a row: four read top to bottom, each on one line, and a
+       * long German title never squeezes a two-column card.
+       */
+      cardSelectSingleColumn: true,
       dataTestId: "external-mcp-server-auth-type",
     },
     {

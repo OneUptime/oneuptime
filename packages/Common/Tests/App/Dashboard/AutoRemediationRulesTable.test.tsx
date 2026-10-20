@@ -573,8 +573,9 @@ describe.each([
       );
 
       expect(servers.title).toBe("MCP Servers");
+      // Parallel to Runbooks above it; the Approval card says what picking does.
       expect(servers.description).toBe(
-        "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those, and to let Fix without asking use them.",
+        "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those.",
       );
       expect(servers.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
       expect(servers.dropdownModal?.type).toBe(ExternalMcpServer);
@@ -1033,12 +1034,13 @@ describe("the choices", () => {
     );
     /*
      * An AI agent set to ask still asks: the rule never overrides it. And a
-     * runbook starts on its own only when the rule names it - said whatever
-     * More fields holds, so a rule that names none is not read as starting
-     * any runbook.
+     * runbook starts, or a change goes through an MCP server, on its own
+     * only when the rule names it - said whatever More fields holds, so a
+     * rule that names none is not read as starting any runbook or making
+     * any change through an MCP server without asking.
      */
     expect(AUTO_REMEDIATION_APPROVAL_OPTIONS[1]!.description).toBe(
-      "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.",
+      "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.",
     );
     expect(AUTO_REMEDIATION_APPROVAL_OPTIONS[1]!.description).not.toContain(
       "the runbooks you picked",

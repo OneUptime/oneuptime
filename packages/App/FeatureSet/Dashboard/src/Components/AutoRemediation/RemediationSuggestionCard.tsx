@@ -54,7 +54,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RemediationDecisionList from "./RemediationDecisionList";
-import McpToolCallList from "./McpToolCallList";
+import McpToolCallList, { MCP_TOOL_CALL_LIST_COPY } from "./McpToolCallList";
 import {
   getRemediationDecisionLines,
   getRemediationDecisionStatus,
@@ -1430,7 +1430,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                 status !== AutoRemediationSuggestionStatus.Planning ? (
                   <div className="mt-3 text-xs text-gray-500">
                     {translator.translateText(
-                      "The command plan could not be displayed.",
+                      isMcpFix
+                        ? MCP_TOOL_CALL_LIST_COPY.notShown
+                        : "The command plan could not be displayed.",
                     )}
                   </div>
                 ) : (

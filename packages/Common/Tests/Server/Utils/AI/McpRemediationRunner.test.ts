@@ -586,7 +586,17 @@ describe("a fix that asks first", () => {
       arguments: { service: "api", force: true },
       status: ExternalMcpToolCallStatus.Proposed,
     });
-    expect(feedItems.join("\n")).toContain("proposes a fix through MCP server");
+    /*
+     * The feed - and the Slack or Teams post made from it - says it the way
+     * a person would: the server by name, the count in words.
+     */
+    const proposal: string = feedItems.join("\n");
+    expect(proposal).toContain("proposes a fix through MCP server");
+    expect(proposal).toContain("AWS");
+    expect(proposal).toContain("(1 change)");
+    expect(proposal).toContain("nothing changes until someone approves it");
+    expect(proposal).not.toContain("change(s)");
+    expect(proposal).not.toContain("nothing runs before");
 
     // A person approves (the API claims it), and exactly that call is made.
     row["status"] = AutoRemediationSuggestionStatus.Approved;
@@ -613,6 +623,8 @@ describe("a fix that asks first", () => {
     expect(feedItems[feedItems.length - 1]).toContain(
       "The approved fix through MCP servers was made",
     );
+    expect(feedItems[feedItems.length - 1]).toContain("(1 change)");
+    expect(feedItems[feedItems.length - 1]).not.toContain("change(s)");
 
     // Recorded Running before it was sent.
     expect(
@@ -653,6 +665,7 @@ describe("a fix that asks first", () => {
     expect(calls[1]!.status).toBe(ExternalMcpToolCallStatus.Skipped);
     expect(calls[1]!.errorMessage).toContain("an earlier change failed");
     expect(feedItems[feedItems.length - 1]).toContain("did not complete");
+    expect(feedItems[feedItems.length - 1]).toContain("⚠️");
   });
 
   test("a server turned off since is never reached", async () => {

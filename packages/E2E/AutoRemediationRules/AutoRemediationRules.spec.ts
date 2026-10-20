@@ -73,7 +73,7 @@ const CREATE: string = "Create Auto Remediation Rule";
 const APPROVAL_DESCRIPTION: string =
   "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.";
 const FIX_WITHOUT_ASKING_DESCRIPTION: string =
-  "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.";
+  "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.";
 const DEFAULTS_SUMMARY: string =
   "OneUptime AI may run any of your runbooks, and fixes through the AI agent on the affected cluster or host.";
 const RUNBOOKS_DESCRIPTION: string =
@@ -622,7 +622,7 @@ const MCP_SERVER_IDS: Record<string, string> = {
 const ALL_MCP_SERVERS_SUMMARY: string =
   "OneUptime AI may use all of your MCP servers.";
 const REMEDIATION_MCP_DESCRIPTION: string =
-  "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those, and to let Fix without asking use them.";
+  "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those.";
 const INVESTIGATION_MCP_DESCRIPTION: string =
   "OneUptime AI may use all of your MCP servers while it investigates. Pick some to let it use only those.";
 

@@ -31,6 +31,7 @@ const SERVER_IDS: Record<string, string> = {
   github: "c0000000-0000-4000-8000-000000000e02",
   azure: "c0000000-0000-4000-8000-000000000e03",
   internal: "c0000000-0000-4000-8000-000000000e04",
+  platform: "c0000000-0000-4000-8000-000000000e05",
 };
 
 const AUTH_CARDS_IN_ORDER: Array<[string, string]> = [
@@ -160,6 +161,13 @@ function next(page: Page): Locator {
 
 function submit(page: Page): Locator {
   return dialog(page).getByTestId("modal-footer-submit-button");
+}
+
+// An entry of the Project Settings side menu (layout=page).
+function sideMenuLink(page: Page, title: string): Locator {
+  return page
+    .locator("aside[role='navigation']")
+    .getByRole("link", { name: title, exact: true });
 }
 
 function tooltip(page: Page): Locator {
@@ -339,8 +347,39 @@ test.describe("Project Settings > AI > External MCP Servers", () => {
       await expect(card(page, value)).toContainText(title);
     }
     await expect(card(page, "BearerToken")).toContainText(
-      "An API token or key from the server. Most hosted MCP servers hand one out.",
+      "An API token or key from the server.",
     );
+
+    /*
+     * One card a row, read top to bottom like the rule dialogs' Approval
+     * cards: the same left edge and width, each under the one before, and
+     * each card's description on one line.
+     */
+    const boxes: Array<{ x: number; y: number; width: number }> = [];
+    for (const [value] of AUTH_CARDS_IN_ORDER) {
+      boxes.push((await card(page, value).boundingBox())!);
+    }
+    for (const box of boxes.slice(1)) {
+      expect(Math.abs(box.x - boxes[0]!.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - boxes[0]!.width)).toBeLessThanOrEqual(1);
+    }
+    for (let index: number = 1; index < boxes.length; index++) {
+      expect(boxes[index]!.y).toBeGreaterThan(boxes[index - 1]!.y);
+    }
+    for (const value of ["None", "BearerToken", "Headers"]) {
+      const description: Locator = card(page, value).getByText(
+        /^(For a server|An API token|Headers the server)/,
+      );
+      const lines: number = await description.evaluate(
+        (element: Element): number => {
+          return Math.round(
+            element.getBoundingClientRect().height /
+              parseFloat(getComputedStyle(element).lineHeight),
+          );
+        },
+      );
+      expect(lines).toBe(1);
+    }
     // Nothing more is asked until a way of signing in is picked.
     await expect(
       dialog(page).getByTestId("external-mcp-server-token"),
@@ -363,9 +402,14 @@ test.describe("Project Settings > AI > External MCP Servers", () => {
 
     // Added, OneUptime connects at once: the Test dialog opens by itself.
     await expect(testDialog(page)).toHaveAttribute("data-outcome", "connected");
+    // "Connected" once, as the headline; under it who answered, and how.
     await expect(testResult(page)).toContainText(
-      "Connected to aws-mcp over Streamable HTTP.",
+      "aws-mcp 1.4.0 answered over Streamable HTTP.",
     );
+    await expect(testResult(page)).not.toContainText("Connected to");
+    await expect(
+      page.getByTestId("external-mcp-server-test-tool-count"),
+    ).toHaveText("3 tools");
     expect(await toolBadges(testDialog(page))).toEqual([
       "Reads only",
       "Reads only",
@@ -570,7 +614,9 @@ test.describe("Project Settings > AI > External MCP Servers", () => {
 
     await release(page, "notools");
     await expect(testDialog(page)).toHaveAttribute("data-outcome", "connected");
-    await expect(testResult(page)).toContainText("Connected over SSE.");
+    await expect(testResult(page)).toContainText(
+      "The server answered over SSE.",
+    );
     await expect(testDialog(page)).toContainText("The server offers no tools.");
   });
 
@@ -749,6 +795,134 @@ test.describe("A server's own page", () => {
       status(page.getByTestId("external-mcp-server-tools-card")),
     ).toHaveAttribute("data-status", "Connected");
     await shoot(page, "view-after-test");
+  });
+});
+
+/*
+ * Inside the Dashboard's real Project Settings layout (layout=page): the
+ * side menu and the breadcrumbs beside the page, so the table has the
+ * product's width - a 938px card at 1280px - not the fixture's.
+ */
+test.describe("In the Project Settings layout", () => {
+  test("at 1280px, a long name and a long address leave every row's status in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "layout=page&servers=many");
+
+    const table: Locator = page.locator("table").first();
+    await expect(table).toBeVisible();
+
+    // The rows fit their card: nothing scrolls sideways.
+    const scroll: { scrollWidth: number; clientWidth: number } =
+      await table.evaluate((element: Element) => {
+        const box: HTMLElement = element.parentElement as HTMLElement;
+        return { scrollWidth: box.scrollWidth, clientWidth: box.clientWidth };
+      });
+    expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth + 1);
+
+    const rows: Locator = table.locator("tbody tr");
+    await expect(rows).toHaveCount(6);
+
+    for (let index: number = 0; index < 6; index++) {
+      const tableRow: Locator = rows.nth(index);
+      // The row's one button says View: the name is the row's own.
+      await expect(
+        tableRow.getByRole("button", { name: "View", exact: true }),
+      ).toBeVisible();
+
+      // Its status ends before the row's buttons begin.
+      const statusBox: { x: number; width: number } =
+        (await status(tableRow).boundingBox())!;
+      const actionsBox: { x: number } = (await tableRow
+        .locator("td")
+        .last()
+        .boundingBox())!;
+      expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(
+        actionsBox.x + 1,
+      );
+    }
+
+    // A long server shows in one line each, cut short; whole on its page.
+    const platform: Locator = rows.filter({ hasText: "Kubernetes platform" });
+    await expect(status(platform)).toContainText("Connected");
+    await expect(status(platform)).toContainText("14 tools");
+    // The pill and the count share one line.
+    const pillAndCount: Array<number> = await status(platform).evaluate(
+      (element: Element): Array<number> => {
+        return Array.from(element.children).map((child: Element): number => {
+          const box: DOMRect = child.getBoundingClientRect();
+          return Math.round(box.top + box.height / 2);
+        });
+      },
+    );
+    expect(Math.abs(pillAndCount[0]! - pillAndCount[1]!)).toBeLessThanOrEqual(
+      2,
+    );
+
+    // The side menu marks the page.
+    await expect(sideMenuLink(page, "External MCP Servers")).toHaveClass(
+      /bg-indigo-50/,
+    );
+    await shoot(page, "list-in-settings");
+  });
+
+  test("a server's page keeps External MCP Servers marked, and shows the server's ID", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "layout=page&page=view&server=aws");
+
+    await expect(
+      page.locator("#model-detail-external-mcp-server"),
+    ).toContainText("AWS");
+
+    // The side menu's entry, not the breadcrumb of the same name.
+    const menuLink: Locator = sideMenuLink(page, "External MCP Servers");
+    await expect(menuLink).toHaveClass(/bg-indigo-50/);
+    expect(
+      new URL(
+        (await menuLink.getAttribute("href")) || "",
+        "http://127.0.0.1",
+      ).pathname
+        .split("/")
+        .slice(-2),
+    ).toEqual(["settings", "external-mcp-servers"]);
+
+    // The ID line under the details, as on other settings pages.
+    await expect(page.getByTestId("detail-id-value")).toHaveText(
+      SERVER_IDS["aws"]!,
+    );
+    await shoot(page, "view-in-settings");
+  });
+
+  test("a server with many tools lists ten on its page, and Show all opens the rest", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "layout=page&servers=many&page=view&server=platform");
+
+    const tools: Locator = page.getByTestId("external-mcp-server-tools-card");
+    await expect(tools).toContainText("14 tools");
+    await expect(tools.getByTestId("external-mcp-server-tool")).toHaveCount(10);
+
+    const toggle: Locator = tools.getByTestId(
+      "external-mcp-server-tools-show-all",
+    );
+    await expect(toggle).toHaveText("Show all 14 tools");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await shoot(page, "view-many-tools");
+
+    await toggle.click();
+    await expect(tools.getByTestId("external-mcp-server-tool")).toHaveCount(14);
+    await expect(toggle).toHaveText("Show fewer");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    await toggle.click();
+    await expect(tools.getByTestId("external-mcp-server-tool")).toHaveCount(10);
   });
 });
 

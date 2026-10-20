@@ -16,8 +16,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * How an external MCP server is doing, in the list and on its page: one
  * pill (Connected, Can't connect, Not checked yet, Off) and, once its tools
- * were read, how many it offers. A server that cannot connect shows why on
- * hover; its page shows it in full.
+ * were read, how many it offers - beside the pill, so every row of the list
+ * stays one line. A server that cannot connect shows why on hover; its page
+ * shows it in full.
  */
 
 const STATUS_COLORS: Record<ExternalMcpServerStatusKind, Color> = {
@@ -29,7 +30,7 @@ const STATUS_COLORS: Record<ExternalMcpServerStatusKind, Color> = {
 
 export interface ComponentProps {
   server: ExternalMcpServer;
-  // Under the pill, how many tools the server offers.
+  // Beside the pill, how many tools the server offers.
   showToolCount?: boolean | undefined;
 }
 
@@ -45,7 +46,7 @@ const ExternalMcpServerStatus: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="flex flex-col items-start gap-1"
+      className="flex items-center gap-x-2 whitespace-nowrap"
       data-testid="external-mcp-server-status"
       data-status={status}
     >
@@ -59,7 +60,10 @@ const ExternalMcpServerStatus: FunctionComponent<ComponentProps> = (
         }
       />
       {props.showToolCount && stored.isRead ? (
-        <span className="text-xs text-gray-500">
+        <span
+          className="text-xs text-gray-500"
+          data-testid="external-mcp-server-tool-count"
+        >
           {translator.translatePlural(
             EXTERNAL_MCP_SERVER_TOOL_COUNT,
             stored.tools.length,

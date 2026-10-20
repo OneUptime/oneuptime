@@ -230,6 +230,28 @@ describe("the Remediation card", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("a fix whose changes cannot be read says so in its own words, not a command plan's", async () => {
+    serve(
+      Object.assign(mcpFix(AutoRemediationSuggestionStatus.Suggested, []), {
+        mcpToolCallPlan: "not a plan",
+      }) as AutoRemediationSuggestion,
+    );
+
+    await act(async () => {
+      render(<RemediationSuggestionCard incidentId={INCIDENT_ID} />);
+    });
+
+    expect(
+      await screen.findByText("The changes of this fix could not be shown."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("The command plan could not be displayed."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("remediation-mcp-tool-calls"),
+    ).not.toBeInTheDocument();
+  });
+
   test("keeps watching a fix while its changes are being made", () => {
     const fix: (
       status: AutoRemediationSuggestionStatus,

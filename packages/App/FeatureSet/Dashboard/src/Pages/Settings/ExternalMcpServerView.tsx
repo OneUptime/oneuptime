@@ -199,6 +199,14 @@ const ExternalMcpServerView: FunctionComponent<PageComponentProps> = (
                 );
               },
             },
+            // On the card's ID line, for the API and Terraform.
+            {
+              field: {
+                _id: true,
+              },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
           modelId: modelId,
         }}

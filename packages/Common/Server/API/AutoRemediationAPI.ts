@@ -977,7 +977,7 @@ async function approveMcpToolCalls(data: {
   await postFeedItem({
     suggestion,
     markdown:
-      mdText`⚡ **Fix through MCP servers approved** — ${proposed.length} change(s) are being made. Verification will watch the monitors for recovery.`.toString(),
+      mdText`⚡ **Fix through MCP servers approved** (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
     userId: props.userId!,
     pingWorkspace: true,
   });
@@ -1493,7 +1493,7 @@ router.post(
       let dismissMarkdown: string;
       if (alreadyExecutedCount > 0 && dismissedMcpPlan) {
         dismissMarkdown =
-          mdText`⚠️ **Auto-remediation suggestion dismissed — but ${alreadyExecutedCount} change(s) through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
+          mdText`⚠️ **Auto-remediation suggestion dismissed — but ${ExternalMcpToolCallPlanUtil.describeChangeCount(alreadyExecutedCount)} through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
       } else if (
         suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
       ) {

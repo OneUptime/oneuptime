@@ -1,6 +1,7 @@
 import {
   EXTERNAL_MCP_SERVER_TEST_COPY,
   EXTERNAL_MCP_SERVER_TOOLS_COPY,
+  EXTERNAL_MCP_SERVER_TOOLS_SHOWN,
   EXTERNAL_MCP_SERVER_TOOL_COUNT,
   ExternalMcpServerStatusKind,
   getExternalMcpServerStatus,
@@ -256,7 +257,10 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
             {translator.translateText(EXTERNAL_MCP_SERVER_TOOLS_COPY.noTools)}
           </p>
         ) : (
-          <ExternalMcpServerToolList tools={stored.tools} />
+          <ExternalMcpServerToolList
+            tools={stored.tools}
+            shownCount={EXTERNAL_MCP_SERVER_TOOLS_SHOWN}
+          />
         )}
       </div>
     );

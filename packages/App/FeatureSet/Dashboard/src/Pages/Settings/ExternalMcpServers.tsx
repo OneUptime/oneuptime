@@ -86,6 +86,12 @@ const ExternalMcpServersPage: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         isEditable={false}
         isViewable={true}
+        /*
+         * "View External MCP Server" took 200px of every row: at 1280px
+         * beside the side menu, a long URL then pushed Status under the
+         * row's buttons, out of sight.
+         */
+        viewButtonText="View"
         isCreateable={true}
         refreshToggle={refreshToggle.toString()}
         actionButtons={[
@@ -193,6 +199,12 @@ const ExternalMcpServersPage: FunctionComponent<PageComponentProps> = (
             },
             title: "URL",
             type: FieldType.Text,
+            /*
+             * The address is cut short sooner than a name (the table's
+             * 20rem): the name says which server a row is, and the whole
+             * address shows under the pointer and on the server's page.
+             */
+            contentClassName: "max-w-[16rem] 2xl:max-w-[24rem]",
             getElement: (item: ExternalMcpServer): ReactElement => {
               return (
                 <span className="break-all font-mono text-xs text-gray-700">

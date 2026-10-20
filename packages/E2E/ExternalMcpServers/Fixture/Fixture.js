@@ -11,10 +11,15 @@
  * Steered by the query string:
  *   - page=view       a server's own page (the list by default)
  *   - server=github   which server page=view opens: aws (default), github,
- *                     azure or internal
+ *                     azure, internal or platform (servers=many)
  *   - servers=0       the project has no server yet (four by default: AWS,
  *                     connected; GitHub, which can't connect; Azure, not
- *                     checked yet; Internal runbooks, off)
+ *                     checked yet; Internal runbooks, off); servers=many
+ *                     adds one with a long name, a long address and 14
+ *                     tools, and one that offers none
+ *   - layout=page     the page inside the Dashboard's real Project Settings
+ *                     layout - the side menu, the breadcrumbs - so widths
+ *                     are the product's (a 938px card at 1280px)
  *   - role=member     may read the servers only (Project Member); viewer is
  *                     a Viewer; loading has no permissions yet; the default
  *                     is a project owner
@@ -46,6 +51,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import ExternalMcpServersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/ExternalMcpServers";
+import SettingsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/Layout";
 import ExternalMcpServerViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/ExternalMcpServerView";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -74,6 +80,8 @@ const role = ["member", "viewer", "loading"].includes(params.get("role"))
   : "owner";
 const language = params.get("lang") === "de" ? "de" : "en";
 const hasServers = params.get("servers") !== "0";
+const hasManyServers = params.get("servers") === "many";
+const isInSettingsLayout = params.get("layout") === "page";
 const isAiOff = params.get("ai") === "off";
 
 // ---- who is signed in -------------------------------------------------------
@@ -146,7 +154,27 @@ const SERVER_IDS = {
   github: "c0000000-0000-4000-8000-000000000e02",
   azure: "c0000000-0000-4000-8000-000000000e03",
   internal: "c0000000-0000-4000-8000-000000000e04",
+  platform: "c0000000-0000-4000-8000-000000000e05",
+  checker: "c0000000-0000-4000-8000-000000000e06",
 };
+
+/*
+ * More tools than a server's page lists at once: every third may change
+ * things, and some describe themselves at length.
+ */
+const PLATFORM_TOOLS = Array.from({ length: 14 }, (_value, index) => {
+  return {
+    name:
+      index % 3 === 0
+        ? `scale_deployment_${index + 1}`
+        : `get_kubernetes_resource_status_${index + 1}`,
+    description:
+      index % 4 === 0
+        ? "Reads the status of every resource of one kind in a namespace, with its conditions, its events of the last hour and the owner chain up to the controller that created it."
+        : "Reads one thing.",
+    readsOnly: index % 3 !== 0,
+  };
+});
 
 // The tools an AWS MCP server offers: two that read, one that changes things.
 const AWS_TOOLS = [
@@ -229,6 +257,38 @@ const SERVERS = hasServers
         lastConnectedAt: new Date("2026-10-15T08:00:00Z"),
         lastCheckedAt: new Date("2026-10-15T08:00:00Z"),
       }),
+      ...(hasManyServers
+        ? [
+            record(ExternalMcpServer, {
+              _id: SERVER_IDS.platform,
+              projectId: new ObjectID(PROJECT_ID),
+              name: "Kubernetes platform team (eu-central-1 production clusters, read and scale)",
+              description:
+                "The platform team's MCP server for the production clusters in Frankfurt.",
+              url: "https://mcp.platform-tools.eu-central-1.internal-enterprise-example.com/v1/model-context-protocol/streamable?tenant=acme-production",
+              authType: "BearerToken",
+              isEnabled: true,
+              transport: "StreamableHttp",
+              serverName: "kubernetes-mcp-server",
+              serverVersion: "2.11.0",
+              tools: PLATFORM_TOOLS,
+              lastConnectedAt: new Date("2026-10-19T07:00:00Z"),
+              lastCheckedAt: new Date("2026-10-19T07:00:00Z"),
+            }),
+            record(ExternalMcpServer, {
+              _id: SERVER_IDS.checker,
+              projectId: new ObjectID(PROJECT_ID),
+              name: "Status checker",
+              url: "https://status-checker.example.com/sse",
+              authType: "None",
+              isEnabled: true,
+              transport: "Sse",
+              tools: [],
+              lastConnectedAt: new Date("2026-10-18T07:00:00Z"),
+              lastCheckedAt: new Date("2026-10-18T07:00:00Z"),
+            }),
+          ]
+        : []),
     ]
   : [];
 
@@ -586,6 +646,17 @@ function Shell(props) {
   const Page =
     props.page === "view" ? ExternalMcpServerViewPage : ExternalMcpServersPage;
 
+  if (isInSettingsLayout) {
+    // Inside the real Project Settings layout: Page, side menu, breadcrumbs.
+    return (
+      <SettingsLayout
+        pageRoute={Navigation.getCurrentRoute()}
+        currentProject={project}
+        hasPaymentMethod={true}
+      />
+    );
+  }
+
   return (
     <main
       className="mx-auto max-w-[1100px] px-4 py-8 sm:px-8"
@@ -612,17 +683,48 @@ if (window.location.pathname !== target) {
   window.history.replaceState(null, "", target + window.location.search);
 }
 
+// What the settings layout draws in its outlet.
+function OutletPage(props) {
+  const Page =
+    props.page === "view" ? ExternalMcpServerViewPage : ExternalMcpServersPage;
+
+  return (
+    <div data-testid="fixture-page">
+      <Page
+        pageRoute={Navigation.getCurrentRoute()}
+        currentProject={project}
+        hasPaymentMethod={true}
+      />
+    </div>
+  );
+}
+
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <Routes>
-      <PageRoute
-        path="/dashboard/:projectId/settings/external-mcp-servers"
-        element={<Shell page="list" />}
-      />
-      <PageRoute
-        path="/dashboard/:projectId/settings/external-mcp-servers/:modelId"
-        element={<Shell page="view" key="view" />}
-      />
-    </Routes>
+    {isInSettingsLayout ? (
+      <Routes>
+        <PageRoute path="/dashboard/:projectId/settings" element={<Shell />}>
+          <PageRoute
+            path="external-mcp-servers"
+            element={<OutletPage page="list" />}
+          />
+          <PageRoute
+            path="external-mcp-servers/:modelId"
+            element={<OutletPage page="view" key="view" />}
+          />
+        </PageRoute>
+      </Routes>
+    ) : (
+      <Routes>
+        <PageRoute
+          path="/dashboard/:projectId/settings/external-mcp-servers"
+          element={<Shell page="list" />}
+        />
+        <PageRoute
+          path="/dashboard/:projectId/settings/external-mcp-servers/:modelId"
+          element={<Shell page="view" key="view" />}
+        />
+      </Routes>
+    )}
   </BrowserRouter>,
 );
