@@ -293,7 +293,6 @@ jobs:
               test-discovery-ui
               test-status-page-theme-ui
               test-calendar-feed-ui
-              test-custom-roles-ui
               test-sign-in-options-ui
               test-maintenance-calendar-ui
               test-detail-cards-ui
@@ -305,12 +304,16 @@ jobs:
           # LLM's Connect and Usage at desktop and phone width), both
           # Chromium only. Both joined group 6 on 2026-10-20, when it already
           # took 16 to 23 minutes and every other group 15 to 27: together
-          # they would have taken it to 27.
+          # they would have taken it to 27. Custom Roles (about 2.5 minutes
+          # with its bundle, Chromium only) moved here from group 6 on
+          # 2026-10-20, when its Add a Role spec added about 45 seconds to a
+          # group already at 16 to 23 minutes.
           - group: 7
             browsers: chromium
             suites: >-
               test-profiles-ui
               test-llm-connect-ui
+              test-custom-roles-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
