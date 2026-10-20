@@ -34,8 +34,10 @@ interface CallTokens {
 }
 
 function response(data: {
-  content?: string;
-  toolCalls?: Array<{ id: string; name: string; arguments: JSONObject }>;
+  content?: string | undefined;
+  toolCalls?:
+    | Array<{ id: string; name: string; arguments: JSONObject }>
+    | undefined;
   tokens: CallTokens;
 }): AILogResponse {
   return {
