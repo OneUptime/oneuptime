@@ -1,5 +1,6 @@
 import SubjectPullRequestTaskHandler from "./SubjectPullRequestTaskHandler";
 import { SubjectTaskDetails } from "../Utils/BackendAPI";
+import ProductionTelemetryPrompt from "../Utils/ProductionTelemetryPrompt";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 
 /*
@@ -12,7 +13,10 @@ import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
  * exception: its subject is the investigated incident/alert, and its context
  * (the posted analysis + the repository resolved without a stack trace)
  * comes from /ai-agent-data/get-instrumentation-task-details keyed by the
- * run id — the shared SubjectPullRequestTaskHandler pipeline.
+ * run id — the shared SubjectPullRequestTaskHandler pipeline. The agent
+ * reads the incident's window in production for itself - deploys, errors,
+ * logs, past incidents - before it trusts the analysis
+ * (ProductionTelemetryPrompt).
  */
 export default class FixFromIncidentTaskHandler extends SubjectPullRequestTaskHandler {
   public readonly taskType: string = CodeFixTaskType.FixFromIncident;
@@ -23,6 +27,8 @@ export default class FixFromIncidentTaskHandler extends SubjectPullRequestTaskHa
     "No fix could be applied to any repository";
   protected readonly noRepositoryMessage: string =
     "Could not resolve a repository for this fix task. Connect the right repository through the GitHub App.";
+
+  protected override readonly usesProductionTelemetry: boolean = true;
 
   // Build the prompt for the code agent
   protected buildPrompt(
@@ -58,6 +64,8 @@ Fix the root cause the analysis identifies. Steps:
 - Do NOT add unrelated refactors, drive-by cleanups, or new dependencies
 - If the analysis implicates configuration or infrastructure outside this repository, fix what IS in this repository and explain the rest
 - If none of the implicated code paths are in this repository, or the analysis does not identify a fixable cause, explain why and make no changes
+
+${ProductionTelemetryPrompt.forFix("incident")}
 
 Please proceed with fixing the root cause.`;
 

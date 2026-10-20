@@ -5,6 +5,7 @@ The OneUptime GitHub App is more than a connection to your code: you can talk to
 :::cards
 - [The commands](#the-commands): What to write, on an issue or a pull request.
 - [What it looks like in the thread](#what-it-looks-like-in-the-thread): One comment that follows the work.
+- [Reviews with production context](#reviews-with-production-context): What production says about the changed code.
 - [Who is allowed to command it](#who-is-allowed-to-command-it): People with write access, and nobody else.
 - [Troubleshooting](#troubleshooting): When a mention does nothing.
 :::
@@ -45,7 +46,7 @@ Every command starts with a mention of the app. The mention can be anywhere in t
 
 | Command | What happens | Also understood |
 | --- | --- | --- |
-| `@oneuptime review` | Clones the branch, reads the changed code and the code around it, and posts a review as a comment. Changes nothing. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime review` | Clones the branch, reads the changed code and the code around it, checks what production says about it, and posts a review as a comment. Changes nothing. | `code review`, `please review`, `can you review`, `review this` |
 | `@oneuptime revise this — <what you want changed>` | Clones the pull request's own branch, makes the change and pushes new commits to that branch. Never opens a second pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Anything you write after the mention that is not a known command is read as a revision request, because that is almost always what it is:
@@ -86,6 +87,19 @@ One command produces **one comment**, which the app edits as the work moves, so 
 
 If it finds nothing worth changing, it says so rather than opening a speculative pull request. That is a normal outcome, not a failure: give it more direction and ask again.
 
+## Reviews with production context
+
+OneUptime holds the telemetry of the code it reviews, so a review can say what no reviewer reading the diff can. For the services the repository serves, it checks:
+
+- the exceptions thrown in the changed files and functions in the last 7 days;
+- how busy and how slow the endpoints and operations the diff touches are;
+- the incidents linked to the changed files;
+- the recent deploys of the services that OneUptime marked as regressions.
+
+What it finds goes under a **Production context** heading of the review, each point with the numbers and the time window it comes from, for example: "`chargeCard` threw `TypeError: Cannot read properties of undefined` 1,240 times in the last 7 days; this change adds the null check that stops it." When production shows nothing that bears on the diff, the review leaves the heading out rather than say that all is well.
+
+It needs nothing set up: the services are those OneUptime finds this repository for, as it does for a fix (see [Production telemetry in a fix](/docs/ai/ai-agent#production-telemetry-in-a-fix)). The queries are read-only, run on the OneUptime server and read nothing of another service, project or private incident. A repository whose services send no telemetry to the project is reviewed from its code alone.
+
 ## Who is allowed to command it
 
 **Only people with write, maintain or admin access to the repository.** OneUptime asks GitHub for the commenter's permission on that repository every time; it does not trust the "contributor" badge GitHub shows beside a comment, which describes past activity rather than current access.
@@ -104,7 +118,7 @@ It also ignores every comment written by a bot, its own included, and mentions i
 
 ## What it costs, and how to bound it
 
-Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and your repository's build and test commands when you have set them.
+Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and your repository's build and test commands when you have set them. A review's production queries, at most 12, count against the same 40 calls.
 
 GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs the tasks in [Code](/docs/ai/ai-agent):
 

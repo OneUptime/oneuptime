@@ -29,7 +29,9 @@ import TelemetryReadScopeUtil, {
  * findings land where everyone reads them leave the restricted services out
  * themselves (restrictSystemScope): an automatic AI investigation's tools,
  * which write onto the incident or alert (ToolArgs.spanScope), and the
- * trace latency insight scan.
+ * trace latency insight scan. The code agent's production telemetry, whose
+ * findings land on a pull request, leaves those services out of its scope
+ * altogether (CodeAgentTelemetryScope).
  *
  * Decided per project from the connections' rows, deleted ones included: a
  * connection that was deleted leaves its chats behind until the service's

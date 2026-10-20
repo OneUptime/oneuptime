@@ -3,6 +3,7 @@ import CodeFixAgentCompletion, {
   LoopBudgetDecision,
   MAX_COMPLETION_CALLS_PER_RUN,
   MAX_OUTPUT_TOKENS_PER_RUN,
+  MAX_TELEMETRY_TOOL_CALLS_PER_RUN,
   MAX_TOKENS_PER_COMPLETION_CALL,
 } from "../../../../Server/Utils/AI/CodeFix/CodeFixAgentCompletion";
 import AIRunService from "../../../../Server/Services/AIRunService";
@@ -124,6 +125,29 @@ describe("CodeFixAgentCompletion.evaluateLoopBudget (pure)", () => {
     expect(decision.allowed).toBe(false);
     expect(decision.reason).toContain("output-token");
   });
+
+  test("production telemetry calls count against the same calls as completions", () => {
+    const atCap: LoopBudgetDecision = CodeFixAgentCompletion.evaluateLoopBudget(
+      {
+        completionCalls: MAX_COMPLETION_CALLS_PER_RUN - 10,
+        outputTokens: 0,
+        toolCalls: 10,
+      },
+    );
+
+    expect(atCap.allowed).toBe(false);
+    expect(atCap.reason).toContain(
+      `${MAX_COMPLETION_CALLS_PER_RUN - 10} completion calls and 10 production telemetry queries`,
+    );
+
+    expect(
+      CodeFixAgentCompletion.evaluateLoopBudget({
+        completionCalls: MAX_COMPLETION_CALLS_PER_RUN - 10,
+        outputTokens: 0,
+        toolCalls: 9,
+      }).allowed,
+    ).toBe(true);
+  });
 });
 
 describe("CodeFixAgentCompletion.execute guards", () => {
@@ -226,6 +250,24 @@ describe("CodeFixAgentCompletion.execute guards", () => {
 
     // Over-budget short-circuits before provider resolution and execution.
     expect(providerSpy).not.toHaveBeenCalled();
+  });
+
+  test("refuses a run whose completions and telemetry queries reach the call cap", async () => {
+    jest
+      .spyOn(AIRunService, "findOneById")
+      .mockResolvedValue(fakeRun({ toolCallCount: 8 } as Partial<AIRun>));
+    jest.spyOn(LlmLogService, "getRunCompletionUsage").mockResolvedValue({
+      completionCalls: MAX_COMPLETION_CALLS_PER_RUN - 8,
+      outputTokens: 0,
+    });
+
+    await expect(
+      CodeFixAgentCompletion.execute({
+        aiAgentId: agentId,
+        aiRunId: runId,
+        messages,
+      }),
+    ).rejects.toThrow("production telemetry queries");
   });
 
   test("refuses an over-budget run (output tokens) without executing", async () => {
@@ -398,7 +440,26 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
       maxCompletionCalls: MAX_COMPLETION_CALLS_PER_RUN,
       outputTokensUsed: 1000 + 123,
       maxOutputTokens: MAX_OUTPUT_TOKENS_PER_RUN,
+      toolCallsUsed: 0,
+      maxToolCalls: MAX_TELEMETRY_TOOL_CALLS_PER_RUN,
     });
+  });
+
+  test("counts the run's production telemetry queries among the calls it reports", async () => {
+    mockHappyDependencies({
+      completionCalls: 5,
+      outputTokens: 1000,
+      run: { toolCallCount: 3 } as Partial<AIRun>,
+    });
+
+    const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(result.budget.completionCallsUsed).toBe(5 + 1 + 3);
+    expect(result.budget.toolCallsUsed).toBe(3);
   });
 
   test("a completion refreshes the run heartbeat (Running-guarded)", async () => {
