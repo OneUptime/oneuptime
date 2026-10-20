@@ -72,6 +72,12 @@ import RunbookService from "./RunbookService";
 import RunbookTriggerType from "../../Types/Runbook/RunbookTriggerType";
 import RunnerJobService from "./RunnerJobService";
 import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
+import ExternalMcpServerService from "./ExternalMcpServerService";
+import {
+  EVERY_EXTERNAL_MCP_SERVER,
+  ExternalMcpServerAllowance,
+  readExternalMcpServerIds,
+} from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -402,9 +408,9 @@ function isRoundOrderedBefore(
 
 /*
  * Is this the project's default runbook pick (no rule set up)? The one
- * suggestion that names no rule, no cluster and no resource and is not a
- * command plan: a cluster or resource round names what it is for, and a
- * rule's pick names its rule.
+ * suggestion that names no rule, no cluster and no resource and is neither a
+ * command plan nor a fix through MCP servers: a cluster or resource round
+ * names what it is for, and a rule's pick names its rule.
  */
 export function isDefaultRunbookPick(suggestion: {
   autoRemediationRuleId?: ObjectID | undefined | null;
@@ -416,7 +422,50 @@ export function isDefaultRunbookPick(suggestion: {
     !suggestion.autoRemediationRuleId &&
     !suggestion.kubernetesClusterId &&
     !suggestion.resourceId &&
-    suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
+    suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan &&
+    suggestion.suggestionType !== AutoRemediationSuggestionType.McpToolCalls
+  );
+}
+
+/*
+ * Whether a fix through the project's external MCP servers was started for
+ * the signal already: one is all a signal gets for the servers a rule that
+ * names none allows - every server - or for the project's default.
+ */
+export function hasMcpFix(
+  suggestions: Array<{
+    suggestionType?: AutoRemediationSuggestionType | string | undefined | null;
+  }>,
+): boolean {
+  return suggestions.some((suggestion): boolean => {
+    return (
+      suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+    );
+  });
+}
+
+/*
+ * Whether a rule's fix through MCP servers may make its changes without
+ * asking: the rule fixes without asking AND names its MCP servers (with
+ * none named a change is always proposed, as a runbook picked from all of
+ * the project's is), no other matching rule asks first, and no other fix
+ * of the signal runs on its own - an AI agent round on a cluster or host,
+ * or a runbook the rule's pick starts: two unattended fixes of one signal
+ * verify on top of each other. Every other change waits for approval.
+ */
+export function mayMcpFixChangeWithoutAsking(data: {
+  executionMode?: AutoRemediationExecutionMode | string | null | undefined;
+  namesMcpServers: boolean;
+  anotherRuleAsksFirst: boolean;
+  agentRoundStarted: boolean;
+  unattendedPickStarted: boolean;
+}): boolean {
+  return (
+    data.executionMode === AutoRemediationExecutionMode.FullAuto &&
+    data.namesMcpServers &&
+    !data.anotherRuleAsksFirst &&
+    !data.agentRoundStarted &&
+    !data.unattendedPickStarted
   );
 }
 
@@ -1536,6 +1585,7 @@ class AutoRemediationRuleEngineServiceClass {
           monitorLabels: { _id: true },
           runbooks: { _id: true, name: true },
           runnerId: true,
+          externalMcpServers: { _id: true },
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
@@ -1708,6 +1758,13 @@ class AutoRemediationRuleEngineServiceClass {
       },
     );
 
+    /*
+     * One fix through every one of the project's external MCP servers per
+     * signal, as one "any runbook" pick: a second would only ask the same
+     * servers the same question.
+     */
+    let isEveryServerMcpFixStarted: boolean = hasMcpFix(existingSuggestions);
+
     if (matchedRules.length === 0) {
       /*
        * No rule is set up: OneUptime AI fixes every signal, and may pick
@@ -1716,6 +1773,19 @@ class AutoRemediationRuleEngineServiceClass {
        */
       if (!isAnyRunbookPickStarted) {
         await this.startDefaultRunbookPick({
+          projectId: data.projectId,
+          linkage,
+          recorder,
+          isAiAvailable,
+        });
+      }
+
+      /*
+       * And it may fix through any of the project's external MCP servers:
+       * every change proposed for approval, never made on its own.
+       */
+      if (!isEveryServerMcpFixStarted) {
+        await this.startDefaultMcpFix({
           projectId: data.projectId,
           linkage,
           recorder,
@@ -1782,6 +1852,8 @@ class AutoRemediationRuleEngineServiceClass {
         });
 
         const namesRunbooks: boolean = getRuleRunbookIds(rule).length > 0;
+        // Whether the rule's runbook pick starts on its own (FullAuto).
+        let isUnattendedPickStarted: boolean = false;
 
         if (
           (namesRunbooks || !isAnyRunbookPickStarted) &&
@@ -1799,18 +1871,21 @@ class AutoRemediationRuleEngineServiceClass {
             continue;
           }
 
-          const isPickStarted: boolean = await this.startAiPlanning({
-            projectId: data.projectId,
-            rule,
-            linkage,
-            executionMode: mayAiPickedRunbookStartWithoutAsking({
+          const pickMode: AutoRemediationExecutionMode =
+            mayAiPickedRunbookStartWithoutAsking({
               executionMode: rule.executionMode,
               namesRunbooks,
               anotherRuleAsksFirst: askFirst !== undefined,
               agentRoundStarted: agentRoundsStarted > 0,
             })
               ? AutoRemediationExecutionMode.FullAuto
-              : AutoRemediationExecutionMode.Suggest,
+              : AutoRemediationExecutionMode.Suggest;
+
+          const isPickStarted: boolean = await this.startAiPlanning({
+            projectId: data.projectId,
+            rule,
+            linkage,
+            executionMode: pickMode,
             isAnnounced: false,
           });
 
@@ -1826,6 +1901,39 @@ class AutoRemediationRuleEngineServiceClass {
 
           if (!namesRunbooks) {
             isAnyRunbookPickStarted = true;
+          }
+
+          isUnattendedPickStarted =
+            isPickStarted &&
+            pickMode === AutoRemediationExecutionMode.FullAuto;
+        }
+
+        /*
+         * The rule's external MCP servers (all of the project's when it
+         * names none): OneUptime AI works out a fix through them too, the
+         * way the rule's Approval says.
+         */
+        if (remainingBudget > 0) {
+          const mcpFix: { isStarted: boolean; isEveryServer: boolean } =
+            await this.startRuleMcpFix({
+              projectId: data.projectId,
+              rule,
+              linkage,
+              recorder,
+              ruleNames,
+              isAiAvailable,
+              isEveryServerFixStarted: isEveryServerMcpFixStarted,
+              anotherRuleAsksFirst: askFirst !== undefined,
+              agentRoundStarted: agentRoundsStarted > 0,
+              unattendedPickStarted: isUnattendedPickStarted,
+            });
+
+          if (mcpFix.isStarted) {
+            remainingBudget -= 1;
+
+            if (mcpFix.isEveryServer) {
+              isEveryServerMcpFixStarted = true;
+            }
           }
         }
 
@@ -3236,6 +3344,200 @@ class AutoRemediationRuleEngineServiceClass {
         ? AutoRemediationDecisionReason.AiPickingRunbook
         : AutoRemediationDecisionReason.AiRunbookPickNotStarted,
     });
+  }
+
+  /*
+   * The project's default when no rule is set up, for its external MCP
+   * servers: OneUptime AI works out a fix through any of them and proposes
+   * every change for approval. Nothing is started, and nothing said, when
+   * no server is on, none offers a tool that may change something, or the
+   * project has no LLM provider.
+   */
+  private async startDefaultMcpFix(data: {
+    projectId: ObjectID;
+    linkage: SubjectLinkage;
+    recorder: AutoRemediationDecisionRecorder;
+    isAiAvailable: () => Promise<boolean>;
+  }): Promise<void> {
+    if (
+      !(await ExternalMcpServerService.hasServersThatMayFix({
+        projectId: data.projectId,
+        allowance: EVERY_EXTERNAL_MCP_SERVER,
+      }))
+    ) {
+      return;
+    }
+
+    if (!(await data.isAiAvailable())) {
+      return;
+    }
+
+    const isStarted: boolean = await this.startMcpFix({
+      projectId: data.projectId,
+      rule: null,
+      linkage: data.linkage,
+      executionMode: AutoRemediationExecutionMode.Suggest,
+    });
+
+    data.recorder.add({
+      lane: AutoRemediationDecisionLane.Project,
+      reason: isStarted
+        ? AutoRemediationDecisionReason.AiFixingThroughMcpServers
+        : AutoRemediationDecisionReason.AiMcpFixNotStarted,
+    });
+  }
+
+  /*
+   * A matching OneUptime AI rule's fix through the external MCP servers it
+   * allows (all of the project's when it names none - once a signal). Says
+   * nothing when none of those servers is on or offers a tool that may
+   * change something.
+   */
+  private async startRuleMcpFix(data: {
+    projectId: ObjectID;
+    rule: AutoRemediationRule;
+    linkage: SubjectLinkage;
+    recorder: AutoRemediationDecisionRecorder;
+    ruleNames: { ruleId?: string | undefined; ruleName?: string };
+    isAiAvailable: () => Promise<boolean>;
+    isEveryServerFixStarted: boolean;
+    anotherRuleAsksFirst: boolean;
+    agentRoundStarted: boolean;
+    unattendedPickStarted: boolean;
+  }): Promise<{ isStarted: boolean; isEveryServer: boolean }> {
+    const serverIds: Array<string> = readExternalMcpServerIds(
+      data.rule.externalMcpServers,
+    );
+    const isEveryServer: boolean = serverIds.length === 0;
+
+    if (isEveryServer && data.isEveryServerFixStarted) {
+      return { isStarted: false, isEveryServer };
+    }
+
+    const allowance: ExternalMcpServerAllowance = isEveryServer
+      ? EVERY_EXTERNAL_MCP_SERVER
+      : { isEveryServer: false, serverIds };
+
+    if (
+      !(await ExternalMcpServerService.hasServersThatMayFix({
+        projectId: data.projectId,
+        allowance,
+      }))
+    ) {
+      return { isStarted: false, isEveryServer };
+    }
+
+    if (!(await data.isAiAvailable())) {
+      data.recorder.add({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
+        ...data.ruleNames,
+      });
+      return { isStarted: false, isEveryServer };
+    }
+
+    const isStarted: boolean = await this.startMcpFix({
+      projectId: data.projectId,
+      rule: data.rule,
+      linkage: data.linkage,
+      executionMode: mayMcpFixChangeWithoutAsking({
+        executionMode: data.rule.executionMode,
+        namesMcpServers: !isEveryServer,
+        anotherRuleAsksFirst: data.anotherRuleAsksFirst,
+        agentRoundStarted: data.agentRoundStarted,
+        unattendedPickStarted: data.unattendedPickStarted,
+      })
+        ? AutoRemediationExecutionMode.FullAuto
+        : AutoRemediationExecutionMode.Suggest,
+    });
+
+    data.recorder.add({
+      lane: AutoRemediationDecisionLane.Rule,
+      reason: isStarted
+        ? AutoRemediationDecisionReason.RuleAiFixingThroughMcpServers
+        : AutoRemediationDecisionReason.RuleAiRunNotStarted,
+      ...data.ruleNames,
+    });
+
+    return { isStarted, isEveryServer };
+  }
+
+  /*
+   * A fix through MCP servers: a Planning McpToolCalls suggestion and a
+   * RemediationExecution run (McpRemediationRunner works it). The
+   * suggestion's executionMode says whether it may make its changes itself;
+   * the run reads the rule again before it does. It says nothing in the
+   * feed until it has something to say - the fix it proposes or made - and
+   * the Remediation card says it is working.
+   */
+  // Whether the run was queued.
+  private async startMcpFix(data: {
+    projectId: ObjectID;
+    // The rule the fix is for; none for the project's default.
+    rule: AutoRemediationRule | null;
+    linkage: SubjectLinkage;
+    executionMode: AutoRemediationExecutionMode;
+  }): Promise<boolean> {
+    const suggestion: AutoRemediationSuggestion =
+      new AutoRemediationSuggestion();
+    suggestion.projectId = data.projectId;
+    if (data.rule?.id) {
+      suggestion.autoRemediationRuleId = data.rule.id;
+    }
+    suggestion.ruleNameSnapshot = data.rule
+      ? data.rule.name || "Auto Remediation Rule"
+      : DEFAULT_RUNBOOK_PICK_NAME;
+    suggestion.status = AutoRemediationSuggestionStatus.Planning;
+    suggestion.suggestionType = AutoRemediationSuggestionType.McpToolCalls;
+    suggestion.executionMode = data.executionMode;
+    suggestion.verificationWindowMinutes =
+      data.rule?.verificationWindowMinutes ||
+      DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    suggestion.autoResolveOnRecovery =
+      data.rule?.autoResolveOnVerifiedRecovery === true;
+    if (data.linkage.incidentId) {
+      suggestion.incidentId = data.linkage.incidentId;
+    }
+    if (data.linkage.alertId) {
+      suggestion.alertId = data.linkage.alertId;
+    }
+
+    const created: AutoRemediationSuggestion =
+      await AutoRemediationSuggestionService.create({
+        data: suggestion,
+        props: { isRoot: true },
+      });
+
+    const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: data.projectId,
+      subjectIncidentId: data.linkage.incidentId,
+      subjectAlertId: data.linkage.alertId,
+      subjectAutoRemediationSuggestionId: created.id!,
+      remediationRunType: AIRunType.RemediationExecution,
+    });
+
+    if (!aiRunId) {
+      await AutoRemediationSuggestionService.updateOneById({
+        id: created.id!,
+        data: {
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          rationaleMarkdown:
+            "The fix through MCP servers could not be started — the daily autonomous AI budget is exhausted or no run could be queued. Re-enable by raising the budget or waiting for the daily reset.",
+        },
+        props: { isRoot: true },
+      });
+      return false;
+    }
+
+    await AutoRemediationSuggestionService.updateOneById({
+      id: created.id!,
+      data: {
+        aiRunId,
+      },
+      props: { isRoot: true },
+    });
+
+    return true;
   }
 
   /*

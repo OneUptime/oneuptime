@@ -29,6 +29,10 @@ import {
   ExternalMcpServerAllowance,
   isExternalMcpServerAllowed,
 } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
+import {
+  ExternalMcpServerTool,
+  readExternalMcpServerTools,
+} from "../../Types/AI/ExternalMcpServer/ExternalMcpServerTool";
 
 /*
  * External MCP servers: checked when saved, so a server that stores is one
@@ -379,6 +383,54 @@ export class Service extends DatabaseService<Model> {
       return (
         server.projectId?.toString() === data.projectId.toString() &&
         isExternalMcpServerAllowed(data.allowance, server.id)
+      );
+    });
+  }
+
+  /*
+   * Whether any server a fix may use could make the fix: one that is on,
+   * allowed, and offers a tool that may change something - or whose tools
+   * OneUptime has not read yet (the fix reads them). A project whose servers
+   * only read starts no fix through them: there would be nothing to fix
+   * with.
+   */
+  @CaptureSpan()
+  public async hasServersThatMayFix(data: {
+    projectId: ObjectID;
+    allowance: ExternalMcpServerAllowance;
+  }): Promise<boolean> {
+    if (!data.allowance.isEveryServer && data.allowance.serverIds.length === 0) {
+      return false;
+    }
+
+    const servers: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        isEnabled: true,
+      },
+      select: { _id: true, projectId: true, tools: true },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return servers.some((server: Model): boolean => {
+      if (
+        server.projectId?.toString() !== data.projectId.toString() ||
+        !isExternalMcpServerAllowed(data.allowance, server.id)
+      ) {
+        return false;
+      }
+
+      // Never read: the fix reads the tools, and may find one.
+      if (!Array.isArray(server.tools)) {
+        return true;
+      }
+
+      return readExternalMcpServerTools(server.tools).some(
+        (tool: ExternalMcpServerTool): boolean => {
+          return !tool.readsOnly;
+        },
       );
     });
   }

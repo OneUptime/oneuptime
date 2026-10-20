@@ -71,7 +71,7 @@ import {
   pluralName: "Auto Remediation Rules",
   icon: IconProp.Bolt,
   tableDescription:
-    "Which new incidents or alerts OneUptime AI fixes automatically, and whether it asks first. It may run the project's runbooks (only the rule's, when it names some) and commands on a Runner the rule picks. With no rule, OneUptime AI fixes every one while automatic fixing is on.",
+    "Which new incidents or alerts OneUptime AI fixes automatically, and whether it asks first. It may run the project's runbooks (only the rule's, when it names some), commands on a Runner the rule picks, and the tools of the project's external MCP servers (only the rule's, when it names some). With no rule, OneUptime AI fixes every one while automatic fixing is on.",
 })
 export default class AutoRemediationRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -296,7 +296,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Execution Mode",
     description:
-      "Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: OneUptime AI fixes on its own where the cluster's or resource's AI agent page allows, a runbook it picks from the ones the rule names starts right away (one it picks from all of the project's runbooks still waits for approval), and a rule that runs its runbooks every time starts them immediately.",
+      "Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: OneUptime AI fixes on its own where the cluster's or resource's AI agent page allows, a runbook it picks from the ones the rule names starts right away (one it picks from all of the project's runbooks still waits for approval), a change through an MCP server the rule names is made right away (through any of the project's MCP servers, it still waits for approval), and a rule that runs its runbooks every time starts them immediately.",
     defaultValue: AutoRemediationExecutionMode.Suggest,
     isDefaultValueColumn: true,
   })

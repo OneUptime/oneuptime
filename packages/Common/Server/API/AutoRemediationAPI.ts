@@ -75,6 +75,14 @@ import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCo
 import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import logger from "../Utils/Logger";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import ExternalMcpServer from "../../Models/DatabaseModels/ExternalMcpServer";
+import ExternalMcpServerService from "../Services/ExternalMcpServerService";
+import McpRemediationRunner from "../Utils/AI/Remediation/McpRemediationRunner";
+import {
+  ExternalMcpToolCall,
+  ExternalMcpToolCallPlan,
+  ExternalMcpToolCallPlanUtil,
+} from "../../Types/AutoRemediation/ExternalMcpToolCallPlan";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -818,6 +826,7 @@ async function loadSuggestionAsRoot(
         verificationWindowMinutes: true,
         suggestionType: true,
         commandPlan: true,
+        mcpToolCallPlan: true,
       },
       props: { isRoot: true },
     });
@@ -867,6 +876,121 @@ async function postFeedItem(data: {
   }
 }
 
+/*
+ * Approving a fix through the project's external MCP servers: the approver
+ * may execute runbooks, Enable AI is still on, the fix still holds changes
+ * to make, and every server they go to is still the project's and on. The
+ * approval is claimed first (Suggested -> Approved, once), the changes are
+ * made detached - they can take minutes - and verification watches the
+ * monitors from now.
+ */
+async function approveMcpToolCalls(data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  props: DatabaseCommonInteractionProps;
+  suggestion: AutoRemediationSuggestion;
+}): Promise<void> {
+  const { props, suggestion } = data;
+  const projectId: ObjectID = suggestion.projectId!;
+
+  assertCanExecuteRunbooks(props, projectId);
+
+  const project: Project | null = await ProjectService.findOneById({
+    id: projectId,
+    select: { _id: true, enableAi: true },
+    props: { isRoot: true },
+  });
+
+  if (!project || project.enableAi === false) {
+    throw new BadDataException(
+      "AI is disabled for this project, so this fix cannot be made. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.",
+    );
+  }
+
+  const plan: ExternalMcpToolCallPlan | null =
+    ExternalMcpToolCallPlanUtil.parse(suggestion.mcpToolCallPlan);
+  const proposed: Array<ExternalMcpToolCall> = plan
+    ? ExternalMcpToolCallPlanUtil.getProposedCalls(plan)
+    : [];
+
+  if (!plan || proposed.length === 0) {
+    throw new BadDataException("This suggestion has no changes to make.");
+  }
+
+  const serverIds: Array<string> = proposed.map(
+    (call: ExternalMcpToolCall): string => {
+      return call.serverId.toLowerCase();
+    },
+  );
+
+  const servers: Array<ExternalMcpServer> =
+    await ExternalMcpServerService.findServersForRun({
+      projectId,
+      allowance: { isEveryServer: false, serverIds },
+    });
+
+  for (const call of proposed) {
+    const isAvailable: boolean = servers.some(
+      (server: ExternalMcpServer): boolean => {
+        return (
+          server.id?.toString().toLowerCase() === call.serverId.toLowerCase()
+        );
+      },
+    );
+
+    if (!isAvailable) {
+      throw new BadDataException(
+        `The MCP server "${call.serverNameSnapshot}" this fix uses was turned off or removed, so the fix cannot be made. Turn the server on again under Settings → AI → External MCP Servers, or dismiss the suggestion.`,
+      );
+    }
+  }
+
+  const claimed: number =
+    await AutoRemediationSuggestionService.attemptStatusTransition({
+      suggestionId: suggestion.id!,
+      fromStatus: AutoRemediationSuggestionStatus.Suggested,
+      set: {
+        status: AutoRemediationSuggestionStatus.Approved,
+        approvedByUserId: props.userId!.toString(),
+        approvedAt: OneUptimeDate.getCurrentDate(),
+        verificationStatus: AutoRemediationVerificationStatus.Pending,
+        verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          suggestion.verificationWindowMinutes ||
+            DEFAULT_VERIFICATION_WINDOW_MINUTES,
+        ),
+      },
+    });
+
+  if (claimed === 0) {
+    throw new BadDataException(
+      "This suggestion was just actioned by someone else. Refresh to see its current state.",
+    );
+  }
+
+  McpRemediationRunner.executeApprovedCalls({
+    suggestionId: suggestion.id!,
+  }).catch((error: unknown) => {
+    logger.error(
+      `AutoRemediationAPI: detached MCP fix failed: ${error}`,
+    );
+  });
+
+  await postFeedItem({
+    suggestion,
+    markdown:
+      mdText`⚡ **Fix through MCP servers approved** — ${proposed.length} change(s) are being made. Verification will watch the monitors for recovery.`.toString(),
+    userId: props.userId!,
+    pingWorkspace: true,
+  });
+
+  Response.sendJsonObjectResponse(data.req, data.res, {
+    suggestionId: suggestion.id!.toString(),
+    status: AutoRemediationSuggestionStatus.Approved,
+    suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+  });
+}
+
 router.post(
   "/auto-remediation/approve",
   UserMiddleware.getUserMiddleware,
@@ -891,6 +1015,20 @@ router.post(
 
       if (!suggestion.projectId) {
         throw new BadDataException("This suggestion has no project.");
+      }
+
+      /*
+       * A fix through the project's external MCP servers: approving makes
+       * exactly the changes OneUptime AI recorded, in order, through the
+       * servers' tools (McpRemediationRunner.executeApprovedCalls). Same
+       * permission bar as a command plan: a change in a system outside
+       * OneUptime is at least as sensitive as starting a runbook.
+       */
+      if (
+        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+      ) {
+        await approveMcpToolCalls({ req, res, props, suggestion });
+        return;
       }
 
       /*
@@ -1335,14 +1473,36 @@ router.post(
           ? AiRemediationCommandPlanUtil.parse(suggestion.commandPlan)
           : null;
 
-      const alreadyExecutedCount: number = (
-        dismissedPlan?.commands || []
-      ).filter((command: AiRemediationCommand) => {
-        return command.execution !== undefined;
-      }).length;
+      /*
+       * A fix through MCP servers that runs without asking may have sent
+       * changes too (each recorded before it is sent).
+       */
+      const dismissedMcpPlan: ExternalMcpToolCallPlan | null =
+        suggestion.suggestionType ===
+        AutoRemediationSuggestionType.McpToolCalls
+          ? ExternalMcpToolCallPlanUtil.parse(suggestion.mcpToolCallPlan)
+          : null;
+
+      const alreadyExecutedCount: number =
+        (dismissedPlan?.commands || []).filter(
+          (command: AiRemediationCommand) => {
+            return command.execution !== undefined;
+          },
+        ).length +
+        (dismissedMcpPlan
+          ? ExternalMcpToolCallPlanUtil.getSentCalls(dismissedMcpPlan).length
+          : 0);
 
       let dismissMarkdown: string;
-      if (alreadyExecutedCount > 0) {
+      if (alreadyExecutedCount > 0 && dismissedMcpPlan) {
+        dismissMarkdown =
+          mdText`⚠️ **Auto-remediation suggestion dismissed — but ${alreadyExecutedCount} change(s) through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
+      } else if (
+        suggestion.suggestionType ===
+        AutoRemediationSuggestionType.McpToolCalls
+      ) {
+        dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — the fix through MCP servers will not be made.`;
+      } else if (alreadyExecutedCount > 0) {
         dismissMarkdown =
           mdText`⚠️ **Auto-remediation suggestion dismissed — but ${alreadyExecutedCount} command(s) had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`.toString();
       } else if (
