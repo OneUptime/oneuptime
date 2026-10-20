@@ -528,14 +528,23 @@ describe("TelemetryExceptionService.createCodeFixRunForException fail-early", ()
       }),
     ).rejects.toThrow(BadDataException);
 
-    await expect(
-      TelemetryExceptionService.createCodeFixRunForException({
+    // Both prerequisites are named, whichever comes first.
+    const refusal: Error | null =
+      await TelemetryExceptionService.createCodeFixRunForException({
         telemetryExceptionId: exceptionId,
         props: { isRoot: true },
-      }),
-    ).rejects.toThrow(
-      /LLM provider.*Runner online|Runner online.*LLM provider/,
-    );
+      }).then(
+        (): null => {
+          return null;
+        },
+        (error: Error): Error => {
+          return error;
+        },
+      );
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal?.message).toContain("LLM provider");
+    expect(refusal?.message).toContain("Runner online");
   });
 });
 
