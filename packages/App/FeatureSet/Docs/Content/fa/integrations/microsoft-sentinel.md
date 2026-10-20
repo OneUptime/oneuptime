@@ -37,7 +37,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 1. به [Azure portal](https://portal.azure.com) وارد شوید و **Microsoft Entra ID** را باز کنید.
 2. به **App registrations → New registration** بروید. نامش را `OneUptime Sentinel connector` بگذارید، **Supported account types** را روی **Accounts in this organizational directory only** نگه دارید، URI بازگشت را خالی بگذارید، و **Register** را برگزینید.
-3. از صفحهٔ **Overview** برنامه، **Application (client) ID** و **Directory (tenant) ID** را کپی کنید.
+3. از صفحهٔ **Overview** برنامه، **شناسه برنامه (کلاینت)** و **شناسه دایرکتوری (مستأجر)** را کپی کنید.
 4. به **Certificates & secrets → Client secrets → New client secret** بروید، زمان انقضایش را برگزینید، و **Add** را برگزینید. پیش از ترک صفحه، **Value** رمز را کپی کنید، نه **Secret ID** آن را: این مقدار دیگر هرگز نشان داده نمی‌شود.
 
 ### اجازهٔ خواندن حادثه‌ها به آن
@@ -52,7 +52,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 ### یافتن جزئیات فضای کاری
 
-فضای کاری Log Analytics را در Azure portal باز کنید. صفحهٔ **Overview** آن، **Subscription ID**، **Resource group** و نام فضای کاری را نشان می‌دهد. شناسهٔ منبع فضای کاری هم همین سه را در خود دارد:
+فضای کاری Log Analytics را در Azure portal باز کنید. صفحهٔ **Overview** آن، **شناسه اشتراک**، **Resource group** و نام فضای کاری را نشان می‌دهد. شناسهٔ منبع فضای کاری هم همین سه را در خود دارد:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 | تنظیم | کجا پیدایش کنید |
 | --- | --- |
-| **Directory (tenant) ID** | صفحهٔ **Overview** برنامه. GUID مستأجر، یا یک دامنهٔ تأییدشده مانند `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | صفحهٔ **Overview** برنامه. یک GUID. |
-| **Subscription ID** | صفحهٔ **Overview** فضای کاری. یک GUID. |
+| **شناسه دایرکتوری (مستأجر)** | صفحهٔ **Overview** برنامه. GUID مستأجر، یا یک دامنهٔ تأییدشده مانند `contoso.onmicrosoft.com`. |
+| **شناسه برنامه (کلاینت)** | صفحهٔ **Overview** برنامه. یک GUID. |
+| **شناسه اشتراک** | صفحهٔ **Overview** فضای کاری. یک GUID. |
 | **Resource group** | صفحهٔ **Overview** فضای کاری. ۱ تا ۹۰ حرف، رقم، زیرخط، خط تیره، نقطه یا پرانتز، که به نقطه ختم نشود. |
 | **Workspace name** | صفحهٔ **Overview** فضای کاری. ۳ تا ۹۰ حرف، رقم یا خط تیره، که با یک حرف یا رقم شروع و تمام شود. |
-| **ابر** | **Azure public cloud** (`login.microsoftonline.com`، `management.azure.com`) یا **Azure Government (US)** (`login.microsoftonline.us`، `management.usgovcloudapi.net`). |
+| **ابر** | **ابر عمومی Azure** (`login.microsoftonline.com`، `management.azure.com`) یا **Azure Government (ایالات متحده)** (`login.microsoftonline.us`، `management.usgovcloudapi.net`). |
 | **Client secret** | **Value** رمز. رمزگذاری می‌شود، API هرگز آن را برنمی‌گرداند و دیگر هرگز نشان داده نمی‌شود. آن را با **Update credentials** روی اتصال جایگزین کنید. |
 
 گام **Polling** همچنین یک **توضیحات** اختیاری دارد، **Poll Interval (Minutes)**، یک عدد صحیح از `1` تا `1440` که با `5` شروع می‌شود، و **فعال**، که از آغاز روشن است.
@@ -166,8 +166,8 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 :::details Last Error با `Microsoft Sentinel token request` شروع می‌شود
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID از صدور توکن خودداری کرد، پس هرگز با Azure تماس گرفته نشد. پیام کد Entra را نقل می‌کند:
   - `AADSTS7000215` یا `invalid_client`: **Client secret** نادرست یا منقضی است، یا شناسهٔ رمز است به جای مقدارش. یک رمز تازه بسازید، و آن را با **Update credentials** ذخیره کنید.
-  - `AADSTS700016` یا `unauthorized_client`: **Application (client) ID** در **Directory (tenant) ID** داده‌شده نیست. هر دو را با صفحهٔ **Overview** برنامه مقایسه کنید.
-  - `AADSTS90002` یا `HTTP 404`: چنین مستأجری وجود ندارد. **Directory (tenant) ID** نادرست است، یا در ابر دیگری است: **ابر** را بررسی کنید.
+  - `AADSTS700016` یا `unauthorized_client`: **شناسه برنامه (کلاینت)** در **شناسه دایرکتوری (مستأجر)** داده‌شده نیست. هر دو را با صفحهٔ **Overview** برنامه مقایسه کنید.
+  - `AADSTS90002` یا `HTTP 404`: چنین مستأجری وجود ندارد. **شناسه دایرکتوری (مستأجر)** نادرست است، یا در ابر دیگری است: **ابر** را بررسی کنید.
   - `HTTP 429` یا `HTTP 5xx`: Microsoft Entra ID در حال محدودسازی است یا در دسترس نیست. نظرسنجی بعدی دوباره تلاش می‌کند.
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID با چیزی بی‌استفاده پاسخ داد، مانند بدنه‌ای که JSON نیست یا `access_token` ندارد. این معمولاً یک پراکسی یا دروازه در میانه است.
 - `Microsoft Sentinel token request failed:`، بدون وضعیت، یا `Microsoft Sentinel token request timed out after ... seconds with no response`: درخواست پاسخی نگرفت. DNS، TLS و HTTPS خروجی را از برنامه و کارگرهای OneUptime به `login.microsoftonline.com` بررسی کنید.
@@ -177,7 +177,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager درخواست را رد کرد.
   - `HTTP 401`: توکن را نپذیرفت. تقریباً همیشه **ابر** با مستأجر جور نیست، یا ثبت برنامه پاک شده است. توکنی که میان دو صفحه منقضی شود، خودبه‌خود تمدید و یک بار دوباره امتحان می‌شود.
   - `HTTP 403` یا `AuthorizationFailed`: برنامه هنوز **Microsoft Sentinel Reader** را روی گروه منابع ندارد. آن را واگذار کنید، و چند دقیقه صبر کنید.
-  - `HTTP 404`: هیچ فضای کاری با آن **Subscription ID**، **Resource group** و **Workspace name** وجود ندارد، یا Microsoft Sentinel روی آن فعال نیست. آن‌ها را از صفحهٔ **Overview** فضای کاری کپی کنید.
+  - `HTTP 404`: هیچ فضای کاری با آن **شناسه اشتراک**، **Resource group** و **Workspace name** وجود ندارد، یا Microsoft Sentinel روی آن فعال نیست. آن‌ها را از صفحهٔ **Overview** فضای کاری کپی کنید.
   - `HTTP 429` یا `HTTP 5xx`: Azure Resource Manager در حال محدودسازی است یا در دسترس نیست. نظرسنجی بعدی دوباره تلاش می‌کند.
   - `HTTP 400`: Azure Resource Manager پرس‌وجو را رد کرد، که OneUptime آن را می‌سازد، نه تنظیمات شما. پیام را برای پشتیبانی OneUptime بفرستید.
 - `Microsoft Sentinel incidents list returned ...`: Azure با `200` پاسخ داد، اما بدون صفحهٔ خواندنی از حادثه‌ها، یا با یک `nextLink` به میزبانی دیگر، که رابط آن را رد می‌کند تا توکن هرگز از Azure Resource Manager بیرون نرود. این گزارش می‌شود به جای اینکه یک پنجرهٔ خالی به حساب آید، پس نشانگر هرگز از حادثه‌هایی که کسی نخوانده جلوتر نمی‌رود.
@@ -200,7 +200,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 ## Azure Government
 
-**ابر** را روی **Azure Government (US)** بگذارید. اتصال آنگاه در `login.microsoftonline.us` با دامنهٔ `https://management.usgovcloudapi.net/.default` وارد می‌شود، و حادثه‌ها را از `management.usgovcloudapi.net` می‌خواند. همهٔ چیزهای دیگر، از جمله واگذاری نقش، یکسان است.
+**ابر** را روی **Azure Government (ایالات متحده)** بگذارید. اتصال آنگاه در `login.microsoftonline.us` با دامنهٔ `https://management.usgovcloudapi.net/.default` وارد می‌شود، و حادثه‌ها را از `management.usgovcloudapi.net` می‌خواند. همهٔ چیزهای دیگر، از جمله واگذاری نقش، یکسان است.
 
 ## چه به دست می‌آورید
 

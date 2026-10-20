@@ -6,6 +6,7 @@ En AI-gateway sitter mellom appene dine og modelleverandørene, så hvert modell
 - [LiteLLM Proxy](#litellm-proxy): Innebygd eksport, satt opp med tre variabler.
 - [Hvem brukte hva](#én-virtuell-nøkkel-per-ansatt): Én virtuell LiteLLM-nøkkel per ansatt navngir hver person.
 - [Portkey](#portkey): Innebygd eksport på selvhostede gatewayer; andre steder instrumenterer du appen.
+- [OpenRouter](#openrouter): Broadcast sender hver forespørsels trace, satt opp én gang i OpenRouter.
 - [Sjekk at kallene kommer frem](#sjekk-at-kallene-kommer-frem): Hva du bør se, og hva du gjør hvis du ikke ser det.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | Endepunkt som skal angis | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | Appens egen eksportør |
 | Navngir hver person | Ja, med én virtuell nøkkel per ansatt | Nei | Bare det appen sender |
 | Prompter og svar | Sendes, med mindre du slår dem av | Sendes alltid | Avhenger av instrumenteringen |
+
+OneUptime har ingen egen gateway: den ville holdt på leverandørnøklene dine og lagt til et ekstra ledd i hvert modellkall appene dine gjør. Det leser gatewayen du allerede kjører, og forbruket og kostnadene for leverandørkontoene dine helt uten kode: se [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts).
 
 ## Før du begynner
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 Disse spanene beskriver kallet slik appen din gjorde det: modellen den ba om, tiden den ventet, tokenene den fikk tilbake. Det gatewayen bestemte underveis, som en reserveløsning, et nytt forsøk eller et cachetreff, blir værende i Portkey. For å se det i OneUptime bruker du eksporten fra den selvhostede gatewayen.
 
+## OpenRouter
+
+Broadcast i OpenRouter sender en trace av hver forespørsel fra OpenRouter-kontoen din til et OpenTelemetry-endpoint: modellen, tokens, kostnaden OpenRouter tok og, med mindre du slår dem av, prompten og svaret. Du setter det opp én gang, i OpenRouter, uten å endre appene dine.
+
+:::steps
+### Slå på Broadcast
+
+Åpne Settings, Observability i OpenRouter, og slå på Enable Broadcast.
+
+### Legg til OneUptime som collector
+
+Rediger destinasjonen OpenTelemetry Collector. Sett endpointet til hele trace-stien, `https://oneuptime.com/otlp/v1/traces`, og headerne til `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Test deretter tilkoblingen: OpenRouter lagrer destinasjonen bare når testen går gjennom.
+
+### Kall en modell gjennom den
+
+Kall en modell gjennom OpenRouter, og sjekk deretter AI / LLM som beskrevet i [Sjekk at kallene kommer frem](#sjekk-at-kallene-kommer-frem).
+:::
+
+- OpenRouter sender OTLP over HTTP som JSON, som OneUptime tar imot uten en collector imellom.
+- `user` i en forespørsel kommer inn som `user.id`, som OneUptime leser som personen som gjorde kallet, og `session_id` som `session.id`, som grupperer kall i en samtale. Send en ansatts ID i `user`, aldri en kundes.
+- Prompten og svaret ligger på generation-spannet, som `gen_ai.prompt` og `gen_ai.completion`. Slå på destinasjonens privacy mode for å utelate dem.
+
 ## Sjekk at kallene kommer frem
 
 :::steps
@@ -259,6 +284,10 @@ Kallene navngir ingen person. Gi hver ansatt sin egen virtuelle nøkkel, som i [
 Siden LiteLLM 1.81 deler modellkallene i en forespørsel ett span. Angi `USE_OTEL_LITELLM_REQUEST_SPAN=true` for å få et span for hvert kall.
 :::
 
+:::details OpenRouter lagrer ikke destinasjonen
+Tilkoblingstesten feilet. Sjekk at endpointet slutter på `/v1/traces`, og at headeren inneholder en server-inntaksnøkkel.
+:::
+
 ## Neste steg
 
 :::cards
@@ -266,4 +295,5 @@ Siden LiteLLM 1.81 deler modellkallene i en forespørsel ett span. Angi `USE_OTE
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Sett en gateway foran verktøy som ikke sender telemetri selv.
 - [Circuit breakers for AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stopp en løpsk agent når varselet slår til.
 - [Trase-overvåking](/docs/monitor/traces-monitor): Varsle på span-mønstre, som et verktøy som kalles i en løkke.
+- [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts): Regningen for kontoene bak gatewayen, uten kode.
 :::

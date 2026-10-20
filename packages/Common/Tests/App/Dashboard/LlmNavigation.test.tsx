@@ -25,8 +25,9 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 /*
  * Finding your way around AI / LLM: the product opens on its conversations,
- * the old Overview address forwards there, every tab has its page, its tab
- * and its breadcrumbs, and the command palette knows the new pages.
+ * the old Overview address forwards there, the old Setup address forwards to
+ * Connect, every tab has its page, its tab and its breadcrumbs, and the
+ * command palette knows the new pages.
  *
  * The route group is mounted for real, every page in it replaced by a
  * marker that names it.
@@ -42,7 +43,7 @@ const PAGE_MODULES: Array<string> = [
   "Calls",
   "Budgets",
   "Pricing",
-  "Documentation",
+  "Connect",
 ];
 
 function LocationProbe(): React.ReactElement {
@@ -187,7 +188,7 @@ describe("the AI / LLM pages", () => {
     ["usage", "Usage"],
     ["budgets", "Budgets"],
     ["pricing", "Pricing"],
-    ["documentation", "Documentation"],
+    ["connect", "Connect"],
   ])("…/llm/%s is the %s page", (path: string, page: string) => {
     visit(`${BASE}/${path}`);
 
@@ -235,6 +236,41 @@ describe("the old Overview address", () => {
   });
 });
 
+describe("the old Setup address", () => {
+  test("forwards to Connect, replacing itself in the history", () => {
+    visit(`${BASE}/documentation`);
+
+    expect(landedOn()).toBe(`${BASE}/connect`);
+    expect(screen.getByTestId("navigation-type")).toHaveTextContent("REPLACE");
+    expect(screen.getByTestId("page")).toHaveTextContent("Connect");
+  });
+
+  test("keeps the query a bookmark carried", () => {
+    visit(`${BASE}/documentation?tab=python`);
+
+    expect(landedOn()).toBe(`${BASE}/connect?tab=python`);
+  });
+
+  test("Connect has its own address, and nothing else is at the old one", () => {
+    expect(RouteMap[PageMap.LLM_CONNECT]!.toString()).toBe(
+      "/dashboard/:projectId/llm/connect",
+    );
+
+    const pagesAtSetup: Array<string> = Object.entries(RouteMap)
+      .filter(([key, route]: [string, Route]): boolean => {
+        return (
+          key !== PageMap.LLM_DOCUMENTATION &&
+          route.toString() === "/dashboard/:projectId/llm/documentation"
+        );
+      })
+      .map(([key]: [string, Route]): string => {
+        return key;
+      });
+
+    expect(pagesAtSetup).toEqual([]);
+  });
+});
+
 describe("the tabs", () => {
   test.each([
     [`${BASE}/conversations`, "conversations"],
@@ -244,13 +280,15 @@ describe("the tabs", () => {
     [`${BASE}/alerts`, "alerts"],
     [`${BASE}/budgets`, "budgets"],
     [`${BASE}/pricing`, "pricing"],
-    [`${BASE}/documentation`, "setup"],
+    [`${BASE}/connect`, "connect"],
+    // Lit for the moment the old address shows before it forwards.
+    [`${BASE}/documentation`, "connect"],
     [`${BASE}/something-new`, "conversations"],
   ])("%s is under the %s tab", (path: string, tab: string) => {
     expect(getActiveLlmTab(path)).toBe(tab);
   });
 
-  test("in the order a person uses them, Setup last", () => {
+  test("in the order a person uses them, Connect last", () => {
     expect(LLM_TAB_ORDER).toEqual([
       "conversations",
       "calls",
@@ -258,8 +296,25 @@ describe("the tabs", () => {
       "alerts",
       "budgets",
       "pricing",
-      "setup",
+      "connect",
     ]);
+  });
+
+  test("the last tab is called Connect, not Setup", () => {
+    render(
+      <MemoryRouter>
+        <LlmNavTabs active="connect" />
+      </MemoryRouter>,
+    );
+
+    const labels: Array<string> = Array.from(
+      document.querySelectorAll("a"),
+    ).map((link: HTMLAnchorElement): string => {
+      return (link.textContent || "").trim();
+    });
+
+    expect(labels[labels.length - 1]).toBe("Connect");
+    expect(labels).not.toContain("Setup");
   });
 
   test("each tab links to its page", () => {
@@ -282,7 +337,7 @@ describe("the tabs", () => {
       `${BASE}/alerts`,
       `${BASE}/budgets`,
       `${BASE}/pricing`,
-      `${BASE}/documentation`,
+      `${BASE}/connect`,
     ]);
   });
 });
@@ -324,6 +379,11 @@ describe("the breadcrumbs", () => {
       "Project",
       "AI / LLM",
       "Pricing",
+    ]);
+    expect(titles(PageMap.LLM_CONNECT)).toEqual([
+      "Project",
+      "AI / LLM",
+      "Connect",
     ]);
   });
 
@@ -397,5 +457,30 @@ describe("the command palette", () => {
     expect(keywordsOf(PageMap.LLM_ALERTS)).toEqual(
       expect.arrayContaining(["bad answers", "refusals", "ai monitor"]),
     );
+    // Someone looking to connect a provider types the provider's name.
+    expect(keywordsOf(PageMap.LLM_CONNECT)).toEqual(
+      expect.arrayContaining([
+        "openai",
+        "anthropic",
+        "azure openai",
+        "bedrock",
+        "employee chats",
+      ]),
+    );
+  });
+
+  test("offers Connect, and not the old Setup address", () => {
+    const pages: Array<{ page: string; title: string }> = llmPages();
+
+    expect(
+      pages.find((entry: { page: string }): boolean => {
+        return entry.page === PageMap.LLM_CONNECT;
+      })?.title,
+    ).toBe("Connect");
+    expect(
+      pages.map((entry: { page: string }): string => {
+        return entry.page;
+      }),
+    ).not.toContain(PageMap.LLM_DOCUMENTATION);
   });
 });

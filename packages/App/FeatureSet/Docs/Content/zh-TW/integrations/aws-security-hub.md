@@ -56,11 +56,11 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 1. 開啟 **Users → Create user**，為使用者命名，例如 `oneuptime-security-hub`，保持控制台存取關閉，並附加該政策。要讀取其他帳戶的發現結果，請在委派管理員帳戶中執行此操作。
 2. 開啟該使用者，然後開啟 **Security credentials → Access keys → Create access key**，並選擇 **Third-party service**。
-3. 複製 **Access key ID** 和 **Secret access key**。AWS 只顯示一次金鑰。
+3. 複製 **存取金鑰 ID** 和 **秘密存取金鑰**。AWS 只顯示一次金鑰。
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **AWS Security Hub**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把金鑰貼上到 **Secret access key** 中。
+開啟 **產品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **AWS Security Hub**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把金鑰貼上到 **秘密存取金鑰** 中。
 
 ### 儲存之前先測試
 
@@ -70,8 +70,8 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | 設定 | 填寫什麼 |
 | --- | --- |
 | **地區** | 地區代碼，例如 `us-east-1`、`eu-central-1` 或 `us-gov-west-1`：讀取其他帳戶的發現結果時，填寫管理員帳戶的主地區。 |
-| **Access key ID** | 金鑰的 ID：16 到 128 個字母或數字，通常是以 `AKIA` 開頭的 20 個字元，臨時認證資訊則以 `ASIA` 開頭。 |
-| **Secret access key** | 金鑰的秘密部分。它會被加密，API 從不傳回它，也不會再次顯示。要替換它，請在連線上使用 **Update credentials**。 |
+| **存取金鑰 ID** | 金鑰的 ID：16 到 128 個字母或數字，通常是以 `AKIA` 開頭的 20 個字元，臨時認證資訊則以 `ASIA` 開頭。 |
+| **秘密存取金鑰** | 金鑰的秘密部分。它會被加密，API 從不傳回它，也不會再次顯示。要替換它，請在連線上使用 **Update credentials**。 |
 | **Session token** | 僅用於需要它的臨時認證資訊：沒有它時 `ASIA` 金鑰會被拒絕，有它時 `AKIA` 金鑰會被拒絕。 |
 
 來自 `aws sts assume-role` 或 `aws sts get-session-token` 的臨時認證資訊會過期，對於代入的角色最多 12 小時，之後輪詢會停止，直到你用 **Update credentials** 貼上新的認證資訊。使用這個範圍很窄的政策的長期金鑰，按你自己的排程輪換，就能讓輪詢無人值守地持續進行。要從臨時認證資訊切換到長期金鑰，請在 **Update credentials** 中輸入新金鑰，並開啟 **Remove the stored Session token**。
@@ -167,8 +167,8 @@ AWS 拒絕了請求。訊息會引用 AWS 的錯誤代碼，如果 AWS 沒有傳
 
 - `AccessDeniedException`，或 `is not authorized to perform`：金鑰是正確的，但它的身分不能呼叫 `securityhub:GetFindings`。請附加 [設定連線](#設定連線) 中的政策。權限邊界或服務控制政策也可能拒絕它。
 - `InvalidAccessException`，或 `is not subscribed to AWS Security Hub`：在 **地區** 指定的地區中，此帳戶沒有啟用 Security Hub，或者此帳戶不是那裡的管理員。
-- `InvalidSignatureException` 或 `SignatureDoesNotMatch`，或 `The request signature we calculated does not match`：**Secret access key** 不屬於 **Access key ID**。請建立一個新的存取金鑰，並用 **Update credentials** 儲存。
-- `UnrecognizedClientException` 或 `InvalidClientTokenId`，或 `The security token included in the request is invalid`：AWS 不認識這個 **Access key ID**。它輸錯了、已刪除、已停用或來自另一個分割槽，或者是缺少 **Session token** 的臨時金鑰。
+- `InvalidSignatureException` 或 `SignatureDoesNotMatch`，或 `The request signature we calculated does not match`：**秘密存取金鑰** 不屬於 **存取金鑰 ID**。請建立一個新的存取金鑰，並用 **Update credentials** 儲存。
+- `UnrecognizedClientException` 或 `InvalidClientTokenId`，或 `The security token included in the request is invalid`：AWS 不認識這個 **存取金鑰 ID**。它輸錯了、已刪除、已停用或來自另一個分割槽，或者是缺少 **Session token** 的臨時金鑰。
 - `ExpiredTokenException`，或 `The security token included in the request is expired`：臨時認證資訊已過期。請簽發新的認證資訊，或者改用長期金鑰。
 - `RequestTimeTooSkewed` 或 `RequestExpired`，或 `Signature expired`：OneUptime 主機的時鐘偏差超過 5 分鐘。請修復應用程式和工作程序主機上的 NTP。
 - 完全沒有代碼：AWS 沒有說明是金鑰還是政策拒絕了它。請先檢查金鑰，再檢查政策。

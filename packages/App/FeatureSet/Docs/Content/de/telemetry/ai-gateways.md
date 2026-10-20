@@ -6,6 +6,7 @@ Ein KI-Gateway sitzt zwischen Ihren Apps und den Modellanbietern, also läuft je
 - [LiteLLM Proxy](#litellm-proxy): Eingebauter Export, mit drei Variablen eingestellt.
 - [Wer was ausgegeben hat](#ein-virtueller-schlüssel-pro-mitarbeiter): Ein virtueller LiteLLM-Schlüssel pro Mitarbeiter nennt jede Person.
 - [Portkey](#portkey): Eingebauter Export auf selbst betriebenen Gateways; sonst die App instrumentieren.
+- [OpenRouter](#openrouter): Broadcast sendet den Trace jeder Anfrage, einmal in OpenRouter eingerichtet.
 - [Prüfen, ob Aufrufe ankommen](#prüfen-ob-aufrufe-ankommen): Was Sie sehen sollten, und was zu tun ist, wenn nicht.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | Einzustellender Endpunkt | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | Der eigene Exporter der App |
 | Nennt jede Person | Ja, mit einem virtuellen Schlüssel pro Mitarbeiter | Nein | Nur, was die App sendet |
 | Prompts und Antworten | Gesendet, sofern Sie sie nicht abschalten | Immer gesendet | Hängt von der Instrumentierung ab |
+
+OneUptime hat kein eigenes Gateway: Es würde Ihre Anbieterschlüssel halten und jedem Modellaufruf Ihrer Apps einen Zwischenschritt hinzufügen. Es liest das Gateway, das Sie schon betreiben, und die Nutzung und Kosten Ihrer Anbieterkonten ganz ohne Code: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts).
 
 ## Bevor Sie beginnen
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 Diese Spans beschreiben den Aufruf so, wie Ihre App ihn gemacht hat: das Modell, nach dem sie gefragt hat, die Zeit, die sie gewartet hat, die Tokens, die sie zurückbekam. Was das Gateway unterwegs entschieden hat, etwa einen Fallback, eine Wiederholung oder einen Cache-Treffer, bleibt in Portkey. Um das in OneUptime zu sehen, nutzen Sie den Export des selbst betriebenen Gateways.
 
+## OpenRouter
+
+Broadcast von OpenRouter sendet einen Trace jeder Anfrage Ihres OpenRouter-Kontos an einen OpenTelemetry-Endpunkt: das Modell, die Tokens, die von OpenRouter berechneten Kosten und, wenn Sie sie nicht abschalten, den Prompt und die Antwort. Sie richten es einmal in OpenRouter ein, ohne Änderung an Ihren Apps.
+
+:::steps
+### Broadcast einschalten
+
+Öffnen Sie in OpenRouter Settings, Observability und schalten Sie Enable Broadcast ein.
+
+### OneUptime als Collector hinzufügen
+
+Bearbeiten Sie das Ziel OpenTelemetry Collector. Setzen Sie seinen Endpunkt auf den vollen Traces-Pfad, `https://oneuptime.com/otlp/v1/traces`, und seine Header auf `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Testen Sie dann die Verbindung: OpenRouter speichert das Ziel nur, wenn der Test besteht.
+
+### Ein Modell darüber aufrufen
+
+Rufen Sie ein Modell über OpenRouter auf und prüfen Sie dann KI / LLM wie unter [Prüfen, ob Aufrufe ankommen](#prüfen-ob-aufrufe-ankommen) beschrieben.
+:::
+
+- OpenRouter sendet OTLP über HTTP als JSON, was OneUptime ohne Collector dazwischen annimmt.
+- Der `user` einer Anfrage kommt als `user.id` an, die OneUptime als die Person liest, die den Aufruf gemacht hat, und ihre `session_id` als `session.id`, die Aufrufe zu einer Unterhaltung gruppiert. Senden Sie in `user` die ID eines Mitarbeiters, nie die eines Kunden.
+- Prompt und Antwort stehen auf dem Generation-Span, als `gen_ai.prompt` und `gen_ai.completion`. Schalten Sie den Privacy Mode des Ziels ein, um sie wegzulassen.
+
 ## Prüfen, ob Aufrufe ankommen
 
 :::steps
@@ -259,6 +284,10 @@ Die Aufrufe nennen keine Person. Geben Sie jedem Mitarbeiter seinen eigenen virt
 Seit LiteLLM 1.81 teilen sich die Modellaufrufe einer Anfrage einen Span. Setzen Sie `USE_OTEL_LITELLM_REQUEST_SPAN=true`, um für jeden Aufruf einen Span zu bekommen.
 :::
 
+:::details OpenRouter speichert das Ziel nicht
+Sein Verbindungstest ist fehlgeschlagen. Prüfen Sie, dass der Endpunkt auf `/v1/traces` endet und der Header einen Server-Ingestion-Schlüssel enthält.
+:::
+
 ## Nächste Schritte
 
 :::cards
@@ -266,4 +295,5 @@ Seit LiteLLM 1.81 teilen sich die Modellaufrufe einer Anfrage einen Span. Setzen
 - [KI-Coding-Assistenten](/docs/telemetry/ai-coding-assistants): Ein Gateway vor Tools setzen, die keine eigene Telemetrie senden.
 - [Schutzschalter für KI-Agenten](/docs/telemetry/ai-agent-circuit-breaker): Einen außer Kontrolle geratenen Agenten stoppen, wenn seine Warnung auslöst.
 - [Traces-Monitor](/docs/monitor/traces-monitor): Bei Span-Mustern warnen, etwa einem Tool, das in einer Schleife aufgerufen wird.
+- [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts): Die Rechnung der Konten hinter dem Gateway, ohne Code.
 :::

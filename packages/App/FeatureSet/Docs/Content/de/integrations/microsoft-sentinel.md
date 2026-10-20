@@ -37,7 +37,7 @@ Die Verbindung meldet sich mit dem OAuth-2.0-Fluss für Clientanmeldeinformation
 
 1. Melden Sie sich im [Azure-Portal](https://portal.azure.com) an und öffnen Sie **Microsoft Entra ID**.
 2. Gehen Sie zu **App registrations → New registration**. Nennen Sie sie `OneUptime Sentinel connector`, lassen Sie **Supported account types** auf **Accounts in this organizational directory only**, lassen Sie die Umleitungs-URI leer und wählen Sie **Register**.
-3. Kopieren Sie auf der Seite **Overview** der App die **Application (client) ID** und die **Directory (tenant) ID**.
+3. Kopieren Sie auf der Seite **Overview** der App die **Anwendungs-ID (Client)** und die **Verzeichnis-ID (Tenant)**.
 4. Gehen Sie zu **Certificates & secrets → Client secrets → New client secret**, wählen Sie, wann es abläuft, und wählen Sie **Add**. Kopieren Sie den **Value** des Geheimnisses, nicht seine **Secret ID**, bevor Sie die Seite verlassen: Er wird nie wieder angezeigt.
 
 ### Ihr das Lesen von Vorfällen erlauben
@@ -52,7 +52,7 @@ Die Rolle erlaubt der App, Vorfälle zu lesen (`Microsoft.SecurityInsights/incid
 
 ### Die Angaben des Arbeitsbereichs finden
 
-Öffnen Sie den Log-Analytics-Arbeitsbereich im Azure-Portal. Seine Seite **Overview** zeigt die **Subscription ID**, die **Resource group** und den Namen des Arbeitsbereichs. Die Ressourcen-ID des Arbeitsbereichs enthält dieselben drei:
+Öffnen Sie den Log-Analytics-Arbeitsbereich im Azure-Portal. Seine Seite **Overview** zeigt die **Abonnement-ID**, die **Resource group** und den Namen des Arbeitsbereichs. Die Ressourcen-ID des Arbeitsbereichs enthält dieselben drei:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 
 | Einstellung | Wo Sie sie finden |
 | --- | --- |
-| **Directory (tenant) ID** | Die Seite **Overview** der App. Die GUID des Mandanten oder eine verifizierte Domäne wie `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | Die Seite **Overview** der App. Eine GUID. |
-| **Subscription ID** | Die Seite **Overview** des Arbeitsbereichs. Eine GUID. |
+| **Verzeichnis-ID (Tenant)** | Die Seite **Overview** der App. Die GUID des Mandanten oder eine verifizierte Domäne wie `contoso.onmicrosoft.com`. |
+| **Anwendungs-ID (Client)** | Die Seite **Overview** der App. Eine GUID. |
+| **Abonnement-ID** | Die Seite **Overview** des Arbeitsbereichs. Eine GUID. |
 | **Resource group** | Die Seite **Overview** des Arbeitsbereichs. 1 bis 90 Buchstaben, Ziffern, Unterstriche, Bindestriche, Punkte oder Klammern, nicht mit einem Punkt am Ende. |
 | **Workspace name** | Die Seite **Overview** des Arbeitsbereichs. 3 bis 90 Buchstaben, Ziffern oder Bindestriche, mit einem Buchstaben oder einer Ziffer am Anfang und am Ende. |
-| **Cloud** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) oder **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
+| **Cloud** | **Öffentliche Azure-Cloud** (`login.microsoftonline.com`, `management.azure.com`) oder **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Client-Secret** | Der **Value** des Geheimnisses. Es wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie es mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
@@ -166,8 +166,8 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::details Letzter Fehler beginnt mit `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID hat sich geweigert, ein Token auszustellen, Azure wurde also nie kontaktiert. Die Meldung zitiert den Code von Entra:
   - `AADSTS7000215` oder `invalid_client`: Das **Client-Secret** ist falsch oder abgelaufen, oder es ist die ID des Geheimnisses statt seines Werts. Legen Sie ein neues Geheimnis an und speichern Sie es mit **Anmeldedaten aktualisieren**.
-  - `AADSTS700016` oder `unauthorized_client`: Die **Application (client) ID** ist nicht in der angegebenen **Directory (tenant) ID**. Vergleichen Sie beide mit der Seite **Overview** der App.
-  - `AADSTS90002` oder `HTTP 404`: Diesen Mandanten gibt es nicht. Die **Directory (tenant) ID** ist falsch oder liegt in der anderen Cloud: Prüfen Sie **Cloud**.
+  - `AADSTS700016` oder `unauthorized_client`: Die **Anwendungs-ID (Client)** ist nicht in der angegebenen **Verzeichnis-ID (Tenant)**. Vergleichen Sie beide mit der Seite **Overview** der App.
+  - `AADSTS90002` oder `HTTP 404`: Diesen Mandanten gibt es nicht. Die **Verzeichnis-ID (Tenant)** ist falsch oder liegt in der anderen Cloud: Prüfen Sie **Cloud**.
   - `HTTP 429` oder `HTTP 5xx`: Microsoft Entra ID drosselt oder ist nicht verfügbar. Die nächste Abfrage versucht es erneut.
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID hat mit etwas Unbrauchbarem geantwortet, etwa einem Text, der kein JSON ist oder kein `access_token` hat. Das ist meist ein Proxy oder Gateway dazwischen.
 - `Microsoft Sentinel token request failed:`, ohne Status, oder `Microsoft Sentinel token request timed out after ... seconds with no response`: Die Anfrage bekam keine Antwort. Prüfen Sie DNS, TLS und ausgehendes HTTPS von der OneUptime-App und den Workern zu `login.microsoftonline.com`.
@@ -177,7 +177,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager hat die Anfrage abgelehnt.
   - `HTTP 401`: Es hat das Token nicht angenommen. Fast immer passt **Cloud** nicht zum Mandanten, oder die App-Registrierung wurde gelöscht. Ein Token, das zwischen zwei Seiten abläuft, wird von selbst erneuert und einmal wiederholt.
   - `HTTP 403` oder `AuthorizationFailed`: Die App hat **Microsoft Sentinel Reader** für die Ressourcengruppe noch nicht. Weisen Sie die Rolle zu und warten Sie einige Minuten.
-  - `HTTP 404`: Kein Arbeitsbereich hat diese **Subscription ID**, **Resource group** und diesen **Workspace name**, oder Microsoft Sentinel ist darauf nicht aktiviert. Kopieren Sie sie von der Seite **Overview** des Arbeitsbereichs.
+  - `HTTP 404`: Kein Arbeitsbereich hat diese **Abonnement-ID**, **Resource group** und diesen **Workspace name**, oder Microsoft Sentinel ist darauf nicht aktiviert. Kopieren Sie sie von der Seite **Overview** des Arbeitsbereichs.
   - `HTTP 429` oder `HTTP 5xx`: Azure Resource Manager drosselt oder ist nicht verfügbar. Die nächste Abfrage versucht es erneut.
   - `HTTP 400`: Azure Resource Manager hat die Abfrage abgelehnt, die OneUptime baut, nicht Ihre Einstellungen. Senden Sie die Meldung an den OneUptime-Support.
 - `Microsoft Sentinel incidents list returned ...`: Azure hat mit `200` geantwortet, aber ohne lesbare Seite mit Vorfällen oder mit einem `nextLink` auf einen anderen Host, den die Verbindung ablehnt, damit das Token Azure Resource Manager nie verlässt. Das wird gemeldet statt als leeres Zeitfenster genommen, damit der Cursor nie über Vorfälle hinwegrückt, die niemand gelesen hat.
@@ -200,7 +200,7 @@ Lesen Sie **Incidents available to import** im Bericht des Tests. `0` in den let
 
 ## Azure Government
 
-Setzen Sie **Cloud** auf **Azure Government (US)**. Die Verbindung meldet sich dann bei `login.microsoftonline.us` mit dem Bereich `https://management.usgovcloudapi.net/.default` an und liest Vorfälle von `management.usgovcloudapi.net`. Alles andere, auch die Rollenzuweisung, bleibt gleich.
+Setzen Sie **Cloud** auf **Azure Government (USA)**. Die Verbindung meldet sich dann bei `login.microsoftonline.us` mit dem Bereich `https://management.usgovcloudapi.net/.default` an und liest Vorfälle von `management.usgovcloudapi.net`. Alles andere, auch die Rollenzuweisung, bleibt gleich.
 
 ## Was Sie davon haben
 

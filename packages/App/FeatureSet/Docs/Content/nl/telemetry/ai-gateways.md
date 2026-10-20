@@ -6,6 +6,7 @@ Een AI-gateway zit tussen je apps en de modelproviders, dus elke modelaanroep ga
 - [LiteLLM Proxy](#litellm-proxy): Ingebouwde export, ingesteld met drie variabelen.
 - [Wie wat uitgaf](#eén-virtuele-sleutel-per-medewerker): Eén virtuele LiteLLM-sleutel per medewerker noemt elke persoon.
 - [Portkey](#portkey): Ingebouwde export op zelf gehoste gateways; elders instrumenteer je de app.
+- [OpenRouter](#openrouter): Broadcast stuurt de trace van elk verzoek, één keer ingesteld in OpenRouter.
 - [Controleer of aanroepen binnenkomen](#controleer-of-aanroepen-binnenkomen): Wat je zou moeten zien, en wat je doet als dat niet zo is.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | In te stellen endpoint | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | De eigen exporter van de app |
 | Noemt elke persoon | Ja, met één virtuele sleutel per medewerker | Nee | Alleen wat de app stuurt |
 | Prompts en antwoorden | Verstuurd, tenzij je ze uitzet | Altijd verstuurd | Hangt af van de instrumentatie |
+
+OneUptime heeft geen eigen gateway: die zou je providersleutels bewaren en een tussenstap toevoegen aan elke modelaanroep van je apps. Het leest de gateway die je al draait, en het gebruik en de kosten van je provideraccounts helemaal zonder code: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts).
 
 ## Voordat je begint
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 Deze spans beschrijven de aanroep zoals je app hem deed: het model dat hij vroeg, de tijd dat hij wachtte, de tokens die hij terugkreeg. Wat de gateway onderweg besliste, zoals een fallback, een nieuwe poging of een cachetreffer, blijft in Portkey. Om dat in OneUptime te zien, gebruik je de export van de zelf gehoste gateway.
 
+## OpenRouter
+
+Broadcast van OpenRouter stuurt een trace van elk verzoek van je OpenRouter-account naar een OpenTelemetry-endpoint: het model, de tokens, de kosten die OpenRouter rekende en, tenzij je ze uitzet, de prompt en het antwoord. Je stelt het één keer in, in OpenRouter, zonder je apps te veranderen.
+
+:::steps
+### Zet Broadcast aan
+
+Open in OpenRouter Settings, Observability en zet Enable Broadcast aan.
+
+### Voeg OneUptime toe als collector
+
+Bewerk de bestemming OpenTelemetry Collector. Zet het endpoint op het volledige tracepad, `https://oneuptime.com/otlp/v1/traces`, en de headers op `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Test daarna de verbinding: OpenRouter bewaart de bestemming alleen als de test slaagt.
+
+### Roep er een model via aan
+
+Roep een model aan via OpenRouter en controleer daarna AI / LLM zoals beschreven in [Controleer of aanroepen binnenkomen](#controleer-of-aanroepen-binnenkomen).
+:::
+
+- OpenRouter stuurt OTLP over HTTP in JSON, wat OneUptime zonder collector ertussen accepteert.
+- De `user` van een verzoek komt binnen als `user.id`, die OneUptime leest als de persoon die de aanroep deed, en de `session_id` als `session.id`, die aanroepen tot een gesprek groepeert. Stuur in `user` de ID van een medewerker, nooit die van een klant.
+- De prompt en het antwoord staan op de generation-span, als `gen_ai.prompt` en `gen_ai.completion`. Zet de privacymodus van de bestemming aan om ze weg te laten.
+
 ## Controleer of aanroepen binnenkomen
 
 :::steps
@@ -259,6 +284,10 @@ De aanroepen noemen geen persoon. Geef elke medewerker een eigen virtuele sleute
 Sinds LiteLLM 1.81 delen de modelaanroepen van een verzoek één span. Stel `USE_OTEL_LITELLM_REQUEST_SPAN=true` in om voor elke aanroep een span te krijgen.
 :::
 
+:::details OpenRouter bewaart de bestemming niet
+De verbindingstest mislukte. Controleer of het endpoint eindigt op `/v1/traces` en of de header een server-ingestiesleutel bevat.
+:::
+
 ## Volgende stappen
 
 :::cards
@@ -266,4 +295,5 @@ Sinds LiteLLM 1.81 delen de modelaanroepen van een verzoek één span. Stel `USE
 - [AI-codeerassistenten](/docs/telemetry/ai-coding-assistants): Zet een gateway voor tools die zelf geen telemetrie sturen.
 - [Circuit breakers voor AI-agents](/docs/telemetry/ai-agent-circuit-breaker): Stop een op hol geslagen agent wanneer zijn waarschuwing afgaat.
 - [Traces-monitor](/docs/monitor/traces-monitor): Waarschuw bij spanpatronen, zoals een tool die in een lus wordt aangeroepen.
+- [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts): De rekening van de accounts achter de gateway, zonder code.
 :::

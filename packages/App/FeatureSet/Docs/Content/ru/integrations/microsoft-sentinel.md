@@ -37,7 +37,7 @@ flowchart TB
 
 1. Войдите на [портал Azure](https://portal.azure.com) и откройте **Microsoft Entra ID**.
 2. Перейдите в **App registrations → New registration**. Назовите приложение `OneUptime Sentinel connector`, оставьте для **Supported account types** значение **Accounts in this organizational directory only**, оставьте URI перенаправления пустым и выберите **Register**.
-3. На странице **Overview** приложения скопируйте **Application (client) ID** и **Directory (tenant) ID**.
+3. На странице **Overview** приложения скопируйте **Идентификатор приложения (клиента)** и **Идентификатор каталога (клиента)**.
 4. Перейдите в **Certificates & secrets → Client secrets → New client secret**, выберите срок действия и нажмите **Add**. Скопируйте **Value** секрета, а не его **Secret ID**, прежде чем покинуть страницу: значение больше никогда не показывается.
 
 ### Разрешите ему читать инциденты
@@ -52,7 +52,7 @@ flowchart TB
 
 ### Найдите данные рабочей области
 
-Откройте рабочую область Log Analytics на портале Azure. Её страница **Overview** показывает **Subscription ID**, **Resource group** и имя рабочей области. Идентификатор ресурса рабочей области содержит все три значения:
+Откройте рабочую область Log Analytics на портале Azure. Её страница **Overview** показывает **Идентификатор подписки**, **Resource group** и имя рабочей области. Идентификатор ресурса рабочей области содержит все три значения:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ flowchart TB
 
 | Параметр | Где его найти |
 | --- | --- |
-| **Directory (tenant) ID** | Страница **Overview** приложения. GUID тенанта или подтверждённый домен, например `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | Страница **Overview** приложения. GUID. |
-| **Subscription ID** | Страница **Overview** рабочей области. GUID. |
+| **Идентификатор каталога (клиента)** | Страница **Overview** приложения. GUID тенанта или подтверждённый домен, например `contoso.onmicrosoft.com`. |
+| **Идентификатор приложения (клиента)** | Страница **Overview** приложения. GUID. |
+| **Идентификатор подписки** | Страница **Overview** рабочей области. GUID. |
 | **Resource group** | Страница **Overview** рабочей области. От 1 до 90 букв, цифр, подчёркиваний, дефисов, точек или скобок, без точки в конце. |
 | **Workspace name** | Страница **Overview** рабочей области. От 3 до 90 букв, цифр или дефисов, начинается и заканчивается буквой или цифрой. |
-| **Облако** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) или **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
+| **Облако** | **Общедоступное облако Azure** (`login.microsoftonline.com`, `management.azure.com`) или **Azure Government (США)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Client secret** | **Value** секрета. Он шифруется, никогда не возвращается API и больше не показывается. Замените его с помощью **Update credentials** в подключении. |
 
 На шаге **Polling** также есть необязательное **Описание**, **Poll Interval (Minutes)** — целое число от `1` до `1440`, по умолчанию `5`, и **Включено**, изначально включённое.
@@ -166,8 +166,8 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 :::details Last Error начинается с `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID отказался выдать токен, поэтому к Azure даже не обращались. Сообщение приводит код Entra:
   - `AADSTS7000215` или `invalid_client`: **Client secret** неверен или истёк, либо это идентификатор секрета, а не его значение. Создайте новый секрет и сохраните его с помощью **Update credentials**.
-  - `AADSTS700016` или `unauthorized_client`: **Application (client) ID** отсутствует в указанном **Directory (tenant) ID**. Сравните оба значения со страницей **Overview** приложения.
-  - `AADSTS90002` или `HTTP 404`: такого тенанта нет. **Directory (tenant) ID** неверен или относится к другому облаку: проверьте **Облако**.
+  - `AADSTS700016` или `unauthorized_client`: **Идентификатор приложения (клиента)** отсутствует в указанном **Идентификатор каталога (клиента)**. Сравните оба значения со страницей **Overview** приложения.
+  - `AADSTS90002` или `HTTP 404`: такого тенанта нет. **Идентификатор каталога (клиента)** неверен или относится к другому облаку: проверьте **Облако**.
   - `HTTP 429` или `HTTP 5xx`: Microsoft Entra ID ограничивает запросы или недоступен. Следующий опрос повторит попытку.
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID ответил чем-то непригодным, например телом не в формате JSON или без `access_token`. Обычно это прокси или шлюз посередине.
 - `Microsoft Sentinel token request failed:` без статуса или `Microsoft Sentinel token request timed out after ... seconds with no response`: на запрос не пришёл ответ. Проверьте DNS, TLS и исходящий HTTPS от приложения и worker OneUptime к `login.microsoftonline.com`.
@@ -177,7 +177,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager отклонил запрос.
   - `HTTP 401`: он не принял токен. Почти всегда **Облако** не соответствует тенанту или регистрация приложения удалена. Токен, срок действия которого истёк между двумя страницами, обновляется и повторяется один раз автоматически.
   - `HTTP 403` или `AuthorizationFailed`: у приложения ещё нет **Microsoft Sentinel Reader** в группе ресурсов. Назначьте роль и подождите несколько минут.
-  - `HTTP 404`: ни у одной рабочей области нет такого **Subscription ID**, **Resource group** и **Workspace name**, или в ней не включён Microsoft Sentinel. Скопируйте их со страницы **Overview** рабочей области.
+  - `HTTP 404`: ни у одной рабочей области нет такого **Идентификатор подписки**, **Resource group** и **Workspace name**, или в ней не включён Microsoft Sentinel. Скопируйте их со страницы **Overview** рабочей области.
   - `HTTP 429` или `HTTP 5xx`: Azure Resource Manager ограничивает запросы или недоступен. Следующий опрос повторит попытку.
   - `HTTP 400`: Azure Resource Manager отклонил запрос, который формирует OneUptime, а не ваши параметры. Отправьте сообщение в поддержку OneUptime.
 - `Microsoft Sentinel incidents list returned ...`: Azure ответил `200`, но без читаемой страницы инцидентов или со ссылкой `nextLink` на другой хост, которую подключение отклоняет, чтобы токен никогда не покидал Azure Resource Manager. Об этом сообщается, а не считается пустым окном, чтобы курсор никогда не проходил мимо инцидентов, которые никто не прочитал.
@@ -200,7 +200,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 ## Azure Government
 
-Задайте для **Облако** значение **Azure Government (US)**. Тогда подключение выполняет вход в `login.microsoftonline.us` с областью `https://management.usgovcloudapi.net/.default` и читает инциденты из `management.usgovcloudapi.net`. Всё остальное, включая назначение роли, не меняется.
+Задайте для **Облако** значение **Azure Government (США)**. Тогда подключение выполняет вход в `login.microsoftonline.us` с областью `https://management.usgovcloudapi.net/.default` и читает инциденты из `management.usgovcloudapi.net`. Всё остальное, включая назначение роли, не меняется.
 
 ## Что вы получаете
 

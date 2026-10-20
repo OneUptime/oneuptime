@@ -98,6 +98,8 @@ const GOOGLE_ASSERTION_SIGNERS: Array<string> = [
   "packages/Common/Server/Utils/VideoCall/Providers/GoogleMeetClient.ts",
   "packages/Common/Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient.ts",
   "packages/Common/Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI.ts",
+  // AI / LLM observability's Google Vertex AI connection (Cloud Monitoring).
+  "packages/Common/Server/Utils/LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken.ts",
 ];
 
 /*

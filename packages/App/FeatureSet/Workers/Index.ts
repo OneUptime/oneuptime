@@ -268,6 +268,9 @@ import "./Jobs/AIInsight/ScanForInsights";
 // LLM observability — daily cost budget evaluation over LLM spans.
 import "./Jobs/Llm/EvaluateLlmCostBudgets";
 
+// LLM observability — reads of connected AI provider accounts and AI tools.
+import "./Jobs/LlmObservability/PullLlmConnections";
+
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";

@@ -37,7 +37,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 1. 登入 [Azure portal](https://portal.azure.com) 並開啟 **Microsoft Entra ID**。
 2. 前往 **App registrations → New registration**。將其命名為 `OneUptime Sentinel connector`，**Supported account types** 保持為 **Accounts in this organizational directory only**，重新導向 URI 留空，然後選擇 **Register**。
-3. 在應用程式的 **Overview** 頁面上，複製 **Application (client) ID** 和 **Directory (tenant) ID**。
+3. 在應用程式的 **Overview** 頁面上，複製 **應用程式（用戶端）ID** 和 **目錄（租用戶）ID**。
 4. 前往 **Certificates & secrets → Client secrets → New client secret**，選擇過期時間，然後選擇 **Add**。離開頁面之前，複製密碼的 **Value**，而不是它的 **Secret ID**：它不會再次顯示。
 
 ### 允許它讀取事件
@@ -52,7 +52,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 找到工作區的詳細資訊
 
-在 Azure portal 中開啟 Log Analytics 工作區。它的 **Overview** 頁面會顯示 **Subscription ID**、**Resource group** 和工作區的名稱。工作區的資源 ID 也包含這三項：
+在 Azure portal 中開啟 Log Analytics 工作區。它的 **Overview** 頁面會顯示 **訂用帳戶 ID**、**Resource group** 和工作區的名稱。工作區的資源 ID 也包含這三項：
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 | 設定 | 在哪裡找到 |
 | --- | --- |
-| **Directory (tenant) ID** | 應用程式的 **Overview** 頁面。租用戶的 GUID，或已驗證的網域，例如 `contoso.onmicrosoft.com`。 |
-| **Application (client) ID** | 應用程式的 **Overview** 頁面。一個 GUID。 |
-| **Subscription ID** | 工作區的 **Overview** 頁面。一個 GUID。 |
+| **目錄（租用戶）ID** | 應用程式的 **Overview** 頁面。租用戶的 GUID，或已驗證的網域，例如 `contoso.onmicrosoft.com`。 |
+| **應用程式（用戶端）ID** | 應用程式的 **Overview** 頁面。一個 GUID。 |
+| **訂用帳戶 ID** | 工作區的 **Overview** 頁面。一個 GUID。 |
 | **Resource group** | 工作區的 **Overview** 頁面。1 到 90 個字母、數字、底線、連字元、句點或括號，不能以句點結尾。 |
 | **Workspace name** | 工作區的 **Overview** 頁面。3 到 90 個字母、數字或連字元，以字母或數字開頭和結尾。 |
-| **雲端** | **Azure public cloud**（`login.microsoftonline.com`、`management.azure.com`）或 **Azure Government (US)** （`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
+| **雲端** | **Azure 公用雲端**（`login.microsoftonline.com`、`management.azure.com`）或 **Azure Government（美國）** （`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
 | **Client secret** | 密碼的 **Value**。它會被加密，API 從不傳回，也不會再次顯示。在連線上用 **Update credentials** 替換它。 |
 
 **Polling** 步驟還有選用的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之間的整數，初始為 `5`），以及初始為開啟的 **已啟用**。
@@ -166,8 +166,8 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 :::details Last Error 以 `Microsoft Sentinel token request` 開頭
 - `Microsoft Sentinel token request failed (HTTP ...)`：Microsoft Entra ID 拒絕頒發權杖，所以根本沒有連線到 Azure。訊息會引用 Entra 的代碼：
   - `AADSTS7000215` 或 `invalid_client`：**Client secret** 錯誤或已過期，或者填的是密碼的 ID 而不是它的值。建立一個新密碼，並用 **Update credentials** 儲存。
-  - `AADSTS700016` 或 `unauthorized_client`：**Application (client) ID** 不在所填的 **Directory (tenant) ID** 中。把兩者與應用程式的 **Overview** 頁面進行比較。
-  - `AADSTS90002` 或 `HTTP 404`：沒有這樣的租用戶。**Directory (tenant) ID** 錯誤，或者它位於另一個雲端中：請檢查 **雲端**。
+  - `AADSTS700016` 或 `unauthorized_client`：**應用程式（用戶端）ID** 不在所填的 **目錄（租用戶）ID** 中。把兩者與應用程式的 **Overview** 頁面進行比較。
+  - `AADSTS90002` 或 `HTTP 404`：沒有這樣的租用戶。**目錄（租用戶）ID** 錯誤，或者它位於另一個雲端中：請檢查 **雲端**。
   - `HTTP 429` 或 `HTTP 5xx`：Microsoft Entra ID 正在節流或不可用。下一次輪詢會重試。
 - `Microsoft Sentinel token request returned ...`：Microsoft Entra ID 傳回了無法使用的內容，例如不是 JSON 或沒有 `access_token` 的內文。這通常是中間的代理或閘道器造成的。
 - 沒有狀態碼的 `Microsoft Sentinel token request failed:`，或 `Microsoft Sentinel token request timed out after ... seconds with no response`：請求沒有得到回應。檢查 OneUptime 應用程式和工作程序到 `login.microsoftonline.com` 的 DNS、TLS 和傳出 HTTPS。
@@ -177,7 +177,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 - `Microsoft Sentinel incidents list failed (HTTP ...)`：Azure Resource Manager 拒絕了請求。
   - `HTTP 401`：它不接受該權杖。幾乎總是因為 **雲端** 與租用戶不符合，或者應用程式註冊已被刪除。在兩頁之間過期的權杖會自動續訂並重試一次。
   - `HTTP 403` 或 `AuthorizationFailed`：應用程式在資源群組上還沒有 **Microsoft Sentinel Reader**。指派該角色，並等待幾分鐘。
-  - `HTTP 404`：沒有具有該 **Subscription ID**、**Resource group** 和 **Workspace name** 的工作區，或者該工作區未啟用 Microsoft Sentinel。請從工作區的 **Overview** 頁面複製它們。
+  - `HTTP 404`：沒有具有該 **訂用帳戶 ID**、**Resource group** 和 **Workspace name** 的工作區，或者該工作區未啟用 Microsoft Sentinel。請從工作區的 **Overview** 頁面複製它們。
   - `HTTP 429` 或 `HTTP 5xx`：Azure Resource Manager 正在節流或不可用。下一次輪詢會重試。
   - `HTTP 400`：Azure Resource Manager 拒絕了查詢，而查詢是由 OneUptime 建置的，與你的設定無關。請把訊息傳送給 OneUptime 支援人員。
 - `Microsoft Sentinel incidents list returned ...`：Azure 傳回了 `200`，但沒有可讀的事件頁面，或者帶有一個指向其他主機的 `nextLink`，連接器會拒絕這種連結，讓權杖永遠不離開 Azure Resource Manager。這種情況會被報告出來，而不是被當作空時間窗，所以游標永遠不會越過沒人讀過的事件。
@@ -200,7 +200,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 ## Azure Government
 
-把 **雲端** 設為 **Azure Government (US)**。連線隨後會在 `login.microsoftonline.us` 以 `https://management.usgovcloudapi.net/.default` 範圍登入，並從 `management.usgovcloudapi.net` 讀取事件。其他一切，包括角色指派，都相同。
+把 **雲端** 設為 **Azure Government（美國）**。連線隨後會在 `login.microsoftonline.us` 以 `https://management.usgovcloudapi.net/.default` 範圍登入，並從 `management.usgovcloudapi.net` 讀取事件。其他一切，包括角色指派，都相同。
 
 ## 你會得到什麼
 

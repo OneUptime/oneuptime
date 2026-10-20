@@ -37,7 +37,7 @@ A conexão entra com o fluxo de credenciais do cliente do OAuth 2.0: como aplica
 
 1. Entre no [portal do Azure](https://portal.azure.com) e abra **Microsoft Entra ID**.
 2. Vá em **App registrations → New registration**. Dê o nome `OneUptime Sentinel connector`, deixe **Supported account types** em **Accounts in this organizational directory only**, deixe o URI de redirecionamento vazio e selecione **Register**.
-3. Na página **Overview** do aplicativo, copie o **Application (client) ID** e o **Directory (tenant) ID**.
+3. Na página **Overview** do aplicativo, copie o **ID do aplicativo (cliente)** e o **ID do diretório (tenant)**.
 4. Vá em **Certificates & secrets → Client secrets → New client secret**, escolha quando ele expira e selecione **Add**. Copie o **Value** do segredo, não o **Secret ID** dele, antes de sair da página: ele nunca mais é mostrado.
 
 ### Permitir que ele leia incidentes
@@ -52,7 +52,7 @@ A função permite que o aplicativo leia incidentes (`Microsoft.SecurityInsights
 
 ### Encontrar os dados do workspace
 
-Abra o workspace do Log Analytics no portal do Azure. A página **Overview** dele mostra o **Subscription ID**, o **Resource group** e o nome do workspace. O ID de recurso do workspace contém os três:
+Abra o workspace do Log Analytics no portal do Azure. A página **Overview** dele mostra o **ID da assinatura**, o **Resource group** e o nome do workspace. O ID de recurso do workspace contém os três:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e
 
 | Configuração | Onde encontrar |
 | --- | --- |
-| **Directory (tenant) ID** | A página **Overview** do aplicativo. O GUID do locatário, ou um domínio verificado como `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | A página **Overview** do aplicativo. Um GUID. |
-| **Subscription ID** | A página **Overview** do workspace. Um GUID. |
+| **ID do diretório (tenant)** | A página **Overview** do aplicativo. O GUID do locatário, ou um domínio verificado como `contoso.onmicrosoft.com`. |
+| **ID do aplicativo (cliente)** | A página **Overview** do aplicativo. Um GUID. |
+| **ID da assinatura** | A página **Overview** do workspace. Um GUID. |
 | **Resource group** | A página **Overview** do workspace. De 1 a 90 letras, dígitos, sublinhados, hifens, pontos ou parênteses, sem terminar em ponto. |
 | **Workspace name** | A página **Overview** do workspace. De 3 a 90 letras, dígitos ou hifens, começando e terminando com uma letra ou um dígito. |
-| **Nuvem** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) ou **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
+| **Nuvem** | **Nuvem pública do Azure** (`login.microsoftonline.com`, `management.azure.com`) ou **Azure Government (EUA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Client secret** | O **Value** do segredo. Ele é criptografado, nunca devolvido pela API e nunca mais mostrado. Substitua-o com **Update credentials** na conexão. |
 
 A etapa **Polling** também tem uma **Descrição** opcional, o **Poll Interval (Minutes)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
@@ -166,8 +166,8 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 :::details Last Error começa com `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: o Microsoft Entra ID se recusou a emitir um token, então o Azure nunca foi contatado. A mensagem cita o código do Entra:
   - `AADSTS7000215` ou `invalid_client`: o **Client secret** está errado ou expirou, ou é o ID do segredo em vez do valor dele. Crie um novo segredo e salve-o com **Update credentials**.
-  - `AADSTS700016` ou `unauthorized_client`: o **Application (client) ID** não está no **Directory (tenant) ID** informado. Compare os dois com a página **Overview** do aplicativo.
-  - `AADSTS90002` ou `HTTP 404`: esse locatário não existe. O **Directory (tenant) ID** está errado, ou ele está na outra nuvem: verifique **Nuvem**.
+  - `AADSTS700016` ou `unauthorized_client`: o **ID do aplicativo (cliente)** não está no **ID do diretório (tenant)** informado. Compare os dois com a página **Overview** do aplicativo.
+  - `AADSTS90002` ou `HTTP 404`: esse locatário não existe. O **ID do diretório (tenant)** está errado, ou ele está na outra nuvem: verifique **Nuvem**.
   - `HTTP 429` ou `HTTP 5xx`: o Microsoft Entra ID está limitando as requisições ou está indisponível. A consulta seguinte tenta de novo.
 - `Microsoft Sentinel token request returned ...`: o Microsoft Entra ID respondeu com algo inutilizável, por exemplo um corpo que não é JSON ou sem `access_token`. Normalmente é um proxy ou um gateway no meio.
 - `Microsoft Sentinel token request failed:`, sem status, ou `Microsoft Sentinel token request timed out after ... seconds with no response`: a requisição não teve resposta. Verifique o DNS, o TLS e o HTTPS de saída do aplicativo e dos workers do OneUptime para `login.microsoftonline.com`.
@@ -177,7 +177,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: o Azure Resource Manager recusou a requisição.
   - `HTTP 401`: ele não aceitou o token. Quase sempre a **Nuvem** não corresponde ao locatário, ou o registro de aplicativo foi excluído. Um token que expira entre duas páginas é renovado e tentado de novo uma vez sozinho.
   - `HTTP 403` ou `AuthorizationFailed`: o aplicativo ainda não tem **Microsoft Sentinel Reader** no grupo de recursos. Atribua a função e espere alguns minutos.
-  - `HTTP 404`: nenhum workspace tem esse **Subscription ID**, esse **Resource group** e esse **Workspace name**, ou o Microsoft Sentinel não está habilitado nele. Copie-os da página **Overview** do workspace.
+  - `HTTP 404`: nenhum workspace tem esse **ID da assinatura**, esse **Resource group** e esse **Workspace name**, ou o Microsoft Sentinel não está habilitado nele. Copie-os da página **Overview** do workspace.
   - `HTTP 429` ou `HTTP 5xx`: o Azure Resource Manager está limitando as requisições ou está indisponível. A consulta seguinte tenta de novo.
   - `HTTP 400`: o Azure Resource Manager recusou a requisição, que o OneUptime monta, e não as suas configurações. Envie a mensagem para o suporte do OneUptime.
 - `Microsoft Sentinel incidents list returned ...`: o Azure respondeu `200`, mas sem uma página de incidentes legível, ou com um `nextLink` para outro host, que a conexão recusa para que o token nunca saia do Azure Resource Manager. Isso é relatado em vez de tratado como uma janela vazia, para que o cursor nunca passe de incidentes que ninguém leu.
@@ -200,7 +200,7 @@ Leia **Incidents available to import** no relatório do teste. `0` nos últimos 
 
 ## Azure Government
 
-Defina **Nuvem** como **Azure Government (US)**. A conexão então entra em `login.microsoftonline.us` com o escopo `https://management.usgovcloudapi.net/.default`, e lê os incidentes de `management.usgovcloudapi.net`. Todo o resto, inclusive a atribuição da função, é igual.
+Defina **Nuvem** como **Azure Government (EUA)**. A conexão então entra em `login.microsoftonline.us` com o escopo `https://management.usgovcloudapi.net/.default`, e lê os incidentes de `management.usgovcloudapi.net`. Todo o resto, inclusive a atribuição da função, é igual.
 
 ## O que você ganha
 
