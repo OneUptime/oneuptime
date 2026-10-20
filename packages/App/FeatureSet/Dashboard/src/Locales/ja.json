@@ -31925,7 +31925,7 @@
   "Production Status At": "Production Status At",
   "Production Summary": "Production Summary",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話はこの番号から発信されます。「その他の項目」で SMS 電話番号を追加しない限り、SMS もこの番号から送信されます。",
-  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Twilio の番号から SMS を送信できない場合（シンガポールの国内番号は音声専用です）は、SMS を送信できる番号を追加してください。SMS は受信者の国の番号から、なければ最初の番号から送信されます。",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "お使いの番号から SMS を送信できない場合に、SMS を送信する番号です（シンガポールの国内番号は音声専用です）。各 SMS は受信者の国の番号から、なければ最初の番号から送信されます。",
   "Twilio SMS Phone Numbers": "Twilio SMS 電話番号",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} は電話番号ではありません。各番号を国番号付きで入力し、+6581234567, +447700900123 のようにカンマで区切ってください。",
   "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "1 つの設定がプロジェクトのデフォルトになり、オンコールアラートなど、このプロジェクトのメンバーへの SMS と通話はこの設定を経由します。ステータスページは、各ページで選んだ設定を使います。",
