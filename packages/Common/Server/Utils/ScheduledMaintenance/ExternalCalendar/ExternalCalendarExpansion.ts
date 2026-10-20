@@ -164,7 +164,9 @@ export default class ExternalCalendarExpansion {
     );
 
     return {
-      start: new Date(today - EXTERNAL_CALENDAR_PAST_DAYS * MILLISECONDS_PER_DAY),
+      start: new Date(
+        today - EXTERNAL_CALENDAR_PAST_DAYS * MILLISECONDS_PER_DAY,
+      ),
       end: new Date(
         today + (EXTERNAL_CALENDAR_FUTURE_DAYS + 1) * MILLISECONDS_PER_DAY,
       ),

@@ -183,7 +183,10 @@ describe("which calendars a reader hid", () => {
         [getHiddenCalendarsStorageKey(PROJECT_ID)]: stored,
       });
 
-      expect({ stored, read: readHiddenCalendarIds(PROJECT_ID, storage) }).toEqual({
+      expect({
+        stored,
+        read: readHiddenCalendarIds(PROJECT_ID, storage),
+      }).toEqual({
         stored,
         read: [],
       });
@@ -212,9 +215,10 @@ describe("which calendars a reader hid", () => {
   test("a toggle hides or shows one calendar, keeping the others as they were", () => {
     expect(toggleHiddenCalendar([], HOLIDAYS_ID, false)).toEqual([HOLIDAYS_ID]);
     expect(toggleHiddenCalendar([HOLIDAYS_ID], HOLIDAYS_ID, true)).toEqual([]);
-    expect(
-      toggleHiddenCalendar([HOLIDAYS_ID], FREEZES_ID, false),
-    ).toEqual([HOLIDAYS_ID, FREEZES_ID]);
+    expect(toggleHiddenCalendar([HOLIDAYS_ID], FREEZES_ID, false)).toEqual([
+      HOLIDAYS_ID,
+      FREEZES_ID,
+    ]);
     // Hiding twice never lists it twice.
     expect(toggleHiddenCalendar([HOLIDAYS_ID], HOLIDAYS_ID, false)).toEqual([
       HOLIDAYS_ID,
@@ -222,9 +226,14 @@ describe("which calendars a reader hid", () => {
   });
 
   test("the calendars shown are those not hidden", () => {
-    expect(getShownCalendarIds(CALENDARS, [])).toEqual([HOLIDAYS_ID, FREEZES_ID]);
+    expect(getShownCalendarIds(CALENDARS, [])).toEqual([
+      HOLIDAYS_ID,
+      FREEZES_ID,
+    ]);
     expect(getShownCalendarIds(CALENDARS, [FREEZES_ID])).toEqual([HOLIDAYS_ID]);
-    expect(getShownCalendarIds(CALENDARS, [HOLIDAYS_ID, FREEZES_ID])).toEqual([]);
+    expect(getShownCalendarIds(CALENDARS, [HOLIDAYS_ID, FREEZES_ID])).toEqual(
+      [],
+    );
   });
 });
 
@@ -294,11 +303,15 @@ describe("a period's events", () => {
     ).toEqual([HOLIDAYS_ID]);
     expect(record["startsAt"]).toBeInstanceOf(LessThanOrEqual);
     expect(
-      ((record["startsAt"] as LessThanOrEqual<Date>).value as Date).toISOString(),
+      (
+        (record["startsAt"] as LessThanOrEqual<Date>).value as Date
+      ).toISOString(),
     ).toBe("2026-11-09T00:00:00.000Z");
     expect(record["endsAt"]).toBeInstanceOf(GreaterThanOrEqual);
     expect(
-      ((record["endsAt"] as GreaterThanOrEqual<Date>).value as Date).toISOString(),
+      (
+        (record["endsAt"] as GreaterThanOrEqual<Date>).value as Date
+      ).toISOString(),
     ).toBe("2026-09-26T00:00:00.000Z");
     expect(MAINTENANCE_CALENDAR_OVERLAY_LIMIT).toBe(500);
   });
@@ -331,7 +344,9 @@ describe("how an event is drawn", () => {
         end: new Date(2026, 9, 28),
       });
       expect(holiday!.allDay).toBe(true);
-      expect(holiday!.desc).toBe("Autumn break\nPublic holidays · 26-27, all day");
+      expect(holiday!.desc).toBe(
+        "Autumn break\nPublic holidays · 26-27, all day",
+      );
     }
   });
 

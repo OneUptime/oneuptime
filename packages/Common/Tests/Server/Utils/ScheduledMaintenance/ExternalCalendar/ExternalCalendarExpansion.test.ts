@@ -889,10 +889,7 @@ describe("not a calendar", () => {
   test.each([
     ["an empty answer", ""],
     ["blank lines", "\r\n\r\n   \r\n"],
-    [
-      "a sign-in page",
-      "<!doctype html><html><body>Sign in</body></html>",
-    ],
+    ["a sign-in page", "<!doctype html><html><body>Sign in</body></html>"],
     ["JSON", '{"events": []}'],
     ["a contact card", "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Ana\r\nEND:VCARD"],
     [

@@ -38,7 +38,8 @@ function calendar(
 
 describe("how a calendar is doing", () => {
   test("a calendar never read yet is waiting for its first read", () => {
-    const health: ExternalCalendarHealth = getExternalCalendarHealth(calendar());
+    const health: ExternalCalendarHealth =
+      getExternalCalendarHealth(calendar());
 
     expect(health.key).toBe("waiting");
     expect(health.label).toBe("Waiting for the first read");
@@ -88,9 +89,8 @@ describe("how a calendar is doing", () => {
 
   test("a stored reason the Dashboard does not know reads as no reason", () => {
     expect(
-      getExternalCalendarHealth(
-        calendar({ lastReadError: "SomethingNew" }),
-      ).key,
+      getExternalCalendarHealth(calendar({ lastReadError: "SomethingNew" }))
+        .key,
     ).toBe("waiting");
   });
 
@@ -131,7 +131,11 @@ describe("what the last read kept", () => {
           eventCount: 24,
         }),
       ),
-    ).toEqual({ count: 24, hasMore: false, limit: EXTERNAL_CALENDAR_MAX_EVENTS });
+    ).toEqual({
+      count: 24,
+      hasMore: false,
+      limit: EXTERNAL_CALENDAR_MAX_EVENTS,
+    });
 
     expect(
       getExternalCalendarKeptSummary(

@@ -117,7 +117,11 @@ describePostgres("external calendars against Postgres", () => {
 
     await database.query(
       `INSERT INTO "ScheduledMaintenanceExternalCalendar" ("_id", "version", "projectId", "name", "calendarUrl", "color", "nextReadAt") VALUES ($1, 1, $2, 'Public holidays', 'encrypted', '#0d9488', $3)`,
-      [id.toString(), PROJECT_ID.toString(), new Date("2026-10-15T10:00:00.000Z")],
+      [
+        id.toString(),
+        PROJECT_ID.toString(),
+        new Date("2026-10-15T10:00:00.000Z"),
+      ],
     );
 
     return id;
@@ -203,9 +207,7 @@ describePostgres("external calendars against Postgres", () => {
       await ScheduledMaintenanceExternalCalendarEventService.findBy({
         query: {
           projectId: PROJECT_ID,
-          scheduledMaintenanceExternalCalendarId: QueryHelper.any([
-            calendarId,
-          ]),
+          scheduledMaintenanceExternalCalendarId: QueryHelper.any([calendarId]),
           startsAt: QueryHelper.lessThanEqualTo(
             new Date("2026-12-26T12:00:00.000Z"),
           ),

@@ -122,6 +122,8 @@ const CALENDAR_PAGE: string = readDashboardSource(
 const SIDE_MENU: string = readDashboardSource(
   "Pages/ScheduledMaintenanceEvents/SideMenu.tsx",
 );
+// Where the side menu's next section begins: "    {" then its title, a line on.
+const NEXT_SECTION_PATTERN: RegExp = /\n {4}\{\n {6}title: "/;
 const SETTINGS_PAGE: string = readDashboardSource(
   "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings.tsx",
 );
@@ -199,7 +201,7 @@ function menuSection(title: string): string {
   });
 
   const rest: string = SIDE_MENU.slice(start + 1);
-  const next: number = rest.search(/\n    \{\n      title: "/);
+  const next: number = rest.search(NEXT_SECTION_PATTERN);
 
   return next === -1 ? rest : rest.slice(0, next);
 }

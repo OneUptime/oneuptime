@@ -272,7 +272,9 @@ afterEach(() => {
 
 function props(overrides?: Partial<ComponentProps>): ComponentProps {
   return {
-    query: { projectId: new ObjectID(PROJECT_ID) } as Query<ScheduledMaintenance>,
+    query: {
+      projectId: new ObjectID(PROJECT_ID),
+    } as Query<ScheduledMaintenance>,
     states: [SCHEDULED],
     title: "Maintenance Calendar",
     description: "Every scheduled maintenance event.",
@@ -530,16 +532,16 @@ describe("the external calendars on the calendar", () => {
   });
 
   test("a period with more of their events than one read takes says so", async () => {
-    world.events = Array.from({ length: MAINTENANCE_CALENDAR_OVERLAY_LIMIT }).map(
-      (_value: unknown, index: number) => {
-        return externalEvent({
-          calendarId: HOLIDAYS_ID,
-          title: `Shift ${index}`,
-          startsAt: "2026-10-12T08:00:00.000Z",
-          endsAt: "2026-10-12T09:00:00.000Z",
-        });
-      },
-    );
+    world.events = Array.from({
+      length: MAINTENANCE_CALENDAR_OVERLAY_LIMIT,
+    }).map((_value: unknown, index: number) => {
+      return externalEvent({
+        calendarId: HOLIDAYS_ID,
+        title: `Shift ${index}`,
+        startsAt: "2026-10-12T08:00:00.000Z",
+        endsAt: "2026-10-12T09:00:00.000Z",
+      });
+    });
 
     renderCalendar();
 
@@ -558,9 +560,9 @@ describe("the external calendars on the calendar", () => {
     renderCalendar();
 
     await waitFor(() => {
-      expect(
-        requestsFor("ScheduledMaintenanceExternalCalendar"),
-      ).toHaveLength(1);
+      expect(requestsFor("ScheduledMaintenanceExternalCalendar")).toHaveLength(
+        1,
+      );
     });
 
     expect(

@@ -309,10 +309,12 @@ describe("the table", () => {
   test("never asks for a calendar's link: the server never answers with one", () => {
     const table: Record<string, unknown> = renderPage();
 
-    expect(Object.keys(table["selectMoreFields"] as object)).not.toContain(
-      "calendarUrl",
-    );
-    expect(Object.keys(table["selectMoreFields"] as object)).toEqual(
+    expect(
+      Object.keys(table["selectMoreFields"] as Record<string, unknown>),
+    ).not.toContain("calendarUrl");
+    expect(
+      Object.keys(table["selectMoreFields"] as Record<string, unknown>),
+    ).toEqual(
       expect.arrayContaining([
         "calendarHost",
         "isEnabled",

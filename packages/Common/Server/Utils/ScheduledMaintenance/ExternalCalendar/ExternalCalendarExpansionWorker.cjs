@@ -56,9 +56,7 @@ const UNSUPPORTED_FREQUENCIES = ["SECONDLY", "MINUTELY"];
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function isZoned(time) {
-  return Boolean(
-    time.zone && time.zone.tzid && time.zone.tzid !== "floating",
-  );
+  return Boolean(time.zone && time.zone.tzid && time.zone.tzid !== "floating");
 }
 
 function toRawTime(time, tzid) {
@@ -144,7 +142,8 @@ function run(input) {
     return { ok: false, reason: "NotACalendar" };
   }
 
-  const roots = Array.isArray(parsed) && Array.isArray(parsed[0]) ? parsed : [parsed];
+  const roots =
+    Array.isArray(parsed) && Array.isArray(parsed[0]) ? parsed : [parsed];
 
   const calendars = [];
 
@@ -225,7 +224,10 @@ function emitOccurrence(state, input, data) {
   const startMs = toApproximateMs(start);
   const endMs = end ? toApproximateMs(end) : startMs;
 
-  if (startMs > input.windowEndMs || Math.max(endMs, startMs) < input.windowStartMs) {
+  if (
+    startMs > input.windowEndMs ||
+    Math.max(endMs, startMs) < input.windowStartMs
+  ) {
     return true;
   }
 
@@ -392,7 +394,10 @@ function readEvent(component, exceptionsByUid, masters, input, state) {
       overriddenMs.has(instanceMs) ||
       Boolean(exceptions[next.toString()]);
 
-    if (isOverridden || instanceMs + durationMs + MILLISECONDS_PER_DAY >= input.windowStartMs) {
+    if (
+      isOverridden ||
+      instanceMs + durationMs + MILLISECONDS_PER_DAY >= input.windowStartMs
+    ) {
       const details = event.getOccurrenceDetails(next);
 
       if (!emitOccurrence(state, input, details)) {

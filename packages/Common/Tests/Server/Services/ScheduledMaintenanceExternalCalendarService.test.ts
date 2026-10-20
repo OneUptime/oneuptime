@@ -206,7 +206,11 @@ describe("through the write pipeline, as a project member", () => {
   test.each([
     ["no link", "", ExternalCalendarLinkProblem.Empty],
     ["a word", "holidays", ExternalCalendarLinkProblem.NotALink],
-    ["ftp", "ftp://calendar.example.com/a.ics", ExternalCalendarLinkProblem.NotHttp],
+    [
+      "ftp",
+      "ftp://calendar.example.com/a.ics",
+      ExternalCalendarLinkProblem.NotHttp,
+    ],
   ])(
     "a link that is %s is refused, saying why, and nothing is created",
     async (
@@ -222,7 +226,9 @@ describe("through the write pipeline, as a project member", () => {
       );
 
       expect(error).toBeInstanceOf(BadDataException);
-      expect(error.message).toBe(EXTERNAL_CALENDAR_LINK_PROBLEM_MESSAGES[problem]);
+      expect(error.message).toBe(
+        EXTERNAL_CALENDAR_LINK_PROBLEM_MESSAGES[problem],
+      );
       expect(calendars.inserts).toHaveLength(0);
     },
   );

@@ -24,7 +24,14 @@ import Permission from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
 import { customDomainCaller } from "./CustomDomainCallers";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 
 /*
  * POST /scheduled-maintenance-external-calendar/:id/read-now - Read now on
@@ -75,7 +82,11 @@ async function call(id: string): Promise<{ thrown: unknown }> {
 
   await mockRouter
     .match("post", ROUTE)
-    .handlerFunction(req, {} as ExpressResponse, next as unknown as NextFunction);
+    .handlerFunction(
+      req,
+      {} as ExpressResponse,
+      next as unknown as NextFunction,
+    );
 
   return { thrown: next.mock.calls[0] ? next.mock.calls[0][0] : undefined };
 }
@@ -96,11 +107,12 @@ beforeEach(() => {
     ...ON_HIGHEST_PLAN,
   };
 
-  getJestSpyOn(CommonAPI, "getDatabaseCommonInteractionProps").mockImplementation(
-    async (): Promise<DatabaseCommonInteractionProps> => {
-      return props;
-    },
-  );
+  getJestSpyOn(
+    CommonAPI,
+    "getDatabaseCommonInteractionProps",
+  ).mockImplementation(async (): Promise<DatabaseCommonInteractionProps> => {
+    return props;
+  });
 });
 
 afterEach(() => {

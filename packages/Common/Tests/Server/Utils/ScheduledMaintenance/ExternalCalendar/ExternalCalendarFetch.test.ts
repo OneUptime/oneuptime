@@ -117,7 +117,9 @@ describe("a read that works", () => {
     expect(asked).toEqual([SECRET_LINK]);
     expect(requests).toHaveLength(1);
     expect(requests[0]!.url).toBe(SECRET_LINK);
-    expect(requests[0]!.headers["Accept"]).toBe(EXTERNAL_CALENDAR_ACCEPT_HEADER);
+    expect(requests[0]!.headers["Accept"]).toBe(
+      EXTERNAL_CALENDAR_ACCEPT_HEADER,
+    );
     expect(requests[0]!.headers["User-Agent"]).toMatch(/^OneUptime/);
     expect(requests[0]!.maxBytes).toBe(EXTERNAL_CALENDAR_MAX_BYTES);
     expect(EXTERNAL_CALENDAR_MAX_BYTES).toBe(5 * 1024 * 1024);
@@ -181,7 +183,11 @@ describe("a read that fails says why, without the link", () => {
   test("more redirects than it follows", async () => {
     const responses: Array<ExternalCalendarHttpResponse> = [];
 
-    for (let index: number = 0; index <= EXTERNAL_CALENDAR_MAX_REDIRECTS; index++) {
+    for (
+      let index: number = 0;
+      index <= EXTERNAL_CALENDAR_MAX_REDIRECTS;
+      index++
+    ) {
       responses.push(respond(302, "", { location: `/hop-${index}.ics` }));
     }
 
@@ -205,7 +211,10 @@ describe("a read that fails says why, without the link", () => {
   test.each([
     ["no Location", {}],
     ["a Location that is not http(s)", { location: "file:///etc/passwd" }],
-    ["a Location with credentials", { location: "https://user:pass@example.com/a.ics" }],
+    [
+      "a Location with credentials",
+      { location: "https://user:pass@example.com/a.ics" },
+    ],
     ["a Location that is not an address", { location: "http://" }],
   ])(
     "a redirect with %s is not followed",
@@ -227,7 +236,10 @@ describe("a read that fails says why, without the link", () => {
   test.each([
     [EgressFailureReason.AddressBlocked, ExternalCalendarReadError.NotAllowed],
     [EgressFailureReason.InvalidTarget, ExternalCalendarReadError.NotAllowed],
-    [EgressFailureReason.ResolutionFailed, ExternalCalendarReadError.Unreachable],
+    [
+      EgressFailureReason.ResolutionFailed,
+      ExternalCalendarReadError.Unreachable,
+    ],
     /*
      * Where the guard keeps its reason back (OneUptime Cloud), a link to an
      * internal name and one to a name that does not exist read the same.
@@ -599,11 +611,14 @@ describe("a real HTTP server on this machine", () => {
     });
 
     expect(
-      await ExternalCalendarFetch.fetch(`http://127.0.0.1:${closedPort}/a.ics`, {
-        guard: async (url: string): Promise<{ url: URL } & PinnedAgents> => {
-          return pinned(url);
+      await ExternalCalendarFetch.fetch(
+        `http://127.0.0.1:${closedPort}/a.ics`,
+        {
+          guard: async (url: string): Promise<{ url: URL } & PinnedAgents> => {
+            return pinned(url);
+          },
         },
-      }),
+      ),
     ).toEqual({
       ok: false,
       error: ExternalCalendarReadError.Unreachable,

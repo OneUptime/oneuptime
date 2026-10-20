@@ -65,15 +65,12 @@ describe("a calendar link", () => {
       "https://oneuptime.example.com/api/scheduled-maintenance-calendar/project/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0/maintenance.ics",
       "oneuptime.example.com",
     ],
-  ])(
-    "reads %s",
-    (_name: string, input: string, url: string, host: string) => {
-      expect(normalizeExternalCalendarLink(input)).toEqual({
-        url: url,
-        host: host,
-      });
-    },
-  );
+  ])("reads %s", (_name: string, input: string, url: string, host: string) => {
+    expect(normalizeExternalCalendarLink(input)).toEqual({
+      url: url,
+      host: host,
+    });
+  });
 
   test.each([
     ["nothing", "", ExternalCalendarLinkProblem.Empty],
@@ -84,7 +81,11 @@ describe("a calendar link", () => {
     ["ftp", "ftp://example.com/a.ics", ExternalCalendarLinkProblem.NotHttp],
     ["a file", "file:///etc/passwd", ExternalCalendarLinkProblem.NotHttp],
     ["javascript", "javascript:alert(1)", ExternalCalendarLinkProblem.NotHttp],
-    ["a data link", "data:text/calendar,BEGIN:VCALENDAR", ExternalCalendarLinkProblem.NotHttp],
+    [
+      "a data link",
+      "data:text/calendar,BEGIN:VCALENDAR",
+      ExternalCalendarLinkProblem.NotHttp,
+    ],
     [
       "a link too long",
       `https://example.com/${"a".repeat(EXTERNAL_CALENDAR_MAX_LINK_LENGTH)}`,
@@ -111,7 +112,9 @@ describe("a calendar link", () => {
     }
 
     expect(
-      EXTERNAL_CALENDAR_LINK_PROBLEM_MESSAGES[ExternalCalendarLinkProblem.TooLong],
+      EXTERNAL_CALENDAR_LINK_PROBLEM_MESSAGES[
+        ExternalCalendarLinkProblem.TooLong
+      ],
     ).toContain("2,048");
   });
 });

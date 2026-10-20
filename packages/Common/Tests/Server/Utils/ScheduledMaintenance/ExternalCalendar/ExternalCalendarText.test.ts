@@ -10,7 +10,12 @@ import {
   getPropertyName,
   prepareExternalCalendarText,
 } from "../../../../../Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarText";
-import { EXCHANGE_CALENDAR, NOW, calendar, event } from "./ExternalCalendarFixtures";
+import {
+  EXCHANGE_CALENDAR,
+  NOW,
+  calendar,
+  event,
+} from "./ExternalCalendarFixtures";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -38,8 +43,12 @@ function lines(text: string): Array<string> {
 
 describe("what is a calendar", () => {
   test("text whose first line is BEGIN:VCALENDAR, in any case, after a byte order mark or blank lines", () => {
-    expect(prepareExternalCalendarText("BEGIN:VCALENDAR\r\nEND:VCALENDAR")).not.toBeNull();
-    expect(prepareExternalCalendarText("begin:vcalendar\nend:vcalendar")).not.toBeNull();
+    expect(
+      prepareExternalCalendarText("BEGIN:VCALENDAR\r\nEND:VCALENDAR"),
+    ).not.toBeNull();
+    expect(
+      prepareExternalCalendarText("begin:vcalendar\nend:vcalendar"),
+    ).not.toBeNull();
     expect(
       prepareExternalCalendarText("﻿BEGIN:VCALENDAR\r\nEND:VCALENDAR"),
     ).not.toBeNull();
@@ -54,7 +63,10 @@ describe("what is a calendar", () => {
     ["a web page", "<!doctype html>\n<html></html>"],
     ["a contact card", "BEGIN:VCARD\nEND:VCARD"],
     ["another first line", "VERSION:2.0\nBEGIN:VCALENDAR\nEND:VCALENDAR"],
-    ["a first line too long to be one", `BEGIN:VCALENDAR${"X".repeat(EXTERNAL_CALENDAR_MAX_LINE_LENGTH + 1)}`],
+    [
+      "a first line too long to be one",
+      `BEGIN:VCALENDAR${"X".repeat(EXTERNAL_CALENDAR_MAX_LINE_LENGTH + 1)}`,
+    ],
   ])("not %s", (_name: string, text: string) => {
     expect(prepareExternalCalendarText(text)).toBeNull();
   });
@@ -155,9 +167,7 @@ describe("what is kept", () => {
   });
 
   test("a folded line is judged by its unfolded length", () => {
-    const folded: string = Array(40)
-      .fill("y".repeat(500))
-      .join("\r\n ");
+    const folded: string = Array(40).fill("y".repeat(500)).join("\r\n ");
 
     const result: PreparedExternalCalendarText = prepared(
       `BEGIN:VCALENDAR\r\nSUMMARY:${folded}\r\nEND:VCALENDAR`,
@@ -199,9 +209,9 @@ describe("what is kept", () => {
 
 describe("titles", () => {
   test("are on one line, their runs of spaces and control characters one space, trimmed and cut", () => {
-    expect(cleanExternalCalendarTitle("  Change\n\nfreeze\t\u0007 review  ", 500)).toBe(
-      "Change freeze review",
-    );
+    expect(
+      cleanExternalCalendarTitle("  Change\n\nfreeze\t\u0007 review  ", 500),
+    ).toBe("Change freeze review");
     expect(cleanExternalCalendarTitle("abcdef", 4)).toBe("abcd");
     expect(cleanExternalCalendarTitle("\n\t ", 10)).toBe("");
   });
@@ -217,17 +227,38 @@ describe("time in line with the text", () => {
   const SIZE: number = 400000;
 
   const shapes: Array<[string, string]> = [
-    ["one very long kept line", `BEGIN:VCALENDAR\r\nSUMMARY:${"x".repeat(SIZE)}\r\nEND:VCALENDAR`],
-    ["one very long line nobody reads", `BEGIN:VCALENDAR\r\nX-A${";a=1".repeat(Math.floor(SIZE / 4))}:v\r\nEND:VCALENDAR`],
+    [
+      "one very long kept line",
+      `BEGIN:VCALENDAR\r\nSUMMARY:${"x".repeat(SIZE)}\r\nEND:VCALENDAR`,
+    ],
+    [
+      "one very long line nobody reads",
+      `BEGIN:VCALENDAR\r\nX-A${";a=1".repeat(Math.floor(SIZE / 4))}:v\r\nEND:VCALENDAR`,
+    ],
     ["line breaks only", `BEGIN:VCALENDAR${"\n".repeat(SIZE)}END:VCALENDAR`],
-    ["continuations only", `BEGIN:VCALENDAR\r\nSUMMARY:x${"\r\n x".repeat(Math.floor(SIZE / 4))}\r\nEND:VCALENDAR`],
-    ["semicolons where a name goes", `BEGIN:VCALENDAR\r\n${";".repeat(SIZE)}\r\nEND:VCALENDAR`],
+    [
+      "continuations only",
+      `BEGIN:VCALENDAR\r\nSUMMARY:x${"\r\n x".repeat(Math.floor(SIZE / 4))}\r\nEND:VCALENDAR`,
+    ],
+    [
+      "semicolons where a name goes",
+      `BEGIN:VCALENDAR\r\n${";".repeat(SIZE)}\r\nEND:VCALENDAR`,
+    ],
     ["colons", `BEGIN:VCALENDAR\r\n${":".repeat(SIZE)}\r\nEND:VCALENDAR`],
-    ["commas in date lists", `BEGIN:VCALENDAR\r\n${Array(Math.floor(SIZE / 4000)).fill(`EXDATE:${",".repeat(3990)}`).join("\r\n")}\r\nEND:VCALENDAR`],
+    [
+      "commas in date lists",
+      `BEGIN:VCALENDAR\r\n${Array(Math.floor(SIZE / 4000))
+        .fill(`EXDATE:${",".repeat(3990)}`)
+        .join("\r\n")}\r\nEND:VCALENDAR`,
+    ],
     [
       "parameters on kept lines, each just under the length limit",
-      `BEGIN:VCALENDAR\r\n${Array(Math.ceil(SIZE / EXTERNAL_CALENDAR_MAX_LINE_LENGTH))
-        .fill(`BEGIN:VEVENT\r\nUID:p\r\nDTSTART${";a=1".repeat(Math.floor((EXTERNAL_CALENDAR_MAX_LINE_LENGTH - 100) / 4))}:20261103T080000Z\r\nEND:VEVENT`)
+      `BEGIN:VCALENDAR\r\n${Array(
+        Math.ceil(SIZE / EXTERNAL_CALENDAR_MAX_LINE_LENGTH),
+      )
+        .fill(
+          `BEGIN:VEVENT\r\nUID:p\r\nDTSTART${";a=1".repeat(Math.floor((EXTERNAL_CALENDAR_MAX_LINE_LENGTH - 100) / 4))}:20261103T080000Z\r\nEND:VEVENT`,
+        )
         .join("\r\n")}\r\nEND:VCALENDAR`,
     ],
     [
@@ -247,13 +278,16 @@ describe("time in line with the text", () => {
     ],
   ];
 
-  test.each(shapes)("the pass reads %s at once", (_name: string, text: string) => {
-    expect(text.length).toBeGreaterThanOrEqual(SIZE - 100);
+  test.each(shapes)(
+    "the pass reads %s at once",
+    (_name: string, text: string) => {
+      expect(text.length).toBeGreaterThanOrEqual(SIZE - 100);
 
-    const startedAt: number = Date.now();
-    prepareExternalCalendarText(text);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
-  });
+      const startedAt: number = Date.now();
+      prepareExternalCalendarText(text);
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
 
   test.each(shapes)(
     "the whole read of %s ends well within its time limit",

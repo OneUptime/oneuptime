@@ -121,7 +121,8 @@ export function prepareExternalCalendarText(
   raw: string,
 ): PreparedExternalCalendarText | null {
   const length: number = raw.length;
-  let position: number = length > 0 && raw.charCodeAt(0) === BYTE_ORDER_MARK ? 1 : 0;
+  let position: number =
+    length > 0 && raw.charCodeAt(0) === BYTE_ORDER_MARK ? 1 : 0;
 
   const kept: Array<string> = [];
   let droppedLineCount: number = 0;
@@ -196,7 +197,10 @@ export function prepareExternalCalendarText(
     if (isFirstLine) {
       isFirstLine = false;
 
-      if (name !== "BEGIN" || getSimpleValue(line).toUpperCase() !== "VCALENDAR") {
+      if (
+        name !== "BEGIN" ||
+        getSimpleValue(line).toUpperCase() !== "VCALENDAR"
+      ) {
         return null;
       }
     }

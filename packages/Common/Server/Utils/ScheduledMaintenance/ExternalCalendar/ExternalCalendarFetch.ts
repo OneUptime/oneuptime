@@ -339,12 +339,9 @@ export default class ExternalCalendarFetch {
 
     // One deadline for the whole read, redirects included.
     const controller: AbortController = new AbortController();
-    const timer: ReturnType<typeof setTimeout> = setTimeout(
-      () => {
-        controller.abort();
-      },
-      options?.timeoutInMs ?? EXTERNAL_CALENDAR_FETCH_TIMEOUT_IN_MS,
-    );
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      controller.abort();
+    }, options?.timeoutInMs ?? EXTERNAL_CALENDAR_FETCH_TIMEOUT_IN_MS);
 
     try {
       let current: string = link;

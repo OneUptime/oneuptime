@@ -108,7 +108,10 @@ const ExternalCalendarToggles: FunctionComponent<ComponentProps> = (
                   )}
                   data-testid="scheduled-maintenance-calendar-external-warning"
                 >
-                  <Icon icon={IconProp.ExclaimationCircle} className="h-4 w-4" />
+                  <Icon
+                    icon={IconProp.ExclaimationCircle}
+                    className="h-4 w-4"
+                  />
                 </span>
               </Tooltip>
             ) : (
