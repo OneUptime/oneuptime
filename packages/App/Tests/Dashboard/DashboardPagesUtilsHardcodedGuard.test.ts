@@ -33,10 +33,6 @@ const ALLOWED_IN_PAGES: Record<string, { count: number; why: string }> = {
     why: '"pid {n}" (process id label)',
   },
   "Pages/IoT/View/Devices.tsx": { count: 1, why: '"{n} °C" (unit)' },
-  "Pages/Llm/Documentation.tsx": {
-    count: 2,
-    why: '"OpenLLMetry", "OpenInference" (library names inside a translated sentence)',
-  },
   "Pages/MessageQueue/Utils/DocumentationMarkdown.ts": {
     count: 2,
     why: "a line of setup-guide markdown and an attribute name/value",

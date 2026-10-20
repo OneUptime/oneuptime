@@ -98,7 +98,7 @@ Commencez par le haut du tableau : plus une façon est haute, moins il y a à ma
 
 ## Quitter un autre outil
 
-Pour quitter un autre outil d'astreinte, de disponibilité ou de page de statut, faites venir votre équipe au lieu de connecter les deux. **Paramètres du projet → Importer depuis un autre outil** lit votre compte avec une clé d'API, vous montre ce qu'il a trouvé et crée ce que vous cochez. Chaque outil a son guide :
+Pour quitter un autre outil d'astreinte, de disponibilité ou de page de statut, faites venir votre équipe au lieu de connecter les deux. **Paramètres du projet → Avancé → Importer depuis un autre outil** lit votre compte avec une clé d'API, vous montre ce qu'il a trouvé et crée ce que vous cochez. Chaque outil a son guide :
 
 - Outils d'astreinte et d'incidents : [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) et [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Outils de disponibilité et de pages de statut : [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) et [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

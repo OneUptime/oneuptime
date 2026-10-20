@@ -3,6 +3,7 @@ import useTranslateValue from "../../Utils/Translation";
 import Badge, { BadgeType } from "../Badge/Badge";
 import Icon from "../Icon/Icon";
 import UILink from "../Link/Link";
+import { showFullValueWhenCutShort } from "../Table/FullValueTitle";
 import IconProp from "../../../Types/Icon/IconProp";
 import Link from "../../../Types/Link";
 import React, { FunctionComponent } from "react";
@@ -104,8 +105,18 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
            * harness reads a row's title from `span.truncate`, and without it
            * falls back to the anchor's full textContent — which would fold the
            * badge digits into every title it reads.
+           *
+           * A title the menu cuts short shows whole under the pointer: a
+           * long name in another language ("Importer depuis un autre outil"
+           * in 192px), or "Import from another tool" in the 160px a tablet
+           * leaves it. One that fits gets no tooltip repeating it. The
+           * handler sits on the title, not the row, so the badge digits
+           * never join the tooltip.
            */}
-          <span className="truncate transition-colors duration-150">
+          <span
+            className="truncate transition-colors duration-150"
+            onMouseEnter={showFullValueWhenCutShort}
+          >
             {translatedTitle}
           </span>
         </div>
@@ -161,7 +172,12 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                   }
                 `}
               />
-              <span className="truncate">{translatedSubItemTitle}</span>
+              <span
+                className="truncate"
+                onMouseEnter={showFullValueWhenCutShort}
+              >
+                {translatedSubItemTitle}
+              </span>
             </div>
           </UILink>
         </div>

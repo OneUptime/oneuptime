@@ -115,7 +115,7 @@ Une seconde protection couvre les connexions sortantes dont un membre de projet 
 - la découverte OIDC pour l'authentification unique
 - la vérification des domaines personnalisés des pages de statut et des tableaux de bord
 - les étapes HTTP des runbooks
-- l'URL de l'API Grafana OnCall depuis laquelle lit une importation (**Paramètres du projet** > **Basique** > **Importer depuis un autre outil**)
+- l'URL de l'API Grafana OnCall depuis laquelle lit une importation (**Paramètres du projet** > **Avancé** > **Importer depuis un autre outil**)
 
 Cette protection fonctionne à l'inverse des réglages de webhooks. Sur une installation auto-hébergée, elle **autorise** le niveau privé par défaut, car la base de données, le serveur de messagerie ou le serveur de modèles auxquels se connectent ces connexions se trouvent généralement sur votre propre réseau. Le niveau interdit – loopback, link-local et le point de terminaison des métadonnées cloud – est refusé dans tous les cas, et il n'existe pas de liste d'autorisation pour lui.
 

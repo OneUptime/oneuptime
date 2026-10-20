@@ -688,7 +688,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      * a test reports, the counts of a run and a preview's button, all drawn
      * in English. A version is a version. (Instance resource name and
      * Service account JSON are labels now: the Send to your SIEM form draws
-     * them through the locales.)
+     * them through the locales. So are Directory (tenant) ID, Application
+     * (client) ID, Subscription ID, the two Azure clouds, Access key ID and
+     * Secret access key, which the AI connections' form words in every
+     * language: the form draws a setting's title and options through the
+     * locales, so the Security Events form names them the same way.)
      */
     [GOOGLE_SECOPS]: [
       "Data to import",
@@ -720,14 +724,9 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "13.0.0",
     ],
     [SENTINEL]: [
-      "Application (client) ID",
-      "Directory (tenant) ID",
-      "Subscription ID",
       "Resource group",
       "Microsoft Sentinel",
       "Workspace name",
-      "Azure public cloud",
-      "Azure Government (US)",
       "Catching up",
       "Preview incidents",
       "Authenticate with Microsoft Entra",
@@ -738,11 +737,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
     ],
     [DEFENDER]: [
-      "Application (client) ID",
-      "Directory (tenant) ID",
       "Microsoft Defender XDR",
-      "Azure public cloud",
-      "Azure Government (US)",
       "Preview alerts",
       "Authenticate with Microsoft Entra",
       "Read alerts from Microsoft Graph",
@@ -799,8 +794,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
     ],
     [AWS_SECURITY_HUB]: [
-      "Access key ID",
-      "Secret access key",
       "AWS Security Hub",
       "Session token",
       "Remove the stored Session token",

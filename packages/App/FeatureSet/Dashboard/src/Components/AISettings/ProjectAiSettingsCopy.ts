@@ -165,10 +165,14 @@ const GITHUB_APP_NOTE: string = translationKey(
 /*
  * Fixing starts off: it changes infrastructure, so a project turns it on
  * itself (ProjectService leaves it, and the pull requests under it, out of
- * the new project's AI defaults). Rules under More settings narrow it.
+ * the new project's AI defaults). Rules under More settings narrow it. Who
+ * approves what, in one sentence: the AI agent's settings decide for its own
+ * fixes, and a runbook OneUptime AI picks is proposed unless a rule that
+ * fixes without asking names it - or runs it every time
+ * (Common/Types/AutoRemediation/AutoRemediationFix).
  */
 const REMEDIATION_NOTE: string = translationKey(
-  "Needs an AI agent that is allowed to fix things, on the Kubernetes cluster or host where it happens.",
+  "Nothing runs without approval unless the AI agent's settings or a rule allow it.",
 );
 
 // What each pull request's switch says: the same for incidents and alerts.
@@ -244,7 +248,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Incident,
       title: translationKey("Fix new incidents automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host. That agent's settings decide if a fix waits for approval.",
+        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, or with one of your runbooks.",
       ),
     }),
     {
@@ -267,7 +271,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Alert,
       title: translationKey("Fix new alerts automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host. That agent's settings decide if a fix waits for approval.",
+        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, or with one of your runbooks.",
       ),
     }),
   ],
@@ -715,8 +719,9 @@ export const getAiLaneAdvancedSummary: (
  * is on; rules narrow that to the ones that match.
  *
  * An investigation rule is only conditions. An auto remediation rule is
- * conditions and two answers: who fixes (OneUptime AI, or the runbooks the
- * rule names) and whether a fix waits for someone to approve it.
+ * conditions and one answer: whether a fix waits for someone to approve it.
+ * OneUptime AI fixes; the runbooks it may run and the Runner it runs its
+ * commands on are folded under the rule's More fields.
  */
 export interface AiLaneRulesCopy {
   investigationRulesDescription: string;
@@ -729,7 +734,7 @@ export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
       "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.",
     ),
     remediationRulesDescription: translationKey(
-      "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.",
+      "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to choose the runbooks it may run.",
     ),
   },
   [AiLane.Alert]: {
@@ -737,7 +742,7 @@ export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
       "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.",
     ),
     remediationRulesDescription: translationKey(
-      "With no rule, OneUptime AI fixes every new alert while fixing is on. Add rules to fix only the alerts that match one of them, to ask before fixing, or to run your own runbooks instead.",
+      "With no rule, OneUptime AI fixes every new alert while fixing is on. Add rules to fix only the alerts that match one of them, to ask before fixing, or to choose the runbooks it may run.",
     ),
   },
 };

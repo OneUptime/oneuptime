@@ -37,7 +37,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 1. 登录 [Azure portal](https://portal.azure.com) 并打开 **Microsoft Entra ID**。
 2. 前往 **App registrations → New registration**。将其命名为 `OneUptime Sentinel connector`，**Supported account types** 保持为 **Accounts in this organizational directory only**，重定向 URI 留空，然后选择 **Register**。
-3. 在应用的 **Overview** 页面上，复制 **Application (client) ID** 和 **Directory (tenant) ID**。
+3. 在应用的 **Overview** 页面上，复制 **应用程序（客户端）ID** 和 **目录（租户）ID**。
 4. 前往 **Certificates & secrets → Client secrets → New client secret**，选择过期时间，然后选择 **Add**。离开页面之前，复制密码的 **Value**，而不是它的 **Secret ID**：它不会再次显示。
 
 ### 允许它读取事件
@@ -52,7 +52,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 找到工作区的详细信息
 
-在 Azure portal 中打开 Log Analytics 工作区。它的 **Overview** 页面会显示 **Subscription ID**、**Resource group** 和工作区的名称。工作区的资源 ID 也包含这三项：
+在 Azure portal 中打开 Log Analytics 工作区。它的 **Overview** 页面会显示 **订阅 ID**、**Resource group** 和工作区的名称。工作区的资源 ID 也包含这三项：
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 | 设置 | 在哪里找到 |
 | --- | --- |
-| **Directory (tenant) ID** | 应用的 **Overview** 页面。租户的 GUID，或已验证的域名，例如 `contoso.onmicrosoft.com`。 |
-| **Application (client) ID** | 应用的 **Overview** 页面。一个 GUID。 |
-| **Subscription ID** | 工作区的 **Overview** 页面。一个 GUID。 |
+| **目录（租户）ID** | 应用的 **Overview** 页面。租户的 GUID，或已验证的域名，例如 `contoso.onmicrosoft.com`。 |
+| **应用程序（客户端）ID** | 应用的 **Overview** 页面。一个 GUID。 |
+| **订阅 ID** | 工作区的 **Overview** 页面。一个 GUID。 |
 | **Resource group** | 工作区的 **Overview** 页面。1 到 90 个字母、数字、下划线、连字符、句点或括号，不能以句点结尾。 |
 | **Workspace name** | 工作区的 **Overview** 页面。3 到 90 个字母、数字或连字符，以字母或数字开头和结尾。 |
-| **云** | **Azure public cloud**（`login.microsoftonline.com`、`management.azure.com`）或 **Azure Government (US)** （`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
+| **云** | **Azure 公有云**（`login.microsoftonline.com`、`management.azure.com`）或 **Azure Government（美国）** （`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
 | **Client secret** | 密码的 **Value**。它会被加密，API 从不返回，也不会再次显示。在连接上用 **Update credentials** 替换它。 |
 
 **Polling** 步骤还有可选的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
@@ -166,8 +166,8 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 :::details Last Error 以 `Microsoft Sentinel token request` 开头
 - `Microsoft Sentinel token request failed (HTTP ...)`：Microsoft Entra ID 拒绝颁发令牌，所以根本没有连接 Azure。消息会引用 Entra 的代码：
   - `AADSTS7000215` 或 `invalid_client`：**Client secret** 错误或已过期，或者填的是密码的 ID 而不是它的值。创建一个新密码，并用 **Update credentials** 保存。
-  - `AADSTS700016` 或 `unauthorized_client`：**Application (client) ID** 不在所填的 **Directory (tenant) ID** 中。把两者与应用的 **Overview** 页面进行比较。
-  - `AADSTS90002` 或 `HTTP 404`：没有这样的租户。**Directory (tenant) ID** 错误，或者它位于另一个云中：请检查 **云**。
+  - `AADSTS700016` 或 `unauthorized_client`：**应用程序（客户端）ID** 不在所填的 **目录（租户）ID** 中。把两者与应用的 **Overview** 页面进行比较。
+  - `AADSTS90002` 或 `HTTP 404`：没有这样的租户。**目录（租户）ID** 错误，或者它位于另一个云中：请检查 **云**。
   - `HTTP 429` 或 `HTTP 5xx`：Microsoft Entra ID 正在限流或不可用。下一次轮询会重试。
 - `Microsoft Sentinel token request returned ...`：Microsoft Entra ID 返回了无法使用的内容，例如不是 JSON 或没有 `access_token` 的主体。这通常是中间的代理或网关造成的。
 - 没有状态码的 `Microsoft Sentinel token request failed:`，或 `Microsoft Sentinel token request timed out after ... seconds with no response`：请求没有得到响应。检查 OneUptime 应用和工作进程到 `login.microsoftonline.com` 的 DNS、TLS 和出站 HTTPS。
@@ -177,7 +177,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 - `Microsoft Sentinel incidents list failed (HTTP ...)`：Azure Resource Manager 拒绝了请求。
   - `HTTP 401`：它不接受该令牌。几乎总是因为 **云** 与租户不匹配，或者应用注册已被删除。在两页之间过期的令牌会自动续订并重试一次。
   - `HTTP 403` 或 `AuthorizationFailed`：应用在资源组上还没有 **Microsoft Sentinel Reader**。分配该角色，并等待几分钟。
-  - `HTTP 404`：没有具有该 **Subscription ID**、**Resource group** 和 **Workspace name** 的工作区，或者该工作区未启用 Microsoft Sentinel。请从工作区的 **Overview** 页面复制它们。
+  - `HTTP 404`：没有具有该 **订阅 ID**、**Resource group** 和 **Workspace name** 的工作区，或者该工作区未启用 Microsoft Sentinel。请从工作区的 **Overview** 页面复制它们。
   - `HTTP 429` 或 `HTTP 5xx`：Azure Resource Manager 正在限流或不可用。下一次轮询会重试。
   - `HTTP 400`：Azure Resource Manager 拒绝了查询，而查询是由 OneUptime 构建的，与你的设置无关。请把消息发送给 OneUptime 支持人员。
 - `Microsoft Sentinel incidents list returned ...`：Azure 返回了 `200`，但没有可读的事件页面，或者带有一个指向其他主机的 `nextLink`，连接器会拒绝这种链接，让令牌永远不离开 Azure Resource Manager。这种情况会被报告出来，而不是被当作空窗口，所以游标永远不会越过没人读过的事件。
@@ -200,7 +200,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 ## Azure Government
 
-把 **云** 设为 **Azure Government (US)**。连接随后会在 `login.microsoftonline.us` 以 `https://management.usgovcloudapi.net/.default` 范围登录，并从 `management.usgovcloudapi.net` 读取事件。其他一切，包括角色分配，都相同。
+把 **云** 设为 **Azure Government（美国）**。连接随后会在 `login.microsoftonline.us` 以 `https://management.usgovcloudapi.net/.default` 范围登录，并从 `management.usgovcloudapi.net` 读取事件。其他一切，包括角色分配，都相同。
 
 ## 你会得到什么
 

@@ -200,7 +200,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Use LiteLLM with one virtual key per employee.",
     "A gateway sees only traffic sent through it.",
     "A gateway sees the model call, not the agent.",
-    "No vendor admin or billing connectors.",
+    "No coding-tool admin connectors.",
     "Cost is an estimate unless a tool reports it.",
     "Identity on log records is not read.",
     "Cursor's `cursor.user.email` is not read yet",

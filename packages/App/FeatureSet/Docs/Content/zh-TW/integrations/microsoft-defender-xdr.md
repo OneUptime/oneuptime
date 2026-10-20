@@ -37,7 +37,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 1. 登入 [Azure portal](https://portal.azure.com) 並開啟 **Microsoft Entra ID**。
 2. 前往 **App registrations → New registration**。將其命名為 `OneUptime Security Events`，**Supported account types** 保持為 **Accounts in this organizational directory only**，重新導向 URI 留空，然後選擇 **Register**。
-3. 在應用程式的 **Overview** 頁面上，複製 **Application (client) ID** 和 **Directory (tenant) ID**。
+3. 在應用程式的 **Overview** 頁面上，複製 **應用程式（用戶端）ID** 和 **目錄（租用戶）ID**。
 
 ### 允許它讀取警示
 
@@ -61,9 +61,9 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 | 設定 | 在哪裡找到 |
 | --- | --- |
-| **Directory (tenant) ID** | 應用程式的 **Overview** 頁面。租用戶的 GUID，或已驗證的網域，例如 `contoso.onmicrosoft.com`。 |
-| **Application (client) ID** | 應用程式的 **Overview** 頁面。擁有 `SecurityAlert.Read.All` 的應用程式的 GUID。 |
-| **雲端** | **Azure public cloud**（也服務於 Microsoft 365 GCC），或用於 GCC High 的 **Azure Government (US)** （`login.microsoftonline.us` 和 `graph.microsoft.us`）。不支援 Microsoft 365 DoD 和中國的 21Vianet 雲端。 |
+| **目錄（租用戶）ID** | 應用程式的 **Overview** 頁面。租用戶的 GUID，或已驗證的網域，例如 `contoso.onmicrosoft.com`。 |
+| **應用程式（用戶端）ID** | 應用程式的 **Overview** 頁面。擁有 `SecurityAlert.Read.All` 的應用程式的 GUID。 |
+| **雲端** | **Azure 公用雲端**（也服務於 Microsoft 365 GCC），或用於 GCC High 的 **Azure Government（美國）** （`login.microsoftonline.us` 和 `graph.microsoft.us`）。不支援 Microsoft 365 DoD 和中國的 21Vianet 雲端。 |
 | **Client secret** | 密碼的 **Value**。它會被加密，API 從不傳回，也不會再次顯示。在連線上用 **Update credentials** 替換它。 |
 
 **Polling** 步驟還有選用的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之間的整數，初始為 `5`），以及初始為開啟的 **已啟用**。
@@ -151,7 +151,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::details Last Error 以 `Microsoft Defender XDR token request` 開頭
 - `Microsoft Defender XDR token request failed (HTTP ...)`：Microsoft Entra ID 拒絕頒發權杖，所以根本沒有連線到 Graph。訊息末尾會有一條根據 Entra 的 `error` 代碼給出的提示：
   - `invalid_client` (`AADSTS7000215`)：密碼錯誤、已過期，或屬於另一個應用程式。在 **Certificates & secrets** 下建立一個新密碼，並用 **Update credentials** 儲存。
-  - `unauthorized_client` (`AADSTS700016`)：**Application (client) ID** 不在該 **Directory (tenant) ID** 中，或者 **雲端** 選錯了。
+  - `unauthorized_client` (`AADSTS700016`)：**應用程式（用戶端）ID** 不在該 **目錄（租用戶）ID** 中，或者 **雲端** 選錯了。
   - `AADSTS90002`：沒有這樣的租用戶。
   - `invalid_scope`：你選擇的雲端中不存在該 Graph 範圍。請檢查 **雲端**。
 - `Microsoft Defender XDR token request returned ...`：Microsoft Entra ID 傳回了無法使用的內容，即不是 JSON 或沒有 `access_token` 的內文。這通常是中間的代理或閘道器造成的，而不是認證資訊的問題。

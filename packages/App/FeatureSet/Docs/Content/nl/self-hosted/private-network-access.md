@@ -115,7 +115,7 @@ Een tweede beveiliging dekt uitgaande verbindingen waarvan een projectlid het do
 - OIDC-discovery voor single sign-on
 - de verificatie van eigen domeinen van statuspagina's en dashboards
 - HTTP-stappen in runbooks
-- de URL van de Grafana OnCall-API waaruit een import leest (**Projectinstellingen** > **Basis** > **Importeren uit een andere tool**)
+- de URL van de Grafana OnCall-API waaruit een import leest (**Projectinstellingen** > **Geavanceerd** > **Importeren uit een andere tool**)
 
 Deze beveiliging werkt andersom dan de webhookinstellingen. Bij een zelf gehoste installatie **staat** ze het privéniveau standaard **toe**, omdat de database, mailserver of modelserver waarmee deze verbindingen maken meestal in uw eigen netwerk staat. Het verboden niveau – loopback, link-local en het cloudmetadata-eindpunt – wordt hoe dan ook geweigerd, en er bestaat geen allowlist voor.
 

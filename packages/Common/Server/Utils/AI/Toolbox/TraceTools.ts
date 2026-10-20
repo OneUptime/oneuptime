@@ -1,6 +1,8 @@
 import Span from "../../../../Models/AnalyticsModels/Span";
 import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
-import { TelemetryReadScope } from "../../Telemetry/TelemetryReadScope";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../../Telemetry/TelemetryReadScope";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -154,11 +156,12 @@ export const QueryTracesTool: ObservabilityTool = {
      * getAnalyticsTable builds raw aggregation SQL that the model layer never
      * narrows, so it is narrowed here to the services this user may read
      * (TelemetryReadAccess) - or a scoped user would see project-wide trace
-     * analytics.
+     * analytics. A system run also leaves out the company AI tools' private
+     * chats (ToolArgs.spanScope).
      */
-    const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
-      Span,
-      ctx.props,
+    const scope: TelemetryReadScope = await ToolArgs.spanScope(
+      ctx,
+      await TelemetryReadAccess.getScope(Span, ctx.props),
     );
 
     const tableRows: Array<TraceAnalyticsTableRow> =
@@ -307,7 +310,15 @@ export const GetTraceTool: ObservabilityTool = {
       throw new BadDataException("traceId is required.");
     }
 
-    const spans: Array<Span> = await SpanService.findBy({
+    /*
+     * A person's read is narrowed by the permission layer. A system run reads
+     * as root, which that layer leaves alone, so it reads each span's service
+     * too and drops the spans of the company AI tools' private chats
+     * (ToolArgs.spanScope).
+     */
+    const isSystemRun: boolean = Boolean(ctx.props.isRoot);
+
+    const readSpans: Array<Span> = await SpanService.findBy({
       query: {
         traceId: traceId,
       } as never,
@@ -319,6 +330,7 @@ export const GetTraceTool: ObservabilityTool = {
         durationUnixNano: true,
         statusCode: true,
         kind: true,
+        ...(isSystemRun ? { primaryEntityId: true } : {}),
       } as never,
       sort: {
         startTimeUnixNano: SortOrder.Ascending,
@@ -328,7 +340,23 @@ export const GetTraceTool: ObservabilityTool = {
       props: ctx.props,
     });
 
-    const isSpanLimitHit: boolean = spans.length >= MAX_TRACE_SPANS;
+    const isSpanLimitHit: boolean = readSpans.length >= MAX_TRACE_SPANS;
+
+    let spans: Array<Span> = readSpans;
+
+    if (isSystemRun) {
+      const readable: TelemetryReadScope = await ToolArgs.spanScope(
+        ctx,
+        TelemetryReadScopeUtil.getUnrestrictedScope(),
+      );
+
+      spans = readSpans.filter((span: Span): boolean => {
+        return TelemetryReadScopeUtil.isReadable(
+          readable,
+          span.primaryEntityId?.toString() || "",
+        );
+      });
+    }
 
     const lines: Array<string> = renderSpanTree(spans);
 

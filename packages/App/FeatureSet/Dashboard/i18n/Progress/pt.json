@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16662
+    "keys": 31872,
+    "untranslated": 16602
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -27,9 +27,11 @@
     "Runbook: {{name}}",
     "Runner",
     "Status",
+    "Tokens",
     "Total",
     "Total:",
     "VMware vCenter",
+    "Workspaces",
     "cluster",
     "goroutines",
     "host",

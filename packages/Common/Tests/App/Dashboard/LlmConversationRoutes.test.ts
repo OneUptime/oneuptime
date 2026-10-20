@@ -217,7 +217,7 @@ describe("getLlmPageRoute", () => {
     [PageMap.LLM_USAGE, "usage"],
     [PageMap.LLM_BUDGETS, "budgets"],
     [PageMap.LLM_PRICING, "pricing"],
-    [PageMap.LLM_DOCUMENTATION, "documentation"],
+    [PageMap.LLM_CONNECT, "connect"],
   ])("%s is .../llm/%s", (page: PageMap, path: string) => {
     expect(getLlmPageRoute(page).toString()).toBe(
       `/dashboard/${PROJECT_ID}/llm/${path}`,

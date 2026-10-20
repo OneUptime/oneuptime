@@ -2084,14 +2084,22 @@ describe("Runner picker options (advanced bindings)", () => {
     makeRunner("r-off", "ops-runner", false),
   ];
 
-  test("offer only Runners outside the chart that run AI commands", () => {
+  /*
+   * A Runner has no "Runs AI Remediation Commands" switch any more: choosing
+   * it here is what lets OneUptime AI run kubectl on it (the server's
+   * RunnerAiCommandsPick), so one that never ran AI commands is offered too.
+   */
+  test("offer every Runner outside the chart, whether or not it ran AI commands before", () => {
     const options: Array<DropdownOption> = buildKubernetesAiRunnerOptions({
       runners,
       boundRunnerId: null,
       boundRunnerName: null,
     });
 
-    expect(options).toEqual([{ value: "r-host", label: "bash-runner" }]);
+    expect(options).toEqual([
+      { value: "r-host", label: "bash-runner" },
+      { value: "r-off", label: "ops-runner" },
+    ]);
   });
 
   test("keep the bound Runner, saying why it cannot serve the cluster", () => {
@@ -2120,6 +2128,7 @@ describe("Runner picker options (advanced bindings)", () => {
       ),
     ).toMatch(/currently bound — installed by the Kubernetes agent chart/);
 
+    // Bound before it ran AI commands: saving the binding again allows them.
     expect(
       optionLabel(
         buildKubernetesAiRunnerOptions({
@@ -2129,7 +2138,7 @@ describe("Runner picker options (advanced bindings)", () => {
         }),
         "r-off",
       ),
-    ).toMatch(/Runs AI Remediation Commands/);
+    ).toBe("ops-runner");
 
     const boundToUnlisted: Array<DropdownOption> =
       buildKubernetesAiRunnerOptions({

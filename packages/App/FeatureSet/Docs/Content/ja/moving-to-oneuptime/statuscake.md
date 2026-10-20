@@ -36,7 +36,7 @@ flowchart TB
 StatusCake でアカウントパネルを開き、**API Keys** に移動します。`OneUptime import` という名前でキーを作成してコピーします。
 
 ### インポートページを開く
-OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き、**StatusCake** を選択します。
+OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き、**StatusCake** を選択します。
 
 ### StatusCake を接続する
 キーを **StatusCake の API キー** に貼り付け、**StatusCake アカウントを読み取る** を選択します。大きなアカウントでは数分かかります。読み取りの間はページを離れてもかまいません。

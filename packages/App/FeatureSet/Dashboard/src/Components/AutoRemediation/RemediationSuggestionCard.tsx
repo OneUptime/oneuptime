@@ -10,6 +10,7 @@ import { AutoRemediationDecisionStage } from "Common/Types/AutoRemediation/AutoR
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
+import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionState,
@@ -754,6 +755,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                 _id: true,
                 status: true,
                 ruleNameSnapshot: true,
+                // No rule: the project's own pick, named as it is (not "Rule: ...").
+                autoRemediationRuleId: true,
                 runbookNameSnapshot: true,
                 rationaleMarkdown: true,
                 runbookId: true,
@@ -1073,7 +1076,13 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
               },
             );
 
-            if (suggestion.kubernetesClusterId) {
+            if (isProjectRunbookPick(suggestion)) {
+              /*
+               * The project's own pick, made while no rule is set up: it is
+               * OneUptime AI's, and no rule's.
+               */
+              sourceLabel = translator.translateText("OneUptime AI") as string;
+            } else if (suggestion.kubernetesClusterId) {
               sourceLabel =
                 suggestion.ruleNameSnapshot ||
                 (translator.translateText(

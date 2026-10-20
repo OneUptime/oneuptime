@@ -43,8 +43,7 @@ Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**. Klik
 - **Naam** en **Beschrijving**: waar het account voor is, zoals "Supportlijn".
 - **Twilio Account SID**: uit de Twilio Console. Hij begint met `AC`.
 - **Twilio Auth Token**: uit de Twilio Console.
-- **Twilio primair telefoonnummer**: een nummer van dat account, voor de sms'jes en gesprekken die het verstuurt.
-- **Twilio secundaire telefoonnummers**: optioneel. Nummers die in plaats van het primaire nummer versturen naar ontvangers in hun land.
+- **Twilio primair telefoonnummer**: een nummer van dat account, voor de sms'jes en gesprekken die het verstuurt. Onder **Meer velden**, optioneel: nummers voor ontvangers in andere landen, en nummers voor sms als de nummers van het account alleen kunnen bellen (zie [Aparte nummers voor oproepen en sms](/docs/self-hosted/twilio-integration#aparte-nummers-voor-oproepen-en-sms)).
 - **Instellen als projectstandaard**: aan voor de eerste Twilio-configuratie van het project, zodat ook de sms'jes en gesprekken naar de leden van het project via dit account gaan. Zet het uit als dit account alleen voor inkomende oproepen is.
 
 ### Maak het beleid aan

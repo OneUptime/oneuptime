@@ -31,6 +31,8 @@ const FOLDERS: Array<string> = [
   "Components/LlmConversations",
   "Components/LlmAlerts",
   "Components/Form/Monitor/LlmMonitor",
+  // Connect: the three ways in, the connection form, test and list.
+  "Components/AI/Connect",
 ];
 
 // The pages of AI / LLM this work drew, one file each.
@@ -38,9 +40,11 @@ const FILES: Array<string> = [
   "Pages/Llm/Conversations.tsx",
   "Pages/Llm/ConversationView.tsx",
   "Pages/Llm/Alerts.tsx",
-  "Pages/Llm/Documentation.tsx",
+  "Pages/Llm/Connect.tsx",
+  "Pages/Llm/Usage.tsx",
   "Pages/Llm/Layout.tsx",
   "Components/AI/LlmNavTabs.tsx",
+  "Components/AI/LlmProviderUsage.tsx",
 ];
 
 const THEME_CSS_PATH: string = path.join(
@@ -233,7 +237,11 @@ describe("the AI / LLM pages in the dark theme", () => {
         "Components/LlmAlerts/LlmAlertsView.tsx",
         "Components/LlmAlerts/LlmMonitorPreview.tsx",
         "Components/Form/Monitor/LlmMonitor/LlmMonitorStepForm.tsx",
-        "Pages/Llm/Documentation.tsx",
+        "Pages/Llm/Connect.tsx",
+        // The provider marks keep their colours in a table.
+        "Components/AI/Connect/LlmConnectionLogo.tsx",
+        "Components/AI/Connect/LlmConnectionTestPanel.tsx",
+        "Components/AI/LlmProviderUsage.tsx",
       ]),
     );
   });

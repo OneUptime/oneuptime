@@ -9,7 +9,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  * The AI / LLM product's tabs, in the order a person uses them: what the AI
  * said (Conversations, the home), every call underneath (Calls), who uses
  * which model (Usage), being told when answers go wrong (Alerts), what it
- * may spend (Budgets) and what a model costs (Pricing), then Setup.
+ * may spend (Budgets) and what a model costs (Pricing), then Connect: the
+ * three ways AI comes in (your apps, your provider accounts, your
+ * company's AI tools).
  */
 export type LlmTabKey =
   | "conversations"
@@ -18,7 +20,7 @@ export type LlmTabKey =
   | "alerts"
   | "budgets"
   | "pricing"
-  | "setup";
+  | "connect";
 
 interface Props {
   active: LlmTabKey;
@@ -32,7 +34,7 @@ export const LLM_TAB_ORDER: Array<LlmTabKey> = [
   "alerts",
   "budgets",
   "pricing",
-  "setup",
+  "connect",
 ];
 
 const LlmNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -76,12 +78,10 @@ const LlmNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_PRICING] as Route),
     },
     {
-      key: "setup",
-      label: "Setup",
-      icon: IconProp.Code,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.LLM_DOCUMENTATION] as Route,
-      ),
+      key: "connect",
+      label: "Connect",
+      icon: IconProp.Link,
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_CONNECT] as Route),
     },
   ];
 

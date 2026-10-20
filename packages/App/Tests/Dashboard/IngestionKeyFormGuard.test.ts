@@ -262,6 +262,7 @@ describe("Telemetry ingestion key create form", () => {
           .sort(),
       ).toEqual(
         [
+          "Components/AI/Connect/LlmAppsPath.tsx",
           "Components/SecurityEvents/SecurityEventsSetupGuide.tsx",
           "Components/SetupGuide/SetupGuideCard.tsx",
           "Components/Telemetry/Documentation.tsx",
@@ -286,6 +287,10 @@ describe("Telemetry ingestion key create form", () => {
       expect(
         read("Components/SecurityEvents/SecurityEventsSetupGuide.tsx"),
       ).toContain("keyTypeFilter={TelemetryIngestionKeyType.Server}");
+      // An app's AI calls are sent by its server SDK or a gateway.
+      expect(read("Components/AI/Connect/LlmAppsPath.tsx")).toContain(
+        "keyTypeFilter={TelemetryIngestionKeyType.Server}",
+      );
       expect(read("Components/Telemetry/Documentation.tsx")).toMatch(
         /isBrowserSdkGuide\s*\?\s*TelemetryIngestionKeyType\.Browser\s*:\s*TelemetryIngestionKeyType\.Server/,
       );

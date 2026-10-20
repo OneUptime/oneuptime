@@ -49,7 +49,7 @@ import React, {
 } from "react";
 
 /*
- * PROJECT SETTINGS > IMPORT FROM ANOTHER TOOL.
+ * PROJECT SETTINGS > ADVANCED > IMPORT FROM ANOTHER TOOL.
  *
  * "We have customers who are on Incident.io or OpsGenie, and they want to
  * move to OneUptime. ... Please make this great and make it easy (for

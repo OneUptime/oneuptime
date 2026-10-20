@@ -17,7 +17,8 @@ import ToolImportSource from "../../Types/ToolImport/ToolImportSource";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * ONE IMPORT FROM ANOTHER TOOL (Project Settings > Import from another tool).
+ * ONE IMPORT FROM ANOTHER TOOL (Project Settings > Advanced > Import from
+ * another tool).
  *
  * A run is read (a worker reads the other tool with the person's API key),
  * reviewed (the person sees the preview, worked out from `snapshot`, and

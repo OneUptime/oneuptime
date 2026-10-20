@@ -115,7 +115,7 @@ Ett andra skydd täcker utgående anslutningar vars mål en projektmedlem välje
 - OIDC-discovery för enkel inloggning
 - verifiering av egna domäner för statussidor och instrumentpaneler
 - HTTP-steg i runbooks
-- URL:en till Grafana OnCall-API:et som en import läser från (**Projektinställningar** > **Grundläggande** > **Importera från ett annat verktyg**)
+- URL:en till Grafana OnCall-API:et som en import läser från (**Projektinställningar** > **Avancerad** > **Importera från ett annat verktyg**)
 
 Det här skyddet fungerar tvärtom mot webhook-inställningarna. På en egeninstallation **tillåter** det den privata nivån som standard, eftersom databasen, e-postservern eller modellservern som dessa ansluter till oftast finns i ditt eget nätverk. Den förbjudna nivån – loopback, link-local och slutpunkten för molnmetadata – nekas i alla fall, och det finns ingen tillåtelselista för den.
 

@@ -56,11 +56,11 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 1. **Users → Create user** を開き、ユーザーに名前を付け（例: `oneuptime-security-hub`）、コンソールアクセスはオフのまま、ポリシーをアタッチします。他のアカウントの検出結果を読むには、委任管理者アカウントでこれを行います。
 2. ユーザーを開き、**Security credentials → Access keys → Create access key** を開いて、**Third-party service** を選びます。
-3. **Access key ID** と **Secret access key** をコピーします。AWS はシークレットを一度しか表示しません。
+3. **アクセス キー ID** と **シークレット アクセス キー** をコピーします。AWS はシークレットを一度しか表示しません。
 
 ### OneUptime で接続を追加する
 
-**製品 → セキュリティイベント → 接続**（`/dashboard/{projectId}/security-events/connections`）を開き、**接続を追加** をクリックして **AWS Security Hub** を選び、**次へ** をクリックします。下の表の設定を入力して **次へ** をクリックし、シークレットを **Secret access key** に貼り付けます。
+**製品 → セキュリティイベント → 接続**（`/dashboard/{projectId}/security-events/connections`）を開き、**接続を追加** をクリックして **AWS Security Hub** を選び、**次へ** をクリックします。下の表の設定を入力して **次へ** をクリックし、シークレットを **シークレット アクセス キー** に貼り付けます。
 
 ### 保存する前にテストする
 
@@ -70,8 +70,8 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 | 設定 | 入力する内容 |
 | --- | --- |
 | **リージョン** | リージョンのコード。例: `us-east-1`、`eu-central-1`、`us-gov-west-1`。他のアカウントの検出結果を読む場合は、管理者アカウントのホームリージョン。 |
-| **Access key ID** | キーの ID。16～128 文字の英字または数字で、通常は `AKIA` で始まる 20 文字です。一時的な認証情報では `ASIA` で始まります。 |
-| **Secret access key** | キーのシークレット。暗号化され、API から返されることはなく、再表示もされません。置き換えるには、接続の **認証情報を更新** を使います。 |
+| **アクセス キー ID** | キーの ID。16～128 文字の英字または数字で、通常は `AKIA` で始まる 20 文字です。一時的な認証情報では `ASIA` で始まります。 |
+| **シークレット アクセス キー** | キーのシークレット。暗号化され、API から返されることはなく、再表示もされません。置き換えるには、接続の **認証情報を更新** を使います。 |
 | **Session token** | 一時的な認証情報の場合のみ必要です。`ASIA` キーはこれがないと拒否され、`AKIA` キーはこれがあると拒否されます。 |
 
 `aws sts assume-role` や `aws sts get-session-token` で得た一時的な認証情報は期限切れになります（引き受けたロールでは最長 12 時間）。期限が切れると、**認証情報を更新** で新しいものを貼り付けるまでポーリングは止まります。この狭いポリシーを持つ長期キーを自分のスケジュールでローテーションすれば、無人でポーリングを続けられます。一時的な認証情報から長期キーに切り替えるには、**認証情報を更新** に新しいキーを入力し、**Remove the stored Session token** をオンにします。
@@ -167,8 +167,8 @@ AWS がリクエストを拒否しました。メッセージには AWS のエ�
 
 - `AccessDeniedException` または `is not authorized to perform`: キーは正しいものの、その ID は `securityhub:GetFindings` を呼び出せません。[接続を設定する](#接続を設定する) のポリシーをアタッチしてください。アクセス許可の境界やサービスコントロールポリシーが拒否している場合もあります。
 - `InvalidAccessException` または `is not subscribed to AWS Security Hub`: この **リージョン** でこのアカウントの Security Hub が有効になっていないか、アカウントがそこで Security Hub の管理者ではありません。
-- `InvalidSignatureException` または `SignatureDoesNotMatch`、または `The request signature we calculated does not match`: **Secret access key** が **Access key ID** に対応していません。新しいアクセスキーを作成し、**認証情報を更新** で保存します。
-- `UnrecognizedClientException` または `InvalidClientTokenId`、または `The security token included in the request is invalid`: AWS は **Access key ID** を認識していません。入力ミス、削除済み、無効化済み、別のパーティションのもの、または **Session token** のない一時キーです。
+- `InvalidSignatureException` または `SignatureDoesNotMatch`、または `The request signature we calculated does not match`: **シークレット アクセス キー** が **アクセス キー ID** に対応していません。新しいアクセスキーを作成し、**認証情報を更新** で保存します。
+- `UnrecognizedClientException` または `InvalidClientTokenId`、または `The security token included in the request is invalid`: AWS は **アクセス キー ID** を認識していません。入力ミス、削除済み、無効化済み、別のパーティションのもの、または **Session token** のない一時キーです。
 - `ExpiredTokenException` または `The security token included in the request is expired`: 一時的な認証情報の期限が切れました。新しいものを発行するか、長期キーに切り替えてください。
 - `RequestTimeTooSkewed` または `RequestExpired`、または `Signature expired`: OneUptime のホストの時計が 5 分を超えてずれています。アプリと worker のホストで NTP を修正してください。
 - コードがまったくない: キーとポリシーのどちらが拒否したかを AWS は示していません。まずキーを、次にポリシーを確認してください。

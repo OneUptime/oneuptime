@@ -484,19 +484,20 @@ export default class Runner extends BaseModel {
   public canRunRunbooks?: boolean = undefined;
 
   /*
-   * Opt-in consent for AI-composed remediation commands: with this off, the
-   * server never serves this Runner an AiRemediation-origin job, no matter
-   * what the project or rule configuration says. The operator who runs the
-   * host decides whether an AI may execute commands on it.
+   * Consent for OneUptime AI's commands: with this off, the server never
+   * serves this Runner an AiRemediation-origin job. It is no longer a switch
+   * anyone turns: picking the Runner for OneUptime AI's commands is the
+   * consent, and OneUptime turns this on when that happens
+   * (Server/Utils/Runner/RunnerAiCommandsPick) - an auto remediation rule
+   * picks it as its Runner, or a Kubernetes cluster's AI settings bind it.
+   * The in-cluster Runner the Kubernetes agent chart registers has it on for
+   * its own cluster, and a global Runner never has it. Which Runners a
+   * rule's commands target is read from the rule (its Runner), never from
+   * this column, so a Runner it is on for runs commands only for what picked
+   * it.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookAdmin,
-      Permission.CreateRunner,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -507,19 +508,14 @@ export default class Runner extends BaseModel {
       Permission.RunbookViewer,
       Permission.ReadRunner,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookAdmin,
-      Permission.EditRunner,
-    ],
+    update: [],
   })
   @TableColumn({
     required: true,
     type: TableColumnType.Boolean,
     title: "Runs AI Remediation Commands",
     description:
-      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, SSH, kubectl) that either match an allowlist or wait for one-click human approval. Off by default; the in-cluster Runner installed by the Kubernetes agent chart turns it on.",
+      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, SSH, kubectl) that either match an allowlist or wait for one-click human approval. Set by OneUptime: on once an auto remediation rule picks this Runner or a Kubernetes cluster's AI settings bind it, and on for the in-cluster Runner the Kubernetes agent chart installs.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

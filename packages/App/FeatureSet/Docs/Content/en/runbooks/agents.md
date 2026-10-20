@@ -88,17 +88,16 @@ To turn the bundled one off, set `GLOBAL_RUNNER_REPLICAS=0` in Docker Compose's 
 
 ### 1. Create the agent record
 
-Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** and fill in its two steps:
+Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** and fill in its fields, all on one page:
 
-| Field | Step | Notes |
+| Field | Where | Notes |
 | --- | --- | --- |
-| **Name** | **Runner** | A friendly name, usually where it runs and what it can reach, such as `prod-eu-west-1`. This is what you pick when you write a step. |
-| **Description** | **Runner** | Optional. A sentence on what this host can reach. |
-| **Labels** | **Runner** (under **More fields**) | Optional. |
-| **Runs Runbooks** | **Capabilities** | On by default. Lets this Runner take runbook steps. |
-| **Runs AI Remediation Commands** | **Capabilities** | Off by default. Lets AI auto-remediation run policy-checked commands on it. Turning it on for a Runner that holds SSH credentials takes permission to read runbook credentials; see [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands). |
+| **Name** | On the page | A friendly name, usually where it runs and what it can reach, such as `prod-eu-west-1`. This is what you pick when you write a step. |
+| **Description** | On the page | Optional. A sentence on what this host can reach. |
+| **Runs Runbooks** | Under **More fields** | On by default. Lets this Runner take runbook steps. |
+| **Labels** | Under **More fields** | Optional. |
 
-A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI code fixes are not a capability: a code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.
+A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it. An auto remediation rule picks the Runner OneUptime AI runs its commands on, and a Kubernetes cluster's AI settings the Runner its kubectl runs on: picking a Runner there is what lets OneUptime AI's commands run on it. Picking one that holds SSH credentials takes permission to read runbook credentials; see [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands).
 
 ### 2. Copy the install command
 

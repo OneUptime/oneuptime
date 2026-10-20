@@ -31,8 +31,8 @@ export const getActiveLlmTab: (path: string) => LlmTabKey = (
   if (path.includes("/llm/pricing")) {
     return "pricing";
   }
-  if (path.includes("/llm/documentation")) {
-    return "setup";
+  if (path.includes("/llm/connect") || path.includes("/llm/documentation")) {
+    return "connect";
   }
   return "conversations";
 };

@@ -15,7 +15,7 @@ import LlmUsage from "../Pages/Llm/Usage";
 import LlmCalls from "../Pages/Llm/Calls";
 import LlmBudgets from "../Pages/Llm/Budgets";
 import LlmPricing from "../Pages/Llm/Pricing";
-import LlmDocumentationPage from "../Pages/Llm/Documentation";
+import LlmConnectPage from "../Pages/Llm/Connect";
 
 const LlmRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -30,6 +30,15 @@ const LlmRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={LlmRoutePath[PageMap.LLM_OVERVIEW] || ""}
         element={<MovedPageRedirect pageMap={PageMap.LLM_CONVERSATIONS} />}
+      />
+
+      {/*
+       * Setup became Connect: the three ways AI comes into OneUptime, with
+       * the snippets Setup had. Old links and bookmarks land there.
+       */}
+      <PageRoute
+        path={LlmRoutePath[PageMap.LLM_DOCUMENTATION] || ""}
+        element={<MovedPageRedirect pageMap={PageMap.LLM_CONNECT} />}
       />
 
       <PageRoute path="/" element={<LlmLayout {...props} />}>
@@ -114,11 +123,11 @@ const LlmRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={LlmRoutePath[PageMap.LLM_DOCUMENTATION] || ""}
+          path={LlmRoutePath[PageMap.LLM_CONNECT] || ""}
           element={
-            <LlmDocumentationPage
+            <LlmConnectPage
               {...props}
-              pageRoute={RouteMap[PageMap.LLM_DOCUMENTATION] as Route}
+              pageRoute={RouteMap[PageMap.LLM_CONNECT] as Route}
             />
           }
         />

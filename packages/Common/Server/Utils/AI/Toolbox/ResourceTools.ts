@@ -1103,12 +1103,17 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
     }
     /*
      * These aggregators bypass the model query layer. Narrow them to the
-     * services this user may read, as that layer does (TelemetryReadAccess).
+     * services this user may read, as that layer does (TelemetryReadAccess);
+     * a system run's span reads also leave out the company AI tools' private
+     * chats (ToolArgs.spanScope).
      */
     const telemetryScope: TelemetryReadScope =
       signal === "logs"
         ? await TelemetryReadAccess.getScope(Log, ctx.props)
-        : await TelemetryReadAccess.getScope(Span, ctx.props);
+        : await ToolArgs.spanScope(
+            ctx,
+            await TelemetryReadAccess.getScope(Span, ctx.props),
+          );
     const serviceFilter: TelemetryServiceFilter = ToolArgs.scopeServiceIds(
       telemetryScope,
       undefined,
