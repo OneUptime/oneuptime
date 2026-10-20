@@ -1,9 +1,10 @@
 # Calendario della manutenzione
 
-Il calendario della manutenzione mostra la vostra manutenzione programmata per data: come calendario nella dashboard, nelle app di calendario del vostro team tramite un link segreto e nei calendari delle persone che seguono le vostre pagine di stato. Questa pagina spiega la vista calendario, il link del calendario del team, il calendario di una pagina di stato e che cosa contiene ogni evento del calendario.
+Il calendario della manutenzione mostra la vostra manutenzione programmata per data: in una pagina a sé nella dashboard, nelle app di calendario del vostro team tramite un link segreto e nei calendari delle persone che seguono le vostre pagine di stato. Nella sua pagina, accanto ai vostri eventi, possono comparire calendari esterni al progetto, come le festività o un blocco delle modifiche. Questa pagina spiega la pagina del calendario, i calendari esterni, il link del calendario del team, il calendario di una pagina di stato e che cosa contiene ogni evento del calendario.
 
 :::cards
-- [La vista calendario](#la-vista-calendario): Ogni evento su un mese, una settimana o un giorno, nel colore del suo stato.
+- [La pagina del calendario](#la-pagina-del-calendario): Ogni evento su un mese, una settimana o un giorno, nel colore del suo stato.
+- [Calendari esterni](#calendari-esterni): Festività, blocchi delle modifiche o la manutenzione di un altro team, accanto ai vostri eventi.
 - [Il link del calendario del team](#il-link-del-calendario-del-team): Ogni evento del progetto in Google Calendar, Outlook o Calendario Apple.
 - [Il calendario di una pagina di stato](#il-calendario-di-una-pagina-di-stato): Ciò che una pagina di stato mostra, nei calendari dei suoi visitatori.
 - [Che cosa contiene un evento del calendario](#che-cosa-contiene-un-evento-del-calendario): Il titolo, la finestra, lo stato e un link per tornare indietro.
@@ -18,9 +19,9 @@ flowchart TB
     page --> apps
 ```
 
-## La vista calendario
+## La pagina del calendario
 
-Aprite **Manutenzione programmata → Tutti gli eventi**. All'estremità destra della barra dei filtri, **Elenco** e **Calendario** passano dalla tabella degli eventi a un calendario degli stessi. Il browser ricorda la scelta, quindi la volta successiva la pagina si apre sul calendario.
+Aprite **Manutenzione programmata → Calendario della manutenzione**, nella sezione **Calendario** del menu laterale. **Tutti gli eventi** mostra gli stessi eventi come elenco.
 
 - Il calendario si apre sul mese corrente, con il giorno di oggi evidenziato. **Mese**, **Settimana** e **Giorno** cambiano quanto ne mostra; spostatevi con le frecce e tornate indietro con **Oggi**. Gli orari sono nel vostro fuso orario.
 - Ogni evento è un blocco nel colore del suo stato, e i colori degli stati sono indicati sotto il calendario. Fate clic su un evento per aprirlo.
@@ -28,9 +29,41 @@ Aprite **Manutenzione programmata → Tutti gli eventi**. All'estremità destra 
 - Un giorno ancora da venire mostra un **+** quando puntate sulla sua settimana. Apre **Crea evento di manutenzione programmata** con **Inizia il** in quel giorno, all'ora che il modulo sceglierebbe oggi. Lo vedete solo se potete creare eventi.
 - Una vista mostra fino a 500 eventi. Un mese più affollato lo segnala: restringetelo con i filtri o guardate una settimana.
 
+**Tutti gli eventi** un tempo passava da un elenco a un calendario. Se il vostro browser l'ha lasciato l'ultima volta sul calendario, **Tutti gli eventi** apre una volta il **Calendario della manutenzione** e da allora è l'elenco.
+
+## Calendari esterni
+
+La pagina del calendario può mostrare anche gli eventi di calendari esterni al progetto: le festività, un blocco delle modifiche che la vostra azienda tiene in un altro calendario o la manutenzione di un altro team. OneUptime legge ciascuno dal suo link iCalendar (`.ics`) e ne disegna gli eventi accanto ai vostri, più chiari e nel colore del calendario. Sono in sola lettura: non diventano mai eventi di manutenzione, nessuno viene avvisato su di loro e non compaiono mai nei link di calendario del progetto.
+
+:::steps
+### Aggiungere il calendario
+
+Scegliete **Aggiungi calendario esterno** nel menu **⋯** del calendario, oppure aprite **Manutenzione programmata → Impostazioni del calendario**, nella sezione **Impostazioni** del menu laterale, e fate clic su **Aggiungi calendario esterno**. Compilate **Nome** e incollate il suo link in **Link del calendario**. **Altri campi** contiene il suo **Colore** e **Aggiorna**, cioè ogni quanto viene letto: **Ogni ora** se non ne scegliete un altro.
+
+### Verificare che sia stato letto
+
+OneUptime legge subito un nuovo calendario. Il suo **Stato** indica **Funziona** quando è stato letto, e **Ultima lettura** indica quando e quanti eventi ha conservato. Una lettura non riuscita indica **Non funziona**, con il motivo e che cosa fare.
+
+### Mostrarlo o nasconderlo
+
+Ogni calendario esterno ha un interruttore con il suo nome sotto il calendario. Nasconderne uno lo nasconde solo per voi; il browser ricorda la scelta per il progetto.
+:::
+
+Copiate il link dalle impostazioni di condivisione del calendario stesso: in Google Calendar, il suo indirizzo segreto in formato iCal; in Outlook, il link ICS di un calendario pubblicato; in qualsiasi altra app, il suo link `.ics` o `webcal://`. Il link può essere privato: OneUptime lo salva cifrato, non lo mostra più e **Cambia link** lo sostituisce.
+
+| Azione | Che cosa succede |
+| --- | --- |
+| **Leggi ora** | Legge il calendario ora invece che alla prossima lettura. |
+| **Cambia link** | Sostituisce il suo link. Gli eventi del vecchio link vengono dimenticati e il nuovo viene letto subito. |
+| **Disattiva** | Smette di leggerlo e ne nasconde gli eventi a tutti, fino ad **Attiva**. |
+
+Ogni calendario conserva i suoi eventi da 90 giorni fa a un anno avanti, fino a 2.000, prima i più vicini a oggi. Un calendario più grande di 5 MB non viene letto. Gli eventi ricorrenti, le loro eccezioni e i loro fusi orari vengono letti come li ha scritti l'app di calendario, e un evento di un giorno intero resta nella sua data in ogni fuso orario. Un progetto può avere fino a 20 calendari esterni, e una vista del calendario disegna fino a 500 dei loro eventi.
+
+I ruoli che creano, modificano ed eliminano gli eventi di manutenzione programmata aggiungono, cambiano e rimuovono i calendari esterni, e chiunque possa leggere gli eventi li vede nel calendario. OneUptime non legge mai un indirizzo del proprio server né un indirizzo di metadati cloud, e OneUptime Cloud rifiuta gli indirizzi di una rete privata. Un server self-hosted può leggere un calendario della vostra rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia `true`.
+
 ## Il link del calendario del team
 
-**Iscriviti al calendario**, sotto il calendario o nel menu **⋯** dell'elenco, apre il link del calendario del progetto: un unico link iCalendar (`.ics`) segreto che porta ogni evento di manutenzione programmata del progetto in Google Calendar, Outlook, Calendario Apple o in qualsiasi app che si iscrive a un calendario tramite URL.
+**Iscriviti al calendario**, sotto il calendario, apre il link del calendario del progetto: un unico link iCalendar (`.ics`) segreto che porta ogni evento di manutenzione programmata del progetto in Google Calendar, Outlook, Calendario Apple o in qualsiasi app che si iscrive a un calendario tramite URL.
 
 :::steps
 ### Pubblicate il link
@@ -115,6 +148,10 @@ Google Calendar legge il link dai server di Google, quindi il server OneUptime d
 
 :::details Un evento manca dal calendario di una pagina di stato
 Il calendario della pagina contiene ciò che la pagina mostra. Verificate che l'evento indichi la pagina, che **Visibile sulla pagina di stato** sia attivo nelle sue **Impostazioni** e che sia iniziato entro la finestra cronologica della pagina.
+:::
+
+:::details Un calendario esterno indica Non funziona
+Il motivo è sotto **Non funziona** nel suo **Stato**: nessun calendario al link, un link che richiede l'accesso o non è più condiviso, un errore del suo server, un calendario più grande di 5 MB o uno che ripete gli eventi troppo spesso per essere elaborato. Correggete il link con **Cambia link**, oppure usate **Leggi ora** quando il calendario è di nuovo raggiungibile. Fino ad allora, il calendario mostra gli eventi della sua ultima lettura riuscita.
 :::
 
 ## Passaggi successivi

@@ -11,8 +11,23 @@ import {
   MAINTENANCE_CALENDAR_VIEW_LIMIT,
   getScheduleStartForDay,
 } from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceCalendarView";
+import {
+  HIDDEN_EXTERNAL_CALENDARS_STORAGE_KEY_PREFIX,
+  MAINTENANCE_CALENDAR_OVERLAY_LIMIT,
+} from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceCalendarOverlays";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
+import ScheduledMaintenanceExternalCalendar from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
+import {
+  EXTERNAL_CALENDARS_PER_PROJECT,
+  EXTERNAL_CALENDAR_DEFAULT_REFRESH_INTERVAL_IN_MINUTES,
+  EXTERNAL_CALENDAR_FUTURE_DAYS,
+  EXTERNAL_CALENDAR_MAX_BYTES,
+  EXTERNAL_CALENDAR_MAX_EVENTS,
+  EXTERNAL_CALENDAR_PAST_DAYS,
+  EXTERNAL_CALENDAR_VIEW_LIMIT,
+  ExternalCalendarReadError,
+} from "Common/Types/ScheduledMaintenance/ExternalCalendar";
 import Permission from "Common/Types/Permission";
 import { PREVIOUS_TOKEN_GRACE_DAYS } from "Common/Types/OnCallDutyPolicy/CalendarFeedWindow";
 import MaintenanceCalendar, {
@@ -26,7 +41,8 @@ import path from "path";
 
 /*
  * The Maintenance Calendar page names a great deal of the product: the
- * List | Calendar switch and what the calendar view does, the team's
+ * calendar's own page and what it does, the calendars from outside the
+ * project and Calendar Settings, the team's
  * calendar link and its dialog, who may hold the link, how long a
  * regenerated link stays an empty calendar, the window and the cap of the
  * team's calendar, a status page's calendar and its Add to calendar, what
@@ -88,8 +104,40 @@ const CALENDAR_CARD: string = readDashboardSource(
 const EVENTS_TABLE: string = readDashboardSource(
   `${DASHBOARD_DIR}/ScheduledMaintenanceTable.tsx`,
 );
-const VIEW_CHOICE: string = readDashboardSource(
-  `${DASHBOARD_DIR}/ScheduledMaintenanceViewChoice.ts`,
+const VIEW_MODULE: string = readDashboardSource(
+  `${DASHBOARD_DIR}/ScheduledMaintenanceView.ts`,
+);
+const OVERLAYS: string = readDashboardSource(
+  `${DASHBOARD_DIR}/MaintenanceCalendarOverlays.ts`,
+);
+const EXTERNAL_STATUS: string = readDashboardSource(
+  `${DASHBOARD_DIR}/ExternalCalendarStatus.ts`,
+);
+const ALL_EVENTS_PAGE: string = readDashboardSource(
+  "Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents.tsx",
+);
+const CALENDAR_PAGE: string = readDashboardSource(
+  "Pages/ScheduledMaintenanceEvents/Calendar.tsx",
+);
+const SIDE_MENU: string = readDashboardSource(
+  "Pages/ScheduledMaintenanceEvents/SideMenu.tsx",
+);
+// Where the side menu's next section begins: "    {" then its title, a line on.
+const NEXT_SECTION_PATTERN: RegExp = /\n {4}\{\n {6}title: "/;
+const SETTINGS_PAGE: string = readDashboardSource(
+  "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings.tsx",
+);
+const EXTERNAL_CALENDAR_MODEL: string = readCommonSource(
+  "Models/DatabaseModels/ScheduledMaintenanceExternalCalendar.ts",
+);
+const EXTERNAL_CALENDAR_SERVICE: string = readCommonSource(
+  "Server/Services/ScheduledMaintenanceExternalCalendarService.ts",
+);
+const EXTERNAL_FETCH: string = readCommonSource(
+  "Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarFetch.ts",
+);
+const EGRESS_GUARD: string = readCommonSource(
+  "Server/Utils/DataSource/EgressGuard.ts",
 );
 const CALENDAR_API: string = readCommonSource(
   "Server/API/ScheduledMaintenanceCalendarAPI.ts",
@@ -143,28 +191,68 @@ describe("the Maintenance Calendar page in the nav", () => {
   });
 });
 
-describe("the calendar view", () => {
-  it("is switched on with List and Calendar, the list first, the choice remembered", () => {
-    expect(PAGE).toContain("**List** and **Calendar** switch between");
-    expect(PAGE).toContain("Your browser remembers the choice");
+// The side menu's section that holds a title, up to the next section.
+function menuSection(title: string): string {
+  const start: number = SIDE_MENU.indexOf(`title: "${title}",`);
 
-    const labels: Array<string> = Array.from(
-      VIEW_CHOICE.matchAll(/label: translationKey\("([^"]+)"\)/g),
-      (match: RegExpMatchArray): string => {
-        return match[1]!;
-      },
+  expect({ section: title, found: start > -1 }).toEqual({
+    section: title,
+    found: true,
+  });
+
+  const rest: string = SIDE_MENU.slice(start + 1);
+  const next: number = rest.search(NEXT_SECTION_PATTERN);
+
+  return next === -1 ? rest : rest.slice(0, next);
+}
+
+// A permission list, in one order.
+function sortedPermissions(permissions: Array<Permission>): Array<Permission> {
+  return [...permissions].sort();
+}
+
+describe("the calendar page", () => {
+  it("is a page of its own, in the side menu's Calendar section, beside the list on All Events", () => {
+    expect(PAGE).toContain(
+      "Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Events** shows the same events as a list.",
     );
 
-    expect(labels).toEqual(["List", "Calendar"]);
-    expect(VIEW_CHOICE).toContain(
-      "defaultValue: ScheduledMaintenanceView.List",
+    const calendarSection: string = menuSection("Calendar");
+
+    expect(calendarSection).toContain('title: "Maintenance Calendar"');
+    expect(calendarSection).toContain(
+      "PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR",
     );
-    expect(VIEW_CHOICE).toContain(
-      "new RememberedView<ScheduledMaintenanceView>",
+    // Open, like Overview: not one of the folded sections.
+    expect(calendarSection).not.toContain("defaultCollapsed");
+
+    expect(CALENDAR_PAGE).toContain('"Maintenance Calendar"');
+    expect(CALENDAR_PAGE).toContain("view={ScheduledMaintenanceView.Calendar}");
+
+    // All Events is the list alone: no switch left on it.
+    expect(ALL_EVENTS_PAGE).not.toContain("ScheduledMaintenanceView.Calendar");
+    expect(EVENTS_TABLE).not.toContain("ViewSwitch");
+    expect(EVENTS_TABLE).not.toContain("filterBarEnd");
+  });
+
+  it("takes a reader who had left All Events on its old Calendar switch to the calendar, once", () => {
+    expect(PAGE).toContain(
+      "**All Events** used to switch between a list and a calendar. If your browser last left it on the calendar, **All Events** opens **Maintenance Calendar** once, and is the list from then on.",
     );
-    // At the right end of the filter bar, where the page says.
-    expect(PAGE).toContain("At the right end of the filter bar");
-    expect(EVENTS_TABLE).toContain("filterBarEnd: viewSwitch");
+
+    // The key and the value the old switch (RememberedView) kept the choice under.
+    expect(declaredString(VIEW_MODULE, "PREVIOUS_VIEW_STORAGE_KEY")).toBe(
+      "oneuptime.scheduled-maintenance-view",
+    );
+    expect(VIEW_MODULE).toContain('Calendar = "calendar"');
+    // Forgotten as soon as it is read: once.
+    expect(VIEW_MODULE).toContain(
+      "store.removeItem(PREVIOUS_VIEW_STORAGE_KEY);",
+    );
+    expect(ALL_EVENTS_PAGE).toContain("if (takePreviousCalendarChoice()) {");
+    expect(ALL_EVENTS_PAGE).toContain(
+      "RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR] as Route",
+    );
   });
 
   it("offers a month, a week and a day, opening on the month", () => {
@@ -259,15 +347,243 @@ describe("the calendar view", () => {
   });
 });
 
+describe("external calendars", () => {
+  const external: string = PAGE.slice(
+    PAGE.indexOf("## External calendars"),
+    PAGE.indexOf("## The team's calendar link"),
+  );
+
+  it("are added from the calendar's ⋯, which opens the Add dialog, or on Calendar Settings, in the side menu's folded Settings", () => {
+    expect(external).toContain(
+      "Pick **Add External Calendar** in the calendar's **⋯** menu, or open **Scheduled Maintenance → Calendar Settings**, in the **Settings** section of the side menu, and click **Add External Calendar**.",
+    );
+
+    const settingsSection: string = menuSection("Settings");
+
+    expect(settingsSection).toContain("defaultCollapsed: true");
+    expect(settingsSection).toContain('title: "Calendar Settings"');
+    expect(settingsSection).toContain(
+      "PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR",
+    );
+
+    // In the calendar's ⋯, for whoever may add one.
+    expect(EVENTS_TABLE).toContain('title: "Add External Calendar"');
+    expect(EVENTS_TABLE).toContain(
+      "new ScheduledMaintenanceExternalCalendar(),\n      ModelAction.Create,",
+    );
+
+    /*
+     * It opens Calendar Settings with the Add dialog open (the ask in the
+     * address), not the list, where the same button would be one more step.
+     */
+    expect(EVENTS_TABLE).toContain(
+      ".addQueryParams(getAddExternalCalendarQuery())",
+    );
+    expect(SETTINGS_PAGE).toContain("showCreateForm={isAddAsked}");
+    expect(SETTINGS_PAGE).toContain(
+      "isAddExternalCalendarAsked(Navigation.getQueryString())",
+    );
+  });
+
+  it("is added with a Name and a Calendar Link, its Color and Refresh under More fields, read every hour unless another is picked", () => {
+    expect(external).toContain(
+      "Give it a **Name** and paste its **Calendar Link**. **More fields** holds its **Color** and **Refresh**, how often it is read: **Every hour** unless you pick another.",
+    );
+
+    // The table's own Add button: its verb and its thing.
+    expect(SETTINGS_PAGE).toContain('singularName="External Calendar"');
+    expect(SETTINGS_PAGE).toContain('createVerb="Add"');
+
+    // The create form's fields: up to the table's filters.
+    const form: string = SETTINGS_PAGE.slice(
+      SETTINGS_PAGE.indexOf("formFields={["),
+      SETTINGS_PAGE.indexOf("filters={["),
+    );
+    const fields: Array<string> = form.split("field: {").slice(1);
+    const titleOf: (field: string) => string = (field: string): string => {
+      return field.match(/title: "([^"]+)"/)?.[1] || "";
+    };
+
+    expect(fields.map(titleOf)).toEqual([
+      "Name",
+      "Calendar Link",
+      "Color",
+      "Refresh",
+    ]);
+
+    for (const field of fields) {
+      expect({
+        field: titleOf(field),
+        folded: field.includes("collapsibleSection: moreFields"),
+      }).toEqual({
+        field: titleOf(field),
+        folded: ["Color", "Refresh"].includes(titleOf(field)),
+      });
+    }
+
+    expect(SETTINGS_PAGE).toContain("getAdvancedFormSection");
+    expect(EXTERNAL_CALENDAR_DEFAULT_REFRESH_INTERVAL_IN_MINUTES).toBe(60);
+    expect(EXTERNAL_STATUS).toContain('60: translationKey("Every hour")');
+  });
+
+  it("is read as soon as it is added, and says how the read went", () => {
+    expect(external).toContain("OneUptime reads a new calendar at once.");
+    expect(SETTINGS_PAGE).toContain("await readExternalCalendarNow(item.id);");
+
+    expect(external).toContain(
+      "Its **Status** says **Working** once it is read, and **Last read** says when, and how many events it kept. A read that failed says **Not working**, with the reason and what to do about it.",
+    );
+    expect(SETTINGS_PAGE).toContain('title: "Status"');
+    expect(SETTINGS_PAGE).toContain('title: "Last read"');
+    expect(EXTERNAL_STATUS).toContain('label: translationKey("Working")');
+    expect(EXTERNAL_STATUS).toContain('label: translationKey("Not working")');
+  });
+
+  it("is shown or hidden by each reader with its toggle, the choice kept in their browser for the project", () => {
+    expect(external).toContain(
+      "Each external calendar has a toggle with its name under the calendar. Hiding one hides it for you alone; your browser remembers the choice for the project.",
+    );
+    expect(CALENDAR_CARD).toContain("<ExternalCalendarToggles");
+    expect(HIDDEN_EXTERNAL_CALENDARS_STORAGE_KEY_PREFIX).toBe(
+      "oneuptime.maintenance-calendar.hidden-calendars.",
+    );
+    expect(OVERLAYS).toContain(
+      "return `${HIDDEN_EXTERNAL_CALENDARS_STORAGE_KEY_PREFIX}${projectId}`;",
+    );
+  });
+
+  it("keeps the link encrypted and never shows it again, Change link replacing it", () => {
+    expect(external).toContain(
+      "The link can be a private one: OneUptime stores it encrypted, never shows it again, and **Change link** replaces it.",
+    );
+
+    const declaration: number = EXTERNAL_CALENDAR_MODEL.indexOf(
+      "public calendarUrl?: string",
+    );
+    const column: string = EXTERNAL_CALENDAR_MODEL.slice(
+      EXTERNAL_CALENDAR_MODEL.lastIndexOf("@ColumnAccessControl", declaration),
+      declaration,
+    );
+
+    expect(column).toContain("read: [],");
+    expect(column).toContain("encrypted: true,");
+  });
+
+  it("is read now, given a new link or turned off with the actions the table names", () => {
+    for (const label of ["Read now", "Change link", "Turn off", "Turn on"]) {
+      expect(external).toContain(`**${label}**`);
+      expect(SETTINGS_PAGE).toContain(`title: "${label}"`);
+    }
+
+    expect(external).toContain(
+      "| **Change link** | Replaces its link. The events of the old link are forgotten, and the new one is read at once. |",
+    );
+    // A new link forgets the old link's events.
+    expect(EXTERNAL_CALENDAR_SERVICE).toContain("deleteEventsOfCalendar(");
+
+    expect(external).toContain(
+      "| **Turn off** | Stops reading it and hides its events from everyone, until **Turn on**. |",
+    );
+    // The calendar draws only the calendars turned on.
+    expect(CALENDAR_CARD).toContain("isEnabled: true,");
+  });
+
+  it("keeps the window, the number of events and the size the page says", () => {
+    expect(external).toContain(
+      `Each calendar keeps its events from ${EXTERNAL_CALENDAR_PAST_DAYS} days back to a year ahead, up to ${EXTERNAL_CALENDAR_MAX_EVENTS.toLocaleString("en-US")} of them, the nearest today first. A calendar larger than ${EXTERNAL_CALENDAR_MAX_BYTES / (1024 * 1024)} MB is not read.`,
+    );
+    expect(EXTERNAL_CALENDAR_FUTURE_DAYS).toBe(365);
+
+    expect(external).toContain(
+      `A project can have up to ${EXTERNAL_CALENDARS_PER_PROJECT} external calendars, and one view of the calendar draws up to ${MAINTENANCE_CALENDAR_OVERLAY_LIMIT} of their events.`,
+    );
+    expect(MAINTENANCE_CALENDAR_OVERLAY_LIMIT).toBe(
+      EXTERNAL_CALENDAR_VIEW_LIMIT,
+    );
+  });
+
+  it("lets the roles that create, edit and delete events add, change and remove them, and every reader of the events see them", () => {
+    expect(external).toContain(
+      "The roles that create, edit and delete scheduled maintenance events add, change and remove external calendars, and anyone who can read the events sees them on the calendar.",
+    );
+
+    const calendar: ScheduledMaintenanceExternalCalendar =
+      new ScheduledMaintenanceExternalCalendar();
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+
+    expect(sortedPermissions(calendar.createRecordPermissions)).toEqual(
+      sortedPermissions(event.createRecordPermissions),
+    );
+    expect(sortedPermissions(calendar.updateRecordPermissions)).toEqual(
+      sortedPermissions(event.updateRecordPermissions),
+    );
+    expect(sortedPermissions(calendar.deleteRecordPermissions)).toEqual(
+      sortedPermissions(event.deleteRecordPermissions),
+    );
+    expect(sortedPermissions(calendar.readRecordPermissions)).toEqual(
+      sortedPermissions(event.readRecordPermissions),
+    );
+  });
+
+  it("never reads the server itself, and on OneUptime Cloud no private network either", () => {
+    expect(external).toContain(
+      "OneUptime never reads an address on its own server or a cloud metadata address, and OneUptime Cloud refuses addresses on a private network. A self-hosted server can read a calendar on your own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`.",
+    );
+    expect(EXTERNAL_FETCH).toContain(
+      "DataSourceEgressGuard.assertUrlAllowedAndPin(url, {",
+    );
+    expect(EGRESS_GUARD).toContain("metadata lives at 169.254.169.254");
+    expect(EGRESS_GUARD).toContain("blocked when billing is enabled");
+    expect(EGRESS_GUARD).toContain("DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES");
+  });
+
+  it("never puts them in the project's own calendar links", () => {
+    expect(external).toContain(
+      "they never appear in the project's own calendar links.",
+    );
+
+    for (const source of [CALENDAR_API, TEAM_CALENDAR, STATUS_PAGE_FEED]) {
+      expect(source).not.toContain("ExternalCalendar");
+    }
+  });
+
+  it("says why a calendar is not working with the reasons its Status gives", () => {
+    const troubleshooting: string = PAGE.slice(
+      PAGE.indexOf(":::details An external calendar says Not working"),
+    );
+
+    expect(troubleshooting).toContain(
+      "The reason is under **Not working** in its **Status**",
+    );
+
+    for (const reason of [
+      ExternalCalendarReadError.NotFound,
+      ExternalCalendarReadError.AccessDenied,
+      ExternalCalendarReadError.ServerError,
+      ExternalCalendarReadError.TooLarge,
+      ExternalCalendarReadError.TooComplex,
+    ]) {
+      expect(EXTERNAL_STATUS).toContain(
+        `[ExternalCalendarReadError.${reason}]: translationKey(`,
+      );
+    }
+
+    // The reason is said under the pill, not kept in a tooltip.
+    expect(SETTINGS_PAGE).toContain(
+      "translator.translateTemplate(\n                health.tooltip,",
+    );
+  });
+});
+
 describe("the team's calendar link", () => {
-  it("is opened by Subscribe to calendar, under the calendar and in the list's ⋯", () => {
+  it("is opened by Subscribe to calendar, under the calendar", () => {
     expect(PAGE).toContain(
-      "**Subscribe to calendar**, under the calendar or in the list's **⋯** menu",
+      "**Subscribe to calendar**, under the calendar, opens the project's calendar link",
     );
     expect(CALENDAR_CARD).toContain('title="Subscribe to calendar"');
-    expect(EVENTS_TABLE).toContain('title: "Subscribe to calendar"');
-    // The list's secondary header buttons fold into its ⋯.
-    expect(EVENTS_TABLE).toContain("[...cardbuttons, subscribeButton]");
+    // Only the calendar offers it: All Events is the list alone.
+    expect(EVENTS_TABLE).not.toContain('title: "Subscribe to calendar"');
+    expect(EVENTS_TABLE).toContain("buttons: cardbuttons,");
   });
 
   it("is published, copied, regenerated and disabled with the buttons the page names", () => {

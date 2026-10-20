@@ -20,7 +20,7 @@
 | **ラベルルール**   | 一致したイベントにラベルを追加します。                              |
 | **リマインダールール** | イベントが完了するまで、一定の間隔で所有者にリマインドします。  |
 
-**設定** セクションには、 [メンテナンスの状態](/docs/scheduled-maintenance/states) で説明する **イベントの状態**、 [テンプレートと繰り返しイベント](/docs/scheduled-maintenance/templates) で説明する **イベントテンプレート**、そして以下で説明する **メモテンプレート**、 **カスタムフィールド**、 **測定値**、 **採番** があります。
+**設定** セクションには、 [メンテナンスの状態](/docs/scheduled-maintenance/states) で説明する **イベントの状態**、 [テンプレートと繰り返しイベント](/docs/scheduled-maintenance/templates) で説明する **イベントテンプレート**、そして **メモテンプレート**、 **カスタムフィールド**、 **測定値**、 **カレンダー設定**、 **採番** があります。 **カレンダー設定** は [メンテナンスカレンダー](/docs/scheduled-maintenance/calendar#外部カレンダー) で、残りは以下で説明します。
 
 **ワークスペース** セクションには、イベントをチャンネルに投稿する Slack と Microsoft Teams のルールがあります。 [Slack](/docs/workspace-connections/slack#通知ルール) と [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知ルール) を参照してください。
 

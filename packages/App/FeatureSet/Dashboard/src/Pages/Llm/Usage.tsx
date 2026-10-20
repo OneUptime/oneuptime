@@ -18,7 +18,7 @@ import LlmProviderUsage from "../../Components/AI/LlmProviderUsage";
  * holds those same calls. The source is in the address (?source=providers)
  * so a link opens the view it was copied from.
  *
- * The switch is the product's own view switch (as List | Calendar is), with
+ * The switch is the product's own view switch (as Month | Week | Day is), with
  * what the picked source is said beside it.
  */
 

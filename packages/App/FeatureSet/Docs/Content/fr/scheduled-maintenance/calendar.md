@@ -1,9 +1,10 @@
 # Calendrier de maintenance
 
-Le calendrier de maintenance montre votre maintenance planifiée par date : comme calendrier dans le tableau de bord, dans les applications de calendrier de votre équipe grâce à un lien secret, et dans les calendriers des personnes qui suivent vos pages de statut. Cette page explique la vue calendrier, le lien de calendrier de l'équipe, le calendrier d'une page de statut et ce que contient chaque événement de calendrier.
+Le calendrier de maintenance montre votre maintenance planifiée par date : sur une page à part dans le tableau de bord, dans les applications de calendrier de votre équipe grâce à un lien secret, et dans les calendriers des personnes qui suivent vos pages de statut. Sur sa page, des calendriers extérieurs au projet, comme les jours fériés ou un gel des changements, peuvent s'afficher à côté de vos événements. Cette page explique la page du calendrier, les calendriers externes, le lien de calendrier de l'équipe, le calendrier d'une page de statut et ce que contient chaque événement de calendrier.
 
 :::cards
-- [La vue calendrier](#la-vue-calendrier): Chaque événement sur un mois, une semaine ou un jour, dans la couleur de son état.
+- [La page du calendrier](#la-page-du-calendrier): Chaque événement sur un mois, une semaine ou un jour, dans la couleur de son état.
+- [Calendriers externes](#calendriers-externes): Jours fériés, gels des changements ou maintenance d'une autre équipe, à côté de vos événements.
 - [Le lien de calendrier de l'équipe](#le-lien-de-calendrier-de-léquipe): Chaque événement du projet dans Google Agenda, Outlook ou Apple Calendrier.
 - [Le calendrier d'une page de statut](#le-calendrier-dune-page-de-statut): Ce qu'une page de statut montre, dans les calendriers de ses visiteurs.
 - [Ce que contient un événement de calendrier](#ce-que-contient-un-événement-de-calendrier): Le titre, la plage horaire, l'état et un lien de retour.
@@ -18,9 +19,9 @@ flowchart TB
     page --> apps
 ```
 
-## La vue calendrier
+## La page du calendrier
 
-Ouvrez **Maintenance planifiée → Tous les événements**. À l'extrémité droite de la barre de filtres, **Liste** et **Calendrier** basculent entre le tableau des événements et un calendrier de ceux-ci. Votre navigateur retient ce choix, et la page s'ouvre donc sur le calendrier la fois suivante.
+Ouvrez **Maintenance planifiée → Calendrier de maintenance**, dans la section **Calendrier** du menu latéral. **Tous les événements** montre les mêmes événements sous forme de liste.
 
 - Le calendrier s'ouvre sur le mois en cours, avec aujourd'hui mis en évidence. **Mois**, **Semaine** et **Jour** changent ce qu'il montre ; naviguez avec les flèches et revenez avec **Aujourd'hui**. Les heures sont dans votre propre fuseau horaire.
 - Chaque événement est un bloc de la couleur de son état, et les couleurs des états sont nommées sous le calendrier. Cliquez sur un événement pour l'ouvrir.
@@ -28,9 +29,41 @@ Ouvrez **Maintenance planifiée → Tous les événements**. À l'extrémité dr
 - Un jour encore à venir affiche un **+** quand vous pointez sa semaine. Il ouvre **Créer un événement de maintenance planifiée** avec **Commence le** à ce jour, à l'heure que le formulaire choisirait aujourd'hui. Vous ne le voyez que si vous pouvez créer des événements.
 - Une vue montre jusqu'à 500 événements. Un mois plus chargé le signale : affinez-le avec les filtres, ou regardez une semaine.
 
+**Tous les événements** basculait autrefois entre une liste et un calendrier. Si votre navigateur l'a laissé en dernier sur le calendrier, **Tous les événements** ouvre une fois le **Calendrier de maintenance**, puis reste la liste.
+
+## Calendriers externes
+
+La page du calendrier peut aussi afficher les événements de calendriers extérieurs au projet : les jours fériés, un gel des changements que votre entreprise tient dans un autre calendrier, ou la maintenance d'une autre équipe. OneUptime lit chacun depuis son lien iCalendar (`.ics`) et dessine ses événements à côté des vôtres, plus clairs et dans la couleur propre au calendrier. Ils sont en lecture seule : ils ne deviennent jamais des événements de maintenance, personne n'est notifié à leur sujet, et ils n'apparaissent jamais dans les liens de calendrier du projet.
+
+:::steps
+### Ajouter le calendrier
+
+Choisissez **Ajouter un calendrier externe** dans le menu **⋯** du calendrier, ou ouvrez **Maintenance planifiée → Paramètres du calendrier**, dans la section **Paramètres** du menu latéral, et cliquez sur **Ajouter un calendrier externe**. Renseignez **Nom** et collez son lien dans **Lien du calendrier**. **Plus de champs** contient sa **Couleur** et **Actualiser**, la fréquence de lecture : **Toutes les heures** sauf si vous en choisissez une autre.
+
+### Vérifier qu'il a été lu
+
+OneUptime lit un nouveau calendrier aussitôt. Son **Statut** indique **Fonctionne** une fois qu'il est lu, et **Dernière lecture** indique quand, et combien d'événements il a conservés. Une lecture qui a échoué indique **Ne fonctionne pas**, avec la raison et ce qu'il faut faire.
+
+### L'afficher ou le masquer
+
+Chaque calendrier externe a un interrupteur à son nom sous le calendrier. En masquer un ne le masque que pour vous ; votre navigateur retient ce choix pour le projet.
+:::
+
+Copiez le lien depuis les paramètres de partage du calendrier lui-même : dans Google Agenda, son adresse secrète au format iCal ; dans Outlook, le lien ICS d'un calendrier publié ; dans toute autre application, son lien `.ics` ou `webcal://`. Le lien peut être privé : OneUptime le stocke chiffré, ne l'affiche plus jamais, et **Changer le lien** le remplace.
+
+| Action | Ce qui se passe |
+| --- | --- |
+| **Lire maintenant** | Lit le calendrier maintenant plutôt qu'à sa prochaine lecture. |
+| **Changer le lien** | Remplace son lien. Les événements de l'ancien lien sont oubliés, et le nouveau est lu aussitôt. |
+| **Désactiver** | Arrête de le lire et masque ses événements pour tout le monde, jusqu'à **Activer**. |
+
+Chaque calendrier conserve ses événements de 90 jours en arrière à un an en avant, jusqu'à 2 000, les plus proches d'aujourd'hui d'abord. Un calendrier de plus de 5 Mo n'est pas lu. Les événements récurrents, leurs exceptions et leurs fuseaux horaires sont lus tels que l'application de calendrier les a écrits, et un événement d'une journée entière reste à sa date dans chaque fuseau horaire. Un projet peut avoir jusqu'à 20 calendriers externes, et une vue du calendrier dessine jusqu'à 500 de leurs événements.
+
+Les rôles qui créent, modifient et suppriment les événements de maintenance planifiée ajoutent, modifient et retirent les calendriers externes, et toute personne qui peut lire les événements les voit sur le calendrier. OneUptime ne lit jamais une adresse de son propre serveur ni une adresse de métadonnées cloud, et OneUptime Cloud refuse les adresses d'un réseau privé. Un serveur auto-hébergé peut lire un calendrier de votre propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`.
+
 ## Le lien de calendrier de l'équipe
 
-**S'abonner au calendrier**, sous le calendrier ou dans le menu **⋯** de la liste, ouvre le lien de calendrier du projet : un lien iCalendar (`.ics`) secret qui place chaque événement de maintenance planifiée du projet dans Google Agenda, Outlook, Apple Calendrier ou toute application qui s'abonne à un calendrier par URL.
+**S'abonner au calendrier**, sous le calendrier, ouvre le lien de calendrier du projet : un lien iCalendar (`.ics`) secret qui place chaque événement de maintenance planifiée du projet dans Google Agenda, Outlook, Apple Calendrier ou toute application qui s'abonne à un calendrier par URL.
 
 :::steps
 ### Publier le lien
@@ -115,6 +148,10 @@ Google Agenda lit le lien depuis les serveurs de Google, le serveur OneUptime do
 
 :::details Un événement manque dans le calendrier d'une page de statut
 Le calendrier de la page contient ce que la page montre. Vérifiez que l'événement nomme la page, que **Visible sur la page de statut** est activé dans ses **Paramètres**, et qu'il a commencé dans la période d'historique de la page.
+:::
+
+:::details Un calendrier externe indique Ne fonctionne pas
+La raison figure sous **Ne fonctionne pas** dans son **Statut** : aucun calendrier à ce lien, un lien qui demande une connexion ou qui n'est plus partagé, une erreur de son serveur, un calendrier de plus de 5 Mo, ou un calendrier qui répète des événements trop souvent pour être traité. Corrigez le lien avec **Changer le lien**, ou utilisez **Lire maintenant** une fois le calendrier de retour. D'ici là, le calendrier affiche les événements de sa dernière lecture réussie.
 :::
 
 ## Prochaines étapes
