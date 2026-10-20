@@ -31641,5 +31641,6 @@
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.": "{{function}} è passata da {{before}} a {{after}} del totale di {{kind}}.",
   "{{function}}: share of the {{kind}}": "{{function}}: quota del totale di {{kind}}",
   "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.": "{{self}} è il tempo nel codice proprio della funzione. {{total}} aggiunge tutto ciò che chiama.",
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}} ha speso {{share}} del totale di {{kind}} in {{function}}."
+  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}} ha speso {{share}} del totale di {{kind}} in {{function}}.",
+  "Performance profile": "Profilo di prestazioni"
 }

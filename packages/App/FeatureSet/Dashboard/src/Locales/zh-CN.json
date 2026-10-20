@@ -31641,5 +31641,6 @@
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.": "{{function}} 在 {{kind}} 中的占比从 {{before}} 变为 {{after}}。",
   "{{function}}: share of the {{kind}}": "{{function}}：{{kind}} 占比",
   "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.": "{{self}} 是函数自身代码中花费的时间。{{total}} 还包括它调用的一切。",
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}} 把 {{kind}} 的 {{share}} 花在了 {{function}} 上。"
+  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}} 把 {{kind}} 的 {{share}} 花在了 {{function}} 上。",
+  "Performance profile": "性能剖析"
 }

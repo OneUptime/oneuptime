@@ -31641,5 +31641,6 @@
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.": "{{function}} gick från {{before}} till {{after}} av {{kind}}.",
   "{{function}}: share of the {{kind}}": "{{function}}: andel av {{kind}}",
   "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.": "{{self}} är tiden i funktionens egen kod. {{total}} lägger till allt den anropar.",
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "I {{service}} gick {{share}} av {{kind}} till {{function}}."
+  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "I {{service}} gick {{share}} av {{kind}} till {{function}}.",
+  "Performance profile": "Prestandaprofil"
 }

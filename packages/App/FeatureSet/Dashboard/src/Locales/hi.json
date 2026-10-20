@@ -31641,5 +31641,6 @@
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.": "{{function}} का {{kind}} में हिस्सा {{before}} से {{after}} हो गया।",
   "{{function}}: share of the {{kind}}": "{{function}}: {{kind}} में हिस्सा",
   "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.": "{{self}} फ़ंक्शन के अपने कोड में लगा समय है। {{total}} में वह सब जुड़ जाता है जिसे यह कॉल करता है।",
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}} में {{kind}} का {{share}} {{function}} में गया।"
+  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}} में {{kind}} का {{share}} {{function}} में गया।",
+  "Performance profile": "प्रदर्शन प्रोफ़ाइल"
 }

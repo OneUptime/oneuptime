@@ -231,8 +231,12 @@ export const CODE_TASK_CONTEXT_KINDS: Record<
     icon: IconProp.Logs,
     isRecord: true,
   },
+  /*
+   * "Performance profile", not "Profile": the locales word "Profile" as a
+   * person's profile (User Settings), which a CPU profile is not.
+   */
   [CodeTaskContextType.Profile]: {
-    label: translationKey("Profile"),
+    label: translationKey("Performance profile"),
     addTitle: translationKey("Add a profile"),
     icon: IconProp.Fire,
     isRecord: true,

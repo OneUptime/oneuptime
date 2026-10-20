@@ -31641,5 +31641,6 @@
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.": "{{function}}의 {{kind}} 비율이 {{before}}에서 {{after}}(으)로 바뀌었습니다.",
   "{{function}}: share of the {{kind}}": "{{function}}: {{kind}} 비율",
   "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.": "{{self}}은(는) 함수 자체 코드에서 쓴 시간입니다. {{total}}은(는) 함수가 호출하는 모든 것을 더합니다.",
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}}은(는) {{kind}}의 {{share}}을(를) {{function}}에서 썼습니다."
+  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "{{service}}은(는) {{kind}}의 {{share}}을(를) {{function}}에서 썼습니다.",
+  "Performance profile": "성능 프로파일"
 }

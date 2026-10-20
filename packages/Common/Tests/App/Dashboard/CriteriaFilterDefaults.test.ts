@@ -1,4 +1,8 @@
-import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import CriteriaFilterUtil, {
+  PROFILE_CHECK_ON_LABELS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import fs from "fs";
+import path from "path";
 import {
   CheckOn,
   CriteriaFilter,
@@ -842,5 +846,63 @@ describe("Criteria filter defaults", () => {
         filter!.filterType!.toString(),
       );
     });
+  });
+});
+
+/*
+ * A Profiles monitor's criteria dropdown draws each option's label (its
+ * CheckOn value) in the reader's language: the two numbers it compares are
+ * spelled out for the locale files, and every locale words them.
+ */
+describe("the Profiles criteria, in every language", () => {
+  const LOCALES_DIR: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+
+  function readLocale(locale: string): Record<string, unknown> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${locale}.json`), "utf8"),
+    ) as Record<string, unknown>;
+  }
+
+  test("the labels spelled out for the locale files are the options' labels, in order", () => {
+    expect(
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
+        MonitorType.Profiles,
+      ).map((option: DropdownOption): unknown => {
+        return option.label;
+      }),
+    ).toEqual([...PROFILE_CHECK_ON_LABELS]);
+  });
+
+  test("English ships each label as a key, and every other locale has its own words", () => {
+    const locales: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json");
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(locales).toHaveLength(17);
+
+    for (const locale of locales) {
+      const words: Record<string, unknown> = readLocale(locale);
+
+      for (const label of PROFILE_CHECK_ON_LABELS) {
+        const value: unknown = words[label];
+
+        expect({
+          locale,
+          label,
+          worded:
+            typeof value === "string" &&
+            value.trim() !== "" &&
+            (locale === "en" ? value === label : value !== label),
+        }).toEqual({ locale, label, worded: true });
+      }
+    }
   });
 });

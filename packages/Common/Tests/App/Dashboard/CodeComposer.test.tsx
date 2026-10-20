@@ -511,7 +511,7 @@ describe("adding context", () => {
       "Monitor",
       "Trace",
       "Logs",
-      "Profile",
+      "Performance profile",
     ]);
   });
 

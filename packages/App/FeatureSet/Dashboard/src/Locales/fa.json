@@ -31641,5 +31641,6 @@
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.": "سهم {{function}} از {{kind}} از {{before}} به {{after}} رسید.",
   "{{function}}: share of the {{kind}}": "{{function}}: سهم از {{kind}}",
   "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.": "{{self}} زمانی است که در کد خود تابع صرف شده است. {{total}} هرچه را فراخوانی می‌کند نیز اضافه می‌کند.",
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "در {{service}}، {{share}} از {{kind}} صرف {{function}} شد."
+  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "در {{service}}، {{share}} از {{kind}} صرف {{function}} شد.",
+  "Performance profile": "پروفایل کارایی"
 }

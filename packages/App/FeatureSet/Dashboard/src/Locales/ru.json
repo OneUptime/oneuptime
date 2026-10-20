@@ -31641,5 +31641,6 @@
   "{{function}} went from {{before}} to {{after}} of the {{kind}}.": "Доля {{function}} по метрике «{{kind}}» изменилась с {{before}} до {{after}}.",
   "{{function}}: share of the {{kind}}": "{{function}}: доля по метрике «{{kind}}»",
   "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.": "{{self}} — время в собственном коде функции. {{total}} добавляет всё, что она вызывает.",
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "В {{service}} на {{function}} приходится {{share}} по метрике «{{kind}}»."
+  "{{service}} spent {{share}} of its {{kind}} in {{function}}.": "В {{service}} на {{function}} приходится {{share}} по метрике «{{kind}}».",
+  "Performance profile": "Профиль производительности"
 }
