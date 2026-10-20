@@ -75,22 +75,23 @@ export default class TelemetryFixWatch {
     fix: AIAgentTaskPullRequest,
     run: VerifierRun,
   ): Promise<void> {
-    const aiRun: AIRun | null = await FixProductionVerifier.readRun(fix);
-
-    if (!aiRun) {
-      await FixProductionVerifier.settle(fix, run, {
-        status: FixProductionStatus.Unverifiable,
-        summary:
-          "The task that opened this fix no longer exists, so what it adds cannot be looked for in production.",
-      });
-      return;
-    }
-
     const mergedAt: Date = FixProductionVerifier.mergedAtOf(fix, run);
     let baseline: TelemetryFixBaseline | undefined =
       fix.productionBaseline?.telemetry;
 
     if (!baseline) {
+      // The run says where the improvement shows; it is read once, here.
+      const aiRun: AIRun | null = await FixProductionVerifier.readRun(fix);
+
+      if (!aiRun) {
+        await FixProductionVerifier.settle(fix, run, {
+          status: FixProductionStatus.Unverifiable,
+          summary:
+            "The task that opened this fix no longer exists, so what it adds cannot be looked for in production.",
+        });
+        return;
+      }
+
       const texts: Array<string> | null =
         await TelemetryFixWatch.readAddedTexts(fix, run);
 
@@ -106,12 +107,30 @@ export default class TelemetryFixWatch {
         return;
       }
 
-      baseline = await TelemetryFixWatch.readBaseline({
-        fix,
-        target: TelemetryFixWatch.targetOf(aiRun),
-        texts,
-        mergedAt,
-      });
+      const target: TelemetryTarget = TelemetryFixWatch.targetOf(aiRun);
+      const read: TelemetryFixBaseline | null =
+        await FixProductionVerifier.readOrSettle({
+          fix,
+          run,
+          // A deploy is waited for as long: the baseline as well.
+          isOver: Boolean(decideDeployWait({ mergedAt, now: run.now })),
+          summary:
+            "The telemetry of the week before the merge could not be read in the 14 days after the fix merged, so what the fix adds cannot be told apart.",
+          read: (): Promise<TelemetryFixBaseline> => {
+            return TelemetryFixWatch.readBaseline({
+              fix,
+              target,
+              texts,
+              mergedAt,
+            });
+          },
+        });
+
+      if (!read) {
+        return;
+      }
+
+      baseline = read;
 
       await FixProductionVerifier.saveBaseline(fix, { telemetry: baseline });
 
@@ -166,44 +185,34 @@ export default class TelemetryFixWatch {
     let sinceCounts: TelemetrySignalCounts | null = null;
 
     if (hasRunADay) {
-      const version: string | undefined =
-        await FixProductionVerifier.versionToRead({
-          projectId: fix.projectId!,
-          serviceId,
-          shipped,
-          now: run.now,
-        });
-
-      [arrivals, sinceCounts] = await Promise.all([
-        FixProductionTelemetry.findTexts(
-          {
-            projectId: fix.projectId!,
+      const watchedFor: TelemetryFixBaseline = baseline;
+      const measured:
+        | [Array<TelemetryArrival>, TelemetrySignalCounts | null]
+        | null = await FixProductionVerifier.readOrSettle({
+        fix,
+        run,
+        isOver:
+          watched >= TELEMETRY_FIX_THRESHOLDS.maxWatchDays * 24 * HOUR_IN_MS,
+        summary:
+          "The deployed fix's telemetry could not be read before the watch ended, so whether what it adds arrives cannot be told.",
+        read: (): Promise<
+          [Array<TelemetryArrival>, TelemetrySignalCounts | null]
+        > => {
+          return TelemetryFixWatch.readSinceDeploy({
+            fix,
+            baseline: watchedFor,
             serviceId,
-            from: FixProductionVerifier.sinceDeployWindowStart({
-              shipped,
-              version,
-            }),
-            to: run.now,
-            version,
-          },
-          TelemetryFixWatch.kindsOf(baseline.signals),
-          baseline.candidates,
-        ),
-        // Whatever version sent them: a broken exporter sends none.
-        serviceId
-          ? FixProductionTelemetry.countSignals(
-              {
-                projectId: fix.projectId!,
-                serviceId,
-                from: FixProductionVerifier.sinceDeployWindowStart({
-                  shipped,
-                }),
-                to: run.now,
-              },
-              baseline.signals,
-            )
-          : Promise.resolve(null),
-      ]);
+            shipped,
+            now: run.now,
+          });
+        },
+      });
+
+      if (!measured) {
+        return;
+      }
+
+      [arrivals, sinceCounts] = measured;
     }
 
     const verdict: FixProductionVerdict = decideTelemetryVerdict({
@@ -230,7 +239,7 @@ export default class TelemetryFixWatch {
       verdict.status === FixProductionStatus.Verified ||
       verdict.status === FixProductionStatus.Regressed
     ) {
-      await TelemetryFixWatch.postVerdict({ fix, aiRun, verdict });
+      await TelemetryFixWatch.postVerdict({ fix, verdict });
     }
   }
 
@@ -311,6 +320,59 @@ export default class TelemetryFixWatch {
   }
 
   /*
+   * The deployed fix's telemetry: which of the texts it adds arrived - in
+   * the deploy's version when the service's telemetry names it, else from
+   * the rollout grace on - and how many spans and logs the service sent
+   * since the rollout grace, whatever version sent them: a broken exporter
+   * sends none.
+   */
+  private static async readSinceDeploy(data: {
+    fix: AIAgentTaskPullRequest;
+    baseline: TelemetryFixBaseline;
+    serviceId: ObjectID | undefined;
+    shipped: ShippedFix;
+    now: Date;
+  }): Promise<[Array<TelemetryArrival>, TelemetrySignalCounts | null]> {
+    const version: string | undefined =
+      await FixProductionVerifier.versionToRead({
+        projectId: data.fix.projectId!,
+        serviceId: data.serviceId,
+        shipped: data.shipped,
+        now: data.now,
+      });
+
+    return await Promise.all([
+      FixProductionTelemetry.findTexts(
+        {
+          projectId: data.fix.projectId!,
+          serviceId: data.serviceId,
+          from: FixProductionVerifier.sinceDeployWindowStart({
+            shipped: data.shipped,
+            version,
+          }),
+          to: data.now,
+          version,
+        },
+        TelemetryFixWatch.kindsOf(data.baseline.signals),
+        data.baseline.candidates,
+      ),
+      data.serviceId
+        ? FixProductionTelemetry.countSignals(
+            {
+              projectId: data.fix.projectId!,
+              serviceId: data.serviceId,
+              from: FixProductionVerifier.sinceDeployWindowStart({
+                shipped: data.shipped,
+              }),
+              to: data.now,
+            },
+            data.baseline.signals,
+          )
+        : Promise.resolve(null),
+    ]);
+  }
+
+  /*
    * What the fix adds that the week before the merge did not carry, and how
    * many spans and logs the service sent then.
    */
@@ -383,13 +445,13 @@ export default class TelemetryFixWatch {
    */
   private static async postVerdict(data: {
     fix: AIAgentTaskPullRequest;
-    aiRun: AIRun;
     verdict: FixProductionVerdict;
   }): Promise<void> {
+    const aiRun: AIRun | null = await FixProductionVerifier.readRun(data.fix);
     const subjectId: ObjectID | undefined =
-      data.aiRun.triggeredByIncidentId || data.aiRun.triggeredByAlertId;
+      aiRun?.triggeredByIncidentId || aiRun?.triggeredByAlertId;
 
-    if (!subjectId) {
+    if (!aiRun || !subjectId) {
       return;
     }
 
@@ -398,7 +460,7 @@ export default class TelemetryFixWatch {
 
     await FixProductionFeed.postNote({
       fix: data.fix,
-      kind: data.aiRun.triggeredByIncidentId ? "incident" : "alert",
+      kind: aiRun.triggeredByIncidentId ? "incident" : "alert",
       subjectId,
       color: isVerified ? Green500 : Red500,
       markdown: isVerified

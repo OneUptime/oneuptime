@@ -674,6 +674,53 @@ describe("a performance fix", () => {
     );
   });
 
+  test("a read that fails is tried again next time, and ends the watch once its time is over", async () => {
+    insightRun();
+    measureLatency.mockRejectedValue(
+      new Error("Timeout exceeded: elapsed 30 seconds") as never,
+    );
+
+    // Within the 14 days a deploy is waited for: thrown, to be checked again.
+    await expect(
+      PerformanceFixWatch.verify(fix(FixProductionCheck.Performance), runAt(1)),
+    ).rejects.toThrow("Timeout exceeded");
+    expect(updates).toEqual([]);
+
+    await PerformanceFixWatch.verify(fix(FixProductionCheck.Performance), {
+      ...runAt(1),
+      now: hoursAfterMerge(14 * 24),
+    });
+
+    expect(lastVerdict()["productionStatus"]).toBe(
+      FixProductionStatus.Unverifiable,
+    );
+    expect(lastVerdict()["productionSummary"]).toContain(
+      "could not be read in the 14 days after the fix merged",
+    );
+  });
+
+  test("a deployed fix that cannot be measured by the end of its week is not verified", async () => {
+    measureLatency.mockRejectedValue(
+      new Error("Timeout exceeded: elapsed 30 seconds") as never,
+    );
+
+    await expect(
+      PerformanceFixWatch.verify(
+        watching(FixProductionCheck.Performance, BASELINE),
+        runAt(24),
+      ),
+    ).rejects.toThrow("Timeout exceeded");
+
+    await PerformanceFixWatch.verify(
+      watching(FixProductionCheck.Performance, BASELINE),
+      runAt(7 * 24),
+    );
+
+    expect(lastVerdict()["productionStatus"]).toBe(
+      FixProductionStatus.Unverifiable,
+    );
+  });
+
   test("between the hourly measurements nothing is read or written", async () => {
     await PerformanceFixWatch.verify(
       watching(FixProductionCheck.Performance, BASELINE),

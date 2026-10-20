@@ -69,8 +69,8 @@ import TelemetryFixWatch from "./TelemetryFixWatch";
  *   2. Watching: what the fix was for is measured in the deployed fix
  *      against the time before the merge:
  *        - Exception: the exception's occurrences - in the deploy's version
- *          when it reports one, else after the rollout grace
- *          (FixProductionVerdict.decideWatchVerdict);
+ *          when the service's telemetry names it, else after the rollout
+ *          grace (FixProductionVerdict.decideWatchVerdict);
  *        - Performance: the p99 of the operation it names
  *          (PerformanceFixWatch);
  *        - Recurrence: the incidents or alerts its monitor raises
@@ -489,6 +489,38 @@ export default class FixProductionVerifier {
     });
 
     fix.productionBaseline = baseline;
+  }
+
+  /*
+   * A read a check depends on, that may fail - a telemetry query out of
+   * time, say. While there is time left the failure is thrown, and the fix
+   * is checked again next time; once the time to tell is over (isOver),
+   * the fix is settled Unverifiable instead of being retried for good.
+   */
+  public static async readOrSettle<T>(data: {
+    fix: AIAgentTaskPullRequest;
+    run: VerifierRun;
+    isOver: boolean;
+    // Why it cannot be told, when it is over.
+    summary: string;
+    read: () => Promise<T>;
+  }): Promise<T | null> {
+    try {
+      return await data.read();
+    } catch (error) {
+      if (!data.isOver) {
+        throw error;
+      }
+
+      logger.debug(
+        `Fix verification: fix pull request ${data.fix.id?.toString()} could not be read in time, and is not verified: ${error}`,
+      );
+      await FixProductionVerifier.settle(data.fix, data.run, {
+        status: FixProductionStatus.Unverifiable,
+        summary: data.summary,
+      });
+      return null;
+    }
   }
 
   /*

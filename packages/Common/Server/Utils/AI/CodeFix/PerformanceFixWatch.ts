@@ -16,6 +16,7 @@ import FixProductionTelemetry from "./FixProductionTelemetry";
 import {
   FixProductionVerdict,
   HOUR_IN_MS,
+  decideDeployWait,
   isMeasureDue,
   watchedMilliseconds,
 } from "./FixProductionVerdict";
@@ -82,14 +83,28 @@ export default class PerformanceFixWatch {
         mergedAt,
         -PERFORMANCE_FIX_THRESHOLDS.baselineDays,
       );
-      const measure: PerformanceMeasure =
-        await FixProductionTelemetry.measureLatency({
-          projectId: fix.projectId!,
-          serviceId: target.serviceId,
-          spanName: target.spanName,
-          from,
-          to: mergedAt,
+      const measure: PerformanceMeasure | null =
+        await FixProductionVerifier.readOrSettle({
+          fix,
+          run,
+          // A deploy is waited for as long: the baseline as well.
+          isOver: Boolean(decideDeployWait({ mergedAt, now: run.now })),
+          summary:
+            "The operation's spans in the week before the merge could not be read in the 14 days after the fix merged, so whether it made the operation faster cannot be told.",
+          read: (): Promise<PerformanceMeasure> => {
+            return FixProductionTelemetry.measureLatency({
+              projectId: fix.projectId!,
+              serviceId: target.serviceId,
+              spanName: target.spanName,
+              from,
+              to: mergedAt,
+            });
+          },
         });
+
+      if (!measure) {
+        return;
+      }
 
       baseline = {
         serviceId: target.serviceId.toString(),
@@ -154,25 +169,41 @@ export default class PerformanceFixWatch {
     let sinceDeploy: PerformanceMeasure | null = null;
 
     if (hasRunADay) {
-      const version: string | undefined =
-        await FixProductionVerifier.versionToRead({
-          projectId: fix.projectId!,
-          serviceId,
-          shipped,
-          now: run.now,
-        });
+      const measured: PerformanceFixBaseline = baseline;
 
-      sinceDeploy = await FixProductionTelemetry.measureLatency({
-        projectId: fix.projectId!,
-        serviceId,
-        spanName: baseline.spanName,
-        from: FixProductionVerifier.sinceDeployWindowStart({
-          shipped,
-          version,
-        }),
-        to: run.now,
-        version,
+      sinceDeploy = await FixProductionVerifier.readOrSettle({
+        fix,
+        run,
+        isOver:
+          watched >= PERFORMANCE_FIX_THRESHOLDS.maxWatchDays * 24 * HOUR_IN_MS,
+        summary:
+          "The operation's spans since the deploy could not be read before the watch ended, so whether the fix made it faster cannot be told.",
+        read: async (): Promise<PerformanceMeasure> => {
+          const version: string | undefined =
+            await FixProductionVerifier.versionToRead({
+              projectId: fix.projectId!,
+              serviceId,
+              shipped,
+              now: run.now,
+            });
+
+          return FixProductionTelemetry.measureLatency({
+            projectId: fix.projectId!,
+            serviceId,
+            spanName: measured.spanName,
+            from: FixProductionVerifier.sinceDeployWindowStart({
+              shipped,
+              version,
+            }),
+            to: run.now,
+            version,
+          });
+        },
       });
+
+      if (!sinceDeploy) {
+        return;
+      }
     }
 
     const verdict: FixProductionVerdict = decidePerformanceVerdict({
