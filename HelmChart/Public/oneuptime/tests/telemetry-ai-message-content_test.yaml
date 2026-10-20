@@ -1,0 +1,87 @@
+# OneUptime AI's own prompts and answers go into OneUptime's own telemetry
+# only when the operator turns openTelemetryExporter.captureAiMessageContent
+# on: they hold incident details, logs and Ask AI chats private to the person
+# who asked. The app pods (Ask AI, Generate with AI) and the worker pods
+# (investigations, code fixes, runbooks) both make AI calls, so both get it.
+suite: telemetry AI message content
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: leaves prompts and answers out by default
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+          any: true
+
+  - it: leaves them out when the value is false
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://server-collector.internal:4318
+        headers: x-oneuptime-token=server-key
+        captureAiMessageContent: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+          any: true
+
+  - it: records them on the app pods when turned on
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: https://server-collector.internal:4318
+        headers: x-oneuptime-token=server-key
+        captureAiMessageContent: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+            value: "true"
+
+  - it: records them on the worker pods, which run the investigations
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://server-collector.internal:4318
+        headers: x-oneuptime-token=server-key
+        captureAiMessageContent: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+            value: "true"
+
+  - it: rejects a value that is not true or false
+    templates:
+      - templates/app.yaml
+    set:
+      openTelemetryExporter:
+        captureAiMessageContent: "yes please"
+    asserts:
+      - failedTemplate: {}

@@ -1730,6 +1730,15 @@ openTelemetryExporter:
   # namespace, node and deployment names; the cluster name is not visible from
   # inside a pod, so it is only reported when set here.
   kubernetesClusterName:
+  # Record what OneUptime AI's own calls said - the system prompt, the
+  # messages, the tool calls and their results, and the answer - in this
+  # telemetry, so the AI / LLM conversations of the project it goes to show
+  # them (sets OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT). Without it
+  # they show each call's model, tokens, cost and timing only. The prompts hold
+  # incident details, logs and Ask AI chats (otherwise private to the person
+  # who asked), so turn it on only when everyone who can read that project may
+  # read them.
+  captureAiMessageContent: false
 
 # Browser RUM uses a separate, deliberately public credential. Only use a
 # OneUptime Browser ingestion key with an origin allowlist; never put a Server

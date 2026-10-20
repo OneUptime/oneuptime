@@ -2680,6 +2680,10 @@
                         "null"
                     ],
                     "description": "Reported as k8s.cluster.name on OneUptime's own telemetry."
+                },
+                "captureAiMessageContent": {
+                    "type": "boolean",
+                    "description": "Record the prompts and answers of OneUptime AI's own calls in this telemetry (OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT). Off by default: they hold incident details, logs and private Ask AI chats."
                 }
             },
             "additionalProperties": false
