@@ -4,8 +4,10 @@ import { getChosenRunnerId } from "Common/Types/Runner/RunnerChoice";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * What the Runner picker shows for a step, worked out from what the page
- * loaded - React-free, so App's tests read the same rules the picker draws.
+ * What the Runner picker shows for a step - or for a code repository, whose
+ * Runner setting in Code picks the Runner AI works in it on - worked out
+ * from what the page loaded - React-free, so App's tests read the same
+ * rules the picker draws.
  *
  * It follows the server's one "global by default" rule
  * (Common/Types/Runner/RunnerChoice): a step that picked a Runner of its
@@ -19,6 +21,20 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 // What the global choice stores on a step: no Runner of its own.
 export const GLOBAL_RUNNER_CHOICE_VALUE: string = "";
+
+/*
+ * What a Runner is picked for. The global choice means the same to people
+ * either way - a Runner OneUptime runs for every project - but different
+ * global Runners stand behind it: a step's JavaScript runs on the global
+ * Runners' sandbox; a repository's AI work runs on the global Runner for
+ * code (the installation's bundled Runner, OneUptime Cloud's fleet), which
+ * never runs a repository's own commands
+ * (Common/Types/Runner/CodeRepositoryRunner).
+ */
+export enum RunnerPickerWork {
+  RunbookStep = "runbook-step",
+  CodeRepository = "code-repository",
+}
 
 export const GLOBAL_RUNNER_CHOICE_LABEL: string =
   translationKey("Global Runner");
@@ -44,6 +60,54 @@ export const GLOBAL_RUNNER_NOT_CONNECTED_TEXT: string = translationKey(
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.",
 );
 
+// The global choice, under its name, in a code repository's picker.
+export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
+  "Run by OneUptime for every project. It skips your setup, build and test commands.",
+);
+
+/*
+ * Under a code repository's picker on Global Runner: where AI works, and
+ * why a team picks one of its own Runners instead.
+ */
+export const CODE_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
+  "AI works on a Runner OneUptime runs for every project, which skips your setup, build and test commands. Pick one of your Runners to have them run.",
+);
+
+// Under a code repository's picker on one of the project's own Runners.
+export const CODE_OWN_RUNNER_HELPER_TEXT: string = translationKey(
+  "AI clones the repository on this Runner, runs your setup, build and test commands there, and opens the pull request.",
+);
+
+// Under a code repository's picker in a project that turned global Runners off.
+export const CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT: string = translationKey(
+  "This project does not use global Runners: pick one of your Runners for this repository.",
+);
+
+// Under a code repository's picker on Global Runner while none is connected.
+export const CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT: string = translationKey(
+  "No global Runner is connected right now, so AI cannot work in this repository until one is.",
+);
+
+/*
+ * A repository's pick that is not among the Runners the reader was shown.
+ * A repository can only pick one of its project's own Runners, and one that
+ * is deleted leaves the repository on Global Runner (SET NULL), so such a
+ * pick is a Runner the reader may not see - not a broken one: the menu, the
+ * line under it and the settings card say so, without an id or a warning.
+ */
+export const CODE_HIDDEN_RUNNER_LABEL: string = translationKey(
+  "A Runner you do not have access to",
+);
+
+export const CODE_HIDDEN_RUNNER_HELPER_TEXT: string = translationKey(
+  "This repository picks a Runner you do not have access to. Pick another Runner to change it.",
+);
+
+// Under a code repository's picker that picked none, on a server with no global Runner.
+export const CODE_NO_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
+  "This server runs no global Runner: pick one of your Runners for this repository.",
+);
+
 export interface RunnerPickerRunner {
   id: string;
   name: string;
@@ -51,16 +115,22 @@ export interface RunnerPickerRunner {
 }
 
 export interface RunnerPickerFacts {
-  // The step's type ("JavaScript", "Bash", "SSH", "Kubernetes").
+  // What the Runner is picked for; a runbook step when left out.
+  work?: RunnerPickerWork | undefined;
+  /*
+   * The step's type ("JavaScript", "Bash", "SSH", "Kubernetes"); not read
+   * for a code repository.
+   */
   stepType: string;
   // The Runner the step picked, as stored: "" when it picked none.
   currentRunnerId: string;
   // The project's own Runners.
   projectRunners: Array<RunnerPickerRunner>;
   /*
-   * The global Runners that run runbook steps, with how each is doing (and
+   * The global Runners that run this work, with how each is doing (and
    * their ids: a step that names one is on the global Runners, as the
-   * server reads it).
+   * server reads it): the ones that run runbook steps, or - for a code
+   * repository - the global Runners for code.
    */
   globalRunners: Array<{
     id?: string | undefined;
@@ -73,7 +143,10 @@ export interface RunnerPickerFacts {
 export enum RunnerPickerOptionKind {
   Global = "global",
   Project = "project",
-  // A Runner the step names that is not one of the project's any more.
+  /*
+   * A Runner the step names that is not one of the project's any more - or,
+   * for a repository, one the reader may not see (CODE_HIDDEN_RUNNER_LABEL).
+   */
   Unknown = "unknown",
 }
 
@@ -91,7 +164,7 @@ export enum RunnerPickerOutcome {
   GlobalRunner = "global",
   ProjectRunner = "project",
   UnknownRunner = "unknown",
-  // Picked none, and global Runners never run this step type.
+  // Picked none, and global Runners never run this step type (steps only).
   NeedsOwnRunner = "needs-own-runner",
   // Picked none, and the project turned global Runners off.
   GlobalRunnersOff = "global-runners-off",
@@ -134,15 +207,25 @@ export function getGlobalRunnersLiveStatus(
   return RunnerLiveStatus.NeverConnected;
 }
 
-// Whether the picker offers the global choice for this step.
+// Whether global Runners run this work at all: every repository, a step by its type.
+export function canGlobalRunnersRunWork(
+  facts: Pick<RunnerPickerFacts, "work" | "stepType">,
+): boolean {
+  return (
+    facts.work === RunnerPickerWork.CodeRepository ||
+    canGlobalRunnersRunStepType(facts.stepType)
+  );
+}
+
+// Whether the picker offers the global choice for this step or repository.
 export function offersGlobalRunner(
   facts: Pick<
     RunnerPickerFacts,
-    "stepType" | "globalRunners" | "projectUsesGlobalRunners"
+    "work" | "stepType" | "globalRunners" | "projectUsesGlobalRunners"
   >,
 ): boolean {
   return (
-    canGlobalRunnersRunStepType(facts.stepType) &&
+    canGlobalRunnersRunWork(facts) &&
     facts.projectUsesGlobalRunners &&
     facts.globalRunners.length > 0
   );
@@ -232,7 +315,7 @@ export function buildRunnerPickerModel(
   return {
     options,
     selected: undefined,
-    outcome: !canGlobalRunnersRunStepType(facts.stepType)
+    outcome: !canGlobalRunnersRunWork(facts)
       ? RunnerPickerOutcome.NeedsOwnRunner
       : !facts.projectUsesGlobalRunners
         ? RunnerPickerOutcome.GlobalRunnersOff

@@ -57,8 +57,8 @@ const APP_NAME: string = "runner";
  * the systems being operated on never leave their network.
  *
  * Code-fix capability: claims AI code-fix runs, works in the project's code
- * repository and opens pull requests for review. Opt-in, because it needs a
- * connected repository and writes to it.
+ * repositories that pick this Runner (their Runner setting in Code) and
+ * opens pull requests for review. A Runner no repository picks takes none.
  *
  * Both loops share one registration, one credential and one heartbeat.
  */
@@ -159,7 +159,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       logger.error(
         IS_CLUSTER_SCOPED
           ? "No capability is enabled — this cluster-scoped Runner has nothing to do. Set ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true, or install a project-scoped Runner to execute runbooks."
-          : "No capability is enabled — this Runner has nothing to do. Enable 'Runs Runbooks' or 'Runs AI Code Fixes' on this Runner in your OneUptime dashboard — it is picked up on the next heartbeat, no restart needed.",
+          : "No capability is enabled — this Runner has nothing to do. Turn on 'Runs Runbooks' on this Runner in your OneUptime dashboard, or pick it as a code repository's Runner in the repository's settings in Code — it is picked up on the next heartbeat, no restart needed.",
         { serviceName: APP_NAME } as LogAttributes,
       );
     }
@@ -175,7 +175,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       RunnerCapabilities.wasGrantedCodeFixesByServer()
     ) {
       logger.warn(
-        "This project granted this Runner the AI code-fix capability, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued. Remove the override, or turn 'Runs AI Code Fixes' off in the dashboard.",
+        "A code repository of this project picks this Runner, so it is to take AI code-fix work, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued. Remove the override, or pick another Runner in the repository's settings in Code.",
         { serviceName: APP_NAME } as LogAttributes,
       );
     }

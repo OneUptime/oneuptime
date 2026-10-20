@@ -27,7 +27,8 @@ import path from "path";
  * nginx.service.externalTrafficPolicy (and helm install / helm upgrade saying
  * so while it is unset), the Admin Dashboard's OneUptime Health page, and
  * NGINX_LISTEN_OPTIONS working again. It sits after the note on runbook
- * variables (RunbookVariablesUpgradeDocs) and before the endpoint pointer, and
+ * variables (RunbookVariablesUpgradeDocs) and before the note that a code
+ * repository picks its Runner (CodeRepositoryRunnerUpgradeDocs), and
  * every translation carries it in the English note's place, with the English
  * note's code and a link to the guide's section in the reader's language.
  */
@@ -39,7 +40,9 @@ const NOTE_LEAD: string = "Visitors keep their own address in more setups.";
 // The note before it (RunbookVariablesUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**Runbook secrets and the credentials runbook steps used are runbook variables.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (CodeRepositoryRunnerUpgradeDocs).
+const NEXT_LEAD: string =
+  "**A code repository picks its Runner, and Runners lose their AI code fix switch.**";
 
 const GUIDE: string = "installation/docker-compose";
 const GUIDE_LINK: string = "(/docs/installation/docker-compose#";
@@ -78,7 +81,7 @@ function sectionOf(markdown: string, heading: string): string {
 }
 
 describe("the English upgrade note on visitor addresses", () => {
-  it("is a note of the 13 → 14 changes, once, after the runbook variables note and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the runbook variables note and before the note that a code repository picks its Runner", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -90,7 +93,9 @@ describe("the English upgrade note on visitor addresses", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says what changed, and what to set", () => {

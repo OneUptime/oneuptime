@@ -69,7 +69,7 @@ Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실�
 - 시크릿 변수는 그 변수의 **글로벌 Runner가 사용할 수 있음** 스위치가 켜져 있을 때만, 그리고 변수가 속한 프로젝트의 단계에 대해서만 받습니다. 자격 증명은 절대 받지 않습니다.
 - 한 프로젝트가 글로벌 Runner에서 동시에 실행하는 단계는 최대 세 개이므로, 어떤 프로젝트도 글로벌 Runner를 독차지하지 못합니다.
 
-여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다.
+여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다. 코드의 설정에서 Runner를 선택하지 않은 코드 저장소도 글로벌 Runner에서 작업하며, 이 스위치가 꺼져 있는 동안에는 내 Runner가 필요합니다. [코드](/docs/ai/ai-agent#저장소의-runner-선택하기)를 참조하세요.
 
 ### 글로벌 Runner의 출처
 
@@ -96,10 +96,9 @@ OneUptime Cloud에서는 OneUptime이 글로벌 Runner를 실행합니다. 자�
 | **설명** | **Runner** | 선택 사항. 이 호스트가 무엇에 접근할 수 있는지 한 문장으로. |
 | **레이블** | **Runner**(**추가 필드** 아래) | 선택 사항. |
 | **런북 실행** | **기능** | 기본적으로 켜져 있습니다. 이 Runner가 Runbook 단계를 가져갈 수 있게 합니다. |
-| **AI 코드 수정 실행** | **기능** | 기본적으로 꺼져 있습니다. AI 코드 수정 풀 리퀘스트를 열 수 있게 합니다. [코드](/docs/ai/ai-agent)를 참조하세요. |
 | **AI 해결 명령 실행** | **기능** | 기본적으로 꺼져 있습니다. AI 자동 해결이 이 Runner에서 정책 검사를 거친 명령을 실행할 수 있게 합니다. SSH 자격 증명이 있는 Runner에서 이것을 켜려면 Runbook 자격 증명을 읽을 권한이 필요합니다. [OneUptime AI의 명령을 실행하는 Runner](/docs/runbooks/credentials#oneuptime-ai의-명령을-실행하는-runner)를 참조하세요. |
 
-Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다.
+Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다. AI 코드 수정은 기능이 아닙니다. 코드 저장소가 코드의 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, Runner 페이지에는 그 Runner를 선택한 저장소가 나열됩니다.
 
 ### 2. 설치 명령 복사
 
@@ -234,7 +233,7 @@ Runner는 시작할 때 다음을 읽습니다.
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 아니요 | `10000` | Runner가 실행 중인 작업의 리스를 갱신하는 간격입니다. `1000` 미만의 값은 기본값으로 돌아갑니다. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | 아니요 | `1` | 이 Runner에서 동시에 실행할 수 있는 최대 작업 수입니다. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | 아니요 | — | `false`로 설정하면 대시보드 설정과 관계없이 이 Runner가 Runbook 단계를 가져가지 않습니다. 이 변수는 기능을 끄기만 할 수 있습니다. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 아니요 | — | `false`로 설정하면 대시보드 설정과 관계없이 이 Runner가 AI 코드 수정을 가져가지 않습니다. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 아니요 | — | `false`로 설정하면 이 Runner를 선택한 코드 저장소에 대해서도 이 Runner가 AI 코드 수정을 가져가지 않습니다. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | 아니요 | — | `false`로 설정하면 대시보드 설정과 관계없이 이 Runner가 AI 해결 명령을 실행하지 않습니다. |
 
 ## 에이전트 키 교체

@@ -18,9 +18,10 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
-import AIRunType from "../../Types/AI/AIRunType";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
-import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 import PositiveNumber from "../../Types/PositiveNumber";
 import GitHubRunReply from "../Utils/CodeRepository/GitHub/GitHubRunReply";
@@ -72,12 +73,16 @@ export default class AIAgentTaskAPI {
            * Scope the claim to the agent's project when it has one. A
            * project-scoped Runner (what customers install) must never
            * claim another tenant's code-fix run; the in-cluster Runner has
-           * no projectId and keeps serving every project.
+           * no projectId and keeps serving every project. Within that, each
+           * repository's Runner setting decides who takes its runs: a
+           * project's Runner only those of the repositories that pick it, a
+           * global Runner only those of repositories that pick none.
            */
           const run: AIRun | null =
             await AIRunService.claimNextQueuedCodeFixRun({
               aiAgentId: aiAgent.id,
               projectId: aiAgent.projectId,
+              worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
               /*
                * The recipes this Runner has handlers for. A Runner built
                * before it said is handed only the recipes every Runner has.
@@ -143,24 +148,27 @@ export default class AIAgentTaskAPI {
             return;
           }
 
-          /* Count queued code-fix runs */
           /*
-           * Same tenancy scoping as the claim: a project-scoped Runner
-           * autoscales on its OWN queue depth, never on other tenants'.
+           * The queued code-fix runs this agent may take, by the same rule
+           * as the claim: a project-scoped Runner autoscales on its OWN
+           * queue depth - the runs of the repositories that pick it - never
+           * on other tenants' or another Runner's. Every recipe is counted
+           * unless the request names the ones it has handlers for, as the
+           * count always did.
            */
-          const count: PositiveNumber = await AIRunService.countBy({
-            query: {
-              runType: AIRunType.CodeFix,
-              status: AIRunStatus.Queued,
-              ...(aiAgent.projectId ? { projectId: aiAgent.projectId } : {}),
-            },
-            props: {
-              isRoot: true,
-            },
+          const claimableTaskTypes: Array<CodeFixTaskType> =
+            CodeFixTaskTypeHelper.readSupportedTaskTypes(
+              (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
+            ) || Object.values(CodeFixTaskType);
+
+          const count: number = await AIRunService.countClaimableCodeFixRuns({
+            worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
+            projectId: aiAgent.projectId,
+            claimableTaskTypes,
           });
 
           return Response.sendJsonObjectResponse(req, res, {
-            count: count,
+            count: new PositiveNumber(count),
             message: "Pending task count fetched successfully",
           });
         } catch (err) {

@@ -47,6 +47,18 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   on told who can (`?role=member`), not sent to a switch they cannot flip;
 - a member who may only read: every task, which files changed but not the
   diff, and why they cannot ask;
+- a repository's Runner in its settings: Global Runner and how it is doing
+  (a status dot, as the Runners page draws it) when it picks none; Edit
+  Settings' Runner step - a field like the dialog's others, titled and
+  described by the form - offering Global Runner first, then the project's
+  own Runners (never the in-cluster Runner the Kubernetes agent chart
+  installed), saving the Runner picked (`runnerId`) or none for Global
+  Runner, the card naming the Runner with a link to its page; a project
+  that turned global Runners off (`?uses=0`), a server with none
+  (`?global=0`) or one not heard from (`?gstatus=disconnected`), and a pick
+  the page is not shown, which is a Runner the reader does not have access
+  to (`?runner=gone`); a Runner blocker naming the Runner that is offline,
+  and its Pick a Runner opening those settings;
 - a reply continuing the same task on the same pull request, a question
   waiting for an answer, live steps ending in "Working on it…" and Stop, Try
   again, a failed turn and why, a task OneUptime started from an exception

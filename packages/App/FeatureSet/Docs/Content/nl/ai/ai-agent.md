@@ -79,7 +79,7 @@ flowchart TB
 ```
 
 1. Je klikt op **Taak starten** in een repository, of op **Fix with AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
-2. De taak komt in de wachtrij, en een beschikbare Runner met **Voert AI-codecorrecties uit** ingeschakeld pakt hem op.
+2. De taak komt in de wachtrij van zijn repository, en de Runner die de repository kiest pakt hem op: een van je Runners, of een globale Runner als hij er geen kiest (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)).
 3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
 4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
 5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs.
@@ -122,11 +122,11 @@ Is er een ingesteld, dan controleert elke herstelrun zijn wijziging voordat de p
 
 1. Als de code-agent klaar is, draaien de opdrachten op volgorde in de root van de repository, op de Runner, in de gekloonde werkruimte. Elke opdracht krijgt tot 15 minuten en draait met `CI=true`, zodat niets op invoer wacht; de eerste fout stopt de ronde.
 2. Bij een fout gaat het einde van de uitvoer van de mislukte opdracht terug naar dezelfde code-agent als hersteltaak, met de instructie zijn eigen wijziging te verbeteren in plaats van tests af te zwakken of over te slaan, en de opdrachten draaien opnieuw. Hij doet hoogstens **2** herstelpogingen. Die delen het LLM-budget van de run, en hun wijzigingen komen in dezelfde commit als het herstel.
-3. De uitkomst, geslaagd, mislukt of overgeslagen (geen opdrachten ingesteld, of een gedeelde Runner), staat in een Verification-sectie van de beschrijving van de pull request en wordt vastgelegd bij de pull request van de taak.
+3. De uitkomst, geslaagd, mislukt of overgeslagen (geen opdrachten ingesteld, of een globale Runner), staat in een Verification-sectie van de beschrijving van de pull request en wordt vastgelegd bij de pull request van de taak.
 
 Een wijziging die de controle nog steeds niet doorstaat, wordt niet weggegooid: de pull request opent toch, met een duidelijk gemarkeerde sectie "Verification failed" die de mislukte opdracht noemt en eindigt met de uitvoer ervan. Het werk blijft bewaard, en wie beoordeelt, beslist. Een repository zonder ingestelde opdrachten wordt als overgeslagen gemeld, in plaats van een groene build te suggereren.
 
-De opdrachten zijn repository-instellingen die je team schrijft en die op je eigen Runner draaien: hetzelfde vertrouwensmodel als de Bash-stappen van een runbook. De AI schrijft of wijzigt ze nooit. De gedeelde Runners van OneUptime voeren ze nooit uit: op een gedeelde Runner wordt het herstel geschreven en ter beoordeling geopend, wordt de controle als overgeslagen gemeld, en controleert de eigen CI van je repository de wijziging. [Draai een eigen Runner](#een-eigen-runner-draaien) om het herstel te laten bouwen en testen voordat de pull request opent.
+De opdrachten zijn repository-instellingen die je team schrijft en die op je eigen Runner draaien: hetzelfde vertrouwensmodel als de Bash-stappen van een runbook. De AI schrijft of wijzigt ze nooit. Een globale Runner, die OneUptime voor elk project draait, voert ze nooit uit: op een globale Runner wordt het herstel geschreven en ter beoordeling geopend, wordt de controle als overgeslagen gemeld, en controleert de eigen CI van je repository de wijziging. [Draai een eigen Runner](#een-eigen-runner-draaien) om het herstel te laten bouwen en testen voordat de pull request opent.
 
 ## Voordat je begint
 
@@ -136,7 +136,7 @@ Een taak heeft drie dingen nodig. De pagina van een repository in Code en de pag
 | --- | --- | --- |
 | Een LLM-provider | Niets in te stellen: een project zonder eigen provider gebruikt de globale provider, betaald uit de AI-tegoeden van het project. Een eigen provider, onder **Projectinstellingen → AI → LLM-providers**, gaat voor. | Stel de omgevingsvariabelen `GLOBAL_LLM_PROVIDER_*` eenmalig in op de server, of voeg een provider toe aan het project. |
 | Een repository gekoppeld via de GitHub App | **Producten → Code**, dan **GitHub verbinden**. Is de app al op het GitHub-account geïnstalleerd, klik dan in plaats daarvan op **Een bestaande installatie koppelen**: opnieuw installeren koppelt hem niet. Vereist het Growth-abonnement. | Hetzelfde, zodra je instantie een GitHub App heeft (zie [GitHub-integratie](/docs/self-hosted/github-integration)). |
-| Een Runner die AI-codecorrecties uitvoert | Niets te draaien: de gedeelde Runners van OneUptime doen het. | De service `runner` van Docker Compose, of de Runner van de Helm-chart (`runner.enabled`, standaard aan), registreert zichzelf en voert AI-codecorrecties uit. |
+| Een Runner die AI-codecorrecties uitvoert | Niets te draaien: een repository die er geen kiest, werkt op de globale Runners van OneUptime. | De service `runner` van Docker Compose, of de Runner van de Helm-chart (`runner.enabled`, standaard aan), registreert zichzelf en voert AI-codecorrecties uit in elke repository die geen Runner kiest. |
 
 Op een zelf gehoste instantie is de globale provider één blok in `config.env` (Docker Compose) of in je Helm-waarden. Voor een zelf gehoste Ollama:
 
@@ -151,6 +151,17 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 Elke ondersteunde provider werkt: zie [LLM-providers](/docs/ai/llm-provider) voor alle providers en elke omgevingsvariabele.
 
 Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime de repository door de bestandspaden uit de stack trace van de uitzondering te vergelijken met je gekoppelde repositories. Als niets overeenkomt, valt hij terug op een repository met dezelfde naam als de service, en dan op de enige repository van het project als er maar één is. De pagina **AI Assistance** toont welke repository hij vond.
+
+### De Runner van de repository kiezen
+
+Elke repository kiest de Runner waarop AI erin werkt: klik op zijn pagina **Instellingen** in Code op **Instellingen bewerken** en kies er een bij de stap **Runner**. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
+
+| Runner | Wat hij met een taak doet |
+| --- | --- |
+| **Globale Runner** | Schrijft de wijziging en opent de pull request, zonder je setup-, build- en testopdrachten: de eigen CI van je repository controleert de wijziging. |
+| Een van je Runners | Voert ook je setup-, build- en testopdrachten uit, op een host die jij beheert. |
+
+Alleen de Runner die een repository kiest, krijgt zijn taken en een token ervoor. In een project dat **Globale Runners gebruiken** uitzet onder **Runbooks → Runbook-agenten**, heeft elke repository een van de eigen Runners van het project nodig. De pagina van een Runner toont de repositories die hem kiezen.
 
 ### Een eigen Runner draaien
 
@@ -169,9 +180,9 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-### Zet AI-codecorrecties aan
+### Kies hem voor de repository
 
-Zet **Voert AI-codecorrecties uit** aan op de Runner. Het staat standaard uit, en de Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
+Klik op de pagina **Instellingen** van de repository in Code op **Instellingen bewerken** en kies de Runner bij de stap **Runner**. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
 
 ### Controleer of hij verbinding maakt
 
@@ -197,7 +208,7 @@ Zolang hij aan staat, zet een onderzoek dat eindigt met een zekere, onderbouwde 
 
 Al het andere is gelijk aan de knop:
 
-- De pull request opent klaar voor review, geschreven vanuit de geplaatste analyse, en heeft een repository nodig die via de GitHub App is gekoppeld en een Runner met **Voert AI-codecorrecties uit** ingeschakeld.
+- De pull request opent klaar voor review, geschreven vanuit de geplaatste analyse, en heeft een repository nodig die via de GitHub App is gekoppeld en een Runner die online is om erin te werken: die de repository kiest, of een globale Runner.
 - Hij telt mee voor de dagelijkse limiet voor hersteltaken van dat signaal (**Daily Incident AI Fix Task Limit** of **Daily Alert AI Fix Task Limit**, onder **Meer instellingen** op de AI-instellingenpagina ervan) en voor het maximum aan open pull requests van de repository, als een van beide is ingesteld. Niet ingesteld beperkt geen van beide iets.
 - Elke trigger zoekt eerst naar een hersteltaak die al in de wachtrij staat of draait voor hetzelfde incident of dezelfde waarschuwing, zodat een automatische trigger en een klik normaal één taak worden, niet twee pull requests. De controle is een lezing vóór het schrijven, geen vergrendeling, dus twee triggers op precies hetzelfde moment kunnen er nog allebei door komen.
 - De run wordt door het systeem geschreven, aan niemand toegeschreven, en niets wordt vanzelf gemerged.
@@ -213,7 +224,7 @@ Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout b
 :::
 
 :::details Geen Runner pakt de taak op
-Een taak die langer dan 30 minuten wacht terwijl er geen Runner met **Voert AI-codecorrecties uit** verbonden is, mislukt met een melding om de Runner te controleren, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
+Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken niet verbonden is - die zijn repository kiest, of een globale Runner voor een repository die er geen kiest - mislukt met een melding die zegt welke, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
 :::
 
 ## Privacy

@@ -524,7 +524,10 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
     },
   ],
   [
-    // A runbook's steps, and a cluster's AI, run on a runner picked here.
+    /*
+     * A runbook's steps, a cluster's AI and a code repository's AI work run
+     * on a runner picked here.
+     */
     "Runner",
     {
       ownerUserService: RunnerOwnerUserService,

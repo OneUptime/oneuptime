@@ -15,6 +15,7 @@ import KubernetesClusterAiAccessService, {
   getPreviousInstanceRetryAfterSeconds,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
 import AIService from "../../../Server/Services/AIService";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
@@ -127,7 +128,6 @@ function fakeRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
      * (which reads as "Runs Runbooks" on).
      */
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     hostInfo: {
       kubernetes: {
         inCluster: true,
@@ -196,6 +196,10 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       .mockResolvedValue(new PositiveNumber(0));
     boundClusterCountSpy = jest
       .spyOn(KubernetesClusterService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    // No code repository picks the Runner unless a test says otherwise.
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     // No Kubernetes AI agent unless a test says otherwise.
     agentLookup = jest
@@ -1766,6 +1770,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
   let credentialCountSpy: jest.SpyInstance;
   let secretCountSpy: jest.SpyInstance;
   let boundClusterCountSpy: jest.SpyInstance;
+  let repositoryCountSpy: jest.SpyInstance;
 
   /*
    * An agent Runner row as the last heartbeat left it, OFFLINE: the pod it
@@ -1781,7 +1786,6 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
       connectionStatus: RunnerConnectionStatus.Connected,
       canRunRunbooks: false,
-      canRunCodeFixTasks: false,
       ...overrides,
     });
   }
@@ -1795,7 +1799,6 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       lastAlive: OneUptimeDate.getCurrentDate(),
       connectionStatus: RunnerConnectionStatus.Connected,
       canRunRunbooks: false,
-      canRunCodeFixTasks: false,
       ...overrides,
     });
   }
@@ -1909,6 +1912,10 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
     boundClusterCountSpy = jest
       .spyOn(KubernetesClusterService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    // No code repository picks the Runner unless a test says otherwise.
+    repositoryCountSpy = jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(KubernetesClusterFeedService, "createKubernetesClusterFeedItem")
       .mockImplementation(async (args: unknown): Promise<void> => {
@@ -2009,7 +2016,8 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       expect(createdRunner!.name).toBe(getKubernetesAgentRunnerName("prod-us"));
       expect(createdRunner!.canRunAiCommands).toBe(true);
       expect(createdRunner!.canRunRunbooks).toBe(false);
-      expect(createdRunner!.canRunCodeFixTasks).toBe(false);
+      // No code work either: a Runner takes it only while a repository picks it.
+      expect(Object.keys(createdRunner!)).not.toContain("canRunCodeFixTasks");
       expect(createdRunner!.key).toBe(result.runnerKey);
       expect(
         (createdRunner!.hostInfo as { kubernetes: Record<string, unknown> })
@@ -3339,11 +3347,12 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         expectInMessage: '"Runs Runbooks" is on',
       },
       {
-        name: '"Runs AI Code Fixes" turned on',
+        name: "code repositories that pick it",
         arrange: (): Partial<Record<string, unknown>> => {
-          return { canRunCodeFixTasks: true };
+          repositoryCountSpy.mockResolvedValue(new PositiveNumber(2));
+          return {};
         },
-        expectInMessage: '"Runs AI Code Fixes" is on',
+        expectInMessage: "the Runner of 2 code repository(ies)",
       },
     ];
 
@@ -3870,7 +3879,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
       );
       // Only what it actually holds is asked for.
-      expect(refusal.message).not.toContain('turn off "Runs AI Code Fixes"');
+      expect(refusal.message).not.toContain("code repository(ies)");
       expect(refusal.message).not.toContain("unassign");
     });
 
@@ -3884,6 +3893,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       credentialCountSpy.mockResolvedValue(new PositiveNumber(3));
       secretCountSpy.mockResolvedValue(new PositiveNumber(2));
       boundClusterCountSpy.mockResolvedValue(new PositiveNumber(4));
+      repositoryCountSpy.mockResolvedValue(new PositiveNumber(5));
       jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
         fakeCluster({
           aiAccessRunnerId: RUNNER_ID,
@@ -3894,7 +3904,6 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         bound: signedOffAgentRunner({
           name: getKubernetesAgentRunnerNameForCluster(longName),
           canRunRunbooks: true,
-          canRunCodeFixTasks: true,
           hostInfo: {
             kubernetes: { inCluster: true, clusterIdentifier: longName },
           },
@@ -3913,7 +3922,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       const head: string = refusal.message.slice(0, 500);
       expect(head).toContain("Upgrade the Kubernetes agent chart");
       expect(head).toContain('"Runs Runbooks"');
-      expect(head).toContain('"Runs AI Code Fixes"');
+      expect(head).toContain("5 code repository(ies)");
       expect(head).toContain("3 Runner credential(s)");
       expect(head).toContain("2 secret runbook variable(s)");
       expect(head).toContain("4 other cluster(s)");

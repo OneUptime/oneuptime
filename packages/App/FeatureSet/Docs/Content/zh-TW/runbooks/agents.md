@@ -69,7 +69,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 - 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。它永遠不會收到憑證。
 - 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
 
-對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。
+對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
 ### 全域 Runner 從哪裡來
 
@@ -96,10 +96,9 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 | **描述** | **Runner** | 選用。用一句話說明這台主機能連到什麼。 |
 | **標籤** | **Runner** （在 **更多欄位** 下） | 選用。 |
 | **執行操作手冊** | **功能** | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
-| **執行 AI 程式碼修復** | **功能** | 預設關閉。讓它為 AI 程式碼修復開啟提取要求；請參閱 [程式碼](/docs/ai/ai-agent)。 |
 | **執行 AI 修復指令** | **功能** | 預設關閉。讓 AI 自動修復在其上執行經過原則檢查的指令。為持有 SSH 憑證的 Runner 開啟此項需要讀取 Runbook 憑證的權限；請參閱 [執行 OneUptime AI 指令的 Runner](/docs/runbooks/credentials#執行-oneuptime-ai-指令的-runner)。 |
 
-Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。
+Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。AI 程式碼修復不是一項功能：程式碼儲存庫會在程式碼的設定中選擇 AI 在其中工作所用的 Runner，Runner 的頁面會列出選擇了它的儲存庫。
 
 ### 2. 複製安裝指令
 
@@ -234,7 +233,7 @@ Runner 在啟動時讀取以下變數：
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 否 | `10000` | Runner 為執行中的工作續約的頻率。低於 `1000` 的值會改用預設值。 |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | 否 | `1` | 此 Runner 上同時執行的工作數上限。 |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | 否 | — | 設為 `false` 可讓此 Runner 停止認領 Runbook 步驟，無論儀表板如何設定。它只能關閉此功能。 |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 設為 `false` 可讓此 Runner 停止認領 AI 程式碼修復，無論儀表板如何設定。 |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 設為 `false` 可讓此 Runner 停止認領 AI 程式碼修復，即使是選擇了它的程式碼儲存庫。 |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | 否 | — | 設為 `false` 可讓此 Runner 停止執行 AI 修復指令，無論儀表板如何設定。 |
 
 ## 輪替代理程式金鑰

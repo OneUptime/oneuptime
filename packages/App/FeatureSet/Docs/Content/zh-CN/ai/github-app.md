@@ -34,7 +34,7 @@ flowchart TB
 ## 开始之前
 
 - 存储库必须通过 GitHub App **连接到一个 OneUptime 项目**：在 **产品 → 代码** 中连接它。自托管实例需要先有自己的 GitHub App：请参阅 [GitHub 集成](/docs/self-hosted/github-integration)。如果该应用已经安装在 GitHub 账号上，请在那里点击 **连接现有安装**，而不是再次安装。
-- 必须有一个开启了 **执行 AI 代码修复** 的 Runner 在线：就是执行 [代码](/docs/ai/ai-agent) 中任务的那个 Runner。没有它，命令会被接受，然后在 30 分钟后失败，并提示没有代理领取它们。
+- 存储库在代码中的设置里选择的 Runner 必须在线（没有选择的存储库则是全局 Runner）：就是执行 [代码](/docs/ai/ai-agent) 中任务的那个 Runner。没有它，命令会被接受，然后在 30 分钟后失败，并提示没有 Runner 领取它们。
 - GitHub App 需要 **Read & write** 级别的 **Issues** 权限，并且必须订阅 [需要订阅的事件](#需要订阅的事件) 中列出的 webhook 事件。
 
 ## 命令
@@ -160,7 +160,7 @@ issue 文本、拉取请求描述、diff 和评论都会成为代理提示的一
 :::
 
 :::details 它确认后长时间没有动静
-检查 **运行手册 → Runbook 代理** 下是否有开启了 **执行 AI 代码修复** 的 Runner 在线。没有的话，运行会在 30 分钟后失败，并在讨论串中告知。
+检查存储库选择的 Runner 是否在 **运行手册 → Runbook 代理** 下在线。没有选择的存储库在全局 Runner 上工作，它是否已连接会显示在代码中存储库的设置里。没有在线的 Runner 时，运行会在 30 分钟后失败，并在讨论串中告知。
 :::
 
 :::details 它说拉取请求来自 fork
