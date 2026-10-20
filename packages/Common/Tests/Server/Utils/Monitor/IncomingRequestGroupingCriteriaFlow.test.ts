@@ -8,34 +8,11 @@ jest.mock("isolated-vm", () => {
 });
 
 import Alert from "../../../../Models/DatabaseModels/Alert";
-import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
-import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
-import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import Semaphore from "../../../../Server/Infrastructure/Semaphore";
-import AlertService from "../../../../Server/Services/AlertService";
-import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
-import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
-import IncidentService from "../../../../Server/Services/IncidentService";
-import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
-import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
-import MonitorService from "../../../../Server/Services/MonitorService";
-import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
-import ProjectService from "../../../../Server/Services/ProjectService";
-import logger from "../../../../Server/Utils/Logger";
 import IncomingRequestIncidentGrouping from "../../../../Server/Utils/Monitor/IncomingRequestIncidentGrouping";
-import MonitorDependencySuppression from "../../../../Server/Utils/Monitor/MonitorDependencySuppression";
-import MonitorLogUtil from "../../../../Server/Utils/Monitor/MonitorLogUtil";
-import MonitorMaintenanceSuppression from "../../../../Server/Utils/Monitor/MonitorMaintenanceSuppression";
-import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResource";
-import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
-import MonitorStatusTimelineUtil from "../../../../Server/Utils/Monitor/MonitorStatusTimeline";
-import MonitorSummaryCapture from "../../../../Server/Utils/Monitor/MonitorSummaryCapture";
 import ReceivingSilence from "../../../../Server/Utils/Monitor/ReceivingSilence";
-import SeriesResourceLinker from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import OneUptimeDate from "../../../../Types/Date";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
@@ -55,13 +32,14 @@ import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
-import PositiveNumber from "../../../../Types/PositiveNumber";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import {
-  ALERT_STATE_IDS,
-  INCIDENT_STATE_IDS,
-  mockProjectStates,
-} from "../../TestingUtils/Services/ProjectStatesHelper";
+  MonitorRecordTables,
+  isOpenAlert,
+  isOpenIncident,
+  mockMonitorRecordTables,
+  resolveIncidentByHand,
+} from "../../TestingUtils/MonitorRecordTables";
 import {
   afterEach,
   beforeEach,
@@ -70,7 +48,6 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { FindOperator } from "typeorm";
 
 /*
  * A customer's report, end to end: "When 'Group incidents and alerts by a
@@ -136,73 +113,24 @@ const TEAM_ID: string = "6c1e1d6a-0007-4c00-8000-000000000007";
 
 const START: Date = new Date("2026-10-20T09:00:00.000Z");
 
-// What the monitor opened, open or not.
-let incidents: Array<Incident> = [];
-let alerts: Array<Alert> = [];
-let nextIncidentNumber: number = 1;
-let nextAlertNumber: number = 1;
-// The criteria that set the monitor's status, in order.
-let statusSetBy: Array<string> = [];
+// What the monitor opened, open or not, and who set its status.
+let tables: MonitorRecordTables;
 let lastRequest: IncomingMonitorRequest | null = null;
 
-function parameterOf(operator: unknown): unknown {
-  return Object.values(
-    (operator as FindOperator<unknown>).objectLiteralParameters || {},
-  )[0];
-}
-
-function isIn(operator: unknown, value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-
-  return (parameterOf(operator) as Array<string>).includes(value);
-}
-
-// The open records a findBy reads: the creators ask for the open ones only.
-function readOpen<T extends Incident | Alert>(
-  table: Array<T>,
-  stateColumn: "currentIncidentStateId" | "currentAlertStateId",
-  query: JSONObject,
-): Array<T> {
-  return table.filter((record: T): boolean => {
-    const state: unknown = query[stateColumn];
-    const recordState: ObjectID | undefined = (
-      record as unknown as Record<string, ObjectID | undefined>
-    )[stateColumn];
-
-    return state === undefined || isIn(state, recordState?.toString());
-  });
-}
-
-function isOpenIncident(incident: Incident): boolean {
-  return (
-    incident.currentIncidentStateId?.toString() !==
-    INCIDENT_STATE_IDS.resolved.toString()
-  );
-}
-
-function isOpenAlert(alert: Alert): boolean {
-  return (
-    alert.currentAlertStateId?.toString() !==
-    ALERT_STATE_IDS.resolved.toString()
-  );
-}
-
 function openIncidentTitles(): Array<string> {
-  return incidents.filter(isOpenIncident).map((incident: Incident): string => {
+  return tables.incidents.filter(isOpenIncident).map((incident: Incident): string => {
     return incident.title || "";
   });
 }
 
 function openAlertTitles(): Array<string> {
-  return alerts.filter(isOpenAlert).map((alert: Alert): string => {
+  return tables.alerts.filter(isOpenAlert).map((alert: Alert): string => {
     return alert.title || "";
   });
 }
 
 function alertTitles(): Array<string> {
-  return alerts.map((alert: Alert): string => {
+  return tables.alerts.map((alert: Alert): string => {
     return alert.title || "";
   });
 }
@@ -495,172 +423,14 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(START);
 
-  incidents = [];
-  alerts = [];
-  nextIncidentNumber = 1;
-  nextAlertNumber = 1;
-  statusSetBy = [];
   lastRequest = null;
-
-  mockProjectStates();
-
-  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
-  jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
-  jest.spyOn(MonitorService, "findOneById").mockImplementation((async () => {
-    return monitorUnderTest;
-  }) as never);
-  jest
-    .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
-    .mockResolvedValue(undefined as never);
-  jest
-    .spyOn(MonitorMetricUtil, "saveMonitorMetrics")
-    .mockResolvedValue(undefined);
-  jest.spyOn(MonitorLogUtil, "saveMonitorLog").mockReturnValue(undefined);
-  jest
-    .spyOn(MonitorStatusTimelineUtil, "updateMonitorStatusTimeline")
-    .mockImplementation((async (input: {
-      criteriaInstance: MonitorCriteriaInstance;
-    }) => {
-      statusSetBy.push(input.criteriaInstance.data?.name || "");
-      return null;
-    }) as never);
-  jest
-    .spyOn(MonitorMaintenanceSuppression, "getMaintenanceSuppression")
-    .mockResolvedValue({
-      suppressedSeriesFingerprints: new Set<string>(),
-      suppressingDatabaseServerIds: [],
-    } as never);
-  jest
-    .spyOn(MonitorDependencySuppression, "getDependencySuppression")
-    .mockResolvedValue({ isSuppressed: false } as never);
-  jest.spyOn(MonitorSummaryCapture, "capture").mockResolvedValue(null as never);
-  jest
-    .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
-    .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
-  jest
-    .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
-    .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
-  jest
-    .spyOn(SeriesResourceLinker, "linkSeriesResourcesToModel")
-    .mockResolvedValue(undefined);
-  jest
-    .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
-    .mockResolvedValue({ ownerUserIds: [], ownerTeamIds: [] });
-
-  // A request that just arrived ends any silence.
-  jest.spyOn(ReceivingSilence, "measure").mockResolvedValue({
-    wallMinutes: 0,
-    receivingMinutes: 0,
-    notReceivingMinutes: 0,
-  });
-
-  // Each criteria's severity belongs to the monitor's project.
-  jest
-    .spyOn(IncidentSeverityService, "findOneBy")
-    .mockImplementation((async (): Promise<IncidentSeverity> => {
-      const severity: IncidentSeverity = new IncidentSeverity();
-      severity._id = INCIDENT_SEVERITY_ID.toString();
-      severity.projectId = PROJECT_ID;
-      return severity;
-    }) as never);
-  jest
-    .spyOn(AlertSeverityService, "findOneBy")
-    .mockImplementation((async (): Promise<AlertSeverity> => {
-      const severity: AlertSeverity = new AlertSeverity();
-      severity._id = ALERT_SEVERITY_ID.toString();
-      severity.projectId = PROJECT_ID;
-      return severity;
-    }) as never);
-
-  // The incident table.
-  jest.spyOn(IncidentService, "findBy").mockImplementation((async (findBy: {
-    query: JSONObject;
-  }): Promise<Array<Incident>> => {
-    return readOpen(incidents, "currentIncidentStateId", findBy.query);
-  }) as never);
-  jest.spyOn(IncidentService, "countBy").mockImplementation((async (countBy: {
-    query: JSONObject;
-  }): Promise<PositiveNumber> => {
-    return new PositiveNumber(
-      readOpen(incidents, "currentIncidentStateId", countBy.query).length,
-    );
-  }) as never);
-  jest.spyOn(IncidentService, "create").mockImplementation((async (createBy: {
-    data: Incident;
-  }): Promise<Incident> => {
-    const incident: Incident = createBy.data;
-    incident.id = ObjectID.generate();
-    incident.incidentNumber = nextIncidentNumber++;
-    incident.createdAt = OneUptimeDate.getCurrentDate();
-    incident.currentIncidentStateId = INCIDENT_STATE_IDS.created;
-    incidents.push(incident);
-    return incident;
-  }) as never);
-  jest
-    .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
-    .mockResolvedValue(INCIDENT_STATE_IDS.resolved);
-  jest
-    .spyOn(IncidentStateTimelineService, "create")
-    .mockImplementation((async (createBy: {
-      data: IncidentStateTimeline;
-    }): Promise<IncidentStateTimeline> => {
-      const incident: Incident | undefined = incidents.find(
-        (candidate: Incident): boolean => {
-          return (
-            candidate.id!.toString() === createBy.data.incidentId!.toString()
-          );
-        },
-      );
-
-      incident!.currentIncidentStateId = createBy.data.incidentStateId!;
-      return createBy.data;
-    }) as never);
-
-  // The alert table.
-  jest.spyOn(AlertService, "findBy").mockImplementation((async (findBy: {
-    query: JSONObject;
-  }): Promise<Array<Alert>> => {
-    return readOpen(alerts, "currentAlertStateId", findBy.query);
-  }) as never);
-  jest.spyOn(AlertService, "countBy").mockImplementation((async (countBy: {
-    query: JSONObject;
-  }): Promise<PositiveNumber> => {
-    return new PositiveNumber(
-      readOpen(alerts, "currentAlertStateId", countBy.query).length,
-    );
-  }) as never);
-  jest.spyOn(AlertService, "create").mockImplementation((async (createBy: {
-    data: Alert;
-  }): Promise<Alert> => {
-    const alert: Alert = createBy.data;
-    alert.id = ObjectID.generate();
-    alert.alertNumber = nextAlertNumber++;
-    alert.createdAt = OneUptimeDate.getCurrentDate();
-    alert.currentAlertStateId = ALERT_STATE_IDS.created;
-    alerts.push(alert);
-    return alert;
-  }) as never);
-  jest
-    .spyOn(AlertStateTimelineService, "getResolvedStateIdForProject")
-    .mockResolvedValue(ALERT_STATE_IDS.resolved);
-  jest
-    .spyOn(AlertStateTimelineService, "create")
-    .mockImplementation((async (createBy: {
-      data: AlertStateTimeline;
-    }): Promise<AlertStateTimeline> => {
-      const alert: Alert | undefined = alerts.find(
-        (candidate: Alert): boolean => {
-          return candidate.id!.toString() === createBy.data.alertId!.toString();
-        },
-      );
-
-      alert!.currentAlertStateId = createBy.data.alertStateId!;
-      return createBy.data;
-    }) as never);
-
-  jest.spyOn(logger, "error").mockImplementation(() => {
-    return undefined as never;
+  tables = mockMonitorRecordTables({
+    getMonitor: (): Monitor => {
+      return monitorUnderTest;
+    },
+    projectId: PROJECT_ID,
+    incidentSeverityId: INCIDENT_SEVERITY_ID,
+    alertSeverityId: ALERT_SEVERITY_ID,
   });
 });
 
@@ -678,16 +448,16 @@ describe("The customer's monitor: criteria 1 groups, criteria 2 does not", () =>
     const summary: MonitorEvaluationSummary = await send({ test: "test" });
 
     expect(metCriteria(summary)).toEqual(["Does not contain x"]);
-    expect(statusSetBy).toEqual(["Does not contain x"]);
+    expect(tables.statusSetBy).toEqual(["Does not contain x"]);
     expect(alertTitles()).toEqual(["A request without x"]);
     expect(actions(summary)).toEqual([
       "alert-created: Alert created: A request without x",
     ]);
 
     // Opened for the whole monitor, as a criteria without grouping opens it.
-    expect(alerts[0]!.seriesFingerprint).toBeUndefined();
-    expect(alerts[0]!.seriesLabels).toBeUndefined();
-    expect(alerts[0]!.createdCriteriaId).toBe(WITHOUT_X_ID);
+    expect(tables.alerts[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.alerts[0]!.seriesLabels).toBeUndefined();
+    expect(tables.alerts[0]!.createdCriteriaId).toBe(WITHOUT_X_ID);
     // Criteria 1's grouping has nothing to say about criteria 2.
     expect(groupingNotes(summary)).toEqual([]);
   });
@@ -704,7 +474,7 @@ describe("The customer's monitor: criteria 1 groups, criteria 2 does not", () =>
       "An incident for a request without x",
     ]);
     expect(openAlertTitles()).toEqual(["A request without x"]);
-    expect(incidents[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.incidents[0]!.seriesFingerprint).toBeUndefined();
   });
 
   it("opens one at a time: a second request without x while the alert is open opens nothing new", async () => {
@@ -722,7 +492,7 @@ describe("The customer's monitor: criteria 1 groups, criteria 2 does not", () =>
     await send({ groupLabels: { alertname: "HighCPU" }, test: "test" });
 
     expect(alertTitles()).toEqual(["A request without x"]);
-    expect(alerts[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.alerts[0]!.seriesFingerprint).toBeUndefined();
   });
 
   it("a request with x and the field opens criteria 1's alert for that value", async () => {
@@ -734,8 +504,8 @@ describe("The customer's monitor: criteria 1 groups, criteria 2 does not", () =>
 
     expect(metCriteria(summary)).toEqual(["Contains x"]);
     expect(alertTitles()).toEqual(["Alert: HighCPU"]);
-    expect(alerts[0]!.seriesFingerprint).toBeDefined();
-    expect(alerts[0]!.seriesLabels).toEqual({ alertname: "HighCPU" });
+    expect(tables.alerts[0]!.seriesFingerprint).toBeDefined();
+    expect(tables.alerts[0]!.seriesLabels).toEqual({ alertname: "HighCPU" });
     expect(groupingNotes(summary)).toEqual([]);
   });
 
@@ -756,7 +526,7 @@ describe("The customer's monitor: criteria 1 groups, criteria 2 does not", () =>
     await send({ test: "test" });
     await send({ test: "test again" });
 
-    const grouped: Alert | undefined = alerts.find((alert: Alert) => {
+    const grouped: Alert | undefined = tables.alerts.find((alert: Alert) => {
       return alert.title === "Alert: HighCPU";
     });
 
@@ -771,7 +541,7 @@ describe("The customer's monitor: criteria 1 groups, criteria 2 does not", () =>
       "alert-skipped: Alert already active: Alert: HighCPU",
     );
     expect(
-      alerts.filter((alert: Alert): boolean => {
+      tables.alerts.filter((alert: Alert): boolean => {
         return alert.title === "Alert: HighCPU";
       }),
     ).toHaveLength(1);
@@ -809,17 +579,17 @@ describe("A grouped criteria that matches a request without its field", () => {
     });
 
     expect(metCriteria(summary)).toEqual(["Contains x"]);
-    expect(statusSetBy).toEqual(["Contains x"]);
+    expect(tables.statusSetBy).toEqual(["Contains x"]);
 
     // The template's {{alertname}} has no value, so it is left as written.
     expect(openIncidentTitles()).toEqual(["Incident: {{alertname}}"]);
     expect(openAlertTitles()).toEqual(["Alert: {{alertname}}"]);
-    expect(incidents[0]!.seriesFingerprint).toBeUndefined();
-    expect(alerts[0]!.seriesFingerprint).toBeUndefined();
-    expect(incidents[0]!.createdCriteriaId).toBe(CONTAINS_X_ID);
+    expect(tables.incidents[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.alerts[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.incidents[0]!.createdCriteriaId).toBe(CONTAINS_X_ID);
 
     // The rest of the template still reads the request.
-    expect(incidents[0]!.description).toContain("A payload of another shape");
+    expect(tables.incidents[0]!.description).toContain("A payload of another shape");
 
     const notes: Array<MonitorEvaluationEvent> = groupingNotes(summary);
 
@@ -841,7 +611,7 @@ describe("A grouped criteria that matches a request without its field", () => {
   it("says so in the root cause of what it opened", async () => {
     await send({ kind: "x" });
 
-    for (const rootCause of [incidents[0]!.rootCause, alerts[0]!.rootCause]) {
+    for (const rootCause of [tables.incidents[0]!.rootCause, tables.alerts[0]!.rootCause]) {
       expect(rootCause).toContain("**Criteria Name**: Contains x");
       expect(rootCause).toContain(
         "**Grouping**: The request had no value at `requestBody.groupLabels.alertname`, so it counts for the whole monitor rather than for one value.",
@@ -853,8 +623,8 @@ describe("A grouped criteria that matches a request without its field", () => {
     await send({ kind: "x" });
     const second: MonitorEvaluationSummary = await send({ kind: "x", n: 2 });
 
-    expect(incidents).toHaveLength(1);
-    expect(alerts).toHaveLength(1);
+    expect(tables.incidents).toHaveLength(1);
+    expect(tables.alerts).toHaveLength(1);
     expect(actions(second)).toEqual([
       "grouping: No value to group by",
       "incident-skipped: Incident already active: Incident: {{alertname}}",
@@ -891,8 +661,8 @@ describe("A grouped criteria that matches a request without its field", () => {
 
   it("a body that is not a JSON object has no field either", async () => {
     for (const body of ["x marks the spot", JSON.stringify(["x"])]) {
-      incidents = [];
-      alerts = [];
+      tables.incidents.length = 0;
+      tables.alerts.length = 0;
 
       const summary: MonitorEvaluationSummary = await send(body);
 
@@ -904,13 +674,13 @@ describe("A grouped criteria that matches a request without its field", () => {
 
   it("so does a field holding an object, a list, null or an empty string", async () => {
     for (const alertname of [{ nested: true }, ["a"], null, ""]) {
-      incidents = [];
-      alerts = [];
+      tables.incidents.length = 0;
+      tables.alerts.length = 0;
 
       await send({ kind: "x", groupLabels: { alertname: alertname } });
 
       expect(openAlertTitles()).toEqual(["Alert: {{alertname}}"]);
-      expect(alerts[0]!.seriesFingerprint).toBeUndefined();
+      expect(tables.alerts[0]!.seriesFingerprint).toBeUndefined();
     }
   });
 
@@ -969,7 +739,7 @@ describe("Recovery, with and without the field", () => {
     );
 
     expect(metCriteria(summary)).toEqual(["Firing"]);
-    expect(incidents).toHaveLength(1);
+    expect(tables.incidents).toHaveLength(1);
     expect(openIncidentTitles()).toEqual([]);
     expect(openAlertTitles()).toEqual([]);
 
@@ -1018,8 +788,8 @@ describe("Recovery, with and without the field", () => {
     });
 
     expect(metCriteria(summary)).toEqual(["Firing"]);
-    expect(incidents).toEqual([]);
-    expect(alerts).toEqual([]);
+    expect(tables.incidents).toEqual([]);
+    expect(tables.alerts).toEqual([]);
     expect(groupingNotes(summary)[0]!.message).toBe(
       'This request has no value at requestBody.commonLabels.alertname and reports recovered, so criteria "Firing" opens nothing new.',
     );
@@ -1070,7 +840,7 @@ describe("Recovery, with and without the field", () => {
     });
 
     expect(openIncidentTitles()).toEqual(["{{alertname}}"]);
-    expect(incidents[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.incidents[0]!.seriesFingerprint).toBeUndefined();
   });
 
   it("items with no value that all recovered open nothing", async () => {
@@ -1079,7 +849,7 @@ describe("Recovery, with and without the field", () => {
       alerts: [{ status: "resolved" }, { status: "resolved", labels: {} }],
     });
 
-    expect(incidents).toEqual([]);
+    expect(tables.incidents).toEqual([]);
     expect(groupingNotes(summary)[0]!.title).toBe("Nothing new to open");
   });
 
@@ -1101,7 +871,7 @@ describe("Three criteria, in different orders", () => {
 
     expect(metCriteria(warned)).toEqual(["Warning"]);
     expect(openAlertTitles()).toEqual(["Warning: Disk at 85%"]);
-    expect(alerts[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.alerts[0]!.seriesFingerprint).toBeUndefined();
 
     await send(notification("firing", [["HighCPU", "firing"]]));
 
@@ -1129,7 +899,7 @@ describe("Three criteria, in different orders", () => {
 
     expect(metCriteria(summary)).toEqual(["Warning"]);
     expect(openAlertTitles()).toEqual(["Warning: Both"]);
-    expect(incidents).toEqual([]);
+    expect(tables.incidents).toEqual([]);
     expect(groupingNotes(summary)).toEqual([]);
   });
 
@@ -1163,8 +933,8 @@ describe("Three criteria, in different orders", () => {
     await send({ page: "team", team: "search" });
 
     expect(alertTitles()).toEqual(["Team payments", "HighCPU", "Team search"]);
-    expect(alerts[0]!.seriesLabels).toEqual({ team: "payments" });
-    expect(alerts[1]!.seriesLabels).toEqual({ alertname: "HighCPU" });
+    expect(tables.alerts[0]!.seriesLabels).toEqual({ team: "payments" });
+    expect(tables.alerts[1]!.seriesLabels).toEqual({ alertname: "HighCPU" });
   });
 
   it("a criteria without grouping between two grouped ones opens one for the whole monitor", async () => {
@@ -1182,7 +952,7 @@ describe("Three criteria, in different orders", () => {
     await send({ severity: "warning", summary: "Queue is slow" });
 
     expect(alertTitles()).toEqual(["Warning: Queue is slow"]);
-    expect(alerts[0]!.seriesFingerprint).toBeUndefined();
+    expect(tables.alerts[0]!.seriesFingerprint).toBeUndefined();
   });
 });
 
@@ -1242,13 +1012,13 @@ describe("The background check", () => {
     expect(openIncidentTitles()).toEqual(["HighCPU"]);
 
     // Someone resolves it by hand; the last request still says firing.
-    incidents[0]!.currentIncidentStateId = INCIDENT_STATE_IDS.resolved;
+    resolveIncidentByHand(tables.incidents[0]!);
 
     const summary: MonitorEvaluationSummary = await backgroundCheck(2);
 
     expect(metCriteria(summary)).toEqual(["Firing"]);
     expect(openIncidentTitles()).toEqual([]);
-    expect(incidents).toHaveLength(1);
+    expect(tables.incidents).toHaveLength(1);
     expect(groupingNotes(summary).map((note: MonitorEvaluationEvent) => note.message)).toEqual([
       'The background check re-read the last request. Criteria "Firing" opens one per value as a request arrives, not when it is re-read.',
     ]);
@@ -1315,6 +1085,6 @@ describe("A recovery field with [*] when the grouping field has none", () => {
           .monitorStepsInstanceArray[0]!.data!.monitorCriteria.data!
           .monitorCriteriaInstanceArray[0]!],
       }),
-    ).toEqual([incidents[0]!.seriesFingerprint]);
+    ).toEqual([tables.incidents[0]!.seriesFingerprint]);
   });
 });

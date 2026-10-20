@@ -544,6 +544,20 @@ export default class MonitorCriteriaEvaluator {
             });
 
       /*
+       * On a Server or Network Device monitor where some criteria names "*"
+       * for every disk, port or row, a criteria that names none - Device
+       * unreachable, Is Online, CPU above 90% - has no entity to fan out
+       * over: it judges the whole monitor, and its own verdict stands
+       * (PerEntityCriteriaFanOut.judgesWholeMonitor).
+       */
+      const judgesWholeMonitor: boolean =
+        fanOutAcrossCriteria &&
+        PerEntityCriteriaFanOut.judgesWholeMonitor({
+          monitorType: input.monitor.monitorType,
+          criteriaInstance: criteriaInstance,
+        });
+
+      /*
        * A grouped monitor whose scalar verdict says "met" but which
        * cannot name a single breaching series is NOT a match.
        *
@@ -556,7 +570,11 @@ export default class MonitorCriteriaEvaluator {
        * real per-host alert. Skip the criteria instead and let the next
        * one decide.
        */
-      if (fanOutAcrossCriteria && perSeriesMatches.length === 0) {
+      if (
+        fanOutAcrossCriteria &&
+        perSeriesMatches.length === 0 &&
+        !judgesWholeMonitor
+      ) {
         criteriaResult.met = false;
         criteriaResult.message =
           "Criteria was not met: no single series satisfied it. " +
@@ -638,6 +656,22 @@ ${incomingRequestGrouping.rootCauseNote}
       }
 
       /*
+       * What this criteria acts on. One that judges the whole monitor on a
+       * monitor that alerts per entity acts on the whole monitor as one
+       * entity of its own, with the criteria's root cause; the rest act on
+       * the series they matched.
+       */
+      const criteriaMatches: Array<PerSeriesCriteriaMatch> =
+        judgesWholeMonitor && criteriaInstance.data?.id
+          ? [
+              PerEntityCriteriaFanOut.wholeMonitorMatch({
+                criteriaId: criteriaInstance.data.id.toString(),
+                rootCause: renderedRootCause.toString(),
+              }),
+            ]
+          : perSeriesMatches;
+
+      /*
        * The monitor has exactly one status, and the FIRST matching
        * criteria owns it — unchanged from before this became a list.
        * `perSeriesMatches` likewise keeps pointing at the first match so
@@ -656,7 +690,7 @@ ${incomingRequestGrouping.rootCauseNote}
          */
         const publishesPerSeriesMatches: boolean = incomingRequestGrouping
           ? incomingRequestGrouping.perKeyMatches !== undefined
-          : perSeriesMatches.length > 0 || isPerSeriesMonitor;
+          : criteriaMatches.length > 0 || isPerSeriesMonitor;
 
         if (publishesPerSeriesMatches) {
           /*
@@ -665,7 +699,7 @@ ${incomingRequestGrouping.rootCauseNote}
            * "per-series mode — dedupe on (criteria, series)" instead of
            * silently degrading to one alert for the whole monitor.
            */
-          input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
+          input.probeApiIngestResponse.perSeriesMatches = criteriaMatches;
         }
       }
 
@@ -673,7 +707,7 @@ ${incomingRequestGrouping.rootCauseNote}
         matchedCriteria.push({
           criteriaId: criteriaInstance.data.id.toString(),
           rootCause: renderedRootCause.toString(),
-          perSeriesMatches: perSeriesMatches,
+          perSeriesMatches: criteriaMatches,
         });
       }
     }
