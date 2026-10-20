@@ -224,6 +224,7 @@ describe("AutoRemediationDecisionHelper classification", () => {
 
   it("counts only proposing or starting a fix as acting", () => {
     for (const reason of [
+      AutoRemediationDecisionReason.AiPickingRunbook,
       AutoRemediationDecisionReason.ClusterRoundStarted,
       AutoRemediationDecisionReason.ResourceRoundStarted,
       AutoRemediationDecisionReason.RuleAiComposingCommands,
@@ -240,6 +241,7 @@ describe("AutoRemediationDecisionHelper classification", () => {
       AutoRemediationDecisionReason.ClusterRoundNotStarted,
       AutoRemediationDecisionReason.NoRuleMatched,
       AutoRemediationDecisionReason.RuleRunbookNotStarted,
+      AutoRemediationDecisionReason.AiRunbookPickNotStarted,
     ]) {
       expect(AutoRemediationDecisionHelper.isActed(entry(reason))).toBe(false);
     }
@@ -253,6 +255,7 @@ describe("AutoRemediationDecisionHelper classification", () => {
       AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
       AutoRemediationDecisionReason.RuleRunbookNotStarted,
       AutoRemediationDecisionReason.RuleHasNoRunbooks,
+      AutoRemediationDecisionReason.AiRunbookPickNotStarted,
     ]) {
       expect(AutoRemediationDecisionHelper.needsAttention(entry(reason))).toBe(
         true,
@@ -263,6 +266,7 @@ describe("AutoRemediationDecisionHelper classification", () => {
       AutoRemediationDecisionReason.ClusterFixesOff,
       AutoRemediationDecisionReason.NoRulesConfigured,
       AutoRemediationDecisionReason.ClusterRoundStarted,
+      AutoRemediationDecisionReason.AiPickingRunbook,
     ]) {
       expect(AutoRemediationDecisionHelper.needsAttention(entry(reason))).toBe(
         false,

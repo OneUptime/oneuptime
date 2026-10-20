@@ -54,7 +54,7 @@ I trinnet **Runbook-agenter** vælger du de Runners, der må bruge loginoplysnin
 
 ### Lad OneUptime AI bruge den
 
-OneUptime AI kører sine SSH-kommandoer på en Runner med **Kører AI-afhjælpningskommandoer** slået til, med en af de SSH-loginoplysninger, der er tildelt den. En Kubernetes-loginoplysning bruges, så snart den er bundet til en klynge sammen med en af sine Runnere: se [AI SRE](/docs/ai/ai-sre).
+OneUptime AI kører sine SSH-kommandoer på den Runner, en regel for automatisk afhjælpning vælger til dem, med en af de SSH-loginoplysninger, der er tildelt den. En Kubernetes-loginoplysning bruges, så snart den er bundet til en klynge sammen med en af sine Runnere: se [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## Hvad der gemmes
@@ -78,12 +78,12 @@ Tildelingen er adgangsgrænsen, så hold den smal: en Runner, der kun nogensinde
 
 ### Runners, der kører OneUptime AI's kommandoer
 
-På en Runner med **Kører AI-afhjælpningskommandoer** slået til vælger OneUptime AI blandt de SSH-loginoplysninger, der er tildelt Runneren, til de kommandoer, den kører der. Derfor når en SSH-loginoplysning kun en sådan Runner gennem en person, der må læse runbook-loginoplysninger (**Read Runbook Credential**, eller en Project Owner eller Project Admin), uanset hvad der gemmes først:
+En Runner kører OneUptime AI's kommandoer, så snart den er valgt til dem: som Runner for en regel for automatisk afhjælpning eller til en Kubernetes-klynges AI-adgang. På sådan en Runner vælger OneUptime AI blandt de SSH-loginoplysninger, der er tildelt Runneren, til de kommandoer, den kører der. Derfor når en SSH-loginoplysning kun en sådan Runner gennem en person, der må læse runbook-loginoplysninger (**Read Runbook Credential**, eller en Project Owner eller Project Admin), uanset hvad der gemmes først:
 
 - **Tildel loginoplysningen.** At oprette en SSH-loginoplysning med en sådan Runner, eller tilføje en sådan Runner til en, kræver den tilladelse. Uden den afvises gemningen og nævner Runneren: tildel loginoplysningen til Runners, der ikke kører AI-afhjælpningskommandoer, eller bed en med tilladelsen om at tildele den.
-- **Slå kontakten til.** At slå **Kører AI-afhjælpningskommandoer** til for en Runner, der har SSH-loginoplysninger, kræver samme tilladelse.
+- **Vælg Runneren.** At vælge en Runner, der har SSH-loginoplysninger, til OneUptime AI's kommandoer - som en regels Runner eller til en klynge - kræver samme tilladelse, første gang den vælges.
 
-At fjerne Runners fra en loginoplysning, gemme en loginoplysning med de Runners, den allerede har, og Kubernetes-loginoplysninger kræver ikke mere: OneUptime AI's kubectl-kommandoer kører med den loginoplysning, der er bundet til deres klynge. Tildelinger af loginoplysninger og aktivering af kontakten foretaget af en uden den tilladelse gemmes én ad gangen i et projekt, så de to ikke kan bestå deres kontroller sammen; en gemning, der kommer, mens en anden gemmes, venter på den, og tager det for lang tid, afvises den med *Try again in a moment*. Gem igen.
+At fjerne Runners fra en loginoplysning, gemme en loginoplysning med de Runners, den allerede har, og Kubernetes-loginoplysninger kræver ikke mere: OneUptime AI's kubectl-kommandoer kører med den loginoplysning, der er bundet til deres klynge. Tildelinger af loginoplysninger og valg af en Runner foretaget af en uden den tilladelse gemmes én ad gangen i et projekt, så de to ikke kan bestå deres kontroller sammen; en gemning, der kommer, mens en anden gemmes, venter på den, og tager det for lang tid, afvises den med *Try again in a moment*. Gem igen. At gemme en Runner, f.eks. når du redigerer dens beskrivelse, venter aldrig.
 
 Et workflows trin handler som Project Admin, men låner ikke en Project Admins læsning af runbook-loginoplysninger: et trin har den kun, hvis den person, der sidst gemte workflowets trin, har den. Se [Hvad workflow-trin må gøre](/docs/workflows/configuration#hvad-workflow-trin-må-gøre).
 

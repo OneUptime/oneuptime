@@ -1006,11 +1006,12 @@ describe("the Runner the runbook pages describe", () => {
     );
   });
 
-  it("walks Create Runner through the form's steps, with the capabilities' defaults", () => {
-    expect(formSteps(RUNNER_FORM_FIELDS)).toEqual(["Runner", "Capabilities"]);
+  it("walks Create Runner's one page, with Runs Runbooks and the labels under More fields", () => {
+    // One page: no steps.
+    expect(formSteps(RUNNER_FORM_FIELDS)).toEqual([]);
 
     const capability: RegExp =
-      /title: "(Runs [^"]+)",\s*\.\.\.onStep\("capabilities"\),[\s\S]*?defaultValue: (true|false),/g;
+      /title: "(Runs [^"]+)",\s*collapsibleSection: MORE_FIELDS,[\s\S]*?defaultValue: (true|false),/g;
     const defaults: Array<[string, boolean]> = Array.from(
       RUNNER_FORM_FIELDS.matchAll(capability),
     ).map((match: RegExpMatchArray): [string, boolean] => {
@@ -1018,26 +1019,33 @@ describe("the Runner the runbook pages describe", () => {
     });
 
     /*
-     * AI code fixes are not a capability: a code repository picks its
-     * Runner in its settings in Code (CodeRepository.runnerId).
+     * AI is not a capability: a code repository picks its Runner in its
+     * settings in Code (CodeRepository.runnerId), and an auto remediation
+     * rule or a cluster's AI settings pick the Runner OneUptime AI runs its
+     * commands on (RunnerAiCommandsPick).
      */
-    expect(defaults).toEqual([
-      ["Runs Runbooks", true],
-      ["Runs AI Remediation Commands", false],
-    ]);
+    expect(defaults).toEqual([["Runs Runbooks", true]]);
+    expect(RUNNER_FORM_FIELDS).not.toContain("canRunAiCommands: true");
 
     const setup: string = section(AGENTS, "Install a Runner");
 
     expect(setup).not.toContain("Runs AI Code Fixes");
+    expect(setup).not.toContain("Runs AI Remediation Commands");
     expect(setup).toContain(
-      "AI code fixes are not a capability: a code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.",
+      "Click **Create Runner** and fill in its fields, all on one page:",
+    );
+    expect(setup).toContain(
+      "AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.",
+    );
+    expect(setup).toContain(
+      "An auto remediation rule picks the Runner OneUptime AI runs its commands on, and a Kubernetes cluster's AI settings the Runner its kubectl runs on: picking a Runner there is what lets OneUptime AI's commands run on it.",
     );
 
     for (const [name, on] of defaults) {
       expect({
         name,
         row: setup.includes(
-          `| **${name}** | **Capabilities** | ${on ? "On" : "Off"} by default.`,
+          `| **${name}** | Under **More fields** | ${on ? "On" : "Off"} by default.`,
         ),
       }).toEqual({
         name,
@@ -1046,16 +1054,14 @@ describe("the Runner the runbook pages describe", () => {
     }
 
     for (const field of ["Name", "Description"]) {
-      expect(setup).toContain(`| **${field}** | **Runner** |`);
+      expect(setup).toContain(`| **${field}** | On the page |`);
     }
 
-    // The labels fold under More fields on the Runner step.
+    // The labels fold under More fields, after Runs Runbooks.
     expect(RUNNER_FORM_FIELDS).toContain(
-      'getLabelsFormField<Runner>(onStep("runner"))',
+      "getLabelsFormField<Runner>({ collapsibleSection: MORE_FIELDS })",
     );
-    expect(setup).toContain(
-      "| **Labels** | **Runner** (under **More fields**) |",
-    );
+    expect(setup).toContain("| **Labels** | Under **More fields** |");
   });
 
   it("names the Runners list's columns, its setup action and the Runner page's status card", () => {

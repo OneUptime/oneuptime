@@ -54,7 +54,7 @@ OneUptime AI 使用指派給其執行所在 Runner 的某個 SSH 憑證來執行
 
 ### 讓 OneUptime AI 使用它
 
-OneUptime AI 在開啟了 **執行 AI 修復指令** 的 Runner 上，使用指派給該 Runner 的某個 SSH 憑證執行其 SSH 指令。Kubernetes 憑證一旦與它的某個 Runner 一起繫結到叢集就會被使用：請參閱 [AI SRE](/docs/ai/ai-sre)。
+OneUptime AI 在自動補救規則為其指令選擇的 Runner 上，使用指派給該 Runner 的某個 SSH 憑證執行其 SSH 指令。Kubernetes 憑證一旦與它的某個 Runner 一起繫結到叢集就會被使用：請參閱 [AI SRE](/docs/ai/ai-sre)。
 :::
 
 ## 儲存的內容
@@ -78,12 +78,12 @@ OneUptime AI 在開啟了 **執行 AI 修復指令** 的 Runner 上，使用指�
 
 ### 執行 OneUptime AI 指令的 Runner
 
-在開啟了 **執行 AI 修復指令** 的 Runner 上，OneUptime AI 會從指派給該 Runner 的 SSH 憑證中挑選，用於它在那裡執行的指令。因此，無論先儲存哪一方，SSH 憑證都只能經由有權讀取 Runbook 憑證的人（ **Read Runbook Credential** ，或 Project Owner、Project Admin）到達這樣的 Runner：
+Runner 一旦被選來執行 OneUptime AI 的指令，就會執行這些指令：作為自動補救規則的 Runner，或用於 Kubernetes 叢集的 AI 存取。在這樣的 Runner 上，OneUptime AI 會從指派給該 Runner 的 SSH 憑證中挑選，用於它在那裡執行的指令。因此，無論先儲存哪一方，SSH 憑證都只能經由有權讀取 Runbook 憑證的人（ **Read Runbook Credential** ，或 Project Owner、Project Admin）到達這樣的 Runner：
 
 - **指派憑證。** 建立包含此類 Runner 的 SSH 憑證，或把此類 Runner 加入憑證，都需要該權限。沒有該權限時，儲存會被拒絕並指出該 Runner：請把憑證指派給不執行 AI 修復指令的 Runner，或請擁有該權限的人來指派。
-- **開啟開關。** 為持有 SSH 憑證的 Runner 開啟 **執行 AI 修復指令** 需要同樣的權限。
+- **選擇 Runner。** 首次為 OneUptime AI 的指令選擇持有 SSH 憑證的 Runner（作為規則的 Runner，或用於叢集）需要同樣的權限。
 
-從憑證中移除 Runner、依憑證現有的 Runner 原樣儲存憑證，以及 Kubernetes 憑證，都不需要額外權限：OneUptime AI 的 kubectl 指令會使用繫結到其叢集的憑證執行。沒有該權限的人所做的憑證指派和開關開啟，在一個專案中會逐一儲存，因此兩者無法一起通過檢查；在另一次儲存進行中到達的儲存會等待它完成，若等待太久，則會以 *Try again in a moment* 被拒絕。請再次儲存。
+從憑證中移除 Runner、依憑證現有的 Runner 原樣儲存憑證，以及 Kubernetes 憑證，都不需要額外權限：OneUptime AI 的 kubectl 指令會使用繫結到其叢集的憑證執行。沒有該權限的人所做的憑證指派和 Runner 選擇，在一個專案中會逐一儲存，因此兩者無法一起通過檢查；在另一次儲存進行中到達的儲存會等待它完成，若等待太久，則會以 *Try again in a moment* 被拒絕。請再次儲存。儲存 Runner（例如編輯其描述）從不等待。
 
 工作流程的步驟以 Project Admin 的身分執行，但不會借用 Project Admin 讀取 Runbook 憑證的權限：只有當最後儲存工作流程步驟的人擁有該權限時，步驟才擁有它。請參閱 [工作流程步驟可以做什麼](/docs/workflows/configuration#工作流程步驟可以做什麼)。
 

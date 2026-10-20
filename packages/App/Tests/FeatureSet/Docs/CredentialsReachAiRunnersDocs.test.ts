@@ -98,20 +98,23 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
     const text: string = section(page, SUBSECTION);
 
     expectSentences(text, [
-      "On a Runner with **Runs AI Remediation Commands** on, OneUptime AI picks from the SSH credentials assigned to the Runner for the commands it runs there.",
+      "A Runner runs OneUptime AI's commands once it is picked for them: as an auto remediation rule's Runner, or for a Kubernetes cluster's AI access.",
+      "On such a Runner, OneUptime AI picks from the SSH credentials assigned to the Runner for the commands it runs there.",
       "So an SSH credential reaches such a Runner only through someone who may read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin), whichever is saved first:",
       "**Assigning the credential.** Creating an SSH credential with such a Runner, or adding such a Runner to one, takes that permission.",
       "Without it, the save is refused and names the Runner: assign the credential to Runners that don't run AI remediation commands, or ask someone who has the permission to assign it.",
-      "**Turning the switch on.** Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission.",
+      "**Picking the Runner.** Picking a Runner that holds SSH credentials for OneUptime AI's commands - as a rule's Runner, or for a cluster - takes the same permission, the first time it is picked.",
       "Removing Runners from a credential, saving a credential with the Runners it has, and Kubernetes credentials ask nothing more",
-      "Creating a credential with Runners and turning the switch on by someone without that permission are saved one at a time in a project, so the two can't pass their checks together;",
+      "Creating a credential with Runners and picking a Runner by someone without that permission are saved one at a time in a project, so the two can't pass their checks together;",
       "it is refused with *Try again in a moment*. Save it again.",
-      "Saving a Runner without changing its switch, such as editing its description, never waits.",
+      "Saving a Runner, such as editing its description, never waits.",
       "A workflow's steps act as a Project Admin, but are never lent a Project Admin's read of runbook credentials: a person who has it has to make these changes.",
       STEPS_LINK,
     ]);
 
     expect(text).not.toContain("last saved");
+    // The switch is gone: picking the Runner is the consent.
+    expect(text).not.toContain("Runs AI Remediation Commands");
 
     // The words it quotes are the server's.
     expect(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE).toContain(
@@ -124,17 +127,16 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
     ]);
   });
 
-  test("Runbook Agents says, at the switch, what turning it on takes", () => {
-    const row: string =
-      read("runbooks/agents.md")
-        .split("\n")
-        .find((line: string): boolean => {
-          return line.startsWith("| **Runs AI Remediation Commands** |");
-        }) || "";
+  test("Runbook Agents says, where a Runner is created, that picking it lets OneUptime AI's commands run on it, and what picking one with SSH credentials takes", () => {
+    const setup: string = section(
+      read("runbooks/agents.md"),
+      "### 1. Create the agent record",
+    );
 
-    expectSentences(row, [
-      "Off by default. Lets AI auto-remediation run policy-checked commands on it.",
-      "Turning it on for a Runner that holds SSH credentials takes permission to read runbook credentials;",
+    expect(setup).not.toContain("| **Runs AI Remediation Commands** |");
+    expectSentences(setup, [
+      "An auto remediation rule picks the Runner OneUptime AI runs its commands on, and a Kubernetes cluster's AI settings the Runner its kubectl runs on: picking a Runner there is what lets OneUptime AI's commands run on it.",
+      "Picking one that holds SSH credentials takes permission to read runbook credentials;",
       CREDENTIALS_LINK,
     ]);
   });
@@ -148,8 +150,8 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       }) || "";
 
     expectSentences(paragraph, [
-      "Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission, since a rule that names no Runners reaches every Runner that runs OneUptime AI's commands.",
-      "Assigning an SSH credential to a Runner that runs OneUptime AI's commands - creating the credential with that Runner, or adding the Runner to it - takes it too, so an SSH credential reaches such a Runner only through someone who may read it, whichever is saved first, the credential or the switch",
+      "Picking a Runner that holds SSH credentials - as a rule's **Runner**, or for a cluster's AI access - takes the same permission the first time it is picked, since picking it is what lets OneUptime AI's commands run on it.",
+      "Assigning an SSH credential to a Runner that runs OneUptime AI's commands - creating the credential with that Runner, or adding the Runner to it - takes it too, so an SSH credential reaches such a Runner only through someone who may read it, whichever is saved first, the credential or the pick",
       CREDENTIALS_LINK,
       "A workflow's step is never lent this permission by acting as a Project Admin: a person who has it has to make these changes.",
     ]);
@@ -173,7 +175,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
 
     expect(
       credentials.endsWith(
-        "turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials, or assigning an SSH credential to a Runner that runs OneUptime AI's commands. A workflow's step acts as a Project Admin but is never lent the read of a setting that holds credentials: it names none of them and makes none of these changes, and a person who may read them has to.",
+        "picking a Runner that holds SSH credentials for OneUptime AI's commands, or assigning an SSH credential to a Runner that runs OneUptime AI's commands. A workflow's step acts as a Project Admin but is never lent the read of a setting that holds credentials: it names none of them and makes none of these changes, and a person who may read them has to.",
       ),
     ).toBe(true);
   });
@@ -200,7 +202,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
     expectSentences(bullet, [
       "A Project Admin may read runbook credentials, SMTP servers, call and SMS providers, SNMP credentials, video call connections and API keys, but a step is never lent that, whoever built or saved the workflow.",
       "A step can't name one of these settings, such as the SMTP server a status page sends email with or the API key a permission is granted to,",
-      "letting OneUptime AI run its commands without asking, turning on **Runs AI Remediation Commands** for a Runner, assigning an SSH credential to a Runner that runs OneUptime AI's commands, or naming a runbook credential, such as in a runbook's steps.",
+      "letting OneUptime AI run its commands without asking, picking a Runner that holds SSH credentials for OneUptime AI's commands, assigning an SSH credential to a Runner that runs OneUptime AI's commands, or naming a runbook credential, such as in a runbook's steps.",
       "The step is refused, and its run log says a person who may read them (**Read Runbook Credential**, the read permission of that kind of setting, or a Project Owner or Project Admin) has to make the change.",
       "A step that keeps the setting a record names already, or clears it, is not refused.",
     ]);

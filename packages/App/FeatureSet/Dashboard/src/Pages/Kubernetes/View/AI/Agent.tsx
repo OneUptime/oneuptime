@@ -171,6 +171,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Project from "Common/Models/DatabaseModels/Project";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import Runner from "Common/Models/DatabaseModels/Runner";
+import RunnerChoicesLoader from "../../../../Components/Runner/RunnerChoices";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -494,21 +495,14 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             return null;
           }
           try {
-            const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
-              modelType: Runner,
-              query: {},
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: {
-                _id: true,
-                name: true,
-                canRunAiCommands: true,
-                // The posture: which rows the Kubernetes agent chart installed.
-                hostInfo: true,
-              },
-              sort: { name: SortOrder.Ascending },
-            });
-            return result.data || [];
+            /*
+             * The one loader of Runners (RunnerChoicesLoader): choosing one
+             * of them is what lets OneUptime AI run kubectl on it.
+             */
+            return await RunnerChoicesLoader.loadForKubernetesCluster(
+              ProjectUtil.getCurrentProjectId()!,
+              LIMIT_PER_PROJECT,
+            );
           } catch (err) {
             errors.push(
               translator.translateTemplate(
@@ -1563,6 +1557,39 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             <span>{translator.translateText("View Runner")}</span>
             <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
           </Link>
+        ) : (
+          renderAsk()
+        );
+      case "choose_runner_again":
+        return status.runner && settingsGate.isAllowed ? (
+          <Button
+            title="Choose it again"
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            isLoading={isActing}
+            disabled={isActing}
+            dataTestId="ai-agent-gap-choose-runner-again"
+            onClick={() => {
+              const runnerId: string = status.runner!.id;
+
+              runPageAction({
+                run: async (): Promise<void> => {
+                  /*
+                   * The Runner the cluster is bound to, chosen again: what
+                   * lets OneUptime AI run kubectl on it now, with the same
+                   * check a new choice gets (RunnerAiCommandsPick).
+                   */
+                  await updateCluster({ aiAccessRunnerId: runnerId });
+                },
+                notice: translationKey(
+                  "OneUptime AI may now run kubectl on this Runner.",
+                ),
+                isConfirmed: false,
+              }).catch(() => {
+                // handled inside runPageAction
+              });
+            }}
+          />
         ) : (
           renderAsk()
         );

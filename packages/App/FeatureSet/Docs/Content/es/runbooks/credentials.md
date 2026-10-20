@@ -54,7 +54,7 @@ En el paso **Agentes de runbook**, elige los Runners que pueden usar la credenci
 
 ### Dejar que OneUptime AI la use
 
-OneUptime AI ejecuta sus comandos SSH en un Runner con **Ejecuta comandos de remediación con IA** activado, con una de las credenciales SSH asignadas a él. Una credencial de Kubernetes se usa en cuanto se vincula, junto con uno de sus Runners, a un clúster: consulta [SRE con IA](/docs/ai/ai-sre).
+OneUptime AI ejecuta sus comandos SSH en el Runner que una regla de remediación automática elige para ellos, con una de las credenciales SSH asignadas a él. Una credencial de Kubernetes se usa en cuanto se vincula, junto con uno de sus Runners, a un clúster: consulta [SRE con IA](/docs/ai/ai-sre).
 :::
 
 ## Qué se guarda
@@ -78,12 +78,12 @@ La asignación es el límite de acceso, así que mantenla estrecha: un Runner qu
 
 ### Runners que ejecutan los comandos de OneUptime AI
 
-En un Runner con **Ejecuta comandos de remediación con IA** activado, OneUptime AI elige entre las credenciales SSH asignadas al Runner para los comandos que ejecuta allí. Por eso una credencial SSH solo llega a un Runner así a través de alguien que puede leer las credenciales de runbook (**Read Runbook Credential**, o un Project Owner o un Project Admin), sea lo que sea lo que se guarde primero:
+Un Runner ejecuta los comandos de OneUptime AI en cuanto se elige para ellos: como Runner de una regla de remediación automática, o para el acceso de IA de un clúster de Kubernetes. En un Runner así, OneUptime AI elige entre las credenciales SSH asignadas al Runner para los comandos que ejecuta allí. Por eso una credencial SSH solo llega a un Runner así a través de alguien que puede leer las credenciales de runbook (**Read Runbook Credential**, o un Project Owner o un Project Admin), sea lo que sea lo que se guarde primero:
 
 - **Asignar la credencial.** Crear una credencial SSH con un Runner así, o añadir un Runner así a una credencial, requiere ese permiso. Sin él, el guardado se rechaza y nombra el Runner: asigna la credencial a Runners que no ejecuten comandos de remediación con IA, o pide a alguien con el permiso que la asigne.
-- **Activar el interruptor.** Activar **Ejecuta comandos de remediación con IA** en un Runner que tiene credenciales SSH requiere el mismo permiso.
+- **Elegir el Runner.** Elegir un Runner que tiene credenciales SSH para los comandos de OneUptime AI (como Runner de una regla, o para un clúster) requiere el mismo permiso, la primera vez que se elige.
 
-Quitar Runners de una credencial, guardar una credencial con los Runners que ya tiene y las credenciales de Kubernetes no piden nada más: los comandos kubectl de OneUptime AI se ejecutan con la credencial vinculada a su clúster. Las asignaciones de credenciales y la activación del interruptor por alguien sin ese permiso se guardan de una en una en un proyecto, para que las dos no puedan superar sus comprobaciones a la vez; un guardado que llega mientras se guarda otro lo espera, y si tarda demasiado se rechaza con *Try again in a moment*. Vuelve a guardarlo.
+Quitar Runners de una credencial, guardar una credencial con los Runners que ya tiene y las credenciales de Kubernetes no piden nada más: los comandos kubectl de OneUptime AI se ejecutan con la credencial vinculada a su clúster. Las asignaciones de credenciales y la elección de un Runner por alguien sin ese permiso se guardan de una en una en un proyecto, para que las dos no puedan superar sus comprobaciones a la vez; un guardado que llega mientras se guarda otro lo espera, y si tarda demasiado se rechaza con *Try again in a moment*. Vuelve a guardarlo. Guardar un Runner, por ejemplo al editar su descripción, nunca espera.
 
 Los pasos de un flujo de trabajo actúan como un Project Admin, pero no se les presta la lectura de credenciales de runbook de un Project Admin: un paso la tiene solo si la tiene la persona que guardó por última vez los pasos del flujo de trabajo. Consulta [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
 
