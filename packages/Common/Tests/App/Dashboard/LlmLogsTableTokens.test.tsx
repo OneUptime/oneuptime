@@ -16,12 +16,12 @@ import path from "path";
  * Issue #5073: the AI Logs' "Tokens Used" showed every token a call used,
  * the ones the provider read from its prompt cache included, with "(N
  * cached)" beside it - so an agent loop's calls, which read most of their
- * conversation from the cache, showed several times what they cost, and
+ * conversation from cache, showed several times what they cost, and
  * nothing matched the project's daily limits once they counted cached tokens
  * by what they cost. The column now shows the tokens as OneUptime counts them
  * (AiTokenCount) - what the limits add up and the AI credits charge - and,
  * under that count, how many tokens the call used in all and how many of them
- * came from the cache or went into it: the provider's own numbers.
+ * came from cache or went into it: the provider's own numbers.
  *
  * The table itself is captured, not rendered: its columns are under test.
  */
@@ -63,6 +63,7 @@ interface TokensColumn {
   title: string;
   headerTooltip?: string | undefined;
   wrapContent?: boolean | undefined;
+  disableSort?: boolean | undefined;
   getElement: (item: LlmLog) => ReactElement;
 }
 
@@ -91,11 +92,11 @@ const LANGUAGES: Array<string> = [
 ];
 
 // The sentences the column says, as en.json keys them.
-const CACHE_READ_KEY: string = "{{count}} tokens, {{cacheRead}} from the cache";
+const CACHE_READ_KEY: string = "{{count}} tokens, {{cacheRead}} from cache";
 const CACHE_WRITE_KEY: string =
-  "{{count}} tokens, {{cacheWrite}} written to the cache";
+  "{{count}} tokens, {{cacheWrite}} written to cache";
 const CACHE_BOTH_KEY: string =
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it";
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it";
 const HEADER_TOOLTIP: string =
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.";
 
@@ -163,12 +164,12 @@ afterEach(() => {
 });
 
 describe("the AI Logs' Tokens Used", () => {
-  test("shows an agent loop's call as it counts: 28,496 tokens, 20,654 of them read from the cache, count 9,908", () => {
+  test("shows an agent loop's call as it counts: 28,496 tokens, 20,654 of them read from cache, count 9,908", () => {
     expect(
       cellText(log({ totalTokens: 28_496, cachedInputTokens: 20_654 })),
     ).toEqual({
       count: "9,908",
-      cache: "28,496 tokens, 20,654 from the cache",
+      cache: "28,496 tokens, 20,654 from cache",
     });
   });
 
@@ -177,7 +178,7 @@ describe("the AI Logs' Tokens Used", () => {
       cellText(log({ totalTokens: 24_117, cacheCreationTokens: 20_654 })),
     ).toEqual({
       count: "29,281",
-      cache: "24,117 tokens, 20,654 written to the cache",
+      cache: "24,117 tokens, 20,654 written to cache",
     });
   });
 
@@ -196,7 +197,7 @@ describe("the AI Logs' Tokens Used", () => {
         cachedInputTokens: 20_654,
         cacheCreationTokens: 4_216,
       }).toLocaleString("en"),
-      cache: "29,712 tokens: 20,654 from the cache, 4,216 written to it",
+      cache: "29,712 tokens: 20,654 from cache, 4,216 written to it",
     });
   });
 
@@ -213,6 +214,22 @@ describe("the AI Logs' Tokens Used", () => {
     expect(column.headerTooltip).toBe(HEADER_TOOLTIP);
     // The line under the count may wrap rather than widen the table.
     expect(column.wrapContent).toBe(true);
+  });
+
+  test("is not sorted by the provider's counts, which are not the count it shows", () => {
+    // 9,908 counted from 28,496 tokens; 29,281 counted from 24,117.
+    const mostlyRead: number = AiTokenCount.count({
+      totalTokens: 28_496,
+      cachedInputTokens: 20_654,
+    });
+    const mostlyWritten: number = AiTokenCount.count({
+      totalTokens: 24_117,
+      cacheCreationTokens: 20_654,
+    });
+
+    // The call with more tokens counts less: the two orders disagree.
+    expect(mostlyRead).toBeLessThan(mostlyWritten);
+    expect(tokensColumn().disableSort).toBe(true);
   });
 
   test("the table reads both cache columns of every row", () => {
@@ -237,17 +254,17 @@ describe("the line under the count, in words", () => {
     [{ totalTokens: 100 }, ""],
     [
       { totalTokens: 28_496, cachedInputTokens: 20_654 },
-      "28,496 tokens, 20,654 from the cache",
+      "28,496 tokens, 20,654 from cache",
     ],
     [
       { totalTokens: 24_117, cacheCreationTokens: 20_654 },
-      "24,117 tokens, 20,654 written to the cache",
+      "24,117 tokens, 20,654 written to cache",
     ],
     [
       { totalTokens: 50, cachedInputTokens: 30, cacheCreationTokens: 10 },
-      "50 tokens: 30 from the cache, 10 written to it",
+      "50 tokens: 30 from cache, 10 written to it",
     ],
-    [{ totalTokens: 1, cachedInputTokens: 1 }, "1 token, 1 from the cache"],
+    [{ totalTokens: 1, cachedInputTokens: 1 }, "1 token, 1 from cache"],
   ])("%p says %p", (usage: Record<string, number>, text: string) => {
     expect(getLlmLogCacheText(ENGLISH, AiTokenCount.getBreakdown(usage))).toBe(
       text,

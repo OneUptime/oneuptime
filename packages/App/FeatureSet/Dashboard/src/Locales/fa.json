@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} مورد در این درخواست در {{path}} مقداری ندارد، پس چیزی برای خودش باز نکرد.",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "معیار {{criteria}} تطبیق یافت چون درخواست‌ها دیگر نمی‌رسند، پس آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "همان‌طور که در محدودیت‌های روزانهٔ هوش مصنوعی پروژه شمرده می‌شوند: توکنی که ارائه‌دهنده از حافظهٔ نهان پرامپت خود خوانده یک‌دهم توکن شمرده می‌شود، و توکنی که در آن حافظهٔ نهان نوشته شده یک و یک‌چهارم.",
-  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} توکن، {{cacheRead}} تا از حافظهٔ نهان",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} توکن، {{cacheRead}} تا از حافظهٔ نهان",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} توکن، {{cacheWrite}} تا نوشته‌شده در حافظهٔ نهان",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} توکن، {{cacheWrite}} تا نوشته‌شده در حافظهٔ نهان",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} توکن: {{cacheRead}} تا از حافظهٔ نهان، {{cacheWrite}} تا نوشته‌شده در آن",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} توکن: {{cacheRead}} تا از حافظهٔ نهان، {{cacheWrite}} تا نوشته‌شده در آن"
+  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} توکن، {{cacheRead}} تا از حافظهٔ نهان",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} توکن، {{cacheRead}} تا از حافظهٔ نهان",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} توکن، {{cacheWrite}} تا نوشته‌شده در حافظهٔ نهان",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} توکن، {{cacheWrite}} تا نوشته‌شده در حافظهٔ نهان",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} توکن: {{cacheRead}} تا از حافظهٔ نهان، {{cacheWrite}} تا نوشته‌شده در آن",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} توکن: {{cacheRead}} تا از حافظهٔ نهان، {{cacheWrite}} تا نوشته‌شده در آن"
 }

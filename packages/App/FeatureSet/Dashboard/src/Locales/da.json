@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} element i denne anmodning har ingen værdi ved {{path}}, så det åbnede intet eget.",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} blev opfyldt, fordi der ikke længere kom anmodninger, så det håndterede dette uden gruppering, én gang for hele monitoren.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Som de tæller med i projektets daglige AI-grænser: et token, som udbyderen læste fra sin prompt-cache, tæller som en tiendedel token, og et token, der blev skrevet til den cache, som en og en kvart.",
-  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokens, heraf {{cacheRead}} fra cachen",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, heraf {{cacheRead}} fra cachen",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokens, heraf {{cacheWrite}} skrevet til cachen",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, heraf {{cacheWrite}} skrevet til cachen",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} fra cachen, {{cacheWrite}} skrevet til den",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} fra cachen, {{cacheWrite}} skrevet til den"
+  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} tokens, heraf {{cacheRead}} fra cachen",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} token, heraf {{cacheRead}} fra cachen",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} tokens, heraf {{cacheWrite}} skrevet til cachen",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} token, heraf {{cacheWrite}} skrevet til cachen",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} fra cachen, {{cacheWrite}} skrevet til den",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} fra cachen, {{cacheWrite}} skrevet til den"
 }

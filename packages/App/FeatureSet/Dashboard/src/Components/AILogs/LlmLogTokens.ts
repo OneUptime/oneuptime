@@ -24,9 +24,9 @@ export const getLlmLogCacheText: (
   if (tokens.cacheReadTokens > 0 && tokens.cacheWriteTokens > 0) {
     return translator.translatePlural(
       {
-        one: "{{count}} token: {{cacheRead}} from the cache, {{cacheWrite}} written to it",
+        one: "{{count}} token: {{cacheRead}} from cache, {{cacheWrite}} written to it",
         other:
-          "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it",
+          "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it",
       },
       tokens.totalTokens,
       { cacheRead, cacheWrite },
@@ -36,8 +36,8 @@ export const getLlmLogCacheText: (
   if (tokens.cacheReadTokens > 0) {
     return translator.translatePlural(
       {
-        one: "{{count}} token, {{cacheRead}} from the cache",
-        other: "{{count}} tokens, {{cacheRead}} from the cache",
+        one: "{{count}} token, {{cacheRead}} from cache",
+        other: "{{count}} tokens, {{cacheRead}} from cache",
       },
       tokens.totalTokens,
       { cacheRead },
@@ -47,8 +47,8 @@ export const getLlmLogCacheText: (
   if (tokens.cacheWriteTokens > 0) {
     return translator.translatePlural(
       {
-        one: "{{count}} token, {{cacheWrite}} written to the cache",
-        other: "{{count}} tokens, {{cacheWrite}} written to the cache",
+        one: "{{count}} token, {{cacheWrite}} written to cache",
+        other: "{{count}} tokens, {{cacheWrite}} written to cache",
       },
       tokens.totalTokens,
       { cacheWrite },

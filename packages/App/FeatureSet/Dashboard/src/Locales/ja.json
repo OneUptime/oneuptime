@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "このリクエストの {{count}} 個の項目には {{path}} の値がないため、それらの項目では個別に何も開きませんでした。",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "リクエストが届かなくなったため、条件 {{criteria}} に一致しました。そのため、グループ化せずに、モニター全体として 1 回処理しました。",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "プロジェクトの 1 日あたりの AI 上限に数えられる量です。プロバイダーがプロンプトキャッシュから読んだトークンは 10 分の 1 トークン、そのキャッシュに書き込まれたトークンは 1.25 トークンとして数えます。",
-  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}"
+  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}"
 }

@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} élément de cette requête n'a pas de valeur à {{path}} : il n'a donc rien ouvert pour lui-même.",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Le critère {{criteria}} a correspondu parce que les requêtes ont cessé d'arriver : il a donc traité ce cas sans regroupement, une seule fois pour tout le moniteur.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Tels qu'ils comptent dans les limites quotidiennes d'IA du projet : un jeton que le fournisseur a lu dans son cache de prompts compte pour un dixième de jeton, et un jeton écrit dans ce cache pour un et quart.",
-  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} jetons, dont {{cacheRead}} depuis le cache",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} jeton, dont {{cacheRead}} depuis le cache",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} jetons, dont {{cacheWrite}} écrits dans le cache",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} jeton, dont {{cacheWrite}} écrits dans le cache",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} jetons : {{cacheRead}} depuis le cache, {{cacheWrite}} écrits dans celui-ci",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} jeton : {{cacheRead}} depuis le cache, {{cacheWrite}} écrits dans celui-ci"
+  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} jetons, dont {{cacheRead}} depuis le cache",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} jeton, dont {{cacheRead}} depuis le cache",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} jetons, dont {{cacheWrite}} écrits dans le cache",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} jeton, dont {{cacheWrite}} écrits dans le cache",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} jetons : {{cacheRead}} depuis le cache, {{cacheWrite}} écrits dans celui-ci",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} jeton : {{cacheRead}} depuis le cache, {{cacheWrite}} écrits dans celui-ci"
 }

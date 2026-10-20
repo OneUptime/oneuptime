@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} item desta requisição não tem valor em {{path}}, então não abriu nada próprio.",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "O critério {{criteria}} foi atendido porque as requisições pararam de chegar, então ele tratou isso sem agrupamento, uma única vez para o monitor inteiro.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Como contam para os limites diários de IA do projeto: um token que o provedor leu do seu cache de prompts conta como um décimo de token, e um token gravado nesse cache como um e um quarto.",
-  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokens, {{cacheRead}} vindos do cache",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, {{cacheRead}} vindos do cache",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokens, {{cacheWrite}} gravados no cache",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, {{cacheWrite}} gravados no cache",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} vindos do cache, {{cacheWrite}} gravados nele",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} vindos do cache, {{cacheWrite}} gravados nele"
+  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} tokens, {{cacheRead}} vindos do cache",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} token, {{cacheRead}} vindos do cache",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} tokens, {{cacheWrite}} gravados no cache",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} token, {{cacheWrite}} gravados no cache",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} vindos do cache, {{cacheWrite}} gravados nele",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} vindos do cache, {{cacheWrite}} gravados nele"
 }

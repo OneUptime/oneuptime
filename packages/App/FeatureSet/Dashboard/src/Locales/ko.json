@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "이 요청의 항목 {{count}}개에 {{path}} 값이 없어서, 해당 항목은 따로 아무것도 열지 않았습니다.",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "요청이 더 이상 오지 않아 {{criteria}} 기준이 일치했으므로, 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "프로젝트의 일일 AI 한도에 계산되는 기준입니다. 공급자가 프롬프트 캐시에서 읽은 토큰은 토큰 10분의 1로, 그 캐시에 쓴 토큰은 1.25개로 계산됩니다.",
-  "{{count}} tokens, {{cacheRead}} from the cache": "토큰 {{count}}개 (캐시에서 읽음 {{cacheRead}}개)",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "토큰 {{count}}개 (캐시에서 읽음 {{cacheRead}}개)",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "토큰 {{count}}개 (캐시에 씀 {{cacheWrite}}개)",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "토큰 {{count}}개 (캐시에 씀 {{cacheWrite}}개)",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "토큰 {{count}}개: 캐시에서 읽음 {{cacheRead}}개, 캐시에 씀 {{cacheWrite}}개",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "토큰 {{count}}개: 캐시에서 읽음 {{cacheRead}}개, 캐시에 씀 {{cacheWrite}}개"
+  "{{count}} tokens, {{cacheRead}} from cache": "토큰 {{count}}개 (캐시에서 읽음 {{cacheRead}}개)",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "토큰 {{count}}개 (캐시에서 읽음 {{cacheRead}}개)",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "토큰 {{count}}개 (캐시에 씀 {{cacheWrite}}개)",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "토큰 {{count}}개 (캐시에 씀 {{cacheWrite}}개)",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "토큰 {{count}}개: 캐시에서 읽음 {{cacheRead}}개, 캐시에 씀 {{cacheWrite}}개",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "토큰 {{count}}개: 캐시에서 읽음 {{cacheRead}}개, 캐시에 씀 {{cacheWrite}}개"
 }

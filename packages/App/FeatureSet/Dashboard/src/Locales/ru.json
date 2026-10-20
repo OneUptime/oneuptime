@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} элемент в этом запросе не имеет значения по пути {{path}}, поэтому отдельно для него ничего не открыто.",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Критерий {{criteria}} сработал, потому что запросы перестали поступать, поэтому он обработал это без группировки — один раз для всего монитора.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Так, как они учитываются в дневных лимитах ИИ проекта: токен, который провайдер прочитал из своего кэша промптов, считается за десятую часть токена, а токен, записанный в этот кэш, — за один с четвертью.",
-  "{{count}} tokens, {{cacheRead}} from the cache": "Токенов: {{count}} (из кэша: {{cacheRead}})",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} токен (из кэша: {{cacheRead}})",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "Токенов: {{count}} (записано в кэш: {{cacheWrite}})",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} токен (записано в кэш: {{cacheWrite}})",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "Токенов: {{count}} (из кэша: {{cacheRead}}, записано в кэш: {{cacheWrite}})",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} токен (из кэша: {{cacheRead}}, записано в кэш: {{cacheWrite}})"
+  "{{count}} tokens, {{cacheRead}} from cache": "Токенов: {{count}} (из кэша: {{cacheRead}})",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} токен (из кэша: {{cacheRead}})",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "Токенов: {{count}} (записано в кэш: {{cacheWrite}})",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} токен (записано в кэш: {{cacheWrite}})",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "Токенов: {{count}} (из кэша: {{cacheRead}}, записано в кэш: {{cacheWrite}})",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} токен (из кэша: {{cacheRead}}, записано в кэш: {{cacheWrite}})"
 }

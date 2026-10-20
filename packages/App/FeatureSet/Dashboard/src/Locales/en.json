@@ -31960,10 +31960,10 @@
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} item in this request has no value at {{path}}, so it opened nothing of its own.",
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
-  "{{count}} tokens, {{cacheRead}} from the cache": "{{count}} tokens, {{cacheRead}} from the cache",
-  "{{count}} tokens, {{cacheRead}} from the cache_one": "{{count}} token, {{cacheRead}} from the cache",
-  "{{count}} tokens, {{cacheWrite}} written to the cache": "{{count}} tokens, {{cacheWrite}} written to the cache",
-  "{{count}} tokens, {{cacheWrite}} written to the cache_one": "{{count}} token, {{cacheWrite}} written to the cache",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it",
-  "{{count}} tokens: {{cacheRead}} from the cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} from the cache, {{cacheWrite}} written to it"
+  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} tokens, {{cacheRead}} from cache",
+  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} token, {{cacheRead}} from cache",
+  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} tokens, {{cacheWrite}} written to cache",
+  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} token, {{cacheWrite}} written to cache",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it",
+  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} from cache, {{cacheWrite}} written to it"
 }

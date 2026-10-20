@@ -87,8 +87,16 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       headerTooltip: translationKey(
         "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
       ),
+      // The line under the count wraps rather than widen the table.
       wrapContent: true,
       wrapMaxWidthClassName: "max-w-xs",
+      /*
+       * The rows could only be sorted by the tokens as the provider counted
+       * them (the column), which is not the count the cell shows: a call that
+       * read most of its tokens from the cache would sort above one that
+       * counts more.
+       */
+      disableSort: true,
       getElement: (item: LlmLog): ReactElement => {
         const tokens: AiTokenCountBreakdown = AiTokenCount.getBreakdown(item);
         const cacheText: string = getLlmLogCacheText(translator, tokens);
@@ -98,7 +106,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
             <p>{translator.formatNumber(tokens.countedTokens)}</p>
             {cacheText ? (
               <p
-                className="text-xs text-gray-500"
+                className="text-xs text-gray-500 text-balance"
                 data-testid="llm-log-cache-tokens"
               >
                 {cacheText}
