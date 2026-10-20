@@ -73,7 +73,7 @@ export const isWordableGroupingNote: (
     return false;
   }
 
-  // "Some items have no value" names how many.
+  // Its sentence says how many items have no value.
   return (
     note.outcome !== "some-without-value" || (note.itemsWithoutValue || 0) > 0
   );

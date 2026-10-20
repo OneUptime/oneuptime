@@ -31946,6 +31946,6 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Cette requête n'a pas de valeur à {{path}} : le critère {{criteria}} l'a donc traitée sans regroupement, une seule fois pour tout le moniteur.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} éléments de cette requête n'ont pas de valeur à {{path}} : ils n'ont donc rien ouvert pour eux-mêmes.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} élément de cette requête n'a pas de valeur à {{path}} : il n'a donc rien ouvert pour lui-même.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Le critère {{criteria}} a correspondu parce que les requêtes ont cessé d'arriver : il l'a donc traité sans regroupement, une seule fois pour tout le moniteur.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Le critère {{criteria}} a correspondu parce que les requêtes ont cessé d'arriver : il a donc traité ce cas sans regroupement, une seule fois pour tout le moniteur.",
   "Not every item has a value to group by": "Les éléments n'ont pas tous une valeur pour regrouper"
 }
