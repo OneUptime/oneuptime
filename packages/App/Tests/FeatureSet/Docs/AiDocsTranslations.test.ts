@@ -12,6 +12,7 @@ import {
   AiDocsPageEntry,
   CREATE_BUTTONS,
   CODE_PAGE,
+  EXTERNAL_MCP_SERVERS,
   GITHUB_APP,
   INFRASTRUCTURE_AI_AGENTS,
   KEPT_AS_WRITTEN,
@@ -83,7 +84,8 @@ import path from "path";
 /*
  * Docs overhaul task 27: the AI pages - Ask AI, AI SRE, Infrastructure AI
  * Agents, Fix Tasks, GitHub App, LLM Providers and MCP Server - in every
- * docs language. AiDocsFacts holds the English pages to the product; this
+ * docs language, and External MCP Servers, which a later task wrote to the
+ * same rules. AiDocsFacts holds the English pages to the product; this
  * suite holds each translation to its English page:
  *
  *   - line for line: the same number of lines, each heading, table row,
@@ -142,6 +144,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [CODE_PAGE]: 25,
   [GITHUB_APP]: 25,
   [LLM_PROVIDERS]: 25,
+  [EXTERNAL_MCP_SERVERS]: 19,
   [MCP_SERVER]: 24,
 };
 

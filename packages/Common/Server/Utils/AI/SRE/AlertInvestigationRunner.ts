@@ -54,6 +54,8 @@ import RecentChangesContext, { RecentChanges } from "./RecentChangesContext";
 import InvestigationRuleWait from "./InvestigationRuleWait";
 import { getInvestigationWaitUntil } from "../../../../Types/AI/InvestigationRuleWait";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
+import McpInvestigationTools from "../Mcp/McpInvestigationTools";
+import McpRunToolkit from "../Mcp/McpRunToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationRules, {
@@ -527,6 +529,24 @@ export default class AIAlertInvestigationRunner {
       );
     }
 
+    /*
+     * The project's external MCP servers the investigation rules allow for
+     * this alert - their tools that read only. Built on their own: a
+     * failure leaves the run with every other tool (null).
+     */
+    const mcpToolkit: McpRunToolkit | null =
+      await McpInvestigationTools.forAlert({
+        projectId,
+        alertId,
+        aiRunId,
+        outputPager,
+        runDeadlineAtMs,
+      });
+
+    if (mcpToolkit) {
+      extraTools.push(...mcpToolkit.buildTools());
+    }
+
     // Long command output is paged, never cut: offer the reader with the commands.
     if (extraTools.length > 0) {
       extraTools.push(outputPager.buildReadTool());
@@ -544,6 +564,56 @@ export default class AIAlertInvestigationRunner {
     if (resourceAddendum) {
       additionalInstructions.push(resourceAddendum);
     }
+
+    // The external MCP servers last: what the run may do with them.
+    if (mcpToolkit) {
+      additionalInstructions.push(mcpToolkit.buildPersonaAddendum());
+    }
+
+    try {
+      await this.runInvestigationEngine({
+        aiRunId,
+        projectId,
+        alertId,
+        attemptCount,
+        contextSummary,
+        promptOmissions,
+        contextNotes,
+        runLimits,
+        additionalInstructions,
+        extraTools,
+      });
+    } finally {
+      // Every session the run opened ends with it.
+      await mcpToolkit?.close();
+    }
+  }
+
+  // The engine run itself, with what executeInvestigation assembled.
+  private static async runInvestigationEngine(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+    alertId: ObjectID;
+    attemptCount: number;
+    contextSummary: string;
+    promptOmissions: AIPromptOmissions;
+    contextNotes: Array<AIRunEventResultSummary>;
+    runLimits: AIAgentRunLimits;
+    additionalInstructions: Array<string>;
+    extraTools: Array<ObservabilityAssistantExtraTool>;
+  }): Promise<void> {
+    const {
+      aiRunId,
+      projectId,
+      alertId,
+      attemptCount,
+      contextSummary,
+      promptOmissions,
+      contextNotes,
+      runLimits,
+      additionalInstructions,
+      extraTools,
+    } = data;
 
     await AIInvestigationEngine.executeRun({
       aiRunId,

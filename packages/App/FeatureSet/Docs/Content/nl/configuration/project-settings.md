@@ -34,7 +34,7 @@ flowchart LR
 | **Werkruimte** | **Slack**, **Microsoft Teams**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videogesprekken](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestiesleutels**, **Gegevensbewaring** | [Ingestiesleutels](/docs/telemetry/ingestion-keys), [Gegevensbewaring](/docs/telemetry/data-retention) |
 | **Meldingen** | **Meldingsinstellingen**, **Meldingslogboeken**, **Mobiele apps** | [Meldingen](#meldingen) |
-| **AI** | **AI Features**, **LLM-providers**, **AI-tegoeden**, **AI-logboeken**, **MCP-server** | [LLM-providers](/docs/ai/llm-provider), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenbeheersing) |
+| **AI** | **AI Features**, **LLM-providers**, **Externe MCP-servers**, **AI-tegoeden**, **AI-logboeken**, **MCP-server** | [LLM-providers](/docs/ai/llm-provider), [Externe MCP-servers](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenbeheersing) |
 | **Geavanceerd** | **Domeinen**, **API-sleutels**, **Functievlaggen**, **Importeren uit een andere tool** | [Eigen domeinen](/docs/status-pages/branding-and-domains#aangepaste-domeinen), [API-sleutels](/docs/permissions/index#api-sleutels), [Functievlaggen](#functievlaggen), [Overstappen van Opsgenie](/docs/moving-to-oneuptime/opsgenie) en de andere overstapgidsen |
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Gebruiksgeschiedenis**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |

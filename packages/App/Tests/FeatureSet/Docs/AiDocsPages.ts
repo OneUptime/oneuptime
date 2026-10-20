@@ -20,6 +20,7 @@ export const INFRASTRUCTURE_AI_AGENTS: string = "ai/infrastructure-ai-agents";
 export const CODE_PAGE: string = "ai/ai-agent";
 export const GITHUB_APP: string = "ai/github-app";
 export const LLM_PROVIDERS: string = "ai/llm-provider";
+export const EXTERNAL_MCP_SERVERS: string = "ai/external-mcp-servers";
 export const MCP_SERVER: string = "ai/mcp-server";
 
 /*
@@ -32,7 +33,11 @@ export const MICROSOFT_FOUNDRY: AiDocsPageEntry = {
   navTitle: "Microsoft Foundry",
 };
 
-// The pages this task rewrote, in nav order.
+/*
+ * The pages this task rewrote, in nav order, and External MCP Servers: the
+ * servers OneUptime AI uses, written in every language by the task that
+ * added them, and held to the same rules.
+ */
 export const AI_PAGES: ReadonlyArray<AiDocsPageEntry> = [
   { page: ASK_AI, navTitle: "Ask AI" },
   { page: AI_SRE, navTitle: "AI SRE" },
@@ -40,6 +45,7 @@ export const AI_PAGES: ReadonlyArray<AiDocsPageEntry> = [
   { page: CODE_PAGE, navTitle: "Code" },
   { page: GITHUB_APP, navTitle: "GitHub App" },
   { page: LLM_PROVIDERS, navTitle: "LLM Providers" },
+  { page: EXTERNAL_MCP_SERVERS, navTitle: "External MCP Servers" },
   { page: MCP_SERVER, navTitle: "MCP Server" },
 ];
 
@@ -49,6 +55,7 @@ export const AI_PAGES: ReadonlyArray<AiDocsPageEntry> = [
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
   [LLM_PROVIDERS]: ["Create LLM Provider"],
+  [EXTERNAL_MCP_SERVERS]: ["Create External MCP Server"],
   [MCP_SERVER]: ["Create API Key"],
 };
 
@@ -389,6 +396,22 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Watch what AI costs.",
     "OpenAI or Anthropic",
     "A firewall",
+  ],
+  [EXTERNAL_MCP_SERVERS]: [
+    "OneUptime AI is on",
+    "The server's MCP address.",
+    "How OneUptime signs in to it:",
+    "A Project Owner or a Project Admin",
+    "Investigations",
+    "Fixes",
+    "In an investigation",
+    "In a fix",
+    "None picked",
+    "Some picked",
+    "What a server sends back is data, never instructions.",
+    "The address is checked on every connection.",
+    "Limits.",
+    "Every call is recorded.",
   ],
   [MCP_SERVER]: [
     "OneUptime Cloud",

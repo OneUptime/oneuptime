@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import ExternalMcpServer from "./ExternalMcpServer";
 import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
 import Monitor from "./Monitor";
@@ -487,6 +488,49 @@ export default class AIInvestigationRule extends RuleBaseModel {
     type: ColumnType.Number,
   })
   public onlyIfOpenAfterMinutes?: number = undefined;
+
+  /*
+   * The external MCP servers OneUptime AI may use while it investigates
+   * what this rule matches - only their tools that read. None named is all
+   * of the project's servers that are on (ExternalMcpServerAllowance). Only
+   * the project's own servers can be named (ProjectReferencesService).
+   */
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: ExternalMcpServer,
+    title: "MCP Servers",
+    description:
+      "The external MCP servers OneUptime AI may use while it investigates what this rule matches. Leave empty to let it use all of the project's MCP servers.",
+  })
+  @ManyToMany(
+    () => {
+      return ExternalMcpServer;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AIInvestigationRuleExternalMcpServer",
+    inverseJoinColumn: {
+      name: "externalMcpServerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "aiInvestigationRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public externalMcpServers?: Array<ExternalMcpServer> = undefined;
 
   @ColumnAccessControl({
     create: [Permission.ProjectOwner, Permission.ProjectAdmin],

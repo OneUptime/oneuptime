@@ -55,6 +55,10 @@ import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
 
 import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 
+import SettingsExternalMcpServers from "../Pages/Settings/ExternalMcpServers";
+
+import SettingsExternalMcpServerView from "../Pages/Settings/ExternalMcpServerView";
+
 import MovedRunnerPageRedirect from "../Components/Runner/MovedRunnerPageRedirect";
 
 import SettingsAIFeatures from "../Pages/Settings/AIFeatures";
@@ -217,6 +221,35 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS,
+          )}
+          element={
+            <SettingsExternalMcpServers
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW,
+            2,
+          )}
+          element={
+            <SettingsExternalMcpServerView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW] as Route
               }
             />
           }

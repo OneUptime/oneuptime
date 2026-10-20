@@ -45,8 +45,11 @@ import {
   AiLane,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
+import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
 import AIInvestigationRuleTriggerEntity from "../../../Types/AI/AIInvestigationRuleTriggerEntity";
+import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import {
   INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
@@ -88,7 +91,7 @@ interface CapturedField {
     description?: string;
   }>;
   validation?: { minLength?: number; maxLength?: number };
-  collapsibleSection?: { id?: string; title?: string };
+  collapsibleSection?: FormFieldCollapsibleSection<AIInvestigationRule>;
   showIf?: (values: Record<string, unknown>) => boolean;
   customValidation?: (values: Record<string, unknown>) => string | null;
   getDefaultValue?: (values: Record<string, unknown>) => unknown;
@@ -215,7 +218,7 @@ describe.each([
       );
     });
 
-    test("a rule asks Match, then Investigate: when, and its name", () => {
+    test("a rule asks Match, then Investigate: when, its name and, under More fields, its MCP servers and description", () => {
       const props: Record<string, unknown> = tableFor(lane);
 
       expect(props["formSteps"]).toEqual([
@@ -240,8 +243,35 @@ describe.each([
         ["onlyIfOpenAfterMinutes", "investigate"],
         ["name", "investigate"],
         ["isEnabled", "investigate"],
+        ["externalMcpServers", "investigate"],
         ["description", "investigate"],
       ]);
+    });
+
+    test("its MCP servers: folded under More fields, none picked is all of them", () => {
+      const field: CapturedField = fieldsOf(tableFor(lane)).find(
+        (candidate: CapturedField): boolean => {
+          return keyOf(candidate) === "externalMcpServers";
+        },
+      )!;
+
+      expect(field.collapsibleSection?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+      expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+      expect(field.dropdownModal?.type).toBe(ExternalMcpServer);
+      expect(field.required).toBe(false);
+      expect(field.hideOptionalLabel).toBe(true);
+      expect(field.placeholder).toBe("All MCP servers");
+      expect(field.title).toBe("MCP Servers");
+
+      // Folded, its line says what the default does - until some are picked.
+      expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
+        "OneUptime AI may use all of your MCP servers.",
+      ]);
+      expect(
+        field.collapsibleSection?.getSummary?.({
+          externalMcpServers: [{ value: "a", label: "AWS" }],
+        } as never),
+      ).toBeUndefined();
     });
 
     test("its name is required and held to a rule name's length, and a new rule starts on", () => {
@@ -260,7 +290,7 @@ describe.each([
       expect(enabled.description).toBe(RULE_ENABLED_DESCRIPTION);
     });
 
-    test("what most rules leave alone - the description - is folded under More fields", () => {
+    test("what most rules leave alone - the description, with the MCP servers - is folded under one More fields", () => {
       const description: CapturedField = fieldNamed(
         tableFor(lane),
         "description",
@@ -269,6 +299,10 @@ describe.each([
       expect(description.fieldType).toBe(FormFieldSchemaType.LongText);
       expect(description.required).toBe(false);
       expect(description.collapsibleSection?.title).toBe("More fields");
+      // One fold on the Investigate step, with the MCP servers.
+      expect(description.collapsibleSection).toBe(
+        fieldNamed(tableFor(lane), "externalMcpServers").collapsibleSection,
+      );
     });
 
     test("its conditions are the auto remediation rules' conditions", () => {

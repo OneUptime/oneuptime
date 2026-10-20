@@ -10,6 +10,12 @@ import IncidentAlertRuleMatcher from "../../Rules/IncidentAlertRuleMatcher";
 import logIfRuleReadWasTruncated from "../../Rules/RuleEngineRuleRead";
 import { RuleEvaluation } from "../../PatternWorkScope";
 import { getInvestigationRuleWaitMinutes } from "../../../../Types/AI/InvestigationRuleWait";
+import {
+  EVERY_EXTERNAL_MCP_SERVER,
+  ExternalMcpServerAllowance,
+  NO_EXTERNAL_MCP_SERVER,
+  getExternalMcpServerAllowance,
+} from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 
 /*
  * Investigation rules: which new incidents (or alerts) OneUptime AI
@@ -28,6 +34,13 @@ import { getInvestigationRuleWaitMinutes } from "../../../../Types/AI/Investigat
  * that lets OneUptime AI start soonest decides: the shortest wait of the
  * rules a signal matches, and no wait when one of them has none. With no
  * rule, or rules that cannot be read, there is no wait.
+ *
+ * A rule also names the external MCP servers OneUptime AI may use while it
+ * investigates what the rule matches (getIncidentMcpServerAllowance): with
+ * no rule, or a matching rule that names none, all of the project's; with
+ * matching rules that name some, those. That one fails the other way: rules
+ * that cannot be read let OneUptime AI use no outside server, since a rule
+ * might have kept one out.
  */
 export interface InvestigationRuleScope {
   isInScope: boolean;
@@ -135,6 +148,87 @@ export default class InvestigationRules {
     };
   }
 
+  /*
+   * The external MCP servers OneUptime AI may use while it investigates this
+   * incident: see ExternalMcpServerAllowance.
+   */
+  @RuleEvaluation()
+  public static async getIncidentMcpServerAllowance(data: {
+    projectId: ObjectID;
+    incident: Incident;
+  }): Promise<ExternalMcpServerAllowance> {
+    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+      projectId: data.projectId,
+      triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+    });
+
+    if (!rules) {
+      return NO_EXTERNAL_MCP_SERVER;
+    }
+
+    if (rules.length === 0) {
+      return EVERY_EXTERNAL_MCP_SERVER;
+    }
+
+    const matchingRules: Array<AIInvestigationRule> = [];
+
+    for (const rule of rules) {
+      if (
+        await IncidentAlertRuleMatcher.doesIncidentMatch(
+          data.incident,
+          rule,
+          "investigation rule",
+        )
+      ) {
+        matchingRules.push(rule);
+      }
+    }
+
+    return getExternalMcpServerAllowance({
+      rulesSetUp: true,
+      matchingRules,
+    });
+  }
+
+  // The same, for an alert.
+  @RuleEvaluation()
+  public static async getAlertMcpServerAllowance(data: {
+    projectId: ObjectID;
+    alert: Alert;
+  }): Promise<ExternalMcpServerAllowance> {
+    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+      projectId: data.projectId,
+      triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+    });
+
+    if (!rules) {
+      return NO_EXTERNAL_MCP_SERVER;
+    }
+
+    if (rules.length === 0) {
+      return EVERY_EXTERNAL_MCP_SERVER;
+    }
+
+    const matchingRules: Array<AIInvestigationRule> = [];
+
+    for (const rule of rules) {
+      if (
+        await IncidentAlertRuleMatcher.doesAlertMatch(
+          data.alert,
+          rule,
+          "investigation rule",
+        )
+      ) {
+        matchingRules.push(rule);
+      }
+    }
+
+    return getExternalMcpServerAllowance({
+      rulesSetUp: true,
+      matchingRules,
+    });
+  }
+
   // The enabled rules of one kind of signal, or null when they cannot be read.
   private static async readRules(data: {
     projectId: ObjectID;
@@ -161,6 +255,7 @@ export default class InvestigationRules {
             monitorLabels: { _id: true },
             // How long the rule waits before investigating: none when empty.
             onlyIfOpenAfterMinutes: true,
+            externalMcpServers: { _id: true },
           },
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,

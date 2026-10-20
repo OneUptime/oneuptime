@@ -376,6 +376,7 @@ import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
 import AIInvestigationRule from "./AIInvestigationRule";
 import AIPostmortemRule from "./AIPostmortemRule";
+import ExternalMcpServer from "./ExternalMcpServer";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -798,6 +799,7 @@ const AllModelTypes: Array<{
   AutoRemediationDecision,
   AIInvestigationRule,
   AIPostmortemRule,
+  ExternalMcpServer,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,

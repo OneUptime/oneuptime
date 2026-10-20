@@ -1,6 +1,6 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddInvestigationRuleWait1804960000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804960000000-AddInvestigationRuleWait";
-import { AddInvestigationRuleWaitIndexes1804970000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804970000000-AddInvestigationRuleWaitIndexes";
+import { AddInvestigationRuleWait1805030000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805030000000-AddInvestigationRuleWait";
+import { AddInvestigationRuleWaitIndexes1805040000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805040000000-AddInvestigationRuleWaitIndexes";
 import { AddAutoRemediationRuleRunnerIndexAndKey1804800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804800000000-AddAutoRemediationRuleRunnerIndexAndKey";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
@@ -30,8 +30,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * own. Statements are recorded against a fake QueryRunner.
  */
 
-const COLUMN_MIGRATION: string = "AddInvestigationRuleWait1804960000000";
-const INDEX_MIGRATION: string = "AddInvestigationRuleWaitIndexes1804970000000";
+const COLUMN_MIGRATION: string = "AddInvestigationRuleWait1805030000000";
+const INDEX_MIGRATION: string = "AddInvestigationRuleWaitIndexes1805040000000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 const INCIDENT_INDEX: string = `CREATE INDEX "IDX_301974537e3094dbcd5a2b14ba" ON "Incident" ("aiInvestigationWaitUntil") WHERE "aiInvestigationWaitUntil" IS NOT NULL AND "deletedAt" IS NULL`;
@@ -41,8 +41,8 @@ const RUN_INDEX: string = `CREATE INDEX "IDX_f64302b4e3a0a32291184248c6" ON "AIR
 type MigrationClass = new () => MigrationInterface;
 
 const MIGRATIONS: Array<MigrationClass> = [
-  AddInvestigationRuleWait1804960000000,
-  AddInvestigationRuleWaitIndexes1804970000000,
+  AddInvestigationRuleWait1805030000000,
+  AddInvestigationRuleWaitIndexes1805040000000,
 ];
 
 async function record(
@@ -97,10 +97,10 @@ afterEach(() => {
 
 describe("the investigation rule wait migrations", () => {
   test("name themselves after their timestamps", () => {
-    expect(new AddInvestigationRuleWait1804960000000().name).toBe(
+    expect(new AddInvestigationRuleWait1805030000000().name).toBe(
       COLUMN_MIGRATION,
     );
-    expect(new AddInvestigationRuleWaitIndexes1804970000000().name).toBe(
+    expect(new AddInvestigationRuleWaitIndexes1805040000000().name).toBe(
       INDEX_MIGRATION,
     );
   });
@@ -109,7 +109,7 @@ describe("the investigation rule wait migrations", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddInvestigationRuleWait1804960000000,
+      AddInvestigationRuleWait1805030000000,
     );
 
     for (const migration of MIGRATIONS) {
@@ -124,15 +124,15 @@ describe("the investigation rule wait migrations", () => {
       registered.indexOf(AddAutoRemediationRuleRunnerIndexAndKey1804800000000),
     );
     expect(registered[at + 1]).toBe(
-      AddInvestigationRuleWaitIndexes1804970000000,
+      AddInvestigationRuleWaitIndexes1805040000000,
     );
     expect(
-      timestampOf(AddInvestigationRuleWaitIndexes1804970000000),
-    ).toBeGreaterThan(timestampOf(AddInvestigationRuleWait1804960000000));
+      timestampOf(AddInvestigationRuleWaitIndexes1805040000000),
+    ).toBeGreaterThan(timestampOf(AddInvestigationRuleWait1805030000000));
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddInvestigationRuleWait1804960000000),
+        timestampOf(AddInvestigationRuleWait1805030000000),
       );
     }
   });
@@ -156,7 +156,7 @@ describe("the investigation rule wait migrations", () => {
 
   test("add the four columns, nullable, with no default and nothing backfilled", async () => {
     const steps: Array<string> = await record(
-      new AddInvestigationRuleWait1804960000000(),
+      new AddInvestigationRuleWait1805030000000(),
       "up",
     );
 
@@ -173,8 +173,8 @@ describe("the investigation rule wait migrations", () => {
   });
 
   test("build the three partial indexes online, outside a transaction", async () => {
-    const migration: AddInvestigationRuleWaitIndexes1804970000000 =
-      new AddInvestigationRuleWaitIndexes1804970000000();
+    const migration: AddInvestigationRuleWaitIndexes1805040000000 =
+      new AddInvestigationRuleWaitIndexes1805040000000();
 
     expect(migration.transaction).toBe(false);
     expect(await record(migration, "up")).toEqual([
@@ -186,14 +186,14 @@ describe("the investigation rule wait migrations", () => {
 
   test("down drops the indexes online, then the columns, in the reverse order", async () => {
     expect(
-      await record(new AddInvestigationRuleWaitIndexes1804970000000(), "down"),
+      await record(new AddInvestigationRuleWaitIndexes1805040000000(), "down"),
     ).toEqual([
       `online: DROP INDEX "public"."IDX_f64302b4e3a0a32291184248c6"`,
       `online: DROP INDEX "public"."IDX_e6dad46c4d8795ceeda63315aa"`,
       `online: DROP INDEX "public"."IDX_301974537e3094dbcd5a2b14ba"`,
     ]);
     expect(
-      await record(new AddInvestigationRuleWait1804960000000(), "down"),
+      await record(new AddInvestigationRuleWait1805030000000(), "down"),
     ).toEqual([
       `ALTER TABLE "AIInvestigationRule" DROP COLUMN "onlyIfOpenAfterMinutes"`,
       `ALTER TABLE "AIRun" DROP COLUMN "ruleWaitMinutes"`,

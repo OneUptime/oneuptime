@@ -1133,6 +1133,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/ai/microsoft-foundry",
       },
       {
+        title: "External MCP Servers",
+        url: "/docs/ai/external-mcp-servers",
+      },
+      {
         title: "MCP Server",
         url: "/docs/ai/mcp-server",
       },

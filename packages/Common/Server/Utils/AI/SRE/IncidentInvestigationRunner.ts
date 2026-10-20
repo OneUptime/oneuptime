@@ -51,6 +51,8 @@ import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
 import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
+import McpInvestigationTools from "../Mcp/McpInvestigationTools";
+import McpRunToolkit from "../Mcp/McpRunToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationRules, {
@@ -799,6 +801,24 @@ export default class AIIncidentInvestigationRunner {
       );
     }
 
+    /*
+     * The project's external MCP servers the investigation rules allow for
+     * this incident - their tools that read only. Built on their own: a
+     * failure leaves the run with every other tool (null).
+     */
+    const mcpToolkit: McpRunToolkit | null =
+      await McpInvestigationTools.forIncident({
+        projectId,
+        incidentId,
+        aiRunId,
+        outputPager,
+        runDeadlineAtMs,
+      });
+
+    if (mcpToolkit) {
+      extraTools.push(...mcpToolkit.buildTools());
+    }
+
     // Long command output is paged, never cut: offer the reader with the commands.
     if (extraTools.length > 0) {
       extraTools.push(outputPager.buildReadTool());
@@ -816,6 +836,62 @@ export default class AIIncidentInvestigationRunner {
     if (resourceAddendum) {
       additionalInstructions.push(resourceAddendum);
     }
+
+    // The external MCP servers last: what the run may do with them.
+    if (mcpToolkit) {
+      additionalInstructions.push(mcpToolkit.buildPersonaAddendum());
+    }
+
+    try {
+      await this.runInvestigationEngine({
+        aiRunId,
+        projectId,
+        incidentId,
+        attemptCount,
+        isFollowUp,
+        contextSummary,
+        promptOmissions,
+        contextNotes,
+        reportLead,
+        runLimits,
+        additionalInstructions,
+        extraTools,
+      });
+    } finally {
+      // Every session the run opened ends with it.
+      await mcpToolkit?.close();
+    }
+  }
+
+  // The engine run itself, with what executeInvestigation assembled.
+  private static async runInvestigationEngine(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    attemptCount: number;
+    isFollowUp: boolean;
+    contextSummary: string;
+    promptOmissions: AIPromptOmissions;
+    contextNotes: Array<AIRunEventResultSummary>;
+    reportLead: MarkdownText | undefined;
+    runLimits: AIAgentRunLimits;
+    additionalInstructions: Array<string>;
+    extraTools: Array<ObservabilityAssistantExtraTool>;
+  }): Promise<void> {
+    const {
+      aiRunId,
+      projectId,
+      incidentId,
+      attemptCount,
+      isFollowUp,
+      contextSummary,
+      promptOmissions,
+      contextNotes,
+      reportLead,
+      runLimits,
+      additionalInstructions,
+      extraTools,
+    } = data;
 
     await AIInvestigationEngine.executeRun({
       aiRunId,

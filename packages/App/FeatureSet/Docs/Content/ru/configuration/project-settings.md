@@ -34,7 +34,7 @@ flowchart LR
 | **Рабочее пространство** | **Slack**, **Microsoft Teams**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Видеозвонки](/docs/workspace-connections/video-calls) |
 | **Телеметрия и APM** | **Ключи приема**, **Хранение данных** | [Ключи приема](/docs/telemetry/ingestion-keys), [Хранение данных](/docs/telemetry/data-retention) |
 | **Уведомления** | **Настройки уведомлений**, **Журналы уведомлений**, **Мобильные приложения** | [Уведомления](#уведомления) |
-| **ИИ** | **AI Features**, **Провайдеры LLM**, **Кредиты ИИ**, **Журналы ИИ**, **MCP-сервер** | [Провайдеры LLM](/docs/ai/llm-provider), [Сервер MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#контроль-затрат) |
+| **ИИ** | **AI Features**, **Провайдеры LLM**, **Внешние MCP-серверы**, **Кредиты ИИ**, **Журналы ИИ**, **MCP-сервер** | [Провайдеры LLM](/docs/ai/llm-provider), [Внешние MCP-серверы](/docs/ai/external-mcp-servers), [Сервер MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#контроль-затрат) |
 | **Расширенный** | **Домены**, **Ключи API**, **Флаги функций**, **Импорт из другого инструмента** | [Собственные домены](/docs/status-pages/branding-and-domains#пользовательские-домены), [Ключи API](/docs/permissions/index#ключи-api), [Флаги функций](#флаги-функций), [Переход с Opsgenie](/docs/moving-to-oneuptime/opsgenie) и другие руководства по переходу |
 | **Безопасность** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Биллинг и счета** | **Биллинг**, **История использования**, **Счета** | [Биллинг и использование](/docs/configuration/billing) |

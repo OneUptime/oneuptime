@@ -14,9 +14,15 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import AIInvestigationRuleTriggerEntity from "Common/Types/AI/AIInvestigationRuleTriggerEntity";
 import { Green, Red } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  RULE_MCP_SERVERS_FIELD_COPY,
+  getInvestigationRuleMoreFieldsSummary,
+} from "../ExternalMcpServer/ExternalMcpServerCopy";
+import RuleMcpServersFieldHint from "../ExternalMcpServer/RuleMcpServersFieldHint";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_INVESTIGATION_RULES_TABLE_ID,
@@ -66,11 +72,14 @@ export const AI_LANE_INVESTIGATION_RULE_TRIGGER: Record<
 
 /*
  * What most rules leave alone, folded under More fields on the Investigate
- * step: the description. Built once, so the form folds it the same way each
- * time.
+ * step: the MCP servers OneUptime AI may use while it investigates what the
+ * rule matches (none picked: all of them, which the folded line says), and
+ * the description. Built once, so the form folds it the same way each time.
  */
 const INVESTIGATION_RULE_MORE_FIELDS: FormFieldCollapsibleSection<AIInvestigationRule> =
-  getAdvancedFormSection<AIInvestigationRule>();
+  getAdvancedFormSection<AIInvestigationRule>({
+    getSummary: getInvestigationRuleMoreFieldsSummary,
+  });
 
 // When to investigate: the two answers, each with its line.
 export const getInvestigationRuleTimingChoices: (
@@ -97,7 +106,8 @@ export const getInvestigationRuleTimingChoices: (
  * (Match: the same conditions as an auto remediation rule's, drawn as one
  * conditions builder that starts on "All incidents"), then what it does
  * (Investigate: right away, or only if the incident is still open after a
- * wait - issue #5074 - and the rule's name). The wait's words are in
+ * wait - issue #5074 - and the rule's name; under More fields, the MCP
+ * servers OneUptime AI may use for what it matches). The wait's words are in
  * InvestigationRuleTiming.
  */
 const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
@@ -398,6 +408,29 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
           // A rule starts on: the switch is on its edit form only.
           doNotShowWhenCreating: true,
           required: false,
+        },
+        {
+          // The MCP servers OneUptime AI may use: none picked is all of them.
+          field: { externalMcpServers: true },
+          title: RULE_MCP_SERVERS_FIELD_COPY.title,
+          description: RULE_MCP_SERVERS_FIELD_COPY.investigationDescription,
+          stepId: "investigate",
+          collapsibleSection: INVESTIGATION_RULE_MORE_FIELDS,
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: ExternalMcpServer,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          // Empty is an answer of its own - all of them - not "(Optional)".
+          hideOptionalLabel: true,
+          hideColumnDescription: true,
+          placeholder: RULE_MCP_SERVERS_FIELD_COPY.placeholder,
+          dataTestId: "ai-investigation-rule-mcp-servers-field",
+          getFooterElement: (): ReactElement => {
+            return <RuleMcpServersFieldHint />;
+          },
         },
         {
           field: { description: true },
