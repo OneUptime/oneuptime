@@ -364,6 +364,87 @@ export function getAvailableProfileCategories(
 }
 
 /*
+ * A list of raw types narrowed to the ones a scope has data for in one
+ * unit - the unit with the most samples among them - so a sum over them
+ * never adds sample counts to nanoseconds. The list as given when the scope
+ * has data for none of them (the read then finds nothing either way).
+ */
+export function narrowProfileTypesToOneUnit(
+  types: ReadonlyArray<string>,
+  activity: ReadonlyArray<ProfileTypeActivity>,
+): Array<string> {
+  const wanted: Set<string> = new Set(types);
+  const byUnit: Map<ProfileValueUnit, { types: Array<string>; samples: number }> =
+    new Map();
+
+  for (const row of activity) {
+    const rawType: string = (row.profileType || "").trim();
+
+    if (!wanted.has(rawType) || (row.sampleCount || 0) <= 0) {
+      continue;
+    }
+
+    const unit: ProfileValueUnit = getProfileValueUnit(rawType, row.unit);
+    let group: { types: Array<string>; samples: number } | undefined =
+      byUnit.get(unit);
+
+    if (!group) {
+      group = { types: [], samples: 0 };
+      byUnit.set(unit, group);
+    }
+
+    if (!group.types.includes(rawType)) {
+      group.types.push(rawType);
+    }
+
+    group.samples += Number(row.sampleCount) || 0;
+  }
+
+  let best: { unit: ProfileValueUnit; types: Array<string>; samples: number } | null =
+    null;
+
+  for (const [unit, group] of byUnit) {
+    if (
+      !best ||
+      group.samples > best.samples ||
+      (group.samples === best.samples &&
+        unitPreference(unit) < unitPreference(best.unit))
+    ) {
+      best = { unit, types: group.types, samples: group.samples };
+    }
+  }
+
+  return best ? [...best.types].sort() : [...types];
+}
+
+/*
+ * The kind a list of raw types is, when every one of them belongs to the
+ * same kind (what the Profiles monitor's form stores for a kind); null
+ * for an empty list or a mix.
+ */
+export function getCategoryOfProfileTypes(
+  types: ReadonlyArray<string> | null | undefined,
+): ProfileCategory | null {
+  if (!types || types.length === 0) {
+    return null;
+  }
+
+  const categories: Set<ProfileCategory> = new Set(
+    types.map((rawType: string): ProfileCategory => {
+      return getProfileCategory(rawType);
+    }),
+  );
+
+  if (categories.size !== 1) {
+    return null;
+  }
+
+  const category: ProfileCategory = Array.from(categories)[0]!;
+
+  return category === ProfileCategory.Other ? null : category;
+}
+
+/*
  * The raw types of a scope that belong to no kind (Other), each its own
  * entry, busiest first.
  */

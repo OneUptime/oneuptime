@@ -83,6 +83,14 @@ import ProfileAggregationService, {
   FunctionComparisonResult,
 } from "../Services/ProfileAggregationService";
 import { ProfileTypeActivity } from "../../Utils/Profiles/ProfileTypes";
+import MonitorStepProfileMonitor, {
+  MonitorStepProfileMonitorUtil,
+} from "../../Types/Monitor/MonitorStepProfileMonitor";
+import { ProfileFunctionShareReading } from "../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
+import ProfileMonitorShare from "../Utils/Profile/ProfileMonitorShare";
+import Query from "../../Types/BaseDatabase/Query";
+import PositiveNumber from "../../Types/PositiveNumber";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import PprofEncoder, {
   PprofProfile,
   PprofSample,
@@ -4344,6 +4352,89 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         profileTypes: profileTypes as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Monitor Preview Endpoint ---
+
+/*
+ * What a Profiles monitor with these settings would read right now: the
+ * profiles its window counts and, when it names a function, that
+ * function's share of the window - read with the same query the monitor's
+ * check runs (ProfileMonitorShare), narrowed to the services the caller
+ * may read. The monitor form shows it under the settings, so a threshold
+ * is picked from what the function takes today.
+ */
+router.post(
+  "/telemetry/profiles/monitor-preview",
+  ...requireProfileReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const step: MonitorStepProfileMonitor = {
+        ...MonitorStepProfileMonitorUtil.fromJSON(body),
+        // A preview reads at most the longest window the form offers.
+        lastXSecondsOfProfiles: Math.min(
+          Math.max(Number(body["lastXSecondsOfProfiles"]) || 300, 60),
+          24 * 60 * 60,
+        ),
+      };
+
+      const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+        Profile,
+        databaseProps,
+      );
+
+      const query: Query<Profile> = TelemetryReadScopeUtil.applyToQuery(
+        MonitorStepProfileMonitorUtil.toQuery(step),
+        "primaryEntityId",
+        scope,
+      );
+      query.projectId = databaseProps.tenantId;
+
+      const [profileCount, functionShare]: [
+        PositiveNumber,
+        ProfileFunctionShareReading | null,
+      ] = await Promise.all([
+        ProfileService.countBy({
+          query,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+        ProfileMonitorShare.measure({
+          projectId: databaseProps.tenantId,
+          monitorStepProfileMonitor: step,
+          scope,
+        }),
+      ]);
+
+      const window: InBetween<Date> = query.startTime as InBetween<Date>;
+
+      return Response.sendJsonObjectResponse(req, res, {
+        profileCount: profileCount.toNumber(),
+        functionShare: functionShare as unknown as JSONObject,
+        startTime: new Date(window.startValue).toISOString(),
+        endTime: new Date(window.endValue).toISOString(),
       });
     } catch (err: unknown) {
       next(err);
