@@ -216,15 +216,19 @@ describe("which installs are told", () => {
     expect(ingressPortsAroundProxy(settings)).toHaveLength(count);
   });
 
+  // The ingress moved off its ports and on every address, as before.
+  const MOVED = ["ONEUPTIME_HTTP_PORT=8080", "STATUS_PAGE_HTTPS_PORT=8443"];
+
   test.each([
     [
       "no proxy counted: everyone is the proxy, which the Health page says",
-      ["TRUSTED_PROXY_HOPS=1"],
+      [...MOVED, "TRUSTED_PROXY_HOPS=1"],
     ],
-    ["TRUSTED_PROXY_HOPS=0", ["TRUSTED_PROXY_HOPS=0"]],
+    ["TRUSTED_PROXY_HOPS=0", [...MOVED, "TRUSTED_PROXY_HOPS=0"]],
+    ["TRUSTED_PROXY_HOPS empty", [...MOVED, "TRUSTED_PROXY_HOPS="]],
     [
       "a TRUSTED_PROXY_HOPS OneUptime does not read as a count",
-      ["TRUSTED_PROXY_HOPS=two"],
+      [...MOVED, "TRUSTED_PROXY_HOPS=two"],
     ],
     [
       "the ports on the loopback address",
