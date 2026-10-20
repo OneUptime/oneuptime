@@ -600,10 +600,7 @@ describe("Runbook approval gates cannot be pre-approved or skipped", () => {
       expect(write.data.status).toBe(RunbookExecutionStatus.Scheduled);
       expect(write.data.version).toBe(8);
 
-      const approved: RunbookStepExecutionState = writtenStep(
-        write,
-        "restart",
-      );
+      const approved: RunbookStepExecutionState = writtenStep(write, "restart");
       // Not done: it has not run. The resumed run runs it.
       expect(approved.status).toBe(RunbookStepExecutionStatus.Pending);
       expect(approved.approvedByUserId).toBe(userId.toString());
@@ -631,10 +628,7 @@ describe("Runbook approval gates cannot be pre-approved or skipped", () => {
       expect(result.thrown).toBeUndefined();
 
       const write: CompareAndSetCall = onlyWrite();
-      const skipped: RunbookStepExecutionState = writtenStep(
-        write,
-        "restart",
-      );
+      const skipped: RunbookStepExecutionState = writtenStep(write, "restart");
       expect(skipped.status).toBe(RunbookStepExecutionStatus.Skipped);
       expect(skipped.completedByUserId).toBe(userId.toString());
       expect(skipped.notes).toBe("rolled back by hand instead");

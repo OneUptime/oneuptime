@@ -149,7 +149,10 @@ async function foldedLine(fold: Locator): Promise<Array<string>> {
 async function saveSteps(page: Page): Promise<Array<SavedStep>> {
   await page.getByRole("button", { name: "Save Steps" }).click();
   await expect(page.getByTestId("modal")).toBeVisible();
-  await page.getByTestId("modal").getByRole("button", { name: "Got it" }).click();
+  await page
+    .getByTestId("modal")
+    .getByRole("button", { name: "Got it" })
+    .click();
 
   const updates: Recorded["updates"] = (await recorded(page)).updates;
 
@@ -210,9 +213,7 @@ test.describe("a runbook's steps, at a laptop's width", () => {
       const switches: Locator = fold.getByRole("switch");
 
       await expect(switches.first()).toHaveAccessibleName(SWITCH_TITLE);
-      await expect(switches.nth(1)).toHaveAccessibleName(
-        "Continue on failure",
-      );
+      await expect(switches.nth(1)).toHaveAccessibleName("Continue on failure");
     }
 
     // The old switch is gone everywhere.
@@ -235,9 +236,9 @@ test.describe("a runbook's steps, at a laptop's width", () => {
       "Confirm the replica's lag is under **5 seconds** before going on.",
     );
     await expect(moreFields(page, 0)).toHaveCount(0);
-    await expect(page.getByTestId("runbook-step-0-require-approval")).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByTestId("runbook-step-0-require-approval"),
+    ).toHaveCount(0);
   });
 
   test("the step that needs approval says so on its header; turning the switch on another step says so there, and Save sends it", async ({
@@ -278,8 +279,9 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     expect(byId.get("Promote the replica")!.requireApprovalBeforeRunning).toBe(
       true,
     );
-    expect(byId.get("Work out the new primary")!.requireApprovalBeforeRunning)
-      .toBe(false);
+    expect(
+      byId.get("Work out the new primary")!.requireApprovalBeforeRunning,
+    ).toBe(false);
     expect(JSON.stringify(steps)).not.toContain('"requireApproval"');
   });
 
@@ -329,9 +331,9 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     await expect(header(page, "Promote the replica")).toContainText(
       "Needs approval",
     );
-    await expect(header(page, "Stop writes on the old primary")).not.toContainText(
-      "Needs approval",
-    );
+    await expect(
+      header(page, "Stop writes on the old primary"),
+    ).not.toContainText("Needs approval");
     // The one after the last step is a Manual step at the end.
     await expect(page.getByTestId("runbook-step-header")).toHaveCount(8);
     await expect(page.getByTestId("runbook-step-header").last()).toContainText(
@@ -340,7 +342,9 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     await screenshot(page, "steps-saved-the-old-way");
 
     // Reading it so is not a change.
-    await expect(page.getByRole("button", { name: "Save Steps" })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Save Steps" }),
+    ).toBeDisabled();
 
     await openStep(page, "Capture the database's state");
     await page.locator("#runbook-step-3-title").fill("Capture the state");
@@ -348,9 +352,11 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     const steps: Array<SavedStep> = await saveSteps(page);
 
     expect(JSON.stringify(steps)).not.toContain('"requireApproval"');
-    expect(steps.map((step: SavedStep) => step.title)).toContain(
-      "Approve the result",
-    );
+    expect(
+      steps.map((step: SavedStep) => {
+        return step.title;
+      }),
+    ).toContain("Approve the result");
     expect(
       steps.find((step: SavedStep) => {
         return step.title === "Promote the replica";
@@ -371,9 +377,9 @@ test.describe("a run waits for approval before a step", () => {
       page.getByText('Waiting for approval to run "Promote the replica".'),
     ).toBeVisible();
 
-    const card: Locator = page
-      .getByRole("listitem")
-      .filter({ has: page.getByRole("heading", { name: "Promote the replica" }) });
+    const card: Locator = page.getByRole("listitem").filter({
+      has: page.getByRole("heading", { name: "Promote the replica" }),
+    });
 
     await expect(card.getByText("Waiting for approval")).toBeVisible();
     await expect(
@@ -393,7 +399,9 @@ test.describe("a run waits for approval before a step", () => {
         'Waiting on "Confirm writes reach the new primary". Tick it off below to continue.',
       ),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Mark complete" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Mark complete" }),
+    ).toBeVisible();
 
     expect((await recorded(page)).posts).toEqual([
       {
@@ -405,7 +413,9 @@ test.describe("a run waits for approval before a step", () => {
 
     // Ticking the Manual step off lets the run finish.
     await page.getByRole("button", { name: "Mark complete" }).click();
-    await expect(page.getByText("All steps completed successfully.")).toBeVisible();
+    await expect(
+      page.getByText("All steps completed successfully."),
+    ).toBeVisible();
   });
 
   test("Skip: the step never runs, and the run goes on without it", async ({
@@ -415,9 +425,9 @@ test.describe("a run waits for approval before a step", () => {
   }) => {
     await openRun(page, "wait=approval");
 
-    const card: Locator = page
-      .getByRole("listitem")
-      .filter({ has: page.getByRole("heading", { name: "Promote the replica" }) });
+    const card: Locator = page.getByRole("listitem").filter({
+      has: page.getByRole("heading", { name: "Promote the replica" }),
+    });
 
     await card.getByRole("button", { name: "Skip" }).click();
 
@@ -434,12 +444,14 @@ test.describe("a run waits for approval before a step", () => {
     await openRun(page, "wait=legacy");
 
     await expect(
-      page.getByText('Waiting for approval to continue after "Page the database team".'),
+      page.getByText(
+        'Waiting for approval to continue after "Page the database team".',
+      ),
     ).toBeVisible();
 
-    const card: Locator = page
-      .getByRole("listitem")
-      .filter({ has: page.getByRole("heading", { name: "Page the database team" }) });
+    const card: Locator = page.getByRole("listitem").filter({
+      has: page.getByRole("heading", { name: "Page the database team" }),
+    });
 
     await expect(card.getByText("Show output / logs")).toBeVisible();
     await card.getByRole("button", { name: "Approve & continue" }).click();
@@ -466,9 +478,9 @@ test.describe("a run waits for approval before a step", () => {
     await expect(
       page.getByTestId("runbook-execution-step-2-approved-by"),
     ).toContainText("Ada Lovelace");
-    await expect(page.getByRole("button", { name: "Approve and run" })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByRole("button", { name: "Approve and run" }),
+    ).toHaveCount(0);
   });
 });
 
@@ -509,7 +521,7 @@ test.describe("on every screen", () => {
     await screenshot(page, "steps-phone");
   });
 
-  test("a phone: the waiting step's buttons sit under its words, inside its card", async ({
+  test("a phone: the waiting step's buttons sit under its words, at its card's right edge", async ({
     page,
   }: {
     page: Page;
@@ -519,27 +531,38 @@ test.describe("on every screen", () => {
 
     expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-    const card: Locator = page
-      .getByRole("listitem")
-      .filter({ has: page.getByRole("heading", { name: "Promote the replica" }) });
-    const approve: Locator = card.getByRole("button", { name: "Approve and run" });
+    const card: Locator = page.getByRole("listitem").filter({
+      has: page.getByRole("heading", { name: "Promote the replica" }),
+    });
+    const approve: Locator = card.getByRole("button", {
+      name: "Approve and run",
+    });
     const heading: Locator = card.getByRole("heading", {
       name: "Promote the replica",
     });
 
+    const skip: Locator = card.getByRole("button", { name: "Skip" });
     const cardBox: { x: number; width: number } = (await card.boundingBox())!;
     const approveBox: { x: number; y: number; width: number } =
       (await approve.boundingBox())!;
-    const headingBox: { y: number; width: number } =
+    const skipBox: { x: number; width: number } = (await skip.boundingBox())!;
+    const headingBox: { x: number; y: number; width: number } =
       (await heading.boundingBox())!;
 
     // Under the step's words, not squeezing them into a column.
     expect(approveBox.y).toBeGreaterThan(headingBox.y);
     expect(headingBox.width).toBeGreaterThan(150);
-    // Inside the card.
+    /*
+     * Inside the card, at its right edge as every card's actions are: the
+     * last button ends where the card's padding starts.
+     */
     expect(approveBox.x + approveBox.width).toBeLessThanOrEqual(
       cardBox.x + cardBox.width + 1,
     );
+    expect(approveBox.x).toBeGreaterThanOrEqual(headingBox.x - 1);
+    expect(
+      cardBox.x + cardBox.width - (skipBox.x + skipBox.width),
+    ).toBeLessThan(40);
     await screenshot(page, "run-phone");
   });
 
@@ -555,7 +578,9 @@ test.describe("on every screen", () => {
     await screenshot(page, "steps-dark");
 
     await openRun(page, "wait=approval&theme=dark");
-    await expect(page.getByRole("button", { name: "Approve and run" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Approve and run" }),
+    ).toBeVisible();
     await screenshot(page, "run-dark");
   });
 

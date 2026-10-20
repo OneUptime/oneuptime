@@ -70,9 +70,11 @@ function read(steps: unknown): StepsWithApprovalsBeforeTheirSteps {
 }
 
 function byId(steps: Array<RunbookStep>, id: string): RunbookStep {
-  const found: RunbookStep | undefined = steps.find((candidate: RunbookStep) => {
-    return candidate.id === id;
-  });
+  const found: RunbookStep | undefined = steps.find(
+    (candidate: RunbookStep) => {
+      return candidate.id === id;
+    },
+  );
 
   if (!found) {
     throw new Error(`No step ${id}`);
@@ -81,7 +83,7 @@ function byId(steps: Array<RunbookStep>, id: string): RunbookStep {
   return found;
 }
 
-function hasKey(value: object, key: string): boolean {
+function hasKey(value: RunbookStep, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
@@ -414,9 +416,9 @@ describe("an approval after a step is an approval before the step it held back",
         takenIds: ["a", "a-approval", "a-approval-2"],
       }),
     ).toBe("a-approval-3");
-    expect(
-      getApprovalAfterLastStepId({ lastStepId: "", takenIds: [] }),
-    ).toBe(APPROVAL_AFTER_LAST_STEP_FALLBACK_ID);
+    expect(getApprovalAfterLastStepId({ lastStepId: "", takenIds: [] })).toBe(
+      APPROVAL_AFTER_LAST_STEP_FALLBACK_ID,
+    );
     expect(
       getApprovalAfterLastStepId({ lastStepId: undefined, takenIds: [] }),
     ).toBe("approval-after-last-step");

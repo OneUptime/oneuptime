@@ -58,7 +58,8 @@ const WAIT: { timeout: number } = { timeout: 20000 };
 const PATH: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/executions/${EXECUTION_ID}`;
 
 let stepExecutions: Array<RunbookStepExecutionState> = [];
-let status: RunbookExecutionStatus = RunbookExecutionStatus.WaitingForManualStep;
+let status: RunbookExecutionStatus =
+  RunbookExecutionStatus.WaitingForManualStep;
 let posted: Array<string> = [];
 
 function done(
@@ -199,24 +200,32 @@ describe("a run waiting for approval before a step", () => {
     expect(
       within(card).getByRole("button", { name: "Approve and run" }),
     ).toBeInTheDocument();
-    expect(within(card).getByRole("button", { name: "Skip" })).toBeInTheDocument();
+    expect(
+      within(card).getByRole("button", { name: "Skip" }),
+    ).toBeInTheDocument();
 
     // The old words are not used for it.
-    expect(screen.queryByRole("button", { name: "Approve & continue" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Approve & continue" }),
+    ).toBeNull();
     expect(screen.queryByRole("button", { name: "Mark complete" })).toBeNull();
   });
 
   test("only the step it waits on can be approved; a later plain step can only be skipped", async () => {
     await renderRun();
 
-    expect(screen.getAllByRole("button", { name: "Approve and run" })).toHaveLength(
-      1,
-    );
+    expect(
+      screen.getAllByRole("button", { name: "Approve and run" }),
+    ).toHaveLength(1);
 
     const later: HTMLElement = stepCard("Post the all-clear");
 
-    expect(within(later).queryByRole("button", { name: "Approve and run" })).toBeNull();
-    expect(within(later).getByRole("button", { name: "Skip" })).toBeInTheDocument();
+    expect(
+      within(later).queryByRole("button", { name: "Approve and run" }),
+    ).toBeNull();
+    expect(
+      within(later).getByRole("button", { name: "Skip" }),
+    ).toBeInTheDocument();
     expect(
       within(later).queryByText("This step runs once someone approves it."),
     ).toBeNull();
@@ -235,9 +244,11 @@ describe("a run waiting for approval before a step", () => {
       expect(posted).toHaveLength(1);
     }, WAIT);
 
-    expect(new URL(posted[0]!).pathname.endsWith(
-      `/execution/${EXECUTION_ID}/step/promote/complete`,
-    )).toBe(true);
+    expect(
+      new URL(posted[0]!).pathname.endsWith(
+        `/execution/${EXECUTION_ID}/step/promote/complete`,
+      ),
+    ).toBe(true);
   });
 
   test("Skip skips it, so it never runs", async () => {
@@ -253,9 +264,11 @@ describe("a run waiting for approval before a step", () => {
       expect(posted).toHaveLength(1);
     }, WAIT);
 
-    expect(new URL(posted[0]!).pathname.endsWith(
-      `/execution/${EXECUTION_ID}/step/promote/skip`,
-    )).toBe(true);
+    expect(
+      new URL(posted[0]!).pathname.endsWith(
+        `/execution/${EXECUTION_ID}/step/promote/skip`,
+      ),
+    ).toBe(true);
   });
 });
 
@@ -366,6 +379,8 @@ describe("a run whose approved step ran", () => {
     }, WAIT);
 
     // Nothing is waiting: no button moves the run on.
-    expect(screen.queryByRole("button", { name: "Approve and run" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Approve and run" }),
+    ).toBeNull();
   });
 });

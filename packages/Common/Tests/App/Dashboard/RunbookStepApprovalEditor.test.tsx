@@ -541,7 +541,9 @@ describe("every step's options are simpler", () => {
     // The folded line counts the headers; it never quotes them.
     const headersItem: Element | null = screen
       .getByTestId("runbook-step-3-more-fields")
-      .querySelector('[data-testid="folded-section-item"][data-item-key="headersJson"]');
+      .querySelector(
+        '[data-testid="folded-section-item"][data-item-key="headersJson"]',
+      );
 
     expect(headersItem).toHaveTextContent("Headers (JSON): 1");
     expect(headersItem).not.toHaveTextContent("application/json");

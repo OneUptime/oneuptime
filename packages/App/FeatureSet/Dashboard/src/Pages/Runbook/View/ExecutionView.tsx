@@ -636,16 +636,16 @@ const ExecutionView: FunctionComponent<
       : execStatus === RunbookExecutionStatus.WaitingForManualStep
         ? "Waiting on a manual step. Tick it off below to continue."
         : execStatus === RunbookExecutionStatus.Running
-        ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
-        : execStatus === RunbookExecutionStatus.Completed
-          ? "All steps completed successfully."
-          : execStatus === RunbookExecutionStatus.Failed
-            ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
-            : execStatus === RunbookExecutionStatus.Cancelled
-              ? "This execution was cancelled."
-              : execution.startedAt
-                ? "Continuing — queued to pick up where it paused."
-                : "Scheduled — waiting to start.";
+          ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
+          : execStatus === RunbookExecutionStatus.Completed
+            ? "All steps completed successfully."
+            : execStatus === RunbookExecutionStatus.Failed
+              ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
+              : execStatus === RunbookExecutionStatus.Cancelled
+                ? "This execution was cancelled."
+                : execution.startedAt
+                  ? "Continuing — queued to pick up where it paused."
+                  : "Scheduled — waiting to start.";
 
   const cardButtons: Array<CardButtonSchema> = [];
 
@@ -906,9 +906,10 @@ const ExecutionView: FunctionComponent<
                         >
                           {/*
                            * The step, and the buttons that move the run on:
-                           * beside it from sm up, under it on a phone, where
-                           * beside it they left its words a column one word
-                           * wide.
+                           * beside it from sm up, under it on a phone - at
+                           * the right edge, as every card's actions are -
+                           * where beside it they left its words a column one
+                           * word wide.
                            */}
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0 flex-1">
@@ -958,7 +959,7 @@ const ExecutionView: FunctionComponent<
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 empty:hidden sm:flex-shrink-0">
+                            <div className="flex items-center gap-2 empty:hidden self-end sm:self-auto sm:flex-shrink-0">
                               {canComplete && (
                                 <Button
                                   title={waitingStepButtonTitle}

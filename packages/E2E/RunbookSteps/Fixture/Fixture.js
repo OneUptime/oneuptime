@@ -289,7 +289,7 @@ const STEPS = noSteps
         config: {
           kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
           script:
-            "kubectl patch postgrescluster checkout-db --namespace data --type merge --patch '{\"spec\":{\"primary\":\"db-eu-2\"}}'",
+            'kubectl patch postgrescluster checkout-db --namespace data --type merge --patch \'{"spec":{"primary":"db-eu-2"}}\'',
           agentId: RUNNER_ID,
         },
         continueOnFailure: false,

@@ -460,9 +460,7 @@ describe("how many rows an UPDATE wrote", () => {
 
   test("as a plain driver answers: the rows RETURNING gave back", () => {
     expect(readUpdatedCount([{ _id: RUNBOOK_A }])).toBe(1);
-    expect(readUpdatedCount([{ _id: RUNBOOK_A }, { _id: RUNBOOK_B }])).toBe(
-      2,
-    );
+    expect(readUpdatedCount([{ _id: RUNBOOK_A }, { _id: RUNBOOK_B }])).toBe(2);
     expect(readUpdatedCount([])).toBe(0);
   });
 

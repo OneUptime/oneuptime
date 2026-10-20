@@ -197,7 +197,12 @@ describe("a run that starts", () => {
         ];
       }),
     ).toEqual([
-      ["check", RunbookStepType.Bash, false, RunbookStepExecutionStatus.Pending],
+      [
+        "check",
+        RunbookStepType.Bash,
+        false,
+        RunbookStepExecutionStatus.Pending,
+      ],
       [
         "promote",
         RunbookStepType.Kubernetes,

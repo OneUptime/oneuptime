@@ -75,8 +75,11 @@ describe("a step's approval is decided on the server, never on a Runner", () => 
       const source: string = fs.readFileSync(file, "utf8");
 
       for (const flag of APPROVAL_FLAGS) {
-        expect({ file: path.basename(file), flag, named: source.includes(flag) })
-          .toEqual({ file: path.basename(file), flag, named: false });
+        expect({
+          file: path.basename(file),
+          flag,
+          named: source.includes(flag),
+        }).toEqual({ file: path.basename(file), flag, named: false });
       }
     }
   });

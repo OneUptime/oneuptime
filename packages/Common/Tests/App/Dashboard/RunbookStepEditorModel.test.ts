@@ -207,7 +207,11 @@ describe("a step's More fields", () => {
 
   test("the old flag alone is not shown as on: the editor reads it onto the next step first", () => {
     const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
-      step(RunbookStepType.Bash, { script: "uptime" }, { requireApproval: true }),
+      step(
+        RunbookStepType.Bash,
+        { script: "uptime" },
+        { requireApproval: true },
+      ),
     );
 
     expect(items[0]).toMatchObject({

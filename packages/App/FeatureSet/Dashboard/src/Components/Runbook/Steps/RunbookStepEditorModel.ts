@@ -445,8 +445,7 @@ export function getHttpHeaderCount(
       return undefined;
     }
 
-    const count: number = Object.keys(parsed as Record<string, unknown>)
-      .length;
+    const count: number = Object.keys(parsed as Record<string, unknown>).length;
 
     return count > 0 ? count : undefined;
   } catch {

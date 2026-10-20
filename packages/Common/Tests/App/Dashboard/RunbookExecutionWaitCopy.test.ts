@@ -84,7 +84,9 @@ describe("the step a run waits on", () => {
   });
 
   test("a step that waits to run says it runs once approved; who approved is said after", () => {
-    expect(APPROVE_TO_RUN_NOTE).toBe("This step runs once someone approves it.");
+    expect(APPROVE_TO_RUN_NOTE).toBe(
+      "This step runs once someone approves it.",
+    );
     expect(APPROVED_BY_LABEL).toBe("Approved by");
   });
 });
