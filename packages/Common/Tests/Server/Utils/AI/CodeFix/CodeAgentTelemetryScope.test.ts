@@ -20,6 +20,7 @@ import CodeRepositoryService, {
 } from "../../../../../Server/Services/CodeRepositoryService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
+import LlmConversationPrivacy from "../../../../../Server/Utils/LlmObservability/LlmConversationPrivacy";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import Service from "../../../../../Models/DatabaseModels/Service";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
@@ -455,6 +456,36 @@ describe("CodeAgentTelemetryScope.getOffer", () => {
         }
       ).query.projectId.toString(),
     ).toBe(PROJECT_ID.toString());
+  });
+
+  test("a company AI tool's private chats never enter the scope, even where every service would", async () => {
+    mockProject({ repositories: [repository(CHECKOUT_REPO, "checkout")] });
+    jest
+      .spyOn(LlmConversationPrivacy, "getRestrictedServiceIds")
+      .mockResolvedValue([WORKER_SERVICE]);
+
+    const offer: CodeAgentTelemetryOffer =
+      await CodeAgentTelemetryScope.getOffer(telemetryRun());
+
+    // The project's only repository serves every service but the chats'.
+    expect(
+      offer.scope?.services
+        .map((scoped: CodeAgentScopedService): string => {
+          return scoped.id;
+        })
+        .sort(),
+    ).toEqual([BILLING_SERVICE, CHECKOUT_SERVICE].sort());
+  });
+
+  test("a lookup of the private chats that fails offers nothing rather than everything", async () => {
+    mockProject();
+    jest
+      .spyOn(LlmConversationPrivacy, "getRestrictedServiceIds")
+      .mockRejectedValue(new Error("Postgres is unavailable"));
+
+    await expect(
+      CodeAgentTelemetryScope.getOffer(telemetryRun()),
+    ).rejects.toThrow("Postgres is unavailable");
   });
 
   test("a recipe the tools are not for is offered none", async () => {

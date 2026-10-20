@@ -11,6 +11,7 @@ import {
   RepositoryResolver,
   ResolvableRepository,
 } from "../../CodeRepository/StackTraceRepoResolver";
+import LlmConversationPrivacy from "../../LlmObservability/LlmConversationPrivacy";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { untrustedLine } from "../SRE/UntrustedText";
@@ -61,7 +62,11 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * A service the resolver maps elsewhere is out of scope, and every tool
  * holds every read to the services in scope (CodeAgentTelemetryTools): its
- * telemetry is unreachable from this run.
+ * telemetry is unreachable from this run. So is a company AI tool's service
+ * (its people's chats with Claude Enterprise or Microsoft 365 Copilot,
+ * LlmConversationPrivacy) unless its connection lets everyone read it: what
+ * the agent writes lands on a pull request, where far more people read it
+ * than the project's owners and admins.
  */
 
 // The recipes production telemetry is offered to.
@@ -374,12 +379,20 @@ export default class CodeAgentTelemetryScope {
       };
     }
 
-    const facts: Array<ServiceFacts> =
+    // A company AI tool's private chats never enter the scope (see above).
+    const restricted: Set<string> = new Set<string>(
+      await LlmConversationPrivacy.getRestrictedServiceIds(projectId),
+    );
+
+    const facts: Array<ServiceFacts> = (
       await CodeAgentTelemetryScope.readServiceFacts({
         projectId,
         run,
         taskType,
-      });
+      })
+    ).filter((service: ServiceFacts): boolean => {
+      return !restricted.has(service.id);
+    });
 
     const resolver: RepositoryResolver = createRepositoryResolver({
       repositories: repositories,
