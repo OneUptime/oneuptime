@@ -48,13 +48,36 @@ export interface ComponentProps extends DashboardBaseComponentProps {
  * the OCSF severity id. The message is free text, so it does not sort.
  */
 const COLUMNS: Array<ResourceListColumn> = [
-  // Wide enough for a date, a time and its seconds.
-  { label: "Time", widthPct: "22%", sortKey: "time" },
+  /*
+   * Wide enough for a date, a time and its seconds on one line from the
+   * widget's default width; at its narrowest the time goes under the date,
+   * so every column still fits.
+   */
+  { label: "Time", widthPct: "28%", sortKey: "time" },
   { label: "Severity", widthPct: "13%", sortKey: "severity" },
-  { label: "Class", widthPct: "17%", sortKey: "class" },
-  { label: "Message", widthPct: "34%" },
+  { label: "Class", widthPct: "15%", sortKey: "class" },
+  { label: "Message", widthPct: "30%" },
   { label: "Host", widthPct: "14%", sortKey: "host" },
 ];
+
+/*
+ * An event's date and its time of day, each kept whole: at the widget's
+ * narrowest the time goes under the date, never a word at a time.
+ */
+function renderTimeLabel(label: string): ReactElement {
+  const space: number = label.lastIndexOf(" ");
+
+  if (space <= 0) {
+    return <span className="whitespace-nowrap">{label}</span>;
+  }
+
+  return (
+    <>
+      <span className="whitespace-nowrap">{label.slice(0, space)}</span>{" "}
+      <span className="whitespace-nowrap">{label.slice(space + 1)}</span>
+    </>
+  );
+}
 
 const DashboardSecurityEventsListComponentElement: FunctionComponent<
   ComponentProps
@@ -198,10 +221,10 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
           className="hover:bg-gray-50/50 transition-colors duration-100"
         >
           <td
-            className="px-3 py-1.5 text-xs text-gray-500 tabular-nums whitespace-nowrap"
+            className="px-3 py-1.5 text-xs text-gray-500 tabular-nums"
             title={time?.title}
           >
-            {time ? time.label : "-"}
+            {time ? renderTimeLabel(time.label) : "-"}
           </td>
           <td className="px-3 py-1.5" title={severity}>
             <span className="inline-flex items-center gap-1">

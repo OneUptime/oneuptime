@@ -122,12 +122,21 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
         type="button"
         data-testid={getDashboardWidgetSortHeaderTestId(column.key)}
         title={hint}
+        onMouseDown={(event: React.MouseEvent<HTMLButtonElement>): void => {
+          /*
+           * A pointer's click sorts without taking focus: a widget too
+           * narrow for its table scrolls sideways, and focusing the header
+           * would first scroll it whole into view, moving the columns under
+           * the pointer. The keyboard still reaches it with Tab.
+           */
+          event.preventDefault();
+        }}
         onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
           // The card's own click (selecting it) is not the header's.
           event.stopPropagation();
           onSortClick(column.key);
         }}
-        className={`group/sort flex w-full min-w-0 items-center gap-1 ${padding} ${
+        className={`group/sort flex w-full min-w-0 items-center ${padding} ${
           props.alignRight ? "justify-end text-right" : "text-left"
         } cursor-pointer select-none font-medium uppercase tracking-wider transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
           isSorted ? "text-gray-700" : "text-gray-400 hover:text-gray-700"
@@ -141,14 +150,21 @@ const DashboardSortableColumnHeader: FunctionComponent<ComponentProps> = (
                 ? IconProp.ArrowUp
                 : IconProp.ArrowDown
             }
-            className="h-3 w-3 flex-none text-indigo-500"
+            className="ml-1 h-3 w-3 flex-none text-indigo-500"
             data-testid={DASHBOARD_WIDGET_SORT_ARROW_TEST_ID}
           />
         ) : (
-          <Icon
-            icon={IconProp.ArrowUpDown}
-            className="h-3 w-3 flex-none text-gray-400 opacity-0 transition-opacity duration-150 group-hover/sort:opacity-100 group-focus-visible/sort:opacity-100"
-          />
+          /*
+           * The hint takes no room of its own: it sits in the cell's
+           * padding, so a narrow widget's columns are as wide as their
+           * words, as before any header sorted.
+           */
+          <span className="relative h-3 w-0 flex-none">
+            <Icon
+              icon={IconProp.ArrowUpDown}
+              className="absolute left-1 top-0 h-3 w-3 text-gray-400 opacity-0 transition-opacity duration-150 group-hover/sort:opacity-100 group-focus-visible/sort:opacity-100"
+            />
+          </span>
         )}
       </button>
     </th>

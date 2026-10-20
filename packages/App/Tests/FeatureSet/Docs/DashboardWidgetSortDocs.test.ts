@@ -313,7 +313,7 @@ describe("Sorting lists and tables, against the header and the registry", () => 
       readSource(
         "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSecurityEventsListComponent.tsx",
       ),
-    ).toContain('{ label: "Message", widthPct: "34%" },');
+    ).toContain('{ label: "Message", widthPct: "30%" },');
     expect(sorting).toContain(
       "A column a list can't be sorted by as a whole, such as a security event's message, has no sort.",
     );
