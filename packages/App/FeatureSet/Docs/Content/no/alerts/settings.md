@@ -134,7 +134,7 @@ Eiere får hver påminnelse som **Alert reminder**, som er slått på via e-post
 
 **Varsler → Innstillinger → Målinger** måler hvor lang tid ting tar for hvert varsel. Velg **Tid til bekreftelse** eller **Tid til løsning**, eller to egne tidspunkter, for eksempel når **Varselet blir opprettet**, og når det går inn i en tilstand du velger. Hver måling vises på varselets side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måte for varsler.
 
-**Tid til bekreftelse etter tilkalling** teller fra **Den første tilkallingen sendes**, når en vaktpolicy eller en direkte tilkalling første gang ga noen beskjed om varselet, i stedet for fra tidspunktet det ble opprettet: et varsel som oppstår om natten, men først fører til en tilkalling om morgenen, får ikke natten regnet med. Et varsel der ingen ble tilkalt, har ingen verdi. Se [Tid til bekreftelse etter tilkalling](/docs/incidents/settings#tid-til-bekreftelse-etter-tilkalling).
+**Tid til bekreftelse etter tilkalling** teller fra **Noen blir tilkalt for første gang**, når en vaktpolicy eller en direkte tilkalling første gang ga noen beskjed om varselet, i stedet for fra tidspunktet det ble opprettet: et varsel som oppstår om natten, men først fører til en tilkalling om morgenen, får ikke natten regnet med. Et varsel der ingen ble tilkalt, har ingen verdi. Se [Tid til bekreftelse etter tilkalling](/docs/incidents/settings#tid-til-bekreftelse-etter-tilkalling).
 
 ### Medlemskap i episoder
 

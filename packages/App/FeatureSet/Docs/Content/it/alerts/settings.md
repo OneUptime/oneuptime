@@ -134,7 +134,7 @@ I proprietari ricevono ogni promemoria come **Alert reminder**, attivo via e-mai
 
 **Avvisi → Impostazioni → Misurazioni** misura quanto tempo richiedono le cose su ogni avviso. Scegliete **Tempo di riconoscimento** o **Tempo di risoluzione**, o due momenti vostri, come quando **L'avviso viene creato** e quando entra in uno stato che scegliete. Ogni misurazione è mostrata nella pagina dell'avviso e riportata nei grafici come `oneuptime.alert.measurement.<key>`. Vedere [Misurazioni](/docs/incidents/settings#misurazioni), che funziona allo stesso modo per gli avvisi.
 
-La misurazione **Tempo di riconoscimento dopo la chiamata** conta da **Parte la prima chiamata**, quando una policy di reperibilità o una chiamata diretta ha chiamato per la prima volta qualcuno per l'avviso, anziché da quando è stato creato: a un avviso scattato di notte e per cui qualcuno viene chiamato al mattino la notte non viene addebitata. Un avviso per cui nessuno è stato chiamato non ha alcun valore. Vedere [Tempo di riconoscimento dopo la chiamata](/docs/incidents/settings#tempo-di-riconoscimento-dopo-la-chiamata).
+La misurazione **Tempo di riconoscimento dopo la chiamata** conta da **Qualcuno viene chiamato per la prima volta**, quando una policy di reperibilità o una chiamata diretta ha chiamato per la prima volta qualcuno per l'avviso, anziché da quando è stato creato: a un avviso scattato di notte e per cui qualcuno viene chiamato al mattino la notte non viene addebitata. Un avviso per cui nessuno è stato chiamato non ha alcun valore. Vedere [Tempo di riconoscimento dopo la chiamata](/docs/incidents/settings#tempo-di-riconoscimento-dopo-la-chiamata).
 
 ### Appartenenza agli episodi
 

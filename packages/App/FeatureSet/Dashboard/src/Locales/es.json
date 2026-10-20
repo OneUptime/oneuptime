@@ -31923,11 +31923,10 @@
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio está llamando desde {{phoneNumber}}. Tu teléfono debería sonar en menos de un minuto.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio está haciendo la llamada de prueba. Tu teléfono debería sonar en menos de un minuto.",
   "First paged": "Primer aviso",
-  "From the first page about an alert until someone acknowledges it.": "Desde el primer aviso sobre una alerta hasta que alguien la reconoce.",
-  "From the first page about an incident until someone acknowledges it.": "Desde el primer aviso sobre un incidente hasta que alguien lo reconoce.",
-  "The first page goes out": "Se envía el primer aviso",
   "Time to acknowledge after paging": "Tiempo hasta el reconocimiento tras el aviso",
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Cuándo una política de guardia o un aviso directo avisa a alguien por primera vez. Hasta que se avisa a alguien, la medición no tiene valor.",
   "First Paged At": "Primer aviso el",
-  "{{duration}} after paging": "{{duration}} después del aviso"
+  "{{duration}} after paging": "{{duration}} después del aviso",
+  "Someone is first paged": "Se avisa a alguien por primera vez",
+  "From when someone is first paged until someone acknowledges it.": "Desde que se avisa a alguien por primera vez hasta que se reconoce."
 }

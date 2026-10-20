@@ -134,7 +134,7 @@ Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail
 
 **Advarsler → Indstillinger → Målinger** tager tid på, hvor længe ting tager for hver advarsel. Vælg **Tid til bekræftelse** eller **Tid til løsning** eller to tidspunkter efter eget valg, for eksempel når **Advarslen bliver oprettet**, og når den går ind i en tilstand, du vælger. Hver måling vises på advarslens side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måde for advarsler.
 
-**Tid til bekræftelse efter tilkald** tæller fra **Det første tilkald sendes**, når en vagtpolitik eller et direkte tilkald første gang gav nogen besked om advarslen, i stedet for fra det tidspunkt, hvor den blev oprettet: en advarsel, der opstår om natten, men først fører til et tilkald om morgenen, får ikke natten regnet med. En advarsel, hvor ingen blev tilkaldt, har ingen værdi. Se [Tid til bekræftelse efter tilkald](/docs/incidents/settings#tid-til-bekræftelse-efter-tilkald).
+**Tid til bekræftelse efter tilkald** tæller fra **Nogen bliver tilkaldt første gang**, når en vagtpolitik eller et direkte tilkald første gang gav nogen besked om advarslen, i stedet for fra det tidspunkt, hvor den blev oprettet: en advarsel, der opstår om natten, men først fører til et tilkald om morgenen, får ikke natten regnet med. En advarsel, hvor ingen blev tilkaldt, har ingen værdi. Se [Tid til bekræftelse efter tilkald](/docs/incidents/settings#tid-til-bekræftelse-efter-tilkald).
 
 ### Medlemskab af episoder
 

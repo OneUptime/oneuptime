@@ -31923,11 +31923,10 @@
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ringer fra {{phoneNumber}}. Telefonen din bør ringe innen ett minutt.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testanropet. Telefonen din bør ringe innen ett minutt.",
   "First paged": "Først tilkalt",
-  "From the first page about an alert until someone acknowledges it.": "Fra den første tilkallingen om et varsel til noen bekrefter det.",
-  "From the first page about an incident until someone acknowledges it.": "Fra den første tilkallingen om en hendelse til noen bekrefter den.",
-  "The first page goes out": "Den første tilkallingen sendes",
   "Time to acknowledge after paging": "Tid til bekreftelse etter tilkalling",
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Når en vaktpolicy eller en direkte tilkalling varsler noen for første gang. Inntil noen blir tilkalt, har målingen ingen verdi.",
   "First Paged At": "Første tilkalling",
-  "{{duration}} after paging": "{{duration}} etter tilkalling"
+  "{{duration}} after paging": "{{duration}} etter tilkalling",
+  "Someone is first paged": "Noen blir tilkalt for første gang",
+  "From when someone is first paged until someone acknowledges it.": "Fra noen blir tilkalt for første gang til bekreftelsen."
 }

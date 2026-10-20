@@ -134,7 +134,7 @@ Les propriétaires reçoivent chaque rappel sous la forme **Rappel d'alerte**, a
 
 **Alertes → Paramètres → Mesures** chronomètre le temps que prennent les choses sur chaque alerte. Choisissez **Délai de prise en compte** ou **Délai de résolution**, ou deux moments à vous, comme quand **L'alerte est créée** et quand elle entre dans un état que vous choisissez. Chaque mesure s'affiche sur la page de l'alerte et figure dans les graphiques sous `oneuptime.alert.measurement.<key>`. Voir [Mesures](/docs/incidents/settings#mesures), qui fonctionne de la même façon pour les alertes.
 
-La mesure **Délai de prise en compte après l'alerte** compte à partir de **La première alerte est envoyée**, quand une politique d'astreinte ou un appel direct a alerté quelqu'un pour la première fois au sujet de l'alerte, plutôt qu'à partir de sa création : une alerte levée la nuit, pour laquelle personne n'est alerté avant le matin, ne se voit pas compter la nuit. Une alerte pour laquelle personne n'a été alerté n'a pas de valeur. Voir [Délai de prise en compte après l'alerte](/docs/incidents/settings#délai-de-prise-en-compte-après-lalerte).
+La mesure **Délai de prise en compte après l'alerte** compte à partir de **Quelqu'un est alerté pour la première fois**, quand une politique d'astreinte ou un appel direct a alerté quelqu'un pour la première fois au sujet de l'alerte, plutôt qu'à partir de sa création : une alerte levée la nuit, pour laquelle personne n'est alerté avant le matin, ne se voit pas compter la nuit. Une alerte pour laquelle personne n'a été alerté n'a pas de valeur. Voir [Délai de prise en compte après l'alerte](/docs/incidents/settings#délai-de-prise-en-compte-après-lalerte).
 
 ### Appartenance aux épisodes
 

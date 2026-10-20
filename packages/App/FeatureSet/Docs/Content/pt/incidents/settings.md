@@ -347,11 +347,11 @@ O formulário abre em **O que você quer medir?**. Escolha uma destas e o nome, 
 | Onde                  | Medição                                        | Começa quando                                    | Termina quando            |
 | --------------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- |
 | Incidentes            | **Tempo até a confirmação**                    | O incidente é declarado                          | O incidente é confirmado  |
-| Incidentes            | **Tempo até a confirmação após o acionamento** | O primeiro acionamento é enviado                 | O incidente é confirmado  |
+| Incidentes            | **Tempo até a confirmação após o acionamento** | Alguém é acionado pela primeira vez                 | O incidente é confirmado  |
 | Incidentes            | **Tempo até a resolução**                      | O incidente é declarado                          | O incidente é resolvido   |
 | Incidentes            | **Tempo até o post-mortem**                    | O incidente é resolvido                          | O post-mortem é publicado |
 | Alertas               | **Tempo até a confirmação**                    | O alerta é criado                                | O alerta é confirmado     |
-| Alertas               | **Tempo até a confirmação após o acionamento** | O primeiro acionamento é enviado                 | O alerta é confirmado     |
+| Alertas               | **Tempo até a confirmação após o acionamento** | Alguém é acionado pela primeira vez                 | O alerta é confirmado     |
 | Alertas               | **Tempo até a resolução**                      | O alerta é criado                                | O alerta é resolvido      |
 | Manutenção programada | **Atraso no início**                           | A manutenção deve começar conforme o programado  | A manutenção começa       |
 | Manutenção programada | **Excesso de tempo**                           | A manutenção deve terminar conforme o programado | A manutenção termina      |
@@ -366,7 +366,7 @@ A segunda etapa, **Início e fim**, tem **Começa quando** e **Termina quando**.
 | Momento                                            | Quando acontece                                                              | Guardado na API como                                  |
 | -------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **O incidente é declarado**                        | Quando o incidente começou no OneUptime: quando foi criado, a menos que alguém tenha definido um horário anterior. | `Declared At` (`Timeline Start` é o mesmo instante) |
-| **O primeiro acionamento é enviado**               | Quando uma política de plantão ou um acionamento direto notifica alguém sobre o incidente pela primeira vez — veja abaixo. | `First Paged At`                                      |
+| **Alguém é acionado pela primeira vez**               | Quando uma política de plantão ou um acionamento direto notifica alguém sobre o incidente pela primeira vez — veja abaixo. | `First Paged At`                                      |
 | **O incidente é confirmado**                       | Quando ele chega ao seu estado confirmado, ou a qualquer estado posterior (uma resolução direta desde o início também conta). | `State Role Entered`, função `Acknowledged` |
 | **O incidente é resolvido**                        | Quando ele chega ao seu estado resolvido.                                    | `State Role Entered`, função `Resolved`               |
 | **O post-mortem é publicado**                      | Quando o post-mortem do incidente é publicado.                               | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ Alertas e eventos de manutenção programada têm o mesmo cartão nas páginas d
 
 ### Tempo até a confirmação após o acionamento
 
-O **Tempo até a confirmação** conta a partir de quando o incidente é declarado, então um incidente sobre o qual ninguém é acionado até de manhã aparece como horas de espera que ninguém de plantão viu. Já o **Tempo até a confirmação após o acionamento** conta a partir de **O primeiro acionamento é enviado**: a primeira vez que uma política de plantão ou um acionamento direto notificou alguém sobre o incidente. Ele termina quando o incidente é confirmado, pela mesma regra do tempo até a confirmação.
+O **Tempo até a confirmação** conta a partir de quando o incidente é declarado, então um incidente sobre o qual ninguém é acionado até de manhã aparece como horas de espera que ninguém de plantão viu. Já o **Tempo até a confirmação após o acionamento** conta a partir de **Alguém é acionado pela primeira vez**: a primeira vez que uma política de plantão ou um acionamento direto notificou alguém sobre o incidente. Ele termina quando o incidente é confirmado, pela mesma regra do tempo até a confirmação.
 
 O OneUptime registra esse momento no incidente, e no alerta, como `First Paged At`, uma única vez, e nunca o altera. Só conta um acionamento que de fato foi enviado: na **Linha do tempo de execução** de uma política de plantão ou de um acionamento direto, uma pessoa cujo acionamento foi enviado, confirmado ou repassado. Uma etapa marcada como **Ignorado** ou que terminou em **Erro** não conta, nem uma política que começou mas não acionou ninguém, como uma cujo agendamento não tinha ninguém de plantão. Incidentes cujo acionamento aconteceu antes de `First Paged At` existir recebem esse momento a partir das suas execuções de plantão.
 

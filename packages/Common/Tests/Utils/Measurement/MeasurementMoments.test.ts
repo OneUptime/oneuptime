@@ -459,7 +459,7 @@ describe("the ready-made measurements, by name", () => {
         anchorType: "First Paged At",
       });
 
-      expect(moment?.label).toBe("The first page goes out");
+      expect(moment?.label).toBe("Someone is first paged");
       expect(moment?.description).toContain("Until someone is paged");
       // A timestamp: no state to pick, and it happens once.
       expect(moment?.isPickedState).toBeFalsy();

@@ -2,6 +2,7 @@ import {
   EventDurationPart,
   EventStateTimelineDate,
   LESS_THAN_A_MINUTE,
+  TABLE_DURATION_MAX_UNITS,
   formatEventDurationParts,
   getEventDurationParts,
   getEventDurationText,
@@ -224,9 +225,10 @@ export interface AcknowledgedAfterPagingInput {
 
 /*
  * How long after the first page a record was acknowledged, as the units of
- * the duration (getEventDurationParts): none under a minute. Null when there
- * is nothing to say: nobody was paged, nobody has acknowledged it yet, or it
- * was acknowledged before anybody was paged.
+ * the duration (getEventDurationParts): none under a minute, and at most the
+ * two largest ("1 day, 2 hours"), so the line stays one short line under the
+ * tile's value. Null when there is nothing to say: nobody was paged, nobody
+ * has acknowledged it yet, or it was acknowledged before anybody was paged.
  *
  * "Acknowledged in" counts from when the record started, so an alert raised
  * at night and paged in the morning reads as hours; this is the part of it
@@ -245,7 +247,9 @@ export const getAcknowledgedAfterPagingParts: (
     return null;
   }
 
-  return getEventDurationParts(input.firstPagedAt, input.acknowledgedAt);
+  return getEventDurationParts(input.firstPagedAt, input.acknowledgedAt, {
+    maxUnits: TABLE_DURATION_MAX_UNITS,
+  });
 };
 
 // The line the "Acknowledged in" tile adds for a record somebody was paged about.

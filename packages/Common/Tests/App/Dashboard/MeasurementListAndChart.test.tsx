@@ -279,7 +279,7 @@ describe("MeasurementPresetPicker", () => {
     // Time to acknowledge, counted from the first page instead.
     expect(cards[1]).toHaveTextContent("«Time to acknowledge after paging»");
     expect(cards[1]).toHaveTextContent(
-      "«From the first page about an incident until someone acknowledges it.»",
+      "«From when someone is first paged until someone acknowledges it.»",
     );
     expect(cards[2]).toHaveAttribute("aria-checked", "true");
     expect(cards[4]).toHaveTextContent("«Something else»");

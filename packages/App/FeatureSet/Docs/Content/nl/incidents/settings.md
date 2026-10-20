@@ -347,11 +347,11 @@ Het formulier opent op **Wat wilt u meten?**. Kies een van deze en de naam, de b
 | Waar              | Meting                                | Begint wanneer                               | Eindigt wanneer                   |
 | ----------------- | ------------------------------------- | -------------------------------------------- | --------------------------------- |
 | Incidenten        | **Tijd tot bevestiging**              | Het incident wordt gemeld                    | Het incident wordt bevestigd      |
-| Incidenten        | **Tijd tot bevestiging na de oproep** | De eerste oproep gaat uit                    | Het incident wordt bevestigd      |
+| Incidenten        | **Tijd tot bevestiging na de oproep** | Iemand wordt voor het eerst opgeroepen                    | Het incident wordt bevestigd      |
 | Incidenten        | **Tijd tot oplossing**                | Het incident wordt gemeld                    | Het incident wordt opgelost       |
 | Incidenten        | **Tijd tot postmortem**               | Het incident wordt opgelost                  | Het postmortem wordt gepubliceerd |
 | Waarschuwingen    | **Tijd tot bevestiging**              | De waarschuwing wordt aangemaakt             | De waarschuwing wordt bevestigd   |
-| Waarschuwingen    | **Tijd tot bevestiging na de oproep** | De eerste oproep gaat uit                    | De waarschuwing wordt bevestigd   |
+| Waarschuwingen    | **Tijd tot bevestiging na de oproep** | Iemand wordt voor het eerst opgeroepen                    | De waarschuwing wordt bevestigd   |
 | Waarschuwingen    | **Tijd tot oplossing**                | De waarschuwing wordt aangemaakt             | De waarschuwing wordt opgelost    |
 | Gepland onderhoud | **Vertraagde start**                  | Het onderhoud moet volgens planning beginnen | Het onderhoud begint              |
 | Gepland onderhoud | **Uitloop**                           | Het onderhoud moet volgens planning eindigen | Het onderhoud eindigt             |
@@ -366,7 +366,7 @@ De tweede stap, **Begin en einde**, heeft **Begint wanneer** en **Eindigt wannee
 | Moment                                            | Wanneer het gebeurt                                                          | In de API opgeslagen als                              |
 | ------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Het incident wordt gemeld**                     | Wanneer het incident in OneUptime begon: wanneer het werd aangemaakt, tenzij iemand een eerder tijdstip instelde. | `Declared At` (`Timeline Start` is hetzelfde moment) |
-| **De eerste oproep gaat uit**                     | Wanneer een bereikbaarheidsbeleid of een directe oproep voor het eerst iemand over het incident op de hoogte brengt — zie hieronder. | `First Paged At`                                      |
+| **Iemand wordt voor het eerst opgeroepen**                     | Wanneer een bereikbaarheidsbeleid of een directe oproep voor het eerst iemand over het incident op de hoogte brengt — zie hieronder. | `First Paged At`                                      |
 | **Het incident wordt bevestigd**                  | Wanneer het je bevestigde status bereikt, of een status daarna (rechtstreeks oplossen vanaf het begin telt ook). | `State Role Entered`, rol `Acknowledged`   |
 | **Het incident wordt opgelost**                   | Wanneer het je opgeloste status bereikt.                                     | `State Role Entered`, rol `Resolved`                  |
 | **Het postmortem wordt gepubliceerd**             | Wanneer het postmortem van het incident wordt gepubliceerd.                  | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ Dat is precies de bedoeling. `Declared At` legt vast wanneer OneUptime het te we
 
 ### Tijd tot bevestiging na de oproep
 
-**Tijd tot bevestiging** telt vanaf het moment dat het incident wordt gemeld, dus een incident waarvoor tot de ochtend niemand wordt opgeroepen, toont uren wachttijd die geen enkele dienstdoende heeft gezien. **Tijd tot bevestiging na de oproep** telt in plaats daarvan vanaf **De eerste oproep gaat uit**: de eerste keer dat een bereikbaarheidsbeleid of een directe oproep iemand over het incident op de hoogte bracht. Ze eindigt wanneer het incident wordt bevestigd, volgens dezelfde regel als de tijd tot bevestiging.
+**Tijd tot bevestiging** telt vanaf het moment dat het incident wordt gemeld, dus een incident waarvoor tot de ochtend niemand wordt opgeroepen, toont uren wachttijd die geen enkele dienstdoende heeft gezien. **Tijd tot bevestiging na de oproep** telt in plaats daarvan vanaf **Iemand wordt voor het eerst opgeroepen**: de eerste keer dat een bereikbaarheidsbeleid of een directe oproep iemand over het incident op de hoogte bracht. Ze eindigt wanneer het incident wordt bevestigd, volgens dezelfde regel als de tijd tot bevestiging.
 
 OneUptime legt dat moment vast op het incident, en op de waarschuwing, als `First Paged At`, één keer, en verplaatst het nooit. Alleen een oproep die echt is uitgegaan, telt: op de **Tijdlijn van de uitvoering** van een bereikbaarheidsbeleid of een directe oproep, een persoon van wie de oproep werd verzonden, bevestigd of doorgegeven. Een stap die **Overgeslagen** werd of op **Fout** eindigde, telt niet, en evenmin een beleid dat startte maar niemand opriep, zoals een beleid met een schema waarin niemand dienst had. Incidenten waarvoor al werd opgeroepen voordat `First Paged At` bestond, krijgen dat moment uit hun bereikbaarheidsuitvoeringen.
 

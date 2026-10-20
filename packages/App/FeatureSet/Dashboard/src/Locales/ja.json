@@ -31923,11 +31923,10 @@
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio が {{phoneNumber}} から発信しています。1 分以内に電話が鳴るはずです。",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio がテスト通話を発信しています。1 分以内に電話が鳴るはずです。",
   "First paged": "最初の呼び出し",
-  "From the first page about an alert until someone acknowledges it.": "アラートについて最初に呼び出してから、誰かが確認するまで。",
-  "From the first page about an incident until someone acknowledges it.": "インシデントについて最初に呼び出してから、誰かが確認するまで。",
-  "The first page goes out": "最初の呼び出しが送信されたとき",
   "Time to acknowledge after paging": "呼び出し後の確認までの時間",
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "オンコールポリシーまたは直接呼び出しが最初に誰かに通知した時点です。誰かが呼び出されるまで、この計測に値はありません。",
   "First Paged At": "最初の呼び出し日時",
-  "{{duration}} after paging": "呼び出しから {{duration}}"
+  "{{duration}} after paging": "呼び出しから {{duration}}",
+  "Someone is first paged": "最初に誰かが呼び出されたとき",
+  "From when someone is first paged until someone acknowledges it.": "誰かが最初に呼び出されてから、誰かが確認するまで。"
 }

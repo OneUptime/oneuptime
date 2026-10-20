@@ -134,7 +134,7 @@ Eigentümer erhalten jede Erinnerung als **Warnungserinnerung**, die standardmä
 
 **Warnungen → Einstellungen → Messungen** misst, wie lange Dinge bei jeder Warnung dauern. Wählen Sie **Zeit bis zur Bestätigung** oder **Zeit bis zur Behebung** oder zwei eigene Zeitpunkte, etwa wenn **Die Warnung wird erstellt** und wenn sie einen Status erreicht, den Sie wählen. Jede Messung wird auf der Seite der Warnung angezeigt und als `oneuptime.alert.measurement.<key>` in Diagrammen dargestellt. Siehe [Messungen](/docs/incidents/settings#messungen), was für Warnungen genauso funktioniert.
 
-Die **Zeit bis zur Bestätigung nach der Alarmierung** zählt ab **Die erste Alarmierung wird gesendet**, wenn eine Bereitschaftsrichtlinie oder eine direkte Alarmierung zum ersten Mal jemanden über die Warnung benachrichtigt hat, statt ab ihrer Erstellung: Einer Warnung, die nachts ausgelöst wird und zu der erst morgens jemand alarmiert wird, wird die Nacht nicht angerechnet. Eine Warnung, zu der niemand alarmiert wurde, hat keinen Wert. Siehe [Zeit bis zur Bestätigung nach der Alarmierung](/docs/incidents/settings#zeit-bis-zur-bestätigung-nach-der-alarmierung).
+Die **Zeit bis zur Bestätigung nach der Alarmierung** zählt ab **Jemand wird zum ersten Mal alarmiert**, wenn eine Bereitschaftsrichtlinie oder eine direkte Alarmierung zum ersten Mal jemanden über die Warnung benachrichtigt hat, statt ab ihrer Erstellung: Einer Warnung, die nachts ausgelöst wird und zu der erst morgens jemand alarmiert wird, wird die Nacht nicht angerechnet. Eine Warnung, zu der niemand alarmiert wurde, hat keinen Wert. Siehe [Zeit bis zur Bestätigung nach der Alarmierung](/docs/incidents/settings#zeit-bis-zur-bestätigung-nach-der-alarmierung).
 
 ### Episodenzugehörigkeit
 

@@ -347,11 +347,11 @@ flowchart TB
 | کجا | اندازه‌گیری | آغاز وقتی | پایان وقتی |
 | --------------------- | ------------------------ | ------------------------------------- | --------------------------------- |
 | حادثه‌ها | **Time to acknowledge** | The incident is declared | The incident is acknowledged |
-| حادثه‌ها | **Time to acknowledge after paging** | The first page goes out | The incident is acknowledged |
+| حادثه‌ها | **Time to acknowledge after paging** | Someone is first paged | The incident is acknowledged |
 | حادثه‌ها | **Time to resolve** | The incident is declared | The incident is resolved |
 | حادثه‌ها | **Time to postmortem** | The incident is resolved | The postmortem is published |
 | هشدارها | **Time to acknowledge** | The alert is created | The alert is acknowledged |
-| هشدارها | **Time to acknowledge after paging** | The first page goes out | The alert is acknowledged |
+| هشدارها | **Time to acknowledge after paging** | Someone is first paged | The alert is acknowledged |
 | هشدارها | **Time to resolve** | The alert is created | The alert is resolved |
 | نگهداری زمان‌بندی‌شده | **Start delay** | The maintenance is scheduled to start | The maintenance starts |
 | نگهداری زمان‌بندی‌شده | **Overrun** | The maintenance is scheduled to end | The maintenance ends |
@@ -366,7 +366,7 @@ flowchart TB
 | لحظه | چه وقت رخ می‌دهد | در API به این شکل ذخیره می‌شود |
 | --------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **The incident is declared** | زمانی که حادثه در OneUptime آغاز شد: هنگام ساخته شدن، مگر اینکه کسی زمان زودتری گذاشته باشد. | `Declared At` (`Timeline Start` همان لحظه است) |
-| **The first page goes out** | وقتی یک سیاست آنکال یا یک فراخوانی مستقیم نخستین بار کسی را از حادثه باخبر می‌کند — پایین‌تر را ببینید. | `First Paged At` |
+| **Someone is first paged** | وقتی یک سیاست آنکال یا یک فراخوانی مستقیم نخستین بار کسی را از حادثه باخبر می‌کند — پایین‌تر را ببینید. | `First Paged At` |
 | **The incident is acknowledged** | وقتی به وضعیت تصدیق‌شده شما، یا هر وضعیتی پس از آن، می‌رسد (برطرف شدن مستقیم از آغاز هم شمرده می‌شود). | `State Role Entered`، نقش `Acknowledged` |
 | **The incident is resolved** | وقتی به وضعیت برطرف‌شده شما می‌رسد. | `State Role Entered`، نقش `Resolved` |
 | **The postmortem is published** | وقتی پس‌رویدادنامه حادثه منتشر می‌شود. | `Postmortem Posted At` |
@@ -429,7 +429,7 @@ flowchart TB
 
 ### زمان تا تأیید پس از فراخوانی
 
-**Time to acknowledge** از اعلام حادثه شمرده می‌شود، پس حادثه‌ای که تا صبح کسی برایش فراخوانده نمی‌شود ساعت‌ها انتظار نشان می‌دهد که هیچ‌کس در آنکال آن را ندیده است. **Time to acknowledge after paging** در عوض از **The first page goes out** شمرده می‌شود: نخستین باری که یک سیاست آنکال یا یک فراخوانی مستقیم کسی را از حادثه باخبر کرد. این اندازه‌گیری با تصدیق حادثه پایان می‌یابد، با همان قاعده‌ای که زمان تا تصدیق دارد.
+**Time to acknowledge** از اعلام حادثه شمرده می‌شود، پس حادثه‌ای که تا صبح کسی برایش فراخوانده نمی‌شود ساعت‌ها انتظار نشان می‌دهد که هیچ‌کس در آنکال آن را ندیده است. **Time to acknowledge after paging** در عوض از **Someone is first paged** شمرده می‌شود: نخستین باری که یک سیاست آنکال یا یک فراخوانی مستقیم کسی را از حادثه باخبر کرد. این اندازه‌گیری با تصدیق حادثه پایان می‌یابد، با همان قاعده‌ای که زمان تا تصدیق دارد.
 
 OneUptime آن لحظه را روی حادثه، و روی هشدار، به‌صورت `First Paged At` ثبت می‌کند، یک بار، و هرگز جابه‌جایش نمی‌کند. فقط فراخوانی‌ای به حساب می‌آید که واقعاً فرستاده شده باشد: در **Execution Timeline** یک سیاست آنکال یا یک فراخوانی مستقیم، فردی که فراخوانی‌اش فرستاده، تصدیق یا واگذار شد. گامی که **Skipped** بود یا با **Error** پایان یافت به حساب نمی‌آید، و سیاستی هم که آغاز شد اما کسی را فرا نخواند به حساب نمی‌آید، مانند سیاستی که در زمان‌بندی‌اش کسی آنکال نبود. حادثه‌هایی که پیش از پیدایش `First Paged At` فراخوانده شده‌اند، این لحظه را از اجراهای آنکال خود می‌گیرند.
 

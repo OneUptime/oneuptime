@@ -347,11 +347,11 @@ Le formulaire s'ouvre sur **Que voulez-vous mesurer ?**. Choisissez l'une de ces
 | Où                       | Mesure                                      | Commence quand                                    | Se termine quand                       |
 | ------------------------ | ------------------------------------------- | ------------------------------------------------- | -------------------------------------- |
 | Incidents                | **Délai de prise en compte**                | L'incident est déclaré                            | L'incident est pris en compte          |
-| Incidents                | **Délai de prise en compte après l'alerte** | La première alerte est envoyée                    | L'incident est pris en compte          |
+| Incidents                | **Délai de prise en compte après l'alerte** | Quelqu'un est alerté pour la première fois                    | L'incident est pris en compte          |
 | Incidents                | **Délai de résolution**                     | L'incident est déclaré                            | L'incident est résolu                  |
 | Incidents                | **Délai du post-mortem**                    | L'incident est résolu                             | Le post-mortem est publié              |
 | Alertes                  | **Délai de prise en compte**                | L'alerte est créée                                | L'alerte est prise en compte           |
-| Alertes                  | **Délai de prise en compte après l'alerte** | La première alerte est envoyée                    | L'alerte est prise en compte           |
+| Alertes                  | **Délai de prise en compte après l'alerte** | Quelqu'un est alerté pour la première fois                    | L'alerte est prise en compte           |
 | Alertes                  | **Délai de résolution**                     | L'alerte est créée                                | L'alerte est résolue                   |
 | Maintenance planifiée    | **Retard au démarrage**                     | La maintenance doit commencer selon le planning   | La maintenance commence                |
 | Maintenance planifiée    | **Dépassement**                             | La maintenance doit se terminer selon le planning | La maintenance se termine              |
@@ -366,7 +366,7 @@ La deuxième étape, **Début et fin**, a **Commence quand** et **Se termine qua
 | Moment                                       | Quand il se produit                                                          | Stocké dans l'API sous                                |
 | -------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **L'incident est déclaré**                   | Quand l'incident a commencé dans OneUptime : à sa création, sauf si quelqu'un a défini une heure antérieure. | `Declared At` (`Timeline Start` est le même instant) |
-| **La première alerte est envoyée**           | Quand une politique d'astreinte ou un appel direct alerte quelqu'un pour la première fois au sujet de l'incident — voir plus bas. | `First Paged At`                                      |
+| **Quelqu'un est alerté pour la première fois**           | Quand une politique d'astreinte ou un appel direct alerte quelqu'un pour la première fois au sujet de l'incident — voir plus bas. | `First Paged At`                                      |
 | **L'incident est pris en compte**            | Quand il atteint votre état pris en compte, ou tout état qui le suit (une résolution directe depuis le départ compte aussi). | `State Role Entered`, rôle `Acknowledged`  |
 | **L'incident est résolu**                    | Quand il atteint votre état résolu.                                          | `State Role Entered`, rôle `Resolved`                 |
 | **Le post-mortem est publié**                | Quand le post-mortem de l'incident est publié.                               | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ C'est voulu. `Declared At` enregistre quand OneUptime l'a appris, ce qui, pour u
 
 ### Délai de prise en compte après l'alerte
 
-La mesure **Délai de prise en compte** court à partir de la déclaration de l'incident ; un incident pour lequel personne n'est alerté avant le matin affiche donc des heures d'attente qu'aucune personne d'astreinte n'a vues. La mesure **Délai de prise en compte après l'alerte** court plutôt à partir de **La première alerte est envoyée** : la première fois qu'une politique d'astreinte ou un appel direct a alerté quelqu'un au sujet de l'incident. Elle se termine quand l'incident est pris en compte, selon la même règle que le délai de prise en compte.
+La mesure **Délai de prise en compte** court à partir de la déclaration de l'incident ; un incident pour lequel personne n'est alerté avant le matin affiche donc des heures d'attente qu'aucune personne d'astreinte n'a vues. La mesure **Délai de prise en compte après l'alerte** court plutôt à partir de **Quelqu'un est alerté pour la première fois** : la première fois qu'une politique d'astreinte ou un appel direct a alerté quelqu'un au sujet de l'incident. Elle se termine quand l'incident est pris en compte, selon la même règle que le délai de prise en compte.
 
 OneUptime enregistre ce moment sur l'incident, et sur l'alerte, sous `First Paged At`, une seule fois, et ne le déplace jamais. Seule compte une alerte effectivement partie : dans la **Chronologie d'exécution** d'une politique d'astreinte ou d'un appel direct, une personne dont l'alerte a été envoyée, prise en compte ou transmise. Une étape marquée **Ignoré** ou terminée en **Erreur** ne compte pas, pas plus qu'une politique qui a démarré sans alerter personne, comme une politique dont le planning n'avait personne d'astreinte. Les incidents pour lesquels quelqu'un a été alerté avant que `First Paged At` existe reçoivent le leur de leurs exécutions d'astreinte.
 

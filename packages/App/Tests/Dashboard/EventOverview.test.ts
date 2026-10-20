@@ -621,6 +621,28 @@ describe("the time to acknowledge after paging", () => {
     ).toEqual([]);
   });
 
+  test("stays one short line: at most the two largest units, never rounded up", () => {
+    // Paged at +0, acknowledged a day, two hours and 13 minutes later.
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(0),
+          acknowledgedAt: minutesAfterStart(24 * 60 + 2 * 60 + 13),
+        },
+        ENGLISH,
+      ),
+    ).toBe("1 day, 2 hours after paging");
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(0),
+          acknowledgedAt: minutesAfterStart(2 * 60 + 59),
+        },
+        ENGLISH,
+      ),
+    ).toBe("2 hours, 59 minutes after paging");
+  });
+
   test("reads in the reader's language when the Dashboard words the sentence", () => {
     expect(
       getAcknowledgedAfterPagingText(

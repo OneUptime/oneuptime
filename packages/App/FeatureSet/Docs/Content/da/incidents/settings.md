@@ -347,11 +347,11 @@ Formularen åbner på **Hvad vil du måle?**. Vælg en af disse, og dens navn, b
 | Hvor                     | Måling                                | Starter, når                              | Slutter, når                     |
 | ------------------------ | ------------------------------------- | ----------------------------------------- | -------------------------------- |
 | Hændelser                | **Tid til bekræftelse**               | Hændelsen bliver erklæret                 | Hændelsen bliver bekræftet       |
-| Hændelser                | **Tid til bekræftelse efter tilkald** | Det første tilkald sendes                 | Hændelsen bliver bekræftet       |
+| Hændelser                | **Tid til bekræftelse efter tilkald** | Nogen bliver tilkaldt første gang                 | Hændelsen bliver bekræftet       |
 | Hændelser                | **Tid til løsning**                   | Hændelsen bliver erklæret                 | Hændelsen bliver løst            |
 | Hændelser                | **Tid til postmortem**                | Hændelsen bliver løst                     | Postmortem bliver offentliggjort |
 | Advarsler                | **Tid til bekræftelse**               | Advarslen bliver oprettet                 | Advarslen bliver bekræftet       |
-| Advarsler                | **Tid til bekræftelse efter tilkald** | Det første tilkald sendes                 | Advarslen bliver bekræftet       |
+| Advarsler                | **Tid til bekræftelse efter tilkald** | Nogen bliver tilkaldt første gang                 | Advarslen bliver bekræftet       |
 | Advarsler                | **Tid til løsning**                   | Advarslen bliver oprettet                 | Advarslen bliver løst            |
 | Planlagt vedligeholdelse | **Startforsinkelse**                  | Vedligeholdelsen skal efter planen starte | Vedligeholdelsen starter         |
 | Planlagt vedligeholdelse | **Overskridelse**                     | Vedligeholdelsen skal efter planen slutte | Vedligeholdelsen slutter         |
@@ -366,7 +366,7 @@ Det andet trin, **Start og slut**, har **Starter, når** og **Slutter, når**. H
 | Øjeblik                                           | Hvornår det sker                                                             | Gemt i API'et som                                     |
 | ------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Hændelsen bliver erklæret**                     | Hvornår hændelsen startede i OneUptime: hvornår den blev oprettet, medmindre nogen satte et tidligere tidspunkt. | `Declared At` (`Timeline Start` er det samme øjeblik) |
-| **Det første tilkald sendes**                     | Når en vagtpolitik eller et direkte tilkald første gang giver nogen besked om hændelsen — se nedenfor. | `First Paged At`                                      |
+| **Nogen bliver tilkaldt første gang**                     | Når en vagtpolitik eller et direkte tilkald første gang giver nogen besked om hændelsen — se nedenfor. | `First Paged At`                                      |
 | **Hændelsen bliver bekræftet**                    | Når den når din bekræftede tilstand, eller en tilstand efter den (en løsning direkte fra starten tæller også). | `State Role Entered`, rolle `Acknowledged`  |
 | **Hændelsen bliver løst**                         | Når den når din løste tilstand.                                              | `State Role Entered`, rolle `Resolved`                |
 | **Postmortem bliver offentliggjort**              | Når hændelsens postmortem offentliggøres.                                    | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ Det er netop pointen. `Declared At` registrerer, hvornår OneUptime fandt ud af 
 
 ### Tid til bekræftelse efter tilkald
 
-**Tid til bekræftelse** tæller fra, at hændelsen erklæres, så en hændelse, hvor ingen bliver tilkaldt før om morgenen, viser timers ventetid, som ingen vagthavende så. **Tid til bekræftelse efter tilkald** tæller i stedet fra **Det første tilkald sendes**: første gang en vagtpolitik eller et direkte tilkald gav nogen besked om hændelsen. Den slutter, når hændelsen bliver bekræftet, efter samme regel som tid til bekræftelse.
+**Tid til bekræftelse** tæller fra, at hændelsen erklæres, så en hændelse, hvor ingen bliver tilkaldt før om morgenen, viser timers ventetid, som ingen vagthavende så. **Tid til bekræftelse efter tilkald** tæller i stedet fra **Nogen bliver tilkaldt første gang**: første gang en vagtpolitik eller et direkte tilkald gav nogen besked om hændelsen. Den slutter, når hændelsen bliver bekræftet, efter samme regel som tid til bekræftelse.
 
 OneUptime registrerer det øjeblik på hændelsen, og på advarslen, som `First Paged At`, én gang, og flytter det aldrig. Kun et tilkald, der faktisk blev sendt, tæller: på **Tidslinje for udførelsen** for en vagtpolitik eller et direkte tilkald, en person, hvis tilkald blev sendt, bekræftet eller sendt videre. Et trin, der blev **Sprunget over** eller endte med **Fejl**, tæller ikke, og det gør en politik, der startede, men ikke tilkaldte nogen, heller ikke, for eksempel en, hvor ingen havde vagt i vagtplanen. Hændelser, hvor nogen blev tilkaldt, før `First Paged At` fandtes, får tidspunktet fra deres vagtudførelser.
 

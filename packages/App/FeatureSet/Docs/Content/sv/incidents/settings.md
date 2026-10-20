@@ -347,11 +347,11 @@ Formuläret öppnas på **Vad vill du mäta?**. Välj en av de här, så fylls d
 | Var                       | Mätning                                   | Startar när                                       | Slutar när                             |
 | ------------------------- | ----------------------------------------- | ------------------------------------------------- | -------------------------------------- |
 | Incidenter                | **Tid till bekräftelse**                  | Incidenten deklareras                             | Incidenten bekräftas                   |
-| Incidenter                | **Tid till bekräftelse efter utlarmning** | Den första utlarmningen skickas                   | Incidenten bekräftas                   |
+| Incidenter                | **Tid till bekräftelse efter utlarmning** | Någon larmas för första gången                   | Incidenten bekräftas                   |
 | Incidenter                | **Tid till lösning**                      | Incidenten deklareras                             | Incidenten löses                       |
 | Incidenter                | **Tid till efteranalys**                  | Incidenten löses                                  | Efteranalysen publiceras               |
 | Larm                      | **Tid till bekräftelse**                  | Larmet skapas                                     | Larmet bekräftas                       |
-| Larm                      | **Tid till bekräftelse efter utlarmning** | Den första utlarmningen skickas                   | Larmet bekräftas                       |
+| Larm                      | **Tid till bekräftelse efter utlarmning** | Någon larmas för första gången                   | Larmet bekräftas                       |
 | Larm                      | **Tid till lösning**                      | Larmet skapas                                     | Larmet löses                           |
 | Schemalagt underhåll      | **Startfördröjning**                      | Underhållet ska enligt planen starta              | Underhållet startar                    |
 | Schemalagt underhåll      | **Överdrag**                              | Underhållet ska enligt planen sluta               | Underhållet slutar                     |
@@ -366,7 +366,7 @@ Det andra steget, **Start och slut**, har **Startar när** och **Slutar när**. 
 | Ögonblick                                         | När det inträffar                                                            | Lagrat i API:t som                                    |
 | ------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Incidenten deklareras**                         | När incidenten började i OneUptime: när den skapades, om inte någon satte en tidigare tidpunkt. | `Declared At` (`Timeline Start` är samma ögonblick) |
-| **Den första utlarmningen skickas**               | När en jourpolicy eller en direkt utlarmning för första gången aviserar någon om incidenten — se nedan. | `First Paged At`                                      |
+| **Någon larmas för första gången**               | När en jourpolicy eller en direkt utlarmning för första gången aviserar någon om incidenten — se nedan. | `First Paged At`                                      |
 | **Incidenten bekräftas**                          | När den når ditt bekräftade tillstånd, eller något tillstånd efter det (en lösning direkt från början räknas också). | `State Role Entered`, roll `Acknowledged` |
 | **Incidenten löses**                              | När den når ditt lösta tillstånd.                                            | `State Role Entered`, roll `Resolved`                 |
 | **Efteranalysen publiceras**                      | När incidentens efteranalys publiceras.                                      | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ Det är just poängen. `Declared At` registrerar när OneUptime fick veta det, v
 
 ### Tid till bekräftelse efter utlarmning
 
-**Tid till bekräftelse** räknas från att incidenten deklareras, så en incident som ingen larmas om förrän på morgonen visar timmar av väntan som ingen som hade jour såg. **Tid till bekräftelse efter utlarmning** räknas i stället från **Den första utlarmningen skickas**: första gången en jourpolicy eller en direkt utlarmning aviserade någon om incidenten. Den slutar när incidenten bekräftas, enligt samma regel som tid till bekräftelse.
+**Tid till bekräftelse** räknas från att incidenten deklareras, så en incident som ingen larmas om förrän på morgonen visar timmar av väntan som ingen som hade jour såg. **Tid till bekräftelse efter utlarmning** räknas i stället från **Någon larmas för första gången**: första gången en jourpolicy eller en direkt utlarmning aviserade någon om incidenten. Den slutar när incidenten bekräftas, enligt samma regel som tid till bekräftelse.
 
 OneUptime registrerar det ögonblicket på incidenten, och på larmet, som `First Paged At`, en gång, och flyttar det aldrig. Bara en utlarmning som verkligen gick ut räknas: i **Tidslinje för körningen** för en jourpolicy eller en direkt utlarmning, en person vars utlarmning skickades, bekräftades eller skickades vidare. Ett steg med statusen **Hoppade över** eller som slutade med **Fel** räknas inte, och inte heller en policy som startade men inte larmade någon, till exempel en med ett schema där ingen hade jour. Incidenter som larmades innan `First Paged At` fanns får sitt värde från körningarna av sina jourpolicyer.
 

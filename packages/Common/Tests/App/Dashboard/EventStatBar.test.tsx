@@ -223,8 +223,12 @@ describe("EventStatTile segment variant", () => {
       "4 minutes after paging",
       "Oct 20, 2026 09:04",
     ]);
-    expect(note).toHaveClass("text-sm", "font-medium", "text-gray-700");
-    expect(note).toHaveClass("break-words");
+    // Quieter than the value (text-lg, semibold, gray-900), louder than the date.
+    expect(note).toHaveClass("text-sm", "text-gray-600");
+    expect(note).not.toHaveClass("font-medium");
+    expect(note).not.toHaveClass("font-semibold");
+    // Wraps in a narrow cell, into even lines rather than an orphaned word.
+    expect(note).toHaveClass("break-words", "text-balance");
     expect(note).not.toHaveClass("truncate");
   });
 
@@ -254,7 +258,7 @@ describe("EventStatTile card variant note", () => {
     );
 
     expect(screen.getByText("3 minutes after paging").className).toBe(
-      "mt-0.5 truncate text-sm font-medium text-gray-700",
+      "mt-0.5 truncate text-sm text-gray-600",
     );
   });
 });

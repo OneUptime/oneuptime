@@ -134,7 +134,7 @@ Eigenaren krijgen elke herinnering als **Alert reminder**, dat standaard per e-m
 
 **Waarschuwingen → Instellingen → Metingen** meet hoe lang dingen duren bij elke waarschuwing. Kies **Tijd tot bevestiging** of **Tijd tot oplossing**, of twee eigen momenten, zoals wanneer **De waarschuwing wordt aangemaakt** en wanneer ze een status binnengaat die je kiest. Elke meting wordt op de pagina van de waarschuwing getoond en in grafieken weergegeven als `oneuptime.alert.measurement.<key>`. Zie [Metingen](/docs/incidents/settings#metingen), wat voor waarschuwingen op dezelfde manier werkt.
 
-**Tijd tot bevestiging na de oproep** telt vanaf **De eerste oproep gaat uit**, wanneer een bereikbaarheidsbeleid of een directe oproep voor het eerst iemand over de waarschuwing op de hoogte bracht, in plaats van vanaf het moment dat ze werd aangemaakt: een waarschuwing die 's nachts ontstaat en waarvoor pas 's ochtends wordt opgeroepen, krijgt de nacht niet aangerekend. Een waarschuwing waarvoor niemand werd opgeroepen, heeft geen waarde. Zie [Tijd tot bevestiging na de oproep](/docs/incidents/settings#tijd-tot-bevestiging-na-de-oproep).
+**Tijd tot bevestiging na de oproep** telt vanaf **Iemand wordt voor het eerst opgeroepen**, wanneer een bereikbaarheidsbeleid of een directe oproep voor het eerst iemand over de waarschuwing op de hoogte bracht, in plaats van vanaf het moment dat ze werd aangemaakt: een waarschuwing die 's nachts ontstaat en waarvoor pas 's ochtends wordt opgeroepen, krijgt de nacht niet aangerekend. Een waarschuwing waarvoor niemand werd opgeroepen, heeft geen waarde. Zie [Tijd tot bevestiging na de oproep](/docs/incidents/settings#tijd-tot-bevestiging-na-de-oproep).
 
 ### Lidmaatschap van episodes
 

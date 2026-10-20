@@ -31923,11 +31923,10 @@
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio 正在從 {{phoneNumber}} 撥打電話，您的電話應在一分鐘內響起。",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio 正在撥打測試電話，您的電話應在一分鐘內響起。",
   "First paged": "首次呼叫",
-  "From the first page about an alert until someone acknowledges it.": "從首次就警示發出呼叫到有人確認為止。",
-  "From the first page about an incident until someone acknowledges it.": "從首次就事件發出呼叫到有人確認為止。",
-  "The first page goes out": "首次呼叫發出時",
   "Time to acknowledge after paging": "呼叫後確認用時",
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "待命策略或直接呼叫首次通知某人的時間。在有人被呼叫之前，此測量沒有值。",
   "First Paged At": "首次呼叫時間",
-  "{{duration}} after paging": "呼叫後 {{duration}}"
+  "{{duration}} after paging": "呼叫後 {{duration}}",
+  "Someone is first paged": "首次有人被呼叫時",
+  "From when someone is first paged until someone acknowledges it.": "從首次有人被呼叫到有人確認為止。"
 }

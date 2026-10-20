@@ -347,11 +347,11 @@ Il modulo si apre su **Che cosa vuoi misurare?**. Sceglietene una di queste e il
 | Dove                      | Misurazione                                  | Inizia quando                                     | Finisce quando                         |
 | ------------------------- | -------------------------------------------- | ------------------------------------------------- | -------------------------------------- |
 | Incidenti                 | **Tempo di riconoscimento**                  | L'incidente viene dichiarato                      | L'incidente viene riconosciuto         |
-| Incidenti                 | **Tempo di riconoscimento dopo la chiamata** | Parte la prima chiamata                           | L'incidente viene riconosciuto         |
+| Incidenti                 | **Tempo di riconoscimento dopo la chiamata** | Qualcuno viene chiamato per la prima volta                           | L'incidente viene riconosciuto         |
 | Incidenti                 | **Tempo di risoluzione**                     | L'incidente viene dichiarato                      | L'incidente viene risolto              |
 | Incidenti                 | **Tempo fino al post-mortem**                | L'incidente viene risolto                         | Il post-mortem viene pubblicato        |
 | Avvisi                    | **Tempo di riconoscimento**                  | L'avviso viene creato                             | L'avviso viene riconosciuto            |
-| Avvisi                    | **Tempo di riconoscimento dopo la chiamata** | Parte la prima chiamata                           | L'avviso viene riconosciuto            |
+| Avvisi                    | **Tempo di riconoscimento dopo la chiamata** | Qualcuno viene chiamato per la prima volta                           | L'avviso viene riconosciuto            |
 | Avvisi                    | **Tempo di risoluzione**                     | L'avviso viene creato                             | L'avviso viene risolto                 |
 | Manutenzione programmata  | **Ritardo di inizio**                        | La manutenzione deve iniziare da programma        | La manutenzione inizia                 |
 | Manutenzione programmata  | **Sforamento**                               | La manutenzione deve finire da programma          | La manutenzione finisce                |
@@ -366,7 +366,7 @@ Il secondo passaggio, **Inizio e fine**, ha **Inizia quando** e **Finisce quando
 | Momento                                            | Quando avviene                                                               | Salvato nell'API come                                 |
 | -------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **L'incidente viene dichiarato**                   | Quando l'incidente è iniziato in OneUptime: quando è stato creato, a meno che qualcuno non abbia impostato un'ora precedente. | `Declared At` (`Timeline Start` è lo stesso istante) |
-| **Parte la prima chiamata**                        | Quando una policy di reperibilità o una chiamata diretta raggiunge per la prima volta qualcuno per l'incidente — vedete più sotto. | `First Paged At`                                      |
+| **Qualcuno viene chiamato per la prima volta**                        | Quando una policy di reperibilità o una chiamata diretta raggiunge per la prima volta qualcuno per l'incidente — vedete più sotto. | `First Paged At`                                      |
 | **L'incidente viene riconosciuto**                 | Quando raggiunge il vostro stato riconosciuto, o uno stato successivo (conta anche una risoluzione diretta dall'inizio). | `State Role Entered`, ruolo `Acknowledged` |
 | **L'incidente viene risolto**                      | Quando raggiunge il vostro stato risolto.                                    | `State Role Entered`, ruolo `Resolved`                |
 | **Il post-mortem viene pubblicato**                | Quando il post-mortem dell'incidente viene pubblicato.                       | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ Avvisi ed eventi di manutenzione programmata hanno la stessa scheda sulle loro p
 
 ### Tempo di riconoscimento dopo la chiamata
 
-La misurazione **Tempo di riconoscimento** conta da quando l'incidente viene dichiarato, quindi un incidente per cui nessuno viene chiamato fino al mattino risulta come ore di attesa che nessun reperibile ha visto. La misurazione **Tempo di riconoscimento dopo la chiamata** conta invece da **Parte la prima chiamata**: la prima volta che una policy di reperibilità o una chiamata diretta ha raggiunto qualcuno per l'incidente. Finisce quando l'incidente viene riconosciuto, con la stessa regola del tempo di riconoscimento.
+La misurazione **Tempo di riconoscimento** conta da quando l'incidente viene dichiarato, quindi un incidente per cui nessuno viene chiamato fino al mattino risulta come ore di attesa che nessun reperibile ha visto. La misurazione **Tempo di riconoscimento dopo la chiamata** conta invece da **Qualcuno viene chiamato per la prima volta**: la prima volta che una policy di reperibilità o una chiamata diretta ha raggiunto qualcuno per l'incidente. Finisce quando l'incidente viene riconosciuto, con la stessa regola del tempo di riconoscimento.
 
 OneUptime registra quel momento sull'incidente, e sull'avviso, come `First Paged At`, una sola volta, e non lo sposta mai. Conta solo una chiamata partita davvero: nella **Cronologia di esecuzione** di una policy di reperibilità o di una chiamata diretta, una persona la cui chiamata è stata inviata, riconosciuta o passata. Un passaggio **Saltato** o finito in **Errore** non conta, e nemmeno una policy partita senza chiamare nessuno, come una la cui pianificazione non aveva nessun reperibile. Gli incidenti per cui qualcuno è stato chiamato prima che esistesse `First Paged At` ricevono il loro dalle loro esecuzioni di reperibilità.
 

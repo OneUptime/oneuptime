@@ -347,11 +347,11 @@ El formulario se abre en **¿Qué quieres medir?**. Elige una de estas y se rell
 | Dónde                      | Medición                                         | Empieza cuando                                     | Termina cuando                         |
 | -------------------------- | ------------------------------------------------ | -------------------------------------------------- | -------------------------------------- |
 | Incidentes                 | **Tiempo hasta el reconocimiento**               | Se declara el incidente                            | Se reconoce el incidente               |
-| Incidentes                 | **Tiempo hasta el reconocimiento tras el aviso** | Se envía el primer aviso                           | Se reconoce el incidente               |
+| Incidentes                 | **Tiempo hasta el reconocimiento tras el aviso** | Se avisa a alguien por primera vez                           | Se reconoce el incidente               |
 | Incidentes                 | **Tiempo hasta la resolución**                   | Se declara el incidente                            | Se resuelve el incidente               |
 | Incidentes                 | **Tiempo hasta el post mortem**                  | Se resuelve el incidente                           | Se publica el post mortem              |
 | Alertas                    | **Tiempo hasta el reconocimiento**               | Se crea la alerta                                  | Se reconoce la alerta                  |
-| Alertas                    | **Tiempo hasta el reconocimiento tras el aviso** | Se envía el primer aviso                           | Se reconoce la alerta                  |
+| Alertas                    | **Tiempo hasta el reconocimiento tras el aviso** | Se avisa a alguien por primera vez                           | Se reconoce la alerta                  |
 | Alertas                    | **Tiempo hasta la resolución**                   | Se crea la alerta                                  | Se resuelve la alerta                  |
 | Mantenimiento programado   | **Retraso del inicio**                           | El mantenimiento debe empezar según lo programado  | Empieza el mantenimiento               |
 | Mantenimiento programado   | **Exceso de tiempo**                             | El mantenimiento debe terminar según lo programado | Termina el mantenimiento               |
@@ -366,7 +366,7 @@ El segundo paso, **Inicio y fin**, tiene **Empieza cuando** y **Termina cuando**
 | Momento                                         | Cuándo ocurre                                                                | Guardado en la API como                               |
 | ----------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Se declara el incidente**                     | Cuándo empezó el incidente en OneUptime: cuando se creó, salvo que alguien fijara una hora anterior. | `Declared At` (`Timeline Start` es el mismo instante) |
-| **Se envía el primer aviso**                    | Cuándo una política de guardia o un aviso directo notifica por primera vez a alguien sobre el incidente; consulta más abajo. | `First Paged At`                                      |
+| **Se avisa a alguien por primera vez**                    | Cuándo una política de guardia o un aviso directo notifica por primera vez a alguien sobre el incidente; consulta más abajo. | `First Paged At`                                      |
 | **Se reconoce el incidente**                    | Cuándo llega a tu estado reconocido, o a cualquier estado posterior (también cuenta una resolución directa desde el inicio). | `State Role Entered`, rol `Acknowledged` |
 | **Se resuelve el incidente**                    | Cuándo llega a tu estado resuelto.                                           | `State Role Entered`, rol `Resolved`                  |
 | **Se publica el post mortem**                   | Cuándo se publica el post mortem del incidente.                              | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ Esa es la idea. `Declared At` registra cuándo se enteró OneUptime, que para un
 
 ### Tiempo hasta el reconocimiento tras el aviso
 
-La medición **Tiempo hasta el reconocimiento** cuenta desde que se declara el incidente, así que un incidente del que no se avisa a nadie hasta la mañana aparece como horas de espera que nadie de guardia vio. La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta en cambio desde **Se envía el primer aviso**: la primera vez que una política de guardia o un aviso directo notificó a alguien sobre el incidente. Termina cuando se reconoce el incidente, con la misma regla que el tiempo hasta el reconocimiento.
+La medición **Tiempo hasta el reconocimiento** cuenta desde que se declara el incidente, así que un incidente del que no se avisa a nadie hasta la mañana aparece como horas de espera que nadie de guardia vio. La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta en cambio desde **Se avisa a alguien por primera vez**: la primera vez que una política de guardia o un aviso directo notificó a alguien sobre el incidente. Termina cuando se reconoce el incidente, con la misma regla que el tiempo hasta el reconocimiento.
 
 OneUptime registra ese momento en el incidente, y en la alerta, como `First Paged At`, una sola vez, y nunca lo mueve. Solo cuenta un aviso que de verdad salió: en la **Cronología de ejecución** de una política de guardia o de un aviso directo, una persona cuyo aviso se envió, se reconoció o se pasó. Un paso que quedó en **Omitido** o terminó en **Error** no cuenta, como tampoco una política que empezó pero no avisó a nadie, por ejemplo una cuya programación no tenía a nadie de guardia. Los incidentes por los que se avisó a alguien antes de que existiera `First Paged At` obtienen el suyo de sus ejecuciones de guardia.
 

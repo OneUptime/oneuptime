@@ -86,7 +86,7 @@ const STATE_ROLE_ENTERED: string =
  * When someone is first paged about an incident or an alert
  * (FirstPagedAt): the same words in both lists.
  */
-const FIRST_PAGE_MOMENT_LABEL: string = "The first page goes out";
+const FIRST_PAGE_MOMENT_LABEL: string = "Someone is first paged";
 const FIRST_PAGE_MOMENT_SHORT_LABEL: string = "First paged";
 const FIRST_PAGE_MOMENT_DESCRIPTION: string =
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.";
@@ -579,6 +579,10 @@ export const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID: string =
 const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_NAME: string =
   "Time to acknowledge after paging";
 
+// The same words for incidents and alerts: who was paged about what is plain.
+const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_DESCRIPTION: string =
+  "From when someone is first paged until someone acknowledges it.";
+
 const CUSTOM_PRESET: MeasurementPreset = {
   id: CUSTOM_MEASUREMENT_PRESET_ID,
   name: "Something else",
@@ -605,8 +609,7 @@ const PRESETS_BY_DOMAIN: Record<MeasurementDomain, Array<MeasurementPreset>> = {
        */
       id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID,
       name: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_NAME,
-      description:
-        "From the first page about an incident until someone acknowledges it.",
+      description: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_DESCRIPTION,
       icon: IconProp.BellRinging,
       startMoment: IncidentMeasurementAnchorType.FirstPagedAt,
       endMoment: roleMomentValue(IncidentStateRole.Acknowledged),
@@ -644,8 +647,7 @@ const PRESETS_BY_DOMAIN: Record<MeasurementDomain, Array<MeasurementPreset>> = {
       // As for incidents: from the page, not from the alert's creation.
       id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID,
       name: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_NAME,
-      description:
-        "From the first page about an alert until someone acknowledges it.",
+      description: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_DESCRIPTION,
       icon: IconProp.BellRinging,
       startMoment: AlertMeasurementAnchorType.FirstPagedAt,
       endMoment: roleMomentValue(AlertStateRole.Acknowledged),

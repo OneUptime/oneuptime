@@ -31923,11 +31923,10 @@
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio가 {{phoneNumber}}에서 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio가 테스트 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
   "First paged": "첫 호출",
-  "From the first page about an alert until someone acknowledges it.": "알림에 대한 첫 호출부터 누군가 인지할 때까지.",
-  "From the first page about an incident until someone acknowledges it.": "인시던트에 대한 첫 호출부터 누군가 인지할 때까지.",
-  "The first page goes out": "첫 호출이 전송될 때",
   "Time to acknowledge after paging": "호출 후 인지까지 걸린 시간",
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "온콜 정책이나 직접 호출이 처음으로 누군가에게 알린 시점입니다. 누군가 호출되기 전까지 이 측정에는 값이 없습니다.",
   "First Paged At": "첫 호출 시간",
-  "{{duration}} after paging": "호출 후 {{duration}}"
+  "{{duration}} after paging": "호출 후 {{duration}}",
+  "Someone is first paged": "누군가 처음 호출될 때",
+  "From when someone is first paged until someone acknowledges it.": "누군가 처음 호출된 때부터 누군가 인지할 때까지."
 }

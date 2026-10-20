@@ -31923,11 +31923,10 @@
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio belt vanaf {{phoneNumber}}. Uw telefoon zou binnen een minuut moeten overgaan.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio voert de testoproep uit. Uw telefoon zou binnen een minuut moeten overgaan.",
   "First paged": "Eerste oproep",
-  "From the first page about an alert until someone acknowledges it.": "Vanaf de eerste oproep over een waarschuwing tot iemand die bevestigt.",
-  "From the first page about an incident until someone acknowledges it.": "Vanaf de eerste oproep over een incident tot iemand het bevestigt.",
-  "The first page goes out": "De eerste oproep gaat uit",
   "Time to acknowledge after paging": "Tijd tot bevestiging na de oproep",
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Wanneer een bereikbaarheidsbeleid of een directe oproep voor het eerst iemand waarschuwt. Zolang niemand is opgeroepen, heeft de meting geen waarde.",
   "First Paged At": "Eerste oproep op",
-  "{{duration}} after paging": "{{duration}} na de oproep"
+  "{{duration}} after paging": "{{duration}} na de oproep",
+  "Someone is first paged": "Iemand wordt voor het eerst opgeroepen",
+  "From when someone is first paged until someone acknowledges it.": "Vanaf het moment dat iemand voor het eerst wordt opgeroepen tot de bevestiging."
 }

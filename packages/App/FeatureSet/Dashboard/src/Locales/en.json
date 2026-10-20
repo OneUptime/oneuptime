@@ -31923,11 +31923,10 @@
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.",
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio is placing the test call. Your phone should ring within a minute.",
   "First paged": "First paged",
-  "From the first page about an alert until someone acknowledges it.": "From the first page about an alert until someone acknowledges it.",
-  "From the first page about an incident until someone acknowledges it.": "From the first page about an incident until someone acknowledges it.",
-  "The first page goes out": "The first page goes out",
   "Time to acknowledge after paging": "Time to acknowledge after paging",
   "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.",
   "First Paged At": "First Paged At",
-  "{{duration}} after paging": "{{duration}} after paging"
+  "{{duration}} after paging": "{{duration}} after paging",
+  "Someone is first paged": "Someone is first paged",
+  "From when someone is first paged until someone acknowledges it.": "From when someone is first paged until someone acknowledges it."
 }

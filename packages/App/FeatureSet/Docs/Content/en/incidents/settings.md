@@ -347,11 +347,11 @@ The form opens on **What do you want to measure?**. Pick one of these and its na
 | Where                 | Measurement                          | Starts when                           | Ends when                    |
 | --------------------- | ------------------------------------ | ------------------------------------- | ---------------------------- |
 | Incidents             | **Time to acknowledge**              | The incident is declared              | The incident is acknowledged |
-| Incidents             | **Time to acknowledge after paging** | The first page goes out               | The incident is acknowledged |
+| Incidents             | **Time to acknowledge after paging** | Someone is first paged                | The incident is acknowledged |
 | Incidents             | **Time to resolve**                  | The incident is declared              | The incident is resolved     |
 | Incidents             | **Time to postmortem**               | The incident is resolved              | The postmortem is published  |
 | Alerts                | **Time to acknowledge**              | The alert is created                  | The alert is acknowledged    |
-| Alerts                | **Time to acknowledge after paging** | The first page goes out               | The alert is acknowledged    |
+| Alerts                | **Time to acknowledge after paging** | Someone is first paged                | The alert is acknowledged    |
 | Alerts                | **Time to resolve**                  | The alert is created                  | The alert is resolved        |
 | Scheduled maintenance | **Start delay**                      | The maintenance is scheduled to start | The maintenance starts       |
 | Scheduled maintenance | **Overrun**                          | The maintenance is scheduled to end   | The maintenance ends         |
@@ -366,7 +366,7 @@ The second step, **Start and End**, has **Starts when** and **Ends when**. Each 
 | Moment                                  | When it happens                                                              | Stored in the API as                                  |
 | --------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **The incident is declared**            | When the incident started in OneUptime: when it was created, unless someone set an earlier time. | `Declared At` (`Timeline Start` is the same instant)  |
-| **The first page goes out**             | When an on-call policy or a direct page first notifies someone about the incident — see below. | `First Paged At`                                      |
+| **Someone is first paged**              | When an on-call policy or a direct page first notifies someone about the incident — see below. | `First Paged At`                                      |
 | **The incident is acknowledged**        | When it reaches your acknowledged state, or any state after it (a resolve straight from the start counts too). | `State Role Entered`, role `Acknowledged`             |
 | **The incident is resolved**            | When it reaches your resolved state.                                         | `State Role Entered`, role `Resolved`                 |
 | **The postmortem is published**         | When the incident's postmortem is published.                                 | `Postmortem Posted At`                                |
@@ -429,7 +429,7 @@ That is the point. `Declared At` records when OneUptime found out, which for a m
 
 ### Time to acknowledge after paging
 
-**Time to acknowledge** counts from when the incident is declared, so an incident nobody is paged about until the morning reads as hours of waiting that no one on call saw. **Time to acknowledge after paging** counts from **The first page goes out** instead: the first time an on-call policy or a direct page notified someone about the incident. It ends when the incident is acknowledged, by the same rule as time to acknowledge.
+**Time to acknowledge** counts from when the incident is declared, so an incident nobody is paged about until the morning reads as hours of waiting that no one on call saw. **Time to acknowledge after paging** counts instead from when **Someone is first paged**: the first time an on-call policy or a direct page notified someone about the incident. It ends when the incident is acknowledged, by the same rule as time to acknowledge.
 
 OneUptime records that moment on the incident, and on the alert, as `First Paged At`, once, and never moves it. Only a page that went out counts: on the **Execution Timeline** of an on-call policy or a direct page, a person whose page was sent, acknowledged or passed on. A step that was **Skipped** or ended in **Error** does not count, and neither does a policy that started but paged nobody, such as one whose schedule had nobody on call. Incidents paged before `First Paged At` existed get theirs from their on-call runs.
 

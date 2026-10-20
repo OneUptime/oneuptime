@@ -134,7 +134,7 @@ Los propietarios reciben cada recordatorio como **Recordatorio de alerta**, que 
 
 **Alertas → Ajustes → Mediciones** mide cuánto tardan las cosas en cada alerta. Elige **Tiempo hasta el reconocimiento** o **Tiempo hasta la resolución**, o dos momentos propios, como cuando **Se crea la alerta** y cuando entra en un estado que elijas. Cada medición se muestra en la página de la alerta y se representa en gráficos como `oneuptime.alert.measurement.<key>`. Consulta [Mediciones](/docs/incidents/settings#mediciones), que funciona igual para las alertas.
 
-La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta desde **Se envía el primer aviso**, cuando una política de guardia o un aviso directo notificó por primera vez a alguien sobre la alerta, en lugar de desde que se creó: a una alerta que salta de noche y de la que se avisa por la mañana no se le cuenta la noche. Una alerta por la que no se avisó a nadie no tiene valor. Consulta [Tiempo hasta el reconocimiento tras el aviso](/docs/incidents/settings#tiempo-hasta-el-reconocimiento-tras-el-aviso).
+La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta desde **Se avisa a alguien por primera vez**, cuando una política de guardia o un aviso directo notificó por primera vez a alguien sobre la alerta, en lugar de desde que se creó: a una alerta que salta de noche y de la que se avisa por la mañana no se le cuenta la noche. Una alerta por la que no se avisó a nadie no tiene valor. Consulta [Tiempo hasta el reconocimiento tras el aviso](/docs/incidents/settings#tiempo-hasta-el-reconocimiento-tras-el-aviso).
 
 ### Pertenencia a episodios
 
