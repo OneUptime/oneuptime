@@ -134,10 +134,10 @@ URL 中含有 Runbook 的密钥：任何拿到它的人都能启动该 Runbook�
 
 | 步骤类型 | 如何读取输入 |
 | --- | --- |
-| Bash | 环境变量：每个顶层值一个 `ONEUPTIME_INPUT_<NAME>`，`ONEUPTIME_INPUTS` 以 JSON 形式包含整个对象，`ONEUPTIME_TRIGGER` 表示启动运行的方式，例如 `Webhook` 或 `Schedule`。 |
+| Bash 和 kubectl | 环境变量：每个顶层值一个 `ONEUPTIME_INPUT_<NAME>`，`ONEUPTIME_INPUTS` 以 JSON 形式包含整个对象，`ONEUPTIME_TRIGGER` 表示启动运行的方式，例如 `Webhook` 或 `Schedule`。 |
 | JavaScript | `args.inputs`（按发送时的样子提供的对象）和 `args.trigger`。 |
 | AI | 当 **Include trigger context** 打开时，在其提示中作为来自 OneUptime 外部的数据标出。 |
-| HTTP request、SSH 和 Kubernetes | 完全不读取。它们的 URL、命令和目标就是 Runbook 中写的内容，调用方发送的任何内容都无法改变它们。 |
+| HTTP request 和 SSH | 完全不读取。它们的 URL、脚本和目标就是 Runbook 中写的内容，调用方发送的任何内容都无法改变它们。 |
 
 变量名是值的名称转为大写，其中字母和数字以外的每个字符都写成 `_`：`host-name` 会变成 `ONEUPTIME_INPUT_HOST_NAME`。文本按原样传递，数字以及 `true` 或 `false` 按书写方式传递，对象和列表以 JSON 传递。一个步骤最多获得 100 个这样的变量，超过 100 个字符的名称不会成为变量；所有值仍都在 `ONEUPTIME_INPUTS` 中。每个名称都以 `ONEUPTIME_` 开头，因此调用方无法设置 `PATH` 或 Runner 读取的任何其他变量。
 

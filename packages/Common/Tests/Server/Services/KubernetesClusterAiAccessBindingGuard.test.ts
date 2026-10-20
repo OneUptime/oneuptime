@@ -1070,7 +1070,7 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
 
     // Never names the credential: the refusal is readable to cluster editors.
     expect(message).toContain('is not assigned to Runner "office-runner"');
-    expect(message).toContain("Runner Credentials");
+    expect(message).toContain("Runbooks → AI Access");
   });
 
   it("refuses switching the Runner while an unassigned credential stays bound", async () => {

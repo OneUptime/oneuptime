@@ -991,8 +991,8 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Refuses to assign credential material (a RunbookCredential or a
-   * RunbookSecret) to a kubernetes-agent Runner. Such a Runner row is minted
+   * Refuses to assign credential material (a RunbookCredential or a secret
+   * RunbookVariable) to a kubernetes-agent Runner. Such a Runner row is minted
    * and re-keyed with the project's telemetry ingestion key — a credential
    * every collector and CI job holds — so whatever is assigned to it is
    * reachable by anyone holding that key. It runs kubectl with its own

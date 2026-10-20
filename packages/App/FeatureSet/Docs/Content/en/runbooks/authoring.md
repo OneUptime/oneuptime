@@ -4,7 +4,7 @@ You write a runbook as an ordered list of steps on its **Steps** page. This page
 
 :::cards
 - [Create a runbook](#create-a-runbook): From an empty runbook to saved steps.
-- [Step types](#step-types): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes and AI.
+- [Step types](#step-types): Manual, JavaScript, HTTP request, Bash, SSH, kubectl and AI.
 - [Failure handling and approvals](#failure-handling-and-approvals): What happens after a step fails, or succeeds.
 - [A worked example](#a-worked-example): A five-step database failover.
 :::
@@ -12,8 +12,8 @@ You write a runbook as an ordered list of steps on its **Steps** page. This page
 ## Before you begin
 
 - **A role that writes runbooks.** Project Owner, Project Admin and Runbook Admin create runbooks and save their steps. With granular permissions, you need **Create Runbook** and **Edit Runbook**. See [Permissions](/docs/runbooks/configuration#permissions).
-- **A Runner, for Bash, SSH and Kubernetes steps.** These steps run on a [Runner](/docs/runbooks/agents) inside your own infrastructure, never on the OneUptime Worker. Install one first. A JavaScript step runs on a [global Runner](/docs/runbooks/agents#global-runners) unless you pick one of yours.
-- **A credential, for SSH and Kubernetes steps, and permission to read it.** See [Runbook Credentials](/docs/runbooks/credentials). A step can name a credential only when you may read runbook credentials: Project Owner, Project Admin, or **Read Runbook Credential**. Runbook Admin does not include it.
+- **A Runner, for Bash, SSH and kubectl steps.** These steps run on a [Runner](/docs/runbooks/agents) inside your own infrastructure, never on the OneUptime Worker. Install one first. A JavaScript step runs on a [global Runner](/docs/runbooks/agents#global-runners) unless you pick one of yours.
+- **A secret variable, for SSH and kubectl steps.** The key, password or kubeconfig a step signs in with is a secret [runbook variable](/docs/runbooks/variables). Project Owner and Project Admin create variables, and Runbook Admin picks them in the steps it writes. A kubectl step can use the Runner's own access instead.
 - **An LLM provider, for AI steps.** See [LLM Providers](/docs/ai/llm-provider).
 
 ## Create a runbook
@@ -29,7 +29,7 @@ Click **Create Runbook**, enter a **Name** and, optionally, a **Description** of
 
 ### Add steps
 
-Under **Start your runbook**, pick the type of the first step; below the last step, **Add another step** offers the same seven types. Each step opens with its **Title**, its **Description** (Markdown, shown to the responder) and the settings of its type. Once the runbook has a step, **Add Step**, at the top of the card, adds a Manual step.
+Under **Start your runbook**, pick the type of the first step; below the last step, **Add another step** offers the same seven types. Each step opens with its **Title** and what its type needs; the rest, such as its **Description** and timeouts, is folded under **More fields**. Once the runbook has a step, **Add Step**, at the top of the card, adds a Manual step.
 
 ### Put the steps in order
 
@@ -42,15 +42,15 @@ Click **Save Steps**. Until you do, the editor says **Unsaved changes**. Once sa
 
 ## Anatomy of a step
 
-Every step has these fields:
+Every step has these fields. An automated step shows its **Title** and its type's settings, and folds the rest under **More fields**, which says what of it is set:
 
 | Field | Purpose |
 | --- | --- |
 | **Title** | A short label, shown in the step list and on every run. |
-| **Description** | Optional context for the responder, in Markdown. On a Manual step it is the instruction the responder reads. |
+| **Description** | Optional context for the responder, in Markdown, under **More fields**. On a Manual step it is the instruction the responder reads, shown below the title. |
 | **Continue on failure** | Automated steps only. If on, a failing step does not stop the run: the next step still runs. |
 | **Require approval** | Automated steps only. If on, the runbook pauses after this step and waits for a user to approve before running the next step. The switch reads **Require approval before running the next step**. |
-| Type-specific settings | The script, URL, Runner, credential or prompt. See [Step types](#step-types). |
+| Type-specific settings | The script, URL, Runner, secret variable or prompt. See [Step types](#step-types). |
 
 ## Step types
 
@@ -60,9 +60,11 @@ Every step has these fields:
 | [JavaScript](#javascript) | A Runner | A Runner |
 | [HTTP request](#http-request) | The OneUptime Worker | Nothing |
 | [Bash](#bash) | A Runner | A Runner |
-| [SSH](#ssh) | A Runner | A Runner and an SSH credential |
-| [Kubernetes](#kubernetes) | A Runner | A Runner and a Kubernetes credential |
+| [SSH](#ssh) | A Runner | A Runner and a secret variable to sign in with |
+| [kubectl](#kubectl) | A Runner | A Runner, and a kubeconfig variable or the Runner's own access |
 | [AI](#ai) | The OneUptime Worker | An LLM provider |
+
+In every step below, the timeouts, the **Description**, **Continue on failure** and **Require approval** are under the step's **More fields**, and so are an AI step's provider and context switches.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 If the selected Runner is offline when the run reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails as timed out. Add an agent under **Runbooks → Runners** before relying on a Bash step.
 
 > [!TIP]
-> Keep passwords and tokens out of the script. Store them as runbook secrets and write `{{runbookSecrets.NAME}}` in a Bash or JavaScript script: the Runner receives the script with the value filled in. See [Secrets for scripts](/docs/runbooks/credentials#secrets-for-scripts).
+> Keep passwords and tokens out of the script. Store them as secret [runbook variables](/docs/runbooks/variables) and write `{{global.variables.NAME}}` where the value goes: the Runner receives the script with the value filled in, and the step's output shows `[REDACTED]` in its place.
 
 ### SSH
 
-Run one command on a host the Runner can reach over SSH. Unlike `ssh host cmd` in a Bash step, the access is a managed [credential](/docs/runbooks/credentials) rather than a private key on the Runner's disk: encrypted at rest, assigned to specific Runners, and never readable back through the API.
+Sign in to a machine over SSH and run a bash script there. The Runner opens the connection, so the machine only has to be reachable from the Runner, and the key or password the step signs in with is a secret [runbook variable](/docs/runbooks/variables), never written into the step.
 
 | Field | What it does |
 | --- | --- |
-| **Runner** | The Runner that opens the connection. It must be able to reach the host on the network. |
-| **Credential** | An SSH credential holding the host, port, user and key or password. It must be assigned to the Runner you picked, or the step fails rather than running with the wrong access. |
-| **Command** | Run on the remote host as the credential's user. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
-| **Execution timeout** | Covers connecting, authenticating and running the command together, so a command that hangs cannot hold the step open. Default 30 seconds. |
+| **Runner** | The Runner that opens the connection. It must be able to reach the machine on the network. |
+| **SSH to** | The user and the machine, as you would write them after `ssh`: `deploy@10.0.4.21`. |
+| **Sign in with** | The secret variable that holds the private key or the password; the value says which it is. Only secret variables are offered, and the step says when its Runner may not use the one picked. |
+| **Bash script** | Runs with `bash` on the machine, as the user it signs in as. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
+| **Port** | Under **More fields**. 22 when left empty. |
+| **Key passphrase** | Under **More fields**. The secret variable that holds the passphrase of a key that has one. |
+| **Execution timeout** | Covers connecting, signing in and running the script together, so a script that hangs cannot hold the step open. Default 30 seconds. |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. Default 2 minutes. |
 
-### Kubernetes
+For example, to restart a service and show that it came back:
 
-Restart or scale a workload in a cluster. The actions are a closed set on purpose: a step that could change arbitrary objects would be a cluster-admin shell, and this step type exists to make the common remediations safe enough for auto-remediation.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Run kubectl commands against a cluster. The script runs with bash on the Runner, which ships `kubectl`, with `KUBECONFIG` pointing at the cluster: any kubectl command works, and so does any bash around it.
 
 | Field | What it does |
 | --- | --- |
-| **Runner** | The Runner that calls the cluster's API server. It must be able to reach it. |
-| **Credential** | A Kubernetes credential: the API server URL, a service account token and the cluster CA. Bind that service account to a role that permits only what your runbooks need. |
-| **Action** | **Restart workload** changes the pod template so the controller recreates the pods, as `kubectl rollout restart` does. **Scale workload** sets the replica count. |
-| **Workload kind** | **Deployment**, **StatefulSet** or **DaemonSet**. |
-| **Namespace** and **Workload name** | The workload to act on. |
-| **Replicas** | Scale only. Zero is allowed: draining a workload is a legitimate remediation. A DaemonSet runs one pod per node and cannot be scaled; restart it instead. |
-| **Execution timeout** | How long the Runner waits for the API server to accept the change. Default 30 seconds. |
+| **Runner** | The Runner that runs kubectl. It must be able to reach the cluster's API server. |
+| **Kubeconfig** | The secret variable that holds the cluster's kubeconfig, or **The Runner's own access**: the Runner's own kubeconfig, or its service account when it runs in the cluster. The Runner writes a kubeconfig to a file only it can read, and removes it when the script ends. |
+| **Script** | The kubectl commands. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
+| **Execution timeout** | How long the Runner lets the script run before stopping it with `SIGKILL`. Default 30 seconds. |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. Default 2 minutes. |
 
-If the API server refuses the change, its own message is shown on the step, so a permission failure tells you which role binding to widen.
+For example, to restart a deployment and wait until its new pods are ready:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Examples — click to insert**, under each script, fills in common scripts like these. Give the kubeconfig's user only what your scripts do: a Role in the namespaces they act in, with the verbs they use. If the API server refuses a command, kubectl's own message is in the step's output, so a permission failure tells you which role binding to widen.
 
 ### AI
 
@@ -224,5 +240,5 @@ The responder watches step 1 run, ticks off step 2, watches step 3 run, ticks of
 - [Running a Runbook](/docs/runbooks/running): Start a run, and complete, approve or skip its steps.
 - [Runbook Rules](/docs/runbooks/rules): Start this runbook automatically on matching incidents.
 - [Runbook Agents](/docs/runbooks/agents): Install the Runner your script steps need.
-- [Runbook Credentials](/docs/runbooks/credentials): Give SSH and Kubernetes steps managed access.
+- [Runbook Variables](/docs/runbooks/variables): Keep hosts, keys, passwords and kubeconfigs out of your steps.
 :::

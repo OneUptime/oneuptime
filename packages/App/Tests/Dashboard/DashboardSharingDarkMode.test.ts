@@ -4,8 +4,9 @@ import path from "path";
 
 /*
  * A dashboard's Sharing page in the dark theme: the "Who can view this
- * dashboard" card (its public link, the locked-dashboard warning, the Saved
- * status) and the page around it (the IP allowlist's entries).
+ * dashboard" card (the addresses under its public choice - custom domains,
+ * then the public link - the locked-dashboard warning, the Saved status) and
+ * the page around it (the IP allowlist's entries).
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
  * the light utility classes under html.dark, one rule per class (and per
@@ -33,6 +34,8 @@ const FILES: Array<string> = [
     "DashboardSharingCard.tsx",
   ),
   path.join(DASHBOARD_SRC, "Pages", "Dashboards", "View", "Sharing.tsx"),
+  // The addresses under the public choice: its custom domains, then its link.
+  path.join(DASHBOARD_SRC, "Components", "CustomDomain", "PublicAddresses.tsx"),
   // The card's ruled, edge-to-edge body takes its classes from here.
   path.join(
     __dirname,
@@ -190,12 +193,20 @@ describe("the Sharing page in the dark theme", () => {
     // The scan found the card's colours at all, so this is not vacuous.
     expect(colorTokens).toEqual(
       expect.arrayContaining([
-        // The full-bleed rule above the choices.
+        // The full-bleed rule above the choices, and the addresses' frame.
         "border-gray-200",
-        // The public link's title, and the link itself.
+        "divide-gray-200",
+        // An address: its tile, the link and the rest of it.
+        "bg-gray-100",
+        "hover:text-indigo-600",
+        "text-gray-500",
+        // A custom domain not live yet, and its DNS Setup.
         "text-gray-700",
+        "text-amber-700",
+        "bg-white",
+        // "Add a custom domain", and Try again.
         "text-indigo-600",
-        "hover:text-indigo-800",
+        "hover:text-indigo-700",
         // The locked dashboard's warning.
         "text-amber-700",
         // Saved.

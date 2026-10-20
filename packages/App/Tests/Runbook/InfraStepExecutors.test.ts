@@ -35,6 +35,11 @@ import {
  * payload — what has to be in it, what must never be in it, and which
  * misconfigurations have to be caught before a job row is ever created.
  *
+ * These are the steps written before runbook variables: an SSH step with a
+ * credential and a command, a Kubernetes step with a credential and one
+ * workload action. They still run as they always did. A step that names no
+ * credential is one of the steps that take a script (ScriptStepExecutors).
+ *
  * Step configs are untyped JSON at rest, so the fixtures here are raw objects
  * rather than typed literals: a field can be genuinely absent, which is the
  * shape the validation actually has to survive.
@@ -221,7 +226,7 @@ describe("runSshStep", () => {
       ["the field is absent", omit(sshConfig(), "credentialId")],
       ["the field is an empty string", sshConfig({ credentialId: "" })],
     ])(
-      "a step without a credential fails and never dispatches — %s",
+      "a step without a credential is a script step, and fails for the machine it does not name, never dispatching — %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -232,9 +237,10 @@ describe("runSshStep", () => {
 
         expect(result.success).toBe(false);
         expect(result.output).toBe("");
-        expect(result.errorMessage).toContain("missing a credential");
-        // The message has to say where to go; "invalid config" helps nobody.
-        expect(result.errorMessage).toContain("Credentials");
+        // The message has to say what to fill in; "invalid config" helps nobody.
+        expect(result.errorMessage).toBe(
+          "This SSH step has no machine to sign in to. Open the step and fill in SSH to, as user@host.",
+        );
         expect(enqueueSpy).not.toHaveBeenCalled();
         // Not even a lookup: the step cannot possibly run.
         expect(findSpy).not.toHaveBeenCalled();
@@ -290,7 +296,7 @@ describe("runSshStep", () => {
       },
     );
 
-    test("a step missing everything reports the credential first, deterministically", async () => {
+    test("a step missing everything reports the machine first, deterministically", async () => {
       const { enqueueSpy } = stubDispatch();
 
       const result: StepRunResult = await runSshStep(
@@ -298,7 +304,9 @@ describe("runSshStep", () => {
         makeCtx(),
       );
 
-      expect(result.errorMessage).toContain("missing a credential");
+      expect(result.errorMessage).toBe(
+        "This SSH step has no machine to sign in to. Open the step and fill in SSH to, as user@host.",
+      );
       expect(enqueueSpy).not.toHaveBeenCalled();
     });
   });
@@ -503,7 +511,7 @@ describe("runKubernetesStep", () => {
       ["the field is absent", omit(k8sConfig(), "credentialId")],
       ["the field is an empty string", k8sConfig({ credentialId: "" })],
     ])(
-      "a step without a credential fails and never dispatches — %s",
+      "a step without a credential is a kubectl script step, and fails for the script it does not have, never dispatching — %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -514,8 +522,9 @@ describe("runKubernetesStep", () => {
 
         expect(result.success).toBe(false);
         expect(result.output).toBe("");
-        expect(result.errorMessage).toContain("missing a credential");
-        expect(result.errorMessage).toContain("Credentials");
+        expect(result.errorMessage).toBe(
+          "This kubectl step has no script to run.",
+        );
         expect(enqueueSpy).not.toHaveBeenCalled();
         expect(findSpy).not.toHaveBeenCalled();
         expect(pollSpy).not.toHaveBeenCalled();
@@ -573,7 +582,7 @@ describe("runKubernetesStep", () => {
       },
     );
 
-    test("a step missing everything reports the credential first, deterministically", async () => {
+    test("a step missing everything reports the script first, deterministically", async () => {
       const { enqueueSpy } = stubDispatch();
 
       const result: StepRunResult = await runKubernetesStep(
@@ -589,7 +598,9 @@ describe("runKubernetesStep", () => {
         makeCtx(),
       );
 
-      expect(result.errorMessage).toContain("missing a credential");
+      expect(result.errorMessage).toBe(
+        "This kubectl step has no script to run.",
+      );
       expect(enqueueSpy).not.toHaveBeenCalled();
     });
   });

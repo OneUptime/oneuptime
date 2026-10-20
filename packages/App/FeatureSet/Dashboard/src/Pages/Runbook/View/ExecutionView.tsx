@@ -172,7 +172,8 @@ const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
   [RunbookStepType.HttpRequest]: "HTTP",
   [RunbookStepType.Bash]: "Bash",
   [RunbookStepType.SSH]: "SSH",
-  [RunbookStepType.Kubernetes]: "Kubernetes",
+  // The kubectl script step, whose stored type kept its old name.
+  [RunbookStepType.Kubernetes]: "kubectl",
   [RunbookStepType.AI]: "AI",
   [RunbookStepType.Kubectl]: "kubectl",
   [RunbookStepType.ResourceCommand]: "AI agent command",

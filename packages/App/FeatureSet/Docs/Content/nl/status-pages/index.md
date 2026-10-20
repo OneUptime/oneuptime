@@ -168,7 +168,7 @@ Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instelli
 
 ## Vooraf bekijken voordat u live gaat
 
-Het scherm **Overzicht** van elke statuspagina heeft een kaart **Link naar de statuspagina** met een directe link naar de pagina en **Link kopiëren** ernaast. Gebruik die terwijl u nog resources toevoegt en voordat er een aangepast domein is.
+Het scherm **Overzicht** van elke statuspagina heeft een kaart **Link naar de statuspagina** met elk adres waarop de pagina bereikbaar is: eerst de aangepaste domeinen, dan het adres bij OneUptime, elk met **Link kopiëren** ernaast. Een aangepast domein dat nog niet live is, is gemarkeerd met **Nog niet live**, met de reden, en met **DNS-instelling** als er nog iets te doen is. Als bezoekers moeten inloggen of een wachtwoord moeten invoeren, zegt de kaart dat. Gebruik het OneUptime-adres terwijl u nog resources toevoegt en voordat een aangepast domein live is.
 
 Achter de schermen heeft elke openbare route een voorbeeldtweeling onder `/status-page/{statusPageId}/...`: een voorbeeldoverzicht, een voorbeeldlijst met incidenten, een voorbeeldabonneerpagina enzovoort. Een URL of schermafbeelding uit het voorbeeld in het dashboard komt daardoor niet overeen met wat een klant ziet zodra er een aangepast domein is gekoppeld, dus controleer elke link die u in een runbook of e-mail plakt.
 

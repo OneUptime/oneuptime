@@ -1506,6 +1506,23 @@ API, SSO, or the Slack and Microsoft Teams apps.
   off, set `GLOBAL_RUNNER_REPLICAS=0` in `config.env`, or `globalRunner.enabled`
   to `false` in the chart. See
   [Global Runners](/docs/runbooks/agents#global-runners).
+- **Runbook secrets and the credentials runbook steps used are runbook
+  variables.** Runbooks have variables, as workflows do: global ones under
+  **Runbooks → Settings → Global Variables**, which every runbook can use, and
+  a runbook's own under its **Settings → Variables**. A variable is a plain
+  value or a secret, which is encrypted, never read back and hidden in what
+  steps print. Every runbook secret is now a secret global variable of the
+  same name, with its value, its Runners and its switch for global Runners,
+  now called **Global Runners can use it**, and `{{runbookSecrets.NAME}}`
+  still reads it. An SSH step now runs a bash script and signs in with a
+  secret variable, and a Kubernetes step is now a kubectl step that runs a
+  script of kubectl commands with a kubeconfig variable. Every stored step
+  was moved to that shape, with what its credential held copied into secret
+  global variables, and does what it did. The credentials stay, under
+  **Runbooks → Runners → AI Access**, for OneUptime AI's own commands. A
+  kubectl step that runs a script needs a Runner of this release: an older
+  one fails such a step and says so, so update your Runners. See
+  [Runbook Variables](/docs/runbooks/variables).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

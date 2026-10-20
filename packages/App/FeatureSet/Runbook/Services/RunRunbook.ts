@@ -157,6 +157,7 @@ export default class RunRunbook {
         result = await this.runAutomatedStep(stepExec.step, {
           projectId: execution.projectId!,
           runbookExecutionId: new ObjectID(execution._id!),
+          runbookId: execution.runbookId,
           runbookName: execution.runbookNameSnapshot,
           incidentId: execution.incidentId,
           alertId: execution.alertId,

@@ -132,8 +132,12 @@ Sua função lê runbooks, mas não os executa: o botão diz "Você não tem per
 O interruptor **Executar este runbook** do runbook está desligado, na página **Configurações** dele, ou ele não tem etapas salvas. Ligue o interruptor, ou adicione etapas e clique em **Save Steps**. A **Visão geral** dele diz qual, com **Ligar o runbook** ou **Adicionar etapas**.
 :::
 
-:::details Uma etapa falhou porque falta um Runner ou uma credencial
-A mensagem diz, por exemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." A etapa foi salva sem **Runner**, ou uma etapa SSH ou Kubernetes sem **Credential**. Uma etapa JavaScript só precisa de um Runner próprio quando nenhum [Runner global](/docs/runbooks/agents#runners-globais) consegue executá-la. Abra as **Etapas** do runbook, escolha o que falta na etapa, clique em **Save Steps** e execute o runbook de novo.
+:::details Uma etapa falhou porque falta um Runner
+A mensagem diz, por exemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." A etapa foi salva sem **Runner**. Uma etapa JavaScript só precisa de um Runner próprio quando nenhum [Runner global](/docs/runbooks/agents#runners-globais) consegue executá-la. Abra as **Etapas** do runbook, escolha o Runner da etapa, clique em **Save Steps** e execute o runbook de novo.
+:::
+
+:::details Uma etapa falhou porque nomeia variáveis que não pode usar
+A mensagem começa com "This step names variables it cannot use, so it was not run:" e diz, para cada variável, o que está errado e onde corrigir: não existe variável com esse nome, o segredo não tem valor ou o Runner da etapa não pode usá-lo. Crie a variável ou corrija o nome dela na etapa, ou deixe o Runner usar o segredo, e execute o runbook de novo. Consulte [Variáveis de runbook](/docs/runbooks/variables).
 :::
 
 :::details Uma etapa falhou porque nenhum agente de runbook a assumiu

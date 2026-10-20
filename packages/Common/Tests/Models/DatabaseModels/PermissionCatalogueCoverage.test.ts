@@ -462,7 +462,7 @@ describe("the columns that asked for another record's permission", () => {
       "subscriberNotificationStatusMessage",
       Permission.CreateProjectScheduledMaintenance,
     ],
-    ["RunbookSecret", "runners", Permission.CreateRunbookSecret],
+    ["RunbookVariable", "runners", Permission.CreateRunbookSecret],
   ])(
     "%s.%s is created with %s",
     (tableName: string, column: string, permission: Permission) => {

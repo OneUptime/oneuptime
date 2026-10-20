@@ -118,6 +118,33 @@ describe("Modal", () => {
     expect(getByTestId("modal-description")).toHaveClass("text-pretty");
   });
 
+  it("breaks a name that is one long word rather than running it under the close button", () => {
+    /*
+     * "Replace the value of PRODUCTION_EU_WEST_1_PRIMARY_DATABASE_..." -
+     * a runbook variable's name has no spaces, and its end is often what
+     * tells two apart, so the title wraps it inside the header.
+     */
+    const { getByTestId } = render(
+      <Modal
+        title="Replace the value of PRODUCTION_EU_WEST_1_PRIMARY_DATABASE_REPLICA_SSH_PRIVATE_KEY"
+        description="https://internal-api.eu-west-1.prod.example.com/v2/admin/maintenance"
+        onClose={getJestMockFunction()}
+      >
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-title")).toHaveClass("[overflow-wrap:anywhere]");
+    expect(getByTestId("modal-description")).toHaveClass(
+      "[overflow-wrap:anywhere]",
+    );
+    // The title's box may shrink below its longest word, beside the close button.
+    expect(getByTestId("modal-title").parentElement).toHaveClass(
+      "min-w-0",
+      "flex-1",
+    );
+  });
+
   it("keeps keyboard focus inside the modal", () => {
     const onCloseMock: MockFunction = getJestMockFunction();
     const onSubmitMock: MockFunction = getJestMockFunction();

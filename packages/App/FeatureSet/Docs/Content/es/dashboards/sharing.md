@@ -33,7 +33,7 @@ Abre el panel y elige **⋯ → Compartir**, o abre **Uso compartido** en el men
 - **Cualquiera con el enlace**: el panel es público. Cualquiera que tenga su enlace puede verlo, sin iniciar sesión.
 - **Cualquiera con el enlace y una contraseña**: los visitantes abren el enlace y luego introducen una contraseña que tú compartes con ellos. Nadie necesita una cuenta.
 
-Elegir una opción te pide confirmación, explicando qué cambia para los visitantes, y luego se aplica de inmediato. Elegir **Cualquiera con el enlace y una contraseña** pide la contraseña en el mismo cuadro de diálogo cuando el panel no tiene ninguna; mientras sea la opción elegida, **Cambiar contraseña** la sustituye. Mientras el panel es público, su **Enlace público** aparece bajo la elección, con un botón que lo copia.
+Elegir una opción te pide confirmación, explicando qué cambia para los visitantes, y luego se aplica de inmediato. Elegir **Cualquiera con el enlace y una contraseña** pide la contraseña en el mismo cuadro de diálogo cuando el panel no tiene ninguna; mientras sea la opción elegida, **Cambiar contraseña** la sustituye. Mientras el panel es público, las direcciones en las que los visitantes lo abren aparecen bajo la elección: primero sus dominios personalizados y después su enlace público, cada una con **Copiar enlace**. Un dominio personalizado que aún no está activo aparece marcado como **Aún no activo**, con el motivo.
 
 Dentro del proyecto, los propietarios y las etiquetas controlan quién ve qué: consulta [Configuración y permisos del panel](/docs/dashboards/configuration). Quien puede ver el panel pero no editarlo ve la elección y puede copiar el enlace público, pero no puede cambiarla.
 

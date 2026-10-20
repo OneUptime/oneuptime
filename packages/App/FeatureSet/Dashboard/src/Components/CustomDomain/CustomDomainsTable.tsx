@@ -6,6 +6,7 @@ import {
 } from "./CustomDomainCopy";
 import { CustomDomainKind, CustomDomainModel } from "./CustomDomainKinds";
 import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
+import CustomDomainName from "./CustomDomainName";
 import CustomDomainStatus from "./CustomDomainStatus";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -520,7 +521,20 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
               fullDomain: true,
             },
             title: "Domain",
-            type: FieldType.Text,
+            /*
+             * A live domain opens, in a new tab, as on the status page's or
+             * dashboard's own list of addresses; one that is not live yet is
+             * its name alone - its Status says why.
+             */
+            type: FieldType.Element,
+            getElement: (item: CustomDomainModel): ReactElement => {
+              return (
+                <CustomDomainName
+                  domain={item}
+                  certificate={certificateOf(item)}
+                />
+              );
+            },
           },
           {
             field: {

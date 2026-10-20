@@ -5,8 +5,10 @@ import path from "path";
 /*
  * The custom domain pages' own markup - a status page's and a dashboard's:
  * the DNS Setup dialog - the record table with its copy buttons, the root
- * domain note, the verified view - the Status cell, the shared table, and
- * the copy module (Components/CustomDomain).
+ * domain note, the verified view - the Status cell, the shared table, the
+ * copy module, and the list of every address a status page or a public
+ * dashboard answers at (PublicAddresses, on a status page's Overview and a
+ * dashboard's Sharing page) - Components/CustomDomain.
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
  * the light utility classes under html.dark, one rule per class. A class it
@@ -101,8 +103,32 @@ const COLOR_UTILITY: RegExp =
 
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;
 
+const PREFIX_RULE: RegExp = /\[class\*="([^"]+)"\]/g;
+
+/*
+ * Interaction variants Theme.css remaps for a whole family of colours at
+ * once, by prefix: html.dark [class*="hover:text-indigo-"]:hover, and
+ * html.dark .group:hover [class*="group-hover:text-indigo-"].
+ */
+const PREFIX_VARIANTS: Array<string> = Array.from(
+  THEME_CSS.matchAll(PREFIX_RULE),
+  (match: RegExpMatchArray): string => {
+    return match[1]!;
+  },
+).filter((prefix: string): boolean => {
+  return prefix.includes(":");
+});
+
 function isRemapped(token: string): boolean {
   if (THEME_CSS.includes(`[class~="${token}"]`)) {
+    return true;
+  }
+
+  if (
+    PREFIX_VARIANTS.some((prefix: string): boolean => {
+      return token.startsWith(prefix);
+    })
+  ) {
     return true;
   }
 
@@ -141,8 +167,13 @@ describe("the custom domain components in the dark theme", () => {
         "CustomDomainCopy.ts",
         "CustomDomainDnsSetupModal.tsx",
         "CustomDomainKinds.ts",
+        // The Domain cell: a link once the domain is live.
+        "CustomDomainName.tsx",
         "CustomDomainStatus.tsx",
         "CustomDomainsTable.tsx",
+        // Every address a status page or a public dashboard answers at.
+        "PublicAddressCopy.ts",
+        "PublicAddresses.tsx",
       ]),
     );
   });
@@ -161,6 +192,16 @@ describe("the custom domain components in the dark theme", () => {
         "text-gray-900",
         "text-gray-500",
         "text-gray-600",
+        // The address list: its tiles, its links, "Not live yet", DNS Setup.
+        "bg-gray-100",
+        "hover:text-indigo-600",
+        "group-hover:text-indigo-600",
+        "bg-amber-50",
+        "text-amber-700",
+        "ring-amber-200",
+        "bg-white",
+        "border-gray-300",
+        "hover:bg-gray-50",
       ]),
     );
 
@@ -176,5 +217,10 @@ describe("the custom domain components in the dark theme", () => {
     expect(isRemapped("divide-gray-200")).toBe(true);
     expect(isRemapped("bg-gray-150")).toBe(false);
     expect(isRemapped("text-lime-950")).toBe(false);
+    // Remapped by prefix, for every shade of the colour.
+    expect(isRemapped("hover:text-indigo-700")).toBe(true);
+    expect(isRemapped("group-hover:text-indigo-600")).toBe(true);
+    // A prefix Theme.css has no rule for.
+    expect(isRemapped("hover:text-lime-700")).toBe(false);
   });
 });

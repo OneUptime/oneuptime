@@ -122,6 +122,7 @@ import RemoveChatAccountLinksNotMadeBySignIn from "./RemoveChatAccountLinksNotMa
 import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettingsOfNonMembers";
 import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
+import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
@@ -755,8 +756,8 @@ const DataMigrations: Array<DataMigrationBase> = [
    * unit those receivers declare for a 0-100 value, which every chart read
    * 100 times too high. The Kubernetes agent's container.cpu.utilization
    * (cores, "1") is left alone. Postgres-only, idempotent; no ordering
-   * requirement, so it sits before MoveHuntressConnectionsToWorkflows, which
-   * asserts the slot right before the last for itself.
+   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
    */
   new RecordContainerPercentMetricUnits(),
   /*
@@ -771,6 +772,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new MoveHuntressConnectionsToWorkflows(),
+  /*
+   * Runbook variables took the place of runbook secrets and of the
+   * credentials runbook steps used: every secret becomes a secret global
+   * variable of the same name, every credential a step names the secret
+   * variables its key, password or kubeconfig went into, and every SSH and
+   * Kubernetes step is rewritten to a script that uses them, doing what it
+   * did. The legacy secrets table and the credentials stay. After
+   * AddRunbookVariable1804265000000; idempotent; no other ordering
+   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new MoveRunbookSecretsAndCredentialsToVariables(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

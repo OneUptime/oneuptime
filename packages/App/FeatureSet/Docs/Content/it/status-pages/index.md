@@ -168,7 +168,7 @@ Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le i
 
 ## Vedere l'anteprima prima di andare in produzione
 
-La schermata **Panoramica** di ogni pagina di stato ha una scheda **Link della pagina di stato** con un link diretto alla pagina e **Copia link** accanto. Usatela mentre state ancora aggiungendo risorse e prima che esista un dominio personalizzato.
+La schermata **Panoramica** di ogni pagina di stato ha una scheda **Link della pagina di stato** con ogni indirizzo a cui risponde la pagina: prima i suoi domini personalizzati, poi il suo indirizzo su OneUptime, ciascuno con **Copia link** accanto. Un dominio personalizzato non ancora attivo è segnato **Non ancora attivo**, con il motivo, e con **Configurazione DNS** quando resta qualcosa da fare. Quando i visitatori devono accedere o inserire una password, la scheda lo dice. Usate l'indirizzo OneUptime mentre state ancora aggiungendo risorse e prima che un dominio personalizzato sia attivo.
 
 Dietro le quinte, ogni percorso pubblico ha un gemello di anteprima in `/status-page/{statusPageId}/...`: una panoramica di anteprima, un elenco degli incidenti di anteprima, una pagina di iscrizione di anteprima e così via. Per questo un URL o uno screenshot presi dall'anteprima della dashboard non corrisponderanno a ciò che vede un cliente una volta collegato un dominio personalizzato, quindi verificate ogni link che incollate in un runbook o in un'email.
 

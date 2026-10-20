@@ -73,6 +73,17 @@ const SAML_ROUTES: Array<SamlRoute> = [
 // A select whose first column is the record's own id.
 const SELECT_STARTS_WITH_ID: RegExp = /^_id: true,/;
 
+const WHITESPACE: RegExp = /\s+/g;
+
+/*
+ * Code as its tokens: no whitespace, and no trailing comma before a closing
+ * parenthesis - so how prettier lays an expression out over lines does not
+ * decide whether a screen shows it.
+ */
+function compact(code: string): string {
+  return code.replace(WHITESPACE, "").split(",)").join(")");
+}
+
 function read(file: string): string {
   return fs.readFileSync(file, "utf8");
 }
@@ -272,13 +283,15 @@ describe("the Dashboards show admins the values a response is held to", () => {
    * These are the expressions each screen renders. SamlServiceProviders
    * builds the same values from the same HOST and HTTP_PROTOCOL; a change to
    * either side has to be made to both, with a plan for every identity
-   * provider configured from the old screen.
+   * provider configured from the old screen. (The Dashboards' dialogs hand
+   * each value to CopyableValueList, which draws it with a copy button, so
+   * the template is a row's value rather than a JSX child.)
    */
   test.each([
     [
       "App/FeatureSet/Dashboard/src/Pages/Settings/SSO.tsx",
       [
-        "{`${HTTP_PROTOCOL}${HOST}/${props.currentProject?._id}/${showSingleSignOnUrlId}`}",
+        "value: `${HTTP_PROTOCOL}${HOST}/${props.currentProject?._id}/${showSingleSignOnUrlId}`",
         "`/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`",
         "URL.fromString(IDENTITY_URL.toString()).addRoute(",
       ],
@@ -286,7 +299,7 @@ describe("the Dashboards show admins the values a response is held to", () => {
     [
       "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO.tsx",
       [
-        "{`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`}",
+        "value: `${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`",
         "`/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`",
         "URL.fromString(IDENTITY_URL.toString()).addRoute(",
       ],
@@ -299,14 +312,28 @@ describe("the Dashboards show admins the values a response is held to", () => {
       ],
     ],
   ])("%s", (file: string, expressions: Array<string>) => {
-    const screen: string = read(path.join(PACKAGES_DIR, file));
+    const screen: string = compact(read(path.join(PACKAGES_DIR, file)));
 
     for (const expression of expressions) {
-      expect({ expression, shown: screen.includes(expression) }).toEqual({
+      expect({
+        expression,
+        shown: screen.includes(compact(expression)),
+      }).toEqual({
         expression,
         shown: true,
       });
     }
+  });
+
+  test("its comparison ignores layout, never the expression", () => {
+    expect(
+      compact(
+        "value: `${URL.fromString(\n  IDENTITY_URL.toString(),\n).addRoute(\n  `/idp-login/${id}`,\n)}`",
+      ),
+    ).toContain(compact("URL.fromString(IDENTITY_URL.toString()).addRoute("));
+    expect(
+      compact("URL.fromString(APP_API_URL.toString()).addRoute("),
+    ).not.toBe(compact("URL.fromString(IDENTITY_URL.toString()).addRoute("));
   });
 
   test("the builder makes them from the same pieces", () => {

@@ -243,7 +243,7 @@ const DESCRIPTIONS: Record<string, string> = {
   [Permission.WorkflowViewer]:
     "Read-only access to workflows and workflow logs.",
   [Permission.RunbookAdmin]:
-    "Creates, changes, runs and deletes runbooks with their rules and owners, and the Runners they run on, and manages their runs. Runbook credentials, secrets, label rules and owner rules take Project Admin.",
+    "Creates, changes, runs and deletes runbooks with their rules and owners, and the Runners they run on, and manages their runs. Reads runbook variables to use them in steps. Runbook credentials, variables, label rules and owner rules take Project Admin to change.",
   [Permission.RunbookMember]:
     "Opens runbooks and their runs, and runs runbooks by hand: starts a run, completes or skips its steps, and cancels it. Cannot create, change or delete runbooks or Runners.",
   [Permission.RunbookViewer]:
@@ -362,7 +362,7 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
         "AlertState",
         "MonitorStatus",
         "MonitorSecret",
-        "RunbookSecret",
+        "RunbookVariable",
         "Dashboard",
         "ServiceLevelObjective",
       ),
@@ -373,7 +373,7 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
         "AuditLogV2",
         "BillingInvoice",
         "MonitorSecret",
-        "RunbookSecret",
+        "RunbookVariable",
         "RumSessionV1",
         "SecurityEventItemV1",
       ),
@@ -386,7 +386,7 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       "AuditLogV2",
       "BillingInvoice",
       "MonitorSecret",
-      "RunbookSecret",
+      "RunbookVariable",
       "RumSessionV1",
       "SecurityEventItemV1",
       "AIConversation",
@@ -725,10 +725,12 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       ),
       ["create", "RunbookExecution"],
       ["update", "RunbookExecution"],
+      // A step names the variables it uses: the step editor lists them.
+      ["read", "RunbookVariable"],
     ],
     mayNot: creates(
       "RunbookCredential",
-      "RunbookSecret",
+      "RunbookVariable",
       "RunbookLabelRule",
       "RunbookOwnerRule",
     ),
@@ -1119,7 +1121,7 @@ describe("Runbook Member", () => {
       "RunbookOwnerUser",
       "RunbookLabelRule",
       "RunbookOwnerRule",
-      "RunbookSecret",
+      "RunbookVariable",
       "RunbookCredential",
       "Runner",
       "RunnerOwnerTeam",

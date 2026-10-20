@@ -132,8 +132,12 @@ stateDiagram-v2
 Переключатель **Запускать этот сценарий** выключен на странице **Настройки** runbook-а, или у него нет сохранённых шагов. Включите переключатель или добавьте шаги и нажмите **Save Steps**. Его страница **Обзор** говорит, в чём дело, с кнопкой **Включить сценарий** или **Добавить шаги**.
 :::
 
-:::details Шаг завершился сбоем, потому что у него нет Runner-а или учётных данных
-Сообщение, например, такое: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» Шаг был сохранён без **Runner**, или шаг SSH либо Kubernetes — без **Credential**. Шагу JavaScript собственный Runner нужен, только когда ни один [глобальный Runner](/docs/runbooks/agents#глобальные-runner-ы) не может его выполнить. Откройте **Шаги** runbook-а, выберите недостающее, нажмите **Save Steps** и запустите runbook снова.
+:::details Шаг завершился сбоем, потому что у него нет Runner-а
+Сообщение, например, такое: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» Шаг был сохранён без **Runner**. Шагу JavaScript собственный Runner нужен, только когда ни один [глобальный Runner](/docs/runbooks/agents#глобальные-runner-ы) не может его выполнить. Откройте **Шаги** runbook-а, выберите Runner шага, нажмите **Save Steps** и запустите runbook снова.
+:::
+
+:::details Шаг завершился сбоем, потому что называет переменные, которые не может использовать
+Сообщение начинается с "This step names variables it cannot use, so it was not run:" и для каждой переменной говорит, что не так и где это исправить: переменной с таким именем нет, у секрета нет значения или Runner шага не может его использовать. Создайте переменную или исправьте её имя в шаге либо разрешите Runner-у использовать секрет, а затем снова запустите runbook. См. [Переменные runbook-ов](/docs/runbooks/variables).
 :::
 
 :::details Шаг завершился сбоем, потому что его не забрал ни один агент runbook-ов

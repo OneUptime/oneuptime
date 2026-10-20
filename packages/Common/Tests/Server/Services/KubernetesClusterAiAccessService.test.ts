@@ -21,7 +21,7 @@ import KubernetesClusterService from "../../../Server/Services/KubernetesCluster
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
+import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
@@ -192,7 +192,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     secretCountSpy = jest
-      .spyOn(RunbookSecretService, "countBy")
+      .spyOn(RunbookVariableService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     boundClusterCountSpy = jest
       .spyOn(KubernetesClusterService, "countBy")
@@ -1904,7 +1904,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     secretCountSpy = jest
-      .spyOn(RunbookSecretService, "countBy")
+      .spyOn(RunbookVariableService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     boundClusterCountSpy = jest
       .spyOn(KubernetesClusterService, "countBy")
@@ -3316,12 +3316,12 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         expectInMessage: "1 Runner credential(s) assigned",
       },
       {
-        name: "a runbook secret assigned to it",
+        name: "a secret runbook variable assigned to it",
         arrange: (): Partial<Record<string, unknown>> => {
           secretCountSpy.mockResolvedValue(new PositiveNumber(2));
           return {};
         },
-        expectInMessage: "2 runbook secret(s) assigned",
+        expectInMessage: "2 secret runbook variable(s) assigned",
       },
       {
         name: "another cluster bound to it",
@@ -3915,7 +3915,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       expect(head).toContain('"Runs Runbooks"');
       expect(head).toContain('"Runs AI Code Fixes"');
       expect(head).toContain("3 Runner credential(s)");
-      expect(head).toContain("2 runbook secret(s)");
+      expect(head).toContain("2 secret runbook variable(s)");
       expect(head).toContain("4 other cluster(s)");
     });
 

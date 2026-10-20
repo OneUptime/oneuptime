@@ -1,5 +1,5 @@
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
-import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
   DASHBOARD_ACCESS_CHOICES,
@@ -26,12 +26,10 @@ import ChoiceRows, {
   getChoicePlanLeftoverText,
 } from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { getPlanNeededToWriteColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
 import API from "Common/UI/Utils/API/API";
@@ -53,6 +51,7 @@ import React, {
 import DashboardSharingCopy, {
   DASHBOARD_ACCESS_CHOICE_COPY,
   DASHBOARD_ACCESS_GATED_COLUMNS,
+  DASHBOARD_EXAMPLE_DOMAIN,
   DASHBOARD_PUBLIC_LINK_TEST_ID,
   DASHBOARD_SHARING_CARD_TEST_ID,
   DASHBOARD_SHARING_CHANGE_PASSWORD_TEST_ID,
@@ -69,6 +68,10 @@ import DashboardSharingCopy, {
   isDashboardPasswordRequiredInDialog,
 } from "./DashboardSharingCopy";
 import { getPublicDashboardUrl } from "./PublicDashboardUrl";
+import { DASHBOARD_CUSTOM_DOMAINS } from "../../CustomDomain/CustomDomainKinds";
+import PublicAddresses from "../../CustomDomain/PublicAddresses";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
@@ -85,8 +88,11 @@ import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface
  *   has one. Confirming writes only the columns that change, then the
  *   choice says "Saved"; a refusal keeps the dialog open with the server's
  *   reason.
- * - Under the public choice in force: the public link, which opens in a new
- *   tab, and a button that copies it.
+ * - Under the public choice in force: where visitors open it - its custom
+ *   domains first, each live one a link that opens in a new tab with Copy
+ *   link, each one not live yet saying why - then its public link on
+ *   OneUptime's own domain (PublicAddresses, as on a status page's
+ *   Overview).
  * - Under "Anyone with the link and a password", while it is the choice:
  *   Change Password - or, on a dashboard that asks for a password it does
  *   not have (the server lets nobody in then), why nobody can open it and
@@ -303,37 +309,25 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
     setSaveError("");
   };
 
-  // The public link, which opens in a new tab, and a button that copies it.
+  /*
+   * Where visitors open the dashboard: its custom domains first, each live
+   * one to open and copy, each one not live yet saying why - then its public
+   * link on OneUptime's own domain, drawn as a status page's Overview draws
+   * its addresses (PublicAddresses).
+   */
   const getPublicLink: () => ReactElement = (): ReactElement => {
-    const url: URL = getPublicDashboardUrl(props.dashboardId);
-
     return (
-      <div className="space-y-1" data-testid={DASHBOARD_PUBLIC_LINK_TEST_ID}>
-        <div className="text-xs font-medium text-gray-700">
-          {translate(DashboardSharingCopy.publicLinkTitle)}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to={url}
-            openInNewTab={true}
-            className="min-w-0 break-all text-sm text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
-          >
-            {/*
-             * The class sits on the text's own element: Link wraps a bare
-             * string in a span, which the page's `* { font-family }` rule
-             * would draw in Inter.
-             */}
-            <span className="font-mono">{url.toString()}</span>
-          </Link>
-          <CopyTextButton
-            textToBeCopied={url.toString()}
-            label={DashboardSharingCopy.copyLink}
-            copiedLabel={translate(DashboardSharingCopy.copied)}
-            title={DashboardSharingCopy.copyLinkTitle}
-            size="sm"
-            variant="soft"
-          />
-        </div>
+      <div data-testid={DASHBOARD_PUBLIC_LINK_TEST_ID}>
+        <PublicAddresses
+          kind={DASHBOARD_CUSTOM_DOMAINS}
+          parentId={props.dashboardId}
+          oneUptimeUrl={getPublicDashboardUrl(props.dashboardId)}
+          customDomainsRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.DASHBOARD_VIEW_CUSTOM_DOMAINS] as Route,
+            { modelId: props.dashboardId },
+          )}
+          exampleDomain={DASHBOARD_EXAMPLE_DOMAIN}
+        />
       </div>
     );
   };

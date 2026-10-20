@@ -121,8 +121,8 @@ const LOADS_RUNNERS: Record<string, string> = {
     "one Runner's own page",
   "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials.tsx":
     "which of the project's Runners may use a credential; a global Runner never gets one",
-  "App/FeatureSet/Dashboard/src/Pages/Runbook/Secrets.tsx":
-    "which of the project's own Runners may use a secret; the global Runners have their own switch",
+  "App/FeatureSet/Dashboard/src/Components/Runbook/RunbookVariablesTable.tsx":
+    "which of the project's own Runners may use a secret variable; the global Runners have their own switch",
   "App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx":
     "the Runner that runs a cluster's AI commands, which global Runners never run",
   "App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index.tsx":

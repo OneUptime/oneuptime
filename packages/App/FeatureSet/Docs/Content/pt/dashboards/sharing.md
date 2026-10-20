@@ -33,7 +33,7 @@ Abra o painel e escolha **⋯ → Partilhar**, ou abra **Compartilhamento** no m
 - **Qualquer pessoa com o link**: o painel é público. Quem tiver o link dele pode vê-lo, sem entrar.
 - **Qualquer pessoa com o link e uma senha**: os visitantes abrem o link e depois digitam uma senha que você compartilha com eles. Ninguém precisa de conta.
 
-Escolher uma opção pede confirmação, dizendo o que muda para os visitantes, e então se aplica na hora. Escolher **Qualquer pessoa com o link e uma senha** pede a senha na mesma caixa de diálogo quando o painel não tem nenhuma; enquanto essa for a escolha, **Alterar senha** a substitui. Enquanto o painel for público, o **Link público** dele fica abaixo da escolha, com um botão que o copia.
+Escolher uma opção pede confirmação, dizendo o que muda para os visitantes, e então se aplica na hora. Escolher **Qualquer pessoa com o link e uma senha** pede a senha na mesma caixa de diálogo quando o painel não tem nenhuma; enquanto essa for a escolha, **Alterar senha** a substitui. Enquanto o painel for público, os endereços em que os visitantes o abrem ficam abaixo da escolha: primeiro seus domínios personalizados, depois seu link público, cada um com **Copiar link**. Um domínio personalizado que ainda não está ativo aparece marcado como **Ainda não ativo**, com o motivo.
 
 Dentro do projeto, os proprietários e os rótulos controlam quem vê o quê: veja [Configuração e permissões de painel](/docs/dashboards/configuration). Quem pode ver o painel mas não editá-lo vê a escolha e pode copiar o link público, mas não pode mudá-la.
 

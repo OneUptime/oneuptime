@@ -146,6 +146,7 @@ interface Runner {
   Register: AnyModule;
   AgentClient: AnyModule;
   BackendAPI: AnyModule;
+  KubernetesPosture: AnyModule;
   logger: AnyModule;
 }
 
@@ -225,6 +226,7 @@ function startRunner(data: {
       Register: require("../../Services/RegisterRunner").default,
       AgentClient: require("../../Services/RunnerClient").default,
       BackendAPI: require("../../Utils/BackendAPI").default,
+      KubernetesPosture: require("../../Utils/KubernetesPosture").default,
       logger: require("Common/Server/Utils/Logger").default,
     };
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
@@ -362,6 +364,15 @@ describe("a request that carries a Runner's key, redirected to another server", 
       oneuptimeUrl: redirectingAway.origin,
       mode: "kubernetes-agent",
     });
+
+    /*
+     * Its posture asks this host's kubectl for its version first, which can
+     * take seconds on a busy machine (KubernetesPosture allows ten) and is
+     * not what this suite is about: the registration is.
+     */
+    jest
+      .spyOn(runner.KubernetesPosture, "detectKubectlVersion")
+      .mockResolvedValue("v1.36.4");
 
     await expect(
       runner.Register.tryRegisterRunner({ maxAttempts: 1 }),

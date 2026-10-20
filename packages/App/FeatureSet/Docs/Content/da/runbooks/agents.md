@@ -1,6 +1,6 @@
 # Runbook-agenter
 
-En **runbook-agent**, der kaldes **Runner** i dashboardet, er en lille selvhostet proces, der kører JavaScript-, Bash-, SSH- og Kubernetes-trinnene i dine runbooks **i din egen infrastruktur**. OneUptime Worker kører aldrig dine scripts: den sætter dem i kø, og den Runner, som trinnets forfatter valgte, overtager hvert job, kører det og sender resultatet tilbage. Denne side er til dem, der installerer og driver Runners. Et JavaScript-trin, der ikke vælger nogen Runner, kører i stedet på en [global Runner](#globale-runnere), en af dem, OneUptime kører for alle projekter.
+En **runbook-agent**, der kaldes **Runner** i dashboardet, er en lille selvhostet proces, der kører JavaScript-, Bash-, SSH- og kubectl-trinnene i dine runbooks **i din egen infrastruktur**. OneUptime Worker kører aldrig dine scripts: den sætter dem i kø, og den Runner, som trinnets forfatter valgte, overtager hvert job, kører det og sender resultatet tilbage. Denne side er til dem, der installerer og driver Runners. Et JavaScript-trin, der ikke vælger nogen Runner, kører i stedet på en [global Runner](#globale-runnere), en af dem, OneUptime kører for alle projekter.
 
 :::cards
 - [Installer en Runner](#installer-en-runner): Fra dashboardet til en forbundet container i fem trin.
@@ -33,13 +33,13 @@ flowchart TB
 1. Du opretter en Runner i OneUptime. OneUptime genererer et ID og en hemmelig nøgle til den.
 2. Du kører Runner-containeren på en vært i din infrastruktur med det ID, den nøgle og din OneUptime-URL.
 3. Runneren beder OneUptime om arbejde hvert 5. sekund og melder hvert 60. sekund, at den er i live.
-4. Når du skriver et JavaScript-, Bash-, SSH- eller Kubernetes-trin, vælger du Runneren fra en rulleliste. Trinnet bindes til den Runner. Et JavaScript-trin kan beholde **Global Runner**, som rullelisten vælger for det.
+4. Når du skriver et JavaScript-, Bash-, SSH- eller kubectl-trin, vælger du Runneren fra en rulleliste. Trinnet bindes til den Runner. Et JavaScript-trin kan beholde **Global Runner**, som rullelisten vælger for det.
 5. Når trinnet kører, sætter Workeren et job i kø med `targetAgentId` sat til den Runner. Kun den Runner kan overtage det.
-6. Runneren kører jobbet lokalt — `bash -c <script>` til Bash, en `isolated-vm`-sandkasse til JavaScript, en SSH-forbindelse eller et kald til klyngens API-server med trinnets loginoplysning —, registrerer resultatet og sender det tilbage. Workeren genoptager runbooket med resultatet.
+6. Runneren kører jobbet lokalt — `bash -c <script>` for Bash og kubectl, en `isolated-vm`-sandkasse for JavaScript, en SSH-forbindelse, der kører scriptet med bash på maskinen — gemmer resultatet, skjuler trinnets hemmeligheder i det og sender det tilbage. Worker genoptager runbooket med resultatet.
 
 Runneren har kun brug for **udgående HTTPS** til din OneUptime-instans. Den accepterer ingen indgående forbindelser.
 
-En Runner har kun sit ID og sin nøgle. Alt andet modtager den med det job, den overtager: et script, hvor de [runbook-hemmeligheder](/docs/runbooks/credentials#hemmeligheder-til-scripts), der er tildelt den, er udfyldt, eller den [loginoplysning](/docs/runbooks/credentials), som et SSH- eller Kubernetes-trin nævner. Derfor kan alle, der har en Runners nøgle, optræde som den Runner: behandl nøglen som de loginoplysninger, der er tildelt den.
+En Runner gemmer kun sit ID og sin nøgle. Alt andet modtager den med det job, den overtager: et script med de [runbook-variabler](/docs/runbooks/variables), det nævner, indsat, og et SSH-trins nøgle eller adgangskode eller et kubectl-trins kubeconfig. Den får kun en hemmelighed, når hemmeligheden tillader det. Derfor kan alle, der har en Runners nøgle, optræde som den Runner: behandl nøglen som de hemmeligheder, den må bruge.
 
 ## Hvorfor scripts kører på en Runner
 
@@ -56,17 +56,17 @@ Globale Runnere er de Runnere, OneUptime kører for alle projekter. Et JavaScrip
 
 | | Global Runner | Din egen Runner |
 | --- | --- | --- |
-| Trin, den kører | JavaScript | JavaScript, Bash, SSH og Kubernetes |
+| Trin, den kører | JavaScript | JavaScript, Bash, SSH og kubectl |
 | Hvad et trin kan nå | Offentlige internetadresser | Hvad dens vært kan nå |
 | Længste kørsel for et trin | 5 minutter | 1 time |
-| Runbook-hemmeligheder | Dem, du lader globale Runnere bruge | Dem, du tildeler den |
+| Hemmelige variabler | Dem, du lader globale Runnere bruge | Dem, der viser den |
 | Loginoplysninger | Ingen | Dem, du tildeler den |
 
 En global Runner kører trinnene fra mange projekter, så hvert trin holdes adskilt fra alle andre:
 
 - Hvert trin kører i sin egen `isolated-vm`-sandkasse, oprettet til det trin og smidt væk bagefter: ingen filer, ingen processer, ingen miljøvariabler og intet, der gemmes fra ét trin til det næste.
 - Dens HTTP-forespørgsler når kun offentlige internetadresser, aldrig en privat, loopback- eller link-local-adresse eller et cloud-metadata-endpoint, så en global Runner når aldrig dit netværk.
-- Den får kun en runbook-hemmelighed, når hemmelighedens kontakt **Globale Runnere må bruge denne hemmelighed** er slået til, og kun for et trin fra hemmelighedens eget projekt. Den får aldrig loginoplysninger.
+- Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt. Den får aldrig en loginoplysning.
 - Et projekt kører højst tre trin ad gangen på globale Runnere, så intet projekt holder dem for sig selv.
 
 Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, fejler så og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder.
@@ -140,7 +140,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Tilføj et trin, der kører på en Runner
 
-Tilføj et JavaScript-, Bash-, SSH- eller Kubernetes-trin i dit runbooks **Trin**.
+Tilføj et JavaScript-, Bash-, SSH- eller kubectl-trin i dit runbooks **Trin**.
 
 ### Vælg Runneren
 
@@ -151,7 +151,7 @@ Trinnets rulleliste **Runner** viser alle Runners i projektet, og om de er forbu
 Klik på **Save Steps**. Når en kørsel når trinnet, sætter Workeren et job i kø til den Runners ID, og kun den Runner kan overtage det. Et trin på **Global Runner** venter på den globale Runner, der er ledig.
 :::
 
-Bash køres med `bash -c`. JavaScript kører i en `isolated-vm`-sandkasse på Runneren uden adgang til filsystemet eller processer; det kan kalde offentlige HTTP-API'er med `axios`, men ikke adresser på et privat netværk. SSH- og Kubernetes-trin bruger den [loginoplysning](/docs/runbooks/credentials), trinnet nævner, og den skal være tildelt samme Runner.
+Bash køres med `bash -c`. JavaScript kører i en `isolated-vm`-sandkasse på Runneren uden adgang til filsystemet eller processer; det kan kalde offentlige HTTP-API'er med `axios`, men ikke adresser på et privat netværk. Et SSH- eller kubectl-trin logger ind med en hemmelig [runbook-variabel](/docs/runbooks/variables), som skal vise trinnets Runner under **Dine Runnere, der må bruge den**.
 
 Brug for mere end én Runner? Opret dem, og peg hvert trin mod den rette. For redundans kører du en ekstra Runner og deler dine trin mellem dem, eller du holder et reserve-runbook, hvis trin peger mod den anden Runner.
 
@@ -166,7 +166,7 @@ To timeouts gælder for hvert trin, der kører på en Runner:
 | **Timeout for overtagelse** | 2 minutter | Hvor længe Workeren venter på, at den valgte Runner overtager jobbet. Overtager Runneren det ikke i tide, fejler trinnet på grund af timeout, og runbooket fortsætter (eller stopper, afhængigt af **Fortsæt ved fejl**). |
 | **Timeout for kørsel** | 30 sekunder | Hvor længe Runneren lader trinnet køre, før den stopper det. Bash får `SIGKILL`; JavaScripts sandkasse rives ned. |
 
-Begge kan indstilles pr. trin. Åbn **Runbooks › dit runbook › Trin**, fold trinnet ud, og angiv **Timeout for kørsel** og **Timeout for overtagelse** (i sekunder) i dets indstillinger. Lad et felt være tomt for at bruge standarden. Hver accepterer 1 sekund til 1 time; værdier uden for det interval begrænses, når trinnet kører.
+Begge kan indstilles pr. trin. Åbn **Runbooks › dit runbook › Trin**, fold trinnet ud, og angiv **Timeout for kørsel** og **Timeout for overtagelse** (i sekunder) under dets **Flere felter**. Lad et felt være tomt for at bruge standarden. Hver accepterer 1 sekund til 1 time; værdier uden for det interval begrænses, når trinnet kører.
 
 Workerens samlede ventevindue er `claim timeout + execution timeout + a few seconds`. Vælg værdier, der passer til trinnet.
 
@@ -307,14 +307,18 @@ Runneren overtog jobbet og holdt så op med at forny sin lease: den gik ned, gen
 Alle funktioner er slået fra for denne Runner. Slå **Kører runbooks** til på Runnerens side i OneUptime. Den henter ændringen ved sit næste heartbeat.
 :::
 
-:::details Et trin på en global Runner fejler, fordi globale Runnere ikke må bruge en runbook-hemmelighed
-Trinnet nævner en runbook-hemmelighed, hvis kontakt **Globale Runnere må bruge denne hemmelighed** er slået fra, så den globale Runner fik den ikke, og trinnet blev ikke kørt. Fejlen nævner hemmeligheden. Slå kontakten til for den under **Runbooks → Indstillinger → Hemmeligheder**, eller vælg en af dine egne Runnere til trinnet.
+:::details Et trin fejler, fordi dets Runner ikke må bruge en hemmelig variabel
+Trinnet nævner en hemmelig variabel, der ikke lader dets Runner bruge den, så Runneren fik den ikke, og trinnet blev ikke kørt. Fejlen nævner hemmeligheden og det, der skal ændres. Under **Runbooks → Indstillinger → Globale variabler** eller runbookets **Indstillinger → Variabler** skal du tilføje Runneren under **Dine Runnere, der må bruge den** eller slå **Globale Runnere må bruge den** til for et trin på en global Runner. Eller vælg en Runner, som hemmeligheden tillader.
+:::
+
+:::details Et kubectl-trin fejler, fordi dets Runner er for gammel
+Trinnet fejlede med "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." En Runner, der er ældre end kubectl-scripts, kan ikke køre et. Opdater Runneren, som [Hold agenten opdateret](#5-hold-agenten-opdateret) viser, og kør derefter runbooket igen.
 :::
 
 ## Næste skridt
 
 :::cards
 - [Skriv et runbook](/docs/runbooks/authoring): Skriv de trin, der kører på din Runner.
-- [Runbook-loginoplysninger](/docs/runbooks/credentials): Giv SSH- og Kubernetes-trin administreret adgang.
+- [Runbook-variabler](/docs/runbooks/variables): De værdier og hemmeligheder, dine trin bruger, og de Runnere, der får dem.
 - [Runbook-konfiguration & sikkerhed](/docs/runbooks/configuration): Grænser, tilladelser og hærdning.
 :::

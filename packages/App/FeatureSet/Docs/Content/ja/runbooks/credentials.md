@@ -1,26 +1,26 @@
-# Runbook の認証情報
+# AI のアクセス
 
-認証情報は、Runbook が Runner 自身のホスト **以外** のもの、つまり SSH でアクセスするサーバーや Kubernetes クラスターに到達するための手段です。認証情報がなければ、「サービスを再起動する」にはシェルスクリプトを書き、鍵や kubeconfig を Runner のホストに手作業で置くことになり、それは OneUptime の管理外のディスクに残ります。認証情報は同じアクセス権を管理されたオブジェクトにしたものです。保存時に暗号化され、特定の Runner に割り当てられ、ステップから名前で参照されます。
+AI のアクセスは、OneUptime AI 自身のコマンドが Runner 自身のホスト **以外** のもの、つまり SSH でアクセスするサーバーや、Kubernetes エージェントのチャートを実行していない Kubernetes クラスターの API サーバーに到達するための手段です。それぞれが認証情報です。保存時に暗号化され、特定の Runner に割り当てられた管理対象のアクセス権で、コマンドに書き込まれるのではなく OneUptime AI が選びます。Runbook のステップはこれを使いません。SSH や kubectl のステップは、シークレットの [Runbook の変数](/docs/runbooks/variables) でサインインします。
 
-**Runbook → Runner → 認証情報** で管理します。
+**Runbook → Runner → AI のアクセス** で管理します。
 
 :::cards
 - [認証情報を作成する](#認証情報を作成する): アクセス権と、それを使える Runner。
 - [相手側での最小権限](#相手側での最小権限): 鍵やトークンでできることを制限します。
-- [スクリプト用のシークレット](#スクリプト用のシークレット): Bash や JavaScript のスクリプトにパスワードやトークンを渡します。
+- [OneUptime AI のコマンドを実行する Runner](#oneuptime-ai-のコマンドを実行する-runner): そのような Runner に SSH の認証情報を渡せる人。
 :::
 
 ## 認証情報の使われ方
 
 ```mermaid title="認証情報が開く対象のシステムに届くまで"
 flowchart TB
-    step["SSH または Kubernetes のステップ"] -->|"指定する"| cred["OneUptime で暗号化された認証情報"]
-    step -->|"対象とする"| runner["Runner"]
+    step["OneUptime AI の SSH<br/>または kubectl コマンド"] -->|"使って実行"| cred["OneUptime で暗号化された認証情報"]
+    step -->|"実行先"| runner["Runner"]
     cred -->|"割り当て"| runner
-    runner -->|"ステップを取得してシークレットを受け取る"| target["SSH ホストまたは Kubernetes API サーバー"]
+    runner -->|"コマンドを取得してシークレットを受け取る"| target["SSH ホストまたは Kubernetes API サーバー"]
 ```
 
-SSH または Kubernetes のステップは、認証情報と Runner を指定します。その Runner がステップを取得すると、OneUptime は認証情報がその Runner に割り当てられていることを確認し、シークレットを復号して、その取得への応答の中でだけ渡します。シークレットがジョブに保存されることはなく、API から読むこともできません。
+OneUptime AI は、SSH コマンドを実行先の Runner に割り当てられた SSH の認証情報の 1 つで実行し、Kubernetes エージェントのチャートを実行していないクラスター向けの kubectl コマンドを、そのクラスターに紐付けられた Kubernetes の認証情報で実行します。詳しくは [AI SRE](/docs/ai/ai-sre) を参照してください。Runner がコマンドを取得すると、OneUptime は認証情報がその Runner に割り当てられていることを確認し、シークレットを復号して、その取得への応答の中でだけ渡します。シークレットがジョブに保存されることはなく、API から読み取れることもありません。
 
 ## 始める前に
 
@@ -31,9 +31,9 @@ SSH または Kubernetes のステップは、認証情報と Runner を指定�
 ## 認証情報を作成する
 
 :::steps
-### 認証情報を開く
+### AI のアクセスを開く
 
-**Runbook → Runner → 認証情報** を開き、 **Runbook の認証情報を作成** をクリックします。
+**Runbook → Runner → AI のアクセス** を開き、 **認証情報を作成** をクリックします。
 
 ### 名前を付けて種類を選ぶ
 
@@ -50,11 +50,11 @@ SSH または Kubernetes のステップは、認証情報と Runner を指定�
 
 ### Runner に割り当てる
 
-**Runner** ステップで、この認証情報を使える Runner を選び、 **Runbook の認証情報を作成** をクリックします。どの Runner にも割り当てられていない認証情報は、どのステップでも使えません。
+**Runner** ステップで、この認証情報を使える Runner を選び、 **認証情報を作成** をクリックします。どの Runner にも割り当てられていない認証情報は、どのコマンドでも使えません。
 
-### ステップで使う
+### OneUptime AI に使わせる
 
-[SSH または Kubernetes のステップ](/docs/runbooks/authoring#ステップの種類) で、それらの Runner のいずれかを選び、 **認証情報** で認証情報を選びます。ステップには自分と同じ種類の認証情報だけが表示されます。認証情報を指定するステップを保存するには、Runbook の認証情報を読む権限が必要です。
+OneUptime AI は、 **AI 修復コマンドを実行** がオンの Runner で、その Runner に割り当てられた SSH の認証情報の 1 つを使って SSH コマンドを実行します。Kubernetes の認証情報は、その Runner の 1 つとともにクラスターに紐付けられると使われます。[AI SRE](/docs/ai/ai-sre) を参照してください。
 :::
 
 ## 保存される内容
@@ -72,7 +72,7 @@ SSH または Kubernetes のステップは、認証情報と Runner を指定�
 
 ## 認証情報を Runner に割り当てる
 
-認証情報を使えるのは割り当てた Runner だけで、ステップはそのいずれかを指定する必要があります。ステップの Runner に割り当てられていない認証情報をステップが指定すると、 **ステップは実行されずに失敗します** 。何もせずに黙っている Runner は、うまくいった Runner とまったく同じに見えるからです。
+認証情報は、割り当てた Runner だけが使えます。Runner に割り当てられていない認証情報を指定したコマンドは、 **実行されずに失敗します** 。何もせずに黙っている Runner は、うまく動いた Runner とまったく同じように見えるからです。
 
 割り当てはアクセスの境界なので、狭く保ってください。1 つのクラスターを再起動するだけの Runner に、データベースホストの SSH 鍵は必要ありません。
 
@@ -92,82 +92,7 @@ SSH または Kubernetes のステップは、認証情報と Runner を指定�
 OneUptime は、認証情報が対象のシステムで何をできるかを制限できません。それは対象のシステムの役割であり、行う価値があります。
 
 - **SSH** — パスワードより鍵を優先し、ユーザーには必要なコマンドだけを与え（実用的な場合は強制コマンドや制限付きシェル）、管理者の個人の鍵は使い回さないでください。
-- **Kubernetes** — サービスアカウントを、Runbook が触れるワークロードに対してだけ、それらが動く Namespace でだけ `patch` を許可する Role にバインドします。 **ワークロードを再起動** はワークロード自体を変更し、 **ワークロードをスケール** はその `scale` サブリソースを変更します。それ以上は必要ありません。
-
-たとえば、1 つの Deployment の再起動とスケールだけができるサービスアカウントは次のとおりです。
-
-```yaml title="oneuptime-runbooks-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-rules:
-  # Restart workload: patches the Deployment's pod template.
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
-  # Scale workload: patches the Deployment's scale subresource.
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-subjects:
-  - kind: ServiceAccount
-    name: oneuptime-runbooks
-    namespace: checkout
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: oneuptime-runbooks
-```
-
-StatefulSet や DaemonSet の場合は、代わりに `statefulsets` や `daemonsets` を使います。DaemonSet はスケールできないため、`scale` のルールは不要です。
-
-## スクリプト用のシークレット
-
-Bash と JavaScript のステップには **認証情報** 項目がありません。パスワード、トークン、API キーを Runbook に書かずにスクリプトに渡すには、 **Runbook のシークレット** として保存します。シークレットは **Runbook → 設定 → シークレット** で、Project Owner と Project Admin、または **Create Runbook Secret** 権限を持つ人が管理します。
-
-:::steps
-### シークレットを作成する
-
-**Runbook のシークレットを作成** をクリックします。 **シークレット** ステップで、 **名前** （英字、数字、ハイフン、アンダースコア）、任意の **説明** 、 **シークレットの値** を入力します。 **アクセス** ステップで、 **このシークレットを使用できる自社の Runner** から自社の Runner を選びます。[グローバル Runner](/docs/runbooks/agents#グローバル-runner) があるサーバーでは、 **グローバル Runner がこのシークレットを使用できる** により、グローバル Runner で実行されるこのプロジェクトのステップもこのシークレットを使用できます。プロジェクトがグローバル Runner を使用している間は、新しいシークレットではオンの状態で始まります。
-
-### スクリプトで使う
-
-値を入れたい場所に `{{runbookSecrets.NAME}}` と書きます。
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer {{runbookSecrets.CDN_API_TOKEN}}" \
-  "https://api.cdn.example.com/v1/purge"
-```
-
-シークレットが割り当てられた Runner がステップを取得すると、値が埋め込まれたスクリプトを受け取ります。 シークレットがグローバル Runner に使用を許可している場合は、グローバル Runner も同様です。グローバル Runner が使用できないシークレットを指定したグローバル Runner のステップは、シークレットなしで実行されるのではなく、そのシークレットの名前を示して失敗します。
-:::
-
-認証情報のシークレット項目と同じく、シークレットの値は保存時に暗号化され、API から返されることはありません。 **シークレット値を更新** で置き換えます。OneUptime Cloud では、Runbook のシークレットにも **Growth** 以上のプランが必要です。
-
-| | 認証情報 | Runbook のシークレット |
-| --- | --- | --- |
-| 使うもの | SSH と Kubernetes のステップ | Bash と JavaScript のスクリプト |
-| 中身 | ホストとその鍵、またはクラスターの URL とトークン | 任意の単一の値 |
-| 管理場所 | **Runbook → Runner → 認証情報** | **Runbook → 設定 → シークレット** |
-| Runner に届くとき | それを指定するステップの取得への応答の中で | 取得したステップのスクリプトに埋め込まれて |
-| API から読み戻せるもの | シークレットではない項目だけ | 値は決して読めない |
+- **Kubernetes** — サービスアカウントを、OneUptime AI に許可することだけを、操作してよい Namespace でだけ許可する Role にバインドします。読み取りしかできないサービスアカウントなら、OneUptime AI は調査はできますが、修正はすべて拒否されます。
 
 ## 閲覧できる人
 
@@ -178,7 +103,7 @@ Runner の **エージェントキー** は、その Runner に割り当てた�
 ## 次のステップ
 
 :::cards
-- [Runbook を作成する](/docs/runbooks/authoring): 認証情報を使う SSH と Kubernetes のステップを書きます。
+- [Runbook の変数](/docs/runbooks/variables): SSH と kubectl のステップがサインインに使うシークレット。
 - [Runbook エージェント](/docs/runbooks/agents): 認証情報を割り当てる Runner をインストールします。
 - [Runbook の設定と安全性](/docs/runbooks/configuration): Runbook スタック全体の権限と堅牢化。
 :::

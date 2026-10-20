@@ -685,7 +685,7 @@ export const WorkflowRoutePath: Dictionary<string> = {
 
 export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
-  [PageMap.RUNBOOKS_SECRETS]: "settings/secrets",
+  [PageMap.RUNBOOKS_VARIABLES]: "settings/variables",
   [PageMap.RUNBOOKS_RUNNERS]: "runners",
   [PageMap.RUNBOOKS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
   [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: "runner-credentials",
@@ -697,6 +697,7 @@ export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOK_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.RUNBOOK_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.RUNBOOK_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.RUNBOOK_VIEW_VARIABLES]: `${RouteParams.ModelID}/variables`,
   [PageMap.RUNBOOK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUNBOOKS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.RUNBOOKS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
@@ -7342,9 +7343,9 @@ const RouteMap: Dictionary<Route> = {
       RunbookRoutePath[PageMap.RUNBOOKS_EXECUTIONS]
     }`,
   ),
-  [PageMap.RUNBOOKS_SECRETS]: new Route(
+  [PageMap.RUNBOOKS_VARIABLES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
-      RunbookRoutePath[PageMap.RUNBOOKS_SECRETS]
+      RunbookRoutePath[PageMap.RUNBOOKS_VARIABLES]
     }`,
   ),
   [PageMap.RUNBOOKS_RUNNERS]: new Route(
@@ -7400,6 +7401,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOK_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOK_VIEW_SETTINGS]
+    }`,
+  ),
+  [PageMap.RUNBOOK_VIEW_VARIABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOK_VIEW_VARIABLES]
     }`,
   ),
   [PageMap.RUNBOOK_VIEW_DELETE]: new Route(

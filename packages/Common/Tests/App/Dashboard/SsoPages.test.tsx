@@ -515,6 +515,7 @@ import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
+import Clipboard from "../../../UI/Utils/Clipboard";
 import URL from "../../../Types/API/URL";
 import { APP_API_URL } from "../../../UI/Config";
 
@@ -1189,6 +1190,48 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
     fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
 
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  /*
+   * The values are pasted into the identity provider: each sits in its own
+   * row with a button that copies it exactly, where it used to be plain
+   * text to select by hand.
+   */
+  test("each identity provider URL has a button that copies it, byte for byte", async () => {
+    const copied: Array<string> = [];
+
+    getJestSpyOn(Clipboard, "copyToClipboard").mockImplementation(
+      async (text: unknown): Promise<boolean> => {
+        copied.push(String(text));
+        return true;
+      },
+    );
+
+    renderPage(pageCase);
+
+    fireEvent.click(screen.getByRole("button", { name: pageCase.viewAction }));
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+    const values: HTMLElement = modal.querySelector("dl") as HTMLElement;
+
+    expect(values).not.toBeNull();
+    expect(values.getAttribute("data-testid")).toMatch(
+      /^(sso|oidc)-config-values$/,
+    );
+
+    const buttons: Array<HTMLElement> = within(values).getAllByRole("button", {
+      name: /^Copy /,
+    });
+
+    expect(buttons).toHaveLength(pageCase.printed.length);
+
+    for (const button of buttons) {
+      await act(async () => {
+        fireEvent.click(button);
+      });
+    }
+
+    expect([...copied].sort()).toEqual([...pageCase.printed].sort());
   });
 
   test("links to the page that tests single sign-on, byte for byte", async () => {

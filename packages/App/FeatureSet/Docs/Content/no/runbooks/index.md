@@ -7,6 +7,7 @@ Et runbook er en gjenbrukbar responsprosedyre: en ordnet liste med manuelle og a
 - [Runbook-regler](/docs/runbooks/rules): Start runbooks ved nye hendelser, varsler og vedlikeholdshendelser.
 - [Kjøre et runbook](/docs/runbooks/running): Start en kjøring, fullfør og godkjenn trinnene, avbryt den.
 - [Runbook-utløsere](/docs/runbooks/triggers): Kjør et runbook etter en tidsplan, eller fra et annet verktøy via webhook-URL-en dets.
+- [Runbook-variabler](/docs/runbooks/variables): Vertene, nøklene, passordene og kubeconfigene som trinnene dine bruker ved navn.
 - [Runbook-agenter](/docs/runbooks/agents): Installer Runneren som kjører skriptene dine i din egen infrastruktur.
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>tar trinnene<br/>i rekkefølge"]
     worker -->|"Manual-trinn<br/>eller godkjenning"| person["Venter på<br/>en person"]
     worker -->|"HTTP- og<br/>AI-trinn"| onworker["Kjører på Workeren"]
-    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner i din<br/>infrastruktur"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>kubectl"| runner["Runner i din<br/>infrastruktur"]
     person --> record["Status, output og<br/>feil registrert"]
     onworker --> record
     runner --> record
@@ -35,20 +36,20 @@ flowchart TB
 
 Hver gang et runbook kjøres, opprettes en **kjøring**. Når den starter, kopieres runbookets trinn over på den, og OneUptime går gjennom dem i rekkefølge. Et Manual-trinn, eller et trinn som krever godkjenning, setter kjøringen på pause til noen handler.
 
-HTTP- og AI-trinn kjører på OneUptime Worker. Bash-, SSH- og Kubernetes-trinn kjører på en [Runner](/docs/runbooks/agents) som du installerer i din egen infrastruktur, slik at disse skriptene aldri kjører på OneUptimes servere. Et JavaScript-trinn kjører også på en av dine Runnere eller, hvis det ikke velger noen, på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse som bare når internett. Hvert trinns status, output og feilmelding registreres på kjøringen, som blir liggende på hendelsen, varselet eller begivenheten den kjørte for.
+HTTP- og AI-trinn kjører på OneUptime Worker. Bash-, SSH- og kubectl-trinn kjører på en [Runner](/docs/runbooks/agents) som du installerer i din egen infrastruktur, slik at disse skriptene aldri kjører på OneUptimes servere. Et JavaScript-trinn kjører også på en av dine Runnere eller, hvis det ikke velger noen, på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse som bare når internett. Hvert trinns status, output og feilmelding registreres på kjøringen, som blir liggende på hendelsen, varselet eller begivenheten den kjørte for.
 
 ## Sentrale begreper
 
 | Begrep | Betydning |
 | --- | --- |
 | **Runbook** | Malen. En navngitt, gjenbrukbar prosedyre med en ordnet liste med trinn og en bryter **Kjør dette runbooket**. |
-| **Trinn** | Ett punkt i et runbook. Det har en type (Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes eller AI), en tittel, en beskrivelse og typespesifikke innstillinger. |
+| **Trinn** | Ett punkt i et runbook. Det har en type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl eller AI), en tittel, en beskrivelse og typespesifikke innstillinger. |
 | **Runbook-regel** | En regel som automatisk knytter ett eller flere runbooks til hendelser, varsler eller planlagte vedlikeholdshendelser som oppfyller betingelsene: monitorene deres, alvorlighetsgrad, etiketter, monitoretiketter, tittel eller beskrivelse. |
 | **Kjøring** | Én kjøring av et runbook. Opprettes når en regel utløses, når noen klikker **Kjør runbook** på en begivenhet, eller når noen klikker **Run Now** på selve runbooket. Den inneholder et øyeblikksbilde av trinnene og hvert trinns status og output. |
 | **Øyeblikksbilde** | Den frosne kopien av runbookets trinn som ligger på hver kjøring. Du kan redigere runbooket senere uten å skrive om historikken for tidligere kjøringer. |
-| **Runner** | En liten agent som du kjører på en vert i din egen infrastruktur. Den kjører JavaScript-, Bash-, SSH- og Kubernetes-trinnene som peker på den. Kalles også en runbook-agent. En global Runner, en av dem OneUptime kjører for alle prosjekter, kjører JavaScript-trinnene som ikke nevner noen. |
-| **Påloggingsinformasjon** | Administrert SSH- eller Kubernetes-tilgang som SSH- og Kubernetes-trinn bruker. Kryptert i hvile og bare utlevert til Runnerne du tildeler den. |
-| **Hemmelighet** | En enkelt verdi, for eksempel et API-token, som et Bash- eller JavaScript-skript bruker som `{{runbookSecrets.NAME}}`. Kryptert i hvile og bare utlevert til Runnerne du tildeler den. Globale Runnere får den bare hvis du lar dem. |
+| **Runner** | En liten agent som du kjører på en vert i din egen infrastruktur. Den kjører JavaScript-, Bash-, SSH- og kubectl-trinnene som peker på den. Kalles også en runbook-agent. En global Runner, en av dem OneUptime kjører for alle prosjekter, kjører JavaScript-trinnene som ikke nevner noen. |
+| **Variabel** | En verdi som trinn bruker ved navn, for eksempel en vert eller en URL: `{{global.variables.NAME}}` for en av prosjektets, som hver runbook kan bruke, eller `{{local.variables.NAME}}` for en av runbookens egne. |
+| **Hemmelighet** | En variabel der verdien er kryptert i hvile, aldri vises igjen og skjules i det trinnene skriver ut, for eksempel en SSH-nøkkel, et passord, en kubeconfig eller et API-token. Bare utlevert til Runnerne du lar bruke den; globale Runnere får den bare hvis du lar dem. |
 
 ## Trinntyper
 
@@ -59,9 +60,9 @@ Velg typen som passer hvert trinn. [Skrive et runbook](/docs/runbooks/authoring)
 | **Manual** | En person | Et menneske må kontrollere noe, gjøre en vurdering eller handle der OneUptime ikke kan. | "Bekreft at trafikken er flyttet til den sekundære regionen." |
 | **JavaScript** | En Runner | Du trenger en liten, avgrenset beregning i en sandkasse. | Beregn replikaforsinkelsen, og avgjør om du skal fortsette. |
 | **HTTP request** | OneUptime Worker | Du kaller et eksisterende API: en skyleverandør, PagerDuty, en Slack-webhook, din egen tjeneste. | `POST` til failover-orkestratoren din. |
-| **Bash** | En Runner | Du trenger skallkommandoer på din egen infrastruktur. | Kjør `kubectl rollout restart` eller et gjenopprettingsskript. |
-| **SSH** | En Runner | Du trenger én kommando på en ekstern vert med administrert SSH-påloggingsinformasjon. | Start en tjeneste på nytt på en webserver. |
-| **Kubernetes** | En Runner | Du må starte på nytt eller skalere en Deployment, et StatefulSet eller et DaemonSet. | Start `checkout-api` på nytt i `production`. |
+| **Bash** | En Runner | Du trenger skallkommandoer på din egen infrastruktur. | Kjør et gjenopprettingsskript, eller kall med `curl` en tjeneste som bare nettverket ditt når. |
+| **SSH** | En Runner | Du trenger et bash-skript på en ekstern maskin, logget på med en hemmelig variabel. | Start en tjeneste på nytt på en webserver. |
+| **kubectl** | En Runner | Du trenger kubectl-kommandoer mot en klynge. | Start `checkout-api` på nytt i `production`, og vent så på de nye podene. |
 | **AI** | OneUptime Worker | Du vil ha en analyse, et sammendrag eller en vurdering midt i kjøringen fra prosjektets LLM-leverandør. | "Gå gjennom diagnostikken ovenfor. Er det trygt å gjøre failover?" |
 
 Et runbook kan blande alle sammen. Styrken ved runbooks er å flette menneskelige kontroller sammen med automatisering og AI-analyse.
@@ -90,11 +91,12 @@ Runbooks ligger under **Produkter**, i gruppen **Dashbord og automatisering**.
 | Et runbooks **Oversikt** | Se den siste kjøringen og resultatene, og klikk **Run Now**. |
 | Et runbooks **Kjøringer** | Alle kjøringer av dette runbooket, filtrert etter status eller startdato. |
 | Et runbooks **Utløsere** | Kjør det etter en [tidsplan](/docs/runbooks/triggers#kjør-etter-en-tidsplan), eller fra et annet verktøy via [webhook-URL-en](/docs/runbooks/triggers#kall-webhooken) dets. |
+| Et runbooks **Variabler** | Administrer [variablene](/docs/runbooks/variables) som bare det runbookets trinn bruker. |
 | Et runbooks **Eiere** | Legg til personene og teamene som er ansvarlige for det. |
 | Et runbooks **Innstillinger** | Slå av **Kjør dette runbooket** uten å slette runbooket. |
 | **Runbooks → Kjøringer** | Alle kjøringer av alle runbooks i prosjektet. |
-| **Runbooks → Runbook-agenter** og **Runbooks → Runbook-agenter → Påloggingsinformasjon** | Installer [Runnere](/docs/runbooks/agents), og administrer [påloggingsinformasjon](/docs/runbooks/credentials). |
-| **Runbooks → Innstillinger** | Administrer [hemmeligheter](/docs/runbooks/credentials#hemmeligheter-for-skript) for skript, samt **Eierregler** og **Etikettregler** som legger til eiere og etiketter på nye runbooks. |
+| **Runbooks → Runbook-agenter** og **Runbooks → Runbook-agenter → AI-tilgang** | Installer [Runnere](/docs/runbooks/agents), og administrer [tilgangen](/docs/runbooks/credentials) som OneUptime AIs kommandoer har gjennom dem. |
+| **Runbooks → Innstillinger** | Administrer under **Globale variabler** variablene som hver runbook kan [bruke](/docs/runbooks/variables), samt **Eierregler** og **Etikettregler** som legger til eiere og etiketter på nye runbooks. |
 | **Hendelser / Varsler / Planlagt vedlikehold → Regler → Runbook-regler** | Opprett reglene som starter runbooks automatisk. |
 | En hendelse, et varsel eller en vedlikeholdshendelse → **Runbooks** | Se kjøringene som er knyttet til den, og klikk **Kjør runbook** for å starte en. |
 
@@ -105,7 +107,7 @@ Sidemenyen til et runbook grupperer sidene slik. Bare **Grunnleggende** er åpen
 | **Grunnleggende** | **Oversikt**, **Trinn** |
 | **Logger** | **Kjøringer** |
 | **Eiere** | **Eiere** |
-| **Innstillinger** | **Utløsere**, **Innstillinger** |
+| **Innstillinger** | **Utløsere**, **Variabler**, **Innstillinger** |
 | **Utvikler** | **Terraform**, **API**, **AI-assistenter** |
 | **Avansert** | **Revisjonslogger**, **Slett kjørebok** |
 
@@ -156,7 +158,7 @@ Kjøringen blir liggende på hendelsens side **Runbooks**. Når du skriver postm
 - **Tømming av cache**: én HTTP-forespørsel, og deretter et Manual-trinn "bekreft at treffraten i cachen er på vei opp igjen".
 - **Hendelse som rammer kunder**: Manual "publiser en oppdatering på statussiden", en HTTP-forespørsel for å varsle supportteamet, JavaScript for å hente listen over berørte kontoer.
 - **Forhåndssjekk før planlagt vedlikehold**: ta et øyeblikksbilde av metrikker, bekreft endringsvinduet med interessentene (Manual), slå på vedlikeholdsmodus på lastbalansereren (HTTP request).
-- **Diagnostiser, og rett deretter**: et Bash-trinn samler inn diagnostikk, et AI-trinn med **Krev godkjenning** leser den og anbefaler en løsning, og et Kubernetes-trinn starter arbeidsbelastningen på nytt først når en person har godkjent.
+- **Diagnostiser, og rett deretter**: et Bash-trinn samler inn diagnostikk, et AI-trinn med **Krev godkjenning** leser den og anbefaler en løsning, og et kubectl-trinn starter arbeidsbelastningen på nytt først når en person har godkjent.
 - **Hygiene som alltid kjører**: en regel uten betingelser som registrerer systemets tilstand ved hver hendelse til postmortem.
 
 ## Slik passer runbooks inn i resten av OneUptime
@@ -170,7 +172,7 @@ Kjøringen blir liggende på hendelsens side **Runbooks**. Når du skriver postm
 
 :::cards
 - [Skrive et runbook](/docs/runbooks/authoring): Opprett ditt første runbook og trinnene i det.
-- [Runbook-agenter](/docs/runbooks/agents): Installer en Runner før du skriver et Bash-, SSH- eller Kubernetes-trinn.
+- [Runbook-agenter](/docs/runbooks/agents): Installer en Runner før du skriver et Bash-, SSH- eller kubectl-trinn.
 - [Runbook-regler](/docs/runbooks/rules): Start runbooks automatisk når det opprettes hendelser.
 - [Runbook-konfigurasjon & sikkerhet](/docs/runbooks/configuration): Grenser, tidsavbrudd, tillatelser og herding.
 :::

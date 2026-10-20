@@ -132,8 +132,12 @@ Your role reads runbooks but does not run them: the button says "You do not have
 The runbook's **Run this runbook** switch is off, on its **Settings** page, or it has no saved steps. Turn the switch on, or add steps and click **Save Steps**. Its **Overview** says which, with **Turn on runbook** or **Add Steps**.
 :::
 
-:::details A step failed because it is missing a Runner or a credential
-The message reads, for example, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." The step was saved without a **Runner**, or an SSH or Kubernetes step without a **Credential**. A JavaScript step needs a Runner of its own only when no [global Runner](/docs/runbooks/agents#global-runners) can run it. Open the runbook's **Steps**, pick what the step is missing, click **Save Steps** and run the runbook again.
+:::details A step failed because it is missing a Runner
+The message reads, for example, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." The step was saved without a **Runner**. A JavaScript step needs a Runner of its own only when no [global Runner](/docs/runbooks/agents#global-runners) can run it. Open the runbook's **Steps**, pick the step's Runner, click **Save Steps** and run the runbook again.
+:::
+
+:::details A step failed because it names variables it cannot use
+The message starts "This step names variables it cannot use, so it was not run:" and says, for each variable, what is wrong and where to fix it: there is no variable of that name, the secret has no value, or the step's Runner may not use it. Create the variable or correct its name in the step, or let the Runner use the secret, then run the runbook again. See [Runbook Variables](/docs/runbooks/variables).
 :::
 
 :::details A step failed because no runbook agent picked it up

@@ -39,6 +39,8 @@ import {
   STATUS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 import { CustomDomainModel } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
+import { CUSTOM_DOMAIN_NAME_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainName";
+import FieldType from "../../../UI/Components/Types/FieldType";
 import API from "../../../UI/Utils/API/API";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -143,12 +145,29 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         }
       ).getElement;
 
+      // The Domain column draws its own cell: a link once the domain is live.
+      const domainColumn: { getElement?: unknown } | undefined =
+        props.columns.find((column: { title?: string }) => {
+          return column.title === "Domain";
+        });
+
+      const getDomain: (item: CustomDomainModel) => React.ReactNode = (
+        item: CustomDomainModel,
+      ): React.ReactNode => {
+        const getElement: unknown = domainColumn?.getElement;
+
+        return typeof getElement === "function"
+          ? (getElement as (row: CustomDomainModel) => React.ReactElement)(item)
+          : item.fullDomain;
+      };
+
       return (
         <section data-testid={props.id}>
           <p data-testid="card-description">{props.cardProps?.description}</p>
           {mockRows.map((row: CustomDomainModel): React.ReactElement => {
             return (
               <div key={row.fullDomain} data-testid={`row-${row.fullDomain}`}>
+                <div data-testid="domain-cell">{getDomain(row)}</div>
                 <p data-testid="status">{getStatus(row)}</p>
                 {(props.actionButtons || [])
                   .filter(
@@ -479,6 +498,99 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         ["CNAME Valid", ["isCnameVerified"]],
         ["SSL Provisioned", ["isSslProvisioned"]],
       ]);
+    });
+  });
+
+  /*
+   * The Domain column: a live domain opens, in a new tab, as the page's own
+   * list of addresses draws it; one that is not live yet is its name alone
+   * (its Status says why). It used to be the name alone, live or not.
+   */
+  describe("the Domain column", () => {
+    function domainCellOf(fullDomain: string): HTMLElement {
+      return within(rowOf(fullDomain)).getByTestId("domain-cell");
+    }
+
+    test("a live domain opens over HTTPS in a new tab; one not live yet is its name alone", () => {
+      renderPage();
+
+      for (const live of [PROVISIONED, UPLOADED]) {
+        const link: HTMLElement = within(domainCellOf(live)).getByTestId(
+          CUSTOM_DOMAIN_NAME_TEST_IDS.link,
+        );
+
+        expect(link).toHaveAttribute("href", `https://${live}`);
+        expect(link).toHaveAttribute("target", "_blank");
+        expect(link).toHaveAttribute("rel", "noopener noreferrer");
+        expect(link.textContent).toBe(`${live} (opens in a new tab)`);
+      }
+
+      for (const notLive of [UNVERIFIED, VERIFIED, ORDERED]) {
+        const cell: HTMLElement = domainCellOf(notLive);
+
+        expect(within(cell).queryByRole("link")).not.toBeInTheDocument();
+        expect(
+          within(cell).getByTestId(CUSTOM_DOMAIN_NAME_TEST_IDS.name),
+        ).toHaveTextContent(notLive);
+      }
+    });
+
+    test("its certificate decides: one that has expired is not a link, though the row still says provisioned", async () => {
+      renderPage();
+
+      await loadCertificates([
+        {
+          domainId: rowNamed(PROVISIONED)._id as string,
+          expiresAt: "2026-01-01T00:00:00.000Z",
+        },
+      ]);
+
+      expect(
+        within(domainCellOf(PROVISIONED)).queryByRole("link"),
+      ).not.toBeInTheDocument();
+      expect(statusOf(PROVISIONED)).toContain("Certificate expired");
+      // The uploaded certificate's domain is still live.
+      expect(within(domainCellOf(UPLOADED)).getByRole("link")).toHaveAttribute(
+        "href",
+        `https://${UPLOADED}`,
+      );
+    });
+
+    /*
+     * The table's cells clip what is drawn past their sides (overflow-x:
+     * clip), so a focus ring round the link lost its left edge. The
+     * keyboard's focus is a heavy underline, drawn inside the cell.
+     */
+    test("a live domain shows the keyboard's focus as a heavy underline, not a ring the cell would clip", () => {
+      renderPage();
+
+      const link: HTMLElement = within(domainCellOf(PROVISIONED)).getByTestId(
+        CUSTOM_DOMAIN_NAME_TEST_IDS.link,
+      );
+
+      expect(link).toHaveClass(
+        "focus:outline-none",
+        "focus-visible:underline",
+        "focus-visible:decoration-2",
+      );
+      expect(link.className).not.toContain("focus-visible:ring");
+    });
+
+    test("the column still reads, sorts and filters by the domain's full name", () => {
+      renderPage();
+
+      const column: { field?: Record<string, unknown>; type?: unknown } = (
+        tableProps().columns as Array<{
+          title: string;
+          field?: Record<string, unknown>;
+          type?: unknown;
+        }>
+      ).find((candidate: { title: string }) => {
+        return candidate.title === "Domain";
+      })!;
+
+      expect(column.field).toEqual({ fullDomain: true });
+      expect(column.type).toBe(FieldType.Element);
     });
   });
 

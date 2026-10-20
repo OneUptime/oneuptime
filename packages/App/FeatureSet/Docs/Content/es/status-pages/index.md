@@ -168,7 +168,7 @@ Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que desca
 
 ## Previsualizar antes de publicar
 
-La pantalla **Vista general** de cada página de estado tiene una tarjeta **Enlace de la página de estado** con un enlace directo a la página y **Copiar enlace** al lado. Úsala mientras sigues añadiendo recursos y antes de que exista un dominio personalizado.
+La pantalla **Vista general** de cada página de estado tiene una tarjeta **Enlace de la página de estado** con todas las direcciones en las que responde la página: primero sus dominios personalizados y después su dirección en OneUptime, cada una con **Copiar enlace** al lado. Un dominio personalizado que aún no está activo aparece marcado como **Aún no activo**, con el motivo, y con **Configuración de DNS** cuando queda algo por hacer. Cuando los visitantes tienen que iniciar sesión o introducir una contraseña, la tarjeta lo dice. Usa la dirección de OneUptime mientras sigues añadiendo recursos y antes de que algún dominio personalizado esté activo.
 
 Por debajo, cada ruta pública tiene una gemela de vista previa en `/status-page/{statusPageId}/...`: un resumen de vista previa, una lista de incidencias de vista previa, una página de suscripción de vista previa, etc. Por eso, una URL o una captura de pantalla tomada de la vista previa del panel no coincidirá con lo que ve un cliente una vez asociado un dominio personalizado, así que comprueba cualquier enlace que pegues en un runbook o un correo electrónico.
 

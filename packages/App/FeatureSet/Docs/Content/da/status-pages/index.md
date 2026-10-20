@@ -168,7 +168,7 @@ Under kortet står **Eksportér Statusside som JSON**, der downloader statusside
 
 ## At se siden an, før du går live
 
-Skærmen **Oversigt** for hver statusside har et kort **Link til statussiden** med et direkte link til siden og **Kopiér link** ved siden af. Brug det, mens du stadig tilføjer ressourcer, og før der findes et brugerdefineret domæne.
+Skærmen **Oversigt** for hver statusside har et kort **Link til statussiden** med hver adresse, siden svarer på: først dens brugerdefinerede domæner, derefter dens adresse hos OneUptime, hver med **Kopiér link** ved siden af. Et brugerdefineret domæne, der ikke er live endnu, er markeret med **Ikke live endnu**, med årsagen, og med **DNS-opsætning**, når der stadig er noget at gøre. Når besøgende skal logge ind eller indtaste en adgangskode, siger kortet det. Brug OneUptime-adressen, mens du stadig tilføjer ressourcer, og før et brugerdefineret domæne er live.
 
 Bag kulisserne har hver offentlig rute en forhåndsvisningstvilling under `/status-page/{statusPageId}/...`: en forhåndsvist oversigt, en forhåndsvist hændelsesliste, en forhåndsvist tilmeldingsside og så videre. En URL eller et skærmbillede taget fra dashboardets forhåndsvisning svarer derfor ikke til det, en kunde ser, når et brugerdefineret domæne er tilknyttet, så tjek alle links, du indsætter i en runbook eller en e-mail.
 

@@ -586,9 +586,14 @@ const Modal: FunctionComponent<ComponentProps> = (
               }`}
             >
               <div className="min-w-0 flex-1">
+                {/*
+                 * A name in the title or the description - a variable, a
+                 * host, a URL - may be one long word: it breaks rather than
+                 * running under the close button.
+                 */}
                 <h3
                   data-testid="modal-title"
-                  className="text-base font-semibold leading-6 tracking-tight text-gray-900"
+                  className="text-base font-semibold leading-6 tracking-tight text-gray-900 [overflow-wrap:anywhere]"
                   id={titleId}
                 >
                   {translatedTitle}
@@ -602,7 +607,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                   <p
                     id={descriptionId}
                     data-testid="modal-description"
-                    className="mt-0.5 text-pretty text-sm leading-5 text-gray-500"
+                    className="mt-0.5 text-pretty text-sm leading-5 text-gray-500 [overflow-wrap:anywhere]"
                   >
                     {translatedDescription}
                   </p>
