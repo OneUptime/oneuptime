@@ -1252,8 +1252,10 @@ vapid:
   privateKey:
   subject: mailto:support@oneuptime.com
   # Read the private key from a Secret you manage instead of privateKey, to
-  # keep it out of these values (Helm stores them with every revision):
-  #   kubectl create secret generic oneuptime-vapid --from-literal=privateKey=<private key>
+  # keep it out of these values (Helm stores them with every revision). Create
+  # it in the release's namespace:
+  #   kubectl create secret generic oneuptime-vapid -n <namespace> \
+  #     --from-literal=privateKey=<private key>
   # Leave privateKey empty then: the chart refuses the two together. The
   # public key stays in publicKey - every browser is given it.
   existingSecret:

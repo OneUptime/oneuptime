@@ -674,20 +674,20 @@ keep it: browsers that subscribed with one key pair stop receiving pushes when
 it changes. See
 [Push Notifications](https://oneuptime.com/docs/self-hosted/push-notifications).
 
-| Parameter                            | Description                                                                 | Default                        |
-|--------------------------------------|-----------------------------------------------------------------------------|--------------------------------|
-| `vapid.publicKey`                    | The public half of the key pair (`VAPID_PUBLIC_KEY`). Every browser is given it. | `nil`                     |
+| Parameter                            | Description                                                                      | Default                        |
+|--------------------------------------|----------------------------------------------------------------------------------|--------------------------------|
+| `vapid.publicKey`                    | The public half of the key pair (`VAPID_PUBLIC_KEY`). Every browser is given it. | `nil`                          |
 | `vapid.privateKey`                   | The private half (`VAPID_PRIVATE_KEY`), which signs every web push. Leave it empty when you use `vapid.existingSecret`. | `nil` |
-| `vapid.subject`                      | A contact address the browser push services can reach you on (`VAPID_SUBJECT`). | `mailto:support@oneuptime.com` |
-| `vapid.existingSecret.name`          | Read the private key from a Secret you manage instead of `vapid.privateKey`. | `nil`                         |
-| `vapid.existingSecret.privateKeyKey` | The key of that Secret that holds the private key.                          | `privateKey`                   |
+| `vapid.subject`                      | A contact address the browser push services can reach you on (`VAPID_SUBJECT`).  | `mailto:support@oneuptime.com` |
+| `vapid.existingSecret.name`          | Read the private key from a Secret you manage instead of `vapid.privateKey`.     | `nil`                          |
+| `vapid.existingSecret.privateKeyKey` | The key of that Secret that holds the private key.                               | `privateKey`                   |
 
 `vapid.privateKey` keeps the key in the release's values, which Helm stores with
 every revision. To keep it out of them, put the key in a Secret in the
 release's namespace and name that Secret instead:
 
 ```console
-kubectl create secret generic oneuptime-vapid --from-literal=privateKey=<private key>
+kubectl create secret generic oneuptime-vapid -n oneuptime --from-literal=privateKey=<private key>
 ```
 
 ```yaml
@@ -701,9 +701,11 @@ Every pod that is given `VAPID_PRIVATE_KEY` (app, worker, telemetry writer,
 nginx, home, test server and the migrate Job) then reads it from that Secret,
 and the chart writes no copy of it. Set `vapid.privateKey` or
 `vapid.existingSecret.name`, not both: the chart refuses the two together and
-says which to clear. The public key stays in `vapid.publicKey`. Pods read the
-private key when they start: after changing it in the Secret, restart those
-Deployments (`kubectl rollout restart deployment/<release>-app`, and so on).
+says which to clear. The public key stays in `vapid.publicKey`.
+
+Pods read the private key when they start: after you change it in the Secret,
+restart them (`kubectl rollout restart deployment -n oneuptime` restarts every
+Deployment in the namespace).
 
 ## On-call calendar feeds
 

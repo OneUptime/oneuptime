@@ -905,11 +905,35 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     } = JSON.parse(readSource("chartSchema"));
 
     expect(page).toContain(
-      "`vapid.privateKey` keeps the private key in the release's values, which Helm stores with every revision. To keep it out of them, put it in a Kubernetes Secret in OneUptime's namespace, under `privateKey`, and name that Secret instead:",
+      ":::details Keep the private key in a Secret\n`vapid.privateKey` keeps the private key in the release's values, which Helm stores with every revision. To keep it out of them, put it in a Kubernetes Secret in OneUptime's namespace, under `privateKey`, and name that Secret instead:",
     );
     expect(page).toContain(
-      "Set `vapid.privateKey` or `vapid.existingSecret.name`, not both: the chart refuses the two together. If your Secret holds the private key under another key, name that key in `vapid.existingSecret.privateKeyKey`. The public key stays in `vapid.publicKey`: every browser is given it.",
+      "Set `vapid.privateKey` or `vapid.existingSecret.name`, not both: the chart refuses the two together. If your Secret holds the private key under another key, name that key in `vapid.existingSecret.privateKeyKey`. The public key stays in `vapid.publicKey`: every browser is given it.\n:::\n:::\n",
     );
+
+    /*
+     * Most installs set the key as a value, so the Kubernetes tab shows that
+     * first, and the Secret is folded away under it: the fold opens after
+     * the plain example and closes, with the tab set, after its last line.
+     */
+    const kubernetesTab: string = textBetween(
+      page,
+      "@tab Kubernetes\n",
+      "\n## Network Access",
+    );
+    const plainExample: number = kubernetesTab.indexOf(
+      "  privateKey: your-private-key\n",
+    );
+    const fold: number = kubernetesTab.indexOf(
+      ":::details Keep the private key in a Secret\n",
+    );
+
+    expect(plainExample).toBeGreaterThan(-1);
+    expect(fold).toBeGreaterThan(plainExample);
+    expect(kubernetesTab.indexOf("existingSecret:")).toBeGreaterThan(fold);
+    expect(
+      kubernetesTab.endsWith("every browser is given it.\n:::\n:::\n"),
+    ).toBe(true);
 
     // Off until a Secret is named; read under privateKey unless another key is named.
     expect(chartHasValue("vapid.existingSecret.name")).toBe(true);
@@ -1001,10 +1025,14 @@ describe("Push Notifications, against the server, the chart and the mobile app",
         inChart: true,
       });
     }
+    /*
+     * In the namespace the docs install OneUptime in, a flag a line, so the
+     * command fits the article column without scrolling sideways.
+     */
     expect(page).toContain(
-      `kubectl create secret generic oneuptime-vapid --from-literal=${String(
+      `\`\`\`bash\nkubectl create secret generic oneuptime-vapid \\\n  --namespace oneuptime \\\n  --from-literal=${String(
         chartValue("vapid.existingSecret.privateKeyKey"),
-      )}=your-private-key\n`,
+      )}=your-private-key\n\`\`\`\n`,
     );
   });
 

@@ -71,10 +71,13 @@ expo:
   accessToken:
 ```
 
+:::details 비공개 키를 Secret에 보관
 `vapid.privateKey`는 비공개 키를 릴리스의 값에 남기며, Helm은 이 값을 리비전마다 저장합니다. 비공개 키를 값에 남기지 않으려면 OneUptime의 네임스페이스에 있는 Kubernetes Secret에 `privateKey` 항목으로 비공개 키를 넣고, 대신 그 Secret의 이름을 지정하세요:
 
 ```bash
-kubectl create secret generic oneuptime-vapid --from-literal=privateKey=your-private-key
+kubectl create secret generic oneuptime-vapid \
+  --namespace oneuptime \
+  --from-literal=privateKey=your-private-key
 ```
 
 ```yaml title="values.yaml"
@@ -86,6 +89,7 @@ vapid:
 ```
 
 `vapid.privateKey`와 `vapid.existingSecret.name` 중 하나만 설정하고 둘 다 설정하지는 마세요. 둘을 함께 설정하면 차트가 거부합니다. Secret에 비공개 키를 다른 항목 이름으로 넣었다면 그 이름을 `vapid.existingSecret.privateKeyKey`에 지정하세요. 공개 키는 `vapid.publicKey`에 그대로 둡니다. 모든 브라우저가 받는 값이기 때문입니다.
+:::
 :::
 
 ## 네트워크 접근
