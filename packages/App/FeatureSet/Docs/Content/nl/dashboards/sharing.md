@@ -33,7 +33,7 @@ Open het dashboard en kies **⋯ → Delen**, of open **Delen** in het zijmenu v
 - **Iedereen met de link**: het dashboard is openbaar. Iedereen die de link heeft, kan het zien, zonder zich aan te melden.
 - **Iedereen met de link en een wachtwoord**: bezoekers openen de link en voeren daarna één wachtwoord in dat jij met hen deelt. Niemand heeft een account nodig.
 
-Een keuze maken vraagt om bevestiging, met wat er voor bezoekers verandert, en wordt dan meteen toegepast. **Iedereen met de link en een wachtwoord** kiezen vraagt in hetzelfde dialoogvenster om het wachtwoord als het dashboard er nog geen heeft; zolang dat de keuze is, vervangt **Wachtwoord wijzigen** het. Zolang het dashboard openbaar is, staat de **Openbare link** onder de keuze, met een knop die hem kopieert.
+Een keuze maken vraagt om bevestiging, met wat er voor bezoekers verandert, en wordt dan meteen toegepast. **Iedereen met de link en een wachtwoord** kiezen vraagt in hetzelfde dialoogvenster om het wachtwoord als het dashboard er nog geen heeft; zolang dat de keuze is, vervangt **Wachtwoord wijzigen** het. Zolang het dashboard openbaar is, staan de adressen waarop bezoekers het openen onder de keuze: eerst de aangepaste domeinen, dan de openbare link, elk met **Link kopiëren**. Een aangepast domein dat nog niet live is, is gemarkeerd met **Nog niet live**, met de reden.
 
 Binnen het project bepalen eigenaren en labels wie wat ziet: zie [Dashboard-configuratie en machtigingen](/docs/dashboards/configuration). Wie het dashboard kan zien maar niet kan bewerken, ziet de keuze en kan de openbare link kopiëren, maar kan haar niet wijzigen.
 

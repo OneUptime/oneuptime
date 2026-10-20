@@ -36,9 +36,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * a dashboard a trial left public can always be made private again; the
  * dialog then says that sharing it again needs Growth. The password is asked
  * for in the same dialog when the dashboard has none, so the page never
- * locks visitors out by itself. The public link, with a copy button, sits
- * under the public choice in force. The IP allowlist, which few dashboards
- * need, is folded under Advanced and saves on its own.
+ * locks visitors out by itself. Under the public choice in force sit the
+ * addresses visitors open it at - its custom domains first, then its public
+ * link on OneUptime's own domain - each live one with Copy link, as a status
+ * page's Overview lists its own (Components/CustomDomain/PublicAddresses).
+ * The IP allowlist, which few dashboards need, is folded under Advanced and
+ * saves on its own.
  *
  * Kept free of React (and of the browser's config, so App/Tests can load
  * it) so the card, the page and App/Tests read these exact strings and
@@ -165,11 +168,6 @@ export const DashboardSharingCopy: {
   cardTitle: string;
   cardDescription: string;
   notFound: string;
-  // Under the public choice in force.
-  publicLinkTitle: string;
-  copyLink: string;
-  copyLinkTitle: string;
-  copied: string;
   // Under the password choice, while it is the choice.
   lockedWithoutPassword: string;
   setPassword: string;
@@ -194,10 +192,6 @@ export const DashboardSharingCopy: {
     "Pick who can open this dashboard. A change asks you to confirm, then applies at once.",
   ),
   notFound: translationKey("Dashboard not found."),
-  publicLinkTitle: translationKey("Public link"),
-  copyLink: translationKey("Copy link"),
-  copyLinkTitle: translationKey("Copy the public link"),
-  copied: translationKey("Copied!"),
   lockedWithoutPassword: translationKey(
     "No password is set yet, so nobody can open the public link. Set one to let visitors in.",
   ),
@@ -245,8 +239,15 @@ export const DASHBOARD_ACCESS_GATED_COLUMNS: ReadonlyArray<string> = [
   DASHBOARD_MASTER_PASSWORD_COLUMN,
 ];
 
+/*
+ * The domain "Use your own domain, such as ..." names under the public
+ * choice, while the dashboard has no custom domain.
+ */
+export const DASHBOARD_EXAMPLE_DOMAIN: string = "dashboard.example.com";
+
 // Test ids.
 export const DASHBOARD_SHARING_CARD_TEST_ID: string = "dashboard-sharing";
+// Under the public choice in force: where visitors open the dashboard.
 export const DASHBOARD_PUBLIC_LINK_TEST_ID: string = "dashboard-public-link";
 export const DASHBOARD_SHARING_LOCKED_TEST_ID: string =
   "dashboard-sharing-locked-without-password";

@@ -33,7 +33,7 @@ flowchart TB
 - **Alle mit dem Link**: Das Dashboard ist öffentlich. Wer seinen Link hat, kann es sehen, ohne sich anzumelden.
 - **Alle mit dem Link und einem Passwort**: Besucher öffnen den Link und geben dann ein Passwort ein, das Sie mit ihnen teilen. Niemand braucht ein Konto.
 
-Die Wahl einer Option bittet um Bestätigung, sagt, was sich für Besucher ändert, und gilt dann sofort. Die Wahl von **Alle mit dem Link und einem Passwort** fragt im selben Dialog nach dem Passwort, wenn das Dashboard keines hat; solange sie gewählt ist, ersetzt **Passwort ändern** es. Solange das Dashboard öffentlich ist, steht sein **Öffentlicher Link** unter der Wahl, mit einer Schaltfläche, die ihn kopiert.
+Die Wahl einer Option bittet um Bestätigung, sagt, was sich für Besucher ändert, und gilt dann sofort. Die Wahl von **Alle mit dem Link und einem Passwort** fragt im selben Dialog nach dem Passwort, wenn das Dashboard keines hat; solange sie gewählt ist, ersetzt **Passwort ändern** es. Solange das Dashboard öffentlich ist, stehen die Adressen, unter denen Besucher es öffnen, unter der Wahl: zuerst seine eigenen Domains, dann sein öffentlicher Link, jede mit **Link kopieren**. Eine eigene Domain, die noch nicht erreichbar ist, ist mit **Noch nicht live** markiert, mit dem Grund.
 
 Innerhalb des Projekts bestimmen Eigentümer und Beschriftungen, wer was sieht — siehe [Dashboard-Konfiguration & Berechtigungen](/docs/dashboards/configuration). Wer das Dashboard sehen, aber nicht bearbeiten darf, sieht die Wahl und kann den öffentlichen Link kopieren, aber nicht ändern.
 

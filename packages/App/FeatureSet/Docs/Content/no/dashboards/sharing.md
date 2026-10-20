@@ -33,7 +33,7 @@ flowchart TB
 - **Alle med lenken**: dashbordet er offentlig. Alle som har lenken, kan se det uten å logge på.
 - **Alle med lenken og et passord**: besøkende åpner lenken og skriver deretter inn ett passord som du deler med dem. Ingen trenger en konto.
 
-Når du velger et alternativ, blir du bedt om å bekrefte, med en forklaring av hva som endres for besøkende, og så gjelder det umiddelbart. Velger du **Alle med lenken og et passord**, ber den samme dialogen om passordet når dashbordet ikke har noe; så lenge det er valget, erstatter **Endre passord** det. Så lenge dashbordet er offentlig, står **Offentlig lenke** under valget, med en knapp som kopierer den.
+Når du velger et alternativ, blir du bedt om å bekrefte, med en forklaring av hva som endres for besøkende, og så gjelder det umiddelbart. Velger du **Alle med lenken og et passord**, ber den samme dialogen om passordet når dashbordet ikke har noe; så lenge det er valget, erstatter **Endre passord** det. Så lenge dashbordet er offentlig, står adressene besøkende åpner det på, under valget: først de egendefinerte domenene, deretter den offentlige lenken, hver med **Kopier lenke**. Et egendefinert domene som ikke er live ennå, er merket med **Ikke live ennå**, med årsaken.
 
 Innenfor prosjektet styrer eiere og etiketter hvem som ser hva: se [Dashbord-konfigurasjon & tillatelser](/docs/dashboards/configuration). Den som kan se dashbordet, men ikke redigere det, ser valget og kan kopiere den offentlige lenken, men kan ikke endre valget.
 

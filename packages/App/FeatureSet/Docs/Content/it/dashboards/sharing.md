@@ -33,7 +33,7 @@ Apri la dashboard e scegli **⋯ → Condividi**, oppure apri **Condivisione** n
 - **Chiunque abbia il link**: la dashboard è pubblica. Chiunque abbia il suo link può vederla, senza accedere.
 - **Chiunque abbia il link e una password**: i visitatori aprono il link, poi inseriscono una password che condividi con loro. Nessuno ha bisogno di un account.
 
-Scegliere un'opzione chiede conferma, spiegando che cosa cambia per i visitatori, poi si applica subito. Scegliere **Chiunque abbia il link e una password** chiede la password nella stessa finestra quando la dashboard non ne ha una; finché è la scelta attiva, **Cambia password** la sostituisce. Finché la dashboard è pubblica, il suo **Link pubblico** si trova sotto la scelta, con un pulsante che lo copia.
+Scegliere un'opzione chiede conferma, spiegando che cosa cambia per i visitatori, poi si applica subito. Scegliere **Chiunque abbia il link e una password** chiede la password nella stessa finestra quando la dashboard non ne ha una; finché è la scelta attiva, **Cambia password** la sostituisce. Finché la dashboard è pubblica, gli indirizzi a cui i visitatori la aprono si trovano sotto la scelta: prima i suoi domini personalizzati, poi il suo link pubblico, ciascuno con **Copia link**. Un dominio personalizzato non ancora attivo è segnato **Non ancora attivo**, con il motivo.
 
 All'interno del progetto, i proprietari e le etichette controllano chi vede cosa: vedi [Configurazione e permessi della dashboard](/docs/dashboards/configuration). Chi può vedere la dashboard ma non modificarla vede la scelta e può copiare il link pubblico, ma non può cambiarla.
 

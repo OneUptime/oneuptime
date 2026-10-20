@@ -63,7 +63,8 @@
     "test-sign-in-options-ui": "playwright test --config playwright.sign-in-options-ui.config.ts",
     "test-maintenance-calendar-ui": "playwright test --config playwright.maintenance-calendar-ui.config.ts",
     "test-detail-cards-ui": "playwright test --config playwright.detail-cards-ui.config.ts",
-    "test-model-tables-ui": "playwright test --config playwright.model-tables-ui.config.ts"
+    "test-model-tables-ui": "playwright test --config playwright.model-tables-ui.config.ts",
+    "test-public-addresses-ui": "playwright test --config playwright.public-addresses-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

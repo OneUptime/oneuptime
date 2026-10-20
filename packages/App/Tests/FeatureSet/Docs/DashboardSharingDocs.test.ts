@@ -1,3 +1,4 @@
+import PublicAddressCopy from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -102,8 +103,25 @@ describe("the English sharing guide", () => {
       "asks for the password in the same dialog when the dashboard has none; while it is the choice, **Change Password** replaces it.",
     );
     expect(section).toContain(
-      "While the dashboard is public, its **Public link** sits under the choice, with a button that copies it.",
+      "While the dashboard is public, the addresses visitors open it at sit under the choice: its custom domains first, then its public link, each with **Copy link**. A custom domain that is not live yet is marked **Not live yet**, with why.",
     );
+    // No "Public link" label any more: the addresses say what each is.
+    expect(section).not.toContain("**Public link**");
+  });
+
+  it("names the address list's own words, which the Sharing card draws under the public choice", () => {
+    const card: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "App/FeatureSet/Dashboard/src/Components/Dashboard/Sharing/DashboardSharingCard.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(card).toContain("<PublicAddresses");
+    expect(card).toContain("kind={DASHBOARD_CUSTOM_DOMAINS}");
+    expect(PublicAddressCopy.copyLink).toBe("Copy link");
+    expect(PublicAddressCopy.notLiveYet).toBe("Not live yet");
   });
 
   it("says which choices need a plan, and which do not", () => {

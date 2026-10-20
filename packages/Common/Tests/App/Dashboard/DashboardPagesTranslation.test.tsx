@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -17,10 +18,14 @@ import {
 import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import React, { ReactElement } from "react";
+import { getJestSpyOn } from "../../Spy";
 import McpOAuthGrant from "../../../Models/DatabaseModels/McpOAuthGrant";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 
 /*
@@ -46,11 +51,23 @@ const GERMAN: Record<string, string> = {
     "Übergeht „Nicht stören“, wenn ein Alarm eintrifft.",
   "Download for iPhone and iPad": "Für iPhone und iPad herunterladen",
   "Available on iOS & Android": "Für iOS und Android verfügbar",
-  // Pages/StatusPages/View/StatusPagePreviewLink.tsx
+  // Pages/StatusPages/View/StatusPagePreviewLink.tsx (Components/CustomDomain/PublicAddresses)
   "Status Page Link": "Link zur Statusseite",
-  "Open it to see your status page as visitors do.":
-    "Öffnen Sie ihn, um Ihre Statusseite so zu sehen, wie Besucher sie sehen.",
+  "Where visitors find your status page.":
+    "Wo Besucher Ihre Statusseite finden.",
   "Copy link": "Link kopieren",
+  "Copy link to {{address}}": "Link zu {{address}} kopieren",
+  "Custom domain": "Benutzerdefinierte Domain",
+  "OneUptime address": "OneUptime-Adresse",
+  "Not live yet": "Noch nicht live",
+  "Waiting for DNS: add the CNAME record.":
+    "Warten auf DNS: Fügen Sie den CNAME-Eintrag hinzu.",
+  "DNS Setup": "DNS-Einrichtung",
+  "(opens in a new tab)": "(öffnet in einem neuen Tab)",
+  Addresses: "Adressen",
+  "Visitors sign in to see this status page.":
+    "Besucher melden sich an, um diese Statusseite zu sehen.",
+  "Change access": "Zugriff ändern",
   // Pages/Settings/McpServer.tsx (Components/Mcp/McpServerCard.tsx)
   "Sign in with": "Anmelden mit",
   "API key": "API-Schlüssel",
@@ -263,25 +280,103 @@ describe("Settings > Mobile Apps in German", () => {
 });
 
 describe("Status page link in German", () => {
-  test("the card's words are German and the link stays the page's URL", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the card's words are German, each address keeps its own, and the link stays the page's URL", async () => {
     const modelId: ObjectID = ObjectID.generate();
-    const container: HTMLElement = renderInGerman(
-      <StatusPagePreviewLink modelId={modelId} />,
+
+    // A private page, on one live custom domain and one waiting for DNS.
+    getJestSpyOn(ModelAPI, "getItem").mockImplementation(
+      async (): Promise<StatusPage> => {
+        const statusPage: StatusPage = new StatusPage();
+        statusPage._id = modelId.toString();
+        statusPage.isPublicStatusPage = false;
+        statusPage.enableMasterPassword = false;
+        return statusPage;
+      },
     );
+
+    getJestSpyOn(ModelAPI, "getList").mockImplementation(
+      async (): Promise<unknown> => {
+        const live: StatusPageDomain = new StatusPageDomain();
+        live._id = ObjectID.generate().toString();
+        live.fullDomain = "status.acme.com";
+        live.isCnameVerified = true;
+        live.isCustomCertificate = true;
+
+        const waiting: StatusPageDomain = new StatusPageDomain();
+        waiting._id = ObjectID.generate().toString();
+        waiting.fullDomain = "status-eu.acme.com";
+        waiting.isCnameVerified = false;
+
+        return { data: [live, waiting], count: 2, skip: 0, limit: 2 };
+      },
+    );
+
+    let container: HTMLElement = document.body;
+
+    await act(async () => {
+      container = renderInGerman(<StatusPagePreviewLink modelId={modelId} />);
+    });
+
+    await act(async () => {
+      for (let i: number = 0; i < 8; i++) {
+        await Promise.resolve();
+      }
+    });
 
     const text: string = normalizedText(container);
 
     expect(text).toContain("Link zur Statusseite");
+    expect(text).toContain("Wo Besucher Ihre Statusseite finden.");
+    expect(text).toContain("Benutzerdefinierte Domain");
+    expect(text).toContain("OneUptime-Adresse");
+    expect(text).toContain("Noch nicht live");
     expect(text).toContain(
-      "Öffnen Sie ihn, um Ihre Statusseite so zu sehen, wie Besucher sie sehen.",
+      "Warten auf DNS: Fügen Sie den CNAME-Eintrag hinzu.",
     );
+    expect(text).toContain("DNS-Einrichtung");
     expect(text).toContain("Link kopieren");
-    expect(text).not.toContain("Status Page Link");
-    expect(text).not.toContain("Here's a link");
+    expect(text).toContain(
+      "Besucher melden sich an, um diese Statusseite zu sehen. Zugriff ändern",
+    );
+    // The addresses are never translated.
+    expect(text).toContain("status.acme.com");
+    expect(text).toContain("status-eu.acme.com");
 
-    const link: HTMLAnchorElement | null = container.querySelector("a");
+    for (const english of [
+      "Status Page Link",
+      "Where visitors find",
+      "Custom domain",
+      "OneUptime address",
+      "Not live yet",
+      "Waiting for DNS",
+      "Visitors sign in",
+      "Change access",
+      "Here's a link",
+    ]) {
+      expect([english, text.includes(english)]).toEqual([english, false]);
+    }
 
-    expect(link?.textContent).toContain(modelId.toString());
+    // Copy link names, in German, the address it copies.
+    expect(
+      screen.getByRole("button", { name: "Link zu status.acme.com kopieren" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Adressen" })).toBeInTheDocument();
+
+    const links: Array<HTMLAnchorElement> = Array.from(
+      container.querySelectorAll("a"),
+    );
+
+    expect(
+      links.some((link: HTMLAnchorElement): boolean => {
+        return (link.getAttribute("href") || "").endsWith(
+          `/status-page/${modelId.toString()}`,
+        );
+      }),
+    ).toBe(true);
   });
 });
 
