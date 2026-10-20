@@ -34,7 +34,7 @@ Det är samma agent och samma Runner som i [Kod](/docs/ai/ai-agent), med samma b
 ## Innan du börjar
 
 - Repositoriet måste vara **anslutet till ett OneUptime-projekt** via GitHub App: anslut det i **Produkter → Kod**. En självhostad instans behöver först en egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration). Om appen redan är installerad på GitHub-kontot klickar du där på **Anslut en befintlig installation** i stället för att installera den igen.
-- En Runner med **Kör AI-kodfixar** måste vara online: samma Runner som utför uppgifterna i [Kod](/docs/ai/ai-agent). Utan en godtas kommandon och fallerar sedan efter 30 minuter, med ett meddelande om att ingen agent plockade upp dem.
+- Den Runner som repositoryt väljer i sina inställningar i Kod måste vara online, eller en global Runner för ett repository som inte väljer någon: samma Runner som utför uppgifterna i [Kod](/docs/ai/ai-agent). Utan en godtas kommandon och fallerar sedan efter 30 minuter, med ett meddelande om att ingen Runner plockade upp dem.
 - GitHub App behöver behörigheten **Issues** med **Read & write**, och måste prenumerera på webhook-händelserna under [Vad du ska prenumerera på](#vad-du-ska-prenumerera-på).
 
 ## Kommandona
@@ -160,7 +160,7 @@ En körning av det slaget är redan aktiv på den här issuen eller pull request
 :::
 
 :::details Den bekräftade och blev sedan tyst länge
-Kontrollera att en Runner med **Kör AI-kodfixar** är online under **Runbooks → Runbook-agenter**. Utan en fallerar körningen efter 30 minuter, och tråden får veta det.
+Kontrollera att den Runner som repositoryt väljer är online under **Runbooks → Runbook-agenter**. Ett repository som inte väljer någon arbetar på en global Runner, och dess inställningar i Kod visar om en är ansluten. Utan en Runner online fallerar körningen efter 30 minuter, och tråden får veta det.
 :::
 
 :::details Den säger att pull requesten kommer från en fork

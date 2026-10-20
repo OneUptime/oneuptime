@@ -25,12 +25,15 @@ const ServiceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         limit={100}
         noLogsMessage="No logs found for this service."
       />
-      <div className="mt-4">
-        <TelemetryImprovementCard
-          telemetryServiceId={modelId}
-          taskType="ImproveLogging"
-        />
-      </div>
+      {/*
+       * Only when it can do something (AI on, a repository, no improvement
+       * already on its way); it brings its own spacing, so nothing is left
+       * behind when it is not shown.
+       */}
+      <TelemetryImprovementCard
+        telemetryServiceId={modelId}
+        taskType="ImproveLogging"
+      />
     </Fragment>
   );
 };

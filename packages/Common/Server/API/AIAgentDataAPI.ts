@@ -35,10 +35,9 @@ import CodeFixTaskContext, {
   getInvestigationCodeFixTaskSnapshot,
   ImplicatedSpan,
   InvestigationCodeFixTaskSnapshot,
-  PerformanceCodeLocation,
   PerformanceFinding,
 } from "../../Types/AI/CodeFixTaskContext";
-import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import SpanTreeAnalyzer from "../../Utils/Traces/SpanTreeAnalyzer";
 import {
   sanitizeExceptionMessage,
   sanitizeStackTrace,
@@ -66,6 +65,12 @@ import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CodeTaskThread from "../Utils/AI/CodeTask/CodeTaskThread";
+import CodeRepositoryRunnerChoice from "../Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
+import {
+  getFirstMonitorName,
+  getPerformanceStackTrace,
+} from "../Utils/AI/CodeFix/CodeFixRunRepository";
+import { CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL } from "../../Types/Runner/CodeRepositoryRunner";
 
 export default class AIAgentDataAPI {
   public router!: ExpressRouter;
@@ -885,19 +890,12 @@ export default class AIAgentDataAPI {
              * shaped so extractCandidatePathsFromStackTrace parses it.
              * Without code attributes this degrades to the name-match /
              * only-repository fallbacks, exactly like the subject recipes.
+             * The run was queued on the repository the same facts resolved
+             * to then (CodeFixRunRepository), read with the same helper.
              */
-            const codeLocations: Array<PerformanceCodeLocation> =
-              taskContext.codeLocations || [];
-            const syntheticStackTrace: string | null =
-              codeLocations.length > 0
-                ? codeLocations
-                    .map((location: PerformanceCodeLocation): string => {
-                      return `    at ${
-                        location.functionName ? `${location.functionName} ` : ""
-                      }(${location.filePath}:${location.lineNumber ?? 1})`;
-                    })
-                    .join("\n")
-                : null;
+            const syntheticStackTrace: string | null = getPerformanceStackTrace(
+              taskContext.codeLocations,
+            );
 
             const serviceName: string | null = taskContext.serviceName || null;
 
@@ -1042,12 +1040,7 @@ export default class AIAgentDataAPI {
             }
 
             subjectTitle = incident.title || "Untitled incident";
-            serviceName =
-              (incident.monitors || [])
-                .map((monitor: { name?: string | undefined }) => {
-                  return monitor.name || "";
-                })
-                .filter(Boolean)[0] || null;
+            serviceName = getFirstMonitorName(incident.monitors);
 
             if (taskType !== CodeFixTaskType.FixFromIncident) {
               analysisMarkdown = await PostedRootCause.getForIncident(
@@ -1242,6 +1235,7 @@ export default class AIAgentDataAPI {
                 repositoryName: true,
                 gitHubAppInstallationId: true,
                 maxOpenFixPullRequests: true,
+                runnerId: true,
               },
               props: {
                 isRoot: true,
@@ -1264,6 +1258,26 @@ export default class AIAgentDataAPI {
               req,
               res,
               new BadDataException("Code repository not found"),
+            );
+          }
+
+          /*
+           * Only the worker the repository picks works in it (its Runner
+           * setting in Code, Types/Runner/CodeRepositoryRunner): the Runner
+           * it picked, or - for one that picks none - a global Runner while
+           * its project uses them. The token is the only way into the
+           * repository, so this holds whatever handed the worker its run.
+           */
+          if (
+            !(await CodeRepositoryRunnerChoice.mayWorkInRepository({
+              worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
+              repository: codeRepository,
+            }))
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL),
             );
           }
 

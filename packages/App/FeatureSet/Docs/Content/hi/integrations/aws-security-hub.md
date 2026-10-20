@@ -56,11 +56,11 @@ flowchart TB
 
 1. **Users → Create user** खोलें, यूज़र को एक नाम दें, जैसे `oneuptime-security-hub`, कंसोल एक्सेस बंद रहने दें, और पॉलिसी जोड़ें। दूसरे खातों की फ़ाइंडिंग के लिए यह डेलिगेटेड एडमिनिस्ट्रेटर खाते में करें।
 2. यूज़र खोलें, फिर **Security credentials → Access keys → Create access key**, और **Third-party service** चुनें।
-3. **Access key ID** और **Secret access key** कॉपी करें। AWS सीक्रेट सिर्फ़ एक बार दिखाता है।
+3. **एक्सेस कुंजी ID** और **सीक्रेट एक्सेस कुंजी** कॉपी करें। AWS सीक्रेट सिर्फ़ एक बार दिखाता है।
 
 ### OneUptime में कनेक्शन जोड़ें
 
-**उत्पाद → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **AWS Security Hub** चुनें, और **अगला** पर क्लिक करें। नीचे दी गई तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और सीक्रेट को **Secret access key** में पेस्ट करें।
+**उत्पाद → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **AWS Security Hub** चुनें, और **अगला** पर क्लिक करें। नीचे दी गई तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और सीक्रेट को **सीक्रेट एक्सेस कुंजी** में पेस्ट करें।
 
 ### सहेजने से पहले इसे टेस्ट करें
 
@@ -70,8 +70,8 @@ flowchart TB
 | सेटिंग | क्या डालें |
 | --- | --- |
 | **क्षेत्र** | क्षेत्र का कोड, जैसे `us-east-1`, `eu-central-1` या `us-gov-west-1`: दूसरे खातों की फ़ाइंडिंग के लिए, एडमिनिस्ट्रेटर खाते का होम क्षेत्र। |
-| **Access key ID** | कुंजी की ID: 16 से 128 अक्षर या अंक, आमतौर पर `AKIA` से शुरू होने वाले 20, या अस्थायी क्रेडेंशियल के लिए `ASIA` से। |
-| **Secret access key** | कुंजी का सीक्रेट। यह एन्क्रिप्ट किया जाता है, API इसे कभी नहीं लौटाता, और यह फिर कभी नहीं दिखता। इसे कनेक्शन पर **Update credentials** से बदलें। |
+| **एक्सेस कुंजी ID** | कुंजी की ID: 16 से 128 अक्षर या अंक, आमतौर पर `AKIA` से शुरू होने वाले 20, या अस्थायी क्रेडेंशियल के लिए `ASIA` से। |
+| **सीक्रेट एक्सेस कुंजी** | कुंजी का सीक्रेट। यह एन्क्रिप्ट किया जाता है, API इसे कभी नहीं लौटाता, और यह फिर कभी नहीं दिखता। इसे कनेक्शन पर **Update credentials** से बदलें। |
 | **Session token** | सिर्फ़ अस्थायी क्रेडेंशियल के लिए, जिन्हें इसकी ज़रूरत होती है: `ASIA` कुंजी इसके बिना अस्वीकार होती है, और `AKIA` कुंजी इसके साथ अस्वीकार होती है। |
 
 `aws sts assume-role` या `aws sts get-session-token` से मिले अस्थायी क्रेडेंशियल एक्सपायर हो जाते हैं, assume किए गए रोल के लिए ज़्यादा से ज़्यादा 12 घंटे बाद, और पोलिंग तब तक रुकी रहती है जब तक आप **Update credentials** से नए पेस्ट न करें। इस संकरी पॉलिसी वाली लंबे समय तक चलने वाली कुंजी, जिसे आप अपने शेड्यूल पर बदलते हैं, बिना देखरेख के पोलिंग चालू रखती है। अस्थायी क्रेडेंशियल से लंबे समय तक चलने वाली कुंजी पर जाने के लिए, **Update credentials** में नई कुंजी डालें और **Remove the stored Session token** चालू करें।
@@ -167,8 +167,8 @@ AWS ने अनुरोध अस्वीकार किया। संद
 
 - `AccessDeniedException`, या `is not authorized to perform`: कुंजी सही है, पर उसकी पहचान `securityhub:GetFindings` कॉल नहीं कर सकती। [कनेक्शन सेट करें](#कनेक्शन-सेट-करें) वाली पॉलिसी जोड़ें। कोई permissions boundary या service control policy भी इसे रोक सकती है।
 - `InvalidAccessException`, या `is not subscribed to AWS Security Hub`: इस **क्षेत्र** में इस खाते के लिए Security Hub सक्षम नहीं है, या वहां यह खाता उसका एडमिनिस्ट्रेटर नहीं है।
-- `InvalidSignatureException` या `SignatureDoesNotMatch`, या `The request signature we calculated does not match`: **Secret access key** उस **Access key ID** की नहीं है। नई एक्सेस कुंजी बनाएं, और उसे **Update credentials** से सहेजें।
-- `UnrecognizedClientException` या `InvalidClientTokenId`, या `The security token included in the request is invalid`: AWS **Access key ID** को नहीं पहचानता। यह गलत टाइप हुई है, हटा दी गई है, निष्क्रिय है या किसी दूसरे पार्टिशन की है, या यह अपने **Session token** के बिना एक अस्थायी कुंजी है।
+- `InvalidSignatureException` या `SignatureDoesNotMatch`, या `The request signature we calculated does not match`: **सीक्रेट एक्सेस कुंजी** उस **एक्सेस कुंजी ID** की नहीं है। नई एक्सेस कुंजी बनाएं, और उसे **Update credentials** से सहेजें।
+- `UnrecognizedClientException` या `InvalidClientTokenId`, या `The security token included in the request is invalid`: AWS **एक्सेस कुंजी ID** को नहीं पहचानता। यह गलत टाइप हुई है, हटा दी गई है, निष्क्रिय है या किसी दूसरे पार्टिशन की है, या यह अपने **Session token** के बिना एक अस्थायी कुंजी है।
 - `ExpiredTokenException`, या `The security token included in the request is expired`: अस्थायी क्रेडेंशियल एक्सपायर हो गए। नए जारी करें, या लंबे समय तक चलने वाली कुंजी पर जाएं।
 - `RequestTimeTooSkewed` या `RequestExpired`, या `Signature expired`: OneUptime होस्ट की घड़ी 5 मिनट से ज़्यादा अलग है। ऐप और वर्कर होस्ट पर NTP ठीक करें।
 - कोई कोड ही नहीं: AWS ने नहीं बताया कि कुंजी ने इनकार किया या पॉलिसी ने। पहले कुंजी जांचें, फिर पॉलिसी।

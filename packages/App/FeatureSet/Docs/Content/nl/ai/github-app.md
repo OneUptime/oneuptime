@@ -34,7 +34,7 @@ Het is dezelfde agent en dezelfde Runner als in [Code](/docs/ai/ai-agent), met h
 ## Voordat je begint
 
 - De repository moet via de GitHub App **gekoppeld zijn aan een OneUptime-project**: koppel hem in **Producten → Code**. Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: zie [GitHub-integratie](/docs/self-hosted/github-integration). Is de app al op het GitHub-account geïnstalleerd, klik daar dan op **Een bestaande installatie koppelen** in plaats van hem opnieuw te installeren.
-- Er moet een Runner met **Voert AI-codecorrecties uit** online zijn: dezelfde Runner die de taken in [Code](/docs/ai/ai-agent) uitvoert. Zonder Runner worden opdrachten geaccepteerd en mislukken ze na 30 minuten, met een melding dat geen agent ze heeft opgepakt.
+- De Runner die de repository in zijn instellingen in Code kiest, moet online zijn, of een globale Runner voor een repository die er geen kiest: dezelfde Runner die de taken in [Code](/docs/ai/ai-agent) uitvoert. Zonder Runner worden opdrachten geaccepteerd en mislukken ze na 30 minuten, met een melding dat geen Runner ze heeft opgepakt.
 - De GitHub App heeft de machtiging **Issues** met **Read & write** nodig en moet zijn geabonneerd op de webhook-events onder [Waarop je je abonneert](#waarop-je-je-abonneert).
 
 ## De opdrachten
@@ -160,7 +160,7 @@ Er is al een run van die soort actief op dit issue of deze pull request. `@oneup
 :::
 
 :::details Hij bevestigde en bleef daarna lang stil
-Controleer of een Runner met **Voert AI-codecorrecties uit** online is onder **Runbooks → Runbook-agenten**. Zonder Runner mislukt de run na 30 minuten en krijgt de thread dat te horen.
+Controleer of de Runner die de repository kiest online is onder **Runbooks → Runbook-agenten**. Een repository die er geen kiest, werkt op een globale Runner, en zijn instellingen in Code laten zien of er een verbonden is. Zonder Runner die online is, mislukt de run na 30 minuten en krijgt de thread dat te horen.
 :::
 
 :::details Hij zegt dat de pull request uit een fork komt

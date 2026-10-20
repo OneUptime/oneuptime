@@ -1,9 +1,18 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, screen } from "@testing-library/react";
 import * as React from "react";
 import ExceptionViewSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Exceptions/View/SideMenu";
 import ObjectID from "../../../Types/ObjectID";
+import Project from "../../../Models/DatabaseModels/Project";
+import ProjectUtil from "../../../UI/Utils/Project";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
@@ -78,6 +87,45 @@ describe("exception detail side menu", () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  test("with the project's AI switched off, AI Assistance is not in the menu (nothing on it could start)", async () => {
+    const spy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue(
+        Object.assign(new Project(), { enableAi: false }) as Project,
+      );
+
+    try {
+      await renderExceptionMenu();
+
+      expect(sectionTitlesInOrder()).toEqual(["Investigate", "Manage"]);
+      expect(titlesInMenu()).not.toContain("AI Assistance");
+      expect(hrefsInMenu()).not.toContain(`${EXCEPTION_PATH}/ai-assistance`);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test("with AI on, AI Assistance is under Resolve", async () => {
+    const spy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue(
+        Object.assign(new Project(), { enableAi: true }) as Project,
+      );
+
+    try {
+      await renderExceptionMenu();
+
+      expect(linksIn("Resolve")).toEqual([
+        {
+          title: "AI Assistance",
+          href: `${EXCEPTION_PATH}/ai-assistance`,
+        },
+      ]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test("renders the investigation, resolution, and management sections in order", async () => {

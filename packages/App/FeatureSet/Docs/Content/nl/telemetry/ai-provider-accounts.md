@@ -53,7 +53,7 @@ Klik bij **Testen** op **Verbinding testen**. OneUptime leest het gebruik van de
 Klik op **Koppelen**. De eerste leesronde start binnen een minuut en haalt de laatste 30 dagen op.
 :::
 
-Gekoppelde accounts staan onder de tegels, met hun **Status** en **Laatst gelezen**. **Nu lezen** leest meteen, **Testen** controleert de opgeslagen instellingen opnieuw, **Uitzetten** stopt met lezen en houdt wat gelezen is, en **Bewerken** wijzigt de instellingen: een leeg gelaten geheim houdt het opgeslagen geheim. **Fout bekijken** toont waarom een leesronde mislukte, zonder enig geheim.
+Gekoppelde accounts staan onder de tegels, met hun **Status** en **Laatst gelezen**. **Nu lezen** leest meteen, **Testen** controleert de opgeslagen instellingen opnieuw, **Uitzetten** stopt met lezen en houdt wat gelezen is, en **Bewerken** wijzigt de instellingen: een leeg gelaten geheim houdt het opgeslagen geheim. **View error** toont waarom een leesronde mislukte, zonder enig geheim.
 
 ## Wat elke provider levert
 
@@ -112,7 +112,7 @@ Geef de app op het abonnement de rol Monitoring Reader.
 
 ### Koppel Azure
 
-Vul **Directory-ID (tenant)**, **Applicatie-ID (client)**, **Abonnements-ID** en **Clientgeheim** in. Wijzig voor Azure Government **Cloud** onder **Meer velden**.
+Vul **Directory-ID (tenant)**, **Applicatie-ID (client)**, **Abonnements-ID** en **Client secret** in. Wijzig voor Azure Government **Cloud** onder **Meer velden**.
 :::
 
 ## Amazon Bedrock
@@ -145,7 +145,7 @@ Vul **Project-ID** in en plak het hele sleutelbestand als **Serviceaccountsleute
 
 ## Het gebruik bekijken
 
-Open **Gebruik** en kies **Provideraccounts**. Je ziet er de kosten, tokens en verzoeken die je accounts voor de periode rapporteerden, gerangschikt per **Model**, **Persoon**, **Provider**, **Project of resource**, **API-sleutel** of **Verbinding**. De periode begint om middernacht UTC van de eerste dag, omdat providers hele dagen rapporteren.
+Open **Gebruik** en kies **Provideraccounts**. Je ziet er de kosten, tokens en verzoeken die je accounts voor de periode rapporteerden, gerangschikt per **Model**, **Person**, **Provider**, **Project of resource**, **API-sleutel** of **Verbinding**. De periode begint om middernacht UTC van de eerste dag, omdat providers hele dagen rapporteren.
 
 **Provideraccounts** en **Je AI-aanroepen** worden nooit opgeteld. Een aanroep die je app doet met een sleutel van een gekoppeld account zit in beide, dus optellen zou hem dubbel tellen.
 

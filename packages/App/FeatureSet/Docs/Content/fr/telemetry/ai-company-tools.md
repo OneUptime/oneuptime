@@ -46,7 +46,7 @@ Dans **Identifiants**, remplissez ce que demande l'outil. Les secrets sont stock
 
 ### Choisir qui peut lire
 
-Dans **Confidentialité**, réglez **Qui peut lire les conversations** et **Conserver ce qui a été écrit**, comme l'explique [Confidentialité](#confidentialité).
+Dans **Privacy**, réglez **Qui peut lire les conversations** et **Conserver ce qui a été écrit**, comme l'explique [Confidentialité](#confidentialité).
 
 ### Le tester
 

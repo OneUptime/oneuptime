@@ -24,6 +24,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ServerlessFunctionOwnerRuleEngineServiceClass
   implements RuleRunEngine<ServerlessFunction, ServerlessFunctionOwnerRule>
@@ -122,6 +123,7 @@ class ServerlessFunctionOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     serverlessFunction: ServerlessFunction;
     rules: Array<ServerlessFunctionOwnerRule>;

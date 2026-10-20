@@ -53,7 +53,7 @@ Under **Testa** klickar du på **Testa anslutningen**. OneUptime läser användn
 Klicka på **Anslut**. Den första läsningen startar inom en minut och hämtar de senaste 30 dagarna.
 :::
 
-Anslutna konton listas under rutorna, med **Status** och **Senast läst**. **Läs nu** läser direkt, **Testa** kontrollerar de sparade inställningarna igen, **Stäng av** slutar läsa och behåller det som lästs, och **Redigera** ändrar inställningarna: en hemlighet som lämnas tom behåller den sparade. **Visa fel** visar varför en läsning misslyckades, utan någon hemlighet.
+Anslutna konton listas under rutorna, med **Status** och **Senast läst**. **Läs nu** läser direkt, **Testa** kontrollerar de sparade inställningarna igen, **Stäng av** slutar läsa och behåller det som lästs, och **Redigera** ändrar inställningarna: en hemlighet som lämnas tom behåller den sparade. **View error** visar varför en läsning misslyckades, utan någon hemlighet.
 
 ## Vad varje leverantör ger
 
@@ -112,7 +112,7 @@ Ge appen rollen Monitoring Reader på prenumerationen.
 
 ### Anslut Azure
 
-Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)**, **Prenumerations-ID** och **Klienthemlighet**. För Azure Government ändrar du **Moln** under **Fler fält**.
+Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)**, **Prenumerations-ID** och **Client secret**. För Azure Government ändrar du **Moln** under **Fler fält**.
 :::
 
 ## Amazon Bedrock

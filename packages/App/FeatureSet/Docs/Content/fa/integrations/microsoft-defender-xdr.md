@@ -37,7 +37,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 1. به [Azure portal](https://portal.azure.com) وارد شوید و **Microsoft Entra ID** را باز کنید.
 2. به **App registrations → New registration** بروید. نامش را `OneUptime Security Events` بگذارید، **Supported account types** را روی **Accounts in this organizational directory only** نگه دارید، URI بازگشت را خالی بگذارید، و **Register** را برگزینید.
-3. از صفحهٔ **Overview** برنامه، **Application (client) ID** و **Directory (tenant) ID** را کپی کنید.
+3. از صفحهٔ **Overview** برنامه، **شناسه برنامه (کلاینت)** و **شناسه دایرکتوری (مستأجر)** را کپی کنید.
 
 ### اجازهٔ خواندن هشدارها به آن
 
@@ -61,9 +61,9 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 | تنظیم | کجا پیدایش کنید |
 | --- | --- |
-| **Directory (tenant) ID** | صفحهٔ **Overview** برنامه. GUID مستأجر، یا یک دامنهٔ تأییدشده مانند `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | صفحهٔ **Overview** برنامه. GUID برنامه‌ای که `SecurityAlert.Read.All` را دارد. |
-| **ابر** | **Azure public cloud**، که به Microsoft 365 GCC هم سرویس می‌دهد، یا **Azure Government (US)** برای GCC High (`login.microsoftonline.us` و `graph.microsoft.us`). Microsoft 365 DoD و ابر 21Vianet در چین پشتیبانی نمی‌شوند. |
+| **شناسه دایرکتوری (مستأجر)** | صفحهٔ **Overview** برنامه. GUID مستأجر، یا یک دامنهٔ تأییدشده مانند `contoso.onmicrosoft.com`. |
+| **شناسه برنامه (کلاینت)** | صفحهٔ **Overview** برنامه. GUID برنامه‌ای که `SecurityAlert.Read.All` را دارد. |
+| **ابر** | **ابر عمومی Azure**، که به Microsoft 365 GCC هم سرویس می‌دهد، یا **Azure Government (ایالات متحده)** برای GCC High (`login.microsoftonline.us` و `graph.microsoft.us`). Microsoft 365 DoD و ابر 21Vianet در چین پشتیبانی نمی‌شوند. |
 | **Client secret** | **Value** رمز. رمزگذاری می‌شود، API هرگز آن را برنمی‌گرداند و دیگر هرگز نشان داده نمی‌شود. آن را با **Update credentials** روی اتصال جایگزین کنید. |
 
 گام **Polling** همچنین یک **توضیحات** اختیاری دارد، **Poll Interval (Minutes)**، یک عدد صحیح از `1` تا `1440` که با `5` شروع می‌شود، و **فعال**، که از آغاز روشن است.
@@ -151,7 +151,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::details Last Error با `Microsoft Defender XDR token request` شروع می‌شود
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID از صدور توکن خودداری کرد، پس هرگز با Graph تماس گرفته نشد. پیام با راهنمایی‌ای بر پایهٔ کد `error` در Entra تمام می‌شود:
   - `invalid_client` (`AADSTS7000215`): رمز نادرست، منقضی، یا متعلق به برنامهٔ دیگری است. یک رمز تازه زیر **Certificates & secrets** بسازید، و آن را با **Update credentials** ذخیره کنید.
-  - `unauthorized_client` (`AADSTS700016`): **Application (client) ID** در آن **Directory (tenant) ID** نیست، یا **ابر** نادرست است.
+  - `unauthorized_client` (`AADSTS700016`): **شناسه برنامه (کلاینت)** در آن **شناسه دایرکتوری (مستأجر)** نیست، یا **ابر** نادرست است.
   - `AADSTS90002`: چنین مستأجری وجود ندارد.
   - `invalid_scope`: دامنهٔ Graph در ابری که برگزیدید وجود ندارد. **ابر** را بررسی کنید.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID با چیزی بی‌استفاده پاسخ داد، بدنه‌ای که JSON نیست یا `access_token` ندارد. این معمولاً یک پراکسی یا دروازه در میانه است، نه اعتبارنامه‌ها.

@@ -53,7 +53,7 @@ In **Test**, fai clic su **Testa la connessione**. OneUptime legge l'utilizzo de
 Fai clic su **Collega**. La prima lettura parte entro un minuto e porta gli ultimi 30 giorni.
 :::
 
-Gli account collegati compaiono sotto i riquadri, con il loro **Stato** e la loro **Ultima lettura**. **Leggi ora** legge subito, **Test** ricontrolla le impostazioni salvate, **Disattiva** smette di leggere e tiene ciò che è stato letto, e **Modifica** cambia le impostazioni: un segreto lasciato vuoto mantiene quello salvato. **Vedi l'errore** mostra perché una lettura non è riuscita, senza alcun segreto.
+Gli account collegati compaiono sotto i riquadri, con il loro **Stato** e la loro **Ultima lettura**. **Leggi ora** legge subito, **Test** ricontrolla le impostazioni salvate, **Disattiva** smette di leggere e tiene ciò che è stato letto, e **Modifica** cambia le impostazioni: un segreto lasciato vuoto mantiene quello salvato. **View error** mostra perché una lettura non è riuscita, senza alcun segreto.
 
 ## Cosa offre ogni provider
 
@@ -112,7 +112,7 @@ Sulla sottoscrizione, assegna all'app il ruolo Monitoring Reader.
 
 ### Collega Azure
 
-Compila **ID directory (tenant)**, **ID applicazione (client)**, **ID sottoscrizione** e **Segreto client**. Per Azure Government, cambia **Cloud** in **Altri campi**.
+Compila **ID directory (tenant)**, **ID applicazione (client)**, **ID sottoscrizione** e **Client secret**. Per Azure Government, cambia **Cloud** in **Altri campi**.
 :::
 
 ## Amazon Bedrock
@@ -145,7 +145,7 @@ Compila **ID Progetto** e incolla l'intero file della chiave come **Chiave dell'
 
 ## Vedere l'utilizzo
 
-Apri **Utilizzo** e scegli **Account provider**. Mostra il costo, i token e le richieste che i tuoi account hanno riportato per l'intervallo, ordinati per **Modello**, **Persona**, **Provider**, **Progetto o risorsa**, **Chiave API** o **Connessione**. L'intervallo inizia alla mezzanotte UTC del suo primo giorno, perché i provider riportano giorni interi.
+Apri **Utilizzo** e scegli **Account provider**. Mostra il costo, i token e le richieste che i tuoi account hanno riportato per l'intervallo, ordinati per **Modello**, **Person**, **Provider**, **Progetto o risorsa**, **Chiave API** o **Connessione**. L'intervallo inizia alla mezzanotte UTC del suo primo giorno, perché i provider riportano giorni interi.
 
 **Account provider** e **Le tue chiamate IA** non vengono mai sommati. Una chiamata che la tua app fa con una chiave di un account collegato è in entrambi, quindi sommarli la conterebbe due volte.
 

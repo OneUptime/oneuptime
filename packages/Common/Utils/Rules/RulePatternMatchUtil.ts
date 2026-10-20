@@ -28,10 +28,12 @@
 
 import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
 import { getLinearRegExp } from "../LinearRegExp/PatternCache";
+import { patternWorkRefusesQuestions } from "../LinearRegExp/PatternWork";
 import {
   describePatternProblemReason,
   PatternProblemError,
   PatternProblemReason,
+  PatternWorkLimitError,
 } from "../LinearRegExp/PatternProblem";
 
 // How much of a pattern a refusal quotes: a rule's pattern column holds 500.
@@ -53,6 +55,15 @@ export class RulePatternMatchUtil {
     }
 
     if (typeof value !== "string" || value.length === 0) {
+      return false;
+    }
+
+    if (patternWorkRefusesQuestions(value)) {
+      /*
+       * The evaluation's allowance is spent (LinearRegExp/PatternWork.ts):
+       * no answer, as a regular expression or as a wildcard, without a
+       * lookup. The wildcard below counts against it too.
+       */
       return false;
     }
 
@@ -156,9 +167,29 @@ export class RulePatternMatchUtil {
    * expression, in time in line with the value's length. Throws when the
    * pattern cannot run - not a regular expression (SyntaxError), or one the
    * linear-time matcher refuses - so a rule engine can say which rule.
+   *
+   * A question that needs more work than it may take - on its own, or
+   * together with the other questions of the rule evaluation under way
+   * (LinearRegExp/PatternWork.ts) - has no answer: false here, with nothing
+   * wrong with the pattern. The evaluation counts it as unanswered, so a
+   * negated condition is not read as holding (RuleCriteriaMatcher), and a
+   * privacy rule keeps the record private.
    */
   public static testRegex(pattern: string, value: string): boolean {
-    return getLinearRegExp(pattern, "i").test(value);
+    if (patternWorkRefusesQuestions(value)) {
+      // The evaluation's allowance is spent: no answer, without a lookup.
+      return false;
+    }
+
+    try {
+      return getLinearRegExp(pattern, "i").test(value);
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   /*

@@ -31,10 +31,10 @@ export interface KubernetesAgentRunnerRowMarkers {
  * - an agent posture (in a cluster AND naming that cluster), which only the
  *   kubernetes-agent Runner binary reports on its heartbeats.
  *
- * The server refuses a rename of such a row, "Runs Runbooks" or "Runs AI
- * Code Fixes" on it, a credential for it, Bash/SSH work on it and binding
- * it to another cluster; the pages use this rule so they never offer what
- * the server would refuse. Reading only the name would miss a row whose
+ * The server refuses a rename of such a row, "Runs Runbooks" on it, a
+ * code repository that picks it, a credential for it, Bash/SSH work on it
+ * and binding it to another cluster; the pages use this rule so they never
+ * offer what the server would refuse. Reading only the name would miss a row whose
  * posture says it is an agent (a legacy rename from before the rename
  * guard), and the server would still refuse the write.
  */

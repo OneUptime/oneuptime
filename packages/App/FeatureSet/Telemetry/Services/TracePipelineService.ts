@@ -18,6 +18,7 @@ import {
   evaluateCompiledFilter,
 } from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
 
@@ -124,6 +125,13 @@ export class TracePipelineService {
     spanRow: JSONObject,
     pipelines: Array<LoadedTracePipeline>,
   ): JSONObject {
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(spanRow);
+
     let result: JSONObject = { ...spanRow };
 
     for (const { pipeline, compiledFilter, processors } of pipelines) {

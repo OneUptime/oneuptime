@@ -166,7 +166,6 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         selectMoreFields={{
           _id: true,
           key: true,
-          canRunCodeFixTasks: true,
           canRunAiCommands: true,
           // The posture: whether a row is a Runner the Kubernetes agent chart installed.
           hostInfo: true,
@@ -307,10 +306,6 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 capabilities.push("Runbooks");
               }
 
-              if (item.canRunCodeFixTasks === true) {
-                capabilities.push("AI code fixes");
-              }
-
               if (item.canRunAiCommands === true) {
                 capabilities.push("AI remediation commands");
               }
@@ -324,9 +319,10 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
 
               /*
-               * Pills rather than a comma-joined sentence: with three
-               * capabilities the joined string wrapped to two lines and could
-               * not be scanned down the column.
+               * Pills rather than a comma-joined sentence, so the column can
+               * be scanned down. AI code fixes are not one: a code
+               * repository picks its Runner in Code, and the Runner's own
+               * page lists the repositories that pick it.
                */
               return (
                 <div className="flex flex-wrap gap-1">

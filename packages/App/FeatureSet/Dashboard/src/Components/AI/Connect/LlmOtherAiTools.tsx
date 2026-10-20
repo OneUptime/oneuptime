@@ -50,7 +50,7 @@ export const LLM_OTHER_AI_TOOLS: Array<OtherTool> = [
     key: "self-hosted-chat",
     title: translationKey("Open WebUI and LibreChat"),
     body: translationKey(
-      "Self-hosted chat apps: put them behind a LiteLLM proxy, or turn on their OpenTelemetry export.",
+      "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.",
     ),
     docsPath: `${LLM_COMPANY_TOOLS_DOCS_PATH}#open-webui-and-librechat`,
   },

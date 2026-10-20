@@ -37,7 +37,7 @@ flowchart TB
 
 1. [Azure portal](https://portal.azure.com) में साइन इन करें और **Microsoft Entra ID** खोलें।
 2. **App registrations → New registration** पर जाएं। इसका नाम `OneUptime Security Events` रखें, **Supported account types** को **Accounts in this organizational directory only** पर रहने दें, रीडायरेक्ट URI खाली छोड़ें, और **Register** चुनें।
-3. ऐप के **Overview** पेज से **Application (client) ID** और **Directory (tenant) ID** कॉपी करें।
+3. ऐप के **Overview** पेज से **एप्लिकेशन (क्लाइंट) ID** और **डायरेक्टरी (टेनेंट) ID** कॉपी करें।
 
 ### इसे अलर्ट पढ़ने दें
 
@@ -61,9 +61,9 @@ flowchart TB
 
 | सेटिंग | कहां मिलेगी |
 | --- | --- |
-| **Directory (tenant) ID** | ऐप का **Overview** पेज। टेनेंट का GUID, या `contoso.onmicrosoft.com` जैसा कोई सत्यापित डोमेन। |
-| **Application (client) ID** | ऐप का **Overview** पेज। उस ऐप का GUID जिसके पास `SecurityAlert.Read.All` है। |
-| **क्लाउड** | **Azure public cloud**, जो Microsoft 365 GCC को भी सर्व करता है, या GCC High के लिए **Azure Government (US)** (`login.microsoftonline.us` और `graph.microsoft.us`)। Microsoft 365 DoD और चीन का 21Vianet क्लाउड समर्थित नहीं हैं। |
+| **डायरेक्टरी (टेनेंट) ID** | ऐप का **Overview** पेज। टेनेंट का GUID, या `contoso.onmicrosoft.com` जैसा कोई सत्यापित डोमेन। |
+| **एप्लिकेशन (क्लाइंट) ID** | ऐप का **Overview** पेज। उस ऐप का GUID जिसके पास `SecurityAlert.Read.All` है। |
+| **क्लाउड** | **Azure सार्वजनिक क्लाउड**, जो Microsoft 365 GCC को भी सर्व करता है, या GCC High के लिए **Azure Government (अमेरिका)** (`login.microsoftonline.us` और `graph.microsoft.us`)। Microsoft 365 DoD और चीन का 21Vianet क्लाउड समर्थित नहीं हैं। |
 | **Client secret** | सीक्रेट का **Value**। यह एन्क्रिप्ट किया जाता है, API इसे कभी नहीं लौटाता और यह फिर कभी नहीं दिखता। इसे कनेक्शन पर **Update credentials** से बदलें। |
 
 **Polling** चरण में एक वैकल्पिक **विवरण**, **Poll Interval (Minutes)**, जो `1` से `1440` तक की पूर्ण संख्या है और `5` से शुरू होती है, और **सक्षम** भी है, जो शुरू में चालू रहता है।
@@ -151,7 +151,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::details Last Error `Microsoft Defender XDR token request` से शुरू होता है
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID ने टोकन जारी करने से मना कर दिया, इसलिए Graph से कभी संपर्क नहीं हुआ। संदेश Entra के `error` कोड पर आधारित एक संकेत के साथ खत्म होता है:
   - `invalid_client` (`AADSTS7000215`): सीक्रेट गलत है, एक्सपायर हो गया है, या किसी दूसरे ऐप का है। **Certificates & secrets** के नीचे नया बनाएं, और उसे **Update credentials** से सहेजें।
-  - `unauthorized_client` (`AADSTS700016`): **Application (client) ID** उस **Directory (tenant) ID** में नहीं है, या **क्लाउड** गलत है।
+  - `unauthorized_client` (`AADSTS700016`): **एप्लिकेशन (क्लाइंट) ID** उस **डायरेक्टरी (टेनेंट) ID** में नहीं है, या **क्लाउड** गलत है।
   - `AADSTS90002`: ऐसा कोई टेनेंट नहीं है।
   - `invalid_scope`: आपके चुने क्लाउड में Graph स्कोप मौजूद नहीं है। **क्लाउड** जांचें।
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID ने कुछ अनुपयोगी लौटाया, ऐसी बॉडी जो JSON नहीं है या जिसमें `access_token` नहीं है। आमतौर पर यह बीच में मौजूद कोई प्रॉक्सी या गेटवे होता है, क्रेडेंशियल नहीं।

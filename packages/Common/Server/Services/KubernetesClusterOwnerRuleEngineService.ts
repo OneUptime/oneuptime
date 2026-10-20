@@ -29,6 +29,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class KubernetesClusterOwnerRuleEngineServiceClass
   implements RuleRunEngine<KubernetesCluster, KubernetesClusterOwnerRule>
@@ -128,6 +129,7 @@ class KubernetesClusterOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     kubernetesCluster: KubernetesCluster;
     rules: Array<KubernetesClusterOwnerRule>;

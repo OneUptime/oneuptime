@@ -23,6 +23,7 @@ import RuleCriteriaMatcher, {
   LegacyFilterCorrelation,
 } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 type EnqueueExecutionFn = (data: {
   runbookExecutionId: ObjectID;
@@ -93,6 +94,7 @@ class RunbookRuleEngineServiceClass {
    * (they run first and update incident.labels in memory).
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToIncident(incident: Incident): Promise<void> {
     if (!incident.id || !incident.projectId) {
       return;
@@ -108,6 +110,7 @@ class RunbookRuleEngineServiceClass {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToAlert(alert: Alert): Promise<void> {
     if (!alert.id || !alert.projectId) {
       return;
@@ -123,6 +126,7 @@ class RunbookRuleEngineServiceClass {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToScheduledMaintenance(
     event: ScheduledMaintenance,
   ): Promise<void> {

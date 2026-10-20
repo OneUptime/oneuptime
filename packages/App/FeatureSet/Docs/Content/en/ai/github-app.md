@@ -34,7 +34,7 @@ It is the same agent and the same Runner as in [Code](/docs/ai/ai-agent), with t
 ## Before you start
 
 - The repository must be **connected to a OneUptime project** through the GitHub App: connect it in **Products → Code**. A self-hosted instance needs its own GitHub App first: see [GitHub Integration](/docs/self-hosted/github-integration). If the app is already installed on the GitHub account, click **Connect an existing installation** there instead of installing it again.
-- A Runner with **Runs AI Code Fixes** must be online: the same Runner that carries out the tasks in [Code](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes, with a message that no agent picked them up.
+- The Runner the repository picks in its settings in Code must be online, or a global Runner for a repository that picks none: the same Runner that carries out the tasks in [Code](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes, with a message that no Runner picked them up.
 - The GitHub App needs the **Issues** permission with **Read & write**, and must be subscribed to the webhook events under [What to subscribe to](#what-to-subscribe-to).
 
 ## The commands
@@ -160,7 +160,7 @@ A run of that kind is already live on this issue or pull request. `@oneuptime st
 :::
 
 :::details It acknowledged, then went quiet for a long time
-Check that a Runner with **Runs AI Code Fixes** is online under **Runbooks → Runners**. Without one, the run fails after 30 minutes and the thread is told.
+Check that the Runner the repository picks is online under **Runbooks → Runners**. A repository that picks none works on a global Runner, and its settings in Code say whether one is connected. Without a Runner online, the run fails after 30 minutes and the thread is told.
 :::
 
 :::details It says the pull request comes from a fork

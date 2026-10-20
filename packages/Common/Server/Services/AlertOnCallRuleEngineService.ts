@@ -26,6 +26,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class AlertOnCallRuleEngineServiceClass {
   /**
@@ -35,6 +36,7 @@ class AlertOnCallRuleEngineServiceClass {
    * merged list, so each policy executes at most once per alert.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToAlert(alert: Alert): Promise<void> {
     if (!alert.id || !alert.projectId) {
       return;

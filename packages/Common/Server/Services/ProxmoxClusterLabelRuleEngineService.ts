@@ -23,6 +23,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ProxmoxClusterLabelRuleEngineServiceClass
   implements RuleRunEngine<ProxmoxCluster, ProxmoxClusterLabelRule>
@@ -114,6 +115,7 @@ class ProxmoxClusterLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     proxmoxCluster: ProxmoxCluster;
     rules: Array<ProxmoxClusterLabelRule>;

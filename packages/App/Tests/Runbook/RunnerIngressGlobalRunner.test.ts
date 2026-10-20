@@ -1,6 +1,7 @@
 import RunnerService from "Common/Server/Services/RunnerService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import CodeRepositoryRunnerChoice from "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
@@ -220,7 +221,6 @@ function globalRunner(overrides: Record<string, unknown> = {}): Runner {
     name: "global-runner-eu",
     isGlobalRunner: true,
     canRunRunbooks: true,
-    canRunCodeFixTasks: false,
     canRunAiCommands: false,
     ...overrides,
   } as unknown as Runner;
@@ -321,10 +321,16 @@ describe("the Runner ingress, for a global Runner", () => {
     new RunnerIngressAPI();
   });
 
+  let pickedSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     jest.spyOn(RunnerService, "heartbeat").mockResolvedValue(undefined);
+    // Whether a code repository picks the Runner: none does here.
+    pickedSpy = jest
+      .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+      .mockResolvedValue(false);
     claimGlobalSpy = jest
       .spyOn(RunnerJobService, "claimNextGlobalJob")
       .mockResolvedValue(null);
@@ -380,13 +386,17 @@ describe("the Runner ingress, for a global Runner", () => {
     });
 
     test("never grants a global Runner code fixes or AI commands, whatever its row says", async () => {
+      // Even were a repository to name it: a global Runner is never asked.
+      pickedSpy.mockResolvedValue(true);
+
       await callRoute({
         uri: HEARTBEAT_ROUTE,
         agent: globalRunner({
-          canRunCodeFixTasks: true,
           canRunAiCommands: true,
         }),
       });
+
+      expect(pickedSpy).not.toHaveBeenCalled();
 
       expect(
         (lastJsonResponse()["capabilities"] as JSONObject)[

@@ -34,6 +34,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class AlertEpisodeOwnerRuleEngineServiceClass
   implements RuleRunEngine<AlertEpisode, AlertEpisodeOwnerRule>
@@ -135,6 +136,7 @@ class AlertEpisodeOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     episode: AlertEpisode;
     rules: Array<AlertEpisodeOwnerRule>;

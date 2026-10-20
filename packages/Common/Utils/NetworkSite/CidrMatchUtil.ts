@@ -10,6 +10,27 @@ import {
   RuleCriteriaOperator,
 } from "../../Types/Rules/RuleCriteria";
 import RuleCriteriaMatcher from "../Rules/RuleCriteriaMatcher";
+import {
+  getPatternWorkAllowance,
+  getStoppedPatternQuestions,
+  PatternWorkAllowance,
+} from "../LinearRegExp/PatternWork";
+import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
+
+/*
+ * How many steps a wildcard question takes before they are counted against
+ * the allowance of the piece of work under way: counting each would slow
+ * the loop down, and counting only at the end would let one question run
+ * far past what is left.
+ */
+const WILDCARD_COUNT_INTERVAL: number = 65_536;
+
+/*
+ * Trimming and lowering the text before the steps, counted as one unit of
+ * work for this many characters: about a quarter of what a step costs per
+ * character (each step about one unit, as a character the matcher reads).
+ */
+const LOWERED_CHARACTERS_PER_UNIT: number = 4;
 
 // The shape NetworkSiteAssignmentRule rows are matched with.
 export interface AssignmentRuleCandidate {
@@ -144,7 +165,9 @@ export class CidrMatchUtil {
    * /^.*a.*a.*a...$/ makes the backtracking engine explore an exponential
    * number of split points on a long homogeneous input, which blocks the
    * event loop for minutes. This matcher is O(hostname x pattern) worst case
-   * with no recursion, so a hostile rule cannot hang the process.
+   * with no recursion, so a hostile rule cannot hang the process; and inside
+   * a rule evaluation its steps count against the evaluation's allowance with
+   * every other pattern question, so thousands of rules cannot either.
    */
   public static hostnameMatchesWildcard(
     hostname: string,
@@ -154,12 +177,51 @@ export class CidrMatchUtil {
       return false;
     }
 
-    const text: string = hostname.trim().toLowerCase();
+    /*
+     * A wildcard is a pattern a project's people write, like a regular
+     * expression: inside a piece of work with an allowance of its own - one
+     * evaluation of a project's rules (LinearRegExp/PatternWork.ts) - its
+     * question counts every step it takes against that allowance, and has no
+     * answer once it is spent. No answer is false here, counted as a
+     * question that stopped, so a negated condition does not hold on it.
+     */
+    const allowance: PatternWorkAllowance | undefined =
+      getPatternWorkAllowance();
+
+    if (allowance !== undefined && allowance.refuses(hostname)) {
+      return false;
+    }
+
+    try {
+      return CidrMatchUtil.wildcardMatches(hostname, pattern, allowance);
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  // The wildcard question itself; throws when the allowance is spent.
+  private static wildcardMatches(
+    hostname: string,
+    pattern: string,
+    allowance: PatternWorkAllowance | undefined,
+  ): boolean {
     const glob: string = pattern.trim().toLowerCase();
 
     if (glob.length > CidrMatchUtil.MAX_HOSTNAME_PATTERN_LENGTH) {
       return false;
     }
+
+    if (allowance !== undefined) {
+      // What any question costs, and trimming and lowering the text.
+      allowance.beforeQuestion(hostname);
+      allowance.spend(Math.ceil(hostname.length / LOWERED_CHARACTERS_PER_UNIT));
+    }
+
+    const text: string = hostname.trim().toLowerCase();
 
     /*
      * Greedy two-pointer glob match. On a mismatch we rewind only to the
@@ -170,8 +232,15 @@ export class CidrMatchUtil {
     let globIndex: number = 0;
     let lastStarIndex: number = -1;
     let textIndexAtLastStar: number = 0;
+    // Steps taken and not counted yet (WILDCARD_COUNT_INTERVAL).
+    let uncounted: number = 0;
 
     while (textIndex < text.length) {
+      if (allowance !== undefined && ++uncounted >= WILDCARD_COUNT_INTERVAL) {
+        allowance.spend(uncounted);
+        uncounted = 0;
+      }
+
       if (globIndex < glob.length && glob[globIndex] === "*") {
         lastStarIndex = globIndex;
         textIndexAtLastStar = textIndex;
@@ -187,9 +256,13 @@ export class CidrMatchUtil {
         textIndexAtLastStar++;
         textIndex = textIndexAtLastStar;
       } else {
+        allowance?.spend(uncounted);
         return false;
       }
     }
+
+    // The steps taken since they were last counted.
+    allowance?.spend(uncounted);
 
     // Any trailing '*' in the pattern can still match the empty remainder.
     while (globIndex < glob.length && glob[globIndex] === "*") {
@@ -354,10 +427,25 @@ export class CidrMatchUtil {
         return anyCandidateMatches((value: string): boolean => {
           return CidrMatchUtil.hostnameMatchesWildcard(value, expected);
         });
-      case RuleCriteriaOperator.DoesNotMatchPattern:
-        return !anyCandidateMatches((value: string): boolean => {
-          return CidrMatchUtil.hostnameMatchesWildcard(value, expected);
-        });
+      case RuleCriteriaOperator.DoesNotMatchPattern: {
+        const stoppedBefore: number = getStoppedPatternQuestions();
+        const anyMatches: boolean = anyCandidateMatches(
+          (value: string): boolean => {
+            return CidrMatchUtil.hostnameMatchesWildcard(value, expected);
+          },
+        );
+
+        /*
+         * A candidate whose question had no answer (the allowance of the
+         * evaluation spent) may have matched: "no candidate matches" is not
+         * known, so the condition does not hold.
+         */
+        if (!anyMatches && getStoppedPatternQuestions() > stoppedBefore) {
+          return false;
+        }
+
+        return !anyMatches;
+      }
       default:
         return false;
     }

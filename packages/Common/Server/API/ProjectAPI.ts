@@ -577,6 +577,12 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             // A marketplace-billed project has no card to ask for (Header).
             billingMarketplace: true,
             isFeatureFlagMonitorGroupsEnabled: true,
+            /*
+             * The project's one AI switch: with AI off, the Dashboard draws
+             * no AI action at all (Common/Utils/Suggestions/AiSuggestion),
+             * instead of offering one the server would refuse.
+             */
+            enableAi: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             /*

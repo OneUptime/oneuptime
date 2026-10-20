@@ -14,9 +14,11 @@ import GlobalRunnersCopy, {
  * project, on by default, that saves the moment it is flipped
  * (Project.useGlobalRunners, which takes a project admin - the switch says
  * so, locked, to anyone else). Turned off, nothing of the project runs on a
- * global Runner, which is the guarantee a team that keeps every step on its
- * own hosts needs in one place rather than step by step. Turning it off asks
- * first: JavaScript steps that picked no Runner stop running.
+ * global Runner - no runbook step, and no code repository's AI work - which
+ * is the guarantee a team that keeps everything on its own hosts needs in
+ * one place rather than step by step and repository by repository. Turning
+ * it off asks first: JavaScript steps and code repositories that picked no
+ * Runner stop running.
  */
 
 export interface ComponentProps {

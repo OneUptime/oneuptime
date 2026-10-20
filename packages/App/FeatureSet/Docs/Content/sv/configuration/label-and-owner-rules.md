@@ -121,6 +121,8 @@ Två sorters mönster kan inte köras på det sättet. En regel med ett av dem a
 
 En regel som sparats tidigare med ett av dem matchar ingenting förrän du ändrar dess mönster. Det gäller alla sorters regler med mönster, inte bara etikett- och ägarregler.
 
+Ett projekts regler av ett slag delar också en arbetskvot för varje resurs de kontrollerar. Den är långt större än verkliga regler behöver: tiotusen enkla mönster ryms i den, och varje text som reglerna läser, till exempel en lång beskrivning, ökar den i förhållande till sin längd. En regel vars mönster behöver mer än det som finns kvar matchar inte den resursen, inte ens när dess villkor är att en text inte matchar. En sekretessregel som inte kan kontrolleras helt räknas i stället som en träff: incidenten, larmet eller episoden blir privat, och dess flöde nämner de regler som inte kunde kontrolleras.
+
 ## Nästa steg
 
 :::cards

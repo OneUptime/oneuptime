@@ -29,6 +29,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class CephClusterOwnerRuleEngineServiceClass
   implements RuleRunEngine<CephCluster, CephClusterOwnerRule>
@@ -125,6 +126,7 @@ class CephClusterOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     cephCluster: CephCluster;
     rules: Array<CephClusterOwnerRule>;

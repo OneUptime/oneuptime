@@ -37,7 +37,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 1. [Azure portal](https://portal.azure.com) にサインインし、**Microsoft Entra ID** を開きます。
 2. **App registrations → New registration** に移動します。名前を `OneUptime Security Events` にし、**Supported account types** は **Accounts in this organizational directory only** のまま、リダイレクト URI は空のままにして、**Register** を選びます。
-3. アプリの **Overview** ページで、**Application (client) ID** と **Directory (tenant) ID** をコピーします。
+3. アプリの **Overview** ページで、**アプリケーション (クライアント) ID** と **ディレクトリ (テナント) ID** をコピーします。
 
 ### アラートの読み取りを許可する
 
@@ -61,9 +61,9 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 | 設定 | 確認場所 |
 | --- | --- |
-| **Directory (tenant) ID** | アプリの **Overview** ページ。テナントの GUID、または `contoso.onmicrosoft.com` のような検証済みドメイン。 |
-| **Application (client) ID** | アプリの **Overview** ページ。`SecurityAlert.Read.All` を持つアプリの GUID。 |
-| **クラウド** | Microsoft 365 GCC も対象とする **Azure public cloud**、または GCC High 向けの **Azure Government (US)**（`login.microsoftonline.us` と `graph.microsoft.us`）。Microsoft 365 DoD と中国の 21Vianet クラウドはサポートされていません。 |
+| **ディレクトリ (テナント) ID** | アプリの **Overview** ページ。テナントの GUID、または `contoso.onmicrosoft.com` のような検証済みドメイン。 |
+| **アプリケーション (クライアント) ID** | アプリの **Overview** ページ。`SecurityAlert.Read.All` を持つアプリの GUID。 |
+| **クラウド** | Microsoft 365 GCC も対象とする **Azure パブリック クラウド**、または GCC High 向けの **Azure Government (米国)**（`login.microsoftonline.us` と `graph.microsoft.us`）。Microsoft 365 DoD と中国の 21Vianet クラウドはサポートされていません。 |
 | **クライアントシークレット** | シークレットの **Value**。暗号化され、API から返されることはなく、二度と表示されません。接続の **認証情報を更新** で置き換えます。 |
 
 **ポーリング** ステップには、任意の **説明**、`1`～`1440` の整数で初期値 `5` の **ポーリング間隔（分）**、初期状態でオンの **有効** もあります。
@@ -151,7 +151,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::details 最終エラーが `Microsoft Defender XDR token request` で始まる
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID がトークンの発行を拒否したため、Graph には一切接続していません。メッセージの最後には、Entra の `error` コードに応じたヒントがあります。
   - `invalid_client`（`AADSTS7000215`）: シークレットが誤っているか、期限切れか、別のアプリのものです。**Certificates & secrets** で新しく作成し、**認証情報を更新** で保存します。
-  - `unauthorized_client`（`AADSTS700016`）: **Application (client) ID** がその **Directory (tenant) ID** に存在しないか、**クラウド** が誤っています。
+  - `unauthorized_client`（`AADSTS700016`）: **アプリケーション (クライアント) ID** がその **ディレクトリ (テナント) ID** に存在しないか、**クラウド** が誤っています。
   - `AADSTS90002`: そのテナントは存在しません。
   - `invalid_scope`: 選んだクラウドに Graph のスコープが存在しません。**クラウド** を確認します。
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID が、JSON でない本文や `access_token` のない本文など、使えない応答を返しました。通常は認証情報ではなく、間にあるプロキシやゲートウェイが原因です。

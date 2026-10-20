@@ -46,6 +46,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -78,6 +79,7 @@ interface EpisodeTemplateValues {
 
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
+  @RuleEvaluation()
   public async processIncident(
     incident: Incident,
     options: GroupingOptions = {},

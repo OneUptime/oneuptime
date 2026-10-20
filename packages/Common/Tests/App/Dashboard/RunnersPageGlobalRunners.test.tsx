@@ -92,7 +92,6 @@ function makeRunner(id: string, name: string, lastAlive?: Date): Runner {
     description: `${name} description`,
     key: "runner-key",
     canRunRunbooks: true,
-    canRunCodeFixTasks: false,
     canRunAiCommands: false,
     ...(lastAlive ? { lastAlive } : {}),
   });

@@ -53,7 +53,7 @@ Under **Test** klikker du på **Test tilkoblingen**. OneUptime leser forbruket f
 Klikk på **Koble til**. Den første lesingen starter innen ett minutt og henter de siste 30 dagene.
 :::
 
-Tilkoblede kontoer står under flisene, med **Status** og **Sist lest**. **Les nå** leser med en gang, **Test** sjekker de lagrede innstillingene på nytt, **Slå av** stopper lesingen og beholder det som er lest, og **Rediger** endrer innstillingene: en hemmelighet som står tom, beholder den lagrede. **Vis feil** viser hvorfor en lesing feilet, uten noen hemmelighet.
+Tilkoblede kontoer står under flisene, med **Status** og **Sist lest**. **Les nå** leser med en gang, **Test** sjekker de lagrede innstillingene på nytt, **Slå av** stopper lesingen og beholder det som er lest, og **Rediger** endrer innstillingene: en hemmelighet som står tom, beholder den lagrede. **View error** viser hvorfor en lesing feilet, uten noen hemmelighet.
 
 ## Hva hver leverandør gir
 
@@ -112,7 +112,7 @@ Gi appen rollen Monitoring Reader på abonnementet.
 
 ### Koble til Azure
 
-Fyll ut **Katalog-ID (tenant)**, **Program-ID (klient)**, **Abonnements-ID** og **Klienthemmelighet**. For Azure Government endrer du **Sky** under **Flere felt**.
+Fyll ut **Katalog-ID (tenant)**, **Program-ID (klient)**, **Abonnements-ID** og **Client secret**. For Azure Government endrer du **Sky** under **Flere felt**.
 :::
 
 ## Amazon Bedrock

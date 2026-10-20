@@ -24,6 +24,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class AlertEpisodeOnCallRuleEngineServiceClass {
   /**
@@ -32,6 +33,7 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
    * array (deduped).
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToEpisode(episode: AlertEpisode): Promise<void> {
     if (!episode.id || !episode.projectId) {
       return;

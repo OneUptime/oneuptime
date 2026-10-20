@@ -79,7 +79,7 @@ flowchart TB
 ```
 
 1. Você clica em **Iniciar tarefa** em um repositório, ou em **Fix with AI** em uma exceção não resolvida, ou outro botão ou gatilho inicia uma tarefa (veja [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam)).
-2. A tarefa entra na fila, e um Runner disponível com **Executa correções de código por IA** ativado a assume.
+2. A tarefa entra na fila do repositório dela, e o Runner que o repositório escolhe a assume: um dos seus Runners, ou um Runner global quando ele não escolhe nenhum (veja [Escolha o Runner do repositório](#escolha-o-runner-do-repositório)).
 3. O Runner busca o contexto da tarefa. Para um pedido, são as palavras dele, o contexto adicionado e a conversa até ali; para uma exceção, o tipo, a mensagem e o stack trace dela.
 4. Ele clona o repositório em um espaço de trabalho próprio e cria um branch. Uma correção de uma exceção se chama `oneuptime-fix-exception-` seguido dos primeiros caracteres do id da execução. Uma resposta trabalha, em vez disso, no branch do pull request aberto da tarefa.
 5. Um agente de código, movido pelo provedor de LLM do seu projeto, lê o código e escreve a alteração. O servidor do OneUptime faz as chamadas ao LLM, então o Runner nunca tem a chave de API do seu provedor, e cada chamada é medida e listada nos logs de IA.
@@ -98,9 +98,11 @@ Cada execução fica dentro de orçamentos que o servidor impõe: no máximo **4
 | A página **AI Assistance** de uma exceção | **Generate Regression Test** | Adiciona um teste que reproduz a exceção e falha até o bug ser corrigido. |
 | A página **AI Assistance** de uma exceção | **Melhorar o tratamento de erros** | Para um erro esperado, como uma entrada inválida: tira os dados do usuário da mensagem, valida a entrada mais cedo e marca o erro como tratado, sem mudar o comportamento. |
 | O cartão **AI Investigation** de um incidente ou de um alerta | **Open Fix PR from this analysis** | Corrige a causa raiz que a investigação publicou (veja [Correções de código automáticas a partir de investigações](#correções-de-código-automáticas-a-partir-de-investigações)). |
-| Um trace | **Fix performance with AI** | Corrige o padrão lento encontrado no trace, como consultas N+1 ou um único span lento dominante. |
+| Um trace que vale a pena corrigir | **Acelerar com IA** | Corrige o padrão lento que o botão indica, como uma consulta N+1 ou chamadas que poderiam rodar em paralelo. |
 | A página **Registros** de um serviço | **Melhorar os registros** | Torna os logs do serviço estruturados, com a severidade certa e ligados aos traces dele, sem mudar o comportamento. |
 | A página **Traços** de um serviço | **Melhorar o rastreamento** | Adiciona spans e atributos onde falta tracing no serviço, sem mudar o comportamento. |
+
+Esses botões só aparecem onde podem iniciar uma tarefa. Com a IA desativada para o projeto, nenhum deles aparece e o menu lateral de uma exceção não tem **AI Assistance**. **Melhorar os registros** e **Melhorar o rastreamento** aparecem assim que um repositório é conectado, e **Acelerar com IA** só em um trace que vale a pena corrigir (veja [Explorador de traços](/docs/telemetry/traces-explorer)).
 
 Para abrir a página **AI Assistance** de uma exceção, abra a exceção em **Produtos → Observabilidade → Exceções** e escolha **AI Assistance** no menu lateral. Uma exceção resolvida ou arquivada precisa primeiro ser marcada como não resolvida.
 
@@ -120,11 +122,11 @@ Quando algum deles está definido, cada execução de correção verifica a pró
 
 1. Quando o agente de código termina, os comandos são executados em ordem na raiz do repositório, no Runner, no espaço de trabalho clonado. Cada um tem até 15 minutos e roda com `CI=true`, para que nada fique esperando uma resposta; a primeira falha interrompe a rodada.
 2. Em caso de falha, o final da saída do comando que falhou volta para o mesmo agente de código como tarefa de reparo, com instruções para corrigir a própria alteração em vez de enfraquecer ou pular testes, e os comandos são executados de novo. Ele faz no máximo **2** tentativas de reparo. Elas compartilham o orçamento de LLM da execução, e as mudanças delas vão no mesmo commit da correção.
-3. O resultado, aprovado, falhou ou ignorado (nenhum comando definido, ou um Runner compartilhado), é escrito em uma seção Verification da descrição do pull request e registrado no pull request da tarefa.
+3. O resultado, aprovado, falhou ou ignorado (nenhum comando definido, ou um Runner global), é escrito em uma seção Verification da descrição do pull request e registrado no pull request da tarefa.
 
 Uma alteração que continua sem passar na verificação não é descartada: o pull request abre mesmo assim, com uma seção "Verification failed" bem marcada que nomeia o comando que falhou e termina com a saída dele. O trabalho é mantido, e quem revisa decide. Um repositório sem comandos definidos é informado como ignorado, em vez de sugerir um build verde.
 
-Os comandos são configurações do repositório que a sua equipe escreve, executadas no seu próprio Runner: o mesmo modelo de confiança dos passos Bash de um runbook. A IA nunca os escreve nem os altera. Os Runners compartilhados do OneUptime nunca os executam: em um Runner compartilhado, a correção é escrita e aberta para revisão, a verificação é informada como ignorada e a CI do seu repositório verifica a mudança. [Execute um Runner próprio](#execute-um-runner-próprio) para que as correções sejam compiladas e testadas antes de o pull request abrir.
+Os comandos são configurações do repositório que a sua equipe escreve, executadas no seu próprio Runner: o mesmo modelo de confiança dos passos Bash de um runbook. A IA nunca os escreve nem os altera. Um Runner global, que o OneUptime executa para todos os projetos, nunca os executa: em um Runner global, a correção é escrita e aberta para revisão, a verificação é informada como ignorada e a CI do seu repositório verifica a mudança. [Execute um Runner próprio](#execute-um-runner-próprio) para que as correções sejam compiladas e testadas antes de o pull request abrir.
 
 ## Antes de começar
 
@@ -134,7 +136,7 @@ Uma tarefa precisa de três coisas. A página de um repositório em Código e a 
 | --- | --- | --- |
 | Um provedor de LLM | Nada a configurar: um projeto sem provedor próprio usa o provedor global, pago com os créditos de IA do projeto. Um provedor seu, em **Configurações do projeto → IA → Provedores LLM**, tem prioridade. | Defina uma vez as variáveis de ambiente `GLOBAL_LLM_PROVIDER_*` no servidor, ou adicione um provedor ao projeto. |
 | Um repositório conectado pela GitHub App | **Produtos → Código**, depois **Conectar o GitHub**. Se a app já estiver instalada na conta do GitHub, clique em **Conectar uma instalação existente** em vez disso: instalá-la de novo não a conecta. Requer o plano Growth. | O mesmo, assim que a sua instância tiver uma GitHub App (veja [Integração com o GitHub](/docs/self-hosted/github-integration)). |
-| Um Runner que executa correções de código por IA | Nada a operar: os Runners compartilhados do OneUptime fazem isso. | O serviço `runner` do Docker Compose, ou o Runner do chart Helm (`runner.enabled`, ativado por padrão), se registra sozinho e executa correções de código por IA. |
+| Um Runner que executa correções de código por IA | Nada a operar: um repositório que não escolhe nenhum trabalha nos Runners globais do OneUptime. | O serviço `runner` do Docker Compose, ou o Runner do chart Helm (`runner.enabled`, ativado por padrão), se registra sozinho e executa correções de código por IA em todo repositório que não escolhe nenhum Runner. |
 
 Em uma instância auto-hospedada, o provedor global é um bloco do `config.env` (Docker Compose) ou dos seus valores do Helm. Para um Ollama auto-hospedado:
 
@@ -149,6 +151,17 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 Qualquer provedor compatível funciona: veja [Provedores LLM](/docs/ai/llm-provider) para todos eles e cada variável de ambiente.
 
 Você não associa repositórios a serviços. Quando uma tarefa começa, o OneUptime encontra o repositório comparando os caminhos de arquivo do stack trace da exceção com os seus repositórios conectados. Quando nada corresponde, ele recorre a um repositório com o mesmo nome do serviço e, depois, ao único repositório do projeto, quando há só um. A página **AI Assistance** mostra qual repositório ele encontrou.
+
+### Escolha o Runner do repositório
+
+Cada repositório escolhe o Runner em que a IA trabalha nele: na página **Configurações** dele em Código, clique em **Editar definições** e escolha um na etapa **Runner**. Um repositório que não escolhe nenhum trabalha no **Runner global**, que o OneUptime executa para todos os projetos.
+
+| Runner | O que ele faz com uma tarefa |
+| --- | --- |
+| **Runner global** | Escreve a mudança e abre o pull request, sem os seus comandos de configuração, build e teste: a CI do seu repositório verifica a mudança. |
+| Um dos seus Runners | Também executa os seus comandos de configuração, build e teste, em um host que você controla. |
+
+Só o Runner que um repositório escolhe recebe as tarefas dele e um token para ele. Em um projeto que desativa **Usar Runners globais** em **Runbooks → Agentes de runbook**, cada repositório precisa de um dos Runners do próprio projeto. A página de um Runner lista os repositórios que o escolhem.
 
 ### Execute um Runner próprio
 
@@ -167,9 +180,9 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-### Ative as correções de código por IA
+### Escolha-o para o repositório
 
-Ative **Executa correções de código por IA** no Runner. Fica desativado por padrão, e o Runner percebe a mudança no próximo heartbeat, em cerca de um minuto; não há nada para reiniciar.
+Na página **Configurações** do repositório em Código, clique em **Editar definições** e escolha o Runner na etapa **Runner**. O Runner percebe a mudança no próximo heartbeat, em cerca de um minuto; não há nada para reiniciar.
 
 ### Verifique se ele se conecta
 
@@ -195,7 +208,7 @@ Enquanto ela estiver ativada, uma investigação que termina com uma causa raiz 
 
 Todo o resto é igual ao botão:
 
-- O pull request abre pronto para revisão, escrito a partir da análise publicada, e precisa de um repositório conectado pela GitHub App e de um Runner com **Executa correções de código por IA** ativado.
+- O pull request abre pronto para revisão, escrito a partir da análise publicada, e precisa de um repositório conectado pela GitHub App e de um Runner online para trabalhar nele: o que o repositório escolhe, ou um Runner global.
 - Ele conta para o limite diário de tarefas de correção daquele sinal (**Daily Incident AI Fix Task Limit** ou **Daily Alert AI Fix Task Limit**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
 - Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, então um gatilho automático e um clique normalmente viram uma única tarefa, não dois pull requests. A verificação é uma leitura antes da escrita, não um bloqueio, então dois gatilhos no mesmo instante ainda podem passar os dois.
 - A execução é escrita pelo sistema, não é atribuída a ninguém, e nada é mesclado sozinho.
@@ -211,7 +224,7 @@ Uma execução cujo heartbeat está em silêncio há mais de 12 minutos é encer
 :::
 
 :::details Nenhum Runner assume a tarefa
-Uma tarefa que espera mais de 30 minutos enquanto nenhum Runner com **Executa correções de código por IA** está conectado falha, com uma mensagem para verificar o Runner, então ela nunca aparece em andamento para sempre. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas. Um Runner anterior a Código nunca recebe um pedido de Código: atualize um Runner que você mesmo executa junto com o servidor.
+Uma tarefa que espera mais de 30 minutos enquanto o Runner que deve assumi-la não está conectado - o que o repositório dela escolhe, ou um Runner global para um repositório que não escolhe nenhum - falha, com uma mensagem que diz qual, então ela nunca aparece em andamento para sempre. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas. Um Runner anterior a Código nunca recebe um pedido de Código: atualize um Runner que você mesmo executa junto com o servidor.
 :::
 
 ## Privacidade

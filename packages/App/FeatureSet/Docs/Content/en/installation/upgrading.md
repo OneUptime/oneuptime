@@ -1542,6 +1542,15 @@ API, SSO, or the Slack and Microsoft Teams apps.
   until you set one of these. `NGINX_LISTEN_OPTIONS`, which nginx refused for
   any value, now works. See
   [Visitor addresses](/docs/installation/docker-compose#visitor-addresses).
+- **A code repository picks its Runner, and Runners lose their AI code fix
+  switch.** A repository's settings in Code pick the Runner AI works in it on,
+  and one that picks none works on a global Runner while its project uses
+  them. The upgrade carries each project's choice over: its repositories pick
+  the Runner it had **Runs AI Code Fixes** on for (the one heard from most
+  recently), and the switch is removed. A Runner now takes code work only for
+  the repositories that pick it, and only it is given a token for them; one no
+  repository picks takes none. See
+  [Pick the repository's Runner](/docs/ai/ai-agent#pick-the-repositorys-runner).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

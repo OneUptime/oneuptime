@@ -29,6 +29,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class PodmanHostOwnerRuleEngineServiceClass
   implements RuleRunEngine<PodmanHost, PodmanHostOwnerRule>
@@ -123,6 +124,7 @@ class PodmanHostOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     podmanHost: PodmanHost;
     rules: Array<PodmanHostOwnerRule>;

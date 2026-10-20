@@ -56,11 +56,11 @@ Tilkoblingen signerer forespørslene sine med en IAM-tilgangsnøkkel. Identitete
 
 1. Åpne **Users → Create user**, gi brukeren et navn, for eksempel `oneuptime-security-hub`, la konsolltilgang være av, og knytt til policyen. For andre kontoers funn gjør du dette i den delegerte administratorkontoen.
 2. Åpne brukeren, deretter **Security credentials → Access keys → Create access key**, og velg **Third-party service**.
-3. Kopier **Access key ID** og **Secret access key**. AWS viser hemmeligheten bare én gang.
+3. Kopier **Tilgangsnøkkel-ID** og **Hemmelig tilgangsnøkkel**. AWS viser hemmeligheten bare én gang.
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **AWS Security Hub**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn hemmeligheten i **Secret access key**.
+Åpne **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **AWS Security Hub**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn hemmeligheten i **Hemmelig tilgangsnøkkel**.
 
 ### Test den før du lagrer
 
@@ -70,8 +70,8 @@ Klikk på **Test these settings** under **Test før du lagrer**. Testen signerer
 | Innstilling | Hva du skal skrive inn |
 | --- | --- |
 | **Region** | Koden for regionen, for eksempel `us-east-1`, `eu-central-1` eller `us-gov-west-1`: for andre kontoers funn hjemmeregionen til administratorkontoen. |
-| **Access key ID** | ID-en til nøkkelen: 16 til 128 bokstaver eller sifre, vanligvis 20 som starter med `AKIA`, eller `ASIA` for midlertidig legitimasjon. |
-| **Secret access key** | Hemmeligheten til nøkkelen. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Update credentials** på tilkoblingen. |
+| **Tilgangsnøkkel-ID** | ID-en til nøkkelen: 16 til 128 bokstaver eller sifre, vanligvis 20 som starter med `AKIA`, eller `ASIA` for midlertidig legitimasjon. |
+| **Hemmelig tilgangsnøkkel** | Hemmeligheten til nøkkelen. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Update credentials** på tilkoblingen. |
 | **Session token** | Bare for midlertidig legitimasjon, som trenger det: en `ASIA`-nøkkel avvises uten det, og en `AKIA`-nøkkel avvises med det. |
 
 Midlertidig legitimasjon fra `aws sts assume-role` eller `aws sts get-session-token` utløper, for en antatt rolle etter høyst 12 timer, og pollingen stopper til du limer inn ny med **Update credentials**. En langvarig nøkkel med denne smale policyen, rotert etter din egen tidsplan, fortsetter å polle uten tilsyn. For å bytte fra midlertidig legitimasjon til en langvarig nøkkel skriver du inn den nye nøkkelen i **Update credentials** og slår på **Remove the stored Session token**.
@@ -167,8 +167,8 @@ AWS avviste forespørselen. Meldingen siterer feilkoden fra AWS, eller AWS' egne
 
 - `AccessDeniedException`, eller `is not authorized to perform`: nøkkelen er riktig, men identiteten kan ikke kalle `securityhub:GetFindings`. Knytt til policyen fra [Sett opp tilkoblingen](#sett-opp-tilkoblingen). En permissions boundary eller en service control policy kan også nekte den.
 - `InvalidAccessException`, eller `is not subscribed to AWS Security Hub`: Security Hub er ikke aktivert for denne kontoen i denne **Region**, eller kontoen er ikke administratoren der.
-- `InvalidSignatureException` eller `SignatureDoesNotMatch`, eller `The request signature we calculated does not match`: **Secret access key** hører ikke til **Access key ID**. Opprett en ny tilgangsnøkkel, og lagre den med **Update credentials**.
-- `UnrecognizedClientException` eller `InvalidClientTokenId`, eller `The security token included in the request is invalid`: AWS kjenner ikke **Access key ID**. Den er skrevet feil, slettet, deaktivert eller fra en annen partisjon, eller det er en midlertidig nøkkel uten sitt **Session token**.
+- `InvalidSignatureException` eller `SignatureDoesNotMatch`, eller `The request signature we calculated does not match`: **Hemmelig tilgangsnøkkel** hører ikke til **Tilgangsnøkkel-ID**. Opprett en ny tilgangsnøkkel, og lagre den med **Update credentials**.
+- `UnrecognizedClientException` eller `InvalidClientTokenId`, eller `The security token included in the request is invalid`: AWS kjenner ikke **Tilgangsnøkkel-ID**. Den er skrevet feil, slettet, deaktivert eller fra en annen partisjon, eller det er en midlertidig nøkkel uten sitt **Session token**.
 - `ExpiredTokenException`, eller `The security token included in the request is expired`: den midlertidige legitimasjonen er utløpt. Utsted ny, eller bytt til en langvarig nøkkel.
 - `RequestTimeTooSkewed` eller `RequestExpired`, eller `Signature expired`: klokken på OneUptime-vertene går mer enn 5 minutter feil. Rett opp NTP på app- og workervertene.
 - Ingen kode i det hele tatt: AWS sa ikke om det var nøkkelen eller policyen som avviste den. Kontroller nøkkelen først, deretter policyen.

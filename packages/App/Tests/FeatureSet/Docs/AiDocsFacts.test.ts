@@ -594,8 +594,9 @@ describe("Code", () => {
     const investigation: string = dashboardSource(
       "Components/AI/InvestigationPanel.tsx",
     );
+    // The trace's button is drawn by its finding strip, beside the finding.
     const trace: string = dashboardSource(
-      "Components/Traces/TraceDetail/TraceHeader.tsx",
+      "Components/Traces/TraceDetail/TracePerformanceSuggestionCopy.ts",
     );
     const telemetry: string = dashboardSource(
       "Components/AI/TelemetryImprovementCard.tsx",
@@ -610,7 +611,7 @@ describe("Code", () => {
     }
 
     expect(investigation).toContain('title="Open Fix PR from this analysis"');
-    expect(trace).toContain('title="Fix performance with AI"');
+    expect(trace).toContain('"Fix performance with AI"');
     expect(telemetry).toContain('translationKey("Improve Logging")');
     expect(telemetry).toContain('translationKey("Improve Tracing")');
 
@@ -644,6 +645,52 @@ describe("Code", () => {
     expect(
       rowStartingWith(starts, `A service's ${bold("Traces")} page`),
     ).toBeDefined();
+  });
+
+  it("says the buttons show only where they can start a task, as the Dashboard decides it", () => {
+    const section: string = flat(
+      englishSection(CODE_PAGE, "## Where fix tasks start"),
+    );
+    const menu: string = flat(
+      dashboardSource("Pages/Exceptions/View/SideMenu.tsx"),
+    );
+    const assistance: string = flat(
+      dashboardSource("Components/Exceptions/ExceptionAIAssistance.tsx"),
+    );
+    const telemetry: string = flat(
+      dashboardSource("Components/AI/TelemetryImprovementCard.tsx"),
+    );
+    const investigation: string = flat(
+      dashboardSource("Components/AI/InvestigationPanel.tsx"),
+    );
+    const traceExplorer: string = flat(
+      dashboardSource("Components/Traces/TraceExplorer.tsx"),
+    );
+    const telemetryRule: string = readRepoFile(
+      "Common/Utils/Suggestions/TelemetryImprovementSuggestion.ts",
+    );
+
+    // AI off: the exception menu leaves AI Assistance out, and its page says so.
+    expect(menu).toContain("const isAiOffered: boolean = useAiOffered();");
+    expect(menu).toContain(
+      '{isAiOffered ? ( <SideMenuSection title="Resolve">',
+    );
+    expect(assistance).toContain("if (!isAiOffered) {");
+    // AI off: the investigation's fix action and the trace's suggestion too.
+    expect(investigation).toContain(
+      "isCodeFixRecommended && (isAiOffered || Boolean(fixTaskRunId));",
+    );
+    expect(traceExplorer).toContain("if (!isAiOfferedForSelectedProject()) {");
+    // Improve Logging / Tracing: AI on and a repository, never a setup link.
+    expect(telemetry).toContain("if (!isAiOffered) { return; }");
+    expect(telemetryRule).toContain("isBackedByEvidence: false,");
+
+    expect(section).toContain(
+      `These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no ${bold("AI Assistance")}. ${bold("Improve Logging")} and ${bold("Improve Tracing")} show once a repository is connected, and ${bold("Fix performance with AI")} only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)).`,
+    );
+    expect(rowStartingWith(starts, "A trace worth fixing")?.[2]).toBe(
+      "Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel.",
+    );
   });
 
   it("opens an exception's AI Assistance from its side menu, under Resolve", () => {
@@ -754,8 +801,10 @@ describe("Code", () => {
       "A run whose heartbeat has been silent for more than 12 minutes is failed with an error. It is never queued again on its own",
     );
     expect(fails).toContain(
-      `A task that waits more than 30 minutes while no Runner with ${bold("Runs AI Code Fixes")} is connected fails`,
+      "A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, or a global Runner for a repository that picks none - fails, with a message that says which",
     );
+    // The sweeper says which: the repository's Runner, or a global one.
+    expect(queue).toContain("describeRepositoryRunnerStatus(");
   });
 
   it("never hands a request from Code to a Runner older than Code", () => {
@@ -802,9 +851,18 @@ describe("Code", () => {
     expect(englishPage(CODE_PAGE)).not.toContain("The key is shown once");
   });
 
-  it("says Runs AI Code Fixes starts off, and that the bundled Runner runs by default", () => {
+  it("says a repository picks its Runner on its Settings page, and that the bundled Runner runs by default", () => {
     const runner: string = flat(
       readRepoFile("Common/Models/DatabaseModels/Runner.ts"),
+    );
+    const repository: string = flat(
+      readRepoFile("Common/Models/DatabaseModels/CodeRepository.ts"),
+    );
+    const settings: string = flat(
+      dashboardSource("Pages/Code/Repository/Settings.tsx"),
+    );
+    const field: string = flat(
+      dashboardSource("Components/Code/CodeRepositoryRunner.tsx"),
     );
     const values: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "..", "HelmChart/Public/oneuptime/values.yaml"),
@@ -814,18 +872,60 @@ describe("Code", () => {
       path.join(PACKAGES_DIR, "..", "docker-compose.yml"),
       "utf8",
     );
+    const page: string = flat(englishPage(CODE_PAGE));
 
-    expect(runner).toContain(
-      "default: false, }) public canRunCodeFixTasks?: boolean = undefined;",
+    // A Runner has no switch for code fixes: a repository picks its Runner.
+    expect(runner).not.toContain("canRunCodeFixTasks");
+    expect(repository).toContain("public runnerId?: ObjectID = undefined;");
+    expect(settings).toContain('editButtonText="Edit Settings"');
+    expect(settings).toContain('{ title: "Runner", id: "runner" },');
+    expect(field).toContain('fieldTitle: translationKey("Runner"),');
+    expect(page).toContain(
+      `On the repository's ${bold("Settings")} page in Code, click ${bold("Edit Settings")} and pick the Runner on the ${bold("Runner")} step.`,
     );
+
     expect(values).toContain("runner:\n  enabled: true");
     expect(compose).toContain("  runner:\n");
-    expect(flat(englishPage(CODE_PAGE))).toContain(
-      `Turn on ${bold("Runs AI Code Fixes")} on the Runner. It is off by default`,
-    );
-    expect(flat(englishPage(CODE_PAGE))).toContain(
+    expect(page).toContain(
       "The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default)",
     );
+  });
+
+  it("says a repository that picks no Runner works on Global Runner, which skips its commands, as the picker offers it", () => {
+    const picker: string = flat(
+      dashboardSource("Components/Runner/RunnerPickerModel.ts"),
+    );
+    const section: string = flat(
+      englishSection(CODE_PAGE, "### Pick the repository's Runner"),
+    );
+
+    expect(picker).toContain(
+      'GLOBAL_RUNNER_CHOICE_LABEL: string = translationKey("Global Runner");',
+    );
+    expect(picker).toContain(
+      '"Run by OneUptime for every project. It skips your setup, build and test commands."',
+    );
+    expect(section).toContain(
+      `A repository that picks none works on ${bold("Global Runner")}, which OneUptime runs for every project.`,
+    );
+    expect(section).toContain(
+      "Only the Runner a repository picks is handed its tasks and a token for it.",
+    );
+    // The bundled Runner never runs a repository's commands.
+    expect(
+      readRepoFile("Runner/Config.ts").includes(
+        "export const RUNS_PROJECT_AUTHORED_COMMANDS: boolean = !IS_CLUSTER_SCOPED;",
+      ),
+    ).toBe(true);
+    expect(
+      rowStartingWith(
+        tableWithHeader(
+          englishSection(CODE_PAGE, "### Pick the repository's Runner"),
+          "Runner",
+        ),
+        bold("Global Runner"),
+      )[1],
+    ).toContain("without your setup, build and test commands");
   });
 
   it("finds the repository the way the resolver does: the stack trace, then the name, then the only one", () => {

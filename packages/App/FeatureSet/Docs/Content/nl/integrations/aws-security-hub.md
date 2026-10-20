@@ -56,11 +56,11 @@ Open in de [IAM-console](https://console.aws.amazon.com/iam/) **Policies → Cre
 
 1. Open **Users → Create user**, geef de gebruiker een naam, bijvoorbeeld `oneuptime-security-hub`, laat consoletoegang uit en koppel het beleid. Doe dit voor de bevindingen van andere accounts in het gedelegeerde beheerdersaccount.
 2. Open de gebruiker, dan **Security credentials → Access keys → Create access key**, en kies **Third-party service**.
-3. Kopieer de **Access key ID** en de **Secret access key**. AWS toont het geheim maar één keer.
+3. Kopieer de **Toegangssleutel-ID** en de **Geheime toegangssleutel**. AWS toont het geheim maar één keer.
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **AWS Security Hub** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het geheim in **Secret access key**.
+Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **AWS Security Hub** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het geheim in **Geheime toegangssleutel**.
 
 ### Testen voordat je opslaat
 
@@ -70,8 +70,8 @@ Klik op **Test these settings** onder **Testen voor het opslaan**. De test onder
 | Instelling | Wat je invult |
 | --- | --- |
 | **Regio** | De code van de regio, zoals `us-east-1`, `eu-central-1` of `us-gov-west-1`: voor de bevindingen van andere accounts de thuisregio van het beheerdersaccount. |
-| **Access key ID** | De ID van de sleutel: 16 tot 128 letters of cijfers, meestal 20 die beginnen met `AKIA`, of `ASIA` voor tijdelijke referenties. |
-| **Secret access key** | Het geheim van de sleutel. Het wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang het met **Update credentials** bij de verbinding. |
+| **Toegangssleutel-ID** | De ID van de sleutel: 16 tot 128 letters of cijfers, meestal 20 die beginnen met `AKIA`, of `ASIA` voor tijdelijke referenties. |
+| **Geheime toegangssleutel** | Het geheim van de sleutel. Het wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang het met **Update credentials** bij de verbinding. |
 | **Session token** | Alleen voor tijdelijke referenties, die het nodig hebben: een sleutel `ASIA` wordt zonder geweigerd, en een sleutel `AKIA` wordt met een token geweigerd. |
 
 Tijdelijke referenties van `aws sts assume-role` of `aws sts get-session-token` verlopen, voor een aangenomen rol na hooguit 12 uur, en het pollen stopt tot je nieuwe plakt met **Update credentials**. Een langlevende sleutel met dit smalle beleid, geroteerd volgens je eigen schema, blijft zonder toezicht pollen. Om van tijdelijke referenties over te stappen op een langlevende sleutel, vul je de nieuwe sleutel in bij **Update credentials** en zet je **Remove the stored Session token** aan.
@@ -167,8 +167,8 @@ AWS weigerde het verzoek. De melding citeert de foutcode van AWS, of de eigen wo
 
 - `AccessDeniedException`, of `is not authorized to perform`: de sleutel klopt, maar zijn identiteit mag `securityhub:GetFindings` niet aanroepen. Koppel het beleid uit [De verbinding instellen](#de-verbinding-instellen). Een permissions boundary of een service control policy kan het ook weigeren.
 - `InvalidAccessException`, of `is not subscribed to AWS Security Hub`: Security Hub is voor dit account niet ingeschakeld in deze **Regio**, of het account is daar niet de beheerder ervan.
-- `InvalidSignatureException` of `SignatureDoesNotMatch`, of `The request signature we calculated does not match`: de **Secret access key** hoort niet bij de **Access key ID**. Maak een nieuwe toegangssleutel en sla hem op met **Update credentials**.
-- `UnrecognizedClientException` of `InvalidClientTokenId`, of `The security token included in the request is invalid`: AWS kent de **Access key ID** niet. Hij is verkeerd getypt, verwijderd, gedeactiveerd of uit een andere partitie, of het is een tijdelijke sleutel zonder zijn **Session token**.
+- `InvalidSignatureException` of `SignatureDoesNotMatch`, of `The request signature we calculated does not match`: de **Geheime toegangssleutel** hoort niet bij de **Toegangssleutel-ID**. Maak een nieuwe toegangssleutel en sla hem op met **Update credentials**.
+- `UnrecognizedClientException` of `InvalidClientTokenId`, of `The security token included in the request is invalid`: AWS kent de **Toegangssleutel-ID** niet. Hij is verkeerd getypt, verwijderd, gedeactiveerd of uit een andere partitie, of het is een tijdelijke sleutel zonder zijn **Session token**.
 - `ExpiredTokenException`, of `The security token included in the request is expired`: de tijdelijke referenties zijn verlopen. Geef nieuwe uit, of stap over op een langlevende sleutel.
 - `RequestTimeTooSkewed` of `RequestExpired`, of `Signature expired`: de klok van de OneUptime-hosts loopt meer dan 5 minuten af. Herstel NTP op de app- en workerhosts.
 - Helemaal geen code: AWS zei niet of de sleutel of het beleid het weigerde. Controleer eerst de sleutel, dan het beleid.

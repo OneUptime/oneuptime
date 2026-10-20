@@ -5,11 +5,15 @@ import TraceScrubAction from "../Trace/TraceScrubAction";
 import TraceScrubField from "../Trace/TraceScrubField";
 import TraceScrubPatternType from "../Trace/TraceScrubPatternType";
 import LinearRegExp from "../../Utils/LinearRegExp/LinearRegExp";
-import { getLinearRegExp } from "../../Utils/LinearRegExp/PatternCache";
+import {
+  getLinearRegExp,
+  LinearRegExpHandle,
+} from "../../Utils/LinearRegExp/PatternCache";
 import {
   PatternProblemError,
   PatternWorkLimitError,
 } from "../../Utils/LinearRegExp/PatternProblem";
+import { patternWorkRefusesQuestions } from "../../Utils/LinearRegExp/PatternWork";
 
 /*
  * WHAT A LOG OR TRACE SCRUB RULE STARTS WITH, AND WHAT MAKES ONE SCRUB
@@ -67,27 +71,39 @@ export interface ScrubRegExp {
   replace(text: string, replacer: (matchedText: string) => string): string;
 }
 
+/*
+ * A custom pattern, kept by its handle: a project's rules are kept for a
+ * minute between batches, and their compiled patterns stay in the matcher's
+ * bounded cache (LinearRegExpHandle), compiled again when it has dropped
+ * them.
+ */
 class CustomScrubRegExp implements ScrubRegExp {
   public readonly source: string;
   public readonly flags: string;
-  private readonly pattern: LinearRegExp;
+  private readonly handle: LinearRegExpHandle;
 
-  public constructor(pattern: LinearRegExp) {
-    this.pattern = pattern;
-    this.source = pattern.source;
-    this.flags = pattern.flags;
+  public constructor(handle: LinearRegExpHandle) {
+    this.handle = handle;
+    this.source = handle.source;
+    this.flags = handle.flags;
   }
 
   public test(text: string): boolean {
+    if (patternWorkRefusesQuestions(text)) {
+      // The batch's work allowance is spent: taken as holding, as below.
+      return true;
+    }
+
     try {
-      return this.pattern.test(text);
+      return this.handle.get().test(text);
     } catch (error: unknown) {
       if (error instanceof PatternWorkLimitError) {
         // Taken as holding what the rule scrubs, as replace does.
         return true;
       }
 
-      throw error;
+      // A pattern that cannot run holds nothing: the rule scrubs nothing.
+      return false;
     }
   }
 
@@ -95,14 +111,45 @@ class CustomScrubRegExp implements ScrubRegExp {
     text: string,
     replacer: (matchedText: string) => string,
   ): string {
+    if (patternWorkRefusesQuestions(text)) {
+      /*
+       * The batch's work allowance is spent
+       * (Utils/LinearRegExp/PatternWork.ts): the whole value is scrubbed,
+       * as below, without looking the pattern up.
+       */
+      return replacer(text);
+    }
+
+    let pattern: LinearRegExp;
+
     try {
-      return this.pattern.replace(text, replacer);
+      pattern = this.handle.get();
     } catch (error: unknown) {
       if (error instanceof PatternWorkLimitError) {
         /*
-         * A pattern built so that finding every match would read the text
-         * over and over: rather than store what it was written to hide, the
-         * whole value is scrubbed.
+         * Not compiled: the batch's work allowance is spent
+         * (Utils/LinearRegExp/PatternWork.ts). Rather than store what the
+         * rule was written to hide, the whole value is scrubbed.
+         */
+        return replacer(text);
+      }
+
+      /*
+       * Not a pattern that can run - one saved before such patterns were
+       * refused: the rule scrubs nothing, as one whose pattern does not
+       * compile always has (doesScrubRuleScrubNothing).
+       */
+      return text;
+    }
+
+    try {
+      return pattern.replace(text, replacer);
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        /*
+         * Finding every match would take more work than the value - or what
+         * is left of the batch's allowance - allows: rather than store what
+         * the rule was written to hide, the whole value is scrubbed.
          */
         return replacer(text);
       }
@@ -235,6 +282,10 @@ export function getRegexSyntaxErrorReason(error: unknown): string {
  * or null when it cannot be: empty, not a regular expression, or one the
  * linear-time matcher cannot run (a back-reference). A rule whose pattern
  * compiles to null scrubs nothing.
+ *
+ * Compiled now, so a pattern that cannot run is known now - unless the work
+ * allowance of the batch under way is spent (Utils/LinearRegExp/PatternWork.ts):
+ * then the rule is kept, and its pattern compiled when it is used.
  */
 export function compileScrubRuleCustomRegex(
   customRegex: unknown,
@@ -243,13 +294,24 @@ export function compileScrubRuleCustomRegex(
     return null;
   }
 
+  let handle: LinearRegExpHandle;
+
   try {
-    return new CustomScrubRegExp(
-      getLinearRegExp(customRegex, SCRUB_RULE_REGEX_FLAGS),
-    );
+    handle = new LinearRegExpHandle(customRegex, SCRUB_RULE_REGEX_FLAGS);
   } catch {
+    // Longer than any pattern that can run.
     return null;
   }
+
+  try {
+    handle.get();
+  } catch (error: unknown) {
+    if (!(error instanceof PatternWorkLimitError)) {
+      return null;
+    }
+  }
+
+  return new CustomScrubRegExp(handle);
 }
 
 /**

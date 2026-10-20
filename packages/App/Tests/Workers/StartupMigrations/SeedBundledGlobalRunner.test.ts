@@ -174,12 +174,19 @@ describe("the key set", () => {
     expect(infoSpy).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * AI code fixes are not a switch on a Runner: a code repository picks a
+   * Runner of its project (in Code), which a global Runner never is, so
+   * the seed sets nothing for them.
+   */
   test("runs runbook steps only: never AI code fixes or AI commands", async () => {
     await migrate();
 
     expect(created().canRunRunbooks).toBe(true);
-    expect(created().canRunCodeFixTasks).toBe(false);
     expect(created().canRunAiCommands).toBe(false);
+    expect(
+      (created() as unknown as Record<string, unknown>)["canRunCodeFixTasks"],
+    ).toBeUndefined();
   });
 
   test("the row it creates has the shape a global Runner must have, and a key that may be stored", async () => {

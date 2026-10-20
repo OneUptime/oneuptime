@@ -56,11 +56,11 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 1. **Users → Create user** را باز کنید، به کاربر نامی بدهید، برای نمونه `oneuptime-security-hub`، دسترسی کنسول را خاموش بگذارید، و سیاست را پیوست کنید. برای یافته‌های حساب‌های دیگر، این کار را در حساب مدیر واگذارشده انجام دهید.
 2. کاربر را باز کنید، سپس **Security credentials → Access keys → Create access key** را، و **Third-party service** را برگزینید.
-3. **Access key ID** و **Secret access key** را کپی کنید. AWS رمز را یک بار نشان می‌دهد.
+3. **شناسه کلید دسترسی** و **کلید دسترسی مخفی** را کپی کنید. AWS رمز را یک بار نشان می‌دهد.
 
 ### افزودن اتصال در OneUptime
 
-**محصولات** > **رویدادهای امنیتی** > **Connections** (`/dashboard/{projectId}/security-events/connections`) را باز کنید، روی **افزودن اتصال** کلیک کنید، **AWS Security Hub** را برگزینید، و روی **بعدی** کلیک کنید. تنظیمات جدول زیر را پر کنید، روی **بعدی** کلیک کنید، و رمز را در **Secret access key** بچسبانید.
+**محصولات** > **رویدادهای امنیتی** > **Connections** (`/dashboard/{projectId}/security-events/connections`) را باز کنید، روی **افزودن اتصال** کلیک کنید، **AWS Security Hub** را برگزینید، و روی **بعدی** کلیک کنید. تنظیمات جدول زیر را پر کنید، روی **بعدی** کلیک کنید، و رمز را در **کلید دسترسی مخفی** بچسبانید.
 
 ### آزمایش پیش از ذخیره
 
@@ -70,8 +70,8 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 | تنظیم | چه چیزی وارد کنید |
 | --- | --- |
 | **منطقه** | کد منطقه، مانند `us-east-1`، `eu-central-1` یا `us-gov-west-1`: برای یافته‌های حساب‌های دیگر، منطقهٔ اصلی حساب مدیر. |
-| **Access key ID** | شناسهٔ کلید: ۱۶ تا ۱۲۸ حرف یا رقم، معمولاً ۲۰ تا که با `AKIA` شروع می‌شود، یا `ASIA` برای اعتبارنامه‌های موقت. |
-| **Secret access key** | رمز کلید. رمزگذاری می‌شود، API هرگز آن را برنمی‌گرداند و دیگر هرگز نشان داده نمی‌شود. آن را با **Update credentials** روی اتصال جایگزین کنید. |
+| **شناسه کلید دسترسی** | شناسهٔ کلید: ۱۶ تا ۱۲۸ حرف یا رقم، معمولاً ۲۰ تا که با `AKIA` شروع می‌شود، یا `ASIA` برای اعتبارنامه‌های موقت. |
+| **کلید دسترسی مخفی** | رمز کلید. رمزگذاری می‌شود، API هرگز آن را برنمی‌گرداند و دیگر هرگز نشان داده نمی‌شود. آن را با **Update credentials** روی اتصال جایگزین کنید. |
 | **Session token** | فقط برای اعتبارنامه‌های موقت، که به آن نیاز دارند: کلید `ASIA` بدون آن رد می‌شود، و کلید `AKIA` با آن رد می‌شود. |
 
 اعتبارنامه‌های موقت از `aws sts assume-role` یا `aws sts get-session-token` منقضی می‌شوند، برای نقشی که assume شده حداکثر پس از ۱۲ ساعت، و نظرسنجی تا وقتی اعتبارنامه‌های تازه را با **Update credentials** بچسبانید متوقف می‌شود. یک کلید بلندمدت با این سیاست محدود، که با زمان‌بندی خودتان چرخانده می‌شود، نظرسنجی را بدون نظارت ادامه می‌دهد. برای رفتن از اعتبارنامه‌های موقت به یک کلید بلندمدت، کلید تازه را در **Update credentials** وارد کنید و **Remove the stored Session token** را روشن کنید.
@@ -167,8 +167,8 @@ AWS درخواست را رد کرد. پیام کد خطای AWS را نقل می
 
 - `AccessDeniedException`، یا `is not authorized to perform`: کلید درست است، اما هویت آن اجازه ندارد `securityhub:GetFindings` را فرا بخواند. سیاست بخش [راه‌اندازی اتصال](#راهاندازی-اتصال) را پیوست کنید. یک مرز مجوزها یا یک سیاست کنترل سرویس هم می‌تواند آن را رد کند.
 - `InvalidAccessException`، یا `is not subscribed to AWS Security Hub`: Security Hub برای این حساب در این **منطقه** فعال نیست، یا حساب آنجا مدیر آن نیست.
-- `InvalidSignatureException` یا `SignatureDoesNotMatch`، یا `The request signature we calculated does not match`: **Secret access key** متعلق به **Access key ID** نیست. یک کلید دسترسی تازه بسازید، و آن را با **Update credentials** ذخیره کنید.
-- `UnrecognizedClientException` یا `InvalidClientTokenId`، یا `The security token included in the request is invalid`: AWS این **Access key ID** را نمی‌شناسد. اشتباه تایپ شده، حذف یا غیرفعال شده یا از پارتیشن دیگری است، یا یک کلید موقت بدون **Session token** آن است.
+- `InvalidSignatureException` یا `SignatureDoesNotMatch`، یا `The request signature we calculated does not match`: **کلید دسترسی مخفی** متعلق به **شناسه کلید دسترسی** نیست. یک کلید دسترسی تازه بسازید، و آن را با **Update credentials** ذخیره کنید.
+- `UnrecognizedClientException` یا `InvalidClientTokenId`، یا `The security token included in the request is invalid`: AWS این **شناسه کلید دسترسی** را نمی‌شناسد. اشتباه تایپ شده، حذف یا غیرفعال شده یا از پارتیشن دیگری است، یا یک کلید موقت بدون **Session token** آن است.
 - `ExpiredTokenException`، یا `The security token included in the request is expired`: اعتبارنامه‌های موقت منقضی شده‌اند. اعتبارنامه‌های تازه صادر کنید، یا به یک کلید بلندمدت بروید.
 - `RequestTimeTooSkewed` یا `RequestExpired`، یا `Signature expired`: ساعت میزبان‌های OneUptime بیش از ۵ دقیقه اختلاف دارد. NTP را روی میزبان‌های برنامه و کارگر درست کنید.
 - بدون هیچ کدی: AWS نگفت کلید آن را رد کرد یا سیاست. اول کلید را بررسی کنید، سپس سیاست را.

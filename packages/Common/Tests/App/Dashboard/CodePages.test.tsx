@@ -736,7 +736,8 @@ describe("a repository's page: ask AI", () => {
         },
         blocker: {
           type: CodeTaskBlockerType.NoAgent,
-          message: "No Runner with Runs AI Code Fixes is online.",
+          message:
+            "No global Runner is online to work in this repository. Pick one of your Runners for it in the repository's settings in Code, or try again once the global Runner is back.",
         },
       }) as never,
     );

@@ -1,4 +1,5 @@
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -316,6 +317,13 @@ export class TraceScrubRuleService {
       return content;
     }
 
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(content);
+
     const applicableRules: Array<CompiledRule> = compiledRules.filter(
       (compiled: CompiledRule): boolean => {
         // SensitiveKeys always applies to attribute content (see scrubSpan).
@@ -356,6 +364,13 @@ export class TraceScrubRuleService {
     if (compiledRules.length === 0) {
       return spanRow;
     }
+
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(spanRow);
 
     /*
      * Each rule's `fieldsToScrub` is per-rule (name vs attributes

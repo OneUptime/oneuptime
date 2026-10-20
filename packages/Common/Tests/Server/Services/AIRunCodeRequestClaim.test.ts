@@ -1,9 +1,35 @@
 import AIRunService from "../../../Server/Services/AIRunService";
+import CodeFixClaimQuery, {
+  CodeFixClaimQueryFacts,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixClaimQuery";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  CodeWorker,
+  CodeWorkerKind,
+} from "../../../Types/Runner/CodeRepositoryRunner";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+
+/*
+ * Who claims: the claim reads the repository's Runner choice for it
+ * (CodeFixClaimQuery, pinned in its own suite). These tests are about what
+ * happens once a candidate is read, so it is a global Runner and the
+ * candidate query always names one; findOneBy hands back the run.
+ */
+const WORKER: CodeWorker = {
+  kind: CodeWorkerKind.GlobalRunner,
+  id: new ObjectID("0a1b2c3d-8888-4222-8333-944455556666"),
+};
+const CANDIDATE_ID: string = "0a1b2c3d-9999-4222-8333-944455556666";
 
 /*
  * A request from Code goes only to a Runner that can carry it out. A Runner
@@ -38,20 +64,17 @@ function queuedRequest(data: {
   } as unknown as AIRun;
 }
 
-// The recipes a claim asked for: the parameter of its Raw IN (...) OR NULL.
-function claimableRecipes(findOneBy: jest.Mock): Array<string> {
-  const query: Record<string, unknown> = (
-    findOneBy.mock.calls[0]![0] as { query: Record<string, unknown> }
-  ).query;
-
-  return Object.values(
-    (
-      query["codeFixTaskType"] as {
-        objectLiteralParameters: Record<string, Array<string>>;
-      }
-    ).objectLiteralParameters,
-  )[0]!;
+// The recipes a claim asked for: what the candidate query was given.
+function claimableRecipes(findNext: jest.Mock): Array<string> {
+  return (findNext.mock.calls[0]![0] as { claimableTaskTypes: Array<string> })
+    .claimableTaskTypes;
 }
+
+beforeEach(() => {
+  jest
+    .spyOn(AIRunService, "findNextClaimableCodeFixRunId")
+    .mockResolvedValue(CANDIDATE_ID);
+});
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -60,10 +83,11 @@ afterEach(() => {
 describe("which recipes a Runner is handed", () => {
   test("a Runner that names its recipes is handed only those", async () => {
     const find: jest.Mock = jest
-      .spyOn(AIRunService, "findOneBy")
+      .spyOn(AIRunService, "findNextClaimableCodeFixRunId")
       .mockResolvedValue(null) as unknown as jest.Mock;
 
     await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
       supportedTaskTypes: [
         CodeFixTaskType.CodeRequest,
@@ -79,10 +103,11 @@ describe("which recipes a Runner is handed", () => {
 
   test("a Runner that does not say is never handed a request from Code", async () => {
     const find: jest.Mock = jest
-      .spyOn(AIRunService, "findOneBy")
+      .spyOn(AIRunService, "findNextClaimableCodeFixRunId")
       .mockResolvedValue(null) as unknown as jest.Mock;
 
     await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
       supportedTaskTypes: null,
     });
@@ -96,21 +121,19 @@ describe("which recipes a Runner is handed", () => {
 
   test("a run with no recipe (before recipes existed) is still claimable: the filter keeps NULL", async () => {
     const find: jest.Mock = jest
-      .spyOn(AIRunService, "findOneBy")
+      .spyOn(AIRunService, "findNextClaimableCodeFixRunId")
       .mockResolvedValue(null) as unknown as jest.Mock;
 
     await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
-    const query: Record<string, unknown> = (
-      find.mock.calls[0]![0] as { query: Record<string, unknown> }
-    ).query;
-    const sql: string = (
-      query["codeFixTaskType"] as { getSql: (alias: string) => string }
-    ).getSql('"codeFixTaskType"');
+    const sql: string = CodeFixClaimQuery.getNextRunStatement(
+      find.mock.calls[0]![0] as CodeFixClaimQueryFacts,
+    ).sql;
 
-    expect(sql).toContain('"codeFixTaskType" IS NULL');
+    expect(sql).toContain('"run"."codeFixTaskType" IS NULL OR');
   });
 });
 
@@ -125,6 +148,7 @@ describe("a queued request is claimed only when it can be carried out", () => {
 
     expect(
       await AIRunService.claimNextQueuedCodeFixRun({
+        worker: WORKER,
         aiAgentId: ObjectID.generate(),
         supportedTaskTypes: [CodeFixTaskType.CodeRequest],
       }),
@@ -163,6 +187,7 @@ describe("a queued request is claimed only when it can be carried out", () => {
 
       expect(
         await AIRunService.claimNextQueuedCodeFixRun({
+          worker: WORKER,
           aiAgentId: ObjectID.generate(),
           supportedTaskTypes: [CodeFixTaskType.CodeRequest],
         }),
