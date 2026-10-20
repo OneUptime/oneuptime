@@ -38,6 +38,8 @@ A linha do topo nomeia o que há de mais urgente em aberto, numa cor corresponde
 
 Ao lado, o Início diz quando leu o projeto pela última vez, e **Atualizar** o lê de novo. Quando você volta a uma aba do Início depois de um minuto ou mais, ele se atualiza sozinho.
 
+Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu primeiro monitor**, que abre o formulário para criar um. Só quem tem permissão para criar monitores o vê.
+
 ### Os cinco números
 
 Cada número conta algo, diz se isso precisa de você e abre a lista por trás dele.

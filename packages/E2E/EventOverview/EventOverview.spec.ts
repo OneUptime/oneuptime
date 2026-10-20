@@ -12721,3 +12721,212 @@ test.describe("an incident call's transcript (?calls=)", () => {
     );
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Time to acknowledge after paging
+ * ---------------------------------------------------------------------------
+ * "Acknowledged in" counts from when the record began. For a record
+ * somebody was paged about (First Paged At), the tile keeps that number and
+ * adds one short, quieter line: how long after the first page it was
+ * acknowledged. Nothing changes for a record nobody was paged about.
+ * ?paged=paged pages incident #1042 at 18:02 and alert #311 at 18:07, a
+ * minute after each began; ?paged=never adds the measurement and pages
+ * nobody (Fixture.js).
+ */
+
+interface StatTileLine {
+  text: string;
+  fontSize: number;
+  color: string;
+  lines: number;
+}
+
+// Each line of the first tile of a stat bar: label, value, note, date.
+async function firstStatTileLines(
+  page: Page,
+  name: string,
+): Promise<Array<StatTileLine>> {
+  return page
+    .getByRole("group", { name, exact: true })
+    .locator(":scope > div")
+    .first()
+    .evaluate((cell: Element): Array<StatTileLine> => {
+      return Array.from(cell.children).map((child: Element): StatTileLine => {
+        const style: CSSStyleDeclaration = getComputedStyle(child);
+        const lineHeight: number = parseFloat(style.lineHeight);
+        return {
+          text: (child.textContent || "").trim(),
+          fontSize: parseFloat(style.fontSize),
+          color: style.color,
+          lines: Math.round(child.getBoundingClientRect().height / lineHeight),
+        };
+      });
+    });
+}
+
+const AFTER_PAGING_INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
+  INCIDENT_MEASUREMENTS[0]!,
+  {
+    name: "Time to acknowledge after paging",
+    summary: "First paged → Acknowledged",
+    value: "2 minutes",
+    reason: null,
+  },
+  ...INCIDENT_MEASUREMENTS.slice(1),
+];
+
+test.describe("time to acknowledge after paging", () => {
+  test("incident-overview: Acknowledged in keeps its number and adds the time after paging, quieter than it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=paged");
+
+    const lines: Array<StatTileLine> = await firstStatTileLines(
+      page,
+      INCIDENT_PAGE.statBar,
+    );
+    expect(
+      lines.map((line: StatTileLine): string => {
+        return line.text;
+      }),
+    ).toEqual([
+      "Acknowledged in",
+      "3 minutes",
+      "2 minutes after paging",
+      "Sep 14 2026, 06:04 PM GMT",
+    ]);
+    const [, value, note, date] = lines;
+    // Smaller and lighter than the value, larger than the date: value, note, date.
+    expect(note!.fontSize).toBeLessThan(value!.fontSize);
+    expect(note!.fontSize).toBeGreaterThan(date!.fontSize);
+    expect(note!.color).not.toBe(value!.color);
+    expect(note!.lines).toBe(1);
+
+    // The other tiles are as they were.
+    expect((await statCells(page, INCIDENT_PAGE.statBar)).slice(1)).toEqual(
+      INCIDENT_PAGE.stats.slice(1),
+    );
+
+    // The measurement sits next to Time to acknowledge.
+    expect(await measurementRows(page)).toEqual(
+      AFTER_PAGING_INCIDENT_MEASUREMENTS,
+    );
+  });
+
+  test("alert-overview: the same line, from the alert's own first page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "paged=paged");
+
+    expect(
+      (await firstStatTileLines(page, ALERT_PAGE.statBar)).map(
+        (line: StatTileLine): string => {
+          return line.text;
+        },
+      ),
+    ).toEqual([
+      "Acknowledged in",
+      "2 minutes",
+      "1 minute after paging",
+      "Sep 14 2026, 06:08 PM GMT",
+    ]);
+    expect(await measurementRows(page)).toEqual([
+      {
+        name: "Time to acknowledge",
+        summary: "Created → Acknowledged",
+        value: "2 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to acknowledge after paging",
+        summary: "First paged → Acknowledged",
+        value: "1 minute",
+        reason: null,
+      },
+      {
+        name: "Time to resolve",
+        summary: "Created → Resolved",
+        value: "9 minutes",
+        reason: null,
+      },
+    ]);
+  });
+
+  test("?paged=never: nothing extra on the tile, and the measurement was never reached", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=never");
+
+    expect(await statCells(page, INCIDENT_PAGE.statBar)).toEqual(
+      INCIDENT_PAGE.stats,
+    );
+    expect((await measurementRows(page))[1]).toEqual({
+      name: "Time to acknowledge after paging",
+      summary: "First paged → Acknowledged",
+      value: "Not reached",
+      reason: null,
+    });
+  });
+
+  test("?state=created: paged and not yet acknowledged, the tile says only that, and the clock runs from the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=paged&state=created");
+
+    expect(
+      (await firstStatTileLines(page, INCIDENT_PAGE.statBar)).map(
+        (line: StatTileLine): string => {
+          return line.text;
+        },
+      ),
+    ).toEqual(["Acknowledged in", "Not yet acknowledged"]);
+    expect((await measurementRows(page))[1]).toEqual({
+      name: "Time to acknowledge after paging",
+      summary: "First paged → Acknowledged",
+      // Paged at 18:02; the clock reads 18:20.
+      value: "Running for 18 minutes",
+      reason: null,
+    });
+  });
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 640, 390]) {
+      test(`reads well at ${width}px in the ${theme} theme`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(
+          page,
+          INCIDENT_PAGE,
+          theme === "dark" ? "paged=paged&theme=dark" : "paged=paged",
+        );
+
+        const [, value, note, date] = await firstStatTileLines(
+          page,
+          INCIDENT_PAGE.statBar,
+        );
+        expect(note!.text).toBe("2 minutes after paging");
+        // Its own colour in both themes: quieter than the value, not the date's.
+        expect(note!.color).not.toBe(value!.color);
+        expect(note!.color).not.toBe(date!.color);
+        /*
+         * One line where the cell has room; in the narrowest three-column
+         * bar (640px) two even lines, never a word left on its own.
+         */
+        expect(note!.lines).toBe(width === 640 ? 2 : 1);
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+  }
+});

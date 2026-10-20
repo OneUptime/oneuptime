@@ -96,7 +96,7 @@ Wat hij niet kan, is de OneUptime-pagina eromheen bereiken. Hij heeft geen toega
 Twee gevolgen die je moet kennen voordat je iets plakt:
 
 - Een `fetch` vanuit de widget is een cross-origin-verzoek vanaf een ondoorzichtige origin, dus de server die je aanroept moet het toestaan met CORS. De OneUptime-API aanroepen vanaf hier wordt niet ondersteund.
-- De widget begint transparant. Stel in je CSS een achtergrond in op `body` als je wilt dat hij de kaart vult.
+- De widget begint transparant. Stel in je CSS een achtergrond in op `body` als je wilt dat hij de kaart vult. In het donkere thema begint zijn tekst licht en heeft zijn element `<html>` de klasse `dark`: begin een CSS-regel met `html.dark` om alleen het donkere thema op te maken.
 
 #### Dashboardvariabelen gebruiken
 

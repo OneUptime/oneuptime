@@ -36,6 +36,10 @@ import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedExc
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import JSONFunctions from "../../Types/JSONFunctions";
 import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
+import {
+  DASHBOARD_THEME_COLUMN,
+  parseDashboardTheme,
+} from "../../Types/Dashboard/DashboardTheme";
 import PublicDashboardViewConfig from "../Utils/Dashboard/PublicDashboardViewConfig";
 import StoredDashboardViewConfig from "../../Utils/Dashboard/StoredDashboardViewConfig";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
@@ -480,8 +484,10 @@ export default class DashboardAPI extends BaseAPI<
      * page, so it holds only what the link shows EVERY visitor - decided for
      * a visitor nothing is known about, never for whoever happens to ask:
      *
-     *   anyone with the link     the title and the description
-     *   ... and a password       the title (its password prompt shows it)
+     *   anyone with the link     the title, the description and the
+     *                            theme
+     *   ... and a password       the title and the theme (its password
+     *                            prompt shows them)
      *   an IP allowlist          the generic title and description: a
      *                            visitor outside the list sees nothing of the
      *                            dashboard, but the link still answers, so
@@ -534,11 +540,13 @@ export default class DashboardAPI extends BaseAPI<
                     pageTitle: true,
                     description: true,
                     pageDescription: true,
+                    theme: true,
                   }
                 : {
                     _id: true,
                     name: true,
                     pageTitle: true,
+                    theme: true,
                   },
               props: {
                 isRoot: true,
@@ -559,6 +567,16 @@ export default class DashboardAPI extends BaseAPI<
               (isOpenToEveryone
                 ? dashboard.pageDescription || dashboard.description
                 : "") || PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+            /*
+             * Light, Dark or System, for the theme the page's HTML is sent
+             * with, so a dark dashboard - and its password prompt - is dark
+             * before the first paint. Read here the way the app reads it,
+             * so the two servers that render the page never decide what an
+             * empty column means. An IP allowlist's refusal above names
+             * none: Access Denied shows nothing of the dashboard, and
+             * follows the visitor.
+             */
+            [DASHBOARD_THEME_COLUMN]: parseDashboardTheme(dashboard.theme),
           });
         } catch (err) {
           next(err);
@@ -714,8 +732,9 @@ export default class DashboardAPI extends BaseAPI<
 
     /*
      * What the public dashboard app loads first: the dashboard's name, page
-     * title, favicon and whether its link asks for the password - and, once
-     * the visitor may view it, its description, page description and logo.
+     * title, favicon, theme and whether its link asks for the password -
+     * and, once the visitor may view it, its description, page description
+     * and logo.
      *
      * Decided before anything is read, for the visitor asking (their address
      * and unlock cookie), by the rule every public route keeps
@@ -723,7 +742,7 @@ export default class DashboardAPI extends BaseAPI<
      *
      *   Granted           the whole answer
      *   PasswordRequired  only what the password prompt shows: the name, the
-     *                     page title and the favicon
+     *                     page title, the favicon and the theme
      *   Forbidden         403, the IP allowlist's refusal
      *   NotFound          404 "Dashboard not found", word for word what an id
      *                     no dashboard has gets: a dashboard shared only with
@@ -769,6 +788,7 @@ export default class DashboardAPI extends BaseAPI<
                     name: true,
                     pageTitle: true,
                     faviconFile: SERVED_IMAGE_SELECT,
+                    theme: true,
                     description: true,
                     pageDescription: true,
                     logoFile: SERVED_IMAGE_SELECT,
@@ -779,6 +799,7 @@ export default class DashboardAPI extends BaseAPI<
                     name: true,
                     pageTitle: true,
                     faviconFile: SERVED_IMAGE_SELECT,
+                    theme: true,
                   },
               props: {
                 isRoot: true,
@@ -808,6 +829,12 @@ export default class DashboardAPI extends BaseAPI<
                 dashboard.projectId,
               ),
             ),
+            /*
+             * Light, Dark or System: how the dashboard looks to visitors,
+             * its password prompt included, read the way the page's HTML
+             * was sent it (/seo).
+             */
+            [DASHBOARD_THEME_COLUMN]: parseDashboardTheme(dashboard.theme),
             /*
              * The rest stays behind the password: the keys are always
              * there, empty until this visitor may view the dashboard.

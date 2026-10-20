@@ -96,7 +96,7 @@ Det den inte kan göra är att nå OneUptime-sidan runt omkring. Den har ingen �
 Två konsekvenser som är bra att känna till innan du klistrar in något:
 
 - En `fetch` från widgeten är en förfrågan mellan ursprung från ett ogenomskinligt ursprung, så servern du anropar måste tillåta den med CORS. Att anropa OneUptimes API härifrån stöds inte.
-- Widgeten börjar genomskinlig. Ange en bakgrund på `body` i din CSS om du vill att den ska fylla kortet.
+- Widgeten börjar genomskinlig. Ange en bakgrund på `body` i din CSS om du vill att den ska fylla kortet. I det mörka temat börjar dess text ljus, och dess element `<html>` har klassen `dark`: börja en CSS-regel med `html.dark` för att bara styla det mörka temat.
 
 #### Använda instrumentpanelsvariabler
 

@@ -76,7 +76,7 @@ Una connessione Microsoft Teams creata con l'accesso mentre l'opzione **Registra
 
 ### Restare connessi
 
-OneUptime conserva il token di aggiornamento dell'accesso, cifrato, e lo rinnova almeno una volta a settimana, quindi non scade mai per inutilizzo, per quanto a lungo il progetto resti senza incidenti. Se l'accesso smette di funzionare (l'account ha rimosso OneUptime, è stato eliminato o sospeso, oppure i criteri della tua organizzazione gli chiedono di accedere di nuovo), la riga della connessione mostra **Not working** con il motivo il giorno in cui OneUptime se ne accorge, non al prossimo incidente. **Reconnect** nella riga effettua di nuovo l'accesso.
+OneUptime conserva il token di aggiornamento dell'accesso, cifrato, e lo rinnova almeno una volta a settimana, quindi non scade mai per inutilizzo, per quanto a lungo il progetto resti senza incidenti. Se l'accesso smette di funzionare (l'account ha rimosso OneUptime, è stato eliminato o sospeso, oppure i criteri della tua organizzazione gli chiedono di accedere di nuovo), la riga della connessione mostra **Non funziona** con il motivo il giorno in cui OneUptime se ne accorge, non al prossimo incidente. **Reconnect** nella riga effettua di nuovo l'accesso.
 
 Le connessioni che hanno effettuato l'accesso con lo stesso account condividono un solo accesso, in tutti i progetti: Zoom conserva un solo accesso per account, quindi collegare di nuovo lo stesso utente Zoom lo sostituisce per tutte.
 
@@ -84,7 +84,7 @@ Le connessioni che hanno effettuato l'accesso con lo stesso account condividono 
 
 **Reconnect** nella riga di una connessione effettua di nuovo l'accesso, con lo stesso account o con un altro. Usalo dopo che l'account ha rimosso OneUptime, o per spostare le riunioni degli incidenti su un altro account.
 
-Eliminare una connessione revoca l'accesso di OneUptime presso Zoom e Google non appena nessun'altra connessione usa quell'accesso. Per Microsoft, rimuovi OneUptime in **My Apps** (myapps.microsoft.com) dell'account. Rimuovere OneUptime dal tuo account Zoom nello Zoom App Marketplace elimina il suo accesso da tutte le connessioni che lo usavano con quell'account, che mostrano **Not working** finché non vengono ricollegate.
+Eliminare una connessione revoca l'accesso di OneUptime presso Zoom e Google non appena nessun'altra connessione usa quell'accesso. Per Microsoft, rimuovi OneUptime in **My Apps** (myapps.microsoft.com) dell'account. Rimuovere OneUptime dal tuo account Zoom nello Zoom App Marketplace elimina il suo accesso da tutte le connessioni che lo usavano con quell'account, che mostrano **Non funziona** finché non vengono ricollegate.
 
 ### Se Microsoft chiede un amministratore
 
@@ -288,7 +288,7 @@ Controlla che la regola corrispondesse all'incidente (**Regola di test**), che i
 Il provider ha rifiutato, e il feed ne indica il motivo. Nel frattempo avvia una chiamata dalla pagina dell'incidente. Poi esegui **Test** nella riga della connessione: mostra lo stesso motivo mentre correggi la configurazione presso il provider, come un segreto client scaduto o un permesso mancante.
 :::
 
-:::details Una connessione mostra Not working
+:::details Una connessione mostra Non funziona
 Il suo accesso ha smesso di funzionare: l'account ha rimosso OneUptime, è stato eliminato o sospeso, oppure deve accedere di nuovo. Fai clic su **Reconnect** nella sua riga. Fino ad allora, le chiamate che dovrebbe avviare non possono partire.
 :::
 

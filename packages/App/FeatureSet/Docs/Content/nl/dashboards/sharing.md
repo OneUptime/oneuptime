@@ -47,7 +47,8 @@ Een openbaar dashboard:
 
 - Opent altijd om te lezen. Bezoekers kunnen het niet bewerken, en zien de bewerkknoppen nooit.
 - Bevat de variabelen die je hebt toegevoegd. Bezoekers kiezen uit dezelfde kiezers die je team gebruikt, en kunnen het tijdsbereik wijzigen, inzoomen, automatisch vernieuwen aanzetten en naar volledig scherm gaan.
-- Gebruikt de huisstijl die je instelt op de pagina **Huisstijl** van het dashboard: paginatitel, beschrijving, logo, favicon.
+- Gebruikt de huisstijl die je instelt op de pagina **Huisstijl** van het dashboard: paginatitel, beschrijving, logo, thema, favicon.
+- Laat elke bezoeker met een knop met een zon of een maan in de werkbalk wisselen tussen het lichte en het donkere dashboard; [Thema](#thema) legt uit hoe.
 
 Behandel het delen van een dashboard als het publiceren van een webpagina. Elke widget erop wordt leesbaar voor iedereen met de link. Kijk wat er op het canvas staat voordat je het deelt.
 
@@ -55,7 +56,7 @@ Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop
 
 ## Delen met een wachtwoord
 
-Kies **Iedereen met de link en een wachtwoord** en voer het wachtwoord in het dialoogvenster in. Bezoekers zien een vraag om het wachtwoord voordat het dashboard verschijnt. Die vraag toont de naam, de paginatitel en het favicon van het dashboard, en verder niets: de beschrijving, het logo en de widgets verschijnen zodra het wachtwoord is ingevoerd. Het wachtwoord wordt als hash opgeslagen: niemand kan het teruglezen. Een nieuw wachtwoord werkt meteen; mensen die het oude hebben ingevoerd, kunnen het dashboard nog maximaal 7 dagen blijven bekijken.
+Kies **Iedereen met de link en een wachtwoord** en voer het wachtwoord in het dialoogvenster in. Bezoekers zien een vraag om het wachtwoord voordat het dashboard verschijnt. Die vraag toont de naam, de paginatitel en het favicon van het dashboard, in het thema van het dashboard, en verder niets: de beschrijving, het logo en de widgets verschijnen zodra het wachtwoord is ingevoerd. Het wachtwoord wordt als hash opgeslagen: niemand kan het teruglezen. Een nieuw wachtwoord werkt meteen; mensen die het oude hebben ingevoerd, kunnen het dashboard nog maximaal 7 dagen blijven bekijken.
 
 Gebruik een wachtwoord als:
 
@@ -152,13 +153,30 @@ Op de pagina **Huisstijl** van het dashboard kun je instellen:
 - **Paginatitel**: wat er in het browsertabblad en bovenaan de pagina staat.
 - **Paginabeschrijving**: de beschrijving die zoekmachines en previews op sociale media gebruiken.
 - **Logo**: een afbeelding in de kop van het openbare dashboard.
+- **Thema**: licht, donker of zoals het apparaat van elke bezoeker is ingesteld; zie [Thema](#thema).
 - **Favicon**: het kleine pictogram in het browsertabblad.
 
 Het logo en het favicon zijn bestanden die in het eigen project van het dashboard zijn geüpload, en dat wordt gecontroleerd telkens als er een wordt opgeslagen: vanuit het dashboard, de API, Terraform of een workflow. Een bestand dat in een ander project is geüpload, wordt geweigerd met de woorden die een bestand krijgt dat niet meer bestaat: "The logo's file could not be found. Upload the logo again." of "The favicon's file could not be found. Upload the favicon again." Het openbare dashboard toont alleen afbeeldingen uit zijn eigen project.
 
-De paginatitel en de beschrijving staan ook bovenaan de werkbalk van het dashboard voor je team, in plaats van de naam en de beschrijving ervan. Het logo en het favicon verschijnen alleen op het openbare dashboard.
+De paginatitel en de beschrijving staan ook bovenaan de werkbalk van het dashboard voor je team, in plaats van de naam en de beschrijving ervan. Het logo, het thema en het favicon gelden alleen voor het openbare dashboard.
 
-Bezoekers zien de huisstijl pas als ze het dashboard mogen bekijken. Voordat het wachtwoord is ingevoerd, toont een dashboard dat met een wachtwoord is gedeeld alleen zijn paginatitel en favicon, en zien zoekmachines en linkpreviews de paginatitel maar niet de paginabeschrijving. Een dashboard met een IP-toelatingslijst toont zijn huisstijl alleen aan de adressen op de lijst, en zoekmachines en linkpreviews zien er niets van.
+Bezoekers zien de huisstijl pas als ze het dashboard mogen bekijken. Voordat het wachtwoord is ingevoerd, toont een dashboard dat met een wachtwoord is gedeeld alleen zijn paginatitel, favicon en thema, en zien zoekmachines en linkpreviews de paginatitel maar niet de paginabeschrijving. Een dashboard met een IP-toelatingslijst toont zijn huisstijl alleen aan de adressen op de lijst, en zoekmachines en linkpreviews zien er niets van.
+
+### Thema
+
+De kaart **Thema**, direct onder het logo, bepaalt hoe het openbare dashboard er voor zijn bezoekers uitziet. Kies een van de drie keuzes en die wordt meteen opgeslagen; er is geen knop **Bewerken**.
+
+| Keuze | Wat bezoekers zien |
+| ------ | ----------------- |
+| **Licht** | Het lichte dashboard, hoe hun apparaat ook is ingesteld. Dashboards die gemaakt zijn voordat de instelling bestond, staan op **Licht**, dus ze zien eruit zoals altijd. |
+| **Donker** | Het donkere dashboard, hoe hun apparaat ook is ingesteld. |
+| **Zoals het apparaat van elke bezoeker** | Licht of donker, zoals hun apparaat is ingesteld, en het dashboard wisselt mee met het apparaat zolang het open is. |
+
+Wat je ook kiest, met een knop met een zon of een maan in de werkbalk van het dashboard kan elke bezoeker wisselen naar het lichte of het donkere dashboard, of terug naar het thema dat jij hebt ingesteld, en hun browser onthoudt de keuze voor elk openbaar dashboard op dat adres. Op het donkere dashboard staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft.
+
+Een dashboard dat vanaf nu wordt gemaakt, begint met **Zoals het apparaat van elke bezoeker**. Via de API en Terraform heet het veld `theme`, met een van de waarden `Light`, `Dark` of `System` (**Zoals het apparaat van elke bezoeker**), precies zo geschreven; elke andere waarde wordt geweigerd. Een Terraform-configuratie die geen `theme` instelt, krijgt `Light`, zodat een configuratie die vóór de instelling is geschreven nooit een wijziging plant op een dashboard dat ze beheert.
+
+Het thema staat in de HTML van het dashboard, dus het dashboard wordt er vanaf het begin in getekend: een donker dashboard flitst niet wit tijdens het laden, en ook de vraag om het wachtwoord wordt erin getekend. Elke widget volgt het; de eigen code van een HTML-widget kan het donkere thema opmaken, zoals [HTML](/docs/dashboards/widgets#html) uitlegt. De pagina's **Access Denied** en 'niet gevonden' tonen niets van een dashboard, dus volgen ze de bezoeker: zijn eigen keuze, anders zijn apparaat.
 
 ## Insluiten
 
@@ -175,9 +193,11 @@ Je kunt een openbaar dashboard in je eigen site insluiten met een iframe, op de 
 
 Als het dashboard met een wachtwoord is gedeeld, zien bezoekers de vraag om het wachtwoord in het iframe.
 
+Om een ingesloten dashboard de stijl van je site te geven, voeg je `?theme=light` of `?theme=dark` toe aan het adres, zoals in `https://dashboard.acme.com/?theme=dark`: het dashboard wordt dan in dat thema getekend voor iedereen die dat adres opent, wat het eigen thema en de keuze van de bezoeker ook zijn, en de werkbalk heeft geen themaknop. `?theme=system` volgt het apparaat van elke bezoeker. Het thema blijft behouden via de vraag om het wachtwoord.
+
 ## Een link sturen
 
-De openbare link opent het dashboard op de opgeslagen standaardwaarden. Om een link te sturen die op een bepaalde waarde opent, voeg je de variabele eraan toe als `?var-<name>=<value>`, zoals de adresbalk doet als een bezoeker een waarde kiest; meerdere waarden worden gescheiden door komma's. Het tijdsbereik maakt geen deel uit van de link: elk bezoek begint bij het afgelopen uur.
+De openbare link opent het dashboard op de opgeslagen standaardwaarden. Om een link te sturen die op een bepaalde waarde opent, voeg je de variabele eraan toe als `?var-<name>=<value>`, zoals de adresbalk doet als een bezoeker een waarde kiest; meerdere waarden worden gescheiden door komma's. Het tijdsbereik maakt geen deel uit van de link: elk bezoek begint bij het afgelopen uur. Om het dashboard in een thema te openen, voeg je `theme=light`, `theme=dark` of `theme=system` toe, zoals [Insluiten](#insluiten) beschrijft.
 
 ## Volgende stappen
 

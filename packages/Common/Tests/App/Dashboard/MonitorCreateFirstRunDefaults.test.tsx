@@ -511,6 +511,17 @@ describe("the Probes help", () => {
     );
     expect(probesField(form).description).toContain("start selected");
   });
+
+  /*
+   * And holds to it: while there are probes to pick, the form asks for one
+   * (MonitorCreateFlow walks the form through every case).
+   */
+  test("asks for at least one probe, on the Probes & Interval step", async () => {
+    const form: CapturedFormProps = await openWithParams({});
+
+    expect(probesField(form).required).toBe(true);
+    expect(probesField(form).stepId).toBe("monitoring-interval");
+  });
 });
 
 describe("the interval helpers", () => {

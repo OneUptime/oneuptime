@@ -1,9 +1,9 @@
 # Créer un tableau de bord
 
-Pour créer un tableau de bord, ouvrez **Produits → Tableaux de bord**, cliquez sur **Créer : Tableau de bord** et choisissez un modèle, ou **Blank Dashboard** pour partir de zéro. Un modèle remplit le nom du tableau de bord pour vous (numéroté, comme « Kubernetes Dashboard 2 », quand le projet en a déjà un) ; un tableau de bord vide vous demande un nom. Cliquez sur **Créer : Tableau de bord** et le nouveau tableau de bord s'ouvre. Un tableau de bord vide s'ouvre sur son canevas vide, avec un bouton **Ajouter un widget** pour son premier widget.
+Pour créer un tableau de bord, ouvrez **Produits → Tableaux de bord** et cliquez sur **Créer un tableau de bord**. La boîte de dialogue **Créer un tableau de bord** vous demande comment commencer, puis un nom. **Partir de zéro** vous donne un tableau de bord vide ; un modèle crée ses widgets, et souvent ses variables, pour vous, et remplit son nom (numéroté, comme « Kubernetes Dashboard 2 », quand le projet en a déjà un). Cliquez sur **Créer un tableau de bord** et le nouveau tableau de bord s'ouvre. Un tableau de bord vide s'ouvre sur son canevas, avec un bouton **Ajouter un widget** pour son premier widget.
 
 :::cards
-- [Créer le tableau de bord](#créer-le-tableau-de-bord): Partir d'un modèle ou d'un canevas vide.
+- [Créer le tableau de bord](#créer-le-tableau-de-bord): Partir de zéro ou d'un modèle.
 - [Modifier et enregistrer](#modifier-et-enregistrer): Rien ne change pour personne avant que vous cliquiez sur Enregistrer les modifications.
 - [Ajouter un widget](#ajouter-un-widget): Le choisir dans le catalogue, le configurer, le mettre en place.
 - [Zoomer sur un pic](#zoomer-sur-un-pic): Faites glisser sur un graphique pour lire tout le tableau de bord à ce moment-là.
@@ -16,33 +16,32 @@ Les propriétaires et administrateurs du projet peuvent créer et modifier tous 
 ## Créer le tableau de bord
 
 :::steps
-### Ouvrir le sélecteur de modèles
+### Choisir comment commencer
 
-Ouvrez **Produits → Tableaux de bord** et cliquez sur **Créer : Tableau de bord**. La boîte de dialogue **Créer à partir d'un modèle** affiche **Blank Dashboard** et quinze modèles, regroupés selon ce qu'ils surveillent.
+Ouvrez **Produits → Tableaux de bord** et cliquez sur **Créer un tableau de bord**. La boîte de dialogue **Créer un tableau de bord** s'ouvre sur **Partir de zéro**, un tableau de bord vide pour vos propres widgets. En dessous, **Ou partir d'un modèle** affiche six modèles **Recommandés**.
 
 ### Choisir un modèle
 
-Cliquez sur une carte. Un modèle crée ses widgets, et souvent ses variables, pour vous ; **Blank Dashboard** démarre avec un canevas vide.
+Cliquez sur un modèle pour voir ce qu'il ajoute : ses widgets, nommés comme dans **Ajouter un widget**, et les variables avec lesquelles vous le restreignez dans sa barre d'outils. Pour les autres, choisissez une catégorie à côté du champ de recherche, ou **Tous les modèles**, ou tapez dans **Rechercher des modèles…** : chaque mot que vous tapez doit correspondre. Cliquez ensuite sur **Utiliser ce modèle**, ou double-cliquez sur le modèle. Dans le champ de recherche, les flèches choisissent un modèle et **Entrée** l'utilise.
 
 ### Nommer le tableau de bord
 
-Le nom d'un modèle est rempli, numéroté au-delà des noms que le projet possède déjà. Le nom d'un tableau de bord vide est vide : saisissez-en un. La description est facultative, repliée sous **Plus de champs**, et vous pouvez l'ajouter plus tard sur la page **Vue d'ensemble** du tableau de bord.
+Le nom d'un modèle est rempli, numéroté au-delà des noms que le projet possède déjà. **Partir de zéro** le laisse vide : saisissez-en un. La description est facultative, repliée sous **Plus de champs**, et vous pouvez l'ajouter plus tard sur la page **Vue d'ensemble** du tableau de bord. **Retour** vous ramène aux modèles tels que vous les avez laissés.
 
 ### Le créer
 
-Cliquez sur **Créer : Tableau de bord**. Le nouveau tableau de bord s'ouvre : les widgets d'un modèle tout de suite, ou le canevas vide d'un tableau de bord vide avec **Ajouter un widget** dessus.
+Cliquez sur **Créer un tableau de bord**. Le nouveau tableau de bord s'ouvre : les widgets d'un modèle tout de suite, ou un canevas vide avec **Ajouter un widget** dessus.
 :::
 
-Les modèles, selon le groupe sous lequel le sélecteur les range :
+Les modèles, selon la catégorie sous laquelle le sélecteur les range :
 
-| Groupe | Modèles |
+| Catégorie | Modèles |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
+| Surveillance et APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Réponse aux incidents | Incident Dashboard, Alert Dashboard |
 | Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-Un modèle est un point de départ, pas un lien : une fois le tableau de bord créé, modifiez-le comme vous voulez. Le modèle ne le met plus à jour ensuite.
+**Recommandés** contient Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard et Metrics Dashboard. Un modèle est un point de départ, pas un lien : une fois le tableau de bord créé, modifiez-le comme vous voulez. Le modèle ne le met plus à jour ensuite.
 
 ## Modifier et enregistrer
 

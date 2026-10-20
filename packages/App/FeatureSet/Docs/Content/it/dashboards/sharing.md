@@ -47,7 +47,8 @@ Una dashboard pubblica:
 
 - Si apre sempre in lettura. I visitatori non possono modificarla, e non vedono mai i suoi controlli di modifica.
 - Include le variabili che hai aggiunto. I visitatori scelgono dagli stessi selettori che usa il tuo team, e possono cambiare l'intervallo di tempo, ingrandire, attivare l'aggiornamento automatico e passare a schermo intero.
-- Usa il branding che imposti nella pagina **Branding** della dashboard: titolo della pagina, descrizione, logo, favicon.
+- Usa il branding che imposti nella pagina **Branding** della dashboard: titolo della pagina, descrizione, logo, tema, favicon.
+- Permette a ogni visitatore di passare dalla dashboard chiara a quella scura, e viceversa, con un pulsante con il sole o la luna nella sua barra degli strumenti; [Tema](#tema) spiega come.
 
 Tratta la condivisione di una dashboard come la pubblicazione di una pagina web. Ogni widget che contiene diventa leggibile da chiunque abbia il link. Guarda che cosa c'è sul canvas prima di condividerla.
 
@@ -55,7 +56,7 @@ Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato
 
 ## Condividere con una password
 
-Scegli **Chiunque abbia il link e una password** e inserisci la password nella finestra. I visitatori vedono una richiesta di password prima che compaia la dashboard. La richiesta mostra il nome, il titolo della pagina e la favicon della dashboard, e nient'altro: la descrizione, il logo e i widget compaiono una volta inserita la password. La password viene memorizzata come hash: nessuno può rileggerla. Una nuova password funziona subito; chi aveva inserito quella vecchia può continuare a vedere la dashboard per un massimo di 7 giorni.
+Scegli **Chiunque abbia il link e una password** e inserisci la password nella finestra. I visitatori vedono una richiesta di password prima che compaia la dashboard. La richiesta mostra il nome, il titolo della pagina e la favicon della dashboard, nel tema della dashboard, e nient'altro: la descrizione, il logo e i widget compaiono una volta inserita la password. La password viene memorizzata come hash: nessuno può rileggerla. Una nuova password funziona subito; chi aveva inserito quella vecchia può continuare a vedere la dashboard per un massimo di 7 giorni.
 
 Usa una password quando:
 
@@ -152,13 +153,30 @@ Nella pagina **Branding** della dashboard, puoi configurare:
 - **Titolo della pagina**: ciò che appare nella scheda del browser e in cima alla pagina.
 - **Descrizione della pagina**: la descrizione usata dai motori di ricerca e dalle anteprime sui social.
 - **Logo**: un'immagine mostrata nell'intestazione della dashboard pubblica.
+- **Tema**: chiaro, scuro o come è impostato il dispositivo di ogni visitatore; vedi [Tema](#tema).
 - **Favicon**: la piccola icona nella scheda del browser.
 
 Il logo e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
 
-Il titolo e la descrizione della pagina compaiono anche in cima alla barra degli strumenti della dashboard per il tuo team, al posto del suo nome e della sua descrizione. Il logo e la favicon compaiono solo sulla dashboard pubblica.
+Il titolo e la descrizione della pagina compaiono anche in cima alla barra degli strumenti della dashboard per il tuo team, al posto del suo nome e della sua descrizione. Il logo, il tema e la favicon valgono solo per la dashboard pubblica.
 
-I visitatori vedono il branding solo quando possono vedere la dashboard. Prima che venga inserita la password, una dashboard condivisa con password mostra solo il titolo della pagina e la favicon, e i motori di ricerca e le anteprime dei link vedono il titolo della pagina ma non la descrizione della pagina. Una dashboard con una lista di IP consentiti mostra il suo branding solo agli indirizzi della lista, e i motori di ricerca e le anteprime dei link non ne vedono nulla.
+I visitatori vedono il branding solo quando possono vedere la dashboard. Prima che venga inserita la password, una dashboard condivisa con password mostra solo il titolo della pagina, la favicon e il tema, e i motori di ricerca e le anteprime dei link vedono il titolo della pagina ma non la descrizione della pagina. Una dashboard con una lista di IP consentiti mostra il suo branding solo agli indirizzi della lista, e i motori di ricerca e le anteprime dei link non ne vedono nulla.
+
+### Tema
+
+La scheda **Tema**, subito sotto il logo, decide come appare la dashboard pubblica ai suoi visitatori. Scegli una delle sue tre opzioni e viene salvata subito; non c'è un pulsante **Modifica**.
+
+| Opzione | Cosa vedono i visitatori |
+| ------ | ----------------- |
+| **Chiaro** | La dashboard chiara, comunque sia impostato il loro dispositivo. Le dashboard create prima che l'impostazione esistesse sono su **Chiaro**, quindi hanno l'aspetto di sempre. |
+| **Scuro** | La dashboard scura, comunque sia impostato il loro dispositivo. |
+| **Come il dispositivo di ogni visitatore** | Chiara o scura, come è impostato il loro dispositivo, e cambia con esso mentre la dashboard è aperta. |
+
+Qualunque cosa tu scelga, un pulsante con il sole o la luna nella barra degli strumenti della dashboard permette a ogni visitatore di passare alla dashboard chiara o a quella scura, o di tornare al tema che hai impostato, e il suo browser ricorda la scelta per ogni dashboard pubblica di quell'indirizzo. Sulla dashboard scura il logo poggia su uno sfondo chiaro, così anche un logo pensato per una pagina bianca resta ben visibile.
+
+Una dashboard creata da ora in poi parte con **Come il dispositivo di ogni visitatore**. Tramite l'API e Terraform il campo è `theme`, con uno dei valori `Light`, `Dark` o `System` (**Come il dispositivo di ogni visitatore**), scritti esattamente così; qualsiasi altro valore viene rifiutato. Una configurazione Terraform che non imposta alcun `theme` riceve `Light`, quindi una configurazione scritta prima dell'impostazione non pianifica mai una modifica a una dashboard che gestisce.
+
+Il tema è nell'HTML della dashboard, quindi la dashboard viene disegnata con esso fin dall'inizio: una dashboard scura non lampeggia di bianco durante il caricamento, e anche la sua richiesta di password viene disegnata con esso. Ogni widget lo segue; il codice di un widget HTML può dare uno stile al tema scuro, come spiega [HTML](/docs/dashboards/widgets#html). Le pagine **Access Denied** e non trovata non mostrano nulla di una dashboard, quindi seguono il visitatore: la sua scelta, altrimenti il suo dispositivo.
 
 ## Incorporare
 
@@ -175,9 +193,11 @@ Puoi incorporare una dashboard pubblica nel tuo sito con un iframe, al suo link 
 
 Se la dashboard è condivisa con una password, i visitatori vedranno la richiesta della password dentro l'iframe.
 
+Per dare a una dashboard incorporata l'aspetto del tuo sito, aggiungi `?theme=light` o `?theme=dark` al suo indirizzo, come in `https://dashboard.acme.com/?theme=dark`: la dashboard viene disegnata con quel tema per chiunque apra quell'indirizzo, qualunque siano il suo tema e la scelta del visitatore, e la sua barra degli strumenti non ha il pulsante del tema. `?theme=system` segue il dispositivo di ogni visitatore. Il tema resta anche attraverso la richiesta di password.
+
 ## Inviare un link
 
-Il link pubblico apre la dashboard con i suoi valori predefiniti salvati. Per inviare un link che si apra su un certo valore, aggiungici la variabile come `?var-<name>=<value>`, come fa la barra degli indirizzi quando un visitatore sceglie un valore; più valori sono separati da virgole. L'intervallo di tempo non fa parte del link: ogni visita parte dall'ultima ora.
+Il link pubblico apre la dashboard con i suoi valori predefiniti salvati. Per inviare un link che si apra su un certo valore, aggiungici la variabile come `?var-<name>=<value>`, come fa la barra degli indirizzi quando un visitatore sceglie un valore; più valori sono separati da virgole. L'intervallo di tempo non fa parte del link: ogni visita parte dall'ultima ora. Per aprire la dashboard in un tema, aggiungi `theme=light`, `theme=dark` o `theme=system`, come descrive [Incorporare](#incorporare).
 
 ## Passaggi successivi
 

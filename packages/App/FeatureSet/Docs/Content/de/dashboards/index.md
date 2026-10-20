@@ -59,7 +59,7 @@ Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards k
 | **Übersicht** | Sein Name, seine Beschreibung und seine Beschriftungen. |
 | **Freigabe** | Wer es sehen kann, sein öffentlicher Link und eine IP-Zulassungsliste unter Weitere Einstellungen. |
 | **Eigentümer** | Die Benutzer und Teams, denen es gehört. |
-| **Branding** | Seitentitel, Beschreibung, Logo und Favicon des öffentlichen Dashboards. |
+| **Branding** | Seitentitel, Beschreibung, Logo, Design und Favicon des öffentlichen Dashboards. |
 | **Benutzerdefinierte Domains** | Das öffentliche Dashboard unter Ihrer eigenen Domain bereitstellen. |
 | **Einstellungen** | Das Dashboard duplizieren, exportieren oder archivieren. |
 | **Audit-Protokolle** | Jede Änderung am Dashboard und wer sie vorgenommen hat. |
@@ -68,7 +68,7 @@ Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards k
 ## Ihr erstes Dashboard bauen
 
 :::steps
-1. **Erstellen** — Wählen Sie eine Vorlage oder **Blank Dashboard**. Eine Vorlage füllt den Namen aus und öffnet sich mit ihren Widgets; ein leeres Dashboard öffnet sich leer, mit **Widget hinzufügen** auf seiner Arbeitsfläche.
+1. **Erstellen** — Wählen Sie eine Vorlage oder **Ohne Vorlage beginnen**. Eine Vorlage füllt den Namen aus und öffnet sich mit ihren Widgets; ein Dashboard ohne Vorlage öffnet sich leer, mit **Widget hinzufügen** auf seiner Arbeitsfläche.
 2. **Widgets hinzufügen** — Wählen Sie ein Widget aus dem Katalog, legen Sie in seinen Einstellungen fest, was es liest, und ziehen Sie es dann an seinen Platz und in seine Größe.
 3. **Variablen hinzufügen, falls Sie sie brauchen** — Eine Variable `service` zum Beispiel lässt ein Dashboard jeden beliebigen Dienst zeigen.
 4. **Speichern** — Klicken Sie auf **Änderungen speichern**. Nichts, was Sie beim Bearbeiten ändern, bleibt erhalten, bevor Sie das tun.
@@ -81,7 +81,7 @@ Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards k
 
 Das Ziel: eine Seite für den Checkout-Dienst mit seiner Latenz, seiner Fehlerquote, seinen offenen Vorfällen und seinen neuesten Logs, die auch für jeden anderen Dienst funktioniert.
 
-1. Erstellen Sie ein **Blank Dashboard** namens „Checkout on-call“.
+1. Klicken Sie auf **Dashboard erstellen**, wählen Sie **Ohne Vorlage beginnen** und nennen Sie das Dashboard „Checkout on-call“.
 2. Klicken Sie auf **Widget hinzufügen** und fügen Sie ein **Diagramm** Ihrer Latenzmetrik für Anfragen hinzu, aggregiert als P95.
 3. Fügen Sie daneben einen **Wert** Ihrer Fehlerquote hinzu, mit einer Warnschwelle von 1 und einer kritischen Schwelle von 5.
 4. Fügen Sie darunter eine **Vorfallsliste** hinzu, gefiltert auf ungelöste Vorfälle, und einen **Protokoll-Stream** der Logs des Dienstes.

@@ -9,6 +9,12 @@ import { aggregateValues } from "../../../FeatureSet/Dashboard/src/Components/Da
 import { resolveTraceAttributeFilters } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 import { getExactAttributeFilters } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Components/LogChartData";
 import {
+  DASHBOARD_PICKER_CATEGORIES,
+  DashboardPickerTemplate,
+  getDashboardPickerTemplates,
+  getDashboardTemplateCategoryLabel,
+} from "../../../FeatureSet/Dashboard/src/Utils/Dashboard/DashboardTemplatePickerUtil";
+import {
   DEVELOPER_DOCS_PAGES,
   DEVELOPER_DOCS_SECTION_TITLE,
   DeveloperDocsPageDefinition,
@@ -64,11 +70,11 @@ import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentTyp
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import {
   DashboardTemplate,
-  DashboardTemplateCategories,
   DashboardTemplateCategory,
   DashboardTemplateType,
   DashboardTemplates,
-  getDashboardTemplatesByCategory,
+  RECOMMENDED_DASHBOARD_TEMPLATE_TYPES,
+  getDashboardTemplate,
   getTemplateConfig,
 } from "Common/Types/Dashboard/DashboardTemplates";
 import DashboardVariable, {
@@ -101,6 +107,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
 import DashboardComponentsUtil from "Common/Utils/Dashboard/Components/Index";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
@@ -868,13 +875,16 @@ describe("Dashboards Overview, against the product", () => {
 describe("Authoring a Dashboard, against the product", () => {
   const page: string = englishPage(AUTHORING);
 
-  it("lists every template card under the picker's group, in the picker's order", () => {
-    const expected: Array<Array<string>> = DashboardTemplateCategories.map(
+  it("lists every template under the picker's category, in the picker's order", () => {
+    const expected: Array<Array<string>> = DASHBOARD_PICKER_CATEGORIES.map(
       (category: DashboardTemplateCategory): Array<string> => {
         return [
-          category,
-          getDashboardTemplatesByCategory(category)
-            .map((template: DashboardTemplate): string => {
+          getDashboardTemplateCategoryLabel(category),
+          getDashboardPickerTemplates()
+            .filter((template: DashboardPickerTemplate): boolean => {
+              return template.category === category;
+            })
+            .map((template: DashboardPickerTemplate): string => {
               return template.name;
             })
             .join(", "),
@@ -883,18 +893,81 @@ describe("Authoring a Dashboard, against the product", () => {
     );
 
     expect(rowsOf(tables(page)[0])).toEqual(expected);
+    // Every template the picker lists, each once: Blank is Start from scratch.
+    expect(
+      rowsOf(tables(page)[0]).flatMap((row: Array<string>): Array<string> => {
+        return (row[1] as string).split(", ");
+      }),
+    ).toHaveLength(
+      DashboardTemplates.filter((template: DashboardTemplate): boolean => {
+        return template.type !== DashboardTemplateType.Blank;
+      }).length,
+    );
   });
 
-  it("counts the templates beside Blank Dashboard", () => {
-    const templates: number = DashboardTemplates.filter(
-      (template: DashboardTemplate): boolean => {
-        return template.type !== DashboardTemplateType.Blank;
+  it("says the dialog opens on Start from scratch and the recommended templates, and names them in the picker's order", () => {
+    const create: string = sectionOf(page, "## Create a dashboard");
+    const recommended: Array<string> = RECOMMENDED_DASHBOARD_TEMPLATE_TYPES.map(
+      (type: DashboardTemplateType): string => {
+        return getDashboardTemplate(type)!.name;
       },
-    ).length;
-
-    expect(page).toContain(
-      `shows ${bold("Blank Dashboard")} and ${NUMBER_WORDS[templates]} templates`,
     );
+
+    expect(create).toContain(
+      `The ${bold("Create a dashboard")} dialog opens on ${bold(
+        "Start from scratch",
+      )}`,
+    );
+    expect(create).toContain(
+      `${bold("Or start from a template")} lists ${
+        NUMBER_WORDS[recommended.length]
+      } ${bold("Recommended")} templates`,
+    );
+    expect(page).toContain(
+      `${bold("Recommended")} holds ${listOf(recommended, "and")}.`,
+    );
+    expect(page).not.toContain("Blank Dashboard");
+    expect(page).not.toContain("Create from Template");
+  });
+
+  it("names the dialog's words as the dialog draws them", () => {
+    const wizard: string = readSource(
+      `${DASHBOARD_COMPONENTS_DIR}/CreateDashboardModal.tsx`,
+    );
+    const step: string = readSource(
+      `${DASHBOARD_APP}/Components/TemplatePicker/TemplatePicker.tsx`,
+    );
+    const rules: string = readSource(
+      `${DASHBOARD_APP}/Utils/TemplatePicker/TemplatePickerUtil.ts`,
+    );
+    const details: string = readSource(
+      `${DASHBOARD_COMPONENTS_DIR}/DashboardTemplatePicker.tsx`,
+    );
+
+    expect(wizard).toContain('title="Create a dashboard"');
+    expect(wizard).toContain('submitButtonText="Create Dashboard"');
+    expect(wizard).toContain('nextButtonText: "Use this template"');
+    // Every form's More fields, by its shared title.
+    expect(wizard).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+    expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
+    expect(wizard).toContain('title="Back"');
+    expect(step).toContain('tx("Start from scratch")');
+    expect(step).toContain('tx("Or start from a template")');
+    expect(step).toContain('tx("Search templates…")');
+    expect(rules).toContain('label: "Recommended"');
+    expect(rules).toContain('label: "All templates"');
+    expect(details).toContain('tx("Widgets")');
+    expect(details).toContain('tx("Variables")');
+
+    for (const words of [
+      bold("Use this template"),
+      bold("Search templates…"),
+      bold("All templates"),
+      bold("More fields"),
+      bold("Back"),
+    ]) {
+      expect(sectionOf(page, "## Create a dashboard")).toContain(words);
+    }
   });
 
   it("names the permissions to create and to edit, and says members and viewers read without them", () => {

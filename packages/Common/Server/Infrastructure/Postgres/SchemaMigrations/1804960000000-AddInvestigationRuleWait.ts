@@ -17,12 +17,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nullable with no default, so each is added without rewriting its table;
  * nothing is backfilled. Their indexes are on tables projects already have
  * rows in, so they are built online, in the migration registered right
- * after this one: AddInvestigationRuleWaitIndexes1804950000000.
+ * after this one: AddInvestigationRuleWaitIndexes1804970000000.
  */
-export class AddInvestigationRuleWait1804900000000
+export class AddInvestigationRuleWait1804960000000
   implements MigrationInterface
 {
-  public name: string = "AddInvestigationRuleWait1804900000000";
+  public name: string = "AddInvestigationRuleWait1804960000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

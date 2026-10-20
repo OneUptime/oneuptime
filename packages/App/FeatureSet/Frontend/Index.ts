@@ -40,6 +40,7 @@ import {
   handlePublicDashboardLlmsTxt,
   PublicDashboardData,
 } from "./Utils/PublicDashboard";
+import { getDashboardThemeHead } from "Common/Types/Dashboard/DashboardTheme";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 import {
@@ -219,6 +220,8 @@ const PublicDashboardFrontendConfig: FrontendConfig = {
         title: "Dashboard",
         description: "View dashboard metrics and insights.",
         isSearchEngineIndexingEnabled: false,
+        // No dashboard to read a theme from: the page follows the visitor.
+        dashboardTheme: getDashboardThemeHead(null),
       };
     }
 
@@ -226,12 +229,19 @@ const PublicDashboardFrontendConfig: FrontendConfig = {
       return {
         title: dashboardData.title,
         description: dashboardData.description,
+        // The dashboard's theme, applied before its first paint.
+        dashboardTheme: getDashboardThemeHead(dashboardData.theme),
       };
     }
 
     return {
       title: "Dashboard",
       description: "View dashboard metrics and insights.",
+      /*
+       * No dashboard to read a theme from: the page follows the visitor
+       * until the app reads the dashboard's own.
+       */
+      dashboardTheme: getDashboardThemeHead(null),
     };
   },
 };

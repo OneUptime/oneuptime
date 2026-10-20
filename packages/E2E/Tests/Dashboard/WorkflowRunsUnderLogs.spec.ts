@@ -215,7 +215,8 @@ test.describe("Workflow runs live under Logs → Runs", () => {
       // It opens this workflow's runs, under its old URL.
       await workflowRuns.click();
       await expect(page).toHaveURL(urlFor(workflowRunsPath), SERVER);
-      await expect(breadcrumb).toContainText("View Workflow", SERVER);
+      // The trail names the workflow itself where it said "View Workflow".
+      await expect(breadcrumb).toContainText(workflowName, SERVER);
       await expect(breadcrumb).toContainText("Runs");
       await expect(runsCard(page)).toBeVisible(SERVER);
 

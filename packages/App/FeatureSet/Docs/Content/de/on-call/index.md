@@ -30,6 +30,8 @@ flowchart TB
 
 Bestätigen oder Beheben des Vorfalls, der Warnung oder der Episode stoppt jede Richtlinie, die dafür noch alarmiert. OneUptime bringt laufende Richtlinien jede Minute einen Schritt weiter und hält jeden Lauf, Regel für Regel, unter **Ausführungsprotokolle** fest.
 
+Wenn ein Alarm zum ersten Mal jemanden erreicht, hält OneUptime das am Vorfall, an der Warnung oder an der Episode als `First Paged At` fest. Eine Messung kann ab diesem Zeitpunkt zählen: Die **Zeit bis zur Bestätigung nach der Alarmierung** misst, wie lange Personen zum Antworten brauchten, nachdem sie alarmiert wurden, nicht wie lange gewartet wurde, bevor überhaupt jemand alarmiert war. Siehe [Zeit bis zur Bestätigung nach der Alarmierung](/docs/incidents/settings#zeit-bis-zur-bestätigung-nach-der-alarmierung).
+
 > [!NOTE]
 > Ein Vorfall, eine Warnung oder Episode, die bereits bestätigt oder behoben erstellt wird, führt keine ihrer Richtlinien aus, und ihr Feed sagt das. Siehe [Bereits bestätigt oder behoben erstellt](/docs/alerts/index#bereits-bestätigt-oder-behoben-erstellt).
 

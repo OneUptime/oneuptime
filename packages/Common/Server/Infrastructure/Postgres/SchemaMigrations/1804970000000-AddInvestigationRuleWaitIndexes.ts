@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddInvestigationRuleWait1804900000000, and moved into a migration of its
+ * AddInvestigationRuleWait1804960000000, and moved into a migration of its
  * own: "Incident", "Alert" and "AIRun" already hold rows, so their indexes
  * are built online, without blocking the incidents, alerts and AI runs
  * written meanwhile. Each is partial - only the records an investigation
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * check's read of waited runs that finished in the last half hour. Safe to
  * run again after a stop part way.
  */
-export class AddInvestigationRuleWaitIndexes1804950000000
+export class AddInvestigationRuleWaitIndexes1804970000000
   implements MigrationInterface
 {
-  public name: string = "AddInvestigationRuleWaitIndexes1804950000000";
+  public name: string = "AddInvestigationRuleWaitIndexes1804970000000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;
