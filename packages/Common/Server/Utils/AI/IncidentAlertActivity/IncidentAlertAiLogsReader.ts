@@ -4,6 +4,7 @@ import AutoRemediationSuggestionService from "../../../Services/AutoRemediationS
 import IncidentService from "../../../Services/IncidentService";
 import RunnerJobService from "../../../Services/RunnerJobService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import FixProductionReportUtil from "../CodeFix/FixProductionReportUtil";
 import InvestigationReportSummary, {
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
@@ -18,6 +19,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import FixProductionReport from "../../../../Types/AI/FixProductionReport";
 import {
   INCIDENT_ALERT_AI_LOGS_COMMAND_MAX_LENGTH,
   INCIDENT_ALERT_AI_LOGS_PAGE_SIZE,
@@ -503,6 +505,20 @@ export default class IncidentAlertAiLogsReader {
       props: { isRoot: true },
     });
 
+    // What production showed of the fix tasks' merged pull requests.
+    const productionByRunId: Map<string, FixProductionReport> = isInvestigation
+      ? new Map<string, FixProductionReport>()
+      : await FixProductionReportUtil.readForRuns({
+          projectId: options.projectId,
+          runIds: runs
+            .filter((run: AIRun): boolean => {
+              return Boolean(run.id);
+            })
+            .map((run: AIRun): ObjectID => {
+              return run.id!;
+            }),
+        });
+
     return {
       kind: data.kind,
       scanned: runs.length,
@@ -541,6 +557,7 @@ export default class IncidentAlertAiLogsReader {
                           ? run.taskNumber
                           : undefined,
                       codeFixTaskType: run.codeFixTaskType || undefined,
+                      production: productionByRunId.get(run.id!.toString()),
                     }),
               };
             },

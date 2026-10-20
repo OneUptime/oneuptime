@@ -19,7 +19,7 @@ import {
   PRODUCT_NAMES,
   PROSE,
   SHARING,
-  TEMPLATE_CARD_NAMES,
+  TEMPLATE_CATEGORIES,
   VARIABLES,
   WIDGETS,
 } from "./DashboardsDocsPages";
@@ -1007,16 +1007,61 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     }
 
     if (entry.page === AUTHORING) {
-      it("names every template card and picker group as the picker draws them, in English", () => {
+      /*
+       * Create a dashboard's category select looks its categories up, so a
+       * category reads as this language's Dashboard draws it; the templates
+       * are catalog content, written in English in every picker.
+       */
+      it("files every template under its category as the category select draws it, the templates in English", () => {
         const translated: string = readPage(language, AUTHORING);
+        const englishRows: Array<Array<string>> =
+          tables(english)[0]?.slice(1) || [];
 
-        for (const name of TEMPLATE_CARD_NAMES) {
-          expect(translated).toContain(name);
-        }
-
+        expect(
+          englishRows.map((row: Array<string>): string => {
+            return row[0] as string;
+          }),
+        ).toEqual([...TEMPLATE_CATEGORIES]);
         expect(tables(translated)[0]?.slice(1)).toEqual(
-          tables(english)[0]?.slice(1),
+          englishRows.map((row: Array<string>): Array<string> => {
+            return [
+              drawnDashboardLabel(language, row[0] as string),
+              ...row.slice(1),
+            ];
+          }),
         );
+      });
+
+      it("names the recommended templates in English, after Recommended as this language's Dashboard draws it", () => {
+        const translated: string = readPage(language, AUTHORING);
+        const recommended: string = `**${drawnDashboardLabel(
+          language,
+          "Recommended",
+        )}**`;
+        const line: string | undefined = translated
+          .split("\n")
+          .find((candidate: string): boolean => {
+            return (
+              candidate.includes(recommended) &&
+              candidate.includes("Metrics Dashboard")
+            );
+          });
+
+        expect(line).toBeDefined();
+
+        for (const name of [
+          "Monitor Dashboard",
+          "Incident Dashboard",
+          "Alert Dashboard",
+          "Kubernetes Dashboard",
+          "Hosts Dashboard",
+          "Metrics Dashboard",
+        ]) {
+          expect({ name, named: (line || "").includes(name) }).toEqual({
+            name,
+            named: true,
+          });
+        }
       });
     }
 

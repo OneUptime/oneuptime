@@ -35,6 +35,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -43,7 +44,6 @@ import {
   SteppedModalFooter,
   getSteppedModalFooter,
 } from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
@@ -78,6 +78,8 @@ import {
   withWorkflowTemplateSelected,
 } from "../../Utils/Workflow/WorkflowTemplatePickerUtil";
 import WorkflowTemplatePicker from "./WorkflowTemplatePicker";
+import ChosenTemplate from "../TemplatePicker/ChosenTemplate";
+import { isEnterToSubmit } from "../../Utils/TemplatePicker/WizardKeys";
 
 export interface ComponentProps {
   onClose: () => void;
@@ -136,6 +138,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   );
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Set from the moment Create is pressed until the workflow and its
+   * variables are written, so a second Enter in the name - or one pressed
+   * before the button greys out - writes no second workflow.
+   */
+  const isCreatingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   const selectedTemplate: WorkflowTemplate | null = useMemo(() => {
     return selectedTemplateId ? getWorkflowTemplate(selectedTemplateId) : null;
@@ -213,6 +222,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   type CreateFunction = () => Promise<void>;
 
   const create: CreateFunction = async (): Promise<void> => {
+    isCreatingRef.current = true;
     setIsCreating(true);
     setError("");
 
@@ -282,6 +292,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     }
 
+    isCreatingRef.current = false;
     setIsCreating(false);
 
     /*
@@ -297,6 +308,10 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   type OnSubmitFunction = () => void;
 
   const onSubmit: OnSubmitFunction = (): void => {
+    if (isCreatingRef.current) {
+      return;
+    }
+
     if (step === WizardStep.NameIt) {
       if (name.trim().length < 2) {
         setNameError("Please give this workflow a name of at least 2 letters.");
@@ -361,23 +376,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     return (
       <div className="space-y-5">
         {selectedTemplate ? (
-          <div className="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/50 p-4">
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100">
-              <Icon
-                icon={selectedTemplate.icon}
-                size={SizeProp.Large}
-                className="h-5 w-5 text-indigo-600"
-              />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {selectedTemplate.name}
-              </p>
-              <p className="mt-1 text-sm text-gray-600">
-                {selectedTemplate.teaches}
-              </p>
-            </div>
-          </div>
+          // What the builder will show once it opens, as Create a dashboard says what its template shows.
+          <ChosenTemplate
+            icon={selectedTemplate.icon}
+            name={selectedTemplate.name}
+            line={selectedTemplate.teaches}
+            dataTestId="workflow-template-chosen"
+          />
         ) : (
           <></>
         )}
@@ -402,6 +407,13 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
 
               if (nameError) {
                 setNameError("");
+              }
+            }}
+            onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+              // Enter goes on, as the footer's Next or Create Workflow does.
+              if (isEnterToSubmit(event)) {
+                event.preventDefault();
+                onSubmit();
               }
             }}
           />

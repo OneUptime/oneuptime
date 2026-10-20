@@ -76,7 +76,7 @@ En Microsoft Teams-anslutning som loggades in medan inställningen **Spela in oc
 
 ### Förbli inloggad
 
-OneUptime sparar inloggningens uppdateringstoken, krypterad, och förnyar den minst en gång i veckan, så att den aldrig går ut av brist på användning, hur länge projektet än går utan en incident. Om inloggningen slutar fungera (kontot tog bort OneUptime, togs bort eller stängdes av, eller organisationens policy kräver att det loggar in igen) visar anslutningens rad **Not working** med skälet samma dag som OneUptime märker det, inte vid nästa incident. **Reconnect** på raden loggar in igen.
+OneUptime sparar inloggningens uppdateringstoken, krypterad, och förnyar den minst en gång i veckan, så att den aldrig går ut av brist på användning, hur länge projektet än går utan en incident. Om inloggningen slutar fungera (kontot tog bort OneUptime, togs bort eller stängdes av, eller organisationens policy kräver att det loggar in igen) visar anslutningens rad **Fungerar inte** med skälet samma dag som OneUptime märker det, inte vid nästa incident. **Reconnect** på raden loggar in igen.
 
 Anslutningar som är inloggade som samma konto delar en inloggning, i alla projekt: Zoom behåller bara en inloggning per konto, så att ansluta samma Zoom-användare igen ersätter den för alla.
 
@@ -84,7 +84,7 @@ Anslutningar som är inloggade som samma konto delar en inloggning, i alla proje
 
 **Reconnect** på en anslutnings rad loggar in igen, som samma konto eller ett annat. Använd den efter att kontot har tagit bort OneUptime, eller för att flytta incidentmöten till ett annat konto.
 
-Att ta bort en anslutning drar tillbaka OneUptimes åtkomst hos Zoom och Google så snart ingen annan anslutning använder inloggningen. För Microsoft tar du bort OneUptime under kontots **My Apps** (myapps.microsoft.com). Att ta bort OneUptime från ditt Zoom-konto i Zoom App Marketplace tar bort dess inloggning från alla anslutningar som är inloggade som det kontot, och de visar **Not working** tills de ansluts igen.
+Att ta bort en anslutning drar tillbaka OneUptimes åtkomst hos Zoom och Google så snart ingen annan anslutning använder inloggningen. För Microsoft tar du bort OneUptime under kontots **My Apps** (myapps.microsoft.com). Att ta bort OneUptime från ditt Zoom-konto i Zoom App Marketplace tar bort dess inloggning från alla anslutningar som är inloggade som det kontot, och de visar **Fungerar inte** tills de ansluts igen.
 
 ### Om Microsoft ber om en administratör
 
@@ -288,7 +288,7 @@ Kontrollera att regeln matchade incidenten (**Testregel**), att dess steg **Vide
 Leverantören avvisade, och feeden anger skälet. Starta under tiden ett samtal från incidentens sida. Kör sedan **Testa** på anslutningens rad: den visar samma skäl medan du rättar konfigurationen hos leverantören, till exempel en klienthemlighet som har gått ut eller en saknad behörighet.
 :::
 
-:::details En anslutning visar Not working
+:::details En anslutning visar Fungerar inte
 Dess inloggning slutade fungera: kontot tog bort OneUptime, togs bort eller stängdes av, eller måste logga in igen. Klicka på **Reconnect** på dess rad. Tills dess kan de samtal som den skulle starta inte starta.
 :::
 

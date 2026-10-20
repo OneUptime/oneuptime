@@ -78,6 +78,8 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       description: t("navbar.items.monitorsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
       activeRoute: RouteMap[PageMap.MONITORS],
+      // Monitor Groups share the Monitors side menu, so they are Monitors too.
+      additionalActiveRoutes: [RouteMap[PageMap.MONITOR_GROUPS_ROOT] as Route],
       icon: IconProp.AltGlobe,
       iconColor: "blue",
       category: essentialsCategory,
@@ -400,15 +402,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.inventoryDescription",
         "Everything OneUptime knows about your estate, in one list.",
       ),
-      // Lands on the Overview; the item list and detail pages keep it lit.
+      /*
+       * Lands on the Overview; every page under /inventory (the item list,
+       * an item, Archived, Documentation, Settings) keeps it lit.
+       */
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.INVENTORY] as Route,
       ),
-      activeRoute: RouteMap[PageMap.INVENTORY],
-      additionalActiveRoutes: [
-        RouteMap[PageMap.INVENTORY_ITEMS] as Route,
-        RouteMap[PageMap.INVENTORY_VIEW] as Route,
-      ],
+      activeRoute: RouteMap[PageMap.INVENTORY_ROOT],
       icon: IconProp.Cube,
       iconColor: "indigo",
       category: resourcesCategory,
@@ -894,7 +895,11 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     route: RouteUtil.populateRouteParams(
       RouteMap[PageMap.USER_SETTINGS] as Route,
     ),
-    activeRoute: RouteMap[PageMap.USER_SETTINGS],
+    /*
+     * Opens on Notification Methods, and stays lit on every page of User
+     * Settings, not only that first one.
+     */
+    activeRoute: RouteMap[PageMap.USER_SETTINGS_ROOT],
   };
 
   return {

@@ -869,6 +869,31 @@ test.describe("Create a workflow", () => {
     expect(records[1]?.id).toBe(CREATED_WORKFLOW_ID);
   });
 
+  /*
+   * Enter in the name goes on, as the footer's button does - here Create
+   * Workflow, for a start from scratch - as it does in Create a dashboard,
+   * which shares the step. It did nothing before.
+   */
+  test("without the mouse: Enter on Start from scratch, a name, and Enter create the workflow", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDialog(page);
+
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByTestId("workflow-name-input")).toBeFocused();
+    await page.keyboard.type("Page the on-call");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("created-workflow")).toBeVisible();
+    expect(
+      (await createdRecords(page)).map((record: CreatedRecord): string => {
+        return record.kind;
+      }),
+    ).toEqual(["workflow"]);
+  });
+
   test("it fits the window with no sideways scroll, and lays the search out for the width", async ({
     page,
   }: {
@@ -908,16 +933,22 @@ test.describe("Create a workflow", () => {
       return box.y + box.height / 2;
     };
 
-    if (viewport.width >= 640) {
+    if (viewport.width >= 1024) {
       // One row: the heading, the search and the select.
       expect(Math.abs(center(search) - center(heading))).toBeLessThan(12);
       expect(Math.abs(center(select) - center(heading))).toBeLessThan(12);
       expect(search.x).toBeGreaterThan(heading.x + heading.width);
     } else {
-      // A phone: the select beside the heading, the search on a row of its own.
+      /*
+       * A phone: one under the other, each as wide as the list, so the
+       * heading keeps one line. Beside it, the select - as wide as its
+       * longest category - pushed the heading into two lines, or three.
+       */
       expect(search.y).toBeGreaterThanOrEqual(heading.y + heading.height - 1);
+      expect(select.y).toBeGreaterThanOrEqual(search.y + search.height - 1);
       expect(search.width).toBeGreaterThan(viewport.width * 0.7);
-      expect(select.y + select.height).toBeLessThanOrEqual(search.y + 1);
+      expect(Math.abs(select.width - search.width)).toBeLessThanOrEqual(1);
+      expect(heading.height).toBeLessThanOrEqual(30);
     }
 
     // The details open inside the picked row, not in a column beside it.

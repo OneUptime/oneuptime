@@ -32,6 +32,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import DashboardTheme from "Common/Types/Dashboard/DashboardTheme";
 import {
   getPublicDashboardData as getFrontendPublicDashboardData,
   handlePublicDashboardLlmsTxt as handleFrontendLlmsTxt,
@@ -76,6 +77,7 @@ const LIVE_SEO: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
     _id: LIVE_DASHBOARD_ID,
     title: LIVE_TITLE,
     description: LIVE_DESCRIPTION,
+    theme: "Dark",
   },
   {},
 );
@@ -148,7 +150,7 @@ describe.each(IMPLEMENTATIONS)(
       expect(seoLookups(apiGet)).toEqual([BLOCKED_DASHBOARD_ID]);
     });
 
-    it("finds a dashboard the API knows, with its title and description, by domain and by URL", async () => {
+    it("finds a dashboard the API knows, with its title, description and theme, by domain and by URL", async () => {
       for (const req of [
         onCustomDomain(LIVE_DOMAIN),
         onDashboardUrl(LIVE_DASHBOARD_ID),
@@ -157,6 +159,7 @@ describe.each(IMPLEMENTATIONS)(
           id: LIVE_DASHBOARD_ID,
           title: LIVE_TITLE,
           description: LIVE_DESCRIPTION,
+          theme: DashboardTheme.Dark,
         });
       }
     });
@@ -178,6 +181,8 @@ describe.each(IMPLEMENTATIONS)(
           id: LIVE_DASHBOARD_ID,
           title: "Dashboard",
           description: "View dashboard metrics and insights.",
+          // No answer to read a theme from: the page follows the visitor.
+          theme: null,
         });
       },
     );

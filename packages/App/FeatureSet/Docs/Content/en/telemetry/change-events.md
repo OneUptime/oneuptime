@@ -111,7 +111,7 @@ When the suspect is a Kubernetes rollout on a cluster whose [AI fixes](/docs/ai/
 
 OneUptime also checks every deploy on its own, whether or not anything pages. Once the 30 minutes after a deploy have passed, it compares them with the 30 minutes before by the same thresholds, and when the service got worse, an [AI Insight](/docs/ai/ai-sre#insights-proactive-detection) names the deploy on that service.
 
-A fix pull request OneUptime AI opened for an exception is checked the same way: once a recorded deploy contains its commit, OneUptime watches the exception there and says on the exception whether the fix worked (see [Automatic code fixes](/docs/ai/ai-sre#automatic-code-fixes)).
+A fix pull request OneUptime AI opened is checked the same way: once a recorded deploy contains its commit, OneUptime watches there what the fix was for - the exception, the operation it made faster, the monitor behind the incident or alert, the telemetry it adds - and says whether the fix worked (see [Automatic code fixes](/docs/ai/ai-sre#automatic-code-fixes)). The deployed fix is read in the deploy's version only when the service's own telemetry reports that version, and otherwise from 10 minutes after the deploy, once old instances have drained.
 
 In an investigation and in [Ask AI](/docs/ai/ask-ai), `recent_changes` lists the changes in any window, and `get_change_details` shows what a deploy shipped: the commits since the service's previous deploy, their authors, the pull requests and the files they touched. That needs the commit on the change and a repository connected through the [GitHub App](/docs/ai/github-app).
 

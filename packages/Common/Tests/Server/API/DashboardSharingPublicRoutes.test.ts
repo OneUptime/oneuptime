@@ -62,6 +62,7 @@ import {
   DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../../Types/Dashboard/MasterPassword";
 import HashedString from "../../../Types/HashedString";
+import DashboardTheme from "../../../Types/Dashboard/DashboardTheme";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
@@ -154,6 +155,8 @@ const PROMPT_METADATA: JSONObject = {
   enableMasterPassword: true,
   pageTitle: "Checkout status",
   faviconFile: { file: base64Of("favicon-bytes"), fileType: "image/png" },
+  // The prompt is drawn in the dashboard's theme.
+  theme: "Dark",
   description: "",
   pageDescription: "",
   logoFile: null,
@@ -250,6 +253,7 @@ const storedDashboard: (state: DashboardAccessState) => Dashboard = (
   dashboard.pageDescription = "How checkout is doing right now";
   dashboard.logoFile = imageFile("logo-bytes");
   dashboard.faviconFile = imageFile("favicon-bytes");
+  dashboard.theme = DashboardTheme.Dark;
   dashboard.isPublicDashboard = state.isPublicDashboard === true;
   dashboard.enableMasterPassword = state.enableMasterPassword === true;
   dashboard.isArchived = false;
@@ -576,7 +580,7 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
             return;
           }
 
-          // The password: the prompt shows the name, title and favicon only...
+          // The password: the prompt shows the name, title, favicon and theme only...
           expect(meta.body).toEqual(PROMPT_METADATA);
 
           // ...it is asked for, it unlocks, and the visitor gets in.

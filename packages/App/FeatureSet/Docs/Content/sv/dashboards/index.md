@@ -59,7 +59,7 @@ Listans sidomeny har sidorna som tar hand om alla dina instrumentpaneler:
 | **Översikt** | Dess namn, beskrivning och etiketter. |
 | **Delning** | Vem som kan se den, dess offentliga länk och en IP-tillåtelselista under Fler inställningar. |
 | **Ägare** | Användarna och teamen som äger den. |
-| **Varumärke** | Sidtitel, beskrivning, logotyp och favicon för den offentliga instrumentpanelen. |
+| **Varumärke** | Sidtitel, beskrivning, logotyp, tema och favicon för den offentliga instrumentpanelen. |
 | **Anpassade domäner** | Lägg den offentliga instrumentpanelen på din egen domän. |
 | **Inställningar** | Duplicera, exportera eller arkivera instrumentpanelen. |
 | **Granskningsloggar** | Varje ändring som gjorts på instrumentpanelen, och vem som gjorde den. |
@@ -68,7 +68,7 @@ Listans sidomeny har sidorna som tar hand om alla dina instrumentpaneler:
 ## Bygg din första instrumentpanel
 
 :::steps
-1. **Skapa** — välj en mall, eller **Blank Dashboard**. En mall fyller i namnet och öppnas med sina widgetar; en tom instrumentpanel öppnas utan innehåll, med **Lägg till widget** på arbetsytan.
+1. **Skapa** — välj en mall, eller **Börja från grunden**. En mall fyller i namnet och öppnas med sina widgetar; en instrumentpanel från grunden öppnas utan innehåll, med **Lägg till widget** på arbetsytan.
 2. **Lägg till widgetar** — välj en widget i katalogen, ange i dess inställningar vad den läser, och dra den sedan på plats och ändra storlek.
 3. **Lägg till variabler, om du behöver dem** — en variabel `service` låter till exempel en enda instrumentpanel visa vilken tjänst som helst.
 4. **Spara** — klicka på **Spara ändringar**. Inget du ändrar under redigeringen sparas förrän du gör det.
@@ -81,7 +81,7 @@ Listans sidomeny har sidorna som tar hand om alla dina instrumentpaneler:
 
 Målet: en sida för checkout-tjänsten med dess svarstid, felfrekvens, öppna incidenter och senaste loggar, som också fungerar för alla andra tjänster.
 
-1. Skapa en **Blank Dashboard** med namnet "Checkout-jour".
+1. Klicka på **Skapa instrumentpanel**, välj **Börja från grunden** och döp instrumentpanelen till "Checkout-jour".
 2. Klicka på **Lägg till widget** och lägg till ett **Diagram** över ditt mätvärde för förfrågningarnas svarstid, aggregerat som P95.
 3. Bredvid det lägger du till ett **Värde** för din felfrekvens, med ett varningströskelvärde på 1 och ett kritiskt tröskelvärde på 5.
 4. Under dem lägger du till en **Incidentlista** filtrerad på olösta incidenter, och en **Loggström** med tjänstens loggar.

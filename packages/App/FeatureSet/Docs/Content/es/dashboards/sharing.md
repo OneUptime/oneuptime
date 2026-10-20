@@ -47,7 +47,8 @@ Un panel público:
 
 - Siempre se abre para leerlo. Los visitantes no pueden editarlo y nunca ven sus controles de edición.
 - Incluye las variables que has añadido. Los visitantes eligen en los mismos selectores que usa tu equipo, y pueden cambiar el intervalo de tiempo, hacer zoom, activar la actualización automática y pasar a pantalla completa.
-- Usa la marca que defines en la página **Marca** del panel: título de la página, descripción, logotipo y favicon.
+- Usa la marca que defines en la página **Marca** del panel: título de la página, descripción, logotipo, tema y favicon.
+- Permite a cada visitante cambiar entre el panel claro y el oscuro con un botón de sol o de luna en su barra de herramientas; [Tema](#tema) explica cómo.
 
 Trata el compartir un panel como publicar una página web. Cada widget que contiene pasa a ser legible por cualquiera que tenga el enlace. Mira lo que hay en el lienzo antes de compartirlo.
 
@@ -55,7 +56,7 @@ Cada widget publica solo lo que dibuja, y solo de los recursos a los que se apun
 
 ## Compartir con una contraseña
 
-Elige **Cualquiera con el enlace y una contraseña** e introduce la contraseña en el cuadro de diálogo. Los visitantes ven una petición de contraseña antes de que aparezca el panel. La petición muestra el nombre, el título de la página y el favicon del panel, y nada más: su descripción, su logotipo y sus widgets aparecen una vez introducida la contraseña. La contraseña se guarda como un hash: nadie puede volver a leerla. Una contraseña nueva funciona de inmediato; quienes introdujeron la anterior pueden seguir viendo el panel durante un máximo de 7 días.
+Elige **Cualquiera con el enlace y una contraseña** e introduce la contraseña en el cuadro de diálogo. Los visitantes ven una petición de contraseña antes de que aparezca el panel. La petición muestra el nombre, el título de la página y el favicon del panel, con el tema del panel, y nada más: su descripción, su logotipo y sus widgets aparecen una vez introducida la contraseña. La contraseña se guarda como un hash: nadie puede volver a leerla. Una contraseña nueva funciona de inmediato; quienes introdujeron la anterior pueden seguir viendo el panel durante un máximo de 7 días.
 
 Usa una contraseña cuando:
 
@@ -152,13 +153,30 @@ En la página **Marca** del panel, puedes configurar:
 - **Título de la página**: lo que se muestra en la pestaña del navegador y en la parte superior de la página.
 - **Descripción de la página**: la descripción que usan los buscadores y las vistas previas en redes sociales.
 - **Logotipo**: una imagen que se muestra en el encabezado del panel público.
+- **Tema**: claro, oscuro o según esté configurado el dispositivo de cada visitante; consulta [Tema](#tema).
 - **Favicon**: el icono pequeño de la pestaña del navegador.
 
 El logotipo y el favicon son archivos subidos en el propio proyecto del panel, y eso se comprueba cada vez que se guarda uno, desde el panel, la API, Terraform o un flujo de trabajo. Un archivo subido en otro proyecto se rechaza con las mismas palabras que recibe un archivo que ya no existe: "The logo's file could not be found. Upload the logo again." o "The favicon's file could not be found. Upload the favicon again." El panel público solo muestra imágenes de su propio proyecto.
 
-El título y la descripción de la página también encabezan la barra de herramientas del panel para tu equipo, en lugar de su nombre y su descripción. El logotipo y el favicon solo aparecen en el panel público.
+El título y la descripción de la página también encabezan la barra de herramientas del panel para tu equipo, en lugar de su nombre y su descripción. El logotipo, el tema y el favicon solo se aplican al panel público.
 
-Los visitantes solo ven la marca una vez que pueden ver el panel. Antes de introducir la contraseña, un panel compartido con contraseña solo muestra su título de la página y su favicon, y los buscadores y las vistas previas de enlaces ven su título de la página pero no su descripción de la página. Un panel con una lista de IP permitidas solo muestra su marca a las direcciones de la lista, y los buscadores y las vistas previas de enlaces no ven nada de ella.
+Los visitantes solo ven la marca una vez que pueden ver el panel. Antes de introducir la contraseña, un panel compartido con contraseña solo muestra su título de la página, su favicon y su tema, y los buscadores y las vistas previas de enlaces ven su título de la página pero no su descripción de la página. Un panel con una lista de IP permitidas solo muestra su marca a las direcciones de la lista, y los buscadores y las vistas previas de enlaces no ven nada de ella.
+
+### Tema
+
+La tarjeta **Tema**, justo debajo del logotipo, decide cómo ven el panel público sus visitantes. Elige una de sus tres opciones y se guarda al instante; no hay botón **Editar**.
+
+| Opción | Lo que ven los visitantes |
+| ------ | ----------------- |
+| **Claro** | El panel claro, tenga como tenga configurado su dispositivo. Los paneles creados antes de que existiera el ajuste están en **Claro**, así que se ven como siempre. |
+| **Oscuro** | El panel oscuro, tenga como tenga configurado su dispositivo. |
+| **Según el dispositivo de cada visitante** | Claro u oscuro, según esté configurado su dispositivo, y cambia con él mientras el panel está abierto. |
+
+Elijas lo que elijas, un botón de sol o de luna en la barra de herramientas del panel permite a cada visitante cambiar al panel claro o al oscuro, o volver al tema que definiste, y su navegador recuerda la elección para todos los paneles públicos de esa dirección. En el panel oscuro, el logotipo se coloca sobre un fondo claro, así que un logotipo pensado para una página blanca se sigue viendo bien.
+
+Un panel creado a partir de ahora empieza con **Según el dispositivo de cada visitante**. En la API y en Terraform el campo es `theme`, con uno de los valores `Light`, `Dark` o `System` (**Según el dispositivo de cada visitante**), escritos exactamente así; cualquier otro valor se rechaza. Una configuración de Terraform que no indica ningún `theme` recibe `Light`, así que una configuración escrita antes del ajuste nunca planifica un cambio en un panel que gestiona.
+
+El tema va en el HTML del panel, así que el panel se dibuja con él desde el principio: un panel oscuro no destella en blanco mientras carga, y su petición de contraseña también se dibuja con él. Todos los widgets lo siguen; el propio código de un widget HTML puede dar estilo al tema oscuro, como explica [HTML](/docs/dashboards/widgets#html). Las páginas **Access Denied** y de no encontrado no muestran nada de un panel, así que siguen al visitante: su propia elección o, si no la hay, su dispositivo.
 
 ## Incrustar
 
@@ -175,9 +193,11 @@ Puedes incrustar un panel público en tu propio sitio con un iframe, en su enlac
 
 Si el panel se comparte con una contraseña, los visitantes verán la petición de contraseña dentro del iframe.
 
+Para dar a un panel incrustado el aspecto de tu sitio, añade `?theme=light` o `?theme=dark` a su dirección, como en `https://dashboard.acme.com/?theme=dark`: el panel se dibuja con ese tema para todos los que abran esa dirección, sean cuales sean su propio tema y la elección del visitante, y su barra de herramientas no tiene botón de tema. `?theme=system` sigue el dispositivo de cada visitante. El tema se mantiene a través de la petición de contraseña.
+
 ## Enviar un enlace
 
-El enlace público abre el panel con sus valores predeterminados guardados. Para enviar un enlace que se abra en un valor concreto, añádele la variable como `?var-<name>=<value>`, igual que hace la barra de direcciones cuando un visitante elige un valor; los distintos valores se separan con comas. El intervalo de tiempo no forma parte del enlace: cada visita empieza en la última hora.
+El enlace público abre el panel con sus valores predeterminados guardados. Para enviar un enlace que se abra en un valor concreto, añádele la variable como `?var-<name>=<value>`, igual que hace la barra de direcciones cuando un visitante elige un valor; los distintos valores se separan con comas. El intervalo de tiempo no forma parte del enlace: cada visita empieza en la última hora. Para abrir el panel con un tema, añade `theme=light`, `theme=dark` o `theme=system`, como describe [Incrustar](#incrustar).
 
 ## Próximos pasos
 

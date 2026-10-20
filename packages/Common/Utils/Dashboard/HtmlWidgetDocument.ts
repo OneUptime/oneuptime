@@ -45,6 +45,12 @@ export interface HtmlWidgetSandboxPermissions {
   allowPopups?: boolean | undefined;
 }
 
+/*
+ * The scheme the dashboard around the widget is drawn in: its reader's own
+ * pick, or a public dashboard's theme (Common/UI/Utils/Theme.ts).
+ */
+export type HtmlWidgetColorScheme = "light" | "dark";
+
 export interface HtmlWidgetDocumentOptions
   extends HtmlWidgetSandboxPermissions {
   html?: string | undefined;
@@ -53,6 +59,8 @@ export interface HtmlWidgetDocumentOptions
   variables?: Array<DashboardVariable> | undefined;
   startDate?: Date | undefined;
   endDate?: Date | undefined;
+  // Light when left out: the document every widget was drawn in before.
+  colorScheme?: HtmlWidgetColorScheme | undefined;
 }
 
 /* Shape of `window.ONEUPTIME` inside the iframe. */
@@ -88,6 +96,23 @@ body {
   overflow: auto;
   -webkit-font-smoothing: antialiased;
 }
+`;
+
+/*
+ * The dark theme's half of the reset, after BASE_CSS.
+ *
+ * A frame whose colour scheme is not the page's is painted on an opaque
+ * backdrop in its own scheme: a widget that starts transparent showed as a
+ * white box on the dark card. Declaring the dark scheme keeps it
+ * transparent, and draws the frame's scrollbars and form controls dark.
+ * Text starts in the dark theme's colour (Theme.css --ou-text-secondary),
+ * as it starts in the light theme's gray-700. The frame's <html> carries the
+ * class dark, as the page's does, so a rule of the author's that starts
+ * with html.dark styles only the dark theme.
+ */
+const DARK_CSS: string = `
+:root { color-scheme: dark; }
+body { color: #e2e8f0; }
 `;
 
 export default class HtmlWidgetDocument {
@@ -286,18 +311,24 @@ export default class HtmlWidgetDocument {
       : "";
 
     /*
+     * In the dark theme the document is the dark one (DARK_CSS); in the
+     * light theme it is exactly the document it always was.
+     */
+    const isDark: boolean = options.colorScheme === "dark";
+
+    /*
      * `<base target="_blank">` keeps a plain <a href> from trying to
      * navigate the frame itself, which a sandbox without
      * allow-top-navigation would block with a console error the author
      * cannot see.
      */
     return `<!doctype html>
-<html lang="en">
+<html lang="en"${isDark ? ' class="dark"' : ""}>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <base target="_blank" />
-<style>${BASE_CSS}</style>
+<style>${BASE_CSS}${isDark ? DARK_CSS : ""}</style>
 <style>
 ${css}
 </style>

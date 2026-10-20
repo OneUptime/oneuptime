@@ -30,6 +30,8 @@ flowchart TB
 
 Confirmar ou resolver o incidente, o alerta ou o episódio para toda política que ainda esteja acionando por ele. O OneUptime avança as políticas em andamento a cada minuto e registra cada execução, regra por regra, em **Registros de execução**.
 
+Na primeira vez que um acionamento chega a alguém, o OneUptime registra isso no incidente, no alerta ou no episódio como `First Paged At`. Uma medição pode contar a partir daí: o **Tempo até a confirmação após o acionamento** mede quanto tempo as pessoas levaram para responder depois de acionadas, e não quanto tempo o incidente, o alerta ou o episódio esperou até alguém ser acionado. Veja [Tempo até a confirmação após o acionamento](/docs/incidents/settings#tempo-até-a-confirmação-após-o-acionamento).
+
 > [!NOTE]
 > Um incidente, alerta ou episódio criado já confirmado ou resolvido não executa nenhuma das suas políticas, e o feed dele diz isso. Veja [Criado já confirmado ou resolvido](/docs/alerts/index#criado-já-confirmado-ou-resolvido).
 

@@ -136,6 +136,8 @@ Los propietarios reciben cada recordatorio como **Recordatorio de alerta**, que 
 
 **Alertas → Ajustes → Mediciones** mide cuánto tardan las cosas en cada alerta. Elige **Tiempo hasta el reconocimiento** o **Tiempo hasta la resolución**, o dos momentos propios, como cuando **Se crea la alerta** y cuando entra en un estado que elijas. Cada medición se muestra en la página de la alerta y se representa en gráficos como `oneuptime.alert.measurement.<key>`. Consulta [Mediciones](/docs/incidents/settings#mediciones), que funciona igual para las alertas.
 
+La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta desde **Se avisa a alguien por primera vez**, cuando una política de guardia o un aviso directo notificó por primera vez a alguien sobre la alerta, en lugar de desde que se creó: a una alerta que salta de noche y de la que se avisa por la mañana no se le cuenta la noche. Una alerta por la que no se avisó a nadie no tiene valor. Consulta [Tiempo hasta el reconocimiento tras el aviso](/docs/incidents/settings#tiempo-hasta-el-reconocimiento-tras-el-aviso).
+
 ### Pertenencia a episodios
 
 **Alertas → Ajustes → Pertenencia a episodios** decide si una alerta puede estar en más de un episodio. Activa **Una alerta solo puede estar en un episodio** y una alerta que está en un episodio no se añade a ningún otro, ni desde el panel ni con la API, un flujo de trabajo o una regla de agrupación, hasta que se quita de ese episodio. Está desactivado hasta que lo actives, y solo los Project Owners y los Project Admins pueden cambiarlo. Activarlo no saca ninguna alerta de un episodio. Consulta [Un solo episodio por incidente](/docs/incidents/episodes#un-solo-episodio-por-incidente), que funciona igual para las alertas.

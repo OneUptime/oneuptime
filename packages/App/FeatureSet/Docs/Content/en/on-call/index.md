@@ -30,6 +30,8 @@ flowchart TB
 
 Acknowledging or resolving the incident, alert or episode stops every policy that is still paging for it. OneUptime moves running policies on every minute, and records each run, rule by rule, in **Execution Logs**.
 
+The first time a page reaches someone, OneUptime records it on the incident, alert or episode as `First Paged At`. A measurement can count from it: **Time to acknowledge after paging** times how long people took to answer once they were paged, not how long the record waited before anyone was. See [Time to acknowledge after paging](/docs/incidents/settings#time-to-acknowledge-after-paging).
+
 > [!NOTE]
 > An incident, alert or episode that is created already acknowledged or resolved runs none of its policies, and its feed says so. See [Created already acknowledged or resolved](/docs/alerts/index#created-already-acknowledged-or-resolved).
 

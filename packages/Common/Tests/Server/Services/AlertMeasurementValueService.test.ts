@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -55,6 +56,10 @@ const TIME_TO_ACKNOWLEDGE_ID: ObjectID = new ObjectID(
 );
 const TIME_TO_RESOLVE_ID: ObjectID = new ObjectID(
   "cccccccc-0002-4000-8000-000000000002",
+);
+
+const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID: ObjectID = new ObjectID(
+  "cccccccc-0003-4000-8000-000000000003",
 );
 
 const METRIC_NAME_PREFIX: string = "oneuptime.alert.measurement.";
@@ -371,6 +376,97 @@ describe("AlertMeasurementValueService.recomputeForAlert", () => {
     expect(attributes["alertId"]).toBe(ALERT_ID.toString());
     expect(attributes["alertSeverityName"]).toBe("Warning");
     expect(attributes["oneuptime.measurement.key"]).toBe("time-to-acknowledge");
+  });
+
+  /*
+   * An alert raised at night and paged in the morning has hours of time to
+   * acknowledge before anybody heard of it. "Time to acknowledge after
+   * paging" counts from First Paged At instead.
+   */
+  describe("the first page (First Paged At)", () => {
+    function timeToAcknowledgeAfterPaging(): AlertMeasurement {
+      return buildMeasurement({
+        id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+        key: "time-to-acknowledge-after-paging",
+        name: "Time to acknowledge after paging",
+        startAnchorType: AlertMeasurementAnchorType.FirstPagedAt,
+        endAnchorType: AlertMeasurementAnchorType.StateRoleEntered,
+        endStateRole: AlertStateRole.Acknowledged,
+      });
+    }
+
+    function mockAlert(firstPagedAt: Date | undefined): void {
+      const alert: Alert = buildAlert();
+
+      if (firstPagedAt) {
+        alert.firstPagedAt = firstPagedAt;
+      }
+
+      jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert as never);
+    }
+
+    test("counts from the first page to the acknowledgement, not from the alert's creation", async () => {
+      mockAlert(at(4));
+      mockDefinitions([timeToAcknowledge(), timeToAcknowledgeAfterPaging()]);
+
+      await recompute();
+
+      expect(createdRowFor(TIME_TO_ACKNOWLEDGE_ID).valueInSeconds).toBe(5 * 60);
+
+      const afterPaging: AlertMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+      );
+
+      expect(afterPaging.status).toBe(MeasurementStatus.Recorded);
+      expect(afterPaging.startedAt).toEqual(at(4));
+      expect(afterPaging.endedAt).toEqual(at(5));
+      expect(afterPaging.valueInSeconds).toBe(60);
+
+      // Charted with the alert's severity, so it reads per severity.
+      const point: MutableMetric | undefined = replaceCalls[0]!.metrics.find(
+        (metric: MutableMetric): boolean => {
+          return (
+            metric.name ===
+            "oneuptime.alert.measurement.time-to-acknowledge-after-paging"
+          );
+        },
+      );
+
+      expect(
+        (point?.attributes as JSONObject | undefined)?.["alertSeverityName"],
+      ).toBe("Warning");
+    });
+
+    test("an alert nobody was paged about has no value and no chart point", async () => {
+      mockAlert(undefined);
+      mockDefinitions([timeToAcknowledgeAfterPaging()]);
+
+      await recompute();
+
+      const afterPaging: AlertMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+      );
+
+      expect(afterPaging.status).toBe(MeasurementStatus.Pending);
+      expect(afterPaging.statusMessage).toBe(
+        "First Paged At has not been recorded yet",
+      );
+      expect(afterPaging.valueInSeconds).toBeNull();
+      expect(replaceCalls[0]!.metrics).toHaveLength(0);
+    });
+
+    test("reads First Paged At with the alert it works out", async () => {
+      const findOneById: SpyInstance<typeof AlertService.findOneById> = jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(buildAlert() as never);
+      mockDefinitions([timeToAcknowledgeAfterPaging()]);
+
+      await recompute();
+
+      expect(findOneById.mock.calls[0]![0].select).toMatchObject({
+        firstPagedAt: true,
+      });
+    });
   });
 
   test("leaves an unrecorded impact time Pending rather than declaring it never happened", async () => {

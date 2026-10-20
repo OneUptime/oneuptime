@@ -30,6 +30,8 @@ flowchart TB
 
 Het incident, de waarschuwing of de episode bevestigen of oplossen stopt elk beleid dat er nog voor oproept. OneUptime brengt lopend beleid elke minuut een stap verder en legt elke uitvoering, regel voor regel, vast in **Uitvoeringslogboeken**.
 
+De eerste keer dat een oproep iemand bereikt, legt OneUptime dat vast op het incident, de waarschuwing of de episode als `First Paged At`. Een meting kan vanaf dat moment tellen: **Tijd tot bevestiging na de oproep** meet hoe lang mensen erover deden om te antwoorden nadat ze waren opgeroepen, niet hoe lang het incident, de waarschuwing of de episode wachtte voordat er iemand werd opgeroepen. Zie [Tijd tot bevestiging na de oproep](/docs/incidents/settings#tijd-tot-bevestiging-na-de-oproep).
+
 > [!NOTE]
 > Een incident, waarschuwing of episode die al bevestigd of opgelost wordt aangemaakt, voert geen enkel beleid uit, en de feed ervan zegt dat. Zie [Al bevestigd of opgelost aangemaakt](/docs/alerts/index#al-bevestigd-of-opgelost-aangemaakt).
 

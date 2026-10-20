@@ -59,7 +59,7 @@ Open a dashboard and its own side menu has these pages. Every section but **Basi
 | **Overview** | Its name, description and labels. |
 | **Sharing** | Who can view it, its public link, and an IP allowlist under More settings. |
 | **Owners** | The users and teams who own it. |
-| **Branding** | Page title, description, logo and favicon of the public dashboard. |
+| **Branding** | Page title, description, logo, theme and favicon of the public dashboard. |
 | **Custom Domains** | Host the public dashboard on your own domain. |
 | **Settings** | Duplicate, export, or archive the dashboard. |
 | **Audit Logs** | Every change made to the dashboard, and who made it. |
@@ -68,7 +68,7 @@ Open a dashboard and its own side menu has these pages. Every section but **Basi
 ## Build your first dashboard
 
 :::steps
-1. **Create** — pick a template, or **Blank Dashboard**. A template fills in the name and opens with its widgets; a blank dashboard opens empty, with **Add Widget** on its canvas.
+1. **Create** — pick a template, or **Start from scratch**. A template fills in the name and opens with its widgets; a dashboard from scratch opens empty, with **Add Widget** on its canvas.
 2. **Add widgets** — choose a widget from the catalog, set what it reads in its settings, then drag it into place and resize it.
 3. **Add variables, if you need them** — a `service` variable, for example, lets one dashboard show any service.
 4. **Save** — click **Save Changes**. Nothing you change while editing is kept until you do.
@@ -81,7 +81,7 @@ Open a dashboard and its own side menu has these pages. Every section but **Basi
 
 The goal: one page for the checkout service, with its latency, its error rate, its open incidents and its latest logs, that works for every other service too.
 
-1. Create a **Blank Dashboard** called "Checkout on-call."
+1. Click **Create Dashboard**, choose **Start from scratch**, and name the dashboard "Checkout on-call."
 2. Click **Add Widget** and add a **Chart** of your request latency metric, aggregated as P95.
 3. Next to it, add a **Value** of your error rate, with a warning threshold of 1 and a critical threshold of 5.
 4. Below them, add an **Incident List** filtered to unresolved incidents, and a **Log Stream** of the service's logs.

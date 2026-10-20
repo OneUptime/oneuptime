@@ -29,6 +29,7 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
+import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 import DashboardLabelVariable from "Common/Utils/Dashboard/LabelVariable";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -243,13 +244,15 @@ const DashboardMonitorListComponentElement: FunctionComponent<
                     : "#9ca3af",
                 }}
               ></span>
-              <span
-                style={{
-                  color: statusColor ? statusColor.toString() : "#6b7280",
-                }}
-              >
-                {statusName}
-              </span>
+              {/*
+               * The status's own colour, and on the dark theme the nearest
+               * lighter shade of it that reads on the dark card.
+               */}
+              {statusColor ? (
+                <span {...getStatusTextProps(statusColor)}>{statusName}</span>
+              ) : (
+                <span className="text-gray-500">{statusName}</span>
+              )}
             </span>
           </td>
           <td className="px-3 py-2 text-xs text-gray-500">{monitorType}</td>

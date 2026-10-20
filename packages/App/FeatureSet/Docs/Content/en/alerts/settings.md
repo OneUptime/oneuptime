@@ -136,6 +136,8 @@ Owners get each reminder as **Alert reminder**, which is on by email by default.
 
 **Alerts → Settings → Measurements** times how long things take on every alert. Pick **Time to acknowledge** or **Time to resolve**, or two moments of your own, such as when **The alert is created** and when it enters a state you pick. Each measurement is shown on the alert's page and charted as `oneuptime.alert.measurement.<key>`. See [Measurements](/docs/incidents/settings#measurements), which works the same way for alerts.
 
+**Time to acknowledge after paging** counts from when **Someone is first paged**, the first time an on-call policy or a direct page notified someone about the alert, rather than from when it was created: an alert raised at night and paged in the morning is not charged for the night. An alert nobody was paged about has no value. See [Time to acknowledge after paging](/docs/incidents/settings#time-to-acknowledge-after-paging).
+
 ### Episode membership
 
 **Alerts → Settings → Episode Membership** decides whether an alert can be in more than one episode. Turn on **An alert can be in only one episode**, and an alert that is in an episode is not added to another one, from the dashboard, the API, a workflow or a grouping rule, until it is removed from that episode. It is off until you turn it on, and only Project Owners and Project Admins can change it. Turning it on takes no alert out of an episode. See [One episode per incident](/docs/incidents/episodes#one-episode-per-incident), which works the same way for alerts.

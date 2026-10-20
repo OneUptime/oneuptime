@@ -30,6 +30,8 @@ flowchart TB
 
 Att bekräfta eller lösa incidenten, larmet eller episoden stoppar varje policy som fortfarande larmar för den. OneUptime för körande policyer ett steg vidare varje minut och registrerar varje körning, regel för regel, i **Exekveringsloggar**.
 
+Första gången en utlarmning når någon registrerar OneUptime det på incidenten, larmet eller episoden som `First Paged At`. En mätning kan räkna från det: **Tid till bekräftelse efter utlarmning** mäter hur lång tid det tog för personerna att svara när de väl hade larmats, inte hur länge det dröjde innan någon larmades. Se [Tid till bekräftelse efter utlarmning](/docs/incidents/settings#tid-till-bekräftelse-efter-utlarmning).
+
 > [!NOTE]
 > En incident, ett larm eller en episod som skapas redan bekräftad eller löst kör ingen av sina policyer, och dess flöde säger det. Se [Skapat redan bekräftat eller löst](/docs/alerts/index#skapat-redan-bekräftat-eller-löst).
 

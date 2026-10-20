@@ -1025,6 +1025,50 @@ describe("a brand-new project", () => {
     // Nothing is scheduled, so there is no maintenance card at all.
     expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
   });
+
+  /*
+   * The headline says "Create a monitor and OneUptime will check your
+   * website, API or server around the clock", and used to stop there: the
+   * way to do it was the first item of the Create menu, or a step of the
+   * checklist - gone for good once dismissed. It now ends on the button.
+   */
+  test("the headline ends on Create your first monitor, which opens the create form", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    await renderHome();
+
+    const health: HTMLElement = screen.getByTestId("home-project-health");
+    const button: HTMLElement = within(health).getByRole("link", {
+      name: "Create your first monitor",
+    });
+
+    expect(button).toBeVisible();
+    expect(button).toHaveAttribute(
+      "href",
+      `/dashboard/${OTHER_PROJECT_ID}/monitors/create`,
+    );
+  });
+
+  test("someone who may not create monitors reads the headline without the button", async () => {
+    currentProjectId = new ObjectID(OTHER_PROJECT_ID);
+    grantedPermissions = VIEWER;
+    await renderHome();
+
+    expect(screen.getByTestId("home-health-headline")).toHaveTextContent(
+      "Nothing is being monitored yet",
+    );
+    expect(screen.queryByTestId("home-health-create-monitor")).toBeNull();
+  });
+});
+
+describe("a project with monitors", () => {
+  test("has no Create your first monitor button", async () => {
+    await renderHome();
+
+    expect(screen.getByTestId("home-health-headline")).not.toHaveTextContent(
+      "Nothing is being monitored yet",
+    );
+    expect(screen.queryByTestId("home-health-create-monitor")).toBeNull();
+  });
 });
 
 describe("no project at all", () => {

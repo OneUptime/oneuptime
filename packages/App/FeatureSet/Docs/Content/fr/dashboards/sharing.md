@@ -47,7 +47,8 @@ Un tableau de bord public :
 
 - S'ouvre toujours en lecture. Les visiteurs ne peuvent pas le modifier et ne voient jamais ses contrôles de modification.
 - Inclut les variables que vous avez ajoutées. Les visiteurs choisissent dans les mêmes sélecteurs que votre équipe, et peuvent changer la plage temporelle, zoomer, activer l'actualisation automatique et passer en plein écran.
-- Utilise l'image de marque définie sur la page **Image de marque** du tableau de bord : titre de page, description, logo, favicon.
+- Utilise l'image de marque définie sur la page **Image de marque** du tableau de bord : titre de page, description, logo, thème, favicon.
+- Permet à chaque visiteur de passer du tableau de bord clair au sombre, et inversement, avec un bouton soleil ou lune dans sa barre d'outils ; [Thème](#thème) explique comment.
 
 Traitez le partage d'un tableau de bord comme la publication d'une page web. Chaque widget qu'il contient devient lisible par toute personne disposant du lien. Regardez ce qu'il y a sur le canevas avant de le partager.
 
@@ -55,7 +56,7 @@ Chaque widget ne publie que ce qu'il dessine, et seulement pour les ressources s
 
 ## Partager avec un mot de passe
 
-Choisissez **Toute personne disposant du lien et d'un mot de passe** et saisissez le mot de passe dans la boîte de dialogue. Les visiteurs voient une demande de mot de passe avant que le tableau de bord n'apparaisse. La demande affiche le nom, le titre de page et le favicon du tableau de bord, et rien d'autre : sa description, son logo et ses widgets apparaissent une fois le mot de passe saisi. Le mot de passe est stocké sous forme de hachage — personne ne peut le relire. Un nouveau mot de passe fonctionne aussitôt ; les personnes qui ont saisi l'ancien peuvent continuer à voir le tableau de bord pendant 7 jours au plus.
+Choisissez **Toute personne disposant du lien et d'un mot de passe** et saisissez le mot de passe dans la boîte de dialogue. Les visiteurs voient une demande de mot de passe avant que le tableau de bord n'apparaisse. La demande affiche le nom, le titre de page et le favicon du tableau de bord, dans le thème du tableau de bord, et rien d'autre : sa description, son logo et ses widgets apparaissent une fois le mot de passe saisi. Le mot de passe est stocké sous forme de hachage — personne ne peut le relire. Un nouveau mot de passe fonctionne aussitôt ; les personnes qui ont saisi l'ancien peuvent continuer à voir le tableau de bord pendant 7 jours au plus.
 
 Utilisez un mot de passe quand :
 
@@ -152,13 +153,30 @@ Sur la page **Image de marque** du tableau de bord, vous pouvez configurer :
 - **Titre de la page** — ce qui s'affiche dans l'onglet du navigateur et en haut de la page.
 - **Description de la page** — la description utilisée par les moteurs de recherche et les aperçus de liens.
 - **Logo** — une image affichée dans l'en-tête du tableau de bord public.
+- **Thème** — clair, sombre, ou selon le réglage de l'appareil de chaque visiteur ; voir [Thème](#thème).
 - **Favicon** — la petite icône dans l'onglet du navigateur.
 
 Le logo et le favicon sont des fichiers téléversés dans le projet du tableau de bord, et c'est vérifié à chaque enregistrement — depuis le tableau de bord, l'API, Terraform ou un workflow. Un fichier téléversé dans un autre projet est refusé avec les mots que reçoit un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again." ou "The favicon's file could not be found. Upload the favicon again." Le tableau de bord public n'affiche que des images de son propre projet.
 
-Le titre et la description de la page figurent aussi en tête de la barre d'outils du tableau de bord pour votre équipe, à la place de son nom et de sa description. Le logo et le favicon n'apparaissent que sur le tableau de bord public.
+Le titre et la description de la page figurent aussi en tête de la barre d'outils du tableau de bord pour votre équipe, à la place de son nom et de sa description. Le logo, le thème et le favicon ne s'appliquent qu'au tableau de bord public.
 
-Les visiteurs ne voient l'image de marque qu'une fois autorisés à voir le tableau de bord. Avant la saisie du mot de passe, un tableau de bord partagé avec un mot de passe n'affiche que son titre de page et son favicon, et les moteurs de recherche et aperçus de liens voient son titre de page mais pas sa description. Un tableau de bord avec une liste d'autorisation IP n'affiche son image de marque qu'aux adresses de la liste, et les moteurs de recherche et aperçus de liens n'en voient rien.
+Les visiteurs ne voient l'image de marque qu'une fois autorisés à voir le tableau de bord. Avant la saisie du mot de passe, un tableau de bord partagé avec un mot de passe n'affiche que son titre de page, son favicon et son thème, et les moteurs de recherche et aperçus de liens voient son titre de page mais pas sa description. Un tableau de bord avec une liste d'autorisation IP n'affiche son image de marque qu'aux adresses de la liste, et les moteurs de recherche et aperçus de liens n'en voient rien.
+
+### Thème
+
+La carte **Thème**, juste sous le logo, définit l'apparence du tableau de bord public pour ses visiteurs. Choisissez l'une de ses trois options et elle est enregistrée aussitôt ; il n'y a pas de bouton **Modifier**.
+
+| Option | Ce que voient les visiteurs |
+| ------ | ----------------- |
+| **Clair** | Le tableau de bord clair, quel que soit le réglage de leur appareil. Les tableaux de bord créés avant l'existence de ce réglage sont en **Clair**, ils gardent donc l'apparence qu'ils ont toujours eue. |
+| **Sombre** | Le tableau de bord sombre, quel que soit le réglage de leur appareil. |
+| **Selon l'appareil de chaque visiteur** | Clair ou sombre, selon le réglage de leur appareil, et il change avec lui tant que le tableau de bord est ouvert. |
+
+Quel que soit votre choix, un bouton soleil ou lune dans la barre d'outils du tableau de bord permet à chaque visiteur de passer au tableau de bord clair ou sombre, ou de revenir au thème que vous avez défini, et son navigateur retient ce choix pour chaque tableau de bord public de cette adresse. Sur le tableau de bord sombre, le logo est posé sur un fond clair, si bien qu'un logo conçu pour une page blanche reste lisible.
+
+Un tableau de bord créé à partir de maintenant commence avec **Selon l'appareil de chaque visiteur**. Dans l'API et dans Terraform, le champ est `theme`, avec l'une des valeurs `Light`, `Dark` ou `System` (**Selon l'appareil de chaque visiteur**), écrites exactement ainsi ; toute autre valeur est refusée. Une configuration Terraform qui ne définit aucun `theme` reçoit `Light`, si bien qu'une configuration écrite avant ce réglage ne planifie jamais de changement sur un tableau de bord qu'elle gère.
+
+Le thème figure dans le HTML du tableau de bord, qui est donc dessiné dans ce thème dès le départ : un tableau de bord sombre ne clignote pas en blanc pendant son chargement, et sa demande de mot de passe est elle aussi dessinée dans ce thème. Chaque widget le suit ; le code d'un widget HTML peut styliser le thème sombre, comme l'explique [HTML](/docs/dashboards/widgets#html). Les pages **Access Denied** et « introuvable » ne montrent rien d'un tableau de bord, elles suivent donc le visiteur : son propre choix, sinon son appareil.
 
 ## Intégration
 
@@ -175,9 +193,11 @@ Vous pouvez intégrer un tableau de bord public dans votre propre site avec une 
 
 Si le tableau de bord est partagé avec un mot de passe, les visiteurs verront la demande de mot de passe dans l'iframe.
 
+Pour donner à un tableau de bord intégré l'apparence de votre site, ajoutez `?theme=light` ou `?theme=dark` à son adresse, comme dans `https://dashboard.acme.com/?theme=dark` : le tableau de bord est alors dessiné dans ce thème pour tous ceux qui ouvrent cette adresse, quels que soient son propre thème et le choix du visiteur, et sa barre d'outils n'a pas de bouton de thème. `?theme=system` suit l'appareil de chaque visiteur. Le thème est conservé à travers la demande de mot de passe.
+
 ## Envoyer un lien
 
-Le lien public ouvre le tableau de bord sur ses valeurs par défaut enregistrées. Pour envoyer un lien qui s'ouvre sur une valeur précise, ajoutez-y la variable sous la forme `?var-<name>=<value>`, comme le fait la barre d'adresse quand un visiteur choisit une valeur ; plusieurs valeurs se séparent par des virgules. La plage temporelle ne fait pas partie du lien : chaque visite repart de la dernière heure.
+Le lien public ouvre le tableau de bord sur ses valeurs par défaut enregistrées. Pour envoyer un lien qui s'ouvre sur une valeur précise, ajoutez-y la variable sous la forme `?var-<name>=<value>`, comme le fait la barre d'adresse quand un visiteur choisit une valeur ; plusieurs valeurs se séparent par des virgules. La plage temporelle ne fait pas partie du lien : chaque visite repart de la dernière heure. Pour ouvrir le tableau de bord dans un thème, ajoutez `theme=light`, `theme=dark` ou `theme=system`, comme le décrit [Intégration](#intégration).
 
 ## Prochaines étapes
 

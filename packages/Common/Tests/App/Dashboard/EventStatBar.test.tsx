@@ -192,6 +192,75 @@ describe("EventStatTile segment variant", () => {
 
     expect(getTile("Duration")).toHaveClass("sm:col-span-2", "px-5");
   });
+
+  /*
+   * "Acknowledged in" counts from when the record started; for a record
+   * somebody was paged about, the tile adds how long after the page it was
+   * acknowledged - under the value, above the date.
+   */
+  test("adds a note under the value, above the description, and wraps it", () => {
+    render(
+      <EventStatTile
+        variant="segment"
+        label="Acknowledged in"
+        icon={IconProp.Check}
+        value="10 hours, 4 minutes"
+        note="4 minutes after paging"
+        description="Oct 20, 2026 09:04"
+      />,
+    );
+
+    const cell: HTMLElement = getTile("Acknowledged in");
+    const note: HTMLElement = screen.getByText("4 minutes after paging");
+
+    expect(
+      Array.from(cell.children).map((child: Element) => {
+        return child.textContent;
+      }),
+    ).toEqual([
+      "Acknowledged in",
+      "10 hours, 4 minutes",
+      "4 minutes after paging",
+      "Oct 20, 2026 09:04",
+    ]);
+    // Quieter than the value (text-lg, semibold, gray-900), louder than the date.
+    expect(note).toHaveClass("text-sm", "text-gray-600");
+    expect(note).not.toHaveClass("font-medium");
+    expect(note).not.toHaveClass("font-semibold");
+    // Wraps in a narrow cell, into even lines rather than an orphaned word.
+    expect(note).toHaveClass("break-words", "text-balance");
+    expect(note).not.toHaveClass("truncate");
+  });
+
+  test("draws no note line without a note, as before", () => {
+    render(
+      <EventStatTile
+        variant="segment"
+        label="Acknowledged in"
+        value="5 minutes"
+        note={undefined}
+        description="Oct 20, 2026 09:04"
+      />,
+    );
+
+    expect(getTile("Acknowledged in").children).toHaveLength(3);
+  });
+});
+
+describe("EventStatTile card variant note", () => {
+  test("adds the note under the value on a card too, truncated like the value", () => {
+    render(
+      <EventStatTile
+        label="Acknowledged in"
+        value="2 hours"
+        note="3 minutes after paging"
+      />,
+    );
+
+    expect(screen.getByText("3 minutes after paging").className).toBe(
+      "mt-0.5 truncate text-sm text-gray-600",
+    );
+  });
 });
 
 describe("EventStatBar", () => {

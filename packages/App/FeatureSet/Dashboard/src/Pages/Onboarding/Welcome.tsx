@@ -151,6 +151,11 @@ const Welcome: FunctionComponent<ComponentProps> = (
         );
       }
 
+      /*
+       * Someone who has just signed up does not know what a project is, and
+       * this page is all they see. Say it - in the words the create project
+       * dialog uses - rather than only that they have none.
+       */
       return (
         <EmptyState
           id="empty-state-no-projects"
@@ -159,7 +164,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
           description={
             <>
               {translator.translateText(
-                "Get started by creating a new project.",
+                "A project holds your monitors, incidents, status pages and team.",
               )}{" "}
               {BILLING_ENABLED && (
                 <span>
