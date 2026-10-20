@@ -2054,8 +2054,16 @@ function nPlusOneFinding(overrides: JSONObject = {}): JSONObject {
     normalizedDbStatement: "SELECT * FROM products WHERE id = ?",
     dbSystem: "postgresql",
     implicatedSpans: [
-      { spanId: "query-0", name: "SELECT products WHERE id = $1", durationMs: 70 },
-      { spanId: "query-1", name: "SELECT products WHERE id = $1", durationMs: 70 },
+      {
+        spanId: "query-0",
+        name: "SELECT products WHERE id = $1",
+        durationMs: 70,
+      },
+      {
+        spanId: "query-1",
+        name: "SELECT products WHERE id = $1",
+        durationMs: 70,
+      },
     ],
     ...overrides,
   };
@@ -2112,30 +2120,42 @@ describe("performance fix with AI", () => {
     expect(
       screen.queryByTestId("trace-performance-suggestion"),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("trace-fix-performance")).not.toBeInTheDocument();
-    expect(screen.queryByText("Fix performance with AI")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("trace-fix-performance"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Fix performance with AI"),
+    ).not.toBeInTheDocument();
   });
 
   test("a trace worth fixing names what was found, what it costs, and offers the fix", async () => {
-    answerSuggestion({ offer: "Act", finding: nPlusOneFinding(), findingCount: 1 });
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding(),
+      findingCount: 1,
+    });
     await renderTrace();
 
     const strip: HTMLElement = await suggestionStrip();
 
     expect(strip).toHaveAttribute("data-offer", "Act");
-    expect(within(strip).getByTestId("trace-performance-finding")).toHaveTextContent(
+    expect(
+      within(strip).getByTestId("trace-performance-finding"),
+    ).toHaveTextContent(
       "The same database query ran 12 times in OrderService.validateCart",
     );
-    expect(within(strip).getByTestId("trace-performance-query")).toHaveTextContent(
-      "SELECT * FROM products WHERE id = ?",
-    );
-    expect(within(strip).getByTestId("trace-performance-detail")).toHaveTextContent(
-      "Together they take 840 ms of this 1.6 s request.",
-    );
-    expect(within(strip).getByTestId("trace-fix-performance")).toHaveTextContent(
-      "Fix performance with AI",
-    );
-    expect(within(strip).getByTestId("trace-fix-performance")).not.toBeDisabled();
+    expect(
+      within(strip).getByTestId("trace-performance-query"),
+    ).toHaveTextContent("SELECT * FROM products WHERE id = ?");
+    expect(
+      within(strip).getByTestId("trace-performance-detail"),
+    ).toHaveTextContent("Together they take 840 ms of this 1.6 s request.");
+    expect(
+      within(strip).getByTestId("trace-fix-performance"),
+    ).toHaveTextContent("Fix performance with AI");
+    expect(
+      within(strip).getByTestId("trace-fix-performance"),
+    ).not.toBeDisabled();
     // The header's own actions no longer carry the AI button.
     expect(
       within(screen.getByTestId("trace-header")).getAllByTestId(
@@ -2167,11 +2187,15 @@ describe("performance fix with AI", () => {
 
     const strip: HTMLElement = await suggestionStrip();
 
-    expect(within(strip).getByTestId("trace-performance-finding")).toHaveTextContent(
+    expect(
+      within(strip).getByTestId("trace-performance-finding"),
+    ).toHaveTextContent(
       "4 calls to GET /inventory/{n} ran one after another in reserve stock",
     );
     expect(within(strip).queryByTestId("trace-performance-query")).toBeNull();
-    expect(within(strip).getByTestId("trace-performance-detail")).toHaveTextContent(
+    expect(
+      within(strip).getByTestId("trace-performance-detail"),
+    ).toHaveTextContent(
       "Together they take 600 ms of this 900 ms request, and they could run at the same time.",
     );
   });
@@ -2219,7 +2243,9 @@ describe("performance fix with AI", () => {
     ).toHaveTextContent(
       "Could not start the fix: No GitHub-App-connected repository exists for this project",
     );
-    expect(within(strip).getByTestId("trace-fix-performance")).not.toBeDisabled();
+    expect(
+      within(strip).getByTestId("trace-fix-performance"),
+    ).not.toBeDisabled();
   });
 
   test("no repository connected: a quiet link to connect GitHub instead of the fix", async () => {
@@ -2228,9 +2254,9 @@ describe("performance fix with AI", () => {
     const strip: HTMLElement = await suggestionStrip();
 
     expect(strip).toHaveAttribute("data-offer", "SetUp");
-    expect(within(strip).getByTestId("trace-performance-finding")).toHaveTextContent(
-      "The same database query ran 12 times",
-    );
+    expect(
+      within(strip).getByTestId("trace-performance-finding"),
+    ).toHaveTextContent("The same database query ran 12 times");
     const connect: HTMLElement = within(strip).getByTestId(
       "trace-fix-performance-connect",
     );
@@ -2268,7 +2294,9 @@ describe("performance fix with AI", () => {
     await renderTrace();
 
     await waitFor(() => {
-      expect(postsTo("/telemetry/profiles/trace-presence").length).toBeGreaterThan(0);
+      expect(
+        postsTo("/telemetry/profiles/trace-presence").length,
+      ).toBeGreaterThan(0);
     });
     expect(postsTo(SUGGESTION_PATH)).toHaveLength(0);
     expect(
@@ -2293,9 +2321,18 @@ describe("performance fix with AI", () => {
 
   test.each([
     ["an offer with no finding", { offer: "Act" }],
-    ["a finding too small to fix", { offer: "Act", finding: nPlusOneFinding({ combinedDurationMs: 12 }) }],
-    ["in progress with no run", { offer: "InProgress", finding: nPlusOneFinding() }],
-    ["an offer this build does not know", { offer: "Later", finding: nPlusOneFinding() }],
+    [
+      "a finding too small to fix",
+      { offer: "Act", finding: nPlusOneFinding({ combinedDurationMs: 12 }) },
+    ],
+    [
+      "in progress with no run",
+      { offer: "InProgress", finding: nPlusOneFinding() },
+    ],
+    [
+      "an offer this build does not know",
+      { offer: "Later", finding: nPlusOneFinding() },
+    ],
   ])("%s shows nothing", async (_label: string, answer: JSONObject) => {
     answerSuggestion(answer);
     await renderTrace();
@@ -2315,9 +2352,9 @@ describe("performance fix with AI", () => {
 
     fireEvent.click(within(strip).getByTestId("trace-performance-show-spans"));
 
-    expect(within(strip).getByTestId("trace-performance-show-spans")).toHaveTextContent(
-      "Show them",
-    );
+    expect(
+      within(strip).getByTestId("trace-performance-show-spans"),
+    ).toHaveTextContent("Show them");
     expect((screen.getByTestId("trace-search") as HTMLInputElement).value).toBe(
       "SELECT products WHERE id = $1",
     );
@@ -2338,7 +2375,9 @@ describe("performance fix with AI", () => {
     await renderTrace();
     const strip: HTMLElement = await suggestionStrip();
 
-    expect(within(strip).queryByTestId("trace-performance-show-spans")).toBeNull();
+    expect(
+      within(strip).queryByTestId("trace-performance-show-spans"),
+    ).toBeNull();
   });
 
   test("Refresh asks again, so the offer follows the trace", async () => {
