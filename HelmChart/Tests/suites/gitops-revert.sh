@@ -403,6 +403,58 @@ request_reconcile_everywhere() {
     kubectl -n flux-system annotate helmrelease gitops-flux-helm-drift reconcile.fluxcd.io/requestedAt="$now" --overwrite >/dev/null
 }
 
+# The markers each owner must leave on the objects it manages, as
+# "label+<key>" / "annotation+<key>" / "manager+<name>" ("+" for a space).
+expected_markers_of() {
+    # expected_markers_of <owner>
+    case "$1" in
+        argocd-selfheal | argocd-autosync)
+            echo "annotation+argocd.argoproj.io/tracking-id"
+            ;;
+        flux)
+            echo "label+kustomize.toolkit.fluxcd.io/name label+kustomize.toolkit.fluxcd.io/namespace manager+kustomize-controller"
+            ;;
+        flux-helmrelease | flux-helmrelease-drift)
+            echo "label+helm.toolkit.fluxcd.io/name label+helm.toolkit.fluxcd.io/namespace annotation+meta.helm.sh/release-name manager+helm-controller"
+            ;;
+        helm)
+            echo "annotation+meta.helm.sh/release-name label+app.kubernetes.io/managed-by"
+            ;;
+    esac
+}
+
+# The fixes that change something git (or the chart) declares, and the
+# ones that do not.
+PUT_BACK_CASES="undo scale image resources env patch delete-workload"
+KEPT_CASES="restart scale-undeclared env-add pause annotate"
+
+# Owners that put a change back on their own, not at the next deploy.
+reconciles_on_its_own() {
+    case "$1" in
+        argocd-selfheal | flux | flux-helmrelease-drift) return 0 ;;
+    esac
+    return 1
+}
+
+# What each owner is expected to do with each fix: "on its own", "at the
+# next deploy", "never" (it stays) - or "" for a deleted pod, which its
+# ReplicaSet replaces whoever owns the Deployment.
+expected_outcome_of() {
+    # expected_outcome_of <owner> <case>
+    local owner="$1" case="$2"
+    if [ "$case" = "delete-pod" ]; then
+        echo ""
+    elif [[ " ${PUT_BACK_CASES} " == *" ${case} "* ]]; then
+        if reconciles_on_its_own "$owner"; then
+            echo "on its own"
+        else
+            echo "at the next deploy"
+        fi
+    else
+        echo "never"
+    fi
+}
+
 # Watches every pending (owner, case) for its field to read the git value
 # again. PENDING lines: owner ns case git_value since_epoch. Writes the ones
 # that turned back to REVERTED as: owner case seconds, and leaves the rest.
@@ -691,6 +743,19 @@ for owner in $OWNERS; do
 done
 
 echo
+echo "=== the markers OneUptime reads (packages/Common/Utils/AiRemediation/GitOpsOwnership.ts) ==="
+for owner in $OWNERS; do
+    ns="$(namespace_of "$owner")"
+    markers="$(kubectl -n "$ns" get deployment image -o json --show-managed-fields | jq -r '
+        (.metadata.labels // {} | keys[] | "label " + .),
+        (.metadata.annotations // {} | keys[] | "annotation " + .),
+        (.metadata.managedFields // [] | .[] | "manager " + .manager)')"
+    for marker in $(expected_markers_of "$owner"); do
+        assert_present "${owner}: the Deployment carries ${marker//+/ }" "$markers" "${marker//+/ }"
+    done
+done
+
+echo
 log "the bad deploy: undo goes busybox:${OLD_TAG} -> busybox:${NEW_TAG} through git, the chart and the HelmReleases"
 write_repo "$NEW_TAG" "2"
 REVISION_2="$(git_commit_and_push "commit 2: the bad deploy of undo, busybox:${NEW_TAG}")"
@@ -776,6 +841,23 @@ for owner in $OWNERS; do
         echo "${owner}|${case}|${first}|${second}" >>"$RESULTS"
     done
 done
+
+echo
+echo "=== what each owner was expected to do ==="
+while IFS='|' read -r owner case first second; do
+    expected="$(expected_outcome_of "$owner" "$case")"
+    if [ -z "$expected" ]; then
+        continue
+    fi
+    if [[ "$first" == reverted* ]]; then
+        observed="on its own"
+    elif [[ "$second" == reverted* ]]; then
+        observed="at the next deploy"
+    else
+        observed="never"
+    fi
+    assert_eq "${owner} puts the ${case} fix back: ${expected}" "$expected" "$observed"
+done <"$RESULTS"
 
 # The same table as the CI job's summary.
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
