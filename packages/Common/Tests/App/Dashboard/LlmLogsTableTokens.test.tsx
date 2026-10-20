@@ -247,10 +247,7 @@ describe("the line under the count, in words", () => {
       { totalTokens: 50, cachedInputTokens: 30, cacheCreationTokens: 10 },
       "50 tokens: 30 from the cache, 10 written to it",
     ],
-    [
-      { totalTokens: 1, cachedInputTokens: 1 },
-      "1 token, 1 from the cache",
-    ],
+    [{ totalTokens: 1, cachedInputTokens: 1 }, "1 token, 1 from the cache"],
   ])("%p says %p", (usage: Record<string, number>, text: string) => {
     expect(getLlmLogCacheText(ENGLISH, AiTokenCount.getBreakdown(usage))).toBe(
       text,
@@ -302,7 +299,11 @@ describe("the line under the count, in words", () => {
         });
 
         // Every placeholder the English sentence fills, the translation fills.
-        for (const placeholder of ["{{count}}", "{{cacheRead}}", "{{cacheWrite}}"]) {
+        for (const placeholder of [
+          "{{count}}",
+          "{{cacheRead}}",
+          "{{cacheWrite}}",
+        ]) {
           expect({
             language,
             key,

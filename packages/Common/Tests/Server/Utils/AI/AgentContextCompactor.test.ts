@@ -419,8 +419,10 @@ describe("compactAgentContext cuts back far enough for the cache to keep matchin
       }
     }
 
-    // Sixty rounds of 10,000 characters: about 600,000 characters, cut a
-    // handful of times rather than on every call past the limit.
+    /*
+     * Sixty rounds of 10,000 characters: about 600,000 characters, cut a
+     * handful of times rather than on every call past the limit.
+     */
     expect(cuts).toBeGreaterThan(0);
     expect(cuts).toBeLessThanOrEqual(Math.ceil(600_000 / 33_000));
     expect(callsThatKeptThePrefix).toBeGreaterThan(40);

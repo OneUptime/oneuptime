@@ -1269,9 +1269,7 @@ describe("a call that used the provider's prompt cache", () => {
     expect(attributes["gen_ai.usage.output_tokens"]).toBe(1_571);
     expect(attributes["gen_ai.usage.total_tokens"]).toBe(29_712);
     expect(attributes["gen_ai.usage.cache_read.input_tokens"]).toBe(20_654);
-    expect(attributes["gen_ai.usage.cache_creation.input_tokens"]).toBe(
-      4_216,
-    );
+    expect(attributes["gen_ai.usage.cache_creation.input_tokens"]).toBe(4_216);
   });
 
   test("a call that used no cache carries no cache counts", () => {

@@ -153,7 +153,7 @@ Claude Opus 4.7 and every later Claude model choose their own sampling, and refu
 
 Claude 5 models think before they answer, and the thinking counts toward the reply's token limit, so OneUptime leaves room for it. To make them think less, and answer faster and for less, set `{"output_config": {"effort": "low"}}` in the provider's **Additional Parameters**. OneUptime sends the settings you add there to Anthropic with each request, except `model`, `messages`, `system`, `tools`, `tool_choice` and `stream`, which it sets itself.
 
-OneUptime uses Anthropic's prompt caching. Each call of an investigation or an Ask AI answer sends the system prompt, the tools and the conversation so far again, and OneUptime marks them for the cache, so the call reads them back at a tenth of the price or less and pays in full only for what is new. If a gateway in front of Claude refuses the cache markers, OneUptime sends the request again without them and remembers that for the provider. [How tokens are counted](/docs/ai/ai-sre#how-tokens-are-counted) says how cached tokens count toward your limits.
+OneUptime uses Anthropic's prompt caching. Each call of an investigation or an Ask AI answer sends the system prompt, the tools and the conversation so far again, and OneUptime marks them for the cache: a call pays a tenth of the price or less for what the calls before it sent, and a quarter more than the price for what is new, which it writes to the cache. If a gateway in front of Claude refuses the cache markers, OneUptime sends the request again without them and remembers that for the provider. [How tokens are counted](/docs/ai/ai-sre#how-tokens-are-counted) says how cached tokens count toward your limits.
 
 ### Azure OpenAI and Microsoft Foundry
 

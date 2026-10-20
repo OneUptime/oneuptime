@@ -75,10 +75,7 @@ describe("AiTokenCount.count", () => {
       // 3,463 fresh + 20,654 written × 1.25 (25,817.5, up to 25,818).
       29_281,
       // 7,842 fresh + 20,654 read ÷ 10 (2,065.4, up to 2,066).
-      9_908,
-      14_124,
-      17_672,
-      21_823,
+      9_908, 14_124, 17_672, 21_823,
     ]);
   });
 
@@ -99,9 +96,9 @@ describe("AiTokenCount.count", () => {
 
   test("an OpenAI-wire call: its cached tokens are part of its prompt tokens", () => {
     // prompt_tokens 50 (40 of them cached) + completion_tokens 5.
-    expect(
-      AiTokenCount.count({ totalTokens: 55, cachedInputTokens: 40 }),
-    ).toBe(15 + 4);
+    expect(AiTokenCount.count({ totalTokens: 55, cachedInputTokens: 40 })).toBe(
+      15 + 4,
+    );
   });
 
   test.each([
@@ -149,12 +146,12 @@ describe("AiTokenCount.count", () => {
 
   test("a report that does not add up never counts fewer than zero fresh tokens", () => {
     // More cached tokens than tokens: the cache counts stand as reported.
-    expect(
-      AiTokenCount.count({ totalTokens: 10, cachedInputTokens: 50 }),
-    ).toBe(5);
-    expect(
-      AiTokenCount.count({ totalTokens: 0, cacheCreationTokens: 4 }),
-    ).toBe(5);
+    expect(AiTokenCount.count({ totalTokens: 10, cachedInputTokens: 50 })).toBe(
+      5,
+    );
+    expect(AiTokenCount.count({ totalTokens: 0, cacheCreationTokens: 4 })).toBe(
+      5,
+    );
   });
 
   test.each([

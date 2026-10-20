@@ -103,7 +103,10 @@ function anthropicReply(extra?: JSONObject): HTTPResponse<JSONObject> {
   } as unknown as HTTPResponse<JSONObject>;
 }
 
-function anthropicError(statusCode: number, message: string): HTTPErrorResponse {
+function anthropicError(
+  statusCode: number,
+  message: string,
+): HTTPErrorResponse {
   return new HTTPErrorResponse(
     statusCode,
     {
@@ -168,9 +171,7 @@ function markersOf(value: unknown, path: string = ""): Array<Marker> {
         continue;
       }
 
-      markers.push(
-        ...markersOf(object[key], path ? `${path}.${key}` : key),
-      );
+      markers.push(...markersOf(object[key], path ? `${path}.${key}` : key));
     }
   }
 
@@ -232,7 +233,10 @@ function toolCall(id: string, name: string, query: string): LLMToolCall {
  * and ChatAgentRunner build: an assistant message with the calls, then one
  * tool message per result.
  */
-function investigation(rounds: number, parallel: number = 1): Array<LLMMessage> {
+function investigation(
+  rounds: number,
+  parallel: number = 1,
+): Array<LLMMessage> {
   const messages: Array<LLMMessage> = [
     { role: "system", content: SYSTEM_PROMPT },
     { role: "user", content: QUESTION },
@@ -333,17 +337,18 @@ describe("issue #5073 — an agent loop's call marks its conversation for the pr
       "messages"
     ] as Array<JSONObject>;
 
-    expect(messages.map((message: JSONObject) => message["role"])).toEqual([
-      "user",
-      "assistant",
-      "user",
-    ]);
+    expect(
+      messages.map((message: JSONObject) => {
+        return message["role"];
+      }),
+    ).toEqual(["user", "assistant", "user"]);
 
     // The end: the newest tool result.
     expect((messages[2]!["content"] as Array<JSONObject>)[0]).toEqual({
       type: "tool_result",
       tool_use_id: "toolu_1_1",
-      content: '<tool_result citation="Ctoolu_1_1">rows for toolu_1_1</tool_result>',
+      content:
+        '<tool_result citation="Ctoolu_1_1">rows for toolu_1_1</tool_result>',
       cache_control: EPHEMERAL,
     });
 
@@ -370,16 +375,22 @@ describe("issue #5073 — an agent loop's call marks its conversation for the pr
     // The three results of each round ride in one user message.
     expect(messages).toHaveLength(5);
 
-    const newest: Array<JSONObject> = messages[4]!["content"] as Array<JSONObject>;
+    const newest: Array<JSONObject> = messages[4]![
+      "content"
+    ] as Array<JSONObject>;
     const previous: Array<JSONObject> = messages[2]![
       "content"
     ] as Array<JSONObject>;
 
     expect(
-      newest.map((block: JSONObject) => block["cache_control"]),
+      newest.map((block: JSONObject) => {
+        return block["cache_control"];
+      }),
     ).toEqual([undefined, undefined, EPHEMERAL]);
     expect(
-      previous.map((block: JSONObject) => block["cache_control"]),
+      previous.map((block: JSONObject) => {
+        return block["cache_control"];
+      }),
     ).toEqual([undefined, undefined, EPHEMERAL]);
     expect(markersOf(bodyOf(spy, 0))).toHaveLength(4);
   });
@@ -403,10 +414,11 @@ describe("issue #5073 — an agent loop's call marks its conversation for the pr
     ] as Array<JSONObject>;
 
     // Merged into the results' user message, as the API needs.
-    expect(lastContent.map((block: JSONObject) => block["type"])).toEqual([
-      "tool_result",
-      "text",
-    ]);
+    expect(
+      lastContent.map((block: JSONObject) => {
+        return block["type"];
+      }),
+    ).toEqual(["tool_result", "text"]);
     expect(lastContent[0]!["cache_control"]).toBeUndefined();
     expect(lastContent[1]!["cache_control"]).toEqual(EPHEMERAL);
   });
@@ -440,7 +452,9 @@ describe("issue #5073 — an agent loop's call marks its conversation for the pr
     );
 
     expect(
-      (spy.mock.calls[0]![0] as { url: { toString: () => string } }).url.toString(),
+      (
+        spy.mock.calls[0]![0] as { url: { toString: () => string } }
+      ).url.toString(),
     ).toBe("https://contoso.services.ai.azure.com/anthropic/v1/messages");
     expect(markerPaths(bodyOf(spy, 0))).toEqual(
       [
@@ -501,66 +515,61 @@ describe("the marker moves with every call, and what came before stays as the ca
   test.each([
     [1, "one tool call a round"],
     [4, "four parallel tool calls a round"],
-  ])(
-    "a ten-call investigation with %i (%s)",
-    async (parallel: number) => {
-      const spy: PostSpy = mockPost().mockResolvedValue(anthropicReply());
+  ])("a ten-call investigation with %i (%s)", async (parallel: number) => {
+    const spy: PostSpy = mockPost().mockResolvedValue(anthropicReply());
 
-      for (let round: number = 0; round < 10; round++) {
-        await complete(anthropic(), {
-          messages: investigation(round, parallel),
-        });
+    for (let round: number = 0; round < 10; round++) {
+      await complete(anthropic(), {
+        messages: investigation(round, parallel),
+      });
+    }
+
+    expect(spy).toHaveBeenCalledTimes(10);
+
+    for (let call: number = 0; call < 10; call++) {
+      const body: JSONObject = bodyOf(spy, call);
+      const messages: Array<JSONObject> = body["messages"] as Array<JSONObject>;
+      const paths: Array<string> = markerPaths(body);
+
+      // Never more than the four the API takes.
+      expect(paths.length).toBeLessThanOrEqual(4);
+      expect(paths).toContain("system[0]");
+      expect(paths).toContain("tools[2]");
+
+      // The end of this call's conversation is marked...
+      const lastMessage: JSONObject = messages[messages.length - 1]!;
+      const lastBlocks: Array<JSONObject> = lastMessage[
+        "content"
+      ] as Array<JSONObject>;
+      expect(lastBlocks[lastBlocks.length - 1]!["cache_control"]).toEqual(
+        EPHEMERAL,
+      );
+
+      if (call === 0) {
+        expect(paths).toHaveLength(3);
+        continue;
       }
 
-      expect(spy).toHaveBeenCalledTimes(10);
+      // ... and so is where the previous call's ended, read back directly.
+      const previousMessages: Array<JSONObject> = bodyOf(spy, call - 1)[
+        "messages"
+      ] as Array<JSONObject>;
+      const previousEnd: number = previousMessages.length - 1;
+      const previousBlocks: Array<JSONObject> = messages[previousEnd]![
+        "content"
+      ] as Array<JSONObject>;
 
-      for (let call: number = 0; call < 10; call++) {
-        const body: JSONObject = bodyOf(spy, call);
-        const messages: Array<JSONObject> = body[
-          "messages"
-        ] as Array<JSONObject>;
-        const paths: Array<string> = markerPaths(body);
+      expect(paths).toHaveLength(4);
+      expect(
+        previousBlocks[previousBlocks.length - 1]!["cache_control"],
+      ).toEqual(EPHEMERAL);
 
-        // Never more than the four the API takes.
-        expect(paths.length).toBeLessThanOrEqual(4);
-        expect(paths).toContain("system[0]");
-        expect(paths).toContain("tools[2]");
-
-        // The end of this call's conversation is marked...
-        const lastMessage: JSONObject = messages[messages.length - 1]!;
-        const lastBlocks: Array<JSONObject> = lastMessage[
-          "content"
-        ] as Array<JSONObject>;
-        expect(lastBlocks[lastBlocks.length - 1]!["cache_control"]).toEqual(
-          EPHEMERAL,
-        );
-
-        if (call === 0) {
-          expect(paths).toHaveLength(3);
-          continue;
-        }
-
-        // ... and so is where the previous call's ended, read back directly.
-        const previousMessages: Array<JSONObject> = bodyOf(spy, call - 1)[
-          "messages"
-        ] as Array<JSONObject>;
-        const previousEnd: number = previousMessages.length - 1;
-        const previousBlocks: Array<JSONObject> = messages[previousEnd]![
-          "content"
-        ] as Array<JSONObject>;
-
-        expect(paths).toHaveLength(4);
-        expect(
-          previousBlocks[previousBlocks.length - 1]!["cache_control"],
-        ).toEqual(EPHEMERAL);
-
-        // Everything the previous call sent is, byte for byte, where it was.
-        expect(
-          readAsTheApiDoes(messages).slice(0, previousMessages.length),
-        ).toEqual(readAsTheApiDoes(previousMessages));
-      }
-    },
-  );
+      // Everything the previous call sent is, byte for byte, where it was.
+      expect(
+        readAsTheApiDoes(messages).slice(0, previousMessages.length),
+      ).toEqual(readAsTheApiDoes(previousMessages));
+    }
+  });
 
   test("the system prompt and the tools are sent the same on every call", async () => {
     const spy: PostSpy = mockPost().mockResolvedValue(anthropicReply());
@@ -740,7 +749,10 @@ describe("an endpoint that refuses the markers gets fewer, and keeps getting few
     const spy: PostSpy = mockPost()
       .mockResolvedValueOnce(anthropicError(400, REFUSED_IN_MESSAGE))
       .mockResolvedValueOnce(
-        anthropicError(400, "system.0.cache_control: Extra inputs are not permitted"),
+        anthropicError(
+          400,
+          "system.0.cache_control: Extra inputs are not permitted",
+        ),
       )
       .mockResolvedValue(anthropicReply());
 
@@ -764,7 +776,10 @@ describe("an endpoint that refuses the markers gets fewer, and keeps getting few
   test("a call without tools that is refused goes straight to none", async () => {
     const spy: PostSpy = mockPost()
       .mockResolvedValueOnce(
-        anthropicError(400, "system.0.cache_control: Extra inputs are not permitted"),
+        anthropicError(
+          400,
+          "system.0.cache_control: Extra inputs are not permitted",
+        ),
       )
       .mockResolvedValue(anthropicReply());
 
@@ -861,11 +876,7 @@ describe("no other wire is ever sent a cache_control field", () => {
       { llmType: LlmType.OpenAI, apiKey: "sk-test", modelName: "gpt-5.1" },
       OPENAI_REPLY,
     ],
-    [
-      "Groq",
-      { llmType: LlmType.Groq, apiKey: "gsk-test" },
-      OPENAI_REPLY,
-    ],
+    ["Groq", { llmType: LlmType.Groq, apiKey: "gsk-test" }, OPENAI_REPLY],
     [
       "Mistral",
       { llmType: LlmType.Mistral, apiKey: "mistral-test" },

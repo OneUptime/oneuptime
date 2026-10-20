@@ -153,7 +153,7 @@ Claude Opus 4.7 及之后的所有 Claude 模型会自行选择采样方式，�
 
 Claude 5 模型会先思考再回答，而思考会计入回复的令牌上限，所以 OneUptime 会为此留出空间。要让它们少思考、更快更省地回答，请在提供商的 **附加参数** 中设置 `{"output_config": {"effort": "low"}}`。OneUptime 会把你在那里添加的设置随每个请求发送给 Anthropic，但 `model`、`messages`、`system`、`tools`、`tool_choice` 和 `stream` 除外，这些由它自己设置。
 
-OneUptime 使用 Anthropic 的提示缓存。调查或询问 AI 回答的每次调用都会重新发送系统提示、工具和到目前为止的对话，OneUptime 会将它们标记为可缓存，因此调用以原价十分之一或更低的价格读回它们，只为新内容支付全价。如果 Claude 前面的网关拒绝缓存标记，OneUptime 会不带标记重新发送请求，并为该提供商记住这一点。[如何计算 token](/docs/ai/ai-sre#如何计算-token) 说明了缓存的 token 如何计入你的限制。
+OneUptime 使用 Anthropic 的提示缓存。调查或询问 AI 回答的每次调用都会重新发送系统提示、工具和到目前为止的对话，OneUptime 会将它们标记为可缓存：对于之前的调用已发送的内容，调用只需支付十分之一或更低的价格；对于新内容，调用会将其写入缓存，并支付比原价高四分之一的价格。 如果 Claude 前面的网关拒绝缓存标记，OneUptime 会不带标记重新发送请求，并为该提供商记住这一点。[如何计算 token](/docs/ai/ai-sre#如何计算-token) 说明了缓存的 token 如何计入你的限制。
 
 ### Azure OpenAI 和 Microsoft Foundry
 

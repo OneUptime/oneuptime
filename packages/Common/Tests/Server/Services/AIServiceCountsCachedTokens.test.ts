@@ -141,7 +141,12 @@ async function investigate(): Promise<AILogResponse> {
 
 beforeEach(() => {
   setBillingEnabled(false);
-  today = { totalTokens: 0, cacheRead: 0, cacheWrite: 0, billedCostInUSDCents: 0 };
+  today = {
+    totalTokens: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    billedCostInUSDCents: 0,
+  };
   project = projectRow();
   provider = ownProvider();
   usage = { promptTokens: 1_000, completionTokens: 0, totalTokens: 1_000 };
@@ -429,9 +434,11 @@ describe("the incident daily token limit counts the lane's day by what it cost",
 
     expect(completion).toHaveBeenCalledTimes(1);
     expect(
-      (await AIService.getAutonomousDailyBudgetStatus(PROJECT_ID, {
-        incidentId: INCIDENT_ID,
-      })).usedTokensToday,
+      (
+        await AIService.getAutonomousDailyBudgetStatus(PROJECT_ID, {
+          incidentId: INCIDENT_ID,
+        })
+      ).usedTokensToday,
     ).toBe(190_000);
   });
 

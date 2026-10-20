@@ -2708,7 +2708,9 @@ export default class LLMService {
   }
 
   // Whether any block of any of these messages carries a cache_control marker.
-  private static hasAnthropicCacheControlInMessages(messages: unknown): boolean {
+  private static hasAnthropicCacheControlInMessages(
+    messages: unknown,
+  ): boolean {
     if (!Array.isArray(messages)) {
       return false;
     }
