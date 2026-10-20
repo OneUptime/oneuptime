@@ -432,12 +432,12 @@ export function isDefaultRunbookPick(suggestion: {
  * the signal already: one is all a signal gets for the servers a rule that
  * names none allows - every server - or for the project's default.
  */
-export function hasMcpFix(
-  suggestions: Array<{
-    suggestionType?: AutoRemediationSuggestionType | string | undefined | null;
-  }>,
-): boolean {
-  return suggestions.some((suggestion): boolean => {
+interface SuggestionOfType {
+  suggestionType?: AutoRemediationSuggestionType | string | undefined | null;
+}
+
+export function hasMcpFix(suggestions: Array<SuggestionOfType>): boolean {
+  return suggestions.some((suggestion: SuggestionOfType): boolean => {
     return (
       suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
     );
@@ -1904,8 +1904,7 @@ class AutoRemediationRuleEngineServiceClass {
           }
 
           isUnattendedPickStarted =
-            isPickStarted &&
-            pickMode === AutoRemediationExecutionMode.FullAuto;
+            isPickStarted && pickMode === AutoRemediationExecutionMode.FullAuto;
         }
 
         /*
@@ -3360,7 +3359,7 @@ class AutoRemediationRuleEngineServiceClass {
     isAiAvailable: () => Promise<boolean>;
   }): Promise<void> {
     if (
-      !(await ExternalMcpServerService.hasServersThatMayFix({
+      !(await this.mayFixThroughMcpServers({
         projectId: data.projectId,
         allowance: EVERY_EXTERNAL_MCP_SERVER,
       }))
@@ -3419,7 +3418,7 @@ class AutoRemediationRuleEngineServiceClass {
       : { isEveryServer: false, serverIds };
 
     if (
-      !(await ExternalMcpServerService.hasServersThatMayFix({
+      !(await this.mayFixThroughMcpServers({
         projectId: data.projectId,
         allowance,
       }))
@@ -3460,6 +3459,26 @@ class AutoRemediationRuleEngineServiceClass {
     });
 
     return { isStarted, isEveryServer };
+  }
+
+  /*
+   * Whether any MCP server this fix may use could make it. A failed read
+   * starts no fix through them and stops nothing else: every other fix of
+   * the signal goes on as if the project had no MCP server.
+   */
+  private async mayFixThroughMcpServers(data: {
+    projectId: ObjectID;
+    allowance: ExternalMcpServerAllowance;
+  }): Promise<boolean> {
+    try {
+      return await ExternalMcpServerService.hasServersThatMayFix(data);
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not read the external MCP servers; fixing without them: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return false;
+    }
   }
 
   /*
