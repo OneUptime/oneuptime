@@ -158,7 +158,10 @@ const CodeRepositoryTasks: FunctionComponent<
 
         {repository.blocker ? (
           <div className="mb-3">
-            <CodeBlockerNotice blocker={repository.blocker} />
+            <CodeBlockerNotice
+              blocker={repository.blocker}
+              repositoryId={repository.repository.id}
+            />
           </div>
         ) : (
           <></>

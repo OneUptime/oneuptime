@@ -70,6 +70,26 @@ vapid:
 expo:
   accessToken:
 ```
+
+:::details نگه داشتن کلید خصوصی در یک Secret
+`vapid.privateKey` کلید خصوصی را در مقدارهای انتشار نگه می‌دارد، که Helm آن‌ها را با هر بازبینی ذخیره می‌کند. برای اینکه کلید خصوصی در آن‌ها نباشد، آن را در یک Secret در Kubernetes، در namespace مربوط به OneUptime، زیر `privateKey`، بگذارید و به‌جایش نام همان Secret را بدهید:
+
+```bash
+kubectl create secret generic oneuptime-vapid \
+  --namespace oneuptime \
+  --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+`vapid.privateKey` یا `vapid.existingSecret.name` را تنظیم کنید، نه هر دو را: چارت این دو را با هم نمی‌پذیرد. اگر Secret شما کلید خصوصی را زیر کلید دیگری نگه می‌دارد، نام آن کلید را در `vapid.existingSecret.privateKeyKey` بدهید. کلید عمومی در `vapid.publicKey` می‌ماند: هر مرورگری آن را دریافت می‌کند.
+:::
 :::
 
 ## دسترسی شبکه

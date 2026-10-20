@@ -7,9 +7,10 @@
  * (/api/ai-agent-task/..., CodeFixAgentAuth) and the AI agent heartbeat
  * (/api/ai-agent/alive), with the real RunnerService, AIAgentService and
  * CodeFixAgentAuth. Only the Runner and AI agent tables (findOneBy), the
- * heartbeat writes and the run count are stood in for, and Redis runs the
- * counter's script as Valkey does. A request reaches the app as it does
- * through the bundled Nginx.
+ * code repositories that pick a Runner (countBy), the heartbeat writes and
+ * the run count are stood in for, and Redis runs the counter's script as
+ * Valkey does. A request reaches the app as it does through the bundled
+ * Nginx.
  *
  *   - a client may present ten different wrong keys for one Runner or AI
  *     agent; then every request it sends for that one is refused (429,
@@ -85,22 +86,26 @@ type AnyModule = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 interface Row {
   key: string;
   projectId?: string;
-  canRunCodeFixTasks?: boolean;
+  // Whether a code repository of its project picks the Runner (in Code).
+  pickedByACodeRepository?: boolean;
 }
 
 const PROJECT_ID: string = "12121212-3434-4565-8787-909090909090";
 
-// The Runner table: a project's Runner with code fixes on, and one without.
+/*
+ * The Runner table: a project's Runner a code repository picks (so it takes
+ * code-fix work), and one no repository picks.
+ */
 const RUNNERS: Record<string, Row> = {
   "66666666-7777-4888-9999-aaaaaaaaaaaa": {
     key: "runner-key-0f9e8d7c6b5a4f3e2d1c0b9a8f7e",
     projectId: PROJECT_ID,
-    canRunCodeFixTasks: true,
+    pickedByACodeRepository: true,
   },
   "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff": {
     key: "runner-key-a1b2c3d4e5f60718293a4b5c6d7e",
     projectId: PROJECT_ID,
-    canRunCodeFixTasks: false,
+    pickedByACodeRepository: false,
   },
 };
 
@@ -160,7 +165,6 @@ function tableLookup(
       _id: id,
       id: new ObjectIDClass(id),
       projectId: row.projectId ? new ObjectIDClass(row.projectId) : undefined,
-      canRunCodeFixTasks: row.canRunCodeFixTasks,
       canRunRunbooks: true,
       name: "a Runner",
     };
@@ -194,6 +198,10 @@ beforeAll(async () => {
       require("Common/Server/Services/AIAgentService").default;
     const aiRunService: AnyModule =
       require("Common/Server/Services/AIRunService").default;
+    const codeRepositoryService: AnyModule =
+      require("Common/Server/Services/CodeRepositoryService").default;
+    const PositiveNumberClass: AnyModule =
+      require("Common/Types/PositiveNumber").default;
 
     const runnerTable: (findBy: unknown) => Promise<unknown> = tableLookup(
       RUNNERS,
@@ -227,8 +235,17 @@ beforeAll(async () => {
       return await aiAgentTable(findBy);
     });
     aiAgentService.updateLastAlive = jest.fn(async () => {});
-    aiRunService.countBy = jest.fn(async () => {
+    aiRunService.countClaimableCodeFixRuns = jest.fn(async () => {
       return 3;
+    });
+    // The code repositories that pick a Runner: one for a picked Runner.
+    codeRepositoryService.countBy = jest.fn(async (countBy: unknown) => {
+      const query: JSONObject = (countBy as { query: JSONObject }).query;
+      const row: Row | undefined = RUNNERS[String(query["runnerId"])];
+
+      return new PositiveNumberClass(
+        row && row.pickedByACodeRepository ? 1 : 0,
+      );
     });
 
     const RunnerIngressAPI: AnyModule =
@@ -611,7 +628,11 @@ describe("one Runner, two protocols: its wrong keys are counted together", () =>
     );
 
     expect(answered.status).toBe(200);
-    expect(answered.body["count"]).toBe(3);
+    // The count, as the route has always sent it: a PositiveNumber.
+    expect(answered.body["count"]).toEqual({
+      _type: "PositiveNumber",
+      value: 3,
+    });
   });
 });
 
@@ -690,7 +711,7 @@ describe("what is never counted", () => {
     expect(redis.sets.size).toBe(0);
   });
 
-  test("a Runner whose code fixes are off, presenting its right key on the code-fix protocol", async () => {
+  test("a Runner no code repository picks, presenting its right key on the code-fix protocol", async () => {
     for (let call: number = 0; call < 20; call++) {
       expect(
         (await codeFixCount(CLIENT, OTHER_RUNNER, RUNNERS[OTHER_RUNNER]!.key))

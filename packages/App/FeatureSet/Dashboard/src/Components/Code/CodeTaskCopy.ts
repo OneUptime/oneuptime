@@ -302,9 +302,24 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
     "This project's AI credits are used up.",
   ),
   [CodeTaskBlockerType.NoAgent]: translationKey(
-    "No Runner is online to do the work. AI works in your code through a Runner with Runs AI Code Fixes turned on.",
+    "No global Runner is online to work in this repository. Pick one of your Runners for it, or try again once the global Runner is back.",
+  ),
+  [CodeTaskBlockerType.RunnerNotOnline]: translationKey(
+    "The Runner this repository picks is not online. Check that its container is running, or pick another Runner.",
+  ),
+  [CodeTaskBlockerType.GlobalRunnersOff]: translationKey(
+    "This project does not use global Runners, so this repository needs one of your Runners.",
   ),
 };
+
+/*
+ * RunnerNotOnline when the server names the Runner (CodeTaskBlocker
+ * .runnerName): which one to check, said in the sentence above's words.
+ * {{runner}} is the Runner's own name, drawn in bold.
+ */
+export const CODE_TASK_RUNNER_NOT_ONLINE_NAMED: string = translationKey(
+  "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.",
+);
 
 /*
  * What fixes each thing that stops AI working in a repository: the page and
@@ -313,8 +328,12 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
  * credits are not here: only a project owner or someone with Manage Billing
  * may add them, so CodeBlockerNotice asks first and links AI Credits only
  * for them (CODE_TASK_ADD_AI_CREDITS), telling everyone else who can. It
- * asks the same before linking the AI switch, LLM providers and Runners
- * (CODE_TASK_BLOCKER_WHO_CAN_FIX).
+ * asks the same before linking the AI switch, LLM providers and the
+ * repository's Runner setting (CODE_TASK_BLOCKER_WHO_CAN_FIX).
+ *
+ * What fixes a missing Runner is the repository's own Runner setting, in its
+ * settings in Code: the link opens them (CodeBlockerNotice fills in the
+ * repository).
  */
 export interface CodeTaskBlockerFix {
   pageMap: PageMap;
@@ -349,10 +368,25 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
     title: translationKey("Add an LLM provider"),
   },
   [CodeTaskBlockerType.NoAgent]: {
-    pageMap: PageMap.RUNBOOKS_RUNNERS,
-    title: translationKey("Set up a Runner"),
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
+  },
+  [CodeTaskBlockerType.RunnerNotOnline]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
+  },
+  [CodeTaskBlockerType.GlobalRunnersOff]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
   },
 };
+
+// The fixes that open the repository's own settings, which need its id.
+export const CODE_TASK_REPOSITORY_SETTINGS_FIXES: Array<CodeTaskBlockerType> = [
+  CodeTaskBlockerType.NoAgent,
+  CodeTaskBlockerType.RunnerNotOnline,
+  CodeTaskBlockerType.GlobalRunnersOff,
+];
 
 /*
  * What someone who may not make a blocker's fix reads instead of its link:
@@ -369,7 +403,13 @@ export const CODE_TASK_BLOCKER_WHO_CAN_FIX: Partial<
     "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
   ),
   [CodeTaskBlockerType.NoAgent]: translationKey(
-    "A project admin can set up a Runner in Runbooks → Runners.",
+    "A project admin can pick this repository's Runner in its settings.",
+  ),
+  [CodeTaskBlockerType.RunnerNotOnline]: translationKey(
+    "A project admin can pick this repository's Runner in its settings.",
+  ),
+  [CodeTaskBlockerType.GlobalRunnersOff]: translationKey(
+    "A project admin can pick this repository's Runner in its settings.",
   ),
 };
 

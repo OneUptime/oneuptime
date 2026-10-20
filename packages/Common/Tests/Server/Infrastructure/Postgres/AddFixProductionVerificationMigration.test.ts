@@ -1,4 +1,4 @@
-import { AddFixProductionVerification1804270000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804270000000-AddFixProductionVerification";
+import { AddFixProductionVerification1804400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804400000000-AddFixProductionVerification";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -11,6 +11,15 @@ import { describe, expect, test } from "@jest/globals";
  * indexed, keyed, defaulted or required, so the migration takes no lock
  * longer than a catalog update on a table every fix writes to.
  */
+
+const MIGRATION_NAME: string = "AddFixProductionVerification1804400000000";
+
+// A migration's timestamp: the 13 digits its name ends in.
+function timestampOf(name: string): number {
+  const match: RegExpMatchArray | null = name.match(/(\d{13})$/);
+
+  return match ? parseInt(match[1]!, 10) : 0;
+}
 
 const NEW_COLUMNS: Array<string> = [
   "mergeCommitSha",
@@ -31,7 +40,7 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddFixProductionVerification1804270000000();
+    new AddFixProductionVerification1804400000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -42,20 +51,29 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddFixProductionVerification1804270000000", () => {
-  test("is registered, last, after the migration it was renumbered past", () => {
+describe("AddFixProductionVerification1804400000000", () => {
+  test("is registered once, after every older migration", () => {
     const names: Array<string> = SchemaMigrations.map(
       (migration: new () => MigrationInterface) => {
         return migration.name;
       },
     );
+    const at: number = names.indexOf(MIGRATION_NAME);
 
-    expect(names[names.length - 1]).toBe(
-      "AddFixProductionVerification1804270000000",
+    expect(
+      names.filter((name: string) => {
+        return name === MIGRATION_NAME;
+      }),
+    ).toHaveLength(1);
+    // Renumbered past the last migration registered when it was generated.
+    expect(at).toBeGreaterThan(
+      names.indexOf("AddCodeRepositoryRunnerIndexAndKey1804350000000"),
     );
-    expect(names).toContain("AddRunbookVariable1804265000000");
-    expect(new AddFixProductionVerification1804270000000().name).toBe(
-      "AddFixProductionVerification1804270000000",
+    for (const name of names.slice(0, at)) {
+      expect(timestampOf(name)).toBeLessThan(timestampOf(MIGRATION_NAME));
+    }
+    expect(new AddFixProductionVerification1804400000000().name).toBe(
+      MIGRATION_NAME,
     );
   });
 

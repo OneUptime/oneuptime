@@ -470,7 +470,7 @@ describe("getServerReason", () => {
 
   test("keeps the whole of a refusal that needs an operator, even for a long cluster name", () => {
     const clusterName: string = `arn:aws:eks:eu-west-1:123456789012:cluster/${"c".repeat(60)}`;
-    const message: string = `Runner "kubernetes-agent/${clusterName}" for cluster "${clusterName}" is offline, but it holds more than an in-cluster Runner's defaults: "Runs Runbooks" is on, it is bound to other clusters' AI pages, and it has credentials assigned. A new Runner pod cannot prove it is the instance those were granted to, so it is not re-keyed with the ingestion key alone. In Runbooks > Runners, turn off "Runs Runbooks" and "Runs AI Code Fixes" on it, unassign its credentials and secrets and unbind it from other clusters' AI pages — or delete the Runner.`;
+    const message: string = `Runner "kubernetes-agent/${clusterName}" for cluster "${clusterName}" is offline, but it holds more than an in-cluster Runner's defaults: "Runs Runbooks" is on, it is bound to other clusters' AI pages, and it has credentials assigned. A new Runner pod cannot prove it is the instance those were granted to, so it is not re-keyed with the ingestion key alone. In Runbooks > Runners, turn off "Runs Runbooks" on it, unassign its credentials and secrets and unbind it from other clusters' AI pages — or delete the Runner.`;
 
     expect(message.length).toBeGreaterThan(500);
     expect(getServerReason({ message })).toBe(message);

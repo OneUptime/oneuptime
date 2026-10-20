@@ -69,7 +69,7 @@ A global Runner runs the steps of many projects, so each step is kept apart from
 - It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project. It never gets a credential.
 - A project runs at most three steps on global Runners at once, so no project keeps them to itself.
 
-Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way.
+Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on a global Runner too, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from
 
@@ -96,10 +96,9 @@ Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** a
 | **Description** | **Runner** | Optional. A sentence on what this host can reach. |
 | **Labels** | **Runner** (under **More fields**) | Optional. |
 | **Runs Runbooks** | **Capabilities** | On by default. Lets this Runner take runbook steps. |
-| **Runs AI Code Fixes** | **Capabilities** | Off by default. Lets it open AI code-fix pull requests; see [Code](/docs/ai/ai-agent). |
 | **Runs AI Remediation Commands** | **Capabilities** | Off by default. Lets AI auto-remediation run policy-checked commands on it. Turning it on for a Runner that holds SSH credentials takes permission to read runbook credentials; see [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands). |
 
-A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it.
+A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI code fixes are not a capability: a code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.
 
 ### 2. Copy the install command
 
@@ -234,7 +233,7 @@ The Runner reads these on startup:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no | `10000` | How often the Runner renews a running job's lease. A value under `1000` falls back to the default. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | no | `1` | Maximum simultaneous jobs on this Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | no | — | Set to `false` to stop this Runner taking runbook steps, whatever the dashboard says. It can only turn the capability off. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Set to `false` to stop this Runner taking AI code-fix runs, whatever the dashboard says. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Set to `false` to stop this Runner taking AI code-fix runs, even for a code repository that picks it. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | no | — | Set to `false` to stop this Runner running AI remediation commands, whatever the dashboard says. |
 
 ## Rotating an agent key

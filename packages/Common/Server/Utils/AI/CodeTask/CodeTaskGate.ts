@@ -11,7 +11,9 @@ import GitHubInstallationBinding from "../../CodeRepository/GitHub/GitHubInstall
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
+  getRepositoryRunnerBlocker,
 } from "../CodeFix/CodeFixReadiness";
+import CodeRepositoryRunnerChoice from "../CodeFix/CodeRepositoryRunnerChoice";
 import { CODE_TASK_ASK_REFUSED_MESSAGE } from "./CodeTaskAccess";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -38,7 +40,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * person would fix it: the subscription and the plan, permission to edit the
  * repository, the project's one AI switch (Project.enableAi), a repository
  * the GitHub App can reach, an LLM provider with credits behind it, the
- * project's own daily AI limits, and a Runner online to do the work.
+ * project's own daily AI limits, and a Runner online to do the work: the
+ * one the repository picks in its settings, or a global Runner for one that
+ * picks none (CodeRepositoryRunnerChoice).
  *
  * The repository page asks first, so the request box says what is missing
  * before anyone types; the create, reply and retry routes ask again and
@@ -168,17 +172,28 @@ export default class CodeTaskGate {
       };
     }
 
-    const agentCheck: AIFixReadinessCheck =
-      await CodeFixReadiness.getAgentCheck({ projectId: data.projectId });
+    /*
+     * The Runner the repository picks (its Runner setting in Code), or a
+     * global Runner for one that picks none, must be online. Read as
+     * OneUptime: which Runner a repository picks decides where its work
+     * goes, whatever the reader may see of the setting.
+     */
+    const runnerChoice: CodeRepository | null =
+      await CodeRepositoryService.findOneById({
+        id: data.repository.id!,
+        select: {
+          _id: true,
+          runnerId: true,
+        },
+        props: { isRoot: true },
+      });
 
-    if (!agentCheck.ok) {
-      return {
-        type: CodeTaskBlockerType.NoAgent,
-        message: agentCheck.detail,
-      };
-    }
-
-    return null;
+    return getRepositoryRunnerBlocker(
+      await CodeRepositoryRunnerChoice.getStatusForRepository({
+        projectId: data.projectId,
+        runnerId: runnerChoice?.runnerId,
+      }),
+    );
   }
 
   // Refuse with the blocker's own sentence, as an error of its kind.

@@ -131,13 +131,7 @@ describe("holdToGlobalRunnerShape: a Runner is a project's own, or global", () =
     }).toThrow(GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE);
   });
 
-  it("refuses a global Runner that would run AI code fixes or AI remediation commands", () => {
-    expect(() => {
-      RunnerServiceClass.holdToGlobalRunnerShape(
-        globalRunner({ canRunCodeFixTasks: true }),
-      );
-    }).toThrow(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
-
+  it("refuses a global Runner that would run AI remediation commands", () => {
     expect(() => {
       RunnerServiceClass.holdToGlobalRunnerShape(
         globalRunner({ canRunAiCommands: true }),
@@ -150,9 +144,17 @@ describe("holdToGlobalRunnerShape: a Runner is a project's own, or global", () =
 
     RunnerServiceClass.holdToGlobalRunnerShape(runner);
 
-    expect(runner.canRunCodeFixTasks).toBe(false);
     expect(runner.canRunAiCommands).toBe(false);
     expect(runner.canRunRunbooks).toBe(true);
+    // No code work: no repository may pick a global Runner (it has no project).
+    expect(Object.keys(runner)).not.toContain("canRunCodeFixTasks");
+  });
+
+  it("the capability message names only the switch a Runner still has", () => {
+    expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).toContain(
+      '"Runs AI Remediation Commands"',
+    );
+    expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).not.toContain("Code Fixes");
   });
 
   it("keeps a global Runner created paused (Runs Runbooks off) paused", () => {
@@ -172,11 +174,9 @@ describe("holdToGlobalRunnerShape: a Runner is a project's own, or global", () =
   it("negative control: a project's Runner, by id, relation or tenant, passes and keeps its capabilities", () => {
     const byId: Runner = new Runner();
     byId.projectId = PROJECT_ID;
-    byId.canRunCodeFixTasks = true;
     byId.canRunAiCommands = true;
 
     RunnerServiceClass.holdToGlobalRunnerShape(byId);
-    expect(byId.canRunCodeFixTasks).toBe(true);
     expect(byId.canRunAiCommands).toBe(true);
 
     const byTenant: Runner = new Runner();
@@ -228,7 +228,6 @@ describe("RunnerService's create hook", () => {
     expect(data.projectId).toBeUndefined();
     expect(typeof data.key).toBe("string");
     expect((data.key as string).length).toBeGreaterThan(20);
-    expect(data.canRunCodeFixTasks).toBe(false);
     expect(data.canRunAiCommands).toBe(false);
     expect(data.canRunRunbooks).toBe(true);
   });
@@ -244,13 +243,15 @@ describe("RunnerService's create hook", () => {
     expect(message).toBe(GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE);
   });
 
-  it("refuses a global Runner that runs AI code fixes", async () => {
-    await refusal(
-      hooks.onBeforeCreate({
-        data: globalRunner({ canRunCodeFixTasks: true }),
-        props: masterAdminProps(),
-      } as CreateBy<Runner>),
-    );
+  it("refuses a global Runner that runs AI remediation commands", async () => {
+    expect(
+      await refusal(
+        hooks.onBeforeCreate({
+          data: globalRunner({ canRunAiCommands: true }),
+          props: masterAdminProps(),
+        } as CreateBy<Runner>),
+      ),
+    ).toBe(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
   });
 
   it("refuses a Runner of no project that is not global, root included", async () => {
@@ -313,7 +314,7 @@ describe("RunnerService's update hook", () => {
     } as unknown as UpdateBy<Runner>;
   }
 
-  it.each([[{ canRunCodeFixTasks: true }], [{ canRunAiCommands: true }]])(
+  it.each([[{ canRunAiCommands: true }]])(
     "refuses a master admin turning on %p for a global Runner",
     async (data: Record<string, unknown>) => {
       const message: string = await refusal(

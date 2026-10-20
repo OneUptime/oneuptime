@@ -20,7 +20,7 @@ SUITES_DIR="${TESTS_DIR}/suites"
 
 # Ordered cheapest-first. Every file in ./suites has to appear here, which is
 # checked below: a new suite cannot be added and then silently never run.
-ALL_SUITES=(lint unit extra-values marketplace secrets-lifecycle keda-bootstrap)
+ALL_SUITES=(lint unit extra-values vapid-existing-secret marketplace secrets-lifecycle keda-bootstrap)
 
 usage() {
     echo "usage: $(basename "${BASH_SOURCE[0]}") [suite ...]"
@@ -103,17 +103,17 @@ for suite in "${SELECTED[@]}"; do
     if [ ! -f "${RESULTS_DIR}/${suite}" ]; then
         # The suite died before it could report -- a helm install that failed, a
         # cluster that never came up.
-        SUMMARY+=("$(printf '  %-6s %-20s did not finish (exit %s)' "FAIL" "$suite" "$status")")
+        SUMMARY+=("$(printf '  %-6s %-22s did not finish (exit %s)' "FAIL" "$suite" "$status")")
         FAILED=$((FAILED + 1))
         continue
     fi
 
     read -r passed failed <"${RESULTS_DIR}/${suite}"
     if [ "$status" -ne 0 ] || [ "$failed" -ne 0 ]; then
-        SUMMARY+=("$(printf '  %-6s %-20s %s passed, %s failed' "FAIL" "$suite" "$passed" "$failed")")
+        SUMMARY+=("$(printf '  %-6s %-22s %s passed, %s failed' "FAIL" "$suite" "$passed" "$failed")")
         FAILED=$((FAILED + 1))
     else
-        SUMMARY+=("$(printf '  %-6s %-20s %s passed' "PASS" "$suite" "$passed")")
+        SUMMARY+=("$(printf '  %-6s %-22s %s passed' "PASS" "$suite" "$passed")")
     fi
 done
 

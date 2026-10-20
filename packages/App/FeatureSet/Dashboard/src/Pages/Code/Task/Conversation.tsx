@@ -245,7 +245,14 @@ const CodeTaskConversation: FunctionComponent<
 
     return (
       <div className="space-y-3">
-        {data.blocker ? <CodeBlockerNotice blocker={data.blocker} /> : <></>}
+        {data.blocker ? (
+          <CodeBlockerNotice
+            blocker={data.blocker}
+            repositoryId={data.repository?.id}
+          />
+        ) : (
+          <></>
+        )}
         <CodeComposer
           dataTestId="code-task-composer"
           label={translator.translateTemplate("Reply to OneUptime AI")}
@@ -407,6 +414,14 @@ const CodeTaskConversation: FunctionComponent<
               turn={turn}
               isLatest={index === turns.length - 1}
               origin={index === 0 ? data.task.origin : undefined}
+              repositorySettingsRoute={
+                data.repository
+                  ? RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route,
+                      { modelId: data.repository.id },
+                    )
+                  : undefined
+              }
               onRetry={
                 canRetry
                   ? () => {

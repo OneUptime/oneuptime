@@ -1251,6 +1251,24 @@ pull request open; a branch a stopped run left moved, not made again;
 `WINGET_FORK_OWNER` honoured; no fork, or a fork of something else, and an
 API that keeps failing, each stopping it having written nothing.
 
+The fake's answers about pull requests go through the script's own `--jq`,
+a stand-in for Microsoft's CLA bot ignores an agreement posted before it
+asks, as the real one did on #456419, and a `sleep` that does not wait keeps
+the waits instant. So the suite also holds the script to: the CLA agreement
+posted only once the pull request has the `Needs-CLA` label, on one a run
+opens or a re-run finds with it; nothing posted when the label does not come
+within `WINGET_CLA_WAIT_SECONDS`; success said when the label goes, and a
+warning, not a failure, when it stays past `WINGET_CLA_CLEAR_WAIT_SECONDS`;
+a label read GitHub fails read again at the next poll; the windows and the
+poll interval as set, or 900, 300 and 20 seconds, and refused before anything
+is asked when they are not whole seconds; an agreement GitHub refuses tried
+four times, then stopping the job with what to comment; the account's open
+pull requests for older versions closed with a comment naming the new one,
+on a run or a re-run, and newer versions', other accounts', other packages'
+and closed ones left alone; one it cannot list, close or comment on a
+warning, after asking once more, not a failure; and the winget job's timeout
+outlasting the waits.
+
 ### `InfrastructureAgentMsi.test.js`
 
 The infrastructure agent's MSI

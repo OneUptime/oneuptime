@@ -544,7 +544,8 @@ describe("the legacy in-cluster Runner, in the Runner README", () => {
     const titles: Array<string> = getColumnTitles(RUNNER_MODEL);
 
     expect(titles).toContain("Runs Runbooks");
-    expect(titles).toContain("Runs AI Code Fixes");
+    // A code repository picks its Runner; a Runner has no code fix switch.
+    expect(titles).not.toContain("Runs AI Code Fixes");
   });
 
   it("says the kubernetes-agent mode is deprecated and superseded by the Kubernetes AI agent", () => {
@@ -567,7 +568,7 @@ describe("the legacy in-cluster Runner, in the Runner README", () => {
     for (const expected of [
       "cannot be renamed",
       "**Runs Runbooks**",
-      "**Runs AI Code Fixes**",
+      "no code repository can pick it",
       "never accepted as an auto-remediation rule's command Runner",
     ]) {
       expect({ expected, said: section.includes(expected) }).toEqual({
