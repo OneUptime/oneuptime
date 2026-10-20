@@ -18,9 +18,14 @@ import React, {
 
 /*
  * THE ROLES EVERY PROJECT HAS, READ-ONLY, under the project's custom roles
- * on the Roles page: what each can do, in the groups and words Add Role
- * shows them in (RoleCardSelectOptions), so a role reads the same wherever it
- * is met.
+ * on the Roles page: what each can do, in the groups Add Role's picker
+ * arranges them in (RoleCardSelectOptions, RoleCatalog) - the whole project,
+ * then one area at a time, Admin, Member and Viewer - so a role is found
+ * where it is picked.
+ *
+ * Each group is one ruled list, a role to a row: its name, then what it
+ * can do in full. Three roles an area read down a list as a table would;
+ * two to a row left every area's Viewer alone on a line of its own.
  *
  * They are what a custom role is made of, so they are here to look up, not
  * to work through: the card starts folded, saying how many there are, and
@@ -78,13 +83,13 @@ const BuiltInRolesCard: FunctionComponent = (): ReactElement => {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {translator.translateText(group.label)}
                   </h3>
-                  <ul className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  <ul className="mt-2 divide-y divide-gray-200 rounded-lg border border-gray-200">
                     {group.options.map(
                       (option: CardSelectOption): ReactElement => {
                         return (
                           <li
                             key={String(option.value)}
-                            className="flex min-w-0 items-start gap-3 rounded-lg border border-gray-200 p-3"
+                            className="flex min-w-0 items-start gap-3 px-3 py-2.5"
                           >
                             {option.icon ? (
                               <div className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-gray-100">
@@ -96,12 +101,20 @@ const BuiltInRolesCard: FunctionComponent = (): ReactElement => {
                             ) : (
                               <></>
                             )}
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium text-gray-900 break-words">
+                            {/*
+                             * The name beside what it can do from lg up, so
+                             * the descriptions start in one column; above it
+                             * on anything narrower. The side menu takes its
+                             * room from md, and at md a description beside
+                             * the name had a column of three words a line.
+                             * The name sits level with the middle of its icon.
+                             */}
+                            <div className="flex min-w-0 flex-1 flex-col gap-0.5 lg:flex-row lg:gap-4">
+                              <div className="break-words pt-1.5 text-sm font-medium text-gray-900 lg:w-56 lg:flex-none">
                                 {translator.translateText(option.title)}
                               </div>
                               {option.description ? (
-                                <div className="mt-0.5 text-sm text-gray-500 break-words">
+                                <div className="min-w-0 break-words text-sm text-gray-500 lg:pt-1.5">
                                   {translator.translateText(option.description)}
                                 </div>
                               ) : (

@@ -5,6 +5,7 @@ La GitHub App de OneUptime est plus qu'une connexion à votre code : vous pouvez
 :::cards
 - [Les commandes](#les-commandes): Quoi écrire, dans une issue ou une pull request.
 - [À quoi cela ressemble dans le fil](#à-quoi-cela-ressemble-dans-le-fil): Un seul commentaire qui suit le travail.
+- [Relectures avec contexte de production](#relectures-avec-contexte-de-production): Ce que dit la production du code modifié.
 - [Qui peut lui donner des ordres](#qui-peut-lui-donner-des-ordres): Les personnes ayant un accès en écriture, et personne d'autre.
 - [Dépannage](#dépannage): Quand une mention ne fait rien.
 :::
@@ -45,7 +46,7 @@ Chaque commande commence par une mention de l'app. La mention peut se trouver n'
 
 | Commande | Ce qui se passe | Également comprise |
 | --- | --- | --- |
-| `@oneuptime review` | Clone la branche, lit le code modifié et le code qui l'entoure, et publie une relecture sous forme de commentaire. Ne change rien. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime review` | Clone la branche, lit le code modifié et le code qui l'entoure, vérifie ce qu'en dit la production, et publie une relecture sous forme de commentaire. Ne change rien. | `code review`, `please review`, `can you review`, `review this` |
 | `@oneuptime revise this — <what you want changed>` | Clone la branche de la pull request elle-même, fait la modification et pousse de nouveaux commits sur cette branche. N'ouvre jamais une deuxième pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Tout ce que vous écrivez après la mention et qui n'est pas une commande connue est lu comme une demande de révision, car c'est presque toujours ce dont il s'agit :
@@ -86,6 +87,19 @@ Une commande produit **un seul commentaire**, que l'app modifie à mesure que le
 
 Si elle ne trouve rien qui vaille la peine d'être changé, elle le dit au lieu d'ouvrir une pull request spéculative. C'est un résultat normal, pas un échec : donnez-lui plus d'indications et redemandez.
 
+## Relectures avec contexte de production
+
+OneUptime détient la télémétrie du code qu'il relit, si bien qu'une relecture peut dire ce qu'aucun relecteur qui lit le diff ne peut savoir. Pour les services du dépôt, il vérifie :
+
+- les exceptions levées dans les fichiers et les fonctions modifiés au cours des 7 derniers jours ;
+- la charge et la lenteur des endpoints et des opérations que touche le diff ;
+- les incidents liés aux fichiers modifiés ;
+- les déploiements récents des services que OneUptime a signalés comme des régressions.
+
+Ce qu'il trouve figure sous un titre **Production context** de la relecture, chaque point avec les chiffres et la fenêtre de temps dont il provient, par exemple : "`chargeCard` a levé `TypeError: Cannot read properties of undefined` 1 240 fois au cours des 7 derniers jours ; cette modification ajoute la vérification de null qui l'empêche." Quand la production ne montre rien qui concerne le diff, la relecture omet ce titre plutôt que d'affirmer que tout va bien.
+
+Il n'y a rien à configurer : les services sont ceux pour lesquels OneUptime trouve ce dépôt, comme il le fait pour une correction (voir [Télémétrie de production dans une correction](/docs/ai/ai-agent#télémétrie-de-production-dans-une-correction)). Les requêtes sont en lecture seule, s'exécutent sur le serveur OneUptime et ne lisent rien d'un autre service, d'un autre projet ni d'un incident privé. Un dépôt dont les services n'envoient aucune télémétrie au projet est relu à partir de son seul code.
+
 ## Qui peut lui donner des ordres
 
 **Seules les personnes ayant un accès write, maintain ou admin au dépôt.** OneUptime demande à chaque fois à GitHub l'autorisation de l'auteur du commentaire sur ce dépôt ; il ne se fie pas au badge "contributor" que GitHub affiche à côté d'un commentaire, qui décrit une activité passée plutôt qu'un accès actuel.
@@ -104,7 +118,7 @@ Elle ignore aussi tous les commentaires écrits par un bot, y compris les siens,
 
 ## Ce que cela coûte, et comment le limiter
 
-Chaque commande qui lance du travail est une exécution complète de l'agent : un clone, jusqu'à 40 appels au LLM et 100 000 tokens de sortie, plus les commandes de build et de test de votre dépôt quand vous les avez définies.
+Chaque commande qui lance du travail est une exécution complète de l'agent : un clone, jusqu'à 40 appels au LLM et 100 000 tokens de sortie, plus les commandes de build et de test de votre dépôt quand vous les avez définies. Les requêtes de production d'une relecture, 12 au plus, sont décomptées de ces mêmes 40 appels.
 
 Les commandes GitHub sont du travail d'IA en dehors des incidents et des alertes, donc aucune limite quotidienne de tâches de correction ne s'y applique ; les limites quotidiennes d'IA propres au projet s'appliquent, quand le projet en fixe. La seule autre limite est celle qui régit déjà les tâches de [Code](/docs/ai/ai-agent) :
 

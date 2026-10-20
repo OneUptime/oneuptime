@@ -234,6 +234,57 @@ interface SpanTreeNode {
   children: Array<SpanTreeNode>;
 }
 
+/*
+ * A trace's spans as an indented tree, one line per span: its name, its
+ * duration and whether it failed. A span whose parent is not among them is
+ * a root. The code agent's get_trace reads a trace this way too
+ * (CodeAgentTelemetryTools).
+ */
+export function renderSpanTree(spans: Array<Span>): Array<string> {
+  const nodesBySpanId: Map<string, SpanTreeNode> = new Map();
+  const roots: Array<SpanTreeNode> = [];
+
+  for (const span of spans) {
+    nodesBySpanId.set(span.spanId?.toString() || "", {
+      span,
+      children: [],
+    });
+  }
+
+  for (const node of nodesBySpanId.values()) {
+    const parentId: string = node.span.parentSpanId?.toString() || "";
+    const parent: SpanTreeNode | undefined = nodesBySpanId.get(parentId);
+    if (parent && parent !== node) {
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  const lines: Array<string> = [];
+
+  const renderNode: (node: SpanTreeNode, depth: number) => void = (
+    node: SpanTreeNode,
+    depth: number,
+  ): void => {
+    const durationMs: number =
+      Math.round((Number(node.span.durationUnixNano) / 1_000_000) * 100) / 100;
+    const status: string = Number(node.span.statusCode) === 2 ? " [ERROR]" : "";
+    lines.push(
+      `${"  ".repeat(depth)}- ${node.span.name} (${durationMs}ms)${status}`,
+    );
+    for (const child of node.children) {
+      renderNode(child, depth + 1);
+    }
+  };
+
+  for (const root of roots) {
+    renderNode(root, 0);
+  }
+
+  return lines;
+}
+
 export const GetTraceTool: ObservabilityTool = {
   name: "get_trace",
   description:
@@ -307,49 +358,7 @@ export const GetTraceTool: ObservabilityTool = {
       });
     }
 
-    // Build the tree.
-    const nodesBySpanId: Map<string, SpanTreeNode> = new Map();
-    const roots: Array<SpanTreeNode> = [];
-
-    for (const span of spans) {
-      nodesBySpanId.set(span.spanId?.toString() || "", {
-        span,
-        children: [],
-      });
-    }
-
-    for (const node of nodesBySpanId.values()) {
-      const parentId: string = node.span.parentSpanId?.toString() || "";
-      const parent: SpanTreeNode | undefined = nodesBySpanId.get(parentId);
-      if (parent && parent !== node) {
-        parent.children.push(node);
-      } else {
-        roots.push(node);
-      }
-    }
-
-    const lines: Array<string> = [];
-
-    const renderNode: (node: SpanTreeNode, depth: number) => void = (
-      node: SpanTreeNode,
-      depth: number,
-    ): void => {
-      const durationMs: number =
-        Math.round((Number(node.span.durationUnixNano) / 1_000_000) * 100) /
-        100;
-      const status: string =
-        Number(node.span.statusCode) === 2 ? " [ERROR]" : "";
-      lines.push(
-        `${"  ".repeat(depth)}- ${node.span.name} (${durationMs}ms)${status}`,
-      );
-      for (const child of node.children) {
-        renderNode(child, depth + 1);
-      }
-    };
-
-    for (const root of roots) {
-      renderNode(root, 0);
-    }
+    const lines: Array<string> = renderSpanTree(spans);
 
     if (isSpanLimitHit) {
       lines.push(

@@ -35,8 +35,10 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
  *
  *   - Name;
  *   - Permissions: the built-in roles it starts with, picked from the same
- *     groups Add Role shows (Project Owner left out: no role holds it), for
- *     every resource in the project. Optional - a role can start empty. A
+ *     groups the role list has - the whole project, then one per area, as
+ *     Add Role's picker arranges them (Project Owner left out: no role
+ *     holds it) - for every resource in the project. Optional - a role can
+ *     start empty. A
  *     single permission, a scope of Owned or labels, are added on the role's
  *     page, where Add Permission and every scope are;
  *   - More fields, folded: the description.
@@ -85,9 +87,9 @@ export const CUSTOM_ROLE_DESCRIPTION_FIELD_DESCRIPTION: string = translationKey(
 );
 
 /*
- * The built-in roles a new role can start with, in Add Role's groups and
- * order, without Project Owner. A card's description says what the role can
- * do, so the option keeps it.
+ * The built-in roles a new role can start with, in the role list's groups
+ * and order (the whole project, then each area), without Project Owner. A
+ * role's line says what it can do, so the option keeps it.
  *
  * With `canGrant`, only the roles the user could put into a role - each one
  * is for every resource in the project, where the dashboard's copy of the
