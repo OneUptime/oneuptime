@@ -1,6 +1,6 @@
 # Codice
 
-Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository, come chiederesti a un agente di programmazione: correggere un bug, scrivere test, spiegare il codice, fare una modifica. Si apre sui tuoi repository collegati; la pagina di un repository contiene le sue attività e la casella in cui chiedi; la pagina di un'attività è una conversazione in cui puoi rispondere. OneUptime avvia anche attività da solo, a partire da eccezioni, tracce e indagini. Un [Runner](/docs/runbooks/agents) clona il repository, scrive la modifica su un nuovo branch, la compila e la testa, e apre una pull request. Una persona rivede e unisce ognuna: il Runner può fare il push di branch e aprire pull request, nient'altro.
+Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository, come chiederesti a un agente di programmazione: correggere un bug, scrivere test, spiegare il codice, fare una modifica. Si apre sulla casella in cui chiedi, con il repository e il branch scelti al suo interno e tutte le attività sotto; la pagina di un'attività è una conversazione in cui puoi rispondere. OneUptime avvia anche attività da solo, a partire da eccezioni, tracce e indagini. Un [Runner](/docs/runbooks/agents) clona il repository, scrive la modifica su un nuovo branch, la compila e la testa, e apre una pull request. Una persona rivede e unisce ognuna: il Runner può fare il push di branch e aprire pull request, nient'altro.
 
 :::cards
 - [Chiedere all'IA in un repository](#chiedere-allia-in-un-repository): Una richiesta con parole tue, con il contesto che le serve.
@@ -18,13 +18,17 @@ Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository,
 ## Chiedere all'IA in un repository
 
 :::steps
-### Apri un repository
+### Apri Codice
 
-Apri **Prodotti → Codice**. Elenca i repository del progetto, ognuno con le attività su cui l'IA sta lavorando, quelle che aspettano te e le sue pull request aperte. Se non ce n'è ancora nessuno, offre **Connetti GitHub** (vedi [Prima di iniziare](#prima-di-iniziare)).
+Apri **Prodotti → Codice**. Si apre su **Cosa deve fare l'IA?**: la casella in cui chiedi, con tutte le attività sotto, le più recenti per prime. Se non c'è ancora nessun repository, offre invece **Connetti GitHub** (vedi [Prima di iniziare](#prima-di-iniziare)). **Repository**, nel suo menu laterale, elenca i repository collegati, e la pagina di ogni repository ha la stessa casella per quel repository.
+
+### Scegli il repository e il branch
+
+La casella parte dal repository che hai scelto l'ultima volta. Scegline un altro nella sua riga in basso e, accanto, il branch da cui parte l'attività: il branch principale del repository, segnato come **Predefinito**, finché non ne scegli un altro. L'IA crea il suo branch da quello che scegli e apre la sua pull request verso di esso.
 
 ### Di' cosa vuoi
 
-Nella pagina del repository, scrivi la modifica, il bug o la domanda con parole tue. Un repository che non ha ancora attività ne suggerisce alcune sotto **Prova a chiedere**.
+Scrivi la modifica, il bug o la domanda con parole tue. Finché non è stato chiesto nulla, Codice ne suggerisce alcune sotto **Prova a chiedere**.
 
 ### Aggiungi contesto
 
@@ -51,7 +55,7 @@ Una richiesta porta al massimo 10 elementi di contesto. Token, chiavi, password 
 
 ## La conversazione di un'attività
 
-La pagina di un'attività è una conversazione: cosa è stato chiesto e il contesto aggiunto, poi il turno dell'IA – i passi che compie mentre li compie (i file che ha letto e modificato, cosa ha cercato, i comandi che ha eseguito), la sua risposta, i file che ha modificato con il loro diff, e la pull request. In cima alla pagina si vede a che punto è l'attività:
+La pagina di un'attività è una conversazione: cosa è stato chiesto e il contesto aggiunto, poi il turno dell'IA – i passi che compie mentre li compie (i file che ha letto e modificato, cosa ha cercato, i comandi che ha eseguito), la sua risposta, i file che ha modificato con il loro diff, e la pull request. In cima alla pagina si vede dove lavora l'attività (il suo repository e il branch da cui è partita), quante righe ha modificato, con un pulsante per la sua pull request, e a che punto è l'attività:
 
 | Stato | Cosa significa |
 | --- | --- |
@@ -62,7 +66,7 @@ La pagina di un'attività è una conversazione: cosa è stato chiesto e il conte
 | **Non riuscito** | Il turno non è riuscito a finire, e dice perché. **Riprova** chiede di nuovo la stessa cosa. |
 | **Arrestato** | Qualcuno l'ha fermata. **Riprova** chiede di nuovo la stessa cosa. |
 
-Per continuare, scrivi nella casella in fondo: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Registro** di ogni turno è la registrazione fedele di ciò che ha fatto.
+Per continuare, scrivi nella casella in fondo, che resta visibile mentre la conversazione scorre: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Registro** di ogni turno è la registrazione fedele di ciò che ha fatto.
 
 Chi può leggere un repository ne legge le attività. Chiedere all'IA, rispondere e fermare un'attività richiedono il permesso di modificare il repository, e così vedere il diff di una modifica: tutti gli altri vedono quali file sono cambiati. Anche le attività che OneUptime avvia da solo (sotto) sono nel loro repository, come conversazioni in cui puoi rispondere.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["Una persona la rivede<br/>e ne fa il merge"]
 ```
 
-1. Fai clic su **Avvia attività** in un repository, o su **Correggi con l'IA** su un'eccezione non risolta, oppure un altro pulsante o trigger avvia un'attività (vedi [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione)).
+1. Fai clic su **Avvia attività** in Codice, o su **Correggi con l'IA** su un'eccezione non risolta, oppure un altro pulsante o trigger avvia un'attività (vedi [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione)).
 2. L'attività entra in coda sul suo repository, e il Runner scelto dal repository la prende: uno dei tuoi Runner, o un Runner globale quando non ne sceglie nessuno (vedi [Scegli il Runner del repository](#scegli-il-runner-del-repository)).
 3. Il Runner recupera il contesto dell'attività. Per una richiesta, sono le sue parole, il contesto aggiunto e la conversazione fin lì; per un'eccezione, il tipo, il messaggio e lo stack trace.
-4. Clona il repository in un proprio spazio di lavoro e crea un branch. Una correzione di un'eccezione si chiama `oneuptime-fix-exception-` seguito dai primi caratteri dell'id dell'esecuzione. Una risposta lavora invece sul branch della pull request aperta dell'attività.
+4. Clona il repository in un proprio spazio di lavoro e crea un branch. Una correzione di un'eccezione si chiama `oneuptime-fix-exception-` seguito dai primi caratteri dell'id dell'esecuzione. Una richiesta parte dal branch scelto quando è stata fatta, e la sua pull request si apre verso di esso. Una risposta lavora invece sul branch della pull request aperta dell'attività.
 5. Un agente di codice, alimentato dal provider LLM del tuo progetto, legge il codice e scrive la modifica. Il server OneUptime effettua le chiamate al LLM, quindi il Runner non possiede mai la chiave API del tuo provider, e ogni chiamata viene misurata ed elencata nei log dell'IA. Una correzione di un'eccezione, di una traccia lenta o di un incidente legge anche i dati di produzione mentre lavora: le eccezioni, le tracce, i log e le metriche dei servizi del repository (vedi [Telemetria di produzione in una correzione](#telemetria-di-produzione-in-una-correzione)).
 6. Se il repository ha comandi di verifica, un Runner tuo compila e testa la modifica prima di fare qualsiasi commit, e restituisce un errore all'agente di codice perché lo ripari (vedi [Verifica prima della pull request](#verifica-prima-della-pull-request)).
 7. Il Runner fa il commit, il push del branch, apre la pull request (per una richiesta, solo se ha modificato il codice) ed elimina lo spazio di lavoro.
@@ -177,7 +181,7 @@ Finché un deploy non la rilascia, la correzione indica **Unito, in attesa di un
 
 ## Prima di iniziare
 
-Un'attività ha bisogno di tre cose. La pagina di un repository in Codice e la pagina **AI Assistance** dell'eccezione le controllano tutte e tre prima di offrire l'avvio, e dicono cosa manca.
+Un'attività ha bisogno di tre cose. La casella delle richieste di Codice e la pagina **AI Assistance** dell'eccezione le controllano tutte e tre prima di offrire l'avvio, e dicono cosa manca.
 
 | Cosa | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Tutto il resto è come il pulsante:
 ## Quando una correzione non riesce
 
 :::details L'esecuzione va in errore
-La correzione non si è potuta applicare, il repository non era raggiungibile o la chiamata al LLM è fallita. La conversazione dell'attività, e la pagina da cui è stata avviata, mostrano il motivo e offrono di riprovare. Il **Registro** del turno contiene il log completo dell'esecuzione.
+La correzione non si è potuta applicare, il repository o il branch da cui partiva una richiesta non era raggiungibile, o la chiamata al LLM è fallita. La conversazione dell'attività, e la pagina da cui è stata avviata, mostrano il motivo e offrono di riprovare. Il **Registro** del turno contiene il log completo dell'esecuzione.
 :::
 
 :::details Il Runner si ferma a metà di un'esecuzione

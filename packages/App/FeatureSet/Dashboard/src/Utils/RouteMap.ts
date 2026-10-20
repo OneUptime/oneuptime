@@ -77,11 +77,13 @@ export const ServiceRoutePath: Dictionary<string> = {
 };
 
 /*
- * Code, under /code: the repositories are the mount itself, a repository's
- * pages hang off repositories/:id, and a task's off tasks/:id - tasks are
- * addressed on their own, so a task with no repository still has a page.
+ * Code, under /code: the request box and every task are the mount itself,
+ * the connected repositories are repositories, a repository's pages hang
+ * off repositories/:id, and a task's off tasks/:id - tasks are addressed on
+ * their own, so a task with no repository still has a page.
  */
 export const CodeRoutePath: Dictionary<string> = {
+  [PageMap.CODE_REPOSITORIES]: `repositories`,
   [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
@@ -1094,6 +1096,7 @@ export const AlertsRoutePath: Dictionary<string> = {
 
 export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: "ongoing",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR]: "calendar",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]:
     "workspace-connection-slack",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
@@ -1126,6 +1129,7 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/measurements",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING]:
     "settings/numbering",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR]: "settings/calendar",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -2417,6 +2421,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR
+      ]
+    }`,
+  ),
+
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
@@ -2667,6 +2679,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
+      ]
+    }`,
+  ),
+
   [PageMap.SERVICE_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/*`,
   ),
@@ -2803,6 +2823,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/code/*`),
 
   [PageMap.CODE]: new Route(`/dashboard/${RouteParams.ProjectID}/code`),
+
+  [PageMap.CODE_REPOSITORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORIES]
+    }`,
+  ),
 
   [PageMap.CODE_REPOSITORY_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code/${

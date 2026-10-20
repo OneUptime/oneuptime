@@ -542,6 +542,165 @@ describe("a reply", () => {
   });
 });
 
+// A branch on the origin, one commit ahead of main, holding a file of its own.
+function addBranch(origin: string, branch: string, file: string): void {
+  const work: string = makeTempDir("oneuptime-code-branch-work-");
+
+  git(work, ["clone", "-q", origin, "."]);
+  git(work, ["config", "user.email", "origin@oneuptime.com"]);
+  git(work, ["config", "user.name", "Origin"]);
+  git(work, ["config", "commit.gpgsign", "false"]);
+  git(work, ["checkout", "-q", "-b", branch]);
+  fs.writeFileSync(path.join(work, file), `${branch}\n`);
+  git(work, ["add", "-A"]);
+  git(work, ["commit", "-q", "-m", `on ${branch}`]);
+  git(work, ["push", "-q", "origin", branch]);
+}
+
+/*
+ * A task the person started from a branch they picked in Code's request
+ * box: the server hands it over as the branch to clone (the repository's
+ * main branch, for Runners older than the pick) and as the picked one.
+ */
+describe("a task started from a branch the person picked", () => {
+  const PICKED: string = "release/2026-10";
+
+  function fromPicked(branch: string): CodeTaskAgentDetails {
+    const base: CodeTaskAgentDetails = details();
+
+    return details({
+      repository: { ...base.repository, mainBranchName: branch },
+      baseBranch: branch,
+    });
+  }
+
+  test("starts there: the new branch is cut from it, and its pull request goes into it", async () => {
+    const origin: string = makeOrigin();
+    addBranch(origin, PICKED, "RELEASE.md");
+    const harness: Harness = setUp({
+      origin,
+      details: fromPicked(PICKED),
+      script: ADD_RETRY,
+    });
+
+    const result: TaskResult = await new CodeRequestTaskHandler().execute(
+      harness.context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(branchesOf(origin)).toEqual(["main", NEW_BRANCH, PICKED].sort());
+    // Built on the picked branch: its own file is there, one commit on top.
+    expect(fileOn(origin, NEW_BRANCH, "RELEASE.md")).toBe(`${PICKED}\n`);
+    expect(commitsOn(origin, NEW_BRANCH)).toBe(commitsOn(origin, PICKED) + 1);
+    // Nothing on the branches it did not work on.
+    expect(commitsOn(origin, PICKED)).toBe(2);
+    expect(commitsOn(origin, "main")).toBe(1);
+
+    expect(harness.createPullRequest.mock.calls[0]![0]).toMatchObject({
+      baseBranch: PICKED,
+      headBranch: NEW_BRANCH,
+    });
+    expect(harness.recordPullRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ baseRefName: PICKED, headRefName: NEW_BRANCH }),
+    );
+    expect(harness.prompts[0]).toContain(`cut from \`${PICKED}\``);
+  });
+
+  test("a picked branch gone from the origin stops - never falling back to main - and pushes nothing", async () => {
+    const origin: string = makeOrigin();
+    const harness: Harness = setUp({
+      origin,
+      details: fromPicked("release/merged-and-deleted"),
+      script: ADD_RETRY,
+    });
+
+    const result: TaskResult = await new CodeRequestTaskHandler().execute(
+      harness.context,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(
+      'The branch "release/merged-and-deleted" this task starts from is no longer on the remote. It may have been merged and deleted, or renamed. Start a new task from another branch.',
+    );
+    expect(harness.logLines).toContain(result.message);
+    expect(branchesOf(origin)).toEqual(["main"]);
+    expect(commitsOn(origin, "main")).toBe(1);
+    expect(harness.prompts).toEqual([]);
+    expect(harness.createPullRequest).not.toHaveBeenCalled();
+  });
+
+  test("negative control: a stale main branch name - nobody picked it - still falls back to the remote's default", async () => {
+    const origin: string = makeOrigin();
+    const base: CodeTaskAgentDetails = details();
+    const harness: Harness = setUp({
+      origin,
+      details: details({
+        repository: { ...base.repository, mainBranchName: "renamed-long-ago" },
+        baseBranch: null,
+      }),
+      script: ADD_RETRY,
+    });
+
+    const result: TaskResult = await new CodeRequestTaskHandler().execute(
+      harness.context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(harness.createPullRequest.mock.calls[0]![0]).toMatchObject({
+      baseBranch: "main",
+    });
+  });
+
+  test("a reply on the task's open pull request works on its branch, whatever branch the task started from", async () => {
+    const origin: string = makeOrigin();
+    addBranch(origin, PICKED, "RELEASE.md");
+    // The task's first turn opened its pull request from the picked branch.
+    const first: Harness = setUp({
+      origin,
+      details: fromPicked(PICKED),
+      script: ADD_RETRY,
+    });
+    await new CodeRequestTaskHandler().execute(first.context);
+    jest.restoreAllMocks();
+
+    const reply: Harness = setUp({
+      origin,
+      taskId: REPLY_ID,
+      details: {
+        ...fromPicked(PICKED),
+        workingBranch: NEW_BRANCH,
+        pullRequest: {
+          number: 7,
+          url: PULL_REQUEST_URL,
+          title: "Add retries to the users API",
+          baseRefName: PICKED,
+        },
+      },
+      script: async (task: CodeAgentTask): Promise<CodeAgentResult> => {
+        fs.writeFileSync(
+          path.join(task.workingDirectory, "src", "retry.ts"),
+          "export default async function retry() {}\n",
+        );
+        return {
+          success: true,
+          filesModified: ["src/retry.ts"],
+          summary: "Simplified the retry.",
+          logs: [],
+          exitCode: 0,
+        };
+      },
+    });
+
+    const result: TaskResult = await new CodeRequestTaskHandler().execute(
+      reply.context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(commitsOn(origin, NEW_BRANCH)).toBe(commitsOn(origin, PICKED) + 2);
+    expect(reply.createPullRequest).not.toHaveBeenCalled();
+  });
+});
+
 describe("a turn that changes nothing", () => {
   test("an answer is the work: it is reported, and nothing is pushed", async () => {
     const origin: string = makeOrigin();

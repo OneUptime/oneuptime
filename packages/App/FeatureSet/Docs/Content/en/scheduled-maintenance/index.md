@@ -52,18 +52,19 @@ Announcements are covered on [Subscribers & Announcements](/docs/status-pages/su
 
 Open **Scheduled Maintenance** from the **Products** menu in the top bar. The list of events is at `/dashboard/{projectId}/scheduled-maintenance-events`, and its side menu holds everything about maintenance:
 
-| Section       | What you do there                                                                                                          |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**  | **All Events** and **Ongoing Events**, whose badge counts the events in progress right now.                                 |
-| **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither. |
-| **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                   |
-| **Settings**  | **Event State**, **Event Templates**, **Note Templates**, **Custom Fields**, **Measurements**, **Numbering**.           |
+| Section       | What you do there                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Overview**  | **All Events** and **Ongoing Events**, whose badge counts the events in progress right now.                                          |
+| **Calendar**  | **Maintenance Calendar**: every event on a month, a week or a day, beside the calendars from outside the project you add.            |
+| **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither.           |
+| **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                             |
+| **Settings**  | **Event State**, **Event Templates**, **Note Templates**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
 
-**Overview** is open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
+**Overview** and **Calendar** are open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
 
 The list shows **Scheduled Maintenance Number**, **Title**, **Current State**, **Resources Affected**, **Shown on Status Page**, **Starts At**, **Duration**, **Ends At**, **Labels** and **Owners**. Select events to act on several at once: **Change State**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** or **Delete**.
 
-**List** and **Calendar**, at the right end of the list's filter bar, show the same events as a table or on a month, a week or a day. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar).
+**Maintenance Calendar**, in the **Calendar** section, shows the same events on a month, a week or a day, and can show calendars from outside the project beside them. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar).
 
 ## What an event affects
 

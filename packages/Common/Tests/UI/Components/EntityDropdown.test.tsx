@@ -5,7 +5,14 @@ import {
 } from "../../../UI/Components/Dropdown/Dropdown";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React from "react";
 
 describe("EntityDropdown", () => {
@@ -97,6 +104,133 @@ describe("EntityDropdown", () => {
     expect(menu.style.maxHeight).toBe("384px");
     expect(menu.style.visibility).toBe("visible");
     expect(menu.style.zIndex).toBe(String(DROPDOWN_MENU_Z_INDEX));
+  });
+
+  /*
+   * Found in Code's UI review: a dialog that opens on a dropdown with the
+   * focus (Code's Add context > Incident) scales in, so the menu was placed
+   * against the dialog's smaller, moving frame - and on a page where the
+   * dialog's width class had not been styled yet, against a frame half as
+   * wide again, the list running out past the dialog. The menu now follows
+   * its control when a transition ends and when the control's size changes.
+   */
+  describe("follows its control after it opens", () => {
+    const originalResizeObserver: typeof window.ResizeObserver | undefined =
+      window.ResizeObserver;
+
+    afterEach(() => {
+      Object.defineProperty(window, "ResizeObserver", {
+        configurable: true,
+        writable: true,
+        value: originalResizeObserver,
+      });
+    });
+
+    const controlOf: (input: HTMLInputElement) => HTMLElement = (
+      input: HTMLInputElement,
+    ): HTMLElement => {
+      const control: HTMLElement | null =
+        input.parentElement?.parentElement || null;
+
+      if (!control) {
+        throw new Error("EntityDropdown control was not rendered.");
+      }
+
+      return control;
+    };
+
+    const nextFrames: () => Promise<void> = async (): Promise<void> => {
+      await act(async () => {
+        await new Promise((resolve: (value: unknown) => void) => {
+          setTimeout(resolve, 50);
+        });
+      });
+    };
+
+    test("a dialog that scaled in: the menu moves to where the field rests", async () => {
+      setViewport(1000, 800);
+      render(<EntityDropdown ariaLabel="Team" options={options} />);
+
+      const input: HTMLInputElement = screen.getByRole("combobox", {
+        name: "Team",
+      }) as HTMLInputElement;
+      const rect: SpyInstance<() => DOMRect> = jest
+        .spyOn(controlOf(input), "getBoundingClientRect")
+        .mockReturnValue(makeRect(130, 210, 300, 38));
+      fireEvent.focus(input);
+
+      const menu: HTMLElement = screen.getByTestId("entity-dropdown-menu");
+      expect(menu.style.width).toBe("300px");
+
+      // The dialog's scale-in ends; its field is where it rests.
+      rect.mockReturnValue(makeRect(120, 200, 320, 40));
+      fireEvent(
+        document.body,
+        new Event("transitionend", { bubbles: true, cancelable: false }),
+      );
+      await nextFrames();
+
+      expect(menu.style.left).toBe("120px");
+      expect(menu.style.width).toBe("320px");
+      expect(menu.style.top).toBe("244px");
+    });
+
+    test("a control whose size changes: the menu takes its new width", async () => {
+      const observed: Array<() => void> = [];
+      const targets: Array<Element> = [];
+      const disconnects: Array<number> = [];
+
+      class FakeResizeObserver {
+        public constructor(callback: () => void) {
+          observed.push(callback);
+        }
+
+        // The test calls the callback itself, as a resize would.
+        public observe(target: Element): void {
+          targets.push(target);
+        }
+
+        public disconnect(): void {
+          disconnects.push(1);
+        }
+      }
+
+      Object.defineProperty(window, "ResizeObserver", {
+        configurable: true,
+        writable: true,
+        value: FakeResizeObserver,
+      });
+
+      setViewport(1000, 800);
+      render(<EntityDropdown ariaLabel="Team" options={options} />);
+
+      const input: HTMLInputElement = screen.getByRole("combobox", {
+        name: "Team",
+      }) as HTMLInputElement;
+      const rect: SpyInstance<() => DOMRect> = jest
+        .spyOn(controlOf(input), "getBoundingClientRect")
+        .mockReturnValue(makeRect(120, 200, 480, 40));
+      fireEvent.focus(input);
+
+      const menu: HTMLElement = screen.getByTestId("entity-dropdown-menu");
+      expect(menu.style.width).toBe("480px");
+      // It watches the control itself.
+      expect(observed.length).toBeGreaterThan(0);
+      expect(targets).toContain(controlOf(input));
+
+      // The page's styles arrive: the field narrows to the dialog's width.
+      rect.mockReturnValue(makeRect(120, 200, 320, 40));
+      act(() => {
+        observed[observed.length - 1]!();
+      });
+      await nextFrames();
+      expect(menu.style.width).toBe("320px");
+
+      // Closed, it stops watching.
+      fireEvent.keyDown(input, { key: "Escape" });
+      expect(screen.queryByTestId("entity-dropdown-menu")).toBeNull();
+      expect(disconnects.length).toBeGreaterThan(0);
+    });
   });
 
   test("flips its menu above a control near the modal footer", () => {

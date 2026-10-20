@@ -17,7 +17,7 @@ import {
  * (OnCallPolicy/ScheduleTimeline/TimelineToolbar): WHEN on the left - Today,
  * the two arrows, and the period in view, read where the arrows are - and
  * how much of it on the right, as the product's view switch (ViewSwitch,
- * the List | Calendar control).
+ * the status timelines' Timeline | Table control).
  *
  * react-big-calendar's own toolbar wrote "Today | Back | Next" as three
  * words in a box, centred the period between two button groups, and filled

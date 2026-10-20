@@ -33,8 +33,24 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * Connecting GitHub from the notice itself, on a page that can start it
+ * (Code's first page): a repository AI cannot reach gets the button that
+ * connects GitHub - or, for someone who may not connect it, why not.
+ */
+export interface CodeConnectGitHubFix {
+  onConnect: () => void;
+  // Why the reader may not connect GitHub (GitHubConnectLock), in their words.
+  lockReason?: string | undefined;
+}
+
 export interface ComponentProps {
   blocker: CodeTaskBlocker;
+  /*
+   * For a repository AI cannot reach: connect GitHub right here, instead of
+   * the link to Repositories, where it is connected.
+   */
+  connectGitHub?: CodeConnectGitHubFix | undefined;
   /*
    * The repository the notice is about, for a fix that opens its settings
    * (its Runner setting, CODE_TASK_REPOSITORY_SETTINGS_FIXES). Without it
@@ -147,6 +163,62 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
     props.blocker.type === CodeTaskBlockerType.NoPermission;
   const sentence: string | undefined =
     CODE_TASK_BLOCKER_SENTENCES[props.blocker.type];
+  // GitHub connected from here, rather than on Repositories.
+  const connectHere: CodeConnectGitHubFix | undefined =
+    props.blocker.type === CodeTaskBlockerType.RepositoryNotConnected
+      ? props.connectGitHub
+      : undefined;
+
+  const renderFix: () => ReactElement = (): ReactElement => {
+    if (connectHere) {
+      return connectHere.lockReason ? (
+        <p data-testid="code-blocker-who-can" className="mt-1 leading-6">
+          {connectHere.lockReason}
+        </p>
+      ) : (
+        <button
+          type="button"
+          data-testid="code-blocker-fix"
+          onClick={connectHere.onConnect}
+          className="mt-1 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:underline"
+        >
+          {translator.translateText("Connect GitHub")}
+          <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+        </button>
+      );
+    }
+
+    return (
+      <>
+        {fix && access === ProjectBalanceAccess.Yes ? (
+          <Link
+            to={RouteUtil.populateRouteParams(
+              RouteMap[fix.pageMap] as Route,
+              CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type)
+                ? { modelId: props.repositoryId }
+                : undefined,
+            )}
+            dataTestId="code-blocker-fix"
+            className="mt-1 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            <>
+              {translator.translateText(fix.title)}
+              <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+            </>
+          </Link>
+        ) : (
+          <></>
+        )}
+        {whoCanFix && access === ProjectBalanceAccess.No ? (
+          <p data-testid="code-blocker-who-can" className="mt-1 leading-6">
+            {translator.translateText(whoCanFix)}
+          </p>
+        ) : (
+          <></>
+        )}
+      </>
+    );
+  };
 
   return (
     <div
@@ -193,32 +265,7 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
             props.blocker.message
           )}
         </p>
-        {fix && access === ProjectBalanceAccess.Yes ? (
-          <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[fix.pageMap] as Route,
-              CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type)
-                ? { modelId: props.repositoryId }
-                : undefined,
-            )}
-            dataTestId="code-blocker-fix"
-            className="mt-1 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            <>
-              {translator.translateText(fix.title)}
-              <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-            </>
-          </Link>
-        ) : (
-          <></>
-        )}
-        {whoCanFix && access === ProjectBalanceAccess.No ? (
-          <p data-testid="code-blocker-who-can" className="mt-1 leading-6">
-            {translator.translateText(whoCanFix)}
-          </p>
-        ) : (
-          <></>
-        )}
+        {renderFix()}
       </div>
     </div>
   );

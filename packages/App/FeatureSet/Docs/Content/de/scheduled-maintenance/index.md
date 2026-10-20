@@ -55,15 +55,16 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 | Abschnitt     | Was Sie dort tun                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Übersicht** | **Alle Ereignisse** und **Laufende Ereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt.                     |
+| **Kalender** | **Wartungskalender**: jedes Ereignis in einem Monat, einer Woche oder einem Tag, neben den Kalendern von außerhalb des Projekts, die Sie hinzufügen. |
 | **Arbeitsbereich** | **Slack** und **Microsoft Teams**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
 | **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**.                                   |
-| **Einstellungen** | **Ereignisstatus**, **Ereignis-Vorlagen**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Nummerierung**. |
+| **Einstellungen** | **Ereignisstatus**, **Ereignis-Vorlagen**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
 
-**Übersicht** ist geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **API** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.
+**Übersicht** und **Kalender** sind geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **API** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.
 
 Die Liste zeigt **Nummer der geplanten Wartung**, **Titel**, **Aktueller Status**, **Betroffene Ressourcen**, **Auf Statusseite angezeigt**, **Beginnt am**, **Dauer**, **Endet am**, **Beschriftungen** und **Eigentümer**. Wählen Sie Ereignisse aus, um mehrere auf einmal zu bearbeiten: **Status ändern**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen** oder **Löschen**.
 
-**Liste** und **Kalender** am rechten Ende der Filterleiste der Liste zeigen dieselben Ereignisse als Tabelle oder auf einem Monat, einer Woche oder einem Tag. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar).
+**Wartungskalender** im Abschnitt **Kalender** zeigt dieselben Ereignisse auf einem Monat, einer Woche oder einem Tag und kann daneben Kalender von außerhalb des Projekts zeigen. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar).
 
 ## Was ein Ereignis beeinflusst
 

@@ -59,7 +59,7 @@ test.describe("Usage, from the provider accounts", () => {
   }) => {
     await open(page, "state=connected");
 
-    // The product's view switch, as List | Calendar is.
+    // The product's view switch, as Month | Week | Day is.
     await expect(page.getByTestId("llm-usage-source-calls")).toHaveAttribute(
       "aria-pressed",
       "true",

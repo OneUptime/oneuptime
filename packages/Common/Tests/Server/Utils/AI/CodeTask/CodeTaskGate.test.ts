@@ -625,3 +625,100 @@ describe("CodeTaskGate.getReachableRepositoryIds", () => {
     expect(CodeRepositoryService.findBy).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * The installation a server-side read of the repository goes through - the
+ * branch picker's list, the check that a picked branch is on GitHub - which
+ * the person never sees: only one AI can reach the repository through, the
+ * project's bound installation and the one the repository came in by.
+ */
+describe("CodeTaskGate.getReachableInstallationId", () => {
+  function repositoryRow(data: {
+    host?: CodeRepositoryType;
+    installationId?: string;
+  }): CodeRepository {
+    const row: CodeRepository = new CodeRepository();
+    row._id = REPOSITORY_ID.toString();
+    row.repositoryHostedAt = data.host || CodeRepositoryType.GitHub;
+    if (data.installationId) {
+      row.gitHubAppInstallationId = data.installationId;
+    }
+    return row;
+  }
+
+  test("the project's bound installation, when the repository came in by it - read as root", async () => {
+    const findOneBy: jest.Mock = jest
+      .spyOn(CodeRepositoryService, "findOneBy")
+      .mockResolvedValue(
+        repositoryRow({ installationId: INSTALLATION_ID }),
+      ) as unknown as jest.Mock;
+
+    expect(
+      await CodeTaskGate.getReachableInstallationId({
+        projectId: PROJECT_ID,
+        repositoryId: REPOSITORY_ID,
+      }),
+    ).toBe(INSTALLATION_ID);
+
+    const read: { query: Record<string, unknown>; props: unknown } = findOneBy
+      .mock.calls[0]![0] as never;
+    expect(read.props).toEqual({ isRoot: true });
+    expect(read.query["_id"]).toBe(REPOSITORY_ID.toString());
+    expect((read.query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  test.each([
+    ["another installation", CodeRepositoryType.GitHub, "1"],
+    ["no installation of its own", CodeRepositoryType.GitHub, undefined],
+    ["not on GitHub", CodeRepositoryType.GitLab, INSTALLATION_ID],
+  ])(
+    "none for a repository with %s",
+    async (
+      _case: string,
+      host: CodeRepositoryType,
+      installationId: string | undefined,
+    ) => {
+      jest
+        .spyOn(CodeRepositoryService, "findOneBy")
+        .mockResolvedValue(
+          repositoryRow(installationId ? { host, installationId } : { host }),
+        );
+
+      expect(
+        await CodeTaskGate.getReachableInstallationId({
+          projectId: PROJECT_ID,
+          repositoryId: REPOSITORY_ID,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("none for a project with no installation - and the repository is not read at all", async () => {
+    world.boundInstallationId = null;
+    const findOneBy: jest.Mock = jest.spyOn(
+      CodeRepositoryService,
+      "findOneBy",
+    ) as unknown as jest.Mock;
+
+    expect(
+      await CodeTaskGate.getReachableInstallationId({
+        projectId: PROJECT_ID,
+        repositoryId: REPOSITORY_ID,
+      }),
+    ).toBeNull();
+    expect(findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("none for a repository not in the project", async () => {
+    jest.spyOn(CodeRepositoryService, "findOneBy").mockResolvedValue(null);
+
+    expect(
+      await CodeTaskGate.getReachableInstallationId({
+        projectId: PROJECT_ID,
+        repositoryId: REPOSITORY_ID,
+      }),
+    ).toBeNull();
+  });
+});

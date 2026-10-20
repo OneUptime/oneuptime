@@ -1,6 +1,6 @@
 # Code
 
-Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dépôts, comme vous le demanderiez à un agent de code : corriger un bug, écrire des tests, expliquer le code, faire une modification. Code s'ouvre sur vos dépôts connectés ; la page d'un dépôt contient ses tâches et la zone où vous demandez ; la page d'une tâche est une conversation à laquelle vous pouvez répondre. OneUptime lance aussi des tâches de lui-même, à partir d'exceptions, de traces et d'investigations. Un [Runner](/docs/runbooks/agents) clone le dépôt, écrit la modification sur une nouvelle branche, la compile et la teste, puis ouvre une pull request. Une personne relit et fusionne chacune d'elles : le Runner peut pousser des branches et ouvrir des pull requests, rien de plus.
+Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dépôts, comme vous le demanderiez à un agent de code : corriger un bug, écrire des tests, expliquer le code, faire une modification. Code s'ouvre sur la zone où vous demandez, avec le dépôt et la branche choisis dedans et toutes les tâches en dessous ; la page d'une tâche est une conversation à laquelle vous pouvez répondre. OneUptime lance aussi des tâches de lui-même, à partir d'exceptions, de traces et d'investigations. Un [Runner](/docs/runbooks/agents) clone le dépôt, écrit la modification sur une nouvelle branche, la compile et la teste, puis ouvre une pull request. Une personne relit et fusionne chacune d'elles : le Runner peut pousser des branches et ouvrir des pull requests, rien de plus.
 
 :::cards
 - [Demander à l'IA dans un dépôt](#demander-à-lia-dans-un-dépôt): Une demande avec vos propres mots, et le contexte dont elle a besoin.
@@ -18,13 +18,17 @@ Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dép
 ## Demander à l'IA dans un dépôt
 
 :::steps
-### Ouvrir un dépôt
+### Ouvrir Code
 
-Ouvrez **Produits → Code**. La page liste les dépôts du projet, chacun avec les tâches sur lesquelles l'IA travaille, celles qui vous attendent et ses pull requests ouvertes. S'il n'y en a encore aucun, elle propose **Connecter GitHub** (voir [Avant de commencer](#avant-de-commencer)).
+Ouvrez **Produits → Code**. Code s'ouvre sur **Que doit faire l'IA ?** : la zone où vous demandez, avec toutes les tâches en dessous, les plus récentes d'abord. S'il n'y a encore aucun dépôt, Code propose plutôt **Connecter GitHub** (voir [Avant de commencer](#avant-de-commencer)). **Dépôts**, dans son menu latéral, liste les dépôts connectés, et la page de chaque dépôt a la même zone pour ce dépôt.
+
+### Choisir le dépôt et la branche
+
+La zone s'ouvre sur le dépôt que vous avez choisi en dernier. Choisissez-en un autre dans sa rangée du bas et, à côté, la branche d'où part la tâche : la branche principale du dépôt, marquée **Par défaut**, jusqu'à ce que vous en choisissiez une autre. L'IA crée sa branche à partir de celle que vous choisissez et ouvre sa pull request vers elle.
 
 ### Dire ce que vous voulez
 
-Sur la page du dépôt, écrivez la modification, le bug ou la question avec vos propres mots. Un dépôt qui n'a encore aucune tâche en suggère quelques-unes sous **Essayez de demander**.
+Écrivez la modification, le bug ou la question avec vos propres mots. Tant que rien n'a été demandé, Code en suggère quelques-unes sous **Essayez de demander**.
 
 ### Ajouter du contexte
 
@@ -51,7 +55,7 @@ Une demande porte au plus 10 éléments de contexte. Les jetons, clés, mots de 
 
 ## La conversation d'une tâche
 
-La page d'une tâche est une conversation : ce qui a été demandé et le contexte ajouté, puis le tour de l'IA – ses étapes, affichées au fur et à mesure (les fichiers qu'elle a lus et modifiés, ce qu'elle a cherché, les commandes qu'elle a exécutées), sa réponse, les fichiers qu'elle a modifiés avec leur diff, et la pull request. Le haut de la page indique où en est la tâche :
+La page d'une tâche est une conversation : ce qui a été demandé et le contexte ajouté, puis le tour de l'IA – ses étapes, affichées au fur et à mesure (les fichiers qu'elle a lus et modifiés, ce qu'elle a cherché, les commandes qu'elle a exécutées), sa réponse, les fichiers qu'elle a modifiés avec leur diff, et la pull request. Le haut de la page indique où travaille la tâche (son dépôt et la branche d'où elle est partie), combien de lignes elle a modifiées, avec un bouton vers sa pull request, et où en est la tâche :
 
 | État | Ce que cela signifie |
 | --- | --- |
@@ -62,7 +66,7 @@ La page d'une tâche est une conversation : ce qui a été demandé et le contex
 | **Échec** | Le tour n'a pas pu aboutir, et dit pourquoi. **Réessayer** redemande la même chose. |
 | **Arrêté** | Quelqu'un l'a arrêtée. **Réessayer** redemande la même chose. |
 
-Pour donner suite, écrivez dans la zone en bas : répondez à l'IA, ajoutez du contexte ou demandez des modifications. Chaque réponse est le tour suivant de la même tâche : elle travaille sur la même branche et pousse vers la même pull request tant que celle-ci est ouverte. Une tâche ne fait qu'un tour à la fois, donc la zone attend pendant que l'IA travaille. Le **Journal** de chaque tour est le relevé exact de ce qu'il a fait.
+Pour donner suite, écrivez dans la zone en bas, qui reste visible pendant que la conversation défile : répondez à l'IA, ajoutez du contexte ou demandez des modifications. Chaque réponse est le tour suivant de la même tâche : elle travaille sur la même branche et pousse vers la même pull request tant que celle-ci est ouverte. Une tâche ne fait qu'un tour à la fois, donc la zone attend pendant que l'IA travaille. Le **Journal** de chaque tour est le relevé exact de ce qu'il a fait.
 
 Toute personne qui peut lire un dépôt lit ses tâches. Demander à l'IA, répondre et arrêter une tâche demandent la permission de modifier le dépôt, tout comme voir le diff d'une modification : les autres voient quels fichiers ont changé. Les tâches que OneUptime lance de lui-même (ci-dessous) figurent aussi dans leur dépôt, comme des conversations auxquelles vous pouvez répondre.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["Une personne la relit<br/>et la fusionne"]
 ```
 
-1. Vous cliquez sur **Lancer la tâche** dans un dépôt, ou sur **Corriger avec l'IA** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
+1. Vous cliquez sur **Lancer la tâche** dans Code, ou sur **Corriger avec l'IA** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
 2. La tâche est mise en file sur son dépôt, et le Runner que le dépôt choisit la prend : l'un de vos Runners, ou un Runner global quand il n'en choisit aucun (voir [Choisir le Runner du dépôt](#choisir-le-runner-du-dépôt)).
 3. Le Runner récupère le contexte de la tâche. Pour une demande, ce sont ses mots, le contexte ajouté et la conversation jusque-là ; pour une exception, son type, son message et sa stack trace.
-4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
+4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une demande part de la branche choisie quand elle a été faite, et sa pull request s'ouvre vers celle-ci. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
 5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA. Une correction d'exception, de trace lente ou d'incident consulte aussi les données de production pendant qu'elle travaille : les exceptions, les traces, les logs et les métriques des services du dépôt (voir [Télémétrie de production dans une correction](#télémétrie-de-production-dans-une-correction)).
 6. Si le dépôt a des commandes de vérification, votre propre Runner compile et teste la modification avant de committer quoi que ce soit, et renvoie un échec à l'agent de code pour qu'il le répare (voir [Vérification avant la pull request](#vérification-avant-la-pull-request)).
 7. Le Runner committe, pousse la branche, ouvre la pull request (pour une demande, seulement si elle a modifié du code) et supprime l'espace de travail.
@@ -177,7 +181,7 @@ Tant qu'aucun déploiement ne le livre, le correctif affiche **Fusionné, en att
 
 ## Avant de commencer
 
-Une tâche a besoin de trois choses. La page d'un dépôt dans Code et la page **Assistance IA** de l'exception vérifient les trois avant de proposer de démarrer, et indiquent ce qui manque.
+Une tâche a besoin de trois choses. La zone de demande de Code et la page **Assistance IA** de l'exception vérifient les trois avant de proposer de démarrer, et indiquent ce qui manque.
 
 | Quoi | OneUptime Cloud | Auto-hébergé |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Tout le reste correspond au bouton :
 ## Quand une correction échoue
 
 :::details L'exécution échoue
-La correction n'a pas pu être appliquée, le dépôt n'a pas pu être joint ou l'appel au LLM a échoué. La conversation de la tâche, et la page d'où elle a été lancée, affichent la raison et proposent de réessayer. Le **Journal** du tour contient le journal complet de l'exécution.
+La correction n'a pas pu être appliquée, le dépôt ou la branche d'où partait une demande n'a pas pu être joint, ou l'appel au LLM a échoué. La conversation de la tâche, et la page d'où elle a été lancée, affichent la raison et proposent de réessayer. Le **Journal** du tour contient le journal complet de l'exécution.
 :::
 
 :::details Le Runner s'arrête au milieu d'une exécution
