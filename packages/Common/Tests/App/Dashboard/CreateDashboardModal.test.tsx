@@ -725,9 +725,9 @@ describe("Create Dashboard", () => {
   });
 
   test.each(
-    getDashboardPickerTemplates().map((template: DashboardPickerTemplate) => [
-      template.type,
-    ]),
+    getDashboardPickerTemplates().map((template: DashboardPickerTemplate) => {
+      return [template.type];
+    }),
   )(
     "%s: creates a dashboard named after it and built from it",
     async (type: string) => {

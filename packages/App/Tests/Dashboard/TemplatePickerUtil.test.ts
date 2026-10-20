@@ -395,9 +395,11 @@ describe("the list", () => {
     );
 
     expect(list.isSearching).toBe(true);
-    expect(list.sections.map((section: { id: string }) => section.id)).toEqual([
-      "results",
-    ]);
+    expect(
+      list.sections.map((section: { id: string }) => {
+        return section.id;
+      }),
+    ).toEqual(["results"]);
     expect(ids(list.templates)).toEqual(["rye", "baguette"]);
   });
 

@@ -466,7 +466,11 @@ describe("the category select", () => {
     expect(getSelect()).toHaveAccessibleName("Template categories");
   });
 
-  test.each(DASHBOARD_PICKER_CATEGORIES.map((category: string) => [category]))(
+  test.each(
+    DASHBOARD_PICKER_CATEGORIES.map((category: string) => {
+      return [category];
+    }),
+  )(
     "%s lists its own templates, in the catalog's order",
     (category: string) => {
       renderPicker();
@@ -620,9 +624,9 @@ describe("a picked template's details", () => {
   });
 
   test.each(
-    getDashboardPickerTemplates().map((candidate: DashboardPickerTemplate) => [
-      candidate.type,
-    ]),
+    getDashboardPickerTemplates().map((candidate: DashboardPickerTemplate) => {
+      return [candidate.type];
+    }),
   )("%s: its details say what its preview says", (type: string) => {
     renderPicker();
 

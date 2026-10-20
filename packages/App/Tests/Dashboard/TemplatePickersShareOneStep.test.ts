@@ -77,76 +77,73 @@ const SHARED_PICKER: string = read(
 
 const PAGE: string = read("Pages", "Dashboards", "Dashboards.tsx");
 
-describe.each(PICKERS.map((picker: Picker) => [picker.name, picker]))(
-  "%s",
-  (_name: string, picker: Picker) => {
-    test("draws its step with the shared template picker, under its own id prefix", () => {
-      expect(picker.picker).toContain(
-        'from "../TemplatePicker/TemplatePicker"',
-      );
-      expect(picker.picker).toContain("<TemplatePicker");
-      expect(picker.picker).toContain(`"${picker.idPrefix}"`);
-    });
+describe.each(
+  PICKERS.map((picker: Picker) => {
+    return [picker.name, picker];
+  }),
+)("%s", (_name: string, picker: Picker) => {
+  test("draws its step with the shared template picker, under its own id prefix", () => {
+    expect(picker.picker).toContain('from "../TemplatePicker/TemplatePicker"');
+    expect(picker.picker).toContain("<TemplatePicker");
+    expect(picker.picker).toContain(`"${picker.idPrefix}"`);
+  });
 
-    test("draws none of the step itself: no list, no rows, no search box, no Start from scratch card", () => {
-      for (const sign of [
-        'role="listbox"',
-        'role="option"',
-        'role="combobox"',
-        "<select",
-        "<input",
-        '"Start from scratch"',
-        '"Or start from a template"',
-        '"Search templates…"',
-        "onKeyDown",
-      ]) {
-        expect({ sign: sign, drawn: picker.picker.includes(sign) }).toEqual({
-          sign: sign,
-          drawn: false,
-        });
-      }
-    });
+  test("draws none of the step itself: no list, no rows, no search box, no Start from scratch card", () => {
+    for (const sign of [
+      'role="listbox"',
+      'role="option"',
+      'role="combobox"',
+      "<select",
+      "<input",
+      '"Start from scratch"',
+      '"Or start from a template"',
+      '"Search templates…"',
+      "onKeyDown",
+    ]) {
+      expect({ sign: sign, drawn: picker.picker.includes(sign) }).toEqual({
+        sign: sign,
+        drawn: false,
+      });
+    }
+  });
 
-    test("draws a picked template's details with the shared rows and chips", () => {
-      expect(picker.picker).toContain(
-        'from "../TemplatePicker/TemplateDetails"',
-      );
-      expect(picker.picker).toContain("<TemplateDetailsRow");
-      expect(picker.picker).toContain("<TemplateDetailsChip");
-      expect(picker.picker).not.toContain("<dl");
-    });
+  test("draws a picked template's details with the shared rows and chips", () => {
+    expect(picker.picker).toContain('from "../TemplatePicker/TemplateDetails"');
+    expect(picker.picker).toContain("<TemplateDetailsRow");
+    expect(picker.picker).toContain("<TemplateDetailsChip");
+    expect(picker.picker).not.toContain("<dl");
+  });
 
-    test("takes its rules from the shared ones, and searches with none of its own", () => {
-      expect(picker.util).toContain("createTemplatePickerRules(");
-      expect(picker.util).toContain(
-        'from "../TemplatePicker/TemplatePickerUtil"',
-      );
+  test("takes its rules from the shared ones, and searches with none of its own", () => {
+    expect(picker.util).toContain("createTemplatePickerRules(");
+    expect(picker.util).toContain(
+      'from "../TemplatePicker/TemplatePickerUtil"',
+    );
 
-      for (const ownSearch of [
-        "ComponentPicker/ComponentSearch",
-        "matchWordWithTypo",
-        "WORD_MATCH_QUALITY",
-        "NAME_PHRASE_BONUS",
-      ]) {
-        expect({
-          ownSearch: ownSearch,
-          found: picker.util.includes(ownSearch),
-        }).toEqual({
-          ownSearch: ownSearch,
-          found: false,
-        });
-      }
-    });
+    for (const ownSearch of [
+      "ComponentPicker/ComponentSearch",
+      "matchWordWithTypo",
+      "WORD_MATCH_QUALITY",
+      "NAME_PHRASE_BONUS",
+    ]) {
+      expect({
+        ownSearch: ownSearch,
+        found: picker.util.includes(ownSearch),
+      }).toEqual({
+        ownSearch: ownSearch,
+        found: false,
+      });
+    }
+  });
 
-    test("its wizard shows the template chosen with the shared card, and builds its footer with the stepped footer", () => {
-      expect(picker.wizard).toContain("<ChosenTemplate");
-      expect(picker.wizard).toContain("getSteppedModalFooter(");
-      expect(picker.wizard).toContain('"Use this template"');
-      expect(picker.wizard).toContain("ModalWidth.Medium");
-      expect(picker.wizard).toContain('title="Back"');
-    });
-  },
-);
+  test("its wizard shows the template chosen with the shared card, and builds its footer with the stepped footer", () => {
+    expect(picker.wizard).toContain("<ChosenTemplate");
+    expect(picker.wizard).toContain("getSteppedModalFooter(");
+    expect(picker.wizard).toContain('"Use this template"');
+    expect(picker.wizard).toContain("ModalWidth.Medium");
+    expect(picker.wizard).toContain('title="Back"');
+  });
+});
 
 describe("the shared step", () => {
   test("names none of the catalogs it is drawn over", () => {

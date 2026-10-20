@@ -314,7 +314,9 @@ describe("what the picker opens on", () => {
 
 describe("the search", () => {
   test.each(
-    LISTED.map((template: DashboardTemplate) => [template.name, template.type]),
+    LISTED.map((template: DashboardTemplate) => {
+      return [template.name, template.type];
+    }),
   )("typing %s finds it first", (name: string, type: DashboardTemplateType) => {
     expect(searchTypes(name)[0]).toBe(type);
   });
