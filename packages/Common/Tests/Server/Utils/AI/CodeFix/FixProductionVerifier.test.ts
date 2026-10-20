@@ -501,8 +501,13 @@ describe("finding the deploy that ships the fix", () => {
       base: FIX_SHA,
       head: LATER_SHA,
     });
+    // Read-only: commits for compares, pull requests for a fix's diff.
     expect(mintToken).toHaveBeenCalledWith("4242", {
-      permissions: { contents: "read", metadata: "read" },
+      permissions: {
+        contents: "read",
+        metadata: "read",
+        pull_requests: "read",
+      },
     });
   });
 
