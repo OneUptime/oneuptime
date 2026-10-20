@@ -47,6 +47,7 @@ Et offentligt dashboard:
 
 - Åbner altid til læsning. Besøgende kan ikke redigere det og ser aldrig dets redigeringskontroller.
 - Indeholder de variabler, du har tilføjet. Besøgende vælger i de samme vælgere, som dit team bruger, og kan ændre tidsintervallet, zoome, slå automatisk opdatering til og gå i fuld skærm. Det åbner med dashboardets standardtidsrum og automatiske standardopdatering, og hver besøgendes browser husker vedkommendes egne valg.
+- Lader besøgende [sortere dets lister og tabeller](/docs/dashboards/widgets#sortering-af-lister-og-tabeller) ved at klikke på en kolonneoverskrift, sådan som dit team gør. Hver besøgendes browser husker deres egen sortering, og OneUptime sorterer selv hele listen, altid kun efter en af widgettens egne kolonner.
 - Bruger den branding, du angiver på dashboardets side **Branding**: sidetitel, beskrivelse, logo, tema, favicon.
 - Lader hver besøgende skifte mellem det lyse og det mørke dashboard med en sol- eller måneknap i dets værktøjslinje; [Tema](#tema) forklarer hvordan.
 

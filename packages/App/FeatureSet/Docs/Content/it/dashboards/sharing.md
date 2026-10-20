@@ -47,6 +47,7 @@ Una dashboard pubblica:
 
 - Si apre sempre in lettura. I visitatori non possono modificarla, e non vedono mai i suoi controlli di modifica.
 - Include le variabili che hai aggiunto. I visitatori scelgono dagli stessi selettori che usa il tuo team, e possono cambiare l'intervallo di tempo, ingrandire, attivare l'aggiornamento automatico e passare a schermo intero. Si apre sull'intervallo di tempo e sull'aggiornamento automatico predefiniti della dashboard, e il browser di ogni visitatore ricorda le sue scelte.
+- Permette ai visitatori di [ordinare i suoi elenchi e le sue tabelle](/docs/dashboards/widgets#ordinare-elenchi-e-tabelle) facendo clic sull'intestazione di una colonna, come fa il tuo team. Il browser di ogni visitatore ricorda il suo ordinamento, e OneUptime ordina da sé l'intero elenco, sempre in base a una delle colonne del widget.
 - Usa il branding che imposti nella pagina **Branding** della dashboard: titolo della pagina, descrizione, logo, tema, favicon.
 - Permette a ogni visitatore di passare dalla dashboard chiara a quella scura, e viceversa, con un pulsante con il sole o la luna nella sua barra degli strumenti; [Tema](#tema) spiega come.
 

@@ -47,6 +47,7 @@ Et offentlig dashbord:
 
 - Åpnes alltid for lesing. Besøkende kan ikke redigere det og ser aldri redigeringskontrollene.
 - Inneholder variablene du har lagt til. Besøkende velger i de samme velgerne som teamet ditt bruker, og kan endre tidsintervallet, zoome, slå på automatisk oppdatering og gå til fullskjerm. Det åpnes med dashbordets standardtidsrom og automatiske standardoppdatering, og nettleseren til hver besøkende husker deres egne valg.
+- Lar besøkende [sortere listene og tabellene](/docs/dashboards/widgets#sortere-lister-og-tabeller) ved å klikke på en kolonneoverskrift, slik teamet ditt gjør. Nettleseren til hver besøkende husker deres egen sortering, og OneUptime sorterer selv hele listen, alltid bare etter en av widgetens egne kolonner.
 - Bruker merkevaren du angir på dashbordets side **Merkevare**: sidetittel, beskrivelse, logo, tema, favicon.
 - Lar hver besøkende bytte mellom det lyse og det mørke dashbordet med en sol- eller måneknapp i verktøylinjen; [Tema](#tema) forklarer hvordan.
 
