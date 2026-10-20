@@ -10,6 +10,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import CopyableValueList from "Common/UI/Components/CopyableValueList/CopyableValueList";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
@@ -206,28 +207,28 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           <ConfirmModal
             title={`SSO Configuration`}
             description={
-              <div>
-                <div>
-                  <div className="font-semibold">
-                    {translator.translateText("Identifier (Entity ID):")}
-                  </div>
-
-                  <div>{`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`}</div>
-                  <br />
-                </div>
-                <div>
-                  <div className="font-semibold">
-                    {translator.translateText(
-                      "Reply URL (Assertion Consumer Service URL):",
-                    )}
-                  </div>
-                  <div>
-                    {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
-                      `/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`,
-                    )}`}
-                  </div>
-                  <br />
-                </div>
+              <div className="space-y-4">
+                {/*
+                 * The two values to paste into the identity provider, each
+                 * with a button that copies it.
+                 */}
+                <CopyableValueList
+                  dataTestId="sso-config-values"
+                  values={[
+                    {
+                      label: "Identifier (Entity ID):",
+                      value: `${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`,
+                    },
+                    {
+                      label: "Reply URL (Assertion Consumer Service URL):",
+                      value: `${URL.fromString(
+                        IDENTITY_URL.toString(),
+                      ).addRoute(
+                        `/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`,
+                      )}`,
+                    },
+                  ]}
+                />
                 {!samlConfigTarget?.isEnabled && (
                   <div
                     className="text-sm text-gray-500"

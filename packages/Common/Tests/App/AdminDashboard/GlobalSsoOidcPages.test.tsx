@@ -1034,11 +1034,22 @@ describe("the Global SSO provider page", () => {
 
       await renderPage(PAGES[1]!);
 
+      // Each name heads its value without the colon its key ends with.
       expect(
-        printedValueFor("ACS URL (Assertion Consumer Service / Reply URL):"),
+        printedValueFor("ACS URL (Assertion Consumer Service / Reply URL)"),
       ).toBe(SAML_ACS_URL);
       // The Entity ID has no /identity prefix; the ACS URL does.
-      expect(printedValueFor("Issuer (Entity ID):")).toBe(SAML_ISSUER_URL);
+      expect(printedValueFor("Issuer (Entity ID)")).toBe(SAML_ISSUER_URL);
+
+      // Each value is pasted into the identity provider: each copies.
+      expect(
+        screen.getByRole("button", {
+          name: "Copy ACS URL (Assertion Consumer Service / Reply URL)",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Copy Issuer (Entity ID)" }),
+      ).toBeInTheDocument();
 
       const testCard: HTMLElement = screen
         .getByText("Test this SSO provider")
@@ -1154,9 +1165,16 @@ describe("the Global OIDC provider page", () => {
 
       await renderPage(PAGES[3]!);
 
-      expect(printedValueFor("Redirect URI (Callback URL):")).toBe(
+      expect(printedValueFor("Redirect URI (Callback URL)")).toBe(
         OIDC_REDIRECT_URI,
       );
+
+      // It is pasted into the identity provider: it copies.
+      expect(
+        screen.getByRole("button", {
+          name: "Copy Redirect URI (Callback URL)",
+        }),
+      ).toBeInTheDocument();
 
       const testCard: HTMLElement = screen
         .getByText("Test this OIDC provider")

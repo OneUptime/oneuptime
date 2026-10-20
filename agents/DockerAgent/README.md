@@ -63,11 +63,15 @@ docker compose up -d
 
 ## Collected Metrics
 
-- **CPU**: `container.cpu.usage.total`, `container.cpu.percent`, `container.cpu.throttling_data.throttled_time`
+- **CPU**: `container.cpu.usage.total`, `container.cpu.utilization`, `container.cpu.throttling_data.throttled_time`
 - **Memory**: `container.memory.usage.total`, `container.memory.usage.limit`, `container.memory.percent`
 - **Network**: `container.network.io.usage.rx_bytes`, `container.network.io.usage.tx_bytes`
 - **Block I/O**: `container.blockio.io_service_bytes_recursive.read`, `container.blockio.io_service_bytes_recursive.write`
 - **Container Info**: `container.uptime`, `container.restarts`, `container.pids.count`
+
+`container.cpu.utilization` is the CPU a container used over each 30-second collection interval, as a percent of one core: 100% is one full core, so a container busy on two cores reads 200%, as `docker stats` counts it. The agent works it out from `container.cpu.usage.total` (see `otel-collector-config.yaml`), so the two always agree. A container has no CPU percent at its first reading after the agent or the container starts. The `docker_stats` receiver's own CPU percent is turned off: since collector 0.150.0 it comes from a single stats reading and is a flat line that does not follow the load.
+
+`container.memory.percent` is the memory in use as a percent of the container's memory limit, or of the host's memory when it has none, sent with the unit `%`.
 
 ## Collected Logs
 

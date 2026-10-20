@@ -101,7 +101,7 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 De twee percentagesjablonen gebruiken **Gemiddelde**: hun metrieken zijn al percentages per container, dus het gemiddelde van een minuut is de aanhoudende waarde. Het aantal herstarts en het aantal processen gebruiken **Maximum**, waarbij één meting over de drempel het signaal is.
 
 > [!NOTE]
-> `container.cpu.utilization` is het getal dat `podman stats` toont: 100% is één volledige CPU-kern, niet de hele CPU-toewijzing van de container. Een container die meerdere kernen krijgt, zit gezond ruim boven 100; verhoog daarvoor de drempel.
+> `container.cpu.utilization` is het getal dat `podman stats` toont, gemiddeld over het interval van 30 seconden van de agent: 100% is één volledige CPU-kern, niet de hele CPU-toewijzing van de container. Een container die meerdere kernen krijgt, zit gezond ruim boven 100; verhoog daarvoor de drempel.
 
 > [!NOTE]
 > `container.restarts` is een lopend totaal dat Podman bijhoudt, geen aantal herstarts in het venster. **High Container Restart Count** blijft daarom open totdat de container opnieuw wordt gemaakt, wat de telling terugzet.
@@ -119,7 +119,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats`, gericht op de Docker
 
 | Metriek | Beschrijving |
 | --- | --- |
-| `container.cpu.utilization` | CPU-gebruik van de container, waarbij 100% één volledige CPU-kern is. |
+| `container.cpu.utilization` | CPU-gebruik van de container per interval van 30 seconden, waarbij 100% één volledige CPU-kern is. |
 | `container.cpu.usage.total` | Gebruikte CPU-tijd sinds de container startte, in nanoseconden. Een teller over de hele levensduur. |
 | `container.cpu.throttling_data.throttled_time` | Nanoseconden dat de container door zijn CPU-limiet is afgeknepen. Een teller over de hele levensduur. |
 | `container.cpu.throttling_data.throttled_periods` | Perioden van afknijpen sinds de container startte. Een teller over de hele levensduur. |
@@ -285,7 +285,7 @@ OneUptime herkent een host aan `resource.host.name`, die de agent uit `PODMAN_HO
 :::
 
 :::details Een CPU-waarschuwing gaat nooit af
-Groepeer de query op `resource.container.name`, zoals het sjabloon **High Container CPU Usage** doet, zodat elke container afzonderlijk wordt beoordeeld. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig.
+Groepeer de query op `resource.container.name`, zoals het sjabloon **High Container CPU Usage** doet, zodat elke container afzonderlijk wordt beoordeeld. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig. Is de CPU van een container een vlakke lijn, wat de belasting ook is, dan draait er een oudere agent op de host: [upgrade die](/docs/telemetry/podman-host#de-agent-upgraden).
 :::
 
 :::details De waarschuwing voor het aantal herstarts herstelt nooit

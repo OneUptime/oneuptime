@@ -7,6 +7,7 @@ import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Card from "Common/UI/Components/Card/Card";
+import CopyableValueList from "Common/UI/Components/CopyableValueList/CopyableValueList";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -211,10 +212,16 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
             "Register this redirect URI (callback URL) with your OIDC identity provider."
           }
         >
-          <div className="text-sm text-gray-700">
-            <div className="font-semibold">Redirect URI (Callback URL):</div>
-            <div className="break-all font-mono">{redirectURI}</div>
-          </div>
+          {/* The value, with a button that copies it. */}
+          <CopyableValueList
+            dataTestId="global-oidc-values"
+            values={[
+              {
+                label: "Redirect URI (Callback URL):",
+                value: redirectURI,
+              },
+            ]}
+          />
         </Card>
 
         {/*

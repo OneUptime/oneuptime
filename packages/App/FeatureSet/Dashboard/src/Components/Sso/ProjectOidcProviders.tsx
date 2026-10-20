@@ -6,6 +6,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import CopyableValueList from "Common/UI/Components/CopyableValueList/CopyableValueList";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getOidcProviderFormFields } from "Common/UI/Components/Sso/OidcProviderFormFields";
@@ -200,25 +201,26 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`OIDC Configuration`}
           description={
-            <div>
-              <div>
-                <div className="font-semibold">
-                  {translator.translateText("Redirect URI (Callback URL):")}
-                </div>
-                <div>
-                  {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
-                    `/oidc-callback/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`,
-                  )}`}
-                </div>
-                <br />
-              </div>
-              <div>
-                <div className="font-semibold">
-                  {translator.translateText("Identifier (audience):")}
-                </div>
-                <div>{`${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`}</div>
-                <br />
-              </div>
+            <div className="space-y-4">
+              {/*
+               * The values to give the identity provider, each with a
+               * button that copies it.
+               */}
+              <CopyableValueList
+                dataTestId="oidc-config-values"
+                values={[
+                  {
+                    label: "Redirect URI (Callback URL):",
+                    value: `${URL.fromString(IDENTITY_URL.toString()).addRoute(
+                      `/oidc-callback/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`,
+                    )}`,
+                  },
+                  {
+                    label: "Identifier (audience):",
+                    value: `${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`,
+                  },
+                ]}
+              />
               <div className="text-sm text-gray-500">
                 {translator.translateText(
                   "Configure your identity provider to redirect to the URL above after authentication. The client must be permitted to use the authorization code flow with PKCE.",

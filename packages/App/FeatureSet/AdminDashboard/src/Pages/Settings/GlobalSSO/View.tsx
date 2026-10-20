@@ -7,6 +7,7 @@ import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Card from "Common/UI/Components/Card/Card";
+import CopyableValueList from "Common/UI/Components/CopyableValueList/CopyableValueList";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -198,18 +199,20 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
             "Paste these values into your SAML identity provider (Okta, Microsoft Entra ID, OneLogin, JumpCloud and more)."
           }
         >
-          <div className="space-y-3 text-sm text-gray-700">
-            <div>
-              <div className="font-semibold">
-                ACS URL (Assertion Consumer Service / Reply URL):
-              </div>
-              <div className="break-all font-mono">{acsURL}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Issuer (Entity ID):</div>
-              <div className="break-all font-mono">{issuerURL}</div>
-            </div>
-          </div>
+          {/* Each value, with a button that copies it. */}
+          <CopyableValueList
+            dataTestId="global-sso-values"
+            values={[
+              {
+                label: "ACS URL (Assertion Consumer Service / Reply URL):",
+                value: acsURL,
+              },
+              {
+                label: "Issuer (Entity ID):",
+                value: issuerURL,
+              },
+            ]}
+          />
         </Card>
 
         {/*

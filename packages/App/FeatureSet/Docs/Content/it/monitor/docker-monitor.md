@@ -100,7 +100,7 @@ Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condi
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
 
 > [!NOTE]
-> `container.cpu.utilization` è il numero stampato da `docker stats`: il 100% è un core di CPU intero, non l'intero host, quindi un container che usa due core segna 200. Su un host multicore la soglia di 80 è un budget di CPU, non una quota della macchina.
+> `container.cpu.utilization` è il numero stampato da `docker stats`, in media sull'intervallo di 30 secondi dell'agente: il 100% è un core di CPU intero, non l'intero host, quindi un container che usa due core segna 200. Su un host multicore la soglia di 80 è un budget di CPU, non una quota della macchina.
 
 > [!NOTE]
 > `container.memory.percent` divide per il limite di memoria del container quando è impostato, e altrimenti per la memoria totale **dell'host**. Verificate se il container è stato avviato con `--memory` prima di trattare un superamento come un'imminente terminazione per memoria esaurita.
@@ -119,7 +119,7 @@ L'agente usa il receiver OpenTelemetry `docker_stats` sul socket di Docker, ogni
 
 | Metrica | Descrizione |
 | --- | --- |
-| `container.cpu.utilization` | Utilizzo della CPU, dove il 100% è un core di CPU intero (la colonna CPU% di `docker stats`). |
+| `container.cpu.utilization` | CPU usata in ogni intervallo di 30 secondi, dove il 100% è un core di CPU intero (la colonna CPU% di `docker stats`). |
 | `container.cpu.usage.total` | Tempo di CPU usato dall'avvio del container, in nanosecondi. Un contatore sull'intera vita. |
 | `container.cpu.throttling_data.throttled_time` | Nanosecondi in cui il container è stato limitato dal suo limite di CPU dall'avvio. Un contatore sull'intera vita. |
 | `container.cpu.throttling_data.throttled_periods` | Periodi di limitazione dall'avvio del container. Un contatore sull'intera vita. |
@@ -282,7 +282,7 @@ OneUptime identifica un host tramite `resource.host.name`, che l'agente prende d
 :::
 
 :::details Un avviso sulla CPU non scatta mai
-Raggruppate la query per `resource.container.name` e aggregate con **Massimo**, come fa il modello **High Container CPU Usage**. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta.
+Raggruppate la query per `resource.container.name` e aggregate con **Massimo**, come fa il modello **High Container CPU Usage**. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta. Se la CPU di un container è una linea piatta qualunque sia il suo carico, sull'host gira un agente più vecchio: [aggiornatelo](/docs/telemetry/docker-host#aggiornare-lagent).
 :::
 
 :::details Il modello per i loop di riavvio o per la limitazione ha smesso di avvisare

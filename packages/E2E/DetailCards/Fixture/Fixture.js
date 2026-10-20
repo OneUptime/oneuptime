@@ -355,6 +355,11 @@ const RECORDS = {
   Team: () => [makeTeam()],
   StatusPage: () => STATUS_PAGES,
   StatusPageCustomField: () => STATUS_PAGE_CUSTOM_FIELDS,
+  /*
+   * The Overview's Status Page Link card lists the page's custom domains
+   * before its OneUptime address: this page has none.
+   */
+  StatusPageDomain: () => [],
   // A team page's Custom Fields card: none defined, so it hides itself.
   TeamCustomField: () => [],
   Label: () => LABELS,

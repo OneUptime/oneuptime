@@ -285,6 +285,10 @@ Agenten må kjøre som root for å lese `/var/run/docker.sock`. Sjekk at `--user
 3. Sjekk at inntaksnøkkelen er gyldig og ikke har utløpt.
 :::
 
+:::details Container-CPU er en flat linje
+En eldre agent sender mottakeren `docker_stats` sitt eget CPU-tall. Siden collector 0.150.0 regner mottakeren det ut fra én enkelt statistikkmåling: all CPU en container har brukt siden den startet, delt på all CPU verten har brukt siden den startet opp. Linjen beveger seg knapt og følger ikke belastningen, mens `container.cpu.usage.total` gjør det. [Oppgrader agenten](#oppgradere-agenten): fra sin andre måling sender den CPU-en hver container brukte i hvert intervall på 30 sekunder. Målinger som allerede er lagret, forblir som de var.
+:::
+
 :::details Metrikker kommer inn, men ingen containerlogger
 Containerne dine bruker mest sannsynlig en annen loggdriver enn `json-file`. Sjekk hvilke filer agenten overvåker, og hvilken driver en container bruker:
 

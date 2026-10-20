@@ -4134,7 +4134,9 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
    *   NO docker_swarm_* / pve_* metrics, so the charts average those
    *   per-container metrics across every task that reports them — a
    *   useful temperature signal for a wall dashboard. container.cpu
-   *   .utilization is a ratio (0..1 per core); the chart leaves it raw.
+   *   .utilization is a percent of one core (100% is one full core, the
+   *   CPU used over each 30-second interval) recorded with the unit "%",
+   *   so the chart draws it as stored.
    *
    * - The cluster variable scopes telemetry by the only resource
    *   attribute the agent stamps: resource.docker.swarm.cluster.name.

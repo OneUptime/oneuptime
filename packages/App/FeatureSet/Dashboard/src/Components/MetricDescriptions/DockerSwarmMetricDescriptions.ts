@@ -33,9 +33,11 @@
  *    task on a node without the agent has no CPU/memory reading.
  *  - The list views hide readings older than 15 minutes (METRIC_STALE_MS);
  *    the task detail page does not.
- *  - The task CPU texts deliberately name no scale: the mirrored value is
- *    multiplied by 100 at ingest (cpuValueToPercent) although docker_stats
- *    already reports a percent. See the bug report on this change.
+ *  - Task CPU is a percent of one core, 100% being one full core: docker_stats
+ *    reports a percent (declared with the unit "1", which ingest reads as
+ *    "%" - ContainerStatsPercentUnit) and the row mirrors it as it is. It
+ *    used to be multiplied by 100 a second time, and these texts named no
+ *    scale until it was not.
  *
  * Change the fetch, change the words.
  */
@@ -100,13 +102,13 @@ export const DOCKER_SWARM_METRIC_DESCRIPTIONS: Record<
     "Copies of the service running now, out of the copies it should be running - 2/3 means one is missing. A global service wants one copy on every eligible node.",
   ),
   taskCpu: translationKey(
-    "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds). Unlike the Tasks list, this page keeps showing that reading even when it is more than 15 minutes old.",
+    "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Unlike the Tasks list, this page keeps showing that reading even when it is more than 15 minutes old.",
   ),
   taskMemory: translationKey(
     "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently. This page keeps showing that reading even when it is more than 15 minutes old.",
   ),
   taskCpuColumn: translationKey(
-    "CPU used by each task's container at the OneUptime agent's latest reading, shown only when that reading is under 15 minutes old. Tasks on nodes where the agent does not run show N/A.",
+    "CPU used by each task's container at the OneUptime agent's latest reading (100% is one full CPU core), shown only when that reading is under 15 minutes old. Tasks on nodes where the agent does not run show N/A.",
   ),
   taskMemoryColumn: translationKey(
     "Memory used by each task's container at the agent's latest reading, not counting file cache the system has not used recently, shown only when that reading is under 15 minutes old. Tasks on nodes without the agent show N/A.",
