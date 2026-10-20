@@ -22,8 +22,10 @@
  *   ?fail=     comma separated: spans, perf-fix, suggestion, metrics,
  *              span-detail
  *   ?ai=       on (default) | off - the project's Enable AI switch
- *   ?repo=     connected (default) | none - a repository the GitHub App
- *              can open a pull request in
+ *   ?repo=     connected (default) | none | gone - a repository the
+ *              GitHub App can open a pull request in; gone: connected when
+ *              the page loads, disconnected before the click (the create
+ *              route refuses it, and the suggestion route then says SetUp)
  *   ?fix=      none (default) | running - a performance fix already queued
  *              or running for this trace
  *
@@ -89,6 +91,9 @@ const failures = new Set(
 const holdSpans = params.get("hold") === "spans";
 const isAiOn = params.get("ai") !== "off";
 const hasRepository = params.get("repo") !== "none";
+const repositoryGoesAway = params.get("repo") === "gone";
+// Set once the create route has refused a click for want of a repository.
+let isRepositoryGone = false;
 const isFixRunning = params.get("fix") === "running";
 
 const MINUTE = 60 * 1000;
@@ -1158,7 +1163,7 @@ async function handleApi(method, options) {
       findings,
       isAiEnabled: isAiOn,
       hasActiveFix: isFixRunning,
-      hasConnectedRepository: hasRepository,
+      hasConnectedRepository: hasRepository && !isRepositoryGone,
     });
     return ok(
       tracePerformanceFixSuggestionToJSON({
@@ -1170,7 +1175,10 @@ async function handleApi(method, options) {
   }
 
   if (url.includes("/ai-investigation/create-performance-fix-task")) {
-    if (failures.has("perf-fix")) {
+    if (repositoryGoesAway) {
+      isRepositoryGone = true;
+    }
+    if (failures.has("perf-fix") || repositoryGoesAway) {
       throw new HTTPErrorResponse(
         400,
         {

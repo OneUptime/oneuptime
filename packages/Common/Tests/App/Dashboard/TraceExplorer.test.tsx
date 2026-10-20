@@ -2072,6 +2072,11 @@ function nPlusOneFinding(overrides: JSONObject = {}): JSONObject {
 function answerSuggestion(
   suggestion: JSONObject | Error,
   onCreate?: () => Promise<unknown>,
+  /*
+   * What the suggestion route answers once a click was refused: the
+   * server's offer as it stands after the refusal.
+   */
+  afterRefusal?: JSONObject,
 ): void {
   postMock.mockImplementation(async (args: PostArgs) => {
     const url: string = args.url.toString();
@@ -2079,7 +2084,12 @@ function answerSuggestion(
       if (suggestion instanceof Error) {
         throw suggestion;
       }
-      return new HTTPResponse(200, suggestion, {});
+      const isAfterRefusal: boolean = postsTo(CREATE_PATH).length > 0;
+      return new HTTPResponse(
+        200,
+        isAfterRefusal && afterRefusal ? afterRefusal : suggestion,
+        {},
+      );
     }
     if (url.includes(CREATE_PATH)) {
       if (onCreate) {
@@ -2246,6 +2256,115 @@ describe("performance fix with AI", () => {
     expect(
       within(strip).getByTestId("trace-fix-performance"),
     ).not.toBeDisabled();
+    // The refusal asked again what the server offers: still the fix.
+    expect(postsTo(SUGGESTION_PATH)).toHaveLength(2);
+  });
+
+  test("refused because someone else's fix is already on its way: links to it, no error", async () => {
+    answerSuggestion(
+      { offer: "Act", finding: nPlusOneFinding() },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "A performance fix task is already queued or running for this trace. Track its progress in Code.",
+          },
+          {},
+        );
+      },
+      { offer: "InProgress", finding: nPlusOneFinding(), aiRunId: RUN_ID },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-progress"),
+    ).toHaveTextContent("OneUptime AI is working on a fix. View task progress");
+    expect(strip).toHaveAttribute("data-offer", "InProgress");
+    expect(
+      within(strip)
+        .getByText("View task progress")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-error"),
+    ).toBeNull();
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("refused because the repository was disconnected: the quiet Connect GitHub link takes the button's place", async () => {
+    answerSuggestion(
+      { offer: "Act", finding: nPlusOneFinding() },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+          },
+          {},
+        );
+      },
+      { offer: "SetUp", finding: nPlusOneFinding() },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-connect"),
+    ).toHaveTextContent("Connect GitHub to fix this with AI");
+    expect(strip).toHaveAttribute("data-offer", "SetUp");
+    // Said in the strip's own words, not the server's.
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-error"),
+    ).toBeNull();
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("refused, and the offer cannot be read again: the reason stays beside the fix", async () => {
+    let suggestionReads: number = 0;
+    postMock.mockImplementation(async (args: PostArgs) => {
+      const url: string = args.url.toString();
+      if (url.includes(SUGGESTION_PATH)) {
+        suggestionReads += 1;
+        if (suggestionReads > 1) {
+          throw new Error("network down");
+        }
+        return new HTTPResponse(
+          200,
+          { offer: "Act", finding: nPlusOneFinding() },
+          {},
+        );
+      }
+      if (url.includes(CREATE_PATH)) {
+        throw new HTTPErrorResponse(
+          400,
+          { message: "This project used today's AI fix runs." },
+          {},
+        );
+      }
+      return new HTTPResponse(200, { sampleCount: 0, items: [] }, {});
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-error"),
+    ).toHaveTextContent(
+      "Could not start the fix: This project used today's AI fix runs.",
+    );
+    expect(strip).toHaveAttribute("data-offer", "Act");
+    expect(
+      within(strip).getByTestId("trace-fix-performance"),
+    ).not.toBeDisabled();
   });
 
   test("no repository connected: a quiet link to connect GitHub instead of the fix", async () => {
@@ -2345,21 +2464,170 @@ describe("performance fix with AI", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("'Show them' keeps the finding's spans in view in the waterfall and selects the first", async () => {
-    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
-    await renderTrace();
-    const strip: HTMLElement = await suggestionStrip();
+  /*
+   * "Show them" puts the finding's spans in view: their shared name as the
+   * search, nothing else hiding them, the waterfall scrolled to. The first
+   * is opened where the span panel sits beside the waterfall (xl); on a
+   * narrower screen the panel is a sheet over the page, so spans the search
+   * marks are left in view instead of covered.
+   */
+  describe("'Show them'", () => {
+    const XL_QUERY: string = "(min-width: 1280px)";
+    let restoreWidth: () => void = () => {};
+    let scrollIntoView: Mock<(options?: ScrollIntoViewOptions) => void>;
 
-    fireEvent.click(within(strip).getByTestId("trace-performance-show-spans"));
+    function screenIs(width: "wide" | "narrow"): void {
+      const window_: { matchMedia?: unknown } = window as unknown as {
+        matchMedia?: unknown;
+      };
+      const original: unknown = window_.matchMedia;
+      window_.matchMedia = (query: string): MediaQueryList => {
+        return {
+          matches: query === XL_QUERY && width === "wide",
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => {
+            return false;
+          },
+        } as MediaQueryList;
+      };
+      restoreWidth = (): void => {
+        window_.matchMedia = original;
+      };
+    }
 
-    expect(
-      within(strip).getByTestId("trace-performance-show-spans"),
-    ).toHaveTextContent("Show them");
-    expect((screen.getByTestId("trace-search") as HTMLInputElement).value).toBe(
-      "SELECT products WHERE id = $1",
-    );
-    await waitFor(() => {
-      expect(row("query-0")).toHaveAttribute("aria-selected", "true");
+    beforeEach(() => {
+      scrollIntoView = jest.fn<(options?: ScrollIntoViewOptions) => void>();
+      Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+        configurable: true,
+        writable: true,
+        value: scrollIntoView,
+      });
+    });
+
+    afterEach(() => {
+      restoreWidth();
+      restoreWidth = () => {};
+      delete (HTMLElement.prototype as unknown as { scrollIntoView?: unknown })
+        .scrollIntoView;
+    });
+
+    function scrolledTo(): Array<unknown> {
+      return scrollIntoView.mock.contexts;
+    }
+
+    test("on a wide screen: marks them all, opens the first beside the waterfall and scrolls to it", async () => {
+      screenIs("wide");
+      answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      ).toHaveTextContent("Show them");
+      expect(
+        (screen.getByTestId("trace-search") as HTMLInputElement).value,
+      ).toBe("SELECT products WHERE id = $1");
+      await waitFor(() => {
+        expect(row("query-0")).toHaveAttribute("aria-selected", "true");
+      });
+      expect(screen.getByTestId("trace-span-panel")).toBeInTheDocument();
+      expect(scrolledTo()).toEqual([screen.getByTestId("trace-spans")]);
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+
+    test("on a narrower screen: marks them all and scrolls to them, with no sheet over them", async () => {
+      screenIs("narrow");
+      answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(
+        (screen.getByTestId("trace-search") as HTMLInputElement).value,
+      ).toBe("SELECT products WHERE id = $1");
+      expect(screen.getByTestId("trace-search-count")).toHaveTextContent(
+        "12 matches",
+      );
+      expect(scrolledTo()).toEqual([screen.getByTestId("trace-spans")]);
+      expect(row("query-0")).toHaveAttribute("aria-selected", "false");
+      expect(screen.queryByTestId("trace-span-panel")).not.toBeInTheDocument();
+    });
+
+    test("a single slow span is opened on any screen ('Show it'), and a search typed before is cleared", async () => {
+      screenIs("narrow");
+      answerSuggestion({
+        offer: "Act",
+        finding: nPlusOneFinding({
+          findingType: "DominantSpan",
+          spanCount: 1,
+          combinedDurationMs: 900,
+          percentOfTrace: 90,
+          implicatedSpans: [
+            { spanId: "update", name: "UPDATE stock", durationMs: 900 },
+          ],
+        }),
+      });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+      fireEvent.change(screen.getByTestId("trace-search"), {
+        target: { value: "auth" },
+      });
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      ).toHaveTextContent("Show it");
+      expect(
+        (screen.getByTestId("trace-search") as HTMLInputElement).value,
+      ).toBe("");
+      await waitFor(() => {
+        expect(row("update")).toHaveAttribute("aria-selected", "true");
+      });
+      expect(scrolledTo()).toEqual([screen.getByTestId("trace-spans")]);
+    });
+
+    test("lets go of the filters that would hide them: errors only and a service", async () => {
+      screenIs("wide");
+      answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+      await renderTrace();
+      const strip: HTMLElement = await suggestionStrip();
+      fireEvent.click(screen.getByTestId("trace-errors-only"));
+      fireEvent.click(screen.getAllByTestId("trace-service-chip")[1]!);
+      expect(row("query-0")).toBeNull();
+
+      fireEvent.click(
+        within(strip).getByTestId("trace-performance-show-spans"),
+      );
+
+      expect(screen.getByTestId("trace-errors-only")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      for (const chip of screen.getAllByTestId("trace-service-chip")) {
+        expect(chip).toHaveAttribute("aria-pressed", "false");
+      }
+      await waitFor(() => {
+        expect(row("query-0")).toHaveAttribute("aria-selected", "true");
+      });
+      expect(row("query-11")).not.toBeNull();
     });
   });
 

@@ -50,12 +50,22 @@ export interface ComponentProps {
 
 const MS_TO_NANOSECONDS: number = 1_000_000;
 
+// The strip's links: quiet, and plain to see under the keyboard.
+const LINK_CLASS_NAME: string =
+  "rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
 /*
  * "Fix performance with AI", only on a trace worth fixing, saying what it
  * found: the slow pattern in plain words, what it costs, and the one next
  * step - the fix, a quiet link to connect a repository, or a link to the
  * fix already on its way. A trace with nothing worth fixing shows nothing
  * at all (the header does not draw this component).
+ *
+ * The clock marks a finding about time; the bolt stays the AI fix's own.
+ * The next step sits under the words, lined up with them, and beside them
+ * from lg up - where the words keep room enough for a sentence a line, in
+ * every language. On a phone the button spans the strip, as the header's
+ * own buttons do: beside the clock its label would break in two.
  */
 const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -75,6 +85,10 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
     Boolean(props.taskRoute) &&
     (suggestion.offer === SuggestionOffer.InProgress ||
       suggestion.offer === SuggestionOffer.Act);
+
+  // The next step is the fix button (not a link or a line of status).
+  const isFixButton: boolean =
+    !isWorking && suggestion.offer !== SuggestionOffer.SetUp;
 
   const name: (text: string) => ReactNode = (text: string): ReactNode => {
     return (
@@ -111,31 +125,48 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
 
   const getAction: () => ReactElement = (): ReactElement => {
     if (isWorking && props.taskRoute) {
+      /*
+       * A live dot, as Code draws a task that is working, then where to
+       * follow it - in one piece where there is room, free to wrap on a
+       * phone, whose longest translations would run out of the strip. A
+       * status, so a screen reader says it when it takes the pressed
+       * button's place.
+       */
       return (
-        <p
-          className="text-sm text-gray-700"
+        <div
+          className="flex items-start gap-2 text-sm text-gray-700"
+          role="status"
           data-testid="trace-fix-performance-progress"
         >
-          {translator.translateText(AI_IS_WORKING_ON_A_FIX)}{" "}
-          <Link
-            className="font-medium text-indigo-600 underline hover:text-indigo-700"
-            to={props.taskRoute}
+          <span
+            className="relative mt-1.5 flex h-2 w-2 flex-none"
+            aria-hidden="true"
           >
-            {translator.translateText(VIEW_TASK_PROGRESS)}
-          </Link>
-        </p>
+            <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75 motion-safe:animate-ping" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+          </span>
+          <p>
+            {translator.translateText(AI_IS_WORKING_ON_A_FIX)}{" "}
+            <Link
+              className={`sm:whitespace-nowrap ${LINK_CLASS_NAME}`}
+              to={props.taskRoute}
+            >
+              {translator.translateText(VIEW_TASK_PROGRESS)}
+            </Link>
+          </p>
+        </div>
       );
     }
 
     if (suggestion.offer === SuggestionOffer.SetUp) {
       return (
         <Link
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+          className={`inline-flex items-start gap-1.5 text-sm ${LINK_CLASS_NAME}`}
           to={props.connectRepositoryRoute}
           dataTestId="trace-fix-performance-connect"
         >
-          <Icon icon={IconProp.Code} className="h-4 w-4" />
-          {translator.translateText(CONNECT_REPOSITORY_TO_FIX)}
+          <Icon icon={IconProp.GitHub} className="mt-0.5 h-4 w-4 flex-none" />
+          <span>{translator.translateText(CONNECT_REPOSITORY_TO_FIX)}</span>
         </Link>
       );
     }
@@ -157,13 +188,13 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 md:flex-row md:items-center md:justify-between"
+      className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6"
       data-testid="trace-performance-suggestion"
       data-offer={suggestion.offer}
     >
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <Icon
-          icon={IconProp.Bolt}
+          icon={IconProp.Clock}
           className="mt-0.5 h-5 w-5 flex-none text-amber-600"
         />
         <div className="min-w-0 flex-1">
@@ -179,7 +210,7 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
           </p>
           {words.query && (
             <code
-              className="mt-1 block truncate font-mono text-xs text-gray-600"
+              className="mt-1 line-clamp-2 font-mono text-xs text-gray-600 [overflow-wrap:anywhere]"
               title={words.query}
               data-testid="trace-performance-query"
             >
@@ -196,7 +227,7 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
                 {" "}
                 <button
                   type="button"
-                  className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className={LINK_CLASS_NAME}
                   data-testid="trace-performance-show-spans"
                   onClick={props.onShowSpans}
                 >
@@ -222,7 +253,16 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
           )}
         </div>
       </div>
-      <div className="flex-none md:pl-4">{getAction()}</div>
+      {/*
+       * Lined up with the words (the clock and its gap are 2rem), except a
+       * phone's full-width button.
+       */}
+      <div
+        className={`flex-none lg:max-w-sm lg:pl-0 ${isFixButton ? "sm:pl-8" : "pl-8"}`}
+        data-testid="trace-performance-action"
+      >
+        {getAction()}
+      </div>
     </div>
   );
 };

@@ -134,6 +134,28 @@ export const PERFORMANCE_FIX_SUGGESTION_PATH: string =
 export const CREATE_PERFORMANCE_FIX_TASK_PATH: string =
   "/ai-investigation/create-performance-fix-task";
 
+/*
+ * Where the span panel sits beside the waterfall (its xl: classes below);
+ * narrower, it is a sheet over the page.
+ */
+export const SPAN_PANEL_BESIDE_WATERFALL_QUERY: string = "(min-width: 1280px)";
+
+function isSpanPanelBesideWaterfall(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia(SPAN_PANEL_BESIDE_WATERFALL_QUERY).matches
+  );
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 function isEditableTarget(target: EventTarget | null): boolean {
   const element: HTMLElement | null = target as HTMLElement | null;
   if (!element || !element.tagName) {
@@ -189,6 +211,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const loadedSpanCountRef: React.MutableRefObject<number> = useRef<number>(0);
   const searchInputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
+  const spansSectionRef: React.RefObject<HTMLElement> =
+    useRef<HTMLElement>(null);
 
   loadedSpanCountRef.current = spans.length;
 
@@ -218,45 +242,51 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
    * It runs the span-tree analysis the create route gates on (with the
    * spans' attributes, which this page does not load), so the page offers
    * exactly what the server would accept. A project with AI switched off is
-   * not asked at all, and any failure means no suggestion: the button is an
-   * offer, never something the page depends on.
+   * not asked at all. Throws when the answer cannot be read.
+   */
+  const fetchPerfFixSuggestion: () => Promise<TracePerformanceFixSuggestion> =
+    useCallback(async (): Promise<TracePerformanceFixSuggestion> => {
+      if (!isAiOfferedForSelectedProject()) {
+        return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+      }
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(
+            APP_API_URL.toString() + PERFORMANCE_FIX_SUGGESTION_PATH,
+          ),
+          data: {
+            traceId: traceId,
+          },
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      return response instanceof HTTPErrorResponse
+        ? NO_TRACE_PERFORMANCE_FIX_SUGGESTION
+        : parseTracePerformanceFixSuggestion(response.data);
+    }, [traceId]);
+
+  /*
+   * Any failure means no suggestion: the button is an offer, never
+   * something the page depends on.
    */
   const loadPerfFixSuggestion: (generation: number) => Promise<void> =
     useCallback(
       async (generation: number): Promise<void> => {
+        let suggestion: TracePerformanceFixSuggestion =
+          NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+
         try {
-          if (!isAiOfferedForSelectedProject()) {
-            setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
-            return;
-          }
-
-          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.post<JSONObject>({
-              url: URL.fromString(
-                APP_API_URL.toString() + PERFORMANCE_FIX_SUGGESTION_PATH,
-              ),
-              data: {
-                traceId: traceId,
-              },
-              headers: ModelAPI.getCommonHeaders(),
-            });
-
-          if (generation !== loadGenerationRef.current) {
-            return;
-          }
-
-          setPerfFixSuggestion(
-            response instanceof HTTPErrorResponse
-              ? NO_TRACE_PERFORMANCE_FIX_SUGGESTION
-              : parseTracePerformanceFixSuggestion(response.data),
-          );
+          suggestion = await fetchPerfFixSuggestion();
         } catch {
-          if (generation === loadGenerationRef.current) {
-            setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
-          }
+          suggestion = NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+        }
+
+        if (generation === loadGenerationRef.current) {
+          setPerfFixSuggestion(suggestion);
         }
       },
-      [traceId],
+      [fetchPerfFixSuggestion],
     );
 
   const loadTrace: (mode: "initial" | "refresh") => Promise<void> = useCallback(
@@ -423,11 +453,17 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
    * Human-triggered FixPerformance: the server re-runs the same gates the
    * suggestion passed (AI on, a finding worth fixing, a repository, no fix
    * already on its way) and enqueues an AI task that opens a
-   * performance-fix pull request. A refusal - a repository disconnected
-   * since the page loaded, say - is shown beside the finding.
+   * performance-fix pull request.
+   *
+   * A refusal asks the server again what it offers now. A fix someone else
+   * started meanwhile, or a repository disconnected since the page loaded,
+   * is then said in the strip's own words - a link to that fix, or to
+   * connect GitHub - rather than as the server's refusal. Anything else
+   * keeps the button and shows the reason beside the finding.
    */
   const createPerformanceFixTask: () => Promise<void> =
     async (): Promise<void> => {
+      const generation: number = loadGenerationRef.current;
       setIsCreatingPerfFixTask(true);
       setPerfFixError(null);
 
@@ -453,7 +489,26 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
         setPerfFixRunId(aiRunId || null);
       } catch (err) {
-        setPerfFixError(API.getFriendlyMessage(err));
+        const reason: string = API.getFriendlyMessage(err);
+        let latest: TracePerformanceFixSuggestion | null = null;
+
+        try {
+          latest = await fetchPerfFixSuggestion();
+        } catch {
+          latest = null;
+        }
+
+        // A refresh since the click has read the offer again itself.
+        if (
+          generation === loadGenerationRef.current &&
+          latest &&
+          (latest.offer === SuggestionOffer.InProgress ||
+            latest.offer === SuggestionOffer.SetUp)
+        ) {
+          setPerfFixSuggestion(latest);
+        } else {
+          setPerfFixError(reason);
+        }
       }
 
       setIsCreatingPerfFixTask(false);
@@ -763,8 +818,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     : null;
 
   /*
-   * "Show them": the finding's spans in the waterfall - kept in view by
-   * their shared name when they have one, the first of them selected.
+   * "Show them": the finding's spans in the waterfall, scrolled into view.
+   * Nothing on the page may hide them: their shared name becomes the search
+   * (marking every one of them), or the search is cleared when they have
+   * none, and the errors-only and service filters are let go. The first of
+   * them is opened - beside the waterfall where the panel fits. On a
+   * narrower screen the panel is a sheet over the page, so spans the search
+   * already marks are left in view rather than covered; one span, or spans
+   * with no name to search by, are pointed at by opening the first.
    */
   const perfFixSpanIds: Array<string> = perfFixSuggestion.finding
     ? getShownSpanIds(perfFixSuggestion.finding, (spanId: string): boolean => {
@@ -776,11 +837,27 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     perfFixSuggestion.finding && perfFixSpanIds.length > 0
       ? (): void => {
           const search: string = getShownSpanSearch(perfFixSuggestion.finding!);
-          if (search) {
-            setSearchText(search);
-          }
+          setSearchText(search);
+          setErrorsOnly(false);
+          setSelectedServiceIds([]);
           setViewMode("waterfall");
-          selectSpan(perfFixSpanIds[0]!);
+          setCollapsedIds((previous: Set<string>) => {
+            return revealSpans(tree, previous, perfFixSpanIds);
+          });
+
+          if (!search || isSpanPanelBesideWaterfall()) {
+            selectSpan(perfFixSpanIds[0]!);
+          } else {
+            setSelectedSpanId(null);
+          }
+
+          const section: HTMLElement | null = spansSectionRef.current;
+          if (section && typeof section.scrollIntoView === "function") {
+            section.scrollIntoView({
+              behavior: prefersReducedMotion() ? "auto" : "smooth",
+              block: "start",
+            });
+          }
         }
       : undefined;
 
@@ -1020,7 +1097,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
       {tree.spanCount > 0 && (
         <section
-          className="rounded-xl border border-gray-200 bg-white shadow-sm"
+          ref={spansSectionRef}
+          className="scroll-mt-4 rounded-xl border border-gray-200 bg-white shadow-sm"
           data-testid="trace-spans"
         >
           <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
@@ -1035,7 +1113,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex min-w-0 flex-1 items-center sm:flex-none">
+              {/*
+               * A row of its own on a phone: beside the two filters it was
+               * squeezed to nothing, its match count and arrows spilling
+               * out of the card.
+               */}
+              <div className="relative flex w-full min-w-0 items-center sm:w-auto sm:flex-none">
                 <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center">
                   <Icon
                     icon={IconProp.Search}

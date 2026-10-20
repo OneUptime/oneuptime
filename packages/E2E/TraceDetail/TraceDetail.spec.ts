@@ -1061,6 +1061,52 @@ test.describe("fix performance with AI", () => {
     await expect(page.getByTestId("trace-fix-performance")).toBeEnabled();
   });
 
+  test("a repository disconnected since the page loaded: the refused click becomes the quiet Connect GitHub link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "repo=gone");
+
+    await page.getByTestId("trace-fix-performance").click();
+
+    const strip: Locator = page.getByTestId("trace-performance-suggestion");
+    await expect(strip).toHaveAttribute("data-offer", "SetUp");
+    await expect(
+      strip.getByRole("link", { name: "Connect GitHub to fix this with AI" }),
+    ).toBeVisible();
+    // Said in the strip's own words: no refusal, no button.
+    await expect(page.getByTestId("trace-fix-performance-error")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("trace-fix-performance")).toHaveCount(0);
+    // The page asked again what the server offers after the refusal.
+    expect(suggestionRequests(await fixture(page))).toHaveLength(2);
+  });
+
+  test("on a wide screen the fix sits beside the finding, at the strip's right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
+    const strip: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-performance-suggestion")
+      .boundingBox())!;
+    const finding: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-performance-finding")
+      .boundingBox())!;
+    const button: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-fix-performance")
+      .boundingBox())!;
+
+    expect(button.x).toBeGreaterThan(finding.x + finding.width);
+    expect(strip.x + strip.width - (button.x + button.width)).toBeLessThan(24);
+    // One line for the finding: the words keep their room.
+    expect(finding.height).toBeLessThan(30);
+  });
+
   test("no repository connected: a quiet link to connect GitHub in place of the button", async ({
     page,
   }: {
@@ -1158,6 +1204,70 @@ test.describe("fix performance with AI", () => {
     );
     await expect(row(page, first)).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("trace-span-panel")).toBeVisible();
+    // The waterfall is scrolled to, its toolbar at the top of the window.
+    await expect
+      .poll(async () => {
+        return (await page.getByTestId("trace-spans").boundingBox())!.y;
+      })
+      .toBeLessThan(40);
+  });
+});
+
+/*
+ * Between a phone and lg the finding keeps the strip's width: the next step
+ * sits under its words, lined up with them, rather than beside them
+ * squeezing the words into a narrow column.
+ */
+test.describe("tablet", () => {
+  test.use({ viewport: { width: 900, height: 1000 } });
+
+  test("the next step sits under the finding, lined up with its words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "repo=none");
+
+    const finding: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-performance-finding")
+      .boundingBox())!;
+    const connect: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-fix-performance-connect")
+      .boundingBox())!;
+
+    expect(Math.abs(connect.x - finding.x)).toBeLessThanOrEqual(1);
+    expect(connect.y).toBeGreaterThan(finding.y + finding.height - 1);
+    expect(finding.height).toBeLessThan(30);
+    await page.getByTestId("trace-performance-suggestion").screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "tablet-performance-suggestion-connect-synthetic.png",
+      ),
+    });
+  });
+
+  test("while AI works on the fix, its line sits under the finding too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report", "fix=running");
+
+    const finding: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-performance-finding")
+      .boundingBox())!;
+    const progress: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-fix-performance-progress")
+      .boundingBox())!;
+
+    expect(Math.abs(progress.x - finding.x)).toBeLessThanOrEqual(1);
+    expect(progress.y).toBeGreaterThan(finding.y + finding.height - 1);
+    // "View task progress" is one link on one line.
+    const link: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-fix-performance-progress")
+      .getByRole("link", { name: "View task progress" })
+      .boundingBox())!;
+    expect(link.height).toBeLessThan(26);
   });
 });
 
@@ -1256,14 +1366,91 @@ test.describe("phone", () => {
       (await page.getByTestId("trace-fix-performance").boundingBox())!;
     const finding: { x: number; y: number; width: number; height: number } =
       (await page.getByTestId("trace-performance-finding").boundingBox())!;
-    // Below the words, as wide as the strip's content.
+    /*
+     * Below the words, as wide as the strip's content, its label on one
+     * line: beside the clock it would break in two.
+     */
     expect(button.y).toBeGreaterThan(finding.y + finding.height - 1);
     expect(button.width).toBeGreaterThan(stripBox.width - 40);
+    expect(button.height).toBeLessThan(44);
     await strip.screenshot({
       path: path.join(
         SCREENSHOTS,
         "phone-performance-suggestion-synthetic.png",
       ),
     });
+  });
+
+  test("the Connect GitHub link and the working line keep in line with the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, testId] of [
+      ["repo=none", "trace-fix-performance-connect"],
+      ["fix=running", "trace-fix-performance-progress"],
+    ]) {
+      await openLoaded(page, "report", query);
+
+      const finding: { x: number; y: number; width: number; height: number } = (await page
+        .getByTestId("trace-performance-finding")
+        .boundingBox())!;
+      const action: { x: number; y: number; width: number; height: number } = (await page.getByTestId(testId!).boundingBox())!;
+
+      expect(Math.abs(action.x - finding.x)).toBeLessThanOrEqual(1);
+      expect(action.y).toBeGreaterThan(finding.y + finding.height - 1);
+    }
+  });
+
+  test("'Show them' puts the 40 queries in view with no sheet over them, the search on a row of its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "report");
+
+    await page.getByTestId("trace-performance-show-spans").click();
+
+    await expect(page.getByTestId("trace-search")).toHaveValue(
+      "SELECT line_items WHERE invoice_id = $1",
+    );
+    await expect(page.getByTestId("trace-search-count")).toHaveText(
+      "40 matches",
+    );
+    // The sheet would cover the very spans asked for.
+    await expect(page.getByTestId("trace-span-panel")).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return (await page.getByTestId("trace-spans").boundingBox())!.y;
+      })
+      .toBeLessThan(40);
+
+    const first: string = await spanId(
+      page,
+      "SELECT line_items WHERE invoice_id = $1",
+    );
+    await expect(row(page, first)).toBeInViewport();
+
+    // The search has the row to itself, its count and arrows inside it.
+    const section: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-spans")
+      .boundingBox())!;
+    const search: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-search")
+      .boundingBox())!;
+    const count: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-search-count")
+      .boundingBox())!;
+    expect(search.x).toBeGreaterThanOrEqual(section.x);
+    expect(search.width).toBeGreaterThan(section.width - 40);
+    expect(count.x).toBeGreaterThan(search.x);
+    expect(count.x + count.width).toBeLessThanOrEqual(
+      search.x + search.width,
+    );
+    const errorsOnly: { x: number; y: number; width: number; height: number } = (await page
+      .getByTestId("trace-errors-only")
+      .boundingBox())!;
+    expect(errorsOnly.y).toBeGreaterThanOrEqual(search.y + search.height);
+    await screenshot(page, "phone-show-them", false);
   });
 });

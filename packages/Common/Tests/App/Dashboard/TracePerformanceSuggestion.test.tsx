@@ -430,6 +430,82 @@ describe("what each offer draws", () => {
     expect(screen.queryByTestId("trace-performance-show-spans")).toBeNull();
   });
 
+  /*
+   * jsdom draws no layout, so these hold the classes the offline browser
+   * suite (packages/E2E/TraceDetail) measures: the next step lines up with
+   * the words (2rem: the clock and its gap) except a phone's fix button,
+   * which spans the strip as the header's own buttons do, and sits beside
+   * the words only from lg up.
+   */
+  test("the next step lines up with the words; only the fix button spans the strip on a phone", () => {
+    const classesOf: (offer: SuggestionOffer, taskRoute?: Route) => string[] =
+      (offer: SuggestionOffer, taskRoute?: Route): string[] => {
+        renderStrip({
+          suggestion: suggestion(offer),
+          taskRoute: taskRoute ?? null,
+        });
+        const classes: string[] = screen
+          .getByTestId("trace-performance-action")
+          .className.split(" ");
+        cleanup();
+        return classes;
+      };
+
+    const fix: string[] = classesOf(SuggestionOffer.Act);
+    expect(fix).toEqual(expect.arrayContaining(["sm:pl-8", "lg:pl-0"]));
+    expect(fix).not.toContain("pl-8");
+
+    for (const words of [
+      classesOf(SuggestionOffer.SetUp),
+      classesOf(SuggestionOffer.InProgress, TASK_ROUTE),
+      classesOf(SuggestionOffer.Act, TASK_ROUTE),
+    ]) {
+      expect(words).toEqual(expect.arrayContaining(["pl-8", "lg:pl-0"]));
+    }
+
+    renderStrip({ suggestion: suggestion(SuggestionOffer.Act) });
+    expect(screen.getByTestId("trace-performance-suggestion")).toHaveClass(
+      "flex-col",
+      "lg:flex-row",
+    );
+  });
+
+  test("the query shows on up to two lines, and whole on hover", () => {
+    renderStrip({ suggestion: suggestion(SuggestionOffer.Act) });
+
+    const query: HTMLElement = screen.getByTestId("trace-performance-query");
+    expect(query).toHaveClass("line-clamp-2");
+    expect(query).not.toHaveClass("truncate");
+    expect(query).toHaveAttribute(
+      "title",
+      "SELECT * FROM products WHERE id = ?",
+    );
+  });
+
+  test("while AI works on the fix: a live status with a dot, and the link to it in one piece where there is room", () => {
+    renderStrip({
+      suggestion: suggestion(SuggestionOffer.InProgress),
+      taskRoute: TASK_ROUTE,
+    });
+
+    const progress: HTMLElement = screen.getByTestId(
+      "trace-fix-performance-progress",
+    );
+    // Said by a screen reader when it takes the pressed button's place.
+    expect(progress).toHaveAttribute("role", "status");
+    const dot: Element | null = progress.querySelector(
+      '[aria-hidden="true"]',
+    );
+    expect(dot).not.toBeNull();
+    expect(dot!.querySelector(".motion-safe\\:animate-ping")).not.toBeNull();
+    const link: HTMLElement = screen.getByText("View task progress").closest(
+      "a",
+    )!;
+    expect(link).toHaveClass("sm:whitespace-nowrap");
+    // A phone may wrap it: its longest translations would run out of the strip.
+    expect(link).not.toHaveClass("whitespace-nowrap");
+  });
+
   test("one slow call names the call in the headline", () => {
     renderStrip({
       suggestion: suggestion(SuggestionOffer.Act, {
