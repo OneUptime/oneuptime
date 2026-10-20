@@ -2,6 +2,7 @@ import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import {
   AddAutoRemediationRuleRunner1804500000000,
   DROP_MOVED_COMMAND_RUNNER_ROWS,
+  DROP_RUNBOOKS_THE_FORM_HID,
   PICK_THE_ONE_COMMAND_RUNNER,
   RESTORE_COMMAND_RUNNER_ROWS,
   WRITE_OUT_ANY_RUNNER_RULES,
@@ -25,7 +26,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * rules were simplified that composes commands and names no Command Runners
  * ran on any Runner of its project with "Runs AI Remediation Commands" on,
  * so those Runners are written out, and one that then names exactly one
- * picks it as its Runner. No Runner's switch is changed. In a migration of
+ * picks it as its Runner. A OneUptime AI rule drops the runbooks its form
+ * held out of sight: they now say which runbooks OneUptime AI may start
+ * without asking. No Runner's switch is changed. In a migration of
  * its own, outside a transaction, the column's index and its foreign key to
  * "Runner" are built online.
  *
@@ -150,7 +153,7 @@ describe("the auto remediation rule Runner migrations", () => {
     }
   });
 
-  test("add the rule's Runner, write out the Runners a command rule ran on, pick the one, and move it", async () => {
+  test("add the rule's Runner, write out the Runners a command rule ran on, pick the one, move it, and drop the runbooks a OneUptime AI rule held out of sight", async () => {
     expect(
       await record(new AddAutoRemediationRuleRunner1804500000000(), "up"),
     ).toEqual([
@@ -158,6 +161,7 @@ describe("the auto remediation rule Runner migrations", () => {
       WRITE_OUT_ANY_RUNNER_RULES,
       PICK_THE_ONE_COMMAND_RUNNER,
       DROP_MOVED_COMMAND_RUNNER_ROWS,
+      DROP_RUNBOOKS_THE_FORM_HID,
     ]);
   });
 
@@ -254,6 +258,20 @@ describe("the auto remediation rule Runner migrations", () => {
       expect(DROP_MOVED_COMMAND_RUNNER_ROWS).toBe(
         `DELETE FROM "AutoRemediationRuleRunner" AS named USING "AutoRemediationRule" AS rule WHERE named."autoRemediationRuleId" = rule."_id" AND named."runnerId" = rule."runnerId" AND rule."aiComposesCommands" = true`,
       );
+    });
+
+    test("drops the runbooks only of OneUptime AI rules: never a rule that runs them every time, nor one saved before rules were simplified", () => {
+      expect(DROP_RUNBOOKS_THE_FORM_HID).toBe(
+        `DELETE FROM "AutoRemediationRuleRunbook" AS named USING "AutoRemediationRule" AS rule WHERE named."autoRemediationRuleId" = rule."_id" AND rule."remediationAction" <> 'Runbooks' AND rule."aiComposesCommands" IS NOT TRUE AND rule."aiSelectsRunbook" IS NOT TRUE`,
+      );
+    });
+
+    test("leaves Runners and the rules themselves alone when it drops those runbooks", () => {
+      expect(DROP_RUNBOOKS_THE_FORM_HID).not.toContain(`"Runner"`);
+      expect(DROP_RUNBOOKS_THE_FORM_HID).not.toContain(
+        `DELETE FROM "AutoRemediationRule" `,
+      );
+      expect(DROP_RUNBOOKS_THE_FORM_HID).not.toContain("UPDATE");
     });
 
     test("down's data step: every rule's Runner, as one of its Command Runners", () => {

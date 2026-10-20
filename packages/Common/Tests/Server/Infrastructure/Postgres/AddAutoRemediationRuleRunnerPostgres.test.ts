@@ -19,7 +19,8 @@ import { DataSource, QueryRunner } from "typeorm";
  * normal database credentials; AUTO_REMEDIATION_RULE_RUNNER_TEST_DATABASE_
  * HOST / _PORT / _NAME point it at a database other than the local
  * development one. The database must already be migrated: Runner,
- * AutoRemediationRule and AutoRemediationRuleRunner are cloned from public
+ * AutoRemediationRule, AutoRemediationRuleRunner and
+ * AutoRemediationRuleRunbook are cloned from public
  * into a uniquely named schema (so the source's rows are never read or
  * modified) and put back as they were before the migration - the rule
  * without its Runner - and both migrations' up() then run on seeded rows,
@@ -38,7 +39,11 @@ import { DataSource, QueryRunner } from "typeorm";
  *     one naming a Runner with the switch off, or another project's, keeps
  *     what it names;
  *   - a rule that runs its runbooks every time, a OneUptime AI rule, and a
- *     deleted rule are not touched;
+ *     deleted rule are not given a Runner;
+ *   - a OneUptime AI rule drops the runbooks its form held out of sight -
+ *     they would now say which runbooks OneUptime AI may start without
+ *     asking - while a rule that runs its runbooks every time, one where
+ *     AI picks a runbook and one where AI composes commands keep theirs;
  *   - no Runner's switch changes;
  *   - the rule's Runner is indexed, its key to "Runner" is validated -
  *     running the online migration again changes nothing - and a deleted
@@ -96,6 +101,12 @@ const AGENT_SEEDS: Array<AgentSeed> = [
     name: "kubernetes-agent-prod",
     hostInfo: null,
   },
+];
+
+// The rule's join tables: rows of two ids, without an _id of their own.
+const JOIN_TABLES: Array<string> = [
+  "AutoRemediationRuleRunner",
+  "AutoRemediationRuleRunbook",
 ];
 
 describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
@@ -156,7 +167,7 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
     }
 
     const row: Record<string, unknown> = {
-      ...(table === "AutoRemediationRuleRunner"
+      ...(JOIN_TABLES.includes(table)
         ? {}
         : { _id: ObjectID.generate().toString() }),
       ...values,
@@ -229,9 +240,13 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
     values: {
       projectId: string;
       aiComposesCommands?: boolean;
+      aiSelectsRunbook?: boolean;
+      executionMode?: string;
       remediationAction?: string;
       // Labels of the Runners the rule names as its Command Runners.
       commandRunners?: Array<string>;
+      // Labels of the runbooks the rule holds.
+      runbooks?: Array<string>;
       deletedAt?: Date;
     },
   ): Promise<void> {
@@ -241,7 +256,11 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
         projectId: values.projectId,
         name: label,
         aiComposesCommands: values.aiComposesCommands === true,
+        aiSelectsRunbook: values.aiSelectsRunbook === true,
         remediationAction: values.remediationAction || "OneUptimeAI",
+        ...(values.executionMode
+          ? { executionMode: values.executionMode }
+          : {}),
         ...(values.deletedAt ? { deletedAt: values.deletedAt } : {}),
       }),
     );
@@ -250,6 +269,18 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
       await insertRow("AutoRemediationRuleRunner", {
         autoRemediationRuleId: id(label),
         runnerId: id(runner),
+      });
+    }
+
+    for (const runbook of values.runbooks || []) {
+      if (!ids.has(runbook)) {
+        // The table is cloned without its keys: a runbook is an id here.
+        ids.set(runbook, ObjectID.generate().toString());
+      }
+
+      await insertRow("AutoRemediationRuleRunbook", {
+        autoRemediationRuleId: id(label),
+        runbookId: id(runbook),
       });
     }
   }
@@ -261,6 +292,18 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
     );
     expect(rows).toHaveLength(1);
     return rows[0]!.runnerId;
+  }
+
+  async function runbooksOf(rule: string): Promise<Array<string>> {
+    const rows: Array<{ runbookId: string }> = await database.query(
+      `SELECT "runbookId" FROM "${schema}"."AutoRemediationRuleRunbook" WHERE "autoRemediationRuleId" = $1`,
+      [id(rule)],
+    );
+    return rows
+      .map((row: { runbookId: string }): string => {
+        return row.runbookId;
+      })
+      .sort();
   }
 
   async function commandRunnersOf(rule: string): Promise<Array<string>> {
@@ -285,6 +328,7 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
   const projectOther: string = ObjectID.generate().toString();
   const projectElsewhere: string = ObjectID.generate().toString();
   const projectUntouched: string = ObjectID.generate().toString();
+  const projectRunbooks: string = ObjectID.generate().toString();
 
   beforeAll(async () => {
     database = new DataSource({
@@ -313,6 +357,7 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
       "Runner",
       "AutoRemediationRule",
       "AutoRemediationRuleRunner",
+      "AutoRemediationRuleRunbook",
     ]) {
       await database.query(
         `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
@@ -440,6 +485,46 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
       deletedAt: new Date(),
     });
 
+    /*
+     * Rules holding runbooks. The form hid a OneUptime AI rule's runbooks,
+     * so those it holds were never chosen for it - fixing without asking,
+     * or asking first.
+     */
+    await seedRule("runbooks: OneUptime AI, without asking", {
+      projectId: projectRunbooks,
+      executionMode: "FullAuto",
+      runbooks: ["runbook: restart", "runbook: failover"],
+    });
+    await seedRule("runbooks: OneUptime AI, asking first", {
+      projectId: projectRunbooks,
+      executionMode: "Suggest",
+      runbooks: ["runbook: restart"],
+    });
+    await seedRule("runbooks: OneUptime AI, deleted", {
+      projectId: projectRunbooks,
+      runbooks: ["runbook: restart"],
+      deletedAt: new Date(),
+    });
+    await seedRule("runbooks: every time", {
+      projectId: projectRunbooks,
+      executionMode: "FullAuto",
+      remediationAction: "Runbooks",
+      runbooks: ["runbook: restart", "runbook: failover"],
+    });
+    await seedRule("runbooks: AI picks one", {
+      projectId: projectRunbooks,
+      aiSelectsRunbook: true,
+      runbooks: ["runbook: restart"],
+    });
+    await seedRule("runbooks: AI composes commands", {
+      projectId: projectRunbooks,
+      aiComposesCommands: true,
+      runbooks: ["runbook: failover"],
+    });
+    await seedRule("runbooks: OneUptime AI naming none", {
+      projectId: projectRunbooks,
+    });
+
     for (const seed of AGENT_SEEDS) {
       const projectId: string = ObjectID.generate().toString();
 
@@ -513,7 +598,7 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
     );
   });
 
-  test("rules that run their runbooks, OneUptime AI rules and deleted rules are not touched", async () => {
+  test("rules that run their runbooks, OneUptime AI rules and deleted rules get no Runner and no Command Runners", async () => {
     for (const rule of [
       "untouched: runs its runbooks every time",
       "untouched: OneUptime AI",
@@ -528,6 +613,66 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
         rule,
         named: [],
       });
+    }
+  });
+
+  test("a OneUptime AI rule drops the runbooks its form held out of sight, asking first or not, deleted or not", async () => {
+    for (const rule of [
+      "runbooks: OneUptime AI, without asking",
+      "runbooks: OneUptime AI, asking first",
+      "runbooks: OneUptime AI, deleted",
+      "runbooks: OneUptime AI naming none",
+    ]) {
+      expect({ rule, runbooks: await runbooksOf(rule) }).toEqual({
+        rule,
+        runbooks: [],
+      });
+    }
+  });
+
+  test("a rule that runs its runbooks every time keeps every one of them", async () => {
+    expect(await runbooksOf("runbooks: every time")).toEqual(
+      sorted("runbook: restart", "runbook: failover"),
+    );
+  });
+
+  test("rules saved before rules were simplified keep their runbooks: AI picking one, and AI composing commands", async () => {
+    expect(await runbooksOf("runbooks: AI picks one")).toEqual(
+      sorted("runbook: restart"),
+    );
+    expect(await runbooksOf("runbooks: AI composes commands")).toEqual(
+      sorted("runbook: failover"),
+    );
+  });
+
+  test("dropping a rule's hidden runbooks leaves the rule itself, and its Runner, as they were", async () => {
+    const rows: Array<{ name: string; runnerId: string | null }> =
+      await database.query(
+        `SELECT "name", "runnerId" FROM "${schema}"."AutoRemediationRule" WHERE "projectId" = $1`,
+        [projectRunbooks],
+      );
+
+    // Sorted here: the database's collation orders names its own way.
+    expect(
+      rows
+        .map((row: { name: string; runnerId: string | null }): string => {
+          return row.name;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        "runbooks: AI composes commands",
+        "runbooks: AI picks one",
+        "runbooks: OneUptime AI naming none",
+        "runbooks: OneUptime AI, asking first",
+        "runbooks: OneUptime AI, deleted",
+        "runbooks: OneUptime AI, without asking",
+        "runbooks: every time",
+      ].sort(),
+    );
+
+    for (const row of rows) {
+      expect(row.runnerId).toBeNull();
     }
   });
 

@@ -27,7 +27,20 @@ import { IS_KUBERNETES_AGENT_RUNNER_SQL } from "./1796800000000-FoldAiSwitchesIn
  *     where they are; it runs on all of them, as before.
  *
  * A Runbooks rule ("Run them every time") and a rule that has OneUptime AI
- * fix through the AI agents are not touched: what they do needs no Runner.
+ * fix through the AI agents need no Runner, so none is picked for them.
+ *
+ * A OneUptime AI rule's runbooks now say which runbooks OneUptime AI may
+ * run for it - and, for a rule that fixes without asking, start with nobody
+ * approving them. Such a rule saved before could hold runbooks it never
+ * used: the form hid the Runbooks field unless Fix With was Runbooks, and
+ * still saved what the field held, so a rule switched from Runbooks to
+ * OneUptime AI kept them, out of sight. Left in place, they would start
+ * runbooks nobody chose for it, so they are dropped
+ * (DROP_RUNBOOKS_THE_FORM_HID): the rule reads as every OneUptime AI rule
+ * that names none - any runbook, always proposed for approval. A rule that
+ * runs its runbooks every time, and a rule saved before rules were
+ * simplified (AI picks a runbook, AI composes commands), keep theirs: they
+ * use them as they did.
  *
  * No Runner's switch is changed. A Runner a Kubernetes cluster's AI
  * settings bind with the switch off keeps it off - someone turned it off
@@ -47,6 +60,14 @@ export const WRITE_OUT_ANY_RUNNER_RULES: string = `INSERT INTO "AutoRemediationR
 export const PICK_THE_ONE_COMMAND_RUNNER: string = `UPDATE "AutoRemediationRule" AS rule SET "runnerId" = "single"."runnerId" FROM (SELECT named."autoRemediationRuleId", (array_agg(named."runnerId"))[1] AS "runnerId" FROM "AutoRemediationRuleRunner" AS named GROUP BY named."autoRemediationRuleId" HAVING count(*) = 1) AS "single", "Runner" AS runner WHERE rule."_id" = "single"."autoRemediationRuleId" AND runner."_id" = "single"."runnerId" AND runner."projectId" = rule."projectId" AND rule."runnerId" IS NULL AND ${IS_COMMAND_RULE_SQL} AND ${IS_COMMAND_RUNNER_SQL}`;
 
 export const DROP_MOVED_COMMAND_RUNNER_ROWS: string = `DELETE FROM "AutoRemediationRuleRunner" AS named USING "AutoRemediationRule" AS rule WHERE named."autoRemediationRuleId" = rule."_id" AND named."runnerId" = rule."runnerId" AND rule."aiComposesCommands" = true`;
+
+/*
+ * The runbooks a OneUptime AI rule held out of sight (see above): every
+ * rule that neither runs its runbooks every time nor was saved before rules
+ * were simplified. down() cannot bring them back, and needs not: nothing
+ * read them.
+ */
+export const DROP_RUNBOOKS_THE_FORM_HID: string = `DELETE FROM "AutoRemediationRuleRunbook" AS named USING "AutoRemediationRule" AS rule WHERE named."autoRemediationRuleId" = rule."_id" AND rule."remediationAction" <> 'Runbooks' AND rule."aiComposesCommands" IS NOT TRUE AND rule."aiSelectsRunbook" IS NOT TRUE`;
 
 /*
  * `down` hands every rule's Runner back to its Command Runners, so a
@@ -77,6 +98,8 @@ export class AddAutoRemediationRuleRunner1804500000000
     await queryRunner.query(PICK_THE_ONE_COMMAND_RUNNER);
 
     await queryRunner.query(DROP_MOVED_COMMAND_RUNNER_ROWS);
+
+    await queryRunner.query(DROP_RUNBOOKS_THE_FORM_HID);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
