@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered | `resolved` | Det exakta värde som markerar att problemet är över |
 | Max incidents per request | `100` (standard) | Säkerhetstak så att ett fält med många värden inte kan öppna ett obegränsat antal incidenter |
 
+Grupperingen hör till det kriterium där den är påslagen. Monitorns andra kriterier grupperar inte: när ett av dem matchar en förfrågan öppnar det sin incident och sitt larm som det skulle göra på en monitor där inget kriterium grupperar.
+
 ### Syntax för sökvägar
 
-Sökvägar måste börja med det bokstavliga prefixet `requestBody.`. En sökväg utan det — `alerts[*].labels.alertname` — matchar ingenting, utan att säga till. Omslaget `{{ }}` är valfritt: `requestBody.status` och `{{requestBody.status}}` beter sig likadant.
+Sökvägar måste börja med det bokstavliga prefixet `requestBody.`. En sökväg utan det — `alerts[*].labels.alertname` — hittar inget värde i någon förfrågan. Omslaget `{{ }}` är valfritt: `requestBody.status` och `{{requestBody.status}}` beter sig likadant.
 
 - `[*]` breder ut sig över en matris — en incident per **distinkt** värde. Två element som ger samma värde slås ihop till en incident, och den incidentens tillstånd (aktivt/löst) tas från det **första** matchande elementet. **Bara den första `[*]` i en sökväg är ett jokertecken**; `requestBody.groups[*].alerts[*].name` matchar ingenting.
 - `[0]` och `[last]` väljer ett enda element och får komma efter en `[*]`.
 - Objekt- och matrisvärden, tomma strängar och null-värden hoppas över. `0` och `false` är giltiga nycklar.
 - Kroppen måste vara ett JSON-objekt; en nyttolast vars översta nivå är en matris grupperas inte.
+
+### Förfrågningar utan fältet
+
+En förfrågan som matchar ett grupperat kriterium men saknar värde på dess sökväg — fältet saknas eller är tomt, innehåller ett objekt eller en lista, eller kroppen är inte ett JSON-objekt — öppnar ändå kriteriets incident och larm: en för hela monitorn, som kriteriet skulle göra utan gruppering. Detsamma gör ett grupperat kriterium som matchar för att förfrågningarna slutade komma. En titel som nämner grupperingsvariabeln, som `{{alertname}}`, visar den som den är skriven, eftersom det inte finns något värde att sätta in.
+
+Den incidenten löses, om **Lös incident automatiskt** är påslaget, när en senare förfrågan utan fältet meddelar att problemet är över, eller när en senare förfrågan matchar ett annat kriterium. Ett sådant meddelande öppnar inget nytt.
+
+När vissa element i en matris har ett värde och andra inte, öppnar varje värde sin egen incident, och elementen utan värde öppnar ingenting själva.
+
+Kortet **Monitor-sammanfattning** på monitorns **Översikt** visar vad varje förfrågan gjorde, även när ett kriterium hanterade den för hela monitorn eller inte öppnade något nytt.
 
 ### Lösning sker utifrån händelser
 
@@ -306,8 +318,11 @@ En webhook beskriver bara det som finns i den nyttolasten, så OneUptime löser 
 > [!NOTE]
 > När en monitor tar emot förfrågningar snabbare än OneUptime utvärderar dem utvärderar OneUptime den nyaste och hoppar över dem däremellan, så en skur av webhooks kan lämna ett aktivt eller ett löst larm outvärderat. På en självhostad server gör `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljö att varje förfrågan utvärderas för sig.
 
+> [!NOTE]
+> Om **Field that signals recovery** innehåller `[*]` men **Open a separate incident for each…** inte gör det, är en förfrågan över först när varje element i matrisen säger det. Med `requestBody.alerts[*].status` och `resolved` löses en incident grupperad efter `requestBody.groupLabels.alertname` när alla larm i en förfrågan är lösta, och den förblir öppen så länge ett fortfarande är aktivt.
+
 > [!WARNING]
-> Om **Field that signals recovery** innehåller `[*]` men **Open a separate incident for each…** inte gör det, löses aldrig något. Använd antingen `[*]` i båda, eller i ingen av dem. En sökväg för lösning utan `[*]` utvärderas mot hela nyttolasten, så en `status: resolved` på nyttolastens nivå löser varje nyckel i den nyttolasten — även larm vars egen status fortfarande är aktiv.
+> En sökväg för lösning utan `[*]` utvärderas mot hela nyttolasten, så en `status: resolved` på nyttolastens nivå löser varje nyckel i den nyttolasten — även larm vars egen status fortfarande är aktiv.
 
 ### Namnge incidenterna
 

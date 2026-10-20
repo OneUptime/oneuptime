@@ -177,6 +177,7 @@ export default class MonitorIncident {
               createdCriteriaId:
                 openIncident.createdCriteriaId?.toString() || undefined,
               criteriaInstancesById: input.criteriaInstancesById,
+              seriesFingerprint: openIncident.seriesFingerprint || undefined,
             })
           : input.rootCause;
 
@@ -189,7 +190,7 @@ export default class MonitorIncident {
 
         input.evaluationSummary?.events.push({
           type: "incident-resolved",
-          title: `Incident resolved: ${openIncident.id?.toString()}`,
+          title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
           message:
             "Incident auto-resolved because autoresolve is enabled for this criteria.",
           relatedIncidentId: openIncident.id?.toString(),
@@ -227,7 +228,13 @@ export default class MonitorIncident {
    * absence: a webhook describes only the keys in its payload, so a
    * missing key is not a recovery signal. The caller passes exactly the
    * fingerprints the payload explicitly classified as resolved (see
-   * IncomingRequestIncidentGrouping.collectResolvedFingerprints).
+   * IncomingRequestIncidentGrouping.collectRecoveries).
+   *
+   * `wholeMonitor`, when given, resolves in the same pass the open
+   * incidents with no fingerprint of those grouped criteria: the incident a
+   * grouped criteria opens for the whole monitor, for a request that names
+   * no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria),
+   * once a request it matches reports its items without a value recovered.
    */
   @CaptureSpan()
   public static async resolveSeriesIncidentsByFingerprint(input: {
@@ -236,17 +243,28 @@ export default class MonitorIncident {
     rootCause: string;
     // What the evaluation summary says of each incident resolved here.
     resolvedMessage?: string | undefined;
+    wholeMonitor?:
+      | {
+          criteriaIds: Array<string>;
+          rootCause: string;
+        }
+      | undefined;
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<void> {
-    if (!input.fingerprints || input.fingerprints.length === 0) {
+    const fingerprintSet: Set<string> = new Set<string>(
+      input.fingerprints || [],
+    );
+    const wholeMonitorCriteriaIds: Set<string> = new Set<string>(
+      input.wholeMonitor?.criteriaIds || [],
+    );
+
+    if (fingerprintSet.size === 0 && wholeMonitorCriteriaIds.size === 0) {
       return;
     }
-
-    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
 
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
@@ -278,7 +296,16 @@ export default class MonitorIncident {
       const fingerprint: string | undefined =
         openIncident.seriesFingerprint || undefined;
 
-      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
+      const isRecoveredValue: boolean = Boolean(
+        fingerprint && fingerprintSet.has(fingerprint),
+      );
+      const isRecoveredWholeMonitor: boolean =
+        !fingerprint &&
+        wholeMonitorCriteriaIds.has(
+          openIncident.createdCriteriaId?.toString() || "",
+        );
+
+      if (!isRecoveredValue && !isRecoveredWholeMonitor) {
         continue;
       }
 
@@ -295,16 +322,21 @@ export default class MonitorIncident {
 
       await this.resolveOpenIncident({
         openIncident: openIncident,
-        rootCause: input.rootCause,
+        rootCause:
+          isRecoveredValue || !input.wholeMonitor
+            ? input.rootCause
+            : input.wholeMonitor.rootCause,
         dataToProcess: input.dataToProcess,
       });
 
       input.evaluationSummary?.events.push({
         type: "incident-resolved",
-        title: `Incident resolved: ${openIncident.id?.toString()}`,
+        title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
         message:
-          input.resolvedMessage ||
-          "Incident auto-resolved because the incoming payload reported this key as resolved.",
+          isRecoveredValue || !input.wholeMonitor
+            ? input.resolvedMessage ||
+              "Incident auto-resolved because the incoming payload reported this key as resolved."
+            : "Incident auto-resolved because a request with no value to group by reported recovered.",
         relatedIncidentId: openIncident.id?.toString(),
         relatedIncidentNumber: openIncident.incidentNumber,
         relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
@@ -523,9 +555,10 @@ export default class MonitorIncident {
     /*
      * `undefined` matchesPerSeries → legacy single-incident path. A
      * defined (even empty) array → per-series mode: iterate exactly the
-     * matches. An empty array therefore creates nothing — used by grouped
-     * incoming-request criteria on a payload with no firing key so they
-     * don't fall back to a single whole-monitor incident.
+     * matches. An empty array therefore creates nothing — used by a grouped
+     * incoming-request criteria on a request whose values all recovered, or
+     * that the background check re-read (IncomingRequestIncidentGrouping).
+     * One with nothing to group by acts for the whole monitor instead.
      */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
       input.matchesPerSeries !== undefined
