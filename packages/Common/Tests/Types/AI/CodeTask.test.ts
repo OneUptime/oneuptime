@@ -9,6 +9,7 @@ import {
   CodeTaskStateUtil,
   CodeTaskTitle,
   DEFAULT_CODE_TASK_LOG_WINDOW_IN_HOURS,
+  DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS,
 } from "../../../Types/AI/CodeTask";
 import CodeFixTaskType, {
   CodeFixContextKind,
@@ -564,5 +565,145 @@ describe("reading what outside people typed takes time in line with its length",
     ],
   ])("%s", (_name: string, read: () => unknown) => {
     expect(timed(read)).toBeLessThan(2000);
+  });
+});
+
+/*
+ * A function of a service's profile, as the Profiler's Fix with AI and
+ * Code's own dialog add it: the service and the function are needed; the
+ * file, the kind of profile and the window are optional - the last hour,
+ * day or week, or the start and end the Profiler was showing, at most a
+ * week long, with the window it was compared with.
+ */
+describe("a Profile in a request", () => {
+  test("a service and a function, the last hour by default", () => {
+    expect(
+      CodeTaskContextInputUtil.readItem({
+        type: "Profile",
+        serviceId: SERVICE_ID,
+        functionName: "parseOrder",
+      }),
+    ).toEqual({
+      type: CodeTaskContextType.Profile,
+      serviceId: SERVICE_ID,
+      functionName: "parseOrder",
+      hours: DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS,
+    });
+  });
+
+  test("its file, its kind and the window the Profiler was showing, with the one it was compared with", () => {
+    expect(
+      CodeTaskContextInputUtil.readItem({
+        type: "Profile",
+        serviceId: SERVICE_ID,
+        functionName: "parseOrder",
+        fileName: " src/orders/parse.ts ",
+        profileType: "memory",
+        startTime: "2026-10-20T10:00:00Z",
+        endTime: "2026-10-20T11:00:00Z",
+        beforeStartTime: "2026-10-20T09:00:00Z",
+        beforeEndTime: "2026-10-20T10:00:00Z",
+      }),
+    ).toEqual({
+      type: CodeTaskContextType.Profile,
+      serviceId: SERVICE_ID,
+      functionName: "parseOrder",
+      fileName: "src/orders/parse.ts",
+      profileType: "memory",
+      startTime: "2026-10-20T10:00:00.000Z",
+      endTime: "2026-10-20T11:00:00.000Z",
+      beforeStartTime: "2026-10-20T09:00:00.000Z",
+      beforeEndTime: "2026-10-20T10:00:00.000Z",
+    });
+  });
+
+  test("a day or a week back, from Code's dialog", () => {
+    for (const hours of CODE_TASK_LOG_WINDOWS_IN_HOURS) {
+      expect(
+        CodeTaskContextInputUtil.readItem({
+          type: "Profile",
+          serviceId: SERVICE_ID,
+          functionName: "parseOrder",
+          hours,
+        }),
+      ).toMatchObject({ hours });
+    }
+  });
+
+  test.each([
+    [
+      "no service",
+      { functionName: "parseOrder" },
+      "Pick the service to add.",
+    ],
+    [
+      "a service that is not an id",
+      { serviceId: "checkout", functionName: "parseOrder" },
+      "Pick the service to add.",
+    ],
+    [
+      "a window of two hours back",
+      { serviceId: SERVICE_ID, functionName: "parseOrder", hours: 2 },
+      "A profile can look back the last hour, day or week.",
+    ],
+    [
+      "a start with no end",
+      {
+        serviceId: SERVICE_ID,
+        functionName: "parseOrder",
+        startTime: "2026-10-20T10:00:00Z",
+      },
+      "A profile's time range needs a start and an end, as ISO timestamps.",
+    ],
+    [
+      "a window that ends before it starts",
+      {
+        serviceId: SERVICE_ID,
+        functionName: "parseOrder",
+        startTime: "2026-10-20T11:00:00Z",
+        endTime: "2026-10-20T10:00:00Z",
+      },
+      "A profile's time range must start before it ends.",
+    ],
+    [
+      "a window longer than the limit",
+      {
+        serviceId: SERVICE_ID,
+        functionName: "parseOrder",
+        startTime: "2026-10-01T00:00:00Z",
+        endTime: "2026-10-20T00:00:00Z",
+      },
+      `A profile's time range can be at most ${CODE_TASK_LIMITS.maxProfileWindowInDays} days long.`,
+    ],
+    [
+      "a kind of profile that is too long to be one",
+      {
+        serviceId: SERVICE_ID,
+        functionName: "parseOrder",
+        profileType: "x".repeat(CODE_TASK_LIMITS.maxProfileTypeLength + 1),
+      },
+      "That kind of profile is not one we know.",
+    ],
+  ])("%s is refused", (_name: string, entry: object, message: string) => {
+    expect(
+      refusal(() => {
+        return CodeTaskContextInputUtil.readItem({
+          type: "Profile",
+          ...entry,
+        });
+      }),
+    ).toBe(message);
+  });
+
+  test("a function with no name is refused", () => {
+    expect(
+      refusal(() => {
+        return CodeTaskContextInputUtil.readItem({
+          type: "Profile",
+          serviceId: SERVICE_ID,
+          functionName: "  ",
+        });
+      }),
+    ).toContain("function name");
   });
 });

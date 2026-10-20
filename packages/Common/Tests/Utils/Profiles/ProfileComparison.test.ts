@@ -7,11 +7,16 @@ import {
   ProfileFunctionChange,
   ProfileFunctionStat,
   ProfileWindowFunctions,
+  PROFILE_COMPARISON_OWN_CODE_LEADERS,
   compareProfileWindows,
   getFasterFunctions,
+  getNotableOwnCodeGrowth,
   getNotableSlowdown,
+  getOwnCodeChanges,
   getSlowerFunctions,
   isComparisonFooted,
+  isOwnCodeChange,
+  limitProfileComparison,
 } from "../../../Utils/Profiles/ProfileComparison";
 
 /*
@@ -347,5 +352,116 @@ describe("isComparisonFooted", () => {
         { functions: [], windowTotal: 10 },
       ),
     ).toBe(true);
+  });
+});
+
+/*
+ * The application's own code, read by own-code share: the parser whose time
+ * all went to JSON.parse after the deploy has no self time, so ranking by
+ * self share would never name it - its own-code share did grow.
+ */
+describe("own-code shares", () => {
+  const ownBefore: ProfileWindowFunctions = {
+    functions: [
+      stat("JSON.parse", 100, 100, { fileName: "node:internal/json" }),
+      stat("parseOrder", 0, 120, { ownValue: 120 }),
+      stat("handleRequest", 0, 1000, { ownValue: 30 }),
+      stat("queryDb", 600, 600, { ownValue: 600 }),
+    ],
+    windowTotal: 1000,
+    windowSampleCount: 1000,
+  };
+  const ownAfter: ProfileWindowFunctions = {
+    functions: [
+      stat("JSON.parse", 900, 900, { fileName: "node:internal/json" }),
+      stat("parseOrder", 0, 940, { ownValue: 940 }),
+      stat("handleRequest", 0, 2000, { ownValue: 60 }),
+      stat("queryDb", 700, 700, { ownValue: 700 }),
+    ],
+    windowTotal: 2000,
+    windowSampleCount: 2000,
+  };
+
+  test("each side carries its own-code share, and the change between them", () => {
+    const parseOrder: ProfileFunctionChange = find(
+      compareProfileWindows(ownBefore, ownAfter),
+      "parseOrder",
+    );
+
+    expect(parseOrder.before?.ownShare).toBeCloseTo(12, 6);
+    expect(parseOrder.after?.ownShare).toBeCloseTo(47, 6);
+    expect(parseOrder.ownShareChange).toBeCloseTo(35, 6);
+    // Its self share did not move: the self ranking would not name it.
+    expect(parseOrder.selfShareChange).toBe(0);
+  });
+
+  test("a function sampled at two lines adds its own-code time once per line", () => {
+    const change: ProfileFunctionChange = find(
+      compareProfileWindows(
+        {
+          functions: [
+            stat("parseOrder", 0, 50, { ownValue: 50, lineNumber: 88 }),
+            stat("parseOrder", 0, 50, { ownValue: 50, lineNumber: 91 }),
+          ],
+          windowTotal: 1000,
+        },
+        { functions: [], windowTotal: 1000 },
+      ),
+      "parseOrder",
+    );
+
+    expect(change.before?.ownValue).toBe(100);
+  });
+
+  test("only the application's own functions, biggest own-code move first", () => {
+    const changes: Array<ProfileFunctionChange> = getOwnCodeChanges(
+      compareProfileWindows(ownBefore, ownAfter),
+    );
+
+    expect(
+      changes.map((change: ProfileFunctionChange): string => {
+        return change.functionName;
+      }),
+    ).toEqual(["parseOrder", "queryDb"]);
+    // handleRequest's own-code share did not move past the noise floor.
+    expect(changes.every(isOwnCodeChange)).toBe(true);
+  });
+
+  test("the own code to name: the one that grew the most, when it grew enough", () => {
+    expect(
+      getNotableOwnCodeGrowth(compareProfileWindows(ownBefore, ownAfter))
+        ?.functionName,
+    ).toBe("parseOrder");
+    // The other way round, the database code is the one that grew.
+    expect(
+      getNotableOwnCodeGrowth(compareProfileWindows(ownAfter, ownBefore))
+        ?.functionName,
+    ).toBe("queryDb");
+    // A window against itself: nothing grew.
+    expect(
+      getNotableOwnCodeGrowth(compareProfileWindows(ownBefore, ownBefore)),
+    ).toBeNull();
+  });
+
+  test("a limited comparison keeps the own-code movers its limit left out", () => {
+    const changes: Array<ProfileFunctionChange> = compareProfileWindows(
+      ownBefore,
+      ownAfter,
+    );
+    const limited: Array<ProfileFunctionChange> = limitProfileComparison(
+      changes,
+      1,
+    );
+
+    // JSON.parse leads by self share; parseOrder and queryDb follow it.
+    expect(
+      limited.map((change: ProfileFunctionChange): string => {
+        return change.functionName;
+      }),
+    ).toEqual(["JSON.parse", "parseOrder", "queryDb"]);
+    expect(limitProfileComparison(changes, changes.length)).toHaveLength(
+      changes.length,
+    );
+    expect(PROFILE_COMPARISON_OWN_CODE_LEADERS).toBeGreaterThan(0);
   });
 });
