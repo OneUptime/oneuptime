@@ -297,8 +297,6 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MessageQueueSqlPostgres.test.ts --forceExit
 
-      # Clones the migrated Service table and holds a row lock from a second
-      # connection: the SKIP LOCKED heartbeat write must yield AND report it.
       # Clones the migrated external calendar tables (and the events' key to
       # their calendar) into an isolated schema: a read's events replace the
       # old ones whole through the multi-row INSERT and are read back for a
@@ -315,6 +313,8 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ScheduledMaintenanceExternalCalendarPostgres.test.ts --forceExit
 
+      # Clones the migrated Service table and holds a row lock from a second
+      # connection: the SKIP LOCKED heartbeat write must yield AND report it.
       - name: Test the non-blocking heartbeat write against Postgres
         working-directory: packages/Common
         env:

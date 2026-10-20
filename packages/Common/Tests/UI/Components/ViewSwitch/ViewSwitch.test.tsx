@@ -29,8 +29,8 @@ import RememberedView, {
 import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
- * The List | Calendar switch of the scheduled maintenance events, and the
- * choice it remembers: a group of buttons a screen reader names, the chosen
+ * A List | Calendar switch, and the choice it remembers (as the status
+ * timelines' Timeline | Table does): a group of buttons a screen reader names, the chosen
  * one pressed; the choice kept in the browser, read back on the next visit,
  * shared by every copy of the switch on the page, and kept for the session
  * when the browser will not store it.

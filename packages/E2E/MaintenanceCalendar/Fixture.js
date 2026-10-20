@@ -301,9 +301,7 @@ function externalCalendars(scenario) {
       isEnabled: true,
       refreshIntervalInMinutes: 60,
       lastReadAt:
-        scenario === "failing"
-          ? ago(26 * 60 * 60 * 1000)
-          : ago(5 * 60 * 1000),
+        scenario === "failing" ? ago(26 * 60 * 60 * 1000) : ago(5 * 60 * 1000),
       lastReadError: scenario === "failing" ? "NotFound" : null,
       lastReadHttpStatus: scenario === "failing" ? 404 : null,
       eventCount: 3,
@@ -790,7 +788,9 @@ ModelAPI.getCount = async (options) => {
 ModelAPI.count = ModelAPI.getCount;
 
 ModelAPI.getItem = async (options) => {
-  if (new options.modelType().tableName === "ScheduledMaintenanceExternalCalendar") {
+  if (
+    new options.modelType().tableName === "ScheduledMaintenanceExternalCalendar"
+  ) {
     state.requests.push({
       kind: "external-calendar-item",
       select: Object.keys(options.select || {}),
@@ -808,7 +808,8 @@ ModelAPI.getItem = async (options) => {
 
 ModelAPI.createOrUpdate = async (options) => {
   const tableName = new options.modelType().tableName;
-  const json = options.model.toJSON ? options.model.toJSON() : {};
+  // What the form sends, as the API would receive it (a Color as its JSON).
+  const json = options.modelType.toJSON(options.model, options.modelType);
 
   state.requests.push({
     kind: "save",
@@ -841,11 +842,7 @@ ModelAPI.createOrUpdate = async (options) => {
         options.model.refreshIntervalInMinutes,
       );
     }
-    return new ModelAPIHttpResponse(
-      200,
-      toExternalCalendarModel(existing),
-      {},
-    );
+    return new ModelAPIHttpResponse(200, toExternalCalendarModel(existing), {});
   }
 
   const created = {
@@ -854,7 +851,9 @@ ModelAPI.createOrUpdate = async (options) => {
     color: options.model.color ? options.model.color.toString() : "#4f46e5",
     calendarHost: "url" in link ? link.host : "",
     isEnabled: true,
-    refreshIntervalInMinutes: Number(options.model.refreshIntervalInMinutes || 60),
+    refreshIntervalInMinutes: Number(
+      options.model.refreshIntervalInMinutes || 60,
+    ),
     lastReadAt: null,
     lastReadError: null,
     lastReadHttpStatus: null,
@@ -1054,9 +1053,10 @@ API.post = async (options) => {
       calendar.lastReadAt = new Date().toISOString();
       calendar.lastReadError = null;
       calendar.lastReadHttpStatus = null;
-      calendar.eventCount = store.externalEvents.filter((event) => {
-        return event.calendarId === id;
-      }).length || 12;
+      calendar.eventCount =
+        store.externalEvents.filter((event) => {
+          return event.calendarId === id;
+        }).length || 12;
     }
 
     return new HTTPResponse(200, calendar ? { _id: id } : {}, {});

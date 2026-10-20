@@ -69,8 +69,8 @@ import React, {
 import { Link } from "react-router-dom";
 
 /*
- * Scheduled Maintenance > Events as a calendar: the Calendar half of the
- * card's List | Calendar switch.
+ * Scheduled Maintenance > Calendar > Maintenance Calendar: the events as a
+ * calendar, a page of its own (Pages/ScheduledMaintenanceEvents/Calendar).
  *
  * What a reader sees, and why:
  *
@@ -110,7 +110,7 @@ export interface ComponentProps {
   title: string;
   description: string;
   buttons: Array<CardButtonSchema | ReactElement>;
-  // The filter chips - and List | Calendar at their end - as above the list.
+  // The filter chips, as above the list.
   topContent?: ReactElement | undefined;
   // Whether the reader may create events: the + on each day to come.
   canCreate: boolean;
@@ -159,8 +159,7 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
    * The calendars from outside the project, for whoever may read them; the
    * ones this reader hid, as their browser remembers them for the project.
    */
-  const projectId: string =
-    ProjectUtil.getCurrentProjectId()?.toString() || "";
+  const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
 
   const mayReadExternalCalendars: boolean = useMemo(() => {
     return PermissionGate.check(
@@ -341,21 +340,23 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
       });
   }, [rangeKey, shownCalendarsKey, timezone]);
 
-  const onToggleExternalCalendar: (calendarId: string, isShown: boolean) => void =
-    useCallback(
-      (calendarId: string, isShown: boolean): void => {
-        setHiddenCalendarIds((current: Array<string>): Array<string> => {
-          const next: Array<string> = toggleHiddenCalendar(
-            current,
-            calendarId,
-            isShown,
-          );
-          writeHiddenCalendarIds(projectId, next);
-          return next;
-        });
-      },
-      [projectId],
-    );
+  const onToggleExternalCalendar: (
+    calendarId: string,
+    isShown: boolean,
+  ) => void = useCallback(
+    (calendarId: string, isShown: boolean): void => {
+      setHiddenCalendarIds((current: Array<string>): Array<string> => {
+        const next: Array<string> = toggleHiddenCalendar(
+          current,
+          calendarId,
+          isShown,
+        );
+        writeHiddenCalendarIds(projectId, next);
+        return next;
+      });
+    },
+    [projectId],
+  );
 
   const describeWindow: (startsAt: Date, endsAt: Date) => string = useCallback(
     (startsAt: Date, endsAt: Date): string => {

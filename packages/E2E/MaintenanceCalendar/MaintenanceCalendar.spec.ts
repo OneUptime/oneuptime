@@ -3,13 +3,22 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Scheduled Maintenance > Events as a calendar, end to end in a browser, on
- * the real page against the fixture's in-page API (Fixture.js).
+ * Scheduled Maintenance > Calendar > Maintenance Calendar, end to end in a
+ * browser, on the real pages against the fixture's in-page API (Fixture.js).
  *
- * The maintainer's ask: "We currently do not have calendar views and
- * calendar feeds for scheduling events." What only a browser shows is
- * pinned here: List | Calendar at the end of the filter bar and the choice
- * kept across a reload; the month grid with each event a link drawn soft in
+ * The maintainer's asks: "We currently do not have calendar views and
+ * calendar feeds for scheduling events", then "calendar view as separate
+ * page in side menu with its own side menu section called Calendar", with
+ * calendars from outside the project overlaid on it (issue #5084) and set up
+ * on a Calendar Settings page. What only a browser shows is pinned here: the
+ * calendar's own page in the side menu's Calendar section, All Events the
+ * list alone, a reader whose browser had left the old List | Calendar switch
+ * on Calendar taken there once; the external calendars drawn beside the
+ * events - lighter, dashed, opening nothing - with a toggle each, a hidden one
+ * not asked for, one not read lately marked, a crowded period said; Calendar
+ * Settings: each calendar's status and last read, adding one (its link
+ * refused when it is not one), Change link, Turn off, a refused Read now; the
+ * month grid with each event a link drawn soft in
  * its state's colour (a pale wash and a stripe, as the list's state pills)
  * and today marked; a busy day's "+N more" and the list it opens; Week;
  * the toolbar's Today and arrows moving through the months, by mouse and by
@@ -131,12 +140,112 @@ function eventBlock(page: Page, title: string): Locator {
     .first();
 }
 
-async function showCalendar(page: Page): Promise<void> {
-  await page.getByTestId("scheduled-maintenance-view-switch-calendar").click();
+// The fixture's external calendars (Fixture.js).
+const HOLIDAYS_ID: string = "50000000-0000-4000-8000-000000000001";
+const FREEZES_ID: string = "50000000-0000-4000-8000-000000000002";
+const PAYMENTS_ID: string = "50000000-0000-4000-8000-000000000003";
+
+// Where the old List | Calendar switch kept the reader's choice.
+const PREVIOUS_VIEW_KEY: string = "oneuptime.scheduled-maintenance-view";
+
+/*
+ * A page's path, ending with the page it is. The fixture keeps the query it
+ * was opened with (?page=list&...) until the reader goes elsewhere, so the
+ * path is read alone (addressOf).
+ */
+const CALENDAR_ADDRESS_PATTERN: RegExp =
+  /\/scheduled-maintenance-events\/calendar$/;
+const LIST_ADDRESS_PATTERN: RegExp = /\/scheduled-maintenance-events$/;
+const SETTINGS_ADDRESS_PATTERN: RegExp =
+  /\/scheduled-maintenance-events\/settings\/calendar$/;
+
+// An overlay block's stripes (Common's CalendarEventTone).
+const STRIPES_PATTERN: RegExp = /repeating-linear-gradient/;
+
+// A colour as the form sends it, somewhere in its JSON: #0d9488.
+const HEX_COLOR_PATTERN: RegExp = /#[0-9a-fA-F]{6}/;
+
+// The side menu's item drawn as the page the reader is on.
+const ACTIVE_ITEM_PATTERN: RegExp = /bg-indigo-50/;
+
+// The page's path, without the fixture's query.
+function addressOf(page: Page): string {
+  return new URL(page.url()).pathname;
+}
+
+/*
+ * The ⋯ in the card's header, beside Create: the menu of the page's card
+ * (the calendar's or the list's), outside the calendar's own grid.
+ */
+function cardMenuButton(page: Page): Locator {
+  return page
+    .getByTestId("fixture-page")
+    .getByRole("button", { name: "More options" })
+    .first();
+}
+
+function sideMenu(page: Page): Locator {
+  return page.getByTestId("fixture-side-menu");
+}
+
+function toggles(page: Page): Locator {
+  return page.getByTestId("scheduled-maintenance-calendar-external");
+}
+
+function overlayEvent(page: Page, title: string): Locator {
+  return page
+    .getByTestId("scheduled-maintenance-calendar-overlay-event")
+    .filter({ hasText: title })
+    .first();
+}
+
+// The block react-big-calendar draws an overlay event's text in.
+function overlayBlock(page: Page, title: string): Locator {
+  return calendar(page)
+    .locator(".rbc-event", {
+      has: page
+        .getByTestId("scheduled-maintenance-calendar-overlay-event")
+        .filter({ hasText: title }),
+    })
+    .first();
+}
+
+async function externalEventReads(
+  page: Page,
+): Promise<Array<{ calendarIds: Array<string> } & FixtureRequest>> {
+  return (await fixtureState(page)).requests.filter(
+    (request: FixtureRequest) => {
+      return request.kind === "external-events";
+    },
+  ) as Array<{ calendarIds: Array<string> } & FixtureRequest>;
+}
+
+async function calendarSettled(page: Page): Promise<void> {
   await expect(calendar(page)).toBeVisible();
   await expect(
     page.getByTestId("scheduled-maintenance-calendar-loading"),
   ).toHaveCount(0);
+}
+
+// A row of the Calendar Settings table, by the calendar's name.
+function settingsRow(page: Page, name: string): Locator {
+  return page.getByRole("row").filter({ hasText: name }).first();
+}
+
+// A row's ⋯, named for the calendar it acts on (ModelTable's row menu).
+function rowMenuButton(page: Page, name: string): Locator {
+  return settingsRow(page, name).getByRole("button", {
+    name: `More actions for External Calendar: ${name}`,
+  });
+}
+
+async function rowAction(
+  page: Page,
+  name: string,
+  action: string,
+): Promise<void> {
+  await rowMenuButton(page, name).click();
+  await page.getByRole("menuitem", { name: action }).click();
 }
 
 async function horizontalOverflow(page: Page): Promise<number> {
@@ -176,74 +285,644 @@ function channels(color: string): Array<number> {
   return (color.match(NUMBER_PATTERN) || []).slice(0, 3).map(Number);
 }
 
-test.describe("List | Calendar", () => {
-  test("the list is what the page opens on, with the switch at the end of the filter bar", async ({
+test.describe("the calendar's own page", () => {
+  test("the side menu's Calendar section holds it, open, and marks it as the page the reader is on", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, "");
+    await calendarSettled(page);
 
-    const switchGroup: Locator = page.getByTestId(
-      "scheduled-maintenance-view-switch",
+    expect(addressOf(page)).toMatch(CALENDAR_ADDRESS_PATTERN);
+    await expect(
+      page.getByRole("heading", { name: "Maintenance Calendar" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Every scheduled maintenance event by month, week or day, in your own time zone.",
+      ),
+    ).toBeVisible();
+
+    const item: Locator = sideMenu(page).getByRole("link", {
+      name: "Maintenance Calendar",
+    });
+
+    await expect(item).toBeVisible();
+    await expect(item).toHaveClass(ACTIVE_ITEM_PATTERN);
+    await expect(
+      sideMenu(page).getByText("Calendar", { exact: true }),
+    ).toBeVisible();
+
+    // Calendar Settings waits in the folded Settings.
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Calendar Settings" }),
+    ).toBeHidden();
+
+    await shot(page, "calendar-page");
+  });
+
+  test("All Events is the list alone: no switch, and no Subscribe to calendar in its menu", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=list");
+
+    expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);
+    await expect(page.getByText("Database upgrade").first()).toBeVisible();
+    await expect(calendar(page)).toHaveCount(0);
+    await expect(
+      page.getByTestId("scheduled-maintenance-view-switch"),
+    ).toHaveCount(0);
+
+    await cardMenuButton(page).click();
+    await expect(page.getByRole("menuitem").first()).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Subscribe to calendar" }),
+    ).toHaveCount(0);
+  });
+
+  test("the side menu goes between the list and the calendar", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=list");
+
+    await sideMenu(page)
+      .getByRole("link", { name: "Maintenance Calendar" })
+      .click();
+    await calendarSettled(page);
+    expect(addressOf(page)).toMatch(CALENDAR_ADDRESS_PATTERN);
+
+    await sideMenu(page).getByRole("link", { name: "All Events" }).click();
+    await expect(calendar(page)).toHaveCount(0);
+    expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);
+  });
+
+  test("a reader whose browser left the old switch on Calendar is taken to the calendar once, the old choice forgotten", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=list&previousView=calendar");
+
+    await calendarSettled(page);
+    expect(addressOf(page)).toMatch(CALENDAR_ADDRESS_PATTERN);
+    expect(
+      await page.evaluate((key: string) => {
+        return window.localStorage.getItem(key);
+      }, PREVIOUS_VIEW_KEY),
+    ).toBeNull();
+
+    // Once: All Events is the list from then on.
+    await sideMenu(page).getByRole("link", { name: "All Events" }).click();
+    await expect(page.getByText("Database upgrade").first()).toBeVisible();
+    await expect(calendar(page)).toHaveCount(0);
+    expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);
+  });
+
+  test("one who left it on List stays on the list, the old choice forgotten too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=list&previousView=list");
+
+    await expect(page.getByText("Database upgrade").first()).toBeVisible();
+    await expect(calendar(page)).toHaveCount(0);
+    expect(addressOf(page)).toMatch(LIST_ADDRESS_PATTERN);
+    expect(
+      await page.evaluate((key: string) => {
+        return window.localStorage.getItem(key);
+      }, PREVIOUS_VIEW_KEY),
+    ).toBeNull();
+  });
+});
+
+test.describe("external calendars on the calendar", () => {
+  test("a project with none shows no toggles, and asks for no events of theirs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "");
+    await calendarSettled(page);
+    await expect(eventLink(page, "Database upgrade")).toBeVisible();
+
+    await expect(toggles(page)).toHaveCount(0);
+
+    const reads: Array<FixtureRequest> = (await fixtureState(page)).requests;
+
+    // The calendars turned on are asked for once; with none, nothing else.
+    expect(
+      reads.filter((request: FixtureRequest) => {
+        return request.kind === "external-calendars";
+      }),
+    ).toHaveLength(1);
+    expect(await externalEventReads(page)).toHaveLength(0);
+  });
+
+  test("the calendars turned on are toggles under the calendar, their events drawn beside the project's: lighter, dashed and opening nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "external=some");
+    await calendarSettled(page);
+    await expect(eventLink(page, "Database upgrade")).toBeVisible();
+
+    const group: Locator = page.getByRole("group", {
+      name: "External calendars",
+    });
+
+    await expect(group).toBeVisible();
+    await expect(
+      group.getByRole("button", {
+        name: "Hide Change freezes on the calendar",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      group.getByRole("button", {
+        name: "Hide Public holidays on the calendar",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    // A calendar turned off is not offered, nor asked for.
+    await expect(group.getByText("Payments project")).toHaveCount(0);
+
+    // An all-day holiday and a timed freeze, each in its calendar's name.
+    await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
+    await expect(overlayEvent(page, "Payments release window")).toBeVisible();
+    await expect(overlayEvent(page, "Founders' Day")).toHaveAttribute(
+      "data-calendar-id",
+      HOLIDAYS_ID,
+    );
+    await expect(overlayEvent(page, "Founders' Day")).toContainText(
+      "(Public holidays)",
+    );
+    await expect(overlayEvent(page, "Payments: database failover")).toHaveCount(
+      0,
     );
 
-    await expect(switchGroup).toBeVisible();
-    await expect(
-      page.getByTestId("scheduled-maintenance-view-switch-list"),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.getByRole("group", { name: "Show the events as" }),
-    ).toBeVisible();
+    const reads: Array<{ calendarIds: Array<string> } & FixtureRequest> =
+      await externalEventReads(page);
 
-    // In the filter bar, at its right end - not in the card's header.
+    expect(reads.length).toBeGreaterThan(0);
+    expect([...reads[reads.length - 1]!.calendarIds].sort()).toEqual(
+      [FREEZES_ID, HOLIDAYS_ID].sort(),
+    );
+    for (const read of reads) {
+      expect(read.calendarIds).not.toContain(PAYMENTS_ID);
+    }
+
+    // Lighter than the project's own blocks: stripes and a dashed edge.
+    const style: { border: string; image: string; cursor: string } =
+      await overlayBlock(page, "Founders' Day").evaluate((element: Element) => {
+        return {
+          border: getComputedStyle(element).borderTopStyle,
+          image: getComputedStyle(element).backgroundImage,
+          cursor: getComputedStyle(element).cursor,
+        };
+      });
+
+    expect(style.border).toBe("dashed");
+    expect(style.image).toMatch(STRIPES_PATTERN);
+    expect(style.cursor).toBe("default");
+
+    // Not a link, and a click opens nothing.
+    await expect(
+      overlayBlock(page, "Founders' Day").getByRole("link"),
+    ).toHaveCount(0);
+    await overlayBlock(page, "Founders' Day").click();
+    await expect(page.getByTestId("fixture-navigated")).toHaveCount(0);
+    expect(addressOf(page)).toMatch(CALENDAR_ADDRESS_PATTERN);
+
+    await shot(page, "calendar-external");
+  });
+
+  test("hiding one hides its events for this reader, asks for it no more, and the browser keeps the choice for the project", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "external=some");
+    await calendarSettled(page);
+    await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
+
+    await page
+      .getByRole("button", { name: "Hide Public holidays on the calendar" })
+      .click();
+
+    await expect(overlayEvent(page, "Founders' Day")).toHaveCount(0);
+    await expect(overlayEvent(page, "Payments release window")).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: "Show Public holidays on the calendar",
+      }),
+    ).toHaveAttribute("aria-pressed", "false");
+
+    const reads: Array<{ calendarIds: Array<string> } & FixtureRequest> =
+      await externalEventReads(page);
+
+    expect(reads[reads.length - 1]!.calendarIds).toEqual([FREEZES_ID]);
+
+    const kept: string | null = await page.evaluate(() => {
+      return window.localStorage.getItem(
+        "oneuptime.maintenance-calendar.hidden-calendars.10000000-0000-4000-8000-000000000001",
+      );
+    });
+
+    expect(JSON.parse(kept || "[]")).toEqual([HOLIDAYS_ID]);
+
+    // Shown again, it is asked for again.
+    await page
+      .getByRole("button", { name: "Show Public holidays on the calendar" })
+      .click();
+    await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
+  });
+
+  test("a calendar hidden before the page opened is not asked for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `external=some&hidden=${HOLIDAYS_ID}`);
+    await calendarSettled(page);
+    await expect(overlayEvent(page, "Payments release window")).toBeVisible();
+
+    await expect(overlayEvent(page, "Founders' Day")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", {
+        name: "Show Public holidays on the calendar",
+      }),
+    ).toHaveAttribute("aria-pressed", "false");
+
+    for (const read of await externalEventReads(page)) {
+      expect(read.calendarIds).toEqual([FREEZES_ID]);
+    }
+  });
+
+  test("a calendar not read lately is marked, and its last good events are still drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "external=failing");
+    await calendarSettled(page);
+
+    await expect(
+      page.getByRole("img", {
+        name: "Change freezes could not be read lately",
+      }),
+    ).toBeVisible();
+    await expect(overlayEvent(page, "Payments release window")).toBeVisible();
+  });
+
+  test("a period holding more of their events than one view asks for says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "external=many");
+    await calendarSettled(page);
+
+    await expect(
+      page.getByTestId("scheduled-maintenance-calendar-overlay-truncated"),
+    ).toHaveText(
+      "Showing the first 500 events of the external calendars in this period. Hide some of them, or look at a week.",
+    );
+  });
+
+  test("Calendar settings under the toggles, and Add External Calendar in the calendar's menu, lead to Calendar Settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "external=some");
+    await calendarSettled(page);
+
+    await toggles(page)
+      .getByRole("link", { name: "Calendar settings" })
+      .click();
+    await expect(page.getByText("External Calendars").first()).toBeVisible();
+    expect(addressOf(page)).toMatch(SETTINGS_ADDRESS_PATTERN);
+
+    await open(page, "");
+    await calendarSettled(page);
+
+    await cardMenuButton(page).click();
+    await page.getByRole("menuitem", { name: "Add External Calendar" }).click();
+    await expect(page.getByText("External Calendars").first()).toBeVisible();
+    expect(addressOf(page)).toMatch(SETTINGS_ADDRESS_PATTERN);
+  });
+
+  test("a reader who may not add a calendar or an event sees the external calendars, and finds Add External Calendar locked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "role=viewer&external=some");
+    await calendarSettled(page);
+
+    // They see the calendars and may hide one for themselves.
+    await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: "Hide Public holidays on the calendar",
+      }),
+    ).toBeEnabled();
+
+    /*
+     * Locked as every action they may not take is (PermissionGate): in the
+     * menu, saying why on hover, and doing nothing.
+     */
+    await cardMenuButton(page).click();
+
+    const add: Locator = page.getByRole("menuitem", {
+      name: "Add External Calendar",
+    });
+
+    await expect(add).toHaveAttribute("aria-disabled", "true");
+    // Forced: Playwright waits for an aria-disabled item to be enabled.
+    await add.click({ force: true });
+    await expect(page.getByTestId("fixture-navigated")).toHaveCount(0);
+    expect(addressOf(page)).toMatch(CALENDAR_ADDRESS_PATTERN);
+  });
+});
+
+test.describe("Calendar Settings", () => {
+  test("lists each calendar: its colour, name and host, how it is doing and its last read; the link is never asked for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=settings&external=some");
+
+    await expect(settingsRow(page, "Public holidays")).toBeVisible();
+    await expect(settingsRow(page, "Public holidays")).toContainText(
+      "calendar.google.com",
+    );
+    await expect(settingsRow(page, "Public holidays")).toContainText("Working");
+    await expect(settingsRow(page, "Public holidays")).toContainText(
+      "3 events",
+    );
+    await expect(settingsRow(page, "Change freezes")).toContainText("Working");
+    await expect(settingsRow(page, "Payments project")).toContainText("Off");
+
+    // The side menu opens its folded Settings on this page, and marks it.
+    const item: Locator = sideMenu(page).getByRole("link", {
+      name: "Calendar Settings",
+    });
+
+    await expect(item).toBeVisible();
+    await expect(item).toHaveClass(ACTIVE_ITEM_PATTERN);
+
+    for (const request of (await fixtureState(page)).requests) {
+      expect(
+        (request as { select?: Array<string> }).select || [],
+      ).not.toContain("calendarUrl");
+    }
+
+    await shot(page, "settings");
+  });
+
+  test("a calendar that could not be read says why, under Not working", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=settings&external=failing");
+
+    const row: Locator = settingsRow(page, "Change freezes");
+
+    await expect(row).toContainText("Not working");
+    await expect(row).toContainText(
+      "There is no calendar at this link. Check it, or copy a new one from the calendar.",
+    );
+  });
+
+  test("a calendar never read yet is waiting for its first read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=settings&external=waiting");
+
+    const row: Locator = settingsRow(page, "Team offsite");
+
+    await expect(row).toContainText("Waiting for the first read");
+    await expect(row).toContainText("Not yet");
+  });
+
+  test("adding one: a Name and its link, Color and Refresh folded under More fields, and it is read at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=settings");
+
+    /*
+     * A project with none is offered its first in the empty table, beside
+     * the same button in the card's header.
+     */
+    const firstAdd: Locator = page.getByTestId("empty-table-create-button");
+
+    await expect(firstAdd).toContainText("Add External Calendar");
     await expect(
       page
-        .getByTestId("filter-bar-end")
-        .getByTestId("scheduled-maintenance-view-switch"),
+        .getByTestId("card-button")
+        .filter({ hasText: "Add External Calendar" }),
     ).toBeVisible();
+    await shot(page, "settings-empty");
 
-    await expect(calendar(page)).toHaveCount(0);
-    await shot(page, "list-with-switch");
+    await firstAdd.click();
+
+    const dialog: Locator = page.getByTestId("modal");
+
+    await expect(dialog).toContainText("Add New External Calendar");
+
+    // Color and Refresh wait folded under More fields, which names them.
+    const folded: Locator = dialog.getByTestId("folded-section-body");
+
+    await expect(folded).toBeHidden();
+    await expect(dialog.getByTestId("folded-section-header")).toContainText(
+      "Color",
+    );
+    await expect(dialog.getByTestId("folded-section-header")).toContainText(
+      "Refresh",
+    );
+
+    await dialog.getByText("More fields").click();
+    await expect(folded.getByText("Color", { exact: true })).toBeVisible();
+    await expect(folded.getByText("Refresh", { exact: true })).toBeVisible();
+
+    await dialog.getByPlaceholder("Public holidays").fill("Bank holidays");
+    await dialog
+      .getByPlaceholder(
+        "https://calendar.google.com/calendar/ical/.../basic.ics",
+      )
+      .fill("webcal://calendar.example.com/bank-holidays.ics");
+
+    await shot(page, "settings-create", dialog);
+
+    await dialog.getByRole("button", { name: "Add External Calendar" }).click();
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+
+    const requests: Array<FixtureRequest> = (await fixtureState(page)).requests;
+    const save: FixtureRequest | undefined = requests.find(
+      (request: FixtureRequest) => {
+        return (
+          request.kind === "save" &&
+          request.tableName === "ScheduledMaintenanceExternalCalendar"
+        );
+      },
+    );
+
+    expect(save).toBeDefined();
+    expect(save!.data!["name"]).toBe("Bank holidays");
+    expect(save!.data!["calendarUrl"]).toBe(
+      "webcal://calendar.example.com/bank-holidays.ics",
+    );
+    // Left folded, they are what the form picked: a colour, and every hour.
+    expect(save!.data!["refreshIntervalInMinutes"]).toBe(60);
+    expect(JSON.stringify(save!.data!["color"])).toMatch(HEX_COLOR_PATTERN);
+
+    // Read at once: the new row says so as the table reloads.
+    await expect
+      .poll(async () => {
+        return (await fixtureState(page)).requests.filter(
+          (request: FixtureRequest) => {
+            return (
+              request.kind === "api" &&
+              request.method === "POST" &&
+              (request.path || "").endsWith("/read-now")
+            );
+          },
+        ).length;
+      })
+      .toBe(1);
+    await expect(settingsRow(page, "Bank holidays")).toContainText(
+      "calendar.example.com",
+    );
+    await expect(settingsRow(page, "Bank holidays")).toContainText("Working");
   });
 
-  test("the choice of Calendar is kept: the page opens on it again after a reload", async ({
+  test("a link that is not one is refused before anything is saved", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, "view=list");
-    await showCalendar(page);
+    await open(page, "page=settings");
 
-    await page.clock.setFixedTime(NOW);
-    await page.goto("/");
-    await expect(calendar(page)).toBeVisible();
-    await expect(
-      page.getByTestId("scheduled-maintenance-view-switch-calendar"),
-    ).toHaveAttribute("aria-pressed", "true");
+    await page
+      .getByTestId("card-button")
+      .filter({ hasText: "Add External Calendar" })
+      .click();
 
-    await page.getByTestId("scheduled-maintenance-view-switch-list").click();
-    await expect(calendar(page)).toHaveCount(0);
+    const dialog: Locator = page.getByTestId("modal");
 
-    await page.clock.setFixedTime(NOW);
-    await page.goto("/");
-    await expect(
-      page.getByTestId("scheduled-maintenance-view-switch-list"),
-    ).toHaveAttribute("aria-pressed", "true");
+    await dialog.getByPlaceholder("Public holidays").fill("Files");
+    await dialog
+      .getByPlaceholder(
+        "https://calendar.google.com/calendar/ical/.../basic.ics",
+      )
+      .fill("ftp://files.example.com/calendar.ics");
+    await dialog.getByRole("button", { name: "Add External Calendar" }).click();
+
+    await expect(dialog).toContainText(
+      "The link must start with https://, http:// or webcal://.",
+    );
+
+    for (const request of (await fixtureState(page)).requests) {
+      expect(request.kind).not.toBe("save");
+    }
   });
 
-  test("Subscribe to calendar is offered beside the list too", async ({
+  test("Change link replaces the link, and the new one is read at once", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, "view=list");
+    await open(page, "page=settings&external=some");
+    await expect(settingsRow(page, "Public holidays")).toBeVisible();
 
-    await page.getByRole("button", { name: "More options" }).first().click();
-    await page.getByText("Subscribe to calendar").click();
+    await rowAction(page, "Public holidays", "Change link");
+
+    const dialog: Locator = page.getByTestId("modal");
+
+    await expect(dialog).toContainText("Change the link of Public holidays");
+    await dialog
+      .getByPlaceholder("https://")
+      .fill("https://calendar.example.com/holidays-2027.ics");
+    await dialog.getByRole("button", { name: "Change link" }).click();
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+
+    const requests: Array<FixtureRequest> = (await fixtureState(page)).requests;
+
+    expect(
+      requests.find((request: FixtureRequest) => {
+        return request.kind === "update" && request.id === HOLIDAYS_ID;
+      })?.data,
+    ).toEqual({
+      calendarUrl: "https://calendar.example.com/holidays-2027.ics",
+    });
+    expect(
+      requests.some((request: FixtureRequest) => {
+        return (
+          request.kind === "api" &&
+          request.method === "POST" &&
+          (request.path || "").endsWith(`/${HOLIDAYS_ID}/read-now`)
+        );
+      }),
+    ).toBe(true);
+
+    await expect(settingsRow(page, "Public holidays")).toContainText(
+      "calendar.example.com",
+    );
+  });
+
+  test("Turn off stops a calendar, and Turn on brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=settings&external=some");
+    await expect(settingsRow(page, "Change freezes")).toContainText("Working");
+
+    await rowAction(page, "Change freezes", "Turn off");
+    await expect(settingsRow(page, "Change freezes")).toContainText("Off");
+
+    expect(
+      (await fixtureState(page)).requests.find((request: FixtureRequest) => {
+        return request.kind === "update" && request.id === FREEZES_ID;
+      })?.data,
+    ).toEqual({ isEnabled: false });
+
+    // Turned off, it offers Turn on and no Read now.
+    await rowMenuButton(page, "Change freezes").click();
+    await expect(page.getByRole("menuitem", { name: "Turn on" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Read now" })).toHaveCount(
+      0,
+    );
+    await page.getByRole("menuitem", { name: "Turn on" }).click();
+    await expect(settingsRow(page, "Change freezes")).toContainText("Working");
+  });
+
+  test("a Read now the server refuses says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=settings&external=some&readNow=fail");
+    await expect(settingsRow(page, "Public holidays")).toBeVisible();
+
+    await rowAction(page, "Public holidays", "Read now");
 
     await expect(
-      page.getByTestId("maintenance-calendar-feed-dialog"),
+      page.getByText(
+        "This calendar was read a moment ago. Try again in a few seconds.",
+      ),
     ).toBeVisible();
   });
 });
@@ -254,7 +933,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await expect(calendar(page)).toBeVisible();
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
@@ -324,7 +1003,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
 
     const link: Locator = eventLink(page, "Database upgrade");
 
@@ -345,7 +1024,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     await eventLink(page, "Database upgrade").focus();
@@ -358,7 +1037,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&events=many");
+    await open(page, "events=many");
     await expect(eventLink(page, "Patch window 1")).toBeVisible();
 
     const more: Locator = calendar(page).locator(".rbc-show-more").first();
@@ -417,7 +1096,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     const next: Locator = calendar(page).getByRole("button", {
@@ -456,7 +1135,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&delay=400");
+    await open(page, "delay=400");
     await expect(eventLink(page, "Database upgrade")).toBeVisible({
       timeout: 10000,
     });
@@ -489,7 +1168,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     const toolbar: Locator = calendar(page).getByTestId("calendar-toolbar");
@@ -537,7 +1216,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
 
     await calendar(page).getByRole("button", { name: "Week" }).click();
 
@@ -553,7 +1232,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&events=none");
+    await open(page, "events=none");
 
     await expect(
       page.getByTestId("scheduled-maintenance-calendar-empty"),
@@ -568,7 +1247,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&events=error");
+    await open(page, "events=error");
 
     const alert: Locator = page.getByTestId(
       "scheduled-maintenance-calendar-error",
@@ -590,7 +1269,7 @@ test.describe("the month", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&delay=1500");
+    await open(page, "delay=1500");
 
     await expect(
       page.getByTestId("scheduled-maintenance-calendar-loading"),
@@ -611,7 +1290,7 @@ test.describe("schedule maintenance on a day", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     // The days to come start at today, the 15th: the sixth is the 20th.
@@ -646,7 +1325,7 @@ test.describe("schedule maintenance on a day", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     const buttons: Locator = calendar(page).getByTestId(
@@ -662,7 +1341,7 @@ test.describe("schedule maintenance on a day", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&role=viewer");
+    await open(page, "role=viewer");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     await expect(
@@ -677,7 +1356,7 @@ test.describe("Subscribe to calendar", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     const dialog: Locator = await openSubscribe(page);
 
     const webcal: string = `webcal://oneuptime.example.com/api/scheduled-maintenance-calendar/project/${FIRST_TOKEN}/maintenance.ics`;
@@ -717,7 +1396,7 @@ test.describe("Subscribe to calendar", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await openSubscribe(page);
 
     await page.getByRole("button", { name: "Manage link" }).click();
@@ -758,7 +1437,7 @@ test.describe("Subscribe to calendar", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await openSubscribe(page);
 
     await page.getByRole("button", { name: "Manage link" }).click();
@@ -795,7 +1474,7 @@ test.describe("Subscribe to calendar", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&feed=empty");
+    await open(page, "feed=empty");
     const dialog: Locator = await openSubscribe(page);
 
     await expect(
@@ -820,7 +1499,7 @@ test.describe("Subscribe to calendar", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&feed=restricted");
+    await open(page, "feed=restricted");
     const dialog: Locator = await openSubscribe(page);
 
     await expect(
@@ -837,7 +1516,7 @@ test.describe("Subscribe to calendar", () => {
   });
 
   test("Done closes the dialog", async ({ page }: { page: Page }) => {
-    await open(page, "view=calendar");
+    await open(page, "");
     await openSubscribe(page);
 
     await page.getByRole("button", { name: "Done" }).click();
@@ -854,7 +1533,7 @@ test.describe("on a phone", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar", 390);
+    await open(page, "", 390);
     await expect(eventLink(page, "Database upgrade")).toBeAttached();
 
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
@@ -874,11 +1553,42 @@ test.describe("on a phone", () => {
   });
 
   test("the Subscribe dialog fits too", async ({ page }: { page: Page }) => {
-    await open(page, "view=calendar", 390);
+    await open(page, "", 390);
     await openSubscribe(page);
 
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
     await shot(page, "phone-subscribe", page.getByTestId("modal"));
+  });
+
+  test("the external calendars' toggles wrap, and nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "external=failing", 390);
+    await calendarSettled(page);
+    await expect(toggles(page)).toBeVisible();
+
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+
+    const box: { x: number; width: number } | null =
+      await toggles(page).boundingBox();
+
+    expect(box).not.toBeNull();
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+
+    await shot(page, "phone-external");
+  });
+
+  test("Calendar Settings fits too", async ({ page }: { page: Page }) => {
+    await open(page, "page=settings&external=failing", 390);
+    // Exact: the card's description names change freezes too.
+    await expect(
+      page.getByText("Change freezes", { exact: true }).first(),
+    ).toBeVisible();
+
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await shot(page, "phone-settings");
   });
 });
 
@@ -888,7 +1598,7 @@ test.describe("in the dark theme", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&theme=dark");
+    await open(page, "theme=dark");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     const today: Locator = calendar(page)
@@ -953,7 +1663,7 @@ test.describe("in the dark theme", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&theme=dark");
+    await open(page, "theme=dark");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     await calendar(page).getByRole("button", { name: "Week" }).click();
@@ -987,7 +1697,7 @@ test.describe("in the dark theme", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&theme=dark");
+    await open(page, "theme=dark");
     await openSubscribe(page);
 
     const modalBackground: Array<number> = channels(
@@ -1012,23 +1722,91 @@ test.describe("in the dark theme", () => {
     expect(Math.max(...modalBackground)).toBeLessThan(100);
     await shot(page, "dark-subscribe", page.getByTestId("modal"));
   });
-});
 
-test.describe("in other languages", () => {
-  test("German: the switch, the toolbar and the link's words", async ({
+  test("an external calendar's blocks are dark too, their stripes and dashed edge kept", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&lang=de");
+    await open(page, "theme=dark&external=some");
+    await calendarSettled(page);
+    await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
+
+    const block: {
+      background: string;
+      text: string;
+      border: string;
+      image: string;
+    } = await overlayBlock(page, "Founders' Day").evaluate(
+      (element: Element) => {
+        return {
+          background: getComputedStyle(element).backgroundColor,
+          text: getComputedStyle(element).color,
+          border: getComputedStyle(element).borderTopStyle,
+          image: getComputedStyle(element).backgroundImage,
+        };
+      },
+    );
+
+    expect(Math.max(...channels(block.background))).toBeLessThan(80);
+    expect(Math.max(...channels(block.text))).toBeGreaterThan(150);
+    expect(block.border).toBe("dashed");
+    expect(block.image).toMatch(STRIPES_PATTERN);
+
+    await shot(page, "dark-external");
+  });
+
+  test("Calendar Settings reads on the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=settings&theme=dark&external=failing");
+    await expect(settingsRow(page, "Change freezes")).toContainText(
+      "Not working",
+    );
+
+    const name: Array<number> = channels(
+      await settingsRow(page, "Change freezes")
+        .getByText("Change freezes")
+        .first()
+        .evaluate((element: Element) => {
+          return getComputedStyle(element).color;
+        }),
+    );
+
+    // Light text on the dark card, not the light theme's near-black.
+    expect(Math.min(...name)).toBeGreaterThan(150);
+    await shot(page, "dark-settings");
+  });
+});
+
+test.describe("in other languages", () => {
+  test("German: the side menu, the toolbar, the external calendars and the link's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=de&external=some");
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
 
     await expect(
-      page.getByTestId("scheduled-maintenance-view-switch-list"),
-    ).toHaveText("Liste");
+      sideMenu(page).getByRole("link", { name: "Wartungskalender" }),
+    ).toBeVisible();
     await expect(
-      page.getByTestId("scheduled-maintenance-view-switch-calendar"),
-    ).toHaveText("Kalender");
+      page.getByRole("heading", { name: "Wartungskalender" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: "Externe Kalender" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: "Public holidays im Kalender ausblenden",
+      }),
+    ).toBeVisible();
+    await expect(
+      toggles(page).getByRole("link", { name: "Kalendereinstellungen" }),
+    ).toBeVisible();
     await expect(
       calendar(page).getByRole("button", { name: "Heute" }),
     ).toBeVisible();
@@ -1058,7 +1836,7 @@ test.describe("in other languages", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "view=calendar&events=none&lang=ja");
+    await open(page, "events=none&lang=ja");
 
     await expect(
       page.getByTestId("scheduled-maintenance-calendar-empty"),
