@@ -682,19 +682,44 @@ test.describe("external calendars on the calendar", () => {
     await expect(eventLink(page, "Network switch firmware")).toBeVisible();
     await expect(eventLink(page, "Database upgrade")).toBeVisible();
     await expect(eventLink(page, "Patch window 1")).toBeVisible();
+    // ...and a long one, before the long holiday that started a day earlier.
+    await expect(eventLink(page, "Storage migration")).toBeVisible();
 
-    // ...and sits above the shifts of its day.
-    const own: { y: number } | null = await eventBlock(
-      page,
-      "Network switch firmware",
-    ).boundingBox();
-    const firstShiftOfToday: { y: number } | null = await calendar(page)
-      .locator(".rbc-month-row", { has: eventLink(page, "Network switch firmware") })
-      .locator(".oneuptime-calendar-event--overlay")
-      .first()
-      .boundingBox();
+    /*
+     * ...and every shift of its day is drawn under it, or folded into the
+     * day's +N more: none takes its row.
+     */
+    const today: { x: number; y: number; width: number } | null =
+      await eventBlock(page, "Network switch firmware").boundingBox();
+    const shifts: Array<{ x: number; y: number; width: number } | null> =
+      await Promise.all(
+        (
+          await calendar(page)
+            .locator(".rbc-month-row", {
+              has: eventLink(page, "Network switch firmware"),
+            })
+            .locator(".oneuptime-calendar-event--overlay")
+            .all()
+        ).map((shift: Locator) => {
+          return shift.boundingBox();
+        }),
+      );
+    const shiftsOfToday: Array<{ x: number; y: number; width: number }> =
+      shifts.filter(
+        (
+          box: { x: number; y: number; width: number } | null,
+        ): box is { x: number; y: number; width: number } => {
+          return (
+            box !== null &&
+            box.x < today!.x + today!.width &&
+            box.x + box.width > today!.x
+          );
+        },
+      );
 
-    expect(own!.y).toBeLessThan(firstShiftOfToday!.y);
+    for (const shift of shiftsOfToday) {
+      expect(shift.y).toBeGreaterThan(today!.y);
+    }
 
     // The shifts the cell has no room for are in its +N more.
     await expect(
@@ -1722,6 +1747,38 @@ test.describe("on a phone", () => {
     ).toBeHidden();
 
     await shot(page, "phone-month");
+  });
+
+  test("the header keeps Create and the ⋯ on one line, as All Events does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const query of ["", "page=list"]) {
+      await open(page, query, 390);
+      await expect(page.getByTestId("card-button").first()).toBeVisible();
+
+      const create: { y: number; height: number } | null = await page
+        .getByTestId("card-button")
+        .first()
+        .boundingBox();
+      const more: { y: number; height: number } | null =
+        await cardMenuButton(page).boundingBox();
+
+      // The ⋯ sits beside Create, its middle within Create's height.
+      const middle: number = more!.y + more!.height / 2;
+
+      expect({ query, beside: middle > create!.y }).toEqual({
+        query,
+        beside: true,
+      });
+      expect({
+        query,
+        beside: middle < create!.y + create!.height,
+      }).toEqual({ query, beside: true });
+    }
+
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
   });
 
   test("the Subscribe dialog fits too", async ({ page }: { page: Page }) => {

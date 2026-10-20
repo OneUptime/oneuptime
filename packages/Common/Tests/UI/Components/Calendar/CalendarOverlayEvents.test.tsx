@@ -264,6 +264,23 @@ describe("the calendar draws them", () => {
     ).toBeTruthy();
   });
 
+  test("a month's day lays its own event out above a change freeze across the week", () => {
+    const container: HTMLElement = renderCalendar(DefaultCalendarView.Month, [
+      event("Change freeze", october(19, 0), october(23, 0), {
+        overlay: true,
+      }),
+      event("Database upgrade", october(21, 22), october(21, 23)),
+    ]);
+
+    const own: HTMLElement = block(container, "Database upgrade");
+    const overlay: HTMLElement = block(container, "Change freeze");
+
+    // react-big-calendar alone lays every block of several days out first.
+    expect(
+      own.compareDocumentPosition(overlay) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("in the week, a keyboard stops on the page's own block but not on an overlay's", () => {
     const container: HTMLElement = renderCalendar(DefaultCalendarView.Week, [
       event("Payments release window", october(20, 14), october(20, 16), {

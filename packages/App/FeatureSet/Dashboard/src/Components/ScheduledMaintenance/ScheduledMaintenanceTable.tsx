@@ -57,7 +57,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   ModalTableBulkDefaultActions,
   SaveFilterProps,
@@ -578,33 +578,66 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     ...(externalCalendarButton ? [externalCalendarButton] : []),
   ];
 
-  const calendarButtons: Array<CardButtonSchema | ReactElement> = [
-    ...(calendarMainButton ? [calendarMainButton] : []),
-    ...(calendarMoreButtons.length > 0
+  const calendarMoreMenu: ReactElement | null =
+    calendarMoreButtons.length > 0 ? (
+      <CardMoreMenu key="scheduled-maintenance-calendar-more">
+        {calendarMoreButtons.map(
+          (button: CardButtonSchema, index: number): ReactElement => {
+            return (
+              <MoreMenuItem
+                key={`calendar-more-${index}`}
+                text={button.title}
+                icon={button.icon}
+                isDisabled={button.disabled}
+                tooltip={button.tooltip}
+                onClick={() => {
+                  if (!button.disabled) {
+                    button.onClick();
+                  }
+                }}
+              />
+            );
+          },
+        )}
+      </CardMoreMenu>
+    ) : null;
+
+  /*
+   * The main button and the ⋯ as one group, as the list's header holds them
+   * (BaseModelTable): on a phone the button wraps its words beside the ⋯,
+   * rather than taking the whole line and leaving the ⋯ a line of its own.
+   */
+  const calendarButtons: Array<CardButtonSchema | ReactElement> =
+    calendarMainButton || calendarMoreMenu
       ? [
-          <CardMoreMenu key="scheduled-maintenance-calendar-more">
-            {calendarMoreButtons.map(
-              (button: CardButtonSchema, index: number): ReactElement => {
-                return (
-                  <MoreMenuItem
-                    key={`calendar-more-${index}`}
-                    text={button.title}
-                    icon={button.icon}
-                    isDisabled={button.disabled}
-                    tooltip={button.tooltip}
-                    onClick={() => {
-                      if (!button.disabled) {
-                        button.onClick();
-                      }
-                    }}
-                  />
-                );
-              },
+          <div
+            key="scheduled-maintenance-calendar-actions"
+            className="flex min-w-0 max-w-full items-center gap-3 [&_button]:md:ml-0"
+            data-testid="scheduled-maintenance-calendar-actions"
+          >
+            {calendarMainButton ? (
+              <Button
+                title={calendarMainButton.title}
+                buttonStyle={calendarMainButton.buttonStyle}
+                buttonSize={calendarMainButton.buttonSize}
+                className={calendarMainButton.className}
+                icon={calendarMainButton.icon}
+                disabled={calendarMainButton.disabled}
+                tooltip={calendarMainButton.tooltip}
+                dataTestId="card-button"
+                onClick={() => {
+                  if (!calendarMainButton.disabled) {
+                    calendarMainButton.onClick();
+                  }
+                }}
+              />
+            ) : (
+              <></>
             )}
-          </CardMoreMenu>,
+            {calendarMoreMenu || <></>}
+          </div>,
         ]
-      : []),
-  ];
+      : [];
 
   const cardTitle: string = props.title || "Scheduled Maintenance Events";
   const cardDescription: string =
