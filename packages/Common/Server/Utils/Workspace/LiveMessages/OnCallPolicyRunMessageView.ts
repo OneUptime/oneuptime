@@ -110,15 +110,16 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  * record, and that is loud: "⚠️ Nobody can take Incident INC-8: everybody
  * paged by PolicyX passed it on (Alex and Sam). Someone needs to take it."
  *
- * A RUN THAT WAITS TO PAGE - held by an on-call rule until its working hours
+ * A RUN THAT WAITS TO PAGE - an on-call rule's, until its working hours
  * (OnCallDutyPolicyRunWait) - pages nobody yet, and its message says so and
- * when paging starts, in each reader's own time. Once it starts, the same
- * message is edited into a paging run's; a record handled while it waits
- * ends it with nobody paged, which is no alarm:
+ * when paging starts, in the words OneUptime says it in everywhere, the
+ * moment in each reader's own time. Once it starts, the same message is
+ * edited into a paging run's; a record handled while it waits ends it with
+ * nobody paged, which is no alarm:
  *
  *   ⏳ PolicyX is waiting to page for Alert #12
  *
- *   Waiting for working hours: paging starts tomorrow at 9:00 AM.
+ *   Waiting for working hours. Paging starts tomorrow at 9:00 AM.
  *
  *   See every step in OneUptime
  *
@@ -712,22 +713,23 @@ export default class OnCallPolicyRunMessageView {
 
   /*
    * Why a waiting run waits, and when paging starts, in each reader's own
-   * time: "**Waiting for working hours**: paging starts tomorrow at 9:00
-   * AM." Null when the run does not know when.
+   * time: "**Waiting for working hours.** Paging starts tomorrow at 9:00
+   * AM." - the words of its status message (OnCallDutyPolicyRunWait). Null
+   * when the run does not know when.
    */
   private static getWaiting(run: OnCallPolicyRun): MarkdownText | null {
     const startsAt: Date | undefined = run.pagingStartsAt;
 
     if (!startsAt || isNaN(startsAt.getTime())) {
       return run.isWaitingForWorkingHours
-        ? mdText`**Waiting for working hours** to start paging.`
+        ? mdText`**Waiting for working hours.**`
         : null;
     }
 
     const when: MarkdownText = WorkspaceMessageTime.dateAndTime(startsAt);
 
     return run.isWaitingForWorkingHours
-      ? mdText`**Waiting for working hours**: paging starts ${when}.`
+      ? mdText`**Waiting for working hours.** Paging starts ${when}.`
       : mdText`Paging starts ${when}.`;
   }
 

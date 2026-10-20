@@ -2100,7 +2100,7 @@ describe("a policy an on-call rule holds until working hours", () => {
   const HOLD: OnCallRulePagingHold = {
     pagingStartsAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
     waitingStatusMessage:
-      "Waiting for working hours: paging starts at 09:00 (Europe/London).",
+      "Waiting for working hours. Paging starts Tue 09:00 (Europe/London).",
   };
 
   // The engine of a record's on-call rules, as its service calls it.

@@ -51,7 +51,7 @@ Cada método que você verifica recebe uma regra em cada cartão de cada aba, en
 | Grave | Push na hora, um SMS após 10 minutos |
 | Menor ou baixa | Um e-mail na hora |
 
-Suas próprias regras não têm horário de silêncio: deixe as gravidades baixas no e-mail, ou em uma regra de push definida como **Normal**, para que elas nunca acordem você. Para segurar até o horário comercial o acionamento de uma gravidade baixa para todos, defina a regra de plantão que o aciona como **Somente em horário comercial**: veja [Regras de plantão](/docs/alerts/settings#regras-de-plantão).
+Suas próprias regras não têm horário de silêncio: deixe as gravidades baixas no e-mail, ou em uma regra de push definida como **Normal**, para que elas nunca acordem você. Para que o acionamento de uma gravidade baixa aguarde o horário comercial para todos, defina a regra de plantão que o aciona como **Somente em horário comercial**: veja [Regras de plantão](/docs/alerts/settings#regras-de-plantão).
 
 ## Adicione uma regra
 

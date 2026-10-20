@@ -60,6 +60,62 @@ export interface WorkingHoursInput {
   timezone: string | null | undefined;
 }
 
+/*
+ * Working hours as most people set them: the same hours on the days picked -
+ * Monday to Friday, 09:00 to 17:00. What the rule form's picker edits
+ * (toSimpleHours, fromSimpleHours).
+ */
+export interface SimpleWorkingHours {
+  // The days they are on: Monday is 0, Sunday 6. In week order, once each.
+  days: Array<number>;
+  /*
+   * When they begin and end on the zone's clock, "HH:mm". An end before the
+   * start is the next morning: 22:00 to 06:00.
+   */
+  from: string;
+  to: string;
+}
+
+/*
+ * Hours that are alike on several days, to say them in a few words:
+ * "Mon–Fri 09:00–17:00" (getSpans).
+ */
+export interface WorkingHoursSpan {
+  // The days they begin on: Monday is 0. In week order.
+  days: Array<number>;
+  // When they begin and end on the zone's clock, "HH:mm".
+  from: string;
+  to: string;
+  /*
+   * How many days after they begin they end: 0 the same day, 1 the next
+   * morning (22:00 to 06:00), more for hours that run over several days
+   * (Friday 17:00 to Monday 09:00).
+   */
+  endsDaysLater: number;
+}
+
+const WEEK: Array<DayOfWeek> = [
+  DayOfWeek.Monday,
+  DayOfWeek.Tuesday,
+  DayOfWeek.Wednesday,
+  DayOfWeek.Thursday,
+  DayOfWeek.Friday,
+  DayOfWeek.Saturday,
+  DayOfWeek.Sunday,
+];
+
+const CLOCK: RegExp = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+
+// "09:00" from minutes after midnight.
+const toClock: (minuteOfDay: number) => string = (
+  minuteOfDay: number,
+): string => {
+  const hour: number = Math.floor(minuteOfDay / 60);
+  const minute: number = minuteOfDay % 60;
+
+  return `${hour < 10 ? "0" : ""}${hour}:${minute < 10 ? "0" : ""}${minute}`;
+};
+
 export const WORKING_HOURS_NOT_SET_MESSAGE: string =
   "Set the working hours to page in.";
 export const WORKING_HOURS_TIMEZONE_NOT_SET_MESSAGE: string =
@@ -383,6 +439,207 @@ export default class WorkingHours {
   }
 
   /*
+   * Minutes after midnight from "HH:mm" (or "H:mm"); null for anything else.
+   */
+  public static parseClock(clock: string | null | undefined): number | null {
+    const match: RegExpMatchArray | null = (clock || "").trim().match(CLOCK);
+
+    if (!match) {
+      return null;
+    }
+
+    return parseInt(match[1]!, 10) * 60 + parseInt(match[2]!, 10);
+  }
+
+  /*
+   * The hours, said in as few groups as they allow, on the zone's clock:
+   * days alike - opening and closing at the same times - are one group, in
+   * the order the week first opens them. Monday to Friday, 09:00 to 17:00 is
+   * one group of five days; Monday to Thursday until 18:00 and Friday until
+   * 15:00 are two. Empty when the hours never open.
+   */
+  public static getSpans(input: WorkingHoursInput): Array<WorkingHoursSpan> {
+    const spans: Array<WorkingHoursSpan> = [];
+
+    for (const window of this.getWindows(input)) {
+      const day: number = Math.floor(
+        window.startMinuteOfWeek / MINUTES_IN_A_DAY,
+      );
+      const startMinute: number = window.startMinuteOfWeek % MINUTES_IN_A_DAY;
+      const endMinute: number = startMinute + window.lengthInMinutes;
+      const from: string = toClock(startMinute);
+      const to: string = toClock(endMinute % MINUTES_IN_A_DAY);
+      const endsDaysLater: number = Math.floor(endMinute / MINUTES_IN_A_DAY);
+
+      const alike: WorkingHoursSpan | undefined = spans.find(
+        (span: WorkingHoursSpan): boolean => {
+          return (
+            span.from === from &&
+            span.to === to &&
+            span.endsDaysLater === endsDaysLater &&
+            !span.days.includes(day)
+          );
+        },
+      );
+
+      if (alike) {
+        alike.days.push(day);
+        continue;
+      }
+
+      spans.push({ days: [day], from, to, endsDaysLater });
+    }
+
+    return spans;
+  }
+
+  /*
+   * The hours as the same hours on the days picked, when that is what they
+   * are: one group of days (getSpans) that ends the same day, or the next
+   * morning when it ends earlier than it begins. Null for anything else -
+   * different hours on different days, hours over a weekend - and for hours
+   * that never open.
+   */
+  public static toSimpleHours(
+    input: WorkingHoursInput,
+  ): SimpleWorkingHours | null {
+    const spans: Array<WorkingHoursSpan> = this.getSpans(input);
+
+    if (spans.length !== 1) {
+      return null;
+    }
+
+    const span: WorkingHoursSpan = spans[0]!;
+    const from: number = this.parseClock(span.from)!;
+    const to: number = this.parseClock(span.to)!;
+
+    if (from === to || span.endsDaysLater !== (to < from ? 1 : 0)) {
+      return null;
+    }
+
+    return { days: [...span.days], from: span.from, to: span.to };
+  }
+
+  /*
+   * The same hours on the days picked, as the rule keeps them: one weekly
+   * window a day, on the zone's clock, ending the next morning when it ends
+   * earlier than it begins. Hours that end when they begin are kept as
+   * windows that never open, for getProblem to refuse; no day, as none. A
+   * zone OneUptime does not know is read as UTC.
+   *
+   * Only each time's day of the week and time of day count, so they are kept
+   * in one week the clocks change in nowhere - the week of Monday 12 January
+   * 2026 - rather than this week: 01:30 on the Sunday the clocks spring
+   * forward does not exist, and would be kept as 02:30.
+   */
+  public static fromSimpleHours(
+    data: SimpleWorkingHours & {
+      timezone: string | null | undefined;
+    },
+  ): RestrictionTimes {
+    const timezone: string = this.isKnownTimezone(data.timezone)
+      ? data.timezone!.trim()
+      : "UTC";
+    const monday: moment.Moment = moment.tz(
+      { year: 2026, month: 0, date: 12 },
+      timezone,
+    );
+    const from: number =
+      this.parseClock(data.from) ?? DEFAULT_WORKDAY_START_HOUR * 60;
+    const to: number =
+      this.parseClock(data.to) ?? DEFAULT_WORKDAY_END_HOUR * 60;
+    const endsNextDay: boolean = to < from;
+
+    const atClock: (dayOfWeek: number, minuteOfDay: number) => Date = (
+      dayOfWeek: number,
+      minuteOfDay: number,
+    ): Date => {
+      const day: moment.Moment = monday.clone().add(dayOfWeek, "days");
+
+      return moment
+        .tz(
+          {
+            year: day.year(),
+            month: day.month(),
+            date: day.date(),
+            hour: Math.floor(minuteOfDay / 60),
+            minute: minuteOfDay % 60,
+            second: 0,
+            millisecond: 0,
+          },
+          timezone,
+        )
+        .toDate();
+    };
+
+    const days: Array<number> = Array.from(new Set(data.days || []))
+      .filter((day: number): boolean => {
+        return Number.isInteger(day) && day >= 0 && day <= 6;
+      })
+      .sort((a: number, b: number): number => {
+        return a - b;
+      });
+
+    const hours: RestrictionTimes = new RestrictionTimes();
+    hours.restictionType = RestrictionType.Weekly;
+    hours.dayRestrictionTimes = null;
+    hours.weeklyRestrictionTimes = days.map(
+      (day: number): WeeklyResctriction => {
+        const endDay: number = day + (endsNextDay ? 1 : 0);
+
+        return {
+          startDay: WEEK[day]!,
+          endDay: WEEK[endDay % 7]!,
+          startTime: atClock(day, from),
+          endTime: atClock(endDay, to),
+        };
+      },
+    );
+
+    return hours;
+  }
+
+  /*
+   * A stored time on the zone's clock: its day of the week (Monday is 0) and
+   * its time of day, "HH:mm". Null when it is no time, or the zone is one
+   * OneUptime does not know.
+   */
+  public static readClock(
+    time: Date | string | JSONObject | null | undefined,
+    timezone: string | null | undefined,
+  ): { day: number; clock: string } | null {
+    if (!this.isKnownTimezone(timezone)) {
+      return null;
+    }
+
+    const zoned: moment.Moment | null = this.toZoned(time, timezone!.trim());
+
+    if (!zoned) {
+      return null;
+    }
+
+    return {
+      day: this.getWeekdayIndex(zoned),
+      clock: toClock(zoned.hour() * 60 + zoned.minute()),
+    };
+  }
+
+  /*
+   * The time paging starts at when the hours begin, if it is always the same
+   * one: "09:00" for Monday to Friday, 09:00 to 17:00. Null when the days
+   * begin at different times, or the hours never open.
+   */
+  public static getStartTime(input: WorkingHoursInput): string | null {
+    const starts: Set<string> = new Set<string>(
+      this.getSpans(input).map((span: WorkingHoursSpan): string => {
+        return span.from;
+      }),
+    );
+
+    return starts.size === 1 ? Array.from(starts)[0]! : null;
+  }
+
+  /*
    * The same hours on another zone's clock: every time keeps its day and its
    * time of day, so "Monday to Friday, 09:00 to 17:00" in one zone is
    * "Monday to Friday, 09:00 to 17:00" in the other. For a rule whose time
@@ -454,10 +711,12 @@ export default class WorkingHours {
   }
 
   /*
-   * When paging starts, for the run's words: "09:00 (Europe/London)" when it
-   * is the same day as `now` on the zone's clock, and "09:00 on Mon, Oct 23
-   * (Europe/London)" when it is not. A 24-hour clock: whoever reads it may
-   * be anywhere, and "09:00" reads the same everywhere.
+   * When paging starts, for the run's words: "Wed 09:00 (Europe/London)" -
+   * the day of the week and the time on the zone's clock. Working hours
+   * begin within a week, so the day of the week says which day; a moment a
+   * week or more away names its date as well ("Wed, Oct 28 09:00"), and its
+   * year when that is not this one. A 24-hour clock: whoever reads it may be
+   * anywhere, and "09:00" reads the same everywhere.
    */
   public static describeMoment(data: {
     at: Date;
@@ -467,12 +726,16 @@ export default class WorkingHours {
     const timezone: string = this.isKnownTimezone(data.timezone)
       ? data.timezone!.trim()
       : "UTC";
-    const at: moment.Moment = moment.tz(data.at, timezone);
-    const now: moment.Moment = moment.tz(data.now, timezone);
+    const at: moment.Moment = moment.tz(data.at, timezone).locale("en");
+    const now: moment.Moment = moment.tz(data.now, timezone).locale("en");
     const time: string = at.format("HH:mm");
+    const daysAhead: number = at
+      .clone()
+      .startOf("day")
+      .diff(now.clone().startOf("day"), "days");
 
-    if (at.format("YYYY-MM-DD") === now.format("YYYY-MM-DD")) {
-      return `${time} (${timezone})`;
+    if (daysAhead >= 0 && daysAhead < 7) {
+      return `${at.format("ddd")} ${time} (${timezone})`;
     }
 
     const day: string =
@@ -480,7 +743,7 @@ export default class WorkingHours {
         ? at.format("ddd, MMM D")
         : at.format("ddd, MMM D, YYYY");
 
-    return `${time} on ${day} (${timezone})`;
+    return `${day} ${time} (${timezone})`;
   }
 
   private static isWithinWindows(data: {

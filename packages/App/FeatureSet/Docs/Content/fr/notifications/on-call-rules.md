@@ -51,7 +51,7 @@ C'est un départ sûr, et en général trop. Réduisez-le à ce que chaque gravi
 | Majeure | Push tout de suite, un SMS après 10 minutes |
 | Mineure ou faible | Un e-mail tout de suite |
 
-Vos propres règles n'ont pas d'heures calmes : gardez les faibles gravités sur l'e-mail, ou sur une règle push réglée sur **Standard**, pour qu'elles ne vous réveillent jamais. Pour retenir l'alerte d'une faible gravité jusqu'aux heures ouvrées pour tout le monde, réglez la règle d'astreinte qui la déclenche sur **Uniquement pendant les heures ouvrées** : voir [Règles d'astreinte](/docs/alerts/settings#règles-dastreinte).
+Vos propres règles n'ont pas d'heures calmes : gardez les faibles gravités sur l'e-mail, ou sur une règle push réglée sur **Standard**, pour qu'elles ne vous réveillent jamais. Pour que l'alerte d'une faible gravité attende les heures ouvrées pour tout le monde, réglez la règle d'astreinte qui la déclenche sur **Uniquement pendant les heures ouvrées** : voir [Règles d'astreinte](/docs/alerts/settings#règles-dastreinte).
 
 ## Ajouter une règle
 

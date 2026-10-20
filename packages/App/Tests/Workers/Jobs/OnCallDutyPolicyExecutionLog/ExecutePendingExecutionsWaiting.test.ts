@@ -181,7 +181,7 @@ function waiting(data: {
   log.onCallDutyPolicyId = ObjectID.generate();
   log.status = OnCallDutyPolicyStatus.Waiting;
   log.statusMessage =
-    "Waiting for working hours: paging starts at 09:00 (Europe/London).";
+    "Waiting for working hours. Paging starts Tue 09:00 (Europe/London).";
   log.createdAt = new Date(Date.now() - 7 * HOUR);
   log.onCallPolicyExecutionRepeatCount = 1;
 

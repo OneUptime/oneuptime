@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"Nee"| level
 ```
 
-1. Een nieuw incident, een nieuwe waarschuwing of episode voert meteen het bereikbaarheidsbeleid uit dat het heeft: het beleid dat erop is gekozen en het beleid dat de bereikbaarheidsregels toevoegen. Elk beleid loopt op zichzelf. Een bereikbaarheidsregel op **Alleen tijdens werktijden** houdt het beleid dat ze toevoegt tegen tot die tijden beginnen.
+1. Een nieuw incident, een nieuwe waarschuwing of episode voert meteen het bereikbaarheidsbeleid uit dat het heeft: het beleid dat erop is gekozen en het beleid dat de bereikbaarheidsregels toevoegen. Elk beleid loopt op zichzelf. Een bereikbaarheidsregel op **Alleen tijdens werktijden** laat het beleid dat ze toevoegt wachten tot die tijden beginnen.
 2. De eerste escalatieregel van een beleid roept meteen op: wie nu dienst heeft in de schema's ervan, elk lid van de teams ervan en de personen die de regel noemt.
 3. Is een van hen afwezig, dan stuurt een gebruikersoverschrijving de oproep naar de persoon die vervangt, of slaat die persoon over.
 4. Elke persoon wordt bereikt via de eigen persoonlijke bereikbaarheidsregels: welke methode wordt geprobeerd en na hoeveel tijd. Een oproep zonder regel bereikt de persoon toch via de methoden die die heeft geverifieerd.
@@ -95,7 +95,7 @@ Als je dienst hebt voor een beleid, laat de bel rechtsboven dat zien. Klik erop 
 ## Probleemoplossing
 
 :::details Niemand werd opgeroepen voor een nieuw incident
-Open de pagina **Bereikbaarheidsuitvoeringen** van het incident. Is die leeg, dan had het incident geen bereikbaarheidsbeleid: er is er geen op gekozen en geen bereikbaarheidsregel paste erbij. Een uitvoering met **Execution Completed - No One Notified** is door elke escalatieregel gegaan zonder iemand te vinden: meestal een schema waarin niemand dienst heeft. Zie [Uitvoeringslogboeken](/docs/on-call/policies#uitvoeringslogboeken). Een uitvoering met **Wachten** is door een bereikbaarheidsregel tegengehouden tot de werktijden, en roept niemand op tot ze beginnen.
+Open de pagina **Bereikbaarheidsuitvoeringen** van het incident. Is die leeg, dan had het incident geen bereikbaarheidsbeleid: er is er geen op gekozen en geen bereikbaarheidsregel paste erbij. Een uitvoering met **Execution Completed - No One Notified** is door elke escalatieregel gegaan zonder iemand te vinden: meestal een schema waarin niemand dienst heeft. Zie [Uitvoeringslogboeken](/docs/on-call/policies#uitvoeringslogboeken). Een uitvoering met **Wachten** wacht op werktijden, voor een bereikbaarheidsregel op **Alleen tijdens werktijden**, en roept niemand op tot ze beginnen.
 :::
 
 :::details Iemand werd via het verkeerde kanaal opgeroepen, of helemaal niet

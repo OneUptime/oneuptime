@@ -34,7 +34,7 @@ En retningslinje tilkaller ingen før noe kjører den. Hver hendelse, hvert vars
 | Manuelt | **Kjør vakttjenesteretningslinje**, i menyen **Handlinger** i en feed, eller på en melding i Slack eller Microsoft Teams | [Hendelsens feed](/docs/incidents/notes-owners-and-feed#hendelsens-feed) |
 | Chat og arbeidsflyter | `/oneuptime page` i Slack eller Microsoft Teams, og steget **Page an On-Call Policy** i en arbeidsflyt | [Paging](/docs/workflows/components#paging) |
 
-En retningslinje som flere regler legger til, kjører én gang. En alvorlighetsgrad kjører aldri en retningslinje av seg selv: det gjør en vaktregel som passer alvorlighetsgraden. En hendelse eller et varsel som opprettes allerede bekreftet eller løst, kjører ingen av retningslinjene sine. En vaktregel satt til **Bare i arbeidstiden** holder retningslinjene den legger til, tilbake til arbeidstiden begynner.
+En retningslinje som flere regler legger til, kjører én gang. En alvorlighetsgrad kjører aldri en retningslinje av seg selv: det gjør en vaktregel som passer alvorlighetsgraden. En hendelse eller et varsel som opprettes allerede bekreftet eller løst, kjører ingen av retningslinjene sine. En vaktregel satt til **Bare i arbeidstiden** lar retningslinjene den legger til, vente til arbeidstiden begynner.
 
 ## Sidene til en retningslinje
 
@@ -84,7 +84,7 @@ flowchart TB
 
 | Status | Hva den betyr |
 | --- | --- |
-| **Venter** | En vaktregel satt til **Bare i arbeidstiden** holder kjøringen tilbake til arbeidstiden begynner. Fram til da tilkaller den ingen, og den avsluttes uten å tilkalle hvis hendelsen eller varselet blir bekreftet eller løst først. |
+| **Venter** | En vaktregel satt til **Bare i arbeidstiden** lar kjøringen vente til arbeidstiden begynner: den sier når tilkallingen starter, og tilkaller ingen fram til da. Den avsluttes uten å tilkalle hvis hendelsen eller varselet blir bekreftet eller løst først. |
 | **Planlagt**, **Startet** | Kjøringen settes opp. En som fortsatt står her etter 5 minutter, stoppes som **Feil**. |
 | **Executing** | Kjøringen tilkaller. OneUptime fører den et steg videre hvert minutt. |
 | **Execution Completed** | Noen bekreftet, hendelsen eller varselet ble løst, alle regler og gjentakelser ble brukt, eller retningslinjen ble arkivert. |

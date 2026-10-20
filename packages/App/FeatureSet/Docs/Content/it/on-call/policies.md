@@ -34,7 +34,7 @@ Una policy non avvisa nessuno finché qualcosa non la esegue. Ogni incidente, av
 | A mano | **Esegui criterio di reperibilità**, nel menu **Azioni** di un feed, o su un messaggio di Slack o Microsoft Teams | [Il feed dell'incidente](/docs/incidents/notes-owners-and-feed#il-feed-dellincidente) |
 | Chat e workflow | `/oneuptime page` in Slack o Microsoft Teams, e il passo **Page an On-Call Policy** di un workflow | [Paging](/docs/workflows/components#paging) |
 
-Una policy che più regole aggiungono viene eseguita una sola volta. Una gravità non esegue mai una policy da sola: lo fa una regola di reperibilità che corrisponde a quella gravità. Un incidente o un avviso creato già riconosciuto o risolto non esegue nessuna delle sue policy. Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** trattiene le policy che aggiunge finché quell'orario non inizia.
+Una policy che più regole aggiungono viene eseguita una sola volta. Una gravità non esegue mai una policy da sola: lo fa una regola di reperibilità che corrisponde a quella gravità. Un incidente o un avviso creato già riconosciuto o risolto non esegue nessuna delle sue policy. Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere le policy che aggiunge finché quell'orario non inizia.
 
 ## Le pagine di una policy
 
@@ -84,7 +84,7 @@ flowchart TB
 
 | Stato | Che cosa significa |
 | --- | --- |
-| **In attesa** | Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** trattiene l'esecuzione finché quell'orario non inizia. Fino ad allora non avvisa nessuno, e termina senza avvisare se l'incidente o l'avviso viene riconosciuto o risolto prima. |
+| **In attesa** | Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere l'esecuzione finché quell'orario non inizia: dice quando iniziano le chiamate, e fino ad allora non chiama nessuno. Termina senza chiamare se l'incidente o l'avviso viene riconosciuto o risolto prima. |
 | **Programmato**, **Iniziata** | L'esecuzione è in preparazione. Una che è ancora qui dopo 5 minuti viene fermata come **Errore**. |
 | **Executing** | L'esecuzione sta avvisando. OneUptime la fa avanzare ogni minuto. |
 | **Execution Completed** | Qualcuno ha riconosciuto, l'incidente o l'avviso è stato risolto, sono state usate tutte le regole e le ripetizioni, oppure la policy è stata archiviata. |

@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"Nej"| level
 ```
 
-1. En ny incident, ett nytt larm eller en ny episod kör sina jourpolicyer direkt: de som valts på den och de som dess jourregler lägger till. Varje policy körs för sig. En jourregel inställd på **Endast under arbetstid** håller inne de policyer den lägger till tills arbetstiden börjar.
+1. En ny incident, ett nytt larm eller en ny episod kör sina jourpolicyer direkt: de som valts på den och de som dess jourregler lägger till. Varje policy körs för sig. En jourregel inställd på **Endast under arbetstid** låter de policyer den lägger till vänta tills arbetstiden börjar.
 2. En policys första eskaleringsregel larmar direkt: den som har jour i dess scheman just nu, varje medlem i dess team och personerna den nämner.
 3. Om någon av dem är borta skickar en användaråsidosättning utlarmningen till personen som täcker upp för hen, eller hoppar över hen.
 4. Varje person nås via sina personliga jourregler: vilken av hens metoder som provas, och efter hur lång tid. En utlarmning utan regel når ändå personen på de metoder hen har verifierat.
@@ -95,7 +95,7 @@ När du har jour för en policy visar klockan uppe till höger det. Klicka på d
 ## Felsökning
 
 :::details Ingen larmades för en ny incident
-Öppna incidentens sida **Jourexekveringar**. Är den tom hade incidenten ingen jourpolicy: ingen valdes på den, och ingen jourregel matchade den. En körning med **Execution Completed - No One Notified** gick igenom varje eskaleringsregel utan att hitta någon: oftast ett schema där ingen har jour. Se [Exekveringsloggar](/docs/on-call/policies#exekveringsloggar). En körning med **Väntar** hölls inne av en jourregel till arbetstid och larmar ingen förrän den börjar.
+Öppna incidentens sida **Jourexekveringar**. Är den tom hade incidenten ingen jourpolicy: ingen valdes på den, och ingen jourregel matchade den. En körning med **Execution Completed - No One Notified** gick igenom varje eskaleringsregel utan att hitta någon: oftast ett schema där ingen har jour. Se [Exekveringsloggar](/docs/on-call/policies#exekveringsloggar). En körning med **Väntar** väntar på arbetstid för en jourregel inställd på **Endast under arbetstid** och larmar ingen förrän den börjar.
 :::
 
 :::details Någon larmades på fel kanal, eller inte alls

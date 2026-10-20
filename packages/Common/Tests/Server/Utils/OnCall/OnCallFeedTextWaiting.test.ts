@@ -31,7 +31,7 @@ const POLICY_MD: string =
   "**[Payments primary](https://oneuptime.com/dashboard/p/on-call-duty/policies/x)**";
 
 const WAITING_MESSAGE: string =
-  "Waiting for working hours: paging starts at 09:00 (Europe/London).";
+  "Waiting for working hours. Paging starts Tue 09:00 (Europe/London).";
 
 describe("the message a waiting run is given", () => {
   test("says it waits for working hours, and when paging starts, in the rule's zone", () => {
@@ -52,14 +52,14 @@ describe("the message a waiting run is given", () => {
         now: new Date("2026-10-20T01:00:00Z"),
         isWaitingForWorkingHours: false,
       }),
-    ).toBe("Waiting: paging starts at 08:00 on Wed, Oct 21 (UTC).");
+    ).toBe("Waiting. Paging starts Wed 08:00 (UTC).");
   });
 
   test("is told apart from every other message by how it starts", () => {
     expect(isOnCallPolicyRunWaitingForWorkingHours(WAITING_MESSAGE)).toBe(true);
     expect(
       isOnCallPolicyRunWaitingForWorkingHours(
-        "Waiting: paging starts at 08:00 (UTC).",
+        "Waiting. Paging starts Tue 08:00 (UTC).",
       ),
     ).toBe(false);
     expect(isOnCallPolicyRunWaitingForWorkingHours(undefined)).toBe(false);
@@ -97,7 +97,7 @@ describe("a run created waiting, in its record's feed", () => {
         waitingMessage: WAITING_MESSAGE,
       }),
     ).toBe(
-      `On-call policy ${POLICY_MD} is not paging yet. Waiting for working hours: paging starts at 09:00 (Europe/London).`,
+      `On-call policy ${POLICY_MD} is not paging yet. Waiting for working hours. Paging starts Tue 09:00 (Europe/London).`,
     );
   });
 
@@ -118,7 +118,7 @@ describe("a run created waiting, in its record's feed", () => {
         waitingMessage: WAITING_MESSAGE,
       }),
     ).toBe(
-      `started on-call policy ${POLICY_MD}. It is not paging yet. Waiting for working hours: paging starts at 09:00 (Europe/London).`,
+      `started on-call policy ${POLICY_MD}. It is not paging yet. Waiting for working hours. Paging starts Tue 09:00 (Europe/London).`,
     );
   });
 
@@ -169,7 +169,7 @@ describe("a waiting run's status, in its record's feed", () => {
         statusMessage: WAITING_MESSAGE,
       }),
     ).toBe(
-      `On-call policy ${POLICY_MD} is not paging yet.\n\nWaiting for working hours: paging starts at 09:00 (Europe/London).`,
+      `On-call policy ${POLICY_MD} is not paging yet.\n\nWaiting for working hours. Paging starts Tue 09:00 (Europe/London).`,
     );
   });
 

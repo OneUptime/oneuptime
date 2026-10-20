@@ -12,7 +12,7 @@ import WorkingHours, {
   WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/WorkingHours";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 import moment from "moment-timezone";
 
 /*
@@ -766,45 +766,66 @@ describe("moving the hours to another zone", () => {
 });
 
 describe("when paging starts, in words", () => {
-  test("the same day names the time and the zone", () => {
+  test("names the day of the week, the time and the zone", () => {
     expect(
       WorkingHours.describeMoment({
         at: at("2026-10-20 09:00:00", LONDON),
         timezone: LONDON,
         now: at("2026-10-20 02:00:00", LONDON),
       }),
-    ).toBe("09:00 (Europe/London)");
+    ).toBe("Tue 09:00 (Europe/London)");
   });
 
-  test("another day names the day too", () => {
+  test("a later day in the week is named by its day of the week alone", () => {
     expect(
       WorkingHours.describeMoment({
         at: at("2026-10-26 09:00:00", LONDON),
         timezone: LONDON,
         now: at("2026-10-23 18:00:00", LONDON),
       }),
-    ).toBe("09:00 on Mon, Oct 26 (Europe/London)");
+    ).toBe("Mon 09:00 (Europe/London)");
   });
 
-  test("another year names the year", () => {
+  test("a week or more away names its date, so the day of the week is not today's", () => {
+    // Monday 09:30: the next Monday 09:00 is not this morning's.
+    expect(
+      WorkingHours.describeMoment({
+        at: at("2026-10-26 09:00:00", LONDON),
+        timezone: LONDON,
+        now: at("2026-10-19 09:30:00", LONDON),
+      }),
+    ).toBe("Mon, Oct 26 09:00 (Europe/London)");
+  });
+
+  test("into another year within the week, still the day of the week alone", () => {
     expect(
       WorkingHours.describeMoment({
         at: at("2027-01-04 09:00:00", LONDON),
         timezone: LONDON,
         now: at("2026-12-31 22:00:00", LONDON),
       }),
-    ).toBe("09:00 on Mon, Jan 4, 2027 (Europe/London)");
+    ).toBe("Mon 09:00 (Europe/London)");
+  });
+
+  test("a date in another year names the year", () => {
+    expect(
+      WorkingHours.describeMoment({
+        at: at("2027-01-11 09:00:00", LONDON),
+        timezone: LONDON,
+        now: at("2026-12-31 22:00:00", LONDON),
+      }),
+    ).toBe("Mon, Jan 11, 2027 09:00 (Europe/London)");
   });
 
   test("is the day on the zone's clock, not UTC's", () => {
-    // 23:30 UTC on the 19th is the 20th in Tokyo.
+    // 23:30 UTC on Monday the 19th is Tuesday the 20th in Tokyo.
     expect(
       WorkingHours.describeMoment({
         at: new Date("2026-10-20T00:00:00Z"),
         timezone: "Asia/Tokyo",
         now: new Date("2026-10-19T23:30:00Z"),
       }),
-    ).toBe("09:00 (Asia/Tokyo)");
+    ).toBe("Tue 09:00 (Asia/Tokyo)");
   });
 
   test("with no zone OneUptime knows, is told in UTC", () => {
@@ -814,7 +835,417 @@ describe("when paging starts, in words", () => {
         timezone: "Nowhere/Nothing",
         now: new Date("2026-10-20T02:00:00Z"),
       }),
-    ).toBe("09:00 (UTC)");
+    ).toBe("Tue 09:00 (UTC)");
+  });
+
+  test("is in English whatever language moment was last set to", () => {
+    moment.locale("de");
+
+    try {
+      expect(
+        WorkingHours.describeMoment({
+          at: at("2026-10-20 09:00:00", LONDON),
+          timezone: LONDON,
+          now: at("2026-10-20 02:00:00", LONDON),
+        }),
+      ).toBe("Tue 09:00 (Europe/London)");
+    } finally {
+      moment.locale("en");
+    }
+  });
+});
+
+describe("the same hours on the days picked", () => {
+  test("Monday to Friday, 09:00 to 17:00, is the days and the two times", () => {
+    expect(
+      WorkingHours.toSimpleHours({
+        hours: workingWeek(LONDON),
+        timezone: LONDON,
+      }),
+    ).toEqual({ days: [0, 1, 2, 3, 4], from: "09:00", to: "17:00" });
+  });
+
+  test("the hours a rule starts with read back as Monday to Friday, 09:00 to 17:00", () => {
+    expect(
+      WorkingHours.toSimpleHours({
+        hours: WorkingHours.getDefaultHours({ timezone: NEW_YORK }),
+        timezone: NEW_YORK,
+      }),
+    ).toEqual({ days: [0, 1, 2, 3, 4], from: "09:00", to: "17:00" });
+  });
+
+  test("one window every day is every day", () => {
+    expect(
+      WorkingHours.toSimpleHours({
+        hours: daily({ from: "08:30", to: "18:00", timezone: LONDON }),
+        timezone: LONDON,
+      }),
+    ).toEqual({ days: [0, 1, 2, 3, 4, 5, 6], from: "08:30", to: "18:00" });
+  });
+
+  test("hours that end the next morning are the days they begin on", () => {
+    const nights: RestrictionTimes = weekly(
+      [
+        {
+          fromDay: DayOfWeek.Friday,
+          from: "22:00",
+          toDay: DayOfWeek.Saturday,
+          to: "06:00",
+        },
+        {
+          fromDay: DayOfWeek.Sunday,
+          from: "22:00",
+          toDay: DayOfWeek.Monday,
+          to: "06:00",
+        },
+      ],
+      LONDON,
+    );
+
+    expect(
+      WorkingHours.toSimpleHours({ hours: nights, timezone: LONDON }),
+    ).toEqual({ days: [4, 6], from: "22:00", to: "06:00" });
+  });
+
+  test("different hours on different days are not the same hours", () => {
+    const shortFriday: RestrictionTimes = weekly(
+      [
+        {
+          fromDay: DayOfWeek.Thursday,
+          from: "09:00",
+          toDay: DayOfWeek.Thursday,
+          to: "17:00",
+        },
+        {
+          fromDay: DayOfWeek.Friday,
+          from: "09:00",
+          toDay: DayOfWeek.Friday,
+          to: "15:00",
+        },
+      ],
+      LONDON,
+    );
+
+    expect(
+      WorkingHours.toSimpleHours({ hours: shortFriday, timezone: LONDON }),
+    ).toBeNull();
+  });
+
+  test("hours over a weekend are not the same hours on each day", () => {
+    const weekend: RestrictionTimes = weekly(
+      [
+        {
+          fromDay: DayOfWeek.Friday,
+          from: "17:00",
+          toDay: DayOfWeek.Monday,
+          to: "09:00",
+        },
+      ],
+      LONDON,
+    );
+
+    expect(
+      WorkingHours.toSimpleHours({ hours: weekend, timezone: LONDON }),
+    ).toBeNull();
+  });
+
+  test("hours that never open, or no zone, are not hours at all", () => {
+    expect(
+      WorkingHours.toSimpleHours({ hours: null, timezone: LONDON }),
+    ).toBeNull();
+    expect(
+      WorkingHours.toSimpleHours({
+        hours: workingWeek(LONDON),
+        timezone: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("are kept as one window a day on the zone's clock, and read back the same", () => {
+    const tokyo: string = "Asia/Tokyo";
+    const hours: RestrictionTimes = WorkingHours.fromSimpleHours({
+      days: [0, 2, 4],
+      from: "08:30",
+      to: "18:00",
+      timezone: tokyo,
+    });
+
+    expect(hours.restictionType).toBe(RestrictionType.Weekly);
+    expect(
+      hours.weeklyRestrictionTimes.map((window: WeeklyResctriction): string => {
+        return `${window.startDay} ${moment
+          .tz(window.startTime, tokyo)
+          .format("ddd HH:mm")}-${window.endDay} ${moment
+          .tz(window.endTime, tokyo)
+          .format("ddd HH:mm")}`;
+      }),
+    ).toEqual([
+      "Monday Mon 08:30-Monday Mon 18:00",
+      "Wednesday Wed 08:30-Wednesday Wed 18:00",
+      "Friday Fri 08:30-Friday Fri 18:00",
+    ]);
+    expect(WorkingHours.getProblem({ hours, timezone: tokyo })).toBeNull();
+    expect(WorkingHours.toSimpleHours({ hours, timezone: tokyo })).toEqual({
+      days: [0, 2, 4],
+      from: "08:30",
+      to: "18:00",
+    });
+  });
+
+  test("an end before the start is the next morning - Sunday night into Monday", () => {
+    const hours: RestrictionTimes = WorkingHours.fromSimpleHours({
+      days: [6],
+      from: "22:00",
+      to: "06:00",
+      timezone: LONDON,
+    });
+
+    expect(hours.weeklyRestrictionTimes[0]!.endDay).toBe(DayOfWeek.Monday);
+    expect(
+      onClock(
+        nextStart(hours, LONDON, at("2026-10-25 12:00:00", LONDON)),
+        LONDON,
+      ),
+    ).toBe("Sun 2026-10-25 22:00");
+    expect(
+      WorkingHours.isWithin({
+        hours,
+        timezone: LONDON,
+        at: at("2026-10-26 05:59:00", LONDON),
+      }),
+    ).toBe(true);
+    expect(
+      WorkingHours.isWithin({
+        hours,
+        timezone: LONDON,
+        at: at("2026-10-26 06:00:00", LONDON),
+      }),
+    ).toBe(false);
+  });
+
+  test("no day picked is refused as no hours; an end at the start, as hours that never open", () => {
+    expect(
+      WorkingHours.getProblem({
+        hours: WorkingHours.fromSimpleHours({
+          days: [],
+          from: "09:00",
+          to: "17:00",
+          timezone: LONDON,
+        }),
+        timezone: LONDON,
+      }),
+    ).toBe(WORKING_HOURS_NO_WEEKLY_WINDOWS_MESSAGE);
+    expect(
+      WorkingHours.getProblem({
+        hours: WorkingHours.fromSimpleHours({
+          days: [0, 1],
+          from: "09:00",
+          to: "09:00",
+          timezone: LONDON,
+        }),
+        timezone: LONDON,
+      }),
+    ).toBe(WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE);
+  });
+
+  test("days out of range, or twice, are left out", () => {
+    const hours: RestrictionTimes = WorkingHours.fromSimpleHours({
+      days: [4, 0, 4, 9, -1],
+      from: "09:00",
+      to: "17:00",
+      timezone: LONDON,
+    });
+
+    expect(
+      hours.weeklyRestrictionTimes.map(
+        (window: WeeklyResctriction): DayOfWeek => {
+          return window.startDay;
+        },
+      ),
+    ).toEqual([DayOfWeek.Monday, DayOfWeek.Friday]);
+  });
+});
+
+describe("the same hours on the days picked, kept and read back", () => {
+  const ZONES: Array<string> = [
+    LONDON,
+    NEW_YORK,
+    "Asia/Kolkata",
+    "Australia/Lord_Howe",
+    "Pacific/Chatham",
+    "UTC",
+  ];
+
+  /*
+   * Whatever days and times are picked, in whatever zone, the rule keeps
+   * hours that read back as exactly what was picked.
+   */
+  test("read back as they were picked, in any zone, in any week", () => {
+    const random: SeededRandom = seededRandom(20261020);
+
+    for (let draw: number = 0; draw < 400; draw++) {
+      const timezone: string = ZONES[random(ZONES.length)]!;
+      const days: Array<number> = [0, 1, 2, 3, 4, 5, 6].filter(() => {
+        return random(2) === 1;
+      });
+      const from: number = random(24 * 4) * 15;
+      let to: number = random(24 * 4) * 15;
+
+      if (to === from) {
+        to = (from + 60) % (24 * 60);
+      }
+
+      const clock: (minute: number) => string = (minute: number): string => {
+        return `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(
+          minute % 60,
+        ).padStart(2, "0")}`;
+      };
+      const picked: { days: Array<number>; from: string; to: string } = {
+        days,
+        from: clock(from),
+        to: clock(to),
+      };
+      const hours: RestrictionTimes = WorkingHours.fromSimpleHours({
+        ...picked,
+        timezone,
+      });
+
+      if (days.length === 0) {
+        expect(WorkingHours.toSimpleHours({ hours, timezone })).toBeNull();
+        continue;
+      }
+
+      expect(WorkingHours.toSimpleHours({ hours, timezone })).toEqual(picked);
+      expect(WorkingHours.getProblem({ hours, timezone })).toBeNull();
+    }
+  });
+
+  test("a time the clocks skip this week is kept as picked: 01:30 on Sunday in London", () => {
+    // Picked on Sunday 29 March 2026, the morning London's clocks go forward.
+    jest.useFakeTimers({ now: new Date("2026-03-29T00:30:00Z") });
+
+    try {
+      const hours: RestrictionTimes = WorkingHours.fromSimpleHours({
+        days: [6],
+        from: "01:30",
+        to: "05:00",
+        timezone: LONDON,
+      });
+
+      expect(WorkingHours.toSimpleHours({ hours, timezone: LONDON })).toEqual({
+        days: [6],
+        from: "01:30",
+        to: "05:00",
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("a stored time reads as its day and time of day on the zone's clock", () => {
+    // 23:30 UTC on Monday 19 October is Tuesday 08:30 in Tokyo.
+    expect(
+      WorkingHours.readClock(new Date("2026-10-19T23:30:00Z"), "Asia/Tokyo"),
+    ).toEqual({ day: 1, clock: "08:30" });
+    expect(
+      WorkingHours.readClock(
+        new Date("2026-10-19T23:30:00Z"),
+        "Nowhere/Nothing",
+      ),
+    ).toBeNull();
+    expect(WorkingHours.readClock(null, LONDON)).toBeNull();
+  });
+});
+
+describe("the hours, in as few groups as they allow", () => {
+  test("days alike are one group, in the order the week opens them", () => {
+    const hours: RestrictionTimes = weekly(
+      [
+        DayOfWeek.Monday,
+        DayOfWeek.Tuesday,
+        DayOfWeek.Wednesday,
+        DayOfWeek.Thursday,
+      ]
+        .map((day: DayOfWeek): WeeklyWindow => {
+          return { fromDay: day, from: "08:30", toDay: day, to: "18:00" };
+        })
+        .concat([
+          {
+            fromDay: DayOfWeek.Friday,
+            from: "08:30",
+            toDay: DayOfWeek.Friday,
+            to: "15:00",
+          },
+        ]),
+      LONDON,
+    );
+
+    expect(WorkingHours.getSpans({ hours, timezone: LONDON })).toEqual([
+      { days: [0, 1, 2, 3], from: "08:30", to: "18:00", endsDaysLater: 0 },
+      { days: [4], from: "08:30", to: "15:00", endsDaysLater: 0 },
+    ]);
+    expect(WorkingHours.getStartTime({ hours, timezone: LONDON })).toBe(
+      "08:30",
+    );
+  });
+
+  test("hours over a weekend end days later", () => {
+    const hours: RestrictionTimes = weekly(
+      [
+        {
+          fromDay: DayOfWeek.Friday,
+          from: "17:00",
+          toDay: DayOfWeek.Monday,
+          to: "09:00",
+        },
+      ],
+      LONDON,
+    );
+
+    expect(WorkingHours.getSpans({ hours, timezone: LONDON })).toEqual([
+      { days: [4], from: "17:00", to: "09:00", endsDaysLater: 3 },
+    ]);
+  });
+
+  test("days that begin at different times have no one start time", () => {
+    const hours: RestrictionTimes = weekly(
+      [
+        {
+          fromDay: DayOfWeek.Monday,
+          from: "09:00",
+          toDay: DayOfWeek.Monday,
+          to: "17:00",
+        },
+        {
+          fromDay: DayOfWeek.Tuesday,
+          from: "10:00",
+          toDay: DayOfWeek.Tuesday,
+          to: "17:00",
+        },
+      ],
+      LONDON,
+    );
+
+    expect(WorkingHours.getStartTime({ hours, timezone: LONDON })).toBeNull();
+  });
+
+  test("hours that never open have no groups and no start", () => {
+    expect(WorkingHours.getSpans({ hours: null, timezone: LONDON })).toEqual(
+      [],
+    );
+    expect(
+      WorkingHours.getStartTime({ hours: null, timezone: LONDON }),
+    ).toBeNull();
+  });
+
+  test("a time is minutes after midnight; anything else is not a time", () => {
+    expect(WorkingHours.parseClock("09:30")).toBe(570);
+    expect(WorkingHours.parseClock("9:30")).toBe(570);
+    expect(WorkingHours.parseClock("23:59")).toBe(1439);
+    expect(WorkingHours.parseClock("24:00")).toBeNull();
+    expect(WorkingHours.parseClock("9.30")).toBeNull();
+    expect(WorkingHours.parseClock("")).toBeNull();
+    expect(WorkingHours.parseClock(undefined)).toBeNull();
   });
 });
 

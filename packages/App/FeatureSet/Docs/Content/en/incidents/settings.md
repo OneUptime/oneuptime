@@ -618,7 +618,7 @@ The create form has two steps:
 2. **On-Call Policies** — the policies this rule pages, and the rule's **Name**, filled in from them ("Page Platform on-call") until you type a name of your own; its **Description** waits under **More fields**. The rule starts enabled; its edit form adds the **Enabled** switch, and the list renders a green **Enabled** or red **Disabled** pill per rule.
 :::
 
-A rule pages as soon as an incident matches it. To hold its page until working hours instead, set **When to Page** under **More fields** to **Only during working hours**, then pick the **Timezone** and the **Working Hours**: Monday to Friday, 09:00 to 17:00, in your own time zone, to start with. An incident that matches outside those hours gets a run that waits, as **Waiting**, and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the incident is acknowledged or resolved first, nobody is paged.
+A rule pages as soon as an incident matches it. To make it wait for working hours instead, answer **When should this rule page?** under **More fields** with **Only during working hours**. The **Working Hours** start as Monday to Friday, 09:00 to 17:00, in your own time zone: pick other days, another **Start Time** or **End Time**, or another **Timezone**, and a sentence under the choice says what will happen. In the list, the rule shows its hours under its name. An incident that matches outside those hours gets a run that waits, as **Waiting**, and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the incident is acknowledged or resolved first, nobody is paged.
 
 ### How matching resolves
 

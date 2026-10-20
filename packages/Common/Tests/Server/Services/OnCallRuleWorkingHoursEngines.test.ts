@@ -307,7 +307,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     expect(holds.get(POLICY_A)!.pagingStartsAt.getTime()).toBe(expected);
     expect(holds.get(POLICY_A)!.waitingStatusMessage).toMatch(
       new RegExp(
-        `^${ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START}paging starts at \\d{2}:\\d{2}`,
+        `^${ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START}Paging starts [A-Z][a-z]{2} \\d{2}:\\d{2}`,
       ),
     );
   });

@@ -463,9 +463,12 @@ describe.each(ON_CALL_CASES)("$name", (page: OnCallCase) => {
     ).toBeVisible();
     expect(nameBox()).toBeVisible();
     expect(nameBox()).toHaveValue("");
-    // The description and when to page wait folded; a new rule starts on.
+    /*
+     * The description and when to page wait folded; a new rule starts on.
+     * A rule that pages right away adds nothing to the folded line.
+     */
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
-    expect(listedNames(moreFields())).toEqual(["Description", "When to Page"]);
+    expect(listedNames(moreFields())).toEqual(["Description"]);
     expect(
       within(dialog()).queryByRole("switch", { name: /Enabled/ }),
     ).toBeNull();
@@ -575,12 +578,38 @@ describe("editing an on-call rule", () => {
  * WHEN AN ON-CALL RULE PAGES: under More fields, with the description. A
  * rule starts on Right away, as rules always have, and asks nothing more;
  * picking Only during working hours fills in Monday to Friday, 09:00 to
- * 17:00, in the reader's own time zone, and shows both to change - the
- * zone, and the hours in a schedule layer's own editor, with no "No
- * Restrictions" answer and the zone named under it.
+ * 17:00, in the reader's own time zone, and shows both to change - the days
+ * and two times, then the zone - with one sentence under the choice saying
+ * what will happen.
  */
 describe("when an on-call rule pages", () => {
   const ZONE: string = OneUptimeDate.getCurrentTimezone().toString();
+
+  // Times read on a 24-hour clock, whatever the machine running this prefers.
+  let clock: { mockRestore: () => void } | null = null;
+
+  beforeEach(() => {
+    clock = jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    clock?.mockRestore();
+  });
+
+  // The text as it reads: the ranges' word joiners left out.
+  function plain(text: string | null | undefined): string {
+    return (text || "").replace(/\u2060/g, "");
+  }
+
+  function summary(): HTMLElement | null {
+    return within(dialog()).queryByTestId("on-call-rule-working-hours-summary");
+  }
+
+  function day(index: number): HTMLElement {
+    return within(dialog()).getByTestId(`working-hours-picker-day-${index}`);
+  }
 
   async function openOnCallStep(): Promise<UserEvent> {
     const user: UserEvent = await renderPage(AlertOnCallRules as RulePage);
@@ -597,7 +626,9 @@ describe("when an on-call rule pages", () => {
   }
 
   function whenToPage(): HTMLElement {
-    return within(dialog()).getByRole("radiogroup", { name: "When to Page" });
+    return within(dialog()).getByRole("radiogroup", {
+      name: "When should this rule page?",
+    });
   }
 
   async function pickWorkingHours(user: UserEvent): Promise<void> {
@@ -606,13 +637,9 @@ describe("when an on-call rule pages", () => {
         name: /^Only during working hours/,
       }),
     );
-    // Its hours editor settles on the weekly windows it was handed.
+    // The picker settles on the days it was handed.
     await waitFor(() => {
-      expect(
-        within(dialog()).getByRole("radio", {
-          name: "Specific Times of the Week",
-        }),
-      ).toBeChecked();
+      expect(day(0)).toHaveAttribute("aria-pressed", "true");
     });
   }
 
@@ -628,25 +655,88 @@ describe("when an on-call rule pages", () => {
     ).toBeVisible();
     expect(within(dialog()).queryByText("Working Hours")).toBeNull();
     expect(within(dialog()).queryByText("Timezone")).toBeNull();
+    expect(summary()).toBeNull();
   });
 
-  test("picking Only during working hours shows the zone and Monday to Friday, 09:00 to 17:00", async () => {
+  test("picking Only during working hours shows Monday to Friday, 09:00 to 17:00, and the zone", async () => {
     const user: UserEvent = await openOnCallStep();
     await openMoreFields();
     await pickWorkingHours(user);
 
+    // Monday to Friday picked, the weekend not: one button a day.
+    expect(
+      [0, 1, 2, 3, 4, 5, 6].map((index: number): string | null => {
+        return day(index).getAttribute("aria-pressed");
+      }),
+    ).toEqual(["true", "true", "true", "true", "true", "false", "false"]);
+    expect(day(0)).toHaveAccessibleName("Monday");
+    expect(
+      within(dialog()).getByRole("button", { name: "Weekdays" }),
+    ).toBeVisible();
+    expect(within(dialog()).getByLabelText("Start Time")).toHaveValue("09:00");
+    expect(within(dialog()).getByLabelText("End Time")).toHaveValue("17:00");
     expect(within(dialog()).getByText("Timezone")).toBeVisible();
-    // A window a weekday, each with its own Delete.
+    // Not a schedule layer's editor: no restriction types, no windows to delete.
     expect(
-      within(dialog()).getAllByRole("button", { name: "Delete" }),
-    ).toHaveLength(5);
-    expect(within(dialog()).queryByText("No Restrictions")).toBeNull();
+      within(dialog()).queryByRole("radio", {
+        name: "Specific Times of the Week",
+      }),
+    ).toBeNull();
     expect(
-      within(dialog()).getByText(`These times are in ${ZONE}.`),
+      within(dialog()).queryByRole("button", { name: "Delete" }),
+    ).toBeNull();
+    // Under the choice, what will happen.
+    expect(plain(summary()?.textContent)).toBe(
+      `Alerts that match this rule outside Mon–Fri 09:00–17:00 (${ZONE}) wait, and paging starts at 09:00.`,
+    );
+  });
+
+  test("the sentence follows the days and times picked, and a night ends the next day", async () => {
+    const user: UserEvent = await openOnCallStep();
+    await openMoreFields();
+    await pickWorkingHours(user);
+
+    await user.click(day(5));
+    await waitFor(() => {
+      expect(plain(summary()?.textContent)).toContain("Mon–Sat 09:00–17:00");
+    });
+
+    fireEvent.change(within(dialog()).getByLabelText("Start Time"), {
+      target: { value: "22:00" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("End Time"), {
+      target: { value: "06:00" },
+    });
+
+    await waitFor(() => {
+      expect(plain(summary()?.textContent)).toBe(
+        `Alerts that match this rule outside Mon–Sat 22:00–06:00 (${ZONE}) wait, and paging starts at 22:00.`,
+      );
+    });
+    expect(within(dialog()).getByText("Ends the next day")).toBeVisible();
+  });
+
+  test("with no day picked, says so under the days and creates nothing", async () => {
+    const user: UserEvent = await openOnCallStep();
+
+    await pickPolicy(user, "Platform on-call");
+    await openMoreFields();
+    await pickWorkingHours(user);
+    await user.click(
+      within(dialog()).getByRole("button", { name: "Weekdays" }),
+    );
+
+    for (const index of [0, 1, 2, 3, 4]) {
+      await user.click(day(index));
+    }
+
+    await submit();
+
+    expect(
+      await within(dialog()).findByText("Pick at least one day."),
     ).toBeVisible();
-    expect(
-      within(dialog()).getByRole("button", { name: "Add Working Hours" }),
-    ).toBeVisible();
+    expect(summary()).toBeNull();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
   test("creates the rule with when it pages, its zone and its hours", async () => {

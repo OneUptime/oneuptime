@@ -58,9 +58,13 @@ export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME: string =
 export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME: string =
   "min-w-[12rem]";
 
-// Under a waiting run's pill: what it waits for, and when paging starts.
+/*
+ * Under a waiting run's pill: what it waits for, and when paging starts. It
+ * wraps at about a pill's width rather than widening the Status column, and
+ * pushing it under the row's actions, on one long line.
+ */
 export const ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME: string =
-  "mt-1 max-w-xs text-xs text-gray-500";
+  "mt-1 max-w-[14rem] whitespace-normal text-xs text-gray-500";
 
 /*
  * What a run that paged nobody says on hover. A policy went through its

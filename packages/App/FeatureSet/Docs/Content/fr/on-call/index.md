@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"Non"| level
 ```
 
-1. Un nouvel incident, une nouvelle alerte ou un nouvel épisode exécute aussitôt ses politiques d'astreinte : celles choisies sur lui, et celles qu'ajoutent ses règles d'astreinte. Chaque politique s'exécute de son côté. Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** retient les politiques qu'elle ajoute jusqu'au début de ces heures.
+1. Un nouvel incident, une nouvelle alerte ou un nouvel épisode exécute aussitôt ses politiques d'astreinte : celles choisies sur lui, et celles qu'ajoutent ses règles d'astreinte. Chaque politique s'exécute de son côté. Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** fait attendre les politiques qu'elle ajoute jusqu'au début de ces heures.
 2. La première règle d'escalade d'une politique alerte tout de suite : qui est d'astreinte en ce moment dans ses plannings, chaque membre de ses équipes et les personnes qu'elle nomme.
 3. Si l'une d'elles est absente, un remplacement d'utilisateur envoie son alerte à la personne qui la remplace, ou la saute.
 4. Chaque personne est jointe selon ses règles d'astreinte personnelles : quelle méthode est essayée, et au bout de combien de temps. Une alerte sans règle la joint quand même sur les méthodes qu'elle a vérifiées.
@@ -95,7 +95,7 @@ Quand vous êtes d'astreinte pour une politique, la cloche en haut à droite l'i
 ## Dépannage
 
 :::details Personne n'a été alerté pour un nouvel incident
-Ouvrez la page **Exécutions d'astreinte** de l'incident. Si elle est vide, l'incident n'avait aucune politique d'astreinte : aucune n'a été choisie sur lui, et aucune règle d'astreinte ne lui correspondait. Une exécution à l'état **Execution Completed - No One Notified** a parcouru chaque règle d'escalade sans trouver personne : en général un planning où personne n'est d'astreinte. Voir [Journaux d'exécution](/docs/on-call/policies#journaux-dexécution). Une exécution **En attente** a été retenue par une règle d'astreinte jusqu'aux heures ouvrées, et n'alerte personne avant qu'elles commencent.
+Ouvrez la page **Exécutions d'astreinte** de l'incident. Si elle est vide, l'incident n'avait aucune politique d'astreinte : aucune n'a été choisie sur lui, et aucune règle d'astreinte ne lui correspondait. Une exécution à l'état **Execution Completed - No One Notified** a parcouru chaque règle d'escalade sans trouver personne : en général un planning où personne n'est d'astreinte. Voir [Journaux d'exécution](/docs/on-call/policies#journaux-dexécution). Une exécution **En attente** attend les heures ouvrées, pour une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées**, et n'alerte personne avant qu'elles commencent.
 :::
 
 :::details Quelqu'un a été alerté sur le mauvais canal, ou pas du tout

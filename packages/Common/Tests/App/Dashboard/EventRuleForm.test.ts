@@ -37,6 +37,7 @@ import {
   readMinutes,
   readStopState,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/EventRuleForm";
+import { OnCallRuleRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallRule/WorkingHoursText";
 import {
   FILLED_IN_RULE_NAME_KEY,
   RULE_NAME_MAX_LENGTH,
@@ -100,7 +101,7 @@ describe("every rule starts with what it matches", () => {
   );
 
   test.each([
-    ["an on-call", getOnCallRuleActionFields<Values>()],
+    ["an on-call", getOnCallRuleActionFields<Values>(OnCallRuleRecord.Alert)],
     ["a privacy", getPrivacyRuleActionFields<Values>("incident")],
     ["a reminder", getReminderRuleActionFields<Values>("incident")],
     ["a runbook", getRunbookRuleActionFields<Values>()],
@@ -177,7 +178,9 @@ describe("an on-call rule's name", () => {
   });
 
   test("the policies picker is required and names the rule as it changes", () => {
-    const policies: Field<Values> = getOnCallRuleActionFields<Values>()[0]!;
+    const policies: Field<Values> = getOnCallRuleActionFields<Values>(
+      OnCallRuleRecord.Alert,
+    )[0]!;
 
     expect(Object.keys(policies.field || {})).toEqual(["onCallDutyPolicies"]);
     expect(policies.required).toBe(true);
@@ -186,7 +189,9 @@ describe("an on-call rule's name", () => {
   });
 
   test("the policies picker says what it is for in one sentence", () => {
-    const policies: Field<Values> = getOnCallRuleActionFields<Values>()[0]!;
+    const policies: Field<Values> = getOnCallRuleActionFields<Values>(
+      OnCallRuleRecord.Alert,
+    )[0]!;
 
     expect(policies.description).toBe(ON_CALL_RULE_POLICIES_DESCRIPTION);
     expect(ON_CALL_RULE_POLICIES_DESCRIPTION).toBe(

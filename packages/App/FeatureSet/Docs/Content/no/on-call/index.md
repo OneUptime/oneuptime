@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"Nei"| level
 ```
 
-1. En ny hendelse, et nytt varsel eller en ny episode kjører vaktretningslinjene sine med en gang: dem som er valgt på den, og dem vaktreglene legger til. Hver retningslinje kjører for seg. En vaktregel satt til **Bare i arbeidstiden** holder retningslinjene den legger til, tilbake til arbeidstiden begynner.
+1. En ny hendelse, et nytt varsel eller en ny episode kjører vaktretningslinjene sine med en gang: dem som er valgt på den, og dem vaktreglene legger til. Hver retningslinje kjører for seg. En vaktregel satt til **Bare i arbeidstiden** lar retningslinjene den legger til, vente til arbeidstiden begynner.
 2. Den første eskaleringsregelen i en retningslinje tilkaller med en gang: den som har vakt i vaktplanene dens akkurat nå, hvert medlem av teamene dens og personene den nevner.
 3. Er en av dem borte, sender en brukeroverstyring tilkallingen til personen som dekker for dem, eller hopper over dem.
 4. Hver person nås gjennom sine personlige vaktregler: hvilken av metodene deres som prøves, og etter hvor lang tid. En tilkalling uten regel når dem likevel på metodene de har verifisert.
@@ -95,7 +95,7 @@ Når du har vakt for en retningslinje, viser klokken øverst til høyre det. Kli
 ## Feilsøking
 
 :::details Ingen ble tilkalt for en ny hendelse
-Åpne siden **Vaktutførelser** for hendelsen. Er den tom, hadde hendelsen ingen vaktretningslinje: ingen ble valgt på den, og ingen vaktregel passet. En kjøring med **Execution Completed - No One Notified** gikk gjennom alle eskaleringsregler uten å finne noen: som regel en vaktplan der ingen har vakt. Se [Utførelseslogger](/docs/on-call/policies#utførelseslogger). En kjøring med **Venter** ble holdt tilbake av en vaktregel til arbeidstiden og tilkaller ingen før den begynner.
+Åpne siden **Vaktutførelser** for hendelsen. Er den tom, hadde hendelsen ingen vaktretningslinje: ingen ble valgt på den, og ingen vaktregel passet. En kjøring med **Execution Completed - No One Notified** gikk gjennom alle eskaleringsregler uten å finne noen: som regel en vaktplan der ingen har vakt. Se [Utførelseslogger](/docs/on-call/policies#utførelseslogger). En kjøring med **Venter** venter på arbeidstiden for en vaktregel satt til **Bare i arbeidstiden** og tilkaller ingen før den begynner.
 :::
 
 :::details Noen ble tilkalt på feil kanal, eller ikke i det hele tatt

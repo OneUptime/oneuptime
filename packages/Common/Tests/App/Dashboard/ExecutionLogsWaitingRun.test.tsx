@@ -63,7 +63,7 @@ import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPo
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 
 const WAITING_MESSAGE: string =
-  "Waiting for working hours: paging starts at 09:00 (Europe/London).";
+  "Waiting for working hours. Paging starts Tue 09:00 (Europe/London).";
 
 interface RecordedColumn {
   title: string;

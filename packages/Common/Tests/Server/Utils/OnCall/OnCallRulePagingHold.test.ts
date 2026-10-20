@@ -78,7 +78,7 @@ describe("the hold one rule puts on its policies", () => {
 
     expect(hold?.pagingStartsAt).toEqual(at("2026-10-20 09:00"));
     expect(hold?.waitingStatusMessage).toBe(
-      "Waiting for working hours: paging starts at 09:00 (Europe/London).",
+      "Waiting for working hours. Paging starts Tue 09:00 (Europe/London).",
     );
   });
 
@@ -97,7 +97,7 @@ describe("the hold one rule puts on its policies", () => {
 
     expect(hold?.pagingStartsAt).toEqual(at("2026-10-26 09:00"));
     expect(hold?.waitingStatusMessage).toBe(
-      "Waiting for working hours: paging starts at 09:00 on Mon, Oct 26 (Europe/London).",
+      "Waiting for working hours. Paging starts Mon 09:00 (Europe/London).",
     );
   });
 
@@ -115,7 +115,7 @@ describe("the hold one rule puts on its policies", () => {
 
     expect(hold?.pagingStartsAt.toISOString()).toBe("2026-10-20T13:00:00.000Z");
     expect(hold?.waitingStatusMessage).toBe(
-      "Waiting for working hours: paging starts at 09:00 (America/New_York).",
+      "Waiting for working hours. Paging starts Tue 09:00 (America/New_York).",
     );
   });
 

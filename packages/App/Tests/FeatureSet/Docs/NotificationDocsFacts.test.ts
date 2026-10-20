@@ -1766,7 +1766,7 @@ describe("personal on-call rules", () => {
    */
   it("points at the on-call rule that pages only during working hours, for everyone", () => {
     expect(rules).toContain(
-      "To hold a low-severity page until working hours for everyone, set the on-call rule that pages it to **Only during working hours**: see [On-call rules](/docs/alerts/settings#on-call-rules).",
+      "To make a low-severity page wait for working hours for everyone, set the on-call rule that pages it to **Only during working hours**: see [On-call rules](/docs/alerts/settings#on-call-rules).",
     );
     // The answer the rule's form gives, as the page bolds it.
     expect(readDashboardSource("Utils/Form/EventRuleForm.ts")).toContain(

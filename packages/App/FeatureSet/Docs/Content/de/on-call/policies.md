@@ -34,7 +34,7 @@ Eine Richtlinie alarmiert niemanden, bis etwas sie ausführt. Jeder Vorfall, jed
 | Von Hand | **Bereitschaftsdienst-Richtlinie ausführen**, im Menü **Aktionen** eines Feeds oder an einer Slack- oder Microsoft-Teams-Nachricht | [Der Vorfall-Feed](/docs/incidents/notes-owners-and-feed#der-vorfall-feed) |
 | Chat und Workflows | `/oneuptime page` in Slack oder Microsoft Teams und der Schritt **Page an On-Call Policy** eines Workflows | [Paging](/docs/workflows/components#paging) |
 
-Eine Richtlinie, die mehrere Regeln hinzufügen, läuft einmal. Ein Schweregrad führt nie selbst eine Richtlinie aus: Das tut eine Bereitschaftsregel, die zu dem Schweregrad passt. Ein Vorfall oder eine Warnung, die bereits bestätigt oder behoben erstellt wird, führt keine ihrer Richtlinien aus. Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** hält die Richtlinien, die sie hinzufügt, zurück, bis diese Zeiten beginnen.
+Eine Richtlinie, die mehrere Regeln hinzufügen, läuft einmal. Ein Schweregrad führt nie selbst eine Richtlinie aus: Das tut eine Bereitschaftsregel, die zu dem Schweregrad passt. Ein Vorfall oder eine Warnung, die bereits bestätigt oder behoben erstellt wird, führt keine ihrer Richtlinien aus. Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** lässt die Richtlinien, die sie hinzufügt, warten, bis diese Zeiten beginnen.
 
 ## Die Seiten einer Richtlinie
 
@@ -84,7 +84,7 @@ flowchart TB
 
 | Status | Was er bedeutet |
 | --- | --- |
-| **Wartet** | Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** hält den Lauf zurück, bis diese Zeiten beginnen. Bis dahin alarmiert er niemanden, und er endet ohne Alarmierung, wenn der Vorfall oder die Warnung vorher bestätigt oder behoben wird. |
+| **Wartet** | Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** lässt den Lauf warten, bis diese Zeiten beginnen: Er sagt, wann die Alarmierung beginnt, und alarmiert bis dahin niemanden. Er endet ohne Alarmierung, wenn der Vorfall oder die Warnung vorher bestätigt oder behoben wird. |
 | **Geplant**, **Begonnen** | Der Lauf wird vorbereitet. Einer, der nach 5 Minuten noch hier steht, wird mit **Fehler** beendet. |
 | **Executing** | Der Lauf alarmiert. OneUptime bringt ihn jede Minute einen Schritt weiter. |
 | **Execution Completed** | Jemand hat bestätigt, der Vorfall oder die Warnung wurde behoben, jede Regel und Wiederholung wurde genutzt, oder die Richtlinie wurde archiviert. |

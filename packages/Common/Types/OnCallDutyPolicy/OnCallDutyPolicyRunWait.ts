@@ -23,18 +23,18 @@ import WorkingHours from "./WorkingHours";
  * run that ended (OnCallDutyPolicyRunEnding).
  */
 
-// "Waiting for working hours: paging starts at 09:00 (Europe/London)."
+// "Waiting for working hours. Paging starts Wed 09:00 (Europe/London)."
 export const ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START: string =
-  "Waiting for working hours: ";
+  "Waiting for working hours. ";
 
-// A run held for any other reason: "Waiting: paging starts at 09:00 (UTC)."
-export const ON_CALL_POLICY_RUN_WAITING_MESSAGE_START: string = "Waiting: ";
+// A run that waits for any other reason: "Waiting. Paging starts Wed 09:00 (UTC)."
+export const ON_CALL_POLICY_RUN_WAITING_MESSAGE_START: string = "Waiting. ";
 
 export function getOnCallPolicyRunWaitingMessage(data: {
   pagingStartsAt: Date;
   // The zone the moment is told in: the rule's. UTC without one.
   timezone?: string | undefined;
-  // When the message is written: a moment on another day names its day.
+  // When the message is written: a moment a week or more away names its date.
   now: Date;
   isWaitingForWorkingHours: boolean;
 }): string {
@@ -42,7 +42,7 @@ export function getOnCallPolicyRunWaitingMessage(data: {
     ? ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START
     : ON_CALL_POLICY_RUN_WAITING_MESSAGE_START;
 
-  return `${start}paging starts at ${WorkingHours.describeMoment({
+  return `${start}Paging starts ${WorkingHours.describeMoment({
     at: data.pagingStartsAt,
     timezone: data.timezone,
     now: data.now,

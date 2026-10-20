@@ -55,7 +55,7 @@ const RULE_ID: ObjectID = new ObjectID("5a000000-0000-4000-8000-000000000005");
 const HOUR: number = 60 * 60 * 1000;
 
 const WORKING_HOURS_MESSAGE: string =
-  "Waiting for working hours: paging starts at 09:00 (Europe/London).";
+  "Waiting for working hours. Paging starts Tue 09:00 (Europe/London).";
 
 interface CreateArgs {
   data: OnCallDutyPolicyExecutionLog;
@@ -308,9 +308,7 @@ describe("creating a run that waits", () => {
 
     expect(onCreate.createBy.data.status).toBe(OnCallDutyPolicyStatus.Waiting);
     expect(onCreate.createBy.data.statusMessage).toMatch(
-      new RegExp(
-        `^${ON_CALL_POLICY_RUN_WAITING_MESSAGE_START}paging starts at `,
-      ),
+      new RegExp(`^${ON_CALL_POLICY_RUN_WAITING_MESSAGE_START}Paging starts `),
     );
   });
 
@@ -392,7 +390,7 @@ describe("a run created waiting", () => {
     expect(item.feedInfoInMarkdown).toContain("is not paging yet.");
     expect(item.feedInfoInMarkdown).toContain("Platform on-call");
     expect(item.feedInfoInMarkdown).toContain(
-      "Waiting for working hours: paging starts at 09:00",
+      "Waiting for working hours. Paging starts Tue 09:00",
     );
     expect(item.displayColor).toEqual(Blue500);
   });

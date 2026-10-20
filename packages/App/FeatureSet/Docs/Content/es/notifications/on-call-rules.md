@@ -51,7 +51,7 @@ Es un comienzo seguro, y normalmente demasiado. Recórtalo a lo que merece cada 
 | Mayor | Push al instante, un SMS a los 10 minutos |
 | Menor o baja | Un correo al instante |
 
-Tus propias reglas no tienen horas de silencio: deja las gravedades bajas en correo, o en una regla push configurada como **Estándar**, para que nunca te despierten. Para retener el aviso de una gravedad baja hasta el horario laboral para todos, configura la regla de guardia que lo activa como **Solo en horario laboral**: consulta [Reglas de guardia](/docs/alerts/settings#reglas-de-guardia).
+Tus propias reglas no tienen horas de silencio: deja las gravedades bajas en correo, o en una regla push configurada como **Estándar**, para que nunca te despierten. Para que el aviso de una gravedad baja espere al horario laboral para todos, configura la regla de guardia que lo activa como **Solo en horario laboral**: consulta [Reglas de guardia](/docs/alerts/settings#reglas-de-guardia).
 
 ## Añade una regla
 

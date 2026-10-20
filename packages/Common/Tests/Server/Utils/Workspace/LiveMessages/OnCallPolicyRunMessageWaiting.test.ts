@@ -37,7 +37,7 @@ const RECORD: string = `**[Alert #12](${RECORD_URL})**`;
 const PAGING_STARTS_AT: Date = new Date("2026-10-21T08:00:00Z");
 
 const WAITING_MESSAGE: string =
-  "Waiting for working hours: paging starts at 09:00 (Europe/London).";
+  "Waiting for working hours. Paging starts Wed 09:00 (Europe/London).";
 
 function run(overrides: Partial<OnCallPolicyRun> = {}): OnCallPolicyRun {
   return {
@@ -64,7 +64,7 @@ describe("the message of a run waiting for working hours", () => {
     expect(OnCallPolicyRunMessageView.getMarkdown(run())).toBe(
       [
         `⏳ ${POLICY} is waiting to page for ${RECORD}`,
-        `**Waiting for working hours**: paging starts ${WorkspaceMessageTime.dateAndTime(PAGING_STARTS_AT).toString()}.`,
+        `**Waiting for working hours.** Paging starts ${WorkspaceMessageTime.dateAndTime(PAGING_STARTS_AT).toString()}.`,
         `[See every step in OneUptime](${RUN_URL})`,
       ].join("\n\n"),
     );
@@ -101,7 +101,7 @@ describe("the message of a run waiting for working hours", () => {
       OnCallPolicyRunMessageView.getMarkdown(
         run({ pagingStartsAt: undefined }),
       ),
-    ).toContain("**Waiting for working hours** to start paging.");
+    ).toContain("**Waiting for working hours.**");
   });
 
   test("held for another reason, says when paging starts", () => {

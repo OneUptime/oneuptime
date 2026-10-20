@@ -616,7 +616,7 @@ Skapandeformuläret har två steg:
 2. **Jourpolicyer** — policyerna som den här regeln larmar, och regelns **Namn**, ifyllt utifrån dem ("Larma Platform on-call") tills du skriver ett eget; dess **Beskrivning** väntar under **Fler fält**. Regeln börjar aktiverad; dess redigeringsformulär lägger till reglaget **Aktiverad**, och listan visar ett grönt märke **Aktiverad** eller ett rött märke **Inaktiverad** per regel.
 :::
 
-En regel larmar så snart en incident matchar den. För att i stället hålla inne larmningen till arbetstid ställer du **När larma** under **Fler fält** på **Endast under arbetstid** och väljer sedan **Tidszon** och **Arbetstid**: till att börja med måndag till fredag, 09:00 till 17:00, i din egen tidszon. En incident som matchar utanför de tiderna får en körning som väntar, som **Väntar**, och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses incidenten först larmas ingen.
+En regel larmar så snart en incident matchar den. För att låta den vänta på arbetstid i stället svarar du **Endast under arbetstid** på **När ska den här regeln larma?** under **Fler fält**. **Arbetstid** börjar som måndag till fredag, 09:00 till 17:00, i din egen tidszon: välj andra dagar, en annan **Starttid** eller **Sluttid** eller en annan **Tidszon**, så säger en mening under valet vad som händer. I listan visar regeln sin arbetstid under namnet. En incident som matchar utanför de tiderna får en körning som väntar, som **Väntar**, och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses incidenten först larmas ingen.
 
 ### Så avgörs matchning
 
