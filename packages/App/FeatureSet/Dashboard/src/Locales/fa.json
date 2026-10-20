@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "رکوردها هنوز آن را دارند، پس نمی‌توان آن را حذف کرد. می‌تواند بایگانی بماند.",
   "{{count}} {{itemsName}} skipped": "{{count}} مورد نادیده گرفته شد ({{itemsName}})",
   "{{count}} {{itemsName}} skipped_one": "{{count}} مورد نادیده گرفته شد ({{itemName}})",
-  "You can change or remove these rules, but not add new ones.": "می‌توانید این قواعد را تغییر دهید یا حذف کنید، اما نمی‌توانید قاعده‌ای اضافه کنید."
+  "You can change or remove these rules, but not add new ones.": "می‌توانید این قواعد را تغییر دهید یا حذف کنید، اما نمی‌توانید قاعده‌ای اضافه کنید.",
+  "Keep each alert episode's updates in one thread": "نگه‌داشتن به‌روزرسانی‌های هر اپیزود هشدار در یک رشته",
+  "Keep each alert's updates in one thread": "نگه‌داشتن به‌روزرسانی‌های هر هشدار در یک رشته",
+  "Keep each event's updates in one thread": "نگه‌داشتن به‌روزرسانی‌های هر رویداد در یک رشته",
+  "Keep each incident episode's updates in one thread": "نگه‌داشتن به‌روزرسانی‌های هر اپیزود حادثه در یک رشته",
+  "Keep each incident's updates in one thread": "نگه‌داشتن به‌روزرسانی‌های هر حادثه در یک رشته",
+  "Keeps each alert episode's updates in one thread there.": "آنجا به‌روزرسانی‌های هر اپیزود هشدار را در یک رشته نگه می‌دارد.",
+  "Keeps each alert's updates in one thread there.": "آنجا به‌روزرسانی‌های هر هشدار را در یک رشته نگه می‌دارد.",
+  "Keeps each event's updates in one thread there.": "آنجا به‌روزرسانی‌های هر رویداد را در یک رشته نگه می‌دارد.",
+  "Keeps each incident episode's updates in one thread there.": "آنجا به‌روزرسانی‌های هر اپیزود حادثه را در یک رشته نگه می‌دارد.",
+  "Keeps each incident's updates in one thread there.": "آنجا به‌روزرسانی‌های هر حادثه را در یک رشته نگه می‌دارد.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "اولین پیام در کانال ارسال می‌شود و یک رشته را آغاز می‌کند. هر به‌روزرسانی بعدی پاسخی در آن است و تغییرات وضعیت و هشدارهای آنکال در کانال هم نمایش داده می‌شوند."
 }

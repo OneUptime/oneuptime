@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Poster har den fortsatt, så den kan ikke slettes. Den kan forbli arkivert.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} hoppet over",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} hoppet over",
-  "You can change or remove these rules, but not add new ones.": "Du kan endre eller fjerne disse reglene, men ikke legge til nye."
+  "You can change or remove these rules, but not add new ones.": "Du kan endre eller fjerne disse reglene, men ikke legge til nye.",
+  "Keep each alert episode's updates in one thread": "Samle oppdateringene for hver varselepisode i én tråd",
+  "Keep each alert's updates in one thread": "Samle oppdateringene for hvert varsel i én tråd",
+  "Keep each event's updates in one thread": "Samle oppdateringene for hver vedlikeholdshendelse i én tråd",
+  "Keep each incident episode's updates in one thread": "Samle oppdateringene for hver hendelsesepisode i én tråd",
+  "Keep each incident's updates in one thread": "Samle oppdateringene for hver hendelse i én tråd",
+  "Keeps each alert episode's updates in one thread there.": "Samler der oppdateringene for hver varselepisode i én tråd.",
+  "Keeps each alert's updates in one thread there.": "Samler der oppdateringene for hvert varsel i én tråd.",
+  "Keeps each event's updates in one thread there.": "Samler der oppdateringene for hver vedlikeholdshendelse i én tråd.",
+  "Keeps each incident episode's updates in one thread there.": "Samler der oppdateringene for hver hendelsesepisode i én tråd.",
+  "Keeps each incident's updates in one thread there.": "Samler der oppdateringene for hver hendelse i én tråd.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Den første meldingen publiseres i kanalen og starter en tråd. Hver senere oppdatering er et svar i den, og tilstandsendringer og vaktalarmer vises også i kanalen."
 }

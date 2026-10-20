@@ -40,6 +40,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import { WorkspaceEventType } from "./WorkspaceMemberActions";
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import GlobalCache from "../../Infrastructure/GlobalCache";
+import WorkspaceRecordThreads from "./WorkspaceRecordThreads";
 import logger from "../Logger";
 import OneUptimeDate from "../../../Types/Date";
 import SavedChatMessage, {
@@ -320,7 +321,10 @@ export default class WorkspaceReactionNote {
    *   1. a resource that lists the channel in postUpdatesToWorkspaceChannels,
    *      i.e. the channel OneUptime created for that incident / alert / ...,
    *   2. the resource whose notification is the reacted-to message,
-   *   3. the resource OneUptime most recently posted about in the channel.
+   *   3. the resource whose thread the message is in, in a channel a rule
+   *      keeps each record's messages in one thread in (WorkspaceRecordThreads)
+   *      - somebody's reply there names no record of its own,
+   *   4. the resource OneUptime most recently posted about in the channel.
    *
    * This used to be (3) alone, which broke three ways: notification logs are
    * hard-deleted after a few days on OneUptime Cloud, so a reaction in a quiet
@@ -334,6 +338,11 @@ export default class WorkspaceReactionNote {
     workspaceType: WorkspaceType;
     channelId: string;
     messageId?: string | undefined;
+    /*
+     * The first message of the thread the reacted-to message is in, read
+     * only for step 3. Null when it is in none.
+     */
+    getThreadId?: (() => Promise<string | null>) | undefined;
     resourceTypes?: Array<WorkspaceNoteResourceType> | undefined;
   }): Promise<WorkspaceNoteResource | null> {
     if (!data.channelId || data.projectIds.length === 0) {
@@ -373,6 +382,31 @@ export default class WorkspaceReactionNote {
 
       if (fromMessage) {
         return fromMessage;
+      }
+    }
+
+    if (data.getThreadId) {
+      const fromThread: {
+        recordType: string;
+        recordId: ObjectID;
+        projectId: ObjectID;
+      } | null = await WorkspaceRecordThreads.findRecordOfThread({
+        projectIdQuery: projectIdQuery,
+        channelId: data.channelId,
+        getThreadTs: data.getThreadId,
+      });
+
+      if (
+        fromThread &&
+        resourceTypes.includes(
+          fromThread.recordType as WorkspaceNoteResourceType,
+        )
+      ) {
+        return {
+          resourceType: fromThread.recordType as WorkspaceNoteResourceType,
+          resourceId: fromThread.recordId,
+          projectId: fromThread.projectId,
+        };
       }
     }
 

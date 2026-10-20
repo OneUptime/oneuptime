@@ -540,6 +540,36 @@ export const EXISTING_CHANNEL_NAMES_DESCRIPTIONS: Readonly<
   ),
 };
 
+/*
+ * Slack only, and only for the records that have a thread there
+ * (WorkspaceRecordThreads): the record's first message starts the thread in
+ * each channel above, and everything after it is a reply. A kind of record
+ * without a title here - a monitor, an on-call policy - is not offered it.
+ */
+export const POST_UPDATES_IN_THREAD_TITLES: Readonly<
+  Partial<Record<NotificationRuleEventType, string>>
+> = {
+  [NotificationRuleEventType.Incident]: translationKey(
+    "Keep each incident's updates in one thread",
+  ),
+  [NotificationRuleEventType.Alert]: translationKey(
+    "Keep each alert's updates in one thread",
+  ),
+  [NotificationRuleEventType.IncidentEpisode]: translationKey(
+    "Keep each incident episode's updates in one thread",
+  ),
+  [NotificationRuleEventType.AlertEpisode]: translationKey(
+    "Keep each alert episode's updates in one thread",
+  ),
+  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
+    "Keep each event's updates in one thread",
+  ),
+};
+
+export const POST_UPDATES_IN_THREAD_DESCRIPTION: string = translationKey(
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.",
+);
+
 export const TEAM_TITLE: string = translationKey("Team");
 
 export const TEAM_PLACEHOLDER: string = translationKey("Select a team");
@@ -762,6 +792,27 @@ export const POSTS_IN_CHANNELS_SENTENCE: string = translationKey(
   "Posts updates in {{channels}}.",
 );
 
+// After the channels it posts in, of a rule that keeps a thread there.
+export const POSTS_IN_THREAD_SENTENCES: Readonly<
+  Partial<Record<NotificationRuleEventType, string>>
+> = {
+  [NotificationRuleEventType.Incident]: translationKey(
+    "Keeps each incident's updates in one thread there.",
+  ),
+  [NotificationRuleEventType.Alert]: translationKey(
+    "Keeps each alert's updates in one thread there.",
+  ),
+  [NotificationRuleEventType.IncidentEpisode]: translationKey(
+    "Keeps each incident episode's updates in one thread there.",
+  ),
+  [NotificationRuleEventType.AlertEpisode]: translationKey(
+    "Keeps each alert episode's updates in one thread there.",
+  ),
+  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
+    "Keeps each event's updates in one thread there.",
+  ),
+};
+
 export const POSTS_IN_CHATS_SENTENCE: string = translationKey(
   "Posts updates in the chats {{chats}}.",
 );
@@ -913,6 +964,18 @@ export function getNotificationRuleSummary(
           }),
         }),
       );
+
+      // Slack only: Microsoft Teams posts every update as a message of its own.
+      const inThread: string | undefined =
+        POSTS_IN_THREAD_SENTENCES[input.eventType];
+
+      if (
+        rule.shouldPostUpdatesInThread &&
+        inThread &&
+        input.workspaceType === WorkspaceType.Slack
+      ) {
+        sentences.push(translator.translateText(inThread) || "");
+      }
     }
   }
 

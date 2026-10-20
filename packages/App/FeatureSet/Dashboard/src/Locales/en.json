@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Records still have it, so it can't be deleted. It can stay archived.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} skipped",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} skipped",
-  "You can change or remove these rules, but not add new ones.": "You can change or remove these rules, but not add new ones."
+  "You can change or remove these rules, but not add new ones.": "You can change or remove these rules, but not add new ones.",
+  "Keep each alert episode's updates in one thread": "Keep each alert episode's updates in one thread",
+  "Keep each alert's updates in one thread": "Keep each alert's updates in one thread",
+  "Keep each event's updates in one thread": "Keep each event's updates in one thread",
+  "Keep each incident episode's updates in one thread": "Keep each incident episode's updates in one thread",
+  "Keep each incident's updates in one thread": "Keep each incident's updates in one thread",
+  "Keeps each alert episode's updates in one thread there.": "Keeps each alert episode's updates in one thread there.",
+  "Keeps each alert's updates in one thread there.": "Keeps each alert's updates in one thread there.",
+  "Keeps each event's updates in one thread there.": "Keeps each event's updates in one thread there.",
+  "Keeps each incident episode's updates in one thread there.": "Keeps each incident episode's updates in one thread there.",
+  "Keeps each incident's updates in one thread there.": "Keeps each incident's updates in one thread there.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too."
 }

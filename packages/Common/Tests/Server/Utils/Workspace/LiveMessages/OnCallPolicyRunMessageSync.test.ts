@@ -351,6 +351,10 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
     await OnCallPolicyRunMessage.syncRun(RUN_ID);
 
     expect(alarmSpy).toHaveBeenCalledTimes(1);
+    // Where a rule keeps the record in one thread, the alarm shows in the channel too.
+    expect(
+      alarmSpy.mock.calls[0]![0].workspaceNotification.alsoSendToChannel,
+    ).toBe(true);
     expect(store.rows[0]!.messageData).toEqual({
       alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],
     });

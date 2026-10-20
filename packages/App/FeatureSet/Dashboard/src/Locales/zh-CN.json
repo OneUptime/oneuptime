@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "仍有记录在使用它，因此无法删除。它可以保持归档。",
   "{{count}} {{itemsName}} skipped": "已跳过 {{count}} 个{{itemsName}}",
   "{{count}} {{itemsName}} skipped_one": "已跳过 {{count}} 个{{itemName}}",
-  "You can change or remove these rules, but not add new ones.": "您可以更改或移除这些规则，但无法添加新规则。"
+  "You can change or remove these rules, but not add new ones.": "您可以更改或移除这些规则，但无法添加新规则。",
+  "Keep each alert episode's updates in one thread": "将每个警报片段的更新集中在一个消息串中",
+  "Keep each alert's updates in one thread": "将每个警报的更新集中在一个消息串中",
+  "Keep each event's updates in one thread": "将每个维护事件的更新集中在一个消息串中",
+  "Keep each incident episode's updates in one thread": "将每个事件片段的更新集中在一个消息串中",
+  "Keep each incident's updates in one thread": "将每个事件的更新集中在一个消息串中",
+  "Keeps each alert episode's updates in one thread there.": "在那里将每个警报片段的更新集中在一个消息串中。",
+  "Keeps each alert's updates in one thread there.": "在那里将每个警报的更新集中在一个消息串中。",
+  "Keeps each event's updates in one thread there.": "在那里将每个维护事件的更新集中在一个消息串中。",
+  "Keeps each incident episode's updates in one thread there.": "在那里将每个事件片段的更新集中在一个消息串中。",
+  "Keeps each incident's updates in one thread there.": "在那里将每个事件的更新集中在一个消息串中。",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "第一条消息发布在频道中并开启一个消息串。之后的每条更新都是其中的回复，状态变更和值班告警也会显示在频道中。"
 }

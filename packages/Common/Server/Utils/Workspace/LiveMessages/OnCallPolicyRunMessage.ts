@@ -415,6 +415,8 @@ export default class OnCallPolicyRunMessage {
             notificationText: alarm.text,
             workspaceNotification: {
               sendWorkspaceNotification: true,
+              // ... in the channel too, where it is a reply in a record's thread.
+              alsoSendToChannel: true,
             },
           },
         );

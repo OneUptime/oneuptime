@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Hay registros que aún lo tienen, así que no se puede eliminar. Puede seguir archivado.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} omitidos: {{count}}",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} omitido: {{count}}",
-  "You can change or remove these rules, but not add new ones.": "Puedes cambiar o eliminar estas reglas, pero no añadir otras nuevas."
+  "You can change or remove these rules, but not add new ones.": "Puedes cambiar o eliminar estas reglas, pero no añadir otras nuevas.",
+  "Keep each alert episode's updates in one thread": "Agrupar las actualizaciones de cada episodio de alerta en un hilo",
+  "Keep each alert's updates in one thread": "Agrupar las actualizaciones de cada alerta en un hilo",
+  "Keep each event's updates in one thread": "Agrupar las actualizaciones de cada evento en un hilo",
+  "Keep each incident episode's updates in one thread": "Agrupar las actualizaciones de cada episodio de incidente en un hilo",
+  "Keep each incident's updates in one thread": "Agrupar las actualizaciones de cada incidente en un hilo",
+  "Keeps each alert episode's updates in one thread there.": "Allí agrupa las actualizaciones de cada episodio de alerta en un hilo.",
+  "Keeps each alert's updates in one thread there.": "Allí agrupa las actualizaciones de cada alerta en un hilo.",
+  "Keeps each event's updates in one thread there.": "Allí agrupa las actualizaciones de cada evento en un hilo.",
+  "Keeps each incident episode's updates in one thread there.": "Allí agrupa las actualizaciones de cada episodio de incidente en un hilo.",
+  "Keeps each incident's updates in one thread there.": "Allí agrupa las actualizaciones de cada incidente en un hilo.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "El primer mensaje se publica en el canal e inicia un hilo. Cada actualización posterior es una respuesta en él, y los cambios de estado y las alarmas de guardia también se muestran en el canal."
 }

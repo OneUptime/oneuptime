@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Datensätze verweisen noch darauf, daher kann es nicht gelöscht werden. Es kann archiviert bleiben.",
   "{{count}} {{itemsName}} skipped": "{{count}} {{itemsName}} übersprungen",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} übersprungen",
-  "You can change or remove these rules, but not add new ones.": "Sie können diese Regeln ändern oder entfernen, aber keine neuen hinzufügen."
+  "You can change or remove these rules, but not add new ones.": "Sie können diese Regeln ändern oder entfernen, aber keine neuen hinzufügen.",
+  "Keep each alert episode's updates in one thread": "Updates jeder Warnungsepisode in einem Thread bündeln",
+  "Keep each alert's updates in one thread": "Updates jeder Warnung in einem Thread bündeln",
+  "Keep each event's updates in one thread": "Updates jedes Ereignisses in einem Thread bündeln",
+  "Keep each incident episode's updates in one thread": "Updates jeder Vorfallsepisode in einem Thread bündeln",
+  "Keep each incident's updates in one thread": "Updates jedes Vorfalls in einem Thread bündeln",
+  "Keeps each alert episode's updates in one thread there.": "Bündelt dort die Updates jeder Warnungsepisode in einem Thread.",
+  "Keeps each alert's updates in one thread there.": "Bündelt dort die Updates jeder Warnung in einem Thread.",
+  "Keeps each event's updates in one thread there.": "Bündelt dort die Updates jedes Ereignisses in einem Thread.",
+  "Keeps each incident episode's updates in one thread there.": "Bündelt dort die Updates jeder Vorfallsepisode in einem Thread.",
+  "Keeps each incident's updates in one thread there.": "Bündelt dort die Updates jedes Vorfalls in einem Thread.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Die erste Nachricht wird im Kanal gepostet und startet einen Thread. Jedes spätere Update ist eine Antwort darin, und Statusänderungen und Bereitschaftsalarme erscheinen zusätzlich im Kanal."
 }

@@ -86,6 +86,7 @@ import ChannelMembersNotAddedNotice, {
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
+import WorkspaceRecordThreads from "../Utils/Workspace/WorkspaceRecordThreads";
 import WorkspaceChannelName, {
   NUMBER_PREFIX_COLUMN_BY_EVENT_TYPE,
   WorkspaceChannelNameParts,
@@ -1503,6 +1504,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
       // Not posted in this channel (WorkspaceChannelToSkip).
       exceptChannel?: WorkspaceChannelToSkip | undefined;
+      /*
+       * Where a rule keeps the record's messages in one thread
+       * (WorkspaceRecordThreads): the record's created message, which
+       * starts the thread, so it never waits for one.
+       */
+      startsRecordThread?: boolean | undefined;
+      // ... and one shown in the channel too: a state change, an alarm.
+      alsoSendToChannel?: boolean | undefined;
     };
   }): Promise<void> {
     /*
@@ -1630,7 +1639,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const responses: Array<WorkspaceSendMessageResponse> =
       await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
         projectId: data.projectId,
-        messagePayloadsByWorkspace: workspaceNotificationPaylaods,
+        messagePayloadsByWorkspace: workspaceNotificationPaylaods.filter(
+          (payload: WorkspaceMessagePayload): boolean => {
+            return !payload.isRecordThread;
+          },
+        ),
       });
 
     await this.logSendResponses({
@@ -1640,6 +1653,101 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       messageBlocksByWorkspaceTypes: messageBlocksByWorkspaceTypes,
       authorUserId: data.workspaceNotification.authorUserId,
     });
+
+    const recordThreadPayloads: Array<WorkspaceMessagePayload> =
+      workspaceNotificationPaylaods.filter(
+        (payload: WorkspaceMessagePayload): boolean => {
+          return Boolean(payload.isRecordThread);
+        },
+      );
+
+    if (recordThreadPayloads.length > 0) {
+      await this.postInRecordThreads({
+        projectId: data.projectId,
+        notificationFor: data.notificationFor,
+        payloads: recordThreadPayloads,
+        messageBlocksByWorkspaceTypes: messageBlocksByWorkspaceTypes,
+        authorUserId: data.workspaceNotification.authorUserId,
+        startsRecordThread: data.workspaceNotification.startsRecordThread,
+        alsoSendToChannel: data.workspaceNotification.alsoSendToChannel,
+      });
+    }
+  }
+
+  /*
+   * The message, in the existing Slack channels that keep the record's
+   * messages in one thread (WorkspaceRecordThreads). The record's created
+   * message starts the thread and goes now, as does any message once the
+   * thread has started. One that comes before it - the owners a monitor
+   * adds as it raises an incident - waits for the thread without holding
+   * up whoever posted it, and is logged once it is sent.
+   */
+  private async postInRecordThreads(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    payloads: Array<WorkspaceMessagePayload>;
+    messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType>;
+    authorUserId?: ObjectID | undefined;
+    startsRecordThread?: boolean | undefined;
+    alsoSendToChannel?: boolean | undefined;
+  }): Promise<void> {
+    const key: string | null = WorkspaceRecordThreads.getKey(
+      data.notificationFor,
+    );
+
+    if (!key) {
+      return;
+    }
+
+    const post: () => Promise<void> = async (): Promise<void> => {
+      const responses: Array<WorkspaceSendMessageResponse> =
+        await WorkspaceRecordThreads.post({
+          projectId: data.projectId,
+          key: key,
+          payloads: data.payloads,
+          /*
+           * A created message that finds the thread started - it came after
+           * an earlier message stopped waiting - is shown in the channel too.
+           */
+          alsoSendToChannel: data.alsoSendToChannel || data.startsRecordThread,
+        });
+
+      await this.logSendResponses({
+        projectId: data.projectId,
+        notificationFor: data.notificationFor,
+        responses: responses,
+        messageBlocksByWorkspaceTypes: data.messageBlocksByWorkspaceTypes,
+        authorUserId: data.authorUserId,
+      });
+    };
+
+    if (
+      data.startsRecordThread ||
+      Object.keys(
+        await WorkspaceRecordThreads.getThreadTsByChannelId({
+          projectId: data.projectId,
+          key: key,
+        }),
+      ).length > 0
+    ) {
+      await post();
+      return;
+    }
+
+    WorkspaceRecordThreads.waitForThread({
+      projectId: data.projectId,
+      key: key,
+    })
+      .then(post)
+      .catch((err: unknown) => {
+        logger.error(
+          "Could not post a message in the thread of a record in Slack.",
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        logger.error(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      });
   }
 
   /*
@@ -1667,6 +1775,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationFor: data.notificationFor,
       });
 
+    // Slack keeps a record's messages in one thread; a monitor has no thread.
+    const canPostInRecordThread: boolean =
+      data.workspaceType === WorkspaceType.Slack &&
+      WorkspaceRecordThreads.getKey(data.notificationFor) !== null;
+
     const recordChannels: Array<WorkspaceChannel> =
       await this.getWorkspaceChannelsByNotificationFor({
         projectId: data.projectId,
@@ -1693,6 +1806,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         channelNames: [existingChannel.name],
         channelIds: [], // we use channel names here as we don't have channel ids.
         teamId: existingChannel.teamId,
+        ...(canPostInRecordThread && existingChannel.postsUpdatesInThread
+          ? { isRecordThread: true }
+          : {}),
       });
     }
 
@@ -4426,14 +4542,25 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             ...(workspaceRules.existingTeam && {
               teamId: workspaceRules.existingTeam,
             }),
+            ...(workspaceRules.shouldPostUpdatesInThread && {
+              postsUpdatesInThread: true,
+            }),
           };
 
-          if (
-            !channels.some((c: WorkspaceChannel) => {
+          const sameChannel: WorkspaceChannel | undefined = channels.find(
+            (c: WorkspaceChannel) => {
               return c.name === channelName;
-            })
-          ) {
+            },
+          );
+
+          if (!sameChannel) {
             channels.push(channel);
+          } else if (channel.postsUpdatesInThread) {
+            /*
+             * The channel is posted to once, however many rules name it:
+             * in a thread when any of them asks for one.
+             */
+            sameChannel.postsUpdatesInThread = true;
           }
         }
       }

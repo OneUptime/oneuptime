@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "仍有記錄在使用它，因此無法刪除。它可以維持封存。",
   "{{count}} {{itemsName}} skipped": "已略過 {{count}} 個{{itemsName}}",
   "{{count}} {{itemsName}} skipped_one": "已略過 {{count}} 個{{itemName}}",
-  "You can change or remove these rules, but not add new ones.": "您可以變更或移除這些規則，但無法新增規則。"
+  "You can change or remove these rules, but not add new ones.": "您可以變更或移除這些規則，但無法新增規則。",
+  "Keep each alert episode's updates in one thread": "將每個警示片段的更新集中在一個討論串中",
+  "Keep each alert's updates in one thread": "將每個警示的更新集中在一個討論串中",
+  "Keep each event's updates in one thread": "將每個維護事件的更新集中在一個討論串中",
+  "Keep each incident episode's updates in one thread": "將每個事件片段的更新集中在一個討論串中",
+  "Keep each incident's updates in one thread": "將每個事件的更新集中在一個討論串中",
+  "Keeps each alert episode's updates in one thread there.": "在那裡將每個警示片段的更新集中在一個討論串中。",
+  "Keeps each alert's updates in one thread there.": "在那裡將每個警示的更新集中在一個討論串中。",
+  "Keeps each event's updates in one thread there.": "在那裡將每個維護事件的更新集中在一個討論串中。",
+  "Keeps each incident episode's updates in one thread there.": "在那裡將每個事件片段的更新集中在一個討論串中。",
+  "Keeps each incident's updates in one thread there.": "在那裡將每個事件的更新集中在一個討論串中。",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "第一則訊息會發布在頻道中並開啟一個討論串。之後的每則更新都是其中的回覆，狀態變更和待命警報也會顯示在頻道中。"
 }

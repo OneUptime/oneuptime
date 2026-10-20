@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "Des enregistrements l'utilisent encore : impossible de le supprimer. Il peut rester archivé.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} ignorés : {{count}}",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} ignoré : {{count}}",
-  "You can change or remove these rules, but not add new ones.": "Vous pouvez modifier ou supprimer ces règles, mais pas en ajouter."
+  "You can change or remove these rules, but not add new ones.": "Vous pouvez modifier ou supprimer ces règles, mais pas en ajouter.",
+  "Keep each alert episode's updates in one thread": "Regrouper les mises à jour de chaque épisode d'alerte dans un fil",
+  "Keep each alert's updates in one thread": "Regrouper les mises à jour de chaque alerte dans un fil",
+  "Keep each event's updates in one thread": "Regrouper les mises à jour de chaque événement dans un fil",
+  "Keep each incident episode's updates in one thread": "Regrouper les mises à jour de chaque épisode d'incident dans un fil",
+  "Keep each incident's updates in one thread": "Regrouper les mises à jour de chaque incident dans un fil",
+  "Keeps each alert episode's updates in one thread there.": "Y regroupe les mises à jour de chaque épisode d'alerte dans un fil.",
+  "Keeps each alert's updates in one thread there.": "Y regroupe les mises à jour de chaque alerte dans un fil.",
+  "Keeps each event's updates in one thread there.": "Y regroupe les mises à jour de chaque événement dans un fil.",
+  "Keeps each incident episode's updates in one thread there.": "Y regroupe les mises à jour de chaque épisode d'incident dans un fil.",
+  "Keeps each incident's updates in one thread there.": "Y regroupe les mises à jour de chaque incident dans un fil.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Le premier message est publié dans le canal et ouvre un fil. Chaque mise à jour suivante y est une réponse, et les changements d'état et les alarmes d'astreinte apparaissent aussi dans le canal."
 }

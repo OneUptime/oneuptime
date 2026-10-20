@@ -6,7 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import AlertEpisodeInternalNote from "../../../../Models/DatabaseModels/AlertEpisodeInternalNote";
 import AlertInternalNote from "../../../../Models/DatabaseModels/AlertInternalNote";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -15,6 +15,7 @@ import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInte
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import ScheduledMaintenanceInternalNote from "../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import WorkspaceLiveMessage from "../../../../Models/DatabaseModels/WorkspaceLiveMessage";
 import WorkspaceNotificationLog from "../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
 import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
@@ -28,6 +29,7 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import ScheduledMaintenanceInternalNoteService from "../../../../Server/Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import WorkspaceLiveMessageService from "../../../../Server/Services/WorkspaceLiveMessageService";
 import WorkspaceNotificationLogService from "../../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceReactionNote, {
   WorkspaceNoteResource,
@@ -43,6 +45,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
+import WorkspaceLiveMessageKey from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { PrivateRecordKind } from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
 import {
@@ -468,6 +471,191 @@ describe("WorkspaceReactionNote.resolveResourceForChannel", () => {
     expect(query.incidentId.getSql("log.incidentId")).toBe(
       "(log.incidentId IS NOT NULL)",
     );
+  });
+
+  /*
+   * A shared channel where a rule keeps each incident's messages in one
+   * thread (WorkspaceRecordThreads): somebody replies under incident A's
+   * message and pins the reply. The reply is no notification of OneUptime's,
+   * and incident B was posted about in the channel since. The reply belongs
+   * to the incident whose thread it is in.
+   */
+  const REPLY_TS: string = "1.5";
+  const ROOT_TS: string = "1.1";
+
+  // B is the newest record posted about in the channel; the reply is not logged.
+  function newestLogIs(incident: ObjectID): void {
+    logFindSpy.mockImplementation(async (args: any) => {
+      if (!args.select.incidentId || args.query.threadId) {
+        return null;
+      }
+
+      const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+      log.projectId = projectId;
+      log.incidentId = incident;
+      log.createdAt = new Date("2026-10-01T11:00:00Z");
+      return log;
+    });
+  }
+
+  // The threads kept in the channel: incident A's, started by ROOT_TS - or none.
+  function threadsInChannel(incidentA: ObjectID | null): SpyInstance {
+    return jest
+      .spyOn(WorkspaceLiveMessageService, "findOneBy")
+      .mockImplementation(async (args: any) => {
+        if (
+          !incidentA ||
+          (args.query.messageId && args.query.messageId !== ROOT_TS)
+        ) {
+          return null;
+        }
+
+        const thread: WorkspaceLiveMessage = new WorkspaceLiveMessage();
+        thread.projectId = projectId;
+        thread.messageKey = WorkspaceLiveMessageKey.forRecordThread(
+          "Incident",
+          incidentA,
+        );
+        return thread;
+      }) as SpyInstance;
+  }
+
+  test("REGRESSION: a reaction on a reply in a thread is the incident whose thread it is, not the newest in the channel", async () => {
+    mockOwners({});
+    const incidentA: ObjectID = ObjectID.generate();
+    const incidentB: ObjectID = ObjectID.generate();
+    newestLogIs(incidentB);
+    const threadFindSpy: SpyInstance = threadsInChannel(incidentA);
+
+    const getThreadId: Mock<() => Promise<string | null>> = jest.fn(
+      async (): Promise<string | null> => {
+        return ROOT_TS;
+      },
+    );
+
+    const resource: WorkspaceNoteResource | null =
+      await WorkspaceReactionNote.resolveResourceForChannel({
+        projectIds: [projectId],
+        workspaceType: WorkspaceType.Slack,
+        channelId: CHANNEL_ID,
+        messageId: REPLY_TS,
+        getThreadId: getThreadId,
+      });
+
+    expect(resource?.resourceType).toBe(WorkspaceNoteResourceType.Incident);
+    expect(resource?.resourceId.toString()).toBe(incidentA.toString());
+    expect(getThreadId).toHaveBeenCalledTimes(1);
+
+    // Looked up in this channel's Slack threads, by the thread's first message.
+    const threadQuery: any = threadFindSpy.mock.calls.find((call: any) => {
+      return call[0].query.messageId === ROOT_TS;
+    })![0];
+    expect(threadQuery.query.channelId).toBe(CHANNEL_ID);
+    expect(threadQuery.query.workspaceType).toBe(WorkspaceType.Slack);
+  });
+
+  test("a channel no rule keeps threads in: Slack is not read, and it is the newest record, as before", async () => {
+    mockOwners({});
+    const incidentB: ObjectID = ObjectID.generate();
+    newestLogIs(incidentB);
+    threadsInChannel(null);
+
+    const getThreadId: Mock<() => Promise<string | null>> = jest.fn(
+      async (): Promise<string | null> => {
+        return ROOT_TS;
+      },
+    );
+
+    const resource: WorkspaceNoteResource | null =
+      await WorkspaceReactionNote.resolveResourceForChannel({
+        projectIds: [projectId],
+        workspaceType: WorkspaceType.Slack,
+        channelId: CHANNEL_ID,
+        messageId: REPLY_TS,
+        getThreadId: getThreadId,
+      });
+
+    expect(getThreadId).not.toHaveBeenCalled();
+    expect(resource?.resourceId.toString()).toBe(incidentB.toString());
+  });
+
+  test("a message in no thread, or in a thread OneUptime did not start, is the newest record, as before", async () => {
+    mockOwners({});
+    const incidentA: ObjectID = ObjectID.generate();
+    const incidentB: ObjectID = ObjectID.generate();
+    newestLogIs(incidentB);
+    threadsInChannel(incidentA);
+
+    // In no thread; and somebody's own thread, under a message OneUptime never posted.
+    for (const threadId of [null, "1.0"]) {
+      const resource: WorkspaceNoteResource | null =
+        await WorkspaceReactionNote.resolveResourceForChannel({
+          projectIds: [projectId],
+          workspaceType: WorkspaceType.Slack,
+          channelId: CHANNEL_ID,
+          messageId: REPLY_TS,
+          getThreadId: async (): Promise<string | null> => {
+            return threadId;
+          },
+        });
+
+      expect(resource?.resourceId.toString()).toBe(incidentB.toString());
+    }
+  });
+
+  test("the thread is not read when the channel or the message itself already names the record", async () => {
+    const getThreadId: Mock<() => Promise<string | null>> = jest.fn(
+      async (): Promise<string | null> => {
+        return ROOT_TS;
+      },
+    );
+
+    // 1. The channel OneUptime created for the incident.
+    const owner: Incident = row({ createdAt: new Date("2026-09-01") });
+    mockOwners({ [WorkspaceNoteResourceType.Incident]: owner });
+
+    expect(
+      (
+        await WorkspaceReactionNote.resolveResourceForChannel({
+          projectIds: [projectId],
+          workspaceType: WorkspaceType.Slack,
+          channelId: CHANNEL_ID,
+          messageId: REPLY_TS,
+          getThreadId: getThreadId,
+        })
+      )?.resourceId.toString(),
+    ).toBe(owner.id!.toString());
+
+    // 2. OneUptime's own reply in the thread, logged with its incident.
+    jest.restoreAllMocks();
+    mockOwners({});
+    const incidentA: ObjectID = ObjectID.generate();
+    logFindSpy = jest
+      .spyOn(WorkspaceNotificationLogService, "findOneBy")
+      .mockImplementation(async (args: any) => {
+        if (args.query.threadId === REPLY_TS && args.select.incidentId) {
+          const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+          log.projectId = projectId;
+          log.incidentId = incidentA;
+          log.createdAt = new Date("2026-10-01T10:00:00Z");
+          return log;
+        }
+        return null;
+      });
+
+    expect(
+      (
+        await WorkspaceReactionNote.resolveResourceForChannel({
+          projectIds: [projectId],
+          workspaceType: WorkspaceType.Slack,
+          channelId: CHANNEL_ID,
+          messageId: REPLY_TS,
+          getThreadId: getThreadId,
+        })
+      )?.resourceId.toString(),
+    ).toBe(incidentA.toString());
+
+    expect(getThreadId).not.toHaveBeenCalled();
   });
 
   test("nothing linked returns null", async () => {

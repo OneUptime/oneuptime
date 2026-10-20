@@ -21,10 +21,13 @@ import WorkspaceLiveMessages, {
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceUtil from "../../../../../Server/Utils/Workspace/Workspace";
+import WorkspaceRecordThreads from "../../../../../Server/Utils/Workspace/WorkspaceRecordThreads";
 import { WorkspaceSendMessageResponse } from "../../../../../Server/Utils/Workspace/WorkspaceBase";
 import BadRequestException from "../../../../../Types/Exception/BadRequestException";
 import ObjectID from "../../../../../Types/ObjectID";
-import { WorkspaceLiveMessageDestinationType } from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
+import WorkspaceLiveMessageKey, {
+  WorkspaceLiveMessageDestinationType,
+} from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
@@ -431,6 +434,136 @@ describe("WorkspaceLiveMessages.postAndKeep", () => {
       }),
     ).resolves.toBeNull();
     expect(postSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * An on-call run's message about a record, in an existing Slack channel whose
+ * rule keeps the record's messages in one thread
+ * (WorkspaceMessagePayload.isRecordThread): a reply there once the thread has
+ * started, a message of its own until then. It never waits for the thread,
+ * and never starts one - it is edited as the run goes, which the thread's
+ * first message never is.
+ */
+describe("WorkspaceLiveMessages.postAndKeep - in a record's thread", () => {
+  const INCIDENT_ID: ObjectID = ObjectID.generate();
+  const THREAD_KEY: string = WorkspaceLiveMessageKey.forRecordThread(
+    "Incident",
+    INCIDENT_ID,
+  );
+  const ROOT_TS: string = "1700000000.000100";
+
+  // The incident's thread in #ops (C0OPS), started by its created message.
+  function threadStarted(): void {
+    const thread: WorkspaceLiveMessage = new WorkspaceLiveMessage();
+    thread.id = ObjectID.generate();
+    thread.projectId = PROJECT_ID;
+    thread.workspaceType = WorkspaceType.Slack;
+    thread.messageKey = THREAD_KEY;
+    thread.destinationType = WorkspaceLiveMessageDestinationType.Channel;
+    thread.channelId = "C0OPS";
+    thread.channelName = "ops";
+    thread.messageId = ROOT_TS;
+    store.rows.push(thread);
+  }
+
+  const opsDestination: WorkspaceMessagePayload = slackPayload({
+    channelIds: [],
+    channelNames: ["#ops"],
+    isRecordThread: true,
+  });
+
+  test("the thread has started: a reply in it, kept by its own ts", async () => {
+    threadStarted();
+    answerPost([
+      {
+        channel: {
+          id: "C0OPS",
+          name: "ops",
+          workspaceType: WorkspaceType.Slack,
+        },
+        threadId: "1700000000.000300",
+        parentThreadId: ROOT_TS,
+      },
+    ]);
+
+    await WorkspaceLiveMessages.postAndKeep({
+      projectId: PROJECT_ID,
+      messageKey: KEY,
+      destination: opsDestination,
+      notificationFor: { incidentId: INCIDENT_ID },
+    });
+
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!
+        .threadTsByChannelId,
+    ).toEqual({ C0OPS: ROOT_TS });
+
+    expect(store.forKey(KEY)[0]!.messageId).toBe("1700000000.000300");
+    // The thread is still the created message's.
+    expect(store.forKey(THREAD_KEY)).toHaveLength(1);
+    expect(store.forKey(THREAD_KEY)[0]!.messageId).toBe(ROOT_TS);
+  });
+
+  test("no thread yet: a message of its own, at once - and it does not start the thread", async () => {
+    const waitSpy: SpyInstance<typeof WorkspaceRecordThreads.waitForThread> =
+      jest.spyOn(WorkspaceRecordThreads, "waitForThread");
+    answerPost([
+      {
+        channel: {
+          id: "C0OPS",
+          name: "ops",
+          workspaceType: WorkspaceType.Slack,
+        },
+        threadId: "1700000000.000300",
+      },
+    ]);
+
+    const kept: WorkspaceLiveMessage | null =
+      await WorkspaceLiveMessages.postAndKeep({
+        projectId: PROJECT_ID,
+        messageKey: KEY,
+        destination: opsDestination,
+        notificationFor: { incidentId: INCIDENT_ID },
+      });
+
+    expect(kept).not.toBeNull();
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!
+        .threadTsByChannelId || {},
+    ).toEqual({});
+    expect(waitSpy).not.toHaveBeenCalled();
+    expect(store.forKey(THREAD_KEY)).toEqual([]);
+  });
+
+  test("a channel that does not keep a thread is posted to as before, though the record has one", async () => {
+    threadStarted();
+    answerPost([
+      {
+        channel: {
+          id: "C0OPS",
+          name: "ops",
+          workspaceType: WorkspaceType.Slack,
+        },
+        threadId: "1700000000.000300",
+      },
+    ]);
+
+    const destination: WorkspaceMessagePayload = slackPayload({
+      channelIds: [],
+      channelNames: ["#ops"],
+    });
+
+    await WorkspaceLiveMessages.postAndKeep({
+      projectId: PROJECT_ID,
+      messageKey: KEY,
+      destination: destination,
+      notificationFor: { incidentId: INCIDENT_ID },
+    });
+
+    expect(postSpy.mock.calls[0]![0].messagePayloadsByWorkspace).toEqual([
+      destination,
+    ]);
   });
 });
 

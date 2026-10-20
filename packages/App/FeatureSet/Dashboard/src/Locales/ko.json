@@ -37050,5 +37050,16 @@
   "Records still have it, so it can't be deleted. It can stay archived.": "레코드에서 아직 사용 중이므로 삭제할 수 없습니다. 보관된 상태로 둘 수 있습니다.",
   "{{count}} {{itemsName}} skipped": "{{itemsName}} {{count}}개 건너뜀",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} {{count}}개 건너뜀",
-  "You can change or remove these rules, but not add new ones.": "이 규칙을 변경하거나 제거할 수는 있지만 새로 추가할 수는 없습니다."
+  "You can change or remove these rules, but not add new ones.": "이 규칙을 변경하거나 제거할 수는 있지만 새로 추가할 수는 없습니다.",
+  "Keep each alert episode's updates in one thread": "경고 에피소드마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each alert's updates in one thread": "경고마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each event's updates in one thread": "이벤트마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each incident episode's updates in one thread": "인시던트 에피소드마다 업데이트를 하나의 스레드로 모으기",
+  "Keep each incident's updates in one thread": "인시던트마다 업데이트를 하나의 스레드로 모으기",
+  "Keeps each alert episode's updates in one thread there.": "그곳에서 경고 에피소드마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each alert's updates in one thread there.": "그곳에서 경고마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each event's updates in one thread there.": "그곳에서 이벤트마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each incident episode's updates in one thread there.": "그곳에서 인시던트 에피소드마다 업데이트를 하나의 스레드로 모읍니다.",
+  "Keeps each incident's updates in one thread there.": "그곳에서 인시던트마다 업데이트를 하나의 스레드로 모읍니다.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "첫 메시지는 채널에 게시되어 스레드를 시작합니다. 이후 업데이트는 모두 그 스레드의 답글이 되며, 상태 변경과 온콜 알람은 채널에도 표시됩니다."
 }
