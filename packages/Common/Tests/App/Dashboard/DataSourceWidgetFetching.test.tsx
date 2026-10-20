@@ -15,6 +15,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -1141,9 +1142,28 @@ describe("Data Source widget fetching", () => {
         ),
       ).toEqual(["checkout", "search"]);
 
-      fireEvent.click(screen.getByRole("columnheader", { name: /Errors/ }));
+      /*
+       * The header's sort button (issue #5082): a number column sorts
+       * highest first, then lowest first, then back to the query's order.
+       */
+      const errorsHeader: HTMLElement = within(
+        screen.getByRole("columnheader", { name: /Errors/ }),
+      ).getByRole("button");
 
-      // Ascending by error count: the two smallest, not the first two rows.
+      fireEvent.click(errorsHeader);
+
+      // Highest error count first: the two largest, not the first two rows.
+      expect(
+        getRenderedRows(rendered.container).map(
+          (row: Array<string>): string => {
+            return row[0]!;
+          },
+        ),
+      ).toEqual(["billing", "checkout"]);
+
+      fireEvent.click(errorsHeader);
+
+      // Lowest first: the two smallest.
       expect(
         getRenderedRows(rendered.container).map(
           (row: Array<string>): string => {
@@ -1152,6 +1172,17 @@ describe("Data Source widget fetching", () => {
         ),
       ).toEqual(["search", "auth"]);
       expect(getRowCountLabel(rendered.container)).toBe("2 rows (truncated)");
+
+      fireEvent.click(errorsHeader);
+
+      // And back to the first two rows the query returned.
+      expect(
+        getRenderedRows(rendered.container).map(
+          (row: Array<string>): string => {
+            return row[0]!;
+          },
+        ),
+      ).toEqual(["checkout", "search"]);
     });
 
     test("a maxRows of zero is treated as no cap at all", async () => {
