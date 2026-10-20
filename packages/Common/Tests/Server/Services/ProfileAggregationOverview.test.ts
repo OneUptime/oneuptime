@@ -20,7 +20,7 @@ import {
   ProfileFunctionChange,
 } from "../../../Utils/Profiles/ProfileComparison";
 import { ProfileTypeActivity } from "../../../Utils/Profiles/ProfileTypes";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The reads behind the Profiler's overview, its compare view, the AI tools

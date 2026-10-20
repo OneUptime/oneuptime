@@ -566,7 +566,10 @@ export default class CodeTaskContextBuilder {
     const endTime: Date = OneUptimeDate.getCurrentDate();
 
     return {
-      startTime: OneUptimeDate.addRemoveHours(endTime, -1 * hours).toISOString(),
+      startTime: OneUptimeDate.addRemoveHours(
+        endTime,
+        -1 * hours,
+      ).toISOString(),
       endTime: endTime.toISOString(),
     };
   }

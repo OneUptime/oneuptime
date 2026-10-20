@@ -202,7 +202,9 @@ export function parseProfilesUrlState(
   if (functionName) {
     state.functionName = functionName;
 
-    const fileName: string | undefined = readName(getParam(QUERY_KEYS.fileName));
+    const fileName: string | undefined = readName(
+      getParam(QUERY_KEYS.fileName),
+    );
 
     if (fileName) {
       state.fileName = fileName;

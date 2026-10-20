@@ -96,7 +96,10 @@ function isFiniteNumber(value: unknown): value is number {
 export function getProfileFixReason(
   evidence: ProfileHotspotEvidence,
 ): ProfileFixReason | null {
-  if (!evidence.isOwnCode || !PROFILE_FIX_CATEGORIES.includes(evidence.category)) {
+  if (
+    !evidence.isOwnCode ||
+    !PROFILE_FIX_CATEGORIES.includes(evidence.category)
+  ) {
     return null;
   }
 
@@ -117,8 +120,7 @@ export function getProfileFixReason(
 
   if (
     isFiniteNumber(evidence.ownShareBefore) &&
-    evidence.ownShare - evidence.ownShareBefore >=
-      PROFILE_FIX_MIN_GROWTH_POINTS
+    evidence.ownShare - evidence.ownShareBefore >= PROFILE_FIX_MIN_GROWTH_POINTS
   ) {
     return ProfileFixReason.Grew;
   }
@@ -168,7 +170,9 @@ export interface ProfileFixOffer {
   blocker: ProfileFixBlocker | null;
 }
 
-export function getProfileFixOffer(input: ProfileFixOfferInput): ProfileFixOffer {
+export function getProfileFixOffer(
+  input: ProfileFixOfferInput,
+): ProfileFixOffer {
   const reason: ProfileFixReason | null = getProfileFixReason(input.evidence);
 
   const offer: SuggestionOffer = getCodeFixOffer({

@@ -1671,7 +1671,10 @@ function readProfileFixRequest(
     request.profileType = profileType.trim();
   }
 
-  if (body["beforeStartTime"] !== undefined || body["beforeEndTime"] !== undefined) {
+  if (
+    body["beforeStartTime"] !== undefined ||
+    body["beforeEndTime"] !== undefined
+  ) {
     request.beforeWindow = readProfileWindow(
       body["beforeStartTime"],
       body["beforeEndTime"],

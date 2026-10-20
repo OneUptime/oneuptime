@@ -104,15 +104,14 @@ export default class ProfileMonitorShare {
       );
     }
 
-    const share: StackShareResult = await ProfileAggregationService.getStackShare(
-      {
+    const share: StackShareResult =
+      await ProfileAggregationService.getStackShare({
         projectId: data.projectId,
         frameText: functionName,
         profileQuery: query,
         startTime: window.startTime,
         endTime: window.endTime,
-      },
-    );
+      });
 
     return {
       functionName,

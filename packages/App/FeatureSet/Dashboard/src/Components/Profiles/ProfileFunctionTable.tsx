@@ -428,7 +428,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
   return (
     <div>
       {explanation}
-      <div className="-mx-5 hidden items-center gap-3 border-b border-gray-100 px-5 pb-2 text-xs font-medium uppercase tracking-wide text-gray-400 sm:flex md:-mx-6 md:px-6">
+      <div className="-mx-5 items-center gap-3 border-b border-gray-100 px-5 pb-2 text-xs font-medium uppercase tracking-wide text-gray-400 max-sm:hidden sm:flex md:-mx-6 md:px-6">
         <span className="w-6 flex-none" />
         <span className="flex-1">{translator.translateText("Function")}</span>
         {isOwnView ? (
@@ -540,7 +540,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                 </div>
               </div>
               {isOwnView ? (
-                <div className="hidden w-28 flex-none text-right sm:block">
+                <div className="w-28 flex-none text-right max-sm:hidden sm:block">
                   <div
                     className="font-mono text-sm font-semibold text-gray-900"
                     data-testid="profiles-function-own"
@@ -553,7 +553,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                 </div>
               ) : (
                 <>
-                  <div className="hidden w-24 flex-none text-right sm:block">
+                  <div className="w-24 flex-none text-right max-sm:hidden sm:block">
                     <div
                       className="font-mono text-sm font-semibold text-gray-900"
                       data-testid="profiles-function-self"
@@ -564,7 +564,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                       {formatProfileValue(row.selfValue, props.unit)}
                     </div>
                   </div>
-                  <div className="hidden w-20 flex-none text-right sm:block">
+                  <div className="w-20 flex-none text-right max-sm:hidden sm:block">
                     <div
                       className="font-mono text-sm text-gray-700"
                       data-testid="profiles-function-total"

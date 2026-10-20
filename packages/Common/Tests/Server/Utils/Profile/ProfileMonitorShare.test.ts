@@ -10,7 +10,7 @@ import MonitorStepProfileMonitor, {
 import { ProfileFunctionShareReading } from "../../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 import { ProfileTypeActivity } from "../../../../Utils/Profiles/ProfileTypes";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The Profiles monitor's Function Share: how much of the monitor's window

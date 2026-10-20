@@ -894,8 +894,7 @@ export default class PageContextUtil {
           {
             icon: IconProp.Cube,
             title: "Memory",
-            question:
-              "What holds the most memory in my services right now?",
+            question: "What holds the most memory in my services right now?",
           },
         ];
       case AIChatPageContextType.ExceptionsList:

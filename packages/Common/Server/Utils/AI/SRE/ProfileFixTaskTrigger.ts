@@ -30,9 +30,7 @@ import Service from "../../../../Models/DatabaseModels/Service";
 import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
-import {
-  getCodeTaskRequest,
-} from "../../../../Types/AI/CodeFixTaskContext";
+import { getCodeTaskRequest } from "../../../../Types/AI/CodeFixTaskContext";
 import {
   CodeTaskBlocker,
   CodeTaskContextItem,
@@ -230,8 +228,12 @@ export default class ProfileFixTaskTrigger {
   private static async locateRepository(data: {
     request: ProfileFixRequest;
     evidence: ProfileFunctionEvidence;
-    repositories: Array<LocatableRepository & { gitHubAppInstallationId: string }>;
-  }): Promise<(LocatableRepository & { gitHubAppInstallationId: string }) | null> {
+    repositories: Array<
+      LocatableRepository & { gitHubAppInstallationId: string }
+    >;
+  }): Promise<
+    (LocatableRepository & { gitHubAppInstallationId: string }) | null
+  > {
     if (!data.evidence.fileName) {
       return null;
     }
@@ -244,7 +246,9 @@ export default class ProfileFixTaskTrigger {
         },
       ],
       repositories: data.repositories,
-      getTreePaths: (repository: LocatableRepository): Promise<Array<string>> => {
+      getTreePaths: (
+        repository: LocatableRepository,
+      ): Promise<Array<string>> => {
         const withInstallation: LocatableRepository & {
           gitHubAppInstallationId: string;
         } = repository as LocatableRepository & {
@@ -267,11 +271,9 @@ export default class ProfileFixTaskTrigger {
     }
 
     return (
-      data.repositories.find(
-        (repository: LocatableRepository): boolean => {
-          return repository.id === link.repositoryId;
-        },
-      ) || null
+      data.repositories.find((repository: LocatableRepository): boolean => {
+        return repository.id === link.repositoryId;
+      }) || null
     );
   }
 
@@ -419,10 +421,13 @@ export default class ProfileFixTaskTrigger {
       return NO_PROFILE_FIX_SUGGESTION;
     }
 
-    const toRepository: (repository: LocatableRepository) => ProfileFixRepository =
-      (repository: LocatableRepository): ProfileFixRepository => {
-        return { id: repository.id, name: repository.name };
-      };
+    const toRepository: (
+      repository: LocatableRepository,
+    ) => ProfileFixRepository = (
+      repository: LocatableRepository,
+    ): ProfileFixRepository => {
+      return { id: repository.id, name: repository.name };
+    };
 
     return {
       ...offer,
@@ -489,7 +494,9 @@ export default class ProfileFixTaskTrigger {
           return repository.id === picked;
         })
       ) {
-        throw new BadDataException(PROFILE_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE);
+        throw new BadDataException(
+          PROFILE_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE,
+        );
       }
 
       repositoryId = picked;
@@ -512,13 +519,12 @@ export default class ProfileFixTaskTrigger {
       repositoryId = located.id;
     }
 
-    const repository: CodeRepository = await CodeTaskAccess.getReadableRepository(
-      {
+    const repository: CodeRepository =
+      await CodeTaskAccess.getReadableRepository({
         props: request.props,
         projectId: request.projectId,
         repositoryId: new ObjectID(repositoryId),
-      },
-    );
+      });
 
     await CodeTaskGate.assertCanStart({
       props: request.props,

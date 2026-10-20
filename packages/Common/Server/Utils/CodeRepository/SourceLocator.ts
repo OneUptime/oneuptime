@@ -4,7 +4,10 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import logger from "../Logger";
 import GitHubInstallationBinding from "./GitHub/GitHubInstallationBinding";
 import GitHubUtil from "./GitHub/GitHub";
-import { matchPathInTree, normalizeCandidatePath } from "./StackTraceRepoResolver";
+import {
+  matchPathInTree,
+  normalizeCandidatePath,
+} from "./StackTraceRepoResolver";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
@@ -165,7 +168,10 @@ export default class SourceLocator {
 
       const winner: (typeof matches)[number] = bestMatches[0]!;
 
-      if (!winner.isStrong && !(winner.isUniqueBasename && matches.length === 1)) {
+      if (
+        !winner.isStrong &&
+        !(winner.isUniqueBasename && matches.length === 1)
+      ) {
         continue;
       }
 
@@ -180,7 +186,11 @@ export default class SourceLocator {
         repositoryId: winner.repository.id,
         repositoryName: winner.repository.name,
         path: winner.treePath,
-        url: SourceLocator.getFileUrl(winner.repository, winner.treePath, lineNumber),
+        url: SourceLocator.getFileUrl(
+          winner.repository,
+          winner.treePath,
+          lineNumber,
+        ),
       });
     }
 
@@ -208,7 +218,9 @@ export default class SourceLocator {
       })
       .join("/");
 
-    const branch: string = encodeURIComponent(repository.mainBranchName || "main");
+    const branch: string = encodeURIComponent(
+      repository.mainBranchName || "main",
+    );
 
     return `${base}/blob/${branch}/${encodedPath}${lineNumber > 0 ? `#L${lineNumber}` : ""}`;
   }
@@ -221,7 +233,9 @@ export default class SourceLocator {
   public static async getLocatableRepositories(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<Array<LocatableRepository & { gitHubAppInstallationId: string }>> {
+  }): Promise<
+    Array<LocatableRepository & { gitHubAppInstallationId: string }>
+  > {
     const boundInstallationId: string | null =
       await GitHubInstallationBinding.getBoundInstallationId(data.projectId);
 
@@ -318,7 +332,9 @@ export default class SourceLocator {
     return await SourceLocator.matchFrames({
       frames: data.frames,
       repositories,
-      getTreePaths: (repository: LocatableRepository): Promise<Array<string>> => {
+      getTreePaths: (
+        repository: LocatableRepository,
+      ): Promise<Array<string>> => {
         const withInstallation: LocatableRepository & {
           gitHubAppInstallationId: string;
         } = repository as LocatableRepository & {

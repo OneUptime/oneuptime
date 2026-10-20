@@ -14,7 +14,7 @@ import {
   ProfileTypeActivity,
   ProfileValueUnit,
 } from "../../../../Utils/Profiles/ProfileTypes";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The evidence a profile gives about one function - for the AI's tools, a

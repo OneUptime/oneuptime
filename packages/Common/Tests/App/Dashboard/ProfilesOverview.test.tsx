@@ -391,17 +391,21 @@ function answer(url: string, body: Record<string, any>): Record<string, any> {
       },
       repository:
         scenario.fixOffer === SuggestionOffer.Act
-          ? { id: "90000000-0000-4000-8000-0000000000c1", name: "acme/checkout" }
+          ? {
+              id: "90000000-0000-4000-8000-0000000000c1",
+              name: "acme/checkout",
+            }
           : null,
       repositories: [],
-      taskId:
-        scenario.fixOffer === SuggestionOffer.InProgress ? TASK_ID : null,
+      taskId: scenario.fixOffer === SuggestionOffer.InProgress ? TASK_ID : null,
     };
   }
 
   if (url.includes("/ai-investigation/create-profile-fix-task")) {
     if (scenario.fixFails) {
-      throw new Error("That repository is not connected through the GitHub App.");
+      throw new Error(
+        "That repository is not connected through the GitHub App.",
+      );
     }
     return { taskId: TASK_ID };
   }
@@ -426,7 +430,11 @@ async function renderOverview(
   search: string = "",
   props: React.ComponentProps<typeof ProfilesOverview> = {},
 ): Promise<void> {
-  window.history.pushState({}, "", `/dashboard/${PROJECT_ID}/profiles${search}`);
+  window.history.pushState(
+    {},
+    "",
+    `/dashboard/${PROJECT_ID}/profiles${search}`,
+  );
 
   await act(async (): Promise<void> => {
     render(
@@ -506,7 +514,8 @@ describe("where the time goes, in words first", () => {
   test("the busiest function, the top three, and the application's own code to look at", async () => {
     await renderOverview(`?serviceId=${SERVICE_ID}`);
 
-    const headline: HTMLElement = await screen.findByTestId("profiles-headline");
+    const headline: HTMLElement =
+      await screen.findByTestId("profiles-headline");
 
     await waitFor(() => {
       expect(
@@ -514,12 +523,14 @@ describe("where the time goes, in words first", () => {
       ).toHaveTextContent("spent 42% of its CPU time in JSON.parse.");
     });
     expect(headline).toHaveTextContent("The top 3 functions take 68%.");
-    expect(within(headline).getByTestId("profiles-headline-own")).toHaveTextContent(
+    expect(
+      within(headline).getByTestId("profiles-headline-own"),
+    ).toHaveTextContent(
       "In your own code, parseOrder takes the most: 42%, with the library and runtime code it calls.",
     );
-    expect(within(headline).getByTestId("profiles-headline-window")).toHaveTextContent(
-      "The last hour",
-    );
+    expect(
+      within(headline).getByTestId("profiles-headline-window"),
+    ).toHaveTextContent("The last hour");
   });
 
   test("it reads the scope's own kinds, each as its own raw types", async () => {
@@ -569,7 +580,9 @@ describe("the functions, ranked three ways", () => {
 
     const list: HTMLElement = await screen.findByTestId("profiles-functions");
 
-    expect(screen.getByTestId("profiles-functions-explained")).toHaveTextContent(
+    expect(
+      screen.getByTestId("profiles-functions-explained"),
+    ).toHaveTextContent(
       "Self is time spent in the function's own code. Total adds everything it calls.",
     );
     expect(
@@ -626,7 +639,8 @@ describe("what changed", () => {
   test("compared with the period before: what grew, and the own code that grew", async () => {
     await renderOverview(`?serviceId=${SERVICE_ID}&compare=previous`);
 
-    const headline: HTMLElement = await screen.findByTestId("profiles-headline");
+    const headline: HTMLElement =
+      await screen.findByTestId("profiles-headline");
 
     await waitFor(() => {
       expect(
@@ -635,21 +649,25 @@ describe("what changed", () => {
         "JSON.parse went from 21% to 42% of the CPU time. Compared with the period before.",
       );
     });
-    expect(within(headline).getByTestId("profiles-headline-own")).toHaveTextContent(
+    expect(
+      within(headline).getByTestId("profiles-headline-own"),
+    ).toHaveTextContent(
       "In your own code, parseOrder grew the most: from 21% to 42%, with the library and runtime code it calls.",
     );
 
     const comparison: Posted = requests("/function-comparison")[0]!;
     // The hour before, and this hour.
-    expect(
-      new Date(comparison.body["beforeEndTime"]).getTime(),
-    ).toBe(new Date(comparison.body["afterStartTime"]).getTime());
+    expect(new Date(comparison.body["beforeEndTime"]).getTime()).toBe(
+      new Date(comparison.body["afterStartTime"]).getTime(),
+    );
     expect(diffMock).toHaveBeenCalled();
     expect(screen.getByTestId("profiles-compare-picker")).toBeInTheDocument();
   });
 
   test("a deploy minutes old has nothing to compare yet, and says so", async () => {
-    const changeTime: string = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const changeTime: string = new Date(
+      Date.now() - 2 * 60 * 1000,
+    ).toISOString();
 
     await renderOverview(
       `?serviceId=${SERVICE_ID}&compare=change&changeTime=${changeTime}`,
@@ -671,9 +689,9 @@ describe("one function, explained", () => {
     const panel: HTMLElement = await screen.findByTestId("profiles-panel");
 
     await waitFor(() => {
-      expect(within(panel).getByTestId("profiles-panel-total")).toHaveTextContent(
-        "56%",
-      );
+      expect(
+        within(panel).getByTestId("profiles-panel-total"),
+      ).toHaveTextContent("56%");
     });
     expect(within(panel).getByTestId("profiles-panel-self")).toHaveTextContent(
       "0%",
@@ -681,12 +699,12 @@ describe("one function, explained", () => {
     expect(within(panel).getByTestId("profiles-panel-own")).toHaveTextContent(
       "42%",
     );
-    expect(within(panel).getByTestId("profiles-panel-callers")).toHaveTextContent(
-      "handleCheckout",
-    );
-    expect(within(panel).getByTestId("profiles-panel-callees")).toHaveTextContent(
-      "JSON.parse",
-    );
+    expect(
+      within(panel).getByTestId("profiles-panel-callers"),
+    ).toHaveTextContent("handleCheckout");
+    expect(
+      within(panel).getByTestId("profiles-panel-callees"),
+    ).toHaveTextContent("JSON.parse");
     await waitFor(() => {
       expect(
         within(panel).getByTestId("profiles-panel-source-link"),
@@ -696,7 +714,9 @@ describe("one function, explained", () => {
       );
     });
 
-    const watch: HTMLElement = within(panel).getByTestId("profiles-panel-watch");
+    const watch: HTMLElement = within(panel).getByTestId(
+      "profiles-panel-watch",
+    );
     expect(watch).toHaveTextContent("Alert me when its share passes 85%");
     expect(watch.getAttribute("href")).toContain("profileFunction=parseOrder");
     expect(watch.getAttribute("href")).toContain("profileThreshold=85");
@@ -788,7 +808,9 @@ describe("Fix with AI", () => {
     scenario.fixOffer = SuggestionOffer.InProgress;
     await renderOverview(PARSE_ORDER);
 
-    const link: HTMLElement = await screen.findByTestId("profiles-fix-task-link");
+    const link: HTMLElement = await screen.findByTestId(
+      "profiles-fix-task-link",
+    );
     expect(link.getAttribute("href")).toContain(`/code/tasks/${TASK_ID}`);
   });
 
@@ -864,7 +886,9 @@ describe("an empty window", () => {
     scenario.types = [];
     await renderOverview();
 
-    const empty: HTMLElement = await screen.findByTestId("profiles-empty-window");
+    const empty: HTMLElement = await screen.findByTestId(
+      "profiles-empty-window",
+    );
 
     expect(empty).toHaveTextContent("No profiles in this window");
 

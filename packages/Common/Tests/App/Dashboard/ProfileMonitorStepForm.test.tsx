@@ -95,9 +95,9 @@ afterEach(() => {
 
 describe("the form's values and the monitor they save", () => {
   test("a kind is read back from the raw types it was saved as", () => {
-    expect(getProfileMonitorKindValue(["cpu", "process_cpu", "cpu_time", "samples"])).toBe(
-      "cpu",
-    );
+    expect(
+      getProfileMonitorKindValue(["cpu", "process_cpu", "cpu_time", "samples"]),
+    ).toBe("cpu");
     expect(getProfileMonitorKindValue(["inuse_space"])).toBe("memory");
     expect(getProfileMonitorKindValue([])).toBe(ANY_PROFILE_KIND);
     expect(getProfileMonitorKindValue(undefined)).toBe(ANY_PROFILE_KIND);
@@ -172,7 +172,11 @@ describe("the form's values and the monitor they save", () => {
       } as never),
     ).toEqual({
       profileCount: 12,
-      functionShare: { functionName: "f", sharePercent: 4.5, windowSampleCount: 0 },
+      functionShare: {
+        functionName: "f",
+        sharePercent: 4.5,
+        windowSampleCount: 0,
+      },
     });
   });
 });
@@ -199,16 +203,20 @@ describe("what the monitor would read now", () => {
     await waitFor(() => {
       expect(screen.getByTestId("profile-monitor-preview")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("profile-monitor-preview-count")).toHaveTextContent(
-      "30 profiles in the window.",
-    );
-    expect(screen.getByTestId("profile-monitor-preview-share")).toHaveTextContent(
-      "parseOrder takes 34% of the window.",
-    );
+    expect(
+      screen.getByTestId("profile-monitor-preview-count"),
+    ).toHaveTextContent("30 profiles in the window.");
+    expect(
+      screen.getByTestId("profile-monitor-preview-share"),
+    ).toHaveTextContent("parseOrder takes 34% of the window.");
 
-    const request: { url: { toString: () => string }; data: Record<string, unknown> } =
-      postMock.mock.calls[0]![0] as never;
-    expect(request.url.toString()).toContain("/telemetry/profiles/monitor-preview");
+    const request: {
+      url: { toString: () => string };
+      data: Record<string, unknown>;
+    } = postMock.mock.calls[0]![0] as never;
+    expect(request.url.toString()).toContain(
+      "/telemetry/profiles/monitor-preview",
+    );
     expect(request.data["functionName"]).toBe("parseOrder");
     expect(request.data["lastXSecondsOfProfiles"]).toBe(300);
   });

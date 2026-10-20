@@ -133,7 +133,8 @@ export default class ProfileEvidence {
       });
 
     if (isProfileCategory(selection.toLowerCase())) {
-      const category: ProfileCategory = selection.toLowerCase() as ProfileCategory;
+      const category: ProfileCategory =
+        selection.toLowerCase() as ProfileCategory;
       const available: Array<ProfileCategoryAvailability> =
         getAvailableProfileCategories(activity);
       const match: ProfileCategoryAvailability | undefined = available.find(

@@ -77,7 +77,10 @@ const RAW_PROFILE_TYPES: Readonly<Record<string, RawProfileType>> = {
   wall: { category: ProfileCategory.Wall, unit: ProfileValueUnit.Nanoseconds },
 
   // Memory in use.
-  inuse_space: { category: ProfileCategory.Memory, unit: ProfileValueUnit.Bytes },
+  inuse_space: {
+    category: ProfileCategory.Memory,
+    unit: ProfileValueUnit.Bytes,
+  },
   heap: { category: ProfileCategory.Memory, unit: ProfileValueUnit.Bytes },
   // The Node.js SDK's live heap.
   space: { category: ProfileCategory.Memory, unit: ProfileValueUnit.Bytes },
@@ -107,18 +110,30 @@ const RAW_PROFILE_TYPES: Readonly<Record<string, RawProfileType>> = {
   },
 
   // Locks: time spent waiting, then how often.
-  delay: { category: ProfileCategory.Locks, unit: ProfileValueUnit.Nanoseconds },
+  delay: {
+    category: ProfileCategory.Locks,
+    unit: ProfileValueUnit.Nanoseconds,
+  },
   lock_time: {
     category: ProfileCategory.Locks,
     unit: ProfileValueUnit.Nanoseconds,
   },
-  mutex: { category: ProfileCategory.Locks, unit: ProfileValueUnit.Nanoseconds },
-  block: { category: ProfileCategory.Locks, unit: ProfileValueUnit.Nanoseconds },
+  mutex: {
+    category: ProfileCategory.Locks,
+    unit: ProfileValueUnit.Nanoseconds,
+  },
+  block: {
+    category: ProfileCategory.Locks,
+    unit: ProfileValueUnit.Nanoseconds,
+  },
   contention: {
     category: ProfileCategory.Locks,
     unit: ProfileValueUnit.Nanoseconds,
   },
-  contentions: { category: ProfileCategory.Locks, unit: ProfileValueUnit.Count },
+  contentions: {
+    category: ProfileCategory.Locks,
+    unit: ProfileValueUnit.Count,
+  },
   lock_count: { category: ProfileCategory.Locks, unit: ProfileValueUnit.Count },
 
   // Goroutines.
@@ -160,7 +175,13 @@ const CATEGORY_QUERY_TYPES: Readonly<Record<ProfileCategory, Array<string>>> = {
   [ProfileCategory.Wall]: ["wall"],
   [ProfileCategory.Memory]: ["inuse_space", "heap", "space"],
   [ProfileCategory.Allocations]: ["alloc_space", "alloc_size"],
-  [ProfileCategory.Locks]: ["delay", "lock_time", "mutex", "block", "contention"],
+  [ProfileCategory.Locks]: [
+    "delay",
+    "lock_time",
+    "mutex",
+    "block",
+    "contention",
+  ],
   [ProfileCategory.Goroutines]: ["goroutine", "goroutines"],
   [ProfileCategory.Other]: [],
 };
@@ -286,8 +307,10 @@ export function getAvailableProfileCategories(
     profileCount: number;
   }
 
-  const groups: Map<ProfileCategory, Map<ProfileValueUnit, UnitGroup>> =
-    new Map();
+  const groups: Map<
+    ProfileCategory,
+    Map<ProfileValueUnit, UnitGroup>
+  > = new Map();
 
   for (const row of activity) {
     const rawType: string = (row.profileType || "").trim();
@@ -374,8 +397,10 @@ export function narrowProfileTypesToOneUnit(
   activity: ReadonlyArray<ProfileTypeActivity>,
 ): Array<string> {
   const wanted: Set<string> = new Set(types);
-  const byUnit: Map<ProfileValueUnit, { types: Array<string>; samples: number }> =
-    new Map();
+  const byUnit: Map<
+    ProfileValueUnit,
+    { types: Array<string>; samples: number }
+  > = new Map();
 
   for (const row of activity) {
     const rawType: string = (row.profileType || "").trim();
@@ -400,8 +425,11 @@ export function narrowProfileTypesToOneUnit(
     group.samples += Number(row.sampleCount) || 0;
   }
 
-  let best: { unit: ProfileValueUnit; types: Array<string>; samples: number } | null =
-    null;
+  let best: {
+    unit: ProfileValueUnit;
+    types: Array<string>;
+    samples: number;
+  } | null = null;
 
   for (const [unit, group] of byUnit) {
     if (

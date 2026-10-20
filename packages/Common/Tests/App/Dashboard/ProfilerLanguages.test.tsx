@@ -75,22 +75,22 @@ import {
 type LocaleFile = Record<string, string>;
 
 const LOCALES: Record<string, LocaleFile> = {
-  de: germanLocale as LocaleFile,
-  fr: frenchLocale as LocaleFile,
-  es: spanishLocale as LocaleFile,
-  it: italianLocale as LocaleFile,
-  pt: portugueseLocale as LocaleFile,
-  nl: dutchLocale as LocaleFile,
-  da: danishLocale as LocaleFile,
-  no: norwegianLocale as LocaleFile,
-  sv: swedishLocale as LocaleFile,
-  ru: russianLocale as LocaleFile,
-  ja: japaneseLocale as LocaleFile,
-  ko: koreanLocale as LocaleFile,
-  "zh-CN": chineseLocale as LocaleFile,
-  "zh-TW": taiwaneseLocale as LocaleFile,
-  hi: hindiLocale as LocaleFile,
-  fa: persianLocale as LocaleFile,
+  de: germanLocale as unknown as LocaleFile,
+  fr: frenchLocale as unknown as LocaleFile,
+  es: spanishLocale as unknown as LocaleFile,
+  it: italianLocale as unknown as LocaleFile,
+  pt: portugueseLocale as unknown as LocaleFile,
+  nl: dutchLocale as unknown as LocaleFile,
+  da: danishLocale as unknown as LocaleFile,
+  no: norwegianLocale as unknown as LocaleFile,
+  sv: swedishLocale as unknown as LocaleFile,
+  ru: russianLocale as unknown as LocaleFile,
+  ja: japaneseLocale as unknown as LocaleFile,
+  ko: koreanLocale as unknown as LocaleFile,
+  "zh-CN": chineseLocale as unknown as LocaleFile,
+  "zh-TW": taiwaneseLocale as unknown as LocaleFile,
+  hi: hindiLocale as unknown as LocaleFile,
+  fa: persianLocale as unknown as LocaleFile,
 };
 
 const NOW: Date = new Date("2026-10-20T12:00:00.000Z");
