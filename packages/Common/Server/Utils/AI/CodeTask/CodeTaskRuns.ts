@@ -70,7 +70,12 @@ export default class CodeTaskRuns {
     return message;
   }
 
-  // A new task in the repository: its first turn.
+  /*
+   * A new task in the repository: its first turn. `baseBranch` is the
+   * branch the person picked for it to start from, when it is not the
+   * repository's main branch (the caller checked it is on GitHub); it is
+   * kept on this turn's request, where every later turn reads it.
+   */
   @CaptureSpan()
   public static async start(data: {
     projectId: ObjectID;
@@ -78,17 +83,24 @@ export default class CodeTaskRuns {
     repository: CodeRepository;
     message: string;
     context: Array<CodeTaskContextItem>;
+    baseBranch?: string | null | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
     // Subjectless AI work: no daily fix-task limit applies (FixRunBudget).
     await FixRunBudget.assertWithinBudget(data.projectId, {});
 
+    const request: CodeTaskRequest = { message, context: data.context };
+
+    if (data.baseBranch) {
+      request.baseBranch = data.baseBranch;
+    }
+
     const run: AIRun = CodeTaskRuns.newTurn({
       projectId: data.projectId,
       userId: data.userId,
       codeRepositoryId: data.repository.id!,
-      request: { message, context: data.context },
+      request,
     });
 
     run.title = CodeTaskTitle.fromMessage(message);
@@ -155,11 +167,15 @@ export default class CodeTaskRuns {
       );
     }
 
+    /*
+     * The same words and context. The branch the task starts from stays on
+     * its first turn, where every turn reads it.
+     */
     return await CodeTaskRuns.addTurn({
       projectId: data.projectId,
       userId: data.userId,
       task: data.task,
-      request: request,
+      request: { message: request.message, context: request.context },
     });
   }
 

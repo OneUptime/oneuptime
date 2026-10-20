@@ -114,6 +114,12 @@ const LLM_LOG_SELECT: Select<LlmLog> = {
   statusMessage: true,
   totalTokens: true,
   completionTokens: true,
+  /*
+   * The prompt-cache parts of totalTokens: the Log counts a call's tokens
+   * as the AI Logs do (AiTokenCount), not as the provider's raw total.
+   */
+  cachedInputTokens: true,
+  cacheCreationTokens: true,
   durationMs: true,
   requestStartedAt: true,
   requestCompletedAt: true,

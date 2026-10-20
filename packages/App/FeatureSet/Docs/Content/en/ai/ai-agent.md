@@ -1,6 +1,6 @@
 # Code
 
-Code is where you ask OneUptime AI to work in your repositories, the way you would ask a coding agent: fix a bug, write tests, explain the code, make a change. It opens on your connected repositories; a repository's page holds its tasks and the box where you ask; a task's page is a conversation you can reply in. OneUptime starts tasks of its own too, from exceptions, traces and investigations. A [Runner](/docs/runbooks/agents) clones the repository, writes the change on a new branch, builds and tests it, and opens a pull request. A person reviews and merges every one: the Runner can push branches and open pull requests, nothing more.
+Code is where you ask OneUptime AI to work in your repositories, the way you would ask a coding agent: fix a bug, write tests, explain the code, make a change. It opens on the box where you ask, with the repository and the branch picked in it and every task under it; a task's page is a conversation you can reply in. OneUptime starts tasks of its own too, from exceptions, traces and investigations. A [Runner](/docs/runbooks/agents) clones the repository, writes the change on a new branch, builds and tests it, and opens a pull request. A person reviews and merges every one: the Runner can push branches and open pull requests, nothing more.
 
 :::cards
 - [Ask AI in a repository](#ask-ai-in-a-repository): A request in your own words, with the context it needs.
@@ -18,13 +18,17 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 ## Ask AI in a repository
 
 :::steps
-### Open a repository
+### Open Code
 
-Open **Products → Code**. It lists the project's repositories, each with the tasks AI is working on, the ones waiting for you and its open pull requests. With none yet, it offers **Connect GitHub** (see [Before you begin](#before-you-begin)).
+Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead (see [Before you begin](#before-you-begin)). **Repositories**, in its side menu, lists the connected repositories, and each repository's page has the same box for that repository.
+
+### Pick the repository and the branch
+
+The box starts on the repository you picked last. Pick another in its bottom row, and beside it the branch the task starts from: the repository's main branch, marked **Default**, until you pick another. AI cuts its branch from the one you pick and opens its pull request into it.
 
 ### Say what you want
 
-On the repository's page, write the change, the bug or the question in your own words. A repository with no task yet suggests a few under **Try asking**.
+Write the change, the bug or the question in your own words. Until something has been asked, Code suggests a few under **Try asking**.
 
 ### Add context
 
@@ -51,7 +55,7 @@ A request carries at most 10 pieces of context. Tokens, keys, passwords and emai
 
 ## A task's conversation
 
-A task's page is a conversation: what was asked and the context added, then AI's turn - the steps it takes as it takes them (the files it read and edited, what it searched for, the commands it ran), its reply, the files it changed with their diff, and the pull request. The top of the page says how the task stands:
+A task's page is a conversation: what was asked and the context added, then AI's turn - the steps it takes as it takes them (the files it read and edited, what it searched for, the commands it ran), its reply, the files it changed with their diff, and the pull request. The top of the page says where the task works (its repository and the branch it started from), how many lines it changed, with a button to its pull request, and how the task stands:
 
 | State | What it means |
 | --- | --- |
@@ -62,7 +66,7 @@ A task's page is a conversation: what was asked and the context added, then AI's
 | **Failed** | The turn could not finish, and says why. **Try again** asks the same again. |
 | **Stopped** | Someone stopped it. **Try again** asks the same again. |
 
-To follow up, write in the box at the bottom: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did.
+To follow up, write in the box at the bottom, which stays in view as the conversation scrolls: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did.
 
 Anyone who can read a repository reads its tasks. Asking AI, replying and stopping a task take permission to edit the repository, and so does seeing a change's diff: everyone else sees which files changed. The tasks OneUptime starts on its own (below) are in their repository too, as conversations you can reply in.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["A person reviews<br/>and merges it"]
 ```
 
-1. You click **Start task** in a repository, or **Fix with AI** on an unresolved exception, or another button or trigger starts a task (see [Where fix tasks start](#where-fix-tasks-start)).
+1. You click **Start task** in Code, or **Fix with AI** on an unresolved exception, or another button or trigger starts a task (see [Where fix tasks start](#where-fix-tasks-start)).
 2. The task is queued on its repository, and the Runner the repository picks takes it: one of your Runners, or a global Runner when it picks none (see [Pick the repository's Runner](#pick-the-repositorys-runner)).
 3. The Runner fetches the task's context. For a request, that is its words, the context added and the conversation so far; for an exception, its type, its message and its stack trace.
-4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A reply works on the branch of the task's open pull request instead.
+4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A request starts from the branch picked when it was asked, and its pull request opens into it. A reply works on the branch of the task's open pull request instead.
 5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs. A fix of an exception, a slow trace or an incident also reads production while it works: the exceptions, traces, logs and metrics of the repository's services (see [Production telemetry in a fix](#production-telemetry-in-a-fix)).
 6. If the repository has verification commands, a Runner of your own builds and tests the change before committing anything, and hands a failure back to the code agent to repair (see [Verification before the pull request](#verification-before-the-pull-request)).
 7. The Runner commits, pushes the branch, opens the pull request (for a request, only when it changed code), and deletes the workspace.
@@ -177,7 +181,7 @@ Until a deploy ships it, the fix reads **Merged, waiting for a deploy**, then **
 
 ## Before you begin
 
-A task needs three things. A repository's page in Code and the exception's **AI Assistance** page check all three before they offer to start, and say what is missing.
+A task needs three things. Code's request box and the exception's **AI Assistance** page check all three before they offer to start, and say what is missing.
 
 | What | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Everything else matches the button:
 ## When a fix fails
 
 :::details The run errors
-The fix could not be applied, the repository could not be reached, or the LLM call failed. The task's conversation, and the page it was started from, show the reason and offer to try again. The turn's **Log** has the full run log.
+The fix could not be applied, the repository or the branch a request started from could not be reached, or the LLM call failed. The task's conversation, and the page it was started from, show the reason and offer to try again. The turn's **Log** has the full run log.
 :::
 
 :::details The Runner stops in the middle of a run

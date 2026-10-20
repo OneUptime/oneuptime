@@ -1,6 +1,6 @@
 # Kod
 
-Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skulle be en kodagent: rätta en bugg, skriva tester, förklara koden, göra en ändring. Kod öppnas på dina anslutna repositorier; ett repositoriums sida rymmer dess uppgifter och rutan där du ber om saker; en uppgifts sida är en konversation som du kan svara i. OneUptime startar också uppgifter på egen hand, från undantag, spår och utredningar. En [Runner](/docs/runbooks/agents) klonar repositoriet, skriver ändringen på en ny branch, bygger och testar den och öppnar en pull request. En människa granskar och mergar var och en: Runnern kan pusha brancher och öppna pull requests, inget mer.
+Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skulle be en kodagent: rätta en bugg, skriva tester, förklara koden, göra en ändring. Kod öppnas på rutan där du ber om saker, med repositoriet och branchen valda i den och alla uppgifter under den; en uppgifts sida är en konversation som du kan svara i. OneUptime startar också uppgifter på egen hand, från undantag, spår och utredningar. En [Runner](/docs/runbooks/agents) klonar repositoriet, skriver ändringen på en ny branch, bygger och testar den och öppnar en pull request. En människa granskar och mergar var och en: Runnern kan pusha brancher och öppna pull requests, inget mer.
 
 :::cards
 - [Be AI om något i ett repositorium](#be-ai-om-något-i-ett-repositorium): En begäran med dina egna ord, med den kontext den behöver.
@@ -18,13 +18,17 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 ## Be AI om något i ett repositorium
 
 :::steps
-### Öppna ett repositorium
+### Öppna Kod
 
-Öppna **Produkter → Kod**. Där står projektets repositorier, vart och ett med uppgifterna som AI arbetar med, de som väntar på dig och dess öppna pull requests. Finns det inga ännu erbjuder Kod **Anslut GitHub** (se [Innan du börjar](#innan-du-börjar)).
+Öppna **Produkter → Kod**. Kod öppnas på **Vad ska AI göra?**: rutan där du ber om saker, med alla uppgifter under den, de senaste först. Finns det inget repositorium ännu erbjuder Kod i stället **Anslut GitHub** (se [Innan du börjar](#innan-du-börjar)). **Arkiv** i sidomenyn listar de anslutna repositorierna, och varje repositoriums sida har samma ruta för det repositoriet.
+
+### Välj repositoriet och branchen
+
+Rutan börjar på repositoriet du valde senast. Välj ett annat i dess nedersta rad och bredvid den branch som uppgiften utgår från: repositoriets huvudbranch, märkt **Standard**, tills du väljer en annan. AI skapar sin branch från den du väljer och öppnar sin pull request mot den.
 
 ### Säg vad du vill
 
-Skriv ändringen, buggen eller frågan med dina egna ord på repositoriets sida. Ett repositorium utan uppgifter föreslår några under **Prova att be om**.
+Skriv ändringen, buggen eller frågan med dina egna ord. Tills något har efterfrågats föreslår Kod några under **Prova att be om**.
 
 ### Lägg till kontext
 
@@ -51,7 +55,7 @@ En begäran bär högst 10 kontextdelar. Token, nycklar, lösenord och e-postadr
 
 ## En uppgifts konversation
 
-En uppgifts sida är en konversation: vad som efterfrågades och kontexten som lades till, sedan AI:s tur – stegen den tar medan den tar dem (filerna den läste och redigerade, vad den sökte efter, kommandona den körde), dess svar, filerna den ändrade med deras diff, och pull requesten. Överst på sidan står hur det går för uppgiften:
+En uppgifts sida är en konversation: vad som efterfrågades och kontexten som lades till, sedan AI:s tur – stegen den tar medan den tar dem (filerna den läste och redigerade, vad den sökte efter, kommandona den körde), dess svar, filerna den ändrade med deras diff, och pull requesten. Överst på sidan står var uppgiften arbetar (dess repositorium och den branch den utgick från), hur många rader den ändrade, med en knapp till dess pull request, och hur det går för uppgiften:
 
 | Tillstånd | Vad det betyder |
 | --- | --- |
@@ -62,7 +66,7 @@ En uppgifts sida är en konversation: vad som efterfrågades och kontexten som l
 | **Misslyckades** | Turen kunde inte slutföras, och säger varför. **Försök igen** ber om samma sak igen. |
 | **Stoppad** | Någon stoppade den. **Försök igen** ber om samma sak igen. |
 
-För att följa upp skriver du i rutan längst ned: svara AI, lägg till kontext eller be om ändringar. Varje svar är nästa tur i samma uppgift: den arbetar på samma branch och pushar till samma pull request så länge den är öppen. En uppgift tar en tur i taget, så rutan väntar medan AI arbetar. Varje turs **Logg** är den ordagranna redogörelsen för vad den gjorde.
+För att följa upp skriver du i rutan längst ned, som syns medan konversationen rullar: svara AI, lägg till kontext eller be om ändringar. Varje svar är nästa tur i samma uppgift: den arbetar på samma branch och pushar till samma pull request så länge den är öppen. En uppgift tar en tur i taget, så rutan väntar medan AI arbetar. Varje turs **Logg** är den ordagranna redogörelsen för vad den gjorde.
 
 Den som kan läsa ett repositorium läser dess uppgifter. Att be AI om något, svara och stoppa en uppgift kräver behörighet att redigera repositoriet, och det gör även att se en ändrings diff: alla andra ser vilka filer som har ändrats. Uppgifterna som OneUptime startar på egen hand (nedan) finns också i sitt repositorium, som konversationer du kan svara i.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["En person granskar<br/>och mergar den"]
 ```
 
-1. Du klickar på **Starta uppgift** i ett repositorium, eller på **Åtgärda med AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
+1. Du klickar på **Starta uppgift** i Kod, eller på **Åtgärda med AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
 2. Uppgiften ställs i kö på sitt repository, och den Runner som repositoryt väljer tar den: en av dina Runners, eller en global Runner när det inte väljer någon (se [Välj repositoryts Runner](#välj-repositoryts-runner)).
 3. Runnern hämtar uppgiftens kontext. För en begäran är det dess ord, kontexten som lades till och konversationen hittills; för ett undantag dess typ, dess meddelande och dess stack trace.
-4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id. Ett svar arbetar i stället på branchen för uppgiftens öppna pull request.
+4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id. En begäran utgår från den branch som valdes när den ställdes, och dess pull request öppnas mot den. Ett svar arbetar i stället på branchen för uppgiftens öppna pull request.
 5. En kodagent, driven av ditt projekts LLM-leverantör, läser koden och skriver ändringen. OneUptime-servern gör LLM-anropen, så Runnern har aldrig din leverantörs API-nyckel, och varje anrop mäts och listas i AI-loggarna. En åtgärd av ett undantag, ett långsamt spår eller en incident läser också från produktionen medan den arbetar: undantagen, spåren, loggarna och mätvärdena för repositoriets tjänster (se [Produktionstelemetri i en åtgärd](#produktionstelemetri-i-en-åtgärd)).
 6. Om repositoriet har kontrollkommandon bygger och testar en egen Runner ändringen innan den committar något, och lämnar tillbaka ett fel till kodagenten att reparera (se [Kontroll före pull requesten](#kontroll-före-pull-requesten)).
 7. Runnern committar, pushar branchen, öppnar pull requesten (för en begäran bara när den ändrade kod) och tar bort arbetsytan.
@@ -177,7 +181,7 @@ Tills en driftsättning levererar den står det **Mergad, väntar på en deploy*
 
 ## Innan du börjar
 
-En uppgift behöver tre saker. Ett repositoriums sida i Kod och undantagets sida **AI Assistance** kontrollerar alla tre innan de erbjuder att starta, och säger vad som saknas.
+En uppgift behöver tre saker. Kods begäransruta och undantagets sida **AI Assistance** kontrollerar alla tre innan de erbjuder att starta, och säger vad som saknas.
 
 | Vad | OneUptime Cloud | Självhostad |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Allt annat är som med knappen:
 ## När en åtgärd misslyckas
 
 :::details Körningen fallerar
-Åtgärden kunde inte tillämpas, repositoriet kunde inte nås eller LLM-anropet misslyckades. Uppgiftens konversation, och sidan som den startades från, visar orsaken och erbjuder att försöka igen. Turens **Logg** har hela körningsloggen.
+Åtgärden kunde inte tillämpas, repositoriet eller den branch som en begäran utgick från kunde inte nås, eller LLM-anropet misslyckades. Uppgiftens konversation, och sidan som den startades från, visar orsaken och erbjuder att försöka igen. Turens **Logg** har hela körningsloggen.
 :::
 
 :::details Runnern stannar mitt i en körning

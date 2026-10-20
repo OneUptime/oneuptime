@@ -32183,5 +32183,16 @@
   "Show all {{count}} tools": "Afficher les {{count}} outils",
   "Show all {{count}} tools_one": "Afficher {{count}} outil",
   "The changes of this fix could not be shown.": "Les modifications de cette correction n'ont pas pu être affichées.",
+  "Default branch": "Branche par défaut",
+  "Find a branch": "Trouver une branche",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub n'est pas connecté à ce projet : l'IA ne peut donc pas travailler dans ces dépôts. Reconnectez GitHub pour les utiliser.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "Lignes ajoutées : {{additions}}, lignes supprimées : {{deletions}}",
+  "Loading branches…": "Chargement des branches…",
+  "No branch matches your search.": "Aucune branche ne correspond à votre recherche.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime n'a pas pu lire les branches de ce dépôt sur GitHub.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "Les dépôts GitHub connectés à ce projet. Ouvrez-en un pour voir ses tâches et ses paramètres, ou connectez-en d'autres.",
+  "Type a branch's name to find one that is not listed.": "Saisissez le nom d'une branche pour en trouver une qui n'est pas listée.",
+  "{{count}} repositories": "{{count}} dépôts",
+  "{{count}} repositories_one": "{{count}} dépôt",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, toute la journée"
 }

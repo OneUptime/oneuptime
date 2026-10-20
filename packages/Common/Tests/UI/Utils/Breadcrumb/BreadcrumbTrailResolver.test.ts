@@ -279,6 +279,49 @@ describe("BreadcrumbTrailResolver", () => {
       );
     });
 
+    /*
+     * Code's Repositories became a page (/code/repositories). A trail of
+     * Project > Code > Repository > Settings then pointed its "Repository"
+     * crumb at that list - the first real page past /code - and the record
+     * crumb never got the repository's name. The trail now names
+     * Repositories, so each crumb is the page above.
+     */
+    test("on a repository's Settings, \"Repositories\" links to the list and the repository's crumb to its own page", () => {
+      const page: string = `${PROJECT}/code/repositories/:id/settings`;
+      const targets: Array<BreadcrumbTarget> = resolveBreadcrumbTrail({
+        pagePattern: page,
+        crumbCount: 5,
+        realRoutePatterns: REAL_ROUTES,
+      });
+
+      expect(
+        targets.map((target: BreadcrumbTarget) => {
+          return target.kind === BreadcrumbTargetKind.CurrentPage
+            ? "current"
+            : resolvedPattern(target, page);
+        }),
+      ).toEqual([
+        PROJECT,
+        `${PROJECT}/code`,
+        `${PROJECT}/code/repositories`,
+        `${PROJECT}/code/repositories/:id`,
+        "current",
+      ]);
+    });
+
+    test("without the Repositories crumb, a repository's crumb would open the list instead of the repository", () => {
+      const page: string = `${PROJECT}/code/repositories/:id/settings`;
+      const repository: BreadcrumbTarget = resolveOne({
+        index: 2,
+        crumbCount: 4,
+        pagePattern: page,
+      });
+
+      expect(resolvedPattern(repository, page)).toBe(
+        `${PROJECT}/code/repositories`,
+      );
+    });
+
     test('"Code" links to /code on a /code/tasks/:id page, past the /code/tasks that is no page', () => {
       const target: BreadcrumbTarget = resolveOne({
         index: 1,

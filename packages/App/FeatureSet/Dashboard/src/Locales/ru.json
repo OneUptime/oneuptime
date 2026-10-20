@@ -32183,5 +32183,16 @@
   "Show all {{count}} tools": "Показать все инструменты ({{count}})",
   "Show all {{count}} tools_one": "Показать все инструменты ({{count}})",
   "The changes of this fix could not be shown.": "Не удалось показать изменения этого исправления.",
+  "Default branch": "Ветка по умолчанию",
+  "Find a branch": "Найти ветку",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub не подключён к этому проекту, поэтому ИИ не может работать в этих репозиториях. Подключите GitHub снова, чтобы использовать их.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "Добавлено строк: {{additions}}, удалено строк: {{deletions}}",
+  "Loading branches…": "Загрузка веток…",
+  "No branch matches your search.": "Ни одна ветка не подходит под запрос.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime не удалось прочитать ветки этого репозитория из GitHub.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "Репозитории GitHub, подключённые к этому проекту. Откройте репозиторий, чтобы увидеть его задачи и настройки, или подключите ещё.",
+  "Type a branch's name to find one that is not listed.": "Введите имя ветки, чтобы найти ту, которой нет в списке.",
+  "{{count}} repositories": "Репозиториев: {{count}}",
+  "{{count}} repositories_one": "{{count}} репозиторий",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, весь день"
 }

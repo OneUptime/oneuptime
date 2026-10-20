@@ -1,5 +1,5 @@
 import { CodeTaskResponse } from "./CodeApi";
-import { getRepositoryRoute } from "./RepositoryCard";
+import { getRepositoryRoute } from "./CodePaths";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";

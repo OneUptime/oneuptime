@@ -32183,5 +32183,16 @@
   "Show all {{count}} tools": "Vis alle {{count}} verktøyene",
   "Show all {{count}} tools_one": "Vis {{count}} verktøy",
   "The changes of this fix could not be shown.": "Endringene i denne rettingen kunne ikke vises.",
+  "Default branch": "Standardgren",
+  "Find a branch": "Finn en gren",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub er ikke koblet til dette prosjektet, så AI kan ikke arbeide i disse repositoriene. Koble til GitHub igjen for å bruke dem.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "Linjer lagt til: {{additions}}, linjer fjernet: {{deletions}}",
+  "Loading branches…": "Laster inn grener…",
+  "No branch matches your search.": "Ingen gren samsvarer med søket ditt.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime kunne ikke lese grenene til dette repositoriet fra GitHub.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "GitHub-repositoriene som er koblet til dette prosjektet. Åpne ett for oppgavene og innstillingene, eller koble til flere.",
+  "Type a branch's name to find one that is not listed.": "Skriv navnet på en gren for å finne en som ikke står i listen.",
+  "{{count}} repositories": "{{count}} repositorier",
+  "{{count}} repositories_one": "{{count}} repository",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}, hele dagen"
 }

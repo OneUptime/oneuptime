@@ -10,13 +10,14 @@ import fs from "fs/promises";
 import path from "path";
 
 /*
- * Code in a browser, against the offline fixture (Code/Fixture): the
- * repositories first, a repository's page where AI is asked with context,
- * a task's conversation filling in as the AI works, replying in it,
- * stopping it and trying again, whatever stops AI working said with the
- * link that fixes it, the Runner a repository's settings pick for AI's
- * work, read-only members, the old Tasks and Code Repositories addresses, a
- * phone, dark mode and German.
+ * Code in a browser, against the offline fixture (Code/Fixture): its first
+ * page - the question, one request box with the repository and the branch
+ * picked in it, every task under it - Repositories, a repository's page
+ * where AI is asked with context, a task's conversation filling in as the
+ * AI works, replying in it, stopping it and trying again, whatever stops AI
+ * working said once at the top of the box with what fixes it, the Runner a
+ * repository's settings pick for AI's work, read-only members, the old
+ * Tasks and Code Repositories addresses, a phone, dark mode and German.
  *
  * The maintainer's ask: "overhaul the entire 'Tasks' product and call it
  * 'Code' ... it should show Code repos first and tasks in them ... it should
@@ -73,6 +74,7 @@ interface Recorded {
     repositoryId: string;
     message: string;
     context: Array<Record<string, unknown>>;
+    branch?: string;
   }>;
   replies: Array<{
     taskId: string;
@@ -84,6 +86,8 @@ interface Recorded {
   settings: Array<Record<string, unknown>>;
   deletes: Array<string>;
   navigations: Array<string>;
+  branchReads: Array<{ repositoryId: string; search: string }>;
+  lists: Array<string>;
   reads: { task: number; list: number; repositories: number };
 }
 
@@ -117,17 +121,35 @@ function isPhone(testInfo: TestInfo): boolean {
   return testInfo.project.name === "phone";
 }
 
+/*
+ * A full-page screenshot. A task's reply box is held at the bottom of the
+ * window (sticky), which a full-page capture would draw over the middle of
+ * the conversation: for the capture alone it sits where it would without
+ * that, at the end.
+ */
 async function screenshot(
   page: Page,
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
   await fs.mkdir(SCREENSHOTS, { recursive: true });
+  const footer: Locator = page.getByTestId("code-task-footer");
+  const hasFooter: boolean = (await footer.count()) > 0;
+  if (hasFooter) {
+    await footer.evaluate((element: HTMLElement): void => {
+      element.style.position = "static";
+    });
+  }
   await page.screenshot({
     path: path.join(SCREENSHOTS, `${name}-${testInfo.project.name}.png`),
     fullPage: true,
     animations: "disabled",
   });
+  if (hasFooter) {
+    await footer.evaluate((element: HTMLElement): void => {
+      element.style.position = "";
+    });
+  }
 }
 
 async function recorded(page: Page): Promise<Recorded> {
@@ -197,68 +219,475 @@ async function addContext(page: Page, kind: string): Promise<Locator> {
   return dialog;
 }
 
-test.describe("Code opens on the repositories", () => {
-  test("each repository says what matters at a glance, and opens its page", async ({
+/*
+ * The maintainer's ask (2026-10-20): "The code product doesnt looks great
+ * at all. Can you please overhaul this? Make it look a lot nicer and
+ * natural to use. We should make it look like claude code / codex / etc."
+ * Code now opens the way those do: the question over one box, the
+ * repository and the branch picked in the box, every task under it.
+ */
+test.describe("Code opens on the request box, like Claude Code and Codex", () => {
+  test("the question over one box - the repository and its main branch picked in it - and every task under it", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await openCode(page);
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Code");
-    await expect(page.getByTestId("code-repository-card")).toHaveCount(3);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "What should AI do?",
+    );
+    const ask: Locator = page.getByTestId("code-ask");
+    // The most recently active repository AI reaches, and its main branch.
+    await expect(ask.getByTestId("code-repository-picker-button")).toHaveText(
+      "checkout-api",
+    );
+    await expect(ask.getByTestId("code-branch-picker-button")).toHaveText(
+      "main",
+    );
+    await expect(ask.getByTestId("code-branch-picker-button")).toBeEnabled();
+    await expect(composerInput(page)).toBeEditable();
+    // No repository cards to scroll past: the repositories are picked here.
+    await expect(page.getByTestId("code-repository-row")).toHaveCount(0);
 
-    // The most recently active repository first.
-    const checkout: Locator = page.getByTestId("code-repository-card").first();
-    await expect(checkout).toContainText("checkout-api");
-    await expect(checkout).toContainText("acme/checkout-api");
-    await expect(checkout.getByTestId("code-repository-working")).toHaveText(
-      "1 working",
+    // Every task, each named by its repository, how much it changed at its end.
+    const rows: Locator = page.getByTestId("code-task-row");
+    await expect(rows).toHaveCount(6);
+    for (let index: number = 0; index < 6; index++) {
+      await expect(
+        rows.nth(index).getByTestId("code-task-row-repository"),
+      ).toHaveText("checkout-api");
+    }
+    const retries: Locator = rows.filter({
+      hasText: "Retry charges when the payment gateway times out",
+    });
+    await expect(retries.getByTestId("code-task-row-changes")).toHaveText(
+      "+27−1",
     );
-    await expect(checkout.getByTestId("code-repository-waiting")).toHaveText(
-      "1 waiting for you",
-    );
-    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
-      "6 tasks",
-    );
-    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
-      "1 open pull request",
-    );
-
-    // A repository AI cannot reach says so, and keeps its whole name.
-    const payments: Locator = page
-      .getByTestId("code-repository-card")
-      .filter({ hasText: "payments-worker" });
+    // Its pull request beside the pull request mark - GitHub's is the repository's.
     await expect(
-      payments.getByTestId("code-repository-not-connected"),
-    ).toHaveText("Not connected");
-    await expect(payments.getByRole("heading", { level: 3 })).toHaveText(
-      "payments-worker",
-    );
-    const nameIsWhole: boolean = await payments
-      .getByRole("heading", { level: 3 })
-      .evaluate((element: Element): boolean => {
-        return element.scrollWidth <= element.clientWidth;
-      });
-    expect(nameIsWhole).toBe(true);
+      retries
+        .getByTestId("code-task-row-pull-request")
+        .getByTestId("code-pull-request-mark"),
+    ).toBeVisible();
+    await expect(page.getByTestId("code-tasks-count")).toHaveText("6");
 
-    const quiet: Locator = page
-      .getByTestId("code-repository-card")
-      .filter({ hasText: "storefront-web" });
-    await expect(quiet.getByTestId("code-repository-stats")).toHaveText(
-      "No tasks yet",
-    );
-    await expect(quiet.getByTestId("code-repository-attention")).toHaveCount(0);
+    // The box sits above the fold, the first thing on the page.
+    const box: { y: number; height: number } | null = await page
+      .getByTestId("code-composer-box")
+      .boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y + box!.height).toBeLessThan(isPhone(testInfo) ? 844 : 900);
 
     await expectNoSidewaysScroll(page);
-    await screenshot(page, testInfo, "code-repositories");
+    await screenshot(page, testInfo, "code-home");
 
-    await checkout.click();
-    await expect(page).toHaveURL(repositoryPath(REPOSITORY.checkout));
-    await expect(page.getByTestId("code-ask")).toBeVisible();
+    await retries.getByRole("link").click();
+    await expect(page).toHaveURL(taskPath(TASK.retries));
   });
 
-  test("the breadcrumb and the side menu name Code, and Connect repositories starts GitHub's install", async ({
+  /*
+   * The UI review: in German at 1280 the Enter hint took the room Start
+   * task needed and pushed it onto a second line; on a phone, Start task
+   * always sat on a line of its own under the pickers. The row is now one
+   * line: the hint shows only where it fits, and beside the pickers a
+   * phone's Send is its arrow.
+   */
+  test("the box's bottom row stays one line - in German too - and says how to send only where it fits", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // Add context, the pickers and Start task share one line.
+    const expectOneLine: () => Promise<void> = async (): Promise<void> => {
+      const addContext: { y: number; height: number } | null = await page
+        .getByTestId("code-add-context")
+        .boundingBox();
+      const send: { y: number; height: number } | null =
+        await sendButton(page).boundingBox();
+      expect(
+        Math.abs(
+          addContext!.y + addContext!.height / 2 - (send!.y + send!.height / 2),
+        ),
+      ).toBeLessThan(4);
+    };
+    // The hint lies wholly in its room: shown, not wrapped out of sight.
+    const isHintShown: () => Promise<boolean> = async (): Promise<boolean> => {
+      return await page
+        .getByTestId("code-composer-keys")
+        .evaluate((element: Element): boolean => {
+          const room: DOMRect =
+            element.parentElement!.parentElement!.getBoundingClientRect();
+          const hint: DOMRect = element.getBoundingClientRect();
+          return (
+            hint.width > 0 &&
+            hint.top >= room.top - 1 &&
+            hint.bottom <= room.bottom + 1
+          );
+        });
+    };
+
+    await openCode(page);
+    await expect(page.getByTestId("code-task-row").first()).toBeVisible();
+    await expectOneLine();
+    if (isPhone(testInfo)) {
+      // Beside the pickers, Send is its arrow - still named for a screen reader.
+      await expect(sendButton(page)).toHaveAccessibleName("Start task");
+      const send: { width: number } | null =
+        await sendButton(page).boundingBox();
+      expect(send!.width).toBeLessThanOrEqual(34);
+      // A phone has no Enter to tell about.
+      await expect(page.getByTestId("code-composer-keys")).toBeHidden();
+    } else {
+      expect(await isHintShown()).toBe(true);
+    }
+
+    await openCode(page, "lang=de");
+    await expect(sendButton(page)).toHaveAccessibleName("Aufgabe starten");
+    await expectOneLine();
+    if (!isPhone(testInfo)) {
+      // German's hint has no room beside Aufgabe starten: it hides, never wraps it.
+      expect(await isHintShown()).toBe(false);
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-home-german");
+  });
+
+  /*
+   * The UI review: a long repository name (or branch) wrapped the box's
+   * bottom row onto four lines on a phone, and when it shrank, "main" was
+   * cut to "m" alongside it; in a task's row the name was clipped mid-word.
+   * The row stays one line, the room is shared fairly (a short name stays
+   * whole), and a long name ends in "…".
+   */
+  test("long names are cut short with … - a short branch stays whole - and the bottom row stays one line", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const isCutShort: (locator: Locator) => Promise<boolean> = async (
+      locator: Locator,
+    ): Promise<boolean> => {
+      return await locator.evaluate((element: Element): boolean => {
+        return (
+          element.scrollWidth > element.clientWidth &&
+          window.getComputedStyle(element).textOverflow === "ellipsis"
+        );
+      });
+    };
+    const isWhole: (locator: Locator) => Promise<boolean> = async (
+      locator: Locator,
+    ): Promise<boolean> => {
+      return await locator.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      });
+    };
+    const expectOneLine: () => Promise<void> = async (): Promise<void> => {
+      const centre: (testId: string) => Promise<number> = async (
+        testId: string,
+      ): Promise<number> => {
+        const box: { y: number; height: number } | null = await page
+          .getByTestId(testId)
+          .boundingBox();
+        return box!.y + box!.height / 2;
+      };
+      const addContext: number = await centre("code-add-context");
+      for (const testId of [
+        "code-repository-picker-button",
+        "code-branch-picker-button",
+        "code-composer-send",
+      ]) {
+        expect(Math.abs((await centre(testId)) - addContext)).toBeLessThan(4);
+      }
+    };
+
+    await openCode(page, "names=long");
+    const repository: Locator = page.getByTestId(
+      "code-repository-picker-value",
+    );
+    await expect(repository).toHaveText(
+      "checkout-and-payments-platform-api-service",
+    );
+    // The whole name on hover; the button holds it cut short.
+    await expect(
+      page.getByTestId("code-repository-picker-button"),
+    ).toHaveAttribute("title", "checkout-and-payments-platform-api-service");
+    expect(await isCutShort(repository)).toBe(true);
+    await expect(page.getByTestId("code-branch-picker-value")).toHaveText(
+      "main",
+    );
+    expect(await isWhole(page.getByTestId("code-branch-picker-value"))).toBe(
+      true,
+    );
+    await expectOneLine();
+
+    // A long branch too: both cut short, the row still one line.
+    await page.getByTestId("code-branch-picker-button").click();
+    await page
+      .getByTestId("code-branch-picker-option")
+      .filter({ hasText: "feature/very-long-branch-name" })
+      .click();
+    await expect(page.getByTestId("code-branch-picker-value")).toHaveText(
+      "feature/very-long-branch-name-for-the-new-checkout-flow-with-apple-pay",
+    );
+    expect(await isCutShort(page.getByTestId("code-branch-picker-value"))).toBe(
+      true,
+    );
+    await expectOneLine();
+
+    // A task's row: its repository's name ends in … where the row is narrow.
+    const name: Locator = page
+      .getByTestId("code-task-row")
+      .first()
+      .getByTestId("code-task-row-repository")
+      .locator("span.truncate");
+    await expect(name).toHaveText("checkout-and-payments-platform-api-service");
+    if (isPhone(testInfo)) {
+      expect(await isCutShort(name)).toBe(true);
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-home-long-names");
+  });
+
+  test("picking a repository and a branch, then asking, starts the task there - from that branch", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page);
+
+    await page.getByTestId("code-repository-picker-button").click();
+    const repositories: Locator = page.getByTestId(
+      "code-repository-picker-option",
+    );
+    await expect(repositories).toHaveCount(3);
+    // One AI cannot reach is offered, quieter, and says so.
+    await expect(
+      repositories.filter({ hasText: "payments-worker" }),
+    ).toContainText("Not connected");
+    await page.getByTestId("code-repository-picker-search").fill("store");
+    await expect(repositories).toHaveCount(1);
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("code-repository-picker-button")).toHaveText(
+      "storefront-web",
+    );
+
+    await page.getByTestId("code-branch-picker-button").click();
+    const branches: Locator = page.getByTestId("code-branch-picker-option");
+    await expect(branches).toHaveCount(2);
+    await expect(branches.first()).toContainText("main");
+    await expect(branches.first()).toContainText("Default");
+    // The list stays on the screen, a phone's too.
+    const menu: { x: number; width: number } | null = await page
+      .getByTestId("code-branch-picker-menu")
+      .boundingBox();
+    expect(menu!.x).toBeGreaterThanOrEqual(0);
+    expect(menu!.x + menu!.width).toBeLessThanOrEqual(
+      isPhone(testInfo) ? 390 : 1280,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-branch-picker");
+
+    await branches.filter({ hasText: "redesign/checkout-page" }).click();
+    await expect(page.getByTestId("code-branch-picker-button")).toHaveText(
+      "redesign/checkout-page",
+    );
+    expect((await recorded(page)).branchReads).toEqual([
+      { repositoryId: REPOSITORY.web, search: "" },
+    ]);
+
+    await composerInput(page).fill("Make the checkout page's buttons larger");
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/code\/tasks\//);
+    expect((await recorded(page)).creates).toEqual([
+      {
+        repositoryId: REPOSITORY.web,
+        message: "Make the checkout page's buttons larger",
+        context: [],
+        branch: "redesign/checkout-page",
+      },
+    ]);
+    // The task says where it works: that repository, from that branch.
+    await expect(page.getByTestId("code-task-repository")).toContainText(
+      "acme/storefront-web",
+    );
+    await expect(page.getByTestId("code-task-branch")).toHaveText(
+      "redesign/checkout-page",
+    );
+  });
+
+  test("the box starts on the repository picked last", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openCode(page);
+
+    await page.getByTestId("code-repository-picker-button").click();
+    await page
+      .getByTestId("code-repository-picker-option")
+      .filter({ hasText: "storefront-web" })
+      .click();
+    await expect(page.getByTestId("code-repository-picker-button")).toHaveText(
+      "storefront-web",
+    );
+
+    await page.reload();
+    await expect(page.getByTestId("code-repository-picker-button")).toHaveText(
+      "storefront-web",
+    );
+  });
+
+  test("a repository with more branches than one read holds is searched by what is typed", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openCode(page, "branches=many");
+
+    await page.getByTestId("code-branch-picker-button").click();
+    const branches: Locator = page.getByTestId("code-branch-picker-option");
+    await expect(branches).toHaveCount(101);
+    await expect(page.getByTestId("code-branch-picker-note")).toHaveText(
+      "Type a branch's name to find one that is not listed.",
+    );
+
+    await page.getByTestId("code-branch-picker-search").fill("feature/task-13");
+    await expect(branches).toHaveCount(10);
+    await expect(branches.first()).toHaveText("feature/task-130");
+    // One read for what was typed, once typing rested.
+    expect((await recorded(page)).branchReads).toEqual([
+      { repositoryId: REPOSITORY.checkout, search: "" },
+      { repositoryId: REPOSITORY.checkout, search: "feature/task-13" },
+    ]);
+
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("code-branch-picker-button")).toHaveText(
+      "feature/task-131",
+    );
+    await expect(page.getByTestId("code-branch-picker-button")).toBeFocused();
+  });
+
+  test("branches that cannot be read say so, with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openCode(page, "fail=branches");
+
+    await page.getByTestId("code-branch-picker-button").click();
+    await expect(page.getByTestId("code-branch-picker-error")).toContainText(
+      "OneUptime could not read this repository's branches from GitHub.",
+    );
+    await page.getByTestId("code-branch-picker-retry").click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await recorded(page)).branchReads.length;
+      })
+      .toBe(2);
+    // The box still sends, from the main branch.
+    await expect(composerInput(page)).toBeEditable();
+  });
+
+  test("a repository GitHub does not reach: said at the top of the box, with Connect GitHub right there", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page, "connected=none");
+
+    const notice: Locator = page.getByTestId("code-composer-notice");
+    await expect(notice.getByTestId("code-blocker")).toHaveAttribute(
+      "data-blocker",
+      "RepositoryNotConnected",
+    );
+    await expect(composerInput(page)).toBeDisabled();
+    await expect(page.getByTestId("code-branch-picker-button")).toBeDisabled();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-home-not-connected");
+
+    await notice.getByTestId("code-blocker-fix").click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).navigations;
+      })
+      .toEqual([
+        "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
+      ]);
+  });
+
+  test("whatever stops AI is said once at the top of the box, which then sends nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page, "blocker=NoLlmProvider");
+
+    const notice: Locator = page.getByTestId("code-composer-notice");
+    await expect(notice).toContainText(
+      "AI needs an LLM provider for this project.",
+    );
+    await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
+      "Add an LLM provider",
+    );
+    await expect(page.getByTestId("code-blocker")).toHaveCount(1);
+    await expect(composerInput(page)).toBeDisabled();
+    await expect(sendButton(page)).toBeDisabled();
+    // Another repository can still be picked.
+    await expect(
+      page.getByTestId("code-repository-picker-button"),
+    ).toBeEnabled();
+    await screenshot(page, testInfo, "code-home-blocked");
+  });
+
+  test("nothing asked yet: requests to try under the box, and one fills it", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page, "tasks=none");
+
+    const examples: Locator = page.getByTestId("code-examples");
+    await expect(examples).toContainText("Try asking");
+    await expect(page.getByTestId("code-example")).toHaveCount(4);
+    // No empty list beside them.
+    await expect(page.getByTestId("code-tasks")).toBeHidden();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-home-first-time");
+
+    await page
+      .getByTestId("code-example")
+      .filter({ hasText: "Explain how this repository is organized" })
+      .click();
+    await expect(composerInput(page)).toHaveValue(
+      "Explain how this repository is organized",
+    );
+    await expect(composerInput(page)).toBeFocused();
+  });
+
+  test("a member who may only read is told why at the top of the box, and reads every task", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCode(page, "role=viewer");
+
+    await expect(
+      page.getByTestId("code-composer-notice").getByTestId("code-blocker"),
+    ).toHaveAttribute("data-blocker", "NoPermission");
+    await expect(composerInput(page)).toBeDisabled();
+    await expect(page.getByTestId("code-task-row")).toHaveCount(6);
+  });
+
+  test("the breadcrumb and the side menu: Tasks, then Repositories", async ({
     page,
   }: {
     page: Page;
@@ -269,41 +698,13 @@ test.describe("Code opens on the repositories", () => {
       page.getByText("Project", { exact: true }).first(),
     ).toBeVisible();
     if (!isPhone(testInfo)) {
-      await expect(
-        page.getByRole("link", { name: "Repositories" }).first(),
-      ).toBeVisible();
+      await expect(page.getByRole("link", { name: "Tasks" })).toBeVisible();
+      await page.getByRole("link", { name: "Repositories" }).first().click();
+      await expect(page).toHaveURL(`${CODE}/repositories`);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        "Repositories",
+      );
     }
-
-    await page.getByTestId("code-connect-more").click();
-    await expect
-      .poll(async () => {
-        return (await recorded(page)).navigations;
-      })
-      .toEqual([
-        "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
-      ]);
-  });
-
-  test("with many repositories, a search box finds one by name", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await openCode(page, "repos=many");
-
-    await expect(page.getByTestId("code-repository-card")).toHaveCount(8);
-    const search: Locator = page.getByTestId("code-repository-search");
-    await search.fill("index");
-    await expect(page.getByTestId("code-repository-card")).toHaveCount(1);
-    await expect(page.getByTestId("code-repository-card")).toContainText(
-      "search-indexer",
-    );
-
-    await search.fill("nothing like it");
-    await expect(page.getByTestId("code-repository-card")).toHaveCount(0);
-    await expect(page.getByTestId("code-repository-search-empty")).toHaveText(
-      "No repository matches your search.",
-    );
   });
 
   test("no repository yet: what Code is for, and Connect GitHub", async ({
@@ -318,7 +719,8 @@ test.describe("Code opens on the repositories", () => {
     await expect(empty).toContainText(
       "ask OneUptime AI to work in your repositories",
     );
-    await expect(page.getByTestId("code-repository-card")).toHaveCount(0);
+    // No box to write in before there is anywhere for AI to work.
+    await expect(page.getByTestId("code-ask")).toHaveCount(0);
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-connect-github");
 
@@ -367,21 +769,21 @@ test.describe("Code opens on the repositories", () => {
     ).toHaveCount(0);
   });
 
-  test("tasks with no repository are listed under them, and open", async ({
+  test("tasks with no repository are in the list too, and open", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openCode(page, "other=1");
 
-    const other: Locator = page.getByTestId("code-tasks-without-repository");
-    await expect(other).toContainText("Other tasks");
-    await expect(other.getByTestId("code-task-row")).toHaveCount(1);
-    await expect(other.getByTestId("code-task-row")).toContainText(
-      "ECONNRESET: socket hang up",
-    );
+    const orphan: Locator = page
+      .getByTestId("code-task-row")
+      .filter({ hasText: "ECONNRESET: socket hang up" });
+    await expect(orphan).toHaveCount(1);
+    // It names no repository: it has none.
+    await expect(orphan.getByTestId("code-task-row-repository")).toHaveCount(0);
 
-    await other.getByTestId("code-task-row").getByRole("link").click();
+    await orphan.getByRole("link").click();
     await expect(page.getByTestId("code-task-title")).toHaveText(
       "ECONNRESET: socket hang up",
     );
@@ -400,8 +802,210 @@ test.describe("Code opens on the repositories", () => {
     await expect(
       page.getByText("AI requires the Growth plan").first(),
     ).toBeVisible();
-    await expect(page.getByTestId("code-repository-card")).toHaveCount(0);
+    await expect(page.getByTestId("code-ask")).toHaveCount(0);
     expect((await recorded(page)).reads.repositories).toBe(0);
+  });
+});
+
+test.describe("Code's Repositories", () => {
+  async function openRepositories(
+    page: Page,
+    search: string = "",
+  ): Promise<void> {
+    await page.goto(`${CODE}/repositories${search ? `?${search}` : ""}`);
+  }
+
+  test("a list - what needs someone first, then the quieter facts - and each opens its repository", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page);
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Repositories",
+    );
+    const rows: Locator = page.getByTestId("code-repository-row");
+    await expect(rows).toHaveCount(3);
+    await expect(page.getByTestId("code-repositories-count")).toHaveText(
+      "3 repositories",
+    );
+
+    // The most recently active repository first.
+    const checkout: Locator = rows.first();
+    await expect(checkout.getByTestId("code-repository-name")).toHaveText(
+      "checkout-api",
+    );
+    // GitHub's own name beside it, where there is room for it.
+    if (!isPhone(testInfo)) {
+      await expect(checkout).toContainText("acme/checkout-api");
+    }
+    await expect(checkout.getByTestId("code-repository-working")).toHaveText(
+      "1 working",
+    );
+    await expect(checkout.getByTestId("code-repository-waiting")).toHaveText(
+      "1 waiting for you",
+    );
+    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
+      "6 tasks",
+    );
+    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
+      "1 open pull request",
+    );
+
+    // A repository AI cannot reach says so, and keeps its whole name.
+    const payments: Locator = rows.filter({ hasText: "payments-worker" });
+    await expect(
+      payments.getByTestId("code-repository-not-connected"),
+    ).toHaveText("Not connected");
+    const nameIsWhole: boolean = await payments
+      .getByTestId("code-repository-name")
+      .evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      });
+    expect(nameIsWhole).toBe(true);
+
+    const quiet: Locator = rows.filter({ hasText: "storefront-web" });
+    await expect(quiet.getByTestId("code-repository-stats")).toHaveText(
+      "No tasks yet",
+    );
+    await expect(quiet.getByTestId("code-repository-attention")).toHaveCount(0);
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories");
+
+    await checkout.getByTestId("code-repository-link").click();
+    await expect(page).toHaveURL(repositoryPath(REPOSITORY.checkout));
+    await expect(page.getByTestId("code-ask")).toBeVisible();
+  });
+
+  /*
+   * The UI review: from sm up a row's chips and facts sat beside its name
+   * and took its room - in German "checkout-api" was cut to "checkout-…".
+   * The name now has its line, its facts under it, and what needs someone
+   * sits at the row's end (on a phone, between the name and the facts).
+   */
+  test("in German a repository keeps its whole name, its facts under it and what needs someone at the row's end", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "lang=de");
+
+    const checkout: Locator = page.getByTestId("code-repository-row").first();
+    const name: Locator = checkout.getByTestId("code-repository-name");
+    await expect(name).toHaveText("checkout-api");
+    expect(
+      await name.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      }),
+    ).toBe(true);
+
+    const nameBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = await name.boundingBox();
+    const statsBox: { y: number } | null = await checkout
+      .getByTestId("code-repository-stats")
+      .boundingBox();
+    const chipsBox: { x: number; y: number } | null = await checkout
+      .getByTestId("code-repository-attention")
+      .boundingBox();
+    // The facts sit under the name.
+    expect(statsBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+    if (isPhone(testInfo)) {
+      // What needs someone first: between the name and the facts.
+      expect(chipsBox!.y).toBeGreaterThan(nameBox!.y);
+      expect(chipsBox!.y).toBeLessThan(statsBox!.y);
+    } else {
+      // At the row's end, past the name - and the description reads whole.
+      expect(chipsBox!.x).toBeGreaterThan(nameBox!.x + nameBox!.width);
+      expect(
+        await checkout
+          .getByTestId("code-repository-row-description")
+          .evaluate((element: Element): boolean => {
+            return element.scrollWidth <= element.clientWidth;
+          }),
+      ).toBe(true);
+    }
+    // Its open pull requests beside the pull request mark.
+    await expect(
+      checkout
+        .getByTestId("code-repository-stats")
+        .getByTestId("code-pull-request-mark"),
+    ).toBeVisible();
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-german");
+  });
+
+  test("Connect repositories starts GitHub's install", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepositories(page);
+
+    await page.getByTestId("code-connect-more").click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).navigations;
+      })
+      .toEqual([
+        "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
+      ]);
+  });
+
+  test("with many repositories, a search box finds one by name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepositories(page, "repos=many");
+
+    const rows: Locator = page.getByTestId("code-repository-row");
+    await expect(rows).toHaveCount(8);
+    const search: Locator = page.getByTestId("code-repository-search");
+    await search.fill("index");
+    await expect(rows).toHaveCount(1);
+    await expect(rows).toContainText("search-indexer");
+
+    await search.fill("nothing like it");
+    await expect(rows).toHaveCount(0);
+    await expect(page.getByTestId("code-repository-search-empty")).toHaveText(
+      "No repository matches your search.",
+    );
+  });
+
+  test("GitHub reaches none of them: said once over the list, with Connect GitHub - not on every row", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "connected=none");
+
+    const banner: Locator = page.getByTestId("code-github-disconnected");
+    await expect(banner).toContainText(
+      "GitHub is not connected to this project, so AI cannot work in these repositories.",
+    );
+    await expect(page.getByTestId("code-repository-row")).toHaveCount(3);
+    await expect(page.getByTestId("code-repository-not-connected")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("code-connect-more")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-disconnected");
+
+    await banner.getByTestId("code-github-reconnect").click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).navigations;
+      })
+      .toEqual([
+        "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
+      ]);
   });
 });
 
@@ -426,9 +1030,10 @@ test.describe("a repository's page: ask AI", () => {
       "data-task-state",
       "WaitingForYou",
     );
-    await expect(
-      rows.nth(2).locator("[data-testid='code-task-state']:visible"),
-    ).toHaveText("Waiting for you");
+    // A task that asks something of someone says so in words, in its line.
+    await expect(rows.nth(2).getByTestId("code-task-row-state")).toHaveText(
+      "Waiting for you",
+    );
 
     // A task OneUptime started is named by its record and its kind, once.
     await expect(rows.nth(3)).toContainText(
@@ -441,29 +1046,73 @@ test.describe("a repository's page: ask AI", () => {
     await expect(rows.nth(4)).toHaveAttribute("data-task-state", "Failed");
     await expect(rows.nth(5)).toHaveAttribute("data-task-state", "Stopped");
 
-    // One state badge shows per row: beside the title on a laptop, leading the meta line on a phone.
+    // One state mark per row, at its start, on a laptop and a phone alike.
     for (let index: number = 0; index < 6; index++) {
       await expect(
         rows.nth(index).locator("[data-testid='code-task-state']:visible"),
       ).toHaveCount(1);
     }
-    /*
-     * The badge is the state's one mark: no icon column beside the title,
-     * and the facts read apart, a dot between each.
-     */
-    await expect(rows.nth(1).getByRole("link").locator("svg")).toHaveCount(1);
+    // Done is said by its mark alone; how much it changed ends the row.
+    await expect(rows.nth(1).getByTestId("code-task-row-state")).toHaveCount(0);
+    await expect(rows.nth(1).getByTestId("code-task-row-changes")).toHaveText(
+      "+27−1",
+    );
+    // A repository's own list names no repository: they are all its.
+    await expect(
+      rows.nth(1).getByTestId("code-task-row-repository"),
+    ).toHaveCount(0);
+    // The facts read apart, a dot between each.
     await expect(
       rows
         .nth(1)
         .getByTestId("code-task-row-meta")
         .getByTestId("code-meta-dot"),
-    ).toHaveCount(3);
+    ).toHaveCount(2);
 
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repository");
 
     await rows.nth(1).getByRole("link").click();
     await expect(page).toHaveURL(taskPath(TASK.retries));
+  });
+
+  /*
+   * The UI review: Repositories became a page, and a repository's trail -
+   * Project > Code > Repository > Settings - sent its "Repository" crumb to
+   * that list, unnamed. The trail now runs through Repositories, each
+   * crumb opening the page above.
+   */
+  test("a repository's trail runs through Repositories and names the repository", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${repositoryPath(REPOSITORY.checkout)}/settings`);
+
+    const trail: Locator = page.locator("nav[aria-label='Breadcrumb']");
+    const crumbs: Locator = trail.locator("li.breadcrumb-item");
+    await expect(crumbs).toHaveText([
+      "Project",
+      "Code",
+      "Repositories",
+      "checkout-api",
+      "Settings",
+    ]);
+
+    await trail.getByRole("link", { name: "checkout-api" }).click();
+    await expect(page).toHaveURL(repositoryPath(REPOSITORY.checkout));
+    await expect(crumbs).toHaveText([
+      "Project",
+      "Code",
+      "Repositories",
+      "checkout-api",
+    ]);
+
+    await trail.getByRole("link", { name: "Repositories" }).click();
+    await expect(page).toHaveURL(`${CODE}/repositories`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Repositories",
+    );
   });
 
   test("a repository with no task yet offers examples, and one fills the request box", async ({
@@ -530,6 +1179,30 @@ test.describe("a repository's page: ask AI", () => {
     if ((await picker.getAttribute("aria-expanded")) !== "true") {
       await picker.click();
     }
+    /*
+     * The UI review: the list was placed while the dialog scaled in (or
+     * before its width was styled) and ran out past it. It lies under its
+     * field, as wide as the field, once the dialog has opened.
+     */
+    await expect(page.getByTestId("entity-dropdown-menu")).toBeVisible();
+    await expect
+      .poll(async (): Promise<number> => {
+        const field: { x: number; width: number } | null = await page
+          .getByTestId("code-context-record")
+          .evaluate((element: Element): { x: number; width: number } => {
+            const box: DOMRect =
+              element.parentElement!.parentElement!.getBoundingClientRect();
+            return { x: box.x, width: box.width };
+          });
+        const list: { x: number; width: number } | null = await page
+          .getByTestId("entity-dropdown-menu")
+          .boundingBox();
+        return Math.max(
+          Math.abs(field!.x - list!.x),
+          Math.abs(field!.width - list!.width),
+        );
+      })
+      .toBeLessThan(3);
     await page
       .getByRole("option", { name: "Checkout fails for some customers" })
       .click();
@@ -810,7 +1483,7 @@ test.describe("a repository's page: ask AI", () => {
     await expect(page.getByTestId("code-composer-keys")).toHaveCount(0);
   });
 
-  test("a repository the GitHub App cannot reach says so, and links Connect GitHub", async ({
+  test("a repository the GitHub App cannot reach says so, and links Connect GitHub on Repositories", async ({
     page,
   }: {
     page: Page;
@@ -826,7 +1499,8 @@ test.describe("a repository's page: ask AI", () => {
       "Connect GitHub",
     );
     await notice.getByTestId("code-blocker-fix").click();
-    await expect(page).toHaveURL(CODE);
+    await expect(page).toHaveURL(`${CODE}/repositories`);
+    await expect(page.getByTestId("code-connect-more")).toBeVisible();
   });
 
   test("a member who may only read reads every task, and is told why they cannot ask", async ({
@@ -1432,6 +2106,80 @@ test.describe("a task's conversation", () => {
     await expect(page.getByTestId("code-task-turns")).toBeVisible();
   });
 
+  test("its header says where it works - its repository, the branch it works from - how much it changed, and opens its pull request", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, TASK.retries);
+
+    const facts: Locator = page.getByTestId("code-task-facts");
+    await expect(facts.getByTestId("code-task-repository")).toHaveText(
+      "acme/checkout-api",
+    );
+    await expect(facts.getByTestId("code-task-branch")).toHaveText("main");
+    await expect(facts.getByTestId("code-task-changes-stat")).toHaveText(
+      "+27−1",
+    );
+    const pullRequest: Locator = page.getByTestId("code-task-pull-request");
+    await expect(pullRequest).toHaveText("Pull request #418");
+    await expect(pullRequest).toHaveAttribute(
+      "href",
+      "https://github.com/acme/checkout-api/pull/418",
+    );
+    await expect(pullRequest).toHaveAttribute("target", "_blank");
+
+    // The person's message on the right, as a chat draws what was sent.
+    const message: { x: number; width: number } | null = await page
+      .getByTestId("code-turn-request-message")
+      .first()
+      .boundingBox();
+    const turns: { x: number; width: number } | null = await page
+      .getByTestId("code-task-turns")
+      .boundingBox();
+    expect(
+      Math.abs(message!.x + message!.width - (turns!.x + turns!.width)),
+    ).toBeLessThanOrEqual(1);
+    expect(message!.x).toBeGreaterThan(turns!.x);
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-header");
+  });
+
+  test("the reply box stays at the bottom of the window while the conversation scrolls", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, TASK.retries);
+    const height: number = isPhone(testInfo) ? 844 : 900;
+
+    await page.evaluate((): void => {
+      window.scrollTo(0, 0);
+    });
+    const footer: Locator = page.getByTestId("code-task-footer");
+    const atTop: { y: number; height: number } | null =
+      await footer.boundingBox();
+    // Held at the window's bottom edge before the conversation has ended.
+    expect(Math.round(atTop!.y + atTop!.height)).toBeLessThanOrEqual(height);
+    expect(atTop!.y + atTop!.height).toBeGreaterThan(height - 2);
+    await expect(composerInput(page)).toBeInViewport();
+
+    // Its ground is the page's: nothing of the turns shows through it.
+    const ground: string = await footer.evaluate((element: Element): string => {
+      return window.getComputedStyle(element).backgroundColor;
+    });
+    expect(ground).not.toBe("rgba(0, 0, 0, 0)");
+
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        `code-task-reply-held-${testInfo.project.name}.png`,
+      ),
+      animations: "disabled",
+    });
+  });
+
   test("a task's trail is Project, Code, its repository, the task", async ({
     page,
   }: {
@@ -1463,7 +2211,8 @@ test.describe("the old addresses forward to Code", () => {
       from: `${DASHBOARD}/ai/agents/${TASK.retries}/pull-requests`,
       to: taskPath(TASK.retries),
     },
-    { from: `${DASHBOARD}/code-repository`, to: CODE },
+    // The list of repositories it was: now Code's Repositories.
+    { from: `${DASHBOARD}/code-repository`, to: `${CODE}/repositories` },
     {
       from: `${DASHBOARD}/code-repository/${REPOSITORY.checkout}`,
       to: repositoryPath(REPOSITORY.checkout),
@@ -1495,10 +2244,22 @@ test.describe("the old addresses forward to Code", () => {
     // The query string GitHub sends back with is kept through the forward.
     await page.goto(`${DASHBOARD}/code-repository?installation_id=51234567`);
     await expect(page.getByTestId("github-connected-notice")).toBeVisible();
+    await expect(page).toHaveURL(`${CODE}/repositories`);
+    await expect(page.getByTestId("code-repository-row").first()).toBeVisible();
+  });
+
+  test("GitHub's way back to Code itself says GitHub connected, over the request box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CODE}?installation_id=51234567`);
+    await expect(page.getByTestId("github-connected-notice")).toContainText(
+      "Pick one to ask AI to work in it.",
+    );
+    // The address is cleaned: a refresh does not say it again.
     await expect(page).toHaveURL(CODE);
-    await expect(
-      page.getByTestId("code-repository-card").first(),
-    ).toBeVisible();
+    await expect(page.getByTestId("code-ask")).toBeVisible();
   });
 
   test("a forwarded task keeps the hash it was linked with", async ({
@@ -1514,23 +2275,24 @@ test.describe("the old addresses forward to Code", () => {
 });
 
 test.describe("dark mode and other languages", () => {
-  test("dark mode: the cards, the request box and the conversation draw on dark surfaces", async ({
+  test("dark mode: the request box, the task list, the repositories and the conversation draw on dark surfaces", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await openCode(page, "theme=dark");
-    await expect(
-      page.getByTestId("code-repository-card").first(),
-    ).toBeVisible();
-    await screenshot(page, testInfo, "code-repositories-dark");
+    await expect(page.getByTestId("code-task-row").first()).toBeVisible();
+    await screenshot(page, testInfo, "code-home-dark");
 
-    const lightSurfaces: Array<string> = await page.evaluate(
-      (channelPattern: string): Array<string> => {
+    // Nothing of Code draws a light ground on the dark page.
+    const lightSurfaces: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      return await page.evaluate((channelPattern: string): Array<string> => {
         const found: Array<string> = [];
         for (const element of Array.from(
           document.querySelectorAll(
-            "[data-testid='code-repository-card'], [data-testid='code-composer-input']",
+            "[data-testid='code-composer-box'], [data-testid='code-composer-input'], [data-testid='code-task-row'], [data-testid='code-repository-row'], [data-testid='code-turn-request-message'], [data-testid='code-task-footer']",
           ),
         )) {
           const background: string =
@@ -1550,12 +2312,50 @@ test.describe("dark mode and other languages", () => {
           }
         }
         return found;
-      },
-      COLOUR_CHANNELS.source,
+      }, COLOUR_CHANNELS.source);
+    };
+    expect(await lightSurfaces()).toEqual([]);
+
+    /*
+     * The UI review: Theme.css re-coloured a spinner's track with
+     * border-color, which painted its arc too - the Working mark was one
+     * colour all round and did not look like it turned. Its arc now keeps a
+     * colour of its own.
+     */
+    const ringColours: (spinner: Locator) => Promise<{
+      top: string;
+      left: string;
+    }> = async (spinner: Locator): Promise<{ top: string; left: string }> => {
+      return await spinner.evaluate(
+        (element: Element): { top: string; left: string } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return { top: style.borderTopColor, left: style.borderLeftColor };
+        },
+      );
+    };
+    const workingMark: { top: string; left: string } = await ringColours(
+      page
+        .getByTestId("code-task-row")
+        .first()
+        .getByTestId("code-task-state")
+        .locator("span")
+        .first(),
     );
-    expect(lightSurfaces).toEqual([]);
+    expect(workingMark.top).not.toBe(workingMark.left);
+
+    await openTask(page, TASK.working, "theme=dark");
+    const liveStep: { top: string; left: string } = await ringColours(
+      page.getByTestId("code-task-steps-working").locator("span").first(),
+    );
+    expect(liveStep.top).not.toBe(liveStep.left);
+
+    await page.goto(`${CODE}/repositories?theme=dark`);
+    await expect(page.getByTestId("code-repository-row").first()).toBeVisible();
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-repositories-dark");
 
     await openTask(page, TASK.retries, "theme=dark");
+    expect(await lightSurfaces()).toEqual([]);
     await screenshot(page, testInfo, "code-task-conversation-dark");
     const replyBackground: string = await page
       .getByTestId("code-task-composer")
@@ -1574,11 +2374,17 @@ test.describe("dark mode and other languages", () => {
   }, testInfo: TestInfo) => {
     // What it checks does not depend on the screen's width.
     test.skip(isPhone(testInfo), "width-independent");
-    await openRepository(page, REPOSITORY.checkout, "lang=de");
-
-    await expect(page.getByTestId("code-ask").getByRole("heading")).toHaveText(
-      "KI um etwas bitten",
+    // Code's first page asks its question in German.
+    await openCode(page, "lang=de");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Was soll die KI tun?",
     );
+    await expect(page.getByTestId("code-branch-picker-button")).toHaveAttribute(
+      "aria-label",
+      "Branch: main",
+    );
+
+    await openRepository(page, REPOSITORY.checkout, "lang=de");
     await expect(sendButton(page)).toHaveText("Aufgabe starten");
     await expect(composerInput(page)).toHaveAttribute(
       "aria-label",
@@ -1589,8 +2395,11 @@ test.describe("dark mode and other languages", () => {
       page
         .getByTestId("code-task-row")
         .first()
-        .locator("[data-testid='code-task-state']:visible"),
+        .getByTestId("code-task-row-state"),
     ).toHaveText("Wird bearbeitet…");
+    await expect(
+      page.getByTestId("code-task-row").first().getByTestId("code-task-state"),
+    ).toHaveAttribute("aria-label", "Wird bearbeitet…");
     await expect(
       page
         .getByTestId("code-task-row")
@@ -1603,6 +2412,15 @@ test.describe("dark mode and other languages", () => {
     await expect(page.getByTestId("code-task-steps-toggle").first()).toHaveText(
       "7 Schritte · 2 Dateien gelesen · 2 Dateien bearbeitet · 1 Befehl ausgeführt",
     );
+    // A summary that wraps on a phone reads on from the left, not centred.
+    expect(
+      await page
+        .getByTestId("code-task-steps-toggle")
+        .first()
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).textAlign;
+        }),
+    ).toBe("left");
     await expect(
       page.getByTestId("code-turn-pull-request").first(),
     ).toContainText("Pull Request #418 geöffnet");

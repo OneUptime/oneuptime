@@ -32183,5 +32183,16 @@
   "Show all {{count}} tools": "نمایش همه {{count}} ابزار",
   "Show all {{count}} tools_one": "نمایش {{count}} ابزار",
   "The changes of this fix could not be shown.": "تغییرات این اصلاح نمایش داده نشد.",
+  "Default branch": "شاخهٔ پیش‌فرض",
+  "Find a branch": "یافتن شاخه",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub به این پروژه متصل نیست، بنابراین هوش مصنوعی نمی‌تواند در این مخازن کار کند. برای استفاده از آن‌ها GitHub را دوباره متصل کنید.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "خط‌های افزوده: {{additions}}، خط‌های حذف‌شده: {{deletions}}",
+  "Loading branches…": "در حال بارگذاری شاخه‌ها…",
+  "No branch matches your search.": "هیچ شاخه‌ای با جست‌وجوی شما مطابقت ندارد.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime نتوانست شاخه‌های این مخزن را از GitHub بخواند.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "مخازن GitHub متصل به این پروژه. یکی را باز کنید تا وظایف و تنظیماتش را ببینید، یا مخازن بیشتری متصل کنید.",
+  "Type a branch's name to find one that is not listed.": "برای یافتن شاخه‌ای که در فهرست نیست، نام آن را بنویسید.",
+  "{{count}} repositories": "{{count}} مخزن",
+  "{{count}} repositories_one": "{{count}} مخزن",
   "{{start}} to {{end}}, all day": "{{start}} – {{end}}، تمام روز"
 }
