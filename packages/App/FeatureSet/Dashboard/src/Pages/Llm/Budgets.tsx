@@ -96,7 +96,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           title: "Count spend from",
           stepId: "scope",
           description:
-            "Your AI calls: what your apps and tools send, as it happens. Provider accounts: what your connected OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts were billed, read every 15 minutes. Never both, so nothing is counted twice.",
+            "Your AI calls: what your apps send, as it happens. Provider accounts: what your connected accounts were billed. Never both, so nothing counts twice.",
           fieldType: FormFieldSchemaType.Dropdown,
           required: true,
           defaultValue: LlmBudgetSpendSource.Calls,

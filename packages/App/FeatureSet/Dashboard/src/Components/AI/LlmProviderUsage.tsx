@@ -256,7 +256,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
           kind={TableEmptyStateKind.Empty}
           icon={IconProp.Link}
           title="No provider account connected"
-          description="Connect your OpenAI, Anthropic, Azure OpenAI, Amazon Bedrock or Google Vertex AI account to see what it used and what it cost, by model, project, key and person. It takes a key and a click."
+          description="Connect an OpenAI, Anthropic, Azure, Bedrock or Vertex AI account to see what it used and what it cost, by model, project, key and person."
           actions={[
             {
               title: "Connect a provider account",

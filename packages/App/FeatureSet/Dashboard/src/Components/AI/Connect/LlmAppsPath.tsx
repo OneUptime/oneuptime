@@ -184,7 +184,7 @@ const LlmAppsPath: FunctionComponent = (): ReactElement => {
             icon={IconProp.ChevronRight}
             className="h-4 w-4 text-gray-500 transition-transform group-open:rotate-90"
           />
-          {translator.translateText("What to send for the most out of it")}
+          {translator.translateText("What to send to get the most out of it")}
         </summary>
         <ol className="space-y-3 px-4 pb-4">
           {HINTS.map((hint: Hint, index: number): ReactElement => {
