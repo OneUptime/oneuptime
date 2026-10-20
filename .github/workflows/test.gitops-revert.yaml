@@ -1,0 +1,42 @@
+name: GitOps Revert Suite
+
+# The opt-in HelmChart/Tests/suites/gitops-revert.sh: Argo CD, Flux and Helm
+# against the kubectl fixes OneUptime AI makes - which fixes each one puts
+# back, and how fast - and the ownership markers OneUptime reads to tell
+# (packages/Common/Utils/AiRemediation/GitOpsOwnership.ts). It pulls Argo CD,
+# Flux, Gitea and busybox images and waits out reconcile intervals, so it is
+# not in the helm-test job: it runs when the suite, what it runs on, or what
+# it measures for changes, and on demand. Its results table is the job's
+# summary.
+#
+# Path-filtered, so it must not be a required check: a pull request that does
+# not touch these files never runs it.
+on:
+  pull_request:
+    paths:
+      - "HelmChart/Tests/suites/gitops-revert.sh"
+      - "HelmChart/Tests/lib/harness.sh"
+      - "HelmChart/Tests/run.sh"
+      - "packages/Common/Utils/AiRemediation/GitOpsOwnership.ts"
+      - ".github/workflows/test.gitops-revert.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gitops-revert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      # The harness's default kind (v0.23.0) boots Kubernetes 1.30, older than
+      # current Argo CD and Flux support; v0.33.0 boots 1.37.
+      - name: Run the GitOps revert suite
+        env:
+          KIND_VERSION: v0.33.0
+        run: bash ./HelmChart/Tests/run.sh gitops-revert
