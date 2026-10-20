@@ -6,14 +6,7 @@ import LlmConnectionPullRunner, {
   LlmChatSpanImporter,
   LlmConnectionPullOutcome,
 } from "../../../../Server/Utils/LlmObservability/LlmConnectionPullRunner";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import LlmObservabilityConnection from "../../../../Models/DatabaseModels/LlmObservabilityConnection";
 import Project from "../../../../Models/DatabaseModels/Project";
 import Reseller from "../../../../Models/DatabaseModels/Reseller";
@@ -639,8 +632,8 @@ describe("LlmConnectionPullRunner helpers", () => {
       LlmConnectionPullRunner.nextPullAt({
         now: NOW,
         intervalInMinutes: 15,
-        ...(data as never),
-      }),
+        ...data,
+      } as Parameters<typeof LlmConnectionPullRunner.nextPullAt>[0]),
     ).toEqual(new Date(NOW.getTime() + minutes * MINUTE));
   });
 

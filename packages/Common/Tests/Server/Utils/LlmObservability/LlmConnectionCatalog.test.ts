@@ -113,9 +113,13 @@ describe("LlmConnectionCatalog", () => {
   });
 
   test.each(
-    LlmConnectionCatalog.map((definition: LlmConnectionDefinition) => {
-      return [definition.provider, definition];
-    }),
+    LlmConnectionCatalog.map(
+      (
+        definition: LlmConnectionDefinition,
+      ): [string, LlmConnectionDefinition] => {
+        return [definition.provider, definition];
+      },
+    ),
   )(
     "%s is complete",
     (_provider: string, definition: LlmConnectionDefinition) => {

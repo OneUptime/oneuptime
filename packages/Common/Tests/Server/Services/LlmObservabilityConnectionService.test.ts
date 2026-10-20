@@ -1,14 +1,7 @@
 import LlmObservabilityConnectionService, {
   Service as LlmObservabilityConnectionServiceClass,
 } from "../../../Server/Services/LlmObservabilityConnectionService";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import LlmObservabilityConnection from "../../../Models/DatabaseModels/LlmObservabilityConnection";
 import TelemetryService from "../../../Models/DatabaseModels/Service";
 import ServiceService from "../../../Server/Services/ServiceService";
