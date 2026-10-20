@@ -124,6 +124,47 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Count one production telemetry tool call of a code-fix run, when the run
+   * may still make one: a single conditional UPDATE that adds one to the
+   * run's toolCallCount while it is below `maxToolCalls`, the run is a
+   * Running code-fix run and it is claimed by `aiAgentId`. True when the
+   * call was counted - false when the run is at its cap or moved on - so two
+   * calls at the same moment cannot both take the last one.
+   *
+   * For a code-fix run toolCallCount counts the tool calls the SERVER
+   * executed for it (CodeAgentTelemetry); its file and command tools run on
+   * the Runner and are not the server's to count.
+   */
+  @CaptureSpan()
+  public async reserveCodeAgentToolCall(data: {
+    aiRunId: ObjectID;
+    aiAgentId: ObjectID;
+    maxToolCalls: number;
+  }): Promise<boolean> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        toolCallCount: () => {
+          return 'COALESCE("toolCallCount", 0) + 1';
+        },
+      } as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.aiRunId.toString() })
+      .andWhere('"runType" = :runType', { runType: AIRunType.CodeFix })
+      .andWhere('"status" = :status', { status: AIRunStatus.Running })
+      .andWhere('"aiAgentId" = :aiAgentId', {
+        aiAgentId: data.aiAgentId.toString(),
+      })
+      .andWhere('COALESCE("toolCallCount", 0) < :maxToolCalls', {
+        maxToolCalls: data.maxToolCalls,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return (result.affected || 0) > 0;
+  }
+
+  /*
    * Persist the AI-written TL;DR of a completed investigation's analysis.
    * Display-only, so this is a plain conditional UPDATE rather than a claim,
    * but it is still write-once: scoped to the run, to the Completed state,

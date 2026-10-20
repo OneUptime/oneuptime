@@ -236,6 +236,8 @@ const CODE_FIX_ROUTE_FILES: Record<string, number> = {
   "packages/Common/Server/API/AIAgentGitHubAPI.ts": 1,
   // A request from Code: the words, the context and the branch it works on.
   "packages/Common/Server/API/AIAgentCodeTaskAPI.ts": 1,
+  // Production telemetry for a run: the tools it is offered, and one call.
+  "packages/Common/Server/API/AIAgentTelemetryAPI.ts": 2,
 };
 
 // What answers a request: between a key's lookup and the limit, nothing may.

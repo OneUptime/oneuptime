@@ -29,6 +29,10 @@ import {
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_CHOICE_VALUE,
   GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
+  REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT,
+  REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
+  REMEDIATION_ADD_RUNNER_TEMPLATE,
+  REMEDIATION_NO_RUNNER_CHOICE_LABEL,
   RunnerPickerModel,
   RunnerPickerOption,
   RunnerPickerOptionKind,
@@ -41,7 +45,9 @@ import {
 /*
  * The one Runner picker: which Runner runs a step (Runbooks -> a runbook ->
  * Steps), which Runner AI works in a code repository on (Code -> a
- * repository -> Settings), and anywhere else people pick a Runner.
+ * repository -> Settings), which Runner OneUptime AI runs an auto
+ * remediation rule's commands on (the rule's More fields), and anywhere
+ * else people pick a Runner.
  *
  * The global choice - "Global Runner", the Runners OneUptime runs for every
  * project - comes first and is what a step that picked none shows, whenever
@@ -95,6 +101,11 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   const dataTestId: string = props.dataTestId || RUNNER_PICKER_TEST_ID;
   const isForCodeRepository: boolean =
     props.work === RunnerPickerWork.CodeRepository;
+  const isForRemediation: boolean =
+    props.work === RunnerPickerWork.AutoRemediation;
+  // A pick the reader is not shown is one they may not see, not a broken one.
+  const isPickOfTheProjectsOwn: boolean =
+    isForCodeRepository || isForRemediation;
 
   const model: RunnerPickerModel = buildRunnerPickerModel({
     work: props.work,
@@ -136,15 +147,26 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       };
     }
 
+    // An auto remediation rule's first choice: no Runner, the AI agents fix.
+    if (option.kind === RunnerPickerOptionKind.NoRunner) {
+      return {
+        value: GLOBAL_RUNNER_CHOICE_VALUE,
+        label:
+          translator.translateText(REMEDIATION_NO_RUNNER_CHOICE_LABEL) ||
+          REMEDIATION_NO_RUNNER_CHOICE_LABEL,
+        description: REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
+      };
+    }
+
     /*
-     * A repository can only pick one of its project's Runners, and a Runner
-     * that is deleted leaves it on Global Runner, so a pick the picker
+     * A repository or a rule can only pick one of its project's Runners, and
+     * a Runner that is deleted leaves it with none, so a pick the picker
      * cannot name is one the reader may not see: said so, not as an id.
      */
     if (option.kind === RunnerPickerOptionKind.Unknown) {
       return {
         value: option.value,
-        label: isForCodeRepository
+        label: isPickOfTheProjectsOwn
           ? translator.translateText(CODE_HIDDEN_RUNNER_LABEL) ||
             CODE_HIDDEN_RUNNER_LABEL
           : translator.translateTemplate("Unknown Runner ({{id}})", {
@@ -231,6 +253,35 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   };
 
   const renderHelperText: () => ReactNode = (): ReactNode => {
+    /*
+     * A rule that picked no Runner: the choice and the field's line say what
+     * that does. With no Runner to pick, where one is added.
+     */
+    if (model.outcome === RunnerPickerOutcome.NoRunner) {
+      if (
+        props.choices.projectRunners.length > 0 ||
+        props.choices.areProjectRunnersUnread
+      ) {
+        return null;
+      }
+
+      return (
+        <TranslatedSentence
+          template={REMEDIATION_ADD_RUNNER_TEMPLATE}
+          slots={{
+            location: runnersLocation,
+          }}
+        />
+      );
+    }
+
+    if (
+      isForRemediation &&
+      model.outcome === RunnerPickerOutcome.UnknownRunner
+    ) {
+      return translator.translateText(REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT);
+    }
+
     if (model.outcome === RunnerPickerOutcome.GlobalRunner) {
       if (isForCodeRepository) {
         return translator.translateText(CODE_GLOBAL_RUNNER_HELPER_TEXT);
@@ -287,6 +338,8 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   // A form's lines are its descriptions' size; a step's are smaller.
   const lineClassName: string = props.isFormField ? "text-sm" : "text-xs";
 
+  const helperText: ReactNode = renderHelperText();
+
   return (
     <div data-testid={dataTestId}>
       {props.isFormField ? (
@@ -325,14 +378,18 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
               props.onChange(id);
             }}
           />
-          <p
-            className={`${lineClassName} text-gray-500 ${
-              props.isFormField ? "mt-2" : "mt-1.5"
-            }`}
-            data-testid={`${dataTestId}-help`}
-          >
-            {renderHelperText()}
-          </p>
+          {helperText ? (
+            <p
+              className={`${lineClassName} text-gray-500 ${
+                props.isFormField ? "mt-2" : "mt-1.5"
+              }`}
+              data-testid={`${dataTestId}-help`}
+            >
+              {helperText}
+            </p>
+          ) : (
+            <></>
+          )}
           {isGlobalRunnerChoiceWaiting(model) ? (
             <p
               className={`${lineClassName} text-amber-700 mt-1`}

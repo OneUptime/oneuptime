@@ -551,7 +551,7 @@ Anche le regole di raggruppamento, SLA, dei promemoria, di indagine e di rimedio
 - **Regole di reperibilità** — eseguono policy di reperibilità per gli incidenti corrispondenti. Trattate in dettaglio più sotto.
 - **Regole del proprietario** — assegnano proprietari automaticamente.
 - **Regole di runbook** — avviano un [runbook](/docs/runbooks/index) quando un incidente corrisponde.
-- **Regole di rimedio automatico**, sotto **IA** → **Impostazioni** — quali nuovi incidenti vengono corretti finché **Correggi automaticamente i nuovi incidenti** è attivo, e come: da OneUptime AI o con i runbook della regola, chiedendo prima di correggere oppure no. Senza alcuna regola, ogni nuovo incidente viene corretto. Se per l'incidente è in coda un'indagine IA, vengono eseguite quando questa termina, con la sua analisi in mano.
+- **Regole di rimedio automatico**, sotto **IA** → **Impostazioni** — quali nuovi incidenti vengono corretti finché **Correggi automaticamente i nuovi incidenti** è attivo, e come: chiedendo prima di correggere oppure no, e i runbook che OneUptime AI può eseguire. Senza alcuna regola, ogni nuovo incidente viene corretto. Se per l'incidente è in coda un'indagine IA, vengono eseguite quando questa termina, con la sua analisi in mano.
 - **Regole di indagine**, sotto **IA** → **Impostazioni** — quali nuovi incidenti esamina OneUptime AI. Senza alcuna regola, tutti. Vedete [AI SRE](/docs/ai/ai-sre).
 - **Regole di privacy** — decidono se un incidente corrispondente è privato.
 - **Regole etichette** — applicano etichette automaticamente.

@@ -63,6 +63,7 @@ import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../../Server/Services/RunnerService";
 import UserService from "../../../Server/Services/UserService";
+import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -321,6 +322,13 @@ beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
+  /*
+   * Binding a Runner lets it run OneUptime AI's commands
+   * (RunnerAiCommandsPick): a write of the Runner these tests do not judge.
+   */
+  jest
+    .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
+    .mockResolvedValue(undefined);
   jest
     .spyOn(RunnerService, "findOneBy")
     .mockResolvedValue({ id: new ObjectID(RUNNER_ID) } as unknown as Runner);
@@ -1817,8 +1825,8 @@ describe("Needs attention, from the server's own statuses", () => {
         [
           [
             "runner_ai_commands_disabled",
-            'Turn on "Runs AI Remediation Commands" on the Runner.',
-            "view_runner",
+            "Choose the Runner again to let OneUptime AI run kubectl on it.",
+            "choose_runner_again",
           ],
         ],
       ],
@@ -2105,7 +2113,6 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
 
   function formFieldNames(row: RowCase["row"]): Array<string> {
     return getRunnerFormFields({
-      withSteps: false,
       restrictions: getRunnerFormRestrictions(row),
     }).map((field: Field<Runner>): string => {
       return Object.keys(field.field || {})[0] || "";

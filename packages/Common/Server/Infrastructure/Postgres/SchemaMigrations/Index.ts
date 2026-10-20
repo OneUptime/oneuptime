@@ -136,7 +136,9 @@ import { AddCodeRepositoryRunnerIndexAndKey1804350000000 } from "./1804350000000
 import { AddFixProductionVerification1804400000000 } from "./1804400000000-AddFixProductionVerification";
 import { AddLlmObservabilityConnection1804450000000 } from "./1804450000000-AddLlmObservabilityConnection";
 import { AddTwilioSmsPhoneNumbers1804700000000 } from "./1804700000000-AddTwilioSmsPhoneNumbers";
-import { AddOnCallRuleWorkingHours1804750000000 } from "./1804750000000-AddOnCallRuleWorkingHours";
+import { AddAutoRemediationRuleRunner1804750000000 } from "./1804750000000-AddAutoRemediationRuleRunner";
+import { AddAutoRemediationRuleRunnerIndexAndKey1804800000000 } from "./1804800000000-AddAutoRemediationRuleRunnerIndexAndKey";
+import { AddOnCallRuleWorkingHours1804850000000 } from "./1804850000000-AddOnCallRuleWorkingHours";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1475,5 +1477,7 @@ export default [
   AddFixProductionVerification1804400000000,
   AddLlmObservabilityConnection1804450000000,
   AddTwilioSmsPhoneNumbers1804700000000,
-  AddOnCallRuleWorkingHours1804750000000,
+  AddAutoRemediationRuleRunner1804750000000,
+  AddAutoRemediationRuleRunnerIndexAndKey1804800000000,
+  AddOnCallRuleWorkingHours1804850000000,
 ];

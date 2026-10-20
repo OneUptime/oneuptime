@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddOnCallRuleWorkingHours1804750000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804750000000-AddOnCallRuleWorkingHours";
+import { AddOnCallRuleWorkingHours1804850000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804850000000-AddOnCallRuleWorkingHours";
 import AlertEpisodeOnCallRule from "../../../../Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertOnCallRule from "../../../../Models/DatabaseModels/AlertOnCallRule";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -30,7 +30,7 @@ import OnCallRuleWhenToPage from "../../../../Types/OnCallDutyPolicy/OnCallRuleW
  * left to generate once it has run.)
  */
 
-const MIGRATION_TIMESTAMP: string = "1804750000000";
+const MIGRATION_TIMESTAMP: string = "1804850000000";
 const MIGRATION_BASE_NAME: string = "AddOnCallRuleWorkingHours";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -54,7 +54,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddOnCallRuleWorkingHours1804750000000();
+    new AddOnCallRuleWorkingHours1804850000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -65,7 +65,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddOnCallRuleWorkingHours1804750000000", () => {
+describe("AddOnCallRuleWorkingHours1804850000000", () => {
   test("adds when to page, working hours and their time zone to each on-call rule", async () => {
     const up: Array<string> = await statementsOf("up");
 
@@ -116,7 +116,7 @@ describe("AddOnCallRuleWorkingHours1804750000000", () => {
     });
 
     expect(registered).toContain(MIGRATION_CLASS_NAME);
-    expect(new AddOnCallRuleWorkingHours1804750000000().name).toBe(
+    expect(new AddOnCallRuleWorkingHours1804850000000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(

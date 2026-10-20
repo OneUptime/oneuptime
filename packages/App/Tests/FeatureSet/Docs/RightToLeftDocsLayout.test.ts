@@ -438,6 +438,20 @@ describe("style.css on a right-to-left page", () => {
     },
   );
 
+  it("draws inline code character by character, so its braces stay off its letters", () => {
+    /*
+     * JetBrains Mono's "{{" and "}}" ligatures land on the letters beside
+     * them in a run isolated inside a right-to-left paragraph.
+     */
+    expect(
+      declared(".docs-code-inline:dir(rtl)", "font-variant-ligatures"),
+    ).toBe("none");
+    // A left-to-right page keeps the font as it is.
+    expect(
+      declared(".docs-code-inline", "font-variant-ligatures"),
+    ).toBeUndefined();
+  });
+
   it("keeps diagrams and keyboard shortcuts left to right", () => {
     // Mermaid lays diagrams out left to right.
     expect(declared(".docs-diagram", "direction")).toBe("ltr");

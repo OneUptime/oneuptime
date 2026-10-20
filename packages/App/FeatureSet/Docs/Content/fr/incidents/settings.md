@@ -551,7 +551,7 @@ Les règles de regroupement, SLA, de rappel, d'investigation et de remédiation 
 - **Règles d'astreinte** — exécutent des politiques d'astreinte pour les incidents correspondants. Traitées en détail plus bas.
 - **Règles de propriétaire** — attribuent des propriétaires automatiquement.
 - **Règles de runbook** — lancent un [runbook](/docs/runbooks/index) quand un incident correspond.
-- **Règles de remédiation automatique**, sous **IA** → **Paramètres** — quels nouveaux incidents sont corrigés tant que **Corriger automatiquement les nouveaux incidents** est activé, et comment : par OneUptime AI ou avec les runbooks de la règle, en demandant avant de corriger ou non. Sans règle, chaque nouvel incident est corrigé. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main.
+- **Règles de remédiation automatique**, sous **IA** → **Paramètres** — quels nouveaux incidents sont corrigés tant que **Corriger automatiquement les nouveaux incidents** est activé, et comment : en demandant avant de corriger ou non, et les runbooks que OneUptime AI peut exécuter. Sans règle, chaque nouvel incident est corrigé. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main.
 - **Règles d'investigation**, sous **IA** → **Paramètres** — quels nouveaux incidents OneUptime AI examine. Sans règle, tous le sont. Voir [AI SRE](/docs/ai/ai-sre).
 - **Règles de confidentialité** — décident si un incident correspondant est privé.
 - **Règles d'étiquettes** — appliquent des étiquettes automatiquement.

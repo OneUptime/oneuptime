@@ -70,7 +70,7 @@ import {
   pluralName: "Auto Remediation Rules",
   icon: IconProp.Bolt,
   tableDescription:
-    "Which new incidents or alerts are fixed automatically, and how: by OneUptime AI or with runbooks, asking first or not. With no rule, OneUptime AI fixes every one while automatic fixing is on.",
+    "Which new incidents or alerts OneUptime AI fixes automatically, and whether it asks first. It may run the project's runbooks (only the rule's, when it names some) and commands on a Runner the rule picks. With no rule, OneUptime AI fixes every one while automatic fixing is on.",
 })
 export default class AutoRemediationRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -295,7 +295,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Execution Mode",
     description:
-      "Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: its runbooks start immediately, and OneUptime AI fixes run on their own where the cluster's or resource's AI agent page allows.",
+      "Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: OneUptime AI fixes on its own where the cluster's or resource's AI agent page allows, a runbook it picks from the ones the rule names starts right away (one it picks from all of the project's runbooks still waits for approval), and a rule that runs its runbooks every time starts them immediately.",
     defaultValue: AutoRemediationExecutionMode.Suggest,
     isDefaultValueColumn: true,
   })
@@ -308,10 +308,15 @@ export default class AutoRemediationRule extends RuleBaseModel {
   public executionMode?: AutoRemediationExecutionMode = undefined;
 
   /*
-   * How a matched rule fixes the signal: let OneUptime AI fix it on the
-   * infrastructure the signal is linked to, or run the rule's runbooks. A
-   * rule that let AI pick a runbook or compose commands (before rules were
-   * simplified) reads as OneUptimeAI and keeps doing so.
+   * How a matched rule fixes the signal (Types/AutoRemediation/
+   * AutoRemediationFix): OneUptime AI fixes it - through the AI agents on
+   * the infrastructure the signal is linked to, with the project's runbooks
+   * (only the rule's, when it names some) and with commands on the rule's
+   * Runner - or, for Runbooks, the rule starts every runbook it names, every
+   * time, without OneUptime AI deciding ("Run them every time", folded under
+   * More fields). A rule that let AI pick a runbook or compose commands
+   * (before rules were simplified) reads as OneUptimeAI and keeps doing only
+   * that.
    */
   @ColumnAccessControl({
     create: [
@@ -337,7 +342,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Fix With",
     description:
-      "OneUptimeAI: OneUptime AI fixes the matched incident or alert on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows. Runbooks: the rule's runbooks run. Whether a person approves first is the rule's Execution Mode.",
+      "OneUptimeAI (the default): OneUptime AI fixes the matched incident or alert - on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, with the project's runbooks (only the rule's Runbooks when it names some) and with commands on the rule's Runner when it picks one. Runbooks: the rule starts every one of its Runbooks for every match, without OneUptime AI deciding. Whether a person approves first is the rule's Execution Mode.",
     defaultValue: AutoRemediationAction.OneUptimeAI,
     isDefaultValueColumn: true,
   })
@@ -373,7 +378,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Pick the Runbook",
     description:
-      "When enabled, an AI planning run reads the incident/alert context and picks the most applicable runbook (from the attached candidates, or all enabled runbooks when none are attached). AI-picked runbooks are always suggest-only — never full-auto.",
+      "Kept for rules saved before rules were simplified: an AI planning run reads the incident/alert context and picks the most applicable runbook (from the attached candidates, or all enabled runbooks when none are attached), always proposing it for approval, and the rule does nothing else. Every OneUptime AI rule now lets AI pick a runbook on its own, so new rules leave this off.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -412,7 +417,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Compose Commands",
     description:
-      "When enabled, the AI investigates the incident/alert and composes Bash/SSH commands for opted-in Runners instead of picking a runbook. Suggest mode proposes a command plan for one-click approval; FullAuto mode may execute commands inline, but only ones matching the command allowlist. Requires AI to be enabled for the project.",
+      "Kept for rules saved before rules were simplified: the AI investigates the incident/alert and composes Bash/SSH commands for the rule's Runner and Command Runners, and the rule does nothing else. Suggest mode proposes a command plan for one-click approval; FullAuto mode may execute commands inline, but only ones matching the command allowlist. A OneUptime AI rule now composes commands on its Runner when it picks one, so new rules leave this off.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -462,9 +467,12 @@ export default class AutoRemediationRule extends RuleBaseModel {
   public commandAllowlist?: Array<string> = undefined;
 
   /*
-   * Which Runners the AI may target with composed commands. Empty means any
-   * Runner in the project that has canRunAiCommands enabled — the Runner
-   * capability is always required either way.
+   * Which Runners the AI may target with composed commands, for a rule saved
+   * before rules were simplified: together with the rule's Runner
+   * (runnerId), the only Runners its commands run on
+   * (AutoRemediationFix.getRuleCommandRunnerIds). Empty no longer means "any
+   * Runner that runs AI commands": the migration that took the Runner switch
+   * away (AddAutoRemediationRuleRunner) wrote each such rule's Runners out.
    */
   @ColumnAccessControl({
     create: [
@@ -491,7 +499,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Runner,
     title: "Command Runners",
     description:
-      "Runners the AI may target with composed commands. Leave empty to allow any Runner in the project that has AI commands enabled.",
+      "Kept for rules saved before rules were simplified: more Runners the AI may target with composed commands, besides the rule's Runner. A Runner runs a rule's commands only when the rule names it.",
   })
   @ManyToMany(
     () => {
@@ -833,7 +841,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Runbook,
     title: "Runbooks",
     description:
-      "Runbook candidates for this rule. Deterministic rules propose or start every attached runbook; AI rules pick the most applicable one.",
+      "The runbooks OneUptime AI may pick and run for this rule. Leave empty to let it pick any of the project's runbooks. A rule whose Fix With is Runbooks starts every one of them for every match instead.",
   })
   @ManyToMany(
     () => {
@@ -853,6 +861,100 @@ export default class AutoRemediationRule extends RuleBaseModel {
     },
   })
   public runbooks?: Array<Runbook> = undefined;
+
+  /*
+   * The Runner OneUptime AI runs this rule's commands of its own on (Bash,
+   * SSH), inside the project's network - the per-rule choice that replaced
+   * a Runner's "Runs AI Remediation Commands" switch. Empty means no Runner:
+   * OneUptime AI fixes through the AI agent on the affected Kubernetes
+   * cluster or host, as it always has, and runs no commands of its own
+   * anywhere else. The global Runners are never a choice here: they run
+   * JavaScript steps in a sandbox every project shares, never one project's
+   * commands.
+   *
+   * Only one of the project's own Runners may be picked
+   * (ProjectReferencesService refuses another project's Runner and a global
+   * one; AutoRemediationRuleService refuses an in-cluster Runner the
+   * Kubernetes agent chart installed, which runs kubectl for its own
+   * cluster only). Picking one lets OneUptime AI's commands reach it
+   * (RunnerAiCommandsPick). A Runner that is deleted leaves the rule with
+   * none (SET NULL).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "runnerId",
+    type: TableColumnType.Entity,
+    modelType: Runner,
+    title: "Runner",
+    description:
+      "The Runner OneUptime AI runs this rule's commands on (Bash, SSH), inside your network. Empty means none: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
+  })
+  @ManyToOne(
+    () => {
+      return Runner;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runnerId" })
+  public runner?: Runner = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Runner ID",
+    description:
+      "ID of the Runner OneUptime AI runs this rule's commands on: one of the project's own Runners. Empty means none: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runnerId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

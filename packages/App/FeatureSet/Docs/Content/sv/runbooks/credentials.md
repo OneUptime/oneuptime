@@ -54,7 +54,7 @@ I steget **Runbook-agenter** väljer du de Runners som får använda autentiseri
 
 ### Låt OneUptime AI använda den
 
-OneUptime AI kör sina SSH-kommandon på en Runner där **Kör AI-åtgärdskommandon** är påslaget, med en av de SSH-autentiseringsuppgifter som är tilldelade den. En Kubernetes-autentiseringsuppgift används så snart den är bunden till ett kluster tillsammans med en av sina Runners: se [AI SRE](/docs/ai/ai-sre).
+OneUptime AI kör sina SSH-kommandon på den Runner som en regel för automatisk åtgärd väljer för dem, med en av de SSH-autentiseringsuppgifter som är tilldelade den. En Kubernetes-autentiseringsuppgift används så snart den är bunden till ett kluster tillsammans med en av sina Runners: se [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## Vad som sparas
@@ -78,12 +78,12 @@ Tilldelningen är åtkomstgränsen, så håll den snäv: en Runner som bara någ
 
 ### Runners som kör OneUptime AI:s kommandon
 
-På en Runner med **Kör AI-åtgärdskommandon** påslaget väljer OneUptime AI bland de SSH-autentiseringsuppgifter som är tilldelade Runnern för de kommandon den kör där. Därför når en SSH-autentiseringsuppgift bara en sådan Runner genom en person som får läsa runbook-autentiseringsuppgifter (**Read Runbook Credential**, eller en Project Owner eller Project Admin), oavsett vad som sparas först:
+En Runner kör OneUptime AI:s kommandon så snart den har valts för dem: som Runner för en regel för automatisk åtgärd, eller för ett Kubernetes-klusters AI-åtkomst. På en sådan Runner väljer OneUptime AI bland de SSH-autentiseringsuppgifter som är tilldelade Runnern för de kommandon den kör där. Därför når en SSH-autentiseringsuppgift bara en sådan Runner genom en person som får läsa runbook-autentiseringsuppgifter (**Read Runbook Credential**, eller en Project Owner eller Project Admin), oavsett vad som sparas först:
 
 - **Tilldela autentiseringsuppgiften.** Att skapa en SSH-autentiseringsuppgift med en sådan Runner, eller lägga till en sådan Runner i en, kräver den behörigheten. Utan den avvisas sparandet och Runnern nämns: tilldela autentiseringsuppgiften till Runners som inte kör AI-åtgärdskommandon, eller be någon med behörigheten att tilldela den.
-- **Slå på brytaren.** Att slå på **Kör AI-åtgärdskommandon** för en Runner som har SSH-autentiseringsuppgifter kräver samma behörighet.
+- **Välja Runnern.** Att välja en Runner som har SSH-autentiseringsuppgifter för OneUptime AI:s kommandon - som en regels Runner eller för ett kluster - kräver samma behörighet första gången den väljs.
 
-Att ta bort Runners från en autentiseringsuppgift, spara en autentiseringsuppgift med de Runners den redan har och Kubernetes-autentiseringsuppgifter kräver inget mer: OneUptime AI:s kubectl-kommandon körs med den autentiseringsuppgift som är bunden till deras kluster. Tilldelningar av autentiseringsuppgifter och påslag av brytaren som görs av någon utan den behörigheten sparas en i taget i ett projekt, så att de två inte kan klara sina kontroller tillsammans; ett sparande som kommer medan ett annat sparas väntar på det, och tar det för lång tid avvisas det med *Try again in a moment*. Spara igen.
+Att ta bort Runners från en autentiseringsuppgift, spara en autentiseringsuppgift med de Runners den redan har och Kubernetes-autentiseringsuppgifter kräver inget mer: OneUptime AI:s kubectl-kommandon körs med den autentiseringsuppgift som är bunden till deras kluster. Tilldelningar av autentiseringsuppgifter och val av en Runner som görs av någon utan den behörigheten sparas en i taget i ett projekt, så att de två inte kan klara sina kontroller tillsammans; ett sparande som kommer medan ett annat sparas väntar på det, och tar det för lång tid avvisas det med *Try again in a moment*. Spara igen. Att spara en Runner, till exempel när du ändrar dess beskrivning, väntar aldrig.
 
 Ett arbetsflödes steg agerar som Project Admin men lånar inte en Project Admins läsning av runbook-autentiseringsuppgifter: ett steg har den bara om den person som senast sparade arbetsflödets steg har den. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 

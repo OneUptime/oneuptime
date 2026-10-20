@@ -551,7 +551,7 @@ Las reglas de agrupación, de SLA, de recordatorio, de investigación y de autor
 - **Reglas de guardia** — ejecutan políticas de guardia para los incidentes que coinciden. Se tratan en detalle más abajo.
 - **Reglas del propietario** — asignan propietarios automáticamente.
 - **Reglas de runbook** — inician un [runbook](/docs/runbooks/index) cuando un incidente coincide.
-- **Reglas de autorremediación**, en **IA** → **Ajustes** — qué incidentes nuevos se corrigen mientras **Corregir automáticamente los incidentes nuevos** está activado, y cómo: con OneUptime AI o con los runbooks de la regla, preguntando antes de corregir o no. Sin ninguna regla, se corrige cada incidente nuevo. Si hay una investigación de IA en cola para el incidente, se ejecutan cuando termina, con su análisis en la mano.
+- **Reglas de autorremediación**, en **IA** → **Ajustes** — qué incidentes nuevos se corrigen mientras **Corregir automáticamente los incidentes nuevos** está activado, y cómo: preguntando antes de corregir o no, y los runbooks que OneUptime AI puede ejecutar. Sin ninguna regla, se corrige cada incidente nuevo. Si hay una investigación de IA en cola para el incidente, se ejecutan cuando termina, con su análisis en la mano.
 - **Reglas de investigación**, en **IA** → **Ajustes** — qué incidentes nuevos investiga OneUptime AI. Sin ninguna regla, todos. Consulta [AI SRE](/docs/ai/ai-sre).
 - **Reglas de privacidad** — deciden si un incidente que coincide es privado.
 - **Reglas de etiquetas** — aplican etiquetas automáticamente.
