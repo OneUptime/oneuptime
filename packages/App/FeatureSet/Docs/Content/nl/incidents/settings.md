@@ -344,16 +344,18 @@ Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde functie, onder *
 
 Het formulier opent op **Wat wilt u meten?**. Kies een van deze en de naam, de beschrijving en beide momenten ervan worden ingevuld: **Volgende** toont de momenten, en de meting wordt vanaf die laatste stap aangemaakt.
 
-| Waar                      | Meting                                 | Begint wanneer                                    | Eindigt wanneer                        |
-| ------------------------- | -------------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| Incidenten                | **Tijd tot bevestiging**               | Het incident wordt gemeld                         | Het incident wordt bevestigd           |
-| Incidenten                | **Tijd tot oplossing**                 | Het incident wordt gemeld                         | Het incident wordt opgelost            |
-| Incidenten                | **Tijd tot postmortem**                | Het incident wordt opgelost                       | Het postmortem wordt gepubliceerd      |
-| Waarschuwingen            | **Tijd tot bevestiging**               | De waarschuwing wordt aangemaakt                  | De waarschuwing wordt bevestigd        |
-| Waarschuwingen            | **Tijd tot oplossing**                 | De waarschuwing wordt aangemaakt                  | De waarschuwing wordt opgelost         |
-| Gepland onderhoud         | **Vertraagde start**                   | Het onderhoud moet volgens planning beginnen      | Het onderhoud begint                   |
-| Gepland onderhoud         | **Uitloop**                            | Het onderhoud moet volgens planning eindigen      | Het onderhoud eindigt                  |
-| Gepland onderhoud         | **Duur van het onderhoud**             | Het onderhoud begint                              | Het onderhoud eindigt                  |
+| Waar              | Meting                                | Begint wanneer                               | Eindigt wanneer                   |
+| ----------------- | ------------------------------------- | -------------------------------------------- | --------------------------------- |
+| Incidenten        | **Tijd tot bevestiging**              | Het incident wordt gemeld                    | Het incident wordt bevestigd      |
+| Incidenten        | **Tijd tot bevestiging na de oproep** | De eerste oproep gaat uit                    | Het incident wordt bevestigd      |
+| Incidenten        | **Tijd tot oplossing**                | Het incident wordt gemeld                    | Het incident wordt opgelost       |
+| Incidenten        | **Tijd tot postmortem**               | Het incident wordt opgelost                  | Het postmortem wordt gepubliceerd |
+| Waarschuwingen    | **Tijd tot bevestiging**              | De waarschuwing wordt aangemaakt             | De waarschuwing wordt bevestigd   |
+| Waarschuwingen    | **Tijd tot bevestiging na de oproep** | De eerste oproep gaat uit                    | De waarschuwing wordt bevestigd   |
+| Waarschuwingen    | **Tijd tot oplossing**                | De waarschuwing wordt aangemaakt             | De waarschuwing wordt opgelost    |
+| Gepland onderhoud | **Vertraagde start**                  | Het onderhoud moet volgens planning beginnen | Het onderhoud begint              |
+| Gepland onderhoud | **Uitloop**                           | Het onderhoud moet volgens planning eindigen | Het onderhoud eindigt             |
+| Gepland onderhoud | **Duur van het onderhoud**            | Het onderhoud begint                         | Het onderhoud eindigt             |
 
 Kies **Iets anders** om de twee momenten zelf te kiezen. Een naam die je hebt getypt, blijft behouden als je een van deze kiest.
 
@@ -364,6 +366,7 @@ De tweede stap, **Begin en einde**, heeft **Begint wanneer** en **Eindigt wannee
 | Moment                                            | Wanneer het gebeurt                                                          | In de API opgeslagen als                              |
 | ------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Het incident wordt gemeld**                     | Wanneer het incident in OneUptime begon: wanneer het werd aangemaakt, tenzij iemand een eerder tijdstip instelde. | `Declared At` (`Timeline Start` is hetzelfde moment) |
+| **De eerste oproep gaat uit**                     | Wanneer een bereikbaarheidsbeleid of een directe oproep voor het eerst iemand over het incident op de hoogte brengt — zie hieronder. | `First Paged At`                                      |
 | **Het incident wordt bevestigd**                  | Wanneer het je bevestigde status bereikt, of een status daarna (rechtstreeks oplossen vanaf het begin telt ook). | `State Role Entered`, rol `Acknowledged`   |
 | **Het incident wordt opgelost**                   | Wanneer het je opgeloste status bereikt.                                     | `State Role Entered`, rol `Resolved`                  |
 | **Het postmortem wordt gepubliceerd**             | Wanneer het postmortem van het incident wordt gepubliceerd.                  | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ De pagina van elk incident toont de eigen metingen op een kaart **Metingen**, di
 | Een duur, zoals **4 minuten**         | Beide momenten zijn gebeurd (**Recorded**). Ze staat in de eenheid van de meting: **Automatisch** leest als de andere tijden op de pagina, **1 uur en 5 minuten**, en **Uren** leest **1,5 uur**. |
 | **Loopt al 12 minuten**               | De klok is gestart en het einde is nog niet gebeurd. Ze telt op zolang de pagina openstaat.                                      |
 | **Nog niet begonnen**                 | Het begin is nog niet gebeurd, of is een tijdstip dat nog moet komen, zoals de geplande start van een onderhoudsevenement.       |
-| **Niet bereikt**                      | Het incident is opgelost, en het moment waarop de meting wachtte, kwam nooit — een incident dat werd opgelost zonder te zijn bevestigd. |
+| **Niet bereikt**                      | Het incident is opgelost, en het moment waarop de meting wachtte, kwam nooit — een incident dat werd opgelost zonder te zijn bevestigd, of zonder dat er iemand werd opgeroepen. |
 | **Niet gemeten**                      | Een moment kan nooit gebeuren (**Not Applicable**), met de reden, zoals een overgeslagen status.                                 |
 | **Eindigt vóór het begint**           | De vastgelegde tijden spreken elkaar tegen (**Invalid**), met hoe ver ze uit elkaar liggen.                                      |
 | **Nog niet berekend**                 | OneUptime heeft haar voor dit incident nog niet berekend, zoals direct nadat de meting werd aangemaakt.                          |
@@ -424,9 +427,17 @@ Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde kaart op hun pag
 
 Dat is precies de bedoeling. `Declared At` legt vast wanneer OneUptime het te weten kwam, wat voor een incident dat door een monitor wordt geactiveerd het moment is waarop de criteria werden verwerkt — niet wanneer de impact begon. Als "Time to Detect" standaard als begin hetzelfde tijdstip zou nemen dat het einde gebruikt, zou elk incident nul rapporteren en zou de grafiek zeggen "we detecteren meteen". Een leeg veld en een meting **Not Applicable** zeggen wat waar is: niemand heeft vastgelegd wanneer dit begon.
 
+### Tijd tot bevestiging na de oproep
+
+**Tijd tot bevestiging** telt vanaf het moment dat het incident wordt gemeld, dus een incident waarvoor tot de ochtend niemand wordt opgeroepen, toont uren wachttijd die geen enkele dienstdoende heeft gezien. **Tijd tot bevestiging na de oproep** telt in plaats daarvan vanaf **De eerste oproep gaat uit**: de eerste keer dat een bereikbaarheidsbeleid of een directe oproep iemand over het incident op de hoogte bracht. Ze eindigt wanneer het incident wordt bevestigd, volgens dezelfde regel als de tijd tot bevestiging.
+
+OneUptime legt dat moment vast op het incident, en op de waarschuwing, als `First Paged At`, één keer, en verplaatst het nooit. Alleen een oproep die echt is uitgegaan, telt: op de **Tijdlijn van de uitvoering** van een bereikbaarheidsbeleid of een directe oproep, een persoon van wie de oproep werd verzonden, bevestigd of doorgegeven. Een stap die **Overgeslagen** werd of op **Fout** eindigde, telt niet, en evenmin een beleid dat startte maar niemand opriep, zoals een beleid met een schema waarin niemand dienst had. Incidenten waarvoor al werd opgeroepen voordat `First Paged At` bestond, krijgen dat moment uit hun bereikbaarheidsuitvoeringen.
+
+Een incident waarvoor niemand werd opgeroepen, heeft geen waarde: **Nog niet begonnen** zolang het open is, en **Niet bereikt** zodra het is opgelost. De grafiek kan per ernst worden opgesplitst, zodat je ziet hoe snel er per ernst wordt gereageerd zodra iemand is opgeroepen. De pagina van het incident zegt het ook: onder de tijd tot bevestiging vermeldt ze hoe lang na de eerste oproep het incident werd bevestigd, zoals **4 minuten na de oproep**. De metriek voor de tijd tot bevestiging en de MTTA in de samenvattingen in Slack en Microsoft Teams tellen nog steeds vanaf het moment dat het incident werd gemeld.
+
 ### Een verkeerd tijdstempel corrigeren
 
-Elke meting wordt vanaf nul opnieuw berekend telkens als de gegevens eronder veranderen — een item van de statustijdlijn dat wordt aangemaakt, bewerkt of verwijderd, of `Impact Started At`, `Declared At` of `Postmortem Posted At` die op het incident worden gecorrigeerd. Er wordt niets stapsgewijs bijgewerkt, dus er is geen verouderde waarde om te herstellen.
+Elke meting wordt vanaf nul opnieuw berekend telkens als de gegevens eronder veranderen — een item van de statustijdlijn dat wordt aangemaakt, bewerkt of verwijderd, `Impact Started At`, `Declared At` of `Postmortem Posted At` die op het incident worden gecorrigeerd, of de eerste oproep ervan die uitgaat. Er wordt niets stapsgewijs bijgewerkt, dus er is geen verouderde waarde om te herstellen.
 
 Het veld **Begint op** van een item van de statustijdlijn is bewerkbaar. Werd een incident om 09:12 bevestigd maar zegt het item 09:29, corrigeer dan het item, en elke meting die ervan is afgeleid, schuift mee.
 

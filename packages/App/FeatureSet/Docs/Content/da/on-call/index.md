@@ -30,6 +30,8 @@ flowchart TB
 
 At kvittere for eller løse hændelsen, advarslen eller episoden stopper alle politikker, der stadig tilkalder for den. OneUptime fører kørende politikker et skridt videre hvert minut og registrerer hver kørsel, regel for regel, i **Udførelseslogs**.
 
+Første gang et tilkald når frem til nogen, registrerer OneUptime det på hændelsen, advarslen eller episoden som `First Paged At`. En måling kan tælle derfra: **Tid til bekræftelse efter tilkald** måler, hvor lang tid folk var om at svare, når de først var tilkaldt, ikke hvor længe hændelsen, advarslen eller episoden ventede, før nogen blev tilkaldt. Se [Tid til bekræftelse efter tilkald](/docs/incidents/settings#tid-til-bekræftelse-efter-tilkald).
+
 > [!NOTE]
 > En hændelse, advarsel eller episode, der oprettes allerede bekræftet eller løst, kører ingen af sine politikker, og dens feed siger det. Se [Oprettet allerede bekræftet eller løst](/docs/alerts/index#oprettet-allerede-bekræftet-eller-løst).
 

@@ -344,16 +344,18 @@ Larm och schemalagda underhållshändelser har samma funktion, under **Varningar
 
 Formuläret öppnas på **Vad vill du mäta?**. Välj en av de här, så fylls dess namn, beskrivning och båda ögonblick i: **Nästa** visar ögonblicken, och mätningen skapas från det sista steget.
 
-| Var                       | Mätning                                | Startar när                                       | Slutar när                             |
-| ------------------------- | -------------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| Incidenter                | **Tid till bekräftelse**               | Incidenten deklareras                             | Incidenten bekräftas                   |
-| Incidenter                | **Tid till lösning**                   | Incidenten deklareras                             | Incidenten löses                       |
-| Incidenter                | **Tid till efteranalys**               | Incidenten löses                                  | Efteranalysen publiceras               |
-| Larm                      | **Tid till bekräftelse**               | Larmet skapas                                     | Larmet bekräftas                       |
-| Larm                      | **Tid till lösning**                   | Larmet skapas                                     | Larmet löses                           |
-| Schemalagt underhåll      | **Startfördröjning**                   | Underhållet ska enligt planen starta              | Underhållet startar                    |
-| Schemalagt underhåll      | **Överdrag**                           | Underhållet ska enligt planen sluta               | Underhållet slutar                     |
-| Schemalagt underhåll      | **Underhållets varaktighet**           | Underhållet startar                               | Underhållet slutar                     |
+| Var                       | Mätning                                   | Startar när                                       | Slutar när                             |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------- | -------------------------------------- |
+| Incidenter                | **Tid till bekräftelse**                  | Incidenten deklareras                             | Incidenten bekräftas                   |
+| Incidenter                | **Tid till bekräftelse efter utlarmning** | Den första utlarmningen skickas                   | Incidenten bekräftas                   |
+| Incidenter                | **Tid till lösning**                      | Incidenten deklareras                             | Incidenten löses                       |
+| Incidenter                | **Tid till efteranalys**                  | Incidenten löses                                  | Efteranalysen publiceras               |
+| Larm                      | **Tid till bekräftelse**                  | Larmet skapas                                     | Larmet bekräftas                       |
+| Larm                      | **Tid till bekräftelse efter utlarmning** | Den första utlarmningen skickas                   | Larmet bekräftas                       |
+| Larm                      | **Tid till lösning**                      | Larmet skapas                                     | Larmet löses                           |
+| Schemalagt underhåll      | **Startfördröjning**                      | Underhållet ska enligt planen starta              | Underhållet startar                    |
+| Schemalagt underhåll      | **Överdrag**                              | Underhållet ska enligt planen sluta               | Underhållet slutar                     |
+| Schemalagt underhåll      | **Underhållets varaktighet**              | Underhållet startar                               | Underhållet slutar                     |
 
 Välj **Något annat** för att välja de två ögonblicken själv. Ett namn som du har skrivit behålls när du väljer en av de här.
 
@@ -364,6 +366,7 @@ Det andra steget, **Start och slut**, har **Startar när** och **Slutar när**. 
 | Ögonblick                                         | När det inträffar                                                            | Lagrat i API:t som                                    |
 | ------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Incidenten deklareras**                         | När incidenten började i OneUptime: när den skapades, om inte någon satte en tidigare tidpunkt. | `Declared At` (`Timeline Start` är samma ögonblick) |
+| **Den första utlarmningen skickas**               | När en jourpolicy eller en direkt utlarmning för första gången aviserar någon om incidenten — se nedan. | `First Paged At`                                      |
 | **Incidenten bekräftas**                          | När den når ditt bekräftade tillstånd, eller något tillstånd efter det (en lösning direkt från början räknas också). | `State Role Entered`, roll `Acknowledged` |
 | **Incidenten löses**                              | När den når ditt lösta tillstånd.                                            | `State Role Entered`, roll `Resolved`                 |
 | **Efteranalysen publiceras**                      | När incidentens efteranalys publiceras.                                      | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ Varje incidents sida visar sina egna mätningar på ett kort **Mätningar**, dir
 | En varaktighet, som **4 minuter**     | Båda ögonblicken har inträffat (**Recorded**). Den anges i mätningens enhet: **Automatiskt** läses som sidans andra tider, **1 timme, 5 minuter**, och **Timmar** läses **1,5 timmar**. |
 | **Har pågått i 12 minuter**           | Klockan har startat och slutet har inte inträffat än. Den räknar uppåt medan sidan är öppen.                                     |
 | **Inte startad än**                   | Starten har inte inträffat än, eller är en tidpunkt som fortfarande ligger framåt, som en underhållshändelses schemalagda start.  |
-| **Inte nådd**                         | Incidenten är löst, och ögonblicket som mätningen väntade på kom aldrig — en incident som löstes utan att bekräftas.             |
+| **Inte nådd**                         | Incidenten är löst, och ögonblicket som mätningen väntade på kom aldrig — en incident som löstes utan att bekräftas, eller utan att någon larmades. |
 | **Inte mätt**                         | Ett ögonblick kan aldrig inträffa (**Not Applicable**), med orsaken, som ett överhoppat tillstånd.                               |
 | **Slutar innan den börjar**           | De registrerade tiderna motsäger varandra (**Invalid**), med hur långt ifrån varandra de ligger.                                 |
 | **Inte uträknad än**                  | OneUptime har inte räknat ut den för den här incidenten än, som precis efter att mätningen skapades.                             |
@@ -424,9 +427,17 @@ Larm och schemalagda underhållshändelser har samma kort på sina sidor. För e
 
 Det är just poängen. `Declared At` registrerar när OneUptime fick veta det, vilket för en incident som utlöses av en monitor är när kriterierna bearbetades — inte när påverkan började. Om "Time to Detect" som standard lät starten vara samma tidpunkt som slutet använder, skulle varje incident rapportera noll och diagrammet skulle säga "vi upptäcker direkt". Ett tomt fält och en mätning **Not Applicable** säger det som är sant: ingen har registrerat när det här började.
 
+### Tid till bekräftelse efter utlarmning
+
+**Tid till bekräftelse** räknas från att incidenten deklareras, så en incident som ingen larmas om förrän på morgonen visar timmar av väntan som ingen som hade jour såg. **Tid till bekräftelse efter utlarmning** räknas i stället från **Den första utlarmningen skickas**: första gången en jourpolicy eller en direkt utlarmning aviserade någon om incidenten. Den slutar när incidenten bekräftas, enligt samma regel som tid till bekräftelse.
+
+OneUptime registrerar det ögonblicket på incidenten, och på larmet, som `First Paged At`, en gång, och flyttar det aldrig. Bara en utlarmning som verkligen gick ut räknas: i **Tidslinje för körningen** för en jourpolicy eller en direkt utlarmning, en person vars utlarmning skickades, bekräftades eller skickades vidare. Ett steg med statusen **Hoppade över** eller som slutade med **Fel** räknas inte, och inte heller en policy som startade men inte larmade någon, till exempel en med ett schema där ingen hade jour. Incidenter som larmades innan `First Paged At` fanns får sitt värde från körningarna av sina jourpolicyer.
+
+En incident som ingen larmades om har inget värde: **Inte startad än** medan den är öppen, och **Inte nådd** när den är löst. Diagrammet kan delas upp efter allvarlighetsgrad, så att du ser hur snabbt varje allvarlighetsgrad besvaras när någon väl har larmats. Incidentens sida visar det också: under dess tid till bekräftelse lägger den till hur lång tid efter den första utlarmningen den bekräftades, till exempel **4 minuter efter utlarmning**. Måttet för tid till bekräftelse och MTTA i sammanfattningarna i Slack och Microsoft Teams räknas fortfarande från när incidenten deklarerades.
+
 ### Rätta en felaktig tidsstämpel
 
-Varje mätning räknas ut från grunden igen varje gång datan under den ändras — en post i tillståndstidslinjen som skapas, redigeras eller tas bort, eller `Impact Started At`, `Declared At` eller `Postmortem Posted At` som rättas på incidenten. Inget lappas stegvis, så det finns inget inaktuellt värde att laga.
+Varje mätning räknas ut från grunden igen varje gång datan under den ändras — en post i tillståndstidslinjen som skapas, redigeras eller tas bort, `Impact Started At`, `Declared At` eller `Postmortem Posted At` som rättas på incidenten, eller dess första utlarmning som går ut. Inget lappas stegvis, så det finns inget inaktuellt värde att laga.
 
 Fältet **Börjar den** på en post i tillståndstidslinjen kan redigeras. Bekräftades en incident klockan 09:12 men posten säger 09:29, rätta posten, så flyttar sig varje mätning som är härledd från den.
 

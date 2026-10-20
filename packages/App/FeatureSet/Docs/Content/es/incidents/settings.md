@@ -344,16 +344,18 @@ Las alertas y los eventos de mantenimiento programado tienen la misma función, 
 
 El formulario se abre en **¿Qué quieres medir?**. Elige una de estas y se rellenan su nombre, su descripción y ambos momentos: **Siguiente** muestra los momentos, y la medición se crea desde ese último paso.
 
-| Dónde                      | Medición                               | Empieza cuando                                    | Termina cuando                         |
-| -------------------------- | -------------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| Incidentes                 | **Tiempo hasta el reconocimiento**     | Se declara el incidente                           | Se reconoce el incidente               |
-| Incidentes                 | **Tiempo hasta la resolución**         | Se declara el incidente                           | Se resuelve el incidente               |
-| Incidentes                 | **Tiempo hasta el post mortem**        | Se resuelve el incidente                          | Se publica el post mortem              |
-| Alertas                    | **Tiempo hasta el reconocimiento**     | Se crea la alerta                                 | Se reconoce la alerta                  |
-| Alertas                    | **Tiempo hasta la resolución**         | Se crea la alerta                                 | Se resuelve la alerta                  |
-| Mantenimiento programado   | **Retraso del inicio**                 | El mantenimiento debe empezar según lo programado | Empieza el mantenimiento               |
-| Mantenimiento programado   | **Exceso de tiempo**                   | El mantenimiento debe terminar según lo programado | Termina el mantenimiento              |
-| Mantenimiento programado   | **Duración del mantenimiento**         | Empieza el mantenimiento                          | Termina el mantenimiento               |
+| Dónde                      | Medición                                         | Empieza cuando                                     | Termina cuando                         |
+| -------------------------- | ------------------------------------------------ | -------------------------------------------------- | -------------------------------------- |
+| Incidentes                 | **Tiempo hasta el reconocimiento**               | Se declara el incidente                            | Se reconoce el incidente               |
+| Incidentes                 | **Tiempo hasta el reconocimiento tras el aviso** | Se envía el primer aviso                           | Se reconoce el incidente               |
+| Incidentes                 | **Tiempo hasta la resolución**                   | Se declara el incidente                            | Se resuelve el incidente               |
+| Incidentes                 | **Tiempo hasta el post mortem**                  | Se resuelve el incidente                           | Se publica el post mortem              |
+| Alertas                    | **Tiempo hasta el reconocimiento**               | Se crea la alerta                                  | Se reconoce la alerta                  |
+| Alertas                    | **Tiempo hasta el reconocimiento tras el aviso** | Se envía el primer aviso                           | Se reconoce la alerta                  |
+| Alertas                    | **Tiempo hasta la resolución**                   | Se crea la alerta                                  | Se resuelve la alerta                  |
+| Mantenimiento programado   | **Retraso del inicio**                           | El mantenimiento debe empezar según lo programado  | Empieza el mantenimiento               |
+| Mantenimiento programado   | **Exceso de tiempo**                             | El mantenimiento debe terminar según lo programado | Termina el mantenimiento               |
+| Mantenimiento programado   | **Duración del mantenimiento**                   | Empieza el mantenimiento                           | Termina el mantenimiento               |
 
 Elige **Otra cosa** para elegir tú los dos momentos. Un nombre que hayas escrito se conserva cuando eliges una de estas.
 
@@ -364,6 +366,7 @@ El segundo paso, **Inicio y fin**, tiene **Empieza cuando** y **Termina cuando**
 | Momento                                         | Cuándo ocurre                                                                | Guardado en la API como                               |
 | ----------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Se declara el incidente**                     | Cuándo empezó el incidente en OneUptime: cuando se creó, salvo que alguien fijara una hora anterior. | `Declared At` (`Timeline Start` es el mismo instante) |
+| **Se envía el primer aviso**                    | Cuándo una política de guardia o un aviso directo notifica por primera vez a alguien sobre el incidente; consulta más abajo. | `First Paged At`                                      |
 | **Se reconoce el incidente**                    | Cuándo llega a tu estado reconocido, o a cualquier estado posterior (también cuenta una resolución directa desde el inicio). | `State Role Entered`, rol `Acknowledged` |
 | **Se resuelve el incidente**                    | Cuándo llega a tu estado resuelto.                                           | `State Role Entered`, rol `Resolved`                  |
 | **Se publica el post mortem**                   | Cuándo se publica el post mortem del incidente.                              | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ La página de cada incidente muestra sus propias mediciones en una tarjeta **Med
 | Una duración, como **4 minutos**         | Ocurrieron ambos momentos (**Grabado**). Está en la unidad de la medición: **Automático** se lee como los demás tiempos de la página, **1 hora y 5 minutos**, y **Horas** se lee **1,5 horas**. |
 | **En curso desde hace 12 minutos**       | El reloj ha empezado y el fin aún no ha ocurrido. Va contando mientras la página está abierta.                                   |
 | **Aún no ha empezado**                   | El inicio aún no ha ocurrido, o es una hora todavía futura, como el inicio programado de un evento de mantenimiento.              |
-| **No alcanzado**                         | El incidente está resuelto, y el momento que esperaba la medición nunca llegó: un incidente resuelto sin haberse reconocido.      |
+| **No alcanzado**                         | El incidente está resuelto, y el momento que esperaba la medición nunca llegó: un incidente resuelto sin haberse reconocido, o sin que se avisara a nadie. |
 | **No medido**                            | Un momento nunca puede ocurrir (**Not Applicable**), con el motivo, como un estado saltado.                                       |
 | **Termina antes de empezar**             | Las horas registradas se contradicen (**Invalid**), con cuánto se separan.                                                        |
 | **Aún no calculado**                     | OneUptime todavía no la ha calculado para este incidente, como justo después de crear la medición.                               |
@@ -424,9 +427,17 @@ Las alertas y los eventos de mantenimiento programado tienen la misma tarjeta en
 
 Esa es la idea. `Declared At` registra cuándo se enteró OneUptime, que para un incidente disparado por un monitor es cuando se procesaron los criterios, no cuando empezó el impacto. Si «Time to Detect» tomara por defecto como inicio la misma marca de tiempo que usa su fin, cada incidente informaría de cero y el gráfico diría «detectamos al instante». Un campo vacío y una medición **Not Applicable** dicen la verdad: nadie ha registrado cuándo empezó esto.
 
+### Tiempo hasta el reconocimiento tras el aviso
+
+La medición **Tiempo hasta el reconocimiento** cuenta desde que se declara el incidente, así que un incidente del que no se avisa a nadie hasta la mañana aparece como horas de espera que nadie de guardia vio. La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta en cambio desde **Se envía el primer aviso**: la primera vez que una política de guardia o un aviso directo notificó a alguien sobre el incidente. Termina cuando se reconoce el incidente, con la misma regla que el tiempo hasta el reconocimiento.
+
+OneUptime registra ese momento en el incidente, y en la alerta, como `First Paged At`, una sola vez, y nunca lo mueve. Solo cuenta un aviso que de verdad salió: en la **Cronología de ejecución** de una política de guardia o de un aviso directo, una persona cuyo aviso se envió, se reconoció o se pasó. Un paso que quedó en **Omitido** o terminó en **Error** no cuenta, como tampoco una política que empezó pero no avisó a nadie, por ejemplo una cuya programación no tenía a nadie de guardia. Los incidentes por los que se avisó a alguien antes de que existiera `First Paged At` obtienen el suyo de sus ejecuciones de guardia.
+
+Un incidente por el que no se avisó a nadie no tiene valor: **Aún no ha empezado** mientras está abierto, y **No alcanzado** una vez resuelto. El gráfico se puede desglosar por gravedad, para que veas lo rápido que se responde a cada gravedad una vez que se avisa a alguien. La página del incidente también lo dice: bajo su tiempo hasta el reconocimiento, añade cuánto tiempo después del primer aviso se reconoció, como **4 minutos después del aviso**. La métrica del tiempo hasta el reconocimiento y el MTTA de los resúmenes de Slack y Microsoft Teams siguen contando desde que se declaró el incidente.
+
 ### Corregir una marca de tiempo errónea
 
-Cada medición se vuelve a calcular desde cero siempre que cambian los datos que tiene debajo: una entrada de la cronología de estados creada, editada o eliminada, o `Impact Started At`, `Declared At` o `Postmortem Posted At` corregidos en el incidente. Nada se parchea de forma incremental, así que no hay ningún valor desfasado que reparar.
+Cada medición se vuelve a calcular desde cero siempre que cambian los datos que tiene debajo: una entrada de la cronología de estados creada, editada o eliminada, `Impact Started At`, `Declared At` o `Postmortem Posted At` corregidos en el incidente, o el envío de su primer aviso. Nada se parchea de forma incremental, así que no hay ningún valor desfasado que reparar.
 
 El campo **Comienza en** de una entrada de la cronología de estados es editable. Si un incidente se reconoció a las 09:12 pero la entrada dice 09:29, corrige la entrada y cada medición derivada de ella se mueve con ella.
 

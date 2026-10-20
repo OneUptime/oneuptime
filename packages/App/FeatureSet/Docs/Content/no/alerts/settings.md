@@ -134,6 +134,8 @@ Eiere får hver påminnelse som **Alert reminder**, som er slått på via e-post
 
 **Varsler → Innstillinger → Målinger** måler hvor lang tid ting tar for hvert varsel. Velg **Tid til bekreftelse** eller **Tid til løsning**, eller to egne tidspunkter, for eksempel når **Varselet blir opprettet**, og når det går inn i en tilstand du velger. Hver måling vises på varselets side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måte for varsler.
 
+**Tid til bekreftelse etter tilkalling** teller fra **Den første tilkallingen sendes**, når en vaktpolicy eller en direkte tilkalling første gang ga noen beskjed om varselet, i stedet for fra tidspunktet det ble opprettet: et varsel som oppstår om natten, men først fører til en tilkalling om morgenen, får ikke natten regnet med. Et varsel der ingen ble tilkalt, har ingen verdi. Se [Tid til bekreftelse etter tilkalling](/docs/incidents/settings#tid-til-bekreftelse-etter-tilkalling).
+
 ### Medlemskap i episoder
 
 **Varsler → Innstillinger → Medlemskap i episoder** avgjør om et varsel kan være i mer enn én episode. Slå på **Et varsel kan bare være i én episode**, så blir et varsel som er i en episode, ikke lagt til i noen annen, verken fra dashbordet eller via API-et, en arbeidsflyt eller en grupperingsregel, før det er tatt ut av den episoden. Bryteren er slått av til du slår den på, og bare Project Owners og Project Admins kan endre den. Å slå den på tar ikke noe varsel ut av en episode. Se [Én episode per hendelse](/docs/incidents/episodes#én-episode-per-hendelse), som fungerer på samme måte for varsler.

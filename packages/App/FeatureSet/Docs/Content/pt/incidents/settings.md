@@ -344,16 +344,18 @@ Alertas e eventos de manutenção programada têm o mesmo recurso, em **Alertas 
 
 O formulário abre em **O que você quer medir?**. Escolha uma destas e o nome, a descrição e os dois momentos dela são preenchidos: **Próximo** mostra os momentos, e a medição é criada a partir dessa última etapa.
 
-| Onde                      | Medição                                | Começa quando                                     | Termina quando                         |
-| ------------------------- | -------------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| Incidentes                | **Tempo até a confirmação**            | O incidente é declarado                           | O incidente é confirmado               |
-| Incidentes                | **Tempo até a resolução**              | O incidente é declarado                           | O incidente é resolvido                |
-| Incidentes                | **Tempo até o post-mortem**            | O incidente é resolvido                           | O post-mortem é publicado              |
-| Alertas                   | **Tempo até a confirmação**            | O alerta é criado                                 | O alerta é confirmado                  |
-| Alertas                   | **Tempo até a resolução**              | O alerta é criado                                 | O alerta é resolvido                   |
-| Manutenção programada     | **Atraso no início**                   | A manutenção deve começar conforme o programado   | A manutenção começa                    |
-| Manutenção programada     | **Excesso de tempo**                   | A manutenção deve terminar conforme o programado  | A manutenção termina                   |
-| Manutenção programada     | **Duração da manutenção**              | A manutenção começa                               | A manutenção termina                   |
+| Onde                  | Medição                                        | Começa quando                                    | Termina quando            |
+| --------------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- |
+| Incidentes            | **Tempo até a confirmação**                    | O incidente é declarado                          | O incidente é confirmado  |
+| Incidentes            | **Tempo até a confirmação após o acionamento** | O primeiro acionamento é enviado                 | O incidente é confirmado  |
+| Incidentes            | **Tempo até a resolução**                      | O incidente é declarado                          | O incidente é resolvido   |
+| Incidentes            | **Tempo até o post-mortem**                    | O incidente é resolvido                          | O post-mortem é publicado |
+| Alertas               | **Tempo até a confirmação**                    | O alerta é criado                                | O alerta é confirmado     |
+| Alertas               | **Tempo até a confirmação após o acionamento** | O primeiro acionamento é enviado                 | O alerta é confirmado     |
+| Alertas               | **Tempo até a resolução**                      | O alerta é criado                                | O alerta é resolvido      |
+| Manutenção programada | **Atraso no início**                           | A manutenção deve começar conforme o programado  | A manutenção começa       |
+| Manutenção programada | **Excesso de tempo**                           | A manutenção deve terminar conforme o programado | A manutenção termina      |
+| Manutenção programada | **Duração da manutenção**                      | A manutenção começa                              | A manutenção termina      |
 
 Escolha **Outra coisa** para escolher você mesmo os dois momentos. Um nome que você digitou é mantido quando você escolhe uma destas.
 
@@ -364,6 +366,7 @@ A segunda etapa, **Início e fim**, tem **Começa quando** e **Termina quando**.
 | Momento                                            | Quando acontece                                                              | Guardado na API como                                  |
 | -------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **O incidente é declarado**                        | Quando o incidente começou no OneUptime: quando foi criado, a menos que alguém tenha definido um horário anterior. | `Declared At` (`Timeline Start` é o mesmo instante) |
+| **O primeiro acionamento é enviado**               | Quando uma política de plantão ou um acionamento direto notifica alguém sobre o incidente pela primeira vez — veja abaixo. | `First Paged At`                                      |
 | **O incidente é confirmado**                       | Quando ele chega ao seu estado confirmado, ou a qualquer estado posterior (uma resolução direta desde o início também conta). | `State Role Entered`, função `Acknowledged` |
 | **O incidente é resolvido**                        | Quando ele chega ao seu estado resolvido.                                    | `State Role Entered`, função `Resolved`               |
 | **O post-mortem é publicado**                      | Quando o post-mortem do incidente é publicado.                               | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ A página de cada incidente mostra as próprias medições em um cartão **Medi�
 | Uma duração, como **4 minutos**       | Os dois momentos aconteceram (**Recorded**). Ela fica na unidade da medição: **Automático** se lê como os outros tempos da página, **1 hora e 5 minutos**, e **Horas** se lê **1,5 hora**. |
 | **Em andamento há 12 minutos**        | O relógio começou e o fim ainda não aconteceu. Ele vai contando enquanto a página está aberta.                                   |
 | **Ainda não começou**                 | O início ainda não aconteceu, ou é um horário que ainda vai chegar, como o início programado de um evento de manutenção.          |
-| **Não alcançado**                     | O incidente está resolvido, e o momento que a medição esperava nunca chegou — um incidente resolvido sem ser confirmado.         |
+| **Não alcançado**                     | O incidente está resolvido, e o momento que a medição esperava nunca chegou — um incidente resolvido sem ser confirmado, ou sem que ninguém tenha sido acionado. |
 | **Não medido**                        | Um momento nunca pode acontecer (**Not Applicable**), com o motivo, como um estado pulado.                                        |
 | **Termina antes de começar**          | Os horários registrados se contradizem (**Invalid**), com a distância entre eles.                                                 |
 | **Ainda não calculado**               | O OneUptime ainda não a calculou para este incidente, como logo depois de a medição ser criada.                                   |
@@ -424,9 +427,17 @@ Alertas e eventos de manutenção programada têm o mesmo cartão nas páginas d
 
 É exatamente essa a ideia. `Declared At` registra quando o OneUptime ficou sabendo, o que, para um incidente disparado por um monitor, é quando os critérios foram processados — não quando o impacto começou. Se «Time to Detect» usasse por padrão como início o mesmo horário que seu fim usa, todo incidente informaria zero e o gráfico diria «detectamos instantaneamente». Um campo vazio e uma medição **Not Applicable** dizem a verdade: ninguém registrou quando isso começou.
 
+### Tempo até a confirmação após o acionamento
+
+O **Tempo até a confirmação** conta a partir de quando o incidente é declarado, então um incidente sobre o qual ninguém é acionado até de manhã aparece como horas de espera que ninguém de plantão viu. Já o **Tempo até a confirmação após o acionamento** conta a partir de **O primeiro acionamento é enviado**: a primeira vez que uma política de plantão ou um acionamento direto notificou alguém sobre o incidente. Ele termina quando o incidente é confirmado, pela mesma regra do tempo até a confirmação.
+
+O OneUptime registra esse momento no incidente, e no alerta, como `First Paged At`, uma única vez, e nunca o altera. Só conta um acionamento que de fato foi enviado: na **Linha do tempo de execução** de uma política de plantão ou de um acionamento direto, uma pessoa cujo acionamento foi enviado, confirmado ou repassado. Uma etapa marcada como **Ignorado** ou que terminou em **Erro** não conta, nem uma política que começou mas não acionou ninguém, como uma cujo agendamento não tinha ninguém de plantão. Incidentes cujo acionamento aconteceu antes de `First Paged At` existir recebem esse momento a partir das suas execuções de plantão.
+
+Um incidente sobre o qual ninguém foi acionado não tem valor: **Ainda não começou** enquanto está aberto, e **Não alcançado** depois de resolvido. O gráfico pode ser dividido por severidade, para você ver com que rapidez cada severidade é atendida depois que alguém é acionado. A página do incidente também mostra isso: abaixo do tempo até a confirmação dele, ela acrescenta quanto tempo depois do primeiro acionamento ele foi confirmado, como **4 minutos após o acionamento**. A métrica de tempo até a confirmação e o MTTA nos resumos do Slack e do Microsoft Teams continuam contando a partir de quando o incidente foi declarado.
+
 ### Corrigir um horário errado
 
-Toda medição é recalculada do zero sempre que os dados por baixo dela mudam — uma entrada da linha do tempo de estados criada, editada ou excluída, ou `Impact Started At`, `Declared At` ou `Postmortem Posted At` corrigido no incidente. Nada é remendado aos poucos, então não há valor desatualizado para consertar.
+Toda medição é recalculada do zero sempre que os dados por baixo dela mudam — uma entrada da linha do tempo de estados criada, editada ou excluída, `Impact Started At`, `Declared At` ou `Postmortem Posted At` corrigido no incidente, ou o envio do primeiro acionamento dele. Nada é remendado aos poucos, então não há valor desatualizado para consertar.
 
 O campo **Começa em** de uma entrada da linha do tempo de estados é editável. Se um incidente foi confirmado às 09:12, mas a entrada diz 09:29, corrija a entrada e toda medição derivada dela se move junto.
 

@@ -134,6 +134,8 @@ I **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur ofta �
 
 **Varningar → Inställningar → Mätningar** mäter hur lång tid saker tar för varje larm. Välj **Tid till bekräftelse** eller **Tid till lösning**, eller två egna tidpunkter, till exempel när **Larmet skapas** och när det går in i ett tillstånd som du väljer. Varje mätning visas på larmets sida och i diagram som `oneuptime.alert.measurement.<key>`. Se [Mätningar](/docs/incidents/settings#mätningar), som fungerar på samma sätt för larm.
 
+**Tid till bekräftelse efter utlarmning** räknas från **Den första utlarmningen skickas**, när en jourpolicy eller en direkt utlarmning först aviserade någon om larmet, i stället för från när det skapades: ett larm som uppstår på natten och larmas ut på morgonen får inte natten tillräknad. Ett larm som ingen larmades om har inget värde. Se [Tid till bekräftelse efter utlarmning](/docs/incidents/settings#tid-till-bekräftelse-efter-utlarmning).
+
 ### Medlemskap i episoder
 
 **Varningar → Inställningar → Medlemskap i episoder** avgör om ett larm kan ingå i mer än en episod. Slå på **Ett larm kan bara ingå i en episod**, så läggs ett larm som finns i en episod inte till i någon annan, varken från instrumentpanelen eller via API:t, ett arbetsflöde eller en grupperingsregel, förrän det har tagits ut ur den episoden. Reglaget är avslaget tills du slår på det, och bara Project Owners och Project Admins kan ändra det. Att slå på det tar inte ut något larm ur en episod. Se [En episod per incident](/docs/incidents/episodes#en-episod-per-incident), som fungerar på samma sätt för larm.
