@@ -10,7 +10,10 @@ import {
   TAB_ONLY_BULLET_GLYPHS,
   TEXT_BULLET_GLYPHS,
 } from "../../../UI/Components/Markdown.tsx/MarkdownListEditing";
-import { normalizePlainTextListMarkers } from "../../../UI/Components/Markdown.tsx/MarkdownPaste";
+import {
+  normalizePlainTextListMarkers,
+  pastedHtmlToMarkdown,
+} from "../../../UI/Components/Markdown.tsx/MarkdownPaste";
 import { insertBlocksAtCaret } from "../../../UI/Components/Markdown.tsx/MarkdownVisualEditing";
 import { fastestRun } from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
@@ -473,10 +476,10 @@ describe("each rewritten pattern matches what the pattern it replaced matched", 
         " ",
         "\t",
         NO_BREAK_SPACE,
-        "•",
-        "◦",
+        "\u2022",
+        "\u25e6",
         "o",
-        "§",
+        "\u00a7",
         "1",
         ")",
         "a",
@@ -873,6 +876,40 @@ describe("a table is laid out as before while it stays in proportion", () => {
     expect(html.split("<td>").length - 1).toBe(9000);
   });
 
+  test("a table filled in only in its first columns is still a grid", () => {
+    // Six columns, thirty rows of two cells: 120 cells filled in for 66 held.
+    const rows: Array<string> = [];
+    for (let row: number = 0; row < 30; row++) {
+      rows.push(`| ${row} | done |`);
+    }
+    const html: string = markdownToHtml(
+      `| # | Status | Owner | Due | Notes | Link |\n|---|---|---|---|---|---|\n${rows.join("\n")}`,
+    );
+
+    expect(html.split("<td>").length - 1).toBe(30 * 6);
+    expect(html).toContain(
+      "<tr><td>0</td><td>done</td><td></td><td></td><td></td><td></td></tr>",
+    );
+  });
+
+  test("a table whose short rows would be mostly fill shows each row's own cells", () => {
+    // Thirty columns over thirty one-cell rows: 870 cells to fill in for 60 held.
+    const markdown: string =
+      `${times("|", 31)}\n${times("|-", 30)}|\n` + times("| x |\n", 30);
+
+    const html: string = markdownToHtml(markdown);
+
+    expect(html.split("<th>").length - 1).toBe(30);
+    expect(html.split("<td>").length - 1).toBe(30);
+    expect(html).toContain("<tr><td>x</td></tr>");
+
+    // Written back, a table this small is lined up as before: every row has every column.
+    const written: string = htmlToMarkdown(html);
+
+    expect(written.split("\n")[2]).toBe(`| x   |${times("     |", 29)}`);
+    expect(markdownToHtml(written).split("<td>").length - 1).toBe(30 * 30);
+  });
+
   test("a heading row of thousands of columns over one-cell rows shows each row's own cell", () => {
     const columns: number = 20000;
     const markdown: string =
@@ -1038,7 +1075,7 @@ describe("HTML built to be slow is written back quickly", () => {
 
 describe("the editor's other readers of a line read it quickly", () => {
   test("a pasted line with a bullet glyph, a long run and a line separator", () => {
-    const text: string = "•" + repeat(" ", LENGTH) + "x" + LINE_SEPARATOR + "y";
+    const text: string = "\u2022" + repeat(" ", LENGTH) + "x" + LINE_SEPARATOR + "y";
 
     expect(
       timeOf(() => {
@@ -1057,6 +1094,20 @@ describe("the editor's other readers of a line read it quickly", () => {
       }),
     ).toBeLessThan(2000);
     expect(normalizePlainTextListMarkers(text)).toBe(text);
+  });
+
+  test("pasted bold words with a long run of spaces inside them", () => {
+    const html: string = `<p>x <b>a${times(" ", LENGTH)}b </b>y</p>`;
+
+    expect(
+      timeOf(() => {
+        pastedHtmlToMarkdown(html);
+      }),
+    ).toBeLessThan(2000);
+    // The space that ends the bold words goes outside them, as before.
+    expect(pastedHtmlToMarkdown("<p>x <b>a b \t</b>y</p>")).toBe(
+      "x **a b** y",
+    );
   });
 
   test("Tab and the list buttons on a note with a long list line", () => {

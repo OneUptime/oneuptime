@@ -176,10 +176,12 @@ const MAX_LIST_NESTING_DEPTH: number = 20;
 const TASK_ITEM_CONTENT_INDENT: number = "- ".length;
 
 /*
- * How many empty cells a table's short rows are filled out with even when
- * that is more than the cells the table holds: a small table is always a
- * grid (tryParseTable).
+ * How many empty cells a table's short rows are filled out with: up to
+ * TABLE_FILL_IN_TIMES the cells the table holds, and always up to
+ * TABLE_FILL_IN_ALLOWANCE, so a small table is always a grid
+ * (tryParseTable).
  */
+const TABLE_FILL_IN_TIMES: number = 8;
 const TABLE_FILL_IN_ALLOWANCE: number = 100;
 
 /*
@@ -486,7 +488,7 @@ const tryParseTable: (
   /*
    * A row with fewer cells than the heading row is filled out with empty
    * cells, so that the table is a grid in the editor - unless that takes
-   * more empty cells than the table's rows hold and more than
+   * more than eight times the cells the table holds and more than
    * TABLE_FILL_IN_ALLOWANCE: then each row shows the cells it holds. A
    * heading row of thousands of cells over thousands of one-cell rows is a
    * few kilobytes of text, and filled out it was millions of cells - more
@@ -501,7 +503,8 @@ const tryParseTable: (
     fillInCells += columns - held;
   }
   const fillIn: boolean =
-    fillInCells <= Math.max(heldCells, TABLE_FILL_IN_ALLOWANCE);
+    fillInCells <=
+    Math.max(TABLE_FILL_IN_TIMES * heldCells, TABLE_FILL_IN_ALLOWANCE);
 
   let html: string = "<table><thead><tr>";
   for (const cell of header.cells) {
