@@ -76,7 +76,7 @@ Une connexion Microsoft Teams faite pendant que l'option **Enregistrer et transc
 
 ### Rester connecté
 
-OneUptime conserve le jeton d'actualisation de la connexion, chiffré, et l'actualise au moins une fois par semaine, si bien qu'il n'expire jamais faute d'usage, aussi longtemps que le projet reste sans incident. Si la connexion cesse de fonctionner (le compte a retiré OneUptime, a été supprimé ou suspendu, ou la politique de votre organisation demande une nouvelle connexion), la ligne de la connexion affiche **Not working** avec la raison, le jour où OneUptime le remarque, pas au prochain incident. **Reconnect** sur la ligne la reconnecte.
+OneUptime conserve le jeton d'actualisation de la connexion, chiffré, et l'actualise au moins une fois par semaine, si bien qu'il n'expire jamais faute d'usage, aussi longtemps que le projet reste sans incident. Si la connexion cesse de fonctionner (le compte a retiré OneUptime, a été supprimé ou suspendu, ou la politique de votre organisation demande une nouvelle connexion), la ligne de la connexion affiche **Ne fonctionne pas** avec la raison, le jour où OneUptime le remarque, pas au prochain incident. **Reconnect** sur la ligne la reconnecte.
 
 Les connexions établies avec le même compte partagent une seule connexion, dans tous les projets : Zoom ne garde qu'une connexion par compte, donc connecter à nouveau le même utilisateur Zoom la remplace pour toutes.
 
@@ -84,7 +84,7 @@ Les connexions établies avec le même compte partagent une seule connexion, dan
 
 **Reconnect** sur la ligne d'une connexion la reconnecte, avec le même compte ou un autre. Utilisez-le après que le compte a retiré OneUptime, ou pour déplacer les réunions d'incident vers un autre compte.
 
-Supprimer une connexion retire l'accès de OneUptime chez Zoom et Google dès qu'aucune autre connexion n'utilise cette connexion de compte. Pour Microsoft, retirez OneUptime dans **My Apps** (myapps.microsoft.com) du compte. Retirer OneUptime de votre compte Zoom dans le Zoom App Marketplace supprime sa connexion de toutes les connexions établies avec ce compte, et elles affichent **Not working** jusqu'à leur reconnexion.
+Supprimer une connexion retire l'accès de OneUptime chez Zoom et Google dès qu'aucune autre connexion n'utilise cette connexion de compte. Pour Microsoft, retirez OneUptime dans **My Apps** (myapps.microsoft.com) du compte. Retirer OneUptime de votre compte Zoom dans le Zoom App Marketplace supprime sa connexion de toutes les connexions établies avec ce compte, et elles affichent **Ne fonctionne pas** jusqu'à leur reconnexion.
 
 ### Si Microsoft demande un administrateur
 
@@ -288,7 +288,7 @@ Vérifiez que la règle correspondait à l'incident (**Tester la règle**), que 
 Le fournisseur a refusé, et le fil donne sa raison. Lancez en attendant un appel depuis la page de l'incident. Puis exécutez **Tester** sur la ligne de la connexion : il montre la même raison pendant que vous corrigez la configuration chez le fournisseur, par exemple un secret client expiré ou une autorisation manquante.
 :::
 
-:::details Une connexion affiche Not working
+:::details Une connexion affiche Ne fonctionne pas
 Sa connexion de compte a cessé de fonctionner : le compte a retiré OneUptime, a été supprimé ou suspendu, ou doit se reconnecter. Cliquez sur **Reconnect** sur sa ligne. D'ici là, les appels qu'elle devrait lancer ne peuvent pas démarrer.
 :::
 

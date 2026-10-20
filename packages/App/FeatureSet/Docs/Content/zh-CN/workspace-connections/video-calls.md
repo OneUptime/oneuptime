@@ -76,7 +76,7 @@ flowchart TB
 
 ### 保持登录
 
-OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，因此无论项目多久没有发生事件，令牌都不会因闲置而过期。如果登录失效（账户移除了 OneUptime、账户被删除或停用，或您组织的策略要求重新登录），连接的行会在 OneUptime 发现的当天显示 **Not working** 及原因，而不是等到下一个事件。行上的 **Reconnect** 会重新登录。
+OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，因此无论项目多久没有发生事件，令牌都不会因闲置而过期。如果登录失效（账户移除了 OneUptime、账户被删除或停用，或您组织的策略要求重新登录），连接的行会在 OneUptime 发现的当天显示 **异常** 及原因，而不是等到下一个事件。行上的 **Reconnect** 会重新登录。
 
 以同一账户登录的连接在所有项目中共享一次登录：Zoom 每个账户只保留一次登录，因此再次连接同一个 Zoom 用户会替换所有这些连接的登录。
 
@@ -84,7 +84,7 @@ OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，�
 
 连接所在行的 **Reconnect** 会以同一账户或其他账户重新登录。在账户移除 OneUptime 之后，或要把事件会议转到其他账户时使用它。
 
-删除连接后，一旦没有其他连接使用该登录，OneUptime 在 Zoom 和 Google 的访问权限就会被撤销。对于 Microsoft，请在该账户的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中从您的 Zoom 账户移除 OneUptime，会从所有以该账户登录的连接中删除其登录，这些连接在重新连接之前都会显示 **Not working**。
+删除连接后，一旦没有其他连接使用该登录，OneUptime 在 Zoom 和 Google 的访问权限就会被撤销。对于 Microsoft，请在该账户的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中从您的 Zoom 账户移除 OneUptime，会从所有以该账户登录的连接中删除其登录，这些连接在重新连接之前都会显示 **异常**。
 
 ### 如果 Microsoft 要求管理员
 
@@ -288,7 +288,7 @@ OneUptime Cloud 拥有自己的 Zoom、Google 和 Microsoft 应用，用于一�
 提供商拒绝了，动态给出了原因。在此期间，请从事件页面开始通话。然后在连接所在行运行 **测试**：在您修正提供商处的设置（例如过期的客户端密码或缺少的权限）时，它会显示同样的原因。
 :::
 
-:::details 连接显示 Not working
+:::details 连接显示 异常
 它的登录已失效：账户移除了 OneUptime、账户被删除或停用，或需要重新登录。在其所在行点击 **Reconnect**。在此之前，它本应开始的通话都无法开始。
 :::
 
