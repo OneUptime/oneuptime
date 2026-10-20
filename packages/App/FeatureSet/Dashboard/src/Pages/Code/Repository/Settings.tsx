@@ -25,14 +25,22 @@ import {
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import RepositoryConnectionStatus from "../../../Components/CodeRepository/RepositoryConnectionStatus";
+import {
+  CodeRepositoryRunnerCopy,
+  CodeRepositoryRunnerPicker,
+  CodeRepositoryRunnerValue,
+} from "../../../Components/Code/CodeRepositoryRunner";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * A repository's settings in Code, on one page: what it is called (name,
  * description, labels; where its code lives is the GitHub App's to say),
  * then what AI's work in it uses - the main branch, how many AI pull
- * requests may be open at once, GitHub commands, and the build and test
- * commands a change is checked with.
+ * requests may be open at once, GitHub commands, the Runner AI works in it
+ * on (Global Runner unless it picks one of the project's own:
+ * CodeRepository.runnerId), and the build and test commands a change is
+ * checked with, which run on a Runner of the project's own.
  */
 const CodeRepositorySettings: FunctionComponent<
   PageComponentProps
@@ -150,6 +158,7 @@ const CodeRepositorySettings: FunctionComponent<
         formSteps={[
           { title: "Pull Requests", id: "pull-requests" },
           { title: "GitHub Commands", id: "github-commands" },
+          { title: "Runner", id: "runner" },
           { title: "Build & Test", id: "build-and-test" },
         ]}
         formFields={[
@@ -268,6 +277,36 @@ const CodeRepositorySettings: FunctionComponent<
               return values.isGitHubCommandsEnabled === true;
             },
           },
+          /*
+           * The Runner AI works in the repository on: the one Runner picker,
+           * with Global Runner first (empty), then the project's own Runners.
+           * It draws its own label and the line under it.
+           */
+          {
+            field: {
+              runnerId: true,
+            },
+            title: CodeRepositoryRunnerCopy.fieldTitle,
+            stepId: "runner",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            customElementDrawsOwnLabel: true,
+            hideColumnDescription: true,
+            dataTestId: "code-repository-runner",
+            getCustomElement: (
+              values: FormValues<CodeRepository>,
+              elementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <CodeRepositoryRunnerPicker
+                  value={values.runnerId}
+                  onChange={(runnerId: string | null): void => {
+                    elementProps.onChange?.(runnerId);
+                  }}
+                />
+              );
+            },
+          },
           {
             field: {
               setupCommand: true,
@@ -369,6 +408,17 @@ const CodeRepositorySettings: FunctionComponent<
                         )}
                   </span>
                 );
+              },
+            },
+            {
+              field: {
+                runnerId: true,
+              },
+              title: CodeRepositoryRunnerCopy.fieldTitle,
+              description: CodeRepositoryRunnerCopy.fieldDescription,
+              fieldType: FieldType.Element,
+              getElement: (item: CodeRepository): ReactElement => {
+                return <CodeRepositoryRunnerValue runnerId={item.runnerId} />;
               },
             },
             {

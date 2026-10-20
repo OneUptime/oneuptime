@@ -1,20 +1,33 @@
 import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { getRunnerLiveStatus } from "Common/Types/Runner/RunnerLiveStatus";
+import RunnerLiveStatus, {
+  getRunnerLiveStatus,
+} from "Common/Types/Runner/RunnerLiveStatus";
 import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import { RunnerPickerRunner } from "./RunnerPickerModel";
+import { isKubernetesAgentRunnerRow } from "../../Pages/Kubernetes/Utils/KubernetesAgentRunner";
 
 /*
  * What a Runner picker needs to know, loaded once by the page that shows
- * one (Runbooks -> a runbook -> Steps; and any other page that lets people
- * pick a Runner): the project's own Runners, the global Runners - the ones
- * OneUptime runs for every project, from their own endpoint since no project
- * owns them - and whether the project uses them (Project.useGlobalRunners).
+ * one (Runbooks -> a runbook -> Steps; Code -> a repository -> Settings; and
+ * any other page that lets people pick a Runner): the project's own
+ * Runners, the global Runners - the ones OneUptime runs for every project,
+ * from their own endpoint since no project owns them - and whether the
+ * project uses them (Project.useGlobalRunners).
+ *
+ * A code repository's picker (loadForCodeRepository) reads the global
+ * Runners for code instead - the ones that take the AI work of every
+ * repository that picks none - and leaves out the in-cluster Runners the
+ * Kubernetes agent chart installed, which never work in a repository.
  */
 
 export interface GlobalRunnerRow extends RunnerPickerRunner {
@@ -31,8 +44,24 @@ export interface RunnerChoices {
 
 export const GLOBAL_RUNNERS_ROUTE: string = "/runner/global-runners";
 
+// The global Runners for code (Common/Server/API/RunnerAPI).
+export const GLOBAL_CODE_RUNNERS_ROUTE: string = "/runner/global-code-runners";
+
 export function getGlobalRunnersUrl(): URL {
   return URL.fromString(APP_API_URL.toString()).addRoute(GLOBAL_RUNNERS_ROUTE);
+}
+
+export function getGlobalCodeRunnersUrl(): URL {
+  return URL.fromString(APP_API_URL.toString()).addRoute(
+    GLOBAL_CODE_RUNNERS_ROUTE,
+  );
+}
+
+// A status the server named, or Never connected for one it did not.
+export function readGlobalCodeRunnerLiveStatus(value: unknown): RunnerLiveStatus {
+  return Object.values(RunnerLiveStatus).includes(value as RunnerLiveStatus)
+    ? (value as RunnerLiveStatus)
+    : RunnerLiveStatus.NeverConnected;
 }
 
 export default class RunnerChoicesLoader {
@@ -56,9 +85,45 @@ export default class RunnerChoicesLoader {
     };
   }
 
+  /*
+   * A code repository's Runner picker: the project's own Runners a
+   * repository may pick, the global Runners for code, and the project's
+   * switch for global Runners.
+   */
+  public static async loadForCodeRepository(
+    projectId: ObjectID,
+  ): Promise<RunnerChoices> {
+    const [projectRunners, globalRunners, projectUsesGlobalRunners]: [
+      Array<RunnerPickerRunner>,
+      Array<GlobalRunnerRow>,
+      boolean,
+    ] = await Promise.all([
+      RunnerChoicesLoader.loadProjectRunners(projectId, {
+        forCodeRepository: true,
+      }),
+      RunnerChoicesLoader.loadGlobalCodeRunners(),
+      RunnerChoicesLoader.loadProjectUsesGlobalRunners(projectId),
+    ]);
+
+    return {
+      projectRunners,
+      globalRunners,
+      projectUsesGlobalRunners,
+    };
+  }
+
+  /*
+   * The project's own Runners. For a code repository, without the
+   * in-cluster Runners the Kubernetes agent chart installed: they run
+   * kubectl for their cluster only, and the server refuses a repository
+   * that picks one.
+   */
   public static async loadProjectRunners(
     projectId: ObjectID,
+    options?: { forCodeRepository?: boolean | undefined } | undefined,
   ): Promise<Array<RunnerPickerRunner>> {
+    const forCodeRepository: boolean = Boolean(options?.forCodeRepository);
+
     const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
       modelType: Runner,
       query: {
@@ -68,19 +133,67 @@ export default class RunnerChoicesLoader {
         _id: true,
         name: true,
         lastAlive: true,
+        ...(forCodeRepository ? { hostInfo: true } : {}),
       },
       sort: { name: SortOrder.Ascending },
       limit: LIMIT_MAX,
       skip: 0,
     });
 
-    return result.data.map((runner: Runner): RunnerPickerRunner => {
-      return {
-        id: runner._id?.toString() || "",
-        name: runner.name || "Unnamed Runner",
-        liveStatus: getRunnerLiveStatus(runner.lastAlive),
-      };
-    });
+    return result.data
+      .filter((runner: Runner): boolean => {
+        return !forCodeRepository || !isKubernetesAgentRunnerRow(runner);
+      })
+      .map((runner: Runner): RunnerPickerRunner => {
+        return {
+          id: runner._id?.toString() || "",
+          name: runner.name || "Unnamed Runner",
+          liveStatus: getRunnerLiveStatus(runner.lastAlive),
+        };
+      });
+  }
+
+  /*
+   * The global Runners for code, as their status only - one row each. A
+   * server that cannot say (an older one, or a failed read) has none to
+   * offer, so the picker falls back to the project's own Runners rather
+   * than failing the page.
+   */
+  public static async loadGlobalCodeRunners(): Promise<Array<GlobalRunnerRow>> {
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: getGlobalCodeRunnersUrl(),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse || !response.isSuccess()) {
+        return [];
+      }
+
+      const rows: unknown = (response.data as JSONObject | undefined)?.[
+        "globalRunners"
+      ];
+
+      if (!Array.isArray(rows)) {
+        return [];
+      }
+
+      return rows.map((row: unknown): GlobalRunnerRow => {
+        return {
+          id: "",
+          name: "Global Runner",
+          description: "",
+          liveStatus: readGlobalCodeRunnerLiveStatus(
+            (row as JSONObject | null)?.["liveStatus"],
+          ),
+          runsRunbooks: false,
+        };
+      });
+    } catch {
+      return [];
+    }
   }
 
   /*

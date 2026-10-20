@@ -17,6 +17,11 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { RunnerChoices } from "./RunnerChoices";
 import { GLOBAL_RUNNER_MAX_MINUTES } from "./GlobalRunnersCopy";
 import {
+  CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT,
+  CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
+  CODE_UNKNOWN_RUNNER_HELPER_TEXT,
   GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
@@ -26,13 +31,15 @@ import {
   RunnerPickerOption,
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
+  RunnerPickerWork,
   buildRunnerPickerModel,
   isGlobalRunnerChoiceWaiting,
 } from "./RunnerPickerModel";
 
 /*
  * The one Runner picker: which Runner runs a step (Runbooks -> a runbook ->
- * Steps), and anywhere else people pick a Runner.
+ * Steps), which Runner AI works in a code repository on (Code -> a
+ * repository -> Settings), and anywhere else people pick a Runner.
  *
  * The global choice - "Global Runner", the Runners OneUptime runs for every
  * project - comes first and is what a step that picked none shows, whenever
@@ -43,7 +50,12 @@ import {
  */
 
 export interface ComponentProps {
-  // The step's type ("JavaScript", "Bash", "SSH", "Kubernetes").
+  // What the Runner is picked for; a runbook step when left out.
+  work?: RunnerPickerWork | undefined;
+  /*
+   * The step's type ("JavaScript", "Bash", "SSH", "Kubernetes"); left empty
+   * for a code repository.
+   */
   stepType: string;
   /*
    * What the step is called where a sentence names it ("kubectl" for a
@@ -51,7 +63,7 @@ export interface ComponentProps {
    * type.
    */
   stepTypeName?: string | undefined;
-  // The Runner the step picked, as stored: "" for none.
+  // The Runner the step (or repository) picked, as stored: "" for none.
   value: string;
   onChange: (value: string) => void;
   choices: RunnerChoices;
@@ -69,8 +81,11 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   const { translateString }: UseTranslateValueResult = useTranslateValue();
 
   const dataTestId: string = props.dataTestId || RUNNER_PICKER_TEST_ID;
+  const isForCodeRepository: boolean =
+    props.work === RunnerPickerWork.CodeRepository;
 
   const model: RunnerPickerModel = buildRunnerPickerModel({
+    work: props.work,
     stepType: props.stepType,
     currentRunnerId: props.value,
     projectRunners: props.choices.projectRunners,
@@ -103,7 +118,9 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       return {
         value: GLOBAL_RUNNER_CHOICE_VALUE,
         label: `${translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)} · ${getStatusText(option)}`,
-        description: GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+        description: isForCodeRepository
+          ? CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION
+          : GLOBAL_RUNNER_CHOICE_DESCRIPTION,
       };
     }
 
@@ -172,6 +189,17 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       );
     }
 
+    if (isForCodeRepository) {
+      return (
+        <TranslatedSentence
+          template="Add a Runner under {{location}} for AI to work in this repository, then pick it here."
+          slots={{
+            location: runnersLocation,
+          }}
+        />
+      );
+    }
+
     return (
       <TranslatedSentence
         template="Add a Runner under {{location}} to run this step, then pick it here."
@@ -184,6 +212,10 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
 
   const renderHelperText: () => ReactNode = (): ReactNode => {
     if (model.outcome === RunnerPickerOutcome.GlobalRunner) {
+      if (isForCodeRepository) {
+        return translator.translateText(CODE_GLOBAL_RUNNER_HELPER_TEXT);
+      }
+
       return translator.translateTemplate(
         "Runs in a sandbox that reaches the internet only, for up to {{minutes}} minutes. To reach your network, pick one of your Runners.",
         { minutes: GLOBAL_RUNNER_MAX_MINUTES },
@@ -191,19 +223,25 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * A step global Runners could run, in a project that turned them off,
-     * picks one of the project's own: said here, since the global choice is
-     * not in the list.
+     * A step global Runners could run - or a repository - in a project that
+     * turned them off, picks one of the project's own: said here, since the
+     * global choice is not in the list.
      */
     if (model.outcome === RunnerPickerOutcome.GlobalRunnersOff) {
-      return translator.translateText(GLOBAL_RUNNERS_OFF_HELPER_TEXT);
+      return translator.translateText(
+        isForCodeRepository
+          ? CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT
+          : GLOBAL_RUNNERS_OFF_HELPER_TEXT,
+      );
     }
 
     if (model.outcome === RunnerPickerOutcome.UnknownRunner) {
       return (
         <span className="text-amber-700">
           {translator.translateText(
-            "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.",
+            isForCodeRepository
+              ? CODE_UNKNOWN_RUNNER_HELPER_TEXT
+              : "This step picked a Runner that is not one of this project's Runners any more, so it will fail when it runs. Pick another Runner.",
           )}
         </span>
       );
@@ -256,7 +294,11 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
               className="text-xs text-amber-700 mt-1"
               data-testid={`${dataTestId}-global-waiting`}
             >
-              {translator.translateText(GLOBAL_RUNNER_NOT_CONNECTED_TEXT)}
+              {translator.translateText(
+                isForCodeRepository
+                  ? CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT
+                  : GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
+              )}
             </p>
           ) : (
             <></>

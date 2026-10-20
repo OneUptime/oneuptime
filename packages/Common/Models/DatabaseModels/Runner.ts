@@ -54,7 +54,7 @@ export enum RunnerConnectionStatus {
   pluralName: "Runners",
   icon: IconProp.Terminal,
   tableDescription:
-    "A self-hosted OneUptime Runner: it executes runbook steps in your own infrastructure and, when the capability is enabled, works in your code repository to open AI fix pull requests. Runbook steps pick the Runner that should execute them.",
+    "A self-hosted OneUptime Runner: it executes runbook steps in your own infrastructure, and AI works on it in the code repositories that pick it. Runbook steps and code repositories each pick the Runner that runs them.",
 })
 @TableAccessControl({
   create: [
@@ -436,6 +436,11 @@ export default class Runner extends BaseModel {
    * container decides what it polls for, and these columns tell the
    * dashboard what to expect (and let an operator revoke a capability
    * centrally without touching the host).
+   *
+   * AI code fixes are not a switch here: a code repository picks the Runner
+   * AI works in it on (CodeRepository.runnerId), and a Runner takes code
+   * work exactly while a repository of its project picks it
+   * (Types/Runner/CodeRepositoryRunner).
    */
   @ColumnAccessControl({
     create: [
@@ -478,46 +483,6 @@ export default class Runner extends BaseModel {
   })
   public canRunRunbooks?: boolean = undefined;
 
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookAdmin,
-      Permission.CreateRunner,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.RunbookAdmin,
-      Permission.RunbookMember,
-      Permission.RunbookViewer,
-      Permission.ReadRunner,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookAdmin,
-      Permission.EditRunner,
-    ],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.Boolean,
-    title: "Runs AI Code Fixes",
-    description:
-      "Whether this Runner works in your code repository to open AI fix pull requests. Off by default; it requires a connected code repository. It cannot be turned on for an in-cluster Runner the Kubernetes agent chart registered, which runs kubectl only.",
-    defaultValue: false,
-    isDefaultValueColumn: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: false,
-  })
-  public canRunCodeFixTasks?: boolean = undefined;
 
   /*
    * Opt-in consent for AI-composed remediation commands: with this off, the

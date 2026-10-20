@@ -88,7 +88,7 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
         />
         <span>
           {translator.translateText(
-            'What this Runner may do is set here, not in the container: it adopts a change on its next heartbeat. Turn on "Runs AI Code Fixes" and it will clone the code repositories connected to this project and open pull requests for review — it never writes to your default or protected branches, and never merges. Turn a capability off and it stops taking that work immediately.',
+            "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. A code repository that picks it in its settings in Code has AI work on it: it clones the repository and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
           )}
         </span>
       </div>

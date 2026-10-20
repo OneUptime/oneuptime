@@ -2,6 +2,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/TelemetryException";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
+import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -352,6 +353,24 @@ export class Service extends ProjectReferencesService<Model> {
      */
     billingEnabled?: boolean;
   }): Promise<AIFixReadiness> {
+    return (await this.getAIFixReadinessAndRepository(params)).readiness;
+  }
+
+  /*
+   * The readiness, and the repository the exception resolved to when one
+   * did: a fix run is queued on that repository, so the Runner the
+   * repository picks (its Runner setting in Code) is the one that takes it,
+   * and the agent check asks whether that Runner is online.
+   */
+  @CaptureSpan()
+  private async getAIFixReadinessAndRepository(params: {
+    telemetryExceptionId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    billingEnabled?: boolean;
+  }): Promise<{
+    readiness: AIFixReadiness;
+    codeRepositoryId: ObjectID | null;
+  }> {
     const telemetryException: Model | null = await this.findOneById({
       id: params.telemetryExceptionId,
       select: {
@@ -401,6 +420,7 @@ export class Service extends ProjectReferencesService<Model> {
       : null;
 
     let repoCheck: AIFixReadinessCheck;
+    let resolvedRepository: CodeRepository | null = null;
 
     try {
       const resolution: RepoResolution | null =
@@ -409,6 +429,22 @@ export class Service extends ProjectReferencesService<Model> {
           stackTrace: telemetryException.stackTrace || null,
           serviceName: service?.name || null,
         });
+
+      resolvedRepository = resolution
+        ? await CodeRepositoryService.findOneBy({
+            query: {
+              _id: resolution.codeRepositoryId,
+              projectId: projectId,
+            },
+            select: {
+              _id: true,
+              runnerId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        : null;
 
       repoCheck = {
         id: "repositoryResolved",
@@ -431,10 +467,16 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
-    // 3. An agent must be alive to pick the task up.
+    /*
+     * 3. A Runner must be alive to pick the task up: the one the resolved
+     * repository picks, or a global Runner for one that picks none.
+     */
     const agentCheck: AIFixReadinessCheck =
       await CodeFixReadiness.getAgentCheck({
         projectId,
+        repository: resolvedRepository
+          ? { projectId, runnerId: resolvedRepository.runnerId }
+          : undefined,
       });
 
     const checks: Array<AIFixReadinessCheck> = [
@@ -444,10 +486,13 @@ export class Service extends ProjectReferencesService<Model> {
     ];
 
     return {
-      ready: checks.every((check: AIFixReadinessCheck) => {
-        return check.ok;
-      }),
-      checks,
+      readiness: {
+        ready: checks.every((check: AIFixReadinessCheck) => {
+          return check.ok;
+        }),
+        checks,
+      },
+      codeRepositoryId: resolvedRepository?.id || null,
     };
   }
 
@@ -551,10 +596,14 @@ export class Service extends ProjectReferencesService<Model> {
      * Fail early with everything that's missing, instead of creating a run
      * that dies minutes later inside the agent container.
      */
-    const readiness: AIFixReadiness = await this.getAIFixReadiness({
-      telemetryExceptionId,
-      props,
-    });
+    const {
+      readiness,
+      codeRepositoryId,
+    }: { readiness: AIFixReadiness; codeRepositoryId: ObjectID | null } =
+      await this.getAIFixReadinessAndRepository({
+        telemetryExceptionId,
+        props,
+      });
 
     if (!readiness.ready) {
       const missing: string = readiness.checks
@@ -628,6 +677,15 @@ export class Service extends ProjectReferencesService<Model> {
       run.codeFixTaskType = taskType;
       run.status = AIRunStatus.Queued;
       run.triggeredByTelemetryExceptionId = telemetryExceptionId;
+
+      /*
+       * The repository the exception resolved to: the run is queued on it,
+       * so the Runner the repository picks takes it (and the task shows on
+       * the repository's page in Code from the start).
+       */
+      if (codeRepositoryId) {
+        run.codeRepositoryId = codeRepositoryId;
+      }
 
       // Attribution: the user who clicked "Fix with AI Agent".
       if (props.userId) {

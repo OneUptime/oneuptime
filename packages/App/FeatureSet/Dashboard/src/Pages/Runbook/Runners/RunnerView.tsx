@@ -1,5 +1,6 @@
 import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
+import RunnerCodeRepositories from "../../../Components/Runner/RunnerCodeRepositories";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import { isKubernetesAgentRunnerRow } from "../../Kubernetes/Utils/KubernetesAgentRunner";
@@ -47,8 +48,8 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
   const [isRunnerLoaded, setIsRunnerLoaded] = useState<boolean>(false);
   /*
    * What the edit form leaves out: on a Runner the Kubernetes agent chart
-   * installed, the name and the runbook / code-fix switches, which the
-   * server refuses (RunnerFormFields). Read from the loaded row.
+   * installed, the name and the runbook switch, which the server refuses
+   * (RunnerFormFields). Read from the loaded row.
    */
   const [formRestrictions, setFormRestrictions] =
     useState<RunnerFormRestrictions>(NO_RUNNER_FORM_RESTRICTIONS);
@@ -146,11 +147,6 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
             {
               field: { canRunRunbooks: true },
               title: "Runs Runbooks",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: { canRunCodeFixTasks: true },
-              title: "Runs AI Code Fixes",
               fieldType: FieldType.Boolean,
             },
             {
@@ -319,6 +315,19 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
+
+      {/*
+       * The code repositories that pick this Runner: AI works in them on it.
+       * A repository picks its Runner in its settings in Code, so this is
+       * where a Runner says what code work it has (a Runner has no switch
+       * for it). Not drawn on an in-cluster Runner the Kubernetes agent
+       * chart installed, which no repository may pick.
+       */}
+      {isRunnerLoaded && !formRestrictions.areShellCapabilitiesLocked ? (
+        <RunnerCodeRepositories runnerId={modelId} />
+      ) : (
+        <></>
+      )}
 
       {/*
        * Gated on the load, not on the key. A reader who cannot see the key
