@@ -664,9 +664,12 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         </div>
       )}
 
+      {/* Code, laid out from the left in every language (FlamegraphView). */}
       <div
+        dir="ltr"
         className="relative w-full overflow-x-auto border border-gray-200 rounded bg-white"
         style={{ height: `${height}px` }}
+        data-testid="diff-flamegraph-frames"
       >
         {treeElements}
       </div>

@@ -1,9 +1,14 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
+import * as fs from "fs";
 import { createInstance, i18n } from "i18next";
+import * as path from "path";
 import * as React from "react";
 import { I18nextProvider } from "react-i18next";
+import * as ProfileMonitorCopy from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProfileMonitor/ProfileMonitorCopy";
+import * as ProfileCopy from "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/ProfileCopy";
+import * as TraceProfilerLinkCopy from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TraceProfilerLinkCopy";
 import {
   COMPARED_WITH,
   FIX_GREW_SENTENCE,
@@ -43,6 +48,9 @@ import {
   PROFILE_MONITOR_UNHEALTHY_DESCRIPTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/ProfileMonitorPrefill";
 import {
+  PROFILE_KIND_DESCRIPTIONS,
+  PROFILE_KIND_LABELS,
+  PROFILE_KIND_NOUNS,
   ProfileFunctionRow,
   ProfileHeadlineFacts,
   ProfileKindChoice,
@@ -65,7 +73,7 @@ import {
  * The Profiler in other languages, read from the real locale files.
  *
  * Its headline is a sentence with the kind of profile in the middle of it
- * ("checkout spent 42% of its CPU time in JSON.parse"). The kind is cased
+ * ("JSON.parse takes 42% of the CPU time in checkout"). The kind is cased
  * the way the reader's language writes a word there: lowercase in every
  * language but German, so a translation that opened with the kind would
  * open with a small letter. The last block keeps every such sentence, in
@@ -366,6 +374,7 @@ describe("every locale", () => {
     PROFILE_MONITOR_NAME,
     PROFILE_MONITOR_DESCRIPTION,
     PROFILE_MONITOR_UNHEALTHY_DESCRIPTION,
+    ProfileMonitorCopy.PROFILE_MONITOR_PREVIEW_SHARE,
   ];
 
   test.each(Object.keys(LOCALES))(
@@ -383,6 +392,120 @@ describe("every locale", () => {
           false,
         );
       }
+    },
+  );
+});
+
+/*
+ * Every word the Profiler draws, in every locale.
+ *
+ * The function list's four empty states were once handed to the
+ * translator as variables, so the extractor never saw them and every
+ * language showed them in English. Each word now lives in a copy module;
+ * this reads those modules and holds every locale to having each word,
+ * translated - or recorded as reading the same in that language (Total
+ * in French, System in Danish), the way the i18n tool records it.
+ */
+describe("every word of the Profiler", () => {
+  const I18N_DIRECTORY: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/i18n",
+  );
+  const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;
+  const LETTER: RegExp = /\p{L}/u;
+
+  const readJson: (file: string) => unknown = (file: string): unknown => {
+    return JSON.parse(fs.readFileSync(path.join(I18N_DIRECTORY, file), "utf8"));
+  };
+
+  const GLOBAL_SAME: Set<string> = new Set(
+    readJson("SameAsEnglish.json") as Array<string>,
+  );
+
+  // A copy module's words: its strings, and a plural's general sentence.
+  const collect: (value: unknown, into: Set<string>) => void = (
+    value: unknown,
+    into: Set<string>,
+  ): void => {
+    if (typeof value === "string") {
+      into.add(value);
+      return;
+    }
+
+    if (!value || typeof value !== "object") {
+      return;
+    }
+
+    const record: Record<string, unknown> = value as Record<string, unknown>;
+
+    if (
+      typeof record["one"] === "string" &&
+      typeof record["other"] === "string"
+    ) {
+      into.add(record["other"]);
+      return;
+    }
+
+    for (const nested of Object.values(record)) {
+      collect(nested, into);
+    }
+  };
+
+  const WORDS: Array<string> = ((): Array<string> => {
+    const words: Set<string> = new Set();
+
+    for (const source of [
+      ProfileCopy,
+      ProfileMonitorCopy,
+      TraceProfilerLinkCopy,
+      { PROFILE_KIND_LABELS, PROFILE_KIND_DESCRIPTIONS, PROFILE_KIND_NOUNS },
+    ]) {
+      collect(source, words);
+    }
+
+    // "{{type}} ({{kind}})" has no word of its own to translate.
+    return Array.from(words).filter((word: string): boolean => {
+      return LETTER.test(word.replace(PLACEHOLDER, ""));
+    });
+  })();
+
+  test("the copy modules are read, the list's empty states among them", () => {
+    expect(WORDS.length).toBeGreaterThan(100);
+    expect(WORDS).toEqual(
+      expect.arrayContaining([
+        ProfileCopy.FUNCTIONS_EMPTY,
+        ProfileCopy.FUNCTIONS_OWN_EMPTY,
+        ProfileCopy.CHANGES_EMPTY,
+        ProfileCopy.CHANGES_OWN_EMPTY,
+        ProfileCopy.HEADLINE_LEADER,
+        ProfileMonitorCopy.PROFILE_MONITOR_PREVIEW_SHARE,
+        TraceProfilerLinkCopy.TRACE_PROFILER_LINK_NAMED,
+        "Show {{count}} kernel threads",
+      ]),
+    );
+  });
+
+  test.each(Object.keys(LOCALES))(
+    "%s: has every one, translated or recorded as reading the same",
+    (language: string) => {
+      const locale: LocaleFile = LOCALES[language] as LocaleFile;
+      const progress: { sameAsEnglish?: Array<string> } = readJson(
+        `Progress/${language}.json`,
+      ) as { sameAsEnglish?: Array<string> };
+      const same: Set<string> = new Set(progress.sameAsEnglish || []);
+
+      const untranslated: Array<string> = WORDS.filter(
+        (word: string): boolean => {
+          const value: string | undefined = locale[word];
+
+          return (
+            value === undefined ||
+            (value === word && !same.has(word) && !GLOBAL_SAME.has(word))
+          );
+        },
+      );
+
+      expect(untranslated).toEqual([]);
     },
   );
 });

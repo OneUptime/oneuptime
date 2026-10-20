@@ -283,7 +283,7 @@ Para el perfilador .NET, defina `DD_TRACE_DEBUG=1` en la aplicación durante un 
 
 ## Explorar perfiles en OneUptime
 
-**Productos → Perfiles de rendimiento** abre el Profiler en su **Vista general**. Responde con palabras antes de cualquier gráfico: adónde va el tiempo («checkout dedicó el 42% de su total de tiempo de CPU a JSON.parse.») y, cuando la función más ocupada es de una biblioteca o del tiempo de ejecución, la función de su propio código que más ocupa, con el código de biblioteca y de tiempo de ejecución al que llama. Arriba, elija un servicio, un tipo de perfil del que tenga datos (**Tiempo de CPU**, **Tiempo real transcurrido**, **Memoria**, **Asignaciones**, **Bloqueos** o **Goroutines**, o un tipo en **Más tipos de perfil**) y un intervalo.
+**Productos → Perfiles de rendimiento** abre el Profiler en su **Vista general**. Responde con palabras antes de cualquier gráfico: adónde va el tiempo («JSON.parse ocupa el 42% del total de tiempo de CPU en checkout.») y, cuando la función más ocupada es de una biblioteca o del tiempo de ejecución, la función de su propio código que más ocupa, con el código de biblioteca y de tiempo de ejecución al que llama. Arriba, elija un servicio, un tipo de perfil del que tenga datos (**Tiempo de CPU**, **Tiempo real transcurrido**, **Memoria**, **Asignaciones**, **Bloqueos** o **Goroutines**, o un tipo en **Más tipos de perfil**) y un intervalo.
 
 | Tarjeta | Qué muestra |
 | --- | --- |

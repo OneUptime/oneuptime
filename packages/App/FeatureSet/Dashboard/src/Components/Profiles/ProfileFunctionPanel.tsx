@@ -319,72 +319,87 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
     const data: ProfileFunctionFocus = focus.data;
 
     /*
-     * Each share under its name and what it counts. The hints wrap to
-     * different lengths (German's run to three lines), so the figures sit
-     * at the bottom of their boxes (mt-auto) and line up side by side.
+     * Each share under its name and what it counts. From sm the boxes sit
+     * side by side; the hints wrap to different lengths (German's run to
+     * three lines), so the figures sit at the bottom of their boxes
+     * (sm:mt-auto) and line up. On a phone each box is one row - what it
+     * counts on the left, the figure on the right - so three figures take
+     * a third of the height and the fix below stays in view.
      */
+    const stat: (figure: {
+      label: string;
+      hint: string;
+      share: number;
+      value: number;
+      testId: string;
+      isOwn?: boolean;
+    }) => ReactElement = (figure: {
+      label: string;
+      hint: string;
+      share: number;
+      value: number;
+      testId: string;
+      isOwn?: boolean;
+    }): ReactElement => {
+      return (
+        <div
+          className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-lg border px-3 py-2 sm:flex sm:flex-col sm:items-stretch ${
+            figure.isOwn ? "border-orange-100 bg-orange-50" : "border-gray-200"
+          }`}
+          data-testid={`${figure.testId}-box`}
+        >
+          <dt className="row-span-2 text-xs font-medium text-gray-700 sm:row-span-1">
+            {translator.translateText(figure.label)}{" "}
+            <span className="font-normal text-gray-500">
+              {translator.translateText(figure.hint)}
+            </span>
+          </dt>
+          <dd
+            className="text-right font-mono text-lg font-semibold text-gray-900 sm:mt-auto sm:pt-0.5 sm:text-left"
+            data-testid={figure.testId}
+          >
+            {formatProfileShare(figure.share)}
+          </dd>
+          <dd className="text-right text-xs text-gray-500 sm:text-left">
+            {formatProfileValue(figure.value, props.kind.unit)}
+          </dd>
+        </div>
+      );
+    };
+
     return (
       <div className="space-y-6">
         <dl
-          className={`grid grid-cols-1 gap-3 ${
+          className={`grid grid-cols-1 gap-2 sm:gap-3 ${
             origin === ProfileFrameOrigin.Own
               ? "sm:grid-cols-3"
               : "sm:grid-cols-2"
           }`}
           data-testid="profiles-panel-stats"
         >
-          <div className="flex flex-col rounded-lg border border-gray-200 px-3 py-2">
-            <dt className="text-xs font-medium text-gray-500">
-              {translator.translateText(SORT_BY_SELF)}{" "}
-              <span className="font-normal text-gray-400">
-                {translator.translateText(PANEL_SELF_HINT)}
-              </span>
-            </dt>
-            <dd
-              className="mt-auto pt-0.5 font-mono text-lg font-semibold text-gray-900"
-              data-testid="profiles-panel-self"
-            >
-              {formatProfileShare(selfShare)}
-            </dd>
-            <dd className="text-xs text-gray-500">
-              {formatProfileValue(data.selfValue, props.kind.unit)}
-            </dd>
-          </div>
-          <div className="flex flex-col rounded-lg border border-gray-200 px-3 py-2">
-            <dt className="text-xs font-medium text-gray-500">
-              {translator.translateText(SORT_BY_TOTAL)}{" "}
-              <span className="font-normal text-gray-400">
-                {translator.translateText(PANEL_TOTAL_HINT)}
-              </span>
-            </dt>
-            <dd
-              className="mt-auto pt-0.5 font-mono text-lg font-semibold text-gray-900"
-              data-testid="profiles-panel-total"
-            >
-              {formatProfileShare(totalShare)}
-            </dd>
-            <dd className="text-xs text-gray-500">
-              {formatProfileValue(data.totalValue, props.kind.unit)}
-            </dd>
-          </div>
+          {stat({
+            label: SORT_BY_SELF,
+            hint: PANEL_SELF_HINT,
+            share: selfShare,
+            value: data.selfValue,
+            testId: "profiles-panel-self",
+          })}
+          {stat({
+            label: SORT_BY_TOTAL,
+            hint: PANEL_TOTAL_HINT,
+            share: totalShare,
+            value: data.totalValue,
+            testId: "profiles-panel-total",
+          })}
           {origin === ProfileFrameOrigin.Own ? (
-            <div className="flex flex-col rounded-lg border border-orange-100 bg-orange-50 px-3 py-2">
-              <dt className="text-xs font-medium text-gray-500">
-                {translator.translateText(VIEW_YOUR_CODE)}{" "}
-                <span className="font-normal text-gray-400">
-                  {translator.translateText(PANEL_OWN_HINT)}
-                </span>
-              </dt>
-              <dd
-                className="mt-auto pt-0.5 font-mono text-lg font-semibold text-gray-900"
-                data-testid="profiles-panel-own"
-              >
-                {formatProfileShare(ownShare)}
-              </dd>
-              <dd className="text-xs text-gray-500">
-                {formatProfileValue(ownValue, props.kind.unit)}
-              </dd>
-            </div>
+            stat({
+              label: VIEW_YOUR_CODE,
+              hint: PANEL_OWN_HINT,
+              share: ownShare,
+              value: ownValue,
+              testId: "profiles-panel-own",
+              isOwn: true,
+            })
           ) : (
             <></>
           )}

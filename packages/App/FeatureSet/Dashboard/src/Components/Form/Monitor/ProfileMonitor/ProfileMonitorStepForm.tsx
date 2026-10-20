@@ -24,17 +24,22 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ProfileCategory,
   formatProfileShare,
   getCategoryOfProfileTypes,
   getQueryProfileTypes,
+  isProfileCategory,
 } from "Common/Utils/Profiles/ProfileTypes";
 import {
   PROFILE_KINDS_IN_ORDER,
   PROFILE_KIND_LABELS,
+  PROFILE_KIND_NOUNS,
 } from "../../../../Utils/ProfilesView";
 import {
   PROFILE_MONITOR_ANY_KIND,
@@ -96,6 +101,26 @@ export const PROFILE_MONITOR_DURATION_OPTIONS: Array<{
   { label: "Last 6 hours", value: 21600 },
   { label: "Last 24 hours", value: 86400 },
 ];
+
+/*
+ * The kind the preview names in its sentence: the one picked, the one a
+ * saved monitor's raw types share, or - for every kind at once - Other,
+ * whose noun is "samples".
+ */
+export function getProfileMonitorPreviewCategory(
+  kind: string,
+  profileTypes: Array<string> | undefined,
+): ProfileCategory {
+  if (isProfileCategory(kind)) {
+    return kind;
+  }
+
+  if (kind === CUSTOM_PROFILE_KIND) {
+    return getCategoryOfProfileTypes(profileTypes) || ProfileCategory.Other;
+  }
+
+  return ProfileCategory.Other;
+}
 
 // The kind a step reads, as the form's kind field holds it.
 export function getProfileMonitorKindValue(
@@ -333,6 +358,16 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
               {translator.translateTemplate(PROFILE_MONITOR_PREVIEW_SHARE, {
                 function: preview.functionShare.functionName,
                 share: formatProfileShare(preview.functionShare.sharePercent),
+                // Translated with the sentence, cased for its middle.
+                kind: translatableTerm(
+                  PROFILE_KIND_NOUNS[
+                    getProfileMonitorPreviewCategory(
+                      formValues.kind,
+                      props.monitorStepProfileMonitor.profileTypes,
+                    )
+                  ],
+                  { inSentence: true },
+                ),
               })}
             </p>
           ) : (

@@ -283,7 +283,7 @@ Zet bij de .NET-profiler een minuut lang `DD_TRACE_DEBUG=1` op de applicatie: da
 
 ## Profielen verkennen in OneUptime
 
-**Producten → Prestatieprofielen** opent de Profiler op zijn **Overzicht**. Die antwoordt in woorden voordat er een grafiek komt: waar de tijd heen gaat ("checkout besteedde 42% van de CPU-tijd aan JSON.parse.") en, wanneer de drukste functie van een bibliotheek of de runtime is, welke functie van uw eigen code het meest inneemt, met de bibliotheek- en runtimecode die ze aanroept. Kies bovenaan een service, een soort profiel waarvoor ze gegevens heeft (**CPU-tijd**, **Kloktijd**, **Geheugen**, **Allocaties**, **Locks** of **Goroutines**, of één type onder **Meer profieltypen**) en een tijdvenster.
+**Producten → Prestatieprofielen** opent de Profiler op zijn **Overzicht**. Die antwoordt in woorden voordat er een grafiek komt: waar de tijd heen gaat ("In checkout neemt JSON.parse 42% van de CPU-tijd in.") en, wanneer de drukste functie van een bibliotheek of de runtime is, welke functie van uw eigen code het meest inneemt, met de bibliotheek- en runtimecode die ze aanroept. Kies bovenaan een service, een soort profiel waarvoor ze gegevens heeft (**CPU-tijd**, **Kloktijd**, **Geheugen**, **Allocaties**, **Locks** of **Goroutines**, of één type onder **Meer profieltypen**) en een tijdvenster.
 
 | Kaart | Wat die toont |
 | --- | --- |

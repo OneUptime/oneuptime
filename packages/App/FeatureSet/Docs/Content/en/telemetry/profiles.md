@@ -283,7 +283,7 @@ For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: i
 
 ## Explore profiles in OneUptime
 
-**Products → Performance Profiles** opens the Profiler on its **Overview**. It answers in words before any chart: where the time goes ("checkout spent 42% of its CPU time in JSON.parse") and, when the busiest function is a library's or the runtime's, the function of your own code that takes the most, with the library and runtime code it calls. At the top, pick a service, a kind of profile it has data for (**CPU time**, **Wall time**, **Memory**, **Allocations**, **Locks** or **Goroutines**, or one type under **More profile types**) and a window.
+**Products → Performance Profiles** opens the Profiler on its **Overview**. It answers in words before any chart: where the time goes ("JSON.parse takes 42% of the CPU time in checkout") and, when the busiest function is a library's or the runtime's, the function of your own code that takes the most, with the library and runtime code it calls. At the top, pick a service, a kind of profile it has data for (**CPU time**, **Wall time**, **Memory**, **Allocations**, **Locks** or **Goroutines**, or one type under **More profile types**) and a window.
 
 | Card | What it shows |
 | --- | --- |

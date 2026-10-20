@@ -114,8 +114,9 @@ import useProfileRequest, { ProfileRequestState } from "./UseProfileRequest";
  *      profile the scope has data for, a window - and what to compare it
  *      with: the period before, a day or a week ago, or a deploy.
  *   2. Where does it go? (ProfileHeadline) In words, before any chart:
- *      "checkout spent 41% of its CPU time in parseOrder", or - comparing -
- *      what got slower, or that nothing did.
+ *      "parseOrder takes 41% of the CPU time in checkout", or - comparing -
+ *      what got slower, or that nothing did. A read that fails draws no
+ *      headline: the functions card says so, with a retry.
  *   3. The flame graph (ProfileFlameCard), and the functions ranked with
  *      self and total explained where they are shown (ProfileFunctionTable).
  *   4. With every service in scope, which ones are profiled
@@ -761,6 +762,14 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
   const changeTooRecent: boolean =
     urlState.compare === ProfilesCompareMode.Change && !comparison;
 
+  /*
+   * The headline is read from the functions (or the comparison). When that
+   * read fails it has nothing to say - "no profiles in this window" would be
+   * wrong, as the flame graph beside it shows - so it steps aside, and the
+   * functions card says what failed, with a retry.
+   */
+  const readError: string = comparison ? compared.error : functions.error;
+
   // Comparing, the list ranks by change: All functions, or Your code.
   const viewOptions: Array<{ view: ProfileFunctionView; label: string }> =
     comparison
@@ -828,15 +837,19 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <ProfileHeadline
-        serviceName={serviceName}
-        kind={kind}
-        windowText={windowText}
-        isLoading={comparison ? compared.isLoading : functions.isLoading}
-        facts={headlineFacts}
-        comparison={headlineComparison}
-        onOpenFunction={openFunction}
-      />
+      {readError ? (
+        <></>
+      ) : (
+        <ProfileHeadline
+          serviceName={serviceName}
+          kind={kind}
+          windowText={windowText}
+          isLoading={comparison ? compared.isLoading : functions.isLoading}
+          facts={headlineFacts}
+          comparison={headlineComparison}
+          onOpenFunction={openFunction}
+        />
+      )}
 
       <div className="space-y-6">
         <ProfileFlameCard

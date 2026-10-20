@@ -597,6 +597,27 @@ export default class ProfileFixTaskTrigger {
   }
 
   /*
+   * A window as the person reads it in the task, in the one time zone the
+   * server can be sure of: "between 08:55 and 09:55 UTC on 2026-10-20", or
+   * with both dates when it spans midnight - never an ISO string with
+   * milliseconds.
+   */
+  public static describeWindow(startTime: Date, endTime: Date): string {
+    const start: string = startTime.toISOString();
+    const end: string = endTime.toISOString();
+    const startDay: string = start.substring(0, 10);
+    const endDay: string = end.substring(0, 10);
+    const startClock: string = start.substring(11, 16);
+    const endClock: string = end.substring(11, 16);
+
+    if (startDay === endDay) {
+      return `between ${startClock} and ${endClock} UTC on ${startDay}`;
+    }
+
+    return `between ${startDay} ${startClock} and ${endDay} ${endClock} UTC`;
+  }
+
+  /*
    * What the AI is asked, in plain words - and what the person sees, and
    * may edit, before sending. Its first line is the task's title.
    */
@@ -624,8 +645,8 @@ export default class ProfileFixTaskTrigger {
 
     const finding: string =
       data.reason === ProfileFixReason.Grew && evidence.before
-        ? `Its share of ${of} grew from ${formatProfileShare(evidence.before.ownShare)} to ${formatProfileShare(evidence.ownShare)} (counting the library and runtime code it calls) between ${evidence.before.window.startTime.toISOString()} and ${evidence.window.endTime.toISOString()}.`
-        : `It takes ${formatProfileShare(evidence.ownShare)} of ${of} (counting the library and runtime code it calls), in ${evidence.windowSampleCount} samples from ${evidence.window.startTime.toISOString()} to ${evidence.window.endTime.toISOString()}.`;
+        ? `Its share of ${of} grew from ${formatProfileShare(evidence.before.ownShare)} to ${formatProfileShare(evidence.ownShare)} (counting the library and runtime code it calls) ${ProfileFixTaskTrigger.describeWindow(evidence.before.window.startTime, evidence.window.endTime)}.`
+        : `It takes ${formatProfileShare(evidence.ownShare)} of ${of} (counting the library and runtime code it calls), in ${evidence.windowSampleCount.toLocaleString("en-US")} samples ${ProfileFixTaskTrigger.describeWindow(evidence.window.startTime, evidence.window.endTime)}.`;
 
     return [
       `Make ${name}${where} ${goal}`,

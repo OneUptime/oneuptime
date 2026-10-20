@@ -46,8 +46,10 @@
     "Start import",
     "Status",
     "Stratum",
+    "System",
     "Team",
     "Tip",
+    "Total",
     "Tunnel",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
@@ -61,6 +63,7 @@
     "{{count}} alarm",
     "{{count}} match",
     "{{count}} rotation",
+    "{{count}} samples",
     "{{tokens}} tokens"
   ]
 }

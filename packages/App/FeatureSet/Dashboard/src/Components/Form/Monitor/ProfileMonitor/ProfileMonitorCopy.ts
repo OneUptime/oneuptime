@@ -26,8 +26,9 @@ export const PROFILE_MONITOR_PREVIEW_COUNT: PluralTemplate = {
   other: "{{count}} profiles in the window.",
 };
 
+// "parseOrder takes 42% of the CPU time in this window."
 export const PROFILE_MONITOR_PREVIEW_SHARE: string = translationKey(
-  "{{function}} takes {{share}} of the window.",
+  "{{function}} takes {{share}} of the {{kind}} in this window.",
 );
 
 export const PROFILE_MONITOR_PREVIEW_NOTHING: string = translationKey(

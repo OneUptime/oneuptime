@@ -32,8 +32,8 @@ import {
  * THE ANSWER FIRST.
  *
  * One or two sentences that say what the page found, before any chart:
- * where the service spent its time ("checkout spent 41% of its CPU time in
- * parseOrder"), and - when the busiest function is a runtime's or a
+ * where the time goes ("parseOrder takes 41% of the CPU time in
+ * checkout"), and - when the busiest function is a runtime's or a
  * library's - which of the person's own functions takes the most. In
  * compare mode, what got slower ("parseOrder went from 10% to 45% of the
  * CPU time"), or that nothing changed. A function named here opens its

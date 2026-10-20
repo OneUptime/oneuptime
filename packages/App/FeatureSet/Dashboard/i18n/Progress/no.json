@@ -30,6 +30,7 @@
     "Start import",
     "Status",
     "Stratum",
+    "System",
     "Team",
     "Tunnel",
     "VMware vCenter",
@@ -41,6 +42,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} alarm",
+    "{{count}} samples",
     "{{tokens}} tokens"
   ]
 }

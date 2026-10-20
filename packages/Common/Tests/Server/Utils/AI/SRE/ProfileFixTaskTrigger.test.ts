@@ -606,5 +606,36 @@ describe("the ask, in plain words", () => {
     expect(grew).toContain(
       "Its share of checkout's CPU time grew from 12% to 42%",
     );
+    // The window as a person reads it, from the window before to now.
+    expect(grew).toContain("between 10:00 and 12:00 UTC on 2026-10-20.");
+  });
+
+  test("times and counts read as a person writes them, never as ISO strings", () => {
+    const hot: string = ProfileFixTaskTrigger.buildRequestMessage({
+      evidence: evidence({ windowSampleCount: 16400 }),
+      reason: ProfileFixReason.Hot,
+      serviceName: "checkout",
+    });
+
+    expect(hot).toContain(
+      "in 16,400 samples between 11:00 and 12:00 UTC on 2026-10-20.",
+    );
+    expect(hot).not.toContain(".000Z");
+    expect(hot).not.toContain("T11:00");
+  });
+
+  test("a window across midnight names both dates", () => {
+    expect(
+      ProfileFixTaskTrigger.describeWindow(
+        new Date("2026-10-19T23:30:00.000Z"),
+        new Date("2026-10-20T00:30:00.000Z"),
+      ),
+    ).toBe("between 2026-10-19 23:30 and 2026-10-20 00:30 UTC");
+    expect(
+      ProfileFixTaskTrigger.describeWindow(
+        new Date("2026-10-20T08:55:41.123Z"),
+        new Date("2026-10-20T09:55:41.123Z"),
+      ),
+    ).toBe("between 08:55 and 09:55 UTC on 2026-10-20");
   });
 });

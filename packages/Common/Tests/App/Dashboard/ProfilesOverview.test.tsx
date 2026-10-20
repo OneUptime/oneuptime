@@ -158,6 +158,10 @@ interface Scenario {
   fixBlockerType: string;
   // Act with no repository found for certain: these to pick from.
   fixRepositories: Array<{ id: string; name: string }>;
+  // Routes the fake server refuses, as a store that is down would.
+  failRoutes: Array<string>;
+  // The functions the function list answers with.
+  functions: Array<Record<string, any>>;
 }
 
 let scenario: Scenario;
@@ -263,7 +267,7 @@ function answer(url: string, body: Record<string, any>): Record<string, any> {
 
   if (url.includes("/telemetry/profiles/function-list")) {
     return {
-      functions: FUNCTIONS,
+      functions: scenario.functions,
       windowTotal: 1000,
       windowSampleCount: 10000,
       truncated: false,
@@ -305,6 +309,10 @@ function answer(url: string, body: Record<string, any>): Record<string, any> {
   }
 
   if (url.includes("/telemetry/profiles/function-focus")) {
+    // JSON.parse calls nothing; main has no caller: it starts its stacks.
+    const isLeaf: boolean = body["functionName"] === "JSON.parse";
+    const isRoot: boolean = body["functionName"] === "main";
+
     return {
       functionName: body["functionName"],
       fileName: body["fileName"],
@@ -319,37 +327,41 @@ function answer(url: string, body: Record<string, any>): Record<string, any> {
         fileName: body["fileName"],
         selfValue: 0,
         totalValue: 560,
-        children: [
-          {
-            functionName: "handleCheckout",
-            fileName: "src/routes/checkout.ts",
-            selfValue: 0,
-            totalValue: 560,
-            children: [],
-          },
-        ],
+        children: isRoot
+          ? []
+          : [
+              {
+                functionName: "handleCheckout",
+                fileName: "src/routes/checkout.ts",
+                selfValue: 0,
+                totalValue: 560,
+                children: [],
+              },
+            ],
       },
       callees: {
         functionName: body["functionName"],
         fileName: body["fileName"],
         selfValue: 0,
         totalValue: 560,
-        children: [
-          {
-            functionName: "JSON.parse",
-            fileName: "node:internal/json",
-            selfValue: 420,
-            totalValue: 420,
-            children: [],
-          },
-          {
-            functionName: "normalizeLineItems",
-            fileName: "src/orders/normalize.ts",
-            selfValue: 140,
-            totalValue: 140,
-            children: [],
-          },
-        ],
+        children: isLeaf
+          ? []
+          : [
+              {
+                functionName: "JSON.parse",
+                fileName: "node:internal/json",
+                selfValue: 420,
+                totalValue: 420,
+                children: [],
+              },
+              {
+                functionName: "normalizeLineItems",
+                fileName: "src/orders/normalize.ts",
+                selfValue: 140,
+                totalValue: 140,
+                children: [],
+              },
+            ],
       },
       truncated: false,
     };
@@ -463,6 +475,8 @@ beforeEach(() => {
     fixFails: false,
     fixBlockerType: "RepositoryNotConnected",
     fixRepositories: [],
+    failRoutes: [],
+    functions: FUNCTIONS,
   };
 
   postMock.mockReset();
@@ -473,6 +487,15 @@ beforeEach(() => {
         JSON.stringify(options.data || {}),
       );
       posted.push({ url, body });
+
+      if (
+        scenario.failRoutes.some((route: string): boolean => {
+          return url.includes(route);
+        })
+      ) {
+        throw new Error("The profile store is unavailable.");
+      }
+
       return { data: answer(url, body) };
     },
   );
@@ -527,7 +550,7 @@ describe("where the time goes, in words first", () => {
     await waitFor(() => {
       expect(
         within(headline).getByTestId("profiles-headline-text"),
-      ).toHaveTextContent("spent 42% of its CPU time in JSON.parse.");
+      ).toHaveTextContent("JSON.parse takes 42% of the CPU time in checkout.");
     });
     expect(headline).toHaveTextContent("The top 3 functions take 68%.");
     expect(
@@ -739,7 +762,7 @@ describe("one function, explained", () => {
     );
 
     expect(hint).toHaveTextContent(
-      "This is not your code. To spend less time here, change how your code calls it, starting with handleCheckout.",
+      "This is not your code: change how your code calls it, starting with handleCheckout.",
     );
 
     await act(async (): Promise<void> => {
@@ -1220,8 +1243,50 @@ describe("the function panel's figures and the fix strip", () => {
       "profiles-panel-own",
     ]) {
       const figure: HTMLElement = within(panel).getByTestId(testId);
-      expect(figure.className).toContain("mt-auto");
-      expect(figure.parentElement!.className).toContain("flex-col");
+      const box: HTMLElement = within(panel).getByTestId(`${testId}-box`);
+
+      // From sm, a column with the figure at its bottom.
+      expect(figure.className.split(" ")).toContain("sm:mt-auto");
+      expect(box.className.split(" ")).toContain("sm:flex-col");
+      expect(figure.parentElement).toBe(box);
+    }
+  });
+
+  /*
+   * On a phone the three boxes stacked took about 500 pixels, and pushed
+   * Fix with AI below the fold: each is one row there - what it counts on
+   * the left, spanning both lines, and the figure over its value on the
+   * right.
+   */
+  test("on a phone each figure is one row: what it counts on the left, the figure on the right", async () => {
+    await renderOverview(PARSE_ORDER);
+
+    const panel: HTMLElement = await screen.findByTestId("profiles-panel");
+    await within(panel).findByTestId("profiles-panel-own");
+
+    for (const testId of [
+      "profiles-panel-self",
+      "profiles-panel-total",
+      "profiles-panel-own",
+    ]) {
+      const box: HTMLElement = within(panel).getByTestId(`${testId}-box`);
+      const classes: Array<string> = box.className.split(" ");
+      const label: HTMLElement = box.querySelector("dt") as HTMLElement;
+      const figure: HTMLElement = within(panel).getByTestId(testId);
+
+      expect(classes).toEqual(
+        expect.arrayContaining([
+          "grid",
+          "grid-cols-[minmax(0,1fr)_auto]",
+          "sm:flex",
+        ]),
+      );
+      expect(label.className.split(" ")).toEqual(
+        expect.arrayContaining(["row-span-2", "sm:row-span-1"]),
+      );
+      expect(figure.className.split(" ")).toEqual(
+        expect.arrayContaining(["text-right", "sm:text-left"]),
+      );
     }
   });
 
@@ -1272,5 +1337,206 @@ describe("the flame graph cards", () => {
 
     expect(screen.getByText("What changed")).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("Red frames take");
+  });
+});
+
+describe("a read that fails", () => {
+  /*
+   * The headline is read from the functions. When that read failed it said
+   * "No CPU time profiles in this window." beside a flame graph full of
+   * them: now it says nothing, and the functions card says what failed.
+   */
+  test("the functions failing: no headline claims there are no profiles, and the card offers a retry", async () => {
+    scenario.failRoutes = ["/telemetry/profiles/function-list"];
+
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    expect(
+      await screen.findByText("The profile store is unavailable."),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("profiles-headline")).toBeNull();
+    expect(screen.queryByTestId("profiles-headline-loading")).toBeNull();
+    expect(
+      screen.queryByText("No CPU time profiles in this window."),
+    ).toBeNull();
+    // The flame graph reads on its own, and still draws.
+    expect(screen.getByTestId("profiles-flame")).toBeInTheDocument();
+
+    // The store answering again, a retry brings the answer back.
+    scenario.failRoutes = [];
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("refresh-button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("profiles-headline-text")).toHaveTextContent(
+        "JSON.parse takes 42% of the CPU time in checkout.",
+      );
+    });
+  });
+
+  test("comparing, the comparison failing: the same - no headline, the card says it", async () => {
+    scenario.failRoutes = ["/telemetry/profiles/function-comparison"];
+
+    await renderOverview(`?serviceId=${SERVICE_ID}&compare=previous`);
+
+    expect(
+      await screen.findByText("The profile store is unavailable."),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("profiles-headline")).toBeNull();
+    expect(
+      screen.queryByText("No CPU time profiles in this window."),
+    ).toBeNull();
+  });
+
+  test("a window whose function list really is empty still says so, in words of its own", async () => {
+    scenario.functions = [];
+
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    expect(
+      await screen.findByTestId("profiles-functions-empty"),
+    ).toHaveTextContent("No functions were sampled in this window.");
+    expect(screen.getByTestId("profiles-headline-text")).toHaveTextContent(
+      "No CPU time profiles in this window.",
+    );
+  });
+});
+
+describe("the column the list is ranked by reads first", () => {
+  test("Self: its share in bold over its value, Total quieter and alone", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    const row: HTMLElement = (
+      await screen.findAllByTestId("profiles-function-row")
+    )[0]!;
+    const self: HTMLElement = within(row).getByTestId("profiles-function-self");
+    const total: HTMLElement = within(row).getByTestId(
+      "profiles-function-total",
+    );
+
+    expect(self).toHaveAttribute("data-ranked", "true");
+    expect(self.className.split(" ")).toContain("font-semibold");
+    expect(self.parentElement!.children).toHaveLength(2);
+    expect(total).toHaveAttribute("data-ranked", "false");
+    expect(total.className.split(" ")).not.toContain("font-semibold");
+    expect(total.parentElement!.children).toHaveLength(1);
+  });
+
+  /*
+   * Ranked by Total, the bold figure was still Self - 0% for every
+   * function that does its work in what it calls.
+   */
+  test("Total: the bold figure and the value move to Total, on a laptop and on a phone", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+    await screen.findByTestId("profiles-functions");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("profiles-functions-view-total"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("profiles-functions")).toHaveAttribute(
+        "data-view",
+        "total",
+      );
+    });
+
+    const row: HTMLElement = screen.getAllByTestId("profiles-function-row")[0]!;
+    // handleCheckout: 95% with what it calls, none of its own.
+    expect(row).toHaveTextContent("handleCheckout");
+
+    const total: HTMLElement = within(row).getByTestId(
+      "profiles-function-total",
+    );
+    const self: HTMLElement = within(row).getByTestId("profiles-function-self");
+
+    expect(total).toHaveAttribute("data-ranked", "true");
+    expect(total).toHaveTextContent("95%");
+    expect(total.parentElement!.children).toHaveLength(2);
+    expect(self).toHaveAttribute("data-ranked", "false");
+    expect(self).toHaveTextContent("0%");
+
+    // A phone's line under the name leads with Total, and its value.
+    expect(
+      within(row).getByTestId("profiles-function-shares-compact"),
+    ).toHaveTextContent("Total 95% · 950 nsSelf 0%");
+  });
+});
+
+describe("what changed, on a phone", () => {
+  /*
+   * Beside the name, "21% → 42%" and its points left a phone's function
+   * names cut to a few letters: below sm they go under the name.
+   */
+  test("each row's change sits under the name below sm, and beside it from sm", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}&compare=previous`);
+
+    const rows: Array<HTMLElement> = await screen.findAllByTestId(
+      "profiles-function-row",
+    );
+
+    for (const row of rows) {
+      const compact: HTMLElement = within(row).getByTestId(
+        "profiles-function-change-compact",
+      );
+      const side: HTMLElement = within(row).getByTestId(
+        "profiles-function-change",
+      ).parentElement!;
+
+      expect(compact.className.split(" ")).toContain("sm:hidden");
+      expect(compact).toHaveTextContent("points");
+      expect(side.className.split(" ")).toEqual(
+        expect.arrayContaining(["max-sm:hidden", "sm:block"]),
+      );
+    }
+
+    expect(rows[0]).toHaveTextContent("JSON.parse");
+    expect(
+      within(rows[0]!).getByTestId("profiles-function-change-compact"),
+    ).toHaveTextContent("21% → 42%+21.0 points");
+  });
+});
+
+describe("words that fit memory as well as time", () => {
+  /*
+   * "Nothing: all its time is its own." read wrong for memory, where no
+   * time is counted at all; "To spend less time here" too.
+   */
+  test("a function that calls nothing says so without 'time', in memory as in CPU", async () => {
+    await renderOverview(
+      `?serviceId=${SERVICE_ID}&function=JSON.parse&file=node%3Ainternal%2Fjson&profileType=memory`,
+    );
+
+    const panel: HTMLElement = await screen.findByTestId("profiles-panel");
+
+    await waitFor(() => {
+      expect(
+        within(panel).getByTestId("profiles-panel-callees"),
+      ).toHaveTextContent("What it callsIt calls no other function.");
+    });
+    expect(
+      within(panel).getByTestId("profiles-panel-not-yours"),
+    ).toHaveTextContent(
+      "This is not your code: change how your code calls it, starting with handleCheckout.",
+    );
+    expect(panel).not.toHaveTextContent("time is its own");
+    expect(panel).not.toHaveTextContent("To spend less time here");
+  });
+
+  test("a function nothing calls says where its call stacks start, in plain words", async () => {
+    await renderOverview(
+      `?serviceId=${SERVICE_ID}&function=main&file=src%2Fserver.ts`,
+    );
+
+    const panel: HTMLElement = await screen.findByTestId("profiles-panel");
+
+    await waitFor(() => {
+      expect(
+        within(panel).getByTestId("profiles-panel-callers"),
+      ).toHaveTextContent(
+        "Who calls itNothing calls it: its call stacks start here.",
+      );
+    });
   });
 });

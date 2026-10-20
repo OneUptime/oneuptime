@@ -237,7 +237,7 @@ export const CODE_TASK_CONTEXT_KINDS: Record<
    */
   [CodeTaskContextType.Profile]: {
     label: translationKey("Performance profile"),
-    addTitle: translationKey("Add a profile"),
+    addTitle: translationKey("Add a performance profile"),
     icon: IconProp.Fire,
     isRecord: true,
   },

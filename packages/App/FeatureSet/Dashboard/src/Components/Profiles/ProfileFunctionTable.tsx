@@ -24,7 +24,11 @@ import {
   getShownFunctionRows,
 } from "../../Utils/ProfilesView";
 import {
+  CHANGES_EMPTY,
+  CHANGES_OWN_EMPTY,
   FUNCTIONS_COMPARE_DESCRIPTION,
+  FUNCTIONS_EMPTY,
+  FUNCTIONS_OWN_EMPTY,
   OWN_CODE_COMPARE_DESCRIPTION,
   OWN_CODE_EXPLAINED,
   OWN_CODE_SENTENCE,
@@ -33,6 +37,8 @@ import {
   PROFILE_ORIGIN_LABELS,
   SELF_AND_TOTAL_SENTENCE,
   SELF_EXPLAINED,
+  SORT_BY_SELF,
+  SORT_BY_TOTAL,
   TOTAL_EXPLAINED,
 } from "./ProfileCopy";
 import { ProfileSourceLink } from "./ProfilesApi";
@@ -142,6 +148,45 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
   }
 
   const isOwnView: boolean = props.view === "own";
+  const isTotalView: boolean = props.view === "total";
+
+  /*
+   * A share column of one window. The column the list is ranked by reads
+   * first: its share in bold over its value; the other is its share alone,
+   * quieter - so ranking by Total puts the eye on Total, not on a Self of 0%.
+   */
+  const renderFigure: (figure: {
+    share: number;
+    value: number;
+    isRanked: boolean;
+    testId: string;
+  }) => ReactElement = (figure: {
+    share: number;
+    value: number;
+    isRanked: boolean;
+    testId: string;
+  }): ReactElement => {
+    return (
+      <div className="w-24 flex-none text-right max-sm:hidden sm:block">
+        <div
+          className={`font-mono text-sm ${
+            figure.isRanked ? "font-semibold text-gray-900" : "text-gray-500"
+          }`}
+          data-testid={figure.testId}
+          data-ranked={figure.isRanked}
+        >
+          {formatProfileShare(figure.share)}
+        </div>
+        {figure.isRanked ? (
+          <div className="text-xs text-gray-500">
+            {formatProfileValue(figure.value, props.unit)}
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
 
   const renderWhere: (row: FrameRow) => ReactElement = (
     row: FrameRow,
@@ -345,11 +390,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
     ).length;
 
     if (changes.length === 0) {
-      return empty(
-        isOwnView
-          ? "None of your own code's share of the time changed between these windows."
-          : "No function's share of the time changed between these windows.",
-      );
+      return empty(isOwnView ? CHANGES_OWN_EMPTY : CHANGES_EMPTY);
     }
 
     return (
@@ -371,6 +412,22 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
               ? change.ownShareChange
               : change.selfShareChange;
             const isHeavier: boolean = points > 0;
+            const beforeAfter: ReactElement = (
+              <>
+                {formatProfileShare(before)}{" "}
+                <span className="text-gray-400" aria-hidden="true">
+                  →
+                </span>{" "}
+                {formatProfileShare(after)}
+              </>
+            );
+            const pointsText: string =
+              translator.translateTemplate("{{change}} points", {
+                change: `${isHeavier ? "+" : ""}${points.toFixed(1)}`,
+              }) || "";
+            const pointsClass: string = `font-semibold ${
+              isHeavier ? "text-red-600" : "text-green-600"
+            }`;
 
             return (
               <li
@@ -384,24 +441,30 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                 <div className="min-w-0 flex-1">
                   {renderName(change)}
                   {renderWhere(change)}
+                  {/*
+                   * Below sm the change goes under the name, as the shares
+                   * of one window do: beside it, it left a phone's names
+                   * cut to a few letters.
+                   */}
+                  <div
+                    className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-xs sm:hidden"
+                    data-testid="profiles-function-change-compact"
+                  >
+                    <span className="whitespace-nowrap font-mono text-gray-700">
+                      {beforeAfter}
+                    </span>
+                    <span className={pointsClass}>{pointsText}</span>
+                  </div>
                 </div>
-                <div className="flex-none text-right">
+                <div className="flex-none text-right max-sm:hidden sm:block">
                   <div className="whitespace-nowrap font-mono text-sm text-gray-700">
-                    {formatProfileShare(before)}{" "}
-                    <span className="text-gray-400" aria-hidden="true">
-                      →
-                    </span>{" "}
-                    {formatProfileShare(after)}
+                    {beforeAfter}
                   </div>
                   <div
-                    className={`text-xs font-semibold ${
-                      isHeavier ? "text-red-600" : "text-green-600"
-                    }`}
+                    className={`text-xs ${pointsClass}`}
                     data-testid="profiles-function-change"
                   >
-                    {translator.translateTemplate("{{change}} points", {
-                      change: `${isHeavier ? "+" : ""}${points.toFixed(1)}`,
-                    })}
+                    {pointsText}
                   </div>
                 </div>
               </li>
@@ -426,22 +489,18 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
   ).length;
 
   if (rows.length === 0) {
-    return empty(
-      isOwnView
-        ? "None of your own code ran in this window."
-        : "No functions were sampled in this window.",
-    );
+    return empty(isOwnView ? FUNCTIONS_OWN_EMPTY : FUNCTIONS_EMPTY);
   }
 
   return (
     <div>
       {explanation}
-      <div className="-mx-5 items-center gap-3 border-b border-gray-100 px-5 pb-2 text-xs font-medium uppercase tracking-wide text-gray-400 max-sm:hidden sm:flex md:-mx-6 md:px-6">
+      <div className="-mx-5 items-center gap-3 border-b border-gray-100 px-5 pb-2 text-xs font-medium uppercase tracking-wide text-gray-500 max-sm:hidden sm:flex md:-mx-6 md:px-6">
         <span className="w-6 flex-none" />
         <span className="flex-1">{translator.translateText("Function")}</span>
         {isOwnView ? (
           <span
-            className="w-28 flex-none text-right"
+            className="w-28 flex-none text-right text-gray-700"
             title={translator.translateText(OWN_CODE_EXPLAINED)}
           >
             {translator.translateText("Your code")}
@@ -449,16 +508,20 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
         ) : (
           <>
             <span
-              className="w-24 flex-none text-right"
+              className={`w-24 flex-none text-right ${
+                isTotalView ? "" : "text-gray-700"
+              }`}
               title={translator.translateText(SELF_EXPLAINED)}
             >
-              {translator.translateText("Self")}
+              {translator.translateText(SORT_BY_SELF)}
             </span>
             <span
-              className="w-20 flex-none text-right"
+              className={`w-24 flex-none text-right ${
+                isTotalView ? "text-gray-700" : ""
+              }`}
               title={translator.translateText(TOTAL_EXPLAINED)}
             >
-              {translator.translateText("Total")}
+              {translator.translateText(SORT_BY_TOTAL)}
             </span>
           </>
         )}
@@ -516,6 +579,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                 {/*
                  * Below sm the shares go under the name: beside it, two
                  * columns of figures left the name no room on a phone.
+                 * The one the list is ranked by comes first.
                  */}
                 <div
                   className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500 sm:hidden"
@@ -529,21 +593,48 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                       · {formatProfileValue(row.ownValue, props.unit)}
                     </span>
                   ) : (
-                    <>
-                      <span>
-                        {translator.translateText("Self")}{" "}
-                        <span className="font-mono font-semibold text-gray-900">
-                          {formatProfileShare(selfShare)}
-                        </span>{" "}
-                        · {formatProfileValue(row.selfValue, props.unit)}
-                      </span>
-                      <span>
-                        {translator.translateText("Total")}{" "}
-                        <span className="font-mono text-gray-700">
-                          {formatProfileShare(totalShare)}
-                        </span>
-                      </span>
-                    </>
+                    (isTotalView
+                      ? [
+                          { label: SORT_BY_TOTAL, share: totalShare },
+                          { label: SORT_BY_SELF, share: selfShare },
+                        ]
+                      : [
+                          { label: SORT_BY_SELF, share: selfShare },
+                          { label: SORT_BY_TOTAL, share: totalShare },
+                        ]
+                    ).map(
+                      (
+                        figure: { label: string; share: number },
+                        position: number,
+                      ) => {
+                        return (
+                          <span key={figure.label}>
+                            {translator.translateText(figure.label)}{" "}
+                            <span
+                              className={`font-mono ${
+                                position === 0
+                                  ? "font-semibold text-gray-900"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {formatProfileShare(figure.share)}
+                            </span>
+                            {position === 0 ? (
+                              <>
+                                {" "}
+                                ·{" "}
+                                {formatProfileValue(
+                                  isTotalView ? row.totalValue : row.selfValue,
+                                  props.unit,
+                                )}
+                              </>
+                            ) : (
+                              <></>
+                            )}
+                          </span>
+                        );
+                      },
+                    )
                   )}
                 </div>
               </div>
@@ -561,25 +652,18 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
                 </div>
               ) : (
                 <>
-                  <div className="w-24 flex-none text-right max-sm:hidden sm:block">
-                    <div
-                      className="font-mono text-sm font-semibold text-gray-900"
-                      data-testid="profiles-function-self"
-                    >
-                      {formatProfileShare(selfShare)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {formatProfileValue(row.selfValue, props.unit)}
-                    </div>
-                  </div>
-                  <div className="w-20 flex-none text-right max-sm:hidden sm:block">
-                    <div
-                      className="font-mono text-sm text-gray-700"
-                      data-testid="profiles-function-total"
-                    >
-                      {formatProfileShare(totalShare)}
-                    </div>
-                  </div>
+                  {renderFigure({
+                    share: selfShare,
+                    value: row.selfValue,
+                    isRanked: !isTotalView,
+                    testId: "profiles-function-self",
+                  })}
+                  {renderFigure({
+                    share: totalShare,
+                    value: row.totalValue,
+                    isRanked: isTotalView,
+                    testId: "profiles-function-total",
+                  })}
                 </>
               )}
             </li>

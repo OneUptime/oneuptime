@@ -878,9 +878,17 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         </div>
       )}
 
+      {/*
+       * Frames are placed from the left (style.left), and their labels are
+       * code - function names read left to right in every language. In a
+       * right-to-left page (Persian) the labels would otherwise hug the
+       * right edge and lose their start to the ellipsis ("…alizeLineItems").
+       */}
       <div
+        dir="ltr"
         className="relative w-full overflow-x-auto border border-gray-200 rounded-lg bg-gradient-to-b from-gray-50/50 to-white"
         style={{ height: `${height}px` }}
+        data-testid="flamegraph-frames"
       >
         {treeElements}
         {/*

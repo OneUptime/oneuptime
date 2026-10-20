@@ -87,12 +87,16 @@ export const COMPARED_WITH_NAMED_CHANGE: string = translationKey(
   "Compared with before the change {{when}} ({{change}}).",
 );
 
-// The headline.
+/*
+ * The headline. The function comes first, and "takes" is the verb of every
+ * sentence in it - a share of the CPU time, of the memory, of the lock
+ * waits or of the goroutines, which no service "spends".
+ */
 export const HEADLINE_LEADER: string = translationKey(
-  "{{service}} spent {{share}} of its {{kind}} in {{function}}.",
+  "{{function}} takes {{share}} of the {{kind}} in {{service}}.",
 );
 export const HEADLINE_LEADER_ALL: string = translationKey(
-  "Your services spent {{share}} of their {{kind}} in {{function}}.",
+  "{{function}} takes {{share}} of the {{kind}} across your services.",
 );
 export const HEADLINE_TOP_THREE: string = translationKey(
   "The top {{count}} functions take {{share}}.",
@@ -160,6 +164,20 @@ export const OWN_CODE_EXPLAINED: string = translationKey(
   "The function with the library and runtime code it calls.",
 );
 
+// The list with nothing in it, for one window and for two.
+export const FUNCTIONS_EMPTY: string = translationKey(
+  "No functions were sampled in this window.",
+);
+export const FUNCTIONS_OWN_EMPTY: string = translationKey(
+  "None of your own code ran in this window.",
+);
+export const CHANGES_EMPTY: string = translationKey(
+  "No function's share moved between these windows.",
+);
+export const CHANGES_OWN_EMPTY: string = translationKey(
+  "None of your own functions' shares moved between these windows.",
+);
+
 // The services card (every profiled service).
 export const SERVICES_TITLE: string = translationKey("Services being profiled");
 export const SERVICES_DESCRIPTION: string = translationKey(
@@ -212,11 +230,12 @@ export const PANEL_BEFORE_AFTER_OWN: string = translationKey(
 );
 export const PANEL_CALLERS: string = translationKey("Who calls it");
 export const PANEL_CALLERS_NONE: string = translationKey(
-  "Nothing: it starts its stacks.",
+  "Nothing calls it: its call stacks start here.",
 );
 export const PANEL_CALLEES: string = translationKey("What it calls");
+// Not "all its time is its own": memory and allocations are no time.
 export const PANEL_CALLEES_NONE: string = translationKey(
-  "Nothing: all its time is its own.",
+  "It calls no other function.",
 );
 export const PANEL_OPEN_SOURCE: string = translationKey(
   "Open {{path}} in {{repository}}",
@@ -232,7 +251,7 @@ export const PANEL_WATCH: string = translationKey(
   "Alert me when its share passes {{threshold}}",
 );
 export const PANEL_NOT_YOUR_CODE: string = translationKey(
-  "This is not your code. To spend less time here, change how your code calls it, starting with {{function}}.",
+  "This is not your code: change how your code calls it, starting with {{function}}.",
 );
 export const PANEL_PICK_SERVICE_TO_FIX: string = translationKey(
   "Pick its service above to fix it with AI.",

@@ -1,4 +1,8 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ProfileValueUnit,
+  formatProfileValue as formatCommonProfileValue,
+} from "Common/Utils/Profiles/ProfileTypes";
 
 export interface ParsedStackFrame {
   functionName: string;
@@ -513,40 +517,21 @@ export default class ProfileUtil {
   public static formatProfileValue(value: number, unit: string): string {
     const lowerUnit: string = unit.toLowerCase();
 
+    /*
+     * The Profiler's own steps (Common's formatProfileValue), so a flame
+     * graph's total and a function's row read the same: "124 s", never
+     * "124.00 s".
+     */
     if (lowerUnit === "nanoseconds" || lowerUnit === "ns") {
-      if (value >= 1_000_000_000) {
-        return `${(value / 1_000_000_000).toFixed(2)} s`;
-      }
-      if (value >= 1_000_000) {
-        return `${(value / 1_000_000).toFixed(1)} ms`;
-      }
-      if (value >= 1_000) {
-        return `${(value / 1_000).toFixed(1)} µs`;
-      }
-      return `${value} ns`;
+      return formatCommonProfileValue(value, ProfileValueUnit.Nanoseconds);
     }
 
     if (lowerUnit === "bytes" || lowerUnit === "byte") {
-      if (value >= 1_073_741_824) {
-        return `${(value / 1_073_741_824).toFixed(2)} GB`;
-      }
-      if (value >= 1_048_576) {
-        return `${(value / 1_048_576).toFixed(2)} MB`;
-      }
-      if (value >= 1_024) {
-        return `${(value / 1_024).toFixed(1)} KB`;
-      }
-      return `${value} B`;
+      return formatCommonProfileValue(value, ProfileValueUnit.Bytes);
     }
 
     if (lowerUnit === "count" || lowerUnit === "samples") {
-      if (value >= 1_000_000) {
-        return `${(value / 1_000_000).toFixed(1)}M`;
-      }
-      if (value >= 1_000) {
-        return `${(value / 1_000).toFixed(1)}K`;
-      }
-      return `${value}`;
+      return formatCommonProfileValue(value, ProfileValueUnit.Count);
     }
 
     return `${value} ${unit}`;

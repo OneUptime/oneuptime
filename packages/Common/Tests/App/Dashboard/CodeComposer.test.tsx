@@ -527,6 +527,13 @@ describe("adding context", () => {
       CodeTaskContextType.Profile,
     );
 
+    /*
+     * Titled as the menu names it: a bare "profile" reads as a person's
+     * profile everywhere else in the Dashboard.
+     */
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Add a performance profile",
+    );
     expect(screen.getByRole("dialog")).toHaveTextContent(
       "AI reads where the function's time goes in the service's profiles: who calls it, what it calls and its hottest lines.",
     );

@@ -34,6 +34,7 @@
     "Runner",
     "Status",
     "Stratum",
+    "System",
     "Team",
     "Text",
     "Tunnel",
@@ -49,6 +50,7 @@
     "{{count}} incident",
     "{{count}} process",
     "{{count}} rotation",
+    "{{count}} samples",
     "{{tokens}} tokens"
   ]
 }

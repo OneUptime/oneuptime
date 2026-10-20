@@ -182,7 +182,7 @@ export const PROFILE_KIND_DESCRIPTIONS: Record<ProfileCategory, string> = {
 };
 
 /*
- * "the CPU time" in "spent 41% of its CPU time in": the kind as the
+ * "the CPU time" in "takes 41% of the CPU time in": the kind as the
  * headline's sentences name it.
  */
 export const PROFILE_KIND_NOUNS: Record<ProfileCategory, string> = {

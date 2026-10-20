@@ -50,6 +50,7 @@ import ProfileMonitorStepForm, {
   ANY_PROFILE_KIND,
   CUSTOM_PROFILE_KIND,
   getProfileMonitorKindValue,
+  getProfileMonitorPreviewCategory,
   readProfileMonitorPreview,
   toProfileMonitorConfig,
   toProfileMonitorFormValues,
@@ -58,6 +59,7 @@ import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepProfileMonitor";
 import ObjectID from "../../../Types/ObjectID";
+import { ProfileCategory } from "../../../Utils/Profiles/ProfileTypes";
 
 const SERVICE_ID: string = "60000000-0000-4000-8000-0000000000a1";
 
@@ -208,7 +210,7 @@ describe("what the monitor would read now", () => {
     ).toHaveTextContent("30 profiles in the window.");
     expect(
       screen.getByTestId("profile-monitor-preview-share"),
-    ).toHaveTextContent("parseOrder takes 34% of the window.");
+    ).toHaveTextContent("parseOrder takes 34% of the CPU time in this window.");
 
     const request: {
       url: { toString: () => string };
@@ -254,6 +256,65 @@ describe("what the monitor would read now", () => {
       await screen.findByTestId("profile-monitor-preview-nothing"),
     ).toHaveTextContent(
       "Nothing was profiled in this window, so Function Share has nothing to judge yet.",
+    );
+  });
+
+  /*
+   * "parseOrder takes 34% of the window." said a share of what? Of the
+   * kind the monitor reads, as the Profiler's own headline says it.
+   */
+  test.each([
+    [
+      "memory",
+      ["inuse_space"],
+      "parseOrder takes 34% of the memory in this window.",
+    ],
+    [
+      "every kind at once",
+      [],
+      "parseOrder takes 34% of the samples in this window.",
+    ],
+  ])(
+    "the share is named as a share of %s",
+    async (_kind: string, profileTypes: Array<string>, sentence: string) => {
+      jest.useFakeTimers();
+
+      await act(async (): Promise<void> => {
+        render(
+          <ProfileMonitorStepForm
+            monitorStepProfileMonitor={monitor({ profileTypes })}
+            onMonitorStepProfileMonitorChanged={() => {}}
+            telemetryServices={[]}
+          />,
+        );
+      });
+      await act(async (): Promise<void> => {
+        jest.advanceTimersByTime(600);
+      });
+      jest.useRealTimers();
+
+      expect(
+        await screen.findByTestId("profile-monitor-preview-share"),
+      ).toHaveTextContent(sentence);
+    },
+  );
+
+  test("the preview's kind: the one picked, every kind's samples, or a saved mix's", () => {
+    expect(getProfileMonitorPreviewCategory("memory", undefined)).toBe(
+      ProfileCategory.Memory,
+    );
+    expect(getProfileMonitorPreviewCategory(ANY_PROFILE_KIND, [])).toBe(
+      ProfileCategory.Other,
+    );
+    // Raw types of several kinds have no one kind: their samples.
+    expect(
+      getProfileMonitorPreviewCategory(CUSTOM_PROFILE_KIND, [
+        "cpu",
+        "inuse_space",
+      ]),
+    ).toBe(ProfileCategory.Other);
+    expect(getProfileMonitorPreviewCategory("", undefined)).toBe(
+      ProfileCategory.Other,
     );
   });
 });

@@ -429,12 +429,12 @@ describe("words and numbers", () => {
     [12_500_000, ProfileValueUnit.Nanoseconds, "12.5 ms"],
     [4_200, ProfileValueUnit.Nanoseconds, "4.2 µs"],
     [17, ProfileValueUnit.Nanoseconds, "17 ns"],
-    [3 * 1_073_741_824, ProfileValueUnit.Bytes, "3.00 GB"],
-    [12.5 * 1_048_576, ProfileValueUnit.Bytes, "12.50 MB"],
-    [2_048, ProfileValueUnit.Bytes, "2.0 KB"],
+    [3 * 1_073_741_824, ProfileValueUnit.Bytes, "3 GB"],
+    [12.5 * 1_048_576, ProfileValueUnit.Bytes, "12.5 MB"],
+    [2_048, ProfileValueUnit.Bytes, "2 KB"],
     [100, ProfileValueUnit.Bytes, "100 B"],
     [2_500_000, ProfileValueUnit.Count, "2.5M"],
-    [1_234, ProfileValueUnit.Count, "1.2K"],
+    [1_234, ProfileValueUnit.Count, "1.23K"],
     [7, ProfileValueUnit.Count, "7"],
   ])(
     "formats %d %s as %s",
@@ -442,6 +442,58 @@ describe("words and numbers", () => {
       expect(formatProfileValue(value, unit)).toBe(text);
     },
   );
+
+  /*
+   * What the Profiler's rows and totals used to say "124.00 s" and
+   * "553.00 s" for: at most three significant digits, no trailing zeros,
+   * and a bigger unit once a figure would reach 1,000.
+   */
+  test.each([
+    [124_000_000_000, ProfileValueUnit.Nanoseconds, "124 s"],
+    [553_000_000_000, ProfileValueUnit.Nanoseconds, "553 s"],
+    [54_000_000_000, ProfileValueUnit.Nanoseconds, "54 s"],
+    [9_500_000_000, ProfileValueUnit.Nanoseconds, "9.5 s"],
+    [1_000_000_000_000, ProfileValueUnit.Nanoseconds, "16.7 min"],
+    [86_400_000_000_000, ProfileValueUnit.Nanoseconds, "24 h"],
+    [7_257_600_000_000_000, ProfileValueUnit.Nanoseconds, "2,016 h"],
+    // Rounding up to 1,000 of one unit reads as one of the next.
+    [999_600_000, ProfileValueUnit.Nanoseconds, "1 s"],
+    [999_600, ProfileValueUnit.Nanoseconds, "1 ms"],
+    [999, ProfileValueUnit.Nanoseconds, "999 ns"],
+    [0, ProfileValueUnit.Nanoseconds, "0 ns"],
+    [1_536, ProfileValueUnit.Bytes, "1.5 KB"],
+    [1_048_576_000, ProfileValueUnit.Bytes, "0.98 GB"],
+    [5 * 1_099_511_627_776, ProfileValueUnit.Bytes, "5 TB"],
+    [125_000, ProfileValueUnit.Count, "125K"],
+    [999_999, ProfileValueUnit.Count, "1M"],
+    [3_400_000_000, ProfileValueUnit.Count, "3.4B"],
+  ])(
+    "reads %d %s as %s, never with trailing zeros",
+    (value: number, unit: ProfileValueUnit, text: string) => {
+      expect(formatProfileValue(value, unit)).toBe(text);
+    },
+  );
+
+  test("no figure ends in a zero after its point, whatever the value", () => {
+    const TRAILING_ZERO: RegExp = /\.\d*0(?!\d)/;
+
+    for (const unit of [
+      ProfileValueUnit.Nanoseconds,
+      ProfileValueUnit.Bytes,
+      ProfileValueUnit.Count,
+    ]) {
+      for (let exponent: number = 0; exponent <= 16; exponent++) {
+        for (const leading of [1, 1.5, 2, 4.2, 9.99, 10, 12.5, 99.9, 500]) {
+          const text: string = formatProfileValue(
+            leading * 10 ** exponent,
+            unit,
+          );
+
+          expect(TRAILING_ZERO.test(text)).toBe(false);
+        }
+      }
+    }
+  });
 
   test("a value that is not a number reads as nothing", () => {
     expect(formatProfileValue(Number.NaN, ProfileValueUnit.Bytes)).toBe("0 B");

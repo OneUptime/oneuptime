@@ -550,9 +550,77 @@ export function getProfileCategoryNoun(category: ProfileCategory): string {
   }
 }
 
+interface ProfileValueStep {
+  // What the figure is followed by: " s", " MB", "K".
+  suffix: string;
+  // How many of the raw unit one of it is.
+  size: number;
+}
+
+// Time steps up to hours: a week of CPU time reads "2,016 h", not seconds.
+const TIME_STEPS: ReadonlyArray<ProfileValueStep> = [
+  { suffix: " ns", size: 1 },
+  { suffix: " µs", size: 1_000 },
+  { suffix: " ms", size: 1_000_000 },
+  { suffix: " s", size: 1_000_000_000 },
+  { suffix: " min", size: 60_000_000_000 },
+  { suffix: " h", size: 3_600_000_000_000 },
+];
+
+const BYTE_STEPS: ReadonlyArray<ProfileValueStep> = [
+  { suffix: " B", size: 1 },
+  { suffix: " KB", size: 1_024 },
+  { suffix: " MB", size: 1_048_576 },
+  { suffix: " GB", size: 1_073_741_824 },
+  { suffix: " TB", size: 1_099_511_627_776 },
+];
+
+const COUNT_STEPS: ReadonlyArray<ProfileValueStep> = [
+  { suffix: "", size: 1 },
+  { suffix: "K", size: 1_000 },
+  { suffix: "M", size: 1_000_000 },
+  { suffix: "B", size: 1_000_000_000 },
+];
+
+/*
+ * A figure with at most three significant digits and no trailing zeros:
+ * 124, 54, 9.5, 2.41. A "124.00" or "2.0" reads as a machine's, not a
+ * person's; past 999 the figure is grouped ("2,016").
+ */
+function formatSignificant(amount: number): string {
+  if (amount >= 99.5) {
+    return Math.round(amount).toLocaleString("en-US");
+  }
+
+  return String(Number(amount.toFixed(amount >= 9.95 ? 1 : 2)));
+}
+
+function formatInSteps(
+  value: number,
+  steps: ReadonlyArray<ProfileValueStep>,
+): string {
+  for (let index: number = 0; index < steps.length; index++) {
+    const step: ProfileValueStep = steps[index]!;
+    const next: ProfileValueStep | undefined = steps[index + 1];
+    const amount: number = value / step.size;
+
+    // A step holds its figure while it reads under 1,000 once rounded.
+    if (!next || amount < 999.5) {
+      return `${
+        index === 0
+          ? Math.round(amount).toLocaleString("en-US")
+          : formatSignificant(amount)
+      }${step.suffix}`;
+    }
+  }
+
+  return `${Math.round(value)}`;
+}
+
 /*
  * A raw value in its unit as a person reads it, in English: "2.41 s",
- * "12.5 MB", "1.2K". The Dashboard formats with the same steps.
+ * "124 s", "16.7 min", "12.5 MB", "1.23K". The Dashboard's profile pages
+ * format with this too (ProfileUtil.formatProfileValue).
  */
 export function formatProfileValue(
   value: number,
@@ -561,38 +629,14 @@ export function formatProfileValue(
   const safe: number = Number.isFinite(value) ? Math.max(0, value) : 0;
 
   if (unit === ProfileValueUnit.Nanoseconds) {
-    if (safe >= 1_000_000_000) {
-      return `${(safe / 1_000_000_000).toFixed(2)} s`;
-    }
-    if (safe >= 1_000_000) {
-      return `${(safe / 1_000_000).toFixed(1)} ms`;
-    }
-    if (safe >= 1_000) {
-      return `${(safe / 1_000).toFixed(1)} µs`;
-    }
-    return `${Math.round(safe)} ns`;
+    return formatInSteps(safe, TIME_STEPS);
   }
 
   if (unit === ProfileValueUnit.Bytes) {
-    if (safe >= 1_073_741_824) {
-      return `${(safe / 1_073_741_824).toFixed(2)} GB`;
-    }
-    if (safe >= 1_048_576) {
-      return `${(safe / 1_048_576).toFixed(2)} MB`;
-    }
-    if (safe >= 1_024) {
-      return `${(safe / 1_024).toFixed(1)} KB`;
-    }
-    return `${Math.round(safe)} B`;
+    return formatInSteps(safe, BYTE_STEPS);
   }
 
-  if (safe >= 1_000_000) {
-    return `${(safe / 1_000_000).toFixed(1)}M`;
-  }
-  if (safe >= 1_000) {
-    return `${(safe / 1_000).toFixed(1)}K`;
-  }
-  return `${Math.round(safe)}`;
+  return formatInSteps(safe, COUNT_STEPS);
 }
 
 // A share (0-100) as a person reads it: "41%", "3.2%", "<0.1%".

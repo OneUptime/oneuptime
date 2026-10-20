@@ -132,7 +132,7 @@ test.describe("where the time goes", () => {
     await openLoaded(page);
 
     await expect(page.getByTestId("profiles-headline-text")).toHaveText(
-      /Your services spent \d+% of their CPU time in JSON\.parse\./,
+      /JSON\.parse takes \d+% of the CPU time across your services\./,
     );
     await expect(page.getByTestId("profiles-headline-own")).toContainText(
       "In your own code, parseOrder takes the most",
@@ -150,6 +150,13 @@ test.describe("where the time goes", () => {
 
     await expect(page.getByTestId("profiles-flame")).toBeVisible();
     await expect(page.getByTestId("profiles-functions")).toBeVisible();
+
+    // Values read as a person writes them: "553 s", never "553.00 s".
+    await expect(page.getByTestId("profiles-flame")).toContainText("Total:");
+    await expect(page.getByTestId("profiles-flame")).not.toContainText(".00 ");
+    await expect(page.getByTestId("profiles-functions")).not.toContainText(
+      ".00 s",
+    );
 
     // The flame graph names whose code a frame is as the list beside it does.
     const flame: Locator = page.getByTestId("profiles-flame");
@@ -191,7 +198,7 @@ test.describe("where the time goes", () => {
     await page.getByTestId("profiles-service-row").first().click();
     await expect(page).toHaveURL(new RegExp(`serviceId=${CHECKOUT}`));
     await expect(page.getByTestId("profiles-headline-text")).toContainText(
-      "checkout spent 42% of its CPU time in JSON.parse.",
+      "JSON.parse takes 42% of the CPU time in checkout.",
     );
 
     // The deploy is in the compare menu, with when it shipped.
@@ -290,9 +297,31 @@ test.describe("what changed", () => {
 
     const rows: Locator = page.getByTestId("profiles-function-row");
     await expect(rows.first()).toContainText("JSON.parse");
-    await expect(
-      rows.first().getByTestId("profiles-function-change"),
-    ).toContainText("points");
+
+    /*
+     * On a phone the change sits under the name, which keeps the whole
+     * width; from sm it sits beside it.
+     */
+    const compact: Locator = rows
+      .first()
+      .getByTestId("profiles-function-change-compact");
+    const side: Locator = rows.first().getByTestId("profiles-function-change");
+    if (isPhone(testInfo)) {
+      await expect(compact).toBeVisible();
+      await expect(compact).toContainText("points");
+      await expect(side).toBeHidden();
+
+      const name: { width: number } | null = await rows
+        .first()
+        .getByTestId("profiles-function-name")
+        .boundingBox();
+      // The name is not cut short by figures beside it.
+      expect(name!.width).toBeGreaterThan(70);
+    } else {
+      await expect(side).toBeVisible();
+      await expect(side).toContainText("points");
+      await expect(compact).toBeHidden();
+    }
 
     // Your code ranks the application's own functions by own-code share.
     await page.getByTestId("profiles-functions-view-own").click();
@@ -344,6 +373,28 @@ test.describe("one function", () => {
 
     if (isPhone(testInfo)) {
       await expectNoSidewaysScroll(page);
+
+      /*
+       * On a phone each figure is one row - what it counts on the left,
+       * the share on the right - so the three take a third of the height
+       * they took stacked, and Fix with AI stays in view.
+       */
+      for (const testId of [
+        "profiles-panel-self",
+        "profiles-panel-total",
+        "profiles-panel-own",
+      ]) {
+        const box: { x: number; width: number; height: number } | null =
+          await panel.getByTestId(`${testId}-box`).boundingBox();
+        const figure: { x: number; width: number } | null = await panel
+          .getByTestId(testId)
+          .boundingBox();
+        expect(box!.height).toBeLessThan(72);
+        expect(box!.x + box!.width - (figure!.x + figure!.width)).toBeLessThan(
+          20,
+        );
+      }
+      await expect(panel.getByTestId("profiles-fix-with-ai")).toBeInViewport();
     } else {
       /*
        * Side by side, the three figures line up whatever the length of
@@ -571,7 +622,7 @@ test.describe("a service's own Profiles tab", () => {
     await page.goto(`/dashboard/${PROJECT_ID}/service/${CHECKOUT}/profiles`);
 
     await expect(page.getByTestId("profiles-headline-text")).toContainText(
-      "checkout spent 42% of its CPU time in JSON.parse.",
+      "JSON.parse takes 42% of the CPU time in checkout.",
       { timeout: 60000 },
     );
     await expect(page.getByTestId("profiles-service-picker")).toHaveCount(0);
@@ -613,6 +664,66 @@ test.describe("a service's own Profiles tab", () => {
       await expectNoSidewaysScroll(page);
     }
     await screenshot(page, testInfo, "service-tab-empty");
+  });
+});
+
+test.describe("the functions, ranked", () => {
+  test("ranked by Total, Total is the bold figure with its value; Self steps back", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openLoaded(page, `?serviceId=${CHECKOUT}`);
+
+    await page.getByTestId("profiles-functions-view-total").click();
+    await expect(page.getByTestId("profiles-functions")).toHaveAttribute(
+      "data-view",
+      "total",
+    );
+
+    const first: Locator = page.getByTestId("profiles-function-row").first();
+    await expect(first).toContainText("main");
+
+    if (isPhone(testInfo)) {
+      await expect(
+        first.getByTestId("profiles-function-shares-compact"),
+      ).toContainText(/^Total \d+% · /);
+    } else {
+      await expect(
+        first.getByTestId("profiles-function-total"),
+      ).toHaveAttribute("data-ranked", "true");
+      await expect(first.getByTestId("profiles-function-self")).toHaveAttribute(
+        "data-ranked",
+        "false",
+      );
+      const weight: string = await first
+        .getByTestId("profiles-function-total")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).fontWeight;
+        });
+      expect(Number(weight)).toBeGreaterThanOrEqual(600);
+    }
+    await screenshot(page, testInfo, "ranked-by-total");
+  });
+});
+
+test.describe("a read that fails", () => {
+  test("the functions failing: no headline says there are no profiles, and the card offers a retry", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await open(page, `?serviceId=${CHECKOUT}&fail=functions`);
+
+    await expect(page.getByTestId("profiles-flame")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByTestId("refresh-button")).toBeVisible();
+    await expect(page.getByTestId("profiles-headline")).toHaveCount(0);
+    await expect(
+      page.getByText("No CPU time profiles in this window."),
+    ).toHaveCount(0);
+    await screenshot(page, testInfo, "functions-failed");
   });
 });
 
