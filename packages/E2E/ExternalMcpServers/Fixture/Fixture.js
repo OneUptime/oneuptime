@@ -499,14 +499,19 @@ window.__externalMcpServersFixture = {
   },
 };
 
-API.post = async (options) => {
-  const url = options.url.toString();
+// The request's path, parsed: the page's API addresses are absolute URLs.
+function pathOf(options) {
+  return new URL(options.url.toString(), window.location.origin).pathname;
+}
 
-  if (url.endsWith("/external-mcp-server/test")) {
+API.post = async (options) => {
+  const path = pathOf(options);
+
+  if (path.endsWith("/external-mcp-server/test")) {
     const serverId = idOf(options.data && options.data.externalMcpServerId);
 
     state.tests.push({
-      path: new URL(url).pathname,
+      path,
       body: JSON.parse(JSON.stringify(options.data || {})),
       headers: options.headers || {},
     });
@@ -532,7 +537,7 @@ API.post = async (options) => {
   }
 
   // POST /ai-chat/providers: the project has the global provider.
-  if (url.endsWith("/ai-chat/providers")) {
+  if (path.endsWith("/ai-chat/providers")) {
     return new HTTPResponse(
       200,
       {
