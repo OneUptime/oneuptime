@@ -11,9 +11,14 @@
 #
 # Laid out as Google's own click-to-deploy apps are: the chart and the tester
 # chart as tarballs, the schemas with REGISTRY and TAG filled in.
+#
+# Google serves its deployer image (gcr.io/cloud-marketplace-tools) only to a
+# signed-in Google account: `docker login gcr.io` first. The build stage ships
+# nothing but the files it makes, so it starts from a public image, and
+# `--target build` builds everything but the deployer with no sign-in at all.
 ARG MARKETPLACE_TOOLS_TAG=latest
 
-FROM marketplace.gcr.io/google/debian12 AS build
+FROM debian:12-slim AS build
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gettext \
