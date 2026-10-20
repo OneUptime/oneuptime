@@ -26,7 +26,7 @@ flowchart TB
 | Dashboard | Eine Seite: ein Name, ein Raster aus Widgets, ein Zeitbereich, Variablen und eine Einstellung für die automatische Aktualisierung. |
 | Widget | Eine Kachel im Raster: ein Diagramm, eine Zahl, eine Liste, eine Karte, eine Uhr oder ein Textblock. |
 | Variable | Eine Auswahl in der Werkzeugleiste, die jedes Widget, das sie unterstützt, auf einen Dienst, einen Host oder einen Kunden eingrenzt. |
-| Zeitbereich | Das Zeitfenster, das jedes Diagramm und jede Zahl liest. Er beginnt bei jedem Öffnen des Dashboards mit der letzten Stunde. |
+| Zeitbereich | Das Zeitfenster, das jedes Diagramm und jede Zahl liest. Ein Dashboard öffnet sich mit seinem Standard, der letzten Stunde, es sei denn, jemand legt beim Bearbeiten einen anderen fest, und jeder Betrachter kann einen eigenen wählen. |
 | Automatische Aktualisierung | Wie oft die Widgets ihre Daten neu lesen: aus, oder alle 5 Sekunden bis 15 Minuten. |
 | Ansehen und bearbeiten | Ein Dashboard öffnet sich zum Lesen. Das Bearbeiten ist ein eigener Schritt, der mit dem Speichern oder Verwerfen Ihrer Änderungen endet. |
 

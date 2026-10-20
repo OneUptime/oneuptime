@@ -46,7 +46,7 @@ Una plantilla es un punto de partida, no un vínculo: una vez creado el panel, c
 
 ## Editar y guardar
 
-Un panel se abre en modo de lectura. Para cambiarlo, abre el menú **⋯** de su barra de herramientas y elige **Editar panel**. La barra de herramientas muestra **Editando** junto al nombre, y sustituye el intervalo de tiempo y sus otros controles por **Añadir widget**, **Variables**, **Cancelar** y **Guardar cambios**.
+Un panel se abre en modo de lectura. Para cambiarlo, abre el menú **⋯** de su barra de herramientas y elige **Editar panel**. La barra de herramientas muestra **Editando** junto al nombre, y sustituye el intervalo de tiempo y sus otros controles por **Añadir widget**, **Variables**, **Cancelar** y **Guardar cambios**, con una fila debajo para el **Intervalo de tiempo predeterminado** y la **Actualización automática predeterminada** del panel.
 
 ```mermaid title="De leer un panel a cambiarlo, y vuelta"
 flowchart TB
@@ -59,7 +59,7 @@ flowchart TB
 
 Tus cambios son solo tuyos hasta que los guardas. Nada se guarda mientras editas, así que los demás siguen viendo el panel tal como estaba.
 
-- **Guardar cambios** guarda los widgets, sus posiciones y tamaños, las variables y el intervalo de actualización automática, todo a la vez, y vuelve al modo de lectura. Si el guardado se rechaza, por ejemplo porque has perdido el permiso entretanto, sigues en modo de edición con tus cambios, y el motivo aparece encima de la cuadrícula.
+- **Guardar cambios** guarda los widgets, sus posiciones y tamaños, las variables, y el intervalo de tiempo y la actualización automática predeterminados, todo a la vez, y vuelve al modo de lectura. Si el guardado se rechaza, por ejemplo porque has perdido el permiso entretanto, sigues en modo de edición con tus cambios, y el motivo aparece encima de la cuadrícula.
 - **Cancelar** pregunta primero, porque descarta tus cambios: **Descartar cambios** vuelve al panel tal como se guardó, y **Seguir editando** te devuelve a tu trabajo.
 
 Mientras editas, la actualización automática se pausa, y un intervalo de tiempo con zoom vuelve al intervalo que elegiste.
@@ -99,13 +99,25 @@ Para cambiar un widget más tarde, haz clic en él mientras editas. Sus ajustes 
 
 ## Intervalo de tiempo y actualización automática
 
-En modo de lectura, el selector de intervalo de tiempo de la barra de herramientas fija la ventana que leen todos los widgets de gráficos, números, registros y trazas. Elige un preajuste, desde los últimos 5 minutos hasta los últimos 3 meses, o un inicio y un fin personalizados. Cada vez que se abre el panel, empieza en la última hora.
+En modo de lectura, el selector de intervalo de tiempo de la barra de herramientas fija la ventana que leen todos los widgets de gráficos, números, registros y trazas. Elige un preajuste, desde los últimos 5 minutos hasta los últimos 3 meses, o un inicio y un fin personalizados. El panel se abre en su intervalo de tiempo predeterminado: la última hora, salvo que alguien que lo edite elija otro.
 
 Las listas de incidentes, alertas, monitores y recursos muestran su estado actual, sea cual sea el intervalo de tiempo.
 
-Junto al intervalo de tiempo, el menú de actualización automática vuelve a leer cada widget cada 5 segundos, 10 segundos, 30 segundos, 1 minuto, 5 minutos o 15 minutos, con una cuenta atrás hasta la siguiente actualización. Déjala desactivada mientras investigas, para que la vista se quede quieta. Para que un intervalo sea el del propio panel, elígelo, luego edita el panel y haz clic en **Guardar cambios**: cada visita empieza entonces con él.
+Junto al intervalo de tiempo, el menú de actualización automática vuelve a leer cada widget cada 5 segundos, 10 segundos, 30 segundos, 1 minuto, 5 minutos o 15 minutos, con una cuenta atrás hasta la siguiente actualización. Déjala desactivada mientras investigas, para que la vista se quede quieta. El panel se abre con su actualización automática predeterminada: desactivada, salvo que alguien que lo edite elija otra.
 
 El selector de intervalo de tiempo, las variables y la actualización automática aparecen en cuanto el panel tiene un widget.
+
+### Los valores predeterminados del panel
+
+Mientras editas el panel, la fila bajo los botones de la barra de herramientas fija con qué lo abre todo el mundo: **Intervalo de tiempo predeterminado**, un preajuste desde los últimos 5 minutos hasta los últimos 3 meses, y **Actualización automática predeterminada**. **Guardar cambios** los guarda con el resto del panel, tanto para tu equipo como para los visitantes de su enlace público. Un inicio y un fin personalizados no pueden ser un valor predeterminado: el panel se quedaría en ese momento para siempre.
+
+Los paneles guardados antes de estos ajustes se abren en la última hora, con la actualización automática que tenían. Mediante la API y Terraform, ambos están en el `dashboardViewConfig` del panel: `timeRange`, un preajuste escrito como en la referencia de la API, por ejemplo `Past 1 Day`, y `refreshInterval`, por ejemplo `1m`. Cualquier otro valor se rechaza.
+
+### Tus propias elecciones
+
+El intervalo de tiempo y la actualización automática que eliges en modo de lectura son solo tuyos, y tu navegador los recuerda para cada panel: una recarga, un reinicio del navegador o el de una pantalla mural abren el panel tal como lo dejaste. Solo se recuerda un preajuste. Un intervalo personalizado o un zoom dura hasta que sales de la página, para que el panel nunca se quede fijo en un momento pasado.
+
+La primera opción de cada selector nombra el valor predeterminado del panel, como en Predeterminado (Último día). Elígela para volver al valor predeterminado: tu navegador olvida tu elección, y el panel vuelve a seguir su valor predeterminado, incluso cuando alguien lo cambia más tarde. Cuando guardas tú mismo nuevos valores predeterminados, los ves al instante.
 
 ### Hacer zoom en un pico
 

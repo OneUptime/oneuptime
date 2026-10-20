@@ -26,7 +26,7 @@ flowchart TB
 | Dashboard | One page: a name, a grid of widgets, a time range, variables and an auto-refresh setting. |
 | Widget | One tile on the grid: a chart, a number, a list, a map, a clock or a block of text. |
 | Variable | A picker in the toolbar that narrows every widget that supports it to one service, host or customer. |
-| Time range | The window every chart and number reads. It starts at the past hour each time the dashboard opens. |
+| Time range | The window every chart and number reads. A dashboard opens on its default, the past hour unless an editor sets another, and each viewer can pick their own. |
 | Auto-refresh | How often the widgets read their data again: off, or every 5 seconds to 15 minutes. |
 | View and edit | A dashboard opens for reading. Editing it is a separate step that ends with saving or discarding your changes. |
 

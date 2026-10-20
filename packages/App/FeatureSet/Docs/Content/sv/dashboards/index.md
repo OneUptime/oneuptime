@@ -26,7 +26,7 @@ flowchart TB
 | Instrumentpanel | En sida: ett namn, ett rutnät med widgetar, ett tidsintervall, variabler och en inställning för automatisk uppdatering. |
 | Widget | En ruta i rutnätet: ett diagram, ett tal, en lista, en karta, en klocka eller ett textblock. |
 | Variabel | En väljare i verktygsfältet som begränsar varje widget som stöder den till en tjänst, värd eller kund. |
-| Tidsintervall | Fönstret som alla diagram och tal läser. Det börjar på den senaste timmen varje gång instrumentpanelen öppnas. |
+| Tidsintervall | Fönstret som alla diagram och tal läser. En instrumentpanel öppnas på sin standard, den senaste timmen om inte någon som redigerar den väljer en annan, och varje tittare kan välja sitt eget. |
 | Automatisk uppdatering | Hur ofta widgetarna läser sin data igen: av, eller från var 5:e sekund till var 15:e minut. |
 | Visning och redigering | En instrumentpanel öppnas för läsning. Redigering är ett separat steg som slutar med att du sparar eller kastar dina ändringar. |
 

@@ -78,6 +78,18 @@ import DashboardViewConfig, {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
+import {
+  DASHBOARD_TIME_RANGE_FALLBACK,
+  DASHBOARD_TIME_RANGE_LINK_PARAMETER,
+  DASHBOARD_TIME_RANGE_LINK_VALUES,
+  getDashboardLinkTimeRangeFromSearch,
+} from "Common/Types/Dashboard/DashboardTimeRange";
+import {
+  DASHBOARD_AUTO_REFRESH_FALLBACK,
+  DASHBOARD_AUTO_REFRESH_INTERVALS,
+  DASHBOARD_AUTO_REFRESH_LINK_PARAMETER,
+  getDashboardLinkAutoRefreshIntervalFromSearch,
+} from "Common/Types/Dashboard/DashboardAutoRefresh";
 import { DASHBOARD_MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS } from "Common/Types/Dashboard/MasterPassword";
 import {
   DATA_SOURCE_CONNECT_TIMEOUT_IN_MS,
@@ -801,11 +813,12 @@ describe("Dashboards Overview, against the product", () => {
     };
     const intervals: Array<number> = refreshIntervals();
 
-    expect(readSource(DASHBOARD_VIEW)).toContain(
-      "range: TimeRange.PAST_ONE_HOUR,",
-    );
+    // A dashboard opens on its own default, else the past hour (issue #5080).
+    expect(DASHBOARD_TIME_RANGE_FALLBACK).toBe(TimeRange.PAST_ONE_HOUR);
     expect(meaning("Time range")).toContain(
-      `It starts at ${spokenTimeRange(TimeRange.PAST_ONE_HOUR)}`,
+      `A dashboard opens on its default, ${spokenTimeRange(
+        DASHBOARD_TIME_RANGE_FALLBACK,
+      )} unless an editor sets another, and each viewer can pick their own.`,
     );
     expect(meaning("Auto-refresh")).toContain(
       `off, or every ${spokenDuration(
@@ -981,15 +994,27 @@ describe("Authoring a Dashboard, against the product", () => {
     );
   });
 
-  it("says saving stores the auto-refresh interval, and editing pauses auto-refresh and drops a zoom", () => {
+  it("says saving stores the defaults set while editing, and editing pauses auto-refresh and drops a zoom", () => {
     const view: string = readSource(DASHBOARD_VIEW);
     const editAndSave: string = sectionOf(page, "## Edit and save");
 
-    expect(view).toContain("refreshInterval: autoRefreshInterval,");
+    /*
+     * The board as edited, its defaults included - and no longer the
+     * auto-refresh the editor last picked while viewing (issue #5080).
+     */
+    expect(view).toContain(
+      "const configToSave: DashboardViewConfig = dashboardViewConfig;",
+    );
+    expect(view).not.toContain("refreshInterval: autoRefreshInterval");
     expect(editAndSave).toContain(
       `${bold(
         "Save Changes",
-      )} saves the widgets, their places and sizes, the variables and the auto-refresh interval, all at once`,
+      )} saves the widgets, their places and sizes, the variables, and the default time range and auto-refresh, all at once`,
+    );
+    expect(editAndSave).toContain(
+      `with a row below them for the dashboard's ${bold(
+        "Default time range",
+      )} and ${bold("Default auto-refresh")}.`,
     );
 
     expect(view).toContain(
@@ -1121,13 +1146,14 @@ describe("Authoring a Dashboard, against the product", () => {
         presets[0] as string,
       )} to ${spokenTimeRange(presets[presets.length - 1] as string)}`,
     );
-    expect(readSource(DASHBOARD_VIEW)).toContain(
-      "range: TimeRange.PAST_ONE_HOUR,",
-    );
     expect(timeRange).toContain(
-      `Each time the dashboard opens, it starts at ${spokenTimeRange(
-        TimeRange.PAST_ONE_HOUR,
-      )}.`,
+      `The dashboard opens on its default time range: ${spokenTimeRange(
+        DASHBOARD_TIME_RANGE_FALLBACK,
+      )}, unless an editor sets another.`,
+    );
+    expect(DASHBOARD_AUTO_REFRESH_FALLBACK).toBe(AutoRefreshInterval.OFF);
+    expect(timeRange).toContain(
+      "The dashboard opens with its default auto-refresh: off, unless an editor sets another.",
     );
   });
 
@@ -2268,8 +2294,11 @@ describe("Dashboard Variables & Filters, against the variable code", () => {
       expect(sectionOf(page, "## Links that keep the selection")).toContain(
         `and an explicit ${bold("All")} too`,
       );
+      // The time range and auto-refresh ride along (issue #5080).
+      expect(DASHBOARD_TIME_RANGE_LINK_PARAMETER).toBe("range");
+      expect(DASHBOARD_AUTO_REFRESH_LINK_PARAMETER).toBe("refresh");
       expect(sectionOf(page, "## Links that keep the selection")).toContain(
-        "The link carries only the variables. The time range starts at the past hour on every visit",
+        "The link carries the time range and auto-refresh you picked as well, as `range` and `refresh`, so the people you send it to see what you see.",
       );
     });
   });
@@ -2988,12 +3017,38 @@ describe("Sharing & Public Dashboards, against the public link's checks", () => 
     );
   });
 
-  it("sends a link with the variables only, as the variables page does", () => {
-    expect(sectionOf(page, "## Sending a link")).toContain(
-      "add the variable to it as `?var-<name>=<value>`",
+  it("sends a link with the variables, and the time range and auto-refresh it opens on", () => {
+    const link: string = sectionOf(page, "## Sending a link");
+
+    expect(link).toContain("add the variable to it as `?var-<name>=<value>`");
+
+    // The example opens where the page says it does.
+    expect(getDashboardLinkTimeRangeFromSearch("?range=1d&refresh=1m")).toBe(
+      TimeRange.PAST_ONE_DAY,
     );
-    expect(sectionOf(page, "## Sending a link")).toContain(
-      "The time range is not part of the link: every visit starts at the past hour.",
+    expect(
+      getDashboardLinkAutoRefreshIntervalFromSearch("?range=1d&refresh=1m"),
+    ).toBe(AutoRefreshInterval.ONE_MINUTE);
+    expect(link).toContain(
+      "add `range` and `refresh` the same way: `?range=1d&refresh=1m` opens on the past day, refreshing every minute",
+    );
+
+    // Every value each parameter takes, in the order the pickers offer them.
+    expect(link).toContain(
+      `\`range\` takes ${listOf(
+        DASHBOARD_TIME_RANGE_LINK_VALUES.map((value: string): string => {
+          return `\`${value}\``;
+        }),
+        "or",
+      )}, and \`refresh\` takes ${listOf(
+        DASHBOARD_AUTO_REFRESH_INTERVALS.map((value: string): string => {
+          return `\`${value}\``;
+        }),
+        "or",
+      )}.`,
+    );
+    expect(link).toContain(
+      "They win over the dashboard's defaults and the visitor's own picks, and visitors can still change them.",
     );
   });
 });

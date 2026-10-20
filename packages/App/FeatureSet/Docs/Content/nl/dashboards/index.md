@@ -26,7 +26,7 @@ flowchart TB
 | Dashboard | Eén pagina: een naam, een raster met widgets, een tijdsbereik, variabelen en een instelling voor automatisch vernieuwen. |
 | Widget | Eén tegel in het raster: een grafiek, een getal, een lijst, een kaart, een klok of een blok tekst. |
 | Variabele | Een kiezer in de werkbalk die elke widget die het ondersteunt beperkt tot één service, host of klant. |
-| Tijdsbereik | Het venster dat elke grafiek en elk getal leest. Het begint bij het afgelopen uur telkens als het dashboard opent. |
+| Tijdsbereik | Het venster dat elke grafiek en elk getal leest. Een dashboard opent op zijn standaard, het afgelopen uur tenzij iemand die het bewerkt een andere instelt, en elke kijker kan zelf kiezen. |
 | Automatisch vernieuwen | Hoe vaak de widgets hun gegevens opnieuw lezen: uit, of elke 5 seconden tot elke 15 minuten. |
 | Lezen en bewerken | Een dashboard opent om te lezen. Bewerken is een aparte stap die eindigt met het opslaan of verwerpen van je wijzigingen. |
 

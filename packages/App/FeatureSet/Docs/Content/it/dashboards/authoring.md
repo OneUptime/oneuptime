@@ -46,7 +46,7 @@ Un modello è un punto di partenza, non un collegamento: una volta creata la das
 
 ## Modificare e salvare
 
-Una dashboard si apre in modalità di lettura. Per cambiarla, apri il menu **⋯** nella sua barra degli strumenti e scegli **Edit Dashboard**. La barra degli strumenti mostra **Editing** accanto al nome, e sostituisce l'intervallo di tempo e gli altri controlli con **Aggiungi widget**, **Variabili**, **Annulla** e **Salva modifiche**.
+Una dashboard si apre in modalità di lettura. Per cambiarla, apri il menu **⋯** nella sua barra degli strumenti e scegli **Edit Dashboard**. La barra degli strumenti mostra **Editing** accanto al nome, e sostituisce l'intervallo di tempo e gli altri controlli con **Aggiungi widget**, **Variabili**, **Annulla** e **Salva modifiche**, con sotto una riga per l'**Intervallo di tempo predefinito** e l'**Aggiornamento automatico predefinito** della dashboard.
 
 ```mermaid title="Dalla lettura di una dashboard alla sua modifica, e ritorno"
 flowchart TB
@@ -59,7 +59,7 @@ flowchart TB
 
 Le tue modifiche restano solo tue finché non le salvi. Durante la modifica non viene salvato nulla, quindi gli altri continuano a vedere la dashboard com'era.
 
-- **Salva modifiche** salva i widget, le loro posizioni e dimensioni, le variabili e l'intervallo di aggiornamento automatico, tutto insieme, e torna in modalità di lettura. Se il salvataggio viene rifiutato, per esempio perché nel frattempo hai perso l'autorizzazione, resti in modifica con le tue modifiche e il motivo sopra la griglia.
+- **Salva modifiche** salva i widget, le loro posizioni e dimensioni, le variabili, e l'intervallo di tempo e l'aggiornamento automatico predefiniti, tutto insieme, e torna in modalità di lettura. Se il salvataggio viene rifiutato, per esempio perché nel frattempo hai perso l'autorizzazione, resti in modifica con le tue modifiche e il motivo sopra la griglia.
 - **Annulla** chiede prima conferma, perché butta via le tue modifiche: **Annulla modifiche** torna alla dashboard com'era salvata, e **Continua a modificare** ti riporta al tuo lavoro.
 
 Durante la modifica, l'aggiornamento automatico è in pausa, e un intervallo di tempo ingrandito torna all'intervallo che avevi scelto.
@@ -99,13 +99,25 @@ Per cambiare un widget in seguito, fai clic su di esso durante la modifica. Le s
 
 ## Intervallo di tempo e aggiornamento automatico
 
-In modalità di lettura, il selettore dell'intervallo di tempo nella barra degli strumenti imposta la finestra che leggono tutti i widget di grafici, numeri, log e tracce. Scegli un'impostazione predefinita, dagli ultimi 5 minuti agli ultimi 3 mesi, oppure un inizio e una fine personalizzati. Ogni volta che la dashboard si apre, parte dall'ultima ora.
+In modalità di lettura, il selettore dell'intervallo di tempo nella barra degli strumenti imposta la finestra che leggono tutti i widget di grafici, numeri, log e tracce. Scegli un'impostazione predefinita, dagli ultimi 5 minuti agli ultimi 3 mesi, oppure un inizio e una fine personalizzati. La dashboard si apre sul suo intervallo di tempo predefinito: l'ultima ora, a meno che chi la modifica non ne imposti un altro.
 
 Gli elenchi di incidenti, avvisi, monitor e risorse mostrano il loro stato attuale, qualunque sia l'intervallo di tempo.
 
-Accanto all'intervallo di tempo, il menu dell'aggiornamento automatico rilegge ogni widget ogni 5 secondi, 10 secondi, 30 secondi, 1 minuto, 5 minuti o 15 minuti, con un conto alla rovescia fino al prossimo aggiornamento. Lascialo disattivato mentre indaghi, così la vista resta ferma. Per rendere un intervallo quello della dashboard, sceglilo, poi modifica la dashboard e fai clic su **Salva modifiche**: ogni visita parte allora con quell'intervallo.
+Accanto all'intervallo di tempo, il menu dell'aggiornamento automatico rilegge ogni widget ogni 5 secondi, 10 secondi, 30 secondi, 1 minuto, 5 minuti o 15 minuti, con un conto alla rovescia fino al prossimo aggiornamento. Lascialo disattivato mentre indaghi, così la vista resta ferma. La dashboard si apre con il suo aggiornamento automatico predefinito: disattivato, a meno che chi la modifica non ne imposti un altro.
 
 Il selettore dell'intervallo di tempo, le variabili e l'aggiornamento automatico compaiono non appena la dashboard ha un widget.
+
+### I valori predefiniti della dashboard
+
+Mentre modifichi la dashboard, la riga sotto i pulsanti della barra degli strumenti imposta ciò su cui tutti la aprono: **Intervallo di tempo predefinito**, un'impostazione predefinita dagli ultimi 5 minuti agli ultimi 3 mesi, e **Aggiornamento automatico predefinito**. **Salva modifiche** li salva con il resto della dashboard, per il tuo team come per i visitatori del suo link pubblico. Un inizio e una fine personalizzati non possono essere un valore predefinito: la dashboard resterebbe per sempre su quel momento.
+
+Le dashboard salvate prima di queste impostazioni si aprono sull'ultima ora, con l'aggiornamento automatico che avevano. Tramite l'API e Terraform, entrambi stanno nel `dashboardViewConfig` della dashboard: `timeRange`, un'impostazione predefinita scritta come nel riferimento dell'API, per esempio `Past 1 Day`, e `refreshInterval`, per esempio `1m`. Qualsiasi altro valore viene rifiutato.
+
+### Le tue scelte
+
+L'intervallo di tempo e l'aggiornamento automatico che scegli in modalità di lettura sono solo tuoi, e il tuo browser li ricorda per ogni dashboard: un ricaricamento, un riavvio del browser o quello di uno schermo a parete riapre la dashboard come l'avevi lasciata. Viene ricordata solo un'impostazione predefinita. Un intervallo personalizzato o uno zoom dura finché non lasci la pagina, così la dashboard non resta mai ferma su un momento passato.
+
+La prima voce di ogni selettore indica il valore predefinito della dashboard, come in Predefinito (Past 1 Day). Sceglila per tornare al valore predefinito: il browser dimentica la tua scelta e la dashboard torna a seguire il suo valore predefinito, anche quando qualcuno lo cambia in seguito. Quando salvi tu nuovi valori predefiniti, li vedi subito.
 
 ### Ingrandire un picco
 

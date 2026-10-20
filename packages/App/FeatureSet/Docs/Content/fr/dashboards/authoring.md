@@ -46,7 +46,7 @@ Un modèle est un point de départ, pas un lien : une fois le tableau de bord cr
 
 ## Modifier et enregistrer
 
-Un tableau de bord s'ouvre en mode lecture. Pour le modifier, ouvrez le menu **⋯** de sa barre d'outils et choisissez **Modifier le tableau de bord**. La barre d'outils affiche **Modification** à côté du nom et remplace la plage temporelle et ses autres contrôles par **Ajouter un widget**, **Variables**, **Annuler** et **Enregistrer les modifications**.
+Un tableau de bord s'ouvre en mode lecture. Pour le modifier, ouvrez le menu **⋯** de sa barre d'outils et choisissez **Modifier le tableau de bord**. La barre d'outils affiche **Modification** à côté du nom et remplace la plage temporelle et ses autres contrôles par **Ajouter un widget**, **Variables**, **Annuler** et **Enregistrer les modifications**, avec en dessous une ligne pour la **Période par défaut** et l'**Actualisation automatique par défaut** du tableau de bord.
 
 ```mermaid title="De la lecture d'un tableau de bord à sa modification, et retour"
 flowchart TB
@@ -59,7 +59,7 @@ flowchart TB
 
 Vos modifications ne concernent que vous tant que vous ne les enregistrez pas. Rien n'est enregistré pendant la modification, donc les autres continuent de voir le tableau de bord tel qu'il était.
 
-- **Enregistrer les modifications** enregistre les widgets, leurs places et leurs tailles, les variables et l'intervalle d'actualisation, tout à la fois, et revient en lecture. Si l'enregistrement est refusé, par exemple parce que vous avez perdu l'autorisation entre-temps, vous restez en modification avec vos changements, et la raison s'affiche au-dessus de la grille.
+- **Enregistrer les modifications** enregistre les widgets, leurs places et leurs tailles, les variables, ainsi que la période et l'actualisation automatique par défaut, tout à la fois, et revient en lecture. Si l'enregistrement est refusé, par exemple parce que vous avez perdu l'autorisation entre-temps, vous restez en modification avec vos changements, et la raison s'affiche au-dessus de la grille.
 - **Annuler** demande d'abord, car cela jette vos modifications : **Annuler les modifications** revient au tableau de bord tel qu'il a été enregistré, et **Continuer la modification** vous ramène à votre travail.
 
 Pendant la modification, l'actualisation automatique est en pause, et une plage temporelle zoomée revient à la plage que vous aviez choisie.
@@ -99,13 +99,25 @@ Pour modifier un widget plus tard, cliquez dessus pendant la modification. Ses p
 
 ## Plage temporelle et actualisation automatique
 
-En lecture, le sélecteur de plage temporelle de la barre d'outils fixe la fenêtre que lit chaque widget de graphique, de nombre, de journaux et de traces. Choisissez un préréglage, des 5 dernières minutes aux 3 derniers mois, ou un début et une fin personnalisés. À chaque ouverture, le tableau de bord repart de la dernière heure.
+En lecture, le sélecteur de plage temporelle de la barre d'outils fixe la fenêtre que lit chaque widget de graphique, de nombre, de journaux et de traces. Choisissez un préréglage, des 5 dernières minutes aux 3 derniers mois, ou un début et une fin personnalisés. Le tableau de bord s'ouvre sur sa période par défaut : la dernière heure, sauf si quelqu'un en choisit une autre en le modifiant.
 
 Les listes d'incidents, d'alertes, de moniteurs et de ressources montrent leur état actuel, quelle que soit la plage temporelle.
 
-À côté de la plage temporelle, le menu d'actualisation automatique relit chaque widget toutes les 5 secondes, 10 secondes, 30 secondes, 1 minute, 5 minutes ou 15 minutes, avec un compte à rebours jusqu'à la prochaine actualisation. Laissez-la désactivée pendant une enquête, pour que la vue reste immobile. Pour faire d'un intervalle celui du tableau de bord, choisissez-le, puis modifiez le tableau de bord et cliquez sur **Enregistrer les modifications** : chaque visite démarre alors avec lui.
+À côté de la plage temporelle, le menu d'actualisation automatique relit chaque widget toutes les 5 secondes, 10 secondes, 30 secondes, 1 minute, 5 minutes ou 15 minutes, avec un compte à rebours jusqu'à la prochaine actualisation. Laissez-la désactivée pendant une enquête, pour que la vue reste immobile. Le tableau de bord s'ouvre avec son actualisation automatique par défaut : désactivée, sauf si quelqu'un en choisit une autre en le modifiant.
 
 Le sélecteur de plage temporelle, les variables et l'actualisation automatique apparaissent dès que le tableau de bord a un widget.
+
+### Les valeurs par défaut du tableau de bord
+
+Pendant que vous modifiez le tableau de bord, la ligne sous les boutons de la barre d'outils fixe ce sur quoi tout le monde l'ouvre : **Période par défaut**, un préréglage des 5 dernières minutes aux 3 derniers mois, et **Actualisation automatique par défaut**. **Enregistrer les modifications** les enregistre avec le reste du tableau de bord, pour votre équipe comme pour les visiteurs de son lien public. Un début et une fin personnalisés ne peuvent pas servir de valeur par défaut : le tableau de bord resterait figé sur ce moment.
+
+Les tableaux de bord enregistrés avant ces réglages s'ouvrent sur la dernière heure, avec l'actualisation automatique qu'ils avaient. Par l'API et Terraform, les deux se trouvent dans le `dashboardViewConfig` du tableau de bord : `timeRange`, un préréglage écrit comme dans la référence de l'API, par exemple `Past 1 Day`, et `refreshInterval`, par exemple `1m`. Toute autre valeur est refusée.
+
+### Vos propres choix
+
+La plage temporelle et l'actualisation automatique que vous choisissez en lecture ne valent que pour vous, et votre navigateur s'en souvient pour chaque tableau de bord : un rechargement, un redémarrage du navigateur ou celui d'un écran mural rouvre le tableau de bord tel que vous l'avez laissé. Seul un préréglage est mémorisé. Une plage personnalisée ou un zoom dure jusqu'à ce que vous quittiez la page, pour que le tableau de bord ne reste jamais figé sur un moment passé.
+
+Le premier choix de chaque sélecteur indique la valeur par défaut du tableau de bord, par exemple Par défaut (Past 1 Day). Choisissez-le pour revenir à la valeur par défaut : votre navigateur oublie votre choix, et le tableau de bord suit de nouveau sa valeur par défaut, même quand quelqu'un la change plus tard. Quand vous enregistrez vous-même de nouvelles valeurs par défaut, vous les voyez aussitôt.
 
 ### Zoomer sur un pic
 

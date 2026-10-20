@@ -46,7 +46,7 @@ En mal er et utgangspunkt, ikke en kobling: når dashbordet er opprettet, endrer
 
 ## Rediger og lagre
 
-Et dashbord åpnes i visningsmodus, for lesing. For å endre det åpner du **⋯**-menyen i verktøylinjen og velger **Edit Dashboard**. Verktøylinjen viser **Editing** ved siden av navnet og bytter ut tidsintervallet og de andre kontrollene med **Legg til widget**, **Variabler**, **Avbryt** og **Lagre endringer**.
+Et dashbord åpnes i visningsmodus, for lesing. For å endre det åpner du **⋯**-menyen i verktøylinjen og velger **Edit Dashboard**. Verktøylinjen viser **Editing** ved siden av navnet og bytter ut tidsintervallet og de andre kontrollene med **Legg til widget**, **Variabler**, **Avbryt** og **Lagre endringer**, med en rad under for dashbordets **Standard tidsrom** og **Standard automatisk oppdatering**.
 
 ```mermaid title="Fra å lese et dashbord til å endre det, og tilbake"
 flowchart TB
@@ -59,7 +59,7 @@ flowchart TB
 
 Endringene dine er bare dine til du lagrer dem. Ingenting lagres mens du redigerer, så andre ser fortsatt dashbordet slik det var.
 
-- **Lagre endringer** lagrer widgetene, plasseringene og størrelsene deres, variablene og intervallet for automatisk oppdatering, alt på én gang, og går tilbake til visningsmodus. Hvis lagringen blir avvist, for eksempel fordi du har mistet tillatelsen i mellomtiden, blir du i redigeringsmodus med endringene dine, og årsaken står over rutenettet.
+- **Lagre endringer** lagrer widgetene, plasseringene og størrelsene deres, variablene, og standardtidsrommet og den automatiske standardoppdateringen, alt på én gang, og går tilbake til visningsmodus. Hvis lagringen blir avvist, for eksempel fordi du har mistet tillatelsen i mellomtiden, blir du i redigeringsmodus med endringene dine, og årsaken står over rutenettet.
 - **Avbryt** spør først, fordi den kaster endringene dine: **Forkast endringer** går tilbake til dashbordet slik det ble lagret, og **Fortsett å redigere** tar deg tilbake til arbeidet ditt.
 
 Mens du redigerer, står den automatiske oppdateringen på pause, og et zoomet tidsintervall går tilbake til intervallet du valgte.
@@ -99,13 +99,25 @@ For å endre en widget senere klikker du på den mens du redigerer. Innstillinge
 
 ## Tidsintervall og automatisk oppdatering
 
-I visningsmodus angir verktøylinjens tidsintervallvelger vinduet som alle diagram-, tall-, logg- og sporwidgets leser. Velg en forhåndsinnstilling fra de siste 5 minuttene til de siste 3 månedene, eller en egendefinert start og slutt. Hver gang dashbordet åpnes, starter det på den siste timen.
+I visningsmodus angir verktøylinjens tidsintervallvelger vinduet som alle diagram-, tall-, logg- og sporwidgets leser. Velg en forhåndsinnstilling fra de siste 5 minuttene til de siste 3 månedene, eller en egendefinert start og slutt. Dashbordet åpnes på standardtidsrommet sitt: den siste timen, med mindre noen som redigerer det, velger et annet.
 
 Lister over hendelser, varsler, overvåkinger og ressurser viser den nåværende tilstanden sin, uansett tidsintervall.
 
-Ved siden av tidsintervallet leser menyen for automatisk oppdatering hver widget på nytt med 5 sekunders, 10 sekunders, 30 sekunders, 1 minutts, 5 minutters eller 15 minutters mellomrom, med en nedtelling til neste oppdatering. La den være av mens du feilsøker, slik at visningen står stille. For å gjøre et intervall til dashbordets eget velger du det, redigerer deretter dashbordet og klikker på **Lagre endringer**: hvert besøk starter da med det.
+Ved siden av tidsintervallet leser menyen for automatisk oppdatering hver widget på nytt med 5 sekunders, 10 sekunders, 30 sekunders, 1 minutts, 5 minutters eller 15 minutters mellomrom, med en nedtelling til neste oppdatering. La den være av mens du feilsøker, slik at visningen står stille. Dashbordet åpnes med den automatiske standardoppdateringen sin: av, med mindre noen som redigerer det, velger en annen.
 
 Tidsintervallvelgeren, variablene og den automatiske oppdateringen vises så snart dashbordet har en widget.
+
+### Dashbordets standarder
+
+Mens du redigerer dashbordet, bestemmer raden under knappene i verktøylinjen hva alle åpner det med: **Standard tidsrom**, en forhåndsinnstilling fra de siste 5 minuttene til de siste 3 månedene, og **Standard automatisk oppdatering**. **Lagre endringer** lagrer dem sammen med resten av dashbordet, både for teamet ditt og for besøkende på den offentlige lenken. En egendefinert start og slutt kan ikke være en standard: dashbordet ville blitt stående på det øyeblikket for alltid.
+
+Dashbord som ble lagret før disse innstillingene, åpnes på den siste timen, med den automatiske oppdateringen de hadde. Gjennom API-et og Terraform ligger begge i dashbordets `dashboardViewConfig`: `timeRange`, en forhåndsinnstilling skrevet slik API-referansen skriver den, for eksempel `Past 1 Day`, og `refreshInterval`, for eksempel `1m`. Alle andre verdier avvises.
+
+### Dine egne valg
+
+Tidsintervallet og den automatiske oppdateringen du velger i visningsmodus, gjelder bare deg, og nettleseren din husker dem for hvert dashbord: en ny innlasting, en omstart av nettleseren eller av en veggskjerm åpner dashbordet slik du forlot det. Bare en forhåndsinnstilling huskes. Et egendefinert intervall eller en zoom varer til du forlater siden, slik at dashbordet aldri blir stående fast på et øyeblikk i fortiden.
+
+Det første valget i hver velger viser dashbordets standard, som i Standard (Past 1 Day). Velg det for å gå tilbake til standarden: nettleseren glemmer valget ditt, og dashbordet følger standarden sin igjen, også når noen endrer den senere. Når du selv lagrer nye standarder, ser du dem med en gang.
 
 ### Zoom inn på en topp
 

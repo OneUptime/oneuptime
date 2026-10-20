@@ -105,7 +105,7 @@ O link da página leva a escolha de cada variável como `?var-<name>=<value>`, c
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-O link leva só as variáveis. O intervalo de tempo começa na última hora em cada visita, então diga às pessoas para quem você o envia qual trecho olhar, ou aplique zoom depois que elas o abrirem.
+O link leva também o intervalo de tempo e a atualização automática que você escolheu, como `range` e `refresh`, para que as pessoas que o recebem vejam o que você vê. [Enviar um link](/docs/dashboards/sharing#enviar-um-link) lista os valores deles.
 
 ## Um exemplo: um painel para cada serviço
 

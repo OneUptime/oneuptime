@@ -26,7 +26,7 @@ flowchart TB
 | Dashbord | Én side: et navn, et rutenett med widgets, et tidsintervall, variabler og en innstilling for automatisk oppdatering. |
 | Widget | Én flis i rutenettet: et diagram, et tall, en liste, et kart, en klokke eller en tekstblokk. |
 | Variabel | En velger i verktøylinjen som snevrer inn hver widget som støtter den, til én tjeneste, vert eller kunde. |
-| Tidsintervall | Vinduet som alle diagrammer og tall leser. Det starter på den siste timen hver gang dashbordet åpnes. |
+| Tidsintervall | Vinduet som alle diagrammer og tall leser. Et dashbord åpnes på standarden sin, den siste timen med mindre noen som redigerer det, velger en annen, og hver seer kan velge sin egen. |
 | Automatisk oppdatering | Hvor ofte widgetene leser dataene sine på nytt: av, eller fra hvert 5. sekund til hvert 15. minutt. |
 | Visning og redigering | Et dashbord åpnes for lesing. Redigering er et eget steg som slutter med at du lagrer eller forkaster endringene dine. |
 

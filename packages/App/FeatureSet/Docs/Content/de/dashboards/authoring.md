@@ -46,7 +46,7 @@ Eine Vorlage ist ein Ausgangspunkt, keine Verknüpfung: Sobald das Dashboard ers
 
 ## Bearbeiten und speichern
 
-Ein Dashboard öffnet sich in der Ansicht, zum Lesen. Um es zu ändern, öffnen Sie das Menü **⋯** in seiner Werkzeugleiste und wählen **Dashboard bearbeiten**. Die Werkzeugleiste zeigt **Bearbeitung** neben dem Namen und tauscht den Zeitbereich und seine anderen Bedienelemente gegen **Widget hinzufügen**, **Variablen**, **Abbrechen** und **Änderungen speichern**.
+Ein Dashboard öffnet sich in der Ansicht, zum Lesen. Um es zu ändern, öffnen Sie das Menü **⋯** in seiner Werkzeugleiste und wählen **Dashboard bearbeiten**. Die Werkzeugleiste zeigt **Bearbeitung** neben dem Namen und tauscht den Zeitbereich und seine anderen Bedienelemente gegen **Widget hinzufügen**, **Variablen**, **Abbrechen** und **Änderungen speichern**, darunter eine Zeile für den **Standardzeitraum** und die **Automatische Aktualisierung (Standard)** des Dashboards.
 
 ```mermaid title="Vom Lesen eines Dashboards zum Ändern und zurück"
 flowchart TB
@@ -59,7 +59,7 @@ flowchart TB
 
 Ihre Änderungen gehören nur Ihnen, bis Sie sie speichern. Beim Bearbeiten wird nichts gespeichert, daher sehen andere das Dashboard weiterhin so, wie es war.
 
-- **Änderungen speichern** speichert die Widgets, ihre Plätze und Größen, die Variablen und das Aktualisierungsintervall auf einmal und kehrt zur Ansicht zurück. Wird das Speichern abgelehnt, etwa weil Sie inzwischen die Berechtigung verloren haben, bleiben Sie mit Ihren Änderungen in der Bearbeitung, und der Grund steht über dem Raster.
+- **Änderungen speichern** speichert die Widgets, ihre Plätze und Größen, die Variablen sowie den Standardzeitraum und die standardmäßige automatische Aktualisierung auf einmal und kehrt zur Ansicht zurück. Wird das Speichern abgelehnt, etwa weil Sie inzwischen die Berechtigung verloren haben, bleiben Sie mit Ihren Änderungen in der Bearbeitung, und der Grund steht über dem Raster.
 - **Abbrechen** fragt zuerst, weil es Ihre Änderungen verwirft: **Änderungen verwerfen** kehrt zum gespeicherten Dashboard zurück, und **Weiter bearbeiten** bringt Sie zurück zu Ihrer Arbeit.
 
 Während Sie bearbeiten, pausiert die automatische Aktualisierung, und ein gezoomter Zeitbereich kehrt zu dem Bereich zurück, den Sie gewählt hatten.
@@ -99,13 +99,25 @@ Um ein Widget später zu ändern, klicken Sie während der Bearbeitung darauf. S
 
 ## Zeitbereich und automatische Aktualisierung
 
-In der Ansicht legt die Zeitbereichsauswahl der Werkzeugleiste das Fenster fest, das jedes Diagramm-, Zahlen-, Log- und Trace-Widget liest. Wählen Sie eine Vorgabe von den letzten 5 Minuten bis zu den letzten 3 Monaten, oder einen eigenen Beginn und ein eigenes Ende. Bei jedem Öffnen beginnt das Dashboard mit der letzten Stunde.
+In der Ansicht legt die Zeitbereichsauswahl der Werkzeugleiste das Fenster fest, das jedes Diagramm-, Zahlen-, Log- und Trace-Widget liest. Wählen Sie eine Vorgabe von den letzten 5 Minuten bis zu den letzten 3 Monaten, oder einen eigenen Beginn und ein eigenes Ende. Das Dashboard öffnet sich mit seinem Standardzeitraum: der letzten Stunde, es sei denn, jemand legt beim Bearbeiten einen anderen fest.
 
 Listen von Vorfällen, Warnungen, Monitoren und Ressourcen zeigen ihren aktuellen Zustand, unabhängig vom Zeitbereich.
 
-Neben dem Zeitbereich liest das Menü der automatischen Aktualisierung jedes Widget alle 5 Sekunden, 10 Sekunden, 30 Sekunden, 1 Minute, 5 Minuten oder 15 Minuten neu, mit einem Countdown bis zur nächsten Aktualisierung. Lassen Sie sie aus, während Sie untersuchen, damit die Ansicht stillhält. Um ein Intervall zum eigenen des Dashboards zu machen, wählen Sie es, bearbeiten Sie dann das Dashboard und klicken Sie auf **Änderungen speichern**: Jeder Besuch beginnt dann damit.
+Neben dem Zeitbereich liest das Menü der automatischen Aktualisierung jedes Widget alle 5 Sekunden, 10 Sekunden, 30 Sekunden, 1 Minute, 5 Minuten oder 15 Minuten neu, mit einem Countdown bis zur nächsten Aktualisierung. Lassen Sie sie aus, während Sie untersuchen, damit die Ansicht stillhält. Das Dashboard öffnet sich mit seiner standardmäßigen automatischen Aktualisierung: aus, es sei denn, jemand legt beim Bearbeiten eine andere fest.
 
 Die Zeitbereichsauswahl, die Variablen und die automatische Aktualisierung erscheinen, sobald das Dashboard ein Widget hat.
+
+### Die Standardwerte des Dashboards
+
+Während Sie das Dashboard bearbeiten, legt die Zeile unter den Schaltflächen der Werkzeugleiste fest, womit alle es öffnen: **Standardzeitraum**, eine Vorgabe von den letzten 5 Minuten bis zu den letzten 3 Monaten, und **Automatische Aktualisierung (Standard)**. **Änderungen speichern** speichert sie mit dem Rest des Dashboards, für Ihr Team ebenso wie für die Besucher seines öffentlichen Links. Ein eigener Beginn und ein eigenes Ende können kein Standard sein: Das Dashboard bliebe für immer auf diesem Moment stehen.
+
+Dashboards, die vor diesen Einstellungen gespeichert wurden, öffnen sich mit der letzten Stunde und mit der automatischen Aktualisierung, die sie hatten. Über die API und Terraform stehen beide in der `dashboardViewConfig` des Dashboards: `timeRange`, eine Vorgabe so geschrieben wie in der API-Referenz, etwa `Past 1 Day`, und `refreshInterval`, etwa `1m`. Jeder andere Wert wird abgelehnt.
+
+### Ihre eigene Auswahl
+
+Der Zeitbereich und die automatische Aktualisierung, die Sie in der Ansicht wählen, gelten nur für Sie, und Ihr Browser merkt sie sich für jedes Dashboard: Ein Neuladen, ein Neustart des Browsers oder der Neustart eines Wandbildschirms öffnet das Dashboard so, wie Sie es verlassen haben. Nur eine Vorgabe wird gemerkt. Ein eigener Zeitbereich oder ein Zoom gilt, bis Sie die Seite verlassen, sodass das Dashboard nie auf einem vergangenen Moment stehen bleibt.
+
+Der erste Eintrag jeder Auswahl nennt den Standard des Dashboards, etwa Standard (Letzter Tag). Wählen Sie ihn, um zum Standard zurückzukehren: Ihr Browser vergisst Ihre Auswahl, und das Dashboard folgt wieder seinem Standard, auch wenn jemand ihn später ändert. Wenn Sie selbst neue Standardwerte speichern, sehen Sie sie sofort.
 
 ### In eine Spitze zoomen
 

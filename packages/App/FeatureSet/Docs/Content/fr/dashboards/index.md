@@ -26,7 +26,7 @@ flowchart TB
 | Tableau de bord | Une page : un nom, une grille de widgets, une plage temporelle, des variables et un réglage d'actualisation automatique. |
 | Widget | Une tuile de la grille : un graphique, un nombre, une liste, une carte, une horloge ou un bloc de texte. |
 | Variable | Un sélecteur dans la barre d'outils qui restreint chaque widget compatible à un service, un hôte ou un client. |
-| Plage temporelle | La fenêtre que lisent tous les graphiques et nombres. Elle repart de la dernière heure à chaque ouverture du tableau de bord. |
+| Plage temporelle | La fenêtre que lisent tous les graphiques et nombres. Un tableau de bord s'ouvre sur sa valeur par défaut, la dernière heure sauf si quelqu'un en choisit une autre en le modifiant, et chaque lecteur peut choisir la sienne. |
 | Actualisation automatique | La fréquence à laquelle les widgets relisent leurs données : désactivée, ou toutes les 5 secondes à 15 minutes. |
 | Lecture et modification | Un tableau de bord s'ouvre en lecture. Le modifier est une étape à part, qui se termine en enregistrant ou en annulant vos modifications. |
 

@@ -26,7 +26,7 @@ flowchart TB
 | Dashboard | Én side: et navn, et gitter af widgets, et tidsinterval, variabler og en indstilling for automatisk opdatering. |
 | Widget | Én flise i gitteret: et diagram, et tal, en liste, et kort, et ur eller en tekstblok. |
 | Variabel | En vælger i værktøjslinjen, der indsnævrer hver widget, som understøtter den, til én tjeneste, vært eller kunde. |
-| Tidsinterval | Det vindue, som alle diagrammer og tal læser. Det starter ved den seneste time, hver gang dashboardet åbnes. |
+| Tidsinterval | Det vindue, som alle diagrammer og tal læser. Et dashboard åbner på sin standard, den seneste time, medmindre en, der redigerer det, vælger en anden, og hver seer kan vælge sit eget. |
 | Automatisk opdatering | Hvor ofte widgets læser deres data igen: slået fra, eller fra hvert 5. sekund til hvert 15. minut. |
 | Visning og redigering | Et dashboard åbner til læsning. Redigering er et særskilt trin, der slutter med, at du gemmer eller kasserer dine ændringer. |
 

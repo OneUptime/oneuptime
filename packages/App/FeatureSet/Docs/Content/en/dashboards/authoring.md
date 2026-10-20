@@ -46,7 +46,7 @@ A template is a starting point, not a link: once the dashboard is created, chang
 
 ## Edit and save
 
-A dashboard opens in view mode, for reading. To change it, open the **⋯** menu in its toolbar and pick **Edit Dashboard**. The toolbar shows **Editing** next to the name, and swaps the time range and its other controls for **Add Widget**, **Variables**, **Cancel** and **Save Changes**.
+A dashboard opens in view mode, for reading. To change it, open the **⋯** menu in its toolbar and pick **Edit Dashboard**. The toolbar shows **Editing** next to the name, and swaps the time range and its other controls for **Add Widget**, **Variables**, **Cancel** and **Save Changes**, with a row below them for the dashboard's **Default time range** and **Default auto-refresh**.
 
 ```mermaid title="From reading a dashboard to changing it, and back"
 flowchart TB
@@ -59,7 +59,7 @@ flowchart TB
 
 Your changes are yours alone until you save them. Nothing is saved while you edit, so other people keep seeing the dashboard as it was.
 
-- **Save Changes** saves the widgets, their places and sizes, the variables and the auto-refresh interval, all at once, and goes back to view mode. If the save is refused, for example because you lost the permission meanwhile, you stay in edit mode with your changes and the reason above the grid.
+- **Save Changes** saves the widgets, their places and sizes, the variables, and the default time range and auto-refresh, all at once, and goes back to view mode. If the save is refused, for example because you lost the permission meanwhile, you stay in edit mode with your changes and the reason above the grid.
 - **Cancel** asks first, because it throws your changes away: **Discard Changes** goes back to the dashboard as it was saved, and **Keep Editing** returns to your work.
 
 While you edit, auto-refresh pauses, and a zoomed time range goes back to the range you picked.
@@ -99,13 +99,25 @@ To change a widget later, click it while you edit. Its settings open again, with
 
 ## Time range and auto-refresh
 
-In view mode, the toolbar's time range picker sets the window that every chart, number, log and trace widget reads. Pick a preset from the past 5 minutes to the past 3 months, or a custom start and end. Each time the dashboard opens, it starts at the past hour.
+In view mode, the toolbar's time range picker sets the window that every chart, number, log and trace widget reads. Pick a preset from the past 5 minutes to the past 3 months, or a custom start and end. The dashboard opens on its default time range: the past hour, unless an editor sets another.
 
 Lists of incidents, alerts, monitors and resources show their current state, whatever the time range.
 
-Next to the time range, the auto-refresh menu reads every widget again every 5 seconds, 10 seconds, 30 seconds, 1 minute, 5 minutes or 15 minutes, with a countdown until the next refresh. Leave it off while you investigate, so the view keeps still. To make an interval the dashboard's own, pick it, then edit the dashboard and click **Save Changes**: every visit then starts with it.
+Next to the time range, the auto-refresh menu reads every widget again every 5 seconds, 10 seconds, 30 seconds, 1 minute, 5 minutes or 15 minutes, with a countdown until the next refresh. Leave it off while you investigate, so the view keeps still. The dashboard opens with its default auto-refresh: off, unless an editor sets another.
 
 The time range picker, the variables and auto-refresh appear once the dashboard has a widget.
+
+### The dashboard's defaults
+
+While you edit the dashboard, the row under the toolbar's buttons sets what everyone opens it on: **Default time range**, a preset from the past 5 minutes to the past 3 months, and **Default auto-refresh**. **Save Changes** saves them with the rest of the dashboard, for your team and for the visitors of its public link alike. A custom start and end can't be a default: the dashboard would stay on that moment for good.
+
+Dashboards saved before these settings open on the past hour, with the auto-refresh they had. Through the API and Terraform, both are in the dashboard's `dashboardViewConfig`: `timeRange`, a preset as the API reference spells it, such as `Past 1 Day`, and `refreshInterval`, such as `1m`. Any other value is refused.
+
+### Your own picks
+
+The time range and auto-refresh you pick in view mode are yours alone, and your browser remembers them for each dashboard: a refresh, a browser restart or a wall screen's reboot opens the dashboard as you left it. Only a preset is remembered. A custom range or a zoom lasts until you leave the page, so the dashboard never sticks on a moment in the past.
+
+The first choice of each picker names the dashboard's default, as in Default (Past 1 Day). Pick it to go back to the default: your browser forgets your pick, and the dashboard follows its default again, even when an editor changes it later. When you save new defaults yourself, you see them at once.
 
 ### Zooming into a spike
 

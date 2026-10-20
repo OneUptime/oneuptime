@@ -105,7 +105,7 @@ Der Link der Seite trägt die Auswahl jeder Variablen als `?var-<name>=<value>`,
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-Der Link trägt nur die Variablen. Der Zeitbereich beginnt bei jedem Besuch mit der letzten Stunde, also sagen Sie den Empfängern, welchen Abschnitt sie ansehen sollen, oder zoomen Sie hinein, sobald sie ihn öffnen.
+Der Link trägt auch den Zeitbereich und die automatische Aktualisierung, die Sie gewählt haben, als `range` und `refresh`, sodass die Empfänger sehen, was Sie sehen. [Einen Link senden](/docs/dashboards/sharing#einen-link-senden) nennt ihre Werte.
 
 ## Ein Beispiel: ein Dashboard für jeden Dienst
 
