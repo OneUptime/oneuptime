@@ -130,6 +130,19 @@ Un cambio que sigue sin superar la verificación no se descarta: el pull request
 
 Los comandos son ajustes del repositorio que escribe tu equipo y que se ejecutan en tu propio Runner: el mismo modelo de confianza que los pasos de Bash de un runbook. La IA nunca los escribe ni los cambia. Un Runner global, que OneUptime ejecuta para todos los proyectos, nunca los ejecuta: en un Runner global, la corrección se escribe y se abre para revisión, la verificación se informa como omitida y la CI propia de tu repositorio comprueba el cambio. [Ejecuta un Runner propio](#ejecuta-un-runner-propio) para que las correcciones se compilen y prueben antes de que se abra el pull request.
 
+## Después de fusionar una corrección
+
+Fusionar una corrección no corrige nada hasta que se ejecuta. En cuanto se fusiona un pull request de corrección, OneUptime espera un despliegue registrado que lo contenga (consulta [Despliegues y cambios](/docs/telemetry/change-events)) y vigila en ese despliegue aquello para lo que era la corrección. El pull request de la tarea en Code dice cómo fue, y también la página **Asistencia de IA** de la excepción, los registros de IA del incidente y el insight de IA del que salió la corrección:
+
+| Una corrección de | Qué se vigila | Funcionó | No funcionó |
+| --- | --- | --- | --- |
+| Una excepción | Si la excepción vuelve a ocurrir | **Corregido en producción** | **Sigue ocurriendo tras la corrección** |
+| Una traza lenta o un insight de latencia | El p99 de la operación que nombra la corrección | **Más rápido en producción** | **Sigue lento tras la corrección** |
+| La causa raíz de un incidente o una alerta | Si su monitor genera otro | **Corregido en producción** | **Volvió a ocurrir tras la corrección** |
+| Telemetría, registro o trazado que faltaban | Lo que añade la corrección y el resto de la telemetría del servicio | **Llega en producción** | **La telemetría se detuvo tras la corrección** |
+
+Hasta que un despliegue la entrega, la corrección indica **Fusionado, esperando un despliegue**, y luego **Desplegado, en observación en producción** mientras se vigila. Una que ningún despliegue registrado contiene en 14 días, o de la que la producción no puede decir nada, indica **No verificado en producción**. [Correcciones de código automáticas](/docs/ai/ai-sre#correcciones-de-código-automáticas) recoge las reglas. Una prueba de regresión, un mejor manejo de errores, una revisión y una solicitud en Code no se vigilan: la producción no puede mostrar lo que cambian.
+
 ## Antes de empezar
 
 Una tarea necesita tres cosas. La página de un repositorio en Código y la página **Asistencia de IA** de la excepción comprueban las tres antes de ofrecer empezar, y dicen qué falta.

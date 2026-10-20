@@ -130,6 +130,19 @@ Una modifica che continua a non superare la verifica non viene scartata: la pull
 
 I comandi sono impostazioni del repository che scrive il tuo team, eseguite sul tuo Runner: lo stesso modello di fiducia dei passaggi Bash di un runbook. L'IA non li scrive né li modifica mai. Un Runner globale, che OneUptime esegue per ogni progetto, non li esegue mai: su un Runner globale la correzione viene scritta e aperta per la revisione, la verifica viene segnalata come saltata e la CI del tuo repository controlla la modifica. [Esegui un Runner tuo](#esegui-un-runner-tuo) per far compilare e testare le correzioni prima che si apra la pull request.
 
+## Dopo l'unione di una correzione
+
+Unire una correzione non corregge nulla finché non viene eseguita. Appena una pull request di correzione viene unita, OneUptime attende un deploy registrato che la contenga (vedi [Deploy e modifiche](/docs/telemetry/change-events)) e osserva in quel deploy ciò per cui serviva la correzione. La pull request dell'attività in Code dice com'è andata, e così la pagina **AI Assistance** dell'eccezione, i registri IA dell'incidente e l'insight IA da cui è nata la correzione:
+
+| Una correzione di | Cosa viene osservato | Ha funzionato | Non ha funzionato |
+| --- | --- | --- | --- |
+| Un'eccezione | Se l'eccezione si ripresenta | **Corretto in produzione** | **Si verifica ancora dopo la correzione** |
+| Una traccia lenta o un insight di latenza | Il p99 dell'operazione indicata dalla correzione | **Più veloce in produzione** | **Ancora lento dopo la correzione** |
+| La causa principale di un incidente o di un avviso | Se il suo monitor ne genera un altro | **Corretto in produzione** | **Si è ripresentato dopo la correzione** |
+| Telemetria, logging o tracing mancanti | Ciò che la correzione aggiunge, e il resto della telemetria del servizio | **Arriva in produzione** | **Telemetria interrotta dopo la correzione** |
+
+Finché un deploy non la rilascia, la correzione indica **Unito, in attesa di un deploy**, poi **Distribuito, osservato in produzione** mentre viene osservata. Una che nessun deploy registrato contiene entro 14 giorni, o di cui la produzione non può dire nulla, indica **Non verificato in produzione**. [Correzioni automatiche del codice](/docs/ai/ai-sre#correzioni-automatiche-del-codice) riporta le regole. Un test di regressione, una migliore gestione degli errori, una revisione e una richiesta in Code non vengono osservati: la produzione non può mostrare cosa cambiano.
+
 ## Prima di iniziare
 
 Un'attività ha bisogno di tre cose. La pagina di un repository in Codice e la pagina **AI Assistance** dell'eccezione le controllano tutte e tre prima di offrire l'avvio, e dicono cosa manca.

@@ -130,6 +130,19 @@ Uma alteração que continua sem passar na verificação não é descartada: o p
 
 Os comandos são configurações do repositório que a sua equipe escreve, executadas no seu próprio Runner: o mesmo modelo de confiança dos passos Bash de um runbook. A IA nunca os escreve nem os altera. Um Runner global, que o OneUptime executa para todos os projetos, nunca os executa: em um Runner global, a correção é escrita e aberta para revisão, a verificação é informada como ignorada e a CI do seu repositório verifica a mudança. [Execute um Runner próprio](#execute-um-runner-próprio) para que as correções sejam compiladas e testadas antes de o pull request abrir.
 
+## Depois do merge de uma correção
+
+Fazer o merge de uma correção não corrige nada até ela rodar. Assim que um pull request de correção passa pelo merge, o OneUptime espera um deploy registrado que o contenha (veja [Deploys e alterações](/docs/telemetry/change-events)) e observa nesse deploy aquilo para o que a correção servia. O pull request da tarefa no Code diz como foi, assim como a página **AI Assistance** da exceção, os registros de IA do incidente e o insight de IA de onde veio a correção:
+
+| Uma correção de | O que é observado | Funcionou | Não funcionou |
+| --- | --- | --- | --- |
+| Uma exceção | Se a exceção acontece de novo | **Corrigido em produção** | **Ainda acontece após a correção** |
+| Um trace lento ou um insight de latência | O p99 da operação que a correção nomeia | **Mais rápido em produção** | **Ainda lento após a correção** |
+| A causa raiz de um incidente ou de um alerta | Se o monitor dele gera outro | **Corrigido em produção** | **Aconteceu de novo após a correção** |
+| Telemetria, logging ou tracing que faltavam | O que a correção adiciona, e o resto da telemetria do serviço | **Chegando em produção** | **A telemetria parou após a correção** |
+
+Até um deploy entregá-la, a correção mostra **Mesclado, aguardando um deploy**, depois **Implantado, em observação em produção** enquanto é observada. Uma que nenhum deploy registrado contém em 14 dias, ou sobre a qual a produção não pode dizer nada, mostra **Não verificado em produção**. [Correções automáticas de código](/docs/ai/ai-sre#correções-automáticas-de-código) traz as regras. Um teste de regressão, um tratamento de erros melhor, uma revisão e uma solicitação no Code não são observados: a produção não consegue mostrar o que eles mudam.
+
 ## Antes de começar
 
 Uma tarefa precisa de três coisas. A página de um repositório em Código e a página **AI Assistance** da exceção verificam as três antes de oferecer o início, e dizem o que falta.

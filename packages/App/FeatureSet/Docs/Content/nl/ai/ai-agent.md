@@ -130,6 +130,19 @@ Een wijziging die de controle nog steeds niet doorstaat, wordt niet weggegooid: 
 
 De opdrachten zijn repository-instellingen die je team schrijft en die op je eigen Runner draaien: hetzelfde vertrouwensmodel als de Bash-stappen van een runbook. De AI schrijft of wijzigt ze nooit. Een globale Runner, die OneUptime voor elk project draait, voert ze nooit uit: op een globale Runner wordt het herstel geschreven en ter beoordeling geopend, wordt de controle als overgeslagen gemeld, en controleert de eigen CI van je repository de wijziging. [Draai een eigen Runner](#een-eigen-runner-draaien) om het herstel te laten bouwen en testen voordat de pull request opent.
 
+## Na het mergen van een fix
+
+Een fix mergen lost niets op totdat hij draait. Zodra een pull request met een fix gemerged is, wacht OneUptime op een vastgelegde deploy die hem bevat (zie [Deploys en wijzigingen](/docs/telemetry/change-events)) en houdt in die deploy in de gaten waarvoor de fix bedoeld was. De pull request van de taak in Code zegt hoe het ging, net als de pagina **AI Assistance** van de uitzondering, de AI-logboeken van het incident en de AI-insight waar de fix uit voortkwam:
+
+| Een fix van | Wat wordt gevolgd | Het werkte | Het werkte niet |
+| --- | --- | --- | --- |
+| Een uitzondering | Of de uitzondering opnieuw voorkomt | **Opgelost in productie** | **Komt nog steeds voor na de fix** |
+| Een trage trace of een latentie-insight | De p99 van de bewerking die de fix noemt | **Sneller in productie** | **Nog steeds traag na de fix** |
+| De hoofdoorzaak van een incident of een melding | Of de monitor er nog een veroorzaakt | **Opgelost in productie** | **Opnieuw voorgekomen na de fix** |
+| Ontbrekende telemetrie, logging of tracing | Wat de fix toevoegt, en de rest van de telemetrie van de service | **Komt binnen in productie** | **Telemetrie gestopt na de fix** |
+
+Totdat een deploy hem uitlevert, staat bij de fix **Gemerged, wacht op een deploy**, daarna **Gedeployed, wordt in productie gevolgd** zolang hij gevolgd wordt. Een fix die binnen 14 dagen in geen enkele vastgelegde deploy zit, of waarover productie niets kan zeggen, staat op **Niet geverifieerd in productie**. [Automatische codefixes](/docs/ai/ai-sre#automatische-codefixes) beschrijft de regels. Een regressietest, betere foutafhandeling, een review en een verzoek in Code worden niet gevolgd: productie kan niet laten zien wat ze veranderen.
+
 ## Voordat je begint
 
 Een taak heeft drie dingen nodig. De pagina van een repository in Code en de pagina **AI Assistance** van de uitzondering controleren alle drie voordat ze aanbieden te starten, en zeggen wat er ontbreekt.

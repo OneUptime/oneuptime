@@ -130,6 +130,19 @@ A change that still fails verification is not thrown away: the pull request open
 
 The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. A global Runner, which OneUptime runs for every project, never runs them: on a global Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change. [Run a Runner of your own](#run-a-runner-of-your-own) to have fixes built and tested before the pull request opens.
 
+## After a fix merges
+
+Merging a fix fixes nothing until it runs. Once a fix pull request merges, OneUptime waits for a recorded deploy that contains it (see [Deploys and Changes](/docs/telemetry/change-events)) and watches what the fix was for in that deploy. The task's pull request in Code says how it went, and so do the exception's **AI Assistance** page, the incident's AI Logs and the AI insight the fix came from:
+
+| A fix of | What is watched | It worked | It did not |
+| --- | --- | --- | --- |
+| An exception | Whether the exception happens again | **Fixed in production** | **Still happening after the fix** |
+| A slow trace or a latency insight | The p99 of the operation the fix names | **Faster in production** | **Still slow after the fix** |
+| An incident's or an alert's root cause | Whether its monitor raises another | **Fixed in production** | **Happened again after the fix** |
+| Missing telemetry, logging or tracing | What the fix adds, and the rest of the service's telemetry | **Arriving in production** | **Telemetry stopped after the fix** |
+
+Until a deploy ships it, the fix reads **Merged, waiting for a deploy**, then **Deployed, watching in production** while it is watched. One that no recorded deploy contains within 14 days, or that production cannot tell about, reads **Not verified in production**. [Automatic code fixes](/docs/ai/ai-sre#automatic-code-fixes) has the rules. A regression test, better error handling, a review and a request in Code are not watched: production cannot show what they change.
+
 ## Before you begin
 
 A task needs three things. A repository's page in Code and the exception's **AI Assistance** page check all three before they offer to start, and say what is missing.
