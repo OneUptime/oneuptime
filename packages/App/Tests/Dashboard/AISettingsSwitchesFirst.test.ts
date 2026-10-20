@@ -275,10 +275,17 @@ describe("every AI behaviour is a switch", () => {
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
       const fix: ProjectAiSwitchDefinition<string> = AI_LANE_SWITCHES[lane][1]!;
 
-      // What it needs: an AI agent that may fix things where it happens.
-      expect(fix.note).toContain("AI agent");
-      // Who decides whether a fix waits: that agent's settings.
-      expect(fix.description).toContain("waits for approval");
+      // What fixes: the AI agent where it happens, or one of the runbooks.
+      expect(fix.description).toContain("through the AI agent");
+      expect(fix.description).toContain("or with one of your runbooks");
+      /*
+       * Who decides whether a fix waits: that agent's settings, and for a
+       * runbook OneUptime AI picks, a rule that fixes without asking.
+       */
+      expect(fix.note).toContain(
+        "The AI agent's settings decide if its fixes wait for approval.",
+      );
+      expect(fix.note).toContain("unless a rule allows it");
     }
   });
 

@@ -54,7 +54,7 @@ OneUptime AI 使用分配给其运行所在 Runner 的某个 SSH 凭据来运行
 
 ### 让 OneUptime AI 使用它
 
-OneUptime AI 在开启了 **执行 AI 补救命令** 的 Runner 上，使用分配给该 Runner 的某个 SSH 凭据运行其 SSH 命令。Kubernetes 凭据一旦与它的某个 Runner 一起绑定到集群就会被使用：参见 [AI SRE](/docs/ai/ai-sre)。
+OneUptime AI 在自动补救规则为其命令选择的 Runner 上，使用分配给该 Runner 的某个 SSH 凭据运行其 SSH 命令。Kubernetes 凭据一旦与它的某个 Runner 一起绑定到集群就会被使用：参见 [AI SRE](/docs/ai/ai-sre)。
 :::
 
 ## 保存的内容
@@ -78,12 +78,12 @@ OneUptime AI 在开启了 **执行 AI 补救命令** 的 Runner 上，使用分�
 
 ### 运行 OneUptime AI 命令的 Runner
 
-在开启了 **执行 AI 补救命令** 的 Runner 上，OneUptime AI 会从分配给该 Runner 的 SSH 凭据中挑选，用于它在那里运行的命令。因此，无论先保存哪一方，SSH 凭据都只能经由有权读取 Runbook 凭据的人（ **Read Runbook Credential** ，或 Project Owner、Project Admin）到达这样的 Runner：
+Runner 一旦被选来运行 OneUptime AI 的命令，就会运行这些命令：作为自动补救规则的 Runner，或用于 Kubernetes 集群的 AI 访问。在这样的 Runner 上，OneUptime AI 会从分配给该 Runner 的 SSH 凭据中挑选，用于它在那里运行的命令。因此，无论先保存哪一方，SSH 凭据都只能经由有权读取 Runbook 凭据的人（ **Read Runbook Credential** ，或 Project Owner、Project Admin）到达这样的 Runner：
 
 - **分配凭据。** 创建包含此类 Runner 的 SSH 凭据，或把此类 Runner 添加到凭据中，都需要该权限。没有该权限时，保存会被拒绝并指出该 Runner：请把凭据分配给不运行 AI 补救命令的 Runner，或请有该权限的人来分配。
-- **打开开关。** 为持有 SSH 凭据的 Runner 开启 **执行 AI 补救命令** 需要同样的权限。
+- **选择 Runner。** 首次为 OneUptime AI 的命令选择持有 SSH 凭据的 Runner（作为规则的 Runner，或用于集群）需要同样的权限。
 
-从凭据中移除 Runner、按凭据现有的 Runner 原样保存凭据，以及 Kubernetes 凭据，都不需要额外权限：OneUptime AI 的 kubectl 命令使用绑定到其集群的凭据运行。没有该权限的人所做的凭据分配和开关开启，在一个项目中会逐个保存，因此两者不能一起通过检查；在另一次保存进行时到达的保存会等待它完成，如果等待太久，会以 *Try again in a moment* 被拒绝。请再次保存。
+从凭据中移除 Runner、按凭据现有的 Runner 原样保存凭据，以及 Kubernetes 凭据，都不需要额外权限：OneUptime AI 的 kubectl 命令使用绑定到其集群的凭据运行。没有该权限的人所做的凭据分配和 Runner 选择，在一个项目中会逐个保存，因此两者不能一起通过检查；在另一次保存进行时到达的保存会等待它完成，如果等待太久，会以 *Try again in a moment* 被拒绝。请再次保存。保存 Runner（例如编辑其描述）从不等待。
 
 工作流的步骤以 Project Admin 的身份执行，但不会借用 Project Admin 读取 Runbook 凭据的权限：只有当最后保存工作流步骤的人拥有该权限时，步骤才拥有它。参见 [工作流步骤可以做什么](/docs/workflows/configuration#工作流步骤可以做什么)。
 

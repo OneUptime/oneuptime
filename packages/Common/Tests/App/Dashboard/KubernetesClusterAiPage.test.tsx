@@ -365,8 +365,8 @@ function agentHostInfo(clusterIdentifier: string): JSONObject {
 /*
  * Every kind of Runner a project holds: this cluster's previous agent
  * Runner, another cluster's, a host Runner that runs AI commands and one
- * that does not. Only the host Runner can be picked for an advanced
- * binding.
+ * that never did. The two host Runners can be picked for an advanced
+ * binding: choosing one is what lets OneUptime AI run kubectl on it.
  */
 function makeProjectRunners(): Array<Runner> {
   return [
@@ -3533,7 +3533,18 @@ describe("the Change modal: advanced Runner bindings", () => {
     await openRunnerStep(dialog);
 
     await within(dialog).findByText("Runner", {}, { timeout: WAIT_TIMEOUT });
-    expect(await openDropdown(dialog, /^Runner/)).toEqual(["bash-runner"]);
+    expect(await openDropdown(dialog, /^Runner/)).toEqual([
+      "bash-runner",
+      "ops-runner",
+    ]);
+    // The one loader of Runners: the project's own, read for their posture.
+    const runnerRequest: ListRequest = listRequestsFor(Runner)[0]!;
+    expect(String(runnerRequest.query?.["projectId"])).toBe(PROJECT_ID);
+    expect(runnerRequest.select).toEqual({
+      _id: true,
+      name: true,
+      hostInfo: true,
+    });
     fireEvent.keyDown(
       within(dialog).getByRole("combobox", { name: /^Runner/ }),
       {

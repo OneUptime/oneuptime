@@ -789,6 +789,54 @@ describe("getRemediationDecisionLines", () => {
         "Auto-remediation stopped on an error while checking this alert. What it did before the error is listed here.",
       );
     });
+
+    /*
+     * With no rule set up, OneUptime AI may run any of the project's
+     * runbooks: it picks the one that fits and proposes it.
+     */
+    test.each([
+      [
+        "incident" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.AiPickingRunbook,
+        "OneUptime AI is picking the runbook that fits this incident. It proposes it for your approval.",
+        "acted",
+      ],
+      [
+        "alert" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.AiPickingRunbook,
+        "OneUptime AI is picking the runbook that fits this alert. It proposes it for your approval.",
+        "acted",
+      ],
+      [
+        "incident" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.AiRunbookPickNotStarted,
+        "OneUptime AI could not start picking a runbook for this incident. The daily AI budget may be used up.",
+        "attention",
+      ],
+      [
+        "alert" as RemediationDecisionSignal,
+        AutoRemediationDecisionReason.AiRunbookPickNotStarted,
+        "OneUptime AI could not start picking a runbook for this alert. The daily AI budget may be used up.",
+        "attention",
+      ],
+    ])(
+      "with no rule, on a new %s, says %s",
+      (
+        signal: RemediationDecisionSignal,
+        reason: AutoRemediationDecisionReason,
+        text: string,
+        tone: string,
+      ) => {
+        const line: RemediationDecisionLine = onlyLine(
+          { lane: AutoRemediationDecisionLane.Project, reason },
+          signal,
+        );
+
+        expect(line.text).toBe(text);
+        expect(line.tone).toBe(tone);
+        expect(line.links).toEqual([]);
+      },
+    );
   });
 
   test("draws nothing for a lane that only says another lane took the signal", () => {

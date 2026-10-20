@@ -88,17 +88,16 @@ Pour désactiver celui qui est fourni, définissez `GLOBAL_RUNNER_REPLICAS=0` da
 
 ### 1. Créer l'enregistrement de l'agent
 
-Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Cliquez sur **Créer : Agent Runbook** et remplissez ses deux étapes :
+Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Cliquez sur **Créer : Agent Runbook** et remplissez ses champs, tous sur une seule page :
 
-| Champ | Étape | Notes |
+| Champ | Où | Notes |
 | --- | --- | --- |
-| **Nom** | **Agent Runbook** | Un nom parlant, en général l'endroit où il tourne et ce qu'il peut joindre, par exemple `prod-eu-west-1`. C'est ce que vous choisissez quand vous écrivez une étape. |
-| **Description** | **Agent Runbook** | Facultatif. Une phrase sur ce que cet hôte peut joindre. |
-| **Étiquettes** | **Agent Runbook** (sous **Plus de champs**) | Facultatif. |
-| **Exécute les runbooks** | **Capacités** | Activé par défaut. Permet à cet agent de prendre des étapes de runbook. |
-| **Exécute les commandes de remédiation IA** | **Capacités** | Désactivé par défaut. Permet à la remédiation automatique par IA d'y exécuter des commandes vérifiées par une politique. L'activer pour un agent qui détient des identifiants SSH demande l'autorisation de lire les identifiants de runbook ; voir [Agents Runbook qui exécutent les commandes d'OneUptime AI](/docs/runbooks/credentials#agents-runbook-qui-exécutent-les-commandes-doneuptime-ai). |
+| **Nom** | Sur la page | Un nom parlant, en général l'endroit où il tourne et ce qu'il peut joindre, par exemple `prod-eu-west-1`. C'est ce que vous choisissez quand vous écrivez une étape. |
+| **Description** | Sur la page | Facultatif. Une phrase sur ce que cet hôte peut joindre. |
+| **Exécute les runbooks** | Sous **Plus de champs** | Activé par défaut. Permet à cet agent de prendre des étapes de runbook. |
+| **Étiquettes** | Sous **Plus de champs** | Facultatif. |
 
-Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. Les corrections de code par IA ne sont pas une capacité : un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent.
+Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. L'IA n'est pas une capacité. Un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent. Une règle de remédiation automatique choisit l'agent sur lequel OneUptime AI exécute ses commandes, et les paramètres IA d'un cluster Kubernetes celui sur lequel s'exécute son kubectl : c'est ce choix qui permet aux commandes de OneUptime AI de s'exécuter sur l'agent. Choisir un agent qui détient des identifiants SSH demande l'autorisation de lire les identifiants de runbook ; voir [Agents Runbook qui exécutent les commandes d'OneUptime AI](/docs/runbooks/credentials#agents-runbook-qui-exécutent-les-commandes-doneuptime-ai).
 
 ### 2. Copier la commande d'installation
 

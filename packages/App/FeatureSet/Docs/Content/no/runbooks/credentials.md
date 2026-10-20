@@ -54,7 +54,7 @@ I trinnet **Runbook-agenter** velger du Runnerne som får bruke påloggingsinfor
 
 ### La OneUptime AI bruke den
 
-OneUptime AI kjører SSH-kommandoene sine på en Runner med **Kjører AI-utbedringskommandoer** slått på, med en av SSH-påloggingsinformasjonene som er tildelt den. Kubernetes-påloggingsinformasjon brukes så snart den er knyttet til en klynge sammen med en av Runnerne sine: se [AI SRE](/docs/ai/ai-sre).
+OneUptime AI kjører SSH-kommandoene sine på Runneren en regel for automatisk utbedring velger for dem, med en av SSH-påloggingsinformasjonene som er tildelt den. Kubernetes-påloggingsinformasjon brukes så snart den er knyttet til en klynge sammen med en av Runnerne sine: se [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## Hva som lagres
@@ -78,12 +78,12 @@ Tildelingen er tilgangsgrensen, så hold den smal: en Runner som bare noen gang 
 
 ### Runnere som kjører kommandoene til OneUptime AI
 
-På en Runner med **Kjører AI-utbedringskommandoer** slått på velger OneUptime AI blant SSH-påloggingsinformasjonen som er tildelt Runneren, for kommandoene den kjører der. Derfor når SSH-påloggingsinformasjon bare en slik Runner gjennom en person som har lov til å lese runbook-påloggingsinformasjon (**Read Runbook Credential**, eller en Project Owner eller Project Admin), uansett hva som lagres først:
+En Runner kjører kommandoene til OneUptime AI så snart den er valgt for dem: som Runneren til en regel for automatisk utbedring, eller for AI-tilgangen til en Kubernetes-klynge. På en slik Runner velger OneUptime AI blant SSH-påloggingsinformasjonen som er tildelt Runneren, for kommandoene den kjører der. Derfor når SSH-påloggingsinformasjon bare en slik Runner gjennom en person som har lov til å lese runbook-påloggingsinformasjon (**Read Runbook Credential**, eller en Project Owner eller Project Admin), uansett hva som lagres først:
 
 - **Tildel påloggingsinformasjonen.** Å opprette SSH-påloggingsinformasjon med en slik Runner, eller legge til en slik Runner i den, krever den tillatelsen. Uten den avvises lagringen og nevner Runneren: tildel påloggingsinformasjonen til Runnere som ikke kjører AI-utbedringskommandoer, eller be noen med tillatelsen om å tildele den.
-- **Slå på bryteren.** Å slå på **Kjører AI-utbedringskommandoer** for en Runner som har SSH-påloggingsinformasjon, krever samme tillatelse.
+- **Velg Runneren.** Å velge en Runner som har SSH-påloggingsinformasjon, for kommandoene til OneUptime AI - som Runneren til en regel, eller for en klynge - krever samme tillatelse første gang den velges.
 
-Å fjerne Runnere fra påloggingsinformasjon, lagre påloggingsinformasjon med Runnerne den allerede har, og Kubernetes-påloggingsinformasjon krever ikke mer: kubectl-kommandoene til OneUptime AI kjører med påloggingsinformasjonen som er bundet til klyngen deres. Tildelinger av påloggingsinformasjon og påslåing av bryteren gjort av noen uten den tillatelsen lagres én om gangen i et prosjekt, slik at de to ikke kan bestå kontrollene sine sammen; en lagring som kommer mens en annen lagres, venter på den, og tar det for lang tid, avvises den med *Try again in a moment*. Lagre på nytt.
+Å fjerne Runnere fra påloggingsinformasjon, lagre påloggingsinformasjon med Runnerne den allerede har, og Kubernetes-påloggingsinformasjon krever ikke mer: kubectl-kommandoene til OneUptime AI kjører med påloggingsinformasjonen som er bundet til klyngen deres. Tildelinger av påloggingsinformasjon og valg av en Runner gjort av noen uten den tillatelsen lagres én om gangen i et prosjekt, slik at de to ikke kan bestå kontrollene sine sammen; en lagring som kommer mens en annen lagres, venter på den, og tar det for lang tid, avvises den med *Try again in a moment*. Lagre på nytt. Å lagre en Runner, for eksempel når du endrer beskrivelsen, venter aldri.
 
 Et trinn i en arbeidsflyt handler som Project Admin, men låner ikke lesingen av runbook-påloggingsinformasjon fra en Project Admin: et trinn har den bare hvis personen som sist lagret trinnene i arbeidsflyten, har den. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
 

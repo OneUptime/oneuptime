@@ -171,6 +171,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Project from "Common/Models/DatabaseModels/Project";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import Runner from "Common/Models/DatabaseModels/Runner";
+import RunnerChoicesLoader from "../../../../Components/Runner/RunnerChoices";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -494,21 +495,14 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             return null;
           }
           try {
-            const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
-              modelType: Runner,
-              query: {},
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: {
-                _id: true,
-                name: true,
-                canRunAiCommands: true,
-                // The posture: which rows the Kubernetes agent chart installed.
-                hostInfo: true,
-              },
-              sort: { name: SortOrder.Ascending },
-            });
-            return result.data || [];
+            /*
+             * The one loader of Runners (RunnerChoicesLoader): choosing one
+             * of them is what lets OneUptime AI run kubectl on it.
+             */
+            return await RunnerChoicesLoader.loadForKubernetesCluster(
+              ProjectUtil.getCurrentProjectId()!,
+              LIMIT_PER_PROJECT,
+            );
           } catch (err) {
             errors.push(
               translator.translateTemplate(

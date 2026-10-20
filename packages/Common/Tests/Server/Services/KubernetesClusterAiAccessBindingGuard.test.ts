@@ -45,7 +45,6 @@ beforeEach(() => {
   jest
     .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
     .mockResolvedValue(undefined);
-
 });
 
 /*

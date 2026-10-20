@@ -385,6 +385,7 @@ export class AutoRemediationDecisionHelper {
 }
 
 const ACTED_REASONS: Array<AutoRemediationDecisionReason> = [
+  AutoRemediationDecisionReason.AiPickingRunbook,
   AutoRemediationDecisionReason.ClusterRoundStarted,
   AutoRemediationDecisionReason.ResourceRoundStarted,
   AutoRemediationDecisionReason.RuleAiComposingCommands,
@@ -397,6 +398,7 @@ const ACTED_REASONS: Array<AutoRemediationDecisionReason> = [
 const ATTENTION_REASONS: Array<AutoRemediationDecisionReason> = [
   AutoRemediationDecisionReason.EnableAiOff,
   AutoRemediationDecisionReason.EvaluationFailed,
+  AutoRemediationDecisionReason.AiRunbookPickNotStarted,
   AutoRemediationDecisionReason.ClusterLookupFailed,
   AutoRemediationDecisionReason.ClusterNotReady,
   AutoRemediationDecisionReason.ClusterRoundNotStarted,

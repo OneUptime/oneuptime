@@ -810,7 +810,7 @@ function getRunnerStepText(
       );
     case "runner_ai_commands_disabled":
       return translateTemplate(
-        'Turn on "Runs AI Remediation Commands" on the Runner.',
+        "With Change below, clear the Runner and choose it again: choosing a Runner is what lets OneUptime AI run kubectl on it.",
       );
     case "credential_on_agent_runner":
       return translateTemplate(

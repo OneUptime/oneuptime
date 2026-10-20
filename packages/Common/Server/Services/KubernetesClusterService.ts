@@ -403,6 +403,7 @@ export class Service extends ProjectReferencesService<Model> {
       await this.allowBoundRunnerAiCommands({
         data,
         projectIds: projectId ? [projectId] : [],
+        props: createBy.props,
       });
     }
 
@@ -548,7 +549,11 @@ export class Service extends ProjectReferencesService<Model> {
           loaded,
         });
 
-        await this.allowBoundRunnerAiCommands({ data, projectIds });
+        await this.allowBoundRunnerAiCommands({
+          data,
+          projectIds,
+          props: updateBy.props,
+        });
       }
     }
 
@@ -560,11 +565,14 @@ export class Service extends ProjectReferencesService<Model> {
    * that cluster's kubectl there: a Runner has no "Runs AI Remediation
    * Commands" switch any more (RunnerAiCommandsPick). Asked once an
    * operator's binding passed every check above, for the Runner it binds -
-   * none for a binding it clears.
+   * none for a binding it clears - with what the switch asked: a binder who
+   * may not read runbook credentials may not bind a Runner that holds SSH
+   * credentials and does not run OneUptime AI's commands yet.
    */
   private async allowBoundRunnerAiCommands(data: {
     data: JSONObject;
     projectIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const runnerId: ObjectID | null = RelationIdUtil.readConsistent(
       data.data,
@@ -580,6 +588,7 @@ export class Service extends ProjectReferencesService<Model> {
       await RunnerAiCommandsPick.allowPickedRunners({
         projectId,
         runnerIds: [runnerId],
+        props: data.props,
       });
     }
   }

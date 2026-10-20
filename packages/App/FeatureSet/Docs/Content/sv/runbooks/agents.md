@@ -88,17 +88,16 @@ För att stänga av den medföljande anger du `GLOBAL_RUNNER_REPLICAS=0` i Docke
 
 ### 1. Skapa agentposten
 
-Gå till **Runbooks → Runbook-agenter** och skapa en ny agent. Klicka på **Skapa Runner** och fyll i de två stegen:
+Gå till **Runbooks → Runbook-agenter** och skapa en ny agent. Klicka på **Skapa Runner** och fyll i dess fält, alla på en sida:
 
-| Fält | Steg | Anteckningar |
+| Fält | Var | Anteckningar |
 | --- | --- | --- |
-| **Namn** | **Runner** | Ett läsbart namn, vanligtvis var den körs och vad den kan nå, till exempel `prod-eu-west-1`. Det är det här du väljer när du skriver ett steg. |
-| **Beskrivning** | **Runner** | Valfritt. En mening om vad den här värden kan nå. |
-| **Etiketter** | **Runner** (under **Fler fält**) | Valfritt. |
-| **Kör Runbooks** | **Funktioner** | Påslaget som standard. Låter den här Runnern ta runbook-steg. |
-| **Kör AI-åtgärdskommandon** | **Funktioner** | Avstängt som standard. Låter automatisk AI-åtgärd köra policykontrollerade kommandon på den. Att slå på det för en Runner som har SSH-autentiseringsuppgifter kräver behörighet att läsa runbook-autentiseringsuppgifter; se [Runners som kör OneUptime AI:s kommandon](/docs/runbooks/credentials#runners-som-kör-oneuptime-ais-kommandon). |
+| **Namn** | På sidan | Ett läsbart namn, vanligtvis var den körs och vad den kan nå, till exempel `prod-eu-west-1`. Det är det här du väljer när du skriver ett steg. |
+| **Beskrivning** | På sidan | Valfritt. En mening om vad den här värden kan nå. |
+| **Kör Runbooks** | Under **Fler fält** | Påslaget som standard. Låter den här Runnern ta runbook-steg. |
+| **Etiketter** | Under **Fler fält** | Valfritt. |
 
-En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om. AI-kodfixar är ingen funktion: ett kodrepository väljer i sina inställningar i Kod den Runner som AI arbetar i det på, och Runnerns sida listar de repositoryn som väljer den.
+En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om. AI är ingen funktion. Ett kodrepository väljer i sina inställningar i Kod den Runner som AI arbetar i det på, och Runnerns sida listar de repositoryn som väljer den. En regel för automatisk åtgärd väljer den Runner som OneUptime AI kör sina kommandon på, och ett Kubernetes-klusters AI-inställningar den Runner som dess kubectl körs på: Det är valet av en Runner där som låter OneUptime AI:s kommandon köras på den. Att välja en som har SSH-autentiseringsuppgifter kräver behörighet att läsa runbook-autentiseringsuppgifter; se [Runners som kör OneUptime AI:s kommandon](/docs/runbooks/credentials#runners-som-kör-oneuptime-ais-kommandon).
 
 ### 2. Kopiera installationskommandot
 

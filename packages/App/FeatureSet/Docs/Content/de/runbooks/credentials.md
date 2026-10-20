@@ -54,7 +54,7 @@ Wählen Sie im Schritt **Runbook-Agents** die Runner, die die Anmeldedaten nutze
 
 ### OneUptime AI sie nutzen lassen
 
-OneUptime AI führt seine SSH-Befehle auf einem Runner aus, bei dem **Führt KI-Behebungsbefehle aus** eingeschaltet ist, mit einem der SSH-Anmeldedaten, die ihm zugewiesen sind. Kubernetes-Anmeldedaten werden verwendet, sobald sie mit einem ihrer Runner an einen Cluster gebunden sind: siehe [KI-SRE](/docs/ai/ai-sre).
+OneUptime AI führt seine SSH-Befehle auf dem Runner aus, den eine Regel für automatische Behebung dafür auswählt, mit einem der SSH-Anmeldedaten, die ihm zugewiesen sind. Kubernetes-Anmeldedaten werden verwendet, sobald sie mit einem ihrer Runner an einen Cluster gebunden sind: siehe [KI-SRE](/docs/ai/ai-sre).
 :::
 
 ## Was gespeichert wird
@@ -78,12 +78,12 @@ Die Zuweisung ist die Zugriffsgrenze, also halten Sie sie eng: Ein Runner, der i
 
 ### Runner, die die Befehle von OneUptime AI ausführen
 
-Auf einem Runner mit eingeschaltetem **Führt KI-Behebungsbefehle aus** wählt OneUptime AI für die Befehle, die es dort ausführt, aus den SSH-Anmeldedaten, die dem Runner zugewiesen sind. Daher erreichen SSH-Anmeldedaten einen solchen Runner nur über jemanden, der Runbook-Anmeldedaten lesen darf (**Read Runbook Credential** oder ein Project Owner oder Project Admin), je nachdem, was zuerst gespeichert wird:
+Ein Runner führt Befehle von OneUptime AI aus, sobald er dafür ausgewählt ist: als Runner einer Regel für automatische Behebung oder für den KI-Zugriff eines Kubernetes-Clusters. Auf einem solchen Runner wählt OneUptime AI für die Befehle, die es dort ausführt, aus den SSH-Anmeldedaten, die dem Runner zugewiesen sind. Daher erreichen SSH-Anmeldedaten einen solchen Runner nur über jemanden, der Runbook-Anmeldedaten lesen darf (**Read Runbook Credential** oder ein Project Owner oder Project Admin), je nachdem, was zuerst gespeichert wird:
 
 - **Die Anmeldedaten zuweisen.** SSH-Anmeldedaten mit einem solchen Runner zu erstellen oder einen solchen Runner zu ihnen hinzuzufügen, erfordert diese Berechtigung. Ohne sie wird das Speichern abgelehnt und nennt den Runner: Weisen Sie die Anmeldedaten Runnern zu, die keine KI-Behebungsbefehle ausführen, oder bitten Sie jemanden mit der Berechtigung, sie zuzuweisen.
-- **Den Schalter einschalten.** **Führt KI-Behebungsbefehle aus** für einen Runner einzuschalten, der SSH-Anmeldedaten hält, erfordert dieselbe Berechtigung.
+- **Den Runner auswählen.** Einen Runner, der SSH-Anmeldedaten hält, für die Befehle von OneUptime AI auszuwählen – als Runner einer Regel oder für einen Cluster –, erfordert beim ersten Mal dieselbe Berechtigung.
 
-Runner von Anmeldedaten zu entfernen, Anmeldedaten mit den Runnern zu speichern, die sie schon haben, und Kubernetes-Anmeldedaten verlangen nichts weiter: Die kubectl-Befehle von OneUptime AI laufen mit den Anmeldedaten, die an ihren Cluster gebunden sind. Zuweisungen von Anmeldedaten und das Einschalten des Schalters durch jemanden ohne diese Berechtigung werden in einem Projekt nacheinander gespeichert, sodass beide ihre Prüfungen nicht gemeinsam bestehen können; ein Speichern, das kommt, während ein anderes läuft, wartet darauf, und dauert das zu lange, wird es mit *Try again in a moment* abgelehnt. Speichern Sie erneut.
+Runner von Anmeldedaten zu entfernen, Anmeldedaten mit den Runnern zu speichern, die sie schon haben, und Kubernetes-Anmeldedaten verlangen nichts weiter: Die kubectl-Befehle von OneUptime AI laufen mit den Anmeldedaten, die an ihren Cluster gebunden sind. Zuweisungen von Anmeldedaten und die Auswahl eines Runners durch jemanden ohne diese Berechtigung werden in einem Projekt nacheinander gespeichert, sodass beide ihre Prüfungen nicht gemeinsam bestehen können; ein Speichern, das kommt, während ein anderes läuft, wartet darauf, und dauert das zu lange, wird es mit *Try again in a moment* abgelehnt. Speichern Sie erneut. Einen Runner zu speichern, etwa wenn Sie seine Beschreibung ändern, wartet nie.
 
 Die Schritte eines Workflows handeln als Project Admin, bekommen aber nicht das Lesen von Runbook-Anmeldedaten eines Project Admins geliehen: Ein Schritt hat es nur, wenn die Person, die die Schritte des Workflows zuletzt gespeichert hat, es hat. Siehe [Was Workflow-Schritte tun können](/docs/workflows/configuration#was-workflow-schritte-dürfen).
 

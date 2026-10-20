@@ -603,19 +603,21 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Refuses an update, by a caller who may not read runbook credentials, that
-   * turns "Runs AI Remediation Commands" on for one of `turnedOn` - the
-   * Runners it turns it on for - holding an SSH credential. OneUptime AI picks among
-   * a Runner's SSH credentials for the SSH commands it runs there, unattended
-   * for a rule that runs its commands without asking and names no Runners,
-   * so letting it take them is held to whoever may read the credentials, as
-   * approving such a plan and saving such a rule are (RunbookCredentialReaders).
-   * Only the Runners it turns on are asked about: a Runner already on keeps
-   * what it has, as the Runner form posts every field. Read under the
-   * project's lock (AiCommandCredentialReach), so a credential assigned to
-   * one of them at the same moment is read here or refused there.
+   * Refuses a write, by a caller who may not read runbook credentials, that
+   * lets OneUptime AI's commands run on one of `turnedOn` - the Runners it
+   * turns canRunAiCommands on for: a master admin's update of the column, or
+   * an auto remediation rule or a Kubernetes cluster that picks the Runner
+   * (RunnerAiCommandsPick) - holding an SSH credential. OneUptime AI picks
+   * among a Runner's SSH credentials for the SSH commands it runs there,
+   * unattended for a rule that runs its commands without asking, so letting
+   * it take them is held to whoever may read the credentials, as approving
+   * such a plan and saving such a rule are (RunbookCredentialReaders). Only
+   * the Runners it turns on are asked about: a Runner already on keeps what
+   * it has. Read under the project's lock (AiCommandCredentialReach), so a
+   * credential assigned to one of them at the same moment is read here or
+   * refused there.
    */
-  private async assertNoCredentialsForAiCommands(
+  public async assertNoCredentialsForAiCommands(
     turnedOn: Array<Model>,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {

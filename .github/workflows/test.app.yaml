@@ -286,7 +286,10 @@ jobs:
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
           # Feed from group 4. All Chromium. Postmortem Rules (about 2
           # minutes) joined it at 15.3 to 20.5 minutes on 2026-10-19's runs,
-          # the lightest of the groups that hold several suites.
+          # the lightest of the groups that hold several suites. Auto
+          # Remediation Rules (a minute and a half with its bundle locally,
+          # Chromium only) joined it at 18.4 minutes on 2026-10-20's master
+          # run, the lightest of the six.
           - group: 6
             browsers: chromium
             suites: >-
@@ -300,6 +303,7 @@ jobs:
               test-model-tables-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
+              test-auto-remediation-rules-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -435,6 +439,8 @@ jobs:
             output/playwright/runbook-triggers-ui/test-results
             output/playwright/global-runners-ui/*.png
             output/playwright/global-runners-ui/test-results
+            output/playwright/auto-remediation-rules-ui/*.png
+            output/playwright/auto-remediation-rules-ui/test-results
             output/playwright/runbook-variables-ui/*.png
             output/playwright/runbook-variables-ui/test-results
             output/playwright/network-first-run-ui/*.png

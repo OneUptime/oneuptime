@@ -54,7 +54,7 @@ Kies in de stap **Runbook-agenten** de Runners die het inloggegeven mogen gebrui
 
 ### OneUptime AI het laten gebruiken
 
-OneUptime AI voert zijn SSH-opdrachten uit op een Runner waarop **Voert AI-herstelopdrachten uit** aan staat, met een van de SSH-inloggegevens die eraan zijn toegewezen. Een Kubernetes-inloggegeven wordt gebruikt zodra het, met een van zijn Runners, aan een cluster is gekoppeld: zie [AI SRE](/docs/ai/ai-sre).
+OneUptime AI voert zijn SSH-opdrachten uit op de Runner die een regel voor automatisch herstel ervoor kiest, met een van de SSH-inloggegevens die eraan zijn toegewezen. Een Kubernetes-inloggegeven wordt gebruikt zodra het, met een van zijn Runners, aan een cluster is gekoppeld: zie [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## Wat er wordt opgeslagen
@@ -78,12 +78,12 @@ De toewijzing is de toegangsgrens, dus houd haar smal: een Runner die alleen ooi
 
 ### Runners die de opdrachten van OneUptime AI uitvoeren
 
-Op een Runner met **Voert AI-herstelopdrachten uit** aan kiest OneUptime AI uit de SSH-inloggegevens die aan de Runner zijn toegewezen voor de opdrachten die het daar uitvoert. Een SSH-inloggegeven bereikt zo'n Runner dus alleen via iemand die runbook-inloggegevens mag lezen (**Read Runbook Credential**, of een Project Owner of Project Admin), wat er ook als eerste wordt opgeslagen:
+Een Runner voert de opdrachten van OneUptime AI uit zodra hij ervoor is gekozen: als Runner van een regel voor automatisch herstel, of voor de AI-toegang van een Kubernetes-cluster. Op zo'n Runner kiest OneUptime AI uit de SSH-inloggegevens die aan de Runner zijn toegewezen voor de opdrachten die het daar uitvoert. Een SSH-inloggegeven bereikt zo'n Runner dus alleen via iemand die runbook-inloggegevens mag lezen (**Read Runbook Credential**, of een Project Owner of Project Admin), wat er ook als eerste wordt opgeslagen:
 
 - **Het inloggegeven toewijzen.** Een SSH-inloggegeven met zo'n Runner maken, of zo'n Runner aan een inloggegeven toevoegen, vereist die machtiging. Zonder de machtiging wordt het opslaan geweigerd en wordt de Runner genoemd: wijs het inloggegeven toe aan Runners die geen AI-herstelopdrachten uitvoeren, of vraag iemand met de machtiging om het toe te wijzen.
-- **De schakelaar aanzetten.** **Voert AI-herstelopdrachten uit** aanzetten voor een Runner met SSH-inloggegevens vereist dezelfde machtiging.
+- **De Runner kiezen.** Een Runner met SSH-inloggegevens kiezen voor de opdrachten van OneUptime AI - als Runner van een regel, of voor een cluster - vereist dezelfde machtiging, de eerste keer dat hij wordt gekozen.
 
-Runners van een inloggegeven verwijderen, een inloggegeven opslaan met de Runners die het al heeft, en Kubernetes-inloggegevens vragen niets extra's: de kubectl-opdrachten van OneUptime AI lopen met het inloggegeven dat aan hun cluster is gekoppeld. Toewijzingen van inloggegevens en het aanzetten van de schakelaar door iemand zonder die machtiging worden in een project één voor één opgeslagen, zodat de twee hun controles niet samen kunnen doorstaan; een opslag die binnenkomt terwijl een andere bezig is, wacht daarop, en als dat te lang duurt, wordt hij geweigerd met *Try again in a moment*. Sla opnieuw op.
+Runners van een inloggegeven verwijderen, een inloggegeven opslaan met de Runners die het al heeft, en Kubernetes-inloggegevens vragen niets extra's: de kubectl-opdrachten van OneUptime AI lopen met het inloggegeven dat aan hun cluster is gekoppeld. Toewijzingen van inloggegevens en het kiezen van een Runner door iemand zonder die machtiging worden in een project één voor één opgeslagen, zodat de twee hun controles niet samen kunnen doorstaan; een opslag die binnenkomt terwijl een andere bezig is, wacht daarop, en als dat te lang duurt, wordt hij geweigerd met *Try again in a moment*. Sla opnieuw op. Een Runner opslaan, bijvoorbeeld als je zijn beschrijving wijzigt, wacht nooit.
 
 De stappen van een workflow handelen als Project Admin, maar krijgen het leesrecht op runbook-inloggegevens van een Project Admin niet geleend: een stap heeft het alleen als de persoon die de stappen van de workflow het laatst opsloeg het heeft. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
 

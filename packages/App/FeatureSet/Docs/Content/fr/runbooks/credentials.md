@@ -54,7 +54,7 @@ Ouvrez **Runbooks → Agents de runbook → Accès de l'IA** et cliquez sur **Cr
 
 ### Laisser OneUptime AI l'utiliser
 
-OneUptime AI exécute ses commandes SSH sur un agent Runbook où **Exécute les commandes de remédiation IA** est activé, avec l'un des identifiants SSH qui lui sont attribués. Un identifiant Kubernetes est utilisé dès qu'il est lié, avec l'un de ses agents Runbook, à un cluster : voir [IA SRE](/docs/ai/ai-sre).
+OneUptime AI exécute ses commandes SSH sur l'agent Runbook qu'une règle de remédiation automatique choisit pour elles, avec l'un des identifiants SSH qui lui sont attribués. Un identifiant Kubernetes est utilisé dès qu'il est lié, avec l'un de ses agents Runbook, à un cluster : voir [IA SRE](/docs/ai/ai-sre).
 :::
 
 ## Ce qui est stocké
@@ -78,12 +78,12 @@ L'attribution est la frontière d'accès, alors gardez-la étroite : un agent qu
 
 ### Agents Runbook qui exécutent les commandes d'OneUptime AI
 
-Sur un agent où **Exécute les commandes de remédiation IA** est activé, OneUptime AI choisit parmi les identifiants SSH attribués à l'agent pour les commandes qu'il y exécute. Un identifiant SSH n'atteint donc un tel agent que par une personne qui peut lire les identifiants de runbook (**Read Runbook Credential**, ou un Project Owner ou un Project Admin), selon ce qui est enregistré en premier :
+Un agent exécute les commandes d'OneUptime AI dès qu'il est choisi pour elles : comme agent Runbook d'une règle de remédiation automatique, ou pour l'accès IA d'un cluster Kubernetes. Sur un tel agent, OneUptime AI choisit parmi les identifiants SSH attribués à l'agent pour les commandes qu'il y exécute. Un identifiant SSH n'atteint donc un tel agent que par une personne qui peut lire les identifiants de runbook (**Read Runbook Credential**, ou un Project Owner ou un Project Admin), selon ce qui est enregistré en premier :
 
 - **Attribuer l'identifiant.** Créer un identifiant SSH avec un tel agent, ou ajouter un tel agent à un identifiant, demande cette autorisation. Sans elle, l'enregistrement est refusé et nomme l'agent : attribuez l'identifiant à des agents qui n'exécutent pas de commandes de remédiation IA, ou demandez à une personne qui a l'autorisation de l'attribuer.
-- **Activer l'interrupteur.** Activer **Exécute les commandes de remédiation IA** pour un agent qui détient des identifiants SSH demande la même autorisation.
+- **Choisir l'agent.** Choisir un agent qui détient des identifiants SSH pour les commandes d'OneUptime AI - comme agent d'une règle, ou pour un cluster - demande la même autorisation, la première fois qu'il est choisi.
 
-Retirer des agents d'un identifiant, enregistrer un identifiant avec les agents qu'il a déjà, et les identifiants Kubernetes ne demandent rien de plus : les commandes kubectl d'OneUptime AI s'exécutent avec l'identifiant lié à leur cluster. Les attributions d'identifiants et l'activation de l'interrupteur par une personne sans cette autorisation sont enregistrées une à la fois dans un projet, pour que les deux ne puissent pas réussir leurs vérifications ensemble ; un enregistrement qui arrive pendant qu'un autre est en cours l'attend, et si cela prend trop longtemps il est refusé avec *Try again in a moment*. Enregistrez de nouveau.
+Retirer des agents d'un identifiant, enregistrer un identifiant avec les agents qu'il a déjà, et les identifiants Kubernetes ne demandent rien de plus : les commandes kubectl d'OneUptime AI s'exécutent avec l'identifiant lié à leur cluster. Les attributions d'identifiants et le choix d'un agent par une personne sans cette autorisation sont enregistrés un à la fois dans un projet, pour que les deux ne puissent pas réussir leurs vérifications ensemble ; un enregistrement qui arrive pendant qu'un autre est en cours l'attend, et si cela prend trop longtemps il est refusé avec *Try again in a moment*. Enregistrez de nouveau. Enregistrer un agent, par exemple pour modifier sa description, n'attend jamais.
 
 Les étapes d'un workflow agissent en tant que Project Admin, mais ne se voient pas prêter la lecture des identifiants de runbook d'un Project Admin : une étape ne l'a que si la personne qui a enregistré en dernier les étapes du workflow l'a. Voir [Ce que peuvent faire les étapes de workflow](/docs/workflows/configuration#ce-que-les-étapes-dun-workflow-peuvent-faire).
 

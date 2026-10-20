@@ -54,7 +54,7 @@ Na etapa **Agentes de runbook**, escolha os Runners que podem usar a credencial 
 
 ### Deixar o OneUptime AI usá-la
 
-O OneUptime AI executa seus comandos SSH em um Runner com **Executa comandos de remediação por IA** ligado, com uma das credenciais SSH atribuídas a ele. Uma credencial do Kubernetes é usada assim que é vinculada, com um dos seus Runners, a um cluster: veja [SRE com IA](/docs/ai/ai-sre).
+O OneUptime AI executa seus comandos SSH no Runner que uma regra de remediação automática escolhe para eles, com uma das credenciais SSH atribuídas a ele. Uma credencial do Kubernetes é usada assim que é vinculada, com um dos seus Runners, a um cluster: veja [SRE com IA](/docs/ai/ai-sre).
 :::
 
 ## O que é guardado
@@ -78,12 +78,12 @@ A atribuição é a fronteira de acesso, então mantenha-a estreita: um Runner q
 
 ### Runners que executam os comandos do OneUptime AI
 
-Em um Runner com **Executa comandos de remediação por IA** ligado, o OneUptime AI escolhe entre as credenciais SSH atribuídas ao Runner para os comandos que executa ali. Por isso uma credencial SSH só chega a um Runner assim por meio de alguém que pode ler as credenciais de runbook (**Read Runbook Credential**, ou um Project Owner ou Project Admin), seja qual for o que é salvo primeiro:
+Um Runner executa os comandos do OneUptime AI assim que é escolhido para eles: como Runner de uma regra de remediação automática, ou para o acesso de IA de um cluster Kubernetes. Em um Runner assim, o OneUptime AI escolhe entre as credenciais SSH atribuídas ao Runner para os comandos que executa ali. Por isso uma credencial SSH só chega a um Runner assim por meio de alguém que pode ler as credenciais de runbook (**Read Runbook Credential**, ou um Project Owner ou Project Admin), seja qual for o que é salvo primeiro:
 
 - **Atribuir a credencial.** Criar uma credencial SSH com um Runner assim, ou adicionar um Runner assim a uma credencial, exige essa permissão. Sem ela, o salvamento é recusado e nomeia o Runner: atribua a credencial a Runners que não executam comandos de remediação por IA, ou peça a alguém com a permissão que a atribua.
-- **Ligar o interruptor.** Ligar **Executa comandos de remediação por IA** em um Runner que tem credenciais SSH exige a mesma permissão.
+- **Escolher o Runner.** Escolher um Runner que tem credenciais SSH para os comandos do OneUptime AI - como Runner de uma regra, ou para um cluster - exige a mesma permissão, na primeira vez que ele é escolhido.
 
-Remover Runners de uma credencial, salvar uma credencial com os Runners que ela já tem e as credenciais Kubernetes não pedem nada além disso: os comandos kubectl do OneUptime AI rodam com a credencial vinculada ao seu cluster. Atribuições de credenciais e o ligamento do interruptor por alguém sem essa permissão são salvos um de cada vez em um projeto, para que os dois não passem juntos nas verificações; um salvamento que chega enquanto outro está sendo salvo espera por ele e, se demorar demais, é recusado com *Try again in a moment*. Salve de novo.
+Remover Runners de uma credencial, salvar uma credencial com os Runners que ela já tem e as credenciais Kubernetes não pedem nada além disso: os comandos kubectl do OneUptime AI rodam com a credencial vinculada ao seu cluster. Atribuições de credenciais e a escolha de um Runner por alguém sem essa permissão são salvas uma de cada vez em um projeto, para que as duas não passem juntas nas verificações; um salvamento que chega enquanto outro está sendo salvo espera por ele e, se demorar demais, é recusado com *Try again in a moment*. Salve de novo. Salvar um Runner, como ao editar a descrição dele, nunca espera.
 
 As etapas de um workflow agem como Project Admin, mas não recebem emprestada a leitura de credenciais de runbook de um Project Admin: uma etapa só a tem se a pessoa que salvou por último as etapas do workflow a tiver. Consulte [O que as etapas de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
 

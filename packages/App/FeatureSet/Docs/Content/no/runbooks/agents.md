@@ -88,17 +88,16 @@ For å slå av den medfølgende setter du `GLOBAL_RUNNER_REPLICAS=0` i Docker Co
 
 ### 1. Opprett agentposten
 
-Gå til **Runbooks → Runbook-agenter**, og opprett en ny agent. Klikk **Opprett Runner**, og fyll ut de to trinnene:
+Gå til **Runbooks → Runbook-agenter**, og opprett en ny agent. Klikk **Opprett Runner**, og fyll ut feltene, alle på én side:
 
-| Felt | Trinn | Merknader |
+| Felt | Hvor | Merknader |
 | --- | --- | --- |
-| **Navn** | **Runner** | Et lesbart navn, typisk hvor den kjører og hva den kan nå, for eksempel `prod-eu-west-1`. Det er dette du velger når du skriver et trinn. |
-| **Beskrivelse** | **Runner** | Valgfritt. En setning om hva denne verten kan nå. |
-| **Etiketter** | **Runner** (under **Flere felt**) | Valgfritt. |
-| **Kjører runbooks** | **Funksjoner** | Slått på som standard. Lar denne Runneren ta runbook-trinn. |
-| **Kjører AI-utbedringskommandoer** | **Funksjoner** | Slått av som standard. Lar automatisk AI-utbedring kjøre policykontrollerte kommandoer på den. Å slå den på for en Runner som har SSH-påloggingsinformasjon, krever tillatelse til å lese runbook-påloggingsinformasjon; se [Runnere som kjører kommandoene til OneUptime AI](/docs/runbooks/credentials#runnere-som-kjører-kommandoene-til-oneuptime-ai). |
+| **Navn** | På siden | Et lesbart navn, typisk hvor den kjører og hva den kan nå, for eksempel `prod-eu-west-1`. Det er dette du velger når du skriver et trinn. |
+| **Beskrivelse** | På siden | Valgfritt. En setning om hva denne verten kan nå. |
+| **Kjører runbooks** | Under **Flere felt** | Slått på som standard. Lar denne Runneren ta runbook-trinn. |
+| **Etiketter** | Under **Flere felt** | Valgfritt. |
 
-En Runner henter en endring i funksjonene sine ved neste heartbeat; den trenger ikke å startes på nytt. AI-koderettelser er ikke en funksjon: et koderepositorium velger i innstillingene sine i Kode Runneren AI jobber i det på, og siden til Runneren viser repositoriene som velger den.
+En Runner henter en endring i funksjonene sine ved neste heartbeat; den trenger ikke å startes på nytt. AI er ikke en funksjon. Et koderepositorium velger i innstillingene sine i Kode Runneren AI jobber i det på, og siden til Runneren viser repositoriene som velger den. En regel for automatisk utbedring velger Runneren OneUptime AI kjører kommandoene sine på, og AI-innstillingene til en Kubernetes-klynge Runneren kubectl kjører på: Det er valget av en Runner der som lar kommandoene til OneUptime AI kjøre på den. Å velge en som har SSH-påloggingsinformasjon, krever tillatelse til å lese runbook-påloggingsinformasjon; se [Runnere som kjører kommandoene til OneUptime AI](/docs/runbooks/credentials#runnere-som-kjører-kommandoene-til-oneuptime-ai).
 
 ### 2. Kopier installasjonskommandoen
 

@@ -1,10 +1,18 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
+import { FOLDED_SECTION_ON } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -26,15 +34,22 @@ import {
 } from "../AISettings/ProjectAiSettingsCopy";
 import { reportEnabledAiLaneRuleCount } from "../AISettings/AiLaneRuleCount";
 import {
+  AUTO_REMEDIATION_APPROVAL_FIELD_COPY,
   AUTO_REMEDIATION_APPROVAL_OPTIONS,
   AUTO_REMEDIATION_APPROVAL_TEXT,
-  AUTO_REMEDIATION_FIX_WITH_OPTIONS,
   AUTO_REMEDIATION_FIX_WITH_TEXT,
+  AUTO_REMEDIATION_MORE_FIELDS_COPY,
   AutoRemediationFixWith,
   doesAutoRemediationRuleAskFirst,
   getAutoRemediationFixWith,
-  isRunbooksFixWith,
+  getAutoRemediationMoreFieldsSummary,
+  hasRuleRunbooks,
+  isRunbooksEveryTime,
 } from "./AutoRemediationRuleCopy";
+import {
+  AutoRemediationRunnerPicker,
+  RunbooksEveryTimeSwitch,
+} from "./AutoRemediationRuleFields";
 
 export interface ComponentProps {
   lane: AiLane;
@@ -52,24 +67,35 @@ export const AI_LANE_REMEDIATION_RULE_TRIGGER: Record<
 
 /*
  * Incidents (or Alerts) → Settings → AI → More settings → Auto remediation
- * rules: which new incidents are fixed, and how, while "Fix new incidents
+ * rules: which new incidents are fixed while "Fix new incidents
  * automatically" is on. With no rule, OneUptime AI fixes every one; with
  * rules, only those that match at least one are fixed.
  *
- * A rule used to be five steps of fourteen fields - runbooks, "let AI pick
- * the runbook", "let AI compose commands", a command allowlist, command
- * Runners, an execution mode, a verification window and auto-resolve. From
- * first principles a rule answers three questions, and that is all it asks:
+ * A rule answers two questions, and that is all it asks up front:
  *
  *   - Which incidents? Its conditions.
- *   - Who fixes them? OneUptime AI, through the AI agent on the cluster or
- *     host they affect, or the runbooks the rule names.
  *   - Ask first? Whether a fix waits for someone to approve it.
  *
- * What the old fields hold on a rule saved before is kept and still used
- * (AutoRemediationRuleEngineService): the form never sends them, so editing
- * a rule's name or conditions does not change how it fixes. The table names
- * those rules for what they still do.
+ * OneUptime AI fixes what it matches: through the AI agent on the cluster
+ * or host it affects, and with one of the project's runbooks. The maintainer:
+ * "Why should I pick between OneUptime AI and Runbook? Can OneUptime AI do
+ * things by default, and I can whitelist some Runbook for AI to pick and
+ * run?" So there is no "Fix With" choice any more. What most people never
+ * change is folded under More fields (getAdvancedFormSection):
+ *
+ *   - Runbooks: the ones OneUptime AI may run; none picked is any runbook;
+ *   - Run them every time: the rule starts every runbook it names for every
+ *     match instead, without OneUptime AI deciding - what every rule saved
+ *     with Fix With set to Runbooks keeps doing;
+ *   - Runner: the one OneUptime AI runs the rule's commands of its own on;
+ *     none is the AI agent on the affected cluster or host. Picking it is
+ *     what lets OneUptime AI's commands run there - the Runner's own
+ *     "Runs AI Remediation Commands" switch is gone.
+ *
+ * What the old fields hold on a rule saved before rules were simplified is
+ * kept and still used (AutoRemediationRuleEngineService): the form never
+ * sends them, so editing a rule's name or conditions does not change how it
+ * fixes. The table names those rules for what they still do.
  */
 
 const FIX_WITH_PILLS: Record<
@@ -94,6 +120,37 @@ const FIX_WITH_PILLS: Record<
   },
 };
 
+/*
+ * The Fix step's More fields: one section, built once, for the fields that
+ * follow one another at the end of the step (FormStepsScan groups by it).
+ */
+const MORE_FIELDS: FormFieldCollapsibleSection<AutoRemediationRule> =
+  getAdvancedFormSection<AutoRemediationRule>({
+    getSummary: getAutoRemediationMoreFieldsSummary,
+  });
+
+/*
+ * What a rule saves for its Fix With: the form always says, so a rule that
+ * names runbooks is never taken for one that runs them every time by the
+ * server's reading of an older API client's create
+ * (AutoRemediationRuleService.getRemediationActionOnCreate). A rule that
+ * runs its runbooks every time picks no Runner: OneUptime AI composes no
+ * commands for it.
+ */
+export function prepareAutoRemediationRuleSave(
+  item: AutoRemediationRule,
+): AutoRemediationRule {
+  if (item.remediationAction !== AutoRemediationAction.Runbooks) {
+    item.remediationAction = AutoRemediationAction.OneUptimeAI;
+  }
+
+  if (item.remediationAction === AutoRemediationAction.Runbooks) {
+    (item as unknown as { runnerId: null }).runnerId = null;
+  }
+
+  return item;
+}
+
 const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -116,7 +173,10 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
       query={{ triggerEntityType: triggerEntityType }}
       onBeforeCreate={async (item: AutoRemediationRule) => {
         item.triggerEntityType = triggerEntityType;
-        return item;
+        return prepareAutoRemediationRuleSave(item);
+      }}
+      onBeforeUpdate={async (item: AutoRemediationRule) => {
+        return prepareAutoRemediationRuleSave(item);
       }}
       onFetchSuccess={() => {
         void reportEnabledAiLaneRuleCount<AutoRemediationRule>({
@@ -157,7 +217,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
           field: { remediationAction: true },
-          title: "Fix With",
+          title: "Fixed by",
           type: FieldType.Text,
           getElement: (item: AutoRemediationRule): ReactElement => {
             const pill: { text: string; color: typeof Blue } =
@@ -316,37 +376,10 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           placeholder: "timeout|connection refused",
         },
         {
-          // Who fixes: OneUptime AI or the rule's runbooks.
-          field: { remediationAction: true },
-          title: "Fix With",
-          description: "Who fixes what this rule matches.",
-          stepId: "remediation",
-          fieldType: FormFieldSchemaType.CardSelect,
-          cardSelectSingleColumn: true,
-          cardSelectOptions: AUTO_REMEDIATION_FIX_WITH_OPTIONS,
-          required: true,
-          defaultValue: AutoRemediationAction.OneUptimeAI,
-          dataTestId: "auto-remediation-fix-with-field",
-        },
-        {
-          field: { runbooks: true },
-          title: "Runbooks",
-          stepId: "remediation",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Runbook,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: isRunbooksFixWith,
-          showIf: isRunbooksFixWith,
-          placeholder: "Select Runbooks",
-        },
-        {
-          // Ask first: whether a fix waits for someone to approve it.
+          // Ask first: the one question the Fix step asks up front.
           field: { executionMode: true },
-          title: "Approval",
-          description: "Whether each fix waits for someone to approve it.",
+          title: AUTO_REMEDIATION_APPROVAL_FIELD_COPY.title,
+          description: AUTO_REMEDIATION_APPROVAL_FIELD_COPY.description,
           stepId: "remediation",
           fieldType: FormFieldSchemaType.CardSelect,
           cardSelectSingleColumn: true,
@@ -354,6 +387,96 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           required: true,
           defaultValue: AutoRemediationExecutionMode.Suggest,
           dataTestId: "auto-remediation-approval-field",
+        },
+        {
+          // The runbooks OneUptime AI may run: none picked is any runbook.
+          field: { runbooks: true },
+          title: AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksTitle,
+          description: AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksDescription,
+          stepId: "remediation",
+          collapsibleSection: MORE_FIELDS,
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Runbook,
+            labelField: "name",
+            valueField: "_id",
+          },
+          // A rule that runs its runbooks every time needs some to run.
+          required: isRunbooksEveryTime,
+          // Empty is an answer of its own - any runbook - not "(Optional)".
+          hideOptionalLabel: true,
+          placeholder: AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksPlaceholder,
+          dataTestId: "auto-remediation-runbooks-field",
+        },
+        {
+          // "Run them every time": the rule's Fix With, Runbooks when on.
+          field: { remediationAction: true },
+          title: AUTO_REMEDIATION_MORE_FIELDS_COPY.everyTimeTitle,
+          stepId: "remediation",
+          collapsibleSection: MORE_FIELDS,
+          fieldType: FormFieldSchemaType.CustomComponent,
+          customElementDrawsOwnLabel: true,
+          required: false,
+          defaultValue: AutoRemediationAction.OneUptimeAI,
+          dataTestId: "auto-remediation-every-time-field",
+          // Shown once there are runbooks to run - or for a rule that runs them.
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return hasRuleRunbooks(values) || isRunbooksEveryTime(values);
+          },
+          getFoldedValue: (
+            values: FormValues<AutoRemediationRule>,
+          ): string | null => {
+            return isRunbooksEveryTime(values)
+              ? translateText(FOLDED_SECTION_ON) || FOLDED_SECTION_ON
+              : null;
+          },
+          getCustomElement: (
+            values: FormValues<AutoRemediationRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <RunbooksEveryTimeSwitch
+                value={
+                  (values as { remediationAction?: unknown }).remediationAction
+                }
+                error={elementProps.error}
+                onChange={(remediationAction: AutoRemediationAction): void => {
+                  elementProps.onChange?.(remediationAction);
+                }}
+              />
+            );
+          },
+        },
+        {
+          // Where OneUptime AI runs the rule's commands: none is the AI agents.
+          field: { runnerId: true },
+          title: AUTO_REMEDIATION_MORE_FIELDS_COPY.runnerTitle,
+          description: AUTO_REMEDIATION_MORE_FIELDS_COPY.runnerDescription,
+          stepId: "remediation",
+          collapsibleSection: MORE_FIELDS,
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: false,
+          // Empty is an answer of its own - the AI agents - not "(Optional)".
+          hideOptionalLabel: true,
+          dataTestId: "auto-remediation-runner-field",
+          // A rule that runs its runbooks every time composes no commands.
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return !isRunbooksEveryTime(values);
+          },
+          getCustomElement: (
+            values: FormValues<AutoRemediationRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <AutoRemediationRunnerPicker
+                value={(values as { runnerId?: unknown }).runnerId}
+                ariaLabelledby={elementProps.ariaLabelledby}
+                onChange={(runnerId: string | null): void => {
+                  elementProps.onChange?.(runnerId);
+                }}
+              />
+            );
+          },
         },
       ]}
       showRefreshButton={true}
@@ -364,12 +487,11 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
 export {
   AUTO_REMEDIATION_APPROVAL_OPTIONS,
   AUTO_REMEDIATION_APPROVAL_TEXT,
-  AUTO_REMEDIATION_FIX_WITH_OPTIONS,
   AUTO_REMEDIATION_FIX_WITH_TEXT,
   AutoRemediationFixWith,
   doesAutoRemediationRuleAskFirst,
   getAutoRemediationFixWith,
-  isRunbooksFixWith,
+  isRunbooksEveryTime,
 };
 
 export default AutoRemediationRulesTable;

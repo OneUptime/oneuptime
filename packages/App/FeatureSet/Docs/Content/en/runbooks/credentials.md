@@ -54,7 +54,7 @@ On the **Runners** step, pick the Runners that may use the credential, then clic
 
 ### Let OneUptime AI use it
 
-OneUptime AI runs its SSH commands on a Runner with **Runs AI Remediation Commands** on, with one of the SSH credentials assigned to it. A Kubernetes credential is used once it is bound, with one of its Runners, to a cluster: see [AI SRE](/docs/ai/ai-sre).
+OneUptime AI runs its SSH commands on the Runner an auto remediation rule picks for them, with one of the SSH credentials assigned to it. A Kubernetes credential is used once it is bound, with one of its Runners, to a cluster: see [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## What is stored
@@ -78,12 +78,12 @@ The assignment is the access boundary, so keep it narrow: a Runner that only eve
 
 ### Runners that run OneUptime AI's commands
 
-On a Runner with **Runs AI Remediation Commands** on, OneUptime AI picks from the SSH credentials assigned to the Runner for the commands it runs there. So an SSH credential reaches such a Runner only through someone who may read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin), whichever is saved first:
+A Runner runs OneUptime AI's commands once it is picked for them: as an auto remediation rule's Runner, or for a Kubernetes cluster's AI access. On such a Runner, OneUptime AI picks from the SSH credentials assigned to the Runner for the commands it runs there. So an SSH credential reaches such a Runner only through someone who may read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin), whichever is saved first:
 
 - **Assigning the credential.** Creating an SSH credential with such a Runner, or adding such a Runner to one, takes that permission. Without it, the save is refused and names the Runner: assign the credential to Runners that don't run AI remediation commands, or ask someone who has the permission to assign it.
-- **Turning the switch on.** Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission.
+- **Picking the Runner.** Picking a Runner that holds SSH credentials for OneUptime AI's commands - as a rule's Runner, or for a cluster - takes the same permission, the first time it is picked.
 
-Removing Runners from a credential, saving a credential with the Runners it has, and Kubernetes credentials ask nothing more: OneUptime AI's kubectl commands run with the credential bound to their cluster. Creating a credential with Runners and turning the switch on by someone without that permission are saved one at a time in a project, so the two can't pass their checks together; a save that comes while another is being saved waits for it, and if that takes too long it is refused with *Try again in a moment*. Save it again. Saving a Runner without changing its switch, such as editing its description, never waits.
+Removing Runners from a credential, saving a credential with the Runners it has, and Kubernetes credentials ask nothing more: OneUptime AI's kubectl commands run with the credential bound to their cluster. Creating a credential with Runners and picking a Runner by someone without that permission are saved one at a time in a project, so the two can't pass their checks together; a save that comes while another is being saved waits for it, and if that takes too long it is refused with *Try again in a moment*. Save it again. Saving a Runner, such as editing its description, never waits.
 
 A workflow's steps act as a Project Admin, but are never lent a Project Admin's read of runbook credentials: a person who has it has to make these changes. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 

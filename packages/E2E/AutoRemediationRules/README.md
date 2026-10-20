@@ -1,0 +1,54 @@
+# Auto remediation rules fixture
+
+An offline harness for the auto remediation rules on Incidents → AI →
+Settings and Alerts → AI → Settings: which new incidents (or alerts)
+OneUptime AI fixes, and whether it asks first. The pages
+(`packages/App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings.tsx`
+and `Pages/Alerts/Settings/AlertAISettings.tsx`), their More settings fold,
+the Auto remediation rules table
+(`Components/AutoRemediation/AutoRemediationRulesTable.tsx`), its create and
+edit dialogs, the rule's More fields
+(`Components/AutoRemediation/AutoRemediationRuleFields.tsx`) and the one
+Runner picker (`Components/Runner/RunnerPicker.tsx`) are the production ones.
+It bundles them with esbuild, replaces only the `ModelAPI` / `API` data
+boundary and the synthetic user's permissions, and serves them on
+`127.0.0.1:4391` (`AUTO_REMEDIATION_RULES_FIXTURE_PORT`). No Docker, no
+database, no sign-in.
+
+```sh
+cd packages/E2E
+npm run test-auto-remediation-rules-ui
+```
+
+The suite drives the pages the way a person does:
+
+- the Fix step asks one question, Approval, with no OneUptime AI or Runbooks
+  choice; More fields is folded under it, and its line says what the defaults
+  do (OneUptime AI may run any runbook, and fixes through the AI agent on the
+  affected cluster or host);
+- open, More fields holds the runbooks OneUptime AI may run ("Any runbook"
+  when none is picked) and the Runner OneUptime AI runs the rule's commands
+  on: the AI agent first, then the project's own Runners with how each is
+  doing, never the in-cluster Runner the Kubernetes agent chart installed and
+  never a global Runner;
+- a rule made without opening More fields is sent as OneUptime AI's, with no
+  runbook and no Runner; the runbooks and the Runner picked are sent, and the
+  folded line names them;
+- "Run them every time" appears once the rule names runbooks: the rule starts
+  them for every match, picks no Runner, and needs a runbook to run;
+- a project with no Runner of its own can still pick none;
+- rules saved before this change: the table names each for what it does (its
+  runbooks every time, OneUptime AI, and the two older shapes), and editing
+  one keeps what it does - a rule that runs its runbooks every time opens
+  with them, the switch on and no Runner, and a OneUptime AI rule with its
+  runbooks and its Runner, which can go back to the AI agent;
+- an alert rule asks the same;
+- a viewer reads the rules but cannot add or edit one; a phone, dark mode
+  (`?theme=dark`) and German (`?lang=de`).
+
+`Fixture/Fixture.js` records every created record (`creates`), every update
+(`updates`, with the model, the id and the data) and every delete
+(`deletes`) on `window.__fixture`, so the assertions check what the pages
+sent as well as what they drew. The query string steers it - see the comment
+at the top of `Fixture/Fixture.js`. Screenshots of each state are written to
+`output/playwright/auto-remediation-rules-ui/`.

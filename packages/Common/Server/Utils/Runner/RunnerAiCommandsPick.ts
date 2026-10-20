@@ -1,9 +1,14 @@
 import Runner from "../../../Models/DatabaseModels/Runner";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../Services/RunnerService";
+import AiCommandCredentialReach, {
+  CredentialReachHold,
+} from "../AutoRemediation/AiCommandCredentialReach";
+import RunbookCredentialReaders from "../AutoRemediation/RunbookCredentialReaders";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Logger";
 
@@ -35,12 +40,27 @@ import logger, { LogAttributes } from "../Logger";
  * the Kubernetes agent chart installed, whose registration already decides
  * it, nor for another project's Runner: the write is held to the project's
  * own Runners that are neither.
+ *
+ * And the pick asks what the switch asked. OneUptime AI picks among a
+ * Runner's SSH credentials for the SSH commands it runs there, so a pick by
+ * someone who may not read runbook credentials is refused for a Runner that
+ * holds one (RunnerService.assertNoCredentialsForAiCommands), and holds the
+ * project's lock from before it reads until it is written
+ * (AiCommandCredentialReach): an SSH credential assigned to the Runner at
+ * the same moment is either seen here, or sees the Runner run them. An SSH
+ * credential comes within reach of OneUptime AI's commands only through
+ * someone who may read it, whichever is saved first.
  */
 export default class RunnerAiCommandsPick {
   @CaptureSpan()
   public static async allowPickedRunners(data: {
     projectId: ObjectID | undefined | null;
     runnerIds: Array<ObjectID | string | null | undefined>;
+    /*
+     * Who picks them, for the check above. Left out for OneUptime's own
+     * picks, which are not checked.
+     */
+    props?: DatabaseCommonInteractionProps | undefined;
   }): Promise<void> {
     const ids: Array<ObjectID> = RunnerServiceClass.readRunnerIds(
       data.runnerIds.filter(
@@ -54,45 +74,81 @@ export default class RunnerAiCommandsPick {
       return;
     }
 
-    const runners: Array<Runner> = await RunnerService.findBy({
-      query: {
-        _id: QueryHelper.any(ids),
-        projectId: data.projectId,
-        isGlobalRunner: false,
-        canRunAiCommands: false,
-      },
-      select: {
-        _id: true,
-        name: true,
-        hostInfo: true,
-      },
-      limit: ids.length,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    const projectId: ObjectID = data.projectId;
 
-    const toAllow: Array<Runner> = runners.filter(
-      (runner: Runner): boolean => {
-        return (
-          Boolean(runner._id) &&
-          !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
-        );
-      },
-    );
+    const checkedProps: DatabaseCommonInteractionProps | null =
+      data.props &&
+      !data.props.isRoot &&
+      !RunbookCredentialReaders.mayRead(data.props, projectId)
+        ? data.props
+        : null;
 
-    for (const runner of toAllow) {
-      await RunnerService.updateOneById({
-        id: new ObjectID(runner._id!.toString()),
-        data: {
-          canRunAiCommands: true,
+    let hold: CredentialReachHold | null = checkedProps
+      ? await AiCommandCredentialReach.take([projectId])
+      : null;
+
+    try {
+      const runners: Array<Runner> = await RunnerService.findBy({
+        query: {
+          _id: QueryHelper.any(ids),
+          projectId: projectId,
+          isGlobalRunner: false,
+          canRunAiCommands: false,
         },
+        select: {
+          _id: true,
+          name: true,
+          hostInfo: true,
+        },
+        limit: ids.length,
+        skip: 0,
         props: { isRoot: true },
       });
 
-      logger.info(
-        `RunnerAiCommandsPick: Runner ${runner._id!.toString()} was picked for OneUptime AI's commands, so it now runs them.`,
-        { projectId: data.projectId.toString() } as LogAttributes,
+      const toAllow: Array<Runner> = runners.filter(
+        (runner: Runner): boolean => {
+          return (
+            Boolean(runner._id) &&
+            !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
+          );
+        },
       );
+
+      if (toAllow.length === 0) {
+        return;
+      }
+
+      if (checkedProps) {
+        await RunnerService.assertNoCredentialsForAiCommands(
+          toAllow,
+          checkedProps,
+        );
+
+        // Refused when the lock was lost since the check read (keepForWrite).
+        await AiCommandCredentialReach.keepForWrite(hold);
+      }
+
+      for (const runner of toAllow) {
+        await RunnerService.updateOneById({
+          id: new ObjectID(runner._id!.toString()),
+          data: {
+            canRunAiCommands: true,
+          },
+          props: { isRoot: true },
+        });
+
+        logger.info(
+          `RunnerAiCommandsPick: Runner ${runner._id!.toString()} was picked for OneUptime AI's commands, so it now runs them.`,
+          { projectId: projectId.toString() } as LogAttributes,
+        );
+      }
+    } catch (error) {
+      // A write the database may still apply keeps the lock until it could have.
+      await AiCommandCredentialReach.giveBackAfterFailedWrite(hold, error);
+      hold = null;
+      throw error;
+    } finally {
+      await AiCommandCredentialReach.giveBack(hold);
     }
   }
 }

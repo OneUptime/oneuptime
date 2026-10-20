@@ -88,17 +88,16 @@ Um den mitgelieferten auszuschalten, setzen Sie `GLOBAL_RUNNER_REPLICAS=0` in de
 
 ### 1. Den Agenten-Datensatz anlegen
 
-Gehen Sie zu **Runbooks → Runbook-Agents** und legen Sie einen neuen Agenten an. Klicken Sie auf **Runner erstellen** und füllen Sie die beiden Schritte aus:
+Gehen Sie zu **Runbooks → Runbook-Agents** und legen Sie einen neuen Agenten an. Klicken Sie auf **Runner erstellen** und füllen Sie seine Felder aus, alle auf einer Seite:
 
-| Feld | Schritt | Hinweise |
+| Feld | Wo | Hinweise |
 | --- | --- | --- |
-| **Name** | **Runner** | Ein verständlicher Name, meist wo er läuft und was er erreicht, etwa `prod-eu-west-1`. Diesen wählen Sie, wenn Sie einen Schritt schreiben. |
-| **Beschreibung** | **Runner** | Optional. Ein Satz dazu, was dieser Host erreicht. |
-| **Beschriftungen** | **Runner** (unter **Weitere Felder**) | Optional. |
-| **Führt Runbooks aus** | **Fähigkeiten** | Standardmäßig an. Lässt diesen Runner Runbook-Schritte übernehmen. |
-| **Führt KI-Behebungsbefehle aus** | **Fähigkeiten** | Standardmäßig aus. Lässt die automatische KI-Behebung richtliniengeprüfte Befehle auf ihm ausführen. Es für einen Runner einzuschalten, der SSH-Anmeldedaten hält, erfordert die Berechtigung, Runbook-Anmeldedaten zu lesen; siehe [Runner, die die Befehle von OneUptime AI ausführen](/docs/runbooks/credentials#runner-die-die-befehle-von-oneuptime-ai-ausführen). |
+| **Name** | Auf der Seite | Ein verständlicher Name, meist wo er läuft und was er erreicht, etwa `prod-eu-west-1`. Diesen wählen Sie, wenn Sie einen Schritt schreiben. |
+| **Beschreibung** | Auf der Seite | Optional. Ein Satz dazu, was dieser Host erreicht. |
+| **Führt Runbooks aus** | Unter **Weitere Felder** | Standardmäßig an. Lässt diesen Runner Runbook-Schritte übernehmen. |
+| **Beschriftungen** | Unter **Weitere Felder** | Optional. |
 
-Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig. KI-Codekorrekturen sind keine Fähigkeit: Ein Code-Repository wählt in seinen Einstellungen in Code den Runner aus, auf dem die KI darin arbeitet, und die Seite des Runners listet die Repositorys auf, die ihn auswählen.
+Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig. KI ist keine Fähigkeit. Ein Code-Repository wählt in seinen Einstellungen in Code den Runner aus, auf dem die KI darin arbeitet, und die Seite des Runners listet die Repositorys auf, die ihn auswählen. Eine Regel für automatische Behebung wählt den Runner aus, auf dem OneUptime AI seine Befehle ausführt, und die KI-Einstellungen eines Kubernetes-Clusters den Runner, auf dem sein kubectl läuft: Erst diese Auswahl lässt die Befehle von OneUptime AI auf dem Runner laufen. Einen Runner auszuwählen, der SSH-Anmeldedaten hält, erfordert die Berechtigung, Runbook-Anmeldedaten zu lesen; siehe [Runner, die die Befehle von OneUptime AI ausführen](/docs/runbooks/credentials#runner-die-die-befehle-von-oneuptime-ai-ausführen).
 
 ### 2. Den Installationsbefehl kopieren
 

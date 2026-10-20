@@ -25,12 +25,15 @@ import { IS_KUBERNETES_AGENT_RUNNER_SQL } from "./1796800000000-FoldAiSwitchesIn
  *     picks it as its Runner, so the rule's form shows it: the Command
  *     Runners row moves to runnerId. A rule naming several keeps them
  *     where they are; it runs on all of them, as before.
- *   - A Runner a Kubernetes cluster's AI settings bind already had to have
- *     the switch on to be used; one bound without it is turned on, since
- *     the binding is the consent now and nothing else could turn it on.
  *
  * A Runbooks rule ("Run them every time") and a rule that has OneUptime AI
  * fix through the AI agents are not touched: what they do needs no Runner.
+ *
+ * No Runner's switch is changed. A Runner a Kubernetes cluster's AI
+ * settings bind with the switch off keeps it off - someone turned it off
+ * to stop OneUptime AI's kubectl there, and an upgrade does not undo that.
+ * The cluster's AI page says how to allow it again: choose the Runner again
+ * under Change, which is the consent now (KubernetesClusterService).
  */
 
 // A rule saved before rules were simplified that composes commands.
@@ -44,8 +47,6 @@ export const WRITE_OUT_ANY_RUNNER_RULES: string = `INSERT INTO "AutoRemediationR
 export const PICK_THE_ONE_COMMAND_RUNNER: string = `UPDATE "AutoRemediationRule" AS rule SET "runnerId" = "single"."runnerId" FROM (SELECT named."autoRemediationRuleId", (array_agg(named."runnerId"))[1] AS "runnerId" FROM "AutoRemediationRuleRunner" AS named GROUP BY named."autoRemediationRuleId" HAVING count(*) = 1) AS "single", "Runner" AS runner WHERE rule."_id" = "single"."autoRemediationRuleId" AND runner."_id" = "single"."runnerId" AND runner."projectId" = rule."projectId" AND rule."runnerId" IS NULL AND ${IS_COMMAND_RULE_SQL} AND ${IS_COMMAND_RUNNER_SQL}`;
 
 export const DROP_MOVED_COMMAND_RUNNER_ROWS: string = `DELETE FROM "AutoRemediationRuleRunner" AS named USING "AutoRemediationRule" AS rule WHERE named."autoRemediationRuleId" = rule."_id" AND named."runnerId" = rule."runnerId" AND rule."aiComposesCommands" = true`;
-
-export const ALLOW_BOUND_CLUSTER_RUNNERS: string = `UPDATE "Runner" AS runner SET "canRunAiCommands" = true WHERE runner."canRunAiCommands" = false AND runner."isGlobalRunner" = false AND runner."deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "KubernetesCluster" AS cluster WHERE cluster."aiAccessRunnerId" = runner."_id" AND cluster."projectId" = runner."projectId" AND cluster."deletedAt" IS NULL)`;
 
 /*
  * `down` hands every rule's Runner back to its Command Runners, so a
@@ -76,8 +77,6 @@ export class AddAutoRemediationRuleRunner1804400000000
     await queryRunner.query(PICK_THE_ONE_COMMAND_RUNNER);
 
     await queryRunner.query(DROP_MOVED_COMMAND_RUNNER_ROWS);
-
-    await queryRunner.query(ALLOW_BOUND_CLUSTER_RUNNERS);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

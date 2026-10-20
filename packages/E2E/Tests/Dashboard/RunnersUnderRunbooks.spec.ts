@@ -139,8 +139,10 @@ test.describe("Runners live under Runbooks", () => {
       ).toBeVisible(SERVER);
 
       /*
-       * Create a Runner through the form: Runner (the labels folded under
-       * More fields at its end), then Capabilities.
+       * Create a Runner through the form: one page - Name, Description, and
+       * More fields folded at its end, holding "Runs Runbooks" (on) and the
+       * labels. A Runner has no switch for OneUptime AI's commands: an auto
+       * remediation rule, or a cluster's AI settings, picks the Runner.
        */
       await page
         .getByTestId("card-button")
@@ -150,24 +152,22 @@ test.describe("Runners live under Runbooks", () => {
       await modal
         .getByPlaceholder("prod-eu-runner", { exact: true })
         .fill(runnerName);
-      /*
-       * A name is all a Runner needs, but Create Runner is on the last step
-       * only: a plain Next walks the optional ones.
-       */
+      // A name is all a Runner needs: Create Runner is right there.
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-      const next: Locator = modal.getByTestId("modal-footer-next-button");
-      await expect(submit).toHaveCount(0);
-      await expect(next).toHaveText("Next");
-      await expect(
-        modal.getByRole("button", { name: "More fields", exact: true }),
-      ).toHaveAttribute("aria-expanded", "false");
-      await next.click();
-      // Capabilities, the last step: nothing to walk on to.
+      await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(
+        0,
+      );
+      await expect(submit).toHaveText("Create Runner");
+      const moreFields: Locator = modal.getByRole("button", {
+        name: "More fields",
+        exact: true,
+      });
+      await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+      await moreFields.click();
       await expect(
         modal.getByRole("switch", { name: /^Runs Runbooks/ }),
       ).toBeChecked();
-      await expect(next).toHaveCount(0);
-      await expect(submit).toHaveText("Create Runner");
+      await expect(modal).not.toContainText("Runs AI Remediation Commands");
       await submit.click();
       await expect(modal).toBeHidden(SERVER);
 

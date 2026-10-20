@@ -1690,14 +1690,20 @@ describe("Needs attention's steps", () => {
       ).toBe("Start the Runner and make sure it can reach your OneUptime URL.");
     });
 
-    test("not accepting AI commands: turn them on, on the Runner", () => {
+    /*
+     * A Runner has no switch for OneUptime AI's commands any more: choosing
+     * it on this page is what lets OneUptime AI run kubectl on it.
+     */
+    test("not accepting AI commands: choose the Runner again under Change", () => {
       expect(
         getAiAgentAttentionStepText(
           serverGap("runner_ai_commands_disabled"),
           advancedStatus(),
           NOW,
         ),
-      ).toBe('Turn on "Runs AI Remediation Commands" on the Runner.');
+      ).toBe(
+        "With Change below, clear the Runner and choose it again: choosing a Runner is what lets OneUptime AI run kubectl on it.",
+      );
     });
 
     test("without a credential, or not saying which cluster it is in: choose a credential or clear it", () => {

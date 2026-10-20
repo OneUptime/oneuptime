@@ -88,17 +88,16 @@ Para desactivar el incluido, define `GLOBAL_RUNNER_REPLICAS=0` en el `config.env
 
 ### 1. Crear el registro del agente
 
-Ve a **Runbooks → Agentes de runbook** y crea un agente nuevo. Haz clic en **Crear Runner** y completa sus dos pasos:
+Ve a **Runbooks → Agentes de runbook** y crea un agente nuevo. Haz clic en **Crear Runner** y completa sus campos, todos en una sola página:
 
-| Campo | Paso | Notas |
+| Campo | Dónde | Notas |
 | --- | --- | --- |
-| **Nombre** | **Runner** | Un nombre claro, normalmente dónde se ejecuta y a qué llega, como `prod-eu-west-1`. Es lo que eliges al escribir un paso. |
-| **Descripción** | **Runner** | Opcional. Una frase sobre a qué llega este host. |
-| **Etiquetas** | **Runner** (en **Más campos**) | Opcional. |
-| **Ejecuta runbooks** | **Capacidades** | Activado por defecto. Permite a este Runner tomar pasos de runbook. |
-| **Ejecuta comandos de remediación con IA** | **Capacidades** | Desactivado por defecto. Permite que la remediación automática con IA ejecute en él comandos comprobados por una política. Activarlo en un Runner que tiene credenciales SSH requiere permiso para leer las credenciales de runbook; consulta [Runners que ejecutan los comandos de OneUptime AI](/docs/runbooks/credentials#runners-que-ejecutan-los-comandos-de-oneuptime-ai). |
+| **Nombre** | En la página | Un nombre claro, normalmente dónde se ejecuta y a qué llega, como `prod-eu-west-1`. Es lo que eliges al escribir un paso. |
+| **Descripción** | En la página | Opcional. Una frase sobre a qué llega este host. |
+| **Ejecuta runbooks** | En **Más campos** | Activado por defecto. Permite a este Runner tomar pasos de runbook. |
+| **Etiquetas** | En **Más campos** | Opcional. |
 
-Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. Las correcciones de código con IA no son una capacidad: un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen.
+Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de remediación automática elige el Runner en el que OneUptime AI ejecuta sus comandos, y los ajustes de IA de un clúster de Kubernetes el Runner en el que se ejecuta su kubectl: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él. Elegir uno que tiene credenciales SSH requiere permiso para leer las credenciales de runbook; consulta [Runners que ejecutan los comandos de OneUptime AI](/docs/runbooks/credentials#runners-que-ejecutan-los-comandos-de-oneuptime-ai).
 
 ### 2. Copiar el comando de instalación
 

@@ -101,6 +101,7 @@ export class Service extends ProjectReferencesService<Model> {
     await RunnerAiCommandsPick.allowPickedRunners({
       projectId: createBy.data.projectId || createBy.props.tenantId,
       runnerIds: Service.readWrittenRunnerIds(written),
+      props: createBy.props,
     });
 
     return { createBy, carryForward: [] };
@@ -236,6 +237,7 @@ export class Service extends ProjectReferencesService<Model> {
       await RunnerAiCommandsPick.allowPickedRunners({
         projectId: updateBy.props.tenantId,
         runnerIds,
+        props: updateBy.props,
       });
       return;
     }
@@ -262,6 +264,7 @@ export class Service extends ProjectReferencesService<Model> {
       await RunnerAiCommandsPick.allowPickedRunners({
         projectId: new ObjectID(projectId),
         runnerIds,
+        props: updateBy.props,
       });
     }
   }

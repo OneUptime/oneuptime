@@ -54,7 +54,7 @@ OneUptime AI は、SSH コマンドを実行先の Runner に割り当てられ�
 
 ### OneUptime AI に使わせる
 
-OneUptime AI は、 **AI 修復コマンドを実行** がオンの Runner で、その Runner に割り当てられた SSH の認証情報の 1 つを使って SSH コマンドを実行します。Kubernetes の認証情報は、その Runner の 1 つとともにクラスターに紐付けられると使われます。[AI SRE](/docs/ai/ai-sre) を参照してください。
+OneUptime AI は、自動修復ルールがそのコマンドのために選ぶ Runner で、その Runner に割り当てられた SSH の認証情報の 1 つを使って SSH コマンドを実行します。Kubernetes の認証情報は、その Runner の 1 つとともにクラスターに紐付けられると使われます。[AI SRE](/docs/ai/ai-sre) を参照してください。
 :::
 
 ## 保存される内容
@@ -78,12 +78,12 @@ OneUptime AI は、 **AI 修復コマンドを実行** がオンの Runner で�
 
 ### OneUptime AI のコマンドを実行する Runner
 
-**AI 修復コマンドを実行** がオンの Runner では、OneUptime AI がその Runner で実行するコマンドのために、Runner に割り当てられた SSH の認証情報の中から選びます。そのため、どちらを先に保存する場合でも、SSH の認証情報がそのような Runner に届くのは、Runbook の認証情報を読める人（ **Read Runbook Credential** 、または Project Owner か Project Admin）を通したときだけです。
+Runner は、OneUptime AI のコマンドのために選ばれると、そのコマンドを実行します。自動修復ルールの Runner として選ばれる場合と、Kubernetes クラスターの AI アクセスのために選ばれる場合があります。そのような Runner では、OneUptime AI がその Runner で実行するコマンドのために、Runner に割り当てられた SSH の認証情報の中から選びます。そのため、どちらを先に保存する場合でも、SSH の認証情報がそのような Runner に届くのは、Runbook の認証情報を読める人（ **Read Runbook Credential** 、または Project Owner か Project Admin）を通したときだけです。
 
 - **認証情報を割り当てる。** そのような Runner を含む SSH の認証情報を作成する、またはそのような Runner を認証情報に追加するには、その権限が必要です。権限がないと保存は拒否され、Runner の名前が示されます。AI 修復コマンドを実行しない Runner に認証情報を割り当てるか、権限を持つ人に割り当てを依頼してください。
-- **スイッチをオンにする。** SSH の認証情報を持つ Runner で **AI 修復コマンドを実行** をオンにするには、同じ権限が必要です。
+- **Runner を選ぶ。** SSH の認証情報を持つ Runner を OneUptime AI のコマンドのために選ぶには(ルールの Runner として、またはクラスターのために)、初めて選ぶときに同じ権限が必要です。
 
-認証情報から Runner を外すこと、認証情報をすでに持っている Runner のまま保存すること、Kubernetes の認証情報には、それ以上の権限は不要です。OneUptime AI の kubectl コマンドは、そのクラスターに結び付けられた認証情報で実行されるからです。その権限を持たない人による認証情報の割り当てとスイッチのオンは、プロジェクト内で 1 件ずつ保存されるため、2 つが一緒にチェックを通過することはありません。別の保存の最中に来た保存はそれを待ち、時間がかかりすぎると *Try again in a moment* で拒否されます。もう一度保存してください。
+認証情報から Runner を外すこと、認証情報をすでに持っている Runner のまま保存すること、Kubernetes の認証情報には、それ以上の権限は不要です。OneUptime AI の kubectl コマンドは、そのクラスターに結び付けられた認証情報で実行されるからです。その権限を持たない人による認証情報の割り当てと Runner の選択は、プロジェクト内で 1 件ずつ保存されるため、2 つが一緒にチェックを通過することはありません。別の保存の最中に来た保存はそれを待ち、時間がかかりすぎると *Try again in a moment* で拒否されます。もう一度保存してください。説明の編集など、Runner の保存が待たされることはありません。
 
 ワークフローのステップは Project Admin として動作しますが、Project Admin の Runbook の認証情報の読み取りを借りることはありません。ステップがその権限を持つのは、ワークフローのステップを最後に保存した人がそれを持っている場合だけです。[ワークフローのステップができること](/docs/workflows/configuration#ワークフローのステップができること) を参照してください。
 

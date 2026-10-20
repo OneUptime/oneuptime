@@ -122,10 +122,72 @@ export default class RunnerChoicesLoader {
   }
 
   /*
-   * The project's own Runners. For a code repository, without the
-   * in-cluster Runners the Kubernetes agent chart installed: they run
-   * kubectl for their cluster only, and the server refuses a repository
-   * that picks one.
+   * An auto remediation rule's Runner picker: the project's own Runners a
+   * rule may pick for OneUptime AI's commands - never the in-cluster Runners
+   * the Kubernetes agent chart installed, which run kubectl for their own
+   * cluster only - and no global Runners: they never run OneUptime AI's
+   * commands, so the picker's first choice is no Runner at all
+   * (RunnerPickerWork.AutoRemediation).
+   *
+   * Someone who may change a rule but not read Runners is still shown the
+   * rule's choice: none, or a Runner they do not have access to.
+   */
+  public static async loadForRemediation(
+    projectId: ObjectID,
+  ): Promise<RunnerChoices> {
+    const projectRunners: Array<RunnerPickerRunner> =
+      await RunnerChoicesLoader.loadProjectRunners(projectId, {
+        forCodeRepository: true,
+      }).catch((): Array<RunnerPickerRunner> => {
+        return [];
+      });
+
+    return {
+      projectRunners,
+      globalRunners: [],
+      projectUsesGlobalRunners: true,
+    };
+  }
+
+  /*
+   * The Runners a Kubernetes cluster's AI settings may bind for OneUptime
+   * AI's kubectl (the cluster's AI → Agent page, an advanced binding): the
+   * project's own, as rows - the page tells the in-cluster Runners the
+   * Kubernetes agent chart installed from the rest by their name and
+   * posture (hostInfo), and keeps a bound one it no longer offers. Never a
+   * global Runner: it never runs OneUptime AI's commands. Throws when the
+   * Runners cannot be read, so the page can say so and leave the binding as
+   * it is.
+   */
+  public static async loadForKubernetesCluster(
+    projectId: ObjectID,
+    limit: number,
+  ): Promise<Array<Runner>> {
+    const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
+      modelType: Runner,
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        // The posture: which rows the Kubernetes agent chart installed.
+        hostInfo: true,
+      },
+      sort: { name: SortOrder.Ascending },
+      limit: limit,
+      skip: 0,
+    });
+
+    return result.data || [];
+  }
+
+  /*
+   * The project's own Runners. For a code repository - and an auto
+   * remediation rule, which picks the same way - without the in-cluster
+   * Runners the Kubernetes agent chart installed: they run kubectl for their
+   * cluster only, and the server refuses a repository or a rule that picks
+   * one.
    */
   public static async loadProjectRunners(
     projectId: ObjectID,

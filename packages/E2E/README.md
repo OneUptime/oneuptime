@@ -355,6 +355,28 @@ blocked permission prompt, and a newer worker still reloading the page. See
 `PushRegistration/README.md`. Screenshots and failure traces are written to
 `output/playwright/push-registration-ui/` at the repository root.
 
+## Auto remediation rules UI regression tests
+
+Run the auto remediation rules on Incidents → AI → Settings and Alerts → AI →
+Settings in Chromium without starting the app or database:
+
+```bash
+cd packages/E2E
+CI=1 npm run test-auto-remediation-rules-ui
+```
+
+The fixture (`AutoRemediationRules/Fixture`, port 4391) renders the real AI
+settings pages, the rules table, its create and edit dialogs and the Runner
+picker, and records what the page sends. It covers the Fix step asking only
+whether a fix waits for approval, More fields folded with the runbooks
+OneUptime AI may run (none picked: any) and the Runner it runs the rule's
+commands on (none: the AI agent on the affected cluster or host, never a
+global Runner or the Kubernetes agent's in-cluster Runner), "Run them every
+time", rules saved before the change edited without changing what they do,
+alerts, a viewer, a phone, dark mode and German. See
+`AutoRemediationRules/README.md`. Screenshots and failure traces are written
+to `output/playwright/auto-remediation-rules-ui/` at the repository root.
+
 ## Single sign-on on every stack
 
 Single sign-on — SAML and OIDC sign-in for projects, for the whole instance

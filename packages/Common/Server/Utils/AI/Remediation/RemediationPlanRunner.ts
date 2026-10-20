@@ -39,9 +39,7 @@ import {
   DEFAULT_VERIFICATION_WINDOW_MINUTES,
   MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
 } from "../../../Services/AutoRemediationRuleEngineService";
-import Semaphore, {
-  SemaphoreMutex,
-} from "../../../Infrastructure/Semaphore";
+import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import { AI_REMEDIATION_PLANNING_FEATURE } from "../../../Services/AIService";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";

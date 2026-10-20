@@ -88,17 +88,16 @@ Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `conf
 
 ### 1. Het agentrecord maken
 
-Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Runner aanmaken** en vul de twee stappen in:
+Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Runner aanmaken** en vul de velden in, allemaal op één pagina:
 
-| Veld | Stap | Opmerkingen |
+| Veld | Waar | Opmerkingen |
 | --- | --- | --- |
-| **Naam** | **Runner** | Een duidelijke naam, meestal waar hij draait en wat hij bereikt, zoals `prod-eu-west-1`. Dit kiest u wanneer u een stap schrijft. |
-| **Beschrijving** | **Runner** | Optioneel. Een zin over wat deze host bereikt. |
-| **Labels** | **Runner** (onder **Meer velden**) | Optioneel. |
-| **Voert Runbooks uit** | **Mogelijkheden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
-| **Voert AI-herstelopdrachten uit** | **Mogelijkheden** | Standaard uit. Laat automatisch AI-herstel er beleidsgecontroleerde opdrachten op uitvoeren. Dit aanzetten voor een Runner met SSH-inloggegevens vereist de machtiging om runbook-inloggegevens te lezen; zie [Runners die de opdrachten van OneUptime AI uitvoeren](/docs/runbooks/credentials#runners-die-de-opdrachten-van-oneuptime-ai-uitvoeren). |
+| **Naam** | Op de pagina | Een duidelijke naam, meestal waar hij draait en wat hij bereikt, zoals `prod-eu-west-1`. Dit kiest u wanneer u een stap schrijft. |
+| **Beschrijving** | Op de pagina | Optioneel. Een zin over wat deze host bereikt. |
+| **Voert Runbooks uit** | Onder **Meer velden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
+| **Labels** | Onder **Meer velden** | Optioneel. |
 
-Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI-codecorrecties zijn geen mogelijkheid: een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen.
+Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een regel voor automatisch herstel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert, en de AI-instellingen van een Kubernetes-cluster de Runner waarop zijn kubectl draait: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien. Een Runner kiezen met SSH-inloggegevens vereist de machtiging om runbook-inloggegevens te lezen; zie [Runners die de opdrachten van OneUptime AI uitvoeren](/docs/runbooks/credentials#runners-die-de-opdrachten-van-oneuptime-ai-uitvoeren).
 
 ### 2. De installatieopdracht kopiëren
 
