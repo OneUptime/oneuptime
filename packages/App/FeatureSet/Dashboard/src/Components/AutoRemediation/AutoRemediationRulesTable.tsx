@@ -403,6 +403,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           stepId: "remediation",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
+          // Never drawn: no line of the column's written for the API reference.
+          hideColumnDescription: true,
           showIf: (): boolean => {
             return false;
           },
@@ -413,6 +415,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           stepId: "remediation",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
+          // Never drawn: no line of the column's written for the API reference.
+          hideColumnDescription: true,
           showIf: (): boolean => {
             return false;
           },
