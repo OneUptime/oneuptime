@@ -24,11 +24,13 @@ const TRANSPORT_HTTP_ERROR_REGEX: RegExp =
 
 /*
  * Provider API keys and admin keys: OpenAI (sk-..., sk-admin-...,
- * sk-proj-...) and Anthropic (sk-ant-...). The repeat is bounded and the
- * class excludes nothing the pattern starts with, so it runs in linear time
- * on any text.
+ * sk-proj-...) and Anthropic (sk-ant-...). Real keys run to dozens of
+ * characters after "sk-", so at least 20 are asked for: the prefixes the
+ * guidance names ("starts with sk-admin-", "sk-ant-api01-...") stay
+ * readable. The repeat is bounded and the class excludes nothing the
+ * pattern starts with, so it runs in linear time on any text.
  */
-const PROVIDER_KEY_REGEX: RegExp = /\bsk-[A-Za-z0-9_-]{6,256}/g;
+const PROVIDER_KEY_REGEX: RegExp = /\bsk-[A-Za-z0-9_-]{20,256}/g;
 
 // Longest message kept on the connection, the marker included.
 export const MAX_LLM_PROVIDER_ERROR_LENGTH: number = 1000;

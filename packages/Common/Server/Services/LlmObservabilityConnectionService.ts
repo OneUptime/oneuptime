@@ -86,10 +86,20 @@ export class Service extends DatabaseService<Model> {
       data.provider,
     );
 
+    /*
+     * Defaults first: a setting folded under "More options" (the Azure
+     * cloud, the Bedrock Regions) is required but has a default, so a form
+     * or an API client that leaves it out gets the default, not an error.
+     */
+    const config: JSONObject = Service.withDefaults(
+      definition.configFields,
+      data.config,
+    );
+
     SecurityEventConnectionServiceClass.validateFields({
       definition: { title: definition.title },
       fields: definition.configFields,
-      values: data.config,
+      values: config,
       label: "Settings",
       requireRequiredFields: true,
     });
@@ -104,7 +114,7 @@ export class Service extends DatabaseService<Model> {
 
     const settings: LlmConnectionSettings = {
       provider: definition.provider,
-      config: Service.withDefaults(definition.configFields, data.config),
+      config: config,
       secrets: data.secrets,
     };
 

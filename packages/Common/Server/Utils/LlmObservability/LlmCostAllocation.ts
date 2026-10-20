@@ -32,8 +32,9 @@ export interface LlmCostLine {
 }
 
 /*
- * Which tokens a cost line's words charge for. Cached and cache-read input
- * before input; cache writes before both; output on its own.
+ * Which tokens a cost line's words charge for. Output on its own; input
+ * that was NOT cached ("uncached_input_tokens") before anything cached;
+ * cache writes before cache reads; plain input last.
  */
 export function tokenTypeOfCostLine(
   text: string | null | undefined,
@@ -46,6 +47,10 @@ export function tokenTypeOfCostLine(
 
   if (lower.includes("output")) {
     return LlmProviderTokenType.Output;
+  }
+
+  if (lower.includes("uncached") || lower.includes("non-cached")) {
+    return LlmProviderTokenType.Input;
   }
 
   if (

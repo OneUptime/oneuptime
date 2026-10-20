@@ -1,4 +1,3 @@
-import LlmObservabilityConnection from "../../../Models/DatabaseModels/LlmObservabilityConnection";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { isCompanyToolProvider } from "../../../Types/LlmObservability/LlmConnectionCatalog";
@@ -7,7 +6,6 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
-import LlmObservabilityConnectionService from "../../Services/LlmObservabilityConnectionService";
 import CallerPermission from "../Permission/CallerPermission";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
@@ -35,7 +33,16 @@ import TelemetryReadScopeUtil, {
  * seen at once in this process and within CACHE_TTL_MS in the others. A
  * failed lookup throws rather than reading as "nothing restricted": the
  * read fails closed.
+ *
+ * Every telemetry read of spans reaches this module (through
+ * ModelPermission), so it imports no service: the services import the
+ * analytics permission layer, and an import back to them from here would
+ * close a cycle that leaves AnalyticsDatabaseService undefined for whoever
+ * loads it first. It asks Postgres through the data source alone.
  */
+
+// LlmObservabilityConnection's table.
+const CONNECTION_TABLE_NAME: string = "LlmObservabilityConnection";
 
 const CACHE_TTL_MS: number = 30 * 1000;
 const MAX_CACHED_PROJECTS: number = 10_000;
@@ -99,8 +106,8 @@ export default class LlmConversationPrivacy {
      * plain columns, none of them secret.
      */
     const rows: Array<ConnectionPrivacyRow> =
-      (await LlmObservabilityConnectionService.getRepository().manager.query(
-        `SELECT "serviceId", "provider", "conversationReaders" FROM "${new LlmObservabilityConnection().tableName}" WHERE "projectId" = $1 AND "serviceId" IS NOT NULL`,
+      (await PostgresAppInstance.getDataSource()!.query(
+        `SELECT "serviceId", "provider", "conversationReaders" FROM "${CONNECTION_TABLE_NAME}" WHERE "projectId" = $1 AND "serviceId" IS NOT NULL`,
         [projectId.toString()],
       )) as Array<ConnectionPrivacyRow>;
 
