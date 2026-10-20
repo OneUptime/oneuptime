@@ -18,26 +18,33 @@ set -uo pipefail
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUITES_DIR="${TESTS_DIR}/suites"
 
-# Ordered cheapest-first. Every file in ./suites has to appear here, which is
-# checked below: a new suite cannot be added and then silently never run.
+# Ordered cheapest-first. Every file in ./suites has to appear here or in
+# OPT_IN_SUITES, which is checked below: a new suite cannot be added and then
+# silently never run.
 ALL_SUITES=(lint unit extra-values vapid-existing-secret marketplace secrets-lifecycle keda-bootstrap)
+
+# Run only when named, never by default (so not in the helm-test job): they
+# pull third-party images and wait out reconcile intervals, measuring how other
+# tools behave rather than checking this repository's charts.
+OPT_IN_SUITES=(gitops-revert)
 
 usage() {
     echo "usage: $(basename "${BASH_SOURCE[0]}") [suite ...]"
     echo "suites: ${ALL_SUITES[*]}"
+    echo "opt-in suites (run only when named): ${OPT_IN_SUITES[*]}"
 }
 
 for file in "${SUITES_DIR}"/*.sh; do
     name="$(basename "$file" .sh)"
     listed=false
-    for suite in "${ALL_SUITES[@]}"; do
+    for suite in "${ALL_SUITES[@]}" "${OPT_IN_SUITES[@]}"; do
         if [ "$suite" = "$name" ]; then
             listed=true
             break
         fi
     done
     if [ "$listed" != "true" ]; then
-        echo "Suite '${name}' is missing from ALL_SUITES in $(basename "${BASH_SOURCE[0]}"); add it there so it runs." >&2
+        echo "Suite '${name}' is missing from ALL_SUITES (or OPT_IN_SUITES) in $(basename "${BASH_SOURCE[0]}"); add it there so it runs." >&2
         exit 1
     fi
 done

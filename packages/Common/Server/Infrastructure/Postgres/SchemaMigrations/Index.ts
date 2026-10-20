@@ -140,6 +140,7 @@ import { AddAutoRemediationRuleRunner1804750000000 } from "./1804750000000-AddAu
 import { AddAutoRemediationRuleRunnerIndexAndKey1804800000000 } from "./1804800000000-AddAutoRemediationRuleRunnerIndexAndKey";
 import { AddDashboardTheme1804860000000 } from "./1804860000000-AddDashboardTheme";
 import { AddFirstPagedAt1804900000000 } from "./1804900000000-AddFirstPagedAt";
+import { AddFixProductionCheck1804950000000 } from "./1804950000000-AddFixProductionCheck";
 import { AddInvestigationRuleWait1804960000000 } from "./1804960000000-AddInvestigationRuleWait";
 import { AddInvestigationRuleWaitIndexes1804970000000 } from "./1804970000000-AddInvestigationRuleWaitIndexes";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1484,6 +1485,7 @@ export default [
   AddAutoRemediationRuleRunnerIndexAndKey1804800000000,
   AddDashboardTheme1804860000000,
   AddFirstPagedAt1804900000000,
+  AddFixProductionCheck1804950000000,
   AddInvestigationRuleWait1804960000000,
   AddInvestigationRuleWaitIndexes1804970000000,
 ];

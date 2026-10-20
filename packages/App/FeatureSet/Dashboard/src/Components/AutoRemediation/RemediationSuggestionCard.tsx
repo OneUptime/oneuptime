@@ -614,6 +614,58 @@ function CommandExecutionDetails(props: {
   );
 }
 
+/*
+ * Who declares the object a kubectl command changes (Argo CD, Flux or a
+ * Helm release) and what that means for the change, in OneUptime's own
+ * sentence — and, once verification read the object again, what of the
+ * change was put back. A change its owner puts back is labelled a
+ * temporary fix, so nobody approves it as the lasting one.
+ */
+function CommandGitOpsNote(props: {
+  command: AiRemediationCommand;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+  const { gitOps, revertWatch } = props.command;
+
+  if (!gitOps && !revertWatch?.putBackAt) {
+    return <></>;
+  }
+
+  return (
+    <div className="mt-2" data-testid="remediation-command-gitops">
+      {gitOps ? (
+        <div
+          className={`rounded border px-2 py-1.5 text-xs ${
+            gitOps.putsBack
+              ? "border-amber-200 bg-amber-50 text-amber-800"
+              : "border-gray-200 bg-white text-gray-600"
+          }`}
+        >
+          {gitOps.putsBack ? (
+            <span className="mr-1 font-medium">
+              {translator.translateText("Temporary fix")}
+            </span>
+          ) : (
+            <></>
+          )}
+          {gitOps.summary}
+        </div>
+      ) : (
+        <></>
+      )}
+      {revertWatch?.putBackAt ? (
+        <div className="mt-1 text-xs text-rose-600">
+          {translator.translateTemplate("Put back on the cluster: {{fields}}", {
+            fields: (revertWatch.putBackFields || []).join(", "),
+          })}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+}
+
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
 export type RemediationSuggestionAction = "approve" | "dismiss";
@@ -1222,6 +1274,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                   { effect: command.expectedEffect },
                                 )}
                               </div>
+
+                              <CommandGitOpsNote command={command} />
 
                               {command.rollbackCommand ? (
                                 <div className="mt-1 text-xs text-gray-500">
