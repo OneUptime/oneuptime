@@ -3,6 +3,7 @@ import AIAgentTaskPullRequestService, {
 } from "../../../Server/Services/AIAgentTaskPullRequestService";
 import PullRequestState from "../../../Types/CodeRepository/PullRequestState";
 import FixPullRequestCiStatus from "../../../Types/AI/FixPullRequestCiStatus";
+import FixProductionStatus from "../../../Types/AI/FixProductionStatus";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -28,6 +29,8 @@ function mockCounts(counts: {
   closed: number;
   mergedCiGreen?: number;
   mergedCiExpectedFailure?: number;
+  verifiedInProduction?: number;
+  regressedInProduction?: number;
 }): void {
   jest
     .spyOn(AIAgentTaskPullRequestService, "countBy")
@@ -38,6 +41,27 @@ function mockCounts(counts: {
       const ciStatus: FixPullRequestCiStatus | undefined = args.query[
         "ciStatus"
       ] as FixPullRequestCiStatus | undefined;
+
+      const productionStatus: FixProductionStatus | undefined = args.query[
+        "productionStatus"
+      ] as FixProductionStatus | undefined;
+
+      // So are the production verdicts: merging is not fixing.
+      if (productionStatus === FixProductionStatus.Verified) {
+        expect(state).toBe(PullRequestState.Merged);
+        return Promise.resolve(
+          new PositiveNumber(counts.verifiedInProduction || 0),
+        );
+      }
+
+      if (productionStatus === FixProductionStatus.Regressed) {
+        expect(state).toBe(PullRequestState.Merged);
+        return Promise.resolve(
+          new PositiveNumber(counts.regressedInProduction || 0),
+        );
+      }
+
+      expect(productionStatus).toBeUndefined();
 
       // The CI-filtered counts are always merged-scoped in the service.
       if (ciStatus === FixPullRequestCiStatus.Green) {
@@ -144,6 +168,44 @@ describe("AIAgentTaskPullRequestService.getOutcomeStats", () => {
     expect(stats.verifiedGreenRatePercent).toBeNull();
     // The acceptance denominator (terminal) is populated — independent.
     expect(stats.acceptanceRatePercent).toBe(0);
+  });
+
+  /*
+   * Merged-and-CI-green is good; merged-and-fixed-in-production is the
+   * point. Only Verified counts as fixed - a fix still waiting for its
+   * deploy, watched, or impossible to tell is not.
+   */
+  test("counts the merged fixes production showed working, and those it showed not", async () => {
+    mockCounts({
+      open: 1,
+      merged: 10,
+      closed: 2,
+      verifiedInProduction: 6,
+      regressedInProduction: 1,
+    });
+
+    const stats: AIFixOutcomeStats =
+      await AIAgentTaskPullRequestService.getOutcomeStats({
+        isRoot: true,
+        tenantId: projectId,
+      });
+
+    expect(stats.verifiedInProduction).toBe(6);
+    expect(stats.regressedInProduction).toBe(1);
+    expect(stats.merged).toBe(10);
+  });
+
+  test("with no verdict yet, both are zero", async () => {
+    mockCounts({ open: 0, merged: 3, closed: 0 });
+
+    const stats: AIFixOutcomeStats =
+      await AIAgentTaskPullRequestService.getOutcomeStats({
+        isRoot: true,
+        tenantId: projectId,
+      });
+
+    expect(stats.verifiedInProduction).toBe(0);
+    expect(stats.regressedInProduction).toBe(0);
   });
 
   test("throws without a tenant", async () => {

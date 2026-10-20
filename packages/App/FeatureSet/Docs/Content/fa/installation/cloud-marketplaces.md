@@ -47,21 +47,26 @@ flowchart TB
 
 :::steps
 1. در AWS Marketplace مشترک OneUptime Enterprise شوید، سپس **Continue to Configuration** را برگزینید، نسخه را انتخاب کنید و **Continue to Launch** را برگزینید.
-2. اگر خوشه هنوز ارائه‌دهندهٔ IAM OIDC ندارد، یکی به آن بدهید. صفحهٔ راه‌اندازی فرمان `eksctl` را نشان می‌دهد که سپس حساب سرویس `oneuptime` را همراه نقش IAM آن می‌سازد؛ آن را اجرا کنید.
-3. فرمان‌های صفحهٔ راه‌اندازی را اجرا کنید تا Helm وارد رجیستری محصول شود و چارت را نصب کند، و فایل values خود را هم به فرمان نصب بدهید.
+2. اگر خوشه هنوز ارائه‌دهندهٔ IAM OIDC ندارد، یکی به آن بدهید، و با فرمان‌های زیر حساب سرویس `oneuptime` را همراه یک نقش IAM بسازید که سیاست `AWSMarketplaceMeteringFullAccess` را دارد. این فرمان‌ها را به‌جای فرمان `eksctl` در گام 1 بخش **General launch instructions** صفحهٔ راه‌اندازی اجرا کنید: آن فرمان نقشی را وصل می‌کند که باید اول خودتان آن را ساخته باشید.
+3. با فرمان‌های گام 2 بخش **General launch instructions**، Helm را وارد رجیستری محصول کنید و چارت را نصب کنید. در فرمان `helm install`، مقدار `serviceAccount.name` را `oneuptime`، مقدار `host` را نام دامنهٔ خود، و اگر گواهی‌ای جلوی OneUptime هست، مقدار `httpProtocol` را `https` بگذارید.
 4. [OneUptime را باز کنید](#باز-کردن-oneuptime).
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+مقدارهای گام 3 را در یک فایل نگه دارید و آن را به هر `helm upgrade` بدهید:
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-این فایل را نگه دارید: آن را به هر `helm upgrade` بدهید.
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ kubectl get service --namespace <namespace>
 :::details برچسب نسخه Enterprise Edition (Marketplace Reports Failing) را نشان می‌دهد
 ‏OneUptime نمی‌تواند به مارکت‌پلیس گزارش دهد. هر خطی که دربارهٔ آن در لاگ ثبت می‌کند با `OneUptime Enterprise marketplace billing` شروع می‌شود؛ خطی که می‌گوید مصرف «cannot be reported»، نام چیزی را که کم است می‌آورد. علت‌های معمول:
 
-- **AWS:** حساب سرویس `oneuptime` نقش IAM ندارد، یا نقش آن سیاست `AWSMarketplaceMeteringFullAccess` را ندارد. آن را با فرمان `eksctl` در صفحهٔ راه‌اندازی بسازید.
+- **AWS:** حساب سرویس `oneuptime` نقش IAM ندارد، یا نقش آن سیاست `AWSMarketplaceMeteringFullAccess` را ندارد (`AWSMarketplaceMeteringRegisterUsage` کافی نیست). سیاست را به نقش وصل کنید، یا نقش را با فرمان `eksctl` در بخش [AWS Marketplace](#aws-marketplace) بسازید و سپس پادهای OneUptime را با `kubectl rollout restart deployment --namespace oneuptime` دوباره راه‌اندازی کنید.
 - **Azure:** نصب، برنامهٔ Microsoft Marketplace نیست، برای نمونه چون با Helm نصب شده است، پس هویت یا طرحی ندارد که با آن گزارش دهد. آن را از پورتال Azure نصب کنید.
 - **Google Cloud:** راز گزارش‌دهی استقرار حذف یا جایگزین شده است.
 - **همهٔ مارکت‌پلیس‌ها:** یک فایروال یا پراکسی، HTTPS خروجی‌ای را که در [پیش از شروع](#پیش-از-شروع) آمده است مسدود می‌کند.

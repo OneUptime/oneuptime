@@ -250,6 +250,7 @@ import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
 import "./Jobs/AIAgent/SyncPullRequestStates";
+import "./Jobs/AIAgent/VerifyFixesInProduction";
 import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";

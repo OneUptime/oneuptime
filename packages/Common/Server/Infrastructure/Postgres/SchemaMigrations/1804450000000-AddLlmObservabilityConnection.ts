@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * connected provider accounts report ('providers'). A column with a
  * constant default, added without rewriting the table.
  */
-export class AddLlmObservabilityConnection1804400000000
+export class AddLlmObservabilityConnection1804450000000
   implements MigrationInterface
 {
-  public name: string = "AddLlmObservabilityConnection1804400000000";
+  public name: string = "AddLlmObservabilityConnection1804450000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
