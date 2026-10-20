@@ -134,6 +134,16 @@ import { AddRunbookVariable1804265000000 } from "./1804265000000-AddRunbookVaria
 import { AddCodeRepositoryRunner1804300000000 } from "./1804300000000-AddCodeRepositoryRunner";
 import { AddCodeRepositoryRunnerIndexAndKey1804350000000 } from "./1804350000000-AddCodeRepositoryRunnerIndexAndKey";
 import { AddFixProductionVerification1804400000000 } from "./1804400000000-AddFixProductionVerification";
+import { AddLlmObservabilityConnection1804450000000 } from "./1804450000000-AddLlmObservabilityConnection";
+import { AddTwilioSmsPhoneNumbers1804700000000 } from "./1804700000000-AddTwilioSmsPhoneNumbers";
+import { AddAutoRemediationRuleRunner1804750000000 } from "./1804750000000-AddAutoRemediationRuleRunner";
+import { AddAutoRemediationRuleRunnerIndexAndKey1804800000000 } from "./1804800000000-AddAutoRemediationRuleRunnerIndexAndKey";
+import { AddDashboardTheme1804860000000 } from "./1804860000000-AddDashboardTheme";
+import { AddFirstPagedAt1804900000000 } from "./1804900000000-AddFirstPagedAt";
+import { AddFixProductionCheck1804950000000 } from "./1804950000000-AddFixProductionCheck";
+import { AddExternalMcpServers1805000000000 } from "./1805000000000-AddExternalMcpServers";
+import { AddInvestigationRuleWait1805030000000 } from "./1805030000000-AddInvestigationRuleWait";
+import { AddInvestigationRuleWaitIndexes1805040000000 } from "./1805040000000-AddInvestigationRuleWaitIndexes";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1470,4 +1480,14 @@ export default [
   AddCodeRepositoryRunner1804300000000,
   AddCodeRepositoryRunnerIndexAndKey1804350000000,
   AddFixProductionVerification1804400000000,
+  AddLlmObservabilityConnection1804450000000,
+  AddTwilioSmsPhoneNumbers1804700000000,
+  AddAutoRemediationRuleRunner1804750000000,
+  AddAutoRemediationRuleRunnerIndexAndKey1804800000000,
+  AddDashboardTheme1804860000000,
+  AddFirstPagedAt1804900000000,
+  AddFixProductionCheck1804950000000,
+  AddExternalMcpServers1805000000000,
+  AddInvestigationRuleWait1805030000000,
+  AddInvestigationRuleWaitIndexes1805040000000,
 ];

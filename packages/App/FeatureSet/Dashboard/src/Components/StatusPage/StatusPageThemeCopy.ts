@@ -1,33 +1,33 @@
 import Color from "Common/Types/Color";
 import StatusPageTheme, {
   STATUS_PAGE_THEME_COLORS,
-  STATUS_PAGE_THEME_FALLBACK,
-  parseStatusPageTheme,
 } from "Common/Types/StatusPage/StatusPageTheme";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { DARK_THEME_CARD } from "Common/Utils/StatusPage/StatusColorsOnDark";
+import {
+  PublicPageThemeCardCopy,
+  PublicPageThemeChoice,
+  getPublicPageThemeChoiceTestId,
+  getPublicPageThemeErrorTestId,
+} from "../PublicPageTheme/PublicPageThemeCopy";
 
 /*
  * Theme, on a status page's Branding page (Status Pages -> a page ->
  * Branding -> Branding): how the page looks to its visitors - light, dark,
  * or as each visitor's device is set (Common/Types/StatusPage/
  * StatusPageTheme.ts). One choice of three, picked once and saved at once,
- * so it is three radio rows on a card of their own (StatusPageThemeCard),
- * right under the logo the choice is made with.
+ * so it is three radio rows on a card of their own (StatusPageThemeCard,
+ * which a public dashboard's Theme card shares: PublicPageThemeCard), right
+ * under the logo the choice is made with.
  *
  * Kept free of React so the card and App/Tests read these exact strings.
  * Every sentence is wrapped in translationKey() so npm run i18n:extract finds
  * it, and is translated in all seventeen Dashboard locale files.
  */
 
-export const StatusPageThemeCopy: {
-  title: string;
-  description: string;
-  // The radio group's accessible name.
-  ariaLabel: string;
+export const StatusPageThemeCopy: PublicPageThemeCardCopy & {
   // Under the choices, on a page with custom CSS or header / footer HTML.
   customCodeNote: string;
-  notFound: string;
 } = {
   title: translationKey("Theme"),
   description: translationKey("How your status page looks to visitors."),
@@ -77,11 +77,7 @@ export const getStatusPageThemeNoteParts: (
   return parts;
 };
 
-export interface StatusPageThemeChoice {
-  value: StatusPageTheme;
-  title: string;
-  description: string;
-}
+export type StatusPageThemeChoice = PublicPageThemeChoice;
 
 /*
  * The three choices, in the order they are offered: the light page every
@@ -165,13 +161,20 @@ export const getStatusPageThemePreviewPalettes: () => {
 };
 
 /*
- * The picture's frame: a mid grey that shows against the light card and the
- * dark one alike, so the light picture has an edge on the light dashboard
- * and the dark picture on the dark one. The choice in force is framed in the
- * accent colour, which reads at 3:1 on both.
+ * The picture's frame, every public page's (PublicPageThemeCopy): a mid grey
+ * that shows against the light card and the dark one alike, and the accent
+ * colour around the choice in force, which reads at 3:1 on both.
  */
-export const STATUS_PAGE_THEME_PREVIEW_EDGE: string = "rgb(148 163 184 / 60%)";
-export const STATUS_PAGE_THEME_PREVIEW_SELECTED_EDGE: string = "#6366f1";
+export {
+  PUBLIC_PAGE_THEME_PREVIEW_EDGE as STATUS_PAGE_THEME_PREVIEW_EDGE,
+  PUBLIC_PAGE_THEME_PREVIEW_SELECTED_EDGE as STATUS_PAGE_THEME_PREVIEW_SELECTED_EDGE,
+  /*
+   * The theme the page is drawn in, as the card reads it: a page with no
+   * theme (made before the setting, or emptied through the API) is the
+   * light page.
+   */
+  getShownPublicPageTheme as getShownStatusPageTheme,
+} from "../PublicPageTheme/PublicPageThemeCopy";
 
 // The card's data-testid.
 export const STATUS_PAGE_THEME_CARD_TEST_ID: string = "status-page-theme";
@@ -180,28 +183,14 @@ export const STATUS_PAGE_THEME_CARD_TEST_ID: string = "status-page-theme";
 export const getStatusPageThemeChoiceTestId: (
   theme: StatusPageTheme,
 ) => string = (theme: StatusPageTheme): string => {
-  return `status-page-theme-${theme.toLowerCase()}`;
+  return getPublicPageThemeChoiceTestId(STATUS_PAGE_THEME_CARD_TEST_ID, theme);
 };
 
 export const STATUS_PAGE_THEME_ERROR_TEST_ID: string =
-  "status-page-theme-error";
+  getPublicPageThemeErrorTestId(STATUS_PAGE_THEME_CARD_TEST_ID);
 
 export const STATUS_PAGE_THEME_CUSTOM_CODE_NOTE_TEST_ID: string =
   "status-page-theme-custom-code-note";
-
-/*
- * The theme the page is drawn in, as the card reads it: a page with no theme
- * (made before the setting, or emptied through the API) is the light page.
- */
-export const getShownStatusPageTheme: (value: unknown) => StatusPageTheme = (
-  value: unknown,
-): StatusPageTheme => {
-  if (value === undefined || value === null) {
-    return STATUS_PAGE_THEME_FALLBACK;
-  }
-
-  return parseStatusPageTheme(value);
-};
 
 /*
  * Whether the page has custom code that is drawn on it: custom CSS, header

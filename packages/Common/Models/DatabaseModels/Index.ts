@@ -167,6 +167,7 @@ import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
 import LlmModelPrice from "./LlmModelPrice";
+import LlmObservabilityConnection from "./LlmObservabilityConnection";
 import MetricRecordingRule from "./MetricRecordingRule";
 import TracePipeline from "./TracePipeline";
 import TracePipelineProcessor from "./TracePipelineProcessor";
@@ -375,6 +376,7 @@ import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
 import AIInvestigationRule from "./AIInvestigationRule";
 import AIPostmortemRule from "./AIPostmortemRule";
+import ExternalMcpServer from "./ExternalMcpServer";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -589,6 +591,7 @@ const AllModelTypes: Array<{
   MetricPipelineRule,
   LlmCostBudget,
   LlmModelPrice,
+  LlmObservabilityConnection,
   MetricRecordingRule,
   TracePipeline,
   TracePipelineProcessor,
@@ -796,6 +799,7 @@ const AllModelTypes: Array<{
   AutoRemediationDecision,
   AIInvestigationRule,
   AIPostmortemRule,
+  ExternalMcpServer,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,

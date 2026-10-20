@@ -1,5 +1,7 @@
+import DashboardThemeUtil from "./DashboardTheme";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
+import { DASHBOARD_THEME_LINK_PARAMETER } from "Common/Types/Dashboard/DashboardTheme";
 import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
@@ -109,6 +111,36 @@ export default class PublicDashboardUtil {
     return Navigation.containsInPath("/public-dashboard/");
   }
 
+  /*
+   * An address of this app with the link's own theme (?theme=) kept on it,
+   * for a page the app loads anew - the password prompt, and the dashboard
+   * after it - so the link's theme holds there from the first paint, as it
+   * held on the page the visitor opened (Types/Dashboard/DashboardTheme).
+   * An address that names a theme of its own keeps it.
+   */
+  public static withLinkTheme(address: string): string {
+    const linkTheme: string | null = DashboardThemeUtil.getLinkTheme();
+
+    if (!linkTheme) {
+      return address;
+    }
+
+    const queryStart: number = address.indexOf("?");
+    const path: string =
+      queryStart === -1 ? address : address.slice(0, queryStart);
+    const params: URLSearchParams = new URLSearchParams(
+      queryStart === -1 ? "" : address.slice(queryStart + 1),
+    );
+
+    if (params.has(DASHBOARD_THEME_LINK_PARAMETER)) {
+      return address;
+    }
+
+    params.set(DASHBOARD_THEME_LINK_PARAMETER, linkTheme);
+
+    return `${path}?${params.toString()}`;
+  }
+
   public static navigateToMasterPasswordPage(): void {
     if (Navigation.getCurrentRoute().toString().includes("master-password")) {
       return;
@@ -121,10 +153,25 @@ export default class PublicDashboardUtil {
       ? `/public-dashboard/${PublicDashboardUtil.getDashboardId()?.toString()}`
       : "";
 
+    /*
+     * Back to the address the visitor came to, its query included: what
+     * the link says - its own theme, the variables it picks - holds on the
+     * dashboard once the password opens it. An address no route could hold
+     * goes back to its path alone, as before.
+     */
+    const currentAddress: string = `${currentPath}${Navigation.getQueryString()}`;
+    const redirectUrl: string = Navigation.isSafeInternalRoute(currentAddress)
+      ? currentAddress
+      : currentPath;
+
     const route: Route = new Route(
-      shouldIncludeRedirect
-        ? `${basePath}/master-password?redirectUrl=${currentPath}`
-        : `${basePath}/master-password`,
+      PublicDashboardUtil.withLinkTheme(
+        shouldIncludeRedirect
+          ? `${basePath}/master-password?redirectUrl=${encodeURIComponent(
+              redirectUrl,
+            )}`
+          : `${basePath}/master-password`,
+      ),
     );
 
     Navigation.navigate(route, { forceNavigate: true });

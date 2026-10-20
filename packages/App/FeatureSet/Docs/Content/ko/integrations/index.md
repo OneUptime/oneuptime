@@ -98,7 +98,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 
 ## 다른 도구에서 이전하기
 
-다른 온콜, 가동 시간, 상태 페이지 도구를 떠나려면 두 도구를 연결하는 대신 팀을 옮기세요. **프로젝트 설정 → 다른 도구에서 가져오기**는 API 키로 계정을 읽고, 찾은 내용을 보여 주고, 선택한 항목을 만듭니다. 도구마다 가이드가 있습니다:
+다른 온콜, 가동 시간, 상태 페이지 도구를 떠나려면 두 도구를 연결하는 대신 팀을 옮기세요. **프로젝트 설정 → 고급 → 다른 도구에서 가져오기**는 API 키로 계정을 읽고, 찾은 내용을 보여 주고, 선택한 항목을 만듭니다. 도구마다 가이드가 있습니다:
 
 - 온콜 및 인시던트 도구: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call), [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - 가동 시간 및 상태 페이지 도구: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake), [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

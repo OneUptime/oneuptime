@@ -98,7 +98,7 @@ Start from the top of the table: the higher a way is, the less there is to maint
 
 ## Moving from another tool
 
-To leave another on-call, uptime or status page tool, bring your team over instead of connecting the two. **Project Settings → Import from another tool** reads your account with an API key, shows you what it found, and creates what you tick. Each tool has a guide:
+To leave another on-call, uptime or status page tool, bring your team over instead of connecting the two. **Project Settings → Advanced → Import from another tool** reads your account with an API key, shows you what it found, and creates what you tick. Each tool has a guide:
 
 - On-call and incident tools: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) and [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Uptime and status page tools: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) and [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

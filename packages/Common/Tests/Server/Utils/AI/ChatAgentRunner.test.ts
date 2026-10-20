@@ -860,3 +860,151 @@ describe("ChatAgentRunner.runTurn — conversation titles", () => {
     ).toBeUndefined();
   });
 });
+
+/*
+ * Issue #5073: a turn's tokens - the "N tokens" under an Ask AI answer and
+ * the AIRun row - count each call as OneUptime counts it (AiTokenCount): a
+ * token read from the provider's prompt cache is a tenth of a token, a token
+ * written to it one and a quarter, as in the AI Logs and the daily limits.
+ */
+describe("ChatAgentRunner.runTurn — a turn's tokens are counted by what they cost", () => {
+  function cachedResponse(data: {
+    content: string;
+    stopReason?: string;
+    llmLog: JSONObject;
+  }): AILogResponse {
+    return {
+      content: data.content,
+      toolCalls: undefined,
+      stopReason: data.stopReason,
+      llmLog: data.llmLog,
+    } as unknown as AILogResponse;
+  }
+
+  test("an answer finished in a second call counts both calls as counted, and their cost as billed", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        cachedResponse({
+          content: "Checkout is failing because",
+          stopReason: "length",
+          // 28,496 tokens, 20,654 of them read from the cache: 9,908 counted.
+          llmLog: {
+            totalTokens: 28_496,
+            cachedInputTokens: 20_654,
+            cacheCreationTokens: 0,
+            costInUSDCents: 5,
+          },
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        cachedResponse({
+          content: " the payments database refuses connections.",
+          stopReason: "stop",
+          // 1,000 tokens, 800 of them written to the cache: 1,200 counted.
+          llmLog: {
+            totalTokens: 1_000,
+            cachedInputTokens: 0,
+            cacheCreationTokens: 800,
+            costInUSDCents: 1,
+          },
+        }) as never,
+      );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    expect(spies.executeWithLogging).toHaveBeenCalledTimes(2);
+
+    const completed: JSONObject | undefined = findCallWithDataKey(
+      spies.runUpdateOneBy,
+      "totalTokens",
+    );
+
+    expect(completed).toBeDefined();
+    expect(completed!["totalTokens"]).toBe(9_908 + 1_200);
+    expect(completed!["totalCostInUSDCents"]).toBe(6);
+  });
+
+  test("calls that used no cache count every token, as before", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    expect(spies.executeWithLogging).toHaveBeenCalledTimes(1);
+    expect(
+      findCallWithDataKey(spies.runUpdateOneBy, "totalTokens")!["totalTokens"],
+    ).toBe(10);
+  });
+});
+
+describe("ChatAgentRunner.runTurn — one chat is one conversation in OneUptime's own telemetry", () => {
+  test("every call of a turn, the title's included, names the chat's conversation", async () => {
+    const firstUserMessage: AIConversationMessage = buildHistoryMessage({
+      role: AIChatMessageRole.User,
+      content: "Why is checkout failing?",
+    });
+
+    const spies: RunnerSpies = installRunnerSpies({
+      history: [firstUserMessage],
+      historyCount: 2,
+      titleCount: 2,
+    });
+
+    spies.messageFindOneBy.mockResolvedValue(firstUserMessage as never);
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        chatResponse("Checkout is failing because of X.") as never,
+      )
+      .mockResolvedValueOnce(chatResponse("Checkout Failure") as never);
+
+    const request: ChatTurnRequest = buildRequest();
+
+    await ChatAgentRunner.runTurn(request);
+    await flushAsync();
+
+    expect(spies.executeWithLogging).toHaveBeenCalledTimes(2);
+
+    for (const call of spies.executeWithLogging.mock.calls) {
+      const llmRequest: AILogRequest = call[0] as AILogRequest;
+
+      expect(llmRequest.conversationId?.toString()).toBe(
+        request.conversationId.toString(),
+      );
+      expect(llmRequest.aiRunId?.toString()).toBe(request.aiRunId.toString());
+    }
+  });
+
+  test("the next turn of the chat - a run of its own - is the same conversation", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+    const firstTurn: ChatTurnRequest = buildRequest();
+    const nextTurn: ChatTurnRequest = {
+      ...buildRequest(),
+      projectId: firstTurn.projectId,
+      userId: firstTurn.userId,
+      conversationId: firstTurn.conversationId,
+    };
+
+    await ChatAgentRunner.runTurn(firstTurn);
+    await ChatAgentRunner.runTurn(nextTurn);
+    await flushAsync();
+
+    const requests: Array<AILogRequest> =
+      spies.executeWithLogging.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as AILogRequest;
+      });
+
+    expect(requests).toHaveLength(2);
+    expect(requests[0]!.aiRunId?.toString()).not.toBe(
+      requests[1]!.aiRunId?.toString(),
+    );
+    expect(requests[0]!.conversationId?.toString()).toBe(
+      firstTurn.conversationId.toString(),
+    );
+    expect(requests[1]!.conversationId?.toString()).toBe(
+      firstTurn.conversationId.toString(),
+    );
+  });
+});

@@ -6,17 +6,34 @@ import { LLMMessage } from "../../LLM/LLMService";
  * With no small step budget, an investigation can make many tool calls, and
  * each result stays in the transcript it resends to the model. Rather than
  * cap the run, the oldest tool RESULTS are elided once the transcript grows
- * past a size: the model keeps every question, every call it made (with its
- * arguments) and every conclusion it wrote, plus the newest results in
- * full. An elided result keeps its citation id, so a [C#] the model already
- * wrote stays valid, and the note says how to get the data back (re-run the
- * call, or read_tool_output for a stored long output).
+ * past a size, in one step that leaves room for many more calls (so the
+ * provider's prompt cache keeps matching the conversation in between): the
+ * model keeps every question, every call it made (with its arguments) and
+ * every conclusion it wrote, plus the newest results in full. An elided
+ * result keeps its citation id, so a [C#] the model already wrote stays
+ * valid, and the note says how to get the data back (re-run the call, or
+ * read_tool_output for a stored long output).
  *
  * Everything here is pure over the message array.
  */
 
 // Roughly 75–90k tokens of transcript before older results are elided.
 export const DEFAULT_MAX_CONTEXT_CHARS: number = 300_000;
+
+/*
+ * How far the transcript is cut back once it outgrows that: to two thirds of
+ * it, not just under it. Eliding a result changes the transcript at that
+ * result, and the provider's prompt cache (Anthropic's, which LLMService
+ * marks, and the automatic one of the OpenAI wire and of Ollama and vLLM)
+ * only matches a conversation up to its first change. Cut just under the
+ * limit, the next result would push the transcript over again, and every
+ * call from then on would elide one more old result and pay for most of the
+ * conversation again - written to the cache at a quarter more than it costs
+ * uncached. Cut by a third, the next calls add their results with nothing
+ * changed before them and read everything earlier from the cache, until the
+ * transcript reaches the limit again many calls later.
+ */
+export const COMPACTED_CONTEXT_SHARE: number = 2 / 3;
 
 /*
  * Results are elided oldest first, so the newest stay whole for as long as
@@ -71,18 +88,25 @@ export interface CompactionResult {
 }
 
 /*
- * Elide the oldest tool results, in place, until the transcript fits
- * `maxChars` — never the newest `minKeepRecentToolResults`. System and user
- * messages and assistant turns are never touched.
+ * Once the transcript outgrows `maxChars`, elide the oldest tool results, in
+ * place, until it fits `targetChars` (two thirds of `maxChars` unless said
+ * otherwise, COMPACTED_CONTEXT_SHARE) — never the newest
+ * `minKeepRecentToolResults`. System and user messages and assistant turns
+ * are never touched, and a transcript within `maxChars` is left as it is.
  */
 export function compactAgentContext(
   messages: Array<LLMMessage>,
   options?: {
     maxChars?: number | undefined;
+    targetChars?: number | undefined;
     minKeepRecentToolResults?: number | undefined;
   },
 ): CompactionResult {
   const maxChars: number = options?.maxChars ?? DEFAULT_MAX_CONTEXT_CHARS;
+  const targetChars: number = Math.min(
+    maxChars,
+    options?.targetChars ?? Math.floor(maxChars * COMPACTED_CONTEXT_SHARE),
+  );
   const minKeep: number = Math.max(
     0,
     options?.minKeepRecentToolResults ?? MIN_KEEP_RECENT_TOOL_RESULTS,
@@ -111,7 +135,7 @@ export function compactAgentContext(
   let elidedCount: number = 0;
 
   for (const index of elidable) {
-    if (chars <= maxChars) {
+    if (chars <= targetChars) {
       break;
     }
 

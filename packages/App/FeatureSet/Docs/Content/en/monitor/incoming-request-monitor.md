@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered         | `resolved`                               | The exact value that marks recovery                                    |
 | Max incidents per request          | `100` (default)                          | Safety cap so a high-cardinality field cannot open unbounded incidents |
 
+Grouping belongs to the criteria it is turned on in. The monitor's other criteria do not group: when one of them matches a request, it opens its incident and alert as it would on a monitor where no criteria groups.
+
 ### Path syntax
 
-Paths must start with the literal prefix `requestBody.`. A path without it — `alerts[*].labels.alertname` — matches nothing, silently. The `{{ }}` wrapper is optional: `requestBody.status` and `{{requestBody.status}}` behave identically.
+Paths must start with the literal prefix `requestBody.`. A path without it — `alerts[*].labels.alertname` — finds no value in any request. The `{{ }}` wrapper is optional: `requestBody.status` and `{{requestBody.status}}` behave identically.
 
 - `[*]` fans out over an array — one incident per **distinct** value. Two elements yielding the same value collapse into one incident, and that incident's firing/resolved state is taken from the **first** matching element. **Only the first `[*]` in a path is a wildcard**; `requestBody.groups[*].alerts[*].name` matches nothing.
 - `[0]` and `[last]` select a single element, and may follow a `[*]`.
 - Object and array values, empty strings, and nulls are skipped. `0` and `false` are valid keys.
 - The body must be a JSON object; a payload whose top level is an array is not grouped.
+
+### Requests without the field
+
+A request that matches a grouped criteria but has no value at its path — the field is missing or empty, holds an object or a list, or the body is not a JSON object — still opens that criteria's incident and alert: one for the whole monitor, as the criteria would without grouping. So does a grouped criteria that matches because requests stopped arriving. A title that names the grouping variable, such as `{{alertname}}`, shows it as written, since there is no value to put in.
+
+That incident resolves, if **Auto Resolve Incident** is on, when a later request without the field reports it recovered, or when a later request matches another criteria. Such a recovery opens nothing new.
+
+When some elements of an array have a value and others do not, each value opens its own incident, and the elements without one open nothing of their own.
+
+The **Monitor Summary** card on the monitor's **Overview** shows what each request did, including when a criteria handled it for the whole monitor or opened nothing new.
 
 ### Resolution is event-driven
 
@@ -306,8 +318,11 @@ A webhook describes only what is in that payload, so OneUptime never resolves an
 > [!NOTE]
 > When one monitor receives requests faster than OneUptime evaluates them, it evaluates the newest and skips the ones in between, so a burst of webhooks can leave a firing or a resolved alert unevaluated. On a self-hosted server, setting `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in the OneUptime app's environment evaluates every request on its own.
 
+> [!NOTE]
+> If **Field that signals recovery** contains `[*]` but **Open a separate incident for each…** does not, a request has recovered only when every element of that array says so. With `requestBody.alerts[*].status` and `resolved`, an incident grouped by `requestBody.groupLabels.alertname` resolves once every alert of a request is resolved, and stays open while one still fires.
+
 > [!WARNING]
-> If **Field that signals recovery** contains `[*]` but **Open a separate incident for each…** does not, nothing will ever resolve. Either use `[*]` in both, or neither. A recovery path without `[*]` is evaluated against the whole payload, so a payload-level `status: resolved` resolves every key in that payload — including alerts whose own status is still firing.
+> A recovery path without `[*]` is evaluated against the whole payload, so a payload-level `status: resolved` resolves every key in that payload — including alerts whose own status is still firing.
 
 ### Naming the incidents
 

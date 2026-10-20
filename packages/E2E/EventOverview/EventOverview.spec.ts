@@ -3085,6 +3085,265 @@ test.describe("investigation states", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * An investigation rule's wait (issue #5074)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * While an investigation rule makes OneUptime AI wait, the AI card says when
+ * it investigates - eight minutes from the pinned clock, a 10-minute wait -
+ * if the record is still open, with a "Waiting" pill rather than "Not
+ * investigated". Whoever may change the record can start it at once with
+ * Investigate now; everyone else is told who can.
+ */
+const WAIT_TIME: string = "(6:28 PM|18:28)";
+const WAITING_INCIDENT_TITLE: RegExp = new RegExp(
+  `^OneUptime AI investigates at ${WAIT_TIME} if this incident is still open$`,
+);
+const WAITING_ALERT_TITLE: RegExp = new RegExp(
+  `^OneUptime AI investigates at ${WAIT_TIME} if this alert is still open$`,
+);
+const WAITING_INCIDENT_DESCRIPTION: string =
+  "An investigation rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.";
+const WAITING_ALERT_DESCRIPTION: string =
+  "An investigation rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
+// InvestigationRuleWait's refusal when the project's own daily limit is reached.
+const DAILY_LIMIT_REFUSAL: string =
+  "This project has reached its own daily AI limit. It resets at midnight UTC.";
+
+function waitingBody(page: Page): Locator {
+  return investigationCard(page).getByTestId("investigation-waiting");
+}
+
+async function openWaiting(
+  page: Page,
+  pagePath: string,
+  query: string = "ai=waiting",
+): Promise<Locator> {
+  await open(page, pagePath, query);
+  await expect(
+    investigationCard(page).getByLabel("Investigation status"),
+  ).toHaveText("Waiting", { timeout: 30000 });
+  return waitingBody(page);
+}
+
+test.describe("an investigation rule's wait (issue #5074)", () => {
+  test("?ai=waiting says when OneUptime AI investigates the incident, and why it waits, in the same card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(page, INCIDENT_PATH);
+    const investigation: Locator = investigationCard(page);
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      WAITING_INCIDENT_TITLE,
+    );
+    await expect(waiting).toContainText(WAITING_INCIDENT_DESCRIPTION);
+    await expect(waiting).toHaveAttribute("aria-live", "polite");
+
+    /*
+     * Nothing was skipped: no "Not investigated" pill, and no reason why
+     * (exact: the wait's own sentence ends "are not investigated.").
+     */
+    await expect(
+      investigation.getByTestId("investigation-not-started"),
+    ).toHaveCount(0);
+    await expect(
+      investigation.getByText("Not investigated", { exact: true }),
+    ).toHaveCount(0);
+    // Nothing a run shows yet.
+    await expect(summarySection(page)).toHaveCount(0);
+    await expect(reportSection(page)).toHaveCount(0);
+    await expect(investigationDetails(page)).toHaveCount(0);
+    await expect(investigation.getByText(VERDICT_QUESTION)).toHaveCount(0);
+
+    // Someone who may change the incident is offered Investigate now.
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+    await expect(waiting.getByTestId("investigate-now-who")).toHaveCount(0);
+    await expect(waiting.getByTestId("investigate-now-error")).toHaveCount(0);
+  });
+
+  test("Investigate now starts it at once, once, for this incident, and the card turns to the queued run", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(page, INCIDENT_PATH);
+    const investigation: Locator = investigationCard(page);
+
+    await waiting.getByRole("button", { name: "Investigate now" }).click();
+
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Queued",
+      { timeout: 30000 },
+    );
+    await expect(waitingBody(page)).toHaveCount(0);
+
+    const started: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-investigation/investigate-now",
+    );
+    expect(started).toHaveLength(1);
+    expect(started[0]!.method).toBe("POST");
+    expect(started[0]!.body).toEqual({
+      subjectType: "incident",
+      subjectId: INCIDENT_ID,
+    });
+  });
+
+  test("a refusal says why in the server's words, and the button stays for another try", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting&fail=investigate-now",
+    );
+
+    await waiting.getByRole("button", { name: "Investigate now" }).click();
+
+    const error: Locator = waiting.getByTestId("investigate-now-error");
+    await expect(error).toHaveText(DAILY_LIMIT_REFUSAL);
+    await expect(error).toHaveAttribute("role", "alert");
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Waiting");
+  });
+
+  test("?ai=waiting-viewer: someone who may not change the incident is told who can, and gets no button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting-viewer",
+    );
+
+    await expect(waiting.getByTestId("investigate-now-who")).toHaveText(
+      "Someone who can edit this incident can start the investigation now.",
+    );
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * A day's wait from an incident declared late in the day ends tomorrow:
+   * the heading says so, rather than "at 15 Sep, 5:20 PM".
+   */
+  test("?wait=tomorrow: a wait that ends after midnight says tomorrow at its time", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting&wait=tomorrow",
+    );
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      /^OneUptime AI investigates tomorrow at (5:20 PM|17:20) if this incident is still open$/,
+    );
+    await expect(waiting).toContainText(
+      "An investigation rule makes OneUptime AI wait 1,440 minutes, so incidents resolved by then are not investigated.",
+    );
+  });
+
+  /*
+   * The rule-wait job takes a record within the minute its wait ends, and
+   * the card shows the run once it reads it. Until then the card names no
+   * time gone by: OneUptime AI investigates shortly. Still waiting, still
+   * startable.
+   */
+  test("?wait=ended: once the time has come, the card says shortly, naming no time gone by", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      ALERT_PATH,
+      "ai=waiting&wait=ended",
+    );
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      "OneUptime AI investigates shortly if this alert is still open",
+    );
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+  });
+
+  test("an alert's wait names the alert, and Investigate now starts it on the alert's lane", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(page, ALERT_PATH);
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      WAITING_ALERT_TITLE,
+    );
+    await expect(waiting).toContainText(WAITING_ALERT_DESCRIPTION);
+
+    await waiting.getByRole("button", { name: "Investigate now" }).click();
+
+    await expect(
+      investigationCard(page).getByLabel("Investigation status"),
+    ).toHaveText("Queued", { timeout: 30000 });
+    expect(
+      (await apiRequestsTo(page, "/ai-investigation/investigate-now")).map(
+        (request: RecordedApiRequest): Record<string, unknown> => {
+          return request.body;
+        },
+      ),
+    ).toEqual([{ subjectType: "alert", subjectId: ALERT_ID }]);
+  });
+
+  test("on a phone the waiting card fits the screen, its button and words inside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const waiting: Locator = await openWaiting(page, INCIDENT_PATH);
+    const button: Locator = waiting.getByRole("button", {
+      name: "Investigate now",
+    });
+
+    await button.scrollIntoViewIfNeeded();
+    const body: Box = await documentBox(waiting);
+    const buttonBox: Box = await documentBox(button);
+
+    expect(buttonBox.x).toBeGreaterThanOrEqual(body.x - 0.5);
+    expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(
+      body.x + body.width + 0.5,
+    );
+    // The page never scrolls sideways.
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * One flat card
  * ---------------------------------------------------------------------------
  */
@@ -3276,6 +3535,12 @@ const CARD_STATES: ReadonlyArray<CardState> = [
     name: "a follow-up check running",
     query: "ai=running&linked=followup",
     badge: "Investigating…",
+  },
+  // An investigation rule's wait (issue #5074, ?ai=waiting).
+  {
+    name: "an investigation waiting for its rule",
+    query: "ai=waiting",
+    badge: "Waiting",
   },
 ];
 
@@ -11005,6 +11270,15 @@ test.describe("screenshots", () => {
       { file: "ai-card-failed", state: CARD_STATES[6]! },
       { file: "ai-card-pending", state: CARD_STATES[7]! },
       { file: "ai-card-none", state: CARD_STATES[8]! },
+      { file: "ai-card-waiting", state: CARD_STATES[11]! },
+      {
+        file: "ai-card-waiting-viewer",
+        state: {
+          name: "waiting, for a viewer",
+          query: "ai=waiting-viewer",
+          badge: "Waiting",
+        },
+      },
       { file: "ai-card-clusters", state: CARD_STATES[1]! },
       {
         file: "ai-card-dark",
@@ -12720,4 +12994,213 @@ test.describe("an incident call's transcript (?calls=)", () => {
       "incident-call-summary-mobile",
     );
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Time to acknowledge after paging
+ * ---------------------------------------------------------------------------
+ * "Acknowledged in" counts from when the record began. For a record
+ * somebody was paged about (First Paged At), the tile keeps that number and
+ * adds one short, quieter line: how long after the first page it was
+ * acknowledged. Nothing changes for a record nobody was paged about.
+ * ?paged=paged pages incident #1042 at 18:02 and alert #311 at 18:07, a
+ * minute after each began; ?paged=never adds the measurement and pages
+ * nobody (Fixture.js).
+ */
+
+interface StatTileLine {
+  text: string;
+  fontSize: number;
+  color: string;
+  lines: number;
+}
+
+// Each line of the first tile of a stat bar: label, value, note, date.
+async function firstStatTileLines(
+  page: Page,
+  name: string,
+): Promise<Array<StatTileLine>> {
+  return page
+    .getByRole("group", { name, exact: true })
+    .locator(":scope > div")
+    .first()
+    .evaluate((cell: Element): Array<StatTileLine> => {
+      return Array.from(cell.children).map((child: Element): StatTileLine => {
+        const style: CSSStyleDeclaration = getComputedStyle(child);
+        const lineHeight: number = parseFloat(style.lineHeight);
+        return {
+          text: (child.textContent || "").trim(),
+          fontSize: parseFloat(style.fontSize),
+          color: style.color,
+          lines: Math.round(child.getBoundingClientRect().height / lineHeight),
+        };
+      });
+    });
+}
+
+const AFTER_PAGING_INCIDENT_MEASUREMENTS: Array<MeasurementRow> = [
+  INCIDENT_MEASUREMENTS[0]!,
+  {
+    name: "Time to acknowledge after paging",
+    summary: "First paged → Acknowledged",
+    value: "2 minutes",
+    reason: null,
+  },
+  ...INCIDENT_MEASUREMENTS.slice(1),
+];
+
+test.describe("time to acknowledge after paging", () => {
+  test("incident-overview: Acknowledged in keeps its number and adds the time after paging, quieter than it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=paged");
+
+    const lines: Array<StatTileLine> = await firstStatTileLines(
+      page,
+      INCIDENT_PAGE.statBar,
+    );
+    expect(
+      lines.map((line: StatTileLine): string => {
+        return line.text;
+      }),
+    ).toEqual([
+      "Acknowledged in",
+      "3 minutes",
+      "2 minutes after paging",
+      "Sep 14 2026, 06:04 PM GMT",
+    ]);
+    const [, value, note, date] = lines;
+    // Smaller and lighter than the value, larger than the date: value, note, date.
+    expect(note!.fontSize).toBeLessThan(value!.fontSize);
+    expect(note!.fontSize).toBeGreaterThan(date!.fontSize);
+    expect(note!.color).not.toBe(value!.color);
+    expect(note!.lines).toBe(1);
+
+    // The other tiles are as they were.
+    expect((await statCells(page, INCIDENT_PAGE.statBar)).slice(1)).toEqual(
+      INCIDENT_PAGE.stats.slice(1),
+    );
+
+    // The measurement sits next to Time to acknowledge.
+    expect(await measurementRows(page)).toEqual(
+      AFTER_PAGING_INCIDENT_MEASUREMENTS,
+    );
+  });
+
+  test("alert-overview: the same line, from the alert's own first page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "paged=paged");
+
+    expect(
+      (await firstStatTileLines(page, ALERT_PAGE.statBar)).map(
+        (line: StatTileLine): string => {
+          return line.text;
+        },
+      ),
+    ).toEqual([
+      "Acknowledged in",
+      "2 minutes",
+      "1 minute after paging",
+      "Sep 14 2026, 06:08 PM GMT",
+    ]);
+    expect(await measurementRows(page)).toEqual([
+      {
+        name: "Time to acknowledge",
+        summary: "Created → Acknowledged",
+        value: "2 minutes",
+        reason: null,
+      },
+      {
+        name: "Time to acknowledge after paging",
+        summary: "First paged → Acknowledged",
+        value: "1 minute",
+        reason: null,
+      },
+      {
+        name: "Time to resolve",
+        summary: "Created → Resolved",
+        value: "9 minutes",
+        reason: null,
+      },
+    ]);
+  });
+
+  test("?paged=never: nothing extra on the tile, and the measurement was never reached", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=never");
+
+    expect(await statCells(page, INCIDENT_PAGE.statBar)).toEqual(
+      INCIDENT_PAGE.stats,
+    );
+    expect((await measurementRows(page))[1]).toEqual({
+      name: "Time to acknowledge after paging",
+      summary: "First paged → Acknowledged",
+      value: "Not reached",
+      reason: null,
+    });
+  });
+
+  test("?state=created: paged and not yet acknowledged, the tile says only that, and the clock runs from the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=paged&state=created");
+
+    expect(
+      (await firstStatTileLines(page, INCIDENT_PAGE.statBar)).map(
+        (line: StatTileLine): string => {
+          return line.text;
+        },
+      ),
+    ).toEqual(["Acknowledged in", "Not yet acknowledged"]);
+    expect((await measurementRows(page))[1]).toEqual({
+      name: "Time to acknowledge after paging",
+      summary: "First paged → Acknowledged",
+      // Paged at 18:02; the clock reads 18:20.
+      value: "Running for 18 minutes",
+      reason: null,
+    });
+  });
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 640, 390]) {
+      test(`reads well at ${width}px in the ${theme} theme`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openReady(
+          page,
+          INCIDENT_PAGE,
+          theme === "dark" ? "paged=paged&theme=dark" : "paged=paged",
+        );
+
+        const [, value, note, date] = await firstStatTileLines(
+          page,
+          INCIDENT_PAGE.statBar,
+        );
+        expect(note!.text).toBe("2 minutes after paging");
+        // Its own colour in both themes: quieter than the value, not the date's.
+        expect(note!.color).not.toBe(value!.color);
+        expect(note!.color).not.toBe(date!.color);
+        /*
+         * One line where the cell has room; in the narrowest three-column
+         * bar (640px) two even lines, never a word left on its own.
+         */
+        expect(note!.lines).toBe(width === 640 ? 2 : 1);
+        await expectNoHorizontalOverflow(page);
+      });
+    }
+  }
 });

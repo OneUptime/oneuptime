@@ -37,7 +37,7 @@ flowchart TB
 Åbn **OnCall** > **Settings** i Grafana. I Grafana Cloud åbner du **IRM** > **Settings** > **Admin & API**. Kopiér den OnCall-API-URL, der vises der. Opret under **API tokens** et token med navnet `OneUptime import`, og kopiér det.
 
 ### Åbn importsiden
-Gå i OneUptime til **Projektindstillinger** > **Importér fra et andet værktøj**, og vælg **Grafana OnCall**.
+Gå i OneUptime til **Projektindstillinger** > **Avanceret** > **Importér fra et andet værktøj**, og vælg **Grafana OnCall**.
 
 ### Forbind Grafana OnCall
 Indsæt adressen i **Grafana OnCall-API-URL** og tokenet i **Grafana OnCall-API-nøgle**, og vælg **Læs min Grafana OnCall-konto**. En stor konto tager et par minutter, og du kan forlade siden, mens den læses.

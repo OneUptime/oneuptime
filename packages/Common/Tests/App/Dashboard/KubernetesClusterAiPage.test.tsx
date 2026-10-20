@@ -365,8 +365,8 @@ function agentHostInfo(clusterIdentifier: string): JSONObject {
 /*
  * Every kind of Runner a project holds: this cluster's previous agent
  * Runner, another cluster's, a host Runner that runs AI commands and one
- * that does not. Only the host Runner can be picked for an advanced
- * binding.
+ * that never did. The two host Runners can be picked for an advanced
+ * binding: choosing one is what lets OneUptime AI run kubectl on it.
  */
 function makeProjectRunners(): Array<Runner> {
   return [
@@ -2222,6 +2222,93 @@ describe("Needs attention", () => {
     ).toBe(`/dashboard/${PROJECT_ID}/runbooks/runners/${HOST_RUNNER_ID}`);
   });
 
+  /*
+   * A Runner bound before choosing a Runner was what let OneUptime AI run
+   * kubectl on it (its "Runs AI Remediation Commands" switch is gone): one
+   * click chooses it again, which the server checks as it checks any
+   * choice. Nothing on the Runner's own page turns it on any more, so the
+   * step does not link there.
+   */
+  test("a bound Runner that does not run AI commands yet is chosen again in one click", async () => {
+    serve(
+      advancedStatus({
+        runner: { ...advancedStatus().runner!, canRunAiCommands: false },
+        isInvestigationReady: false,
+        gaps: [gap("runner_ai_commands_disabled")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-runner_ai_commands_disabled",
+    );
+    expect(row).toHaveTextContent(
+      "Choose the Runner again to let OneUptime AI run kubectl on it.",
+    );
+    expect(within(row).queryByText("View Runner")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(row).getByTestId("ai-agent-gap-choose-runner-again"),
+    );
+
+    // The same Runner, written again: nothing else about the binding changes.
+    expect(await waitForOneUpdate()).toEqual({
+      aiAccessRunnerId: HOST_RUNNER_ID,
+    });
+    expect(String(updateRequests()[0]!["id"])).toBe(CLUSTER_ID.toString());
+    expect(await findTestId("ai-agent-action-notice")).toHaveTextContent(
+      "OneUptime AI may now run kubectl on this Runner.",
+    );
+  });
+
+  test("choosing the Runner again that the server refuses says why on the page", async () => {
+    serve(
+      advancedStatus({
+        runner: { ...advancedStatus().runner!, canRunAiCommands: false },
+        isInvestigationReady: false,
+        gaps: [gap("runner_ai_commands_disabled")],
+      }),
+    );
+    updateByIdSpy.mockImplementation(async (): Promise<never> => {
+      throw new HTTPErrorResponse(
+        403,
+        {
+          error: "You may not read the runbook credentials this Runner holds.",
+        },
+        {},
+      );
+    });
+    openAgentPage();
+
+    fireEvent.click(await findTestId("ai-agent-gap-choose-runner-again"));
+
+    expect(await findTestId("ai-agent-action-error")).toHaveTextContent(
+      "You may not read the runbook credentials this Runner holds.",
+    );
+  });
+
+  test("a reader is told who to ask instead of choosing the Runner again", async () => {
+    grant(READER_PERMISSIONS);
+    serve(
+      advancedStatus({
+        runner: { ...advancedStatus().runner!, canRunAiCommands: false },
+        isInvestigationReady: false,
+        gaps: [gap("runner_ai_commands_disabled")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-runner_ai_commands_disabled",
+    );
+    expect(within(row).getByTestId("ai-agent-gap-ask")).toHaveTextContent(
+      "Ask a project owner or admin.",
+    );
+    expect(
+      screen.queryByTestId("ai-agent-gap-choose-runner-again"),
+    ).not.toBeInTheDocument();
+  });
+
   test("an advanced Runner without a credential: choose one or clear it, with Change below", async () => {
     serve(
       advancedStatus({
@@ -3533,7 +3620,18 @@ describe("the Change modal: advanced Runner bindings", () => {
     await openRunnerStep(dialog);
 
     await within(dialog).findByText("Runner", {}, { timeout: WAIT_TIMEOUT });
-    expect(await openDropdown(dialog, /^Runner/)).toEqual(["bash-runner"]);
+    expect(await openDropdown(dialog, /^Runner/)).toEqual([
+      "bash-runner",
+      "ops-runner",
+    ]);
+    // The one loader of Runners: the project's own, read for their posture.
+    const runnerRequest: ListRequest = listRequestsFor(Runner)[0]!;
+    expect(String(runnerRequest.query?.["projectId"])).toBe(PROJECT_ID);
+    expect(runnerRequest.select).toEqual({
+      _id: true,
+      name: true,
+      hostInfo: true,
+    });
     fireEvent.keyDown(
       within(dialog).getByRole("combobox", { name: /^Runner/ }),
       {

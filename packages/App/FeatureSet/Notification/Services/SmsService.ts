@@ -5,6 +5,7 @@ import {
 } from "../Config";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
@@ -308,11 +309,15 @@ export default class SmsService {
         twilioConfig.authToken,
       );
 
-      const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
+      /*
+       * One of the numbers the config sends SMS from: its SMS numbers when
+       * it has them, never a number it keeps for calls only
+       * (TwilioPhoneNumbers).
+       */
+      const fromNumber: Phone = TwilioPhoneNumbers.pickSenderNumber({
+        config: twilioConfig,
+        kind: TwilioMessageKind.SMS,
         to: to,
-        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
-        secondaryPhoneNumbersToPickFrom:
-          twilioConfig.secondaryPhoneNumbers || [],
       });
 
       smsLog.fromNumber = fromNumber;

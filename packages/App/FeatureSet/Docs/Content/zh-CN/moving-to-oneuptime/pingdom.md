@@ -36,7 +36,7 @@ flowchart TB
 在 My Pingdom 中，依次打开 **Settings** > **Pingdom API**，然后选择 **Add API token**。将它命名为 `OneUptime import`，选择 **Read access**，然后复制令牌。
 
 ### 打开导入页面
-在 OneUptime 中，进入 **项目设置** > **从其他工具导入**，然后选择 **Pingdom**。
+在 OneUptime 中，进入 **项目设置** > **高级** > **从其他工具导入**，然后选择 **Pingdom**。
 
 ### 连接 Pingdom
 将令牌粘贴到 **Pingdom API 密钥** 中，然后选择 **读取我的 Pingdom 账户**。大型账户需要几分钟，读取期间你可以离开页面。

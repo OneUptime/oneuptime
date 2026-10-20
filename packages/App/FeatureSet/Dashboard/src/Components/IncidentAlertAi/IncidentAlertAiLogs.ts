@@ -9,6 +9,9 @@ import AIRunAutoGrade from "Common/Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import FixProductionReport, {
+  parseFixProductionReport,
+} from "Common/Types/AI/FixProductionReport";
 import {
   INCIDENT_ALERT_AI_LOG_KINDS,
   IncidentAlertAiLogKind,
@@ -148,6 +151,8 @@ export interface AiLogsEntry {
   ruleName: string | null;
   taskNumber: number | null;
   codeFixTaskType: string | null;
+  // A fix task's merged pull request: what production showed once it shipped.
+  production: FixProductionReport | null;
   command: string | null;
   commandOrigin: string | null;
   exitCode: number | null;
@@ -259,6 +264,7 @@ function parseEntry(
     ruleName: readString(value["ruleName"]),
     taskNumber: readNumber(value["taskNumber"]),
     codeFixTaskType: readString(value["codeFixTaskType"]),
+    production: parseFixProductionReport(value["production"]) || null,
     command: readString(value["command"]),
     commandOrigin: readString(value["commandOrigin"]),
     exitCode: readNumber(value["exitCode"]),
@@ -439,7 +445,10 @@ export function describeVerification(status: string | null): string | null {
     : null;
 }
 
-// What kind of fix a suggestion is: a runbook, or a plan of commands.
+/*
+ * What kind of fix a suggestion is: a runbook, a plan of commands, or
+ * changes made through the project's external MCP servers.
+ */
 export function describeFixKind(suggestionType: string | null): string | null {
   if (suggestionType === AutoRemediationSuggestionType.CommandPlan) {
     return translationKey("Command plan");
@@ -447,6 +456,10 @@ export function describeFixKind(suggestionType: string | null): string | null {
 
   if (suggestionType === AutoRemediationSuggestionType.Runbook) {
     return translationKey("Runbook");
+  }
+
+  if (suggestionType === AutoRemediationSuggestionType.McpToolCalls) {
+    return translationKey("MCP server tools");
   }
 
   return null;

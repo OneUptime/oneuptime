@@ -30,12 +30,12 @@ flowchart LR
 
 | Section | Pages | Où en lire plus |
 | --- | --- | --- |
-| **Basique** | **Projet**, **Étiquettes**, **Importer depuis un autre outil** | [Les détails du projet](#les-détails-du-projet), [Étiquettes](#étiquettes), [Quitter Opsgenie](/docs/moving-to-oneuptime/opsgenie) et les autres guides de migration |
+| **Basique** | **Projet**, **Étiquettes** | [Les détails du projet](#les-détails-du-projet), [Étiquettes](#étiquettes) |
 | **Espace de travail** | **Slack**, **Microsoft Teams**, **Appels vidéo** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Appels vidéo](/docs/workspace-connections/video-calls) |
 | **Télémétrie & APM** | **Clés d'ingestion**, **Rétention des données** | [Clés d'ingestion](/docs/telemetry/ingestion-keys), [Rétention des données](/docs/telemetry/data-retention) |
 | **Notifications** | **Paramètres de notification**, **Journaux de notification**, **Applications mobiles** | [Notifications](#notifications) |
-| **IA** | **Fonctionnalités IA**, **Fournisseurs LLM**, **Crédits IA**, **Journaux IA**, **Serveur MCP** | [Fournisseurs LLM](/docs/ai/llm-provider), [Serveur MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#maîtrise-des-coûts) |
-| **Avancé** | **Domaines**, **Clés API**, **Drapeaux de fonctionnalités** | [Domaines personnalisés](/docs/status-pages/branding-and-domains#domaines-personnalisés), [Clés API](/docs/permissions/index#clés-dapi), [Drapeaux de fonctionnalités](#drapeaux-de-fonctionnalités) |
+| **IA** | **Fonctionnalités IA**, **Fournisseurs LLM**, **Serveurs MCP externes**, **Crédits IA**, **Journaux IA**, **Serveur MCP** | [Fournisseurs LLM](/docs/ai/llm-provider), [Serveurs MCP externes](/docs/ai/external-mcp-servers), [Serveur MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#maîtrise-des-coûts) |
+| **Avancé** | **Domaines**, **Clés API**, **Drapeaux de fonctionnalités**, **Importer depuis un autre outil** | [Domaines personnalisés](/docs/status-pages/branding-and-domains#domaines-personnalisés), [Clés API](/docs/permissions/index#clés-dapi), [Drapeaux de fonctionnalités](#drapeaux-de-fonctionnalités), [Quitter Opsgenie](/docs/moving-to-oneuptime/opsgenie) et les autres guides de migration |
 | **Sécurité** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturation et factures** | **Facturation**, **Historique d'utilisation**, **Factures** | [Facturation et utilisation](/docs/configuration/billing) |
 | **Journaux d'audit** | **Journaux d'audit**, **Paramètres** | [Journaux d'audit](/docs/configuration/audit-logs) |

@@ -69,6 +69,12 @@ import LinkedInfrastructureContext, {
  *     a repeat one.
  *   - a private alert never triggers one: its title would reach the report.
  *
+ * An incident an investigation rule made wait (issue #5074) is investigated
+ * when the wait ends, with every alert that opened since it was declared
+ * already in its context. Its window is counted from when that
+ * investigation finished instead (getWindowEnd), so an alert that opens
+ * after it is still caught; nothing is checked again while it waits.
+ *
  * Every entry point is best-effort and never throws: a follow-up that cannot
  * be decided is not started, and nothing else depends on it.
  */
@@ -81,6 +87,12 @@ export const MAX_INCIDENTS_PER_ALERT: number = 5;
 
 // The most of an alert's title the report's first line repeats.
 export const MAX_LEAD_TITLE_LENGTH: number = 200;
+
+/*
+ * The most investigations an investigation rule made wait that one alert
+ * looks through for incidents whose window their end opened again.
+ */
+export const MAX_WAITED_RUNS_READ: number = 100;
 
 // What the follow-up run is told, and says, about why it runs.
 export interface FollowUpCheckContext {
@@ -99,6 +111,39 @@ export interface FollowUpCheckContext {
 }
 
 export default class IncidentFollowUpCheck {
+  /*
+   * When an incident's follow-up window ends: FOLLOW_UP_WINDOW_MINUTES after
+   * it was declared - or, when an investigation rule made its first
+   * investigation wait (AIRun.ruleWaitMinutes), after that investigation
+   * finished: the alerts that opened during the wait were in its context
+   * already, and the window still covers the ones that open after it.
+   */
+  public static getWindowEnd(data: {
+    incidentCreatedAt: Date;
+    // The incident's first investigation, when it has one.
+    investigation?:
+      | {
+          ruleWaitMinutes?: number | undefined;
+          completedAt?: Date | undefined;
+        }
+      | null
+      | undefined;
+  }): Date {
+    const waitedRunEnd: Date | undefined =
+      data.investigation?.ruleWaitMinutes &&
+      data.investigation.ruleWaitMinutes > 0 &&
+      data.investigation.completedAt &&
+      data.investigation.completedAt.getTime() >
+        data.incidentCreatedAt.getTime()
+        ? data.investigation.completedAt
+        : undefined;
+
+    return OneUptimeDate.addRemoveMinutes(
+      waitedRunEnd || data.incidentCreatedAt,
+      FOLLOW_UP_WINDOW_MINUTES,
+    );
+  }
+
   /*
    * An alert opened (AlertService.onCreateSuccess): check again, once, each
    * open incident linked to the same infrastructure that was investigated
@@ -191,7 +236,9 @@ export default class IncidentFollowUpCheck {
           status: true,
           startedAt: true,
           createdAt: true,
+          completedAt: true,
           followUpForAlertId: true,
+          ruleWaitMinutes: true,
         },
         props: { isRoot: true },
       });
@@ -220,10 +267,10 @@ export default class IncidentFollowUpCheck {
         return null;
       }
 
-      const windowEnd: Date = OneUptimeDate.addRemoveMinutes(
-        incident.createdAt,
-        FOLLOW_UP_WINDOW_MINUTES,
-      );
+      const windowEnd: Date = IncidentFollowUpCheck.getWindowEnd({
+        incidentCreatedAt: incident.createdAt,
+        investigation: run,
+      });
 
       // Nothing opened after the context was read can be inside the window.
       if (contextReadAt.getTime() >= windowEnd.getTime()) {
@@ -298,10 +345,14 @@ export default class IncidentFollowUpCheck {
       return null;
     }
 
-    const windowEnd: Date = OneUptimeDate.addRemoveMinutes(
-      incident.createdAt,
-      FOLLOW_UP_WINDOW_MINUTES,
-    );
+    const latest: AIRun | null =
+      await IncidentFollowUpCheck.readLatestRun(data);
+
+    // From its declaration - or its waited investigation's end - on.
+    const windowEnd: Date = IncidentFollowUpCheck.getWindowEnd({
+      incidentCreatedAt: incident.createdAt,
+      investigation: latest,
+    });
 
     if (
       data.alertOpenedAt.getTime() < incident.createdAt.getTime() ||
@@ -319,9 +370,6 @@ export default class IncidentFollowUpCheck {
     if (!openStateIds.includes(incident.currentIncidentStateId.toString())) {
       return null;
     }
-
-    const latest: AIRun | null =
-      await IncidentFollowUpCheck.readLatestRun(data);
 
     if (
       !latest ||
@@ -660,8 +708,10 @@ export default class IncidentFollowUpCheck {
         status: true,
         startedAt: true,
         createdAt: true,
+        completedAt: true,
         monitorId: true,
         followUpForAlertId: true,
+        ruleWaitMinutes: true,
       },
       sort: { createdAt: SortOrder.Descending },
       limit: 1,
@@ -674,9 +724,11 @@ export default class IncidentFollowUpCheck {
 
   /*
    * The open incidents of the project linked to any of `resources` that were
-   * declared within the window before the alert opened, newest first, at
-   * most MAX_INCIDENTS_PER_ALERT - read per kind of resource, like the
-   * linked alerts.
+   * declared within the window before the alert opened - or whose first
+   * investigation an investigation rule made wait, and finished within the
+   * window before it (getWindowEnd) - newest first, at most
+   * MAX_INCIDENTS_PER_ALERT, read per kind of resource, like the linked
+   * alerts.
    */
   private static async findOpenIncidentsLinkedTo(data: {
     projectId: ObjectID;
@@ -699,6 +751,13 @@ export default class IncidentFollowUpCheck {
       string,
       { id: ObjectID; createdAt: number }
     >();
+    // Declared earlier, but their window runs from their waited run's end.
+    const waitedIncidentIds: Array<ObjectID> =
+      await IncidentFollowUpCheck.findIncidentsWithWaitedRunEndedSince({
+        projectId: data.projectId,
+        since: declaredSince,
+        until: data.alertOpenedAt,
+      });
 
     for (const [column, ids] of IncidentFollowUpCheck.groupIdsByColumn(
       data.resources,
@@ -706,26 +765,51 @@ export default class IncidentFollowUpCheck {
         return incidentModel.hasColumn(candidate.column);
       },
     )) {
-      const incidents: Array<Incident> = await IncidentService.findBy({
-        query: {
-          projectId: data.projectId,
-          [column]: QueryHelper.inRelationArray(ids),
-          currentIncidentStateId: QueryHelper.any(openStateIds),
-          createdAt: QueryHelper.inBetween(declaredSince, data.alertOpenedAt),
-        } as Query<Incident>,
-        select: { _id: true, createdAt: true },
-        sort: { createdAt: SortOrder.Descending },
-        limit: MAX_INCIDENTS_PER_ALERT,
-        skip: 0,
-        props: { isRoot: true },
-      });
+      const linkedQuery: Query<Incident> = {
+        projectId: data.projectId,
+        [column]: QueryHelper.inRelationArray(ids),
+        currentIncidentStateId: QueryHelper.any(openStateIds),
+      } as Query<Incident>;
 
-      for (const incident of incidents) {
-        if (incident.id) {
-          found.set(incident.id.toString(), {
-            id: incident.id,
-            createdAt: incident.createdAt?.getTime() || 0,
-          });
+      const reads: Array<Promise<Array<Incident>>> = [
+        IncidentService.findBy({
+          query: {
+            ...linkedQuery,
+            createdAt: QueryHelper.inBetween(declaredSince, data.alertOpenedAt),
+          } as Query<Incident>,
+          select: { _id: true, createdAt: true },
+          sort: { createdAt: SortOrder.Descending },
+          limit: MAX_INCIDENTS_PER_ALERT,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ];
+
+      if (waitedIncidentIds.length > 0) {
+        reads.push(
+          IncidentService.findBy({
+            query: {
+              ...linkedQuery,
+              _id: QueryHelper.any(waitedIncidentIds),
+              createdAt: QueryHelper.lessThan(declaredSince),
+            } as Query<Incident>,
+            select: { _id: true, createdAt: true },
+            sort: { createdAt: SortOrder.Descending },
+            limit: MAX_INCIDENTS_PER_ALERT,
+            skip: 0,
+            props: { isRoot: true },
+          }),
+        );
+      }
+
+      for (const incidents of await Promise.all(reads)) {
+        for (const incident of incidents) {
+          if (incident.id) {
+            found.set(incident.id.toString(), {
+              id: incident.id,
+              createdAt: incident.createdAt?.getTime() || 0,
+            });
+          }
         }
       }
     }
@@ -743,6 +827,49 @@ export default class IncidentFollowUpCheck {
       .map((entry: { id: ObjectID }): ObjectID => {
         return entry.id;
       });
+  }
+
+  /*
+   * The incidents whose first investigation an investigation rule made wait
+   * (AIRun.ruleWaitMinutes) and that finished between `since` and `until`:
+   * their follow-up window is still open. Read through the partial index on
+   * such runs, so a project with none - nearly every project - pays one
+   * empty index read.
+   */
+  private static async findIncidentsWithWaitedRunEndedSince(data: {
+    projectId: ObjectID;
+    since: Date;
+    until: Date;
+  }): Promise<Array<ObjectID>> {
+    const runs: Array<AIRun> = await AIRunService.findBy({
+      query: {
+        projectId: data.projectId,
+        ruleWaitMinutes: QueryHelper.notNull(),
+        completedAt: QueryHelper.inBetween(data.since, data.until),
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+        triggeredByIncidentId: QueryHelper.notNull(),
+        followUpForAlertId: QueryHelper.isNull(),
+      },
+      select: { _id: true, triggeredByIncidentId: true },
+      sort: { completedAt: SortOrder.Descending },
+      limit: MAX_WAITED_RUNS_READ,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const ids: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const run of runs) {
+      if (run.triggeredByIncidentId) {
+        ids.set(
+          run.triggeredByIncidentId.toString(),
+          run.triggeredByIncidentId,
+        );
+      }
+    }
+
+    return Array.from(ids.values());
   }
 
   /*

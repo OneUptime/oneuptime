@@ -168,18 +168,37 @@ describe("the menu the paths are held to, read from its source", () => {
   });
 
   test.each([
-    ["Basic", ["Project", "Labels", "Import from another tool"]],
+    ["Basic", ["Project", "Labels"]],
     ["Workspace", ["Slack", "Microsoft Teams", "Video Calls"]],
     ["Telemetry & APM", ["Ingestion Keys", "Data Retention"]],
     [
       "Notifications",
       ["Notification Settings", "Notification Logs", "Mobile Apps"],
     ],
+    /*
+     * External MCP Servers - the servers OneUptime AI uses - beside LLM
+     * Providers; MCP Server, OneUptime's own, stays last.
+     */
     [
       "AI",
-      ["AI Features", "LLM Providers", "AI Credits", "AI Logs", "MCP Server"],
+      [
+        "AI Features",
+        "LLM Providers",
+        "External MCP Servers",
+        "AI Credits",
+        "AI Logs",
+        "MCP Server",
+      ],
     ],
-    ["Advanced", ["Domains", "API Keys", "Feature Flags"]],
+    /*
+     * Importing from another tool is done once, when a project starts: it
+     * waits last in Advanced ("This should be in the advanced section in
+     * the side menu.", the maintainer), where Basic held it before.
+     */
+    [
+      "Advanced",
+      ["Domains", "API Keys", "Feature Flags", "Import from another tool"],
+    ],
     // SSO holds the project's SAML and OpenID Connect providers.
     ["Security", ["SSO", "SCIM"]],
     ["Billing and Invoices", ["Billing", "Usage History", "Invoices"]],
@@ -338,6 +357,23 @@ describe("a written Project Settings path, as a reader follows it", () => {
       ['names "API Keys" without "Advanced"'],
     ],
     [
+      "Import from another tool without Advanced, as the moving guides wrote it",
+      "Bring your team over in Project Settings > Import from another tool.",
+      [
+        'names "Import from another tool" without "Advanced", the folded section it is in: write Project Settings > Advanced > Import from another tool',
+      ],
+    ],
+    [
+      "Import from another tool without Advanced, with arrows",
+      "Project Settings → Import from another tool reads your setup in another tool.",
+      ['names "Import from another tool" without "Advanced"'],
+    ],
+    [
+      "Import from another tool under Basic, where it was",
+      "the Grafana OnCall API URL an import reads from (Project Settings > Basic > Import from another tool)",
+      ['names no page of its Basic section: "Import from another tool)'],
+    ],
+    [
       "a page by its breadcrumb, not its menu entry",
       "Two allowlists compose (Project Settings > Telemetry Ingestion Keys).",
       [
@@ -466,8 +502,16 @@ describe("a written Project Settings path, as a reader follows it", () => {
       ["Project Settings > Project"],
     ],
     [
-      "Bring your team over in Project Settings > Import from another tool.",
-      ["Project Settings > Import from another tool"],
+      "Labels are under Project Settings > Labels.",
+      ["Project Settings > Labels"],
+    ],
+    [
+      "Bring your team over in Project Settings > Advanced > Import from another tool.",
+      ["Project Settings > Advanced > Import from another tool"],
+    ],
+    [
+      "Project Settings → Advanced → Import from another tool reads your setup in another tool.",
+      ["Project Settings > Advanced > Import from another tool"],
     ],
     [
       // A section whose page has its name is named once.

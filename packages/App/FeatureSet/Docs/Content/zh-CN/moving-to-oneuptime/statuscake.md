@@ -36,7 +36,7 @@ flowchart TB
 在 StatusCake 中打开账户面板，然后进入 **API Keys**。创建一个名为 `OneUptime import` 的密钥并复制。
 
 ### 打开导入页面
-在 OneUptime 中，进入 **项目设置** > **从其他工具导入**，然后选择 **StatusCake**。
+在 OneUptime 中，进入 **项目设置** > **高级** > **从其他工具导入**，然后选择 **StatusCake**。
 
 ### 连接 StatusCake
 将密钥粘贴到 **StatusCake API 密钥** 中，然后选择 **读取我的 StatusCake 账户**。大型账户需要几分钟，读取期间你可以离开页面。

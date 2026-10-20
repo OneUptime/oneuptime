@@ -17,6 +17,10 @@ import {
 import { formatSize } from "Common/Utils/AI/PromptText";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import {
+  CALL_MCP_TOOL_TOOL_NAME,
+  LIST_MCP_TOOLS_TOOL_NAME,
+} from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import Icon from "Common/UI/Components/Icon/Icon";
 import {
@@ -278,6 +282,11 @@ const friendlyToolNames: { [key: string]: string } = {
   list_command_targets: translationKey("Listing where commands may run"),
   execute_remediation_command: translationKey("Applying a fix"),
   propose_remediation_commands: translationKey("Proposing a fix for approval"),
+  // The project's external MCP servers (Settings → AI → External MCP Servers).
+  [LIST_MCP_TOOLS_TOOL_NAME]: translationKey(
+    "Listing the tools of your MCP servers",
+  ),
+  [CALL_MCP_TOOL_TOOL_NAME]: translationKey("Using a tool of an MCP server"),
 };
 
 function friendlyToolName(

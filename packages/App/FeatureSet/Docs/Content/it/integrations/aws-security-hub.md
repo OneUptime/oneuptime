@@ -56,11 +56,11 @@ Nella [console IAM](https://console.aws.amazon.com/iam/), apri **Policies → Cr
 
 1. Apri **Users → Create user**, dai un nome all'utente, per esempio `oneuptime-security-hub`, lascia disattivato l'accesso alla console e collega la policy. Per i finding di altri account, fallo nell'account amministratore delegato.
 2. Apri l'utente, poi **Security credentials → Access keys → Create access key**, e scegli **Third-party service**.
-3. Copia l'**Access key ID** e la **Secret access key**. AWS mostra il segreto una sola volta.
+3. Copia l'**ID chiave di accesso** e la **Chiave di accesso segreta**. AWS mostra il segreto una sola volta.
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **AWS Security Hub** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il segreto in **Secret access key**.
+Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **AWS Security Hub** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il segreto in **Chiave di accesso segreta**.
 
 ### Provarla prima di salvare
 
@@ -70,8 +70,8 @@ Fai clic su **Test these settings** sotto **Testa prima di salvare**. Il test fi
 | Impostazione | Cosa inserire |
 | --- | --- |
 | **Regione** | Il codice della regione, per esempio `us-east-1`, `eu-central-1` o `us-gov-west-1`: per i finding di altri account, la regione di origine dell'account amministratore. |
-| **Access key ID** | L'ID della chiave: da 16 a 128 lettere o cifre, di solito 20, che iniziano con `AKIA`, o con `ASIA` per le credenziali temporanee. |
-| **Secret access key** | Il segreto della chiave. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
+| **ID chiave di accesso** | L'ID della chiave: da 16 a 128 lettere o cifre, di solito 20, che iniziano con `AKIA`, o con `ASIA` per le credenziali temporanee. |
+| **Chiave di accesso segreta** | Il segreto della chiave. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
 | **Session token** | Solo per le credenziali temporanee, che ne hanno bisogno: una chiave `ASIA` viene rifiutata senza, e una chiave `AKIA` viene rifiutata con. |
 
 Le credenziali temporanee di `aws sts assume-role` o `aws sts get-session-token` scadono, al massimo dopo 12 ore per un ruolo assunto, e il polling si ferma finché non ne incolli di nuove con **Update credentials**. Una chiave di lunga durata con questa policy ristretta, ruotata secondo il tuo calendario, continua a interrogare senza interventi. Per passare dalle credenziali temporanee a una chiave di lunga durata, inserisci la nuova chiave in **Update credentials** e attiva **Remove the stored Session token**.
@@ -167,8 +167,8 @@ AWS ha rifiutato la richiesta. Il messaggio cita il codice di errore di AWS, o l
 
 - `AccessDeniedException`, o `is not authorized to perform`: la chiave è giusta, ma la sua identità non può chiamare `securityhub:GetFindings`. Collega la policy di [Configurare la connessione](#configurare-la-connessione). Anche un permissions boundary o una service control policy può negarlo.
 - `InvalidAccessException`, o `is not subscribed to AWS Security Hub`: Security Hub non è abilitato per questo account in questa **Regione**, oppure lì l'account non è il suo amministratore.
-- `InvalidSignatureException` o `SignatureDoesNotMatch`, o `The request signature we calculated does not match`: la **Secret access key** non appartiene all'**Access key ID**. Crea una nuova chiave di accesso e salvala con **Update credentials**.
-- `UnrecognizedClientException` o `InvalidClientTokenId`, o `The security token included in the request is invalid`: AWS non conosce l'**Access key ID**. È scritto male, eliminato, disattivato o di un'altra partizione, oppure è una chiave temporanea senza il suo **Session token**.
+- `InvalidSignatureException` o `SignatureDoesNotMatch`, o `The request signature we calculated does not match`: la **Chiave di accesso segreta** non appartiene all'**ID chiave di accesso**. Crea una nuova chiave di accesso e salvala con **Update credentials**.
+- `UnrecognizedClientException` o `InvalidClientTokenId`, o `The security token included in the request is invalid`: AWS non conosce l'**ID chiave di accesso**. È scritto male, eliminato, disattivato o di un'altra partizione, oppure è una chiave temporanea senza il suo **Session token**.
 - `ExpiredTokenException`, o `The security token included in the request is expired`: le credenziali temporanee sono scadute. Emettine di nuove, o passa a una chiave di lunga durata.
 - `RequestTimeTooSkewed` o `RequestExpired`, o `Signature expired`: l'orologio degli host di OneUptime ha più di 5 minuti di scarto. Correggi NTP sugli host dell'app e dei worker.
 - Nessun codice: AWS non ha detto se l'ha rifiutata la chiave o la policy. Controlla prima la chiave, poi la policy.

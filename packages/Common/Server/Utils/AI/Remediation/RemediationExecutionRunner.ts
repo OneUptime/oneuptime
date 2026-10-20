@@ -12,7 +12,6 @@ import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediati
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../Models/DatabaseModels/Project";
-import Runner from "../../../../Models/DatabaseModels/Runner";
 import { AlertFeedEventType } from "../../../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -20,6 +19,12 @@ import AutoRemediationExecutionMode from "../../../../Types/AutoRemediation/Auto
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import {
+  AutoRemediationFixKind,
+  doesRuleRunCommandsOnRunners,
+  getAutoRemediationFixKind,
+  getRuleCommandRunnerIds,
+} from "../../../../Types/AutoRemediation/AutoRemediationFix";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
@@ -101,6 +106,7 @@ import {
   ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
 } from "../Chat/ObservabilityAssistant";
+import McpRemediationRunner from "./McpRemediationRunner";
 import RemediationCommandToolkit, {
   MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
   ROLL_BACK_CHANGE_TOOL_NAME,
@@ -114,6 +120,7 @@ import RecentChangesContext, {
 import { ChangeImpactVerdict } from "../SRE/ChangeImpact";
 import { quotedUntrustedLine } from "../SRE/UntrustedText";
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
+import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwnership";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
 import FeedMarkdown, {
@@ -350,6 +357,14 @@ const KUBECTL_RESULT_UNKNOWN_RULE: string =
   "A kubectl change whose result comes back UNKNOWN (the Runner took it and no result came back) may still have changed the cluster: check with run_kubectl whether it took effect before you reissue it or build on it — never resend it blindly.";
 
 /*
+ * What every cluster persona says about workloads git declares. The
+ * toolkit reads who declares the object a change names and says so in the
+ * tool result; this tells the model what to do with it.
+ */
+export const GITOPS_FRAMING_RULE: string =
+  "GitOps: before a kubectl change runs or is proposed, OneUptime reads who declares the object it changes — Argo CD, Flux or a Helm release — and the tool result says so. A change to what they declare (rollout undo, scale, set image/env/resources, patch, deleting a workload) is put back: by Argo CD within seconds when self-heal is on and otherwise at its next sync, by Flux at its next reconciliation, by a Helm release at its next upgrade. A Flux Kustomization also removes what kubectl adds that git does not declare (a pause, a label, an annotation). On Argo CD or Flux such a change never runs on its own in any mode; it is proposed for approval as a stopgap. Never present it as the fix: say it will be put back, and name the lasting fix — the same change in git (the manifest, Helm values or Kustomize overlay it is built from). A rollback-first undo of a deploy git declares is put back the same way: the lasting rollback is reverting that deploy in git. A rollout restart or deleting one failing pod is not undone: Argo CD and Helm leave a restart alone, and Flux removing its annotation restarts the pods once more.";
+
+/*
  * The kubectl rules every cluster persona states, in the shared words of
  * AiRemediationCommandPlan's KUBECTL_*_SUMMARY wording — which restates
  * the tier and mode doc comments in KubernetesClusterAiAccess — so no
@@ -373,6 +388,7 @@ function buildClusterFramingRules(data: {
 - The cluster's Runner only writes where its writeScope (list_command_targets) says: a write in another namespace, in the Runner's own namespace, or to a node when node operations are off is refused before it runs.
 - The kubectl allowlist: ${KUBECTL_ALLOWLIST_SUMMARY}.
 - Rollback first: when the Recent changes below mark a Kubernetes rollout on this cluster SUSPECT and what you find agrees that it caused the signal, roll it back with ${ROLL_BACK_CHANGE_TOOL_NAME} (its changeId) before any other change. OneUptime builds the exact kubectl rollout undo from the recorded change; roll a recorded change back only that way, never with a rollout undo you write.
+- ${GITOPS_FRAMING_RULE}
 - A pod stuck in Pending is usually a scheduling problem (insufficient CPU/memory on nodes, a node selector/affinity/taint nobody satisfies, an unbound PVC, a missing image pull secret): describe the pod and read its Events before deciding. Deleting the pod rarely fixes scheduling; fixing capacity, the selector or the claim does.`;
 }
 
@@ -441,8 +457,34 @@ export function describeRollbackCandidates(
 }
 
 /*
+ * What a feed item adds when a command it announces changes what Argo CD,
+ * Flux or a Helm release declares: that owner puts the change back, so it
+ * is a stopgap. Empty when no command does.
+ */
+export function describeGitOpsPutBackForFeed(
+  commands: Array<AiRemediationCommand>,
+): MarkdownText | string {
+  const command: AiRemediationCommand | undefined = commands.find(
+    (candidate: AiRemediationCommand): boolean => {
+      return candidate.gitOps?.putsBack === true;
+    },
+  );
+
+  if (!command?.gitOps) {
+    return "";
+  }
+
+  const gitOps: NonNullable<AiRemediationCommand["gitOps"]> = command.gitOps;
+
+  return mdText` ${describeGitOpsOwner(gitOps)} declares ${gitOps.objectKind}/${gitOps.objectName} and puts ${
+    commands.length > 1 ? "a change in this plan" : "this change"
+  } back, so it is a stopgap: the lasting fix is the same change where ${gitOps.objectKind}/${gitOps.objectName} is declared.`;
+}
+
+/*
  * The feed item a proposed plan posts on its incident or alert. A plan that
- * starts with a rollback OneUptime built from a recorded change says so.
+ * starts with a rollback OneUptime built from a recorded change says so,
+ * and one with a change its GitOps owner puts back says that.
  */
 export function describeProposedPlanForFeed(data: {
   sourceLabel: string;
@@ -450,12 +492,15 @@ export function describeProposedPlanForFeed(data: {
 }): MarkdownText {
   const count: number = data.plan.commands.length;
   const first: AiRemediationCommand | undefined = data.plan.commands[0];
+  const gitOps: MarkdownText | string = describeGitOpsPutBackForFeed(
+    data.plan.commands,
+  );
 
   if (first?.rolledBackChangeId) {
-    return mdText`⚡ **${data.sourceLabel}: AI proposes rolling back a recorded change first, in a ${count}-command remediation plan.** Its first command is ${first.command}. Review the exact commands and reasoning, then approve with one click to run them.`;
+    return mdText`⚡ **${data.sourceLabel}: AI proposes rolling back a recorded change first, in a ${count}-command remediation plan.** Its first command is ${first.command}.${gitOps} Review the exact commands and reasoning, then approve with one click to run them.`;
   }
 
-  return mdText`⚡ **${data.sourceLabel}: AI composed a ${count}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`;
+  return mdText`⚡ **${data.sourceLabel}: AI composed a ${count}-command remediation plan.**${gitOps} Review the exact commands and reasoning, then approve with one click to run them.`;
 }
 
 /*
@@ -831,6 +876,23 @@ export default class RemediationExecutionRunner {
         return;
       }
 
+      /*
+       * A fix through the project's external MCP servers is a run of its
+       * own kind: its own tools, its own plan and its own approval
+       * (McpRemediationRunner).
+       */
+      if (
+        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+      ) {
+        await McpRemediationRunner.executeRun({
+          aiRunId,
+          projectId,
+          suggestionId,
+          attemptCount,
+        });
+        return;
+      }
+
       if (
         suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
       ) {
@@ -1117,23 +1179,32 @@ export default class RemediationExecutionRunner {
                   _id: true,
                   isEnabled: true,
                   executionMode: true,
+                  remediationAction: true,
                   aiComposesCommands: true,
+                  aiSelectsRunbook: true,
                   commandAllowlist: true,
                   commandRunners: { _id: true },
+                  runnerId: true,
                 },
                 props: { isRoot: true },
               })
             : null;
 
+        /*
+         * A rule's commands run on Runners while it still runs commands on
+         * them (AutoRemediationFix.doesRuleRunCommandsOnRunners): a
+         * OneUptime AI rule that picks a Runner, or a rule saved before
+         * rules were simplified that composes commands.
+         */
         if (
           !rule ||
           rule.isEnabled === false ||
-          rule.aiComposesCommands !== true
+          !doesRuleRunCommandsOnRunners(rule)
         ) {
           await this.settleNoneApplicable({
             suggestion,
             rationaleMarkdown:
-              "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer composes commands — nothing was run or proposed.",
+              "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer runs commands on a Runner — nothing was run or proposed.",
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -1150,16 +1221,13 @@ export default class RemediationExecutionRunner {
           rule.commandAllowlist,
         );
 
-        const allowedRunnerIds: Array<string> | null =
-          rule.commandRunners && rule.commandRunners.length > 0
-            ? rule.commandRunners
-                .map((runner: Runner) => {
-                  return runner.id?.toString() || "";
-                })
-                .filter((id: string) => {
-                  return id !== "";
-                })
-            : null;
+        /*
+         * The Runners the rule names - its Runner, and for a rule saved
+         * before rules were simplified its Command Runners too - and no
+         * others: no Runner named is no host target at all, never "any
+         * Runner that runs AI commands".
+         */
+        const allowedRunnerIds: Array<string> = getRuleCommandRunnerIds(rule);
 
         mode = await this.resolveMode({
           rule,
@@ -1167,24 +1235,32 @@ export default class RemediationExecutionRunner {
         });
 
         /*
-         * Rule-driven runs may also reach the signal's clusters when their
-         * AI pages allow it — the cluster mode, not the rule, decides
-         * whether a kubectl change may auto-execute. These clusters are
-         * real command targets (a FullAuto rule run changes them inline on
-         * an Automatic or BypassApproval cluster), so the cluster's own
-         * guards apply to them below.
+         * A rule saved before rules were simplified may also reach the
+         * signal's clusters when their AI pages allow it — the cluster mode,
+         * not the rule, decides whether a kubectl change may auto-execute.
+         * These clusters are real command targets (a FullAuto rule run
+         * changes them inline on an Automatic or BypassApproval cluster), so
+         * the cluster's own guards apply to them below. A OneUptime AI rule
+         * that picks a Runner runs commands there only: the signal's
+         * clusters are fixed by their own rounds, which the rule turns on.
          */
+        const reachesClusters: boolean =
+          getAutoRemediationFixKind(rule) ===
+          AutoRemediationFixKind.CommandsOnRunners;
+
         let ruleClusterTargets: Array<KubernetesClusterAiAccessStatus> = [];
         try {
-          ruleClusterTargets = (
-            await KubernetesClusterAiAccessService.getStatusesForSubject({
-              projectId,
-              incidentId: suggestion.incidentId,
-              alertId: suggestion.alertId,
-            })
-          ).filter((status: KubernetesClusterAiAccessStatus) => {
-            return status.isRemediationReady;
-          });
+          ruleClusterTargets = reachesClusters
+            ? (
+                await KubernetesClusterAiAccessService.getStatusesForSubject({
+                  projectId,
+                  incidentId: suggestion.incidentId,
+                  alertId: suggestion.alertId,
+                })
+              ).filter((status: KubernetesClusterAiAccessStatus) => {
+                return status.isRemediationReady;
+              })
+            : [];
         } catch (error) {
           logger.error(
             `AI remediation execution: could not resolve cluster targets for suggestion ${suggestionId.toString()}; continuing with host targets only: ${error}`,
@@ -1548,7 +1624,9 @@ export default class RemediationExecutionRunner {
 
       await this.postFeedItem({
         suggestion,
-        markdown: mdText`⚡ **${sourceLabel}: AI executed ${executedCommands.length} command(s).** Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
+        markdown: mdText`⚡ **${sourceLabel}: AI executed ${executedCommands.length} command(s).**${describeGitOpsPutBackForFeed(
+          executedCommands,
+        )} Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
         pingWorkspace: true,
       });
       return;
@@ -1725,7 +1803,9 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: mdText`⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} ${changeWords} it did not run on its own.** Review the exact command(s) and reasoning, then approve with one click to run them.`,
+      markdown: mdText`⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} ${changeWords} it did not run on its own.**${describeGitOpsPutBackForFeed(
+        commands,
+      )} Review the exact command(s) and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
     });
   }
@@ -2040,9 +2120,10 @@ export default class RemediationExecutionRunner {
    * Enable AI is the project's only AI switch and the kill switch for
    * every round: rule rounds (Bash/SSH on Runners, and kubectl a rule
    * composes), cluster rounds and resource rounds alike. Past it, a
-   * round's consent is its own: the rule's mode and allowlist and a
-   * Runner's Runs AI Remediation Commands, or the cluster's or resource's
-   * Fixes mode and its agent's write access.
+   * round's consent is its own: the rule's mode and allowlist and the
+   * Runner it picks (picking it is what lets it run OneUptime AI's
+   * commands), or the cluster's or resource's Fixes mode and its agent's
+   * write access.
    */
   public static async checkProjectGates(data: {
     projectId: ObjectID;

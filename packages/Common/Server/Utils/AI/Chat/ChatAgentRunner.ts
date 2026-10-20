@@ -56,6 +56,7 @@ import {
   AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
 } from "../../../../Types/AI/AIAgentRunLimits";
 import User from "../../../../Models/DatabaseModels/User";
+import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
@@ -837,6 +838,8 @@ export default class ChatAgentRunner {
         projectId: request.projectId,
         userId: request.userId,
         aiRunId: request.aiRunId,
+        // Every turn of the chat is one conversation in OneUptime's telemetry.
+        conversationId: request.conversationId,
         llmProviderId: request.llmProviderId,
         feature: request.feature || OBSERVABILITY_CHAT_FEATURE,
         messages: messages,
@@ -851,7 +854,8 @@ export default class ChatAgentRunner {
       });
 
       state.llmCallCount++;
-      state.totalTokens += response.llmLog.totalTokens || 0;
+      // As OneUptime counts them: cached tokens weigh what they cost.
+      state.totalTokens += AiTokenCount.count(response.llmLog);
       state.totalCostInUSDCents += response.llmLog.costInUSDCents || 0;
 
       if (!manifest) {
@@ -1771,6 +1775,7 @@ export default class ChatAgentRunner {
       projectId: request.projectId,
       userId: request.userId,
       aiRunId: request.aiRunId,
+      conversationId: request.conversationId,
       llmProviderId: request.llmProviderId,
       feature: CHAT_TITLE_FEATURE,
       messages: [

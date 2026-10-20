@@ -11,10 +11,10 @@ import LLMService, {
   LLMMessage,
   LLMToolCall,
   LLMToolDefinition,
-  LLMUsage,
 } from "../Utils/LLM/LLMService";
-import LlmType from "../../Types/LLM/LlmType";
-import { Span, trace } from "@opentelemetry/api";
+import LLMCallTelemetry from "../Utils/LLM/LLMCallTelemetry";
+import Telemetry from "../Utils/Telemetry";
+import { Attributes, Span, trace } from "@opentelemetry/api";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import LlmLog from "../../Models/DatabaseModels/LlmLog";
 import LlmLogStatus from "../../Types/LlmLogStatus";
@@ -32,6 +32,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitValues,
   ProjectAiDailyUsage,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import AiTokenCount from "../../Types/AI/AiTokenCount";
 import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
 import AiCreditsUsedUpOwnerNotice from "../Utils/AI/AiCreditsUsedUpOwnerNotice";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
@@ -48,9 +49,10 @@ import logger, { LogAttributes } from "../Utils/Logger";
  * and the G4 daily autonomous token budget reads it back by matching those
  * PERSISTED STRINGS against AUTONOMOUS_AI_FEATURES:
  *
- *   SELECT SUM("totalTokens") FROM "LlmLog"
+ *   SELECT SUM("totalTokens"), SUM("cachedInputTokens"), ... FROM "LlmLog"
  *    WHERE "projectId" = $1 AND "createdAt" >= $2 AND "feature" = ANY($3)
- *   -- LlmLogService.getTotalTokensUsedSince, $3 = AUTONOMOUS_AI_FEATURES
+ *   -- LlmLogService.getTotalTokensUsedSince, $3 = AUTONOMOUS_AI_FEATURES,
+ *   -- the sums counted by AiTokenCount
  *
  * So a label is a piece of the budget's ledger. Renaming one rewrites history:
  * rows written under the old label stop matching, usedTokensToday collapses
@@ -425,6 +427,14 @@ export interface AILogRequest {
   alertId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   aiRunId?: ObjectID | undefined;
+  /*
+   * The Ask AI conversation (AIConversation) the call is part of. OneUptime's
+   * own telemetry groups the calls of one conversation by it
+   * (gen_ai.conversation.id), so a chat reads as one conversation across its
+   * turns; a call without one is grouped by its aiRunId, so an investigation
+   * or a code fix reads as one conversation too.
+   */
+  conversationId?: ObjectID | undefined;
   /*
    * When set, use this specific provider (validated against the project) rather
    * than the project default. Powers the in-chat provider/model switcher.
@@ -1392,11 +1402,37 @@ export class Service extends BaseService {
         llmConfig.isGlobalProvider = true;
       }
 
+      const temperature: number = request.temperature ?? 0.7;
+
+      /*
+       * Mark this call's span as an AI call in OneUptime's own telemetry, so
+       * OneUptime's AI shows in OneUptime's AI / LLM observability (see
+       * LLMCallTelemetry): which model, for which feature and conversation,
+       * and - when the operator turned recording on - what was sent. Set
+       * before the call, so a call that fails shows too.
+       */
+      const recordContent: boolean = LLMCallTelemetry.isContentRecordingOn();
+
+      this.setLlmSpanAttributes(() => {
+        return LLMCallTelemetry.getRequestAttributes({
+          llmType: llmConfig.llmType,
+          modelName: llmConfig.modelName,
+          feature: request.feature,
+          conversationId: (
+            request.conversationId || request.aiRunId
+          )?.toString(),
+          maxTokens: request.maxTokens,
+          temperature: temperature,
+          messages: messages,
+          recordContent: recordContent,
+        });
+      });
+
       // Execute LLM call
       const response: LLMCompletionResponse = await LLMService.getCompletion({
         llmProviderConfig: llmConfig,
         messages: messages,
-        temperature: request.temperature ?? 0.7,
+        temperature: temperature,
         maxTokens: request.maxTokens,
         tools: request.tools,
         requestTimeoutInMs: request.requestTimeoutInMs,
@@ -1422,10 +1458,15 @@ export class Service extends BaseService {
       logEntry.requestCompletedAt = endTime;
       logEntry.durationMs = endTime.getTime() - startTime.getTime();
 
-      // Calculate and apply costs if using global provider with billing enabled
+      /*
+       * Calculate and apply costs if using global provider with billing
+       * enabled. A call is charged for its tokens as OneUptime counts them
+       * (AiTokenCount): a token the provider served from its prompt cache
+       * costs a tenth of a fresh one, and is charged a tenth.
+       */
       if (shouldBill && response.usage) {
         const totalCost: number = Math.ceil(
-          (response.usage.totalTokens / 1_000_000) *
+          (AiTokenCount.count(response.usage) / 1_000_000) *
             (llmProvider.costPerMillionTokensInUSDCents || 0),
         );
 
@@ -1460,15 +1501,17 @@ export class Service extends BaseService {
       }
 
       /*
-       * Emit gen_ai.* semantic-convention attributes on the active span so
-       * OneUptime's own AI usage is a first-class LLM span in OneUptime's own
-       * telemetry (dogfooding — LlmSpanUtil detects these). Never fails the call.
+       * What the model answered, on the same span: tokens, cost, why it
+       * stopped, and - when recording is on - the answer itself.
        */
-      this.setGenAiSpanAttributes({
-        llmType: llmProvider.llmType,
-        modelName: llmConfig.modelName,
-        usage: response.usage,
-        costInUSDCents: logEntry.costInUSDCents,
+      this.setLlmSpanAttributes(() => {
+        return LLMCallTelemetry.getResponseAttributes({
+          modelName: llmConfig.modelName,
+          response: response,
+          usage: response.usage,
+          costInUSDCents: logEntry.costInUSDCents,
+          recordContent: recordContent,
+        });
       });
 
       // Save log entry
@@ -1508,6 +1551,11 @@ export class Service extends BaseService {
       logEntry.requestCompletedAt = new Date();
       logEntry.durationMs = new Date().getTime() - startTime.getTime();
 
+      // The AI call failed: say so on its span, without the provider's words.
+      this.setLlmSpanAttributes(() => {
+        return LLMCallTelemetry.getFailureAttributes(error);
+      });
+
       await LlmLogService.create({
         data: logEntry,
         props: { isRoot: true },
@@ -1533,49 +1581,26 @@ export class Service extends BaseService {
   }
 
   /*
-   * Set gen_ai.* attributes (OpenTelemetry GenAI semantic conventions) on the
-   * currently-active span. The @CaptureSpan()-wrapped caller owns that span, so
-   * LlmSpanUtil recognizes these calls as first-class LLM spans.
+   * Set gen_ai.* attributes (OpenTelemetry GenAI semantic conventions) on
+   * this call's span - the one @CaptureSpan() opened for executeWithLogging -
+   * so LlmSpanUtil recognizes the call as a first-class LLM span. Without a
+   * span exporter @CaptureSpan opens no span, and the active one is a
+   * caller's that goes nowhere: nothing is built then, prompts included.
+   * Never fails the call.
    */
-  private setGenAiSpanAttributes(data: {
-    llmType: LlmType;
-    modelName?: string | undefined;
-    usage?: LLMUsage | undefined;
-    costInUSDCents?: number | undefined;
-  }): void {
+  private setLlmSpanAttributes(getAttributes: () => Attributes): void {
     try {
-      const span: Span | undefined = trace.getActiveSpan();
-      if (!span) {
+      if (!Telemetry.isSpanExportEnabled()) {
         return;
       }
 
-      span.setAttribute("gen_ai.system", data.llmType.toString());
-      span.setAttribute("gen_ai.provider.name", data.llmType.toString());
-      span.setAttribute("gen_ai.operation.name", "chat");
+      const span: Span | undefined = trace.getActiveSpan();
 
-      if (data.modelName) {
-        span.setAttribute("gen_ai.request.model", data.modelName);
-        span.setAttribute("gen_ai.response.model", data.modelName);
+      if (!span || !span.isRecording()) {
+        return;
       }
 
-      if (data.usage) {
-        span.setAttribute(
-          "gen_ai.usage.input_tokens",
-          data.usage.promptTokens || 0,
-        );
-        span.setAttribute(
-          "gen_ai.usage.output_tokens",
-          data.usage.completionTokens || 0,
-        );
-        span.setAttribute(
-          "gen_ai.usage.total_tokens",
-          data.usage.totalTokens || 0,
-        );
-      }
-
-      if (data.costInUSDCents) {
-        span.setAttribute("gen_ai.usage.cost_usd", data.costInUSDCents / 100);
-      }
+      span.setAttributes(getAttributes());
     } catch {
       // Telemetry must never fail the LLM call.
     }

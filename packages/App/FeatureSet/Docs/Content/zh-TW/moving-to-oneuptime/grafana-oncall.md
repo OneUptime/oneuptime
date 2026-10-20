@@ -37,7 +37,7 @@ flowchart TB
 在 Grafana 中依序開啟 **OnCall** > **Settings**。在 Grafana Cloud 上，依序開啟 **IRM** > **Settings** > **Admin & API**。複製那裡顯示的 OnCall API 網址。在 **API tokens** 下建立一個名為 `OneUptime import` 的權杖並複製它。
 
 ### 開啟匯入頁面
-在 OneUptime 中依序開啟 **專案設定** > **從其他工具匯入**，然後選擇 **Grafana OnCall**。
+在 OneUptime 中依序開啟 **專案設定** > **進階** > **從其他工具匯入**，然後選擇 **Grafana OnCall**。
 
 ### 連線 Grafana OnCall
 將網址貼到 **Grafana OnCall API 網址** 中，將權杖貼到 **Grafana OnCall API 金鑰** 中，然後選擇 **讀取我的 Grafana OnCall 帳戶**。較大的帳戶需要幾分鐘，讀取期間你可以離開頁面。

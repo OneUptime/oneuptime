@@ -10,6 +10,7 @@ import { AutoRemediationDecisionStage } from "Common/Types/AutoRemediation/AutoR
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
+import { isProjectRunbookPick } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionState,
@@ -19,6 +20,10 @@ import {
   AiRemediationPlanExecutionStatus,
   AiRemediationRollbackStatus,
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
+import {
+  ExternalMcpToolCallPlan,
+  ExternalMcpToolCallPlanUtil,
+} from "Common/Types/AutoRemediation/ExternalMcpToolCallPlan";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
@@ -49,6 +54,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RemediationDecisionList from "./RemediationDecisionList";
+import McpToolCallList, { MCP_TOOL_CALL_LIST_COPY } from "./McpToolCallList";
 import {
   getRemediationDecisionLines,
   getRemediationDecisionStatus,
@@ -300,6 +306,46 @@ export const REMEDIATION_CARD_DESCRIPTION_WITH_RESOURCE_FIXES: string =
     "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands through a resource's AI agent, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.",
   );
 
+// Said when a fix on the card goes through the project's external MCP servers.
+export const REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES: string =
+  translationKey(
+    "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.",
+  );
+
+/*
+ * Whether a fix through MCP servers is still being made: a change sent and
+ * not answered yet, or an approved fix whose changes are not sent yet.
+ */
+export function isMcpFixInProgress(
+  suggestion: Pick<
+    AutoRemediationSuggestion,
+    "suggestionType" | "status" | "mcpToolCallPlan"
+  >,
+): boolean {
+  if (
+    suggestion.suggestionType !== AutoRemediationSuggestionType.McpToolCalls
+  ) {
+    return false;
+  }
+
+  const plan: ExternalMcpToolCallPlan | null =
+    ExternalMcpToolCallPlanUtil.parse(suggestion.mcpToolCallPlan || null);
+
+  if (!plan) {
+    return false;
+  }
+
+  if (ExternalMcpToolCallPlanUtil.isInFlight(plan)) {
+    return true;
+  }
+
+  return (
+    (suggestion.status === AutoRemediationSuggestionStatus.Approved ||
+      suggestion.status === AutoRemediationSuggestionStatus.AutoExecuted) &&
+    ExternalMcpToolCallPlanUtil.getProposedCalls(plan).length > 0
+  );
+}
+
 export function getRemediationCardDescription(
   suggestions: Array<
     Pick<
@@ -308,6 +354,20 @@ export function getRemediationCardDescription(
     >
   >,
 ): string {
+  const hasMcpFix: boolean = suggestions.some(
+    (
+      suggestion: Pick<AutoRemediationSuggestion, "suggestionType">,
+    ): boolean => {
+      return (
+        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+      );
+    },
+  );
+
+  if (hasMcpFix) {
+    return REMEDIATION_CARD_DESCRIPTION_WITH_MCP_FIXES;
+  }
+
   const hasResourceFix: boolean = suggestions.some(
     (
       suggestion: Pick<
@@ -613,6 +673,58 @@ function CommandExecutionDetails(props: {
   );
 }
 
+/*
+ * Who declares the object a kubectl command changes (Argo CD, Flux or a
+ * Helm release) and what that means for the change, in OneUptime's own
+ * sentence — and, once verification read the object again, what of the
+ * change was put back. A change its owner puts back is labelled a
+ * temporary fix, so nobody approves it as the lasting one.
+ */
+function CommandGitOpsNote(props: {
+  command: AiRemediationCommand;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+  const { gitOps, revertWatch } = props.command;
+
+  if (!gitOps && !revertWatch?.putBackAt) {
+    return <></>;
+  }
+
+  return (
+    <div className="mt-2" data-testid="remediation-command-gitops">
+      {gitOps ? (
+        <div
+          className={`rounded border px-2 py-1.5 text-xs ${
+            gitOps.putsBack
+              ? "border-amber-200 bg-amber-50 text-amber-800"
+              : "border-gray-200 bg-white text-gray-600"
+          }`}
+        >
+          {gitOps.putsBack ? (
+            <span className="mr-1 font-medium">
+              {translator.translateText("Temporary fix")}
+            </span>
+          ) : (
+            <></>
+          )}
+          {gitOps.summary}
+        </div>
+      ) : (
+        <></>
+      )}
+      {revertWatch?.putBackAt ? (
+        <div className="mt-1 text-xs text-rose-600">
+          {translator.translateTemplate("Put back on the cluster: {{fields}}", {
+            fields: (revertWatch.putBackFields || []).join(", "),
+          })}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+}
+
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
 export type RemediationSuggestionAction = "approve" | "dismiss";
@@ -754,12 +866,15 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                 _id: true,
                 status: true,
                 ruleNameSnapshot: true,
+                // No rule: the project's own pick, named as it is (not "Rule: ...").
+                autoRemediationRuleId: true,
                 runbookNameSnapshot: true,
                 rationaleMarkdown: true,
                 runbookId: true,
                 runbookExecutionId: true,
                 suggestionType: true,
                 commandPlan: true,
+                mcpToolCallPlan: true,
                 verificationStatus: true,
                 verificationNote: true,
                 kubernetesClusterId: true,
@@ -823,6 +938,13 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
         s.status === AutoRemediationSuggestionStatus.Planning ||
         s.verificationStatus === AutoRemediationVerificationStatus.Pending
       ) {
+        return true;
+      }
+      /*
+       * An approved fix through MCP servers is made detached: keep polling
+       * while a change is still on its way or not yet sent.
+       */
+      if (isMcpFixInProgress(s)) {
         return true;
       }
       // An approved command plan settles asynchronously — keep polling until it does.
@@ -1028,9 +1150,17 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
             const isCommandPlan: boolean =
               suggestion.suggestionType ===
               AutoRemediationSuggestionType.CommandPlan;
+            const isMcpFix: boolean =
+              suggestion.suggestionType ===
+              AutoRemediationSuggestionType.McpToolCalls;
             const plan: AiRemediationCommandPlan | null = isCommandPlan
               ? AiRemediationCommandPlanUtil.parse(
                   suggestion.commandPlan || null,
+                )
+              : null;
+            const mcpPlan: ExternalMcpToolCallPlan | null = isMcpFix
+              ? ExternalMcpToolCallPlanUtil.parse(
+                  suggestion.mcpToolCallPlan || null,
                 )
               : null;
             const runbookTitle: string =
@@ -1055,15 +1185,19 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                     return command.stepType === RunbookStepType.ResourceCommand;
                   }),
               );
-            const title: string = isCommandPlan
+            const title: string = isMcpFix
               ? (translator.translateText(
-                  isClusterFix
-                    ? "AI kubectl fix"
-                    : isResourceFix
-                      ? "AI infrastructure fix"
-                      : "AI Command Plan",
+                  "AI fix through MCP servers",
                 ) as string)
-              : runbookTitle;
+              : isCommandPlan
+                ? (translator.translateText(
+                    isClusterFix
+                      ? "AI kubectl fix"
+                      : isResourceFix
+                        ? "AI infrastructure fix"
+                        : "AI Command Plan",
+                  ) as string)
+                : runbookTitle;
             let sourceLabel: string = translator.translateTemplate(
               "Rule: {{name}}",
               {
@@ -1073,7 +1207,13 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
               },
             );
 
-            if (suggestion.kubernetesClusterId) {
+            if (isProjectRunbookPick(suggestion)) {
+              /*
+               * The project's own pick, made while no rule is set up: it is
+               * OneUptime AI's, and no rule's.
+               */
+              sourceLabel = translator.translateText("OneUptime AI") as string;
+            } else if (suggestion.kubernetesClusterId) {
               sourceLabel =
                 suggestion.ruleNameSnapshot ||
                 (translator.translateText(
@@ -1098,7 +1238,10 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                     <span className="text-xs text-gray-500">{sourceLabel}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <StatusPill status={status} isCommandPlan={isCommandPlan} />
+                    <StatusPill
+                      status={status}
+                      isCommandPlan={isCommandPlan || isMcpFix}
+                    />
                     {suggestion.verificationStatus ? (
                       <VerificationPill
                         status={
@@ -1213,6 +1356,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                   { effect: command.expectedEffect },
                                 )}
                               </div>
+
+                              <CommandGitOpsNote command={command} />
 
                               {command.rollbackCommand ? (
                                 <div className="mt-1 text-xs text-gray-500">
@@ -1329,12 +1474,19 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
 
-                {isCommandPlan &&
-                !plan &&
+                {mcpPlan ? (
+                  <McpToolCallList plan={mcpPlan} suggestionId={suggestionId} />
+                ) : (
+                  <></>
+                )}
+
+                {((isCommandPlan && !plan) || (isMcpFix && !mcpPlan)) &&
                 status !== AutoRemediationSuggestionStatus.Planning ? (
                   <div className="mt-3 text-xs text-gray-500">
                     {translator.translateText(
-                      "The command plan could not be displayed.",
+                      isMcpFix
+                        ? MCP_TOOL_CALL_LIST_COPY.notShown
+                        : "The command plan could not be displayed.",
                     )}
                   </div>
                 ) : (

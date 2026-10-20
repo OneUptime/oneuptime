@@ -409,9 +409,16 @@ describe("the navbar link exists and is not commented out", () => {
     expect(navBar).toContain("RouteMap[PageMap.INVENTORY] as Route");
   });
 
-  test("the item list and detail pages keep the entry highlighted", () => {
-    expect(navBar).toContain("RouteMap[PageMap.INVENTORY_ITEMS] as Route");
-    expect(navBar).toContain("RouteMap[PageMap.INVENTORY_VIEW] as Route");
+  test("every page of Inventory keeps the entry highlighted", () => {
+    /*
+     * The whole /inventory area lights the entry - the item list and an
+     * item, and Archived, Documentation and Settings too - not only the
+     * pages it once listed one by one. NavBarNamesTheCurrentProduct (Common
+     * tests) walks every one of those pages.
+     */
+    expect(dense(navBarRaw)).toContain(
+      "activeRoute:RouteMap[PageMap.INVENTORY_ROOT],",
+    );
   });
 
   test("no commented-out Entities entry is left behind", () => {

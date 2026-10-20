@@ -7,6 +7,7 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 - [En uppgifts konversation](#en-uppgifts-konversation): Vad AI gjorde, vad den ändrade, och ditt svar.
 - [Så går en åtgärdskörning till](#så-går-en-åtgärdskörning-till): Från ett klick till en pull request, steg för steg.
 - [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar): Uppgifterna som OneUptime startar, och vad varje pull request gör.
+- [Produktionstelemetri i en åtgärd](#produktionstelemetri-i-en-åtgärd): Vad en åtgärd läser från produktionen medan den skriver ändringen.
 - [Innan du börjar](#innan-du-börjar): En modell, ett anslutet repository och en Runner.
 - [När en åtgärd misslyckas](#när-en-åtgärd-misslyckas): Vad som händer med en körning som fallerar, fastnar eller väntar.
 :::
@@ -83,13 +84,13 @@ flowchart TB
 2. Uppgiften ställs i kö på sitt repository, och den Runner som repositoryt väljer tar den: en av dina Runners, eller en global Runner när det inte väljer någon (se [Välj repositoryts Runner](#välj-repositoryts-runner)).
 3. Runnern hämtar uppgiftens kontext. För en begäran är det dess ord, kontexten som lades till och konversationen hittills; för ett undantag dess typ, dess meddelande och dess stack trace.
 4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id. Ett svar arbetar i stället på branchen för uppgiftens öppna pull request.
-5. En kodagent, driven av ditt projekts LLM-leverantör, läser koden och skriver ändringen. OneUptime-servern gör LLM-anropen, så Runnern har aldrig din leverantörs API-nyckel, och varje anrop mäts och listas i AI-loggarna.
+5. En kodagent, driven av ditt projekts LLM-leverantör, läser koden och skriver ändringen. OneUptime-servern gör LLM-anropen, så Runnern har aldrig din leverantörs API-nyckel, och varje anrop mäts och listas i AI-loggarna. En åtgärd av ett undantag, ett långsamt spår eller en incident läser också från produktionen medan den arbetar: undantagen, spåren, loggarna och mätvärdena för repositoriets tjänster (se [Produktionstelemetri i en åtgärd](#produktionstelemetri-i-en-åtgärd)).
 6. Om repositoriet har kontrollkommandon bygger och testar en egen Runner ändringen innan den committar något, och lämnar tillbaka ett fel till kodagenten att reparera (se [Kontroll före pull requesten](#kontroll-före-pull-requesten)).
 7. Runnern committar, pushar branchen, öppnar pull requesten (för en begäran bara när den ändrade kod) och tar bort arbetsytan.
 
 Sidan som uppgiften startades från visar dess status live. Varje uppgift listas i sitt repositorium under **Produkter → Kod**: dess sida är dess konversation, och varje turs **Logg** har en rad för varje fil som Runnern läste eller skrev och varje kommando den körde.
 
-Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM-anrop** och **100 000 utdatatokens**. En körning som når någon av dem avslutas med en sammanfattning av arbetet hittills i stället för att gå i loop. Åtgärdskörningar räknas också mot projektets dagliga AI-gränser, när projektet sätter dem.
+Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM-anrop** och **100 000 utdatatokens**. En körnings frågor mot produktionstelemetrin räknas mot samma 40 anrop. En körning som når någon av dem avslutas med en sammanfattning av arbetet hittills i stället för att gå i loop. Åtgärdskörningar räknas också mot projektets dagliga AI-gränser, när projektet sätter dem.
 
 ## Var åtgärdsuppgifter startar
 
@@ -110,6 +111,37 @@ För att öppna ett undantags sida **AI Assistance**, öppna undantaget under **
 
 OneUptime AI startar också åtgärdsuppgifter på egen hand: från en utredning som hittar en kodändring, från en som slutar utan slutsats eftersom telemetri saknades, och från AI Insights om undantag och långsamma spår. Var och en har sin egen brytare; se [Automatiska kodåtgärder](/docs/ai/ai-sre#automatiska-kodkorrigeringar).
 
+## Produktionstelemetri i en åtgärd
+
+OneUptime vet vad din kod gör i produktion, så en åtgärd behöver inte utgå från enbart en stack trace. Medan kodagenten arbetar kan den ställa frågor mot produktionstelemetrin för de tjänster som hör till repositoriet:
+
+| Den läser | Till vad |
+| --- | --- |
+| **Undantag** | De undantagsgrupper som kastas i angivna filer eller en funktion: hur ofta under de senaste dagarna, sedan vilken release, och spåret för en nylig förekomst. |
+| **Spår** | Latens- och felprofilen för en slutpunkt eller operation, och spansen i ett enskilt spår. |
+| **Loggar** | En tjänsts loggrader, efter tid, allvarlighetsgrad, text eller spår. |
+| **Mätvärden** | Ett mätvärde som en tjänst rapporterar, över tid; utan ett namn de mätvärden den rapporterar. |
+| **Incidenter** | Incidenter som drabbade tjänsterna, eller som en OneUptime-åtgärd i det här repositoriet öppnades för, med deras grundorsak och efteranalys. |
+| **Driftsättningar** | De senaste driftsättningarna och andra ändringarna av tjänsterna, var och en med OneUptimes bedömning av om den skadade sin tjänst. |
+
+| Uppgift | Vad den kontrollerar |
+| --- | --- |
+| **Åtgärda med AI** på ett undantag | Hur ofta det kastas nu och sedan vilken release, loggarna och spåret för en förekomst. |
+| **Åtgärda prestandan med AI** | Hur belastad och hur långsam operationen är över alla dess spår, inte bara det analyserade. Den ändrar inget när operationen inte längre är långsam. |
+| **Open Fix PR from this analysis**, och åtgärder som öppnas automatiskt från utredningar | Driftsättningarna före incidenten, dess fel, loggar och långsamma operationer, och om orsaken har slagit till tidigare. |
+| `@oneuptime review` från GitHub | Vad produktionen säger om den ändrade koden (se [Granskningar med produktionskontext](/docs/ai/github-app#granskningar-med-produktionskontext)). |
+
+Pull requestens beskrivning säger vilka frågor agenten ställde och vad de visade. Andra uppgifter, som regressionstester och förbättringar av loggning eller spårning, ställer inga frågor mot produktionen.
+
+Vad agenten får läsa avgörs av OneUptime-servern, utifrån själva uppgiften:
+
+- **Endast läsning.** Frågorna körs på OneUptime-servern, aldrig på Runnern, som inte har några inloggningsuppgifter som kan läsa telemetri. Inget de gör kan ändra ditt projekt.
+- **Det här projektet, och bara de tjänster som hör till det här repositoriet.** Du kopplar inte ihop dem själv: det är de tjänster som OneUptime hittar det här repositoriet för, på samma sätt som den hittar repositoriet för en åtgärd - deras undantags stack traces går genom dess filer, de heter som det, eller så är det projektets enda repository. En annan tjänsts telemetri kan inte läsas.
+- **Inga privata incidenter**, och token, nycklar, lösenord och e-postadresser maskeras innan agenten ser ett resultat, som överallt där OneUptime AI läser dina data.
+- **Begränsat.** Högst **12** frågor per körning, som var och en räknas mot körningens 40 anrop.
+
+När ingen tjänst hör till repositoriet körs uppgiften utan produktionstelemetri, som tidigare.
+
 ## Kontroll före pull requesten
 
 Ett repositorium kan ha upp till tre kontrollkommandon på sin sida **Inställningar** i Kod:
@@ -129,6 +161,19 @@ När något av dem är satt kontrollerar varje åtgärdskörning sin ändring in
 En ändring som fortfarande inte klarar kontrollen kastas inte: pull requesten öppnas ändå, med ett tydligt markerat avsnitt "Verification failed" som namnger det fallerande kommandot och slutar med dess utdata. Arbetet behålls, och den som granskar bestämmer. Ett repository utan satta kommandon rapporteras som överhoppat, i stället för att antyda ett grönt bygge.
 
 Kommandona är repositoryinställningar som ditt team skriver och som körs på din egen Runner: samma förtroendemodell som en runbooks Bash-steg. AI:n skriver eller ändrar dem aldrig. En global Runner, som OneUptime kör för alla projekt, kör dem aldrig: på en global Runner skrivs korrigeringen och öppnas för granskning, kontrollen rapporteras som överhoppad, och ditt repositorys egen CI kontrollerar ändringen. [Kör en egen Runner](#kör-en-egen-runner) för att få korrigeringar byggda och testade innan pull requesten öppnas.
+
+## När en korrigering har slagits samman
+
+Att slå samman en korrigering åtgärdar ingenting förrän den körs. När en pull-förfrågan med en korrigering har slagits samman väntar OneUptime på en registrerad driftsättning som innehåller den (se [Driftsättningar och ändringar](/docs/telemetry/change-events)) och bevakar i den driftsättningen det som korrigeringen var till för. Uppgiftens pull-förfrågan i Code berättar hur det gick, och det gör även undantagets sida **AI Assistance**, incidentens AI-loggar och AI-insikten som korrigeringen kom från:
+
+| En korrigering av | Det som bevakas | Det fungerade | Det fungerade inte |
+| --- | --- | --- | --- |
+| Ett undantag | Om undantaget inträffar igen | **Åtgärdad i produktion** | **Inträffar fortfarande efter korrigeringen** |
+| En långsam trace eller en latensinsikt | p99 för operationen som korrigeringen nämner | **Snabbare i produktion** | **Fortfarande långsam efter korrigeringen** |
+| Grundorsaken till en incident eller en avisering | Om dess monitor utlöser en till | **Åtgärdad i produktion** | **Inträffade igen efter korrigeringen** |
+| Saknad telemetri, loggning eller spårning | Det som korrigeringen lägger till, och resten av tjänstens telemetri | **Kommer fram i produktion** | **Telemetrin upphörde efter korrigeringen** |
+
+Tills en driftsättning levererar den står det **Mergad, väntar på en deploy** vid korrigeringen, sedan **Deployad, bevakas i produktion** medan den bevakas. En korrigering som ingen registrerad driftsättning innehåller inom 14 dagar, eller som produktionen inte kan säga något om, står som **Inte verifierad i produktion**. [Automatiska kodkorrigeringar](/docs/ai/ai-sre#automatiska-kodkorrigeringar) har reglerna. Ett regressionstest, bättre felhantering, en granskning och en begäran i Code bevakas inte: produktionen kan inte visa vad de ändrar.
 
 ## Innan du börjar
 
@@ -231,14 +276,13 @@ En uppgift som väntar mer än 30 minuter medan den Runner som ska ta den inte �
 
 ## Integritet
 
-Klonen av ditt repository ligger i en arbetsyta i Runnerns container och tas bort när körningen slutar, oavsett om den lyckades eller inte. Runnern har aldrig din LLM-leverantörs API-nyckel: OneUptime-servern gör LLM-anropen åt den. OneUptime behåller inte ditt repository och tränar inte på din kod. Uppgiftens logg behåller de första 300 tecknen av varje stegs utdata, så att du kan kontrollera vad Runnern gjorde, och det kan innehålla kodsnuttar. Kör en självhostad Runner med din egen LLM-leverantör (lokal Ollama inräknad), så lämnar din kod aldrig din infrastruktur.
+Klonen av ditt repository ligger i en arbetsyta i Runnerns container och tas bort när körningen slutar, oavsett om den lyckades eller inte. Runnern har aldrig din LLM-leverantörs API-nyckel: OneUptime-servern gör LLM-anropen åt den, och kör även frågorna mot produktionstelemetrin. OneUptime behåller inte ditt repository och tränar inte på din kod. Uppgiftens logg behåller de första 300 tecknen av varje stegs utdata, så att du kan kontrollera vad Runnern gjorde, och det kan innehålla kodsnuttar. Kör en självhostad Runner med din egen LLM-leverantör (lokal Ollama inräknad), så lämnar din kod aldrig din infrastruktur.
 
 ## På färdplanen
 
 Planerat, och **inte tillgängligt i dag**:
 
 - **Stöd för GitLab.** Repositories ansluts bara via GitHub App.
-- **Mer telemetri i en åtgärd.** Att föra in spåren, loggarna och mätvärdena kring ett undantag i dess åtgärd, utöver stack tracen.
 
 ## Nästa steg
 

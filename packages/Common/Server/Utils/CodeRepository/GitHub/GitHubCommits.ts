@@ -7,9 +7,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
  * What a deploy shipped, from GitHub: the commits between two commits, one
- * commit, and the pull requests a commit came from. Read with an installation
- * token the caller mints (contents and pull requests, read), so one token
- * serves every call for one change.
+ * commit, the pull requests a commit came from, and the diff of a pull
+ * request's files. Read with an installation token the caller mints
+ * (contents and pull requests, read), so one token serves every call for one
+ * change.
  *
  * The parsers are pure and exported, so the shapes GitHub answers with are
  * pinned by tests without a network.
@@ -59,6 +60,19 @@ export interface GitHubRepositoryName {
   owner: string;
   name: string;
 }
+
+// One file a pull request changed, and its unified diff when GitHub has one.
+export interface GitHubPullRequestFilePatch {
+  path: string;
+  // Absent for a binary file, or one too large for GitHub to show.
+  patch?: string | undefined;
+}
+
+// Files GitHub lists per page of a pull request's files, at most.
+export const PULL_REQUEST_FILES_PER_PAGE: number = 100;
+
+// The most pages of a pull request's files read: 300 files.
+export const MAX_PULL_REQUEST_FILE_PAGES: number = 3;
 
 // A full or abbreviated commit SHA.
 const COMMIT_SHA: RegExp = /^[0-9a-f]{7,64}$/i;
@@ -184,6 +198,31 @@ export default class GitHubCommits {
     };
   }
 
+  // A page of GitHub's pull request files, with each file's diff.
+  public static parsePullRequestFilePatches(
+    json: unknown,
+  ): Array<GitHubPullRequestFilePatch> {
+    if (!Array.isArray(json)) {
+      return [];
+    }
+
+    return (json as JSONArray)
+      .filter((file: unknown): file is JSONObject => {
+        return typeof file === "object" && file !== null;
+      })
+      .map((file: JSONObject): GitHubPullRequestFilePatch => {
+        const patch: string = asString(file["patch"]);
+
+        return {
+          path: asString(file["filename"]),
+          ...(patch ? { patch } : {}),
+        };
+      })
+      .filter((file: GitHubPullRequestFilePatch): boolean => {
+        return Boolean(file.path);
+      });
+  }
+
   public static parsePullRequests(
     json: unknown,
   ): Array<GitHubPullRequestSummary> {
@@ -267,6 +306,43 @@ export default class GitHubCommits {
     );
 
     return GitHubCommits.parsePullRequests(json);
+  }
+
+  /*
+   * The files a pull request changed, each with its diff, up to
+   * MAX_PULL_REQUEST_FILE_PAGES pages. Needs pull requests: read.
+   */
+  @CaptureSpan()
+  public static async listPullRequestFilePatches(data: {
+    token: string;
+    owner: string;
+    repository: string;
+    pullRequestNumber: number;
+  }): Promise<{
+    files: Array<GitHubPullRequestFilePatch>;
+    // Whether the pull request has more files than were read.
+    isTruncated: boolean;
+  }> {
+    const files: Array<GitHubPullRequestFilePatch> = [];
+
+    for (let page: number = 1; page <= MAX_PULL_REQUEST_FILE_PAGES; page++) {
+      const json: unknown = await GitHubCommits.get(
+        data.token,
+        `repos/${encodeURIComponent(data.owner)}/${encodeURIComponent(data.repository)}/pulls/${encodeURIComponent(String(data.pullRequestNumber))}/files?per_page=${PULL_REQUEST_FILES_PER_PAGE}&page=${page}`,
+      );
+      const pageFiles: Array<GitHubPullRequestFilePatch> =
+        GitHubCommits.parsePullRequestFilePatches(json);
+      const isFullPage: boolean =
+        Array.isArray(json) && json.length >= PULL_REQUEST_FILES_PER_PAGE;
+
+      files.push(...pageFiles);
+
+      if (!isFullPage) {
+        return { files, isTruncated: false };
+      }
+    }
+
+    return { files, isTruncated: true };
   }
 
   private static async get(token: string, path: string): Promise<JSONObject> {

@@ -1,3 +1,4 @@
+import FixProductionVerdict from "../AI/FixProductionVerdict";
 import {
   getAvatarTone,
   getInitials,
@@ -327,45 +328,63 @@ const PullRequestLine: FunctionComponent<{
         : "";
 
   return (
-    <div
-      data-testid="code-turn-pull-request"
-      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
-    >
-      <Icon icon={IconProp.GitHub} className="h-4 w-4 text-gray-700" />
-      <span className="font-medium text-gray-900">
-        {props.isUpdate
-          ? translator.translateTemplate("Pushed to pull request #{{number}}", {
-              number,
-            })
-          : translator.translateTemplate("Opened pull request #{{number}}", {
-              number,
-            })}
-      </span>
-      {stateText ? (
-        <span
-          data-testid="code-turn-pull-request-state"
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            pullRequest.state === "merged"
-              ? "bg-violet-50 text-violet-700"
-              : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          {stateText}
+    <div>
+      <div
+        data-testid="code-turn-pull-request"
+        className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+      >
+        <Icon icon={IconProp.GitHub} className="h-4 w-4 text-gray-700" />
+        <span className="font-medium text-gray-900">
+          {props.isUpdate
+            ? translator.translateTemplate(
+                "Pushed to pull request #{{number}}",
+                {
+                  number,
+                },
+              )
+            : translator.translateTemplate("Opened pull request #{{number}}", {
+                number,
+              })}
         </span>
-      ) : (
-        <></>
-      )}
-      {pullRequest.url ? (
-        <Link
-          to={URL.fromString(pullRequest.url)}
-          openInNewTab={true}
-          className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
-        >
-          <>
-            {translator.translateText("View on GitHub")}
-            <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-          </>
-        </Link>
+        {stateText ? (
+          <span
+            data-testid="code-turn-pull-request-state"
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+              pullRequest.state === "merged"
+                ? "bg-violet-50 text-violet-700"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {stateText}
+          </span>
+        ) : (
+          <></>
+        )}
+        {pullRequest.url ? (
+          <Link
+            to={URL.fromString(pullRequest.url)}
+            openInNewTab={true}
+            className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            <>
+              {translator.translateText("View on GitHub")}
+              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+            </>
+          </Link>
+        ) : (
+          <></>
+        )}
+      </div>
+      {/*
+        Merged is not fixed: what production showed once the fix shipped
+        (FixProductionVerifier).
+      */}
+      {pullRequest.production ? (
+        <FixProductionVerdict
+          production={pullRequest.production}
+          testId="code-turn-pull-request-production"
+          className="mt-2"
+        />
       ) : (
         <></>
       )}

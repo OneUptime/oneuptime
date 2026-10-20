@@ -98,7 +98,7 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 
 ## Skift fra et andet værktøj
 
-For at forlade et andet værktøj til vagter, oppetid eller statussider henter du dit team over i stedet for at forbinde de to. **Projektindstillinger → Importér fra et andet værktøj** læser din konto med en API-nøgle, viser dig, hvad det fandt, og opretter det, du sætter flueben ved. Hvert værktøj har en vejledning:
+For at forlade et andet værktøj til vagter, oppetid eller statussider henter du dit team over i stedet for at forbinde de to. **Projektindstillinger → Avanceret → Importér fra et andet værktøj** læser din konto med en API-nøgle, viser dig, hvad det fandt, og opretter det, du sætter flueben ved. Hvert værktøj har en vejledning:
 
 - Værktøjer til vagter og hændelser: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) og [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Værktøjer til oppetid og statussider: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) og [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

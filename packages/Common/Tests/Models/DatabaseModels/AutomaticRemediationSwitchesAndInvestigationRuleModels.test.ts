@@ -172,6 +172,10 @@ describe("AIInvestigationRule", () => {
     ]);
   });
 
+  /*
+   * And the MCP servers OneUptime AI may use for what the rule matches (an
+   * allow-list under More fields, not a condition): a join table too.
+   */
   it("keeps each condition list in a join table of its own", () => {
     const joinTables: Array<JoinTableMetadataArgs> =
       getMetadataArgsStorage().joinTables.filter(
@@ -188,6 +192,7 @@ describe("AIInvestigationRule", () => {
         .sort(),
     ).toEqual([
       "AIInvestigationRuleAlertSeverity aiInvestigationRuleId alertSeverityId",
+      "AIInvestigationRuleExternalMcpServer aiInvestigationRuleId externalMcpServerId",
       "AIInvestigationRuleIncidentSeverity aiInvestigationRuleId incidentSeverityId",
       "AIInvestigationRuleLabel aiInvestigationRuleId labelId",
       "AIInvestigationRuleMonitor aiInvestigationRuleId monitorId",

@@ -6,6 +6,7 @@ Um gateway de IA fica entre os seus apps e os provedores de modelos, então toda
 - [LiteLLM Proxy](#litellm-proxy): Exportação integrada, configurada com três variáveis.
 - [Quem gastou o quê](#uma-chave-virtual-por-funcionário): Uma chave virtual do LiteLLM por funcionário nomeia cada pessoa.
 - [Portkey](#portkey): Exportação integrada em gateways auto-hospedados; nos demais, instrumente o app.
+- [OpenRouter](#openrouter): O Broadcast envia o trace de cada requisição, configurado uma vez no OpenRouter.
 - [Confira se as chamadas chegam](#confira-se-as-chamadas-chegam): O que você deveria ver, e o que fazer se não vir.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | Endpoint a configurar | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | O exportador do próprio app |
 | Nomeia cada pessoa | Sim, com uma chave virtual por funcionário | Não | Só o que o app enviar |
 | Prompts e respostas | Enviados a menos que você os desative | Sempre enviados | Depende da instrumentação |
+
+O OneUptime não tem um gateway próprio: ele guardaria suas chaves de provedor e acrescentaria um salto a cada chamada de modelo que suas aplicações fazem. Ele lê o gateway que você já roda, e o uso e o custo das suas contas de provedor sem código nenhum: veja [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts).
 
 ## Antes de começar
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 Esses spans descrevem a chamada como o seu app a fez: o modelo que ele pediu, o tempo que esperou, os tokens que recebeu. O que o gateway decidiu no caminho, como um fallback, uma nova tentativa ou um acerto de cache, fica no Portkey. Para ver isso no OneUptime, use a exportação do gateway auto-hospedado.
 
+## OpenRouter
+
+O Broadcast do OpenRouter envia um trace de cada requisição da sua conta do OpenRouter para um endpoint OpenTelemetry: o modelo, os tokens, o custo cobrado pelo OpenRouter e, a menos que você os desative, o prompt e a resposta. Você configura uma vez, no OpenRouter, sem mudar suas aplicações.
+
+:::steps
+### Ative o Broadcast
+
+No OpenRouter, abra Settings, Observability e ative Enable Broadcast.
+
+### Adicione o OneUptime como coletor
+
+Edite o destino OpenTelemetry Collector. Defina o endpoint como o caminho completo de traces, `https://oneuptime.com/otlp/v1/traces`, e os cabeçalhos como `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Depois teste a conexão: o OpenRouter só salva o destino quando o teste passa.
+
+### Chame um modelo por ele
+
+Chame um modelo pelo OpenRouter e depois confira IA / LLM como descrito em [Confira se as chamadas chegam](#confira-se-as-chamadas-chegam).
+:::
+
+- O OpenRouter envia OTLP por HTTP em JSON, que o OneUptime aceita sem um coletor no meio.
+- O `user` de uma requisição chega como `user.id`, que o OneUptime lê como a pessoa que fez a chamada, e o `session_id` dela como `session.id`, que agrupa as chamadas em uma conversa. Envie em `user` o ID de um funcionário, nunca o de um cliente.
+- O prompt e a resposta ficam no span de geração, como `gen_ai.prompt` e `gen_ai.completion`. Ative o modo de privacidade do destino para deixá-los de fora.
+
 ## Confira se as chamadas chegam
 
 :::steps
@@ -259,6 +284,10 @@ As chamadas não nomeiam nenhuma pessoa. Dê a cada funcionário a sua própria 
 Desde o LiteLLM 1.81, as chamadas ao modelo de uma requisição compartilham um span. Defina `USE_OTEL_LITELLM_REQUEST_SPAN=true` para ter um span por chamada.
 :::
 
+:::details O OpenRouter não salva o destino
+O teste de conexão dele falhou. Confira se o endpoint termina em `/v1/traces` e se o cabeçalho traz uma chave de ingestão de servidor.
+:::
+
 ## Próximos passos
 
 :::cards
@@ -266,4 +295,5 @@ Desde o LiteLLM 1.81, as chamadas ao modelo de uma requisição compartilham um 
 - [Assistentes de código com IA](/docs/telemetry/ai-coding-assistants): Coloque um gateway na frente das ferramentas que não enviam telemetria própria.
 - [Disjuntores para agentes de IA](/docs/telemetry/ai-agent-circuit-breaker): Pare um agente descontrolado quando o alerta dele disparar.
 - [Monitor de traces](/docs/monitor/traces-monitor): Alerte sobre padrões de spans, como uma ferramenta chamada em loop.
+- [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts): A fatura das contas por trás do gateway, sem código.
 :::

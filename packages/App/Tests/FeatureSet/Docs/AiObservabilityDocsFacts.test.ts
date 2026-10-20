@@ -122,7 +122,9 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
 const SOURCES: Record<string, string> = {
   navTabs: `${DASHBOARD}/Components/AI/LlmNavTabs.tsx`,
   layout: `${DASHBOARD}/Pages/Llm/Layout.tsx`,
-  setup: `${DASHBOARD}/Pages/Llm/Documentation.tsx`,
+  connect: `${DASHBOARD}/Pages/Llm/Connect.tsx`,
+  appsPath: `${DASHBOARD}/Components/AI/Connect/LlmAppsPath.tsx`,
+  appsSnippets: `${DASHBOARD}/Components/AI/Connect/LlmAppsSnippets.ts`,
   budgets: `${DASHBOARD}/Pages/Llm/Budgets.tsx`,
   pricing: `${DASHBOARD}/Pages/Llm/Pricing.tsx`,
   callsTable: `${DASHBOARD}/Components/AI/LlmCallsTable.tsx`,
@@ -167,8 +169,12 @@ const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 // A tab of the AI / LLM product: `label: "Conversations",`.
 const TAB_LABEL: RegExp = /label: "([^"]+)",/g;
-// A step of the Setup tab: `key: "send",\n      title: "Send your AI calls",`.
-const SETUP_STEP: RegExp = /key: "([a-z]+)",\s*title: "([^"]+)",/g;
+/*
+ * A step of what to send from your apps, on Connect:
+ * `key: "record",\n    title: translationKey("Record what was said"),`.
+ */
+const APPS_STEP: RegExp =
+  /key: "([a-z]+)",\s*title: translationKey\("([^"]+)"\),/g;
 // A template's card title in the Dashboard's copy.
 const TEMPLATE_TITLE: RegExp =
   /\[LlmMonitorTemplateId\.(\w+)\]: \{\s*title: translationKey\("([^"]+)"\)/g;
@@ -281,9 +287,9 @@ function filterValue(
 describe("the AI / LLM Observability page", () => {
   const page: string = englishPage(LLM);
 
-  it("is the page the product links to: the Setup tab's guide and the website's AI page", () => {
-    expect(source("setup")).toContain(
-      'export const LLM_DOCS_URL: string = "/docs/telemetry/ai-llm-observability";',
+  it("is the page the product links to: the Connect tab's guide and the website's AI page", () => {
+    expect(source("appsPath")).toContain(
+      'export const LLM_DOCS_PATH: string = "/docs/telemetry/ai-llm-observability";',
     );
     expect(source("homeAiPage")).toContain(
       'href="/docs/telemetry/ai-llm-observability"',
@@ -316,7 +322,7 @@ describe("the AI / LLM Observability page", () => {
       "Alerts",
       "Budgets",
       "Pricing",
-      "Setup",
+      "Connect",
     ]);
     expect(
       rows.map((row: Array<string>): string => {
@@ -380,26 +386,57 @@ describe("the AI / LLM Observability page", () => {
     expect(page).toContain("the span of each AI call also has an **LLM** tab");
   });
 
-  it("walks through the Setup tab's five steps, in its order and with its titles", () => {
-    const steps: Array<string> = allMatches(source("setup"), SETUP_STEP, 2);
+  it("walks through the five steps of Connect's Your apps: its snippets, then what to send, in its order and with its titles", () => {
+    const steps: Array<string> = allMatches(source("appsPath"), APPS_STEP, 2);
     const headings: Array<string> = scanMarkdown(
       section(page, "Set it up in five steps"),
     ).headings.map((heading: DocsHeading): string => {
       return heading.text;
     });
 
-    expect(steps).toHaveLength(5);
-    expect(headings).toEqual(steps);
-    expect(source("setup")).toContain(
-      "Five steps. The first is all you need to start; each one after it shows more.",
+    // The snippets send the calls; the four after them are folded below.
+    expect(steps).toHaveLength(4);
+    expect(headings).toEqual(["Send your AI calls", ...steps]);
+    expect(source("connect")).toContain('title="Your apps"');
+    expect(source("appsPath")).toContain(
+      'translator.translateText("What to send to get the most out of it")',
     );
     expect(page).toContain(
       "The first step is all you need to see calls. Each step after it shows more.",
     );
   });
 
-  it("turns recording on with the variable the Setup tab names", () => {
-    expect(source("setup")).toContain(
+  it("names the three ways in as the Connect tab draws them", () => {
+    const connect: string = source("connect");
+    const rows: Array<Array<string>> = rowsOf(page, "Three ways in");
+
+    for (const title of [
+      "Your apps",
+      "Your AI provider accounts",
+      "Your company's AI tools",
+    ]) {
+      expect(connect).toContain(`title="${title}"`);
+    }
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      "**Your apps**",
+      "**Your AI provider accounts**",
+      "**Your company's AI tools**",
+    ]);
+    expect(page).toContain(
+      "All three are under **Products → AI / LLM → Connect**.",
+    );
+    expect(connect).toContain(
+      'description="Three ways to bring AI in. Use one, two or all three: everything lands in the same Conversations, Usage, Alerts and Budgets."',
+    );
+  });
+
+  it("turns recording on with the variable the Connect tab names", () => {
+    expect(source("appsSnippets")).toContain(
       "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true",
     );
     expect(page).toContain(

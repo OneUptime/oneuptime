@@ -2,6 +2,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
+  MonitorEvaluationGroupingNote,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
@@ -28,6 +29,10 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import EvaluationGroupingNote, {
+  getGroupingNoteTitle,
+  isWordableGroupingNote,
+} from "./EvaluationGroupingNote";
 
 interface FilterGroup {
   message: string;
@@ -111,6 +116,34 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
   const getSummaryTitle: string =
     translator.translateText(props.title || "Evaluation Logs") ||
     "Evaluation Logs";
+
+  // A criteria as the list names it: its name, or "Criteria 2" by position.
+  const getCriteriaNameById: (
+    criteriaId: string | undefined,
+  ) => string | undefined = (
+    criteriaId: string | undefined,
+  ): string | undefined => {
+    if (!criteriaId) {
+      return undefined;
+    }
+
+    const index: number = (evaluationSummary.criteriaResults || []).findIndex(
+      (criteria: MonitorEvaluationCriteriaResult): boolean => {
+        return criteria.criteriaId === criteriaId;
+      },
+    );
+
+    if (index < 0) {
+      return undefined;
+    }
+
+    return (
+      evaluationSummary.criteriaResults[index]?.criteriaName ||
+      translator.translateTemplate("Criteria {{number}}", {
+        number: index + 1,
+      })
+    );
+  };
 
   const renderCriteriaResult: (
     criteria: MonitorEvaluationCriteriaResult,
@@ -428,8 +461,8 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                     >
                       {translator.translateText(statusText)}
                     </span>
-                    <div className="space-y-1">
-                      <div className="text-sm text-gray-700">
+                    <div className="min-w-0 space-y-1">
+                      <div className="break-words text-sm text-gray-700">
                         {filterGroup.message}
                       </div>
                       {metadataParts.length > 0 && (
@@ -599,6 +632,36 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
       ? decorate(event.message)
       : event.message;
 
+    /*
+     * A grouping note is worded here, in the reader's language, from what
+     * the server says it is - with the criteria named as the list above
+     * names it. One this Dashboard cannot word reads as the server wrote it.
+     */
+    const groupingNote: MonitorEvaluationGroupingNote | undefined =
+      event.type === "grouping" && isWordableGroupingNote(event.grouping)
+        ? event.grouping
+        : undefined;
+
+    const groupingCriteriaName: string | undefined = groupingNote
+      ? groupingNote.criteriaName ||
+        getCriteriaNameById(event.relatedCriteriaId)
+      : undefined;
+
+    const title: string =
+      groupingNote && groupingCriteriaName
+        ? getGroupingNoteTitle(translator, groupingNote)
+        : decoratedTitle;
+
+    const message: ReactElement | string | undefined =
+      groupingNote && groupingCriteriaName ? (
+        <EvaluationGroupingNote
+          note={groupingNote}
+          criteriaName={groupingCriteriaName}
+        />
+      ) : (
+        decoratedMessage
+      );
+
     return (
       <div
         key={`event-${index}-${event.type}`}
@@ -610,12 +673,23 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 text-gray-500"
           />
         </div>
-        <div className="flex-1">
-          <div className="text-sm font-medium text-gray-800">
-            {decoratedTitle}
+        {/*
+         * min-w-0: a long title, message or path wraps inside the row on a
+         * phone, rather than widening it past the card. dir="auto": a
+         * sentence in a right-to-left language reads from the right, as a
+         * Persian grouping note does, while the page stays left to right.
+         */}
+        <div className="min-w-0 flex-1">
+          <div
+            dir="auto"
+            className="break-words text-sm font-medium text-gray-800"
+          >
+            {title}
           </div>
-          {decoratedMessage && (
-            <div className="text-sm text-gray-600">{decoratedMessage}</div>
+          {message && (
+            <div dir="auto" className="break-words text-sm text-gray-600">
+              {message}
+            </div>
           )}
           {relatedCreatedAt && (
             <div className="text-xs text-gray-400">

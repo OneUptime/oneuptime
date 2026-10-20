@@ -76,7 +76,7 @@ Een Microsoft Teams-verbinding die is aangemeld terwijl **Incidentgesprekken opn
 
 ### Aangemeld blijven
 
-OneUptime bewaart het vernieuwingstoken van de aanmelding, versleuteld, en vernieuwt het minstens één keer per week, zodat het nooit verloopt door ongebruik, hoe lang het project ook zonder incident blijft. Als de aanmelding niet meer werkt (het account heeft OneUptime verwijderd, is verwijderd of geschorst, of het beleid van je organisatie vraagt om opnieuw aan te melden), toont de rij van de koppeling **Not working** met de reden op de dag dat OneUptime het merkt, niet bij het volgende incident. **Reconnect** in de rij meldt opnieuw aan.
+OneUptime bewaart het vernieuwingstoken van de aanmelding, versleuteld, en vernieuwt het minstens één keer per week, zodat het nooit verloopt door ongebruik, hoe lang het project ook zonder incident blijft. Als de aanmelding niet meer werkt (het account heeft OneUptime verwijderd, is verwijderd of geschorst, of het beleid van je organisatie vraagt om opnieuw aan te melden), toont de rij van de koppeling **Werkt niet** met de reden op de dag dat OneUptime het merkt, niet bij het volgende incident. **Reconnect** in de rij meldt opnieuw aan.
 
 Koppelingen die met hetzelfde account zijn aangemeld, delen één aanmelding, in elk project: Zoom bewaart maar één aanmelding per account, dus dezelfde Zoom-gebruiker opnieuw koppelen vervangt die voor allemaal.
 
@@ -84,7 +84,7 @@ Koppelingen die met hetzelfde account zijn aangemeld, delen één aanmelding, in
 
 **Reconnect** in de rij van een koppeling meldt opnieuw aan, als hetzelfde account of een ander. Gebruik het nadat het account OneUptime heeft verwijderd, of om incidentvergaderingen naar een ander account te verplaatsen.
 
-Een koppeling verwijderen trekt de toegang van OneUptime bij Zoom en Google in zodra geen andere koppeling de aanmelding gebruikt. Verwijder OneUptime bij Microsoft onder **My Apps** (myapps.microsoft.com) van het account. OneUptime uit je Zoom-account verwijderen in de Zoom App Marketplace verwijdert de aanmelding uit elke koppeling die met dat account is aangemeld, en die tonen **Not working** tot ze opnieuw zijn gekoppeld.
+Een koppeling verwijderen trekt de toegang van OneUptime bij Zoom en Google in zodra geen andere koppeling de aanmelding gebruikt. Verwijder OneUptime bij Microsoft onder **My Apps** (myapps.microsoft.com) van het account. OneUptime uit je Zoom-account verwijderen in de Zoom App Marketplace verwijdert de aanmelding uit elke koppeling die met dat account is aangemeld, en die tonen **Werkt niet** tot ze opnieuw zijn gekoppeld.
 
 ### Als Microsoft om een beheerder vraagt
 
@@ -288,7 +288,7 @@ Controleer of de regel bij het incident paste (**Testregel**), of de stap **Vide
 De provider weigerde, en de feed geeft de reden. Start intussen een gesprek vanaf de pagina van het incident. Voer daarna **Testen** uit in de rij van de koppeling: dat toont dezelfde reden terwijl je de instelling bij de provider herstelt, zoals een verlopen clientgeheim of een ontbrekend recht.
 :::
 
-:::details Een koppeling toont Not working
+:::details Een koppeling toont Werkt niet
 De aanmelding ervan werkt niet meer: het account heeft OneUptime verwijderd, is verwijderd of geschorst, of moet zich opnieuw aanmelden. Klik op **Reconnect** in de rij. Tot dan kunnen de gesprekken die ze zou moeten starten, niet starten.
 :::
 

@@ -271,19 +271,24 @@ describe("MeasurementPresetPicker", () => {
     const picker: HTMLElement = screen.getByTestId("measurement-preset-picker");
     const cards: Array<HTMLElement> = screen.getAllByRole("radio");
 
-    expect(cards).toHaveLength(4);
+    expect(cards).toHaveLength(5);
     expect(cards[0]).toHaveTextContent("«Time to acknowledge»");
     expect(cards[0]).toHaveTextContent(
       "«From when an incident is declared until someone acknowledges it.»",
     );
-    expect(cards[1]).toHaveAttribute("aria-checked", "true");
-    expect(cards[3]).toHaveTextContent("«Something else»");
+    // Time to acknowledge, counted from the first page instead.
+    expect(cards[1]).toHaveTextContent("«Time to acknowledge after paging»");
+    expect(cards[1]).toHaveTextContent(
+      "«From when someone is first paged until someone acknowledges it.»",
+    );
+    expect(cards[2]).toHaveAttribute("aria-checked", "true");
+    expect(cards[4]).toHaveTextContent("«Something else»");
 
     // Two wide columns, not three narrow ones.
     expect(picker.querySelector(".sm\\:grid-cols-2")).not.toBeNull();
     expect(picker.querySelector(".lg\\:grid-cols-3")).toBeNull();
 
-    await userEvent.setup({ delay: null }).click(cards[2]!);
+    await userEvent.setup({ delay: null }).click(cards[3]!);
 
     expect(onChange).toHaveBeenCalledWith("time-to-postmortem");
   });

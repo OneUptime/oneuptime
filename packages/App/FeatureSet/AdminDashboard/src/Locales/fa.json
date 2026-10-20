@@ -489,8 +489,9 @@
       },
       "callSms": {
         "cardTitle": "پیکربندی Twilio",
-        "cardDescription": "از این برای برقراری تماس و ارسال پیامک استفاده می‌شود.",
-        "editButton": "ویرایش پیکربندی Twilio"
+        "cardDescription": "حساب Twilio که OneUptime پیامک‌ها و تماس‌ها را از طریق آن می‌فرستد، مگر اینکه پروژه‌ای از پیکربندی Twilio خودش استفاده کند.",
+        "editButton": "ویرایش پیکربندی Twilio",
+        "smsSameAsCalls": "همان شماره‌های تماس"
       },
       "whatsapp": {
         "metaCardTitle": "تنظیمات Meta WhatsApp",
@@ -726,7 +727,6 @@
   "Hostname": "نام میزبان",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "اینکه OneUptime چگونه با پیکربندی سراسری SMTP ایمیل ارسال می‌کند. برای بیشتر سرورها «SMTP» را انتخاب کنید. اگر در تننت Microsoft 365 شما SMTP AUTH غیرفعال است «Microsoft Graph» را انتخاب کنید — Graph از دسترسی اپلیکیشنی Mail.Send استفاده می‌کند و کاملاً SMTP را دور می‌زند.",
   "If you have a coupon code, enter it here.": "اگر کد تخفیف دارید، آن را اینجا وارد کنید.",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "اگر برای کشورهای خاصی شماره‌های تلفن بیشتری از Twilio خریده‌اید، می‌توانید آن‌ها را اینجا اضافه کنید.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "اگر از پورت ۴۶۵ استفاده می‌کنید، این را فعال کنید. اگر از پورت ۵۸۷ استفاده می‌کنید آن را فعال نکنید.",
   "Instance footprint": "ردپای نمونه",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "انباشت کارها در میان کارگرهای صف. انباشت رو به رشد یا خطاها نشان می‌دهد که کارگرها سالم نیستند.",
@@ -772,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "لطفاً برای شروع یک پروژه جدید OneUptime بسازید.",
   "Please select a plan.": "لطفاً یک طرح انتخاب کنید.",
   "Port": "پورت",
-  "Primary Twilio Phone Number": "شماره تلفن اصلی Twilio",
   "Probe Logo": "لوگوی پراب",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "پراب‌هایی که بررسی‌های پایش این نمونه را اجرا می‌کنند، و اینکه آیا هم‌اکنون گزارش می‌دهند یا نه.",
   "Project ID": "شناسه پروژه",
@@ -789,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "برای احراز هویت با نام کاربری و رمز عبور الزامی است. در OAuth استفاده نمی‌شود.",
   "Sample Description": "توضیحات نمونه",
   "Sample Title": "عنوان نمونه",
-  "Secondary Twilio Phone Numbers": "شماره‌های تلفن دوم Twilio",
   "Secret token configured in Meta to validate webhook subscription requests.": "توکن محرمانه‌ای که در Meta برای اعتبارسنجی درخواست‌های اشتراک وب‌هوک پیکربندی شده است.",
   "Select a team": "یک تیم انتخاب کنید",
   "Select LLM Provider": "انتخاب ارائه‌دهنده LLM",
@@ -1011,5 +1009,12 @@
   "{{count}} people": "{{count}} نفر",
   "{{count}} people_one": "{{count}} نفر",
   "Docker Compose guide": "راهنمای Docker Compose",
-  "Kubernetes guide": "راهنمای Kubernetes"
+  "Kubernetes guide": "راهنمای Kubernetes",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "تماس‌ها از این شماره برقرار می‌شوند و پیامک‌ها هم، مگر اینکه در «فیلدهای بیشتر» شماره‌های تلفن پیامک اضافه کنید.",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "شماره‌هایی برای فرستادن پیامک، اگر شماره‌های شما نمی‌توانند (شماره‌های ملی سنگاپور فقط صوتی هستند). هر پیامک از شماره کشور گیرنده فرستاده می‌شود و اگر نباشد، از نخستین شماره.",
+  "Twilio SMS Phone Numbers": "شماره‌های تلفن پیامک Twilio",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} شماره تلفن نیست. هر شماره را با کد کشورش بنویسید و شماره‌ها را با ویرگول جدا کنید، مانند +6581234567, +447700900123.",
+  "Twilio Primary Phone Number": "شماره تلفن اصلی Twilio",
+  "Twilio Secondary Phone Numbers": "شماره‌های تلفن دوم Twilio",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "شماره‌هایی که وقتی با کد کشور گیرنده مطابقت داشته باشند به‌جای شماره اصلی استفاده می‌شوند."
 }

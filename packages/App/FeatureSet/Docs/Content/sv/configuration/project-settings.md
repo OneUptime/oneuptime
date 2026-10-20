@@ -30,12 +30,12 @@ flowchart LR
 
 | Avsnitt | Sidor | Läs mer |
 | --- | --- | --- |
-| **Grundläggande** | **Projekt**, **Etiketter**, **Importera från ett annat verktyg** | [Projektets detaljer](#projektets-detaljer), [Etiketter](#etiketter), [Byt från Opsgenie](/docs/moving-to-oneuptime/opsgenie) och de andra flyttguiderna |
+| **Grundläggande** | **Projekt**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Etiketter](#etiketter) |
 | **Arbetsyta** | **Slack**, **Microsoft Teams**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videosamtal](/docs/workspace-connections/video-calls) |
 | **Telemetri och APM** | **Intagningsnycklar**, **Datalagring** | [Intagningsnycklar](/docs/telemetry/ingestion-keys), [Datalagring](/docs/telemetry/data-retention) |
 | **Aviseringar** | **Aviseringsinställningar**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
-| **AI** | **AI Features**, **LLM-leverantörer**, **AI-krediter**, **AI-loggar**, **MCP-server** | [LLM-leverantörer](/docs/ai/llm-provider), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
-| **Avancerad** | **Domäner**, **API-nycklar**, **Funktionsflaggor** | [Egna domäner](/docs/status-pages/branding-and-domains#anpassade-domäner), [API-nycklar](/docs/permissions/index#api-nycklar), [Funktionsflaggor](#funktionsflaggor) |
+| **AI** | **AI Features**, **LLM-leverantörer**, **Externa MCP-servrar**, **AI-krediter**, **AI-loggar**, **MCP-server** | [LLM-leverantörer](/docs/ai/llm-provider), [Externa MCP-servrar](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |
+| **Avancerad** | **Domäner**, **API-nycklar**, **Funktionsflaggor**, **Importera från ett annat verktyg** | [Egna domäner](/docs/status-pages/branding-and-domains#anpassade-domäner), [API-nycklar](/docs/permissions/index#api-nycklar), [Funktionsflaggor](#funktionsflaggor), [Byt från Opsgenie](/docs/moving-to-oneuptime/opsgenie) och de andra flyttguiderna |
 | **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering och fakturor** | **Fakturering**, **Användningshistorik**, **Fakturor** | [Fakturering och användning](/docs/configuration/billing) |
 | **Granskningsloggar** | **Granskningsloggar**, **Inställningar** | [Granskningsloggar](/docs/configuration/audit-logs) |

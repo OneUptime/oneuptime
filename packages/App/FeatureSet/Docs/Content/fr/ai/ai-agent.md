@@ -7,6 +7,7 @@ Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dép
 - [La conversation d'une tâche](#la-conversation-dune-tâche): Ce que l'IA a fait, ce qu'elle a modifié, et votre réponse.
 - [Déroulement d'une exécution de correction](#déroulement-dune-exécution-de-correction): D'un clic à une pull request, étape par étape.
 - [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction): Les tâches que OneUptime lance, et ce que fait chaque pull request.
+- [Télémétrie de production dans une correction](#télémétrie-de-production-dans-une-correction): Ce qu'une correction lit de la production pendant qu'elle écrit la modification.
 - [Avant de commencer](#avant-de-commencer): Un modèle, un dépôt connecté et un Runner.
 - [Quand une correction échoue](#quand-une-correction-échoue): Ce qui arrive à une exécution qui échoue, se bloque ou attend.
 :::
@@ -83,13 +84,13 @@ flowchart TB
 2. La tâche est mise en file sur son dépôt, et le Runner que le dépôt choisit la prend : l'un de vos Runners, ou un Runner global quand il n'en choisit aucun (voir [Choisir le Runner du dépôt](#choisir-le-runner-du-dépôt)).
 3. Le Runner récupère le contexte de la tâche. Pour une demande, ce sont ses mots, le contexte ajouté et la conversation jusque-là ; pour une exception, son type, son message et sa stack trace.
 4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
-5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA.
+5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA. Une correction d'exception, de trace lente ou d'incident consulte aussi les données de production pendant qu'elle travaille : les exceptions, les traces, les logs et les métriques des services du dépôt (voir [Télémétrie de production dans une correction](#télémétrie-de-production-dans-une-correction)).
 6. Si le dépôt a des commandes de vérification, votre propre Runner compile et teste la modification avant de committer quoi que ce soit, et renvoie un échec à l'agent de code pour qu'il le répare (voir [Vérification avant la pull request](#vérification-avant-la-pull-request)).
 7. Le Runner committe, pousse la branche, ouvre la pull request (pour une demande, seulement si elle a modifié du code) et supprime l'espace de travail.
 
 La page d'où la tâche a été lancée affiche son état en direct. Chaque tâche est listée dans son dépôt sous **Produits → Code** : sa page est sa conversation, et le **Journal** de chaque tour a une ligne pour chaque fichier que le Runner a lu ou écrit et pour chaque commande qu'il a exécutée.
 
-Chaque exécution est tenue à des budgets que le serveur impose : au plus **40 appels au LLM** et **100 000 tokens de sortie**. Une exécution qui en atteint un se termine par un résumé du travail accompli jusque-là au lieu de tourner en boucle. Les exécutions de correction comptent aussi dans les limites quotidiennes d'IA du projet, quand le projet en fixe.
+Chaque exécution est tenue à des budgets que le serveur impose : au plus **40 appels au LLM** et **100 000 tokens de sortie**. Les requêtes de télémétrie de production d'une exécution sont décomptées de ces mêmes 40 appels. Une exécution qui en atteint un se termine par un résumé du travail accompli jusque-là au lieu de tourner en boucle. Les exécutions de correction comptent aussi dans les limites quotidiennes d'IA du projet, quand le projet en fixe.
 
 ## Où démarrent les tâches de correction
 
@@ -110,6 +111,37 @@ Pour ouvrir la page **Assistance IA** d'une exception, ouvrez l'exception sous *
 
 OneUptime AI lance aussi des tâches de correction de lui-même : à partir d'une investigation qui trouve une modification de code, d'une investigation qui se termine sans conclusion faute de télémétrie, et des AI Insights sur les exceptions et les traces lentes. Chacune a son propre interrupteur ; voir [Corrections de code automatiques](/docs/ai/ai-sre#correctifs-de-code-automatiques).
 
+## Télémétrie de production dans une correction
+
+OneUptime conserve ce que fait votre code en production, si bien qu'une correction n'a pas à se contenter d'une stack trace. Pendant que l'agent de code travaille, il peut interroger la télémétrie de production des services du dépôt :
+
+| Ce qu'il lit | À quoi cela sert |
+| --- | --- |
+| **Exceptions** | Les groupes d'exceptions levées dans des fichiers ou une fonction donnés : à quelle fréquence ces derniers jours, depuis quelle version, et la trace d'une occurrence récente. |
+| **Traces** | Le profil de latence et d'erreurs d'un endpoint ou d'une opération, et les spans d'une trace. |
+| **Journaux** | Les lignes de log d'un service, par période, gravité, texte ou trace. |
+| **Métriques** | Une métrique que publie un service, au fil du temps ; sans nom, les métriques qu'il publie. |
+| **Incidents** | Les incidents qui ont touché les services, ou pour lesquels une correction OneUptime a été ouverte dans ce dépôt, avec leur cause racine et leur post-mortem. |
+| **Déploiements** | Les déploiements récents et les autres changements des services, chacun avec le verdict de OneUptime indiquant s'il a nui à son service. |
+
+| Tâche | Ce qu'elle vérifie |
+| --- | --- |
+| **Corriger avec l'IA** sur une exception | À quelle fréquence elle est levée aujourd'hui et depuis quelle version, les logs et la trace d'une occurrence. |
+| **Accélérer avec l'IA** | La charge et la lenteur de l'opération sur l'ensemble de ses traces, pas seulement celle qui a été analysée. Elle ne change rien quand l'opération n'est plus lente. |
+| **Ouvrir une PR de correctif à partir de cette analyse**, et les corrections ouvertes automatiquement à partir des investigations | Les déploiements qui ont précédé l'incident, ses erreurs, ses logs et ses opérations lentes, et si la cause a déjà frappé auparavant. |
+| `@oneuptime review` depuis GitHub | Ce que dit la production du code modifié (voir [Relectures avec contexte de production](/docs/ai/github-app#relectures-avec-contexte-de-production)). |
+
+La description de la pull request indique ce que l'agent a interrogé et ce que cela a montré. Les autres tâches, comme les tests de régression et les améliorations de la journalisation ou du traçage, n'interrogent pas la production.
+
+Ce que l'agent peut lire est décidé par le serveur OneUptime, à partir de la tâche elle-même :
+
+- **Lecture seule.** Les requêtes s'exécutent sur le serveur OneUptime, jamais sur le Runner, qui ne détient aucun identifiant permettant de lire la télémétrie. Rien de ce qu'elles font ne peut modifier votre projet.
+- **Ce projet, et seulement les services de ce dépôt.** Vous ne les associez pas vous-même : ce sont les services pour lesquels OneUptime trouve ce dépôt, comme il trouve le dépôt d'une correction - les stack traces de leurs exceptions passent par ses fichiers, ils portent le même nom que lui, ou c'est le seul dépôt du projet. La télémétrie d'un autre service ne peut pas être lue.
+- **Aucun incident privé**, et les jetons, clés, mots de passe et adresses e-mail sont masqués avant que l'agent ne voie un résultat, comme partout où OneUptime AI lit vos données.
+- **Limité.** Au plus **12** requêtes par exécution, chacune décomptée des 40 appels de l'exécution.
+
+Quand aucun service ne correspond au dépôt, la tâche s'exécute sans télémétrie de production, comme avant.
+
 ## Vérification avant la pull request
 
 Un dépôt peut porter jusqu'à trois commandes de vérification sur sa page **Paramètres** dans Code :
@@ -129,6 +161,19 @@ Quand l'une d'elles est définie, chaque exécution de correction vérifie sa mo
 Une modification qui échoue toujours à la vérification n'est pas jetée : la pull request s'ouvre quand même, avec une section "Verification failed" clairement signalée qui nomme la commande en échec et se termine par sa sortie. Le travail est conservé, et la personne qui relit décide. Un dépôt sans commande définie est signalé comme ignoré, plutôt que de laisser croire à un build au vert.
 
 Les commandes sont des paramètres du dépôt que votre équipe écrit, exécutés sur votre propre Runner : le même modèle de confiance que les étapes Bash d'un runbook. L'IA ne les écrit ni ne les modifie jamais. Un Runner global, que OneUptime fait tourner pour chaque projet, ne les exécute jamais : sur un Runner global, la correction est écrite et ouverte pour relecture, la vérification est signalée comme ignorée, et la CI de votre dépôt vérifie la modification. [Faites tourner votre propre Runner](#faire-tourner-votre-propre-runner) pour que les corrections soient compilées et testées avant l'ouverture de la pull request.
+
+## Après la fusion d'un correctif
+
+Fusionner un correctif ne corrige rien tant qu'il ne tourne pas. Dès qu'une pull request de correctif est fusionnée, OneUptime attend un déploiement enregistré qui la contient (voir [Déploiements et changements](/docs/telemetry/change-events)) et surveille, dans ce déploiement, ce à quoi servait le correctif. La pull request de la tâche dans Code dit comment cela s'est passé, tout comme la page **Assistance IA** de l'exception, les journaux IA de l'incident et l'insight IA d'où vient le correctif :
+
+| Un correctif de | Ce qui est surveillé | Il a fonctionné | Il n'a pas fonctionné |
+| --- | --- | --- | --- |
+| Une exception | Si l'exception se reproduit | **Corrigé en production** | **Se produit encore après le correctif** |
+| Une trace lente ou un insight de latence | Le p99 de l'opération que nomme le correctif | **Plus rapide en production** | **Toujours lent après le correctif** |
+| La cause racine d'un incident ou d'une alerte | Si son moniteur en déclenche un autre | **Corrigé en production** | **Survenu de nouveau après le correctif** |
+| Télémétrie, journalisation ou traçage manquants | Ce que le correctif ajoute, et le reste de la télémétrie du service | **Arrive en production** | **Télémétrie interrompue après le correctif** |
+
+Tant qu'aucun déploiement ne le livre, le correctif affiche **Fusionné, en attente d'un déploiement**, puis **Déployé, surveillé en production** pendant qu'il est surveillé. Un correctif qu'aucun déploiement enregistré ne contient dans les 14 jours, ou dont la production ne peut rien dire, affiche **Non vérifié en production**. [Correctifs de code automatiques](/docs/ai/ai-sre#correctifs-de-code-automatiques) donne les règles. Un test de non-régression, une meilleure gestion des erreurs, une revue et une demande dans Code ne sont pas surveillés : la production ne peut pas montrer ce qu'ils changent.
 
 ## Avant de commencer
 
@@ -231,14 +276,13 @@ Une tâche qui attend plus de 30 minutes alors que le Runner qui doit la prendre
 
 ## Confidentialité
 
-Le clone de votre dépôt réside dans un espace de travail à l'intérieur du conteneur du Runner et est supprimé à la fin de l'exécution, qu'elle ait réussi ou non. Le Runner ne détient jamais la clé d'API de votre fournisseur LLM : le serveur OneUptime effectue les appels au LLM pour lui. OneUptime ne conserve pas votre dépôt et ne s'entraîne pas sur votre code. Le journal de la tâche garde les 300 premiers caractères de la sortie de chaque étape, pour que vous puissiez vérifier ce qu'a fait le Runner, et cela peut inclure des extraits de code. Faites tourner un Runner auto-hébergé avec votre propre fournisseur LLM (Ollama local compris), et votre code ne quitte jamais votre infrastructure.
+Le clone de votre dépôt réside dans un espace de travail à l'intérieur du conteneur du Runner et est supprimé à la fin de l'exécution, qu'elle ait réussi ou non. Le Runner ne détient jamais la clé d'API de votre fournisseur LLM : le serveur OneUptime effectue les appels au LLM pour lui, et exécute aussi les requêtes de télémétrie de production. OneUptime ne conserve pas votre dépôt et ne s'entraîne pas sur votre code. Le journal de la tâche garde les 300 premiers caractères de la sortie de chaque étape, pour que vous puissiez vérifier ce qu'a fait le Runner, et cela peut inclure des extraits de code. Faites tourner un Runner auto-hébergé avec votre propre fournisseur LLM (Ollama local compris), et votre code ne quitte jamais votre infrastructure.
 
 ## Feuille de route
 
 Prévu, et **pas encore disponible** :
 
 - **Prise en charge de GitLab.** Les dépôts se connectent uniquement via la GitHub App.
-- **Plus de télémétrie dans une correction.** Fournir à la correction les traces, les logs et les métriques autour d'une exception, au-delà de la stack trace.
 
 ## Étapes suivantes
 

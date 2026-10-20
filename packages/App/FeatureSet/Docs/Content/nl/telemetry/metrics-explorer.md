@@ -91,7 +91,7 @@ De knoppen boven de grafieken werken met het tijdsbereik dat u bekijkt:
 | --- | --- |
 | **Logboeken** | Opent de [Logboekverkenner](/docs/telemetry/logs-explorer) voor dit tijdsbereik en uw filters. |
 | **Traces** | Opent de [Traceverkenner](/docs/telemetry/traces-explorer) voor dit tijdsbereik en uw filters. |
-| **Investigate** | Opent een zijpaneel met de logboeken, traces en uitzonderingen van dit tijdsbereik. |
+| **Onderzoeken** | Opent een zijpaneel met de logboeken, traces en uitzonderingen van dit tijdsbereik. |
 | **Gebeurtenissen** | Markeert de incidenten en waarschuwingen van dit tijdsbereik in de grafieken. |
 | **Compare** | Tekent de vorige periode als stippellijn in elke grafiek, zodat u ziet wat er veranderde. |
 

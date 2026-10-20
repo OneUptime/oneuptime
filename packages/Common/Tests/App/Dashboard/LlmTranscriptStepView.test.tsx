@@ -67,9 +67,7 @@ import { PROJECT_ID, T0, TRACE_ID, makeStep } from "./LlmConversationFixtures";
 const TRACE_ROUTE: Route = new Route(
   `/dashboard/${PROJECT_ID}/traces/view/${TRACE_ID}?spanId=abc`,
 );
-const SETUP_ROUTE: Route = new Route(
-  `/dashboard/${PROJECT_ID}/llm/documentation`,
-);
+const SETUP_ROUTE: Route = new Route(`/dashboard/${PROJECT_ID}/llm/connect`);
 
 function renderStep(
   step: LlmTranscriptStep,

@@ -56,6 +56,7 @@ RunCron(
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
         followUpForAlertId: true,
+        ruleWaitMinutes: true,
       },
       limit: 100,
       skip: 0,
@@ -108,6 +109,11 @@ RunCron(
               triggeredByAlertId: run.triggeredByAlertId,
               // A follow-up check never releases remediation a second time.
               followUpForAlertId: run.followUpForAlertId,
+              /*
+               * Nor does a run an investigation rule made wait: remediation
+               * started when its incident or alert did.
+               */
+              ruleWaitMinutes: run.ruleWaitMinutes,
             });
 
           logger.info(

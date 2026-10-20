@@ -30,12 +30,12 @@ flowchart LR
 
 | Seção | Páginas | Onde ler mais |
 | --- | --- | --- |
-| **Básico** | **Projeto**, **Rótulos**, **Importar de outra ferramenta** | [Os detalhes do projeto](#os-detalhes-do-projeto), [Rótulos](#rótulos), [Migrar do Opsgenie](/docs/moving-to-oneuptime/opsgenie) e os outros guias de migração |
+| **Básico** | **Projeto**, **Rótulos** | [Os detalhes do projeto](#os-detalhes-do-projeto), [Rótulos](#rótulos) |
 | **Espaço de trabalho** | **Slack**, **Microsoft Teams**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videochamadas](/docs/workspace-connections/video-calls) |
 | **Telemetria e APM** | **Chaves de ingestão**, **Retenção de dados** | [Chaves de ingestão](/docs/telemetry/ingestion-keys), [Retenção de dados](/docs/telemetry/data-retention) |
 | **Notificações** | **Configurações de notificação**, **Logs de notificação**, **Aplicativos móveis** | [Notificações](#notificações) |
-| **IA** | **AI Features**, **Provedores LLM**, **Créditos de IA**, **Registros de IA**, **Servidor MCP** | [Provedores de LLM](/docs/ai/llm-provider), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controle-de-custos) |
-| **Avançado** | **Domínios**, **Chaves de API**, **Sinalizadores de recursos** | [Domínios personalizados](/docs/status-pages/branding-and-domains#domínios-personalizados), [Chaves de API](/docs/permissions/index#chaves-de-api), [Sinalizadores de recursos](#sinalizadores-de-recursos) |
+| **IA** | **AI Features**, **Provedores LLM**, **Servidores MCP externos**, **Créditos de IA**, **Registros de IA**, **Servidor MCP** | [Provedores de LLM](/docs/ai/llm-provider), [Servidores MCP externos](/docs/ai/external-mcp-servers), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controle-de-custos) |
+| **Avançado** | **Domínios**, **Chaves de API**, **Sinalizadores de recursos**, **Importar de outra ferramenta** | [Domínios personalizados](/docs/status-pages/branding-and-domains#domínios-personalizados), [Chaves de API](/docs/permissions/index#chaves-de-api), [Sinalizadores de recursos](#sinalizadores-de-recursos), [Migrar do Opsgenie](/docs/moving-to-oneuptime/opsgenie) e os outros guias de migração |
 | **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Cobrança e faturas** | **Cobrança**, **Histórico de uso**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
 | **Registros de auditoria** | **Registros de auditoria**, **Configurações** | [Registros de auditoria](/docs/configuration/audit-logs) |

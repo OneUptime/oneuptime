@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 3661
+    "keys": 31872,
+    "untranslated": 3679
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -313,6 +313,7 @@
     "Togo",
     "Tokelau",
     "Token",
+    "Tokens",
     "Tonga",
     "Top P",
     "Total",

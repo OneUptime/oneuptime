@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 1164
+    "keys": 31872,
+    "untranslated": 1206
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -80,6 +80,7 @@
     "First Contentful Paint",
     "Fluent Bit",
     "GKE Autopilot",
+    "Gemini for Google Workspace",
     "Gi1/0/24",
     "GitHub App",
     "Google Cloud Functions",

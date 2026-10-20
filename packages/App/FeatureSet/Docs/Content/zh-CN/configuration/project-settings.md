@@ -30,12 +30,12 @@ flowchart LR
 
 | 部分 | 页面 | 详细阅读 |
 | --- | --- | --- |
-| **基础** | **项目**、**标签**、**从其他工具导入** | [项目详情](#项目详情)、[标签](#标签)、[从 Opsgenie 迁移](/docs/moving-to-oneuptime/opsgenie)及其他迁移指南 |
+| **基础** | **项目**、**标签** | [项目详情](#项目详情)、[标签](#标签) |
 | **工作区** | **Slack**、**Microsoft Teams**、**Video Calls** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[视频通话](/docs/workspace-connections/video-calls) |
 | **遥测与 APM** | **摄取密钥**、**数据保留** | [摄取密钥](/docs/telemetry/ingestion-keys)、[数据保留](/docs/telemetry/data-retention) |
 | **通知** | **通知设置**、**通知日志**、**移动应用** | [通知](#通知) |
-| **人工智能** | **AI Features**、**LLM 提供商**、**AI 积分**、**AI 日志**、**MCP 服务器** | [LLM 提供商](/docs/ai/llm-provider)、[MCP 服务器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
-| **高级** | **域名**、**API 密钥**、**功能标志** | [自定义域名](/docs/status-pages/branding-and-domains#自定义域名)、[API 密钥](/docs/permissions/index#api-密钥)、[功能标志](#功能标志) |
+| **人工智能** | **AI Features**、**LLM 提供商**、**外部 MCP 服务器**、**AI 积分**、**AI 日志**、**MCP 服务器** | [LLM 提供商](/docs/ai/llm-provider)、[外部 MCP 服务器](/docs/ai/external-mcp-servers)、[MCP 服务器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |
+| **高级** | **域名**、**API 密钥**、**功能标志**、**从其他工具导入** | [自定义域名](/docs/status-pages/branding-and-domains#自定义域名)、[API 密钥](/docs/permissions/index#api-密钥)、[功能标志](#功能标志)、[从 Opsgenie 迁移](/docs/moving-to-oneuptime/opsgenie)及其他迁移指南 |
 | **安全** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **账单和发票** | **账单**、**使用历史**、**发票** | [账单与用量](/docs/configuration/billing) |
 | **审计日志** | **审计日志**、**设置** | [审计日志](/docs/configuration/audit-logs) |

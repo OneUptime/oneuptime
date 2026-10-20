@@ -1,6 +1,6 @@
 # Wechsel von Opsgenie
 
-Atlassian stellt Opsgenie ein: Seit Juni 2025 wird Opsgenie nicht mehr verkauft, und im April 2027 endet der Support. OneUptime ist ein neues Zuhause für Ihr Bereitschaftsteam, und **Aus einem anderen Tool importieren** holt es in wenigen Minuten herüber. Mit einem schreibgeschützten Opsgenie-API-Schlüssel liest OneUptime Ihre Benutzer, Teams, Pläne, Eskalationen und Dienste ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Opsgenie ändert sich nichts.
+Atlassian stellt Opsgenie ein: Seit Juni 2025 wird Opsgenie nicht mehr verkauft, und im April 2027 endet der Support. OneUptime ist ein neues Zuhause für Ihr Bereitschaftsteam, und **Import aus anderem Tool** holt es in wenigen Minuten herüber. Mit einem schreibgeschützten Opsgenie-API-Schlüssel liest OneUptime Ihre Benutzer, Teams, Pläne, Eskalationen und Dienste ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Opsgenie ändert sich nichts.
 
 :::cards
 - [Konto importieren](#ihr-opsgenie-konto-importieren): Schlüssel erstellen, Konto einlesen und auswählen, was übernommen wird.
@@ -36,7 +36,7 @@ flowchart TB
 Öffnen Sie in Opsgenie **Settings** > **API key management** und wählen Sie **Add new API key**. Nennen Sie ihn `OneUptime import`, geben Sie ihm nur **Read** und **Configuration access** und kopieren Sie den Schlüssel.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Aus einem anderen Tool importieren** und wählen Sie **Opsgenie**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Import aus anderem Tool** und wählen Sie **Opsgenie**.
 
 ### Opsgenie verbinden
 Wählen Sie unter **Wo ist Ihr Opsgenie-Konto?** **Vereinigte Staaten** oder **Europa**. Fügen Sie den Schlüssel in **Opsgenie-API-Schlüssel** ein und wählen Sie **Mein Opsgenie-Konto einlesen**. Ein großes Konto dauert einige Minuten, und Sie können die Seite währenddessen verlassen.

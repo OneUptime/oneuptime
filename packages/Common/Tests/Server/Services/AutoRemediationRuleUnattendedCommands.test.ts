@@ -275,19 +275,73 @@ describe("AiRemediationCredentialUse.widensCommandsWithoutAsking", () => {
     ).toBe(false);
   });
 
-  it("clearing the Runners - every Runner then - widens it; naming some where any was allowed does not", () => {
+  /*
+   * No Runner named is no host at all now - never "every Runner that runs
+   * AI commands": a Runner runs a rule's commands only when the rule names
+   * it (AutoRemediationFix.getRuleCommandRunnerIds). So clearing the list
+   * narrows the rule, and naming one where none was named widens it.
+   */
+  it("clearing the Runners narrows it - no Runner is no host; naming one where none was widens it", () => {
     expect(
       AiRemediationCredentialUse.widensCommandsWithoutAsking({
         before: unattended(),
         after: unattended({ commandRunners: [] }),
       }),
-    ).toBe(true);
+    ).toBe(false);
 
     expect(
       AiRemediationCredentialUse.widensCommandsWithoutAsking({
         before: unattended({ commandRunners: [] }),
         after: unattended(),
       }),
+    ).toBe(true);
+  });
+
+  it("the rule's Runner counts as one of its Runners: picking another widens it, keeping it does not", () => {
+    // A OneUptime AI rule that picks a Runner composes commands there.
+    const withRunner: (runnerId: string) => RuleCommandSettings = (
+      runnerId: string,
+    ): RuleCommandSettings => {
+      return unattended({
+        aiComposesCommands: false,
+        commandRunners: [],
+        runnerId: runnerId,
+      });
+    };
+
+    expect(
+      AiRemediationCredentialUse.runsCommandsWithoutAsking(
+        withRunner(RUNNER_A),
+      ),
+    ).toBe(true);
+
+    expect(
+      AiRemediationCredentialUse.widensCommandsWithoutAsking({
+        before: withRunner(RUNNER_A),
+        after: withRunner(RUNNER_B),
+      }),
+    ).toBe(true);
+
+    expect(
+      AiRemediationCredentialUse.widensCommandsWithoutAsking({
+        before: withRunner(RUNNER_A),
+        after: withRunner(RUNNER_A.toUpperCase()),
+      }),
+    ).toBe(false);
+
+    // A legacy rule's Command Runner moved to its Runner is the same Runner.
+    expect(
+      AiRemediationCredentialUse.widensCommandsWithoutAsking({
+        before: unattended({ commandRunners: runners([RUNNER_A]) }),
+        after: unattended({ commandRunners: [], runnerId: RUNNER_A }),
+      }),
+    ).toBe(false);
+
+    // Without a Runner a OneUptime AI rule composes no commands at all.
+    expect(
+      AiRemediationCredentialUse.runsCommandsWithoutAsking(
+        unattended({ aiComposesCommands: false, commandRunners: [] }),
+      ),
     ).toBe(false);
   });
 
@@ -530,7 +584,7 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
 
     expect(thrown).toBeInstanceOf(NotAuthorizedException);
     expect((thrown as Error).message).toBe(
-      "This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on (or turning on a rule that does it), adding allowlist patterns or Runners to it needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential. Set the rule to ask before fixing, or ask someone who has it to save the rule.",
+      "This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runner. Turning that on (or turning on a rule that does it), adding allowlist patterns or picking another Runner for it needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential. Set the rule to ask before fixing, or ask someone who has it to save the rule.",
     );
   });
 
@@ -690,7 +744,7 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     ).toBeNull();
   });
 
-  it("refuses to widen a rule that runs commands without asking: a pattern, a Runner, or every Runner", async () => {
+  it("refuses to widen a rule that runs commands without asking: a pattern, a Command Runner, or another Runner picked", async () => {
     storedRule = {
       _id: RULE_ID.toString(),
       id: RULE_ID,
@@ -700,12 +754,25 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     for (const data of [
       { commandAllowlist: ["systemctl restart nginx", "reboot"] },
       { commandRunners: [{ _id: RUNNER_A }, { _id: RUNNER_B }] },
-      { commandRunners: [] },
+      { runnerId: RUNNER_B },
+      { runner: { _id: RUNNER_B } },
     ]) {
       expect(await update(data, editor(RULE_EDITOR))).toBeInstanceOf(
         NotAuthorizedException,
       );
     }
+  });
+
+  it("lets any editor clear its Command Runners: no Runner is no host, never every Runner", async () => {
+    storedRule = {
+      _id: RULE_ID.toString(),
+      id: RULE_ID,
+      ...unattended(),
+    } as unknown as JSONObject;
+
+    expect(
+      await update({ commandRunners: [] }, editor(RULE_EDITOR)),
+    ).toBeNull();
   });
 
   it("lets any editor narrow it, or turn it off", async () => {

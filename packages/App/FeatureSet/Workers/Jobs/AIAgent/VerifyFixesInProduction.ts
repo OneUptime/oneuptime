@@ -3,8 +3,9 @@ import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import FixProductionVerifier from "Common/Server/Utils/AI/CodeFix/FixProductionVerifier";
 
 /*
- * Whether merged AI fixes fixed their exceptions in production: finds the
- * recorded deploy that shipped each one and watches its exception there
+ * Whether merged AI fixes worked in production: finds the recorded deploy
+ * that shipped each one and watches there what it was for - an exception,
+ * a slow operation, a monitor's incidents, the telemetry it adds
  * (FixProductionVerifier). Never throws.
  */
 RunCron(

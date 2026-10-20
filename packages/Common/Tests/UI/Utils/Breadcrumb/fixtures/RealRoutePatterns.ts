@@ -840,6 +840,7 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/llm/overview",
   "/dashboard/:projectId/llm/calls",
   "/dashboard/:projectId/llm/documentation",
+  "/dashboard/:projectId/llm/connect",
   "/dashboard/:projectId/inventory/*",
   "/dashboard/:projectId/inventory/overview",
   "/dashboard/:projectId/inventory/items",

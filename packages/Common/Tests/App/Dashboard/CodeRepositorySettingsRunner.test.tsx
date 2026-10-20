@@ -331,17 +331,22 @@ describe("a Runner's page: the repositories that pick it", () => {
       "utf8",
     );
 
-    const remediation: number = source.indexOf(
-      'title: "Runs AI Remediation Commands"',
-    );
+    /*
+     * What the Runner may run is "Runs Runbooks" alone: "Runs AI
+     * Remediation Commands" went the same way as the AI code fix switch -
+     * an auto remediation rule, or a cluster's AI settings, picks the
+     * Runner OneUptime AI runs its commands on.
+     */
+    const runsRunbooks: number = source.indexOf('title: "Runs Runbooks"');
     const row: number = source.indexOf(
       "title: RunnerCodeRepositoriesCopy.title",
     );
     const labels: number = source.indexOf('title: "Labels"');
     const statusCard: number = source.indexOf('name="Runner Status"');
 
-    expect(remediation).toBeGreaterThan(-1);
-    expect(row).toBeGreaterThan(remediation);
+    expect(runsRunbooks).toBeGreaterThan(-1);
+    expect(source).not.toContain('title: "Runs AI Remediation Commands"');
+    expect(row).toBeGreaterThan(runsRunbooks);
     expect(labels).toBeGreaterThan(row);
     // Inside Runner Details, which ends where Runner Status begins.
     expect(statusCard).toBeGreaterThan(labels);

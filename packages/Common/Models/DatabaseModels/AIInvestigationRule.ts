@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import ExternalMcpServer from "./ExternalMcpServer";
 import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
 import Monitor from "./Monitor";
@@ -35,10 +36,12 @@ import {
  *
  * With no rule, every new incident is investigated while "Investigate new
  * incidents" is on. With rules, only the incidents that match at least one
- * enabled rule are - a rule is only conditions, the same ones the project's
- * other incident and alert rules offer (Match Criteria). Changing what AI
- * does is the AI settings' business, so a rule takes what changing those
- * takes: Project Owner or Project Admin.
+ * enabled rule are - a rule's conditions are the same ones the project's
+ * other incident and alert rules offer (Match Criteria). A rule may also
+ * make OneUptime AI wait, and investigate only an incident still open after
+ * the wait (onlyIfOpenAfterMinutes). Changing what AI does is the AI
+ * settings' business, so a rule takes what changing those takes: Project
+ * Owner or Project Admin.
  */
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -453,6 +456,81 @@ export default class AIInvestigationRule extends RuleBaseModel {
     length: ColumnLength.LongText,
   })
   public descriptionPattern?: string = undefined;
+
+  /*
+   * The rule's wait (issue #5074): OneUptime AI waits this many minutes
+   * after an incident (or alert) the rule matches was created, and
+   * investigates it then only if it is still open. Empty (or 0) is no wait:
+   * it investigates right away, as every rule did before rules could wait.
+   * When several rules match, the shortest wait decides
+   * (Types/AI/InvestigationRuleWait).
+   */
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Only If Open After (Minutes)",
+    description:
+      "Investigate only incidents or alerts still open this many minutes after they were created: OneUptime AI waits that long, then investigates if it is still open. Leave empty to investigate right away. When several rules match, the shortest wait decides. At most 1440 minutes (a day).",
+    example: 10,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public onlyIfOpenAfterMinutes?: number = undefined;
+
+  /*
+   * The external MCP servers OneUptime AI may use while it investigates
+   * what this rule matches - only their tools that read. None named is all
+   * of the project's servers that are on (ExternalMcpServerAllowance). Only
+   * the project's own servers can be named (ProjectReferencesService).
+   */
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: ExternalMcpServer,
+    title: "MCP Servers",
+    description:
+      "The external MCP servers OneUptime AI may use while it investigates what this rule matches. Leave empty to let it use all of the project's MCP servers.",
+  })
+  @ManyToMany(
+    () => {
+      return ExternalMcpServer;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AIInvestigationRuleExternalMcpServer",
+    inverseJoinColumn: {
+      name: "externalMcpServerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "aiInvestigationRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public externalMcpServers?: Array<ExternalMcpServer> = undefined;
 
   @ColumnAccessControl({
     create: [Permission.ProjectOwner, Permission.ProjectAdmin],

@@ -344,16 +344,18 @@ Avvisi ed eventi di manutenzione programmata hanno la stessa funzione, in **Avvi
 
 Il modulo si apre su **Che cosa vuoi misurare?**. Sceglietene una di queste e il suo nome, la sua descrizione ed entrambi i momenti vengono compilati: **Avanti** mostra i momenti, e la misurazione viene creata da quell'ultimo passaggio.
 
-| Dove                      | Misurazione                            | Inizia quando                                     | Finisce quando                         |
-| ------------------------- | -------------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| Incidenti                 | **Tempo di riconoscimento**            | L'incidente viene dichiarato                      | L'incidente viene riconosciuto         |
-| Incidenti                 | **Tempo di risoluzione**               | L'incidente viene dichiarato                      | L'incidente viene risolto              |
-| Incidenti                 | **Tempo fino al post-mortem**          | L'incidente viene risolto                         | Il post-mortem viene pubblicato        |
-| Avvisi                    | **Tempo di riconoscimento**            | L'avviso viene creato                             | L'avviso viene riconosciuto            |
-| Avvisi                    | **Tempo di risoluzione**               | L'avviso viene creato                             | L'avviso viene risolto                 |
-| Manutenzione programmata  | **Ritardo di inizio**                  | La manutenzione deve iniziare da programma        | La manutenzione inizia                 |
-| Manutenzione programmata  | **Sforamento**                         | La manutenzione deve finire da programma          | La manutenzione finisce                |
-| Manutenzione programmata  | **Durata della manutenzione**          | La manutenzione inizia                            | La manutenzione finisce                |
+| Dove                      | Misurazione                                  | Inizia quando                                     | Finisce quando                         |
+| ------------------------- | -------------------------------------------- | ------------------------------------------------- | -------------------------------------- |
+| Incidenti                 | **Tempo di riconoscimento**                  | L'incidente viene dichiarato                      | L'incidente viene riconosciuto         |
+| Incidenti                 | **Tempo di riconoscimento dopo la chiamata** | Qualcuno viene chiamato per la prima volta                           | L'incidente viene riconosciuto         |
+| Incidenti                 | **Tempo di risoluzione**                     | L'incidente viene dichiarato                      | L'incidente viene risolto              |
+| Incidenti                 | **Tempo fino al post-mortem**                | L'incidente viene risolto                         | Il post-mortem viene pubblicato        |
+| Avvisi                    | **Tempo di riconoscimento**                  | L'avviso viene creato                             | L'avviso viene riconosciuto            |
+| Avvisi                    | **Tempo di riconoscimento dopo la chiamata** | Qualcuno viene chiamato per la prima volta                           | L'avviso viene riconosciuto            |
+| Avvisi                    | **Tempo di risoluzione**                     | L'avviso viene creato                             | L'avviso viene risolto                 |
+| Manutenzione programmata  | **Ritardo di inizio**                        | La manutenzione deve iniziare da programma        | La manutenzione inizia                 |
+| Manutenzione programmata  | **Sforamento**                               | La manutenzione deve finire da programma          | La manutenzione finisce                |
+| Manutenzione programmata  | **Durata della manutenzione**                | La manutenzione inizia                            | La manutenzione finisce                |
 
 Scegliete **Qualcos'altro** per scegliere voi i due momenti. Un nome che avete digitato viene mantenuto quando scegliete una di queste.
 
@@ -364,6 +366,7 @@ Il secondo passaggio, **Inizio e fine**, ha **Inizia quando** e **Finisce quando
 | Momento                                            | Quando avviene                                                               | Salvato nell'API come                                 |
 | -------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **L'incidente viene dichiarato**                   | Quando l'incidente è iniziato in OneUptime: quando è stato creato, a meno che qualcuno non abbia impostato un'ora precedente. | `Declared At` (`Timeline Start` è lo stesso istante) |
+| **Qualcuno viene chiamato per la prima volta**                        | Quando una policy di reperibilità o una chiamata diretta raggiunge per la prima volta qualcuno per l'incidente — vedete più sotto. | `First Paged At`                                      |
 | **L'incidente viene riconosciuto**                 | Quando raggiunge il vostro stato riconosciuto, o uno stato successivo (conta anche una risoluzione diretta dall'inizio). | `State Role Entered`, ruolo `Acknowledged` |
 | **L'incidente viene risolto**                      | Quando raggiunge il vostro stato risolto.                                    | `State Role Entered`, ruolo `Resolved`                |
 | **Il post-mortem viene pubblicato**                | Quando il post-mortem dell'incidente viene pubblicato.                       | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ La pagina di ogni incidente mostra le proprie misurazioni in una scheda **Misura
 | Una durata, come **4 minuti**         | Entrambi i momenti sono avvenuti (**Recorded**). È nell'unità della misurazione: **Automatico** si legge come gli altri tempi della pagina, **1 ora e 5 minuti**, e **Ore** si legge **1,5 ore**. |
 | **In corso da 12 minuti**             | L'orologio è partito e la fine non è ancora avvenuta. Conta in avanti finché la pagina è aperta.                                 |
 | **Non ancora iniziato**               | L'inizio non è ancora avvenuto, oppure è un'ora ancora futura, come l'inizio programmato di un evento di manutenzione.             |
-| **Non raggiunto**                     | L'incidente è risolto, e il momento atteso dalla misurazione non è mai arrivato — un incidente risolto senza essere stato riconosciuto. |
+| **Non raggiunto**                     | L'incidente è risolto, e il momento atteso dalla misurazione non è mai arrivato — un incidente risolto senza essere stato riconosciuto, o senza che nessuno sia stato chiamato. |
 | **Non misurato**                      | Un momento non può mai avvenire (**Not Applicable**), con il motivo, come uno stato saltato.                                      |
 | **Finisce prima di iniziare**         | Le ore registrate si contraddicono (**Invalid**), con quanto distano tra loro.                                                    |
 | **Non ancora calcolato**              | OneUptime non l'ha ancora calcolata per questo incidente, come subito dopo la creazione della misurazione.                        |
@@ -424,9 +427,17 @@ Avvisi ed eventi di manutenzione programmata hanno la stessa scheda sulle loro p
 
 È proprio questo il punto. `Declared At` registra quando OneUptime lo ha saputo, che per un incidente attivato da un monitor è il momento in cui i criteri sono stati elaborati — non quello in cui è iniziato l'impatto. Se «Time to Detect» prendesse per impostazione predefinita come inizio lo stesso orario usato dalla sua fine, ogni incidente riporterebbe zero e il grafico direbbe «rileviamo all'istante». Un campo vuoto e una misurazione **Not Applicable** dicono la verità: nessuno ha registrato quando è iniziato.
 
+### Tempo di riconoscimento dopo la chiamata
+
+La misurazione **Tempo di riconoscimento** conta da quando l'incidente viene dichiarato, quindi un incidente per cui nessuno viene chiamato fino al mattino risulta come ore di attesa che nessun reperibile ha visto. La misurazione **Tempo di riconoscimento dopo la chiamata** conta invece da **Qualcuno viene chiamato per la prima volta**: la prima volta che una policy di reperibilità o una chiamata diretta ha raggiunto qualcuno per l'incidente. Finisce quando l'incidente viene riconosciuto, con la stessa regola del tempo di riconoscimento.
+
+OneUptime registra quel momento sull'incidente, e sull'avviso, come `First Paged At`, una sola volta, e non lo sposta mai. Conta solo una chiamata partita davvero: nella **Cronologia di esecuzione** di una policy di reperibilità o di una chiamata diretta, una persona la cui chiamata è stata inviata, riconosciuta o passata. Un passaggio **Saltato** o finito in **Errore** non conta, e nemmeno una policy partita senza chiamare nessuno, come una la cui pianificazione non aveva nessun reperibile. Gli incidenti per cui qualcuno è stato chiamato prima che esistesse `First Paged At` ricevono il loro dalle loro esecuzioni di reperibilità.
+
+Un incidente per cui nessuno è stato chiamato non ha alcun valore: **Non ancora iniziato** finché è aperto, e **Non raggiunto** una volta risolto. Il grafico può essere suddiviso per gravità, così potete vedere quanto velocemente si risponde a ogni gravità una volta che qualcuno è stato chiamato. Lo dice anche la pagina dell'incidente: sotto il suo tempo di riconoscimento aggiunge quanto tempo dopo la prima chiamata è stato riconosciuto, ad esempio **4 minuti dopo la chiamata**. La metrica del tempo di riconoscimento e l'MTTA nei riepiloghi di Slack e Microsoft Teams contano ancora da quando l'incidente è stato dichiarato.
+
 ### Correggere un orario sbagliato
 
-Ogni misurazione viene ricalcolata da zero ogni volta che cambiano i dati sottostanti — una voce della cronologia degli stati creata, modificata o eliminata, oppure `Impact Started At`, `Declared At` o `Postmortem Posted At` corretti sull'incidente. Nulla viene aggiustato in modo incrementale, quindi non c'è alcun valore obsoleto da riparare.
+Ogni misurazione viene ricalcolata da zero ogni volta che cambiano i dati sottostanti — una voce della cronologia degli stati creata, modificata o eliminata, `Impact Started At`, `Declared At` o `Postmortem Posted At` corretti sull'incidente, oppure la partenza della sua prima chiamata. Nulla viene aggiustato in modo incrementale, quindi non c'è alcun valore obsoleto da riparare.
 
 Il campo **Inizia il** di una voce della cronologia degli stati è modificabile. Se un incidente è stato riconosciuto alle 09:12 ma la voce dice 09:29, correggete la voce e ogni misurazione derivata da essa si sposta di conseguenza.
 
@@ -551,8 +562,8 @@ Anche le regole di raggruppamento, SLA, dei promemoria, di indagine e di rimedio
 - **Regole di reperibilità** — eseguono policy di reperibilità per gli incidenti corrispondenti. Trattate in dettaglio più sotto.
 - **Regole del proprietario** — assegnano proprietari automaticamente.
 - **Regole di runbook** — avviano un [runbook](/docs/runbooks/index) quando un incidente corrisponde.
-- **Regole di rimedio automatico**, sotto **IA** → **Impostazioni** — quali nuovi incidenti vengono corretti finché **Correggi automaticamente i nuovi incidenti** è attivo, e come: da OneUptime AI o con i runbook della regola, chiedendo prima di correggere oppure no. Senza alcuna regola, ogni nuovo incidente viene corretto. Se per l'incidente è in coda un'indagine IA, vengono eseguite quando questa termina, con la sua analisi in mano.
-- **Regole di indagine**, sotto **IA** → **Impostazioni** — quali nuovi incidenti esamina OneUptime AI. Senza alcuna regola, tutti. Vedete [AI SRE](/docs/ai/ai-sre).
+- **Regole di rimedio automatico**, sotto **IA** → **Impostazioni** — quali nuovi incidenti vengono corretti finché **Correggi automaticamente i nuovi incidenti** è attivo, e come: chiedendo prima di correggere oppure no, e i runbook che OneUptime AI può eseguire. Senza alcuna regola, ogni nuovo incidente viene corretto. Se per l'incidente è in coda un'indagine IA, vengono eseguite quando questa termina, con la sua analisi in mano.
+- **Regole di indagine**, sotto **IA** → **Impostazioni** — quali nuovi incidenti esamina OneUptime AI. Senza alcuna regola, tutti. Una regola può anche farlo attendere, ed esaminare solo gli incidenti ancora aperti dopo quei minuti. Vedete [AI SRE](/docs/ai/ai-sre).
 - **Regole di privacy** — decidono se un incidente corrispondente è privato.
 - **Regole etichette** — applicano etichette automaticamente.
 - **Regole SLA** — tracciano i tempi di risposta e di risoluzione. Le regole vengono valutate dall'alto verso il basso dell'elenco; trascinate una regola per cambiarne la posizione.

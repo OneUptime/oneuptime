@@ -37,6 +37,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AutoRemediationAction from "../../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -68,6 +69,18 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
+
+/*
+ * Who declares a kubectl change's object is read through the cluster too
+ * (GitOpsInspector: GitOpsInspector.test.ts and
+ * RemediationCommandToolsGitOps.test.ts cover it); these tests count only
+ * the changes themselves.
+ */
+beforeEach(() => {
+  jest.spyOn(GitOpsInspector, "inspectCommand").mockResolvedValue(null);
+  jest.spyOn(GitOpsInspector, "captureRevertWatch").mockResolvedValue(null);
+});
 
 /*
  * Contract under test — the RemediationExecution runner (AI-composed
@@ -160,6 +173,11 @@ function mockSuggestion(
     .mockResolvedValue(fakeSuggestion(overrides));
 }
 
+/*
+ * A rule saved before rules were simplified that composes commands, naming
+ * the Runner its tests target: a Runner runs a rule's commands only when
+ * the rule names it (AutoRemediationFix.getRuleCommandRunnerIds).
+ */
 function mockRule(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(AutoRemediationRuleService, "findOneById").mockResolvedValue({
     id: RULE_ID,
@@ -168,7 +186,7 @@ function mockRule(overrides: Partial<Record<string, unknown>> = {}): void {
     aiComposesCommands: true,
     executionMode: AutoRemediationExecutionMode.Suggest,
     commandAllowlist: [],
-    commandRunners: [],
+    commandRunners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
     ...overrides,
   } as unknown as AutoRemediationRule);
 }
@@ -701,7 +719,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
           set: expect.objectContaining({
             status: AutoRemediationSuggestionStatus.NoneApplicable,
             rationaleMarkdown: expect.stringContaining(
-              "deleted, disabled, or no longer composes commands",
+              "deleted, disabled, or no longer runs commands on a Runner",
             ),
           }),
         }),
@@ -726,10 +744,22 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       await expectNoneApplicableWithoutEngine();
     });
 
-    it("settles NoneApplicable when the rule no longer composes commands", async () => {
+    it("settles NoneApplicable when the rule no longer runs commands on a Runner", async () => {
       mockSuggestion();
       mockProject();
+      // A OneUptime AI rule that picks no Runner runs no commands of its own.
       mockRule({ aiComposesCommands: false });
+
+      await expectNoneApplicableWithoutEngine();
+    });
+
+    it("settles NoneApplicable when the rule runs its runbooks every time", async () => {
+      mockSuggestion();
+      mockProject();
+      mockRule({
+        remediationAction: AutoRemediationAction.Runbooks,
+        runnerId: RUNNER_ID,
+      });
 
       await expectNoneApplicableWithoutEngine();
     });
@@ -2824,9 +2854,9 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
               code: "runner_ai_commands_disabled",
               title: "The Runner does not accept AI commands",
               description:
-                '"Runs AI Remediation Commands" is turned off on Runner "ops-runner", so it will not be served kubectl work.',
+                'Runner "ops-runner" does not run OneUptime AI\'s commands yet, so it will not be served kubectl work.',
               nextStep:
-                'Turn on "Runs AI Remediation Commands" on the Runner (Runbooks → Runners).',
+                "Choose the Runner again on the cluster's AI agent page (AI → Agent) to let OneUptime AI run kubectl on it.",
               blocks: "both",
             },
           ],

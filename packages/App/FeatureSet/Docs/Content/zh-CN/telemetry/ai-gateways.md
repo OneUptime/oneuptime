@@ -6,6 +6,7 @@ AI 网关位于你的应用和模型提供商之间，所以每次模型调用�
 - [LiteLLM Proxy](#litellm-proxy): 内置导出，用三个变量完成设置。
 - [谁花了什么](#每位员工一个虚拟密钥): 每位员工一个 LiteLLM 虚拟密钥，就能识别每个人。
 - [Portkey](#portkey): 自托管网关有内置导出；其他情况下为应用插桩。
+- [OpenRouter](#openrouter): Broadcast 会发送每个请求的跟踪，只需在 OpenRouter 中设置一次。
 - [检查调用是否到达](#检查调用是否到达): 你应该看到什么，看不到时怎么办。
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | 要设置的端点 | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | 应用自己的导出器 |
 | 能识别每个人 | 能，每位员工一个虚拟密钥 | 不能 | 只有应用发送的内容 |
 | 提示词和回答 | 发送，除非你关闭 | 始终发送 | 取决于插桩 |
+
+OneUptime 没有自己的网关：网关会持有你的提供商密钥，并给你的应用的每次模型调用多加一跳。OneUptime 读取你已经在运行的网关，而你提供商账户的用量和成本则完全无需代码：参见 [AI 提供商账户](/docs/telemetry/ai-provider-accounts)。
 
 ## 开始之前
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 这些 span 描述的是你的应用发出的调用：它请求的模型、等待的时间、拿回的 token。网关在途中做出的决定，例如回退、重试或命中缓存，会留在 Portkey 中。要在 OneUptime 中看到这些，请使用自托管网关的导出。
 
+## OpenRouter
+
+OpenRouter 的 Broadcast 会把你的 OpenRouter 账户每个请求的跟踪发送到一个 OpenTelemetry 端点：模型、token、OpenRouter 收取的成本，以及除非你关闭，否则还有提示词和回答。只需在 OpenRouter 中设置一次，无需修改你的应用。
+
+:::steps
+### 开启 Broadcast
+
+在 OpenRouter 中打开 Settings、Observability，并开启 Enable Broadcast。
+
+### 把 OneUptime 添加为收集器
+
+编辑 OpenTelemetry Collector 目标。把它的端点设为完整的跟踪路径 `https://oneuptime.com/otlp/v1/traces`，把它的请求头设为 `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`。然后测试连接：只有测试通过，OpenRouter 才会保存该目标。
+
+### 通过它调用模型
+
+通过 OpenRouter 调用一个模型，然后按 [检查调用是否到达](#检查调用是否到达) 中的说明检查 AI / LLM。
+:::
+
+- OpenRouter 通过 HTTP 以 JSON 发送 OTLP，OneUptime 无需中间的收集器即可接收。
+- 请求的 `user` 会作为 `user.id` 到达，OneUptime 把它读作发起调用的人；它的 `session_id` 会作为 `session.id` 到达，用于把调用归入一个对话。请在 `user` 中发送员工的 ID，绝不要发送客户的 ID。
+- 提示词和回答位于生成 span 上，即 `gen_ai.prompt` 和 `gen_ai.completion`。如需排除它们，请开启目标的隐私模式。
+
 ## 检查调用是否到达
 
 :::steps
@@ -259,6 +284,10 @@ LiteLLM 使用完整路径 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 从 LiteLLM 1.81 起，一个请求中的多次模型调用共享同一个 span。请设置 `USE_OTEL_LITELLM_REQUEST_SPAN=true`，为每次调用得到一个 span。
 :::
 
+:::details OpenRouter 不保存目标
+它的连接测试失败了。请检查端点是否以 `/v1/traces` 结尾，以及请求头中是否包含服务器摄取密钥。
+:::
+
 ## 后续步骤
 
 :::cards
@@ -266,4 +295,5 @@ LiteLLM 使用完整路径 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): 在自己不发送遥测数据的工具前面放一个网关。
 - [AI 代理熔断器](/docs/telemetry/ai-agent-circuit-breaker): 当警报触发时让失控的代理停下。
 - [跟踪监控](/docs/monitor/traces-monitor): 针对 span 模式发出警报，例如在循环中被调用的工具。
+- [AI 提供商账户](/docs/telemetry/ai-provider-accounts): 无需代码，查看网关背后账户的账单。
 :::

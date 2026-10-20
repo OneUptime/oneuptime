@@ -30,6 +30,8 @@ flowchart TB
 
 Reconocer o resolver el incidente, la alerta o el episodio detiene toda política que aún esté avisando por él. OneUptime hace avanzar las políticas en curso cada minuto y registra cada ejecución, regla a regla, en **Registros de ejecución**.
 
+La primera vez que un aviso llega a alguien, OneUptime lo registra en el incidente, la alerta o el episodio como `First Paged At`. Una medición puede contar desde ahí: **Tiempo hasta el reconocimiento tras el aviso** mide cuánto tardaron las personas en responder una vez avisadas, no cuánto tiempo pasó antes de que se avisara a alguien. Consulta [Tiempo hasta el reconocimiento tras el aviso](/docs/incidents/settings#tiempo-hasta-el-reconocimiento-tras-el-aviso).
+
 > [!NOTE]
 > Un incidente, una alerta o un episodio que se crea ya reconocido o resuelto no ejecuta ninguna de sus políticas, y su feed lo indica. Consulta [Creada ya reconocida o resuelta](/docs/alerts/index#creada-ya-reconocida-o-resuelta).
 

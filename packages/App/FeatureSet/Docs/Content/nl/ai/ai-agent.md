@@ -7,6 +7,7 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 - [Het gesprek van een taak](#het-gesprek-van-een-taak): Wat AI deed, wat het wijzigde, en jouw antwoord.
 - [Hoe een herstelrun verloopt](#hoe-een-herstelrun-verloopt): Van een klik tot een pull request, stap voor stap.
 - [Waar hersteltaken starten](#waar-hersteltaken-starten): De taken die OneUptime start, en wat elke pull request doet.
+- [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel): Wat een herstel uit productie leest terwijl het de wijziging schrijft.
 - [Voordat je begint](#voordat-je-begint): Een model, een gekoppelde repository en een Runner.
 - [Als een herstel mislukt](#als-een-herstel-mislukt): Wat er gebeurt met een run die een fout geeft, vastloopt of wacht.
 :::
@@ -83,13 +84,13 @@ flowchart TB
 2. De taak komt in de wachtrij van zijn repository, en de Runner die de repository kiest pakt hem op: een van je Runners, of een globale Runner als hij er geen kiest (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)).
 3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
 4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
-5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs.
+5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs. Een herstel van een uitzondering, een trage trace of een incident leest tijdens het werk ook uit productie: de uitzonderingen, traces, logs en metrieken van de services van de repository (zie [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel)).
 6. Heeft de repository controleopdrachten, dan bouwt en test een eigen Runner de wijziging voordat hij iets commit, en geeft hij een fout terug aan de code-agent om te herstellen (zie [Controle vóór de pull request](#controle-vóór-de-pull-request)).
 7. De Runner commit, pusht de branch, opent de pull request (bij een verzoek alleen als er code is gewijzigd) en verwijdert de werkruimte.
 
 De pagina waarop de taak is gestart, toont live de status. Elke taak staat in zijn repository onder **Producten → Code**: zijn pagina is zijn gesprek, en het **Logboek** van elke beurt heeft een regel voor elk bestand dat de Runner las of schreef en elke opdracht die hij uitvoerde.
 
-Elke run is gebonden aan budgetten die de server afdwingt: hoogstens **40 LLM-aanroepen** en **100.000 uitvoertokens**. Een run die er een bereikt, stopt met een samenvatting van het werk tot dan toe in plaats van in een lus te blijven draaien. Herstelruns tellen ook mee voor de dagelijkse AI-limieten van het project, als het project die instelt.
+Elke run is gebonden aan budgetten die de server afdwingt: hoogstens **40 LLM-aanroepen** en **100.000 uitvoertokens**. De query's op productietelemetrie van een run tellen mee voor dezelfde 40 aanroepen. Een run die er een bereikt, stopt met een samenvatting van het werk tot dan toe in plaats van in een lus te blijven draaien. Herstelruns tellen ook mee voor de dagelijkse AI-limieten van het project, als het project die instelt.
 
 ## Waar hersteltaken starten
 
@@ -110,6 +111,37 @@ Om de pagina **AI Assistance** van een uitzondering te openen, open je de uitzon
 
 OneUptime AI start hersteltaken ook zelf: vanuit een onderzoek dat een codewijziging vindt, vanuit een onderzoek dat zonder conclusie eindigt omdat er telemetrie ontbrak, en vanuit AI Insights over uitzonderingen en trage traces. Elk heeft een eigen schakelaar; zie [Automatische codeherstellingen](/docs/ai/ai-sre#automatische-codefixes).
 
+## Productietelemetrie in een herstel
+
+OneUptime weet wat je code in productie doet, dus een herstel hoeft niet alleen van een stack trace uit te gaan. Terwijl de code-agent werkt, kan hij de productietelemetrie opvragen van de services die bij de repository horen:
+
+| Hij leest | Waarvoor |
+| --- | --- |
+| **Uitzonderingen** | De uitzonderingsgroepen die in bepaalde bestanden of een functie worden gegooid: hoe vaak in de afgelopen dagen, sinds welke release, en de trace van een recent voorval. |
+| **Traces** | Het latentie- en foutprofiel van een endpoint of operatie, en de spans van één trace. |
+| **Logboeken** | De logregels van een service, op tijd, ernst, tekst of trace. |
+| **Metrieken** | Een metriek die een service rapporteert, door de tijd heen; zonder naam de metrieken die hij rapporteert. |
+| **Incidenten** | Incidenten die de services troffen, of waarvoor een OneUptime-herstel in deze repository werd geopend, met hun hoofdoorzaak en postmortem. |
+| **Deploys** | Recente deploys en andere wijzigingen van de services, elk met het oordeel van OneUptime of die de bijbehorende service schaadde. |
+
+| Taak | Wat die controleert |
+| --- | --- |
+| **Oplossen met AI** bij een uitzondering | Hoe vaak die nu wordt gegooid en sinds welke release, de logs en de trace van een voorval. |
+| **Versnellen met AI** | Hoe druk en hoe traag de operatie is over al haar traces, niet alleen de geanalyseerde. Er wordt niets gewijzigd als de operatie niet meer traag is. |
+| **Open Fix PR from this analysis**, en herstellingen die automatisch vanuit onderzoeken worden geopend | De deploys vóór het incident, zijn fouten, logs en trage operaties, en of de oorzaak al eerder toesloeg. |
+| `@oneuptime review` vanuit GitHub | Wat productie zegt over de gewijzigde code (zie [Reviews met productiecontext](/docs/ai/github-app#reviews-met-productiecontext)). |
+
+De beschrijving van de pull request vermeldt wat de agent opvroeg en wat dat liet zien. Andere taken, zoals regressietests en verbeteringen aan logging of tracing, raadplegen productie niet.
+
+Wat de agent kan lezen, bepaalt de OneUptime-server op basis van de taak zelf:
+
+- **Alleen lezen.** De query's draaien op de OneUptime-server, nooit op de Runner, die geen inloggegevens heeft waarmee telemetrie te lezen is. Niets wat ze doen, kan je project veranderen.
+- **Dit project, en alleen de services die bij deze repository horen.** Je koppelt ze niet zelf: het zijn de services waarvoor OneUptime deze repository vindt, zoals het ook de repository van een herstel vindt - de stack traces van hun uitzonderingen lopen door de bestanden ervan, ze heten zoals de repository, of het is de enige repository van het project. De telemetrie van een andere service kan niet worden gelezen.
+- **Geen privé-incidenten**, en tokens, sleutels, wachtwoorden en e-mailadressen worden afgeschermd voordat de agent een resultaat ziet, zoals overal waar OneUptime AI je gegevens leest.
+- **Begrensd.** Hoogstens **12** query's per run, die elk meetellen voor de 40 aanroepen van de run.
+
+Als er geen service bij de repository hoort, draait de taak zonder productietelemetrie, zoals voorheen.
+
 ## Controle vóór de pull request
 
 Een repository kan tot drie controleopdrachten hebben op zijn pagina **Instellingen** in Code:
@@ -129,6 +161,19 @@ Is er een ingesteld, dan controleert elke herstelrun zijn wijziging voordat de p
 Een wijziging die de controle nog steeds niet doorstaat, wordt niet weggegooid: de pull request opent toch, met een duidelijk gemarkeerde sectie "Verification failed" die de mislukte opdracht noemt en eindigt met de uitvoer ervan. Het werk blijft bewaard, en wie beoordeelt, beslist. Een repository zonder ingestelde opdrachten wordt als overgeslagen gemeld, in plaats van een groene build te suggereren.
 
 De opdrachten zijn repository-instellingen die je team schrijft en die op je eigen Runner draaien: hetzelfde vertrouwensmodel als de Bash-stappen van een runbook. De AI schrijft of wijzigt ze nooit. Een globale Runner, die OneUptime voor elk project draait, voert ze nooit uit: op een globale Runner wordt het herstel geschreven en ter beoordeling geopend, wordt de controle als overgeslagen gemeld, en controleert de eigen CI van je repository de wijziging. [Draai een eigen Runner](#een-eigen-runner-draaien) om het herstel te laten bouwen en testen voordat de pull request opent.
+
+## Na het mergen van een fix
+
+Een fix mergen lost niets op totdat hij draait. Zodra een pull request met een fix gemerged is, wacht OneUptime op een vastgelegde deploy die hem bevat (zie [Deploys en wijzigingen](/docs/telemetry/change-events)) en houdt in die deploy in de gaten waarvoor de fix bedoeld was. De pull request van de taak in Code zegt hoe het ging, net als de pagina **AI Assistance** van de uitzondering, de AI-logboeken van het incident en de AI-insight waar de fix uit voortkwam:
+
+| Een fix van | Wat wordt gevolgd | Het werkte | Het werkte niet |
+| --- | --- | --- | --- |
+| Een uitzondering | Of de uitzondering opnieuw voorkomt | **Opgelost in productie** | **Komt nog steeds voor na de fix** |
+| Een trage trace of een latentie-insight | De p99 van de bewerking die de fix noemt | **Sneller in productie** | **Nog steeds traag na de fix** |
+| De hoofdoorzaak van een incident of een melding | Of de monitor er nog een veroorzaakt | **Opgelost in productie** | **Opnieuw voorgekomen na de fix** |
+| Ontbrekende telemetrie, logging of tracing | Wat de fix toevoegt, en de rest van de telemetrie van de service | **Komt binnen in productie** | **Telemetrie gestopt na de fix** |
+
+Totdat een deploy hem uitlevert, staat bij de fix **Gemerged, wacht op een deploy**, daarna **Gedeployed, wordt in productie gevolgd** zolang hij gevolgd wordt. Een fix die binnen 14 dagen in geen enkele vastgelegde deploy zit, of waarover productie niets kan zeggen, staat op **Niet geverifieerd in productie**. [Automatische codefixes](/docs/ai/ai-sre#automatische-codefixes) beschrijft de regels. Een regressietest, betere foutafhandeling, een review en een verzoek in Code worden niet gevolgd: productie kan niet laten zien wat ze veranderen.
 
 ## Voordat je begint
 
@@ -231,14 +276,13 @@ Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken
 
 ## Privacy
 
-De kloon van je repository staat in een werkruimte in de container van de Runner en wordt verwijderd als de run eindigt, geslaagd of niet. De Runner heeft nooit de API-sleutel van je LLM-provider: de OneUptime-server doet de LLM-aanroepen voor hem. OneUptime bewaart je repository niet en traint niet op je code. Het log van de taak bewaart de eerste 300 tekens van de uitvoer van elke stap, zodat je kunt nagaan wat de Runner deed, en daar kunnen stukjes code in staan. Draai een zelf gehoste Runner met je eigen LLM-provider (lokale Ollama inbegrepen), en je code verlaat nooit je infrastructuur.
+De kloon van je repository staat in een werkruimte in de container van de Runner en wordt verwijderd als de run eindigt, geslaagd of niet. De Runner heeft nooit de API-sleutel van je LLM-provider: de OneUptime-server doet de LLM-aanroepen voor hem, en voert ook de query's op productietelemetrie uit. OneUptime bewaart je repository niet en traint niet op je code. Het log van de taak bewaart de eerste 300 tekens van de uitvoer van elke stap, zodat je kunt nagaan wat de Runner deed, en daar kunnen stukjes code in staan. Draai een zelf gehoste Runner met je eigen LLM-provider (lokale Ollama inbegrepen), en je code verlaat nooit je infrastructuur.
 
 ## Op de roadmap
 
 Gepland, en **vandaag nog niet beschikbaar**:
 
 - **Ondersteuning voor GitLab.** Repositories worden alleen via de GitHub App gekoppeld.
-- **Meer telemetrie in een herstel.** De traces, logs en metrieken rond een uitzondering meegeven aan het herstel, verder dan de stack trace.
 
 ## Volgende stappen
 

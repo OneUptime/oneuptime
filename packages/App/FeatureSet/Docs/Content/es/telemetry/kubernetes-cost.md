@@ -55,7 +55,7 @@ Los primeros costos aparecen cuando se cierra la primera hora completa, y OpenCo
 - En un clúster, **Costos** muestra la tendencia de su gasto, **Gasto por espacio de nombres** con el desglose de CPU, memoria y almacenamiento, **Gasto por carga de trabajo**, el gasto ocioso, la eficiencia y la tarjeta **Ajuste de tamaño**.
 :::
 
-Las métricas de costos (`node_total_hourly_cost`, `pv_hourly_cost` y las demás) son métricas normales: están en el explorador de métricas, en los dashboards personalizados y en los monitores de métricas. Para un dashboard ya hecho, ve a **Productos → Paneles**, selecciona **Crear Panel** y elige **Kubernetes Cost Dashboard**: tendencias del costo por hora de los nodos, costos unitarios de CPU y memoria, y gasto en volúmenes y balanceadores de carga.
+Las métricas de costos (`node_total_hourly_cost`, `pv_hourly_cost` y las demás) son métricas normales: están en el explorador de métricas, en los dashboards personalizados y en los monitores de métricas. Para un dashboard ya hecho, ve a **Productos → Paneles**, selecciona **Crear panel** y elige **Kubernetes Cost Dashboard**: tendencias del costo por hora de los nodos, costos unitarios de CPU y memoria, y gasto en volúmenes y balanceadores de carga.
 
 ## ¿Ya ejecutas Kubecost u OpenCost?
 

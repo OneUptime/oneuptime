@@ -749,14 +749,18 @@ describe("the run pages keep their URLs", () => {
       RouteMap[PageMap.WORKFLOW_LOGS]!.toString(),
     );
 
-    // The header names the workflow; the trail ends in Runs.
+    /*
+     * The header names the workflow, and so does the trail, in place of its
+     * "View Workflow" (ModelPage hands it the record's name); the trail ends
+     * in Runs.
+     */
     await waitFor(() => {
       expect(document.body.textContent).toContain("Nightly sync");
     });
     expect(crumbTexts()).toEqual([
       "Project",
       "Workflows",
-      "View Workflow",
+      "Nightly sync",
       "Runs",
     ]);
 

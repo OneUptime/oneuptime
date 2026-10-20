@@ -1,9 +1,9 @@
 # Authoring a Dashboard
 
-To create a dashboard, open **Products → Dashboards**, click **Create Dashboard** and pick a template, or **Blank Dashboard** to start from scratch. A template fills in the dashboard's name for you (numbered, as in "Kubernetes Dashboard 2", when the project already has one); a blank dashboard asks you for a name. Click **Create Dashboard** and the new dashboard opens. A blank one opens on its empty canvas, with an **Add Widget** button for its first widget.
+To create a dashboard, open **Products → Dashboards** and click **Create Dashboard**. The **Create a dashboard** dialog asks how you want to start, then for a name. **Start from scratch** gives you an empty dashboard; a template builds its widgets, and often its variables, for you, and fills in its name (numbered, as in "Kubernetes Dashboard 2", when the project already has one). Click **Create Dashboard** and the new dashboard opens. An empty one opens on its canvas, with an **Add Widget** button for its first widget.
 
 :::cards
-- [Create a dashboard](#create-a-dashboard): Start from a template or from a blank canvas.
+- [Create a dashboard](#create-a-dashboard): Start from scratch or from a template.
 - [Edit and save](#edit-and-save): Nothing changes for anyone until you click Save Changes.
 - [Add a widget](#add-a-widget): Pick it from the catalog, set it up, put it in place.
 - [Zooming into a spike](#zooming-into-a-spike): Drag across a chart to read the whole dashboard at that moment.
@@ -16,33 +16,32 @@ Project owners and admins can create and edit every dashboard. Anyone else needs
 ## Create a dashboard
 
 :::steps
-### Open the template picker
+### Choose how to start
 
-Open **Products → Dashboards** and click **Create Dashboard**. The **Create from Template** dialog shows **Blank Dashboard** and fifteen templates, grouped by what they watch.
+Open **Products → Dashboards** and click **Create Dashboard**. The **Create a dashboard** dialog opens on **Start from scratch**, an empty dashboard for your own widgets. Below it, **Or start from a template** lists six **Recommended** templates.
 
 ### Pick a template
 
-Click a card. A template builds its widgets, and often its variables, for you; **Blank Dashboard** starts with an empty canvas.
+Click a template to see what it adds: its widgets, named as **Add Widget** names them, and the variables you narrow it with in its toolbar. For the others, choose a category beside the search box, or **All templates**, or type into **Search templates…**: every word you type has to match. Then click **Use this template**, or double-click the template. In the search box, the arrow keys pick a template and **Enter** uses it.
 
 ### Name the dashboard
 
-A template's name is filled in, numbered past the names the project already has. A blank dashboard's name is empty: type one. The description is optional, folded under **More fields**, and you can add it later on the dashboard's **Overview** page.
+A template's name is filled in, numbered past the names the project already has. **Start from scratch** leaves it empty: type one. The description is optional, folded under **More fields**, and you can add it later on the dashboard's **Overview** page. **Back** takes you to the templates as you left them.
 
 ### Create it
 
-Click **Create Dashboard**. The new dashboard opens: a template's widgets at once, or a blank dashboard's empty canvas with **Add Widget** on it.
+Click **Create Dashboard**. The new dashboard opens: a template's widgets at once, or an empty canvas with **Add Widget** on it.
 :::
 
-The templates, by the group the picker lists them under:
+The templates, by the category the picker lists them under:
 
-| Group | Templates |
+| Category | Templates |
 | --- | --- |
-| Get Started | Blank Dashboard |
 | Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | Incident Response | Incident Dashboard, Alert Dashboard |
 | Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-A template is a starting point, not a link: once the dashboard is created, change it as you like. Nothing updates it from the template later.
+**Recommended** holds Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard and Metrics Dashboard. A template is a starting point, not a link: once the dashboard is created, change it as you like. Nothing updates it from the template later.
 
 ## Edit and save
 

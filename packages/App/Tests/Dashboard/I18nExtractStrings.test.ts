@@ -844,7 +844,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors and the security case and playbook catalogs", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs and the AI connections' catalog", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -859,6 +859,8 @@ describe("the real source roots", () => {
       // What a case's verdicts mean and what each playbook action does.
       "ui packages/Common/Types/SecurityCase",
       "ui packages/Common/Types/SecurityPlaybook",
+      // Each AI connection's title, what arrives, its hint and its fields.
+      "ui packages/Common/Types/LlmObservability",
     ]);
   });
 

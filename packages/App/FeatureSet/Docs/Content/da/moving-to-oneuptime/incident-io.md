@@ -35,7 +35,7 @@ flowchart TB
 Gå i incident.io til **Settings** > **API keys**, og vælg **Add new**. Kald den `OneUptime import`, giv den kun tilladelser til at se data, ingen til at oprette, redigere eller administrere, og kopiér nøglen.
 
 ### Åbn importsiden
-Gå i OneUptime til **Projektindstillinger** > **Importér fra et andet værktøj**, og vælg **incident.io**.
+Gå i OneUptime til **Projektindstillinger** > **Avanceret** > **Importér fra et andet værktøj**, og vælg **incident.io**.
 
 ### Forbind incident.io
 Indsæt nøglen i **incident.io-API-nøgle**, og vælg **Læs min incident.io-konto**. En stor konto tager et par minutter, og du kan forlade siden, mens den læses.

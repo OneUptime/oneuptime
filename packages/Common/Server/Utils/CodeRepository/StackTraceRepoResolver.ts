@@ -685,15 +685,51 @@ export const resolveRepositoryForExceptionFix: ResolveRepositoryForExceptionFixF
     repositories: Array<ResolvableRepository>;
     getTreePaths: (repo: ResolvableRepository) => Promise<Array<string>>;
   }): Promise<RepoResolution | null> => {
-    // Method 1 — stack trace vs. repository trees.
-    if (data.stackTrace && data.repositories.length > 0) {
-      const candidatePaths: Array<string> = extractCandidatePathsFromStackTrace(
-        data.stackTrace,
-      );
+    return await createRepositoryResolver({
+      repositories: data.repositories,
+      getTreePaths: data.getTreePaths,
+    }).resolve({
+      stackTrace: data.stackTrace,
+      serviceName: data.serviceName,
+    });
+  };
 
-      // No candidates → no reason to fetch any tree.
-      if (candidatePaths.length > 0) {
-        const fetched: Array<RepositoryMatchState | null> = await Promise.all(
+/*
+ * The same resolution, for many stack traces and service names against the
+ * same repositories: each repository's tree is fetched and indexed once, the
+ * first time a stack trace needs it, rather than once per stack trace. What
+ * the services a repository serves are is worked out this way
+ * (CodeAgentTelemetryScope), reading every service's facts in turn.
+ */
+export interface RepositoryResolver {
+  resolve(data: {
+    stackTrace: string | null;
+    serviceName: string | null;
+  }): Promise<RepoResolution | null>;
+}
+
+export type CreateRepositoryResolverFunction = (data: {
+  repositories: Array<ResolvableRepository>;
+  getTreePaths: (repo: ResolvableRepository) => Promise<Array<string>>;
+}) => RepositoryResolver;
+
+export const createRepositoryResolver: CreateRepositoryResolverFunction =
+  (data: {
+    repositories: Array<ResolvableRepository>;
+    getTreePaths: (repo: ResolvableRepository) => Promise<Array<string>>;
+  }): RepositoryResolver => {
+    let indexedTrees: Promise<Array<RepositoryMatchState>> | null = null;
+
+    /*
+     * Every repository's tree, indexed - fetched on the first stack trace
+     * that has a candidate path, and kept. A repository whose tree fetch
+     * fails is left out; the others are still tried.
+     */
+    const getIndexedTrees: () => Promise<
+      Array<RepositoryMatchState>
+    > = (): Promise<Array<RepositoryMatchState>> => {
+      if (!indexedTrees) {
+        indexedTrees = Promise.all(
           data.repositories.map(
             async (
               repository: ResolvableRepository,
@@ -703,91 +739,138 @@ export const resolveRepositoryForExceptionFix: ResolveRepositoryForExceptionFixF
                   await data.getTreePaths(repository);
                 return buildRepositoryMatchState(repository, treePaths);
               } catch {
-                // A repository whose tree fetch fails is skipped; the others are still tried.
                 return null;
               }
             },
           ),
-        );
-
-        const states: Array<RepositoryMatchState> = fetched.filter(
+        ).then(
           (
-            state: RepositoryMatchState | null,
-          ): state is RepositoryMatchState => {
-            return state !== null;
+            fetched: Array<RepositoryMatchState | null>,
+          ): Array<RepositoryMatchState> => {
+            return fetched.filter(
+              (
+                state: RepositoryMatchState | null,
+              ): state is RepositoryMatchState => {
+                return state !== null;
+              },
+            );
           },
         );
-
-        const resolution: RepoResolution | null = resolveViaStackTrace(
-          candidatePaths,
-          states,
-        );
-
-        if (resolution) {
-          return resolution;
-        }
       }
-    }
 
-    // Method 2 — exact service-name match (score 3, unique) via the suggester.
-    if (data.serviceName) {
-      const suggestions: Array<ServiceRepoLinkSuggestion> =
-        computeLinkSuggestions({
-          services: [{ id: "exception-service", name: data.serviceName }],
-          repositories: data.repositories.map(
-            (repository: ResolvableRepository): SuggestableRepository => {
-              return {
-                id: repository.id,
-                name: repository.name,
-                repositoryName: repository.repositoryName,
-                organizationName: repository.organizationName,
-              };
-            },
-          ),
-          existingLinks: [],
+      return indexedTrees;
+    };
+
+    return {
+      resolve: async (facts: {
+        stackTrace: string | null;
+        serviceName: string | null;
+      }): Promise<RepoResolution | null> => {
+        // Method 1 — stack trace vs. repository trees.
+        if (facts.stackTrace && data.repositories.length > 0) {
+          const candidatePaths: Array<string> =
+            extractCandidatePathsFromStackTrace(facts.stackTrace);
+
+          // No candidates → no reason to fetch any tree.
+          if (candidatePaths.length > 0) {
+            /*
+             * A fresh list of matches for each stack trace over the same
+             * indexes: matching reads the indexes and writes only the
+             * matches.
+             */
+            const states: Array<RepositoryMatchState> = (
+              await getIndexedTrees()
+            ).map((state: RepositoryMatchState): RepositoryMatchState => {
+              return { ...state, matches: [] };
+            });
+
+            const resolution: RepoResolution | null = resolveViaStackTrace(
+              candidatePaths,
+              states,
+            );
+
+            if (resolution) {
+              return resolution;
+            }
+          }
+        }
+
+        return resolveWithoutStackTrace({
+          serviceName: facts.serviceName,
+          repositories: data.repositories,
+        });
+      },
+    };
+  };
+
+type ResolveWithoutStackTraceFunction = (data: {
+  serviceName: string | null;
+  repositories: Array<ResolvableRepository>;
+}) => RepoResolution | null;
+
+// Methods 2 and 3, for facts no stack trace resolved.
+const resolveWithoutStackTrace: ResolveWithoutStackTraceFunction = (data: {
+  serviceName: string | null;
+  repositories: Array<ResolvableRepository>;
+}): RepoResolution | null => {
+  // Method 2 — exact service-name match (score 3, unique) via the suggester.
+  if (data.serviceName) {
+    const suggestions: Array<ServiceRepoLinkSuggestion> =
+      computeLinkSuggestions({
+        services: [{ id: "exception-service", name: data.serviceName }],
+        repositories: data.repositories.map(
+          (repository: ResolvableRepository): SuggestableRepository => {
+            return {
+              id: repository.id,
+              name: repository.name,
+              repositoryName: repository.repositoryName,
+              organizationName: repository.organizationName,
+            };
+          },
+        ),
+        existingLinks: [],
+      });
+
+    const exactMatches: Array<ServiceRepoLinkSuggestion> = suggestions.filter(
+      (suggestion: ServiceRepoLinkSuggestion) => {
+        return suggestion.score === EXACT_NAME_MATCH_SCORE;
+      },
+    );
+
+    const exactMatch: ServiceRepoLinkSuggestion | undefined = exactMatches[0];
+
+    if (exactMatches.length === 1 && exactMatch) {
+      const repository: ResolvableRepository | undefined =
+        data.repositories.find((candidate: ResolvableRepository) => {
+          return candidate.id === exactMatch.codeRepositoryId;
         });
 
-      const exactMatches: Array<ServiceRepoLinkSuggestion> = suggestions.filter(
-        (suggestion: ServiceRepoLinkSuggestion) => {
-          return suggestion.score === EXACT_NAME_MATCH_SCORE;
-        },
-      );
-
-      const exactMatch: ServiceRepoLinkSuggestion | undefined = exactMatches[0];
-
-      if (exactMatches.length === 1 && exactMatch) {
-        const repository: ResolvableRepository | undefined =
-          data.repositories.find((candidate: ResolvableRepository) => {
-            return candidate.id === exactMatch.codeRepositoryId;
-          });
-
-        if (repository) {
-          return {
-            codeRepositoryId: repository.id,
-            organizationName: repository.organizationName,
-            repositoryName: repository.repositoryName,
-            servicePathInRepository: null,
-            method: "name-match",
-            evidence: exactMatch.reason,
-          };
-        }
+      if (repository) {
+        return {
+          codeRepositoryId: repository.id,
+          organizationName: repository.organizationName,
+          repositoryName: repository.repositoryName,
+          servicePathInRepository: null,
+          method: "name-match",
+          evidence: exactMatch.reason,
+        };
       }
     }
+  }
 
-    // Method 3 — a single connected repository is unambiguous by definition.
-    const onlyRepository: ResolvableRepository | undefined =
-      data.repositories[0];
+  // Method 3 — a single connected repository is unambiguous by definition.
+  const onlyRepository: ResolvableRepository | undefined = data.repositories[0];
 
-    if (data.repositories.length === 1 && onlyRepository) {
-      return {
-        codeRepositoryId: onlyRepository.id,
-        organizationName: onlyRepository.organizationName,
-        repositoryName: onlyRepository.repositoryName,
-        servicePathInRepository: null,
-        method: "only-repository",
-        evidence: "Only repository connected to this project",
-      };
-    }
+  if (data.repositories.length === 1 && onlyRepository) {
+    return {
+      codeRepositoryId: onlyRepository.id,
+      organizationName: onlyRepository.organizationName,
+      repositoryName: onlyRepository.repositoryName,
+      servicePathInRepository: null,
+      method: "only-repository",
+      evidence: "Only repository connected to this project",
+    };
+  }
 
-    return null;
-  };
+  return null;
+};

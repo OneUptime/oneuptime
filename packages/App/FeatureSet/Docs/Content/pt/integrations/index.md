@@ -98,7 +98,7 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 
 ## Migrar de outra ferramenta
 
-Para sair de outra ferramenta de plantão, de uptime ou de páginas de status, traga a sua equipe em vez de conectar as duas. **Configurações do projeto → Importar de outra ferramenta** lê a sua conta com uma chave de API, mostra o que encontrou e cria o que você marcar. Cada ferramenta tem um guia:
+Para sair de outra ferramenta de plantão, de uptime ou de páginas de status, traga a sua equipe em vez de conectar as duas. **Configurações do projeto → Avançado → Importar de outra ferramenta** lê a sua conta com uma chave de API, mostra o que encontrou e cria o que você marcar. Cada ferramenta tem um guia:
 
 - Ferramentas de plantão e de incidentes: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) e [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Ferramentas de uptime e de páginas de status: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) e [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

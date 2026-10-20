@@ -1029,12 +1029,13 @@ export function buildKubernetesAiRunnerDirectory(
 }
 
 /*
- * The Runner picker's options for an advanced binding: Runners outside the
- * chart with "Runs AI Remediation Commands" on. A kubernetes-agent Runner is
+ * The Runner picker's options for an advanced binding: the project's
+ * Runners outside the chart. Choosing one is what lets OneUptime AI run
+ * kubectl on it - a Runner has no "Runs AI Remediation Commands" switch any
+ * more (RunnerAiCommandsPick on the server). A kubernetes-agent Runner is
  * never offered — the cluster's Kubernetes AI agent replaces the chart's
  * previous in-cluster Runner, and another cluster's can only reach its own
- * cluster — and a Runner with the switch off would be refused every
- * command. The bound Runner is always kept, labelled with why it cannot
+ * cluster. The bound Runner is always kept, labelled with why it cannot
  * serve the cluster when it cannot, so the form shows the binding it would
  * otherwise silently hide.
  */
@@ -1060,10 +1061,6 @@ export function buildKubernetesAiRunnerOptions(data: {
     if (isKubernetesAgentRunnerRow(runner)) {
       unusableLabel = translationKey(
         "{{name}} (currently bound — installed by the Kubernetes agent chart, which now uses the Kubernetes AI agent)",
-      );
-    } else if (runner.canRunAiCommands !== true) {
-      unusableLabel = translationKey(
-        "{{name}} (currently bound — “Runs AI Remediation Commands” is off)",
       );
     }
 

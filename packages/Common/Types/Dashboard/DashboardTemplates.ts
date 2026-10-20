@@ -61,10 +61,11 @@ export enum DashboardTemplateType {
 }
 
 /*
- * Templates are grouped into categories so the "Create from Template"
- * modal can render them under labelled sections instead of one flat
- * grid. The enum values double as the section headings, and
- * DashboardTemplateCategories below fixes the display order.
+ * Templates are grouped into categories: the category select of Create a
+ * dashboard lists them, and All templates groups its rows under them. The
+ * enum values double as their names, and DashboardTemplateCategories below
+ * fixes the display order. Get Started holds only Blank, which the picker
+ * draws as its Start from scratch card rather than as a template.
  */
 export enum DashboardTemplateCategory {
   GetStarted = "Get Started",
@@ -86,6 +87,12 @@ export interface DashboardTemplate {
   description: string;
   icon: IconProp;
   category: DashboardTemplateCategory;
+  /*
+   * Words people search for this template by that its name and description
+   * do not say: "k8s" for Kubernetes, "servers" for Hosts. Searched, never
+   * shown.
+   */
+  keywords?: Array<string> | undefined;
 }
 
 export const DashboardTemplates: Array<DashboardTemplate> = [
@@ -103,6 +110,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Response time, uptime, status codes, CPU/memory health gauges, and breakdown table for synthetic and server monitors.",
     icon: IconProp.Heartbeat,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["website", "api", "probes", "checks"],
   },
   {
     type: DashboardTemplateType.Metrics,
@@ -111,6 +119,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "HTTP request rate, latency, error rate, CPU utilization gauge, memory usage, disk and network I/O, and runtime metrics.",
     icon: IconProp.ChartBar,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["opentelemetry", "otel", "services"],
   },
   {
     type: DashboardTemplateType.Rum,
@@ -119,6 +128,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Core Web Vitals gauges and trends (LCP, INP, CLS, FCP, TTFB), page-load volume and duration, browser errors, and breakdowns by application, route and platform.",
     icon: IconProp.Globe,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["rum", "frontend"],
   },
   {
     type: DashboardTemplateType.Slo,
@@ -127,6 +137,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Every SLO's status, SLI, error budget and burn rate in one list, fleet-wide budget and burn-rate trends, and live tiles and history for the SLO you pick in the toolbar.",
     icon: IconProp.Percent,
     category: DashboardTemplateCategory.Monitoring,
+    keywords: ["service", "level", "objectives", "reliability"],
   },
   {
     type: DashboardTemplateType.Incident,
@@ -135,6 +146,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Incident count, MTTR/MTTA gauges, duration trends, severity breakdown, time-in-state, and longest-incident tables.",
     icon: IconProp.Alert,
     category: DashboardTemplateCategory.IncidentResponse,
+    keywords: ["outages", "postmortems"],
   },
   {
     type: DashboardTemplateType.Alert,
@@ -151,6 +163,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Pod/node CPU and memory averages, utilization gauges, live pod and node lists, network I/O, restarts, and cluster logs.",
     icon: IconProp.Kubernetes,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["k8s", "containers", "workloads"],
   },
   {
     type: DashboardTemplateType.KubernetesCost,
@@ -159,6 +172,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Node hourly cost trends, CPU/RAM unit costs, persistent volume and load balancer spend from your in-cluster cost engine (OpenCost / Kubecost).",
     icon: IconProp.Billing,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["k8s", "finops", "billing"],
   },
   {
     type: DashboardTemplateType.Host,
@@ -167,6 +181,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Per-host CPU, memory, disk and network charts, a live host inventory, CPU utilization gauge, process counts, and recent logs.",
     icon: IconProp.Server,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["servers", "machines"],
   },
   {
     type: DashboardTemplateType.Proxmox,
@@ -175,6 +190,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Live node and guest inventories with status, CPU/memory trends, network throughput, and cluster logs.",
     icon: IconProp.ServerStack,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["pve", "virtualization", "vms"],
   },
   {
     type: DashboardTemplateType.VMware,
@@ -183,6 +199,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Live ESXi host and virtual machine inventories, host CPU/memory utilization, datastore capacity, CPU ready and memory ballooning trends, and vCenter logs.",
     icon: IconProp.VMware,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["vsphere", "virtualization", "vms"],
   },
   {
     type: DashboardTemplateType.Ceph,
@@ -191,6 +208,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "OSD wall and pool capacity lists, health and capacity stats, degraded-PG trends, client throughput, and cluster logs.",
     icon: IconProp.Database,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["storage", "rados"],
   },
   {
     type: DashboardTemplateType.StorageArray,
@@ -199,6 +217,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Volume and hardware inventories, capacity used and data reduction, read and write latency, IOPS and bandwidth, open alerts, and array logs for Pure Storage FlashArray.",
     icon: IconProp.StorageArray,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["san"],
   },
   {
     type: DashboardTemplateType.DockerSwarm,
@@ -215,8 +234,29 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "Your sites on the world map, SNMP interface throughput, utilization and errors, device reachability and round-trip latency, and the monitors watching them.",
     icon: IconProp.Map,
     category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["switches", "routers", "bandwidth"],
   },
 ];
+
+/*
+ * The handful Create a dashboard opens on, in the order it lists them.
+ * Fifteen templates as equally large cards, each with three or four lines
+ * of description, was a wall to read before choosing; the dialog now starts
+ * on these, as Create a workflow does, and leaves the rest to its category
+ * select and its search. First the ones that show what every project
+ * already has - its monitors, incidents and alerts - then the
+ * infrastructure and telemetry most projects send: Kubernetes, hosts and
+ * OpenTelemetry metrics.
+ */
+export const RECOMMENDED_DASHBOARD_TEMPLATE_TYPES: ReadonlyArray<DashboardTemplateType> =
+  [
+    DashboardTemplateType.Monitor,
+    DashboardTemplateType.Incident,
+    DashboardTemplateType.Alert,
+    DashboardTemplateType.Kubernetes,
+    DashboardTemplateType.Host,
+    DashboardTemplateType.Metrics,
+  ];
 
 /*
  * Templates for a category in their declared order. The modal uses this
@@ -237,6 +277,24 @@ export function getDashboardTemplatesByCategory(
  * empty.
  */
 export const DASHBOARD_TEMPLATE_MISC_DATA_KEY: string = "dashboardTemplateType";
+
+/*
+ * The recommended templates, as their catalog entries, in the order Create
+ * a dashboard lists them.
+ */
+export function getRecommendedDashboardTemplates(): Array<DashboardTemplate> {
+  return RECOMMENDED_DASHBOARD_TEMPLATE_TYPES.map(
+    (type: DashboardTemplateType): DashboardTemplate | undefined => {
+      return getDashboardTemplate(type);
+    },
+  ).filter(
+    (
+      template: DashboardTemplate | undefined,
+    ): template is DashboardTemplate => {
+      return Boolean(template);
+    },
+  );
+}
 
 // The catalog entry of a template type (every type has one).
 export function getDashboardTemplate(
@@ -1569,6 +1627,14 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legend: "MTTR",
       },
+      // The title promises both: MTTA is drawn on the same axes.
+      additionalMetricConfigs: [
+        {
+          metricName: IncidentMetricType.TimeToAcknowledge,
+          aggregationType: MetricsAggregationType.Avg,
+          legend: "MTTA",
+        },
+      ],
     }),
 
     // Row 9: Section header
@@ -1815,6 +1881,14 @@ function createAlertDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legend: "MTTR",
       },
+      // The title promises both: MTTA is drawn on the same axes.
+      additionalMetricConfigs: [
+        {
+          metricName: AlertMetricType.TimeToAcknowledge,
+          aggregationType: MetricsAggregationType.Avg,
+          legend: "MTTA",
+        },
+      ],
     }),
 
     // Row 9: Section header

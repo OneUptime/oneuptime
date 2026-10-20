@@ -131,6 +131,14 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 })
 @Index(["projectId", "currentIncidentStateId"]) // Active-incident counters on dashboard
+/*
+ * The incidents an investigation rule makes OneUptime AI wait on: a handful
+ * at any moment, so the index holds only them, and the rule-wait job's
+ * "wait ended" read (aiInvestigationWaitUntil <= now) implies its predicate.
+ */
+@Index(["aiInvestigationWaitUntil"], {
+  where: '"aiInvestigationWaitUntil" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class Incident extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -385,6 +393,39 @@ export default class Incident extends BaseModel {
     nullable: true,
   })
   public impactStartedAt?: Date = undefined;
+
+  /*
+   * When an on-call policy or a direct page first notified somebody about
+   * this incident (FirstPagedAt). Written once, by OneUptime, and never
+   * moved: no caller may write it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "First Paged At",
+    description:
+      "When an on-call policy or a direct page first notified someone about this incident. Empty until someone is paged. Set by OneUptime.",
+    example: "2024-01-15T09:32:00.000Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public firstPagedAt?: Date = undefined;
 
   @Index()
   @ColumnAccessControl({
@@ -2242,6 +2283,25 @@ export default class Incident extends BaseModel {
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public aiInvestigationDecision?: InvestigationNotStartedReason = undefined;
+
+  /*
+   * While an investigation rule makes OneUptime AI wait before it
+   * investigates this incident (issue #5074): when the wait ends. The
+   * incident is investigated then if it is still open, and the column is
+   * cleared whatever happens. Null for every other incident. The rule-wait
+   * job finds the ones whose wait has ended through the partial index above
+   * (Server/Utils/AI/SRE/InvestigationRuleWait).
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Investigation Waits Until",
+    description:
+      "Internal: while an investigation rule makes OneUptime AI wait before it investigates this record, when the wait ends.",
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public aiInvestigationWaitUntil?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

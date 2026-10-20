@@ -51,10 +51,11 @@ The suite drives the pages the way a person does:
 - the Global Variables list says which secret variables global Runners may
   use; a new secret starts usable by them while the project uses them, and
   closed to them when it does not; a server with no global Runner never asks;
-- Create Runner asks what a Runner may run - Runs Runbooks, Runs AI
-  Remediation Commands - and never about AI code fixes, which a code
-  repository's settings in Code pick a Runner for; the Runners list shows no
-  AI code fix capability; a Runner's own page (`?page=runner&custom=1`)
+- Create Runner is one page, with what a Runner may run - Runs Runbooks -
+  folded under More fields, and never asks about AI: a code repository's
+  settings in Code pick a Runner for AI code fixes, and an auto remediation
+  rule picks the Runner OneUptime AI runs its commands on; the Runners list
+  shows no AI code fix capability; a Runner's own page (`?page=runner&custom=1`)
   lists the code repositories that pick it in its Runner Details, where the
   switch was, each linked to its settings in Code, or says none does and
   where a repository picks its Runner (`&picks=0`); on a phone its Setup

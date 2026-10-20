@@ -223,7 +223,8 @@ import "./Jobs/Runbook/StartScheduledRuns";
 import "./Jobs/StatusPageSubscriber/TimeoutStuckNotifications";
 
 /*
- * Imports from another tool (Project Settings > Import from another tool).
+ * Imports from another tool (Project Settings > Advanced > Import from
+ * another tool).
  * Load-bearing like every import here: the first registers the job a read
  * or an import is queued as - without it the run waits in Reading or
  * Importing until the sweep fails it - and the second is that sweep, which
@@ -255,6 +256,7 @@ import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 import "./Jobs/AIChat/InvestigateAfterDailyLimitReset";
+import "./Jobs/AIChat/InvestigateAfterRuleWait";
 
 // Auto-remediation — settle Planning suggestions whose plan run died.
 import "./Jobs/AutoRemediation/SettleStrandedSuggestions";
@@ -266,6 +268,9 @@ import "./Jobs/AIInsight/ScanForInsights";
 
 // LLM observability — daily cost budget evaluation over LLM spans.
 import "./Jobs/Llm/EvaluateLlmCostBudgets";
+
+// LLM observability — reads of connected AI provider accounts and AI tools.
+import "./Jobs/LlmObservability/PullLlmConnections";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";

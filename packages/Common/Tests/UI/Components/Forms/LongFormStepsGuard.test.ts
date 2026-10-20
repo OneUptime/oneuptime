@@ -216,7 +216,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/CallSMS/Index.tsx",
     form: "CardModelDetail: Call and SMS Settings",
     reason:
-      "The installation's Twilio account: its account SID, auth token and the number calls and SMS go out from - three values the Twilio console shows together and that only work together - and one folded Advanced header with the extra numbers bought for other countries, which few installations have. It walked the account, then the numbers, which split one copy-and-paste across a Next.",
+      "The installation's Twilio account: its account SID, auth token and the number calls and SMS go out from - three values the Twilio console shows together and that only work together - and one folded Advanced header with the numbers few installations need: the numbers SMS go out from when the others can only make calls, and the extra numbers bought for other countries. It walked the account, then the numbers, which split one copy-and-paste across a Next.",
   },
   {
     file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
@@ -407,12 +407,6 @@ export const SHORT_FORMS_WITH_STEPS: Array<ListedForm> = [
     form: "ModelTable: Network Site Assignment Rules",
     reason:
       "The site, then the conditions a device must match. The second step is the conditions builder every rule form in the product draws on its Match Criteria step - a list of conditions added one at a time, with its own match-all or match-any choice - and it keeps that page of its own here too, so this rule reads and is built like every other rule.",
-  },
-  {
-    file: `${DASHBOARD}/Components/AISettings/AIInvestigationRulesTable.tsx`,
-    form: "ModelTable: Settings > AI > Investigation Rules",
-    reason:
-      "A name, then the conditions an incident or alert must match to be investigated. The second step is the same conditions builder the auto remediation rules draw on their Match Criteria step, read by the same matcher, so the two kinds of rule are built the same way, one page for the name and one for the conditions.",
   },
 ];
 

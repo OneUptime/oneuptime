@@ -291,12 +291,21 @@ describe("a team's block permissions fold under Advanced on its Permissions page
     );
   });
 
-  test("the role pickers stay plain grids", () => {
+  /*
+   * Both tables - what the team can do, and what it can never do - add a
+   * role through the one role picker (Components/Permission/RolePicker):
+   * the whole project or one area, then a level. A block is most often one
+   * area's role, so the block table's picker opens there.
+   */
+  test("both tables add a role through the role picker, a block's opening on One area", () => {
     const table: string = readSource("Components/Team/TeamPermissionTable.tsx");
 
-    expect(table).toContain("getRoleCardSelectOptions()");
-    expect(table).not.toContain("cardSelectSearchable");
-    expect(table).not.toContain("cardSelectCatalog");
+    expect(table).toContain("getRolePickerFormField<TeamPermission>({");
+    expect(table).toContain(
+      "startOn: isBlock ? RoleReach.OneArea : RoleReach.WholeProject,",
+    );
+    expect(table).not.toContain("getRoleCardSelectOptions");
+    expect(table).not.toContain("FormFieldSchemaType.CardSelect");
   });
 });
 

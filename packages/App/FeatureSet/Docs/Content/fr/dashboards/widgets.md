@@ -96,7 +96,7 @@ Ce qu'il ne peut pas faire, c'est atteindre la page OneUptime qui l'entoure. Il 
 Deux conséquences à connaître avant de coller quelque chose :
 
 - Un `fetch` depuis le widget est une requête cross-origin issue d'une origine opaque : le serveur appelé doit donc l'autoriser par CORS. Appeler l'API OneUptime d'ici n'est pas pris en charge.
-- Le widget démarre transparent. Définissez un arrière-plan sur `body` dans votre CSS si vous voulez qu'il remplisse la carte.
+- Le widget démarre transparent. Définissez un arrière-plan sur `body` dans votre CSS si vous voulez qu'il remplisse la carte. Dans le thème sombre, son texte démarre clair et son élément `<html>` porte la classe `dark` : commencez une règle CSS par `html.dark` pour styliser uniquement le thème sombre.
 
 #### Utiliser les variables du tableau de bord
 

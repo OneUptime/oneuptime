@@ -36,7 +36,7 @@ flowchart TB
 Statuspage에서 왼쪽 아래의 아바타를 선택한 다음 **API info**를 여세요. **Create key**를 선택하고 이름을 `OneUptime import`로 지정한 뒤 키를 복사하세요.
 
 ### 가져오기 페이지 열기
-OneUptime에서 **프로젝트 설정** > **다른 도구에서 가져오기**로 이동해 **Atlassian Statuspage**을(를) 선택합니다.
+OneUptime에서 **프로젝트 설정** > **고급** > **다른 도구에서 가져오기**로 이동해 **Atlassian Statuspage**을(를) 선택합니다.
 
 ### Atlassian Statuspage 연결하기
 키을(를) **Atlassian Statuspage API 키**에 붙여 넣고 **내 Atlassian Statuspage 계정 읽기**를 선택합니다. 큰 계정은 몇 분이 걸리며, 읽는 동안 페이지를 떠나도 됩니다.

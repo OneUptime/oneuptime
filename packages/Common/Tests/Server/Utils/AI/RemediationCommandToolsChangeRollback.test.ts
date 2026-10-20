@@ -49,6 +49,18 @@ import {
   jest,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
+
+/*
+ * Who declares a kubectl change's object is read through the cluster too
+ * (GitOpsInspector: GitOpsInspector.test.ts and
+ * RemediationCommandToolsGitOps.test.ts cover it); these tests count only
+ * the changes themselves.
+ */
+beforeEach(() => {
+  jest.spyOn(GitOpsInspector, "inspectCommand").mockResolvedValue(null);
+  jest.spyOn(GitOpsInspector, "captureRevertWatch").mockResolvedValue(null);
+});
 
 /*
  * Rollback first, in the remediation round: roll_back_change undoes a

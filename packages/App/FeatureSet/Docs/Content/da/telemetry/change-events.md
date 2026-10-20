@@ -111,7 +111,7 @@ Når den mistænkte ændring er en Kubernetes-rollout på et cluster, hvor [AI-r
 
 OneUptime tjekker også hver udrulning af sig selv, uanset om nogen bliver tilkaldt. Når de 30 minutter efter en udrulning er gået, sammenligner den dem med de 30 minutter før efter de samme tærskler, og når tjenesten blev dårligere, nævner en [AI-indsigt](/docs/ai/ai-sre#indsigter-proaktiv-detektion) udrulningen på den tjeneste.
 
-En pull request med en rettelse, som OneUptime AI åbnede for en undtagelse, kontrolleres på samme måde: når en registreret udrulning indeholder dens commit, holder OneUptime øje med undtagelsen der og siger på undtagelsen, om rettelsen virkede (se [Automatiske koderettelser](/docs/ai/ai-sre#automatiske-koderettelser)).
+En pull request med en rettelse, som OneUptime AI åbnede, kontrolleres på samme måde: når en registreret udrulning indeholder dens commit, holder OneUptime der øje med det, rettelsen var til - undtagelsen, operationen, den gjorde hurtigere, monitoren bag hændelsen eller advarslen, telemetrien, den tilføjer - og siger, om rettelsen virkede (se [Automatiske koderettelser](/docs/ai/ai-sre#automatiske-koderettelser)). Den udrullede rettelse læses kun i udrulningens version, når tjenestens egen telemetri melder den version, og ellers fra 10 minutter efter udrulningen, når gamle instanser er stoppet.
 
 I en undersøgelse og i [Ask AI](/docs/ai/ask-ai) viser `recent_changes` ændringerne i et hvilket som helst tidsvindue, og `get_change_details` viser, hvad en udrulning leverede: commits siden tjenestens forrige udrulning, deres forfattere, pull requests og de filer, de ændrede. Det kræver committen på ændringen og et repository, der er forbundet via [GitHub App](/docs/ai/github-app).
 

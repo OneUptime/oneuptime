@@ -1,6 +1,8 @@
 import Span from "../../../../Models/AnalyticsModels/Span";
 import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
-import { TelemetryReadScope } from "../../Telemetry/TelemetryReadScope";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../../Telemetry/TelemetryReadScope";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -154,11 +156,12 @@ export const QueryTracesTool: ObservabilityTool = {
      * getAnalyticsTable builds raw aggregation SQL that the model layer never
      * narrows, so it is narrowed here to the services this user may read
      * (TelemetryReadAccess) - or a scoped user would see project-wide trace
-     * analytics.
+     * analytics. A system run also leaves out the company AI tools' private
+     * chats (ToolArgs.spanScope).
      */
-    const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
-      Span,
-      ctx.props,
+    const scope: TelemetryReadScope = await ToolArgs.spanScope(
+      ctx,
+      await TelemetryReadAccess.getScope(Span, ctx.props),
     );
 
     const tableRows: Array<TraceAnalyticsTableRow> =
@@ -231,6 +234,57 @@ interface SpanTreeNode {
   children: Array<SpanTreeNode>;
 }
 
+/*
+ * A trace's spans as an indented tree, one line per span: its name, its
+ * duration and whether it failed. A span whose parent is not among them is
+ * a root. The code agent's get_trace reads a trace this way too
+ * (CodeAgentTelemetryTools).
+ */
+export function renderSpanTree(spans: Array<Span>): Array<string> {
+  const nodesBySpanId: Map<string, SpanTreeNode> = new Map();
+  const roots: Array<SpanTreeNode> = [];
+
+  for (const span of spans) {
+    nodesBySpanId.set(span.spanId?.toString() || "", {
+      span,
+      children: [],
+    });
+  }
+
+  for (const node of nodesBySpanId.values()) {
+    const parentId: string = node.span.parentSpanId?.toString() || "";
+    const parent: SpanTreeNode | undefined = nodesBySpanId.get(parentId);
+    if (parent && parent !== node) {
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  const lines: Array<string> = [];
+
+  const renderNode: (node: SpanTreeNode, depth: number) => void = (
+    node: SpanTreeNode,
+    depth: number,
+  ): void => {
+    const durationMs: number =
+      Math.round((Number(node.span.durationUnixNano) / 1_000_000) * 100) / 100;
+    const status: string = Number(node.span.statusCode) === 2 ? " [ERROR]" : "";
+    lines.push(
+      `${"  ".repeat(depth)}- ${node.span.name} (${durationMs}ms)${status}`,
+    );
+    for (const child of node.children) {
+      renderNode(child, depth + 1);
+    }
+  };
+
+  for (const root of roots) {
+    renderNode(root, 0);
+  }
+
+  return lines;
+}
+
 export const GetTraceTool: ObservabilityTool = {
   name: "get_trace",
   description:
@@ -256,7 +310,15 @@ export const GetTraceTool: ObservabilityTool = {
       throw new BadDataException("traceId is required.");
     }
 
-    const spans: Array<Span> = await SpanService.findBy({
+    /*
+     * A person's read is narrowed by the permission layer. A system run reads
+     * as root, which that layer leaves alone, so it reads each span's service
+     * too and drops the spans of the company AI tools' private chats
+     * (ToolArgs.spanScope).
+     */
+    const isSystemRun: boolean = Boolean(ctx.props.isRoot);
+
+    const readSpans: Array<Span> = await SpanService.findBy({
       query: {
         traceId: traceId,
       } as never,
@@ -268,6 +330,7 @@ export const GetTraceTool: ObservabilityTool = {
         durationUnixNano: true,
         statusCode: true,
         kind: true,
+        ...(isSystemRun ? { primaryEntityId: true } : {}),
       } as never,
       sort: {
         startTimeUnixNano: SortOrder.Ascending,
@@ -277,51 +340,25 @@ export const GetTraceTool: ObservabilityTool = {
       props: ctx.props,
     });
 
-    const isSpanLimitHit: boolean = spans.length >= MAX_TRACE_SPANS;
+    const isSpanLimitHit: boolean = readSpans.length >= MAX_TRACE_SPANS;
 
-    // Build the tree.
-    const nodesBySpanId: Map<string, SpanTreeNode> = new Map();
-    const roots: Array<SpanTreeNode> = [];
+    let spans: Array<Span> = readSpans;
 
-    for (const span of spans) {
-      nodesBySpanId.set(span.spanId?.toString() || "", {
-        span,
-        children: [],
+    if (isSystemRun) {
+      const readable: TelemetryReadScope = await ToolArgs.spanScope(
+        ctx,
+        TelemetryReadScopeUtil.getUnrestrictedScope(),
+      );
+
+      spans = readSpans.filter((span: Span): boolean => {
+        return TelemetryReadScopeUtil.isReadable(
+          readable,
+          span.primaryEntityId?.toString() || "",
+        );
       });
     }
 
-    for (const node of nodesBySpanId.values()) {
-      const parentId: string = node.span.parentSpanId?.toString() || "";
-      const parent: SpanTreeNode | undefined = nodesBySpanId.get(parentId);
-      if (parent && parent !== node) {
-        parent.children.push(node);
-      } else {
-        roots.push(node);
-      }
-    }
-
-    const lines: Array<string> = [];
-
-    const renderNode: (node: SpanTreeNode, depth: number) => void = (
-      node: SpanTreeNode,
-      depth: number,
-    ): void => {
-      const durationMs: number =
-        Math.round((Number(node.span.durationUnixNano) / 1_000_000) * 100) /
-        100;
-      const status: string =
-        Number(node.span.statusCode) === 2 ? " [ERROR]" : "";
-      lines.push(
-        `${"  ".repeat(depth)}- ${node.span.name} (${durationMs}ms)${status}`,
-      );
-      for (const child of node.children) {
-        renderNode(child, depth + 1);
-      }
-    };
-
-    for (const root of roots) {
-      renderNode(root, 0);
-    }
+    const lines: Array<string> = renderSpanTree(spans);
 
     if (isSpanLimitHit) {
       lines.push(

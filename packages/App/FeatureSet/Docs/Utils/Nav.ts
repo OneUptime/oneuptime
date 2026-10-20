@@ -86,8 +86,8 @@ const DocsNav: NavGroup[] = [
     ],
   },
   /*
-   * One page per tool that Project Settings > Import from another tool
-   * brings a team, monitors or status pages over from
+   * One page per tool that Project Settings > Advanced > Import from
+   * another tool brings a team, monitors or status pages over from
    * (Common/Types/ToolImport/ToolImportCatalog's docsPath).
    */
   {
@@ -844,6 +844,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ai-llm-observability",
       },
       {
+        title: "AI Provider Accounts",
+        url: "/docs/telemetry/ai-provider-accounts",
+      },
+      {
+        title: "Company AI Tools",
+        url: "/docs/telemetry/ai-company-tools",
+      },
+      {
         title: "AI Coding Assistants",
         url: "/docs/telemetry/ai-coding-assistants",
       },
@@ -1123,6 +1131,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Microsoft Foundry",
         url: "/docs/ai/microsoft-foundry",
+      },
+      {
+        title: "External MCP Servers",
+        url: "/docs/ai/external-mcp-servers",
       },
       {
         title: "MCP Server",

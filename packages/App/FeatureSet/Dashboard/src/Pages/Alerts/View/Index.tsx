@@ -127,6 +127,7 @@ import {
 } from "../../../Utils/EventDuration";
 import {
   EventResponseTimes,
+  getAcknowledgedAfterPagingText,
   getEventResponseTimes,
   getTimeToStateText,
 } from "../../../Utils/EventOverview";
@@ -266,6 +267,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [alertTitle, setAlertTitle] = useState<string | undefined>(undefined);
   const [alertStartedAt, setAlertStartedAt] = useState<Date | undefined>(
+    undefined,
+  );
+  // When somebody was first paged about the alert, if anybody was.
+  const [alertFirstPagedAt, setAlertFirstPagedAt] = useState<Date | undefined>(
     undefined,
   );
   /*
@@ -517,6 +522,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             isPrivate: true,
             title: true,
             createdAt: true,
+            // "Acknowledged in" also says how long after paging.
+            firstPagedAt: true,
             alertNumber: true,
             alertNumberWithPrefix: true,
             alertSeverity: {
@@ -606,6 +613,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setAlertTitle(alert?.title || undefined);
       setAlertStartedAt(alert?.createdAt || undefined);
+      setAlertFirstPagedAt(alert?.firstPagedAt || undefined);
 
       setEventNumber(
         alert?.alertNumberWithPrefix ||
@@ -898,6 +906,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             stateName: acknowledgeState?.name,
             fallbackStateName: "acknowledged",
           })}
+          note={getAcknowledgedAfterPagingText(
+            {
+              firstPagedAt: alertFirstPagedAt,
+              acknowledgedAt: responseTimes.acknowledgedAt,
+            },
+            translator,
+          )}
           description={formatDate(responseTimes.acknowledgedAt)}
         />
         <EventStatTile

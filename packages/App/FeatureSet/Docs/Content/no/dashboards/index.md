@@ -59,7 +59,7 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 | **Oversikt** | Navnet, beskrivelsen og etikettene. |
 | **Deling** | Hvem som kan se det, den offentlige lenken og en IP-tillatelsesliste under Flere innstillinger. |
 | **Eiere** | Brukerne og teamene som eier det. |
-| **Merkevare** | Sidetittel, beskrivelse, logo og favicon for det offentlige dashbordet. |
+| **Merkevare** | Sidetittel, beskrivelse, logo, tema og favicon for det offentlige dashbordet. |
 | **Egendefinerte domener** | Host det offentlige dashbordet på ditt eget domene. |
 | **Innstillinger** | Dupliser, eksporter eller arkiver dashbordet. |
 | **Revisjonslogger** | Hver endring som er gjort på dashbordet, og hvem som gjorde den. |
@@ -68,7 +68,7 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 ## Bygg ditt første dashbord
 
 :::steps
-1. **Opprett** — velg en mal, eller **Blank Dashboard**. En mal fyller inn navnet og åpnes med widgetene sine; et tomt dashbord åpnes uten innhold, med **Legg til widget** på lerretet.
+1. **Opprett** — velg en mal, eller **Start fra bunnen**. En mal fyller inn navnet og åpnes med widgetene sine; et dashbord fra bunnen åpnes uten innhold, med **Legg til widget** på lerretet.
 2. **Legg til widgets** — velg en widget i katalogen, angi i innstillingene hva den leser, og dra den deretter på plass og endre størrelsen.
 3. **Legg til variabler, hvis du trenger dem** — en variabel `service` lar for eksempel ett dashbord vise hvilken som helst tjeneste.
 4. **Lagre** — klikk på **Lagre endringer**. Ingenting du endrer under redigeringen, blir tatt vare på før du gjør det.
@@ -81,7 +81,7 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 
 Målet: én side for checkout-tjenesten med ventetiden, feilraten, de åpne hendelsene og de nyeste loggene, som også fungerer for alle andre tjenester.
 
-1. Opprett et **Blank Dashboard** med navnet "Checkout-vakt".
+1. Klikk på **Opprett dashbord**, velg **Start fra bunnen**, og gi dashbordet navnet "Checkout-vakt".
 2. Klikk på **Legg til widget**, og legg til et **Diagram** over metrikken for forespørslenes ventetid, aggregert som P95.
 3. Ved siden av legger du til en **Verdi** for feilraten, med en varselterskel på 1 og en kritisk terskel på 5.
 4. Under dem legger du til en **Hendelsesliste** filtrert på uløste hendelser, og en **Loggstrøm** med tjenestens logger.

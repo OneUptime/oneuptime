@@ -3,6 +3,7 @@ import {
   buildSkippedToolCallText,
   buildWrapUpInstruction,
   compactAgentContext,
+  COMPACTED_CONTEXT_SHARE,
   CompactionResult,
   CONTINUE_ANSWER_INSTRUCTION,
   DEFAULT_MAX_CONTEXT_CHARS,
@@ -281,6 +282,186 @@ describe("compactAgentContext", () => {
       ).toBe(false);
     }
     expect(result.charsAfter).toBeLessThanOrEqual(DEFAULT_MAX_CONTEXT_CHARS);
+  });
+});
+
+/*
+ * Issue #5073: the provider's prompt cache matches a conversation up to its
+ * first change, and an elided result is a change. Cut back just under the
+ * limit, a long investigation went over it again with its next result, and
+ * from then on every call elided one more old result - changing the
+ * conversation near its start, so the cache missed nearly all of it and
+ * Anthropic charged a quarter more to write it again. Cut back to two thirds
+ * of the limit, the next calls only add to the end, and the cache keeps
+ * matching until the transcript reaches the limit again many calls later.
+ */
+describe("compactAgentContext cuts back far enough for the cache to keep matching", () => {
+  // Where two transcripts first differ, or -1 when one starts the other.
+  function firstChange(
+    before: Array<LLMMessage>,
+    after: Array<LLMMessage>,
+  ): number {
+    const length: number = Math.min(before.length, after.length);
+
+    for (let index: number = 0; index < length; index++) {
+      if (JSON.stringify(before[index]) !== JSON.stringify(after[index])) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  // One more round of an investigation: a tool call and its result.
+  function addRound(messages: Array<LLMMessage>, round: number): void {
+    messages.push({
+      role: "assistant",
+      content: "",
+      toolCalls: [
+        {
+          id: `call-C${round}`,
+          name: "run_kubectl",
+          arguments: { command: `kubectl top pods -A #${round}` },
+        },
+      ],
+    });
+    messages.push(toolResult(`C${round}`, 10_000));
+  }
+
+  test("cuts back to two thirds of the limit by default", () => {
+    expect(COMPACTED_CONTEXT_SHARE).toBeCloseTo(2 / 3);
+
+    const messages: Array<LLMMessage> = transcript(10, 10_000);
+    const result: CompactionResult = compactAgentContext(messages, {
+      maxChars: 60_000,
+      minKeepRecentToolResults: 2,
+    });
+
+    expect(result.charsBefore).toBeGreaterThan(60_000);
+    expect(result.charsAfter).toBeLessThanOrEqual(40_000);
+    // And no further than it needs to: one result fewer would not fit.
+    expect(result.charsAfter).toBeGreaterThan(40_000 - 10_200);
+  });
+
+  test("a transcript within the limit is still left exactly as it is", () => {
+    const messages: Array<LLMMessage> = transcript(5, 10_000);
+    const before: string = JSON.stringify(messages);
+
+    // Over two thirds of the limit, under the limit itself.
+    expect(measureContextChars(messages)).toBeGreaterThan(40_000);
+
+    expect(
+      compactAgentContext(messages, { maxChars: 60_000 }).elidedCount,
+    ).toBe(0);
+    expect(JSON.stringify(messages)).toBe(before);
+  });
+
+  test("takes a target of its own, never above the limit", () => {
+    const own: Array<LLMMessage> = transcript(10, 10_000);
+    const ownResult: CompactionResult = compactAgentContext(own, {
+      maxChars: 60_000,
+      targetChars: 30_000,
+    });
+
+    // Under its own target, which the default (40,000) would not have reached.
+    expect(ownResult.charsAfter).toBeLessThanOrEqual(30_000);
+
+    const above: Array<LLMMessage> = transcript(10, 10_000);
+    const aboveResult: CompactionResult = compactAgentContext(above, {
+      maxChars: 60_000,
+      targetChars: 90_000,
+    });
+
+    // A target above the limit is the limit.
+    expect(aboveResult.charsAfter).toBeLessThanOrEqual(60_000);
+    expect(aboveResult.charsAfter).toBeGreaterThan(40_000);
+  });
+
+  test("the default limit cuts a long investigation back to 200,000 characters", () => {
+    const messages: Array<LLMMessage> = transcript(40, 10_000);
+    const result: CompactionResult = compactAgentContext(messages);
+
+    expect(result.charsBefore).toBeGreaterThan(DEFAULT_MAX_CONTEXT_CHARS);
+    expect(result.charsAfter).toBeLessThanOrEqual(200_000);
+  });
+
+  test("after a cut, the next calls only add to the end of the conversation", () => {
+    const messages: Array<LLMMessage> = transcript(0, 0);
+    let round: number = 0;
+    let cuts: number = 0;
+    let callsThatKeptThePrefix: number = 0;
+    let callsOverTheLimitOnce: number = 0;
+
+    for (let call: number = 0; call < 60; call++) {
+      const before: Array<LLMMessage> = messages.map((message: LLMMessage) => {
+        return { ...message };
+      });
+
+      round++;
+      addRound(messages, round);
+
+      const result: CompactionResult = compactAgentContext(messages, {
+        maxChars: 100_000,
+      });
+
+      if (result.elidedCount > 0) {
+        cuts++;
+        // A cut takes the transcript down to two thirds of the limit.
+        expect(result.charsAfter).toBeLessThanOrEqual(66_667);
+      } else {
+        // Everything the previous call sent is the start of this one.
+        expect(firstChange(before, messages)).toBe(-1);
+        callsThatKeptThePrefix++;
+      }
+
+      if (measureContextChars(before) > 66_667) {
+        callsOverTheLimitOnce++;
+      }
+    }
+
+    /*
+     * Sixty rounds of 10,000 characters: about 600,000 characters, cut a
+     * handful of times rather than on every call past the limit.
+     */
+    expect(cuts).toBeGreaterThan(0);
+    expect(cuts).toBeLessThanOrEqual(Math.ceil(600_000 / 33_000));
+    expect(callsThatKeptThePrefix).toBeGreaterThan(40);
+    expect(callsOverTheLimitOnce).toBeGreaterThan(cuts);
+  });
+
+  test("cut back only to the limit, every call past it would change the conversation before most of it", () => {
+    const messages: Array<LLMMessage> = transcript(0, 0);
+    let changedEarly: number = 0;
+
+    for (let round: number = 1; round <= 30; round++) {
+      const before: Array<LLMMessage> = messages.map((message: LLMMessage) => {
+        return { ...message };
+      });
+
+      addRound(messages, round);
+
+      const result: CompactionResult = compactAgentContext(messages, {
+        maxChars: 100_000,
+        targetChars: 100_000,
+      });
+
+      if (result.elidedCount > 0) {
+        const at: number = firstChange(before, messages);
+
+        // The change is an old result - not the end the call added...
+        expect(at).toBeGreaterThan(0);
+        expect(at).toBeLessThan(before.length);
+
+        // ... and nearly everything the cache held comes after it.
+        expect(measureContextChars(messages.slice(at))).toBeGreaterThan(
+          0.8 * measureContextChars(messages),
+        );
+        changedEarly++;
+      }
+    }
+
+    // This is what the default avoids: one cut for nearly every call.
+    expect(changedEarly).toBeGreaterThanOrEqual(20);
   });
 });
 

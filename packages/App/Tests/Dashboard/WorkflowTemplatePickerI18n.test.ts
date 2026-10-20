@@ -44,6 +44,18 @@ const PICKER_PATH: string = path.join(
   "WorkflowTemplatePicker.tsx",
 );
 
+/*
+ * The step the picker draws is the shared template picker, which Create a
+ * dashboard draws too: Start from scratch, the heading, the search, the
+ * category select, the empty search. Its words are the picker's words.
+ */
+const SHARED_PICKER_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "TemplatePicker",
+  "TemplatePicker.tsx",
+);
+
 const MODAL_PATH: string = path.join(
   DASHBOARD_SRC,
   "Components",
@@ -288,7 +300,11 @@ const stripComments: StripCommentsFunction = (source: string): string => {
   return source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
 };
 
-const PICKER_CODE: string = stripComments(fs.readFileSync(PICKER_PATH, "utf8"));
+const PICKER_CODE: string = [PICKER_PATH, SHARED_PICKER_PATH]
+  .map((file: string): string => {
+    return stripComments(fs.readFileSync(file, "utf8"));
+  })
+  .join("\n");
 const MODAL_CODE: string = stripComments(fs.readFileSync(MODAL_PATH, "utf8"));
 
 type LiteralArgumentsFunction = (code: string, callee: string) => Array<string>;

@@ -46,10 +46,10 @@ export function getLlmBreadcrumbs(path: string): Array<Link> | undefined {
       "AI / LLM",
       "Pricing",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.LLM_DOCUMENTATION, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.LLM_CONNECT, [
       "Project",
       "AI / LLM",
-      "Setup Guide",
+      "Connect",
     ]),
   };
   return breadcrumpLinksMap[path];

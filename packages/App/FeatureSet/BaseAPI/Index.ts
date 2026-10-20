@@ -48,6 +48,7 @@ import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestA
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
+import AIAgentTelemetryAPI from "Common/Server/API/AIAgentTelemetryAPI";
 import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
@@ -585,6 +586,8 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
+import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
@@ -3281,6 +3284,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // AI / LLM connections: provider accounts and company AI tools.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new LlmObservabilityConnectionAPI().getRouter(),
+    );
+
+    // External MCP servers OneUptime AI may use, and their connection test.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ExternalMcpServerAPI().getRouter(),
+    );
+
     // LlmModelPrice
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5278,8 +5293,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
 
     /*
-     * Import from another tool (Project Settings > Import from another
-     * tool). A bare router for the same reason as OnCallReadinessAPI: its
+     * Import from another tool (Project Settings > Advanced > Import from
+     * another tool). A bare router for the same reason as OnCallReadinessAPI: its
      * runs are internal rows with no CRUD API, so the router's own checks
      * are the whole gate.
      */
@@ -5718,6 +5733,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new AIAgentCodeTaskAPI().getRouter(),
+    );
+
+    // The code agent's production telemetry tools, run by the server.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentTelemetryAPI().getRouter(),
     );
 
     // Code: repositories, their tasks, and asking AI in them.

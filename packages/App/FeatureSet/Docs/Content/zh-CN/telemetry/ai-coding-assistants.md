@@ -2,7 +2,7 @@
 
 你的工程师在使用 Claude Code、Cursor、Codex、Gemini CLI 和 Copilot，账单不断增长。本页回答管理者关心的问题： **谁在用哪个工具、用哪些模型，以及每个人和每个团队花了多少钱** 。
 
-大多数编程助手会自行导出 OpenTelemetry，因此无需在开发者的机器上安装任何东西：把导出指向 OneUptime，token、成本和工具使用情况就会和你自己应用的 AI 调用放在一起。这里的一切都通过 OpenTelemetry 到达；OneUptime 不会轮询任何厂商的管理或计费 API。
+大多数编程助手会自行导出 OpenTelemetry，因此无需在开发者的机器上安装任何东西：把导出指向 OneUptime，token、成本和工具使用情况就会和你自己应用的 AI 调用放在一起。这里的一切都通过 OpenTelemetry 到达。这些工具背后的模型账户（例如你的 Anthropic 或 OpenAI 组织）的账单也可以无需代码读取：参见 [AI 提供商账户](/docs/telemetry/ai-provider-accounts)。
 
 :::cards
 - [支持矩阵](#支持矩阵): 每个工具发送什么，以及它是否指明某个人。
@@ -50,7 +50,7 @@ flowchart TB
 | Cline | 指标和日志 | 在 Cline 的组织仪表盘中集中配置 | 匿名化的 `user_id` | — |
 | LiteLLM 和 Portkey | 经过网关的每次调用的跟踪 | 从网关进程 | 使用 LiteLLM 时为虚拟密钥的所有者 | [AI 网关](/docs/telemetry/ai-gateways) |
 | 你自己的应用 | 你的 GenAI 插桩发送的内容 | 从你的应用 | 你设置为 `user.id` 的人 | [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability) |
-| Windsurf、JetBrains AI、Amazon Bedrock、Azure OpenAI | 没有自己的 OpenTelemetry | 只能经由你放在前面的网关 | 网关指明的人 | [AI 网关](/docs/telemetry/ai-gateways) |
+| Windsurf、JetBrains AI、Amazon Bedrock、Azure OpenAI | 没有自己的 OpenTelemetry | 只能经由你放在前面的网关；Bedrock 和 Azure 的用量和成本也可以作为 [提供商账户](/docs/telemetry/ai-provider-accounts) 读取 | 网关指明的人 | [AI 网关](/docs/telemetry/ai-gateways) |
 
 短横线表示 OneUptime 还没有该工具的指南。它的遥测仍会像其他 OpenTelemetry 一样被摄取。
 
@@ -59,8 +59,8 @@ Copilot 只从其代理功能导出 OpenTelemetry：VS Code 的聊天和代理�
 :::
 
 :::details Amazon Bedrock、Azure OpenAI、Windsurf 和 JetBrains AI
-- **Amazon Bedrock** ：`InvokeModel` 和 `Converse` API 不发送 OpenTelemetry。Bedrock AgentCore 则不同：AWS 为它记录了指标、span 和日志，默认发送到 CloudWatch。设置 `DISABLE_ADOT_OBSERVABILITY=true` 会关闭运行时的默认 ADOT 配置，这样你就可以把 ADOT SDK 指向 OneUptime。
-- **Azure OpenAI** ：该服务不发送任何内容，其 Azure Monitor 指标也没有用户维度。请对客户端插桩，或在前面放置 API Management 或其他网关。
+- **Amazon Bedrock** ：`InvokeModel` 和 `Converse` API 不发送 OpenTelemetry。Bedrock AgentCore 则不同：AWS 为它记录了指标、span 和日志，默认发送到 CloudWatch。设置 `DISABLE_ADOT_OBSERVABILITY=true` 会关闭运行时的默认 ADOT 配置，这样你就可以把 ADOT SDK 指向 OneUptime。按区域和模型统计的模型用量可以作为 [提供商账户](/docs/telemetry/ai-provider-accounts#amazon-bedrock) 从 CloudWatch 读取。
+- **Azure OpenAI** ：该服务不发送任何内容，其 Azure Monitor 指标也没有用户维度。请对客户端插桩，或在前面放置 API Management 或其他网关。按资源和模型统计的用量可以作为 [提供商账户](/docs/telemetry/ai-provider-accounts#azure-openai-和-microsoft-foundry) 读取。
 - **Windsurf** ：没有记录任何遥测导出。按用户的数据位于 Windsurf 的 Enterprise API 中，OneUptime 不会轮询它。
 - **JetBrains AI Assistant 和 Junie** ：不导出用量。JetBrains 的 OpenTelemetry 插件是在 IDE 内接收你自己应用的遥测；它不会向外发送任何内容。
 :::
@@ -188,7 +188,7 @@ Codex 默认还会把它的指标发送给 OpenAI：请参阅 [OpenAI Codex](/do
 
 ## OneUptime 尚未做到的事
 
-- **没有厂商管理或计费连接器。** OneUptime 不会轮询 Anthropic 的 Admin API、Cursor 的 Admin API、OpenAI 的用量和成本端点、GitHub 的 Copilot 计费，也不会轮询 Windsurf 或 JetBrains 的 API。需要与发票一致的数字时，请从厂商处获取。
+- **没有编程工具的管理 API 连接器。** OneUptime 会读取这些工具背后的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 账户（ [AI 提供商账户](/docs/telemetry/ai-provider-accounts) ），但不会读取 Cursor 的 Admin API、GitHub 的 Copilot 计费，以及 Windsurf 或 JetBrains 的 API。
 - **除非工具报告，否则成本是估算值。** 报告的成本会原样使用；否则 OneUptime 按标价为 token 计价。Cursor 的 `cursor.cost.usage` 本身就是估算值。
 - **不会读取日志记录上的身份。** Codex 只在日志上发送的 `user.email` 不会与支出关联。
 - **尚未读取 Cursor 的 `cursor.user.email`** ，因此 Cursor 用户显示为其整数 `cursor.user.id`。

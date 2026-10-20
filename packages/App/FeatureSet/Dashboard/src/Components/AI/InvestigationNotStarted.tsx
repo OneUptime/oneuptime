@@ -84,6 +84,7 @@ const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "severity_below_threshold",
   "monitor_cooldown",
   "created_resolved",
+  "resolved_before_investigation",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -299,9 +300,15 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
   const canReviewSettings: boolean = Boolean(
     action && PermissionGate.holdsAnyOf(action.permissions),
   );
+  /*
+   * A decision taken when an investigation rule's wait ended (issue #5074)
+   * rather than when the record was created says so.
+   */
   const sourceLabel: string = translator.translateText(
     reason?.source === "recorded"
-      ? "Decision recorded at creation"
+      ? reason.decidedAfterWaitMinutes
+        ? "Decision recorded when the wait ended"
+        : "Decision recorded at creation"
       : reason?.source === "current_configuration"
         ? "Based on current settings"
         : "No recorded decision",
