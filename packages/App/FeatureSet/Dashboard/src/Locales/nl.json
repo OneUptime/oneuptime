@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Niets controleert deze monitor totdat de bewaking weer aan staat, dus hij opent geen incidenten of waarschuwingen. Zijn open incidenten en waarschuwingen die zijn ingesteld op automatisch oplossen, worden nu opgelost.",
   "The monitors of this group could not be read. Please try again.": "De monitoren van deze groep konden niet worden gelezen. Probeer het opnieuw.",
   "Turn monitoring off or on for every monitor in this group at once.": "Zet de bewaking in één keer uit of aan voor elke monitor in deze groep.",
-  "Turn off monitoring for this group?": "Bewaking uitzetten voor deze groep?"
+  "Turn off monitoring for this group?": "Bewaking uitzetten voor deze groep?",
+  "Keep each alert episode's updates in one thread": "Updates van elke waarschuwingsepisode in één thread bundelen",
+  "Keep each alert's updates in one thread": "Updates van elke waarschuwing in één thread bundelen",
+  "Keep each event's updates in one thread": "Updates van elk evenement in één thread bundelen",
+  "Keep each incident episode's updates in one thread": "Updates van elke incidentepisode in één thread bundelen",
+  "Keep each incident's updates in one thread": "Updates van elk incident in één thread bundelen",
+  "Keeps each alert episode's updates in one thread there.": "Bundelt daar de updates van elke waarschuwingsepisode in één thread.",
+  "Keeps each alert's updates in one thread there.": "Bundelt daar de updates van elke waarschuwing in één thread.",
+  "Keeps each event's updates in one thread there.": "Bundelt daar de updates van elk evenement in één thread.",
+  "Keeps each incident episode's updates in one thread there.": "Bundelt daar de updates van elke incidentepisode in één thread.",
+  "Keeps each incident's updates in one thread there.": "Bundelt daar de updates van elk incident in één thread.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Het eerste bericht wordt in het kanaal geplaatst en start een thread. Elke latere update is een antwoord daarin, en statuswijzigingen en bereikbaarheidsalarmen verschijnen ook in het kanaal."
 }

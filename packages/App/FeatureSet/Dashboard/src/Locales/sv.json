@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "Ingenting kontrollerar den här övervakaren förrän övervakningen slås på igen, så den öppnar inga incidenter eller larm. Dess öppna incidenter och larm som är inställda på automatisk lösning löses nu.",
   "The monitors of this group could not be read. Please try again.": "Monitorerna i den här gruppen kunde inte läsas. Försök igen.",
   "Turn monitoring off or on for every monitor in this group at once.": "Stäng av eller slå på övervakningen för alla monitorer i den här gruppen på en gång.",
-  "Turn off monitoring for this group?": "Stänga av övervakning för den här gruppen?"
+  "Turn off monitoring for this group?": "Stänga av övervakning för den här gruppen?",
+  "Keep each alert episode's updates in one thread": "Samla uppdateringarna för varje larmepisod i en tråd",
+  "Keep each alert's updates in one thread": "Samla uppdateringarna för varje larm i en tråd",
+  "Keep each event's updates in one thread": "Samla uppdateringarna för varje händelse i en tråd",
+  "Keep each incident episode's updates in one thread": "Samla uppdateringarna för varje incidentepisod i en tråd",
+  "Keep each incident's updates in one thread": "Samla uppdateringarna för varje incident i en tråd",
+  "Keeps each alert episode's updates in one thread there.": "Samlar där uppdateringarna för varje larmepisod i en tråd.",
+  "Keeps each alert's updates in one thread there.": "Samlar där uppdateringarna för varje larm i en tråd.",
+  "Keeps each event's updates in one thread there.": "Samlar där uppdateringarna för varje händelse i en tråd.",
+  "Keeps each incident episode's updates in one thread there.": "Samlar där uppdateringarna för varje incidentepisod i en tråd.",
+  "Keeps each incident's updates in one thread there.": "Samlar där uppdateringarna för varje incident i en tråd.",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Det första meddelandet publiceras i kanalen och startar en tråd. Varje senare uppdatering är ett svar i den, och tillståndsändringar och jourlarm visas även i kanalen."
 }

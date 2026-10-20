@@ -177,7 +177,15 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: data.projectId,
             alertId: data.alertId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
-            workspaceNotification: data.workspaceNotification,
+            workspaceNotification: {
+              ...data.workspaceNotification,
+              // Where a rule keeps its messages in one thread (WorkspaceRecordThreads).
+              startsRecordThread:
+                data.alertFeedEventType === AlertFeedEventType.AlertCreated,
+              alsoSendToChannel:
+                data.alertFeedEventType ===
+                AlertFeedEventType.AlertStateChanged,
+            },
             author: FeedWorkspaceNotificationUtil.getAuthor({
               workspaceNotification: data.workspaceNotification,
               userId: data.userId,

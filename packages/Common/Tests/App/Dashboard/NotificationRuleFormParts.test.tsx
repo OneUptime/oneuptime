@@ -426,6 +426,171 @@ describe("the Destination half", () => {
   });
 });
 
+/*
+ * Slack can keep everything posted about one record in one thread in each
+ * channel the rule names (BaseNotificationRule.shouldPostUpdatesInThread):
+ * the record's first message in the channel, every later one a reply to it.
+ * The switch is asked under the channels it is about, and only where it
+ * does something - Slack, and a record that has a thread there.
+ */
+describe("keeping each record's updates in one thread", () => {
+  const THREAD_SWITCH: RegExp = /^Keep each incident's updates in one thread/;
+
+  const POSTS_TO_OPS: IncidentNotificationRule = {
+    ...SAVED_RULE,
+    shouldCreateNewChannel: false,
+    shouldPostToExistingChannel: true,
+    existingChannelNames: "#ops",
+  } as IncidentNotificationRule;
+
+  test("a Slack incident rule posting to existing channels asks it, under the channels, and saves it", async () => {
+    const onChange: MockFunction = await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: POSTS_TO_OPS,
+    });
+
+    const threadSwitch: HTMLElement = await screen.findByRole("switch", {
+      name: THREAD_SWITCH,
+    });
+
+    expect(threadSwitch).toBeVisible();
+    expect(threadSwitch).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByText(
+        "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.",
+      ),
+    ).toBeVisible();
+    // Right after the channels it is about, before the channel of its own.
+    expect(
+      isBefore(
+        screen.getByRole("textbox", { name: /^Channels/ }),
+        threadSwitch,
+      ),
+    ).toBe(true);
+    expect(
+      isBefore(
+        threadSwitch,
+        screen.getByRole("switch", {
+          name: /^Create a channel for each incident/,
+        }),
+      ),
+    ).toBe(true);
+    // Off, the box under the step says nothing of a thread.
+    expect(summary()).toEqual(["Posts updates in #ops."]);
+
+    await userEvent.setup({ delay: null }).click(threadSwitch);
+
+    await waitFor(() => {
+      expect(lastChange(onChange).shouldPostUpdatesInThread).toBe(true);
+    });
+    expect(lastChange(onChange).existingChannelNames).toBe("#ops");
+  });
+
+  test("a saved rule that keeps a thread opens with the switch on, and says so", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: {
+        ...POSTS_TO_OPS,
+        shouldPostUpdatesInThread: true,
+      } as IncidentNotificationRule,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("switch", { name: THREAD_SWITCH }),
+      ).toHaveAttribute("aria-checked", "true");
+    });
+    expect(summary()).toEqual([
+      "Posts updates in #ops.",
+      "Keeps each incident's updates in one thread there.",
+    ]);
+  });
+
+  test("is not asked until the rule posts to existing channels", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: SAVED_RULE,
+    });
+
+    await screen.findByRole("switch", { name: /^Post to existing channels/ });
+
+    expect(
+      screen.queryByRole("switch", { name: THREAD_SWITCH }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Microsoft Teams posts every update as a message of its own.
+  test("Microsoft Teams: not asked, and nothing said of a thread", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      value: {
+        ...POSTS_TO_OPS,
+        existingTeam: "team-ops",
+        shouldPostUpdatesInThread: true,
+      } as IncidentNotificationRule,
+    });
+
+    await screen.findByRole("switch", { name: /^Post to existing channels/ });
+
+    expect(
+      screen.queryByRole("switch", { name: /updates in one thread/ }),
+    ).not.toBeInTheDocument();
+    expect(summary().join(" ")).not.toContain("thread");
+  });
+
+  test.each([
+    [
+      NotificationRuleEventType.Alert,
+      "Keep each alert's updates in one thread",
+    ],
+    [
+      NotificationRuleEventType.IncidentEpisode,
+      "Keep each incident episode's updates in one thread",
+    ],
+    [
+      NotificationRuleEventType.AlertEpisode,
+      "Keep each alert episode's updates in one thread",
+    ],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      "Keep each event's updates in one thread",
+    ],
+  ])(
+    "%s rules ask it in their own words",
+    async (eventType: NotificationRuleEventType, title: string) => {
+      await renderPart({
+        part: NotificationRuleFormPart.Destination,
+        eventType: eventType,
+        value: POSTS_TO_OPS,
+      });
+
+      expect(
+        await screen.findByRole("switch", { name: new RegExp(`^${title}`) }),
+      ).toBeVisible();
+    },
+  );
+
+  // A monitor and an on-call policy have no thread: every update stands alone.
+  test.each([
+    NotificationRuleEventType.Monitor,
+    NotificationRuleEventType.OnCallDutyPolicy,
+  ])("%s rules are not asked", async (eventType: NotificationRuleEventType) => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: eventType,
+      value: POSTS_TO_OPS,
+    });
+
+    expect(
+      await screen.findByRole("textbox", { name: /^Channels/ }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("switch", { name: /updates in one thread/ }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("who joins the channel a rule creates", () => {
   test("is asked only once the rule creates a channel", async () => {
     await renderPart({

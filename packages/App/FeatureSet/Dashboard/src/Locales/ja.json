@@ -47140,5 +47140,16 @@
   "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.": "監視を再びオンにするまで、このモニターは何もチェックされず、インシデントもアラートも作成されません。自動解決が設定されている未解決のインシデントとアラートは、今すぐ解決されます。",
   "The monitors of this group could not be read. Please try again.": "このグループのモニターを読み込めませんでした。もう一度お試しください。",
   "Turn monitoring off or on for every monitor in this group at once.": "このグループのすべてのモニターの監視を一度にオフまたはオンにします。",
-  "Turn off monitoring for this group?": "このグループの監視をオフにしますか？"
+  "Turn off monitoring for this group?": "このグループの監視をオフにしますか？",
+  "Keep each alert episode's updates in one thread": "アラートエピソードごとの更新を1つのスレッドにまとめる",
+  "Keep each alert's updates in one thread": "アラートごとの更新を1つのスレッドにまとめる",
+  "Keep each event's updates in one thread": "イベントごとの更新を1つのスレッドにまとめる",
+  "Keep each incident episode's updates in one thread": "インシデントエピソードごとの更新を1つのスレッドにまとめる",
+  "Keep each incident's updates in one thread": "インシデントごとの更新を1つのスレッドにまとめる",
+  "Keeps each alert episode's updates in one thread there.": "そこでアラートエピソードごとの更新を1つのスレッドにまとめます。",
+  "Keeps each alert's updates in one thread there.": "そこでアラートごとの更新を1つのスレッドにまとめます。",
+  "Keeps each event's updates in one thread there.": "そこでイベントごとの更新を1つのスレッドにまとめます。",
+  "Keeps each incident episode's updates in one thread there.": "そこでインシデントエピソードごとの更新を1つのスレッドにまとめます。",
+  "Keeps each incident's updates in one thread there.": "そこでインシデントごとの更新を1つのスレッドにまとめます。",
+  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "最初のメッセージはチャネルに投稿され、スレッドを開始します。以降の更新はそのスレッドへの返信になり、状態の変更とオンコールのアラームはチャネルにも表示されます。"
 }

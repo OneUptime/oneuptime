@@ -123,7 +123,16 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: data.projectId,
             scheduledMaintenanceId: data.scheduledMaintenanceId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
-            workspaceNotification: data.workspaceNotification,
+            workspaceNotification: {
+              ...data.workspaceNotification,
+              // Where a rule keeps its messages in one thread (WorkspaceRecordThreads).
+              startsRecordThread:
+                data.scheduledMaintenanceFeedEventType ===
+                ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
+              alsoSendToChannel:
+                data.scheduledMaintenanceFeedEventType ===
+                ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
+            },
             author: FeedWorkspaceNotificationUtil.getAuthor({
               workspaceNotification: data.workspaceNotification,
               userId: data.userId,
