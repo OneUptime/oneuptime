@@ -3243,7 +3243,10 @@ jobs:
     needs: [read-version, infrastructure-agent-build, finalize-github-release]
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The 15 minutes the job had, and the 20 PublishWingetManifests.sh may
+    # wait for Microsoft's CLA bot once the pull request is open: up to 15
+    # for its Needs-CLA label, then up to 5 for the label to go.
+    timeout-minutes: 35
     environment: package-managers
     permissions:
       contents: read
