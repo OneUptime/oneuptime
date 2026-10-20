@@ -307,13 +307,17 @@ jobs:
           # took 16 to 23 minutes and every other group 15 to 27: together
           # they would have taken it to 27. Auto Remediation Rules (about two
           # minutes with its bundle locally, Chromium only) joined them the
-          # same day: the lightest group by far.
+          # same day: the lightest group by far. Dashboard Templates (about
+          # two minutes with its bundle locally: Create a dashboard beside
+          # Create a workflow, at a laptop's and a phone's width, Chromium
+          # only) joined them on 2026-10-20 too, still the lightest group.
           - group: 7
             browsers: chromium
             suites: >-
               test-profiles-ui
               test-llm-connect-ui
               test-auto-remediation-rules-ui
+              test-dashboard-templates-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -480,4 +484,6 @@ jobs:
             output/playwright/llm-connect-ui/test-results
             output/playwright/profiles-ui/*.png
             output/playwright/profiles-ui/test-results
+            output/playwright/dashboard-templates-ui/*.png
+            output/playwright/dashboard-templates-ui/test-results
           retention-days: 7

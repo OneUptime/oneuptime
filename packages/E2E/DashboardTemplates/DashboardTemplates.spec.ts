@@ -394,7 +394,9 @@ test.describe("Create a dashboard", () => {
       "aria-selected",
       "true",
     );
-    await expect(dialog.getByTestId("dashboard-template-details")).toBeVisible();
+    await expect(
+      dialog.getByTestId("dashboard-template-details"),
+    ).toBeVisible();
 
     // The arrows move the pick; Enter uses it.
     await page.keyboard.press("ArrowDown");
@@ -451,7 +453,9 @@ test.describe("Create a dashboard", () => {
     page: Page;
   }) => {
     const dialog: Locator = await openDashboardDialog(page);
-    const select: Locator = dialog.getByTestId("dashboard-template-view-select");
+    const select: Locator = dialog.getByTestId(
+      "dashboard-template-view-select",
+    );
 
     await expect(select.locator("option")).toHaveText([
       "Recommended",
@@ -475,7 +479,9 @@ test.describe("Create a dashboard", () => {
     page: Page;
   }) => {
     const dialog: Locator = await openDashboardDialog(page);
-    const select: Locator = dialog.getByTestId("dashboard-template-view-select");
+    const select: Locator = dialog.getByTestId(
+      "dashboard-template-view-select",
+    );
 
     await select.selectOption("Infrastructure");
     await templateRow(dialog, "Proxmox Dashboard").dblclick();
@@ -510,7 +516,9 @@ test.describe("Create a dashboard", () => {
 
     await screenshot(page, `dashboard-name-taken-${widthName(page)}-light`);
 
-    await dialog.getByTestId("dashboard-name-input").fill("Monitor Dashboard 2");
+    await dialog
+      .getByTestId("dashboard-name-input")
+      .fill("Monitor Dashboard 2");
     await createButton(dialog).click();
 
     await expect(page.getByTestId("created-dashboard")).toHaveText(
@@ -691,9 +699,9 @@ test.describe("Create a dashboard", () => {
     await expect(dialog.getByTestId("modal-title")).toHaveText(
       "Dashboard erstellen",
     );
-    await expect(dialog.getByTestId("dashboard-start-from-scratch")).toContainText(
-      "Ohne Vorlage beginnen",
-    );
+    await expect(
+      dialog.getByTestId("dashboard-start-from-scratch"),
+    ).toContainText("Ohne Vorlage beginnen");
     await expect(
       dialog.getByTestId("dashboard-template-view-select").locator("option"),
     ).toHaveText([
