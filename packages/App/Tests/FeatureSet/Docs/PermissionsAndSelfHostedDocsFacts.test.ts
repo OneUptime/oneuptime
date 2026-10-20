@@ -55,6 +55,12 @@ import path from "path";
 
 const REPO_DIR: string = path.resolve(__dirname, "../../../../..");
 
+// A node of the chart's values.schema.json.
+interface ChartSchemaNode {
+  properties?: Record<string, ChartSchemaNode>;
+  additionalProperties?: boolean;
+}
+
 const PERMISSIONS: string = "permissions/index";
 const PUSH: string = "self-hosted/push-notifications";
 const INBOUND_EMAIL: string = "self-hosted/sendgrid-inbound-email";
@@ -70,6 +76,7 @@ const SOURCES: Record<string, string> = {
   configExample: "config.example.env",
   compose: "docker-compose.yml",
   chartValues: `${CHART}/values.yaml`,
+  chartSchema: `${CHART}/values.schema.json`,
   chartHelpers: `${CHART}/templates/_helpers.tpl`,
   chartProbe: `${CHART}/templates/probe.yaml`,
   ingressConfig: "packages/Nginx/default.conf.template",
@@ -167,6 +174,13 @@ const OBJECT_MENU_ITEM: RegExp = /link: \{\s*title: "([^"]+)"/g;
 
 // A "KEY=value" line of config.example.env.
 const CONFIG_LINE: RegExp = /^([A-Z][A-Z0-9_]*)=(.*)$/;
+
+/*
+ * The chart's lines for VAPID_PRIVATE_KEY: the Secret the helper names, under
+ * the key it names, or else vapid.privateKey as it always was.
+ */
+const VAPID_PRIVATE_KEY_FROM_SECRET_OR_VALUE: RegExp =
+  /^ *\{\{- if \$vapidPrivateKeySecret \}\}\n *valueFrom:\n *secretKeyRef:\n *name: \{\{ \$vapidPrivateKeySecret \| quote \}\}\n *key: \{\{ include "oneuptime\.vapid\.privateKeyKey" \$ \| quote \}\}\n *\{\{- else \}\}\n *value: \{\{ \$\.Values\.vapid\.privateKey \}\}\n *\{\{- end \}\}\n*$/;
 
 // "  services:" and each "  name:" under it, in a compose file.
 const COMPOSE_SERVICE: RegExp = /^ {2}([a-z0-9-]+):$/;
@@ -403,9 +417,39 @@ function configExampleValue(variable: string): string | undefined {
 }
 
 /*
+ * The lines a chart template gives an environment variable, once for each
+ * place it is named: from its "- name:" line to the next variable, or to the
+ * template action at the start of a line that ends its helper. A variable that
+ * can also be read from a Secret keeps both of its branches in its lines.
+ */
+function chartEnvBlocks(
+  template: string,
+  variable: string,
+): Array<Array<string>> {
+  const lines: Array<string> = template.split("\n");
+  const blocks: Array<Array<string>> = [];
+
+  lines.forEach((line: string, index: number): void => {
+    if (line !== `- name: ${variable}`) {
+      return;
+    }
+
+    const rest: Array<string> = lines.slice(index + 1);
+    const end: number = rest.findIndex((next: string): boolean => {
+      return next.startsWith("- name: ") || next.startsWith("{{");
+    });
+
+    blocks.push(end === -1 ? rest : rest.slice(0, end));
+  });
+
+  return blocks;
+}
+
+/*
  * Whether a chart template renders an environment variable from a value:
  * "$.Values.vapid.subject", or "($.Values.webhooks).allowPrivateNetwork",
- * which reads a value whose parent may be missing.
+ * which reads a value whose parent may be missing - on the value: line under
+ * its name, or on the value: line of the branch that does not read a Secret.
  */
 function chartRendersFrom(
   template: string,
@@ -417,10 +461,17 @@ function chartRendersFrom(
   const guarded: string = `\\(\\$\\.Values\\.${escapeRegExp(
     parts[0] as string,
   )}\\)\\.${escapeRegExp(parts.slice(1).join("."))}\\b`;
+  const valueLine: RegExp = new RegExp(
+    `^\\s*value: .*(?:${direct}|${guarded})`,
+  );
 
-  return new RegExp(
-    `- name: ${escapeRegExp(variable)}\\n\\s*value: [^\\n]*(?:${direct}|${guarded})`,
-  ).test(template);
+  return chartEnvBlocks(template, variable).some(
+    (block: Array<string>): boolean => {
+      return block.some((line: string): boolean => {
+        return valueLine.test(line);
+      });
+    },
+  );
 }
 
 // The sections of a menu written as data, each with the titles of its links.
@@ -842,6 +893,119 @@ describe("Push Notifications, against the server, the chart and the mobile app",
         rendered: true,
       });
     }
+  });
+
+  it("keeps the private key in a Secret of the operator's on Kubernetes, as the Kubernetes tab says", () => {
+    const helpers: string = readSource("chartHelpers");
+    const schema: {
+      properties: Record<
+        string,
+        { properties: Record<string, ChartSchemaNode> }
+      >;
+    } = JSON.parse(readSource("chartSchema"));
+
+    expect(page).toContain(
+      "`vapid.privateKey` keeps the private key in the release's values, which Helm stores with every revision. To keep it out of them, put it in a Kubernetes Secret in OneUptime's namespace, under `privateKey`, and name that Secret instead:",
+    );
+    expect(page).toContain(
+      "Set `vapid.privateKey` or `vapid.existingSecret.name`, not both: the chart refuses the two together. If your Secret holds the private key under another key, name that key in `vapid.existingSecret.privateKeyKey`. The public key stays in `vapid.publicKey`: every browser is given it.",
+    );
+
+    // Off until a Secret is named; read under privateKey unless another key is named.
+    expect(chartHasValue("vapid.existingSecret.name")).toBe(true);
+    expect(chartValue("vapid.existingSecret.name") ?? "").toBe("");
+    expect(chartValue("vapid.existingSecret.privateKeyKey")).toBe("privateKey");
+
+    // The schema takes those two, and refuses any other key in the block.
+    const existingSecret: ChartSchemaNode = schema.properties["vapid"]!
+      .properties["existingSecret"] as ChartSchemaNode;
+
+    expect(Object.keys(existingSecret.properties || {}).sort()).toEqual([
+      "name",
+      "privateKeyKey",
+    ]);
+    expect(existingSecret.additionalProperties).toBe(false);
+
+    /*
+     * VAPID_PRIVATE_KEY is named once, and comes from the Secret the helper
+     * names - under the key it names, privateKey when none is - or else from
+     * vapid.privateKey, never from both.
+     */
+    const blocks: Array<Array<string>> = chartEnvBlocks(
+      helpers,
+      "VAPID_PRIVATE_KEY",
+    );
+
+    expect(blocks).toHaveLength(1);
+
+    const block: string = (blocks[0] as Array<string>).join("\n");
+
+    expect(helpers).toContain(
+      '{{- $vapidPrivateKeySecret := include "oneuptime.vapid.existingSecretName" $ }}\n\n- name: VAPID_PRIVATE_KEY\n',
+    );
+    expect(block).toMatch(VAPID_PRIVATE_KEY_FROM_SECRET_OR_VALUE);
+
+    const secretName: string = textBetween(
+      helpers,
+      '{{- define "oneuptime.vapid.existingSecretName" -}}',
+      "{{- end }}",
+    );
+    const keyName: string = textBetween(
+      helpers,
+      '{{- define "oneuptime.vapid.privateKeyKey" -}}',
+      "{{- end }}",
+    );
+
+    expect(secretName).toContain("($vapid.existingSecret).name");
+    // The two together are refused, as the page says.
+    expect(secretName).toContain(
+      '{{- if and $existing (trim (toString (default "" $vapid.privateKey))) -}}\n{{- fail (printf "vapid.privateKey and vapid.existingSecret.name are both set.',
+    );
+    expect(keyName).toContain("($vapid.existingSecret).privateKeyKey");
+    expect(keyName).toContain('| default "privateKey" -}}');
+
+    // The public key is never read from the Secret.
+    for (const publicKey of chartEnvBlocks(helpers, "VAPID_PUBLIC_KEY")) {
+      expect(publicKey.join("\n")).not.toContain("secretKeyRef");
+    }
+
+    // The example creates the Secret the values example names, under the key the chart reads by default.
+    const example: string | undefined = [...page.matchAll(FENCED_BLOCK)]
+      .map((match: RegExpExecArray): string => {
+        return match[0];
+      })
+      .find((fence: string): boolean => {
+        return fence.includes("existingSecret:");
+      });
+
+    expect(example).toBeDefined();
+
+    const exampleValues: unknown = jsYaml.load(
+      (example as string).split("\n").slice(1, -1).join("\n"),
+    );
+
+    expect(exampleValues).toEqual({
+      vapid: {
+        publicKey: "your-public-key",
+        existingSecret: { name: "oneuptime-vapid" },
+        subject: "mailto:oncall@example.com",
+      },
+    });
+    for (const setting of [
+      "vapid.publicKey",
+      "vapid.existingSecret.name",
+      "vapid.subject",
+    ]) {
+      expect({ setting, inChart: chartHasValue(setting) }).toEqual({
+        setting,
+        inChart: true,
+      });
+    }
+    expect(page).toContain(
+      `kubectl create secret generic oneuptime-vapid --from-literal=${String(
+        chartValue("vapid.existingSecret.privateKeyKey"),
+      )}=your-private-key\n`,
+    );
   });
 
   it("gives the defaults the server falls back to when a setting is unset", () => {

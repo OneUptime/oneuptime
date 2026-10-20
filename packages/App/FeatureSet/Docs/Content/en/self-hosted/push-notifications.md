@@ -70,6 +70,22 @@ vapid:
 expo:
   accessToken:
 ```
+
+`vapid.privateKey` keeps the private key in the release's values, which Helm stores with every revision. To keep it out of them, put it in a Kubernetes Secret in OneUptime's namespace, under `privateKey`, and name that Secret instead:
+
+```bash
+kubectl create secret generic oneuptime-vapid --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+Set `vapid.privateKey` or `vapid.existingSecret.name`, not both: the chart refuses the two together. If your Secret holds the private key under another key, name that key in `vapid.existingSecret.privateKeyKey`. The public key stays in `vapid.publicKey`: every browser is given it.
 :::
 
 ## Network Access

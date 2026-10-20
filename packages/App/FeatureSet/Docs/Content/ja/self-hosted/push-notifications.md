@@ -70,6 +70,22 @@ vapid:
 expo:
   accessToken:
 ```
+
+`vapid.privateKey` では、秘密鍵がリリースの値に保持され、Helm はその値をリビジョンごとに保存します。秘密鍵を値に含めないようにするには、OneUptime の namespace にある Kubernetes の Secret に `privateKey` として秘密鍵を格納し、代わりにその Secret の名前を指定します:
+
+```bash
+kubectl create secret generic oneuptime-vapid --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+`vapid.privateKey` と `vapid.existingSecret.name` は、どちらか一方だけを設定してください。チャートは両方の同時指定を拒否します。Secret で秘密鍵を別のキー名で格納している場合は、そのキー名を `vapid.existingSecret.privateKeyKey` に指定します。公開鍵は `vapid.publicKey` のままです。どのブラウザーにも渡される値だからです。
 :::
 
 ## ネットワークアクセス
