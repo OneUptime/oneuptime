@@ -18,9 +18,10 @@ import path from "path";
  * switch first), the header of a step that needs approval, the HTTP method
  * that shows the body, a runbook a client still saves the old way; then a
  * run that waits for approval before a step, approved and skipped, a Manual
- * step, a run started before the change; at a laptop's and a phone's width,
- * in dark mode and in German. The fixture records every save and every step
- * route, so the tests check what was sent as well as what was drawn.
+ * step, a run started before the change; at a laptop's, a tablet's and a
+ * phone's width (in German too, whose labels run longest), in dark mode.
+ * The fixture records every save and every step route, so the tests check
+ * what was sent as well as what was drawn.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";

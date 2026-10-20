@@ -35,9 +35,18 @@ The suite drives the pages the way a person does:
   while Skip keeps it from running; a run started before approvals moved
   (`wait=legacy`) waits after the step that ran and "Approve & continue" goes
   on; a finished run (`wait=approved`) says who approved;
-- a phone (titles keep their room, the lock shows where the run stops, the
-  waiting step's buttons sit under its words), dark mode (`?theme=dark`) and
-  German (`?lang=de`).
+- a phone (the step's type is read out but not drawn, so a title takes up
+  to two lines; the lock shows where the run stops; the waiting step's
+  buttons fill the card under its words, Skip centred under the one that
+  moves the run on - in German at 390 and 320 too, inside the card), a
+  tablet or a card the side menu narrows (the buttons wrap under the
+  step's words at the card's right edge, after when it started; beside
+  them at 1280), the run's card (what it waits on runs under its name and
+  buttons; its four tiles go two by two below 1280), dark mode
+  (`?theme=dark`) and German (`?lang=de`);
+- the HTTP request's timeout at half the width, as every step's timeouts
+  are, and an AI step's provider - always set - neither optional nor
+  cleared.
 
 `Fixture/Fixture.js` records every save (`updates`, with the model, the id and
 the data) and every step route the execution page calls (`posts`) on
