@@ -178,7 +178,7 @@ Plockar ut strukturerade fält ur en rad med fast form. Ett grok-mönster är et
 
 En fångst lagras som text om du inte ger den en typ: `%{NUMBER:status:int}` lagrar den som ett tal. Typerna är `int`, `long`, `float`, `double`, `boolean` och `string`. Kontrollera ett mönster mot en exempelrad i **Test Your Pattern** innan du sparar det.
 
-Ett grok-mönster körs på en tid som bara växer med raden det läser, hur det än är skrivet, och behåller JavaScripts syntax: lookaheads och lookbehinds fungerar. Ett mönster som inte kan köras på det sättet, till exempel ett med en bakåtreferens som `\1`, avvisas när du sparar det, med ett meddelande som säger vad du ska ändra.
+Ett grok-mönster körs på en tid som bara växer med raden det läser, hur det än är skrivet, och behåller JavaScripts syntax: lookaheads och lookbehinds fungerar. Ett mönster som inte kan köras på det sättet, till exempel ett med en bakåtreferens som `\1`, avvisas när du sparar det, med ett meddelande som säger vad du ska ändra. Ett grok-mönster delar också varje sats arbetskvot med projektets andra mönster: när de behöver mer förblir raden otolkad.
 
 | Loggkropp | Mönster | Tillagda attribut |
 | --- | --- | --- |

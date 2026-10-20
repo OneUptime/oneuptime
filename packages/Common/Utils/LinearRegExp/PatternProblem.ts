@@ -39,16 +39,33 @@ export class PatternProblemError extends Error {
 }
 
 /*
- * Thrown by a replace that reached its work limit: the matches could not all
- * be found within a number of steps in line with the text's length. The
+ * Thrown by a question that reached its work limit: the matches could not
+ * all be found within a number of steps in line with the text's length. The
  * caller decides what that means - a scrub rule scrubs the whole value.
  */
 export class PatternWorkLimitError extends Error {
+  public constructor(
+    message: string = "The pattern needed more work to find every match than this text's length allows.",
+  ) {
+    super(message);
+    this.name = "PatternWorkLimitError";
+  }
+}
+
+/*
+ * Thrown by a question asked once the work allowance it shares with the
+ * other questions of the same piece of work - one evaluation of a project's
+ * rules, one batch of telemetry - is spent (PatternWork.ts). A
+ * PatternWorkLimitError, so every caller already treats it as a question
+ * that went unanswered: a rule does not match, a scrub rule scrubs the whole
+ * value.
+ */
+export class PatternWorkAllowanceSpentError extends PatternWorkLimitError {
   public constructor() {
     super(
-      "The pattern needed more work to find every match than this text's length allows.",
+      "The patterns asked about this piece of work needed more work together than its allowance holds.",
     );
-    this.name = "PatternWorkLimitError";
+    this.name = "PatternWorkAllowanceSpentError";
   }
 }
 

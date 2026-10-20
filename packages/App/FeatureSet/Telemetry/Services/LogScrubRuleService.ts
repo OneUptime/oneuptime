@@ -8,6 +8,7 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import {
   compileScrubRuleCustomRegex,
   ScrubRegExp,
@@ -254,6 +255,13 @@ export class LogScrubRuleService {
     if (compiledRules.length === 0) {
       return logRow;
     }
+
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(logRow);
 
     /*
      * Each rule's `fieldsToScrub` can be "body", "attributes", or

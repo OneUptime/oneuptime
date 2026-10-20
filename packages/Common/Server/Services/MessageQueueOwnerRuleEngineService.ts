@@ -26,6 +26,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class MessageQueueOwnerRuleEngineServiceClass
   implements RuleRunEngine<MessageQueue, MessageQueueOwnerRule>
@@ -123,6 +124,7 @@ class MessageQueueOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     messageQueue: MessageQueue;
     rules: Array<MessageQueueOwnerRule>;

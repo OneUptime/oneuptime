@@ -15,6 +15,7 @@ import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -25,6 +26,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async findMatchingRule(data: {
     incidentId: ObjectID;
     projectId: ObjectID;

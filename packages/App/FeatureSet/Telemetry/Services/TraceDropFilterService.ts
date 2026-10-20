@@ -1,4 +1,5 @@
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -107,6 +108,13 @@ export class TraceDropFilterService {
     spanRow: JSONObject,
     filters: Array<LoadedTraceDropFilter>,
   ): boolean {
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(spanRow);
+
     for (const { filter, compiledFilter, projectId } of filters) {
       if (!evaluateCompiledFilter(spanRow, compiledFilter)) {
         continue;

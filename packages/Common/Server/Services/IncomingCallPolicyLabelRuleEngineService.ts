@@ -18,6 +18,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IncomingCallPolicyLabelRuleEngineServiceClass
   implements RuleRunEngine<IncomingCallPolicy, IncomingCallPolicyLabelRule>
@@ -107,6 +108,7 @@ class IncomingCallPolicyLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     policy: IncomingCallPolicy;
     rules: Array<IncomingCallPolicyLabelRule>;

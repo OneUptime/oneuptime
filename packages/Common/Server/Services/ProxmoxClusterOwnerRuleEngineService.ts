@@ -29,6 +29,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ProxmoxClusterOwnerRuleEngineServiceClass
   implements RuleRunEngine<ProxmoxCluster, ProxmoxClusterOwnerRule>
@@ -128,6 +129,7 @@ class ProxmoxClusterOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     proxmoxCluster: ProxmoxCluster;
     rules: Array<ProxmoxClusterOwnerRule>;

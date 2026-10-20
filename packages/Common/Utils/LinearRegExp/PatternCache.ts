@@ -5,6 +5,7 @@ import LinearRegExp, {
 import {
   describePatternProblemReason,
   PatternProblemError,
+  PatternWorkLimitError,
 } from "./PatternProblem";
 
 /*
@@ -102,12 +103,29 @@ export function getLinearRegExp(
    */
   refusePatternTooLong(source);
 
-  const key: string = [
+  return getByKey(keyOf(source, flags, options), source, flags, options);
+}
+
+// What a compiled pattern is kept by: its text, its flags and its options.
+function keyOf(
+  source: string,
+  flags: string,
+  options: LinearRegExpOptions | undefined,
+): string {
+  return [
     flags,
     options?.captures === true ? "captures" : "",
     options?.maxSteps ?? "",
     source,
   ].join("\u0000");
+}
+
+function getByKey(
+  key: string,
+  source: string,
+  flags: string,
+  options: LinearRegExpOptions | undefined,
+): LinearRegExp {
   const cached: CachedPattern | undefined = cache.get(key);
 
   if (cached !== undefined) {
@@ -127,6 +145,15 @@ export function getLinearRegExp(
   try {
     compiled = new LinearRegExp(source, flags, options);
   } catch (error: unknown) {
+    if (error instanceof PatternWorkLimitError) {
+      /*
+       * Not compiled because the work allowance of the piece of work under
+       * way is spent (PatternWork.ts): nothing about the pattern itself, so
+       * nothing is kept - the next piece of work compiles it.
+       */
+      throw error;
+    }
+
     compiled = error instanceof Error ? error : new Error(String(error));
   }
 
@@ -142,6 +169,48 @@ export function getLinearRegExp(
   }
 
   return compiled;
+}
+
+/*
+ * A PATTERN KEPT BY SOMETHING THAT OUTLIVES ONE PIECE OF WORK.
+ *
+ * A project's scrub rules and filters are loaded once and kept for a minute,
+ * over many batches of telemetry. Kept with them, their compiled patterns
+ * would hold memory outside every bound of this cache - a project's
+ * thousands of rules, each compiled to thousands of steps, in every process
+ * that loaded them. So they keep a handle instead: the pattern's text and
+ * key, a few hundred characters. get() finds the compiled pattern in this
+ * cache - a lookup by a key made once - and compiles it again when the cache
+ * has dropped it, counted against the piece of work under way
+ * (PatternWork.ts) like any compile.
+ */
+export class LinearRegExpHandle {
+  public readonly source: string;
+  public readonly flags: string;
+  private readonly options: LinearRegExpOptions | undefined;
+  private readonly key: string;
+
+  /*
+   * Throws PatternProblemError for a pattern longer than any that can run,
+   * as getLinearRegExp does; compiles nothing.
+   */
+  public constructor(
+    source: string,
+    flags: string = "",
+    options?: LinearRegExpOptions,
+  ) {
+    refusePatternTooLong(source);
+
+    this.source = source;
+    this.flags = flags;
+    this.options = options;
+    this.key = keyOf(source, flags, options);
+  }
+
+  // The compiled pattern; throws what getLinearRegExp throws.
+  public get(): LinearRegExp {
+    return getByKey(this.key, this.source, this.flags, this.options);
+  }
 }
 
 // The compiled pattern, or null when it cannot be compiled for any reason.

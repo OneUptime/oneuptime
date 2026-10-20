@@ -9,6 +9,7 @@ import RuleCriteria, {
 } from "../../Types/Rules/RuleCriteria";
 import RulePatternMatchUtil from "./RulePatternMatchUtil";
 import escapeRegExp from "../RegExpEscape";
+import { getStoppedPatternQuestions } from "../LinearRegExp/PatternWork";
 
 export const RULE_CRITERIA_MAX_FILTERS: number = 50;
 export const RULE_CRITERIA_MAX_STRING_LENGTH: number = 500;
@@ -633,9 +634,14 @@ export class RuleCriteriaMatcher {
         ...options,
         value: textValue.pattern,
       });
+      const stoppedBefore: number = getStoppedPatternQuestions();
       const result: boolean = await options.matchesLegacyRule(rule);
 
-      return textValue.negate ? !result : result;
+      return RuleCriteriaMatcher.answerTextFilter({
+        result: result,
+        negate: textValue.negate,
+        unanswered: getStoppedPatternQuestions() > stoppedBefore,
+      });
     } catch {
       return false;
     }
@@ -662,12 +668,36 @@ export class RuleCriteriaMatcher {
         ...options,
         value: textValue.pattern,
       });
+      const stoppedBefore: number = getStoppedPatternQuestions();
       const result: boolean = options.matchesLegacyRule(rule);
 
-      return textValue.negate ? !result : result;
+      return RuleCriteriaMatcher.answerTextFilter({
+        result: result,
+        negate: textValue.negate,
+        unanswered: getStoppedPatternQuestions() > stoppedBefore,
+      });
     } catch {
       return false;
     }
+  }
+
+  /*
+   * A text condition's answer. A pattern question that stopped without an
+   * answer (LinearRegExp/PatternWork.ts) reads as "does not match" - so a
+   * negated condition (does not contain, does not match) would hold on a
+   * text nobody read to the end. Unless some way matched anyway, an
+   * unanswered condition does not hold, negated or not.
+   */
+  private static answerTextFilter(data: {
+    result: boolean;
+    negate: boolean;
+    unanswered: boolean;
+  }): boolean {
+    if (data.unanswered && !data.result) {
+      return false;
+    }
+
+    return data.negate ? !data.result : data.result;
   }
 
   private static async matchesLegacyRelationFilter<

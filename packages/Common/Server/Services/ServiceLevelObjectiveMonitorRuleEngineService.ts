@@ -35,6 +35,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /**
  * What a sync did, so callers (and tests) can assert on the outcome without
@@ -157,6 +158,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
    * path and repairs any drift it finds.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async syncMonitorsForSlo(data: {
     serviceLevelObjectiveId: ObjectID;
   }): Promise<SloMonitorSyncResult> {
@@ -219,6 +221,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
    * regardless of how many monitors the rules match.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async syncSlosForMonitor(data: {
     monitorId: ObjectID;
     projectId?: ObjectID | undefined;

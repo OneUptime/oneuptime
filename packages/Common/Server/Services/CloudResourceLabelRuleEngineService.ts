@@ -23,6 +23,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class CloudResourceLabelRuleEngineServiceClass
   implements RuleRunEngine<CloudResource, CloudResourceLabelRule>
@@ -114,6 +115,7 @@ class CloudResourceLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     cloudResource: CloudResource;
     rules: Array<CloudResourceLabelRule>;

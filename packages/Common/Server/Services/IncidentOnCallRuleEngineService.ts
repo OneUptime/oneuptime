@@ -26,6 +26,7 @@ import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IncidentOnCallRuleEngineServiceClass {
   /**
@@ -35,6 +36,7 @@ class IncidentOnCallRuleEngineServiceClass {
    * merged list, so each policy executes at most once per incident.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToIncident(incident: Incident): Promise<void> {
     if (!incident.id || !incident.projectId) {
       return;

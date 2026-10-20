@@ -23,6 +23,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class StorageArrayLabelRuleEngineServiceClass
   implements RuleRunEngine<StorageArray, StorageArrayLabelRule>
@@ -111,6 +112,7 @@ class StorageArrayLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     storageArray: StorageArray;
     rules: Array<StorageArrayLabelRule>;

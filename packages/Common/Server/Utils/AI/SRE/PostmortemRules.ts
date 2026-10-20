@@ -16,6 +16,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../../Logger";
 import IncidentAlertRuleMatcher from "../../Rules/IncidentAlertRuleMatcher";
 import logIfRuleReadWasTruncated from "../../Rules/RuleEngineRuleRead";
+import { RuleEvaluation } from "../../PatternWorkScope";
 
 /*
  * Postmortem rules: which resolved incidents OneUptime AI drafts a
@@ -138,6 +139,7 @@ export default class PostmortemRules {
    * Whether a resolved incident gets a draft, and the templates it may
    * follow - or null when the rules could not be read, and so no draft.
    */
+  @RuleEvaluation()
   public static async getIncidentDraftPlan(data: {
     projectId: ObjectID;
     incident: Incident;

@@ -18,6 +18,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class RunbookLabelRuleEngineServiceClass
   implements RuleRunEngine<Runbook, RunbookLabelRule>
@@ -104,6 +105,7 @@ class RunbookLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     runbook: Runbook;
     rules: Array<RunbookLabelRule>;

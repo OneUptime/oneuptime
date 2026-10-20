@@ -2,6 +2,7 @@ import {
   FASTEST_RUN_ATTEMPTS,
   FastestRun,
   fastestRun,
+  fastestRunAsync,
   MAX_SLOWDOWN,
   measureSlowdown,
   REFERENCE_WORK_USUAL_MS,
@@ -340,5 +341,76 @@ describe("measureSlowdown", () => {
 
     expect(Number.isFinite(slowdown)).toBe(true);
     expect(slowdown).toBeGreaterThan(0);
+  });
+});
+
+describe("fastestRunAsync", () => {
+  test("work that awaits, within the limit, runs once", async () => {
+    let runs: number = 0;
+
+    const timed: FastestRun<string> = await fastestRunAsync({
+      run: async (): Promise<string> => {
+        runs++;
+        await Promise.resolve();
+        return "evaluated";
+      },
+      limitInMs: 2000,
+      now: scriptedClock([0, 120]),
+    });
+
+    expect(timed).toEqual({
+      result: "evaluated",
+      inMs: 120,
+      measuredInMs: 120,
+      slowdown: 1,
+      attempts: 1,
+    });
+    expect(runs).toBe(1);
+  });
+
+  test("work over the limit every time is tried three times, and the fastest attempt counts", async () => {
+    const timed: FastestRun<number> = await fastestRunAsync({
+      run: async (): Promise<number> => {
+        return 7;
+      },
+      limitInMs: 100,
+      now: scriptedClock([0, 400, 1000, 1300, 2000, 2500]),
+    });
+
+    expect(timed.attempts).toBe(FASTEST_RUN_ATTEMPTS);
+    expect(timed.inMs).toBe(300);
+    expect(timed.slowdown).toBe(1);
+  });
+
+  test("on a slow runner the fastest counts as it would have run on a usual one, never by more than MAX_SLOWDOWN", async () => {
+    const timed: FastestRun<null> = await fastestRunAsync({
+      run: async (): Promise<null> => {
+        return null;
+      },
+      limitInMs: 1000,
+      now: scriptedClock([0, 3000, 3000, 6500, 6500, 9800]),
+      slowdown: (): number => {
+        return 10;
+      },
+    });
+
+    expect(timed.measuredInMs).toBe(3000);
+    expect(timed.slowdown).toBe(MAX_SLOWDOWN);
+    expect(timed.inMs).toBe(3000 / MAX_SLOWDOWN);
+  });
+
+  test("work that rejects is not tried again", async () => {
+    let runs: number = 0;
+
+    await expect(
+      fastestRunAsync({
+        run: async (): Promise<void> => {
+          runs++;
+          throw new Error("rejected");
+        },
+        limitInMs: 1,
+      }),
+    ).rejects.toThrow("rejected");
+    expect(runs).toBe(1);
   });
 });

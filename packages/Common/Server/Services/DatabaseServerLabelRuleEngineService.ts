@@ -23,6 +23,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class DatabaseServerLabelRuleEngineServiceClass
   implements RuleRunEngine<DatabaseServer, DatabaseServerLabelRule>
@@ -114,6 +115,7 @@ class DatabaseServerLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     databaseServer: DatabaseServer;
     rules: Array<DatabaseServerLabelRule>;
