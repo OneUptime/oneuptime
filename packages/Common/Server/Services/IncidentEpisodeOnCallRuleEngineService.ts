@@ -25,6 +25,11 @@ import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import {
+  ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+  OnCallRulePagingHold,
+  OnCallRulePagingHolds,
+} from "../Utils/OnCall/OnCallRulePagingHold";
 
 class IncidentEpisodeOnCallRuleEngineServiceClass {
   /**
@@ -32,12 +37,24 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
    * matched rules' on-call policies into the episode's onCallDutyPolicies
    * array (deduped). The episode service's existing on-call fan-out then runs
    * the merged list, so each policy executes at most once per episode.
+   *
+   * Hands back the holds of the policies it added that may not page yet: a
+   * rule that pages only during working hours, matched outside them, holds
+   * its policies until they begin (OnCallRulePagingHold). The fan-out passes
+   * each to executePolicy. A policy with no hold pages right away.
    */
   @CaptureSpan()
   @RuleEvaluation()
-  public async applyRulesToEpisode(episode: IncidentEpisode): Promise<void> {
+  public async applyRulesToEpisode(
+    episode: IncidentEpisode,
+  ): Promise<Map<string, OnCallRulePagingHold>> {
+    const noHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
+
     if (!episode.id || !episode.projectId) {
-      return;
+      return noHolds;
     }
 
     try {
@@ -57,6 +74,7 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
             episodeTitlePattern: true,
             episodeDescriptionPattern: true,
             onCallDutyPolicies: { _id: true },
+            ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
           },
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
@@ -69,16 +87,28 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
       });
 
       if (rules.length === 0) {
-        return;
+        return noHolds;
       }
 
       const matchedPolicies: Map<string, OnCallDutyPolicy> = new Map();
       const matchedRules: Array<IncidentEpisodeOnCallRule> = [];
+      // When each matched rule lets its policies page: right away wins.
+      const pagingHolds: OnCallRulePagingHolds = new OnCallRulePagingHolds();
 
       for (const rule of rules) {
         if (!this.doesEpisodeMatchRule(episode, rule)) {
           continue;
         }
+
+        pagingHolds.addRule(
+          rule,
+          (rule.onCallDutyPolicies || []).map(
+            (policy: OnCallDutyPolicy): string => {
+              return policy.id?.toString() || "";
+            },
+          ),
+        );
+
         let ruleAddedAny: boolean = false;
         for (const policy of rule.onCallDutyPolicies || []) {
           const policyId: string | undefined = policy.id?.toString();
@@ -105,7 +135,7 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
       });
 
       if (matchedPolicies.size === 0) {
-        return;
+        return noHolds;
       }
 
       const existingIds: Set<string> = new Set(
@@ -160,11 +190,16 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
           addedPolicyIds: toAddIds,
         });
       }
+
+      // A policy the episode had already pages as it always has: right away.
+      return pagingHolds.getHolds(toAddIds);
     } catch (error) {
       logger.error(`Error applying incident episode on-call rules: ${error}`, {
         projectId: episode.projectId?.toString(),
         incidentEpisodeId: episode.id?.toString(),
       } as LogAttributes);
+
+      return noHolds;
     }
   }
 

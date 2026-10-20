@@ -21,6 +21,10 @@ import {
 } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  isOnCallPolicyRunEndedWhileWaiting,
+  isOnCallPolicyRunWaitingForWorkingHours,
+} from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import WorkspaceLiveMessageKey, {
   WorkspaceLiveMessageData,
@@ -637,7 +641,11 @@ export default class OnCallPolicyRunMessage {
     run: OnCallPolicyRun,
     kept: Array<WorkspaceLiveMessage>,
   ): WorkspaceLiveMessageRunEnding | undefined {
-    if (run.outcome === OnCallPolicyRunOutcome.Paging) {
+    // A run that waits to page has not ended: it pages later.
+    if (
+      run.outcome === OnCallPolicyRunOutcome.Paging ||
+      run.outcome === OnCallPolicyRunOutcome.Waiting
+    ) {
       return undefined;
     }
 
@@ -652,7 +660,9 @@ export default class OnCallPolicyRunMessage {
             .outcome as OnCallPolicyRunOutcome,
         ) &&
         (endedAs as WorkspaceLiveMessageRunEnding).outcome !==
-          OnCallPolicyRunOutcome.Paging
+          OnCallPolicyRunOutcome.Paging &&
+        (endedAs as WorkspaceLiveMessageRunEnding).outcome !==
+          OnCallPolicyRunOutcome.Waiting
       ) {
         const told: WorkspaceLiveMessageRunEnding =
           endedAs as WorkspaceLiveMessageRunEnding;
@@ -722,6 +732,8 @@ export default class OnCallPolicyRunMessage {
           executeNextEscalationRuleInMinutes: true,
           scheduleGapRetryCount: true,
           onCallPolicyExecutionRepeatCount: true,
+          // A run that waits to page: when it starts.
+          pagingStartsAt: true,
           acknowledgedByUserId: true,
           acknowledgedByUser: {
             name: true,
@@ -1568,7 +1580,28 @@ export default class OnCallPolicyRunMessage {
         ? WorkspaceMessageTime.endOfWait(ruleStartedAt, escalateAfterInMinutes)
         : undefined;
 
+    /*
+     * A run that waits to page (OnCallDutyPolicyRunWait): when it starts,
+     * and whether it waits for working hours.
+     */
+    const pagingStartsAt: Date | undefined = executionLog.pagingStartsAt
+      ? new Date(executionLog.pagingStartsAt)
+      : undefined;
+
+    const waiting: Partial<OnCallPolicyRun> =
+      executionLog.status === OnCallDutyPolicyStatus.Waiting
+        ? {
+            ...(pagingStartsAt && !isNaN(pagingStartsAt.getTime())
+              ? { pagingStartsAt: pagingStartsAt }
+              : {}),
+            isWaitingForWorkingHours: isOnCallPolicyRunWaitingForWorkingHours(
+              executionLog.statusMessage,
+            ),
+          }
+        : {};
+
     return {
+      ...waiting,
       policyName: data.directPage
         ? ""
         : executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",
@@ -1619,12 +1652,23 @@ export default class OnCallPolicyRunMessage {
     const executionLog: OnCallDutyPolicyExecutionLog = data.executionLog;
 
     switch (executionLog.status) {
+      // Paging nobody yet: it waits for its moment (OnCallDutyPolicyRunWait).
+      case OnCallDutyPolicyStatus.Waiting:
+        return { outcome: OnCallPolicyRunOutcome.Waiting };
       case OnCallDutyPolicyStatus.Completed: {
         if (executionLog.acknowledgedByUserId) {
           return { outcome: OnCallPolicyRunOutcome.Acknowledged };
         }
 
         const statusMessage: string = executionLog.statusMessage || "";
+
+        // Its record was handled while it waited: it paged nobody.
+        if (isOnCallPolicyRunEndedWhileWaiting(statusMessage)) {
+          return {
+            outcome: OnCallPolicyRunOutcome.HandledWhileWaiting,
+            detail: data.record.stateName,
+          };
+        }
 
         if (
           statusMessage === ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE

@@ -133,6 +133,7 @@ import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed"
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
 import IncidentOnCallRuleEngineService from "./IncidentOnCallRuleEngineService";
+import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
@@ -3471,6 +3472,17 @@ export class Service extends ProjectReferencesService<Model> {
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
     /*
+     * The holds of the policies the incident's on-call rules added that may
+     * not page yet - a rule that pages only during working hours, matched
+     * outside them (OnCallRulePagingHold): set by the on-call rules step,
+     * read by the on-call step after it.
+     */
+    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
+
+    /*
      * Apply privacy rules BEFORE workspace operations so the workspace
      * channel is created with the correct privacy setting. This may set
      * createdItem.isPrivate=true in memory. Kept as its own promise (it never
@@ -3815,9 +3827,10 @@ export class Service extends ProjectReferencesService<Model> {
          * before the fan-out below picks up the merged list.
          */
         try {
-          await IncidentOnCallRuleEngineService.applyRulesToIncident(
-            createdItem,
-          );
+          onCallRulePagingHolds =
+            (await IncidentOnCallRuleEngineService.applyRulesToIncident(
+              createdItem,
+            )) || onCallRulePagingHolds;
         } catch (error) {
           logger.error(
             `Apply incident on-call rules failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3855,6 +3868,7 @@ export class Service extends ProjectReferencesService<Model> {
             return await this.executeOnCallDutyPoliciesAsync(
               createdItem,
               startingStage,
+              onCallRulePagingHolds,
             );
           }
           return Promise.resolve();
@@ -4529,11 +4543,16 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
    * starts open. Declared already acknowledged or resolved, somebody is on
    * it or it is over: none of them runs, and its feed says so instead,
    * naming them (OnCallNotRunOnCreate).
+   *
+   * A policy one of its on-call rules holds until working hours
+   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * they begin (OnCallDutyPolicyRunWait). Every other policy pages now.
    */
   @CaptureSpan()
   private async executeOnCallDutyPoliciesAsync(
     createdItem: Model,
     startingStage: StartingStage,
+    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
   ): Promise<void> {
     try {
       if (
@@ -4553,14 +4572,22 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
-            return OnCallDutyPolicyService.executePolicy(
-              new ObjectID(policy["_id"] as string),
-              {
-                triggeredByIncidentId: createdItem.id!,
-                userNotificationEventType:
-                  UserNotificationEventType.IncidentCreated,
-              },
+            const policyId: ObjectID = new ObjectID(policy["_id"] as string);
+            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+              policyId.toString(),
             );
+
+            return OnCallDutyPolicyService.executePolicy(policyId, {
+              triggeredByIncidentId: createdItem.id!,
+              userNotificationEventType:
+                UserNotificationEventType.IncidentCreated,
+              ...(hold
+                ? {
+                    pagingStartsAt: hold.pagingStartsAt,
+                    waitingStatusMessage: hold.waitingStatusMessage,
+                  }
+                : {}),
+            });
           });
 
         await Promise.allSettled(policyPromises);

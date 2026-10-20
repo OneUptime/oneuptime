@@ -2,7 +2,7 @@ import AppLink from "../../../Components/AppLink/AppLink";
 import IncidentView from "../../../Components/Incident/Incident";
 import UserElement from "../../../Components/User/User";
 import OnCallPolicyView from "../OnCallPolicy";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Blue, Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -57,6 +57,10 @@ export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME: string =
  */
 export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME: string =
   "min-w-[12rem]";
+
+// Under a waiting run's pill: what it waits for, and when paging starts.
+export const ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME: string =
+  "mt-1 max-w-xs text-xs text-gray-500";
 
 /*
  * What a run that paged nobody says on hover. A policy went through its
@@ -337,6 +341,29 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
                   : POLICY_PAGED_NOBODY_TOOLTIP
               }
             />
+          );
+        } else if (item["status"] === OnCallDutyPolicyStatus.Waiting) {
+          /*
+           * Paging nobody yet, on purpose: an on-call rule held it until
+           * working hours (OnCallDutyPolicyRunWait). Its status message says
+           * what it waits for and when paging starts - the words the
+           * record's feed says too - so the row says it, not only a click
+           * on View Status Message.
+           */
+          return (
+            <div>
+              <Pill color={Blue} text={OnCallDutyPolicyStatus.Waiting} />
+              {item.statusMessage ? (
+                <p
+                  className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
+                  data-testid="execution-log-waiting-message"
+                >
+                  {item.statusMessage}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
           );
         } else if (item["status"] === OnCallDutyPolicyStatus.Started) {
           return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Started} />;

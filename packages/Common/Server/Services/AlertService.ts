@@ -108,6 +108,7 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertGroupingEngineService from "./AlertGroupingEngineService";
 import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
+import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
@@ -1128,6 +1129,17 @@ export class Service extends ProjectReferencesService<Model> {
      */
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
+    /*
+     * The holds of the policies the alert's on-call rules added that may not
+     * page yet - a rule that pages only during working hours, matched
+     * outside them (OnCallRulePagingHold): set by the on-call rules step,
+     * read by the on-call step after it.
+     */
+    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
+      string,
+      OnCallRulePagingHold
+    >();
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
@@ -1296,7 +1308,10 @@ export class Service extends ProjectReferencesService<Model> {
          * before the fan-out below picks up the merged list.
          */
         try {
-          await AlertOnCallRuleEngineService.applyRulesToAlert(createdItem);
+          onCallRulePagingHolds =
+            (await AlertOnCallRuleEngineService.applyRulesToAlert(
+              createdItem,
+            )) || onCallRulePagingHolds;
         } catch (error) {
           logger.error(
             `Apply alert on-call rules failed in AlertService.onCreateSuccess: ${error}`,
@@ -1334,6 +1349,7 @@ export class Service extends ProjectReferencesService<Model> {
             return await this.executeAlertOnCallDutyPoliciesAsync(
               createdItem,
               startingStage,
+              onCallRulePagingHolds,
             );
           } catch (error) {
             logger.error(
@@ -1727,11 +1743,16 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
    * ones its on-call rules added - when it starts open. Created already
    * acknowledged or resolved, somebody is on it or it is over: none of them
    * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   *
+   * A policy one of its on-call rules holds until working hours
+   * (`pagingHolds`, by policy id) runs held: it waits, paging nobody, until
+   * they begin (OnCallDutyPolicyRunWait). Every other policy pages now.
    */
   @CaptureSpan()
   private async executeAlertOnCallDutyPoliciesAsync(
     createdItem: Model,
     startingStage: StartingStage,
+    pagingHolds?: Map<string, OnCallRulePagingHold> | undefined,
   ): Promise<void> {
     try {
       if (
@@ -1751,14 +1772,21 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
-            return OnCallDutyPolicyService.executePolicy(
-              new ObjectID(policy["_id"] as string),
-              {
-                triggeredByAlertId: createdItem.id!,
-                userNotificationEventType:
-                  UserNotificationEventType.AlertCreated,
-              },
+            const policyId: ObjectID = new ObjectID(policy["_id"] as string);
+            const hold: OnCallRulePagingHold | undefined = pagingHolds?.get(
+              policyId.toString(),
             );
+
+            return OnCallDutyPolicyService.executePolicy(policyId, {
+              triggeredByAlertId: createdItem.id!,
+              userNotificationEventType: UserNotificationEventType.AlertCreated,
+              ...(hold
+                ? {
+                    pagingStartsAt: hold.pagingStartsAt,
+                    waitingStatusMessage: hold.waitingStatusMessage,
+                  }
+                : {}),
+            });
           });
 
         await Promise.allSettled(policyPromises);
