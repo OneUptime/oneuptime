@@ -299,7 +299,12 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     await expect(header(page, "Promote the replica")).toContainText(
       "Needs approval",
     );
-    await expect(page.getByText("Needs approval")).toHaveCount(1);
+    // One step's header says so (the card's description says it of any step).
+    await expect(
+      page.getByTestId("runbook-step-header").getByText("Needs approval", {
+        exact: true,
+      }),
+    ).toHaveCount(1);
 
     await openStep(page, "Capture the database's state");
     const fold: Locator = await openMoreFields(page, 3);
