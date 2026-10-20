@@ -860,3 +860,72 @@ describe("ChatAgentRunner.runTurn — conversation titles", () => {
     ).toBeUndefined();
   });
 });
+
+describe("ChatAgentRunner.runTurn — one chat is one conversation in OneUptime's own telemetry", () => {
+  test("every call of a turn, the title's included, names the chat's conversation", async () => {
+    const firstUserMessage: AIConversationMessage = buildHistoryMessage({
+      role: AIChatMessageRole.User,
+      content: "Why is checkout failing?",
+    });
+
+    const spies: RunnerSpies = installRunnerSpies({
+      history: [firstUserMessage],
+      historyCount: 2,
+      titleCount: 2,
+    });
+
+    spies.messageFindOneBy.mockResolvedValue(firstUserMessage as never);
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        chatResponse("Checkout is failing because of X.") as never,
+      )
+      .mockResolvedValueOnce(chatResponse("Checkout Failure") as never);
+
+    const request: ChatTurnRequest = buildRequest();
+
+    await ChatAgentRunner.runTurn(request);
+    await flushAsync();
+
+    expect(spies.executeWithLogging).toHaveBeenCalledTimes(2);
+
+    for (const call of spies.executeWithLogging.mock.calls) {
+      const llmRequest: AILogRequest = call[0] as AILogRequest;
+
+      expect(llmRequest.conversationId?.toString()).toBe(
+        request.conversationId.toString(),
+      );
+      expect(llmRequest.aiRunId?.toString()).toBe(request.aiRunId.toString());
+    }
+  });
+
+  test("the next turn of the chat - a run of its own - is the same conversation", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+    const firstTurn: ChatTurnRequest = buildRequest();
+    const nextTurn: ChatTurnRequest = {
+      ...buildRequest(),
+      projectId: firstTurn.projectId,
+      userId: firstTurn.userId,
+      conversationId: firstTurn.conversationId,
+    };
+
+    await ChatAgentRunner.runTurn(firstTurn);
+    await ChatAgentRunner.runTurn(nextTurn);
+    await flushAsync();
+
+    const requests: Array<AILogRequest> =
+      spies.executeWithLogging.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as AILogRequest;
+      });
+
+    expect(requests).toHaveLength(2);
+    expect(requests[0]!.aiRunId?.toString()).not.toBe(
+      requests[1]!.aiRunId?.toString(),
+    );
+    expect(requests[0]!.conversationId?.toString()).toBe(
+      firstTurn.conversationId.toString(),
+    );
+    expect(requests[1]!.conversationId?.toString()).toBe(
+      firstTurn.conversationId.toString(),
+    );
+  });
+});

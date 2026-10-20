@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
+import { CAPTURE_MESSAGE_CONTENT_ENV_VAR } from "../../../Server/Utils/LLM/LLMCallTelemetry";
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 const COMPOSE_PATH: string = path.join(REPO_ROOT, "docker-compose.base.yml");
@@ -125,6 +126,57 @@ describe("telemetry exporter deployment configuration isolation", () => {
     );
     expect(source).toContain(
       "value: {{ $.Values.browserOpenTelemetryExporter.browserIngestionKey }}",
+    );
+  });
+});
+
+/*
+ * OneUptime AI's prompts and answers hold incident details, logs and Ask AI
+ * chats private to the person who asked. They go into OneUptime's own
+ * telemetry only when the operator turns that on - never because an upgrade
+ * added a setting, or a config.env lacks one.
+ */
+describe("OneUptime AI's prompts and answers stay out of its telemetry unless turned on", () => {
+  const ENV_VAR: string = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT";
+
+  test("the server reads OpenTelemetry's own switch", () => {
+    expect(CAPTURE_MESSAGE_CONTENT_ENV_VAR).toBe(ENV_VAR);
+  });
+
+  test("the example configuration ships it off", () => {
+    expect(readExampleEnvValue(ENV_VAR)).toBe("false");
+  });
+
+  test("Docker Compose passes it on, off when config.env has no line for it", () => {
+    const compose: ComposeConfig = yaml.load(
+      fs.readFileSync(COMPOSE_PATH, "utf8"),
+    ) as ComposeConfig;
+
+    expect(compose["x-common-variables"][ENV_VAR]).toBe(
+      "${OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT:-false}",
+    );
+  });
+
+  test("Helm ships it off", () => {
+    const values: Record<string, Record<string, unknown>> = yaml.load(
+      fs.readFileSync(HELM_VALUES_PATH, "utf8"),
+    ) as Record<string, Record<string, unknown>>;
+
+    expect(values["openTelemetryExporter"]!["captureAiMessageContent"]).toBe(
+      false,
+    );
+  });
+
+  test("Helm sets the switch only when the value is turned on", () => {
+    const source: string = fs.readFileSync(HELM_HELPERS_PATH, "utf8");
+
+    expect(source).toContain(
+      [
+        "{{- if $.Values.openTelemetryExporter.captureAiMessageContent }}",
+        `- name: ${ENV_VAR}`,
+        '  value: "true"',
+        "{{- end }}",
+      ].join("\n"),
     );
   });
 });
