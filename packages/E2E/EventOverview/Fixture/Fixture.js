@@ -30,6 +30,10 @@
  *            Investigate now; "waiting-viewer" for someone who may not.
  *            Investigate now (POST /ai-investigation/investigate-now) starts
  *            it: the record's next read answers a queued run.
+ *   ?wait=   default | tomorrow | ended (with ?ai=waiting or waiting-viewer)
+ *            When the wait ends: 8 minutes from NOW (default), 23 hours from
+ *            NOW - tomorrow, a day's wait (1440 minutes) - or half a minute
+ *            ago, before the rule-wait job has taken the record.
  *   ?tldr=   default | long
  *            "long" gives Incident #1042 a TL;DR at the server's
  *            320-character cap (InvestigationTldr.MAX_TLDR_CHARS), long
@@ -309,6 +313,14 @@ const aiMode = params.get("ai") || "report";
  * records someone started with Investigate now, by id: they read as queued.
  */
 const isWaitingMode = aiMode === "waiting" || aiMode === "waiting-viewer";
+const waitEndMode = ["tomorrow", "ended"].includes(params.get("wait"))
+  ? params.get("wait")
+  : "default";
+// When the wait ends, in minutes from NOW, and how long the rule waits.
+const WAIT_ENDS_IN_MINUTES = { default: 8, tomorrow: 23 * 60, ended: -0.5 }[
+  waitEndMode
+];
+const WAIT_MINUTES = waitEndMode === "tomorrow" ? 1440 : 10;
 const startedNow = new Set();
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
 const titleMode = params.get("title") === "long" ? "long" : "default";
@@ -3989,8 +4001,10 @@ function investigationPayload(investigation) {
       run: null,
       notInvestigatedReason: null,
       waitingInvestigation: {
-        waitUntil: iso(new Date(NOW.getTime() + 8 * 60 * 1000)),
-        waitMinutes: 10,
+        waitUntil: iso(
+          new Date(NOW.getTime() + WAIT_ENDS_IN_MINUTES * 60 * 1000),
+        ),
+        waitMinutes: WAIT_MINUTES,
         canStartNow: aiMode === "waiting",
       },
       events: [],

@@ -32016,5 +32016,9 @@
   "The investigation could not be started.": "无法开始调查。",
   "They were resolved during an investigation rule's wait.": "它们在调查规则的等待期间已解决。",
   "Wait (Minutes)": "等待时间（分钟）",
-  "When to investigate": "何时调查"
+  "When to investigate": "何时调查",
+  "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "如果此事件在明天 {{time}} 时仍未解决，OneUptime AI 将进行调查",
+  "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "如果此警报在明天 {{time}} 时仍未解决，OneUptime AI 将进行调查",
+  "OneUptime AI investigates shortly if this incident is still open": "如果此事件仍未解决，OneUptime AI 将很快进行调查",
+  "OneUptime AI investigates shortly if this alert is still open": "如果此警报仍未解决，OneUptime AI 将很快进行调查"
 }

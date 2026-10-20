@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -46,7 +47,14 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import InvestigationPanel from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
-import { formatWaitUntil } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationWaitingState";
+import InvestigationWaiting from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationWaiting";
+import {
+  INVESTIGATION_WAITING_CLOCK_TICK_MS,
+  formatWaitUntil,
+  getWaitEndKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationWaitingState";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -68,6 +76,18 @@ const SUBJECT_ID: ObjectID = new ObjectID(
 );
 
 const WAIT_UNTIL: Date = new Date(Date.now() + 8 * 60 * 1000);
+
+/*
+ * The heading for WAIT_UNTIL, eight minutes from when the suite started:
+ * "at" the time, or - when those minutes cross midnight - "tomorrow at" it.
+ * The cases of each are pinned to a clock below and in
+ * InvestigationWaitingState.test.ts.
+ */
+function waitingHeading(subject: "incident" | "alert"): string {
+  return getWaitEndKind(WAIT_UNTIL) === "tomorrow"
+    ? `OneUptime AI investigates tomorrow at ${formatWaitUntil(WAIT_UNTIL)} if this ${subject} is still open`
+    : `OneUptime AI investigates at ${formatWaitUntil(WAIT_UNTIL)} if this ${subject} is still open`;
+}
 
 function waitingResponse(overrides: JSONObject = {}): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(
@@ -143,9 +163,7 @@ describe("an incident whose investigation waits", () => {
     );
 
     expect(
-      await screen.findByText(
-        `OneUptime AI investigates at ${formatWaitUntil(WAIT_UNTIL)} if this incident is still open`,
-      ),
+      await screen.findByText(waitingHeading("incident")),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -339,9 +357,7 @@ describe("an alert whose investigation waits", () => {
     render(<InvestigationPanel subjectType="alert" subjectId={SUBJECT_ID} />);
 
     expect(
-      await screen.findByText(
-        `OneUptime AI investigates at ${formatWaitUntil(WAIT_UNTIL)} if this alert is still open`,
-      ),
+      await screen.findByText(waitingHeading("alert")),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -370,5 +386,117 @@ describe("an alert whose investigation waits", () => {
         "Someone who can edit this alert can start the investigation now.",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The card's heading follows the reader's clock, with no new answer from
+ * the server: "at" a time while it is to come, "tomorrow at" it past
+ * midnight, and "shortly" once it has come - never a time gone by while the
+ * rule-wait job takes the record and the card's next read finds the run.
+ */
+describe("the waiting card's heading follows the clock", () => {
+  // The time as the reader's clock reads it: "10:42", or "10:42 AM".
+  function clockTime(date: Date): string {
+    return OneUptimeDate.getLocalTimeString(date, {
+      use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+    });
+  }
+
+  function renderWaiting(
+    waitUntil: Date,
+    subjectType: "incident" | "alert" = "incident",
+  ): ReturnType<typeof render> {
+    return render(
+      <InvestigationWaiting
+        subjectType={subjectType}
+        waiting={{ waitUntil, waitMinutes: 10, canStartNow: true }}
+        onStartNow={() => {}}
+        isStarting={false}
+        startError={null}
+      />,
+    );
+  }
+
+  function heading(): HTMLElement {
+    return screen.getByRole("heading", { level: 3 });
+  }
+
+  beforeEach(() => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  test("says the time while it is to come, then shortly once it has come", () => {
+    jest.setSystemTime(new Date("2026-10-20T12:00:00.000Z"));
+    const waitUntil: Date = new Date("2026-10-20T12:00:20.000Z");
+
+    renderWaiting(waitUntil);
+
+    expect(heading()).toHaveTextContent(
+      `OneUptime AI investigates at ${clockTime(waitUntil)} if this incident is still open`,
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(2 * INVESTIGATION_WAITING_CLOCK_TICK_MS);
+    });
+
+    expect(heading()).toHaveTextContent(
+      "OneUptime AI investigates shortly if this incident is still open",
+    );
+    // Still waiting, still on offer to start at once.
+    expect(
+      screen.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+  });
+
+  test("a wait that ends after midnight says tomorrow, and the time alone once midnight has passed", () => {
+    // 23:55 in London, and a wait that ends at 00:05.
+    jest.setSystemTime(new Date("2026-10-20T22:55:00.000Z"));
+    const waitUntil: Date = new Date("2026-10-20T23:05:00.000Z");
+
+    renderWaiting(waitUntil, "alert");
+
+    expect(heading()).toHaveTextContent(
+      `OneUptime AI investigates tomorrow at ${clockTime(waitUntil)} if this alert is still open`,
+    );
+
+    // 00:01 in London: the same day as the wait's end.
+    act(() => {
+      jest.advanceTimersByTime(6 * 60 * 1000);
+    });
+
+    expect(heading()).toHaveTextContent(
+      `OneUptime AI investigates at ${clockTime(waitUntil)} if this alert is still open`,
+    );
+  });
+
+  test("a time already gone by when the card opens is never named", () => {
+    jest.setSystemTime(new Date("2026-10-20T12:00:00.000Z"));
+    const waitUntil: Date = new Date("2026-10-20T11:58:00.000Z");
+
+    renderWaiting(waitUntil);
+
+    expect(heading()).toHaveTextContent(
+      "OneUptime AI investigates shortly if this incident is still open",
+    );
+    expect(heading()).not.toHaveTextContent(clockTime(waitUntil));
+  });
+
+  test("stops reading the clock when the card goes", () => {
+    jest.setSystemTime(new Date("2026-10-20T12:00:00.000Z"));
+    const { unmount } = renderWaiting(new Date("2026-10-20T12:10:00.000Z"));
+    const timers: number = jest.getTimerCount();
+
+    expect(timers).toBeGreaterThan(0);
+
+    unmount();
+
+    expect(jest.getTimerCount()).toBe(timers - 1);
   });
 });

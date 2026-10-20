@@ -32016,5 +32016,9 @@
   "The investigation could not be started.": "조사를 시작하지 못했습니다.",
   "They were resolved during an investigation rule's wait.": "조사 규칙의 대기 중에 해결되었습니다.",
   "Wait (Minutes)": "대기 시간(분)",
-  "When to investigate": "조사 시점"
+  "When to investigate": "조사 시점",
+  "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "내일 {{time}}에 이 인시던트가 아직 해결되지 않았으면 OneUptime AI가 조사합니다",
+  "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "내일 {{time}}에 이 경고가 아직 해결되지 않았으면 OneUptime AI가 조사합니다",
+  "OneUptime AI investigates shortly if this incident is still open": "이 인시던트가 아직 해결되지 않았으면 OneUptime AI가 곧 조사합니다",
+  "OneUptime AI investigates shortly if this alert is still open": "이 경고가 아직 해결되지 않았으면 OneUptime AI가 곧 조사합니다"
 }

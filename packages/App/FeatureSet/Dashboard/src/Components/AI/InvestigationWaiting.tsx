@@ -1,3 +1,4 @@
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
@@ -5,12 +6,19 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import {
   INVESTIGATE_NOW,
+  INVESTIGATION_WAITING_CLOCK_TICK_MS,
   INVESTIGATION_WAITING_COPY,
+  InvestigationWaitingTitle,
   WaitingInvestigationState,
-  formatWaitUntil,
+  getInvestigationWaitingTitle,
 } from "./InvestigationWaitingState";
 
 export interface ComponentProps {
@@ -40,6 +48,28 @@ const InvestigationWaiting: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const copy: (typeof INVESTIGATION_WAITING_COPY)["incident"] =
     INVESTIGATION_WAITING_COPY[props.subjectType];
+  /*
+   * The clock the heading is read against: it ticks, so "at 10:42" turns
+   * into "shortly" when the time comes, rather than naming a time gone by
+   * until the card's next read finds the run.
+   */
+  const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
+
+  useEffect(() => {
+    const interval: ReturnType<typeof setInterval> = setInterval(() => {
+      setNow(OneUptimeDate.getCurrentDate());
+    }, INVESTIGATION_WAITING_CLOCK_TICK_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  const title: InvestigationWaitingTitle = getInvestigationWaitingTitle({
+    subjectType: props.subjectType,
+    waitUntil: props.waiting.waitUntil,
+    now: now,
+  });
 
   return (
     <div
@@ -49,8 +79,8 @@ const InvestigationWaiting: FunctionComponent<ComponentProps> = (
     >
       <div>
         <h3 className="text-sm font-semibold text-gray-900">
-          {translator.translateTemplate(copy.title, {
-            time: formatWaitUntil(props.waiting.waitUntil),
+          {translator.translateTemplate(title.template, {
+            time: title.time,
           })}
         </h3>
         <p className="mt-1 text-sm leading-6 text-gray-600">

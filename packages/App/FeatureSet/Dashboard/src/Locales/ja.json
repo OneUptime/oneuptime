@@ -32016,5 +32016,9 @@
   "The investigation could not be started.": "調査を開始できませんでした。",
   "They were resolved during an investigation rule's wait.": "調査ルールの待機中に解決されました。",
   "Wait (Minutes)": "待機時間（分）",
-  "When to investigate": "調査するタイミング"
+  "When to investigate": "調査するタイミング",
+  "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "このインシデントが明日の {{time}} にまだ未解決なら、OneUptime AI が調査します",
+  "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "このアラートが明日の {{time}} にまだ未解決なら、OneUptime AI が調査します",
+  "OneUptime AI investigates shortly if this incident is still open": "このインシデントがまだ未解決なら、OneUptime AI がまもなく調査します",
+  "OneUptime AI investigates shortly if this alert is still open": "このアラートがまだ未解決なら、OneUptime AI がまもなく調査します"
 }

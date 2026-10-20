@@ -32016,5 +32016,9 @@
   "The investigation could not be started.": "जांच शुरू नहीं हो सकी।",
   "They were resolved during an investigation rule's wait.": "वे किसी जांच नियम की प्रतीक्षा के दौरान सुलझ गई थीं।",
   "Wait (Minutes)": "प्रतीक्षा (मिनट)",
-  "When to investigate": "जांच कब करें"
+  "When to investigate": "जांच कब करें",
+  "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "यदि यह घटना कल {{time}} पर भी खुली है, तो OneUptime AI जांच करेगा",
+  "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "यदि यह अलर्ट कल {{time}} पर भी खुला है, तो OneUptime AI जांच करेगा",
+  "OneUptime AI investigates shortly if this incident is still open": "यदि यह घटना अभी भी खुली है, तो OneUptime AI जल्द ही जांच करेगा",
+  "OneUptime AI investigates shortly if this alert is still open": "यदि यह अलर्ट अभी भी खुला है, तो OneUptime AI जल्द ही जांच करेगा"
 }

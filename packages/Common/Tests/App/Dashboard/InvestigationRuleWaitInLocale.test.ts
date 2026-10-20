@@ -89,8 +89,12 @@ const SENTENCES: Array<string> = [
     );
   }),
   INVESTIGATION_WAITING_COPY.incident.title,
+  INVESTIGATION_WAITING_COPY.incident.titleTomorrow,
+  INVESTIGATION_WAITING_COPY.incident.titleSoon,
   INVESTIGATION_WAITING_COPY.incident.whoCanStart,
   INVESTIGATION_WAITING_COPY.alert.title,
+  INVESTIGATION_WAITING_COPY.alert.titleTomorrow,
+  INVESTIGATION_WAITING_COPY.alert.titleSoon,
   INVESTIGATION_WAITING_COPY.alert.whoCanStart,
   INVESTIGATE_NOW,
   INVESTIGATE_NOW_FAILED,

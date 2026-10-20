@@ -3237,6 +3237,54 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
     ).toHaveCount(0);
   });
 
+  /*
+   * A day's wait from an incident declared late in the day ends tomorrow:
+   * the heading says so, rather than "at 15 Sep, 5:20 PM".
+   */
+  test("?wait=tomorrow: a wait that ends after midnight says tomorrow at its time", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      INCIDENT_PATH,
+      "ai=waiting&wait=tomorrow",
+    );
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      /^OneUptime AI investigates tomorrow at (5:20 PM|17:20) if this incident is still open$/,
+    );
+    await expect(waiting).toContainText(
+      "An investigation rule makes OneUptime AI wait 1,440 minutes, so incidents resolved by then are not investigated.",
+    );
+  });
+
+  /*
+   * The rule-wait job takes a record within the minute its wait ends, and
+   * the card shows the run once it reads it. Until then the card names no
+   * time gone by: OneUptime AI investigates shortly. Still waiting, still
+   * startable.
+   */
+  test("?wait=ended: once the time has come, the card says shortly, naming no time gone by", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const waiting: Locator = await openWaiting(
+      page,
+      ALERT_PATH,
+      "ai=waiting&wait=ended",
+    );
+
+    await expect(waiting.getByRole("heading", { level: 3 })).toHaveText(
+      "OneUptime AI investigates shortly if this alert is still open",
+    );
+    await expect(
+      waiting.getByRole("button", { name: "Investigate now" }),
+    ).toBeEnabled();
+  });
+
   test("an alert's wait names the alert, and Investigate now starts it on the alert's lane", async ({
     page,
   }: {

@@ -32016,5 +32016,9 @@
   "The investigation could not be started.": "Undersøgelsen kunne ikke startes.",
   "They were resolved during an investigation rule's wait.": "De blev løst under en undersøgelsesregels ventetid.",
   "Wait (Minutes)": "Ventetid (minutter)",
-  "When to investigate": "Hvornår der undersøges"
+  "When to investigate": "Hvornår der undersøges",
+  "OneUptime AI investigates tomorrow at {{time}} if this incident is still open": "OneUptime AI undersøger i morgen kl. {{time}}, hvis denne hændelse stadig er åben",
+  "OneUptime AI investigates tomorrow at {{time}} if this alert is still open": "OneUptime AI undersøger i morgen kl. {{time}}, hvis denne advarsel stadig er åben",
+  "OneUptime AI investigates shortly if this incident is still open": "OneUptime AI undersøger om lidt, hvis denne hændelse stadig er åben",
+  "OneUptime AI investigates shortly if this alert is still open": "OneUptime AI undersøger om lidt, hvis denne advarsel stadig er åben"
 }
