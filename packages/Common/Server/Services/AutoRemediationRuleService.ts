@@ -12,24 +12,31 @@ import Runner from "../../Models/DatabaseModels/Runner";
 import AutoRemediationAction, {
   isAutoRemediationAction,
 } from "../../Types/AutoRemediation/AutoRemediationAction";
+import { readAutoRemediationIds } from "../../Types/AutoRemediation/AutoRemediationFix";
 import AiRemediationCredentialUse, {
   RuleCommandSettings,
   RuleCommandSettingsChange,
 } from "../Utils/AutoRemediation/AiRemediationCredentialUse";
+import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
 
 /*
  * The columns that decide whether, and where, a rule runs OneUptime AI's
  * commands without asking (AiRemediationCredentialUse) - whether it is on
- * included.
+ * included. The rule's Runner is written as runnerId or as its relation.
  */
 const COMMAND_SETTINGS_COLUMNS: Array<keyof RuleCommandSettings> = [
   "isEnabled",
   "remediationAction",
   "aiComposesCommands",
+  "aiSelectsRunbook",
   "executionMode",
   "commandAllowlist",
   "commandRunners",
+  "runnerId",
 ];
+
+// The keys a write names the rule's Runner by: the id, or the relation.
+const RUNNER_KEYS: Array<string> = ["runnerId", "runner"];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -37,14 +44,20 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A rule's Command Runners are the hosts its AI-composed Bash/SSH commands
-   * may target. A kubernetes-agent Runner (the in-cluster Runner the agent
-   * chart registers; RunnerService.isKubernetesAgentRunnerRow) is never
-   * one: it runs policy-tiered kubectl for its own cluster only, the claim
-   * path never serves it shell work, and its identity is issued with the
+   * A rule's Runner (and, for a rule saved before rules were simplified, its
+   * Command Runners) are the hosts its AI-composed Bash/SSH commands may
+   * target. A kubernetes-agent Runner (the in-cluster Runner the agent chart
+   * registers; RunnerService.isKubernetesAgentRunnerRow) is never one: it
+   * runs policy-tiered kubectl for its own cluster only, the claim path
+   * never serves it shell work, and its identity is issued with the
    * project's telemetry ingestion key. A rule narrowed to one could never
    * run a command. The dashboard does not offer these Runners; this refuses
-   * them on the API path too.
+   * them on the API path too. That the Runner is one of the rule's own
+   * project's - never another project's, never a global Runner - the
+   * project check in super.onBeforeCreate has decided before this runs.
+   *
+   * Picking the Runner is what lets OneUptime AI's commands run on it
+   * (RunnerAiCommandsPick): there is no switch on the Runner any more.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -68,10 +81,16 @@ export class Service extends ProjectReferencesService<Model> {
       changes: [{ before: null, after: createBy.data }],
     });
 
+    const written: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
     const agentRunners: Array<Runner> =
-      await RunnerService.findKubernetesAgentRunners(
-        createBy.data.commandRunners,
-      );
+      await RunnerService.findKubernetesAgentRunners([
+        ...RunnerServiceClass.readRunnerIds(createBy.data.commandRunners),
+        ...Service.readWrittenRunnerIds(written),
+      ]);
 
     if (agentRunners.length > 0) {
       throw new BadDataException(
@@ -79,20 +98,24 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    await RunnerAiCommandsPick.allowPickedRunners({
+      projectId: createBy.data.projectId || createBy.props.tenantId,
+      runnerIds: Service.readWrittenRunnerIds(written),
+    });
+
     return { createBy, carryForward: [] };
   }
 
   /*
-   * The same refusal on every write of the Command Runners list, with one
+   * The same refusal on every write of the rule's Runners, with one
    * exception: a kubernetes-agent Runner a rule ALREADY holds (saved before
    * this guard) may be re-posted. The dashboard's rule form re-posts every
-   * field, including a stored Runner its picker no longer lists, so
-   * refusing it would block every edit of such a rule with nothing on the
-   * form to remove. Dropping it silently would be worse: a rule narrowed to
-   * that Runner alone would widen to "any Runner" on an unrelated edit. A
-   * held agent Runner is harmless — AI is only ever offered online Runners
-   * that are not agents (RunnerService.getOnlineAiCommandRunnersForProject),
-   * so it narrows the rule to nothing it can target. Adding one is refused.
+   * field, including a stored Runner its picker no longer lists, so refusing
+   * it would block every edit of such a rule with nothing on the form to
+   * remove. Dropping it silently would be worse: the rule's Runner would
+   * change on an unrelated edit. A held agent Runner is harmless - the claim
+   * path never serves it shell work - so it narrows the rule to nothing it
+   * can target. Adding one is refused.
    *
    * And an update may leave a rule running OneUptime AI's commands without
    * asking more widely than it did - turn it on, add an allowlist pattern,
@@ -104,7 +127,9 @@ export class Service extends ProjectReferencesService<Model> {
    * Both read the rules the update writes - the ones its caller may write -
    * once, and the update is held to the rules read
    * (findRowsAndHoldUpdateToThem), so a rule neither check saw is never
-   * written. Nothing is read when neither has anything to ask.
+   * written. Nothing is read when neither has anything to ask. A Runner the
+   * update picks is let run OneUptime AI's commands once the checks pass
+   * (RunnerAiCommandsPick).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -126,18 +151,29 @@ export class Service extends ProjectReferencesService<Model> {
 
     Service.assertRemediationAction(data["remediationAction"]);
 
+    const writtenRunnerIds: Array<ObjectID> = Service.readWrittenRunnerIds(
+      data as unknown as Record<string, unknown>,
+    );
+
     // Whether who may run OneUptime AI's commands without asking is asked.
     const asksAboutCommandsWithoutAsking: boolean =
-      COMMAND_SETTINGS_COLUMNS.some(
+      (COMMAND_SETTINGS_COLUMNS.some(
         (column: keyof RuleCommandSettings): boolean => {
           return data[column] !== undefined;
         },
-      ) && !AiRemediationCredentialUse.mayUseCredentials(updateBy.props);
+      ) ||
+        data["runner"] !== undefined) &&
+      !AiRemediationCredentialUse.mayUseCredentials(updateBy.props);
 
     const agentRunners: Array<Runner> =
-      await RunnerService.findKubernetesAgentRunners(data["commandRunners"]);
+      await RunnerService.findKubernetesAgentRunners([
+        ...RunnerServiceClass.readRunnerIds(data["commandRunners"]),
+        ...writtenRunnerIds,
+      ]);
 
     if (!asksAboutCommandsWithoutAsking && agentRunners.length === 0) {
+      await this.allowPickedRunners(updateBy, writtenRunnerIds);
+
       return { updateBy, carryForward: null };
     }
 
@@ -145,12 +181,15 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy,
       {
         _id: true,
+        projectId: true,
         isEnabled: true,
         remediationAction: true,
         aiComposesCommands: true,
+        aiSelectsRunbook: true,
         executionMode: true,
         commandAllowlist: true,
         commandRunners: { _id: true },
+        runnerId: true,
       },
     );
 
@@ -175,12 +214,79 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    await this.allowPickedRunners(updateBy, writtenRunnerIds);
+
     return { updateBy, carryForward: null };
   }
 
   /*
+   * Lets the Runner an update picks run OneUptime AI's commands, in the
+   * project the update writes in: the tenant of a teammate's update, or -
+   * for OneUptime's own - the project of the rules it writes.
+   */
+  private async allowPickedRunners(
+    updateBy: UpdateBy<Model>,
+    runnerIds: Array<ObjectID>,
+  ): Promise<void> {
+    if (runnerIds.length === 0) {
+      return;
+    }
+
+    if (updateBy.props.tenantId) {
+      await RunnerAiCommandsPick.allowPickedRunners({
+        projectId: updateBy.props.tenantId,
+        runnerIds,
+      });
+      return;
+    }
+
+    const rules: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: { _id: true, projectId: true },
+      limit: updateBy.limit || 100,
+      skip: updateBy.skip || 0,
+      props: { isRoot: true },
+    });
+
+    const projectIds: Set<string> = new Set<string>(
+      rules
+        .map((rule: Model): string => {
+          return rule.projectId?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    for (const projectId of projectIds) {
+      await RunnerAiCommandsPick.allowPickedRunners({
+        projectId: new ObjectID(projectId),
+        runnerIds,
+      });
+    }
+  }
+
+  // The Runner a write names for its rules, as an id, or none.
+  public static readWrittenRunnerIds(
+    data: Record<string, unknown> | undefined,
+  ): Array<ObjectID> {
+    if (!data) {
+      return [];
+    }
+
+    return RunnerServiceClass.readRunnerIds(
+      RUNNER_KEYS.map((key: string): unknown => {
+        return data[key];
+      }).filter((value: unknown): boolean => {
+        return value !== undefined && value !== null && value !== "";
+      }),
+    );
+  }
+
+  /*
    * What an update does to a rule's command settings: the rule as it is,
-   * and as it will be once every setting the update writes is written.
+   * and as it will be once every setting the update writes is written. A
+   * Runner written as the relation counts as written to runnerId.
    */
   public static getCommandSettingsChange(
     rule: Model,
@@ -190,15 +296,21 @@ export class Service extends ProjectReferencesService<Model> {
       isEnabled: rule.isEnabled,
       remediationAction: rule.remediationAction,
       aiComposesCommands: rule.aiComposesCommands,
+      aiSelectsRunbook: rule.aiSelectsRunbook,
       executionMode: rule.executionMode,
       commandAllowlist: rule.commandAllowlist,
       commandRunners: rule.commandRunners,
+      runnerId: rule.runnerId,
     };
 
     for (const column of COMMAND_SETTINGS_COLUMNS) {
       if (data[column] !== undefined) {
         (after as unknown as JSONObject)[column] = data[column];
       }
+    }
+
+    if (data["runnerId"] === undefined && data["runner"] !== undefined) {
+      after.runnerId = data["runner"];
     }
 
     return { before: rule, after: after };
@@ -247,6 +359,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  // Whether a rule holds this Runner already: as its Runner, or a Command Runner.
   private static holdsRunner(rule: Model, runner: Runner): boolean {
     const runnerId: string | undefined =
       runner.id?.toString() || runner._id?.toString();
@@ -255,15 +368,16 @@ export class Service extends ProjectReferencesService<Model> {
       return false;
     }
 
-    return RunnerServiceClass.readRunnerIds(rule.commandRunners).some(
-      (heldId: ObjectID) => {
-        return heldId.toString() === runnerId;
-      },
-    );
+    const held: Array<string> = readAutoRemediationIds([
+      rule.runnerId,
+      ...RunnerServiceClass.readRunnerIds(rule.commandRunners),
+    ]);
+
+    return held.includes(runnerId.toLowerCase());
   }
 
   public static getAgentCommandRunnerRefusal(runner: Runner): string {
-    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash or SSH commands a rule composes, so it cannot be one of this rule's Command Runners. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page). Choose Runners you created under Runbooks → Runners, or leave Command Runners empty to allow any Runner with AI commands enabled.`;
+    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash or SSH commands a rule composes, so it cannot be this rule's Runner. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page). Pick a Runner you created under Runbooks → Runners, or none: OneUptime AI then fixes through the AI agent on the affected cluster or host.`;
   }
 }
 

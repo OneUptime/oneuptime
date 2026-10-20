@@ -5,6 +5,7 @@ import KubernetesClusterService, {
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
+import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
@@ -36,6 +37,15 @@ import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayW
  */
 beforeEach(() => {
   stubProjectDirectory({});
+  /*
+   * Binding a Runner lets it run OneUptime AI's commands
+   * (RunnerAiCommandsPick): a write of the Runner, read from the database,
+   * which these unit tests do not have.
+   */
+  jest
+    .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
+    .mockResolvedValue(undefined);
+
 });
 
 /*
@@ -1123,6 +1133,61 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
     await expect(
       hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: null })),
     ).resolves.toBeDefined();
+  });
+
+  /*
+   * A Runner has no "Runs AI Remediation Commands" switch any more: binding
+   * it to a cluster is what lets OneUptime AI run that cluster's kubectl on
+   * it (RunnerAiCommandsPick), once the binding passed every check.
+   */
+  describe("binding a Runner lets it run OneUptime AI's commands", () => {
+    function allowSpy(): jest.SpyInstance {
+      return jest.mocked(RunnerAiCommandsPick.allowPickedRunners);
+    }
+
+    it("lets the Runner an operator binds run them, in the cluster's project", async () => {
+      await hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: RUNNER_ID }));
+
+      expect(allowSpy()).toHaveBeenCalledTimes(1);
+      const call: { projectId: ObjectID; runnerIds: Array<ObjectID> } =
+        allowSpy().mock.calls[0]![0];
+      expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(
+        call.runnerIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ).toEqual([RUNNER_ID.toString()]);
+    });
+
+    it("reads the Runner from the relation too", async () => {
+      await hooks().onBeforeUpdate(
+        updateBy({ aiAccessRunner: { _id: RUNNER_ID.toString() } }),
+      );
+
+      expect(allowSpy()).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks nothing for a binding that is cleared", async () => {
+      current["aiAccessRunnerId"] = RUNNER_ID;
+
+      await hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: null }));
+
+      expect(allowSpy()).not.toHaveBeenCalled();
+    });
+
+    it("never lets a refused binding's Runner run them", async () => {
+      await refusalOf({ aiAccessRunnerId: OTHER_AGENT_ID });
+
+      expect(allowSpy()).not.toHaveBeenCalled();
+    });
+
+    it("leaves OneUptime's own writes - a registration binding its agent - to themselves", async () => {
+      await hooks().onBeforeUpdate(
+        updateBy({ aiAccessRunnerId: OWN_AGENT_ID }, { isRoot: true }),
+      );
+
+      expect(allowSpy()).not.toHaveBeenCalled();
+    });
   });
 
   it("negative control: the server's own (root) writes are not operator choices", async () => {

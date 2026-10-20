@@ -37,6 +37,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AutoRemediationAction from "../../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -160,6 +161,11 @@ function mockSuggestion(
     .mockResolvedValue(fakeSuggestion(overrides));
 }
 
+/*
+ * A rule saved before rules were simplified that composes commands, naming
+ * the Runner its tests target: a Runner runs a rule's commands only when
+ * the rule names it (AutoRemediationFix.getRuleCommandRunnerIds).
+ */
 function mockRule(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(AutoRemediationRuleService, "findOneById").mockResolvedValue({
     id: RULE_ID,
@@ -168,7 +174,7 @@ function mockRule(overrides: Partial<Record<string, unknown>> = {}): void {
     aiComposesCommands: true,
     executionMode: AutoRemediationExecutionMode.Suggest,
     commandAllowlist: [],
-    commandRunners: [],
+    commandRunners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
     ...overrides,
   } as unknown as AutoRemediationRule);
 }
@@ -701,7 +707,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
           set: expect.objectContaining({
             status: AutoRemediationSuggestionStatus.NoneApplicable,
             rationaleMarkdown: expect.stringContaining(
-              "deleted, disabled, or no longer composes commands",
+              "deleted, disabled, or no longer runs commands on a Runner",
             ),
           }),
         }),
@@ -726,10 +732,22 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       await expectNoneApplicableWithoutEngine();
     });
 
-    it("settles NoneApplicable when the rule no longer composes commands", async () => {
+    it("settles NoneApplicable when the rule no longer runs commands on a Runner", async () => {
       mockSuggestion();
       mockProject();
+      // A OneUptime AI rule that picks no Runner runs no commands of its own.
       mockRule({ aiComposesCommands: false });
+
+      await expectNoneApplicableWithoutEngine();
+    });
+
+    it("settles NoneApplicable when the rule runs its runbooks every time", async () => {
+      mockSuggestion();
+      mockProject();
+      mockRule({
+        remediationAction: AutoRemediationAction.Runbooks,
+        runnerId: RUNNER_ID,
+      });
 
       await expectNoneApplicableWithoutEngine();
     });

@@ -10,6 +10,7 @@ import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgent
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
+import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import UserService from "../../../Server/Services/UserService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
@@ -50,6 +51,15 @@ import {
  */
 beforeEach(() => {
   stubProjectDirectory({});
+  /*
+   * Binding a Runner lets it run OneUptime AI's commands
+   * (RunnerAiCommandsPick): a write of the Runner, read from the database,
+   * which these unit tests do not have.
+   */
+  jest
+    .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
+    .mockResolvedValue(undefined);
+
 });
 
 /*

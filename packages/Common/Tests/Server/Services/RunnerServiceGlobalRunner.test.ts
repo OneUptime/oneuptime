@@ -150,9 +150,21 @@ describe("holdToGlobalRunnerShape: a Runner is a project's own, or global", () =
     expect(Object.keys(runner)).not.toContain("canRunCodeFixTasks");
   });
 
-  it("the capability message names only the switch a Runner still has", () => {
+  /*
+   * A Runner has no AI switch left: a code repository picks its Runner, and
+   * an auto remediation rule or a cluster's AI settings pick the one that
+   * runs OneUptime AI's commands - so the message names where they are
+   * picked, never a switch.
+   */
+  it("the capability message names where OneUptime AI's Runner is picked, and no switch", () => {
     expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).toContain(
-      '"Runs AI Remediation Commands"',
+      "never OneUptime AI's commands",
+    );
+    expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).toContain(
+      "an auto remediation rule or a Kubernetes cluster's AI settings pick",
+    );
+    expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).not.toContain(
+      "Runs AI Remediation Commands",
     );
     expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).not.toContain("Code Fixes");
   });

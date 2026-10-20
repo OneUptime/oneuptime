@@ -10,6 +10,7 @@ import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ResourceAiAccessService from "../../../Server/Services/ResourceAiAccessService";
+import RunbookService from "../../../Server/Services/RunbookService";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
@@ -249,6 +250,11 @@ function mockEngine(data: {
   matchingRuleIds?: Array<string> | undefined;
   hasLlmProvider?: boolean | undefined;
   autoExecutedInLastHour?: number | undefined;
+  /*
+   * How many enabled runbooks OneUptime AI could pick from. None unless
+   * said: with none, OneUptime AI picks no runbook and says nothing of it.
+   */
+  enabledRunbooks?: number | undefined;
 }): Harness {
   const saved: Array<AutoRemediationDecision> = [];
 
@@ -319,6 +325,9 @@ function mockEngine(data: {
     );
   jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex);
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  jest
+    .spyOn(RunbookService, "countBy")
+    .mockResolvedValue(new PositiveNumber(data.enabledRunbooks || 0));
 
   const monitorReads: Harness["monitorReads"] = jest
     .spyOn(MonitorService, "findBy")

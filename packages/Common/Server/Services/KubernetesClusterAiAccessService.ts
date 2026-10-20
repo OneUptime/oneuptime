@@ -1230,13 +1230,17 @@ class KubernetesClusterAiAccessServiceClass {
       gaps.push(this.getRunnerOfflineGap({ runner, presence, isLegacy }));
     }
 
+    /*
+     * Binding a Runner to the cluster is what lets it run OneUptime AI's
+     * commands (RunnerAiCommandsPick), so a bound Runner without them is
+     * one bound before that - set right by binding it again.
+     */
     if (runner.canRunAiCommands !== true) {
       gaps.push({
         code: "runner_ai_commands_disabled",
         title: "The Runner does not accept AI commands",
-        description: `"Runs AI Remediation Commands" is turned off on Runner "${runner.name}", so it will not be served kubectl work.`,
-        nextStep:
-          'Turn on "Runs AI Remediation Commands" on the Runner (Runbooks → Runners).',
+        description: `Runner "${runner.name}" does not run OneUptime AI's commands yet, so it will not be served kubectl work.`,
+        nextStep: `Unbind the Runner and bind it again on ${CLUSTER_AI_AGENT_PAGE}: binding a Runner lets OneUptime AI run kubectl on it.`,
         blocks: "both",
       });
     }

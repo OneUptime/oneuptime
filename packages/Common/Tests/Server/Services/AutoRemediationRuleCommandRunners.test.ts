@@ -241,7 +241,7 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
       expect(thrown).toBeInstanceOf(BadDataException);
       const message: string = (thrown as Error).message;
       expect(message).toContain('Runner "kubernetes-agent/prod-us"');
-      expect(message).toContain("Command Runners");
+      expect(message).toContain("this rule's Runner");
       expect(message).toContain("Bash or SSH");
       expect(message).toContain("Kubernetes AI agent");
       expect(message).toContain("AI → Agent");

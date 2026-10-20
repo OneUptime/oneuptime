@@ -18,6 +18,12 @@ import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoR
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import AutoRemediationAction from "../../Types/AutoRemediation/AutoRemediationAction";
 import {
+  getRuleRunbookIds,
+  getRuleRunnerId,
+  isOneUptimeAiFixRule,
+  mayAiPickedRunbookStartWithoutAsking,
+} from "../../Types/AutoRemediation/AutoRemediationFix";
+import {
   AutoRemediationDecisionLane,
   AutoRemediationDecisionReason,
 } from "../../Types/AutoRemediation/AutoRemediationDecision";
@@ -61,6 +67,7 @@ import ResourceAiAccessService, {
 } from "./ResourceAiAccessService";
 import ProjectService from "./ProjectService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
+import RunbookService from "./RunbookService";
 import RunbookTriggerType from "../../Types/Runbook/RunbookTriggerType";
 import RunnerJobService from "./RunnerJobService";
 import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
@@ -126,11 +133,14 @@ export function getAutoRemediationAction(
 }
 
 /*
- * Whether a rule has OneUptime AI fix the signal on the clusters and
- * resources it is linked to - the cluster and resource rounds. A rule saved
- * before rules were simplified, that has AI compose commands on Runners or
- * pick one of the project's runbooks, is marked OneUptime AI too, but keeps
- * doing only that: it neither turns those rounds on nor makes them ask.
+ * Whether a rule has OneUptime AI fix the signal the way every new rule does
+ * (AutoRemediationFix): on the clusters and resources it is linked to - the
+ * cluster and resource rounds - with one of the project's runbooks (only
+ * the rule's when it names some), and with commands on the rule's Runner
+ * when it picks one. A rule saved before rules were simplified, that has AI
+ * compose commands on Runners or pick one of the project's runbooks, is
+ * marked OneUptime AI too, but keeps doing only that: it neither turns
+ * those rounds on nor makes them ask.
  */
 export function isAiFixRule(
   rule: Pick<
@@ -138,11 +148,7 @@ export function isAiFixRule(
     "remediationAction" | "aiComposesCommands" | "aiSelectsRunbook"
   >,
 ): boolean {
-  return (
-    getAutoRemediationAction(rule) === AutoRemediationAction.OneUptimeAI &&
-    !rule.aiComposesCommands &&
-    !rule.aiSelectsRunbook
-  );
+  return isOneUptimeAiFixRule(rule);
 }
 
 /*
@@ -391,6 +397,33 @@ function isRoundOrderedBefore(
   }
 
   return (row.id?.toString() || "") < (reference.suggestionId.toString() || "");
+}
+
+/*
+ * What a runbook pick made for no rule - the project's default, when no
+ * rule is set up - carries as its rule name, where a rule's pick carries
+ * the rule's: the Remediation card and the feed name OneUptime AI.
+ */
+export const DEFAULT_RUNBOOK_PICK_NAME: string = "OneUptime AI";
+
+/*
+ * Is this the project's default runbook pick (no rule set up)? The one
+ * suggestion that names no rule, no cluster and no resource and is not a
+ * command plan: a cluster or resource round names what it is for, and a
+ * rule's pick names its rule.
+ */
+export function isDefaultRunbookPick(suggestion: {
+  autoRemediationRuleId?: ObjectID | undefined | null;
+  kubernetesClusterId?: ObjectID | undefined | null;
+  resourceId?: ObjectID | undefined | null;
+  suggestionType?: AutoRemediationSuggestionType | string | undefined | null;
+}): boolean {
+  return (
+    !suggestion.autoRemediationRuleId &&
+    !suggestion.kubernetesClusterId &&
+    !suggestion.resourceId &&
+    suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan
+  );
 }
 
 /*
@@ -1449,6 +1482,7 @@ class AutoRemediationRuleEngineServiceClass {
           kubernetesClusterId: true,
           resourceType: true,
           resourceId: true,
+          suggestionType: true,
         },
         limit: MAX_SUGGESTIONS_PER_SUBJECT * 10,
         skip: 0,
@@ -1476,8 +1510,10 @@ class AutoRemediationRuleEngineServiceClass {
     /*
      * The rules decide which signals are fixed, and how. With none, every
      * signal is: OneUptime AI fixes it on the infrastructure it is linked
-     * to. With some, only the signals that match at least one are, each the
-     * way its matching rules say - OneUptime AI, or their runbooks.
+     * to, and may pick one of the project's runbooks. With some, only the
+     * signals that match at least one are, each the way its matching rules
+     * say - OneUptime AI (with the runbooks and the Runner a rule names), or
+     * a rule's runbooks every time.
      */
     const rules: Array<AutoRemediationRule> =
       await AutoRemediationRuleService.findBy({
@@ -1505,6 +1541,7 @@ class AutoRemediationRuleEngineServiceClass {
           labels: { _id: true },
           monitorLabels: { _id: true },
           runbooks: { _id: true, name: true },
+          runnerId: true,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
@@ -1568,6 +1605,21 @@ class AutoRemediationRuleEngineServiceClass {
       });
     }
 
+    /*
+     * Whether the AI agent on a cluster or host fixes this signal - a round
+     * started now, or by an earlier pass. A runbook OneUptime AI picks then
+     * waits for approval instead of starting on its own: two fixes running
+     * unattended for one signal verify and roll back on top of each other.
+     */
+    let agentRoundsStarted: number = existingSuggestions.filter(
+      (suggestion: AutoRemediationSuggestion): boolean => {
+        return (
+          Boolean(suggestion.kubernetesClusterId) ||
+          Boolean(suggestion.resourceId)
+        );
+      },
+    ).length;
+
     if (isAiFixOn) {
       /*
        * Cluster-level remediation first: an operator who set a mode on the
@@ -1586,6 +1638,7 @@ class AutoRemediationRuleEngineServiceClass {
         });
 
       remainingBudget -= clusterRoundsStarted;
+      agentRoundsStarted += clusterRoundsStarted;
 
       if (remainingBudget <= 0) {
         recorder.add({
@@ -1608,15 +1661,19 @@ class AutoRemediationRuleEngineServiceClass {
        * agents changing a cluster and a host for the same signal would each
        * verify and roll back on top of the other's change.
        */
-      remainingBudget -= await this.applyResourceLevelRemediation({
-        projectId: data.projectId,
-        linkage,
-        existingSuggestions,
-        budget: remainingBudget,
-        clusterRoundStarted: clusterRoundsStarted > 0,
-        recorder,
-        askFirst,
-      });
+      const resourceRoundsStarted: number =
+        await this.applyResourceLevelRemediation({
+          projectId: data.projectId,
+          linkage,
+          existingSuggestions,
+          budget: remainingBudget,
+          clusterRoundStarted: clusterRoundsStarted > 0,
+          recorder,
+          askFirst,
+        });
+
+      remainingBudget -= resourceRoundsStarted;
+      agentRoundsStarted += resourceRoundsStarted;
 
       if (remainingBudget <= 0) {
         if (matchedRules.length > 0) {
@@ -1629,7 +1686,49 @@ class AutoRemediationRuleEngineServiceClass {
       }
     }
 
+    /*
+     * Lazily evaluated once: AI runs need a provider. AI itself is on — the
+     * kill switch above already returned otherwise.
+     */
+    let aiAvailable: boolean | null = null;
+
+    const isAiAvailable: () => Promise<boolean> =
+      async (): Promise<boolean> => {
+        if (aiAvailable === null) {
+          aiAvailable =
+            (await LlmProviderService.getLLMProviderForProject(
+              data.projectId,
+            )) !== null;
+        }
+
+        return aiAvailable;
+      };
+
+    /*
+     * One "any runbook" pick per signal: a second rule that names no
+     * runbooks would only ask the same question of the same runbooks.
+     */
+    let isAnyRunbookPickStarted: boolean = existingSuggestions.some(
+      (suggestion: AutoRemediationSuggestion): boolean => {
+        return isDefaultRunbookPick(suggestion);
+      },
+    );
+
     if (matchedRules.length === 0) {
+      /*
+       * No rule is set up: OneUptime AI fixes every signal, and may pick
+       * any of the project's runbooks for it. With no runbooks named, its
+       * pick is proposed for approval, never started on its own.
+       */
+      if (!isAnyRunbookPickStarted) {
+        await this.startDefaultRunbookPick({
+          projectId: data.projectId,
+          linkage,
+          recorder,
+          isAiAvailable,
+        });
+      }
+
       return;
     }
 
@@ -1642,12 +1741,6 @@ class AutoRemediationRuleEngineServiceClass {
           return id !== "";
         }),
     );
-
-    /*
-     * Lazily evaluated once: AI rules need a provider. AI itself is on —
-     * the kill switch above already returned otherwise.
-     */
-    let aiAvailable: boolean | null = null;
 
     for (const rule of matchedRules) {
       const ruleNames: { ruleId?: string | undefined; ruleName?: string } = {
@@ -1677,9 +1770,12 @@ class AutoRemediationRuleEngineServiceClass {
 
       /*
        * A rule that lets OneUptime AI fix the signal: the cluster and
-       * resource rounds above are that fix. A rule saved before rules were
+       * resource rounds above are part of that fix. OneUptime AI also picks
+       * the runbook that fits - one the rule names, or any of the project's
+       * when it names none - and, when the rule picks a Runner, composes
+       * commands of its own there. A rule saved before rules were
        * simplified, that let AI compose commands on Runners or pick one of
-       * the project's runbooks, keeps doing that instead (below).
+       * the project's runbooks, keeps doing only that instead (below).
        */
       if (isAiFixRule(rule)) {
         recorder.add({
@@ -1690,6 +1786,93 @@ class AutoRemediationRuleEngineServiceClass {
               : AutoRemediationDecisionReason.RuleMatchedAiFixAsks,
           ...ruleNames,
         });
+
+        const namesRunbooks: boolean = getRuleRunbookIds(rule).length > 0;
+
+        if (
+          (namesRunbooks || !isAnyRunbookPickStarted) &&
+          (await this.hasRunbooksToPick({
+            projectId: data.projectId,
+            runbookIds: getRuleRunbookIds(rule),
+          }))
+        ) {
+          if (!(await isAiAvailable())) {
+            recorder.add({
+              lane: AutoRemediationDecisionLane.Rule,
+              reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
+              ...ruleNames,
+            });
+            continue;
+          }
+
+          const isPickStarted: boolean = await this.startAiPlanning({
+            projectId: data.projectId,
+            rule,
+            linkage,
+            executionMode: mayAiPickedRunbookStartWithoutAsking({
+              executionMode: rule.executionMode,
+              namesRunbooks,
+              anotherRuleAsksFirst: askFirst !== undefined,
+              agentRoundStarted: agentRoundsStarted > 0,
+            })
+              ? AutoRemediationExecutionMode.FullAuto
+              : AutoRemediationExecutionMode.Suggest,
+            isAnnounced: false,
+          });
+
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: isPickStarted
+              ? AutoRemediationDecisionReason.RuleAiPickingRunbook
+              : AutoRemediationDecisionReason.RuleAiRunNotStarted,
+            ...ruleNames,
+          });
+
+          remainingBudget -= 1;
+
+          if (!namesRunbooks) {
+            isAnyRunbookPickStarted = true;
+          }
+        }
+
+        if (!getRuleRunnerId(rule)) {
+          continue;
+        }
+
+        if (remainingBudget <= 0) {
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RuleSkippedLimit,
+            ...ruleNames,
+          });
+          continue;
+        }
+
+        if (!(await isAiAvailable())) {
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
+            ...ruleNames,
+          });
+          continue;
+        }
+
+        // The rule picks a Runner: OneUptime AI composes commands there too.
+        const isRunnerRunStarted: boolean = await this.startAiCommandRun({
+          projectId: data.projectId,
+          rule,
+          linkage,
+        });
+
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: isRunnerRunStarted
+            ? AutoRemediationDecisionReason.RuleAiComposingCommands
+            : AutoRemediationDecisionReason.RuleAiRunNotStarted,
+          ...ruleNames,
+        });
+
+        remainingBudget -= 1;
         continue;
       }
 
@@ -1701,14 +1884,7 @@ class AutoRemediationRuleEngineServiceClass {
         action === AutoRemediationAction.OneUptimeAI &&
         rule.aiComposesCommands
       ) {
-        if (aiAvailable === null) {
-          aiAvailable =
-            (await LlmProviderService.getLLMProviderForProject(
-              data.projectId,
-            )) !== null;
-        }
-
-        if (!aiAvailable) {
+        if (!(await isAiAvailable())) {
           recorder.add({
             lane: AutoRemediationDecisionLane.Rule,
             reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
@@ -1741,14 +1917,7 @@ class AutoRemediationRuleEngineServiceClass {
         action === AutoRemediationAction.OneUptimeAI &&
         rule.aiSelectsRunbook
       ) {
-        if (aiAvailable === null) {
-          aiAvailable =
-            (await LlmProviderService.getLLMProviderForProject(
-              data.projectId,
-            )) !== null;
-        }
-
-        if (!aiAvailable) {
+        if (!(await isAiAvailable())) {
           recorder.add({
             lane: AutoRemediationDecisionLane.Rule,
             reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
@@ -1761,10 +1930,13 @@ class AutoRemediationRuleEngineServiceClass {
           continue;
         }
 
+        // Saved before rules were simplified: its pick is always proposed.
         const isPlanningStarted: boolean = await this.startAiPlanning({
           projectId: data.projectId,
           rule,
           linkage,
+          executionMode: AutoRemediationExecutionMode.Suggest,
+          isAnnounced: true,
         });
         recorder.add({
           lane: AutoRemediationDecisionLane.Rule,
@@ -2928,27 +3100,50 @@ class AutoRemediationRuleEngineServiceClass {
   /*
    * AI path: create a Planning suggestion and enqueue a RemediationPlan run
    * on the durable AI queue. The planning runner fills in the picked runbook
-   * and rationale (or NoneApplicable). AI-picked runbooks are always
-   * suggest-only — never full-auto.
+   * and rationale (or NoneApplicable), from the rule's runbooks or - with
+   * none named, or no rule - every enabled runbook of the project. A pick is
+   * proposed for one-click approval, unless the suggestion was made FullAuto
+   * here (a rule that fixes without asking and names its runbooks), when the
+   * planning run starts it once the rule and its breaker still allow it.
    */
   // Whether the AI planning run was queued.
   private async startAiPlanning(data: {
     projectId: ObjectID;
-    rule: AutoRemediationRule;
+    // The rule the pick is for; none for the project's default (no rule set up).
+    rule: AutoRemediationRule | null;
     linkage: SubjectLinkage;
+    /*
+     * FullAuto: the runbook picked starts right away, once the planning run
+     * re-reads the rule and its hourly breaker
+     * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking). Suggest: it
+     * is proposed for one-click approval.
+     */
+    executionMode: AutoRemediationExecutionMode;
+    /*
+     * Whether the feed says the rule matched and AI is picking: a rule saved
+     * before rules were simplified says so, as it always has. Every other
+     * pick says nothing until it has something to say - the runbook it
+     * proposes or starts - and the incident's Remediation card says it is
+     * picking.
+     */
+    isAnnounced: boolean;
   }): Promise<boolean> {
     const suggestion: AutoRemediationSuggestion =
       new AutoRemediationSuggestion();
     suggestion.projectId = data.projectId;
-    suggestion.autoRemediationRuleId = data.rule.id!;
-    suggestion.ruleNameSnapshot = data.rule.name || "Auto Remediation Rule";
+    if (data.rule?.id) {
+      suggestion.autoRemediationRuleId = data.rule.id;
+    }
+    suggestion.ruleNameSnapshot = data.rule
+      ? data.rule.name || "Auto Remediation Rule"
+      : DEFAULT_RUNBOOK_PICK_NAME;
     suggestion.status = AutoRemediationSuggestionStatus.Planning;
-    suggestion.executionMode = AutoRemediationExecutionMode.Suggest;
+    suggestion.executionMode = data.executionMode;
     suggestion.verificationWindowMinutes =
-      data.rule.verificationWindowMinutes ||
+      data.rule?.verificationWindowMinutes ||
       DEFAULT_VERIFICATION_WINDOW_MINUTES;
     suggestion.autoResolveOnRecovery =
-      data.rule.autoResolveOnVerifiedRecovery === true;
+      data.rule?.autoResolveOnVerifiedRecovery === true;
     if (data.linkage.incidentId) {
       suggestion.incidentId = data.linkage.incidentId;
     }
@@ -2994,15 +3189,90 @@ class AutoRemediationRuleEngineServiceClass {
       props: { isRoot: true },
     });
 
-    await this.postFeedItem({
-      projectId: data.projectId,
-      linkage: data.linkage,
-      markdown:
-        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`.toString(),
-      pingWorkspace: false,
-    });
+    if (data.isAnnounced && data.rule) {
+      await this.postFeedItem({
+        projectId: data.projectId,
+        linkage: data.linkage,
+        markdown:
+          mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`.toString(),
+        pingWorkspace: false,
+      });
+    }
 
     return true;
+  }
+
+  /*
+   * The project's default when no rule is set up: OneUptime AI fixes every
+   * new signal, and may pick any of the project's runbooks for it. With no
+   * runbook named, its pick is always proposed for approval. Nothing is
+   * started, and nothing said, when the project has no enabled runbook or
+   * no LLM provider: the card's other lines say what was fixed.
+   */
+  private async startDefaultRunbookPick(data: {
+    projectId: ObjectID;
+    linkage: SubjectLinkage;
+    recorder: AutoRemediationDecisionRecorder;
+    isAiAvailable: () => Promise<boolean>;
+  }): Promise<void> {
+    if (
+      !(await this.hasRunbooksToPick({
+        projectId: data.projectId,
+        runbookIds: [],
+      }))
+    ) {
+      return;
+    }
+
+    if (!(await data.isAiAvailable())) {
+      return;
+    }
+
+    const isPickStarted: boolean = await this.startAiPlanning({
+      projectId: data.projectId,
+      rule: null,
+      linkage: data.linkage,
+      executionMode: AutoRemediationExecutionMode.Suggest,
+      isAnnounced: false,
+    });
+
+    data.recorder.add({
+      lane: AutoRemediationDecisionLane.Project,
+      reason: isPickStarted
+        ? AutoRemediationDecisionReason.AiPickingRunbook
+        : AutoRemediationDecisionReason.AiRunbookPickNotStarted,
+    });
+  }
+
+  /*
+   * Whether OneUptime AI has a runbook to pick from: one of `runbookIds`
+   * (a rule's runbooks) that is enabled in the project, or - with none
+   * named - any enabled runbook of the project.
+   */
+  private async hasRunbooksToPick(data: {
+    projectId: ObjectID;
+    runbookIds: Array<string>;
+  }): Promise<boolean> {
+    const count: number = (
+      await RunbookService.countBy({
+        query: {
+          projectId: data.projectId,
+          isEnabled: true,
+          ...(data.runbookIds.length > 0
+            ? {
+                _id: QueryHelper.any(
+                  data.runbookIds.map((id: string): ObjectID => {
+                    return new ObjectID(id);
+                  }),
+                ),
+              }
+            : {}),
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    return count > 0;
   }
 
   /*

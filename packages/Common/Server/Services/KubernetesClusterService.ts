@@ -27,6 +27,7 @@ import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERNS,
 } from "../../Utils/AiRemediation/KubectlPolicy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -398,6 +399,11 @@ export class Service extends ProjectReferencesService<Model> {
         ],
         loaded,
       });
+
+      await this.allowBoundRunnerAiCommands({
+        data,
+        projectIds: projectId ? [projectId] : [],
+      });
     }
 
     return {
@@ -541,10 +547,41 @@ export class Service extends ProjectReferencesService<Model> {
           clusters: Object.values(carryForward.previousAiAccessSettings),
           loaded,
         });
+
+        await this.allowBoundRunnerAiCommands({ data, projectIds });
       }
     }
 
     return { updateBy, carryForward };
+  }
+
+  /*
+   * Binding a Runner to a cluster's AI access is what lets OneUptime AI run
+   * that cluster's kubectl there: a Runner has no "Runs AI Remediation
+   * Commands" switch any more (RunnerAiCommandsPick). Asked once an
+   * operator's binding passed every check above, for the Runner it binds -
+   * none for a binding it clears.
+   */
+  private async allowBoundRunnerAiCommands(data: {
+    data: JSONObject;
+    projectIds: Array<ObjectID>;
+  }): Promise<void> {
+    const runnerId: ObjectID | null = RelationIdUtil.readConsistent(
+      data.data,
+      AI_ACCESS_RUNNER_KEYS,
+      "AI access Runner",
+    );
+
+    if (!runnerId) {
+      return;
+    }
+
+    for (const projectId of data.projectIds) {
+      await RunnerAiCommandsPick.allowPickedRunners({
+        projectId,
+        runnerIds: [runnerId],
+      });
+    }
   }
 
   /*
