@@ -138,6 +138,14 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "other",
     why: "names where its queries are stored",
   },
+  "Common/Types/Dashboard/DashboardTimeRange.ts": {
+    role: "other",
+    why: "names dashboardViewConfig.timeRange in the refusal of a write it cannot open on",
+  },
+  "Common/Types/Dashboard/DashboardAutoRefresh.ts": {
+    role: "other",
+    why: "names dashboardViewConfig.refreshInterval in the refusal of a write it cannot open with",
+  },
   "App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Settings.tsx": {
     role: "other",
     why: "Duplicate copies the stored value as it is; the server's create reads it",

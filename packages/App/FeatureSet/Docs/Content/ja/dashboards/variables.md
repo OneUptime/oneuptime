@@ -105,7 +105,7 @@ Custom List は、カンマ区切りで入力した値を提示します。Text 
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-リンクが持つのは変数だけです。時間範囲は訪問のたびに直近 1 時間から始まるので、リンクを送る相手にどの期間を見ればよいかを伝えるか、相手が開いたあとでズームしてください。
+リンクには、選んだ時間範囲と自動更新も `range` と `refresh` として含まれるので、送った相手にも同じ表示が見えます。値の一覧は [リンクを送る](/docs/dashboards/sharing#リンクを送る) にあります。
 
 ## 例: サービスごとに 1 つのダッシュボード
 

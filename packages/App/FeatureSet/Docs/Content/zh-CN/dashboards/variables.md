@@ -105,7 +105,7 @@ Custom List 提供你输入的以逗号分隔的值。Text Input 让查看者输
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-链接只携带变量。每次访问时，时间范围都从最近一小时开始，所以请告诉收到链接的人要看哪个时间段，或者在他们打开后再放大。
+链接还会以 `range` 和 `refresh` 携带你选择的时间范围和自动刷新，让收到链接的人看到与你相同的内容。它们的取值见 [发送链接](/docs/dashboards/sharing#发送链接)。
 
 ## 示例：每个服务一个仪表板
 

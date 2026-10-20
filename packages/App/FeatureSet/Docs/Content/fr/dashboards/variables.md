@@ -105,7 +105,7 @@ Le lien de la page porte le choix de chaque variable sous la forme `?var-<name>=
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-Le lien ne porte que les variables. La plage temporelle repart de la dernière heure à chaque visite : dites aux personnes à qui vous l'envoyez quelle période regarder, ou zoomez une fois qu'elles l'ont ouvert.
+Le lien porte aussi la plage temporelle et l'actualisation automatique que vous avez choisies, sous la forme `range` et `refresh`, pour que les personnes à qui vous l'envoyez voient ce que vous voyez. [Envoyer un lien](/docs/dashboards/sharing#envoyer-un-lien) donne leurs valeurs.
 
 ## Un exemple : un tableau de bord pour chaque service
 

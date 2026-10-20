@@ -11,6 +11,7 @@ import DashboardTheme, {
   parseDashboardVisitorColorScheme,
 } from "Common/Types/Dashboard/DashboardTheme";
 import { getPublicPageThemeFromHeadSetting } from "Common/Types/Theme/PublicPageTheme";
+import RememberedChoice from "Common/UI/Utils/RememberedChoice";
 import ThemeUtil, { Theme } from "Common/UI/Utils/Theme";
 
 /*
@@ -35,7 +36,9 @@ import ThemeUtil, { Theme } from "Common/UI/Utils/Theme";
  *     the dashboard's toolbar: Light or Dark, kept in their browser for
  *     every public dashboard on this address, or Auto, which forgets it so
  *     the dashboard's theme decides again. A link that names its own theme
- *     offers no pick.
+ *     offers no pick. The browser keeps it the way it keeps every such
+ *     choice, a viewer's time range and auto-refresh on a dashboard among
+ *     them (Common/UI/Utils/RememberedChoice.ts).
  *
  * The scheme is drawn by Common's ThemeUtil.applyTheme (the dark class,
  * data-theme, color-scheme and the theme-color tag), as the dashboard's and
@@ -175,17 +178,9 @@ export default class DashboardThemeUtil {
 
   // What the visitor's browser keeps of their pick, or null.
   private static readKeptVisitorColorScheme(): DashboardColorScheme | null {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    try {
-      return parseDashboardVisitorColorScheme(
-        window.localStorage.getItem(DASHBOARD_VISITOR_THEME_STORAGE_KEY),
-      );
-    } catch {
-      return null;
-    }
+    return parseDashboardVisitorColorScheme(
+      RememberedChoice.read(DASHBOARD_VISITOR_THEME_STORAGE_KEY),
+    );
   }
 
   // The visitor's pick as the theme menu shows it: light, dark or auto.
@@ -224,20 +219,15 @@ export default class DashboardThemeUtil {
 
     DashboardThemeUtil.visitorColorScheme = scheme;
 
-    try {
-      if (scheme) {
-        window.localStorage.setItem(
-          DASHBOARD_VISITOR_THEME_STORAGE_KEY,
-          scheme,
-        );
-      } else {
-        window.localStorage.removeItem(DASHBOARD_VISITOR_THEME_STORAGE_KEY);
-      }
-    } catch {
-      /*
-       * Storage can be blocked. The pick still holds for as long as the
-       * page is open: it is kept here as well.
-       */
+    /*
+     * Storage can be blocked. The pick still holds for as long as the page
+     * is open: it is kept here as well, and RememberedChoice holds what the
+     * browser would not keep.
+     */
+    if (scheme) {
+      RememberedChoice.remember(DASHBOARD_VISITOR_THEME_STORAGE_KEY, scheme);
+    } else {
+      RememberedChoice.forget(DASHBOARD_VISITOR_THEME_STORAGE_KEY);
     }
 
     DashboardThemeUtil.apply();
@@ -305,16 +295,14 @@ export default class DashboardThemeUtil {
     }
 
     // A pick made, or storage cleared, in another tab of this address.
-    window.addEventListener("storage", (event: StorageEvent): void => {
-      if (
-        event.key === DASHBOARD_VISITOR_THEME_STORAGE_KEY ||
-        event.key === null
-      ) {
+    RememberedChoice.subscribe(
+      DASHBOARD_VISITOR_THEME_STORAGE_KEY,
+      (): void => {
         DashboardThemeUtil.visitorColorScheme =
           DashboardThemeUtil.readKeptVisitorColorScheme();
         DashboardThemeUtil.apply();
         DashboardThemeUtil.notify();
-      }
-    });
+      },
+    );
   }
 }
