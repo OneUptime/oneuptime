@@ -2842,9 +2842,9 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
               code: "runner_ai_commands_disabled",
               title: "The Runner does not accept AI commands",
               description:
-                '"Runs AI Remediation Commands" is turned off on Runner "ops-runner", so it will not be served kubectl work.',
+                'Runner "ops-runner" does not run OneUptime AI\'s commands yet, so it will not be served kubectl work.',
               nextStep:
-                'Turn on "Runs AI Remediation Commands" on the Runner (Runbooks → Runners).',
+                "Unbind the Runner and bind it again on the cluster's AI agent page (AI → Agent): binding a Runner lets OneUptime AI run kubectl on it.",
               blocks: "both",
             },
           ],

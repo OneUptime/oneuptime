@@ -412,6 +412,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           // "Run them every time": the rule's Fix With, Runbooks when on.
           field: { remediationAction: true },
           title: AUTO_REMEDIATION_MORE_FIELDS_COPY.everyTimeTitle,
+          // The switch draws it beside itself; the field's own, not the column's.
+          description: AUTO_REMEDIATION_MORE_FIELDS_COPY.everyTimeDescription,
           stepId: "remediation",
           collapsibleSection: MORE_FIELDS,
           fieldType: FormFieldSchemaType.CustomComponent,

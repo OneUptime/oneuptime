@@ -49,7 +49,7 @@ import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import PromptText from "../../../../Utils/AI/PromptText";
 import { findLabelledValues } from "../LabelledAnswerLines";
 
@@ -106,6 +106,14 @@ export function getBreakerNote(): string {
 
 export const NOT_STARTED_NOTE: string =
   "The runbook could not be started (it may be turned off or have no steps), so it was proposed instead.";
+
+/*
+ * The rationale of a pick proposed instead of started: why, then the
+ * reasoning OneUptime AI posted, as it was posted.
+ */
+function withProposalNote(note: string, rationaleMarkdown: string): string {
+  return mdText`${note}\n\n${FeedMarkdown.asMarkdown(rationaleMarkdown)}`.toString();
+}
 
 // What a "SelectedRunbook:" line names: a runbook's id, or "none".
 const SELECTED_RUNBOOK_VALUE: RegExp = /([a-z0-9-]{8,64}|none)\b/iy;
@@ -474,7 +482,7 @@ export default class RemediationPlanRunner {
               runbookId: runbook.id!.toString(),
               runbookNameSnapshot: runbook.name || "Runbook",
               rationaleMarkdown: proposalNote
-                ? `${proposalNote}\n\n${data.rationaleMarkdown}`
+                ? withProposalNote(proposalNote, data.rationaleMarkdown)
                 : data.rationaleMarkdown,
             }
           : {
@@ -704,7 +712,10 @@ export default class RemediationPlanRunner {
           set: {
             status: AutoRemediationSuggestionStatus.Suggested,
             executionMode: AutoRemediationExecutionMode.Suggest,
-            rationaleMarkdown: `${NOT_STARTED_NOTE}\n\n${data.rationaleMarkdown}`,
+            rationaleMarkdown: withProposalNote(
+              NOT_STARTED_NOTE,
+              data.rationaleMarkdown,
+            ),
           },
         });
 

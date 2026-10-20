@@ -897,6 +897,14 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
     "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
   );
 
+  /*
+   * What OneUptime AI posts for its pick: Markdown, which a rationale keeps
+   * as it was posted - never escaped as text.
+   */
+  const POSTED_REASONING: string =
+    "The pods are **crash-looping** since [the deploy](https://deploy.example/42).";
+  const POSTED_ANALYSIS: string = `${POSTED_REASONING}\nSelectedRunbook: ${RUNBOOK_A_ID.toString()}`;
+
   // A OneUptime AI rule that fixes without asking and names runbook A.
   function allowingRule(
     overrides: Partial<Record<string, unknown>> = {},
@@ -1016,7 +1024,7 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
           request: InvestigationRequest;
         }): Promise<void> => {
           await run.request.postAnalysis({
-            analysisMarkdown: `The pods are crash-looping.\nSelectedRunbook: ${
+            analysisMarkdown: `${POSTED_REASONING}\nSelectedRunbook: ${
               data.selected || RUNBOOK_A_ID.toString()
             }`,
             confidence: {
@@ -1240,9 +1248,8 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
         expect(recorded.transitions[0]!.set).toEqual(
           expect.objectContaining({
             executionMode: AutoRemediationExecutionMode.Suggest,
-            rationaleMarkdown: expect.stringMatching(
-              new RegExp(`^${RULE_CHANGED_NOTE.replace(/[.()]/g, "\\$&")}`),
-            ),
+            // Why first, then OneUptime AI's reasoning as it was posted.
+            rationaleMarkdown: `${RULE_CHANGED_NOTE}\n\n${POSTED_ANALYSIS}`,
           }),
         );
         expect(recorded.feed[0]).toContain(RULE_CHANGED_NOTE);
@@ -1259,6 +1266,9 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
 
       expect(recorded.starts).not.toHaveBeenCalled();
       expect(statuses(recorded)).toEqual(["Planning->Suggested"]);
+      expect(recorded.transitions[0]!.set["rationaleMarkdown"]).toBe(
+        `${getBreakerNote()}\n\n${POSTED_ANALYSIS}`,
+      );
       expect(recorded.feed[0]).toContain(getBreakerNote());
       expect(getBreakerNote()).toContain(
         `(${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR})`,
@@ -1277,8 +1287,8 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
         "Planning->AutoExecuted",
         "AutoExecuted->Suggested",
       ]);
-      expect(recorded.transitions[1]!.set["rationaleMarkdown"]).toMatch(
-        /^The runbook could not be started/,
+      expect(recorded.transitions[1]!.set["rationaleMarkdown"]).toBe(
+        `${NOT_STARTED_NOTE}\n\n${POSTED_ANALYSIS}`,
       );
       expect(recorded.links).not.toHaveBeenCalled();
       expect(recorded.feed).toEqual([
