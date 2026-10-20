@@ -217,36 +217,31 @@ export function describeConnectionError(error: unknown): McpClientError {
   });
 }
 
-export default class GuardedMcpHttpTransport implements McpHttpTransport {
-  private readonly egressOptions: EgressGuardOptions;
+/*
+ * Sends one request over Node's HTTP client through the given agents and
+ * answers with the response as an McpHttpResponse - refusing a redirect,
+ * and holding the body to the request's size limit. The agents are
+ * destroyed once the response is done with (or the request failed).
+ */
+export async function sendNodeHttpRequest(data: {
+  url: URL;
+  request: McpHttpRequest;
+  agents: PinnedAgents;
+}): Promise<McpHttpResponse> {
+  const { request } = data;
 
-  public constructor(options?: { egressOptions?: EgressGuardOptions }) {
-    this.egressOptions = {
-      targetLabel: "MCP server",
-      ...(options?.egressOptions || {}),
-    };
-  }
+  const destroyAgents: () => void = (): void => {
+    data.agents.httpAgent.destroy();
+    data.agents.httpsAgent.destroy();
+  };
 
-  public async send(request: McpHttpRequest): Promise<McpHttpResponse> {
-    let pinned: { url: URL } & PinnedAgents;
+  const isHttps: boolean = data.url.protocol === "https:";
+  const pinned: { url: URL } & PinnedAgents = {
+    url: data.url,
+    ...data.agents,
+  };
 
-    try {
-      pinned = await DataSourceEgressGuard.assertUrlAllowedAndPin(
-        request.url,
-        this.egressOptions,
-      );
-    } catch (error) {
-      throw getEgressFailure(error) || describeConnectionError(error);
-    }
-
-    const destroyAgents: () => void = (): void => {
-      pinned.httpAgent.destroy();
-      pinned.httpsAgent.destroy();
-    };
-
-    const isHttps: boolean = pinned.url.protocol === "https:";
-
-    return await new Promise<McpHttpResponse>(
+  return await new Promise<McpHttpResponse>(
       (
         resolve: (response: McpHttpResponse) => void,
         reject: (error: Error) => void,
@@ -327,5 +322,34 @@ export default class GuardedMcpHttpTransport implements McpHttpTransport {
         clientRequest.end();
       },
     );
+}
+
+export default class GuardedMcpHttpTransport implements McpHttpTransport {
+  private readonly egressOptions: EgressGuardOptions;
+
+  public constructor(options?: { egressOptions?: EgressGuardOptions }) {
+    this.egressOptions = {
+      targetLabel: "MCP server",
+      ...(options?.egressOptions || {}),
+    };
+  }
+
+  public async send(request: McpHttpRequest): Promise<McpHttpResponse> {
+    let pinned: { url: URL } & PinnedAgents;
+
+    try {
+      pinned = await DataSourceEgressGuard.assertUrlAllowedAndPin(
+        request.url,
+        this.egressOptions,
+      );
+    } catch (error) {
+      throw getEgressFailure(error) || describeConnectionError(error);
+    }
+
+    return await sendNodeHttpRequest({
+      url: pinned.url,
+      request,
+      agents: { httpAgent: pinned.httpAgent, httpsAgent: pinned.httpsAgent },
+    });
   }
 }

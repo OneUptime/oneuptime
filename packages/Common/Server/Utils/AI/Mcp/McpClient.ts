@@ -879,7 +879,23 @@ export default class McpClient {
 
       const newHandshake: McpServerHandshake = await this.connect();
 
-      return await this.requestOnce(newHandshake, method, params, timeoutMs);
+      try {
+        return await this.requestOnce(newHandshake, method, params, timeoutMs);
+      } catch (retryError) {
+        if (!(retryError instanceof SessionEndedError)) {
+          throw retryError;
+        }
+
+        this.handshake = null;
+        this.sessionId = undefined;
+
+        throw new McpClientError({
+          kind: ExternalMcpServerFailureKind.ServerError,
+          status: 404,
+          message:
+            "The server ended the session again as soon as it was started (HTTP 404).",
+        });
+      }
     }
   }
 

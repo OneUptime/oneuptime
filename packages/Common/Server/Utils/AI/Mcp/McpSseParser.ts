@@ -5,10 +5,13 @@
  * older HTTP+SSE server sends every answer down one long-lived GET stream.
  *
  * The stream is text from a server outside OneUptime, so it is read in one
- * pass, in time that grows in line with its length: lines are found with
- * indexOf, never with a regular expression, and a line that has not ended
- * yet is not scanned again when the next chunk arrives. An event larger
- * than `maxEventChars` stops the stream: it is reported, never buffered.
+ * pass, in time that grows in line with its length however the server
+ * splits it: each chunk is searched for line ends once, with indexOf -
+ * never a regular expression - and the start of a line that has not ended
+ * is kept as pieces, joined once when its end arrives, so a server that
+ * sends a long line a few bytes at a time costs no more than one that
+ * sends it whole. An event larger than `maxEventChars` stops the stream:
+ * it is reported, never buffered.
  */
 
 export interface McpSseEvent {
@@ -30,9 +33,9 @@ const LINE_FEED: string = "\n";
 const CARRIAGE_RETURN: string = "\r";
 
 export default class McpSseParser {
-  private buffer: string = "";
-  // Where the next search for a line end starts: the buffer before it has none.
-  private scanFrom: number = 0;
+  // The start of a line that has not ended yet, as it arrived.
+  private pendingPieces: Array<string> = [];
+  private pendingChars: number = 0;
   // A line ended with \r: a \n right after it belongs to the same line end.
   private skipLeadingLineFeed: boolean = false;
   private dataLines: Array<string> = [];
@@ -57,35 +60,32 @@ export default class McpSseParser {
       return events;
     }
 
-    this.buffer += chunk;
+    let position: number = 0;
 
-    if (this.skipLeadingLineFeed && this.buffer.length > 0) {
-      if (this.buffer[0] === LINE_FEED) {
-        this.buffer = this.buffer.slice(1);
-      }
+    if (this.skipLeadingLineFeed) {
       this.skipLeadingLineFeed = false;
-      this.scanFrom = 0;
+
+      if (chunk[0] === LINE_FEED) {
+        position = 1;
+      }
     }
 
-    let lineStart: number = 0;
-
-    while (lineStart < this.buffer.length) {
-      const lineEnd: number = this.findLineEnd(Math.max(lineStart, this.scanFrom));
+    while (position < chunk.length) {
+      const lineEnd: number = this.findLineEnd(chunk, position);
 
       if (lineEnd === -1) {
+        this.keepPending(chunk.slice(position));
         break;
       }
 
-      const line: string = this.buffer.slice(lineStart, lineEnd);
-      const isCarriageReturn: boolean =
-        this.buffer[lineEnd] === CARRIAGE_RETURN;
+      const line: string = this.takeLine(chunk.slice(position, lineEnd));
 
-      let next: number = lineEnd + 1;
+      position = lineEnd + 1;
 
-      if (isCarriageReturn) {
-        if (next < this.buffer.length) {
-          if (this.buffer[next] === LINE_FEED) {
-            next++;
+      if (chunk[lineEnd] === CARRIAGE_RETURN) {
+        if (position < chunk.length) {
+          if (chunk[position] === LINE_FEED) {
+            position++;
           }
         } else {
           // The \n of a \r\n may come with the next chunk.
@@ -98,20 +98,6 @@ export default class McpSseParser {
       if (event) {
         events.push(event);
       }
-
-      lineStart = next;
-      this.scanFrom = next;
-    }
-
-    /*
-     * What is left is the start of a line that has not ended: it holds no
-     * line end, so the next chunk is searched from where it stops.
-     */
-    this.buffer = this.buffer.slice(lineStart);
-    this.scanFrom = this.buffer.length;
-
-    if (this.buffer.length > this.maxEventChars) {
-      throw new McpSseEventTooLargeError(this.maxEventChars);
     }
 
     return events;
@@ -122,15 +108,16 @@ export default class McpSseParser {
    * dropped, as the standard says.
    */
   public end(): Array<McpSseEvent> {
-    this.buffer = "";
-    this.scanFrom = 0;
+    this.pendingPieces = [];
+    this.pendingChars = 0;
+    this.skipLeadingLineFeed = false;
     this.resetEvent();
     return [];
   }
 
-  private findLineEnd(from: number): number {
-    const lineFeed: number = this.buffer.indexOf(LINE_FEED, from);
-    const carriageReturn: number = this.buffer.indexOf(CARRIAGE_RETURN, from);
+  private findLineEnd(chunk: string, from: number): number {
+    const lineFeed: number = chunk.indexOf(LINE_FEED, from);
+    const carriageReturn: number = chunk.indexOf(CARRIAGE_RETURN, from);
 
     if (lineFeed === -1) {
       return carriageReturn;
@@ -141,6 +128,32 @@ export default class McpSseParser {
     }
 
     return Math.min(lineFeed, carriageReturn);
+  }
+
+  private keepPending(piece: string): void {
+    this.pendingChars += piece.length;
+
+    if (this.pendingChars > this.maxEventChars) {
+      throw new McpSseEventTooLargeError(this.maxEventChars);
+    }
+
+    this.pendingPieces.push(piece);
+  }
+
+  // The whole line: what was kept of its start, and its end.
+  private takeLine(end: string): string {
+    if (this.pendingPieces.length === 0) {
+      return end;
+    }
+
+    this.pendingPieces.push(end);
+
+    const line: string = this.pendingPieces.join("");
+
+    this.pendingPieces = [];
+    this.pendingChars = 0;
+
+    return line;
   }
 
   // One line of the stream; the event it completes, if it is a blank line.
