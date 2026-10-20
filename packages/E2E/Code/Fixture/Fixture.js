@@ -1319,8 +1319,9 @@ async function answer(path, body) {
       return refused(500, "The tasks could not be read right now.");
     }
     const own = tasks.filter((task) => {
+      // Every task; those with no repository too, where the project has some.
       if (body.allRepositories) {
-        return true;
+        return Boolean(task.repositoryId) || params.get("other") === "1";
       }
       return body.withoutRepository
         ? !task.repositoryId
@@ -1368,10 +1369,7 @@ async function answer(path, body) {
       );
     }
     if (!CAN_ASK) {
-      return refused(
-        403,
-        BLOCKER_MESSAGES[CodeTaskBlockerType.NoPermission],
-      );
+      return refused(403, BLOCKER_MESSAGES[CodeTaskBlockerType.NoPermission]);
     }
     if (!repository.isConnected) {
       return refused(
