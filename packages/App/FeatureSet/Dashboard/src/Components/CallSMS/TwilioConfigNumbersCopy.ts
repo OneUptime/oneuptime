@@ -48,7 +48,7 @@ export const TwilioConfigNumbersCopy: {
     "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.",
   ),
   smsPhoneNumbersDescription: translationKey(
-    "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.",
+    "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.",
   ),
   secondaryPhoneNumbersDescription: translationKey(
     "Numbers to use instead of the primary one when they match the recipient's country code.",

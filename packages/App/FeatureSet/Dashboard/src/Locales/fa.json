@@ -31925,7 +31925,7 @@
   "Production Status At": "Production Status At",
   "Production Summary": "Production Summary",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "تماس‌ها از این شماره برقرار می‌شوند و پیامک‌ها هم، مگر اینکه در «فیلدهای بیشتر» شماره‌های تلفن پیامک اضافه کنید.",
-  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "اگر شماره‌های Twilio شما نمی‌توانند پیامک بفرستند (در سنگاپور شماره‌های ملی فقط صوتی هستند)، شماره‌هایی اضافه کنید که می‌توانند. آنگاه هر پیامک از شماره کشور گیرنده فرستاده می‌شود و اگر نباشد، از نخستین شماره.",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "شماره‌هایی برای فرستادن پیامک، اگر شماره‌های شما نمی‌توانند (شماره‌های ملی سنگاپور فقط صوتی هستند). هر پیامک از شماره کشور گیرنده فرستاده می‌شود و اگر نباشد، از نخستین شماره.",
   "Twilio SMS Phone Numbers": "شماره‌های تلفن پیامک Twilio",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} شماره تلفن نیست. هر شماره را با کد کشورش بنویسید و شماره‌ها را با ویرگول جدا کنید، مانند +6581234567, +447700900123.",
   "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "یک پیکربندی پیش‌فرض پروژه است: پیامک‌ها و تماس‌های افراد این پروژه، مانند هشدارهای آنکال، از طریق آن فرستاده می‌شوند. صفحات وضعیت از پیکربندی‌ای استفاده می‌کنند که در هر صفحه انتخاب شده است.",

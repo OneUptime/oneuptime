@@ -502,7 +502,7 @@ describe("the Twilio step of a Twilio config's form", () => {
       "Singapore",
     );
     expect(TwilioConfigNumbersCopy.smsPhoneNumbersDescription).toContain(
-      "Every SMS then goes out from the one in the recipient's country, or else the first.",
+      "Each SMS uses the one in the recipient's country, or the first.",
     );
   });
 
