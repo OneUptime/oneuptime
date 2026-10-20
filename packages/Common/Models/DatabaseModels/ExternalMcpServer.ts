@@ -233,6 +233,7 @@ export default class ExternalMcpServer extends BaseModel {
     description:
       "How OneUptime signs in to the server: None, BearerToken (an API token), Headers (headers of the server's own, such as X-API-Key) or OAuthClientCredentials (a token from an OAuth token URL, with a client ID and secret).",
     defaultValue: ExternalMcpServerAuthType.None,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -413,6 +414,7 @@ export default class ExternalMcpServer extends BaseModel {
     description:
       "Whether OneUptime AI may use this server. A server that is off is never used, whatever a rule names.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

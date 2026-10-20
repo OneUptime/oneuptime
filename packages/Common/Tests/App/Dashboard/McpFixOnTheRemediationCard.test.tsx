@@ -335,19 +335,22 @@ describe("what the card says auto-remediation did", () => {
 
 describe("a run that used the MCP servers", () => {
   test("its activity names the steps in plain words", () => {
-    const run: Array<AIRunEvent> = [
+    const steps: Array<[AIRunEventType, string]> = [
       [AIRunEventType.ToolCallStarted, LIST_MCP_TOOLS_TOOL_NAME],
       [AIRunEventType.ToolCallCompleted, LIST_MCP_TOOLS_TOOL_NAME],
       [AIRunEventType.ToolCallStarted, CALL_MCP_TOOL_TOOL_NAME],
       [AIRunEventType.ToolCallCompleted, CALL_MCP_TOOL_TOOL_NAME],
-    ].map(([eventType, toolName]: Array<string>, index: number) => {
-      const event: AIRunEvent = new AIRunEvent(
-        new ObjectID(`da1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8c0${index}`),
-      );
-      event.eventType = eventType as AIRunEventType;
-      event.toolName = toolName;
-      return event;
-    });
+    ];
+    const run: Array<AIRunEvent> = steps.map(
+      ([eventType, toolName]: [AIRunEventType, string], index: number) => {
+        const event: AIRunEvent = new AIRunEvent(
+          new ObjectID(`da1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8c0${index}`),
+        );
+        event.eventType = eventType;
+        event.toolName = toolName;
+        return event;
+      },
+    );
 
     render(<ChatActivityFeed events={run} />);
 

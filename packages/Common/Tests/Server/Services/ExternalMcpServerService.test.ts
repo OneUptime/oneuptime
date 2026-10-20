@@ -68,8 +68,11 @@ function updateBy(data: JSONObject): UpdateBy<ExternalMcpServer> {
   } as unknown as UpdateBy<ExternalMcpServer>;
 }
 
+// A stored server, with any column set - or left unset (undefined) - as a test needs.
 function storedServer(
-  overrides: Partial<ExternalMcpServer> = {},
+  overrides: {
+    [Column in keyof ExternalMcpServer]?: ExternalMcpServer[Column] | undefined;
+  } = {},
 ): ExternalMcpServer {
   const server: ExternalMcpServer = new ExternalMcpServer();
   server._id = SERVER.toString();
@@ -125,13 +128,17 @@ describe("ExternalMcpServerService.onBeforeCreate", () => {
 
   test("refuses an address that is not one", async () => {
     expect(
-      await refusal(service.onBeforeCreate(createBy({ url: "mcp example com" }))),
+      await refusal(
+        service.onBeforeCreate(createBy({ url: "mcp example com" })),
+      ),
     ).toBe(
       "The MCP server's URL is not a valid URL. Use the full address, such as https://mcp.example.com/mcp.",
     );
     // "localhost:3000" reads as a URL whose scheme is "localhost:".
     expect(
-      await refusal(service.onBeforeCreate(createBy({ url: "localhost:3000" }))),
+      await refusal(
+        service.onBeforeCreate(createBy({ url: "localhost:3000" })),
+      ),
     ).toBe("The MCP server's URL must start with https:// or http://.");
     expect(await refusal(service.onBeforeCreate(createBy({})))).toBe(
       "The MCP server's URL is required.",
@@ -238,7 +245,10 @@ describe("ExternalMcpServerService.onBeforeCreate", () => {
     expect(
       await refusal(
         service.onBeforeCreate(
-          createBy({ url: "https://mcp.example.com/mcp", authType: "Kerberos" }),
+          createBy({
+            url: "https://mcp.example.com/mcp",
+            authType: "Kerberos",
+          }),
         ),
       ),
     ).toBe(
@@ -253,7 +263,9 @@ describe("ExternalMcpServerService.onBeforeCreate", () => {
 
     expect(
       await refusal(
-        service.onBeforeCreate(createBy({ url: "https://mcp.example.com/mcp" })),
+        service.onBeforeCreate(
+          createBy({ url: "https://mcp.example.com/mcp" }),
+        ),
       ),
     ).toBe(EXTERNAL_MCP_SERVER_LIMIT_MESSAGE);
     expect(countBy.mock.calls[0]![0].query).toEqual({ projectId: PROJECT });
@@ -302,7 +314,10 @@ describe("ExternalMcpServerService.onBeforeUpdate", () => {
       updateBy({ name: "AWS prod", isEnabled: false }),
     );
 
-    expect(result.updateBy.data).toEqual({ name: "AWS prod", isEnabled: false });
+    expect(result.updateBy.data).toEqual({
+      name: "AWS prod",
+      isEnabled: false,
+    });
     expect(findRows).not.toHaveBeenCalled();
   });
 
@@ -401,7 +416,9 @@ describe("ExternalMcpServerService.onBeforeUpdate", () => {
       await refusal(
         service.onBeforeUpdate(updateBy({ headers: { Host: "evil.example" } })),
       ),
-    ).toBe("OneUptime sets the Host header itself. Remove it from the headers.");
+    ).toBe(
+      "OneUptime sets the Host header itself. Remove it from the headers.",
+    );
   });
 });
 
@@ -457,10 +474,7 @@ describe("ExternalMcpServerService.findServersForRun", () => {
     findBy.mockResolvedValue([
       row(allowed),
       row(notAllowed),
-      row(
-        elsewhere,
-        new ObjectID("6c000000-0000-4000-8000-0000000000ff"),
-      ),
+      row(elsewhere, new ObjectID("6c000000-0000-4000-8000-0000000000ff")),
     ]);
 
     const servers: Array<ExternalMcpServer> =

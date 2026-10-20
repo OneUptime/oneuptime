@@ -378,9 +378,12 @@ describe("the add / edit form", () => {
 
     expect(authType.fieldType).toBe(FormFieldSchemaType.CardSelect);
     expect(
-      (authType.cardSelectOptions || []).map((option: CardSelectOption) => {
-        return [option.value, option.title];
-      }),
+      // The cards are plain options, in no group (EXTERNAL_MCP_SERVER_AUTH_OPTIONS).
+      ((authType.cardSelectOptions || []) as Array<CardSelectOption>).map(
+        (option: CardSelectOption) => {
+          return [option.value, option.title];
+        },
+      ),
     ).toEqual([
       [ExternalMcpServerAuthType.None, "No sign-in"],
       [ExternalMcpServerAuthType.BearerToken, "Bearer token"],

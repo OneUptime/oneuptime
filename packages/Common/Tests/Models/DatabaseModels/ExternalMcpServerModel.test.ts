@@ -125,6 +125,28 @@ describe("ExternalMcpServer: who sets a server up, and who sees it", () => {
   });
 });
 
+describe("ExternalMcpServer: what a create may leave out", () => {
+  /*
+   * The API reference says Authentication defaults to None and a new server
+   * is on: an API or Terraform client that leaves them out gets those, from
+   * the columns' Postgres defaults, rather than "is required".
+   */
+  test("Authentication and Enabled, which Postgres fills in", () => {
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(server);
+
+    expect(columns["authType"]).toMatchObject({
+      required: true,
+      defaultValue: "None",
+      isDefaultValueColumn: true,
+    });
+    expect(columns["isEnabled"]).toMatchObject({
+      required: true,
+      defaultValue: true,
+      isDefaultValueColumn: true,
+    });
+  });
+});
+
 describe("ExternalMcpServer: its secrets", () => {
   test("are encrypted at rest", () => {
     const encrypted: Array<string> = server.getEncryptedColumns().columns;
