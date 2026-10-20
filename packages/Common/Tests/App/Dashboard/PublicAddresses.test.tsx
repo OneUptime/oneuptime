@@ -625,6 +625,19 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
       within(domainRow).getByTestId(PUBLIC_ADDRESS_TEST_IDS.dnsSetup),
     ).toHaveTextContent(CustomDomainCopy.dnsSetupTitle);
 
+    /*
+     * Named for its domain, as Copy link is for its address, so a screen
+     * reader's list of buttons tells two domains' DNS Setup apart.
+     */
+    const dnsSetup: HTMLElement = within(domainRow).getByRole("button", {
+      name: "DNS Setup for status.acme.com",
+    });
+
+    expect(dnsSetup).toBe(
+      within(domainRow).getByTestId(PUBLIC_ADDRESS_TEST_IDS.dnsSetup),
+    );
+    expect(dnsSetup).toHaveAttribute("title", "DNS Setup for status.acme.com");
+
     // Not verified: its certificate says nothing yet, so it is not read.
     expect(apiGetMock).not.toHaveBeenCalled();
   });

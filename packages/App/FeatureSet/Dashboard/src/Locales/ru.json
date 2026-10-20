@@ -31382,5 +31382,6 @@
   "Use your own domain, such as {{example}}.": "Используйте собственный домен, например {{example}}.",
   "Visitors enter the password to see this status page.": "Чтобы увидеть эту страницу статуса, посетители вводят пароль.",
   "Visitors sign in to see this status page.": "Чтобы увидеть эту страницу статуса, посетители входят в систему.",
-  "Where visitors find your status page.": "Где посетители находят вашу страницу статуса."
+  "Where visitors find your status page.": "Где посетители находят вашу страницу статуса.",
+  "DNS Setup for {{address}}": "Настройка DNS для {{address}}"
 }

@@ -31382,5 +31382,6 @@
   "Use your own domain, such as {{example}}.": "Usa il tuo dominio, ad esempio {{example}}.",
   "Visitors enter the password to see this status page.": "I visitatori inseriscono la password per vedere questa pagina di stato.",
   "Visitors sign in to see this status page.": "I visitatori accedono per vedere questa pagina di stato.",
-  "Where visitors find your status page.": "Dove i visitatori trovano la tua pagina di stato."
+  "Where visitors find your status page.": "Dove i visitatori trovano la tua pagina di stato.",
+  "DNS Setup for {{address}}": "Configurazione DNS di {{address}}"
 }

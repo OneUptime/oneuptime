@@ -287,6 +287,8 @@ export const PublicAddressCopy: {
   // Copy link's accessible name and tooltip, naming the address it copies.
   copyLinkTo: string;
   copied: string;
+  // DNS Setup's accessible name and tooltip, naming the domain it sets up.
+  dnsSetupFor: string;
   // Read out after the link: it leaves the Dashboard.
   opensInNewTab: string;
   // With no custom domain: one quiet line, and its link.
@@ -305,6 +307,7 @@ export const PublicAddressCopy: {
   copyLink: translationKey("Copy link"),
   copyLinkTo: translationKey("Copy link to {{address}}"),
   copied: translationKey("Copied!"),
+  dnsSetupFor: translationKey("DNS Setup for {{address}}"),
   opensInNewTab: translationKey("(opens in a new tab)"),
   addCustomDomainSentence: translationKey(
     "Use your own domain, such as {{example}}.",

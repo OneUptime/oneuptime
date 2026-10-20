@@ -31382,5 +31382,6 @@
   "Use your own domain, such as {{example}}.": "使用您自己的域名，例如 {{example}}。",
   "Visitors enter the password to see this status page.": "访问者需要输入密码才能查看此状态页。",
   "Visitors sign in to see this status page.": "访问者需要登录才能查看此状态页。",
-  "Where visitors find your status page.": "访客访问您的状态页的地址。"
+  "Where visitors find your status page.": "访客访问您的状态页的地址。",
+  "DNS Setup for {{address}}": "{{address}} 的 DNS 设置"
 }

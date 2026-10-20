@@ -31382,5 +31382,6 @@
   "Use your own domain, such as {{example}}.": "{{example}} 같은 자체 도메인을 사용할 수 있습니다.",
   "Visitors enter the password to see this status page.": "방문자는 이 상태 페이지를 보려면 비밀번호를 입력합니다.",
   "Visitors sign in to see this status page.": "방문자는 이 상태 페이지를 보려면 로그인합니다.",
-  "Where visitors find your status page.": "방문자가 상태 페이지를 여는 주소입니다."
+  "Where visitors find your status page.": "방문자가 상태 페이지를 여는 주소입니다.",
+  "DNS Setup for {{address}}": "{{address}} DNS 설정"
 }

@@ -806,6 +806,11 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
         name: "Link zu status.acme.com kopieren",
       }),
     ).toContainText("Link kopieren");
+    await expect(
+      row(page, "status-eu.acme.com").getByRole("button", {
+        name: "DNS-Einrichtung für status-eu.acme.com",
+      }),
+    ).toContainText("DNS-Einrichtung");
     await expect(page.getByTestId("status-page-link-access")).toContainText(
       "Zugriff ändern",
     );

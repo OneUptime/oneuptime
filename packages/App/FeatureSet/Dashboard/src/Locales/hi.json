@@ -31382,5 +31382,6 @@
   "Use your own domain, such as {{example}}.": "अपना डोमेन इस्तेमाल करें, जैसे {{example}}।",
   "Visitors enter the password to see this status page.": "यह स्थिति पृष्ठ देखने के लिए विज़िटर पासवर्ड डालते हैं।",
   "Visitors sign in to see this status page.": "यह स्थिति पृष्ठ देखने के लिए विज़िटर साइन इन करते हैं।",
-  "Where visitors find your status page.": "जहाँ विज़िटर आपका स्थिति पृष्ठ पाते हैं।"
+  "Where visitors find your status page.": "जहाँ विज़िटर आपका स्थिति पृष्ठ पाते हैं।",
+  "DNS Setup for {{address}}": "{{address}} का DNS सेटअप"
 }

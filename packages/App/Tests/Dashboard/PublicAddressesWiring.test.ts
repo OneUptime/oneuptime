@@ -254,6 +254,8 @@ describe("the words, in every language", () => {
     PublicAddressCopy.oneUptimeAddress,
     PublicAddressCopy.notLiveYet,
     PublicAddressCopy.copyLinkTo,
+    // Added by the UI review: DNS Setup named for its domain.
+    PublicAddressCopy.dnsSetupFor,
     PublicAddressCopy.addCustomDomainSentence,
     PublicAddressCopy.addCustomDomainLink,
     PublicAddressCopy.loadError,

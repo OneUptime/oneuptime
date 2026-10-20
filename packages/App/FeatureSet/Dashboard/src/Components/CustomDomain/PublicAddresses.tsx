@@ -350,12 +350,21 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
 
     /*
      * The size of Copy link beside it on the other rows, so the actions
-     * line up; white, as the one thing on the list left to do.
+     * line up; white, as the one thing on the list left to do. Named for
+     * its domain, as Copy link is for its address: with two domains to set
+     * up, a screen reader's list of buttons tells them apart.
      */
+    const dnsSetupName: string = translator.translateTemplate(
+      PublicAddressCopy.dnsSetupFor,
+      { address: addressText },
+    );
+
     return (
       <button
         type="button"
         className={ROW_ACTION_CLASS_NAME}
+        aria-label={dnsSetupName}
+        title={dnsSetupName}
         data-testid={PUBLIC_ADDRESS_TEST_IDS.dnsSetup}
         onClick={() => {
           setDnsSetupDomain(domain);

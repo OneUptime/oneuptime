@@ -31382,5 +31382,6 @@
   "Use your own domain, such as {{example}}.": "{{example}} のような独自ドメインを使用できます。",
   "Visitors enter the password to see this status page.": "訪問者はこのステータスページを見るためにパスワードを入力します。",
   "Visitors sign in to see this status page.": "訪問者はこのステータスページを見るためにサインインします。",
-  "Where visitors find your status page.": "訪問者がステータスページを開くアドレスです。"
+  "Where visitors find your status page.": "訪問者がステータスページを開くアドレスです。",
+  "DNS Setup for {{address}}": "{{address}} の DNS 設定"
 }

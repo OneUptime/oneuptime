@@ -31382,5 +31382,6 @@
   "Use your own domain, such as {{example}}.": "Brug dit eget domæne, f.eks. {{example}}.",
   "Visitors enter the password to see this status page.": "Besøgende indtaster adgangskoden for at se denne statusside.",
   "Visitors sign in to see this status page.": "Besøgende logger ind for at se denne statusside.",
-  "Where visitors find your status page.": "Hvor besøgende finder din statusside."
+  "Where visitors find your status page.": "Hvor besøgende finder din statusside.",
+  "DNS Setup for {{address}}": "DNS-opsætning for {{address}}"
 }
