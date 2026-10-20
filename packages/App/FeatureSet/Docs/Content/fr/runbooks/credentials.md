@@ -1,6 +1,6 @@
 # Accès de l'IA
 
-L'accès de l'IA est la façon dont les commandes de OneUptime AI atteignent ce qui n'est **pas** l'hôte propre d'un agent Runbook — un serveur en SSH, ou le serveur d'API d'un cluster Kubernetes qui n'exécute pas le chart de l'agent Kubernetes. Chaque accès est un identifiant : cet accès sous forme d'objet géré, chiffré au repos, attribué à des agents Runbook précis, et choisi par OneUptime AI plutôt qu'écrit dans une commande. Les étapes de runbook ne les utilisent pas : une étape SSH ou kubectl se connecte avec une [variable de runbook](/docs/runbooks/variables) secrète.
+L'accès de l'IA est la façon dont les commandes de OneUptime AI atteignent ce qui n'est **pas** l'hôte propre d'un agent Runbook — un serveur en SSH, ou le serveur d'API d'un cluster Kubernetes qui n'exécute pas le chart de l'agent Kubernetes. Chaque accès est un identifiant : cet accès sous forme d'objet géré, chiffré au repos, attribué à des agents Runbook précis, et choisi par OneUptime AI plutôt qu'écrit dans une commande. Les étapes de runbook ne les utilisent pas : une étape SSH ou kubectl se connecte avec une [variable de runbook](/docs/runbooks/variables) secrète. Un agent Runbook antérieur à cette version fait exception : il exécute une étape Kubernetes transformée à partir d'une action avec l'identifiant que nommait l'étape, jusqu'à ce que le script ou le kubeconfig de l'étape soit modifié.
 
 Gérez-les sous **Runbooks → Agents de runbook → Accès de l'IA**.
 

@@ -142,7 +142,9 @@ export interface SSHStepConfig {
 /*
  * LEGACY. The two workload actions a Kubernetes step offered before it took
  * a kubectl script. A step written through the API with one still runs it
- * (the Runner's KubernetesExecutor); the dashboard writes scripts only.
+ * (the Runner's KubernetesExecutor), and so does a Runner older than kubectl
+ * scripts for a step the data migration moved to one (RunbookLegacySteps);
+ * the dashboard writes scripts only.
  */
 export enum KubernetesAction {
   // Rolling restart: stamps the pod template so the controller recreates pods.
@@ -173,9 +175,11 @@ export enum KubernetesWorkloadKind {
  * with a credential (credentialId, action, workloadKind, namespace,
  * workloadName, replicas). Such a step still runs as it did; the data
  * migration that brought variables in rewrote every stored one into the
- * kubectl script that does the same (RunbookLegacySteps), so only a step
- * written through the API since has that shape
- * (isLegacyKubernetesStepConfig).
+ * kubectl script that does the same, so only a step written through the
+ * API since has that shape (isLegacyKubernetesStepConfig). A step it moved
+ * keeps those fields beside its script and kubeconfig, for a Runner older
+ * than kubectl scripts, until its script or kubeconfig is changed
+ * (RunbookLegacySteps, isMovedKubernetesStepConfig).
  */
 export interface KubernetesStepConfig {
   // The secret variable holding the cluster's kubeconfig, as one reference.

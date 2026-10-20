@@ -47,21 +47,26 @@ flowchart TB
 
 :::steps
 1. 在 AWS Marketplace 上订阅 OneUptime Enterprise，然后选择 **Continue to Configuration**，选好版本，再选择 **Continue to Launch**。
-2. 如果集群还没有 IAM OIDC 提供商，请为它创建一个。启动页面会显示一条 `eksctl` 命令，它会接着创建 `oneuptime` 服务账号及其 IAM 角色；请运行这条命令。
-3. 使用启动页面上的命令，让 Helm 登录该商品的镜像仓库并安装 chart，同时传入你的 values 文件。
+2. 如果集群还没有 IAM OIDC 提供商，请为它创建一个，然后用下面的命令创建 `oneuptime` 服务账号，以及带有 `AWSMarketplaceMeteringFullAccess` 策略的 IAM 角色。请用这些命令代替启动页面 **General launch instructions** 第 1 步中的 `eksctl` 命令：那条命令关联的是一个你得先自己创建的角色。
+3. 使用 **General launch instructions** 第 2 步中的命令，让 Helm 登录该商品的镜像仓库并安装 chart。在 `helm install` 命令中，把 `serviceAccount.name` 设为 `oneuptime`，把 `host` 设为你的域名；如果 OneUptime 前面有证书，再把 `httpProtocol` 设为 `https`。
 4. [打开 OneUptime](#打开-oneuptime)。
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+请把第 3 步的这些值保存到一个文件里，每次运行 `helm upgrade` 时都传入它：
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-请保留这个文件：每次运行 `helm upgrade` 时都要传入它。
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ kubectl get service --namespace <namespace>
 :::details 版本标签显示 Enterprise Edition (Marketplace Reports Failing)
 OneUptime 无法向云市场上报。它记录的每一行相关日志都以 `OneUptime Enterprise marketplace billing` 开头；说明用量“cannot be reported”的那一行会指出缺少什么。常见原因：
 
-- **AWS：** `oneuptime` 服务账号没有 IAM 角色，或者该角色没有 `AWSMarketplaceMeteringFullAccess` 策略。请用启动页面上的 `eksctl` 命令创建它。
+- **AWS：** `oneuptime` 服务账号没有 IAM 角色，或者该角色没有 `AWSMarketplaceMeteringFullAccess` 策略（只有 `AWSMarketplaceMeteringRegisterUsage` 不够）。请把该策略关联到这个角色，或者用 [AWS Marketplace](#aws-marketplace) 中的 `eksctl` 命令创建角色，然后用 `kubectl rollout restart deployment --namespace oneuptime` 重启 OneUptime 的 Pod。
 - **Azure：** 该安装不是 Microsoft Marketplace 应用，例如它是用 Helm 安装的，因此没有可用于上报的标识或套餐。请从 Azure 门户安装它。
 - **Google Cloud：** 该部署的上报 Secret 被删除或替换了。
 - **所有云市场：** 防火墙或代理阻止了[开始之前](#开始之前)中列出的出站 HTTPS。

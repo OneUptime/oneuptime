@@ -9,7 +9,13 @@
  * rather than a confusing error from the old code path.
  *
  * Steps an older Runner runs fine need no feature: an SSH step that takes a
- * script also carries it as the command an older Runner sends.
+ * script also carries it as the command an older Runner sends. A kubectl
+ * step the data migration moved from a Kubernetes action keeps that action
+ * and its credential while its script and kubeconfig are the ones it was
+ * moved with, and a Runner that does not name "kubectl-script" is handed the
+ * step that way, as it always was (RunbookLegacySteps). Only a kubectl step
+ * with no action to fall back on - written as a script, or changed since it
+ * was moved - is failed on such a Runner.
  */
 
 // A kubectl step that takes a script and a kubeconfig (RunbookStepType.Kubernetes).

@@ -1,12 +1,12 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import {
-  AddAutoRemediationRuleRunner1804400000000,
+  AddAutoRemediationRuleRunner1804500000000,
   DROP_MOVED_COMMAND_RUNNER_ROWS,
   PICK_THE_ONE_COMMAND_RUNNER,
   RESTORE_COMMAND_RUNNER_ROWS,
   WRITE_OUT_ANY_RUNNER_RULES,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804400000000-AddAutoRemediationRuleRunner";
-import { AddAutoRemediationRuleRunnerIndexAndKey1804450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804450000000-AddAutoRemediationRuleRunnerIndexAndKey";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804500000000-AddAutoRemediationRuleRunner";
+import { AddAutoRemediationRuleRunnerIndexAndKey1804550000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804550000000-AddAutoRemediationRuleRunnerIndexAndKey";
 import { AddCodeRepositoryRunnerIndexAndKey1804350000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804350000000-AddCodeRepositoryRunnerIndexAndKey";
 import { IS_KUBERNETES_AGENT_RUNNER_SQL } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796800000000-FoldAiSwitchesIntoEnableAi";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -34,9 +34,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * rows.
  */
 
-const COLUMN_MIGRATION: string = "AddAutoRemediationRuleRunner1804400000000";
+const COLUMN_MIGRATION: string = "AddAutoRemediationRuleRunner1804500000000";
 const KEY_MIGRATION: string =
-  "AddAutoRemediationRuleRunnerIndexAndKey1804450000000";
+  "AddAutoRemediationRuleRunnerIndexAndKey1804550000000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 const INDEX: string = `CREATE INDEX "IDX_338f34b0d3cbf32aa45e778ade" ON "AutoRemediationRule" ("runnerId") `;
@@ -45,8 +45,8 @@ const FOREIGN_KEY: string = `ALTER TABLE "AutoRemediationRule" ADD CONSTRAINT "F
 type MigrationClass = new () => MigrationInterface;
 
 const MIGRATIONS: Array<MigrationClass> = [
-  AddAutoRemediationRuleRunner1804400000000,
-  AddAutoRemediationRuleRunnerIndexAndKey1804450000000,
+  AddAutoRemediationRuleRunner1804500000000,
+  AddAutoRemediationRuleRunnerIndexAndKey1804550000000,
 ];
 
 async function record(
@@ -93,11 +93,11 @@ afterEach(() => {
 
 describe("the auto remediation rule Runner migrations", () => {
   test("name themselves after their timestamps", () => {
-    expect(new AddAutoRemediationRuleRunner1804400000000().name).toBe(
+    expect(new AddAutoRemediationRuleRunner1804500000000().name).toBe(
       COLUMN_MIGRATION,
     );
     expect(
-      new AddAutoRemediationRuleRunnerIndexAndKey1804450000000().name,
+      new AddAutoRemediationRuleRunnerIndexAndKey1804550000000().name,
     ).toBe(KEY_MIGRATION);
   });
 
@@ -105,7 +105,7 @@ describe("the auto remediation rule Runner migrations", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddAutoRemediationRuleRunner1804400000000,
+      AddAutoRemediationRuleRunner1804500000000,
     );
 
     for (const migration of MIGRATIONS) {
@@ -120,15 +120,15 @@ describe("the auto remediation rule Runner migrations", () => {
       registered.indexOf(AddCodeRepositoryRunnerIndexAndKey1804350000000),
     );
     expect(registered[at + 1]).toBe(
-      AddAutoRemediationRuleRunnerIndexAndKey1804450000000,
+      AddAutoRemediationRuleRunnerIndexAndKey1804550000000,
     );
     expect(
-      timestampOf(AddAutoRemediationRuleRunnerIndexAndKey1804450000000),
-    ).toBeGreaterThan(timestampOf(AddAutoRemediationRuleRunner1804400000000));
+      timestampOf(AddAutoRemediationRuleRunnerIndexAndKey1804550000000),
+    ).toBeGreaterThan(timestampOf(AddAutoRemediationRuleRunner1804500000000));
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddAutoRemediationRuleRunner1804400000000),
+        timestampOf(AddAutoRemediationRuleRunner1804500000000),
       );
     }
   });
@@ -152,7 +152,7 @@ describe("the auto remediation rule Runner migrations", () => {
 
   test("add the rule's Runner, write out the Runners a command rule ran on, pick the one, and move it", async () => {
     expect(
-      await record(new AddAutoRemediationRuleRunner1804400000000(), "up"),
+      await record(new AddAutoRemediationRuleRunner1804500000000(), "up"),
     ).toEqual([
       `ALTER TABLE "AutoRemediationRule" ADD "runnerId" uuid`,
       WRITE_OUT_ANY_RUNNER_RULES,
@@ -163,7 +163,7 @@ describe("the auto remediation rule Runner migrations", () => {
 
   test("change no Runner's switch: a Runner bound with it off keeps it off", async () => {
     const steps: Array<string> = await record(
-      new AddAutoRemediationRuleRunner1804400000000(),
+      new AddAutoRemediationRuleRunner1804500000000(),
       "up",
     );
 
@@ -174,8 +174,8 @@ describe("the auto remediation rule Runner migrations", () => {
   });
 
   test("build the column's index and its key online, outside a transaction", async () => {
-    const migration: AddAutoRemediationRuleRunnerIndexAndKey1804450000000 =
-      new AddAutoRemediationRuleRunnerIndexAndKey1804450000000();
+    const migration: AddAutoRemediationRuleRunnerIndexAndKey1804550000000 =
+      new AddAutoRemediationRuleRunnerIndexAndKey1804550000000();
 
     expect(migration.transaction).toBe(false);
     expect(await record(migration, "up")).toEqual([
@@ -191,7 +191,7 @@ describe("the auto remediation rule Runner migrations", () => {
 
   test("down hands every rule's Runner back to its Command Runners before the column goes", async () => {
     expect(
-      await record(new AddAutoRemediationRuleRunner1804400000000(), "down"),
+      await record(new AddAutoRemediationRuleRunner1804500000000(), "down"),
     ).toEqual([
       RESTORE_COMMAND_RUNNER_ROWS,
       `ALTER TABLE "AutoRemediationRule" DROP COLUMN "runnerId"`,
@@ -201,7 +201,7 @@ describe("the auto remediation rule Runner migrations", () => {
   test("undo the key and the index", async () => {
     expect(
       await record(
-        new AddAutoRemediationRuleRunnerIndexAndKey1804450000000(),
+        new AddAutoRemediationRuleRunnerIndexAndKey1804550000000(),
         "down",
       ),
     ).toEqual([

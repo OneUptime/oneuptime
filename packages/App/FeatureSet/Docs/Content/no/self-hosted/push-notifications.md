@@ -70,6 +70,26 @@ vapid:
 expo:
   accessToken:
 ```
+
+:::details Oppbevar den private nøkkelen i en Secret
+`vapid.privateKey` legger den private nøkkelen i utgivelsens verdier, som Helm lagrer med hver revisjon. For å holde den utenfor dem, legg den i en Kubernetes-Secret i navnerommet til OneUptime, under `privateKey`, og oppgi navnet på den Secreten i stedet:
+
+```bash
+kubectl create secret generic oneuptime-vapid \
+  --namespace oneuptime \
+  --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+Sett `vapid.privateKey` eller `vapid.existingSecret.name`, ikke begge: chartet avviser de to sammen. Hvis Secreten din har den private nøkkelen under en annen nøkkel, oppgir du den nøkkelen i `vapid.existingSecret.privateKeyKey`. Den offentlige nøkkelen blir værende i `vapid.publicKey`: alle nettlesere får den.
+:::
 :::
 
 ## Nettverkstilgang

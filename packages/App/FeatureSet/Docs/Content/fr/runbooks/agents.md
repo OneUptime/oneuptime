@@ -310,7 +310,7 @@ L'étape nomme une variable secrète qui n'autorise pas son agent Runbook, donc 
 :::
 
 :::details Une étape kubectl échoue parce que son agent Runbook est trop ancien
-L'étape a échoué avec "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Un agent Runbook plus ancien que les scripts kubectl ne peut pas en exécuter. Mettez l'agent à jour, comme le montre [Garder l'agent à jour](#5-garder-lagent-à-jour), puis relancez le runbook.
+L'étape a échoué avec "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Un agent Runbook plus ancien que les scripts kubectl ne peut pas en exécuter. Une étape Kubernetes transformée en script kubectl lors de la mise à niveau s'exécute toujours sur lui, comme l'action avec laquelle elle a été écrite, jusqu'à ce que son script ou son kubeconfig soit modifié. Mettez l'agent à jour, comme le montre [Garder l'agent à jour](#5-garder-lagent-à-jour), puis relancez le runbook.
 :::
 
 ## Prochaines étapes

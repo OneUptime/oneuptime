@@ -310,7 +310,7 @@ Steget nämner en hemlig variabel som inte låter dess Runner använda den, så 
 :::
 
 :::details Ett kubectl-steg misslyckas eftersom dess Runner är för gammal
-Steget misslyckades med "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." En Runner som är äldre än kubectl-skript kan inte köra ett. Uppdatera Runnern, som [Håll agenten uppdaterad](#5-håll-agenten-uppdaterad) visar, och kör sedan runbooken igen.
+Steget misslyckades med "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." En Runner som är äldre än kubectl-skript kan inte köra ett. Ett Kubernetes-steg som flyttades till ett kubectl-skript vid uppgraderingen körs fortfarande på den som den åtgärd det skrevs som, tills dess skript eller kubeconfig ändras. Uppdatera Runnern, som [Håll agenten uppdaterad](#5-håll-agenten-uppdaterad) visar, och kör sedan runbooken igen.
 :::
 
 ## Nästa steg

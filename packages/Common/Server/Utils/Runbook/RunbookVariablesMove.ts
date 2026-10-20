@@ -12,7 +12,10 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
-import { getKubectlScriptForLegacyKubernetesStep } from "../../../Types/Runbook/RunbookLegacySteps";
+import {
+  getKubectlScriptForLegacyKubernetesStep,
+  getLegacyKubernetesFields,
+} from "../../../Types/Runbook/RunbookLegacySteps";
 import {
   KubernetesStepConfig,
   SSHStepConfig,
@@ -50,13 +53,21 @@ import {
  *     host, user and port with those variables, and runs its command as its
  *     script; each Kubernetes step runs the kubectl command that makes the
  *     change its action made - the same PATCH, so a service account allowed
- *     only "patch" still may (RunbookLegacySteps) - with the kubeconfig.
+ *     only "patch" still may (RunbookLegacySteps) - with the kubeconfig;
+ *   - a Runner is updated on its owner's schedule, and one older than
+ *     kubectl scripts cannot run one. An SSH step's script is also sent as
+ *     the command such a Runner runs, so a moved SSH step needs nothing
+ *     more; a moved Kubernetes step keeps its credential and its action, as
+ *     they were, beside the script and the kubeconfig, and such a Runner is
+ *     handed the step that way and runs it as it always did - until its
+ *     script or kubeconfig is changed (RunbookLegacySteps).
  *
  * A step whose credential is gone, or holds nothing to sign in with, is
  * left as it was: it fails as it would have. The credentials themselves stay
  * where they are, for what OneUptime AI's own commands reach through a
- * Runner (RunbookCredential). The secrets table ("RunbookSecret" and
- * "RunbookSecretRunner") stays too; nothing writes to it any more.
+ * Runner (RunbookCredential) and for the moved Kubernetes steps an older
+ * Runner runs. The secrets table ("RunbookSecret" and "RunbookSecretRunner")
+ * stays too; nothing writes to it any more.
  *
  * Read through statements written against the legacy table, as the
  * migrations made it, since its model is gone; written through the
@@ -64,8 +75,9 @@ import {
  * statement per runbook - the runbook's own checks would refuse a runbook
  * that still names a credential that was deleted. Safe to run twice: a
  * variable whose name is there already is taken as moved, and a step moved
- * already names no credential. Never throws for one project: its failure is
- * logged, and the others go on.
+ * already takes a script, so it is not moved again and its credential is
+ * not read. Never throws for one project: its failure is logged, and the
+ * others go on.
  *
  * Run once by the Workers' data migration
  * MoveRunbookSecretsAndCredentialsToVariables, and tested against a migrated
@@ -235,9 +247,10 @@ export interface MovedCredential {
 /*
  * A step, moved: an SSH step that named a credential signs in with its
  * variables and runs its command as its script; a Kubernetes step runs the
- * kubectl command its action made, with the kubeconfig; a Bash or
- * JavaScript step names variables where it named runbook secrets. Null when
- * nothing about the step changes.
+ * kubectl command its action made, with the kubeconfig, and keeps its
+ * credential and action for an older Runner; a Bash or JavaScript step
+ * names variables where it named runbook secrets. Null when nothing about
+ * the step changes.
  */
 export function moveStep(data: {
   step: JSONObject;
@@ -337,6 +350,14 @@ export function moveStep(data: {
       ...(legacy.claimTimeoutInMs !== undefined
         ? { claimTimeoutInMs: legacy.claimTimeoutInMs }
         : {}),
+      /*
+       * What a Runner older than kubectl scripts runs: the step as it was
+       * written - its credential and its action, exactly as they were - as
+       * a moved SSH step's script is also the command such a Runner runs.
+       * Kept while the script and the kubeconfig are these
+       * (RunbookLegacySteps).
+       */
+      ...getLegacyKubernetesFields(values),
     };
 
     return { ...data.step, config: next };
@@ -345,7 +366,12 @@ export function moveStep(data: {
   return null;
 }
 
-// The credentials `steps` name, each once, in lower case.
+/*
+ * The credentials `steps` name, each once, in lower case: those of the
+ * steps a move rewrites, which name a credential and take no script. A
+ * step moved already keeps its credential beside its script, for an older
+ * Runner, and is not moved again.
+ */
 export function getCredentialIdsInSteps(
   steps: Array<JSONObject>,
 ): Array<string> {
@@ -358,7 +384,10 @@ export function getCredentialIdsInSteps(
     if (
       (type !== RunbookStepType.SSH && type !== RunbookStepType.Kubernetes) ||
       !config ||
-      typeof config !== "object"
+      typeof config !== "object" ||
+      (type === RunbookStepType.SSH && !isLegacySSHStepConfig(config)) ||
+      (type === RunbookStepType.Kubernetes &&
+        !isLegacyKubernetesStepConfig(config))
     ) {
       continue;
     }

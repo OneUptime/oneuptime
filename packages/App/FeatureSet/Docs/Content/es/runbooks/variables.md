@@ -97,6 +97,8 @@ Las variables de runbook ocuparon el lugar de los secretos de runbook y de las c
 - cada credencial que nombraba un paso pasó a ser variables globales secretas con los mismos Runners, con nombres derivados de ella: `<name>-ssh-key` (y `<name>-ssh-key-passphrase`, para una clave que la tenía), `<name>-ssh-password` o `<name>-kubeconfig`;
 - cada paso SSH que nombraba una credencial inicia sesión en su máquina con ellas y ejecuta su comando como su script, y cada paso de Kubernetes pasó a ser un paso kubectl que ejecuta el `kubectl patch` que hacía su acción, sin necesitar más acceso del que tenía el paso.
 
+Un Runner anterior a esta versión no puede ejecutar un script de kubectl. Por eso cada paso de Kubernetes que pasó a esta forma también conservó su credencial y su acción, y un Runner anterior ejecuta el paso con ellas, como lo hacía. En cuanto cambias el script o el kubeconfig del paso, ya no las conserva: como cualquier paso kubectl nuevo, necesita entonces un Runner de esta versión, y uno más antiguo lo hace fallar e indica que hay que actualizar el Runner.
+
 Un paso escrito mediante la API con una credencial sigue ejecutándose con ella, y su página de pasos ofrece **Convertir en paso de script**. Las credenciales también se mantienen, para lo que alcanzan los propios comandos de OneUptime AI: consulta [Acceso de la IA](/docs/runbooks/credentials).
 
 ## Próximos pasos

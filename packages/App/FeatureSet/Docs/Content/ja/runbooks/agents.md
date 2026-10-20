@@ -310,7 +310,7 @@ Runner はジョブを取得した後、リースの更新をやめました。�
 :::
 
 :::details Runner が古すぎるために kubectl のステップが失敗する
-ステップは "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." で失敗しました。kubectl スクリプトより古い Runner はスクリプトを実行できません。[エージェントを最新に保つ](#5-エージェントを最新に保つ) のとおりに Runner を更新してから、Runbook をもう一度実行してください。
+ステップは "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." で失敗しました。kubectl スクリプトより古い Runner はスクリプトを実行できません。アップグレードで kubectl スクリプトに移された Kubernetes ステップは、スクリプトまたは kubeconfig を変更するまで、書かれたときのアクションとして引き続きその Runner で実行されます。[エージェントを最新に保つ](#5-エージェントを最新に保つ) のとおりに Runner を更新してから、Runbook をもう一度実行してください。
 :::
 
 ## 次のステップ

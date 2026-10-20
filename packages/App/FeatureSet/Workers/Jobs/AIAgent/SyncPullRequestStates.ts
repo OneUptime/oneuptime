@@ -13,7 +13,12 @@ import CodeFixTaskType, {
 import FixPullRequestCiStatus, {
   FixPullRequestCiStatusHelper,
 } from "Common/Types/AI/FixPullRequestCiStatus";
+import {
+  FixMergedFields,
+  fieldsWhenMerged,
+} from "Common/Server/Utils/AI/CodeFix/FixProductionVerdict";
 import GitHubUtil, {
+  GitHubPullRequestMerge,
   GitHubCheckRunsSummary,
   GitHubInstallationNotFoundError,
   GitHubInstallationToken,
@@ -309,23 +314,46 @@ RunCron(
           tokenByInstallationId.set(installationId, tokenBundle);
         }
 
-        const currentState: PullRequestState =
-          await GitHubUtil.getPullRequestStateWithToken({
+        const merge: GitHubPullRequestMerge =
+          await GitHubUtil.getPullRequestMergeWithToken({
             token: tokenBundle.token.token,
             organizationName,
             repositoryName,
             pullRequestNumber: pullRequest.pullRequestNumber,
           });
+        const currentState: PullRequestState = merge.state;
 
         // Everything that changed this sweep lands in one update.
         const updateData: {
           pullRequestState?: PullRequestState;
           ciStatus?: FixPullRequestCiStatus;
           ciStatusAt?: Date;
-        } = {};
+        } & Partial<FixMergedFields> = {};
 
         if (currentState !== PullRequestState.Open) {
           updateData.pullRequestState = currentState;
+        }
+
+        /*
+         * Merged is not fixed: a fix of an exception is watched in
+         * production from here on (FixProductionVerifier), which needs the
+         * commit GitHub merged it as.
+         */
+        if (currentState === PullRequestState.Merged) {
+          Object.assign(
+            updateData,
+            fieldsWhenMerged({
+              mergeCommitSha: merge.mergeCommitSha,
+              mergedAt: merge.mergedAt,
+              isExceptionFix: pullRequest.aiRunId
+                ? (await getTaskTypeForRun(
+                    pullRequest.aiRunId,
+                    taskTypeByRunId,
+                  )) === CodeFixTaskType.FixException
+                : false,
+              now: OneUptimeDate.getCurrentDate(),
+            }),
+          );
         }
 
         /*

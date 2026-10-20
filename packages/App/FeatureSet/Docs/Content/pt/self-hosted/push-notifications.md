@@ -70,6 +70,26 @@ vapid:
 expo:
   accessToken:
 ```
+
+:::details Guarde a chave privada em um Secret
+`vapid.privateKey` mantém a chave privada nos valores da release, que o Helm armazena em cada revisão. Para deixá-la fora deles, coloque-a em um Secret do Kubernetes no namespace do OneUptime, em `privateKey`, e indique esse Secret no lugar dela:
+
+```bash
+kubectl create secret generic oneuptime-vapid \
+  --namespace oneuptime \
+  --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+Defina `vapid.privateKey` ou `vapid.existingSecret.name`, não os dois: o chart recusa os dois juntos. Se o seu Secret guarda a chave privada em outra chave, indique essa chave em `vapid.existingSecret.privateKeyKey`. A chave pública continua em `vapid.publicKey`: todo navegador a recebe.
+:::
 :::
 
 ## Acesso de rede

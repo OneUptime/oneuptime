@@ -28,12 +28,12 @@ change their wording and steps.
 
 ## How it works
 
-|                     | AWS Marketplace                                                                                     | Microsoft Marketplace                                                                         | Google Cloud Marketplace                                                                                                   |
-| ------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Product             | Container product, Helm chart delivery, on Amazon EKS                                               | Azure Container offer with a Kubernetes application plan, on AKS only                         | Kubernetes app (deployer image), on GKE                                                                                    |
-| How OneUptime bills | `MeterUsage`, dimension `users`, signed with the pod's IAM role (IRSA)                              | A usage event on the custom meter `users`, sent with the cluster extension's managed identity | Service Control `report`, metric `<service name>/users`, with the reporting secret Marketplace creates for each deployment |
-| What the buyer does | Creates the IAM role and service account (AWS shows the `eksctl` command), then runs `helm install` | Creates the app in the Azure portal: cluster, name, domain name, protocol                     | Configures the app in the Google Cloud console: cluster, namespace, name, domain name, protocol                            |
-| Latest report taken | 6 hours after the hour (OneUptime stops trying at 5)                                                | 24 hours (OneUptime stops at 23)                                                              | OneUptime stops at 23 hours                                                                                                |
+|                     | AWS Marketplace                                                                                                            | Microsoft Marketplace                                                                         | Google Cloud Marketplace                                                                                                   |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Product             | Container product, Helm chart delivery, on Amazon EKS                                                                      | Azure Container offer with a Kubernetes application plan, on AKS only                         | Kubernetes app (deployer image), on GKE                                                                                    |
+| How OneUptime bills | `MeterUsage`, dimension `users`, signed with the pod's IAM role (IRSA)                                                     | A usage event on the custom meter `users`, sent with the cluster extension's managed identity | Service Control `report`, metric `<service name>/users`, with the reporting secret Marketplace creates for each deployment |
+| What the buyer does | Creates the service account and its IAM role with the `eksctl` command of the usage instructions, then runs `helm install` | Creates the app in the Azure portal: cluster, name, domain name, protocol                     | Configures the app in the Google Cloud console: cluster, namespace, name, domain name, protocol                            |
+| Latest report taken | 6 hours after the hour (OneUptime stops trying at 5)                                                                       | 24 hours (OneUptime stops at 23)                                                              | OneUptime stops at 23 hours                                                                                                |
 
 1. **Counting.** Every 15 minutes, and when it starts, the Enterprise
    Edition's job `EnterpriseMarketplace:ReportUsage`
@@ -516,9 +516,17 @@ version**:
     `oneuptime`; **Kubernetes service account name** left empty.
   - **Override parameters**: `host` (default `localhost`), `httpProtocol`
     (default `http`), and `serviceAccount.name` with the default
-    `${AWSMP_SERVICE_ACCOUNT}`: AWS fills in the service account its launch
-    page has the buyer create with `eksctl` and an IAM role, and the chart,
-    which does not create one, runs OneUptime as it.
+    `${AWSMP_SERVICE_ACCOUNT}`. The chart creates no service account: it
+    runs OneUptime as this one, and reports usage with its IAM role.
+    AWS's launch page shows the parameter as
+    `<ENTER_SERVICE_ACCOUNT_NAME_HERE>`, and the
+    `eksctl create iamserviceaccount` of its **General launch instructions**
+    attaches a role the buyer already has (`--attach-role-arn`) and names no
+    policy. So the usage instructions give the command that creates the
+    `oneuptime` service account with a role that has
+    `AWSMarketplaceMeteringFullAccess` (`AWSMarketplaceMeteringRegisterUsage`
+    allows only `RegisterUsage`; OneUptime calls `MeterUsage`), and have the
+    buyer set `serviceAccount.name=oneuptime`.
 - **Submit**: AWS scans the images and the new version appears to the
   allowlist. A version that is not public yet can still be edited.
 
@@ -533,7 +541,7 @@ reviews the product against AWS's container policies. Settle
 [the policy questions](#policy-questions-to-settle-before-submitting) with
 them first. Usage instructions must not tell buyers to edit anything but
 `values.yaml` or to add `--set` flags: the delivery option's override
-parameters are how buyers set the domain name.
+parameters are how buyers set the domain name and the service account.
 
 ### Microsoft Marketplace
 
@@ -746,25 +754,34 @@ a default StorageClass and load balancer support.
 
 ```text
 Before you install:
-1. An Amazon EKS cluster with at least 3 nodes of 2 vCPUs and 8 GiB (4 vCPUs
-   and 16 GiB recommended), the Amazon EBS CSI driver with a default
-   StorageClass, and an IAM OIDC provider:
+1. An Amazon EKS cluster with at least 3 nodes of 4 vCPUs and 16 GiB of
+   memory, the Amazon EBS CSI driver with a default StorageClass, and an IAM
+   OIDC provider:
    eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
-2. Create the IAM role and the "oneuptime" service account with the eksctl
-   command on this page. OneUptime reports its users to AWS Marketplace every
-   hour with it; without it, the Enterprise features stay off.
+2. The oneuptime service account, with an IAM role that has the
+   AWSMarketplaceMeteringFullAccess policy. Create both with this command, in
+   place of the eksctl command in step 1 of the General launch instructions on
+   this page (that one attaches a role you would have to create first):
+   eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess --approve --override-existing-serviceaccounts
+   OneUptime reports its users to AWS Marketplace every hour with this role;
+   without it, the Enterprise features stay off.
 
-Install with the helm command on this page. In it, set host to your domain
-name (for example oneuptime.example.com), and httpProtocol to https if a
-certificate is in front of OneUptime.
+Install with the commands in step 2 of the General launch instructions. In the
+helm install command, set these values:
+   serviceAccount.name=oneuptime (the service account above)
+   host=<your domain name>, for example oneuptime.example.com
+   httpProtocol=https if a certificate is in front of OneUptime, otherwise http
 
 Then point the domain name at the load balancer (the EXTERNAL-IP of the
-nginx service: kubectl get service --namespace oneuptime) and open it to
-create the first account. The first start migrates the database and takes a
-few minutes. Within the hour, the dashboard's edition label shows Enterprise
-Edition, licensed through AWS Marketplace.
+service ending in -nginx: kubectl get service --namespace oneuptime) and open
+it to create the first account. The first start migrates the database and
+takes a few minutes. Within the hour, the dashboard's edition label shows the
+Enterprise Edition, licensed through AWS Marketplace.
 
-Documentation: https://oneuptime.com/docs/installation/cloud-marketplaces
+To upgrade, run helm upgrade with a newer version of this chart and the same
+values.
+
+Guide: https://oneuptime.com/docs/installation/cloud-marketplaces
 Support: https://oneuptime.com/support
 ```
 

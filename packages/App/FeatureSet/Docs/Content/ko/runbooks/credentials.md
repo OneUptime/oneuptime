@@ -1,6 +1,6 @@
 # AI 액세스
 
-AI 액세스는 OneUptime AI 자체 명령이 Runner 자신의 호스트가 **아닌** 것, 즉 SSH로 접근하는 서버나 Kubernetes 에이전트 차트를 실행하지 않는 Kubernetes 클러스터의 API 서버에 닿는 방법입니다. 각각은 자격 증명입니다. 저장 시 암호화되고 특정 Runner에 할당된 관리 대상 접근 권한으로, 명령에 적히는 대신 OneUptime AI가 고릅니다. Runbook 단계는 이것을 쓰지 않습니다. SSH나 kubectl 단계는 시크릿 [Runbook 변수](/docs/runbooks/variables)로 로그인합니다.
+AI 액세스는 OneUptime AI 자체 명령이 Runner 자신의 호스트가 **아닌** 것, 즉 SSH로 접근하는 서버나 Kubernetes 에이전트 차트를 실행하지 않는 Kubernetes 클러스터의 API 서버에 닿는 방법입니다. 각각은 자격 증명입니다. 저장 시 암호화되고 특정 Runner에 할당된 관리 대상 접근 권한으로, 명령에 적히는 대신 OneUptime AI가 고릅니다. Runbook 단계는 이것을 쓰지 않습니다. SSH나 kubectl 단계는 시크릿 [Runbook 변수](/docs/runbooks/variables)로 로그인합니다. 이 릴리스보다 오래된 Runner는 예외입니다. 동작에서 옮겨진 Kubernetes 단계를 그 단계의 스크립트나 kubeconfig가 바뀌기 전까지 단계가 지정하던 자격 증명으로 실행합니다.
 
 **런북 → Runbook 에이전트 → AI 액세스**에서 관리합니다.
 

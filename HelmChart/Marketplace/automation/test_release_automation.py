@@ -362,6 +362,42 @@ class AwsCatalogTest(unittest.TestCase):
         self.assertLessEqual(len(delivery["usageInstructions"]), aws_catalog.USAGE_INSTRUCTIONS_LIMIT)
         self.assertNotIn("--set", delivery["usageInstructions"])
 
+    def test_the_usage_instructions_create_the_role_oneuptime_meters_with(self) -> None:
+        # The launch page's eksctl command attaches a role the buyer already has (--attach-role-arn)
+        # and names no policy. So the instructions give the one that creates the role, for the
+        # service account the chart runs as, with the policy MeterUsage needs:
+        # AWSMarketplaceMeteringRegisterUsage allows only RegisterUsage.
+        delivery = self.delivery()
+        usage: str = delivery["usageInstructions"]
+        account: str = release_common.load_editions()["aws"]["serviceAccountName"]
+
+        self.assertIn(
+            f"\n   eksctl create iamserviceaccount --name {account} --namespace {delivery['namespace']} "
+            "--cluster <cluster> --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess "
+            "--approve --override-existing-serviceaccounts\n",
+            usage,
+        )
+        self.assertIn(f"\n   serviceAccount.name={account} ", usage)
+        self.assertNotIn("--attach-role-arn", usage)
+        self.assertNotIn("RegisterUsage", usage)
+
+    def test_the_usage_instructions_set_every_override_parameter(self) -> None:
+        # The buyer sets each one in the launch page's helm install command, which has them all.
+        delivery = self.delivery()
+
+        for entry in delivery["overrideParameters"]:
+            self.assertIn(f"\n   {entry['Key']}=", delivery["usageInstructions"], entry["Key"])
+
+    def test_the_runbook_shows_the_usage_instructions_the_workflow_sends(self) -> None:
+        # Wrapped for reading there, word for word the same.
+        runbook: str = (
+            HERE.parents[2] / "packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md"
+        ).read_text(encoding="utf-8")
+        copy: str = runbook.split("**Usage instructions (AWS delivery option):**\n\n```text\n", 1)[1]
+        copy = copy.split("\n```", 1)[0]
+
+        self.assertEqual(copy.split(), self.delivery()["usageInstructions"].split())
+
     def test_refuses_another_marketplace_s_or_release_s_images(self) -> None:
         for plan in (dict(aws_images_plan(), marketplace="azure"), aws_images_plan(version="14.0.65")):
             with self.assertRaises(release_common.ReleaseError):

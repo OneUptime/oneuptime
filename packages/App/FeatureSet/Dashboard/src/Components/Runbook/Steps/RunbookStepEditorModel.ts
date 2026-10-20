@@ -7,7 +7,11 @@ import {
   isLegacySSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
-import { getKubectlScriptForLegacyKubernetesStep } from "Common/Types/Runbook/RunbookLegacySteps";
+import {
+  getKubectlScriptForLegacyKubernetesStep,
+  isMovedKubernetesStepConfig,
+  withoutLegacyKubernetesFields,
+} from "Common/Types/Runbook/RunbookLegacySteps";
 import {
   DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
   DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
@@ -399,6 +403,57 @@ export function convertLegacyCredentialStep(step: RunbookStep): RunbookStep {
   }
 
   return step;
+}
+
+// ------------------------------------------------- editing a step
+
+// Whether `field` of a step's config is another text after a change.
+function isChanged(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  field: string,
+): boolean {
+  const text: (value: unknown) => string = (value: unknown): string => {
+    return typeof value === "string" ? value : "";
+  };
+
+  return text(before[field]) !== text(after[field]);
+}
+
+/*
+ * A step with `patch` written over its config, as the editor changes it.
+ *
+ * A kubectl step the data migration moved from a Kubernetes action keeps
+ * that action and its credential beside its script, so a Runner older than
+ * kubectl scripts still runs it (RunbookLegacySteps) - only while its
+ * script and kubeconfig are the ones it was moved with. A change to either
+ * drops them here, as every save does on the server (RunbookService): the
+ * step then needs a Runner that runs kubectl scripts, as every new one
+ * does. Its Runner, timeouts and notes change nothing it does.
+ */
+export function applyStepConfigChange(
+  step: RunbookStep,
+  patch: Record<string, unknown>,
+): RunbookStep {
+  const current: Record<string, unknown> = (step.config || {}) as Record<
+    string,
+    unknown
+  >;
+  const next: Record<string, unknown> = { ...current, ...patch };
+
+  if (
+    step.type === RunbookStepType.Kubernetes &&
+    isMovedKubernetesStepConfig(current) &&
+    (isChanged(current, next, "script") ||
+      isChanged(current, next, "kubeconfig"))
+  ) {
+    return {
+      ...step,
+      config: withoutLegacyKubernetesFields(next) as never,
+    };
+  }
+
+  return { ...step, config: next as never };
 }
 
 // ------------------------------------------------------------ misc

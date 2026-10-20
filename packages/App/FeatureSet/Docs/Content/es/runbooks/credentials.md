@@ -1,6 +1,6 @@
 # Acceso de la IA
 
-El acceso de la IA es cómo los propios comandos de OneUptime AI llegan a algo que **no** es el host propio de un Runner: un servidor por SSH, o el servidor de API de un clúster de Kubernetes que no ejecuta el chart del agente de Kubernetes. Cada acceso es una credencial: ese acceso como objeto gestionado, cifrado en reposo, asignado a Runners concretos y elegido por OneUptime AI en lugar de escrito en un comando. Los pasos de runbook no las usan: un paso SSH o kubectl inicia sesión con una [variable de runbook](/docs/runbooks/variables) secreta.
+El acceso de la IA es cómo los propios comandos de OneUptime AI llegan a algo que **no** es el host propio de un Runner: un servidor por SSH, o el servidor de API de un clúster de Kubernetes que no ejecuta el chart del agente de Kubernetes. Cada acceso es una credencial: ese acceso como objeto gestionado, cifrado en reposo, asignado a Runners concretos y elegido por OneUptime AI en lugar de escrito en un comando. Los pasos de runbook no las usan: un paso SSH o kubectl inicia sesión con una [variable de runbook](/docs/runbooks/variables) secreta. Un Runner anterior a esta versión es la excepción: ejecuta un paso de Kubernetes que pasó a script desde una acción con la credencial que nombraba el paso, hasta que se cambian su script o su kubeconfig.
 
 Gestiónalas en **Runbooks → Agentes de runbook → Acceso de la IA**.
 

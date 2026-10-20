@@ -45,6 +45,8 @@ export default class AIAgentTaskPullRequestAPI extends BaseAPI<
             acceptanceRatePercent: stats.acceptanceRatePercent,
             verifiedGreen: stats.verifiedGreen,
             verifiedGreenRatePercent: stats.verifiedGreenRatePercent,
+            verifiedInProduction: stats.verifiedInProduction,
+            regressedInProduction: stats.regressedInProduction,
           });
         } catch (err) {
           next(err);

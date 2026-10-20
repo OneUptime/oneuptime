@@ -111,6 +111,8 @@ Als de verdachte wijziging een Kubernetes-rollout is op een cluster waarvan de [
 
 OneUptime controleert ook zelf elke deploy, of er nu iemand wordt opgeroepen of niet. Zodra de 30 minuten na een deploy voorbij zijn, vergelijkt het die met de 30 minuten ervoor volgens dezelfde drempels, en als de service slechter werd, noemt een [AI-inzicht](/docs/ai/ai-sre#inzichten-proactieve-detectie) de deploy op die service.
 
+Een pull request met een fix die OneUptime AI voor een exception opende, wordt op dezelfde manier gecontroleerd: zodra een vastgelegde deploy de commit ervan bevat, houdt OneUptime de exception daar in de gaten en zegt het bij de exception of de fix heeft gewerkt (zie [Automatische codefixes](/docs/ai/ai-sre#automatische-codefixes)).
+
 In een onderzoek en in [Ask AI](/docs/ai/ask-ai) toont `recent_changes` de wijzigingen in elk tijdvenster, en laat `get_change_details` zien wat een deploy heeft uitgerold: de commits sinds de vorige deploy van de service, hun auteurs, de pull requests en de bestanden die ze hebben gewijzigd. Daarvoor zijn de commit bij de wijziging en een repository nodig die is gekoppeld via de [GitHub App](/docs/ai/github-app).
 
 ## Referentie

@@ -47,21 +47,26 @@ On AWS, OneUptime reports its users with an IAM role that EKS gives its Kubernet
 
 :::steps
 1. Subscribe to OneUptime Enterprise on AWS Marketplace, then choose **Continue to Configuration**, pick the version and choose **Continue to Launch**.
-2. Give the cluster an IAM OIDC provider, if it does not have one yet. The launch page shows the `eksctl` command that then creates the `oneuptime` service account with its IAM role; run it.
-3. Log Helm in to the listing's registry and install the chart with the commands on the launch page, passing your values file.
+2. Give the cluster an IAM OIDC provider, if it does not have one yet, and create the `oneuptime` service account with an IAM role that has the `AWSMarketplaceMeteringFullAccess` policy, with the commands below. Run them in place of the `eksctl` command in step 1 of the launch page's **General launch instructions**: that command attaches a role you would have to create first.
+3. Log Helm in to the listing's registry and install the chart with the commands in step 2 of the **General launch instructions**. In the `helm install` command, set `serviceAccount.name` to `oneuptime`, `host` to your domain name, and `httpProtocol` to `https` if a certificate is in front of OneUptime.
 4. [Open OneUptime](#open-oneuptime).
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+Keep the values of step 3 in a file, and pass it to every `helm upgrade`:
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-Keep this file: pass it to every `helm upgrade`.
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ Billing does not depend on how many replicas run: one run at a time reports, and
 :::details The edition label shows Enterprise Edition (Marketplace Reports Failing)
 OneUptime cannot report to the marketplace. Every line it logs about it starts with `OneUptime Enterprise marketplace billing`; a line that says usage "cannot be reported" names what is missing. The usual causes:
 
-- **AWS:** the `oneuptime` service account has no IAM role, or the role does not have the `AWSMarketplaceMeteringFullAccess` policy. Create it with the `eksctl` command on the launch page.
+- **AWS:** the `oneuptime` service account has no IAM role, or the role does not have the `AWSMarketplaceMeteringFullAccess` policy (`AWSMarketplaceMeteringRegisterUsage` is not enough). Attach the policy to the role, or create the role with the `eksctl` command in [AWS Marketplace](#aws-marketplace) and then restart OneUptime's pods with `kubectl rollout restart deployment --namespace oneuptime`.
 - **Azure:** the installation is not the Microsoft Marketplace application, for example because it was installed with Helm, so it has no identity or plan to report with. Install it from the Azure portal.
 - **Google Cloud:** the reporting secret of the deployment was deleted or replaced.
 - **Every marketplace:** a firewall or proxy blocks the outbound HTTPS in [Before you begin](#before-you-begin).

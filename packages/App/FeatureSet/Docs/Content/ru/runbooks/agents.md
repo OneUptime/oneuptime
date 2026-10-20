@@ -310,7 +310,7 @@ Runner забрал задание, а затем перестал продле�
 :::
 
 :::details Шаг kubectl завершается ошибкой, потому что его Runner слишком старый
-Шаг завершился с ошибкой "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Runner старше, чем скрипты kubectl, не может их выполнять. Обновите Runner, как показано в [Обновление агента](#5-обновляйте-агента), и запустите runbook снова.
+Шаг завершился с ошибкой "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Runner старше, чем скрипты kubectl, не может их выполнять. Шаг Kubernetes, перенесённый в скрипт kubectl при обновлении, по-прежнему выполняется на нём как действие, с которым он был записан, пока не изменятся его скрипт или kubeconfig. Обновите Runner, как показано в [Обновление агента](#5-обновляйте-агента), и запустите runbook снова.
 :::
 
 ## Дальнейшие шаги

@@ -1,8 +1,8 @@
 import {
-  AddAutoRemediationRuleRunner1804400000000,
+  AddAutoRemediationRuleRunner1804500000000,
   RESTORE_COMMAND_RUNNER_ROWS,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804400000000-AddAutoRemediationRuleRunner";
-import { AddAutoRemediationRuleRunnerIndexAndKey1804450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804450000000-AddAutoRemediationRuleRunnerIndexAndKey";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804500000000-AddAutoRemediationRuleRunner";
+import { AddAutoRemediationRuleRunnerIndexAndKey1804550000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804550000000-AddAutoRemediationRuleRunnerIndexAndKey";
 import { Service as RunnerServiceClass } from "../../../../Server/Services/RunnerService";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -460,12 +460,12 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
     );
 
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new AddAutoRemediationRuleRunner1804400000000().up(queryRunner);
+      await new AddAutoRemediationRuleRunner1804500000000().up(queryRunner);
     });
 
     // The index and the key, online, outside a transaction.
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new AddAutoRemediationRuleRunnerIndexAndKey1804450000000().up(
+      await new AddAutoRemediationRuleRunnerIndexAndKey1804550000000().up(
         queryRunner,
       );
     });
@@ -617,7 +617,7 @@ describePostgres("AddAutoRemediationRuleRunner against Postgres", () => {
 
     // A migrate pod stopped after the build runs the migration again.
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new AddAutoRemediationRuleRunnerIndexAndKey1804450000000().up(
+      await new AddAutoRemediationRuleRunnerIndexAndKey1804550000000().up(
         queryRunner,
       );
     });

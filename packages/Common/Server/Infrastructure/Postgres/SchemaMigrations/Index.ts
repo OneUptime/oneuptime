@@ -133,8 +133,9 @@ import { AddSecurityEventDestinationsAndLogSources1804250000000 } from "./180425
 import { AddRunbookVariable1804265000000 } from "./1804265000000-AddRunbookVariable";
 import { AddCodeRepositoryRunner1804300000000 } from "./1804300000000-AddCodeRepositoryRunner";
 import { AddCodeRepositoryRunnerIndexAndKey1804350000000 } from "./1804350000000-AddCodeRepositoryRunnerIndexAndKey";
-import { AddAutoRemediationRuleRunner1804400000000 } from "./1804400000000-AddAutoRemediationRuleRunner";
-import { AddAutoRemediationRuleRunnerIndexAndKey1804450000000 } from "./1804450000000-AddAutoRemediationRuleRunnerIndexAndKey";
+import { AddFixProductionVerification1804400000000 } from "./1804400000000-AddFixProductionVerification";
+import { AddAutoRemediationRuleRunner1804500000000 } from "./1804500000000-AddAutoRemediationRuleRunner";
+import { AddAutoRemediationRuleRunnerIndexAndKey1804550000000 } from "./1804550000000-AddAutoRemediationRuleRunnerIndexAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1470,6 +1471,7 @@ export default [
   AddRunbookVariable1804265000000,
   AddCodeRepositoryRunner1804300000000,
   AddCodeRepositoryRunnerIndexAndKey1804350000000,
-  AddAutoRemediationRuleRunner1804400000000,
-  AddAutoRemediationRuleRunnerIndexAndKey1804450000000,
+  AddFixProductionVerification1804400000000,
+  AddAutoRemediationRuleRunner1804500000000,
+  AddAutoRemediationRuleRunnerIndexAndKey1804550000000,
 ];

@@ -1520,9 +1520,11 @@ API, SSO, or the Slack and Microsoft Teams apps.
   was moved to that shape, with what its credential held copied into secret
   global variables, and does what it did. The credentials stay, under
   **Runbooks → Runners → AI Access**, for OneUptime AI's own commands. A
-  kubectl step that runs a script needs a Runner of this release: an older
-  one fails such a step and says so, so update your Runners. See
-  [Runbook Variables](/docs/runbooks/variables).
+  moved Kubernetes step also keeps its credential and action, so a Runner
+  older than this release still runs it as it did. A new kubectl step, and a
+  moved one once its script or kubeconfig is changed, needs a Runner of this
+  release: an older one fails such a step and says so, so update your
+  Runners. See [Runbook Variables](/docs/runbooks/variables).
 - **Visitors keep their own address in more setups.** OneUptime counts a
   visitor by the address they connect from, for its sign-in limits, its other
   limits per address and its IP allowlists. Its ingress now listens on IPv6 as

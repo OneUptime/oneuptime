@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddAutoRemediationRuleRunner1804400000000, and moved into a migration of
+ * AddAutoRemediationRuleRunner1804500000000, and moved into a migration of
  * its own: projects already have rules in "AutoRemediationRule", so the
  * index on its new "runnerId" column is built online, and the foreign key
  * to "Runner" is added NOT VALID and then validated, without blocking the
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * validation finds nothing to refuse. Safe to run again after a stop part
  * way.
  */
-export class AddAutoRemediationRuleRunnerIndexAndKey1804450000000
+export class AddAutoRemediationRuleRunnerIndexAndKey1804550000000
   implements MigrationInterface
 {
-  public name: string = "AddAutoRemediationRuleRunnerIndexAndKey1804450000000";
+  public name: string = "AddAutoRemediationRuleRunnerIndexAndKey1804550000000";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

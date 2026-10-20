@@ -310,7 +310,7 @@ De stap noemt een geheime variabele die zijn Runner niet toestaat, dus de Runner
 :::
 
 :::details Een kubectl-stap mislukt omdat zijn Runner te oud is
-De stap mislukte met "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Een Runner die ouder is dan kubectl-scripts, kan er geen uitvoeren. Werk de Runner bij, zoals [De agent bijwerken](#5-de-agent-bijwerken) laat zien, en voer het runbook dan opnieuw uit.
+De stap mislukte met "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Een Runner die ouder is dan kubectl-scripts, kan er geen uitvoeren. Een Kubernetes-stap die bij de upgrade in een kubectl-script is omgezet, draait er nog steeds op als de actie waarmee hij is geschreven, totdat zijn script of kubeconfig wordt gewijzigd. Werk de Runner bij, zoals [De agent bijwerken](#5-de-agent-bijwerken) laat zien, en voer het runbook dan opnieuw uit.
 :::
 
 ## Volgende stappen

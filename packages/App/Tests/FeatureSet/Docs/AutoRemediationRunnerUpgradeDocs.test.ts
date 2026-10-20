@@ -140,7 +140,7 @@ describe("the English upgrade note on auto remediation rules' runbooks and Runne
 
 describe("the note is true to the upgrade", () => {
   const migration: string = source(
-    "Common/Server/Infrastructure/Postgres/SchemaMigrations/1804400000000-AddAutoRemediationRuleRunner.ts",
+    "Common/Server/Infrastructure/Postgres/SchemaMigrations/1804500000000-AddAutoRemediationRuleRunner.ts",
   );
 
   it("adds the rule's Runner, writes out the Runners a command rule ran on, and picks the one", () => {

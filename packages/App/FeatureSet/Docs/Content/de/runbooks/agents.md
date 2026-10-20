@@ -310,7 +310,7 @@ Der Schritt nennt eine geheime Variable, die seinem Runner die Nutzung nicht erl
 :::
 
 :::details Ein kubectl-Schritt schlägt fehl, weil sein Runner zu alt ist
-Der Schritt ist fehlgeschlagen mit "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Ein Runner, der älter ist als kubectl-Skripte, kann keines ausführen. Aktualisieren Sie den Runner, wie [Den Agenten aktuell halten](#5-den-agenten-aktuell-halten) zeigt, und führen Sie das Runbook dann erneut aus.
+Der Schritt ist fehlgeschlagen mit "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Ein Runner, der älter ist als kubectl-Skripte, kann keines ausführen. Ein Kubernetes-Schritt, der beim Upgrade in ein kubectl-Skript überführt wurde, läuft darauf weiterhin als die Aktion, als die er geschrieben wurde, bis sein Skript oder seine kubeconfig geändert wird. Aktualisieren Sie den Runner, wie [Den Agenten aktuell halten](#5-den-agenten-aktuell-halten) zeigt, und führen Sie das Runbook dann erneut aus.
 :::
 
 ## Nächste Schritte

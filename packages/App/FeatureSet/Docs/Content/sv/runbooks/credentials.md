@@ -1,6 +1,6 @@
 # AI-åtkomst
 
-AI-åtkomst är hur OneUptime AI:s egna kommandon når något som **inte** är en Runners egen värd — en server över SSH, eller API-servern i ett Kubernetes-kluster som inte kör Kubernetes-agentens chart. Varje åtkomst är en autentiseringsuppgift: den åtkomsten som ett hanterat objekt, krypterat i vila, tilldelat vissa Runners och valt av OneUptime AI i stället för att skrivas in i ett kommando. Runbook-steg använder dem inte: ett SSH- eller kubectl-steg loggar in med en hemlig [runbook-variabel](/docs/runbooks/variables).
+AI-åtkomst är hur OneUptime AI:s egna kommandon når något som **inte** är en Runners egen värd — en server över SSH, eller API-servern i ett Kubernetes-kluster som inte kör Kubernetes-agentens chart. Varje åtkomst är en autentiseringsuppgift: den åtkomsten som ett hanterat objekt, krypterat i vila, tilldelat vissa Runners och valt av OneUptime AI i stället för att skrivas in i ett kommando. Runbook-steg använder dem inte: ett SSH- eller kubectl-steg loggar in med en hemlig [runbook-variabel](/docs/runbooks/variables). En Runner som är äldre än den här versionen är undantaget: den kör ett Kubernetes-steg som flyttats från en åtgärd med den autentiseringsuppgift som steget nämnde, tills stegets skript eller kubeconfig ändras.
 
 Hantera dem under **Runbooks → Runbook-agenter → AI-åtkomst**.
 

@@ -310,7 +310,7 @@ Runner ने जॉब क्लेम किया और फिर अपन�
 :::
 
 :::details कोई kubectl चरण विफल होता है क्योंकि उसका Runner बहुत पुराना है
-चरण इस संदेश के साथ विफल हुआ: "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." kubectl स्क्रिप्ट से पुराना Runner स्क्रिप्ट नहीं चला सकता। [एजेंट को अप-टू-डेट रखें](#5-एजेंट-को-अप-टू-डेट-रखें) में बताए अनुसार Runner अपडेट करें, फिर runbook दोबारा चलाएँ।
+चरण इस संदेश के साथ विफल हुआ: "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." kubectl स्क्रिप्ट से पुराना Runner स्क्रिप्ट नहीं चला सकता। अपग्रेड के समय kubectl स्क्रिप्ट में बदला गया Kubernetes चरण उस पर अब भी उसी कार्रवाई के रूप में चलता है जिसके साथ वह लिखा गया था, जब तक उसकी स्क्रिप्ट या kubeconfig बदली नहीं जाती। [एजेंट को अप-टू-डेट रखें](#5-एजेंट-को-अप-टू-डेट-रखें) में बताए अनुसार Runner अपडेट करें, फिर runbook दोबारा चलाएँ।
 :::
 
 ## अगले कदम

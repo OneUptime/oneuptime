@@ -1,6 +1,6 @@
 # AI 访问
 
-AI 访问是 OneUptime AI 自己的命令到达 **不是** Runner 自身主机的目标的方式：通过 SSH 访问的服务器，或未运行 Kubernetes 代理 chart 的 Kubernetes 集群的 API 服务器。每一项访问都是一个凭据：作为受管对象的访问权限，静态加密存储，分配给特定的 Runner，并由 OneUptime AI 选择，而不是写进命令。Runbook 步骤不使用它们：SSH 或 kubectl 步骤使用机密 [Runbook 变量](/docs/runbooks/variables) 登录。
+AI 访问是 OneUptime AI 自己的命令到达 **不是** Runner 自身主机的目标的方式：通过 SSH 访问的服务器，或未运行 Kubernetes 代理 chart 的 Kubernetes 集群的 API 服务器。每一项访问都是一个凭据：作为受管对象的访问权限，静态加密存储，分配给特定的 Runner，并由 OneUptime AI 选择，而不是写进命令。Runbook 步骤不使用它们：SSH 或 kubectl 步骤使用机密 [Runbook 变量](/docs/runbooks/variables) 登录。早于此版本的 Runner 是例外：对于从操作迁移而来的 Kubernetes 步骤，在该步骤的脚本或 kubeconfig 被更改之前，它会使用该步骤引用的凭据来运行。
 
 在 **运行手册 → Runbook 代理 → AI 访问** 下管理凭据。
 

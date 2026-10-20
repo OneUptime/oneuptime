@@ -47,21 +47,26 @@ flowchart TB
 
 :::steps
 1. 在 AWS Marketplace 上訂閱 OneUptime Enterprise，接著選擇 **Continue to Configuration**，選取版本，再選擇 **Continue to Launch**。
-2. 如果叢集還沒有 IAM OIDC 提供者，請為它建立一個。啟動頁面會顯示一個 `eksctl` 指令，它會接著建立 `oneuptime` 服務帳戶及其 IAM 角色；請執行這個指令。
-3. 使用啟動頁面上的指令，讓 Helm 登入該商品的映像檔登錄庫並安裝 chart，同時傳入您的 values 檔案。
+2. 如果叢集還沒有 IAM OIDC 提供者，請為它建立一個，然後用下方的指令建立 `oneuptime` 服務帳戶，以及具有 `AWSMarketplaceMeteringFullAccess` 政策的 IAM 角色。請用這些指令取代啟動頁面 **General launch instructions** 第 1 步中的 `eksctl` 指令：那個指令關聯的是一個您得先自行建立的角色。
+3. 使用 **General launch instructions** 第 2 步中的指令，讓 Helm 登入該商品的映像檔登錄庫並安裝 chart。在 `helm install` 指令中，將 `serviceAccount.name` 設為 `oneuptime`，將 `host` 設為您的網域名稱；如果 OneUptime 前面有憑證，再將 `httpProtocol` 設為 `https`。
 4. [開啟 OneUptime](#開啟-oneuptime)。
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+請將第 3 步的這些值保存在一個檔案中，每次執行 `helm upgrade` 時都傳入它：
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-請保留這個檔案：每次執行 `helm upgrade` 時都要傳入它。
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ kubectl get service --namespace <namespace>
 :::details 版本標籤顯示 Enterprise Edition (Marketplace Reports Failing)
 OneUptime 無法向雲端市集回報。它為此記錄的每一行日誌都以 `OneUptime Enterprise marketplace billing` 開頭；表示用量「cannot be reported」的那一行會指出缺少什麼。常見原因：
 
-- **AWS：** `oneuptime` 服務帳戶沒有 IAM 角色，或該角色沒有 `AWSMarketplaceMeteringFullAccess` 政策。請使用啟動頁面上的 `eksctl` 指令建立它。
+- **AWS：** `oneuptime` 服務帳戶沒有 IAM 角色，或該角色沒有 `AWSMarketplaceMeteringFullAccess` 政策（只有 `AWSMarketplaceMeteringRegisterUsage` 不夠）。請將該政策關聯到這個角色，或使用 [AWS Marketplace](#aws-marketplace) 中的 `eksctl` 指令建立角色，然後以 `kubectl rollout restart deployment --namespace oneuptime` 重新啟動 OneUptime 的 Pod。
 - **Azure：** 該安裝不是 Microsoft Marketplace 應用程式，例如它是用 Helm 安裝的，因此沒有可用來回報的識別或方案。請從 Azure 入口網站安裝它。
 - **Google Cloud：** 該部署的回報用 Secret 已被刪除或取代。
 - **所有雲端市集：** 防火牆或代理伺服器封鎖了[開始之前](#開始之前)中列出的對外 HTTPS。
