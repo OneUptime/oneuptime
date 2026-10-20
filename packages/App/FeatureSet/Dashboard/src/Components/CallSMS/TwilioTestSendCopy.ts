@@ -71,7 +71,9 @@ export const getTestSendFromPhoneNumber: (data: unknown) => string = (
     return "";
   }
 
-  const value: unknown = (data as JSONObject)[TEST_SEND_FROM_PHONE_NUMBER_FIELD];
+  const value: unknown = (data as JSONObject)[
+    TEST_SEND_FROM_PHONE_NUMBER_FIELD
+  ];
 
   return typeof value === "string" ? value.trim() : "";
 };

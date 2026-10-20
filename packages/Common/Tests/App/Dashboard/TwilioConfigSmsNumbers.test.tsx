@@ -27,6 +27,7 @@ import Permission from "../../../Types/Permission";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   getByTextOutsideFoldedHeaders,
@@ -99,21 +100,15 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         jest.requireActual("../../../Types/ObjectID") as any
       ).default;
 
-      const rowItem: Record<string, unknown> = new props.modelType();
+      // The one row the stub draws the actions of: the stored config.
+      const rowItem: TBaseModel = new props.modelType();
       Object.assign(rowItem, { _id: CONFIG_ID, ...stored });
 
       return (
         <div>
           {(props.actionButtons || []).map(
             (
-              action: {
-                title: string;
-                onClick: (
-                  item: unknown,
-                  onComplete: () => void,
-                  onError: (error: Error) => void,
-                ) => void;
-              },
+              action: ActionButtonSchema<TBaseModel>,
               index: number,
             ): ReactElement => {
               return (
@@ -763,7 +758,9 @@ describe("a config's numbers in its row", () => {
   test("an SMS number alone, without a primary number, is still shown, as the SMS one", () => {
     expect(
       getTwilioConfigNumberLines({ twilioSmsPhoneNumbers: SG_MOBILE }),
-    ).toEqual([{ phoneNumber: SG_MOBILE, label: "SMS", otherPhoneNumbers: [] }]);
+    ).toEqual([
+      { phoneNumber: SG_MOBILE, label: "SMS", otherPhoneNumbers: [] },
+    ]);
   });
 
   /*
@@ -790,7 +787,11 @@ describe("a config's numbers in its row", () => {
         twilioSmsPhoneNumbers: `${SG_MOBILE}, +6590001111, +447700900124`,
       }),
     ).toEqual([
-      { phoneNumber: SG_NATIONAL, label: "Phone Calls", otherPhoneNumbers: [UK] },
+      {
+        phoneNumber: SG_NATIONAL,
+        label: "Phone Calls",
+        otherPhoneNumbers: [UK],
+      },
       {
         phoneNumber: SG_MOBILE,
         label: "SMS",
@@ -837,9 +838,7 @@ describe("a config's numbers in its row", () => {
       />,
     );
 
-    expect(
-      screen.queryByTestId("twilio-config-more-phone-numbers"),
-    ).toBeNull();
+    expect(screen.queryByTestId("twilio-config-more-phone-numbers")).toBeNull();
   });
 
   test("its export lists every number the config sends from, each kind named when SMS have their own", () => {
@@ -981,7 +980,9 @@ describe("the Twilio Config table's columns", () => {
       },
     );
 
-    expect(sid?.contentClassName).toBe(TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME);
+    expect(sid?.contentClassName).toBe(
+      TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME,
+    );
     expect(TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME).toBe(
       "max-w-[10rem] 2xl:max-w-[17rem]",
     );
@@ -1029,7 +1030,9 @@ describe("Send Test SMS and Send Test Call", () => {
     });
 
     await act(async (): Promise<void> => {
-      fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
     });
     await settle();
   }
@@ -1048,15 +1051,17 @@ describe("Send Test SMS and Send Test Call", () => {
       });
       await settle();
 
-      expect(within(dialog()).getByTestId("modal-description")).toHaveTextContent(
-        description,
-      );
+      expect(
+        within(dialog()).getByTestId("modal-description"),
+      ).toHaveTextContent(description);
       // The phone, and nothing said under it: the dialog says it all.
       expect(within(dialog()).getByLabelText("Phone Number")).toBeVisible();
       expect(within(dialog()).queryByText(/test (sms|call) to\./i)).toBeNull();
 
       await act(async (): Promise<void> => {
-        fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+        fireEvent.click(
+          within(dialog()).getByRole("button", { name: "Cancel" }),
+        );
       });
       await settle();
     }
@@ -1070,9 +1075,16 @@ describe("Send Test SMS and Send Test Call", () => {
   });
 
   test("after a test SMS, the dialog names the number it went out from", async () => {
-    stored = { twilioPrimaryPhoneNumber: SG_NATIONAL, twilioSmsPhoneNumbers: SG_MOBILE };
+    stored = {
+      twilioPrimaryPhoneNumber: SG_NATIONAL,
+      twilioSmsPhoneNumbers: SG_MOBILE,
+    };
     answerWith(
-      new HTTPResponse(200, { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_MOBILE }, {}),
+      new HTTPResponse(
+        200,
+        { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_MOBILE },
+        {},
+      ),
     );
 
     await runTest("Send Test SMS", "+6598765432");
@@ -1085,7 +1097,9 @@ describe("Send Test SMS and Send Test Call", () => {
 
     expect(request.url.toString()).toContain("/sms/test");
     expect(request.data["toPhone"]).toBe("+6598765432");
-    expect(screen.getByTestId("modal-title")).toHaveTextContent("Test SMS Sent");
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Test SMS Sent",
+    );
     expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
       `Twilio accepted the test SMS from ${SG_MOBILE}. It should arrive within a few minutes.`,
     );
@@ -1093,13 +1107,19 @@ describe("Send Test SMS and Send Test Call", () => {
 
   test("after a test call, the dialog names the number it calls from", async () => {
     answerWith(
-      new HTTPResponse(200, { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_NATIONAL }, {}),
+      new HTTPResponse(
+        200,
+        { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_NATIONAL },
+        {},
+      ),
     );
 
     await runTest("Send Test Call", "+6598765432");
 
     expect(
-      (postSpy.mock.calls[0]![0] as { url: { toString: () => string } }).url.toString(),
+      (
+        postSpy.mock.calls[0]![0] as { url: { toString: () => string } }
+      ).url.toString(),
     ).toContain("/call/test");
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Test Call Placed",
@@ -1132,7 +1152,9 @@ describe("Send Test SMS and Send Test Call", () => {
 
     await runTest("Send Test SMS", "+6598765432");
 
-    expect(within(dialog()).getByText("SMS not sent: SMS is off in this project.")).toBeVisible();
+    expect(
+      within(dialog()).getByText("SMS not sent: SMS is off in this project."),
+    ).toBeVisible();
     expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
   });
 
@@ -1149,20 +1171,35 @@ describe("Send Test SMS and Send Test Call", () => {
 
   test("reads the number from the answer, and only a number", () => {
     expect(
-      getTestSendFromPhoneNumber({ [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: ` ${SG_MOBILE} ` }),
+      getTestSendFromPhoneNumber({
+        [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: ` ${SG_MOBILE} `,
+      }),
     ).toBe(SG_MOBILE);
-    for (const unread of [null, undefined, "x", [], {}, { fromPhoneNumber: 6581234567 }]) {
+    for (const unread of [
+      null,
+      undefined,
+      "x",
+      [],
+      {},
+      { fromPhoneNumber: 6581234567 },
+    ]) {
       expect(getTestSendFromPhoneNumber(unread)).toBe("");
     }
     expect(
-      getTestSentMessage({ kind: TwilioTestSendKind.Call, fromPhoneNumber: "" }),
+      getTestSentMessage({
+        kind: TwilioTestSendKind.Call,
+        fromPhoneNumber: "",
+      }),
     ).toEqual({ template: TwilioTestSendCopy.callPlaced, phoneNumber: "" });
     expect(
       getTestSentMessage({
         kind: TwilioTestSendKind.SMS,
         fromPhoneNumber: SG_MOBILE,
       }),
-    ).toEqual({ template: TwilioTestSendCopy.smsSentFrom, phoneNumber: SG_MOBILE });
+    ).toEqual({
+      template: TwilioTestSendCopy.smsSentFrom,
+      phoneNumber: SG_MOBILE,
+    });
   });
 });
 

@@ -141,9 +141,10 @@ export const getTwilioConfigNumbersForExport: (
 ) => string = (config: TwilioConfigNumbers): string => {
   return getTwilioConfigNumberLines(config)
     .map((line: TwilioConfigNumberLine): string => {
-      const numbers: string = [line.phoneNumber, ...line.otherPhoneNumbers].join(
-        ", ",
-      );
+      const numbers: string = [
+        line.phoneNumber,
+        ...line.otherPhoneNumbers,
+      ].join(", ");
 
       return line.label ? `${line.label}: ${numbers}` : numbers;
     })

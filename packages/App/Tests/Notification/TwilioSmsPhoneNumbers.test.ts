@@ -846,7 +846,10 @@ describe("Send Test SMS and Send Test Call answer with the number they went out 
       .spyOn(ProjectCallSMSConfigService, "findOneById")
       .mockResolvedValue(storedConfig("") as never);
     createMessage.mockRejectedValue(
-      twilioRefusal(21606, "The From phone number is not SMS-capable.") as never,
+      twilioRefusal(
+        21606,
+        "The From phone number is not SMS-capable.",
+      ) as never,
     );
 
     const error: unknown = await callRoute(testSmsRoute(), {
@@ -904,7 +907,9 @@ describe("a test the project's settings keep from going out says why", () => {
   test("a test SMS with SMS turned off in the project is not sent, and says so", async () => {
     jest
       .spyOn(ProjectService, "findOneById")
-      .mockResolvedValue(projectWith({ enableSmsNotifications: false }) as never);
+      .mockResolvedValue(
+        projectWith({ enableSmsNotifications: false }) as never,
+      );
 
     const error: unknown = await callRoute(testSmsRoute(), {
       callSMSConfigId: CONFIG_ID.toString(),
