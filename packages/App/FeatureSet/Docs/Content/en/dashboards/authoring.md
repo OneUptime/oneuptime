@@ -108,7 +108,7 @@ The time range picker, the variables and auto-refresh appear once the dashboard 
 
 ### The dashboard's defaults
 
-While you edit the dashboard, the row under the toolbar's buttons sets what everyone opens it on: **Default time range**, a preset from the past 5 minutes to the past 3 months, and **Default auto-refresh**. **Save Changes** saves them with the rest of the dashboard, for your team and for the visitors of its public link alike. A custom start and end can't be a default: the dashboard would stay on that moment for good.
+While you edit the dashboard, the row under the toolbar's buttons sets what everyone opens it on: **Default time range**, a preset from the past 5 minutes to the past 3 months, and **Default auto-refresh**. **Save Changes** saves them with the rest of the dashboard, for your team and for the visitors of its public link alike. A custom start and end can't be a default: the dashboard would stay on that moment for good. The row appears once the dashboard has a widget.
 
 Dashboards saved before these settings open on the past hour, with the auto-refresh they had. Through the API and Terraform, both are in the dashboard's `dashboardViewConfig`: `timeRange`, a preset as the API reference spells it, such as `Past 1 Day`, and `refreshInterval`, such as `1m`. Any other value is refused.
 

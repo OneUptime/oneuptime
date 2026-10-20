@@ -108,7 +108,7 @@ De tijdsbereikkiezer, de variabelen en automatisch vernieuwen verschijnen zodra 
 
 ### De standaardwaarden van het dashboard
 
-Terwijl je het dashboard bewerkt, bepaalt de rij onder de knoppen van de werkbalk waarmee iedereen het opent: **Standaardperiode**, een voorinstelling van de afgelopen 5 minuten tot de afgelopen 3 maanden, en **Standaard automatisch vernieuwen**. **Wijzigingen opslaan** slaat ze op met de rest van het dashboard, voor je team en voor de bezoekers van de openbare link. Een eigen begin en einde kunnen geen standaard zijn: het dashboard zou voorgoed op dat moment blijven staan.
+Terwijl je het dashboard bewerkt, bepaalt de rij onder de knoppen van de werkbalk waarmee iedereen het opent: **Standaardperiode**, een voorinstelling van de afgelopen 5 minuten tot de afgelopen 3 maanden, en **Standaard automatisch vernieuwen**. **Wijzigingen opslaan** slaat ze op met de rest van het dashboard, voor je team en voor de bezoekers van de openbare link. Een eigen begin en einde kunnen geen standaard zijn: het dashboard zou voorgoed op dat moment blijven staan. De rij verschijnt zodra het dashboard een widget heeft.
 
 Dashboards die vóór deze instellingen zijn opgeslagen, openen op het afgelopen uur, met het automatisch vernieuwen dat ze hadden. Via de API en Terraform staan beide in de `dashboardViewConfig` van het dashboard: `timeRange`, een voorinstelling zoals de API-referentie die schrijft, bijvoorbeeld `Past 1 Day`, en `refreshInterval`, bijvoorbeeld `1m`. Elke andere waarde wordt geweigerd.
 

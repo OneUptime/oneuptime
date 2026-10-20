@@ -108,7 +108,7 @@ Il selettore dell'intervallo di tempo, le variabili e l'aggiornamento automatico
 
 ### I valori predefiniti della dashboard
 
-Mentre modifichi la dashboard, la riga sotto i pulsanti della barra degli strumenti imposta ciò su cui tutti la aprono: **Intervallo di tempo predefinito**, un'impostazione predefinita dagli ultimi 5 minuti agli ultimi 3 mesi, e **Aggiornamento automatico predefinito**. **Salva modifiche** li salva con il resto della dashboard, per il tuo team come per i visitatori del suo link pubblico. Un inizio e una fine personalizzati non possono essere un valore predefinito: la dashboard resterebbe per sempre su quel momento.
+Mentre modifichi la dashboard, la riga sotto i pulsanti della barra degli strumenti imposta ciò su cui tutti la aprono: **Intervallo di tempo predefinito**, un'impostazione predefinita dagli ultimi 5 minuti agli ultimi 3 mesi, e **Aggiornamento automatico predefinito**. **Salva modifiche** li salva con il resto della dashboard, per il tuo team come per i visitatori del suo link pubblico. Un inizio e una fine personalizzati non possono essere un valore predefinito: la dashboard resterebbe per sempre su quel momento. La riga compare non appena la dashboard ha un widget.
 
 Le dashboard salvate prima di queste impostazioni si aprono sull'ultima ora, con l'aggiornamento automatico che avevano. Tramite l'API e Terraform, entrambi stanno nel `dashboardViewConfig` della dashboard: `timeRange`, un'impostazione predefinita scritta come nel riferimento dell'API, per esempio `Past 1 Day`, e `refreshInterval`, per esempio `1m`. Qualsiasi altro valore viene rifiutato.
 

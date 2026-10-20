@@ -108,7 +108,7 @@ Tidsintervallvelgeren, variablene og den automatiske oppdateringen vises så sna
 
 ### Dashbordets standarder
 
-Mens du redigerer dashbordet, bestemmer raden under knappene i verktøylinjen hva alle åpner det med: **Standard tidsrom**, en forhåndsinnstilling fra de siste 5 minuttene til de siste 3 månedene, og **Standard automatisk oppdatering**. **Lagre endringer** lagrer dem sammen med resten av dashbordet, både for teamet ditt og for besøkende på den offentlige lenken. En egendefinert start og slutt kan ikke være en standard: dashbordet ville blitt stående på det øyeblikket for alltid.
+Mens du redigerer dashbordet, bestemmer raden under knappene i verktøylinjen hva alle åpner det med: **Standard tidsrom**, en forhåndsinnstilling fra de siste 5 minuttene til de siste 3 månedene, og **Standard automatisk oppdatering**. **Lagre endringer** lagrer dem sammen med resten av dashbordet, både for teamet ditt og for besøkende på den offentlige lenken. En egendefinert start og slutt kan ikke være en standard: dashbordet ville blitt stående på det øyeblikket for alltid. Raden vises så snart dashbordet har en widget.
 
 Dashbord som ble lagret før disse innstillingene, åpnes på den siste timen, med den automatiske oppdateringen de hadde. Gjennom API-et og Terraform ligger begge i dashbordets `dashboardViewConfig`: `timeRange`, en forhåndsinnstilling skrevet slik API-referansen skriver den, for eksempel `Past 1 Day`, og `refreshInterval`, for eksempel `1m`. Alle andre verdier avvises.
 

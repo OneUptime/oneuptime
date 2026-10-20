@@ -18,7 +18,7 @@ database or running OneUptime services. The fixture listens only on `127.0.0.1:4
 Which dashboard a page shows is its id (`Fixture/Boards.js`): the product's Metrics
 Dashboard template saved on Past 1 Day refreshing every minute, saved before the
 defaults (no time range, no auto-refresh) and saved on Past 1 Week with auto-refresh
-off. Every metric read is answered with a repeatable curve over the window it asks for
+off, and a new dashboard with no widget yet. Every metric read is answered with a repeatable curve over the window it asks for
 and recorded with that window, so a test reads which time range the widgets used.
 Saves are recorded with the config they wrote and kept for the tab, so a reload opens
 what was saved. The query string sets the rest for the dashboard inside OneUptime:
@@ -31,11 +31,17 @@ reload and a fresh visit and written into the address (`?range=2d`, `?refresh=30
 the pick; a link's `?range=` and `?refresh=` opening on its own values without becoming
 the viewer's pick; a member who may not edit keeping their own picks; the editing row's
 Default time range and Default auto-refresh saved with Save Changes and dropped with
-Discard Changes; and a save after the editor turned auto-refresh off while viewing
-keeping the dashboard's own interval. Phone (Pixel 5, 390px) Chromium runs what a phone
-changes: reaching the toolbar, the pickers, menus and editing row at its width, and the
-picks they make. Screenshots of the toolbar, both pickers and the editing row (dark,
-German, Persian) are under `output/playwright/dashboard-time-range-ui`.
+Discard Changes; a save after the editor turned auto-refresh off while viewing
+keeping the dashboard's own interval; and what the UI review measured: the time range
+picker showing every range and Custom range with nothing scrolled out of sight, a custom
+range's From above To inside the dialog, the editing row's menus showing every choice on
+one line in German (and in German throughout), the editing row answering the keyboard
+without a longer pick moving the board, no editing row on an empty dashboard, and in
+Persian the menu under its button and the picker's rule between its panes. Phone (Pixel
+5, 390px) Chromium runs what a phone changes: reaching the toolbar, the pickers, menus
+and editing row at its width, and the picks they make. Screenshots of the toolbar, both
+pickers and the editing row (dark, German, Persian) are under
+`output/playwright/dashboard-time-range-ui`.
 
 Both dashboards are 1000px wide, so on the phone their toolbars are past the screen's
 right edge; the spec's `press` explains how it reaches them there.

@@ -54,13 +54,15 @@ const dashboardId: (value: number) => string = (value: number): string => {
 };
 
 // The fixture's dashboards (Fixture/Boards.js).
-const DASHBOARDS: Record<"wall" | "plain" | "weekly", string> = {
+const DASHBOARDS: Record<"wall" | "plain" | "weekly" | "empty", string> = {
   // Past 1 Day, refreshing every minute.
   wall: dashboardId(1),
   // Saved before the defaults: the past hour, auto-refresh off.
   plain: dashboardId(2),
   // Past 1 Week, auto-refresh off.
   weekly: dashboardId(3),
+  // A new dashboard with no widget yet.
+  empty: dashboardId(4),
 };
 
 type DashboardKey = keyof typeof DASHBOARDS;
@@ -515,7 +517,7 @@ test.describe("the dashboard inside OneUptime", () => {
     );
     await shoot(page, testInfo, "app-auto-refresh-menu");
 
-    await press(page.getByRole("button", { name: "Refresh every 30s" }));
+    await press(page.getByRole("menuitemradio", { name: "Refresh every 30s" }));
 
     await expectAppAutoRefreshShows(page, "30s");
     expect(linkParameter(page, "refresh")).toBe("30s");
@@ -530,7 +532,7 @@ test.describe("the dashboard inside OneUptime", () => {
       "Default (1m)",
     );
     await expect(
-      page.getByRole("button", { name: "Refresh every 30s" }),
+      page.getByRole("menuitemradio", { name: "Refresh every 30s" }),
     ).toContainText(TICK);
     await press(page.getByTestId(AUTO_REFRESH_DEFAULT_CHOICE));
 
@@ -655,7 +657,7 @@ test.describe("the dashboard inside OneUptime", () => {
     await openApp(page, "wall", "Past 1 Day");
 
     await press(appAutoRefresh(page));
-    await press(page.getByRole("button", { name: "Auto-refresh Off" }));
+    await press(page.getByRole("menuitemradio", { name: "Auto-refresh Off" }));
     await expectAppAutoRefreshShows(page, "Auto-refresh: Off");
 
     await enterEditMode(page);
@@ -750,6 +752,266 @@ test.describe("the dashboard inside OneUptime", () => {
       "بازه زمانی پیش‌فرض",
     );
     await shoot(page, testInfo, "app-editing-row-fa");
+  });
+
+  /*
+   * The UI review's polish (issue #5080): what a person sees and reaches in
+   * the picker, the menus and the editing row, measured in the browser.
+   */
+  test("the time range picker shows every range and Custom range at once, nothing scrolled out of sight", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openApp(page, "wall", "Past 1 Day");
+
+    const rail: Locator = await openRangePicker(page, "Past 1 Day");
+
+    // Default (Past 1 Day), the twelve ranges and Custom range.
+    await expect(rail.getByRole("radio")).toHaveCount(14);
+
+    // The rail never scrolls inside itself, so nothing hides below a fold.
+    expect(
+      await rail.evaluate((element: HTMLElement): number => {
+        return element.scrollHeight - element.clientHeight;
+      }),
+    ).toBeLessThanOrEqual(1);
+
+    if (!test.info().project.use.isMobile) {
+      // Every choice is on the screen as the dialog opens, Custom range last.
+      for (const radio of await rail.getByRole("radio").all()) {
+        await expect(radio).toBeInViewport();
+      }
+    }
+
+    await shoot(page, testInfo, "app-time-range-all-ranges");
+  });
+
+  test("a custom range's From and To sit one above the other, inside the dialog", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+
+    await openApp(page, "wall", "Past 1 Day");
+
+    const rail: Locator = await openRangePicker(page, "Past 1 Day");
+
+    await press(rail.getByRole("radio", { name: "Custom range" }));
+
+    const dialog: Locator = page.getByRole("dialog");
+    const fields: Array<Locator> = await dialog
+      .locator('input[type="datetime-local"]')
+      .all();
+
+    expect(fields).toHaveLength(2);
+
+    const dialogBox: { x: number; width: number } | null =
+      await dialog.boundingBox();
+    const fromBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = await fields[0]!.boundingBox();
+    const toBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = await fields[1]!.boundingBox();
+
+    // Side by side, the second ran past the dialog's edge.
+    expect(fromBox!.x + fromBox!.width).toBeLessThanOrEqual(
+      dialogBox!.x + dialogBox!.width,
+    );
+    expect(toBox!.x + toBox!.width).toBeLessThanOrEqual(
+      dialogBox!.x + dialogBox!.width,
+    );
+    expect(toBox!.y).toBeGreaterThanOrEqual(fromBox!.y + fromBox!.height);
+
+    await shoot(page, testInfo, "app-time-range-custom");
+  });
+
+  test("the editing row's menus show every choice, each on one line, in German too", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+
+    await openApp(page, "wall", "Letzter Tag", "?lang=de");
+    await enterEditMode(page, {
+      options: "Weitere Dashboard-Optionen",
+      edit: "Dashboard bearbeiten",
+    });
+
+    for (const picker of [
+      DEFAULT_TIME_RANGE_PICKER,
+      DEFAULT_AUTO_REFRESH_PICKER,
+    ]) {
+      await press(page.getByTestId(picker));
+
+      const menu: Locator = page.getByTestId(`${picker}-menu`);
+      const choices: Array<Locator> = await menu
+        .getByRole("menuitemradio")
+        .all();
+
+      await expect(menu).toBeVisible();
+      // Nothing scrolled out of sight inside the menu.
+      expect(
+        await menu.evaluate((element: HTMLElement): number => {
+          return element.scrollHeight - element.clientHeight;
+        }),
+      ).toBeLessThanOrEqual(1);
+
+      // One line each: every choice as tall as the first.
+      const heights: Array<number> = [];
+
+      for (const choice of choices) {
+        await expect(choice).toBeInViewport();
+        heights.push(Math.round((await choice.boundingBox())!.height));
+      }
+
+      expect(new Set(heights).size).toBe(1);
+
+      if (picker === DEFAULT_AUTO_REFRESH_PICKER) {
+        // German throughout: no English "Refresh every" left among them.
+        await expect(menu).not.toContainText("Refresh every");
+        await expect(menu).toContainText("Alle 5s aktualisieren");
+        await shoot(page, testInfo, "app-editing-row-menu-de");
+      }
+
+      await page.keyboard.press("Escape");
+      await expect(menu).toHaveCount(0);
+    }
+  });
+
+  test("the editing row answers the keyboard, and picking a longer range does not move the board", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+
+    // Past 1 Day and 1m: short enough for the line to have fitted beside them.
+    await openApp(page, "wall", "Past 1 Day");
+    await enterEditMode(page);
+
+    const toolbarCard: Locator = page
+      .getByTestId(DEFAULTS_BAR)
+      .locator("xpath=..");
+    const button: Locator = page.getByTestId(DEFAULT_TIME_RANGE_PICKER);
+    const heightBefore: number = (await toolbarCard.boundingBox())!.height;
+
+    // Enter opens the menu on the choice in use.
+    await button.focus();
+    await page.keyboard.press("Enter");
+
+    const menu: Locator = page.getByTestId(`${DEFAULT_TIME_RANGE_PICKER}-menu`);
+
+    await expect(menu).toBeVisible();
+    await expect(
+      menu.getByRole("menuitemradio", { name: "Past 1 Day" }),
+    ).toBeFocused();
+
+    // End, then Enter: the longest range, and the focus back on the button.
+    await page.keyboard.press("End");
+    await expect(
+      menu.getByRole("menuitemradio", { name: "Past 3 Months" }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(menu).toHaveCount(0);
+    await expect(button).toBeFocused();
+    await expect(button).toContainText("Past 3 Months");
+
+    /*
+     * The line on what the defaults do is always under the pickers: beside
+     * them it fitted for some values and not others, and a longer one moved
+     * the whole board down a line.
+     */
+    expect((await toolbarCard.boundingBox())!.height).toBe(heightBefore);
+
+    // Escape closes a menu back on its button.
+    await page.keyboard.press("Enter");
+    await expect(menu).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(button).toBeFocused();
+  });
+
+  test("an empty dashboard's editing toolbar has no defaults row: its one step is to add a widget", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+
+    await page.goto(appPath("empty"));
+    await press(page.getByRole("button", { name: "More dashboard options" }));
+    await press(page.getByRole("menuitem", { name: "Edit Dashboard" }));
+
+    await expect(page.getByTitle("Add Widget").first()).toBeVisible();
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(page.getByTestId(DEFAULTS_BAR)).toHaveCount(0);
+  });
+
+  test("in Persian, the defaults menu opens under its button and the picker's rule sits between its panes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+
+    await page.goto(appPath("wall", "?lang=fa"));
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await enterEditMode(page);
+
+    const button: Locator = page.getByTestId(DEFAULT_TIME_RANGE_PICKER);
+
+    await press(button);
+
+    const menu: Locator = page.getByTestId(`${DEFAULT_TIME_RANGE_PICKER}-menu`);
+    const buttonBox: { x: number; width: number } | null =
+      await button.boundingBox();
+    const menuBox: { x: number; width: number } | null =
+      await menu.boundingBox();
+
+    // Hung from the button's start - its right edge, right to left.
+    expect(
+      Math.abs(menuBox!.x + menuBox!.width - (buttonBox!.x + buttonBox!.width)),
+    ).toBeLessThanOrEqual(1);
+
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+
+    // The time range picker, in view mode.
+    await openApp(page, "wall", "Past 1 Day", "?lang=fa");
+
+    const rail: Locator = await openRangePicker(page, "Past 1 Day");
+    const railBox: { x: number; width: number } | null =
+      await rail.boundingBox();
+    const preview: Locator = rail.locator("xpath=following-sibling::*[1]");
+    const previewBox: { x: number; width: number } | null =
+      await preview.boundingBox();
+
+    // Right to left: the rail on the right, the preview on its left...
+    expect(railBox!.x).toBeGreaterThanOrEqual(
+      previewBox!.x + previewBox!.width,
+    );
+    // ...and the rule between them, on the preview's right edge.
+    expect(
+      await preview.evaluate((element: HTMLElement): string => {
+        return window.getComputedStyle(element).borderRightWidth;
+      }),
+    ).toBe("1px");
+    expect(
+      await preview.evaluate((element: HTMLElement): string => {
+        return window.getComputedStyle(element).borderLeftWidth;
+      }),
+    ).toBe("0px");
   });
 });
 

@@ -108,7 +108,7 @@ O seletor de intervalo de tempo, as variáveis e a atualização automática apa
 
 ### Os padrões do painel
 
-Enquanto você edita o painel, a linha abaixo dos botões da barra de ferramentas define com o que todos o abrem: **Período padrão**, uma predefinição dos últimos 5 minutos aos últimos 3 meses, e **Atualização automática padrão**. **Salvar alterações** os salva com o resto do painel, tanto para a sua equipe quanto para os visitantes do link público dele. Um início e um fim personalizados não podem ser um padrão: o painel ficaria parado naquele momento para sempre.
+Enquanto você edita o painel, a linha abaixo dos botões da barra de ferramentas define com o que todos o abrem: **Período padrão**, uma predefinição dos últimos 5 minutos aos últimos 3 meses, e **Atualização automática padrão**. **Salvar alterações** os salva com o resto do painel, tanto para a sua equipe quanto para os visitantes do link público dele. Um início e um fim personalizados não podem ser um padrão: o painel ficaria parado naquele momento para sempre. A linha aparece assim que o painel tem um widget.
 
 Os painéis salvos antes dessas configurações abrem na última hora, com a atualização automática que tinham. Pela API e pelo Terraform, os dois ficam no `dashboardViewConfig` do painel: `timeRange`, uma predefinição escrita como na referência da API, por exemplo `Past 1 Day`, e `refreshInterval`, por exemplo `1m`. Qualquer outro valor é recusado.
 

@@ -108,7 +108,7 @@ Tidsintervalvælgeren, variablerne og den automatiske opdatering vises, så snar
 
 ### Dashboardets standarder
 
-Mens du redigerer dashboardet, angiver rækken under værktøjslinjens knapper, hvad alle åbner det med: **Standardtidsrum**, en forudindstilling fra de seneste 5 minutter til de seneste 3 måneder, og **Standard automatisk opdatering**. **Gem ændringer** gemmer dem sammen med resten af dashboardet, både for dit team og for de besøgende på dets offentlige link. En brugerdefineret start og slutning kan ikke være en standard: dashboardet ville blive stående på det øjeblik for altid.
+Mens du redigerer dashboardet, angiver rækken under værktøjslinjens knapper, hvad alle åbner det med: **Standardtidsrum**, en forudindstilling fra de seneste 5 minutter til de seneste 3 måneder, og **Standard automatisk opdatering**. **Gem ændringer** gemmer dem sammen med resten af dashboardet, både for dit team og for de besøgende på dets offentlige link. En brugerdefineret start og slutning kan ikke være en standard: dashboardet ville blive stående på det øjeblik for altid. Rækken vises, så snart dashboardet har en widget.
 
 Dashboards, der er gemt før disse indstillinger, åbner på den seneste time med den automatiske opdatering, de havde. Gennem API'et og Terraform ligger begge i dashboardets `dashboardViewConfig`: `timeRange`, en forudindstilling stavet som i API-referencen, for eksempel `Past 1 Day`, og `refreshInterval`, for eksempel `1m`. Enhver anden værdi afvises.
 

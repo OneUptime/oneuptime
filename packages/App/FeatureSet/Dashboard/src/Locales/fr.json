@@ -21254,7 +21254,7 @@
   "Reading trace": "Reading trace",
   "Ready-made configurations for {{plural}}, filled in from this project.": "Ready-made configurations for {{plural}}, filled in from this project.",
   "Reassign {{role}} from {{member}}": "Reassign {{role}} from {{member}}",
-  "Refresh every {{interval}}": "Refresh every {{interval}}",
+  "Refresh every {{interval}}": "Actualiser toutes les {{interval}}",
   "Regular updates, bug fixes, and open-source extensibility.": "Regular updates, bug fixes, and open-source extensibility.",
   "Rejected": "Rejected",
   "Relation": "Relation",

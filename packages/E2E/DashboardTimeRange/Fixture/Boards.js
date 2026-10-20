@@ -10,6 +10,8 @@
  *   plain    one saved before the defaults existed: no time range, no
  *            auto-refresh - the past hour, with auto-refresh off
  *   weekly   Past 1 Week, auto-refresh off
+ *   empty    a new dashboard with no widget yet: its editor's only step is
+ *            to add one, so its editing toolbar has no defaults row
  *
  * Every metric read is answered with a smooth, repeatable curve across the
  * window it asks for, and recorded with that window, so a test can say
@@ -43,6 +45,11 @@ export const DASHBOARDS = {
     timeRange: "Past 1 Week",
     refreshInterval: "off",
   },
+  empty: {
+    id: dashboardId(4),
+    name: "New dashboard",
+    isEmpty: true,
+  },
 };
 
 export const getScenario = (id) => {
@@ -62,6 +69,10 @@ export const getScenario = (id) => {
  */
 export const buildConfig = (scenario) => {
   const config = getTemplateConfig(DashboardTemplateType.Metrics);
+
+  if (scenario.isEmpty) {
+    config.components = [];
+  }
 
   if (scenario.timeRange) {
     config.timeRange = scenario.timeRange;

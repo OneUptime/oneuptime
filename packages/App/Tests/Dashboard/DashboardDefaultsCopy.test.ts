@@ -180,6 +180,35 @@ describe("in every Dashboard language", () => {
     });
   });
 
+  /*
+   * The auto-refresh menu's own words, which the editing row's Default
+   * auto-refresh lists too: before the UI review most languages still had
+   * them in English, so a German editor's menu read "Automatische
+   * Aktualisierung aus", then "Refresh every 5s".
+   */
+  describe.each(OTHER_LOCALES)("%s's auto-refresh menu", (locale: string) => {
+    const translations: Record<string, unknown> = readLocale(locale);
+
+    test.each(["Auto-refresh Off", "Auto-refresh: Off"])(
+      "translates %s",
+      (sentence: string) => {
+        expect(english[sentence]).toBe(sentence);
+        expect(typeof translations[sentence]).toBe("string");
+        expect(translations[sentence]).not.toBe(sentence);
+      },
+    );
+
+    test("translates Refresh every {{interval}}, keeping the interval once", () => {
+      const template: string = "Refresh every {{interval}}";
+      const translated: string = translations[template] as string;
+
+      expect(english[template]).toBe(template);
+      expect(translated).not.toBe(template);
+      expect(translated.split("{{interval}}").length - 1).toBe(1);
+      expect(translated.trim()).toBe(translated);
+    });
+  });
+
   test("Japanese and Chinese wrap the value in full-width brackets, as their other labels do", () => {
     for (const locale of ["ja", "zh-CN", "zh-TW"]) {
       const translated: string = readLocale(locale)[

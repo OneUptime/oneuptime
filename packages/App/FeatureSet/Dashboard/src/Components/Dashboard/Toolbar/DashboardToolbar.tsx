@@ -5,6 +5,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -27,6 +28,7 @@ import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardDefaultsBar from "./DashboardDefaultsBar";
+import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
 import {
   AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID,
   getAutoRefreshChoiceLabel,
@@ -255,12 +257,30 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const menuId: string = useId();
   const dropdownRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const buttonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   const hasDefaultChoice: boolean = Boolean(
     props.defaultInterval && props.onDefaultSelect,
   );
+
+  const close: () => void = useCallback((): void => {
+    setIsOpen(false);
+  }, []);
+
+  // Arrows, Home, End, Escape and Tab, as the product's other menus take them.
+  useToolbarChoiceMenuKeys({ isOpen, menuRef, buttonRef, close });
+
+  // A choice made: the menu closes, and the focus goes back to its button.
+  const choose: (pick: () => void) => void = (pick: () => void): void => {
+    pick();
+    setIsOpen(false);
+    buttonRef.current?.focus();
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -285,8 +305,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
     <div className="relative inline-block" ref={dropdownRef}>
       {/* Trigger: countdown circle when active, refresh icon when not */}
       <button
+        ref={buttonRef}
         type="button"
-        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border ${
+        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
           props.isAutoRefreshActive
             ? "bg-indigo-50/50 border-indigo-100 hover:bg-indigo-50"
             : "bg-gray-50 border-gray-200/60 hover:bg-gray-100"
@@ -295,6 +316,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
           setIsOpen(!isOpen);
         }}
         title={translator.translateText("Auto-refresh settings")}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
       >
         {props.isAutoRefreshActive && props.autoRefreshMs ? (
           <CountdownCircle
@@ -317,10 +341,19 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
         )}
       </button>
 
-      {/* Dropdown */}
+      {/*
+       * Dropdown: as wide as its longest choice, so none wraps in a long
+       * language, and hung from the button's end - its right, its left in
+       * a right-to-left language - so it opens over the board, not past
+       * the toolbar's edge.
+       */}
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
+          ref={menuRef}
+          id={menuId}
+          role="menu"
+          aria-label={translator.translateText("Auto-refresh settings")}
+          className="absolute end-0 mt-2 w-max min-w-[14rem] rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
           /*
            * Issue #3660: this used to be `z-10`, which lost to a clicked
            * widget's raise and left the picker opening behind the board. The
@@ -330,21 +363,25 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
           style={{ zIndex: DashboardStackingLayers.toolbarPopup }}
         >
           {hasDefaultChoice && props.defaultInterval ? (
-            <div className="mb-1 border-b border-gray-100 pb-1">
+            <div className="mb-1 border-b border-gray-100 pb-1" role="none">
               <button
                 type="button"
+                role="menuitemradio"
+                aria-checked={Boolean(props.isOnDefault)}
+                tabIndex={-1}
                 data-testid={AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID}
-                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 ${
+                className={`w-full text-start whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 ${
                   props.isOnDefault
                     ? "text-indigo-600 font-medium"
                     : "text-gray-700"
                 }`}
                 onClick={() => {
-                  props.onDefaultSelect?.();
-                  setIsOpen(false);
+                  choose(() => {
+                    props.onDefaultSelect?.();
+                  });
                 }}
               >
-                <span className="w-4 text-center">
+                <span className="w-4 shrink-0 text-center" aria-hidden="true">
                   {props.isOnDefault ? "\u2713" : ""}
                 </span>
                 {getDefaultChoiceLabel({
@@ -368,16 +405,20 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
               return (
                 <button
                   type="button"
+                  role="menuitemradio"
+                  aria-checked={isSelected}
+                  tabIndex={-1}
                   key={interval}
-                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 ${
+                  className={`w-full text-start whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 ${
                     isSelected ? "text-indigo-600 font-medium" : "text-gray-700"
                   }`}
                   onClick={() => {
-                    props.onAutoRefreshIntervalChange(interval);
-                    setIsOpen(false);
+                    choose(() => {
+                      props.onAutoRefreshIntervalChange(interval);
+                    });
                   }}
                 >
-                  <span className="w-4 text-center">
+                  <span className="w-4 shrink-0 text-center" aria-hidden="true">
                     {isSelected ? "\u2713" : ""}
                   </span>
                   {interval === AutoRefreshInterval.OFF
@@ -676,9 +717,13 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
         {/*
          * While editing: what everyone who opens the dashboard starts on,
-         * set on purpose and saved with the rest of it.
+         * set on purpose and saved with the rest of it. Once it has a
+         * widget, as the viewer's own time range and auto-refresh: an
+         * empty dashboard has nothing to open on a range, and its editor
+         * has only one thing to do - add a widget.
          */}
         {isEditMode &&
+        hasComponents &&
         props.canEditDashboard &&
         props.onDashboardDefaultsChange ? (
           <DashboardDefaultsBar

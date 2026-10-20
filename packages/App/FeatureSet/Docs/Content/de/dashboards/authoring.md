@@ -108,7 +108,7 @@ Die Zeitbereichsauswahl, die Variablen und die automatische Aktualisierung ersch
 
 ### Die Standardwerte des Dashboards
 
-Während Sie das Dashboard bearbeiten, legt die Zeile unter den Schaltflächen der Werkzeugleiste fest, womit alle es öffnen: **Standardzeitraum**, eine Vorgabe von den letzten 5 Minuten bis zu den letzten 3 Monaten, und **Automatische Aktualisierung (Standard)**. **Änderungen speichern** speichert sie mit dem Rest des Dashboards, für Ihr Team ebenso wie für die Besucher seines öffentlichen Links. Ein eigener Beginn und ein eigenes Ende können kein Standard sein: Das Dashboard bliebe für immer auf diesem Moment stehen.
+Während Sie das Dashboard bearbeiten, legt die Zeile unter den Schaltflächen der Werkzeugleiste fest, womit alle es öffnen: **Standardzeitraum**, eine Vorgabe von den letzten 5 Minuten bis zu den letzten 3 Monaten, und **Automatische Aktualisierung (Standard)**. **Änderungen speichern** speichert sie mit dem Rest des Dashboards, für Ihr Team ebenso wie für die Besucher seines öffentlichen Links. Ein eigener Beginn und ein eigenes Ende können kein Standard sein: Das Dashboard bliebe für immer auf diesem Moment stehen. Die Zeile erscheint, sobald das Dashboard ein Widget hat.
 
 Dashboards, die vor diesen Einstellungen gespeichert wurden, öffnen sich mit der letzten Stunde und mit der automatischen Aktualisierung, die sie hatten. Über die API und Terraform stehen beide in der `dashboardViewConfig` des Dashboards: `timeRange`, eine Vorgabe so geschrieben wie in der API-Referenz, etwa `Past 1 Day`, und `refreshInterval`, etwa `1m`. Jeder andere Wert wird abgelehnt.
 

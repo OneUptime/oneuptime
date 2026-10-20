@@ -94,6 +94,16 @@ describe("the dashboard's defaults", () => {
     );
   });
 
+  it("says the row appears once the dashboard has a widget, as the toolbar draws it", () => {
+    /*
+     * An empty dashboard's editing toolbar has no defaults row: its editor's
+     * one step is to add a widget (DashboardToolbar, hasComponents).
+     */
+    expect(defaults).toContain(
+      "The row appears once the dashboard has a widget.",
+    );
+  });
+
   it("says Save Changes saves them for the team and the public link alike", () => {
     expect(defaults).toContain(
       "**Save Changes** saves them with the rest of the dashboard, for your team and for the visitors of its public link alike.",

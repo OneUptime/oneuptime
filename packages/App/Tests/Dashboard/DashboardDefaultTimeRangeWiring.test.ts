@@ -133,9 +133,13 @@ describe("the dashboard inside OneUptime", () => {
     );
   });
 
-  test("the defaults' row is drawn only while editing, for someone who may edit", () => {
+  test("the defaults' row is drawn only while editing a dashboard with a widget, for someone who may edit", () => {
+    /*
+     * Once it has a widget, as the viewer's own time range and auto-refresh
+     * are: an empty dashboard's editor has one thing to do, add a widget.
+     */
     expect(toolbar).toContain(
-      "{isEditMode && props.canEditDashboard && props.onDashboardDefaultsChange ? ( <DashboardDefaultsBar",
+      "{isEditMode && hasComponents && props.canEditDashboard && props.onDashboardDefaultsChange ? ( <DashboardDefaultsBar",
     );
     expect(toolbar.split("<DashboardDefaultsBar").length - 1).toBe(1);
   });

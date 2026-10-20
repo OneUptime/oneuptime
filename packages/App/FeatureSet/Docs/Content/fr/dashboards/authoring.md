@@ -108,7 +108,7 @@ Le sélecteur de plage temporelle, les variables et l'actualisation automatique 
 
 ### Les valeurs par défaut du tableau de bord
 
-Pendant que vous modifiez le tableau de bord, la ligne sous les boutons de la barre d'outils fixe ce sur quoi tout le monde l'ouvre : **Période par défaut**, un préréglage des 5 dernières minutes aux 3 derniers mois, et **Actualisation automatique par défaut**. **Enregistrer les modifications** les enregistre avec le reste du tableau de bord, pour votre équipe comme pour les visiteurs de son lien public. Un début et une fin personnalisés ne peuvent pas servir de valeur par défaut : le tableau de bord resterait figé sur ce moment.
+Pendant que vous modifiez le tableau de bord, la ligne sous les boutons de la barre d'outils fixe ce sur quoi tout le monde l'ouvre : **Période par défaut**, un préréglage des 5 dernières minutes aux 3 derniers mois, et **Actualisation automatique par défaut**. **Enregistrer les modifications** les enregistre avec le reste du tableau de bord, pour votre équipe comme pour les visiteurs de son lien public. Un début et une fin personnalisés ne peuvent pas servir de valeur par défaut : le tableau de bord resterait figé sur ce moment. La ligne apparaît dès que le tableau de bord a un widget.
 
 Les tableaux de bord enregistrés avant ces réglages s'ouvrent sur la dernière heure, avec l'actualisation automatique qu'ils avaient. Par l'API et Terraform, les deux se trouvent dans le `dashboardViewConfig` du tableau de bord : `timeRange`, un préréglage écrit comme dans la référence de l'API, par exemple `Past 1 Day`, et `refreshInterval`, par exemple `1m`. Toute autre valeur est refusée.
 

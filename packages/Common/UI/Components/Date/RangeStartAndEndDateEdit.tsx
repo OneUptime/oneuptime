@@ -160,10 +160,16 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div className="flex flex-col md:flex-row md:divide-x md:divide-gray-200">
-      {/* Left rail: quick ranges */}
+    <div className="flex flex-col md:flex-row">
+      {/*
+       * Left rail: quick ranges, two to a row at every width, so all twelve
+       * and Custom range show at once. One to a row, the rail scrolled
+       * inside itself and hid the longest ranges and Custom range below its
+       * fold - and a dashboard's Default (...) choice on top pushed one more
+       * of them out of sight.
+       */}
       <div
-        className="md:w-52 md:shrink-0 md:pr-4 md:max-h-96 md:overflow-y-auto"
+        className="md:w-80 md:shrink-0 md:pe-4"
         role="radiogroup"
         aria-label={translator.translateText("Time range")}
       >
@@ -180,7 +186,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 props.onSelectDefault?.();
               }}
-              className={`w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
+              className={`w-full rounded-md px-3 py-1.5 text-start text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
                 isDefaultActive
                   ? "bg-indigo-50 font-medium text-indigo-700"
                   : "text-gray-700 hover:bg-gray-100"
@@ -195,7 +201,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        <div className="grid grid-cols-2 gap-1 md:grid-cols-1">
+        <div className="grid grid-cols-2 gap-1">
           {QUICK_RANGES.map((range: TimeRange) => {
             const isActive: boolean =
               !isCustom && !isDefaultActive && selectedRange === range;
@@ -209,7 +215,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   return onSelectQuickRange(range);
                 }}
-                className={`w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
+                className={`w-full rounded-md px-3 py-1.5 text-start text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
                   isActive
                     ? "bg-indigo-50 font-medium text-indigo-700"
                     : "text-gray-700 hover:bg-gray-100"
@@ -226,7 +232,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
             role="radio"
             aria-checked={isCustom}
             onClick={onSelectCustom}
-            className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-start text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
               isCustom
                 ? "bg-indigo-50 font-medium text-indigo-700"
                 : "text-gray-700 hover:bg-gray-100"
@@ -238,8 +244,12 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* Right pane: custom editor or quick-range preview */}
-      <div className="mt-4 md:mt-0 md:flex-1 md:pl-4">
+      {/*
+       * Right pane: custom editor or quick-range preview. Its rule and its
+       * gap are on its start side, so in a right-to-left language they sit
+       * between the two panes as well, not at the dialog's edge.
+       */}
+      <div className="mt-4 md:mt-0 md:min-w-0 md:flex-1 md:border-s md:border-gray-200 md:ps-4">
         {isCustom ? (
           <div>
             <div className="text-sm font-medium text-gray-900">
@@ -254,6 +264,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
               type={StartAndEndDateType.DateTime}
               value={props.value?.startAndEndDate || resolvedRange}
               hideTimeButtons={true}
+              isStacked={true}
               onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
                 if (startAndEndDate) {
                   props.onChange({

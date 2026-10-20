@@ -108,7 +108,7 @@ El selector de intervalo de tiempo, las variables y la actualización automátic
 
 ### Los valores predeterminados del panel
 
-Mientras editas el panel, la fila bajo los botones de la barra de herramientas fija con qué lo abre todo el mundo: **Intervalo de tiempo predeterminado**, un preajuste desde los últimos 5 minutos hasta los últimos 3 meses, y **Actualización automática predeterminada**. **Guardar cambios** los guarda con el resto del panel, tanto para tu equipo como para los visitantes de su enlace público. Un inicio y un fin personalizados no pueden ser un valor predeterminado: el panel se quedaría en ese momento para siempre.
+Mientras editas el panel, la fila bajo los botones de la barra de herramientas fija con qué lo abre todo el mundo: **Intervalo de tiempo predeterminado**, un preajuste desde los últimos 5 minutos hasta los últimos 3 meses, y **Actualización automática predeterminada**. **Guardar cambios** los guarda con el resto del panel, tanto para tu equipo como para los visitantes de su enlace público. Un inicio y un fin personalizados no pueden ser un valor predeterminado: el panel se quedaría en ese momento para siempre. La fila aparece en cuanto el panel tiene un widget.
 
 Los paneles guardados antes de estos ajustes se abren en la última hora, con la actualización automática que tenían. Mediante la API y Terraform, ambos están en el `dashboardViewConfig` del panel: `timeRange`, un preajuste escrito como en la referencia de la API, por ejemplo `Past 1 Day`, y `refreshInterval`, por ejemplo `1m`. Cualquier otro valor se rechaza.
 

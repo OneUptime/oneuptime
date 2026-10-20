@@ -108,7 +108,7 @@ Tidsintervallväljaren, variablerna och den automatiska uppdateringen visas så 
 
 ### Instrumentpanelens standarder
 
-Medan du redigerar instrumentpanelen anger raden under verktygsfältets knappar vad alla öppnar den med: **Standardtidsintervall**, en förinställning från de senaste 5 minuterna till de senaste 3 månaderna, och **Standard för automatisk uppdatering**. **Spara ändringar** sparar dem med resten av instrumentpanelen, för ditt team och för besökarna på dess offentliga länk. En egen start och ett eget slut kan inte vara en standard: instrumentpanelen skulle stå kvar på det ögonblicket för alltid.
+Medan du redigerar instrumentpanelen anger raden under verktygsfältets knappar vad alla öppnar den med: **Standardtidsintervall**, en förinställning från de senaste 5 minuterna till de senaste 3 månaderna, och **Standard för automatisk uppdatering**. **Spara ändringar** sparar dem med resten av instrumentpanelen, för ditt team och för besökarna på dess offentliga länk. En egen start och ett eget slut kan inte vara en standard: instrumentpanelen skulle stå kvar på det ögonblicket för alltid. Raden visas så snart instrumentpanelen har en widget.
 
 Instrumentpaneler som sparades före de här inställningarna öppnas på den senaste timmen, med den automatiska uppdatering de hade. Via API:et och Terraform ligger båda i instrumentpanelens `dashboardViewConfig`: `timeRange`, en förinställning stavad som i API-referensen, till exempel `Past 1 Day`, och `refreshInterval`, till exempel `1m`. Alla andra värden avvisas.
 

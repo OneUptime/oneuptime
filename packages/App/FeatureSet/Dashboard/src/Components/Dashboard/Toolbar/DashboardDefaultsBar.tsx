@@ -14,7 +14,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -27,6 +29,7 @@ import {
   getDefaultsPickerChoiceTestId,
   getDefaultsPickerMenuTestId,
 } from "./DashboardDefaultsCopy";
+import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
 
 /*
  * A dashboard's defaults, set on purpose while it is edited (issue #5080):
@@ -62,12 +65,21 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
   props: ChoicePickerProps,
 ): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const menuId: string = useId();
   const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
-  // Closes on a click anywhere else, and on Escape back to the button.
+  const close: () => void = useCallback((): void => {
+    setIsOpen(false);
+  }, []);
+
+  // Arrows, Home, End, Escape and Tab, as the product's other menus take them.
+  useToolbarChoiceMenuKeys({ isOpen, menuRef, buttonRef, close });
+
+  // Closes on a click anywhere else.
   useEffect(() => {
     if (!isOpen) {
       return undefined;
@@ -84,21 +96,10 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
       }
     };
 
-    const onKeyDown: (event: KeyboardEvent) => void = (
-      event: KeyboardEvent,
-    ): void => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-
     document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
 
     return () => {
       document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
     };
   }, [isOpen]);
 
@@ -116,10 +117,11 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
         data-testid={props.testId}
         aria-haspopup="menu"
         aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
         aria-label={`${props.label}: ${
           selected?.buttonLabel || selected?.label || props.value
         }`}
-        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+        className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
           isOpen
             ? "border-indigo-200 bg-indigo-50 text-indigo-700"
             : "border-gray-200/60 bg-gray-50 text-gray-700 hover:bg-gray-100"
@@ -139,11 +141,19 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
       </button>
 
       {isOpen ? (
+        /*
+         * As wide as its longest choice, so no choice wraps in a long
+         * language, and tall enough for every preset at once; it scrolls
+         * only on a screen too short for them. It hangs from the button's
+         * start, its left - its right in a right-to-left language.
+         */
         <div
+          ref={menuRef}
+          id={menuId}
           role="menu"
           aria-label={props.label}
           data-testid={getDefaultsPickerMenuTestId(props.testId)}
-          className="absolute left-0 mt-2 max-h-80 w-52 overflow-y-auto rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
+          className="absolute start-0 mt-2 max-h-[70vh] w-max min-w-[12rem] overflow-y-auto rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
           style={{ zIndex: DashboardStackingLayers.toolbarPopup }}
         >
           {props.choices.map((choice: Choice): ReactElement => {
@@ -154,12 +164,13 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
                 type="button"
                 role="menuitemradio"
                 aria-checked={isSelected}
+                tabIndex={-1}
                 key={choice.value}
                 data-testid={getDefaultsPickerChoiceTestId(
                   props.testId,
                   choice.value,
                 )}
-                className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none ${
+                className={`flex w-full items-center gap-2 whitespace-nowrap px-4 py-2 text-start text-sm hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 ${
                   isSelected ? "font-medium text-indigo-600" : "text-gray-700"
                 }`}
                 onClick={() => {
@@ -168,7 +179,7 @@ const ChoicePicker: FunctionComponent<ChoicePickerProps> = (
                   buttonRef.current?.focus();
                 }}
               >
-                <span className="w-4 text-center" aria-hidden="true">
+                <span className="w-4 shrink-0 text-center" aria-hidden="true">
                   {isSelected ? "✓" : ""}
                 </span>
                 {choice.label}
@@ -204,69 +215,76 @@ const DashboardDefaultsBar: FunctionComponent<ComponentProps> = (
   const timeRangeLabel: string = text(DashboardDefaultsCopy.timeRangeLabel);
   const autoRefreshLabel: string = text(DashboardDefaultsCopy.autoRefreshLabel);
 
+  /*
+   * The two pickers on one line, and the line on what they do always on its
+   * own under them: beside them it fitted for some values and not others,
+   * so picking a longer range moved the whole board down a line.
+   */
   return (
     <div
-      className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-gray-100 px-4 py-2"
+      className="border-t border-gray-100 px-4 py-2.5"
       data-testid={DASHBOARD_DEFAULTS_BAR_TEST_ID}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-gray-500">
-          {timeRangeLabel}
-        </span>
-        <ChoicePicker
-          testId={DEFAULT_TIME_RANGE_PICKER_TEST_ID}
-          icon={IconProp.Clock}
-          label={timeRangeLabel}
-          value={props.timeRange}
-          choices={DASHBOARD_TIME_RANGES.map((range: TimeRange): Choice => {
-            return {
-              value: range,
-              label: text(getTimeRangeLabel(range)),
-            };
-          })}
-          onSelect={(value: string) => {
-            props.onTimeRangeChange(value as TimeRange);
-          }}
-        />
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-gray-500">
-          {autoRefreshLabel}
-        </span>
-        <ChoicePicker
-          testId={DEFAULT_AUTO_REFRESH_PICKER_TEST_ID}
-          icon={IconProp.Refresh}
-          label={autoRefreshLabel}
-          value={props.refreshInterval}
-          choices={DASHBOARD_AUTO_REFRESH_INTERVALS.map(
-            (interval: AutoRefreshInterval): Choice => {
-              /*
-               * Worded as the viewer's auto-refresh menu words them, and
-               * named on the button as its countdown names them: Off, 1m.
-               */
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-600">
+            {timeRangeLabel}
+          </span>
+          <ChoicePicker
+            testId={DEFAULT_TIME_RANGE_PICKER_TEST_ID}
+            icon={IconProp.Clock}
+            label={timeRangeLabel}
+            value={props.timeRange}
+            choices={DASHBOARD_TIME_RANGES.map((range: TimeRange): Choice => {
               return {
-                value: interval,
-                label:
-                  interval === AutoRefreshInterval.OFF
-                    ? text("Auto-refresh Off")
-                    : translator.translateTemplate(
-                        "Refresh every {{interval}}",
-                        {
-                          interval: getAutoRefreshIntervalLabel(interval),
-                        },
-                      ),
-                buttonLabel: text(getAutoRefreshChoiceLabel(interval)),
+                value: range,
+                label: text(getTimeRangeLabel(range)),
               };
-            },
-          )}
-          onSelect={(value: string) => {
-            props.onRefreshIntervalChange(value as AutoRefreshInterval);
-          }}
-        />
+            })}
+            onSelect={(value: string) => {
+              props.onTimeRangeChange(value as TimeRange);
+            }}
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-600">
+            {autoRefreshLabel}
+          </span>
+          <ChoicePicker
+            testId={DEFAULT_AUTO_REFRESH_PICKER_TEST_ID}
+            icon={IconProp.Refresh}
+            label={autoRefreshLabel}
+            value={props.refreshInterval}
+            choices={DASHBOARD_AUTO_REFRESH_INTERVALS.map(
+              (interval: AutoRefreshInterval): Choice => {
+                /*
+                 * Worded as the viewer's auto-refresh menu words them, and
+                 * named on the button as its countdown names them: Off, 1m.
+                 */
+                return {
+                  value: interval,
+                  label:
+                    interval === AutoRefreshInterval.OFF
+                      ? text("Auto-refresh Off")
+                      : translator.translateTemplate(
+                          "Refresh every {{interval}}",
+                          {
+                            interval: getAutoRefreshIntervalLabel(interval),
+                          },
+                        ),
+                  buttonLabel: text(getAutoRefreshChoiceLabel(interval)),
+                };
+              },
+            )}
+            onSelect={(value: string) => {
+              props.onRefreshIntervalChange(value as AutoRefreshInterval);
+            }}
+          />
+        </div>
       </div>
 
-      <p className="min-w-0 text-xs text-gray-400">
+      <p className="mt-2 text-xs text-gray-500">
         {text(DashboardDefaultsCopy.hint)}
       </p>
     </div>
