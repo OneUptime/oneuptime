@@ -51,7 +51,7 @@ Das ist ein sicherer Start und meist zu viel. Kürzen Sie es auf das, was jeder 
 | Hoch | Sofort Push, nach 10 Minuten eine SMS |
 | Gering oder niedrig | Sofort eine E-Mail |
 
-OneUptime hat keine Ruhezeiten: Lassen Sie niedrige Schweregrade bei E-Mail, oder bei einer Push-Regel auf **Normal**, damit sie Sie nie wecken.
+Ihre eigenen Regeln haben keine Ruhezeiten: Lassen Sie niedrige Schweregrade bei E-Mail, oder bei einer Push-Regel auf **Normal**, damit sie Sie nie wecken. Um eine Alarmierung mit niedrigem Schweregrad für alle bis zu den Arbeitszeiten zurückzuhalten, stellen Sie die Bereitschaftsregel, die sie auslöst, auf **Nur während der Arbeitszeiten**: siehe [Bereitschaftsregeln](/docs/alerts/settings#bereitschaftsregeln).
 
 ## Eine Regel hinzufügen
 

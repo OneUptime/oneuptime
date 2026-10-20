@@ -22,7 +22,7 @@ flowchart TB
     ack -->|No| level
 ```
 
-1. A new incident, alert or episode runs its on-call policies at once: the ones picked on it, and the ones its on-call rules add. Each policy runs on its own.
+1. A new incident, alert or episode runs its on-call policies at once: the ones picked on it, and the ones its on-call rules add. Each policy runs on its own. An on-call rule set to **Only during working hours** holds the policies it adds until those hours begin.
 2. A policy's first escalation rule pages straight away: whoever is on call in its schedules right now, every member of its teams, and the people it names.
 3. If one of them is away, a user override sends their page to the person who covers for them, or skips them.
 4. Each person is reached through their personal on-call rules: which of their methods is tried, and after how long. A page with no rule still reaches them on the methods they verified.
@@ -95,7 +95,7 @@ When you are on duty for a policy, the bell at the top right says so. Click it t
 ## Troubleshooting
 
 :::details Nobody was paged for a new incident
-Open the incident's **On-Call Executions** page. Empty means the incident had no on-call policy: none was picked on it, and no on-call rule matched it. A run with **Execution Completed - No One Notified** went through every escalation rule and found nobody: usually a schedule with nobody on call. See [Execution logs](/docs/on-call/policies#execution-logs).
+Open the incident's **On-Call Executions** page. Empty means the incident had no on-call policy: none was picked on it, and no on-call rule matched it. A run with **Execution Completed - No One Notified** went through every escalation rule and found nobody: usually a schedule with nobody on call. See [Execution logs](/docs/on-call/policies#execution-logs). A run that is **Waiting** was held by an on-call rule until working hours, and pages nobody until they begin.
 :::
 
 :::details Someone was paged on the wrong channel, or not at all

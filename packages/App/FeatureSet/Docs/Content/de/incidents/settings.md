@@ -616,6 +616,8 @@ Das Erstellungsformular hat zwei Schritte:
 2. **Bereitschaftsrichtlinien** – die Richtlinien, über die diese Regel alarmiert, und der **Name** der Regel, aus ihnen gebildet („Platform on-call alarmieren“), bis Sie einen eigenen eingeben; die **Beschreibung** wartet unter **Weitere Felder**. Die Regel beginnt aktiviert; ihr Bearbeitungsformular ergänzt den Schalter **Aktiviert**, und die Liste zeigt pro Regel ein grünes Etikett **Aktiviert** oder ein rotes **Deaktiviert**.
 :::
 
+Eine Regel alarmiert, sobald ein Vorfall zu ihr passt. Um die Alarmierung stattdessen bis zu den Arbeitszeiten zurückzuhalten, stellen Sie **Wann alarmieren** unter **Weitere Felder** auf **Nur während der Arbeitszeiten** und wählen Sie dann die **Zeitzone** und die **Arbeitszeiten**: zu Beginn Montag bis Freitag, 09:00 bis 17:00, in Ihrer eigenen Zeitzone. Ein Vorfall, der außerhalb dieser Zeiten passt, bekommt einen Lauf, der als **Wartet** wartet und niemanden alarmiert; sobald die Arbeitszeiten beginnen, alarmiert die Richtlinie über ihre erste Eskalationsregel und eskaliert wie gewohnt. Wird der Vorfall vorher bestätigt oder behoben, wird niemand alarmiert.
+
 ### Wie der Abgleich aufgelöst wird
 
 Die Regeln, die die Seite selbst mitbringt, sollten Sie verinnerlichen:
@@ -624,7 +626,7 @@ Die Regeln, die die Seite selbst mitbringt, sollten Sie verinnerlichen:
 - Ein Listenkriterium – **Monitore**, **Vorfallsschweregrade**, **Vorfall-Beschriftungen**, **Überwachungs-Beschriftungen** – verwendet **Hat eines von**, **Hat alle von** oder **Hat keines von** der gewählten Werte.
 - Ein Textkriterium – Titel und Beschreibung des Vorfalls, Namen und Beschreibungen seiner Monitore – verwendet **Enthält**, **Enthält nicht**, **Gleich**, **Ungleich**, **Beginnt mit** oder **Endet mit**, ohne Rücksicht auf Groß- und Kleinschreibung, oder **Entspricht Muster** / **Entspricht nicht dem Muster** für einen regulären Ausdruck ohne Rücksicht auf Groß- und Kleinschreibung oder einen Platzhalter `*`. Eine neue Textbedingung beginnt mit **Enthält**.
 - **Alle passenden Regeln feuern.** Es gibt keine Priorität und keinen Kurzschluss.
-- Die Menge der tatsächlich ausgeführten Richtlinien ist die Vereinigung der Richtlinien jeder passenden Regel plus aller Richtlinien, die dem Vorfall von Hand oder durch eine Vorlage angehängt wurden, dedupliziert, sodass jede Richtlinie höchstens einmal läuft.
+- Die Menge der tatsächlich ausgeführten Richtlinien ist die Vereinigung der Richtlinien jeder passenden Regel plus aller Richtlinien, die dem Vorfall von Hand oder durch eine Vorlage angehängt wurden, dedupliziert, sodass jede Richtlinie höchstens einmal läuft. Lösen zwei passende Regeln dieselbe Richtlinie aus, alarmiert sie, sobald eine von beiden es zulässt: Sofort hat Vorrang vor den Arbeitszeiten.
 
 > [!NOTE]
 > Der Schweregrad ist hier ein Übereinstimmungskriterium und nirgends sonst. Ein Vorfallsschweregrad hat kein Bereitschaftsfeld – „Critical Incident“ zu wählen alarmiert für sich allein niemanden. Soll der Schweregrad die Alarmierung steuern, schreiben Sie eine Bereitschaftsregel, die darauf abgleicht.

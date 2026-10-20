@@ -616,6 +616,8 @@ Opprettelsesskjemaet har to trinn:
 2. **Vaktretningslinjer** — policyene denne regelen tilkaller, og regelens **Navn**, fylt ut fra dem ("Tilkall Platform on-call"), til du skriver inn ditt eget; **Beskrivelse** venter under **Flere felt**. Regelen starter aktivert; redigeringsskjemaet legger til bryteren **Aktivert**, og listen viser et grønt merke **Aktivert** eller et rødt merke **Deaktivert** per regel.
 :::
 
+En regel tilkaller så snart en hendelse samsvarer med den. For i stedet å holde tilkallingen tilbake til arbeidstiden, setter du **Når det tilkalles** under **Flere felt** til **Bare i arbeidstiden** og velger deretter **Tidssone** og **Arbeidstid**: til å begynne med mandag til fredag, 09:00 til 17:00, i din egen tidssone. En hendelse som samsvarer utenfor disse tidene, får en kjøring som venter, som **Venter**, og ikke tilkaller noen; når arbeidstiden begynner, tilkaller policyen sin første eskaleringsregel og eskalerer som vanlig. Blir hendelsen bekreftet eller løst først, blir ingen tilkalt.
+
 ### Slik avgjøres samsvar
 
 Reglene siden selv har med, er verdt å gjøre til dine egne:
@@ -624,7 +626,7 @@ Reglene siden selv har med, er verdt å gjøre til dine egne:
 - Et listekriterium — **Monitorer**, **Hendelse Alvorligheter**, **Hendelsesetiketter**, **Overvåkingsetiketter** — bruker **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.
 - Et tekstkriterium — hendelsens tittel og beskrivelse, monitorenes navn og beskrivelser — bruker **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med** eller **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** / **Samsvarer ikke med mønster** for et regulært uttrykk uten forskjell på store og små bokstaver eller et jokertegn `*`. En ny tekstbetingelse starter på **Inneholder**.
 - **Alle samsvarende regler utløses.** Det finnes ingen prioritet og ingen kortslutning.
-- Settet med policyer som faktisk kjøres, er foreningen av policyene til hver samsvarende regel pluss alle policyer som er knyttet til hendelsen for hånd eller av en mal, uten duplikater, slik at hver policy kjører høyst én gang.
+- Settet med policyer som faktisk kjøres, er foreningen av policyene til hver samsvarende regel pluss alle policyer som er knyttet til hendelsen for hånd eller av en mal, uten duplikater, slik at hver policy kjører høyst én gang. Når to samsvarende regler tilkaller den samme policyen, tilkaller den så snart en av dem tillater det: med en gang vinner over arbeidstiden.
 
 > [!NOTE]
 > Alvorlighetsgraden er et treffkriterium her og ingen andre steder. Det finnes ikke noe vaktfelt på en alvorlighetsgrad for hendelser — å velge «Critical Incident» tilkaller ikke i seg selv noen. Vil du at alvorlighetsgraden skal styre tilkallingen, skriver du en vaktregel som samsvarer med den.

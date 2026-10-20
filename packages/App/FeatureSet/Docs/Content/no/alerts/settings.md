@@ -88,6 +88,8 @@ Under **Vaktretningslinjer** velger du **Vaktpolicyer** regelen tilkaller. **Nav
 
 En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Varsel Alvorligheter**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
+En regel tilkaller så snart et varsel samsvarer med den. For i stedet å holde tilkallingen tilbake til arbeidstiden, setter du **Når det tilkalles** under **Flere felt** til **Bare i arbeidstiden** og velger deretter **Tidssone** og **Arbeidstid**: til å begynne med mandag til fredag, 09:00 til 17:00, i din egen tidssone. Et varsel som samsvarer utenfor disse tidene, får en kjøring som venter og ikke tilkaller noen; når arbeidstiden begynner, tilkaller retningslinjen sin første eskaleringsregel og eskalerer som vanlig. Blir varselet bekreftet eller løst først, blir ingen tilkalt. To regler som tilkaller den samme retningslinjen, tilkaller den så snart en av dem tillater det: en regel for de høyeste alvorlighetsgradene som tilkaller med en gang, ved siden av en regel for resten som venter på arbeidstiden, holder nettene rolige.
+
 ## Eier- og etikettregler
 
 **Eierregler** legger til eierbrukere og -team på nye varsler som samsvarer, og **Etikettregler** legger til etiketter. Å opprette en tar to trinn: **Treff**, betingelsene, og deretter **Eiere** eller **Etiketter**, det regelen legger til. Regelens **Navn** følger det du velger, til du skriver ditt eget.

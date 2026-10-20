@@ -88,6 +88,8 @@ I **Jourpolicyer** väljer du de **Jourpolicyer** som regeln larmar. Dess **Namn
 
 En allvarlighetsgrad larmar ingen på egen hand: En jourregel som matchar **Larm Allvarligheter** är sättet att ställa in "larma databasteamet för varje High-larm". För att se vad som kördes för ett larm öppnar du dess sida **Jourexekveringar**. Varje person nås sedan på det sätt som de har ställt in under **Användarinställningar → Jourregler**, på fliken **Varningar**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
+En regel larmar så snart ett larm matchar den. För att i stället hålla inne larmningen till arbetstid ställer du **När larma** under **Fler fält** på **Endast under arbetstid** och väljer sedan **Tidszon** och **Arbetstid**: till att börja med måndag till fredag, 09:00 till 17:00, i din egen tidszon. Ett larm som matchar utanför de tiderna får en körning som väntar och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses larmet först larmas ingen. Två regler som larmar samma policy larmar den så snart någon av dem tillåter det: en regel för dina högsta allvarlighetsgrader som larmar direkt, bredvid en regel för resten som väntar på arbetstid, håller nätterna lugna.
+
 ## Ägar- och etikettregler
 
 **Ägarregler** lägger till ägaranvändare och ägarteam på nya larm som matchar, och **Etikettregler** lägger till etiketter. Att skapa en tar två steg: **Matcha**, villkoren, och sedan **Ägare** eller **Etiketter**, det som regeln lägger till. Regelns **Namn** följer det du väljer tills du skriver ett eget.

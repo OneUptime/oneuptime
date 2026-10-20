@@ -34,7 +34,7 @@ En politik tilkalder ingen, før noget kører den. Hver hændelse, advarsel og e
 | Manuelt | **Udfør vagtpolitik**, i menuen **Handlinger** i et feed, eller på en besked i Slack eller Microsoft Teams | [Hændelsens feed](/docs/incidents/notes-owners-and-feed#hændelsens-feed) |
 | Chat og workflows | `/oneuptime page` i Slack eller Microsoft Teams, og et workflows trin **Page an On-Call Policy** | [Paging](/docs/workflows/components#paging) |
 
-En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører aldrig en politik af sig selv: det gør en vagtregel, der matcher alvorligheden. En hændelse eller advarsel, der oprettes allerede bekræftet eller løst, kører ingen af sine politikker.
+En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører aldrig en politik af sig selv: det gør en vagtregel, der matcher alvorligheden. En hændelse eller advarsel, der oprettes allerede bekræftet eller løst, kører ingen af sine politikker. En vagtregel sat til **Kun i arbejdstiden** holder de politikker, den tilføjer, tilbage, til arbejdstiden begynder.
 
 ## En politiks sider
 
@@ -84,6 +84,7 @@ flowchart TB
 
 | Status | Hvad den betyder |
 | --- | --- |
+| **Venter** | En vagtregel sat til **Kun i arbejdstiden** holder kørslen tilbage, til arbejdstiden begynder. Indtil da tilkalder den ingen, og den slutter uden at tilkalde, hvis hændelsen eller advarslen bliver bekræftet eller løst først. |
 | **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, stoppes som **Fejl**. |
 | **Executing** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
 | **Execution Completed** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |

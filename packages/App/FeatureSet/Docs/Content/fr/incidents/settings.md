@@ -616,6 +616,8 @@ Le formulaire de création a deux étapes :
 2. **Politiques d'astreinte** — les politiques que cette règle déclenche, et le **Nom** de la règle, rempli à partir d'elles (« Alerter Platform on-call ») jusqu'à ce que vous saisissiez le vôtre ; sa **Description** attend sous **Plus de champs**. La règle démarre activée ; son formulaire de modification ajoute l'interrupteur **Activé**, et la liste affiche une pastille verte **Activé** ou rouge **Désactivé** par règle.
 :::
 
+Une règle alerte dès qu'un incident lui correspond. Pour retenir son alerte jusqu'aux heures ouvrées, réglez **Quand alerter** sous **Plus de champs** sur **Uniquement pendant les heures ouvrées**, puis choisissez le **Fuseau horaire** et les **Heures ouvrées** : du lundi au vendredi, de 09:00 à 17:00, dans votre propre fuseau horaire, pour commencer. Un incident qui correspond en dehors de ces heures reçoit une exécution qui attend, **En attente**, et n'alerte personne ; quand les heures commencent, la politique déclenche sa première règle d'escalade et escalade comme d'habitude. Si l'incident est pris en compte ou résolu avant, personne n'est alerté.
+
 ### Comment se résout la correspondance
 
 Les règles que la page applique d'elle-même méritent d'être retenues :
@@ -624,7 +626,7 @@ Les règles que la page applique d'elle-même méritent d'être retenues :
 - Un critère de liste — **Moniteurs**, **Gravités d'incident**, **Étiquettes d'incident**, **Étiquettes du moniteur** — utilise **Contient l'un de**, **Contient tous les** ou **Ne contient aucun de** parmi les valeurs que vous choisissez.
 - Un critère de texte — le titre et la description de l'incident, les noms et descriptions de ses moniteurs — utilise **Contient**, **Ne contient pas**, **Égal à**, **Différent de**, **Commence par** ou **Se termine par**, sans tenir compte de la casse, ou **Correspond au modèle** / **Ne correspond pas au modèle** pour une expression régulière insensible à la casse ou un joker `*`. Une nouvelle condition de texte démarre sur **Contient**.
 - **Toutes les règles correspondantes se déclenchent.** Il n'y a ni priorité ni court-circuit.
-- L'ensemble des politiques réellement exécutées est l'union des politiques de chaque règle correspondante plus toutes les politiques rattachées à l'incident à la main ou par un modèle, dédoublonnée pour que chaque politique s'exécute au plus une fois.
+- L'ensemble des politiques réellement exécutées est l'union des politiques de chaque règle correspondante plus toutes les politiques rattachées à l'incident à la main ou par un modèle, dédoublonnée pour que chaque politique s'exécute au plus une fois. Quand deux règles qui correspondent déclenchent la même politique, elle alerte dès que l'une d'elles le permet : immédiatement l'emporte sur les heures ouvrées.
 
 > [!NOTE]
 > La gravité est un critère de correspondance ici et nulle part ailleurs. Une gravité d'incident n'a pas de champ d'astreinte — choisir « Critical Incident » n'alerte, à lui seul, personne. Si vous voulez que la gravité pilote les alertes, écrivez une règle d'astreinte qui s'appuie dessus.

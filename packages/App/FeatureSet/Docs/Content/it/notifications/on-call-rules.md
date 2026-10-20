@@ -51,7 +51,7 @@ Ogni metodo che verificate riceve una regola su ogni riquadro di ogni scheda, in
 | Alta | Push subito, un SMS dopo 10 minuti |
 | Minore o bassa | Un'e-mail subito |
 
-OneUptime non ha fasce di silenzio: lasciate le gravità basse sull'e-mail, o su una regola push impostata su **Standard**, così non vi svegliano mai.
+Le vostre regole non hanno fasce di silenzio: lasciate le gravità basse sull'e-mail, o su una regola push impostata su **Standard**, così non vi svegliano mai. Per trattenere fino all'orario di lavoro la chiamata di una gravità bassa per tutti, impostate la regola di reperibilità che la attiva su **Solo durante l'orario di lavoro**: vedere [Regole di reperibilità](/docs/alerts/settings#regole-di-reperibilità).
 
 ## Aggiungere una regola
 

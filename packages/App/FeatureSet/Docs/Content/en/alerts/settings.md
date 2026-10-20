@@ -88,6 +88,8 @@ On **On-Call Policies**, pick the **On-Call Duty Policies** the rule pages. Its 
 
 A severity pages nobody on its own: an on-call rule that matches **Alert Severities** is how "page the database team for every High alert" is set up. To see what ran for one alert, open its **On-Call Executions** page. Each person is then reached the way they set up under **User Settings → On-Call Rules**, on the **Alerts** tab; see [Escalation Rules](/docs/on-call/escalation-rules).
 
+A rule pages as soon as an alert matches it. To hold its page until working hours instead, set **When to Page** under **More fields** to **Only during working hours**, then pick the **Timezone** and the **Working Hours**: Monday to Friday, 09:00 to 17:00, in your own time zone, to start with. An alert that matches outside those hours gets a run that waits and pages nobody; when the hours begin, the policy pages its first escalation rule and escalates as usual. If the alert is acknowledged or resolved first, nobody is paged. Two rules that page the same policy page it as soon as either one lets it, so a rule for your top severities that pages right away, beside a rule for the rest that waits for working hours, keeps the nights quiet.
+
 ## Owner and label rules
 
 **Owner Rules** add owner users and teams to new alerts that match, and **Label Rules** add labels. Creating one takes two steps: **Match**, the conditions, then **Owners** or **Labels**, what the rule adds. The rule's **Name** follows what you pick until you type your own.

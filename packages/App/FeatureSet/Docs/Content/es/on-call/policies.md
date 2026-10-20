@@ -34,7 +34,7 @@ Una política no avisa a nadie hasta que algo la ejecuta. Cada incidente, alerta
 | A mano | **Ejecutar política de guardia**, en el menú **Acciones** de un feed, o en un mensaje de Slack o Microsoft Teams | [El feed del incidente](/docs/incidents/notes-owners-and-feed#el-feed-del-incidente) |
 | Chat y workflows | `/oneuptime page` en Slack o Microsoft Teams, y el paso **Page an On-Call Policy** de un workflow | [Paging](/docs/workflows/components#paging) |
 
-Una política que añaden varias reglas se ejecuta una sola vez. Una gravedad nunca ejecuta una política por sí misma: lo hace una regla de guardia que coincide con esa gravedad. Un incidente o una alerta creada ya reconocida o resuelta no ejecuta ninguna de sus políticas.
+Una política que añaden varias reglas se ejecuta una sola vez. Una gravedad nunca ejecuta una política por sí misma: lo hace una regla de guardia que coincide con esa gravedad. Un incidente o una alerta creada ya reconocida o resuelta no ejecuta ninguna de sus políticas. Una regla de guardia configurada como **Solo en horario laboral** retiene las políticas que añade hasta que empieza ese horario.
 
 ## Las páginas de una política
 
@@ -84,6 +84,7 @@ flowchart TB
 
 | Estado | Qué significa |
 | --- | --- |
+| **Esperando** | Una regla de guardia configurada como **Solo en horario laboral** retiene la ejecución hasta que empieza ese horario. Hasta entonces no avisa a nadie, y termina sin avisar si el incidente o la alerta se reconoce o se resuelve antes. |
 | **Programado**, **Iniciado** | La ejecución se está preparando. Una que sigue aquí al cabo de 5 minutos se detiene como **Error**. |
 | **Executing** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. |
 | **Execution Completed** | Alguien lo reconoció, el incidente o la alerta se resolvió, se usaron todas las reglas y repeticiones, o la política se archivó. |

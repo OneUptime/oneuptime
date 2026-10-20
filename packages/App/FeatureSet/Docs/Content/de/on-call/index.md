@@ -22,7 +22,7 @@ flowchart TB
     ack -->|"Nein"| level
 ```
 
-1. Ein neuer Vorfall, eine neue Warnung oder Episode führt ihre Bereitschaftsrichtlinien sofort aus: die bei ihr gewählten und die, die ihre Bereitschaftsregeln hinzufügen. Jede Richtlinie läuft für sich.
+1. Ein neuer Vorfall, eine neue Warnung oder Episode führt ihre Bereitschaftsrichtlinien sofort aus: die bei ihr gewählten und die, die ihre Bereitschaftsregeln hinzufügen. Jede Richtlinie läuft für sich. Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** hält die Richtlinien, die sie hinzufügt, zurück, bis diese Zeiten beginnen.
 2. Die erste Eskalationsregel einer Richtlinie alarmiert sofort: wer in ihren Plänen gerade Bereitschaft hat, jedes Mitglied ihrer Teams und die Personen, die sie nennt.
 3. Ist eine davon abwesend, schickt eine Benutzerüberschreibung ihren Alarm an die Person, die sie vertritt, oder überspringt sie.
 4. Jede Person wird über ihre persönlichen Bereitschaftsregeln erreicht: welche ihrer Methoden versucht wird und nach welcher Zeit. Ein Alarm ohne passende Regel erreicht sie trotzdem über die Methoden, die sie verifiziert hat.
@@ -95,7 +95,7 @@ Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an
 ## Fehlerbehebung
 
 :::details Bei einem neuen Vorfall wurde niemand alarmiert
-Öffnen Sie die Seite **Bereitschaftsausführungen** des Vorfalls. Ist sie leer, hatte der Vorfall keine Bereitschaftsrichtlinie: Bei ihm wurde keine gewählt, und keine Bereitschaftsregel hat gepasst. Ein Lauf mit **Execution Completed - No One Notified** ist durch jede Eskalationsregel gegangen und hat niemanden gefunden: meist ein Plan, in dem niemand Bereitschaft hat. Siehe [Ausführungsprotokolle](/docs/on-call/policies#ausführungsprotokolle).
+Öffnen Sie die Seite **Bereitschaftsausführungen** des Vorfalls. Ist sie leer, hatte der Vorfall keine Bereitschaftsrichtlinie: Bei ihm wurde keine gewählt, und keine Bereitschaftsregel hat gepasst. Ein Lauf mit **Execution Completed - No One Notified** ist durch jede Eskalationsregel gegangen und hat niemanden gefunden: meist ein Plan, in dem niemand Bereitschaft hat. Siehe [Ausführungsprotokolle](/docs/on-call/policies#ausführungsprotokolle). Ein Lauf mit **Wartet** wurde von einer Bereitschaftsregel bis zu den Arbeitszeiten zurückgehalten und alarmiert niemanden, bis sie beginnen.
 :::
 
 :::details Jemand wurde auf dem falschen Kanal alarmiert, oder gar nicht
