@@ -30,6 +30,14 @@ export type InvestigationNotStartedCode =
    * recorded at creation.
    */
   | "created_resolved"
+  /*
+   * An investigation rule made OneUptime AI wait before investigating the
+   * record, to see whether it would still be open (issue #5074), and it
+   * was resolved before the investigation started, so it was not
+   * investigated. Only ever recorded when the wait ends
+   * (Server/Utils/AI/SRE/InvestigationRuleWait).
+   */
+  | "resolved_before_investigation"
   | "daily_budget_exhausted"
   | "budget_check_failed"
   | "enqueue_failed"
@@ -47,6 +55,12 @@ export default interface InvestigationNotStartedReason {
   nextStep: string;
   source: "recorded" | "current_configuration" | "unknown";
   evaluatedAt: string;
+  /*
+   * Set on a decision recorded when an investigation rule's wait ended,
+   * rather than when the record was created: the wait, in minutes. The
+   * record's AI card then says the decision was taken after the wait.
+   */
+  decidedAfterWaitMinutes?: number | undefined;
 }
 
 export interface InvestigationGateDetails {
@@ -55,4 +69,11 @@ export interface InvestigationGateDetails {
   cooldownWindowMinutes?: number | undefined;
   // no_investigation_rule_matched: how many enabled rules were checked.
   rulesChecked?: number | undefined;
+  /*
+   * Decided when an investigation rule's wait ended (issue #5074): the
+   * wait, in minutes. resolved_before_investigation always has it; with any
+   * other code, the decision's words say it was taken after the wait
+   * instead of when the record was created.
+   */
+  waitMinutes?: number | undefined;
 }

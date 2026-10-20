@@ -21,6 +21,10 @@ import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution
 import RunbookTriggerType from "../../../../Types/Runbook/RunbookTriggerType";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
+  ExternalMcpToolCallPlan,
+  ExternalMcpToolCallPlanUtil,
+} from "../../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
+import {
   AiRemediationCommand,
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
@@ -1076,6 +1080,7 @@ export default class RemediationPlanRunner {
           createdAt: true,
           suggestionType: true,
           commandPlan: true,
+          mcpToolCallPlan: true,
           verificationWindowMinutes: true,
           /*
            * So a resource round's notes name its resource: this sweep's
@@ -1130,6 +1135,19 @@ export default class RemediationPlanRunner {
           }
         }
 
+        /*
+         * A fix through MCP servers: one that already SENT changes (each
+         * is recorded before it is sent) is settled as made, with a
+         * verification window; one that sent nothing changed nothing.
+         */
+        if (
+          suggestion.suggestionType ===
+          AutoRemediationSuggestionType.McpToolCalls
+        ) {
+          await this.settleStrandedMcpFix({ suggestion, reason });
+          continue;
+        }
+
         const transitioned: number =
           await AutoRemediationSuggestionService.attemptStatusTransition({
             suggestionId: suggestion.id!,
@@ -1157,6 +1175,49 @@ export default class RemediationPlanRunner {
         );
       }
     }
+  }
+
+  // A stranded fix through MCP servers (see settleStrandedPlanningSuggestions).
+  private static async settleStrandedMcpFix(data: {
+    suggestion: AutoRemediationSuggestion;
+    reason: string;
+  }): Promise<void> {
+    const plan: ExternalMcpToolCallPlan | null =
+      ExternalMcpToolCallPlanUtil.parse(data.suggestion.mcpToolCallPlan);
+
+    if (plan && ExternalMcpToolCallPlanUtil.getSentCalls(plan).length > 0) {
+      const mcpRemediationRunner: typeof import("./McpRemediationRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./McpRemediationRunner").default;
+
+      await mcpRemediationRunner.settleInterruptedFix({
+        suggestion: data.suggestion,
+        reason: data.reason,
+      });
+      return;
+    }
+
+    const transitioned: number =
+      await AutoRemediationSuggestionService.attemptStatusTransition({
+        suggestionId: data.suggestion.id!,
+        fromStatus: AutoRemediationSuggestionStatus.Planning,
+        set: {
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          rationaleMarkdown:
+            mdText`The fix through MCP servers did not finish — ${data.reason}. Nothing was changed.`.toString(),
+        },
+      });
+
+    if (transitioned === 0) {
+      return;
+    }
+
+    await this.postFeedItem({
+      suggestion: data.suggestion,
+      markdown:
+        mdText`⚡ **${this.describeStrandedSource(data.suggestion)}: the fix through MCP servers did not finish** (${data.reason}) — nothing was changed.`.toString(),
+      pingWorkspace: false,
+    });
   }
 
   /*

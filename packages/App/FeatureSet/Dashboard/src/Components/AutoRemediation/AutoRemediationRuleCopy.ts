@@ -10,6 +10,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import type { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  RULE_MCP_SERVERS_FIELD_COPY,
+  hasRuleMcpServers,
+} from "../ExternalMcpServer/ExternalMcpServerCopy";
 
 /*
  * What an auto remediation rule's form and table say, React-free so the
@@ -156,10 +160,12 @@ export const AUTO_REMEDIATION_APPROVAL_OPTIONS: Array<CardSelectOption> = [
     /*
      * Said whatever More fields holds: with no runbook picked, a runbook
      * OneUptime AI picks from any of them still waits for approval
-     * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking).
+     * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking), and with
+     * no MCP server picked, every change through one waits too
+     * (McpRemediationRunner).
      */
     description: translationKey(
-      "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.",
+      "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.",
     ),
     icon: IconProp.Bolt,
   },
@@ -338,8 +344,9 @@ export function hasRuleRunner(
 }
 
 /*
- * The sentence under More fields while it is folded: what the defaults left
- * do. A rule that runs its runbooks every time has neither default.
+ * The sentences under More fields while it is folded: what the defaults
+ * left do - the runbooks and the Runner in one, then the MCP servers. A
+ * rule that runs its runbooks every time has none of the defaults.
  */
 export function getAutoRemediationMoreFieldsSummary(
   values: FormValues<AutoRemediationRule>,
@@ -349,20 +356,21 @@ export function getAutoRemediationMoreFieldsSummary(
     return undefined;
   }
 
+  const sentences: Array<string> = [];
   const isAnyRunbook: boolean = !hasRuleRunbooks(values);
   const isAgentsOnly: boolean = !hasRuleRunner(values);
 
   if (isAnyRunbook && isAgentsOnly) {
-    return [AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbookAndAgents];
+    sentences.push(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbookAndAgents);
+  } else if (isAnyRunbook) {
+    sentences.push(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook);
+  } else if (isAgentsOnly) {
+    sentences.push(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.agents);
   }
 
-  if (isAnyRunbook) {
-    return [AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook];
+  if (!hasRuleMcpServers(values)) {
+    sentences.push(RULE_MCP_SERVERS_FIELD_COPY.allServersSummary);
   }
 
-  if (isAgentsOnly) {
-    return [AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.agents];
-  }
-
-  return undefined;
+  return sentences.length > 0 ? sentences : undefined;
 }

@@ -322,6 +322,8 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       evidence: [],
       references: [],
       clusterAccess: [],
+      // Nothing waits (issue #5074): the reason stands.
+      waitingInvestigation: null,
     });
     expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
   });
@@ -1283,6 +1285,7 @@ describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
         "notInvestigatedReason",
         "references",
         "run",
+        "waitingInvestigation",
       ].sort(),
     );
   });

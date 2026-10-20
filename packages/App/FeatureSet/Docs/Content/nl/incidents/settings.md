@@ -563,7 +563,7 @@ Groeperings-, SLA-, herinnerings-, onderzoeks- en herstelregels werken ook op he
 - **Eigenaarsregels** — wijzen automatisch eigenaren toe.
 - **Runbook-regels** — starten een [runbook](/docs/runbooks/index) als een incident overeenkomt.
 - **Regels voor automatisch herstel**, onder **AI** → **Instellingen** — welke nieuwe incidenten worden hersteld zolang **Nieuwe incidenten automatisch herstellen** aanstaat, en hoe: met of zonder eerst te vragen, en de runbooks die OneUptime AI mag uitvoeren. Zonder regel wordt elk nieuw incident hersteld. Staat er een AI-onderzoek voor het incident in de wachtrij, dan draaien ze zodra dat klaar is, met de analyse ervan bij de hand.
-- **Onderzoeksregels**, onder **AI** → **Instellingen** — welke nieuwe incidenten OneUptime AI onderzoekt. Zonder regel worden ze allemaal onderzocht. Zie [AI SRE](/docs/ai/ai-sre).
+- **Onderzoeksregels**, onder **AI** → **Instellingen** — welke nieuwe incidenten OneUptime AI onderzoekt. Zonder regel worden ze allemaal onderzocht. Een regel kan het ook laten wachten en alleen de incidenten laten onderzoeken die na zoveel minuten nog open zijn. Zie [AI SRE](/docs/ai/ai-sre).
 - **Privacyregels** — bepalen of een overeenkomend incident privé is.
 - **Labelregels** — zetten automatisch labels.
 - **SLA-regels** — houden reactie- en oplostijden bij. Regels worden van boven naar beneden in de lijst geëvalueerd; sleep een regel om zijn plek te wijzigen.

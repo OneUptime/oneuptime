@@ -51,6 +51,10 @@ import RunbookExecutionService from "../../Services/RunbookExecutionService";
 import CommandPlanExecutor, {
   CommandPlanRollbackOutcome,
 } from "./CommandPlanExecutor";
+import {
+  ExternalMcpToolCallPlan,
+  ExternalMcpToolCallPlanUtil,
+} from "../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
 import AutoRemediationRuleEngineService from "../../Services/AutoRemediationRuleEngineService";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
@@ -175,6 +179,7 @@ export default class RemediationVerifier {
           runbookExecutionId: true,
           suggestionType: true,
           commandPlan: true,
+          mcpToolCallPlan: true,
           aiRunId: true,
           verificationDeadlineAt: true,
           autoResolveOnRecovery: true,
@@ -606,6 +611,13 @@ export default class RemediationVerifier {
       return this.evaluateCommandPlan(suggestion);
     }
 
+    // A fix through MCP servers: its record is the plan on the suggestion too.
+    if (
+      suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+    ) {
+      return this.evaluateMcpToolCalls(suggestion);
+    }
+
     const runbookName: string = suggestion.runbookNameSnapshot || "Runbook";
 
     if (!suggestion.runbookExecutionId) {
@@ -867,6 +879,120 @@ export default class RemediationVerifier {
       return {
         status: AutoRemediationVerificationStatus.Failed,
         note: "The AI command remediation completed but the service did not recover within the verification window — escalation continues as normal.",
+        pingWorkspace: true,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * The twin for a fix through the project's external MCP servers: a change
+   * that failed fails the fix, changes still being made wait (until the
+   * window ends), and once every change was made, recovery is judged by the
+   * same subject-resolved / monitors-operational checks. Nothing is rolled
+   * back: an MCP tool has no undo OneUptime can know of, so a failed fix is
+   * for a person to look at.
+   */
+  private static async evaluateMcpToolCalls(
+    suggestion: AutoRemediationSuggestion,
+  ): Promise<VerificationOutcome | null> {
+    const plan: ExternalMcpToolCallPlan | null =
+      ExternalMcpToolCallPlanUtil.parse(suggestion.mcpToolCallPlan);
+
+    if (!plan || plan.calls.length === 0) {
+      return {
+        status: AutoRemediationVerificationStatus.Skipped,
+        note: "No change through an MCP server was recorded for this fix.",
+        pingWorkspace: false,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    const deadlinePassed: boolean = suggestion.verificationDeadlineAt
+      ? suggestion.verificationDeadlineAt.getTime() <
+        OneUptimeDate.getCurrentDate().getTime()
+      : false;
+
+    if (ExternalMcpToolCallPlanUtil.hasFailed(plan)) {
+      return {
+        status: AutoRemediationVerificationStatus.Failed,
+        note: "The fix through MCP servers did not complete — a change failed. Nothing was undone: review the changes that were made.",
+        pingWorkspace: true,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    const isStillMaking: boolean =
+      ExternalMcpToolCallPlanUtil.isInFlight(plan) ||
+      ExternalMcpToolCallPlanUtil.getProposedCalls(plan).length > 0;
+
+    if (isStillMaking) {
+      if (deadlinePassed) {
+        return {
+          status: AutoRemediationVerificationStatus.Failed,
+          note: "The fix through MCP servers did not complete within the verification window.",
+          pingWorkspace: true,
+          displayColor: Red500,
+          shouldAutoResolve: false,
+        };
+      }
+
+      return null;
+    }
+
+    // Every change skipped (the fix was settled first): nothing was made.
+    if (ExternalMcpToolCallPlanUtil.getSentCalls(plan).length === 0) {
+      return {
+        status: AutoRemediationVerificationStatus.Skipped,
+        note: "No change through an MCP server was made for this fix.",
+        pingWorkspace: false,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    if (await this.isSubjectResolved(suggestion)) {
+      return {
+        status: AutoRemediationVerificationStatus.Verified,
+        note: `The ${suggestion.incidentId ? "incident" : "alert"} was resolved within the verification window.`,
+        pingWorkspace: false,
+        displayColor: Green500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    const monitorsOperational: boolean | null =
+      await this.areSubjectMonitorsOperational(suggestion);
+
+    if (monitorsOperational === null) {
+      return {
+        status: AutoRemediationVerificationStatus.Skipped,
+        note: "There are no monitors to verify recovery against.",
+        pingWorkspace: false,
+        displayColor: Green500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    if (monitorsOperational) {
+      return {
+        status: AutoRemediationVerificationStatus.Verified,
+        note: "The fix through MCP servers was made and the monitor(s) returned to an operational state within the verification window.",
+        pingWorkspace: true,
+        displayColor: Green500,
+        shouldAutoResolve: suggestion.autoResolveOnRecovery === true,
+      };
+    }
+
+    if (deadlinePassed) {
+      return {
+        status: AutoRemediationVerificationStatus.Failed,
+        note: "The fix through MCP servers was made but the service did not recover within the verification window — escalation continues as normal. Nothing was undone.",
         pingWorkspace: true,
         displayColor: Red500,
         shouldAutoResolve: false,
@@ -1147,7 +1273,10 @@ export default class RemediationVerifier {
     const remediationDescription: string =
       suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
         ? "the AI command remediation"
-        : `runbook "${suggestion.runbookNameSnapshot || "Runbook"}"`;
+        : suggestion.suggestionType ===
+            AutoRemediationSuggestionType.McpToolCalls
+          ? "the fix through MCP servers"
+          : `runbook "${suggestion.runbookNameSnapshot || "Runbook"}"`;
 
     const rootCause: string =
       mdText`Auto-resolved by auto-remediation: ${remediationDescription} (rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}") completed and the monitor(s) recovered within the verification window.`.toString();

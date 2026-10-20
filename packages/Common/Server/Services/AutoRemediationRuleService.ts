@@ -18,6 +18,7 @@ import AiRemediationCredentialUse, {
   RuleCommandSettingsChange,
 } from "../Utils/AutoRemediation/AiRemediationCredentialUse";
 import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
+import { getRuleExternalMcpServersProblem } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 
 /*
  * The columns that decide whether, and where, a rule runs OneUptime AI's
@@ -41,6 +42,41 @@ const RUNNER_KEYS: Array<string> = ["runnerId", "runner"];
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A rule names at most as many external MCP servers as a project may
+   * have: answered before any reference is read. Whether each is the
+   * project's own is checked with every other reference the rule writes.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    this.assertMcpServersFit(createBy.data.externalMcpServers);
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = (updateBy.data || {}) as Record<
+      string,
+      unknown
+    >;
+
+    // An edit that leaves the servers alone is not judged on them.
+    if (data["externalMcpServers"] === undefined) {
+      return;
+    }
+
+    this.assertMcpServersFit(data["externalMcpServers"]);
+  }
+
+  private assertMcpServersFit(servers: unknown): void {
+    const problem: string | null = getRuleExternalMcpServersProblem(servers);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
   }
 
   /*

@@ -68,6 +68,13 @@ export enum AutoRemediationDecisionReason {
   AiPickingRunbook = "AiPickingRunbook",
   // The same, but its AI run could not be queued (the daily AI budget, most often).
   AiRunbookPickNotStarted = "AiRunbookPickNotStarted",
+  /*
+   * No rule is set up: OneUptime AI is working out a fix through the
+   * project's external MCP servers, to propose it for approval.
+   */
+  AiFixingThroughMcpServers = "AiFixingThroughMcpServers",
+  // The same, but its AI run could not be queued.
+  AiMcpFixNotStarted = "AiMcpFixNotStarted",
 
   /*
    * --- Kubernetes cluster ---
@@ -164,6 +171,11 @@ export enum AutoRemediationDecisionReason {
   RuleMatchedAiFix = "RuleMatchedAiFix",
   // The same, and the rule asks before fixing: every fix waits for approval.
   RuleMatchedAiFixAsks = "RuleMatchedAiFixAsks",
+  /*
+   * The rule matched: OneUptime AI is working out a fix through the external
+   * MCP servers the rule allows (RuleAiRunNotStarted when it could not).
+   */
+  RuleAiFixingThroughMcpServers = "RuleAiFixingThroughMcpServers",
 }
 
 /*
@@ -386,6 +398,8 @@ export class AutoRemediationDecisionHelper {
 
 const ACTED_REASONS: Array<AutoRemediationDecisionReason> = [
   AutoRemediationDecisionReason.AiPickingRunbook,
+  AutoRemediationDecisionReason.AiFixingThroughMcpServers,
+  AutoRemediationDecisionReason.RuleAiFixingThroughMcpServers,
   AutoRemediationDecisionReason.ClusterRoundStarted,
   AutoRemediationDecisionReason.ResourceRoundStarted,
   AutoRemediationDecisionReason.RuleAiComposingCommands,
@@ -399,6 +413,7 @@ const ATTENTION_REASONS: Array<AutoRemediationDecisionReason> = [
   AutoRemediationDecisionReason.EnableAiOff,
   AutoRemediationDecisionReason.EvaluationFailed,
   AutoRemediationDecisionReason.AiRunbookPickNotStarted,
+  AutoRemediationDecisionReason.AiMcpFixNotStarted,
   AutoRemediationDecisionReason.ClusterLookupFailed,
   AutoRemediationDecisionReason.ClusterNotReady,
   AutoRemediationDecisionReason.ClusterRoundNotStarted,

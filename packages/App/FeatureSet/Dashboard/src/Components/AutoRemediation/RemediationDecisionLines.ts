@@ -585,6 +585,29 @@ export function getRemediationDecisionLines(input: {
           links: [],
         });
         return;
+      // No rule set up: OneUptime AI may fix through any of the project's MCP servers.
+      case AutoRemediationDecisionReason.AiFixingThroughMcpServers:
+        lines.push({
+          key,
+          tone: "acted",
+          text: translator.translateTemplate(
+            "OneUptime AI is working out a fix for this {{signal}} through your MCP servers. It proposes the changes for your approval.",
+            { signal: signalTerm },
+          ),
+          links: [],
+        });
+        return;
+      case AutoRemediationDecisionReason.AiMcpFixNotStarted:
+        lines.push({
+          key,
+          tone: "attention",
+          text: translator.translateTemplate(
+            "OneUptime AI could not start working out a fix for this {{signal}} through your MCP servers. The daily AI budget may be used up.",
+            { signal: signalTerm },
+          ),
+          links: [],
+        });
+        return;
 
       // --- Linked to nothing ---
       case AutoRemediationDecisionReason.ClusterNoneLinked:
@@ -961,6 +984,17 @@ export function getRemediationDecisionLines(input: {
           tone: "acted",
           text: translator.translateTemplate(
             'Rule "{{ruleName}}" matched: OneUptime AI is picking the runbook that fits this {{signal}}.',
+            { ruleName, signal: signalTerm },
+          ),
+          links: [],
+        });
+        return;
+      case AutoRemediationDecisionReason.RuleAiFixingThroughMcpServers:
+        lines.push({
+          key,
+          tone: "acted",
+          text: translator.translateTemplate(
+            'Rule "{{ruleName}}" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.',
             { ruleName, signal: signalTerm },
           ),
           links: [],

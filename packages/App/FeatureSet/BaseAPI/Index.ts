@@ -587,6 +587,7 @@ import DetectionRuleService, {
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
+import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
@@ -3287,6 +3288,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new LlmObservabilityConnectionAPI().getRouter(),
+    );
+
+    // External MCP servers OneUptime AI may use, and their connection test.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ExternalMcpServerAPI().getRouter(),
     );
 
     // LlmModelPrice

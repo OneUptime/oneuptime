@@ -6,6 +6,13 @@ import ChatActivityFeed, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import InvestigationReportView from "./InvestigationReport/InvestigationReportView";
+import InvestigationWaiting from "./InvestigationWaiting";
+import {
+  INVESTIGATE_NOW_FAILED,
+  INVESTIGATION_WAITING_STATUS,
+  WaitingInvestigationState,
+  parseWaitingInvestigation,
+} from "./InvestigationWaitingState";
 import InvestigationNotice, {
   noticeDoneIcon,
   noticeFailedIcon,
@@ -221,6 +228,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notInvestigatedReason, setNotInvestigatedReason] =
     useState<InvestigationNotStartedReason | null>(null);
+  /*
+   * While an investigation rule makes OneUptime AI wait before it
+   * investigates this subject (issue #5074): until when, and whether this
+   * reader may start it now. Investigate now's progress and its refusal.
+   */
+  const [waitingInvestigation, setWaitingInvestigation] =
+    useState<WaitingInvestigationState | null>(null);
+  const [isStartingInvestigation, setIsStartingInvestigation] =
+    useState<boolean>(false);
+  const [startInvestigationError, setStartInvestigationError] = useState<
+    string | null
+  >(null);
   const [hasFetchError, setHasFetchError] = useState<boolean>(false);
   const [hasSuccessfulResponse, setHasSuccessfulResponse] =
     useState<boolean>(false);
@@ -388,6 +407,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setRunId(null);
     setErrorMessage(null);
     setNotInvestigatedReason(null);
+    setWaitingInvestigation(null);
+    setIsStartingInvestigation(false);
+    setStartInvestigationError(null);
     setHasFetchError(false);
     setHasSuccessfulResponse(false);
     setIsRefreshing(false);
@@ -460,6 +482,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         const nextNotInvestigatedReason: InvestigationNotStartedReason | null =
           !runJson
             ? parseInvestigationNotStartedReason(data["notInvestigatedReason"])
+            : null;
+        // Only while no run exists: a run, once there, is what the card shows.
+        const nextWaitingInvestigation: WaitingInvestigationState | null =
+          !runJson
+            ? parseWaitingInvestigation(data["waitingInvestigation"])
             : null;
         const verdictFromServer: string | null =
           (runJson?.["humanVerdict"] as string | undefined) || null;
@@ -630,6 +657,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           nextEvidence,
           nextReferences,
           nextNotInvestigatedReason,
+          nextWaitingInvestigation,
           /*
            * What the notice renders, not the raw rows: each row carries the
            * time it was evaluated and the Runner's latest heartbeat, which
@@ -642,6 +670,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setRunStatus(status);
           setRunId(nextRunId);
           setNotInvestigatedReason(nextNotInvestigatedReason);
+          setWaitingInvestigation(nextWaitingInvestigation);
           setCodeFixRecommendation(codeFixRecommendationFromServer);
           setErrorMessage(nextErrorMessage);
           setAnalysisMarkdown(nextAnalysisMarkdown);
@@ -1086,6 +1115,60 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const isCheckingStatus: boolean =
     !hasLoadedOnce || loadedSubjectKey !== subjectKey;
   const hasRun: boolean = !isCheckingStatus && Boolean(runStatus);
+  // No run yet because an investigation rule waits: the card says until when.
+  const isWaiting: boolean =
+    !hasRun && !isCheckingStatus && Boolean(waitingInvestigation);
+
+  /*
+   * Investigate now: start the investigation the rule makes wait, at once.
+   * The server checks who may (the one who may change the record); the run
+   * it queues appears on the next read, and a refusal says why.
+   */
+  const startInvestigationNow: () => void = (): void => {
+    const startedForSubjectKey: string = subjectKey;
+
+    setIsStartingInvestigation(true);
+    setStartInvestigationError(null);
+
+    API.post<JSONObject>({
+      url: URL.fromString(
+        APP_API_URL.toString() + "/ai-investigation/investigate-now",
+      ),
+      data: { subjectType, subjectId: subjectIdString },
+      headers: ModelAPI.getCommonHeaders(),
+    })
+      .then((response: HTTPResponse<JSONObject> | HTTPErrorResponse) => {
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+      })
+      .catch((err: unknown) => {
+        if (
+          isMountedRef.current &&
+          activeSubjectKeyRef.current === startedForSubjectKey
+        ) {
+          setStartInvestigationError(
+            API.getFriendlyMessage(err) ||
+              translator.translateText(INVESTIGATE_NOW_FAILED) ||
+              INVESTIGATE_NOW_FAILED,
+          );
+        }
+      })
+      .finally(() => {
+        if (
+          !isMountedRef.current ||
+          activeSubjectKeyRef.current !== startedForSubjectKey
+        ) {
+          return;
+        }
+
+        setIsStartingInvestigation(false);
+        // Started or not, the card reads where it stands now.
+        fetchDataSequentially().catch(() => {
+          // handled inside fetchData
+        });
+      });
+  };
 
   const refreshStatus: () => void = (): void => {
     setIsRefreshing(true);
@@ -1123,7 +1206,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   };
   let isFailed: boolean = true;
 
-  if (!hasRun) {
+  if (isWaiting) {
+    statusMeta = { text: INVESTIGATION_WAITING_STATUS, indicator: "waiting" };
+    isFailed = false;
+  } else if (!hasRun) {
     statusMeta = getInvestigationNotStartedStatus({
       isLoading: isCheckingStatus,
       hasError: hasFetchError,
@@ -1275,7 +1361,15 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {!hasRun ? (
+        {isWaiting && waitingInvestigation ? (
+          <InvestigationWaiting
+            subjectType={subjectType}
+            waiting={waitingInvestigation}
+            onStartNow={startInvestigationNow}
+            isStarting={isStartingInvestigation}
+            startError={startInvestigationError}
+          />
+        ) : !hasRun ? (
           <InvestigationNotStarted
             subjectType={subjectType}
             reason={isCheckingStatus ? null : notInvestigatedReason}
