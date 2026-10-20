@@ -6,19 +6,17 @@ import CodeApi, {
   CodeRepositoriesResponse,
   CodeRepositoryListItem,
 } from "../../Components/Code/CodeApi";
+import CodeAskBox, {
+  CODE_COLUMN_CLASS_NAME,
+} from "../../Components/Code/CodeAskBox";
+import { CodeConnectGitHubFix } from "../../Components/Code/CodeBlockerNotice";
 import CodeTaskList from "../../Components/Code/CodeTaskList";
 import {
   ConnectGitHubEmptyState,
-  ConnectMoreRepositoriesButton,
   useGitHubConnect,
   UseGitHubConnect,
 } from "../../Components/Code/GitHubConnect";
-import RepositoryCard, {
-  getRepositoryFullName,
-} from "../../Components/Code/RepositoryCard";
-import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -27,66 +25,55 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
-// A search box appears once there are more repositories than fit at a glance.
-export const REPOSITORY_SEARCH_THRESHOLD: number = 6;
-
-/*
- * The most recently active repositories first, then by name: what a person
- * opens Code for is usually where work is happening.
- */
-export const sortRepositories: (
+// The repositories' names by id, for task rows across repositories.
+export const getRepositoryNames: (
   repositories: Array<CodeRepositoryListItem>,
-) => Array<CodeRepositoryListItem> = (
+) => Map<string, string> = (
   repositories: Array<CodeRepositoryListItem>,
-): Array<CodeRepositoryListItem> => {
-  return [...repositories].sort(
-    (a: CodeRepositoryListItem, b: CodeRepositoryListItem): number => {
-      const activityA: number = a.stats.lastActivityAt
-        ? new Date(a.stats.lastActivityAt).getTime()
-        : 0;
-      const activityB: number = b.stats.lastActivityAt
-        ? new Date(b.stats.lastActivityAt).getTime()
-        : 0;
-
-      if (activityA !== activityB) {
-        return activityB - activityA;
-      }
-
-      return a.name.localeCompare(b.name);
-    },
+): Map<string, string> => {
+  return new Map<string, string>(
+    repositories.map((repository: CodeRepositoryListItem): [string, string] => {
+      return [repository.id, repository.name];
+    }),
   );
 };
 
-// Whether a repository's name, or its organization/name, holds the search.
-export const matchesRepositorySearch: (
-  repository: CodeRepositoryListItem,
-  search: string,
-) => boolean = (
-  repository: CodeRepositoryListItem,
-  search: string,
-): boolean => {
-  const needle: string = search.trim().toLowerCase();
-
-  if (!needle) {
-    return true;
+/*
+ * What connecting GitHub from the request box does on this page, where
+ * GitHub sends the browser back: the install, or why the reader may not.
+ * Nothing on a server with no GitHub App - the box links Repositories,
+ * which says what the server needs.
+ */
+export const getConnectGitHubFix: (
+  connection: UseGitHubConnect,
+) => CodeConnectGitHubFix | undefined = (
+  connection: UseGitHubConnect,
+): CodeConnectGitHubFix | undefined => {
+  if (!connection.isGitHubAppConfigured) {
+    return undefined;
   }
 
-  return (
-    repository.name.toLowerCase().includes(needle) ||
-    getRepositoryFullName(repository).toLowerCase().includes(needle) ||
-    (repository.description || "").toLowerCase().includes(needle)
-  );
+  return {
+    onConnect: connection.connect,
+    lockReason: connection.connectLock.isLocked
+      ? connection.connectLock.reason
+      : undefined,
+  };
 };
 
 /*
- * Code's first page: the project's repositories, each with what matters at
- * a glance, and the way to connect more. With none yet, the page is one
- * thing: what Code is for, and Connect GitHub. Tasks that never found a
- * repository (an exception fix that matched none) are listed under them,
- * so no task is out of reach.
+ * Code's first page, the way coding agents open: the question - "What
+ * should AI do?" - over one box to ask it in, with the repository and the
+ * branch picked in the box, and every task under it, newest first, across
+ * the repositories. The repositories themselves are a page of their own
+ * (Repositories), and something to pick here, not what the page is about.
+ *
+ * With no repository yet, the page is one thing: what Code is for, and
+ * Connect GitHub. GitHub sends the browser back here once it is connected.
  */
 const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -95,7 +82,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [data, setData] = useState<CodeRepositoriesResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [search, setSearch] = useState<string>("");
+  const [taskCount, setTaskCount] = useState<number | null>(null);
 
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -129,11 +116,55 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
   }, [load, isPlanAccessible]);
 
-  const repositories: Array<CodeRepositoryListItem> = sortRepositories(
-    data?.repositories || [],
-  ).filter((repository: CodeRepositoryListItem): boolean => {
-    return matchesRepositorySearch(repository, search);
-  });
+  const repositories: Array<CodeRepositoryListItem> = useMemo(() => {
+    return data?.repositories || [];
+  }, [data]);
+
+  const repositoryNames: Map<string, string> = useMemo(() => {
+    return getRepositoryNames(repositories);
+  }, [repositories]);
+
+  /*
+   * Every task the reader may read, newest first, under the box. With none
+   * yet the box suggests what to ask instead, so no empty list sits beside
+   * it.
+   */
+  const renderTasks: () => ReactElement = (): ReactElement => {
+    return (
+      <section
+        data-testid="code-tasks"
+        aria-labelledby="code-tasks-heading"
+        className={taskCount === 0 ? "hidden" : "mt-10"}
+      >
+        <h2
+          id="code-tasks-heading"
+          className="flex items-baseline gap-2 px-1 text-sm font-semibold text-gray-900"
+        >
+          {translator.translateText("Tasks")}
+          {taskCount ? (
+            <span
+              data-testid="code-tasks-count"
+              className="text-sm font-normal text-gray-500"
+            >
+              {translator.formatNumber(taskCount)}
+            </span>
+          ) : (
+            <></>
+          )}
+        </h2>
+        <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <CodeTaskList
+            scope={{ allRepositories: true }}
+            repositoryNames={repositoryNames}
+            onCount={(count: number) => {
+              setTaskCount(count);
+            }}
+            emptyState={<></>}
+          />
+        </div>
+      </section>
+    );
+  };
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (!isPlanAccessible) {
@@ -143,32 +174,32 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     if (isLoading && !data) {
       return (
         <div
-          data-testid="code-repositories-loading"
+          data-testid="code-home-loading"
           role="status"
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          className={`${CODE_COLUMN_CLASS_NAME} pt-4 sm:pt-10`}
         >
           <span className="sr-only">
             {translator.translateText("Loading…")}
           </span>
-          {/* Cards shaped like the ones on their way: a mark, a name, a line of facts. */}
-          {[0, 1, 2].map((index: number) => {
-            return (
-              <div
-                key={index}
-                aria-hidden="true"
-                className="flex h-36 flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-gray-100 motion-safe:animate-pulse" />
-                  <div className="flex-1 space-y-2 pt-1">
-                    <div className="h-3.5 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
-                    <div className="h-3 w-1/3 rounded bg-gray-100 motion-safe:animate-pulse" />
-                  </div>
-                </div>
-                <div className="mt-auto h-3 w-2/3 rounded bg-gray-100 motion-safe:animate-pulse" />
-              </div>
-            );
-          })}
+          {/* A box and rows in the making, where they will be. */}
+          <div
+            aria-hidden="true"
+            className="mx-auto h-7 w-56 rounded-lg bg-gray-100 motion-safe:animate-pulse"
+          />
+          <div
+            aria-hidden="true"
+            className="mt-6 h-40 rounded-2xl border border-gray-200 bg-white shadow-sm"
+          />
+          <div aria-hidden="true" className="mt-10 space-y-3">
+            {[0, 1, 2].map((index: number) => {
+              return (
+                <div
+                  key={index}
+                  className="h-12 rounded-lg bg-gray-100 motion-safe:animate-pulse"
+                />
+              );
+            })}
+          </div>
         </div>
       );
     }
@@ -188,84 +219,34 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
     if (!data || data.repositories.length === 0) {
       return (
-        <div className="space-y-6">
+        <div className={`${CODE_COLUMN_CLASS_NAME} pt-2 sm:pt-6`}>
           <ConnectGitHubEmptyState connection={connection} />
-          {data && data.tasksWithoutRepositoryCount > 0 ? (
-            <TasksWithoutRepository />
-          ) : (
-            <></>
-          )}
+          {/* Tasks that never found a repository stay readable. */}
+          {data && data.tasksWithoutRepositoryCount > 0 ? renderTasks() : <></>}
         </div>
       );
     }
 
     return (
-      <div className="space-y-6">
-        <section aria-labelledby="code-repositories-heading">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <h2
-              id="code-repositories-heading"
-              className="text-base font-semibold text-gray-900"
-            >
-              {translator.translateText("Repositories")}
-              <span className="ml-2 text-sm font-normal text-gray-500">
-                {data.repositories.length}
-              </span>
-            </h2>
-            <div className="ml-auto flex flex-wrap items-center gap-2 max-sm:w-full">
-              {data.repositories.length > REPOSITORY_SEARCH_THRESHOLD ? (
-                <div className="relative max-sm:w-full">
-                  <Icon
-                    icon={IconProp.Search}
-                    className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    type="search"
-                    data-testid="code-repository-search"
-                    aria-label={translator.translateText("Find a repository")}
-                    placeholder={translator.translateText("Find a repository")}
-                    value={search}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                      setSearch(event.target.value);
-                    }}
-                    className="w-56 rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-sm:w-full"
-                  />
-                </div>
-              ) : (
-                <></>
-              )}
-              <ConnectMoreRepositoriesButton connection={connection} />
-            </div>
-          </div>
+      <div
+        data-testid="code-home"
+        className={`${CODE_COLUMN_CLASS_NAME} pb-10 pt-2 sm:pt-10`}
+      >
+        <h1
+          data-testid="code-home-heading"
+          className="mb-6 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mb-8 sm:text-3xl"
+        >
+          {translator.translateText("What should AI do?")}
+        </h1>
 
-          {repositories.length > 0 ? (
-            <ul
-              data-testid="code-repositories"
-              className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-            >
-              {repositories.map((repository: CodeRepositoryListItem) => {
-                return (
-                  <li key={repository.id}>
-                    <RepositoryCard repository={repository} />
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p
-              data-testid="code-repository-search-empty"
-              className="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500"
-            >
-              {translator.translateText("No repository matches your search.")}
-            </p>
-          )}
-        </section>
+        <CodeAskBox
+          repositories={repositories}
+          isLarge={true}
+          showExamples={taskCount === 0}
+          connectGitHub={getConnectGitHubFix(connection)}
+        />
 
-        {data.tasksWithoutRepositoryCount > 0 ? (
-          <TasksWithoutRepository />
-        ) : (
-          <></>
-        )}
+        {renderTasks()}
       </div>
     );
   };
@@ -276,42 +257,6 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {connection.notices}
       {renderBody()}
     </div>
-  );
-};
-
-/*
- * Tasks with no repository: fixes that never found one, and tasks whose
- * repository was removed. Kept on Code's first page, below the
- * repositories, so their outcome stays readable.
- */
-const TasksWithoutRepository: FunctionComponent = (): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  return (
-    <section
-      data-testid="code-tasks-without-repository"
-      aria-labelledby="code-tasks-without-repository-heading"
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <div className="border-b border-gray-100 px-4 py-3.5 sm:px-5">
-        <h2
-          id="code-tasks-without-repository-heading"
-          className="text-base font-semibold text-gray-900"
-        >
-          {translator.translateText("Other tasks")}
-        </h2>
-        <p className="mt-0.5 text-sm text-gray-500">
-          {translator.translateText(
-            "Tasks that are not linked to a repository: fixes that found none, and tasks whose repository was removed.",
-          )}
-        </p>
-      </div>
-      <CodeTaskList
-        repositoryId={null}
-        dataTestId="code-other-task-list"
-        emptyState={<></>}
-      />
-    </section>
   );
 };
 

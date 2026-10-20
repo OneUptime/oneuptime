@@ -46,6 +46,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} alarm",
+    "{{count}} repository",
     "{{count}} samples",
     "{{tokens}} tokens"
   ]

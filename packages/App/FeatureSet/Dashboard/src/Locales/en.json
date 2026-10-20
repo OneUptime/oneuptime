@@ -32121,5 +32121,16 @@
   "Custom headers": "Custom headers",
   "Show all {{count}} tools": "Show all {{count}} tools",
   "Show all {{count}} tools_one": "Show all {{count}} tool",
-  "The changes of this fix could not be shown.": "The changes of this fix could not be shown."
+  "The changes of this fix could not be shown.": "The changes of this fix could not be shown.",
+  "Default branch": "Default branch",
+  "Find a branch": "Find a branch",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "Lines added: {{additions}}, lines removed: {{deletions}}",
+  "Loading branches…": "Loading branches…",
+  "No branch matches your search.": "No branch matches your search.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime could not read this repository's branches from GitHub.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.",
+  "Type a branch's name to find one that is not listed.": "Type a branch's name to find one that is not listed.",
+  "{{count}} repositories": "{{count}} repositories",
+  "{{count}} repositories_one": "{{count}} repository"
 }

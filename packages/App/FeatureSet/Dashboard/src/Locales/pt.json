@@ -32121,5 +32121,16 @@
   "Custom headers": "Cabeçalhos personalizados",
   "Show all {{count}} tools": "Mostrar todas as {{count}} ferramentas",
   "Show all {{count}} tools_one": "Mostrar {{count}} ferramenta",
-  "The changes of this fix could not be shown.": "Não foi possível mostrar as alterações desta correção."
+  "The changes of this fix could not be shown.": "Não foi possível mostrar as alterações desta correção.",
+  "Default branch": "Ramo padrão",
+  "Find a branch": "Encontrar um ramo",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "O GitHub não está conectado a este projeto, por isso a IA não pode trabalhar nestes repositórios. Conecte o GitHub novamente para usá-los.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "Linhas adicionadas: {{additions}}, linhas removidas: {{deletions}}",
+  "Loading branches…": "Carregando ramos…",
+  "No branch matches your search.": "Nenhum ramo corresponde à sua pesquisa.",
+  "OneUptime could not read this repository's branches from GitHub.": "O OneUptime não conseguiu ler os ramos deste repositório no GitHub.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "Os repositórios do GitHub conectados a este projeto. Abra um para ver as tarefas e configurações dele, ou conecte mais.",
+  "Type a branch's name to find one that is not listed.": "Digite o nome de um ramo para encontrar um que não está na lista.",
+  "{{count}} repositories": "{{count}} repositórios",
+  "{{count}} repositories_one": "{{count}} repositório"
 }

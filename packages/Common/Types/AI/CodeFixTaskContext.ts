@@ -1,7 +1,7 @@
 import GitHubCommandType, {
   GitHubCommentKind,
 } from "../CodeRepository/GitHubCommand";
-import { CodeTaskRequest } from "./CodeTask";
+import { CodeTaskBranchName, CodeTaskRequest } from "./CodeTask";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -229,10 +229,24 @@ export function getCodeTaskRequest(
     return null;
   }
 
-  return {
+  const result: CodeTaskRequest = {
     message: request.message,
     context: Array.isArray(request.context) ? request.context : [],
   };
+
+  /*
+   * The branch the person picked to start from, kept only when git would
+   * take it: whatever reads it (the Runner's brief, the conversation) gets
+   * a branch name or nothing.
+   */
+  if (
+    typeof request.baseBranch === "string" &&
+    CodeTaskBranchName.isValid(request.baseBranch)
+  ) {
+    result.baseBranch = request.baseBranch;
+  }
+
+  return result;
 }
 
 /*

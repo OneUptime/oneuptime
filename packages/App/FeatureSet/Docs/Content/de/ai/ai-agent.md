@@ -1,6 +1,6 @@
 # Code
 
-Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeiten, so wie Sie einen Coding-Agenten bitten würden: einen Fehler beheben, Tests schreiben, den Code erklären, eine Änderung vornehmen. Code öffnet sich mit Ihren verbundenen Repositorys; die Seite eines Repositorys enthält seine Aufgaben und das Feld, in dem Sie fragen; die Seite einer Aufgabe ist eine Unterhaltung, in der Sie antworten können. OneUptime startet auch selbst Aufgaben, aus Ausnahmen, Traces und Untersuchungen. Ein [Runner](/docs/runbooks/agents) klont das Repository, schreibt die Änderung in einen neuen Branch, baut und testet sie und öffnet einen Pull Request. Jeden davon prüft und mergt ein Mensch: Der Runner kann Branches pushen und Pull Requests öffnen, mehr nicht.
+Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeiten, so wie Sie einen Coding-Agenten bitten würden: einen Fehler beheben, Tests schreiben, den Code erklären, eine Änderung vornehmen. Code öffnet sich mit dem Feld, in dem Sie fragen, mit dem darin ausgewählten Repository und Branch und allen Aufgaben darunter; die Seite einer Aufgabe ist eine Unterhaltung, in der Sie antworten können. OneUptime startet auch selbst Aufgaben, aus Ausnahmen, Traces und Untersuchungen. Ein [Runner](/docs/runbooks/agents) klont das Repository, schreibt die Änderung in einen neuen Branch, baut und testet sie und öffnet einen Pull Request. Jeden davon prüft und mergt ein Mensch: Der Runner kann Branches pushen und Pull Requests öffnen, mehr nicht.
 
 :::cards
 - [KI in einem Repository bitten](#ki-in-einem-repository-bitten): Eine Anfrage in Ihren eigenen Worten, mit dem Kontext, den sie braucht.
@@ -18,13 +18,17 @@ Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeit
 ## KI in einem Repository bitten
 
 :::steps
-### Ein Repository öffnen
+### Code öffnen
 
-Öffnen Sie **Produkte → Code**. Dort stehen die Repositorys des Projekts, jedes mit den Aufgaben, an denen die KI arbeitet, denen, die auf Sie warten, und seinen offenen Pull Requests. Gibt es noch keines, bietet Code **GitHub verbinden** an (siehe [Bevor Sie beginnen](#bevor-sie-beginnen)).
+Öffnen Sie **Produkte → Code**. Code öffnet sich mit **Was soll die KI tun?**: dem Feld, in dem Sie fragen, mit allen Aufgaben darunter, die neueste zuerst. Gibt es noch kein Repository, bietet Code stattdessen **GitHub verbinden** an (siehe [Bevor Sie beginnen](#bevor-sie-beginnen)). **Repositorys** im Seitenmenü listet die verbundenen Repositorys auf, und die Seite jedes Repositorys hat dasselbe Feld für dieses Repository.
+
+### Repository und Branch auswählen
+
+Das Feld beginnt mit dem Repository, das Sie zuletzt ausgewählt haben. Wählen Sie in seiner unteren Zeile ein anderes aus und daneben den Branch, von dem die Aufgabe ausgeht: den Hauptbranch des Repositorys, markiert mit **Standard**, bis Sie einen anderen auswählen. Die KI zweigt ihren Branch von dem ausgewählten ab und öffnet ihren Pull Request in ihn.
 
 ### Sagen, was Sie möchten
 
-Schreiben Sie auf der Seite des Repositorys die Änderung, den Fehler oder die Frage in Ihren eigenen Worten. Ein Repository ohne Aufgabe schlägt unter **Zum Beispiel** einige vor.
+Schreiben Sie die Änderung, den Fehler oder die Frage in Ihren eigenen Worten. Solange noch nichts gefragt wurde, schlägt Code unter **Zum Beispiel** einige vor.
 
 ### Kontext hinzufügen
 
@@ -51,7 +55,7 @@ Eine Anfrage trägt höchstens 10 Kontextelemente. Token, Schlüssel, Passwörte
 
 ## Die Unterhaltung einer Aufgabe
 
-Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kontext hinzugefügt wurde, dann der Zug der KI – die Schritte, während sie sie ausführt (die Dateien, die sie gelesen und bearbeitet hat, wonach sie gesucht hat, die Befehle, die sie ausgeführt hat), ihre Antwort, die geänderten Dateien mit ihrem Diff und der Pull Request. Oben auf der Seite steht, wie es um die Aufgabe steht:
+Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kontext hinzugefügt wurde, dann der Zug der KI – die Schritte, während sie sie ausführt (die Dateien, die sie gelesen und bearbeitet hat, wonach sie gesucht hat, die Befehle, die sie ausgeführt hat), ihre Antwort, die geänderten Dateien mit ihrem Diff und der Pull Request. Oben auf der Seite steht, wo die Aufgabe arbeitet (ihr Repository und der Branch, von dem sie ausging), wie viele Zeilen sie geändert hat, mit einer Schaltfläche zu ihrem Pull Request, und wie es um die Aufgabe steht:
 
 | Status | Was er bedeutet |
 | --- | --- |
@@ -62,7 +66,7 @@ Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kon
 | **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum. **Erneut versuchen** fragt dasselbe noch einmal. |
 | **Gestoppt** | Jemand hat sie gestoppt. **Erneut versuchen** fragt dasselbe noch einmal. |
 
-Um nachzufassen, schreiben Sie in das Feld unten: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat.
+Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während die Unterhaltung scrollt: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat.
 
 Wer ein Repository lesen darf, liest seine Aufgaben. Die KI bitten, antworten und eine Aufgabe stoppen erfordern die Berechtigung, das Repository zu bearbeiten, ebenso das Ansehen des Diffs einer Änderung: Alle anderen sehen, welche Dateien sich geändert haben. Die Aufgaben, die OneUptime selbst startet (unten), stehen ebenfalls in ihrem Repository, als Unterhaltungen, in denen Sie antworten können.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["Ein Mensch prüft<br/>und mergt ihn"]
 ```
 
-1. Sie klicken in einem Repository auf **Aufgabe starten** oder bei einer ungelösten Ausnahme auf **Mit KI beheben**, oder eine andere Schaltfläche oder ein Auslöser startet eine Aufgabe (siehe [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten)).
+1. Sie klicken in Code auf **Aufgabe starten** oder bei einer ungelösten Ausnahme auf **Mit KI beheben**, oder eine andere Schaltfläche oder ein Auslöser startet eine Aufgabe (siehe [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten)).
 2. Die Aufgabe wird für ihr Repository eingereiht, und der Runner, den das Repository auswählt, übernimmt sie: einer Ihrer Runner oder ein globaler Runner, wenn es keinen auswählt (siehe [Den Runner des Repositorys auswählen](#den-runner-des-repositorys-auswählen)).
 3. Der Runner holt den Kontext der Aufgabe. Bei einer Anfrage sind das ihre Worte, der hinzugefügte Kontext und die bisherige Unterhaltung; bei einer Ausnahme ihr Typ, ihre Meldung und ihr Stack-Trace.
-4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs. Eine Antwort arbeitet stattdessen im Branch des offenen Pull Requests der Aufgabe.
+4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs. Eine Anfrage geht von dem Branch aus, der beim Fragen ausgewählt wurde, und ihr Pull Request öffnet sich in ihn. Eine Antwort arbeitet stattdessen im Branch des offenen Pull Requests der Aufgabe.
 5. Ein Code-Agent, angetrieben vom LLM-Anbieter Ihres Projekts, liest den Code und schreibt die Änderung. Der OneUptime-Server führt die LLM-Aufrufe aus, sodass der Runner den API-Schlüssel Ihres Anbieters nie besitzt, und jeder Aufruf wird gemessen und in den KI-Protokollen aufgeführt. Eine Korrektur einer Ausnahme, eines langsamen Traces oder eines Vorfalls liest während der Arbeit auch Daten aus der Produktion: die Ausnahmen, Traces, Logs und Metriken der Dienste des Repositorys (siehe [Produktionstelemetrie in einer Korrektur](#produktionstelemetrie-in-einer-korrektur)).
 6. Hat das Repository Prüfbefehle, baut und testet ein eigener Runner die Änderung, bevor er etwas committet, und gibt einen Fehler zur Reparatur an den Code-Agenten zurück (siehe [Prüfung vor dem Pull Request](#prüfung-vor-dem-pull-request)).
 7. Der Runner committet, pusht den Branch, öffnet den Pull Request (bei einer Anfrage nur, wenn sie Code geändert hat) und löscht den Arbeitsbereich.
@@ -177,7 +181,7 @@ Bis ein Deploy sie ausliefert, steht bei der Korrektur **Gemergt, wartet auf ein
 
 ## Bevor Sie beginnen
 
-Eine Aufgabe braucht drei Dinge. Die Seite eines Repositorys in Code und die Seite **KI-Unterstützung** der Ausnahme prüfen alle drei, bevor sie den Start anbieten, und sagen, was fehlt.
+Eine Aufgabe braucht drei Dinge. Das Anfragefeld von Code und die Seite **KI-Unterstützung** der Ausnahme prüfen alle drei, bevor sie den Start anbieten, und sagen, was fehlt.
 
 | Was | OneUptime Cloud | Selbst gehostet |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Alles andere entspricht der Schaltfläche:
 ## Wenn eine Korrektur fehlschlägt
 
 :::details Der Lauf schlägt fehl
-Die Korrektur ließ sich nicht anwenden, das Repository war nicht erreichbar oder der LLM-Aufruf schlug fehl. Die Unterhaltung der Aufgabe und die Seite, auf der sie gestartet wurde, zeigen den Grund und bieten einen neuen Versuch an. Das **Protokoll** des Durchgangs enthält das vollständige Laufprotokoll.
+Die Korrektur ließ sich nicht anwenden, das Repository oder der Branch, von dem eine Anfrage ausging, war nicht erreichbar, oder der LLM-Aufruf schlug fehl. Die Unterhaltung der Aufgabe und die Seite, auf der sie gestartet wurde, zeigen den Grund und bieten einen neuen Versuch an. Das **Protokoll** des Durchgangs enthält das vollständige Laufprotokoll.
 :::
 
 :::details Der Runner bleibt mitten im Lauf stehen

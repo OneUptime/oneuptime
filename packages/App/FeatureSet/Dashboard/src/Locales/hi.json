@@ -32121,5 +32121,16 @@
   "Custom headers": "कस्टम हेडर",
   "Show all {{count}} tools": "सभी {{count}} टूल दिखाएँ",
   "Show all {{count}} tools_one": "{{count}} टूल दिखाएँ",
-  "The changes of this fix could not be shown.": "इस सुधार के बदलाव नहीं दिखाए जा सके।"
+  "The changes of this fix could not be shown.": "इस सुधार के बदलाव नहीं दिखाए जा सके।",
+  "Default branch": "डिफ़ॉल्ट ब्रांच",
+  "Find a branch": "ब्रांच खोजें",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub इस प्रोजेक्ट से जुड़ा नहीं है, इसलिए AI इन रिपॉजिटरी में काम नहीं कर सकता। इन्हें इस्तेमाल करने के लिए GitHub फिर से जोड़ें।",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "जोड़ी गई पंक्तियाँ: {{additions}}, हटाई गई पंक्तियाँ: {{deletions}}",
+  "Loading branches…": "ब्रांच लोड हो रही हैं…",
+  "No branch matches your search.": "आपकी खोज से कोई ब्रांच मेल नहीं खाती।",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime GitHub से इस रिपॉजिटरी की ब्रांच नहीं पढ़ सका।",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "इस प्रोजेक्ट से जुड़ी GitHub रिपॉजिटरी। किसी एक को खोलकर उसके कार्य और सेटिंग्स देखें, या और जोड़ें।",
+  "Type a branch's name to find one that is not listed.": "जो ब्रांच सूची में नहीं है, उसे खोजने के लिए उसका नाम लिखें।",
+  "{{count}} repositories": "{{count}} रिपॉजिटरी",
+  "{{count}} repositories_one": "{{count}} रिपॉजिटरी"
 }

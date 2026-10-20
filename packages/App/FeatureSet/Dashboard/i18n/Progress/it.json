@@ -27,6 +27,7 @@
     "Pull request #{{number}}",
     "Record",
     "Report",
+    "Repository",
     "Runbook: {{name}}",
     "Runner",
     "Runtime",
@@ -44,6 +45,7 @@
     "tag",
     "{{count}} B",
     "{{count}} KB",
-    "{{count}} MB"
+    "{{count}} MB",
+    "{{count}} repository"
   ]
 }

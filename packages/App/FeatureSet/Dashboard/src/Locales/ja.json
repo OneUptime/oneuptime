@@ -32121,5 +32121,16 @@
   "Custom headers": "カスタムヘッダー",
   "Show all {{count}} tools": "{{count}} 個のツールをすべて表示",
   "Show all {{count}} tools_one": "{{count}} 個のツールをすべて表示",
-  "The changes of this fix could not be shown.": "この修正の変更内容を表示できませんでした。"
+  "The changes of this fix could not be shown.": "この修正の変更内容を表示できませんでした。",
+  "Default branch": "デフォルトブランチ",
+  "Find a branch": "ブランチを検索",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub がこのプロジェクトに接続されていないため、AI はこれらのリポジトリで作業できません。使うには GitHub をもう一度接続してください。",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "追加された行: {{additions}}、削除された行: {{deletions}}",
+  "Loading branches…": "ブランチを読み込み中…",
+  "No branch matches your search.": "検索に一致するブランチはありません。",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime は GitHub からこのリポジトリのブランチを読み取れませんでした。",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "このプロジェクトに接続された GitHub リポジトリです。開くとタスクと設定を確認でき、さらに接続することもできます。",
+  "Type a branch's name to find one that is not listed.": "一覧にないブランチは、名前を入力して検索してください。",
+  "{{count}} repositories": "{{count}} 件のリポジトリ",
+  "{{count}} repositories_one": "{{count}} repository"
 }

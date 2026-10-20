@@ -12,6 +12,7 @@
     "Alarm",
     "App",
     "Apps",
+    "Branch",
     "Budget",
     "Capture",
     "Chats",
@@ -50,6 +51,7 @@
     "Pull request #{{number}}",
     "Record",
     "Records",
+    "Repository",
     "Runbook: {{name}}",
     "Runner",
     "Runtime",
@@ -88,6 +90,7 @@
     "{{count}} incident",
     "{{count}} open pull requests",
     "{{count}} product",
+    "{{count}} repository",
     "{{count}} samples",
     "{{field}} is {{value}}",
     "{{tokens}} tokens"

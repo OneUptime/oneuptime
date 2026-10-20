@@ -32121,5 +32121,16 @@
   "Custom headers": "사용자 지정 헤더",
   "Show all {{count}} tools": "도구 {{count}}개 모두 보기",
   "Show all {{count}} tools_one": "도구 {{count}}개 모두 보기",
-  "The changes of this fix could not be shown.": "이 수정의 변경 사항을 표시할 수 없습니다."
+  "The changes of this fix could not be shown.": "이 수정의 변경 사항을 표시할 수 없습니다.",
+  "Default branch": "기본 브랜치",
+  "Find a branch": "브랜치 찾기",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub가 이 프로젝트에 연결되어 있지 않아 AI가 이 저장소에서 작업할 수 없습니다. 사용하려면 GitHub를 다시 연결하세요.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "추가된 줄: {{additions}}, 삭제된 줄: {{deletions}}",
+  "Loading branches…": "브랜치를 불러오는 중…",
+  "No branch matches your search.": "검색과 일치하는 브랜치가 없습니다.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime이 GitHub에서 이 저장소의 브랜치를 읽지 못했습니다.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "이 프로젝트에 연결된 GitHub 저장소입니다. 저장소를 열어 작업과 설정을 보거나 더 연결하세요.",
+  "Type a branch's name to find one that is not listed.": "목록에 없는 브랜치를 찾으려면 브랜치 이름을 입력하세요.",
+  "{{count}} repositories": "저장소 {{count}}개",
+  "{{count}} repositories_one": "{{count}} repository"
 }

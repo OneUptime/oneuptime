@@ -1,9 +1,11 @@
 /*
- * Offline fixture for Code: the project's repositories (Pages/Code/Code), a
- * repository's page where AI is asked (Pages/Code/Repository/Tasks), its
- * settings, a task's conversation (Pages/Code/Task/Conversation) and its Log
- * - the production route group (Routes/CodeRoutes) with its layouts, side
- * menus and breadcrumbs, and the old Tasks and Code Repositories addresses
+ * Offline fixture for Code: its first page - the request box, with the
+ * repository and branch pickers, over every task (Pages/Code/Code) - the
+ * connected repositories (Pages/Code/Repositories), a repository's page
+ * where AI is asked (Pages/Code/Repository/Tasks), its settings, a task's
+ * conversation (Pages/Code/Task/Conversation) and its Log - the production
+ * route group (Routes/CodeRoutes) with its layouts, side menus and
+ * breadcrumbs, and the old Tasks and Code Repositories addresses
  * (Routes/MovedTaskRoutes, Routes/MovedRepositoryRoutes) that forward to it.
  *
  * Only the data boundary is replaced: API.post / API.get (the /code-task
@@ -20,6 +22,15 @@
  *   - repos=none        no repository yet: Code's first page teaches what it
  *                       is for and offers Connect GitHub; many: 8, so the
  *                       search box shows
+ *   - connected=none    GitHub reaches none of the repositories (the
+ *                       project's GitHub connection is gone)
+ *   - tasks=none        no task yet in any repository
+ *   - names=long        checkout-api goes by a long name (and a long
+ *                       organization), and has a long branch, for the
+ *                       request box's pickers and the rows to cut short
+ *   - branches=many     checkout-api has more branches than one read of
+ *                       them holds (140), so the branch picker searches the
+ *                       server by what is typed
  *   - other=1           tasks that have no repository (Other tasks)
  *   - github=unconfigured  a server with no GitHub App (server.js)
  *   - plan=free         billing on and the Free plan: the plan gate answers
@@ -37,7 +48,7 @@
  *                       next read moves it on (default 1000, so a task is
  *                       seen queued first and then moves one stage a poll)
  *   - refuse=create|reply  the server refuses that send (its sentence)
- *   - fail=repositories|repository|list|task  that read fails
+ *   - fail=repositories|repository|list|task|branches  that read fails
  *   - runner=prod|gone  the Runner checkout-api picks in its settings:
  *                       prod-eu-west-1, or one the page is not shown (a
  *                       Runner the reader does not have access to); by
@@ -51,8 +62,10 @@
  *
  * What the pages send is recorded on window.__fixture: `creates`,
  * `replies`, `retries`, `stops`, `settings` (each repository update),
- * `deletes` and `navigations` (addresses outside the Dashboard, such as
- * GitHub's), so the spec checks what was sent, not only what was drawn.
+ * `deletes`, `navigations` (addresses outside the Dashboard, such as
+ * GitHub's), `branchReads` (each read of a repository's branches, with what
+ * was searched) and `lists` (each task list read, by its scope), so the
+ * spec checks what was sent, not only what was drawn.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -157,6 +170,10 @@ const globalCodeRunnerStatus =
   params.get("gstatus") === "disconnected" ? "disconnected" : "connected";
 const hasGlobalCodeRunner = params.get("global") !== "0";
 const reposParam = params.get("repos") || "some";
+const isGitHubGone = params.get("connected") === "none";
+const hasNoTasks = params.get("tasks") === "none";
+const hasManyBranches = params.get("branches") === "many";
+const hasLongNames = params.get("names") === "long";
 const blockerParam = params.get("blocker");
 const aiParam = params.get("ai") || "done";
 const refuseParam = params.get("refuse");
@@ -181,6 +198,8 @@ window.__fixture = {
   settings: [],
   deletes: [],
   navigations: [],
+  branchReads: [],
+  lists: [],
   reads: { task: 0, list: 0, repositories: 0, repository: 0 },
 };
 
@@ -255,6 +274,54 @@ const repositories =
           }),
         ]
       : BASE_REPOSITORIES;
+
+// GitHub's connection to the project is gone: no repository is reached.
+// Names long enough that the request box and the rows must cut them short.
+const LONG_REPOSITORY_NAME = "checkout-and-payments-platform-api-service";
+const LONG_BRANCH_NAME =
+  "feature/very-long-branch-name-for-the-new-checkout-flow-with-apple-pay";
+if (hasLongNames && repositories[0]) {
+  repositories[0].name = LONG_REPOSITORY_NAME;
+  repositories[0].organizationName = "acme-commerce-engineering";
+  repositories[0].repositoryName = LONG_REPOSITORY_NAME;
+}
+
+if (isGitHubGone) {
+  for (const repository of repositories) {
+    repository.isConnected = false;
+  }
+}
+
+/*
+ * Each repository's branches on GitHub, its main branch among them. With
+ * branches=many, checkout-api has 140: more than one read of them holds.
+ */
+const BRANCHES_BY_REPOSITORY = {
+  [REPOSITORY_IDS.checkout]: hasManyBranches
+    ? [
+        "main",
+        ...Array.from({ length: 139 }, (_value, index) => {
+          return `feature/task-${String(index + 1).padStart(3, "0")}`;
+        }),
+      ]
+    : [
+        ...(hasLongNames ? [LONG_BRANCH_NAME] : []),
+        "chore/node-22",
+        "feature/coupon-tests",
+        "fix/gateway-timeout",
+        "main",
+        "release/2026-10",
+      ],
+  [REPOSITORY_IDS.web]: ["main", "redesign/checkout-page"],
+  [REPOSITORY_IDS.payments]: ["master"],
+};
+
+// What one read of a repository's branches holds, as the server's page.
+const BRANCH_PAGE_SIZE = 100;
+
+function branchesOf(repository) {
+  return BRANCHES_BY_REPOSITORY[repository.id] || [repository.mainBranchName];
+}
 
 const settingsByRepository = {};
 for (const repository of repositories) {
@@ -720,10 +787,11 @@ const tasks = [
   },
 ].filter((task) => {
   return (
-    !task.repositoryId ||
-    repositories.some((repository) => {
-      return repository.id === task.repositoryId;
-    })
+    !hasNoTasks &&
+    (!task.repositoryId ||
+      repositories.some((repository) => {
+        return repository.id === task.repositoryId;
+      }))
   );
 });
 
@@ -1024,7 +1092,29 @@ function summaryOf(task) {
   if (task.repositoryId) {
     summary.codeRepositoryId = task.repositoryId;
   }
+  const changes = changesOf(task);
+  if (changes) {
+    summary.changes = changes;
+  }
   return summary;
+}
+
+/*
+ * What a task changed over its turns, as the server adds it up
+ * (CodeTaskChangeStats): each file once, and every turn's lines.
+ */
+function changesOf(task) {
+  const paths = new Set();
+  let additions = 0;
+  let deletions = 0;
+  for (const item of task.turns) {
+    for (const file of (item.outcome && item.outcome.filesChanged) || []) {
+      paths.add(file.path);
+      additions += file.additions || 0;
+      deletions += file.deletions || 0;
+    }
+  }
+  return paths.size > 0 ? { files: paths.size, additions, deletions } : null;
 }
 
 function turnJSON(task, item, index, canSeeChanges) {
@@ -1233,10 +1323,21 @@ async function answer(path, body) {
 
   if (path === "/list") {
     window.__fixture.reads.list++;
+    window.__fixture.lists.push(
+      body.allRepositories
+        ? "all"
+        : body.withoutRepository
+          ? "none"
+          : body.repositoryId,
+    );
     if (failParam === "list") {
       return refused(500, "The tasks could not be read right now.");
     }
     const own = tasks.filter((task) => {
+      // Every task; those with no repository too, where the project has some.
+      if (body.allRepositories) {
+        return Boolean(task.repositoryId) || params.get("other") === "1";
+      }
       return body.withoutRepository
         ? !task.repositoryId
         : task.repositoryId === body.repositoryId;
@@ -1259,6 +1360,58 @@ async function answer(path, body) {
         totalCount: sorted.length,
         skip,
         limit,
+      },
+      {},
+    );
+  }
+
+  /*
+   * A repository's branches, as the server answers them: its main branch
+   * first, then the first page of the rest - or, searched, those that start
+   * with what was typed.
+   */
+  if (path.startsWith("/branches/")) {
+    const repositoryId = path.substring("/branches/".length);
+    const search = typeof body.search === "string" ? body.search : "";
+    window.__fixture.branchReads.push({ repositoryId, search });
+    const repository = repositories.find((item) => {
+      return item.id === repositoryId;
+    });
+    if (!repository) {
+      return refused(
+        404,
+        "Repository not found, or you do not have access to it.",
+      );
+    }
+    if (!CAN_ASK) {
+      return refused(403, BLOCKER_MESSAGES[CodeTaskBlockerType.NoPermission]);
+    }
+    if (!repository.isConnected) {
+      return refused(
+        400,
+        BLOCKER_MESSAGES[CodeTaskBlockerType.RepositoryNotConnected],
+      );
+    }
+    if (failParam === "branches") {
+      return refused(
+        400,
+        "OneUptime could not read this repository's branches from GitHub. Try again in a moment.",
+      );
+    }
+    const main = repository.mainBranchName;
+    const others = branchesOf(repository).filter((name) => {
+      return name !== main && (!search || name.startsWith(search));
+    });
+    const page = others.slice(0, BRANCH_PAGE_SIZE);
+    if (!search || main.startsWith(search)) {
+      page.unshift(main);
+    }
+    return new HTTPResponse(
+      200,
+      {
+        branches: page,
+        defaultBranch: main,
+        isComplete: others.length <= BRANCH_PAGE_SIZE,
       },
       {},
     );
@@ -1304,10 +1457,22 @@ async function answer(path, body) {
         "This project used its daily AI token limit of 2,000,000 tokens. AI starts again at midnight UTC.",
       );
     }
-    const firstTurn = newRequestTurn({
+    // A branch other than the main one must be on GitHub, as the server checks.
+    const branch = typeof body.branch === "string" ? body.branch : null;
+    if (branch && !branchesOf(repository).includes(branch)) {
+      return refused(
+        400,
+        "That branch is not in the repository on GitHub any more. Pick another branch.",
+      );
+    }
+    const request = {
       message: body.message,
       context: contextItemsOf(body.context),
-    });
+    };
+    if (branch && branch !== repository.mainBranchName) {
+      request.baseBranch = branch;
+    }
+    const firstTurn = newRequestTurn(request);
     const task = {
       id: firstTurn.runId,
       repositoryId: repository.id,
@@ -1343,7 +1508,11 @@ async function answer(path, body) {
     window.__fixture.retries.push(path.substring("/retry/".length));
     const task = findTask(path.substring("/retry/".length));
     const latest = task.turns[task.turns.length - 1];
-    const again = newRequestTurn(latest.request);
+    // The same words and context; the branch stays on the first turn.
+    const again = newRequestTurn({
+      message: latest.request.message,
+      context: latest.request.context,
+    });
     task.turns.push(again);
     return new HTTPResponse(200, { taskId: task.id, runId: again.runId }, {});
   }
