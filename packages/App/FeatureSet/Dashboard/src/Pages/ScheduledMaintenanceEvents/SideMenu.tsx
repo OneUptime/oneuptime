@@ -214,6 +214,23 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
+        /*
+         * The calendars from outside the project the Maintenance Calendar
+         * shows beside the events. Set up once, so here in the folded
+         * Settings rather than beside the calendar; before Numbering, which
+         * is every product's last Settings entry.
+         */
+        {
+          link: {
+            title: "Calendar Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Calendar,
+        },
         // How event numbers look (SM-42) and which comes next.
         {
           link: {
@@ -225,22 +242,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Hashtag,
-        },
-        /*
-         * The calendars from outside the project the Maintenance Calendar
-         * shows beside the events. Set up once, so here in the folded
-         * Settings rather than beside the calendar.
-         */
-        {
-          link: {
-            title: "Calendar Settings",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Settings,
         },
       ],
     },

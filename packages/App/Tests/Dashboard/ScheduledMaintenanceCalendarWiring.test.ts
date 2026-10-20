@@ -57,7 +57,9 @@ const TABLE: string = read(
 const SIDE_MENU: string = read("Pages/ScheduledMaintenanceEvents/SideMenu.tsx");
 const ROUTES: string = read("Routes/ScheduleMaintenanceEventsRoutes.tsx");
 const ROUTE_MAP: string = read("Utils/RouteMap.ts");
-const CALENDAR_PAGE: string = read("Pages/ScheduledMaintenanceEvents/Calendar.tsx");
+const CALENDAR_PAGE: string = read(
+  "Pages/ScheduledMaintenanceEvents/Calendar.tsx",
+);
 const ALL_EVENTS_PAGE: string = read(
   "Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents.tsx",
 );
@@ -144,23 +146,37 @@ describe("the side menu", () => {
     expect(section).not.toContain("defaultCollapsed");
   });
 
-  test("keeps Calendar Settings in the folded Settings section, last", () => {
+  test("keeps Calendar Settings in the folded Settings section, right before Numbering", () => {
     const settings: number = SIDE_MENU.indexOf('title: "Settings"');
     const calendarSettings: number = SIDE_MENU.indexOf(
       'title: "Calendar Settings"',
     );
+    const numbering: number = SIDE_MENU.indexOf('title: "Numbering"');
 
     expect(settings).toBeGreaterThan(-1);
     expect(calendarSettings).toBeGreaterThan(settings);
     expect(SIDE_MENU.slice(settings, calendarSettings)).toContain(
       "defaultCollapsed: true",
     );
-    expect(SIDE_MENU.slice(calendarSettings)).toContain(
+    expect(SIDE_MENU.slice(calendarSettings, numbering)).toContain(
       "PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR",
     );
-    // Nothing after it in the section: the next thing is the menu's end.
+    expect(SIDE_MENU.slice(calendarSettings, numbering)).toContain(
+      "icon: IconProp.Calendar",
+    );
+    /*
+     * Numbering is next, and every product's last Settings entry
+     * (NumberingPagesWiring): nothing comes after it in the section.
+     */
+    expect(numbering).toBeGreaterThan(calendarSettings);
     expect(
-      SIDE_MENU.slice(calendarSettings + 'title: "Calendar Settings"'.length),
+      SIDE_MENU.slice(
+        calendarSettings + 'title: "Calendar Settings"'.length,
+        numbering,
+      ),
+    ).not.toContain("title: ");
+    expect(
+      SIDE_MENU.slice(numbering + 'title: "Numbering"'.length),
     ).not.toContain("title: ");
   });
 });
@@ -179,7 +195,9 @@ describe("the routes", () => {
     expect(ROUTES).toContain(
       "<ScheduledMaintenanceCalendarPage {...props} pageRoute={ RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR] as Route }",
     );
-    expect(ROUTES).toContain("<ScheduledMaintenanceSettingsCalendar {...props}");
+    expect(ROUTES).toContain(
+      "<ScheduledMaintenanceSettingsCalendar {...props}",
+    );
     expect(ROUTES).toContain(
       'import ScheduledMaintenanceSettingsCalendar from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings";',
     );

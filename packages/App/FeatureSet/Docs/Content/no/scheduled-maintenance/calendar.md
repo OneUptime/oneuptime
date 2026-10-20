@@ -1,9 +1,10 @@
 # Vedlikeholdskalender
 
-Vedlikeholdskalenderen viser det planlagte vedlikeholdet ditt etter dato: som en kalender i dashbordet, i teamets egne kalenderapper via en hemmelig lenke og i kalenderne til dem som følger statussidene dine. Denne siden forklarer kalendervisningen, teamets kalenderlenke, kalenderen til en statusside og hva hver kalenderhendelse inneholder.
+Vedlikeholdskalenderen viser det planlagte vedlikeholdet ditt etter dato: på en egen side i dashbordet, i teamets egne kalenderapper via en hemmelig lenke og i kalenderne til dem som følger statussidene dine. På siden dens kan kalendere utenfor prosjektet, som helligdager eller et endringsstopp, vises ved siden av hendelsene dine. Denne siden forklarer kalendersiden, eksterne kalendere, teamets kalenderlenke, kalenderen til en statusside og hva hver kalenderhendelse inneholder.
 
 :::cards
-- [Kalendervisningen](#kalendervisningen): Hver hendelse på en måned, en uke eller en dag, i fargen til tilstanden sin.
+- [Kalendersiden](#kalendersiden): Hver hendelse på en måned, en uke eller en dag, i fargen til tilstanden sin.
+- [Eksterne kalendere](#eksterne-kalendere): Helligdager, endringsstopp eller vedlikeholdet til et annet team, ved siden av hendelsene dine.
 - [Teamets kalenderlenke](#teamets-kalenderlenke): Hver hendelse i prosjektet i Google Kalender, Outlook eller Apple Kalender.
 - [Kalenderen til en statusside](#kalenderen-til-en-statusside): Det en statusside viser, i kalenderne til de besøkende.
 - [Hva en kalenderhendelse inneholder](#hva-en-kalenderhendelse-inneholder): Tittelen, tidsrommet, tilstanden og en lenke tilbake.
@@ -18,9 +19,9 @@ flowchart TB
     page --> apps
 ```
 
-## Kalendervisningen
+## Kalendersiden
 
-Åpne **Planlagt vedlikehold → Alle hendelser**. Lengst til høyre i filterlinjen bytter **Liste** og **Kalender** mellom tabellen over hendelser og en kalender med dem. Nettleseren husker valget, så siden åpner med kalenderen neste gang.
+Åpne **Planlagt vedlikehold → Vedlikeholdskalender** i delen **Kalender** i sidemenyen. **Alle hendelser** viser de samme hendelsene som en liste.
 
 - Kalenderen åpner på denne måneden, med dagen i dag markert. **Måned**, **Uke** og **Dag** endrer hvor mye den viser; bla med pilene, og gå tilbake med **I dag**. Tidene står i din egen tidssone.
 - Hver hendelse er en blokk i fargen til tilstanden sin, og fargene til tilstandene er navngitt under kalenderen. Klikk på en hendelse for å åpne den.
@@ -28,9 +29,41 @@ flowchart TB
 - En dag som ennå ikke har kommet, viser et **+** når du peker på uken dens. Det åpner **Opprett planlagt vedlikeholdshendelse** med **Begynner den** på den dagen, i den timen skjemaet ville valgt i dag. Du ser det bare hvis du kan opprette hendelser.
 - En visning viser opptil 500 hendelser. En travlere måned sier ifra: snevre den inn med filtrene, eller se på en uke.
 
+**Alle hendelser** byttet tidligere mellom en liste og en kalender. Hvis nettleseren din sist lot den stå på kalenderen, åpner **Alle hendelser** **Vedlikeholdskalender** én gang og er listen fra da av.
+
+## Eksterne kalendere
+
+Kalendersiden kan også vise hendelsene fra kalendere utenfor prosjektet: helligdager, et endringsstopp som bedriften din fører i en annen kalender, eller vedlikeholdet til et annet team. OneUptime leser hver av dem fra iCalendar-lenken (`.ics`) og tegner hendelsene ved siden av dine, lysere og i kalenderens egen farge. De er skrivebeskyttet: de blir aldri vedlikeholdshendelser, ingen varsles om dem, og de vises aldri i prosjektets egne kalenderlenker.
+
+:::steps
+### Legg til kalenderen
+
+Åpne **Planlagt vedlikehold → Kalenderinnstillinger** i delen **Innstillinger** i sidemenyen, eller velg **Legg til ekstern kalender** i kalenderens **⋯**-meny. Klikk på **Legg til ekstern kalender**, fyll ut **Navn**, og lim inn lenken i **Kalenderlenke**. **Flere felt** har **Farge** og **Oppdater**, hvor ofte den leses: **Hver time** med mindre du velger noe annet.
+
+### Sjekk at den ble lest
+
+OneUptime leser en ny kalender med en gang. **Status** sier **Fungerer** når den er lest, og **Sist lest** sier når, og hvor mange hendelser den beholdt. En lesing som mislyktes, sier **Fungerer ikke**, med årsaken og hva du skal gjøre.
+
+### Vis eller skjul den
+
+Hver ekstern kalender har en bryter med navnet sitt under kalenderen. Skjuler du en, skjules den bare for deg; nettleseren husker valget for prosjektet.
+:::
+
+Kopier lenken fra kalenderens egne delingsinnstillinger: i Google Kalender den hemmelige adressen i iCal-format, i Outlook ICS-lenken til en publisert kalender, i alle andre apper `.ics`- eller `webcal://`-lenken. Lenken kan være privat: OneUptime lagrer den kryptert, viser den aldri igjen, og **Endre lenke** erstatter den.
+
+| Handling | Hva som skjer |
+| --- | --- |
+| **Les nå** | Leser kalenderen nå i stedet for ved neste lesing. |
+| **Endre lenke** | Erstatter lenken. Hendelsene fra den gamle lenken glemmes, og den nye leses med en gang. |
+| **Slå av** | Slutter å lese den og skjuler hendelsene for alle, til **Slå på**. |
+
+Hver kalender beholder hendelsene sine fra 90 dager tilbake til ett år frem, opptil 2 000 av dem, de nærmeste i dag først. En kalender større enn 5 MB leses ikke. Gjentakende hendelser, unntakene deres og tidssonene deres leses slik kalenderappen skrev dem, og en heldagshendelse blir stående på datoen sin i alle tidssoner. Et prosjekt kan ha opptil 20 eksterne kalendere, og én visning av kalenderen tegner opptil 500 av hendelsene deres.
+
+Rollene som oppretter, redigerer og sletter planlagte vedlikeholdshendelser, legger til, endrer og fjerner eksterne kalendere, og alle som kan lese hendelsene, ser dem i kalenderen. OneUptime leser aldri en adresse på sin egen server eller en metadataadresse i skyen, og OneUptime Cloud avviser adresser på et privat nettverk. En selvhostet server kan lese en kalender på ditt eget nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`.
+
 ## Teamets kalenderlenke
 
-**Abonner på kalender**, under kalenderen eller i listens **⋯**-meny, åpner prosjektets kalenderlenke: én hemmelig iCalendar-lenke (`.ics`) som legger hver planlagte vedlikeholdshendelse i prosjektet inn i Google Kalender, Outlook, Apple Kalender eller hvilken som helst app som abonnerer på en kalender via en URL.
+**Abonner på kalender**, under kalenderen, åpner prosjektets kalenderlenke: én hemmelig iCalendar-lenke (`.ics`) som legger hver planlagte vedlikeholdshendelse i prosjektet inn i Google Kalender, Outlook, Apple Kalender eller hvilken som helst app som abonnerer på en kalender via en URL.
 
 :::steps
 ### Publiser lenken
@@ -115,6 +148,10 @@ Google Kalender leser lenken fra Googles servere, så OneUptime-serveren må kun
 
 :::details En hendelse mangler i kalenderen til en statusside
 Sidens kalender inneholder det siden viser. Sjekk at hendelsen navngir siden, at **Synlig på statussiden** er slått på i **Innstillinger**, og at den startet innenfor sidens historikkvindu.
+:::
+
+:::details En ekstern kalender sier Fungerer ikke
+Årsaken står under **Fungerer ikke** i **Status**: ingen kalender på lenken, en lenke som krever pålogging eller ikke lenger deles, en feil fra serveren, en kalender større enn 5 MB, eller en som gjentar hendelser for ofte til å kunne behandles. Rett lenken med **Endre lenke**, eller bruk **Les nå** når kalenderen er tilbake. Til da viser kalenderen hendelsene fra siste vellykkede lesing.
 :::
 
 ## Neste steg

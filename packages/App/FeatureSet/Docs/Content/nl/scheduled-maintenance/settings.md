@@ -20,7 +20,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De s
 | **Labelregels**    | Voegt labels toe aan passende gebeurtenissen.                       |
 | **Reminder Rules** | Herinnert eigenaren met een interval tot een gebeurtenis voltooid is. |
 
-De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen** en **Nummering**, die hieronder worden behandeld.
+De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
 
 De sectie **Werkruimte** bevat de Slack- en Microsoft Teams-regels die gebeurtenissen in kanalen plaatsen. Zie [Slack](/docs/workspace-connections/slack#meldingsregels) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams#meldingsregels).
 

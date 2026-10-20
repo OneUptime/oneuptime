@@ -20,7 +20,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. As seç
 | **Regras de Rótulos** | Adiciona rótulos aos eventos que correspondem.                   |
 | **Reminder Rules** | Lembra os proprietários em intervalos até um evento ser concluído.  |
 
-A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Campos personalizados**, **Medições** e **Numeração**, tratados abaixo.
+A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Campos personalizados**, **Medições**, **Configurações do calendário** e **Numeração**. **Configurações do calendário** é tratado em [Calendário de manutenção](/docs/scheduled-maintenance/calendar#calendários-externos), e o resto abaixo.
 
 A seção **Espaço de trabalho** reúne as regras do Slack e do Microsoft Teams que publicam eventos em canais. Veja [Slack](/docs/workspace-connections/slack#regras-de-notificação) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regras-de-notificação).
 

@@ -20,7 +20,7 @@ import * as React from "react";
  * It gets a Calendar section of its own, open, right after Overview: the
  * Maintenance Calendar is a page of its own (it was a List | Calendar switch
  * on All Events), and its Calendar Settings - the calendars from outside the
- * project drawn on it - sit last in the folded Settings.
+ * project drawn on it - sit in the folded Settings, right before Numbering.
  *
  * Rendered against the real RouteMap rather than asserted on the source, so a
  * menu entry pointing at a route that does not exist fails here. The
@@ -336,6 +336,13 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
           ),
         },
+        // The calendars from outside the project, drawn on the calendar.
+        {
+          title: "Calendar Settings",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
+          ),
+        },
         /*
          * The number prefix, on a page named for it. It replaced More
          * Settings, which held nothing else.
@@ -346,28 +353,21 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
           ),
         },
-        // The calendars from outside the project, drawn on the calendar.
-        {
-          title: "Calendar Settings",
-          href: routeFor(
-            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR,
-          ),
-        },
       ]);
     });
 
-    test("lists Calendar Settings last, at settings/calendar, after Numbering", async () => {
+    test("lists Calendar Settings at settings/calendar, right before Numbering, which stays last", async () => {
       await renderScheduledMaintenanceMenu();
 
       const settings: Array<MenuLink> = linksIn("Settings");
 
       expect(settings[settings.length - 2]).toEqual({
-        title: "Numbering",
-        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/numbering`,
-      });
-      expect(settings[settings.length - 1]).toEqual({
         title: "Calendar Settings",
         href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/calendar`,
+      });
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Numbering",
+        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/numbering`,
       });
     });
 

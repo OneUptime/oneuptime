@@ -8,6 +8,7 @@ import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
 import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
 import {
+  EXTERNAL_CALENDAR_VIEW_LIMIT,
   ExternalCalendarReadError,
   isExternalCalendarReadError,
 } from "Common/Types/ScheduledMaintenance/ExternalCalendar";
@@ -32,7 +33,8 @@ import {
  */
 
 // The most events from other calendars one period asks for.
-export const MAINTENANCE_CALENDAR_OVERLAY_LIMIT: number = 500;
+export const MAINTENANCE_CALENDAR_OVERLAY_LIMIT: number =
+  EXTERNAL_CALENDAR_VIEW_LIMIT;
 
 // Overlay blocks' ids start here, clear of the project's own events' ids.
 export const MAINTENANCE_CALENDAR_OVERLAY_ID_OFFSET: number = 1000000;
@@ -211,11 +213,7 @@ export function getOverlayRangeQuery(data: {
 
 // Midnight of a UTC date, as the same date on the reader's grid.
 function toGridDate(date: Date): Date {
-  return new Date(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate(),
-  );
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 }
 
 /*
@@ -277,7 +275,10 @@ export function toOverlayEvents(data: {
         // An all-day event lasts whole days, at least one; its end is the day after.
         const lastDay: Date = toGridDate(
           new Date(
-            Math.max(startsAt.getTime(), endsAt.getTime() - MILLISECONDS_PER_DAY),
+            Math.max(
+              startsAt.getTime(),
+              endsAt.getTime() - MILLISECONDS_PER_DAY,
+            ),
           ),
         );
         end = new Date(

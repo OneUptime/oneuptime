@@ -20,7 +20,7 @@
 | **標籤規則**       | 為符合的事件加入標籤。                                              |
 | **Reminder Rules** | 依固定間隔提醒擁有者，直到事件完成。                                |
 
-**設定** 區段包含 **事件狀態** （在 [維護狀態](/docs/scheduled-maintenance/states) 中介紹）、 **事件範本** （在 [範本與週期性事件](/docs/scheduled-maintenance/templates) 中介紹），以及下文介紹的 **備註範本** 、 **自訂欄位** 、 **測量** 和 **編號規則** 。
+**設定** 區段包含 **事件狀態** （在 [維護狀態](/docs/scheduled-maintenance/states) 中介紹）、 **事件範本** （在 [範本與週期性事件](/docs/scheduled-maintenance/templates) 中介紹），以及 **備註範本** 、 **自訂欄位** 、 **測量** 、 **行事曆設定** 和 **編號規則** 。 **行事曆設定** 在 [維護行事曆](/docs/scheduled-maintenance/calendar#外部行事曆) 中介紹，其餘在下文介紹。
 
 **工作區** 區段包含把事件發佈到頻道的 Slack 和 Microsoft Teams 規則。請參閱 [Slack](/docs/workspace-connections/slack#通知規則) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知規則)。
 

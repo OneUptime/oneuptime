@@ -20,7 +20,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The **
 | **Label Rules**    | Adds labels to matching events.                                     |
 | **Reminder Rules** | Reminds owners at an interval until an event is completed.          |
 
-The **Settings** section holds **Event State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Event Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Custom Fields**, **Measurements** and **Numbering**, covered below.
+The **Settings** section holds **Event State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Event Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Custom Fields**, **Measurements**, **Calendar Settings** and **Numbering**. **Calendar Settings** is covered on [Maintenance Calendar](/docs/scheduled-maintenance/calendar#external-calendars), the rest below.
 
 The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels. See [Slack](/docs/workspace-connections/slack#notification-rules) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notification-rules).
 

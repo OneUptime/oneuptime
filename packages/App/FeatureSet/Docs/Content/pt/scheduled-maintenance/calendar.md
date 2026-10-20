@@ -1,9 +1,10 @@
 # Calendário de manutenção
 
-O calendário de manutenção mostra a sua manutenção programada por data: como um calendário no painel, nos apps de calendário da sua equipe por meio de um link secreto e nos calendários das pessoas que acompanham as suas páginas de status. Esta página explica a visualização de calendário, o link de calendário da equipe, o calendário de uma página de status e o que cada evento do calendário contém.
+O calendário de manutenção mostra a sua manutenção programada por data: numa página própria no painel, nos apps de calendário da sua equipe por meio de um link secreto e nos calendários das pessoas que acompanham as suas páginas de status. Na sua página, ao lado dos seus eventos, podem aparecer calendários de fora do projeto, como feriados ou um congelamento de alterações. Esta página explica a página do calendário, os calendários externos, o link de calendário da equipe, o calendário de uma página de status e o que cada evento do calendário contém.
 
 :::cards
-- [A visualização de calendário](#a-visualização-de-calendário): Cada evento em um mês, uma semana ou um dia, na cor do seu estado.
+- [A página do calendário](#a-página-do-calendário): Cada evento em um mês, uma semana ou um dia, na cor do seu estado.
+- [Calendários externos](#calendários-externos): Feriados, congelamentos de alterações ou a manutenção de outra equipe, ao lado dos seus eventos.
 - [O link de calendário da equipe](#o-link-de-calendário-da-equipe): Cada evento do projeto no Google Agenda, no Outlook ou no Calendário da Apple.
 - [O calendário de uma página de status](#o-calendário-de-uma-página-de-status): O que uma página de status mostra, nos calendários dos seus visitantes.
 - [O que um evento do calendário contém](#o-que-um-evento-do-calendário-contém): O título, a janela, o estado e um link de volta.
@@ -18,9 +19,9 @@ flowchart TB
     page --> apps
 ```
 
-## A visualização de calendário
+## A página do calendário
 
-Abra **Manutenção programada → Todos os eventos**. Na extremidade direita da barra de filtros, **Lista** e **Calendário** alternam entre a tabela de eventos e um calendário deles. O seu navegador lembra a escolha, então a página abre no calendário da próxima vez.
+Abra **Manutenção programada → Calendário de manutenção**, na seção **Calendário** do menu lateral. **Todos os eventos** mostra os mesmos eventos como uma lista.
 
 - O calendário abre no mês atual, com o dia de hoje marcado. **Mês**, **Semana** e **Dia** mudam o quanto ele mostra; navegue com as setas e volte com **Hoje**. Os horários ficam no seu próprio fuso horário.
 - Cada evento é um bloco na cor do seu estado, e as cores dos estados são indicadas abaixo do calendário. Clique em um evento para abri-lo.
@@ -28,9 +29,41 @@ Abra **Manutenção programada → Todos os eventos**. Na extremidade direita da
 - Um dia que ainda está por vir mostra um **+** quando você aponta para a semana dele. Ele abre **Criar Evento de Manutenção Programada** com **Começa em** nesse dia, na hora que o formulário escolheria hoje. Você só o vê se puder criar eventos.
 - Uma visualização mostra até 500 eventos. Um mês mais cheio avisa: restrinja-o com os filtros ou olhe uma semana.
 
+**Todos os eventos** alternava antes entre uma lista e um calendário. Se o seu navegador o deixou por último no calendário, **Todos os eventos** abre uma vez o **Calendário de manutenção** e, a partir daí, é a lista.
+
+## Calendários externos
+
+A página do calendário também pode mostrar os eventos de calendários de fora do projeto: feriados, um congelamento de alterações que a sua empresa mantém em outro calendário ou a manutenção de outra equipe. O OneUptime lê cada um a partir do seu link iCalendar (`.ics`) e desenha os seus eventos ao lado dos seus, mais claros e na cor do próprio calendário. Eles são somente leitura: nunca se tornam eventos de manutenção, ninguém é avisado sobre eles e nunca aparecem nos links de calendário do próprio projeto.
+
+:::steps
+### Adicionar o calendário
+
+Abra **Manutenção programada → Configurações do calendário**, na seção **Configurações** do menu lateral, ou escolha **Adicionar calendário externo** no menu **⋯** do calendário. Clique em **Adicionar calendário externo**, preencha **Nome** e cole o link em **Link do calendário**. **Mais campos** contém a sua **Cor** e **Atualizar**, a frequência com que é lido: **A cada hora**, a menos que escolha outra.
+
+### Verificar que foi lido
+
+O OneUptime lê um calendário novo na hora. O seu **Status** diz **Funcionando** assim que é lido, e **Última leitura** diz quando e quantos eventos guardou. Uma leitura que falhou diz **Não funciona**, com o motivo e o que fazer.
+
+### Mostrá-lo ou ocultá-lo
+
+Cada calendário externo tem um botão com o seu nome abaixo do calendário. Ocultar um oculta-o só para você; o seu navegador lembra a escolha para o projeto.
+:::
+
+Copie o link das configurações de compartilhamento do próprio calendário: no Google Agenda, o seu endereço secreto no formato iCal; no Outlook, o link ICS de um calendário publicado; em qualquer outro app, o seu link `.ics` ou `webcal://`. O link pode ser privado: o OneUptime o guarda criptografado, nunca mais o mostra, e **Alterar link** o substitui.
+
+| Ação | O que acontece |
+| --- | --- |
+| **Ler agora** | Lê o calendário agora em vez de na próxima leitura. |
+| **Alterar link** | Substitui o seu link. Os eventos do link antigo são esquecidos e o novo é lido na hora. |
+| **Desativar** | Para de lê-lo e oculta os seus eventos para todos, até **Ativar**. |
+
+Cada calendário guarda os seus eventos de 90 dias atrás até um ano à frente, até 2.000 deles, os mais próximos de hoje primeiro. Um calendário maior que 5 MB não é lido. Eventos recorrentes, as suas exceções e os seus fusos horários são lidos como o app de calendário os escreveu, e um evento de dia inteiro fica na sua data em qualquer fuso horário. Um projeto pode ter até 20 calendários externos, e uma visualização do calendário desenha até 500 dos seus eventos.
+
+Os papéis que criam, editam e excluem eventos de manutenção programada adicionam, alteram e removem calendários externos, e qualquer pessoa que possa ler os eventos os vê no calendário. O OneUptime nunca lê um endereço do seu próprio servidor nem um endereço de metadados da nuvem, e o OneUptime Cloud recusa endereços de uma rede privada. Um servidor auto-hospedado pode ler um calendário da sua própria rede, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`.
+
 ## O link de calendário da equipe
 
-**Subscrever o calendário**, abaixo do calendário ou no menu **⋯** da lista, abre o link de calendário do projeto: um único link iCalendar (`.ics`) secreto que coloca cada evento de manutenção programada do projeto no Google Agenda, no Outlook, no Calendário da Apple ou em qualquer app que assine um calendário por URL.
+**Subscrever o calendário**, abaixo do calendário, abre o link de calendário do projeto: um único link iCalendar (`.ics`) secreto que coloca cada evento de manutenção programada do projeto no Google Agenda, no Outlook, no Calendário da Apple ou em qualquer app que assine um calendário por URL.
 
 :::steps
 ### Publique o link
@@ -115,6 +148,10 @@ O Google Agenda lê o link a partir dos servidores do Google, então o servidor 
 
 :::details Um evento não aparece no calendário de uma página de status
 O calendário da página contém o que a página mostra. Verifique se o evento nomeia a página, se **Visível na página de status** está ativado nas **Configurações** dele e se ele começou dentro da janela de histórico da página.
+:::
+
+:::details Um calendário externo diz Não funciona
+O motivo aparece sob **Não funciona** no seu **Status**: nenhum calendário no link, um link que exige login ou que já não é compartilhado, um erro do seu servidor, um calendário maior que 5 MB ou um que repete eventos com frequência demais para ser processado. Corrija o link com **Alterar link**, ou use **Ler agora** quando o calendário voltar. Até lá, o calendário mostra os eventos da sua última leitura bem-sucedida.
 :::
 
 ## Próximos passos

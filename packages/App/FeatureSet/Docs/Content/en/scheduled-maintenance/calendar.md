@@ -1,9 +1,10 @@
 # Maintenance Calendar
 
-The maintenance calendar shows your scheduled maintenance by date: as a calendar in the dashboard, in your team's own calendar apps through a secret link, and in the calendars of the people who follow your status pages. This page explains the calendar view, the team's calendar link, a status page's calendar, and what each calendar event holds.
+The maintenance calendar shows your scheduled maintenance by date: on a page of its own in the dashboard, in your team's own calendar apps through a secret link, and in the calendars of the people who follow your status pages. On its page, calendars from outside the project, such as public holidays or a change freeze, can be shown beside your events. This page explains the calendar page, external calendars, the team's calendar link, a status page's calendar, and what each calendar event holds.
 
 :::cards
-- [The calendar view](#the-calendar-view): Every event on a month, a week or a day, in its state's colour.
+- [The calendar page](#the-calendar-page): Every event on a month, a week or a day, in its state's colour.
+- [External calendars](#external-calendars): Public holidays, change freezes or another team's maintenance, beside your events.
 - [The team's calendar link](#the-teams-calendar-link): Every event of the project in Google Calendar, Outlook or Apple Calendar.
 - [A status page's calendar](#a-status-pages-calendar): What a status page shows, in its visitors' calendars.
 - [What a calendar event holds](#what-a-calendar-event-holds): The title, the window, the state and a link back.
@@ -18,9 +19,9 @@ flowchart TB
     page --> apps
 ```
 
-## The calendar view
+## The calendar page
 
-Open **Scheduled Maintenance → All Events**. At the right end of the filter bar, **List** and **Calendar** switch between the table of events and a calendar of them. Your browser remembers the choice, so the page opens on the calendar the next time.
+Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Events** shows the same events as a list.
 
 - The calendar opens on this month, with today marked. **Month**, **Week** and **Day** change how much it shows; move with the arrows and return with **Today**. Times are in your own time zone.
 - Each event is a block in the colour of its state, and the states' colours are named under the calendar. Click an event to open it.
@@ -28,9 +29,41 @@ Open **Scheduled Maintenance → All Events**. At the right end of the filter ba
 - A day that is still to come shows a **+** when you point at its week. It opens **Create Scheduled Maintenance Event** with **Starts At** on that day, at the hour the form would pick today. You see it only if you can create events.
 - One view shows up to 500 events. A busier month says so: narrow it with the filters, or look at a week.
 
+**All Events** used to switch between a list and a calendar. If your browser last left it on the calendar, **All Events** opens **Maintenance Calendar** once, and is the list from then on.
+
+## External calendars
+
+The calendar page can also show the events of calendars from outside the project: public holidays, a change freeze your company keeps in another calendar, or another team's maintenance. OneUptime reads each one from its iCalendar (`.ics`) link and draws its events beside yours, lighter and in the calendar's own colour. They are read-only: they never become maintenance events, nothing about them is sent to anyone, and they never appear in the project's own calendar links.
+
+:::steps
+### Add the calendar
+
+Open **Scheduled Maintenance → Calendar Settings**, in the **Settings** section of the side menu, or pick **Add External Calendar** in the calendar's **⋯** menu. Click **Add External Calendar**, give it a **Name** and paste its **Calendar Link**. **More fields** holds its **Color** and **Refresh**, how often it is read: **Every hour** unless you pick another.
+
+### Check that it was read
+
+OneUptime reads a new calendar at once. Its **Status** says **Working** once it is read, and **Last read** says when, and how many events it kept. A read that failed says **Not working**, with the reason and what to do about it.
+
+### Show or hide it
+
+Each external calendar has a toggle with its name under the calendar. Hiding one hides it for you alone; your browser remembers the choice for the project.
+:::
+
+Copy the link from the calendar's own sharing settings: in Google Calendar, its secret address in iCal format; in Outlook, the ICS link of a published calendar; in any other app, its `.ics` or `webcal://` link. The link can be a private one: OneUptime stores it encrypted, never shows it again, and **Change link** replaces it.
+
+| Action | What happens |
+| --- | --- |
+| **Read now** | Reads the calendar now instead of at its next read. |
+| **Change link** | Replaces its link. The events of the old link are forgotten, and the new one is read at once. |
+| **Turn off** | Stops reading it and hides its events from everyone, until **Turn on**. |
+
+Each calendar keeps its events from 90 days back to a year ahead, up to 2,000 of them, the nearest today first. A calendar larger than 5 MB is not read. Repeating events, their exceptions and their time zones are read as the calendar app wrote them, and an event that lasts all day stays on its date in every time zone. A project can have up to 20 external calendars, and one view of the calendar draws up to 500 of their events.
+
+The roles that create, edit and delete scheduled maintenance events add, change and remove external calendars, and anyone who can read the events sees them on the calendar. OneUptime never reads an address on its own server or a cloud metadata address, and OneUptime Cloud refuses addresses on a private network. A self-hosted server can read a calendar on your own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`.
+
 ## The team's calendar link
 
-**Subscribe to calendar**, under the calendar or in the list's **⋯** menu, opens the project's calendar link: one secret iCalendar (`.ics`) link that puts every scheduled maintenance event of the project in Google Calendar, Outlook, Apple Calendar or any app that subscribes to a calendar by URL.
+**Subscribe to calendar**, under the calendar, opens the project's calendar link: one secret iCalendar (`.ics`) link that puts every scheduled maintenance event of the project in Google Calendar, Outlook, Apple Calendar or any app that subscribes to a calendar by URL.
 
 :::steps
 ### Publish the link
@@ -115,6 +148,10 @@ Google Calendar reads the link from Google's servers, so the OneUptime server mu
 
 :::details An event is missing from a status page's calendar
 The page's calendar holds what the page shows. Check that the event names the page, that **Visible on Status Page** is on in its **Settings**, and that it started within the page's history window.
+:::
+
+:::details An external calendar says Not working
+The reason is under **Not working** in its **Status**: no calendar at the link, a link that needs a sign-in or is no longer shared, an error from its server, a calendar larger than 5 MB, or one that repeats events too often to work out. Fix the link with **Change link**, or **Read now** once the calendar is back. Until then, the calendar shows the events of its last good read.
 :::
 
 ## Next steps
