@@ -7,7 +7,10 @@ import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AlertBreadcrumbs";
 import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/IncidentBreadcrumbs";
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
-import { getOnCallDutyBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OnCallDutyBreadcrumbs";
+import {
+  getIncomingCallPolicyBreadcrumbs,
+  getOnCallDutyBreadcrumbs,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OnCallDutyBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
 import { getStatusPagesBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/StatusPagesBreadcrumbs";
 import { getTeamsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/TeamsBreadcrumbs";
@@ -95,6 +98,21 @@ const RECORD_KINDS: Array<RecordKind> = [
     viewKey: "USER_VIEW",
     viewTitle: "View User",
     builder: getUsersBreadcrumbs,
+  },
+  {
+    viewKey: "ON_CALL_DUTY_POLICY_VIEW",
+    viewTitle: "View On-Call Policy",
+    builder: getOnCallDutyBreadcrumbs,
+  },
+  {
+    viewKey: "ON_CALL_DUTY_SCHEDULE_VIEW",
+    viewTitle: "View On-Call Schedule",
+    builder: getOnCallDutyBreadcrumbs,
+  },
+  {
+    viewKey: "ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW",
+    viewTitle: "View Policy",
+    builder: getIncomingCallPolicyBreadcrumbs,
   },
 ];
 
@@ -223,46 +241,78 @@ describe("every page of a record names it in the trail", () => {
 });
 
 /*
- * On-call policies and schedules: on their own page the last crumb names
- * the policy. On the pages below it, the "View On-Call Policy" crumb opens
- * the list of policies rather than the policy, so no crumb stands for the
- * policy and the trail is left as it was.
+ * An on-call policy's and schedule's pages sit one segment deeper than their
+ * trails used to have crumbs for (/on-call-duty/policies/:id/...), so the
+ * "View On-Call Policy" crumb opened the list of policies, not the policy -
+ * and no crumb could take the policy's name. Their trails now name the list
+ * as well, as Incoming Call Policies' always did.
  */
-describe("on-call policies and schedules", () => {
-  const ON_CALL: RecordKind = {
-    viewKey: "ON_CALL_DUTY_POLICY_VIEW",
-    viewTitle: "View On-Call Policy",
-    builder: getOnCallDutyBreadcrumbs,
-  };
+describe("an on-call policy's and schedule's pages lead back to it", () => {
+  test.each([
+    ["ON_CALL_DUTY_POLICY_VIEW", "View On-Call Policy", "Policies", "policies"],
+    [
+      "ON_CALL_DUTY_SCHEDULE_VIEW",
+      "View On-Call Schedule",
+      "Schedules",
+      "schedules",
+    ],
+  ])(
+    "below %s, its crumb opens it and the list's crumb opens the list",
+    (viewKey: string, viewTitle: string, listTitle: string, list: string) => {
+      const kind: RecordKind = RECORD_KINDS.find(
+        (candidate: RecordKind): boolean => {
+          return candidate.viewKey === viewKey;
+        },
+      )!;
+      const recordPage: string = `/dashboard/${PROJECT_ID}/on-call-duty/${list}/${RECORD_ID}`;
+      const listPage: string = `/dashboard/${PROJECT_ID}/on-call-duty/${list}`;
 
-  test("the policy's own page names it", () => {
-    const named: Array<Link> = nameRecordInTrail({
-      links: trailOn(ON_CALL, {
-        key: ON_CALL.viewKey,
-        pattern: (RouteMap[ON_CALL.viewKey] as Route).toString(),
-      }),
-      recordId: RECORD_ID,
-      recordName: RECORD_NAME,
+      const pagesBelow: Array<RecordPage> = pagesOf(kind).filter(
+        (page: RecordPage): boolean => {
+          return page.key !== viewKey;
+        },
+      );
+      expect(pagesBelow.length).toBeGreaterThan(5);
+
+      for (const page of pagesBelow) {
+        const trail: Array<Link> = trailOn(kind, page)!;
+        const crumbTo: (title: string) => string | undefined = (
+          title: string,
+        ): string | undefined => {
+          return trail
+            .find((link: Link): boolean => {
+              return link.title === title;
+            })
+            ?.to.toString();
+        };
+
+        expect({
+          page: page.key,
+          record: crumbTo(viewTitle),
+          list: crumbTo(listTitle),
+        }).toEqual({ page: page.key, record: recordPage, list: listPage });
+      }
+    },
+  );
+
+  test("on its own page, the list's crumb opens the list", () => {
+    const kind: RecordKind = RECORD_KINDS.find(
+      (candidate: RecordKind): boolean => {
+        return candidate.viewKey === "ON_CALL_DUTY_POLICY_VIEW";
+      },
+    )!;
+    const trail: Array<Link> = trailOn(kind, {
+      key: kind.viewKey,
+      pattern: (RouteMap[kind.viewKey] as Route).toString(),
     })!;
 
-    expect(named[named.length - 1]!.recordName).toBe(RECORD_NAME);
-  });
-
-  test("a page below it names nothing rather than the wrong crumb", () => {
-    const page: RecordPage = {
-      key: "ON_CALL_DUTY_POLICY_VIEW_ESCALATION",
-      pattern: (
-        RouteMap["ON_CALL_DUTY_POLICY_VIEW_ESCALATION"] as Route
-      ).toString(),
-    };
-    const trail: Array<Link> | undefined = trailOn(ON_CALL, page);
-
     expect(
-      nameRecordInTrail({
-        links: trail,
-        recordId: RECORD_ID,
-        recordName: RECORD_NAME,
+      trail.map((link: Link): string => {
+        return link.title;
       }),
-    ).toBe(trail);
+    ).toEqual(["Project", "On-Call Duty", "Policies", "View On-Call Policy"]);
+    expect(trail[2]!.to.toString()).toBe(
+      `/dashboard/${PROJECT_ID}/on-call-duty/policies`,
+    );
   });
 });
