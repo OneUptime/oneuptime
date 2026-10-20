@@ -7,6 +7,7 @@ Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como s
 - [La conversación de una tarea](#la-conversación-de-una-tarea): Lo que hizo la IA, lo que cambió y tu respuesta.
 - [Cómo funciona una ejecución de corrección](#cómo-funciona-una-ejecución-de-corrección): De un clic a un pull request, paso a paso.
 - [Dónde empiezan las tareas de corrección](#dónde-empiezan-las-tareas-de-corrección): Las tareas que inicia OneUptime, y lo que hace cada pull request.
+- [Telemetría de producción en una corrección](#telemetría-de-producción-en-una-corrección): Lo que una corrección lee de producción mientras escribe el cambio.
 - [Antes de empezar](#antes-de-empezar): Un modelo, un repositorio conectado y un Runner.
 - [Cuando una corrección falla](#cuando-una-corrección-falla): Qué pasa con una ejecución que falla, se detiene o espera.
 :::
@@ -83,13 +84,13 @@ flowchart TB
 2. La tarea se pone en cola en su repositorio, y el Runner que elige el repositorio la toma: uno de tus Runners, o un Runner global cuando no elige ninguno (consulta [Elige el Runner del repositorio](#elige-el-runner-del-repositorio)).
 3. El Runner obtiene el contexto de la tarea. Para una petición, son sus palabras, el contexto añadido y la conversación hasta ahora; para una excepción, su tipo, su mensaje y su stack trace.
 4. Clona el repositorio en un espacio de trabajo propio y crea una rama. Una corrección de una excepción se llama `oneuptime-fix-exception-` seguido de los primeros caracteres del id de la ejecución. Una respuesta trabaja, en cambio, en la rama del pull request abierto de la tarea.
-5. Un agente de código, impulsado por el proveedor de LLM de tu proyecto, lee el código y escribe el cambio. El servidor de OneUptime hace las llamadas al LLM, así que el Runner nunca tiene la clave de API de tu proveedor, y cada llamada se mide y aparece en los registros de IA.
+5. Un agente de código, impulsado por el proveedor de LLM de tu proyecto, lee el código y escribe el cambio. El servidor de OneUptime hace las llamadas al LLM, así que el Runner nunca tiene la clave de API de tu proveedor, y cada llamada se mide y aparece en los registros de IA. Una corrección de una excepción, de una traza lenta o de un incidente también lee datos de producción mientras trabaja: las excepciones, las trazas, los logs y las métricas de los servicios del repositorio (consulta [Telemetría de producción en una corrección](#telemetría-de-producción-en-una-corrección)).
 6. Si el repositorio tiene comandos de verificación, un Runner propio compila y prueba el cambio antes de hacer ningún commit, y devuelve un fallo al agente de código para que lo repare (consulta [Verificación antes del pull request](#verificación-antes-del-pull-request)).
 7. El Runner hace el commit, sube la rama, abre el pull request (para una petición, solo si cambió código) y borra el espacio de trabajo.
 
 La página desde la que se inició la tarea muestra su estado en directo. Cada tarea aparece en su repositorio, en **Productos → Código**: su página es su conversación, y el **Registro** de cada turno tiene una línea por cada archivo que el Runner leyó o escribió y por cada comando que ejecutó.
 
-Cada ejecución está sujeta a presupuestos que impone el servidor: como máximo **40 llamadas al LLM** y **100.000 tokens de salida**. Una ejecución que llega a uno de ellos termina con un resumen del trabajo hecho hasta entonces en lugar de entrar en bucle. Las ejecuciones de corrección también cuentan para los límites diarios de IA del proyecto, cuando el proyecto los fija.
+Cada ejecución está sujeta a presupuestos que impone el servidor: como máximo **40 llamadas al LLM** y **100.000 tokens de salida**. Las consultas de telemetría de producción de una ejecución se descuentan de esas mismas 40 llamadas. Una ejecución que llega a uno de ellos termina con un resumen del trabajo hecho hasta entonces en lugar de entrar en bucle. Las ejecuciones de corrección también cuentan para los límites diarios de IA del proyecto, cuando el proyecto los fija.
 
 ## Dónde empiezan las tareas de corrección
 
@@ -109,6 +110,37 @@ Estos botones solo aparecen donde pueden iniciar una tarea. Con la IA desactivad
 Para abrir la página **Asistencia de IA** de una excepción, abre la excepción en **Productos → Observabilidad → Excepciones** y elige **Asistencia de IA** en su menú lateral. Una excepción resuelta o archivada tiene que marcarse primero como no resuelta.
 
 OneUptime AI también inicia tareas de corrección por su cuenta: a partir de una investigación que encuentra un cambio de código, de una que termina sin conclusión porque faltaba telemetría, y de los AI Insights sobre excepciones y trazas lentas. Cada una tiene su propio interruptor; consulta [Correcciones de código automáticas](/docs/ai/ai-sre#correcciones-de-código-automáticas).
+
+## Telemetría de producción en una corrección
+
+OneUptime ya recoge lo que hace tu código en producción, así que una corrección no tiene por qué basarse solo en un stack trace. Mientras el agente de código trabaja, puede consultar la telemetría de producción de los servicios del repositorio:
+
+| Lee | Para qué |
+| --- | --- |
+| **Excepciones** | Los grupos de excepciones lanzadas en determinados archivos o en una función: cuántas veces en los últimos días, desde qué versión, y la traza de una ocurrencia reciente. |
+| **Trazas** | El perfil de latencia y de errores de un endpoint o de una operación, y los spans de una traza. |
+| **Registros** | Las líneas de log de un servicio, por periodo, severidad, texto o traza. |
+| **Métricas** | Una métrica que reporta un servicio, a lo largo del tiempo; sin un nombre, las métricas que reporta. |
+| **Incidentes** | Los incidentes que afectaron a los servicios, o para los que se abrió una corrección de OneUptime en este repositorio, con su causa raíz y su post mortem. |
+| **Despliegues** | Los despliegues recientes y otros cambios de los servicios, cada uno con el veredicto de OneUptime sobre si perjudicó a su servicio. |
+
+| Tarea | Qué comprueba |
+| --- | --- |
+| **Corregir con IA** en una excepción | Cuántas veces se lanza ahora y desde qué versión, los logs y la traza de una ocurrencia. |
+| **Acelerar con IA** | Cuánto tráfico tiene la operación y lo lenta que es en todas sus trazas, no solo en la analizada. No cambia nada cuando la operación ya no es lenta. |
+| **Abrir PR de corrección a partir de este análisis**, y las correcciones abiertas automáticamente a partir de investigaciones | Los despliegues anteriores al incidente, sus errores, logs y operaciones lentas, y si la causa ya se había dado antes. |
+| `@oneuptime review` desde GitHub | Lo que dicen los datos de producción sobre el código cambiado (consulta [Reseñas con contexto de producción](/docs/ai/github-app#reseñas-con-contexto-de-producción)). |
+
+La descripción del pull request dice qué consultó el agente y qué encontró. Las demás tareas, como las pruebas de regresión y las mejoras de los registros o del trazado, no consultan producción.
+
+Lo que el agente puede leer lo decide el servidor de OneUptime, a partir de la propia tarea:
+
+- **Solo lectura.** Las consultas se ejecutan en el servidor de OneUptime, nunca en el Runner, que no tiene ninguna credencial que lea telemetría. Nada de lo que hacen puede cambiar tu proyecto.
+- **Este proyecto, y solo los servicios de este repositorio.** No los asignas tú: son los servicios para los que OneUptime encuentra este repositorio, del mismo modo que encuentra el repositorio de una corrección - los stack traces de sus excepciones pasan por sus archivos, se llaman como él o es el único repositorio del proyecto. No se puede leer la telemetría de otro servicio.
+- **Sin incidentes privados**, y los tokens, claves, contraseñas y direcciones de correo se ocultan antes de que el agente vea un resultado, como en todos los sitios donde OneUptime AI lee tus datos.
+- **Acotado.** Como máximo **12** consultas por ejecución, y cada una se descuenta de las 40 llamadas de la ejecución.
+
+Cuando ningún servicio corresponde al repositorio, la tarea se ejecuta sin telemetría de producción, como antes.
 
 ## Verificación antes del pull request
 
@@ -231,14 +263,13 @@ Una tarea que espera más de 30 minutos mientras el Runner que debe tomarla no e
 
 ## Privacidad
 
-El clon de tu repositorio vive en un espacio de trabajo dentro del contenedor del Runner y se borra cuando termina la ejecución, tanto si salió bien como si no. El Runner nunca tiene la clave de API de tu proveedor de LLM: el servidor de OneUptime hace las llamadas al LLM por él. OneUptime no conserva tu repositorio ni entrena con tu código. El registro de la tarea guarda los primeros 300 caracteres de la salida de cada paso, para que puedas comprobar lo que hizo el Runner, y eso puede incluir fragmentos de código. Ejecuta un Runner autoalojado con tu propio proveedor de LLM (Ollama local incluido) y tu código nunca sale de tu infraestructura.
+El clon de tu repositorio vive en un espacio de trabajo dentro del contenedor del Runner y se borra cuando termina la ejecución, tanto si salió bien como si no. El Runner nunca tiene la clave de API de tu proveedor de LLM: el servidor de OneUptime hace las llamadas al LLM por él, y también ejecuta las consultas de telemetría de producción. OneUptime no conserva tu repositorio ni entrena con tu código. El registro de la tarea guarda los primeros 300 caracteres de la salida de cada paso, para que puedas comprobar lo que hizo el Runner, y eso puede incluir fragmentos de código. Ejecuta un Runner autoalojado con tu propio proveedor de LLM (Ollama local incluido) y tu código nunca sale de tu infraestructura.
 
 ## En la hoja de ruta
 
 Previsto, y **todavía no disponible**:
 
 - **Compatibilidad con GitLab.** Los repositorios se conectan solo mediante la GitHub App.
-- **Más telemetría en una corrección.** Aportar a la corrección las trazas, los logs y las métricas en torno a una excepción, más allá del stack trace.
 
 ## Próximos pasos
 

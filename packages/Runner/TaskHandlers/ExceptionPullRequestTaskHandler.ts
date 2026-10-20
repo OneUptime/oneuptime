@@ -62,6 +62,14 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
   protected readonly verificationSkippedMessage: string =
     "Not verified — this task type is excluded from the build and test verification loop.";
 
+  /*
+   * Whether the code agent may query the repository's production telemetry
+   * while it works (CodeAgentTask.productionTelemetry). FixException does;
+   * the server offers the tools to the fixes of an exception, a slow trace
+   * and an incident only.
+   */
+  protected readonly usesProductionTelemetry: boolean = false;
+
   // Failure message when no repository yielded a pull request.
   protected abstract readonly noActionMessage: string;
 
@@ -358,6 +366,10 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     if (repo.servicePathInRepository) {
       codeAgentTask.servicePath = repo.servicePathInRepository;
+    }
+
+    if (this.usesProductionTelemetry) {
+      codeAgentTask.productionTelemetry = true;
     }
 
     const agentResult: CodeAgentResult = await agent.executeTask(codeAgentTask);
