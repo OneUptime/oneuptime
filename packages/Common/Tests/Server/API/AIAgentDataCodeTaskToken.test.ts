@@ -5,6 +5,7 @@ import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
 import OpenPullRequestCap from "../../../Server/Utils/AI/CodeFix/OpenPullRequestCap";
+import CodeRepositoryRunnerChoice from "../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
@@ -166,6 +167,13 @@ beforeEach(() => {
     });
   jest
     .spyOn(GitHubInstallationBinding, "isInstallationBoundToProject")
+    .mockResolvedValue(true);
+  /*
+   * The repository picks this Runner (its Runner setting in Code): the
+   * token route's own suite holds a Runner it does not pick to a refusal.
+   */
+  jest
+    .spyOn(CodeRepositoryRunnerChoice, "mayWorkInRepository")
     .mockResolvedValue(true);
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
     return storedRun;

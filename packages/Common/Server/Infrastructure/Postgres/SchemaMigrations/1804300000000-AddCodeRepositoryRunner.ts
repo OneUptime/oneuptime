@@ -1,4 +1,5 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
+import { IS_KUBERNETES_AGENT_RUNNER_SQL } from "./1796800000000-FoldAiSwitchesIntoEnableAi";
 
 /*
  * Today's choice of Runner for AI code fixes, carried over to the
@@ -14,14 +15,15 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *   - not an in-cluster Runner the Kubernetes agent chart installed, which
  *     never took code-fix work whatever its switch said: by its name marker
  *     (kubernetes-agent/..., case-insensitively) or an agent posture (an
- *     in-cluster host naming a cluster) - read as loosely as the server
- *     reads it, so a doubtful row is left out (RunnerService
+ *     in-cluster host naming a cluster), read with the predicate an earlier
+ *     migration holds to the server's own rule, row by row
+ *     (IS_KUBERNETES_AGENT_RUNNER_SQL, RunnerService
  *     .isKubernetesAgentRunnerRow).
  *
  * A project with more than one takes the one that was alive most recently,
  * then the oldest; a repository that already picked a Runner keeps it.
  */
-export const CODE_REPOSITORY_RUNNER_BACKFILL: string = `UPDATE "CodeRepository" AS "repository" SET "runnerId" = "chosen"."runnerId" FROM (SELECT DISTINCT ON ("runner"."projectId") "runner"."projectId", "runner"."_id" AS "runnerId" FROM "Runner" AS "runner" WHERE "runner"."canRunCodeFixTasks" = true AND "runner"."projectId" IS NOT NULL AND "runner"."isGlobalRunner" = false AND "runner"."deletedAt" IS NULL AND "runner"."lastAlive" IS NOT NULL AND lower(btrim("runner"."name")) NOT LIKE 'kubernetes-agent/%' AND NOT (COALESCE("runner"."hostInfo" -> 'kubernetes' ->> 'inCluster', '') = 'true' AND COALESCE(btrim("runner"."hostInfo" -> 'kubernetes' ->> 'clusterIdentifier'), '') <> '') ORDER BY "runner"."projectId", "runner"."lastAlive" DESC, "runner"."createdAt" ASC, "runner"."_id" ASC) AS "chosen" WHERE "repository"."projectId" = "chosen"."projectId" AND "repository"."runnerId" IS NULL AND "repository"."deletedAt" IS NULL`;
+export const CODE_REPOSITORY_RUNNER_BACKFILL: string = `UPDATE "CodeRepository" AS "repository" SET "runnerId" = "chosen"."runnerId" FROM (SELECT DISTINCT ON (runner."projectId") runner."projectId", runner."_id" AS "runnerId" FROM "Runner" runner WHERE runner."canRunCodeFixTasks" = true AND runner."projectId" IS NOT NULL AND runner."isGlobalRunner" = false AND runner."deletedAt" IS NULL AND runner."lastAlive" IS NOT NULL AND NOT ${IS_KUBERNETES_AGENT_RUNNER_SQL} ORDER BY runner."projectId", runner."lastAlive" DESC, runner."createdAt" ASC, runner."_id" ASC) AS "chosen" WHERE "repository"."projectId" = "chosen"."projectId" AND "repository"."runnerId" IS NULL AND "repository"."deletedAt" IS NULL`;
 
 /*
  * `down` puts the switch back on for every Runner a repository picks, so a
@@ -77,6 +79,8 @@ export class AddCodeRepositoryRunner1804300000000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_119124a9f13918c61c08e91ec9"`,
     );
-    await queryRunner.query(`ALTER TABLE "CodeRepository" DROP COLUMN "runnerId"`);
+    await queryRunner.query(
+      `ALTER TABLE "CodeRepository" DROP COLUMN "runnerId"`,
+    );
   }
 }

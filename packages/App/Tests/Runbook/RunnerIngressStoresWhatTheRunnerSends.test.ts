@@ -2,6 +2,7 @@ import logger from "Common/Server/Utils/Logger";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import KubernetesClusterFeedService from "Common/Server/Services/KubernetesClusterFeedService";
 import KubernetesAiAgentService from "Common/Server/Services/KubernetesAiAgentService";
+import CodeRepositoryService from "Common/Server/Services/CodeRepositoryService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "Common/Server/Services/RunbookCredentialService";
 import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
@@ -386,6 +387,10 @@ describe("POST /register-kubernetes-agent stores the write scope the Runner repo
     jest
       .spyOn(RunbookVariableService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    // No code repository picks the Runner (its Runner setting in Code).
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(KubernetesClusterFeedService, "createKubernetesClusterFeedItem")
       .mockResolvedValue(undefined as never);
@@ -455,7 +460,6 @@ describe("POST /register-kubernetes-agent stores the write scope the Runner repo
       lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
       connectionStatus: RunnerConnectionStatus.Disconnected,
       canRunRunbooks: false,
-      canRunCodeFixTasks: false,
       hostInfo: {
         kubernetes: {
           inCluster: true,

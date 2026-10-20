@@ -1778,6 +1778,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ShippedKeyUpgradePostgres.test.ts --forceExit
 
+      # A code repository picks the Runner AI works in it on. Clones the
+      # migrated Runner and CodeRepository tables into an isolated schema as
+      # they were before the AddCodeRepositoryRunner migration (the Runner
+      # with its "Runs AI Code Fixes" switch) and runs up() on seeded rows:
+      # each project's repositories get the Runner it had the switch on for -
+      # alive most recently, never one that never connected, a deleted, a
+      # global or a Kubernetes agent Runner (by the server's own rule) - a
+      # repository keeps a Runner it picked, and down()'s data step gives the
+      # switch back to the Runners repositories pick.
+      - name: Test carrying the code-fix Runner over to code repositories on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CODE_REPOSITORY_RUNNER_TESTS: "true"
+          CODE_REPOSITORY_RUNNER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CODE_REPOSITORY_RUNNER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CODE_REPOSITORY_RUNNER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddCodeRepositoryRunnerPostgres.test.ts --forceExit
+
       # App installs serve the suites below: the probe ones (App) and the
       # Enterprise one, whose jest resolves Common and App from their own
       # installs.

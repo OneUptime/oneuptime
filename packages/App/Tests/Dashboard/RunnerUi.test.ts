@@ -196,11 +196,17 @@ const NEW_STRINGS: Array<string> = [
   "None",
   "Capabilities",
   "Runs Runbooks",
-  "Runs AI Code Fixes",
   "Runs AI Remediation Commands",
-  "AI code fixes",
   "AI remediation commands",
   "You do not have permission to view this Runner's key",
+  /*
+   * A Runner has no "Runs AI Code Fixes" switch any more: a code repository
+   * picks its Runner in Code, and the Runner's page lists the repositories
+   * that pick it.
+   */
+  "AI works in these repositories on this Runner.",
+  "No code repository picks this Runner. To have AI work in a repository on it, pick it in the repository's settings in Code.",
+  "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. A code repository that picks it in its settings in Code has AI work on it: it clones the repository and opens pull requests for review — it never writes to your default or protected branches, and never merges.",
 ];
 
 describe("the Runner status element is the single source of truth", () => {

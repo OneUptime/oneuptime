@@ -492,13 +492,42 @@ describe("the messages people act on name Runbooks", () => {
     );
   });
 
-  test("a code fix with no Runner says where to add one", () => {
-    expect(
-      read("Common", "Server", "Utils", "AI", "CodeFix", "CodeFixReadiness.ts"),
-    ).toContain("enable Runs AI Code Fixes on it (Runbooks > Runners)");
-    expect(
-      read("Common", "Server", "Utils", "AI", "CodeFix", "CodeFixRunQueue.ts"),
-    ).toContain("is running (Runbooks > Runners)");
+  /*
+   * A repository picks its Runner in its settings in Code; whether a project
+   * uses global Runners is set on Runbooks → Runners. The words for a code
+   * fix with no Runner name both places, and the queue sweeper says the same
+   * words (describeRepositoryRunnerStatus).
+   */
+  test("a code fix with no Runner says where to pick one", () => {
+    const readiness: string = read(
+      "Common",
+      "Server",
+      "Utils",
+      "AI",
+      "CodeFix",
+      "CodeFixReadiness.ts",
+    );
+    const queue: string = read(
+      "Common",
+      "Server",
+      "Utils",
+      "AI",
+      "CodeFix",
+      "CodeFixRunQueue.ts",
+    );
+
+    expect(readiness).toContain(
+      "pick another Runner in the repository's settings in Code.",
+    );
+    expect(readiness).toContain(
+      "turn global Runners on under Runbooks → Runners.",
+    );
+    expect(queue).toContain("describeRepositoryRunnerStatus(");
+    expect(queue).toContain("NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL");
+
+    for (const source of [readiness, queue]) {
+      expect(source).not.toContain("Runs AI Code Fixes on it");
+    }
   });
 
   test("the Kubernetes AI page's credential hints name Runbooks", () => {
