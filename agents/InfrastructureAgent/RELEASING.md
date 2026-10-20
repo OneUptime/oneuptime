@@ -34,8 +34,12 @@ that it arrived everywhere and following up on what did not. The
    `OneUptime/homebrew-tap`. `brew upgrade` sees it after the next
    `brew update`.
 5. `publish-infrastructure-agent-winget` opens a pull request to
-   `microsoft/winget-pkgs`. Microsoft validates it, and a moderator or a bot
-   merges it. Only then does `winget upgrade` see it, which can take days.
+   `microsoft/winget-pkgs`, and closes the account's open ones for older
+   versions, which it supersedes. It then waits up to 15 minutes for
+   Microsoft's CLA bot to label the pull request `Needs-CLA`, agrees to the
+   CLA for HackerBay, Inc., and waits up to 5 more for the label to go.
+   Microsoft validates the pull request, and a moderator or a bot merges it.
+   Only then does `winget upgrade` see it, which can take days.
 6. "Infrastructure Agent Release Status" runs when the release run finishes,
    and again every day. It checks each place, and installs the agent from the
    live repositories once they have the version.
@@ -200,13 +204,22 @@ checksums for Apple silicon and Intel.
 
 The first version of a package waits for a moderator's review (the
 `New-Package` label), which can take days to weeks. Later versions usually
-merge once validation passes, without a moderator. Several open pull requests
-are fine, one per version. The status names the others still open.
+merge once validation passes, without a moderator.
+
+Each release's pull request supersedes the ones before it. The publish job
+closes the account's open pull requests for older versions, commenting
+`Superseded by #<number> (OneUptime.InfrastructureAgent <version>).` on each,
+so usually only the newest is open. It closes only pull requests titled as it
+titles them and open from `OneUptime/winget-pkgs`'s own
+`OneUptime.InfrastructureAgent-<version>` branches, and never a newer
+version's, so re-running an older release's job closes nothing newer. One it
+could not close is a warning on the job's run, and the status names the
+others still open.
 
 | Labels | Whose move | What to do |
 | --- | --- | --- |
 | `New-Package`, `Azure-Pipeline-Passed`, `Validation-Completed`, `Moderator-Approved`, `Internal-Error-*`, `Validation-Retry` | Microsoft's | Nothing. Internal errors are their pipeline's, and they retry |
-| `Needs-CLA` | Ours | The bot asks on every pull request, so the publish job comments `@microsoft-github-policy-service agree company="HackerBay, Inc."` on each one it opens, and on one with the label when it runs again. If the label stays, post that comment by hand from the account that opened the pull request. The bot takes the label off within a minute |
+| `Needs-CLA` | Ours | The bot asks on every pull request, and ignores an agreement posted before it has asked. So the publish job waits up to 15 minutes for this label on each pull request it opens, then comments `@microsoft-github-policy-service agree company="HackerBay, Inc."`, and waits up to 5 minutes for the bot to take the label off. A re-run does the same on an open pull request that has the label. If the label stays, the job warns but passes: post that comment by hand from the account that opened the pull request, or re-run the job. The bot takes the label off within a minute of an agreement it accepts |
 | `Needs-Author-Feedback`, `Changes-Requested` | Ours | Read the moderator's comment and answer from the same account. The bot closes a pull request that waits on its author for too long |
 | Any `...-Error` or `...-Failed` label, e.g. `Validation-Installation-Error`, `Error-Hash-Mismatch` | Ours | Read the validation comment, which links the logs. Fix the `winget` section of `.goreleaser.yaml`, then replace the pull request (below) or let the next release bring the fix |
 | `Possible-Duplicate` | Ours | Two pull requests add the same new package. Keep the one a moderator is reviewing and close the other if asked |
@@ -263,6 +276,8 @@ Before merging a change to `.goreleaser.yaml`, `build-msi.sh`, the `.wxs`,
 | --- | --- |
 | A publish job says it was skipped because a secret is not set | The `package-managers` environment lost the secret. Set it again (see [the setup](../../Scripts/PackageManagers/README.md#one-time-setup)) and re-run the job |
 | The winget job fails with HTTP 401 | `WINGET_GITHUB_TOKEN` expired or was revoked. Make a new one for the same account |
+| The winget job warns that the `Needs-CLA` label stayed | The bot has not accepted the agreement yet. If the pull request still has the label, post the comment the warning gives by hand, from the account that opened the pull request |
+| The winget job warns that an older pull request was not closed | Close it by hand from the account that opened it, commenting `Superseded by #<number> (OneUptime.InfrastructureAgent <version>).` as the job does |
 | The apt-yum job's push is refused | Another run pushed the site first. Re-run the job: it starts from the site as it is now |
 | packages.oneuptime.com answers 404 for everything | The Pages deploy has not finished, or Pages lost the custom domain. Check `gh api repos/OneUptime/packages/pages` |
 | apt says the repository is not signed, or `NO_PUBKEY` | The machine's `/etc/apt/keyrings/oneuptime.asc` is old or missing. Download `gpg.key` again, as the docs say |
@@ -301,5 +316,17 @@ change.
   again, and the publish job now posts it on every pull request it opens.
 - **14.0.76**: the first built with the cask Homebrew 7 does not warn about
   (`postflight_steps`). Its release run started at 12:07 UTC on 19 October,
-  before the publish job posted the CLA agreement, so its winget pull request
-  needs the agreement by hand.
+  before the publish job posted the CLA agreement, so its winget pull
+  request, [#456276](https://github.com/microsoft/winget-pkgs/pull/456276),
+  kept `Needs-CLA`.
+- **14.0.77** (20 October 2026): the publish job agreed to the CLA on its
+  winget pull request,
+  [#456419](https://github.com/microsoft/winget-pkgs/pull/456419), at 03:14:31
+  UTC, a second after opening it. Microsoft's CLA bot asked for the agreement
+  at 03:23:40 UTC and ignored the one posted before, so the pull request kept
+  `Needs-CLA`. The publish job now waits for the bot's label before it agrees.
+- **14.0.78** (20 October 2026): winget
+  [#456494](https://github.com/microsoft/winget-pkgs/pull/456494). The five
+  pull requests still open from the releases before it, #455532, #455758,
+  #455948, #456276 and #456419, were closed by hand as superseded by it. The
+  publish job now closes older pull requests itself.

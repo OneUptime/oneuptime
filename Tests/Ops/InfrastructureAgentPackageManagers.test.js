@@ -475,6 +475,29 @@ describe(`${RELEASE}: what each publish job publishes`, () => {
       "${{ vars.WINGET_FORK_OWNER }}",
     );
   });
+
+  /*
+   * Once its pull request is open, PublishWingetManifests.sh waits for
+   * Microsoft's CLA bot: up to WINGET_CLA_WAIT_SECONDS for its Needs-CLA
+   * label, then up to WINGET_CLA_CLEAR_WAIT_SECONDS for the label to go. A
+   * job that timed out in those waits would fail the release over a pull
+   * request that is open.
+   */
+  test("winget: the job outlasts the script's waits for Microsoft's CLA bot, and keeps the 15 minutes it had for the rest", () => {
+    const script = read(`${SCRIPTS}/PublishWingetManifests.sh`);
+    const defaultSeconds = (setting) => {
+      const match = script.match(new RegExp(`"\\$\\{${setting}:-(\\d+)\\}"`));
+      return match ? Number(match[1]) : NaN;
+    };
+    const waits =
+      defaultSeconds("WINGET_CLA_WAIT_SECONDS") +
+      defaultSeconds("WINGET_CLA_CLEAR_WAIT_SECONDS");
+
+    expect(waits).toBe(900 + 300);
+    expect(
+      jobs["publish-infrastructure-agent-winget"]["timeout-minutes"] * 60,
+    ).toBeGreaterThanOrEqual(waits + 15 * 60);
+  });
 });
 
 describe(`${SCRIPTS}: the scripts`, () => {
@@ -661,12 +684,54 @@ describe(`${SCRIPTS}/PublishWingetManifests.sh`, () => {
     "OneUptime.InfrastructureAgent.installer.yaml",
     "OneUptime.InfrastructureAgent.locale.en-US.yaml",
   ];
+  // The pull request a run opens (the fake's answer), and one a re-run finds
+  // open.
+  const OPENED = 4242;
+  const WAITING = 4001;
   // What the account comments to agree to Microsoft's CLA: the bot asks on
   // every pull request.
   const CLA_AGREEMENT =
     '@microsoft-github-policy-service agree company="HackerBay, Inc."';
+  // How long the script waits for Microsoft's CLA bot, and how often it
+  // looks: unset in every run but those that set them.
+  const CLA_SETTINGS = [
+    "WINGET_CLA_WAIT_SECONDS",
+    "WINGET_CLA_CLEAR_WAIT_SECONDS",
+    "WINGET_CLA_POLL_SECONDS",
+  ];
   let work = "";
   let runs = 0;
+
+  function urlOf(number) {
+    return `https://github.com/microsoft/winget-pkgs/pull/${number}`;
+  }
+
+  /*
+   * A pull request in winget-pkgs: by default the account's own, open, for a
+   * version of this package, titled and from the branch the script gives it.
+   */
+  function pullFor(
+    number,
+    version,
+    {
+      owner = "oneuptime-bot",
+      packageId = "OneUptime.InfrastructureAgent",
+      kind = "version",
+      state = "open",
+    } = {},
+  ) {
+    return {
+      number,
+      title: `New ${kind}: ${packageId} version ${version}`,
+      head: `${owner}:${packageId}-${version}`,
+      state,
+    };
+  }
+
+  // A re-run's state: this version's pull request, WAITING, is open already.
+  function rerunState({ pulls = [], ...state } = {}) {
+    return { pulls: [pullFor(WAITING, VERSION), ...pulls], ...state };
+  }
 
   // The pull request a run opened.
   function pullRequestOf(result) {
@@ -678,10 +743,32 @@ describe(`${SCRIPTS}/PublishWingetManifests.sh`, () => {
     });
   }
 
-  // The GitHub API as the script asks it, answered from a JSON state file.
+  // A pull request as the run left it.
+  function pullIn(result, number) {
+    return result.pulls.find((pull) => pull.number === number);
+  }
+
+  /*
+   * The GitHub API as the script asks it, answered from a JSON state file
+   * that it keeps up to date, and logged with each answer. Answers made from
+   * state.pulls (winget-pkgs' pull requests) go through the script's --jq
+   * with jq, as gh runs it, so what the script reads out of them is its own;
+   * the others are written as the script's --jq prints them.
+   *
+   * state.bot is Microsoft's CLA bot on the pull requests it names, as
+   * winget-pkgs showed it: it labels one Needs-CLA once it has started on it
+   * (asked, or once the labels have been read more than askAfterReads
+   * times), ignores an agreement posted before then, and for one posted after
+   * takes the label off once the labels have been read clearAfterReads more
+   * times (never, with honours: false). It never asks on a pull request it
+   * does not name. state.failures fails requests to an endpoint, saying
+   * state.failureText: that many first ones, or those a list counts out
+   * ([2] fails the second).
+   */
   const FAKE_GH = `#!/usr/bin/env node
 "use strict";
 const fs = require("fs");
+const { spawnSync } = require("child_process");
 const state = JSON.parse(fs.readFileSync(process.env.FAKE_GH_STATE, "utf8"));
 const args = process.argv.slice(2);
 let method = "GET";
@@ -704,29 +791,108 @@ for (let i = 1; i < args.length; i++) {
     process.exit(2);
   }
 }
-fs.appendFileSync(process.env.FAKE_GH_LOG, JSON.stringify({ command: args[0], method, endpoint, fields, jq }) + "\\n");
-function answer(value) {
-  if (value) {
-    process.stdout.write(value + "\\n");
+function finish(status, output) {
+  fs.writeFileSync(process.env.FAKE_GH_STATE, JSON.stringify(state));
+  fs.appendFileSync(process.env.FAKE_GH_LOG, JSON.stringify({ command: args[0], method, endpoint, fields, jq, status, output }) + "\\n");
+  if (status !== 0) {
+    console.error(output);
+  } else if (output) {
+    process.stdout.write(output + "\\n");
   }
-  process.exit(0);
+  process.exit(status);
+}
+function answer(value) {
+  finish(0, value);
 }
 function notFound() {
-  console.error("gh: Not Found (HTTP 404)");
-  process.exit(1);
+  finish(1, "gh: Not Found (HTTP 404)");
+}
+function answerJson(body) {
+  const result = spawnSync("jq", ["-r", jq || "."], { input: JSON.stringify(body), encoding: "utf8" });
+  if (result.error || result.status !== 0) {
+    finish(2, "fake gh: jq failed: " + (result.error || result.stderr));
+  }
+  answer(result.stdout.trimEnd());
+}
+const failures = state.failures || {};
+const requests = state.requests || (state.requests = {});
+requests[endpoint] = (requests[endpoint] || 0) + 1;
+const failing = failures[endpoint];
+if (Array.isArray(failing) ? failing.includes(requests[endpoint]) : failing > 0) {
+  if (!Array.isArray(failing)) {
+    failures[endpoint] -= 1;
+  }
+  finish(1, state.failureText || "gh: Bad Gateway (HTTP 502)");
 }
 if (state.failing && endpoint.includes(state.failing)) {
-  console.error("gh: Bad Gateway (HTTP 502)");
-  process.exit(1);
+  finish(1, "gh: Bad Gateway (HTTP 502)");
 }
 const upstream = "microsoft/winget-pkgs";
+const pulls = state.pulls || (state.pulls = []);
+const bot = state.bot || {};
+function pullOf(number) {
+  return pulls.find((pull) => String(pull.number) === String(number));
+}
+function labelsOf(number) {
+  const pull = bot[number];
+  const cleared = pull && pull.agreedAt !== undefined && pull.reads - pull.agreedAt > (pull.clearAfterReads || 0);
+  return pull && pull.asked && !cleared ? [{ name: "Needs-CLA" }] : [];
+}
+// As GitHub's head= filter: the owner in any case, the branch exactly.
+function fromHead(pull, head) {
+  const [owner, branch] = pull.head.split(":");
+  const [wantedOwner, wantedBranch] = head.split(":");
+  return owner.toLowerCase() === wantedOwner.toLowerCase() && branch === wantedBranch;
+}
+function listed(pull) {
+  return { number: pull.number, html_url: "https://github.com/" + upstream + "/pull/" + pull.number, title: pull.title, state: pull.state, head: { label: pull.head }, labels: labelsOf(pull.number) };
+}
 let match;
 if (method === "GET" && endpoint === "user") {
   answer(state.login);
 } else if (method === "GET" && (match = endpoint.match(/^repos\\/microsoft\\/winget-pkgs\\/contents\\/(.*)\\?ref=master$/))) {
   state.upstreamPaths.includes(match[1]) ? answer("{}") : notFound();
 } else if (method === "GET" && (match = endpoint.match(/^repos\\/microsoft\\/winget-pkgs\\/pulls\\?state=open&head=(.*)$/))) {
-  answer((state.openPulls || {})[match[1]] || "");
+  answerJson(pulls.filter((pull) => pull.state === "open" && fromHead(pull, match[1])).map(listed));
+} else if (method === "GET" && endpoint === "search/issues") {
+  // As search finds them, near enough: the package's in the title.
+  const open = (fields.q || "").split(" ").includes("is:open");
+  const items = pulls.filter((pull) => pull.title.includes("OneUptime.InfrastructureAgent") && (!open || pull.state === "open")).map(listed);
+  answerJson({ total_count: items.length, incomplete_results: false, items });
+} else if (method === "GET" && (match = endpoint.match(/^repos\\/microsoft\\/winget-pkgs\\/issues\\/(\\d+)$/))) {
+  const asking = bot[match[1]];
+  if (asking) {
+    asking.reads = (asking.reads || 0) + 1;
+    if (asking.reads > asking.askAfterReads) {
+      asking.asked = true;
+    }
+  }
+  answerJson({ number: Number(match[1]), state: "open", labels: labelsOf(match[1]) });
+} else if (method === "POST" && (match = endpoint.match(/^repos\\/microsoft\\/winget-pkgs\\/issues\\/(\\d+)\\/comments$/))) {
+  const pull = pullOf(match[1]);
+  if (pull) {
+    pull.comments = (pull.comments || []).concat(fields.body);
+  }
+  const asking = bot[match[1]];
+  if (asking && fields.body.startsWith("@microsoft-github-policy-service agree")) {
+    if (!asking.asked) {
+      asking.ignored = (asking.ignored || 0) + 1;
+    } else if (asking.honours !== false && asking.agreedAt === undefined) {
+      asking.agreedAt = asking.reads || 0;
+    }
+  }
+  answer("{}");
+} else if (method === "PATCH" && (match = endpoint.match(/^repos\\/microsoft\\/winget-pkgs\\/pulls\\/(\\d+)$/))) {
+  const pull = pullOf(match[1]);
+  if (!pull) {
+    notFound();
+  }
+  pull.state = fields.state || pull.state;
+  answerJson(listed(pull));
+} else if (method === "POST" && endpoint === "repos/" + upstream + "/pulls") {
+  const pull = { number: 4242, title: fields.title, head: fields.head, state: "open" };
+  pulls.push(pull);
+  answerJson(listed(pull));
 } else if (method === "GET" && endpoint === "repos/" + upstream + "/git/ref/heads/master") {
   answer(state.upstreamSha);
 } else if (method === "GET" && (match = endpoint.match(/^repos\\/([^/]+\\/winget-pkgs)$/))) {
@@ -737,14 +903,17 @@ if (method === "GET" && endpoint === "user") {
   answer(jq ? parent : "{}");
 } else if (method === "GET" && (match = endpoint.match(/^repos\\/[^/]+\\/winget-pkgs\\/git\\/ref\\/heads\\/(.*)$/))) {
   (state.forkBranches || []).includes(match[1]) ? answer("{}") : notFound();
-} else if (method === "POST" && endpoint === "repos/" + upstream + "/pulls") {
-  answer("4242 https://github.com/microsoft/winget-pkgs/pull/4242");
 } else if (method !== "GET") {
   answer("{}");
 } else {
-  console.error("fake gh: no answer for " + method + " " + endpoint);
-  process.exit(2);
+  finish(2, "fake gh: no answer for " + method + " " + endpoint);
 }
+`;
+
+  // sleep, without the wait: it logs how long the script asked for, in the
+  // fake gh's log, so a test sees the two in order.
+  const FAKE_SLEEP = `#!/bin/sh
+printf '{"command":"sleep","seconds":"%s"}\\n' "$1" >>"$FAKE_GH_LOG"
 `;
 
   function writeManifests(version) {
@@ -771,6 +940,7 @@ if (method === "GET" && endpoint === "user") {
     manifests = writeManifests(version),
     token = "token",
     forkOwner = "",
+    env = {},
   } = {}) {
     runs += 1;
     const log = path.join(work, `gh-${runs}.log`);
@@ -782,42 +952,128 @@ if (method === "GET" && endpoint === "user") {
         upstreamSha: UPSTREAM_SHA,
         upstreamPaths: [PACKAGE_DIR],
         forks: { "oneuptime-bot/winget-pkgs": "microsoft/winget-pkgs" },
+        // The CLA bot has asked on the pull request a run opens by the time
+        // its labels are first read, and accepts the agreement.
+        bot: { [OPENED]: { askAfterReads: 0 } },
         ...state,
       }),
     );
     fs.writeFileSync(log, "");
 
+    const base = {
+      ...process.env,
+      PATH: `${path.join(work, "bin")}${path.delimiter}${process.env.PATH}`,
+      PACKAGE_VERSION: version,
+      WINGET_MANIFESTS: manifests,
+      WINGET_GITHUB_TOKEN: token,
+      WINGET_FORK_OWNER: forkOwner,
+      WINGET_RETRY_DELAY_SECONDS: "0",
+      // Not a GitHub Actions job unless a test says so, though CI runs this
+      // suite in one.
+      GITHUB_ACTIONS: "",
+      FAKE_GH_STATE: stateFile,
+      FAKE_GH_LOG: log,
+    };
+    for (const setting of CLA_SETTINGS) {
+      delete base[setting];
+    }
     const result = run("bash", [SCRIPT], {
       cwd: REPO_ROOT,
-      env: {
-        ...process.env,
-        PATH: `${path.join(work, "bin")}${path.delimiter}${process.env.PATH}`,
-        PACKAGE_VERSION: version,
-        WINGET_MANIFESTS: manifests,
-        WINGET_GITHUB_TOKEN: token,
-        WINGET_FORK_OWNER: forkOwner,
-        WINGET_RETRY_DELAY_SECONDS: "0",
-        FAKE_GH_STATE: stateFile,
-        FAKE_GH_LOG: log,
-      },
+      env: { ...base, ...env },
     });
-    const calls = fs
+    const timeline = fs
       .readFileSync(log, "utf8")
       .split("\n")
       .filter(Boolean)
       .map((line) => JSON.parse(line));
+    const calls = timeline.filter((entry) => entry.command !== "sleep");
+    const after = JSON.parse(fs.readFileSync(stateFile, "utf8"));
 
     return {
       ...result,
+      timeline,
       calls,
       writes: calls.filter((call) => call.method !== "GET"),
+      bot: after.bot,
+      pulls: after.pulls || [],
     };
+  }
+
+  /*
+   * What a run did about the CLA on a pull request once it had opened it, or
+   * found it open, in order: each read of its labels and whether it had
+   * Needs-CLA ("Needs-CLA? true", "Needs-CLA? false", or "Needs-CLA? failed"
+   * when GitHub did not answer), each sleep ("sleep 20"), and each agreement
+   * posted ("agree", or "agree failed").
+   */
+  function claSteps(result, number = OPENED) {
+    const opened = result.timeline.findIndex((entry) => {
+      return (
+        entry.method === "POST" &&
+        entry.endpoint === "repos/microsoft/winget-pkgs/pulls"
+      );
+    });
+    const found = result.timeline.findIndex((entry) => {
+      return (entry.endpoint || "").startsWith(
+        "repos/microsoft/winget-pkgs/pulls?state=open",
+      );
+    });
+    return result.timeline
+      .slice((opened >= 0 ? opened : found) + 1)
+      .flatMap((entry) => {
+        if (entry.command === "sleep") {
+          return [`sleep ${entry.seconds}`];
+        }
+        if (entry.endpoint === `repos/microsoft/winget-pkgs/issues/${number}`) {
+          return [`Needs-CLA? ${entry.status === 0 ? entry.output : "failed"}`];
+        }
+        if (
+          entry.endpoint ===
+            `repos/microsoft/winget-pkgs/issues/${number}/comments` &&
+          entry.fields.body === CLA_AGREEMENT
+        ) {
+          return [entry.status === 0 ? "agree" : "agree failed"];
+        }
+        return [];
+      });
+  }
+
+  /*
+   * What a run asked of the pull requests it superseded, in order: each
+   * close ("close #4100") and each comment ("#4100: Superseded by ..."),
+   * with "(failed)" when GitHub did not answer.
+   */
+  function closings(result) {
+    return result.writes.flatMap((call) => {
+      const failed = call.status === 0 ? "" : " (failed)";
+      const closed = call.endpoint.match(
+        /^repos\/microsoft\/winget-pkgs\/pulls\/(\d+)$/,
+      );
+      if (closed && call.method === "PATCH") {
+        return [`close #${closed[1]}${failed}`];
+      }
+      const commented = call.endpoint.match(
+        /^repos\/microsoft\/winget-pkgs\/issues\/(\d+)\/comments$/,
+      );
+      if (commented && call.fields.body !== CLA_AGREEMENT) {
+        return [`#${commented[1]}: ${call.fields.body}${failed}`];
+      }
+      return [];
+    });
+  }
+
+  // The warning a run gives when the label stays after its agreement.
+  function labelStayed(number, seconds) {
+    return `Microsoft's CLA bot had not taken the Needs-CLA label off #${number} ${seconds} seconds after the CLA agreement was posted. If the label is still there, comment this on ${urlOf(number)} by hand, from the account that opened it: ${CLA_AGREEMENT}`;
   }
 
   beforeAll(() => {
     work = fs.mkdtempSync(path.join(os.tmpdir(), "winget-publish-"));
     fs.mkdirSync(path.join(work, "bin"));
     fs.writeFileSync(path.join(work, "bin", "gh"), FAKE_GH, { mode: 0o755 });
+    fs.writeFileSync(path.join(work, "bin", "sleep"), FAKE_SLEEP, {
+      mode: 0o755,
+    });
   });
 
   afterAll(() => {
@@ -829,9 +1085,7 @@ if (method === "GET" && endpoint === "user") {
     const result = publish({ manifests });
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain(
-      "Opened https://github.com/microsoft/winget-pkgs/pull/4242",
-    );
+    expect(result.stdout).toContain(`Opened ${urlOf(OPENED)}`);
 
     const [branch, ...rest] = result.writes;
     expect(branch).toEqual(
@@ -874,12 +1128,12 @@ if (method === "GET" && endpoint === "user") {
     expect(agreement).toEqual(
       expect.objectContaining({
         method: "POST",
-        endpoint: "repos/microsoft/winget-pkgs/issues/4242/comments",
+        endpoint: `repos/microsoft/winget-pkgs/issues/${OPENED}/comments`,
         fields: { body: CLA_AGREEMENT },
       }),
     );
     expect(result.stdout).toContain(
-      "Agreed to Microsoft's CLA for HackerBay, Inc. on #4242.",
+      `Posted the CLA agreement for HackerBay, Inc. on #${OPENED}.`,
     );
   });
 
@@ -892,7 +1146,7 @@ if (method === "GET" && endpoint === "user") {
     );
   });
 
-  test("opens nothing for a version winget-pkgs has, or one with a pull request open", () => {
+  test("opens nothing for a version winget-pkgs has, or one with a pull request open, and agrees to nothing the CLA bot has not asked for", () => {
     const merged = publish({
       state: { upstreamPaths: [PACKAGE_DIR, `${PACKAGE_DIR}/${VERSION}`] },
     });
@@ -900,57 +1154,634 @@ if (method === "GET" && endpoint === "user") {
     expect(merged.stdout).toContain("already has");
     expect(merged.writes).toEqual([]);
 
-    const waiting = publish({
-      state: {
-        openPulls: {
-          [`oneuptime-bot:${BRANCH}`]:
-            "4000 https://github.com/microsoft/winget-pkgs/pull/4000 false",
-        },
-      },
-    });
+    const waiting = publish({ state: rerunState() });
     expect(waiting.status).toBe(0);
+    expect(waiting.stdout).toContain(`already waiting in ${urlOf(WAITING)}`);
     expect(waiting.stdout).toContain(
-      "already waiting in https://github.com/microsoft/winget-pkgs/pull/4000",
+      `#${WAITING} has no Needs-CLA label, so no CLA agreement is posted. If Microsoft's CLA bot asks for one later, re-run this job.`,
     );
     expect(waiting.writes).toEqual([]);
+    expect(claSteps(waiting, WAITING)).toEqual([]);
   });
 
-  test("agrees to the CLA on a pull request a re-run finds waiting with the Needs-CLA label, and opens nothing", () => {
+  test("agrees to the CLA on a pull request a re-run finds waiting with the Needs-CLA label, opens nothing, and waits for the bot to take the label off", () => {
+    // The bot asked on it before this run.
     const result = publish({
-      state: {
-        openPulls: {
-          [`oneuptime-bot:${BRANCH}`]:
-            "4001 https://github.com/microsoft/winget-pkgs/pull/4001 true",
-        },
-      },
+      state: rerunState({ bot: { [WAITING]: { asked: true } } }),
     });
 
     expect(result.status).toBe(0);
     expect(result.writes).toEqual([
       expect.objectContaining({
         method: "POST",
-        endpoint: "repos/microsoft/winget-pkgs/issues/4001/comments",
+        endpoint: `repos/microsoft/winget-pkgs/issues/${WAITING}/comments`,
         fields: { body: CLA_AGREEMENT },
       }),
     ]);
+    expect(claSteps(result, WAITING)).toEqual(["agree", "Needs-CLA? false"]);
+    expect(result.stdout).toContain(
+      `Microsoft's CLA bot took the Needs-CLA label off #${WAITING}: the CLA is agreed.`,
+    );
   });
 
-  test("tries the CLA agreement again, then stops saying what to comment, leaving the pull request open", () => {
-    const result = publish({ state: { failing: "/issues/4242/comments" } });
+  test("warns, and passes, when the label stays on a pull request a re-run agreed on", () => {
+    const result = publish({
+      state: rerunState({
+        bot: { [WAITING]: { asked: true, honours: false } },
+      }),
+      env: { WINGET_CLA_CLEAR_WAIT_SECONDS: "40" },
+    });
+
+    expect(result.status).toBe(0);
+    expect(claSteps(result, WAITING)).toEqual([
+      "agree",
+      "Needs-CLA? true",
+      "sleep 20",
+      "Needs-CLA? true",
+      "sleep 20",
+      "Needs-CLA? true",
+    ]);
+    expect(result.stderr).toContain(
+      `PublishWingetManifests: warning: ${labelStayed(WAITING, 40)}`,
+    );
+  });
+
+  test("tries the CLA agreement again, then stops saying what to comment, leaving the pull request open, as a re-run does", () => {
+    const result = publish({
+      state: { failing: `/issues/${OPENED}/comments` },
+    });
 
     expect(result.status).not.toBe(0);
-    expect(result.stdout).toContain(
-      "Opened https://github.com/microsoft/winget-pkgs/pull/4242",
-    );
+    expect(result.stdout).toContain(`Opened ${urlOf(OPENED)}`);
     expect(result.stderr).toContain(
-      `could not post the CLA agreement on #4242; comment it there by hand from the account that opened it: ${CLA_AGREEMENT}`,
+      `could not post the CLA agreement on #${OPENED}; comment it there by hand from the account that opened it: ${CLA_AGREEMENT}`,
+    );
+    expect(claSteps(result)).toEqual([
+      "Needs-CLA? true",
+      "agree failed",
+      "sleep 0",
+      "agree failed",
+      "sleep 0",
+      "agree failed",
+      "sleep 0",
+      "agree failed",
+    ]);
+    expect(pullRequestOf(result)).toBeDefined();
+
+    const rerun = publish({
+      state: rerunState({
+        bot: { [WAITING]: { asked: true } },
+        failing: `/issues/${WAITING}/comments`,
+      }),
+    });
+    expect(rerun.status).not.toBe(0);
+    expect(rerun.stderr).toContain(
+      `could not post the CLA agreement on #${WAITING}; comment it there by hand from the account that opened it: ${CLA_AGREEMENT}`,
     );
     expect(
-      result.calls.filter((call) => {
-        return call.endpoint.endsWith("/issues/4242/comments");
-      }),
+      claSteps(rerun, WAITING).filter((step) => step === "agree failed"),
     ).toHaveLength(4);
-    expect(pullRequestOf(result)).toBeDefined();
+    expect(pullRequestOf(rerun)).toBeUndefined();
+  });
+
+  /*
+   * The stand-in bot holds the tests below to what winget-pkgs showed: an
+   * agreement posted before the bot has asked is ignored, and the label
+   * stays. That is what happened to #456419's, posted a second after the
+   * pull request was opened.
+   */
+  test("the stand-in CLA bot ignores an agreement posted before it asks, as the real one did on #456419", () => {
+    const state = path.join(work, "bot-state.json");
+    const env = {
+      ...process.env,
+      FAKE_GH_STATE: state,
+      FAKE_GH_LOG: path.join(work, "bot.log"),
+    };
+    const gh = (...args) => {
+      return run(path.join(work, "bin", "gh"), args, { env }).stdout.trim();
+    };
+    const needsCla = () => {
+      return gh(
+        "api",
+        `repos/microsoft/winget-pkgs/issues/${OPENED}`,
+        "--jq",
+        'any(.labels[]; .name == "Needs-CLA")',
+      );
+    };
+    const agree = () => {
+      return gh(
+        "api",
+        "--method",
+        "POST",
+        `repos/microsoft/winget-pkgs/issues/${OPENED}/comments`,
+        "-f",
+        `body=${CLA_AGREEMENT}`,
+      );
+    };
+    fs.writeFileSync(
+      state,
+      JSON.stringify({ bot: { [OPENED]: { askAfterReads: 1 } } }),
+    );
+
+    agree();
+    expect([needsCla(), needsCla(), needsCla()]).toEqual([
+      "false",
+      "true",
+      "true",
+    ]);
+    agree();
+    expect(needsCla()).toBe("false");
+  });
+
+  test("waits for the CLA bot's Needs-CLA label, reading the labels every 20 seconds, then agrees and waits for the bot to take the label off", () => {
+    const result = publish({
+      state: { bot: { [OPENED]: { askAfterReads: 3 } } },
+    });
+
+    expect(result.status).toBe(0);
+    expect(claSteps(result)).toEqual([
+      "Needs-CLA? false",
+      "sleep 20",
+      "Needs-CLA? false",
+      "sleep 20",
+      "Needs-CLA? false",
+      "sleep 20",
+      "Needs-CLA? true",
+      "agree",
+      "Needs-CLA? false",
+    ]);
+    expect(result.stdout).toContain(
+      `Microsoft's CLA bot labelled #${OPENED} Needs-CLA.`,
+    );
+    expect(result.stdout).toContain(
+      `Microsoft's CLA bot took the Needs-CLA label off #${OPENED}: the CLA is agreed.`,
+    );
+    expect(result.stderr).toBe("");
+  });
+
+  test.each([0, 1, 6])(
+    "never posts the agreement before the label is seen, so the CLA bot never ignores it (the bot asks at read %i)",
+    (askAfterReads) => {
+      const result = publish({
+        state: { bot: { [OPENED]: { askAfterReads } } },
+      });
+      const steps = claSteps(result);
+      const asked = steps.indexOf("Needs-CLA? true");
+
+      expect(result.status).toBe(0);
+      expect(asked).toBe(askAfterReads * 2);
+      expect(steps.slice(0, asked)).not.toContain("agree");
+      expect(steps.indexOf("agree")).toBe(asked + 1);
+      expect(steps.filter((step) => step === "agree")).toHaveLength(1);
+      expect(steps[steps.length - 1]).toBe("Needs-CLA? false");
+      expect(result.bot[OPENED].ignored).toBeUndefined();
+    },
+  );
+
+  test("posts nothing, and passes, when the CLA bot has not labelled the pull request Needs-CLA within WINGET_CLA_WAIT_SECONDS", () => {
+    const result = publish({
+      state: { bot: {} },
+      env: { WINGET_CLA_WAIT_SECONDS: "60" },
+    });
+
+    expect(result.status).toBe(0);
+    expect(claSteps(result)).toEqual([
+      "Needs-CLA? false",
+      "sleep 20",
+      "Needs-CLA? false",
+      "sleep 20",
+      "Needs-CLA? false",
+      "sleep 20",
+      "Needs-CLA? false",
+    ]);
+    expect(result.stdout).toContain(
+      `#${OPENED} had no Needs-CLA label after 60 seconds, so no CLA agreement was posted: Microsoft's CLA bot has not asked for one. If it asks later, re-run this job, or comment this on ${urlOf(OPENED)} by hand from the account that opened it: ${CLA_AGREEMENT}`,
+    );
+    expect(result.stderr).toBe("");
+
+    const once = publish({
+      state: { bot: {} },
+      env: { WINGET_CLA_WAIT_SECONDS: "0" },
+    });
+    expect(once.status).toBe(0);
+    expect(claSteps(once)).toEqual(["Needs-CLA? false"]);
+  });
+
+  test("warns, naming the pull request and the comment to post by hand, and passes, when the label stays WINGET_CLA_CLEAR_WAIT_SECONDS after the agreement", () => {
+    const state = { bot: { [OPENED]: { askAfterReads: 0, honours: false } } };
+    const result = publish({
+      state,
+      env: { WINGET_CLA_CLEAR_WAIT_SECONDS: "40" },
+    });
+
+    expect(result.status).toBe(0);
+    expect(claSteps(result)).toEqual([
+      "Needs-CLA? true",
+      "agree",
+      "Needs-CLA? true",
+      "sleep 20",
+      "Needs-CLA? true",
+      "sleep 20",
+      "Needs-CLA? true",
+    ]);
+    expect(result.stderr).toBe(
+      `PublishWingetManifests: warning: ${labelStayed(OPENED, 40)}\n`,
+    );
+    expect(result.stdout).not.toContain("::warning");
+
+    // In a GitHub Actions job, a warning on the run as well.
+    const inActions = publish({
+      state,
+      env: { WINGET_CLA_CLEAR_WAIT_SECONDS: "40", GITHUB_ACTIONS: "true" },
+    });
+    expect(inActions.status).toBe(0);
+    expect(inActions.stdout).toContain(
+      `\n::warning title=Needs-CLA on winget #${OPENED}::${labelStayed(OPENED, 40)}\n`,
+    );
+  });
+
+  test("says the CLA is agreed once the bot takes the label off, however many reads that takes within WINGET_CLA_CLEAR_WAIT_SECONDS", () => {
+    const result = publish({
+      state: { bot: { [OPENED]: { askAfterReads: 0, clearAfterReads: 2 } } },
+    });
+
+    expect(result.status).toBe(0);
+    expect(claSteps(result)).toEqual([
+      "Needs-CLA? true",
+      "agree",
+      "Needs-CLA? true",
+      "sleep 20",
+      "Needs-CLA? true",
+      "sleep 20",
+      "Needs-CLA? false",
+    ]);
+    expect(result.stdout).toContain(
+      `Microsoft's CLA bot took the Needs-CLA label off #${OPENED}: the CLA is agreed.`,
+    );
+    expect(result.stderr).toBe("");
+  });
+
+  test("reads the labels again at the next poll when GitHub does not answer, and never stops the job for it", () => {
+    const issue = `repos/microsoft/winget-pkgs/issues/${OPENED}`;
+    const result = publish({ state: { failures: { [issue]: 2 } } });
+
+    expect(result.status).toBe(0);
+    expect(claSteps(result)).toEqual([
+      "Needs-CLA? failed",
+      "sleep 20",
+      "Needs-CLA? failed",
+      "sleep 20",
+      "Needs-CLA? true",
+      "agree",
+      "Needs-CLA? false",
+    ]);
+    expect(result.stderr).toContain(
+      `Reading the labels of #${OPENED} failed. GitHub said: gh: Bad Gateway (HTTP 502)`,
+    );
+
+    // Never answered: nothing is posted, and the job still passes.
+    const silent = publish({
+      state: { failures: { [issue]: 100 } },
+      env: { WINGET_CLA_WAIT_SECONDS: "40" },
+    });
+    expect(silent.status).toBe(0);
+    expect(claSteps(silent)).toEqual([
+      "Needs-CLA? failed",
+      "sleep 20",
+      "Needs-CLA? failed",
+      "sleep 20",
+      "Needs-CLA? failed",
+    ]);
+    expect(silent.stdout).toContain("so no CLA agreement was posted");
+
+    // A read after the agreement that fails is no sign the bot took the
+    // label off.
+    const after = publish({
+      state: {
+        bot: { [OPENED]: { askAfterReads: 0, honours: false } },
+        failures: { [issue]: [2] },
+      },
+      env: { WINGET_CLA_CLEAR_WAIT_SECONDS: "40" },
+    });
+    expect(after.status).toBe(0);
+    expect(claSteps(after)).toEqual([
+      "Needs-CLA? true",
+      "agree",
+      "Needs-CLA? failed",
+      "sleep 20",
+      "Needs-CLA? true",
+      "sleep 20",
+      "Needs-CLA? true",
+    ]);
+    expect(after.stdout).not.toContain("the CLA is agreed");
+    expect(after.stderr).toContain(labelStayed(OPENED, 40));
+  });
+
+  test("waits 900 seconds for the label and 300 for it to go, reading every 20, unless WINGET_CLA_WAIT_SECONDS, WINGET_CLA_CLEAR_WAIT_SECONDS and WINGET_CLA_POLL_SECONDS say otherwise", () => {
+    const defaults = publish();
+    expect(defaults.status).toBe(0);
+    expect(defaults.stdout).toContain(
+      `Waiting up to 900 seconds for Microsoft's CLA bot to label #${OPENED} Needs-CLA, reading its labels every 20 seconds.`,
+    );
+    expect(defaults.stdout).toContain(
+      `Waiting up to 300 seconds for Microsoft's CLA bot to take the Needs-CLA label off #${OPENED}.`,
+    );
+
+    // Each window ends with a sleep cut to what is left of it.
+    const set = {
+      WINGET_CLA_WAIT_SECONDS: "50",
+      WINGET_CLA_CLEAR_WAIT_SECONDS: "25",
+      WINGET_CLA_POLL_SECONDS: "15",
+    };
+    const asked = publish({
+      state: { bot: { [OPENED]: { askAfterReads: 2, honours: false } } },
+      env: set,
+    });
+    expect(asked.status).toBe(0);
+    expect(asked.stdout).toContain(
+      `Waiting up to 50 seconds for Microsoft's CLA bot to label #${OPENED} Needs-CLA, reading its labels every 15 seconds.`,
+    );
+    expect(claSteps(asked)).toEqual([
+      "Needs-CLA? false",
+      "sleep 15",
+      "Needs-CLA? false",
+      "sleep 15",
+      "Needs-CLA? true",
+      "agree",
+      "Needs-CLA? true",
+      "sleep 15",
+      "Needs-CLA? true",
+      "sleep 10",
+      "Needs-CLA? true",
+    ]);
+    expect(asked.stderr).toContain(labelStayed(OPENED, 25));
+
+    const never = publish({ state: { bot: {} }, env: set });
+    expect(never.status).toBe(0);
+    expect(claSteps(never)).toEqual([
+      "Needs-CLA? false",
+      "sleep 15",
+      "Needs-CLA? false",
+      "sleep 15",
+      "Needs-CLA? false",
+      "sleep 15",
+      "Needs-CLA? false",
+      "sleep 5",
+      "Needs-CLA? false",
+    ]);
+
+    // No wait at all: one read each.
+    const none = publish({
+      state: { bot: { [OPENED]: { askAfterReads: 0, honours: false } } },
+      env: { WINGET_CLA_WAIT_SECONDS: "0", WINGET_CLA_CLEAR_WAIT_SECONDS: "0" },
+    });
+    expect(none.status).toBe(0);
+    expect(claSteps(none)).toEqual([
+      "Needs-CLA? true",
+      "agree",
+      "Needs-CLA? true",
+    ]);
+    expect(none.stderr).toContain(labelStayed(OPENED, 0));
+  });
+
+  test.each([
+    ["WINGET_CLA_WAIT_SECONDS", "15m", "a whole number of seconds: '15m'"],
+    ["WINGET_CLA_WAIT_SECONDS", "-1", "a whole number of seconds: '-1'"],
+    [
+      "WINGET_CLA_CLEAR_WAIT_SECONDS",
+      "2.5",
+      "a whole number of seconds: '2.5'",
+    ],
+    // Bash would read it as octal: 010 seconds would be 8.
+    [
+      "WINGET_CLA_CLEAR_WAIT_SECONDS",
+      "010",
+      "a whole number of seconds: '010'",
+    ],
+    [
+      "WINGET_CLA_POLL_SECONDS",
+      "0",
+      "a whole number of seconds, at least 1: '0'",
+    ],
+  ])(
+    "refuses %s=%s before asking GitHub anything",
+    (setting, value, message) => {
+      const result = publish({ env: { [setting]: value } });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(`${setting} must be ${message}`);
+      expect(result.calls).toEqual([]);
+    },
+  );
+
+  test("closes the account's open pull requests for older versions, each with a comment naming this version's", () => {
+    const result = publish({
+      state: {
+        pulls: [
+          pullFor(4100, "1.2.2"),
+          pullFor(4099, "1.1.10"),
+          pullFor(4098, "0.9.0", { kind: "package" }),
+        ],
+      },
+    });
+    const superseded = `Superseded by #${OPENED} (OneUptime.InfrastructureAgent ${VERSION}).`;
+
+    expect(result.status).toBe(0);
+    expect(closings(result)).toEqual([
+      "close #4100",
+      `#4100: ${superseded}`,
+      "close #4099",
+      `#4099: ${superseded}`,
+      "close #4098",
+      `#4098: ${superseded}`,
+    ]);
+    expect(result.pulls.map((pull) => [pull.number, pull.state])).toEqual([
+      [4100, "closed"],
+      [4099, "closed"],
+      [4098, "closed"],
+      [OPENED, "open"],
+    ]);
+    expect(result.stdout).toContain(
+      `Closed #4100 (OneUptime.InfrastructureAgent 1.2.2): superseded by #${OPENED}.`,
+    );
+    // Found by title among winget-pkgs' open pull requests.
+    expect(
+      result.calls.find((call) => call.endpoint === "search/issues").fields,
+    ).toEqual({
+      q: "repo:microsoft/winget-pkgs is:pr is:open in:title OneUptime.InfrastructureAgent",
+      per_page: "100",
+    });
+    // The CLA after it, as ever.
+    expect(result.stdout).toContain("the CLA is agreed");
+    expect(result.stderr).toBe("");
+  });
+
+  test("leaves newer versions', other accounts', other packages' and closed pull requests alone", () => {
+    const others = [
+      pullFor(4300, "1.2.4"),
+      // Newer, number by number, though not as text.
+      pullFor(4301, "1.2.10"),
+      pullFor(4302, "1.10.0"),
+      pullFor(4303, "1.2.2", { owner: "someone-else" }),
+      pullFor(4304, "1.2.2", {
+        packageId: "OneUptime.InfrastructureAgentBeta",
+      }),
+      pullFor(4305, "1.2.2", { packageId: "Contoso.Agent" }),
+      pullFor(4306, "1.2.1", { state: "closed" }),
+    ];
+    const result = publish({
+      state: { pulls: [...others, pullFor(4307, "1.2.2")] },
+    });
+
+    expect(result.status).toBe(0);
+    expect(closings(result)).toEqual([
+      "close #4307",
+      `#4307: Superseded by #${OPENED} (OneUptime.InfrastructureAgent ${VERSION}).`,
+    ]);
+    expect(
+      others.map((pull) => {
+        return pullIn(result, pull.number);
+      }),
+    ).toEqual(others);
+    expect(result.stdout).toContain(
+      "Leaving #4300 (OneUptime.InfrastructureAgent 1.2.4) open: it is not older than 1.2.3.",
+    );
+    expect(result.stdout).toContain(
+      "Leaving #4301 (OneUptime.InfrastructureAgent 1.2.10) open: it is not older than 1.2.3.",
+    );
+    expect(result.stdout).toContain(
+      "Leaving #4303 (OneUptime.InfrastructureAgent 1.2.2) open: it is not from oneuptime-bot's fork.",
+    );
+  });
+
+  test("on a re-run, closes the older ones as superseded by this version's pull request, open already; a re-run of an older release closes nothing newer", () => {
+    const result = publish({
+      state: rerunState({
+        pulls: [pullFor(4000, "1.2.2"), pullFor(4300, "1.2.4")],
+      }),
+    });
+
+    expect(result.status).toBe(0);
+    expect(pullRequestOf(result)).toBeUndefined();
+    expect(closings(result)).toEqual([
+      "close #4000",
+      `#4000: Superseded by #${WAITING} (OneUptime.InfrastructureAgent ${VERSION}).`,
+    ]);
+    expect(pullIn(result, WAITING).state).toBe("open");
+    expect(pullIn(result, 4300).state).toBe("open");
+
+    // 1.2.2's run again, with 1.2.3's pull request open.
+    const older = publish({
+      version: "1.2.2",
+      state: {
+        pulls: [pullFor(4000, "1.2.2"), pullFor(WAITING, "1.2.3")],
+      },
+    });
+    expect(older.status).toBe(0);
+    expect(older.stdout).toContain(`already waiting in ${urlOf(4000)}`);
+    expect(closings(older)).toEqual([]);
+    expect(older.pulls.map((pull) => pull.state)).toEqual(["open", "open"]);
+    expect(older.stdout).toContain(
+      `Leaving #${WAITING} (OneUptime.InfrastructureAgent 1.2.3) open: it is not older than 1.2.2.`,
+    );
+  });
+
+  test("warns, naming the pull request, when one is not closed or not commented on, asks once more first, and still passes", () => {
+    const result = publish({
+      state: {
+        pulls: [
+          pullFor(4100, "1.2.2"),
+          pullFor(4101, "1.2.1"),
+          pullFor(4102, "1.2.0"),
+          pullFor(4103, "1.1.0"),
+        ],
+        failures: {
+          // Twice: not closed. Once: closed when asked again.
+          "repos/microsoft/winget-pkgs/pulls/4100": 2,
+          "repos/microsoft/winget-pkgs/pulls/4101": 1,
+          "repos/microsoft/winget-pkgs/issues/4102/comments": 2,
+          "repos/microsoft/winget-pkgs/pulls?state=open&head=oneuptime-bot:OneUptime.InfrastructureAgent-1.1.0": 2,
+        },
+      },
+    });
+    const superseded = `Superseded by #${OPENED} (OneUptime.InfrastructureAgent ${VERSION}).`;
+
+    expect(result.status).toBe(0);
+    expect(closings(result)).toEqual([
+      "close #4100 (failed)",
+      "close #4100 (failed)",
+      "close #4101 (failed)",
+      "close #4101",
+      `#4101: ${superseded}`,
+      "close #4102",
+      `#4102: ${superseded} (failed)`,
+      `#4102: ${superseded} (failed)`,
+    ]);
+    expect(result.pulls.map((pull) => [pull.number, pull.state])).toEqual([
+      [4100, "open"],
+      [4101, "closed"],
+      [4102, "closed"],
+      [4103, "open"],
+      [OPENED, "open"],
+    ]);
+    const warnings = result.stderr
+      .split("\n")
+      .filter((line) => line.startsWith("PublishWingetManifests: warning: "));
+    expect(warnings).toEqual([
+      `PublishWingetManifests: warning: Could not close #4100 (OneUptime.InfrastructureAgent 1.2.2), superseded by #${OPENED}: close it by hand. GitHub said: gh: Bad Gateway (HTTP 502)`,
+      `PublishWingetManifests: warning: Closed #4102 (OneUptime.InfrastructureAgent 1.2.0) as superseded by #${OPENED}, but could not comment that on it. GitHub said: gh: Bad Gateway (HTTP 502)`,
+      `PublishWingetManifests: warning: Could not check whether #4103 (OneUptime.InfrastructureAgent 1.1.0) is from oneuptime-bot's fork, so it was not closed as superseded by #${OPENED}. GitHub said: gh: Bad Gateway (HTTP 502)`,
+    ]);
+    // The CLA after it, as ever.
+    expect(result.stdout).toContain("the CLA is agreed");
+  });
+
+  test("warns, and still passes, when GitHub will not list the open pull requests; in a GitHub Actions job, on the run as well", () => {
+    const result = publish({
+      state: {
+        pulls: [pullFor(4100, "1.2.2")],
+        failures: { "search/issues": 2 },
+        failureText: "gh: Bad Gateway (HTTP 502)\n100% of searches failed",
+      },
+      env: { GITHUB_ACTIONS: "true" },
+    });
+    const warning = `Could not list the open pull requests for OneUptime.InfrastructureAgent, so none was closed as superseded by #${OPENED}. GitHub said: gh: Bad Gateway (HTTP 502)`;
+
+    expect(result.status).toBe(0);
+    expect(closings(result)).toEqual([]);
+    expect(pullIn(result, 4100).state).toBe("open");
+    expect(
+      result.calls.filter((call) => call.endpoint === "search/issues"),
+    ).toHaveLength(2);
+    expect(result.stderr).toContain(
+      `PublishWingetManifests: warning: ${warning}\n100% of searches failed\n`,
+    );
+    // A workflow command is one line.
+    expect(result.stdout).toContain(
+      `\n::warning title=Older winget pull requests not closed::${warning}%0A100%25 of searches failed\n`,
+    );
+  });
+
+  test("closes nothing when no other pull request for an older version is open", () => {
+    const result = publish();
+
+    expect(result.status).toBe(0);
+    expect(closings(result)).toEqual([]);
+    expect(result.stdout).toContain(
+      "No other open pull request is for an older version of OneUptime.InfrastructureAgent: none to close.",
+    );
+
+    // Nor for a version that is not whole numbers: nothing compares with it.
+    const odd = publish({
+      version: "1.2.3-rc.1",
+      state: { pulls: [pullFor(4100, "1.2.2")] },
+    });
+    expect(odd.status).toBe(0);
+    expect(closings(odd)).toEqual([]);
+    expect(pullIn(odd, 4100).state).toBe("open");
+    expect(odd.stdout).toContain(
+      "Closing no older pull requests: 1.2.3-rc.1 is not whole numbers joined by dots, so no version can be compared with it.",
+    );
   });
 
   test("moves a branch a stopped run left behind, instead of making it again", () => {
@@ -969,12 +1800,23 @@ if (method === "GET" && endpoint === "user") {
   test("uses the fork WINGET_FORK_OWNER names", () => {
     const result = publish({
       forkOwner: "OneUptime",
-      state: { forks: { "OneUptime/winget-pkgs": "microsoft/winget-pkgs" } },
+      state: {
+        forks: { "OneUptime/winget-pkgs": "microsoft/winget-pkgs" },
+        pulls: [
+          pullFor(4100, "1.2.2", { owner: "OneUptime" }),
+          pullFor(4101, "1.2.2", { owner: "oneuptime-bot" }),
+        ],
+      },
     });
 
     expect(result.status).toBe(0);
     expect(result.calls.some((call) => call.endpoint === "user")).toBe(false);
     expect(pullRequestOf(result).fields.head).toBe(`OneUptime:${BRANCH}`);
+    // Its pull requests are the ones it supersedes.
+    expect(closings(result)).toEqual([
+      "close #4100",
+      `#4100: Superseded by #${OPENED} (OneUptime.InfrastructureAgent ${VERSION}).`,
+    ]);
   });
 
   test("stops, writing nothing, without a fork of winget-pkgs", () => {
