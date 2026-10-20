@@ -37,6 +37,7 @@ import {
   readsOfRowsCallerMayWrite,
   stubRowsCallerMayWriteLikeFindBy,
 } from "../TestingUtils/RowsCallerMayWrite";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The read of the rows a caller's update may write, which the update path
@@ -1102,12 +1103,12 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
    * investigates the record (issue #5074), the wait follows what the rules
    * read - the severity, the labels, the title and the description - so a
    * record raised to a severity whose rule waits less is investigated
-   * sooner, and one that no rule matches any more stops waiting. It follows
-   * real changes only, as the feed does: a save that writes back what the
-   * record holds asks nothing of it.
+   * sooner (one that no rule matches any more is decided when its wait
+   * ends). It follows real changes only, as the feed does: a save that
+   * writes back what the record holds asks nothing of it.
    */
   describe("an investigation rule's wait follows the real changes", () => {
-    let onSubjectChanged: jest.SpiedFunction<
+    let onSubjectChanged: SpyInstance<
       typeof InvestigationRuleWait.onSubjectChanged
     >;
 

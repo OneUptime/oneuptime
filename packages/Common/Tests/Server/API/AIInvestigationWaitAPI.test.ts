@@ -114,8 +114,11 @@ function sentPayload(): JSONObject {
     .calls[0]![2] as JSONObject;
 }
 
-async function call(uri: string, body: JSONObject): Promise<jest.Mock> {
-  const next: jest.Mock = jest.fn();
+// The route's next(): a mock from @jest/globals, as the API suites type it.
+type NextMock = ReturnType<typeof jest.fn>;
+
+async function call(uri: string, body: JSONObject): Promise<NextMock> {
+  const next: NextMock = jest.fn();
 
   await mockRouter
     .match("post", uri)
@@ -170,7 +173,7 @@ describe("the panel's payload while an investigation waits", () => {
       typeof InvestigationEligibility.getNotStartedReason
     > = jest.spyOn(InvestigationEligibility, "getNotStartedReason");
 
-    const next: jest.Mock = await call("/ai-investigation/incident", {
+    const next: NextMock = await call("/ai-investigation/incident", {
       incidentId: INCIDENT_ID.toString(),
     });
 
@@ -288,7 +291,7 @@ describe("POST /ai-investigation/investigate-now", () => {
   });
 
   it("starts the incident's waiting investigation now, and answers with the run", async () => {
-    const next: jest.Mock = await call("/ai-investigation/investigate-now", {
+    const next: NextMock = await call("/ai-investigation/investigate-now", {
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
     });
@@ -320,7 +323,7 @@ describe("POST /ai-investigation/investigate-now", () => {
       new NotAuthorizedException("You do not have permission to edit"),
     );
 
-    const next: jest.Mock = await call("/ai-investigation/investigate-now", {
+    const next: NextMock = await call("/ai-investigation/investigate-now", {
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
     });
@@ -335,7 +338,7 @@ describe("POST /ai-investigation/investigate-now", () => {
   it("a record the viewer cannot read is not found, and nothing starts", async () => {
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue(null);
 
-    const next: jest.Mock = await call("/ai-investigation/investigate-now", {
+    const next: NextMock = await call("/ai-investigation/investigate-now", {
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
     });
@@ -349,7 +352,7 @@ describe("POST /ai-investigation/investigate-now", () => {
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(incidentIn(OTHER_PROJECT_ID));
 
-    const next: jest.Mock = await call("/ai-investigation/investigate-now", {
+    const next: NextMock = await call("/ai-investigation/investigate-now", {
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
     });
@@ -370,7 +373,7 @@ describe("POST /ai-investigation/investigate-now", () => {
       "findOneById",
     );
 
-    const next: jest.Mock = await call("/ai-investigation/investigate-now", {
+    const next: NextMock = await call("/ai-investigation/investigate-now", {
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
     });
@@ -388,7 +391,7 @@ describe("POST /ai-investigation/investigate-now", () => {
   ])(
     "a malformed request %j is refused, and nothing starts",
     async (body: JSONObject) => {
-      const next: jest.Mock = await call(
+      const next: NextMock = await call(
         "/ai-investigation/investigate-now",
         body,
       );
@@ -407,7 +410,7 @@ describe("POST /ai-investigation/investigate-now", () => {
     };
     startNow.mockResolvedValue(refused);
 
-    const next: jest.Mock = await call("/ai-investigation/investigate-now", {
+    const next: NextMock = await call("/ai-investigation/investigate-now", {
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
     });

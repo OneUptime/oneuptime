@@ -811,7 +811,8 @@ describe("the window of an incident whose investigation waited", () => {
       startedMinutesFromIncident: 30,
       waitMinutes: 30,
     });
-    late.ruleWaitMinutes = undefined;
+    (late as { ruleWaitMinutes?: number | undefined }).ruleWaitMinutes =
+      undefined;
     world.runs = [late];
     world.laterAlerts = [newAlert(ALERT_ID, at(30.5), false)];
 
@@ -898,7 +899,8 @@ describe("the window of an incident whose investigation waited", () => {
       startedMinutesFromIncident: 30,
       waitMinutes: 30,
     });
-    notWaited.ruleWaitMinutes = undefined;
+    (notWaited as { ruleWaitMinutes?: number | undefined }).ruleWaitMinutes =
+      undefined;
     world.runs = [notWaited];
     world.alertOpenedAt = at(45);
 
