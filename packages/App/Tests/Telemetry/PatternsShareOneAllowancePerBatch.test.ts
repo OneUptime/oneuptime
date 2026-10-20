@@ -261,6 +261,38 @@ describe("custom log scrub rules over a batch", () => {
     expect(allowance.usedWork).toBeLessThan(allowance.allowedWork / 4);
   });
 
+  test("each record handed to the rules adds its share: with no pool at all, plain rules still scrub every record", () => {
+    const rules: Array<LogRule> = [
+      logCustomRule("token=\\w+"),
+      logCustomRule("[a-z0-9.]+@example\\.com"),
+    ];
+    const allowance: PatternWorkAllowance = new PatternWorkAllowance({
+      pool: 0,
+      workPerRecordText: 2048,
+      workPerRecordCharacter: 128,
+    });
+    const rows: Array<JSONObject> = asBatch(allowance, (): Array<JSONObject> => {
+      const scrubbed: Array<JSONObject> = [];
+
+      for (let index: number = 0; index < 500; index++) {
+        scrubbed.push(
+          LogScrubRuleService.scrubLog(
+            logRecord(index, `login token=abc${index} ok`),
+            rules as never,
+          ),
+        );
+      }
+
+      return scrubbed;
+    });
+
+    for (const row of rows) {
+      expect(row["body"]).toBe("login [REDACTED] ok");
+    }
+
+    expect(allowance.stoppedQuestions).toBe(0);
+  });
+
   test("once the allowance is spent, a custom rule scrubs the whole value; a built-in rule is not one of the project's patterns", () => {
     const builtIn: LogScrubRule = new LogScrubRule();
     builtIn.patternType = LogScrubPatternType.Email;
