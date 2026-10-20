@@ -129,11 +129,17 @@ function answerWithBoard(board: DashboardViewConfig): void {
   });
 }
 
-// The picker's trigger: "More options" while off, the interval's label after.
-async function openPicker(triggerName: string): Promise<HTMLElement> {
+/*
+ * The picker's trigger, named "Auto-refresh settings" whatever it shows (it
+ * used to be "More options" while off), with the interval it refreshes at
+ * drawn beside its icon.
+ */
+async function openPicker(shownInterval: string): Promise<HTMLElement> {
   const trigger: HTMLElement = await waitFor(() => {
-    return screen.getByRole("button", { name: triggerName });
+    return screen.getByRole("button", { name: "Auto-refresh settings" });
   });
+
+  expect((trigger.textContent || "").trim()).toBe(shownInterval);
 
   fireEvent.click(trigger);
 
@@ -203,7 +209,7 @@ describe("the public dashboard's auto-refresh picker", () => {
   test("lists the dashboard's own interval first, then every interval, with a tick on the one in use", async () => {
     render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
 
-    const menu: HTMLElement = await openPicker("More options");
+    const menu: HTMLElement = await openPicker("");
 
     expect(labelsOf(menu)).toEqual(["Default (Off)", ...INTERVAL_LABELS]);
     // A visitor with no interval of their own is on the default.
@@ -217,7 +223,7 @@ describe("the public dashboard's auto-refresh picker", () => {
   test("the choices not in use keep the tick's space, so every label lines up", async () => {
     render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
 
-    const menu: HTMLElement = await openPicker("More options");
+    const menu: HTMLElement = await openPicker("");
 
     for (const label of INTERVAL_LABELS) {
       const item: HTMLElement = choiceOf(menu, label);
@@ -233,7 +239,7 @@ describe("the public dashboard's auto-refresh picker", () => {
   test("picking an interval moves the tick to it, off the default", async () => {
     render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
 
-    fireEvent.click(choiceOf(await openPicker("More options"), "30s"));
+    fireEvent.click(choiceOf(await openPicker(""), "30s"));
 
     // The trigger now reads the interval it refreshes at.
     const menu: HTMLElement = await openPicker("30s");

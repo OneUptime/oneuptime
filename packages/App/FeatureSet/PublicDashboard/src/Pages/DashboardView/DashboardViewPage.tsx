@@ -48,7 +48,11 @@ import LogoPlate from "../../Components/LogoPlate";
 import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { PUBLIC_AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID } from "./DashboardToolbarCopy";
+import {
+  PUBLIC_AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID,
+  PUBLIC_AUTO_REFRESH_MENU_LABEL,
+  PUBLIC_AUTO_REFRESH_MENU_TEST_ID,
+} from "./DashboardToolbarCopy";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -357,6 +361,8 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                       ? getAutoRefreshIntervalLabel(autoRefreshInterval)
                       : ""
                   }
+                  ariaLabel={PUBLIC_AUTO_REFRESH_MENU_LABEL}
+                  dataTestId={PUBLIC_AUTO_REFRESH_MENU_TEST_ID}
                 >
                   {[
                     /*
