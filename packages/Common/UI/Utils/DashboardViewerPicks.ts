@@ -1,6 +1,11 @@
 import { parseDashboardAutoRefreshInterval } from "../../Types/Dashboard/DashboardAutoRefresh";
 import { parseDashboardTimeRange } from "../../Types/Dashboard/DashboardTimeRange";
 import { AutoRefreshInterval } from "../../Types/Dashboard/DashboardViewConfig";
+import {
+  DashboardWidgetSortChoice,
+  formatDashboardWidgetSortChoice,
+  parseDashboardWidgetSortChoice,
+} from "../../Types/Dashboard/DashboardWidgetSort";
 import TimeRange from "../../Types/Time/TimeRange";
 import RememberedChoice from "./RememberedChoice";
 
@@ -13,17 +18,16 @@ import RememberedChoice from "./RememberedChoice";
  *   - the time range: one of the presets only (DASHBOARD_TIME_RANGES), never
  *     a custom start and end or a window a drag zoomed into, which would
  *     hold the dashboard on a moment in the past;
- *   - the auto-refresh interval.
+ *   - the auto-refresh interval;
+ *   - each list or table widget's sort, from a click on its column headers
+ *     (issue #5082), one entry per widget.
  *
  * Each pick has its own entry, keyed by the dashboard, and is read back
  * through the setting's own parser, so an entry an older or newer version
- * wrote is read as no pick. Picking the setting's "Default (...)" choice
- * forgets the entry, and the dashboard's own default decides again
+ * wrote is read as no pick. Picking the setting's "Default (...)" choice -
+ * or, for a sort, the header click that goes back to the widget's own
+ * order - forgets the entry, and the dashboard's own default decides again
  * (Types/Dashboard/DashboardViewerChoice.ts).
- *
- * A later setting that each viewer may change - a list widget's sort, say
- * (issue #5082) - is kept the same way: readPick and rememberPick with a
- * name of its own.
  *
  * React-free.
  */
@@ -34,6 +38,20 @@ export const DASHBOARD_VIEWER_PICK_KEY_PREFIX: string = "oneuptime-dashboard";
 export const DASHBOARD_TIME_RANGE_PICK: string = "time-range";
 
 export const DASHBOARD_AUTO_REFRESH_PICK: string = "auto-refresh";
+
+/*
+ * A widget's sort is kept per widget: oneuptime-dashboard-widget-sort-<the
+ * widget's id>:<dashboard id>. Widget ids are unique on a dashboard, and a
+ * widget copied to another dashboard gets a new one.
+ */
+export const DASHBOARD_WIDGET_SORT_PICK_PREFIX: string = "widget-sort-";
+
+export function getDashboardWidgetSortPickName(componentId: string): string {
+  return `${DASHBOARD_WIDGET_SORT_PICK_PREFIX}${componentId
+    .toString()
+    .trim()
+    .toLowerCase()}`;
+}
 
 /*
  * The key a pick is kept under: oneuptime-dashboard-time-range:<dashboard
@@ -147,6 +165,43 @@ export default class DashboardViewerPicks {
       dashboardId,
       pickName: DASHBOARD_AUTO_REFRESH_PICK,
       value: interval,
+    });
+  }
+
+  /*
+   * The sort the viewer picked for one widget on this dashboard, or null.
+   * Read as text "<column>:<asc|desc>"; whether the widget has that column
+   * is the widget's to check, as its columns can change.
+   */
+  public static getWidgetSort(data: {
+    dashboardId: string;
+    componentId: string;
+  }): DashboardWidgetSortChoice | null {
+    if (!data.componentId) {
+      return null;
+    }
+
+    return DashboardViewerPicks.readPick<DashboardWidgetSortChoice>({
+      dashboardId: data.dashboardId,
+      pickName: getDashboardWidgetSortPickName(data.componentId),
+      parse: parseDashboardWidgetSortChoice,
+    });
+  }
+
+  // Remembers the viewer's sort for one widget, or forgets it (null).
+  public static setWidgetSort(data: {
+    dashboardId: string;
+    componentId: string;
+    sort: DashboardWidgetSortChoice | null;
+  }): void {
+    if (!data.componentId) {
+      return;
+    }
+
+    DashboardViewerPicks.rememberPick({
+      dashboardId: data.dashboardId,
+      pickName: getDashboardWidgetSortPickName(data.componentId),
+      value: data.sort ? formatDashboardWidgetSortChoice(data.sort) : null,
     });
   }
 }

@@ -536,6 +536,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           }}
           refreshTick={refreshTick}
           variables={dashboardVariables}
+          dashboardId={props.dashboardId.toString()}
           onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
           onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
           isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}

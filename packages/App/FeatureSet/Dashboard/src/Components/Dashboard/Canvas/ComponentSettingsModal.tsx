@@ -5,10 +5,13 @@ import ObjectID from "Common/Types/ObjectID";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
+import { withDashboardWidgetSavedSort } from "Common/Utils/Dashboard/DashboardWidgetSorts";
+import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -161,6 +164,49 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     timeRange: previewRange,
     onTimeRangeChange: setPreviewRange,
   });
+
+  /*
+   * A click on a column header in the preview sets the widget's own sort
+   * (issue #5082): the preview is the widget as everyone will see it. The
+   * widget is read when the click comes, not when the preview last drew -
+   * a list widget draws again only when its settings change, and an older
+   * copy would undo an edit made since.
+   */
+  const latestComponentRef: React.MutableRefObject<
+    DashboardBaseComponent | undefined
+  > = useRef<DashboardBaseComponent | undefined>(component);
+  latestComponentRef.current = component;
+
+  const onComponentUpdateRef: React.MutableRefObject<
+    ComponentProps["onComponentUpdate"]
+  > = useRef<ComponentProps["onComponentUpdate"]>(props.onComponentUpdate);
+  onComponentUpdateRef.current = props.onComponentUpdate;
+
+  const setPreviewWidgetSort: (sort: string | null) => void = useCallback(
+    (sort: string | null): void => {
+      const latest: DashboardBaseComponent | undefined =
+        latestComponentRef.current;
+
+      if (!latest) {
+        return;
+      }
+
+      onComponentUpdateRef.current(withDashboardWidgetSavedSort(latest, sort));
+    },
+    [],
+  );
+
+  /*
+   * What a widget whose columns are its own can be sorted by, as its
+   * preview reports it - for the Sort setting, which cannot know a metric
+   * table's or a Data Source table's columns otherwise.
+   */
+  const [previewSortColumns, setPreviewSortColumns] =
+    useState<DashboardWidgetSortColumns | null>(null);
+
+  useEffect(() => {
+    setPreviewSortColumns(null);
+  }, [props.componentId.toString()]);
 
   /*
    * Gone from the config: the widget was just deleted, and this dialog is
@@ -329,6 +375,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     onDashboardTimeRangeSelect={previewZoom.zoomToTimeRange}
                     onDashboardTimeRangeReset={previewZoom.resetZoom}
                     isDashboardTimeRangeZoomed={previewZoom.isZoomed}
+                    onWidgetSortChange={setPreviewWidgetSort}
+                    onWidgetSortColumnsChange={setPreviewSortColumns}
                     dndActiveMode={null}
                     isAnyGestureActive={false}
                     onMovePointerDown={() => {}}
@@ -373,6 +421,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     props.onComponentUpdate(component);
                   }}
                   metrics={props.metrics}
+                  widgetSortColumns={previewSortColumns}
                 />
               </ContainedErrorBoundary>
             ) : (

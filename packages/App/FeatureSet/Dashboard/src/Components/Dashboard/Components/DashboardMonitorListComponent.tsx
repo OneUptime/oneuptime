@@ -18,8 +18,11 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import { JSONObject } from "Common/Types/JSON";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -33,15 +36,18 @@ import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 import DashboardLabelVariable from "Common/Utils/Dashboard/LabelVariable";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useDashboardListWidgetSort, {
+  DashboardListWidgetSort,
+} from "../Utils/UseDashboardListWidgetSort";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardMonitorListComponent;
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Name", widthPct: "55%" },
-  { label: "Status", widthPct: "30%" },
-  { label: "Type", widthPct: "15%" },
+  { label: "Name", widthPct: "55%", sortKey: "name" },
+  { label: "Status", widthPct: "30%", sortKey: "status" },
+  { label: "Type", widthPct: "15%", sortKey: "type" },
 ];
 
 const DashboardMonitorListComponentElement: FunctionComponent<
@@ -52,6 +58,10 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const requestVersion: React.MutableRefObject<number> = useRef<number>(0);
+  const widgetSort: DashboardListWidgetSort = useDashboardListWidgetSort(
+    props,
+    DashboardComponentType.MonitorList,
+  );
 
   const maxRows: number = props.component.arguments.maxRows || 25;
   const viewMode: ResourceListViewMode =
@@ -123,11 +133,12 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         requestOptions: DashboardResourceList.getRequestOptions("monitor", {
           componentId: props.componentId,
           variables: props.variables,
+          viewerSort: widgetSort.viewerPick,
         }),
         query: query,
         limit: maxRows,
         skip: 0,
-        select: {
+        select: widgetSort.withSortSelect({
           _id: true,
           name: true,
           monitorType: true,
@@ -135,10 +146,9 @@ const DashboardMonitorListComponentElement: FunctionComponent<
             name: true,
             color: true,
           },
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
+        } as JSONObject) as Select<Monitor>,
+        // The viewer's pick, else the widget's own sort, else by name.
+        sort: widgetSort.modelSort as Sort<Monitor>,
       });
 
       if (version !== requestVersion.current) {
@@ -163,6 +173,9 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     labelVariableId,
     props.componentId,
     props.variables,
+    widgetSort.sortKey,
+    widgetSort.viewerPick?.column,
+    widgetSort.viewerPick?.direction,
   ]);
 
   useEffect(() => {
@@ -277,6 +290,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       emptyIcon={IconProp.AltGlobe}
       viewMode={viewMode}
       honeycombTiles={honeycombTiles}
+      sort={widgetSort.listSort}
     >
       {rows}
     </DashboardResourceListBase>

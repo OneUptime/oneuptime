@@ -149,6 +149,67 @@ export interface TraceAnalyticsRequest extends TraceFilters {
    */
   groupBy?: Array<string> | undefined;
   limit?: number | undefined;
+  /*
+   * The table's order: which column, and which way. The rows are ranked
+   * by it before the limit, so "the slowest ten by p99" is the slowest ten
+   * of the whole window, not the slowest of the busiest ten. Unset, the
+   * busiest groups come first, as the table always ranked them.
+   */
+  tableSort?: TraceAnalyticsTableSort | undefined;
+}
+
+/*
+ * The columns a trace table can be ordered by - the dashboard Trace Table
+ * widget's sortable headers (Common/Utils/Dashboard/DashboardWidgetSorts) -
+ * each mapped to the aggregate it orders by. A fixed list: a request names
+ * a key, never SQL. `group` is the table's first group-by dimension.
+ */
+export const TRACE_ANALYTICS_TABLE_SORT_ALIASES: Readonly<
+  Record<string, string>
+> = {
+  count: "cnt",
+  errorCount: "err_cnt",
+  avg: "avg_ms",
+  p50: "p50_ms",
+  p90: "p90_ms",
+  p95: "p95_ms",
+  p99: "p99_ms",
+  min: "min_ms",
+  max: "max_ms",
+};
+
+export const TRACE_ANALYTICS_TABLE_GROUP_SORT_KEY: string = "group";
+
+export interface TraceAnalyticsTableSort {
+  // A key of TRACE_ANALYTICS_TABLE_SORT_ALIASES, or the group dimension.
+  column: string;
+  direction: "asc" | "desc";
+}
+
+/*
+ * A table sort a request names, or null when it names none this table can
+ * be ordered by: then the table keeps its own order, busiest first.
+ */
+export function parseTraceAnalyticsTableSort(
+  column: unknown,
+  direction: unknown,
+): TraceAnalyticsTableSort | null {
+  if (
+    typeof column !== "string" ||
+    (column !== TRACE_ANALYTICS_TABLE_GROUP_SORT_KEY &&
+      !Object.prototype.hasOwnProperty.call(
+        TRACE_ANALYTICS_TABLE_SORT_ALIASES,
+        column,
+      ))
+  ) {
+    return null;
+  }
+
+  if (direction !== "asc" && direction !== "desc") {
+    return null;
+  }
+
+  return { column, direction };
 }
 
 export interface TraceAnalyticsTimeseriesRow {
@@ -2091,7 +2152,14 @@ export class TraceAggregationService {
     }
 
     statement.append(
-      SQL` ORDER BY cnt DESC LIMIT ${{
+      ` ORDER BY ${TraceAggregationService.getAnalyticsTableOrderBy(
+        request.tableSort,
+        TraceAggregationService.groupByAlias(groupByKeys[0] as string, 0),
+      )}`,
+    );
+
+    statement.append(
+      SQL` LIMIT ${{
         type: TableColumnType.Number,
         value: limit,
       }}`,
@@ -2104,6 +2172,39 @@ export class TraceAggregationService {
     );
 
     return statement;
+  }
+
+  /*
+   * The trace table's ORDER BY: the busiest groups first, as it always
+   * ranked them, or the column a request names from the fixed list
+   * (TRACE_ANALYTICS_TABLE_SORT_ALIASES), busiest first among ties. Built
+   * from that list and the group's own alias only - never from text a
+   * request sends.
+   */
+  private static getAnalyticsTableOrderBy(
+    tableSort: TraceAnalyticsTableSort | undefined,
+    groupAlias: string,
+  ): string {
+    const sort: TraceAnalyticsTableSort | null = tableSort
+      ? parseTraceAnalyticsTableSort(tableSort.column, tableSort.direction)
+      : null;
+
+    if (!sort) {
+      return "cnt DESC";
+    }
+
+    const direction: string = sort.direction === "asc" ? "ASC" : "DESC";
+
+    const alias: string =
+      sort.column === TRACE_ANALYTICS_TABLE_GROUP_SORT_KEY
+        ? groupAlias
+        : (TRACE_ANALYTICS_TABLE_SORT_ALIASES[sort.column] as string);
+
+    if (alias === "cnt") {
+      return `cnt ${direction}`;
+    }
+
+    return `${alias} ${direction}, cnt DESC`;
   }
 
   private static isTopLevelColumn(key: string): boolean {

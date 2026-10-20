@@ -1,15 +1,39 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  DashboardWidgetSortChoice,
+  DashboardWidgetSortColumnInfo,
+  findDashboardWidgetSortColumn,
+} from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardResourceHoneycomb, {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ResourceListColumn {
   label: string;
   widthPct: string;
   alignRight?: boolean;
+  /*
+   * The column's key in the widget kind's sort registry
+   * (Common/Utils/Dashboard/DashboardWidgetSorts), when its header sorts
+   * the list.
+   */
+  sortKey?: string | undefined;
+}
+
+/*
+ * What a list's sortable headers draw and do: the columns it can sort by,
+ * the order its rows are in, and a header's click.
+ */
+export interface ResourceListSort {
+  columns: ReadonlyArray<DashboardWidgetSortColumnInfo>;
+  sort: DashboardWidgetSortChoice | null;
+  onColumnClick: (columnKey: string) => void;
 }
 
 export type ResourceListViewMode = "list" | "honeycomb";
@@ -34,12 +58,23 @@ export interface DashboardResourceListBaseProps {
    * skeleton or the error state, which have nothing to summarise.
    */
   summary?: ReactNode | undefined;
+  /*
+   * The list's sort (issue #5082): a column with a `sortKey` among these
+   * columns is a header that sorts the list. The rows come sorted - by the
+   * server, over the whole list - so this only draws the headers.
+   */
+  sort?: ResourceListSort | undefined;
 }
 
 const DashboardResourceListBase: FunctionComponent<
   DashboardResourceListBaseProps
 > = (props: DashboardResourceListBaseProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const viewMode: ResourceListViewMode = props.viewMode || "list";
+  // The widgets hand their messages over in English.
+  const emptyMessage: string = translator.translateText(
+    props.emptyMessage,
+  ) as string;
 
   if (props.isLoading && props.count === 0) {
     return (
@@ -90,7 +125,7 @@ const DashboardResourceListBase: FunctionComponent<
           </div>
         </div>
         <p className="text-xs text-gray-400 text-center max-w-48">
-          {props.error}
+          {translator.translateText(props.error)}
         </p>
       </div>
     );
@@ -119,7 +154,7 @@ const DashboardResourceListBase: FunctionComponent<
         <div className="flex-1 overflow-hidden rounded-md border border-gray-100">
           {props.isEmpty ? (
             <div className="h-full flex items-center justify-center px-4 py-8 text-center text-gray-400 text-sm">
-              {props.emptyMessage}
+              {emptyMessage}
             </div>
           ) : (
             <DashboardResourceHoneycomb
@@ -135,15 +170,22 @@ const DashboardResourceListBase: FunctionComponent<
               <tr>
                 {props.columns.map((c: ResourceListColumn, i: number) => {
                   return (
-                    <th
+                    <DashboardSortableColumnHeader
                       key={i}
-                      className={`px-3 py-2.5 font-medium tracking-wider${
-                        c.alignRight ? " text-right" : ""
-                      }`}
-                      style={{ width: c.widthPct }}
-                    >
-                      {c.label}
-                    </th>
+                      label={c.label}
+                      alignRight={c.alignRight}
+                      widthPct={c.widthPct}
+                      sortColumn={
+                        props.sort && c.sortKey
+                          ? findDashboardWidgetSortColumn(
+                              props.sort.columns,
+                              c.sortKey,
+                            )
+                          : null
+                      }
+                      sort={props.sort?.sort || null}
+                      onSortClick={props.sort?.onColumnClick}
+                    />
                   );
                 })}
               </tr>
@@ -155,7 +197,7 @@ const DashboardResourceListBase: FunctionComponent<
                     colSpan={props.columns.length}
                     className="px-4 py-8 text-center text-gray-400 text-sm"
                   >
-                    {props.emptyMessage}
+                    {emptyMessage}
                   </td>
                 </tr>
               ) : (
