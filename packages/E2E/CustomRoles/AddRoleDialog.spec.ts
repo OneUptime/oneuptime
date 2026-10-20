@@ -50,6 +50,32 @@ async function boxOf(locator: Locator): Promise<Box> {
   return box as Box;
 }
 
+/*
+ * Where an element is once it has stopped moving: a dialog grows in from
+ * 95% for its first 150 ms, so a box taken at once is a box mid-way.
+ */
+async function steadyBoxOf(locator: Locator): Promise<Box> {
+  let last: Box = await boxOf(locator);
+
+  for (let attempt: number = 0; attempt < 20; attempt++) {
+    await locator.page().waitForTimeout(100);
+    const now: Box = await boxOf(locator);
+
+    if (
+      now.x === last.x &&
+      now.y === last.y &&
+      now.width === last.width &&
+      now.height === last.height
+    ) {
+      return now;
+    }
+
+    last = now;
+  }
+
+  return last;
+}
+
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(({ page }: { page: Page }) => {
@@ -117,6 +143,9 @@ async function openTeamPermissions(
   await page.goto(`${TEAM_PERMISSIONS}${search}`);
   await expect(page.getByTestId("card-details-heading").first()).toBeVisible();
 }
+
+// One channel of a computed colour, rgb(209, 213, 219).
+const COLOUR_CHANNEL: RegExp = /\d+/g;
 
 // The Add Role button, whole: not Add Custom Role, nor Benutzerdefinierte Rolle hinzufügen.
 const ADD_ROLE: RegExp = /^Add Role$/;
@@ -290,6 +319,40 @@ test.describe("Add a Role on a team's Permissions page", () => {
     expect(created[0]!["scope"]).toBe("All");
   });
 
+  test("a tile under the pointer only greys: it never looks like the one picked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTeamPermissions(page);
+    const form: Locator = await openAddRole(page);
+    await reach(form, "OneArea").click();
+    await areaTile(form, "Incidents").click();
+    await areaTile(form, "Alerts").hover();
+    // Past the tiles' colour transition.
+    await page.waitForTimeout(300);
+
+    const borderOf: (locator: Locator) => Promise<string> = async (
+      locator: Locator,
+    ): Promise<string> => {
+      return await locator.evaluate((element: Element): string => {
+        return getComputedStyle(element).borderTopColor;
+      });
+    };
+
+    const picked: string = await borderOf(areaTile(form, "Incidents"));
+    const hovered: string = await borderOf(areaTile(form, "Alerts"));
+    const resting: string = await borderOf(areaTile(form, "Monitors"));
+
+    expect(hovered).not.toBe(picked);
+    expect(hovered).not.toBe(resting);
+    // Grey, as the resting border is: no accent in it.
+    const channels: Array<number> = (hovered.match(COLOUR_CHANNEL) || []).map(
+      Number,
+    );
+    expect(Math.max(...channels) - Math.min(...channels)).toBeLessThan(40);
+  });
+
   test("every area's tile picks that area's role, at the level chosen", async ({
     page,
   }: {
@@ -326,43 +389,26 @@ test.describe("Add a Role on a team's Permissions page", () => {
     }
   });
 
-  test("the dialog keeps its size and place as the answers and levels change", async ({
+  test("with nothing picked, Add Role says a role is needed inside the room it keeps: the dialog does not grow", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
     await openTeamPermissions(page);
     const form: Locator = await openAddRole(page);
+    const before: Box = await steadyBoxOf(form);
 
-    const height: () => Promise<number> = async (): Promise<number> => {
-      return (await boxOf(form)).height;
-    };
+    await form.getByTestId("modal-footer-submit-button").click();
 
-    const wholeProjectHeight: number = await height();
-    await reach(form, "OneArea").click();
-    const oneAreaHeight: number = await height();
+    const error: Locator = form
+      .getByTestId("role-picker-room")
+      .getByRole("alert");
+    await expect(error).toHaveText("Role is required.");
+    expect(await createsOf(page, "TeamPermission")).toEqual([]);
 
-    // Switching answers barely moves the dialog: the pick's room is kept.
-    expect(Math.abs(oneAreaHeight - wholeProjectHeight)).toBeLessThan(40);
-
-    // A role that takes no scope: nothing appears, so nothing moves.
-    await areaTile(form, "Billing").click();
-    const tile: Locator = areaTile(form, "Settings");
-    const before: Box = await boxOf(tile);
-
-    await level(form, "Viewer").click();
-    await areaTile(form, "Settings").click();
-    await level(form, "Admin").click();
-
-    const after: Box = await boxOf(tile);
+    const after: Box = await boxOf(form);
     expect(Math.abs(after.y - before.y)).toBeLessThan(1);
-    expect(Math.abs((await height()) - oneAreaHeight)).toBeLessThan(1);
-
-    // A search keeps the dialog at least as tall as before.
-    await form.getByTestId("role-picker-search").fill("zebra");
-    await expect(form.getByTestId("role-picker-no-results")).toBeVisible();
-    expect(await height()).toBeGreaterThan(oneAreaHeight - 40);
+    expect(Math.abs(after.height - before.height)).toBeLessThan(1);
   });
 
   test("the search: Enter takes the first match and keeps the dialog open; Escape clears it, a second closes the dialog", async ({
@@ -382,6 +428,15 @@ test.describe("Add a Role on a team's Permissions page", () => {
     await expect(results.getByRole("radio").first()).toHaveAttribute(
       "value",
       "BillingViewer",
+    );
+    // The matches come from both answers: neither is pressed.
+    await expect(reach(form, "WholeProject")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(reach(form, "OneArea")).toHaveAttribute(
+      "aria-pressed",
+      "false",
     );
     await screenshot(page, "add-role-search");
 
@@ -680,4 +735,146 @@ test.describe("Add a Role in German", () => {
     await expect(areaTile(form, "Incidents")).toHaveText("Vorfälle");
     await screenshot(page, "add-role-german");
   });
+});
+
+/*
+ * Nothing a pick changes moves the dialog. It is centred on a desktop and
+ * rises from the bottom of a phone, so anything that grew under a row or a
+ * tile moved it - and the switch just pressed - from under the pointer: the
+ * first pick (the More fields line appearing), a role without a scope (the
+ * line going), a picked row's check (its line re-wrapping), a longer line
+ * under the tiles (one row to four in German on a phone), and switching
+ * between the two answers (a hundred pixels on a German phone). Each walk
+ * below measures the dialog and its switch after every step.
+ */
+interface StillWalk {
+  name: string;
+  width: number;
+  height: number;
+  search: string;
+  addRole: RegExp;
+  path: string;
+  wholeProjectRoles: Array<string>;
+}
+
+const STILL_WALKS: Array<StillWalk> = [
+  {
+    name: "a team's, on a laptop",
+    width: 1280,
+    height: 900,
+    search: "",
+    addRole: ADD_ROLE,
+    path: TEAM_PERMISSIONS,
+    wholeProjectRoles: [
+      "ProjectOwner",
+      "ProjectMember",
+      "ProjectAdmin",
+      "Viewer",
+    ],
+  },
+  {
+    name: "a team's, on a phone",
+    width: 390,
+    height: 844,
+    search: "",
+    addRole: ADD_ROLE,
+    path: TEAM_PERMISSIONS,
+    wholeProjectRoles: ["ProjectMember", "ProjectAdmin", "Viewer"],
+  },
+  {
+    name: "a team's, in German on a small tablet",
+    width: 640,
+    height: 900,
+    search: "?lang=de",
+    addRole: ADD_ROLE_IN_GERMAN,
+    path: TEAM_PERMISSIONS,
+    wholeProjectRoles: ["ProjectMember", "ProjectAdmin"],
+  },
+  {
+    name: "a custom role's, on a laptop",
+    width: 1280,
+    height: 900,
+    search: "",
+    addRole: ADD_ROLE,
+    path: `/dashboard/${PROJECT}/teams/roles/30000000-0000-4000-8000-000000000001`,
+    wholeProjectRoles: ["ProjectAdmin", "ProjectMember", "Viewer"],
+  },
+];
+
+const ALL_AREAS: Array<string> = [
+  "Incidents",
+  "Alerts",
+  "Monitors",
+  "StatusPages",
+  "OnCall",
+  "ScheduledMaintenance",
+  "Telemetry",
+  "Security",
+  "Workflows",
+  "Runbooks",
+  "Settings",
+  "Billing",
+];
+
+test.describe("Add a Role never moves under the pointer", () => {
+  for (const walk of STILL_WALKS) {
+    test(`${walk.name}: every pick, every area at every level, and both answers`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: walk.width, height: walk.height });
+      await page.goto(`${walk.path}${walk.search}`);
+      const form: Locator = await openAddRole(page, walk.addRole);
+      const switchOf: Locator = form.getByTestId("role-picker-reach");
+
+      // Where the dialog and its switch are, and how tall it is.
+      const place: () => Promise<string> = async (): Promise<string> => {
+        const dialogBox: Box = await boxOf(form);
+        const switchBox: Box = await boxOf(switchOf);
+
+        return `${Math.round(dialogBox.y)}/${Math.round(dialogBox.height)}/${Math.round(switchBox.y)}`;
+      };
+
+      await reach(form, "WholeProject").click();
+      await steadyBoxOf(form);
+      const start: string = await place();
+      const moved: Array<string> = [];
+      const check: (step: string) => Promise<void> = async (
+        step: string,
+      ): Promise<void> => {
+        const now: string = await place();
+
+        if (now !== start) {
+          moved.push(`${step}: ${now} (was ${start})`);
+        }
+      };
+
+      for (const role of walk.wholeProjectRoles) {
+        await roleRow(form, role).click();
+        await check(`row ${role}`);
+      }
+
+      await reach(form, "OneArea").click();
+      await check("One area");
+
+      for (const levelName of ["Member", "Admin", "Viewer"] as const) {
+        await level(form, levelName).click();
+
+        for (const area of ALL_AREAS) {
+          await areaTile(form, area).click();
+          await check(`${area} at ${levelName}`);
+        }
+      }
+
+      await reach(form, "WholeProject").click();
+      await check("back to Whole project");
+
+      await form.getByTestId("role-picker-search").fill("zebra");
+      await expect(form.getByTestId("role-picker-no-results")).toBeVisible();
+      await check("a search with no match");
+
+      expect(moved).toEqual([]);
+    });
+  }
 });

@@ -24,7 +24,10 @@ import path from "path";
  *     cards are read only where roles are listed, not picked;
  *   - each role dialog is of medium width, and says what it adds in its
  *     title alone - the field's old help is gone;
- *   - a role's Scope folds under More fields;
+ *   - a role's Scope folds under More fields, and where it does, the picker
+ *     keeps that line's room while it is not drawn - asked with the one
+ *     question the Scope asks, so the dialog never moves as roles are
+ *     picked;
  *   - the catalog and the picker's options stay React-free.
  *
  * Source is read as text: App's tests never import a React module. What the
@@ -111,8 +114,32 @@ describe("every Add Role uses the one role field", () => {
     const table: string = readSource(ROLE_TABLE);
 
     expect(table).toContain(
-      "getRolePickerFormField<CustomRolePermission>({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, startOn: RoleReach.OneArea, onChange: onPermissionPicked, }),",
+      "getRolePickerFormField<CustomRolePermission>({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, startOn: RoleReach.OneArea, onChange: onPermissionPicked, isMoreFieldsShownFor: isScopeShownFor, }),",
     );
+  });
+
+  /*
+   * The More fields line (Scope) is drawn under the picker only for a role
+   * that takes a scope. The picker keeps its room the rest of the time, and
+   * asks the very question the Scope field asks, so the room is there
+   * exactly while the line is not: the first pick, and every move between a
+   * role with a scope and one without, used to move the dialog by a line.
+   */
+  test.each([TEAM_TABLE, ROLE_TABLE])(
+    "%s keeps the More fields room with the Scope's own question",
+    (file: string) => {
+      const table: string = readSource(file);
+
+      expect(table).toContain("isMoreFieldsShownFor: isScopeShownFor,");
+      expect(table).toContain('return isScopeShownFor(values["permission"]);');
+      expect(table).toContain(
+        'import { getPermissionScopeFields, isScopeShownFor, } from "../Permission/PermissionScopeChoice";',
+      );
+    },
+  );
+
+  test("an API key's Add Role folds nothing under the picker, so it keeps no room", () => {
+    expect(readSource(KEY_TABLE)).not.toContain("isMoreFieldsShownFor");
   });
 
   test("the field draws the picker for the permission column, required, with no label or help over it", () => {
@@ -128,6 +155,10 @@ describe("every Add Role uses the one role field", () => {
     expect(field).toContain("required: true,");
     expect(field).toContain("<RolePicker ");
     expect(field).not.toContain("description:");
+    // The room is kept only while the form says its line is not drawn.
+    expect(field).toContain(
+      "keepsMoreFieldsRoom={ options?.isMoreFieldsShownFor ? !options.isMoreFieldsShownFor(picked) : false }",
+    );
   });
 });
 
@@ -254,6 +285,64 @@ describe("the picker", () => {
 
   test("it says a role is missing only on Add Role, never as focus moves on", () => {
     expect(picker).not.toContain("onBlur");
+  });
+
+  /*
+   * The dialog is centred on a desktop and rises from the bottom of a
+   * phone, so whatever grows under a row or tile moves it from under the
+   * pointer. What a pick changes keeps its room instead.
+   */
+  test("nothing a pick changes moves the dialog", () => {
+    // Every row keeps its check's room, drawn or not.
+    expect(picker).toContain(
+      '<div className="h-5 w-5 flex-shrink-0" data-testid={isGhost ? undefined : "role-picker-role-check"} > {isChecked ? (',
+    );
+    // The panel's words sit in one grid cell with all it could say, unseen.
+    expect(picker).toContain(
+      'className="invisible col-start-1 row-start-1 min-w-0"',
+    );
+    expect(picker).toContain(
+      "{[hintWords, ...areaRoles.map(getRoleWords)].map(",
+    );
+    expect(picker).not.toContain("min-h-[3.875rem]");
+    /*
+     * The body is one cell, the answer not on screen kept out of sight in
+     * it, so switching answers moves nothing; no guessed minimum height.
+     */
+    expect(picker).toContain(
+      '<div className="mt-4 grid" data-testid="role-picker-body">',
+    );
+    expect(picker).toContain("renderGhost(renderWholeProject(true))");
+    expect(picker).toContain("renderGhost(renderOneArea(true))");
+    expect(picker).not.toContain("min-h-[17.5rem]");
+    // The More fields line's room, with a missing role said inside it.
+    expect(picker).toContain(
+      '<div className={MORE_FIELDS_ROOM} data-testid="role-picker-room"> {renderError()} </div>',
+    );
+  });
+
+  /*
+   * What keeps the room of an answer that is not on screen is never read
+   * out, never reached by Tab and never found by a test id: it draws no
+   * radio, no id and no test id of its own.
+   */
+  test("the room of an answer not on screen holds no radio, id or test id", () => {
+    expect(picker).toContain(
+      '{isGhost ? ( <></> ) : ( <input type="radio" className="sr-only" name={groupName} value={role.permission}',
+    );
+    expect(picker).toContain(
+      '{isGhost ? ( <></> ) : ( <input type="radio" className="sr-only" name={groupName} value={entry.area.id}',
+    );
+    expect(picker).toContain(
+      "const titleId: string | undefined = isGhost ? undefined",
+    );
+    expect(picker).toContain(
+      '<div aria-hidden="true" className="invisible col-start-1 row-start-1 min-w-0" data-testid="role-picker-body-room" >',
+    );
+  });
+
+  test("while the search lists matches, neither answer is pressed", () => {
+    expect(picker).toContain("value={isSearching ? null : reach}");
   });
 
   test.each([

@@ -209,10 +209,13 @@ describe("the Add a Role dialog in the dark theme", () => {
         "bg-indigo-50/50",
         "border-indigo-200",
         "bg-indigo-100",
-        // Resting and hovered rows and tiles.
+        /*
+         * Resting and hovered rows and tiles. Under the pointer a resting
+         * one only greys: an accent border on hover looked picked.
+         */
         "border-gray-200",
         "bg-white",
-        "hover:border-indigo-300",
+        "hover:border-gray-300",
         "hover:bg-gray-50",
         // The empty pick and the search's empty state.
         "border-gray-300",
@@ -225,6 +228,17 @@ describe("the Add a Role dialog in the dark theme", () => {
       ]),
     );
     expect(unmapped).toEqual([]);
+  });
+
+  test("a hovered row or tile never wears the picked one's accent border", () => {
+    const picker: string = getModules().get(
+      "Components/Permission/RolePicker.tsx",
+    ) as string;
+
+    expect(picker).not.toContain("hover:border-indigo-");
+    expect(picker).toContain(
+      'const CHOICE_PICKED: string = "border-indigo-500 bg-indigo-50/50";',
+    );
   });
 
   /*

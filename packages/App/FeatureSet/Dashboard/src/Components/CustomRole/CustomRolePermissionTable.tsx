@@ -1,6 +1,9 @@
 import { RoleReach } from "../Permission/RoleCatalog";
 import { getRolePickerFormField } from "../Permission/RolePickerFormField";
-import { getPermissionScopeFields } from "../Permission/PermissionScopeChoice";
+import {
+  getPermissionScopeFields,
+  isScopeShownFor,
+} from "../Permission/PermissionScopeChoice";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import {
   CUSTOM_ROLE_PERMISSION_DIALOG_WORDS,
@@ -170,10 +173,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
   const isScopeShown: (values: FormValues<CustomRolePermission>) => boolean = (
     values: FormValues<CustomRolePermission>,
   ): boolean => {
-    return (
-      Boolean(values["permission"]) &&
-      PermissionHelper.isScopeApplicable(values["permission"] as Permission)
-    );
+    return isScopeShownFor(values["permission"]);
   };
 
   /*
@@ -261,6 +261,8 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
                 excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
                 startOn: RoleReach.OneArea,
                 onChange: onPermissionPicked,
+                // The Scope below shows for a role that takes one.
+                isMoreFieldsShownFor: isScopeShownFor,
               }),
               ...scopeAndLabelsFields,
             ]

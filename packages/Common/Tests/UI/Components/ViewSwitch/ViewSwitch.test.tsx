@@ -187,6 +187,40 @@ describe("ViewSwitch", () => {
     expect(onChange).toHaveBeenCalledWith("calendar");
   });
 
+  /*
+   * The role picker's Whole project | One area while its search lists roles
+   * from both: neither answer is on screen, so neither is pressed, and
+   * pressing either one - the one shown before the search too - asks for it.
+   */
+  test("with no view on screen, none is pressed, and pressing any asks for it", () => {
+    const onChange: Mock<(value: View) => void> =
+      jest.fn<(value: View) => void>();
+
+    render(
+      <ViewSwitch
+        options={OPTIONS}
+        value={null}
+        onChange={onChange}
+        ariaLabel="Show the events as"
+        dataTestId="switch"
+      />,
+    );
+
+    for (const option of ["list", "calendar"]) {
+      const button: HTMLElement = screen.getByTestId(`switch-${option}`);
+
+      expect(button).toHaveAttribute("aria-pressed", "false");
+      expect(button.className).not.toContain(VIEW_SWITCH_ACTIVE_CLASS_NAME);
+    }
+
+    fireEvent.click(screen.getByTestId("switch-list"));
+    expect(onChange).toHaveBeenLastCalledWith("list");
+
+    fireEvent.click(screen.getByTestId("switch-calendar"));
+    expect(onChange).toHaveBeenLastCalledWith("calendar");
+    expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
   test("options without an icon are words alone: Month | Week | Day in a calendar's toolbar", () => {
     type Range = "month" | "week" | "day";
 

@@ -1,6 +1,7 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "Common/Models/DatabaseModels/Label";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -185,6 +186,25 @@ export const isLabelsScopePicked: (values: unknown) => boolean = (
   values: unknown,
 ): boolean => {
   return asRecord(values)["scope"] === PermissionScope.Labels;
+};
+
+/*
+ * Whether the role (or permission) a form holds takes a scope, so the form
+ * shows its Scope, folded under More fields: not before one is picked, and
+ * not for the roles that reach the whole project by definition - Project
+ * Owner, Project Admin, Settings and Billing (PermissionHelper.
+ * isScopeApplicable). A team's and a custom role's Add Role ask this both
+ * for the Scope field and for the room the role picker keeps under itself
+ * while the Scope is not shown (RolePickerFormField.isMoreFieldsShownFor),
+ * so the two always agree.
+ */
+export const isScopeShownFor: (permission: unknown) => boolean = (
+  permission: unknown,
+): boolean => {
+  return (
+    Boolean(permission) &&
+    PermissionHelper.isScopeApplicable(permission as Permission)
+  );
 };
 
 export interface PermissionScopeFieldsOptions<TEntity> {

@@ -35,6 +35,16 @@ export interface RolePickerFormFieldOptions {
   onChange?: ((value: unknown) => Promise<void> | void) | undefined;
   // An API key's Edit uses the one-permission picker instead.
   doNotShowWhenEditing?: boolean | undefined;
+  /*
+   * Whether the form draws its More fields line under the picker for the
+   * role it holds (or for none yet) - a team's and a custom role's fold the
+   * Scope there, for a role that takes one (PermissionScopeChoice.
+   * isScopeShownFor). While it is not drawn the picker keeps its room, so
+   * neither the first pick nor a role without a scope moves the dialog.
+   */
+  isMoreFieldsShownFor?:
+    | ((permission: Permission | null) => boolean)
+    | undefined;
 }
 
 export const ROLE_PICKER_TEST_ID: string = "role-picker";
@@ -55,15 +65,24 @@ export const getRolePickerFormField: <TEntity extends BaseModel>(
       _values: FormValues<TEntity>,
       customElementProps: CustomElementProps,
     ): ReactElement => {
+      // The form's value for the field: the role picked, or nothing.
+      const picked: Permission | null =
+        (customElementProps.initialValue as Permission | undefined) || null;
+
       return (
         <RolePicker
-          value={customElementProps.initialValue as Permission | undefined}
+          value={picked}
           onChange={(value: Permission | null) => {
             customElementProps.onChange?.(value);
           }}
           error={customElementProps.error}
           excludeRoles={options?.excludeRoles}
           startOn={options?.startOn}
+          keepsMoreFieldsRoom={
+            options?.isMoreFieldsShownFor
+              ? !options.isMoreFieldsShownFor(picked)
+              : false
+          }
           dataTestId={ROLE_PICKER_TEST_ID}
         />
       );

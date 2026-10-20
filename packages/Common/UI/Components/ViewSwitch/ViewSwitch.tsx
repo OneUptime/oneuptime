@@ -25,7 +25,12 @@ export interface ViewSwitchOption<T extends string> {
 
 export interface ComponentProps<T extends string> {
   options: ReadonlyArray<ViewSwitchOption<T>>;
-  value: T;
+  /*
+   * The view on screen, or null while none of them is: the role picker's
+   * Whole project | One area while its search lists roles from both. Every
+   * option is then plain, and pressing one shows it.
+   */
+  value: T | null;
   onChange: (value: T) => void;
   // What the group is, for a screen reader: "Show the events as".
   ariaLabel: string;

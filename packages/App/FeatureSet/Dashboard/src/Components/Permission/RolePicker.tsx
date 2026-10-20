@@ -65,11 +65,18 @@ import React, {
  * not when focus moves on: a line appearing under the picker while a tile
  * is pressed would move the tile from under the pointer.
  *
+ * Nothing a pick changes moves the dialog, which is centred on a desktop
+ * and rises from the bottom of a phone, so whatever grew under a row or a
+ * tile moved it: every row keeps its check's room, the panel under the
+ * tiles is as tall as the longest thing it can say in the reader's
+ * language, and where the form folds a Scope under More fields for some
+ * roles, the picker keeps that line's room until it is drawn.
+ *
  * A search box beside the switch finds any role by its name, area, level or
  * line (RolePickerOptions.searchRolePickerRoles): Enter picks the first
  * match, the down arrow moves into the matches, Escape clears it - without
- * closing the dialog. A pick made there shows where it lives once the
- * search is cleared.
+ * closing the dialog. While it lists matches neither answer is pressed, and
+ * a pick made there shows where it lives once the search is cleared.
  *
  * Each list is a group of the browser's own radio buttons, kept out of
  * sight but focusable, so Tab reaches each group once, the arrow keys move
@@ -94,6 +101,15 @@ export interface ComponentProps {
    */
   startOn?: RoleReach | undefined;
   error?: string | undefined;
+  /*
+   * Keeps the room of the form's More fields line under the picker while
+   * the form does not draw it. A team's and a custom role's Add Role fold
+   * the Scope there, for a role that takes one: without the room, the first
+   * pick - and every move between a role that takes a scope and one that
+   * does not (Project Admin, Settings, Billing) - grew or shrank the dialog,
+   * and moved the rows and tiles from under the pointer.
+   */
+  keepsMoreFieldsRoom?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -116,9 +132,33 @@ export const getRolePickerAreaTestId: (areaId: string) => string = (
   return `role-picker-area-${areaId}`;
 };
 
+// What the panel under the tiles says: a role's name and line, or the hint.
+interface PanelWords {
+  heading: string;
+  line: string;
+  isRole: boolean;
+}
+
 // The keyboard's focus ring, drawn round the row or tile of a focused radio.
 const FOCUS_RING: string =
   "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-500";
+
+/*
+ * A row or tile picked, and one at rest. Under the pointer a resting one
+ * only greys a little: an accent border on hover made the tile under the
+ * pointer look picked beside the one that was.
+ */
+const CHOICE_PICKED: string = "border-indigo-500 bg-indigo-50/50";
+const CHOICE_AT_REST: string =
+  "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50";
+
+/*
+ * The room the form's More fields line takes under the picker - its line
+ * of text and the gap above it (FoldedSection's line, BasicForm's row gap) -
+ * kept while the line is not drawn (keepsMoreFieldsRoom). A flex column, so
+ * the margin of the error said inside it stays inside it.
+ */
+const MORE_FIELDS_ROOM: string = "flex min-h-10 flex-col";
 
 const RolePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -144,6 +184,13 @@ const RolePicker: FunctionComponent<ComponentProps> = (
 
   const areas: Array<RolePickerArea> = useMemo(() => {
     return getRolePickerAreas(roles);
+  }, [roles]);
+
+  // Every role a tile can pick: what the panel under the tiles can name.
+  const areaRoles: Array<RolePickerRole> = useMemo(() => {
+    return roles.filter((role: RolePickerRole): boolean => {
+      return role.place?.reach === RoleReach.OneArea;
+    });
   }, [roles]);
 
   const findRole: (
@@ -366,43 +413,57 @@ const RolePicker: FunctionComponent<ComponentProps> = (
     },
   );
 
-  // A role as a row: its icon, its name and its line, the radio out of sight.
+  /*
+   * A role as a row: its icon, its name and its line, the radio out of
+   * sight. A ghost row keeps the room of an answer that is not on screen
+   * (renderGhost): the same box, with no radio, ids or test ids.
+   */
   const renderRoleRow: (
     role: RolePickerRole,
     groupName: string,
     onPick: (role: RolePickerRole) => void,
+    isGhost?: boolean,
   ) => ReactElement = (
     role: RolePickerRole,
     groupName: string,
     onPick: (role: RolePickerRole) => void,
+    isGhost?: boolean,
   ): ReactElement => {
-    const isChecked: boolean = props.value === role.permission;
-    const titleId: string = `${groupName}-${role.permission}-title`;
-    const summaryId: string = `${groupName}-${role.permission}-summary`;
+    const isChecked: boolean = !isGhost && props.value === role.permission;
+    const titleId: string | undefined = isGhost
+      ? undefined
+      : `${groupName}-${role.permission}-title`;
+    const summaryId: string | undefined = isGhost
+      ? undefined
+      : `${groupName}-${role.permission}-summary`;
 
     return (
       <label
         key={role.permission}
-        data-testid={getRolePickerRoleTestId(role.permission)}
+        data-testid={
+          isGhost ? undefined : getRolePickerRoleTestId(role.permission)
+        }
         data-checked={isChecked ? "true" : "false"}
         className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-150 ${FOCUS_RING} ${
-          isChecked
-            ? "border-indigo-500 bg-indigo-50/50"
-            : "border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50"
+          isChecked ? CHOICE_PICKED : CHOICE_AT_REST
         }`}
       >
-        <input
-          type="radio"
-          className="sr-only"
-          name={groupName}
-          value={role.permission}
-          checked={isChecked}
-          aria-labelledby={titleId}
-          aria-describedby={summaryId}
-          onChange={() => {
-            onPick(role);
-          }}
-        />
+        {isGhost ? (
+          <></>
+        ) : (
+          <input
+            type="radio"
+            className="sr-only"
+            name={groupName}
+            value={role.permission}
+            checked={isChecked}
+            aria-labelledby={titleId}
+            aria-describedby={summaryId}
+            onChange={() => {
+              onPick(role);
+            }}
+          />
+        )}
         <div
           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md ${
             isChecked ? "bg-indigo-100" : "bg-gray-100"
@@ -429,25 +490,41 @@ const RolePicker: FunctionComponent<ComponentProps> = (
             {translate(role.summary)}
           </span>
         </div>
-        {isChecked ? (
-          <Icon
-            icon={IconProp.CheckCircle}
-            className="h-5 w-5 flex-shrink-0 text-indigo-500"
-          />
-        ) : (
-          <></>
-        )}
+        {/*
+         * The check's room is kept on every row, so a row's line wraps the
+         * same picked or not: a long one (Project Admin's) wrapped onto a
+         * second line once picked, and the dialog grew under the pointer.
+         */}
+        <div
+          className="h-5 w-5 flex-shrink-0"
+          data-testid={isGhost ? undefined : "role-picker-role-check"}
+        >
+          {isChecked ? (
+            <Icon
+              icon={IconProp.CheckCircle}
+              className="h-5 w-5 text-indigo-500"
+            />
+          ) : (
+            <></>
+          )}
+        </div>
       </label>
     );
   };
 
-  const renderWholeProject: () => ReactElement = (): ReactElement => {
+  const renderWholeProject: (isGhost?: boolean) => ReactElement = (
+    isGhost?: boolean,
+  ): ReactElement => {
     return (
       <div
-        role="radiogroup"
-        aria-label={translate(ROLE_REACH_TITLES[RoleReach.WholeProject])}
+        role={isGhost ? undefined : "radiogroup"}
+        aria-label={
+          isGhost
+            ? undefined
+            : translate(ROLE_REACH_TITLES[RoleReach.WholeProject])
+        }
         className="space-y-2"
-        data-testid="role-picker-whole-project"
+        data-testid={isGhost ? undefined : "role-picker-whole-project"}
       >
         {wholeProjectRoles.map((role: RolePickerRole): ReactElement => {
           return renderRoleRow(
@@ -456,10 +533,60 @@ const RolePicker: FunctionComponent<ComponentProps> = (
             (picked: RolePickerRole): void => {
               pickWholeProjectRole(picked.permission);
             },
+            isGhost,
           );
         })}
       </div>
     );
+  };
+
+  // The panel's words before an area is picked: what to do.
+  const hintWords: PanelWords = {
+    heading: translate(ROLE_PICKER_PICK_AN_AREA),
+    line: translate(ROLE_PICKER_PICK_AN_AREA_HINT),
+    isRole: false,
+  };
+
+  // The panel's words for a role: its name and its line.
+  const getRoleWords: (role: RolePickerRole) => PanelWords = (
+    role: RolePickerRole,
+  ): PanelWords => {
+    return {
+      heading: translate(role.title),
+      line: translate(role.summary),
+      isRole: true,
+    };
+  };
+
+  /*
+   * What the panel under the tiles says - a role's name and its line, or
+   * the hint - with the test ids only where it is said on screen.
+   */
+  const renderPanelText: (
+    words: PanelWords,
+    isOnScreen: boolean,
+  ) => Array<ReactElement> = (
+    words: PanelWords,
+    isOnScreen: boolean,
+  ): Array<ReactElement> => {
+    return [
+      <span
+        key="heading"
+        className={`block break-words text-sm font-medium ${
+          words.isRole ? "text-gray-900" : "text-gray-500"
+        }`}
+        data-testid={isOnScreen ? "role-picker-picked-title" : undefined}
+      >
+        {words.heading}
+      </span>,
+      <span
+        key="line"
+        className="mt-0.5 block break-words text-sm text-gray-500"
+        data-testid={isOnScreen ? "role-picker-picked-summary" : undefined}
+      >
+        {words.line}
+      </span>,
+    ];
   };
 
   /*
@@ -469,10 +596,11 @@ const RolePicker: FunctionComponent<ComponentProps> = (
    * is the one the area gets. Picking only changes what the panel says:
    * nothing moves, and the dialog does not jump.
    */
-  const renderPickedAreaRole: () => ReactElement = (): ReactElement => {
-    const pick: { permission: Permission; level: RoleLevel } | null = pickedArea
-      ? getAreaRoleAtLevel(pickedArea, level)
-      : null;
+  const renderPickedAreaRole: (isGhost?: boolean) => ReactElement = (
+    isGhost?: boolean,
+  ): ReactElement => {
+    const pick: { permission: Permission; level: RoleLevel } | null =
+      pickedArea && !isGhost ? getAreaRoleAtLevel(pickedArea, level) : null;
     const role: RolePickerRole | null = pick ? findRole(pick.permission) : null;
 
     const levelChoices: Array<RoleLevel> = pickedArea
@@ -490,7 +618,7 @@ const RolePicker: FunctionComponent<ComponentProps> = (
             ? "border-indigo-200 bg-indigo-50/50"
             : "border-dashed border-gray-300 bg-white"
         }`}
-        data-testid="role-picker-picked"
+        data-testid={isGhost ? undefined : "role-picker-picked"}
         data-picked={role ? "true" : "false"}
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -505,32 +633,40 @@ const RolePicker: FunctionComponent<ComponentProps> = (
             />
           </div>
           {/*
-           * Read out as it changes: a new level is a new role. From sm up
-           * it keeps room for a line of two rows, centred, so a role whose
-           * line fits on one does not make the dialog shrink and jump.
+           * One cell holds what the panel says and, out of sight under it,
+           * all it could say - every area role's name and line, and the
+           * hint - so the panel is as tall as the longest of them, in the
+           * reader's language at this width, and never grows or shrinks as
+           * the pick changes. A line of one row and one of four (German, on
+           * a phone) each moved the dialog under the pointer.
            */}
           <div
-            className="flex min-w-0 flex-col justify-center sm:min-h-[3.875rem]"
-            aria-live="polite"
+            className="grid min-w-0 flex-1"
+            data-testid={isGhost ? undefined : "role-picker-picked-text"}
           >
-            <span
-              className={`block break-words text-sm font-medium ${
-                role ? "text-gray-900" : "text-gray-500"
-              }`}
-              data-testid="role-picker-picked-title"
+            {[hintWords, ...areaRoles.map(getRoleWords)].map(
+              (words: PanelWords, index: number): ReactElement => {
+                return (
+                  <div
+                    key={index}
+                    aria-hidden="true"
+                    className="invisible col-start-1 row-start-1 min-w-0"
+                    data-testid={
+                      isGhost ? undefined : "role-picker-picked-room"
+                    }
+                  >
+                    {renderPanelText(words, false)}
+                  </div>
+                );
+              },
+            )}
+            {/* Read out as it changes: a new level is a new role. */}
+            <div
+              className="col-start-1 row-start-1 flex min-w-0 flex-col justify-center"
+              aria-live={isGhost ? undefined : "polite"}
             >
-              {role
-                ? translate(role.title)
-                : translate(ROLE_PICKER_PICK_AN_AREA)}
-            </span>
-            <span
-              className="mt-0.5 block break-words text-sm text-gray-500"
-              data-testid="role-picker-picked-summary"
-            >
-              {role
-                ? translate(role.summary)
-                : translate(ROLE_PICKER_PICK_AN_AREA_HINT)}
-            </span>
+              {renderPanelText(role ? getRoleWords(role) : hintWords, !isGhost)}
+            </div>
           </div>
         </div>
         {levelChoices.length > 1 ? (
@@ -546,7 +682,11 @@ const RolePicker: FunctionComponent<ComponentProps> = (
             value={pick ? pick.level : level}
             onChange={pickLevel}
             ariaLabel={ROLE_PICKER_LEVEL_LABEL}
-            dataTestId={ROLE_PICKER_LEVEL_TEST_ID}
+            dataTestId={
+              isGhost
+                ? `${ROLE_PICKER_LEVEL_TEST_ID}-room`
+                : ROLE_PICKER_LEVEL_TEST_ID
+            }
             fillWidthOnPhone={true}
           />
         ) : (
@@ -556,41 +696,51 @@ const RolePicker: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderOneArea: () => ReactElement = (): ReactElement => {
+  const renderOneArea: (isGhost?: boolean) => ReactElement = (
+    isGhost?: boolean,
+  ): ReactElement => {
     const groupName: string = `${baseId}-areas`;
 
     return (
       <div>
         <div
-          role="radiogroup"
-          aria-label={translate(ROLE_REACH_TITLES[RoleReach.OneArea])}
+          role={isGhost ? undefined : "radiogroup"}
+          aria-label={
+            isGhost
+              ? undefined
+              : translate(ROLE_REACH_TITLES[RoleReach.OneArea])
+          }
           className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-          data-testid="role-picker-areas"
+          data-testid={isGhost ? undefined : "role-picker-areas"}
         >
           {areas.map((entry: RolePickerArea): ReactElement => {
-            const isChecked: boolean = entry.area.id === areaId;
+            const isChecked: boolean = !isGhost && entry.area.id === areaId;
 
             return (
               <label
                 key={entry.area.id}
-                data-testid={getRolePickerAreaTestId(entry.area.id)}
+                data-testid={
+                  isGhost ? undefined : getRolePickerAreaTestId(entry.area.id)
+                }
                 data-checked={isChecked ? "true" : "false"}
                 className={`flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors duration-150 ${FOCUS_RING} ${
-                  isChecked
-                    ? "border-indigo-500 bg-indigo-50/50"
-                    : "border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50"
+                  isChecked ? CHOICE_PICKED : CHOICE_AT_REST
                 }`}
               >
-                <input
-                  type="radio"
-                  className="sr-only"
-                  name={groupName}
-                  value={entry.area.id}
-                  checked={isChecked}
-                  onChange={() => {
-                    pickArea(entry);
-                  }}
-                />
+                {isGhost ? (
+                  <></>
+                ) : (
+                  <input
+                    type="radio"
+                    className="sr-only"
+                    name={groupName}
+                    value={entry.area.id}
+                    checked={isChecked}
+                    onChange={() => {
+                      pickArea(entry);
+                    }}
+                  />
+                )}
                 <Icon
                   icon={entry.area.icon}
                   className={`h-5 w-5 flex-shrink-0 ${
@@ -604,7 +754,26 @@ const RolePicker: FunctionComponent<ComponentProps> = (
             );
           })}
         </div>
-        {renderPickedAreaRole()}
+        {renderPickedAreaRole(isGhost)}
+      </div>
+    );
+  };
+
+  /*
+   * An answer that is not on screen, drawn out of sight in the body's one
+   * cell (and never read out, nor reached by Tab), so the cell keeps its
+   * room.
+   */
+  const renderGhost: (answer: ReactElement) => ReactElement = (
+    answer: ReactElement,
+  ): ReactElement => {
+    return (
+      <div
+        aria-hidden="true"
+        className="invisible col-start-1 row-start-1 min-w-0"
+        data-testid="role-picker-body-room"
+      >
+        {answer}
       </div>
     );
   };
@@ -645,6 +814,19 @@ const RolePicker: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // What the form says is wrong - "Role is required." - under the picker.
+  const renderError: () => ReactElement = (): ReactElement => {
+    if (!props.error) {
+      return <></>;
+    }
+
+    return (
+      <p className="mt-2 text-sm text-red-600" role="alert">
+        {props.error}
+      </p>
+    );
+  };
+
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isSearching) {
       return renderSearchResults();
@@ -658,9 +840,13 @@ const RolePicker: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid={props.dataTestId || "role-picker"}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/*
+         * While a search lists roles from both answers, neither is pressed:
+         * the list under it is the search's, and pressing one goes back to it.
+         */}
         <ViewSwitch<RoleReach>
           options={reachOptions}
-          value={reach}
+          value={isSearching ? null : reach}
           onChange={pickReach}
           ariaLabel={ROLE_PICKER_FIELD_TITLE}
           dataTestId={ROLE_PICKER_REACH_TEST_ID}
@@ -702,18 +888,38 @@ const RolePicker: FunctionComponent<ComponentProps> = (
       </div>
 
       {/*
-       * At least as tall as the four whole-project rows, or the tiles and
-       * the panel under them, so the dialog keeps its size - and stays where
-       * it is - while a search narrows the list down to a match or none.
+       * The body is one cell: the answer on screen - or the search's
+       * matches - and, out of sight under it, the answer that is not. The
+       * cell is as tall as the taller answer in the reader's language at
+       * this width, so switching answers moves nothing (on a phone the
+       * sheet grew or shrank by up to a hundred pixels, and took the switch
+       * just pressed with it), and a search keeps the dialog's size.
        */}
-      <div className="mt-4 min-h-[17.5rem]">{renderBody()}</div>
+      <div className="mt-4 grid" data-testid="role-picker-body">
+        {isSearching || reach !== RoleReach.WholeProject ? (
+          renderGhost(renderWholeProject(true))
+        ) : (
+          <></>
+        )}
+        {isSearching || reach !== RoleReach.OneArea ? (
+          renderGhost(renderOneArea(true))
+        ) : (
+          <></>
+        )}
+        <div className="col-start-1 row-start-1 min-w-0">{renderBody()}</div>
+      </div>
 
-      {props.error ? (
-        <p className="mt-2 text-sm text-red-600" role="alert">
-          {props.error}
-        </p>
+      {props.keepsMoreFieldsRoom ? (
+        /*
+         * The More fields line's room while the form does not draw it. A
+         * missing role is said here, so pressing Add Role with nothing
+         * picked does not grow the dialog either.
+         */
+        <div className={MORE_FIELDS_ROOM} data-testid="role-picker-room">
+          {renderError()}
+        </div>
       ) : (
-        <></>
+        renderError()
       )}
     </div>
   );

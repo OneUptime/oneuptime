@@ -102,16 +102,19 @@ const BuiltInRolesCard: FunctionComponent = (): ReactElement => {
                               <></>
                             )}
                             {/*
-                             * The name beside what it can do from md up, so
+                             * The name beside what it can do from lg up, so
                              * the descriptions start in one column; above it
-                             * on a phone.
+                             * on anything narrower. The side menu takes its
+                             * room from md, and at md a description beside
+                             * the name had a column of three words a line.
+                             * The name sits level with the middle of its icon.
                              */}
-                            <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:gap-4">
-                              <div className="break-words text-sm font-medium text-gray-900 md:w-56 md:flex-none md:pt-1.5">
+                            <div className="flex min-w-0 flex-1 flex-col gap-0.5 lg:flex-row lg:gap-4">
+                              <div className="break-words pt-1.5 text-sm font-medium text-gray-900 lg:w-56 lg:flex-none">
                                 {translator.translateText(option.title)}
                               </div>
                               {option.description ? (
-                                <div className="min-w-0 break-words text-sm text-gray-500 md:pt-1.5">
+                                <div className="min-w-0 break-words text-sm text-gray-500 lg:pt-1.5">
                                   {translator.translateText(option.description)}
                                 </div>
                               ) : (

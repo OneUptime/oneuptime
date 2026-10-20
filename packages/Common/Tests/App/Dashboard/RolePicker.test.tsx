@@ -37,9 +37,14 @@ import type { Mock } from "jest-mock";
  *     the answer on screen - nothing while it has none;
  *   - every one of the forty roles can be picked, and an Edit opens on the
  *     row's role where it lives;
+ *   - nothing a pick changes moves the dialog: every row keeps its check's
+ *     room, the panel under the tiles keeps the room of all it could say,
+ *     and the picker keeps the room of the form's More fields line while
+ *     the form does not draw it;
  *   - the search finds a role by name, area, level or line, Enter takes the
  *     first match, the down arrow moves into the matches, Escape clears it
- *     without closing the dialog;
+ *     without closing the dialog; while it lists matches neither answer is
+ *     pressed;
  *   - roles left out (Project Owner, in a custom role) are nowhere;
  *   - it reads in the reader's language.
  *
@@ -116,6 +121,7 @@ interface HarnessProps {
   excludeRoles?: ReadonlyArray<Permission> | undefined;
   startOn?: RoleReach | undefined;
   error?: string | undefined;
+  keepsMoreFieldsRoom?: boolean | undefined;
 }
 
 /*
@@ -134,6 +140,7 @@ function Harness(props: HarnessProps): ReactElement {
     excludeRoles: props.excludeRoles,
     startOn: props.startOn,
     error: props.error,
+    keepsMoreFieldsRoom: props.keepsMoreFieldsRoom,
   };
 
   return <RolePicker {...pickerProps} />;
@@ -265,6 +272,38 @@ describe("Whole project, where it opens", () => {
     expect(
       screen.getByRole("radio", { name: title(Permission.ProjectMember) }),
     ).not.toBeChecked();
+  });
+
+  /*
+   * A row's line wrapped one way at rest and another once its check was
+   * drawn beside it (Project Admin's took a second line), so picking it
+   * grew the dialog under the pointer. Every row keeps the check's room.
+   */
+  test("every row keeps its check's room, picked or not, so a pick never re-wraps its line", () => {
+    render(<Harness />);
+
+    fireEvent.click(roleRow(Permission.ProjectAdmin));
+
+    for (const permission of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ]) {
+      const slot: HTMLElement = within(roleRow(permission)).getByTestId(
+        "role-picker-role-check",
+      );
+
+      expect(slot.className).toContain("h-5 w-5 flex-shrink-0");
+      // The check itself only on the row picked.
+      expect({
+        permission,
+        drawn: slot.querySelectorAll("svg").length,
+      }).toEqual({
+        permission,
+        drawn: permission === Permission.ProjectAdmin ? 1 : 0,
+      });
+    }
   });
 
   test("its radios are one group: one name, one stop for Tab", () => {
@@ -400,6 +439,71 @@ describe("One area", () => {
     expect(lastPick()).toBe(Permission.MonitorAdmin);
   });
 
+  /*
+   * The panel under the tiles says one role's name and line at a time, and
+   * lines run from one row to four (German, on a phone): it keeps the room
+   * of the longest thing it could say, so a pick never grows or shrinks it.
+   */
+  test("the panel keeps the room of all it could say, out of sight and unread", () => {
+    render(<Harness startOn={RoleReach.OneArea} />);
+
+    const text: HTMLElement = screen.getByTestId("role-picker-picked-text");
+    const rooms: Array<HTMLElement> = within(text).getAllByTestId(
+      "role-picker-picked-room",
+    );
+    const areaRoles: Array<RolePickerRole> = getRolePickerRoles().filter(
+      (role: RolePickerRole): boolean => {
+        return role.place?.reach === RoleReach.OneArea;
+      },
+    );
+
+    // The hint, then every area's three roles.
+    expect(areaRoles).toHaveLength(36);
+    expect(rooms).toHaveLength(37);
+    expect(rooms[0]).toHaveTextContent(
+      "Pick an areaThen choose Admin, Member or Viewer.",
+    );
+    areaRoles.forEach((role: RolePickerRole, index: number): void => {
+      expect(rooms[index + 1]).toHaveTextContent(role.title + role.summary);
+    });
+
+    for (const room of rooms) {
+      // Drawn in the same cell as the words on screen, never seen or read.
+      expect(room.className).toContain("invisible col-start-1 row-start-1");
+      expect(room).toHaveAttribute("aria-hidden", "true");
+      expect(room.querySelector("[data-testid]")).toBeNull();
+    }
+
+    // What is said on screen sits in that cell too, read out as it changes.
+    const said: HTMLElement = screen.getByTestId("role-picker-picked-title")
+      .parentElement as HTMLElement;
+
+    expect(said.parentElement).toBe(text);
+    expect(said.className).toContain("col-start-1 row-start-1");
+    expect(said).toHaveAttribute("aria-live", "polite");
+    expect(text.className).toContain("grid");
+  });
+
+  test("the panel's room follows what is offered: a role left out is not measured", () => {
+    render(
+      <Harness
+        startOn={RoleReach.OneArea}
+        excludeRoles={[Permission.BillingAdmin]}
+      />,
+    );
+
+    const rooms: Array<HTMLElement> = screen.getAllByTestId(
+      "role-picker-picked-room",
+    );
+
+    expect(rooms).toHaveLength(36);
+    expect(
+      rooms.some((room: HTMLElement): boolean => {
+        return (room.textContent || "").startsWith("Billing Admin");
+      }),
+    ).toBe(false);
+  });
+
   test("its tiles are one group of radios, named by their areas", () => {
     render(<Harness startOn={RoleReach.OneArea} />);
 
@@ -451,6 +555,52 @@ describe("the two answers", () => {
 
     expect(picks.length).toBe(before);
     expect(lastPick()).toBe(Permission.Viewer);
+  });
+
+  /*
+   * The body is one cell holding the answer on screen and, out of sight
+   * under it, the one that is not - so switching answers moves nothing (on
+   * a phone the sheet grew or shrank by up to a hundred pixels). What keeps
+   * that room is never read, reached by Tab or found by a test id.
+   */
+  test("the answer not on screen keeps its room out of sight: no radio, no test id, never read", () => {
+    render(<Harness />);
+
+    const body: HTMLElement = screen.getByTestId("role-picker-body");
+    let rooms: Array<HTMLElement> = within(body).getAllByTestId(
+      "role-picker-body-room",
+    );
+
+    expect(body.className).toContain("grid");
+    // On Whole project, One area's tiles and panel keep their room.
+    expect(rooms).toHaveLength(1);
+    expect(rooms[0]).toHaveAttribute("aria-hidden", "true");
+    expect(rooms[0]!.className).toContain("invisible col-start-1 row-start-1");
+    expect(rooms[0]!.querySelectorAll("label")).toHaveLength(12);
+    expect(rooms[0]!.querySelectorAll("input")).toHaveLength(0);
+    expect(rooms[0]!.querySelectorAll("[id]")).toHaveLength(0);
+    expect(
+      rooms[0]!.querySelectorAll("[data-testid^='role-picker-area']"),
+    ).toHaveLength(0);
+    // Nothing of it is read: the radios on screen are the four rows.
+    expect(screen.getAllByRole("radio")).toHaveLength(4);
+    expect(screen.queryAllByTestId("role-picker-picked-title")).toHaveLength(0);
+    expect(screen.queryAllByTestId("role-picker-level-Member")).toHaveLength(0);
+
+    // On One area, the four rows keep theirs.
+    fireEvent.click(reachButton(RoleReach.OneArea));
+    rooms = screen.getAllByTestId("role-picker-body-room");
+
+    expect(rooms).toHaveLength(1);
+    expect(rooms[0]!.querySelectorAll("label")).toHaveLength(4);
+    expect(rooms[0]!.querySelectorAll("input")).toHaveLength(0);
+    expect(screen.queryAllByTestId(/^role-picker-role-/)).toHaveLength(0);
+    expect(screen.getAllByRole("radio")).toHaveLength(12);
+
+    // While a search lists matches, both answers keep their room.
+    typeSearch("alert");
+
+    expect(screen.getAllByTestId("role-picker-body-room")).toHaveLength(2);
   });
 
   test("a custom role's and a block's picker can open on One area", () => {
@@ -769,6 +919,43 @@ describe("the search", () => {
     expect(document.activeElement).toBe(searchBox());
   });
 
+  /*
+   * The matches come from both answers, so neither is pressed while they
+   * are listed; pressing one - the one on screen before, too - goes back.
+   */
+  test("while it lists matches neither answer is pressed, and pressing one goes back to it", () => {
+    render(<Harness />);
+
+    fireEvent.click(roleRow(Permission.Viewer));
+    typeSearch("alert");
+
+    expect(reachButton(RoleReach.WholeProject)).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(reachButton(RoleReach.OneArea)).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    const before: number = picks.length;
+
+    fireEvent.click(reachButton(RoleReach.WholeProject));
+
+    expect(searchBox().value).toBe("");
+    expect(reachButton(RoleReach.WholeProject)).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("role-picker-whole-project")).toBeInTheDocument();
+    // Back on the answer that held the pick: it still holds it.
+    expect(picks.length).toBe(before + 1);
+    expect(lastPick()).toBe(Permission.Viewer);
+    expect(
+      screen.getByRole("radio", { name: title(Permission.Viewer) }),
+    ).toBeChecked();
+  });
+
   test("picking an answer clears the search", () => {
     render(<Harness />);
 
@@ -802,6 +989,39 @@ describe("what the form says", () => {
     render(<Harness />);
 
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+/*
+ * A team's and a custom role's Add Role fold the Scope under More fields,
+ * for a role that takes one: the form draws that line under the picker only
+ * then. The picker keeps its room the rest of the time, so neither the first
+ * pick nor a role without a scope moves the dialog.
+ */
+describe("the room of the form's More fields line", () => {
+  test("is kept while asked for, as tall as the line and the gap above it", () => {
+    render(<Harness keepsMoreFieldsRoom={true} />);
+
+    const room: HTMLElement = screen.getByTestId("role-picker-room");
+
+    // A flex column: the error's margin stays inside the room.
+    expect(room.className).toBe("flex min-h-10 flex-col");
+    expect(room).toBeEmptyDOMElement();
+  });
+
+  test("says a missing role inside it, so Add Role with nothing picked grows nothing", () => {
+    render(<Harness keepsMoreFieldsRoom={true} error="Role is required." />);
+
+    expect(
+      within(screen.getByTestId("role-picker-room")).getByRole("alert"),
+    ).toHaveTextContent("Role is required.");
+  });
+
+  test("is not kept unless asked: an API key's Add Role has no More fields", () => {
+    render(<Harness error="Role is required." />);
+
+    expect(screen.queryByTestId("role-picker-room")).toBeNull();
+    expect(screen.getByRole("alert")).toHaveTextContent("Role is required.");
   });
 });
 
@@ -947,5 +1167,60 @@ describe("the form field every Add Role uses", () => {
     });
 
     expect(onFieldChange).toHaveBeenLastCalledWith(Permission.ProjectAdmin);
+  });
+
+  test("keeps the More fields room while the form does not draw that line for the role it holds", () => {
+    const shownFor: Array<Permission | null> = [];
+    const field: ModelField<TeamPermission> =
+      getRolePickerFormField<TeamPermission>({
+        isMoreFieldsShownFor: (permission: Permission | null): boolean => {
+          shownFor.push(permission);
+          return (
+            Boolean(permission) &&
+            PermissionHelper.isScopeApplicable(permission as Permission)
+          );
+        },
+      });
+
+    const draw: (initialValue: unknown) => void = (
+      initialValue: unknown,
+    ): void => {
+      cleanup();
+      render(
+        field.getCustomElement!({} as FormValues<TeamPermission>, {
+          initialValue: initialValue,
+          onChange: (): void => {},
+        }) as ReactElement,
+      );
+    };
+
+    // Nothing picked: the form hands an empty field over as "" - none.
+    draw("");
+    expect(shownFor[shownFor.length - 1]).toBeNull();
+    expect(screen.getByTestId("role-picker-room")).toBeInTheDocument();
+
+    // Project Admin takes no scope: no line, so the room is kept.
+    draw(Permission.ProjectAdmin);
+    expect(screen.getByTestId("role-picker-room")).toBeInTheDocument();
+
+    // Project Member takes one: the line is drawn in the room's place.
+    draw(Permission.ProjectMember);
+    expect(screen.queryByTestId("role-picker-room")).toBeNull();
+    expect(shownFor[shownFor.length - 1]).toBe(Permission.ProjectMember);
+  });
+
+  test("keeps no room when the form folds nothing under it", () => {
+    const field: ModelField<TeamPermission> =
+      getRolePickerFormField<TeamPermission>({ doNotShowWhenEditing: true });
+
+    render(
+      field.getCustomElement!({} as FormValues<TeamPermission>, {
+        initialValue: "",
+        onChange: (): void => {},
+      }) as ReactElement,
+    );
+
+    expect(screen.getByTestId(ROLE_PICKER_TEST_ID)).toBeInTheDocument();
+    expect(screen.queryByTestId("role-picker-room")).toBeNull();
   });
 });

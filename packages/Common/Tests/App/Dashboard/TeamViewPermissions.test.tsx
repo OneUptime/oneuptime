@@ -648,6 +648,64 @@ describe("what the team's members can do", () => {
     expect(request.model.scope).toBe(PermissionScope.All);
   });
 
+  /*
+   * The More fields line (Scope) is drawn under the picker only for a role
+   * that takes a scope. Until then, and for a role that takes none, the
+   * picker keeps its room - so neither the first pick nor a move to Project
+   * Admin grows or shrinks the dialog (measured in real Chromium by
+   * packages/E2E/CustomRoles/AddRoleDialog.spec.ts).
+   */
+  test("the picker keeps the More fields line's room exactly while the line is not drawn", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
+    );
+
+    const room: () => HTMLElement | null = (): HTMLElement | null => {
+      return within(modal).queryByTestId("role-picker-room");
+    };
+    const line: () => HTMLElement | null = (): HTMLElement | null => {
+      return within(modal).queryByRole("button", { name: /More fields/ });
+    };
+    const pickRow: (permission: Permission) => Promise<void> = async (
+      permission: Permission,
+    ): Promise<void> => {
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(modal).getByTestId(`role-picker-role-${permission}`),
+        );
+      });
+      await settleForm();
+    };
+
+    // Nothing picked: no line, the room kept.
+    expect(line()).toBeNull();
+    expect(room()).not.toBeNull();
+
+    // Project Member takes a scope: the line, in the room's place.
+    await pickRow(Permission.ProjectMember);
+    expect(line()).not.toBeNull();
+    expect(room()).toBeNull();
+
+    // Project Admin takes none: the room again.
+    await pickRow(Permission.ProjectAdmin);
+    expect(line()).toBeNull();
+    expect(room()).not.toBeNull();
+
+    // An area's role that takes a scope, and Billing, which takes none.
+    await pickAreaRole(modal, "Telemetry", "Viewer");
+    expect(line()).not.toBeNull();
+    expect(room()).toBeNull();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(modal).getByTestId("role-picker-area-Billing"));
+    });
+    await settleForm();
+    expect(line()).toBeNull();
+    expect(room()).not.toBeNull();
+  });
+
   test("a search finds a role, Enter picks it, and Add Role adds it", async () => {
     await renderPage();
 

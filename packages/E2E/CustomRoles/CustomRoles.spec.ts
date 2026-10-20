@@ -538,6 +538,59 @@ test.describe("Teams > Settings > Roles", () => {
     await expect(page.getByTestId("built-in-roles-list")).toHaveCount(0);
   });
 
+  /*
+   * A role's name sits beside what it can do only where there is room for
+   * both: from lg up. The side menu takes its room from md, and at 768 a
+   * description beside its name ran down a column of three words a line.
+   */
+  for (const [width, isBeside] of [
+    [768, false],
+    [1024, true],
+    [1280, true],
+  ] as const) {
+    test(`at ${width} px each built-in role's description sits ${isBeside ? "beside" : "under"} its name, in a column of readable width`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openRoles(page);
+      await page
+        .getByTestId("built-in-roles")
+        .getByRole("button", { name: "Show Built-in Roles" })
+        .click();
+
+      const role: Locator = page
+        .getByTestId("built-in-roles-list")
+        .locator("li")
+        .filter({ hasText: "Project Member" });
+      const name: Locator = role.getByText("Project Member", { exact: true });
+      const description: Locator = role.getByText("Member of this project.", {
+        exact: false,
+      });
+
+      const nameBox: { x: number; y: number; height: number } | null =
+        await name.boundingBox();
+      const descriptionBox: { x: number; y: number; width: number } | null =
+        await description.boundingBox();
+
+      expect(nameBox).not.toBeNull();
+      expect(descriptionBox).not.toBeNull();
+
+      if (isBeside) {
+        expect(descriptionBox!.x).toBeGreaterThan(nameBox!.x + 150);
+      } else {
+        expect(Math.abs(descriptionBox!.x - nameBox!.x)).toBeLessThan(1);
+        expect(descriptionBox!.y).toBeGreaterThanOrEqual(
+          nameBox!.y + nameBox!.height - 1,
+        );
+      }
+
+      // Never a narrow column: some 40 characters a line or more.
+      expect(descriptionBox!.width).toBeGreaterThan(300);
+    });
+  }
+
   test("deleting a role says who loses access, and deletes it", async ({
     page,
   }: {

@@ -23,7 +23,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { isBuiltInRolePermission } from "../Permission/RoleCardSelectOptions";
 import { RoleReach } from "../Permission/RoleCatalog";
 import { getRolePickerFormField } from "../Permission/RolePickerFormField";
-import { getPermissionScopeFields } from "../Permission/PermissionScopeChoice";
+import {
+  getPermissionScopeFields,
+  isScopeShownFor,
+} from "../Permission/PermissionScopeChoice";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import {
   ADD_PERMISSION_DIALOG_WORDS,
@@ -242,6 +245,8 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                */
               getRolePickerFormField<TeamPermission>({
                 startOn: isBlock ? RoleReach.OneArea : RoleReach.WholeProject,
+                // The Scope below shows for a role that takes one.
+                isMoreFieldsShownFor: isScopeShownFor,
                 onChange: async (value: unknown): Promise<void> => {
                   await formRef.current.setFieldValue("labels", [], true);
                   if (
@@ -262,12 +267,7 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                */
               ...getPermissionScopeFields<TeamPermission>({
                 isScopeShown: (values: FormValues<TeamPermission>): boolean => {
-                  return (
-                    Boolean(values["permission"]) &&
-                    PermissionHelper.isScopeApplicable(
-                      values["permission"] as Permission,
-                    )
-                  );
+                  return isScopeShownFor(values["permission"]);
                 },
               }),
             ]
