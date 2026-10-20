@@ -511,14 +511,22 @@ test.describe("Teams > Settings > Roles", () => {
     const list: Locator = page.getByTestId("built-in-roles-list");
     await expect(list).toBeVisible();
     await expect(list.locator("li")).toHaveCount(40);
-    for (const group of [
-      "Owner",
-      "Project Roles",
-      "Administration",
-      "Domain Roles",
-    ]) {
-      await expect(list.getByRole("heading", { name: group })).toBeVisible();
-    }
+    // As Add Role's picker finds them: the whole project, then each area.
+    await expect(list.getByRole("heading")).toHaveText([
+      "Whole project",
+      "Incidents",
+      "Alerts",
+      "Monitors",
+      "Status Pages",
+      "On-Call",
+      "Scheduled Maintenance",
+      "Telemetry",
+      "Security",
+      "Workflows",
+      "Runbooks",
+      "Settings",
+      "Billing",
+    ]);
     await expect(
       list.getByText("Project Owner", { exact: true }),
     ).toBeVisible();
@@ -811,14 +819,28 @@ test.describe("a role's page", () => {
     await expect(form.getByTestId("modal-footer-submit-button")).toHaveText(
       "Add Role",
     );
+
+    // A custom role is most often a few areas' roles: it opens on One area.
+    await expect(form.getByTestId("role-picker-reach-OneArea")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // Whole project has every role but Project Owner, which no role holds.
+    await form.getByTestId("role-picker-reach-WholeProject").click();
+    await expect(form.getByTestId("role-picker-role-ProjectOwner")).toHaveCount(
+      0,
+    );
     await expect(
-      form.getByTestId("card-select-option-ProjectOwner"),
-    ).toHaveCount(0);
-    await expect(
-      form.getByTestId("card-select-option-ProjectAdmin"),
+      form.getByTestId("role-picker-role-ProjectAdmin"),
     ).toBeVisible();
 
-    await form.getByTestId("card-select-option-IncidentAdmin").click();
+    await form.getByTestId("role-picker-reach-OneArea").click();
+    await form.getByTestId("role-picker-area-Incidents").click();
+    await form.getByTestId("role-picker-level-Admin").click();
+    await expect(form.getByTestId("role-picker-picked-title")).toHaveText(
+      "Incident Admin",
+    );
     await submitDialog(page);
 
     await expect(
@@ -846,9 +868,15 @@ test.describe("a role's page", () => {
       .click();
 
     const form: Locator = dialog(page);
-    await form.getByTestId("card-select-option-IncidentViewer").click();
+    await form.getByTestId("role-picker-area-Incidents").click();
+    await form.getByTestId("role-picker-level-Viewer").click();
 
-    // The Scope is three plain answers, All picked to start with.
+    // The Scope waits under More fields: three plain answers, All picked.
+    const moreFields: Locator = form.getByRole("button", {
+      name: /More fields/,
+    });
+    await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+    await moreFields.click();
     await expect(
       form.getByRole("radio", { name: "All resources in the project" }),
     ).toBeChecked();
@@ -926,9 +954,7 @@ test.describe("a role's page", () => {
 
     let form: Locator = dialog(page);
     await expect(form.getByTestId("modal-title")).toHaveText("Edit Permission");
-    await expect(
-      form.getByTestId("card-select-option-IncidentMember"),
-    ).toHaveCount(0);
+    await expect(form.getByTestId("role-picker")).toHaveCount(0);
     const picked: Locator = form
       .getByTestId("permission-picker-list")
       .getByRole("button", { pressed: true });
@@ -940,15 +966,26 @@ test.describe("a role's page", () => {
     await form.getByRole("button", { name: "Cancel" }).click();
     await expect(dialog(page)).toHaveCount(0);
 
-    // A built-in role: the role cards, that role picked.
+    // A built-in role: the role picker, on that role's area and level.
     await row(permissions, "Monitor Viewer")
       .getByRole("button", { name: "Edit" })
       .click();
 
     form = dialog(page);
+    await expect(form.getByTestId("role-picker-reach-OneArea")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await expect(
-      form.getByTestId("card-select-option-MonitorViewer"),
-    ).toHaveAttribute("aria-checked", "true");
+      form.getByTestId("role-picker-area-Monitors").getByRole("radio"),
+    ).toBeChecked();
+    await expect(form.getByTestId("role-picker-level-Viewer")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(form.getByTestId("role-picker-picked-title")).toHaveText(
+      "Monitor Viewer",
+    );
     await expect(form.getByTestId("permission-picker-list")).toHaveCount(0);
   });
 

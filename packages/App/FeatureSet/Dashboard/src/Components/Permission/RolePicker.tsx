@@ -491,7 +491,7 @@ const RolePicker: FunctionComponent<ComponentProps> = (
         data-testid="role-picker-picked"
         data-picked={role ? "true" : "false"}
       >
-        <div className="flex min-w-0 flex-1 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
             className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md ${
               role ? "bg-indigo-100" : "bg-gray-100"
@@ -502,8 +502,15 @@ const RolePicker: FunctionComponent<ComponentProps> = (
               className={`h-4 w-4 ${role ? "text-indigo-600" : "text-gray-400"}`}
             />
           </div>
-          {/* Read out as it changes: a new level is a new role. */}
-          <div className="min-w-0" aria-live="polite">
+          {/*
+           * Read out as it changes: a new level is a new role. From sm up
+           * it keeps room for a line of two rows, centred, so a role whose
+           * line fits on one does not make the dialog shrink and jump.
+           */}
+          <div
+            className="flex min-w-0 flex-col justify-center sm:min-h-[3.875rem]"
+            aria-live="polite"
+          >
             <span
               className={`block break-words text-sm font-medium ${
                 role ? "text-gray-900" : "text-gray-500"
