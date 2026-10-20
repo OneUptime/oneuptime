@@ -499,6 +499,13 @@ Once every container is running, run the check again with `npm run status-check`
 Open OneUptime at the address in `HOST`. The ingress routes requests by host name: only `HOST` and `localhost` reach the whole application, and any other name, such as the server's IP address, is treated as a status page domain. Set `HOST` to the name people use, then run `npm start`.
 :::
 
+:::details Signing up or signing in fails with "Page not found"
+The sign-up page loads, but signing up fails with `Page not found - /identity/signup`, and signing in with `Page not found - /identity/login`. The request reached OneUptime under a host name other than `HOST`, so the ingress routed it as a status page's custom domain, where OneUptime's own sign-up and sign-in are not served. Check both of these:
+
+- `HOST` is the address people open, with its port if they use one, such as `oneuptime.example.com:8080`. Run `npm start` after you change it.
+- A proxy in front of OneUptime passes on the host name the browser asked for. Caddy does by default, Nginx with `proxy_set_header Host $host;` as in [Use your own reverse proxy](#use-your-own-reverse-proxy), and Apache with `ProxyPreserveHost On`.
+:::
+
 :::details The browser warns about the certificate after you set PROVISION_SSL
 Until Let's Encrypt issues the certificate, the ingress serves a temporary self-signed one. If the warning stays for more than a few minutes, check that:
 
