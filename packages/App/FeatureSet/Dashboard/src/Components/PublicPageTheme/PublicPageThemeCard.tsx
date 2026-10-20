@@ -76,8 +76,19 @@ interface Loaded<TBaseModel extends BaseModel> {
   item: TBaseModel;
 }
 
+/*
+ * What the choices are drawn and saved with: the card's own props, handed
+ * down one by one (never as one object, which would hide from the linter
+ * that the card uses them), and the page as it was read.
+ */
 interface ThemeSettingProps<TBaseModel extends BaseModel> {
-  card: ComponentProps<TBaseModel>;
+  modelType: { new (): TBaseModel };
+  modelId: ObjectID;
+  copy: PublicPageThemeCardCopy;
+  choices: ReadonlyArray<PublicPageThemeChoice>;
+  renderPreview: (theme: PublicPageTheme, isSelected: boolean) => ReactElement;
+  getNote?: ((item: TBaseModel) => ReactElement | null) | undefined;
+  testId: string;
   loaded: Loaded<TBaseModel>;
 }
 
@@ -87,7 +98,6 @@ const ThemeSetting: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ThemeSettingProps<TBaseModel>,
 ): ReactElement => {
-  const card: ComponentProps<TBaseModel> = props.card;
   const ruledBodyClassName: string = useCardRuledBodyClassName();
 
   const setting: SaveOnChange<PublicPageTheme> =
@@ -95,8 +105,8 @@ const ThemeSetting: <TBaseModel extends BaseModel>(
       initialValue: props.loaded.theme,
       save: async (theme: PublicPageTheme): Promise<void> => {
         await ModelAPI.updateById<TBaseModel>({
-          modelType: card.modelType,
-          id: card.modelId,
+          modelType: props.modelType,
+          id: props.modelId,
           data: { [PUBLIC_PAGE_THEME_COLUMN]: theme },
         });
       },
@@ -107,7 +117,7 @@ const ThemeSetting: <TBaseModel extends BaseModel>(
    * after the first paint of a fresh sign-in.
    */
   const model: TBaseModel = useMemo((): TBaseModel => {
-    return new card.modelType();
+    return new props.modelType();
   }, []);
 
   const updateGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
@@ -115,23 +125,23 @@ const ThemeSetting: <TBaseModel extends BaseModel>(
     PUBLIC_PAGE_THEME_COLUMN,
   );
 
-  const options: Array<ChoiceRowOption<PublicPageTheme>> = card.choices.map(
+  const options: Array<ChoiceRowOption<PublicPageTheme>> = props.choices.map(
     (choice: PublicPageThemeChoice): ChoiceRowOption<PublicPageTheme> => {
       return {
         value: choice.value,
         title: choice.title,
         description: choice.description,
-        visual: card.renderPreview(
+        visual: props.renderPreview(
           choice.value,
           setting.value === choice.value,
         ),
-        dataTestId: getPublicPageThemeChoiceTestId(card.testId, choice.value),
+        dataTestId: getPublicPageThemeChoiceTestId(props.testId, choice.value),
       };
     },
   );
 
-  const note: ReactElement | null = card.getNote
-    ? card.getNote(props.loaded.item)
+  const note: ReactElement | null = props.getNote
+    ? props.getNote(props.loaded.item)
     : null;
 
   return (
@@ -146,14 +156,14 @@ const ThemeSetting: <TBaseModel extends BaseModel>(
           updateGate.isAllowed ? undefined : updateGate.disabledReason
         }
         status={<SaveStatus state={setting.saveState} />}
-        ariaLabel={card.copy.ariaLabel}
-        dataTestId={getPublicPageThemeChoicesTestId(card.testId)}
+        ariaLabel={props.copy.ariaLabel}
+        dataTestId={getPublicPageThemeChoicesTestId(props.testId)}
       />
       {setting.error ? (
         <p
           className="border-t border-gray-200 px-5 py-3 text-sm text-red-600 md:px-6"
           role="alert"
-          data-testid={getPublicPageThemeErrorTestId(card.testId)}
+          data-testid={getPublicPageThemeErrorTestId(props.testId)}
         >
           {setting.error}
         </p>
@@ -225,7 +235,18 @@ const PublicPageThemeCard: <TBaseModel extends BaseModel>(
       );
     }
 
-    return <ThemeSetting<TBaseModel> card={props} loaded={loaded} />;
+    return (
+      <ThemeSetting<TBaseModel>
+        modelType={props.modelType}
+        modelId={props.modelId}
+        copy={props.copy}
+        choices={props.choices}
+        renderPreview={props.renderPreview}
+        getNote={props.getNote}
+        testId={props.testId}
+        loaded={loaded}
+      />
+    );
   };
 
   return (
