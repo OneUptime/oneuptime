@@ -29,6 +29,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class VMwareVCenterOwnerRuleEngineServiceClass
   implements RuleRunEngine<VMwareVCenter, VMwareVCenterOwnerRule>
@@ -128,6 +129,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     vmwareVCenter: VMwareVCenter;
     rules: Array<VMwareVCenterOwnerRule>;

@@ -1,4 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import {
   TelemetryServiceMetadata,
@@ -269,6 +270,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
+  @TelemetryBatch()
   private static async processLogsAsync(req: ExpressRequest): Promise<void> {
     /*
      * Durability acks from the fan-in writer, one per submitted batch. The

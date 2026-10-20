@@ -63,6 +63,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /*
  * The engine behind network device auto-import rules (issue #3378): reads a
@@ -1871,6 +1872,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * it creates, which is what makes duplicate rows, overlapping scans in one
    * sweep, and repeat runs idempotent.
    */
+  @RuleEvaluation()
   private async importHostsFromScan(data: {
     scan: NetworkDeviceDiscoveryScan;
     rules: Array<NetworkDeviceAutoImportRule>;

@@ -296,8 +296,12 @@ describe("the alive window is shared with the server", () => {
       ) || []
     ).length;
 
-    // getOnlineAiCommandRunnersForProject and getOnlineCodeFixRunnerForProject.
-    expect(usages).toBe(2);
+    /*
+     * getOnlineAiCommandRunnersForProject. (Whether a repository's Runner is
+     * online for code work is read with getRunnerLiveStatus, on the same
+     * window: CodeRepositoryRunnerChoice.)
+     */
+    expect(usages).toBe(1);
   });
 
   /*

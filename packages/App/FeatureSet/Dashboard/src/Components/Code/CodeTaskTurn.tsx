@@ -110,6 +110,11 @@ export interface ComponentProps {
   isRetrying?: boolean | undefined;
   // Link to this turn's full log.
   logRoute?: Route | undefined;
+  /*
+   * The task's repository's settings, where its Runner is picked: what a
+   * turn that waits long for a Runner links to.
+   */
+  repositorySettingsRoute?: Route | undefined;
 }
 
 // The page a context chip opens, when it names a record.
@@ -574,21 +579,37 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                     data-testid="code-turn-slow-queue"
                     className="mt-1 block text-xs text-gray-500"
                   >
-                    <TranslatedSentence
-                      template="Taking longer than usual? Check that a Runner with Runs AI Code Fixes is online and up to date in {{runners}}."
-                      slots={{
-                        runners: (
-                          <Link
-                            to={RouteUtil.populateRouteParams(
-                              RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
-                            )}
-                            className="font-medium text-indigo-600 hover:text-indigo-500"
-                          >
-                            <>{translator.translateText("Runners")}</>
-                          </Link>
-                        ),
-                      }}
-                    />
+                    {props.repositorySettingsRoute ? (
+                      <TranslatedSentence
+                        template="Taking longer than usual? Check that this repository's Runner is online in its {{settings}}."
+                        slots={{
+                          settings: (
+                            <Link
+                              to={props.repositorySettingsRoute}
+                              className="font-medium text-indigo-600 hover:text-indigo-500"
+                            >
+                              <>{translator.translateText("Settings")}</>
+                            </Link>
+                          ),
+                        }}
+                      />
+                    ) : (
+                      <TranslatedSentence
+                        template="Taking longer than usual? Check that a Runner is online and up to date in {{runners}}."
+                        slots={{
+                          runners: (
+                            <Link
+                              to={RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
+                              )}
+                              className="font-medium text-indigo-600 hover:text-indigo-500"
+                            >
+                              <>{translator.translateText("Runners")}</>
+                            </Link>
+                          ),
+                        }}
+                      />
+                    )}
                   </span>
                 ) : (
                   <></>

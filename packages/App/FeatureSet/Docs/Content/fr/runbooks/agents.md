@@ -69,7 +69,7 @@ Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi
 - Il ne reçoit une variable secrète que lorsque son réglage **Les agents Runbook globaux peuvent l'utiliser** est activé, et seulement pour une étape du propre projet de la variable. Il ne reçoit jamais d'identifiant.
 - Un projet exécute au plus trois étapes à la fois sur les agents globaux, si bien qu'aucun projet ne les garde pour lui seul.
 
-Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent échoue alors, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas.
+Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent échoue alors, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas. Un dépôt de code qui ne choisit aucun agent dans ses paramètres dans Code travaille lui aussi sur un agent Runbook global, et a besoin de l'un des vôtres tant que l'option est désactivée ; voir [Code](/docs/ai/ai-agent#choisir-le-runner-du-dépôt).
 
 ### D'où viennent les agents Runbook globaux
 
@@ -96,10 +96,9 @@ Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Cliquez
 | **Description** | **Agent Runbook** | Facultatif. Une phrase sur ce que cet hôte peut joindre. |
 | **Étiquettes** | **Agent Runbook** (sous **Plus de champs**) | Facultatif. |
 | **Exécute les runbooks** | **Capacités** | Activé par défaut. Permet à cet agent de prendre des étapes de runbook. |
-| **Exécute les corrections de code IA** | **Capacités** | Désactivé par défaut. Lui permet d'ouvrir des pull requests de correction de code par IA ; voir [Code](/docs/ai/ai-agent). |
 | **Exécute les commandes de remédiation IA** | **Capacités** | Désactivé par défaut. Permet à la remédiation automatique par IA d'y exécuter des commandes vérifiées par une politique. L'activer pour un agent qui détient des identifiants SSH demande l'autorisation de lire les identifiants de runbook ; voir [Agents Runbook qui exécutent les commandes d'OneUptime AI](/docs/runbooks/credentials#agents-runbook-qui-exécutent-les-commandes-doneuptime-ai). |
 
-Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer.
+Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. Les corrections de code par IA ne sont pas une capacité : un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent.
 
 ### 2. Copier la commande d'installation
 
@@ -234,7 +233,7 @@ L'agent lit ces variables au démarrage :
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | non | `10000` | La fréquence à laquelle l'agent renouvelle le bail d'une tâche en cours. Une valeur inférieure à `1000` revient à la valeur par défaut. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | non | `1` | Nombre maximal de tâches simultanées sur cet agent. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | non | — | Mettez `false` pour que cet agent ne prenne plus d'étapes de runbook, quoi qu'indique le tableau de bord. Ne peut que désactiver la capacité. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | non | — | Mettez `false` pour que cet agent ne prenne plus de corrections de code par IA, quoi qu'indique le tableau de bord. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | non | — | Mettez `false` pour que cet agent ne prenne plus de corrections de code par IA, même pour un dépôt de code qui le choisit. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | non | — | Mettez `false` pour que cet agent n'exécute plus de commandes de remédiation IA, quoi qu'indique le tableau de bord. |
 
 ## Faire tourner la clé d'un agent

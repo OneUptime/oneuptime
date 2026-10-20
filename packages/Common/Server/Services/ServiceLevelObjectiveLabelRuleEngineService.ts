@@ -23,6 +23,7 @@ import ServiceLevelObjectiveLabelRuleService from "./ServiceLevelObjectiveLabelR
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ServiceLevelObjectiveLabelRuleEngineServiceClass
   implements
@@ -118,6 +119,7 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     serviceLevelObjective: ServiceLevelObjective;
     rules: Array<ServiceLevelObjectiveLabelRule>;

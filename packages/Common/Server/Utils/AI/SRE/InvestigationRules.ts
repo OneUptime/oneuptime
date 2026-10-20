@@ -8,6 +8,7 @@ import AIInvestigationRuleService from "../../../Services/AIInvestigationRuleSer
 import logger, { LogAttributes } from "../../Logger";
 import IncidentAlertRuleMatcher from "../../Rules/IncidentAlertRuleMatcher";
 import logIfRuleReadWasTruncated from "../../Rules/RuleEngineRuleRead";
+import { RuleEvaluation } from "../../PatternWorkScope";
 
 /*
  * Investigation rules: which new incidents (or alerts) OneUptime AI
@@ -32,6 +33,7 @@ const IN_SCOPE_WITHOUT_RULES: InvestigationRuleScope = {
 };
 
 export default class InvestigationRules {
+  @RuleEvaluation()
   public static async getIncidentScope(data: {
     projectId: ObjectID;
     incident: Incident;
@@ -60,6 +62,7 @@ export default class InvestigationRules {
     return { isInScope: false, rulesChecked: rules.length };
   }
 
+  @RuleEvaluation()
   public static async getAlertScope(data: {
     projectId: ObjectID;
     alert: Alert;

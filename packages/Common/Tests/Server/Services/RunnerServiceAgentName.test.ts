@@ -50,8 +50,9 @@ beforeEach(() => {
  * - a non-root rename of any row INTO the prefix, and a non-root create
  *   under it, are refused (compared case-insensitively, as the database
  *   compares the marker);
- * - "Runs Runbooks" / "Runs AI Code Fixes" cannot be turned on for an agent
- *   row (either would stop it re-registering after a restart);
+ * - "Runs Runbooks" cannot be turned on for an agent row (it would stop it
+ *   re-registering after a restart), and no code repository may pick one
+ *   (CodeRepositoryService, CodeRepositoryRunnerPick.test.ts);
  * - root writes (registration, heartbeats) and ordinary Runners are
  *   untouched, and the form's re-post of unchanged values still saves.
  */
@@ -361,7 +362,6 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
             name: "kubernetes-agent/prod",
             description: "Our prod cluster's in-cluster Runner",
             canRunRunbooks: false,
-            canRunCodeFixTasks: false,
           }),
         ),
       ).resolves.toBeDefined();
@@ -442,10 +442,7 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
   });
 
   describe("capabilities on an agent row", () => {
-    it.each([
-      [{ canRunRunbooks: true }, '"Runs Runbooks"'],
-      [{ canRunCodeFixTasks: true }, '"Runs AI Code Fixes"'],
-    ])(
+    it.each([[{ canRunRunbooks: true }, '"Runs Runbooks"']])(
       "refuses turning on %p for an agent row",
       async (data: Record<string, unknown>, title: string) => {
         const message: string = await refusal(
@@ -468,11 +465,7 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
 
       await expect(
         hooks.onBeforeUpdate(
-          update(
-            { canRunRunbooks: true, canRunCodeFixTasks: true },
-            editorProps(),
-            HOST_RUNNER_ID,
-          ),
+          update({ canRunRunbooks: true }, editorProps(), HOST_RUNNER_ID),
         ),
       ).resolves.toBeDefined();
     });
@@ -512,50 +505,8 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
 });
 
 describe("RunnerService lookups leave agent rows out", () => {
-  let findBy: jest.SpyInstance;
-
   afterEach(() => {
     jest.restoreAllMocks();
-  });
-
-  it("getOnlineCodeFixRunnerForProject excludes agent rows in the query and on the rows", async () => {
-    findBy = jest
-      .spyOn(RunnerService, "findBy")
-      .mockResolvedValue([
-        agentRow({ canRunCodeFixTasks: true }),
-        agentRow({ name: "renamed", canRunCodeFixTasks: true }),
-        hostRow({ canRunCodeFixTasks: true }),
-      ]);
-
-    const runner: Runner | null =
-      await RunnerService.getOnlineCodeFixRunnerForProject(PROJECT_ID);
-
-    expect(runner?.name).toBe("office-runner");
-
-    const query: Record<string, unknown> = (
-      findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
-    ).query;
-    const nameFilter: {
-      getSql?: (alias: string) => string;
-      objectLiteralParameters?: Record<string, unknown>;
-    } = query["name"] as {
-      getSql?: (alias: string) => string;
-      objectLiteralParameters?: Record<string, unknown>;
-    };
-    expect(nameFilter.getSql!('"name"')).toContain("NOT ILIKE");
-    expect(Object.values(nameFilter.objectLiteralParameters || {})).toEqual([
-      "kubernetes-agent/%",
-    ]);
-  });
-
-  it("getOnlineCodeFixRunnerForProject: a project whose only code-fix Runner is an agent has none", async () => {
-    jest
-      .spyOn(RunnerService, "findBy")
-      .mockResolvedValue([agentRow({ canRunCodeFixTasks: true })]);
-
-    expect(
-      await RunnerService.getOnlineCodeFixRunnerForProject(PROJECT_ID),
-    ).toBeNull();
   });
 
   it("getOnlineAiCommandRunnersForProject drops a row with an agent posture whatever its name", async () => {

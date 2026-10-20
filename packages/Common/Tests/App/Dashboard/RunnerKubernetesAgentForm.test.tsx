@@ -62,8 +62,9 @@ jest.mock("react-i18next", () => {
  * The Runner list and detail pages on a Runner the Kubernetes agent chart
  * installed. RunnerService refuses, for any non-root write, renaming a row
  * whose name carries the "kubernetes-agent/" marker (or naming a row into
- * it), and turning on "Runs Runbooks" or "Runs AI Code Fixes" on an agent
- * row — by name marker OR agent posture. Both pages used to offer those
+ * it), and turning on "Runs Runbooks" on an agent row — by name marker OR
+ * agent posture. (A Runner has no AI code fix switch at all: a code
+ * repository picks its Runner in Code.) Both pages used to offer those
  * fields on every row, so an edit of an agent row could only be refused;
  * they now leave them out on such a row and say why in one line.
  * KubernetesClusterAiPageServerParity.test.ts runs these forms' writes
@@ -105,7 +106,6 @@ function makeRunnerRow(
     description: "",
     key: "runner-key",
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     canRunAiCommands: true,
     lastAlive: new Date("2026-09-23T10:00:00Z"),
     ...(hostInfo ? { hostInfo } : {}),
@@ -151,11 +151,14 @@ function nameField(fields: Fields<Runner>): Field<Runner> {
   return field;
 }
 
+/*
+ * No AI code fix switch: a code repository picks the Runner AI works in it
+ * on, in its settings in Code.
+ */
 const FULL_FORM: Array<string> = [
   "name",
   "description",
   "canRunRunbooks",
-  "canRunCodeFixTasks",
   "canRunAiCommands",
   "labels",
 ];
@@ -217,19 +220,17 @@ describe("what the Runner form leaves out", () => {
       areShellCapabilitiesLocked: true,
     });
     expect(both).toContain(AGENT_NOTE_START);
-    expect(both).toContain(
-      "cannot be renamed or given “Runs Runbooks” or “Runs AI Code Fixes”",
-    );
+    expect(both).toContain("cannot be renamed or given “Runs Runbooks” —");
     expect(both).toContain("OneUptime refuses those changes");
 
     const switchesOnly: string | null = getKubernetesAgentRunnerFormNote({
       isNameLocked: false,
       areShellCapabilitiesLocked: true,
     });
-    expect(switchesOnly).toContain(
-      "cannot be given “Runs Runbooks” or “Runs AI Code Fixes”",
-    );
+    expect(switchesOnly).toContain("cannot be given “Runs Runbooks” —");
     expect(switchesOnly).not.toContain("renamed");
+    // Never a switch the form no longer has.
+    expect(both).not.toContain("Code Fixes");
   });
 });
 
@@ -288,7 +289,6 @@ describe("the Runner form's fields", () => {
     expect(steps).toEqual([
       "runner",
       "runner",
-      "capabilities",
       "capabilities",
       "capabilities",
       "runner",
@@ -508,7 +508,6 @@ describe("the Runner pages, rendered", () => {
       { timeout: WAIT_TIMEOUT },
     );
     expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(false);
-    expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(false);
 
     // Saving - from any step of an edit form - posts none of the fields the server refuses.
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
@@ -523,7 +522,6 @@ describe("the Runner pages, rendered", () => {
     ).model;
     expect(posted.name).toBeUndefined();
     expect(posted.canRunRunbooks).toBeUndefined();
-    expect(posted.canRunCodeFixTasks).toBeUndefined();
     expect(posted.canRunAiCommands).toBe(true);
   });
 
@@ -541,7 +539,9 @@ describe("the Runner pages, rendered", () => {
       { timeout: WAIT_TIMEOUT },
     );
     expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(true);
-    expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(true);
+    // No AI code fix switch: a repository picks its Runner in Code.
+    expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(false);
+    expect(dialog).not.toHaveTextContent("AI Code Fixes");
     expect(dialog).not.toHaveTextContent(AGENT_NOTE_START);
     expect(
       screen.queryByTestId("kubernetes-agent-runner-note"),

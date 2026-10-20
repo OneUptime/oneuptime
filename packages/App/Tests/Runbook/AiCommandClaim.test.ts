@@ -1,6 +1,7 @@
 import logger from "Common/Server/Utils/Logger";
 import RunnerService from "Common/Server/Services/RunnerService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import CodeRepositoryRunnerChoice from "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import RunnerJobService, {
   MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
 } from "Common/Server/Services/RunnerJobService";
@@ -335,7 +336,6 @@ describe("AI command capability gating on the agent ingress", () => {
    */
   function buildAgent(data: {
     canRunRunbooks?: boolean | undefined;
-    canRunCodeFixTasks?: boolean | undefined;
     canRunAiCommands?: boolean | undefined;
     // The Kubernetes posture the Runner last reported, when it has one.
     hostInfo?: JSONObject | undefined;
@@ -346,9 +346,6 @@ describe("AI command capability gating on the agent ingress", () => {
       name: "test-runner",
       ...(data.canRunRunbooks !== undefined
         ? { canRunRunbooks: data.canRunRunbooks }
-        : {}),
-      ...(data.canRunCodeFixTasks !== undefined
-        ? { canRunCodeFixTasks: data.canRunCodeFixTasks }
         : {}),
       ...(data.canRunAiCommands !== undefined
         ? { canRunAiCommands: data.canRunAiCommands }
@@ -405,6 +402,14 @@ describe("AI command capability gating on the agent ingress", () => {
       .mockResolvedValue(null);
     // A runbook job's run is read for its inputs; these runs have none.
     jest.spyOn(RunbookExecutionService, "findOneById").mockResolvedValue(null);
+    /*
+     * Code work is not a capability of the row: a code repository picks
+     * the Runner (its Runner setting in Code). None picks these Runners
+     * unless a test says one does.
+     */
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+      .mockResolvedValue(false);
 
     stubVariableReads(agentId);
     (
@@ -456,11 +461,15 @@ describe("AI command capability gating on the agent ingress", () => {
     });
 
     test("reports canRunAiCommands false when the row explicitly revokes it", async () => {
+      // A code repository picks this Runner: its code work is separate.
+      jest
+        .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+        .mockResolvedValue(true);
+
       await callRoute({
         uri: HEARTBEAT_ROUTE,
         agent: buildAgent({
           canRunRunbooks: true,
-          canRunCodeFixTasks: true,
           canRunAiCommands: false,
         }),
       });

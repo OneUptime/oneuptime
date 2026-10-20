@@ -10,6 +10,7 @@ import RunnerService, {
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import CodeRepositoryRunnerChoice from "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import KubernetesClusterAiAccessService, {
   KubernetesAgentRegistrationRefusedException,
   RegisterKubernetesAgentRunnerResult,
@@ -322,11 +323,33 @@ export default class RunnerIngressAPI {
       return Response.sendJsonObjectResponse(
         req,
         res,
-        RunnerIngressAPI.getHeartbeatAnswer(agent),
+        RunnerIngressAPI.getHeartbeatAnswer(agent, {
+          isPickedByACodeRepository:
+            await RunnerIngressAPI.isPickedByACodeRepository(agent),
+        }),
       );
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * Whether a code repository of the Runner's project picks it (its Runner
+   * setting in Code): what the code-fix capability its heartbeat is told
+   * says. Not asked for a global Runner, nor for an in-cluster Runner the
+   * Kubernetes agent chart installed, which never take code work.
+   */
+  public static async isPickedByACodeRepository(
+    agent: Runner,
+  ): Promise<boolean> {
+    if (
+      agent.isGlobalRunner ||
+      RunnerServiceClass.isKubernetesAgentRunnerRow(agent)
+    ) {
+      return false;
+    }
+
+    return await CodeRepositoryRunnerChoice.isRunnerPickedByARepository(agent);
   }
 
   /*
@@ -336,12 +359,20 @@ export default class RunnerIngressAPI {
    * meantime - so an operator never has to touch the container to revoke
    * one.
    *
+   * AI code fixes are not a switch: the Runner takes code work while a code
+   * repository of its project picks it (isPickedByACodeRepository), so a
+   * repository that picks it starts its code-fix loop within a heartbeat,
+   * and one that picks another stops it.
+   *
    * A global Runner is told it is one, and that it runs runbook steps only
    * (a master admin may pause even those with "Runs Runbooks"): it then
    * asks only for what global Runners run, and refuses anything else it is
    * handed. The server serves it no other work whatever it asks for.
    */
-  public static getHeartbeatAnswer(agent: Runner): JSONObject {
+  public static getHeartbeatAnswer(
+    agent: Runner,
+    data?: { isPickedByACodeRepository?: boolean | undefined } | undefined,
+  ): JSONObject {
     if (agent.isGlobalRunner) {
       return {
         status: "ok",
@@ -359,7 +390,9 @@ export default class RunnerIngressAPI {
       status: "ok",
       capabilities: {
         canRunRunbooks: agent.canRunRunbooks !== false,
-        canRunCodeFixTasks: agent.canRunCodeFixTasks === true,
+        canRunCodeFixTasks:
+          data?.isPickedByACodeRepository === true &&
+          !RunnerServiceClass.isKubernetesAgentRunnerRow(agent),
         canRunAiCommands: agent.canRunAiCommands === true,
       },
     };

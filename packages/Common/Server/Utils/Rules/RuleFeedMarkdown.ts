@@ -22,6 +22,9 @@ import FeedMarkdown, {
  * What they did - the labels added, the owners assigned, the policies
  * attached - is a FeedMarkdown.bulletList of names in the engine itself.
  */
+// How many rules a "not checked in full" line names before "and N more".
+const MAX_NOT_CHECKED_RULES_NAMED: number = 5;
+
 export default class RuleFeedMarkdown {
   /**
    * "🏷️ **Incident Label Rule executed:** **Prod**", or "Rules" and every
@@ -40,6 +43,34 @@ export default class RuleFeedMarkdown {
     );
 
     return mdText`${data.emoji} **${data.ruleKind}${data.ruleNames.length > 1 ? "s" : ""} executed:** ${rules}`;
+  }
+
+  /**
+   * "🔒 **Incident Privacy Rule not checked in full:** **Prod**", or "Rules"
+   * and the first rules' names and how many more: rules whose patterns
+   * needed more work than one evaluation may take
+   * (Utils/LinearRegExp/PatternWork.ts), and so counted as matching, with
+   * why.
+   */
+  public static notCheckedInFullLine(data: {
+    emoji: string;
+    // The rule's kind, singular: "Incident Privacy Rule".
+    ruleKind: string;
+    ruleNames: Array<string>;
+  }): MarkdownText {
+    const shown: Array<string> = data.ruleNames.slice(
+      0,
+      MAX_NOT_CHECKED_RULES_NAMED,
+    );
+    const more: number = data.ruleNames.length - shown.length;
+    const rules: MarkdownText = FeedMarkdown.join(
+      shown.map((name: string): MarkdownText => {
+        return mdText`**${name}**`;
+      }),
+    );
+    const plural: boolean = data.ruleNames.length > 1;
+
+    return mdText`${data.emoji} **${data.ruleKind}${plural ? "s" : ""} not checked in full:** ${rules}${more > 0 ? ` and ${more} more` : ""}. ${plural ? "Their" : "Its"} patterns needed more work than one check may take, so ${plural ? "they" : "it"} counted as matching.`;
   }
 
   /**

@@ -10,6 +10,7 @@ import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgent
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
@@ -133,7 +134,6 @@ function offlineAgentRunner(
     connectionStatus: RunnerConnectionStatus.Disconnected,
     canRunAiCommands: true,
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     hostInfo: {
       kubernetes: {
         inCluster: true,
@@ -250,6 +250,10 @@ function installFakeDatabase(database: FakeDatabase): void {
     });
   jest
     .spyOn(RunbookVariableService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0));
+  // No code repository picks the Runner.
+  jest
+    .spyOn(CodeRepositoryService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
 
   jest

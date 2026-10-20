@@ -3,8 +3,14 @@ import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import AIRunService from "../../../Services/AIRunService";
-import CodeFixAgentAvailability from "./CodeFixAgentAvailability";
+import CodeRepositoryService from "../../../Services/CodeRepositoryService";
+import CodeRepositoryRunnerChoice from "./CodeRepositoryRunnerChoice";
+import {
+  describeRepositoryRunnerStatus,
+  NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
+} from "./CodeFixReadiness";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -21,9 +27,11 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *      re-running the fix from the top is not safe to do automatically.
  *      The run is finalized as Error and the user retries explicitly.
  *
- *   2. A Queued run no agent ever picked up because none is online for its
- *      project: without this, the exception page would show "queued"
- *      forever and block retries (the duplicate guard sees a live run).
+ *   2. A Queued run no Runner ever picked up because none is online to do
+ *      it - the Runner its repository picks (its Runner setting in Code),
+ *      or a global Runner for one that picks none: without this, the
+ *      exception page would show "queued" forever and block retries (the
+ *      duplicate guard sees a live run).
  */
 
 // How long a Queued run may wait for an agent before it is failed.
@@ -55,9 +63,13 @@ export default class CodeFixRunQueue {
   }
 
   /*
-   * Fail Queued code-fix runs that have waited past the timeout while their
-   * project has no alive agent to pick them up. A project WITH an alive
-   * agent just has a deep queue — its runs are left alone.
+   * Fail Queued code-fix runs that have waited past the timeout while
+   * nothing that may take them is online: the Runner their repository picks,
+   * or a global Runner for one that picks none - and, for a run that has not
+   * found its repository yet, anything online for its project's
+   * repositories. A run that something online may take just waits in a deep
+   * queue, and is left alone. Its error says why, in the words Code's gate
+   * uses, and what to do.
    */
   @CaptureSpan()
   public static async failOrphanedQueuedRuns(): Promise<void> {
@@ -74,6 +86,7 @@ export default class CodeFixRunQueue {
       select: {
         _id: true,
         projectId: true,
+        codeRepositoryId: true,
       },
       limit: SWEEP_BATCH_SIZE,
       skip: 0,
@@ -86,8 +99,12 @@ export default class CodeFixRunQueue {
       return;
     }
 
-    // One alive-agent lookup per project, not per run.
-    const projectHasAliveAgent: Map<string, boolean> = new Map();
+    /*
+     * Why nothing can take a run, or null while something can: looked up
+     * once per repository (and once per project, for runs with none), not
+     * once per run.
+     */
+    const whyNothingTakes: Map<string, string | null> = new Map();
 
     for (const run of waitingRuns) {
       if (!run.projectId) {
@@ -95,17 +112,23 @@ export default class CodeFixRunQueue {
       }
 
       const projectIdStr: string = run.projectId.toString();
+      const key: string = run.codeRepositoryId
+        ? `repository:${run.codeRepositoryId.toString()}`
+        : `project:${projectIdStr}`;
 
-      if (!projectHasAliveAgent.has(projectIdStr)) {
-        projectHasAliveAgent.set(
-          projectIdStr,
-          await CodeFixAgentAvailability.hasOnlineAgentForProject(
-            run.projectId,
-          ),
+      if (!whyNothingTakes.has(key)) {
+        whyNothingTakes.set(
+          key,
+          await CodeFixRunQueue.getWhyNothingTakesRun({
+            projectId: run.projectId,
+            codeRepositoryId: run.codeRepositoryId,
+          }),
         );
       }
 
-      if (projectHasAliveAgent.get(projectIdStr)) {
+      const why: string | null = whyNothingTakes.get(key) || null;
+
+      if (!why) {
         continue;
       }
 
@@ -116,12 +139,12 @@ export default class CodeFixRunQueue {
           set: {
             status: AIRunStatus.Error,
             completedAt: OneUptimeDate.getCurrentDate(),
-            errorMessage: `No AI agent picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes and none is currently online. Check that a Runner with Runs AI Code Fixes enabled is running (Runbooks > Runners), then retry the fix from the exception page.`,
+            errorMessage: CodeFixRunQueue.getOrphanedRunMessage(why),
           },
         });
 
         logger.info(
-          `Failed orphaned Queued code-fix run ${run.id?.toString()} (no alive agent for project ${projectIdStr})`,
+          `Failed orphaned Queued code-fix run ${run.id?.toString()} (nothing online to take it in project ${projectIdStr})`,
         );
       } catch (error) {
         logger.error(
@@ -129,5 +152,54 @@ export default class CodeFixRunQueue {
         );
       }
     }
+  }
+
+  /*
+   * What an orphaned run fails with: how long it waited, then why and what
+   * to do - each reason ends with its own next step. Nothing after it: the
+   * failed turn has its own Try again, and "Then start the task again"
+   * after "try again once the global Runner is back" said it twice.
+   */
+  public static getOrphanedRunMessage(why: string): string {
+    return `No Runner picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes. ${why}`;
+  }
+
+  /*
+   * Why nothing online may take a run of this repository (or, with no
+   * repository yet, of this project), or null while something can.
+   */
+  @CaptureSpan()
+  public static async getWhyNothingTakesRun(data: {
+    projectId: ObjectID;
+    codeRepositoryId?: ObjectID | undefined;
+  }): Promise<string | null> {
+    const repository: CodeRepository | null = data.codeRepositoryId
+      ? await CodeRepositoryService.findOneBy({
+          query: {
+            _id: data.codeRepositoryId.toString(),
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+            runnerId: true,
+          },
+          props: { isRoot: true },
+        })
+      : null;
+
+    if (!repository) {
+      return (await CodeRepositoryRunnerChoice.isAnyRunnerOnlineForProject(
+        data.projectId,
+      ))
+        ? null
+        : NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL;
+    }
+
+    return describeRepositoryRunnerStatus(
+      await CodeRepositoryRunnerChoice.getStatusForRepository({
+        projectId: data.projectId,
+        runnerId: repository.runnerId,
+      }),
+    );
   }
 }

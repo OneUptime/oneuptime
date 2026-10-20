@@ -6,6 +6,7 @@ import KubernetesClusterAiAccessService, {
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
@@ -96,7 +97,6 @@ function advancedRunner(): Runner {
     lastAlive: OneUptimeDate.getCurrentDate(),
     canRunAiCommands: true,
     canRunRunbooks: true,
-    canRunCodeFixTasks: false,
     hostInfo: {
       kubernetes: {
         inCluster: false,
@@ -129,6 +129,10 @@ beforeEach(() => {
     .mockResolvedValue(new PositiveNumber(0));
   jest
     .spyOn(RunbookVariableService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0));
+  // No code repository picks the Runner.
+  jest
+    .spyOn(CodeRepositoryService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
   jest
     .spyOn(KubernetesClusterService, "countBy")

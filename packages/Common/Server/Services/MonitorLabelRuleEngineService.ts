@@ -29,6 +29,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class MonitorLabelRuleEngineServiceClass
   implements RuleRunEngine<Monitor, MonitorLabelRule>
@@ -115,6 +116,7 @@ class MonitorLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     monitor: Monitor;
     rules: Array<MonitorLabelRule>;

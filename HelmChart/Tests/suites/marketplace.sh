@@ -353,6 +353,10 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace google-cloud --version "$
 
     DOCKERFILE="$(cat "${GOOGLE_OUT}/Dockerfile")"
     assert_present "google-cloud: the deployer builds on Google's helm deployer" "$DOCKERFILE" "gcr.io/cloud-marketplace-tools/k8s/deployer_helm"
+    # Google serves marketplace.gcr.io's images only to a signed-in account: the build stage,
+    # which a dry run builds with no sign-in (--target build), starts from a public image.
+    assert_absent "google-cloud: the build stage needs no Google sign-in" "$DOCKERFILE" "FROM marketplace.gcr.io"
+    assert_present "google-cloud: the build stage is the one a dry run builds" "$DOCKERFILE" " AS build"
     assert_present "google-cloud: the deployer ships the chart" "$DOCKERFILE" "ADD chart/oneuptime /tmp/chart"
     assert_present "google-cloud: the deployer ships the tester" "$DOCKERFILE" "COPY --from=build /tmp/test/oneuptime.tar.gz /data-test/chart/"
 else

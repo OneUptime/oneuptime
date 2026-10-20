@@ -8,6 +8,7 @@ import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgent
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
@@ -98,7 +99,6 @@ function offlineLegacyRunner(): Runner {
     connectionStatus: RunnerConnectionStatus.Connected,
     canRunAiCommands: true,
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     hostInfo: {
       kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
     },
@@ -163,6 +163,10 @@ describe("the previous in-cluster Runner and the Kubernetes AI agent that replac
       .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(RunbookVariableService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    // No code repository picks the Runner.
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(KubernetesClusterService, "countBy")

@@ -34,6 +34,8 @@ import {
   resolveKeyValueParserOptions,
 } from "Common/Utils/Log/KeyValueParser";
 import logger from "Common/Server/Utils/Logger";
+import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
 
@@ -164,6 +166,13 @@ export class LogPipelineService {
     logRow: JSONObject,
     pipelines: Array<LoadedPipeline>,
   ): JSONObject {
+    /*
+     * The record's texts add their share to the batch's work allowance when
+     * the first of these patterns is asked about it
+     * (Common/Server/Utils/PatternWorkScope.ts).
+     */
+    PatternWorkScope.handOverRecord(logRow);
+
     let result: JSONObject = { ...logRow };
 
     for (const { pipeline, compiledFilter, processors } of pipelines) {
@@ -257,7 +266,19 @@ export class LogPipelineService {
     try {
       compiled = compileGrokPatternCached(pattern);
     } catch (err) {
-      LogPipelineService.logInvalidGrokPatternOnce(processorName, pattern, err);
+      /*
+       * Not compiled only because the batch's work allowance is spent
+       * (Common/Utils/LinearRegExp/PatternWork.ts): the line stays
+       * unparsed, and the pattern is not one to report as invalid.
+       */
+      if (!(err instanceof PatternWorkLimitError)) {
+        LogPipelineService.logInvalidGrokPatternOnce(
+          processorName,
+          pattern,
+          err,
+        );
+      }
+
       return logRow;
     }
 

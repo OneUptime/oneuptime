@@ -69,7 +69,7 @@ En global Runner kører trinnene fra mange projekter, så hvert trin holdes adsk
 - Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt. Den får aldrig en loginoplysning.
 - Et projekt kører højst tre trin ad gangen på globale Runnere, så intet projekt holder dem for sig selv.
 
-Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, fejler så og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder.
+Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, fejler så og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder. Et koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode, arbejder også på en global Runner og skal bruge en af dine, mens kontakten er slået fra; se [Kode](/docs/ai/ai-agent#vælg-repositoriets-runner).
 
 ### Hvor globale Runnere kommer fra
 
@@ -96,10 +96,9 @@ Gå til **Runbooks → Runbook-agenter**, og opret en ny agent. Klik på **Opret
 | **Beskrivelse** | **Runner** | Valgfri. En sætning om, hvad denne vært kan nå. |
 | **Etiketter** | **Runner** (under **Flere felter**) | Valgfri. |
 | **Kører runbooks** | **Funktioner** | Slået til som standard. Lader denne Runner overtage runbook-trin. |
-| **Kører AI-koderettelser** | **Funktioner** | Slået fra som standard. Lader den åbne pull requests med AI-koderettelser; se [Kode](/docs/ai/ai-agent). |
 | **Kører AI-afhjælpningskommandoer** | **Funktioner** | Slået fra som standard. Lader automatisk AI-afhjælpning køre politikkontrollerede kommandoer på den. At slå den til for en Runner, der har SSH-loginoplysninger, kræver tilladelse til at læse runbook-loginoplysninger; se [Runners, der kører OneUptime AI's kommandoer](/docs/runbooks/credentials#runners-der-kører-oneuptime-ais-kommandoer). |
 
-En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes.
+En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes. AI-koderettelser er ikke en funktion: et koderepositorie vælger i sine indstillinger i Kode den Runner, AI arbejder i det på, og Runnerens side viser de repositorier, der vælger den.
 
 ### 2. Kopiér installationskommandoen
 
@@ -234,7 +233,7 @@ Runneren læser disse ved opstart:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nej | `10000` | Hvor ofte Runneren fornyer leasen på et kørende job. En værdi under `1000` falder tilbage til standarden. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | nej | `1` | Maksimalt antal samtidige job på denne Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | nej | — | Sæt til `false` for at få denne Runner til at holde op med at overtage runbook-trin, uanset hvad dashboardet siger. Den kan kun slå funktionen fra. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nej | — | Sæt til `false` for at få denne Runner til at holde op med at overtage AI-koderettelser, uanset hvad dashboardet siger. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nej | — | Sæt til `false` for at få denne Runner til at holde op med at overtage AI-koderettelser, også for et koderepositorie, der vælger den. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | nej | — | Sæt til `false` for at få denne Runner til at holde op med at køre AI-afhjælpningskommandoer, uanset hvad dashboardet siger. |
 
 ## Udskift en agentnøgle

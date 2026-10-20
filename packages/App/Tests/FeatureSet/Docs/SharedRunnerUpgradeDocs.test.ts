@@ -284,11 +284,15 @@ describe("the English upgrade note on the bundled Runner", () => {
 });
 
 describe("the English AI agent page on the shared Runners", () => {
-  it("says the shared Runners never run the verification commands, and links to Run a Runner of your own", () => {
+  /*
+   * The shared Runner is the global Runner a code repository that picks no
+   * Runner works on (its Runner setting in Code), so the page names it so.
+   */
+  it("says a global Runner never runs the verification commands, and links to Run a Runner of your own", () => {
     const paragraph: string = trustParagraph("en");
 
     expect(paragraph).toContain(
-      "OneUptime's shared Runners never run them: on a shared Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change.",
+      "A global Runner, which OneUptime runs for every project, never runs them: on a global Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change.",
     );
     expect(linkTargets(paragraph)).toEqual([`#${ownRunnerAnchor("en")}`]);
   });

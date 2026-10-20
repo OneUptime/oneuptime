@@ -247,13 +247,28 @@ export enum CodeTaskBlockerType {
   NoLlmProvider = "NoLlmProvider",
   NoAiCredits = "NoAiCredits",
   DailyLimitReached = "DailyLimitReached",
-  // No Runner with Runs AI Code Fixes is online to do the work.
+  /*
+   * The repository picks no Runner (its Runner setting in Code), so a
+   * global Runner does its work, and none is online.
+   */
   NoAgent = "NoAgent",
+  // The Runner the repository picks is not online.
+  RunnerNotOnline = "RunnerNotOnline",
+  /*
+   * The repository picks no Runner, and its project does not use global
+   * Runners: it needs one of the project's own.
+   */
+  GlobalRunnersOff = "GlobalRunnersOff",
 }
 
 export interface CodeTaskBlocker {
   type: CodeTaskBlockerType;
   message: string;
+  /*
+   * RunnerNotOnline: the name of the Runner the repository picks, so the
+   * page says which one to check. Left out when it is not known.
+   */
+  runnerName?: string | undefined;
 }
 
 export interface CodeTaskStateInput {

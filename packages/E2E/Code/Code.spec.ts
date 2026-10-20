@@ -14,8 +14,9 @@ import path from "path";
  * repositories first, a repository's page where AI is asked with context,
  * a task's conversation filling in as the AI works, replying in it,
  * stopping it and trying again, whatever stops AI working said with the
- * link that fixes it, read-only members, the old Tasks and Code
- * Repositories addresses, a phone, dark mode and German.
+ * link that fixes it, the Runner a repository's settings pick for AI's
+ * work, read-only members, the old Tasks and Code Repositories addresses, a
+ * phone, dark mode and German.
  *
  * The maintainer's ask: "overhaul the entire 'Tasks' product and call it
  * 'Code' ... it should show Code repos first and tasks in them ... it should
@@ -51,6 +52,13 @@ const TASK: Record<
 };
 
 const INCIDENT_ID: string = "50000000-0000-4000-8000-0000000000e1";
+
+// The project's own Runners a repository may pick (Code/Fixture).
+const RUNNER: Record<"prod" | "office" | "agent", string> = {
+  prod: "60000000-0000-4000-8000-0000000000f1",
+  office: "60000000-0000-4000-8000-0000000000f2",
+  agent: "60000000-0000-4000-8000-0000000000f3",
+};
 
 // The numbers in a computed colour, "rgb(17, 24, 39)".
 const COLOUR_CHANNELS: RegExp = /\d+/g;
@@ -657,7 +665,15 @@ test.describe("a repository's page: ask AI", () => {
     );
   });
 
-  const BLOCKERS: Array<{ type: string; sentence: string; fix?: string }> = [
+  const SETTINGS_OF_CHECKOUT: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  const BLOCKERS: Array<{
+    type: string;
+    sentence: string;
+    fix?: string;
+    // Where the fix leads, when it is the repository's own settings.
+    href?: string;
+  }> = [
     {
       type: "AiDisabled",
       sentence: "AI is turned off for this project.",
@@ -675,8 +691,25 @@ test.describe("a repository's page: ask AI", () => {
     },
     {
       type: "NoAgent",
-      sentence: "No Runner is online to do the work.",
-      fix: "Set up a Runner",
+      sentence:
+        "No global Runner is online to work in this repository. Pick one of your Runners for it, or try again once the global Runner is back.",
+      fix: "Pick a Runner",
+      href: SETTINGS_OF_CHECKOUT,
+    },
+    {
+      type: "RunnerNotOnline",
+      // The server names the Runner the repository picks.
+      sentence:
+        "The Runner this repository picks, prod-eu-west-1, is not online. Check that its container is running, or pick another Runner.",
+      fix: "Pick a Runner",
+      href: SETTINGS_OF_CHECKOUT,
+    },
+    {
+      type: "GlobalRunnersOff",
+      sentence:
+        "This project does not use global Runners, so this repository needs one of your Runners.",
+      fix: "Pick a Runner",
+      href: SETTINGS_OF_CHECKOUT,
     },
     {
       type: "PlanRequired",
@@ -715,6 +748,14 @@ test.describe("a repository's page: ask AI", () => {
         await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
           blocker.fix,
         );
+        if (blocker.href) {
+          await expect(notice.getByTestId("code-blocker-fix")).toHaveAttribute(
+            "href",
+            blocker.href,
+          );
+        }
+        // Never the switch Runners no longer have.
+        await expect(notice).not.toContainText("Code Fixes");
       } else {
         await expect(notice.getByTestId("code-blocker-fix")).toHaveCount(0);
       }
@@ -833,6 +874,291 @@ test.describe("a repository's page: ask AI", () => {
       "When someone asks AI to work in this repository, the task shows up here.",
     );
     await expect(page.getByTestId("code-examples")).toHaveCount(0);
+  });
+});
+
+/*
+ * The maintainer's ask: "in the Code Repo section, we should be able to
+ * select a runner to run from (if not selected, it will run on global
+ * runner)." A repository's settings pick the Runner AI works in it on: the
+ * one Runner picker, Global Runner first - and what a repository that
+ * picked none shows - then the project's own Runners, never the in-cluster
+ * Runner the Kubernetes agent chart installed. The fixture records what
+ * the settings save.
+ */
+test.describe("a repository's Runner", () => {
+  const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  function settingsCard(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Repository Settings", { exact: true }),
+    });
+  }
+
+  function runnerPicker(page: Page): Locator {
+    return page.getByTestId("code-repository-runner-picker");
+  }
+
+  // Opens Edit Settings and walks to its Runner step.
+  async function openRunnerStep(page: Page): Promise<Locator> {
+    await settingsCard(page)
+      .getByRole("button", { name: "Edit Settings" })
+      .click();
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    for (let step: number = 0; step < 2; step++) {
+      await modal.getByRole("button", { name: "Next", exact: true }).click();
+    }
+    await expect(runnerPicker(page)).toBeVisible();
+    return modal;
+  }
+
+  /*
+   * The card's Runner: its name, and how it is doing as the Runners page
+   * draws it - a status dot read out as "Status: Connected".
+   */
+  async function expectRunnerValue(
+    page: Page,
+    name: string,
+    status: string,
+  ): Promise<Locator> {
+    const value: Locator = page.getByTestId("code-repository-runner");
+    await expect(value).toContainText(name);
+    await expect(value.getByRole("status")).toHaveAttribute(
+      "aria-label",
+      `Status: ${status}`,
+    );
+    return value;
+  }
+
+  async function save(
+    page: Page,
+    modal: Locator,
+  ): Promise<Record<string, unknown>> {
+    const before: number = (await recorded(page)).settings.length;
+    // Build & Test, the last step, saves.
+    await modal.getByRole("button", { name: "Next", exact: true }).click();
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await recorded(page)).settings.length;
+      })
+      .toBe(before + 1);
+    await expect(modal).toBeHidden();
+    const settings: Array<Record<string, unknown>> = (await recorded(page))
+      .settings;
+    return settings[settings.length - 1]!;
+  }
+
+  test("the settings say where AI works: Global Runner, with how it is doing", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+
+    const value: Locator = await expectRunnerValue(
+      page,
+      "Global Runner",
+      "Connected",
+    );
+    // Global Runner is no page of the project's to link to.
+    await expect(value.getByRole("link")).toHaveCount(0);
+    /*
+     * The repository has setup, build and test commands, which Global
+     * Runner never runs: said under it, above the commands the card lists.
+     */
+    await expect(value.getByTestId("code-repository-runner-skips")).toHaveText(
+      "Run by OneUptime for every project. It skips your setup, build and test commands.",
+    );
+    await expect(settingsCard(page)).toContainText(
+      "Where AI works in this repository.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-runner-global");
+  });
+
+  test("Edit Settings offers Global Runner first, then the project's own Runners - never the Kubernetes agent's - and saves the one picked", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+    const modal: Locator = await openRunnerStep(page);
+
+    /*
+     * A field like the dialog's others: the form's title and the card's
+     * own description above the menu, which the title names, and no
+     * "(Optional)" - empty is Global Runner, an answer of its own.
+     */
+    await expect(modal).toContainText("Where AI works in this repository.");
+    await expect(modal).not.toContainText("(Optional)");
+    await expect(runnerPicker(page).locator("label")).toHaveCount(0);
+    await expect(runnerPicker(page).getByRole("combobox")).toHaveAccessibleName(
+      "Runner",
+    );
+    await expect(runnerPicker(page)).toContainText("Global Runner · Connected");
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "AI works on a Runner OneUptime runs for every project, which skips your setup, build and test commands. Pick one of your Runners to have them run.",
+    );
+
+    await runnerPicker(page).getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toContainText("Global Runner · Connected");
+    await expect(options.nth(0)).toContainText(
+      "Run by OneUptime for every project. It skips your setup, build and test commands.",
+    );
+    await expect(options.nth(1)).toHaveText("office-runner · Disconnected");
+    await expect(options.nth(2)).toHaveText("prod-eu-west-1 · Connected");
+    await expect(page.getByText("kubernetes-agent/prod-us")).toHaveCount(0);
+    await screenshot(page, testInfo, "code-repository-runner-picker");
+
+    await options.nth(2).click();
+    await expect(runnerPicker(page)).toContainText(
+      "prod-eu-west-1 · Connected",
+    );
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "AI clones the repository on this Runner, runs your setup, build and test commands there, and opens the pull request.",
+    );
+
+    const saved: Record<string, unknown> = await save(page, modal);
+    expect(saved["runnerId"]).toBe(RUNNER.prod);
+
+    // The card names it, linked to its page, with how it is doing.
+    const value: Locator = await expectRunnerValue(
+      page,
+      "prod-eu-west-1",
+      "Connected",
+    );
+    await expect(value.getByRole("link")).toHaveText("prod-eu-west-1");
+    // Its own Runner runs the commands: nothing is said about skipping them.
+    await expect(value.getByTestId("code-repository-runner-skips")).toHaveCount(
+      0,
+    );
+    await expect(value.getByRole("link")).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/runbooks/runners/${RUNNER.prod}`,
+    );
+  });
+
+  test("picking Global Runner again saves no Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?runner=prod`);
+    await expectRunnerValue(page, "prod-eu-west-1", "Connected");
+
+    const modal: Locator = await openRunnerStep(page);
+    await expect(runnerPicker(page)).toContainText(
+      "prod-eu-west-1 · Connected",
+    );
+    await runnerPicker(page).getByRole("combobox").click();
+    await page.getByRole("option").filter({ hasText: "Global Runner" }).click();
+
+    const saved: Record<string, unknown> = await save(page, modal);
+    expect(saved["runnerId"]).toBeNull();
+    await expectRunnerValue(page, "Global Runner", "Connected");
+  });
+
+  test("a project that turned global Runners off says so, and its picker asks for one of the project's own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?uses=0`);
+    await expect(page.getByTestId("code-repository-runner")).toHaveText(
+      "None: this project does not use global Runners",
+    );
+
+    await openRunnerStep(page);
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "This project does not use global Runners: pick one of your Runners for this repository.",
+    );
+    await runnerPicker(page).getByRole("combobox").click();
+    await expect(page.getByRole("option")).toHaveText([
+      "office-runner · Disconnected",
+      "prod-eu-west-1 · Connected",
+    ]);
+  });
+
+  test("a server with no global Runner, and a pick the reader is not shown, are said as they are", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?global=0`);
+    await expect(page.getByTestId("code-repository-runner")).toHaveText(
+      "None: this server runs no global Runner",
+    );
+    // Nothing is picked: the step says what to do, not what a pick does.
+    await openRunnerStep(page);
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "This server runs no global Runner: pick one of your Runners for this repository.",
+    );
+
+    /*
+     * A repository can only pick one of its project's Runners, and a
+     * deleted one leaves it on Global Runner: one the page cannot name is
+     * one the reader may not see - never an id, never a warning.
+     */
+    await page.goto(`${SETTINGS}?runner=gone`);
+    await expect(page.getByTestId("code-repository-runner")).toHaveText(
+      "A Runner you do not have access to",
+    );
+    await openRunnerStep(page);
+    await expect(runnerPicker(page)).toContainText(
+      "A Runner you do not have access to",
+    );
+    await expect(runnerPicker(page)).not.toContainText("60000000-");
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "This repository picks a Runner you do not have access to. Pick another Runner to change it.",
+    );
+  });
+
+  test("a global Runner that is not heard from: the picker says AI waits for one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?gstatus=disconnected`);
+    await expectRunnerValue(page, "Global Runner", "Disconnected");
+
+    await openRunnerStep(page);
+    await expect(
+      page.getByTestId("code-repository-runner-picker-global-waiting"),
+    ).toHaveText(
+      "No global Runner is connected right now, so AI cannot work in this repository until one is.",
+    );
+  });
+
+  test("a blocker's Pick a Runner opens the repository's settings, where its Runner is picked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepository(
+      page,
+      REPOSITORY.checkout,
+      "blocker=RunnerNotOnline&runner=prod",
+    );
+
+    await page.getByTestId("code-blocker-fix").click();
+    await expect(page).toHaveURL(SETTINGS);
+    await expect(page.getByTestId("code-repository-runner")).toBeVisible();
   });
 });
 

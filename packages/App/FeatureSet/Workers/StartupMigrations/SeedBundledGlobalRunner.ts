@@ -146,7 +146,6 @@ export default class SeedBundledGlobalRunner extends StartupMigrationBase {
     runner.description = BUNDLED_GLOBAL_RUNNER_DESCRIPTION;
     runner.key = key;
     runner.canRunRunbooks = true;
-    runner.canRunCodeFixTasks = false;
     runner.canRunAiCommands = false;
 
     await RunnerService.create({
