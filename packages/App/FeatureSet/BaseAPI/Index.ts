@@ -585,6 +585,7 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
@@ -3279,6 +3280,12 @@ const BaseAPIFeatureSet: FeatureSet = {
         LlmCostBudget,
         LlmCostBudgetService,
       ).getRouter(),
+    );
+
+    // AI / LLM connections: provider accounts and company AI tools.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new LlmObservabilityConnectionAPI().getRouter(),
     );
 
     // LlmModelPrice
