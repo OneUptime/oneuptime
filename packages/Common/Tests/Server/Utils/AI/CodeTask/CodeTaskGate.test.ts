@@ -6,7 +6,13 @@ import CodeRepositoryService from "../../../../../Server/Services/CodeRepository
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
+  GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+  getRepositoryRunnerOfflineDetail,
 } from "../../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
+import CodeRepositoryRunnerChoice, {
+  CodeRepositoryRunnerStatus,
+} from "../../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import { CODE_TASK_ASK_REFUSED_MESSAGE } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import CodeTaskGate, {
   CODE_TASK_PLAN_REQUIRED_MESSAGE,
@@ -28,6 +34,7 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../../Types/ObjectID";
+import { CodeRepositoryRunnerChoiceKind } from "../../../../../Types/Runner/CodeRepositoryRunner";
 import {
   afterAll,
   afterEach,
@@ -58,9 +65,9 @@ const OTHER_REPOSITORY_ID: ObjectID = new ObjectID(
   "4d0e3a2f-6b7c-4d8e-9f0a-1b2c3d4e5f60",
 );
 const INSTALLATION_ID: string = "48213377";
-
-const NO_AGENT_DETAIL: string =
-  "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Runbooks > Runners).";
+const RUNNER_ID: ObjectID = new ObjectID(
+  "5e1f4b3a-7c8d-4e9f-8a0b-2c3d4e5f6071",
+);
 
 interface World {
   enableAi: boolean | undefined;
@@ -71,7 +78,10 @@ interface World {
   llmOk: boolean;
   llmDetail: string;
   reachedLimit: ProjectAiDailyLimitStatus | null;
-  agentOk: boolean;
+  // The Runner the repository picks (its Runner setting in Code), if any.
+  repositoryRunnerId: ObjectID | undefined;
+  // What it runs on now, and whether that is online.
+  runnerStatus: CodeRepositoryRunnerStatus;
 }
 
 let world: World;
@@ -157,7 +167,11 @@ beforeEach(() => {
     llmOk: true,
     llmDetail: "",
     reachedLimit: null,
-    agentOk: true,
+    repositoryRunnerId: undefined,
+    runnerStatus: {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: true,
+    },
   };
 
   jest
@@ -208,14 +222,23 @@ beforeEach(() => {
       return world.reachedLimit;
     });
 
-  jest.spyOn(CodeFixReadiness, "getAgentCheck").mockImplementation(async () => {
-    return {
-      id: "agentAvailable",
-      ok: world.agentOk,
-      title: "A Runner that runs AI code fixes is online",
-      detail: world.agentOk ? "" : NO_AGENT_DETAIL,
-    } as never;
-  });
+  // The repository's Runner setting, read as OneUptime.
+  jest
+    .spyOn(CodeRepositoryService, "findOneById")
+    .mockImplementation(async (): Promise<CodeRepository | null> => {
+      const row: CodeRepository = new CodeRepository();
+      row._id = REPOSITORY_ID.toString();
+      if (world.repositoryRunnerId) {
+        row.runnerId = world.repositoryRunnerId;
+      }
+      return row;
+    });
+
+  jest
+    .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+    .mockImplementation(async () => {
+      return world.runnerStatus;
+    });
 });
 
 afterEach(() => {
@@ -248,7 +271,10 @@ describe("CodeTaskGate.getBlocker", () => {
 
   test("someone who may only read the repository is told so, and nothing else is asked", async () => {
     world.enableAi = false;
-    world.agentOk = false;
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+    };
 
     expect(await blocker({ canAsk: false })).toEqual({
       type: CodeTaskBlockerType.NoPermission,
@@ -380,19 +406,88 @@ describe("CodeTaskGate.getBlocker", () => {
   });
 
   test("no Runner online to do the work is the last thing asked", async () => {
-    world.agentOk = false;
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+    };
 
     expect(await blocker()).toEqual({
       type: CodeTaskBlockerType.NoAgent,
-      message: NO_AGENT_DETAIL,
+      message: NO_GLOBAL_RUNNER_ONLINE_DETAIL,
     });
+  });
+
+  test("asks about the Runner the repository picks, read as OneUptime whatever the reader may see", async () => {
+    world.repositoryRunnerId = RUNNER_ID;
+
+    await blocker({ props: props({ isRoot: false }) });
+
+    expect(CodeRepositoryService.findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: REPOSITORY_ID,
+        select: expect.objectContaining({ runnerId: true }),
+        props: { isRoot: true },
+      }),
+    );
+    expect(
+      CodeRepositoryRunnerChoice.getStatusForRepository,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      runnerId: RUNNER_ID,
+    });
+  });
+
+  test("the Runner the repository picks is offline: RunnerNotOnline, naming it", async () => {
+    world.repositoryRunnerId = RUNNER_ID;
+    world.runnerStatus = {
+      decision: {
+        kind: CodeRepositoryRunnerChoiceKind.Custom,
+        runnerId: RUNNER_ID.toString(),
+      },
+      isOnline: false,
+      runnerName: "prod-runner",
+    };
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RunnerNotOnline,
+      message: getRepositoryRunnerOfflineDetail("prod-runner"),
+    });
+  });
+
+  test("a repository that picks none in a project that turned global Runners off: GlobalRunnersOff", async () => {
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.NoRunner },
+      isOnline: false,
+    };
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.GlobalRunnersOff,
+      message: GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+    });
+  });
+
+  test("the repository's own Runner online lets the work start, whatever global Runners do", async () => {
+    world.repositoryRunnerId = RUNNER_ID;
+    world.runnerStatus = {
+      decision: {
+        kind: CodeRepositoryRunnerChoiceKind.Custom,
+        runnerId: RUNNER_ID.toString(),
+      },
+      isOnline: true,
+      runnerName: "prod-runner",
+    };
+
+    expect(await blocker()).toBeNull();
   });
 
   test("the first thing to fix is the one said, in order", async () => {
     world.enableAi = false;
     world.boundInstallationId = null;
     world.llmOk = false;
-    world.agentOk = false;
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+    };
 
     const order: Array<CodeTaskBlockerType> = [];
 
@@ -407,7 +502,10 @@ describe("CodeTaskGate.getBlocker", () => {
         world.llmOk = true;
       },
       (): void => {
-        world.agentOk = true;
+        world.runnerStatus = {
+          decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+          isOnline: true,
+        };
       },
     ]) {
       order.push((await blocker())!.type);

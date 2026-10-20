@@ -133,9 +133,3 @@ export function mayWorkInCodeRepository(data: {
  */
 export const CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL: string =
   "This repository's AI work runs on the Runner its settings in Code pick, and that is not this Runner, so it was not given access to the repository. Start the task again: it goes to the repository's Runner.";
-
-// The Runner setting's own words, where the server and the docs say them.
-export const CODE_REPOSITORY_RUNNER_FIELD_TITLE: string = "Runner";
-
-// What a repository that picked no Runner runs on, as the picker names it.
-export const CODE_REPOSITORY_GLOBAL_RUNNER_NAME: string = "Global Runner";

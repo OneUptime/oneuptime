@@ -350,10 +350,43 @@ describe("a turn: the AI's side", () => {
     );
 
     const slow: HTMLElement = screen.getByTestId("code-turn-slow-queue");
-    expect(slow).toHaveTextContent("Taking longer than usual?");
+    expect(slow).toHaveTextContent(
+      "Taking longer than usual? Check that a Runner is online and up to date in Runners.",
+    );
     expect(hrefOf(within(slow).getByRole("link", { name: "Runners" }))).toBe(
       `/dashboard/${PROJECT_ID}/runbooks/runners`,
     );
+    // Never the switch Runners no longer have.
+    expect(slow).not.toHaveTextContent("Code Fixes");
+  });
+
+  test("queued for long in a repository: its Runner is checked in the repository's settings", () => {
+    const settings: string = `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`;
+
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          repositorySettingsRoute={new Route(settings)}
+          turn={turn({
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            startedAt: undefined,
+            completedAt: undefined,
+            createdAt: new Date(Date.now() - 12 * 60000).toISOString(),
+          })}
+        />
+      </ol>,
+    );
+
+    const slow: HTMLElement = screen.getByTestId("code-turn-slow-queue");
+    expect(slow).toHaveTextContent(
+      "Taking longer than usual? Check that this repository's Runner is online in its Settings.",
+    );
+    expect(hrefOf(within(slow).getByRole("link", { name: "Settings" }))).toBe(
+      settings,
+    );
+    expect(within(slow).queryByRole("link", { name: "Runners" })).toBeNull();
   });
 
   test("working: Working…, how long so far, its Log and its latest steps - ending where the next one will appear", () => {
@@ -1130,9 +1163,21 @@ describe("what stops AI working", () => {
     ],
     [
       CodeTaskBlockerType.NoAgent,
-      "No Runner is online to do the work.",
-      "Set up a Runner",
-      "runbooks/runners",
+      "No global Runner is online to work in this repository.",
+      "Pick a Runner",
+      `code/repositories/${REPOSITORY_ID}/settings`,
+    ],
+    [
+      CodeTaskBlockerType.RunnerNotOnline,
+      "The Runner this repository picks is not online.",
+      "Pick a Runner",
+      `code/repositories/${REPOSITORY_ID}/settings`,
+    ],
+    [
+      CodeTaskBlockerType.GlobalRunnersOff,
+      "This project does not use global Runners, so this repository needs one of your Runners.",
+      "Pick a Runner",
+      `code/repositories/${REPOSITORY_ID}/settings`,
     ],
     [
       CodeTaskBlockerType.RepositoryNotConnected,
@@ -1153,6 +1198,7 @@ describe("what stops AI working", () => {
       draw(
         <CodeBlockerNotice
           blocker={{ type, message: "The server's words." }}
+          repositoryId={REPOSITORY_ID}
         />,
       );
 
@@ -1186,11 +1232,6 @@ describe("what stops AI working", () => {
         Permission.CreateProjectLlm,
         "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
       ],
-      [
-        CodeTaskBlockerType.NoAgent,
-        Permission.CreateRunner,
-        "A project admin can set up a Runner in Runbooks → Runners.",
-      ],
     ])(
       "%s: linked for someone with %s, who can for everyone else",
       (type: CodeTaskBlockerType, allowed: Permission, whoCan: string) => {
@@ -1214,6 +1255,56 @@ describe("what stops AI working", () => {
         // Before the permissions arrive: the sentence alone.
         grant(null);
         draw(<CodeBlockerNotice blocker={{ type, message: "x" }} />);
+        expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
+        expect(screen.queryByTestId("code-blocker-who-can")).toBeNull();
+      },
+    );
+
+    /*
+     * A missing Runner is fixed in the repository's own settings, by whoever
+     * may change the repository - which is whoever may ask AI in it, so the
+     * people who see this blocker are offered the link.
+     */
+    test.each([
+      CodeTaskBlockerType.NoAgent,
+      CodeTaskBlockerType.RunnerNotOnline,
+      CodeTaskBlockerType.GlobalRunnersOff,
+    ])(
+      "%s: linked for whoever may change the repository, who can for anyone else",
+      (type: CodeTaskBlockerType) => {
+        grant([Permission.ProjectUser, Permission.EditCodeRepository]);
+        draw(
+          <CodeBlockerNotice
+            blocker={{ type, message: "x" }}
+            repositoryId={REPOSITORY_ID}
+          />,
+        );
+        expect(screen.getByTestId("code-blocker-fix")).toBeInTheDocument();
+        expect(screen.queryByTestId("code-blocker-who-can")).toBeNull();
+        cleanup();
+        jest.restoreAllMocks();
+
+        grant([Permission.ProjectUser, Permission.ReadCodeRepository]);
+        draw(
+          <CodeBlockerNotice
+            blocker={{ type, message: "x" }}
+            repositoryId={REPOSITORY_ID}
+          />,
+        );
+        expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
+        expect(screen.getByTestId("code-blocker-who-can")).toHaveTextContent(
+          "A project admin can pick this repository's Runner in its settings.",
+        );
+        cleanup();
+        jest.restoreAllMocks();
+
+        grant(null);
+        draw(
+          <CodeBlockerNotice
+            blocker={{ type, message: "x" }}
+            repositoryId={REPOSITORY_ID}
+          />,
+        );
         expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
         expect(screen.queryByTestId("code-blocker-who-can")).toBeNull();
       },

@@ -4,7 +4,23 @@ import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import ObjectID from "../../../Types/ObjectID";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import {
+  CodeWorker,
+  CodeWorkerKind,
+} from "../../../Types/Runner/CodeRepositoryRunner";
+import { beforeEach, describe, expect, test, afterEach } from "@jest/globals";
+
+/*
+ * Who claims: the claim reads the repository's Runner choice for it
+ * (CodeFixClaimQuery, pinned in its own suite). These tests are about what
+ * happens once a candidate is read, so it is a global Runner and the
+ * candidate query always names one; findOneBy hands back the run.
+ */
+const WORKER: CodeWorker = {
+  kind: CodeWorkerKind.GlobalRunner,
+  id: new ObjectID("0a1b2c3d-8888-4222-8333-944455556666"),
+};
+const CANDIDATE_ID: string = "0a1b2c3d-9999-4222-8333-944455556666";
 
 /*
  * The code-fix claim behind POST /ai-agent-task/get-pending-task: the
@@ -51,19 +67,75 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
     jest.restoreAllMocks();
   });
 
+  beforeEach(() => {
+    jest
+      .spyOn(AIRunService, "findNextClaimableCodeFixRunId")
+      .mockResolvedValue(CANDIDATE_ID);
+  });
+
   test("returns null when no queued code-fix run exists — no CAS attempted", async () => {
-    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(AIRunService, "findNextClaimableCodeFixRunId")
+      .mockResolvedValue(null);
+    const read: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(null);
     const transition: jest.SpyInstance = jest.spyOn(
       AIRunService,
       "attemptStatusTransition",
     );
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
     expect(claimed).toBeNull();
+    expect(read).not.toHaveBeenCalled();
     expect(transition).not.toHaveBeenCalled();
+  });
+
+  test("the candidate is read again, still Queued, before it is claimed - one taken meanwhile is passed over", async () => {
+    const run: AIRun = fakeQueuedRun();
+
+    const read: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(null) // another worker took the first candidate
+      .mockResolvedValueOnce(run);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(run);
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(read).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          _id: CANDIDATE_ID,
+          status: AIRunStatus.Queued,
+        }),
+      }),
+    );
+  });
+
+  test("gives up after five candidates it could not claim", async () => {
+    const next: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "findNextClaimableCodeFixRunId",
+    );
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeQueuedRun());
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(0);
+
+    expect(
+      await AIRunService.claimNextQueuedCodeFixRun({
+        worker: WORKER,
+        aiAgentId: ObjectID.generate(),
+      }),
+    ).toBeNull();
+    expect(next).toHaveBeenCalledTimes(5);
   });
 
   test("a won claim transitions Queued -> Running with heartbeat, agent id and attemptCount+1", async () => {
@@ -76,6 +148,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId,
     });
 
@@ -116,6 +189,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValueOnce(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -135,6 +209,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -172,6 +247,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -194,6 +270,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -219,6 +296,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -240,6 +318,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -270,6 +349,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
 
       const claimed: AIRun | null =
         await AIRunService.claimNextQueuedCodeFixRun({
+          worker: WORKER,
           aiAgentId: ObjectID.generate(),
         });
 
@@ -306,6 +386,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -345,6 +426,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -370,6 +452,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -404,6 +487,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 
@@ -436,6 +520,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
       .mockResolvedValue(1);
 
     const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      worker: WORKER,
       aiAgentId: ObjectID.generate(),
     });
 

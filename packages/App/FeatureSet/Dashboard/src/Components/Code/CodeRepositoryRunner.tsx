@@ -186,7 +186,7 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
   const status: string | null = model.selected?.liveStatus
     ? translator.translateText(
         getRunnerLiveStatusLabel(model.selected.liveStatus),
-      )
+      ) || null
     : null;
 
   const statusSuffix: ReactElement = status ? (

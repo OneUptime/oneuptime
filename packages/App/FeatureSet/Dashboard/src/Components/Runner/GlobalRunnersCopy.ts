@@ -64,7 +64,7 @@ export const GlobalRunnersCopy: {
     "Runners OneUptime runs for every project. JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
   ),
   globalCardDescriptionWhenOff: translationKey(
-    "Runners OneUptime runs for every project. This project does not use them, so every step and code repository runs on one of your Runners.",
+    "Runners OneUptime runs for every project. This project does not use them, so steps and code repositories run on yours.",
   ),
   globalEmptyMessage: translationKey(
     "Global Runners appear here when OneUptime runs one.",
@@ -102,7 +102,7 @@ export const GlobalRunnersCopy: {
   ),
   turnOffTitle: translationKey("Stop using global Runners?"),
   turnOffDescription: translationKey(
-    "JavaScript steps and code repositories that pick no Runner stop running until they pick one of yours. Work waiting for a global Runner now will not run.",
+    "JavaScript steps and code repositories that pick no Runner stop running until they pick one of yours. Work queued for a global Runner will not run.",
   ),
   turnOffButton: translationKey("Stop Using Global Runners"),
 };

@@ -1,14 +1,20 @@
 import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
+  GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+  NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
+  describeRepositoryRunnerStatus,
+  getRepositoryRunnerBlocker,
+  getRepositoryRunnerOfflineDetail,
 } from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
+import CodeRepositoryRunnerChoice from "../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
-import AIAgentService from "../../../../Server/Services/AIAgentService";
-import RunnerService from "../../../../Server/Services/RunnerService";
+import { CodeTaskBlockerType } from "../../../../Types/AI/CodeTask";
+import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
-import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../../Types/ObjectID";
@@ -16,7 +22,7 @@ import {
   AIFixReadiness,
   AIFixReadinessCheck,
 } from "../../../../Types/AI/AIFixReadiness";
-import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * The gates the AI Tasks page renders. The invariant worth protecting: a
@@ -308,81 +314,200 @@ describe("CodeFixReadiness.getLlmProviderCheck — daily autonomous token budget
   });
 });
 
+/*
+ * Whether a Runner is online to do the work: for a known repository, the one
+ * its Runner setting in Code picks (or a global Runner for one that picks
+ * none - CodeRepositoryRunnerChoice, which has its own suite); before a
+ * repository is known, anything online for the project's repositories.
+ */
 describe("CodeFixReadiness.getAgentCheck", () => {
-  beforeEach(() => {
-    // Default: no Runner. Individual tests opt into one.
-    jest
-      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-      .mockResolvedValue(null);
-  });
+  const RUNNER_ID: string = "0a1b2c3d-1111-4222-8333-944455556666";
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("no agent for the project: not ready", async () => {
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(null);
-    jest.spyOn(AIAgentService, "getAIAgentForProject").mockResolvedValue(null);
+  test("project-wide: nothing online for the project's repositories is not ready, and says what decides it", async () => {
+    const anyOnline: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(false);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
     });
 
+    expect(anyOnline).toHaveBeenCalledWith(projectId);
     expect(check.id).toBe("agentAvailable");
     expect(check.ok).toBe(false);
-    expect(check.detail).toContain("No agent is available");
+    expect(check.title).toBe("Runner online");
+    expect(check.detail).toBe(NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL);
   });
 
-  test("an agent that exists but is not alive: not ready, and names it", async () => {
+  test("project-wide: something online is ready", async () => {
     jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(null);
-    jest
-      .spyOn(AIAgentService, "getAIAgentForProject")
-      .mockResolvedValue({ name: "fix-worker" } as unknown as AIAgent);
-
-    const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
-      projectId,
-    });
-
-    expect(check.ok).toBe(false);
-    expect(check.detail).toContain("fix-worker");
-  });
-
-  test("a live agent is ready and is named", async () => {
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue({ name: "fix-worker" } as unknown as AIAgent);
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(true);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
     });
 
     expect(check.ok).toBe(true);
-    expect(check.title).toContain("fix-worker");
+    expect(check.detail).toBe("Connected and polling for tasks.");
   });
 
-  /*
-   * A customer-installed Runner with the code-fix capability is the agent for
-   * most projects — readiness that only looked at the AIAgent table told them
-   * to go install an agent they were already running.
-   */
-  test("an online code-fix Runner satisfies the check and is named", async () => {
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(null);
-    jest
-      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-      .mockResolvedValue({ name: "prod-runner" } as unknown as never);
+  test("a repository's own Runner online: ready, and named", async () => {
+    const status: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValue({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: RUNNER_ID,
+        },
+        isOnline: true,
+        runnerName: "prod-runner",
+      });
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
+      repository: { projectId, runnerId: RUNNER_ID },
+    });
+
+    expect(status).toHaveBeenCalledWith({ projectId, runnerId: RUNNER_ID });
+    expect(check.ok).toBe(true);
+    expect(check.title).toBe("Runner online: prod-runner");
+  });
+
+  test("a repository on a global Runner that is online: ready, as the Global Runner", async () => {
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+      .mockResolvedValue({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: true,
+      });
+
+    const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
+      projectId,
+      repository: { projectId },
     });
 
     expect(check.ok).toBe(true);
-    expect(check.title).toContain("prod-runner");
+    expect(check.title).toBe("Global Runner online");
+  });
+
+  test.each([
+    [
+      "its own Runner is offline",
+      {
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: RUNNER_ID,
+        },
+        isOnline: false,
+        runnerName: "prod-runner",
+      },
+      getRepositoryRunnerOfflineDetail("prod-runner"),
+    ],
+    [
+      "no global Runner is online",
+      {
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+      },
+      NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+    ],
+    [
+      "its project turned global Runners off",
+      {
+        decision: { kind: CodeRepositoryRunnerChoiceKind.NoRunner },
+        isOnline: false,
+      },
+      GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+    ],
+  ])(
+    "a repository whose %s: not ready, saying why",
+    async (_why: string, status: unknown, detail: string) => {
+      jest
+        .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+        .mockResolvedValue(status as never);
+
+      const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
+        projectId,
+        repository: { projectId },
+      });
+
+      expect(check.ok).toBe(false);
+      expect(check.title).toBe("Runner online");
+      expect(check.detail).toBe(detail);
+    },
+  );
+});
+
+describe("why nothing can do a repository's work, in words and as Code's blocker", () => {
+  test("a Runner the repository picks that is offline is named, with what to do", () => {
+    expect(getRepositoryRunnerOfflineDetail("prod-runner")).toBe(
+      'The Runner "prod-runner" this repository picks is not online. Check that its container is running, or pick another Runner in the repository\'s settings in Code.',
+    );
+    // A pick the project no longer has is still said, without a name.
+    expect(getRepositoryRunnerOfflineDetail(undefined)).toBe(
+      "The Runner this repository picks is not online. Check that its container is running, or pick another Runner in the repository's settings in Code.",
+    );
+  });
+
+  test("each says where the Runner is picked: the repository's settings in Code", () => {
+    for (const detail of [
+      NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+      GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+      getRepositoryRunnerOfflineDetail("x"),
+    ]) {
+      expect(detail).toContain("repository's settings in Code");
+      // Never the switch Runners no longer have.
+      expect(detail).not.toContain("Code Fixes");
+    }
+  });
+
+  test("online is no reason at all, and no blocker", () => {
+    const online: Parameters<typeof describeRepositoryRunnerStatus>[0] = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: true,
+    };
+
+    expect(describeRepositoryRunnerStatus(online)).toBeNull();
+    expect(getRepositoryRunnerBlocker(online)).toBeNull();
+  });
+
+  test("each kind of decision is its own blocker", () => {
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: {
+          kind: CodeRepositoryRunnerChoiceKind.Custom,
+          runnerId: "0a1b2c3d-1111-4222-8333-944455556666",
+        },
+        isOnline: false,
+        runnerName: "prod-runner",
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.RunnerNotOnline,
+      message: getRepositoryRunnerOfflineDetail("prod-runner"),
+    });
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+        isOnline: false,
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.NoAgent,
+      message: NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+    });
+    expect(
+      getRepositoryRunnerBlocker({
+        decision: { kind: CodeRepositoryRunnerChoiceKind.NoRunner },
+        isOnline: false,
+      }),
+    ).toEqual({
+      type: CodeTaskBlockerType.GlobalRunnersOff,
+      message: GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+    });
   });
 });
 
@@ -442,16 +567,8 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
         params.hasProvider ? fakeProvider({ name: "provider" }) : null,
       );
     jest
-      .spyOn(AIAgentService, "getAIAgentForProject")
-      .mockResolvedValue({ name: "agent" } as unknown as AIAgent);
-    jest
-      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-      .mockResolvedValue(
-        params.agentAlive ? ({ name: "agent" } as unknown as AIAgent) : null,
-      );
-    jest
-      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-      .mockResolvedValue(null);
+      .spyOn(CodeRepositoryRunnerChoice, "isAnyRunnerOnlineForProject")
+      .mockResolvedValue(params.agentAlive);
   }
 
   test("all three gates satisfied: ready", async () => {
