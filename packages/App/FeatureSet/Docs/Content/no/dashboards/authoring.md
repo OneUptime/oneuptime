@@ -1,9 +1,9 @@
 # Opprette et dashbord
 
-For å opprette et dashbord åpner du **Produkter → Dashbord**, klikker på **Opprett Dashbord** og velger en mal, eller **Blank Dashboard** for å starte fra bunnen av. En mal fyller inn dashbordets navn for deg (nummerert, som i "Kubernetes Dashboard 2", når prosjektet allerede har ett); et tomt dashbord ber deg om et navn. Klikk på **Opprett Dashbord**, og det nye dashbordet åpnes. Et tomt dashbord åpnes på det tomme lerretet sitt, med en knapp **Legg til widget** for den første widgeten.
+For å opprette et dashbord åpner du **Produkter → Dashbord** og klikker på **Opprett dashbord**. Dialogen **Opprett et dashbord** spør hvordan du vil starte, og deretter om et navn. **Start fra bunnen** gir deg et tomt dashbord; en mal bygger widgetene sine, og ofte variablene sine, for deg og fyller inn navnet sitt (nummerert, som i "Kubernetes Dashboard 2", når prosjektet allerede har ett). Klikk på **Opprett dashbord**, og det nye dashbordet åpnes. Et tomt dashbord åpnes på lerretet sitt, med en knapp **Legg til widget** for den første widgeten.
 
 :::cards
-- [Opprett dashbordet](#opprett-dashbordet): Start fra en mal eller fra et tomt lerret.
+- [Opprett dashbordet](#opprett-dashbordet): Start fra bunnen eller fra en mal.
 - [Rediger og lagre](#rediger-og-lagre): Ingenting endres for noen før du klikker på Lagre endringer.
 - [Legg til en widget](#legg-til-en-widget): Velg den i katalogen, sett den opp og plasser den.
 - [Zoom inn på en topp](#zoom-inn-på-en-topp): Dra over et diagram for å lese hele dashbordet i det øyeblikket.
@@ -16,33 +16,32 @@ Prosjekteiere og -administratorer kan opprette og redigere alle dashbord. Alle a
 ## Opprett dashbordet
 
 :::steps
-### Åpne malvelgeren
+### Velg hvordan du starter
 
-Åpne **Produkter → Dashbord**, og klikk på **Opprett Dashbord**. Dialogen **Opprett fra mal** viser **Blank Dashboard** og femten maler, gruppert etter hva de overvåker.
+Åpne **Produkter → Dashbord**, og klikk på **Opprett dashbord**. Dialogen **Opprett et dashbord** åpnes på **Start fra bunnen**, et tomt dashbord for dine egne widgets. Under den viser **Eller start fra en mal** seks maler under **Anbefalt**.
 
 ### Velg en mal
 
-Klikk på et kort. En mal bygger widgetene sine, og ofte variablene sine, for deg; **Blank Dashboard** starter med et tomt lerret.
+Klikk på en mal for å se hva den legger til: widgetene, navngitt slik **Legg til widget** navngir dem, og variablene du snevrer den inn med i verktøylinjen. For de andre velger du en kategori ved siden av søkefeltet, eller **Alle maler**, eller skriver i **Søk i maler…**: hvert ord du skriver, må passe. Klikk deretter på **Bruk denne malen**, eller dobbeltklikk på malen. I søkefeltet velger piltastene en mal, og **Enter** bruker den.
 
 ### Gi dashbordet et navn
 
-Navnet på en mal er fylt inn, nummerert forbi navnene prosjektet allerede har. Navnet på et tomt dashbord er tomt: skriv inn et. Beskrivelsen er valgfri, ligger sammenslått under **Flere felt**, og du kan legge den til senere på dashbordets side **Oversikt**.
+Navnet på en mal er fylt inn, nummerert forbi navnene prosjektet allerede har. **Start fra bunnen** lar det stå tomt: skriv inn et. Beskrivelsen er valgfri, ligger sammenslått under **Flere felt**, og du kan legge den til senere på dashbordets side **Oversikt**. **Tilbake** tar deg tilbake til malene slik du forlot dem.
 
 ### Opprett det
 
-Klikk på **Opprett Dashbord**. Det nye dashbordet åpnes: med en mals widgets med en gang, eller med det tomme lerretet til et tomt dashbord med **Legg til widget** på.
+Klikk på **Opprett dashbord**. Det nye dashbordet åpnes: med en mals widgets med en gang, eller med et tomt lerret med **Legg til widget** på.
 :::
 
-Malene, etter gruppen velgeren viser dem under:
+Malene, etter kategorien velgeren viser dem under:
 
-| Gruppe | Maler |
+| Kategori | Maler |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Overvåking og APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Hendelseshåndtering | Incident Dashboard, Alert Dashboard |
+| Infrastruktur | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-En mal er et utgangspunkt, ikke en kobling: når dashbordet er opprettet, endrer du det som du vil. Malen oppdaterer det ikke senere.
+**Anbefalt** har Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard og Metrics Dashboard. En mal er et utgangspunkt, ikke en kobling: når dashbordet er opprettet, endrer du det som du vil. Malen oppdaterer det ikke senere.
 
 ## Rediger og lagre
 

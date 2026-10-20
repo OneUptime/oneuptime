@@ -55,7 +55,7 @@ De första kostnaderna visas efter att den första hela timmen har avslutats, oc
 - På ett kluster visar **Costs** dess utgiftstrend, **Spend by Namespace** med fördelningen på CPU, minne och lagring, **Spend by Workload**, utgifter för ledig kapacitet, effektivitet och kortet **Right-Sizing**.
 :::
 
-Kostnadsmätvärdena (`node_total_hourly_cost`, `pv_hourly_cost` och resten) är vanliga mätvärden: de finns i mätvärdesutforskaren, på anpassade instrumentpaneler och i mätvärdesmonitorer. För en färdig instrumentpanel går du till **Produkter → Instrumentpaneler**, väljer **Skapa Instrumentpanel** och väljer **Kubernetes Cost Dashboard**: trender för nodernas timkostnad, enhetskostnader för CPU och minne, och utgifter för volymer och lastbalanserare.
+Kostnadsmätvärdena (`node_total_hourly_cost`, `pv_hourly_cost` och resten) är vanliga mätvärden: de finns i mätvärdesutforskaren, på anpassade instrumentpaneler och i mätvärdesmonitorer. För en färdig instrumentpanel går du till **Produkter → Instrumentpaneler**, väljer **Skapa instrumentpanel** och väljer **Kubernetes Cost Dashboard**: trender för nodernas timkostnad, enhetskostnader för CPU och minne, och utgifter för volymer och lastbalanserare.
 
 ## Kör du redan Kubecost eller OpenCost?
 
