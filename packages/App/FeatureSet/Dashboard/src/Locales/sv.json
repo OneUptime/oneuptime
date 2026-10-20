@@ -13792,7 +13792,7 @@
   "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.": "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
   "Nothing left to set up here": "Nothing left to set up here",
   "Nothing logged yet": "Nothing logged yet",
-  "Nothing matches every word you typed.": "Nothing matches every word you typed.",
+  "Nothing matches every word you typed.": "Inget matchar alla ord du skrev.",
   "Nothing matches every word you typed. Closest matches:": "Nothing matches every word you typed. Closest matches:",
   "Nothing on this map needs attention": "Nothing on this map needs attention",
   "Nothing open": "Nothing open",
@@ -31944,5 +31944,11 @@
   "What is this dashboard for?": "Vad är instrumentpanelen till för?",
   "What should this dashboard be called?": "Vad ska instrumentpanelen heta?",
   "Incident Response": "Incidenthantering",
-  "Monitoring & APM": "Övervakning och APM"
+  "Monitoring & APM": "Övervakning och APM",
+  "Access level": "Åtkomstnivå",
+  "Admin": "Administratör",
+  "One area": "Ett område",
+  "Pick an area": "Välj ett område",
+  "Then choose Admin, Member or Viewer.": "Välj sedan Administratör, Medlem eller Tittare.",
+  "Whole project": "Hela projektet"
 }

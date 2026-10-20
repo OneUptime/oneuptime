@@ -31944,5 +31944,11 @@
   "What is this dashboard for?": "このダッシュボードの用途は？",
   "What should this dashboard be called?": "このダッシュボードの名前は何にしますか？",
   "Incident Response": "インシデント対応",
-  "Monitoring & APM": "監視と APM"
+  "Monitoring & APM": "監視と APM",
+  "Access level": "アクセスレベル",
+  "Admin": "管理者",
+  "One area": "特定の領域",
+  "Pick an area": "領域を選択",
+  "Then choose Admin, Member or Viewer.": "次に、管理者・メンバー・閲覧者から選びます。",
+  "Whole project": "プロジェクト全体"
 }

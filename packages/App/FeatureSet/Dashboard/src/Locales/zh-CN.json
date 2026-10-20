@@ -13792,7 +13792,7 @@
   "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.": "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
   "Nothing left to set up here": "Nothing left to set up here",
   "Nothing logged yet": "Nothing logged yet",
-  "Nothing matches every word you typed.": "Nothing matches every word you typed.",
+  "Nothing matches every word you typed.": "没有与您输入的所有字词都匹配的结果。",
   "Nothing matches every word you typed. Closest matches:": "Nothing matches every word you typed. Closest matches:",
   "Nothing on this map needs attention": "Nothing on this map needs attention",
   "Nothing open": "Nothing open",
@@ -31944,5 +31944,11 @@
   "What is this dashboard for?": "这个仪表板用来做什么？",
   "What should this dashboard be called?": "这个仪表板叫什么名字？",
   "Incident Response": "事件响应",
-  "Monitoring & APM": "监控与 APM"
+  "Monitoring & APM": "监控与 APM",
+  "Access level": "访问级别",
+  "Admin": "管理员",
+  "One area": "单个模块",
+  "Pick an area": "选择一个模块",
+  "Then choose Admin, Member or Viewer.": "然后选择管理员、成员或查看者。",
+  "Whole project": "整个项目"
 }

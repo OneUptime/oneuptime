@@ -31944,5 +31944,11 @@
   "What is this dashboard for?": "¿Para qué sirve este panel?",
   "What should this dashboard be called?": "¿Cómo debería llamarse este panel?",
   "Incident Response": "Respuesta a incidentes",
-  "Monitoring & APM": "Monitoreo y APM"
+  "Monitoring & APM": "Monitoreo y APM",
+  "Access level": "Nivel de acceso",
+  "Admin": "Administrador",
+  "One area": "Un área",
+  "Pick an area": "Elige un área",
+  "Then choose Admin, Member or Viewer.": "Luego elige Administrador, Miembro o Visor.",
+  "Whole project": "Todo el proyecto"
 }

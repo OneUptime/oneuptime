@@ -198,7 +198,7 @@ describe("the roles offered to someone who can't give every one", () => {
       groups.map((group: DropdownOptionGroup): string => {
         return group.label;
       }),
-    ).toEqual(["Domain Roles"]);
+    ).toEqual(["Incidents", "Alerts"]);
   });
 
   test("and the field says why the list is shorter than Add Role's", () => {
@@ -261,7 +261,7 @@ describe("the roles offered to someone who can't give every one", () => {
 describe("the roles a new custom role can start with", () => {
   const groups: Array<DropdownOptionGroup> = getCustomRoleStartingRoleOptions();
 
-  test("are Add Role's cards, in its groups and order, without Project Owner", () => {
+  test("are the role list's entries, in its groups and order - the whole project, then each area - without Project Owner", () => {
     const cards: Array<CardSelectOptionGroup> = getRoleCardSelectOptions({
       excludeRoles: [Permission.ProjectOwner],
     });
@@ -279,6 +279,19 @@ describe("the roles a new custom role can start with", () => {
     expect(optionValues(groups)).toContain(Permission.ProjectAdmin);
     expect(optionValues(groups)).toContain(Permission.IncidentMember);
     expect(optionValues(groups)).toHaveLength(39);
+
+    // Searched by an area's name, the dropdown finds that area's three roles.
+    expect(groups[0]!.label).toBe("Whole project");
+    expect(groups[1]!.label).toBe("Incidents");
+    expect(
+      groups[1]!.options.map((option: DropdownOption): unknown => {
+        return option.value;
+      }),
+    ).toEqual([
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+    ]);
   });
 
   test("keep each role's title and what it can do", () => {

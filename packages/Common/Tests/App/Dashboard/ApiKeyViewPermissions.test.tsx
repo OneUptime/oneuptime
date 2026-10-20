@@ -28,9 +28,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  *   - the page reads in the order it is used: details (the key to copy),
  *     Permissions, Reset API Key, a folded Advanced section, Delete;
- *   - Permissions offers Add Role - the role cards a team's Add Role shows -
- *     as its one button, and Add Permission, the one-permission picker it
- *     had, in the card's More menu;
+ *   - Permissions offers Add Role - the role picker a team's Add Role
+ *     shows: the whole project or one area, then a level - as its one
+ *     button, and Add Permission, the one-permission picker it had, in the
+ *     card's More menu;
  *   - an empty Permissions card says the key can do nothing yet and repeats
  *     Add Role;
  *   - a row is edited with the one-permission picker, however it was added;
@@ -352,7 +353,7 @@ async function openModal(trigger: HTMLElement): Promise<HTMLElement> {
 
   const modal: HTMLElement = await screen.findByTestId("modal");
 
-  // The form is drawn: the role cards, or the one-permission picker.
+  // The form is drawn: the role picker, or the one-permission picker.
   await waitFor(() => {
     expect(
       within(modal).queryAllByRole("radio").length > 0 ||
@@ -518,14 +519,12 @@ describe("what the key can do", () => {
     ).toHaveTextContent("Add Role");
   });
 
-  test("Add Role shows the role cards and adds the role picked as an allow row", async () => {
+  test("Add Role shows the role picker and adds the role picked as an allow row", async () => {
     await renderPage();
 
     const modal: HTMLElement = await openModal(
       cardButton(card("Permissions"), "Add Role"),
     );
-
-    expect(within(modal).getByText("Role")).toBeInTheDocument();
 
     /*
      * Named after the button that opened it, not the table's model: it
@@ -538,16 +537,37 @@ describe("what the key can do", () => {
       within(modal).getByTestId("modal-footer-submit-button"),
     ).toHaveTextContent(/^Add Role$/);
 
-    // The team's role cards, all of them.
-    const roles: number = PermissionHelper.getRolePermissionProps().length;
-    expect(within(modal).getAllByRole("radio")).toHaveLength(roles);
-    expect(within(modal).getByText("Domain Roles")).toBeInTheDocument();
-
-    fireEvent.click(
-      within(modal).getByTestId(
-        `card-select-option-${Permission.IncidentMember}`,
+    /*
+     * The team's role picker: the whole project to start with, one area
+     * a press away. The field's old help ("A role is a ready-made set of
+     * permissions. The key can do what the role allows in the whole
+     * project.") is gone with the forty cards.
+     */
+    expect(
+      within(modal).getByTestId("role-picker-reach-WholeProject"),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(within(modal).getAllByRole("radio")).toHaveLength(4);
+    expect(within(modal).queryByText("Domain Roles")).toBeNull();
+    expect(
+      within(modal).queryByText(
+        "A role is a ready-made set of permissions. The key can do what the role allows in the whole project.",
       ),
-    );
+    ).toBeNull();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(modal).getByTestId("role-picker-reach-OneArea"));
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(modal).getByTestId("role-picker-area-Incidents"));
+    });
+
+    expect(
+      within(modal).getByTestId("role-picker-picked-title"),
+    ).toHaveTextContent("Incident Member");
+    // A key's role reaches the whole project: no Scope to fold away.
+    expect(
+      within(modal).queryByRole("button", { name: /More fields/ }),
+    ).toBeNull();
 
     await act(async (): Promise<void> => {
       fireEvent.click(within(modal).getByRole("button", { name: "Add Role" }));
@@ -567,7 +587,7 @@ describe("what the key can do", () => {
     expect(request.model.isBlockPermission).toBe(false);
   });
 
-  test("the empty state's Add Role opens the same role cards", async () => {
+  test("the empty state's Add Role opens the same role picker", async () => {
     await renderPage();
 
     const modal: HTMLElement = await openModal(
@@ -575,8 +595,37 @@ describe("what the key can do", () => {
     );
 
     expect(
-      within(modal).getByTestId(`card-select-option-${Permission.Viewer}`),
+      within(modal).getByTestId(`role-picker-role-${Permission.Viewer}`),
     ).toBeInTheDocument();
+  });
+
+  test("a whole-project role is added in one click: Project Admin, for Terraform", async () => {
+    await renderPage();
+
+    const modal: HTMLElement = await openModal(
+      cardButton(card("Permissions"), "Add Role"),
+    );
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByTestId(
+          `role-picker-role-${Permission.ProjectAdmin}`,
+        ),
+      );
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(modal).getByRole("button", { name: "Add Role" }));
+    });
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = createOrUpdateMock.mock.calls[0]![0];
+
+    expect(request.model.permission).toBe(Permission.ProjectAdmin);
+    expect(request.model.isBlockPermission).toBe(false);
   });
 
   test("Add Permission keeps the one-permission picker", async () => {

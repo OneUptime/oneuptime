@@ -31944,5 +31944,11 @@
   "What is this dashboard for?": "À quoi sert ce tableau de bord ?",
   "What should this dashboard be called?": "Comment ce tableau de bord doit-il s'appeler ?",
   "Incident Response": "Réponse aux incidents",
-  "Monitoring & APM": "Surveillance et APM"
+  "Monitoring & APM": "Surveillance et APM",
+  "Access level": "Niveau d'accès",
+  "Admin": "Administrateur",
+  "One area": "Un domaine",
+  "Pick an area": "Choisissez un domaine",
+  "Then choose Admin, Member or Viewer.": "Puis choisissez Administrateur, Membre ou Lecteur.",
+  "Whole project": "Tout le projet"
 }

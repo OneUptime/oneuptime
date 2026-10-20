@@ -31944,5 +31944,11 @@
   "What is this dashboard for?": "What is this dashboard for?",
   "What should this dashboard be called?": "What should this dashboard be called?",
   "Incident Response": "Incident Response",
-  "Monitoring & APM": "Monitoring & APM"
+  "Monitoring & APM": "Monitoring & APM",
+  "Access level": "Access level",
+  "Admin": "Admin",
+  "One area": "One area",
+  "Pick an area": "Pick an area",
+  "Then choose Admin, Member or Viewer.": "Then choose Admin, Member or Viewer.",
+  "Whole project": "Whole project"
 }

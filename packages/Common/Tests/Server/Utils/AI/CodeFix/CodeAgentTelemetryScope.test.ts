@@ -275,7 +275,10 @@ const AGENT: CodeFixAgentIdentity = {
   source: CodeFixAgentSource.Runner,
 };
 
-function fakeRun(overrides: Partial<AIRun> = {}): AIRun {
+// A run's columns to set, or with undefined to leave out (a run with no repository).
+type RunOverrides = { [Key in keyof AIRun]?: AIRun[Key] | undefined };
+
+function fakeRun(overrides: RunOverrides = {}): AIRun {
   return {
     id: RUN_ID,
     _id: RUN_ID.toString(),
@@ -370,7 +373,7 @@ function exceptionGroup(
   return row;
 }
 
-function telemetryRun(overrides: Partial<AIRun> = {}): CodeAgentTelemetryRun {
+function telemetryRun(overrides: RunOverrides = {}): CodeAgentTelemetryRun {
   const run: AIRun = fakeRun(overrides);
 
   return {

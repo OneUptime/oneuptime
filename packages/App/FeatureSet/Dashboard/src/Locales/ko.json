@@ -13792,7 +13792,7 @@
   "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.": "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
   "Nothing left to set up here": "Nothing left to set up here",
   "Nothing logged yet": "Nothing logged yet",
-  "Nothing matches every word you typed.": "Nothing matches every word you typed.",
+  "Nothing matches every word you typed.": "입력한 모든 단어와 일치하는 항목이 없습니다.",
   "Nothing matches every word you typed. Closest matches:": "Nothing matches every word you typed. Closest matches:",
   "Nothing on this map needs attention": "Nothing on this map needs attention",
   "Nothing open": "Nothing open",
@@ -31944,5 +31944,11 @@
   "What is this dashboard for?": "이 대시보드는 어떤 용도인가요?",
   "What should this dashboard be called?": "이 대시보드의 이름은 무엇으로 할까요?",
   "Incident Response": "인시던트 대응",
-  "Monitoring & APM": "모니터링 및 APM"
+  "Monitoring & APM": "모니터링 및 APM",
+  "Access level": "액세스 수준",
+  "Admin": "관리자",
+  "One area": "특정 영역",
+  "Pick an area": "영역 선택",
+  "Then choose Admin, Member or Viewer.": "그런 다음 관리자, 구성원, 뷰어 중에서 선택하세요.",
+  "Whole project": "프로젝트 전체"
 }
