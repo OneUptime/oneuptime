@@ -383,6 +383,12 @@ Ze zijn onderaan de AI-instellingenpagina van elk signaaltype ingeklapt onder **
 
 AI-werk buiten incidenten en waarschuwingen (de triage van inzichten, en fix-taken voor exceptions, inzichten en prestatieregressies) heeft geen eigen instelling en geen van de limieten uit de tabel; alleen de eigen daglimieten van het project (hieronder) gelden ervoor. De pull requests ervan tellen mee voor **Max Open Fix Pull Requests** van een repository (op de pagina **Instellingen** van de repository) zodra je die instelt; niet ingesteld betekent geen plafond, en 0 blokkeert AI-pull-requests met een fix voor die repository.
 
+### Hoe tokens worden geteld
+
+Elke tokenlimiet op deze pagina telt de tokens van een aanroep naar wat ze kosten, en dat doen de AI-logboeken en, op OneUptime Cloud, het AI-tegoed ook. Een token dat het model vers leest, en elk token dat het schrijft, telt als één. Een onderzoek of een antwoord van AI vragen bestaat uit veel aanroepen, en elke aanroep stuurt het hele gesprek opnieuw: het deel dat de provider al kent, levert hij uit zijn promptcache, voor een fractie van de prijs. Een token dat uit die cache wordt gelezen telt als een tiende token, en een token dat erin wordt geschreven als één en een kwart.
+
+De AI-logboeken (**Projectinstellingen → AI → AI-logboeken**) tonen elke aanroep met de tokens die tellen en, daaronder, hoeveel tokens hij in totaal gebruikte en hoeveel daarvan uit de cache kwamen of erin gingen. Bij Anthropic, Claude in Microsoft Foundry inbegrepen, markeert OneUptime de systeemprompt, de tools en het gesprek voor de cache, zodat elke aanroep van een onderzoek alles vóór zijn nieuwste toolresultaten uit de cache leest. OpenAI en Azure OpenAI cachen een herhaalde prompt uit zichzelf.
+
 ### De eigen daglimieten van het project
 
 Boven elke limiet in de tabel kan een project begrenzen wat OneUptime AI op een dag gebruikt, wat het ook doet: AI vragen, onderzoeken, postmortem-concepten, pull requests met een fix, triage van inzichten, workflows, runbooks en vragen in Slack of Microsoft Teams, allemaal. De limieten staan op **Projectinstellingen → AI → AI Features**, ingeklapt onder **Meer instellingen**, in de sectie **Daglimieten** daarvan:
