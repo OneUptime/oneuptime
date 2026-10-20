@@ -267,7 +267,7 @@ export default class McpRemediationRunner {
         await this.settleNoneApplicable({
           suggestion,
           rationaleMarkdown:
-            "None of the MCP servers this fix may use is on any more, so OneUptime AI changed nothing.",
+            mdText`None of the MCP servers this fix may use is on any more, so ${getAiName()} changed nothing.`.toString(),
         });
         await this.completeRunQuietly(aiRunId);
         return;
@@ -385,11 +385,11 @@ export default class McpRemediationRunner {
       !rule ||
       rule.projectId?.toString() !== suggestion.projectId?.toString()
     ) {
-      return "The rule behind this fix was deleted before OneUptime AI could work on it, so it changed nothing.";
+      return mdText`The rule behind this fix was deleted before ${getAiName()} could work on it, so it changed nothing.`.toString();
     }
 
     if (rule.isEnabled === false) {
-      return "The rule behind this fix was turned off before OneUptime AI could work on it, so it changed nothing.";
+      return mdText`The rule behind this fix was turned off before ${getAiName()} could work on it, so it changed nothing.`.toString();
     }
 
     const namesServers: boolean =
