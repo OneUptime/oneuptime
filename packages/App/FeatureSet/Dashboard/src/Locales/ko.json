@@ -31921,5 +31921,10 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio가 {{phoneNumber}}에서 보내는 테스트 SMS를 접수했습니다. 몇 분 안에 도착합니다.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio가 테스트 SMS를 접수했습니다. 몇 분 안에 도착합니다.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio가 {{phoneNumber}}에서 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio가 테스트 전화를 걸고 있습니다. 1분 안에 전화가 울립니다."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio가 테스트 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
+  "How your public dashboard looks to visitors. They can switch it from its toolbar.": "방문자에게 보이는 공개 대시보드의 모습입니다. 방문자는 도구 모음에서 전환할 수 있습니다.",
+  "Light or dark, as each visitor's device is set.": "방문자마다 기기 설정에 따라 라이트 또는 다크로 표시됩니다.",
+  "Public dashboard theme": "공개 대시보드 테마",
+  "Visitors see the dark dashboard.": "방문자에게 다크 대시보드가 표시됩니다.",
+  "Visitors see the light dashboard.": "방문자에게 라이트 대시보드가 표시됩니다."
 }

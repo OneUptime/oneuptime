@@ -31921,5 +31921,10 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio har godtatt test-SMS-en fra {{phoneNumber}}. Den bør komme frem i løpet av noen få minutter.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio har godtatt test-SMS-en. Den bør komme frem i løpet av noen få minutter.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ringer fra {{phoneNumber}}. Telefonen din bør ringe innen ett minutt.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testanropet. Telefonen din bør ringe innen ett minutt."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testanropet. Telefonen din bør ringe innen ett minutt.",
+  "How your public dashboard looks to visitors. They can switch it from its toolbar.": "Slik ser det offentlige dashbordet ditt ut for besøkende. De kan bytte i verktøylinjen.",
+  "Light or dark, as each visitor's device is set.": "Lyst eller mørkt, slik hver besøkendes enhet er innstilt.",
+  "Public dashboard theme": "Det offentlige dashbordets tema",
+  "Visitors see the dark dashboard.": "Besøkende ser det mørke dashbordet.",
+  "Visitors see the light dashboard.": "Besøkende ser det lyse dashbordet."
 }

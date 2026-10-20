@@ -31921,5 +31921,10 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova da {{phoneNumber}}. Dovrebbe arrivare entro pochi minuti.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova. Dovrebbe arrivare entro pochi minuti.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio sta chiamando da {{phoneNumber}}. Il tuo telefono dovrebbe squillare entro un minuto.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto.",
+  "How your public dashboard looks to visitors. They can switch it from its toolbar.": "Come i visitatori vedono la tua dashboard pubblica. Possono cambiarlo dalla sua barra degli strumenti.",
+  "Light or dark, as each visitor's device is set.": "Chiaro o scuro, secondo l'impostazione del dispositivo di ogni visitatore.",
+  "Public dashboard theme": "Tema della dashboard pubblica",
+  "Visitors see the dark dashboard.": "I visitatori vedono la dashboard scura.",
+  "Visitors see the light dashboard.": "I visitatori vedono la dashboard chiara."
 }

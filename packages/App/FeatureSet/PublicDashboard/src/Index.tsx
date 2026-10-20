@@ -1,4 +1,6 @@
 import App from "./App";
+import DashboardThemeUtil from "./Utils/DashboardTheme";
+import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
@@ -13,6 +15,14 @@ import { BrowserRouter } from "react-router-dom";
  * ForeignDomMutationGuard).
  */
 ForeignDomMutationGuard.install();
+
+/*
+ * The dashboard's theme, as the first script in <head> drew it
+ * (views/index.ejs) from the link, the visitor's pick and the theme the
+ * server sent, kept in step with the visitor's device from here on. The
+ * dashboard's own theme follows with its metadata (App.tsx).
+ */
+DashboardThemeUtil.initialize();
 
 Telemetry.init({
   serviceName: "public-dashboard",

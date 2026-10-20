@@ -31921,5 +31921,10 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio 已接受從 {{phoneNumber}} 發出的測試簡訊，幾分鐘內應會送達。",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio 已接受測試簡訊，幾分鐘內應會送達。",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio 正在從 {{phoneNumber}} 撥打電話，您的電話應在一分鐘內響起。",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio 正在撥打測試電話，您的電話應在一分鐘內響起。"
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio 正在撥打測試電話，您的電話應在一分鐘內響起。",
+  "How your public dashboard looks to visitors. They can switch it from its toolbar.": "訪客看到的公開儀表板外觀。訪客可以在其工具列中切換。",
+  "Light or dark, as each visitor's device is set.": "依每位訪客的裝置設定顯示淺色或深色。",
+  "Public dashboard theme": "公開儀表板主題",
+  "Visitors see the dark dashboard.": "訪客看到深色儀表板。",
+  "Visitors see the light dashboard.": "訪客看到淺色儀表板。"
 }

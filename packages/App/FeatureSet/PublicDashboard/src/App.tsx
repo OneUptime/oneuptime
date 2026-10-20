@@ -2,6 +2,7 @@ import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
 import RouteParams from "./Utils/RouteParams";
 import PublicDashboardUtil from "./Utils/PublicDashboard";
+import DashboardThemeUtil from "./Utils/DashboardTheme";
 import { PUBLIC_DASHBOARD_API_URL } from "./Utils/Config";
 import API from "./Utils/API";
 import URL from "Common/Types/API/URL";
@@ -21,6 +22,11 @@ import {
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { isDashboardMasterPasswordRequired } from "Common/Types/Dashboard/DashboardAccess";
+import {
+  DASHBOARD_THEME_COLUMN,
+  UNKNOWN_DASHBOARD_THEME,
+  parseDashboardTheme,
+} from "Common/Types/Dashboard/DashboardTheme";
 import useAsyncEffect from "use-async-effect";
 
 // Lazy load page components
@@ -119,8 +125,9 @@ const App: () => JSX.Element = () => {
 
       const id: ObjectID | null = await getId();
 
-      // Nothing to show here: the not-found page.
+      // Nothing to show here: the not-found page, which follows the visitor.
       if (!id) {
+        DashboardThemeUtil.setDashboardTheme(UNKNOWN_DASHBOARD_THEME);
         setIsLoading(false);
         return;
       }
@@ -153,6 +160,15 @@ const App: () => JSX.Element = () => {
       if (response.isFailure()) {
         PublicDashboardUtil.setRequiresMasterPassword(false);
 
+        /*
+         * Access Denied and not found show nothing of the dashboard, its
+         * theme included: they follow the visitor - their own pick, else
+         * their device. An error keeps the theme the page was sent in.
+         */
+        if (response.statusCode === 403 || response.statusCode === 404) {
+          DashboardThemeUtil.setDashboardTheme(UNKNOWN_DASHBOARD_THEME);
+        }
+
         if (response.statusCode === 403) {
           setIsForbidden(true);
         } else if (response.statusCode !== 404) {
@@ -164,6 +180,15 @@ const App: () => JSX.Element = () => {
       }
 
       if (response.data) {
+        /*
+         * How the dashboard looks to visitors, its password prompt included:
+         * the theme its page was sent in, read again here, so the page is
+         * drawn in it even when its server could not read it.
+         */
+        DashboardThemeUtil.setDashboardTheme(
+          parseDashboardTheme(response.data[DASHBOARD_THEME_COLUMN]),
+        );
+
         const name: string = (response.data["name"] as string) || "Dashboard";
         const pageTitle: string =
           (response.data["pageTitle"] as string) || name;
@@ -221,9 +246,13 @@ const App: () => JSX.Element = () => {
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * On the page's own ground (the body's), so it is the darkest tone on the
+   * dark page, as the dashboard is.
+   */
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center">
         <ErrorMessage message={error} />
       </div>
     );

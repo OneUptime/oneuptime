@@ -31921,5 +31921,10 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را از {{phoneNumber}} پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio از {{phoneNumber}} تماس می‌گیرد. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
+  "How your public dashboard looks to visitors. They can switch it from its toolbar.": "ظاهر داشبورد عمومی شما برای بازدیدکنندگان. آن‌ها می‌توانند آن را از نوار ابزارش عوض کنند.",
+  "Light or dark, as each visitor's device is set.": "روشن یا تیره، مطابق تنظیم دستگاه هر بازدیدکننده.",
+  "Public dashboard theme": "پوسته داشبورد عمومی",
+  "Visitors see the dark dashboard.": "بازدیدکنندگان داشبورد تیره را می‌بینند.",
+  "Visitors see the light dashboard.": "بازدیدکنندگان داشبورد روشن را می‌بینند."
 }

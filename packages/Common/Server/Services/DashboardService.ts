@@ -1,6 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import CreateLimit from "../Types/Database/CreateLimit";
 import { OnCreate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
@@ -37,6 +38,29 @@ import PublicDashboardAccessPolicy, {
   PublicDashboardVisitor,
   UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
 } from "../Utils/Dashboard/PublicDashboardAccess";
+import {
+  DASHBOARD_THEME_COLUMN,
+  NEW_DASHBOARD_THEME,
+  getDashboardThemeProblem,
+} from "../../Types/Dashboard/DashboardTheme";
+
+/*
+ * Refuses a dashboard write holding a theme no reader of it can use
+ * (checkCreateBeforeReferences, checkUpdateBeforeReferences): one of Light,
+ * Dark or System, spelled exactly so (Types/Dashboard/DashboardTheme), or
+ * nothing at all, which is the light page.
+ */
+export const assertDashboardWriteValues: (
+  data: Record<string, unknown>,
+) => void = (data: Record<string, unknown>): void => {
+  const themeProblem: string | null = getDashboardThemeProblem(
+    data[DASHBOARD_THEME_COLUMN],
+  );
+
+  if (themeProblem) {
+    throw new BadDataException(themeProblem);
+  }
+};
 
 /*
  * THE FREE PLAN'S LIMIT ON DASHBOARDS: one.
@@ -72,6 +96,23 @@ export class Service extends ProjectReferencesService<Model> {
     props: DatabaseCommonInteractionProps,
   ): boolean {
     return IsBillingEnabled && props.currentPlan === PlanType.Free;
+  }
+
+  // Every create and update, before anything it names is looked up.
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    assertDashboardWriteValues(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    assertDashboardWriteValues(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
   }
 
   @CaptureSpan()
@@ -139,6 +180,18 @@ export class Service extends ProjectReferencesService<Model> {
     ) {
       createBy.data.dashboardViewConfig =
         DashboardViewConfigUtil.createDefaultDashboardViewConfig();
+    }
+
+    /*
+     * A dashboard made from now on follows each visitor's device on its
+     * public link, light or dark, unless its create names a theme - as a
+     * status page made from now on does. The column's default stays Light:
+     * it is what the dashboards made before the setting were given, and
+     * what the Terraform provider sends for a configuration that names no
+     * theme (Dashboard.theme).
+     */
+    if (createBy.data.theme === undefined || createBy.data.theme === null) {
+      createBy.data.theme = NEW_DASHBOARD_THEME;
     }
 
     return Promise.resolve({ createBy, carryForward: null });
