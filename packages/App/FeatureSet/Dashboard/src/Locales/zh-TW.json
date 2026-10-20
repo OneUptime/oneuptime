@@ -31908,5 +31908,17 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Arriving in production": "已在正式環境中回報",
+  "Deployed, watching in production": "已部署，正在正式環境中觀察",
+  "Faster in production": "在正式環境中變快",
+  "Fixed in production": "已在正式環境中修正",
+  "Happened again after the fix": "修正後再次發生",
+  "Merged, waiting for a deploy": "已合併，等待部署",
+  "Not verified in production": "未在正式環境中驗證",
+  "Production Baseline": "正式環境基準",
+  "Production Check": "正式環境檢查",
+  "Still happening after the fix": "修正後仍在發生",
+  "Still slow after the fix": "修正後仍然緩慢",
+  "Telemetry stopped after the fix": "修正後遙測中斷"
 }

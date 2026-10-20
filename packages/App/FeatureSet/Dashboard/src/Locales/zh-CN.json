@@ -31908,5 +31908,17 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Arriving in production": "已在生产环境中上报",
+  "Deployed, watching in production": "已部署，正在生产环境中观察",
+  "Faster in production": "在生产环境中变快",
+  "Fixed in production": "已在生产环境中修复",
+  "Happened again after the fix": "修复后再次发生",
+  "Merged, waiting for a deploy": "已合并，等待部署",
+  "Not verified in production": "未在生产环境中验证",
+  "Production Baseline": "生产环境基线",
+  "Production Check": "生产环境检查",
+  "Still happening after the fix": "修复后仍在发生",
+  "Still slow after the fix": "修复后仍然缓慢",
+  "Telemetry stopped after the fix": "修复后遥测中断"
 }

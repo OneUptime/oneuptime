@@ -31908,5 +31908,17 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Arriving in production": "Поступает в продакшене",
+  "Deployed, watching in production": "Развёрнуто, наблюдение в продакшене",
+  "Faster in production": "Быстрее в продакшене",
+  "Fixed in production": "Исправлено в продакшене",
+  "Happened again after the fix": "Повторилось после исправления",
+  "Merged, waiting for a deploy": "Слито, ожидается деплой",
+  "Not verified in production": "Не проверено в продакшене",
+  "Production Baseline": "Исходные показатели продакшена",
+  "Production Check": "Проверка в продакшене",
+  "Still happening after the fix": "Всё ещё происходит после исправления",
+  "Still slow after the fix": "Всё ещё медленно после исправления",
+  "Telemetry stopped after the fix": "Телеметрия пропала после исправления"
 }

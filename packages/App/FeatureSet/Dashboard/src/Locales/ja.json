@@ -31908,5 +31908,17 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Arriving in production": "本番環境で受信中",
+  "Deployed, watching in production": "デプロイ済み、本番環境で監視中",
+  "Faster in production": "本番環境で高速化",
+  "Fixed in production": "本番環境で修正済み",
+  "Happened again after the fix": "修正後に再発",
+  "Merged, waiting for a deploy": "マージ済み、デプロイ待ち",
+  "Not verified in production": "本番環境で未検証",
+  "Production Baseline": "本番環境ベースライン",
+  "Production Check": "本番環境チェック",
+  "Still happening after the fix": "修正後も発生している",
+  "Still slow after the fix": "修正後も遅いまま",
+  "Telemetry stopped after the fix": "修正後にテレメトリが途絶"
 }

@@ -31908,5 +31908,17 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Arriving in production": "Ankommer i produktion",
+  "Deployed, watching in production": "Deployet, overvåges i produktion",
+  "Faster in production": "Hurtigere i produktion",
+  "Fixed in production": "Rettet i produktion",
+  "Happened again after the fix": "Skete igen efter rettelsen",
+  "Merged, waiting for a deploy": "Merget, venter på et deploy",
+  "Not verified in production": "Ikke verificeret i produktion",
+  "Production Baseline": "Produktionsbaseline",
+  "Production Check": "Produktionstjek",
+  "Still happening after the fix": "Sker stadig efter rettelsen",
+  "Still slow after the fix": "Stadig langsom efter rettelsen",
+  "Telemetry stopped after the fix": "Telemetri stoppede efter rettelsen"
 }

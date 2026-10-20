@@ -31908,5 +31908,17 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Arriving in production": "Chegando em produção",
+  "Deployed, watching in production": "Implantado, em observação em produção",
+  "Faster in production": "Mais rápido em produção",
+  "Fixed in production": "Corrigido em produção",
+  "Happened again after the fix": "Aconteceu de novo após a correção",
+  "Merged, waiting for a deploy": "Mesclado, aguardando um deploy",
+  "Not verified in production": "Não verificado em produção",
+  "Production Baseline": "Linha de base de produção",
+  "Production Check": "Verificação em produção",
+  "Still happening after the fix": "Ainda acontece após a correção",
+  "Still slow after the fix": "Ainda lento após a correção",
+  "Telemetry stopped after the fix": "A telemetria parou após a correção"
 }

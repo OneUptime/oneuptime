@@ -31908,5 +31908,17 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Arriving in production": "프로덕션에서 수신 중",
+  "Deployed, watching in production": "배포됨, 프로덕션에서 관찰 중",
+  "Faster in production": "프로덕션에서 빨라짐",
+  "Fixed in production": "프로덕션에서 수정됨",
+  "Happened again after the fix": "수정 후 다시 발생",
+  "Merged, waiting for a deploy": "병합됨, 배포 대기 중",
+  "Not verified in production": "프로덕션에서 검증되지 않음",
+  "Production Baseline": "프로덕션 기준선",
+  "Production Check": "프로덕션 점검",
+  "Still happening after the fix": "수정 후에도 계속 발생",
+  "Still slow after the fix": "수정 후에도 여전히 느림",
+  "Telemetry stopped after the fix": "수정 후 텔레메트리 중단"
 }
