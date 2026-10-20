@@ -335,11 +335,16 @@ jobs:
           # and on its public page, at a laptop's width and, for what a phone
           # changes, a phone's, Chromium only) would have taken group 7 to
           # about 21.5 minutes on 2026-10-20, so it opened a group of its own,
-          # with room for the next suites.
+          # with room for the next suites. Dashboard Widget Sort (about a
+          # minute with its bundle locally: click-to-sort on the list and table
+          # widgets inside OneUptime and on the public page, at a laptop's and
+          # a phone's width, Chromium only) joined it the same day: about 4.5
+          # minutes for the two.
           - group: 8
             browsers: chromium
             suites: >-
               test-dashboard-time-range-ui
+              test-dashboard-widget-sort-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -514,4 +519,6 @@ jobs:
             output/playwright/dashboard-templates-ui/test-results
             output/playwright/dashboard-time-range-ui/*.png
             output/playwright/dashboard-time-range-ui/test-results
+            output/playwright/dashboard-widget-sort-ui/*.png
+            output/playwright/dashboard-widget-sort-ui/test-results
           retention-days: 7
