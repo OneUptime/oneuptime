@@ -40,8 +40,10 @@ import {
   AI_TASK_PRESENTATION,
   EXCEPTION_AI_TASK_TYPES,
   ExceptionAITaskType,
+  FIX_PRODUCTION_LABELS,
   ReadinessCheckLink,
   findLatestAITask,
+  getFixProductionTone,
   getAIReadinessProgress,
   getAITaskCardState,
   getReadinessCheckLink,
@@ -488,6 +490,30 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
                       { time: startedAgo },
                     )}
                   </p>
+                )}
+              </div>
+            )}
+
+            {/*
+              Merged is not fixed: what production showed once the fix
+              shipped (FixProductionVerifier).
+            */}
+            {task?.production && (
+              <div
+                className={`mt-3 max-w-3xl rounded-lg px-3 py-2 text-sm ring-1 ring-inset ${
+                  AI_TASK_TONE_CLASS_NAMES[
+                    getFixProductionTone(task.production.status)
+                  ]
+                }`}
+                data-testid="exception-ai-task-production"
+              >
+                <p className="font-medium">
+                  {translator.translateText(
+                    FIX_PRODUCTION_LABELS[task.production.status],
+                  )}
+                </p>
+                {task.production.summary && (
+                  <p className="mt-1">{task.production.summary}</p>
                 )}
               </div>
             )}

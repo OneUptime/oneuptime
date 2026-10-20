@@ -564,6 +564,66 @@ describe("ExceptionAIAssistance", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * Merged is not fixed: a completed fix says what production showed once
+   * it shipped - fixed (green), still happening (red), or not yet known.
+   */
+  test("a merged fix says whether production showed it fixed", async () => {
+    state.tasks = [
+      {
+        ...task("FixException", "Completed"),
+        production: {
+          status: "Verified",
+          summary:
+            "No occurrence in the 24 hours since version 2.3.2 shipped the fix; before the fix it happened 21 times in 7 days.",
+          statusAt: new Date().toISOString(),
+          deployedVersion: "2.3.2",
+        },
+      },
+    ];
+    await renderAssistance();
+
+    const production: HTMLElement = within(card("FixException")).getByTestId(
+      "exception-ai-task-production",
+    );
+    expect(production).toHaveTextContent("Fixed in production");
+    expect(production).toHaveTextContent(
+      "No occurrence in the 24 hours since version 2.3.2 shipped the fix",
+    );
+    expect(production.className).toContain("bg-emerald-50");
+  });
+
+  test("a fix that did not stop the exception says so, in red", async () => {
+    state.tasks = [
+      {
+        ...task("FixException", "Completed"),
+        production: {
+          status: "Regressed",
+          summary:
+            "The exception happened 3 times after version 2.3.2 shipped the fix, so the fix did not stop it.",
+        },
+      },
+    ];
+    await renderAssistance();
+
+    const production: HTMLElement = within(card("FixException")).getByTestId(
+      "exception-ai-task-production",
+    );
+    expect(production).toHaveTextContent("Still happening after the fix");
+    expect(production.className).toContain("bg-red-50");
+  });
+
+  test("a task with no production verdict shows none", async () => {
+    state.tasks = [task("FixException", "Completed")];
+    await renderAssistance();
+
+    expect(
+      within(card("FixException")).queryByTestId(
+        "exception-ai-task-production",
+      ),
+    ).toBeNull();
+  });
+
   test("polls while a task is active and stops once it finishes", async () => {
     jest.useFakeTimers();
     state.tasks = [task("FixException", "Running", "Reading the code")];

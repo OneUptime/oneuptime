@@ -111,6 +111,8 @@ När den misstänkta ändringen är en utrullning i Kubernetes på ett kluster d
 
 OneUptime kontrollerar också varje driftsättning på egen hand, oavsett om någon larmas eller inte. När de 30 minuterna efter en driftsättning har gått jämför den dem med de 30 minuterna före enligt samma trösklar, och när tjänsten blev sämre nämner en [AI-insikt](/docs/ai/ai-sre#insikter-proaktiv-upptäckt) driftsättningen på den tjänsten.
 
+En pull-förfrågan med en korrigering som OneUptime AI har öppnat för ett undantag kontrolleras på samma sätt: när en registrerad driftsättning innehåller dess commit bevakar OneUptime undantaget där och anger på undantaget om korrigeringen fungerade (se [Automatiska kodkorrigeringar](/docs/ai/ai-sre#automatiska-kodkorrigeringar)).
+
 I en utredning och i [Fråga AI](/docs/ai/ask-ai) listar `recent_changes` ändringarna i valfritt tidsfönster, och `get_change_details` visar vad en driftsättning levererade: commits sedan tjänstens föregående driftsättning, deras författare, pull requests och filerna de ändrade. Det kräver committen på ändringen och ett repository som är anslutet via [GitHub App](/docs/ai/github-app).
 
 ## Referens

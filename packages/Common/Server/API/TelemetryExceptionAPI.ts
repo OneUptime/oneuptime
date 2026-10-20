@@ -10,6 +10,11 @@ import TelemetryExceptionService, {
 } from "../Services/TelemetryExceptionService";
 import { AIFixReadiness } from "../../Types/AI/AIFixReadiness";
 import AIRunService from "../Services/AIRunService";
+import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
+import QueryHelper from "../Types/Database/QueryHelper";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import logger from "../Utils/Logger";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
@@ -278,8 +283,19 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       });
     }
 
+    /*
+     * Whether each run's merged fix fixed the exception in production
+     * (FixProductionVerifier), read as root like the runs themselves: the
+     * caller may read the exception, and these are its runs' pull requests.
+     */
+    const productionByRunId: Map<string, JSONObject> =
+      await this.readFixProduction(runs);
+
     const toTaskJson: (run: AIRun) => JSONObject = (run: AIRun): JSONObject => {
       const status: AIRunStatus = run.status || AIRunStatus.Queued;
+      const production: JSONObject | undefined = productionByRunId.get(
+        run.id?.toString() || "",
+      );
 
       return {
         _id: run.id?.toString(),
@@ -290,6 +306,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         createdAt: run.createdAt,
         // Normalized by the service: legacy null rows read as FixException.
         taskType: CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType),
+        ...(production ? { production } : {}),
       };
     };
 
@@ -303,6 +320,77 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       aiAgentTask: toTaskJson(latestRunOverall),
       aiAgentTasks: runs.map(toTaskJson),
     });
+  }
+
+  /*
+   * The production verdict of each run's merged fix pull request: the one
+   * whose status changed last, when a run opened more than one.
+   */
+  private async readFixProduction(
+    runs: Array<AIRun>,
+  ): Promise<Map<string, JSONObject>> {
+    const byRunId: Map<string, JSONObject> = new Map<string, JSONObject>();
+    const runIds: Array<ObjectID> = runs
+      .map((run: AIRun): ObjectID | undefined => {
+        return run.id || undefined;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (runIds.length === 0) {
+      return byRunId;
+    }
+
+    try {
+      const pullRequests: Array<AIAgentTaskPullRequest> =
+        await AIAgentTaskPullRequestService.findBy({
+          query: {
+            aiRunId: QueryHelper.any(runIds),
+            productionStatus: QueryHelper.notNull(),
+          } as never,
+          select: {
+            _id: true,
+            aiRunId: true,
+            pullRequestUrl: true,
+            productionStatus: true,
+            productionStatusAt: true,
+            productionSummary: true,
+            deployedAt: true,
+            deployedVersion: true,
+            deployedCommitSha: true,
+          },
+          sort: { productionStatusAt: SortOrder.Descending } as never,
+          limit: runIds.length * 5,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      for (const pullRequest of pullRequests) {
+        const runId: string = pullRequest.aiRunId?.toString() || "";
+
+        if (!runId || byRunId.has(runId)) {
+          continue;
+        }
+
+        byRunId.set(runId, {
+          status: pullRequest.productionStatus || null,
+          summary: pullRequest.productionSummary || null,
+          statusAt: pullRequest.productionStatusAt || null,
+          deployedAt: pullRequest.deployedAt || null,
+          deployedVersion: pullRequest.deployedVersion || null,
+          deployedCommitSha: pullRequest.deployedCommitSha || null,
+          pullRequestUrl: pullRequest.pullRequestUrl?.toString() || null,
+        } as JSONObject);
+      }
+    } catch (error) {
+      // The panel still shows the runs; only their production line is missing.
+      logger.error(
+        `Could not read the production verdicts of the exception's fixes: ${error}`,
+      );
+    }
+
+    return byRunId;
   }
 
   private async getAIFixReadiness(

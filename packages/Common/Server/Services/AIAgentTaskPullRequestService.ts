@@ -1,3 +1,4 @@
+import FixProductionStatus from "../../Types/AI/FixProductionStatus";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -31,6 +32,15 @@ export interface AIFixOutcomeStats {
    * merged — same honesty rule as acceptanceRatePercent.
    */
   verifiedGreenRatePercent: number | null;
+  /*
+   * Merged fixes production showed working (FixProductionVerifier):
+   * merged-and-CI-green is good, merged-and-fixed-in-production is the
+   * point. Only Verified counts; Watching, AwaitingDeploy and Unverifiable
+   * are not.
+   */
+  verifiedInProduction: number;
+  // Merged fixes whose exception happened again in the deployed fix.
+  regressedInProduction: number;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -86,7 +96,32 @@ export class Service extends ProjectReferencesService<Model> {
       });
     };
 
-    const [open, merged, closedUnmerged, mergedCiGreen, mergedCiExpectedFail]: [
+    const countMergedWithProductionStatus: (
+      productionStatus: FixProductionStatus,
+    ) => Promise<PositiveNumber> = (
+      productionStatus: FixProductionStatus,
+    ): Promise<PositiveNumber> => {
+      return this.countBy({
+        query: {
+          projectId: props.tenantId!,
+          pullRequestState: PullRequestState.Merged,
+          productionStatus: productionStatus,
+        },
+        props,
+      });
+    };
+
+    const [
+      open,
+      merged,
+      closedUnmerged,
+      mergedCiGreen,
+      mergedCiExpectedFail,
+      verifiedInProduction,
+      regressedInProduction,
+    ]: [
+      PositiveNumber,
+      PositiveNumber,
       PositiveNumber,
       PositiveNumber,
       PositiveNumber,
@@ -98,6 +133,8 @@ export class Service extends ProjectReferencesService<Model> {
       countForState(PullRequestState.Closed),
       countMergedWithCiStatus(FixPullRequestCiStatus.Green),
       countMergedWithCiStatus(FixPullRequestCiStatus.ExpectedFailureObserved),
+      countMergedWithProductionStatus(FixProductionStatus.Verified),
+      countMergedWithProductionStatus(FixProductionStatus.Regressed),
     ]);
 
     const mergedCount: number = merged.toNumber();
@@ -120,6 +157,8 @@ export class Service extends ProjectReferencesService<Model> {
         mergedCount === 0
           ? null
           : Math.round((verifiedGreenCount / mergedCount) * 100),
+      verifiedInProduction: verifiedInProduction.toNumber(),
+      regressedInProduction: regressedInProduction.toNumber(),
     };
   }
 }
