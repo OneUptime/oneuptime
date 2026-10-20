@@ -44,6 +44,9 @@ async function shoot(page: Page, name: string): Promise<void> {
   });
 }
 
+// A picked preset is the primary button.
+const PICKED_PRESET: RegExp = /bg-indigo-600/;
+
 function rows(page: Page): Locator {
   return page.getByTestId("llm-provider-usage-row");
 }
@@ -56,13 +59,20 @@ test.describe("Usage, from the provider accounts", () => {
   }) => {
     await open(page, "state=connected");
 
+    // The product's view switch, as List | Calendar is.
     await expect(page.getByTestId("llm-usage-source-calls")).toHaveAttribute(
-      "aria-selected",
+      "aria-pressed",
       "true",
     );
+    await expect(
+      page.getByTestId("llm-usage-source-description"),
+    ).toHaveText("What your apps and coding tools send");
 
     await page.getByTestId("llm-usage-source-providers").click();
     await expect(page.getByTestId("llm-provider-usage")).toBeVisible();
+    await expect(
+      page.getByTestId("llm-usage-source-description"),
+    ).toHaveText("What your connected accounts were billed");
     expect(new URL(page.url()).searchParams.get("source")).toBe("providers");
   });
 
@@ -76,9 +86,10 @@ test.describe("Usage, from the provider accounts", () => {
     await expect(
       page.getByTestId("llm-provider-usage-total-cost"),
     ).toContainText("$182.40");
+    // The tiles Your AI calls draws: tokens the way the AI pages write them.
     await expect(
       page.getByTestId("llm-provider-usage-total-input"),
-    ).toContainText("1,400,000");
+    ).toContainText("1.4M");
     await expect(
       page.getByTestId("llm-provider-usage-total-requests"),
     ).toContainText("5,400");
@@ -89,6 +100,13 @@ test.describe("Usage, from the provider accounts", () => {
     await expect(rows(page)).toHaveCount(3);
     await expect(rows(page).nth(0)).toContainText("gpt-4o");
     await expect(rows(page).nth(0)).toContainText("$120.50");
+    await expect(rows(page).nth(0)).toContainText("900,000");
+
+    // A month back: the range picker's own "1 month", shown picked.
+    // (A phone shows fewer presets; the month's is there, hidden.)
+    await expect(
+      page.getByRole("button", { name: "1 month", includeHidden: true }),
+    ).toHaveClass(PICKED_PRESET);
     // Bedrock reports no requests: a dash, not a zero.
     await expect(rows(page).nth(2)).toContainText("—");
     await shoot(page, "usage-providers");

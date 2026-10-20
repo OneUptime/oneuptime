@@ -9,6 +9,7 @@ import {
   LlmConnectionTestResult,
 } from "Common/Types/LlmObservability/LlmConnectionTest";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { formatLlmCost } from "../../LlmConversations/LlmConversationFormat";
 
 /*
  * What a connection test says, in the dashboard's own words: a headline
@@ -84,14 +85,16 @@ export function getLlmConnectionTestWords(data: {
   const isTool: boolean =
     data.definition.kind === LlmConnectionKind.CompanyTool;
 
+  /*
+   * "It works", never "Connected": a test in the form runs before anything
+   * is saved, and the connection is made only by the Connect button.
+   */
   if (data.result.status === "pass") {
     return {
       headline: isTool
-        ? translationKey(
-            "Connected. Here is what the first read will bring in.",
-          )
+        ? translationKey("It works. Here is what the first read will bring in.")
         : translationKey(
-            "Connected. Here is what the account used in the last 7 days.",
+            "It works. Here is what the account used in the last 7 days.",
           ),
     };
   }
@@ -99,11 +102,9 @@ export function getLlmConnectionTestWords(data: {
   if (data.result.status === "warn") {
     return {
       headline: isTool
-        ? translationKey(
-            "Connected, but nobody has used it in the last 7 days.",
-          )
+        ? translationKey("It works, but nobody has used it in the last 7 days.")
         : translationKey(
-            "Connected, but the account has no usage in the last 7 days.",
+            "It works, but the account has no usage in the last 7 days.",
           ),
       advice: isTool
         ? translationKey(
@@ -188,7 +189,8 @@ export function getLlmConnectionTestFigures(
   };
 
   if (counts.costUsd !== undefined && counts.costUsd > 0) {
-    add("cost", translationKey("Cost"), `$${counts.costUsd.toFixed(2)}`);
+    // Money as the AI pages write it: "$1,204.50", not "$1204.50".
+    add("cost", translationKey("Cost"), formatLlmCost(counts.costUsd));
   }
 
   const tokens: number = (counts.inputTokens || 0) + (counts.outputTokens || 0);

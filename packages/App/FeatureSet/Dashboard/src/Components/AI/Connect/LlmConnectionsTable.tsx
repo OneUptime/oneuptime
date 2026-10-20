@@ -11,7 +11,10 @@ import {
   getLlmConnectionDefinitionsOfKind,
 } from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
-import { LlmConnectionTestResult } from "Common/Types/LlmObservability/LlmConnectionTest";
+import {
+  LlmConnectionFailureKind,
+  LlmConnectionTestResult,
+} from "Common/Types/LlmObservability/LlmConnectionTest";
 import LlmConversationReaders from "Common/Types/LlmObservability/LlmConversationReaders";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -20,6 +23,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
@@ -32,7 +36,11 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import { readLlmConnectionNow, runLlmConnectionTest } from "./LlmConnectApi";
+import {
+  llmConnectionDocsUrl,
+  readLlmConnectionNow,
+  runLlmConnectionTest,
+} from "./LlmConnectApi";
 import {
   LlmConnectionHealth,
   getLlmConnectionHealth,
@@ -40,6 +48,10 @@ import {
 } from "./LlmConnectionHealth";
 import LlmConnectionLogo from "./LlmConnectionLogo";
 import LlmConnectionTestPanel from "./LlmConnectionTestPanel";
+import {
+  LlmConnectionTestWords,
+  getLlmConnectionTestWords,
+} from "./LlmConnectionTestWords";
 
 /*
  * The project's connections of one kind: how each is doing, when it was
@@ -55,10 +67,11 @@ export interface ComponentProps {
   refreshToggle: string;
   updateGate: PermissionGateResult;
   onEdit: (connection: LlmObservabilityConnection) => void;
-  onConnectionsLoaded: (
-    kind: LlmConnectionKind,
-    connections: Array<LlmObservabilityConnection>,
-  ) => void;
+  /*
+   * Each time the list loads: how many connections it found, all pages
+   * and its search counted.
+   */
+  onConnectionsLoaded: (kind: LlmConnectionKind, totalCount: number) => void;
 }
 
 const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
@@ -117,6 +130,95 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
     onCompleteAction();
   };
 
+  /*
+   * Why a read failed, in the words a test uses for the same failure - what
+   * went wrong and what to do - with the provider's own answer under them,
+   * and the provider's step-by-step guide.
+   */
+  const renderLastError: (item: LlmObservabilityConnection) => ReactElement = (
+    item: LlmObservabilityConnection,
+  ): ReactElement => {
+    const definition: LlmConnectionDefinition | undefined =
+      getLlmConnectionDefinition(item.provider);
+    const failureKind: unknown = item.lastPullResult?.["failureKind"];
+    /*
+     * Only a failure of a known kind has words of its own: anything else
+     * ("the provider refused the test") is the provider's answer alone.
+     */
+    const isKnownKind: boolean =
+      typeof failureKind === "string" &&
+      failureKind !== LlmConnectionFailureKind.Other &&
+      (Object.values(LlmConnectionFailureKind) as Array<string>).includes(
+        failureKind,
+      );
+    const words: LlmConnectionTestWords | undefined =
+      definition && isKnownKind
+        ? getLlmConnectionTestWords({
+            definition,
+            result: {
+              provider: definition.provider,
+              status: "fail",
+              message: "",
+              failureKind: failureKind as LlmConnectionFailureKind,
+              durationMs: 0,
+            },
+          })
+        : undefined;
+
+    return (
+      <div className="space-y-4">
+        {words ? (
+          <div data-testid="llm-connection-error-words">
+            <div className="flex items-start gap-2 text-sm font-medium text-red-800">
+              <Icon
+                icon={IconProp.Alert}
+                className="mt-0.5 h-4 w-4 flex-shrink-0"
+              />
+              <span>{translator.translateText(words.headline)}</span>
+            </div>
+            {words.advice ? (
+              <div className="mt-1 pl-6 text-sm text-gray-700">
+                {translator.translateText(words.advice)}
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        <div>
+          <div className="text-xs font-medium text-gray-500">
+            {translator.translateText("Details")}
+          </div>
+          <pre
+            aria-label={translator.translateText("Full error message")}
+            tabIndex={0}
+            className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-gray-50 p-4 text-sm text-gray-800"
+            data-testid="llm-connection-error"
+          >
+            {item.lastError}
+          </pre>
+        </div>
+
+        {definition ? (
+          <a
+            href={llmConnectionDocsUrl(definition.docsPath).toString()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          >
+            <Icon icon={IconProp.Book} className="h-4 w-4" />
+            <span>{translator.translateText("Step-by-step guide")}</span>
+          </a>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Fragment>
       {notice ? (
@@ -157,8 +259,11 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
           lastPullResult: true,
           lastError: true,
         }}
-        onFetchSuccess={(data: Array<LlmObservabilityConnection>) => {
-          props.onConnectionsLoaded(props.kind, data);
+        onFetchSuccess={(
+          _data: Array<LlmObservabilityConnection>,
+          totalCount: number,
+        ) => {
+          props.onConnectionsLoaded(props.kind, totalCount);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -218,10 +323,11 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
             ): Promise<void> => {
               try {
                 await readLlmConnectionNow(item.id!);
+                // The list does not watch the read: say how to see it end.
                 setNotice({
                   type: AlertType.SUCCESS,
                   text: translator.translateTemplate(
-                    "Reading {{name}} now. Its status changes here when the read finishes.",
+                    "Reading {{name}} now. Refresh the list in a minute to see how it went.",
                     { name: item.name || "" },
                   ),
                 });
@@ -232,6 +338,28 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                 });
               }
               onCompleteAction();
+            },
+          },
+          /*
+           * Before Test: the first action a row shows is its button, and a
+           * connection that is off is turned on before anything else.
+           */
+          {
+            title: "Turn on",
+            icon: IconProp.Play,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            isVisible: (item: LlmObservabilityConnection): boolean => {
+              return item.isEnabled === false;
+            },
+            disabled: !props.updateGate.isAllowed,
+            tooltip: props.updateGate.isAllowed
+              ? "Read it again, starting with what it missed while it was off."
+              : props.updateGate.disabledReason,
+            onClick: (
+              item: LlmObservabilityConnection,
+              onCompleteAction: VoidFunction,
+            ): Promise<void> => {
+              return setEnabled(item, true, onCompleteAction);
             },
           },
           {
@@ -269,24 +397,6 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
               onCompleteAction: VoidFunction,
             ): Promise<void> => {
               return setEnabled(item, false, onCompleteAction);
-            },
-          },
-          {
-            title: "Turn on",
-            icon: IconProp.Play,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            isVisible: (item: LlmObservabilityConnection): boolean => {
-              return item.isEnabled === false;
-            },
-            disabled: !props.updateGate.isAllowed,
-            tooltip: props.updateGate.isAllowed
-              ? "Read it again, starting with what it missed while it was off."
-              : props.updateGate.disabledReason,
-            onClick: (
-              item: LlmObservabilityConnection,
-              onCompleteAction: VoidFunction,
-            ): Promise<void> => {
-              return setEnabled(item, true, onCompleteAction);
             },
           },
           {
@@ -396,6 +506,9 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                   field: { conversationReaders: true },
                   title: "Who can read",
                   type: FieldType.Element,
+                  // "Everyone who can read AI calls" runs long in German.
+                  wrapContent: true,
+                  wrapMaxWidthClassName: "max-w-xs",
                   getElement: (
                     item: LlmObservabilityConnection,
                   ): ReactElement => {
@@ -465,7 +578,7 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
             "Why the last read of {{name}} failed. Credentials are removed from it.",
             { name: errorItem.name || "" },
           )}
-          modalWidth={ModalWidth.Large}
+          modalWidth={ModalWidth.Medium}
           closeButtonText="Close"
           onClose={(): void => {
             setErrorItem(null);
@@ -475,18 +588,11 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
               textToBeCopied={errorItem.lastError || ""}
               label="Copy error"
               size="md"
-              variant="solid"
+              variant="soft"
             />
           }
         >
-          <pre
-            aria-label={translator.translateText("Full error message")}
-            tabIndex={0}
-            className="whitespace-pre-wrap break-words rounded-md bg-gray-50 p-4 text-sm text-gray-800"
-            data-testid="llm-connection-error"
-          >
-            {errorItem.lastError}
-          </pre>
+          {renderLastError(errorItem)}
         </Modal>
       )}
     </Fragment>

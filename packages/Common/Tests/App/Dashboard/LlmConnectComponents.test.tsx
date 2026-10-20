@@ -19,10 +19,11 @@ import {
   LlmConnectionFailureKind,
   LlmConnectionTestResult,
 } from "../../../Types/LlmObservability/LlmConnectionTest";
-import LlmConnectChecklist, {
-  LlmConnectChecklistFacts,
-  LlmConnectChecklistKey,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectChecklist";
+import LlmConnectWayPicker from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectWayPicker";
+import {
+  LlmConnectWayKey,
+  LlmConnectWayStatus,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectWays";
 import LlmConnectionTiles from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionTiles";
 import LlmConnectionTestPanel from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionTestPanel";
 import LlmTellYourPeopleNote from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmTellYourPeopleNote";
@@ -32,8 +33,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The pieces of AI / LLM > Connect, drawn:
  *
- *   - the checklist ticks what is true, says when it does not know yet,
- *     and offers a way in only for what is not done;
+ *   - the three ways in, as tabs: each says what it brings, ticks itself
+ *     from what is true (calls arriving, connections, any not working),
+ *     says nothing while it does not know, and is picked by a click or
+ *     the arrow keys;
  *   - a tile per provider or tool, saying whether it is connected and how
  *     many times, and handing the click on - or disabled without the right
  *     to connect;
@@ -47,114 +50,195 @@ afterEach(() => {
   cleanup();
 });
 
-const NOTHING_KNOWN: LlmConnectChecklistFacts = {
-  hasAiCalls: undefined,
-  hasProviderAccount: undefined,
-  hasCompanyTool: undefined,
-  hasBudget: undefined,
+const UNKNOWN: LlmConnectWayStatus = {
+  isSetUp: undefined,
+  connected: 0,
+  failing: 0,
 };
 
-function renderChecklist(
-  facts: LlmConnectChecklistFacts,
-  onOpen: (key: LlmConnectChecklistKey) => void = (): void => {},
-): void {
-  render(<LlmConnectChecklist facts={facts} onOpen={onOpen} />);
+const NOTHING_KNOWN: Record<LlmConnectWayKey, LlmConnectWayStatus> = {
+  apps: UNKNOWN,
+  providers: UNKNOWN,
+  tools: UNKNOWN,
+};
+
+function renderWays(data: {
+  value: LlmConnectWayKey;
+  statuses: Record<LlmConnectWayKey, LlmConnectWayStatus>;
+  onChange?: (key: LlmConnectWayKey, withKeyboard: boolean) => void;
+}): void {
+  render(
+    <LlmConnectWayPicker
+      value={data.value}
+      statuses={data.statuses}
+      onChange={data.onChange || ((): void => {})}
+    />,
+  );
 }
 
-describe("the checklist", () => {
-  test("nothing done: four things to do, each with its way in", () => {
-    renderChecklist({
-      hasAiCalls: false,
-      hasProviderAccount: false,
-      hasCompanyTool: false,
-      hasBudget: false,
-    });
+describe("the three ways", () => {
+  test("your apps, your provider accounts and your company's AI tools, each with what it brings", () => {
+    renderWays({ value: "apps", statuses: NOTHING_KNOWN });
 
-    expect(
-      screen.getByTestId("llm-connect-checklist-progress"),
-    ).toHaveTextContent("0 of 4 done");
-
-    for (const [key, title, action] of [
-      ["apps", "Send AI calls from your apps", "Show the snippet"],
-      ["providers", "Connect an AI provider account", "Pick a provider"],
-      ["companyTools", "Connect your company's AI tools", "Pick a tool"],
-      ["budget", "Set a daily budget", "Open Budgets"],
+    for (const [key, title, description] of [
+      [
+        "apps",
+        "Your apps",
+        "Every call as it happens: the conversation, the person, tokens, cost and bad answers.",
+      ],
+      [
+        "providers",
+        "Your AI provider accounts",
+        "What your OpenAI, Anthropic, Azure, Bedrock or Vertex AI accounts used and cost, with no code.",
+      ],
+      [
+        "tools",
+        "Your company's AI tools",
+        "What your people ask Claude Enterprise or Microsoft 365 Copilot, by person.",
+      ],
     ] as Array<[string, string, string]>) {
-      const item: HTMLElement = screen.getByTestId(
-        `llm-connect-checklist-${key}`,
-      );
+      const way: HTMLElement = screen.getByTestId(`llm-connect-way-${key}`);
 
-      expect(item).toHaveAttribute("data-done", "false");
-      expect(item).toHaveTextContent(`To do: ${title}`);
-      expect(
-        within(item).getByTestId(`llm-connect-checklist-open-${key}`),
-      ).toHaveTextContent(action);
+      expect(way).toHaveAttribute("role", "tab");
+      expect(way).toHaveTextContent(title);
+      expect(way).toHaveTextContent(description);
     }
   });
 
-  test("ticks what is true, in its done words, with no way in left to take", () => {
-    renderChecklist({
-      hasAiCalls: true,
-      hasProviderAccount: true,
-      hasCompanyTool: false,
-      hasBudget: true,
+  test("the picked way is the selected tab, and the only one in the tab order", () => {
+    renderWays({ value: "providers", statuses: NOTHING_KNOWN });
+
+    expect(screen.getByTestId("llm-connect-way-providers")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByTestId("llm-connect-way-providers")).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
+
+    for (const key of ["apps", "tools"]) {
+      expect(screen.getByTestId(`llm-connect-way-${key}`)).toHaveAttribute(
+        "aria-selected",
+        "false",
+      );
+      expect(screen.getByTestId(`llm-connect-way-${key}`)).toHaveAttribute(
+        "tabindex",
+        "-1",
+      );
+    }
+  });
+
+  test("nothing known yet: no way is done or to do, and none says anything", () => {
+    renderWays({ value: "apps", statuses: NOTHING_KNOWN });
+
+    for (const key of ["apps", "providers", "tools"]) {
+      expect(screen.getByTestId(`llm-connect-way-${key}`)).toHaveAttribute(
+        "data-done",
+        "unknown",
+      );
+      expect(
+        screen.queryByTestId(`llm-connect-way-${key}-status`),
+      ).not.toBeInTheDocument();
+    }
+  });
+
+  test("a way ticks itself from what is true: calls arriving, connections, and any not working", () => {
+    renderWays({
+      value: "apps",
+      statuses: {
+        apps: { isSetUp: true, connected: 0, failing: 0 },
+        providers: { isSetUp: true, connected: 3, failing: 1 },
+        tools: { isSetUp: true, connected: 1, failing: 0 },
+      },
     });
 
+    expect(screen.getByTestId("llm-connect-way-apps")).toHaveAttribute(
+      "data-done",
+      "true",
+    );
     expect(
-      screen.getByTestId("llm-connect-checklist-progress"),
-    ).toHaveTextContent("3 of 4 done");
-
-    const apps: HTMLElement = screen.getByTestId("llm-connect-checklist-apps");
-
-    expect(apps).toHaveAttribute("data-done", "true");
-    expect(apps).toHaveTextContent("Done: Your apps send their AI calls");
+      screen.getByTestId("llm-connect-way-apps-receiving"),
+    ).toHaveTextContent("Receiving AI calls");
     expect(
-      screen.queryByTestId("llm-connect-checklist-open-apps"),
+      screen.getByTestId("llm-connect-way-providers-connected"),
+    ).toHaveTextContent("Connected (3)");
+    expect(
+      screen.getByTestId("llm-connect-way-providers-failing"),
+    ).toHaveTextContent("Not working");
+    expect(
+      screen.getByTestId("llm-connect-way-tools-connected"),
+    ).toHaveTextContent(/^Connected$/);
+    expect(
+      screen.queryByTestId("llm-connect-way-tools-failing"),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("llm-connect-checklist-providers"),
-    ).toHaveTextContent("A provider account is connected");
-    expect(
-      screen.getByTestId("llm-connect-checklist-budget"),
-    ).toHaveTextContent("A daily budget is set");
-    expect(
-      screen.getByTestId("llm-connect-checklist-open-companyTools"),
-    ).toBeInTheDocument();
   });
 
-  test("not known yet is neither done nor to do", () => {
-    renderChecklist(NOTHING_KNOWN);
-
-    for (const key of ["apps", "providers", "companyTools", "budget"]) {
-      expect(
-        screen.getByTestId(`llm-connect-checklist-${key}`),
-      ).toHaveAttribute("data-done", "unknown");
-    }
-
-    expect(
-      screen.getByTestId("llm-connect-checklist-progress"),
-    ).toHaveTextContent("0 of 4 done");
-  });
-
-  test("a way in opens its own part of the page", () => {
-    const onOpen: MockFunction = getJestMockFunction();
-
-    renderChecklist(
-      {
-        hasAiCalls: false,
-        hasProviderAccount: false,
-        hasCompanyTool: false,
-        hasBudget: false,
+  test("not set up says nothing: the absence of a tick is enough", () => {
+    renderWays({
+      value: "apps",
+      statuses: {
+        apps: { isSetUp: false, connected: 0, failing: 0 },
+        providers: { isSetUp: false, connected: 0, failing: 0 },
+        tools: { isSetUp: false, connected: 0, failing: 0 },
       },
-      onOpen,
-    );
+    });
 
-    fireEvent.click(
-      screen.getByTestId("llm-connect-checklist-open-companyTools"),
-    );
-    fireEvent.click(screen.getByTestId("llm-connect-checklist-open-budget"));
+    for (const key of ["apps", "providers", "tools"]) {
+      expect(screen.getByTestId(`llm-connect-way-${key}`)).toHaveAttribute(
+        "data-done",
+        "false",
+      );
+      expect(
+        screen.queryByTestId(`llm-connect-way-${key}-status`),
+      ).not.toBeInTheDocument();
+    }
+  });
 
-    expect(onOpen.mock.calls).toEqual([["companyTools"], ["budget"]]);
+  test("a click picks a way, and picking the picked one again does nothing", () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    renderWays({ value: "apps", statuses: NOTHING_KNOWN, onChange });
+
+    fireEvent.click(screen.getByTestId("llm-connect-way-tools"));
+    fireEvent.click(screen.getByTestId("llm-connect-way-apps"));
+
+    expect(onChange.mock.calls).toEqual([["tools", false]]);
+  });
+
+  test("arrow keys, Home and End pick along the ways, around the ends, and say they were keys", () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    renderWays({ value: "apps", statuses: NOTHING_KNOWN, onChange });
+
+    const apps: HTMLElement = screen.getByTestId("llm-connect-way-apps");
+
+    fireEvent.keyDown(apps, { key: "ArrowRight" });
+    fireEvent.keyDown(apps, { key: "ArrowLeft" });
+    fireEvent.keyDown(apps, { key: "End" });
+    fireEvent.keyDown(apps, { key: "Home" });
+    fireEvent.keyDown(apps, { key: "Enter" });
+
+    expect(onChange.mock.calls).toEqual([
+      ["providers", true],
+      ["tools", true],
+      ["tools", true],
+      ["apps", true],
+    ]);
+  });
+
+  test("a screen reader hears a list of tabs, each controlling its panel", () => {
+    renderWays({ value: "apps", statuses: NOTHING_KNOWN });
+
+    const list: HTMLElement = screen.getByRole("tablist", {
+      name: "Ways to bring AI in",
+    });
+
+    for (const tab of within(list).getAllByRole("tab")) {
+      expect(tab.getAttribute("aria-controls")).toBe(
+        tab.id.replace("llm-connect-way-", "llm-connect-panel-"),
+      );
+    }
   });
 });
 
@@ -357,8 +441,9 @@ describe("the test panel", () => {
     const status: HTMLElement = screen.getByTestId("llm-connection-test-pass");
 
     expect(status).toHaveAttribute("role", "status");
+    // "It works", not "Connected": nothing is saved until Connect.
     expect(status).toHaveTextContent(
-      "Connected. Here is what the account used in the last 7 days.",
+      "It works. Here is what the account used in the last 7 days.",
     );
 
     const figures: HTMLElement = within(status).getByTestId(
@@ -439,6 +524,72 @@ describe("the test panel", () => {
     expect(screen.getByTestId("llm-connection-test-pass")).toBeInTheDocument();
     expect(runTest).toHaveBeenCalledTimes(1);
   });
+
+  test("opened from a connection's row, the dialog says what the test does: the panel shows the answer and Test again under it", async () => {
+    const runTest: MockFunction =
+      getJestMockFunction().mockResolvedValue(passing());
+
+    await act(async () => {
+      render(
+        <LlmConnectionTestPanel
+          definition={openAi}
+          runTest={runTest}
+          startImmediately={true}
+        />,
+      );
+    });
+
+    const panel: HTMLElement = screen.getByTestId("llm-connection-test-panel");
+
+    // Not "until you connect": it is connected.
+    expect(panel).not.toHaveTextContent("Test the connection");
+    expect(panel).not.toHaveTextContent("Nothing is kept until you connect.");
+
+    const button: HTMLElement = screen.getByTestId(
+      "llm-connection-test-button",
+    );
+
+    expect(button).toHaveTextContent("Test again");
+    // Under the answer.
+    expect(
+      screen
+        .getByTestId("llm-connection-test-pass")
+        .compareDocumentPosition(button) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(runTest).toHaveBeenCalledTimes(2);
+  });
+
+  test("a failure's details sit under their own label, apart from the advice", async () => {
+    const runTest: MockFunction = getJestMockFunction().mockResolvedValue({
+      provider: LlmConnectionProvider.OpenAI,
+      status: "fail",
+      message: "HTTP 403: insufficient permissions",
+      failureKind: LlmConnectionFailureKind.Permission,
+      durationMs: 80,
+    } as LlmConnectionTestResult);
+
+    render(<LlmConnectionTestPanel definition={openAi} runTest={runTest} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("llm-connection-test-button"));
+    });
+
+    const status: HTMLElement = screen.getByTestId("llm-connection-test-fail");
+
+    expect(status).toHaveTextContent("Details");
+    expect(status).toHaveTextContent(
+      "Give it the role or scope the setup guide names, then test again.",
+    );
+    expect(screen.getByTestId("llm-connection-test-details")).toHaveTextContent(
+      "HTTP 403: insufficient permissions",
+    );
+  });
 });
 
 describe("telling your people, and the tools with no API", () => {
@@ -451,6 +602,22 @@ describe("telling your people, and the tools with no API", () => {
     expect(note).toHaveTextContent("their chats with this tool are kept");
     expect(note).toHaveTextContent("who can read them");
     expect(note).toHaveTextContent("legal or HR team");
+  });
+
+  test("the tools with no API are folded under a question, closed until opened", () => {
+    render(<LlmOtherAiTools />);
+
+    const fold: HTMLElement = screen.getByTestId("llm-other-ai-tools");
+
+    expect(fold.tagName).toBe("DETAILS");
+    expect(fold).not.toHaveAttribute("open");
+    expect(screen.getByTestId("llm-other-ai-tools-summary")).toHaveTextContent(
+      "Using another AI tool?",
+    );
+
+    fireEvent.click(screen.getByTestId("llm-other-ai-tools-summary"));
+
+    expect(fold).toHaveAttribute("open");
   });
 
   test("each AI tool with no API has a guide", () => {

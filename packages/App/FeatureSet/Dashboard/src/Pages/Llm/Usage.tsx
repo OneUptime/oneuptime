@@ -1,5 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
+import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ViewSwitch, {
+  ViewSwitchOption,
+} from "Common/UI/Components/ViewSwitch/ViewSwitch";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -13,23 +17,32 @@ import LlmProviderUsage from "../../Components/AI/LlmProviderUsage";
  * what your connected provider accounts report - the bill, which already
  * holds those same calls. The source is in the address (?source=providers)
  * so a link opens the view it was copied from.
+ *
+ * The switch is the product's own view switch (as List | Calendar is), with
+ * what the picked source is said beside it.
  */
 
 export type LlmUsageSourceKey = "calls" | "providers";
 
-const SOURCES: Array<{ key: LlmUsageSourceKey; label: string; hint: string }> =
-  [
-    {
-      key: "calls",
-      label: translationKey("Your AI calls"),
-      hint: translationKey("What your apps and coding tools send"),
-    },
-    {
-      key: "providers",
-      label: translationKey("Provider accounts"),
-      hint: translationKey("What your connected accounts were billed"),
-    },
-  ];
+export const LLM_USAGE_SOURCES: ReadonlyArray<
+  ViewSwitchOption<LlmUsageSourceKey>
+> = [
+  {
+    value: "calls",
+    label: translationKey("Your AI calls"),
+    icon: IconProp.Code,
+  },
+  {
+    value: "providers",
+    label: translationKey("Provider accounts"),
+    icon: IconProp.CreditCard,
+  },
+];
+
+const SOURCE_HINTS: Record<LlmUsageSourceKey, string> = {
+  calls: translationKey("What your apps and coding tools send"),
+  providers: translationKey("What your connected accounts were billed"),
+};
 
 export function readLlmUsageSource(value: string | null): LlmUsageSourceKey {
   return value === "providers" ? "providers" : "calls";
@@ -54,45 +67,25 @@ const LlmUsagePage: FunctionComponent<PageComponentProps> = (
 
   return (
     <div className="space-y-4">
-      <div
-        role="tablist"
-        aria-label={translator.translateText("Usage source")}
-        className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-white p-1"
-        data-testid="llm-usage-source"
-      >
-        {SOURCES.map(
-          (option: {
-            key: LlmUsageSourceKey;
-            label: string;
-            hint: string;
-          }): ReactElement => {
-            const isActive: boolean = option.key === source;
-
-            return (
-              <button
-                key={option.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                title={translator.translateText(option.hint) || ""}
-                data-testid={`llm-usage-source-${option.key}`}
-                onClick={() => {
-                  setSource(option.key);
-                  Navigation.setQueryString({
-                    source: option.key === "providers" ? "providers" : null,
-                  });
-                }}
-                className={
-                  isActive
-                    ? "rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white"
-                    : "rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
-                }
-              >
-                {translator.translateText(option.label)}
-              </button>
-            );
-          },
-        )}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <ViewSwitch<LlmUsageSourceKey>
+          options={LLM_USAGE_SOURCES}
+          value={source}
+          ariaLabel={translationKey("Usage source")}
+          dataTestId="llm-usage-source"
+          onChange={(value: LlmUsageSourceKey) => {
+            setSource(value);
+            Navigation.setQueryString({
+              source: value === "providers" ? "providers" : null,
+            });
+          }}
+        />
+        <span
+          className="text-sm text-gray-500"
+          data-testid="llm-usage-source-description"
+        >
+          {translator.translateText(SOURCE_HINTS[source])}
+        </span>
       </div>
 
       {source === "providers" ? <LlmProviderUsage /> : <LlmUsageBreakdown />}

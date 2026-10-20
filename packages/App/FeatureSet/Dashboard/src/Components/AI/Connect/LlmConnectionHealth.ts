@@ -137,7 +137,14 @@ export function getLlmConnectionLastReadSummary(
     if (cost !== undefined && cost > 0) {
       return {
         template: translationKey("${{cost}} over the last {{days}} days"),
-        values: { cost: cost.toFixed(2), days: String(days) },
+        // "12,345.67": the template has the dollar sign.
+        values: {
+          cost: cost.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          days: String(days),
+        },
       };
     }
 

@@ -42,12 +42,13 @@ import LlmTellYourPeopleNote from "./LlmTellYourPeopleNote";
 /*
  * Connect a provider account or a company AI tool, or edit a connection.
  * The provider is picked from its tile, so the form is that provider's
- * own, one question a step:
+ * own, one question a step - and the dialog's description says what
+ * arrives once it is connected:
  *
- *   Set up       where the credential comes from, what arrives, the guide
- *                (a new connection only);
- *   Credentials  the catalog's settings and secrets; the name and the
- *                settings most people leave alone folded under More fields;
+ *   Credentials  where the credential comes from, with the step-by-step
+ *                guide, said where it is pasted; then the catalog's
+ *                settings and secrets, the name and the settings most
+ *                people leave alone folded under More fields;
  *   Privacy      who may read the conversations, and whether what people
  *                wrote is kept (company AI tools only);
  *   Test         a small real read before anything is saved.
@@ -56,7 +57,6 @@ import LlmTellYourPeopleNote from "./LlmTellYourPeopleNote";
  * one; the server merges what is sent over what it stores.
  */
 
-export const SETUP_STEP_ID: string = "setup";
 export const CREDENTIALS_STEP_ID: string = "credentials";
 export const PRIVACY_STEP_ID: string = "privacy";
 export const TEST_STEP_ID: string = "test";
@@ -227,7 +227,12 @@ function fieldTypeFor(field: LlmConnectionField): FormFieldSchemaType {
   }
 }
 
-export const LlmConnectionSetupGuide: FunctionComponent<{
+/*
+ * The top of Credentials: where the credential comes from, said where it is
+ * pasted, with the provider's step-by-step guide one click away - and, for
+ * a provider account's admin key, what OneUptime does with it.
+ */
+export const LlmConnectionCredentialsHint: FunctionComponent<{
   definition: LlmConnectionDefinition;
 }> = (props: { definition: LlmConnectionDefinition }): ReactElement => {
   const translator: Translator = useTranslator();
@@ -235,33 +240,16 @@ export const LlmConnectionSetupGuide: FunctionComponent<{
     props.definition.kind === LlmConnectionKind.CompanyTool;
 
   return (
-    <div data-testid="llm-connection-setup-guide" className="space-y-4">
-      <div className="flex items-center gap-3">
-        <LlmConnectionLogo provider={props.definition.provider} size="lg" />
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-900">
-            {translator.translateText(props.definition.title)}
-          </div>
-          <div className="text-sm text-gray-500">
-            {translator.translateText(props.definition.description)}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-md bg-gray-50 p-3 ring-1 ring-inset ring-gray-200">
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          {translator.translateText("What arrives")}
-        </div>
-        <div className="mt-1 text-sm text-gray-800">
-          {translator.translateText(props.definition.summary)}
-        </div>
-      </div>
-
-      <div className="rounded-md bg-gray-50 p-3 ring-1 ring-inset ring-gray-200">
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+    <div
+      data-testid="llm-connection-credentials-hint"
+      className="flex items-start gap-3 rounded-lg bg-gray-50 p-3 ring-1 ring-inset ring-gray-200"
+    >
+      <LlmConnectionLogo provider={props.definition.provider} size="md" />
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-gray-900">
           {translator.translateText("Before you start")}
         </div>
-        <div className="mt-1 text-sm text-gray-800">
+        <div className="mt-0.5 text-sm text-gray-600">
           {translator.translateText(props.definition.hint)}
         </div>
         <a
@@ -269,28 +257,29 @@ export const LlmConnectionSetupGuide: FunctionComponent<{
           target="_blank"
           rel="noopener noreferrer"
           data-testid="llm-connection-guide-link"
-          className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          className="mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
         >
           <Icon icon={IconProp.Book} className="h-4 w-4" />
           <span>{translator.translateText("Step-by-step guide")}</span>
         </a>
+        {isTool ? (
+          <></>
+        ) : (
+          <div
+            className="mt-2 flex items-start gap-1.5 border-t border-gray-200 pt-2 text-xs text-gray-500"
+            data-testid="llm-connection-reads-only"
+          >
+            <Icon
+              icon={IconProp.ShieldCheck}
+              className="mt-px h-3.5 w-3.5 flex-shrink-0"
+            />
+            {/* The field below says the credential is stored encrypted. */}
+            <span>
+              {translator.translateText("OneUptime only reads usage and cost.")}
+            </span>
+          </div>
+        )}
       </div>
-
-      {isTool ? (
-        <LlmTellYourPeopleNote />
-      ) : (
-        <div className="flex items-start gap-2 rounded-md bg-sky-50 p-3 text-sm text-gray-700 ring-1 ring-inset ring-gray-200">
-          <Icon
-            icon={IconProp.ShieldCheck}
-            className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500"
-          />
-          <span>
-            {translator.translateText(
-              "OneUptime only reads usage and cost. The credential is encrypted at rest and never shown again.",
-            )}
-          </span>
-        </div>
-      )}
     </div>
   );
 };
@@ -327,27 +316,27 @@ const LlmConnectionFormModal: FunctionComponent<ComponentProps> = (
   const isTool: boolean = definition.kind === LlmConnectionKind.CompanyTool;
 
   const steps: Array<FormStep<JSONObject>> = [
-    ...(isEditing ? [] : [{ id: SETUP_STEP_ID, title: "Set up" }]),
     { id: CREDENTIALS_STEP_ID, title: "Credentials" },
     ...(isTool ? [{ id: PRIVACY_STEP_ID, title: "Privacy" }] : []),
     { id: TEST_STEP_ID, title: "Test" },
   ];
 
-  const fields: Array<Field<JSONObject>> = [];
-
-  if (!isEditing) {
-    fields.push({
-      field: { setupGuide: true },
-      title: "",
-      stepId: SETUP_STEP_ID,
-      fieldType: FormFieldSchemaType.CustomComponent,
-      required: false,
-      hideOptionalLabel: true,
-      getCustomElement: (): ReactElement => {
-        return <LlmConnectionSetupGuide definition={definition} />;
-      },
-    });
-  }
+  // Where the credential comes from: for a new connection, not an edit.
+  const fields: Array<Field<JSONObject>> = isEditing
+    ? []
+    : [
+        {
+          field: { credentialsHint: true },
+          title: "",
+          stepId: CREDENTIALS_STEP_ID,
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: false,
+          hideOptionalLabel: true,
+          getCustomElement: (): ReactElement => {
+            return <LlmConnectionCredentialsHint definition={definition} />;
+          },
+        },
+      ];
 
   const visibleConfigFields: Array<LlmConnectionField> =
     definition.configFields.filter((field: LlmConnectionField): boolean => {
@@ -437,22 +426,25 @@ const LlmConnectionFormModal: FunctionComponent<ComponentProps> = (
   });
 
   if (isTool) {
+    // Two answers, both in view: a dropdown hides the one not picked.
     fields.push({
       field: { conversationReaders: true },
       title: "Who can read conversations",
-      description:
-        "Everyone else in the project sees none of these conversations, anywhere in OneUptime.",
       stepId: PRIVACY_STEP_ID,
-      fieldType: FormFieldSchemaType.Dropdown,
+      fieldType: FormFieldSchemaType.RadioButton,
       required: true,
       defaultValue: LlmConversationReaders.Admins,
-      dropdownOptions: [
+      dataTestId: "llm-connection-readers",
+      radioButtonOptions: [
         {
-          label: "Project owners and admins",
+          title: "Project owners and admins",
+          description:
+            "Everyone else in the project sees none of these conversations, anywhere in OneUptime.",
           value: LlmConversationReaders.Admins,
         },
         {
-          label: "Everyone who can read AI calls",
+          title: "Everyone who can read AI calls",
+          description: "Everyone who may read the project's traces.",
           value: LlmConversationReaders.Everyone,
         },
       ],
@@ -561,13 +553,14 @@ const LlmConnectionFormModal: FunctionComponent<ComponentProps> = (
                 translator.translateText(definition.title) || definition.title,
             })
       }
-      description={definition.description}
+      // What arrives once it is connected, in the reader's words.
+      description={definition.summary}
       name={
         isEditing
           ? "AI / LLM > Connect > Edit Connection"
           : "AI / LLM > Connect > Add Connection"
       }
-      modalWidth={ModalWidth.Large}
+      modalWidth={ModalWidth.Medium}
       isLoading={isLoading}
       error={error}
       submitButtonText={isEditing ? "Save changes" : "Connect"}

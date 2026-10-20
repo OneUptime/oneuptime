@@ -42,6 +42,13 @@ import React, {
 } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { LlmTile } from "../LlmConversations/LlmSummaryTiles";
+import {
+  formatLlmCost,
+  formatLlmCount,
+  formatLlmTokens,
+} from "../LlmConversations/LlmConversationFormat";
+import { LLM_CONNECT_WAY_QUERY_PARAM } from "./Connect/LlmConnectWays";
 import {
   LLM_PROVIDER_USAGE_DIMENSIONS,
   LlmProviderUsageDimension,
@@ -62,7 +69,6 @@ import {
  * on their own and never added to them.
  */
 
-const DEFAULT_WINDOW_DAYS: number = 30;
 const TOP_K_GROUPS: number = 25;
 const AGGREGATE_ROW_LIMIT: number = 10000;
 const UNNAMED_LABEL: string = translationKey("Not named by the provider");
@@ -76,18 +82,24 @@ function formatWhole(value: number): string {
   return Math.round(value).toLocaleString("en-US");
 }
 
+// A bill's amount: "$1,204.50".
 function formatCost(value: number): string {
-  return `$${value.toFixed(2)}`;
+  return `$${value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 const LlmProviderUsage: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * The last month: providers report whole days, and a first read brings in
+   * 30 of them. A month back is also the range picker's own "1 month", so it
+   * shows picked.
+   */
   const [range, setRange] = useState<InBetween<Date>>(
     new InBetween<Date>(
-      OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        -(DEFAULT_WINDOW_DAYS - 1),
-      ),
+      OneUptimeDate.addRemoveMonths(OneUptimeDate.getCurrentDate(), -1),
       OneUptimeDate.getCurrentDate(),
     ),
   );
@@ -224,8 +236,11 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
     };
   }, [range, dimensionKey]);
 
-  const connectRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.LLM_CONNECT] as Route,
+  // Connect, opened on the provider tiles.
+  const connectRoute: Route = new Route(
+    `${RouteUtil.populateRouteParams(
+      RouteMap[PageMap.LLM_CONNECT] as Route,
+    ).toString()}?${LLM_CONNECT_WAY_QUERY_PARAM}=providers`,
   );
 
   const renderGroup: (row: LlmProviderUsageRow) => ReactElement = (
@@ -280,9 +295,13 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
 
   return (
     <div className="space-y-4" data-testid="llm-provider-usage">
+      {/*
+       * The range picker keeps its own width - squeezed, its presets broke
+       * onto two lines ("1 / month") - and the six groupings wrap instead.
+       */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div
-          className="flex flex-wrap gap-2"
+          className="flex min-w-0 flex-wrap gap-2 lg:flex-1"
           role="group"
           aria-label={translator.translateText("Usage dimension")}
         >
@@ -312,65 +331,64 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
           )}
         </div>
 
-        <StartAndEndDate
-          type={StartAndEndDateType.DateTime}
-          value={range}
-          onValueChanged={(value: InBetween<Date> | null) => {
-            if (value) {
-              setRange(value);
-            }
-          }}
-        />
+        <div className="lg:flex-shrink-0">
+          <StartAndEndDate
+            type={StartAndEndDateType.DateTime}
+            value={range}
+            onValueChanged={(value: InBetween<Date> | null) => {
+              if (value) {
+                setRange(value);
+              }
+            }}
+          />
+        </div>
       </div>
 
-      <dl
-        className="grid grid-cols-2 gap-3 md:grid-cols-4"
+      {/*
+       * The same tiles, in the same order, as Your AI calls' totals: a
+       * reader switching between the two sources compares like with like.
+       */}
+      <div
+        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
         data-testid="llm-provider-usage-totals"
       >
-        {[
-          {
-            key: "cost",
-            label: translationKey("Cost"),
-            value: summary ? formatCost(summary.totals.costUsd) : "—",
-          },
-          {
-            key: "input",
-            label: translationKey("Input tokens"),
-            value: summary ? formatWhole(summary.totals.inputTokens) : "—",
-          },
-          {
-            key: "output",
-            label: translationKey("Output tokens"),
-            value: summary ? formatWhole(summary.totals.outputTokens) : "—",
-          },
-          {
-            key: "requests",
-            label: translationKey("Requests"),
-            value: summary ? formatWhole(summary.totals.requests) : "—",
-          },
-        ].map(
-          (tile: {
-            key: string;
-            label: string;
-            value: string;
-          }): ReactElement => {
-            return (
-              <div
-                key={tile.key}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-3"
-                data-testid={`llm-provider-usage-total-${tile.key}`}
-              >
-                <dt className="text-sm text-gray-500">
-                  {translator.translateText(tile.label)}
-                </dt>
-                <dd className="mt-1 text-xl font-semibold text-gray-900">
-                  {tile.value}
-                </dd>
-              </div>
-            );
-          },
-        )}
-      </dl>
+        <LlmTile
+          label="Requests"
+          value={summary ? formatLlmCount(summary.totals.requests) : "—"}
+          icon={IconProp.Sparkles}
+          iconClassName="text-violet-600"
+          iconTileClassName="bg-violet-50"
+          dataTestId="llm-provider-usage-total-requests"
+          isLoading={state.kind === "loading"}
+        />
+        <LlmTile
+          label="Input tokens"
+          value={summary ? formatLlmTokens(summary.totals.inputTokens) : "—"}
+          icon={IconProp.ArrowDown}
+          iconClassName="text-indigo-600"
+          iconTileClassName="bg-indigo-50"
+          dataTestId="llm-provider-usage-total-input"
+          isLoading={state.kind === "loading"}
+        />
+        <LlmTile
+          label="Output tokens"
+          value={summary ? formatLlmTokens(summary.totals.outputTokens) : "—"}
+          icon={IconProp.ArrowUp}
+          iconClassName="text-sky-600"
+          iconTileClassName="bg-sky-50"
+          dataTestId="llm-provider-usage-total-output"
+          isLoading={state.kind === "loading"}
+        />
+        <LlmTile
+          label="Cost (USD)"
+          value={summary ? formatLlmCost(summary.totals.costUsd) : "—"}
+          icon={IconProp.CurrencyDollar}
+          iconClassName="text-emerald-600"
+          iconTileClassName="bg-emerald-50"
+          dataTestId="llm-provider-usage-total-cost"
+          isLoading={state.kind === "loading"}
+        />
+      </div>
 
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex flex-col gap-1 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">

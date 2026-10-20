@@ -59,17 +59,31 @@ export const LLM_OTHER_AI_TOOLS: Array<OtherTool> = [
 const LlmOtherAiTools: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * Folded: most people find their tool in the tiles above, and whoever
+   * does not finds the question right under them.
+   */
   return (
-    <div data-testid="llm-other-ai-tools">
-      <div className="text-sm font-medium text-gray-900">
+    <details
+      className="group rounded-lg border border-gray-200 bg-white"
+      data-testid="llm-other-ai-tools"
+    >
+      <summary
+        className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-gray-900"
+        data-testid="llm-other-ai-tools-summary"
+      >
+        <Icon
+          icon={IconProp.ChevronRight}
+          className="h-4 w-4 flex-shrink-0 text-gray-500 transition-transform group-open:rotate-90"
+        />
         {translator.translateText("Using another AI tool?")}
-      </div>
-      <ul className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+      </summary>
+      <ul className="divide-y divide-gray-100 border-t border-gray-100">
         {LLM_OTHER_AI_TOOLS.map((tool: OtherTool): ReactElement => {
           return (
             <li
               key={tool.key}
-              className="rounded-lg border border-gray-200 bg-gray-50 p-3"
+              className="px-4 py-3"
               data-testid={`llm-other-ai-tool-${tool.key}`}
             >
               <div className="text-sm font-medium text-gray-900">
@@ -91,7 +105,7 @@ const LlmOtherAiTools: FunctionComponent = (): ReactElement => {
           );
         })}
       </ul>
-    </div>
+    </details>
   );
 };
 

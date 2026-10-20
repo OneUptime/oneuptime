@@ -99,6 +99,13 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
     // Once, when the panel opens; the caller remounts it to test again.
   }, []);
 
+  /*
+   * A saved connection's test (the list's Test) is a dialog of its own,
+   * whose title and description already say what the test does: it shows
+   * only the answer, and the button to ask again under it.
+   */
+  const isSavedTest: boolean = Boolean(props.startImmediately);
+
   const isTool: boolean =
     props.definition.kind === LlmConnectionKind.CompanyTool;
 
@@ -120,7 +127,7 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
       <div
         role="status"
         data-testid={`llm-connection-test-${result.status}`}
-        className={`mt-4 rounded-md p-3 ring-1 ring-inset ${tone.box}`}
+        className={`${isSavedTest ? "" : "mt-4"} rounded-lg p-4 ring-1 ring-inset ${tone.box}`}
       >
         <div
           className={`flex items-start gap-2 text-sm font-medium ${tone.text}`}
@@ -131,21 +138,22 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
+        {/*
+         * What the test found, as plain figures on the result itself - a
+         * label over each number, four to a row - not a box per number.
+         */}
         {figures.length > 0 ? (
           <dl
-            className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"
+            className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 pl-6 sm:grid-cols-4"
             data-testid="llm-connection-test-figures"
           >
             {figures.map((figure: LlmConnectionTestFigure): ReactElement => {
               return (
-                <div
-                  key={figure.key}
-                  className="rounded-md bg-white px-3 py-2 ring-1 ring-inset ring-gray-200"
-                >
-                  <dt className="text-xs text-gray-500">
+                <div key={figure.key} className="min-w-0">
+                  <dt className="truncate text-xs text-gray-500">
                     {translator.translateText(figure.label)}
                   </dt>
-                  <dd className="mt-0.5 text-sm font-semibold text-gray-900">
+                  <dd className="text-base font-semibold text-gray-900">
                     {figure.value}
                   </dd>
                 </div>
@@ -157,7 +165,7 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
         )}
 
         {words.advice ? (
-          <div className="mt-2 text-sm text-gray-700">
+          <div className="mt-2 pl-6 text-sm text-gray-700">
             {translator.translateText(words.advice)}
           </div>
         ) : (
@@ -165,11 +173,16 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
         )}
 
         {words.details ? (
-          <div
-            className="mt-2 break-words rounded bg-white px-3 py-2 font-mono text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
-            data-testid="llm-connection-test-details"
-          >
-            {words.details}
+          <div className="ml-6 mt-3">
+            <div className="text-xs font-medium text-gray-500">
+              {translator.translateText("Details")}
+            </div>
+            <div
+              className="mt-1 max-h-40 overflow-y-auto break-words rounded-md bg-white px-3 py-2 font-mono text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
+              data-testid="llm-connection-test-details"
+            >
+              {words.details}
+            </div>
           </div>
         ) : (
           <></>
@@ -178,48 +191,51 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const button: ReactElement = (
+    <Button
+      title={
+        state.kind === "running"
+          ? "Testing…"
+          : state.kind === "idle"
+            ? "Test connection"
+            : "Test again"
+      }
+      icon={IconProp.Play}
+      buttonStyle={ButtonStyleType.NORMAL}
+      buttonSize={ButtonSize.Normal}
+      isLoading={state.kind === "running"}
+      disabled={Boolean(props.disabledReason) || state.kind === "running"}
+      tooltip={props.disabledReason}
+      dataTestId="llm-connection-test-button"
+      onClick={() => {
+        void run();
+      }}
+    />
+  );
+
   return (
-    <div
-      data-testid="llm-connection-test-panel"
-      className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="text-sm font-medium text-gray-900">
-            {translator.translateText("Test the connection")}
+    <div data-testid="llm-connection-test-panel">
+      {isSavedTest ? (
+        <></>
+      ) : (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-gray-900">
+              {translator.translateText("Test the connection")}
+            </div>
+            <div className="mt-1 text-sm text-gray-500">
+              {isTool
+                ? translator.translateText(
+                    "Counts the chats of the last 7 days. Nothing anyone wrote is read, shown or kept.",
+                  )
+                : translator.translateText(
+                    "Reads the last 7 days of usage. Nothing is kept until you connect.",
+                  )}
+            </div>
           </div>
-          <div className="mt-1 text-sm text-gray-500">
-            {isTool
-              ? translator.translateText(
-                  "Counts the chats of the last 7 days. Nothing anyone wrote is read, shown or kept.",
-                )
-              : translator.translateText(
-                  "Reads the last 7 days of usage. Nothing is kept until you connect.",
-                )}
-          </div>
+          <div className="flex-shrink-0">{button}</div>
         </div>
-        <div className="flex-shrink-0">
-          <Button
-            title={
-              state.kind === "running"
-                ? "Testing…"
-                : state.kind === "idle"
-                  ? "Test connection"
-                  : "Test again"
-            }
-            icon={IconProp.Play}
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Normal}
-            isLoading={state.kind === "running"}
-            disabled={Boolean(props.disabledReason) || state.kind === "running"}
-            tooltip={props.disabledReason}
-            dataTestId="llm-connection-test-button"
-            onClick={() => {
-              void run();
-            }}
-          />
-        </div>
-      </div>
+      )}
 
       {state.kind === "done" ? renderResult(state.result) : <></>}
 
@@ -230,6 +246,16 @@ const LlmConnectionTestPanel: FunctionComponent<ComponentProps> = (
           className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-800 ring-1 ring-inset ring-red-200"
         >
           {state.message}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {isSavedTest ? (
+        <div
+          className={`flex justify-end ${state.kind === "running" ? "" : "mt-4"}`}
+        >
+          {button}
         </div>
       ) : (
         <></>

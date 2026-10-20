@@ -62,6 +62,8 @@ import {
 
 const NOW: Date = new Date("2026-10-20T12:00:00.000Z");
 
+const CONNECTED_WORD: RegExp = /connected/i;
+
 function minutesAgo(minutes: number): Date {
   return new Date(NOW.getTime() - minutes * 60_000);
 }
@@ -230,7 +232,7 @@ describe("what the last read brought in", () => {
     ).toEqual({ template: "No new chats", values: {} });
   });
 
-  test("a provider account's cost, to the cent", () => {
+  test("a provider account's cost, to the cent, its thousands set apart", () => {
     expect(
       getLlmConnectionLastReadSummary(
         connectionWith({
@@ -239,8 +241,15 @@ describe("what the last read brought in", () => {
       ),
     ).toEqual({
       template: "${{cost}} over the last {{days}} days",
-      values: { cost: "1234.50", days: "30" },
+      values: { cost: "1,234.50", days: "30" },
     });
+    expect(
+      getLlmConnectionLastReadSummary(
+        connectionWith({
+          lastPullResult: { kind: "usage", days: 3, costUsd: 182.4 },
+        }),
+      )?.values["cost"],
+    ).toBe("182.40");
   });
 
   test("tokens when the provider reports no money (Bedrock, Vertex AI)", () => {
@@ -286,7 +295,8 @@ describe("what a test says", () => {
         definition: definitionOf(LlmConnectionProvider.OpenAI),
       }),
     ).toEqual({
-      headline: "Connected. Here is what the account used in the last 7 days.",
+      // "It works": a test in the form runs before anything is connected.
+      headline: "It works. Here is what the account used in the last 7 days.",
     });
   });
 
@@ -296,7 +306,7 @@ describe("what a test says", () => {
         result: result({ status: "pass" }),
         definition: definitionOf(LlmConnectionProvider.ClaudeEnterprise),
       }).headline,
-    ).toBe("Connected. Here is what the first read will bring in.");
+    ).toBe("It works. Here is what the first read will bring in.");
   });
 
   test("connected but quiet is a warning with a next step, for each kind", () => {
@@ -312,11 +322,11 @@ describe("what a test says", () => {
       });
 
     expect(account.headline).toBe(
-      "Connected, but the account has no usage in the last 7 days.",
+      "It works, but the account has no usage in the last 7 days.",
     );
     expect(account.advice).toContain("right organization");
     expect(tool.headline).toBe(
-      "Connected, but nobody has used it in the last 7 days.",
+      "It works, but nobody has used it in the last 7 days.",
     );
     expect(tool.advice).toContain("organization or tenant");
   });
@@ -451,6 +461,28 @@ describe("the figures a test shows", () => {
         }),
       ),
     ).toEqual([{ key: "conversations", label: "Conversations", value: "0" }]);
+  });
+
+  test("money reads as money: thousands set apart, cents kept", () => {
+    expect(
+      getLlmConnectionTestFigures(result({ counts: { costUsd: 12_345.6 } })),
+    ).toEqual([{ key: "cost", label: "Cost", value: "$12,345.60" }]);
+  });
+
+  test("never 'Connected' before the connection is: no headline says it", () => {
+    for (const provider of [
+      LlmConnectionProvider.OpenAI,
+      LlmConnectionProvider.ClaudeEnterprise,
+    ]) {
+      for (const status of ["pass", "warn"] as Array<"pass" | "warn">) {
+        expect(
+          getLlmConnectionTestWords({
+            result: result({ status }),
+            definition: definitionOf(provider),
+          }).headline,
+        ).not.toMatch(CONNECTED_WORD);
+      }
+    }
   });
 
   test("billions read as billions", () => {

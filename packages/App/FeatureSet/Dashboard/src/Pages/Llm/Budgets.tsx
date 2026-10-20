@@ -91,19 +91,27 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           placeholder: "100",
           description: "The daily budget in USD, over the UTC day.",
         },
+        /*
+         * Two answers, both in view with what each counts: the same two
+         * sources, in the same words, as Usage's switch.
+         */
         {
           field: { spendSource: true },
           title: "Count spend from",
           stepId: "scope",
-          description:
-            "Your AI calls: what your apps send, as it happens. Provider accounts: what your connected accounts were billed. Never both, so nothing counts twice.",
-          fieldType: FormFieldSchemaType.Dropdown,
+          description: "One or the other, never both, so nothing counts twice.",
+          fieldType: FormFieldSchemaType.RadioButton,
           required: true,
           defaultValue: LlmBudgetSpendSource.Calls,
-          dropdownOptions: [
-            { label: "Your AI calls", value: LlmBudgetSpendSource.Calls },
+          radioButtonOptions: [
             {
-              label: "Provider accounts",
+              title: "Your AI calls",
+              description: "What your apps and coding tools send",
+              value: LlmBudgetSpendSource.Calls,
+            },
+            {
+              title: "Provider accounts",
+              description: "What your connected accounts were billed",
               value: LlmBudgetSpendSource.Providers,
             },
           ],

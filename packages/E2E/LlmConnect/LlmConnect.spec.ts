@@ -7,10 +7,11 @@ import path from "path";
  * OpenAI, Anthropic or Azure Foundry, or how to watch what the company's
  * people ask AI tools, and asked for the product to be easier to
  * understand. What is pinned here is what a person sees and what is sent:
- * the checklist that ticks itself, the three ways in, a provider account
- * and a company AI tool connected from their tiles with a test first, the
- * privacy of what people wrote, and the list's status and actions - at
- * desktop and phone width, in the dark theme and in Japanese.
+ * the three ways in, side by side at the top and each ticking itself, the
+ * one picked shown under them, a provider account and a company AI tool
+ * connected from their tiles with a test first, the privacy of what people
+ * wrote, and the list's status and actions - at desktop and phone width, in
+ * the dark theme and in Japanese.
  *
  * The screenshots under output/playwright/llm-connect-ui are for the people
  * who review the page.
@@ -24,6 +25,19 @@ const SCREENSHOTS: string = path.resolve(
 // Kanji, hiragana or katakana: words the Japanese locale translated.
 const JAPANESE_SCRIPT: RegExp =
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
+const PROVIDER_ACCOUNTS: Array<string> = [
+  "openai",
+  "anthropic",
+  "azure-openai",
+  "aws-bedrock",
+  "google-vertex-ai",
+];
+
+const COMPANY_TOOLS: Array<string> = [
+  "claude-enterprise",
+  "microsoft-365-copilot",
+];
 
 interface FixtureState {
   creates: Array<Record<string, unknown>>;
@@ -51,6 +65,14 @@ async function fixture(page: Page): Promise<FixtureState> {
       ),
     );
   });
+}
+
+function way(page: Page, key: string): Locator {
+  return page.getByTestId(`llm-connect-way-${key}`);
+}
+
+function panel(page: Page, key: string): Locator {
+  return page.getByTestId(`llm-connect-panel-${key}`);
 }
 
 function dialog(page: Page): Locator {
@@ -86,7 +108,7 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
 }
 
 test.describe("the Connect page", () => {
-  test("shows the three ways in and a checklist with nothing done yet", async ({
+  test("shows the three ways in, side by side, and opens on your apps", async ({
     page,
   }: {
     page: Page;
@@ -96,39 +118,84 @@ test.describe("the Connect page", () => {
     await expect(
       page.getByText("Connect AI to OneUptime", { exact: true }),
     ).toBeVisible();
-    await expect(page.getByTestId("llm-connect-checklist-progress")).toHaveText(
-      "0 of 4 done",
+
+    const tabs: Locator = page
+      .getByRole("tablist", { name: "Ways to bring AI in" })
+      .getByRole("tab");
+
+    await expect(tabs).toHaveText([
+      /^Your apps/,
+      /^Your AI provider accounts/,
+      /^Your company's AI tools/,
+    ]);
+
+    for (const key of ["apps", "providers", "tools"]) {
+      await expect(way(page, key)).toHaveAttribute("data-done", "false");
+      await expect(way(page, key)).toBeInViewport();
+    }
+
+    // Your apps is picked, and only its path shows.
+    await expect(way(page, "apps")).toHaveAttribute("aria-selected", "true");
+    await expect(panel(page, "apps")).toBeVisible();
+    await expect(panel(page, "providers")).toBeHidden();
+    await expect(panel(page, "tools")).toBeHidden();
+    await expect(page.getByTestId("llm-apps-snippet-python")).toBeVisible();
+
+    // Nothing works yet, so no budget is suggested.
+    await expect(page.getByTestId("llm-connect-budget-hint")).toHaveCount(0);
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "connect-empty");
+  });
+
+  test("the provider accounts: five tiles, with the way to connect each", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+
+    await way(page, "providers").click();
+
+    await expect(way(page, "providers")).toHaveAttribute(
+      "aria-selected",
+      "true",
     );
+    await expect(panel(page, "apps")).toBeHidden();
 
-    for (const key of ["apps", "providers", "companyTools", "budget"]) {
-      await expect(
-        page.getByTestId(`llm-connect-checklist-${key}`),
-      ).toHaveAttribute("data-done", "false");
-    }
-
-    for (const title of [
-      "Your apps",
-      "Your AI provider accounts",
-      "Your company's AI tools",
-    ]) {
-      await expect(page.getByText(title, { exact: true })).toBeVisible();
-    }
-
-    for (const provider of [
-      "openai",
-      "anthropic",
-      "azure-openai",
-      "aws-bedrock",
-      "google-vertex-ai",
-      "claude-enterprise",
-      "microsoft-365-copilot",
-    ]) {
+    for (const provider of PROVIDER_ACCOUNTS) {
       await expect(
         page.getByTestId(`llm-connection-tile-${provider}`),
       ).toBeVisible();
     }
 
-    // The tools with no connector say what to do instead.
+    // The way picked is in the address, so a link opens it.
+    expect(new URL(page.url()).searchParams.get("way")).toBe("providers");
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "connect-providers");
+  });
+
+  test("the company AI tools: two tiles, telling your people, and the tools with no API folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "way=tools");
+
+    await expect(way(page, "tools")).toHaveAttribute("aria-selected", "true");
+
+    for (const tool of COMPANY_TOOLS) {
+      await expect(page.getByTestId(`llm-connection-tile-${tool}`)).toBeVisible();
+    }
+
+    await expect(panel(page, "tools").getByTestId("llm-tell-your-people")).toBeVisible();
+
+    // The tools with no connector say what to do instead, a click away.
+    const others: Locator = page.getByTestId("llm-other-ai-tools");
+
+    await expect(others).not.toHaveAttribute("open", "");
+    await page.getByTestId("llm-other-ai-tools-summary").click();
+
     for (const tool of [
       "chatgpt-enterprise",
       "gemini",
@@ -138,19 +205,25 @@ test.describe("the Connect page", () => {
       await expect(page.getByTestId(`llm-other-ai-tool-${tool}`)).toBeVisible();
     }
 
-    await expect(page.getByTestId("llm-tell-your-people")).toBeVisible();
     await expectNoSidewaysScroll(page);
-    await shoot(page, "connect-empty");
+    await shoot(page, "connect-tools");
   });
 
   test("ticks itself from what is true", async ({ page }: { page: Page }) => {
     await open(page, "state=done");
 
-    await expect(page.getByTestId("llm-connect-checklist-progress")).toHaveText(
-      "4 of 4 done",
+    await expect(page.getByTestId("llm-connect-way-apps-receiving")).toHaveText(
+      "Receiving AI calls",
     );
-    await expect(page.getByTestId("llm-connect-checklist-apps")).toContainText(
-      "Your apps send their AI calls",
+    await expect(
+      page.getByTestId("llm-connect-way-providers-connected"),
+    ).toHaveText("Connected (2)");
+    // Foundry East's last read failed.
+    await expect(
+      page.getByTestId("llm-connect-way-providers-failing"),
+    ).toHaveText("Not working");
+    await expect(page.getByTestId("llm-connect-way-tools-connected")).toHaveText(
+      "Connected",
     );
 
     // An app's AI calls: the company tool's own service is left out.
@@ -158,20 +231,53 @@ test.describe("the Connect page", () => {
     expect(JSON.stringify(state.spanLists[0])).toContain(
       "30000000-0000-4000-8000-000000000009",
     );
+
+    // A budget is set: nothing more to suggest.
+    await expect(page.getByTestId("llm-connect-budget-hint")).toHaveCount(0);
     await shoot(page, "connect-done");
   });
 
-  test("a checklist line takes you to its section", async ({
+  test("once something works, a daily budget is the next step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    await expect(page.getByTestId("llm-connect-budget-hint")).toBeVisible();
+    await expect(page.getByTestId("llm-connect-budget-open")).toHaveText(
+      /Open Budgets/,
+    );
+  });
+
+  test("a tap on a way brings its path into view", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page);
 
-    await page.getByTestId("llm-connect-checklist-open-companyTools").click();
+    await way(page, "tools").click();
+
     await expect(
       page.getByTestId("llm-connection-tile-claude-enterprise"),
     ).toBeInViewport();
+  });
+
+  test("arrow keys move along the ways", async ({ page }: { page: Page }) => {
+    await open(page);
+
+    await way(page, "apps").focus();
+    await page.keyboard.press("ArrowRight");
+
+    await expect(way(page, "providers")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(way(page, "providers")).toBeFocused();
+
+    await page.keyboard.press("End");
+    await expect(way(page, "tools")).toHaveAttribute("aria-selected", "true");
   });
 
   test("the snippet carries the project's endpoint and the key picked", async ({
@@ -202,30 +308,37 @@ test.describe("the Connect page", () => {
 });
 
 test.describe("connecting a provider account", () => {
-  test("OpenAI: the guide, the key, a test, and what is saved", async ({
+  test("OpenAI: where the key comes from, the key, a test, and what is saved", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page);
+    await open(page, "way=providers");
 
     await page.getByTestId("llm-connection-tile-openai").click();
     await expect(dialog(page)).toBeVisible();
     await expect(dialog(page)).toContainText("Connect OpenAI");
-    await expect(
-      dialog(page).getByTestId("llm-connection-setup-guide"),
-    ).toContainText("Create an admin key");
+    // What arrives, under the title.
+    await expect(dialog(page).getByTestId("modal-description")).toHaveText(
+      "Tokens, requests and cost by day, model, project, API key and person.",
+    );
+
+    // Credentials first: where the key comes from, right above it.
+    const hint: Locator = dialog(page).getByTestId(
+      "llm-connection-credentials-hint",
+    );
+    await expect(hint).toContainText("Create an admin key");
+    await expect(hint).toContainText("OneUptime only reads usage and cost.");
     await expect(
       dialog(page).getByTestId("llm-connection-guide-link"),
     ).toHaveAttribute(
       "href",
       /\/docs\/telemetry\/ai-provider-accounts#openai$/,
     );
-    await shoot(page, "connect-openai-setup");
-
-    await next(page).click();
     const key: Locator = dialog(page).getByPlaceholder("sk-admin-...");
     await expect(key).toBeVisible();
+    await shoot(page, "connect-openai-credentials");
+
     await key.fill("sk-admin-e2e-test-key-0000000000000001");
 
     await next(page).click();
@@ -238,8 +351,9 @@ test.describe("connecting a provider account", () => {
       "llm-connection-test-pass",
     );
     await expect(passed).toBeVisible();
+    // "It works": nothing is connected until Connect is pressed.
     await expect(passed).toContainText(
-      "Connected. Here is what the account used in the last 7 days.",
+      "It works. Here is what the account used in the last 7 days.",
     );
     await expect(passed).toContainText("$182.40");
     await expect(passed).toContainText("1.4M");
@@ -273,10 +387,9 @@ test.describe("connecting a provider account", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "verdict=auth");
+    await open(page, "way=providers&verdict=auth");
 
     await page.getByTestId("llm-connection-tile-openai").click();
-    await next(page).click();
     await dialog(page).getByPlaceholder("sk-admin-...").fill("sk-admin-wrong");
     await next(page).click();
     await dialog(page).getByTestId("llm-connection-test-button").click();
@@ -297,10 +410,9 @@ test.describe("connecting a provider account", () => {
   }: {
     page: Page;
   }) => {
-    await open(page);
+    await open(page, "way=providers");
 
     await page.getByTestId("llm-connection-tile-azure-openai").click();
-    await next(page).click();
     await next(page).click();
 
     // Still on Credentials, saying what is missing; the test is a step away.
@@ -320,10 +432,9 @@ test.describe("connecting a provider account", () => {
   }: {
     page: Page;
   }) => {
-    await open(page);
+    await open(page, "way=providers");
 
     await page.getByTestId("llm-connection-tile-azure-openai").click();
-    await next(page).click();
 
     await dialog(page)
       .getByPlaceholder("00000000-0000-0000-0000-000000000000")
@@ -364,22 +475,34 @@ test.describe("connecting a company AI tool", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "verdict=tool");
+    await open(page, "way=tools&verdict=tool");
 
     await page.getByTestId("llm-connection-tile-claude-enterprise").click();
     await expect(
-      dialog(page).getByTestId("llm-tell-your-people"),
-    ).toBeVisible();
-    await next(page).click();
+      dialog(page).getByTestId("llm-connection-credentials-hint"),
+    ).toContainText("Compliance API");
+    // A company tool's key is not about usage and cost.
+    await expect(
+      dialog(page).getByTestId("llm-connection-reads-only"),
+    ).toHaveCount(0);
     await dialog(page)
       .getByPlaceholder("sk-ant-api01-...")
       .fill("sk-ant-api01-e2e-compliance-key");
     await next(page).click();
 
     // Privacy: owners and admins only, and text kept, until changed.
+    const readers: Locator = dialog(page).getByTestId("llm-connection-readers");
     await expect(dialog(page)).toContainText("Who can read conversations");
-    await expect(dialog(page)).toContainText("Project owners and admins");
+    await expect(
+      readers.getByRole("radio", { name: "Project owners and admins" }),
+    ).toBeChecked();
+    await expect(
+      readers.getByRole("radio", { name: "Everyone who can read AI calls" }),
+    ).not.toBeChecked();
     await expect(dialog(page)).toContainText("Keep what was written");
+    await expect(
+      dialog(page).getByTestId("llm-tell-your-people"),
+    ).toBeVisible();
     await shoot(page, "connect-claude-privacy");
 
     await next(page).click();
@@ -388,7 +511,7 @@ test.describe("connecting a company AI tool", () => {
       "llm-connection-test-pass",
     );
     await expect(passed).toContainText(
-      "Connected. Here is what the first read will bring in.",
+      "It works. Here is what the first read will bring in.",
     );
     await expect(passed).toContainText("48");
 
@@ -410,49 +533,56 @@ test.describe("the list of connections", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "state=connected");
+    await open(page, "state=connected&way=providers");
 
-    const providers: Locator = page.locator(
-      "#llm-connections-table-provider-account",
-    );
     await expect(page.getByText("OpenAI production")).toBeVisible();
     await expect(page.getByText("Working").first()).toBeVisible();
-    await expect(page.getByText("Not working").first()).toBeVisible();
     await expect(
-      page.getByText("Waiting for the first read").first(),
+      panel(page, "providers").getByText("Not working").first(),
     ).toBeVisible();
     await expect(page.getByText("$182.40 over the last 3 days")).toBeVisible();
     await expect(
       page.getByTestId("llm-connection-tile-connected-openai"),
     ).toBeVisible();
-    expect(providers).toBeDefined();
 
     await shoot(page, "connect-connected");
+
+    await way(page, "tools").click();
+    await expect(
+      page.getByText("Waiting for the first read").first(),
+    ).toBeVisible();
   });
 
-  test("the error of a failing connection opens in full", async ({
+  test("the error of a failing connection opens in full, with what to do", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, "state=connected");
+    await open(page, "state=connected&way=providers");
 
     await page.getByRole("button", { name: "View error" }).first().click();
     await expect(page.getByTestId("llm-connection-error")).toContainText(
       "AuthorizationFailed",
     );
+    // A permission failure, in the words a test uses for it.
+    await expect(
+      page.getByTestId("llm-connection-error-words"),
+    ).toContainText(
+      "The credential works, but it may not read what this connection needs.",
+    );
+    await shoot(page, "connect-last-error");
   });
 
-  test("Read now queues a read and says so", async ({
+  test("Read now queues a read and says how to see it end", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, "state=connected");
+    await open(page, "state=connected&way=providers");
 
     await page.getByRole("button", { name: "Read now" }).first().click();
     await expect(page.getByTestId("llm-connections-notice")).toContainText(
-      "now",
+      "Refresh the list in a minute",
     );
 
     const state: FixtureState = await fixture(page);
@@ -467,7 +597,7 @@ test.describe("the list of connections", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "state=connected");
+    await open(page, "state=connected&way=providers");
 
     // The row's other actions are under its More actions menu.
     await page
@@ -480,6 +610,10 @@ test.describe("the list of connections", () => {
     await expect(
       dialog(page).locator('input[type="password"]'),
     ).toHaveAttribute("placeholder", "Unchanged");
+    // An edit asks for what changes, not where a key comes from.
+    await expect(
+      dialog(page).getByTestId("llm-connection-credentials-hint"),
+    ).toHaveCount(0);
 
     // Credentials, then Test: Save is on the last step only.
     await next(page).click();
@@ -496,14 +630,17 @@ test.describe("the list of connections", () => {
 });
 
 test.describe("who may connect", () => {
-  test("a member sees the ways in, but cannot connect, test or read now", async ({
+  test("a member sees the ways in, but cannot connect, test or read now, and is told why", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, "role=member&state=connected");
+    await open(page, "role=member&state=connected&way=providers");
 
     await expect(page.getByTestId("llm-connection-tile-openai")).toBeDisabled();
+    await expect(
+      panel(page, "providers").getByTestId("llm-connect-locked"),
+    ).toContainText("Project Owner");
     await expect(
       page.getByRole("button", { name: "Read now" }).first(),
     ).toBeDisabled();
@@ -512,14 +649,22 @@ test.describe("who may connect", () => {
 
 test.describe("the Connect page in the dark theme and in Japanese", () => {
   test("dark", async ({ page }: { page: Page }) => {
-    await open(page, "theme=dark&state=connected");
+    await open(page, "theme=dark&state=connected&way=providers");
 
-    const background: string = await page
-      .getByTestId("llm-connect-checklist-apps")
-      .evaluate((element: Element) => {
+    const background: string = await way(page, "apps").evaluate(
+      (element: Element) => {
         return getComputedStyle(element).backgroundColor;
-      });
+      },
+    );
     expect(background).not.toBe("rgb(255, 255, 255)");
+
+    // The picked way is marked in the dark too.
+    const picked: string = await way(page, "providers").evaluate(
+      (element: Element) => {
+        return getComputedStyle(element).backgroundColor;
+      },
+    );
+    expect(picked).not.toBe(background);
     await expectNoSidewaysScroll(page);
     await shoot(page, "connect-dark");
   });
@@ -527,12 +672,10 @@ test.describe("the Connect page in the dark theme and in Japanese", () => {
   test("Japanese", async ({ page }: { page: Page }) => {
     await open(page, "lang=ja");
 
-    await expect(page.getByTestId("llm-connect-checklist-progress")).toHaveText(
-      JAPANESE_SCRIPT,
-    );
-    await expect(
-      page.getByTestId("llm-connect-checklist-providers"),
-    ).toHaveText(JAPANESE_SCRIPT);
+    for (const key of ["apps", "providers", "tools"]) {
+      await expect(way(page, key)).toHaveText(JAPANESE_SCRIPT);
+    }
+
     await shoot(page, "connect-japanese");
   });
 });

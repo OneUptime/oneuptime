@@ -38,22 +38,29 @@ import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import LlmConnectPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Llm/Connect";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import { llmConnectWayChoice } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectWayPicker";
+import { LLM_CONNECT_WAY_STORAGE_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectWays";
 
 /*
  * AI / LLM > CONNECT, the page itself, with the network stubbed and the
  * heavy pieces (the snippets' key picker, the connection lists and the
  * connection form) replaced by markers that show what the page told them:
  *
- *   - the checklist ticks itself from what is true in the project - an
- *     app's AI calls in the last week (a company tool's chats aside), a
- *     provider account, a company AI tool, a budget - and says nothing
- *     about what it could not read;
- *   - a list shows only once something is connected; the tiles count what
- *     the lists hold;
+ *   - the three ways in are the page's tabs: your apps first, the one the
+ *     address names, or the reader's last pick; one shown at a time;
+ *   - each way ticks itself from what is true in the project - an app's AI
+ *     calls in the last week (a company tool's chats aside), provider
+ *     accounts and company AI tools connected, and how many of them are
+ *     not working - and says nothing about what it could not read;
+ *   - once something works and there is no budget, a daily budget is the
+ *     next step;
+ *   - a list shows only once something is connected, and stays when its
+ *     search finds nothing; a list that reloads has the connections read
+ *     again; the tiles count every connection of the project;
  *   - a tile opens that provider's form, and saving it reads everything
  *     again;
- *   - without the right to connect, the tiles are disabled; without the
- *     right to edit, the lists are told so;
+ *   - without the right to connect, the tiles are disabled and say why in
+ *     words; without the right to edit, the lists are told so;
  *   - a plan without telemetry says so and reads nothing.
  */
 
@@ -61,10 +68,7 @@ type TableProps = {
   kind: LlmConnectionKind;
   refreshToggle: string;
   updateGate: PermissionGateResult;
-  onConnectionsLoaded: (
-    kind: LlmConnectionKind,
-    connections: Array<LlmObservabilityConnection>,
-  ) => void;
+  onConnectionsLoaded: (kind: LlmConnectionKind, totalCount: number) => void;
 };
 
 type FormProps = {
@@ -74,14 +78,10 @@ type FormProps = {
   onSaved: () => void;
 };
 
-// What each list marker reports it loaded; undefined is "still loading".
-let listedForTest: Partial<
-  Record<LlmConnectionKind, Array<LlmObservabilityConnection>>
-> = {};
+// How many rows each list marker reports it found; undefined: still loading.
+let listedForTest: Partial<Record<LlmConnectionKind, number>> = {};
 
-function listedFor(
-  kind: LlmConnectionKind,
-): Array<LlmObservabilityConnection> | undefined {
+function listedFor(kind: LlmConnectionKind): number | undefined {
   return listedForTest[kind];
 }
 
@@ -113,19 +113,32 @@ jest.mock(
         ) as typeof React;
 
         ReactActual.useEffect(() => {
-          const listed: Array<LlmObservabilityConnection> | undefined =
-            listedFor(props.kind);
+          const listed: number | undefined = listedFor(props.kind);
 
-          if (listed) {
+          if (listed !== undefined) {
             props.onConnectionsLoaded(props.kind, listed);
           }
         }, [props.refreshToggle]);
 
-        return ReactActual.createElement("div", {
-          "data-testid": `connections-table-${props.kind}`,
-          "data-refresh": props.refreshToggle,
-          "data-can-update": String(props.updateGate.isAllowed),
-        });
+        return ReactActual.createElement(
+          "div",
+          {
+            "data-testid": `connections-table-${props.kind}`,
+            "data-refresh": props.refreshToggle,
+            "data-can-update": String(props.updateGate.isAllowed),
+          },
+          // What a delete, a search or a turn-off in the list does: it loads.
+          ReactActual.createElement(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                props.onConnectionsLoaded(props.kind, listedFor(props.kind) || 0);
+              },
+            },
+            `Reload ${props.kind}`,
+          ),
+        );
       },
     };
   },
@@ -168,16 +181,46 @@ const TOOL_SERVICE_ID: string = "6f1e0c2a-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 
 function connection(
   provider: LlmConnectionProvider,
-  serviceId?: string,
+  fields: Partial<{
+    serviceId: string;
+    isEnabled: boolean;
+    lastError: string;
+    lastPulledAt: Date;
+    lastSuccessfulPullAt: Date;
+  }> = {},
 ): LlmObservabilityConnection {
   const item: LlmObservabilityConnection = new LlmObservabilityConnection();
   item.provider = provider;
 
-  if (serviceId) {
-    item.serviceId = new ObjectID(serviceId);
+  if (fields.serviceId) {
+    item.serviceId = new ObjectID(fields.serviceId);
+  }
+
+  if (fields.isEnabled !== undefined) {
+    item.isEnabled = fields.isEnabled;
+  }
+
+  if (fields.lastError) {
+    item.lastError = fields.lastError;
+  }
+
+  if (fields.lastPulledAt) {
+    item.lastPulledAt = fields.lastPulledAt;
+  }
+
+  if (fields.lastSuccessfulPullAt) {
+    item.lastSuccessfulPullAt = fields.lastSuccessfulPullAt;
   }
 
   return item;
+}
+
+// A connection whose last read failed after nothing ever worked.
+function failing(provider: LlmConnectionProvider): LlmObservabilityConnection {
+  return connection(provider, {
+    lastError: "HTTP 403: AuthorizationFailed",
+    lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
+  });
 }
 
 let connectionsForTest: Array<LlmObservabilityConnection> | Error = [];
@@ -191,6 +234,8 @@ let countSpy: jest.SpyInstance<any, any>;
 let analyticsGetListSpy: jest.SpyInstance<any, any>;
 let navigateSpy: jest.SpyInstance<any, any>;
 let scrolledTo: Array<string> = [];
+// Where a panel's top is, as getBoundingClientRect answers it.
+let panelTop: number = 400;
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route(`/dashboard/${PROJECT_ID}/llm/connect`),
@@ -200,6 +245,8 @@ const pageProps: PageComponentProps = {
 
 beforeEach(() => {
   goTo(`/dashboard/${PROJECT_ID}/llm/connect`);
+  window.localStorage.clear();
+  llmConnectWayChoice.resetForTesting();
 
   connectionsForTest = [];
   budgetCountForTest = 0;
@@ -208,6 +255,7 @@ beforeEach(() => {
   createGate = { isAllowed: true };
   updateGate = { isAllowed: true };
   scrolledTo = [];
+  panelTop = 400;
 
   getListSpy = getJestSpyOn(ModelAPI, "getList").mockImplementation(
     async (): Promise<unknown> => {
@@ -267,6 +315,32 @@ beforeEach(() => {
       scrolledTo.push(this.id);
     },
   });
+
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    writable: true,
+    value: 900,
+  });
+
+  getJestSpyOn(
+    window.HTMLElement.prototype,
+    "getBoundingClientRect",
+  ).mockImplementation(function (this: HTMLElement): DOMRect {
+    const top: number = this.getAttribute("role") === "tabpanel" ? panelTop : 0;
+    return {
+      top,
+      bottom: top + 100,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 100,
+      x: 0,
+      y: top,
+      toJSON: (): string => {
+        return "";
+      },
+    } as DOMRect;
+  });
 });
 
 afterEach(() => {
@@ -280,10 +354,16 @@ async function openPage(props: PageComponentProps = pageProps): Promise<void> {
   });
 }
 
+function way(key: string): HTMLElement {
+  return screen.getByTestId(`llm-connect-way-${key}`);
+}
+
 function doneState(key: string): string | null {
-  return screen
-    .getByTestId(`llm-connect-checklist-${key}`)
-    .getAttribute("data-done");
+  return way(key).getAttribute("data-done");
+}
+
+function panel(key: string): HTMLElement {
+  return screen.getByTestId(`llm-connect-panel-${key}`);
 }
 
 function listIsShown(kind: LlmConnectionKind): boolean {
@@ -292,28 +372,32 @@ function listIsShown(kind: LlmConnectionKind): boolean {
     .parentElement!.classList.contains("hidden");
 }
 
-describe("the checklist ticks itself", () => {
-  test("nothing yet: four things to do, and no list under the tiles", async () => {
+describe("the three ways tick themselves", () => {
+  test("nothing yet: no way is done, nothing to say on any, and no list under the tiles", async () => {
     await openPage();
 
     await waitFor(() => {
       expect(doneState("apps")).toBe("false");
     });
     expect(doneState("providers")).toBe("false");
-    expect(doneState("companyTools")).toBe("false");
-    expect(doneState("budget")).toBe("false");
-    expect(
-      screen.getByTestId("llm-connect-checklist-progress"),
-    ).toHaveTextContent("0 of 4 done");
+    expect(doneState("tools")).toBe("false");
+
+    for (const key of ["apps", "providers", "tools"]) {
+      expect(
+        screen.queryByTestId(`llm-connect-way-${key}-status`),
+      ).not.toBeInTheDocument();
+    }
 
     expect(listIsShown(LlmConnectionKind.ProviderAccount)).toBe(false);
     expect(listIsShown(LlmConnectionKind.CompanyTool)).toBe(false);
   });
 
-  test("everything true: an app's calls, a provider account, a company tool and a budget", async () => {
+  test("everything true: an app's calls, a provider account and a company tool", async () => {
     connectionsForTest = [
       connection(LlmConnectionProvider.OpenAI),
-      connection(LlmConnectionProvider.ClaudeEnterprise, TOOL_SERVICE_ID),
+      connection(LlmConnectionProvider.ClaudeEnterprise, {
+        serviceId: TOOL_SERVICE_ID,
+      }),
     ];
     llmSpansForTest = 1;
     budgetCountForTest = 2;
@@ -321,23 +405,65 @@ describe("the checklist ticks itself", () => {
     await openPage();
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("llm-connect-checklist-progress"),
-      ).toHaveTextContent("4 of 4 done");
+      expect(doneState("apps")).toBe("true");
     });
+    expect(doneState("providers")).toBe("true");
+    expect(doneState("tools")).toBe("true");
+
+    expect(screen.getByTestId("llm-connect-way-apps-receiving")).toHaveTextContent(
+      "Receiving AI calls",
+    );
+    expect(
+      screen.getByTestId("llm-connect-way-providers-connected"),
+    ).toHaveTextContent("Connected");
+    expect(
+      screen.getByTestId("llm-connect-way-tools-connected"),
+    ).toHaveTextContent("Connected");
+
     expect(listIsShown(LlmConnectionKind.ProviderAccount)).toBe(true);
     expect(listIsShown(LlmConnectionKind.CompanyTool)).toBe(true);
   });
 
-  test("a company tool alone is not a provider account, and shows only its own list", async () => {
+  test("several accounts are counted, and one not working is said", async () => {
     connectionsForTest = [
-      connection(LlmConnectionProvider.Microsoft365Copilot, TOOL_SERVICE_ID),
+      connection(LlmConnectionProvider.OpenAI, {
+        lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
+        lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
+      }),
+      failing(LlmConnectionProvider.AzureOpenAI),
+      // Turned off: counted, never "not working".
+      connection(LlmConnectionProvider.AwsBedrock, {
+        isEnabled: false,
+        lastError: "HTTP 403",
+      }),
     ];
 
     await openPage();
 
     await waitFor(() => {
-      expect(doneState("companyTools")).toBe("true");
+      expect(
+        screen.getByTestId("llm-connect-way-providers-connected"),
+      ).toHaveTextContent("Connected (3)");
+    });
+    expect(
+      screen.getByTestId("llm-connect-way-providers-failing"),
+    ).toHaveTextContent("Not working");
+    expect(
+      screen.queryByTestId("llm-connect-way-tools-failing"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a company tool alone is not a provider account, and shows only its own list", async () => {
+    connectionsForTest = [
+      connection(LlmConnectionProvider.Microsoft365Copilot, {
+        serviceId: TOOL_SERVICE_ID,
+      }),
+    ];
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(doneState("tools")).toBe("true");
     });
     expect(doneState("providers")).toBe("false");
     expect(listIsShown(LlmConnectionKind.CompanyTool)).toBe(true);
@@ -346,7 +472,9 @@ describe("the checklist ticks itself", () => {
 
   test("the AI calls tick reads one of an app's calls from the last week, a company tool's chats left out", async () => {
     connectionsForTest = [
-      connection(LlmConnectionProvider.ClaudeEnterprise, TOOL_SERVICE_ID),
+      connection(LlmConnectionProvider.ClaudeEnterprise, {
+        serviceId: TOOL_SERVICE_ID,
+      }),
     ];
 
     await openPage();
@@ -399,20 +527,31 @@ describe("the checklist ticks itself", () => {
     ).toBeUndefined();
   });
 
-  test("the connections and the budgets are read for this project only", async () => {
+  test("the connections are read with their health, for this project only, and so are the budgets", async () => {
     await openPage();
 
     await waitFor(() => {
       expect(countSpy).toHaveBeenCalledTimes(1);
     });
 
-    expect(String(getListSpy.mock.calls[0]![0].query.projectId)).toBe(
-      PROJECT_ID,
-    );
+    const read: {
+      query: Record<string, unknown>;
+      select: Record<string, boolean>;
+    } = getListSpy.mock.calls[0]![0];
+
+    expect(String(read.query["projectId"])).toBe(PROJECT_ID);
+    expect(read.select).toMatchObject({
+      provider: true,
+      serviceId: true,
+      isEnabled: true,
+      lastPulledAt: true,
+      lastSuccessfulPullAt: true,
+      lastError: true,
+    });
     expect(String(countSpy.mock.calls[0]![0].query.projectId)).toBe(PROJECT_ID);
   });
 
-  test("what could not be read is neither done nor to do", async () => {
+  test("what could not be read is neither done nor to do, and suggests nothing", async () => {
     connectionsForTest = new Error("Forbidden");
     llmSpansForTest = new Error("Forbidden");
     budgetCountForTest = new Error("Forbidden");
@@ -423,46 +562,310 @@ describe("the checklist ticks itself", () => {
       expect(countSpy).toHaveBeenCalled();
     });
 
-    for (const key of ["apps", "providers", "companyTools", "budget"]) {
+    for (const key of ["apps", "providers", "tools"]) {
       expect(doneState(key)).toBe("unknown");
     }
+
+    expect(
+      screen.queryByTestId("llm-connect-budget-hint"),
+    ).not.toBeInTheDocument();
   });
 
-  test("the lists are the freshest word: a connection deleted from one is no longer counted", async () => {
+  test("a list that loads again has the connections read again: a deleted one is no longer counted", async () => {
+    connectionsForTest = [connection(LlmConnectionProvider.OpenAI)];
+    listedForTest = { [LlmConnectionKind.ProviderAccount]: 1 };
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(doneState("providers")).toBe("true");
+    });
+    expect(getListSpy).toHaveBeenCalledTimes(1);
+
+    // The connection is deleted from its list, which loads again.
+    connectionsForTest = [];
+    listedForTest = { [LlmConnectionKind.ProviderAccount]: 0 };
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByText(`Reload ${LlmConnectionKind.ProviderAccount}`),
+      );
+    });
+
+    await waitFor(() => {
+      expect(doneState("providers")).toBe("false");
+    });
+    expect(getListSpy).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByTestId(
+        `llm-connection-tile-${LlmConnectionProvider.OpenAI}`,
+      ),
+    ).not.toHaveTextContent("Connected");
+  });
+
+  test("the first load of a list reads nothing more", async () => {
     connectionsForTest = [connection(LlmConnectionProvider.OpenAI)];
     listedForTest = {
-      [LlmConnectionKind.ProviderAccount]: [],
-      [LlmConnectionKind.CompanyTool]: [],
+      [LlmConnectionKind.ProviderAccount]: 1,
+      [LlmConnectionKind.CompanyTool]: 0,
     };
 
     await openPage();
 
     await waitFor(() => {
-      expect(getListSpy).toHaveBeenCalled();
+      expect(doneState("providers")).toBe("true");
+    });
+    expect(getListSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a list that has shown a row stays when its search finds nothing", async () => {
+    connectionsForTest = [connection(LlmConnectionProvider.OpenAI)];
+    listedForTest = { [LlmConnectionKind.ProviderAccount]: 1 };
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(listIsShown(LlmConnectionKind.ProviderAccount)).toBe(true);
     });
 
-    expect(doneState("providers")).toBe("false");
+    // A search for a name no connection has: the list finds nothing...
+    listedForTest = { [LlmConnectionKind.ProviderAccount]: 0 };
+    // ...and, read with no search, the project still has none of the kind.
+    connectionsForTest = [];
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByText(`Reload ${LlmConnectionKind.ProviderAccount}`),
+      );
+    });
+
+    await waitFor(() => {
+      expect(getListSpy).toHaveBeenCalledTimes(2);
+    });
+    // Still there, so the search can be cleared.
+    expect(listIsShown(LlmConnectionKind.ProviderAccount)).toBe(true);
+  });
+});
+
+describe("the next step: a daily budget", () => {
+  test("once something works and there is no budget, it is suggested, and opens Budgets", async () => {
+    llmSpansForTest = 1;
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("llm-connect-budget-hint")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("llm-connect-budget-hint")).toHaveTextContent(
+      "Set a daily budget",
+    );
+
+    fireEvent.click(screen.getByTestId("llm-connect-budget-open"));
+
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/llm/budgets`,
+    );
+  });
+
+  test("a connected company tool is something that works too", async () => {
+    connectionsForTest = [
+      connection(LlmConnectionProvider.ClaudeEnterprise, {
+        serviceId: TOOL_SERVICE_ID,
+      }),
+    ];
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("llm-connect-budget-hint")).toBeInTheDocument();
+    });
+  });
+
+  test("not before anything works", async () => {
+    await openPage();
+
+    await waitFor(() => {
+      expect(countSpy).toHaveBeenCalled();
+    });
+
+    expect(
+      screen.queryByTestId("llm-connect-budget-hint"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("not once a budget is set", async () => {
+    llmSpansForTest = 1;
+    budgetCountForTest = 1;
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(doneState("apps")).toBe("true");
+    });
+
+    expect(
+      screen.queryByTestId("llm-connect-budget-hint"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("picking a way", () => {
+  test("the page opens on your apps, with the other two a click away", async () => {
+    await openPage();
+
+    expect(way("apps")).toHaveAttribute("aria-selected", "true");
+    expect(way("providers")).toHaveAttribute("aria-selected", "false");
+    expect(way("tools")).toHaveAttribute("aria-selected", "false");
+
+    expect(panel("apps")).toBeVisible();
+    expect(panel("providers")).not.toBeVisible();
+    expect(panel("tools")).not.toBeVisible();
+
+    expect(screen.getByTestId("apps-path")).toBeInTheDocument();
+  });
+
+  test("the ways are tabs a screen reader can follow to their panels", async () => {
+    await openPage();
+
+    const list: HTMLElement = screen.getByRole("tablist", {
+      name: "Ways to bring AI in",
+    });
+    const tabs: Array<HTMLElement> = within(list).getAllByRole("tab");
+
+    expect(
+      tabs.map((tab: HTMLElement): string => {
+        return tab.getAttribute("data-testid") || "";
+      }),
+    ).toEqual([
+      "llm-connect-way-apps",
+      "llm-connect-way-providers",
+      "llm-connect-way-tools",
+    ]);
+
+    for (const tab of tabs) {
+      const controls: string = tab.getAttribute("aria-controls") || "";
+      const controlled: HTMLElement = document.getElementById(controls)!;
+
+      expect(controlled).toHaveAttribute("role", "tabpanel");
+      expect(controlled).toHaveAttribute("aria-labelledby", tab.id);
+    }
+
+    // Only the picked tab is in the tab order.
+    expect(way("apps")).toHaveAttribute("tabindex", "0");
+    expect(way("providers")).toHaveAttribute("tabindex", "-1");
+  });
+
+  test("a click shows that way, puts it in the address and remembers it", async () => {
+    await openPage();
+
+    fireEvent.click(way("providers"));
+
+    expect(way("providers")).toHaveAttribute("aria-selected", "true");
+    expect(panel("providers")).toBeVisible();
+    expect(panel("apps")).not.toBeVisible();
+    expect(new URL(window.location.href).searchParams.get("way")).toBe(
+      "providers",
+    );
+    expect(window.localStorage.getItem(LLM_CONNECT_WAY_STORAGE_KEY)).toBe(
+      "providers",
+    );
+  });
+
+  test("the address opens the way it names", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/llm/connect?way=tools`);
+
+    await openPage();
+
+    expect(way("tools")).toHaveAttribute("aria-selected", "true");
+    expect(panel("tools")).toBeVisible();
+  });
+
+  test("an address that names no way opens your apps", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/llm/connect?way=everything`);
+
+    await openPage();
+
+    expect(way("apps")).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("the reader's last pick opens next time, unless the address names another", async () => {
+    window.localStorage.setItem(LLM_CONNECT_WAY_STORAGE_KEY, "tools");
+
+    await openPage();
+
+    expect(way("tools")).toHaveAttribute("aria-selected", "true");
+
+    cleanup();
+    goTo(`/dashboard/${PROJECT_ID}/llm/connect?way=providers`);
+
+    await openPage();
+
+    expect(way("providers")).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("arrow keys move along the ways, Home and End jump, and the page stays put", async () => {
+    await openPage();
+
+    way("apps").focus();
+    fireEvent.keyDown(way("apps"), { key: "ArrowRight" });
+
+    expect(way("providers")).toHaveAttribute("aria-selected", "true");
+    expect(way("providers")).toHaveFocus();
+
+    fireEvent.keyDown(way("providers"), { key: "End" });
+    expect(way("tools")).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(way("tools"), { key: "ArrowRight" });
+    expect(way("apps")).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(way("apps"), { key: "ArrowLeft" });
+    expect(way("tools")).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(way("tools"), { key: "Home" });
+    expect(way("apps")).toHaveAttribute("aria-selected", "true");
+
+    // Below the fold or not, a key never scrolls away from the tabs.
+    panelTop = 2000;
+    fireEvent.keyDown(way("apps"), { key: "ArrowDown" });
+    expect(scrolledTo).toEqual([]);
+  });
+
+  test("a tap brings the way's path into view when it starts below the screen, as on a phone", async () => {
+    await openPage();
+
+    panelTop = 1200;
+    fireEvent.click(way("tools"));
+
+    expect(scrolledTo).toEqual(["llm-connect-panel-tools"]);
+  });
+
+  test("on a desktop, where the path already shows, nothing scrolls", async () => {
+    await openPage();
+
+    panelTop = 340;
+    fireEvent.click(way("tools"));
+
+    expect(scrolledTo).toEqual([]);
   });
 });
 
 describe("the tiles and the lists", () => {
-  test("a tile counts what its list holds", async () => {
-    listedForTest = {
-      [LlmConnectionKind.ProviderAccount]: [
-        connection(LlmConnectionProvider.AzureOpenAI),
-        connection(LlmConnectionProvider.AzureOpenAI),
-        connection(LlmConnectionProvider.OpenAI),
-      ],
-      [LlmConnectionKind.CompanyTool]: [],
-    };
+  test("a tile counts every connection of its provider", async () => {
+    connectionsForTest = [
+      connection(LlmConnectionProvider.AzureOpenAI),
+      connection(LlmConnectionProvider.AzureOpenAI),
+      connection(LlmConnectionProvider.OpenAI),
+    ];
 
     await openPage();
 
-    expect(
-      screen.getByTestId(
-        `llm-connection-tile-${LlmConnectionProvider.AzureOpenAI}`,
-      ),
-    ).toHaveTextContent("Connected (2)");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          `llm-connection-tile-${LlmConnectionProvider.AzureOpenAI}`,
+        ),
+      ).toHaveTextContent("Connected (2)");
+    });
     expect(
       screen.getByTestId(`llm-connection-tile-${LlmConnectionProvider.OpenAI}`),
     ).toHaveTextContent("Connect another");
@@ -473,6 +876,7 @@ describe("the tiles and the lists", () => {
   test("a tile opens that provider's form, for a new connection", async () => {
     await openPage();
 
+    fireEvent.click(way("providers"));
     fireEvent.click(
       screen.getByTestId(
         `llm-connection-tile-${LlmConnectionProvider.AwsBedrock}`,
@@ -536,7 +940,7 @@ describe("the tiles and the lists", () => {
 });
 
 describe("permissions", () => {
-  test("without the right to connect, no tile opens a form", async () => {
+  test("without the right to connect, no tile opens a form, and each panel says why in words", async () => {
     createGate = {
       isAllowed: false,
       disabledReason:
@@ -546,7 +950,7 @@ describe("permissions", () => {
     await openPage();
 
     const tiles: Array<HTMLElement> = screen
-      .getAllByRole("button")
+      .getAllByRole("button", { hidden: true })
       .filter((button: HTMLElement): boolean => {
         return (button.getAttribute("data-testid") || "").startsWith(
           "llm-connection-tile-",
@@ -561,6 +965,25 @@ describe("permissions", () => {
     }
 
     expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
+
+    const notes: Array<HTMLElement> = screen.getAllByTestId(
+      "llm-connect-locked",
+    );
+
+    expect(notes).toHaveLength(2);
+    expect(within(panel("providers")).getByTestId("llm-connect-locked"))
+      .toHaveTextContent(
+        "You do not have permission to create this AI Connection.",
+      );
+    expect(
+      within(panel("tools")).getByTestId("llm-connect-locked"),
+    ).toBeInTheDocument();
+  });
+
+  test("with the right to connect, nothing is said", async () => {
+    await openPage();
+
+    expect(screen.queryByTestId("llm-connect-locked")).not.toBeInTheDocument();
   });
 
   test("without the right to edit, the lists are told so", async () => {
@@ -601,8 +1024,8 @@ describe("the three ways in", () => {
   test("your apps, your provider accounts and your company's AI tools, in that order", async () => {
     await openPage();
 
-    const page: HTMLElement = screen.getByTestId("llm-connect-page");
-    const text: string = page.textContent || "";
+    const list: HTMLElement = screen.getByTestId("llm-connect-ways");
+    const text: string = list.textContent || "";
 
     expect(text.indexOf("Your apps")).toBeGreaterThan(-1);
     expect(text.indexOf("Your apps")).toBeLessThan(
@@ -613,57 +1036,29 @@ describe("the three ways in", () => {
     );
   });
 
-  test("the company tools part asks you to tell your people, and covers the tools with no API", async () => {
+  test("the company tools part asks you to tell your people, and folds the tools with no API", async () => {
     await openPage();
 
-    const section: HTMLElement = document.getElementById(
-      "llm-connect-company-tools-section",
-    )!;
+    const tools: HTMLElement = panel("tools");
 
-    expect(
-      within(section).getByTestId("llm-tell-your-people"),
-    ).toBeInTheDocument();
-    expect(
-      within(section).getByTestId("llm-other-ai-tools"),
-    ).toBeInTheDocument();
-    expect(section).toHaveTextContent(
+    expect(within(tools).getByTestId("llm-tell-your-people")).toBeInTheDocument();
+
+    const others: HTMLElement = within(tools).getByTestId("llm-other-ai-tools");
+
+    expect(others.tagName).toBe("DETAILS");
+    expect(others).not.toHaveAttribute("open");
+    expect(tools).toHaveTextContent(
       "Only project owners and admins can read them, unless you choose otherwise.",
-    );
-  });
-
-  test("a checklist line scrolls to its part of the page; the budget opens Budgets", async () => {
-    await openPage();
-
-    await waitFor(() => {
-      expect(doneState("apps")).toBe("false");
-    });
-
-    fireEvent.click(screen.getByTestId("llm-connect-checklist-open-apps"));
-    fireEvent.click(screen.getByTestId("llm-connect-checklist-open-providers"));
-    fireEvent.click(
-      screen.getByTestId("llm-connect-checklist-open-companyTools"),
-    );
-
-    expect(scrolledTo).toEqual([
-      "llm-connect-apps-section",
-      "llm-connect-providers-section",
-      "llm-connect-company-tools-section",
-    ]);
-
-    fireEvent.click(screen.getByTestId("llm-connect-checklist-open-budget"));
-
-    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
-      `/dashboard/${PROJECT_ID}/llm/budgets`,
     );
   });
 });
 
 // The markers stand in for real modules: make sure they are the ones used.
-test("the page is drawn with its real checklist and tiles", async () => {
+test("the page is drawn with its real ways and tiles", async () => {
   await openPage();
 
   expect(screen.getByTestId("apps-path")).toBeInTheDocument();
-  expect(screen.getByTestId("llm-connect-checklist")).toBeInTheDocument();
+  expect(screen.getByTestId("llm-connect-ways")).toBeInTheDocument();
   expect(
     screen.getByTestId(
       `llm-connection-tiles-${LlmConnectionKind.ProviderAccount}`,
