@@ -70,7 +70,7 @@ export const getTaskBaseBranch: (
  * scrolls, on the page's own ground (the theme's canvas, light or dark), so
  * the turns pass under it rather than show through it.
  */
-const STICKY_FOOTER_STYLE: React.CSSProperties = {
+export const STICKY_FOOTER_STYLE: React.CSSProperties = {
   backgroundColor: "var(--ou-background-primary)",
 };
 

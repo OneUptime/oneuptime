@@ -468,7 +468,10 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
       ) : (
         <></>
       )}
-      <span className="ml-auto shrink-0 text-xs text-gray-400">
+      <span
+        data-testid="code-log-call-tokens"
+        className="ml-auto shrink-0 text-xs text-gray-400"
+      >
         {/*
          * As the AI Logs count a call (AiTokenCount): a token the prompt
          * cache served counts as a tenth, one written to it as one and a

@@ -38,18 +38,21 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * The pieces a task's conversation and a repository's page are drawn from,
- * rendered for real: a turn (what was asked, what started it, the AI's side
- * of it), its steps, its changes, the state badge, a task row, a
- * repository's card and the notice that says what stops AI working.
+ * The pieces a task's conversation and Code's lists are drawn from,
+ * rendered for real: a turn (what was asked - the person's message on the
+ * right - what started it, the AI's side of it), its steps, its changes,
+ * the state badge and the state mark, a task row, a repository's row and
+ * the notice that says what stops AI working.
  *
- * What they promise a reader: the state is always said in words; while AI
- * works its latest steps show live, and once done they fold behind one line
- * that counts them; a diff opens a file at a time and only for people who
- * may see it; a pull request is "opened" by the turn that opened it and
- * "pushed to" by the turns after; a failed or stopped turn says why and
- * offers Try again only where it applies; a record the request named links
- * to its page.
+ * What they promise a reader: the state is always said - in words while a
+ * task moves or asks something of someone, by its mark (named for a screen
+ * reader) once it is done or stopped; while AI works its latest steps show
+ * live, and once done they fold behind one line that counts them; a diff
+ * opens a file at a time and only for people who may see it; a pull
+ * request is "opened" by the turn that opened it and "pushed to" by the
+ * turns after; a failed or stopped turn says why and offers Try again only
+ * where it applies; a record the request named links to its page; a row
+ * says how much its task changed, "+23 −1".
  */
 
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
@@ -73,8 +76,10 @@ import CodeTaskChangesView, {
   getDiffLineClassName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskChanges";
 import CodeTaskStateBadge from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskStateBadge";
+import CodeTaskStateMark from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskStateMark";
+import CodeDiffStat from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeDiffStat";
 import { CodeTaskRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
-import RepositoryCard from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RepositoryCard";
+import CodeRepositoryRow from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRow";
 import CodeBlockerNotice from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeBlockerNotice";
 
 const TASK_ID: string = "1d2e3f4a-5b6c-4d7e-8f90-a1b2c3d4e5f6";
@@ -221,6 +226,23 @@ describe("a turn: what was asked", () => {
     expect(request).toHaveTextContent(
       "Retry charges. Never retry a declined card.",
     );
+
+    /*
+     * The person's message, as a chat draws what was sent: on the right, in
+     * a bubble of its own, the words kept as written (line breaks too).
+     */
+    expect(request.className.split(" ")).toContain("items-end");
+    const message: HTMLElement = within(request).getByTestId(
+      "code-turn-request-message",
+    );
+    expect(message.className).toContain("rounded-2xl");
+    expect(message.querySelector("p")?.className).toContain(
+      "whitespace-pre-wrap",
+    );
+    // Their context sits under the message, lined up at its end.
+    expect(
+      within(request).getByTestId("code-turn-context").className,
+    ).toContain("justify-end");
 
     const chips: Array<HTMLElement> = within(request).getAllByTestId(
       "code-turn-context-chip",
@@ -561,9 +583,9 @@ describe("a turn: the AI's side", () => {
     );
 
     const reply: HTMLElement = screen.getByTestId("code-turn-reply");
-    expect(within(reply).getByTestId("code-task-state")).toHaveTextContent(
-      "Done",
-    );
+    // Done is how a turn usually ends: its reply says so, with no badge.
+    expect(within(reply).queryByTestId("code-task-state")).toBeNull();
+    expect(reply).toHaveAttribute("data-turn-state", "Done");
     expect(reply).toHaveTextContent("worked");
     expect(screen.getByTestId("markdown")).toHaveTextContent(
       "Charges now retry up to **3 times**.",
@@ -1048,6 +1070,77 @@ describe("the state badge", () => {
   );
 });
 
+describe("the state mark", () => {
+  test.each([
+    [CodeTaskState.Working, false, "Working…", "spinner"],
+    [CodeTaskState.Working, true, "Queued", "icon"],
+    [CodeTaskState.WaitingForYou, false, "Waiting for you", "icon"],
+    [CodeTaskState.Done, false, "Done", "icon"],
+    [CodeTaskState.Failed, false, "Failed", "icon"],
+    [CodeTaskState.Stopped, false, "Stopped", "icon"],
+  ])(
+    "%s (queued: %s) is named %s for a screen reader and on hover",
+    (
+      state: CodeTaskState,
+      isQueued: boolean,
+      words: string,
+      drawn: string,
+    ) => {
+      draw(<CodeTaskStateMark state={state} isQueued={isQueued} />);
+      const mark: HTMLElement = screen.getByTestId("code-task-state");
+      expect(mark).toHaveAttribute("role", "img");
+      expect(mark).toHaveAttribute("aria-label", words);
+      expect(mark).toHaveAttribute("title", words);
+      expect(mark).toHaveAttribute("data-state", state);
+      // Only AI at work turns; a queued task waits on a clock.
+      expect(mark.querySelector(".motion-safe\\:animate-spin") !== null).toBe(
+        drawn === "spinner",
+      );
+      expect(mark.getAttribute("data-queued")).toBe(
+        isQueued && state === CodeTaskState.Working ? "true" : null,
+      );
+    },
+  );
+
+  test("in German, the mark is named in German", () => {
+    drawInGerman(<CodeTaskStateMark state={CodeTaskState.WaitingForYou} />);
+    expect(screen.getByTestId("code-task-state")).toHaveAttribute(
+      "aria-label",
+      germanLocale["Waiting for you"],
+    );
+  });
+});
+
+describe("how much a task changed", () => {
+  test("lines added in green and removed in red, as GitHub says it - and in words for a screen reader", () => {
+    draw(<CodeDiffStat changes={{ additions: 1234, deletions: 5 }} />);
+
+    const stat: HTMLElement = screen.getByTestId("code-diff-stat");
+    expect(stat).toHaveAttribute("role", "img");
+    expect(stat).toHaveAttribute(
+      "aria-label",
+      "Lines added: 1,234, lines removed: 5",
+    );
+    const parts: Array<Element> = Array.from(stat.children);
+    expect(
+      parts.map((part: Element) => {
+        return part.textContent;
+      }),
+    ).toEqual(["+1,234", "−5"]);
+    expect(parts[0]!.className).toContain("text-emerald-600");
+    expect(parts[1]!.className).toContain("text-red-600");
+    for (const part of parts) {
+      expect(part).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
+  test("numbers are written the reader's way", () => {
+    drawInGerman(<CodeDiffStat changes={{ additions: 1234, deletions: 0 }} />);
+
+    expect(screen.getByTestId("code-diff-stat")).toHaveTextContent("+1.234");
+  });
+});
+
 describe("a task row", () => {
   function summary(data: Partial<CodeTaskSummaryJSON>): CodeTaskSummaryJSON {
     return {
@@ -1066,7 +1159,7 @@ describe("a task row", () => {
     };
   }
 
-  test("a request: its title, number, who asked, when, its pull request - and opens its conversation", () => {
+  test("a request: its mark, its title, who asked, when, its pull request - and opens its conversation", () => {
     draw(
       <ul>
         <CodeTaskRow task={summary({})} />
@@ -1075,42 +1168,145 @@ describe("a task row", () => {
 
     const row: HTMLElement = screen.getByTestId("code-task-row");
     expect(row).toHaveAttribute("data-task-state", "Done");
-    expect(row).toHaveTextContent("Retry charges");
+    expect(within(row).getByTestId("code-task-row-title")).toHaveTextContent(
+      "Retry charges",
+    );
     const meta: HTMLElement = within(row).getByTestId("code-task-row-meta");
-    expect(meta).toHaveTextContent("#12");
     expect(meta).toHaveTextContent("Asked by Ada Lovelace");
     expect(meta).toHaveTextContent("PR #418");
+    // The number is the task's page's to say, not the list's.
+    expect(meta).not.toHaveTextContent("#12");
     expect(hrefOf(within(row).getByRole("link"))).toBe(
       `/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`,
     );
-    // One badge for a laptop, one leading the meta line on a phone.
-    const badges: Array<HTMLElement> =
+
+    // One mark at the start of the row, named; Done is not said again in words.
+    const marks: Array<HTMLElement> =
       within(row).getAllByTestId("code-task-state");
-    expect(
-      badges.map((badge: HTMLElement) => {
-        const classes: Array<string> = badge.className.split(" ");
-        return classes.includes("max-sm:hidden")
-          ? "laptop"
-          : classes.includes("sm:hidden")
-            ? "phone"
-            : "both";
-      }),
-    ).toEqual(["phone", "laptop"]);
-    // The badge is the state's one mark: no icon column beside the title.
-    expect(within(row).getByRole("link").querySelectorAll("svg")).toHaveLength(
-      1,
-    );
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveAttribute("aria-label", "Done");
+    expect(within(row).queryByTestId("code-task-row-state")).toBeNull();
+    // A task that changed nothing says nothing about lines.
+    expect(within(row).queryByTestId("code-task-row-changes")).toBeNull();
 
     // The facts read apart: a dot between each, hidden from screen readers.
     const dots: Array<HTMLElement> =
       within(meta).getAllByTestId("code-meta-dot");
-    expect(dots).toHaveLength(3);
+    expect(dots).toHaveLength(2);
     for (const dot of dots) {
       expect(dot).toHaveAttribute("aria-hidden", "true");
     }
-    expect(meta.textContent).toMatch(
-      /^Done#12·Asked by Ada Lovelace·.+·PR #418$/,
+    expect(meta.textContent).toMatch(/^Asked by Ada Lovelace·.+·PR #418$/);
+  });
+
+  test.each([
+    [CodeTaskState.Working, false, "Working…", "text-indigo-600"],
+    [CodeTaskState.Working, true, "Queued", "text-indigo-600"],
+    [CodeTaskState.WaitingForYou, false, "Waiting for you", "text-amber-600"],
+    [CodeTaskState.Failed, false, "Failed", "text-red-600"],
+  ])(
+    "%s (queued: %s) is said in words too, first in the line, in its colour",
+    (
+      state: CodeTaskState,
+      isQueued: boolean,
+      words: string,
+      colour: string,
+    ) => {
+      draw(
+        <ul>
+          <CodeTaskRow task={summary({ state, isQueued })} />
+        </ul>,
+      );
+
+      const said: HTMLElement = screen.getByTestId("code-task-row-state");
+      expect(said).toHaveTextContent(words);
+      expect(said.className).toContain(colour);
+      expect(
+        screen.getByTestId("code-task-row-meta").textContent?.startsWith(words),
+      ).toBe(true);
+    },
+  );
+
+  test("a stopped task is said by its mark alone", () => {
+    draw(
+      <ul>
+        <CodeTaskRow task={summary({ state: CodeTaskState.Stopped })} />
+      </ul>,
     );
+
+    expect(screen.queryByTestId("code-task-row-state")).toBeNull();
+    expect(screen.getByTestId("code-task-state")).toHaveAttribute(
+      "aria-label",
+      "Stopped",
+    );
+  });
+
+  test("a list across repositories names each task's repository; a repository's own list does not", () => {
+    draw(
+      <ul>
+        <CodeTaskRow task={summary({})} repositoryName="checkout-api" />
+      </ul>,
+    );
+
+    expect(screen.getByTestId("code-task-row-repository")).toHaveTextContent(
+      "checkout-api",
+    );
+    // Second in the line, after the state when it is said.
+    cleanup();
+    draw(
+      <ul>
+        <CodeTaskRow
+          task={summary({ state: CodeTaskState.Failed })}
+          repositoryName="checkout-api"
+        />
+      </ul>,
+    );
+    expect(screen.getByTestId("code-task-row-meta").textContent).toMatch(
+      /^Failed·checkout-api·Asked by Ada Lovelace·/,
+    );
+
+    cleanup();
+    draw(
+      <ul>
+        <CodeTaskRow task={summary({})} />
+      </ul>,
+    );
+    expect(screen.queryByTestId("code-task-row-repository")).toBeNull();
+  });
+
+  test("how much it changed sits at the row's end: +23 −1", () => {
+    draw(
+      <ul>
+        <CodeTaskRow
+          task={summary({
+            changes: { files: 2, additions: 23, deletions: 1 },
+          })}
+        />
+      </ul>,
+    );
+
+    const link: HTMLElement = within(
+      screen.getByTestId("code-task-row"),
+    ).getByRole("link");
+    const changes: HTMLElement = screen.getByTestId("code-task-row-changes");
+    expect(changes).toHaveTextContent("+23−1");
+    expect(changes).toHaveAttribute(
+      "aria-label",
+      "Lines added: 23, lines removed: 1",
+    );
+    expect(link.lastElementChild).toBe(changes);
+  });
+
+  test("a long title is cut at two lines on a phone and one from sm up", () => {
+    draw(
+      <ul>
+        <CodeTaskRow task={summary({ title: "A".repeat(300) })} />
+      </ul>,
+    );
+
+    const title: HTMLElement = screen.getByTestId("code-task-row-title");
+    expect(title.className).toContain("line-clamp-2");
+    expect(title.className).toContain("sm:line-clamp-1");
   });
 
   test("a task OneUptime started is named by its record and its kind, said once", () => {
@@ -1193,11 +1389,12 @@ describe("a task row", () => {
   });
 });
 
-describe("a repository's card", () => {
+describe("a repository's row", () => {
   test("what needs someone, then tasks, open pull requests and the last activity - and it opens the repository", () => {
     draw(
-      <RepositoryCard
-        repository={{
+      <ul>
+        <CodeRepositoryRow
+          repository={{
           id: REPOSITORY_ID,
           name: "checkout-api",
           organizationName: "acme",
@@ -1211,69 +1408,100 @@ describe("a repository's card", () => {
             taskCount: 7,
             lastActivityAt: new Date(Date.now() - 5 * 60000).toISOString(),
           },
-        }}
-      />,
+          }}
+        />
+      </ul>,
     );
 
-    const card: HTMLElement = screen.getByTestId("code-repository-card");
-    expect(hrefOf(card)).toBe(
+    const row: HTMLElement = screen.getByTestId("code-repository-row");
+    expect(row).toHaveAttribute("data-repository-id", REPOSITORY_ID);
+    expect(hrefOf(within(row).getByTestId("code-repository-link"))).toBe(
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
     );
-    expect(within(card).getByRole("heading", { level: 3 })).toHaveTextContent(
+    expect(within(row).getByTestId("code-repository-name")).toHaveTextContent(
       "checkout-api",
     );
-    expect(card).toHaveTextContent("acme/checkout-api-service");
+    expect(row).toHaveTextContent("acme/checkout-api-service");
+    expect(row).toHaveTextContent("The checkout API.");
     expect(
-      within(card).getByTestId("code-repository-working"),
+      within(row).getByTestId("code-repository-working"),
     ).toHaveTextContent("2 working");
     expect(
-      within(card).getByTestId("code-repository-waiting"),
+      within(row).getByTestId("code-repository-waiting"),
     ).toHaveTextContent("1 waiting for you");
-    const stats: HTMLElement = within(card).getByTestId(
+    const stats: HTMLElement = within(row).getByTestId(
       "code-repository-stats",
     );
-    expect(stats).toHaveTextContent("7 tasks");
-    expect(stats).toHaveTextContent("3 open pull requests");
-    expect(stats).toHaveTextContent("5 minutes ago");
-    // The counts read apart, a dot between them; the time stands on its own.
-    expect(within(stats).getAllByTestId("code-meta-dot")).toHaveLength(1);
-    expect(stats.textContent).toBe("7 tasks·3 open pull requests5 minutes ago");
-    expect(stats.lastElementChild?.tagName).toBe("TIME");
+    // The facts read apart, a dot between each, the time last.
+    expect(stats.textContent).toBe(
+      "7 tasks·3 open pull requests·5 minutes ago",
+    );
+    expect(within(stats).getAllByTestId("code-meta-dot")).toHaveLength(2);
+    expect(stats.querySelector("time")).not.toBeNull();
     expect(
-      within(card).queryByTestId("code-repository-not-connected"),
+      within(row).queryByTestId("code-repository-not-connected"),
     ).toBeNull();
+    // A repository AI reaches carries the dark GitHub mark.
+    expect(
+      within(row).getByTestId("code-repository-link").firstElementChild
+        ?.className,
+    ).toContain("bg-gray-900");
   });
 
-  test("a quiet repository says it has no tasks yet and nothing more; one AI cannot reach says so", () => {
+  test("a quiet repository says it has no tasks yet and nothing more; one AI cannot reach says so, its mark greyed", () => {
     draw(
-      <RepositoryCard
-        repository={{
-          id: REPOSITORY_ID,
-          name: "payments-worker",
-          isConnected: false,
-          stats: {
-            working: 0,
-            waitingForYou: 0,
-            openPullRequests: 0,
-            taskCount: 0,
-          },
-        }}
-      />,
+      <ul>
+        <CodeRepositoryRow
+          repository={{
+            id: REPOSITORY_ID,
+            name: "payments-worker",
+            isConnected: false,
+            stats: {
+              working: 0,
+              waitingForYou: 0,
+              openPullRequests: 0,
+              taskCount: 0,
+            },
+          }}
+        />
+      </ul>,
     );
 
-    const card: HTMLElement = screen.getByTestId("code-repository-card");
-    expect(within(card).getByTestId("code-repository-stats")).toHaveTextContent(
+    const row: HTMLElement = screen.getByTestId("code-repository-row");
+    expect(within(row).getByTestId("code-repository-stats")).toHaveTextContent(
       /^No tasks yet$/,
     );
     expect(
-      within(card).getByTestId("code-repository-not-connected"),
+      within(row).getByTestId("code-repository-not-connected"),
     ).toHaveTextContent("Not connected");
-    // The pill sits under the name, never beside it.
     expect(
-      within(card).getByRole("heading", { level: 3 }).parentElement,
-    ).not.toContainElement(
-      within(card).getByTestId("code-repository-not-connected"),
+      within(row).getByTestId("code-repository-link").firstElementChild
+        ?.className,
+    ).toContain("bg-gray-100");
+  });
+
+  test("once the page says GitHub reaches none of them, a row does not say it again", () => {
+    draw(
+      <ul>
+        <CodeRepositoryRow
+          isNotConnectedSaid={true}
+          repository={{
+            id: REPOSITORY_ID,
+            name: "payments-worker",
+            isConnected: false,
+            stats: {
+              working: 0,
+              waitingForYou: 0,
+              openPullRequests: 0,
+              taskCount: 0,
+            },
+          }}
+        />
+      </ul>,
     );
+
+    expect(screen.queryByTestId("code-repository-not-connected")).toBeNull();
+    expect(screen.queryByTestId("code-repository-attention")).toBeNull();
   });
 });
 
@@ -1313,7 +1541,7 @@ describe("what stops AI working", () => {
       CodeTaskBlockerType.RepositoryNotConnected,
       "connected through the GitHub App",
       "Connect GitHub",
-      "code",
+      "code/repositories",
     ],
   ])(
     "%s: its sentence and the link that fixes it",
@@ -1503,6 +1731,69 @@ describe("what stops AI working", () => {
       expect(screen.getByTestId("code-blocker-who-can")).toHaveTextContent(
         "Manage Billing",
       );
+    });
+
+    test("a page that connects GitHub itself offers Connect GitHub right in the notice - a button, not a link", async () => {
+      grant([Permission.ProjectUser, Permission.ProjectOwner]);
+      const connect: MockFunction = getJestMockFunction();
+
+      draw(
+        <CodeBlockerNotice
+          blocker={{
+            type: CodeTaskBlockerType.RepositoryNotConnected,
+            message: "x",
+          }}
+          connectGitHub={{
+            onConnect: () => {
+              connect();
+            },
+          }}
+        />,
+      );
+
+      const fix: HTMLElement = screen.getByTestId("code-blocker-fix");
+      expect(fix.tagName).toBe("BUTTON");
+      expect(fix).toHaveTextContent("Connect GitHub");
+      await userEvent.click(fix);
+      expect(connect).toHaveBeenCalledTimes(1);
+    });
+
+    test("someone who may not connect GitHub is told why, with no button", () => {
+      grant([Permission.ProjectUser, Permission.ProjectMember]);
+
+      draw(
+        <CodeBlockerNotice
+          blocker={{
+            type: CodeTaskBlockerType.RepositoryNotConnected,
+            message: "x",
+          }}
+          connectGitHub={{
+            onConnect: () => {},
+            lockReason:
+              "Connecting GitHub needs permission to create code repositories.",
+          }}
+        />,
+      );
+
+      expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
+      expect(screen.getByTestId("code-blocker-who-can")).toHaveTextContent(
+        "Connecting GitHub needs permission to create code repositories.",
+      );
+    });
+
+    test("negative control: connecting GitHub is offered for a disconnected repository only", () => {
+      grant([Permission.ProjectUser, Permission.ProjectOwner]);
+
+      draw(
+        <CodeBlockerNotice
+          blocker={{ type: CodeTaskBlockerType.AiDisabled, message: "x" }}
+          connectGitHub={{ onConnect: () => {} }}
+        />,
+      );
+
+      const fix: HTMLElement = screen.getByTestId("code-blocker-fix");
+      expect(fix.tagName).toBe("A");
+      expect(fix).toHaveTextContent("Turn AI on");
     });
 
     test("the plan, the bill and a disconnected repository are linked for everyone", () => {
