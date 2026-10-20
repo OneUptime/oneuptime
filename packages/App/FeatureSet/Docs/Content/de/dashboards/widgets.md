@@ -96,7 +96,7 @@ Was es nicht kann, ist die OneUptime-Seite drumherum erreichen. Es hat keinen Zu
 Zwei Folgen, die Sie kennen sollten, bevor Sie etwas einfügen:
 
 - Ein `fetch` aus dem Widget ist eine ursprungsübergreifende Anfrage von einem opaken Ursprung, daher muss der aufgerufene Server sie per CORS erlauben. Die OneUptime-API von hier aus aufzurufen, wird nicht unterstützt.
-- Das Widget beginnt transparent. Setzen Sie in Ihrem CSS einen Hintergrund auf `body`, wenn es die Karte füllen soll.
+- Das Widget beginnt transparent. Setzen Sie in Ihrem CSS einen Hintergrund auf `body`, wenn es die Karte füllen soll. Im dunklen Design beginnt sein Text hell, und sein Element `<html>` hat die Klasse `dark`: Beginnen Sie eine CSS-Regel mit `html.dark`, um nur das dunkle Design zu gestalten.
 
 #### Dashboard-Variablen verwenden
 

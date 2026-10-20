@@ -47,7 +47,8 @@ Ein öffentliches Dashboard:
 
 - Öffnet sich immer zum Lesen. Besucher können es nicht bearbeiten und sehen nie seine Bearbeitungselemente.
 - Enthält die Variablen, die Sie hinzugefügt haben. Besucher wählen aus denselben Auswahlen wie Ihr Team und können den Zeitbereich ändern, zoomen, die automatische Aktualisierung einschalten und in den Vollbildmodus wechseln.
-- Verwendet das Branding, das Sie auf der Seite **Branding** des Dashboards festlegen: Seitentitel, Beschreibung, Logo, Favicon.
+- Verwendet das Branding, das Sie auf der Seite **Branding** des Dashboards festlegen: Seitentitel, Beschreibung, Logo, Design, Favicon.
+- Lässt jeden Besucher mit einer Schaltfläche mit Sonne oder Mond in seiner Werkzeugleiste zwischen dem hellen und dem dunklen Dashboard wechseln; [Design](#design) erklärt, wie.
 
 Behandeln Sie das Teilen eines Dashboards wie das Veröffentlichen einer Webseite. Jedes Widget darauf wird für alle mit dem Link lesbar. Sehen Sie sich an, was auf der Arbeitsfläche ist, bevor Sie es teilen.
 
@@ -55,7 +56,7 @@ Jedes Widget veröffentlicht nur, was es zeichnet, und nur für die Ressourcen, 
 
 ## Mit einem Passwort teilen
 
-Wählen Sie **Alle mit dem Link und einem Passwort** und geben Sie das Passwort im Dialog ein. Besucher sehen eine Passwortabfrage, bevor das Dashboard erscheint. Die Abfrage zeigt den Namen, den Seitentitel und das Favicon des Dashboards und sonst nichts: Seine Beschreibung, sein Logo und seine Widgets erscheinen, sobald das Passwort eingegeben ist. Das Passwort wird als Hash gespeichert — niemand kann es zurücklesen. Ein neues Passwort gilt sofort; wer das alte eingegeben hat, kann das Dashboard noch bis zu 7 Tage lang ansehen.
+Wählen Sie **Alle mit dem Link und einem Passwort** und geben Sie das Passwort im Dialog ein. Besucher sehen eine Passwortabfrage, bevor das Dashboard erscheint. Die Abfrage zeigt den Namen, den Seitentitel und das Favicon des Dashboards, im Design des Dashboards, und sonst nichts: Seine Beschreibung, sein Logo und seine Widgets erscheinen, sobald das Passwort eingegeben ist. Das Passwort wird als Hash gespeichert — niemand kann es zurücklesen. Ein neues Passwort gilt sofort; wer das alte eingegeben hat, kann das Dashboard noch bis zu 7 Tage lang ansehen.
 
 Verwenden Sie ein Passwort, wenn:
 
@@ -152,13 +153,30 @@ Auf der Seite **Branding** des Dashboards können Sie festlegen:
 - **Seitentitel** — was im Browser-Tab und oben auf der Seite steht.
 - **Seitenbeschreibung** — die Beschreibung, die Suchmaschinen und Link-Vorschauen verwenden.
 - **Logo** — ein Bild im Kopf des öffentlichen Dashboards.
+- **Design** — hell, dunkel oder so, wie das Gerät jedes Besuchers eingestellt ist; siehe [Design](#design).
 - **Favicon** — das kleine Symbol im Browser-Tab.
 
 Das Logo und das Favicon sind Dateien, die im eigenen Projekt des Dashboards hochgeladen wurden, und das wird bei jedem Speichern geprüft — aus dem Dashboard, über die API, Terraform oder einen Workflow. Eine in einem anderen Projekt hochgeladene Datei wird mit den Worten abgelehnt, die eine nicht mehr vorhandene Datei bekommt: "The logo's file could not be found. Upload the logo again." oder "The favicon's file could not be found. Upload the favicon again." Das öffentliche Dashboard zeigt nur Bilder seines eigenen Projekts.
 
-Der Seitentitel und die Beschreibung stehen für Ihr Team auch über der Werkzeugleiste des Dashboards, anstelle seines Namens und seiner Beschreibung. Das Logo und das Favicon erscheinen nur auf dem öffentlichen Dashboard.
+Der Seitentitel und die Beschreibung stehen für Ihr Team auch über der Werkzeugleiste des Dashboards, anstelle seines Namens und seiner Beschreibung. Das Logo, das Design und das Favicon gelten nur für das öffentliche Dashboard.
 
-Besucher sehen das Branding erst, sobald sie das Dashboard sehen dürfen. Vor der Eingabe des Passworts zeigt ein mit Passwort geteiltes Dashboard nur seinen Seitentitel und sein Favicon, und Suchmaschinen und Link-Vorschauen sehen seinen Seitentitel, aber nicht seine Seitenbeschreibung. Ein Dashboard mit IP-Zulassungsliste zeigt sein Branding nur den Adressen auf der Liste, und Suchmaschinen und Link-Vorschauen sehen nichts davon.
+Besucher sehen das Branding erst, sobald sie das Dashboard sehen dürfen. Vor der Eingabe des Passworts zeigt ein mit Passwort geteiltes Dashboard nur seinen Seitentitel, sein Favicon und sein Design, und Suchmaschinen und Link-Vorschauen sehen seinen Seitentitel, aber nicht seine Seitenbeschreibung. Ein Dashboard mit IP-Zulassungsliste zeigt sein Branding nur den Adressen auf der Liste, und Suchmaschinen und Link-Vorschauen sehen nichts davon.
+
+### Design
+
+Die Karte **Design**, direkt unter dem Logo, legt fest, wie das öffentliche Dashboard für seine Besucher aussieht. Wählen Sie eine ihrer drei Möglichkeiten, und sie wird sofort gespeichert; es gibt keine Schaltfläche **Bearbeiten**.
+
+| Auswahl | Was Besucher sehen |
+| ------ | ----------------- |
+| **Hell** | Das helle Dashboard, egal wie ihr Gerät eingestellt ist. Dashboards, die vor dieser Einstellung angelegt wurden, sind **Hell**, sie sehen also aus wie immer. |
+| **Dunkel** | Das dunkle Dashboard, egal wie ihr Gerät eingestellt ist. |
+| **Wie das Gerät des Besuchers** | Hell oder dunkel, wie ihr Gerät eingestellt ist, und das Dashboard wechselt mit dem Gerät, solange es offen ist. |
+
+Was Sie auch wählen: Eine Schaltfläche mit Sonne oder Mond in der Werkzeugleiste des Dashboards lässt jeden Besucher zum hellen oder zum dunklen Dashboard wechseln oder zurück zu dem Design, das Sie festgelegt haben, und sein Browser merkt sich die Wahl für jedes öffentliche Dashboard unter dieser Adresse. Auf dem dunklen Dashboard steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt.
+
+Ein Dashboard, das ab jetzt angelegt wird, beginnt mit **Wie das Gerät des Besuchers**. Über die API und Terraform heißt das Feld `theme`, mit einem der Werte `Light`, `Dark` oder `System` (**Wie das Gerät des Besuchers**), genau so geschrieben; jeder andere Wert wird abgelehnt. Eine Terraform-Konfiguration, die kein `theme` setzt, bekommt `Light`, sodass eine Konfiguration von vor dieser Einstellung nie eine Änderung an einem Dashboard plant, das sie verwaltet.
+
+Das Design steht im HTML des Dashboards, das Dashboard wird also von Anfang an darin gezeichnet: Ein dunkles Dashboard blitzt beim Laden nicht weiß auf, und auch seine Passwortabfrage wird darin gezeichnet. Jedes Widget folgt ihm; der eigene Code eines HTML-Widgets kann das dunkle Design gestalten, wie [HTML](/docs/dashboards/widgets#html) beschreibt. Die Seiten **Access Denied** und „nicht gefunden“ zeigen nichts von einem Dashboard, also folgen sie dem Besucher: seiner eigenen Wahl, sonst seinem Gerät.
 
 ## Einbetten
 
@@ -175,9 +193,11 @@ Sie können ein öffentliches Dashboard mit einem iframe in Ihre eigene Website 
 
 Ist das Dashboard mit einem Passwort geteilt, sehen Besucher die Passwortabfrage im iframe.
 
+Um einem eingebetteten Dashboard das Aussehen Ihrer Website zu geben, hängen Sie `?theme=light` oder `?theme=dark` an seine Adresse an, wie in `https://dashboard.acme.com/?theme=dark`: Das Dashboard wird dann für alle, die diese Adresse öffnen, in diesem Design gezeichnet, unabhängig von seinem eigenen Design und der Wahl des Besuchers, und seine Werkzeugleiste hat keine Design-Schaltfläche. `?theme=system` folgt dem Gerät jedes Besuchers. Das Design bleibt über die Passwortabfrage hinweg erhalten.
+
 ## Einen Link senden
 
-Der öffentliche Link öffnet das Dashboard mit seinen gespeicherten Standardwerten. Um einen Link zu senden, der mit einem bestimmten Wert öffnet, hängen Sie die Variable als `?var-<name>=<value>` an, wie es die Adressleiste tut, wenn ein Besucher einen Wert wählt; mehrere Werte werden durch Kommas getrennt. Der Zeitbereich ist nicht Teil des Links: Jeder Besuch beginnt mit der letzten Stunde.
+Der öffentliche Link öffnet das Dashboard mit seinen gespeicherten Standardwerten. Um einen Link zu senden, der mit einem bestimmten Wert öffnet, hängen Sie die Variable als `?var-<name>=<value>` an, wie es die Adressleiste tut, wenn ein Besucher einen Wert wählt; mehrere Werte werden durch Kommas getrennt. Der Zeitbereich ist nicht Teil des Links: Jeder Besuch beginnt mit der letzten Stunde. Um das Dashboard in einem Design zu öffnen, hängen Sie `theme=light`, `theme=dark` oder `theme=system` an, wie [Einbetten](#einbetten) beschreibt.
 
 ## Nächste Schritte
 

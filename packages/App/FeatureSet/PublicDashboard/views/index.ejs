@@ -1,13 +1,108 @@
 <!DOCTYPE html>
-<html lang="en">
+<%
+  /*
+   * The dashboard's theme, as the server that renders this page worked it
+   * out from the dashboard's settings (Common/Types/Dashboard/
+   * DashboardTheme.ts, getDashboardThemeHead): Light, Dark, or System -
+   * light or dark as the visitor's device is set. Rendered without it (a
+   * host that names no dashboard), the page follows the visitor, as a page
+   * that knows no dashboard's theme does.
+   */
+  var themeHead = (typeof dashboardTheme !== 'undefined' && dashboardTheme && dashboardTheme.setting)
+    ? dashboardTheme
+    : { setting: 'system', htmlClassName: '', colorScheme: 'light dark', themeColor: '#f9fafb' };
+%>
+<html lang="en"<% if (themeHead.htmlClassName) { %> class="<%= themeHead.htmlClassName %>"<% } %> data-public-dashboard-theme="<%= themeHead.setting %>">
   <head>
     <meta charset="utf-8" />
+    <%#
+      Before anything that paints. The color-scheme tag lets the browser draw
+      its canvas, scrollbars and form controls in the dashboard's scheme
+      before any stylesheet arrives ("light dark" on a dashboard that follows
+      the visitor's device), and the script below settles the scheme - the
+      dark class, data-theme, color-scheme and the theme-color tag - before
+      the first paint, so a dark dashboard never flashes white. It reads, in
+      this order: the link's own theme (?theme=light, dark or system, for a
+      wall screen or a site that embeds the dashboard), the visitor's own
+      pick from the toolbar's theme menu, and the dashboard's theme. The app
+      keeps it in step afterwards (PublicDashboard/src/Utils/DashboardTheme.ts).
+    -%>
+    <meta name="color-scheme" content="<%= themeHead.colorScheme %>" />
+    <meta name="theme-color" content="<%= themeHead.themeColor %>" />
+    <script>
+      (function (themeWindow) {
+        var root = themeWindow.document.documentElement;
+        var setting = root.getAttribute("data-public-dashboard-theme");
+        var linkTheme = null;
+
+        try {
+          var linkValue = new URLSearchParams(themeWindow.location.search).get(
+            "theme",
+          );
+          linkValue = linkValue ? linkValue.trim().toLowerCase() : "";
+
+          if (
+            linkValue === "light" ||
+            linkValue === "dark" ||
+            linkValue === "system"
+          ) {
+            linkTheme = linkValue;
+          }
+        } catch (_linkError) {
+          // An address that cannot be read names no theme.
+        }
+
+        var visitorChoice = null;
+
+        if (!linkTheme) {
+          try {
+            visitorChoice = themeWindow.localStorage.getItem(
+              "oneuptime-public-dashboard-theme",
+            );
+          } catch (_storageError) {
+            // Storage can be blocked; the dashboard's theme decides.
+          }
+        }
+
+        var wanted =
+          linkTheme ||
+          (visitorChoice === "light" || visitorChoice === "dark"
+            ? visitorChoice
+            : setting);
+        var scheme = wanted === "dark" ? "dark" : "light";
+
+        if (wanted === "system") {
+          try {
+            scheme =
+              themeWindow.matchMedia &&
+              themeWindow.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          } catch (_mediaError) {
+            scheme = "light";
+          }
+        }
+
+        root.classList.toggle("dark", scheme === "dark");
+        root.setAttribute("data-theme", scheme);
+        root.style.colorScheme = scheme;
+
+        var themeColor = themeWindow.document.querySelector(
+          'meta[name="theme-color"]:not([media])',
+        );
+
+        if (themeColor) {
+          themeColor.setAttribute(
+            "content",
+            scheme === "dark" ? "#0f172a" : "#f9fafb",
+          );
+        }
+      })(window);
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta charSet='utf-8' />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="theme-color" content="#000000">
     <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'View dashboard metrics and insights.' %>">
     <%
       /*
@@ -33,6 +128,18 @@
       }
       * {
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+
+      /*
+       * The dark dashboard's ground and text before Tailwind and the app's
+       * theme stylesheet (Common/UI/Styles/Theme.css) arrive, so the first
+       * paint of a dark dashboard is already dark. The same colours as
+       * Theme.css's --ou-background-primary and --ou-text-primary.
+       */
+      html.dark,
+      html.dark body {
+        background-color: #0f172a;
+        color: #f8fafc;
       }
 
       input[type="datetime-local"]::-webkit-calendar-picker-indicator {
@@ -78,6 +185,7 @@
     <script type="module" src="/public-dashboard/dist/Index.js"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend:
           {

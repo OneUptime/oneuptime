@@ -59,7 +59,7 @@ Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards k
 | **Übersicht** | Sein Name, seine Beschreibung und seine Beschriftungen. |
 | **Freigabe** | Wer es sehen kann, sein öffentlicher Link und eine IP-Zulassungsliste unter Weitere Einstellungen. |
 | **Eigentümer** | Die Benutzer und Teams, denen es gehört. |
-| **Branding** | Seitentitel, Beschreibung, Logo und Favicon des öffentlichen Dashboards. |
+| **Branding** | Seitentitel, Beschreibung, Logo, Design und Favicon des öffentlichen Dashboards. |
 | **Benutzerdefinierte Domains** | Das öffentliche Dashboard unter Ihrer eigenen Domain bereitstellen. |
 | **Einstellungen** | Das Dashboard duplizieren, exportieren oder archivieren. |
 | **Audit-Protokolle** | Jede Änderung am Dashboard und wer sie vorgenommen hat. |
