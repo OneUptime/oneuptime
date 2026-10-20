@@ -228,7 +228,13 @@ export default class MonitorIncident {
    * absence: a webhook describes only the keys in its payload, so a
    * missing key is not a recovery signal. The caller passes exactly the
    * fingerprints the payload explicitly classified as resolved (see
-   * IncomingRequestIncidentGrouping.collectResolvedFingerprints).
+   * IncomingRequestIncidentGrouping.collectRecoveries).
+   *
+   * `wholeMonitor`, when given, resolves in the same pass the open
+   * incidents with no fingerprint of those grouped criteria: the incident a
+   * grouped criteria opens for the whole monitor, for a request that names
+   * no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria),
+   * once a request it matches reports its items without a value recovered.
    */
   @CaptureSpan()
   public static async resolveSeriesIncidentsByFingerprint(input: {
@@ -237,17 +243,28 @@ export default class MonitorIncident {
     rootCause: string;
     // What the evaluation summary says of each incident resolved here.
     resolvedMessage?: string | undefined;
+    wholeMonitor?:
+      | {
+          criteriaIds: Array<string>;
+          rootCause: string;
+        }
+      | undefined;
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<void> {
-    if (!input.fingerprints || input.fingerprints.length === 0) {
+    const fingerprintSet: Set<string> = new Set<string>(
+      input.fingerprints || [],
+    );
+    const wholeMonitorCriteriaIds: Set<string> = new Set<string>(
+      input.wholeMonitor?.criteriaIds || [],
+    );
+
+    if (fingerprintSet.size === 0 && wholeMonitorCriteriaIds.size === 0) {
       return;
     }
-
-    const fingerprintSet: Set<string> = new Set<string>(input.fingerprints);
 
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
@@ -279,7 +296,16 @@ export default class MonitorIncident {
       const fingerprint: string | undefined =
         openIncident.seriesFingerprint || undefined;
 
-      if (!fingerprint || !fingerprintSet.has(fingerprint)) {
+      const isRecoveredValue: boolean = Boolean(
+        fingerprint && fingerprintSet.has(fingerprint),
+      );
+      const isRecoveredWholeMonitor: boolean =
+        !fingerprint &&
+        wholeMonitorCriteriaIds.has(
+          openIncident.createdCriteriaId?.toString() || "",
+        );
+
+      if (!isRecoveredValue && !isRecoveredWholeMonitor) {
         continue;
       }
 
@@ -296,7 +322,10 @@ export default class MonitorIncident {
 
       await this.resolveOpenIncident({
         openIncident: openIncident,
-        rootCause: input.rootCause,
+        rootCause:
+          isRecoveredValue || !input.wholeMonitor
+            ? input.rootCause
+            : input.wholeMonitor.rootCause,
         dataToProcess: input.dataToProcess,
       });
 
@@ -304,101 +333,13 @@ export default class MonitorIncident {
         type: "incident-resolved",
         title: `Incident resolved: ${openIncident.id?.toString()}`,
         message:
-          input.resolvedMessage ||
-          "Incident auto-resolved because the incoming payload reported this key as resolved.",
+          isRecoveredValue || !input.wholeMonitor
+            ? input.resolvedMessage ||
+              "Incident auto-resolved because the incoming payload reported this key as resolved."
+            : "Incident auto-resolved because a request with no value to group by reported recovered.",
         relatedIncidentId: openIncident.id?.toString(),
         relatedIncidentNumber: openIncident.incidentNumber,
         relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
-        at: OneUptimeDate.getCurrentDate(),
-      });
-    }
-  }
-
-  /**
-   * Event-driven resolution of a grouped incoming-request criteria's
-   * incident for the whole monitor - the one it opens for a request that
-   * names no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria)
-   * - when a request that names no value either reports it recovered
-   * (IncomingRequestIncidentGrouping.collectRecoveries). Only the open
-   * incidents of those criteria that carry no fingerprint, and only when the
-   * criteria opted into auto-resolve; values' incidents are left alone.
-   */
-  @CaptureSpan()
-  public static async resolveWholeMonitorIncidentsOfCriteria(input: {
-    monitor: Monitor;
-    criteriaIds: Array<string>;
-    rootCause: string;
-    dataToProcess: DataToProcess;
-    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
-      Array<string>
-    >;
-    evaluationSummary?: MonitorEvaluationSummary | undefined;
-  }): Promise<void> {
-    if (!input.criteriaIds || input.criteriaIds.length === 0) {
-      return;
-    }
-
-    const criteriaIds: Set<string> = new Set<string>(input.criteriaIds);
-
-    const openIncidents: Array<Incident> = await IncidentService.findBy({
-      query: {
-        monitors: [input.monitor.id!],
-        currentIncidentStateId: QueryHelper.any(
-          await IncidentStateService.getUnresolvedIncidentStateIds(
-            input.monitor.projectId!,
-          ),
-        ),
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      select: {
-        _id: true,
-        title: true,
-        createdCriteriaId: true,
-        createdIncidentTemplateId: true,
-        projectId: true,
-        incidentNumber: true,
-        incidentNumberWithPrefix: true,
-        seriesFingerprint: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    for (const openIncident of openIncidents) {
-      if (
-        openIncident.seriesFingerprint ||
-        !criteriaIds.has(openIncident.createdCriteriaId?.toString() || "")
-      ) {
-        continue;
-      }
-
-      if (
-        !this.isAutoResolveConfiguredForIncident({
-          openIncident: openIncident,
-          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
-            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-        })
-      ) {
-        continue;
-      }
-
-      await this.resolveOpenIncident({
-        openIncident: openIncident,
-        rootCause: input.rootCause,
-        dataToProcess: input.dataToProcess,
-      });
-
-      input.evaluationSummary?.events.push({
-        type: "incident-resolved",
-        title: `Incident resolved: ${openIncident.id?.toString()}`,
-        message:
-          "Incident auto-resolved because a request with no value to group by reported recovered.",
-        relatedIncidentId: openIncident.id?.toString(),
-        relatedIncidentNumber: openIncident.incidentNumber,
-        relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
-        relatedCriteriaId: openIncident.createdCriteriaId?.toString(),
         at: OneUptimeDate.getCurrentDate(),
       });
     }

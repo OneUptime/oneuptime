@@ -55,7 +55,9 @@ import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
-import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import IncomingRequestIncidentGrouping, {
+  IncomingRequestRecoveries,
+} from "./IncomingRequestIncidentGrouping";
 import IncomingEmailOpenForEveryEmail, {
   EveryEmailMatches,
 } from "./IncomingEmailOpenForEveryEmail";
@@ -979,11 +981,16 @@ export default class MonitorResourceUtil {
        * Incoming Request / webhook grouped resolution (event-driven). A
        * payload can explicitly mark keys as resolved (e.g. Grafana
        * status=resolved). Resolve exactly those keys' incidents — never by
-       * absence — and, for a payload with no key at all that says it
-       * recovered, the grouped criteria's incident for the whole monitor.
-       * Runs regardless of whether a firing criteria matched, so a pure
-       * "resolved" webhook still closes the right incident. No-op unless a
-       * criteria has incidentGrouping configured.
+       * absence. Runs regardless of whether a firing criteria matched, so a
+       * pure "resolved" webhook still closes the right incident. No-op
+       * unless a criteria has incidentGrouping configured.
+       *
+       * A request the matched grouped criteria reads with every item
+       * without a value recovered also resolves that criteria's incident
+       * and alert for the whole monitor - what a request with no value
+       * opened. Only the matched criteria's: a request another criteria
+       * matched says nothing of this one's, and that one's are resolved by
+       * the other criteria matching anyway.
        */
       if (
         monitor.monitorType === MonitorType.IncomingRequest &&
@@ -993,48 +1000,30 @@ export default class MonitorResourceUtil {
           );
         })
       ) {
-        const recoveries: {
-          fingerprints: Array<string>;
-          wholeMonitorCriteriaIds: Array<string>;
-        } = IncomingRequestIncidentGrouping.collectRecoveries({
-          dataToProcess: dataToProcess,
-          criteriaInstances: criteriaInstances,
-        });
-
-        const resolvedFingerprints: Array<string> = recoveries.fingerprints;
-
-        /*
-         * A request that names no value to group by and reports recovered
-         * resolves what a request with no value opened: the grouped
-         * criteria's incident and alert for the whole monitor.
-         */
-        if (recoveries.wholeMonitorCriteriaIds.length > 0) {
-          await MonitorIncident.resolveWholeMonitorIncidentsOfCriteria({
-            monitor: monitor,
-            criteriaIds: recoveries.wholeMonitorCriteriaIds,
-            rootCause:
-              "Incoming request with no value to group by reported recovered.",
+        const recoveries: IncomingRequestRecoveries =
+          IncomingRequestIncidentGrouping.collectRecoveries({
             dataToProcess: dataToProcess,
-            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-            evaluationSummary: evaluationSummary,
+            criteriaInstances: criteriaInstances,
+            matchedCriteriaId: response.criteriaMetId?.toString(),
           });
 
-          await MonitorAlert.resolveWholeMonitorAlertsOfCriteria({
-            monitor: monitor,
-            criteriaIds: recoveries.wholeMonitorCriteriaIds,
-            rootCause:
-              "Incoming request with no value to group by reported recovered.",
-            dataToProcess: dataToProcess,
-            autoResolveCriteriaInstanceIdAlertIdsDictionary,
-            evaluationSummary: evaluationSummary,
-          });
-        }
+        const wholeMonitor:
+          | { criteriaIds: Array<string>; rootCause: string }
+          | undefined =
+          recoveries.wholeMonitorCriteriaIds.length > 0
+            ? {
+                criteriaIds: recoveries.wholeMonitorCriteriaIds,
+                rootCause:
+                  "Incoming request with no value to group by reported recovered.",
+              }
+            : undefined;
 
-        if (resolvedFingerprints.length > 0) {
+        if (recoveries.fingerprints.length > 0 || wholeMonitor) {
           await MonitorIncident.resolveSeriesIncidentsByFingerprint({
             monitor: monitor,
-            fingerprints: resolvedFingerprints,
+            fingerprints: recoveries.fingerprints,
             rootCause: "Incoming request reported this key as resolved.",
+            wholeMonitor: wholeMonitor,
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             evaluationSummary: evaluationSummary,
@@ -1042,8 +1031,9 @@ export default class MonitorResourceUtil {
 
           await MonitorAlert.resolveSeriesAlertsByFingerprint({
             monitor: monitor,
-            fingerprints: resolvedFingerprints,
+            fingerprints: recoveries.fingerprints,
             rootCause: "Incoming request reported this key as resolved.",
+            wholeMonitor: wholeMonitor,
             dataToProcess: dataToProcess,
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             evaluationSummary: evaluationSummary,

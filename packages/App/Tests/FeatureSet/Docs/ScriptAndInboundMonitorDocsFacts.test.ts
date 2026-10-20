@@ -1906,7 +1906,7 @@ describe("Incoming Request Monitor", () => {
     it("resolves that incident when a request without the field reports it recovered, which opens nothing new", () => {
       const criteriaInstance: MonitorCriteriaInstance = grouped(GROUPING);
 
-      // The request is read for recoveries, whichever criteria it matched.
+      // A request the criteria matches resolves its whole-monitor record.
       expect(
         IncomingRequestIncidentGrouping.collectRecoveries({
           dataToProcess: {
@@ -1919,6 +1919,7 @@ describe("Incoming Request Monitor", () => {
             typeof IncomingRequestIncidentGrouping.collectRecoveries
           >[0]["dataToProcess"],
           criteriaInstances: [criteriaInstance],
+          matchedCriteriaId: criteriaInstance.data!.id,
         }).wholeMonitorCriteriaIds,
       ).toEqual([criteriaInstance.data!.id]);
       // And opens nothing new for the criteria it matches.
@@ -1926,10 +1927,15 @@ describe("Incoming Request Monitor", () => {
         decide({ requestBody: { state: "ok" }, grouping: GROUPING })
           .perKeyMatches,
       ).toEqual([]);
-      // The resolve itself runs where every other recovery does.
+      // The resolve itself runs with every other recovery, in one pass.
       expect(
         readRepoFile("Common/Server/Utils/Monitor/MonitorResource.ts"),
-      ).toContain("MonitorIncident.resolveWholeMonitorIncidentsOfCriteria({");
+      ).toContain("matchedCriteriaId: response.criteriaMetId?.toString(),");
+      expect(
+        readRepoFile("Common/Server/Utils/Monitor/MonitorIncident.ts"),
+      ).toContain(
+        '"Incident auto-resolved because a request with no value to group by reported recovered."',
+      );
       expect(withoutField).toContain(
         "That incident resolves, if **Auto Resolve Incident** is on, when a later request without the field reports it recovered, or when a later request matches another criteria. Such a recovery opens nothing new.",
       );

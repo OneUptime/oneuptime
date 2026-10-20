@@ -953,6 +953,22 @@ describe("A request without the field that reports it recovered", () => {
     }
   });
 
+  it("also when the recovery comes in one request with named alerts", async () => {
+    monitorUnderTest = monitorWith([onlyCriteria(true)]);
+
+    await send({ alerts: [{ status: "firing" }] });
+    await send({
+      alerts: [
+        { status: "resolved" },
+        { status: "firing", labels: { alertname: "HighCPU" } },
+      ],
+    });
+
+    // The item without a value recovered; the named one opened its own.
+    expect(openIncidentTitles()).toEqual(["Grafana: HighCPU"]);
+    expect(openAlertTitles()).toEqual(["Grafana: HighCPU"]);
+  });
+
   it("leaves it to the named values otherwise: a recovered value does not resolve it", async () => {
     monitorUnderTest = monitorWith([onlyCriteria(true)]);
 
@@ -1234,13 +1250,13 @@ describe("A recovery field with [*] when the grouping field has none", () => {
 
     expect(openIncidentTitles()).toEqual(["HighRAM"]);
     expect(
-      IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+      IncomingRequestIncidentGrouping.collectRecoveries({
         dataToProcess: request(grafana("HighCPU", ["resolved"])),
         criteriaInstances: [
           monitorUnderTest.monitorSteps!.data!.monitorStepsInstanceArray[0]!
             .data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!,
         ],
-      }),
+      }).fingerprints,
     ).toEqual([tables.incidents[0]!.seriesFingerprint]);
   });
 });

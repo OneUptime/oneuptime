@@ -44,6 +44,16 @@ export interface IncomingRequestGroupingScan {
 }
 
 /**
+ * What a request reports recovered (collectRecoveries).
+ */
+export interface IncomingRequestRecoveries {
+  // The values it reports recovered.
+  fingerprints: Array<string>;
+  // The grouped criteria whose incident and alert for the whole monitor it resolves.
+  wholeMonitorCriteriaIds: Array<string>;
+}
+
+/**
  * What the monitor log says about how a grouped criteria handled a request.
  */
 export interface IncomingRequestGroupingNote {
@@ -246,10 +256,11 @@ export default class IncomingRequestIncidentGrouping {
      * none at all is handled for the whole monitor. They are counted in the
      * monitor log instead.
      */
-    const itemsWithoutValue: string =
-      scan.firingWithoutValue === 1
+    const itemsWithoutValue: () => string = (): string => {
+      return scan.firingWithoutValue === 1
         ? `1 item in this request has no value at ${groupByPath}, so it opens nothing of its own.`
         : `${scan.firingWithoutValue} items in this request have no value at ${groupByPath}, so they open nothing of their own.`;
+    };
 
     if (firingItems.length > 0) {
       return {
@@ -262,7 +273,7 @@ export default class IncomingRequestIncidentGrouping {
           scan.firingWithoutValue > 0
             ? {
                 title: GROUPING_NOTE_TITLES.someItemsWithoutValue,
-                message: itemsWithoutValue,
+                message: itemsWithoutValue(),
               }
             : undefined,
       };
@@ -275,7 +286,7 @@ export default class IncomingRequestIncidentGrouping {
           title: GROUPING_NOTE_TITLES.nothingNew,
           message:
             `Every value this request has at ${groupByPath} reported recovered, so criteria "${criteriaName}" opens nothing new.` +
-            (scan.firingWithoutValue > 0 ? ` ${itemsWithoutValue}` : ""),
+            (scan.firingWithoutValue > 0 ? ` ${itemsWithoutValue()}` : ""),
         },
       };
     }
@@ -306,31 +317,20 @@ export default class IncomingRequestIncidentGrouping {
   }
 
   /**
-   * Fingerprints the payload explicitly classifies as resolved, across
-   * every grouping-enabled criteria on the monitor's step. The caller
-   * resolves the matching open incidents (event-driven resolution: only
-   * keys the payload says recovered are closed — never by absence).
-   */
-  public static collectResolvedFingerprints(input: {
-    dataToProcess: DataToProcess;
-    criteriaInstances: Array<MonitorCriteriaInstance>;
-  }): Array<string> {
-    return this.collectRecoveries(input).fingerprints;
-  }
-
-  /**
-   * What a request reports recovered, across every grouping-enabled
-   * criteria on the monitor's step, whichever criteria it matched - read in
-   * one pass over each grouping:
+   * What a request reports recovered - read in one pass over each grouping:
    *
-   *   - fingerprints: the values it reports recovered. Their incidents and
-   *     alerts resolve.
-   *   - wholeMonitorCriteriaIds: the grouped criteria for which it names no
-   *     value at all and reports recovered. Such a request is the
-   *     counterpart of one with no value that is firing, which opened the
-   *     criteria's incident and alert for the whole monitor
-   *     (decideForMatchedCriteria), so those - the criteria's records
-   *     with no value - resolve.
+   *   - fingerprints: the values it reports recovered, across every
+   *     grouping-enabled criteria on the monitor's step, whichever criteria
+   *     it matched. Their incidents and alerts resolve.
+   *   - wholeMonitorCriteriaIds: the criteria it matched, when that criteria
+   *     groups and every item of the request without a value reports
+   *     recovered. Such a request is the counterpart of one that names no
+   *     value and is firing, which opened the criteria's incident and alert
+   *     for the whole monitor (decideForMatchedCriteria), so those - the
+   *     criteria's records with no fingerprint - resolve. Only the matched
+   *     criteria's: a request that another criteria matched says nothing of
+   *     this one's, and this one's resolve on another criteria matching
+   *     anyway.
    *
    * Never by absence, and never on the background check, which carries no
    * fresh request.
@@ -338,7 +338,9 @@ export default class IncomingRequestIncidentGrouping {
   public static collectRecoveries(input: {
     dataToProcess: DataToProcess;
     criteriaInstances: Array<MonitorCriteriaInstance>;
-  }): { fingerprints: Array<string>; wholeMonitorCriteriaIds: Array<string> } {
+    // The criteria the request matched, if any.
+    matchedCriteriaId?: string | undefined;
+  }): IncomingRequestRecoveries {
     const fingerprints: Set<string> = new Set<string>();
     const wholeMonitorCriteriaIds: Set<string> = new Set<string>();
 
@@ -372,15 +374,17 @@ export default class IncomingRequestIncidentGrouping {
         }
       }
 
-      const criteriaId: string | undefined = criteriaInstance.data?.id;
+      const criteriaId: string | undefined = criteriaInstance.data?.id
+        ? criteriaInstance.data.id.toString()
+        : undefined;
 
       if (
         criteriaId &&
-        scan.items.length === 0 &&
+        criteriaId === input.matchedCriteriaId &&
         scan.firingWithoutValue === 0 &&
         scan.recoveredWithoutValue > 0
       ) {
-        wholeMonitorCriteriaIds.add(criteriaId.toString());
+        wholeMonitorCriteriaIds.add(criteriaId);
       }
     }
 

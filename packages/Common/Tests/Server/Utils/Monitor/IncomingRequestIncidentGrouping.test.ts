@@ -671,7 +671,15 @@ describe("IncomingRequestIncidentGrouping", () => {
     });
   });
 
-  describe("collectResolvedFingerprints", () => {
+  describe("collectRecoveries: the values a request reports recovered", () => {
+    function resolvedFingerprints(input: {
+      dataToProcess: DataToProcess;
+      criteriaInstances: Array<MonitorCriteriaInstance>;
+    }): Array<string> {
+      return IncomingRequestIncidentGrouping.collectRecoveries(input)
+        .fingerprints;
+    }
+
     it("returns the fingerprints the payload marks resolved", () => {
       const payload: JSONObject = {
         alerts: [
@@ -680,11 +688,10 @@ describe("IncomingRequestIncidentGrouping", () => {
         ],
       };
 
-      const resolved: Array<string> =
-        IncomingRequestIncidentGrouping.collectResolvedFingerprints({
-          dataToProcess: makeRequest(payload),
-          criteriaInstances: [makeCriteria(PER_ALERT)],
-        });
+      const resolved: Array<string> = resolvedFingerprints({
+        dataToProcess: makeRequest(payload),
+        criteriaInstances: [makeCriteria(PER_ALERT)],
+      });
 
       expect(resolved).toHaveLength(1);
 
@@ -703,22 +710,21 @@ describe("IncomingRequestIncidentGrouping", () => {
     });
 
     it("returns [] when no resolve classifier is configured", () => {
-      const resolved: Array<string> =
-        IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+      expect(
+        resolvedFingerprints({
           dataToProcess: makeRequest({ status: "resolved" }),
           criteriaInstances: [
             makeCriteria({
               groupByJSONPath: "requestBody.commonLabels.alertname",
             }),
           ],
-        });
-
-      expect(resolved).toEqual([]);
+        }),
+      ).toEqual([]);
     });
 
-    it("reads every grouped criteria of the monitor, and skips the ones without grouping", () => {
-      const resolved: Array<string> =
-        IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+    it("reads every grouped criteria of the monitor, whichever the request matched, and skips the ones without grouping", () => {
+      expect(
+        resolvedFingerprints({
           dataToProcess: makeRequest({
             team: "payments",
             state: "ok",
@@ -736,21 +742,20 @@ describe("IncomingRequestIncidentGrouping", () => {
               "per-team",
             ),
           ],
-        });
-
-      expect(resolved).toHaveLength(2);
+        }),
+      ).toHaveLength(2);
     });
 
     it("returns [] for a request with no value, and on the background check", () => {
       expect(
-        IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+        resolvedFingerprints({
           dataToProcess: makeRequest({ status: "resolved" }),
           criteriaInstances: [makeCriteria(PER_ALERT)],
         }),
       ).toEqual([]);
 
       expect(
-        IncomingRequestIncidentGrouping.collectResolvedFingerprints({
+        resolvedFingerprints({
           dataToProcess: makeRequest(
             {
               alerts: [{ status: "resolved", labels: { alertname: "CPU" } }],
@@ -763,35 +768,39 @@ describe("IncomingRequestIncidentGrouping", () => {
     });
   });
 
-  describe("collectRecoveries: what a request reports recovered", () => {
+  describe("collectRecoveries: the matched criteria's incident for the whole monitor", () => {
     const ROOT_RECOVERY: IncidentGroupingConfig = {
       groupByJSONPath: "requestBody.commonLabels.alertname",
       resolvedWhenJSONPath: "requestBody.status",
       resolvedWhenValue: "resolved",
     };
 
-    function recoveries(
+    function wholeMonitor(
       requestBody: JSONObject | string,
       criteriaInstances: Array<MonitorCriteriaInstance>,
+      matchedCriteriaId: string | undefined,
       overrides?: Partial<IncomingMonitorRequest>,
-    ): { fingerprints: Array<string>; wholeMonitorCriteriaIds: Array<string> } {
+    ): Array<string> {
       return IncomingRequestIncidentGrouping.collectRecoveries({
         dataToProcess: makeRequest(requestBody, overrides),
         criteriaInstances: criteriaInstances,
-      });
+        matchedCriteriaId: matchedCriteriaId,
+      }).wholeMonitorCriteriaIds;
     }
 
-    it("names the grouped criteria for which a request with no value reports recovered", () => {
+    it("names the matched grouped criteria when a request with no value reports recovered", () => {
       expect(
-        recoveries({ status: "resolved" }, [
-          makeCriteria(ROOT_RECOVERY, "root"),
-        ]),
-      ).toEqual({ fingerprints: [], wholeMonitorCriteriaIds: ["root"] });
+        wholeMonitor(
+          { status: "resolved" },
+          [makeCriteria(ROOT_RECOVERY, "root")],
+          "root",
+        ),
+      ).toEqual(["root"]);
     });
 
     it("does so for items with no value that each report recovered too", () => {
       expect(
-        recoveries(
+        wholeMonitor(
           {
             alerts: [
               { status: "resolved" },
@@ -799,82 +808,117 @@ describe("IncomingRequestIncidentGrouping", () => {
             ],
           },
           [makeCriteria(PER_ALERT, "per-alert")],
+          "per-alert",
         ),
-      ).toEqual({ fingerprints: [], wholeMonitorCriteriaIds: ["per-alert"] });
+      ).toEqual(["per-alert"]);
     });
 
-    it("not while any part with no value still fires, nor when the request names values", () => {
-      // One item still fires.
+    it("and when such items come beside named values, whatever their state", () => {
+      /*
+       * A source can send an item's recovery with other alerts in the same
+       * request. What the items without a value say is what counts.
+       */
       expect(
-        recoveries({ alerts: [{ status: "resolved" }, { status: "firing" }] }, [
-          makeCriteria(PER_ALERT, "per-alert"),
-        ]).wholeMonitorCriteriaIds,
+        wholeMonitor(
+          {
+            alerts: [
+              { status: "firing", labels: { alertname: "CPU" } },
+              { status: "resolved" },
+            ],
+          },
+          [makeCriteria(PER_ALERT, "per-alert")],
+          "per-alert",
+        ),
+      ).toEqual(["per-alert"]);
+    });
+
+    it("not while any item with no value still fires, or when the request has none", () => {
+      expect(
+        wholeMonitor(
+          { alerts: [{ status: "resolved" }, { status: "firing" }] },
+          [makeCriteria(PER_ALERT, "per-alert")],
+          "per-alert",
+        ),
       ).toEqual([]);
 
-      // The request names a value: its recovery is that value's alone.
-      const named: {
-        fingerprints: Array<string>;
-        wholeMonitorCriteriaIds: Array<string>;
-      } = recoveries(
-        {
-          alerts: [
-            { status: "resolved", labels: { alertname: "CPU" } },
-            { status: "resolved" },
-          ],
-        },
-        [makeCriteria(PER_ALERT, "per-alert")],
-      );
+      // Every item is named: nothing speaks for the whole monitor.
+      expect(
+        wholeMonitor(
+          {
+            alerts: [{ status: "resolved", labels: { alertname: "CPU" } }],
+          },
+          [makeCriteria(PER_ALERT, "per-alert")],
+          "per-alert",
+        ),
+      ).toEqual([]);
+    });
 
-      expect(named.fingerprints).toHaveLength(1);
-      expect(named.wholeMonitorCriteriaIds).toEqual([]);
+    it("only for the criteria the request matched", () => {
+      // A request another criteria matched says nothing of this one's.
+      expect(
+        wholeMonitor(
+          { status: "resolved" },
+          [makeCriteria(ROOT_RECOVERY, "root")],
+          "another",
+        ),
+      ).toEqual([]);
+      expect(
+        wholeMonitor(
+          { status: "resolved" },
+          [makeCriteria(ROOT_RECOVERY, "root")],
+          undefined,
+        ),
+      ).toEqual([]);
+
+      // Two grouped criteria reading the same recovery field: only the matched one.
+      expect(
+        wholeMonitor(
+          { status: "resolved" },
+          [
+            makeCriteria(ROOT_RECOVERY, "root"),
+            makeCriteria(
+              {
+                groupByJSONPath: "requestBody.incident.id",
+                resolvedWhenJSONPath: "requestBody.status",
+                resolvedWhenValue: "resolved",
+              },
+              "incidents",
+            ),
+          ],
+          "incidents",
+        ),
+      ).toEqual(["incidents"]);
     });
 
     it("not without a recovery field, for a body that is not a JSON object, or on the background check", () => {
       expect(
-        recoveries({ status: "resolved" }, [
-          makeCriteria({ groupByJSONPath: "requestBody.a" }, "no-recovery"),
-        ]).wholeMonitorCriteriaIds,
+        wholeMonitor(
+          { status: "resolved" },
+          [makeCriteria({ groupByJSONPath: "requestBody.a" }, "no-recovery")],
+          "no-recovery",
+        ),
       ).toEqual([]);
       expect(
-        recoveries("resolved", [makeCriteria(ROOT_RECOVERY, "root")])
-          .wholeMonitorCriteriaIds,
+        wholeMonitor("resolved", [makeCriteria(ROOT_RECOVERY, "root")], "root"),
       ).toEqual([]);
       expect(
-        recoveries(
+        wholeMonitor(
           { status: "resolved" },
           [makeCriteria(ROOT_RECOVERY, "root")],
-          {
-            onlyCheckForIncomingRequestReceivedAt: true,
-          },
+          "root",
+          { onlyCheckForIncomingRequestReceivedAt: true },
         ),
-      ).toEqual({ fingerprints: [], wholeMonitorCriteriaIds: [] });
+      ).toEqual([]);
     });
 
-    it("reads each grouped criteria on its own, whichever the request matched, and skips ungrouped ones", () => {
+    it("not for a criteria without grouping, even when it is the one matched", () => {
       expect(
-        recoveries({ status: "resolved", alerts: [] }, [
-          makeCriteria(undefined, "plain"),
-          makeCriteria(ROOT_RECOVERY, "root"),
-          // Its alerts array is empty: no element to say it recovered.
-          makeCriteria(PER_ALERT, "per-alert"),
-        ]).wholeMonitorCriteriaIds,
-      ).toEqual(["root"]);
-    });
-
-    it("gives collectResolvedFingerprints the same fingerprints", () => {
-      const body: JSONObject = {
-        alerts: [
-          { status: "resolved", labels: { alertname: "CPU" } },
-          { status: "firing", labels: { alertname: "RAM" } },
-        ],
-      };
-
-      expect(
-        IncomingRequestIncidentGrouping.collectResolvedFingerprints({
-          dataToProcess: makeRequest(body),
-          criteriaInstances: [makeCriteria(PER_ALERT)],
-        }),
-      ).toEqual(recoveries(body, [makeCriteria(PER_ALERT)]).fingerprints);
+        wholeMonitor(
+          { status: "resolved" },
+          [makeCriteria(undefined, "plain")],
+          "plain",
+        ),
+      ).toEqual([]);
     });
   });
 
