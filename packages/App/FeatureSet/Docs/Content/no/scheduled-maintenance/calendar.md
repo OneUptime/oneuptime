@@ -38,7 +38,7 @@ Kalendersiden kan også vise hendelsene fra kalendere utenfor prosjektet: hellig
 :::steps
 ### Legg til kalenderen
 
-Åpne **Planlagt vedlikehold → Kalenderinnstillinger** i delen **Innstillinger** i sidemenyen, eller velg **Legg til ekstern kalender** i kalenderens **⋯**-meny. Klikk på **Legg til ekstern kalender**, fyll ut **Navn**, og lim inn lenken i **Kalenderlenke**. **Flere felt** har **Farge** og **Oppdater**, hvor ofte den leses: **Hver time** med mindre du velger noe annet.
+Velg **Legg til ekstern kalender** i kalenderens **⋯**-meny, eller åpne **Planlagt vedlikehold → Kalenderinnstillinger** i delen **Innstillinger** i sidemenyen, og klikk på **Legg til ekstern kalender**. Fyll ut **Navn**, og lim inn lenken i **Kalenderlenke**. **Flere felt** har **Farge** og **Oppdater**, hvor ofte den leses: **Hver time** med mindre du velger noe annet.
 
 ### Sjekk at den ble lest
 

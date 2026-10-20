@@ -91,6 +91,7 @@ import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 import ScheduledMaintenanceCalendar from "./ScheduledMaintenanceCalendar";
 import MaintenanceCalendarSubscribeModal from "./MaintenanceCalendarSubscribeModal";
 import { ScheduledMaintenanceView } from "./ScheduledMaintenanceView";
+import { getAddExternalCalendarQuery } from "./ExternalCalendarAddLink";
 import ScheduledMaintenanceExternalCalendar from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -545,9 +546,10 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * The calendar's ⋯ also leads to Calendar Settings, where calendars from
-   * outside the project - public holidays, a change freeze, another
-   * project's maintenance - are added to be drawn beside the events.
+   * The calendar's ⋯ also adds a calendar from outside the project - public
+   * holidays, a change freeze, another project's maintenance - to be drawn
+   * beside the events: Calendar Settings, its Add dialog already open
+   * (ExternalCalendarAddLink).
    */
   const externalCalendarButton: CardButtonSchema | null =
     PermissionGate.gateCardButton(
@@ -561,7 +563,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               RouteMap[
                 PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
               ] as Route,
-            ),
+            ).addQueryParams(getAddExternalCalendarQuery()),
           );
         },
       },

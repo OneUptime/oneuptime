@@ -29,6 +29,7 @@ import {
   DayLayoutFunction,
   EventProps,
   EventPropGetter,
+  EventWrapperProps,
   Formats,
   Messages,
   momentLocalizer,
@@ -65,6 +66,101 @@ calendarLocalizer.getTotalMin = (start: Date, end: Date): number => {
     calendarLocalizer.diff(start, end, "minutes") +
     calendarLocalizer.getDstOffset(start, end)
   );
+};
+
+/*
+ * What react-big-calendar hands its localizer's sortEvents: an event's start,
+ * end and all-day flag, read with the calendar's accessors. The typings name
+ * the function differently from the library it types, and leave out daySpan.
+ */
+export interface CalendarSortableEvent {
+  start: Date;
+  end: Date;
+  allDay?: boolean | undefined;
+}
+
+export type CalendarEventSort = (pair: {
+  evtA: CalendarSortableEvent;
+  evtB: CalendarSortableEvent;
+}) => number;
+
+export type CalendarDaySpan = (start: Date, end: Date) => number;
+
+/*
+ * The localizer for one set of events: the page's own events are laid out
+ * first, and the overlays - events from another calendar
+ * (CalendarEventAppearance.Overlay) - in the rows they leave.
+ *
+ * A month's cell shows its first few rows of blocks and "+N more" for the
+ * rest, and react-big-calendar fills the rows in its own order: blocks of
+ * more than a day first, then a day's blocks by length and start time. A
+ * busy calendar from outside the project (a team's shifts, a holiday
+ * calendar, a change freeze across the week) took a cell's rows and folded
+ * the page's own maintenance into "+N more". So an overlay sorts after every
+ * event of the page's own, and is never one of the blocks of more than a day
+ * laid out first (daySpan, which the library reads for nothing else); among
+ * the page's own events, and among the overlays, the library's order stands.
+ *
+ * Both are handed only an event's dates; the start is the event's own Date
+ * (the default accessor), so an overlay is known by its start. Without
+ * overlays it is the calendar's one localizer.
+ */
+export const getCalendarLocalizer: (
+  events: Array<CalendarEvent>,
+) => DateLocalizer = (events: Array<CalendarEvent>): DateLocalizer => {
+  const overlayStarts: WeakSet<Date> = new WeakSet<Date>();
+  let hasOverlays: boolean = false;
+
+  for (const event of events) {
+    if (
+      event.appearance === CalendarEventAppearance.Overlay &&
+      event.start instanceof Date
+    ) {
+      overlayStarts.add(event.start);
+      hasOverlays = true;
+    }
+  }
+
+  if (!hasOverlays) {
+    return calendarLocalizer;
+  }
+
+  const librarySort: CalendarEventSort =
+    calendarLocalizer.sortEvents as unknown as CalendarEventSort;
+
+  const libraryDaySpan: CalendarDaySpan = (
+    calendarLocalizer as unknown as { daySpan: CalendarDaySpan }
+  ).daySpan;
+
+  const sortEvents: CalendarEventSort = (pair: {
+    evtA: CalendarSortableEvent;
+    evtB: CalendarSortableEvent;
+  }): number => {
+    const overlayA: number = overlayStarts.has(pair.evtA.start) ? 1 : 0;
+    const overlayB: number = overlayStarts.has(pair.evtB.start) ? 1 : 0;
+
+    return overlayA - overlayB || librarySort(pair);
+  };
+
+  const daySpan: CalendarDaySpan = (start: Date, end: Date): number => {
+    const span: number = libraryDaySpan(start, end);
+
+    return overlayStarts.has(start) ? Math.min(span, 1) : span;
+  };
+
+  /*
+   * A copy with every one of the calendar's own settings: react-big-calendar
+   * spreads the localizer's own properties into the one it works with.
+   */
+  const localizer: DateLocalizer = Object.assign(
+    Object.create(Object.getPrototypeOf(calendarLocalizer)) as DateLocalizer,
+    calendarLocalizer,
+  );
+
+  localizer.sortEvents = sortEvents as unknown as DateLocalizer["sortEvents"];
+  (localizer as unknown as { daySpan: CalendarDaySpan }).daySpan = daySpan;
+
+  return localizer;
 };
 
 /*
@@ -319,10 +415,48 @@ export const getCalendarMessages: (
   };
 };
 
+/*
+ * The box react-big-calendar draws each block in. An overlay's block - an
+ * event from another calendar - opens nothing, so a keyboard does not stop
+ * on it: the week's and the day's blocks are buttons a keyboard reaches
+ * (TimeGridEvent), and an overlay's showed no focus ring for a stop that did
+ * nothing. A screen reader still reads it where it is. Every other block is
+ * left as the library draws it.
+ */
+export type CalendarEventWrapperProps = EventWrapperProps<CalendarEvent> & {
+  children?: React.ReactNode;
+};
+
+export const CalendarEventWrapper: FunctionComponent<
+  CalendarEventWrapperProps
+> = (props: CalendarEventWrapperProps): ReactElement => {
+  const child: React.ReactNode = props.children;
+
+  if (
+    props.event?.appearance === CalendarEventAppearance.Overlay &&
+    React.isValidElement(child)
+  ) {
+    const block: ReactElement<{ tabIndex?: number; role?: string }> =
+      child as ReactElement<{ tabIndex?: number; role?: string }>;
+
+    return React.cloneElement(block, {
+      ...(block.props.tabIndex !== undefined ? { tabIndex: -1 } : {}),
+      ...(block.props.role === "button" ? { role: undefined } : {}),
+    });
+  }
+
+  return <>{child}</>;
+};
+
 const CalendarElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  // The page's own events before the overlays of their day (getCalendarLocalizer).
+  const localizer: DateLocalizer = useMemo(() => {
+    return getCalendarLocalizer(props.events);
+  }, [props.events]);
 
   const messages: Messages<CalendarEvent> = useMemo(() => {
     return getCalendarMessages(translator);
@@ -347,6 +481,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
      */
     const replaced: Components<CalendarEvent> = {
       toolbar: ConnectedCalendarToolbar,
+      eventWrapper: CalendarEventWrapper,
     };
 
     const renderEventContent:
@@ -540,7 +675,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
           defaultDate={defaultDate}
           events={props.events}
           backgroundEvents={props.backgroundEvents || []}
-          localizer={calendarLocalizer}
+          localizer={localizer}
           formats={formats}
           dayLayoutAlgorithm={dayLayoutAlgorithm}
           {...(props.getNow ? { getNow: props.getNow } : {})}

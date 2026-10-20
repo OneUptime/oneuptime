@@ -38,7 +38,7 @@ The calendar page can also show the events of calendars from outside the project
 :::steps
 ### Add the calendar
 
-Open **Scheduled Maintenance → Calendar Settings**, in the **Settings** section of the side menu, or pick **Add External Calendar** in the calendar's **⋯** menu. Click **Add External Calendar**, give it a **Name** and paste its **Calendar Link**. **More fields** holds its **Color** and **Refresh**, how often it is read: **Every hour** unless you pick another.
+Pick **Add External Calendar** in the calendar's **⋯** menu, or open **Scheduled Maintenance → Calendar Settings**, in the **Settings** section of the side menu, and click **Add External Calendar**. Give it a **Name** and paste its **Calendar Link**. **More fields** holds its **Color** and **Refresh**, how often it is read: **Every hour** unless you pick another.
 
 ### Check that it was read
 

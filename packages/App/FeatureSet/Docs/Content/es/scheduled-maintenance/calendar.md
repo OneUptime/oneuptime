@@ -38,7 +38,7 @@ La página del calendario también puede mostrar los eventos de calendarios de f
 :::steps
 ### Añadir el calendario
 
-Abre **Mantenimiento programado → Ajustes del calendario**, en la sección **Ajustes** del menú lateral, o elige **Añadir calendario externo** en el menú **⋯** del calendario. Haz clic en **Añadir calendario externo**, rellena **Nombre** y pega su enlace en **Enlace del calendario**. **Más campos** contiene su **Color** y **Actualizar**, con qué frecuencia se lee: **Cada hora** salvo que elijas otra.
+Elige **Añadir calendario externo** en el menú **⋯** del calendario, o abre **Mantenimiento programado → Ajustes del calendario**, en la sección **Ajustes** del menú lateral, y haz clic en **Añadir calendario externo**. Rellena **Nombre** y pega su enlace en **Enlace del calendario**. **Más campos** contiene su **Color** y **Actualizar**, con qué frecuencia se lee: **Cada hora** salvo que elijas otra.
 
 ### Comprobar que se ha leído
 

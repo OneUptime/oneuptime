@@ -192,6 +192,22 @@ function toggles(page: Page): Locator {
   return page.getByTestId("scheduled-maintenance-calendar-external");
 }
 
+/*
+ * An external calendar's toggle: named by its calendar alone, shown or
+ * hidden by aria-pressed (ExternalCalendarToggles).
+ */
+function toggleNamed(page: Page, name: string, isShown: boolean): Locator {
+  return toggles(page).getByRole("button", {
+    name: name,
+    exact: true,
+    pressed: isShown,
+  });
+}
+
+// Why a calendar is marked, as its toggle describes it.
+const READ_WARNING: string =
+  "OneUptime could not read this calendar lately. It shows the events of its last good read.";
+
 function overlayEvent(page: Page, title: string): Locator {
   return page
     .getByTestId("scheduled-maintenance-calendar-overlay-event")
@@ -399,6 +415,51 @@ test.describe("the calendar's own page", () => {
       }, PREVIOUS_VIEW_KEY),
     ).toBeNull();
   });
+
+  test("its header reads as All Events' does: the title whole beside the buttons, the description under both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Beside "Create Scheduled Maintenance Event" the card's default header
+     * broke the title into a column a word wide at tablet widths, and the
+     * description over two lines on a laptop.
+     */
+    for (const width of [1280, 1024, 768]) {
+      await open(page, "", width);
+      await calendarSettled(page);
+
+      await expect(page.getByTestId("card-header").first()).toHaveAttribute(
+        "data-header-layout",
+        "toolbar",
+      );
+
+      const title: { x: number; height: number } | null = await page
+        .getByRole("heading", { name: "Maintenance Calendar" })
+        .boundingBox();
+      const description: { x: number; height: number } | null = await page
+        .getByTestId("card-description")
+        .first()
+        .boundingBox();
+
+      // The title on one line (leading-6), in every width.
+      expect({ width, titleHeight: title!.height }).toEqual({
+        width,
+        titleHeight: 24,
+      });
+
+      // The description starts under the title, at the card's edge.
+      expect({ width, x: description!.x }).toEqual({ width, x: title!.x });
+
+      if (width === 1280) {
+        // One line on a laptop: text-sm, leading-relaxed.
+        expect(description!.height).toBeLessThan(30);
+      }
+    }
+
+    await shot(page, "calendar-header-768");
+  });
 });
 
 test.describe("external calendars on the calendar", () => {
@@ -438,16 +499,19 @@ test.describe("external calendars on the calendar", () => {
     });
 
     await expect(group).toBeVisible();
-    await expect(
-      group.getByRole("button", {
-        name: "Hide Change freezes on the calendar",
-      }),
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      group.getByRole("button", {
-        name: "Hide Public holidays on the calendar",
-      }),
-    ).toHaveAttribute("aria-pressed", "true");
+
+    /*
+     * Each toggle is named by its calendar and says it is shown with
+     * aria-pressed; what a click does is the hint a pointer gets.
+     */
+    await expect(toggleNamed(page, "Change freezes", true)).toHaveAttribute(
+      "title",
+      "Hide Change freezes on the calendar",
+    );
+    await expect(toggleNamed(page, "Public holidays", true)).toHaveAttribute(
+      "title",
+      "Hide Public holidays on the calendar",
+    );
     // A calendar turned off is not offered, nor asked for.
     await expect(group.getByText("Payments project")).toHaveCount(0);
 
@@ -510,17 +574,16 @@ test.describe("external calendars on the calendar", () => {
     await calendarSettled(page);
     await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
 
-    await page
-      .getByRole("button", { name: "Hide Public holidays on the calendar" })
-      .click();
+    await toggleNamed(page, "Public holidays", true).click();
 
     await expect(overlayEvent(page, "Founders' Day")).toHaveCount(0);
     await expect(overlayEvent(page, "Payments release window")).toBeVisible();
-    await expect(
-      page.getByRole("button", {
-        name: "Show Public holidays on the calendar",
-      }),
-    ).toHaveAttribute("aria-pressed", "false");
+
+    // The same toggle, by the same name: its state and its hint changed.
+    await expect(toggleNamed(page, "Public holidays", false)).toHaveAttribute(
+      "title",
+      "Show Public holidays on the calendar",
+    );
 
     const reads: Array<{ calendarIds: Array<string> } & FixtureRequest> =
       await externalEventReads(page);
@@ -536,9 +599,7 @@ test.describe("external calendars on the calendar", () => {
     expect(JSON.parse(kept || "[]")).toEqual([HOLIDAYS_ID]);
 
     // Shown again, it is asked for again.
-    await page
-      .getByRole("button", { name: "Show Public holidays on the calendar" })
-      .click();
+    await toggleNamed(page, "Public holidays", false).click();
     await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
   });
 
@@ -552,18 +613,14 @@ test.describe("external calendars on the calendar", () => {
     await expect(overlayEvent(page, "Payments release window")).toBeVisible();
 
     await expect(overlayEvent(page, "Founders' Day")).toHaveCount(0);
-    await expect(
-      page.getByRole("button", {
-        name: "Show Public holidays on the calendar",
-      }),
-    ).toHaveAttribute("aria-pressed", "false");
+    await expect(toggleNamed(page, "Public holidays", false)).toBeVisible();
 
     for (const read of await externalEventReads(page)) {
       expect(read.calendarIds).toEqual([FREEZES_ID]);
     }
   });
 
-  test("a calendar not read lately is marked, and its last good events are still drawn", async ({
+  test("a calendar not read lately is marked inside its own toggle, which says why, and its last good events are still drawn", async ({
     page,
   }: {
     page: Page;
@@ -571,11 +628,28 @@ test.describe("external calendars on the calendar", () => {
     await open(page, "external=failing");
     await calendarSettled(page);
 
+    const freezes: Locator = toggleNamed(page, "Change freezes", true);
+    const mark: Locator = freezes.getByTestId(
+      "scheduled-maintenance-calendar-external-warning",
+    );
+
+    await expect(mark).toBeVisible();
+    await expect(freezes).toHaveAccessibleDescription(READ_WARNING);
     await expect(
-      page.getByRole("img", {
-        name: "Change freezes could not be read lately",
-      }),
-    ).toBeVisible();
+      toggleNamed(page, "Public holidays", true).getByTestId(
+        "scheduled-maintenance-calendar-external-warning",
+      ),
+    ).toHaveCount(0);
+
+    // The mark sits inside its toggle's pill, never out between two toggles.
+    const pill: { x: number; width: number } | null =
+      await freezes.boundingBox();
+    const markBox: { x: number; width: number } | null =
+      await mark.boundingBox();
+
+    expect(markBox!.x).toBeGreaterThan(pill!.x);
+    expect(markBox!.x + markBox!.width).toBeLessThan(pill!.x + pill!.width);
+
     await expect(overlayEvent(page, "Payments release window")).toBeVisible();
   });
 
@@ -594,7 +668,81 @@ test.describe("external calendars on the calendar", () => {
     );
   });
 
-  test("Calendar settings under the toggles, and Add External Calendar in the calendar's menu, lead to Calendar Settings", async ({
+  test("a busy calendar from outside the project never folds the project's own events into +N more", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // 520 shifts of the holidays calendar, a dozen and more on every day.
+    await open(page, "external=many");
+    await calendarSettled(page);
+    await expect(overlayEvent(page, "Shift 1")).toBeAttached();
+
+    // Today's own event takes the day's first row, before any shift...
+    await expect(eventLink(page, "Network switch firmware")).toBeVisible();
+    await expect(eventLink(page, "Database upgrade")).toBeVisible();
+    await expect(eventLink(page, "Patch window 1")).toBeVisible();
+
+    // ...and sits above the shifts of its day.
+    const own: { y: number } | null = await eventBlock(
+      page,
+      "Network switch firmware",
+    ).boundingBox();
+    const firstShiftOfToday: { y: number } | null = await calendar(page)
+      .locator(".rbc-month-row", { has: eventLink(page, "Network switch firmware") })
+      .locator(".oneuptime-calendar-event--overlay")
+      .first()
+      .boundingBox();
+
+    expect(own!.y).toBeLessThan(firstShiftOfToday!.y);
+
+    // The shifts the cell has no room for are in its +N more.
+    await expect(
+      calendar(page).getByText(SHOW_MORE_PATTERN).first(),
+    ).toBeVisible();
+
+    await shot(page, "calendar-external-busy");
+  });
+
+  test("in the week, a keyboard stops on the project's events but never on another calendar's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "external=some");
+    await calendarSettled(page);
+    await calendar(page).getByTestId("calendar-view-switch-week").click();
+    await calendarSettled(page);
+    await expect(overlayEvent(page, "Payments release window")).toBeVisible();
+
+    const blocks: Array<{ overlay: boolean; tabIndex: number; role: string }> =
+      await calendar(page)
+        .locator(".rbc-time-content .rbc-event")
+        .evaluateAll((elements: Array<Element>) => {
+          return elements.map((element: Element) => {
+            return {
+              overlay: element.classList.contains(
+                "oneuptime-calendar-event--overlay",
+              ),
+              tabIndex: (element as HTMLElement).tabIndex,
+              role: element.getAttribute("role") || "",
+            };
+          });
+        });
+
+    expect(
+      blocks.filter((block: { overlay: boolean }) => {
+        return block.overlay;
+      }),
+    ).toEqual([{ overlay: true, tabIndex: -1, role: "" }]);
+    expect(
+      blocks.filter((block: { overlay: boolean }) => {
+        return !block.overlay;
+      }),
+    ).toEqual([{ overlay: false, tabIndex: 0, role: "button" }]);
+  });
+
+  test("Calendar settings under the toggles leads to Calendar Settings", async ({
     page,
   }: {
     page: Page;
@@ -608,13 +756,41 @@ test.describe("external calendars on the calendar", () => {
     await expect(page.getByText("External Calendars").first()).toBeVisible();
     expect(addressOf(page)).toMatch(SETTINGS_ADDRESS_PATTERN);
 
+    // To look at them, not to add one: no dialog opens.
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+  });
+
+  test("Add External Calendar in the calendar's menu opens Calendar Settings with its Add dialog open, once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "");
     await calendarSettled(page);
 
     await cardMenuButton(page).click();
     await page.getByRole("menuitem", { name: "Add External Calendar" }).click();
-    await expect(page.getByText("External Calendars").first()).toBeVisible();
+
+    const dialog: Locator = page.getByTestId("modal");
+
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByText("Add New External Calendar", { exact: true }),
+    ).toBeVisible();
+    await expect(dialog.getByText("Calendar Link").first()).toBeVisible();
     expect(addressOf(page)).toMatch(SETTINGS_ADDRESS_PATTERN);
+
+    // The ask has left the address: a refresh opens the page alone.
+    expect(new URL(page.url()).search).toBe("");
+
+    await shot(page, "settings-add-from-calendar");
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByText("External Calendars").first()).toBeVisible();
+    await expect(page.getByTestId("modal")).toHaveCount(0);
   });
 
   test("a reader who may not add a calendar or an event sees the external calendars, and finds Add External Calendar locked", async ({
@@ -627,11 +803,7 @@ test.describe("external calendars on the calendar", () => {
 
     // They see the calendars and may hide one for themselves.
     await expect(overlayEvent(page, "Founders' Day")).toBeVisible();
-    await expect(
-      page.getByRole("button", {
-        name: "Hide Public holidays on the calendar",
-      }),
-    ).toBeEnabled();
+    await expect(toggleNamed(page, "Public holidays", true)).toBeEnabled();
 
     /*
      * Locked as every action they may not take is (PermissionGate): in the
@@ -1799,11 +1971,11 @@ test.describe("in other languages", () => {
     await expect(
       page.getByRole("group", { name: "Externe Kalender" }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("button", {
-        name: "Public holidays im Kalender ausblenden",
-      }),
-    ).toBeVisible();
+    // A toggle is named by its calendar; its hint is German.
+    await expect(toggleNamed(page, "Public holidays", true)).toHaveAttribute(
+      "title",
+      "Public holidays im Kalender ausblenden",
+    );
     await expect(
       toggles(page).getByRole("link", { name: "Kalendereinstellungen" }),
     ).toBeVisible();

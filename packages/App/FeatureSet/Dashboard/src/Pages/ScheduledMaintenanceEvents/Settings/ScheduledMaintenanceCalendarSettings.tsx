@@ -1,6 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import { readExternalCalendarNow } from "../../../Components/ScheduledMaintenance/ExternalCalendarApi";
 import {
+  EXTERNAL_CALENDAR_OPEN_QUERY_PARAM,
+  isAddExternalCalendarAsked,
+} from "../../../Components/ScheduledMaintenance/ExternalCalendarAddLink";
+import {
   EXTERNAL_CALENDAR_LINK_PROBLEM_TEXT,
   ExternalCalendarHealth,
   getExternalCalendarHealth,
@@ -31,6 +35,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -45,6 +50,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 
@@ -110,6 +116,29 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
   );
 
   /*
+   * Opened from the Maintenance Calendar's Add External Calendar: the Add
+   * dialog opens with the page, for whoever may add one. Read once; the ask
+   * then leaves the address, so a refresh does not open it again.
+   */
+  const [isAddAsked] = useState<boolean>((): boolean => {
+    return (
+      isAddExternalCalendarAsked(Navigation.getQueryString()) &&
+      PermissionGate.check(
+        new ScheduledMaintenanceExternalCalendar(),
+        ModelAction.Create,
+      ).isAllowed
+    );
+  });
+
+  useEffect(() => {
+    if (isAddExternalCalendarAsked(Navigation.getQueryString())) {
+      Navigation.setQueryString({
+        [EXTERNAL_CALENDAR_OPEN_QUERY_PARAM]: null,
+      });
+    }
+  }, []);
+
+  /*
    * The table reads its rows again. A row action's own completion only
    * clears its spinner (RowActions), so every action that changes a row -
    * Read now, Turn on, Turn off, Change link - asks for this itself, or the
@@ -162,11 +191,12 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
         isViewable={false}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
+        showCreateForm={isAddAsked}
         documentationLink={new Route(MAINTENANCE_CALENDAR_DOCS_ROUTE)}
         cardProps={{
           title: "External Calendars",
           description:
-            "Show the events of other calendars - public holidays, change freezes, another project's maintenance - on the Maintenance Calendar. Read-only, and never part of this project's own calendar links.",
+            "Show the events of other calendars, such as public holidays or a change freeze, on the Maintenance Calendar.",
         }}
         sortBy="name"
         sortOrder={SortOrder.Ascending}

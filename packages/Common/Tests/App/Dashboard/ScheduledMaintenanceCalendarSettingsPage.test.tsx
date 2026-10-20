@@ -153,6 +153,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ExternalCalendarStatus";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { getReadNowPath } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ExternalCalendarApi";
+import {
+  ADD_EXTERNAL_CALENDAR_ACTION,
+  EXTERNAL_CALENDAR_OPEN_QUERY_PARAM,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ExternalCalendarAddLink";
 import URL from "../../../Types/API/URL";
 import { APP_API_URL } from "../../../UI/Config";
 import ScheduledMaintenanceExternalCalendar from "../../../Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
@@ -300,10 +304,13 @@ describe("the table", () => {
     expect(
       (table["cardProps"] as { title: string; description: string }).title,
     ).toBe("External Calendars");
+    // One short sentence: what the page is for. The rest is in the docs.
     expect(
       (table["cardProps"] as { title: string; description: string })
         .description,
-    ).toContain("never part of this project's own calendar links");
+    ).toBe(
+      "Show the events of other calendars, such as public holidays or a change freeze, on the Maintenance Calendar.",
+    );
   });
 
   test("never asks for a calendar's link: the server never answers with one", () => {
@@ -824,5 +831,58 @@ describe("the row's actions", () => {
         disabled: true,
       });
     }
+  });
+});
+
+describe("opened from the Maintenance Calendar's Add External Calendar", () => {
+  const SETTINGS_PATH: string =
+    "/dashboard/p/scheduled-maintenance-events/settings/calendar";
+
+  // The ask Add External Calendar puts in the address.
+  const ASK: string = `${EXTERNAL_CALENDAR_OPEN_QUERY_PARAM}=${ADD_EXTERNAL_CALENDAR_ACTION}`;
+
+  afterEach(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
+  test("the Add dialog opens with the page, and the ask leaves the address", () => {
+    window.history.replaceState({}, "", `${SETTINGS_PATH}?${ASK}`);
+
+    expect(renderPage()["showCreateForm"]).toBe(true);
+
+    // A refresh, a bookmark or Back opens the page alone.
+    expect(window.location.pathname).toBe(SETTINGS_PATH);
+    expect(window.location.search).toBe("");
+  });
+
+  test("the rest of the address is kept", () => {
+    window.history.replaceState({}, "", `${SETTINGS_PATH}?${ASK}&name=holidays`);
+
+    renderPage();
+
+    expect(window.location.search).toBe("?name=holidays");
+  });
+
+  test("opened any other way, the dialog waits for its button", () => {
+    window.history.replaceState({}, "", SETTINGS_PATH);
+
+    expect(renderPage()["showCreateForm"]).toBe(false);
+
+    cleanup();
+    window.history.replaceState(
+      {},
+      "",
+      `${SETTINGS_PATH}?${EXTERNAL_CALENDAR_OPEN_QUERY_PARAM}=add-device`,
+    );
+
+    expect(renderPage()["showCreateForm"]).toBe(false);
+  });
+
+  test("a reader who may not add one never gets the dialog, and the ask still leaves the address", () => {
+    mockState.isMasterAdmin = false;
+    window.history.replaceState({}, "", `${SETTINGS_PATH}?${ASK}`);
+
+    expect(renderPage()["showCreateForm"]).toBe(false);
+    expect(window.location.search).toBe("");
   });
 });

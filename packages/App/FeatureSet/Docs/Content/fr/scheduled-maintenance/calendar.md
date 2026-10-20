@@ -38,7 +38,7 @@ La page du calendrier peut aussi afficher les événements de calendriers extér
 :::steps
 ### Ajouter le calendrier
 
-Ouvrez **Maintenance planifiée → Paramètres du calendrier**, dans la section **Paramètres** du menu latéral, ou choisissez **Ajouter un calendrier externe** dans le menu **⋯** du calendrier. Cliquez sur **Ajouter un calendrier externe**, renseignez **Nom** et collez son lien dans **Lien du calendrier**. **Plus de champs** contient sa **Couleur** et **Actualiser**, la fréquence de lecture : **Toutes les heures** sauf si vous en choisissez une autre.
+Choisissez **Ajouter un calendrier externe** dans le menu **⋯** du calendrier, ou ouvrez **Maintenance planifiée → Paramètres du calendrier**, dans la section **Paramètres** du menu latéral, et cliquez sur **Ajouter un calendrier externe**. Renseignez **Nom** et collez son lien dans **Lien du calendrier**. **Plus de champs** contient sa **Couleur** et **Actualiser**, la fréquence de lecture : **Toutes les heures** sauf si vous en choisissez une autre.
 
 ### Vérifier qu'il a été lu
 

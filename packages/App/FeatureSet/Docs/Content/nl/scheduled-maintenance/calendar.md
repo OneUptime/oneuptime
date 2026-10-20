@@ -38,7 +38,7 @@ De agendapagina kan ook de gebeurtenissen tonen van agenda's van buiten het proj
 :::steps
 ### De agenda toevoegen
 
-Open **Geplande onderhoud → Agenda-instellingen**, in het onderdeel **Instellingen** van het zijmenu, of kies **Externe agenda toevoegen** in het menu **⋯** van de agenda. Klik op **Externe agenda toevoegen**, vul **Naam** in en plak de link in **Agendalink**. **Meer velden** bevat haar **Kleur** en **Vernieuwen**, hoe vaak ze wordt gelezen: **Elk uur**, tenzij je iets anders kiest.
+Kies **Externe agenda toevoegen** in het menu **⋯** van de agenda, of open **Geplande onderhoud → Agenda-instellingen**, in het onderdeel **Instellingen** van het zijmenu, en klik op **Externe agenda toevoegen**. Vul **Naam** in en plak de link in **Agendalink**. **Meer velden** bevat haar **Kleur** en **Vernieuwen**, hoe vaak ze wordt gelezen: **Elk uur**, tenzij je iets anders kiest.
 
 ### Controleren dat ze is gelezen
 

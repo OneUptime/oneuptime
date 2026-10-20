@@ -353,9 +353,9 @@ describe("external calendars", () => {
     PAGE.indexOf("## The team's calendar link"),
   );
 
-  it("are added on Calendar Settings, in the side menu's folded Settings, or from the calendar's ⋯", () => {
+  it("are added from the calendar's ⋯, which opens the Add dialog, or on Calendar Settings, in the side menu's folded Settings", () => {
     expect(external).toContain(
-      "Open **Scheduled Maintenance → Calendar Settings**, in the **Settings** section of the side menu, or pick **Add External Calendar** in the calendar's **⋯** menu.",
+      "Pick **Add External Calendar** in the calendar's **⋯** menu, or open **Scheduled Maintenance → Calendar Settings**, in the **Settings** section of the side menu, and click **Add External Calendar**.",
     );
 
     const settingsSection: string = menuSection("Settings");
@@ -371,11 +371,23 @@ describe("external calendars", () => {
     expect(EVENTS_TABLE).toContain(
       "new ScheduledMaintenanceExternalCalendar(),\n      ModelAction.Create,",
     );
+
+    /*
+     * It opens Calendar Settings with the Add dialog open (the ask in the
+     * address), not the list, where the same button would be one more step.
+     */
+    expect(EVENTS_TABLE).toContain(
+      ".addQueryParams(getAddExternalCalendarQuery())",
+    );
+    expect(SETTINGS_PAGE).toContain("showCreateForm={isAddAsked}");
+    expect(SETTINGS_PAGE).toContain(
+      "isAddExternalCalendarAsked(Navigation.getQueryString())",
+    );
   });
 
   it("is added with a Name and a Calendar Link, its Color and Refresh under More fields, read every hour unless another is picked", () => {
     expect(external).toContain(
-      "Click **Add External Calendar**, give it a **Name** and paste its **Calendar Link**. **More fields** holds its **Color** and **Refresh**, how often it is read: **Every hour** unless you pick another.",
+      "Give it a **Name** and paste its **Calendar Link**. **More fields** holds its **Color** and **Refresh**, how often it is read: **Every hour** unless you pick another.",
     );
 
     // The table's own Add button: its verb and its thing.

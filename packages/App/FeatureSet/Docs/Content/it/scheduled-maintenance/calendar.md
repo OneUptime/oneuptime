@@ -38,7 +38,7 @@ La pagina del calendario può mostrare anche gli eventi di calendari esterni al 
 :::steps
 ### Aggiungere il calendario
 
-Aprite **Manutenzione programmata → Impostazioni del calendario**, nella sezione **Impostazioni** del menu laterale, oppure scegliete **Aggiungi calendario esterno** nel menu **⋯** del calendario. Fate clic su **Aggiungi calendario esterno**, compilate **Nome** e incollate il suo link in **Link del calendario**. **Altri campi** contiene il suo **Colore** e **Aggiorna**, cioè ogni quanto viene letto: **Ogni ora** se non ne scegliete un altro.
+Scegliete **Aggiungi calendario esterno** nel menu **⋯** del calendario, oppure aprite **Manutenzione programmata → Impostazioni del calendario**, nella sezione **Impostazioni** del menu laterale, e fate clic su **Aggiungi calendario esterno**. Compilate **Nome** e incollate il suo link in **Link del calendario**. **Altri campi** contiene il suo **Colore** e **Aggiorna**, cioè ogni quanto viene letto: **Ogni ora** se non ne scegliete un altro.
 
 ### Verificare che sia stato letto
 

@@ -341,12 +341,20 @@
 
 /* ---------- Overlay blocks (CalendarEventTone) ----------
    An event from another calendar: stripes of its colour, a dashed edge and
-   its text, all written inline by the event's style. Nothing to open, so
+   its text, all written inline by the event's style. Flat, with no shadow
+   to lift it off the grid as the page's own blocks are; nothing to open, so
    the pointer stays an arrow and hovering changes nothing. */
 .oneuptime-calendar .rbc-event.oneuptime-calendar-event--overlay,
 .rbc-overlay .rbc-event.oneuptime-calendar-event--overlay {
   font-weight: 500;
   cursor: default;
+  box-shadow: none;
+}
+
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--overlay:hover,
+.rbc-overlay .rbc-event.oneuptime-calendar-event--overlay:hover {
+  filter: none;
+  box-shadow: none;
 }
 
 .oneuptime-calendar .rbc-event.oneuptime-calendar-event--overlay:focus,

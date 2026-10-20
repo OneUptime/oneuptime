@@ -103,7 +103,7 @@ const PAGE_SENTENCES: Record<string, Array<string>> = {
   "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings.tsx":
     [
       "External Calendars",
-      "Show the events of other calendars - public holidays, change freezes, another project's maintenance - on the Maintenance Calendar. Read-only, and never part of this project's own calendar links.",
+      "Show the events of other calendars, such as public holidays or a change freeze, on the Maintenance Calendar.",
       "External Calendar",
       "The name the Maintenance Calendar shows for it.",
       "Public holidays",
@@ -137,7 +137,6 @@ const PAGE_SENTENCES: Record<string, Array<string>> = {
     "Hide {{name}} on the calendar",
     "Show {{name}} on the calendar",
     "OneUptime could not read this calendar lately. It shows the events of its last good read.",
-    "{{name}} could not be read lately",
     "Calendar settings",
   ],
 };
@@ -337,30 +336,40 @@ describe("the toggles under the calendar read in the reader's language", () => {
       }),
     ).toBeInTheDocument();
 
-    // The calendar's own name, as its owner typed it, inside the sentence.
-    const hide: string = fill(locale["Hide {{name}} on the calendar"]!, {
+    /*
+     * Each toggle is named by its calendar, as its owner typed it; what a
+     * click does is its hint, in the reader's language, the name inside.
+     */
+    const toggle: HTMLElement = screen.getByRole("button", {
       name: "Bank Holidays",
+      pressed: true,
     });
-    const toggle: HTMLElement = screen.getByRole("button", { name: hide });
-    expect(toggle).toHaveTextContent("Bank Holidays");
+    expect(toggle).toHaveAttribute(
+      "title",
+      fill(locale["Hide {{name}} on the calendar"]!, {
+        name: "Bank Holidays",
+      }),
+    );
 
     fireEvent.click(toggle);
 
     expect(
-      screen.getByRole("button", {
-        name: fill(locale["Show {{name}} on the calendar"]!, {
-          name: "Bank Holidays",
-        }),
+      screen.getByRole("button", { name: "Bank Holidays", pressed: false }),
+    ).toHaveAttribute(
+      "title",
+      fill(locale["Show {{name}} on the calendar"]!, {
+        name: "Bank Holidays",
       }),
-    ).toHaveAttribute("aria-pressed", "false");
+    );
 
+    // Why a calendar is marked, in the reader's language.
     expect(
-      screen.getByRole("img", {
-        name: fill(locale["{{name}} could not be read lately"]!, {
-          name: "Change Freeze",
-        }),
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: "Change Freeze" }),
+    ).toHaveAccessibleDescription(
+      locale[
+        "OneUptime could not read this calendar lately. It shows the events of its last good read."
+      ]!,
+    );
 
     expect(
       screen.getByRole("link", { name: locale["Calendar settings"]! }),

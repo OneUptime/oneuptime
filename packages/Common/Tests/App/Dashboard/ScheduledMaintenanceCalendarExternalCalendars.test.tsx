@@ -103,6 +103,14 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 
+// Why a calendar is marked, as its toggle describes it.
+const READ_WARNING: string =
+  "OneUptime could not read this calendar lately. It shows the events of its last good read.";
+
+// The hint a hidden Change freezes gives, before the reason it is marked.
+const SHOW_FREEZES_HINT_PATTERN: RegExp =
+  /^Show Change freezes on the calendar\n/;
+
 const PROJECT_ID: string = "65000000-0000-4000-8000-000000000001";
 const HOLIDAYS_ID: string = "65000000-0000-4000-8000-000000000002";
 const FREEZES_ID: string = "65000000-0000-4000-8000-000000000003";
@@ -437,9 +445,11 @@ describe("the external calendars on the calendar", () => {
       expect(overlayTitles()).not.toContain("Quarter-end change freeze");
     });
 
+    // The same toggle, by the same name: only its state and its hint change.
     expect(toggle(FREEZES_ID)).toHaveAttribute("aria-pressed", "false");
-    expect(toggle(FREEZES_ID)).toHaveAccessibleName(
-      "Show Change freezes on the calendar",
+    expect(toggle(FREEZES_ID)).toHaveAccessibleName("Change freezes");
+    expect(toggle(FREEZES_ID).getAttribute("title")).toMatch(
+      SHOW_FREEZES_HINT_PATTERN,
     );
     expect(overlayTitles()).toContain("Founders' Day");
 
@@ -489,7 +499,7 @@ describe("the external calendars on the calendar", () => {
     expect(overlayTitles()).toEqual([]);
   });
 
-  test("a calendar that could not be read lately is marked, saying so", async () => {
+  test("a calendar that could not be read lately is marked inside its own toggle, which says why", async () => {
     renderCalendar();
 
     await waitFor(() => {
@@ -501,11 +511,110 @@ describe("the external calendars on the calendar", () => {
     expect(
       screen.getAllByTestId("scheduled-maintenance-calendar-external-warning"),
     ).toHaveLength(1);
+
+    // The mark is in the toggle it is about, never between two toggles.
     expect(
-      screen.getByRole("img", {
-        name: "Change freezes could not be read lately",
+      within(toggle(FREEZES_ID)).getByTestId(
+        "scheduled-maintenance-calendar-external-warning",
+      ),
+    ).toHaveAttribute("aria-hidden", "true");
+    expect(
+      within(toggle(HOLIDAYS_ID)).queryByTestId(
+        "scheduled-maintenance-calendar-external-warning",
+      ),
+    ).toBeNull();
+
+    // Named by its calendar alone, the reason its description and hint.
+    expect(toggle(FREEZES_ID)).toHaveAccessibleName("Change freezes");
+    expect(toggle(FREEZES_ID)).toHaveAccessibleDescription(READ_WARNING);
+    expect(toggle(FREEZES_ID).getAttribute("title")).toBe(
+      `Hide Change freezes on the calendar\n${READ_WARNING}`,
+    );
+    // A calendar read lately is described by its hint alone.
+    expect(toggle(HOLIDAYS_ID)).not.toHaveAttribute("aria-describedby");
+    expect(toggle(HOLIDAYS_ID)).toHaveAccessibleDescription(
+      "Hide Public holidays on the calendar",
+    );
+  });
+
+  test("each toggle is named by its calendar, says whether it is shown with aria-pressed, and hints at what a click does", async () => {
+    renderCalendar();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("scheduled-maintenance-calendar-external-toggle"),
+      ).toHaveLength(2);
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Public holidays", pressed: true }),
+    ).toBe(toggle(HOLIDAYS_ID));
+    expect(toggle(HOLIDAYS_ID)).toHaveAttribute(
+      "title",
+      "Hide Public holidays on the calendar",
+    );
+
+    fireEvent.click(toggle(HOLIDAYS_ID));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "Public holidays",
+          pressed: false,
+        }),
+      ).toBe(toggle(HOLIDAYS_ID));
+    });
+
+    expect(toggle(HOLIDAYS_ID)).toHaveAttribute(
+      "title",
+      "Show Public holidays on the calendar",
+    );
+  });
+
+  test("the project's own events come before the other calendars' events of their day", async () => {
+    // An overlay that starts earlier on the same day as the project's event.
+    world.events = [
+      externalEvent({
+        calendarId: HOLIDAYS_ID,
+        title: "Morning stand-up",
+        startsAt: "2026-10-20T08:00:00.000Z",
+        endsAt: "2026-10-20T09:00:00.000Z",
       }),
-    ).toBeInTheDocument();
+    ];
+
+    renderCalendar();
+
+    await waitFor(() => {
+      expect(overlayTitles()).toContain("Morning stand-up");
+    });
+
+    const own: HTMLElement = screen.getByTestId(
+      "scheduled-maintenance-calendar-event",
+    );
+    const overlay: HTMLElement = screen.getAllByTestId(
+      "scheduled-maintenance-calendar-overlay-event",
+    )[0]!;
+
+    // react-big-calendar lays a day's blocks out in their order, top first.
+    expect(
+      own.compareDocumentPosition(overlay) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("the card's header is All Events': the title beside the buttons, the description under both", async () => {
+    renderCalendar();
+
+    await waitFor(() => {
+      expect(requestsFor("ScheduledMaintenance")).toHaveLength(1);
+    });
+
+    expect(screen.getByTestId("card-header")).toHaveAttribute(
+      "data-header-layout",
+      "toolbar",
+    );
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "Every scheduled maintenance event.",
+    );
   });
 
   test("their events failing to load keeps the project's own on the page, with no error", async () => {

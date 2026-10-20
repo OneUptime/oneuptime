@@ -38,7 +38,7 @@ Kalendersiden kan også vise begivenhederne fra kalendere uden for projektet: he
 :::steps
 ### Tilføj kalenderen
 
-Åbn **Planlagt vedligeholdelse → Kalenderindstillinger** i sektionen **Indstillinger** i sidemenuen, eller vælg **Tilføj ekstern kalender** i kalenderens **⋯**-menu. Klik på **Tilføj ekstern kalender**, udfyld **Navn**, og indsæt linket i **Kalenderlink**. **Flere felter** rummer dens **Farve** og **Opdater**, hvor ofte den læses: **Hver time**, medmindre du vælger andet.
+Vælg **Tilføj ekstern kalender** i kalenderens **⋯**-menu, eller åbn **Planlagt vedligeholdelse → Kalenderindstillinger** i sektionen **Indstillinger** i sidemenuen, og klik på **Tilføj ekstern kalender**. Udfyld **Navn**, og indsæt linket i **Kalenderlink**. **Flere felter** rummer dens **Farve** og **Opdater**, hvor ofte den læses: **Hver time**, medmindre du vælger andet.
 
 ### Tjek, at den blev læst
 

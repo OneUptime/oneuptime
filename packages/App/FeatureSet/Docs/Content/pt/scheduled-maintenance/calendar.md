@@ -38,7 +38,7 @@ A página do calendário também pode mostrar os eventos de calendários de fora
 :::steps
 ### Adicionar o calendário
 
-Abra **Manutenção programada → Configurações do calendário**, na seção **Configurações** do menu lateral, ou escolha **Adicionar calendário externo** no menu **⋯** do calendário. Clique em **Adicionar calendário externo**, preencha **Nome** e cole o link em **Link do calendário**. **Mais campos** contém a sua **Cor** e **Atualizar**, a frequência com que é lido: **A cada hora**, a menos que escolha outra.
+Escolha **Adicionar calendário externo** no menu **⋯** do calendário, ou abra **Manutenção programada → Configurações do calendário**, na seção **Configurações** do menu lateral, e clique em **Adicionar calendário externo**. Preencha **Nome** e cole o link em **Link do calendário**. **Mais campos** contém a sua **Cor** e **Atualizar**, a frequência com que é lido: **A cada hora**, a menos que escolha outra.
 
 ### Verificar que foi lido
 

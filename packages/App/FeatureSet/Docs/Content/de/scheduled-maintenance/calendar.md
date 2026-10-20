@@ -38,7 +38,7 @@ Die Kalenderseite kann auch die Ereignisse von Kalendern außerhalb des Projekts
 :::steps
 ### Den Kalender hinzufügen
 
-Öffnen Sie **Geplante Wartung → Kalendereinstellungen** im Abschnitt **Einstellungen** des Seitenmenüs, oder wählen Sie **Externen Kalender hinzufügen** im **⋯**-Menü des Kalenders. Klicken Sie auf **Externen Kalender hinzufügen**, füllen Sie **Name** aus und fügen Sie seinen Link unter **Kalenderlink** ein. Unter **Weitere Felder** liegen seine **Farbe** und **Aktualisieren**, also wie oft er gelesen wird: **Jede Stunde**, sofern Sie nichts anderes wählen.
+Wählen Sie **Externen Kalender hinzufügen** im **⋯**-Menü des Kalenders, oder öffnen Sie **Geplante Wartung → Kalendereinstellungen** im Abschnitt **Einstellungen** des Seitenmenüs und klicken Sie auf **Externen Kalender hinzufügen**. Füllen Sie **Name** aus und fügen Sie seinen Link unter **Kalenderlink** ein. Unter **Weitere Felder** liegen seine **Farbe** und **Aktualisieren**, also wie oft er gelesen wird: **Jede Stunde**, sofern Sie nichts anderes wählen.
 
 ### Prüfen, ob er gelesen wurde
 

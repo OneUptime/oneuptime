@@ -208,8 +208,9 @@ describe("the routes", () => {
       "Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs.ts",
     );
 
+    // The calendar by the name its side menu entry and its card give it.
     expect(trail).toContain(
-      'PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR, ["Project", "Scheduled Maintenance Events", "Calendar"]',
+      'PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR, ["Project", "Scheduled Maintenance Events", "Maintenance Calendar"]',
     );
     expect(trail).toContain(
       'PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR, ["Project", "Scheduled Maintenance", "Settings", "Calendar Settings"]',
@@ -241,6 +242,27 @@ describe("external calendars", () => {
     );
     expect(TABLE).toContain(
       "...(externalCalendarButton ? [externalCalendarButton] : []),",
+    );
+  });
+
+  test("Add External Calendar opens Calendar Settings with its Add dialog open, and the page takes the ask out of its address", () => {
+    expect(TABLE).toContain(
+      "Navigation.navigate( RouteUtil.populateRouteParams( RouteMap[ PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR ] as Route, ).addQueryParams(getAddExternalCalendarQuery()), );",
+    );
+
+    const settings: string = read(
+      "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceCalendarSettings.tsx",
+    );
+
+    // Opened once, for whoever may add one.
+    expect(settings).toContain(
+      "const [isAddAsked] = useState<boolean>((): boolean => { return ( isAddExternalCalendarAsked(Navigation.getQueryString()) && PermissionGate.check( new ScheduledMaintenanceExternalCalendar(), ModelAction.Create, ).isAllowed ); });",
+    );
+    expect(settings).toContain("showCreateForm={isAddAsked}");
+
+    // Then out of the address: a refresh or Back does not open it again.
+    expect(settings).toContain(
+      "Navigation.setQueryString({ [EXTERNAL_CALENDAR_OPEN_QUERY_PARAM]: null, });",
     );
   });
 

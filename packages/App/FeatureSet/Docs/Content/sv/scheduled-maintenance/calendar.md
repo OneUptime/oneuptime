@@ -38,7 +38,7 @@ Kalendersidan kan också visa händelserna från kalendrar utanför projektet: h
 :::steps
 ### Lägg till kalendern
 
-Öppna **Schemalagt underhåll → Kalenderinställningar** i avsnittet **Inställningar** i sidomenyn, eller välj **Lägg till extern kalender** i kalenderns **⋯**-meny. Klicka på **Lägg till extern kalender**, fyll i **Namn** och klistra in länken i **Kalenderlänk**. **Fler fält** innehåller dess **Färg** och **Uppdatera**, hur ofta den läses: **Varje timme** om du inte väljer något annat.
+Välj **Lägg till extern kalender** i kalenderns **⋯**-meny, eller öppna **Schemalagt underhåll → Kalenderinställningar** i avsnittet **Inställningar** i sidomenyn och klicka på **Lägg till extern kalender**. Fyll i **Namn** och klistra in länken i **Kalenderlänk**. **Fler fält** innehåller dess **Färg** och **Uppdatera**, hur ofta den läses: **Varje timme** om du inte väljer något annat.
 
 ### Kontrollera att den lästes
 
