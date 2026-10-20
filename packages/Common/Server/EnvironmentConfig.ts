@@ -848,9 +848,9 @@ export const StatusPageApiClientUrl: URL = new URL(
 );
 
 /*
- *Internal URL for server-to-server communication (uses internal Docker hostname)
- *Note: The internal path is /api/status-page (not /status-page-api) because
- * /status-page-api is the external route that Nginx rewrites to /api/status-page
+ * Internal URL for server-to-server communication (uses internal Docker hostname).
+ * Note: The internal path is /api/status-page (not /status-page-api) because
+ * /status-page-api is the external route that Nginx rewrites to /api/status-page.
  */
 export const StatusPageApiInternalUrl: URL = new URL(
   Protocol.HTTP,
@@ -859,9 +859,9 @@ export const StatusPageApiInternalUrl: URL = new URL(
 );
 
 /*
- *Internal URL for server-to-server communication with the Dashboard API.
- *Note: The internal path is /api/dashboard (not /public-dashboard-api) because
- * /public-dashboard-api is the external route that Nginx rewrites to /api/dashboard
+ * Internal URL for server-to-server communication with the Dashboard API.
+ * Note: The internal path is /api/dashboard (not /public-dashboard-api) because
+ * /public-dashboard-api is the external route that Nginx rewrites to /api/dashboard.
  */
 export const DashboardApiInternalUrl: URL = new URL(
   Protocol.HTTP,
