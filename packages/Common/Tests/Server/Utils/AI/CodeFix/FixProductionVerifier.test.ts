@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
@@ -110,8 +111,8 @@ let exceptionRow: JSONObject | null;
 let updates: Array<JSONObject>;
 let exceptionUpdates: Array<JSONObject>;
 let compareStatus: Record<string, string>;
-let compare: jest.SpiedFunction<typeof GitHubCommits.compare>;
-let mintToken: jest.SpiedFunction<typeof GitHubUtil.getInstallationAccessToken>;
+let compare: SpyInstance<typeof GitHubCommits.compare>;
+let mintToken: SpyInstance<typeof GitHubUtil.getInstallationAccessToken>;
 let isBound: boolean;
 
 function change(overrides: {
@@ -281,11 +282,8 @@ function lastUpdate(): JSONObject {
 
 describe("FixProductionVerifier.verifyAll", () => {
   test("reads the merged fixes not decided yet, least recently changed first, as the system", async () => {
-    const findFixes: jest.SpiedFunction<
-      typeof AIAgentTaskPullRequestService.findBy
-    > = jest
-      .spyOn(AIAgentTaskPullRequestService, "findBy")
-      .mockResolvedValue([]);
+    const findFixes: SpyInstance<typeof AIAgentTaskPullRequestService.findBy> =
+      jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 
     await FixProductionVerifier.verifyAll();
 
