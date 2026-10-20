@@ -39,7 +39,6 @@ import React, {
   ReactElement,
   useState,
   useEffect,
-  useMemo,
 } from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
@@ -91,15 +90,8 @@ import {
 import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 import ScheduledMaintenanceCalendar from "./ScheduledMaintenanceCalendar";
 import MaintenanceCalendarSubscribeModal from "./MaintenanceCalendarSubscribeModal";
-import {
-  SCHEDULED_MAINTENANCE_VIEW_OPTIONS,
-  SCHEDULED_MAINTENANCE_VIEW_SWITCH_LABEL,
-  SCHEDULED_MAINTENANCE_VIEW_SWITCH_TEST_ID,
-  ScheduledMaintenanceView,
-  scheduledMaintenanceViewChoice,
-} from "./ScheduledMaintenanceViewChoice";
-import ViewSwitch from "Common/UI/Components/ViewSwitch/ViewSwitch";
-import { useRememberedView } from "Common/UI/Components/ViewSwitch/RememberedView";
+import { ScheduledMaintenanceView } from "./ScheduledMaintenanceView";
+import ScheduledMaintenanceExternalCalendar from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 
@@ -124,13 +116,13 @@ export interface ComponentProps {
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   /*
-   * The project's own list of events (Scheduled Maintenance > Events): a
-   * List | Calendar switch in the card's header, the reader's choice
-   * remembered (ScheduledMaintenanceViewChoice), and Subscribe to calendar -
-   * the team's calendar link for every event of the project. The lists on
-   * a monitor's or a host's Scheduled Maintenance tab stay lists.
+   * The events as a list - the default: All Events, Ongoing Events, and a
+   * monitor's or a host's Scheduled Maintenance tab - or as a calendar: the
+   * Maintenance Calendar page, with Subscribe to calendar (the team's
+   * calendar link for every event of the project) and the calendars from
+   * outside the project drawn beside the events. See ScheduledMaintenanceView.
    */
-  showCalendarView?: boolean | undefined;
+  view?: ScheduledMaintenanceView | undefined;
 }
 
 const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
@@ -153,13 +145,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     useState<BulkActionOnClickProps<ScheduledMaintenance> | null>(null);
   const [showSubscribeModal, setShowSubscribeModal] = useState<boolean>(false);
 
-  // List or Calendar: the reader's choice, on the project's own list only.
-  const [rememberedView, setView] = useRememberedView<ScheduledMaintenanceView>(
-    scheduledMaintenanceViewChoice,
-  );
-  const view: ScheduledMaintenanceView = props.showCalendarView
-    ? rememberedView
-    : ScheduledMaintenanceView.List;
+  const view: ScheduledMaintenanceView =
+    props.view || ScheduledMaintenanceView.List;
 
   const { noteTemplates } = useNoteTemplates<ScheduledMaintenanceNoteTemplate>({
     modelType: ScheduledMaintenanceNoteTemplate,
@@ -176,28 +163,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
       resourceIdField: "scheduledMaintenanceId",
     });
-
-  /*
-   * List | Calendar, at the right end of the filter bar: the card's header
-   * already holds the search, Create and the ⋯, and a switch there squeezed
-   * the card's title into a column a word wide. In the bar it stays where it
-   * is when the view changes.
-   */
-  const viewSwitch: ReactElement | undefined = useMemo(() => {
-    if (!props.showCalendarView) {
-      return undefined;
-    }
-
-    return (
-      <ViewSwitch<ScheduledMaintenanceView>
-        options={SCHEDULED_MAINTENANCE_VIEW_OPTIONS}
-        value={view}
-        onChange={setView}
-        ariaLabel={SCHEDULED_MAINTENANCE_VIEW_SWITCH_LABEL}
-        dataTestId={SCHEDULED_MAINTENANCE_VIEW_SWITCH_TEST_ID}
-      />
-    );
-  }, [props.showCalendarView, view, setView]);
 
   const scheduledMaintenanceExtraFacets: Array<ResourceFacet> = [
     {
@@ -311,7 +276,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     showLabelsFacet: true,
     extraFacets: [...scheduledMaintenanceExtraFacets, ...customFieldFacets],
     areFacetsLoading: areCustomFieldFacetsLoading,
-    filterBarEnd: viewSwitch,
   });
 
   // Fetch scheduled maintenance states on mount
@@ -524,16 +488,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     PermissionGate.check(new ScheduledMaintenance(), ModelAction.Create)
       .isAllowed;
 
-  // Subscribe to calendar: in the list's ⋯, and under the calendar.
-  const subscribeButton: CardButtonSchema = {
-    title: "Subscribe to calendar",
-    icon: IconProp.Calendar,
-    buttonStyle: ButtonStyleType.OUTLINE,
-    onClick: () => {
-      setShowSubscribeModal(true);
-    },
-  };
-
   if (!props.disableCreate) {
     /*
      * These route to a dedicated create page instead of the table's built in
@@ -590,11 +544,37 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const calendarMoreButtons: Array<CardButtonSchema> = cardbuttons.filter(
-    (button: CardButtonSchema): boolean => {
+  /*
+   * The calendar's ⋯ also leads to Calendar Settings, where calendars from
+   * outside the project - public holidays, a change freeze, another
+   * project's maintenance - are added to be drawn beside the events.
+   */
+  const externalCalendarButton: CardButtonSchema | null =
+    PermissionGate.gateCardButton(
+      {
+        title: "Add External Calendar",
+        icon: IconProp.Calendar,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
+              ] as Route,
+            ),
+          );
+        },
+      },
+      new ScheduledMaintenanceExternalCalendar(),
+      ModelAction.Create,
+    );
+
+  const calendarMoreButtons: Array<CardButtonSchema> = [
+    ...cardbuttons.filter((button: CardButtonSchema): boolean => {
       return button !== calendarMainButton;
-    },
-  );
+    }),
+    ...(externalCalendarButton ? [externalCalendarButton] : []),
+  ];
 
   const calendarButtons: Array<CardButtonSchema | ReactElement> = [
     ...(calendarMainButton ? [calendarMainButton] : []),
@@ -662,6 +642,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           onSubscribe={() => {
             setShowSubscribeModal(true);
           }}
+          externalCalendarSettingsRoute={RouteUtil.populateRouteParams(
+            RouteMap[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
+            ] as Route,
+          )}
         />
       ) : (
         <ModelTable<ScheduledMaintenance>
@@ -696,9 +681,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: cardTitle,
             description: cardDescription,
-            buttons: props.showCalendarView
-              ? [...cardbuttons, subscribeButton]
-              : cardbuttons,
+            buttons: cardbuttons,
           }}
           noItemsMessage={props.noItemsMessage}
           showViewIdButton={true}

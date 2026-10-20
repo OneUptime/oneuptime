@@ -8,7 +8,9 @@ import useTranslator from "../../Utils/UseTranslator";
 import { StyledDayEvent, layoutDayEvents } from "./CalendarDayLayout";
 import {
   CalendarEventAppearance,
+  getOverlayEventStyle,
   getSoftEventStyle,
+  OVERLAY_EVENT_CLASS_NAME,
   SOFT_EVENT_CLASS_NAME,
 } from "./CalendarEventTone";
 import {
@@ -451,7 +453,27 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     const backgroundColor: string =
       event.color?.toString() || Blue500.toString();
 
-    if (props.eventAppearance === CalendarEventAppearance.Soft) {
+    // The event's own appearance wins over the calendar's.
+    const appearance: CalendarEventAppearance | undefined =
+      (event.appearance as CalendarEventAppearance | undefined) ||
+      props.eventAppearance;
+
+    if (appearance === CalendarEventAppearance.Overlay) {
+      const overlayStyle: React.CSSProperties = {
+        ...getOverlayEventStyle(backgroundColor),
+        borderRadius: "0.375rem",
+        display: "block",
+      };
+
+      return {
+        style: overlayStyle,
+        className: className
+          ? `${className} ${OVERLAY_EVENT_CLASS_NAME}`
+          : OVERLAY_EVENT_CLASS_NAME,
+      };
+    }
+
+    if (appearance === CalendarEventAppearance.Soft) {
       const softStyle: React.CSSProperties = {
         ...getSoftEventStyle(backgroundColor),
         borderRadius: "0.375rem",

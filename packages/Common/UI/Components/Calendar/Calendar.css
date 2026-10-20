@@ -339,6 +339,21 @@
   filter: brightness(0.97);
 }
 
+/* ---------- Overlay blocks (CalendarEventTone) ----------
+   An event from another calendar: stripes of its colour, a dashed edge and
+   its text, all written inline by the event's style. Nothing to open, so
+   the pointer stays an arrow and hovering changes nothing. */
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--overlay,
+.rbc-overlay .rbc-event.oneuptime-calendar-event--overlay {
+  font-weight: 500;
+  cursor: default;
+}
+
+.oneuptime-calendar .rbc-event.oneuptime-calendar-event--overlay:focus,
+.rbc-overlay .rbc-event.oneuptime-calendar-event--overlay:focus {
+  outline: none;
+}
+
 /* ---------- The "+N more" list ----------
    react-big-calendar draws it at the end of the page's body, outside the
    calendar's wrapper, so its rules cannot be scoped to it. It is a small

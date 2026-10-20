@@ -1465,6 +1465,14 @@ html.dark .rbc-event.oneuptime-calendar-event--soft {
   box-shadow: var(--ou-calendar-event-dark-shadow) !important;
 }
 
+/* An overlay block (an event from another calendar): the same, its stripes and dashed edge included. */
+html.dark .rbc-event.oneuptime-calendar-event--overlay {
+  background-color: var(--ou-calendar-overlay-dark-bg) !important;
+  background-image: var(--ou-calendar-overlay-dark-image) !important;
+  color: var(--ou-calendar-overlay-dark-text) !important;
+  border: var(--ou-calendar-overlay-dark-border) !important;
+}
+
 /* The "+N more" list, a small card at the end of the page's body. */
 html.dark .rbc-overlay {
   background-color: var(--ou-surface-primary);

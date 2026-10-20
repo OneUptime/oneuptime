@@ -78,6 +78,26 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    /*
+     * The calendar, a page of its own: every event by month, week or day,
+     * with the calendars from outside the project beside them. It used to
+     * be a List | Calendar switch on All Events. Open, like Overview: people
+     * plan maintenance on it.
+     */
+    {
+      title: "Calendar",
+      items: [
+        {
+          link: {
+            title: "Maintenance Calendar",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR] as Route,
+            ),
+          },
+          icon: IconProp.Calendar,
+        },
+      ],
+    },
     ...(workspaceSection ? [workspaceSection] : []),
     /*
      * Every "when an event looks like X, do Y" page lives here. Collapsed by
@@ -205,6 +225,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Hashtag,
+        },
+        /*
+         * The calendars from outside the project the Maintenance Calendar
+         * shows beside the events. Set up once, so here in the folded
+         * Settings rather than beside the calendar.
+         */
+        {
+          link: {
+            title: "Calendar Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
         },
       ],
     },
