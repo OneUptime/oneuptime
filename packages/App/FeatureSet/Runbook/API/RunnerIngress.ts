@@ -74,7 +74,7 @@ export default class RunnerIngressAPI {
    * kubectl scripts would fail it with a confusing error of its own.
    */
   public static readonly KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER: string =
-    "This kubectl step runs a script, and this Runner is too old to run one, so it was not run. Update the Runner to the version of your OneUptime server (pull its image again and restart it), then run the runbook again.";
+    "This kubectl step runs a script, and this Runner is too old to run one, so it was not run. Update the Runner to your server's version (pull its image again and restart it), then run the runbook again.";
 
   // Why a job naming a credential is failed for a global Runner.
   public static readonly GLOBAL_RUNNER_CREDENTIAL_REFUSAL: string =

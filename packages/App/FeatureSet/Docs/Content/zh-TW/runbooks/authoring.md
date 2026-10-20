@@ -181,7 +181,7 @@ kubectl rollout restart deployment/checkout-api --namespace checkout
 kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
 ```
 
-每個指令碼下方的 **Examples — click to insert** 可以填入此類常用指令碼。只給 kubeconfig 的使用者授予指令碼所做的事：在指令碼操作的 namespace 中授予一個 Role，只包含它們使用的動詞。如果 API 伺服器拒絕某個指令，kubectl 自己的訊息會出現在步驟輸出中，因此權限錯誤會告訴您該擴大哪個 RoleBinding。
+每個指令碼下方的 **範例 — 點擊插入** 可以填入此類常用指令碼。只給 kubeconfig 的使用者授予指令碼所做的事：在指令碼操作的 namespace 中授予一個 Role，只包含它們使用的動詞。如果 API 伺服器拒絕某個指令，kubectl 自己的訊息會出現在步驟輸出中，因此權限錯誤會告訴您該擴大哪個 RoleBinding。
 
 ### AI
 

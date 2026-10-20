@@ -2,6 +2,7 @@ import RunnersElement from "../Runner/Runners";
 import RunnerChoicesLoader, { GlobalRunnerRow } from "../Runner/RunnerChoices";
 import {
   ACCESS_STEP_TITLE,
+  COPY_REFERENCE_TITLE,
   EVERY_RUNNER_TEXT,
   GLOBAL_RUNNERS_CAN_USE_DESCRIPTION,
   GLOBAL_RUNNERS_CAN_USE_TITLE,
@@ -10,7 +11,9 @@ import {
   GLOBAL_VARIABLES_EMPTY,
   GLOBAL_VARIABLES_TITLE,
   NAME_DESCRIPTION,
+  NEW_VALUE_TITLE,
   REPLACE_VALUE_DESCRIPTION,
+  REPLACE_VALUE_OF_TITLE,
   REPLACE_VALUE_TITLE,
   RUNBOOK_VARIABLES_DESCRIPTION,
   RUNBOOK_VARIABLES_EMPTY,
@@ -29,6 +32,7 @@ import {
   getValueShown,
   getVariableReferenceText,
 } from "./RunbookVariableCopy";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ErrorFunction } from "Common/Types/FunctionTypes";
@@ -72,9 +76,13 @@ import React, {
  * THE RUNBOOK VARIABLES LIST - the project's own (Runbooks > Settings >
  * Global Variables) or one runbook's (its Settings > Variables).
  *
- * A row says what steps write to use the variable ({{global.variables.NAME}},
- * with a copy button), its value - or, for a secret, only that it is one -
- * and which Runners get it. Create asks the name, whether it is a secret and
+ * A row is the variable's name - with a button that copies what a step
+ * writes to use it ({{global.variables.NAME}}), and its description under
+ * it - then its value, or for a secret only that it is one, then which
+ * Runners get it. Three columns and the row's button fit a laptop's card
+ * beside the side menu: the card's description says once how a step writes
+ * a variable, rather than every row repeating it, and the description has
+ * no column of its own. Create asks the name, whether it is a secret and
  * the value, the description folded under More fields; for a secret, a
  * second step asks who may use it, as the runbook secrets page did. A
  * secret's value is never read back: Replace Value sets a new one.
@@ -259,9 +267,25 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
         ]}
         cardProps={{
           title: isGlobal ? GLOBAL_VARIABLES_TITLE : RUNBOOK_VARIABLES_TITLE,
-          description: isGlobal
-            ? GLOBAL_VARIABLES_DESCRIPTION
-            : RUNBOOK_VARIABLES_DESCRIPTION,
+          description: (
+            <TranslatedSentence
+              template={
+                isGlobal
+                  ? GLOBAL_VARIABLES_DESCRIPTION
+                  : RUNBOOK_VARIABLES_DESCRIPTION
+              }
+              slots={{
+                reference: (
+                  <code
+                    className="font-mono text-xs text-gray-700"
+                    data-testid="runbook-variables-reference-syntax"
+                  >
+                    {getVariableReferenceText({ name: "NAME", isGlobal })}
+                  </code>
+                ),
+              }}
+            />
+          ),
         }}
         noItemsMessage={
           isGlobal ? GLOBAL_VARIABLES_EMPTY : RUNBOOK_VARIABLES_EMPTY
@@ -395,6 +419,7 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
           isSecret: true,
           isAvailableToGlobalRunners: true,
           value: true,
+          description: true,
         }}
         columns={[
           {
@@ -403,6 +428,8 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-md",
             getElement: (item: RunbookVariable): ReactElement => {
               const reference: string = getVariableReferenceText({
                 name: item.name || "",
@@ -410,23 +437,42 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
               });
 
               return (
-                <div className="min-w-0">
-                  <div className="font-medium text-gray-900 break-all">
-                    {item.name}
-                  </div>
-                  <div className="mt-1 flex items-center gap-1.5 min-w-0">
-                    <code
-                      className="truncate rounded bg-gray-50 px-1.5 py-0.5 font-mono text-xs text-gray-600 ring-1 ring-inset ring-gray-200"
-                      data-testid="runbook-variable-reference"
+                /*
+                 * One grid track that may shrink (grid-cols-1 is
+                 * minmax(0, 1fr)), never under 12rem: a long name or
+                 * description never widens the column past the card. The
+                 * name breaks anywhere - it has no spaces, and its end is
+                 * often what tells two apart - and the description shows
+                 * two lines.
+                 */
+                <div className="grid min-w-[12rem] grid-cols-1">
+                  <div className="flex min-w-0 items-start gap-1.5">
+                    <span
+                      className="min-w-0 font-medium text-gray-900 [overflow-wrap:anywhere]"
+                      data-testid="runbook-variable-name"
                     >
-                      {reference}
-                    </code>
-                    <CopyTextButton
-                      textToBeCopied={reference}
-                      iconOnly={true}
-                      title="Copy what steps write to use this variable"
-                    />
+                      {item.name}
+                    </span>
+                    <span className="mt-0.5 flex shrink-0">
+                      <CopyTextButton
+                        textToBeCopied={reference}
+                        iconOnly={true}
+                        title={translator.translateTemplate(
+                          COPY_REFERENCE_TITLE,
+                          { reference },
+                        )}
+                      />
+                    </span>
                   </div>
+                  {item.description ? (
+                    <p
+                      className="line-clamp-2 text-sm font-normal text-gray-500 [overflow-wrap:anywhere]"
+                      title={item.description}
+                      data-testid="runbook-variable-description"
+                    >
+                      {item.description}
+                    </p>
+                  ) : null}
                 </div>
               );
             },
@@ -451,9 +497,22 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
                 );
               }
 
+              const shown: string = getValueShown(item.value);
+
               return (
-                <span className="font-mono text-xs text-gray-700 break-all">
-                  {getValueShown(item.value)}
+                /*
+                 * One line, cut to the room the column has (6rem at the
+                 * least) rather than widening it, with the value under the
+                 * pointer.
+                 */
+                <span className="grid min-w-[6rem] grid-cols-1">
+                  <span
+                    className="truncate font-mono text-xs text-gray-700"
+                    title={shown}
+                    data-testid="runbook-variable-value"
+                  >
+                    {shown}
+                  </span>
                 </span>
               );
             },
@@ -492,21 +551,18 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
               );
             },
           },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            type: FieldType.LongText,
-            hideOnMobile: true,
-          },
         ]}
       />
 
       {replacing ? (
         <BasicFormModal
-          title={REPLACE_VALUE_TITLE}
+          /*
+           * Which variable it replaces: the dialog covers the row it was
+           * opened from.
+           */
+          title={translator.translateTemplate(REPLACE_VALUE_OF_TITLE, {
+            name: replacing.name || "",
+          })}
           description={REPLACE_VALUE_DESCRIPTION}
           name="Runbook Variable > Replace Value"
           isLoading={isReplacing}
@@ -544,8 +600,11 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
                 field: {
                   secretValue: true,
                 },
-                title: SECRET_VALUE_TITLE,
-                description: SECRET_VALUE_DESCRIPTION,
+                /*
+                 * No line under it: the dialog's own says the value is
+                 * encrypted and the old one gone.
+                 */
+                title: NEW_VALUE_TITLE,
                 fieldType: FormFieldSchemaType.LongText,
                 required: true,
                 placeholder: SECRET_VALUE_PLACEHOLDER,

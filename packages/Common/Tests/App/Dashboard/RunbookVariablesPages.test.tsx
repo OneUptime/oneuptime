@@ -47,6 +47,7 @@ import IsNull from "../../../Types/BaseDatabase/IsNull";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import Clipboard from "../../../UI/Utils/Clipboard";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
@@ -61,10 +62,11 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * like we have workflow variables? Both global variables and local
  * variables ... merge [secrets] into variables as well"). So:
  *
- *   - a row says what a step writes to use the variable
- *     ({{global.variables.NAME}} or {{local.variables.NAME}}), a plain
- *     value as it is and a secret as "Secret" only - never its value - and
- *     which Runners get it;
+ *   - a row is the variable's name, with its description under it and a
+ *     button that copies what a step writes to use it
+ *     ({{global.variables.NAME}} or {{local.variables.NAME}}, which the
+ *     card says once), a plain value as it is and a secret as "Secret"
+ *     only - never its value - and which Runners get it;
  *   - Create starts secret: name, value, then who may use it (global
  *     Runners, and the project's own Runners); turned plain, it is one step
  *     with a readable Value, and asks nobody;
@@ -329,22 +331,69 @@ describe("the Global Variables list", () => {
     }
   });
 
-  test("each row says what a step writes to use it", async () => {
+  test("each row's copy button copies what a step writes to use it, and the card says it once", async () => {
+    const copied: Array<string> = [];
+    jest
+      .spyOn(Clipboard, "copyToClipboard")
+      .mockImplementation(async (text: string): Promise<boolean> => {
+        copied.push(text);
+        return true;
+      });
+
     openGlobalPage();
 
     await screen.findByText("DB_HOST", {}, WAIT);
 
-    const references: Array<string> = screen
-      .getAllByTestId("runbook-variable-reference")
+    // Named after what it copies: in its tooltip and for a screen reader.
+    for (const name of ["DB_HOST", "PROD_DB_SSH_KEY", "STATUSPAGE_TOKEN"]) {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: `Copy {{global.variables.${name}}}`,
+        }),
+      );
+    }
+
+    await waitFor(() => {
+      expect(copied).toEqual([
+        "{{global.variables.DB_HOST}}",
+        "{{global.variables.PROD_DB_SSH_KEY}}",
+        "{{global.variables.STATUSPAGE_TOKEN}}",
+      ]);
+    }, WAIT);
+
+    // The syntax is said once, in the card's description, not on every row.
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "Write one in a step as {{global.variables.NAME}}.",
+    );
+    expect(
+      screen.getByTestId("runbook-variables-reference-syntax"),
+    ).toHaveTextContent("{{global.variables.NAME}}");
+    expect(document.body).not.toHaveTextContent(
+      "{{global.variables.PROD_DB_SSH_KEY}}",
+    );
+  });
+
+  test("a row's description sits under its name: the list has no Description column", async () => {
+    openGlobalPage();
+
+    await screen.findByText("DB_HOST", {}, WAIT);
+
+    const descriptions: Array<string> = screen
+      .getAllByTestId("runbook-variable-description")
       .map((element: HTMLElement): string => {
         return element.textContent || "";
       });
 
-    expect(references).toEqual([
-      "{{global.variables.DB_HOST}}",
-      "{{global.variables.PROD_DB_SSH_KEY}}",
-      "{{global.variables.STATUSPAGE_TOKEN}}",
-    ]);
+    // Only DB_HOST has one; a row without one draws no empty line.
+    expect(descriptions).toEqual(["The primary database host."]);
+    expect(
+      screen.queryByRole("columnheader", { name: /Description/ }),
+    ).toBeNull();
+    for (const header of ["Name", "Value", "Runners"]) {
+      expect(
+        screen.getByRole("columnheader", { name: new RegExp(header) }),
+      ).toBeInTheDocument();
+    }
   });
 
   test("a plain value is shown; a secret only says it is one", async () => {
@@ -373,8 +422,8 @@ describe("the Global Variables list", () => {
     await screen.findByText("DB_HOST", {}, WAIT);
 
     expect(document.body).toHaveTextContent("Global Variables");
-    expect(document.body).toHaveTextContent(
-      "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs.",
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs. Write one in a step as {{global.variables.NAME}}.",
     );
   });
 
@@ -392,8 +441,17 @@ describe("the Global Variables list", () => {
 
     const dialog: HTMLElement = await screen.findByRole("dialog", {}, WAIT);
 
+    // It names the variable it replaces: it covers the row it came from.
+    expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(
+      "Replace the value of PROD_DB_SSH_KEY",
+    );
     expect(dialog).toHaveTextContent(
       "The new value is encrypted, and the old one is gone for good.",
+    );
+    // One field, with no second line saying it again.
+    expect(dialog).toHaveTextContent("New Value");
+    expect(dialog).not.toHaveTextContent(
+      "Encrypted. It can never be read back: replace it to change it.",
     );
 
     fireEvent.change(
@@ -565,11 +623,13 @@ describe("a runbook's own Variables page", () => {
       expect(String(query["runbookId"])).toBe(RUNBOOK_ID);
     }
 
-    expect(screen.getByTestId("runbook-variable-reference")).toHaveTextContent(
-      "{{local.variables.NAMESPACE}}",
-    );
-    expect(document.body).toHaveTextContent(
-      "Values only this runbook's steps can use, beside the project's global variables.",
+    expect(
+      screen.getByRole("button", {
+        name: "Copy {{local.variables.NAMESPACE}}",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "Values only this runbook's steps can use, beside the project's global variables. Write one in a step as {{local.variables.NAME}}.",
     );
   });
 

@@ -248,7 +248,28 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
           {renderProblem()}
         </p>
       ) : (
-        <p className="text-xs text-gray-500 mt-1.5">{props.helperText}</p>
+        <p className="text-xs text-gray-500 mt-1.5">
+          {props.helperText}
+          {/*
+           * A picker whose first choice names no variable (a kubectl
+           * step's "The Runner's own access") still works with none, so
+           * it is not a warning - but it says where a secret to pick here
+           * would come from, rather than offering one choice and no way
+           * to another.
+           */}
+          {noneOption &&
+          secrets.length === 0 &&
+          !props.value &&
+          props.choices.isReadable ? (
+            <span data-testid={`${props.dataTestId}-add-variable`}>
+              {" "}
+              <TranslatedSentence
+                template="No secret variables yet. Add one under {{location}}, then pick it here."
+                slots={{ location: variablesLocation }}
+              />
+            </span>
+          ) : null}
+        </p>
       )}
     </div>
   );

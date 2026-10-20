@@ -181,7 +181,7 @@ kubectl rollout restart deployment/checkout-api --namespace checkout
 kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
 ```
 
-**Examples — click to insert**, under hvert skript, setter inn vanlige skript som disse. Gi kubeconfigens bruker bare det skriptene dine gjør: en Role i namespacene de jobber i, med verbene de bruker. Hvis API-serveren avviser en kommando, står kubectls egen melding i trinnets utdata, så en tillatelsesfeil forteller deg hvilken role binding du må utvide.
+**Eksempler – klikk for å sette inn**, under hvert skript, setter inn vanlige skript som disse. Gi kubeconfigens bruker bare det skriptene dine gjør: en Role i namespacene de jobber i, med verbene de bruker. Hvis API-serveren avviser en kommando, står kubectls egen melding i trinnets utdata, så en tillatelsesfeil forteller deg hvilken role binding du må utvide.
 
 ### AI
 

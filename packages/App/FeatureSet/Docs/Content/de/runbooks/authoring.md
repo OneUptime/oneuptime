@@ -181,7 +181,7 @@ kubectl rollout restart deployment/checkout-api --namespace checkout
 kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
 ```
 
-**Beispiele — zum Einfügen klicken**, unter jedem Skript, setzt übliche Skripte wie diese ein. Geben Sie dem Benutzer der kubeconfig nur, was Ihre Skripte tun: eine Role in den Namespaces, in denen sie wirken, mit den Verben, die sie verwenden. Lehnt der API-Server einen Befehl ab, steht die eigene Meldung von kubectl in der Ausgabe des Schritts, sodass ein Berechtigungsfehler Ihnen sagt, welche Rollenbindung Sie erweitern müssen.
+**Beispiele – zum Einfügen klicken**, unter jedem Skript, setzt übliche Skripte wie diese ein. Geben Sie dem Benutzer der kubeconfig nur, was Ihre Skripte tun: eine Role in den Namespaces, in denen sie wirken, mit den Verben, die sie verwenden. Lehnt der API-Server einen Befehl ab, steht die eigene Meldung von kubectl in der Ausgabe des Schritts, sodass ein Berechtigungsfehler Ihnen sagt, welche Rollenbindung Sie erweitern müssen.
 
 ### AI
 

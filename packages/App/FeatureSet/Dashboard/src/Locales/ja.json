@@ -31381,7 +31381,6 @@
   "Add the user to sign in as, before an @: deploy@10.0.4.21.": "サインインするユーザーを @ の前に付けてください（例: deploy@10.0.4.21）。",
   "Check disk space": "ディスク容量を確認",
   "Check the machine": "マシンを確認",
-  "Copy what steps write to use this variable": "ステップでこの変数を使うための記述をコピー",
   "Covers connecting, signing in and running the script together.": "接続、サインイン、スクリプトの実行をまとめた時間です。",
   "Encrypted, never shown again, and hidden in what steps print.": "暗号化され、二度と表示されず、ステップの出力では伏せられます。",
   "Encrypted. It can never be read back: replace it to change it.": "暗号化されています。読み戻すことはできません。変更するには置き換えてください。",
@@ -31446,8 +31445,6 @@
   "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead.": "このステップは Runbook 認証情報でサインインし、コマンドを 1 つ実行します。このままでも実行されます。代わりに変数でサインインするには、スクリプトのステップに変換してください。",
   "Turn into a script step": "スクリプトのステップに変換",
   "Use a variable in the script as {{reference}}.": "スクリプトでは変数を {{reference}} として使います。",
-  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs.": "このプロジェクトのすべての Runbook が使える値です。ホストや URL、または SSH 鍵、パスワード、トークン、kubeconfig などのシークレットです。",
-  "Values only this runbook's steps can use, beside the project's global variables.": "この Runbook のステップだけが使える値です。プロジェクトのグローバル変数とあわせて使えます。",
   "Variables — click to copy": "変数 — クリックでコピー",
   "What OneUptime AI's commands reach through your Runners: an SSH host, or a Kubernetes cluster's API server. Secret material is encrypted at rest and can never be read back through the API; it is decrypted only when handed to an assigned Runner as it claims a command.": "OneUptime AI のコマンドが Runner 経由でアクセスする先です。SSH ホスト、または Kubernetes クラスターの API サーバーです。シークレットは暗号化して保存され、API から読み戻すことはできません。割り当てられた Runner がコマンドを受け取るときにだけ復号されて渡されます。",
   "What a step gets where it names this variable.": "ステップでこの変数を指定した箇所に入る値です。",
@@ -31463,5 +31460,10 @@
   "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.": "{{name}} はシークレットではないため、実行時にステップは失敗します。鍵、パスワード、kubeconfig はシークレット変数に保存してください。",
   "No passphrase": "パスフレーズなし",
   "this runbook's Variables": "この Runbook の変数",
-  "The user and the machine to sign in to, as you would write them after ssh.": "サインインするユーザーとマシンです。ssh の後に書くのと同じ形で入力します。"
+  "The user and the machine to sign in to, as you would write them after ssh.": "サインインするユーザーとマシンです。ssh の後に書くのと同じ形で入力します。",
+  "Copy {{reference}}": "{{reference}} をコピー",
+  "New Value": "新しい値",
+  "Replace the value of {{name}}": "{{name}} の値を置き換え",
+  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs. Write one in a step as {{reference}}.": "このプロジェクトのすべての Runbook が使える値です。ホストや URL、または SSH 鍵、パスワード、トークン、kubeconfig などのシークレットです。ステップでは {{reference}} と書きます。",
+  "Values only this runbook's steps can use, beside the project's global variables. Write one in a step as {{reference}}.": "この Runbook のステップだけが使える値です。プロジェクトのグローバル変数とあわせて使えます。ステップでは {{reference}} と書きます。"
 }

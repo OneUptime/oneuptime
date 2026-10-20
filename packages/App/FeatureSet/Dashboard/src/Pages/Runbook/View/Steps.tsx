@@ -835,7 +835,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     markDirty();
   };
 
-  const renderScriptExamples: (args: {
+  // The examples under a script or a prompt: a label, then one chip each.
+  const renderScriptExampleChips: (args: {
     examples: Array<ScriptExample>;
     onInsert: (code: string) => void;
   }) => ReactElement = (args: {
@@ -843,7 +844,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onInsert: (code: string) => void;
   }): ReactElement => {
     return (
-      <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+      <div>
         <div className="flex items-center gap-1.5 mb-2">
           <Icon
             icon={IconProp.LightBulb}
@@ -877,6 +878,32 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             );
           })}
         </div>
+      </div>
+    );
+  };
+
+  /*
+   * The panel of helpers under a script or a prompt: its examples, and -
+   * under a script - the variables it can use, as a second row of the same
+   * panel, so the two read as one aid rather than two blocks stacked under
+   * the editor.
+   */
+  const renderScriptHelpers: (args: {
+    examples: Array<ScriptExample>;
+    onInsert: (code: string) => void;
+    variables?: ReactElement | undefined;
+  }) => ReactElement = (args: {
+    examples: Array<ScriptExample>;
+    onInsert: (code: string) => void;
+    variables?: ReactElement | undefined;
+  }): ReactElement => {
+    return (
+      <div className="flex flex-col gap-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5">
+        {renderScriptExampleChips({
+          examples: args.examples,
+          onInsert: args.onInsert,
+        })}
+        {args.variables}
       </div>
     );
   };
@@ -1234,15 +1261,17 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ])}
           dataTestId={`${args.id}-unknown-variables`}
         />
-        <div className="mt-2 flex flex-col gap-2">
-          {renderScriptExamples({
+        <div className="mt-2">
+          {renderScriptHelpers({
             examples: args.examples,
             onInsert: args.onChange,
+            variables: (
+              <RunbookVariableChips
+                choices={variableChoices}
+                dataTestId={`${args.id}-variables`}
+              />
+            ),
           })}
-          <RunbookVariableChips
-            choices={variableChoices}
-            dataTestId={`${args.id}-variables`}
-          />
         </div>
       </div>
     );
@@ -1835,7 +1864,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )}
           </p>
           <div className="mt-2">
-            {renderScriptExamples({
+            {renderScriptHelpers({
               examples: AI_PROMPT_EXAMPLES,
               onInsert: (code: string) => {
                 updateConfig(idx, {

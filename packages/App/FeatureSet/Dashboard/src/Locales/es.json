@@ -31381,7 +31381,6 @@
   "Add the user to sign in as, before an @: deploy@10.0.4.21.": "Añade el usuario con el que iniciar sesión, antes de una @: deploy@10.0.4.21.",
   "Check disk space": "Comprobar el espacio en disco",
   "Check the machine": "Comprobar la máquina",
-  "Copy what steps write to use this variable": "Copia lo que escriben los pasos para usar esta variable",
   "Covers connecting, signing in and running the script together.": "Cubre en conjunto la conexión, el inicio de sesión y la ejecución del script.",
   "Encrypted, never shown again, and hidden in what steps print.": "Cifrado, nunca se vuelve a mostrar y se oculta en lo que imprimen los pasos.",
   "Encrypted. It can never be read back: replace it to change it.": "Cifrado. Nunca se puede volver a leer: reemplázalo para cambiarlo.",
@@ -31446,8 +31445,6 @@
   "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead.": "Este paso inicia sesión con una credencial de runbook y ejecuta un comando. Sigue ejecutándose tal cual. Conviértelo en un paso de script para iniciar sesión con una variable.",
   "Turn into a script step": "Convertir en paso de script",
   "Use a variable in the script as {{reference}}.": "Usa una variable en el script como {{reference}}.",
-  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs.": "Valores que cualquier runbook de este proyecto puede usar: hosts y URL, o secretos como claves SSH, contraseñas, tokens y kubeconfigs.",
-  "Values only this runbook's steps can use, beside the project's global variables.": "Valores que solo los pasos de este runbook pueden usar, además de las variables globales del proyecto.",
   "Variables — click to copy": "Variables: haz clic para copiar",
   "What OneUptime AI's commands reach through your Runners: an SSH host, or a Kubernetes cluster's API server. Secret material is encrypted at rest and can never be read back through the API; it is decrypted only when handed to an assigned Runner as it claims a command.": "Lo que alcanzan los comandos de la IA de OneUptime a través de tus Runners: un host SSH o el servidor de API de un clúster de Kubernetes. El material secreto se cifra en reposo y nunca se puede volver a leer a través de la API; solo se descifra cuando se entrega a un Runner asignado al tomar un comando.",
   "What a step gets where it names this variable.": "Lo que recibe un paso donde nombra esta variable.",
@@ -31463,5 +31460,10 @@
   "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.": "{{name}} no es un secreto, así que el paso fallará cuando se ejecute. Guarda las claves, contraseñas y kubeconfigs en variables secretas.",
   "No passphrase": "Sin frase de contraseña",
   "this runbook's Variables": "Variables de este runbook",
-  "The user and the machine to sign in to, as you would write them after ssh.": "El usuario y la máquina en la que iniciar sesión, tal como los escribirías después de ssh."
+  "The user and the machine to sign in to, as you would write them after ssh.": "El usuario y la máquina en la que iniciar sesión, tal como los escribirías después de ssh.",
+  "Copy {{reference}}": "Copiar {{reference}}",
+  "New Value": "Nuevo valor",
+  "Replace the value of {{name}}": "Reemplazar el valor de {{name}}",
+  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs. Write one in a step as {{reference}}.": "Valores que cualquier runbook de este proyecto puede usar: hosts y URL, o secretos como claves SSH, contraseñas, tokens y kubeconfigs. En un paso, escribe uno como {{reference}}.",
+  "Values only this runbook's steps can use, beside the project's global variables. Write one in a step as {{reference}}.": "Valores que solo los pasos de este runbook pueden usar, además de las variables globales del proyecto. En un paso, escribe uno como {{reference}}."
 }

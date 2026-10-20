@@ -12,10 +12,11 @@ import {
 } from "./RunbookVariableChoices";
 
 /*
- * Under a step's script: the variables it can use, as chips that copy what
- * to write ({{global.variables.NAME}}) - so nobody has to remember the
- * spelling, and the value never appears in the step. With none yet, one
- * line says how a script names one.
+ * Under a step's script, in the panel beside its examples: the variables it
+ * can use, as chips that copy what to write ({{global.variables.NAME}}) - so
+ * nobody has to remember the spelling, and the value never appears in the
+ * step. Laid out as the examples are (a label, then the chips), so the
+ * panel reads as one. With none yet, one line says how a script names one.
  */
 
 export interface ComponentProps {
@@ -37,7 +38,7 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
   if (variables.length === 0) {
     return (
       <p
-        className="text-xs text-gray-500 mt-1.5"
+        className="text-xs text-gray-500"
         data-testid={`${props.dataTestId}-none`}
       >
         <TranslatedSentence
@@ -57,18 +58,17 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
   const more: number = variables.length - shown.length;
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-1.5"
-      data-testid={props.dataTestId}
-    >
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
+    <div data-testid={props.dataTestId}>
+      <div className="mb-2 flex items-center gap-1.5">
         <Icon
           icon={IconProp.Variable}
           size={SizeProp.Smaller}
           className="text-gray-500"
         />
-        {translator.translateText("Variables — click to copy")}
-      </span>
+        <span className="text-xs font-medium text-gray-700">
+          {translator.translateText("Variables — click to copy")}
+        </span>
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {shown.map((choice: RunbookVariableChoice) => {
           const isCopied: boolean = copied === choice.reference;

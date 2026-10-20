@@ -21,14 +21,20 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const GLOBAL_VARIABLES_TITLE: string =
   translationKey("Global Variables");
 
+/*
+ * A card's description says, once, how a step writes one of its variables
+ * ({{reference}}: {{global.variables.NAME}} or {{local.variables.NAME}}),
+ * rather than every row repeating it: each row's copy button copies its
+ * own.
+ */
 export const GLOBAL_VARIABLES_DESCRIPTION: string = translationKey(
-  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs.",
+  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs. Write one in a step as {{reference}}.",
 );
 
 export const RUNBOOK_VARIABLES_TITLE: string = translationKey("Variables");
 
 export const RUNBOOK_VARIABLES_DESCRIPTION: string = translationKey(
-  "Values only this runbook's steps can use, beside the project's global variables.",
+  "Values only this runbook's steps can use, beside the project's global variables. Write one in a step as {{reference}}.",
 );
 
 export const GLOBAL_VARIABLES_EMPTY: string = translationKey(
@@ -87,9 +93,21 @@ export const YOUR_RUNNERS_DESCRIPTION: string = translationKey(
 
 export const REPLACE_VALUE_TITLE: string = translationKey("Replace Value");
 
+// The Replace Value dialog's title: which variable it replaces.
+export const REPLACE_VALUE_OF_TITLE: string = translationKey(
+  "Replace the value of {{name}}",
+);
+
 export const REPLACE_VALUE_DESCRIPTION: string = translationKey(
   "The new value is encrypted, and the old one is gone for good. Steps get the new one the next time they run.",
 );
+
+// The Replace Value dialog's one field.
+export const NEW_VALUE_TITLE: string = translationKey("New Value");
+
+// A row's copy button, beside the name: it copies {{reference}}.
+export const COPY_REFERENCE_TITLE: string =
+  translationKey("Copy {{reference}}");
 
 // What a plain variable's Runners column says: it reaches every Runner.
 export const EVERY_RUNNER_TEXT: string = translationKey("Every Runner");

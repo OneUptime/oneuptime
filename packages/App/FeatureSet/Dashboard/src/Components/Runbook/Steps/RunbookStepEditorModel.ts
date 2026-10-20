@@ -241,7 +241,12 @@ export function getStepMoreFieldsItems(
 
   const items: Array<FoldedSectionItem> = [];
 
-  if (step.type === RunbookStepType.SSH) {
+  /*
+   * A step written with a credential folds no port and no passphrase: its
+   * credential holds them (the editor shows such a step as it is, and its
+   * fold only its notes, timeouts and switches).
+   */
+  if (step.type === RunbookStepType.SSH && !isLegacyCredentialStep(step)) {
     const ssh: SSHStepConfig = step.config as SSHStepConfig;
     const port: number | undefined =
       typeof ssh.port === "number" ? ssh.port : undefined;

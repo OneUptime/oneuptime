@@ -31381,7 +31381,6 @@
   "Add the user to sign in as, before an @: deploy@10.0.4.21.": "Add the user to sign in as, before an @: deploy@10.0.4.21.",
   "Check disk space": "Check disk space",
   "Check the machine": "Check the machine",
-  "Copy what steps write to use this variable": "Copy what steps write to use this variable",
   "Covers connecting, signing in and running the script together.": "Covers connecting, signing in and running the script together.",
   "Encrypted, never shown again, and hidden in what steps print.": "Encrypted, never shown again, and hidden in what steps print.",
   "Encrypted. It can never be read back: replace it to change it.": "Encrypted. It can never be read back: replace it to change it.",
@@ -31446,8 +31445,6 @@
   "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead.": "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead.",
   "Turn into a script step": "Turn into a script step",
   "Use a variable in the script as {{reference}}.": "Use a variable in the script as {{reference}}.",
-  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs.": "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs.",
-  "Values only this runbook's steps can use, beside the project's global variables.": "Values only this runbook's steps can use, beside the project's global variables.",
   "Variables — click to copy": "Variables — click to copy",
   "What OneUptime AI's commands reach through your Runners: an SSH host, or a Kubernetes cluster's API server. Secret material is encrypted at rest and can never be read back through the API; it is decrypted only when handed to an assigned Runner as it claims a command.": "What OneUptime AI's commands reach through your Runners: an SSH host, or a Kubernetes cluster's API server. Secret material is encrypted at rest and can never be read back through the API; it is decrypted only when handed to an assigned Runner as it claims a command.",
   "What a step gets where it names this variable.": "What a step gets where it names this variable.",
@@ -31463,5 +31460,10 @@
   "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.": "{{name}} is not a secret, so the step will fail when it runs. Keep keys, passwords and kubeconfigs in secret variables.",
   "No passphrase": "No passphrase",
   "this runbook's Variables": "this runbook's Variables",
-  "The user and the machine to sign in to, as you would write them after ssh.": "The user and the machine to sign in to, as you would write them after ssh."
+  "The user and the machine to sign in to, as you would write them after ssh.": "The user and the machine to sign in to, as you would write them after ssh.",
+  "Copy {{reference}}": "Copy {{reference}}",
+  "New Value": "New Value",
+  "Replace the value of {{name}}": "Replace the value of {{name}}",
+  "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs. Write one in a step as {{reference}}.": "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs. Write one in a step as {{reference}}.",
+  "Values only this runbook's steps can use, beside the project's global variables. Write one in a step as {{reference}}.": "Values only this runbook's steps can use, beside the project's global variables. Write one in a step as {{reference}}."
 }

@@ -148,6 +148,8 @@ const STEPS: Array<RunbookStep> = [
 
 let saved: Array<RunbookStep> | null = null;
 let variablesReadable: boolean = true;
+// Whether the project has its variables; off, it has none yet.
+let hasVariables: boolean = true;
 
 function runner(id: string, name: string): Runner {
   return Object.assign(new Runner(), {
@@ -189,6 +191,7 @@ beforeEach(() => {
 
   saved = null;
   variablesReadable = true;
+  hasVariables = true;
 
   jest.spyOn(ModelAPI, "getItem").mockImplementation((async (args: {
     modelType: unknown;
@@ -224,8 +227,9 @@ beforeEach(() => {
         throw new Error("Permission denied.");
       }
 
-      data =
-        args.query?.["runbookId"] instanceof IsNull
+      data = !hasVariables
+        ? []
+        : args.query?.["runbookId"] instanceof IsNull
           ? GLOBAL_VARIABLES
           : LOCAL_VARIABLES;
     }
@@ -587,6 +591,61 @@ describe("an SSH step", () => {
     );
   });
 
+  test("its examples and the variables it can use are one panel under the script", async () => {
+    await renderSteps();
+    open("Restart nginx");
+    await waitForVariables();
+
+    const variables: HTMLElement = screen.getByTestId(
+      "runbook-step-0-ssh-script-variables",
+    );
+    const panel: HTMLElement = variables.parentElement!;
+
+    // One panel: the examples' row, then the variables' row, in one box.
+    expect(panel).toHaveClass("rounded-md", "border", "bg-gray-50");
+    expect(
+      within(panel).getByText("Examples — click to insert"),
+    ).toBeInTheDocument();
+    expect(within(panel).getByText("Variables — click to copy")).toBe(
+      within(variables).getByText("Variables — click to copy"),
+    );
+    expect(
+      within(panel).getByRole("button", { name: /Check the machine/ }),
+    ).toBeInTheDocument();
+    // Each variable is a chip that copies its reference.
+    expect(
+      within(variables).getByTitle("{{global.variables.PROD_DB_SSH_KEY}}"),
+    ).toHaveTextContent("PROD_DB_SSH_KEY");
+    expect(
+      within(variables).getByTitle("{{local.variables.NAMESPACE}}"),
+    ).toHaveTextContent("local.NAMESPACE");
+    // Nothing of the panel is a box of its own inside it.
+    expect(
+      Array.from(panel.querySelectorAll(".rounded-md.border.bg-gray-50")),
+    ).toEqual([]);
+  });
+
+  test("with no variables yet, the panel says how a script names one", async () => {
+    hasVariables = false;
+
+    await renderSteps();
+    open("Restart nginx");
+
+    const none: HTMLElement = await screen.findByTestId(
+      "runbook-step-0-ssh-script-variables-none",
+      {},
+      WAIT,
+    );
+
+    expect(none).toHaveTextContent(
+      "Use a variable in the script as {{global.variables.NAME}}.",
+    );
+    expect(none.parentElement).toHaveClass("rounded-md", "bg-gray-50");
+    expect(
+      within(none.parentElement!).getByText("Examples — click to insert"),
+    ).toBeInTheDocument();
+  });
+
   test("with no variables it may read, the picker says what reading them takes", async () => {
     variablesReadable = false;
 
@@ -643,6 +702,52 @@ describe("a kubectl step", () => {
     expect(screen.queryByText("Workload kind")).toBeNull();
     expect(screen.queryByText("Workload name")).toBeNull();
     expect(screen.queryByText("Replicas")).toBeNull();
+  });
+
+  test("with no secret variable yet, the kubeconfig picker says where one is added", async () => {
+    hasVariables = false;
+
+    await renderSteps();
+    open("List the pods");
+
+    const kubeconfig: HTMLElement = screen.getByTestId(
+      "runbook-step-2-kubeconfig",
+    );
+
+    // The Runner's own access still works: a hint, not a warning.
+    const hint: HTMLElement = await within(kubeconfig).findByTestId(
+      "runbook-step-2-kubeconfig-add-variable",
+      {},
+      WAIT,
+    );
+    expect(hint).toHaveTextContent(
+      "No secret variables yet. Add one under Runbooks › Settings › Global Variables, then pick it here.",
+    );
+    expect(hint.closest("p")).toHaveClass("text-gray-500");
+    expect(
+      within(hint).getByRole("link", {
+        name: "Runbooks › Settings › Global Variables",
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/runbooks/settings/variables`,
+    );
+    expect(kubeconfig).toHaveTextContent("The Runner's own access");
+    expect(
+      within(kubeconfig).queryByTestId(
+        "runbook-step-2-kubeconfig-nothing-to-pick",
+      ),
+    ).toBeNull();
+  });
+
+  test("with secret variables to pick, the kubeconfig picker adds no hint", async () => {
+    await renderSteps();
+    open("List the pods");
+    await waitForVariables();
+
+    expect(
+      screen.queryByTestId("runbook-step-2-kubeconfig-add-variable"),
+    ).toBeNull();
   });
 
   test("an example is inserted into the script", async () => {
@@ -714,6 +819,32 @@ describe("a step written with a runbook credential", () => {
     expect(config["agentId"]).toBe(BASTION_ID);
     expect(config).not.toHaveProperty("credentialId");
     expect(config).not.toHaveProperty("command");
+  });
+
+  test("its More fields line names only what it folds: no port and no passphrase", async () => {
+    await renderSteps();
+    open("Old SSH step");
+
+    const moreFields: HTMLElement = screen.getByTestId(
+      "runbook-step-4-more-fields",
+    );
+
+    // Its credential holds the port and the passphrase; the fold does not.
+    expect(moreFields).toHaveTextContent("Description");
+    expect(moreFields).toHaveTextContent("Timeouts");
+    expect(moreFields).not.toHaveTextContent("Port");
+    expect(moreFields).not.toHaveTextContent("Key passphrase");
+    expect(document.getElementById("runbook-step-4-ssh-port")).toBeNull();
+
+    // Turned into a script step, it has both again.
+    fireEvent.click(screen.getByTestId("runbook-step-4-legacy-convert"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("runbook-step-4-more-fields"),
+      ).toHaveTextContent("Key passphrase");
+    }, WAIT);
+    expect(document.getElementById("runbook-step-4-ssh-port")).not.toBeNull();
   });
 
   test("a Kubernetes step turns into the kubectl script that makes the same change", async () => {

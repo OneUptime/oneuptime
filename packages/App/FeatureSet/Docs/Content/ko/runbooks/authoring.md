@@ -181,7 +181,7 @@ kubectl rollout restart deployment/checkout-api --namespace checkout
 kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
 ```
 
-각 스크립트 아래의 **Examples — click to insert**로 이와 같은 자주 쓰는 스크립트를 넣을 수 있습니다. kubeconfig의 사용자에게는 스크립트가 하는 일만 허용하세요. 스크립트가 작업하는 namespace의 Role에, 사용하는 verb만 줍니다. API 서버가 명령을 거부하면 kubectl 자체 메시지가 단계 출력에 남으므로, 권한 오류를 보고 어느 RoleBinding을 넓혀야 하는지 알 수 있습니다.
+각 스크립트 아래의 **예시 — 클릭하여 삽입**으로 이와 같은 자주 쓰는 스크립트를 넣을 수 있습니다. kubeconfig의 사용자에게는 스크립트가 하는 일만 허용하세요. 스크립트가 작업하는 namespace의 Role에, 사용하는 verb만 줍니다. API 서버가 명령을 거부하면 kubectl 자체 메시지가 단계 출력에 남으므로, 권한 오류를 보고 어느 RoleBinding을 넓혀야 하는지 알 수 있습니다.
 
 ### AI
 

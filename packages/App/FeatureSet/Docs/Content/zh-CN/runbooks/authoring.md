@@ -181,7 +181,7 @@ kubectl rollout restart deployment/checkout-api --namespace checkout
 kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
 ```
 
-每个脚本下方的 **Examples — click to insert** 可以填入此类常用脚本。只给 kubeconfig 的用户授予脚本所做的事：在脚本操作的 namespace 中授予一个 Role，只包含它们使用的动词。如果 API 服务器拒绝某条命令，kubectl 自己的消息会出现在步骤输出中，因此权限错误会告诉你该扩大哪个 RoleBinding。
+每个脚本下方的 **示例 — 点击插入** 可以填入此类常用脚本。只给 kubeconfig 的用户授予脚本所做的事：在脚本操作的 namespace 中授予一个 Role，只包含它们使用的动词。如果 API 服务器拒绝某条命令，kubectl 自己的消息会出现在步骤输出中，因此权限错误会告诉你该扩大哪个 RoleBinding。
 
 ### AI
 

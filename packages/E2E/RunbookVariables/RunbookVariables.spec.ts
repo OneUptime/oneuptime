@@ -17,8 +17,10 @@ import path from "path";
  * options."
  *
  * So, driven the way a person does: the Global Variables page and a
- * runbook's own Variables page (what a step writes to use each one, a
- * secret's value never shown, a secret made in two steps, Replace Value);
+ * runbook's own Variables page (each name with its description and a button
+ * that copies what a step writes to use it, a secret's value never shown,
+ * a secret made in two steps, Replace Value, a list that fits a laptop's
+ * card);
  * the SSH step (the machine as user@host, the secret it signs in with, the
  * bash script, its port and passphrase folded under More fields) and the
  * kubectl step (the kubeconfig, or the Runner's own access, and the
@@ -193,8 +195,15 @@ function noHorizontalScroll(page: Page): Promise<number> {
   });
 }
 
+// How far the table's rows run past its card (0 when every column fits).
+function tableOverflow(page: Page): Promise<number> {
+  return page.getByTestId("table-scroll").evaluate((box: Element): number => {
+    return box.scrollWidth - box.clientWidth;
+  });
+}
+
 test.describe("Runbooks → Settings → Global Variables", () => {
-  test("each variable says how a step names it; a plain value is shown, a secret only says it is one", async ({
+  test("each variable shows its name and description, a plain value as it is and a secret only as one; the card says once how a step names it", async ({
     page,
   }: {
     page: Page;
@@ -202,15 +211,26 @@ test.describe("Runbooks → Settings → Global Variables", () => {
     await openVariables(page);
 
     await expect(row(page, "DB_HOST")).toContainText(
-      "{{global.variables.DB_HOST}}",
+      "The primary database host.",
     );
     await expect(row(page, "DB_HOST")).toContainText("10.0.4.21");
     await expect(row(page, "DB_HOST")).toContainText("Every Runner");
 
     const key: Locator = row(page, "PROD_DB_SSH_KEY");
-    await expect(key).toContainText("{{global.variables.PROD_DB_SSH_KEY}}");
+    await expect(key).toContainText(
+      "Private key of the deploy user on the database hosts.",
+    );
     await expect(key).toContainText("Secret");
     await expect(key).toContainText("prod-bastion");
+
+    // The syntax is said once, in the card's description, not on every row.
+    await expect(page.getByTestId("card-description").first()).toContainText(
+      "Write one in a step as {{global.variables.NAME}}.",
+    );
+    await expect(key).not.toContainText("{{global.variables.PROD_DB_SSH_KEY}}");
+    await expect(
+      page.getByRole("columnheader", { name: /Description/ }),
+    ).toHaveCount(0);
 
     await expect(row(page, "STATUSPAGE_TOKEN")).toContainText("Global Runners");
 
@@ -226,8 +246,9 @@ test.describe("Runbooks → Settings → Global Variables", () => {
   }) => {
     await openVariables(page);
 
+    // Named after what it copies, in its tooltip and for a screen reader.
     await row(page, "DB_HOST")
-      .getByTitle("Copy what steps write to use this variable")
+      .getByRole("button", { name: "Copy {{global.variables.DB_HOST}}" })
       .click();
 
     expect(
@@ -235,6 +256,26 @@ test.describe("Runbooks → Settings → Global Variables", () => {
         return navigator.clipboard.readText();
       }),
     ).toBe("{{global.variables.DB_HOST}}");
+  });
+
+  test("the list fits a laptop's card beside the side menu: no column runs under the row's buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * A 1280px laptop leaves the card about 940px beside the side menu; the
+     * fixture has no side menu, so a 1000px window gives its card the same.
+     */
+    await page.setViewportSize({ width: 1000, height: 900 });
+    await openVariables(page);
+    await expect(row(page, "STATUSPAGE_TOKEN")).toBeVisible();
+
+    expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
+    await expect(
+      page.getByRole("columnheader", { name: /Runners/ }),
+    ).toBeInViewport();
+    await screenshot(page, "global-variables-laptop");
   });
 
   test("a secret is made in two steps - what it is, then who may use it - and its value is sent once, as Secret Value", async ({
@@ -342,9 +383,14 @@ test.describe("Runbooks → Settings → Global Variables", () => {
       .getByRole("button", { name: "Replace Value" })
       .click();
     const modal: Locator = page.getByTestId("modal");
+    // It names the variable it replaces.
+    await expect(modal.getByTestId("modal-title")).toHaveText(
+      "Replace the value of PROD_DB_SSH_KEY",
+    );
     await expect(modal).toContainText(
       "The new value is encrypted, and the old one is gone for good.",
     );
+    await expect(modal).toContainText("New Value");
     await modal
       .getByPlaceholder(SECRET_VALUE_PLACEHOLDER)
       .fill("-----BEGIN OPENSSH PRIVATE KEY-----\nnew\n");
@@ -408,11 +454,16 @@ test.describe("a runbook's own Variables", () => {
     await page.goto(`${RUNBOOK_VARIABLES_PAGE}?page=runbook-variables`);
 
     await expect(row(page, "NAMESPACE")).toContainText(
-      "{{local.variables.NAMESPACE}}",
+      "Where the checkout service runs.",
     );
+    await expect(
+      row(page, "NAMESPACE").getByRole("button", {
+        name: "Copy {{local.variables.NAMESPACE}}",
+      }),
+    ).toBeVisible();
     await expect(row(page, "DB_HOST")).toHaveCount(0);
     await expect(page.getByTestId("card").first()).toContainText(
-      "Values only this runbook's steps can use, beside the project's global variables.",
+      "Values only this runbook's steps can use, beside the project's global variables. Write one in a step as {{local.variables.NAME}}.",
     );
     await screenshot(page, "runbook-variables");
 
@@ -471,9 +522,14 @@ test.describe("an SSH step", () => {
     await expect(
       page.getByRole("button", { name: /Check the machine/ }),
     ).toBeVisible();
-    await expect(
-      page.getByTestId("runbook-step-0-ssh-script-variables"),
-    ).toContainText("Variables — click to copy");
+    // The examples and the variables are one panel under the script.
+    const variables: Locator = page.getByTestId(
+      "runbook-step-0-ssh-script-variables",
+    );
+    await expect(variables).toContainText("Variables — click to copy");
+    await expect(variables.locator("..")).toContainText(
+      "Examples — click to insert",
+    );
 
     // No credential picker, no command field.
     await expect(page.getByText("Credential", { exact: true })).toHaveCount(0);
@@ -626,6 +682,31 @@ test.describe("a kubectl step", () => {
     );
   });
 
+  test("with no secret variable yet, the kubeconfig says where one is added", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, [KUBECTL_STEP], "variables=none");
+
+    // The step names a kubeconfig that is not there: it takes the Runner's own.
+    await (await openSecretPicker(page, "runbook-step-1-kubeconfig"))
+      .filter({ hasText: "The Runner's own access" })
+      .click();
+
+    const kubeconfig: Locator = page.getByTestId("runbook-step-1-kubeconfig");
+    await expect(
+      kubeconfig.getByTestId("runbook-step-1-kubeconfig-add-variable"),
+    ).toHaveText(
+      "No secret variables yet. Add one under Runbooks › Settings › Global Variables, then pick it here.",
+    );
+    await expect(
+      kubeconfig.getByRole("link", {
+        name: "Runbooks › Settings › Global Variables",
+      }),
+    ).toHaveAttribute("href", VARIABLES_PAGE);
+  });
+
   test("a variable made in another tab is offered on coming back, with nothing saved", async ({
     page,
   }: {
@@ -683,6 +764,16 @@ test.describe("steps written with a credential", () => {
     await expect(page.getByTestId("runbook-step-3-legacy")).toContainText(
       "This step restarts or scales one workload with a runbook credential.",
     );
+    /*
+     * Its More fields line names only what it folds: its credential holds
+     * the port and the passphrase.
+     */
+    await expect(page.getByTestId("runbook-step-2-more-fields")).toContainText(
+      "Description",
+    );
+    await expect(
+      page.getByTestId("runbook-step-2-more-fields"),
+    ).not.toContainText("Port");
     await screenshot(page, "legacy-steps");
 
     await page.getByTestId("runbook-step-2-legacy-convert").click();
