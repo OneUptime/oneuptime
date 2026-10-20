@@ -99,14 +99,15 @@ beforeEach(() => {
     },
   );
 
-  aggregateSpy = getJestSpyOn(AnalyticsModelAPI, "aggregate").mockImplementation(
-    async (args: unknown): Promise<unknown> => {
-      const query: { name: string } = (
-        args as { aggregateBy: { query: { name: string } } }
-      ).aggregateBy.query;
-      return { data: rows(query.name) };
-    },
-  );
+  aggregateSpy = getJestSpyOn(
+    AnalyticsModelAPI,
+    "aggregate",
+  ).mockImplementation(async (args: unknown): Promise<unknown> => {
+    const query: { name: string } = (
+      args as { aggregateBy: { query: { name: string } } }
+    ).aggregateBy.query;
+    return { data: rows(query.name) };
+  });
 
   navigateSpy = getJestSpyOn(Navigation, "navigate").mockImplementation(
     (): void => {},

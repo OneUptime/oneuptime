@@ -500,8 +500,10 @@ describe("connecting, on both pages", () => {
       expect(form).toContain(`title: "${step}" }`);
     }
 
-    // No step only reads aloud: where a credential comes from is said on
-    // Credentials, above the field it goes in.
+    /*
+     * No step only reads aloud: where a credential comes from is said on
+     * Credentials, above the field it goes in.
+     */
     expect(form).not.toContain('title: "Set up" }');
 
     expect(form).toContain(

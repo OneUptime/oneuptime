@@ -88,10 +88,9 @@ async function openForm(data: {
 }
 
 async function stepTitles(): Promise<Array<string>> {
-  const progress: HTMLElement = await within(modal()).findByRole(
-    "navigation",
-    { name: "Progress" },
-  );
+  const progress: HTMLElement = await within(modal()).findByRole("navigation", {
+    name: "Progress",
+  });
 
   return within(progress)
     .getAllByRole("listitem")
@@ -139,9 +138,9 @@ describe("connecting a provider account", () => {
         .getByTestId("llm-connection-guide-link")
         .getAttribute("href"),
     ).toMatch(OPENAI_GUIDE);
-    expect(within(hint).getByTestId("llm-connection-reads-only")).toHaveTextContent(
-      "OneUptime only reads usage and cost.",
-    );
+    expect(
+      within(hint).getByTestId("llm-connection-reads-only"),
+    ).toHaveTextContent("OneUptime only reads usage and cost.");
 
     // The key is asked for right under it.
     expect(within(modal()).getByPlaceholderText("sk-admin-...")).toBeVisible();
@@ -241,14 +240,17 @@ describe("connecting a company AI tool", () => {
     await next();
 
     fireEvent.click(
-      within(await within(modal()).findByTestId("llm-connection-readers"))
-        .getByRole("radio", { name: "Everyone who can read AI calls" }),
+      within(
+        await within(modal()).findByTestId("llm-connection-readers"),
+      ).getByRole("radio", { name: "Everyone who can read AI calls" }),
     );
 
     await next();
 
     await act(async () => {
-      fireEvent.click(within(modal()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
     });
 
     await waitFor(() => {
@@ -288,4 +290,3 @@ describe("editing a connection", () => {
     ).toBeInTheDocument();
   });
 });
-

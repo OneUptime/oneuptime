@@ -133,7 +133,10 @@ jest.mock(
             {
               type: "button",
               onClick: () => {
-                props.onConnectionsLoaded(props.kind, listedFor(props.kind) || 0);
+                props.onConnectionsLoaded(
+                  props.kind,
+                  listedFor(props.kind) || 0,
+                );
               },
             },
             `Reload ${props.kind}`,
@@ -410,9 +413,9 @@ describe("the three ways tick themselves", () => {
     expect(doneState("providers")).toBe("true");
     expect(doneState("tools")).toBe("true");
 
-    expect(screen.getByTestId("llm-connect-way-apps-receiving")).toHaveTextContent(
-      "Receiving AI calls",
-    );
+    expect(
+      screen.getByTestId("llm-connect-way-apps-receiving"),
+    ).toHaveTextContent("Receiving AI calls");
     expect(
       screen.getByTestId("llm-connect-way-providers-connected"),
     ).toHaveTextContent("Connected");
@@ -450,6 +453,34 @@ describe("the three ways tick themselves", () => {
     ).toHaveTextContent("Not working");
     expect(
       screen.queryByTestId("llm-connect-way-tools-failing"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an account that is off, or got past an old error, is not 'not working'", async () => {
+    connectionsForTest = [
+      // Its last read failed, but it is turned off: it is not read at all.
+      connection(LlmConnectionProvider.AwsBedrock, {
+        isEnabled: false,
+        lastError: "HTTP 403",
+        lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
+      }),
+      // An old error a later read got past.
+      connection(LlmConnectionProvider.OpenAI, {
+        lastError: "HTTP 429",
+        lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
+        lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
+      }),
+    ];
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("llm-connect-way-providers-connected"),
+      ).toHaveTextContent("Connected (2)");
+    });
+    expect(
+      screen.queryByTestId("llm-connect-way-providers-failing"),
     ).not.toBeInTheDocument();
   });
 
@@ -597,9 +628,7 @@ describe("the three ways tick themselves", () => {
     });
     expect(getListSpy).toHaveBeenCalledTimes(2);
     expect(
-      screen.getByTestId(
-        `llm-connection-tile-${LlmConnectionProvider.OpenAI}`,
-      ),
+      screen.getByTestId(`llm-connection-tile-${LlmConnectionProvider.OpenAI}`),
     ).not.toHaveTextContent("Connected");
   });
 
@@ -686,6 +715,21 @@ describe("the next step: a daily budget", () => {
 
     await waitFor(() => {
       expect(countSpy).toHaveBeenCalled();
+    });
+
+    expect(
+      screen.queryByTestId("llm-connect-budget-hint"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("not while the budgets could not be read", async () => {
+    llmSpansForTest = 1;
+    budgetCountForTest = new Error("Forbidden");
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(doneState("apps")).toBe("true");
     });
 
     expect(
@@ -966,15 +1010,15 @@ describe("permissions", () => {
 
     expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
 
-    const notes: Array<HTMLElement> = screen.getAllByTestId(
-      "llm-connect-locked",
-    );
+    const notes: Array<HTMLElement> =
+      screen.getAllByTestId("llm-connect-locked");
 
     expect(notes).toHaveLength(2);
-    expect(within(panel("providers")).getByTestId("llm-connect-locked"))
-      .toHaveTextContent(
-        "You do not have permission to create this AI Connection.",
-      );
+    expect(
+      within(panel("providers")).getByTestId("llm-connect-locked"),
+    ).toHaveTextContent(
+      "You do not have permission to create this AI Connection.",
+    );
     expect(
       within(panel("tools")).getByTestId("llm-connect-locked"),
     ).toBeInTheDocument();
@@ -1041,7 +1085,9 @@ describe("the three ways in", () => {
 
     const tools: HTMLElement = panel("tools");
 
-    expect(within(tools).getByTestId("llm-tell-your-people")).toBeInTheDocument();
+    expect(
+      within(tools).getByTestId("llm-tell-your-people"),
+    ).toBeInTheDocument();
 
     const others: HTMLElement = within(tools).getByTestId("llm-other-ai-tools");
 

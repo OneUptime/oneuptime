@@ -148,7 +148,11 @@ describe("the three ways", () => {
 describe("what a way's card says", () => {
   function chipsOf(
     key: "apps" | "providers" | "tools",
-    status: { isSetUp: boolean | undefined; connected: number; failing: number },
+    status: {
+      isSetUp: boolean | undefined;
+      connected: number;
+      failing: number;
+    },
   ): Array<string> {
     return getLlmConnectWayChips(key, status).map(
       (chip: LlmConnectWayChip): string => {
@@ -160,9 +164,9 @@ describe("what a way's card says", () => {
   }
 
   test("your apps: receiving AI calls once one has arrived, and nothing before", () => {
-    expect(chipsOf("apps", { isSetUp: true, connected: 0, failing: 0 })).toEqual(
-      ["success:Receiving AI calls"],
-    );
+    expect(
+      chipsOf("apps", { isSetUp: true, connected: 0, failing: 0 }),
+    ).toEqual(["success:Receiving AI calls"]);
     expect(
       chipsOf("apps", { isSetUp: false, connected: 0, failing: 0 }),
     ).toEqual([]);
@@ -268,9 +272,7 @@ describe("Usage's two sources", () => {
 
     fireEvent.click(screen.getByTestId("llm-usage-source-calls"));
 
-    expect(new URL(window.location.href).searchParams.get("source")).toBe(
-      null,
-    );
+    expect(new URL(window.location.href).searchParams.get("source")).toBe(null);
   });
 
   test("a link to provider accounts opens on them", () => {

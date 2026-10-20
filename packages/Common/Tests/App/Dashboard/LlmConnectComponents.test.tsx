@@ -554,8 +554,7 @@ describe("the test panel", () => {
     expect(
       screen
         .getByTestId("llm-connection-test-pass")
-        .compareDocumentPosition(button) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+        .compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
     await act(async () => {

@@ -102,8 +102,10 @@ test.describe("Usage, from the provider accounts", () => {
     await expect(rows(page).nth(0)).toContainText("$120.50");
     await expect(rows(page).nth(0)).toContainText("900,000");
 
-    // A month back: the range picker's own "1 month", shown picked.
-    // (A phone shows fewer presets; the month's is there, hidden.)
+    /*
+     * A month back: the range picker's own "1 month", shown picked.
+     * (A phone shows fewer presets; the month's is there, hidden.)
+     */
     await expect(
       page.getByRole("button", { name: "1 month", includeHidden: true }),
     ).toHaveClass(PICKED_PRESET);
