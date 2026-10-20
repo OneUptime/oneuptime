@@ -147,10 +147,23 @@ describe("what the picker lists", () => {
 
   test("a template's id is its type, which the server builds it by", () => {
     for (const template of getDashboardPickerTemplates()) {
+      const entry: DashboardTemplate = getDashboardTemplate(template.type)!;
+
       expect(template.id).toBe(template.type);
-      expect(template).toEqual(
-        expect.objectContaining(getDashboardTemplate(template.type)!),
-      );
+      // The catalog's entry as it is: name, words, icon, category and search words.
+      expect([
+        template.name,
+        template.description,
+        template.icon,
+        template.category,
+        template.keywords,
+      ]).toEqual([
+        entry.name,
+        entry.description,
+        entry.icon,
+        entry.category,
+        entry.keywords,
+      ]);
     }
   });
 
@@ -314,9 +327,11 @@ describe("what the picker opens on", () => {
 
 describe("the search", () => {
   test.each(
-    LISTED.map((template: DashboardTemplate) => {
-      return [template.name, template.type];
-    }),
+    LISTED.map(
+      (template: DashboardTemplate): [string, DashboardTemplateType] => {
+        return [template.name, template.type];
+      },
+    ),
   )("typing %s finds it first", (name: string, type: DashboardTemplateType) => {
     expect(searchTypes(name)[0]).toBe(type);
   });

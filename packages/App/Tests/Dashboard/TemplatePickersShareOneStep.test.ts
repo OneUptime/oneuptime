@@ -78,7 +78,7 @@ const SHARED_PICKER: string = read(
 const PAGE: string = read("Pages", "Dashboards", "Dashboards.tsx");
 
 describe.each(
-  PICKERS.map((picker: Picker) => {
+  PICKERS.map((picker: Picker): [string, Picker] => {
     return [picker.name, picker];
   }),
 )("%s", (_name: string, picker: Picker) => {

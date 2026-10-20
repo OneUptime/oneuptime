@@ -392,6 +392,24 @@ describe("Create Dashboard", () => {
     expect(screen.queryAllByTestId("dashboard-template-card")).toEqual([]);
   });
 
+  test("the empty list's own Create Dashboard opens it too", async () => {
+    const user: UserEvent = await renderPage();
+
+    await user.click(screen.getByTestId("empty-table-create-button"));
+
+    expect(
+      await screen.findByRole(
+        "dialog",
+        { name: "Create a dashboard" },
+        SLOW_CI,
+      ),
+    ).toBeVisible();
+    await settle();
+    expect(
+      within(dialog()).getByTestId("dashboard-start-from-scratch"),
+    ).toHaveFocus();
+  });
+
   test("a template's row is named by its title and described by its description", async () => {
     const user: UserEvent = await renderPage();
     await openDialog(user);
