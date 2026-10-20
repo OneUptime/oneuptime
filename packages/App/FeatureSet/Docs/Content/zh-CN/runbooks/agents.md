@@ -311,7 +311,7 @@ Runner 领取了作业，然后停止续租：它崩溃了、重启了或断网�
 :::
 
 :::details kubectl 步骤失败，因为其 Runner 太旧
-步骤失败并显示 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." 早于 kubectl 脚本的 Runner 无法运行脚本。按 [保持代理为最新版本](#5-保持代理为最新版本) 中的说明更新 Runner，然后再次运行 Runbook。
+步骤失败并显示 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." 早于 kubectl 脚本的 Runner 无法运行脚本。升级时迁移为 kubectl 脚本的 Kubernetes 步骤，在其脚本或 kubeconfig 被更改之前，仍会以编写时的操作在这样的 Runner 上运行。按 [保持代理为最新版本](#5-保持代理为最新版本) 中的说明更新 Runner，然后再次运行 Runbook。
 :::
 
 ## 后续步骤

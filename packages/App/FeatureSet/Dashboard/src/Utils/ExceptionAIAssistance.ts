@@ -5,6 +5,9 @@ import {
 } from "Common/Types/AI/AIFixReadiness";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import FixProductionStatus, {
+  FixProductionStatusHelper,
+} from "Common/Types/AI/FixProductionStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import PageMap from "./PageMap";
@@ -29,6 +32,90 @@ export interface AIAgentTaskInfo {
   statusDescription: string;
   createdAt: Date;
   taskType: string;
+  // Whether the task's merged fix fixed the exception in production.
+  production?: AIFixProductionInfo | undefined;
+}
+
+/*
+ * What production showed about a merged fix (FixProductionVerifier on the
+ * server): waiting for the deploy that ships it, watching it, or decided.
+ */
+export interface AIFixProductionInfo {
+  status: FixProductionStatus;
+  summary: string | undefined;
+  deployedVersion: string | undefined;
+  deployedCommitSha: string | undefined;
+  deployedAt: Date | undefined;
+  statusAt: Date | undefined;
+}
+
+export const FIX_PRODUCTION_LABELS: Record<FixProductionStatus, string> = {
+  [FixProductionStatus.AwaitingDeploy]: "Merged, waiting for a deploy",
+  [FixProductionStatus.Watching]: "Deployed, watching in production",
+  [FixProductionStatus.Verified]: "Fixed in production",
+  [FixProductionStatus.Regressed]: "Still happening after the fix",
+  [FixProductionStatus.Unverifiable]: "Not verified in production",
+};
+
+export function getFixProductionTone(status: FixProductionStatus): AITaskTone {
+  switch (status) {
+    case FixProductionStatus.Verified:
+      return "success";
+    case FixProductionStatus.Regressed:
+      return "danger";
+    case FixProductionStatus.Unverifiable:
+      return "neutral";
+    default:
+      return "info";
+  }
+}
+
+function parseDate(value: unknown): Date | undefined {
+  if (typeof value !== "string" && !(value instanceof Date)) {
+    return undefined;
+  }
+
+  const date: Date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+/*
+ * A task's production verdict as the server sends it, or undefined - for a
+ * task without one, an older server, or a status this dashboard does not
+ * know.
+ */
+export function parseFixProduction(
+  value: unknown,
+): AIFixProductionInfo | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const json: JSONObject = value as JSONObject;
+  const status: FixProductionStatus | undefined =
+    FixProductionStatusHelper.fromDatabaseValue(json["status"]);
+
+  if (!status) {
+    return undefined;
+  }
+
+  return {
+    status,
+    summary:
+      typeof json["summary"] === "string" && json["summary"]
+        ? json["summary"]
+        : undefined,
+    deployedVersion:
+      typeof json["deployedVersion"] === "string" && json["deployedVersion"]
+        ? json["deployedVersion"]
+        : undefined,
+    deployedCommitSha:
+      typeof json["deployedCommitSha"] === "string" && json["deployedCommitSha"]
+        ? json["deployedCommitSha"]
+        : undefined,
+    deployedAt: parseDate(json["deployedAt"]),
+    statusAt: parseDate(json["statusAt"]),
+  };
 }
 
 // The task types this page can start (FixException is the legacy default).
@@ -133,6 +220,7 @@ export function parseAIAgentTask(taskData: JSONObject): AIAgentTaskInfo {
     createdAt: new Date(taskData["createdAt"] as string),
     // Older servers omit taskType — every task they know about is a fix.
     taskType: (taskData["taskType"] as string) || CodeFixTaskType.FixException,
+    production: parseFixProduction(taskData["production"]),
   };
 }
 

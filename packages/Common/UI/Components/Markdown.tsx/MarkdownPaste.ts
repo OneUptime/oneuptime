@@ -32,6 +32,8 @@ import {
   TAB_ONLY_BULLET_GLYPHS,
   TEXT_BULLET_GLYPHS,
 } from "./MarkdownListEditing";
+import { isWhiteSpaceCode } from "../../../Utils/RegExpCharacterClasses";
+import { withoutTrailingRun } from "../../../Utils/TrailingRuns";
 
 // What the paste handlers read from a ClipboardEvent's DataTransfer.
 export interface PastedClipboard {
@@ -53,10 +55,17 @@ export interface ClipboardToMarkdownOptions {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * The white space after a bullet or a number is taken whole ((?!...)), so
+ * the text after it is read to the line's end once: tried from each of its
+ * characters, a line separator after a long run of it (which "." does not
+ * match) was found again from each, in time that grew with the run's
+ * square. The patterns match the same lines, with the same groups.
+ */
 const RE_GLYPH_BULLET_LINE: RegExp = new RegExp(
-  `^([ \\t]*)(?:([${TEXT_BULLET_GLYPHS}])|([${TAB_ONLY_BULLET_GLYPHS}])(?=\\t))[ \\t\\u00a0]+(.*)$`,
+  `^([ \\t]*)(?:([${TEXT_BULLET_GLYPHS}])|([${TAB_ONLY_BULLET_GLYPHS}])(?=\\t))[ \\t\\u00a0]+(?![ \\t\\u00a0])(.*)$`,
 );
-const RE_PAREN_NUMBER_LINE: RegExp = /^([ \t]*)(\d{1,9})\)[ \t]+(.*)$/;
+const RE_PAREN_NUMBER_LINE: RegExp = /^([ \t]*)(\d{1,9})\)[ \t]+(?![ \t])(.*)$/;
 const RE_TEXT_FENCE: RegExp = /^[ \t]*(`{3,}|~{3,})/;
 const RE_LINE_BREAKS: RegExp = /\r\n?/g;
 
@@ -332,7 +341,6 @@ const RE_NBSP: RegExp = /\u00a0/g;
 const RE_ZERO_WIDTH: RegExp = /[\u200b-\u200d\u2060\ufeff]/g;
 const RE_NOT_WHITESPACE: RegExp = /\S/;
 const RE_LEADING_SPACE: RegExp = /^\s+/;
-const RE_TRAILING_SPACE: RegExp = /\s+$/;
 const RE_URL_BREAKING: RegExp = /[\s()]/g;
 const RE_SESSION_RETRY: RegExp = /([?&])sessionRetry=[^&#]*(&?)/;
 const RE_WORD_LIST_STYLE: RegExp = /mso-list:\s*l\d+\s+level(\d+)/i;
@@ -1165,8 +1173,12 @@ const tidyInlineFormatting: (body: HTMLElement) => void = (
       first.data = first.data.replace(RE_LEADING_SPACE, "");
       parent.insertBefore(doc.createTextNode(" "), element);
     }
-    if (last && RE_TRAILING_SPACE.test(last.data)) {
-      last.data = last.data.replace(RE_TRAILING_SPACE, "");
+    /*
+     * The white space that ends the text, read back from its end once: as
+     * /\s+$/ it was tried from each character of each run of white space.
+     */
+    if (last && isWhiteSpaceCode(last.data.charCodeAt(last.data.length - 1))) {
+      last.data = withoutTrailingRun(last.data, isWhiteSpaceCode);
       parent.insertBefore(doc.createTextNode(" "), element.nextSibling);
     }
   }

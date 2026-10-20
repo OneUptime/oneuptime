@@ -16,6 +16,8 @@
  * uses it, since it puts the insert on the browser's undo stack.
  */
 
+import { withoutTrailingRun } from "../../../Utils/TrailingRuns";
+
 // A line of text, which a block inserted into its middle splits in two.
 const SPLITTABLE_LINE_TAGS: Set<string> = new Set<string>([
   "p",
@@ -170,7 +172,32 @@ interface InsertionPoint {
 }
 
 const RE_LEADING_SPACES: RegExp = /^[ \t\n\r\f]+/;
-const RE_TRAILING_SPACES: RegExp = /[ \t\n\r\f]+$/;
+
+// What a browser does not show at the edge of a line: [ \t\n\r\f].
+const isEdgeSpaceCode: (code: number) => boolean = (code: number): boolean => {
+  return (
+    code === 0x20 ||
+    code === 0x09 ||
+    code === 0x0a ||
+    code === 0x0d ||
+    code === 0x0c
+  );
+};
+
+/*
+ * A text without the spaces at the edge of the split it is next to: its
+ * start going forward, its end going back - read back from the end once,
+ * where /[ \t\n\r\f]+$/ was tried from each character of each run of
+ * them, in time that grew with the square of a long run inside the text.
+ */
+const withoutEdgeSpaces: (text: string, forward: boolean) => string = (
+  text: string,
+  forward: boolean,
+): string => {
+  return forward
+    ? text.replace(RE_LEADING_SPACES, "")
+    : withoutTrailingRun(text, isEdgeSpaceCode);
+};
 
 // Elements that show something with nothing inside them.
 const SHOWN_EMPTY_TAGS: Set<string> = new Set<string>([
@@ -213,12 +240,11 @@ const tidySplitEdge: (
   container: Node,
   forward: boolean,
 ) => void = (edge: Node | null, container: Node, forward: boolean): void => {
-  const spaces: RegExp = forward ? RE_LEADING_SPACES : RE_TRAILING_SPACES;
   let node: Node | null = edge;
   while (node && node !== container && container.contains(node)) {
     if (node.nodeType === Node.TEXT_NODE) {
       const text: Text = node as Text;
-      const trimmed: string = text.data.replace(spaces, "");
+      const trimmed: string = withoutEdgeSpaces(text.data, forward);
       if (trimmed !== text.data) {
         text.data = trimmed;
       }

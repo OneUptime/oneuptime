@@ -97,6 +97,8 @@ Runbook-variabler har taget pladsen for runbook-hemmeligheder og for de loginopl
 - alle loginoplysninger, som et trin nævnte, blev til hemmelige globale variabler med samme Runnere, opkaldt efter dem: `<name>-ssh-key` (og `<name>-ssh-key-passphrase` for en nøgle, der havde en), `<name>-ssh-password` eller `<name>-kubeconfig`;
 - hvert SSH-trin, der nævnte loginoplysninger, logger ind på sin maskine med dem og kører sin kommando som sit script, og hvert Kubernetes-trin blev et kubectl-trin, der kører den `kubectl patch`, som dets handling lavede, uden at kræve mere adgang, end trinnet havde.
 
+En Runner, der er ældre end denne udgivelse, kan ikke køre et kubectl-script. Derfor beholdt hvert Kubernetes-trin, der blev flyttet på denne måde, også sine loginoplysninger og sin handling, og en ældre Runner kører trinnet med dem, som den gjorde. Når du ændrer trinnets script eller kubeconfig, beholder det dem ikke længere: som ethvert nyt kubectl-trin kræver det så en Runner fra denne udgivelse, og en ældre får det til at fejle og siger, at Runneren skal opdateres.
+
 Et trin, der er skrevet gennem API'et med loginoplysninger, kører stadig med dem, og dets side med trin tilbyder **Lav om til et script-trin**. Loginoplysningerne bliver også, til det, som OneUptime AI's egne kommandoer når: se [AI-adgang](/docs/runbooks/credentials).
 
 ## Næste trin

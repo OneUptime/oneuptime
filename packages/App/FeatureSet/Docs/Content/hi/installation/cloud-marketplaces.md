@@ -47,21 +47,26 @@ AWS पर OneUptime अपने उपयोगकर्ताओं की �
 
 :::steps
 1. AWS Marketplace पर OneUptime Enterprise की सदस्यता लें, फिर **Continue to Configuration** चुनें, वर्ज़न तय करें और **Continue to Launch** चुनें।
-2. अगर क्लस्टर के पास अभी कोई IAM OIDC प्रोवाइडर नहीं है, तो उसे एक प्रोवाइडर दें। लॉन्च पेज वह `eksctl` कमांड दिखाता है जो फिर `oneuptime` सर्विस अकाउंट को उसके IAM रोल के साथ बनाती है; उसे चलाएँ।
-3. लॉन्च पेज पर दी गई कमांड से Helm के ज़रिए लिस्टिंग की रजिस्ट्री में लॉग इन करें और चार्ट इंस्टॉल करें, साथ में अपनी values फ़ाइल दें।
+2. अगर क्लस्टर के पास अभी कोई IAM OIDC प्रोवाइडर नहीं है, तो उसे एक प्रोवाइडर दें, और नीचे दी गई कमांड से `oneuptime` सर्विस अकाउंट को ऐसे IAM रोल के साथ बनाएँ जिसमें `AWSMarketplaceMeteringFullAccess` पॉलिसी हो। इन्हें लॉन्च पेज के **General launch instructions** के चरण 1 की `eksctl` कमांड की जगह चलाएँ: वह कमांड ऐसा रोल जोड़ती है जिसे आपको पहले खुद बनाना पड़ता।
+3. **General launch instructions** के चरण 2 की कमांड से Helm के ज़रिए लिस्टिंग की रजिस्ट्री में लॉग इन करें और चार्ट इंस्टॉल करें। `helm install` कमांड में `serviceAccount.name` को `oneuptime` पर, `host` को अपने डोमेन नाम पर, और अगर OneUptime के आगे कोई सर्टिफ़िकेट है तो `httpProtocol` को `https` पर सेट करें।
 4. [OneUptime खोलें](#oneuptime-खोलें)।
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+चरण 3 की वैल्यू एक फ़ाइल में रखें, और हर `helm upgrade` में इसे दें:
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-इस फ़ाइल को सँभालकर रखें: हर `helm upgrade` में इसे दें।
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ kubectl get service --namespace <namespace>
 :::details संस्करण लेबल Enterprise Edition (Marketplace Reports Failing) दिखाता है
 OneUptime मार्केटप्लेस को रिपोर्ट नहीं भेज पा रहा है। इस बारे में वह जो भी लाइन लॉग करता है, वह `OneUptime Enterprise marketplace billing` से शुरू होती है; जिस लाइन में लिखा हो कि उपयोग "cannot be reported", वह बताती है कि क्या कमी है। आम वजहें:
 
-- **AWS:** `oneuptime` सर्विस अकाउंट के पास कोई IAM रोल नहीं है, या रोल में `AWSMarketplaceMeteringFullAccess` पॉलिसी नहीं है। इसे लॉन्च पेज की `eksctl` कमांड से बनाएँ।
+- **AWS:** `oneuptime` सर्विस अकाउंट के पास कोई IAM रोल नहीं है, या रोल में `AWSMarketplaceMeteringFullAccess` पॉलिसी नहीं है (`AWSMarketplaceMeteringRegisterUsage` काफ़ी नहीं है)। पॉलिसी को रोल से जोड़ें, या [AWS Marketplace](#aws-marketplace) में दी गई `eksctl` कमांड से रोल बनाएँ और फिर `kubectl rollout restart deployment --namespace oneuptime` से OneUptime के पॉड रीस्टार्ट करें।
 - **Azure:** इंस्टॉलेशन Microsoft Marketplace ऐप्लिकेशन नहीं है, उदाहरण के लिए क्योंकि इसे Helm से इंस्टॉल किया गया था, इसलिए इसके पास रिपोर्ट भेजने के लिए कोई आइडेंटिटी या प्लान नहीं है। इसे Azure पोर्टल से इंस्टॉल करें।
 - **Google Cloud:** डिप्लॉयमेंट का रिपोर्टिंग सीक्रेट हटा दिया गया या बदल दिया गया।
 - **हर मार्केटप्लेस:** कोई फ़ायरवॉल या प्रॉक्सी [शुरू करने से पहले](#शुरू-करने-से-पहले) में बताए गए आउटबाउंड HTTPS को रोक रहा है।

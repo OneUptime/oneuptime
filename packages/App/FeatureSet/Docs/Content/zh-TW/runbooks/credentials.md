@@ -1,6 +1,6 @@
 # AI 存取
 
-AI 存取是 OneUptime AI 自己的指令到達 **不是** Runner 自身主機的目標的方式：透過 SSH 存取的伺服器，或未執行 Kubernetes 代理程式 chart 的 Kubernetes 叢集的 API 伺服器。每一項存取都是一個憑證：作為受管物件的存取權，靜態加密儲存，指派給特定的 Runner，並由 OneUptime AI 選擇，而不是寫進指令。Runbook 步驟不使用它們：SSH 或 kubectl 步驟使用機密 [Runbook 變數](/docs/runbooks/variables) 登入。
+AI 存取是 OneUptime AI 自己的指令到達 **不是** Runner 自身主機的目標的方式：透過 SSH 存取的伺服器，或未執行 Kubernetes 代理程式 chart 的 Kubernetes 叢集的 API 伺服器。每一項存取都是一個憑證：作為受管物件的存取權，靜態加密儲存，指派給特定的 Runner，並由 OneUptime AI 選擇，而不是寫進指令。Runbook 步驟不使用它們：SSH 或 kubectl 步驟使用機密 [Runbook 變數](/docs/runbooks/variables) 登入。早於此版本的 Runner 是例外：對於從操作遷移而來的 Kubernetes 步驟，在該步驟的指令碼或 kubeconfig 被變更之前，它會使用該步驟引用的憑證來執行。
 
 在 **運行手冊 → Runbook 代理程式 → AI 存取** 下管理憑證。
 

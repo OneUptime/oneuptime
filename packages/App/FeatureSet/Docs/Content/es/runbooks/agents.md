@@ -311,7 +311,7 @@ El paso nombra una variable secreta que no permite usarla a su Runner, así que 
 :::
 
 :::details Un paso kubectl falla porque su Runner es demasiado antiguo
-El paso falló con "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Un Runner anterior a los scripts kubectl no puede ejecutar uno. Actualiza el Runner, como muestra [Mantener el agente actualizado](#5-mantener-el-agente-actualizado), y vuelve a ejecutar el runbook.
+El paso falló con "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Un Runner anterior a los scripts kubectl no puede ejecutar uno. Un paso de Kubernetes que pasó a ser un script kubectl al actualizar sigue ejecutándose en él como la acción con la que se escribió, hasta que se cambian su script o su kubeconfig. Actualiza el Runner, como muestra [Mantener el agente actualizado](#5-mantener-el-agente-actualizado), y vuelve a ejecutar el runbook.
 :::
 
 ## Siguientes pasos

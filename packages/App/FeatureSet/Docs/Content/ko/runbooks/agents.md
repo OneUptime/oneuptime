@@ -311,7 +311,7 @@ Runner가 작업을 가져간 뒤 리스 갱신을 멈췄습니다. 충돌했거
 :::
 
 :::details Runner가 너무 오래되어 kubectl 단계가 실패하는 경우
-단계가 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run."로 실패했습니다. kubectl 스크립트보다 오래된 Runner는 스크립트를 실행할 수 없습니다. [에이전트를 최신 상태로 유지](#5-에이전트-최신-상태-유지)에 나온 대로 Runner를 업데이트한 다음 Runbook을 다시 실행하세요.
+단계가 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run."로 실패했습니다. kubectl 스크립트보다 오래된 Runner는 스크립트를 실행할 수 없습니다. 업그레이드할 때 kubectl 스크립트로 옮겨진 Kubernetes 단계는 스크립트나 kubeconfig가 바뀌기 전까지 작성될 때의 동작으로 그 Runner에서 계속 실행됩니다. [에이전트를 최신 상태로 유지](#5-에이전트-최신-상태-유지)에 나온 대로 Runner를 업데이트한 다음 Runbook을 다시 실행하세요.
 :::
 
 ## 다음 단계

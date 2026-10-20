@@ -1,6 +1,6 @@
 # AI-tilgang
 
-AI-tilgang er måten OneUptime AIs egne kommandoer når noe som **ikke** er en Runners egen vert — en server over SSH, eller API-serveren til en Kubernetes-klynge som ikke kjører Kubernetes-agentens chart. Hver tilgang er påloggingsinformasjon: den tilgangen som et administrert objekt, kryptert i hvile, tildelt bestemte Runnere og valgt av OneUptime AI i stedet for å skrives inn i en kommando. Runbook-trinn bruker dem ikke: et SSH- eller kubectl-trinn logger på med en hemmelig [runbook-variabel](/docs/runbooks/variables).
+AI-tilgang er måten OneUptime AIs egne kommandoer når noe som **ikke** er en Runners egen vert — en server over SSH, eller API-serveren til en Kubernetes-klynge som ikke kjører Kubernetes-agentens chart. Hver tilgang er påloggingsinformasjon: den tilgangen som et administrert objekt, kryptert i hvile, tildelt bestemte Runnere og valgt av OneUptime AI i stedet for å skrives inn i en kommando. Runbook-trinn bruker dem ikke: et SSH- eller kubectl-trinn logger på med en hemmelig [runbook-variabel](/docs/runbooks/variables). En Runner som er eldre enn denne utgivelsen, er unntaket: den kjører et Kubernetes-trinn som er flyttet fra en handling, med påloggingsinformasjonen trinnet nevnte, til trinnets skript eller kubeconfig endres.
 
 Administrer den under **Runbooks → Runbook-agenter → AI-tilgang**.
 

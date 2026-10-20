@@ -1,6 +1,6 @@
 # AI Access
 
-AI Access is how OneUptime AI's own commands reach something that is **not** a Runner's own host — a server over SSH, or the API server of a Kubernetes cluster that does not run the Kubernetes agent chart. Each one is a credential: that access as a managed object, encrypted at rest, assigned to specific Runners, and picked by OneUptime AI rather than written into a command. Runbook steps do not use these: an SSH or kubectl step signs in with a secret [runbook variable](/docs/runbooks/variables).
+AI Access is how OneUptime AI's own commands reach something that is **not** a Runner's own host — a server over SSH, or the API server of a Kubernetes cluster that does not run the Kubernetes agent chart. Each one is a credential: that access as a managed object, encrypted at rest, assigned to specific Runners, and picked by OneUptime AI rather than written into a command. Runbook steps do not use these: an SSH or kubectl step signs in with a secret [runbook variable](/docs/runbooks/variables). A Runner older than this release is the exception: it runs a Kubernetes step moved from an action with the credential that step named, until the step's script or kubeconfig is changed.
 
 Manage them under **Runbooks → Runners → AI Access**.
 
