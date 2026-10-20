@@ -38,6 +38,8 @@ La riga in alto nomina la cosa più urgente tra quelle aperte, in un colore corr
 
 Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
 
+Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsante **Crea il tuo primo monitor**, che apre il modulo per crearne uno. Lo vede solo chi può creare monitor.
+
 ### I cinque numeri
 
 Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco che c'è dietro.
