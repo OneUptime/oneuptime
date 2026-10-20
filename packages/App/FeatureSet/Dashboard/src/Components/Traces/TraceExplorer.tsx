@@ -4,6 +4,11 @@ import TraceHeader from "./TraceDetail/TraceHeader";
 import TraceOperations from "./TraceDetail/TraceOperations";
 import TraceSignals from "./TraceDetail/TraceSignals";
 import TraceSpanPanel from "./TraceDetail/TraceSpanPanel";
+import TracePerformanceSuggestion from "./TraceDetail/TracePerformanceSuggestion";
+import {
+  getShownSpanIds,
+  getShownSpanSearch,
+} from "./TraceDetail/TracePerformanceSuggestionCopy";
 import TraceWaterfall from "./TraceDetail/TraceWaterfall";
 import ExceptionSegmentedControl from "../Exceptions/ExceptionSegmentedControl";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -73,6 +78,13 @@ import CriticalPathUtil, {
   CriticalPathResult,
   SpanSelfTime,
 } from "Common/Utils/Traces/CriticalPath";
+import { isAiOffered } from "Common/Utils/Suggestions/AiSuggestion";
+import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
+import {
+  NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
+  TracePerformanceFixSuggestion,
+  parseTracePerformanceFixSuggestion,
+} from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -116,6 +128,12 @@ export interface ComponentProps {
   highlightSpanIds?: string[];
 }
 
+export const PERFORMANCE_FIX_SUGGESTION_PATH: string =
+  "/ai-investigation/performance-fix-suggestion";
+
+export const CREATE_PERFORMANCE_FIX_TASK_PATH: string =
+  "/ai-investigation/create-performance-fix-task";
+
 function isEditableTarget(target: EventTarget | null): boolean {
   const element: HTMLElement | null = target as HTMLElement | null;
   if (!element || !element.tagName) {
@@ -152,7 +170,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const [viewport, setViewport] = useState<TimeViewport>(FULL_VIEWPORT);
   const [revealRequest, setRevealRequest] = useState<number>(0);
 
-  // "Fix performance with AI" (the FixPerformance recipe) state.
+  /*
+   * "Fix performance with AI" (the FixPerformance recipe): what the server
+   * offers for this trace, and the fix started from this page.
+   */
+  const [perfFixSuggestion, setPerfFixSuggestion] =
+    useState<TracePerformanceFixSuggestion>(
+      NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
+    );
   const [isCreatingPerfFixTask, setIsCreatingPerfFixTask] =
     useState<boolean>(false);
   const [perfFixRunId, setPerfFixRunId] = useState<string | null>(null);
@@ -188,10 +213,59 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     [traceId],
   );
 
+  /*
+   * Ask the server whether this trace is worth "Fix performance with AI".
+   * It runs the span-tree analysis the create route gates on (with the
+   * spans' attributes, which this page does not load), so the page offers
+   * exactly what the server would accept. A project with AI switched off is
+   * not asked at all, and any failure means no suggestion: the button is an
+   * offer, never something the page depends on.
+   */
+  const loadPerfFixSuggestion: (generation: number) => Promise<void> =
+    useCallback(
+      async (generation: number): Promise<void> => {
+        if (!isAiOffered(ProjectUtil.getCurrentProject())) {
+          setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
+          return;
+        }
+
+        try {
+          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.post<JSONObject>({
+              url: URL.fromString(
+                APP_API_URL.toString() + PERFORMANCE_FIX_SUGGESTION_PATH,
+              ),
+              data: {
+                traceId: traceId,
+              },
+              headers: ModelAPI.getCommonHeaders(),
+            });
+
+          if (generation !== loadGenerationRef.current) {
+            return;
+          }
+
+          setPerfFixSuggestion(
+            response instanceof HTTPErrorResponse
+              ? NO_TRACE_PERFORMANCE_FIX_SUGGESTION
+              : parseTracePerformanceFixSuggestion(response.data),
+          );
+        } catch {
+          if (generation === loadGenerationRef.current) {
+            setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
+          }
+        }
+      },
+      [traceId],
+    );
+
   const loadTrace: (mode: "initial" | "refresh") => Promise<void> = useCallback(
     async (mode: "initial" | "refresh"): Promise<void> => {
       loadGenerationRef.current += 1;
       const generation: number = loadGenerationRef.current;
+
+      // In parallel with the spans; it never holds the page up.
+      void loadPerfFixSuggestion(generation);
 
       if (mode === "initial") {
         setIsLoading(true);
@@ -253,7 +327,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         }
       }
     },
-    [fetchSpanPage],
+    [fetchSpanPage, loadPerfFixSuggestion],
   );
 
   // A new trace starts from a clean slate.
@@ -270,6 +344,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     setCollapsedIds(EMPTY_ID_SET);
     setSelectedSpanId(null);
     setViewport(FULL_VIEWPORT);
+    setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
     setIsCreatingPerfFixTask(false);
     setPerfFixRunId(null);
     setPerfFixError(null);
@@ -345,11 +420,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Human-triggered FixPerformance: ask the server to analyze this trace's
-   * span tree deterministically and, when a mechanical pattern is found,
-   * enqueue an AI task that opens a performance-fix pull request. The
-   * server's rejections are a feature, not a failure mode — "no
-   * deterministic performance pattern found" means the button stays honest.
+   * Human-triggered FixPerformance: the server re-runs the same gates the
+   * suggestion passed (AI on, a finding worth fixing, a repository, no fix
+   * already on its way) and enqueues an AI task that opens a
+   * performance-fix pull request. A refusal - a repository disconnected
+   * since the page loaded, say - is shown beside the finding.
    */
   const createPerformanceFixTask: () => Promise<void> =
     async (): Promise<void> => {
@@ -360,8 +435,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
             url: URL.fromString(
-              APP_API_URL.toString() +
-                "/ai-investigation/create-performance-fix-task",
+              APP_API_URL.toString() + CREATE_PERFORMANCE_FIX_TASK_PATH,
             ),
             data: {
               traceId: traceId,
@@ -672,6 +746,44 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   const hasActiveFilter: boolean = visibility !== null;
 
+  /*
+   * The fix to link to: the one started here, or the one the server says
+   * is already on its way for this trace.
+   */
+  const perfFixLinkedRunId: string | null =
+    perfFixRunId ||
+    (perfFixSuggestion.offer === SuggestionOffer.InProgress
+      ? perfFixSuggestion.aiRunId
+      : null);
+
+  const perfFixTaskRoute: Route | null = perfFixLinkedRunId
+    ? RouteUtil.populateRouteParams(RouteMap[PageMap.CODE_TASK_VIEW] as Route, {
+        modelId: perfFixLinkedRunId,
+      })
+    : null;
+
+  /*
+   * "Show them": the finding's spans in the waterfall - kept in view by
+   * their shared name when they have one, the first of them selected.
+   */
+  const perfFixSpanIds: Array<string> = perfFixSuggestion.finding
+    ? getShownSpanIds(perfFixSuggestion.finding, (spanId: string): boolean => {
+        return tree.nodesById.has(spanId);
+      })
+    : [];
+
+  const showPerfFixSpans: (() => void) | undefined =
+    perfFixSuggestion.finding && perfFixSpanIds.length > 0
+      ? (): void => {
+          const search: string = getShownSpanSearch(perfFixSuggestion.finding!);
+          if (search) {
+            setSearchText(search);
+          }
+          setViewMode("waterfall");
+          selectSpan(perfFixSpanIds[0]!);
+        }
+      : undefined;
+
   if (isLoading && spans.length === 0) {
     return (
       <div
@@ -857,19 +969,21 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             void loadTrace("refresh");
           }}
           shareUrl={shareUrl}
-          isCreatingPerformanceFix={isCreatingPerfFixTask}
-          performanceFixRoute={
-            perfFixRunId
-              ? RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.CODE_TASK_VIEW] as Route,
-                  { modelId: perfFixRunId },
-                )
-              : null
+          performanceSuggestion={
+            perfFixSuggestion.offer !== SuggestionOffer.None ? (
+              <TracePerformanceSuggestion
+                suggestion={perfFixSuggestion}
+                taskRoute={perfFixTaskRoute}
+                connectRepositoryRoute={RouteMap[PageMap.CODE] as Route}
+                isCreating={isCreatingPerfFixTask}
+                error={perfFixError}
+                onFix={() => {
+                  void createPerformanceFixTask();
+                }}
+                onShowSpans={showPerfFixSpans}
+              />
+            ) : null
           }
-          performanceFixError={perfFixError}
-          onCreatePerformanceFix={() => {
-            void createPerformanceFixTask();
-          }}
         />
       ) : (
         <div

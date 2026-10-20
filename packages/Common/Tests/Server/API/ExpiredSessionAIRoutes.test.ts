@@ -200,6 +200,17 @@ const AI_INVESTIGATION_ROUTES: Array<HumanOnlyRoute> = [
     firstRead: "alertRead",
   },
   {
+    /*
+     * What the trace page offers: the project's AI switch is read first, so
+     * a project with AI off pays for no span read.
+     */
+    uri: "/ai-investigation/performance-fix-suggestion",
+    params: {},
+    body: { traceId: "4bf92f3577b34da6a3ce929d0e0e4736" },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "projectRead",
+  },
+  {
     uri: "/ai-investigation/create-performance-fix-task",
     params: {},
     body: { traceId: "4bf92f3577b34da6a3ce929d0e0e4736" },

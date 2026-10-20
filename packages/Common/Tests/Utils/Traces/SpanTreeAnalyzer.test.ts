@@ -1,10 +1,10 @@
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
-} from "../../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+} from "../../../Utils/Traces/SpanTreeAnalyzer";
 import {
   PerformanceFinding,
   PerformanceFindingType,
-} from "../../../../Types/AI/CodeFixTaskContext";
+} from "../../../Types/AI/CodeFixTaskContext";
 import { describe, expect, test } from "@jest/globals";
 
 /*

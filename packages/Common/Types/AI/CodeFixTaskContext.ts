@@ -11,8 +11,9 @@ import { CodeTaskRequest } from "./CodeTask";
  *
  * First user: the FixPerformance recipe. Its evidence is computed
  * DETERMINISTICALLY from a trace's span tree when the user clicks "Fix
- * performance with AI" (see Common/Server/Utils/AI/PerfEvidence/
- * SpanTreeAnalyzer.ts) and stored here verbatim — ClickHouse span retention
+ * performance with AI" (see Common/Utils/Traces/SpanTreeAnalyzer.ts, and
+ * Common/Utils/Suggestions/TracePerformanceFixSuggestion.ts for which
+ * findings are worth a fix) and stored here verbatim — ClickHouse span retention
  * is short, so by the time the agent worker claims the run the spans may
  * already be gone. The stored findings ARE the task's context.
  *

@@ -102,9 +102,10 @@ afterEach(() => {
 });
 
 describe("the columns the menus read off the selected project", () => {
-  test("are Monitor Groups, the one the project list selects for the menus", () => {
+  test("are Monitor Groups (the menus) and Enable AI (whether AI actions are drawn), both selected by the project list", () => {
     expect(SELECTED_PROJECT_SWITCH_COLUMNS).toEqual([
       "isFeatureFlagMonitorGroupsEnabled",
+      "enableAi",
     ]);
   });
 

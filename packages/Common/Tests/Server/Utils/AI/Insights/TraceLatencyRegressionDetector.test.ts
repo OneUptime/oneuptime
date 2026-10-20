@@ -20,7 +20,7 @@ import SpanService from "../../../../../Server/Services/SpanService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import Span from "../../../../../Models/AnalyticsModels/Span";
 import Service from "../../../../../Models/DatabaseModels/Service";
-import { AnalyzableSpan } from "../../../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import { AnalyzableSpan } from "../../../../../Utils/Traces/SpanTreeAnalyzer";
 import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";

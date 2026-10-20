@@ -2,7 +2,7 @@ import {
   ImplicatedSpan,
   PerformanceFinding,
   PerformanceFindingType,
-} from "../../../../Types/AI/CodeFixTaskContext";
+} from "../../Types/AI/CodeFixTaskContext";
 
 /*
  * Deterministic span-tree analysis for the FixPerformance recipe — the part
