@@ -6,6 +6,7 @@ AI 閘道位於你的應用程式和模型供應商之間，所以每次模型�
 - [LiteLLM Proxy](#litellm-proxy): 內建匯出，用三個變數完成設定。
 - [誰花了什麼](#每位員工一把虛擬金鑰): 每位員工一把 LiteLLM 虛擬金鑰，就能辨識每個人。
 - [Portkey](#portkey): 自行託管的閘道有內建匯出；其他情況請為應用程式加上檢測。
+- [OpenRouter](#openrouter): Broadcast 會傳送每個請求的追蹤，只需在 OpenRouter 中設定一次。
 - [檢查呼叫是否抵達](#檢查呼叫是否抵達): 你應該看到什麼，看不到時該怎麼辦。
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | 要設定的端點 | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | 應用程式自己的匯出工具 |
 | 能辨識每個人 | 能，每位員工一把虛擬金鑰 | 不能 | 只有應用程式傳送的內容 |
 | 提示和回答 | 傳送，除非你關閉 | 一律傳送 | 取決於檢測 |
+
+OneUptime 沒有自己的閘道：閘道會持有你的提供者金鑰，並讓你的應用程式的每次模型呼叫多經過一站。OneUptime 讀取你已經在執行的閘道，而你提供者帳戶的使用量和成本則完全不需要程式碼：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts)。
 
 ## 開始之前
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 這些 span 描述的是你的應用程式發出的呼叫：它請求的模型、等待的時間、取回的 token。閘道在途中做出的決定，例如備援、重試或快取命中，會留在 Portkey 中。若要在 OneUptime 中看到這些，請使用自行託管閘道的匯出。
 
+## OpenRouter
+
+OpenRouter 的 Broadcast 會把你的 OpenRouter 帳戶每個請求的追蹤傳送到一個 OpenTelemetry 端點：模型、token、OpenRouter 收取的成本，以及除非你關閉，否則還有提示詞和回答。只需在 OpenRouter 中設定一次，不必修改你的應用程式。
+
+:::steps
+### 開啟 Broadcast
+
+在 OpenRouter 中開啟 Settings、Observability，並開啟 Enable Broadcast。
+
+### 把 OneUptime 新增為收集器
+
+編輯 OpenTelemetry Collector 目的地。把它的端點設為完整的追蹤路徑 `https://oneuptime.com/otlp/v1/traces`，把它的標頭設為 `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`。接著測試連線：只有測試通過，OpenRouter 才會儲存該目的地。
+
+### 透過它呼叫模型
+
+透過 OpenRouter 呼叫一個模型，然後依 [檢查呼叫是否抵達](#檢查呼叫是否抵達) 中的說明檢查 AI / LLM。
+:::
+
+- OpenRouter 透過 HTTP 以 JSON 傳送 OTLP，OneUptime 不需要中間的收集器即可接收。
+- 請求的 `user` 會作為 `user.id` 抵達，OneUptime 把它讀作發出呼叫的人；它的 `session_id` 會作為 `session.id` 抵達，用來把呼叫歸入一個對話。請在 `user` 中傳送員工的 ID，絕不要傳送客戶的 ID。
+- 提示詞和回答位於產生 span 上，即 `gen_ai.prompt` 和 `gen_ai.completion`。如需排除它們，請開啟目的地的隱私模式。
+
 ## 檢查呼叫是否抵達
 
 :::steps
@@ -259,6 +284,10 @@ LiteLLM 使用完整路徑 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 從 LiteLLM 1.81 起，一個請求中的多次模型呼叫共用同一個 span。請設定 `USE_OTEL_LITELLM_REQUEST_SPAN=true`，讓每次呼叫都有一個 span。
 :::
 
+:::details OpenRouter 不儲存目的地
+它的連線測試失敗了。請檢查端點是否以 `/v1/traces` 結尾，以及標頭中是否包含伺服器擷取金鑰。
+:::
+
 ## 後續步驟
 
 :::cards
@@ -266,4 +295,5 @@ LiteLLM 使用完整路徑 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 - [AI 程式設計助理](/docs/telemetry/ai-coding-assistants): 在自己不傳送遙測的工具前面放一個閘道。
 - [AI 代理程式斷路器](/docs/telemetry/ai-agent-circuit-breaker): 警示觸發時讓失控的代理程式停下。
 - [追蹤監控](/docs/monitor/traces-monitor): 針對 span 模式發出警示，例如在迴圈中被呼叫的工具。
+- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 不需要程式碼，查看閘道背後帳戶的帳單。
 :::

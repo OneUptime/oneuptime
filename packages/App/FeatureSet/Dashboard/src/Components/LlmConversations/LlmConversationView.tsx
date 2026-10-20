@@ -274,7 +274,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
   }, [handleKey]);
 
   const listRoute: Route = getLlmPageRoute(PageMap.LLM_CONVERSATIONS);
-  const setupRoute: Route = getLlmPageRoute(PageMap.LLM_DOCUMENTATION);
+  const setupRoute: Route = getLlmPageRoute(PageMap.LLM_CONNECT);
 
   if (state.kind === "invalid") {
     return (

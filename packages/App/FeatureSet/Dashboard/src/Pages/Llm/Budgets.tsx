@@ -8,6 +8,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import Service from "Common/Models/DatabaseModels/Service";
+import LlmBudgetSpendSource from "Common/Types/LlmObservability/LlmBudgetSpendSource";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -89,10 +91,39 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           placeholder: "100",
           description: "The daily budget in USD, over the UTC day.",
         },
+        /*
+         * Two answers, both in view with what each counts: the same two
+         * sources, in the same words, as Usage's switch.
+         */
+        {
+          field: { spendSource: true },
+          title: "Count spend from",
+          stepId: "scope",
+          description: "One or the other, never both, so nothing counts twice.",
+          fieldType: FormFieldSchemaType.RadioButton,
+          required: true,
+          defaultValue: LlmBudgetSpendSource.Calls,
+          radioButtonOptions: [
+            {
+              title: "Your AI calls",
+              description: "What your apps and coding tools send",
+              value: LlmBudgetSpendSource.Calls,
+            },
+            {
+              title: "Provider accounts",
+              description: "What your connected accounts were billed",
+              value: LlmBudgetSpendSource.Providers,
+            },
+          ],
+        },
         {
           field: { service: true },
           title: "Service (optional)",
           stepId: "scope",
+          // A provider's bill names no service.
+          showIf: (values: FormValues<LlmCostBudget>): boolean => {
+            return values.spendSource !== LlmBudgetSpendSource.Providers;
+          },
           description:
             "Scope this budget to a single telemetry service. Leave empty for a project-wide budget.",
           fieldType: FormFieldSchemaType.Dropdown,
@@ -111,7 +142,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           required: false,
           placeholder: "openai",
           description:
-            "Only count spend from this provider (matches the span's gen_ai provider). Leave empty to count every provider.",
+            "Only count spend from this provider: openai, anthropic, azure.ai.openai, aws.bedrock or gcp.vertex_ai. Leave empty to count every provider.",
         },
         {
           field: { llmModel: true },
@@ -121,7 +152,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           required: false,
           placeholder: "gpt-4o",
           description:
-            "Only count spend from this model (matches the span's requested model exactly). Leave empty to count every model.",
+            "Only count spend from this model, exactly as the provider names it. Leave empty to count every model.",
         },
       ]}
       filters={[
@@ -139,6 +170,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
       selectMoreFields={{
         llmSystem: true,
         llmModel: true,
+        spendSource: true,
         currentDaySpendInUSD: true,
         dailyBudgetInUSD: true,
       }}
@@ -214,6 +246,21 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
 
             if (item.llmModel) {
               filters.push(`Model: ${item.llmModel}`);
+            }
+
+            if (item.spendSource === LlmBudgetSpendSource.Providers) {
+              return (
+                <div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {translator.translateText("Provider accounts")}
+                  </span>
+                  {filters.length > 0 && (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {filters.join(" · ")}
+                    </div>
+                  )}
+                </div>
+              );
             }
 
             return (

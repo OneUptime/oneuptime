@@ -37,7 +37,7 @@ flowchart TB
 
 1. Войдите на [портал Azure](https://portal.azure.com) и откройте **Microsoft Entra ID**.
 2. Перейдите в **App registrations → New registration**. Назовите приложение `OneUptime Security Events`, оставьте для **Supported account types** значение **Accounts in this organizational directory only**, оставьте URI перенаправления пустым и выберите **Register**.
-3. На странице **Overview** приложения скопируйте **Application (client) ID** и **Directory (tenant) ID**.
+3. На странице **Overview** приложения скопируйте **Идентификатор приложения (клиента)** и **Идентификатор каталога (клиента)**.
 
 ### Разрешите ему читать оповещения
 
@@ -61,9 +61,9 @@ flowchart TB
 
 | Параметр | Где его найти |
 | --- | --- |
-| **Directory (tenant) ID** | Страница **Overview** приложения. GUID тенанта или подтверждённый домен, например `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | Страница **Overview** приложения. GUID приложения, у которого есть `SecurityAlert.Read.All`. |
-| **Облако** | **Azure public cloud**, которое обслуживает и Microsoft 365 GCC, или **Azure Government (US)** для GCC High (`login.microsoftonline.us` и `graph.microsoft.us`). Microsoft 365 DoD и облако 21Vianet в Китае не поддерживаются. |
+| **Идентификатор каталога (клиента)** | Страница **Overview** приложения. GUID тенанта или подтверждённый домен, например `contoso.onmicrosoft.com`. |
+| **Идентификатор приложения (клиента)** | Страница **Overview** приложения. GUID приложения, у которого есть `SecurityAlert.Read.All`. |
+| **Облако** | **Общедоступное облако Azure**, которое обслуживает и Microsoft 365 GCC, или **Azure Government (США)** для GCC High (`login.microsoftonline.us` и `graph.microsoft.us`). Microsoft 365 DoD и облако 21Vianet в Китае не поддерживаются. |
 | **Client secret** | **Value** секрета. Он шифруется, никогда не возвращается API и больше не показывается. Замените его с помощью **Update credentials** в подключении. |
 
 На шаге **Polling** также есть необязательное **Описание**, **Poll Interval (Minutes)** — целое число от `1` до `1440`, по умолчанию `5`, и **Включено**, изначально включённое.
@@ -151,7 +151,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::details Last Error начинается с `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID отказался выдать токен, поэтому к Graph даже не обращались. Сообщение заканчивается подсказкой по коду `error` из Entra:
   - `invalid_client` (`AADSTS7000215`): секрет неверен, истёк или принадлежит другому приложению. Создайте новый в **Certificates & secrets** и сохраните его с помощью **Update credentials**.
-  - `unauthorized_client` (`AADSTS700016`): **Application (client) ID** отсутствует в этом **Directory (tenant) ID**, или **Облако** указано неверно.
+  - `unauthorized_client` (`AADSTS700016`): **Идентификатор приложения (клиента)** отсутствует в этом **Идентификатор каталога (клиента)**, или **Облако** указано неверно.
   - `AADSTS90002`: такого тенанта нет.
   - `invalid_scope`: область Graph не существует в выбранном облаке. Проверьте **Облако**.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID ответил чем-то непригодным — телом не в формате JSON или без `access_token`. Обычно это прокси или шлюз посередине, а не учётные данные.

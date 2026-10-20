@@ -37,7 +37,7 @@ De verbinding meldt zich aan met de [OAuth 2.0-flow voor clientreferenties](http
 
 1. Meld je aan bij de [Azure-portal](https://portal.azure.com) en open **Microsoft Entra ID**.
 2. Ga naar **App registrations → New registration**. Noem hem `OneUptime Security Events`, laat **Supported account types** op **Accounts in this organizational directory only** staan, laat de omleidings-URI leeg en selecteer **Register**.
-3. Kopieer op de pagina **Overview** van de app de **Application (client) ID** en de **Directory (tenant) ID**.
+3. Kopieer op de pagina **Overview** van de app de **Applicatie-ID (client)** en de **Directory-ID (tenant)**.
 
 ### Hem waarschuwingen laten lezen
 
@@ -61,9 +61,9 @@ Klik op **Test these settings** onder **Testen voor het opslaan**. De test meldt
 
 | Instelling | Waar je haar vindt |
 | --- | --- |
-| **Directory (tenant) ID** | De pagina **Overview** van de app. De GUID van de tenant, of een geverifieerd domein zoals `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | De pagina **Overview** van de app. De GUID van de app die `SecurityAlert.Read.All` heeft. |
-| **Cloud** | **Azure public cloud**, die ook Microsoft 365 GCC bedient, of **Azure Government (US)** voor GCC High (`login.microsoftonline.us` en `graph.microsoft.us`). Microsoft 365 DoD en de 21Vianet-cloud in China worden niet ondersteund. |
+| **Directory-ID (tenant)** | De pagina **Overview** van de app. De GUID van de tenant, of een geverifieerd domein zoals `contoso.onmicrosoft.com`. |
+| **Applicatie-ID (client)** | De pagina **Overview** van de app. De GUID van de app die `SecurityAlert.Read.All` heeft. |
+| **Cloud** | **Openbare Azure-cloud**, die ook Microsoft 365 GCC bedient, of **Azure Government (VS)** voor GCC High (`login.microsoftonline.us` en `graph.microsoft.us`). Microsoft 365 DoD en de 21Vianet-cloud in China worden niet ondersteund. |
 | **Client secret** | De **Value** van het geheim. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Update credentials** op de verbinding. |
 
 De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
@@ -151,7 +151,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 :::details Last Error begint met `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID weigerde een token uit te geven, dus Graph is nooit benaderd. Het bericht eindigt met een hint, op basis van de `error`-code van Entra:
   - `invalid_client` (`AADSTS7000215`): het geheim is verkeerd, verlopen of hoort bij een andere app. Maak een nieuw geheim onder **Certificates & secrets** en sla het op met **Update credentials**.
-  - `unauthorized_client` (`AADSTS700016`): de **Application (client) ID** staat niet in die **Directory (tenant) ID**, of **Cloud** is verkeerd.
+  - `unauthorized_client` (`AADSTS700016`): de **Applicatie-ID (client)** staat niet in die **Directory-ID (tenant)**, of **Cloud** is verkeerd.
   - `AADSTS90002`: die tenant bestaat niet.
   - `invalid_scope`: het Graph-bereik bestaat niet in de cloud die je hebt gekozen. Controleer **Cloud**.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID antwoordde met iets onbruikbaars, een body die geen JSON is of geen `access_token` heeft. Dat is meestal een proxy of gateway ertussen, niet de referenties.

@@ -21,6 +21,7 @@ import SpanTreeAnalyzer, {
   AnalyzableSpan,
 } from "../../../../../../Utils/Traces/SpanTreeAnalyzer";
 import FixPerformanceTaskTrigger from "../../FixPerformanceTaskTrigger";
+import LlmConversationPrivacy from "../../../../LlmObservability/LlmConversationPrivacy";
 import logger from "../../../../Logger";
 import {
   InsightCandidate,
@@ -315,9 +316,26 @@ export default class TraceLatencyRegressionDetector implements InsightDetector {
         priorProfile.rows,
       );
 
+    /*
+     * The scan reads as root, which the permission layer leaves unfiltered,
+     * and an insight is read by people who may not read a company AI tool's
+     * private chats: those services are left out (LlmConversationPrivacy).
+     */
+    const privateChatServiceIds: Set<string> = new Set<string>(
+      await LlmConversationPrivacy.getRestrictedServiceIds(context.projectId),
+    );
+
     const candidates: Array<InsightCandidate> = [];
 
     for (const windows of joined) {
+      if (
+        privateChatServiceIds.has(
+          String(windows.primaryEntityId).trim().toLowerCase(),
+        )
+      ) {
+        continue;
+      }
+
       const decision: LatencyRegressionDecision =
         TraceLatencyRegressionDetector.evaluateRegression({
           recentP99Ms: windows.recentP99Ms,

@@ -1393,8 +1393,8 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getLlmBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/llm/documentation",
-    titles: ["Project", "AI / LLM", "Setup Guide"],
+    pagePattern: "/dashboard/:projectId/llm/connect",
+    titles: ["Project", "AI / LLM", "Connect"],
   },
   {
     getter: "getLlmBreadcrumbs",

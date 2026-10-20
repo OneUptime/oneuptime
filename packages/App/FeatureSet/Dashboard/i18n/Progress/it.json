@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16694
+    "keys": 31872,
+    "untranslated": 16629
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -9,6 +9,7 @@
     "App",
     "Budget",
     "Client",
+    "Cloud",
     "Embedding",
     "Failover",
     "Gateway",
@@ -21,6 +22,7 @@
     "PR #{{number}}",
     "Pattern {{number}}: {{problem}}",
     "Peer",
+    "Privacy",
     "Provider",
     "Pull request #{{number}}",
     "Record",
@@ -32,6 +34,7 @@
     "Stratum",
     "Tag",
     "Team",
+    "Test",
     "Tunnel",
     "VMware vCenter",
     "cluster",

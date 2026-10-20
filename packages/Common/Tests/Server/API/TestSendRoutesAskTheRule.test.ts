@@ -185,6 +185,12 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Starts a test meeting at a video call provider; sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/LlmObservabilityConnectionAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Reads a few days of an AI provider account's usage, or counts a company AI tool's newest chats, as whoever may change the connection; imports nothing and sends nobody a message.",
+  },
+  {
     file: "packages/Common/Server/API/KubernetesClusterAiAccessAPI.ts",
     path: "/kubernetes-cluster/ai-access/test",
     rule: "check",

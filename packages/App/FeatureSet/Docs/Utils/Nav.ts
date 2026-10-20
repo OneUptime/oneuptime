@@ -844,6 +844,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ai-llm-observability",
       },
       {
+        title: "AI Provider Accounts",
+        url: "/docs/telemetry/ai-provider-accounts",
+      },
+      {
+        title: "Company AI Tools",
+        url: "/docs/telemetry/ai-company-tools",
+      },
+      {
         title: "AI Coding Assistants",
         url: "/docs/telemetry/ai-coding-assistants",
       },

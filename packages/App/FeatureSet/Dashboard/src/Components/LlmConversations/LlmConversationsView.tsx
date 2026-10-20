@@ -281,7 +281,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
     setView({ ...view, search: "", serviceId: "", issue: undefined, page: 0 });
   };
 
-  const setupRoute: Route = getLlmPageRoute(PageMap.LLM_DOCUMENTATION);
+  const setupRoute: Route = getLlmPageRoute(PageMap.LLM_CONNECT);
   const usageRoute: Route = getLlmPageRoute(PageMap.LLM_USAGE);
 
   const conversations: Array<LlmConversationListItem> =
@@ -377,11 +377,11 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
           icon={IconProp.ChatBubbleLeftRight}
           dataTestId="llm-conversations-empty"
           title="No AI conversations here yet"
-          description="Conversations appear as your app's AI calls arrive. Send them with any OpenTelemetry GenAI instrumentation, such as OpenLLMetry or OpenInference."
+          description="Conversations appear as AI calls arrive: from your own apps, or from your company's AI tools, such as Claude Enterprise and Microsoft 365 Copilot."
           actions={[
             {
-              title: "Set up AI observability",
-              icon: IconProp.Book,
+              title: "Connect AI",
+              icon: IconProp.Link,
               dataTestId: "llm-conversations-setup",
               onClick: () => {
                 Navigation.navigate(setupRoute);
