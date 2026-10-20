@@ -31908,5 +31908,18 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Opkald foretages fra dette nummer, og SMS'er sendes også herfra, medmindre du tilføjer SMS-telefonnumre under Flere felter.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Hvis dine Twilio-numre ikke kan sende SMS (i Singapore er nationale numre kun til tale), så tilføj numre, der kan. Hver SMS sendes så fra nummeret i modtagerens land, ellers fra det første.",
+  "Twilio SMS Phone Numbers": "Twilio SMS-telefonnumre",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} er ikke et telefonnummer. Skriv hvert nummer med landekode, og adskil numrene med kommaer, som +6581234567, +447700900123.",
+  "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "Én konfiguration er projektets standard: SMS'er og opkald til personerne i dette projekt, såsom vagtalarmer, går gennem den. Statussider bruger den konfiguration, der er valgt på hver side.",
+  "Send a test SMS to check this Twilio config.": "Send en test-SMS for at kontrollere denne Twilio-konfiguration.",
+  "Make a test call to check this Twilio config.": "Foretag et testopkald for at kontrollere denne Twilio-konfiguration.",
+  "Test SMS Sent": "Test-SMS sendt",
+  "Test Call Placed": "Testopkald startet",
+  "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio har accepteret test-SMS'en fra {{phoneNumber}}. Den bør nå frem inden for få minutter.",
+  "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio har accepteret test-SMS'en. Den bør nå frem inden for få minutter.",
+  "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ringer fra {{phoneNumber}}. Din telefon bør ringe inden for et minut.",
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio foretager testopkaldet. Din telefon bør ringe inden for et minut."
 }

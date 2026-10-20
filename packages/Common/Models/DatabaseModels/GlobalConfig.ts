@@ -462,6 +462,34 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers separated by comma
 
+  /*
+   * The numbers SMS go out from, as on a project's Twilio config
+   * (ProjectCallSMSConfig): for numbers that can only make calls - in
+   * Singapore, national numbers are voice-only and SMS need a mobile number.
+   * Once set, every SMS goes out from one of them: the one in the
+   * recipient's country, or else the first. Empty - as on every
+   * installation before them - SMS go out from the numbers calls do
+   * (Types/CallAndSMS/TwilioPhoneNumbers).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Twilio SMS Phone Numbers",
+    description:
+      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioSmsPhoneNumbers?: string = undefined; // phone numbers separated by comma
+
   @ColumnAccessControl({
     create: [],
     read: [],

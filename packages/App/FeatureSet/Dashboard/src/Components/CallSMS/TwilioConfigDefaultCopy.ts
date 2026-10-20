@@ -82,8 +82,13 @@ export const TwilioConfigDefaultCopy: {
     "None of these configs is the project default, so the SMS and calls to people in this project do not go through them. To send them through one, use Set as Project Default on its row.",
   ),
   setDefaultTitle: translationKey("Set as Project Default"),
+  /*
+   * Two short sentences: what the default is for, and what it is not for.
+   * It sits in the Twilio step above the More fields line, and the
+   * paragraph it replaced ran to five lines - eight in German.
+   */
   defaultSwitchDescription: translationKey(
-    "When enabled, all SMS and Calls sent to project team members (on-call notifications, alerts, phone verification, etc.) will use this Twilio config instead of the global config. Only one Twilio config per project can be the project default. Status pages are unaffected — they continue to use the config explicitly assigned to each status page.",
+    "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.",
   ),
   firstConfigSwitchDescription: translationKey(
     "This is the project's first Twilio config, so it starts as the project default: the SMS and calls to people in this project, such as on-call alerts and verification codes, will go through it. Turn this off if this account is only for status pages or incoming calls.",

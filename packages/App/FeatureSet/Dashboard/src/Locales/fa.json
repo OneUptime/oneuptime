@@ -31908,5 +31908,18 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "تماس‌ها از این شماره برقرار می‌شوند و پیامک‌ها هم، مگر اینکه در «فیلدهای بیشتر» شماره‌های تلفن پیامک اضافه کنید.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "اگر شماره‌های Twilio شما نمی‌توانند پیامک بفرستند (در سنگاپور شماره‌های ملی فقط صوتی هستند)، شماره‌هایی اضافه کنید که می‌توانند. آنگاه هر پیامک از شماره کشور گیرنده فرستاده می‌شود و اگر نباشد، از نخستین شماره.",
+  "Twilio SMS Phone Numbers": "شماره‌های تلفن پیامک Twilio",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} شماره تلفن نیست. هر شماره را با کد کشورش بنویسید و شماره‌ها را با ویرگول جدا کنید، مانند +6581234567, +447700900123.",
+  "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "یک پیکربندی پیش‌فرض پروژه است: پیامک‌ها و تماس‌های افراد این پروژه، مانند هشدارهای آنکال، از طریق آن فرستاده می‌شوند. صفحات وضعیت از پیکربندی‌ای استفاده می‌کنند که در هر صفحه انتخاب شده است.",
+  "Send a test SMS to check this Twilio config.": "برای بررسی این پیکربندی Twilio یک پیامک آزمایشی بفرستید.",
+  "Make a test call to check this Twilio config.": "برای بررسی این پیکربندی Twilio یک تماس آزمایشی بگیرید.",
+  "Test SMS Sent": "پیامک آزمایشی فرستاده شد",
+  "Test Call Placed": "تماس آزمایشی برقرار شد",
+  "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را از {{phoneNumber}} پذیرفت. باید ظرف چند دقیقه برسد.",
+  "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را پذیرفت. باید ظرف چند دقیقه برسد.",
+  "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio از {{phoneNumber}} تماس می‌گیرد. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد."
 }

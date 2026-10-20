@@ -227,6 +227,7 @@ import UserUtil from "../../../UI/Utils/User";
 import {
   getByTextOutsideFoldedHeaders,
   hasSetChip,
+  listedNames,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
@@ -442,21 +443,21 @@ describe("Settings > Call & SMS", () => {
 
     expectNoSteps(dialog);
     expect(label(dialog, "Twilio Auth Token")).toBeVisible();
-    expect(label(dialog, "Primary Twilio Phone Number")).toBeVisible();
+    expect(label(dialog, "Twilio Primary Phone Number")).toBeVisible();
 
     // Folded: the header shows, the field does not, until it is opened.
     const header: HTMLElement = advancedHeader(dialog, "More fields");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(label(dialog, "Secondary Twilio Phone Numbers")).not.toBeVisible();
+    expect(label(dialog, "Twilio Secondary Phone Numbers")).not.toBeVisible();
     // Nothing set in it, so nothing to call out.
     expect(setChips(header)).toEqual([]);
 
     fireEvent.click(header);
 
-    expect(label(dialog, "Secondary Twilio Phone Numbers")).toBeVisible();
+    expect(label(dialog, "Twilio Secondary Phone Numbers")).toBeVisible();
     // Optional now: an installation with one number has nothing to add.
-    expect(label(dialog, "Secondary Twilio Phone Numbers")).toHaveTextContent(
+    expect(label(dialog, "Twilio Secondary Phone Numbers")).toHaveTextContent(
       "(Optional)",
     );
     expect(label(dialog, "Twilio Account SID")).not.toHaveTextContent(
@@ -527,13 +528,343 @@ describe("Settings > Call & SMS", () => {
 
     expect(text(GERMAN, "More fields")).toBe("Weitere Felder");
     expect(header).toHaveAttribute("aria-expanded", "false");
-    // The folded header names the numbers in German, as a chip: they are set.
+    /*
+     * The folded header names the numbers in German, as a chip: they are
+     * set. A one-line list shows what it holds beside its name, as the
+     * Dashboard's Twilio Config form does.
+     */
     expect(setChips(header)).toEqual([
-      text(GERMAN, "Secondary Twilio Phone Numbers"),
+      `${text(GERMAN, "Twilio Secondary Phone Numbers")}: +441234567890, +461234567890`,
     ]);
     expect(
-      label(dialog, text(GERMAN, "Secondary Twilio Phone Numbers")),
+      label(dialog, text(GERMAN, "Twilio Secondary Phone Numbers")),
     ).not.toBeVisible();
+  });
+
+  /*
+   * The server's numbers for SMS, as a project's Twilio config has them: a
+   * Twilio number can make calls and send SMS, or only one of the two, and
+   * Singapore's national numbers are voice-only - SMS there need a mobile
+   * number. Folded with the extra numbers, as few installations need them.
+   */
+  describe("numbers for SMS", () => {
+    const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
+    const SECONDARY: string = "Twilio Secondary Phone Numbers";
+    const PRIMARY_HELP: string =
+      "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.";
+    const SMS_HELP: string =
+      "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.";
+
+    async function openDialog(): Promise<HTMLElement> {
+      const dialog: HTMLElement = await openEditDialog(editButton);
+
+      await waitFor(
+        () => {
+          expect(label(dialog, "Twilio Account SID")).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      await settle();
+
+      return dialog;
+    }
+
+    async function fill(
+      dialog: HTMLElement,
+      title: string,
+      value: string,
+    ): Promise<void> {
+      await act(async () => {
+        fireEvent.change(
+          within(dialog).getByLabelText(title, { exact: false }),
+          { target: { value } },
+        );
+      });
+    }
+
+    test("are folded with the extra numbers, the SMS numbers first, each optional", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+      const header: HTMLElement = advancedHeader(dialog, "More fields");
+
+      expect(listedNames(header)).toEqual([SMS_NUMBERS, SECONDARY]);
+      expect(label(dialog, SMS_NUMBERS)).not.toBeVisible();
+
+      fireEvent.click(header);
+
+      for (const title of [SMS_NUMBERS, SECONDARY]) {
+        expect(label(dialog, title)).toBeVisible();
+        expect(label(dialog, title)).toHaveTextContent("(Optional)");
+      }
+
+      // The primary number says what goes out from it, and where the rest is.
+      expect(within(dialog).getByText(PRIMARY_HELP)).toBeVisible();
+      // The SMS numbers say when they are needed, and what they change.
+      expect(within(dialog).getByText(SMS_HELP)).toBeVisible();
+    });
+
+    test("a Singapore setup is saved: SMS from the mobile number, calls from the national one", async () => {
+      stored[new GlobalConfig().tableName || ""]!["twilioPrimaryPhoneNumber"] =
+        "+6561234567";
+
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      fireEvent.click(advancedHeader(dialog, "More fields"));
+      await fill(dialog, SMS_NUMBERS, "+6581234567");
+
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+      await waitFor(
+        () => {
+          expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+
+      const saved: Record<string, unknown> = savedValues(mockCreateOrUpdate);
+
+      expect(String(saved["twilioPrimaryPhoneNumber"])).toBe("+6561234567");
+      expect(String(saved["twilioSmsPhoneNumbers"])).toBe("+6581234567");
+    });
+
+    test("a list of SMS numbers that is not one is refused under the field, and nothing is saved", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      fireEvent.click(advancedHeader(dialog, "More fields"));
+      await fill(dialog, SMS_NUMBERS, "+6581234567, mobile");
+
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+      await waitFor(
+        () => {
+          expect(
+            within(dialog).getByText(
+              '"mobile" is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.',
+            ),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(mockCreateOrUpdate).not.toHaveBeenCalled();
+    });
+
+    test("the details say SMS go out from the same numbers as calls while no SMS numbers are listed", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(
+              text(ENGLISH, "pages.settings.callSms.smsSameAsCalls"),
+            ),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(text(ENGLISH, "pages.settings.callSms.smsSameAsCalls")).toBe(
+        "Same numbers as calls",
+      );
+      // Right below the primary number, as in the form.
+      const page: string = document.body.textContent || "";
+      const primaryAt: number = page.indexOf("Twilio Primary Phone Number");
+      const smsAt: number = page.indexOf(SMS_NUMBERS);
+      const secondaryAt: number = page.indexOf(SECONDARY);
+
+      expect(primaryAt).toBeGreaterThan(-1);
+      expect(smsAt).toBeGreaterThan(primaryAt);
+      expect(secondaryAt).toBeGreaterThan(smsAt);
+    });
+
+    test("and show the SMS numbers once they are listed, in the reader's language", async () => {
+      stored[new GlobalConfig().tableName || ""]!["twilioSmsPhoneNumbers"] =
+        "+6581234567, +447700900123";
+
+      await renderWithLocale(<CallSmsSettings />, "de");
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("+6581234567, +447700900123")).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(screen.getByText(text(GERMAN, SMS_NUMBERS))).toBeVisible();
+      // The Dashboard's word for it, as for the primary and secondary numbers.
+      expect(text(GERMAN, SMS_NUMBERS)).toBe("Twilio-SMS-Rufnummern");
+      expect(
+        screen.queryByText(
+          text(GERMAN, "pages.settings.callSms.smsSameAsCalls"),
+        ),
+      ).toBeNull();
+    });
+
+    /*
+     * The server's Twilio config and a project's are filled in the same
+     * way, and the docs describe both with one table of what goes out from
+     * which field: the Admin form names its numbers, helps with them and
+     * gives their examples exactly as the Dashboard's Twilio Config form
+     * does - "Twilio Primary Phone Number", not "Primary Twilio Phone
+     * Number" beside "Twilio SMS Phone Numbers".
+     */
+    test("are named, explained and shown by example as on a project's Twilio config", () => {
+      const admin: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "App",
+          "FeatureSet",
+          "AdminDashboard",
+          "src",
+          "Pages",
+          "Settings",
+          "CallSMS",
+          "Index.tsx",
+        ),
+        "utf8",
+      );
+      const dashboard: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "App",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          "Components",
+          "CallSMS",
+          "CallSMSConfigTable.tsx",
+        ),
+        "utf8",
+      );
+
+      for (const title of [
+        "Twilio Primary Phone Number",
+        SMS_NUMBERS,
+        SECONDARY,
+      ]) {
+        expect({ title, admin: admin.includes(`title: "${title}"`) }).toEqual({
+          title,
+          admin: true,
+        });
+        expect({
+          title,
+          dashboard: dashboard.includes(`title: "${title}"`),
+        }).toEqual({ title, dashboard: true });
+      }
+
+      for (const retired of [
+        "Primary Twilio Phone Number",
+        "Secondary Twilio Phone Numbers",
+        "If you have bought more phone numbers from Twilio for specific countries",
+      ]) {
+        expect({ retired, admin: admin.includes(retired) }).toEqual({
+          retired,
+          admin: false,
+        });
+        expect({ retired, inLocale: retired in ENGLISH }).toEqual({
+          retired,
+          inLocale: false,
+        });
+      }
+
+      for (const placeholder of [
+        "+14155550100",
+        "+6581234567",
+        "+441234567890, +461234567890",
+      ]) {
+        expect(admin).toContain(`placeholder: "${placeholder}"`);
+        expect(dashboard).toContain(`placeholder: "${placeholder}"`);
+      }
+
+      // The Dashboard's help for the secondary numbers, and its words for them.
+      expect(text(ENGLISH, SECONDARY)).toBe(SECONDARY);
+      expect(
+        text(
+          GERMAN,
+          "Numbers to use instead of the primary one when they match the recipient's country code.",
+        ),
+      ).toBe(
+        "Nummern, die statt der Hauptnummer verwendet werden, wenn sie zur Landesvorwahl des Empfängers passen.",
+      );
+      expect(text(GERMAN, "Twilio Primary Phone Number")).toBe(
+        "Twilio-Primärrufnummer",
+      );
+      expect(text(GERMAN, SECONDARY)).toBe("Twilio-Sekundärrufnummern");
+    });
+
+    test("the card says whose SMS and calls go through the server's account", async () => {
+      expect(text(ENGLISH, "pages.settings.callSms.cardDescription")).toBe(
+        "The Twilio account OneUptime sends SMS and calls through, unless a project uses a Twilio config of its own.",
+      );
+
+      await renderWithLocale(<CallSmsSettings />);
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(
+              text(ENGLISH, "pages.settings.callSms.cardDescription"),
+            ),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(document.body.textContent).not.toContain(
+        "This will be used to make Call and send SMS.",
+      );
+    });
+
+    test("every word they add is in the Admin Dashboard's locales, translated", () => {
+      for (const language of [
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "da",
+        "no",
+        "sv",
+        "ru",
+        "ja",
+        "ko",
+        "zh-CN",
+        "zh-TW",
+        "hi",
+        "fa",
+      ]) {
+        const words: Locale = readLocale(language);
+
+        for (const key of [
+          SMS_NUMBERS,
+          PRIMARY_HELP,
+          SMS_HELP,
+          "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.",
+          "pages.settings.callSms.smsSameAsCalls",
+          "pages.settings.callSms.cardDescription",
+          "Twilio Primary Phone Number",
+          SECONDARY,
+          "Numbers to use instead of the primary one when they match the recipient's country code.",
+        ]) {
+          const english: string = text(ENGLISH, key);
+          const translated: string = text(words, key);
+
+          expect({ language, key, translated: translated !== english }).toEqual(
+            { language, key, translated: true },
+          );
+        }
+      }
+    });
   });
 });
 
