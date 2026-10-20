@@ -1286,6 +1286,7 @@ describe("DashboardAPI public resource-list", () => {
         select: {},
         sort: {},
         limit: 1,
+        sortChoice: null,
       };
       jest
         .spyOn(PublicDashboardResourceListPolicy, "build")
@@ -1312,6 +1313,7 @@ describe("DashboardAPI public resource-list", () => {
         select: { time: true },
         sort: { time: SortOrder.Descending },
         limit: 7,
+        sortChoice: null,
       };
       jest
         .spyOn(PublicDashboardResourceListPolicy, "build")

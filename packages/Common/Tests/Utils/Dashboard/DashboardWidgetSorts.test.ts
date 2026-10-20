@@ -926,10 +926,13 @@ describe("the widget's own sort", () => {
     });
 
     // A widget saved without arguments gets them.
-    expect(
-      withDashboardWidgetSavedSort({ componentType: "MonitorList" }, "name:asc")
-        .arguments,
-    ).toEqual({ sort: "name:asc" });
+    const bare: { componentType: string; arguments?: unknown } = {
+      componentType: "MonitorList",
+    };
+
+    expect(withDashboardWidgetSavedSort(bare, "name:asc").arguments).toEqual({
+      sort: "name:asc",
+    });
   });
 });
 

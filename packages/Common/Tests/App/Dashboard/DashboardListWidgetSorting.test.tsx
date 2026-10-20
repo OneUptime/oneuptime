@@ -308,7 +308,7 @@ describe("a monitor list's column headers", () => {
     ).toBeInTheDocument();
 
     // The headers keep their words and are real buttons.
-    expect(screen.getByRole("button", { name: /Status/ })).toBe(
+    expect(screen.getByRole("button", { name: "Status" })).toBe(
       sortButton("status"),
     );
   });
