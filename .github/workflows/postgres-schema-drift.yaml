@@ -1802,7 +1802,10 @@ jobs:
       # alive most recently, never one that never connected, a deleted, a
       # global or a Kubernetes agent Runner (by the server's own rule) - a
       # repository keeps a Runner it picked, and down()'s data step gives the
-      # switch back to the Runners repositories pick.
+      # switch back to the Runners repositories pick. Then
+      # AddCodeRepositoryRunnerIndexAndKey builds the column's index and its
+      # key to Runner online, outside a transaction, and again as a stopped
+      # run would.
       - name: Test carrying the code-fix Runner over to code repositories on migrated Postgres
         working-directory: packages/Common
         env:

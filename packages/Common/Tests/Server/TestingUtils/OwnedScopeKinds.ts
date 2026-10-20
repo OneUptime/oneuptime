@@ -21,7 +21,7 @@ export const KINDS_READ_BY_EVERY_READER: Readonly<Record<string, string>> = {
   Probe:
     "A monitor's probe picker lists the project's probes to everyone who may pick one.",
   Runner:
-    "A runbook's steps, and a cluster's AI, run on a runner picked from the project's runners.",
+    "A runbook's steps, a cluster's AI and a code repository's AI work run on a runner picked from the project's runners.",
   AIAgent: "Like a probe, an agent the project's AI work runs on.",
 };
 

@@ -41,9 +41,12 @@ export const CODE_REPOSITORY_RUNNER_RESTORE_SWITCH: string = `UPDATE "Runner" AS
  * it takes code-fix work exactly while a repository of its project picks
  * it.
  *
- * "CodeRepository" is a small table: the column is nullable (added without
- * a rewrite) and its index is built in place. The backfill reads each
- * project's Runners once and writes only repositories that pick none.
+ * The column is nullable, so it is added without a rewrite. Its index and
+ * its foreign key to "Runner" are on a table projects already have
+ * repositories in, so they are built online, in the migration registered
+ * right after this one: AddCodeRepositoryRunnerIndexAndKey1804350000000.
+ * The backfill reads each project's Runners once and writes only
+ * repositories that pick none.
  */
 export class AddCodeRepositoryRunner1804300000000
   implements MigrationInterface
@@ -52,12 +55,6 @@ export class AddCodeRepositoryRunner1804300000000
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "CodeRepository" ADD "runnerId" uuid`);
-    await queryRunner.query(
-      `CREATE INDEX "IDX_119124a9f13918c61c08e91ec9" ON "CodeRepository" ("runnerId") `,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "CodeRepository" ADD CONSTRAINT "FK_119124a9f13918c61c08e91ec96" FOREIGN KEY ("runnerId") REFERENCES "Runner"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
-    );
 
     await queryRunner.query(CODE_REPOSITORY_RUNNER_BACKFILL);
 
@@ -73,12 +70,6 @@ export class AddCodeRepositoryRunner1804300000000
 
     await queryRunner.query(CODE_REPOSITORY_RUNNER_RESTORE_SWITCH);
 
-    await queryRunner.query(
-      `ALTER TABLE "CodeRepository" DROP CONSTRAINT "FK_119124a9f13918c61c08e91ec96"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_119124a9f13918c61c08e91ec9"`,
-    );
     await queryRunner.query(
       `ALTER TABLE "CodeRepository" DROP COLUMN "runnerId"`,
     );

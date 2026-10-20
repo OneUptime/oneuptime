@@ -1076,6 +1076,8 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
     "a pull request an AI agent's task opened: AI agents are read in full",
   "AutoRemediationRule.commandRunners": PICKS_RUNNERS,
   "CallLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "CodeRepository.runner":
+    "picks the Runner AI works in the repository on: Runners are read in full, so they can be picked",
   "EmailLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "NetworkDeviceDiagnostic.probe": PICKS_A_PROBE,
   "NetworkDeviceDiscoveryScan.probe": PICKS_A_PROBE,

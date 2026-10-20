@@ -2,6 +2,7 @@ import {
   AddCodeRepositoryRunner1804300000000,
   CODE_REPOSITORY_RUNNER_RESTORE_SWITCH,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804300000000-AddCodeRepositoryRunner";
+import { AddCodeRepositoryRunnerIndexAndKey1804350000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804350000000-AddCodeRepositoryRunnerIndexAndKey";
 import { Service as RunnerServiceClass } from "../../../../Server/Services/RunnerService";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -11,7 +12,8 @@ import { DataSource, QueryRunner } from "typeorm";
  * The AddCodeRepositoryRunner migration against a real Postgres, on real
  * rows: each project's choice of Runner for AI code fixes - the Runner it
  * had "Runs AI Code Fixes" on for - becomes the Runner of every repository
- * it has, and the switch goes.
+ * it has, and the switch goes; then AddCodeRepositoryRunnerIndexAndKey
+ * builds the column's index and its key to "Runner" online.
  *
  * Opt in with RUN_POSTGRES_CODE_REPOSITORY_RUNNER_TESTS=true and the normal
  * database credentials; CODE_REPOSITORY_RUNNER_TEST_DATABASE_HOST / _PORT /
@@ -19,8 +21,9 @@ import { DataSource, QueryRunner } from "typeorm";
  * database must already be migrated: Runner and CodeRepository are cloned
  * from public into a uniquely named schema (so the source's rows are never
  * read or modified) and put back as they were before the migration - the
- * Runner with its switch, the repository without its Runner - and up() then
- * runs on seeded rows. The schema is dropped afterwards.
+ * Runner with its switch, the repository without its Runner - and both
+ * migrations' up() then run on seeded rows, the second outside a
+ * transaction as it runs for real. The schema is dropped afterwards.
  *
  * What it pins:
  *   - a project's repositories that pick no Runner get the Runner it had the
@@ -31,8 +34,9 @@ import { DataSource, QueryRunner } from "typeorm";
  *     chart installed are never chosen - the last by the same rule the
  *     server reads (RunnerService.isKubernetesAgentRunnerRow), row by row;
  *   - no repository gets another project's Runner;
- *   - the switch is gone, the repository's Runner is indexed and a deleted
- *     Runner leaves its repositories picking none;
+ *   - the switch is gone, the repository's Runner is indexed, its key to
+ *     "Runner" is validated - running the online migration again changes
+ *     nothing - and a deleted Runner leaves its repositories picking none;
  *   - down()'s data step gives the switch back to every Runner a repository
  *     picks, and to no other.
  */
@@ -450,6 +454,13 @@ describePostgres("AddCodeRepositoryRunner against Postgres", () => {
         },
       } as QueryRunner);
     });
+
+    // The index and the key, online, outside a transaction.
+    await runInSchema(async (queryRunner: QueryRunner) => {
+      await new AddCodeRepositoryRunnerIndexAndKey1804350000000().up(
+        queryRunner,
+      );
+    });
   });
 
   afterAll(async () => {
@@ -540,6 +551,47 @@ describePostgres("AddCodeRepositoryRunner against Postgres", () => {
         return index.indexdef.includes(`("runnerId")`);
       }),
     ).toBe(true);
+  });
+
+  test("the key to the Runner is validated and the index is valid, and building them again changes nothing", async () => {
+    async function read(): Promise<{
+      keys: Array<{ convalidated: boolean; definition: string }>;
+      indexes: Array<{ indisvalid: boolean }>;
+    }> {
+      return {
+        keys: await database.query(
+          `SELECT con.convalidated, pg_get_constraintdef(con.oid) AS definition
+             FROM pg_constraint con
+            WHERE con.conrelid = to_regclass($1) AND con.conname = $2`,
+          [`"${schema}"."CodeRepository"`, "FK_119124a9f13918c61c08e91ec96"],
+        ),
+        indexes: await database.query(
+          `SELECT x.indisvalid FROM pg_index x
+             JOIN pg_class c ON c.oid = x.indexrelid
+            WHERE x.indrelid = to_regclass($1) AND c.relname = $2`,
+          [`"${schema}"."CodeRepository"`, "IDX_119124a9f13918c61c08e91ec9"],
+        ),
+      };
+    }
+
+    const built: Awaited<ReturnType<typeof read>> = await read();
+
+    expect(built.keys).toHaveLength(1);
+    expect(built.keys[0]!.convalidated).toBe(true);
+    expect(built.keys[0]!.definition).toContain(
+      `FOREIGN KEY ("runnerId") REFERENCES`,
+    );
+    expect(built.keys[0]!.definition).toContain("ON DELETE SET NULL");
+    expect(built.indexes).toEqual([{ indisvalid: true }]);
+
+    // A migrate pod stopped after the build runs the migration again.
+    await runInSchema(async (queryRunner: QueryRunner) => {
+      await new AddCodeRepositoryRunnerIndexAndKey1804350000000().up(
+        queryRunner,
+      );
+    });
+
+    expect(await read()).toEqual(built);
   });
 
   test("down()'s data step gives the switch back to every Runner a repository picks, and no other", async () => {
