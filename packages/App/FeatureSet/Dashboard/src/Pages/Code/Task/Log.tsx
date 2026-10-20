@@ -12,6 +12,7 @@ import React, {
 import { useParams } from "react-router-dom";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
+import AiTokenCount from "Common/Types/AI/AiTokenCount";
 import { AIRunEventContentPayload } from "Common/Types/AI/AIChatTypes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -78,6 +79,9 @@ interface LlmCallLog {
   status: string;
   statusMessage: string;
   totalTokens: number | undefined;
+  // Of them, read from and written to the provider's prompt cache.
+  cachedInputTokens: number | undefined;
+  cacheCreationTokens: number | undefined;
   completionTokens: number | undefined;
   durationMs: number | undefined;
   startedAt: Date | undefined;
@@ -206,6 +210,10 @@ const toLlmCallLogs: ToLlmCallLogsFunction = (
       status: (logJson["status"] as string) || "",
       statusMessage: (logJson["statusMessage"] as string) || "",
       totalTokens: logJson["totalTokens"] as number | undefined,
+      cachedInputTokens: logJson["cachedInputTokens"] as number | undefined,
+      cacheCreationTokens: logJson["cacheCreationTokens"] as
+        | number
+        | undefined,
       completionTokens: logJson["completionTokens"] as number | undefined,
       durationMs: logJson["durationMs"] as number | undefined,
       startedAt: startedAt ? OneUptimeDate.fromString(startedAt) : undefined,
@@ -461,10 +469,19 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
         <></>
       )}
       <span className="ml-auto shrink-0 text-xs text-gray-400">
+        {/*
+         * As the AI Logs count a call (AiTokenCount): a token the prompt
+         * cache served counts as a tenth, one written to it as one and a
+         * quarter.
+         */}
         {call.totalTokens !== undefined
           ? translator.translatePlural(
               { one: "{{count}} token", other: "{{count}} tokens" },
-              call.totalTokens,
+              AiTokenCount.count({
+                totalTokens: call.totalTokens,
+                cachedInputTokens: call.cachedInputTokens,
+                cacheCreationTokens: call.cacheCreationTokens,
+              }),
             )
           : ""}
         {call.durationMs !== undefined ? ` · ${call.durationMs} ms` : ""}

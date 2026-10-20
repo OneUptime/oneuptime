@@ -31992,5 +31992,16 @@
   "{{count}} from cache": "{{count}} 個來自快取",
   "{{count}} from cache_one": "{{count}} 個來自快取",
   "{{count}} written to cache": "{{count}} 個寫入快取",
-  "{{count}} written to cache_one": "{{count}} 個寫入快取"
+  "{{count}} written to cache_one": "{{count}} 個寫入快取",
+  "Default branch": "預設分支",
+  "Find a branch": "尋找分支",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub 未連接到此專案，因此 AI 無法在這些儲存庫中工作。請重新連接 GitHub 以使用它們。",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "新增行數：{{additions}}，刪除行數：{{deletions}}",
+  "Loading branches…": "正在載入分支…",
+  "No branch matches your search.": "沒有符合搜尋的分支。",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime 無法從 GitHub 讀取此儲存庫的分支。",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "已連接到此專案的 GitHub 儲存庫。開啟一個以查看其任務和設定，或連接更多儲存庫。",
+  "Type a branch's name to find one that is not listed.": "輸入分支名稱，尋找未列出的分支。",
+  "{{count}} repositories": "{{count}} 個儲存庫",
+  "{{count}} repositories_one": "{{count}} repository"
 }

@@ -10,6 +10,11 @@ import Link from "Common/Types/Link";
 export function getCodeBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.CODE, ["Project", "Code"]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORIES, [
+      "Project",
+      "Code",
+      "Repositories",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW, [
       "Project",
       "Code",

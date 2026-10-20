@@ -31992,5 +31992,16 @@
   "{{count}} from cache": "{{count}} fra cachen",
   "{{count}} from cache_one": "{{count}} fra cachen",
   "{{count}} written to cache": "{{count}} skrevet til cachen",
-  "{{count}} written to cache_one": "{{count}} skrevet til cachen"
+  "{{count}} written to cache_one": "{{count}} skrevet til cachen",
+  "Default branch": "Standardgren",
+  "Find a branch": "Find en gren",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub er ikke forbundet til dette projekt, så AI kan ikke arbejde i disse repositorier. Forbind GitHub igen for at bruge dem.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "Linjer tilføjet: {{additions}}, linjer fjernet: {{deletions}}",
+  "Loading branches…": "Indlæser grene…",
+  "No branch matches your search.": "Ingen gren matcher din søgning.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime kunne ikke læse dette repositoriums grene fra GitHub.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "De GitHub-repositorier, der er forbundet til dette projekt. Åbn et for dets opgaver og indstillinger, eller forbind flere.",
+  "Type a branch's name to find one that is not listed.": "Skriv navnet på en gren for at finde en, der ikke står på listen.",
+  "{{count}} repositories": "{{count}} repositorier",
+  "{{count}} repositories_one": "{{count}} repositorium"
 }

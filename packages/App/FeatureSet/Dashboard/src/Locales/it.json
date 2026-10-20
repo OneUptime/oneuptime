@@ -31992,5 +31992,16 @@
   "{{count}} from cache": "{{count}} dalla cache",
   "{{count}} from cache_one": "{{count}} dalla cache",
   "{{count}} written to cache": "{{count}} scritti nella cache",
-  "{{count}} written to cache_one": "{{count}} scritto nella cache"
+  "{{count}} written to cache_one": "{{count}} scritto nella cache",
+  "Default branch": "Ramo predefinito",
+  "Find a branch": "Trova un ramo",
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.": "GitHub non è connesso a questo progetto, quindi l'IA non può lavorare in questi repository. Connetti di nuovo GitHub per usarli.",
+  "Lines added: {{additions}}, lines removed: {{deletions}}": "Righe aggiunte: {{additions}}, righe rimosse: {{deletions}}",
+  "Loading branches…": "Caricamento dei rami…",
+  "No branch matches your search.": "Nessun ramo corrisponde alla ricerca.",
+  "OneUptime could not read this repository's branches from GitHub.": "OneUptime non è riuscito a leggere i rami di questo repository da GitHub.",
+  "The GitHub repositories connected to this project. Open one for its tasks and settings, or connect more.": "I repository GitHub connessi a questo progetto. Aprine uno per le sue attività e impostazioni, oppure connettine altri.",
+  "Type a branch's name to find one that is not listed.": "Digita il nome di un ramo per trovarne uno che non è in elenco.",
+  "{{count}} repositories": "{{count}} repository",
+  "{{count}} repositories_one": "{{count}} repository"
 }

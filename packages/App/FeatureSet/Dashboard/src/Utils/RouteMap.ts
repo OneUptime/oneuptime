@@ -77,11 +77,13 @@ export const ServiceRoutePath: Dictionary<string> = {
 };
 
 /*
- * Code, under /code: the repositories are the mount itself, a repository's
- * pages hang off repositories/:id, and a task's off tasks/:id - tasks are
- * addressed on their own, so a task with no repository still has a page.
+ * Code, under /code: the request box and every task are the mount itself,
+ * the connected repositories are repositories, a repository's pages hang
+ * off repositories/:id, and a task's off tasks/:id - tasks are addressed on
+ * their own, so a task with no repository still has a page.
  */
 export const CodeRoutePath: Dictionary<string> = {
+  [PageMap.CODE_REPOSITORIES]: `repositories`,
   [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
@@ -2801,6 +2803,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/code/*`),
 
   [PageMap.CODE]: new Route(`/dashboard/${RouteParams.ProjectID}/code`),
+
+  [PageMap.CODE_REPOSITORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORIES]
+    }`,
+  ),
 
   [PageMap.CODE_REPOSITORY_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code/${

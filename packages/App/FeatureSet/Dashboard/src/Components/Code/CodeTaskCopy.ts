@@ -26,6 +26,14 @@ export interface CodeTaskStateCopy {
   // The dot or mark beside a task in a list.
   dotClassName: string;
   icon: IconProp;
+  // The colour of the state's mark in a list (CodeTaskStateMark).
+  markClassName: string;
+  /*
+   * Whether a list row says the state in words too: the states that ask
+   * something of the reader or are still moving. Done and Stopped are said
+   * by their mark alone (and its label, for screen readers).
+   */
+  isSaidInRow: boolean;
 }
 
 /*
@@ -38,32 +46,52 @@ export const CODE_TASK_STATE_COPY: Record<CodeTaskState, CodeTaskStateCopy> = {
     badgeClassName: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
     dotClassName: "bg-indigo-500",
     icon: IconProp.Spinner,
+    markClassName: "text-indigo-500",
+    isSaidInRow: true,
   },
   [CodeTaskState.WaitingForYou]: {
     label: translationKey("Waiting for you"),
     badgeClassName: "bg-amber-50 text-amber-800 ring-amber-600/20",
     dotClassName: "bg-amber-500",
     icon: IconProp.ChatBubbleLeft,
+    markClassName: "text-amber-500",
+    isSaidInRow: true,
   },
   [CodeTaskState.Done]: {
     label: translationKey("Done"),
     badgeClassName: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
     dotClassName: "bg-emerald-500",
     icon: IconProp.CheckCircle,
+    markClassName: "text-emerald-500",
+    isSaidInRow: false,
   },
   [CodeTaskState.Failed]: {
     label: translationKey("Failed"),
     badgeClassName: "bg-red-50 text-red-700 ring-red-600/20",
     dotClassName: "bg-red-500",
     icon: IconProp.ExclaimationCircle,
+    markClassName: "text-red-500",
+    isSaidInRow: true,
   },
   [CodeTaskState.Stopped]: {
     label: translationKey("Stopped"),
     badgeClassName: "bg-gray-100 text-gray-600 ring-gray-500/20",
     dotClassName: "bg-gray-400",
     icon: IconProp.StopCircle,
+    markClassName: "text-gray-400",
+    isSaidInRow: false,
   },
 };
+
+// The colour a row says its state in, when it says it in words.
+export const CODE_TASK_STATE_TEXT_CLASS_NAMES: Record<CodeTaskState, string> =
+  {
+    [CodeTaskState.Working]: "text-indigo-600",
+    [CodeTaskState.WaitingForYou]: "text-amber-600",
+    [CodeTaskState.Done]: "text-emerald-600",
+    [CodeTaskState.Failed]: "text-red-600",
+    [CodeTaskState.Stopped]: "text-gray-500",
+  };
 
 // What a queued task says, instead of "Working": nobody has picked it up.
 export const QUEUED_LABEL: string = translationKey("Queued");
@@ -375,8 +403,9 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
     pageMap: PageMap.SETTINGS_AI_FEATURES,
     title: translationKey("Turn AI on"),
   },
+  // Repositories, where GitHub is connected (Code's first page connects it in place).
   [CodeTaskBlockerType.RepositoryNotConnected]: {
-    pageMap: PageMap.CODE,
+    pageMap: PageMap.CODE_REPOSITORIES,
     title: translationKey("Connect GitHub"),
   },
   [CodeTaskBlockerType.NoLlmProvider]: {
@@ -450,6 +479,70 @@ export const CODE_CONTEXT_REFUSALS: Array<string> = [
 
 // What a failed turn says above its reason: plain words, not "turn".
 export const CODE_TURN_FAILED: string = translationKey("AI could not finish.");
+
+/*
+ * The request box's pickers (CodeRepositoryPicker, CodeBranchPicker): what
+ * they are called, how they search, and what they say when there is
+ * nothing to pick or the branches cannot be read.
+ */
+export const CODE_PICKER_COPY: {
+  repositoryLabel: string;
+  repositoryNone: string;
+  repositorySearch: string;
+  repositoryNoMatch: string;
+  branchLabel: string;
+  branchSearch: string;
+  branchNoMatch: string;
+  branchLoading: string;
+  branchUnknownDefault: string;
+  branchDefaultBadge: string;
+  branchesUnreadable: string;
+  branchesSearchToFindMore: string;
+} = {
+  repositoryLabel: translationKey("Repository"),
+  repositoryNone: translationKey("Pick a repository"),
+  repositorySearch: translationKey("Find a repository"),
+  repositoryNoMatch: translationKey("No repository matches your search."),
+  branchLabel: translationKey("Branch"),
+  branchSearch: translationKey("Find a branch"),
+  branchNoMatch: translationKey("No branch matches your search."),
+  branchLoading: translationKey("Loading branches…"),
+  // The repository's main branch, before its name is known.
+  branchUnknownDefault: translationKey("Default branch"),
+  branchDefaultBadge: translationKey("Default"),
+  branchesUnreadable: translationKey(
+    "OneUptime could not read this repository's branches from GitHub.",
+  ),
+  branchesSearchToFindMore: translationKey(
+    "Type a branch's name to find one that is not listed.",
+  ),
+};
+
+/*
+ * A picker's button, read out with what it holds: "Repository:
+ * checkout-api", "Branch: main". Not a key of its own: both halves come
+ * translated (the picker's name) or as written (the value), and the
+ * extractor keeps no key without a word in it.
+ */
+export const CODE_PICKER_VALUE_LABEL: string = "{{label}}: {{value}}";
+
+// What a task changed, for a screen reader: the "+23 −1" beside a task.
+export const CODE_TASK_DIFF_STAT_LABEL: string = translationKey(
+  "Lines added: {{additions}}, lines removed: {{deletions}}",
+);
+
+/*
+ * What the request box says once it can send, under it: where AI works,
+ * from the branch picked (CodeBranchPicker).
+ */
+export const CODE_TASK_START_FOOTER: string = translationKey(
+  "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
+);
+
+// A project whose GitHub connection is gone, said once over its repositories.
+export const CODE_GITHUB_NOT_CONNECTED: string = translationKey(
+  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.",
+);
 
 /*
  * What a person can ask AI in a repository with no tasks yet. Each fills

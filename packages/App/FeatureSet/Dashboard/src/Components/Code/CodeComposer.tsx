@@ -50,9 +50,27 @@ export interface ComponentProps {
   footer?: ReactElement | undefined;
   dataTestId?: string | undefined;
   autoFocus?: boolean | undefined;
+  /*
+   * What the request goes to, picked in the box's bottom row beside Add
+   * context - the repository and the branch, the way coding agents pick
+   * them beside their prompt.
+   */
+  tools?: ReactElement | undefined;
+  /*
+   * Whatever stops the box sending, said once at its top - where it blocks
+   * - with the one thing that fixes it (CodeBlockerNotice).
+   */
+  notice?: ReactElement | undefined;
+  // Code's first page: a taller box, for a request written from scratch.
+  isLarge?: boolean | undefined;
+  /*
+   * What the request goes to is still being read: the box takes words, and
+   * sends once it is known.
+   */
+  isWaiting?: boolean | undefined;
 }
 
-const MAX_TEXTAREA_HEIGHT_PX: number = 280;
+const MAX_TEXTAREA_HEIGHT_PX: number = 320;
 
 /*
  * What a chip says on hover: the whole of what it stands for - a note's
@@ -76,11 +94,14 @@ const SPINNER_CLASS_NAME: string =
   "h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin";
 
 /*
- * Where a person asks OneUptime AI to do something in a repository, or
- * replies in a task: their words, the context they add (files, notes,
- * links, incidents, alerts, exceptions, monitors, traces, logs) as chips
- * under them, and Send. It looks like the AI investigation card's composer
- * (gray frame, indigo focus) so asking AI reads the same everywhere.
+ * Where a person asks OneUptime AI to do something, or replies in a task:
+ * one rounded box, as coding agents draw theirs. Their words first; the
+ * context they add (files, notes, links, incidents, alerts, exceptions,
+ * monitors, traces, logs, profiles) as chips under them; and a bottom row
+ * with Add context, what the request goes to (the repository and branch
+ * pickers a page hands over), and Send. Whatever stops AI is said at the
+ * top of the box, where it blocks, and the box sends nothing until it is
+ * fixed.
  *
  * Enter sends and Shift + Enter starts a new line, as in every OneUptime AI
  * composer. A refused send keeps the text and the chips.
@@ -107,7 +128,10 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
     }
   }, [props.prefill?.token]);
 
-  // Grow with the text, up to about twelve lines.
+  /*
+   * Grow with the text, up to about thirteen lines - and fit again when the
+   * box's own height changes (a box that cannot send is shorter).
+   */
   useEffect(() => {
     const textarea: HTMLTextAreaElement | null = textareaRef.current;
 
@@ -120,10 +144,13 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
       textarea.scrollHeight,
       MAX_TEXTAREA_HEIGHT_PX,
     )}px`;
-  }, [message]);
+  }, [message, props.isDisabled, props.isLarge]);
 
   const canSend: boolean =
-    Boolean(message.trim()) && !isSending && !props.isDisabled;
+    Boolean(message.trim()) &&
+    !isSending &&
+    !props.isDisabled &&
+    !props.isWaiting;
 
   const send: () => Promise<void> = async (): Promise<void> => {
     if (!canSend) {
@@ -173,6 +200,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
 
   const isContextFull: boolean =
     drafts.length >= CODE_TASK_LIMITS.maxContextItems;
+  const isContextLocked: boolean = Boolean(props.isDisabled) || isContextFull;
 
   const renderMenuItem: (kind: CodeTaskContextType) => ReactElement = (
     kind: CodeTaskContextType,
@@ -192,16 +220,33 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid={props.dataTestId || "code-composer"}>
+      {/*
+       * No overflow clip on the box: the menus of Add context and the
+       * pickers open out of it. The notice rounds its own top corners.
+       */}
       <div
-        className={`rounded-xl border bg-white shadow-sm transition-shadow ${
+        data-testid="code-composer-box"
+        data-disabled={props.isDisabled ? "true" : undefined}
+        className={`rounded-2xl border bg-white shadow-sm transition-shadow ${
           props.isDisabled
             ? "border-gray-200"
-            : "border-gray-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500"
+            : "border-gray-300 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10"
         }`}
       >
+        {props.notice ? (
+          <div
+            data-testid="code-composer-notice"
+            className="rounded-t-2xl border-b border-gray-200"
+          >
+            {props.notice}
+          </div>
+        ) : (
+          <></>
+        )}
+
         <textarea
           ref={textareaRef}
-          rows={3}
+          rows={props.isLarge && !props.isDisabled ? 4 : 2}
           value={message}
           disabled={props.isDisabled}
           aria-label={props.label}
@@ -222,7 +267,13 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               void send();
             }
           }}
-          className="block w-full resize-none rounded-t-xl border-0 bg-transparent px-4 pb-2 pt-3.5 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-gray-400"
+          className={`block w-full resize-none border-0 bg-transparent px-4 pb-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-gray-400 ${
+            props.notice ? "" : "rounded-t-2xl"
+          } ${
+            props.isLarge
+              ? "pt-4 text-base leading-7 sm:text-[15px]"
+              : "pt-3.5 text-sm leading-6"
+          }`}
         />
 
         {drafts.length > 0 ? (
@@ -238,7 +289,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
                 <li
                   key={CodeTaskContextInputUtil.getKey(draft.input)}
                   data-testid="code-composer-context-chip"
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 py-1 pl-2 pr-1 text-xs text-gray-700"
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 py-1 pl-2 pr-1 text-xs text-gray-700"
                 >
                   <Icon
                     icon={CODE_TASK_CONTEXT_KINDS[kind].icon}
@@ -282,21 +333,30 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 px-2.5 pb-2.5 pt-1.5">
+        {/*
+         * Add context and what the request goes to on the left, Send on the
+         * right. A phone wraps Send under them, still at the right.
+         */}
+        <div
+          data-testid="code-composer-toolbar"
+          className="flex flex-wrap items-center gap-1 px-2 pb-2 pt-1"
+        >
           <MoreMenu
-            isDisabled={props.isDisabled || isContextFull}
+            isDisabled={isContextLocked}
             isMenuLeftAligned={true}
             dataTestId="code-add-context"
             elementToBeShownInsteadOfButton={
               <span
-                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                  props.isDisabled || isContextFull
+                className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-xs font-medium ${
+                  isContextLocked
                     ? "text-gray-300"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
-                <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
-                {translator.translateText("Add context")}
+                <Icon icon={IconProp.Add} className="h-4 w-4" />
+                <span className={props.tools ? "max-sm:hidden" : ""}>
+                  {translator.translateText("Add context")}
+                </span>
               </span>
             }
             ariaLabel={translator.translateText("Add context")}
@@ -317,14 +377,25 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
             </MoreMenuSection>
           </MoreMenu>
 
-          <div className="ml-auto flex items-center gap-2">
+          {props.tools ? (
+            <div
+              data-testid="code-composer-tools"
+              className="flex min-w-0 flex-wrap items-center gap-1"
+            >
+              {props.tools}
+            </div>
+          ) : (
+            <></>
+          )}
+
+          <div className="ml-auto flex items-center gap-3">
             {/* How to send, for a box that can send: none on a phone. */}
             {props.isDisabled ? (
               <></>
             ) : (
               <span
                 data-testid="code-composer-keys"
-                className="text-[11px] text-gray-500 max-sm:hidden"
+                className="text-[11px] text-gray-500 max-lg:hidden"
               >
                 <TranslatedSentence
                   template="{{enter}} to send · {{shiftEnter}} for a new line"
@@ -350,7 +421,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 void send();
               }}
-              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+              className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
                 canSend
                   ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500"
                   : "cursor-not-allowed bg-gray-100 text-gray-400"
@@ -359,7 +430,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               {isSending ? (
                 <span className={SPINNER_CLASS_NAME} />
               ) : (
-                <Icon icon={IconProp.PaperAirplane} className="h-4 w-4" />
+                <Icon icon={IconProp.ArrowUp} className="h-4 w-4" />
               )}
               {props.sendLabel}
             </button>
@@ -383,7 +454,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {props.footer ? <div className="mt-2">{props.footer}</div> : <></>}
+      {props.footer ? <div className="mt-2 px-1">{props.footer}</div> : <></>}
 
       {addingKind ? (
         <CodeContextModal

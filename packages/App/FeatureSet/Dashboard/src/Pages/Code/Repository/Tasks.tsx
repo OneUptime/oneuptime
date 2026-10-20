@@ -2,15 +2,13 @@ import PageComponentProps from "../../PageComponentProps";
 import CodeApi, {
   CodeRepositoryResponse,
 } from "../../../Components/Code/CodeApi";
-import CodeBlockerNotice from "../../../Components/Code/CodeBlockerNotice";
-import CodeComposer from "../../../Components/Code/CodeComposer";
-import { CODE_TASK_EXAMPLE_REQUESTS } from "../../../Components/Code/CodeTaskCopy";
-import CodeTaskList, {
-  getTaskRoute,
-} from "../../../Components/Code/CodeTaskList";
+import CodeAskBox, {
+  CODE_COLUMN_CLASS_NAME,
+} from "../../../Components/Code/CodeAskBox";
+import { GitBranchMark } from "../../../Components/Code/CodeMarks";
+import { getRepositoryFullName } from "../../../Components/Code/CodePaths";
+import CodeTaskList from "../../../Components/Code/CodeTaskList";
 import { GitHubMark } from "../../../Components/Code/GitHubConnect";
-import { getRepositoryFullName } from "../../../Components/Code/RepositoryCard";
-import { CodeTaskContextInput } from "Common/Types/AI/CodeTask";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -31,17 +29,18 @@ import React, {
 } from "react";
 
 /*
- * A repository's page in Code: ask OneUptime AI to do something in it, and
- * its tasks, newest first.
+ * A repository's page in Code: the same request box as Code's first page,
+ * on this repository - only its branch is picked - and its tasks, newest
+ * first.
  *
- * The request box comes first - it is what the page is for. Whatever stops
- * AI working here (permission, plan, the AI switch, a disconnected
- * repository, no LLM provider or credits, a limit, no Runner) is said right
- * above it with the link that fixes it, and the box sends nothing until it
- * is fixed. The plan is said there too, once: the page draws no plan banner
- * of its own above it (the server's PlanRequired is the same check). A repository with no task yet suggests what to ask. Sending
- * opens the new task's conversation, where the AI's work shows as it
- * happens.
+ * Whatever stops AI working here (permission, plan, the AI switch, a
+ * disconnected repository, no LLM provider or credits, a limit, no Runner)
+ * is said once at the top of the box with the link that fixes it, and the
+ * box sends nothing until it is fixed. The plan is said there too, once:
+ * the page draws no plan banner of its own above it (the server's
+ * PlanRequired is the same check). A reader who may only read is told why,
+ * with no box, and reads the tasks. A repository with no task yet suggests
+ * what to ask. Sending opens the new task's conversation.
  */
 const CodeRepositoryTasks: FunctionComponent<
   PageComponentProps
@@ -54,9 +53,6 @@ const CodeRepositoryTasks: FunctionComponent<
   );
   const [error, setError] = useState<string | null>(null);
   const [taskCount, setTaskCount] = useState<number | null>(null);
-  const [prefill, setPrefill] = useState<
-    { text: string; token: number } | undefined
-  >(undefined);
 
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
     try {
@@ -91,9 +87,7 @@ const CodeRepositoryTasks: FunctionComponent<
   }
 
   const fullName: string = getRepositoryFullName(repository.repository);
-  const canSend: boolean = repository.canAsk && !repository.blocker;
   const hasNoTasks: boolean = (taskCount ?? repository.stats.taskCount) === 0;
-  const showExamples: boolean = canSend && hasNoTasks;
   /*
    * A repository with no task yet, for someone who may ask: the request box
    * and its examples are the one thing to do, so no empty list beside them.
@@ -102,192 +96,108 @@ const CodeRepositoryTasks: FunctionComponent<
   const showTaskList: boolean = !(repository.canAsk && hasNoTasks);
 
   return (
-    <div className="space-y-5">
-      <div
-        data-testid="code-repository-header"
-        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500"
-      >
-        {fullName ? (
-          <span className="inline-flex items-center gap-1.5">
-            <GitHubMark className="h-4 w-4 text-gray-700" />
-            {repository.repository.repositoryUrl ? (
-              <Link
-                to={URL.fromString(repository.repository.repositoryUrl)}
-                openInNewTab={true}
-                className="font-medium text-gray-700 hover:text-indigo-600 hover:underline"
-              >
-                <>{fullName}</>
-              </Link>
-            ) : (
-              <span className="font-medium text-gray-700">{fullName}</span>
-            )}
-          </span>
-        ) : (
-          <></>
-        )}
-        {repository.repository.mainBranchName ? (
-          <span className="inline-flex items-center gap-1">
-            <Icon icon={IconProp.Code} className="h-3.5 w-3.5" />
-            <span className="font-mono text-xs">
-              {repository.repository.mainBranchName}
+    <div className={`${CODE_COLUMN_CLASS_NAME} space-y-8 pb-10`}>
+      <div className="space-y-4">
+        <div
+          data-testid="code-repository-header"
+          className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500"
+        >
+          {fullName ? (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <GitHubMark className="h-4 w-4 flex-shrink-0 text-gray-700" />
+              {repository.repository.repositoryUrl ? (
+                <Link
+                  to={URL.fromString(repository.repository.repositoryUrl)}
+                  openInNewTab={true}
+                  className="truncate font-medium text-gray-700 hover:text-indigo-600 hover:underline"
+                >
+                  <>{fullName}</>
+                </Link>
+              ) : (
+                <span className="truncate font-medium text-gray-700">
+                  {fullName}
+                </span>
+              )}
             </span>
-          </span>
-        ) : (
-          <></>
-        )}
+          ) : (
+            <></>
+          )}
+          {repository.repository.mainBranchName ? (
+            <span className="inline-flex items-center gap-1">
+              <GitBranchMark className="h-3.5 w-3.5 text-gray-400" />
+              <span className="font-mono text-xs">
+                {repository.repository.mainBranchName}
+              </span>
+            </span>
+          ) : (
+            <></>
+          )}
+        </div>
         {repository.repository.description ? (
-          <span className="min-w-0 truncate">
+          <p
+            data-testid="code-repository-description"
+            className="text-sm leading-6 text-gray-600"
+          >
             {repository.repository.description}
-          </span>
+          </p>
         ) : (
           <></>
         )}
+
+        <CodeAskBox repository={repository} showExamples={hasNoTasks} />
       </div>
 
-      <section
-        data-testid="code-ask"
-        aria-labelledby="code-ask-heading"
-        className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
-      >
-        <h2
-          id="code-ask-heading"
-          className="mb-3 text-base font-semibold text-gray-900"
-        >
-          {translator.translateText("Ask AI to do something")}
-        </h2>
-
-        {repository.blocker ? (
-          <div className="mb-3">
-            <CodeBlockerNotice
-              blocker={repository.blocker}
-              repositoryId={repository.repository.id}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {repository.canAsk ? (
-          <CodeComposer
-            dataTestId="code-repository-composer"
-            label={translator.translateTemplate("What should AI do?")}
-            placeholder={translator.translateTemplate(
-              "Describe the change, the bug or your question. Add files, incidents, logs or notes as context.",
+      {showTaskList ? (
+        <section data-testid="code-tasks" aria-labelledby="code-tasks-heading">
+          <h2
+            id="code-tasks-heading"
+            className="flex items-baseline gap-2 px-1 text-sm font-semibold text-gray-900"
+          >
+            {translator.translateText("Tasks")}
+            {taskCount ? (
+              <span
+                data-testid="code-tasks-count"
+                className="text-sm font-normal text-gray-500"
+              >
+                {translator.formatNumber(taskCount)}
+              </span>
+            ) : (
+              <></>
             )}
-            sendLabel={translator.translateTemplate("Start task")}
-            isDisabled={!canSend}
-            prefill={prefill}
-            onSend={async (data: {
-              message: string;
-              context: Array<CodeTaskContextInput>;
-            }): Promise<void> => {
-              const taskId: string = await CodeApi.createTask({
-                repositoryId: repositoryId,
-                message: data.message,
-                context: data.context,
-              });
-
-              Navigation.navigate(getTaskRoute(taskId));
-            }}
-            footer={
-              <p className="text-xs leading-5 text-gray-500">
-                {translator.translateText(
-                  "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
-                )}
-              </p>
-            }
-          />
-        ) : (
-          <></>
-        )}
-
-        {showExamples ? (
-          <div data-testid="code-examples" className="mt-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              {translator.translateText("Try asking")}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {CODE_TASK_EXAMPLE_REQUESTS.map((example: string) => {
-                return (
-                  <button
-                    key={example}
-                    type="button"
-                    data-testid="code-example"
-                    onClick={() => {
-                      setPrefill({
-                        text: translator.translateTemplate(example),
-                        token: Date.now(),
-                      });
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  >
+          </h2>
+          <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <CodeTaskList
+              scope={{ repositoryId: new ObjectID(repositoryId).toString() }}
+              onCount={(count: number) => {
+                setTaskCount(count);
+              }}
+              emptyState={
+                <div
+                  data-testid="code-tasks-empty"
+                  className="px-6 py-10 text-center"
+                >
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50">
                     <Icon
                       icon={IconProp.Sparkles}
-                      className="h-3.5 w-3.5 flex-shrink-0 text-indigo-400"
+                      className="h-5 w-5 text-indigo-500"
                     />
-                    {translator.translateText(example)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <></>
-        )}
-      </section>
-
-      {showTaskList ? (
-        <section
-          data-testid="code-tasks"
-          aria-labelledby="code-tasks-heading"
-          className="rounded-xl border border-gray-200 bg-white shadow-sm"
-        >
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3.5 sm:px-5">
-            <h2
-              id="code-tasks-heading"
-              className="text-base font-semibold text-gray-900"
-            >
-              {translator.translateText("Tasks")}
-              {taskCount ? (
-                <span className="ml-2 text-sm font-normal text-gray-500">
-                  {taskCount}
-                </span>
-              ) : (
-                <></>
-              )}
-            </h2>
-          </div>
-          <CodeTaskList
-            repositoryId={new ObjectID(repositoryId).toString()}
-            onCount={(count: number) => {
-              setTaskCount(count);
-            }}
-            emptyState={
-              <div
-                data-testid="code-tasks-empty"
-                className="px-6 py-10 text-center"
-              >
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50">
-                  <Icon
-                    icon={IconProp.Sparkles}
-                    className="h-5 w-5 text-indigo-500"
-                  />
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-gray-900">
+                    {translator.translateText("No tasks yet")}
+                  </p>
+                  <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
+                    {repository.canAsk
+                      ? translator.translateText(
+                          "Ask AI something above. Each request becomes a task here that you can follow and reply to.",
+                        )
+                      : translator.translateText(
+                          "When someone asks AI to work in this repository, the task shows up here.",
+                        )}
+                  </p>
                 </div>
-                <p className="mt-3 text-sm font-medium text-gray-900">
-                  {translator.translateText("No tasks yet")}
-                </p>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
-                  {repository.canAsk
-                    ? translator.translateText(
-                        "Ask AI something above. Each request becomes a task here that you can follow and reply to.",
-                      )
-                    : translator.translateText(
-                        "When someone asks AI to work in this repository, the task shows up here.",
-                      )}
-                </p>
-              </div>
-            }
-          />
+              }
+            />
+          </div>
         </section>
       ) : (
         <></>

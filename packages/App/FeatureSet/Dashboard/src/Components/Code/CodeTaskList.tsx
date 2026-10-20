@@ -1,12 +1,18 @@
 import FixProductionVerdict from "../AI/FixProductionVerdict";
-import CodeApi, { CodeTaskListResponse } from "./CodeApi";
+import CodeApi, { CodeTaskListResponse, CodeTaskListScope } from "./CodeApi";
+import CodeDiffStat from "./CodeDiffStat";
 import CodeMetaList from "./CodeMetaList";
-import { CODE_TASK_ASKED_BY, getRecipeLabel } from "./CodeTaskCopy";
-import CodeTaskStateBadge from "./CodeTaskStateBadge";
+import { getTaskRoute } from "./CodePaths";
+import {
+  CODE_TASK_ASKED_BY,
+  CODE_TASK_STATE_COPY,
+  CODE_TASK_STATE_TEXT_CLASS_NAMES,
+  getRecipeLabel,
+  QUEUED_LABEL,
+} from "./CodeTaskCopy";
+import CodeTaskStateMark from "./CodeTaskStateMark";
 import CodeTimeAgo from "./CodeTimeAgo";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
+import { GitHubMark } from "./GitHubConnect";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
   CodeTaskOriginType,
@@ -14,7 +20,6 @@ import {
   CodeTaskSummaryJSON,
 } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
-import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -30,39 +35,40 @@ import React, {
   useState,
 } from "react";
 
+export { getTaskRoute } from "./CodePaths";
+
 export const CODE_TASK_PAGE_SIZE: number = 20;
 
 // How often a list with a task in progress asks again.
 export const CODE_TASK_LIST_POLL_MS: number = 8000;
 
 export interface ComponentProps {
-  // The repository's tasks, or (null) the tasks that have no repository.
-  repositoryId: string | null;
+  /*
+   * Which tasks: a repository's, the ones with no repository, or every
+   * task the reader may read (Code's first page).
+   */
+  scope: CodeTaskListScope;
   // Change it to read the list again (a task was just started).
   refreshToken?: number | undefined;
   // What the list says with no task at all.
   emptyState: ReactElement;
   // Told how many tasks there are, once they are read.
   onCount?: ((count: number) => void) | undefined;
+  /*
+   * The repositories' names by id, for a list across repositories: each
+   * row then says which repository it is in.
+   */
+  repositoryNames?: Map<string, string> | undefined;
   dataTestId?: string | undefined;
 }
 
-// A task's page in Code: its conversation.
-export const getTaskRoute: (taskId: string) => Route = (
-  taskId: string,
-): Route => {
-  return RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CODE_TASK_VIEW] as Route,
-    { modelId: new ObjectID(taskId) },
-  );
-};
-
 /*
- * A repository's tasks, newest first: each says what it is about, how it
- * stands (the state badge), who asked or what started it, when, and its
- * pull request. A row opens the task's conversation. While any task is in
- * progress the list reads itself again every few seconds, so its states
- * stay true without a reload.
+ * A task list, newest first, the way coding agents list theirs: one row per
+ * task - how it stands (its mark, and in words while it is moving or needs
+ * someone), what it is about, where and who, when, its pull request, and
+ * how much it changed. A row opens the task's conversation. While any task
+ * is in progress the list reads itself again every few seconds, so its
+ * states stay true without a reload.
  */
 const CodeTaskList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -79,11 +85,14 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
   > = useRef(props.onCount);
   onCountRef.current = props.onCount;
 
+  // The scope as one value, so a new object for the same scope reads nothing again.
+  const scopeKey: string = JSON.stringify(props.scope);
+
   const load: (limit: number) => Promise<void> = useCallback(
     async (limit: number): Promise<void> => {
       try {
         const response: CodeTaskListResponse = await CodeApi.listTasks({
-          repositoryId: props.repositoryId,
+          scope: JSON.parse(scopeKey) as CodeTaskListScope,
           skip: 0,
           limit: limit,
         });
@@ -99,7 +108,7 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
       setIsLoadingMore(false);
     },
-    [props.repositoryId],
+    [scopeKey],
   );
 
   useEffect(() => {
@@ -135,15 +144,22 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
     return (
       <div
         data-testid="code-task-list-loading"
+        role="status"
         className="divide-y divide-gray-100"
       >
+        <span className="sr-only">{translator.translateText("Loading…")}</span>
+        {/* Rows shaped like the ones on their way: a mark, a title, a line of facts. */}
         {[0, 1, 2].map((index: number) => {
           return (
-            <div key={index} className="flex items-center gap-3 px-4 py-4">
-              <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-gray-200" />
+            <div
+              key={index}
+              aria-hidden="true"
+              className="flex items-start gap-3 px-4 py-3.5 sm:px-5"
+            >
+              <div className="mt-0.5 h-4 w-4 rounded-full bg-gray-100 motion-safe:animate-pulse" />
               <div className="flex-1 space-y-2">
-                <div className="h-3.5 w-2/3 animate-pulse rounded bg-gray-100" />
-                <div className="h-3 w-1/3 animate-pulse rounded bg-gray-100" />
+                <div className="h-3.5 w-2/3 rounded bg-gray-100 motion-safe:animate-pulse" />
+                <div className="h-3 w-1/3 rounded bg-gray-100 motion-safe:animate-pulse" />
               </div>
             </div>
           );
@@ -176,7 +192,17 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
     <div data-testid={props.dataTestId || "code-task-list"}>
       <ul className="divide-y divide-gray-100">
         {tasks.map((task: CodeTaskSummaryJSON) => {
-          return <CodeTaskRow key={task.id} task={task} />;
+          return (
+            <CodeTaskRow
+              key={task.id}
+              task={task}
+              repositoryName={
+                props.repositoryNames && task.codeRepositoryId
+                  ? props.repositoryNames.get(task.codeRepositoryId)
+                  : undefined
+              }
+            />
+          );
         })}
       </ul>
       {count > tasks.length ? (
@@ -213,14 +239,29 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
   );
 };
 
+/*
+ * One task in a list: its mark at the start (a turning ring while AI works,
+ * a clock while it waits for a Runner, a bubble when it waits for you, a
+ * check once done), its title, and a quieter line - its state in words
+ * while it is moving or needs someone, its repository on a list across
+ * repositories, who asked (or what kind of task OneUptime started), when
+ * anything last happened, its pull request and what production showed -
+ * with how much it changed at the end, "+23 −1".
+ */
 export const CodeTaskRow: FunctionComponent<{
   task: CodeTaskSummaryJSON;
-}> = (props: { task: CodeTaskSummaryJSON }): ReactElement => {
+  // The task's repository, named on a list across repositories.
+  repositoryName?: string | undefined;
+}> = (props: {
+  task: CodeTaskSummaryJSON;
+  repositoryName?: string | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const task: CodeTaskSummaryJSON = props.task;
   const isRequest: boolean = task.recipe === CodeFixTaskType.CodeRequest;
   const title: string =
     task.title || translator.translateTemplate(getRecipeLabel(task.recipe));
+  const isQueued: boolean = task.state === CodeTaskState.Working && task.isQueued;
 
   /*
    * Who asked, for a request; for a task OneUptime started, its kind ("Fix
@@ -236,16 +277,36 @@ export const CodeTaskRow: FunctionComponent<{
 
   const meta: Array<ReactElement> = [];
 
-  if (task.taskNumber) {
-    meta.push(<span key="number">#{task.taskNumber}</span>);
+  // Said in words only while it moves or asks something of someone.
+  if (CODE_TASK_STATE_COPY[task.state].isSaidInRow) {
+    meta.push(
+      <span
+        key="state"
+        data-testid="code-task-row-state"
+        className={`font-medium ${CODE_TASK_STATE_TEXT_CLASS_NAMES[task.state]}`}
+      >
+        {translator.translateText(
+          isQueued ? QUEUED_LABEL : CODE_TASK_STATE_COPY[task.state].label,
+        )}
+      </span>,
+    );
+  }
+
+  if (props.repositoryName) {
+    meta.push(
+      <span
+        key="repository"
+        data-testid="code-task-row-repository"
+        className="inline-flex min-w-0 items-center gap-1 text-gray-600"
+      >
+        <GitHubMark className="h-3 w-3 flex-shrink-0 text-gray-400" />
+        {props.repositoryName}
+      </span>,
+    );
   }
 
   if (startedBy) {
-    meta.push(
-      <span key="started-by" className={isRequest ? "" : "text-gray-600"}>
-        {startedBy}
-      </span>,
-    );
+    meta.push(<span key="started-by">{startedBy}</span>);
   }
 
   meta.push(<CodeTimeAgo key="time" date={task.lastActivityAt} />);
@@ -273,38 +334,39 @@ export const CodeTaskRow: FunctionComponent<{
     );
   }
 
-  /*
-   * The state is said once, by its badge: beside the title on a laptop, and
-   * leading the meta line on a phone, so the title keeps the width there.
-   */
   return (
     <li data-testid="code-task-row" data-task-state={task.state}>
       <Link
         to={getTaskRoute(task.id)}
-        className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
+        className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5"
       >
+        <CodeTaskStateMark
+          state={task.state}
+          isQueued={task.isQueued}
+          className="mt-px"
+        />
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 break-words text-sm font-medium text-gray-900">
+          <p
+            data-testid="code-task-row-title"
+            className="line-clamp-2 break-words text-sm font-medium leading-5 text-gray-900 sm:line-clamp-1"
+          >
             {title}
           </p>
           <CodeMetaList
             dataTestId="code-task-row-meta"
             className="mt-1 text-xs text-gray-500"
-            leading={
-              <CodeTaskStateBadge
-                state={task.state}
-                isQueued={task.isQueued}
-                className="ml-3 sm:hidden"
-              />
-            }
             items={meta}
           />
         </div>
-        <CodeTaskStateBadge
-          state={task.state}
-          isQueued={task.isQueued}
-          className="mt-0.5 max-sm:hidden"
-        />
+        {task.changes ? (
+          <CodeDiffStat
+            changes={task.changes}
+            className="mt-0.5 flex-shrink-0"
+            dataTestId="code-task-row-changes"
+          />
+        ) : (
+          <></>
+        )}
       </Link>
     </li>
   );

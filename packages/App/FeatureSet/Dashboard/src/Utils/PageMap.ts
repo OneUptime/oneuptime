@@ -913,13 +913,15 @@ enum PageMap {
   RUM_ARCHIVED = "RUM_ARCHIVED",
 
   /*
-   * Code: the project's repositories first (CODE), each repository's tasks
-   * and the request box (CODE_REPOSITORY_VIEW), and a task's conversation
+   * Code: the request box and every task first (CODE), the connected
+   * repositories (CODE_REPOSITORIES), a repository's own request box and
+   * tasks (CODE_REPOSITORY_VIEW), and a task's conversation
    * (CODE_TASK_VIEW). It replaced Tasks (/ai/agents) and Code Repositories
    * (/code-repository), whose old addresses forward here (MovedPagePaths).
    */
   CODE_ROOT = "CODE_ROOT",
   CODE = "CODE",
+  CODE_REPOSITORIES = "CODE_REPOSITORIES",
   CODE_REPOSITORY_VIEW = "CODE_REPOSITORY_VIEW",
   CODE_REPOSITORY_VIEW_DELETE = "CODE_REPOSITORY_VIEW_DELETE",
   CODE_REPOSITORY_VIEW_SETTINGS = "CODE_REPOSITORY_VIEW_SETTINGS",
