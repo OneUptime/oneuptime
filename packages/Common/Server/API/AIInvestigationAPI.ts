@@ -1,4 +1,9 @@
 import InvestigationEligibility from "../Utils/AI/SRE/InvestigationEligibility";
+import InvestigationRuleWait, {
+  RuleWaitLane,
+  StartNowResult,
+  WaitingInvestigation,
+} from "../Utils/AI/SRE/InvestigationRuleWait";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import Express, {
@@ -261,6 +266,78 @@ export async function assertSubjectReadableInTenant(data: {
   });
 }
 
+/*
+ * Whether the viewer may start an investigation of the incident or alert:
+ * the one who may change it, held to this record - their labels, owners and
+ * team's blocks - as an update of it is held (findOneUpdatableById). The
+ * same rule Ask AI's start_investigation follows: an investigation posts its
+ * report to the record. Answers false rather than throwing.
+ */
+export async function canViewerStartInvestigation(data: {
+  subjectType: InvestigationReferenceKind;
+  subjectId: ObjectID;
+  viewerProps: DatabaseCommonInteractionProps;
+}): Promise<boolean> {
+  try {
+    const changeable: Incident | Alert | null =
+      data.subjectType === "incident"
+        ? await IncidentService.findOneUpdatableById({
+            id: data.subjectId,
+            select: { _id: true },
+            props: data.viewerProps,
+          })
+        : await AlertService.findOneUpdatableById({
+            id: data.subjectId,
+            select: { _id: true },
+            props: data.viewerProps,
+          });
+
+    return Boolean(changeable);
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * What the panel says while an investigation rule makes OneUptime AI wait
+ * before it investigates the incident or alert (issue #5074): when the wait
+ * ends - it is investigated then if it is still open - the wait, and
+ * whether the viewer may start it now. Null when it does not wait.
+ */
+export async function getWaitingInvestigationForPanel(data: {
+  projectId: ObjectID;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  viewerProps: DatabaseCommonInteractionProps;
+}): Promise<JSONObject | null> {
+  const subjectId: ObjectID | undefined = data.alertId || data.incidentId;
+
+  if (!subjectId) {
+    return null;
+  }
+
+  const waiting: WaitingInvestigation | null =
+    await InvestigationRuleWait.getWaiting({
+      lane: data.alertId ? "Alert" : "Incident",
+      projectId: data.projectId,
+      subjectId,
+    });
+
+  if (!waiting) {
+    return null;
+  }
+
+  return {
+    waitUntil: waiting.waitUntil.toISOString(),
+    waitMinutes: waiting.waitMinutes,
+    canStartNow: await canViewerStartInvestigation({
+      subjectType: data.alertId ? "alert" : "incident",
+      subjectId,
+      viewerProps: data.viewerProps,
+    }),
+  };
+}
+
 // Plain-text rows returned by the evidence route are clipped to this size.
 export const MAX_EVIDENCE_TEXT_LENGTH: number = 20000;
 
@@ -382,13 +459,27 @@ async function sendLatestInvestigation(
     });
 
   if (!run) {
+    /*
+     * An investigation rule makes OneUptime AI wait before it investigates
+     * this incident or alert (issue #5074): the panel says until when -
+     * nothing has been decided against it, so there is no reason to give.
+     */
+    const waitingInvestigation: JSONObject | null =
+      await getWaitingInvestigationForPanel({
+        projectId: viewer.projectId,
+        ...subject,
+        viewerProps: viewer.props,
+      });
+
     Response.sendJsonObjectResponse(req, res, {
       run: null,
-      notInvestigatedReason:
-        (await InvestigationEligibility.getNotStartedReason({
-          projectId: viewer.projectId,
-          ...subject,
-        })) as unknown as JSONObject,
+      notInvestigatedReason: waitingInvestigation
+        ? null
+        : ((await InvestigationEligibility.getNotStartedReason({
+            projectId: viewer.projectId,
+            ...subject,
+          })) as unknown as JSONObject),
+      waitingInvestigation,
       events: [],
       analysisMarkdown: null,
       analysisTldr: null,
@@ -502,6 +593,7 @@ async function sendLatestInvestigation(
   Response.sendJsonObjectResponse(req, res, {
     run: runJson || null,
     notInvestigatedReason: null,
+    waitingInvestigation: null,
     events: eventsJson,
     analysisMarkdown,
     analysisTldr,
@@ -931,6 +1023,94 @@ router.post(
           props: viewerProps,
         },
       );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * "Investigate now" on the AI Investigation card, while an investigation
+ * rule makes OneUptime AI wait before it investigates the incident or alert
+ * (issue #5074): start it now. A manual start ignores the wait - and the
+ * rules, the severity floor and the cooldown, as asking OneUptime AI to
+ * investigate does - but not AI being off, the provider, the credits or the
+ * limits (InvestigationRuleWait.startNow).
+ *
+ * Only an authenticated member of the tenant who may read the record AND
+ * change it may start it: the investigation posts its report to it.
+ * Body: { subjectType: "incident" | "alert", subjectId }.
+ * Response: { runId }, or 400 with what stopped it.
+ */
+router.post(
+  "/ai-investigation/investigate-now",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+      CommonAPI.assertAuthenticatedProjectMember(props);
+      const viewerProps: DatabaseCommonInteractionProps =
+        pinPropsToTenant(props);
+
+      const subjectType: unknown = req.body["subjectType"];
+
+      if (subjectType !== "incident" && subjectType !== "alert") {
+        throw new BadDataException(
+          'subjectType must be "incident" or "alert".',
+        );
+      }
+
+      const subjectIdRaw: unknown = req.body["subjectId"];
+
+      if (typeof subjectIdRaw !== "string" || !subjectIdRaw.trim()) {
+        throw new BadDataException("subjectId is required.");
+      }
+
+      ObjectID.validateUUID(subjectIdRaw.trim());
+
+      const subjectId: ObjectID = new ObjectID(subjectIdRaw.trim());
+
+      // Access check under the USER's permissions, inside the tenant.
+      await assertSubjectReadableInTenant({
+        subjectType,
+        subjectId,
+        tenantId,
+        viewerProps,
+      });
+
+      if (
+        !(await canViewerStartInvestigation({
+          subjectType,
+          subjectId,
+          viewerProps,
+        }))
+      ) {
+        throw new NotAuthorizedException(
+          `You do not have permission to change this ${subjectType}, so you cannot start its investigation.`,
+        );
+      }
+
+      const lane: RuleWaitLane = subjectType === "alert" ? "Alert" : "Incident";
+      const result: StartNowResult = await InvestigationRuleWait.startNow({
+        lane,
+        projectId: tenantId,
+        subjectId,
+      });
+
+      if (!result.isStarted) {
+        throw new BadDataException(result.message);
+      }
+
+      Response.sendJsonObjectResponse(req, res, {
+        runId: result.runId.toString(),
+      });
       return;
     } catch (err) {
       next(err);

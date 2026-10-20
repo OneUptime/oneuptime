@@ -563,7 +563,7 @@ Grupperings-, SLA-, påminnelse-, utrednings- och åtgärdsregler verkar också 
 - **Ägarregler** — tilldelar ägare automatiskt.
 - **Runbook-regler** — startar ett [runbook](/docs/runbooks/index) när en incident matchar.
 - **Regler för automatisk åtgärd**, under **AI** → **Inställningar** — vilka nya incidenter som åtgärdas medan **Åtgärda nya incidenter automatiskt** är påslaget, och hur: med eller utan att fråga först, och de runbooks som OneUptime AI får köra. Utan någon regel åtgärdas varje ny incident. Står en AI-utredning i kö för incidenten körs de när den är klar, med dess analys till hands.
-- **Utredningsregler**, under **AI** → **Inställningar** — vilka nya incidenter som OneUptime AI utreder. Utan någon regel utreds varje. Se [AI SRE](/docs/ai/ai-sre).
+- **Utredningsregler**, under **AI** → **Inställningar** — vilka nya incidenter som OneUptime AI utreder. Utan någon regel utreds varje. En regel kan också låta den vänta och bara utreda incidenterna som fortfarande är öppna efter så många minuter. Se [AI SRE](/docs/ai/ai-sre).
 - **Sekretessregler** — avgör om en matchande incident är privat.
 - **Etikettregler** — sätter etiketter automatiskt.
 - **SLA-regler** — följer svars- och lösningstider. Reglerna utvärderas från toppen av listan och nedåt; dra en regel för att ändra dess plats.

@@ -9,6 +9,7 @@ import {
   AI_INVESTIGATION_RULE_CRITERIA_FIELDS,
   getAIInvestigationRuleCriteriaProblem,
 } from "../../Types/AI/AIInvestigationRuleCriteria";
+import { getInvestigationRuleWaitProblem } from "../../Types/AI/InvestigationRuleWait";
 import { getRuleExternalMcpServersProblem } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 
 export class Service extends ProjectReferencesService<Model> {
@@ -71,6 +72,8 @@ export class Service extends ProjectReferencesService<Model> {
       data: createBy.data as unknown as Record<string, unknown>,
     });
 
+    this.assertWaitFits(createBy.data.onlyIfOpenAfterMinutes);
+
     return { createBy, carryForward: null };
   }
 
@@ -90,6 +93,12 @@ export class Service extends ProjectReferencesService<Model> {
       string,
       unknown
     >;
+
+    // An edit that leaves the wait alone is not judged on it.
+    if (data["onlyIfOpenAfterMinutes"] !== undefined) {
+      this.assertWaitFits(data["onlyIfOpenAfterMinutes"]);
+    }
+
     const changesCriteria: boolean =
       (data["criteria"] !== undefined && data["criteria"] !== null) ||
       AI_INVESTIGATION_RULE_CRITERIA_FIELDS.some((field: string): boolean => {
@@ -118,6 +127,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A rule's wait (onlyIfOpenAfterMinutes, issue #5074) is a whole number of
+   * minutes, at most a day, or nothing. Refused with a message that says
+   * so, rather than saved as a wait OneUptime AI would read differently.
+   */
+  private assertWaitFits(value: unknown): void {
+    const problem: string | null = getInvestigationRuleWaitProblem(value);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
   }
 
   private assertCriteriaFitTrigger(data: {
