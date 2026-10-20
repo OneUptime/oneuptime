@@ -1,3 +1,4 @@
+import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
 import PageComponentProps from "../../PageComponentProps";
 import CodeApi, { CodeTaskResponse } from "../../../Components/Code/CodeApi";
 import CodeBlockerNotice from "../../../Components/Code/CodeBlockerNotice";
@@ -381,6 +382,16 @@ const CodeTaskConversation: FunctionComponent<
                     ? translator.translateText("Merged")
                     : translator.translateText("Closed")}
                 </span>
+              ) : (
+                <></>
+              )}
+              {/* What production showed once it shipped; the turn says why. */}
+              {pullRequest.production ? (
+                <FixProductionVerdict
+                  production={pullRequest.production}
+                  isCompact={true}
+                  testId="code-task-pull-request-production"
+                />
               ) : (
                 <></>
               )}

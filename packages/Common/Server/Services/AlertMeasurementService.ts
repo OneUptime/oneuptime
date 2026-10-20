@@ -39,6 +39,7 @@ const TIMESTAMP_ANCHOR_SOURCES: Record<string, string> = {
   [AlertMeasurementAnchorType.ImpactStartedAt]: "impactStartedAt",
   [AlertMeasurementAnchorType.TimelineStart]: "createdAt",
   [AlertMeasurementAnchorType.CreatedAt]: "createdAt",
+  [AlertMeasurementAnchorType.FirstPagedAt]: "firstPagedAt",
 };
 
 export class Service extends ProjectReferencesService<Model> {

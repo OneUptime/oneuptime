@@ -26,6 +26,7 @@ import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import FirstPagedAt from "../Utils/OnCall/FirstPagedAt";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -370,6 +371,13 @@ export class Service extends DatabaseService<Model> {
       onCallDutyPolicyExecutionLogTimelineId: createdItem.id!,
     });
 
+    /*
+     * A step written already saying its page went out is the record's first
+     * page, if it has none yet (FirstPagedAt). The escalation writes its
+     * steps as "Executing" and marks them once the page is sent (below).
+     */
+    await FirstPagedAt.recordPage(createdItem);
+
     // The run's Slack / Microsoft Teams message names this step now.
     OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
 
@@ -426,6 +434,13 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           status: true,
           onCallDutyPolicyExecutionLogId: true,
+          // What FirstPagedAt reads of a step whose page went out.
+          alertSentToUserId: true,
+          createdAt: true,
+          triggeredByIncidentId: true,
+          triggeredByAlertId: true,
+          triggeredByAlertEpisodeId: true,
+          triggeredByIncidentEpisodeId: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -463,6 +478,12 @@ export class Service extends DatabaseService<Model> {
           await this.addToIncidentOrAlertFeed({
             onCallDutyPolicyExecutionLogTimelineId: updatedItem.id as ObjectID,
           });
+
+          /*
+           * The page went out - sent, acknowledged or passed on: the first
+           * time one did is the record's First Paged At, written once.
+           */
+          await FirstPagedAt.recordPage(updatedItem);
         }
 
         OnCallPolicyRunMessage.refresh(

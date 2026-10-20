@@ -17,6 +17,11 @@ import {
   RESOURCE_AI_WRITE_TARGETS_ENV,
   ResourceCommandTier,
 } from "../ResourceAiAgent/ResourceAiAccess";
+import {
+  AiRemediationCommandGitOps,
+  AiRemediationGitOpsUtil,
+  AiRemediationRevertWatch,
+} from "./AiRemediationGitOps";
 
 /*
  * Defined in a leaf module of their own (no imports) so the pure kubectl
@@ -148,6 +153,19 @@ export interface AiRemediationCommand {
   rolledBackChangeId?: string | undefined;
   // True when a FullAuto run already executed this inline during planning.
   wasAutoExecuted?: boolean | undefined;
+  /*
+   * Kubectl only: who declares the object the command changes (Argo CD,
+   * Flux or a Helm release), whether that owner puts this change back,
+   * and OneUptime's sentence saying so — read from the object's markers
+   * when the command was proposed or run. Absent when nothing declares it,
+   * or it was not read.
+   */
+  gitOps?: AiRemediationCommandGitOps | undefined;
+  /*
+   * Kubectl only, once the command ran: the fields it changed on its
+   * object, which verification reads again to notice the change put back.
+   */
+  revertWatch?: AiRemediationRevertWatch | undefined;
   execution?: AiRemediationCommandExecutionState | undefined;
   rollbackExecution?: AiRemediationCommandExecutionState | undefined;
 }
@@ -544,6 +562,13 @@ export class AiRemediationCommandPlanUtil {
           ? { rolledBackChangeId: obj["rolledBackChangeId"] }
           : {}),
         wasAutoExecuted: obj["wasAutoExecuted"] === true,
+        /*
+         * Facts about the command, never what decides whether it runs: a
+         * malformed one is dropped, never the plan.
+         */
+        ...(stepType === RunbookStepType.Kubectl
+          ? AiRemediationCommandPlanUtil.parseKubectlFacts(obj)
+          : {}),
         execution: AiRemediationCommandPlanUtil.parseExecutionState(
           obj["execution"],
         ),
@@ -653,6 +678,21 @@ export class AiRemediationCommandPlanUtil {
           ? obj["resourceNameSnapshot"]
           : undefined,
       resourceCommandTier,
+    };
+  }
+
+  // A stored Kubectl step's GitOps facts and revert watch, when well-formed.
+  private static parseKubectlFacts(
+    obj: JSONObject,
+  ): Pick<AiRemediationCommand, "gitOps" | "revertWatch"> {
+    const gitOps: AiRemediationCommandGitOps | undefined =
+      AiRemediationGitOpsUtil.parseCommandGitOps(obj["gitOps"]);
+    const revertWatch: AiRemediationRevertWatch | undefined =
+      AiRemediationGitOpsUtil.parseRevertWatch(obj["revertWatch"]);
+
+    return {
+      ...(gitOps ? { gitOps } : {}),
+      ...(revertWatch ? { revertWatch } : {}),
     };
   }
 

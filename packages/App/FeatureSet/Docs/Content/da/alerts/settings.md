@@ -134,6 +134,8 @@ Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail
 
 **Advarsler → Indstillinger → Målinger** tager tid på, hvor længe ting tager for hver advarsel. Vælg **Tid til bekræftelse** eller **Tid til løsning** eller to tidspunkter efter eget valg, for eksempel når **Advarslen bliver oprettet**, og når den går ind i en tilstand, du vælger. Hver måling vises på advarslens side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måde for advarsler.
 
+**Tid til bekræftelse efter tilkald** tæller fra **Nogen bliver tilkaldt første gang**, når en vagtpolitik eller et direkte tilkald første gang gav nogen besked om advarslen, i stedet for fra det tidspunkt, hvor den blev oprettet: en advarsel, der opstår om natten, men først fører til et tilkald om morgenen, får ikke natten regnet med. En advarsel, hvor ingen blev tilkaldt, har ingen værdi. Se [Tid til bekræftelse efter tilkald](/docs/incidents/settings#tid-til-bekræftelse-efter-tilkald).
+
 ### Medlemskab af episoder
 
 **Advarsler → Indstillinger → Medlemskab af episoder** afgør, om en advarsel kan være i mere end én episode. Slå **En advarsel kan kun være i én episode** til, så bliver en advarsel, der er i en episode, ikke føjet til nogen anden, hverken fra dashboardet eller via API'et, en arbejdsgang eller en grupperingsregel, før den er taget ud af den episode. Kontakten er slået fra, indtil du slår den til, og kun Project Owners og Project Admins kan ændre den. At slå den til tager ingen advarsel ud af en episode. Se [Én episode pr. hændelse](/docs/incidents/episodes#én-episode-pr-hændelse), som fungerer på samme måde for advarsler.

@@ -153,6 +153,8 @@ Claude Opus 4.7 及之后的所有 Claude 模型会自行选择采样方式，�
 
 Claude 5 模型会先思考再回答，而思考会计入回复的令牌上限，所以 OneUptime 会为此留出空间。要让它们少思考、更快更省地回答，请在提供商的 **附加参数** 中设置 `{"output_config": {"effort": "low"}}`。OneUptime 会把你在那里添加的设置随每个请求发送给 Anthropic，但 `model`、`messages`、`system`、`tools`、`tool_choice` 和 `stream` 除外，这些由它自己设置。
 
+OneUptime 使用 Anthropic 的提示缓存。调查或询问 AI 回答的每次调用都会重新发送系统提示、工具和到目前为止的对话，OneUptime 会将它们标记为可缓存：对于之前的调用已发送的内容，调用只需支付十分之一或更低的价格；对于新内容，调用会将其写入缓存，并支付比原价高四分之一的价格。 如果 Claude 前面的网关拒绝缓存标记，OneUptime 会不带标记重新发送请求，并为该提供商记住这一点。[如何计算 token](/docs/ai/ai-sre#如何计算-token) 说明了缓存的 token 如何计入你的限制。
+
 ### Azure OpenAI 和 Microsoft Foundry
 
 对于你在 Microsoft Foundry 或 Azure OpenAI 中部署的模型（OpenAI 模型、其他 Foundry Models 和 Claude），请使用 **Azure OpenAI / Microsoft Foundry**。把资源的某个密钥填为 **API 密钥**，把部署名称填为 **模型名称**，把资源的端点填为 **基础 URL**，例如 `https://contoso-ai.openai.azure.com/openai/v1`。[Microsoft Foundry 和 Azure OpenAI](/docs/ai/microsoft-foundry) 介绍了 Azure 一侧的配置：资源、权限、模型部署、网络要求和故障排除。

@@ -1,4 +1,4 @@
-import { AddScheduledMaintenanceExternalCalendars1805000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805000000000-AddScheduledMaintenanceExternalCalendars";
+import { AddScheduledMaintenanceExternalCalendars1805120000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805120000000-AddScheduledMaintenanceExternalCalendars";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import fs from "fs";
@@ -16,8 +16,8 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  */
 
 const MIGRATION_NAME: string =
-  "AddScheduledMaintenanceExternalCalendars1805000000000";
-const TIMESTAMP: number = 1805000000000;
+  "AddScheduledMaintenanceExternalCalendars1805120000000";
+const TIMESTAMP: number = 1805120000000;
 const CALENDARS: string = "ScheduledMaintenanceExternalCalendar";
 const EVENTS: string = "ScheduledMaintenanceExternalCalendarEvent";
 
@@ -37,8 +37,8 @@ async function run(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  const migration: AddScheduledMaintenanceExternalCalendars1805000000000 =
-    new AddScheduledMaintenanceExternalCalendars1805000000000();
+  const migration: AddScheduledMaintenanceExternalCalendars1805120000000 =
+    new AddScheduledMaintenanceExternalCalendars1805120000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -71,11 +71,11 @@ function createTable(table: string): string {
 
 describe("AddScheduledMaintenanceExternalCalendars migration", () => {
   test("names itself after its timestamp", () => {
-    expect(AddScheduledMaintenanceExternalCalendars1805000000000.name).toBe(
+    expect(AddScheduledMaintenanceExternalCalendars1805120000000.name).toBe(
       MIGRATION_NAME,
     );
     expect(
-      new AddScheduledMaintenanceExternalCalendars1805000000000().name,
+      new AddScheduledMaintenanceExternalCalendars1805120000000().name,
     ).toBe(MIGRATION_NAME);
   });
 
@@ -86,13 +86,13 @@ describe("AddScheduledMaintenanceExternalCalendars migration", () => {
     expect(
       registered.filter((migration: MigrationClass) => {
         return (
-          migration === AddScheduledMaintenanceExternalCalendars1805000000000
+          migration === AddScheduledMaintenanceExternalCalendars1805120000000
         );
       }),
     ).toHaveLength(1);
 
     const index: number = registered.indexOf(
-      AddScheduledMaintenanceExternalCalendars1805000000000,
+      AddScheduledMaintenanceExternalCalendars1805120000000,
     );
 
     for (let before: number = 0; before < index; before++) {

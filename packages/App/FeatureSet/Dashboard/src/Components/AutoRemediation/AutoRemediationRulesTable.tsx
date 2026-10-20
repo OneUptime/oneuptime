@@ -15,6 +15,7 @@ import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
 import { FOLDED_SECTION_ON } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -58,6 +59,8 @@ import {
   OlderAutoRemediationRuleNote,
   RunbooksEveryTimeSwitch,
 } from "./AutoRemediationRuleFields";
+import { RULE_MCP_SERVERS_FIELD_COPY } from "../ExternalMcpServer/ExternalMcpServerCopy";
+import RuleMcpServersFieldHint from "../ExternalMcpServer/RuleMcpServersFieldHint";
 
 export interface ComponentProps {
   lane: AiLane;
@@ -600,6 +603,43 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
                 }}
               />
             );
+          },
+        },
+        {
+          /*
+           * The MCP servers OneUptime AI may fix through: none picked is all
+           * of them, and their changes always wait for approval - picking
+           * some is what lets "Fix without asking" use them.
+           */
+          field: { externalMcpServers: true },
+          title: RULE_MCP_SERVERS_FIELD_COPY.title,
+          description: RULE_MCP_SERVERS_FIELD_COPY.remediationDescription,
+          stepId: "remediation",
+          collapsibleSection: MORE_FIELDS,
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: ExternalMcpServer,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          // Empty is an answer of its own - all of them - not "(Optional)".
+          hideOptionalLabel: true,
+          hideColumnDescription: true,
+          placeholder: RULE_MCP_SERVERS_FIELD_COPY.placeholder,
+          dataTestId: "auto-remediation-mcp-servers-field",
+          /*
+           * A rule that runs its runbooks every time fixes through nothing
+           * else, nor does an older rule until it fixes like a new one.
+           */
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return (
+              !isRunbooksEveryTime(values) &&
+              !isOlderAutoRemediationRule(values)
+            );
+          },
+          getFooterElement: (): ReactElement => {
+            return <RuleMcpServersFieldHint />;
           },
         },
       ]}

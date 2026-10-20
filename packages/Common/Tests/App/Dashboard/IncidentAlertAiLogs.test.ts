@@ -1,3 +1,5 @@
+import FixProductionCheck from "../../../Types/AI/FixProductionCheck";
+import FixProductionStatus from "../../../Types/AI/FixProductionStatus";
 import {
   AI_LOGS_EMPTY_DESCRIPTIONS,
   AI_LOGS_EMPTY_TITLE,
@@ -134,6 +136,7 @@ function entry(overrides: Partial<AiLogsEntry> = {}): AiLogsEntry {
     ruleName: null,
     taskNumber: null,
     codeFixTaskType: null,
+    production: null,
     command: null,
     commandOrigin: null,
     exitCode: null,
@@ -264,6 +267,13 @@ describe("parseAiLogs", () => {
             id: "task-1",
             taskNumber: 7,
             codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
+            production: {
+              status: FixProductionStatus.Verified,
+              check: FixProductionCheck.Telemetry,
+              summary:
+                'Version 2.3.2 sends what the fix adds: log attribute "orderId".',
+              statusAt: "2026-10-07T10:00:00.000Z",
+            },
           }),
           rawEntry({
             kind: IncidentAlertAiLogKind.Command,
@@ -294,6 +304,17 @@ describe("parseAiLogs", () => {
         kind: IncidentAlertAiLogKind.FixTask,
         taskNumber: 7,
         codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
+        // Once its pull request merged: what production showed.
+        production: {
+          status: FixProductionStatus.Verified,
+          check: FixProductionCheck.Telemetry,
+          summary:
+            'Version 2.3.2 sends what the fix adds: log attribute "orderId".',
+          statusAt: "2026-10-07T10:00:00.000Z",
+          deployedAt: undefined,
+          deployedVersion: undefined,
+          deployedCommitSha: undefined,
+        },
       }),
       expect.objectContaining({
         kind: IncidentAlertAiLogKind.Command,

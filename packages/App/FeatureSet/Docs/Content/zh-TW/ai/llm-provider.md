@@ -153,6 +153,8 @@ Claude Opus 4.7 及之後的所有 Claude 模型會自行選擇取樣方式，�
 
 Claude 5 模型會先思考再回答，而思考會計入回覆的權杖上限，所以 OneUptime 會為此保留空間。要讓它們少思考、更快更省地回答，請在提供者的 **其他參數** 中設定 `{"output_config": {"effort": "low"}}`。OneUptime 會把你在那裡新增的設定隨每個請求傳送給 Anthropic，但 `model`、`messages`、`system`、`tools`、`tool_choice` 和 `stream` 除外，這些由它自己設定。
 
+OneUptime 使用 Anthropic 的提示快取。調查或詢問 AI 回答的每次呼叫都會重新傳送系統提示、工具和到目前為止的對話，OneUptime 會將它們標記為可快取：對於之前的呼叫已傳送的內容，呼叫只需支付十分之一或更低的價格；對於新內容，呼叫會將其寫入快取，並支付比原價高四分之一的價格。 如果 Claude 前面的閘道拒絕快取標記，OneUptime 會不帶標記重新傳送請求，並為該提供者記住這一點。[如何計算 token](/docs/ai/ai-sre#如何計算-token) 說明了快取的 token 如何計入你的限制。
+
 ### Azure OpenAI 和 Microsoft Foundry
 
 對於你在 Microsoft Foundry 或 Azure OpenAI 中部署的模型（OpenAI 模型、其他 Foundry Models 和 Claude），請使用 **Azure OpenAI / Microsoft Foundry**。把資源的某個金鑰填為 **API 金鑰**，把部署名稱填為 **模型名稱**，把資源的端點填為 **基底 URL**，例如 `https://contoso-ai.openai.azure.com/openai/v1`。[Microsoft Foundry 和 Azure OpenAI](/docs/ai/microsoft-foundry) 介紹了 Azure 一側的設定：資源、權限、模型部署、網路需求和疑難排解。

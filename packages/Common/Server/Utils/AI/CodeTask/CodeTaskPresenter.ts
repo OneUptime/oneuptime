@@ -6,6 +6,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CodeTaskOrigin, { CodeTaskOriginSubjects } from "./CodeTaskOrigin";
 import CodeTaskSteps from "./CodeTaskSteps";
 import CodeTaskThread, { CODE_TASK_TURN_SELECT } from "./CodeTaskThread";
+import FixProductionReportUtil from "../CodeFix/FixProductionReportUtil";
+import FixProductionReport from "../../../../Types/AI/FixProductionReport";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
@@ -420,6 +422,13 @@ export default class CodeTaskPresenter {
 
     if (pullRequest.headRefName) {
       json.branch = pullRequest.headRefName;
+    }
+
+    const production: FixProductionReport | undefined =
+      FixProductionReportUtil.fromPullRequest(pullRequest);
+
+    if (production) {
+      json.production = production;
     }
 
     return json;

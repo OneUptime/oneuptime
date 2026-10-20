@@ -30,6 +30,8 @@ flowchart TB
 
 Riconoscere o risolvere l'incidente, l'avviso o l'episodio ferma ogni policy che sta ancora avvisando per esso. OneUptime fa avanzare le policy in corso ogni minuto e registra ogni esecuzione, regola per regola, nei **Registri di esecuzione**.
 
+La prima volta che una chiamata raggiunge qualcuno, OneUptime la registra sull'incidente, sull'avviso o sull'episodio come `First Paged At`. Una misurazione può contare da quel momento: **Tempo di riconoscimento dopo la chiamata** misura quanto ci hanno messo le persone a rispondere una volta chiamate, non quanto si è atteso prima che qualcuno lo fosse. Vedi [Tempo di riconoscimento dopo la chiamata](/docs/incidents/settings#tempo-di-riconoscimento-dopo-la-chiamata).
+
 > [!NOTE]
 > Un incidente, un avviso o un episodio creato già riconosciuto o risolto non esegue nessuna delle sue policy, e il suo feed lo dice. Vedi [Creato già riconosciuto o risolto](/docs/alerts/index#creato-già-riconosciuto-o-risolto).
 

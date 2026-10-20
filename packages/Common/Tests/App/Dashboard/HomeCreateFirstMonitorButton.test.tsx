@@ -140,7 +140,9 @@ function renderCard(options: CardOptions = {}): void {
 }
 
 function button(): HTMLElement | null {
-  return screen.queryByRole("link", { name: String(activeLocale[BUTTON_TEXT]) });
+  return screen.queryByRole("link", {
+    name: String(activeLocale[BUTTON_TEXT]),
+  });
 }
 
 afterEach(() => {
@@ -198,7 +200,9 @@ describe("before anything is monitored", () => {
     renderCard({ canCreateMonitor: true });
 
     const primaries: Array<Element> = Array.from(
-      screen.getByTestId("home-project-health").querySelectorAll(".bg-indigo-600"),
+      screen
+        .getByTestId("home-project-health")
+        .querySelectorAll(".bg-indigo-600"),
     );
     expect(primaries).toHaveLength(1);
   });

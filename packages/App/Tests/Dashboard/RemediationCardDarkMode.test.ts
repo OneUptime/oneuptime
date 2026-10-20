@@ -150,16 +150,20 @@ const SUBSTRING_VARIANTS: Array<string> = Array.from(
 
 /*
  * Colour classes the card carried before its decision lines were redrawn,
- * each with why it may stay. The guard fails if one of them is removed
- * from the code, so the list cannot outlive what it excuses.
+ * each with why it may stay, and the modules that use it. The guard fails
+ * if one of them is removed from a module it names, so the list cannot
+ * outlive what it excuses.
  */
-const KNOWN_EXCEPTIONS: Record<string, string> = {
+const KNOWN_EXCEPTIONS: Record<string, Array<string>> = {
   /*
    * The dot of a settled fix's pill (Dismissed, No runbook applies, a
-   * command Pending or Skipped): a mid-grey mark, as visible on the dark
-   * pill as on the light one.
+   * command Pending or Skipped, a change through an MCP server not sent):
+   * a mid-grey mark, as visible on the dark pill as on the light one.
    */
-  "bg-gray-400": "AutoRemediation/RemediationSuggestionCard.tsx",
+  "bg-gray-400": [
+    "AutoRemediation/RemediationSuggestionCard.tsx",
+    "AutoRemediation/McpToolCallList.tsx",
+  ],
 };
 
 function isRemapped(token: string): boolean {
@@ -223,6 +227,8 @@ describe("the Remediation card in the dark theme", () => {
 
     expect(Array.from(modules.keys()).sort()).toEqual([
       "AI/InvestigationStatusBadge.tsx",
+      // A fix through MCP servers: its changes, in order.
+      "AutoRemediation/McpToolCallList.tsx",
       "AutoRemediation/RemediationDecisionLines.ts",
       "AutoRemediation/RemediationDecisionList.tsx",
       "AutoRemediation/RemediationDecisionStatusBadge.tsx",
@@ -251,7 +257,10 @@ describe("the Remediation card in the dark theme", () => {
       for (const token of tokensIn(code)) {
         tokens.add(token);
 
-        if (!isRemapped(token) && KNOWN_EXCEPTIONS[token] !== moduleKey) {
+        if (
+          !isRemapped(token) &&
+          !(KNOWN_EXCEPTIONS[token] || []).includes(moduleKey)
+        ) {
           unmapped.push(`${moduleKey}: ${token}`);
         }
       }
@@ -285,13 +294,15 @@ describe("the Remediation card in the dark theme", () => {
   test("every known exception is still in the code it excuses", () => {
     const modules: Map<string, string> = getCardModules();
 
-    for (const [token, moduleKey] of Object.entries(KNOWN_EXCEPTIONS)) {
-      expect({
-        token,
-        moduleKey,
-        stillUsed: tokensIn(modules.get(moduleKey) || "").includes(token),
-        stillUnmapped: !isRemapped(token),
-      }).toEqual({ token, moduleKey, stillUsed: true, stillUnmapped: true });
+    for (const [token, moduleKeys] of Object.entries(KNOWN_EXCEPTIONS)) {
+      for (const moduleKey of moduleKeys) {
+        expect({
+          token,
+          moduleKey,
+          stillUsed: tokensIn(modules.get(moduleKey) || "").includes(token),
+          stillUnmapped: !isRemapped(token),
+        }).toEqual({ token, moduleKey, stillUsed: true, stillUnmapped: true });
+      }
     }
   });
 

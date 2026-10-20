@@ -106,6 +106,7 @@ import {
   ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
 } from "../Chat/ObservabilityAssistant";
+import McpRemediationRunner from "./McpRemediationRunner";
 import RemediationCommandToolkit, {
   MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
   ROLL_BACK_CHANGE_TOOL_NAME,
@@ -119,6 +120,7 @@ import RecentChangesContext, {
 import { ChangeImpactVerdict } from "../SRE/ChangeImpact";
 import { quotedUntrustedLine } from "../SRE/UntrustedText";
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
+import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwnership";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
 import FeedMarkdown, {
@@ -355,6 +357,14 @@ const KUBECTL_RESULT_UNKNOWN_RULE: string =
   "A kubectl change whose result comes back UNKNOWN (the Runner took it and no result came back) may still have changed the cluster: check with run_kubectl whether it took effect before you reissue it or build on it — never resend it blindly.";
 
 /*
+ * What every cluster persona says about workloads git declares. The
+ * toolkit reads who declares the object a change names and says so in the
+ * tool result; this tells the model what to do with it.
+ */
+export const GITOPS_FRAMING_RULE: string =
+  "GitOps: before a kubectl change runs or is proposed, OneUptime reads who declares the object it changes — Argo CD, Flux or a Helm release — and the tool result says so. A change to what they declare (rollout undo, scale, set image/env/resources, patch, deleting a workload) is put back: by Argo CD within seconds when self-heal is on and otherwise at its next sync, by Flux at its next reconciliation, by a Helm release at its next upgrade. A Flux Kustomization also removes what kubectl adds that git does not declare (a pause, a label, an annotation). On Argo CD or Flux such a change never runs on its own in any mode; it is proposed for approval as a stopgap. Never present it as the fix: say it will be put back, and name the lasting fix — the same change in git (the manifest, Helm values or Kustomize overlay it is built from). A rollback-first undo of a deploy git declares is put back the same way: the lasting rollback is reverting that deploy in git. A rollout restart or deleting one failing pod is not undone: Argo CD and Helm leave a restart alone, and Flux removing its annotation restarts the pods once more.";
+
+/*
  * The kubectl rules every cluster persona states, in the shared words of
  * AiRemediationCommandPlan's KUBECTL_*_SUMMARY wording — which restates
  * the tier and mode doc comments in KubernetesClusterAiAccess — so no
@@ -378,6 +388,7 @@ function buildClusterFramingRules(data: {
 - The cluster's Runner only writes where its writeScope (list_command_targets) says: a write in another namespace, in the Runner's own namespace, or to a node when node operations are off is refused before it runs.
 - The kubectl allowlist: ${KUBECTL_ALLOWLIST_SUMMARY}.
 - Rollback first: when the Recent changes below mark a Kubernetes rollout on this cluster SUSPECT and what you find agrees that it caused the signal, roll it back with ${ROLL_BACK_CHANGE_TOOL_NAME} (its changeId) before any other change. OneUptime builds the exact kubectl rollout undo from the recorded change; roll a recorded change back only that way, never with a rollout undo you write.
+- ${GITOPS_FRAMING_RULE}
 - A pod stuck in Pending is usually a scheduling problem (insufficient CPU/memory on nodes, a node selector/affinity/taint nobody satisfies, an unbound PVC, a missing image pull secret): describe the pod and read its Events before deciding. Deleting the pod rarely fixes scheduling; fixing capacity, the selector or the claim does.`;
 }
 
@@ -446,8 +457,34 @@ export function describeRollbackCandidates(
 }
 
 /*
+ * What a feed item adds when a command it announces changes what Argo CD,
+ * Flux or a Helm release declares: that owner puts the change back, so it
+ * is a stopgap. Empty when no command does.
+ */
+export function describeGitOpsPutBackForFeed(
+  commands: Array<AiRemediationCommand>,
+): MarkdownText | string {
+  const command: AiRemediationCommand | undefined = commands.find(
+    (candidate: AiRemediationCommand): boolean => {
+      return candidate.gitOps?.putsBack === true;
+    },
+  );
+
+  if (!command?.gitOps) {
+    return "";
+  }
+
+  const gitOps: NonNullable<AiRemediationCommand["gitOps"]> = command.gitOps;
+
+  return mdText` ${describeGitOpsOwner(gitOps)} declares ${gitOps.objectKind}/${gitOps.objectName} and puts ${
+    commands.length > 1 ? "a change in this plan" : "this change"
+  } back, so it is a stopgap: the lasting fix is the same change where ${gitOps.objectKind}/${gitOps.objectName} is declared.`;
+}
+
+/*
  * The feed item a proposed plan posts on its incident or alert. A plan that
- * starts with a rollback OneUptime built from a recorded change says so.
+ * starts with a rollback OneUptime built from a recorded change says so,
+ * and one with a change its GitOps owner puts back says that.
  */
 export function describeProposedPlanForFeed(data: {
   sourceLabel: string;
@@ -455,12 +492,15 @@ export function describeProposedPlanForFeed(data: {
 }): MarkdownText {
   const count: number = data.plan.commands.length;
   const first: AiRemediationCommand | undefined = data.plan.commands[0];
+  const gitOps: MarkdownText | string = describeGitOpsPutBackForFeed(
+    data.plan.commands,
+  );
 
   if (first?.rolledBackChangeId) {
-    return mdText`⚡ **${data.sourceLabel}: AI proposes rolling back a recorded change first, in a ${count}-command remediation plan.** Its first command is ${first.command}. Review the exact commands and reasoning, then approve with one click to run them.`;
+    return mdText`⚡ **${data.sourceLabel}: AI proposes rolling back a recorded change first, in a ${count}-command remediation plan.** Its first command is ${first.command}.${gitOps} Review the exact commands and reasoning, then approve with one click to run them.`;
   }
 
-  return mdText`⚡ **${data.sourceLabel}: AI composed a ${count}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`;
+  return mdText`⚡ **${data.sourceLabel}: AI composed a ${count}-command remediation plan.**${gitOps} Review the exact commands and reasoning, then approve with one click to run them.`;
 }
 
 /*
@@ -833,6 +873,23 @@ export default class RemediationExecutionRunner {
           aiRunId,
           "Auto-remediation suggestion does not belong to this run's project.",
         );
+        return;
+      }
+
+      /*
+       * A fix through the project's external MCP servers is a run of its
+       * own kind: its own tools, its own plan and its own approval
+       * (McpRemediationRunner).
+       */
+      if (
+        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+      ) {
+        await McpRemediationRunner.executeRun({
+          aiRunId,
+          projectId,
+          suggestionId,
+          attemptCount,
+        });
         return;
       }
 
@@ -1567,7 +1624,9 @@ export default class RemediationExecutionRunner {
 
       await this.postFeedItem({
         suggestion,
-        markdown: mdText`⚡ **${sourceLabel}: AI executed ${executedCommands.length} command(s).** Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
+        markdown: mdText`⚡ **${sourceLabel}: AI executed ${executedCommands.length} command(s).**${describeGitOpsPutBackForFeed(
+          executedCommands,
+        )} Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
         pingWorkspace: true,
       });
       return;
@@ -1744,7 +1803,9 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: mdText`⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} ${changeWords} it did not run on its own.** Review the exact command(s) and reasoning, then approve with one click to run them.`,
+      markdown: mdText`⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} ${changeWords} it did not run on its own.**${describeGitOpsPutBackForFeed(
+        commands,
+      )} Review the exact command(s) and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
     });
   }

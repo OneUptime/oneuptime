@@ -162,6 +162,19 @@ En ändring som fortfarande inte klarar kontrollen kastas inte: pull requesten �
 
 Kommandona är repositoryinställningar som ditt team skriver och som körs på din egen Runner: samma förtroendemodell som en runbooks Bash-steg. AI:n skriver eller ändrar dem aldrig. En global Runner, som OneUptime kör för alla projekt, kör dem aldrig: på en global Runner skrivs korrigeringen och öppnas för granskning, kontrollen rapporteras som överhoppad, och ditt repositorys egen CI kontrollerar ändringen. [Kör en egen Runner](#kör-en-egen-runner) för att få korrigeringar byggda och testade innan pull requesten öppnas.
 
+## När en korrigering har slagits samman
+
+Att slå samman en korrigering åtgärdar ingenting förrän den körs. När en pull-förfrågan med en korrigering har slagits samman väntar OneUptime på en registrerad driftsättning som innehåller den (se [Driftsättningar och ändringar](/docs/telemetry/change-events)) och bevakar i den driftsättningen det som korrigeringen var till för. Uppgiftens pull-förfrågan i Code berättar hur det gick, och det gör även undantagets sida **AI Assistance**, incidentens AI-loggar och AI-insikten som korrigeringen kom från:
+
+| En korrigering av | Det som bevakas | Det fungerade | Det fungerade inte |
+| --- | --- | --- | --- |
+| Ett undantag | Om undantaget inträffar igen | **Åtgärdad i produktion** | **Inträffar fortfarande efter korrigeringen** |
+| En långsam trace eller en latensinsikt | p99 för operationen som korrigeringen nämner | **Snabbare i produktion** | **Fortfarande långsam efter korrigeringen** |
+| Grundorsaken till en incident eller en avisering | Om dess monitor utlöser en till | **Åtgärdad i produktion** | **Inträffade igen efter korrigeringen** |
+| Saknad telemetri, loggning eller spårning | Det som korrigeringen lägger till, och resten av tjänstens telemetri | **Kommer fram i produktion** | **Telemetrin upphörde efter korrigeringen** |
+
+Tills en driftsättning levererar den står det **Mergad, väntar på en deploy** vid korrigeringen, sedan **Deployad, bevakas i produktion** medan den bevakas. En korrigering som ingen registrerad driftsättning innehåller inom 14 dagar, eller som produktionen inte kan säga något om, står som **Inte verifierad i produktion**. [Automatiska kodkorrigeringar](/docs/ai/ai-sre#automatiska-kodkorrigeringar) har reglerna. Ett regressionstest, bättre felhantering, en granskning och en begäran i Code bevakas inte: produktionen kan inte visa vad de ändrar.
+
 ## Innan du börjar
 
 En uppgift behöver tre saker. Ett repositoriums sida i Kod och undantagets sida **AI Assistance** kontrollerar alla tre innan de erbjuder att starta, och säger vad som saknas.

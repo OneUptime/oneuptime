@@ -73,7 +73,7 @@ const CREATE: string = "Create Auto Remediation Rule";
 const APPROVAL_DESCRIPTION: string =
   "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.";
 const FIX_WITHOUT_ASKING_DESCRIPTION: string =
-  "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.";
+  "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.";
 const DEFAULTS_SUMMARY: string =
   "OneUptime AI may run any of your runbooks, and fixes through the AI agent on the affected cluster or host.";
 const RUNBOOKS_DESCRIPTION: string =
@@ -605,6 +605,183 @@ test.describe("the Fix step", () => {
 
     expect(options).toHaveLength(1);
     expect(options[0]).toContain(NO_RUNNER);
+  });
+});
+
+/*
+ * The maintainer, on external MCP servers: "In the auto remediation rule
+ * ... you can allow certain MCP servers to be picked, or in the
+ * investigation rule ... If there are no MCP servers selected, by default,
+ * you can say, 'Allow all MCP servers to be used.' They should be in more
+ * options and not directly visible by default."
+ */
+const MCP_SERVER_IDS: Record<string, string> = {
+  aws: "c0000000-0000-4000-8000-000000000e01",
+  github: "c0000000-0000-4000-8000-000000000e02",
+};
+const ALL_MCP_SERVERS_SUMMARY: string =
+  "OneUptime AI may use all of your MCP servers.";
+const REMEDIATION_MCP_DESCRIPTION: string =
+  "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those.";
+const INVESTIGATION_MCP_DESCRIPTION: string =
+  "OneUptime AI may use all of your MCP servers while it investigates. Pick some to let it use only those.";
+
+const mcpServersPicker: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByRole("combobox", { name: "MCP Servers" });
+};
+
+test.describe("MCP servers", () => {
+  test("folded under More fields: none picked is all of them, said in its line, with where to add them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    // Not on the step itself: folded, its line says what the default does.
+    await expect(mcpServersPicker(dialog)).toBeHidden();
+    await expect(dialog).toContainText(ALL_MCP_SERVERS_SUMMARY);
+
+    await openMoreFields(dialog);
+    await expect(mcpServersPicker(dialog)).toBeVisible();
+    await expect(mcpServersPicker(dialog)).toHaveAttribute(
+      "placeholder",
+      "All MCP servers",
+    );
+    await expect(dialog).toContainText(REMEDIATION_MCP_DESCRIPTION);
+    await expect(dialog).not.toContainText("MCP Servers (Optional)");
+
+    // Where the servers are added, as a link to that page.
+    const link: Locator = dialog.getByTestId("rule-mcp-servers-link");
+    await expect(link).toHaveText("External MCP Servers");
+    const href: string = (await link.getAttribute("href")) || "";
+    expect(new URL(href, "http://127.0.0.1").pathname).toBe(
+      `/dashboard/${PROJECT_ID}/settings/external-mcp-servers`,
+    );
+
+    await screenshot(page, "mcp-servers-more-fields");
+  });
+
+  test("the MCP servers picked are sent, and the folded line names them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pickOption(page, mcpServersPicker(dialog), "AWS");
+    await page.keyboard.press("Escape");
+
+    await moreFieldsButton(dialog).click();
+    const folded: Array<string> = await dialog
+      .getByTestId("folded-section-item")
+      .allInnerTexts();
+    expect(folded.join(" ")).toContain("MCP Servers: 1");
+    await expect(dialog).not.toContainText(ALL_MCP_SERVERS_SUMMARY);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.model).toBe("AutoRemediationRule");
+    expect(idsOf(sent.creates[0]!.data["externalMcpServers"])).toEqual([
+      MCP_SERVER_IDS["aws"]!,
+    ]);
+  });
+
+  test("a rule made without opening More fields names none: all of them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(idsOf(sent.creates[0]!.data["externalMcpServers"])).toEqual([]);
+  });
+
+  test("a rule that runs its runbooks every time fixes through no MCP server, so it is not asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pickOption(page, runbooksPicker(dialog), "Restart checkout");
+    await page.keyboard.press("Escape");
+    await expect(mcpServersPicker(dialog)).toBeVisible();
+
+    await everyTimeSwitch(dialog).click();
+    await expect(everyTimeSwitch(dialog)).toBeChecked();
+    await expect(mcpServersPicker(dialog)).toHaveCount(0);
+  });
+
+  test("an investigation rule asks the same on its Rule step: folded, none picked is all of them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesCard(page);
+
+    const investigationCard: Locator = page
+      .locator("[data-card-surface='section']")
+      .filter({
+        has: page.getByRole("heading", {
+          name: "Investigation rules",
+          exact: true,
+        }),
+      });
+    await expect(investigationCard).toBeVisible();
+
+    await investigationCard
+      .getByRole("button", { name: "Create Investigation Rule" })
+      .first()
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+
+    await dialog
+      .getByRole("textbox", { name: /^Name/ })
+      .fill("Investigate with AWS");
+
+    // On the Rule step, folded, with what the default does.
+    await expect(mcpServersPicker(dialog)).toBeHidden();
+    await expect(dialog).toContainText(ALL_MCP_SERVERS_SUMMARY);
+
+    await openMoreFields(dialog);
+    await expect(dialog).toContainText(INVESTIGATION_MCP_DESCRIPTION);
+    await expect(mcpServersPicker(dialog)).toHaveAttribute(
+      "placeholder",
+      "All MCP servers",
+    );
+    await pickOption(page, mcpServersPicker(dialog), "GitHub");
+    await page.keyboard.press("Escape");
+    await screenshot(page, "investigation-rule-mcp-servers");
+
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+    await dialog
+      .getByRole("button", { name: "Create Investigation Rule" })
+      .click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const investigationRule: { model: string; data: Record<string, unknown> } =
+      sent.creates.find((created: { model: string }): boolean => {
+        return created.model === "AIInvestigationRule";
+      })!;
+    expect(investigationRule).toBeTruthy();
+    expect(idsOf(investigationRule.data["externalMcpServers"])).toEqual([
+      MCP_SERVER_IDS["github"]!,
+    ]);
   });
 });
 

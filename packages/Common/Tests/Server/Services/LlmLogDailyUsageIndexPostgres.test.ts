@@ -7,6 +7,7 @@ import {
 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1798300000000-AddLlmLogProjectCreatedAtIndex";
 import LlmLogService from "../../../Server/Services/LlmLogService";
 import logger from "../../../Server/Utils/Logger";
+import AiTokenCount from "../../../Types/AI/AiTokenCount";
 import ObjectID from "../../../Types/ObjectID";
 import { jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
@@ -457,6 +458,103 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
           since: midnightUtc(),
         }),
       ).toEqual({ totalTokens: 0, billedCostInUSDCents: 0 });
+    });
+
+    /*
+     * Issue #5073: both statements sum the day's cached parts beside its
+     * tokens, and AiTokenCount counts the sums - a cache read a tenth of a
+     * token, a cache write one and a quarter - on a real Postgres.
+     */
+    test("a day of calls that used the prompt cache counts what they cost", async () => {
+      captureServiceQueries();
+
+      const projectId: ObjectID = ObjectID.generate();
+      const laneIncidentId: string = ObjectID.generate().toString();
+      const calls: Array<{
+        totalTokens: number;
+        cachedInputTokens: number;
+        cacheCreationTokens: number;
+        incident: boolean;
+      }> = [
+        // The issue's investigation: a cache write, then reads.
+        {
+          totalTokens: 24_117,
+          cachedInputTokens: 0,
+          cacheCreationTokens: 20_654,
+          incident: true,
+        },
+        {
+          totalTokens: 28_496,
+          cachedInputTokens: 20_654,
+          cacheCreationTokens: 0,
+          incident: true,
+        },
+        {
+          totalTokens: 32_712,
+          cachedInputTokens: 24_117,
+          cacheCreationTokens: 4_216,
+          incident: true,
+        },
+        // An Ask AI call that used no cache, outside the incident lane.
+        {
+          totalTokens: 1_200,
+          cachedInputTokens: 0,
+          cacheCreationTokens: 0,
+          incident: false,
+        },
+      ];
+
+      for (const [index, call] of calls.entries()) {
+        await database.query(
+          `INSERT INTO "LlmLog"
+             ("_id", "createdAt", "updatedAt", "version", "projectId", "status",
+              "feature", "totalTokens", "cachedInputTokens", "cacheCreationTokens",
+              "costInUSDCents", "wasBilled", "incidentId")
+           VALUES (gen_random_uuid(), $2::timestamptz + make_interval(secs => $3::int),
+                   now(), 1, $1::uuid, 'Success', $4, $5, $6, $7, 0, false, $8::uuid)`,
+          [
+            projectId.toString(),
+            midnightUtc(),
+            index + 1,
+            call.incident ? "AI Incident Investigation" : "AI Chat",
+            call.totalTokens,
+            call.cachedInputTokens,
+            call.cacheCreationTokens,
+            call.incident ? laneIncidentId : null,
+          ],
+        );
+      }
+
+      const counted: number = AiTokenCount.count(AiTokenCount.add(calls));
+
+      expect(
+        await LlmLogService.getProjectUsageSince({
+          projectId,
+          since: midnightUtc(),
+        }),
+      ).toEqual({ totalTokens: counted, billedCostInUSDCents: 0 });
+
+      // A fraction of the tokens the calls sent.
+      expect(counted).toBeLessThan(24_117 + 28_496 + 32_712 + 1_200);
+
+      expect(
+        await LlmLogService.getTotalTokensUsedSince({
+          projectId,
+          since: midnightUtc(),
+          features: ["AI Incident Investigation", "AI Chat"],
+          incidentId: new ObjectID(laneIncidentId),
+          legacyIncidentFeatures: ["AI Incident Investigation"],
+          legacyAlertFeatures: ["AI Alert Investigation"],
+        }),
+      ).toBe(
+        AiTokenCount.count(
+          AiTokenCount.add(
+            calls.filter((call: { incident: boolean }) => {
+              return call.incident;
+            }),
+          ),
+        ),
+      );
     });
 
     test("without the index the same sum reads the project's whole history", async () => {

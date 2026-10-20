@@ -634,8 +634,21 @@ describe("Additional Parameters reach Anthropic requests", () => {
     const body: JSONObject = bodyOf(spy, 0);
 
     expect(body["model"]).toBe("claude-sonnet-4-6");
+    /*
+     * OneUptime's own conversation - with tools, a call of an agent loop, so
+     * marked for the prompt cache (LLMServiceConversationCache.test.ts).
+     */
     expect(body["messages"]).toEqual([
-      { role: "user", content: "Reply with the word: OK" },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Reply with the word: OK",
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+      },
     ]);
     expect(body["system"]).toEqual([
       {

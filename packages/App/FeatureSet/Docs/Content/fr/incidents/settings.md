@@ -344,16 +344,18 @@ Les alertes et les événements de maintenance planifiée ont la même fonctionn
 
 Le formulaire s'ouvre sur **Que voulez-vous mesurer ?**. Choisissez l'une de ces mesures et son nom, sa description et ses deux moments sont remplis : **Suivant** montre les moments, et la mesure est créée depuis cette dernière étape.
 
-| Où                       | Mesure                            | Commence quand                                    | Se termine quand                       |
-| ------------------------ | --------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| Incidents                | **Délai de prise en compte**      | L'incident est déclaré                            | L'incident est pris en compte          |
-| Incidents                | **Délai de résolution**           | L'incident est déclaré                            | L'incident est résolu                  |
-| Incidents                | **Délai du post-mortem**          | L'incident est résolu                             | Le post-mortem est publié              |
-| Alertes                  | **Délai de prise en compte**      | L'alerte est créée                                | L'alerte est prise en compte           |
-| Alertes                  | **Délai de résolution**           | L'alerte est créée                                | L'alerte est résolue                   |
-| Maintenance planifiée    | **Retard au démarrage**           | La maintenance doit commencer selon le planning   | La maintenance commence                |
-| Maintenance planifiée    | **Dépassement**                   | La maintenance doit se terminer selon le planning | La maintenance se termine              |
-| Maintenance planifiée    | **Durée de la maintenance**       | La maintenance commence                           | La maintenance se termine              |
+| Où                       | Mesure                                      | Commence quand                                    | Se termine quand                       |
+| ------------------------ | ------------------------------------------- | ------------------------------------------------- | -------------------------------------- |
+| Incidents                | **Délai de prise en compte**                | L'incident est déclaré                            | L'incident est pris en compte          |
+| Incidents                | **Délai de prise en compte après l'alerte** | Quelqu'un est alerté pour la première fois                    | L'incident est pris en compte          |
+| Incidents                | **Délai de résolution**                     | L'incident est déclaré                            | L'incident est résolu                  |
+| Incidents                | **Délai du post-mortem**                    | L'incident est résolu                             | Le post-mortem est publié              |
+| Alertes                  | **Délai de prise en compte**                | L'alerte est créée                                | L'alerte est prise en compte           |
+| Alertes                  | **Délai de prise en compte après l'alerte** | Quelqu'un est alerté pour la première fois                    | L'alerte est prise en compte           |
+| Alertes                  | **Délai de résolution**                     | L'alerte est créée                                | L'alerte est résolue                   |
+| Maintenance planifiée    | **Retard au démarrage**                     | La maintenance doit commencer selon le planning   | La maintenance commence                |
+| Maintenance planifiée    | **Dépassement**                             | La maintenance doit se terminer selon le planning | La maintenance se termine              |
+| Maintenance planifiée    | **Durée de la maintenance**                 | La maintenance commence                           | La maintenance se termine              |
 
 Choisissez **Autre chose** pour choisir vous-même les deux moments. Un nom que vous avez tapé est conservé quand vous choisissez l'une de ces mesures.
 
@@ -364,6 +366,7 @@ La deuxième étape, **Début et fin**, a **Commence quand** et **Se termine qua
 | Moment                                       | Quand il se produit                                                          | Stocké dans l'API sous                                |
 | -------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **L'incident est déclaré**                   | Quand l'incident a commencé dans OneUptime : à sa création, sauf si quelqu'un a défini une heure antérieure. | `Declared At` (`Timeline Start` est le même instant) |
+| **Quelqu'un est alerté pour la première fois**           | Quand une politique d'astreinte ou un appel direct alerte quelqu'un pour la première fois au sujet de l'incident — voir plus bas. | `First Paged At`                                      |
 | **L'incident est pris en compte**            | Quand il atteint votre état pris en compte, ou tout état qui le suit (une résolution directe depuis le départ compte aussi). | `State Role Entered`, rôle `Acknowledged`  |
 | **L'incident est résolu**                    | Quand il atteint votre état résolu.                                          | `State Role Entered`, rôle `Resolved`                 |
 | **Le post-mortem est publié**                | Quand le post-mortem de l'incident est publié.                               | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ La page de chaque incident montre ses propres mesures dans une carte **Mesures**
 | Une durée, comme **4 minutes**     | Les deux moments ont eu lieu (**Recorded**). Elle est dans l'unité de la mesure : **Automatique** se lit comme les autres durées de la page, **1 heure et 5 minutes**, et **Heures** se lit **1,5 heure**. |
 | **En cours depuis 12 minutes**     | Le compteur a démarré et la fin n'a pas encore eu lieu. Il augmente tant que la page est ouverte.                                |
 | **Pas encore commencé**            | Le début n'a pas encore eu lieu, ou est une heure encore à venir, comme le début planifié d'un événement de maintenance.          |
-| **Non atteint**                    | L'incident est résolu, et le moment qu'attendait la mesure n'est jamais arrivé — un incident résolu sans avoir été pris en compte. |
+| **Non atteint**                    | L'incident est résolu, et le moment qu'attendait la mesure n'est jamais arrivé — un incident résolu sans avoir été pris en compte, ou sans que personne n'ait été alerté. |
 | **Non mesuré**                     | Un moment ne peut jamais avoir lieu (**Not Applicable**), avec la raison, comme un état sauté.                                   |
 | **Se termine avant de commencer**  | Les heures enregistrées se contredisent (**Invalid**), avec l'écart entre elles.                                                 |
 | **Pas encore calculé**             | OneUptime ne l'a pas encore calculée pour cet incident, comme juste après la création de la mesure.                              |
@@ -424,9 +427,17 @@ Les alertes et les événements de maintenance planifiée ont la même carte sur
 
 C'est voulu. `Declared At` enregistre quand OneUptime l'a appris, ce qui, pour un incident déclenché par un moniteur, est le moment où les critères ont été traités — pas celui où l'impact a commencé. Si « Time to Detect » prenait par défaut comme début le même horodatage que celui de sa fin, chaque incident rapporterait zéro et le graphique dirait « nous détectons instantanément ». Un champ vide et une mesure **Not Applicable** disent la vérité : personne n'a enregistré quand cela a commencé.
 
+### Délai de prise en compte après l'alerte
+
+La mesure **Délai de prise en compte** court à partir de la déclaration de l'incident ; un incident pour lequel personne n'est alerté avant le matin affiche donc des heures d'attente qu'aucune personne d'astreinte n'a vues. La mesure **Délai de prise en compte après l'alerte** court plutôt à partir de **Quelqu'un est alerté pour la première fois** : la première fois qu'une politique d'astreinte ou un appel direct a alerté quelqu'un au sujet de l'incident. Elle se termine quand l'incident est pris en compte, selon la même règle que le délai de prise en compte.
+
+OneUptime enregistre ce moment sur l'incident, et sur l'alerte, sous `First Paged At`, une seule fois, et ne le déplace jamais. Seule compte une alerte effectivement partie : dans la **Chronologie d'exécution** d'une politique d'astreinte ou d'un appel direct, une personne dont l'alerte a été envoyée, prise en compte ou transmise. Une étape marquée **Ignoré** ou terminée en **Erreur** ne compte pas, pas plus qu'une politique qui a démarré sans alerter personne, comme une politique dont le planning n'avait personne d'astreinte. Les incidents pour lesquels quelqu'un a été alerté avant que `First Paged At` existe reçoivent le leur de leurs exécutions d'astreinte.
+
+Un incident pour lequel personne n'a été alerté n'a pas de valeur : **Pas encore commencé** tant qu'il est ouvert, et **Non atteint** une fois résolu. Le graphique peut être réparti par gravité, pour que vous voyiez à quelle vitesse chaque gravité obtient une réponse une fois quelqu'un alerté. La page de l'incident l'indique aussi : sous son délai de prise en compte, elle ajoute combien de temps après la première alerte il a été pris en compte, par exemple **4 minutes après l'alerte**. La métrique du délai de prise en compte et le MTTA des résumés Slack et Microsoft Teams comptent toujours à partir de la déclaration de l'incident.
+
 ### Corriger un horodatage erroné
 
-Chaque mesure est recalculée de zéro chaque fois que les données sous-jacentes changent — une entrée de chronologie d'état créée, modifiée ou supprimée, ou `Impact Started At`, `Declared At` ou `Postmortem Posted At` corrigé sur l'incident. Rien n'est rapiécé par incréments ; il n'y a donc aucune valeur périmée à réparer.
+Chaque mesure est recalculée de zéro chaque fois que les données sous-jacentes changent — une entrée de chronologie d'état créée, modifiée ou supprimée, `Impact Started At`, `Declared At` ou `Postmortem Posted At` corrigé sur l'incident, ou le départ de sa première alerte. Rien n'est rapiécé par incréments ; il n'y a donc aucune valeur périmée à réparer.
 
 Le champ **Commence le** d'une entrée de chronologie d'état est modifiable. Si un incident a été pris en compte à 09:12 mais que l'entrée indique 09:29, corrigez l'entrée et chaque mesure qui en découle suit.
 

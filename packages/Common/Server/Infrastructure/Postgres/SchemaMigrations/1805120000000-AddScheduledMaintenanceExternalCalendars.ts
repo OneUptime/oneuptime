@@ -20,10 +20,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * formatting are hand-written. The indexes and foreign keys are on the
  * tables this migration creates, so they hold no lock on rows anyone writes.
  */
-export class AddScheduledMaintenanceExternalCalendars1805000000000
+export class AddScheduledMaintenanceExternalCalendars1805120000000
   implements MigrationInterface
 {
-  public name: string = "AddScheduledMaintenanceExternalCalendars1805000000000";
+  public name: string = "AddScheduledMaintenanceExternalCalendars1805120000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

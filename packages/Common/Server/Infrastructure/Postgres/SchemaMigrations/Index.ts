@@ -139,7 +139,10 @@ import { AddTwilioSmsPhoneNumbers1804700000000 } from "./1804700000000-AddTwilio
 import { AddAutoRemediationRuleRunner1804750000000 } from "./1804750000000-AddAutoRemediationRuleRunner";
 import { AddAutoRemediationRuleRunnerIndexAndKey1804800000000 } from "./1804800000000-AddAutoRemediationRuleRunnerIndexAndKey";
 import { AddDashboardTheme1804860000000 } from "./1804860000000-AddDashboardTheme";
-import { AddScheduledMaintenanceExternalCalendars1805000000000 } from "./1805000000000-AddScheduledMaintenanceExternalCalendars";
+import { AddFirstPagedAt1804900000000 } from "./1804900000000-AddFirstPagedAt";
+import { AddFixProductionCheck1804950000000 } from "./1804950000000-AddFixProductionCheck";
+import { AddExternalMcpServers1805000000000 } from "./1805000000000-AddExternalMcpServers";
+import { AddScheduledMaintenanceExternalCalendars1805120000000 } from "./1805120000000-AddScheduledMaintenanceExternalCalendars";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1481,5 +1484,8 @@ export default [
   AddAutoRemediationRuleRunner1804750000000,
   AddAutoRemediationRuleRunnerIndexAndKey1804800000000,
   AddDashboardTheme1804860000000,
-  AddScheduledMaintenanceExternalCalendars1805000000000,
+  AddFirstPagedAt1804900000000,
+  AddFixProductionCheck1804950000000,
+  AddExternalMcpServers1805000000000,
+  AddScheduledMaintenanceExternalCalendars1805120000000,
 ];

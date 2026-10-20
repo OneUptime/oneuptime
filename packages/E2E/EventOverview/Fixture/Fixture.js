@@ -298,6 +298,17 @@ const stateMode = ["ongoing", "created"].includes(params.get("state"))
 const aiMode = params.get("ai") || "report";
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
 const titleMode = params.get("title") === "long" ? "long" : "default";
+/*
+ * ?paged=: whether somebody was paged about incident #1042 and alert #311
+ * (First Paged At), and the project's "Time to acknowledge after paging"
+ * measurement. Absent: neither, as before. `paged`: each was paged a minute
+ * after it began, and the overview's "Acknowledged in" tile adds how long
+ * after the page it was acknowledged. `never`: the measurement exists, and
+ * nobody was paged about either.
+ */
+const pagedMode = ["paged", "never"].includes(params.get("paged"))
+  ? params.get("paged")
+  : "none";
 const presetVerdict =
   params.get("verdict") === "confirmed"
     ? "Confirmed"
@@ -1078,6 +1089,7 @@ function defineIncident(spec) {
     declaredAt: spec.createdAt,
     createdAt: spec.createdAt,
     impactStartedAt: spec.impactStartedAt || spec.createdAt,
+    ...(spec.firstPagedAt ? { firstPagedAt: spec.firstPagedAt } : {}),
     incidentSeverity: spec.severity,
     incidentSeverityId: spec.severity.id,
     currentIncidentState: currentState,
@@ -1294,6 +1306,7 @@ const mainIncident = defineIncident({
   severity: incidentSeverities.sev2,
   createdAt: at("18:01"),
   impactStartedAt: at("17:58"),
+  firstPagedAt: pagedMode === "paged" ? at("18:02") : undefined,
   ackAt: isAcknowledged ? at("18:04") : undefined,
   ackBy: people.sam,
   resolvedAt: isResolved ? at("18:12") : undefined,
@@ -1442,6 +1455,7 @@ function defineAlert(spec) {
     alertNumber: spec.number,
     alertNumberWithPrefix: `#${spec.number}`,
     createdAt: spec.createdAt,
+    ...(spec.firstPagedAt ? { firstPagedAt: spec.firstPagedAt } : {}),
     alertSeverity: spec.severity,
     alertSeverityId: spec.severity.id,
     currentAlertState: currentState,
@@ -1590,6 +1604,7 @@ const mainAlert = defineAlert({
     "payments-webhooks returned 5xx for 7.8% of payment provider callbacks over the last 5 minutes.",
   severity: alertSeverities.high,
   createdAt: at("18:06"),
+  firstPagedAt: pagedMode === "paged" ? at("18:07") : undefined,
   ackAt: isAcknowledged ? at("18:08") : undefined,
   ackBy: people.alex,
   resolvedAt: isResolved ? at("18:15") : undefined,
@@ -2227,6 +2242,20 @@ const incidentMeasurementDefinitions = [
   }),
 ];
 
+// ?paged=: counted from the first page, next to Time to acknowledge.
+if (pagedMode !== "none") {
+  incidentMeasurementDefinitions.push(
+    measurementDefinition(IncidentMeasurement, 9, {
+      name: "Time to acknowledge after paging",
+      order: 1.5,
+      startAnchorType: "First Paged At",
+      endAnchorType: "State Role Entered",
+      endIncidentStateRole: "Acknowledged",
+      showOnIncidentView: true,
+    }),
+  );
+}
+
 if (measurementsMode === "states") {
   incidentMeasurementDefinitions.push(
     // Impact recorded at 17:58, before the 18:01 declaration: Invalid.
@@ -2260,6 +2289,19 @@ const alertMeasurementDefinitions = [
     endAlertStateRole: "Acknowledged",
     showOnAlertView: true,
   }),
+  // ?paged=: counted from the first page, next to Time to acknowledge.
+  ...(pagedMode === "none"
+    ? []
+    : [
+        measurementDefinition(AlertMeasurement, 13, {
+          name: "Time to acknowledge after paging",
+          order: 1.5,
+          startAnchorType: "First Paged At",
+          endAnchorType: "State Role Entered",
+          endAlertStateRole: "Acknowledged",
+          showOnAlertView: true,
+        }),
+      ]),
   measurementDefinition(AlertMeasurement, 12, {
     name: "Time to resolve",
     order: 2,
@@ -2322,10 +2364,18 @@ const MEASUREMENT_DOMAINS = [
         "Timeline Start": record.declaredAt || record.createdAt,
         "Impact Started At": record.impactStartedAt,
         "Postmortem Posted At": record.postmortemPostedAt,
+        "First Paged At": record.firstPagedAt,
       };
     },
-    // Recorded after the fact: still to come once the incident is resolved.
-    laterTimestamps: ["Impact Started At", "Postmortem Posted At"],
+    /*
+     * Recorded after the fact, or once somebody is paged: still to come
+     * once the incident is resolved, as the server leaves them.
+     */
+    laterTimestamps: [
+      "Impact Started At",
+      "Postmortem Posted At",
+      "First Paged At",
+    ],
     roles: (state) => {
       return [
         state?.isCreatedState ? "Created" : null,
@@ -2350,9 +2400,10 @@ const MEASUREMENT_DOMAINS = [
         "Created At": record.createdAt,
         "Timeline Start": record.createdAt,
         "Impact Started At": record.impactStartedAt,
+        "First Paged At": record.firstPagedAt,
       };
     },
-    laterTimestamps: ["Impact Started At"],
+    laterTimestamps: ["Impact Started At", "First Paged At"],
     roles: (state) => {
       return [
         state?.isCreatedState ? "Created" : null,

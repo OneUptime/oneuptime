@@ -78,13 +78,23 @@ export interface LLMCompletionRequest {
 }
 
 export interface LLMUsage {
+  /*
+   * Every input token the model read, the ones read from or written to the
+   * provider's prompt cache included - as the OpenAI wire reports
+   * prompt_tokens and the OpenTelemetry GenAI conventions count
+   * gen_ai.usage.input_tokens. Anthropic reports its input_tokens without
+   * the cached ones, so they are added back.
+   */
   promptTokens: number;
   completionTokens: number;
+  // Input and output: every token of the call.
   totalTokens: number;
   /*
-   * Prompt-caching breakdown, when the provider reports it. cachedInputTokens
-   * are input tokens served from cache (billed at a large discount);
-   * cacheCreationTokens are input tokens written to the cache on this call.
+   * Prompt-caching breakdown, when the provider reports it - both are part
+   * of promptTokens. cachedInputTokens are input tokens served from cache
+   * (billed at a large discount); cacheCreationTokens are input tokens
+   * written to the cache on this call (Anthropic bills a quarter more).
+   * AiTokenCount weighs them when OneUptime counts a call's tokens.
    */
   cachedInputTokens?: number | undefined;
   cacheCreationTokens?: number | undefined;
@@ -136,6 +146,29 @@ enum TokenLimitParam {
 }
 
 /**
+ * How much of an Anthropic request OneUptime marks for the provider's prompt
+ * cache (buildAnthropicRequestBody). Every endpoint starts at Conversation,
+ * and one that refuses a cache_control marker steps down a level
+ * (getAdaptationLeavingOutPromptCache), so no marker an endpoint refuses is
+ * ever sent to it twice.
+ */
+enum AnthropicPromptCache {
+  /*
+   * The tool definitions, the system prompt and - on a call of an agent loop
+   * - the conversation, so the next call reads all of it from the cache.
+   */
+  Conversation = "Conversation",
+  /*
+   * The tool definitions and the system prompt only: the endpoint refused a
+   * marker inside the conversation (a gateway that knows cache_control on
+   * the system prompt and the tools alone).
+   */
+  ToolsAndSystem = "ToolsAndSystem",
+  // No marker at all: the endpoint refuses cache_control anywhere.
+  Off = "Off",
+}
+
+/**
  * Per-endpoint compatibility adjustments. Model families disagree about which
  * generation parameters they accept, so a request may need reshaping before a
  * given deployment takes it. Learned the same way on every wire: from the
@@ -153,6 +186,8 @@ interface RequestAdaptation {
    * on top of the caller's cap for the answer.
    */
   reservesThinkingRoom: boolean;
+  /** Anthropic wire only: which prompt-cache markers the endpoint takes. */
+  anthropicPromptCache: AnthropicPromptCache;
 }
 
 /*
@@ -171,6 +206,22 @@ const ANTHROPIC_RESERVED_REQUEST_KEYS: Set<string> = new Set([
   "tool_choice",
   "stream",
 ]);
+
+/*
+ * Anthropic's prompt cache. A cache_control marker on a block caches the
+ * request up to and including it, for five minutes ("ephemeral", the default
+ * lifetime, renewed by every read); a later request that starts with the same
+ * bytes reads them back at a tenth of the input price, or less. A request may
+ * carry at most four markers: the API refuses a fifth with a 400.
+ */
+const ANTHROPIC_MAX_CACHE_BREAKPOINTS: number = 4;
+
+/*
+ * The conversation takes at most two of them: one on its last block, where
+ * the next call of an agent loop reads from, and one on the block where the
+ * previous call's conversation ended, the entry this call reads.
+ */
+const ANTHROPIC_MAX_CONVERSATION_CACHE_BREAKPOINTS: number = 2;
 
 /*
  * Anthropic's sampling parameters. Claude Opus 4.7 and every later model
@@ -377,13 +428,15 @@ export default class LLMService {
   /*
    * Backstop only. A provider names one offending parameter per response, so
    * the worst legitimate chain is both token spellings plus one drop for each
-   * droppable param. The loop already terminates on its own — every rule
-   * refuses to re-suggest a fix it has applied — so this just stops a
-   * misbehaving endpoint from looping forever. Sizing it below the reachable
-   * chain would fail requests the next attempt would have fixed.
+   * droppable param, and on the Anthropic wire the two steps down of the
+   * prompt-cache markers (AnthropicPromptCache). The loop already terminates
+   * on its own — every rule refuses to re-suggest a fix it has applied — so
+   * this just stops a misbehaving endpoint from looping forever. Sizing it
+   * below the reachable chain would fail requests the next attempt would
+   * have fixed.
    */
   private static readonly MAX_REQUEST_ADAPTATION_ATTEMPTS: number =
-    2 + LLMService.DROPPABLE_UNSUPPORTED_PARAMETERS.size;
+    2 + LLMService.DROPPABLE_UNSUPPORTED_PARAMETERS.size + 2;
 
   /*
    * Remembers what a given endpoint actually accepted, so only the first
@@ -451,6 +504,7 @@ export default class LLMService {
         : new Set(),
       reservesThinkingRoom:
         isAnthropicWire && ClaudeModels.thinksByDefault(modelName),
+      anthropicPromptCache: AnthropicPromptCache.Conversation,
     };
   }
 
@@ -461,6 +515,7 @@ export default class LLMService {
       tokenLimitParam: adaptation.tokenLimitParam,
       unsupportedParams: new Set(adaptation.unsupportedParams),
       reservesThinkingRoom: adaptation.reservesThinkingRoom,
+      anthropicPromptCache: adaptation.anthropicPromptCache,
     };
   }
 
@@ -968,8 +1023,16 @@ export default class LLMService {
       );
     }
 
+    if (data.next.anthropicPromptCache !== data.previous.anthropicPromptCache) {
+      changes.push(
+        data.next.anthropicPromptCache === AnthropicPromptCache.Off
+          ? "leaving out every cache_control marker"
+          : "leaving out the cache_control markers in the conversation",
+      );
+    }
+
     logger.debug(
-      `${data.llmType} rejected a generation parameter for model ${data.modelName}. Retrying with a request adapted to what the model accepts${
+      `${data.llmType} rejected a request parameter for model ${data.modelName}. Retrying with a request adapted to what the model accepts${
         changes.length > 0 ? ` (${changes.join(", ")})` : ""
       }.`,
     );
@@ -2120,21 +2183,32 @@ export default class LLMService {
     };
 
     /*
-     * Prompt caching. The system prompt and tool definitions are the large,
-     * stable prefix re-sent on every turn of the agent loop, so caching them is
-     * the biggest single cost + latency lever (cached input is billed at ~10%).
-     * An ephemeral cache_control breakpoint on the system block and on the LAST
-     * tool caches the whole system + tools prefix. cache_control is GA under
-     * anthropic-version 2023-06-01, so no beta header is required.
+     * Prompt caching. The tool definitions and the system prompt are the
+     * large, stable prefix every call of an agent loop sends again, so an
+     * ephemeral cache_control marker on the LAST tool (it caches every tool
+     * before it) and on the system block lets each call read them from the
+     * cache at a tenth of the price. The conversation is marked below, once
+     * the operator's parameters are known. cache_control is GA under
+     * anthropic-version 2023-06-01, so no beta header is required. An
+     * endpoint that refuses the markers gets none (AnthropicPromptCache.Off).
      */
+    const cachesPrefix: boolean =
+      adaptation.anthropicPromptCache !== AnthropicPromptCache.Off;
+
+    let cacheBreakpoints: number = 0;
+
     if (systemMessage) {
-      data["system"] = [
-        {
-          type: "text",
-          text: systemMessage,
-          cache_control: { type: "ephemeral" },
-        },
-      ];
+      const systemBlock: JSONObject = {
+        type: "text",
+        text: systemMessage,
+      };
+
+      if (cachesPrefix) {
+        systemBlock["cache_control"] = this.getAnthropicCacheControl();
+        cacheBreakpoints++;
+      }
+
+      data["system"] = [systemBlock];
     }
 
     if (request.tools && request.tools.length > 0) {
@@ -2151,8 +2225,9 @@ export default class LLMService {
       // A breakpoint on the last tool caches the entire tools block before it.
       const lastTool: JSONObject | undefined =
         anthropicTools[anthropicTools.length - 1];
-      if (lastTool) {
-        lastTool["cache_control"] = { type: "ephemeral" };
+      if (lastTool && cachesPrefix) {
+        lastTool["cache_control"] = this.getAnthropicCacheControl();
+        cacheBreakpoints++;
       }
 
       data["tools"] = anthropicTools;
@@ -2182,6 +2257,41 @@ export default class LLMService {
     }
 
     Object.assign(data, appliedParams);
+
+    /*
+     * The conversation, on a call of an agent loop (issue #5073). Every call
+     * of an investigation or a chat turn sends the whole conversation again:
+     * the question, every earlier answer and every earlier tool result. Marked
+     * at its end, it is written to the cache once and read back by the next
+     * call at a tenth of the price, instead of being paid for in full on every
+     * call. A call with tools is one of an agent loop, whose next call sends
+     * this conversation again within seconds; a call without tools is asked
+     * once (a summary, a title, a classification), and marking its prompt
+     * would only pay a quarter more to write a cache nothing reads.
+     *
+     * An operator who asked for automatic caching themselves (a top-level
+     * cache_control in Additional Parameters) gets it instead: it marks the
+     * end of the conversation on its own, and takes one of the four markers.
+     */
+    if (
+      adaptation.anthropicPromptCache === AnthropicPromptCache.Conversation &&
+      request.tools &&
+      request.tools.length > 0 &&
+      data["cache_control"] === undefined
+    ) {
+      this.markAnthropicConversationForCache(
+        data["messages"] as Array<JSONObject>,
+        Math.min(
+          ANTHROPIC_MAX_CONVERSATION_CACHE_BREAKPOINTS,
+          ANTHROPIC_MAX_CACHE_BREAKPOINTS - cacheBreakpoints,
+        ),
+      );
+    }
+
+    // An endpoint that refuses cache_control takes none, the operator's included.
+    if (adaptation.anthropicPromptCache === AnthropicPromptCache.Off) {
+      delete data["cache_control"];
+    }
 
     /*
      * Applied after every other source so it overrides them all: this is
@@ -2230,6 +2340,126 @@ export default class LLMService {
     }
 
     return data;
+  }
+
+  // The marker of Anthropic's 5-minute prompt cache, a new object each time.
+  private static getAnthropicCacheControl(): JSONObject {
+    return { type: "ephemeral" };
+  }
+
+  /*
+   * Mark the conversation of an agent loop's call for the prompt cache, with
+   * at most `markers` cache_control markers.
+   *
+   * The first goes on the last block of the last message - in an agent loop
+   * the newest tool result - which caches the whole conversation for the
+   * next call. The second goes on the last block of the user message before
+   * the last assistant message: where the previous call of the loop ended
+   * and put its own marker. It reads that entry back directly. The first
+   * marker alone would find it too, by looking back from the end, but the
+   * API looks at most 20 blocks back, and a call that asked for many tools
+   * at once can add more than that (each tool call and each result is a
+   * block wherever the API does not count a run of them as one).
+   *
+   * The markers move forward with every call. A marker is no byte of the
+   * prompt, so the blocks it leaves still match what the cache holds.
+   */
+  private static markAnthropicConversationForCache(
+    messages: Array<JSONObject>,
+    markers: number,
+  ): void {
+    if (markers <= 0 || messages.length === 0) {
+      return;
+    }
+
+    const targets: Array<number> = [messages.length - 1];
+
+    if (markers > 1) {
+      let lastAssistantIndex: number = -1;
+
+      for (let index: number = messages.length - 1; index >= 0; index--) {
+        if (messages[index]!["role"] === "assistant") {
+          lastAssistantIndex = index;
+          break;
+        }
+      }
+
+      for (let index: number = lastAssistantIndex - 1; index >= 0; index--) {
+        if (messages[index]!["role"] === "user") {
+          targets.push(index);
+          break;
+        }
+      }
+    }
+
+    for (const index of targets) {
+      this.markLastCacheableAnthropicBlock(messages[index]!);
+    }
+  }
+
+  /*
+   * Put a cache_control marker on the last block of a message that can carry
+   * one, when it has one. A message whose content is a string becomes the
+   * one text block it stands for - the API reads the two alike, so the next
+   * call, which sends it as a string again, still matches the cache. The API
+   * takes no marker on an empty text block or on a thinking block (OneUptime
+   * sends none back, but a block it does not know is left alone too), so
+   * those are passed over for the block before them.
+   */
+  private static markLastCacheableAnthropicBlock(message: JSONObject): void {
+    const content: unknown = message["content"];
+
+    if (typeof content === "string") {
+      if (content.trim()) {
+        message["content"] = [
+          {
+            type: "text",
+            text: content,
+            cache_control: this.getAnthropicCacheControl(),
+          },
+        ];
+      }
+
+      return;
+    }
+
+    if (!Array.isArray(content)) {
+      return;
+    }
+
+    for (let index: number = content.length - 1; index >= 0; index--) {
+      const block: unknown = content[index];
+
+      if (
+        block &&
+        typeof block === "object" &&
+        !Array.isArray(block) &&
+        this.canCarryAnthropicCacheControl(block as JSONObject)
+      ) {
+        (block as JSONObject)["cache_control"] =
+          this.getAnthropicCacheControl();
+        return;
+      }
+    }
+  }
+
+  private static canCarryAnthropicCacheControl(block: JSONObject): boolean {
+    const type: unknown = block["type"];
+
+    if (type === "text") {
+      return typeof block["text"] === "string" && block["text"].trim() !== "";
+    }
+
+    if (type === "tool_result") {
+      const resultContent: unknown = block["content"];
+
+      return typeof resultContent === "string"
+        ? resultContent.trim() !== ""
+        : Array.isArray(resultContent) && resultContent.length > 0;
+    }
+
+    // tool_use, image and document blocks take a marker; thinking never does.
+    return type === "tool_use" || type === "image" || type === "document";
   }
 
   /*
@@ -2351,7 +2581,8 @@ export default class LLMService {
           response,
           adaptation,
           lastBody,
-        );
+        ) ||
+        this.getAdaptationLeavingOutPromptCache(response, adaptation, lastBody);
 
       if (!nextAdaptation) {
         return response;
@@ -2387,6 +2618,105 @@ export default class LLMService {
     }
 
     return response;
+  }
+
+  /*
+   * The adaptation that sends fewer prompt-cache markers, when an endpoint
+   * on the Anthropic wire refused one - or undefined when its error says no
+   * such thing about a marker the request carried.
+   *
+   * Anthropic, Claude in Microsoft Foundry and the gateways people put in
+   * front of Claude take cache_control on the system prompt and the tools:
+   * OneUptime has sent those markers to every one of them for a long time.
+   * A marker inside the conversation is newer, and a gateway that validates
+   * every field (a Pydantic model: "cache_control: Extra inputs are not
+   * permitted") may refuse it there. Such an endpoint gets the markers it
+   * took before, and one that refuses cache_control everywhere gets none -
+   * so it now works at all. The step is remembered for the endpoint (its
+   * provider, Base URL and model) like every other adaptation, so the
+   * refusal is paid for once - and, like every other adaptation, it is
+   * forgotten after ADAPTATION_CACHE_TTL_IN_MS, so an endpoint that starts
+   * taking the markers gets them again within the hour.
+   */
+  private static getAdaptationLeavingOutPromptCache(
+    response: HTTPErrorResponse,
+    adaptation: RequestAdaptation,
+    sentBody: JSONObject,
+  ): RequestAdaptation | undefined {
+    // 422 is how FastAPI-based gateways answer an unknown field.
+    if (response.statusCode !== 400 && response.statusCode !== 422) {
+      return undefined;
+    }
+
+    const refused: string | undefined = RejectedRequestParameter.findIn({
+      errorText: this.getProviderErrorText(response),
+      candidates: ["cache_control"],
+    });
+
+    if (!refused) {
+      return undefined;
+    }
+
+    if (
+      adaptation.anthropicPromptCache === AnthropicPromptCache.Conversation &&
+      this.hasAnthropicCacheControlInMessages(sentBody["messages"])
+    ) {
+      return {
+        ...adaptation,
+        unsupportedParams: new Set(adaptation.unsupportedParams),
+        anthropicPromptCache: AnthropicPromptCache.ToolsAndSystem,
+      };
+    }
+
+    if (
+      adaptation.anthropicPromptCache !== AnthropicPromptCache.Off &&
+      (sentBody["cache_control"] !== undefined ||
+        this.hasAnthropicCacheControlInBlocks(sentBody["system"]) ||
+        this.hasAnthropicCacheControlInBlocks(sentBody["tools"]) ||
+        this.hasAnthropicCacheControlInMessages(sentBody["messages"]))
+    ) {
+      return {
+        ...adaptation,
+        unsupportedParams: new Set(adaptation.unsupportedParams),
+        anthropicPromptCache: AnthropicPromptCache.Off,
+      };
+    }
+
+    return undefined;
+  }
+
+  // Whether any of these blocks (or tools) carries a cache_control marker.
+  private static hasAnthropicCacheControlInBlocks(blocks: unknown): boolean {
+    if (!Array.isArray(blocks)) {
+      return false;
+    }
+
+    return blocks.some((block: unknown): boolean => {
+      return (
+        Boolean(block) &&
+        typeof block === "object" &&
+        (block as JSONObject)["cache_control"] !== undefined
+      );
+    });
+  }
+
+  // Whether any block of any of these messages carries a cache_control marker.
+  private static hasAnthropicCacheControlInMessages(
+    messages: unknown,
+  ): boolean {
+    if (!Array.isArray(messages)) {
+      return false;
+    }
+
+    return messages.some((message: unknown): boolean => {
+      return (
+        Boolean(message) &&
+        typeof message === "object" &&
+        this.hasAnthropicCacheControlInBlocks(
+          (message as JSONObject)["content"],
+        )
+      );
+    });
   }
 
   private static getAnthropicContentBlocks(
@@ -2494,26 +2824,34 @@ export default class LLMService {
       content: textContent,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
       stopReason: stopReason,
-      usage: usage
-        ? {
-            promptTokens: (usage["input_tokens"] as number) || 0,
-            completionTokens: (usage["output_tokens"] as number) || 0,
-            /*
-             * Anthropic reports cache-read and cache-creation input tokens
-             * separately from input_tokens. Surface them and fold them into
-             * totalTokens so the logged total reflects the full billable input.
-             */
-            cachedInputTokens:
-              (usage["cache_read_input_tokens"] as number) || undefined,
-            cacheCreationTokens:
-              (usage["cache_creation_input_tokens"] as number) || undefined,
-            totalTokens:
-              ((usage["input_tokens"] as number) || 0) +
-              ((usage["cache_read_input_tokens"] as number) || 0) +
-              ((usage["cache_creation_input_tokens"] as number) || 0) +
-              ((usage["output_tokens"] as number) || 0),
-          }
-        : undefined,
+      usage: usage ? this.parseAnthropicUsage(usage) : undefined,
+    };
+  }
+
+  /*
+   * Anthropic's usage block. Its input_tokens are only the tokens after the
+   * last cache marker: the ones read from the cache (cache_read_input_tokens)
+   * and written to it (cache_creation_input_tokens) are reported apart. They
+   * are added back, so promptTokens is every input token, as on the OpenAI
+   * wire, and totalTokens every token of the call; the two cache counts say
+   * how many of them the cache served or took (AiTokenCount weighs them).
+   */
+  private static parseAnthropicUsage(usage: JSONObject): LLMUsage {
+    const freshInputTokens: number = (usage["input_tokens"] as number) || 0;
+    const cacheReadTokens: number =
+      (usage["cache_read_input_tokens"] as number) || 0;
+    const cacheWriteTokens: number =
+      (usage["cache_creation_input_tokens"] as number) || 0;
+    const outputTokens: number = (usage["output_tokens"] as number) || 0;
+    const promptTokens: number =
+      freshInputTokens + cacheReadTokens + cacheWriteTokens;
+
+    return {
+      promptTokens: promptTokens,
+      completionTokens: outputTokens,
+      cachedInputTokens: cacheReadTokens || undefined,
+      cacheCreationTokens: cacheWriteTokens || undefined,
+      totalTokens: promptTokens + outputTokens,
     };
   }
 
