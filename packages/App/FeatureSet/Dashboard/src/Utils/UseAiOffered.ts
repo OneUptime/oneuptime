@@ -23,6 +23,7 @@ import { ENABLE_AI_COLUMN } from "../Components/AISettings/EnableAiColumn";
  * did not carry, reads as AI on - the server refuses an AI action either
  * way, and an unknown value must never hide a working feature.
  */
+
 /*
  * The selected project's Enable AI, or null when it cannot be read: the
  * stored copy is read from the browser's storage, and a value that will

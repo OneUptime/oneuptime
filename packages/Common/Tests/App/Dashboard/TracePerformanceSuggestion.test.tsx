@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, Mock, test } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { BrowserRouter } from "react-router-dom";
@@ -79,8 +79,8 @@ const TASK_ROUTE: Route = new Route("/dashboard/p/code/tasks/run-1");
 const CODE_ROUTE: Route = new Route("/dashboard/p/code");
 
 interface Rendered {
-  onFix: jest.Mock;
-  onShowSpans: jest.Mock;
+  onFix: Mock<() => void>;
+  onShowSpans: Mock<() => void>;
 }
 
 function renderStrip(props: {
@@ -90,8 +90,8 @@ function renderStrip(props: {
   error?: string | null;
   withShowSpans?: boolean;
 }): Rendered {
-  const onFix: jest.Mock = jest.fn();
-  const onShowSpans: jest.Mock = jest.fn();
+  const onFix: Mock<() => void> = jest.fn<() => void>();
+  const onShowSpans: Mock<() => void> = jest.fn<() => void>();
 
   render(
     <BrowserRouter>

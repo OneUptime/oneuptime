@@ -62,9 +62,9 @@ jest.mock("../../../UI/Utils/Project", () => {
     __esModule: true,
     default: {
       getCurrentProjectId: (): unknown => {
-        const ObjectIDClass: { default: typeof ObjectID } = jest.requireActual(
-          "../../../Types/ObjectID",
-        );
+        const ObjectIDClass: { default: typeof ObjectID } = jest.requireActual<{
+          default: typeof ObjectID;
+        }>("../../../Types/ObjectID");
         return new ObjectIDClass.default(
           "10000000-0000-4000-8000-000000000001",
         );

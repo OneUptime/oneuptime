@@ -242,7 +242,7 @@ function EventNoteComposer<TNote extends BaseModel>(
    * (Common/Utils/Suggestions/AiSuggestion).
    */
   const isAiOffered: boolean = useAiOffered();
-  const aiDraft: EventNoteKind["ai"] = isAiOffered ? kind.ai : undefined;
+  const aiDraft: EventNoteKind<TNote>["ai"] = isAiOffered ? kind.ai : undefined;
 
   const isOpen: boolean =
     presentation.type === "dialog" ? true : presentation.isOpen;
