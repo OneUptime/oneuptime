@@ -149,8 +149,11 @@ export const AutoRemediationRuleFixCell: FunctionComponent<
   );
 };
 
-// The older rule being edited does nothing with this field.
-function isUnusedByOlderRule(
+/*
+ * Whether the rule being edited is an older rule of this kind - one a field
+ * does nothing for, so the field is not drawn.
+ */
+function isEditingOlderRuleOfKind(
   values: FormValues<AutoRemediationRule>,
   kind: AutoRemediationFixKind,
 ): boolean {
@@ -473,7 +476,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           dataTestId: "auto-remediation-approval-field",
           // An older rule that picks a runbook always asks first: not a choice.
           showIf: (values: FormValues<AutoRemediationRule>): boolean => {
-            return !isUnusedByOlderRule(
+            return !isEditingOlderRuleOfKind(
               values,
               AutoRemediationFixKind.AiPicksRunbook,
             );
@@ -500,7 +503,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           dataTestId: "auto-remediation-runbooks-field",
           // An older rule that composes commands runs no runbook.
           showIf: (values: FormValues<AutoRemediationRule>): boolean => {
-            return !isUnusedByOlderRule(
+            return !isEditingOlderRuleOfKind(
               values,
               AutoRemediationFixKind.CommandsOnRunners,
             );
@@ -578,7 +581,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           showIf: (values: FormValues<AutoRemediationRule>): boolean => {
             return (
               !isRunbooksEveryTime(values) &&
-              !isUnusedByOlderRule(
+              !isEditingOlderRuleOfKind(
                 values,
                 AutoRemediationFixKind.AiPicksRunbook,
               )
