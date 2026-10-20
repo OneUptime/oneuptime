@@ -1453,6 +1453,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             </label>
             <Dropdown
               options={HTTP_METHOD_OPTIONS}
+              // A request always has a method: nothing to clear.
+              isClearable={false}
               value={HTTP_METHOD_OPTIONS.find((o: DropdownOption) => {
                 return o.value === (config.method || "GET");
               })}
@@ -2150,7 +2152,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                    */}
                                   <div
                                     data-testid="runbook-step-header"
-                                    className="relative flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                                    className="relative flex items-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors sm:gap-3"
                                   >
                                     <div
                                       {...draggableProvided.dragHandleProps}
@@ -2173,7 +2175,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                       onClick={() => {
                                         toggleCollapsed(stepId);
                                       }}
-                                      className="flex min-w-0 flex-1 items-center gap-3 text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
+                                      className="flex min-w-0 flex-1 items-center gap-2 text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500 sm:gap-3"
                                     >
                                       <Icon
                                         icon={
@@ -2188,16 +2190,24 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                       >
                                         {idx + 1}
                                       </div>
-                                      <span
-                                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0`}
+                                      {/*
+                                       * The step's type: its icon and name,
+                                       * the icon alone on a phone, where the
+                                       * title needs the room (the name stays
+                                       * for a screen reader).
+                                       */}
+                                      <div
+                                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.iconColor} ring-1 ring-inset ${meta.ring} flex-shrink-0 max-sm:px-1.5`}
                                       >
                                         <Icon
                                           icon={meta.icon}
                                           size={SizeProp.Smaller}
                                           className={meta.iconColor}
                                         />
-                                        {meta.shortLabel}
-                                      </span>
+                                        <span className="max-sm:sr-only">
+                                          {meta.shortLabel}
+                                        </span>
+                                      </div>
                                       <div className="min-w-0 flex-1">
                                         <div className="flex min-w-0 items-center gap-2">
                                           <div className="text-sm font-semibold text-gray-900 truncate">
@@ -2212,18 +2222,29 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                           {stepRequiresApprovalBeforeRunning(
                                             step,
                                           ) ? (
-                                            <span
+                                            /*
+                                             * A phone shows the lock alone,
+                                             * so the title keeps its room;
+                                             * the words stay for a screen
+                                             * reader.
+                                             */
+                                            <div
                                               className="inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600"
+                                              title={translator.translateText(
+                                                NEEDS_APPROVAL_LABEL,
+                                              )}
                                               data-testid={`runbook-step-${idx}-needs-approval`}
                                             >
                                               <Icon
                                                 icon={IconProp.Lock}
                                                 className="h-3 w-3"
                                               />
-                                              {translator.translateText(
-                                                NEEDS_APPROVAL_LABEL,
-                                              )}
-                                            </span>
+                                              <span className="max-sm:sr-only">
+                                                {translator.translateText(
+                                                  NEEDS_APPROVAL_LABEL,
+                                                )}
+                                              </span>
+                                            </div>
                                           ) : (
                                             <></>
                                           )}

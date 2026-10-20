@@ -898,7 +898,13 @@ const ExecutionView: FunctionComponent<
                               : "border-gray-200"
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          {/*
+                           * The step, and the buttons that move the run on:
+                           * beside it from sm up, under it on a phone, where
+                           * beside it they left its words a column one word
+                           * wide.
+                           */}
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <span className="text-xs text-gray-400 font-medium">
@@ -928,7 +934,8 @@ const ExecutionView: FunctionComponent<
                                 </div>
                               )}
                               {wait === RunbookStepWait.ApprovalToRun && (
-                                <p
+                                // A div: the icon draws a div of its own.
+                                <div
                                   className="mt-2 flex items-center gap-1.5 text-sm text-amber-800"
                                   data-testid={`runbook-execution-step-${idx}-approve-to-run`}
                                 >
@@ -937,13 +944,15 @@ const ExecutionView: FunctionComponent<
                                     size={SizeProp.Smaller}
                                     className="h-3.5 w-3.5 shrink-0 text-amber-600"
                                   />
-                                  {translator.translateText(
-                                    APPROVE_TO_RUN_NOTE,
-                                  )}
-                                </p>
+                                  <span>
+                                    {translator.translateText(
+                                      APPROVE_TO_RUN_NOTE,
+                                    )}
+                                  </span>
+                                </div>
                               )}
                             </div>
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <div className="flex items-center gap-2 empty:hidden sm:flex-shrink-0">
                               {canComplete && (
                                 <Button
                                   title={getWaitingStepButtonTitle(
