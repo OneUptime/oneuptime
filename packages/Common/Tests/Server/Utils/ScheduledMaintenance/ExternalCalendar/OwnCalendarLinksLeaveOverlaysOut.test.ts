@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../../Server/Utils/Logger");
 
@@ -148,13 +149,13 @@ describe("the team's calendar link of a project with external calendars", () => 
     overlay.endsAt = new Date("2026-12-26T00:00:00.000Z");
     overlay.isAllDay = true;
 
-    const eventReads: jest.SpiedFunction<
+    const eventReads: SpyInstance<
       typeof ScheduledMaintenanceExternalCalendarEventService.findBy
     > = jest
       .spyOn(ScheduledMaintenanceExternalCalendarEventService, "findBy")
       .mockResolvedValue([overlay]);
 
-    const calendarReads: jest.SpiedFunction<
+    const calendarReads: SpyInstance<
       typeof ScheduledMaintenanceExternalCalendarService.findBy
     > = jest
       .spyOn(ScheduledMaintenanceExternalCalendarService, "findBy")

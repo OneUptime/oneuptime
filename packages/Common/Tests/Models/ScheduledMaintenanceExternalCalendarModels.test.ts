@@ -63,7 +63,10 @@ const SETTING_COLUMNS: Array<string> = [
   "refreshIntervalInMinutes",
 ];
 
-function typeormColumn(target: ModelType, propertyName: string): ColumnMetadataArgs {
+function typeormColumn(
+  target: ModelType,
+  propertyName: string,
+): ColumnMetadataArgs {
   const column: ColumnMetadataArgs | undefined =
     getMetadataArgsStorage().columns.find((entry: ColumnMetadataArgs) => {
       return entry.target === target && entry.propertyName === propertyName;
@@ -82,11 +85,10 @@ function indexColumnLists(target: ModelType): Array<Array<string>> {
       return entry.target === target;
     })
     .map((entry: IndexMetadataArgs): Array<string> => {
+      // A property's own @Index() is kept as columns: [its name].
       return Array.isArray(entry.columns)
         ? (entry.columns as Array<string>)
-        : entry.propertyName
-          ? [entry.propertyName]
-          : [];
+        : [];
     });
 }
 
@@ -118,7 +120,9 @@ describe("ScheduledMaintenanceExternalCalendar: the table", () => {
     expect(calendar.getCreateBillingPlan()).toBeFalsy();
     expect(calendar.getReadBillingPlan()).toBeFalsy();
     expect(calendar.enableDocumentation).toBe(true);
-    expect(calendar.singularName).toBe("Scheduled Maintenance External Calendar");
+    expect(calendar.singularName).toBe(
+      "Scheduled Maintenance External Calendar",
+    );
     expect(calendar.tableDescription).toContain(".ics");
   });
 
@@ -161,7 +165,10 @@ describe("ScheduledMaintenanceExternalCalendar: the link", () => {
     expect(metadata.required).toBe(true);
     expect(metadata.canReadOnRelationQuery).toBe(false);
     expect(metadata.type).toBe(TableColumnType.VeryLongText);
-    expect(typeormColumn(ScheduledMaintenanceExternalCalendar, "calendarUrl").options.nullable).toBe(false);
+    expect(
+      typeormColumn(ScheduledMaintenanceExternalCalendar, "calendarUrl").options
+        .nullable,
+    ).toBe(false);
 
     expect(
       calendar.getTableColumns().columns.filter((column: string) => {
@@ -221,7 +228,8 @@ describe("ScheduledMaintenanceExternalCalendar: settings and status", () => {
       update: [],
     });
     expect(
-      calendar.getTableColumnMetadata("contentDigest").hideColumnInDocumentation,
+      calendar.getTableColumnMetadata("contentDigest")
+        .hideColumnInDocumentation,
     ).toBe(true);
   });
 
@@ -303,7 +311,11 @@ describe("ScheduledMaintenanceExternalCalendarEvent", () => {
         continue;
       }
 
-      expect({ column, create: accessControl.create, update: accessControl.update }).toEqual({
+      expect({
+        column,
+        create: accessControl.create,
+        update: accessControl.update,
+      }).toEqual({
         column,
         create: [],
         update: [],

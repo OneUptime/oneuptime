@@ -24,7 +24,14 @@ const EVENTS: string = "ScheduledMaintenanceExternalCalendarEvent";
 const CREATE_TABLE_PATTERN: RegExp = /^CREATE TABLE "([A-Za-z]+)"/;
 const INDEX_NAME_PATTERN: RegExp = /CREATE (?:UNIQUE )?INDEX "([^"]+)"/;
 const TABLE_MENTION_PATTERN: RegExp = /(?:TABLE|ON|REFERENCES) "([A-Za-z]+)"/g;
-const TRAILING_TIMESTAMP_PATTERN: RegExp = /(\d+)$/;
+// A migration's class name ends with its 13-digit timestamp.
+const TIMESTAMP_PATTERN: RegExp = /^\d{13}$/;
+
+function timestampOf(name: string): number {
+  const tail: string = name.slice(-13);
+
+  return TIMESTAMP_PATTERN.test(tail) ? parseInt(tail, 10) : 0;
+}
 
 type MigrationClass = new () => MigrationInterface;
 
@@ -96,11 +103,7 @@ describe("AddScheduledMaintenanceExternalCalendars migration", () => {
     );
 
     for (let before: number = 0; before < index; before++) {
-      const match: RegExpMatchArray | null = registered[before]!.name.match(
-        TRAILING_TIMESTAMP_PATTERN,
-      );
-
-      expect(match ? parseInt(match[1]!, 10) : 0).toBeLessThan(TIMESTAMP);
+      expect(timestampOf(registered[before]!.name)).toBeLessThan(TIMESTAMP);
     }
   });
 
@@ -203,9 +206,7 @@ describe("AddScheduledMaintenanceExternalCalendars migration", () => {
 
   test("calendars and events go with their project, events with their calendar; a user's removal leaves them", () => {
     expect(up).toContainEqual(
-      expect.stringContaining(
-        `ALTER TABLE "${CALENDARS}" ADD CONSTRAINT`,
-      ),
+      expect.stringContaining(`ALTER TABLE "${CALENDARS}" ADD CONSTRAINT`),
     );
     expect(
       up.filter((sql: string) => {
