@@ -752,6 +752,31 @@ describe("metric pipeline regex filters", () => {
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]!.length).toBeLessThan(1500);
+    // Its beginning, then how long it is - in plain text.
+    expect(warnings[0]).toContain(
+      `"(${"a".repeat(999)}…" (2000001 characters)`,
+    );
+    expect(warnings[0]).not.toContain("\u0000");
+  });
+
+  test("a short invalid pattern is warned about whole", () => {
+    MetricPipelineRuleService.clearCache();
+
+    const warnings: Array<string> = [];
+
+    jest.spyOn(logger, "warn").mockImplementation((message: unknown) => {
+      warnings.push(String(message));
+      return undefined as never;
+    });
+
+    MetricPipelineRuleService.applyRules(
+      { name: "node_cpu_seconds", attributes: {}, attributeKeys: [] },
+      undefined,
+      regexRule(MetricPipelineRuleFilterConditionType.MatchesRegex, "(node"),
+    );
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain(`Invalid regex "(node" (first seen on`);
   });
 
   test("while it holds, filters answer as before", () => {

@@ -64,6 +64,13 @@ function warnedPatternKey(pattern: string): string {
     : `${pattern.length}\u0000${pattern.slice(0, REGEX_MEMO_MAX_KEY_LENGTH)}`;
 }
 
+// How a warning shows a pattern: whole, or its beginning and its length.
+function shownPattern(pattern: string): string {
+  return pattern.length <= REGEX_MEMO_MAX_KEY_LENGTH
+    ? `"${pattern}"`
+    : `"${pattern.slice(0, REGEX_MEMO_MAX_KEY_LENGTH)}…" (${pattern.length} characters)`;
+}
+
 /*
  * The compiled pattern, or null when it cannot be compiled - warned about
  * once. Throws PatternWorkLimitError when it was not compiled only because
@@ -90,7 +97,7 @@ function getCompiledRegex(
 
       warnedInvalidPatterns.add(key);
       logger.warn(
-        `Invalid regex "${key}" (first seen on MetricPipelineRule ${ruleId}; warned once per pattern — every rule using it treats the filter as non-matching): ${
+        `Invalid regex ${shownPattern(pattern)} (first seen on MetricPipelineRule ${ruleId}; warned once per pattern — every rule using it treats the filter as non-matching): ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
