@@ -54,9 +54,18 @@ describe("dashboard-wide time range zoom wiring", () => {
        * dashboard ended up with a "Reset Zoom" button that appeared after
        * an ordinary picker change.
        */
+      /*
+       * Through the viewer settings (issue #5080), which own the zoom hook
+       * and open the board on the link's, the viewer's or the dashboard's
+       * own range instead of always the past hour.
+       */
       expect(shell).toContain(
-        "useDashboardTimeRangeZoom({ range: TimeRange.PAST_ONE_HOUR, })",
+        "const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({ dashboardId: props.dashboardId.toString(), });",
       );
+      expect(shell).toContain(
+        "const timeRangeZoom: DashboardTimeRangeZoom = viewerSettings.timeRangeZoom;",
+      );
+      expect(shell).not.toContain("useDashboardTimeRangeZoom(");
       expect(shell).toContain(
         "onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}",
       );
@@ -73,14 +82,22 @@ describe("dashboard-wide time range zoom wiring", () => {
     /*
      * An explicit pick is a new baseline. Routing it through
      * zoomToTimeRange instead would make "Reset zoom" offer to jump back
-     * to a range the user just deliberately left.
+     * to a range the user just deliberately left. The viewer settings'
+     * pickTimeRange hands it to setStartAndEndDate (selectRange), and keeps
+     * a preset as the viewer's own (issue #5080).
      */
     expect(readSquashed(AUTHENTICATED_SHELL)).toContain(
-      "timeRangeZoom.setStartAndEndDate(newStartAndEndDate);",
+      "viewerSettings.pickTimeRange(newStartAndEndDate);",
     );
     expect(readSquashed(PUBLIC_SHELL)).toContain(
-      "timeRangeZoom.setStartAndEndDate(newRange);",
+      "viewerSettings.pickTimeRange(newRange);",
     );
+    expect(
+      readSquashed("Common/UI/Utils/UseDashboardViewerSettings.ts"),
+    ).toContain("setStartAndEndDate(range);");
+    expect(
+      readSquashed("Common/UI/Utils/UseDashboardViewerSettings.ts"),
+    ).not.toContain("zoomToTimeRange(");
   });
 
   test("the public dashboard's hand-rolled range stack is gone", () => {
