@@ -109,8 +109,17 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
     ModelAction.Update,
   );
 
+  /*
+   * The table reads its rows again. A row action's own completion only
+   * clears its spinner (RowActions), so every action that changes a row -
+   * Read now, Turn on, Turn off, Change link - asks for this itself, or the
+   * row would go on saying Working after Turn off.
+   */
   const reload: () => void = (): void => {
-    setRefreshToggle(Date.now().toString());
+    // A count, so two reloads in one millisecond are still two.
+    setRefreshToggle((previous: string): string => {
+      return String(Number(previous || 0) + 1);
+    });
   };
 
   const setEnabled: (
@@ -131,6 +140,7 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
         data: { isEnabled: isEnabled },
       });
       onCompleteAction();
+      reload();
     } catch (err) {
       onError(err as Error);
     }
@@ -282,6 +292,7 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
               try {
                 await readExternalCalendarNow(item.id!);
                 onCompleteAction();
+                reload();
               } catch (err) {
                 onError(new Error(API.getFriendlyMessage(err)));
               }

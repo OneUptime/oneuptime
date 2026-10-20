@@ -192,11 +192,14 @@ function calendar(overrides: Partial<Calendar> = {}): Calendar {
 function renderPage(): Record<string, unknown> {
   recordedTables.length = 0;
   render(
-    <ScheduledMaintenanceCalendarSettings
-      {...({} as PageComponentProps)}
-    />,
+    <ScheduledMaintenanceCalendarSettings {...({} as PageComponentProps)} />,
   );
   return recordedTables[recordedTables.length - 1]!;
+}
+
+// What the table was last told to read its rows by: a new value reloads it.
+function lastRefreshToggle(): unknown {
+  return recordedTables[recordedTables.length - 1]!["refreshToggle"];
 }
 
 function fields(table: Record<string, unknown>): Array<Field<Calendar>> {
@@ -389,7 +392,10 @@ describe("the form", () => {
 
   test("the refresh offers five choices, every hour among them, in words", () => {
     const table: Record<string, unknown> = renderPage();
-    const refresh: Field<Calendar> = fieldFor(table, "refreshIntervalInMinutes");
+    const refresh: Field<Calendar> = fieldFor(
+      table,
+      "refreshIntervalInMinutes",
+    );
 
     expect(refresh.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(refresh.title).toBe("Refresh");
@@ -424,7 +430,9 @@ describe("the form", () => {
 
     expect(postMock).toHaveBeenCalledTimes(1);
     expect(
-      (postMock.mock.calls[0]![0] as { url: { toString: () => string } }).url.toString(),
+      (
+        postMock.mock.calls[0]![0] as { url: { toString: () => string } }
+      ).url.toString(),
     ).toBe(
       URL.fromURL(APP_API_URL).addRoute(getReadNowPath(CALENDAR_ID)).toString(),
     );
@@ -505,7 +513,9 @@ describe("the columns", () => {
     ) => {
       const table: Record<string, unknown> = renderPage();
       const cell: HTMLElement = renderCell(
-        column(table, "Status").getElement!(calendar(overrides)) as ReactElement,
+        column(table, "Status").getElement!(
+          calendar(overrides),
+        ) as ReactElement,
       );
 
       expect(cell).toHaveTextContent(label);
@@ -611,13 +621,24 @@ describe("the row's actions", () => {
     expect(readNow.isVisible!(calendar())).toBe(true);
     expect(readNow.isVisible!(calendar({ isEnabled: false }))).toBe(false);
 
+    const before: unknown = lastRefreshToggle();
+
     await act(async () => {
-      await (readNow.onClick(calendar(), done as never, failed as never) as unknown as Promise<void>);
+      await (readNow.onClick(
+        calendar(),
+        done as never,
+        failed as never,
+      ) as unknown as Promise<void>);
     });
 
     expect(postMock).toHaveBeenCalledTimes(1);
     expect(done).toHaveBeenCalledTimes(1);
     expect(failed).not.toHaveBeenCalled();
+
+    // The row's status is read again: the table reloads.
+    const afterRead: unknown = lastRefreshToggle();
+
+    expect(afterRead).not.toBe(before);
 
     postMock.mockImplementation(async () => {
       return new HTTPErrorResponse(
@@ -628,10 +649,16 @@ describe("the row's actions", () => {
     });
 
     await act(async () => {
-      await (readNow.onClick(calendar(), done as never, failed as never) as unknown as Promise<void>);
+      await (readNow.onClick(
+        calendar(),
+        done as never,
+        failed as never,
+      ) as unknown as Promise<void>);
     });
 
     expect(failed).toHaveBeenCalledTimes(1);
+    // A refused read changed nothing: no reload.
+    expect(lastRefreshToggle()).toBe(afterRead);
   });
 
   test("Turn off and Turn on write whether it is enabled, and each shows only when it applies", async () => {
@@ -645,8 +672,14 @@ describe("the row's actions", () => {
     expect(turnOff.isVisible!(calendar({ isEnabled: false }))).toBe(false);
     expect(turnOn.isVisible!(calendar({ isEnabled: false }))).toBe(true);
 
+    const before: unknown = lastRefreshToggle();
+
     await act(async () => {
-      await (turnOff.onClick(calendar(), done as never, (() => {}) as never) as unknown as Promise<void>);
+      await (turnOff.onClick(
+        calendar(),
+        done as never,
+        (() => {}) as never,
+      ) as unknown as Promise<void>);
     });
 
     expect(updateByIdMock.mock.calls[0]![0]).toMatchObject({
@@ -655,19 +688,56 @@ describe("the row's actions", () => {
       data: { isEnabled: false },
     });
 
+    // The row says Off: the table reloads.
+    const afterOff: unknown = lastRefreshToggle();
+
+    expect(afterOff).not.toBe(before);
+
     await act(async () => {
-      await (turnOn.onClick(calendar({ isEnabled: false }), done as never, (() => {}) as never) as unknown as Promise<void>);
+      await (turnOn.onClick(
+        calendar({ isEnabled: false }),
+        done as never,
+        (() => {}) as never,
+      ) as unknown as Promise<void>);
     });
 
     expect(updateByIdMock.mock.calls[1]![0]).toMatchObject({
       data: { isEnabled: true },
     });
     expect(done).toHaveBeenCalledTimes(2);
+    expect(lastRefreshToggle()).not.toBe(afterOff);
+  });
+
+  test("a Turn off the server refuses says why, and reloads nothing", async () => {
+    updateByIdMock.mockImplementation(async () => {
+      throw new Error("You do not have permission to edit this calendar.");
+    });
+
+    const table: Record<string, unknown> = renderPage();
+    const failed: MockFunction = getJestMockFunction();
+    const before: unknown = lastRefreshToggle();
+
+    await act(async () => {
+      await (action(table, "Turn off").onClick(
+        calendar(),
+        (() => {}) as never,
+        failed as never,
+      ) as unknown as Promise<void>);
+    });
+
+    expect(failed).toHaveBeenCalledTimes(1);
+    expect((failed.mock.calls[0]![0] as Error).message).toBe(
+      "You do not have permission to edit this calendar.",
+    );
+    expect(lastRefreshToggle()).toBe(before);
   });
 
   test("Change link asks for the new link alone, saves it, then reads the calendar", async () => {
     const table: Record<string, unknown> = renderPage();
-    const changeLink: ActionButtonSchema<Calendar> = action(table, "Change link");
+    const changeLink: ActionButtonSchema<Calendar> = action(
+      table,
+      "Change link",
+    );
 
     act(() => {
       changeLink.onClick(calendar(), (() => {}) as never, (() => {}) as never);
@@ -679,8 +749,9 @@ describe("the row's actions", () => {
 
     const modal: Record<string, unknown> =
       recordedModals[recordedModals.length - 1]!;
-    const formProps: { fields: Array<Field<Record<string, unknown>>> } =
-      modal["formProps"] as never;
+    const formProps: { fields: Array<Field<Record<string, unknown>>> } = modal[
+      "formProps"
+    ] as never;
 
     expect(formProps.fields).toHaveLength(1);
     expect(Object.keys(formProps.fields[0]!.field || {})).toEqual([
@@ -708,7 +779,9 @@ describe("the row's actions", () => {
 
   test("a refused new link keeps the dialog open, saying why", async () => {
     updateByIdMock.mockImplementation(async () => {
-      throw new Error("The link must start with https://, http:// or webcal://.");
+      throw new Error(
+        "The link must start with https://, http:// or webcal://.",
+      );
     });
 
     const table: Record<string, unknown> = renderPage();
