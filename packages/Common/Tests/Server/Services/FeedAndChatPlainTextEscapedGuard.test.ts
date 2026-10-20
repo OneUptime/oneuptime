@@ -172,6 +172,12 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     inFunction: "buildPlanningContext",
     reason: PROMPT_REASON,
   },
+  // A fix through the project's external MCP servers: its two personas.
+  {
+    file: "packages/Common/Server/Utils/AI/Remediation/McpRemediationRunner.ts",
+    text: "You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer",
+    reason: PROMPT_REASON,
+  },
   {
     file: "packages/Common/Server/Utils/AI/SRE/AlertInvestigationRunner.ts",
     inFunction: "buildAlertSummary",

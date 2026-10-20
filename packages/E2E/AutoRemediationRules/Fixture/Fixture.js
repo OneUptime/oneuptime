@@ -18,6 +18,20 @@
  *                     from before rules were simplified (AI composes
  *                     commands on Runners, AI picks a runbook); none by
  *                     default
+ *   - investigationRules=saved
+ *                     the lane's investigation rules (issue #5074): one
+ *                     that investigates right away, and one that
+ *                     investigates only the records still open after 10
+ *                     minutes; none by default
+ *   - investigationRules=many
+ *                     those two and three more, as a full table looks: a
+ *                     long name with three conditions that waits 90
+ *                     minutes, one that waits 120, and a disabled one that
+ *                     waits a day (1440)
+ *   - layout=page     the page in the Dashboard's own frame, beside a side
+ *                     menu (Common's Page and SideMenu), so the cards are as
+ *                     wide as a person sees them (about 940px of a 1280px
+ *                     screen); the default is the page alone
  *   - runners=0       the project has no Runner of its own (two by default,
  *                     prod-eu-runner connected and office-runner never
  *                     connected, beside the in-cluster Runner the Kubernetes
@@ -48,8 +62,10 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import IncidentAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
 import AlertAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertAISettings";
+import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
+import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -58,6 +74,10 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
+import Page from "Common/UI/Components/Page/Page";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
@@ -76,6 +96,12 @@ const USER_ID = "30000000-0000-4000-8000-0000000000c1";
 const params = new URLSearchParams(window.location.search);
 const lane = params.get("lane") === "alert" ? "alert" : "incident";
 const hasSavedRules = params.get("rules") === "saved";
+const investigationRuleSet = ["saved", "many"].includes(
+  params.get("investigationRules"),
+)
+  ? params.get("investigationRules")
+  : "none";
+const layout = params.get("layout") === "page" ? "page" : "alone";
 const runnerCount = params.get("runners") === "0" ? 0 : 2;
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
@@ -261,6 +287,29 @@ const AGENT_RUNNER = record(Runner, {
 const RUNNERS =
   runnerCount > 0 ? [...ALL_RUNNERS.slice(0, runnerCount), AGENT_RUNNER] : [];
 
+// The project's external MCP servers, which both kinds of rule may name.
+const MCP_SERVER_IDS = {
+  aws: "c0000000-0000-4000-8000-000000000e01",
+  github: "c0000000-0000-4000-8000-000000000e02",
+};
+
+const MCP_SERVERS = [
+  record(ExternalMcpServer, {
+    _id: MCP_SERVER_IDS.aws,
+    name: "AWS",
+    projectId: new ObjectID(PROJECT_ID),
+    url: "https://mcp.aws.example.com/mcp",
+    isEnabled: true,
+  }),
+  record(ExternalMcpServer, {
+    _id: MCP_SERVER_IDS.github,
+    name: "GitHub",
+    projectId: new ObjectID(PROJECT_ID),
+    url: "https://mcp.github.example.com/mcp",
+    isEnabled: true,
+  }),
+];
+
 const trigger = lane === "alert" ? "Alert" : "Incident";
 
 function runbooksNamed(ids) {
@@ -338,6 +387,89 @@ const SAVED_RULES = [
   }),
 ];
 
+/*
+ * The lane's investigation rules (issue #5074): one that investigates right
+ * away (no wait stored, as every rule saved before rules could wait), and one
+ * that investigates only the records still open after 10 minutes.
+ */
+const SAVED_INVESTIGATION_RULE_IDS = {
+  rightAway: "91000000-0000-4000-8000-000000000e01",
+  waits: "91000000-0000-4000-8000-000000000e02",
+};
+
+const SAVED_INVESTIGATION_RULES = [
+  record(AIInvestigationRule, {
+    _id: SAVED_INVESTIGATION_RULE_IDS.rightAway,
+    projectId: new ObjectID(PROJECT_ID),
+    name: lane === "alert" ? "Production alerts" : "Production incidents",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    criteria: null,
+  }),
+  record(AIInvestigationRule, {
+    _id: SAVED_INVESTIGATION_RULE_IDS.waits,
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Flapping checks",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 10,
+    criteria: null,
+  }),
+];
+
+/*
+ * A full table (investigationRules=many): a long name with three
+ * conditions, the waits a project picks most beyond a few minutes, and the
+ * longest a rule may wait, on a disabled rule.
+ */
+const MORE_INVESTIGATION_RULES = [
+  record(AIInvestigationRule, {
+    _id: "91000000-0000-4000-8000-000000000e03",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Payments and checkout incidents on the eu-west-1 cluster after a deploy",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 90,
+    criteria: {
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [
+        {
+          field: lane === "alert" ? "alertSeverities" : "incidentSeverities",
+          operator: "HasAnyOf",
+          value: [
+            (lane === "alert" ? ALERT_SEVERITIES : INCIDENT_SEVERITIES)[0]._id,
+          ],
+        },
+        { field: "labels", operator: "HasAnyOf", value: [LABELS[0]._id] },
+        {
+          field: "titlePattern",
+          operator: "MatchesPattern",
+          value: "payments|checkout",
+        },
+      ],
+    },
+  }),
+  record(AIInvestigationRule, {
+    _id: "91000000-0000-4000-8000-000000000e04",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Batch jobs",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 120,
+    criteria: null,
+  }),
+  record(AIInvestigationRule, {
+    _id: "91000000-0000-4000-8000-000000000e05",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Nightly backups",
+    isEnabled: false,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 1440,
+    criteria: null,
+  }),
+];
+
 const TABLES = {
   Project: [project],
   AutoRemediationRule: hasSavedRules ? SAVED_RULES : [],
@@ -347,7 +479,13 @@ const TABLES = {
   AlertSeverity: ALERT_SEVERITIES,
   Label: LABELS,
   Monitor: MONITORS,
-  AIInvestigationRule: [],
+  AIInvestigationRule:
+    investigationRuleSet === "many"
+      ? [...SAVED_INVESTIGATION_RULES, ...MORE_INVESTIGATION_RULES]
+      : investigationRuleSet === "saved"
+        ? SAVED_INVESTIGATION_RULES
+        : [],
+  ExternalMcpServer: MCP_SERVERS,
   AIPostmortemRule: [],
   IncidentPostmortemTemplate: [],
 };
@@ -464,6 +602,8 @@ function applyRuleFields(item, json) {
   for (const [key, value] of Object.entries(json)) {
     if (key === "runbooks") {
       item.runbooks = relationList(value, Runbook);
+    } else if (key === "externalMcpServers") {
+      item.externalMcpServers = relationList(value, ExternalMcpServer);
     } else if (key === "runnerId") {
       item.runnerId = value ? new ObjectID(idOf(value)) : null;
     } else if (key !== "_id") {
@@ -579,6 +719,43 @@ function Shell() {
   Navigation.setParams(useParams());
 
   const SettingsPage = lane === "alert" ? AlertAISettings : IncidentAISettings;
+
+  /*
+   * The Dashboard's frame: the page beside its side menu, which is what
+   * leaves a card about 940px of a 1280px screen.
+   */
+  if (layout === "page") {
+    return (
+      <Page
+        title={lane === "alert" ? "Alerts" : "Incidents"}
+        breadcrumbLinks={[]}
+        sideMenu={
+          <SideMenu
+            sections={[
+              {
+                title: "AI",
+                items: [
+                  {
+                    link: {
+                      title: "Settings",
+                      to: new Route(window.location.pathname),
+                    },
+                    icon: IconProp.Settings,
+                  },
+                ],
+              },
+            ]}
+          />
+        }
+      >
+        <SettingsPage
+          pageRoute={Navigation.getCurrentRoute()}
+          currentProject={project}
+          hasPaymentMethod={true}
+        />
+      </Page>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-[1100px] px-4 py-8 sm:px-8">

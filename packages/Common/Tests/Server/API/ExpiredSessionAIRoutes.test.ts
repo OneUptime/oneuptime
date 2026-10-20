@@ -164,6 +164,14 @@ const AI_INVESTIGATION_ROUTES: Array<HumanOnlyRoute> = [
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "alertRead",
   },
+  // Investigate now, while an investigation rule waits (issue #5074).
+  {
+    uri: "/ai-investigation/investigate-now",
+    params: {},
+    body: { subjectType: "incident", subjectId: SUBJECT_ID.toString() },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "incidentRead",
+  },
   {
     uri: "/ai-investigation/evidence",
     params: {},

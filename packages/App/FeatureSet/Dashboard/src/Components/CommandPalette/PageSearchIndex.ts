@@ -445,6 +445,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS,
+            title: "External MCP Servers",
+            icon: IconProp.PuzzlePiece,
+            keywords: [
+              "mcp tools",
+              "model context protocol",
+              "aws",
+              "azure",
+              "github",
+              "ai tools",
+            ],
+          },
+          {
             page: PageMap.SETTINGS_AI_CREDITS,
             title: "AI Credits",
             icon: IconProp.Billing,

@@ -74,6 +74,15 @@ import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
   delete: [],
   update: [],
 })
+/*
+ * The investigations an investigation rule made wait (ruleWaitMinutes), by
+ * when they finished: every alert that opens reads the ones of its project
+ * that finished in the last half hour (IncidentFollowUpCheck). Partial, so a
+ * project with none - and every other run - costs nothing.
+ */
+@Index(["projectId", "completedAt"], {
+  where: '"ruleWaitMinutes" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class AIRun extends BaseModel {
   @ColumnAccessControl({
     create: [],
@@ -480,6 +489,39 @@ export default class AIRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public followUpForAlertId?: ObjectID = undefined;
+
+  /*
+   * Set on an incident or alert investigation an investigation rule made
+   * wait (issue #5074): the minutes the rule waited to see whether the
+   * incident or alert would still be open - also when someone started it
+   * before the wait ended. Such a run was not waited for by auto
+   * remediation (it started when the incident was declared), so it never
+   * hands the incident to remediation when it settles, and an incident's
+   * follow-up check counts its window from when it finished
+   * (InvestigationRuleWait, IncidentFollowUpCheck). Null on every other run.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Rule Wait (Minutes)",
+    description:
+      "For an investigation an investigation rule made wait: the minutes the rule waited to see whether the incident or alert would still be open. Empty when it started right away.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public ruleWaitMinutes?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

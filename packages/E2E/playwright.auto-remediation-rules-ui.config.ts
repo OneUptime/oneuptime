@@ -18,7 +18,11 @@ const port: string =
 
 export default defineConfig({
   testDir: "./AutoRemediationRules",
-  testMatch: ["AutoRemediationRules.spec.ts"],
+  /*
+   * The investigation rules beside them on the same page (issue #5074): when
+   * a rule investigates - right away, or only if still open after a wait.
+   */
+  testMatch: ["AutoRemediationRules.spec.ts", "InvestigationRules.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

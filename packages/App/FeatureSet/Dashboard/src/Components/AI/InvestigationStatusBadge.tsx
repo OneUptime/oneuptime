@@ -11,6 +11,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  *  - "checking": the panel is still asking whether a run exists;
  *  - "done": the run reported;
  *  - "idle": nothing ran, and nothing is wrong with the page;
+ *  - "waiting": an investigation rule makes OneUptime AI wait before it
+ *    investigates (issue #5074): calm, nothing moves until the wait ends;
  *  - "attention": something is missing that a reader should notice (a run
  *    without a report, a status that could not be loaded);
  *  - "failed": the run stopped before it could report.
@@ -20,6 +22,7 @@ export type InvestigationStatusIndicator =
   | "checking"
   | "done"
   | "idle"
+  | "waiting"
   | "attention"
   | "failed";
 
@@ -57,6 +60,15 @@ export function renderInvestigationStatusIndicator(
       <Icon
         icon={IconProp.Check}
         className={`${ICON_CLASS_NAME} text-green-600`}
+      />
+    );
+  }
+
+  if (indicator === "waiting") {
+    return (
+      <Icon
+        icon={IconProp.Clock}
+        className={`${ICON_CLASS_NAME} text-indigo-500`}
       />
     );
   }

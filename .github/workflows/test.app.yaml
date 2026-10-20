@@ -317,12 +317,9 @@ jobs:
           # dashboard beside Create a workflow, at a laptop's and a phone's
           # width, both read in all 17 languages, Chromium only) joined them
           # the same day: about 17 minutes for the six, still under the 22 the
-          # groups are kept to. Dashboard Time Range (about 3 minutes with its
-          # bundle locally: a dashboard's default time range and auto-refresh
-          # inside OneUptime and on its public page, at a laptop's width and,
-          # for what a phone changes, a phone's, Chromium only) joined them the
-          # same day: about 20 minutes for the seven. The next suite needs
-          # another group.
+          # groups are kept to. External MCP Servers (about a minute with its
+          # bundle locally, Chromium only: Project Settings > AI > External
+          # MCP Servers and a server's page) joined them too: about 18.
           - group: 7
             browsers: chromium
             suites: >-
@@ -332,6 +329,16 @@ jobs:
               test-custom-roles-ui
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
+              test-external-mcp-servers-ui
+          # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
+          # dashboard's default time range and auto-refresh inside OneUptime
+          # and on its public page, at a laptop's width and, for what a phone
+          # changes, a phone's, Chromium only) would have taken group 7 to
+          # about 21.5 minutes on 2026-10-20, so it opened a group of its own,
+          # with room for the next suites.
+          - group: 8
+            browsers: chromium
+            suites: >-
               test-dashboard-time-range-ui
     steps:
       - uses: actions/checkout@v4
@@ -470,6 +477,8 @@ jobs:
             output/playwright/global-runners-ui/test-results
             output/playwright/auto-remediation-rules-ui/*.png
             output/playwright/auto-remediation-rules-ui/test-results
+            output/playwright/external-mcp-servers-ui/*.png
+            output/playwright/external-mcp-servers-ui/test-results
             output/playwright/runbook-variables-ui/*.png
             output/playwright/runbook-variables-ui/test-results
             output/playwright/network-first-run-ui/*.png

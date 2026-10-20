@@ -563,7 +563,7 @@ Grouping, SLA, reminder, investigation and auto remediation rules act on the new
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
 - **Auto Remediation Rules**, under **AI** → **Settings** — which new incidents are fixed while **Fix new incidents automatically** is on, and how: asking before fixing or not, and the runbooks OneUptime AI may run. With no rule, every new incident is fixed. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand.
-- **Investigation Rules**, under **AI** → **Settings** — which new incidents OneUptime AI investigates. With no rule, every one is. See [AI SRE](/docs/ai/ai-sre).
+- **Investigation Rules**, under **AI** → **Settings** — which new incidents OneUptime AI investigates. With no rule, every one is. A rule can also make it wait, and investigate only the incidents still open after that many minutes. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
 - **SLA Rules** — track response and resolution times. Rules are evaluated from the top of the list down; drag a rule to change its place.

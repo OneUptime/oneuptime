@@ -1906,6 +1906,9 @@ export const NOT_INVESTIGATED_REASONS: Record<
       "Their monitor had just been investigated, inside the re-investigation cooldown.",
     ),
     created_resolved: translationKey("They were created already resolved."),
+    resolved_before_investigation: translationKey(
+      "They were resolved during an investigation rule's wait.",
+    ),
     daily_budget_exhausted: translationKey(
       "The daily AI token limit was reached.",
     ),
@@ -1942,6 +1945,9 @@ export const NOT_INVESTIGATED_REASONS: Record<
       "Their monitor had just been investigated, inside the re-investigation cooldown.",
     ),
     created_resolved: translationKey("They were created already resolved."),
+    resolved_before_investigation: translationKey(
+      "They were resolved during an investigation rule's wait.",
+    ),
     daily_budget_exhausted: translationKey(
       "The daily AI token limit was reached.",
     ),

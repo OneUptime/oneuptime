@@ -1,6 +1,9 @@
 import AutoRemediationRuleEngineService, {
   MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
   MAX_SUGGESTIONS_PER_SUBJECT,
+  hasMcpFix,
+  isDefaultRunbookPick,
+  mayMcpFixChangeWithoutAsking,
 } from "../../../Server/Services/AutoRemediationRuleEngineService";
 import AutoRemediationDecisionService from "../../../Server/Services/AutoRemediationDecisionService";
 import AutoRemediationRuleService from "../../../Server/Services/AutoRemediationRuleService";
@@ -11,6 +14,7 @@ import MonitorService from "../../../Server/Services/MonitorService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ResourceAiAccessService from "../../../Server/Services/ResourceAiAccessService";
 import RunbookService from "../../../Server/Services/RunbookService";
+import ExternalMcpServerService from "../../../Server/Services/ExternalMcpServerService";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
@@ -33,6 +37,9 @@ import {
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
+import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
+import { ExternalMcpServerAllowance } from "../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 import {
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -123,6 +130,7 @@ type EngineInternals = {
   startAiPlanning: (data: unknown) => Promise<boolean>;
   suggestRunbook: (data: unknown) => Promise<void>;
   autoExecuteRunbook: (data: unknown) => Promise<boolean>;
+  startMcpFix: (data: unknown) => Promise<boolean>;
 };
 
 const engine: EngineInternals =
@@ -255,6 +263,12 @@ function mockEngine(data: {
    * said: with none, OneUptime AI picks no runbook and says nothing of it.
    */
   enabledRunbooks?: number | undefined;
+  /*
+   * Whether an external MCP server the fix may use could make it. No
+   * unless said: with none, OneUptime AI starts no fix through them and
+   * says nothing of it.
+   */
+  mcpServersMayFix?: boolean | Error | undefined;
 }): Harness {
   const saved: Array<AutoRemediationDecision> = [];
 
@@ -328,6 +342,14 @@ function mockEngine(data: {
   jest
     .spyOn(RunbookService, "countBy")
     .mockResolvedValue(new PositiveNumber(data.enabledRunbooks || 0));
+  jest
+    .spyOn(ExternalMcpServerService, "hasServersThatMayFix")
+    .mockImplementation(async () => {
+      if (data.mcpServersMayFix instanceof Error) {
+        throw data.mcpServersMayFix;
+      }
+      return data.mcpServersMayFix === true;
+    });
 
   const monitorReads: Harness["monitorReads"] = jest
     .spyOn(MonitorService, "findBy")
@@ -2230,5 +2252,346 @@ describe("OneUptime AI picks a runbook, and runs commands on a rule's Runner", (
 
     expect(planning).not.toHaveBeenCalled();
     expect(compose).not.toHaveBeenCalled();
+  });
+});
+
+describe("OneUptime AI fixes through the project's external MCP servers", () => {
+  const AWS_ID: string = "88888888-8888-4888-8888-888888888881";
+
+  interface McpFixCall {
+    rule: AutoRemediationRule | null;
+    executionMode: AutoRemediationExecutionMode;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function server(id: string): ExternalMcpServer {
+    const model: ExternalMcpServer = new ExternalMcpServer();
+    model._id = id;
+    return model;
+  }
+
+  function oneUptimeAiRule(
+    overrides: Partial<AutoRemediationRule> = {},
+  ): AutoRemediationRule {
+    return rule({
+      remediationAction: AutoRemediationAction.OneUptimeAI,
+      executionMode: AutoRemediationExecutionMode.Suggest,
+      runbooks: [],
+      ...overrides,
+    });
+  }
+
+  function spyMcpFix(
+    started: boolean = true,
+  ): SpyInstance<EngineInternals["startMcpFix"]> {
+    return jest.spyOn(engine, "startMcpFix").mockResolvedValue(started);
+  }
+
+  function mcpFixCalls(
+    spy: SpyInstance<EngineInternals["startMcpFix"]>,
+  ): Array<McpFixCall> {
+    return spy.mock.calls.map((call: Array<unknown>): McpFixCall => {
+      return call[0] as McpFixCall;
+    });
+  }
+
+  // The servers each check asked about.
+  function askedAllowances(): Array<ExternalMcpServerAllowance> {
+    return (
+      ExternalMcpServerService.hasServersThatMayFix as unknown as SpyInstance<
+        typeof ExternalMcpServerService.hasServersThatMayFix
+      >
+    ).mock.calls.map((call: Array<unknown>): ExternalMcpServerAllowance => {
+      return (call[0] as { allowance: ExternalMcpServerAllowance }).allowance;
+    });
+  }
+
+  describe("with no rule set up", () => {
+    it("works out a fix through any server and proposes every change, saying so", async () => {
+      const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        mcpServersMayFix: true,
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(mcpFixCalls(fix)).toEqual([
+        expect.objectContaining({
+          rule: null,
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ]);
+      expect(askedAllowances()).toEqual([
+        { isEveryServer: true, serverIds: [] },
+      ]);
+      expect(
+        entryFor(
+          harness,
+          AutoRemediationDecisionReason.AiFixingThroughMcpServers,
+        ).lane,
+      ).toBe(AutoRemediationDecisionLane.Project);
+    });
+
+    it("says so when the fix could not start", async () => {
+      spyMcpFix(false);
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        mcpServersMayFix: true,
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.AiMcpFixNotStarted,
+      );
+    });
+
+    it.each([
+      ["no server could make a change", { mcpServersMayFix: false }],
+      ["the project has no LLM provider", { hasLlmProvider: false }],
+      [
+        "the signal already has a fix through MCP servers",
+        {
+          existing: [
+            Object.assign(new AutoRemediationSuggestion(), {
+              suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+            }),
+          ],
+        },
+      ],
+      ["fixing new incidents is off", { remediationOn: false }],
+    ])(
+      "starts nothing, and says nothing of it, when %s",
+      async (_name: string, facts: Record<string, unknown>) => {
+        const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+        const harness: Harness = mockEngine({
+          hasLlmProvider: true,
+          mcpServersMayFix: true,
+          ...facts,
+        });
+
+        await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+        expect(fix).not.toHaveBeenCalled();
+        for (const reason of [
+          AutoRemediationDecisionReason.AiFixingThroughMcpServers,
+          AutoRemediationDecisionReason.AiMcpFixNotStarted,
+        ]) {
+          expect(reasonsOf(harness)).not.toContain(reason);
+        }
+      },
+    );
+
+    it("servers that cannot be read start no fix through them, and stop nothing else", async () => {
+      const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        mcpServersMayFix: new Error("database is down"),
+        clusters: [cluster(CLUSTER_A)],
+      });
+      jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(fix).not.toHaveBeenCalled();
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.ClusterRoundStarted,
+      );
+      expect(reasonsOf(harness)).not.toContain(
+        AutoRemediationDecisionReason.EvaluationFailed,
+      );
+    });
+  });
+
+  describe("a OneUptime AI rule", () => {
+    it("that fixes without asking and names its servers makes its changes itself", async () => {
+      const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        mcpServersMayFix: true,
+        rules: [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            externalMcpServers: [server(AWS_ID)],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(mcpFixCalls(fix)).toEqual([
+        expect.objectContaining({
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+        }),
+      ]);
+      expect(askedAllowances()).toEqual([
+        { isEveryServer: false, serverIds: [AWS_ID] },
+      ]);
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.RuleAiFixingThroughMcpServers,
+      );
+    });
+
+    it.each([
+      [
+        "names no server",
+        [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+          }),
+        ],
+      ],
+      [
+        "asks before fixing",
+        [oneUptimeAiRule({ externalMcpServers: [server(AWS_ID)] })],
+      ],
+    ])(
+      "that %s proposes every change",
+      async (_name: string, rules: Array<AutoRemediationRule>) => {
+        const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+        mockEngine({
+          hasLlmProvider: true,
+          mcpServersMayFix: true,
+          rules,
+          matchingRuleIds: [RULE_ID.toString()],
+        });
+
+        await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+        expect(mcpFixCalls(fix)).toEqual([
+          expect.objectContaining({
+            executionMode: AutoRemediationExecutionMode.Suggest,
+          }),
+        ]);
+      },
+    );
+
+    it("proposes while another matching rule asks first", async () => {
+      const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+      jest.spyOn(engine, "startAiPlanning").mockResolvedValue(true);
+      mockEngine({
+        hasLlmProvider: true,
+        mcpServersMayFix: true,
+        rules: [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            externalMcpServers: [server(AWS_ID)],
+          }),
+          oneUptimeAiRule({
+            _id: OTHER_RULE_ID.toString(),
+            name: "Ask about checkout",
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(fix).toHaveBeenCalled();
+      for (const call of mcpFixCalls(fix)) {
+        expect(call.executionMode).toBe(AutoRemediationExecutionMode.Suggest);
+      }
+    });
+
+    it("two rules that name no server start one fix through all of them, not two", async () => {
+      const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+      mockEngine({
+        hasLlmProvider: true,
+        mcpServersMayFix: true,
+        rules: [
+          oneUptimeAiRule(),
+          oneUptimeAiRule({
+            _id: OTHER_RULE_ID.toString(),
+            name: "Fix checkout too",
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(fix).toHaveBeenCalledTimes(1);
+    });
+
+    it("says it has no LLM provider rather than starting one", async () => {
+      const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: false,
+        mcpServersMayFix: true,
+        rules: [oneUptimeAiRule({ externalMcpServers: [server(AWS_ID)] })],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(fix).not.toHaveBeenCalled();
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
+      );
+    });
+
+    it("a rule that runs its runbooks every time fixes through no MCP server", async () => {
+      const fix: SpyInstance<EngineInternals["startMcpFix"]> = spyMcpFix();
+      jest.spyOn(engine, "suggestRunbook").mockResolvedValue(undefined);
+      mockEngine({
+        hasLlmProvider: true,
+        mcpServersMayFix: true,
+        rules: [rule({ externalMcpServers: [server(AWS_ID)] })],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(fix).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the rules of a fix through MCP servers", () => {
+    it("changes without asking only for a rule that fixes without asking, names its servers, and runs alone", () => {
+      const alone: Parameters<typeof mayMcpFixChangeWithoutAsking>[0] = {
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+        namesMcpServers: true,
+        anotherRuleAsksFirst: false,
+        agentRoundStarted: false,
+        unattendedPickStarted: false,
+      };
+
+      expect(mayMcpFixChangeWithoutAsking(alone)).toBe(true);
+      expect(
+        mayMcpFixChangeWithoutAsking({
+          ...alone,
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ).toBe(false);
+      expect(
+        mayMcpFixChangeWithoutAsking({ ...alone, namesMcpServers: false }),
+      ).toBe(false);
+      expect(
+        mayMcpFixChangeWithoutAsking({ ...alone, anotherRuleAsksFirst: true }),
+      ).toBe(false);
+      expect(
+        mayMcpFixChangeWithoutAsking({ ...alone, agentRoundStarted: true }),
+      ).toBe(false);
+      expect(
+        mayMcpFixChangeWithoutAsking({ ...alone, unattendedPickStarted: true }),
+      ).toBe(false);
+    });
+
+    it("a fix through MCP servers is not the default runbook pick, and is found as one", () => {
+      const mcpFix: { suggestionType: AutoRemediationSuggestionType } = {
+        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+      };
+
+      expect(isDefaultRunbookPick(mcpFix)).toBe(false);
+      expect(hasMcpFix([mcpFix])).toBe(true);
+      expect(
+        hasMcpFix([{ suggestionType: AutoRemediationSuggestionType.Runbook }]),
+      ).toBe(false);
+    });
   });
 });
