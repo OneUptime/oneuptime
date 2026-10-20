@@ -30,6 +30,10 @@ const ScheduledMaintenanceCalendarPage: FunctionComponent<
 > = (): ReactElement => {
   const { projectId } = useParams();
 
+  /*
+   * No saveFilterProps: saved views are the list's (a ModelTable's), and the
+   * calendar has none. Its filter chips still live in the page's address.
+   */
   return (
     <ScheduledMaintenancesTable
       view={ScheduledMaintenanceView.Calendar}
@@ -37,9 +41,6 @@ const ScheduledMaintenanceCalendarPage: FunctionComponent<
       description={MAINTENANCE_CALENDAR_DESCRIPTION}
       query={{
         projectId: new ObjectID(projectId || ""),
-      }}
-      saveFilterProps={{
-        tableId: "scheduled-maintenance-calendar",
       }}
     />
   );
