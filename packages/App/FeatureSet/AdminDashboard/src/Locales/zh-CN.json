@@ -489,8 +489,9 @@
       },
       "callSms": {
         "cardTitle": "Twilio 配置",
-        "cardDescription": "这将用于拨打电话和发送短信。",
-        "editButton": "编辑 Twilio 配置"
+        "cardDescription": "OneUptime 用来发送短信和拨打电话的 Twilio 账户，除非项目使用自己的 Twilio 配置。",
+        "editButton": "编辑 Twilio 配置",
+        "smsSameAsCalls": "与通话相同的号码"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp 设置",
@@ -726,7 +727,6 @@
   "Hostname": "主机名",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "OneUptime 如何使用全局 SMTP 配置投递邮件。大多数服务器请选择 'SMTP'。如果您的 Microsoft 365 租户已禁用 SMTP AUTH，请选择 'Microsoft Graph' — Graph 使用 Mail.Send 应用程序权限并完全绕过 SMTP。",
   "If you have a coupon code, enter it here.": "如果您有优惠码，请在此处输入。",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "如果您已从 Twilio 为特定国家/地区购买了更多电话号码，可以在此处添加它们。",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "如果您使用端口 465，请启用此项。如果您使用端口 587，请勿启用此项。",
   "Instance footprint": "实例占用量",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "队列工作进程的作业积压。积压不断增加或出现故障表明工作进程不健康。",
@@ -772,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "请创建一个新的 OneUptime 项目以开始使用。",
   "Please select a plan.": "请选择一个计划。",
   "Port": "端口",
-  "Primary Twilio Phone Number": "主 Twilio 电话号码",
   "Probe Logo": "探测器徽标",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "为此实例运行监控检查的探测器，以及它们当前是否正在上报。",
   "Project ID": "项目 ID",
@@ -789,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "用户名和密码身份验证需要此项。OAuth 不使用此项。",
   "Sample Description": "示例描述",
   "Sample Title": "示例标题",
-  "Secondary Twilio Phone Numbers": "辅助 Twilio 电话号码",
   "Secret token configured in Meta to validate webhook subscription requests.": "在 Meta 中配置的密钥令牌，用于验证 webhook 订阅请求。",
   "Select a team": "选择团队",
   "Select LLM Provider": "选择 LLM 提供商",
@@ -1011,5 +1009,12 @@
   "{{count}} people": "{{count}} 人",
   "{{count}} people_one": "{{count}} 人",
   "Docker Compose guide": "Docker Compose 指南",
-  "Kubernetes guide": "Kubernetes 指南"
+  "Kubernetes guide": "Kubernetes 指南",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通话从此号码拨出；除非在“更多字段”中添加了短信电话号码，否则短信也从此号码发送。",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "当您的号码无法发送短信时，用于发送短信的号码（在新加坡，国内号码仅支持语音）。每条短信从收件人所在国家/地区的号码发送，没有则从第一个号码发送。",
+  "Twilio SMS Phone Numbers": "Twilio 短信电话号码",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是电话号码。请输入带国家代码的每个号码，并用逗号分隔，例如 +6581234567, +447700900123。",
+  "Twilio Primary Phone Number": "Twilio 主电话号码",
+  "Twilio Secondary Phone Numbers": "Twilio 备用电话号码",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "当与收件人的国家代码匹配时，用于替代主号码的号码。"
 }

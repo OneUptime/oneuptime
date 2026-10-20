@@ -9,10 +9,7 @@ import GlobalRunnersCopy, {
   ADMIN_GLOBAL_RUNNERS_ROUTE,
 } from "../../../Components/Runner/GlobalRunnersCopy";
 import PageComponentProps from "../../PageComponentProps";
-import {
-  RUNNER_FORM_STEPS,
-  getRunnerCreateFormFields,
-} from "./RunnerFormFields";
+import { getRunnerCreateFormFields } from "./RunnerFormFields";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -166,7 +163,6 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         selectMoreFields={{
           _id: true,
           key: true,
-          canRunAiCommands: true,
           // The posture: whether a row is a Runner the Kubernetes agent chart installed.
           hostInfo: true,
           /*
@@ -182,7 +178,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             : GlobalRunnersCopy.onlyEmptyMessage
         }
         viewPageRoute={Navigation.getCurrentRoute()}
-        formSteps={RUNNER_FORM_STEPS}
+        // One page: Name, Description and More fields (RunnerFormFields).
         formFields={getRunnerCreateFormFields()}
         searchableFields={["name", "description"]}
         actionButtons={[
@@ -306,10 +302,6 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 capabilities.push("Runbooks");
               }
 
-              if (item.canRunAiCommands === true) {
-                capabilities.push("AI remediation commands");
-              }
-
               if (capabilities.length === 0) {
                 return (
                   <span className="text-gray-500">
@@ -320,9 +312,10 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               /*
                * Pills rather than a comma-joined sentence, so the column can
-               * be scanned down. AI code fixes are not one: a code
-               * repository picks its Runner in Code, and the Runner's own
-               * page lists the repositories that pick it.
+               * be scanned down. AI code fixes and AI remediation commands
+               * are not ones: a code repository picks its Runner in Code,
+               * and an auto remediation rule (or a cluster's AI settings)
+               * picks the Runner OneUptime AI runs its commands on.
                */
               return (
                 <div className="flex flex-wrap gap-1">

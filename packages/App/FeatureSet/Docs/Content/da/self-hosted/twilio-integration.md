@@ -21,7 +21,7 @@ En selvhostet OneUptime sender SMS- og stemmealarmer gennem din egen Twilio-kont
 
 ### Skaf et telefonnummer
 
-Skaf et Twilio-telefonnummer med de SMS- og/eller stemmefunktioner, du har brug for. Brug formatet E.164 med landekode til afsender- og modtagernumre.
+Skaf et Twilio-telefonnummer med de SMS- og/eller stemmefunktioner, du har brug for; Twilio Console viser, hvad hvert nummer kan. Brug formatet E.164 med landekode til afsender- og modtagernumre. Hvor intet nummer kan begge dele, skaffer du et til opkald og et til SMS: se [Separate numre til opkald og SMS](#separate-numre-til-opkald-og-sms).
 
 ### Tjek kontoens grænser
 
@@ -44,7 +44,7 @@ Sådan tilføjer du en projektkonfiguration:
 :::steps
 1. Gå til **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
 2. Vælg **Opret Twilio-konfiguration** i **Twilio-konfiguration**.
-3. Angiv et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Du kan også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande.
+3. Angiv et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Under **Flere felter** kan du også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande og **Twilio SMS-telefonnumre**, hvis dine numre ikke kan sende SMS.
 4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS og opkald til projektets medlemmer, herunder vagtnotifikationer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. En senere konfiguration starter med kontakten slået fra: Slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu for at flytte de beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.
 5. Gem. Kun én konfiguration kan være projektstandarden. Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
@@ -53,6 +53,23 @@ Sådan tilføjer du en projektkonfiguration:
 :::
 
 For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Indstillinger > Opkald og SMS**, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemmernes notifikationer bruger denne globale konfiguration, når deres projekt ikke har en standard. Hold Auth Token fortroligt.
+
+### Separate numre til opkald og SMS
+
+Et Twilio-nummer kan foretage opkald og sende SMS, eller kun det ene af dem, og i nogle lande kan intet nummer begge dele. I Singapore er nationale numre (+65 3 eller +65 6) for eksempel kun til tale, og SMS kræver et mobilnummer (+65 8). En konfiguration, et projekts eller installationens, kan angive numre til SMS under **Flere felter**:
+
+| Felt | Hvad der sendes fra det |
+| --- | --- |
+| **Twilio primært telefonnummer** | Opkald, og SMS, så længe der ikke er angivet SMS-numre |
+| **Twilio sekundære telefonnumre** | Opkald, og SMS, så længe der ikke er angivet SMS-numre, til modtagere i hvert nummers land |
+| **Twilio SMS-telefonnumre** | Hver SMS, når de er angivet: fra nummeret i modtagerens land, ellers fra det første |
+
+For Singapore skal du angive det nationale nummer som **Twilio primært telefonnummer** og mobilnummeret under **Twilio SMS-telefonnumre**. Så snart en konfiguration angiver SMS-numre, sendes ingen SMS fra dens andre numre, så angiv alle de numre, der skal sende SMS.
+
+En konfiguration uden SMS-numre sender SMS fra de samme numre som opkald, som hidtil. **Send test-SMS** og **Send testopkald** går ud fra det nummer, en rigtig SMS eller et rigtigt opkald til samme modtager ville gå ud fra. Hvis Twilio afviser en SMS med fejl 21606, kan nummeret ikke sende SMS: tilføj et, der kan, under **Twilio SMS-telefonnumre**.
+
+> [!NOTE]
+> I Singapore kommer en SMS fra et nummer, der ikke er registreret hos SGNIC, eller fra et nummer uden for Singapore, frem med afsenderen `Likely-SCAM`. Registrer mobilnummeret hos SGNIC og hos Twilio, før du regner med det; se [Twilios SMS-retningslinjer for Singapore](https://www.twilio.com/en-us/guidelines/sg/sms).
 
 ## 3. Konfigurer netværksadgang
 
@@ -127,6 +144,7 @@ Til udvikling beskriver Twilios [vejledning i test af webhooks](https://www.twil
 | Symptom | Hvor du skal kigge |
 | --- | --- |
 | Intet bliver sendt | Legitimationsoplysninger, nummerets funktioner, kontoens begrænsninger og den udgående forbindelse. |
+| Twilio afviser SMS med fejl 21606 | Nummeret kan ikke sende SMS. Tilføj et, der kan, under **Twilio SMS-telefonnumre**: se [Separate numre til opkald og SMS](#separate-numre-til-opkald-og-sms). |
 | SMS'en eller opkaldet kommer frem, men status eller kvittering opdateres ikke | Callback-URL'en og logs fra den offentlige ingress. Twilios [vejledning om fejl ved HTTP-hentning](https://www.twilio.com/docs/api/errors/11200) hjælper med utilgængelige callbacks, TLS-problemer og HTTP-fejl. |
 
 Et vellykket testopkald alene beviser ikke, at callbacks kan nås.

@@ -56,6 +56,14 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
   protected abstract readonly noActionMessage: string;
 
   /*
+   * Whether the code agent may query the repository's production telemetry
+   * while it works (CodeAgentTask.productionTelemetry). FixPerformance and
+   * FixFromIncident do; the server offers the tools to the fixes of an
+   * exception, a slow trace and an incident only.
+   */
+  protected readonly usesProductionTelemetry: boolean = false;
+
+  /*
    * Failure message when the server resolved no repository AND sent no
    * resolutionError guidance of its own.
    */
@@ -321,6 +329,10 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
 
     if (repo.servicePathInRepository) {
       codeAgentTask.servicePath = repo.servicePathInRepository;
+    }
+
+    if (this.usesProductionTelemetry) {
+      codeAgentTask.productionTelemetry = true;
     }
 
     const agentResult: CodeAgentResult = await agent.executeTask(codeAgentTask);

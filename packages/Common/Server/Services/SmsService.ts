@@ -7,6 +7,7 @@ import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
+import TwilioConfigJSON from "../../Types/CallAndSMS/TwilioConfigJSON";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -72,15 +73,9 @@ export class SmsService extends BaseService {
       projectId: options.projectId?.toString(),
       isSensitive: options.isSensitive,
       userOnCallLogTimelineId: options.userOnCallLogTimelineId?.toString(),
+      // Its numbers as arrays, which the Notification service reads back.
       customTwilioConfig: options.customTwilioConfig
-        ? {
-            accountSid: options.customTwilioConfig.accountSid!,
-            authToken: options.customTwilioConfig.authToken!,
-            primaryPhoneNumber:
-              options.customTwilioConfig.primaryPhoneNumber.toString(),
-            secondaryPhoneNumbers:
-              options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
-          }
+        ? TwilioConfigJSON.toJSON(options.customTwilioConfig)
         : undefined,
       incidentId: options.incidentId?.toString(),
       alertId: options.alertId?.toString(),

@@ -1,31 +1,35 @@
-import { Service as RunnerServiceClass } from "../../Services/RunnerService";
 import CommandAllowlist from "./CommandAllowlist";
 import RunbookCredentialReaders from "./RunbookCredentialReaders";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
-import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
+import {
+  doesRuleRunCommandsOnRunners,
+  getRuleCommandRunnerIds,
+} from "../../../Types/AutoRemediation/AutoRemediationFix";
 import {
   AiRemediationCommand,
   AiRemediationCommandPlan,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
-import ObjectID from "../../../Types/ObjectID";
 
 /*
  * What a rule says about the commands OneUptime AI composes for it: the
  * columns of AutoRemediationRule, or what a write sends for them (the
  * allowlist as an array, a JSON string or one bare pattern - the column is
- * jsonb; Runners as rows, { _id } objects or ids).
+ * jsonb; Runners as rows, { _id } objects or ids; the rule's Runner as an
+ * id or its relation).
  */
 export interface RuleCommandSettings {
   isEnabled?: boolean | undefined;
   remediationAction?: AutoRemediationRule["remediationAction"] | undefined;
   aiComposesCommands?: boolean | undefined;
+  aiSelectsRunbook?: boolean | undefined;
   executionMode?: AutoRemediationRule["executionMode"] | undefined;
   commandAllowlist?: unknown;
   commandRunners?: unknown;
+  runnerId?: unknown;
 }
 
 // One rule a write changes: as it was (null for a new rule), as it will be.
@@ -52,9 +56,12 @@ export interface RuleCommandSettingsChange {
  *     (assertApproverMayUseCredentials). A plan made by OneUptime AI and
  *     approved by a person is held to the person.
  *   - whoever lets a rule run OneUptime AI's commands without asking (Full
- *     Auto, with an allowlist): there is no approver, and every SSH command
- *     the rule's runs pick runs on its own, so turning that on, or widening
- *     it, needs the read (AutoRemediationRuleService).
+ *     Auto, with an allowlist, on the Runners the rule names - its Runner,
+ *     and a rule saved before rules were simplified its Command Runners
+ *     too): there is no approver, and every SSH command the rule's runs pick
+ *     runs on its own, so turning that on, or widening it, needs the read
+ *     (AutoRemediationRuleService). A rule saved from the dashboard has no
+ *     allowlist, so its commands always wait for an approver.
  *
  * A kubectl command runs with the credential its cluster's AI page binds,
  * which only someone who may read credentials can bind, and the approve
@@ -127,19 +134,19 @@ export default class AiRemediationCredentialUse {
   /*
    * Whether a rule, as `rule` has it, runs OneUptime AI's commands without
    * asking, as the rule engine and the run decide it: it is on (a rule
-   * saved without the column is), fixes with OneUptime AI composing
-   * commands (the column a rule saved without reads as OneUptime AI), Full
-   * Auto, with a command allowlist read as the run reads it
-   * (CommandAllowlist: an array, a JSON string or one bare pattern) -
-   * without one, every run asks first.
+   * saved without the column is), OneUptime AI composes commands on Runners
+   * for it (AutoRemediationFix.doesRuleRunCommandsOnRunners: a OneUptime AI
+   * rule that picks a Runner, or a rule saved before rules were simplified
+   * that composes commands), Full Auto, with a command allowlist read as the
+   * run reads it (CommandAllowlist: an array, a JSON string or one bare
+   * pattern) - without one, every run asks first.
    */
   public static runsCommandsWithoutAsking(
     rule: Omit<RuleCommandSettings, "commandRunners">,
   ): boolean {
     return (
       rule.isEnabled !== false &&
-      rule.remediationAction !== AutoRemediationAction.Runbooks &&
-      rule.aiComposesCommands === true &&
+      doesRuleRunCommandsOnRunners(rule) &&
       rule.executionMode === AutoRemediationExecutionMode.FullAuto &&
       CommandAllowlist.normalize(rule.commandAllowlist).length > 0
     );
@@ -149,8 +156,10 @@ export default class AiRemediationCredentialUse {
    * Whether a write that leaves a rule `after` lets OneUptime AI do more
    * without asking than `before` (null for a new rule) did: it starts
    * running commands without asking (turning the rule on included), adds
-   * an allowlist pattern, or reaches more Runners - one it did not, or
-   * every Runner once its list is cleared. A rule that does not run
+   * an allowlist pattern, or reaches a Runner it did not
+   * (AutoRemediationFix.getRuleCommandRunnerIds: its Runner, and a rule
+   * saved before rules were simplified its Command Runners too). No Runner
+   * is no host at all, never every Runner. A rule that does not run
    * commands without asking afterwards never does more.
    */
   public static widensCommandsWithoutAsking(
@@ -181,26 +190,8 @@ export default class AiRemediationCredentialUse {
       return true;
     }
 
-    const runnersBefore: Array<string> = RunnerServiceClass.readRunnerIds(
-      data.before.commandRunners,
-    ).map((id: ObjectID): string => {
-      return id.toString().toLowerCase();
-    });
-
-    const runnersAfter: Array<string> = RunnerServiceClass.readRunnerIds(
-      data.after.commandRunners,
-    ).map((id: ObjectID): string => {
-      return id.toString().toLowerCase();
-    });
-
-    // No Runners named means any Runner that accepts AI commands.
-    if (runnersAfter.length === 0) {
-      return runnersBefore.length > 0;
-    }
-
-    if (runnersBefore.length === 0) {
-      return false;
-    }
+    const runnersBefore: Array<string> = getRuleCommandRunnerIds(data.before);
+    const runnersAfter: Array<string> = getRuleCommandRunnerIds(data.after);
 
     return runnersAfter.some((id: string): boolean => {
       return !runnersBefore.includes(id);
@@ -215,7 +206,7 @@ export default class AiRemediationCredentialUse {
   public static getUnattendedRuleRefusal(
     props?: DatabaseCommonInteractionProps | undefined,
   ): string {
-    return `This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on (or turning on a rule that does it), adding allowlist patterns or Runners to it needs permission to read runbook credentials: ${AiRemediationCredentialUse.getCredentialReaderTitles()}.${
+    return `This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runner. Turning that on (or turning on a rule that does it), adding allowlist patterns or picking another Runner for it needs permission to read runbook credentials: ${AiRemediationCredentialUse.getCredentialReaderTitles()}.${
       props ? RunbookCredentialReaders.getWorkflowNote(props) : ""
     } Set the rule to ask before fixing, or ask someone who has it to save the rule.`;
   }

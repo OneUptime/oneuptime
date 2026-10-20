@@ -3,6 +3,7 @@ import ProjectCallSMSConfigService from "../Services/ProjectCallSMSConfigService
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import ObjectID from "../../Types/ObjectID";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import { GLOBAL_TWILIO_CONFIG_SELECT } from "./TwilioConfigSelect";
 
 /*
  * Whether an SMS or a call to a project's members has a Twilio account to go
@@ -30,11 +31,8 @@ export default class TwilioAccountAvailability {
         props: {
           isRoot: true,
         },
-        select: {
-          twilioAccountSID: true,
-          twilioAuthToken: true,
-          twilioPrimaryPhoneNumber: true,
-        },
+        // Read as the Notification service reads it (TwilioConfigSelect).
+        select: GLOBAL_TWILIO_CONFIG_SELECT,
       });
 
     return Boolean(

@@ -5,6 +5,7 @@ De OneUptime GitHub App is meer dan een koppeling met je code: je kunt er in je 
 :::cards
 - [De opdrachten](#de-opdrachten): Wat je schrijft in een issue of een pull request.
 - [Hoe het eruitziet in de thread](#hoe-het-eruitziet-in-de-thread): Eén opmerking die het werk volgt.
+- [Reviews met productiecontext](#reviews-met-productiecontext): Wat productie zegt over de gewijzigde code.
 - [Wie hem opdrachten mag geven](#wie-hem-opdrachten-mag-geven): Mensen met schrijfrechten, en niemand anders.
 - [Problemen oplossen](#problemen-oplossen): Als een vermelding niets doet.
 :::
@@ -45,7 +46,7 @@ Elke opdracht begint met een vermelding van de app. De vermelding mag overal in 
 
 | Opdracht | Wat er gebeurt | Ook begrepen |
 | --- | --- | --- |
-| `@oneuptime review` | Kloont de branch, leest de gewijzigde code en de code eromheen, en plaatst een review als opmerking. Verandert niets. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime review` | Kloont de branch, leest de gewijzigde code en de code eromheen, controleert wat productie erover zegt, en plaatst een review als opmerking. Verandert niets. | `code review`, `please review`, `can you review`, `review this` |
 | `@oneuptime revise this — <what you want changed>` | Kloont de eigen branch van de pull request, maakt de wijziging en pusht nieuwe commits naar die branch. Opent nooit een tweede pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alles wat je na de vermelding schrijft en geen bekende opdracht is, wordt gelezen als een verzoek om herziening, omdat het dat bijna altijd is:
@@ -86,6 +87,19 @@ Eén opdracht levert **één opmerking** op, die de app bewerkt terwijl het werk
 
 Vindt hij niets dat de moeite van veranderen waard is, dan zegt hij dat in plaats van een speculatieve pull request te openen. Dat is een normale uitkomst, geen fout: geef hem meer richting en vraag het opnieuw.
 
+## Reviews met productiecontext
+
+OneUptime heeft de telemetrie van de code die het beoordeelt, dus een review kan zeggen wat geen reviewer die de diff leest kan zeggen. Voor de services die bij de repository horen, controleert het:
+
+- de uitzonderingen die in de afgelopen 7 dagen in de gewijzigde bestanden en functies zijn gegooid;
+- hoe druk en hoe traag de endpoints en operaties zijn die de diff raakt;
+- de incidenten die aan de gewijzigde bestanden zijn gekoppeld;
+- de recente deploys van de services die OneUptime als regressie heeft gemarkeerd.
+
+Wat het vindt, komt in de review onder een kop **Production context**, elk punt met de cijfers en het tijdvenster waar het vandaan komt, bijvoorbeeld: "`chargeCard` gooide in de afgelopen 7 dagen 1.240 keer `TypeError: Cannot read properties of undefined`; deze wijziging voegt de null-controle toe die dat stopt." Als productie niets laat zien wat de diff raakt, laat de review de kop weg in plaats van te zeggen dat alles in orde is.
+
+Er hoeft niets te worden ingesteld: de services zijn die waarvoor OneUptime deze repository vindt, net als bij een herstel (zie [Productietelemetrie in een herstel](/docs/ai/ai-agent#productietelemetrie-in-een-herstel)). De query's lezen alleen, draaien op de OneUptime-server en lezen niets van een andere service, een ander project of een privé-incident. Een repository waarvan de services geen telemetrie naar het project sturen, wordt alleen op basis van de code beoordeeld.
+
 ## Wie hem opdrachten mag geven
 
 **Alleen mensen met write-, maintain- of admin-toegang tot de repository.** OneUptime vraagt GitHub elke keer naar de machtiging van de schrijver van de opmerking op die repository; het vertrouwt de badge "contributor" niet die GitHub naast een opmerking toont, want die beschrijft eerdere activiteit, niet de huidige toegang.
@@ -104,7 +118,7 @@ Hij negeert ook elke opmerking die een bot schreef, zijn eigen inbegrepen, en ve
 
 ## Wat het kost en hoe je het begrenst
 
-Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en de build- en testopdrachten van je repository als je die hebt ingesteld.
+Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en de build- en testopdrachten van je repository als je die hebt ingesteld. De productiequery's van een review, hoogstens 12, tellen mee voor dezelfde 40 aanroepen.
 
 GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor de taken in [Code](/docs/ai/ai-agent):
 

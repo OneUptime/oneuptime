@@ -13,8 +13,10 @@ import {
   getPermissionScopeFields,
   holdsPermissionLabels,
   isLabelsScopePicked,
+  isScopeShownFor,
   readPermissionScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/PermissionScopeChoice";
+import Permission, { PermissionHelper } from "../../../Types/Permission";
 import Label from "../../../Models/DatabaseModels/Label";
 import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -23,6 +25,11 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import type { RadioButton } from "../../../UI/Components/RadioButtons/GroupRadioButtons";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import {
+  ADVANCED_FORM_SECTION_ID,
+  MORE_FIELDS_SECTION_TITLE,
+} from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { FOLDED_SECTION_LINE } from "../../../UI/Components/FoldedSection/FoldedSectionVariant";
 
 /*
  * HOW FAR A PERMISSION REACHES (Dashboard/src/Components/Permission/
@@ -34,6 +41,10 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  * and Terraform write them. What a cell says follows the server: a row is
  * narrowed by its labels whenever it has some, whatever its scope, and a
  * labels row with none reaches every resource.
+ *
+ * Both fields wait folded under the dialog's More fields line: All is what
+ * most teams want, so Add a Role and Add a Permission ask for the role or
+ * the permission alone.
  */
 
 type Values = FormValues<TeamPermission>;
@@ -355,10 +366,139 @@ describe("the Labels field", () => {
   });
 });
 
+describe("folded under More fields", () => {
+  test("both fields wait in one fold: the form's More fields line", () => {
+    const [scope, labels] = fieldsFor(SCOPE_SHOWN);
+
+    expect(scope.collapsibleSection).toBeDefined();
+    expect(labels.collapsibleSection).toBe(scope.collapsibleSection);
+    expect(scope.collapsibleSection?.id).toBe(ADVANCED_FORM_SECTION_ID);
+    expect(scope.collapsibleSection?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+    expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
+    expect(scope.collapsibleSection?.variant).toBe(FOLDED_SECTION_LINE);
+  });
+
+  test("folded on Create and on Edit alike, its line naming the Scope - and what a narrower one is set to", () => {
+    const [scope] = fieldsFor(SCOPE_SHOWN);
+
+    expect(scope.collapsibleSection?.openWhenConfigured).toBe(false);
+    expect(scope.collapsibleSection?.listFieldsWhileFolded).toBe(true);
+  });
+
+  test("says nothing more under the line: All needs no sentence", () => {
+    const [scope] = fieldsFor(SCOPE_SHOWN);
+
+    expect(scope.collapsibleSection?.getSummary).toBeUndefined();
+    expect(scope.collapsibleSection?.description).toBeUndefined();
+  });
+
+  test("the fold is written into each field, where the form-steps scan reads it", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Components/Permission/PermissionScopeChoice.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source.split("collapsibleSection: moreFields,").length - 1).toBe(2);
+    expect(source).toContain("getAdvancedFormSection<TEntity>()");
+  });
+
+  test("a permission that takes no scope folds nothing away: no More fields line", () => {
+    const [scope, labels] = fieldsFor(SCOPE_HIDDEN);
+
+    expect(scope.showIf!(values({}))).toBe(false);
+    expect(labels.showIf!(values({ labels: [label("Production")] }))).toBe(
+      false,
+    );
+  });
+});
+
+/*
+ * Whether the form holds a role (or permission) that takes a scope: what a
+ * team's and a custom role's Add Role ask both for their Scope and for the
+ * room the role picker keeps under itself while the Scope is not shown.
+ */
+describe("whether a pick takes a scope", () => {
+  test("nothing picked yet: no Scope, so the picker keeps its room", () => {
+    for (const empty of [undefined, null, ""]) {
+      expect(isScopeShownFor(empty)).toBe(false);
+    }
+  });
+
+  test("the roles that reach the whole project by definition take none", () => {
+    for (const role of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ]) {
+      expect({ role, shown: isScopeShownFor(role) }).toEqual({
+        role,
+        shown: false,
+      });
+    }
+  });
+
+  test("every other role takes one: Project Member, Viewer and each area's", () => {
+    const scoped: Array<Permission> = PermissionHelper.getRolePermissionProps()
+      .map((props: { permission: Permission }): Permission => {
+        return props.permission;
+      })
+      .filter((role: Permission): boolean => {
+        return PermissionHelper.isScopeApplicable(role);
+      });
+
+    expect(scoped).toEqual(
+      expect.arrayContaining([
+        Permission.ProjectMember,
+        Permission.Viewer,
+        Permission.IncidentMember,
+        Permission.TelemetryViewer,
+      ]),
+    );
+    // 40 roles, 8 of them without a scope.
+    expect(scoped).toHaveLength(32);
+
+    for (const role of scoped) {
+      expect({ role, shown: isScopeShownFor(role) }).toEqual({
+        role,
+        shown: true,
+      });
+    }
+  });
+});
+
 describe("one Scope for every permission table", () => {
   const COMPONENTS: string = path.resolve(
     __dirname,
     "../../../../App/FeatureSet/Dashboard/src/Components",
+  );
+
+  /*
+   * One answer to "does this pick take a scope", asked for the Scope field
+   * and for the room the role picker keeps while it is not shown - so the
+   * room is there exactly while the More fields line is not.
+   */
+  test.each([
+    "Team/TeamPermissionTable.tsx",
+    "CustomRole/CustomRolePermissionTable.tsx",
+  ])(
+    "%s asks one question for the Scope and for the picker's room",
+    (file: string) => {
+      const source: string = fs.readFileSync(
+        path.join(COMPONENTS, file),
+        "utf8",
+      );
+
+      expect(source).toContain("isMoreFieldsShownFor: isScopeShownFor,");
+      expect(source).toContain('return isScopeShownFor(values["permission"]);');
+    },
   );
 
   test.each([

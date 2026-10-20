@@ -43,8 +43,7 @@ Vá em **Configurações do projeto** > **Notificações** > **Configurações d
 - **Nome** e **Descrição**: para que serve a conta, por exemplo "Linha de suporte".
 - **SID da Conta Twilio**: do console do Twilio. Começa com `AC`.
 - **Token de Autenticação Twilio**: do console do Twilio.
-- **Número de Telefone Principal do Twilio**: um número dessa conta, para os SMS e as chamadas que ela envia.
-- **Números de Telefone Secundários do Twilio**: opcional. Números que enviam no lugar do principal para destinatários do país deles.
+- **Número de Telefone Principal do Twilio**: um número dessa conta, para os SMS e as chamadas que ela envia. Em **Mais campos**, opcionais: números para destinatários de outros países e números de SMS quando os números da conta só fazem chamadas (veja [Números separados para chamadas e SMS](/docs/self-hosted/twilio-integration#números-separados-para-chamadas-e-sms)).
 - **Definir como padrão do projeto**: ligado para a primeira configuração do Twilio do projeto, para que os SMS e as chamadas para os membros do projeto também passem por esta conta. Desligue se esta conta for só para chamadas recebidas.
 
 ### Crie a política

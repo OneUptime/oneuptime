@@ -47,6 +47,7 @@ import TeamsRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/TeamsRoute
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import Label from "Common/Models/DatabaseModels/Label";
+import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
@@ -726,6 +727,15 @@ await i18next.use(initReactI18next).init({
 });
 document.documentElement.lang = language;
 
+/*
+ * The project the pages are drawn for, as App.tsx hands it to every page: a
+ * team's Permissions card adds a row to it (TeamPermissionTable's
+ * onBeforeCreate reads its id).
+ */
+const CURRENT_PROJECT = new Project();
+CURRENT_PROJECT._id = PROJECT_ID;
+CURRENT_PROJECT.name = "Acme";
+
 // What App.tsx does for every page: the router's hooks, handed to Navigation.
 function Shell(props) {
   Navigation.setNavigateHook(useNavigate());
@@ -751,7 +761,7 @@ function Fixture() {
           <Shell>
             <TeamsRoutes
               pageRoute={Navigation.getCurrentRoute()}
-              currentProject={null}
+              currentProject={CURRENT_PROJECT}
               hasPaymentMethod={true}
             />
           </Shell>

@@ -1,6 +1,13 @@
 import CallService from "../Services/CallService";
 import CallRequest from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
+import TwilioPhoneNumbers, {
+  TEST_SEND_FROM_PHONE_NUMBER_FIELD,
+} from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
+import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
+import { PROJECT_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
+import TwilioSendError from "../Utils/TwilioSendError";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -40,7 +47,10 @@ router.post(
         isSensitive: (body["isSensitive"] as boolean) || false,
         userOnCallLogTimelineId:
           (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
-        customTwilioConfig: body["customTwilioConfig"] as any,
+        // Read back with its numbers as lists (TwilioConfigJSON).
+        customTwilioConfig: TwilioConfigJSON.fromJSON(
+          body["customTwilioConfig"],
+        ),
         incidentId: (body["incidentId"] as ObjectID) || undefined,
         alertId: (body["alertId"] as ObjectID) || undefined,
         scheduledMaintenanceId:
@@ -103,12 +113,9 @@ router.post(
           props: {
             isRoot: true,
           },
+          // Read whole, as every send reads it (PROJECT_TWILIO_CONFIG_SELECT).
           select: {
-            _id: true,
-            twilioAccountSID: true,
-            twilioAuthToken: true,
-            twilioPrimaryPhoneNumber: true,
-            twilioSecondaryPhoneNumbers: true,
+            ...PROJECT_TWILIO_CONFIG_SELECT,
             projectId: true,
           },
         });
@@ -167,6 +174,8 @@ router.post(
       const twilioConfig: TwilioConfig | undefined =
         ProjectCallSMSConfigService.toTwilioConfig(config);
 
+      let fromPhoneNumber: Phone | null = null;
+
       try {
         if (!twilioConfig) {
           throw new BadDataException("twilioConfig is undefined");
@@ -181,18 +190,44 @@ router.post(
           to: toPhone,
         };
 
+        /*
+         * The number it calls from - the one a real call to this phone
+         * would come from, never an SMS number (TwilioPhoneNumbers) -
+         * which the dialog names.
+         */
+        fromPhoneNumber = TwilioPhoneNumbers.pickSenderNumber({
+          config: twilioConfig,
+          kind: TwilioMessageKind.Call,
+          to: toPhone,
+        });
+
         await CallService.makeCall(testCallRequest, {
           projectId: config.projectId,
           customTwilioConfig: twilioConfig,
+          /*
+           * A test the project's settings keep from being placed - calls
+           * turned off in the project - says why, rather than "placed".
+           */
+          failIfNotSent: true,
         });
       } catch (err) {
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+        // Twilio's refusal, in words the person testing can act on.
+        if (TwilioSendError.isActionableRefusal(err)) {
+          throw err;
+        }
+
         throw new BadDataException(
-          "Error making test call. Please check the twilio logs for more details",
+          "Error making test call. Please check the Twilio logs for more details.",
         );
       }
 
-      return Response.sendEmptySuccessResponse(req, res);
+      return Response.sendJsonObjectResponse(req, res, {
+        [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: fromPhoneNumber
+          ? fromPhoneNumber.toString()
+          : null,
+      });
     } catch (err) {
       return next(err);
     }

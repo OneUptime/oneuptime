@@ -18,8 +18,9 @@ import {
  * THE TWO PICKERS OF A CUSTOM ROLE'S PERMISSIONS CARD
  * (Dashboard/src/Components/CustomRole/CustomRolePermissionPicker).
  *
- * Add Role opens the built-in role cards, Add Permission the full list of
- * permissions. Found in the UI review:
+ * Add Role opens the role picker (the whole project or one area, then a
+ * level), Add Permission the full list of permissions. Found in the UI
+ * review:
  *
  *   - both dialogs were called "Add New Permission", with an "Add
  *     Permission" button, even behind Add Role;
@@ -36,7 +37,7 @@ const ENGLISH: Translator = createTranslator(undefined, "en");
 const CAMEL_CASE_WORD: RegExp = /[A-Z][a-z]+[A-Z]/;
 
 describe("the picker a row is edited with", () => {
-  test("is the role cards for every built-in role", () => {
+  test("is the role picker for every built-in role", () => {
     const roles: Array<PermissionProps> =
       PermissionHelper.getRolePermissionProps();
 
@@ -61,7 +62,7 @@ describe("the picker a row is edited with", () => {
     }
   });
 
-  test("is the full list for anything it does not know, which shows no card as picked", () => {
+  test("is the full list for anything it does not know, which no role picker could show as picked", () => {
     for (const value of [undefined, null, "", "NotAPermission"]) {
       expect(getCustomRolePermissionPickerType(value)).toBe(
         CustomRolePermissionPickerType.SinglePermission,

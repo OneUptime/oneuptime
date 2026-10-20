@@ -19,6 +19,7 @@ import RealtimeAccessChanges, {
 import { clearGlobalSsoAuthorizationCaches } from "../Utils/GlobalSsoAuthorization";
 import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
 import Exception from "../../Types/Exception/Exception";
+import TwilioPhoneNumbers from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -414,6 +415,20 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * The server's numbers for SMS (Admin Dashboard > Settings > Call and
+   * SMS), refused when they are typed rather than when an alert goes out -
+   * as a project's are (ProjectCallSMSConfigService).
+   */
+  private assertTwilioSmsNumbersAreValid(
+    data: CreateBy<Model>["data"] | UpdateBy<Model>["data"],
+  ): void {
+    TwilioPhoneNumbers.assertListIsValid({
+      title: "Twilio SMS Phone Numbers",
+      text: (data as { twilioSmsPhoneNumbers?: unknown }).twilioSmsPhoneNumbers,
+    });
+  }
+
   @CaptureSpan()
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
@@ -430,6 +445,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertBrandingColumnsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertTwilioSmsNumbersAreValid(createBy.data);
 
     return {
       createBy,
@@ -443,6 +459,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertBrandingColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertTwilioSmsNumbersAreValid(updateBy.data);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
       const secret: unknown = updateBy.data.telegramWebhookSecretToken;

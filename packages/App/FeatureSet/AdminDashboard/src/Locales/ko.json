@@ -489,8 +489,9 @@
       },
       "callSms": {
         "cardTitle": "Twilio 구성",
-        "cardDescription": "이것은 통화 및 SMS 전송에 사용됩니다.",
-        "editButton": "Twilio 구성 편집"
+        "cardDescription": "OneUptime이 SMS를 보내고 전화를 거는 데 사용하는 Twilio 계정입니다. 프로젝트가 자체 Twilio 구성을 사용하는 경우는 제외됩니다.",
+        "editButton": "Twilio 구성 편집",
+        "smsSameAsCalls": "통화와 같은 번호"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp 설정",
@@ -726,7 +727,6 @@
   "Hostname": "호스트 이름",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "OneUptime이 전역 SMTP 구성을 사용하여 메일을 전달하는 방식입니다. 대부분의 서버에는 'SMTP'를 선택하세요. Microsoft 365 테넌트에서 SMTP AUTH가 비활성화된 경우 'Microsoft Graph'를 선택하세요 — Graph는 Mail.Send 애플리케이션 권한을 사용하며 SMTP를 완전히 우회합니다.",
   "If you have a coupon code, enter it here.": "쿠폰 코드가 있는 경우 여기에 입력하세요.",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "특정 국가에 대해 Twilio에서 더 많은 전화번호를 구매한 경우 여기에 추가할 수 있습니다.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "포트 465를 사용하는 경우 이것을 활성화하세요. 포트 587을 사용하는 경우 이것을 활성화하지 마세요.",
   "Instance footprint": "인스턴스 풋프린트",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "큐 워커 전반의 작업 백로그입니다. 백로그가 늘어나거나 실패가 발생하면 워커가 비정상 상태임을 나타냅니다.",
@@ -772,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "시작하려면 새 OneUptime 프로젝트를 만드세요.",
   "Please select a plan.": "플랜을 선택하세요.",
   "Port": "포트",
-  "Primary Twilio Phone Number": "주 Twilio 전화번호",
   "Probe Logo": "프로브 로고",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "이 인스턴스에 대한 모니터링 검사를 실행하는 프로브와 현재 보고 중인지 여부입니다.",
   "Project ID": "프로젝트 ID",
@@ -789,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "사용자 이름 및 비밀번호 인증에 필요합니다. OAuth에는 사용되지 않습니다.",
   "Sample Description": "샘플 설명",
   "Sample Title": "샘플 제목",
-  "Secondary Twilio Phone Numbers": "보조 Twilio 전화번호",
   "Secret token configured in Meta to validate webhook subscription requests.": "웹훅 구독 요청을 검증하기 위해 Meta에 구성된 시크릿 토큰입니다.",
   "Select a team": "팀 선택",
   "Select LLM Provider": "LLM 공급자 선택",
@@ -1011,5 +1009,12 @@
   "{{count}} people": "{{count}}명",
   "{{count}} people_one": "{{count}}명",
   "Docker Compose guide": "Docker Compose 가이드",
-  "Kubernetes guide": "Kubernetes 가이드"
+  "Kubernetes guide": "Kubernetes 가이드",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "통화는 이 번호로 걸립니다. 추가 필드에서 SMS 전화번호를 추가하지 않으면 SMS도 이 번호로 보냅니다.",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "보유한 번호로 SMS를 보낼 수 없을 때 SMS를 보낼 번호입니다(싱가포르의 국내 번호는 음성 전용입니다). 각 SMS는 수신자 국가의 번호로, 없으면 첫 번째 번호로 보냅니다.",
+  "Twilio SMS Phone Numbers": "Twilio SMS 전화번호",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}}은(는) 전화번호가 아닙니다. 각 번호를 국가 코드와 함께 입력하고 +6581234567, +447700900123처럼 쉼표로 구분하세요.",
+  "Twilio Primary Phone Number": "Twilio 기본 전화번호",
+  "Twilio Secondary Phone Numbers": "Twilio 보조 전화번호",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "수신자의 국가 코드와 일치할 때 기본 번호 대신 사용할 번호입니다."
 }

@@ -10,6 +10,7 @@ import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ResourceAiAccessService from "../../../Server/Services/ResourceAiAccessService";
+import RunbookService from "../../../Server/Services/RunbookService";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
@@ -249,6 +250,11 @@ function mockEngine(data: {
   matchingRuleIds?: Array<string> | undefined;
   hasLlmProvider?: boolean | undefined;
   autoExecutedInLastHour?: number | undefined;
+  /*
+   * How many enabled runbooks OneUptime AI could pick from. None unless
+   * said: with none, OneUptime AI picks no runbook and says nothing of it.
+   */
+  enabledRunbooks?: number | undefined;
 }): Harness {
   const saved: Array<AutoRemediationDecision> = [];
 
@@ -319,6 +325,9 @@ function mockEngine(data: {
     );
   jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex);
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  jest
+    .spyOn(RunbookService, "countBy")
+    .mockResolvedValue(new PositiveNumber(data.enabledRunbooks || 0));
 
   const monitorReads: Harness["monitorReads"] = jest
     .spyOn(MonitorService, "findBy")
@@ -1700,5 +1709,526 @@ describe("the fixing switch and the rules decide which signals are fixed, and ho
         .rulesChecked,
     ).toBe(1);
     expect(harness.clusterStatuses).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * ONEUPTIME AI FIXES BY DEFAULT, WITH ANY RUNBOOK OR ONLY THE ALLOWED ONES.
+ *
+ * The maintainer: "Can oneuptime AI do things by default, and I can
+ * whitelist some Runbook for AI to pick and run? If I do not whitelist any
+ * Runbook, it can basically run any Runbook by default. ... In fact, in the
+ * auto remediation rule, you could ask which runner we should use to run
+ * the remediation."
+ *
+ * So, besides the AI agents' rounds, OneUptime AI picks the runbook that
+ * fits a signal - with no rule set up, or for a OneUptime AI rule, from the
+ * rule's runbooks or any of the project's when it names none - and, for a
+ * rule that picks a Runner, composes commands of its own there. A pick
+ * starts on its own only for a rule that fixes without asking and names its
+ * runbooks, while no other matching rule asks and no AI agent is fixing the
+ * signal (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking).
+ */
+describe("OneUptime AI picks a runbook, and runs commands on a rule's Runner", () => {
+  const RUNNER_ID: string = "77777777-7777-4777-8777-777777777771";
+
+  interface PlanningCall {
+    rule: AutoRemediationRule | null;
+    executionMode: AutoRemediationExecutionMode;
+    isAnnounced: boolean;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function oneUptimeAiRule(
+    overrides: Partial<AutoRemediationRule> = {},
+  ): AutoRemediationRule {
+    return rule({
+      remediationAction: AutoRemediationAction.OneUptimeAI,
+      executionMode: AutoRemediationExecutionMode.Suggest,
+      runbooks: [],
+      ...overrides,
+    });
+  }
+
+  function spyPlanning(
+    started: boolean = true,
+  ): SpyInstance<EngineInternals["startAiPlanning"]> {
+    return jest.spyOn(engine, "startAiPlanning").mockResolvedValue(started);
+  }
+
+  function planningCalls(
+    spy: SpyInstance<EngineInternals["startAiPlanning"]>,
+  ): Array<PlanningCall> {
+    return spy.mock.calls.map((call: Array<unknown>): PlanningCall => {
+      return call[0] as PlanningCall;
+    });
+  }
+
+  // What the rules lane said, in order: the AI agents' lanes say their own.
+  function ruleReasonsOf(harness: Harness): Array<string> {
+    return entriesOf(harness)
+      .filter((entry: AutoRemediationDecisionEntry): boolean => {
+        return entry.lane === AutoRemediationDecisionLane.Rule;
+      })
+      .map((entry: AutoRemediationDecisionEntry): string => {
+        return entry.reason;
+      });
+  }
+
+  describe("with no rule set up", () => {
+    it("proposes the runbook OneUptime AI picks from any of the project's, and says it is picking", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 3,
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planningCalls(planning)).toEqual([
+        expect.objectContaining({
+          rule: null,
+          executionMode: AutoRemediationExecutionMode.Suggest,
+          isAnnounced: false,
+        }),
+      ]);
+      const entry: AutoRemediationDecisionEntry = entryFor(
+        harness,
+        AutoRemediationDecisionReason.AiPickingRunbook,
+      );
+      expect(entry.lane).toBe(AutoRemediationDecisionLane.Project);
+    });
+
+    it("an alert gets the same pick", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToAlert(alert());
+
+      expect(planning).toHaveBeenCalledTimes(1);
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.AiPickingRunbook,
+      );
+    });
+
+    it("says so when the pick could not start", async () => {
+      spyPlanning(false);
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 3,
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.AiRunbookPickNotStarted,
+      );
+      expect(reasonsOf(harness)).not.toContain(
+        AutoRemediationDecisionReason.AiPickingRunbook,
+      );
+    });
+
+    it.each([
+      ["the project has no enabled runbook", { enabledRunbooks: 0 }],
+      ["the project has no LLM provider", { hasLlmProvider: false }],
+    ])(
+      "picks nothing, and says nothing of it, when %s",
+      async (_name: string, facts: Record<string, unknown>) => {
+        const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+          spyPlanning();
+        const harness: Harness = mockEngine({
+          hasLlmProvider: true,
+          enabledRunbooks: 3,
+          ...facts,
+        });
+
+        await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+        expect(planning).not.toHaveBeenCalled();
+        for (const reason of [
+          AutoRemediationDecisionReason.AiPickingRunbook,
+          AutoRemediationDecisionReason.AiRunbookPickNotStarted,
+        ]) {
+          expect(reasonsOf(harness)).not.toContain(reason);
+        }
+      },
+    );
+
+    it("picks once per signal: an earlier pass's pick stands", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 3,
+        existing: [new AutoRemediationSuggestion()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planning).not.toHaveBeenCalled();
+    });
+
+    it("picks nothing while fixing new incidents is off", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 3,
+        remediationOn: false,
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planning).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a OneUptime AI rule", () => {
+    it("that names no runbook has OneUptime AI pick from any, and always propose it", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 3,
+        rules: [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planningCalls(planning)).toEqual([
+        expect.objectContaining({
+          executionMode: AutoRemediationExecutionMode.Suggest,
+          isAnnounced: false,
+        }),
+      ]);
+      expect(planningCalls(planning)[0]!.rule?.id?.toString()).toBe(
+        RULE_ID.toString(),
+      );
+      expect(ruleReasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.RuleMatchedAiFix,
+        AutoRemediationDecisionReason.RuleAiPickingRunbook,
+      ]);
+    });
+
+    it("that names its runbooks and fixes without asking starts the pick, when nothing else is fixing", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planningCalls(planning)).toEqual([
+        expect.objectContaining({
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+        }),
+      ]);
+    });
+
+    it("that names its runbooks but asks first proposes the pick", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [
+          oneUptimeAiRule({
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planningCalls(planning)).toEqual([
+        expect.objectContaining({
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ]);
+    });
+
+    it("proposes its pick while the AI agent fixes the signal on a cluster", async () => {
+      jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      const harness: Harness = mockEngine({
+        clusters: [cluster(CLUSTER_A)],
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.ClusterRoundStarted,
+      );
+      expect(planningCalls(planning)).toEqual([
+        expect.objectContaining({
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ]);
+    });
+
+    it("proposes its pick when an earlier pass's AI agent round is fixing the signal", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        existing: [
+          Object.assign(new AutoRemediationSuggestion(), {
+            resourceId: new ObjectID(RESOURCE_A),
+          }),
+        ],
+        rules: [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planningCalls(planning)).toEqual([
+        expect.objectContaining({
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ]);
+    });
+
+    it("proposes its pick while another matching rule asks first", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [
+          oneUptimeAiRule({
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+          oneUptimeAiRule({
+            _id: OTHER_RULE_ID.toString(),
+            name: "Ask first",
+            runbooks: [runbook(OTHER_RUNBOOK_ID, "Fail over")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(
+        planningCalls(planning).map((call: PlanningCall) => {
+          return call.executionMode;
+        }),
+      ).toEqual([
+        AutoRemediationExecutionMode.Suggest,
+        AutoRemediationExecutionMode.Suggest,
+      ]);
+    });
+
+    it("picks nothing when none of its runbooks is enabled", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 0,
+        rules: [
+          oneUptimeAiRule({
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planning).not.toHaveBeenCalled();
+      expect(ruleReasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.RuleMatchedAiFixAsks,
+      ]);
+    });
+
+    it("counts only its own enabled runbooks", async () => {
+      spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [
+          oneUptimeAiRule({
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      // The harness answers RunbookService.countBy: one read, for the rule.
+      const countCalls: Array<Array<unknown>> = jest.mocked(
+        RunbookService.countBy,
+      ).mock.calls as unknown as Array<Array<unknown>>;
+      expect(countCalls).toHaveLength(1);
+      const query: Record<string, unknown> = (
+        countCalls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+      expect(query["projectId"]).toEqual(PROJECT_ID);
+      expect(query["isEnabled"]).toBe(true);
+      expect(JSON.stringify(query["_id"])).toContain(RUNBOOK_ID.toString());
+    });
+
+    it("says it was skipped without an LLM provider, and picks nothing", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      const harness: Harness = mockEngine({
+        hasLlmProvider: false,
+        enabledRunbooks: 1,
+        rules: [
+          oneUptimeAiRule({
+            runbooks: [runbook(RUNBOOK_ID, "Restart the checkout pods")],
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planning).not.toHaveBeenCalled();
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
+      );
+    });
+
+    it("two rules that name no runbook ask OneUptime AI for one pick, not two", async () => {
+      const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+        spyPlanning();
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 3,
+        rules: [
+          oneUptimeAiRule(),
+          oneUptimeAiRule({ _id: OTHER_RULE_ID.toString(), name: "Other" }),
+        ],
+        matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(planning).toHaveBeenCalledTimes(1);
+    });
+
+    it("that picks a Runner has OneUptime AI compose commands there too", async () => {
+      spyPlanning();
+      const compose: SpyInstance<EngineInternals["startAiCommandRun"]> = jest
+        .spyOn(engine, "startAiCommandRun")
+        .mockResolvedValue(true);
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [oneUptimeAiRule({ runnerId: new ObjectID(RUNNER_ID) })],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(compose).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          compose.mock.calls[0]![0] as { rule: AutoRemediationRule }
+        ).rule.id?.toString(),
+      ).toBe(RULE_ID.toString());
+      expect(ruleReasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.RuleMatchedAiFixAsks,
+        AutoRemediationDecisionReason.RuleAiPickingRunbook,
+        AutoRemediationDecisionReason.RuleAiComposingCommands,
+      ]);
+    });
+
+    it("that picks no Runner composes no commands", async () => {
+      spyPlanning();
+      const compose: SpyInstance<EngineInternals["startAiCommandRun"]> = jest
+        .spyOn(engine, "startAiCommandRun")
+        .mockResolvedValue(true);
+      mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 1,
+        rules: [oneUptimeAiRule()],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(compose).not.toHaveBeenCalled();
+    });
+
+    it("that picks a Runner says so when its commands could not start", async () => {
+      jest.spyOn(engine, "startAiCommandRun").mockResolvedValue(false);
+      const harness: Harness = mockEngine({
+        hasLlmProvider: true,
+        enabledRunbooks: 0,
+        rules: [oneUptimeAiRule({ runnerId: new ObjectID(RUNNER_ID) })],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(ruleReasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.RuleMatchedAiFixAsks,
+        AutoRemediationDecisionReason.RuleAiRunNotStarted,
+      ]);
+    });
+  });
+
+  it("a rule that runs its runbooks every time has OneUptime AI pick nothing, nor compose commands", async () => {
+    const planning: SpyInstance<EngineInternals["startAiPlanning"]> =
+      spyPlanning();
+    const compose: SpyInstance<EngineInternals["startAiCommandRun"]> = jest
+      .spyOn(engine, "startAiCommandRun")
+      .mockResolvedValue(true);
+    jest.spyOn(engine, "suggestRunbook").mockResolvedValue(undefined);
+    mockEngine({
+      hasLlmProvider: true,
+      enabledRunbooks: 3,
+      rules: [rule({ runnerId: new ObjectID(RUNNER_ID) })],
+      matchingRuleIds: [RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(planning).not.toHaveBeenCalled();
+    expect(compose).not.toHaveBeenCalled();
   });
 });
