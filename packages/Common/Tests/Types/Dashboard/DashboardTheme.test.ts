@@ -362,7 +362,7 @@ describe("the scheme one visitor sees", () => {
 });
 
 describe("what the page's <head> is sent with", () => {
-  test.each([
+  test.each<[DashboardTheme, DashboardThemeHead]>([
     [
       DashboardTheme.Light,
       {
