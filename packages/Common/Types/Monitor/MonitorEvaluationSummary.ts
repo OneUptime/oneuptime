@@ -11,7 +11,13 @@ export type MonitorEvaluationEventType =
   | "alert-resolved"
   | "alert-skipped"
   | "monitor-status-changed"
-  | "probe-agreement";
+  | "probe-agreement"
+  /*
+   * How an Incoming Request criteria that groups by a payload field handled
+   * a request it matched: one for the whole monitor, because the request had
+   * no value to group by, or nothing new, because its values recovered.
+   */
+  | "grouping";
 
 export type MonitorEvaluationCriteriaSkipCause =
   | "disabled"

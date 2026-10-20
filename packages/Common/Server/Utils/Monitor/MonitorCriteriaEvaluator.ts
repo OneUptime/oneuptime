@@ -5,7 +5,9 @@ import APIRequestCriteria from "./Criteria/APIRequestCriteria";
 import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
 import IncomingRequestCriteria from "./Criteria/IncomingRequestCriteria";
-import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import IncomingRequestIncidentGrouping, {
+  IncomingRequestGroupingDecision,
+} from "./IncomingRequestIncidentGrouping";
 import { IOT_DEVICE_ID_ATTRIBUTE_KEY } from "./IoTDeviceAbsenceSeries";
 import PerEntityCriteriaFanOut, {
   FanOutEntity,
@@ -497,18 +499,49 @@ export default class MonitorCriteriaEvaluator {
       }
 
       /*
+       * An Incoming Request criteria groups by a payload field on its own:
+       * whether this one acts once per value, once for the whole monitor or
+       * opens nothing new is decided from its own grouping and this request
+       * alone. Reading it for the whole monitor - "some criteria groups, so
+       * every criteria is per value" - left a criteria without grouping, which
+       * never has values, opening nothing at all.
+       */
+      const incomingRequestGrouping:
+        | IncomingRequestGroupingDecision
+        | undefined =
+        input.monitor.monitorType === MonitorType.IncomingRequest
+          ? IncomingRequestIncidentGrouping.decideForMatchedCriteria({
+              dataToProcess: input.dataToProcess,
+              criteriaInstance: criteriaInstance,
+              filterResults: criteriaResult.filters,
+            })
+          : undefined;
+
+      if (incomingRequestGrouping?.note) {
+        input.evaluationSummary.events.push({
+          type: "grouping",
+          title: incomingRequestGrouping.note.title,
+          message: incomingRequestGrouping.note.message,
+          relatedCriteriaId: criteriaResult.criteriaId,
+          at: OneUptimeDate.getCurrentDate(),
+        });
+      }
+
+      /*
        * When this is a monitor with per-series results, compute the
        * per-series match list so MonitorResource can fan out one
        * incident + one alert per affected series.
        */
       const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
-        await MonitorCriteriaEvaluator.collectPerSeriesMatches({
-          dataToProcess: input.dataToProcess,
-          monitor: input.monitor,
-          monitorStep: input.monitorStep,
-          criteriaInstance,
-          criteriaInEffect: criteriaInEffect,
-        });
+        incomingRequestGrouping
+          ? incomingRequestGrouping.perKeyMatches || []
+          : await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+              dataToProcess: input.dataToProcess,
+              monitor: input.monitor,
+              monitorStep: input.monitorStep,
+              criteriaInstance,
+              criteriaInEffect: criteriaInEffect,
+            });
 
       /*
        * A grouped monitor whose scalar verdict says "met" but which
@@ -591,6 +624,13 @@ ${contextBlock}
 `;
       }
 
+      // Why a grouped criteria acts for the whole monitor, rather than per value.
+      if (incomingRequestGrouping?.rootCauseNote) {
+        renderedRootCause = mdText`${renderedRootCause}
+${incomingRequestGrouping.rootCauseNote}
+`;
+      }
+
       if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
         renderedRootCause = mdText`${renderedRootCause}
 **Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
@@ -608,7 +648,17 @@ ${contextBlock}
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = renderedRootCause.toString();
 
-        if (perSeriesMatches.length > 0 || isPerSeriesMonitor) {
+        /*
+         * An Incoming Request criteria publishes its values only when its
+         * own grouping says "per value" - a defined array, even an empty
+         * one. Without grouping, or with nothing to group by, it publishes
+         * none and acts once for the whole monitor.
+         */
+        const publishesPerSeriesMatches: boolean = incomingRequestGrouping
+          ? incomingRequestGrouping.perKeyMatches !== undefined
+          : perSeriesMatches.length > 0 || isPerSeriesMonitor;
+
+        if (publishesPerSeriesMatches) {
           /*
            * A per-series monitor always publishes an array, even an
            * empty one: a defined array is what tells the creators
@@ -803,8 +853,8 @@ ${contextBlock}
    * one for the whole monitor?
    *
    * Answered from configuration only — group-by attributes on a
-   * metric-backed step, or incident grouping on an incoming-request
-   * criteria — never from whether this particular tick produced
+   * metric-backed step, or a criteria that names "*" for every disk or
+   * interface — never from whether this particular tick produced
    * matches. A tick that produces none must still be treated as
    * per-series, otherwise the creators fall back to whole-monitor
    * dedupe and swallow every series after the first.
@@ -820,14 +870,16 @@ ${contextBlock}
       return false;
     }
 
+    /*
+     * Never for an Incoming Request monitor as a whole: grouping by a
+     * payload field is a criteria's own setting, decided for the criteria
+     * that matched (IncomingRequestIncidentGrouping.decideForMatchedCriteria).
+     * Answering "yes" here for any grouped criteria put the monitor's other
+     * criteria in per-value mode too, where a criteria without grouping
+     * opened nothing at all.
+     */
     if (monitorType === MonitorType.IncomingRequest) {
-      return input.criteriaInstances.some(
-        (criteriaInstance: MonitorCriteriaInstance) => {
-          return IncomingRequestIncidentGrouping.isGroupingConfigured(
-            criteriaInstance,
-          );
-        },
-      );
+      return false;
     }
 
     if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
@@ -920,18 +972,11 @@ ${contextBlock}
     criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
     /*
-     * Incoming Request / webhook monitors fan out per payload-derived key
-     * (e.g. one incident per Grafana alert name) when incidentGrouping is
-     * configured. No-op (returns []) when grouping is not configured, so
-     * existing incoming-request monitors keep their single-incident
-     * behaviour.
+     * Incoming Request / webhook monitors are not read here: their
+     * per-value matches come from the matched criteria's own grouping
+     * (IncomingRequestIncidentGrouping.decideForMatchedCriteria), which
+     * processMonitorStep asks for directly.
      */
-    if (input.monitor.monitorType === MonitorType.IncomingRequest) {
-      return IncomingRequestIncidentGrouping.collectFiringMatches({
-        dataToProcess: input.dataToProcess,
-        criteriaInstance: input.criteriaInstance,
-      });
-    }
 
     /*
      * A grouped Logs monitor: one count per combination of its group-by

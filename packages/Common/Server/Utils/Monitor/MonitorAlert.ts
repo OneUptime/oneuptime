@@ -484,9 +484,10 @@ export default class MonitorAlert {
     /*
      * `undefined` matchesPerSeries → legacy single-alert path. A defined
      * (even empty) array → per-series mode: iterate exactly the matches.
-     * An empty array therefore creates nothing — used by grouped
-     * incoming-request criteria on a payload with no firing key so they
-     * don't fall back to a single whole-monitor alert.
+     * An empty array therefore creates nothing — used by a grouped
+     * incoming-request criteria on a request whose values all recovered, or
+     * that the background check re-read (IncomingRequestIncidentGrouping).
+     * One with nothing to group by acts for the whole monitor instead.
      */
     const seriesToProcess: Array<PerSeriesCriteriaMatch | undefined> =
       input.matchesPerSeries !== undefined

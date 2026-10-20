@@ -301,3 +301,94 @@ describe("EvaluationLogList criteria results", () => {
     });
   });
 });
+
+/*
+ * An Incoming Request criteria that groups by a payload field says, among the
+ * Actions, how it handled a request it matched - here, one without the field,
+ * which it handled for the whole monitor rather than not at all.
+ */
+describe("EvaluationLogList grouping notes", () => {
+  const NOTE_MESSAGE: string =
+    'This request has no value at requestBody.groupLabels.alertname. Criteria "Contains x" handles it for the whole monitor, as it would without grouping.';
+
+  function renderGroupedMatch(): void {
+    const evaluationSummary: MonitorEvaluationSummary = {
+      evaluatedAt: EVALUATED_AT,
+      criteriaResults: [
+        criteriaResult({
+          criteriaName: "Contains x",
+          met: true,
+          message: "Request body contains x.",
+          filters: [
+            {
+              checkOn: CheckOn.RequestBody,
+              filterType: FilterType.Contains,
+              value: "x",
+              message: "Request body contains x.",
+              met: true,
+            },
+          ],
+        }),
+      ],
+      events: [
+        {
+          type: "criteria-met",
+          title: "Criteria met: Contains x",
+          message: "Request body contains x.",
+          at: EVALUATED_AT,
+        },
+        {
+          type: "grouping",
+          title: "No value to group by",
+          message: NOTE_MESSAGE,
+          relatedCriteriaId: "contains-x",
+          at: EVALUATED_AT,
+        },
+        {
+          type: "alert-created",
+          title: "Alert created: Alert: {{alertname}}",
+          message: 'Alert triggered from criteria "Contains x".',
+          relatedAlertId: "11111111-1111-4111-8111-111111111111",
+          relatedAlertNumber: 7,
+          at: EVALUATED_AT,
+        },
+      ],
+    };
+
+    render(<EvaluationLogList evaluationSummary={evaluationSummary} />);
+  }
+
+  it("lists the note among the Actions, with what happened and why", () => {
+    renderGroupedMatch();
+
+    expect(screen.getByText("Actions")).toBeVisible();
+    expect(screen.getByText("No value to group by")).toBeVisible();
+    expect(screen.getByText(NOTE_MESSAGE)).toBeVisible();
+  });
+
+  it("lists it before what the criteria opened", () => {
+    renderGroupedMatch();
+
+    const note: HTMLElement = screen.getByText("No value to group by");
+    const opened: HTMLElement = screen.getByText(
+      "Alert created: Alert: {{alertname}} (Alert #7)",
+    );
+
+    expect(
+      note.compareDocumentPosition(opened) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("offers no button of its own: it names no incident or alert", () => {
+    renderGroupedMatch();
+
+    const noteRow: HTMLElement = screen.getByText("No value to group by")
+      .parentElement!;
+
+    expect(within(noteRow).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "View Alert" })).toHaveLength(
+      1,
+    );
+  });
+});
