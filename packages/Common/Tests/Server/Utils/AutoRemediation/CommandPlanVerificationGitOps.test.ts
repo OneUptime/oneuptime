@@ -330,8 +330,8 @@ describe("a fix put back on the cluster", () => {
   });
 });
 
-describe("a fix Argo CD or Flux declares", () => {
-  it("is not verified before its window ends, however soon the monitors recovered", async () => {
+describe("a fix of a workload Argo CD or Flux declares", () => {
+  it("is not verified before its window ends, however soon the monitors recovered, when they put the change back", async () => {
     mockPending(pending({ gitOps: ARGO, revertWatch: watch() }));
     mockMonitorsOperational(true);
 
@@ -340,6 +340,34 @@ describe("a fix Argo CD or Flux declares", () => {
     expect(check).toHaveBeenCalledTimes(1);
     expect(cas).not.toHaveBeenCalled();
     expect(rollback).not.toHaveBeenCalled();
+  });
+
+  it("is verified as soon as the monitors recover when it is a change they do not put back", async () => {
+    mockPending(
+      pending({
+        gitOps: { ...ARGO, putsBack: false, summary: "... so it stays." },
+        revertWatch: watch({
+          fields: [
+            {
+              path: "spec.template.metadata.annotations.kubectl.kubernetes.io/restartedAt",
+              after: '"2026-10-20T10:00:00Z"',
+            },
+          ],
+        }),
+      }),
+    );
+    mockMonitorsOperational(true);
+
+    await RemediationVerifier.verifyPendingRemediations();
+
+    // Read once before the conclusion all the same.
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(writtenVerification()?.status).toBe(
+      AutoRemediationVerificationStatus.Verified,
+    );
+    expect(writtenVerification()?.note).toBe(
+      "The AI command remediation completed and the monitor(s) returned to an operational state within the verification window.",
+    );
   });
 
   it("is verified at the end of its window when it still holds, saying its owner will still put it back", async () => {

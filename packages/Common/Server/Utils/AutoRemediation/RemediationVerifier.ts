@@ -793,14 +793,18 @@ export default class RemediationVerifier {
       await this.areSubjectMonitorsOperational(suggestion);
 
     /*
-     * A fix of an object Argo CD or Flux declares can be put back at any
-     * moment of the window — Argo CD within seconds, Flux at its next
-     * reconciliation — so monitors that recovered right after it prove
-     * nothing yet: such a fix is judged at the end of its window.
+     * A change Argo CD or Flux puts back can be put back at any moment of
+     * the window — Argo CD within seconds, Flux at its next reconciliation,
+     * minutes away — so monitors that recovered right after it prove
+     * nothing yet: such a fix is judged at the end of its window. A change
+     * they do not put back (a restart) needs no wait: the read before the
+     * conclusion still catches one they did put back after all.
      */
     const holdsUntilDeadline: boolean = this.getWatchedCommands(plan).some(
       (command: AiRemediationCommand): boolean => {
-        return command.gitOps?.reconcilesOnItsOwn === true;
+        return (
+          command.gitOps?.reconcilesOnItsOwn === true && command.gitOps.putsBack
+        );
       },
     );
 
