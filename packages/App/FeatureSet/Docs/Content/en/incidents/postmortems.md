@@ -78,7 +78,17 @@ With **Draft a postmortem when an incident resolves** on, OneUptime AI drafts th
 - It never replaces a note that is already written.
 - It never writes into a postmortem that is already published, where the draft would reach the status page unreviewed.
 - It needs AI turned on for the project, and stops for the day once the project reaches its daily AI limits. See [Auto-postmortem](/docs/ai/ai-sre#auto-postmortem).
-- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while Zoom or Google Meet prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).
+- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while the provider prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).
+
+#### Choose which incidents get a draft, and its template
+
+With no rule, every resolved incident gets a draft, in OneUptime AI's standard outline. **Postmortem rules**, under **More settings** on the same page, change that:
+
+- A rule matches **All incidents**, or **Only incidents that match conditions** on monitors, severities, labels, monitor labels, title and description, as an investigation rule does.
+- Its **Templates** are the postmortem templates the draft may follow. With none, the draft follows the standard outline; with one, that template; with several, the one OneUptime AI finds fits the incident best. The draft's post in the feed names the template it followed.
+- The first enabled rule that matches the incident decides, from the top of the list: drag a rule to change its place. An incident that no rule matches gets no draft, and so does every incident while the rules cannot be read.
+- **Draft a postmortem when an incident resolves** stays the one switch that turns drafts off. Rules decide only the drafts OneUptime AI writes on its own: **Generate with AI** offers every outline, whatever they say.
+- Creating, editing and reordering rules takes the Project Owner or Project Admin role. On OneUptime Cloud, templates need the Growth plan: below it, rules still decide which incidents get a draft, and every draft follows the standard outline.
 
 ## Publish it on your status page
 
@@ -153,7 +163,7 @@ Check three things: **Publish on Status Page** is on, the note is not empty, and
 :::
 
 :::details No AI draft appeared when the incident resolved
-The incident already had a note, the postmortem was already published, or **Draft a postmortem when an incident resolves** is off. AI must be on for the project, and the project must not have reached its daily AI limits. When the incident's call has a transcript on its way, the draft comes once OneUptime AI has read it.
+The incident already had a note, the postmortem was already published, no postmortem rule matched it, or **Draft a postmortem when an incident resolves** is off. AI must be on for the project, and the project must not have reached its daily AI limits. When the incident's call has a transcript on its way, the draft comes once OneUptime AI has read it.
 :::
 
 ## Next steps

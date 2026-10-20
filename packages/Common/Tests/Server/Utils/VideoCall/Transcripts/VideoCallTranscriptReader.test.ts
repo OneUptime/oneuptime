@@ -4,7 +4,10 @@ import VideoCallConnectionService from "../../../../../Server/Services/VideoCall
 import { GOOGLE_DEFAULT_TOKEN_URI } from "../../../../../Server/Utils/VideoCall/Providers/GoogleMeetClient";
 import { ZOOM_TOKEN_URL } from "../../../../../Server/Utils/VideoCall/Providers/ZoomMeetingClient";
 import { VideoCallTranscriptRead } from "../../../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptRead";
-import VideoCallTranscriptReader from "../../../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
+import VideoCallTranscriptReader, {
+  VideoCallTranscriptReaderCall,
+} from "../../../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
+import { MICROSOFT_GRAPH_BASE_URL } from "../../../../../Server/Utils/VideoCall/Providers/MicrosoftTeamsMeetingClient";
 import VideoCallHttpClient from "../../../../../Server/Utils/VideoCall/VideoCallHttpClient";
 import APIException from "../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -30,8 +33,9 @@ type ZoomTokenGetter = () => Promise<{
 /*
  * A call's transcript is read with the connection that started the call -
  * the same sign-in or app credentials that created the meeting - and only
- * for a Zoom or Google Meet meeting OneUptime created. Every other call is
- * answered with how to add its transcript instead, without a request.
+ * for a Zoom or Google Meet meeting OneUptime created, or a Microsoft Teams
+ * meeting it put on its organizer's calendar. Every other call is answered
+ * with how to add its transcript instead, without a request.
  */
 
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
@@ -87,11 +91,7 @@ function useSettings(data: {
 }
 
 async function read(
-  call: {
-    provider?: VideoCallProvider;
-    videoCallConnectionId?: ObjectID;
-    externalMeetingId?: string;
-  },
+  call: VideoCallTranscriptReaderCall,
   responses: Array<ScriptedResponse>,
 ): Promise<{ result: VideoCallTranscriptRead; fetcher: ScriptedFetch }> {
   const fetcher: ScriptedFetch = scriptedFetch(responses);
@@ -128,7 +128,7 @@ afterEach(() => {
 });
 
 describe("VideoCallTranscriptReader - calls whose transcript a person adds", () => {
-  test("Microsoft Teams: download the .vtt from the meeting's Recap", async () => {
+  test("a Microsoft Teams meeting not on a calendar: download the .vtt from the meeting's Recap", async () => {
     const getSettings: ReturnType<typeof jest.spyOn> = jest.spyOn(
       VideoCallConnectionService,
       "getSettings",
@@ -145,7 +145,7 @@ describe("VideoCallTranscriptReader - calls whose transcript a person adds", () 
     expect(unavailable(result)).toEqual({
       reason: VideoCallTranscriptUnavailableReason.NotSupported,
       message: expect.stringMatching(
-        /open the meeting's Recap, download the transcript as a \.vtt file, and add it here/,
+        /only of meetings on a calendar, and OneUptime started this one without putting it on its organizer's calendar\. In Teams, open the meeting's Recap, download the transcript as a \.vtt file, and add it here/,
       ),
     });
     expect(fetcher.requests).toHaveLength(0);
@@ -452,5 +452,302 @@ describe("VideoCallTranscriptReader - Google Meet", () => {
       reason: VideoCallTranscriptUnavailableReason.ConnectionProblem,
       message: expect.stringMatching(/not valid JSON/),
     });
+  });
+});
+
+describe("VideoCallTranscriptReader - Microsoft Teams", () => {
+  const TENANT_ID: string = "11111111-2222-3333-4444-555555555555";
+  const CLIENT_ID: string = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  const ORGANIZER_ID: string = "99999999-8888-7777-6666-555555555555";
+  const MEETING_ID: string = "MSpkYzE3Njc0Yy04MWQ5LTRhZGItYmZi";
+
+  // A meeting OneUptime put on its organizer's calendar, to record it.
+  const TEAMS_CALL: VideoCallTranscriptReaderCall = {
+    provider: VideoCallProvider.MicrosoftTeams,
+    videoCallConnectionId: CONNECTION,
+    externalMeetingId: MEETING_ID,
+    externalCalendarEventId: "AAMkAGI2TG93AAA=",
+  };
+
+  const APP_CONFIG: JSONObject = {
+    tenantId: TENANT_ID,
+    clientId: CLIENT_ID,
+    organizerUserId: ORGANIZER_ID,
+    lobbyBypass: "organization",
+  };
+
+  const TRANSCRIPTS: ScriptedResponse = {
+    status: 200,
+    body: {
+      value: [
+        {
+          id: "transcript-1",
+          meetingId: MEETING_ID,
+          createdDateTime: "2026-10-19T08:30:00Z",
+        },
+      ],
+    },
+  };
+
+  const CONTENT: ScriptedResponse = {
+    status: 200,
+    body: [
+      "WEBVTT",
+      "",
+      "00:00:03.000 --> 00:00:05.000",
+      "<v Priya Shah>We rolled back the deploy.</v>",
+      "",
+    ].join("\n"),
+  };
+
+  test("an app registration: its own token for the tenant, then the meeting's transcripts as its organizer", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      config: APP_CONFIG,
+      secrets: { clientSecret: "client~secret.value" },
+    });
+
+    const { result, fetcher } = await read(TEAMS_CALL, [
+      {
+        status: 200,
+        body: {
+          token_type: "Bearer",
+          expires_in: 3599,
+          access_token: "app-token",
+        },
+      },
+      TRANSCRIPTS,
+      CONTENT,
+    ]);
+
+    expect(fetcher.requests[0]!.url).toBe(
+      `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
+    );
+    const form: URLSearchParams = readFormBody(fetcher.requests[0]!);
+    expect(form.get("grant_type")).toBe("client_credentials");
+    expect(form.get("client_id")).toBe(CLIENT_ID);
+    expect(form.get("client_secret")).toBe("client~secret.value");
+
+    expect(fetcher.requests[1]!.url).toBe(
+      `${MICROSOFT_GRAPH_BASE_URL}/users/${ORGANIZER_ID}/onlineMeetings/${MEETING_ID}/transcripts`,
+    );
+    expect(fetcher.requests[1]!.init.headers["Authorization"]).toBe(
+      "Bearer app-token",
+    );
+
+    expect(result.found).toBe(true);
+    expect(result.found ? result.lines : []).toEqual([
+      {
+        offsetInSeconds: 3,
+        speaker: "Priya Shah",
+        text: "We rolled back the deploy.",
+      },
+    ]);
+  });
+
+  test("an app registration's refusal names the policy that lets it act for the organizer", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      config: APP_CONFIG,
+      secrets: { clientSecret: "client~secret.value" },
+    });
+
+    const { result } = await read(TEAMS_CALL, [
+      {
+        status: 200,
+        body: {
+          token_type: "Bearer",
+          expires_in: 3599,
+          access_token: "app-token",
+        },
+      },
+      {
+        status: 403,
+        body: {
+          error: {
+            code: "Forbidden",
+            message: "No application access policy found for this app.",
+          },
+        },
+      },
+    ]);
+
+    expect(unavailable(result)).toEqual({
+      reason: VideoCallTranscriptUnavailableReason.PermissionMissing,
+      message: expect.stringContaining(`-Identity "${ORGANIZER_ID}"`),
+    });
+  });
+
+  test("a client secret Entra refuses is the connection's problem", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      config: APP_CONFIG,
+      secrets: { clientSecret: "expired" },
+    });
+
+    const { result, fetcher } = await read(TEAMS_CALL, [
+      {
+        status: 401,
+        body: {
+          error: "invalid_client",
+          error_description:
+            "AADSTS7000222: The provided client secret keys for app are expired.",
+        },
+      },
+    ]);
+
+    expect(unavailable(result)).toEqual({
+      reason: VideoCallTranscriptUnavailableReason.ConnectionProblem,
+      message: expect.stringMatching(/rejected the client secret/),
+    });
+    expect(fetcher.requests).toHaveLength(1);
+  });
+
+  test("a sign-in: its own token, as /me, and the transcript permission it was granted checked first", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      authMethod: VideoCallAuthMethod.OAuth,
+      connectedAccount: "incidents@acme.com",
+      config: { lobbyBypass: "organization" },
+      secrets: {
+        refreshToken: "refresh",
+        // Connected before the project recorded its calls.
+        scope: "openid profile email OnlineMeetings.ReadWrite",
+      },
+    });
+    const getAccessToken: Mock<() => Promise<{ accessToken: string }>> =
+      jest.fn<() => Promise<{ accessToken: string }>>(async () => {
+        return { accessToken: "user-token" };
+      });
+    jest.spyOn(VideoCallConnectionService, "getOAuthAccess").mockReturnValue({
+      accountLabel: "incidents@acme.com",
+      getAccessToken,
+    });
+
+    const { result, fetcher } = await read(TEAMS_CALL, []);
+
+    expect(unavailable(result)).toEqual({
+      reason: VideoCallTranscriptUnavailableReason.PermissionMissing,
+      message: expect.stringMatching(
+        /Reconnect Microsoft Teams .* while Record and transcribe incident calls is on/,
+      ),
+    });
+    expect(getAccessToken).toHaveBeenCalledTimes(1);
+    expect(fetcher.requests).toHaveLength(0);
+  });
+
+  test("a sign-in granted transcripts reads them as the signed-in account", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      authMethod: VideoCallAuthMethod.OAuth,
+      connectedAccount: "incidents@acme.com",
+      config: { lobbyBypass: "organization" },
+      secrets: {
+        refreshToken: "refresh",
+        scope:
+          "OnlineMeetings.ReadWrite Calendars.ReadWrite OnlineMeetingTranscript.Read.All",
+      },
+    });
+    jest.spyOn(VideoCallConnectionService, "getOAuthAccess").mockReturnValue({
+      accountLabel: "incidents@acme.com",
+      getAccessToken: async () => {
+        return { accessToken: "user-token" };
+      },
+    });
+
+    const { result, fetcher } = await read(TEAMS_CALL, [TRANSCRIPTS, CONTENT]);
+
+    expect(fetcher.requests[0]!.url).toBe(
+      `${MICROSOFT_GRAPH_BASE_URL}/me/onlineMeetings/${MEETING_ID}/transcripts`,
+    );
+    expect(fetcher.requests[0]!.init.headers["Authorization"]).toBe(
+      "Bearer user-token",
+    );
+    expect(result.found).toBe(true);
+  });
+
+  test("a sign-in Microsoft no longer accepts is named in the answer", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      authMethod: VideoCallAuthMethod.OAuth,
+      connectedAccount: "incidents@acme.com",
+      config: {},
+      secrets: { refreshToken: "refresh" },
+    });
+    jest.spyOn(VideoCallConnectionService, "getOAuthAccess").mockReturnValue({
+      accountLabel: "incidents@acme.com",
+      getAccessToken: async () => {
+        return { accessToken: "user-token" };
+      },
+    });
+
+    const { result } = await read(TEAMS_CALL, [
+      {
+        status: 401,
+        body: {
+          error: {
+            code: "InvalidAuthenticationToken",
+            message: "Lifetime validation failed, the token is expired.",
+          },
+        },
+      },
+    ]);
+
+    expect(unavailable(result)).toEqual({
+      reason: VideoCallTranscriptUnavailableReason.ConnectionProblem,
+      message: expect.stringMatching(
+        /sign-in for incidents@acme\.com\. Reconnect Microsoft Teams/,
+      ),
+    });
+  });
+
+  test("an old call's meeting Graph no longer has: Expired, from when the call started", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      config: APP_CONFIG,
+      secrets: { clientSecret: "client~secret.value" },
+    });
+
+    const { result } = await read(
+      {
+        ...TEAMS_CALL,
+        startedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      },
+      [
+        {
+          status: 200,
+          body: { token_type: "Bearer", expires_in: 3599, access_token: "t" },
+        },
+        {
+          status: 404,
+          body: { error: { code: "NotFound", message: "Not found." } },
+        },
+      ],
+    );
+
+    expect(unavailable(result).reason).toBe(
+      VideoCallTranscriptUnavailableReason.Expired,
+    );
+  });
+
+  test("Graph not answering is an error, not an answer about the transcript", async () => {
+    useSettings({
+      provider: VideoCallProvider.MicrosoftTeams,
+      config: APP_CONFIG,
+      secrets: { clientSecret: "client~secret.value" },
+    });
+
+    await expect(
+      read(TEAMS_CALL, [
+        {
+          status: 200,
+          body: { token_type: "Bearer", expires_in: 3599, access_token: "t" },
+        },
+        {
+          status: 503,
+          body: { error: { code: "ServiceUnavailable", message: "Busy." } },
+        },
+      ]),
+    ).rejects.toBeInstanceOf(APIException);
   });
 });

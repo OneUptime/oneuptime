@@ -184,15 +184,19 @@ function stackImages(composeFiles) {
     }
   }
 
-  return Object.values(services)
-    .filter((service) => {
-      return !service.profiles || service.profiles.length === 0;
-    })
-    .map((service) => {
-      return service.image;
-    })
-    .filter(Boolean)
-    .sort();
+  // Each image once: two services can run the same one (runner, global-runner).
+  return [
+    ...new Set(
+      Object.values(services)
+        .filter((service) => {
+          return !service.profiles || service.profiles.length === 0;
+        })
+        .map((service) => {
+          return service.image;
+        })
+        .filter(Boolean),
+    ),
+  ].sort();
 }
 
 /**
@@ -251,11 +255,22 @@ describe("the helpers this suite reads the workflows with", () => {
 
     expect(images).toContain("oneuptime/home:${APP_TAG}");
     expect(images).toContain("oneuptime/app:${APP_TAG}");
-    // The billing overlay puts the runner behind a profile.
+    // The billing overlay puts the runner, and the global Runner, behind a profile.
     expect(images).not.toContain("oneuptime/runner:${APP_TAG}");
     expect(stackImages(["docker-compose.yml"])).toContain(
       "oneuptime/runner:${APP_TAG}",
     );
+  });
+
+  test("name each image once, though two services run the Runner image", () => {
+    const images = stackImages(["docker-compose.yml"]);
+
+    expect(
+      images.filter((image) => {
+        return image === "oneuptime/runner:${APP_TAG}";
+      }),
+    ).toHaveLength(1);
+    expect(new Set(images).size).toBe(images.length);
   });
 
   test("name the merge job of a OneUptime image, and of nothing else", () => {

@@ -1,10 +1,12 @@
-# Attività di correzione
+# Codice
 
-Un'attività di correzione è una pull request che OneUptime AI scrive nel tuo codice. La avvii da un'eccezione, una traccia, un servizio o un'indagine, oppure OneUptime la avvia da solo; un [Runner](/docs/runbooks/agents) clona il repository, scrive la modifica su un nuovo branch, la compila e la testa, e apre una pull request. Una persona rivede e unisce ognuna: il Runner può fare il push di branch e aprire pull request, nient'altro.
+Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository, come chiederesti a un agente di programmazione: correggere un bug, scrivere test, spiegare il codice, fare una modifica. Si apre sui tuoi repository collegati; la pagina di un repository contiene le sue attività e la casella in cui chiedi; la pagina di un'attività è una conversazione in cui puoi rispondere. OneUptime avvia anche attività da solo, a partire da eccezioni, tracce e indagini. Un [Runner](/docs/runbooks/agents) clona il repository, scrive la modifica su un nuovo branch, la compila e la testa, e apre una pull request. Una persona rivede e unisce ognuna: il Runner può fare il push di branch e aprire pull request, nient'altro.
 
 :::cards
+- [Chiedere all'IA in un repository](#chiedere-allia-in-un-repository): Una richiesta con parole tue, con il contesto che le serve.
+- [La conversazione di un'attività](#la-conversazione-di-unattività): Cosa ha fatto l'IA, cosa ha modificato, e la tua risposta.
 - [Come funziona un'esecuzione di correzione](#come-funziona-unesecuzione-di-correzione): Da un clic a una pull request, passo dopo passo.
-- [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione): I pulsanti che ne avviano una, e cosa fa ogni pull request.
+- [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione): Le attività che OneUptime avvia, e cosa fa ogni pull request.
 - [Prima di iniziare](#prima-di-iniziare): Un modello, un repository collegato e un Runner.
 - [Quando una correzione non riesce](#quando-una-correzione-non-riesce): Cosa succede a un'esecuzione che va in errore, si blocca o resta in attesa.
 :::
@@ -12,11 +14,61 @@ Un'attività di correzione è una pull request che OneUptime AI scrive nel tuo c
 > [!TIP]
 > Puoi avviarla anche da GitHub. Menziona la GitHub App di OneUptime in una issue o in una pull request e implementa, rivede o revisiona direttamente lì: vedi [GitHub App](/docs/ai/github-app). È lo stesso agente, lo stesso Runner e gli stessi budget; cambia solo il trigger.
 
+## Chiedere all'IA in un repository
+
+:::steps
+### Apri un repository
+
+Apri **Prodotti → Codice**. Elenca i repository del progetto, ognuno con le attività su cui l'IA sta lavorando, quelle che aspettano te e le sue pull request aperte. Se non ce n'è ancora nessuno, offre **Connetti GitHub** (vedi [Prima di iniziare](#prima-di-iniziare)).
+
+### Di' cosa vuoi
+
+Nella pagina del repository, scrivi la modifica, il bug o la domanda con parole tue. Un repository che non ha ancora attività ne suggerisce alcune sotto **Prova a chiedere**.
+
+### Aggiungi contesto
+
+Fai clic su **Aggiungi contesto** per dare all'IA ciò che le serve: un file o una cartella del repository, una nota, un collegamento o un record del progetto. OneUptime legge ogni record quando invii la richiesta, con i tuoi permessi, e conserva ciò che l'IA ha ricevuto.
+
+### Avvia l'attività
+
+Fai clic su **Avvia attività**, oppure premi Invio. Si apre la pagina dell'attività, e il lavoro dell'IA vi compare man mano che avviene.
+:::
+
+| Contesto | Cosa riceve l'IA |
+| --- | --- |
+| **File o cartella** | Un percorso nel repository, che l'IA legge per primo. |
+| **Nota** | Testo che incolli: un errore, una specifica, una riga di log. |
+| **Collegamento** | Un indirizzo web, come riferimento. |
+| **Incidente** o **Avviso** | Il suo stato, la descrizione e la causa principale, così come sono quando invii la richiesta. |
+| **Eccezione** | Il suo messaggio e lo stack trace. |
+| **Monitor** | Il suo tipo, lo stato e la descrizione. |
+| **Traccia** | I suoi span: nomi, tempi ed errori. |
+| **Registri** | Le ultime 20 righe di log che contengono la tua ricerca, dell'ultima ora, dell'ultimo giorno o dell'ultima settimana. |
+
+Una richiesta porta al massimo 10 elementi di contesto. Token, chiavi, password e indirizzi email in ciò che OneUptime legge vengono oscurati prima che l'IA li veda, come ovunque OneUptime AI legga i tuoi dati.
+
+## La conversazione di un'attività
+
+La pagina di un'attività è una conversazione: cosa è stato chiesto e il contesto aggiunto, poi il turno dell'IA – i passi che compie mentre li compie (i file che ha letto e modificato, cosa ha cercato, i comandi che ha eseguito), la sua risposta, i file che ha modificato con il loro diff, e la pull request. In cima alla pagina si vede a che punto è l'attività:
+
+| Stato | Cosa significa |
+| --- | --- |
+| **In coda** | Aspetta che un Runner la prenda. |
+| **In corso…** | L'IA ci sta lavorando. **Ferma** la ferma; ciò che ha già inviato con il push resta sul branch. |
+| **In attesa di te** | L'IA ha fatto una domanda. Rispondi nella casella qui sotto. |
+| **Fatto** | L'IA ha finito: la sua risposta, e la pull request se ha modificato il codice. |
+| **Non riuscito** | Il turno non è riuscito a finire, e dice perché. **Riprova** chiede di nuovo la stessa cosa. |
+| **Arrestato** | Qualcuno l'ha fermata. **Riprova** chiede di nuovo la stessa cosa. |
+
+Per continuare, scrivi nella casella in fondo: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Registro** di ogni turno è la registrazione fedele di ciò che ha fatto.
+
+Chi può leggere un repository ne legge le attività. Chiedere all'IA, rispondere e fermare un'attività richiedono il permesso di modificare il repository, e così vedere il diff di una modifica: tutti gli altri vedono quali file sono cambiati. Anche le attività che OneUptime avvia da solo (sotto) sono nel loro repository, come conversazioni in cui puoi rispondere.
+
 ## Come funziona un'esecuzione di correzione
 
 ```mermaid title="Da un clic a una pull request"
 flowchart TB
-    S["Fix with AI o un<br/>trigger automatico"] --> Q["Un'attività di<br/>correzione entra<br/>in coda"]
+    S["Una richiesta, un<br/>pulsante o un<br/>trigger"] --> Q["Un'attività di<br/>correzione entra<br/>in coda"]
     Q --> R["Un Runner che esegue<br/>le correzioni di<br/>codice AI la prende"]
     R --> C["Clona il repository<br/>e crea un branch"]
     C --> A["L'agente di codice<br/>scrive la modifica"]
@@ -26,15 +78,15 @@ flowchart TB
     P --> H["Una persona la rivede<br/>e ne fa il merge"]
 ```
 
-1. Fai clic su **Fix with AI** su un'eccezione non risolta, oppure un altro pulsante o trigger avvia un'attività (vedi [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione)).
+1. Fai clic su **Avvia attività** in un repository, o su **Fix with AI** su un'eccezione non risolta, oppure un altro pulsante o trigger avvia un'attività (vedi [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione)).
 2. L'attività entra in coda, e un Runner disponibile con **Esegue le correzioni di codice AI** attivato la prende.
-3. Il Runner recupera il contesto dell'attività. Per un'eccezione, sono il tipo, il messaggio e lo stack trace.
-4. Clona il repository in un proprio spazio di lavoro e crea un branch. Una correzione di un'eccezione si chiama `oneuptime-fix-exception-` seguito dai primi caratteri dell'id dell'esecuzione.
+3. Il Runner recupera il contesto dell'attività. Per una richiesta, sono le sue parole, il contesto aggiunto e la conversazione fin lì; per un'eccezione, il tipo, il messaggio e lo stack trace.
+4. Clona il repository in un proprio spazio di lavoro e crea un branch. Una correzione di un'eccezione si chiama `oneuptime-fix-exception-` seguito dai primi caratteri dell'id dell'esecuzione. Una risposta lavora invece sul branch della pull request aperta dell'attività.
 5. Un agente di codice, alimentato dal provider LLM del tuo progetto, legge il codice e scrive la modifica. Il server OneUptime effettua le chiamate al LLM, quindi il Runner non possiede mai la chiave API del tuo provider, e ogni chiamata viene misurata ed elencata nei log dell'IA.
 6. Se il repository ha comandi di verifica, un Runner tuo compila e testa la modifica prima di fare qualsiasi commit, e restituisce un errore all'agente di codice perché lo ripari (vedi [Verifica prima della pull request](#verifica-prima-della-pull-request)).
-7. Il Runner fa il commit, il push del branch, apre la pull request ed elimina lo spazio di lavoro.
+7. Il Runner fa il commit, il push del branch, apre la pull request (per una richiesta, solo se ha modificato il codice) ed elimina lo spazio di lavoro.
 
-La pagina da cui è stata avviata l'attività ne mostra lo stato in tempo reale. Ogni attività è elencata in **Prodotti → Codice → Attività**: aprine una per vedere la **Panoramica**, i **Registri** (una riga per ogni file che il Runner ha letto o scritto e per ogni comando che ha eseguito) e le **Pull Request**.
+La pagina da cui è stata avviata l'attività ne mostra lo stato in tempo reale. Ogni attività è elencata nel suo repository, in **Prodotti → Codice**: la sua pagina è la sua conversazione, e il **Registro** di ogni turno ha una riga per ogni file che il Runner ha letto o scritto e per ogni comando che ha eseguito.
 
 Ogni esecuzione è soggetta a budget che il server impone: al massimo **40 chiamate al LLM** e **100.000 token di output**. Un'esecuzione che ne raggiunge uno termina con un riepilogo del lavoro svolto fin lì invece di girare a vuoto. Le esecuzioni di correzione contano anche per i limiti giornalieri di IA del progetto, quando il progetto li imposta.
 
@@ -44,11 +96,11 @@ Ogni esecuzione è soggetta a budget che il server impone: al massimo **40 chiam
 | --- | --- | --- |
 | La pagina **AI Assistance** di un'eccezione | **Fix with AI** | Corregge il bug dietro l'eccezione. |
 | La pagina **AI Assistance** di un'eccezione | **Generate Regression Test** | Aggiunge un test che riproduce l'eccezione e fallisce finché il bug non è corretto. |
-| La pagina **AI Assistance** di un'eccezione | **Improve Error Handling** | Per un errore previsto, come un input non valido: toglie i dati utente dal messaggio, convalida l'input prima e contrassegna l'errore come gestito, senza cambiare il comportamento. |
+| La pagina **AI Assistance** di un'eccezione | **Migliora la gestione degli errori** | Per un errore previsto, come un input non valido: toglie i dati utente dal messaggio, convalida l'input prima e contrassegna l'errore come gestito, senza cambiare il comportamento. |
 | La scheda **AI Investigation** di un incidente o di un avviso | **Open Fix PR from this analysis** | Corregge la causa principale pubblicata dall'indagine (vedi [Correzioni di codice automatiche dalle indagini](#correzioni-di-codice-automatiche-dalle-indagini)). |
 | Una traccia | **Fix performance with AI** | Corregge lo schema lento trovato nella traccia, come query N+1 o un singolo span lento dominante. |
-| La pagina **Registri** di un servizio | **Improve Logging** | Rende i log del servizio strutturati, con la severità giusta e collegati alle sue tracce, senza cambiare il comportamento. |
-| La pagina **Tracce** di un servizio | **Improve Tracing** | Aggiunge span e attributi dove manca il tracing del servizio, senza cambiare il comportamento. |
+| La pagina **Registri** di un servizio | **Migliora i log** | Rende i log del servizio strutturati, con la severità giusta e collegati alle sue tracce, senza cambiare il comportamento. |
+| La pagina **Tracce** di un servizio | **Migliora il tracciamento** | Aggiunge span e attributi dove manca il tracing del servizio, senza cambiare il comportamento. |
 
 Per aprire la pagina **AI Assistance** di un'eccezione, apri l'eccezione in **Prodotti → Osservabilità → Eccezioni** e scegli **AI Assistance** nel suo menu laterale. Un'eccezione risolta o archiviata deve prima essere contrassegnata come non risolta.
 
@@ -56,7 +108,7 @@ OneUptime AI avvia anche attività di correzione da solo: da un'indagine che tro
 
 ## Verifica prima della pull request
 
-Un repository di codice può avere fino a tre comandi di verifica nella sua pagina **Impostazioni**, in **Repository di codice**:
+Un repository può avere fino a tre comandi di verifica nella sua pagina **Impostazioni** in Codice:
 
 | Comando | Esempio | Quando viene eseguito |
 | --- | --- | --- |
@@ -76,12 +128,12 @@ I comandi sono impostazioni del repository che scrive il tuo team, eseguite sul 
 
 ## Prima di iniziare
 
-Un'attività di correzione ha bisogno di tre cose. La pagina **AI Assistance** dell'eccezione le controlla tutte e tre prima di offrire l'avvio, e dice cosa manca.
+Un'attività ha bisogno di tre cose. La pagina di un repository in Codice e la pagina **AI Assistance** dell'eccezione le controllano tutte e tre prima di offrire l'avvio, e dicono cosa manca.
 
 | Cosa | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
 | Un provider LLM | Niente da configurare: un progetto senza un proprio provider usa il provider globale, pagato con i crediti IA del progetto. Un tuo provider, in **Impostazioni del progetto → IA → Provider LLM**, ha la precedenza. | Imposta una volta sul server le variabili d'ambiente `GLOBAL_LLM_PROVIDER_*`, oppure aggiungi un provider al progetto. |
-| Un repository collegato tramite la GitHub App | **Prodotti → Codice → Attività**, poi **Repository di codice** e **Connect with GitHub App**. Se l'app è già installata sull'account GitHub, fai invece clic su **Collega un'installazione esistente**: installarla di nuovo non la collega. Richiede il piano Growth. | Lo stesso, una volta che la tua istanza ha una GitHub App (vedi [Integrazione con GitHub](/docs/self-hosted/github-integration)). |
+| Un repository collegato tramite la GitHub App | **Prodotti → Codice**, poi **Connetti GitHub**. Se l'app è già installata sull'account GitHub, fai invece clic su **Collega un'installazione esistente**: installarla di nuovo non la collega. Richiede il piano Growth. | Lo stesso, una volta che la tua istanza ha una GitHub App (vedi [Integrazione con GitHub](/docs/self-hosted/github-integration)). |
 | Un Runner che esegue le correzioni di codice AI | Niente da gestire: se ne occupano i Runner condivisi di OneUptime. | Il servizio `runner` di Docker Compose, o il Runner del chart Helm (`runner.enabled`, attivo per impostazione predefinita), si registra da solo ed esegue le correzioni di codice AI. |
 
 Su un'istanza self-hosted, il provider globale è un blocco di `config.env` (Docker Compose) o dei tuoi valori Helm. Per un Ollama self-hosted:
@@ -151,7 +203,7 @@ Tutto il resto è come il pulsante:
 ## Quando una correzione non riesce
 
 :::details L'esecuzione va in errore
-La correzione non si è potuta applicare, il repository non era raggiungibile o la chiamata al LLM è fallita. La pagina da cui è stata avviata l'attività mostra il motivo e offre di riprovare. La pagina **Registri** dell'attività contiene il log completo dell'esecuzione.
+La correzione non si è potuta applicare, il repository non era raggiungibile o la chiamata al LLM è fallita. La conversazione dell'attività, e la pagina da cui è stata avviata, mostrano il motivo e offrono di riprovare. Il **Registro** del turno contiene il log completo dell'esecuzione.
 :::
 
 :::details Il Runner si ferma a metà di un'esecuzione
@@ -159,7 +211,7 @@ Un'esecuzione il cui heartbeat tace da più di 12 minuti viene chiusa con un err
 :::
 
 :::details Nessun Runner prende l'attività
-Un'attività che aspetta più di 30 minuti mentre non è collegato nessun Runner con **Esegue le correzioni di codice AI** fallisce, con un messaggio che invita a controllare il Runner, così non risulta mai in corso per sempre. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno.
+Un'attività che aspetta più di 30 minuti mentre non è collegato nessun Runner con **Esegue le correzioni di codice AI** fallisce, con un messaggio che invita a controllare il Runner, così non risulta mai in corso per sempre. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno. Un Runner precedente a Codice non riceve mai una richiesta da Codice: aggiorna un Runner che esegui tu insieme al server.
 :::
 
 ## Privacy

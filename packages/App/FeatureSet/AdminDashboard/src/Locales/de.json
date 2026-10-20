@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Globale Probes",
+    "globalRunners": "Globale Runner",
     "dataRetention": "Datenaufbewahrung",
     "globalAiAgents": "Globale KI-Agenten",
     "globalLlmProviders": "Globale LLM-Anbieter",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Überwachung",
     "settingsGlobalProbes": "Globale Probes",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Globale Runner",
     "settingsDataRetention": "Datenaufbewahrung",
     "settingsAi": "KI",
     "settingsGlobalAiAgents": "Globale KI-Agenten",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Hier ist Ihr Probe-Schlüssel. Bitte halten Sie ihn geheim.",
         "probeIdLabel": "Probe-ID:",
         "probeKeyLabel": "Probe-Schlüssel:"
+      },
+      "globalRunners": {
+        "cardTitle": "Globale Runner",
+        "cardDescription": "Runner, die OneUptime für jedes Projekt betreibt. Sie führen JavaScript-Schritte aus, jeden in einer Sandbox, die nur das Internet erreicht.",
+        "noItems": "Fügen Sie einen globalen Runner hinzu. Erstellen Sie einen und starten Sie ihn dann mit dem Befehl unter „ID und Schlüssel anzeigen“.",
+        "showIdKey": "ID und Schlüssel anzeigen",
+        "keyModalTitle": "Schlüssel des globalen Runners",
+        "keyModalDescription": "Starten Sie diesen globalen Runner auf einem Host, der das Internet erreicht. Halten Sie seinen Schlüssel geheim: Wer ihn besitzt, kann die JavaScript-Schritte jedes Projekts übernehmen, das globale Runner nutzt.",
+        "runnerIdLabel": "Runner-ID:",
+        "runnerKeyLabel": "Runner-Schlüssel:",
+        "commandLabel": "Auf deinem Docker-Host ausführen",
+        "neverConnected": "Nie verbunden"
       },
       "aiAgents": {
         "bannerTitle": "Benötigen Sie Hilfe bei der Einrichtung von Globalen KI-Agenten?",

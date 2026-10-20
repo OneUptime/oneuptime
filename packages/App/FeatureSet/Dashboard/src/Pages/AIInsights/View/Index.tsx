@@ -1013,7 +1013,7 @@ const AIInsightViewPage: FunctionComponent<
                */}
               <Link
                 to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                  RouteMap[PageMap.CODE_TASK_VIEW] as Route,
                   { modelId: insight.fixAiRunId },
                 )}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"

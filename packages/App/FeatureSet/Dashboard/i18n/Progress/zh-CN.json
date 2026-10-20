@@ -1,10 +1,11 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 16250
+    "keys": 31337,
+    "untranslated": 16177
   },
   "sameAsEnglish": [
     "AI / LLM",
+    "PR #{{number}}",
     "Runner",
     "SNMP trap",
     "VMware vCenter",

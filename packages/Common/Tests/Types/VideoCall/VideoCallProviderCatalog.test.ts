@@ -1,6 +1,9 @@
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import {
   ConnectableVideoCallProviders,
+  MICROSOFT_TEAMS_CALENDAR_PERMISSION,
+  MICROSOFT_TEAMS_MEETING_PERMISSION,
+  MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
   OAuthVideoCallProviders,
   VideoCallConnectionField,
   VideoCallProviderCatalog,
@@ -184,13 +187,45 @@ describe("VideoCallProviderCatalog", () => {
       "cloud_recording:read:meeting_transcript",
     );
 
-    for (const provider of [
-      VideoCallProvider.GoogleMeet,
+    // Google Meet reads them with the scope it creates meetings with.
+    expect(
+      getVideoCallProviderDefinition(
+        VideoCallProvider.GoogleMeet,
+      )!.setupSteps.join("\n"),
+    ).not.toMatch(/transcript/i);
+  });
+
+  /*
+   * Recording and transcribing a Teams call needs two more Graph
+   * permissions, optional: the Teams guide names them on the API
+   * permissions step, before admin consent is granted, and the setup keeps
+   * its five steps.
+   */
+  test("the Teams guide names the optional recording permissions on its API permissions step", () => {
+    const teams: VideoCallProviderDefinition = getVideoCallProviderDefinition(
       VideoCallProvider.MicrosoftTeams,
-    ]) {
-      expect(
-        getVideoCallProviderDefinition(provider)!.setupSteps.join("\n"),
-      ).not.toMatch(/transcript/i);
-    }
+    )!;
+    const permissionsStep: string | undefined = teams.setupSteps.find(
+      (step: string): boolean => {
+        return step.includes(MICROSOFT_TEAMS_MEETING_PERMISSION);
+      },
+    );
+
+    expect(permissionsStep).toBeDefined();
+    expect(permissionsStep).toContain(
+      `**${MICROSOFT_TEAMS_CALENDAR_PERMISSION}**`,
+    );
+    expect(permissionsStep).toContain(
+      `**${MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION}**`,
+    );
+    expect(
+      permissionsStep!.indexOf(MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION),
+    ).toBeLessThan(permissionsStep!.indexOf("Grant admin consent"));
+    expect(teams.setupSteps).toHaveLength(5);
+
+    expect(MICROSOFT_TEAMS_CALENDAR_PERMISSION).toBe("Calendars.ReadWrite");
+    expect(MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION).toBe(
+      "OnlineMeetingTranscript.Read.All",
+    );
   });
 });

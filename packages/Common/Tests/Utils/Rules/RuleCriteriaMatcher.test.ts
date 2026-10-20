@@ -935,11 +935,19 @@ describe("RuleCriteriaMatcher text legacy adapter", () => {
 
   it("avoids catastrophic backtracking in multi-wildcard legacy regexes", () => {
     const adversarialWildcard: string = `${"*a".repeat(8)}*b`;
+    let answer: boolean | null = null;
+    // The engines' own matcher, on a long value: it answers, and quickly.
     const matchesLegacyRule: (rule: ExampleRule) => boolean = (
       rule: ExampleRule,
     ): boolean => {
-      return new RegExp(rule.namePattern || "(?!)", "i").test("a".repeat(40));
+      answer = RulePatternMatchUtil.testRegex(
+        rule.namePattern || "(?!)",
+        "a".repeat(50000),
+      );
+
+      return answer;
     };
+    const startedAt: number = Date.now();
 
     expect(
       RuleCriteriaMatcher.matchesWithLegacySync({
@@ -957,6 +965,8 @@ describe("RuleCriteriaMatcher text legacy adapter", () => {
         matchesLegacyRule: matchesLegacyRule,
       }),
     ).toBe(false);
+    expect(answer).toBe(false);
+    expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 
   it.each([
@@ -1049,6 +1059,35 @@ describe("RuleCriteriaMatcher text legacy adapter", () => {
     ).toBe(false);
     expect(matchesLegacyRule).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [RuleCriteriaOperator.MatchesPattern],
+    [RuleCriteriaOperator.DoesNotMatchPattern],
+  ])(
+    "fails closed on a saved %s pattern that refers back to a group, '*' or not",
+    (operator: RuleCriteriaOperator) => {
+      const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
+        (): boolean => {
+          return false;
+        },
+      );
+
+      for (const pattern of ["(db)-\\1", "(\\w)\\1*"]) {
+        expect(
+          RuleCriteriaMatcher.matchesWithLegacySync({
+            rule: makeRule(
+              makeCriteria([makeFilter("namePattern", operator, pattern)]),
+            ),
+            legacyFields: ["namePattern", "descriptionPattern", "labels"],
+            emptyResult: true,
+            matchesLegacyRule: matchesLegacyRule,
+          }),
+        ).toBe(false);
+      }
+
+      expect(matchesLegacyRule).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     [42, "42", true],

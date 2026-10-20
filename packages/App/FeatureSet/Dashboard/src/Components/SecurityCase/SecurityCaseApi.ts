@@ -12,6 +12,14 @@ import {
   parseOverview,
   parseTopEntities,
 } from "./SecurityCaseApiTypes";
+import {
+  SecuritySetupStatus,
+  SecuritySetupTestResult,
+  TurnOnRecommendedResult,
+  parseSecuritySetupStatus,
+  parseSetupTestResult,
+  parseTurnOnRecommendedResult,
+} from "../SecurityOverview/SecuritySetupModel";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -101,6 +109,34 @@ export default class SecurityCaseApi {
       incidentId: String(body["incidentId"] || ""),
       incidentNumber: String(body["incidentNumber"] || ""),
     };
+  }
+
+  // How Security is set up: the Overview's pipeline and Get started.
+  public static async getSetupStatus(): Promise<SecuritySetupStatus> {
+    return parseSecuritySetupStatus(
+      await post("/security-case/setup/status", {}),
+    );
+  }
+
+  /*
+   * The one click: your logs as a source, the recommended rules and the
+   * Enrich New Cases playbook - or only the parts asked for.
+   */
+  public static async turnOnRecommended(
+    options: { logs?: boolean; detections?: boolean; playbook?: boolean } = {},
+  ): Promise<TurnOnRecommendedResult> {
+    return parseTurnOnRecommendedResult(
+      await post("/security-case/setup/turn-on-recommended", {
+        logs: options.logs !== false,
+        detections: options.detections !== false,
+        playbook: options.playbook !== false,
+      }),
+    );
+  }
+
+  // A harmless simulated attack through the real pipeline.
+  public static async runSetupTest(): Promise<SecuritySetupTestResult> {
+    return parseSetupTestResult(await post("/security-case/setup/test", {}));
   }
 
   public static async decideApproval(data: {

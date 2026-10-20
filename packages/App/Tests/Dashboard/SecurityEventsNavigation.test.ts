@@ -3,17 +3,23 @@ import {
   SECURITY_EVENTS_DETAIL_PAGES,
   SECURITY_EVENTS_LANDING_PAGE,
   SECURITY_EVENTS_MENU,
+  SECURITY_EVENTS_REDIRECTED_PAGES,
+  SECURITY_EVENTS_TAB_GROUPS,
   SecurityEventsMenuItem,
-  SecurityEventsMenuSection,
-  getSecurityEventsMenuItems,
+  SecurityEventsTab,
+  SecurityEventsTabGroup,
+  getSecurityEventsMenuItemFor,
+  getSecurityEventsMenuItemPages,
   getSecurityEventsPathSegment,
+  getSecurityEventsTabGroup,
 } from "../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 
 /*
- * The Security Events menu, as data: its sections in the order the work
- * goes, every page in exactly one place, and the pages that open on their
- * own (a case, a playbook) in none. The rendered menu is pinned in
- * Common/Tests/App/Dashboard/SecurityEventsSideMenu.test.tsx.
+ * The Security Events menu, as data: six entries in the order the work
+ * goes, the pages that belong together behind one entry as tabs, every
+ * page reachable in exactly one place, and the pages that open on their own
+ * (a case, a playbook) and the old addresses in none. The rendered menu and
+ * tabs are pinned in Common/Tests/App/Dashboard/SecurityEventsSideMenu.test.tsx.
  *
  * Deferred imports with a browser stub: RouteMap pulls in Common/UI/Config,
  * which reads `window` at module load.
@@ -72,102 +78,141 @@ function routeFor(pageMapKey: string): string {
 }
 
 describe("the Security Events menu", () => {
-  test("reads as the work does: overview, investigate, detect, respond, sources", () => {
+  test("reads as the work does: overview, cases, events, detections, playbooks, connections", () => {
     expect(
-      SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
-        return section.title;
+      SECURITY_EVENTS_MENU.map((item: SecurityEventsMenuItem): string => {
+        return item.title;
       }),
-    ).toEqual(["Overview", "Investigate", "Detect", "Respond", "Sources"]);
+    ).toEqual([
+      "Overview",
+      "Security Cases",
+      "Events",
+      "Detections",
+      "Playbooks",
+      "Connections",
+    ]);
   });
 
-  test("lists each section's pages in order, by the titles the docs use", () => {
+  test("puts the pages that belong together behind one entry, as tabs, its own page first", () => {
     expect(
-      SECURITY_EVENTS_MENU.map(
-        (section: SecurityEventsMenuSection): Array<string> => {
-          return section.items.map((item: SecurityEventsMenuItem): string => {
-            return item.title;
-          });
+      SECURITY_EVENTS_TAB_GROUPS.map(
+        (group: SecurityEventsTabGroup): [string, Array<string>] => {
+          return [
+            getSecurityEventsMenuItemFor(group.menuPage)?.title || "",
+            group.tabs.map((tab: SecurityEventsTab): string => {
+              return tab.title;
+            }),
+          ];
         },
       ),
     ).toEqual([
-      ["Overview", "Security Cases"],
-      ["Events", "Correlate", "Entities"],
+      ["Events", ["Events", "Entities", "Correlate"]],
       [
-        "Detection Rules",
-        "Rule Library",
-        "ATT&CK Coverage",
-        "Threat Intel",
-        "Monitors",
+        "Detections",
+        ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
       ],
-      ["Playbooks", "Playbook Runs"],
-      ["Connections", "Setup Guide"],
+      ["Playbooks", ["Playbooks", "Playbook Runs"]],
+      ["Connections", ["Connections", "Setup Guide"]],
     ]);
-  });
 
-  test("puts every routed page in the menu exactly once, except the pages that open on their own", () => {
-    const menuPages: Array<string> = getSecurityEventsMenuItems().map(
-      (item: SecurityEventsMenuItem): string => {
-        return item.page;
-      },
-    );
-
-    expect(new Set(menuPages).size).toBe(menuPages.length);
-    expect([...menuPages, ...SECURITY_EVENTS_DETAIL_PAGES].sort()).toEqual(
-      Object.keys(SecurityEventsRoutePath).sort(),
-    );
-  });
-
-  test("folds away the sections for setting up, and keeps the working ones open", () => {
-    expect(
-      SECURITY_EVENTS_MENU.map(
-        (section: SecurityEventsMenuSection): [string, boolean] => {
-          return [section.title, Boolean(section.startsCollapsed)];
-        },
-      ),
-    ).toEqual([
-      ["Overview", false],
-      ["Investigate", false],
-      ["Detect", true],
-      // Playbook Runs' count of the steps waiting for approval stays on screen.
-      ["Respond", false],
-      ["Sources", true],
-    ]);
-  });
-
-  test("counts what is waiting beside Cases and Playbook Runs, and nowhere else", () => {
-    expect(
-      getSecurityEventsMenuItems()
-        .filter((item: SecurityEventsMenuItem): boolean => {
-          return Boolean(item.badge);
-        })
-        .map((item: SecurityEventsMenuItem): [string, string] => {
-          return [item.title, item.badge || ""];
-        }),
-    ).toEqual([
-      ["Security Cases", "openCases"],
-      ["Playbook Runs", "runsWaitingForApproval"],
-    ]);
-  });
-
-  test("gives every entry an icon of its own within its section", () => {
-    for (const section of SECURITY_EVENTS_MENU) {
-      const icons: Array<string> = section.items.map(
-        (item: SecurityEventsMenuItem): string => {
-          return String(item.icon);
-        },
-      );
-
-      expect([section.title, new Set(icons).size]).toEqual([
-        section.title,
-        icons.length,
-      ]);
+    for (const group of SECURITY_EVENTS_TAB_GROUPS) {
+      expect(group.tabs[0]!.page).toBe(group.menuPage);
+      expect(getSecurityEventsTabGroup(group.menuPage)).toBe(group);
     }
   });
 
-  test("opens on the overview, which is the first entry", () => {
-    expect(SECURITY_EVENTS_LANDING_PAGE).toBe(
-      SECURITY_EVENTS_MENU[0]!.items[0]!.page,
+  test("reaches every routed page from the menu exactly once, except the pages that open on their own and the old addresses", () => {
+    const reachable: Array<string> = SECURITY_EVENTS_MENU.flatMap(
+      (item: SecurityEventsMenuItem): Array<string> => {
+        return getSecurityEventsMenuItemPages(item);
+      },
     );
+
+    expect(new Set(reachable).size).toBe(reachable.length);
+    expect(
+      [
+        ...reachable,
+        ...SECURITY_EVENTS_DETAIL_PAGES,
+        ...SECURITY_EVENTS_REDIRECTED_PAGES,
+      ].sort(),
+    ).toEqual(Object.keys(SecurityEventsRoutePath).sort());
+  });
+
+  test("keeps every page of a group under its entry, so the entry stays lit on each tab", () => {
+    for (const group of SECURITY_EVENTS_TAB_GROUPS) {
+      for (const tab of group.tabs) {
+        expect([
+          tab.title,
+          getSecurityEventsMenuItemFor(tab.page)?.page,
+        ]).toEqual([tab.title, group.menuPage]);
+      }
+    }
+
+    expect(getSecurityEventsMenuItemFor(undefined)).toBeUndefined();
+    expect(
+      getSecurityEventsMenuItemFor("SECURITY_CASE_VIEW" as never),
+    ).toBeUndefined();
+  });
+
+  test("opens the old monitors address on Monitors, not in the menu", () => {
+    expect(SECURITY_EVENTS_REDIRECTED_PAGES).toEqual([
+      "SECURITY_EVENTS_MONITORS",
+    ]);
+    expect(
+      getSecurityEventsMenuItemFor("SECURITY_EVENTS_MONITORS" as never),
+    ).toBeUndefined();
+  });
+
+  test("counts what is waiting beside Security Cases and Playbooks, and nowhere else", () => {
+    expect(
+      SECURITY_EVENTS_MENU.filter((item: SecurityEventsMenuItem): boolean => {
+        return Boolean(item.badge);
+      }).map((item: SecurityEventsMenuItem): [string, string] => {
+        return [item.title, item.badge || ""];
+      }),
+    ).toEqual([
+      ["Security Cases", "openCases"],
+      ["Playbooks", "runsWaitingForApproval"],
+    ]);
+  });
+
+  test("puts the menu's count on the tab where those things are: the runs waiting beside Playbooks, on Playbook Runs", () => {
+    const counted: Array<[string, string]> = SECURITY_EVENTS_TAB_GROUPS.flatMap(
+      (group: SecurityEventsTabGroup): Array<SecurityEventsTab> => {
+        return group.tabs;
+      },
+    )
+      .filter((tab: SecurityEventsTab): boolean => {
+        return Boolean(tab.badge);
+      })
+      .map((tab: SecurityEventsTab): [string, string] => {
+        return [tab.title, tab.badge || ""];
+      });
+
+    expect(counted).toEqual([["Playbook Runs", "runsWaitingForApproval"]]);
+
+    // Each tab count repeats its menu entry's, so the number leads somewhere.
+    for (const group of SECURITY_EVENTS_TAB_GROUPS) {
+      for (const tab of group.tabs) {
+        if (tab.badge) {
+          expect(getSecurityEventsMenuItemFor(tab.page)?.badge).toBe(tab.badge);
+        }
+      }
+    }
+  });
+
+  test("gives every entry an icon of its own", () => {
+    const icons: Array<string> = SECURITY_EVENTS_MENU.map(
+      (item: SecurityEventsMenuItem): string => {
+        return String(item.icon);
+      },
+    );
+
+    expect(new Set(icons).size).toBe(icons.length);
+  });
+
+  test("opens on the overview, which is the first entry", () => {
+    expect(SECURITY_EVENTS_LANDING_PAGE).toBe(SECURITY_EVENTS_MENU[0]!.page);
   });
 
   test("routes a case and a playbook under their lists, by id", () => {

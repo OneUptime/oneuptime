@@ -64,7 +64,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. La lista de 
 
 **Alertas** y **Episodios** están abiertas; **IA**, **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. La configuración de las alertas está aquí, no en **Ajustes del proyecto**.
 
-La lista muestra **Número de alerta**, **Título**, **Estado**, **Gravedad**, **Monitor**, **Recursos afectados**, **Creado**, **Duración**, **Etiquetas** y **Propietarios**. Selecciona alertas para actuar sobre varias a la vez: **Cambiar estado**, **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Vincular a incidente**, **Declarar incidente** o eliminarlas.
+La lista muestra **Número de alerta**, **Título**, **Estado**, **Gravedad**, **Recursos afectados** (primero el monitor de la alerta), **Creado**, **Duración**, **Etiquetas** y **Propietarios**. Selecciona alertas para actuar sobre varias a la vez: **Cambiar estado**, **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Vincular a incidente**, **Declarar incidente** o eliminarlas.
 
 ## Crear una alerta a mano
 

@@ -841,11 +841,12 @@ describe("AI command capability gating on the agent ingress", () => {
       });
 
       expect(RunbookSecretsUtil.loadForAgent).toHaveBeenCalledTimes(1);
-      expect(
-        (
-          RunbookSecretsUtil.loadForAgent as unknown as jest.Mock
-        ).mock.calls[0]![0]!.toString(),
-      ).toBe(agentId.toString());
+      // The Runner's own secrets, held to the Runner's own project.
+      const loadArgs: { agentId: ObjectID; projectId: ObjectID } = (
+        RunbookSecretsUtil.loadForAgent as unknown as jest.Mock
+      ).mock.calls[0]![0] as { agentId: ObjectID; projectId: ObjectID };
+      expect(loadArgs.agentId.toString()).toBe(agentId.toString());
+      expect(loadArgs.projectId.toString()).toBe(projectId.toString());
 
       expect(RunbookSecretsUtil.populateInScript).toHaveBeenCalledTimes(1);
       expect(RunbookSecretsUtil.populateInScript).toHaveBeenCalledWith({

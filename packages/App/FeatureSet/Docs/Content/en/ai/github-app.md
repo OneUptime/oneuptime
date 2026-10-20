@@ -29,12 +29,12 @@ flowchart TB
     R --> O["The same comment,<br/>rewritten with<br/>the outcome"]
 ```
 
-It is the same agent and the same Runner as [Fix Tasks](/docs/ai/ai-agent), with the same budgets; only the trigger differs.
+It is the same agent and the same Runner as in [Code](/docs/ai/ai-agent), with the same budgets; only the trigger differs.
 
 ## Before you start
 
-- The repository must be **connected to a OneUptime project** through the GitHub App: connect it under **Tasks → Code Repositories** (open **Products → Code → Tasks**). A self-hosted instance needs its own GitHub App first: see [GitHub Integration](/docs/self-hosted/github-integration). If the app is already installed on the GitHub account, click **Connect an existing installation** there instead of installing it again.
-- A Runner with **Runs AI Code Fixes** must be online: the same Runner that carries out [Fix Tasks](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes, with a message that no agent picked them up.
+- The repository must be **connected to a OneUptime project** through the GitHub App: connect it in **Products → Code**. A self-hosted instance needs its own GitHub App first: see [GitHub Integration](/docs/self-hosted/github-integration). If the app is already installed on the GitHub account, click **Connect an existing installation** there instead of installing it again.
+- A Runner with **Runs AI Code Fixes** must be online: the same Runner that carries out the tasks in [Code](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes, with a message that no agent picked them up.
 - The GitHub App needs the **Issues** permission with **Read & write**, and must be subscribed to the webhook events under [What to subscribe to](#what-to-subscribe-to).
 
 ## The commands
@@ -106,7 +106,7 @@ It also ignores every comment written by a bot, its own included, and mentions i
 
 Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and your repository's build and test commands when you have set them.
 
-GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs [Fix Tasks](/docs/ai/ai-agent):
+GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs the tasks in [Code](/docs/ai/ai-agent):
 
 - **The cap on open pull requests** (**Max Open Fix Pull Requests**, on the repository's **Settings** page). **AI Fix Pull Requests** is **No limit** until you choose **A limit**, or **None**, which blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
 
@@ -148,7 +148,7 @@ Treat a pull request the AI wrote the way you would treat one from a new contrib
 ## Troubleshooting
 
 :::details Nothing happens when I mention it
-Check the handle first: it is the app's slug, not its display name. Then check that the repository is connected to a project (**Tasks → Code Repositories**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
+Check the handle first: it is the app's slug, not its display name. Then check that the repository is connected to a project (in **Products → Code**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
 :::
 
 :::details It reacts 😕 and says nothing
@@ -170,7 +170,7 @@ A revision needs a branch in this repository. Ask for a review instead, or push 
 ## Next steps
 
 :::cards
-- [Fix Tasks](/docs/ai/ai-agent): The same agent, started from an exception, a trace or an investigation.
+- [Code](/docs/ai/ai-agent): The same agent, asked in a repository or started from an exception, a trace or an investigation.
 - [GitHub Integration](/docs/self-hosted/github-integration): Create and configure the GitHub App on a self-hosted instance.
 - [Runners](/docs/runbooks/agents): The worker that carries out every run.
 :::

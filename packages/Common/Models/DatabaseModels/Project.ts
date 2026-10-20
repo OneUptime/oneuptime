@@ -3855,6 +3855,50 @@ export default class Project extends TenantModel {
   public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
 
   /*
+   * Use global Runners (Runbooks -> Runners): one switch for the whole
+   * project, on by default, like global probes. While it is on, a step that
+   * picked no Runner of its own runs on one of the Runners OneUptime runs
+   * for every project, if they can run it (GlobalRunnerChoice). Turned off,
+   * nothing of the project ever runs on a global Runner - not a step that
+   * picked none, which then fails saying so, and not a job already waiting
+   * for one (RunnerJobService.claimNextGlobalJob reads it on every claim) -
+   * for a project that keeps every step on its own hosts.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: true,
+    title: "Use Global Runners",
+    description:
+      "When enabled, runbook steps that do not pick a Runner of their own run on OneUptime's global Runners, in a sandbox that can reach the internet but not your network. Turn it off to keep every step on the Runners you install. On by default.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: true,
+  })
+  public useGlobalRunners?: boolean = undefined;
+
+  /*
    * GitHub App Installation ID for this project.
    *
    * This column IS the authority on which GitHub App installation a project
@@ -4196,7 +4240,7 @@ export default class Project extends TenantModel {
     defaultValue: false,
     title: "Record and Transcribe Incident Calls",
     description:
-      "When enabled, OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds each call's transcript to its incident once the call is over. Microsoft Teams calls, Slack huddles and meeting links are not recorded; their transcripts can be added by hand. Off by default.",
+      "When enabled, OneUptime asks Zoom, Google Meet and Microsoft Teams to record and transcribe every incident call it starts, and adds each call's transcript to its incident once the call is over. Slack huddles and meeting links are not recorded; their transcripts can be added by hand. Off by default.",
   })
   @Column({
     type: ColumnType.Boolean,

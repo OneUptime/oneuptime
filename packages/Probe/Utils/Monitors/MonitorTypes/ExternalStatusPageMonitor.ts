@@ -22,6 +22,7 @@ import HttpMonitorRequest, {
 import MonitorRetry from "../MonitorRetry";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { XMLParser } from "fast-xml-parser";
+import { withoutTrailingSlashes } from "Common/Utils/TrailingRuns";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -776,7 +777,7 @@ export default class ExternalStatusPageMonitorUtil {
     options: ExternalStatusPageQueryOptionsWithExecutionContext,
   ): Promise<ExternalStatusPageMonitorResponse | null> {
     try {
-      const baseUrl: string = config.statusPageUrl.replace(/\/+$/, "");
+      const baseUrl: string = withoutTrailingSlashes(config.statusPageUrl);
       const headers: Record<string, string> = {
         Accept: "application/json",
         "User-Agent": "OneUptime-Probe/1.0",
@@ -1090,7 +1091,7 @@ export default class ExternalStatusPageMonitorUtil {
     options: ExternalStatusPageQueryOptionsWithExecutionContext,
   ): Promise<ExternalStatusPageMonitorResponse | null> {
     try {
-      const feedUrl: string = config.statusPageUrl.replace(/\/+$/, "");
+      const feedUrl: string = withoutTrailingSlashes(config.statusPageUrl);
 
       const response: AxiosResponse = await this.guardedGet(feedUrl, {
         executionContext: options.executionContext,

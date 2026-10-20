@@ -2,13 +2,13 @@
 
 Verbind uw zelf gehoste OneUptime met GitHub via een eigen GitHub App. Zodra de app vanuit OneUptime is geïnstalleerd, worden de repositories van de installatie in uw project geïmporteerd en gesynchroniseerd gehouden, openen AI-fixtaken pull requests, en kan uw team de app vanuit GitHub werk geven door hem te vermelden.
 
-Deze pagina is bedoeld voor wie de OneUptime-server beheert: u maakt de app één keer aan, en daarna verbindt elk project hem vanuit **Code-repositories**.
+Deze pagina is bedoeld voor wie de OneUptime-server beheert: u maakt de app één keer aan, en daarna verbindt elk project hem vanuit **Code**.
 
 :::cards
 - [De GitHub App aanmaken](#de-github-app-aanmaken): Registreer de app met de juiste URL's, rechten en events.
 - [OneUptime configureren](#oneuptime-configureren): Geef de server de zes waarden van de app.
 - [Repositories verbinden](#repositories-verbinden): Installeer de app vanuit OneUptime, of verbind een bestaande installatie.
-- [Probleemoplossing](#probleemoplossing): Wat de meldingen van Code-repositories betekenen.
+- [Probleemoplossing](#probleemoplossing): Wat de meldingen in Code betekenen.
 :::
 
 ## Hoe het werkt
@@ -20,7 +20,7 @@ sequenceDiagram
     participant B as Uw browser
     participant O as OneUptime
     participant G as GitHub
-    B->>O: Connect with GitHub App
+    B->>O: GitHub verbinden
     O-->>B: Doorsturen naar de<br/>installatiepagina van de app
     B->>G: De app installeren<br/>en autoriseren
     G-->>B: Doorsturen naar<br/>/api/github/auth/callback
@@ -58,7 +58,7 @@ Kies **New GitHub App**.
 | **Callback URL** | `https://your-oneuptime-domain.com/api/github/auth/callback` |
 | **Request user authorization (OAuth) during installation** | Aan. **Dit is verplicht**: zie de opmerking hieronder. |
 | **Setup URL** | `https://your-oneuptime-domain.com/api/github/auth/callback`, als GitHub u er een laat invullen (zie hieronder). |
-| **Redirect on update** | Optioneel. Nadat iemand een installatie op GitHub heeft gewijzigd, brengt OneUptime die persoon naar **Code-repositories**. |
+| **Redirect on update** | Optioneel. Nadat iemand een installatie op GitHub heeft gewijzigd, brengt OneUptime die persoon naar **Code**. |
 | **Webhook URL** | `https://your-oneuptime-domain.com/api/github/webhook`, met de webhook op **Active**. |
 | **Webhook secret** | Een lange willekeurige tekenreeks. Noteer hem: dit is `GITHUB_APP_WEBHOOK_SECRET`. **Verplicht**: OneUptime weigert niet-ondertekende webhooks, dus `GITHUB_APP_WEBHOOK_SECRET` leeg laten stopt de synchronisatie van repositories in plaats van niet-geverifieerde payloads te accepteren. |
 
@@ -159,14 +159,14 @@ gitHubApp:
 `privateKey` accepteert ook de PEM zelf, als blok van meerdere regels (`privateKey: |`). Pas de wijziging toe met `helm upgrade`.
 :::
 
-Zodra OneUptime weer draait, toont de pagina **Code-repositories** de knop **Connect with GitHub App** in plaats van **GitHub App is not configured on this server**.
+Zodra OneUptime weer draait, toont **Code** de knop **GitHub verbinden** in plaats van **De GitHub App is niet ingesteld op deze server**.
 
 ### Overzicht van omgevingsvariabelen
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | Waarde |
 | --- | --- | --- |
 | `GITHUB_APP_ID` | `gitHubApp.id` | De **App ID**. Wordt gebruikt om als de app te authenticeren. |
-| `GITHUB_APP_NAME` | `gitHubApp.name` | De naam van de app. De weergavenaam is prima, met spaties en hoofdletters: de installatielink en de `@mention`-handle van de app gebruiken de slug die GitHub voor de app opgeeft, en worden alleen van deze naam afgeleid (in kleine letters, met koppeltekens in plaats van spaties) als OneUptime het GitHub niet kan vragen. Zonder deze kan **Code-repositories** niet verbinden. |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | De naam van de app. De weergavenaam is prima, met spaties en hoofdletters: de installatielink en de `@mention`-handle van de app gebruiken de slug die GitHub voor de app opgeeft, en worden alleen van deze naam afgeleid (in kleine letters, met koppeltekens in plaats van spaties) als OneUptime het GitHub niet kan vragen. Zonder deze kan **Code** geen repositories verbinden. |
 | `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | De **Client ID**. Nodig om te controleren wie de app heeft geïnstalleerd. |
 | `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | Het client secret dat u hebt gegenereerd. Nodig samen met de client ID. |
 | `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | De privésleutel: de PEM, of de PEM base64-gecodeerd. |
@@ -180,14 +180,14 @@ Start de verbinding vanuit OneUptime, niet vanaf de pagina van de app op GitHub:
 
 :::steps
 1. Meld u aan bij uw OneUptime-dashboard
-2. Ga naar **Producten** > **Taken** > **Code-repositories**
-3. Klik op **Connect with GitHub App**. OneUptime brengt u naar GitHub
+2. Ga naar **Producten** > **Code**
+3. Klik op **GitHub verbinden**. OneUptime brengt u naar GitHub
 4. Kies de organisatie of het account waarop u de app installeert, en kies tot welke repositories hij toegang heeft: **All repositories** (alle huidige en toekomstige repositories) of **Only select repositories**
 5. Klik op **Install**
-6. GitHub stuurt u terug naar **Code-repositories**, en elke repository in de installatie wordt geïmporteerd. Repositories die later aan de installatie worden toegevoegd of eruit worden verwijderd, worden automatisch gesynchroniseerd.
+6. GitHub stuurt u terug naar **Code**, en elke repository in de installatie wordt geïmporteerd. Repositories die later aan de installatie worden toegevoegd of eruit worden verwijderd, worden automatisch gesynchroniseerd.
 :::
 
-**Als de app al op het account is geïnstalleerd**, voor een ander project of rechtstreeks vanuit GitHub, verbindt opnieuw installeren hem niet: GitHub opent de instellingen van de installatie en stuurt u nooit terug. Klik in plaats daarvan op **Een bestaande installatie koppelen**, onder de kaart **Connect with GitHub App**. U logt in bij GitHub, en OneUptime verbindt de installatie die uw GitHub-account beheert. Beheert het er meer dan één, dan toont **Code-repositories** ze: kies het account waarvan het project de repositories moet gebruiken.
+**Als de app al op het account is geïnstalleerd**, voor een ander project of rechtstreeks vanuit GitHub, verbindt opnieuw installeren hem niet: GitHub opent de instellingen van de installatie en stuurt u nooit terug. Klik in plaats daarvan op **Een bestaande installatie koppelen**, onder **GitHub verbinden**. U logt in bij GitHub, en OneUptime verbindt de installatie die uw GitHub-account beheert. Beheert het er meer dan één, dan toont **Code** ze: kies het account waarvan het project de repositories moet gebruiken.
 
 **Wie kan verbinden.** Verbinden importeert de repositories van de installatie in het project en vereist dus het recht om coderepositories toe te voegen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, of een team met **Create Code Repository**. Een team dat het recht blokkeert, neemt het af. Op OneUptime Cloud vereisen coderepositories het Growth-abonnement of hoger. Voor ieder ander is de kaart vergrendeld en staat erop wat er nodig is. Op GitHub moet het account dat de app installeert of verbindt de installatie beheren: de eigenaar van een persoonlijk account, of iemand met admin-rechten op elke repository waartoe de installatie toegang heeft, zoals een eigenaar van de organisatie die heeft. Leestoegang tot een van haar repositories is niet genoeg.
 
@@ -218,7 +218,7 @@ Als u ook de bron-IP's van webhooks beperkt, gebruik dan de actuele `hooks`-bere
 ### Toegang controleren en de beperkingen begrijpen
 
 :::steps
-1. Verbind een installatie vanuit **Code-repositories**.
+1. Verbind een installatie vanuit **Code**.
 2. Open in de instellingen van de GitHub App **Advanced** en bekijk **Recent Deliveries**. Bezorg een levering opnieuw en bevestig dat de gateway hem doorstuurt en OneUptime hem accepteert.
 3. Voeg een testrepository toe aan de installatie of verwijder er een, en controleer of de lijst met repositories in OneUptime meegaat.
 :::
@@ -234,23 +234,23 @@ De [instelling voor toegang tot privénetwerken](/docs/self-hosted/private-netwo
 
 ### Het verbinden is niet voltooid
 
-Als GitHub u terugstuurt en de installatie niet is verbonden, toont de pagina **Code-repositories** de melding **GitHub is niet verbonden**, met één zin in uw taal die zegt waarom. De rest van de pagina laadt zoals gewoonlijk, zodat u daar meteen opnieuw kunt verbinden. Wat GitHub zelf antwoordde, toont ze nooit: dat staat met de reden in het log van de OneUptime-server.
+Als GitHub u terugstuurt en de installatie niet is verbonden, toont **Code** de melding **GitHub is niet verbonden**, met één zin in uw taal die zegt waarom. De rest van de pagina laadt zoals gewoonlijk, zodat u daar meteen opnieuw kunt verbinden. Wat GitHub zelf antwoordde, toont ze nooit: dat staat met de reden in het log van de OneUptime-server.
 
 | De pagina zegt | Wat u doet |
 | --- | --- |
-| **"Deze verbindingslink is ongeldig, verlopen of al gebruikt. Begin opnieuw."** | De link werkt één keer, 15 minuten lang, in de browser die hem startte. Begin opnieuw vanuit **Code-repositories** en rond het op GitHub binnen 15 minuten af, in dezelfde browser. De app installeren vanaf zijn pagina op GitHub verbindt hem met geen enkel project: een installatie die daar is gemaakt, verbindt u met **Een bestaande installatie koppelen**. |
+| **"Deze verbindingslink is ongeldig, verlopen of al gebruikt. Begin opnieuw."** | De link werkt één keer, 15 minuten lang, in de browser die hem startte. Begin opnieuw vanuit **Code** en rond het op GitHub binnen 15 minuten af, in dezelfde browser. De app installeren vanaf zijn pagina op GitHub verbindt hem met geen enkel project: een installatie die daar is gemaakt, verbindt u met **Een bestaande installatie koppelen**. |
 | **"Je hebt geen toestemming om coderepositories aan dit project toe te voegen."** | Verbinden vereist het recht om coderepositories toe te voegen (zie [Repositories verbinden](#repositories-verbinden)). Vraag een projectbeheerder om het toe te kennen. Het wordt opnieuw gecontroleerd wanneer GitHub u terugstuurt, dus een recht dat u intussen is afgenomen, beëindigt de verbinding ook hier. |
 | **"Voor het verbinden met GitHub heb je het ...-abonnement nodig."** | Op OneUptime Cloud vereisen coderepositories het abonnement dat de zin noemt. Zet het project op dat abonnement en verbind daarna opnieuw. |
 | **"GitHub heeft niet bevestigd wie de app heeft geïnstalleerd, dus de installatie kon niet worden gecontroleerd."** | Schakel **Request user authorization (OAuth) during installation** in de instellingen van de GitHub App in (zie [De GitHub App aanmaken](#de-github-app-aanmaken)) en verbind daarna opnieuw. |
 | **"OneUptime kon niet bevestigen dat je GitHub-account deze installatie kan beheren."** | Het GitHub-account dat de installatie voltooide, beheert haar niet (zie [Repositories verbinden](#repositories-verbinden) voor wie dat wel doet). De app blijft op GitHub geïnstalleerd, dus laat iemand die de installatie beheert haar verbinden met **Een bestaande installatie koppelen**. |
 | **"GitHub heeft geen installatie teruggestuurd."** | Als een lid van de organisatie de app aanvraagt in plaats van hem te installeren, moet een eigenaar van de organisatie het verzoek eerst goedkeuren. Daarna verbindt iemand die de installatie beheert haar met **Een bestaande installatie koppelen**. |
-| **"Je GitHub-account beheert nog geen installatie van de app."** | Het GitHub-account waarmee u bent ingelogd, beheert geen installatie van de app (zie [Repositories verbinden](#repositories-verbinden) voor wie dat wel doet). Is de app nog niet op het account geïnstalleerd, installeer hem dan met **Connect with GitHub App**. Is hij dat wel, verbind dan opnieuw terwijl u bij GitHub bent ingelogd met een account dat de installatie beheert, of vraag iemand die dat doet. |
+| **"Je GitHub-account beheert nog geen installatie van de app."** | Het GitHub-account waarmee u bent ingelogd, beheert geen installatie van de app (zie [Repositories verbinden](#repositories-verbinden) voor wie dat wel doet). Is de app nog niet op het account geïnstalleerd, installeer hem dan met **GitHub verbinden**. Is hij dat wel, verbind dan opnieuw terwijl u bij GitHub bent ingelogd met een account dat de installatie beheert, of vraag iemand die dat doet. |
 | **"De GitHub App is niet ingesteld op deze OneUptime-server."** | Stel zowel `GITHUB_APP_CLIENT_ID` als `GITHUB_APP_CLIENT_SECRET` in (zie [OneUptime configureren](#oneuptime-configureren)) en start OneUptime opnieuw. |
 | **"OneUptime kon het verbinden niet afronden. Probeer het opnieuw."** | GitHub antwoordde met een fout, of een verzoek of een schrijfactie mislukte bij het afronden. Het log van de OneUptime-server zegt welke. Probeer het opnieuw; blijft het gebeuren, controleer dan het log en de instellingen van de GitHub App. |
 
 ### Andere problemen
 
-:::details Code-repositories meldt "GitHub App is not configured on this server"
+:::details Code meldt "De GitHub App is niet ingesteld op deze server"
 `GITHUB_APP_NAME` is niet ingesteld. Stel het in op de exacte naam van de app, samen met de andere vijf waarden, en start OneUptime opnieuw.
 :::
 
@@ -267,7 +267,7 @@ Controleer of de webhook-URL openbaar via HTTPS bereikbaar is, en bekijk daarna 
 :::
 
 :::details Repositories of fixtaken mislukken met een authenticatiefout
-OneUptime authenticeert zich als de app met `GITHUB_APP_ID` en `GITHUB_APP_PRIVATE_KEY`. Controleer of de App ID klopt en of de sleutel de volledige PEM is, inclusief de regels `BEGIN` en `END`, of die PEM base64-gecodeerd. Is de app van GitHub verwijderd, verbind hem dan opnieuw vanuit **Code-repositories**.
+OneUptime authenticeert zich als de app met `GITHUB_APP_ID` en `GITHUB_APP_PRIVATE_KEY`. Controleer of de App ID klopt en of de sleutel de volledige PEM is, inclusief de regels `BEGIN` en `END`, of die PEM base64-gecodeerd. Is de app van GitHub verwijderd, verbind hem dan opnieuw vanuit **Code**.
 :::
 
 :::details Na de installatie ontbreken repositories
@@ -290,6 +290,6 @@ Geef de app **Issues: Read and write** en abonneer hem op de interactieve events
 
 :::cards
 - [Werken met OneUptime vanuit GitHub](/docs/ai/github-app): De opdrachten die men de app kan geven, en wie dat mag.
-- [Fixtaken](/docs/ai/ai-agent): Hoe de AI-agent fix-pull-requests opent.
+- [Code](/docs/ai/ai-agent): Hoe de AI-agent fix-pull-requests opent.
 - [Toegang tot privénetwerk](/docs/self-hosted/private-network-access): Laat workflows en webhooks interne tools bereiken.
 :::

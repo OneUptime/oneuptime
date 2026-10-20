@@ -64,6 +64,9 @@ import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemed
  * Which incidents (or alerts) are investigated, and which are fixed and how,
  * can be narrowed by rules - Investigation rules and Auto remediation rules,
  * folded under More settings with the limits. With no rule, every one is.
+ * So can which resolved incidents get a postmortem draft, and the templates
+ * each draft follows: Postmortem rules, on the incident page only - alerts
+ * have no postmortem (PostmortemRulesCopy).
  *
  * Project Settings → AI → AI Features has a More settings fold of its own, with
  * the project's daily limits on everything OneUptime AI does - a ceiling above
@@ -314,7 +317,7 @@ export const AI_LANE_ADVANCED_COLUMNS: Record<AiLane, AiLaneAdvancedColumns> = {
 
 /*
  * The cards under More settings, each one question: three hold Project
- * columns, each with its own Edit, and two are tables of rules.
+ * columns, each with its own Edit, and the others are tables of rules.
  */
 export enum AiLaneAdvancedCard {
   // Investigation rules: which incidents (or alerts) are investigated.
@@ -325,17 +328,41 @@ export enum AiLaneAdvancedCard {
   InvestigationLimits = "InvestigationLimits",
   // Auto remediation rules: which are fixed, and how.
   RemediationRules = "RemediationRules",
+  /*
+   * Postmortem rules: which resolved incidents get a postmortem draft, and
+   * the templates it follows. Incidents only: an alert has no postmortem.
+   */
+  PostmortemRules = "PostmortemRules",
   // Tokens and fix pull requests per day.
   DailyLimits = "DailyLimits",
 }
 
-export const AI_LANE_ADVANCED_CARDS: Array<AiLaneAdvancedCard> = [
-  AiLaneAdvancedCard.InvestigationRules,
-  AiLaneAdvancedCard.WhichAreInvestigated,
-  AiLaneAdvancedCard.InvestigationLimits,
-  AiLaneAdvancedCard.RemediationRules,
-  AiLaneAdvancedCard.DailyLimits,
-];
+/*
+ * Each lane's cards under More settings, in the order they are drawn: in
+ * the order of the switches above them - investigating, fixing and, for
+ * incidents, the postmortem draft - then the daily limits, which hold all of
+ * them.
+ */
+export const AI_LANE_ADVANCED_CARDS: Record<
+  AiLane,
+  Array<AiLaneAdvancedCard>
+> = {
+  [AiLane.Incident]: [
+    AiLaneAdvancedCard.InvestigationRules,
+    AiLaneAdvancedCard.WhichAreInvestigated,
+    AiLaneAdvancedCard.InvestigationLimits,
+    AiLaneAdvancedCard.RemediationRules,
+    AiLaneAdvancedCard.PostmortemRules,
+    AiLaneAdvancedCard.DailyLimits,
+  ],
+  [AiLane.Alert]: [
+    AiLaneAdvancedCard.InvestigationRules,
+    AiLaneAdvancedCard.WhichAreInvestigated,
+    AiLaneAdvancedCard.InvestigationLimits,
+    AiLaneAdvancedCard.RemediationRules,
+    AiLaneAdvancedCard.DailyLimits,
+  ],
+};
 
 /*
  * The cards that are tables of rules rather than Project columns. With no
@@ -345,6 +372,7 @@ export const AI_LANE_ADVANCED_CARDS: Array<AiLaneAdvancedCard> = [
 export const AI_LANE_RULES_CARDS: Array<AiLaneAdvancedCard> = [
   AiLaneAdvancedCard.InvestigationRules,
   AiLaneAdvancedCard.RemediationRules,
+  AiLaneAdvancedCard.PostmortemRules,
 ];
 
 export const isAiLaneRulesCard: (card: AiLaneAdvancedCard) => boolean = (
@@ -488,12 +516,18 @@ export const isAiLaneAdvancedValueSet: (value: unknown) => boolean = (
 /*
  * The cards under a lane's More settings, by title, as its folded header
  * lists them - each one a chip once a limit in it is set, so folding never
- * hides a limit in force.
+ * hides a limit in force. The alerts' page has no postmortem rules, so it
+ * has no title for them.
  */
-export const AI_LANE_ADVANCED_CARD_TITLES: Record<
-  AiLane,
-  Record<AiLaneAdvancedCard, string>
-> = {
+export type AiLaneAdvancedCardTitles = {
+  [AiLane.Incident]: Record<AiLaneAdvancedCard, string>;
+  [AiLane.Alert]: Record<
+    Exclude<AiLaneAdvancedCard, AiLaneAdvancedCard.PostmortemRules>,
+    string
+  >;
+};
+
+export const AI_LANE_ADVANCED_CARD_TITLES: AiLaneAdvancedCardTitles = {
   [AiLane.Incident]: {
     [AiLaneAdvancedCard.InvestigationRules]: translationKey(
       "Investigation rules",
@@ -507,6 +541,7 @@ export const AI_LANE_ADVANCED_CARD_TITLES: Record<
     [AiLaneAdvancedCard.RemediationRules]: translationKey(
       "Auto remediation rules",
     ),
+    [AiLaneAdvancedCard.PostmortemRules]: translationKey("Postmortem rules"),
     [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
   },
   [AiLane.Alert]: {
@@ -524,6 +559,17 @@ export const AI_LANE_ADVANCED_CARD_TITLES: Record<
     ),
     [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
   },
+};
+
+// A card's title on a lane's page, or "" for a card the lane does not have.
+export const getAiLaneAdvancedCardTitle: (
+  lane: AiLane,
+  card: AiLaneAdvancedCard,
+) => string = (lane: AiLane, card: AiLaneAdvancedCard): string => {
+  const titles: Partial<Record<AiLaneAdvancedCard, string>> =
+    AI_LANE_ADVANCED_CARD_TITLES[lane];
+
+  return titles[card] || "";
 };
 
 /*
@@ -561,11 +607,11 @@ export const getAiLaneAdvancedItems: (
   lane: AiLane,
   state: AiLaneAdvancedState,
 ): Array<FoldedSectionItem> => {
-  return AI_LANE_ADVANCED_CARDS.map(
+  return AI_LANE_ADVANCED_CARDS[lane].map(
     (card: AiLaneAdvancedCard): FoldedSectionItem => {
       const isSet: boolean = isAiLaneAdvancedCardConfigured(lane, card, state);
 
-      return foldedSectionItem(AI_LANE_ADVANCED_CARD_TITLES[lane][card], {
+      return foldedSectionItem(getAiLaneAdvancedCardTitle(lane, card), {
         key: card,
         isSet,
         value:
@@ -582,11 +628,11 @@ export const isAiLaneAdvancedConfigured: (
   lane: AiLane,
   state: AiLaneAdvancedState,
 ) => boolean = (lane: AiLane, state: AiLaneAdvancedState): boolean => {
-  const hasRule: boolean = AI_LANE_RULES_CARDS.some(
-    (card: AiLaneAdvancedCard): boolean => {
+  const hasRule: boolean = AI_LANE_ADVANCED_CARDS[lane]
+    .filter(isAiLaneRulesCard)
+    .some((card: AiLaneAdvancedCard): boolean => {
       return getAiLaneRuleCount(state, card) > 0;
-    },
-  );
+    });
 
   return (
     hasRule ||
@@ -616,10 +662,10 @@ export const AI_LANE_PAGE_COPY: Record<AiLane, AiLanePageCopy> = {
       "It works on incidents on its own. Turn off anything you do not want it to do.",
     ),
     advancedDescription: translationKey(
-      "Which incidents are investigated or fixed, and limits on investigations and on AI work each day.",
+      "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.",
     ),
     advancedDefaultsSummary: translationKey(
-      "Every incident is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
+      "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.",
     ),
   },
   [AiLane.Alert]: {
@@ -650,7 +696,7 @@ export const getAiLaneAdvancedSummary: (
   lane: AiLane,
   state: AiLaneAdvancedState,
 ): string | undefined => {
-  const hasEveryCardRead: boolean = AI_LANE_ADVANCED_CARDS.every(
+  const hasEveryCardRead: boolean = AI_LANE_ADVANCED_CARDS[lane].every(
     (card: AiLaneAdvancedCard): boolean => {
       return state.loadedCards.includes(card);
     },
@@ -716,6 +762,9 @@ export const AI_LANE_REMEDIATION_RULES_TABLE_ID: Record<AiLane, string> = {
   [AiLane.Incident]: "auto-remediation-rules-table-Incident",
   [AiLane.Alert]: "auto-remediation-rules-table-Alert",
 };
+
+// Incidents only: an alert has no postmortem.
+export const AI_POSTMORTEM_RULES_TABLE_ID: string = "ai-postmortem-rules-table";
 
 /*
  * AI → Insights → Settings: what OneUptime watches for in telemetry, and

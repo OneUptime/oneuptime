@@ -120,7 +120,7 @@ Eine längere Nachricht, mit einem langen Titel oder einer langen Beschreibung, 
 
 ### Wenn eine Alarmierung nicht gesendet wird
 
-Eine nicht gesendete Alarmierung sagt unter **Bereitschaftsprotokolle** in den Benutzereinstellungen der Person, warum: Ihre Zeile zeigt **Fehler**, und ihre Statusmeldung nennt den Grund. Sie bleibt nicht mehr bei **Sending** stehen. Die Meldung sagt eines davon:
+Eine nicht gesendete Alarmierung sagt unter **Bereitschaftsprotokolle** in den Benutzereinstellungen der Person, warum: Ihre Zeile zeigt **Fehler**, und ihre Statusmeldung nennt den Grund. Sie bleibt nicht mehr bei **Wird gesendet** stehen. Die Meldung sagt eines davon:
 
 - das Guthaben des Projekts konnte sie nicht bezahlen, und wer Guthaben aufladen kann;
 - der Kanal ist im Projekt ausgeschaltet, und wer ihn einschalten kann.

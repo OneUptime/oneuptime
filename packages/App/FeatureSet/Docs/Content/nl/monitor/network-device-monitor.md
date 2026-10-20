@@ -199,7 +199,7 @@ Elke plek die een apparaat toont — de lijst Devices, de Devices-pagina van een
 | **Geen monitor** | Het apparaat gebruikt de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) en er is niets gekoppeld. | Koppel een monitor, of zet het terug op pollen door de sonde. |
 | **SNMP failing** | Bereikbaar via ping, maar de laatste SNMP-walk is mislukt. | Controleer de inloggegevens, de SNMP-agent of een ACL. |
 
-De lijst **Devices** heeft een filter **SNMP** met drie waarden: **OK** (de laatste walk is gelukt), **Failing** (de laatste walk is mislukt) en **Not configured** (alleen ping, geen inloggegevens, of nooit gepolld). "Welke apparaten hebben inloggegevens die niet meer werken" is één klik. De kolom **Interfaces (Up / Down)** van de lijst toont **Geen SNMP** in plaats van `0 / 0` voor een apparaat dat gepingd en nooit gewalkt wordt: nul werkende poorten zou een andere bewering zijn, en een onjuiste.
+De lijst **Devices** heeft een filter **SNMP** met drie waarden: **OK** (de laatste walk is gelukt), **Mislukt** (de laatste walk is mislukt) en **Not configured** (alleen ping, geen inloggegevens, of nooit gepolld). "Welke apparaten hebben inloggegevens die niet meer werken" is één klik. De kolom **Interfaces (Up / Down)** van de lijst toont **Geen SNMP** in plaats van `0 / 0` voor een apparaat dat gepingd en nooit gewalkt wordt: nul werkende poorten zou een andere bewering zijn, en een onjuiste.
 
 ## SNMP-inloggegevens en inloggegevensprofielen
 

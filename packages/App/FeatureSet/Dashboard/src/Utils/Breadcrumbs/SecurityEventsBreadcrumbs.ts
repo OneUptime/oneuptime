@@ -53,11 +53,6 @@ export function getSecurityEventsBreadcrumbs(
       "Security Events",
       "ATT&CK Coverage",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_MONITORS, [
-      "Project",
-      "Security Events",
-      "Monitors",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_CONNECTIONS, [
       "Project",
       "Security Events",

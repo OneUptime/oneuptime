@@ -40,16 +40,16 @@ flowchart TB
 
 ## Runner のステップが送られる仕組み
 
-JavaScript、Bash、SSH、Kubernetes のステップは **OneUptime Worker では決して実行されません** 。これらはジョブとして特定の [Runbook エージェント](/docs/runbooks/agents) に送られます。これは自社インフラのホストにインストールする小さなプロセスです。
+JavaScript、Bash、SSH、Kubernetes のステップは **OneUptime Worker では決して実行されません** 。これらはジョブとして特定の [Runbook エージェント](/docs/runbooks/agents) に送られます。これは自社インフラのホストにインストールする小さなプロセスです。 Runner を選ばない JavaScript のステップは、OneUptime がすべてのプロジェクトのために動かす [グローバル Runner](/docs/runbooks/agents#グローバル-runner) に送られます。
 
 送信のモデル:
 
 1. Runbook のステップの作成者が、ステップを書くときにドロップダウンから Runner を選びます。
-2. ステップが実行されると、Worker は `RunnerJob` に、`targetAgentId` をその Runner の ID に、ステータスを `Pending` にした行を挿入します。
-3. その Runner（その Runner だけ）がジョブをアトミックに取得し、ローカルで実行して（Bash は `bash -c <script>`、JavaScript は `isolated-vm` サンドボックス、SSH と Kubernetes はステップの認証情報を使用）、結果を返します。
+2. ステップが実行されると、Worker は `RunnerJob` に、`targetAgentId` をその Runner の ID に、ステータスを `Pending` にした行を挿入します。 グローバル Runner を使用するプロジェクトで Runner を選ばなかった JavaScript のステップには、代わりに `runsOnGlobalRunner` が設定されます。
+3. その Runner（その Runner だけ）がジョブをアトミックに取得し、ローカルで実行して（Bash は `bash -c <script>`、JavaScript は `isolated-vm` サンドボックス、SSH と Kubernetes はステップの認証情報を使用）、結果を返します。 `runsOnGlobalRunner` のジョブは、どのグローバル Runner でも取得できます。
 4. Worker はその結果で Runbook を再開します。
 
-`RUNBOOK_BASH_ENABLED` 環境フラグはもうありません。これらのステップがデプロイで動くかどうかは、プロジェクトに **Runbook を実行** がオンの接続済み Runner があるかどうかだけで決まります。
+`RUNBOOK_BASH_ENABLED` 環境フラグはもうありません。これらのステップがデプロイで動くかどうかは、プロジェクトに **Runbook を実行** がオンの接続済み Runner があるかどうかだけで決まります。 JavaScript のステップはグローバル Runner でも動きます。
 
 ## 出力の上限とタイムアウト
 
@@ -92,11 +92,12 @@ Manual ステップが API でチェックされると、実行は次のステ�
 
 ## 堅牢化に関する注意
 
-- **JavaScript、Bash、SSH、Kubernetes** は、OneUptime Worker ではなく、自分で管理する Runner のホストで実行されます。JavaScript は 128 MB のメモリを持つ独立した `isolated-vm` のアイソレートで実行され、Runner のファイルシステムやプロセスにはアクセスできません。`axios` で HTTP リクエストを送れますが、プライベートネットワーク、ループバック、リンクローカルのアドレスへのリクエストは拒否されます。Bash は `bash -c` で実行され、タイムアウトは Runner で適用されます。
+- **JavaScript、Bash、SSH、Kubernetes** は、OneUptime Worker ではなく、自分で管理する Runner のホストで実行されます。JavaScript は 128 MB のメモリを持つ独立した `isolated-vm` のアイソレートで実行され、Runner のファイルシステムやプロセスにはアクセスできません。`axios` で HTTP リクエストを送れますが、プライベートネットワーク、ループバック、リンクローカルのアドレスへのリクエストは拒否されます。Bash は `bash -c` で実行され、タイムアウトは Runner で適用されます。 Runner を選ばない JavaScript のステップは、代わりにグローバル Runner で実行されます。
 - **HTTP ステップ** は寛容なステータス検証を使うため、4xx や 5xx の応答は例外として投げられるのではなく失敗したステップとして記録され、記録された出力には相手側が実際に返した内容が反映されます。リダイレクトはたどりません。Worker は、クラウドのメタデータエンドポイントのようなループバックやリンクローカルのアドレスを決して呼び出しません。OneUptime Cloud ではプライベートネットワークのアドレスも拒否し、セルフホストの OneUptime は `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` のときに拒否します。
 - **AI ステップ** は、インシデントの非公開メモや Slack と Microsoft Teams のメッセージを決して参照しません。前のステップの出力はシークレットがないかスキャンされ、モデルに届く前にマスクされます。埋め込み画像と長いエンコード済みデータはプロンプトから除外されます。[AI](/docs/runbooks/authoring#ai) を参照してください。
+- **グローバル Runner** は JavaScript のステップだけを実行します。各ステップは、そのステップのために作られて終了後に破棄されるサンドボックスで、公開インターネットのアドレスにだけアクセスでき、最長 5 分、1 つのプロジェクトにつき同時に 3 ステップまで実行されます。渡されるのは、ステップ自身のプロジェクトの Runbook のシークレットのうちグローバル Runner に対してオンになっているものだけで、認証情報は決して渡されません。同梱のグローバル Runner は専用のキーを持ち、サーバーのそれ以外のものは何も持ちません。[グローバル Runner](/docs/runbooks/agents#グローバル-runner) を参照してください。
 - **Runner の認証** は ID と秘密キーで行い、それらは Runner コンテナに環境変数として設定します。サーバー側では、Runner の正式な ID は、提示された ID とキーに対応するデータベースの行から得られます。キーが漏洩していても、クライアントが別の Runner になりすますことはできません。
-- **認証情報とシークレット** は保存時に暗号化され、API から返されることはなく、割り当てられた Runner がステップを取得したときにだけその Runner に渡されます。
+- **認証情報とシークレット** は保存時に暗号化され、API から返されることはなく、割り当てられた Runner がステップを取得したときにだけその Runner に渡されます。 Runbook のシークレットは、シークレットがグローバル Runner に使用を許可している場合、シークレット自身のプロジェクトのステップを取得したグローバル Runner にも渡されます。
 
 ## データベースのテーブル
 
@@ -105,8 +106,8 @@ Manual ステップが API でチェックされると、実行は次のステ�
 | `Runbook` | テンプレート。名前、slug、説明、`isEnabled`、ラベル、JSON 形式のステップ。 |
 | `RunbookExecution` | 実行ごとに 1 行。null 許容の外部キー `incidentId`、`alertId`、`scheduledMaintenanceId` と、ステップと各ステップの状態のスナップショットである JSON 配列 `stepExecutions` を持ちます。 |
 | `RunbookRule` | 自動トリガーのルール。判別子 `triggerEntityType`（Incident、Alert、ScheduledMaintenance）、開始する Runbook との多対多の関係、そして一致の対象（JSON 列 `criteria`（条件）と、モニター、インシデントの重大度、アラートの重大度、ラベル、モニターのラベルへの多対多のリンク、タイトル、説明、モニター名、モニターの説明のパターン）を持ちます。 |
-| `Runner` | インストールした Runner ごとに 1 行。名前、秘密キー、`lastAlive`、`connectionStatus`、ホスト情報、機能。 |
-| `RunnerJob` | Runner に送ったステップごとに 1 行。`targetAgentId`（ステップの作成者が選んだ Runner）、ステップの種類、スクリプトまたはペイロード、ステータス（`Pending` → `Claimed` → `Running` → `Succeeded`、`Failed`、`TimedOut`、`Cancelled`）、取得の期限、リース、出力、終了コード。 |
+| `Runner` | インストールした Runner ごとに 1 行。名前、秘密キー、`lastAlive`、`connectionStatus`、ホスト情報、機能。 グローバル Runner には `isGlobalRunner` が設定され、プロジェクトはありません。 |
+| `RunnerJob` | Runner に送ったステップごとに 1 行。`targetAgentId`（ステップの作成者が選んだ Runner）、ステップの種類、スクリプトまたはペイロード、ステータス（`Pending` → `Claimed` → `Running` → `Succeeded`、`Failed`、`TimedOut`、`Cancelled`）、取得の期限、リース、出力、終了コード。 `runsOnGlobalRunner` は、どのグローバル Runner でも取得できるステップを示します。 |
 | `RunbookCredential` | SSH と Kubernetes の認証情報。シークレット項目は暗号化され、割り当て先の Runner も保持します。 |
 | `RunbookSecret` | 暗号化された Runbook のシークレットと、それを受け取れる Runner。 |
 

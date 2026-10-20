@@ -139,6 +139,7 @@ grep -c "please-change-this" config.env
 | `REGISTER_PROBE_KEY` | 인스턴스에 프로브를 등록하는 일. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Docker Compose가 실행할 수 있는 글로벌 프로브(기본적으로 `probe-1`이 실행됩니다). |
 | `ONEUPTIME_RUNNER_KEY` | 함께 제공되는 Runner. |
+| `GLOBAL_RUNNER_KEY` | 모든 프로젝트의 JavaScript 단계를 실행하는, 함께 제공되는 글로벌 Runner. |
 
 > [!IMPORTANT]
 > 비밀 값은 처음 시작하기 전에 설정하고, 그 뒤로는 유지하세요. PostgreSQL은 데이터베이스를 만들 때만 비밀번호를 받으며, 나중에 `ENCRYPTION_SECRET`을 바꾸면 이전 값으로 암호화된 모든 값을 읽을 수 없게 됩니다. 처음 시작할 때 `DATABASE_PASSWORD`가 아직 자리 표시자라면, PostgreSQL이 데이터베이스를 만들기 전에 `npm start`가 임의의 값을 넣습니다.

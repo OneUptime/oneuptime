@@ -35,7 +35,7 @@ flowchart TB
 
 Hver kørsel er en **udførelse**. Når den starter, kopieres runbookets trin over på den, og OneUptime arbejder sig igennem dem i rækkefølge. Et Manual-trin, eller et trin der kræver godkendelse, sætter kørslen på pause, indtil nogen handler.
 
-HTTP- og AI-trin kører på OneUptime Worker. JavaScript-, Bash-, SSH- og Kubernetes-trin kører på en [Runner](/docs/runbooks/agents), som du installerer i din egen infrastruktur, så dine scripts aldrig kører på OneUptimes servere. Hvert trins status, output og fejlmeddelelse registreres på udførelsen, som bliver ved den hændelse, advarsel eller begivenhed, den kørte for.
+HTTP- og AI-trin kører på OneUptime Worker. Bash-, SSH- og Kubernetes-trin kører på en [Runner](/docs/runbooks/agents), som du installerer i din egen infrastruktur, så de scripts aldrig kører på OneUptimes servere. Et JavaScript-trin kører også på en af dine Runnere eller, hvis det ikke vælger nogen, på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse, der kun når internettet. Hvert trins status, output og fejlmeddelelse registreres på udførelsen, som bliver ved den hændelse, advarsel eller begivenhed, den kørte for.
 
 ## Centrale begreber
 
@@ -46,9 +46,9 @@ HTTP- og AI-trin kører på OneUptime Worker. JavaScript-, Bash-, SSH- og Kubern
 | **Runbook-regel** | En regel, der automatisk knytter et eller flere runbooks til hændelser, advarsler eller planlagte vedligeholdelsesbegivenheder, der opfylder dens betingelser: deres monitorer, alvorlighed, etiketter, monitoretiketter, titel eller beskrivelse. |
 | **Udførelse** | Én kørsel af et runbook. Oprettes, når en regel udløses, når nogen klikker på **Kør runbook** på en begivenhed, eller når nogen klikker på **Run Now** på selve runbooket. Den rummer et øjebliksbillede af trinnene og hvert trins status og output. |
 | **Øjebliksbillede** | Den fastfrosne kopi af runbookets trin, der ligger på hver udførelse. Du kan redigere runbooket senere uden at omskrive historikken for tidligere kørsler. |
-| **Runner** | En lille agent, du kører på en vært i din egen infrastruktur. Den kører de JavaScript-, Bash-, SSH- og Kubernetes-trin, der nævner den. Kaldes også en runbook-agent. |
+| **Runner** | En lille agent, du kører på en vært i din egen infrastruktur. Den kører de JavaScript-, Bash-, SSH- og Kubernetes-trin, der nævner den. Kaldes også en runbook-agent. En global Runner, en af dem, OneUptime kører for alle projekter, kører de JavaScript-trin, der ikke nævner nogen. |
 | **Loginoplysning** | Administreret SSH- eller Kubernetes-adgang, som SSH- og Kubernetes-trin bruger. Krypteret i hvile og kun udleveret til de Runners, du tildeler den. |
-| **Hemmelighed** | En enkelt værdi, f.eks. et API-token, som et Bash- eller JavaScript-script bruger som `{{runbookSecrets.NAME}}`. Krypteret i hvile og kun udleveret til de Runners, du tildeler den. |
+| **Hemmelighed** | En enkelt værdi, f.eks. et API-token, som et Bash- eller JavaScript-script bruger som `{{runbookSecrets.NAME}}`. Krypteret i hvile og kun udleveret til de Runners, du tildeler den. Globale Runnere får den kun, hvis du giver dem lov. |
 
 ## Trintyper
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 En monitor åbner hændelsen `INC-4821 · db-primary connection timeout`. Reglen matcher, og en udførelse starter:
 
-- Trin 1 (JavaScript) kører på den Runner, du valgte til det. Returværdien, f.eks. `{ lagMs: 412 }`, registreres.
+- Trin 1 (JavaScript) kører på den Runner, du valgte til det. Returværdien, f.eks. `{ lagMs: 412 }`, registreres. Et trin, der ikke vælger nogen Runner, kører på en global Runner.
 - Trin 2 (Manual) sætter kørslen på pause, som viser **Venter på dig**. Den vagthavende tjekker dashboardet og klikker på **Mark complete**.
 - Trin 3 (HTTP request) kører, og svaret på `POST` registreres.
 - Trin 4 (Manual) sætter kørslen på pause igen, indtil nogen fuldfører det.
@@ -170,7 +170,7 @@ Udførelsen bliver på hændelsens side **Runbooks**. Når du skriver postmortem
 
 :::cards
 - [Skriv et runbook](/docs/runbooks/authoring): Opret dit første runbook og dets trin.
-- [Runbook-agenter](/docs/runbooks/agents): Installer en Runner, før du skriver et JavaScript-, Bash-, SSH- eller Kubernetes-trin.
+- [Runbook-agenter](/docs/runbooks/agents): Installer en Runner, før du skriver et Bash-, SSH- eller Kubernetes-trin.
 - [Runbook-regler](/docs/runbooks/rules): Start runbooks automatisk, når der oprettes hændelser.
 - [Runbook-konfiguration & sikkerhed](/docs/runbooks/configuration): Grænser, timeouts, tilladelser og hærdning.
 :::

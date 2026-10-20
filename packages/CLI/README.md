@@ -113,11 +113,20 @@ Every resource supports `list`, `create` and `count`. Records (monitors, inciden
 
 ### Utility Commands
 
-| Command               | Description                       |
-| --------------------- | --------------------------------- |
-| `oneuptime version`   | Print CLI version                 |
-| `oneuptime whoami`    | Show current authentication info  |
-| `oneuptime resources` | List all available resource types |
+| Command               | Description                                                     |
+| --------------------- | --------------------------------------------------------------- |
+| `oneuptime version`   | Print CLI version                                               |
+| `oneuptime whoami`    | Show current authentication info                                |
+| `oneuptime resources` | List all available resource types                               |
+| `oneuptime deploy`    | Record a deploy, or another change, for charts and OneUptime AI |
+
+`oneuptime deploy` writes with a telemetry ingestion key, not an API key:
+
+```bash
+ONEUPTIME_URL=https://oneuptime.com \
+ONEUPTIME_TELEMETRY_INGESTION_KEY=xxx \
+oneuptime deploy --service checkout --service-version 2.3.1 --commit "$GIT_SHA" --environment production
+```
 
 ## Output Formats
 
@@ -157,11 +166,12 @@ ONEUPTIME_API_KEY=sk-xxx ONEUPTIME_URL=https://oneuptime.com oneuptime incident 
 
 ## Environment Variables
 
-| Variable            | Description                |
-| ------------------- | -------------------------- |
-| `ONEUPTIME_API_KEY` | API key for authentication |
-| `ONEUPTIME_URL`     | OneUptime instance URL     |
-| `NO_COLOR`          | Disable colored output     |
+| Variable                            | Description                                    |
+| ----------------------------------- | ---------------------------------------------- |
+| `ONEUPTIME_API_KEY`                 | API key for authentication                     |
+| `ONEUPTIME_URL`                     | OneUptime instance URL                         |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Telemetry ingestion key for `oneuptime deploy` |
+| `NO_COLOR`                          | Disable colored output                         |
 
 ## Configuration File
 

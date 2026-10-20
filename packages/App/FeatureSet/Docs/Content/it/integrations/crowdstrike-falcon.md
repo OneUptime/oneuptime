@@ -53,7 +53,7 @@ Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/s
 
 ### Provarla prima di salvare
 
-Fai clic su **Test these settings** in **Test before saving**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un cloud sbagliato o un ambito mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
+Fai clic su **Test these settings** in **Testa prima di salvare**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un cloud sbagliato o un ambito mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
 :::
 
 | Impostazione | Cosa inserire |
@@ -109,7 +109,7 @@ Quando un'esecuzione non riesce affatto a superare il cursore salvato, per esemp
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Last Error** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
 
 Un'esecuzione che fallisce del tutto, con un errore di Falcon, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Poll Interval (Minutes)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -139,7 +139,7 @@ Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai
 
 ## Risoluzione dei problemi
 
-Il **Last Error** della connessione, e ogni controllo fallito, conservano il messaggio di errore completo, con le credenziali oscurate, dietro un prefisso che nomina il passaggio fallito. Quando una connessione ha un errore, seleziona **Visualizza errore** nella sua colonna **Azioni** per leggerlo, e **Copy Error** nella finestra di dialogo per copiarlo. Leggi prima il prefisso.
+Il **Ultimo errore** della connessione, e ogni controllo fallito, conservano il messaggio di errore completo, con le credenziali oscurate, dietro un prefisso che nomina il passaggio fallito. Quando una connessione ha un errore, seleziona **Visualizza errore** nella sua colonna **Azioni** per leggerlo, e **Copia errore** nella finestra di dialogo per copiarlo. Leggi prima il prefisso.
 
 :::details Last Error inizia con `CrowdStrike Falcon token request`
 - `CrowdStrike Falcon token request failed (HTTP 401)` o `(HTTP 403)`: Falcon ha rifiutato l'ID e il segreto del client API, prima che la Alerts API venisse contattata. Verifica che **Falcon cloud** sia il cloud del tuo CID, perché un client di un altro cloud viene rifiutato qui, che **Client ID** sia quello del client e che **Client secret** sia il segreto rilasciato con esso. Se il segreto è andato perso, reimpostalo nella console Falcon e salvalo con **Update credentials**.

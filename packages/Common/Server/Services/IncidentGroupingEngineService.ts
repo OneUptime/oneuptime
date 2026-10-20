@@ -45,6 +45,7 @@ import {
 } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -422,8 +423,12 @@ class IncidentGroupingEngineServiceClass {
             monitorMatches = false;
           } else {
             try {
-              const regex: RegExp = new RegExp(rule.monitorNamePattern, "i");
-              if (!regex.test(monitor.name)) {
+              if (
+                !RulePatternMatchUtil.testRegex(
+                  rule.monitorNamePattern,
+                  monitor.name,
+                )
+              ) {
                 monitorMatches = false;
               }
             } catch {
@@ -442,11 +447,12 @@ class IncidentGroupingEngineServiceClass {
             monitorMatches = false;
           } else {
             try {
-              const regex: RegExp = new RegExp(
-                rule.monitorDescriptionPattern,
-                "i",
-              );
-              if (!regex.test(monitor.description)) {
+              if (
+                !RulePatternMatchUtil.testRegex(
+                  rule.monitorDescriptionPattern,
+                  monitor.description,
+                )
+              ) {
                 monitorMatches = false;
               }
             } catch {
@@ -476,8 +482,12 @@ class IncidentGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(rule.incidentTitlePattern, "i");
-        if (!regex.test(incident.title)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentTitlePattern,
+            incident.title,
+          )
+        ) {
           return false;
         }
       } catch {
@@ -495,8 +505,12 @@ class IncidentGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(rule.incidentDescriptionPattern, "i");
-        if (!regex.test(incident.description)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.incidentDescriptionPattern,
+            incident.description,
+          )
+        ) {
           return false;
         }
       } catch {

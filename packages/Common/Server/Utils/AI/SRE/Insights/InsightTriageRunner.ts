@@ -20,6 +20,7 @@ import { ObservabilityAssistantResult } from "../../Chat/ObservabilityAssistant"
 import ToolResultSerializer from "../../Toolbox/Serializer";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import { findLabelledValues } from "../../LabelledAnswerLines";
 
 /*
  * AI SRE — per-insight preventive triage.
@@ -42,6 +43,10 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  * an exhaustive span listing does not.
  */
 const MAX_RENDERED_EVIDENCE_CHARS: number = 4000;
+
+// What a "Classification:" line names.
+const CLASSIFICATION_VALUE: RegExp =
+  /(code-fault|user-error|expected-denial|infrastructure|unknown)\b/iy;
 
 /*
  * The preventive-triage framing, prepended to the subject description. The
@@ -195,19 +200,19 @@ export default class InsightTriageRunner {
   public static parseClassification(
     analysisMarkdown: string,
   ): ExceptionAIClassification {
-    const matches: Array<RegExpMatchArray> = Array.from(
-      (analysisMarkdown || "").matchAll(
-        /^\s*\**\s*classification\s*\**\s*[:=]\s*\**\s*(code-fault|user-error|expected-denial|infrastructure|unknown)\b/gim,
-      ),
-    );
+    const values: Array<string> = findLabelledValues({
+      text: analysisMarkdown || "",
+      label: "classification",
+      value: CLASSIFICATION_VALUE,
+    });
 
-    const last: RegExpMatchArray | undefined = matches[matches.length - 1];
+    const last: string | undefined = values[values.length - 1];
 
-    if (!last || !last[1]) {
+    if (!last) {
       return ExceptionAIClassification.Unknown;
     }
 
-    return last[1].toLowerCase() as ExceptionAIClassification;
+    return last.toLowerCase() as ExceptionAIClassification;
   }
 
   /*

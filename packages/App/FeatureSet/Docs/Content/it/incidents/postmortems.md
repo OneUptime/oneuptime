@@ -78,7 +78,17 @@ Con **Scrivi una bozza di post-mortem quando un incidente viene risolto** attivo
 - Non sostituisce mai una nota già scritta.
 - Non scrive mai in un post-mortem già pubblicato, dove la bozza arriverebbe sulla pagina di stato senza revisione.
 - Richiede che l'IA sia attiva per il progetto, e si ferma per la giornata non appena il progetto raggiunge i suoi limiti giornalieri di IA. Vedere [Post-mortem automatico](/docs/ai/ai-sre#post-mortem-automatico).
-- Se la trascrizione della chiamata dell'incidente è ancora in arrivo quando l'incidente viene risolto, attende che OneUptime AI la legga, così che la bozza tenga conto di ciò che si è detto nella chiamata: fino a sei ore mentre Zoom o Google Meet prepara la trascrizione. Vedere [Registrare e trascrivere ogni chiamata](/docs/workspace-connections/video-calls#registrare-e-trascrivere-ogni-chiamata).
+- Se la trascrizione della chiamata dell'incidente è ancora in arrivo quando l'incidente viene risolto, attende che OneUptime AI la legga, così che la bozza tenga conto di ciò che si è detto nella chiamata: fino a sei ore mentre il provider prepara la trascrizione. Vedere [Registrare e trascrivere ogni chiamata](/docs/workspace-connections/video-calls#registrare-e-trascrivere-ogni-chiamata).
+
+#### Scegliere quali incidenti ricevono una bozza, e il suo modello
+
+Senza regole, ogni incidente risolto riceve una bozza, secondo lo schema standard di OneUptime AI. Le **Regole post-mortem**, in **Altre impostazioni** nella stessa pagina, cambiano questo comportamento:
+
+- Una regola corrisponde a **Tutti gli incidenti**, oppure a **Solo gli incidenti che soddisfano le condizioni** su monitor, gravità, label, label dei monitor, titolo e descrizione, come fa una regola di indagine.
+- I suoi **Modelli** sono i modelli di post-mortem che la bozza può seguire. Senza alcun modello, la bozza segue lo schema standard; con uno, quel modello; con più di uno, quello che secondo OneUptime AI si adatta meglio all'incidente. Il post della bozza nel feed nomina il modello che ha seguito.
+- Decide la prima regola abilitata che corrisponde all'incidente, partendo dall'alto dell'elenco: trascinare una regola per cambiarne la posizione. Un incidente a cui non corrisponde nessuna regola non riceve una bozza, e nessun incidente la riceve finché le regole non si possono leggere.
+- **Scrivi una bozza di post-mortem quando un incidente viene risolto** resta l'unico interruttore che disattiva le bozze. Le regole decidono solo le bozze che OneUptime AI scrive da sé: **Generate with AI** offre ogni schema, qualunque cosa dicano.
+- Creare, modificare e riordinare le regole richiede il ruolo Project Owner o Project Admin. Su OneUptime Cloud, i modelli richiedono il piano Growth: al di sotto, le regole decidono comunque quali incidenti ricevono una bozza, e ogni bozza segue lo schema standard.
 
 ## Pubblicarlo sulla vostra pagina di stato
 
@@ -153,7 +163,7 @@ Controllate tre cose: **Pubblica nella pagina di stato** è attivo, la nota non 
 :::
 
 :::details Non è comparsa alcuna bozza dell'IA quando l'incidente è stato risolto
-L'incidente aveva già una nota, il post-mortem era già pubblicato, oppure **Scrivi una bozza di post-mortem quando un incidente viene risolto** è disattivato. L'IA deve essere attiva per il progetto, e il progetto non deve aver raggiunto i suoi limiti giornalieri di IA. Se la trascrizione della chiamata dell'incidente è in arrivo, la bozza arriva una volta che OneUptime AI l'ha letta.
+L'incidente aveva già una nota, il post-mortem era già pubblicato, nessuna regola post-mortem gli corrispondeva, oppure **Scrivi una bozza di post-mortem quando un incidente viene risolto** è disattivato. L'IA deve essere attiva per il progetto, e il progetto non deve aver raggiunto i suoi limiti giornalieri di IA. Se la trascrizione della chiamata dell'incidente è in arrivo, la bozza arriva una volta che OneUptime AI l'ha letta.
 :::
 
 ## Passaggi successivi

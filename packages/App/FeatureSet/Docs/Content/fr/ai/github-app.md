@@ -29,12 +29,12 @@ flowchart TB
     R --> O["Le même commentaire,<br/>réécrit avec<br/>le résultat"]
 ```
 
-C'est le même agent et le même Runner que pour les [Tâches de correction](/docs/ai/ai-agent), avec les mêmes budgets ; seul le déclencheur change.
+C'est le même agent et le même Runner que dans [Code](/docs/ai/ai-agent), avec les mêmes budgets ; seul le déclencheur change.
 
 ## Avant de commencer
 
-- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App : connectez-le sous **Tâches → Dépôts de code** (ouvrez **Produits → Code → Tâches**). Une instance auto-hébergée a d'abord besoin de sa propre GitHub App : voir [Intégration GitHub](/docs/self-hosted/github-integration). Si l'app est déjà installée sur le compte GitHub, cliquez à cet endroit sur **Connecter une installation existante** au lieu de la réinstaller.
-- Un Runner avec **Exécute les corrections de code IA** doit être en ligne : le même Runner que celui qui mène les [Tâches de correction](/docs/ai/ai-agent). Sans lui, les commandes sont acceptées puis échouent au bout de 30 minutes, avec un message indiquant qu'aucun agent ne les a prises.
+- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App : connectez-le dans **Produits → Code**. Une instance auto-hébergée a d'abord besoin de sa propre GitHub App : voir [Intégration GitHub](/docs/self-hosted/github-integration). Si l'app est déjà installée sur le compte GitHub, cliquez à cet endroit sur **Connecter une installation existante** au lieu de la réinstaller.
+- Un Runner avec **Exécute les corrections de code IA** doit être en ligne : le même Runner que celui qui mène les tâches de [Code](/docs/ai/ai-agent). Sans lui, les commandes sont acceptées puis échouent au bout de 30 minutes, avec un message indiquant qu'aucun agent ne les a prises.
 - La GitHub App a besoin de l'autorisation **Issues** en **Read & write**, et doit être abonnée aux événements de webhook listés sous [À quoi s'abonner](#à-quoi-sabonner).
 
 ## Les commandes
@@ -106,7 +106,7 @@ Elle ignore aussi tous les commentaires écrits par un bot, y compris les siens,
 
 Chaque commande qui lance du travail est une exécution complète de l'agent : un clone, jusqu'à 40 appels au LLM et 100 000 tokens de sortie, plus les commandes de build et de test de votre dépôt quand vous les avez définies.
 
-Les commandes GitHub sont du travail d'IA en dehors des incidents et des alertes, donc aucune limite quotidienne de tâches de correction ne s'y applique ; les limites quotidiennes d'IA propres au projet s'appliquent, quand le projet en fixe. La seule autre limite est celle qui régit déjà les [Tâches de correction](/docs/ai/ai-agent) :
+Les commandes GitHub sont du travail d'IA en dehors des incidents et des alertes, donc aucune limite quotidienne de tâches de correction ne s'y applique ; les limites quotidiennes d'IA propres au projet s'appliquent, quand le projet en fixe. La seule autre limite est celle qui régit déjà les tâches de [Code](/docs/ai/ai-agent) :
 
 - **Le plafond de pull requests ouvertes** (**Nombre max de demandes de tirage de correctifs ouvertes**, sur la page **Paramètres** du dépôt). **Demandes de tirage de correctifs IA** est sur **Aucune limite** tant que vous ne choisissez pas **Une limite**, ou **Aucun**, qui bloque les pull requests de correctif IA sur ce dépôt. Les relectures et les révisions en sont exemptées : aucune n'ajoute de pull request à votre file de relecture.
 
@@ -148,7 +148,7 @@ Traitez une pull request écrite par l'IA comme vous traiteriez celle d'un nouve
 ## Dépannage
 
 :::details Rien ne se passe quand je la mentionne
-Vérifiez d'abord l'identifiant : c'est le slug de l'app, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (**Tâches → Dépôts de code**), que **Respond to GitHub Commands** est activé et que votre GitHub App est abonnée aux événements ci-dessus.
+Vérifiez d'abord l'identifiant : c'est le slug de l'app, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (dans **Produits → Code**), que **Respond to GitHub Commands** est activé et que votre GitHub App est abonnée aux événements ci-dessus.
 :::
 
 :::details Elle réagit 😕 et ne dit rien
@@ -170,7 +170,7 @@ Une révision a besoin d'une branche dans ce dépôt. Demandez plutôt une relec
 ## Étapes suivantes
 
 :::cards
-- [Tâches de correction](/docs/ai/ai-agent): Le même agent, lancé depuis une exception, une trace ou une investigation.
+- [Code](/docs/ai/ai-agent): Le même agent, sollicité dans un dépôt ou lancé depuis une exception, une trace ou une investigation.
 - [Intégration GitHub](/docs/self-hosted/github-integration): Créez et configurez la GitHub App sur une instance auto-hébergée.
 - [Agents de runbook](/docs/runbooks/agents): Le worker qui mène chaque exécution.
 :::

@@ -7,6 +7,7 @@ import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import {
   checkScrubRuleCustomRegex,
   compileScrubRuleCustomRegex,
+  ScrubRegExp,
   doesScrubRuleScrubNothing,
   LOG_SCRUB_FIELDS,
   LOG_SCRUB_PATTERN_TYPES,
@@ -31,7 +32,7 @@ import { describe, expect, test } from "@jest/globals";
 type GetRegexForPattern = (
   patternType: string,
   customRegex?: string,
-) => RegExp | null;
+) => ScrubRegExp | null;
 
 interface Engine {
   name: string;
@@ -79,8 +80,11 @@ describe.each(ENGINES)(
   ({ getRegexForPattern, patternTypes }: Engine) => {
     test("compiles a custom pattern exactly when the shared helper does", () => {
       for (const pattern of PATTERNS) {
-        const engine: RegExp | null = getRegexForPattern("custom", pattern);
-        const shared: RegExp | null = compileScrubRuleCustomRegex(pattern);
+        const engine: ScrubRegExp | null = getRegexForPattern(
+          "custom",
+          pattern,
+        );
+        const shared: ScrubRegExp | null = compileScrubRuleCustomRegex(pattern);
 
         expect(engine === null).toBe(shared === null);
 
@@ -135,7 +139,7 @@ describe("a custom rule ingest scrubs with", () => {
     rule.scrubAction = LOG_SCRUB_RULE_DEFAULTS.scrubAction;
     rule.fieldsToScrub = LOG_SCRUB_RULE_DEFAULTS.fieldsToScrub;
 
-    const regex: RegExp | null = (
+    const regex: ScrubRegExp | null = (
       LogScrubRuleService as unknown as {
         getRegexForPattern: GetRegexForPattern;
       }
@@ -149,7 +153,7 @@ describe("a custom rule ingest scrubs with", () => {
         body: "token SECRET-AB12 and SECRET-CD34",
         attributes: { note: "SECRET-EF56" },
       },
-      [{ rule, regex: regex as RegExp }],
+      [{ rule, regex: regex as ScrubRegExp }],
     );
 
     expect(row["body"]).toBe("token [REDACTED] and [REDACTED]");
@@ -166,7 +170,7 @@ describe("a custom rule ingest scrubs with", () => {
     rule.scrubAction = LogScrubAction.Redact;
     rule.fieldsToScrub = "Body";
 
-    const regex: RegExp | null = (
+    const regex: ScrubRegExp | null = (
       LogScrubRuleService as unknown as {
         getRegexForPattern: GetRegexForPattern;
       }
@@ -177,7 +181,7 @@ describe("a custom rule ingest scrubs with", () => {
         body: "mail jane@example.com",
         attributes: { user: "jane@example.com" },
       },
-      [{ rule, regex: regex as RegExp }],
+      [{ rule, regex: regex as ScrubRegExp }],
     );
 
     expect(row["body"]).toBe("mail jane@example.com");

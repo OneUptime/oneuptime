@@ -20,6 +20,12 @@ export interface CodeAgentTask {
   context?: string;
   timeoutMs?: number;
   servicePath?: string; // Path within the repo where the service code lives
+  /*
+   * The task may end by asking the person who made the request a question
+   * (a request from Code): the agent is offered an ask_question tool, and a
+   * question ends its turn with needsInput set.
+   */
+  allowQuestions?: boolean;
 }
 
 // Result from the code agent execution
@@ -30,6 +36,8 @@ export interface CodeAgentResult {
   logs: Array<string>;
   error?: string;
   exitCode?: number;
+  // The turn ended by asking the person a question (allowQuestions).
+  needsInput?: boolean;
 }
 
 // Progress event from the code agent

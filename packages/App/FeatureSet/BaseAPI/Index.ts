@@ -47,6 +47,8 @@ import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
+import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
+import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -583,6 +585,10 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
+import SecurityLogSourceService, {
+  Service as SecurityLogSourceServiceType,
+} from "Common/Server/Services/SecurityLogSourceService";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -1200,9 +1206,10 @@ import AutoRemediationDecisionService, {
 import AIInvestigationRuleService, {
   Service as AIInvestigationRuleServiceType,
 } from "Common/Server/Services/AIInvestigationRuleService";
-import RunnerService, {
-  Service as RunnerServiceType,
-} from "Common/Server/Services/RunnerService";
+import AIPostmortemRuleService, {
+  Service as AIPostmortemRuleServiceType,
+} from "Common/Server/Services/AIPostmortemRuleService";
+import RunnerAPI from "Common/Server/API/RunnerAPI";
 import RunnerJobService, {
   Service as RunnerJobServiceType,
 } from "Common/Server/Services/RunnerJobService";
@@ -1559,7 +1566,7 @@ import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRul
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
-import Runner from "Common/Models/DatabaseModels/Runner";
+import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
@@ -1599,6 +1606,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
@@ -3897,6 +3905,20 @@ const BaseAPIFeatureSet: FeatureSet = {
       new SecurityEventConnectionAPI().getRouter(),
     );
 
+    // Where security events are sent, and "Your logs" as a source.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityEventDestinationAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityLogSource, SecurityLogSourceServiceType>(
+        SecurityLogSource,
+        SecurityLogSourceService,
+      ).getRouter(),
+    );
+
     // Security cases and playbooks: the SOAR half of the Security product.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4156,6 +4178,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIPostmortemRule, AIPostmortemRuleServiceType>(
+        AIPostmortemRule,
+        AIPostmortemRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<RunbookOwnerTeam, RunbookOwnerTeamServiceType>(
         RunbookOwnerTeam,
         RunbookOwnerTeamService,
@@ -4172,7 +4202,8 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Runner, RunnerServiceType>(Runner, RunnerService).getRouter(),
+      // The Runner CRUD routes, and the global Runners every project sees.
+      new RunnerAPI().getRouter(),
     );
 
     app.use(
@@ -5683,6 +5714,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new AIAgentGitHubAPI().getRouter(),
     );
 
+    // The agent worker's protocol for requests from Code.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentCodeTaskAPI().getRouter(),
+    );
+
+    // Code: repositories, their tasks, and asking AI in them.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new CodeTaskAPI().getRouter());
+
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5937,7 +5977,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
 
-    // AI code-fix readiness — the gates the AI Tasks page renders
+    // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);
 
     // What a project's AI used today, against its own daily AI limits

@@ -9,25 +9,31 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
  *
  * Read after every read of the table rather than taken from it: a table
  * counts the rows its filters let through, disabled ones included.
+ *
+ * Investigation and auto remediation rules share one table between
+ * incidents and alerts, told apart by their trigger; postmortem rules are
+ * the incidents' alone, so they are counted without one.
  */
 export type ReadEnabledAiLaneRuleCountFunction = <
   TRule extends BaseModel,
 >(data: {
   modelType: { new (): TRule };
-  triggerEntityType: string;
+  triggerEntityType?: string | undefined;
 }) => Promise<number>;
 
 export const readEnabledAiLaneRuleCount: ReadEnabledAiLaneRuleCountFunction =
   async <TRule extends BaseModel>(data: {
     modelType: { new (): TRule };
-    triggerEntityType: string;
+    triggerEntityType?: string | undefined;
   }): Promise<number> => {
     return await ModelAPI.count<TRule>({
       modelType: data.modelType,
-      query: {
-        triggerEntityType: data.triggerEntityType,
-        isEnabled: true,
-      } as unknown as Query<TRule>,
+      query: (data.triggerEntityType
+        ? {
+            triggerEntityType: data.triggerEntityType,
+            isEnabled: true,
+          }
+        : { isEnabled: true }) as unknown as Query<TRule>,
     });
   };
 
@@ -37,11 +43,11 @@ export const readEnabledAiLaneRuleCount: ReadEnabledAiLaneRuleCountFunction =
  */
 export const reportEnabledAiLaneRuleCount: <TRule extends BaseModel>(data: {
   modelType: { new (): TRule };
-  triggerEntityType: string;
+  triggerEntityType?: string | undefined;
   onRulesLoaded?: ((count: number) => void) | undefined;
 }) => Promise<void> = async <TRule extends BaseModel>(data: {
   modelType: { new (): TRule };
-  triggerEntityType: string;
+  triggerEntityType?: string | undefined;
   onRulesLoaded?: ((count: number) => void) | undefined;
 }): Promise<void> => {
   if (!data.onRulesLoaded) {

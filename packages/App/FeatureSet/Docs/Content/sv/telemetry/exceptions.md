@@ -113,9 +113,9 @@ Sidan **AI Assistance** erbjuder tre uppgifter. Var och en körs som en AI-uppgi
 | --- | --- |
 | **Fix this exception with AI** | Rättar grundorsaken. Starta den med **Fix with AI**. |
 | **Generate Regression Test** | Lägger till ett test som misslyckas tills felet är rättat. |
-| **Improve Error Handling** | För förväntade fel: validerar indata tidigare, håller användardata utanför meddelanden och markerar felet som hanterat. |
+| **Förbättra felhantering** | För förväntade fel: validerar indata tidigare, håller användardata utanför meddelanden och markerar felet som hanterat. |
 
-AI behöver tre saker först: en LLM-leverantör, ett GitHub-förråd anslutet via GitHub App, och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Åtgärdsuppgifter](/docs/ai/ai-agent).
+AI behöver tre saker först: en LLM-leverantör, ett GitHub-förråd anslutet via GitHub App, och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Kod](/docs/ai/ai-agent).
 
 ## Insikter i undantag
 
@@ -140,6 +140,6 @@ En ny förekomst öppnar ett löst undantag igen med avsikt: felet inträffar fo
 :::cards
 - [Undantagsövervakning](/docs/monitor/exceptions-monitor): Få en varning när undantagen ökar kraftigt.
 - [Source maps](/docs/telemetry/source-maps): Läsbara stack traces för webbläsarkod.
-- [Åtgärdsuppgifter](/docs/ai/ai-agent): Hur AI rättar kod och öppnar pull requests.
+- [Kod](/docs/ai/ai-agent): Hur AI rättar kod och öppnar pull requests.
 - [Spårutforskare](/docs/telemetry/traces-explorer): Se förfrågan där ett undantag inträffade.
 :::

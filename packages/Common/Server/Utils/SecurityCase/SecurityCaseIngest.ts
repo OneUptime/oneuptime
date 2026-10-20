@@ -68,6 +68,12 @@ export interface SecurityDetectionSignal {
   // The security event that records it (a Detection Finding, or the imported alert).
   eventUid?: string | undefined;
   seenAt: Date;
+  /*
+   * Raised by the setup test (SecuritySetup.runTest): its case runs only
+   * the playbooks that stay inside OneUptime - nobody is told, paged or
+   * contained over a test.
+   */
+  isSetupTest?: boolean | undefined;
 }
 
 export interface SecurityCaseIngestResult {
@@ -374,6 +380,7 @@ export default class SecurityCaseIngest {
                 source: signal.source,
                 detectionRuleId: signal.detectionRuleId,
               },
+              onlyPlaybooksThatStayInside: signal.isSetupTest === true,
             });
           });
           continue;
@@ -403,6 +410,7 @@ export default class SecurityCaseIngest {
               source: signal.source,
               detectionRuleId: signal.detectionRuleId,
             },
+            onlyPlaybooksThatStayInside: signal.isSetupTest === true,
           });
         });
       } catch (error) {

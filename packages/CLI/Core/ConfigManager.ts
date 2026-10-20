@@ -147,3 +147,58 @@ export function getResolvedCredentials(
     "No credentials found. Run `oneuptime login` or set ONEUPTIME_API_KEY and ONEUPTIME_URL environment variables.",
   );
 }
+
+/*
+ * The address of the OneUptime a command talks to when it needs no API key
+ * (oneuptime deploy writes with an ingestion key): the --url flag, then
+ * ONEUPTIME_URL, then the named or the current context's address.
+ */
+export function getResolvedInstanceUrl(cliOptions: CLIOptions): string {
+  if (cliOptions.url) {
+    return cliOptions.url;
+  }
+
+  const envUrl: string | undefined = process.env["ONEUPTIME_URL"];
+
+  if (envUrl) {
+    return envUrl;
+  }
+
+  if (cliOptions.context) {
+    const ctx: CLIContext | undefined = load().contexts[cliOptions.context];
+
+    if (!ctx) {
+      throw new Error(`Context "${cliOptions.context}" does not exist.`);
+    }
+
+    return ctx.apiUrl;
+  }
+
+  const currentCtx: CLIContext | null = getCurrentContext();
+
+  if (currentCtx) {
+    return currentCtx.apiUrl;
+  }
+
+  throw new Error(
+    "No OneUptime URL found. Pass --url, set ONEUPTIME_URL, or run `oneuptime login`.",
+  );
+}
+
+/*
+ * The telemetry ingestion key a command that sends telemetry writes with:
+ * the --ingestion-key flag, then ONEUPTIME_TELEMETRY_INGESTION_KEY. An API
+ * key is not one - telemetry is written with a project's ingestion key.
+ */
+export function getResolvedIngestionKey(flag: string | undefined): string {
+  const key: string | undefined =
+    flag || process.env["ONEUPTIME_TELEMETRY_INGESTION_KEY"];
+
+  if (!key) {
+    throw new Error(
+      "No telemetry ingestion key found. Pass --ingestion-key or set ONEUPTIME_TELEMETRY_INGESTION_KEY; create one under Project Settings → Telemetry & APM → Ingestion Keys.",
+    );
+  }
+
+  return key;
+}

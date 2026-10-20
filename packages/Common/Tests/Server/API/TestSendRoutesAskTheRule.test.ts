@@ -167,6 +167,18 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Reads from a security event source; sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/SecurityEventDestinationAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Sends one event marked as a test to the project's SIEM, as whoever may change the destination; sends nobody a message.",
+  },
+  {
+    file: "packages/Common/Server/API/SecurityCaseAPI.ts",
+    path: "/setup/test",
+    rule: "check",
+    why: "Runs a simulated attack through the project's own security pipeline, as a role that may create security events and detection rules and read cases; it never alerts, pages or notifies anybody.",
+  },
+  {
     file: "packages/Common/Server/API/VideoCallConnectionAPI.ts",
     path: "/test",
     rule: "check",

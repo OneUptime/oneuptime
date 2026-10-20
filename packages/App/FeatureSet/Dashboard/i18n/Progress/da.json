@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 16781
+    "keys": 31337,
+    "untranslated": 16698
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -26,17 +26,22 @@
     "Information",
     "Interface",
     "Interfaces",
+    "Link",
     "Model",
+    "Note",
     "Null",
     "Offline",
+    "PR #{{number}}",
     "Pause",
     "Peer",
     "Plan",
     "Problem",
+    "Pull request #{{number}}",
     "Reference",
     "Revision",
     "Runbook: {{name}}",
     "Runner",
+    "Send",
     "Start import",
     "Status",
     "Stratum",

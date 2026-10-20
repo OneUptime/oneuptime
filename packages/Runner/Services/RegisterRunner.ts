@@ -12,6 +12,7 @@ import {
   RUNNER_VERSION,
 } from "../Config";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
+import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
 import RunnerAPIRequest from "../Utils/RunnerAPIRequest";
 import KubernetesPosture from "../Utils/KubernetesPosture";
 import {
@@ -961,6 +962,27 @@ export default class Register {
             canRunCodeFixTasks: capabilities["canRunCodeFixTasks"] === true,
             canRunAiCommands: capabilities["canRunAiCommands"] === true,
           });
+        }
+
+        /*
+         * Whether this is a global Runner - one OneUptime runs for every
+         * project - is the server's to say (GlobalRunnerMode). Said once
+         * here, on start, with what that means for what it runs.
+         */
+        GlobalRunnerMode.setFromServer(
+          typeof result.data["isGlobalRunner"] === "boolean"
+            ? (result.data["isGlobalRunner"] as boolean)
+            : false,
+        );
+
+        if (GlobalRunnerMode.isActive()) {
+          logger.info(
+            "This is a global Runner: it runs JavaScript steps for every project that uses global Runners, each in a sandbox of its own that reaches the internet only, and nothing else.",
+            {
+              runnerId: RUNNER_ID?.toString(),
+              runnerName: RUNNER_NAME,
+            } as LogAttributes,
+          );
         }
 
         logger.debug("Runner registered successfully", {

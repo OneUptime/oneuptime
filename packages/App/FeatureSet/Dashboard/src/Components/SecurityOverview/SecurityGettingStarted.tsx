@@ -1,117 +1,419 @@
 import AppLink from "../AppLink/AppLink";
-import PageMap from "../../Utils/PageMap";
+import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  SecuritySetupStatus,
+  SecuritySetupStep,
+  SecuritySetupStepKey,
+  TurnOnRecommendedResult,
+  getSecuritySetupSteps,
+} from "./SecuritySetupModel";
+import {
+  SecuritySetupTestButton,
+  SecuritySetupTestResultLine,
+  SecuritySetupTestState,
+  useSecuritySetupTest,
+} from "./SecuritySetupTest";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import API from "Common/UI/Utils/API/API";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
-export interface GettingStartedStep {
-  title: string;
-  description: string;
-  linkText: string;
-  page: PageMap;
-  icon: IconProp;
+export const SECURITY_GETTING_STARTED_ID: string = "security-getting-started";
+
+export interface ComponentProps {
+  status: SecuritySetupStatus;
+  // Called after something changed, so the page reads its figures again.
+  onChanged: () => void;
+  // Hides the card once every step is done and the reader says so.
+  onDone: () => void;
+  // Hides the card for good: the reader does not want it (Dismiss).
+  onDismiss: () => void;
+}
+
+function getDismissKey(): string | null {
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
+
+  return projectId ? `security-get-started-dismissed-${projectId}` : null;
 }
 
 /*
- * The three things that turn an empty project into a working SOC, in the
- * order they pay off: events to look at, rules that find threats in them,
- * and a playbook that responds when a case opens.
+ * Whether this person put Get started away for this project, as Home's
+ * checklist remembers it: a team that runs Security without playbooks, say,
+ * is not asked to set them up on every visit. Kept in the browser; a
+ * storage that cannot be read just shows the card again.
  */
-export const SECURITY_GETTING_STARTED_STEPS: ReadonlyArray<GettingStartedStep> =
-  [
-    {
-      title: translationKey("Bring in security events"),
-      description: translationKey(
-        "Connect Google SecOps, Microsoft Sentinel, CrowdStrike Falcon, Okta and more, or send events straight to OneUptime.",
-      ),
-      linkText: translationKey("Connect a source"),
-      page: PageMap.SECURITY_EVENTS_CONNECTIONS,
-      icon: IconProp.Link,
-    },
-    {
-      title: translationKey("Turn on detections"),
-      description: translationKey(
-        "Add ready-made rules for brute force, impossible travel, suspicious PowerShell and more. Each match opens a case.",
-      ),
-      linkText: translationKey("Browse the rule library"),
-      page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,
-      icon: IconProp.ShieldCheck,
-    },
-    {
-      title: translationKey("Respond automatically"),
-      description: translationKey(
-        "Write a playbook that assigns new cases, checks threat intel, pages on-call or contains a host - with approval where it matters.",
-      ),
-      linkText: translationKey("Create a playbook"),
-      page: PageMap.SECURITY_PLAYBOOKS,
-      icon: IconProp.Bolt,
-    },
-  ];
+export function isSecurityGetStartedDismissed(): boolean {
+  try {
+    const key: string | null = getDismissKey();
 
-const SecurityGettingStarted: FunctionComponent = (): ReactElement => {
+    return key ? Boolean(LocalStorage.getItem(key)) : false;
+  } catch {
+    return false;
+  }
+}
+
+export function rememberSecurityGetStartedDismissed(): void {
+  try {
+    const key: string | null = getDismissKey();
+
+    if (key) {
+      LocalStorage.setItem(key, true);
+    }
+  } catch {
+    // Not remembered: the card comes back on the next visit.
+  }
+}
+
+/*
+ * Who may make the one click: whoever may turn your logs on, add rules and
+ * add a playbook - the same rule the server holds the route to.
+ */
+export function getTurnOnRecommendedGate(): PermissionGateResult {
+  for (const model of [
+    new SecurityLogSource(),
+    new DetectionRule(),
+    new SecurityPlaybook(),
+  ]) {
+    const gate: PermissionGateResult = PermissionGate.check(
+      model,
+      ModelAction.Create,
+    );
+
+    if (!gate.isAllowed) {
+      return gate;
+    }
+  }
+
+  return { isAllowed: true };
+}
+
+/*
+ * Whether "Turn on recommended" still has something to do: a source, a rule
+ * or a playbook is missing. Once all three are there, the next thing to do
+ * is the test, so it becomes the card's main button.
+ */
+export function needsTurnOnRecommended(
+  steps: Array<SecuritySetupStep>,
+): boolean {
+  return steps.some((step: SecuritySetupStep): boolean => {
+    return step.key !== SecuritySetupStepKey.Test && !step.isDone;
+  });
+}
+
+/*
+ * "Get started", for a project that has not set Security up yet: what
+ * Security does in two sentences, one click that turns on what most teams
+ * need - your logs as a source, the recommended rules, a playbook that
+ * enriches every new case - and a harmless test that shows a case open.
+ *
+ * The buttons sit under the text, where the eye lands after reading it,
+ * and the main one is always the next thing to do: Turn on recommended
+ * until it has nothing left to turn on, then Send a test attack, then Done.
+ * Whoever may not set Security up is told who can, not left with a grey
+ * button. The steps below say what is done and where to do each by hand.
+ * The page keeps the card for the visit once it showed it, so the reader
+ * sees each step tick and the test's case appear.
+ */
+const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
+  const [isTurningOn, setIsTurningOn] = useState<boolean>(false);
+  const [turnedOn, setTurnedOn] = useState<TurnOnRecommendedResult | null>(
+    null,
+  );
+  const [error, setError] = useState<string>("");
+  const test: SecuritySetupTestState = useSecuritySetupTest(props.onChanged);
+
+  const steps: Array<SecuritySetupStep> = getSecuritySetupSteps(props.status);
+  const doneCount: number = steps.filter((step: SecuritySetupStep) => {
+    return step.isDone;
+  }).length;
+  const isAllDone: boolean = doneCount === steps.length;
+  const showTurnOn: boolean = needsTurnOnRecommended(steps);
+
+  const turnOnGate: PermissionGateResult = getTurnOnRecommendedGate();
+  // The main button is the next step; when it is locked, say who can do it.
+  const isNextStepLocked: boolean = showTurnOn
+    ? !turnOnGate.isAllowed
+    : !test.gate.isAllowed;
+
+  const turnOnRecommended: () => Promise<void> = async (): Promise<void> => {
+    setIsTurningOn(true);
+    setError("");
+
+    try {
+      setTurnedOn(await SecurityCaseApi.turnOnRecommended());
+      props.onChanged();
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsTurningOn(false);
+  };
+
+  // The page reads its figures again after the click; until then, the answer's.
+  const rulesOn: number = turnedOn
+    ? Math.max(
+        turnedOn.rulesAdded + turnedOn.rulesTurnedOn,
+        props.status.enabledRules,
+      )
+    : 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-          <Icon icon={IconProp.ShieldCheck} className="h-5 w-5" />
-        </span>
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">
-            {translator.translateText("Set up security operations")}
-          </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            {translator.translateText(
-              "Security Events collects your security signals, finds threats in them, groups what it finds into cases, and responds with playbooks. Three steps get it working.",
+    <section
+      id={SECURITY_GETTING_STARTED_ID}
+      data-testid={SECURITY_GETTING_STARTED_ID}
+      aria-labelledby={`${SECURITY_GETTING_STARTED_ID}-title`}
+      className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className={
+            isAllDone
+              ? "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 max-sm:hidden"
+              : "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 max-sm:hidden"
+          }
+          aria-hidden="true"
+        >
+          <Icon
+            icon={isAllDone ? IconProp.CheckCircle : IconProp.ShieldCheck}
+            className="h-5 w-5"
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <h2
+              id={`${SECURITY_GETTING_STARTED_ID}-title`}
+              className="text-base font-semibold text-gray-900"
+            >
+              {isAllDone
+                ? translator.translateText("Security is set up")
+                : translator.translateText("Set up Security in a minute")}
+            </h2>
+            {isAllDone ? (
+              <></>
+            ) : (
+              <div className="flex-shrink-0">
+                <Button
+                  title="Dismiss"
+                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                  buttonSize={ButtonSize.Small}
+                  dataTestId="security-getting-started-dismiss"
+                  onClick={() => {
+                    rememberSecurityGetStartedDismissed();
+                    props.onDismiss();
+                  }}
+                />
+              </div>
             )}
+          </div>
+          <p className="mt-1 max-w-3xl text-sm text-gray-600">
+            {isAllDone
+              ? translator.translateText(
+                  "OneUptime now watches your sources, opens a case when a rule matches and runs your playbooks on it. Open cases and anything waiting for you show on this page.",
+                )
+              : translator.translateText(
+                  "OneUptime finds threats in data you already have - your logs and the security tools you use - groups what it finds into cases and responds with playbooks. Turn on what most teams need, then send a test attack to see it work.",
+                )}
           </p>
+          <div
+            className="mt-4 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+            data-testid="security-getting-started-actions"
+          >
+            {isAllDone ? (
+              <Button
+                title="Done"
+                icon={IconProp.Check}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="security-getting-started-done"
+                onClick={props.onDone}
+              />
+            ) : (
+              <>
+                {showTurnOn ? (
+                  <Button
+                    title="Turn on recommended"
+                    icon={IconProp.CheckCircle}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    isLoading={isTurningOn}
+                    disabled={!turnOnGate.isAllowed || isTurningOn}
+                    tooltip={
+                      turnOnGate.isAllowed
+                        ? undefined
+                        : turnOnGate.disabledReason
+                    }
+                    dataTestId="security-turn-on-recommended"
+                    onClick={() => {
+                      void turnOnRecommended();
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
+                <SecuritySetupTestButton
+                  test={test}
+                  buttonStyle={
+                    showTurnOn
+                      ? ButtonStyleType.NORMAL
+                      : ButtonStyleType.PRIMARY
+                  }
+                />
+              </>
+            )}
+          </div>
+          {!isAllDone && isNextStepLocked ? (
+            <p
+              className="mt-2 text-sm text-gray-500"
+              data-testid="security-getting-started-locked"
+            >
+              {translator.translateText(
+                "Ask a Project Owner, Project Admin or Security Admin to set Security up.",
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
-      <ol className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-        {SECURITY_GETTING_STARTED_STEPS.map(
-          (step: GettingStartedStep, index: number): ReactElement => {
-            return (
-              <li
-                key={step.page}
-                className="flex flex-col rounded-lg border border-gray-200 p-4"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-xs font-semibold text-white">
-                    {index + 1}
-                  </span>
-                  <Icon icon={step.icon} className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-semibold text-gray-900">
-                    {translator.translateText(step.title)}
-                  </span>
-                </div>
-                <p className="mt-2 flex-1 text-sm text-gray-600">
-                  {translator.translateText(step.description)}
-                </p>
-                <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[step.page] as Route,
-                  )}
-                  className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+
+      {error || test.error ? (
+        <div className="mt-4">
+          <ErrorMessage message={error || test.error} />
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {turnedOn ? (
+        <p
+          data-testid="security-turned-on"
+          role="status"
+          className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+        >
+          {translator.translatePlural(
+            {
+              one: "Done. {{count}} detection rule is on, your logs are checked for security events and every new case is enriched.",
+              other:
+                "Done. {{count}} detection rules are on, your logs are checked for security events and every new case is enriched.",
+            },
+            rulesOn,
+          )}
+        </p>
+      ) : (
+        <></>
+      )}
+
+      {test.result ? (
+        <div className="mt-4">
+          <SecuritySetupTestResultLine result={test.result} />
+        </div>
+      ) : (
+        <></>
+      )}
+
+      <div className="mt-6 flex items-center gap-3">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          {translator.translateTemplate("{{done}} of {{total}} done", {
+            done: doneCount,
+            total: steps.length,
+          })}
+        </span>
+        <span
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"
+          aria-hidden="true"
+        >
+          <span
+            className="block h-full rounded-full bg-emerald-500 transition-all"
+            style={{ width: `${(doneCount / steps.length) * 100}%` }}
+          />
+        </span>
+      </div>
+
+      <ol className="mt-3 divide-y divide-gray-100">
+        {steps.map((step: SecuritySetupStep, index: number): ReactElement => {
+          return (
+            <li
+              key={step.key}
+              data-testid={`security-setup-step-${step.key}`}
+              data-done={step.isDone ? "true" : "false"}
+              className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-4"
+            >
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <div
+                  className={
+                    step.isDone
+                      ? "mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-semibold text-white"
+                      : "mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-gray-300 text-xs font-semibold text-gray-500"
+                  }
+                  aria-hidden="true"
                 >
-                  <>
-                    <span>{translator.translateText(step.linkText)}</span>
-                    <Icon
-                      icon={IconProp.ChevronRight}
-                      className="h-3.5 w-3.5"
-                    />
-                  </>
-                </AppLink>
-              </li>
-            );
-          },
-        )}
+                  {step.isDone ? (
+                    <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
+                  ) : (
+                    <>{index + 1}</>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p
+                    className={
+                      step.isDone
+                        ? "text-sm font-medium text-gray-500"
+                        : "text-sm font-medium text-gray-900"
+                    }
+                  >
+                    {translator.translateText(step.title)}
+                    <span className="sr-only">
+                      {" "}
+                      {step.isDone
+                        ? translator.translateText("(done)")
+                        : translator.translateText("(to do)")}
+                    </span>
+                  </p>
+                  <p
+                    className={
+                      step.isDone
+                        ? "mt-0.5 text-sm text-gray-500"
+                        : "mt-0.5 text-sm text-gray-600"
+                    }
+                  >
+                    {translator.translateText(step.description)}
+                  </p>
+                </div>
+              </div>
+              <AppLink
+                to={RouteUtil.populateRouteParams(RouteMap[step.page] as Route)}
+                className="ml-9 inline-flex flex-shrink-0 items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 sm:ml-0"
+              >
+                <>
+                  <span>{translator.translateText(step.linkText)}</span>
+                  <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
+                </>
+              </AppLink>
+            </li>
+          );
+        })}
       </ol>
-    </div>
+    </section>
   );
 };
 

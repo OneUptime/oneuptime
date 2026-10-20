@@ -120,7 +120,7 @@ Een langer bericht, met een lange titel of een lange beschrijving die een sjablo
 
 ### Wanneer een oproep niet wordt verstuurd
 
-Een oproep die niet wordt verstuurd, zegt waarom in de **Bereikbaarheidslogboeken** van de persoon (Gebruikersinstellingen): de rij toont **Fout**, en het statusbericht geeft de reden. Hij blijft niet meer op **Sending** staan. Het bericht zegt een van deze dingen:
+Een oproep die niet wordt verstuurd, zegt waarom in de **Bereikbaarheidslogboeken** van de persoon (Gebruikersinstellingen): de rij toont **Fout**, en het statusbericht geeft de reden. Hij blijft niet meer op **Bezig met verzenden** staan. Het bericht zegt een van deze dingen:
 
 - het saldo van het project kon hem niet betalen, en wie saldo kan toevoegen;
 - het kanaal staat uit in het project, en wie het kan aanzetten.

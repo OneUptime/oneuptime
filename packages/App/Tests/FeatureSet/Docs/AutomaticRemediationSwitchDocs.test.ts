@@ -156,6 +156,19 @@ describe("the AI SRE page", () => {
     );
   });
 
+  it("says the postmortem rules, under More settings, decide which resolved incidents get a draft", () => {
+    const postmortem: string = flat(
+      getSection(read(AI_SRE_PAGE), "## Auto-postmortem"),
+    );
+
+    expect(postmortem).toContain(
+      "**Postmortem rules**, folded under **More settings** on the same page, decide which resolved incidents get a draft and which postmortem templates it may follow. With no rule, every resolved incident gets one, in OneUptime AI's standard outline.",
+    );
+    expect(postmortem).toContain(
+      "an incident no rule matches gets no draft, and no incident gets one while the rules cannot be read.",
+    );
+  });
+
   it("no longer says Enable AI is the only switch fixes need", () => {
     expect(page).not.toContain("The only project switch fixes need is");
     expect(page).not.toContain(
@@ -179,6 +192,22 @@ describe("the incident pages", () => {
       "- **Investigation Rules**, under **AI** → **Settings** — which new incidents OneUptime AI investigates. With no rule, every one is.",
     );
     expect(settings).toContain("Do not assume one model applies to all ten.");
+  });
+
+  /*
+   * Postmortem rules sit under the same More settings, but look at an
+   * incident when it resolves, not when it is created: the page names them
+   * apart from the ten rules that run on a new incident.
+   */
+  it("name the postmortem rules as a third table under More settings, for when an incident resolves", () => {
+    const settings: string = flat(read(INCIDENT_SETTINGS_PAGE));
+
+    expect(settings).toContain(
+      "the postmortem rules that choose which resolved incidents get a draft and the templates it follows, and the optional limits AI works under, are folded under **More settings**",
+    );
+    expect(settings).toContain(
+      "A third table under **More settings** there, **Postmortem Rules**, looks at an incident when it resolves instead: which resolved incidents OneUptime AI drafts a postmortem for, and the templates the draft may follow. See [Postmortems](/docs/incidents/postmortems#choose-which-incidents-get-a-draft-and-its-template).",
+    );
   });
 
   it("list three pages in the AI section", () => {

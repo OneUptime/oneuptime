@@ -1,4 +1,5 @@
 import HostAddressUtil from "./HostAddressUtil";
+import { withoutTrailingDots } from "./TrailingRuns";
 
 /*
  * Tells a check that failed ON THE PROBE apart from one that failed at the
@@ -518,7 +519,7 @@ export default class ProbeNetworkFailureUtil {
       lines[0] ||
       "";
 
-    return line.replace(/\.+$/, "").substring(0, MAX_DETAIL_LENGTH);
+    return withoutTrailingDots(line).substring(0, MAX_DETAIL_LENGTH);
   }
 
   private static classifyErrorAtDepth(

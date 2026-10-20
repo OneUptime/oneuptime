@@ -27,6 +27,7 @@ import ProjectService from "../Services/ProjectService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import LlmLogService from "../Services/LlmLogService";
+import CodeTaskAccess from "../Utils/AI/CodeTask/CodeTaskAccess";
 
 const MAX_EVENTS: number = 500;
 
@@ -47,7 +48,10 @@ const MAX_EVENTS: number = 500;
  *
  * Access is gated explicitly, the same pattern as AIInvestigationAPI: confirm
  * the caller can read the parent object (the project) under THEIR permissions,
- * then read the run and its events as root.
+ * then read the run and its events as root. A run that works in a repository
+ * (a task in Code) is the repository's to show, as Code's own pages are: a
+ * caller who may not read the repository - a team whose Read Code Repository
+ * is limited by labels - gets "not found" for its runs too.
  */
 
 const RUN_SELECT: Select<AIRun> = {
@@ -64,6 +68,8 @@ const RUN_SELECT: Select<AIRun> = {
   attemptCount: true,
   llmCallCount: true,
   toolCallCount: true,
+  // The repository a task in Code works in, which decides who reads it.
+  codeRepositoryId: true,
   /*
    * Deliberately NOT selected: totalCostInUSDCents. This endpoint's gate is
    * Project read, which admits roles beyond AIRun's own table ACL, so it must
@@ -179,7 +185,7 @@ export default class CodeFixRunAPI {
             props: { isRoot: true },
           });
 
-          if (!run) {
+          if (!run || !(await this.callerCanReadRunRepository(props, run))) {
             throw new BadDataException(
               "Code fix run not found (or it does not belong to this project).",
             );
@@ -260,7 +266,7 @@ export default class CodeFixRunAPI {
             props: { isRoot: true },
           });
 
-          if (!run) {
+          if (!run || !(await this.callerCanReadRunRepository(props, run))) {
             throw new BadDataException(
               "Code fix run not found (or it does not belong to this project).",
             );
@@ -334,6 +340,28 @@ export default class CodeFixRunAPI {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
     ]);
+  }
+
+  /*
+   * Whether the caller may read the repository the run works in, under their
+   * own permissions. A run with no repository (or one whose repository was
+   * removed) is the project's, as before.
+   */
+  private async callerCanReadRunRepository(
+    props: DatabaseCommonInteractionProps,
+    run: AIRun,
+  ): Promise<boolean> {
+    if (!run.codeRepositoryId) {
+      return true;
+    }
+
+    return Boolean(
+      await CodeTaskAccess.findReadableRepository({
+        props: props,
+        projectId: props.tenantId!,
+        repositoryId: run.codeRepositoryId,
+      }),
+    );
   }
 
   /*

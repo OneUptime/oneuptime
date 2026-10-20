@@ -66,11 +66,13 @@ flowchart TB
 | --- | --- | --- |
 | Zoom | 一個 Zoom 使用者。由 Basic（免費）使用者主持的會議會在 40 分鐘後結束。 | 為該使用者建立會議（ `meeting:write:meeting` ）並讀取其身分（ `user:read:user` ）。為了 [通話逐字稿](#通話逐字稿)，讀取其會議雲端錄製的逐字稿（ `cloud_recording:read:list_recording_files`、 `cloud_recording:read:meeting_transcript` ）。 |
 | Google Meet | 一個可以使用 Google Meet 的 Google 帳戶。 | 以該帳戶建立 Meet 空間（ `meetings.space.created` ）並讀取其電子郵件地址。 |
-| Microsoft Teams | 一個擁有 Microsoft Teams 的公司或學校帳戶。個人 Microsoft 帳戶無法建立 Teams 會議。 | 以該帳戶建立線上會議（委派權限 `OnlineMeetings.ReadWrite` ）並維持登入（ `offline_access` ）。 |
+| Microsoft Teams | 一個擁有 Microsoft Teams 的公司或學校帳戶。個人 Microsoft 帳戶無法建立 Teams 會議。 | 以該帳戶建立線上會議（委派權限 `OnlineMeetings.ReadWrite` ）並維持登入（ `offline_access` ）。為了 [錄製並轉錄事件通話](#錄製並轉錄每次通話)，將會議加入其行事曆（ `Calendars.ReadWrite` ）並讀取會議的逐字稿（ `OnlineMeetingTranscript.Read.All`，需由管理員核准）。 |
 
 透過登入建立的連線仍然有決定誰需要等待的設定：Google Meet 的 **Who can join** 和 Microsoft Teams 的 **Who skips the lobby**。在連線所在列使用 **編輯** 變更它們。
 
 在 OneUptime 讀取通話逐字稿之前登入的 Zoom 連線會像以前一樣開始通話，但在重新登入之前無法讀取通話的逐字稿：其所在列的 **Reconnect** 會向 Zoom 要求逐字稿權限。
+
+在 **錄製並轉錄事件通話** 關閉期間登入的 Microsoft Teams 連線會像以前一樣開始通話，但不會錄製。開啟該開關後，其所在列的 **Reconnect** 也會向 Microsoft 要求行事曆和逐字稿權限。
 
 ### 維持登入
 
@@ -86,7 +88,7 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 
 ### 如果 Microsoft 要求管理員
 
-有些 Microsoft 365 組織只允許管理員核准應用程式。如果 Microsoft 提示您需要管理員核准，請請 Microsoft 365 管理員連接 Microsoft Teams，或在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 的 **Enterprise applications** > **Admin consent requests** 中核准 OneUptime。
+有些 Microsoft 365 組織只允許管理員核准應用程式。如果 Microsoft 提示您需要管理員核准，請請 Microsoft 365 管理員連接 Microsoft Teams，或在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 的 **Enterprise applications** > **Admin consent requests** 中核准 OneUptime。錄製 Teams 通話的專案在每個組織中都需要這項核准，且只需一次：只有管理員才能允許應用程式讀取會議逐字稿。
 
 ### 改用您自己的應用程式
 
@@ -107,7 +109,7 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 :::steps
 ### 通話結束後取得逐字稿
 
-在事件的 **Video Call** 卡片上， **從 Zoom 取得** 或 **從 Google Meet 取得** 會讀取 OneUptime 在那裡開始的會議的逐字稿。對於其他任何通話， **新增逐字稿** 接受會議工具儲存的檔案（ `.vtt`、 `.srt` 或 `.txt`，最大 5 MB），或貼上的逐字稿。如果 [每次通話都錄製並轉錄](#錄製並轉錄每次通話)，OneUptime 會在通話結束後自行取得逐字稿。
+在事件的 **Video Call** 卡片上， **從 Zoom 取得**、 **從 Google Meet 取得** 或 **從 Microsoft Teams 取得** 會讀取 OneUptime 在那裡開始的會議的逐字稿（對於 Microsoft Teams，須是在每次通話都錄製並轉錄期間開始的會議）。對於其他任何通話， **新增逐字稿** 接受會議工具儲存的檔案（ `.vtt`、 `.srt` 或 `.txt`，最大 5 MB），或貼上的逐字稿。如果 [每次通話都錄製並轉錄](#錄製並轉錄每次通話)，OneUptime 會在通話結束後自行取得逐字稿。
 
 ### OneUptime AI 讀取它
 
@@ -124,12 +126,14 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 
 為了讓任何人都不必記得錄製通話或取得逐字稿，請在 **專案設定** > **工作區** > **Video Calls** 中開啟 **錄製並轉錄事件通話**。開啟期間：
 
-- 對於 OneUptime 開始的每場事件會議，它都會要求 Zoom 將會議錄製到雲端，並要求 Google Meet 進行轉錄。發布該通話的訊息會在任何人加入之前說明這一點。
+- 對於 OneUptime 開始的每場事件會議，它都會要求 Zoom 將會議錄製到雲端，要求 Google Meet 進行轉錄，並要求 Microsoft Teams 自動錄製和轉錄。發布該通話的訊息會在任何人加入之前說明這一點。
 - 通話結束後，OneUptime 會像 **從 Zoom 取得** 那樣自行取得逐字稿，然後由 OneUptime AI 讀取。在此之前， **Video Call** 卡片會顯示正在等待。
 - OneUptime AI 讀出的內容會傳送到事件的動態及其 Slack 和 Microsoft Teams 頻道：標記為未確認的建議根本原因，然後是已確認、已嘗試和已決定的內容、後續事項以及待解決的問題。
-- 如果事件在逐字稿送達之前就已解決，自動事後分析草稿會等待逐字稿，以便讀取通話中說過的內容：在 Zoom 或 Google Meet 準備逐字稿期間最多等待六小時，如果還沒有任何逐字稿的跡象，則等待一小時。
+- 如果事件在逐字稿送達之前就已解決，自動事後分析草稿會等待逐字稿，以便讀取通話中說過的內容：在服務供應商準備逐字稿期間最多等待六小時，如果還沒有任何逐字稿的跡象，則等待一小時。
 
-此功能預設為關閉，因為它會錄製人員：這些通話中的每個人都會看到自己正在被錄製或轉錄，因此請確認您的組織允許這樣做。只有當帳戶在開啟音訊逐字稿的情況下錄製到雲端時，Zoom 才會保留逐字稿；Google Meet 也只在支援逐字稿的 Google Workspace 版本上保留逐字稿。Microsoft Teams 通話、Slack huddle 和會議連結不會被錄製，警示的通話也不會：請手動新增它們的逐字稿。
+此功能預設為關閉，因為它會錄製人員：這些通話中的每個人都會看到自己正在被錄製或轉錄，因此請確認您的組織允許這樣做。只有當帳戶在開啟音訊逐字稿的情況下錄製到雲端時，Zoom 才會保留逐字稿；Google Meet 也只在支援逐字稿的 Google Workspace 版本上保留逐字稿。Slack huddle 和會議連結不會被錄製，警示的通話也不會：請手動新增它們的逐字稿。
+
+Microsoft 只允許應用程式讀取行事曆上的 Teams 會議的逐字稿，因此 OneUptime 會把每場事件會議加入其召集人的行事曆，並在會議選項中開啟自動錄製和轉錄。為此，連線還需要另外兩個 Microsoft Graph 權限 `Calendars.ReadWrite` 和 `OnlineMeetingTranscript.Read.All`：請將它們新增到您的應用程式註冊中（參見 [Microsoft Teams](#microsoft-teams)），或對透過登入建立的連線使用 **Reconnect** 。召集人的 Teams 會議原則必須允許雲端錄製、轉錄和自動錄製，而且您的組織不能關閉應用程式對逐字稿的存取。OneUptime 無法加入行事曆的通話仍會照常開始，但不會錄製，其 **Video Call** 卡片會說明原因。
 
 ### 各提供者保留的內容
 
@@ -137,7 +141,7 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 | --- | --- | --- |
 | Zoom | **從 Zoom 取得** | 會議錄製到雲端且開啟了音訊逐字稿，或開啟了 AI Companion 的會議摘要。連線需要逐字稿的權限範圍（參見 [Zoom](#zoom)），在此之前登入的連線需要 **Reconnect** 。Zoom 會在會議結束後準備逐字稿，通常在會議時長的兩倍以內完成。 |
 | Google Meet | **從 Google Meet 取得** | 通話中開啟的逐字稿，所用的 Google Workspace 版本需支援逐字稿。無需其他設定：OneUptime 會讀取它所建立會議的逐字稿。Google 會將逐字稿保留 30 天供應用程式讀取。 |
-| Microsoft Teams | **新增逐字稿** | Microsoft 不允許任何應用程式讀取以 OneUptime 的方式建立的會議的逐字稿。在 Teams 中，開啟會議的回顧，再開啟其逐字稿，並將其下載為 `.vtt` 檔案。 |
+| Microsoft Teams | **從 Microsoft Teams 取得** | OneUptime 在 [每次通話都錄製並轉錄](#錄製並轉錄每次通話) 期間開始的會議：Microsoft 只允許應用程式讀取行事曆上的會議的逐字稿，並將會議保留 60 天。對於其他任何 Teams 會議，請使用 **新增逐字稿** ：在 Teams 中，開啟會議的回顧，再開啟其逐字稿，並將其下載為 `.vtt` 檔案。 |
 | 會議連結或 Slack huddle | **新增逐字稿** | 會議工具或 huddle 筆記中保存的逐字稿。 |
 
 ### 誰可以做什麼
@@ -198,7 +202,7 @@ OneUptime 透過一個代表已授權 Teams 使用者召集會議的 Microsoft E
 
 :::steps
 1. 在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 中，開啟 **App registrations** > **New registration**，註冊一個單一租用戶應用程式。複製其 **Directory (tenant) ID** 和 **Application (client) ID**。
-2. 在 **API permissions** 下，新增 Microsoft Graph 的 **application** 權限 **OnlineMeetings.ReadWrite.All**，然後按一下 **Grant admin consent**。
+2. 在 **API permissions** 下，新增 Microsoft Graph 的 **application** 權限 **OnlineMeetings.ReadWrite.All** （如果還要 [錄製並轉錄事件通話](#錄製並轉錄每次通話)，再新增 **Calendars.ReadWrite** 和 **OnlineMeetingTranscript.Read.All** ），然後按一下 **Grant admin consent**。
 3. 在 **Certificates & secrets** 下建立一個用戶端密碼，並將其 **Value** （不是 Secret ID）貼到連線表單的 **Client secret** 中。
 4. 選擇召集人：一個已授權的 Teams 使用者，最好是服務帳戶。從 Entra 系統管理中心的 **Users** 中複製其 **Object ID** 到 **Organizer object ID**。
 5. 使用應用程式存取原則允許該應用程式為召集人建立會議。在 Teams PowerShell 中，執行 `Connect-MicrosoftTeams` 之後，執行下面兩個指令。
@@ -210,6 +214,8 @@ Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "<organ
 ```
 
 該原則最多可能需要 30 分鐘才會生效。在此之前，測試會回報該應用程式不允許為召集人建立會議。
+
+同一原則也允許該應用程式讀取召集人會議的逐字稿。 `Calendars.ReadWrite` 允許應用程式變更您組織中的每個行事曆：若要將其限制為召集人的行事曆，請不要在 **API permissions** 下授與它，而是使用 [Exchange Online 中的應用程式 RBAC](https://learn.microsoft.com/exchange/permissions-exo/application-rbac) 授與，並將範圍限定為召集人。
 
 **Who skips the lobby** 決定誰不必等待即可加入：選擇 **People in your organization skip the lobby** （預設）時，其他所有人都要在大廳中等待，直到會議中的某個人准許他們。選擇 **Everyone skips the lobby** 時，任何人都不必等待。
 
@@ -268,7 +274,7 @@ OneUptime Cloud 擁有自己的 Zoom、Google 和 Microsoft 應用程式，用�
 
 - **Zoom**：在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，選擇 **Develop** > **Build App**，建立一個由使用者管理的 **General App**。在 **Basic Information** 下，將重新導向 URI 作為 OAuth Redirect URL 新增到 **Development** 和 **Production** 兩個分頁以及 OAuth 允許清單中，並在 **Production** 分頁上將 **Deauthorization Notification** 端點 URL 設定為 `https://<host>/api/video-call-oauth/zoom/events`。在 **Scopes** 下新增 `meeting:write:meeting` 和 `user:read:user`。要讓它讀取 [通話逐字稿](#通話逐字稿)，還需新增 `cloud_recording:read:list_recording_files` 和 `cloud_recording:read:meeting_transcript`。 **Features** > **Access** 下的 **Secret Token** 就是 `ZOOM_APP_WEBHOOK_SECRET_TOKEN`。 **Development** 認證資訊僅適用於您自己 Zoom 帳戶中的使用者； **Production** 認證資訊在 Zoom 審查並發布應用程式後對所有人有效。
 - **Google Meet**：在 [Google Cloud 主控台](https://console.cloud.google.com/) 中啟用 **Google Meet REST API**，使用權限範圍 `openid`、 `email` 和 `https://www.googleapis.com/auth/meetings.space.created` 設定 OAuth 同意畫面（ **Google Auth Platform** ），並使用重新導向 URI 建立一個 **Web application** 類型的 OAuth 用戶端。將應用程式發布到正式環境：停留在測試狀態的應用程式會在七天後失去其登入。Google 會審查要求 Meet 權限範圍的應用程式；在審查完成之前，使用者在登入前會看到一則警告。
-- **Microsoft Teams**：在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 中，為 **Accounts in any organizational directory** 註冊一個應用程式，將重新導向 URI 新增為 **Web** 重新導向 URI，新增 Microsoft Graph 委派權限 `openid`、 `profile`、 `email`、 `offline_access` 和 `OnlineMeetings.ReadWrite`，並建立一個用戶端密碼。請使用獨立的註冊，而不是 Microsoft Teams 機器人的註冊（ `MICROSOFT_TEAMS_APP_CLIENT_ID` ）。在應用程式擁有經過驗證的發行者之前，大多數組織都需要管理員對其表示同意。
+- **Microsoft Teams**：在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 中，為 **Accounts in any organizational directory** 註冊一個應用程式，將重新導向 URI 新增為 **Web** 重新導向 URI，新增 Microsoft Graph 委派權限 `openid`、 `profile`、 `email`、 `offline_access` 和 `OnlineMeetings.ReadWrite` （以及 [錄製並轉錄其通話](#錄製並轉錄每次通話) 的專案所要求的 `Calendars.ReadWrite` 和 `OnlineMeetingTranscript.Read.All` ），並建立一個用戶端密碼。請使用獨立的註冊，而不是 Microsoft Teams 機器人的註冊（ `MICROSOFT_TEAMS_APP_CLIENT_ID` ）。在應用程式擁有經過驗證的發行者之前，大多數組織都需要管理員對其表示同意。
 
 用戶端 ID 是公開的：它們會被傳送到儀表板，讓儀表板知道哪些服務供應商可以一鍵連接。請對密碼和 webhook 秘密權杖保密。worker 每天更新到了更新時間的登入，因此它需要與應用程式相同的值。
 
@@ -295,7 +301,11 @@ Zoom 只會為錄製到雲端且開啟了音訊逐字稿的會議，或開啟了
 :::
 
 :::details Video Call 卡片仍在等待逐字稿
-通話結束後，OneUptime 每隔幾分鐘向 Zoom 或 Google Meet 要求一次逐字稿，通話結束越久，要求間隔越長，並持續到通話開始後三天。服務供應商準備好逐字稿後，逐字稿會在幾分鐘內送達，而 Zoom 最多需要大約通話時長兩倍的時間來準備。 **從 Zoom 取得** 會立即要求。如果服務供應商沒有保留逐字稿，卡片會說明這一點：請檢查 Zoom 帳戶是否在開啟音訊逐字稿的情況下錄製到雲端，或者您的 Google Workspace 版本是否支援逐字稿。
+通話結束後，OneUptime 每隔幾分鐘向 Zoom、Google Meet 或 Microsoft Teams 要求一次逐字稿，通話結束越久，要求間隔越長，並持續到通話開始後三天。服務供應商準備好逐字稿後，逐字稿會在幾分鐘內送達，而 Zoom 最多需要大約通話時長兩倍的時間來準備。 **從 Zoom 取得** 會立即要求。如果服務供應商沒有保留逐字稿，卡片會說明這一點：請檢查 Zoom 帳戶是否在開啟音訊逐字稿的情況下錄製到雲端、您的 Google Workspace 版本是否支援逐字稿，或者 Teams 召集人的會議原則是否允許自動錄製。
+:::
+
+:::details Microsoft Teams 通話沒有被錄製
+OneUptime 無法將會議加入其召集人的行事曆，因此以一般方式開始了通話，沒有錄製，而 **Video Call** 卡片會說明原因。通常是連線缺少 `Calendars.ReadWrite` 或 `OnlineMeetingTranscript.Read.All`：請將它們新增到應用程式註冊中並授與管理員同意，或對透過登入建立的連線使用 **Reconnect** 。之後開始的通話都會被錄製。
 :::
 
 :::details OneUptime AI 無法讀取逐字稿

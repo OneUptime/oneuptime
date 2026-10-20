@@ -1,17 +1,19 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import SecurityEventsLayout from "../Pages/SecurityEvents/Layout";
 import PageMap from "../Utils/PageMap";
-import RouteMap, { SecurityEventsRoutePath } from "../Utils/RouteMap";
+import RouteMap, {
+  RouteUtil,
+  SecurityEventsRoutePath,
+} from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Route as PageRoute, Routes } from "react-router-dom";
+import { Navigate, Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import SecurityEventsPage from "../Pages/SecurityEvents/Index";
 import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
-import SecurityEventsMonitorsPage from "../Pages/SecurityEvents/Monitors";
 import SecurityEventsConnectionsPage from "../Pages/SecurityEvents/Connections";
 import SecurityEventsThreatIntelPage from "../Pages/SecurityEvents/ThreatIntel";
 import SecurityOverviewPage from "../Pages/SecurityEvents/Overview";
@@ -136,12 +138,18 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        {/*
+         * Security Events monitors are listed with every other monitor, so
+         * the old address opens Monitors (SECURITY_EVENTS_REDIRECTED_PAGES).
+         */}
         <PageRoute
           path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_MONITORS] || ""}
           element={
-            <SecurityEventsMonitorsPage
-              {...props}
-              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route}
+            <Navigate
+              replace={true}
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITORS] as Route,
+              ).toString()}
             />
           }
         />

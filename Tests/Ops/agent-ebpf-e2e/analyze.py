@@ -34,8 +34,11 @@ KIND = {0: 'UNSPECIFIED', 1: 'INTERNAL', 2: 'SERVER', 3: 'CLIENT', 4: 'PRODUCER'
         'SPAN_KIND_INTERNAL': 'INTERNAL', 'SPAN_KIND_SERVER': 'SERVER', 'SPAN_KIND_CLIENT': 'CLIENT',
         'SPAN_KIND_PRODUCER': 'PRODUCER', 'SPAN_KIND_CONSUMER': 'CONSUMER'}
 # The literal Express routes apps/app.js declares, which OBI's route
-# harvester has to find.
+# harvester has to find when it harvests Node.js routes.
 APP_ROUTES = ['GET /api/items/:id', 'POST /api/orders', 'GET /status/ready', 'GET /cpu/hash']
+# The ones a request's path cannot name: only a harvested template says ':id'.
+# Named from the path, OBI puts '*' for the id.
+HARVESTED_ONLY_ROUTES = [r for r in APP_ROUTES if ':' in r]
 # Excluded from OBI discovery by values-e2e.yaml (kube-system by the chart's
 # default rule).
 EXCLUDED_NAMESPACES = {'kube-system', 'sink', 'loadgen'}
@@ -236,6 +239,34 @@ def renders_client_call_filter(out):
                      re.M) is not None
 
 
+def harvests_nodejs_routes(out):
+    """Whether the render leaves OBI harvesting Node.js route templates.
+
+    ebpf.routes.disabledHarvesters (["nodejs"] by default) renders as OBI's
+    discovery.disabled_route_harvesters, one quoted language per line under
+    the key. With no language turned off the key is not written at all, and
+    OBI harvests every language. A comment that names the key does not count.
+    """
+    lines = read(os.path.join(out, 'render.yaml')).splitlines()
+    for i, line in enumerate(lines):
+        m = re.match(r'^(\s*)disabled_route_harvesters:\s*(.*?)\s*$', line)
+        if not m:
+            continue
+        if m.group(2):
+            # a flow sequence: ["nodejs", "python"]
+            off = re.findall(r'[\w.-]+', m.group(2))
+        else:
+            off = []
+            for item in lines[i + 1:]:
+                im = re.match(r'^(\s*)-\s+"?([^"\s]*)"?\s*$', item)
+                if not im or len(im.group(1)) < len(m.group(1)):
+                    break
+                off.append(im.group(2))
+        if 'nodejs' in off:
+            return False
+    return True
+
+
 def is_db_span(s):
     return 'db.system.name' in s['a'] or 'db.system' in s['a']
 
@@ -422,11 +453,27 @@ def main():
           {'withPeer': '%d/%d' % (len(peer), len(app_clients)), 'pingPeer': dict(ping_peer.most_common(3))},
           '>=99%, downstream')
     names = collections.Counter(s['name'] for s in srv)
-    harvested = sum(n for k, n in names.items() if k in APP_ROUTES)
     R['appServerSpanNames'] = dict(names.most_common(10))
-    C.add('TR-11', pct(harvested, len(srv)) >= 95 and all(r in names for r in APP_ROUTES),
-          "app server spans named by the harvested Express routes (e.g. 'GET /api/items/:id')",
-          {'harvestedPct': pct(harvested, len(srv)), 'top': dict(names.most_common(5))}, '>=95%, all 4 routes')
+    if harvests_nodejs_routes(out):
+        harvested = sum(n for k, n in names.items() if k in APP_ROUTES)
+        C.add('TR-11', pct(harvested, len(srv)) >= 95 and all(r in names for r in APP_ROUTES),
+              "app server spans named by the harvested Express routes (e.g. 'GET /api/items/:id')",
+              {'harvestedPct': pct(harvested, len(srv)), 'top': dict(names.most_common(5))}, '>=95%, all 4 routes')
+    else:
+        # ebpf.routes.disabledHarvesters, ["nodejs"] by default: OBI names the
+        # app's server spans from their paths, an id-like segment as '*'. None
+        # may carry a template only a harvest finds (that shows the setting
+        # reached OBI), and the 4 routes, which the load generator sends in
+        # turn, must come out as 4 names: not one per item id, and not all
+        # under one.
+        templated = sum(n for k, n in names.items() if k in HARVESTED_ONLY_ROUTES)
+        top = [n for _, n in names.most_common(len(APP_ROUTES))]
+        C.add('TR-11', bool(srv) and not templated and len(top) == len(APP_ROUTES) and
+              pct(sum(top), len(srv)) >= 95 and all(pct(n, len(srv)) >= 15 for n in top),
+              "app server spans named from their paths, none by a harvested route (Node.js harvesting off)",
+              {'harvestedTemplates': templated, 'top4Pct': pct(sum(top), len(srv)),
+               'top': dict(names.most_common(5))},
+              "0 %s, >=95%% under 4 names, each >=15%%" % ', '.join(HARVESTED_ONLY_ROUTES))
     sleeper = [s for s in via if s['wl'] == 'sleeper']
     plumbing = [s for s in via if s['ns'] in EXCLUDED_NAMESPACES]
     C.add('TR-12', not sleeper and not plumbing,

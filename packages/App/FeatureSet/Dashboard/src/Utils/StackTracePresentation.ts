@@ -1,5 +1,13 @@
 import { ResolvedStackFrame } from "Common/Types/Telemetry/SourceMap";
 import { FrameDisplayLocation } from "./SourceMapFrames";
+import {
+  StackTraceLineMatch,
+  endsWithFileLocation,
+  hasPythonTracebackHeaderLine,
+  readAtFrameLine,
+  readCallWithLocation,
+  readGoModulePath,
+} from "./StackTraceLineText";
 
 /*
  * Pure helpers for StackFrameViewer: which frames to show for a view mode,
@@ -34,9 +42,6 @@ export type StackTraceDisplayItem =
   | StackTraceFrameItem
   | StackTraceLibraryGroupItem;
 
-const PYTHON_TRACEBACK_HEADER_PATTERN: RegExp =
-  /^\s*Traceback \(most recent call last\):\s*$/m;
-
 /*
  * Python prints a traceback entry point first ("most recent call last") and
  * the parser stores its frames in that order, while V8, Java, .NET, Go and
@@ -45,7 +50,8 @@ const PYTHON_TRACEBACK_HEADER_PATTERN: RegExp =
 export function isOutermostFirstStackTrace(
   stackTrace: string | undefined,
 ): boolean {
-  return PYTHON_TRACEBACK_HEADER_PATTERN.test(stackTrace || "");
+  // A line of it reads "Traceback (most recent call last):" (StackTraceLineText).
+  return hasPythonTracebackHeaderLine(stackTrace || "");
 }
 
 /*
@@ -249,7 +255,6 @@ const NODE_MODULES_PACKAGE_PATTERN: RegExp =
   /node_modules[/\\]((?:@[^/\\]+[/\\])?[^/\\]+)/g;
 const SITE_PACKAGES_PATTERN: RegExp =
   /(?:site-packages|dist-packages)[/\\]([^/\\]+)/;
-const GO_MODULE_PATTERN: RegExp = /[/\\]pkg[/\\]mod[/\\](.+?)@v[\d.]+/;
 
 /*
  * The third-party package a library frame belongs to, for a badge that says
@@ -290,7 +295,8 @@ export function getFramePackageName(
     return sitePackages[1]!.replace(/\.py$/, "");
   }
 
-  const goModule: RegExpMatchArray | null = path.match(GO_MODULE_PATTERN);
+  // "/pkg/mod/<module>@v1.2.3" (StackTraceLineText).
+  const goModule: StackTraceLineMatch | null = readGoModulePath(path);
 
   if (goModule) {
     return goModule[1]!.replace(/\\/g, "/");
@@ -306,7 +312,7 @@ const INDENTED_LINE_PATTERN: RegExp = /^\s/;
 function isPythonExceptionLine(line: string): boolean {
   return (
     !INDENTED_LINE_PATTERN.test(line) &&
-    !PYTHON_TRACEBACK_HEADER_PATTERN.test(line) &&
+    !hasPythonTracebackHeaderLine(line) &&
     PYTHON_EXCEPTION_LINE_PATTERN.test(line.trimEnd())
   );
 }
@@ -354,7 +360,7 @@ export function getStackTraceHeadline(
       continue;
     }
 
-    return AT_FRAME_PATTERN.test(line) ? null : trimmed;
+    return readAtFrameLine(line) ? null : trimmed;
   }
 
   return null;
@@ -377,9 +383,6 @@ export interface RawStackTraceLine {
   suffix: string;
 }
 
-const AT_FRAME_PATTERN: RegExp = /^(\s*at\s+)(.*)$/;
-const CALL_WITH_LOCATION_PATTERN: RegExp = /^(.*?)(\s*\()([^()]*)(\))$/;
-const LOCATION_ONLY_PATTERN: RegExp = /(?:^|[/\\])[^\s]*:\d+(?::\d+)?$/;
 const CAUSED_BY_PATTERN: RegExp = /^\s*(Caused by|Suppressed):/;
 
 /*
@@ -414,15 +417,17 @@ export function parseRawStackTraceLines(
         : base;
     }
 
-    const atMatch: RegExpMatchArray | null = text.match(AT_FRAME_PATTERN);
+    /*
+     * "at", the call and its location (StackTraceLineText): a trace is
+     * whatever an application sent, so each of its lines is read once.
+     */
+    const atMatch: StackTraceLineMatch | null = readAtFrameLine(text);
 
     if (atMatch) {
       const rest: string = atMatch[2] || "";
       const call: string = rest.trimEnd();
       const trailing: string = rest.slice(call.length);
-      const callMatch: RegExpMatchArray | null = call.match(
-        CALL_WITH_LOCATION_PATTERN,
-      );
+      const callMatch: StackTraceLineMatch | null = readCallWithLocation(call);
 
       if (callMatch && callMatch[1]) {
         return {
@@ -436,7 +441,7 @@ export function parseRawStackTraceLines(
         };
       }
 
-      if (LOCATION_ONLY_PATTERN.test(call)) {
+      if (endsWithFileLocation(call)) {
         return {
           ...base,
           kind: "frame",

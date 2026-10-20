@@ -331,21 +331,21 @@ describe("Products menu sections", () => {
       }),
     ).toEqual({ heading: "AI", items: ["Chat", "Insights"] });
     /*
-     * One item, not Tasks plus Code Repositories: repositories are where
-     * tasks open pull requests, so they are a page in the Tasks side menu.
+     * One item, Code: the repositories first, each repository's tasks
+     * inside it - not Tasks plus Code Repositories.
      */
     expect(
       sections.find((section: MenuSection): boolean => {
         return section.heading === "Code";
       }),
-    ).toEqual({ heading: "Code", items: ["Tasks"] });
+    ).toEqual({ heading: "Code", items: ["Code"] });
   });
 
-  test("the Tasks item says repositories are connected there", () => {
+  test("the Code item says what it does, and that GitHub is connected there", () => {
     openProductsMenu();
 
-    expect(optionFor("Tasks")).toHaveTextContent(
-      "AI opens pull requests that fix your code. Connect GitHub here.",
+    expect(optionFor("Code")).toHaveTextContent(
+      "Ask AI to change your code and open pull requests. Connect GitHub here.",
     );
   });
 
@@ -504,7 +504,7 @@ describe("the Products menu opens on the essentials", () => {
     );
     expect(
       within(productsMenu()).getByRole("button", { name: "Code" }),
-    ).toHaveAccessibleDescription("1 product Tasks");
+    ).toHaveAccessibleDescription("1 product Code");
   });
 
   test("opening a folded line lists its products, one click away", () => {

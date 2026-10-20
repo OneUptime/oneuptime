@@ -1559,6 +1559,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     productPage: PageMap.SECURITY_EVENTS_OVERVIEW,
     icon: IconProp.ShieldExclamation,
     iconColor: "rose",
+    /*
+     * The sections are the menu's entries (SecurityEventsNavigation.ts), with
+     * the pages behind each one's tabs.
+     */
     sections: [
       {
         title: "Overview",
@@ -1567,8 +1571,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SECURITY_EVENTS_OVERVIEW,
             title: "Overview",
             icon: IconProp.ChartBar,
-            keywords: ["soc", "security operations", "mttr", "mean time"],
+            keywords: [
+              "soc",
+              "security operations",
+              "mttr",
+              "mean time",
+              "get started",
+              "set up security",
+            ],
           },
+        ],
+      },
+      {
+        title: "Security Cases",
+        pages: [
           {
             page: PageMap.SECURITY_CASES,
             title: "Security Cases",
@@ -1583,7 +1599,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ],
       },
       {
-        title: "Investigate",
+        title: "Events",
         pages: [
           {
             page: PageMap.SECURITY_EVENTS,
@@ -1592,20 +1608,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["siem", "security logs"],
           },
           {
-            page: PageMap.SECURITY_EVENTS_CORRELATE,
-            title: "Correlate",
-            icon: IconProp.Graph,
-          },
-          {
             page: PageMap.SECURITY_EVENTS_ENTITIES,
             title: "Entities",
             icon: IconProp.Fingerprint,
             keywords: ["risky users", "risky hosts", "ueba", "entity lookup"],
           },
+          {
+            page: PageMap.SECURITY_EVENTS_CORRELATE,
+            title: "Correlate",
+            icon: IconProp.Graph,
+          },
         ],
       },
       {
-        title: "Detect",
+        title: "Detections",
         pages: [
           {
             page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
@@ -1620,12 +1636,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["detection library", "curated detections", "sigma"],
           },
           {
-            page: PageMap.SECURITY_EVENTS_ATTACK_COVERAGE,
-            title: "ATT&CK Coverage",
-            icon: IconProp.TableCells,
-            keywords: ["mitre", "attack matrix", "tactics", "techniques"],
-          },
-          {
             page: PageMap.SECURITY_EVENTS_THREAT_INTEL,
             title: "Threat Intel",
             icon: IconProp.Bug,
@@ -1636,15 +1646,15 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
-            page: PageMap.SECURITY_EVENTS_MONITORS,
-            title: "Monitors",
-            icon: IconProp.AltGlobe,
-            keywords: ["security monitors"],
+            page: PageMap.SECURITY_EVENTS_ATTACK_COVERAGE,
+            title: "ATT&CK Coverage",
+            icon: IconProp.TableCells,
+            keywords: ["mitre", "attack matrix", "tactics", "techniques"],
           },
         ],
       },
       {
-        title: "Respond",
+        title: "Playbooks",
         pages: [
           {
             page: PageMap.SECURITY_PLAYBOOKS,
@@ -1661,13 +1671,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ],
       },
       {
-        title: "Sources",
+        title: "Connections",
         pages: [
           {
             page: PageMap.SECURITY_EVENTS_CONNECTIONS,
             title: "Connections",
             icon: IconProp.Link,
-            keywords: ["security sources", "connect a source"],
+            keywords: [
+              "security sources",
+              "connect a source",
+              "your logs",
+              "send to siem",
+              "google secops",
+            ],
           },
           setupGuide(PageMap.SECURITY_EVENTS_DOCUMENTATION),
         ],
@@ -1702,23 +1718,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   {
     id: "code",
     title: "Code",
-    icon: IconProp.CPUChip,
+    productPage: PageMap.CODE,
+    icon: IconProp.Code,
     iconColor: "violet",
     sections: [
       {
         title: "Code",
         pages: [
           {
-            page: PageMap.AI_AGENT_TASKS,
-            title: "Tasks",
-            icon: IconProp.CPUChip,
-            keywords: ["ai agent tasks", "pull requests", "fixes"],
-          },
-          {
-            page: PageMap.CODE_REPOSITORY,
-            title: "Code Repositories",
+            page: PageMap.CODE,
+            title: "Repositories",
             icon: IconProp.Code,
-            keywords: ["github", "gitlab", "repository", "connect repository"],
+            keywords: [
+              "code repositories",
+              "repository",
+              "connect repository",
+              "github",
+              "tasks",
+              "ai agent tasks",
+              "ask ai",
+              "pull requests",
+              "fixes",
+            ],
           },
         ],
       },

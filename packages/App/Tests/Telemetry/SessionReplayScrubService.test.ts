@@ -1,3 +1,4 @@
+import { scrubRegExpFromBuiltIn } from "Common/Types/Telemetry/ScrubRule";
 import { describe, expect, jest, test } from "@jest/globals";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
@@ -38,7 +39,7 @@ function rule(
       patternType: patternType,
       scrubAction: scrubAction,
     } as unknown as LogScrubRule,
-    regex: regex,
+    regex: scrubRegExpFromBuiltIn(regex),
   };
 }
 

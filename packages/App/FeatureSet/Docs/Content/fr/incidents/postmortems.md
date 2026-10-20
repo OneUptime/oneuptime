@@ -78,7 +78,17 @@ Avec **Rédiger un post-mortem quand un incident est résolu** activé, OneUptim
 - Il ne remplace jamais une note déjà rédigée.
 - Il n'écrit jamais dans un post-mortem déjà publié, où le brouillon atteindrait la page de statut sans relecture.
 - Il demande que l'IA soit activée pour le projet, et s'arrête pour la journée dès que le projet atteint ses limites quotidiennes d'IA. Voir [Post-mortem automatique](/docs/ai/ai-sre#post-mortem-automatique).
-- Quand la transcription de l'appel de l'incident est encore en route au moment où l'incident est résolu, il attend que OneUptime AI la lise, pour que le brouillon reprenne ce qui s'est dit pendant l'appel : jusqu'à six heures pendant que Zoom ou Google Meet prépare la transcription. Voir [Enregistrer et transcrire chaque appel](/docs/workspace-connections/video-calls#enregistrer-et-transcrire-chaque-appel).
+- Quand la transcription de l'appel de l'incident est encore en route au moment où l'incident est résolu, il attend que OneUptime AI la lise, pour que le brouillon reprenne ce qui s'est dit pendant l'appel : jusqu'à six heures pendant que le fournisseur prépare la transcription. Voir [Enregistrer et transcrire chaque appel](/docs/workspace-connections/video-calls#enregistrer-et-transcrire-chaque-appel).
+
+#### Choisir quels incidents reçoivent un brouillon, et son modèle
+
+Sans règle, chaque incident résolu reçoit un brouillon, selon le plan standard de OneUptime AI. Les **Règles de post-mortem**, sous **Plus de paramètres** sur la même page, changent cela :
+
+- Une règle cible **Tous les incidents**, ou **Uniquement les incidents qui correspondent aux conditions** sur les moniteurs, sévérités, labels, labels de moniteur, titre et description, comme une règle d'investigation.
+- Ses **Modèles** sont les modèles de post-mortem que le brouillon peut suivre. Sans aucun, le brouillon suit le plan standard ; avec un, ce modèle ; avec plusieurs, celui qui, selon OneUptime AI, convient le mieux à l'incident. La publication du brouillon dans le fil nomme le modèle qu'il a suivi.
+- La première règle activée qui correspond à l'incident décide, en partant du haut de la liste : faites glisser une règle pour changer sa place. Un incident auquel aucune règle ne correspond ne reçoit pas de brouillon, et aucun incident n'en reçoit tant que les règles ne peuvent pas être lues.
+- **Rédiger un post-mortem quand un incident est résolu** reste le seul interrupteur qui désactive les brouillons. Les règles ne décident que des brouillons que OneUptime AI rédige de lui-même : **Générer avec l'IA** propose tous les plans, quoi qu'elles disent.
+- Créer, modifier et réordonner des règles demande le rôle Project Owner ou Project Admin. Sur OneUptime Cloud, les modèles nécessitent le plan Growth : en dessous, les règles décident toujours quels incidents reçoivent un brouillon, et chaque brouillon suit le plan standard.
 
 ## Le publier sur votre page de statut
 
@@ -153,7 +163,7 @@ Vérifiez trois choses : **Publier sur la page de statut** est activé, la note 
 :::
 
 :::details Aucun brouillon de l'IA n'est apparu à la résolution de l'incident
-L'incident avait déjà une note, le post-mortem était déjà publié, ou **Rédiger un post-mortem quand un incident est résolu** est désactivé. L'IA doit être activée pour le projet, et le projet ne doit pas avoir atteint ses limites quotidiennes d'IA. Quand la transcription de l'appel de l'incident est en route, le brouillon arrive une fois que OneUptime AI l'a lue.
+L'incident avait déjà une note, le post-mortem était déjà publié, aucune règle de post-mortem ne lui correspondait, ou **Rédiger un post-mortem quand un incident est résolu** est désactivé. L'IA doit être activée pour le projet, et le projet ne doit pas avoir atteint ses limites quotidiennes d'IA. Quand la transcription de l'appel de l'incident est en route, le brouillon arrive une fois que OneUptime AI l'a lue.
 :::
 
 ## Étapes suivantes

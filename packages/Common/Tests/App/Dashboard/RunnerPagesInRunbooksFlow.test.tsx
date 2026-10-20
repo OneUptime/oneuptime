@@ -356,9 +356,20 @@ beforeEach(() => {
     .spyOn(ModelAPI, "getList")
     .mockImplementation(async (args: unknown): Promise<ListResult<never>> => {
       const modelType: unknown = (args as { modelType?: unknown }).modelType;
+      const overrideRequestUrl: string = String(
+        (args as { requestOptions?: { overrideRequestUrl?: unknown } })
+          .requestOptions?.overrideRequestUrl || "",
+      );
       let data: Array<unknown> = [];
 
-      if (modelType === Runner) {
+      if (overrideRequestUrl.endsWith("/runner/global-runners")) {
+        /*
+         * The global Runners - the ones OneUptime runs for every project -
+         * are read from a route of their own. This instance has none: the
+         * page is the project's own Runners alone.
+         */
+        data = [];
+      } else if (modelType === Runner) {
         data = runners;
       } else if (modelType === RunbookCredential) {
         data = [

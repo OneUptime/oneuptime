@@ -80,6 +80,9 @@ const CHANGE_EVENT_TYPE_LABELS: Record<string, string> = {
   scaling: translationKey("Scaling"),
   rollback: translationKey("Rollback"),
   "feature-flag": translationKey("Feature flag"),
+  // What OneUptime itself changed (OwnChangeRecorder).
+  remediation: translationKey("AI fix"),
+  runbook: translationKey("Runbook"),
 };
 
 export function getChangeEventMarkerLabel(

@@ -110,6 +110,17 @@ Elke ingeschakelde regel wordt uitgevoerd wanneer een resource wordt aangemaakt,
 
 Een regel die u vandaag schrijft, geldt voor de resources die daarna worden aangemaakt. Om hem toe te passen op de resources die u al hebt, gebruikt u **Run Now**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Labelregels kunnen ook tussen projecten worden gekopieerd: zie [Labelregels importeren en exporteren](/docs/configuration/label-rule-import-export).
 
+## Patronen
+
+Een patroon in de voorwaarden van een regel is een reguliere expressie in de syntaxis van JavaScript, zoals `^checkout-.*`, en negeert hoofdletters. OneUptime voert het uit in een tijd die alleen meegroeit met de tekst die het leest, hoe het patroon ook geschreven is. Lookaheads en lookbehinds werken, zoals `^prod-(?!test)` en `(?<=db-)\d+`.
+
+Twee soorten patronen kunnen zo niet worden uitgevoerd. Een regel met een daarvan wordt bij het opslaan geweigerd, vanuit het dashboard, de API, Terraform of een import, met een melding die zegt wat u moet veranderen:
+
+- Een terugverwijzing, zoals `\1` of `\k<name>`, die opnieuw overeenkomt met wat een eerdere groep vond.
+- Een patroon dat te groot is om uit te voeren, zoals een patroon dat een deel duizenden keren herhaalt.
+
+Een regel die eerder met een daarvan is opgeslagen, komt nergens mee overeen tot u het patroon verandert. Dit geldt voor elke soort regel met patronen, niet alleen voor label- en eigenaarregels.
+
 ## Volgende stappen
 
 :::cards

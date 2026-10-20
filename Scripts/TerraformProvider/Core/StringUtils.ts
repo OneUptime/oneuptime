@@ -1,3 +1,5 @@
+import { splitCapitalRunsBeforeWords } from "Common/Utils/CapitalRuns";
+
 export class StringUtils {
   public static toPascalCase(str: string): string {
     return str
@@ -70,11 +72,15 @@ export class StringUtils {
    * its old name as a deprecated alias.
    */
   public static toLegacySnakeCase(str: string): string {
+    // Remove apostrophes and backticks.
+    const withoutQuotes: string = str.replace(/['`]/g, "");
+
     return (
-      str
-        .replace(/['`]/g, "") // Remove apostrophes and backticks
-        // Handle consecutive uppercase letters (like "API" -> "api" instead of "a_p_i")
-        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2") // APIKey -> API_Key
+      /*
+       * Handle consecutive uppercase letters (like "API" -> "api" instead of
+       * "a_p_i"): APIKey -> API_Key.
+       */
+      splitCapitalRunsBeforeWords(withoutQuotes, "_")
         .replace(/([a-z\d])([A-Z])/g, "$1_$2") // camelCase -> camel_Case
         .toLowerCase()
         .replace(/^_/, "")

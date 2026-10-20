@@ -26,6 +26,7 @@ import TableColumnListComponent from "../../../UI/Components/TableColumnList/Tab
 const GERMAN: Record<string, string> = {
   "No labels attached.": "Keine Labels zugeordnet.",
   "Show less": "Weniger anzeigen",
+  "more resources": "weitere Ressourcen",
 };
 
 interface Item {
@@ -104,5 +105,72 @@ describe("TableColumnListComponent", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Weniger anzeigen" }));
     expect(shownItems()).toEqual(["A", "B", "C"]);
+  });
+
+  /*
+   * The words after the count are the page's, and the locale files have
+   * them ("more resources": "weitere Ressourcen"). The whole title is no
+   * key, so they were never looked up: German read "2 more resources".
+   */
+  test("the words after the count are looked up in the reader's language", () => {
+    render(
+      <TableColumnListComponent<Item>
+        items={items("EU", "Night", "Desk", "Pager", "Voice")}
+        moreText="more resources"
+        noItemsMessage="No resources."
+        getEachElement={(item: Item): ReactElement => {
+          return <span data-testid="item">{item.name}</span>;
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "2 weitere Ressourcen" }),
+    ).toBeInTheDocument();
+  });
+
+  test("words with no translation stay as the page wrote them", () => {
+    render(list(items("A", "B", "C", "D")));
+
+    expect(
+      screen.getByRole("button", { name: "1 more labels" }),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * A page that words the button as a sentence of its own - "1 more
+   * template", "2 more templates", each language with its plural forms -
+   * hands the count to getMoreText, and the button reads what it returns.
+   */
+  test("a page's own sentence for the count takes the place of count and words", () => {
+    const counts: Array<number> = [];
+
+    render(
+      <TableColumnListComponent<Item>
+        items={items("A", "B", "C", "D", "E", "F")}
+        moreText="more labels"
+        getMoreText={(count: number): string => {
+          counts.push(count);
+          return count === 1
+            ? "1 weitere Vorlage"
+            : `${count} weitere Vorlagen`;
+        }}
+        noItemsMessage="No labels attached."
+        getEachElement={(item: Item): ReactElement => {
+          return <span data-testid="item">{item.name}</span>;
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "3 weitere Vorlagen" }),
+    ).toBeInTheDocument();
+    expect(counts).toContain(3);
+
+    fireEvent.click(screen.getByRole("button", { name: "3 weitere Vorlagen" }));
+    expect(shownItems()).toEqual(["A", "B", "C", "D", "E", "F"]);
+    expect(
+      screen.getByRole("button", { name: "Weniger anzeigen" }),
+    ).toBeInTheDocument();
   });
 });

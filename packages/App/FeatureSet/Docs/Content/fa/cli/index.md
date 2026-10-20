@@ -82,6 +82,7 @@ oneuptime resources
 | `oneuptime login <api-key> <instance-url>` | یک کلید API و یک نشانی را به‌عنوان زمینه ذخیره می‌کند | [احراز هویت](/docs/cli/authentication#ورود) |
 | `oneuptime context list`, `use`, `current`, `delete` | زمینه‌های ذخیره‌شده را فهرست می‌کند، عوض می‌کند، نشان می‌دهد و حذف می‌کند | [احراز هویت](/docs/cli/authentication#زمینهها) |
 | `oneuptime whoami` | URL و کلید API را که دستور بعدی به کار می‌برد نشان می‌دهد | [احراز هویت](/docs/cli/authentication#ببینید-cli-از-چه-چیزی-استفاده-خواهد-کرد) |
+| `oneuptime deploy` | یک استقرار، یا تغییری دیگر، را برای نمودارها و OneUptime AI ثبت می‌کند | [استقرارها و تغییرها](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | با یک نوع رکورد کار می‌کند | [عملیات روی منابع](/docs/cli/resource-operations) |
 | `oneuptime resources` | انواع رکورد را همراه با دستورهایشان فهرست می‌کند | [مرجع دستورها](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | نسخهٔ CLI را چاپ می‌کند | [مرجع دستورها](/docs/cli/command-reference#oneuptime-version) |

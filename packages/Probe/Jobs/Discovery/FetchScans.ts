@@ -50,6 +50,8 @@ import SnmpPrivProtocol, {
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import { DiscoveredHostNetbiosStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
+import { withoutTrailingRun } from "Common/Utils/TrailingRuns";
+import { isWhiteSpaceCode } from "Common/Utils/RegExpCharacterClasses";
 
 /*
  * Assembles the SnmpV3Auth the scanner needs from one credential set's
@@ -330,7 +332,13 @@ function excerpt(text: string, maxLength: number): string {
  */
 function quoteReason(reason: string, maxLength: number): string {
   const trimmed: string = reason.trim();
-  const withoutTrailingStop: string = trimmed.replace(/[.\s]+$/, "");
+  // The full stops and white space that end it, read once from the end.
+  const withoutTrailingStop: string = withoutTrailingRun(
+    trimmed,
+    (code: number): boolean => {
+      return code === 0x2e || isWhiteSpaceCode(code);
+    },
+  );
 
   /*
    * Stripping must never empty the quote. A reason of "..." would otherwise

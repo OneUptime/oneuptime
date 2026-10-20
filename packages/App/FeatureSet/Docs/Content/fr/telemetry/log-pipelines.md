@@ -178,6 +178,8 @@ Extrait des champs structurés d'une ligne de forme fixe. Un motif grok est une 
 
 Une capture est stockée en texte, sauf si vous lui donnez un type : `%{NUMBER:status:int}` la stocke comme nombre. Les types sont `int`, `long`, `float`, `double`, `boolean` et `string`. Vérifiez un motif sur une ligne d'exemple dans **Test Your Pattern** avant de l'enregistrer.
 
+Un motif grok s'exécute en un temps qui ne croît qu'avec la ligne qu'il lit, quelle que soit la façon dont il est écrit, et garde la syntaxe de JavaScript : les assertions avant et arrière fonctionnent. Un motif qui ne peut pas s'exécuter ainsi, par exemple un motif avec une référence arrière comme `\1`, est refusé à l'enregistrement, avec un message qui indique quoi changer.
+
 | Corps du journal | Motif | Attributs ajoutés |
 | --- | --- | --- |
 | `10.0.1.5 - GET /health 200` | `%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}` | client_ip, method, path, status |

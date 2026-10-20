@@ -64,7 +64,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 
 **Varsler** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenfoldet, og en seksjon åpner seg selv når du er på en av sidene i den. Konfigurasjonen av varsler ligger her, ikke i **Prosjektinnstillinger**.
 
-Listen viser **Varselnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Overvåking**, **Berørte ressurser**, **Opprettet**, **Varighet**, **Etiketter** og **Eiere**. Velg varsler for å handle på flere samtidig: **Endre tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Knytt til en hendelse**, **Erklær hendelse** eller slett dem.
+Listen viser **Varselnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser** (varselets monitor først), **Opprettet**, **Varighet**, **Etiketter** og **Eiere**. Velg varsler for å handle på flere samtidig: **Endre tilstand**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Knytt til en hendelse**, **Erklær hendelse** eller slett dem.
 
 ## Opprett et varsel manuelt
 

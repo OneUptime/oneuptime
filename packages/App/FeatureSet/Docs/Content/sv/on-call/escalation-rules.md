@@ -120,7 +120,7 @@ Ett längre meddelande, med en lång titel eller en lång beskrivning som en mal
 
 ### När ett larm inte skickas
 
-Ett larm som inte skickas säger varför i personens **Jourloggar** (Användarinställningar): raden visar **Fel**, och statusmeddelandet anger orsaken. Det blir inte längre stående på **Sending**. Meddelandet säger något av detta:
+Ett larm som inte skickas säger varför i personens **Jourloggar** (Användarinställningar): raden visar **Fel**, och statusmeddelandet anger orsaken. Det blir inte längre stående på **Skickar**. Meddelandet säger något av detta:
 
 - projektets saldo kunde inte betala för det, och vem som kan fylla på saldot;
 - kanalen är avstängd i projektet, och vem som kan slå på den.

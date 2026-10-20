@@ -21,6 +21,7 @@ import {
   DataSourceConnector,
   DataSourceQueryWindow,
 } from "../Types";
+import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
 
 /*
  * Generic JSON-over-HTTP connector: fetch JSON from any REST endpoint under
@@ -346,7 +347,7 @@ export function extractRowsByPath(
 
 function joinUrl(baseUrl: string, path: string): string {
   // path always starts with "/" (descriptor validation), base loses its "/".
-  const trimmedBase: string = baseUrl.replace(/\/+$/, "");
+  const trimmedBase: string = withoutTrailingSlashes(baseUrl);
   return `${trimmedBase}${path}`;
 }
 

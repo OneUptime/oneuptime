@@ -25,17 +25,18 @@ import {
 /*
  * Why AI fix tasks cannot run on the OneUptime-hosted provider once the
  * project's AI credits are used up: who can add credits, and where - most
- * readers of the AI Tasks page cannot - and that a provider of the
- * project's own needs none.
+ * people asking AI in Code cannot - and that a provider of the project's
+ * own needs none.
  */
 export const CODE_FIX_AI_CREDITS_USED_UP_DETAIL: string = `AI fix tasks would use the OneUptime-hosted LLM provider, which is paid from this project's AI credits, and they are used up. ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)} A provider of the project's own (Project Settings > AI > LLM Providers) needs no AI credits.`;
 
 /*
- * The gates every CodeFix run passes through, in one place. Two surfaces ask
- * the question — the per-exception panel and the project-wide AI Tasks page —
- * and they differ only in how strict their repository gate is (see
- * AIFixReadinessCheckId). Sharing the LLM and agent checks is what keeps the
- * two from drifting into telling the user different stories.
+ * The gates every CodeFix run passes through, in one place. Several surfaces
+ * ask the question — the per-exception panel, the project-wide readiness
+ * route and Code's request box (CodeTaskGate) — and they differ only in how
+ * strict their repository gate is (see AIFixReadinessCheckId). Sharing the
+ * LLM and agent checks is what keeps them from drifting into telling the
+ * user different stories.
  */
 export default class CodeFixReadiness {
   /*
@@ -203,7 +204,7 @@ export default class CodeFixReadiness {
   }
 
   /*
-   * Project-wide readiness for the AI Tasks page. Same LLM and agent gates
+   * Project-wide readiness (POST /ai-readiness/code-fix). Same LLM and agent gates
    * the per-exception check uses, with the any-repository gate in place of
    * per-exception stack-trace resolution.
    */

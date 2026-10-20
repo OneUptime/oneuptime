@@ -133,11 +133,11 @@ De schakelaar **Dit runbook uitvoeren** van het runbook staat uit, op de pagina 
 :::
 
 :::details Een stap is mislukt omdat er een Runner of inloggegeven ontbreekt
-De melding luidt bijvoorbeeld "Bash step is missing a Runner. Pick one under Runbooks → Runners." De stap is opgeslagen zonder **Runner**, of een SSH- of Kubernetes-stap zonder **Credential**. Open de **Stappen** van het runbook, kies wat de stap mist, klik op **Save Steps** en voer het runbook opnieuw uit.
+De melding luidt bijvoorbeeld "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." De stap is opgeslagen zonder **Runner**, of een SSH- of Kubernetes-stap zonder **Credential**. Een JavaScript-stap heeft alleen een eigen Runner nodig als geen [globale Runner](/docs/runbooks/agents#globale-runners) hem kan uitvoeren. Open de **Stappen** van het runbook, kies wat de stap mist, klik op **Save Steps** en voer het runbook opnieuw uit.
 :::
 
 :::details Een stap is mislukt omdat geen runbook-agent hem oppakte
-De melding luidt "No runbook agent picked up this step before the wait window expired." De Runner van de stap pakte de taak niet op binnen zijn claim timeout. Controleer onder **Runbooks → Runbook-agenten** of de Runner **Verbonden** is en of **Voert Runbooks uit** aan staat. Zie [Runbook-agenten](/docs/runbooks/agents#problemen-oplossen).
+De melding luidt "No runbook agent picked up this step before the wait window expired." De Runner van de stap pakte de taak niet op binnen zijn claim timeout. Controleer onder **Runbooks → Runbook-agenten** of de Runner **Verbonden** is en of **Voert Runbooks uit** aan staat. Zie [Runbook-agenten](/docs/runbooks/agents#problemen-oplossen). Een stap op een globale Runner meldt in plaats daarvan "No global Runner picked up this step before the wait window expired.": voer het runbook opnieuw uit, verhoog de claim timeout van de stap, of kies een van uw eigen Runners.
 :::
 
 :::details De uitvoering wacht al uren

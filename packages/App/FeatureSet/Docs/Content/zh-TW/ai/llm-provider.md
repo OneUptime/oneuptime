@@ -14,7 +14,7 @@ LLM 提供者是 OneUptime 中每項 AI 功能背後的模型：調查、詢問 
 - **調查**：OneUptime AI 調查新的事件和警示，並在時間軸上發布附有引用的根本原因分析。請參閱 [AI SRE](/docs/ai/ai-sre)。
 - **問題**：**Ask AI** 根據你專案的資料作答，每個論點都附有引用。請參閱 [詢問 AI](/docs/ai/ask-ai)。
 - **草稿**：事件、警示和排定維護的備註中的 **Draft with AI**，以及依需求或在事件解決時起草的事後檢討。
-- **程式碼**：修正例外、緩慢追蹤以及調查所發現原因的拉取請求，可從 OneUptime 或 GitHub 發起。請參閱 [修正任務](/docs/ai/ai-agent)。
+- **程式碼**：修正例外、緩慢追蹤以及調查所發現原因的拉取請求，可從 OneUptime 或 GitHub 發起。請參閱 [程式碼](/docs/ai/ai-agent)。
 - **其他一切**：AI Insights 的分流、工作流程和運行手冊中的 AI 步驟，以及 Slack 和 Microsoft Teams 中的回答。
 
 ## AI 使用哪個提供者
@@ -301,7 +301,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 ## 後續步驟
 
 :::cards
-- [修正任務](/docs/ai/ai-agent): 你的提供者撰寫的拉取請求，以及它們從哪裡開始。
+- [程式碼](/docs/ai/ai-agent): 你的提供者撰寫的拉取請求，以及它們從哪裡開始。
 - [AI SRE](/docs/ai/ai-sre): OneUptime AI 有了提供者之後會做什麼。
 - [詢問 AI](/docs/ai/ask-ai): 向你的專案提問，並切換對話的提供者。
 :::

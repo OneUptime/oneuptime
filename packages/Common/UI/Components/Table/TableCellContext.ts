@@ -18,3 +18,29 @@ export const TableCellContext: React.Context<boolean> =
 export const useIsTableCell: () => boolean = (): boolean => {
   return useContext(TableCellContext);
 };
+
+/*
+ * Whether that cell is a field of a phone's card: on a phone, TableBody
+ * draws each row as a card, its column names over their values
+ * (TableLayout's TABLE_MOBILE_* classes).
+ *
+ * A card's value has the screen's width to itself and no pointer to show a
+ * value cut short in full, so a list in it lets a long name run onto the
+ * next line rather than end in "..." (TableColumnListComponent). The alerts
+ * list names an alert's monitor only in its Affected Resources list: cut
+ * short on a phone, "oneuptime-test - High Node Memory Utili..." was all of
+ * it anyone could read.
+ *
+ * Read together with TableCellContext, so a dialog or a side panel opened
+ * from a card - which starts afresh as no cell at all - is no card either.
+ */
+export const TableCardContext: React.Context<boolean> =
+  React.createContext<boolean>(false);
+
+// Whether an element is drawn in a field of a phone's card.
+export const useIsTableCard: () => boolean = (): boolean => {
+  const isTableCell: boolean = useContext(TableCellContext);
+  const isTableCard: boolean = useContext(TableCardContext);
+
+  return isTableCell && isTableCard;
+};

@@ -78,7 +78,17 @@ Met **Een postmortem opstellen wanneer een incident is opgelost** aan stelt OneU
 - Het vervangt nooit een notitie die al is geschreven.
 - Het schrijft nooit in een postmortem dat al is gepubliceerd, waar het concept ongecontroleerd op de statuspagina zou komen.
 - Het vereist dat AI voor het project is ingeschakeld, en stopt voor die dag zodra het project zijn dagelijkse AI-limieten bereikt. Zie [Automatisch postmortem](/docs/ai/ai-sre#automatisch-postmortem).
-- Is de transcriptie van het gesprek van het incident nog onderweg wanneer het incident wordt opgelost, dan wacht het tot OneUptime AI die heeft gelezen, zodat het concept meeneemt wat er in het gesprek is gezegd: tot zes uur terwijl Zoom of Google Meet de transcriptie maakt. Zie [Elk gesprek opnemen en transcriberen](/docs/workspace-connections/video-calls#elk-gesprek-opnemen-en-transcriberen).
+- Is de transcriptie van het gesprek van het incident nog onderweg wanneer het incident wordt opgelost, dan wacht het tot OneUptime AI die heeft gelezen, zodat het concept meeneemt wat er in het gesprek is gezegd: tot zes uur terwijl de aanbieder de transcriptie maakt. Zie [Elk gesprek opnemen en transcriberen](/docs/workspace-connections/video-calls#elk-gesprek-opnemen-en-transcriberen).
+
+#### Kiezen welke incidenten een concept krijgen, en met welk sjabloon
+
+Zonder regel krijgt elk opgelost incident een concept, in de standaardopzet van OneUptime AI. **Postmortem-regels**, onder **Meer instellingen** op dezelfde pagina, veranderen dat:
+
+- Een regel past bij **Alle incidenten**, of bij **Alleen incidenten die aan de voorwaarden voldoen** op monitoren, ernstniveaus, labels, monitorlabels, titel en beschrijving, zoals een onderzoeksregel.
+- Zijn **Sjablonen** zijn de postmortem-sjablonen die het concept mag volgen. Zonder sjabloon volgt het concept de standaardopzet; met één dat sjabloon; met meerdere het sjabloon dat volgens OneUptime AI het best bij het incident past. Het bericht van het concept in de feed noemt het sjabloon dat het volgde.
+- De eerste ingeschakelde regel die bij het incident past, beslist, vanaf de bovenkant van de lijst: sleep een regel om zijn plaats te veranderen. Een incident waar geen regel bij past, krijgt geen concept, en zolang de regels niet kunnen worden gelezen, krijgt geen enkel incident er een.
+- **Een postmortem opstellen wanneer een incident is opgelost** blijft de enige schakelaar die concepten uitzet. Regels beslissen alleen over de concepten die OneUptime AI uit zichzelf opstelt: **Generate with AI** biedt elke opzet aan, wat de regels ook zeggen.
+- Regels aanmaken, bewerken en herschikken vereist de rol Project Owner of Project Admin. In OneUptime Cloud vereisen sjablonen het Growth-abonnement: daaronder beslissen regels nog steeds welke incidenten een concept krijgen, en volgt elk concept de standaardopzet.
 
 ## Het op uw statuspagina publiceren
 
@@ -153,7 +163,7 @@ Controleer drie dingen: **Publiceren op statuspagina** staat aan, de notitie is 
 :::
 
 :::details Er verscheen geen AI-concept toen het incident werd opgelost
-Het incident had al een notitie, het postmortem was al gepubliceerd, of **Een postmortem opstellen wanneer een incident is opgelost** staat uit. AI moet voor het project zijn ingeschakeld, en het project mag zijn dagelijkse AI-limieten niet hebben bereikt. Is de transcriptie van het gesprek van het incident onderweg, dan komt het concept zodra OneUptime AI die heeft gelezen.
+Het incident had al een notitie, het postmortem was al gepubliceerd, er paste geen postmortem-regel bij, of **Een postmortem opstellen wanneer een incident is opgelost** staat uit. AI moet voor het project zijn ingeschakeld, en het project mag zijn dagelijkse AI-limieten niet hebben bereikt. Is de transcriptie van het gesprek van het incident onderweg, dan komt het concept zodra OneUptime AI die heeft gelezen.
 :::
 
 ## Volgende stappen

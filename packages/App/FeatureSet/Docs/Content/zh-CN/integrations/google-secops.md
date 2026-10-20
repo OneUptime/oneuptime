@@ -7,6 +7,7 @@
 - [设置托管连接器](#设置托管连接器): 一个服务账号密钥，以及连接的表单。
 - [连接器如何轮询](#连接器如何轮询): 每个窗口的三种读取方式，以及它们的预算。
 - [故障排除](#故障排除): Last Error 说了什么，以及该怎么做。
+- [将安全事件发送到 Google SecOps](#将安全事件发送到-google-secops): 在 Google SecOps 中查看 OneUptime 的检测结果。
 :::
 
 ## 选择连接方式
@@ -100,14 +101,14 @@ OneUptime 按间隔轮询你租户的检测和警报，无需任何 SOAR 配置�
 
 ### 保存之前先测试
 
-保存之前，选择 **Test before saving** 下的 **Test these settings**。测试使用表单上的值运行，不存储任何内容，因此格式错误的密钥、缺失的角色或错误的实例会在连接存在之前被发现。在编辑表单上，同一个按钮会用存储的密钥测试屏幕上显示的 **区域**、**Instance resource name** 和 **Data to import**；凭据字段留空时会保留存储的密钥。当测试的任何内容与连接已保存的内容不同时（包括新输入的密钥），不会记录运行历史行，因为连接还没有这些设置。
+保存之前，选择 **保存前测试** 下的 **Test these settings**。测试使用表单上的值运行，不存储任何内容，因此格式错误的密钥、缺失的角色或错误的实例会在连接存在之前被发现。在编辑表单上，同一个按钮会用存储的密钥测试屏幕上显示的 **区域**、**实例资源名称** 和 **Data to import**；凭据字段留空时会保留存储的密钥。当测试的任何内容与连接已保存的内容不同时（包括新输入的密钥），不会记录运行历史行，因为连接还没有这些设置。
 :::
 
 | 设置 | 在哪里找到 | 必填 |
 | --- | --- | --- |
 | **区域** | 与实例资源名称中的位置相匹配的 Google SecOps 区域终结点（`us`、`europe`、`asia-southeast1`……）。它没有默认值，所以美国以外的租户不会意外保存错误的终结点。 | 是 |
-| **Instance resource name** | Google SecOps **SIEM Settings → Profile**：`projects/{project}/locations/{location}/instances/{instance}`。 | 是 |
-| **Service account JSON** | Google Cloud 中服务账号的 **Keys** 选项卡。粘贴整个 JSON 密钥文件。只写：静态加密存储，API 从不返回，页面上也从不回显。在连接上使用 **Update credentials** 来轮换它。 | 是 |
+| **实例资源名称** | Google SecOps **SIEM Settings → Profile**：`projects/{project}/locations/{location}/instances/{instance}`。 | 是 |
+| **服务账户 JSON** | Google Cloud 中服务账号的 **Keys** 选项卡。粘贴整个 JSON 密钥文件。只写：静态加密存储，API 从不返回，页面上也从不回显。在连接上使用 **Update credentials** 来轮换它。 | 是 |
 | **Data to import** | **警报** 总会被导入，因为 Google 的警报 API 总会返回它们。选择 **Detections** 可以同时导入没有生成警报的规则匹配。这不会转发原始 UDM 事件：请按上文自行转发。 | 警报总是导入 |
 
 表单的轮询步骤会询问 **名称**、可选的 **描述**、连接是否 **已启用**，以及 **Poll Interval (Minutes)**：`1` 到 `1440` 之间的整数，默认为 `5`。超出该范围的值会在保存时被拒绝。
@@ -121,7 +122,7 @@ OneUptime 按间隔轮询你租户的检测和警报，无需任何 SOAR 配置�
 **Health** 只有在导入过事件之后才会显示 **Last poll succeeded**。在此之前，一个成功轮询的连接会显示 **Polling, no events imported yet**，这正是需要用测试连接来排查的状态。其他状态有 **No records returned**、**Partial import**、**Catching up**、**Last poll failed**、**Poll overdue**、**Schedule paused** 和 **Waiting for first poll**；把鼠标悬停在某个状态上即可查看它的含义。
 
 > [!NOTE]
-> 连接器使用 Chronicle 的 `v1alpha` 旧版检测和警报 API，Google 将其作为正式发布前（pre-GA）的版本提供。轮询失败时，连接的 **Last Error** 字段会存储完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀，包括 Chronicle 返回 `200` 却在主体中给出拒绝的情况。在连接的 **操作** 列中选择 **查看错误** 来阅读消息，然后在对话框中用 **Copy Error** 复制它以提供给支持人员。
+> 连接器使用 Chronicle 的 `v1alpha` 旧版检测和警报 API，Google 将其作为正式发布前（pre-GA）的版本提供。轮询失败时，连接的 **最近错误** 字段会存储完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀，包括 Chronicle 返回 `200` 却在主体中给出拒绝的情况。在连接的 **操作** 列中选择 **查看错误** 来阅读消息，然后在对话框中用 **复制错误** 复制它以提供给支持人员。
 
 ## 连接器如何轮询
 
@@ -152,15 +153,15 @@ flowchart TB
 
 1. **缩小。** Google 的搜索终结点先返回最新的检测，所以提前停下的轮询没有可以恢复的位置。这次轮询会被记录为 **Partial**，游标停在原处，下一次轮询从同一个起点读取长度减半的窗口，并带有警告 `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 窗口会不断减半，最短到一分钟，直到能够容纳。
 2. **恢复。** 每次完整的轮询都会让下一个窗口加倍，最长为 24 小时，所以一次突发只会带来几次短轮询，而不会让连接永久变慢。
-3. **越过单独的一分钟。** 如果连一分钟内的检测都超过一次轮询能读取的量，轮询会把游标移过这一分钟，让更新的检测继续到达。这次运行为 **Partial**，并且 **Last Error** 以同样的文字开头：`More records were created in the one minute from {start} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 要找回一次运行能读取的内容，请打开 **Diagnostics**，选择一个覆盖那一分钟的自定义范围（范围输入使用你的本地时间；消息使用 UTC），然后运行 **Import this time range**；一次导入的单次运行上限与一次轮询相同。已导入的检测会被跳过。
+3. **越过单独的一分钟。** 如果连一分钟内的检测都超过一次轮询能读取的量，轮询会把游标移过这一分钟，让更新的检测继续到达。这次运行为 **Partial**，并且 **最近错误** 以同样的文字开头：`More records were created in the one minute from {start} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 要找回一次运行能读取的内容，请打开 **Diagnostics**，选择一个覆盖那一分钟的自定义范围（范围输入使用你的本地时间；消息使用 UTC），然后运行 **Import this time range**；一次导入的单次运行上限与一次轮询相同。已导入的检测会被跳过。
 
-Partial 轮询还会把它的警告存储在 **Last Error** 中，直到一次完整的轮询将其清除。彻底失败的轮询（因为错误，而不是记录太多）会保留游标和窗口长度，并在下一个周期重试。唯一的例外是请求超时：下一次轮询会从同一个起点读取长度减半的窗口（`The source did not answer in time for this window; the next poll reads a {n} minute window from the same starting point.`），否则太重而无法及时响应的窗口每次重试都会超时。缩短轮询间隔不会改变以上任何一点：窗口由游标和上一次轮询的结果决定，而不是由轮询运行的频率决定。
+Partial 轮询还会把它的警告存储在 **最近错误** 中，直到一次完整的轮询将其清除。彻底失败的轮询（因为错误，而不是记录太多）会保留游标和窗口长度，并在下一个周期重试。唯一的例外是请求超时：下一次轮询会从同一个起点读取长度减半的窗口（`The source did not answer in time for this window; the next poll reads a {n} minute window from the same starting point.`），否则太重而无法及时响应的窗口每次重试都会超时。缩短轮询间隔不会改变以上任何一点：窗口由游标和上一次轮询的结果决定，而不是由轮询运行的频率决定。
 
 ## 测试连接
 
 **测试连接**（在连接所在行或 **Diagnostics** 中）在 API 进程中同步运行。它不需要后台工作进程，这正是它能告诉你没有工作进程在运行的原因。检查清单：
 
-1. **配置**：每个字段都存在且格式正确：与实例位置相匹配的受支持 **区域**、形式正确的 **Instance resource name**，以及包含 `client_email`、可读的 `private_key` 和 Google `token_uri` 的 **Service account JSON** 密钥。此项失败时不会连接任何地方。
+1. **配置**：每个字段都存在且格式正确：与实例位置相匹配的受支持 **区域**、形式正确的 **实例资源名称**，以及包含 `client_email`、可读的 `private_key` 和 Google `token_uri` 的 **服务账户 JSON** 密钥。此项失败时不会连接任何地方。
 2. **Authenticate with Google**：在联系 Chronicle 之前，先在 Google 的 OAuth 终结点用密钥换取访问令牌。
 3. **Read rule detections**、**Read curated rule detections** 和 **Read the alerts view**：对每个读取过程在过去 24 小时内做一次只取一条记录的探测。精选检查会读取过去 7 天的精选规则计数，并探测检测最多的那条精选规则；如果那一周内没有精选规则触发过，它就无需探测而直接通过。以 `400`、`403` 或 `404` 回应的精选读取是警告，因为租户可能只是没有精选规则的访问权限。
 4. **Detections available to import**：在过去 24 小时和过去 7 天内，Google 在已保存的 **Data to import** 选择下以及另一种选择下（仅警报，或警报和 **Detections**）各有多少内容：每个范围读取警报视图的匹配计数和一页按创建时间的搜索结果，报告为一个数字或 `1000+`。当已保存的选择下什么都没有、而另一种选择下有内容时，检查会发出警告：你的规则会创建检测，但没有为它们启用警报。请编辑连接，在 **Data to import** 下选择 **Detections**，或在 Google SecOps 中为这些规则启用警报。
@@ -212,6 +213,32 @@ Google SecOps 会根据规则的编写者，把检测的严重程度存储在不
 
 以上都无法分级的检测会显示为 Unknown。要为自定义规则分级，请在 Google SecOps 中为它的 `meta` 部分添加严重程度，例如 `severity = "High"`，或在它的 `outcome` 部分设置 `$risk_score`。此后该规则创建的检测会以该严重程度导入。
 
+## 将安全事件发送到 Google SecOps
+
+OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队所用的 SIEM 在自身检测结果旁边看到 OneUptime 的检测结果。每个安全事件都会作为 UDM 事件导入：登录为 `USER_LOGIN`，进程启动为 `PROCESS_LAUNCH`，网络连接为 `NETWORK_CONNECTION`，其他一切为 `GENERIC_EVENT`，并带有其严重级别、MITRE ATT&CK 标签以及发现它的规则。
+
+:::steps
+### 创建可以导入事件的密钥
+
+在 Google Cloud 中，在您的 SecOps 实例所绑定的项目里创建一个服务账号，并为其授予拥有 `chronicle.events.import` 权限的角色，例如 **Chronicle API Editor** (`roles/chronicle.editor`)。在其 **Keys** 标签页上添加一个类型为 **JSON** 的密钥并下载。
+
+### 添加目标
+
+打开 **产品 → Security Events → Connections**。在 **发送到你的 SIEM** 下点击 **添加目标**。选择 **区域**，像上面的连接器一样填写 **实例资源名称**，并把密钥粘贴到 **服务账户 JSON** 中。
+
+### 发送测试事件
+
+点击 **发送测试事件**。一个来自产品 `OneUptime Security Events` 的 `GENERIC_EVENT` 会按表单中的设置发送到 Google SecOps，不会保存任何内容。它会在几分钟内出现在 Google SecOps 中。
+
+### 选择发送的内容
+
+在 **发送内容** 下保留 **仅检测结果**，即您的规则和威胁情报发现的内容以及已连接产品发出的告警，或选择 **所有安全事件**。点击 **开始发送**。
+:::
+
+- 目标只发送保存之后到达的事件，绝不发送项目的历史记录，并且每分钟发送一次新事件。
+- OneUptime 从 Google SecOps 导入的告警绝不会被发送回去。
+- 当 Google SecOps 没有响应或拒绝一批事件时，目标会保留其位置，并在下一次运行时重试。其 **状态** 显示为 **失败**，**查看错误** 会显示 Google SecOps 的答复。
+
 ## 故障排除
 
 :::details 自定义规则的检测显示严重程度为 Unknown，而精选规则的检测已分级
@@ -243,7 +270,7 @@ Google SecOps 会根据规则的编写者，把检测的严重程度存储在不
 :::
 
 :::details Last Error 有内容
-有一次轮询被尝试且其中某个步骤失败了，或者一次轮询无法读完它的整个窗口，或者调度器无法排入轮询。对于失败的轮询，该字段会存储完整的错误消息（凭据已隐去）。连接出错时，在它的 **操作** 列中选择 **查看错误** 打开完整消息，然后在对话框中用 **Copy Error** 复制它以提供给支持人员。该字段会在下一次完整轮询时清除，**查看错误** 操作也会随之消失；运行历史会保留它。请先阅读前缀。以 `More records were created in the one minute from` 开头的消息表示被跳过的那一分钟，而不是失败；请参阅上面的 **Health 为 Partial import**。只有四个前缀带有 HTTP 状态码，所以没有状态码的消息并不能证明问题出在 OneUptime 一侧：
+有一次轮询被尝试且其中某个步骤失败了，或者一次轮询无法读完它的整个窗口，或者调度器无法排入轮询。对于失败的轮询，该字段会存储完整的错误消息（凭据已隐去）。连接出错时，在它的 **操作** 列中选择 **查看错误** 打开完整消息，然后在对话框中用 **复制错误** 复制它以提供给支持人员。该字段会在下一次完整轮询时清除，**查看错误** 操作也会随之消失；运行历史会保留它。请先阅读前缀。以 `More records were created in the one minute from` 开头的消息表示被跳过的那一分钟，而不是失败；请参阅上面的 **Health 为 Partial import**。只有四个前缀带有 HTTP 状态码，所以没有状态码的消息并不能证明问题出在 OneUptime 一侧：
 
 - `Google token exchange failed (HTTP ...)`：服务账号凭据在 Google 的 OAuth 终结点被拒绝，此时还从未联系过 Chronicle。通常是格式错误、已吊销或属于错误项目的密钥。
 - `Google token exchange returned ...`：同一个 OAuth 终结点作出了回应，但内容无法使用：没有 `access_token`，或主体不是 JSON。这仍然发生在联系 Chronicle 之前，通常是中间的代理或网关造成的，而不是密钥本身的问题。
@@ -271,15 +298,15 @@ Google SecOps 会根据规则的编写者，把检测的严重程度存储在不
 1. 检查 **正在运行的应用和工作进程镜像版本**。更新本地的连接器源文件或重新上传服务账号 JSON，都不会更新已部署的容器。请把包含连接器修正的镜像部署到每个运行轮询作业的应用或专用工作进程。如果你自己构建镜像，请用修正后的源代码重新构建，并部署一个新的、不可变的标签；用旧镜像重启 pod 是不够的。
 2. 对照 [Google API 参考](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView) 核实警报视图请求。它使用 `timeRange.startTime`、`timeRange.endTime`、`snapshotQuery=`（空值包括所有警报状态）、`alertListOptions.maxReturnedAlerts`，以及根据已保存的 **Data to import** 选择显式设置的 `includeNonAlertingDetections`。它不得在该终结点上发送 `pageSize` 或 `pageToken`。两个按创建时间的读取过程使用 [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections) 和 `legacySearchCuratedDetections`，它们记录的参数是 `ruleId`、`listBasis`、`alertState`、`pageSize` 和 `pageToken`，它们的失败带有的是检测搜索前缀。`legacySearchCuratedDetections` 总是接收一个精选规则 ID，从不接收 `-`。不要改用排除已关闭警报的过滤器，那样会丢失检测。
 3. 把完整的 `projects/{project}/locations/{location}/instances/{instance}` 资源与你的 Google SecOps 租户设置中的值进行比较。instance 部分必须是 SecOps 实例 ID；连接的显示名称或服务账号名称不能替代它。确认区域终结点与实例位置相匹配。
-4. 发布完成后，等待下一个配置的轮询间隔。在一次完整轮询后，**Last Polled** 应当前进，**Last Error** 应当被清除。如果窗口中有检测，它们应当出现在 **产品 → Security Events** 下；一个安静的窗口摄取零个事件也完全正常。
+4. 发布完成后，等待下一个配置的轮询间隔。在一次完整轮询后，**Last Polled** 应当前进，**最近错误** 应当被清除。如果窗口中有检测，它们应当出现在 **产品 → Security Events** 下；一个安静的窗口摄取零个事件也完全正常。
 
-如果同样的错误仍然存在，请从连接的 **操作** 列打开 **查看错误**，在对话框中使用 **Copy Error**，并把该消息、镜像标签或摘要、区域和实例资源名称提供给支持人员。记录的消息中的凭据已被隐去；请不要另外发送服务账号私钥、JWT 断言或访问令牌。升级之前记录的错误可能已被截断；之后失败的轮询会记录完整的消息。失败的轮询会保留它的窗口以便重试，而部分完成的轮询会缩小下一个窗口，或越过它在 Last Error 中指明的单独一分钟。计划的追赶每次运行最多处理 24 小时。
+如果同样的错误仍然存在，请从连接的 **操作** 列打开 **查看错误**，在对话框中使用 **复制错误**，并把该消息、镜像标签或摘要、区域和实例资源名称提供给支持人员。记录的消息中的凭据已被隐去；请不要另外发送服务账号私钥、JWT 断言或访问令牌。升级之前记录的错误可能已被截断；之后失败的轮询会记录完整的消息。失败的轮询会保留它的窗口以便重试，而部分完成的轮询会缩小下一个窗口，或越过它在 Last Error 中指明的单独一分钟。计划的追赶每次运行最多处理 24 小时。
 
 ## 从早期的 Google SecOps 连接器升级
 
 Google SecOps 过去有自己的连接卡片、API 和轮询器。现在它是 Security Event Connections 的一个提供商，升级会替你迁移现有的连接。
 
-- **连接会自动迁移。** 升级后的版本运行数据迁移时，每个 Google SecOps 连接都会以提供商 `google-secops` 复制到 Security Event Connections 中。它会保留自己的 ID、名称、**区域**、**Instance resource name**、服务账号密钥、**已启用** 状态、轮询间隔、**Data to import** 选择、轮询游标、Last Polled、Last Successful Poll、Last Event Imported 和 Last Error，所以轮询会从停下的地方继续。连接器保留了早期连接器导入时使用的 `Google` / `Google SecOps` 身份，所以已导入的检测会被计为 **Already imported**，而不会被存储两次。
+- **连接会自动迁移。** 升级后的版本运行数据迁移时，每个 Google SecOps 连接都会以提供商 `google-secops` 复制到 Security Event Connections 中。它会保留自己的 ID、名称、**区域**、**实例资源名称**、服务账号密钥、**已启用** 状态、轮询间隔、**Data to import** 选择、轮询游标、Last Polled、Last Successful Poll、Last Event Imported 和 Last Error，所以轮询会从停下的地方继续。连接器保留了早期连接器导入时使用的 `Google` / `Google SecOps` 身份，所以已导入的检测会被计为 **Already imported**，而不会被存储两次。
 - **最近的运行历史也会一起迁移。** 每个连接最近的 500 次运行会被复制到 **Diagnostics** 中它的运行历史里。仍在排队或运行中的运行会以失败状态复制，并附带 `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **早期的行会被禁用，而不是删除。** 因此，在滚动部署期间仍在运行的旧工作进程无法再次轮询同一个实例。回滚到带有早期连接器的版本时，需要重新启用这些行。
 - **无法迁移的连接会留在原处。** 没有存储密钥的连接，或者其密钥无法用这台服务器的 `ENCRYPTION_SECRET` 解密的连接，会被跳过，并在工作进程日志中列出名称；请在 **产品 → Security Events → Connections** 下重新添加它。保存的设置已无法通过当前验证的连接仍会被迁移，但在你编辑它之前，它的轮询会失败，并带有指明相应字段的消息。因临时数据库错误而中断的连接，会在下一次工作进程启动、迁移再次运行时被迁移，轮询会从复制过来的游标处继续。

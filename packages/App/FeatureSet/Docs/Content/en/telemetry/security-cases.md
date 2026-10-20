@@ -188,7 +188,7 @@ An email or a post with no message of its own sends a summary of the case.
 
 ### Runs and approvals
 
-Every run is listed on its case and under **Products → Security Events → Playbook Runs**, step by step:
+Every run is listed on its case and under **Products → Security Events → Playbooks → Playbook Runs**, step by step:
 
 | Run status | Means |
 | --- | --- |
@@ -199,7 +199,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
-A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step and on the case's timeline. **Playbook Runs** opens on the runs waiting for approval, and its menu entry counts them.
+A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step and on the case's timeline. **Playbook Runs** opens on the runs waiting for approval, and the **Playbooks** menu entry counts them.
 
 A run that stops hearing from its worker, after a restart for example, is picked up again: a queued run is queued again after 2 minutes, and a run that has said nothing for 30 minutes is failed.
 
@@ -212,12 +212,12 @@ A run that stops hearing from its worker, after a restart for example, is picked
 - The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.
 - The open cases by priority and by status, the verdicts of the last 30 days, the ATT&CK tactics behind the cases, the detections that fired most, and the entities named by the most findings.
 
-A project with no cases and no detections yet shows, above these, the three steps that set it up.
+Above them, a strip shows how Security is set up: its sources, detections, cases and playbooks, each with its figures. A project that has not set it up yet sees **Turn on recommended** and **Send a test attack** there; see [Get Started with Security](/docs/telemetry/security-getting-started). When nothing needs anybody, the page says **All quiet**, and the charts show once there is something to chart.
 
 ## Find threats
 
 - **Entities** ranks the users, hosts, addresses and hashes that your findings name most, over the last day, week or month, and looks any value up across 30 days of events.
-- **Rule Library** has ready-made detection rules, for identity, endpoint, cloud, network, web and Kubernetes threats. Each is a Sigma rule written for the fields every connected source is normalized to. **Add Rule** creates it as a detection rule of yours, on, and opening cases rather than alerts; change it under **Detection Rules** like any other.
+- **Rule Library** has ready-made detection rules, for identity, endpoint, cloud, network, web and Kubernetes threats. Each is a Sigma rule written for the fields every connected source is normalized to. **Add Rule** creates it as a detection rule of yours, on, and opening cases rather than alerts; change it under **Detection Rules** like any other. The rules marked **Recommended** find threats in data OneUptime already has, and one button adds the ones you do not have yet.
 - **ATT&CK Coverage** draws the MITRE ATT&CK matrix with the techniques your enabled rules cover lit, and outlines the ones a library rule would cover.
 
 ## Automate

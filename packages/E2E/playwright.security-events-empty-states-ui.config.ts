@@ -1,6 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
+// The fixture server reads the same variable, so two runs can sit side by side.
+const port: string =
+  process.env["SECURITY_EVENTS_EMPTY_STATES_FIXTURE_PORT"] || "4232";
+
 export default defineConfig({
   testDir: "./SecurityEventsEmptyStates",
   testMatch: "*.spec.ts",
@@ -27,7 +31,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL: "http://127.0.0.1:4232",
+    baseURL: `http://127.0.0.1:${port}`,
     locale: "en-US",
     timezoneId: "UTC",
     trace: "retain-on-failure",
@@ -36,7 +40,7 @@ export default defineConfig({
   webServer: {
     command: "node SecurityEventsEmptyStates/Fixture/server.js",
     cwd: path.resolve(__dirname),
-    url: "http://127.0.0.1:4232",
+    url: `http://127.0.0.1:${port}`,
     timeout: 300000,
     reuseExistingServer: !process.env["CI"],
   },

@@ -22,6 +22,7 @@ import {
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class DockerSwarmClusterLabelRuleEngineServiceClass
   implements RuleRunEngine<DockerSwarmCluster, DockerSwarmClusterLabelRule>
@@ -345,8 +346,7 @@ class DockerSwarmClusterLabelRuleEngineServiceClass
     rule: DockerSwarmClusterLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in DockerSwarm cluster label rule ${rule.id}: ${pattern}`,

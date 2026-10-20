@@ -10,11 +10,14 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { Green500, Red500 } from "../../../Types/BrandColors";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import VideoCallMeeting from "../../../Types/VideoCall/VideoCallMeeting";
+import VideoCallMeeting, {
+  VideoCallMeetingNotRecorded,
+} from "../../../Types/VideoCall/VideoCallMeeting";
 import VideoCallProvider, {
   detectVideoCallProviderFromUrl,
   isVideoCallProvider,
 } from "../../../Types/VideoCall/VideoCallProvider";
+import { VideoCallTranscriptUnavailableReason } from "../../../Types/VideoCall/VideoCallTranscript";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import AlertFeedService from "../../Services/AlertFeedService";
@@ -64,13 +67,18 @@ export interface VideoCallEvent {
   workspaceChannels: Array<NotificationRuleWorkspaceChannel>;
 }
 
-// The fields of IncidentVideoCall and AlertVideoCall a create decides.
+/*
+ * The fields of IncidentVideoCall and AlertVideoCall a create decides. Only
+ * an incident's call is ever put on a calendar (externalCalendarEventId):
+ * only an incident's call is recorded.
+ */
 export interface VideoCallFields {
   provider?: VideoCallProvider | undefined;
   videoCallConnectionId?: ObjectID | undefined;
   title?: string | undefined;
   joinUrl?: string | undefined;
   externalMeetingId?: string | undefined;
+  externalCalendarEventId?: string | undefined;
   workspaceNotificationRuleId?: ObjectID | undefined;
 }
 
@@ -84,6 +92,7 @@ export interface VideoCallFieldTarget {
   title?: string;
   joinUrl?: string;
   externalMeetingId?: string;
+  externalCalendarEventId?: string;
   workspaceNotificationRuleId?: ObjectID;
 }
 
@@ -91,17 +100,27 @@ export interface VideoCallFieldTarget {
 export interface VideoCallCarryForward {
   connectionName?: string | undefined;
   /*
-   * The provider was asked to record and transcribe the meeting (a Zoom or
-   * Google Meet incident call while Record and transcribe incident calls is
-   * on): the call says so where it is announced, and OneUptime gets its
-   * transcript once it is over.
+   * The provider was asked to record and transcribe the meeting (a Zoom,
+   * Google Meet or Microsoft Teams incident call while Record and
+   * transcribe incident calls is on): the call says so where it is
+   * announced, and OneUptime gets its transcript once it is over.
    */
   recordsAndTranscribes?: boolean | undefined;
+  /*
+   * The provider was asked to, and the meeting could not be set up to
+   * record itself (a Microsoft Teams meeting OneUptime could not put on its
+   * organizer's calendar): why, for the call's card to say.
+   */
+  notRecordedReason?: VideoCallTranscriptUnavailableReason | undefined;
 }
 
 // The providers OneUptime can ask to record and transcribe a meeting.
 export const RECORDABLE_VIDEO_CALL_PROVIDERS: ReadonlyArray<VideoCallProvider> =
-  [VideoCallProvider.Zoom, VideoCallProvider.GoogleMeet];
+  [
+    VideoCallProvider.Zoom,
+    VideoCallProvider.GoogleMeet,
+    VideoCallProvider.MicrosoftTeams,
+  ];
 
 // The column's width; a longer title is cut, not refused.
 const MAX_TITLE_LENGTH: number = 500;
@@ -261,6 +280,12 @@ export default class EventVideoCall {
       delete target.externalMeetingId;
     }
 
+    if (fields.externalCalendarEventId) {
+      target.externalCalendarEventId = fields.externalCalendarEventId;
+    } else {
+      delete target.externalCalendarEventId;
+    }
+
     if (fields.workspaceNotificationRuleId) {
       target.workspaceNotificationRuleId = fields.workspaceNotificationRuleId;
     } else {
@@ -330,6 +355,9 @@ export default class EventVideoCall {
       fields.workspaceNotificationRuleId = undefined;
     }
 
+    // Only a meeting OneUptime starts below is ever on a calendar.
+    fields.externalCalendarEventId = undefined;
+
     if (
       fields.provider !== undefined &&
       !isVideoCallProvider(fields.provider)
@@ -366,12 +394,27 @@ export default class EventVideoCall {
         },
       });
 
+      // Asked to record and transcribe, and set up to: Teams can say no (meeting.notRecorded).
+      const notRecorded: VideoCallMeetingNotRecorded | undefined =
+        recordAndTranscribe ? started.meeting.notRecorded : undefined;
+
+      if (notRecorded) {
+        logger.warn(
+          `The incident's ${started.meeting.provider} call started without being recorded: ${notRecorded.message}`,
+          {
+            projectId: data.event.projectId.toString(),
+            incidentId: data.event.id.toString(),
+          } as LogAttributes,
+        );
+      }
+
       return {
         fields: {
           ...fields,
           provider: started.meeting.provider,
           joinUrl: started.meeting.joinUrl,
           externalMeetingId: started.meeting.externalMeetingId,
+          externalCalendarEventId: started.meeting.externalCalendarEventId,
           title:
             EventVideoCall.truncateTitle(data.fields.title) ||
             EventVideoCall.truncateTitle(
@@ -384,7 +427,11 @@ export default class EventVideoCall {
           connectionName: started.connection.name,
           recordsAndTranscribes:
             recordAndTranscribe &&
-            RECORDABLE_VIDEO_CALL_PROVIDERS.includes(started.meeting.provider),
+            RECORDABLE_VIDEO_CALL_PROVIDERS.includes(
+              started.meeting.provider,
+            ) &&
+            !notRecorded,
+          notRecordedReason: notRecorded?.reason,
         },
       };
     }

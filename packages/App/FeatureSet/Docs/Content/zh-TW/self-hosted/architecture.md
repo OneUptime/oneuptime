@@ -55,6 +55,7 @@ flowchart TB
 | Telemetry writer | `app` 的一部分 | `telemetryWriter`（預設關閉） | 一個固定規模的層，執行每一次 ClickHouse 插入，使插入量無論 worker 擴展到多大都維持在限度內。 |
 | 探針 | `probe-1` | `probes` | 執行監視器檢查並把結果傳回。每個內建探針都是所有專案都能使用的全域探針。 |
 | Runner | `runner` | `runner` | 執行個體自己的 Runner，可以為每個專案執行 AI 程式碼修正。Runbook 的步驟執行在你安裝到相應位置的 [Runner](/docs/runbooks/agents) 上。 |
+| 全域 Runner | `global-runner` | `globalRunner` | 一個[全域 Runner](/docs/runbooks/agents#全域-runner)：它會執行所有未選擇自己 Runner 的專案的 JavaScript 步驟，每個步驟都在只能存取網際網路的沙箱中執行。它持有自己的金鑰，不持有伺服器的任何其他東西。 |
 | PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 專案、監視器、事件、使用者以及其他所有設定與狀態。 |
 | ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 記錄、指標、追蹤、例外、效能剖析與監視器記錄。 |
 | Valkey | `valkey` | `valkey` | 快取、工作佇列，以及待處理的推播回執之類的短期狀態。 |

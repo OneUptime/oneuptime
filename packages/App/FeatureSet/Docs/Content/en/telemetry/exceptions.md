@@ -115,7 +115,7 @@ The **AI Assistance** page offers three tasks. Each runs as an AI task that open
 | **Generate Regression Test** | Adds a test that fails until the bug is fixed. |
 | **Improve Error Handling** | For expected errors: validates input earlier, keeps user data out of messages, and marks the error as handled. |
 
-AI needs three things first: an LLM provider, a GitHub repository connected through the GitHub App, and an AI agent online to run the task. The page checks each one and links to what is missing. The tasks pause while the exception is resolved or archived. See [Fix Tasks](/docs/ai/ai-agent).
+AI needs three things first: an LLM provider, a GitHub repository connected through the GitHub App, and an AI agent online to run the task. The page checks each one and links to what is missing. The tasks pause while the exception is resolved or archived. See [Code](/docs/ai/ai-agent).
 
 ## Exceptions Insights
 
@@ -140,6 +140,6 @@ A new occurrence reopens a resolved exception on purpose: the error still happen
 :::cards
 - [Exceptions Monitor](/docs/monitor/exceptions-monitor): Get alerted when exceptions spike.
 - [Source Maps](/docs/telemetry/source-maps): Readable stack traces for browser code.
-- [Fix Tasks](/docs/ai/ai-agent): How AI fixes code and opens pull requests.
+- [Code](/docs/ai/ai-agent): How AI fixes code and opens pull requests.
 - [Traces Explorer](/docs/telemetry/traces-explorer): See the request an exception happened in.
 :::

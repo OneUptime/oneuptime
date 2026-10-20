@@ -4,9 +4,11 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import {
   GOOGLE_MEET_ACCESS_TYPE_OPTIONS,
   GOOGLE_MEET_SCOPE,
+  MICROSOFT_TEAMS_CALENDAR_PERMISSION,
   MICROSOFT_TEAMS_LOBBY_BYPASS_OPTIONS,
   MICROSOFT_TEAMS_MEETING_PERMISSION,
   MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
+  MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
   VideoCallConnectionField,
   VideoCallConnectionFieldOption,
   VideoCallProviderCatalog,
@@ -34,6 +36,8 @@ import CallRecordingSwitchCopy, {
   CALL_RECORDING_SWITCH_COLUMN,
 } from "../../../FeatureSet/Dashboard/src/Components/VideoCall/CallRecordingSwitchCopy";
 import { GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS } from "Common/Server/Utils/VideoCall/Transcripts/GoogleMeetTranscriptClient";
+import { MICROSOFT_TEAMS_MEETING_RETENTION_IN_DAYS } from "Common/Server/Utils/VideoCall/Transcripts/MicrosoftTeamsTranscriptClient";
+import { MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS } from "Common/Server/Utils/VideoCall/OAuth/MicrosoftTeamsMeetingsOAuthApp";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { escapeRegExp } from "./DocsTranslationChecks";
@@ -390,6 +394,42 @@ describe("Video Calls docs - the permissions each provider needs", () => {
     }
   });
 
+  /*
+   * Recording and transcribing Teams calls: the app registration's two more
+   * application permissions, on the same API permissions step as the
+   * in-app guide, the policy that already covers reading transcripts, and
+   * how to keep the calendar permission to the organizer's calendar.
+   */
+  test("Microsoft Teams: the two permissions recording takes, and how to keep the calendar one to the organizer", () => {
+    const section: string = sectionOf(readPage(), "microsoft-teams");
+    const teams: VideoCallProviderDefinition | undefined =
+      VideoCallProviderCatalog.find(
+        (definition: VideoCallProviderDefinition): boolean => {
+          return definition.title === "Microsoft Teams";
+        },
+      );
+    const step: string | undefined = section
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("2. Under **API permissions**");
+      });
+
+    for (const permission of [
+      MICROSOFT_TEAMS_CALENDAR_PERMISSION,
+      MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
+    ]) {
+      expect(step).toContain(`**${permission}**`);
+      expect(teams!.setupSteps[1]).toContain(`**${permission}**`);
+    }
+
+    expect(section).toContain(
+      "The same policy lets the app read the transcripts of the organizer's meetings.",
+    );
+    expect(section).toContain(
+      "[RBAC for Applications in Exchange Online](https://learn.microsoft.com/exchange/permissions-exo/application-rbac), scoped to the organizer",
+    );
+  });
+
   test("the dropdown labels the page quotes are the catalog's", () => {
     const page: string = readPage();
 
@@ -451,6 +491,26 @@ describe("Video Calls docs - connecting in one click", () => {
     }
   });
 
+  test("asks a Teams sign-in for the recording permissions while the project records its calls, and says an older one reconnects", () => {
+    const section: string = sectionOf(readPage(), "connect-in-one-click");
+
+    expect(MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS).toEqual([
+      MICROSOFT_TEAMS_CALENDAR_PERMISSION,
+      MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
+    ]);
+
+    for (const permission of MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS) {
+      expect(section).toContain(`\`${permission}`);
+    }
+
+    expect(section).toContain(
+      "A Microsoft Teams connection signed in while **Record and transcribe incident calls** was off starts calls as before, unrecorded.",
+    );
+    expect(section).toContain(
+      "only an administrator can let an app read meeting transcripts.",
+    );
+  });
+
   test("asks a Zoom sign-in for the transcript permissions, and says an older one reconnects", () => {
     const section: string = sectionOf(readPage(), "connect-in-one-click");
 
@@ -481,6 +541,10 @@ describe("Video Calls docs - connecting in one click", () => {
     // The scopes this server's Zoom app needs to read call transcripts.
     expect(section).toContain(ZOOM_OAUTH_RECORDING_FILES_SCOPE);
     expect(section).toContain(ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE);
+    // And the permissions its Microsoft app needs to record Teams calls.
+    for (const permission of MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS) {
+      expect(section).toContain(`\`${permission}\``);
+    }
 
     for (const variable of [
       "ZOOM_APP_CLIENT_ID",
@@ -556,6 +620,7 @@ describe("Video Calls docs - call transcripts", () => {
     for (const label of [
       "Get from Zoom",
       "Get from Google Meet",
+      "Get from Microsoft Teams",
       "Add transcript",
       "Suggested root cause",
       "Not confirmed",
@@ -628,6 +693,20 @@ describe("Video Calls docs - call transcripts", () => {
     );
   });
 
+  test("says which Teams calls OneUptime can read, and how long Microsoft keeps their meeting, as the server reads it", () => {
+    const section: string = sectionOf(readPage(), "what-each-provider-keeps");
+    const row: string =
+      section.split("\n").find((line: string): boolean => {
+        return line.startsWith("| Microsoft Teams |");
+      }) || "";
+
+    expect(row).toContain("| **Get from Microsoft Teams** |");
+    expect(row).toContain(
+      `Microsoft lets apps read the transcripts only of meetings on a calendar, and keeps a meeting for ${MICROSOFT_TEAMS_MEETING_RETENTION_IN_DAYS} days.`,
+    );
+    expect(row).toContain("**Add transcript**");
+  });
+
   describe("Record and transcribe every call", () => {
     const HOUR: number = 60 * 60 * 1000;
 
@@ -671,12 +750,35 @@ describe("Video Calls docs - call transcripts", () => {
       expect(RECORDABLE_VIDEO_CALL_PROVIDERS).toEqual([
         VideoCallProvider.Zoom,
         VideoCallProvider.GoogleMeet,
+        VideoCallProvider.MicrosoftTeams,
       ]);
       expect(section).toContain(
-        "OneUptime asks Zoom to record each incident meeting it starts to the cloud, and Google Meet to transcribe it.",
+        "OneUptime asks Zoom to record each incident meeting it starts to the cloud, Google Meet to transcribe it, and Microsoft Teams to record and transcribe it automatically.",
       );
       expect(section).toContain(
-        "Microsoft Teams calls, Slack huddles and meeting links are not recorded, and neither are alert calls: add their transcripts by hand.",
+        "Slack huddles and meeting links are not recorded, and neither are alert calls: add their transcripts by hand.",
+      );
+      expect(section).not.toContain("Microsoft Teams calls,");
+    });
+
+    test("says how a Teams call is recorded, what that needs, and what becomes of one that cannot be", () => {
+      const section: string = sectionOf(
+        readPage(),
+        "record-and-transcribe-every-call",
+      );
+
+      expect(section).toContain(
+        "Microsoft lets apps read the transcripts only of Teams meetings on a calendar, so OneUptime puts each incident meeting on its organizer's calendar",
+      );
+      expect(section).toContain(
+        `two more Microsoft Graph permissions, \`${MICROSOFT_TEAMS_CALENDAR_PERMISSION}\` and \`${MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION}\``,
+      );
+      expect(section).toContain("(see [Microsoft Teams](#microsoft-teams))");
+      expect(section).toContain(
+        "The organizer's Teams meeting policy must allow cloud recording, transcription and automatic recording",
+      );
+      expect(section).toContain(
+        "A call OneUptime cannot put on the calendar starts all the same, unrecorded, and its **Video Call** card says why.",
       );
     });
 
@@ -689,15 +791,30 @@ describe("Video Calls docs - call transcripts", () => {
       expect(POSTMORTEM_WAITS_FOR_PREPARING_TRANSCRIPT_MS).toBe(6 * HOUR);
       expect(POSTMORTEM_WAITS_FOR_UNSEEN_TRANSCRIPT_MS).toBe(HOUR);
       expect(section).toContain(
-        "up to six hours while Zoom or Google Meet prepares the transcript, and one hour when there is no sign of one yet.",
+        "up to six hours while the provider prepares the transcript, and one hour when there is no sign of one yet.",
       );
     });
 
     test("says how long OneUptime keeps asking for a transcript, as the job holds it", () => {
       expect(CALL_TRANSCRIPT_FETCH_WINDOW_MS).toBe(72 * HOUR);
       expect(readPage()).toContain(
-        "OneUptime asks Zoom or Google Meet for it every few minutes once the call is over, less often as the call gets older, for three days after the call started.",
+        "OneUptime asks Zoom, Google Meet or Microsoft Teams for it every few minutes once the call is over, less often as the call gets older, for three days after the call started.",
       );
+    });
+
+    test("troubleshoots a Teams call that was not recorded, with the two permissions to add", () => {
+      const page: string = readPage();
+      const start: number = page.indexOf(
+        ":::details A Microsoft Teams call was not recorded",
+      );
+
+      expect(start).toBeGreaterThan(-1);
+
+      const details: string = page.slice(start, page.indexOf("\n:::", start));
+
+      expect(details).toContain(`\`${MICROSOFT_TEAMS_CALENDAR_PERMISSION}\``);
+      expect(details).toContain(`\`${MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION}\``);
+      expect(details).toContain("**Reconnect**");
     });
 
     test("the steps of Call transcripts point to it", () => {

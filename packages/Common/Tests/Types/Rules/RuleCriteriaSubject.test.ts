@@ -59,8 +59,18 @@ const SHORTER_NAMES: Record<string, string> = {
   ServiceLevelObjective: "slos",
 };
 
+/*
+ * Rule models whose name does not end in the record they are about: a
+ * postmortem rule decides about resolved incidents.
+ */
+const RECORD_MODEL_OF_RULE: Record<string, string> = {
+  AIPostmortemRule: "Incident",
+};
+
 function recordModelOf(ruleModel: string): string {
-  return ruleModel.replace(RULE_KIND_SUFFIX, "");
+  return (
+    RECORD_MODEL_OF_RULE[ruleModel] || ruleModel.replace(RULE_KIND_SUFFIX, "")
+  );
 }
 
 function pluralNameOf(modelName: string): string {

@@ -24,6 +24,12 @@ import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
+import GlobalRunnerChoice from "Common/Server/Utils/Runner/GlobalRunnerChoice";
+import {
+  RunnerChoiceDecision,
+  getRunnerChoiceRefusalFromStep,
+} from "Common/Types/Runner/RunnerChoice";
+import { clampGlobalRunnerExecutionTimeoutInMs } from "Common/Types/Runner/GlobalRunnerWork";
 
 export interface StepRunResult {
   success: boolean;
@@ -88,9 +94,25 @@ function toStepResult(job: RunnerJob): StepRunResult {
 }
 
 /*
- * Bash and JavaScript steps share an identical dispatch path: enqueue a job
- * targeted at a specific agent, poll until the agent reports back. Only the
- * stepType differs — the agent uses it to pick the right local executor.
+ * Bash, JavaScript, SSH and Kubernetes steps share one dispatch path: decide
+ * where the step runs, enqueue a job for it, poll until it reports back.
+ * Only the stepType differs — the Runner uses it to pick the right local
+ * executor.
+ *
+ * Where it runs is the one "global by default" rule (GlobalRunnerChoice): the
+ * Runner the step picked, always, when it picked one of its project's own;
+ * the global Runners - the ones OneUptime runs for every project - when it
+ * picked none and they may run it; otherwise nowhere, and the step fails
+ * saying why and what to do.
+ *
+ * What the step says alone is checked first, before anything is read: a
+ * step that names its Runner by something that is not an ID, or a Bash, SSH
+ * or Kubernetes step with no Runner, can never run, and never could have
+ * been sent. After that the rule's server facts decide a NEW dispatch only. A
+ * step that already has a job - the Worker restarted mid-step and walked
+ * back to it - adopts that job's result, or waits on it, whatever the facts
+ * say now: the job was sent where the rule said when it was sent, and may be
+ * running there.
  */
 async function dispatchToAgent(args: {
   stepType: RunbookStepType;
@@ -100,42 +122,33 @@ async function dispatchToAgent(args: {
   timeoutInMs: number;
   claimTimeoutInMs: number;
   agentId: string;
-  missingAgentError: string;
   /*
    * Structured instructions for step types that are not a script. Never
    * secret material — the credential is resolved at claim time.
    */
   payload?: JSONObject | undefined;
 }): Promise<StepRunResult> {
-  const agentIdRaw: string = args.agentId.trim();
+  const refusalFromStep: RunnerChoiceDecision | null =
+    getRunnerChoiceRefusalFromStep({
+      stepType: args.stepType,
+      chosenRunnerId: args.agentId,
+    });
 
-  if (!agentIdRaw) {
+  if (refusalFromStep?.kind === "refused") {
     return {
       success: false,
       output: "",
-      errorMessage: args.missingAgentError,
+      errorMessage: refusalFromStep.message,
     };
   }
 
   /*
    * A script step with nothing to run is a no-op, not a failure. Steps that
    * carry a payload instead of a script are exempt: an empty script is their
-   * normal shape.
+   * normal shape. Asked after the Runner is decided, as it always was: a
+   * step that cannot run anywhere says so even when its script is empty.
    */
-  if (!args.script && !args.payload) {
-    return { success: true, output: "" };
-  }
-
-  let targetAgentId: ObjectID;
-  try {
-    targetAgentId = new ObjectID(agentIdRaw);
-  } catch {
-    return {
-      success: false,
-      output: "",
-      errorMessage: `Invalid agent ID configured on the step: ${agentIdRaw}`,
-    };
-  }
+  const isNoOp: boolean = !args.script && !args.payload;
 
   try {
     /*
@@ -144,13 +157,16 @@ async function dispatchToAgent(args: {
      * to this same step. Enqueueing again would hand the agent a second copy
      * of the script — a database restore run twice. The row this step already
      * produced is the source of truth: adopt it if it finished, wait on it if
-     * it did not.
+     * it did not - before the rule below is asked anything, since what it
+     * would say now (the project turned global Runners off since, say) is not
+     * where the job went.
      */
-    const existingJob: RunnerJob | null =
-      await RunnerJobService.findLatestJobForStep({
-        runbookExecutionId: args.ctx.runbookExecutionId,
-        stepId: args.step.id,
-      });
+    const existingJob: RunnerJob | null = isNoOp
+      ? null
+      : await RunnerJobService.findLatestJobForStep({
+          runbookExecutionId: args.ctx.runbookExecutionId,
+          stepId: args.step.id,
+        });
 
     if (existingJob && isTerminalAgentJobStatus(existingJob.status)) {
       logger.info(
@@ -159,40 +175,97 @@ async function dispatchToAgent(args: {
       return toStepResult(existingJob);
     }
 
-    let jobId: ObjectID;
-    /*
-     * Anchors the claim + execution window. Re-attaching keeps the original
-     * job's clock so a step cannot buy itself another full window on each
-     * redelivery; a fresh dispatch starts its window now.
-     */
-    let waitStartedAt: Date | undefined = undefined;
-
     if (existingJob) {
       logger.info(
         `Runbook step ${args.step.id} already has an in-flight agent job (${existingJob.status}); re-attaching to it rather than dispatching a second one.`,
       );
-      jobId = new ObjectID(existingJob._id!);
-      waitStartedAt = existingJob.createdAt;
-    } else {
-      const job: RunnerJob = await RunnerJobService.enqueue({
-        projectId: args.ctx.projectId,
-        runbookExecutionId: args.ctx.runbookExecutionId,
-        stepId: args.step.id,
-        stepType: args.stepType,
-        targetAgentId,
-        script: args.script,
-        timeoutInMs: args.timeoutInMs,
-        claimTimeoutInMs: args.claimTimeoutInMs,
-        ...(args.payload ? { payload: args.payload } : {}),
-      });
-      jobId = new ObjectID(job._id!);
-    }
 
-    const terminal: RunnerJob = await RunnerJobService.pollUntilTerminal({
-      jobId,
+      /*
+       * Re-attaching keeps the original job's clock, so a step cannot buy
+       * itself another full window on each redelivery - and the window the
+       * job was sent with: a global Runner's is held to its most.
+       */
+      const terminal: RunnerJob = await RunnerJobService.pollUntilTerminal({
+        jobId: new ObjectID(existingJob._id!),
+        claimTimeoutInMs: args.claimTimeoutInMs,
+        executionTimeoutInMs: existingJob.runsOnGlobalRunner
+          ? clampGlobalRunnerExecutionTimeoutInMs(args.timeoutInMs)
+          : args.timeoutInMs,
+        waitStartedAt: existingJob.createdAt,
+      });
+
+      return toStepResult(terminal);
+    }
+  } catch (err) {
+    logger.error(`${args.stepType} step dispatch failed`);
+    logger.error(err);
+    return {
+      success: false,
+      output: "",
+      errorMessage: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  let decision: RunnerChoiceDecision;
+
+  try {
+    decision = await GlobalRunnerChoice.decideForStep({
+      projectId: args.ctx.projectId,
+      stepType: args.stepType,
+      chosenRunnerId: args.agentId,
+    });
+  } catch (err) {
+    logger.error(`${args.stepType} step: could not decide its Runner`);
+    logger.error(err);
+    return {
+      success: false,
+      output: "",
+      errorMessage: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  if (decision.kind === "refused") {
+    return {
+      success: false,
+      output: "",
+      errorMessage: decision.message,
+    };
+  }
+
+  if (isNoOp) {
+    return { success: true, output: "" };
+  }
+
+  const runsOnGlobalRunner: boolean = decision.kind === "global";
+
+  /*
+   * A global Runner runs a step for a few minutes at most, whatever the
+   * step asked for; the wait below is held to the same window.
+   */
+  const executionTimeoutInMs: number = runsOnGlobalRunner
+    ? clampGlobalRunnerExecutionTimeoutInMs(args.timeoutInMs)
+    : args.timeoutInMs;
+
+  try {
+    const job: RunnerJob = await RunnerJobService.enqueue({
+      projectId: args.ctx.projectId,
+      runbookExecutionId: args.ctx.runbookExecutionId,
+      stepId: args.step.id,
+      stepType: args.stepType,
+      ...(decision.kind === "custom"
+        ? { targetAgentId: new ObjectID(decision.runnerId) }
+        : { runsOnGlobalRunner: true }),
+      script: args.script,
+      timeoutInMs: executionTimeoutInMs,
       claimTimeoutInMs: args.claimTimeoutInMs,
-      executionTimeoutInMs: args.timeoutInMs,
-      waitStartedAt,
+      ...(args.payload ? { payload: args.payload } : {}),
+    });
+
+    // A fresh dispatch starts its window now.
+    const terminal: RunnerJob = await RunnerJobService.pollUntilTerminal({
+      jobId: new ObjectID(job._id!),
+      claimTimeoutInMs: args.claimTimeoutInMs,
+      executionTimeoutInMs,
     });
 
     return toStepResult(terminal);
@@ -220,8 +293,6 @@ export async function runJavaScriptStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "JavaScript step is missing a Runner. Pick one under Runbooks → Runners. JavaScript never runs on the OneUptime Worker.",
   });
 }
 
@@ -328,8 +399,6 @@ export async function runBashStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "Bash step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }
 
@@ -368,8 +437,6 @@ export async function runSshStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "SSH step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }
 
@@ -427,7 +494,5 @@ export async function runKubernetesStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "Kubernetes step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }

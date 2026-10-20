@@ -9,6 +9,7 @@ import {
 import { redactLogString, redactLogValue } from "../../../LogRedaction";
 import ConnectorErrorMessage from "../../ConnectorErrorMessage";
 import { ConnectorTransport } from "../Types";
+import { withoutTrailingSlashes } from "../../../../../Utils/TrailingRuns";
 
 /*
  * Splunk REST client for the Splunk Enterprise Security connector.
@@ -194,7 +195,7 @@ export default class SplunkClient {
       );
     }
 
-    const path: string = parsed.pathname.replace(/\/+$/, "");
+    const path: string = withoutTrailingSlashes(parsed.pathname);
 
     return `${parsed.origin}${path}`;
   }

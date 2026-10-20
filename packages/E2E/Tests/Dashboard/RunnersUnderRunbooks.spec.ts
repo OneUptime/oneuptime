@@ -22,6 +22,13 @@ const urlFor: (path: string) => string = (path: string): string => {
 const SERVER: { timeout: number } = { timeout: 30000 };
 
 /*
+ * The heading of the card that lists the project's own Runners: Runners on
+ * a server with no global Runner, Custom Runners under the Global Runners
+ * card on one that has some.
+ */
+const OWN_RUNNERS_CARD_HEADING: RegExp = /^(?:Custom )?Runners$/;
+
+/*
  * Runners are set up under Runbooks → Runners; they used to be a Project
  * Settings page. Real navigation, the real create form and real persistence:
  * the Runner is created through the dashboard, read back through the API,
@@ -119,11 +126,17 @@ test.describe("Runners live under Runbooks", () => {
       await expect(breadcrumb).toContainText("Runbooks");
       await expect(breadcrumb).toContainText("Runners");
       await expect(breadcrumb).not.toContainText("Settings");
-      // The menu section is a heading called Runners too: this is the card's.
-      await expect(page.getByTestId("card-details-heading")).toHaveText(
-        "Runners",
-        SERVER,
-      );
+      /*
+       * The menu section is a heading called Runners too: this is the card
+       * of the project's own Runners. On a server that runs a global Runner
+       * - every Docker Compose install does - the global ones have a card of
+       * their own above it, and this one is Custom Runners.
+       */
+      await expect(
+        page
+          .getByTestId("card-details-heading")
+          .filter({ hasText: OWN_RUNNERS_CARD_HEADING }),
+      ).toBeVisible(SERVER);
 
       /*
        * Create a Runner through the form: Runner (the labels folded under

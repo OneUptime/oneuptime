@@ -332,6 +332,27 @@ export default class IncidentVideoCall extends BaseModel {
     update: [],
   })
   @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    computed: true,
+    title: "Provider Calendar Event ID",
+    description:
+      "The calendar event the meeting belongs to: a Microsoft Teams meeting OneUptime put on its organizer's calendar, as it does while Record and transcribe incident calls is on, so that it can read the meeting's transcript. Empty for every other call.",
+    example: "AAMkAGI2THVSAAA=",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public externalCalendarEventId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
     manyToOneRelationColumn: "workspaceNotificationRuleId",
     type: TableColumnType.Entity,
     computed: true,
@@ -687,7 +708,7 @@ export default class IncidentVideoCall extends BaseModel {
     computed: true,
     title: "Transcript Fetch Status",
     description:
-      "Whether OneUptime gets the call's transcript from Zoom or Google Meet by itself, as it does for the calls it starts while Record and transcribe incident calls is on: Waiting while it asks the provider (again at Transcript Fetch Next Attempt At), Stopped once it no longer asks (Transcript Fetch Reason says why). Empty for a call it does not ask about, and once it has the transcript.",
+      "Whether OneUptime gets the call's transcript from Zoom, Google Meet or Microsoft Teams by itself, as it does for the calls it starts while Record and transcribe incident calls is on: Waiting while it asks the provider (again at Transcript Fetch Next Attempt At), Stopped once it no longer asks, or when the provider could not be set up to record the call (Transcript Fetch Reason says why). Empty for a call it does not ask about, and once it has the transcript.",
     example: "Waiting",
   })
   @Column({

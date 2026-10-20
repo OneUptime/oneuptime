@@ -1,0 +1,126 @@
+# ebpf.bufferSizes: how many bytes of each database request OBI copies to read
+# it. Without a buffer OBI's small fixed capture stops db.query.text at about
+# 250 characters and can miss a long statement sent with bound parameters.
+suite: eBPF DaemonSet database capture buffers
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/daemonset-ebpf.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: copies nothing extra by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_POSTGRES
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_MYSQL
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_MSSQL
+          any: true
+
+  - it: copies whole PostgreSQL statements when asked, and only for PostgreSQL
+    set:
+      ebpf.bufferSizes.postgres: 4096
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_POSTGRES
+            value: "4096"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_MYSQL
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_MSSQL
+          any: true
+
+  - it: sets each database's buffer on its own
+    set:
+      ebpf.bufferSizes:
+        postgres: 4096
+        mysql: 2048
+        mssql: 65535
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_POSTGRES
+            value: "4096"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_MYSQL
+            value: "2048"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_MSSQL
+            value: "65535"
+
+  # A release carried forward with --reuse-values from a chart before the key
+  # has no value at all: nothing extra is copied, as before.
+  - it: treats a values file without bufferSizes as 0
+    set:
+      ebpf.bufferSizes: null
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_POSTGRES
+          any: true
+
+  - it: renders nothing for a protocol left empty beside one that is set
+    set:
+      ebpf.bufferSizes:
+        postgres: null
+        mysql: 1024
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_POSTGRES
+          any: true
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_BUFFER_SIZE_MYSQL
+            value: "1024"
+
+  # OBI refuses to start on a buffer above its limit, so the chart refuses it
+  # first, where the error names the key.
+  - it: rejects a buffer larger than OBI allows
+    set:
+      ebpf.bufferSizes.postgres: 65536
+    asserts:
+      - failedTemplate:
+          errorPattern: "ebpf.bufferSizes.postgres: Must be less than or equal to 65535"
+
+  - it: rejects a negative buffer
+    set:
+      ebpf.bufferSizes.mysql: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: "ebpf.bufferSizes.mysql: Must be greater than or equal to 0"
+
+  - it: rejects a protocol it has no buffer for
+    set:
+      ebpf.bufferSizes.http: 4096
+    asserts:
+      - failedTemplate:
+          errorPattern: "Additional property http is not allowed"

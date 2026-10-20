@@ -71,6 +71,8 @@ const CALL_SELECT: {
   title: true;
   videoCallConnectionId: true;
   externalMeetingId: true;
+  externalCalendarEventId: true;
+  createdAt: true;
   transcript: true;
   callSummary: true;
   callSummaryStatus: true;
@@ -83,6 +85,8 @@ const CALL_SELECT: {
   title: true,
   videoCallConnectionId: true,
   externalMeetingId: true,
+  externalCalendarEventId: true,
+  createdAt: true,
   transcript: true,
   callSummary: true,
   callSummaryStatus: true,
@@ -210,6 +214,8 @@ export default class IncidentVideoCallAPI extends BaseAPI<
         provider: call.provider,
         videoCallConnectionId: call.videoCallConnectionId,
         externalMeetingId: call.externalMeetingId,
+        externalCalendarEventId: call.externalCalendarEventId,
+        startedAt: call.createdAt,
       },
       projectId: call.projectId!,
     });

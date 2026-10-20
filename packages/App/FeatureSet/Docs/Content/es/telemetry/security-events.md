@@ -27,22 +27,23 @@ flowchart TB
 
 Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú:
 
-| Página | Sección | Para qué sirve |
+| Página | Entrada del menú | Para qué sirve |
 | --- | --- | --- |
-| **Vista general** | Vista general | Lo que necesita atención ahora y la rapidez con que se gestionan los casos |
-| **Security Cases** | Vista general | La cola de lo detectado, agrupado según de qué trata |
-| **Eventos** | Investigar | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
-| **Correlacionar** | Investigar | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
-| **Entidades** | Investigar | Los usuarios, hosts y direcciones que más nombran tus hallazgos |
-| **Reglas de detección** | Detectar | Reglas Sigma que se ejecutan según una programación y abren casos |
-| **Rule Library** | Detectar | Reglas de detección listas para añadir |
-| **ATT&CK Coverage** | Detectar | Las técnicas de MITRE ATT&CK que cubren tus reglas |
-| **Inteligencia de amenazas** | Detectar | Feeds STIX/TAXII de indicadores maliciosos conocidos |
-| **Monitores** | Detectar | Los monitores de eventos de seguridad del proyecto |
-| **Playbooks** | Responder | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
-| **Playbook Runs** | Responder | Lo que hizo cada playbook y los pasos que esperan aprobación |
-| **Conexiones** | Orígenes | Productos de seguridad que OneUptime consulta en busca de registros nuevos |
-| **Guía de configuración** | Orígenes | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
+| **Vista general** | Vista general | Cómo está configurada la seguridad, qué necesita a alguien ahora y con qué rapidez se gestionan los casos |
+| **Security Cases** | Security Cases | La cola de lo detectado, agrupado según de qué trata |
+| **Eventos** | Eventos | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
+| **Entidades** | Eventos | Los usuarios, hosts y direcciones que más nombran tus hallazgos |
+| **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
+| **Reglas de detección** | Detecciones | Reglas Sigma que se ejecutan según una programación y abren casos |
+| **Rule Library** | Detecciones | Reglas de detección listas para añadir, con las recomendadas marcadas |
+| **Inteligencia de amenazas** | Detecciones | Feeds STIX/TAXII de indicadores maliciosos conocidos |
+| **ATT&CK Coverage** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
+| **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
+| **Playbook Runs** | Playbooks | Lo que hizo cada playbook y los pasos que esperan aprobación |
+| **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
+| **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
+
+Las páginas de una entrada del menú se abren como pestañas en la parte superior de la página. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
 
 ## Antes de empezar
 
@@ -153,6 +154,10 @@ Para enviar registros de seguridad que ya recopilas, como los de auditd, syslog 
 
 La pestaña **Guía de configuración** tiene estos fragmentos con tu propio host y tu clave ya rellenados.
 
+### Encontrar eventos de seguridad en sus registros
+
+La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH, comando sudo, entrada de auditoría de Kubernetes, cambio de AWS CloudTrail y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
+
 ### Conectar un producto de seguridad
 
 **Conexiones** consulta un producto de seguridad por ti e importa sus registros nuevos como eventos de seguridad. Una conexión guarda los ajustes del producto y una credencial cifrada; un worker la consulta con el intervalo que definas y omite los registros que ya importó.
@@ -233,7 +238,7 @@ flowchart TB
 ### Crear una regla
 
 :::steps
-1. Abre **Productos → Eventos de seguridad → Reglas de detección** y haz clic en **Crear Regla de detección**.
+1. Abre **Productos → Eventos de seguridad → Detecciones** y haz clic en **Crear Regla de detección**.
 2. En **Regla Sigma**, pega el YAML de la regla en **Regla Sigma (YAML)**. Se analiza al guardar, así que un error aparece en el formulario.
 3. El **Nombre** se rellena con el `title` de la regla: escríbelo encima para llamarla de otra forma. Una regla nueva se ejecuta; **Habilitado** está en su formulario de edición.
 4. En **Al coincidir**, deja **Open a Case on Match** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
@@ -292,11 +297,11 @@ La agrupación y el recuento distinto aceptan los mismos nombres de campo que la
 
 ### Cuándo se ejecuta una regla
 
-OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su intervalo desde su última ejecución. Cada ejecución lee los eventos cuya hora de evento cae entre la ejecución anterior y ahora, y después avanza:
+OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su intervalo desde su última ejecución. Cada ejecución lee los eventos cuya hora de evento cae entre la ejecución anterior y hace dos minutos, y después avanza. Esos dos minutos dan margen a los eventos que aún están en camino, como una línea de registro leída un minuto después de escribirse:
 
 - Las ventanas van una tras otra, no se deslizan. Con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 pueden caer en ejecuciones distintas y se cuentan por separado, así que deja margen al elegir un umbral.
 - Tras un hueco, como una caída del worker o una regla que se vuelve a activar, la siguiente ejecución cubre el hueco entero, hasta las últimas 24 horas.
-- Un evento que llega tarde, con una hora anterior a la última ejecución de la regla, se guarda y se puede buscar, pero esa regla nunca lo lee.
+- Un evento que llega con más de dos minutos de retraso, cuando una ejecución ya ha cubierto su hora, se guarda y se puede buscar, pero esa regla nunca lo lee.
 - Como mucho se disparan 100 grupos por ejecución: los de recuentos más altos.
 
 ### Gravedad
@@ -329,7 +334,7 @@ Los hallazgos son eventos corrientes: búscalos en **Eventos** y pivota sobre el
 
 ## Monitores de eventos de seguridad
 
-Un monitor de eventos de seguridad cuenta los eventos que coinciden con sus filtros sobre una ventana deslizante y aplica al recuento los criterios habituales de los monitores: cambia el estado del monitor, abre alertas o incidentes y avisa a la guardia. Crea uno en **Monitores → Crear monitor**, con **Eventos de seguridad** como tipo; **Eventos de seguridad → Monitores** los lista todos.
+Un monitor de eventos de seguridad cuenta los eventos que coinciden con sus filtros sobre una ventana deslizante y aplica al recuento los criterios habituales de los monitores: cambia el estado del monitor, abre alertas o incidentes y avisa a la guardia. Crea uno en **Monitores → Crear monitor**, con **Eventos de seguridad** como tipo; aparece allí junto a sus demás monitores.
 
 Su formulario muestra **Monitorear eventos que incluyan este texto**, **Monitorear eventos de seguridad durante (tiempo)**, **Gravedad del evento** y **Clase de evento**. **Filtrar por servicio de telemetría** y **Filtrar por atributos** esperan en **Más campos**, cuya cabecera muestra los que usa un monitor. Sus criterios comprueban **Security Event Count**.
 

@@ -12,10 +12,8 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react";
-import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter, matchRoutes } from "react-router-dom";
 
@@ -47,7 +45,8 @@ jest.mock("../../../UI/Utils/Analytics", () => {
   return { __esModule: true, default: { capture: jest.fn() } };
 });
 
-import AICodeFixReadiness from "../../../../App/FeatureSet/Dashboard/src/Components/AIAgentTask/AICodeFixReadiness";
+import CodeBlockerNotice from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeBlockerNotice";
+import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
 import RunnerElement from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/Runner";
 import RunnersElement from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/Runners";
 import RunbookSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/SideMenu";
@@ -65,13 +64,14 @@ import { getRunbooksBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src
 import { getSettingsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SettingsBreadcrumbs";
 import { getReadinessCheckLink } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionAIAssistance";
 import Runner from "../../../Models/DatabaseModels/Runner";
-import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
-import { JSONObject } from "../../../Types/JSON";
 import Link from "../../../Types/Link";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import Page from "../../../UI/Components/Page/Page";
-import API from "../../../UI/Utils/API/API";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
@@ -524,74 +524,67 @@ describe("links elsewhere in the dashboard arrive at the Runbooks pages", () => 
     expect(routeFor(link!.pageMap)).toBe(RUNNERS_PATH);
   });
 
-  describe("the AI code-fix readiness card", () => {
-    function readinessResponse(agentOk: boolean): HTTPResponse<JSONObject> {
-      return new HTTPResponse<JSONObject>(
-        200,
-        {
-          ready: agentOk,
-          checks: [
-            {
-              id: "repositoryConnected",
-              ok: true,
-              title: "A code repository is connected",
-              detail: "",
-            },
-            {
-              id: "llmProvider",
-              ok: true,
-              title: "An LLM provider is available",
-              detail: "",
-            },
-            {
-              id: "agentAvailable",
-              ok: agentOk,
-              title: "A Runner that runs AI code fixes is online",
-              detail: agentOk ? "" : "No agent is available for this project.",
-            },
-          ],
-        },
-        {},
+  /*
+   * Code says, above a repository's request box, when no Runner is online to
+   * do the work - with the one link that fixes it, offered to whoever may
+   * set a Runner up (everyone else is told who can).
+   */
+  describe("Code's notice that no Runner is online", () => {
+    // The reader may create Runners, as the permission snapshot says.
+    function grantCreateRunner(): void {
+      const permissions: Array<Permission> = [
+        Permission.ProjectUser,
+        Permission.CreateRunner,
+      ];
+
+      jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue(permissions);
+      jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
+      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue({
+        projectId: new ObjectID(PROJECT_ID),
+        userId: ObjectID.generate(),
+        permissions: permissions.map((permission: Permission) => {
+          return {
+            permission: permission,
+            labelIds: [],
+            _type: "UserPermission",
+          };
+        }),
+        _type: "UserTenantAccessPermission",
+      });
+    }
+
+    function renderNoAgentNotice(): void {
+      render(
+        <CodeBlockerNotice
+          blocker={{
+            type: CodeTaskBlockerType.NoAgent,
+            message: "No agent is available for this project.",
+          }}
+        />,
       );
     }
 
-    test("its missing-Runner tile sends people to Runbooks → Runners", async () => {
-      jest.spyOn(API, "post").mockResolvedValue(readinessResponse(false));
-      const navigate: SpyInstance<typeof Navigation.navigate> = jest
-        .spyOn(Navigation, "navigate")
-        .mockImplementation((): void => {});
+    test("its fix sends people to Runbooks → Runners", () => {
+      grantCreateRunner();
+      renderNoAgentNotice();
 
-      render(<AICodeFixReadiness />);
+      const fix: HTMLElement = screen.getByTestId("code-blocker-fix");
 
-      const tile: HTMLElement = await waitFor((): HTMLElement => {
-        return screen.getByTestId("ai-readiness-check-agentAvailable");
-      });
-      expect(tile).toHaveAttribute("role", "button");
-
-      fireEvent.click(tile);
-
-      expect(navigate).toHaveBeenCalledTimes(1);
-      expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
-        RUNNERS_PATH,
-      );
+      expect(fix).toHaveTextContent("Set up a Runner");
+      expect(fix).toHaveAttribute("href", RUNNERS_PATH);
     });
 
-    test("the same tile works from the keyboard", async () => {
-      jest.spyOn(API, "post").mockResolvedValue(readinessResponse(false));
-      const navigate: SpyInstance<typeof Navigation.navigate> = jest
-        .spyOn(Navigation, "navigate")
-        .mockImplementation((): void => {});
+    test("it says why in the reader's words, not the server's", () => {
+      renderNoAgentNotice();
 
-      render(<AICodeFixReadiness />);
-
-      const tile: HTMLElement = await waitFor((): HTMLElement => {
-        return screen.getByTestId("ai-readiness-check-agentAvailable");
-      });
-
-      fireEvent.keyDown(tile, { key: "Enter" });
-
-      expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
-        RUNNERS_PATH,
+      expect(screen.getByTestId("code-blocker")).toHaveTextContent(
+        "No Runner is online to do the work. AI works in your code through a Runner with Runs AI Code Fixes turned on.",
+      );
+      expect(screen.getByTestId("code-blocker")).not.toHaveTextContent(
+        "No agent is available for this project.",
       );
     });
   });

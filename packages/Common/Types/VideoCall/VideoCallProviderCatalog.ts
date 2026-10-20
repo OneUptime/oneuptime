@@ -133,10 +133,7 @@ export const MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION: string =
  * recording:read:admin); this server's Zoom app, the user ones.
  *
  * Google Meet needs nothing more: meetings.space.created lets OneUptime
- * read the transcripts of the meetings it created. Microsoft Graph has no
- * transcripts for meetings created as OneUptime creates them (an online
- * meeting with no calendar event), so a Teams call's transcript is added
- * by a person.
+ * read the transcripts of the meetings it created.
  */
 export const ZOOM_RECORDING_FILES_SCOPE: string =
   "cloud_recording:read:list_recording_files:admin";
@@ -147,6 +144,22 @@ export const ZOOM_OAUTH_RECORDING_FILES_SCOPE: string =
   "cloud_recording:read:list_recording_files";
 export const ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE: string =
   "cloud_recording:read:meeting_transcript";
+
+/*
+ * What recording and transcribing a Microsoft Teams call asks of Microsoft
+ * Graph, while the project's Record and transcribe incident calls is on.
+ * Graph lets apps read the transcripts only of meetings on a calendar, so
+ * OneUptime puts each incident meeting on its organizer's calendar
+ * (Calendars.ReadWrite) and reads its transcripts once the call is over
+ * (OnlineMeetingTranscript.Read.All). The same names are the application
+ * permissions of an app registration and the delegated ones a sign-in is
+ * asked for. Optional: without them a Teams call starts all the same,
+ * unrecorded, and its card says why.
+ */
+export const MICROSOFT_TEAMS_CALENDAR_PERMISSION: string =
+  "Calendars.ReadWrite";
+export const MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION: string =
+  "OnlineMeetingTranscript.Read.All";
 
 export const GOOGLE_MEET_ACCESS_TYPE_OPTIONS: Array<VideoCallConnectionFieldOption> =
   [
@@ -349,7 +362,7 @@ export const VideoCallProviderCatalog: Array<VideoCallProviderDefinition> = [
     ],
     setupSteps: [
       "In the [Microsoft Entra admin center](https://entra.microsoft.com/), open **App registrations → New registration** and register a single-tenant app.",
-      `Under **API permissions**, add the Microsoft Graph **application** permission **${MICROSOFT_TEAMS_MEETING_PERMISSION}**, then click **Grant admin consent**.`,
+      `Under **API permissions**, add the Microsoft Graph **application** permission **${MICROSOFT_TEAMS_MEETING_PERMISSION}** (and, to record and transcribe incident calls too, **${MICROSOFT_TEAMS_CALENDAR_PERMISSION}** and **${MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION}**), then click **Grant admin consent**.`,
       "Under **Certificates & secrets**, create a client secret and copy its **Value** - not the Secret ID.",
       "Pick the organizer: a licensed Teams user, ideally a service account. Copy its **Object ID** from **Users** in the Entra admin center.",
       'Allow the app to create meetings for the organizer. In Teams PowerShell (after `Connect-MicrosoftTeams`), run `New-CsApplicationAccessPolicy -Identity OneUptime-Meetings -AppIds "<application-client-id>"` and then `Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "<organizer-object-id>"`. The policy can take up to 30 minutes to apply.',

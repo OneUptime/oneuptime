@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 4958
+    "keys": 31337,
+    "untranslated": 4901
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -328,6 +328,7 @@
     "Optional. ",
     "PGs",
     "PM",
+    "PR #{{number}}",
     "Pakistan",
     "Palau",
     "Panama",
@@ -455,6 +456,7 @@
     "Top P",
     "Trace",
     "Trace Explorer",
+    "Trace {{traceId}}",
     "Traceroute",
     "Traces",
     "Transport",

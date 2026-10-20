@@ -66,11 +66,13 @@ OneUptime Cloud では、Zoom、Google Meet、Microsoft Teams の接続はワン
 | --- | --- | --- |
 | Zoom | Zoom ユーザー。Basic (無料) ユーザーがホストの会議は 40 分で終了します。 | そのユーザーの会議の作成 (`meeting:write:meeting`) と、そのユーザーが誰かの読み取り (`user:read:user`)。 [通話の文字起こし](#通話の文字起こし) のために、そのユーザーの会議のクラウド録画の文字起こしの読み取り (`cloud_recording:read:list_recording_files`、 `cloud_recording:read:meeting_transcript`)。 |
 | Google Meet | Google Meet を使える Google アカウント。 | そのアカウントとしての Meet スペースの作成 (`meetings.space.created`) と、そのメールアドレスの読み取り。 |
-| Microsoft Teams | Microsoft Teams を使える職場または学校のアカウント。個人の Microsoft アカウントでは Teams の会議を作成できません。 | そのアカウントとしてのオンライン会議の作成 (委任されたアクセス許可 `OnlineMeetings.ReadWrite`) と、サインイン状態の維持 (`offline_access`)。 |
+| Microsoft Teams | Microsoft Teams を使える職場または学校のアカウント。個人の Microsoft アカウントでは Teams の会議を作成できません。 | そのアカウントとしてのオンライン会議の作成 (委任されたアクセス許可 `OnlineMeetings.ReadWrite`) と、サインイン状態の維持 (`offline_access`)。 [インシデント通話の録画と文字起こし](#すべての通話を録画して文字起こしする) のために、そのアカウントのカレンダーへの会議の追加 (`Calendars.ReadWrite`) と、その文字起こしの読み取り (`OnlineMeetingTranscript.Read.All`、管理者の承認が必要)。 |
 
 サインインで作成した接続にも、誰が待つかを決める設定があります。Google Meet では **Who can join**、Microsoft Teams では **Who skips the lobby** です。接続の行の **編集** で変更します。
 
 OneUptime が通話の文字起こしを読み取るようになる前にサインインした Zoom の接続は、これまでどおり通話を開始しますが、もう一度サインインするまで文字起こしは読み取れません。行の **Reconnect** で、Zoom に文字起こしの権限を求めます。
+
+**インシデント通話を録画して文字起こしする** がオフのときにサインインした Microsoft Teams の接続は、これまでどおり通話を開始しますが、録画はされません。この設定をオンにすると、行の **Reconnect** で、Microsoft にカレンダーと文字起こしの権限も求めます。
 
 ### サインイン状態を保つ
 
@@ -86,7 +88,7 @@ OneUptime はサインインのリフレッシュトークンを暗号化して�
 
 ### Microsoft が管理者を求める場合
 
-Microsoft 365 の組織によっては、アプリを承認できるのは管理者だけです。Microsoft に管理者の承認が必要だと言われたら、Microsoft 365 の管理者に Microsoft Teams を接続してもらうか、[Microsoft Entra 管理センター](https://entra.microsoft.com/) の **Enterprise applications** > **Admin consent requests** で OneUptime を承認してもらいます。
+Microsoft 365 の組織によっては、アプリを承認できるのは管理者だけです。Microsoft に管理者の承認が必要だと言われたら、Microsoft 365 の管理者に Microsoft Teams を接続してもらうか、[Microsoft Entra 管理センター](https://entra.microsoft.com/) の **Enterprise applications** > **Admin consent requests** で OneUptime を承認してもらいます。Teams の通話を録画するプロジェクトでは、組織ごとに 1 回、この承認が必要です。アプリに会議の文字起こしの読み取りを許可できるのは管理者だけだからです。
 
 ### 代わりに自分のアプリを使う
 
@@ -107,7 +109,7 @@ Microsoft 365 の組織によっては、アプリを承認できるのは管理
 :::steps
 ### 通話の後で文字起こしを取得する
 
-インシデントの **ビデオ通話** カードで、 **Zoom から取得** または **Google Meet から取得** が、OneUptime がそこで開始した会議の文字起こしを読み取ります。それ以外の通話では、 **文字起こしを追加** で会議ツールが保存したファイル (`.vtt`、 `.srt`、 `.txt`、最大 5 MB) または貼り付けた文字起こしを追加します。[すべての通話を録画して文字起こしする](#すべての通話を録画して文字起こしする) ようにしている場合は、通話が終わると OneUptime が自動で取得します。
+インシデントの **ビデオ通話** カードで、 **Zoom から取得**、 **Google Meet から取得**、または **Microsoft Teams から取得** が、OneUptime がそこで開始した会議の文字起こしを読み取ります (Microsoft Teams の場合は、すべての通話を録画して文字起こししている間に開始した会議)。それ以外の通話では、 **文字起こしを追加** で会議ツールが保存したファイル (`.vtt`、 `.srt`、 `.txt`、最大 5 MB) または貼り付けた文字起こしを追加します。[すべての通話を録画して文字起こしする](#すべての通話を録画して文字起こしする) ようにしている場合は、通話が終わると OneUptime が自動で取得します。
 
 ### OneUptime AI が読み取る
 
@@ -124,12 +126,14 @@ OneUptime AI は、通話で原因が挙げられた場合にのみ、そう述�
 
 通話の録画や文字起こしの取得を誰も覚えておく必要がないように、 **プロジェクト設定** > **ワークスペース** > **ビデオ通話** で **インシデント通話を録画して文字起こしする** をオンにします。オンの間は次のようになります。
 
-- OneUptime は、自身が開始するインシデントの会議ごとに、Zoom にはクラウドへの録画を、Google Meet には文字起こしを依頼します。通話を投稿するメッセージには、誰かが参加する前にそのことが書かれています。
+- OneUptime は、自身が開始するインシデントの会議ごとに、Zoom にはクラウドへの録画を、Google Meet には文字起こしを、Microsoft Teams には自動の録画と文字起こしを依頼します。通話を投稿するメッセージには、誰かが参加する前にそのことが書かれています。
 - 通話が終わると、 **Zoom から取得** と同じように OneUptime が自動で文字起こしを取得し、OneUptime AI がそれを読み取ります。それまでは、 **ビデオ通話** カードに待機中であることが表示されます。
 - OneUptime AI が読み取った内容は、インシデントのフィードと、その Slack と Microsoft Teams のチャネルに届きます。未確認の印が付いた提案された根本原因、続いて確認されたこと、試したこと、決まったこと、フォローアップ、未解決の質問です。
-- 文字起こしが届く前にインシデントが解決した場合、自動のポストモーテムの下書きは、通話で話された内容を読み取れるよう文字起こしを待ちます。Zoom または Google Meet が文字起こしを準備している間は最大 6 時間、まだその兆しがない場合は 1 時間です。
+- 文字起こしが届く前にインシデントが解決した場合、自動のポストモーテムの下書きは、通話で話された内容を読み取れるよう文字起こしを待ちます。プロバイダーが文字起こしを準備している間は最大 6 時間、まだその兆しがない場合は 1 時間です。
 
-この設定は人を録画するため、既定ではオフです。これらの通話の参加者全員に、録画または文字起こしされていることが表示されるので、組織で許可されていることを確認してください。Zoom が文字起こしを保持するのは、アカウントが音声文字起こしをオンにしてクラウドに録画する場合だけで、Google Meet では文字起こしのある Google Workspace のエディションの場合だけです。Microsoft Teams の通話、Slack のハドル、会議リンクは録画されず、アラートの通話も録画されません。それらの文字起こしは手動で追加してください。
+この設定は人を録画するため、既定ではオフです。これらの通話の参加者全員に、録画または文字起こしされていることが表示されるので、組織で許可されていることを確認してください。Zoom が文字起こしを保持するのは、アカウントが音声文字起こしをオンにしてクラウドに録画する場合だけで、Google Meet では文字起こしのある Google Workspace のエディションの場合だけです。Slack のハドルと会議リンクは録画されず、アラートの通話も録画されません。それらの文字起こしは手動で追加してください。
+
+Microsoft がアプリに文字起こしの読み取りを許可するのはカレンダー上の Teams 会議だけなので、OneUptime はインシデントの会議をそれぞれ開催者のカレンダーに追加し、会議のオプションで自動の録画と文字起こしをオンにします。そのため、接続には Microsoft Graph のアクセス許可がさらに 2 つ、 `Calendars.ReadWrite` と `OnlineMeetingTranscript.Read.All` が必要です。アプリ登録にこれらを追加するか ( [Microsoft Teams](#microsoft-teams) を参照)、サインインで作成した接続では **Reconnect** を使ってください。開催者の Teams 会議ポリシーでクラウド録画、文字起こし、自動録画が許可されている必要があり、組織でアプリによる文字起こしへのアクセスが無効になっていてはいけません。OneUptime がカレンダーに追加できない通話も録画なしでそのまま開始され、その **ビデオ通話** カードに理由が表示されます。
 
 ### 各プロバイダーが保持するもの
 
@@ -137,7 +141,7 @@ OneUptime AI は、通話で原因が挙げられた場合にのみ、そう述�
 | --- | --- | --- |
 | Zoom | **Zoom から取得** | 音声文字起こしをオンにしてクラウドに録画された会議、または AI Companion の会議の要約がオンの会議。接続には文字起こしのスコープが必要で ( [Zoom](#zoom) を参照)、それ以前にサインインした接続には **Reconnect** が必要です。Zoom は会議の後に文字起こしを準備し、通常は会議の長さの 2 倍以内に完了します。 |
 | Google Meet | **Google Meet から取得** | 通話中にオンにした文字起こし (文字起こしのある Google Workspace のエディション)。ほかに設定するものはありません。OneUptime は自身が作成した会議の文字起こしを読み取ります。Google はアプリが読める状態で文字起こしを 30 日間保持します。 |
-| Microsoft Teams | **文字起こしを追加** | Microsoft は、OneUptime が作成する方法で作成された会議の文字起こしを、どのアプリにも読ませません。Teams で会議の要約を開き、次に文字起こしを開いて、 `.vtt` ファイルとしてダウンロードしてください。 |
+| Microsoft Teams | **Microsoft Teams から取得** | [すべての通話を録画して文字起こししている](#すべての通話を録画して文字起こしする) 間に OneUptime が開始した会議。Microsoft がアプリに文字起こしの読み取りを許可するのはカレンダー上の会議だけで、会議は 60 日間保持されます。それ以外の Teams の会議では **文字起こしを追加** を使います。Teams で会議の要約を開き、次に文字起こしを開いて、 `.vtt` ファイルとしてダウンロードしてください。 |
 | 会議リンクまたは Slack のハドル | **文字起こしを追加** | 会議ツール、またはハドルのメモが保持する文字起こし。 |
 
 ### 誰が何をできるか
@@ -198,7 +202,7 @@ OneUptime は、ライセンス付きの Teams ユーザーの代理で会議を
 
 :::steps
 1. [Microsoft Entra 管理センター](https://entra.microsoft.com/) で **App registrations** > **New registration** を開き、シングルテナントのアプリを登録します。その **Directory (tenant) ID** と **Application (client) ID** をコピーします。
-2. **API permissions** で、Microsoft Graph の **application** のアクセス許可 **OnlineMeetings.ReadWrite.All** を追加し、 **Grant admin consent** をクリックします。
+2. **API permissions** で、Microsoft Graph の **application** のアクセス許可 **OnlineMeetings.ReadWrite.All** (と、 [インシデント通話の録画と文字起こし](#すべての通話を録画して文字起こしする) も行う場合は **Calendars.ReadWrite** と **OnlineMeetingTranscript.Read.All** ) を追加し、 **Grant admin consent** をクリックします。
 3. **Certificates & secrets** でクライアントシークレットを作成し、Secret ID ではなく **Value** を、接続フォームの **クライアントシークレット** に貼り付けます。
 4. 開催者を選びます。ライセンス付きの Teams ユーザーで、サービスアカウントが理想的です。Entra 管理センターの **Users** からその **Object ID** をコピーし、 **Organizer object ID** に入力します。
 5. アプリケーションアクセスポリシーで、アプリが開催者の会議を作成できるようにします。Teams PowerShell で `Connect-MicrosoftTeams` の後に、次の 2 つのコマンドを実行します。
@@ -210,6 +214,8 @@ Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "<organ
 ```
 
 ポリシーが適用されるまでに最大 30 分かかることがあります。それまでは、アプリが開催者の会議を作成することを許可されていないとテストで報告されます。
+
+同じポリシーで、アプリは開催者の会議の文字起こしも読み取れるようになります。 `Calendars.ReadWrite` はアプリに組織内のすべてのカレンダーの変更を許可します。開催者のカレンダーだけに限定するには、 **API permissions** ではなく [Exchange Online のアプリケーション用 RBAC](https://learn.microsoft.com/exchange/permissions-exo/application-rbac) で、スコープを開催者に限定して付与します。
 
 **Who skips the lobby** は、誰が待たずに参加できるかを決めます。 **People in your organization skip the lobby** (デフォルト) では、ほかの人は会議の参加者が承認するまでロビーで待ちます。 **Everyone skips the lobby** では誰も待ちません。
 
@@ -268,7 +274,7 @@ OneUptime Cloud には、ワンクリック接続用の独自の Zoom、Google�
 
 - **Zoom**: [Zoom App Marketplace](https://marketplace.zoom.us/) で **Develop** > **Build App** を選び、ユーザーが管理する **General App** を作成します。 **Basic Information** で、 **Development** と **Production** の両方のタブと OAuth の許可リストにリダイレクト URI を OAuth Redirect URL として追加し、 **Production** タブで **Deauthorization Notification** のエンドポイント URL を `https://<host>/api/video-call-oauth/zoom/events` に設定します。 **Scopes** で `meeting:write:meeting` と `user:read:user` を追加します。[通話の文字起こし](#通話の文字起こし) を読み取らせるには、 `cloud_recording:read:list_recording_files` と `cloud_recording:read:meeting_transcript` も追加します。 **Features** > **Access** の **Secret Token** が `ZOOM_APP_WEBHOOK_SECRET_TOKEN` です。 **Development** の認証情報は自分の Zoom アカウントのユーザーにしか使えません。 **Production** の認証情報は、Zoom がアプリを審査して公開すると、誰でも使えるようになります。
 - **Google Meet**: [Google Cloud コンソール](https://console.cloud.google.com/) で **Google Meet REST API** を有効にし、OAuth の同意画面 ( **Google Auth Platform** ) をスコープ `openid`、 `email`、 `https://www.googleapis.com/auth/meetings.space.created` で設定し、リダイレクト URI を指定して **Web application** タイプの OAuth クライアントを作成します。アプリは本番環境に公開してください。テストのままのアプリは 7 日後にサインインを失います。Google は Meet のスコープを求めるアプリを審査します。審査が終わるまで、サインインの前に警告が表示されます。
-- **Microsoft Teams**: [Microsoft Entra 管理センター](https://entra.microsoft.com/) で **Accounts in any organizational directory** 向けのアプリを登録し、リダイレクト URI を **Web** のリダイレクト URI として追加し、Microsoft Graph の委任されたアクセス許可 `openid`、 `profile`、 `email`、 `offline_access`、 `OnlineMeetings.ReadWrite` を追加して、クライアントシークレットを作成します。Microsoft Teams ボットの登録 (`MICROSOFT_TEAMS_APP_CLIENT_ID`) ではなく、専用の登録を使ってください。アプリに確認済みの発行元がない間は、ほとんどの組織で管理者の同意が必要です。
+- **Microsoft Teams**: [Microsoft Entra 管理センター](https://entra.microsoft.com/) で **Accounts in any organizational directory** 向けのアプリを登録し、リダイレクト URI を **Web** のリダイレクト URI として追加し、Microsoft Graph の委任されたアクセス許可 `openid`、 `profile`、 `email`、 `offline_access`、 `OnlineMeetings.ReadWrite` (と、 [通話を録画して文字起こしする](#すべての通話を録画して文字起こしする) プロジェクトが求める `Calendars.ReadWrite` と `OnlineMeetingTranscript.Read.All` ) を追加して、クライアントシークレットを作成します。Microsoft Teams ボットの登録 (`MICROSOFT_TEAMS_APP_CLIENT_ID`) ではなく、専用の登録を使ってください。アプリに確認済みの発行元がない間は、ほとんどの組織で管理者の同意が必要です。
 
 クライアント ID は公開情報です。どのプロバイダーがワンクリックで接続できるかを知るために、ダッシュボードに送られます。シークレットと Webhook のシークレットトークンは秘密にしてください。ワーカーは毎日、更新の時期が来たサインインを更新するので、アプリと同じ値が必要です。
 
@@ -295,7 +301,11 @@ Zoom が文字起こしを保持するのは、音声文字起こしをオンに
 :::
 
 :::details ビデオ通話カードが文字起こしを待ったままになる
-OneUptime は通話の終了後、数分おきに Zoom または Google Meet に文字起こしを問い合わせます。通話から時間がたつほど間隔を空け、通話の開始から 3 日間続けます。文字起こしは、プロバイダーが準備を終えてから数分で届きます。Zoom の準備には通話の長さのおよそ 2 倍までかかります。 **Zoom から取得** はすぐに問い合わせます。プロバイダーが文字起こしを保持していない場合は、カードにそう表示されます。Zoom アカウントが音声文字起こしをオンにしてクラウドに録画しているか、Google Workspace のエディションに文字起こしがあるかを確認してください。
+OneUptime は通話の終了後、数分おきに Zoom、Google Meet、または Microsoft Teams に文字起こしを問い合わせます。通話から時間がたつほど間隔を空け、通話の開始から 3 日間続けます。文字起こしは、プロバイダーが準備を終えてから数分で届きます。Zoom の準備には通話の長さのおよそ 2 倍までかかります。 **Zoom から取得** はすぐに問い合わせます。プロバイダーが文字起こしを保持していない場合は、カードにそう表示されます。Zoom アカウントが音声文字起こしをオンにしてクラウドに録画しているか、Google Workspace のエディションに文字起こしがあるか、Teams の開催者の会議ポリシーで自動録画が許可されているかを確認してください。
+:::
+
+:::details Microsoft Teams の通話が録画されなかった
+OneUptime が会議を開催者のカレンダーに追加できなかったため、通常の方法で、録画なしで通話を開始しました。理由は **ビデオ通話** カードに表示されます。多くの場合、接続に `Calendars.ReadWrite` または `OnlineMeetingTranscript.Read.All` がありません。アプリ登録にこれらを追加して管理者の同意を付与するか、サインインで作成した接続では **Reconnect** を使ってください。その後に開始された通話は録画されます。
 :::
 
 :::details OneUptime AI が文字起こしを読み取れなかった

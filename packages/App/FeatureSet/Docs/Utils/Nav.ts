@@ -674,6 +674,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/charts-and-time-ranges",
       },
       {
+        title: "Deploys and Changes",
+        url: "/docs/telemetry/change-events",
+      },
+      {
         title: "Log Pipelines",
         url: "/docs/telemetry/log-pipelines",
       },
@@ -873,6 +877,10 @@ const DocsNav: NavGroup[] = [
     title: "Security",
     section: "Observability",
     links: [
+      {
+        title: "Get Started with Security",
+        url: "/docs/telemetry/security-getting-started",
+      },
       {
         title: "Security Events (SIEM)",
         url: "/docs/telemetry/security-events",
@@ -1097,7 +1105,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/ai/infrastructure-ai-agents",
       },
       {
-        title: "Fix Tasks",
+        title: "Code",
         url: "/docs/ai/ai-agent",
       },
       {

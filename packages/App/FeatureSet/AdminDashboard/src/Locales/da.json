@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Globale probes",
+    "globalRunners": "Globale Runnere",
     "dataRetention": "Dataopbevaring",
     "globalAiAgents": "Globale AI-agenter",
     "globalLlmProviders": "Globale LLM-udbydere",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Overvågning",
     "settingsGlobalProbes": "Globale probes",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Globale Runnere",
     "settingsDataRetention": "Dataopbevaring",
     "settingsAi": "AI",
     "settingsGlobalAiAgents": "Globale AI-agenter",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Her er din probe-nøgle. Hold den hemmelig.",
         "probeIdLabel": "Probe-ID:",
         "probeKeyLabel": "Probe-nøgle:"
+      },
+      "globalRunners": {
+        "cardTitle": "Globale Runnere",
+        "cardDescription": "Runners, som OneUptime kører for alle projekter. De kører JavaScript-trin, hvert i en sandkasse, der kun når internettet.",
+        "noItems": "Tilføj en global Runner. Opret en, og start den derefter med kommandoen under »Vis ID og nøgle«.",
+        "showIdKey": "Vis ID og nøgle",
+        "keyModalTitle": "Nøgle til global Runner",
+        "keyModalDescription": "Start denne globale Runner på en vært, der kan nå internettet. Hold dens nøgle hemmelig: Den, der har den, kan overtage JavaScript-trinnene i alle projekter, der bruger globale Runners.",
+        "runnerIdLabel": "Runner-ID:",
+        "runnerKeyLabel": "Runner-nøgle:",
+        "commandLabel": "Kør på din Docker-vært",
+        "neverConnected": "Aldrig forbundet"
       },
       "aiAgents": {
         "bannerTitle": "Har du brug for hjælp til at opsætte globale AI-agenter?",

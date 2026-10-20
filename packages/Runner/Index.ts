@@ -34,6 +34,7 @@ import {
   GitHubIssueFixTaskHandler,
   GitHubPullRequestRevisionTaskHandler,
   GitHubPullRequestReviewTaskHandler,
+  CodeRequestTaskHandler,
 } from "./TaskHandlers/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -278,6 +279,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       registry.register(new GitHubIssueFixTaskHandler());
       registry.register(new GitHubPullRequestRevisionTaskHandler());
       registry.register(new GitHubPullRequestReviewTaskHandler());
+      registry.register(new CodeRequestTaskHandler());
 
       if (capabilities.canRunCodeFixTasks) {
         logger.info(

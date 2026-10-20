@@ -82,6 +82,7 @@ oneuptime resources
 | `oneuptime login <api-key> <instance-url>` | API कुंजी और पते को कॉन्टेक्स्ट के रूप में सहेजती है | [प्रमाणीकरण](/docs/cli/authentication#लॉग-इन-करें) |
 | `oneuptime context list`, `use`, `current`, `delete` | सहेजे कॉन्टेक्स्ट सूचीबद्ध करती है, बदलती है, दिखाती है और हटाती है | [प्रमाणीकरण](/docs/cli/authentication#कॉन्टेक्स्ट) |
 | `oneuptime whoami` | वह URL और API कुंजी दिखाती है जिनका अगली कमांड उपयोग करेगी | [प्रमाणीकरण](/docs/cli/authentication#देखें-कि-cli-क्या-उपयोग-करेगा) |
+| `oneuptime deploy` | चार्ट और OneUptime AI के लिए एक डिप्लॉय, या कोई दूसरा बदलाव, रिकॉर्ड करती है | [डिप्लॉय और बदलाव](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | एक तरह के रिकॉर्ड के साथ काम करती है | [संसाधन संचालन](/docs/cli/resource-operations) |
 | `oneuptime resources` | रिकॉर्ड के प्रकार उनकी कमांड के साथ सूचीबद्ध करती है | [कमांड संदर्भ](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | CLI का संस्करण प्रिंट करती है | [कमांड संदर्भ](/docs/cli/command-reference#oneuptime-version) |
