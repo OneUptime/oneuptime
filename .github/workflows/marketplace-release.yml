@@ -232,6 +232,8 @@ jobs:
       - name: Set up Docker Buildx
         if: needs.prepare.outputs[matrix.selected] == 'true' && matrix.marketplace == 'google-cloud'
         uses: docker/setup-buildx-action@v3
+      # Everything but the last stage: that starts from Google's deployer image, which Google
+      # serves only to a signed-in account, and a dry run signs in nowhere.
       - name: Build the Google deployer, without pushing it
         if: needs.prepare.outputs[matrix.selected] == 'true' && matrix.marketplace == 'google-cloud'
         env:
@@ -240,7 +242,7 @@ jobs:
         run: |
           set -euo pipefail
           registry="$(python3 -c 'import json; print(json.load(open("HelmChart/Marketplace/editions.json"))["google-cloud"]["registry"])')"
-          docker buildx build --platform linux/amd64 --provenance=false \
+          docker buildx build --platform linux/amd64 --provenance=false --target build \
             --build-arg REGISTRY="$registry" --build-arg TAG="$VERSION" "$OUT"
       - name: Keep what a real run would send
         if: needs.prepare.outputs[matrix.selected] == 'true'
@@ -667,6 +669,9 @@ jobs:
           set -euo pipefail
           crane auth login us-docker.pkg.dev -u oauth2accesstoken --password-stdin <<<"$TOKEN"
           docker login us-docker.pkg.dev -u oauth2accesstoken --password-stdin <<<"$TOKEN"
+          # The deployer starts from Google's deployer image, which Google serves only to a
+          # signed-in account.
+          docker login gcr.io -u oauth2accesstoken --password-stdin <<<"$TOKEN"
       # The deployer is pushed last: when this version's is there, an earlier run pushed it all
       # and wrote what to add in Producer Portal to its summary, and nothing is pushed again.
       - name: Is this version's deployer there already?
