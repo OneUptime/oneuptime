@@ -8,15 +8,30 @@
  *
  * Every record is fabricated. Scenarios are picked with query parameters:
  *
- *   ?trace=    checkout (default) | worker | large | orphans | empty
+ *   ?trace=    checkout (default) | report | worker | large | orphans | empty
  *              checkout: 5 services, an N+1 query loop, a failed inventory
  *                        call that is retried, and a slow external payment call
+ *                        - nothing in it is worth Fix performance with AI
+ *              report:   a 1.7 s report that loads its 40 line items one
+ *                        query at a time (960 ms) - worth fixing
  *              worker:   one service, 501 spans (loads 500, then the rest)
  *              large:    6 services, 1,250 spans (loads in 500-span batches)
  *              orphans:  spans whose parents were never received
  *              empty:    the trace has no spans
  *   ?profile=  none (default) | samples
- *   ?fail=     comma separated: spans, perf-fix, metrics, span-detail
+ *   ?fail=     comma separated: spans, perf-fix, suggestion, metrics,
+ *              span-detail
+ *   ?ai=       on (default) | off - the project's Enable AI switch
+ *   ?repo=     connected (default) | none - a repository the GitHub App
+ *              can open a pull request in
+ *   ?fix=      none (default) | running - a performance fix already queued
+ *              or running for this trace
+ *
+ * POST /ai-investigation/performance-fix-suggestion is answered by the real
+ * span-tree analysis and suggestion rule (Common/Utils/Traces and
+ * Common/Utils/Suggestions) run on the fixture's own spans, as the server
+ * runs them - so which trace offers the fix is decided here exactly as it
+ * is in production.
  *   ?hold=     spans — keep the first span read pending until
  *              window.__traceFixture.releaseSpans() is called
  *   ?spanId=   the page's own highlight parameter (comma separated span ids)
@@ -54,6 +69,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import Project from "Common/Models/DatabaseModels/Project";
+import SpanTreeAnalyzer from "Common/Utils/Traces/SpanTreeAnalyzer";
+import {
+  getTracePerformanceFixOffer,
+  tracePerformanceFixSuggestionToJSON,
+} from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
 
 const params = new URLSearchParams(window.location.search);
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -66,6 +87,9 @@ const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
 const holdSpans = params.get("hold") === "spans";
+const isAiOn = params.get("ai") !== "off";
+const hasRepository = params.get("repo") !== "none";
+const isFixRunning = params.get("fix") === "running";
 
 const MINUTE = 60 * 1000;
 /*
@@ -77,6 +101,7 @@ const TRACE_START_MS = NOW - 3 * MINUTE;
 
 export const TRACE_IDS = {
   checkout: "4bf92f3577b34da6a3ce929d0e0e4736",
+  report: "5c2d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
   worker: "6aa85538140714b4892cd8f500735c51",
   large: "9c1d2e3f4a5b6c7d8e9fa0b1c2d3e4f5",
   orphans: "0af7651916cd43dd8448eb211c80319c",
@@ -565,6 +590,78 @@ function checkoutTrace() {
   });
 }
 
+/*
+ * A monthly report that loads its invoice, then each of its 40 line items
+ * with a query of its own, one after another: 960 ms of a 1.7 s request.
+ */
+function reportTrace() {
+  const lineItemQueries = Array.from({ length: 40 }, (_, index) => {
+    return {
+      name: "SELECT line_items WHERE invoice_id = $1",
+      service: "api",
+      kind: "client",
+      start: 52 + index * 24.5,
+      duration: 24,
+      status: "ok",
+      attributes: {
+        "db.system": "postgresql",
+        "db.name": "billing",
+        "db.operation": "SELECT",
+        "db.statement": "SELECT * FROM line_items WHERE invoice_id = $1",
+        "code.filepath": "src/reports/MonthlyReport.ts",
+        "code.function": "loadLineItems",
+        "code.lineno": "88",
+      },
+    };
+  });
+
+  return buildTrace(TRACE_IDS.report, {
+    name: "GET /api/v1/reports/monthly",
+    service: "api",
+    kind: "server",
+    start: 0,
+    duration: 1720,
+    status: "ok",
+    attributes: {
+      "http.method": "GET",
+      "http.route": "/api/v1/reports/monthly",
+      "http.status_code": 200,
+    },
+    children: [
+      {
+        name: "ReportService.build",
+        service: "api",
+        start: 4,
+        duration: 1700,
+        status: "ok",
+        children: [
+          {
+            name: "SELECT invoices WHERE account_id = $1",
+            service: "api",
+            kind: "client",
+            start: 6,
+            duration: 40,
+            status: "ok",
+            attributes: {
+              "db.system": "postgresql",
+              "db.statement":
+                "SELECT * FROM invoices WHERE account_id = $1 AND month = $2",
+            },
+          },
+          ...lineItemQueries,
+          {
+            name: "render pdf",
+            service: "api",
+            start: 1040,
+            duration: 660,
+            status: "ok",
+          },
+        ],
+      },
+    ],
+  });
+}
+
 function workerTrace() {
   const children = [];
   let cursor = 4;
@@ -724,6 +821,7 @@ function orphanTrace() {
 
 const TRACE_BUILDERS = {
   checkout: checkoutTrace,
+  report: reportTrace,
   worker: workerTrace,
   large: largeTrace,
   orphans: orphanTrace,
@@ -923,6 +1021,37 @@ function histogramBuckets(body) {
   });
 }
 
+// A stored span as the server hands it to the analysis (milliseconds).
+function toAnalyzableSpan(span) {
+  const attributes = {};
+  for (const [key, value] of Object.entries(span.attributes || {})) {
+    if (value !== null && value !== undefined) {
+      attributes[key] = String(value);
+    }
+  }
+  return {
+    spanId: span.spanId,
+    parentSpanId: span.parentSpanId || undefined,
+    name: span.name,
+    startMs: span.startTimeUnixNano / 1000000,
+    endMs: span.endTimeUnixNano / 1000000,
+    durationMs: span.durationUnixNano / 1000000,
+    attributes,
+  };
+}
+
+/*
+ * The project the dashboard has selected, as the project list returns it:
+ * its Enable AI switch decides whether the page asks for a suggestion.
+ */
+ProjectUtil.getCurrentProject = () => {
+  return Object.assign(new Project(), {
+    _id: PROJECT_ID,
+    name: "Commerce",
+    enableAi: isAiOn,
+  });
+};
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data);
@@ -1009,13 +1138,44 @@ async function handleApi(method, options) {
     });
   }
 
+  if (url.includes("/ai-investigation/performance-fix-suggestion")) {
+    if (failures.has("suggestion")) {
+      throw new HTTPErrorResponse(
+        500,
+        { message: "The suggestion could not be worked out." },
+        {},
+      );
+    }
+    /*
+     * What the server answers: the shared analysis on the spans it reads
+     * (the first 500 by start time), the shared rule, and this scenario's
+     * AI switch, repository and fix in flight.
+     */
+    const findings = SpanTreeAnalyzer.analyzeTrace(
+      traceSpans.slice(0, 500).map(toAnalyzableSpan),
+    );
+    const offer = getTracePerformanceFixOffer({
+      findings,
+      isAiEnabled: isAiOn,
+      hasActiveFix: isFixRunning,
+      hasConnectedRepository: hasRepository,
+    });
+    return ok(
+      tracePerformanceFixSuggestionToJSON({
+        ...offer,
+        aiRunId:
+          isFixRunning && offer.offer === "InProgress" ? AI_RUN_ID : null,
+      }),
+    );
+  }
+
   if (url.includes("/ai-investigation/create-performance-fix-task")) {
     if (failures.has("perf-fix")) {
       throw new HTTPErrorResponse(
         400,
         {
           message:
-            "No deterministic performance pattern was found in this trace.",
+            "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
         },
         {},
       );
@@ -1087,6 +1247,11 @@ createRoot(document.getElementById("root")).render(
         <Route
           path="/dashboard/:projectId/code/tasks/:taskId"
           element={<PlaceholderPage title="Code Task" testId="ai-task-page" />}
+        />
+        {/* Code, where "Connect GitHub to fix this with AI" leads. */}
+        <Route
+          path="/dashboard/:projectId/code"
+          element={<PlaceholderPage title="Code" testId="code-page" />}
         />
         <Route
           path="/dashboard/:projectId/traces"

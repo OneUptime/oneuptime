@@ -58,6 +58,13 @@ const UUID_REGEX: RegExp =
   /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g;
 const LONG_HEX_REGEX: RegExp = /\b[0-9a-fA-F]{8,}\b/g;
 const DIGIT_RUN_REGEX: RegExp = /\d+/g;
+/*
+ * A number in a statement, but not a positional placeholder's ($1, $2):
+ * those are the same in every call already, and "= $1" reads better in the
+ * evidence (and on the trace page) than "= $?". Linear: a fixed-width
+ * look-behind and one digit run per match.
+ */
+const STATEMENT_NUMBER_REGEX: RegExp = /(?<![$\d])\d+/g;
 
 interface NormalizedSpan {
   spanId: string;
@@ -89,14 +96,15 @@ export default class SpanTreeAnalyzer {
   /*
    * Collapse literals in a db.statement so "near-identical" queries compare
    * equal: quoted strings and numbers become ?, and runs of placeholders
-   * collapse to one so IN-lists of different lengths still match.
+   * collapse to one so IN-lists of different lengths still match. Positional
+   * placeholders ($1) are kept as written.
    */
   public static normalizeDbStatement(statement: string): string {
     return statement
       .trim()
       .replace(/'[^']*'/g, "?")
       .replace(UUID_REGEX, "?")
-      .replace(DIGIT_RUN_REGEX, "?")
+      .replace(STATEMENT_NUMBER_REGEX, "?")
       .replace(/\?(?:\s*,\s*\?)+/g, "?")
       .replace(/\s+/g, " ");
   }

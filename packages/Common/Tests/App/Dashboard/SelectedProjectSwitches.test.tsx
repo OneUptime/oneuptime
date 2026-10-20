@@ -157,6 +157,40 @@ describe("following the switches' saves", () => {
 
     expect(heard).toEqual(["isFeatureFlagMonitorGroupsEnabled=true"]);
   });
+
+  test("hears Enable AI too, so the selected project follows the AI switch", () => {
+    const heard: Array<string> = [];
+
+    const unsubscribe: () => void = followSelectedProjectSwitches({
+      projectId: new ObjectID(PROJECT_ID),
+      onSaved: (column: string, value: boolean): void => {
+        heard.push(`${column}=${value}`);
+      },
+    });
+
+    announce({ projectId: PROJECT_ID, column: "enableAi", value: false });
+    announce({ projectId: OTHER_PROJECT_ID, column: "enableAi", value: true });
+
+    expect(heard).toEqual(["enableAi=false"]);
+
+    unsubscribe();
+  });
+
+  test("a copy with Enable AI switched off keeps every other column", () => {
+    const project: Project = makeProject(PROJECT_ID, true);
+    project.enableAi = true;
+
+    const updated: Project = getProjectWithSwitchedColumn({
+      project: project,
+      column: "enableAi",
+      value: false,
+    });
+
+    expect(updated.enableAi).toBe(false);
+    expect(updated.isFeatureFlagMonitorGroupsEnabled).toBe(true);
+    expect(updated.name).toBe("Acme");
+    expect(project.enableAi).toBe(true);
+  });
 });
 
 describe("useSelectedProjectSwitches", () => {

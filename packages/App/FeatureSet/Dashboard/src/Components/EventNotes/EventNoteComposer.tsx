@@ -38,6 +38,7 @@ import {
   isNoteBlank,
 } from "./EventNotesUtil";
 import NoteAvatar from "./NoteAvatar";
+import useAiOffered from "../../Utils/UseAiOffered";
 import NoteComposer, {
   AudienceBadge,
   NoteComposerValues,
@@ -235,6 +236,13 @@ function EventNoteComposer<TNote extends BaseModel>(
   const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] =
     useState<boolean>(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false);
+  /*
+   * "Draft with AI" is offered only where AI can run: with the project's AI
+   * switched off it would only open a dialog the server refuses
+   * (Common/Utils/Suggestions/AiSuggestion).
+   */
+  const isAiOffered: boolean = useAiOffered();
+  const aiDraft: EventNoteKind["ai"] = isAiOffered ? kind.ai : undefined;
 
   const isOpen: boolean =
     presentation.type === "dialog" ? true : presentation.isOpen;
@@ -443,7 +451,7 @@ function EventNoteComposer<TNote extends BaseModel>(
           }}
         />
       )}
-      {kind.ai && (
+      {aiDraft && (
         <button
           type="button"
           data-testid="note-ai-button"
@@ -650,15 +658,15 @@ function EventNoteComposer<TNote extends BaseModel>(
         />
       )}
 
-      {isAIModalOpen && kind.ai && (
+      {isAIModalOpen && aiDraft && (
         <GenerateFromAIModal
-          title={kind.ai.title}
-          description={kind.ai.description}
-          templates={kind.ai.templates}
+          title={aiDraft.title}
+          description={aiDraft.description}
+          templates={aiDraft.templates}
           onClose={() => {
             setIsAIModalOpen(false);
           }}
-          onGenerate={kind.ai.generate}
+          onGenerate={aiDraft.generate}
           onSuccess={(generated: string) => {
             setIsAIModalOpen(false);
             insertIntoDraft(generated);

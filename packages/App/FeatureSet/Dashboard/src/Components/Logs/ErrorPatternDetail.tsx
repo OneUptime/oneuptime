@@ -56,6 +56,7 @@ import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntit
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import EventName from "../../Utils/EventName";
+import useAiOffered from "../../Utils/UseAiOffered";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "../Metrics/Utils/UseEventTimeReferenceLines";
@@ -383,6 +384,8 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // "Explain with AI" opens Ask AI, so it is drawn only where AI can run.
+  const isAiOffered: boolean = useAiOffered();
   const [correlation, setCorrelation] =
     useState<ErrorPatternCorrelation | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -762,17 +765,20 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                 )}
               </p>
             </div>
-            <button
-              type="button"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              title={translator.translateText(
-                "Open Ask AI with this error and all of its evidence as an editable prompt",
-              )}
-              onClick={explainWithAi}
-            >
-              <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-              {translator.translateText("Explain with AI")}
-            </button>
+            {isAiOffered && (
+              <button
+                type="button"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title={translator.translateText(
+                  "Open Ask AI with this error and all of its evidence as an editable prompt",
+                )}
+                data-testid="error-pattern-explain-with-ai"
+                onClick={explainWithAi}
+              >
+                <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+                {translator.translateText("Explain with AI")}
+              </button>
+            )}
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">
