@@ -351,7 +351,8 @@ describe("execute_remediation_command on an object Argo CD or Flux declares", ()
   });
 
   it("does not run it on a cluster that bypasses approvals either", async () => {
-    const SET_IMAGE: string = "kubectl set image deployment/web app=web:1 -n web";
+    const SET_IMAGE: string =
+      "kubectl set image deployment/web app=web:1 -n web";
     declares({
       [SET_IMAGE]: gitOps({
         controller: GitOpsController.Flux,
@@ -362,7 +363,9 @@ describe("execute_remediation_command on an object Argo CD or Flux declares", ()
     });
     const toolkit: RemediationCommandToolkit = buildToolkit({
       clusterTargets: [
-        cluster({ remediationMode: KubernetesAiRemediationMode.BypassApproval }),
+        cluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
       ],
     });
 
@@ -439,7 +442,7 @@ describe("execute_remediation_command on an object Argo CD or Flux declares", ()
       ownerName: "web",
       reconcilesOnItsOwn: false,
       summary:
-        'Helm release "web" declares deployment/web (annotation meta.helm.sh/release-name), and this change edits its replica count: nothing puts it back on its own, but the release\'s next helm upgrade does. Treat it as a stopgap - the lasting fix is the same change in the release\'s chart values.',
+        "Helm release \"web\" declares deployment/web (annotation meta.helm.sh/release-name), and this change edits its replica count: nothing puts it back on its own, but the release's next helm upgrade does. Treat it as a stopgap - the lasting fix is the same change in the release's chart values.",
     });
     declares({ [SCALE]: facts });
     const toolkit: RemediationCommandToolkit = buildToolkit();
@@ -518,11 +521,11 @@ describe("propose_remediation_commands", () => {
       "a change its owner puts back is a stopgap, never the fix",
     );
     expect(
-      toolkit.getProposedPlan()!.commands.map(
-        (command: AiRemediationCommand) => {
+      toolkit
+        .getProposedPlan()!
+        .commands.map((command: AiRemediationCommand) => {
           return command.gitOps;
-        },
-      ),
+        }),
     ).toEqual([gitOps(), undefined]);
     expect(enqueueKubectl).not.toHaveBeenCalled();
   });

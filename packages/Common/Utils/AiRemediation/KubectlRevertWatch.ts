@@ -217,7 +217,10 @@ export function buildRevertWatch(data: {
   const before: Map<string, string> = flattenObjectFields(data.before);
   const after: Map<string, string> = flattenObjectFields(data.after);
   const paths: Array<string> = Array.from(
-    new Set<string>([...Array.from(before.keys()), ...Array.from(after.keys())]),
+    new Set<string>([
+      ...Array.from(before.keys()),
+      ...Array.from(after.keys()),
+    ]),
   ).sort();
 
   const fields: Array<AiRemediationWatchedField> = [];
@@ -273,7 +276,9 @@ export function findPutBackFields(
 
   return watch.fields
     .filter((field: AiRemediationWatchedField): boolean => {
-      return field.before !== field.after && now.get(field.path) === field.before;
+      return (
+        field.before !== field.after && now.get(field.path) === field.before
+      );
     })
     .map((field: AiRemediationWatchedField): string => {
       return field.path;

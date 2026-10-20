@@ -47,7 +47,8 @@ export const FLUX_KUSTOMIZATION_NAME_LABEL: string =
   "kustomize.toolkit.fluxcd.io/name";
 export const FLUX_KUSTOMIZATION_NAMESPACE_LABEL: string =
   "kustomize.toolkit.fluxcd.io/namespace";
-export const FLUX_HELMRELEASE_NAME_LABEL: string = "helm.toolkit.fluxcd.io/name";
+export const FLUX_HELMRELEASE_NAME_LABEL: string =
+  "helm.toolkit.fluxcd.io/name";
 export const FLUX_HELMRELEASE_NAMESPACE_LABEL: string =
   "helm.toolkit.fluxcd.io/namespace";
 export const HELM_RELEASE_NAME_ANNOTATION: string = "meta.helm.sh/release-name";

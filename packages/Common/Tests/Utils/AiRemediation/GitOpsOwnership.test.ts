@@ -104,8 +104,7 @@ describe("readGitOpsOwner: Argo CD", () => {
       readGitOpsOwner(
         deployment({
           annotations: {
-            "argocd.argoproj.io/tracking-id":
-              "shop:apps/Deployment:shop/web",
+            "argocd.argoproj.io/tracking-id": "shop:apps/Deployment:shop/web",
           },
         }),
       ),
@@ -167,8 +166,7 @@ describe("readGitOpsOwner: Argo CD", () => {
         deployment({
           labels: { "app.kubernetes.io/managed-by": "Helm" },
           annotations: {
-            "argocd.argoproj.io/tracking-id":
-              "shop:apps/Deployment:shop/web",
+            "argocd.argoproj.io/tracking-id": "shop:apps/Deployment:shop/web",
           },
         }),
       )?.controller,

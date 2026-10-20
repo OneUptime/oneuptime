@@ -107,9 +107,9 @@ describe("flattenObjectFields", () => {
     expect(fields.get("spec.template.spec.containers[app].image")).toBe(
       '"web:1"',
     );
-    expect(fields.get("spec.template.spec.containers[app].env[MODE].value")).toBe(
-      '"a"',
-    );
+    expect(
+      fields.get("spec.template.spec.containers[app].env[MODE].value"),
+    ).toBe('"a"');
     expect(fields.get("spec.replicas")).toBeUndefined();
     expect(fields.get("metadata.labels.app")).toBe('"web"');
     expect(
@@ -340,7 +340,9 @@ describe("describePutBackFields", () => {
     )!;
 
     expect(
-      describePutBackFields(watch, ["spec.template.spec.containers[app].image"]),
+      describePutBackFields(watch, [
+        "spec.template.spec.containers[app].image",
+      ]),
     ).toBe(
       'spec.template.spec.containers[app].image ("web:1" → back to "web:2")',
     );

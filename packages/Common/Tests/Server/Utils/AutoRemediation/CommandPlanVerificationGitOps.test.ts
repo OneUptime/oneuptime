@@ -194,9 +194,7 @@ function mockPending(suggestion: AutoRemediationSuggestion): void {
 }
 
 // The note the verification transition wrote, or undefined when none ran.
-function writtenVerification():
-  | { status: string; note: string }
-  | undefined {
+function writtenVerification(): { status: string; note: string } | undefined {
   const call: unknown = cas.mock.calls[0]?.[0];
 
   if (!call) {
@@ -234,14 +232,16 @@ beforeEach(() => {
   recordChecks = jest
     .spyOn(CommandPlanExecutor, "recordRevertChecks")
     .mockResolvedValue(undefined);
-  rollback = jest.spyOn(CommandPlanExecutor, "executeRollback").mockResolvedValue({
-    rollbackStatus: AiRemediationRollbackStatus.NotApplicable,
-    rolledBack: 0,
-    failed: 0,
-    leftForHuman: 0,
-    summary:
-      "Nothing was rolled back: 1 command(s) were not undone: the cluster had already put back what they changed.",
-  });
+  rollback = jest
+    .spyOn(CommandPlanExecutor, "executeRollback")
+    .mockResolvedValue({
+      rollbackStatus: AiRemediationRollbackStatus.NotApplicable,
+      rolledBack: 0,
+      failed: 0,
+      leftForHuman: 0,
+      summary:
+        "Nothing was rolled back: 1 command(s) were not undone: the cluster had already put back what they changed.",
+    });
   jest
     .spyOn(AutoRemediationRuleEngineService, "startFollowUpClusterRemediation")
     .mockResolvedValue(undefined as never);
@@ -278,8 +278,8 @@ describe("a fix put back on the cluster", () => {
     );
 
     // What the read found is on the plan, for the rollback arm and the card.
-    const recorded: Map<number, AiRemediationRevertWatch> = recordChecks.mock
-      .calls[0]![0].watches;
+    const recorded: Map<number, AiRemediationRevertWatch> =
+      recordChecks.mock.calls[0]![0].watches;
     expect(recorded.get(1)).toMatchObject({
       putBackFields: ["spec.replicas"],
     });

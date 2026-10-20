@@ -18,16 +18,14 @@ function namedObject(command: string): KubectlNamedObject | null {
 
 describe("KubectlPolicy.getNamedObject", () => {
   it("reads the object of every write that names one, in either spelling", () => {
-    expect(namedObject("kubectl rollout undo deployment/web -n shop")).toEqual(
-      {
-        verb: "rollout",
-        subcommand: "undo",
-        rawKind: "deployment",
-        kind: "deployment",
-        builtinKind: "deployment",
-        name: "web",
-      },
-    );
+    expect(namedObject("kubectl rollout undo deployment/web -n shop")).toEqual({
+      verb: "rollout",
+      subcommand: "undo",
+      rawKind: "deployment",
+      kind: "deployment",
+      builtinKind: "deployment",
+      name: "web",
+    });
     expect(
       namedObject("kubectl scale deploy web --replicas=3 -n shop"),
     ).toMatchObject({
@@ -70,17 +68,24 @@ describe("KubectlPolicy.getNamedObject", () => {
     ).toMatchObject({ kind: "deployment", builtinKind: undefined });
     expect(
       namedObject(`kubectl patch hpa/web -n shop -p '{"spec":{}}'`),
-    ).toMatchObject({ kind: "horizontalpodautoscaler", builtinKind: undefined });
+    ).toMatchObject({
+      kind: "horizontalpodautoscaler",
+      builtinKind: undefined,
+    });
   });
 
   it("names nothing for several objects, a bare kind or a selector", () => {
-    expect(namedObject("kubectl rollout restart deployment -n shop")).toBeNull();
+    expect(
+      namedObject("kubectl rollout restart deployment -n shop"),
+    ).toBeNull();
     expect(namedObject("kubectl delete pod a b -n shop")).toBeNull();
     expect(
       namedObject("kubectl scale deployment -l app=web --replicas=2 -n shop"),
     ).toBeNull();
     expect(
-      namedObject("kubectl rollout restart deployment/web deployment/api -n shop"),
+      namedObject(
+        "kubectl rollout restart deployment/web deployment/api -n shop",
+      ),
     ).toBeNull();
     expect(namedObject("kubectl delete pods --all -n shop")).toBeNull();
   });

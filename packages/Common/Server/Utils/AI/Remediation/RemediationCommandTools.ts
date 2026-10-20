@@ -2835,15 +2835,18 @@ export default class RemediationCommandToolkit {
     }
 
     const inspection: GitOpsCommandInspection | null =
-      await GitOpsInspector.safely("reading who declares a kubectl change's object", () => {
-        return GitOpsInspector.inspectCommand({
-          projectId: this.options.projectId,
-          aiRunId: this.options.aiRunId,
-          cluster,
-          command: command.command,
-          stepIdPrefix: `ai-gitops-${command.sequence}`,
-        });
-      });
+      await GitOpsInspector.safely(
+        "reading who declares a kubectl change's object",
+        () => {
+          return GitOpsInspector.inspectCommand({
+            projectId: this.options.projectId,
+            aiRunId: this.options.aiRunId,
+            cluster,
+            command: command.command,
+            stepIdPrefix: `ai-gitops-${command.sequence}`,
+          });
+        },
+      );
 
     if (inspection?.gitOps) {
       command.gitOps = inspection.gitOps;
@@ -2887,7 +2890,10 @@ export default class RemediationCommandToolkit {
     command: AiRemediationCommand,
     refusal: FullAutoRefusal,
   ): string {
-    if (!command.gitOps?.putsBack || refusal.text.includes(command.gitOps.summary)) {
+    if (
+      !command.gitOps?.putsBack ||
+      refusal.text.includes(command.gitOps.summary)
+    ) {
       return "";
     }
 
@@ -2909,19 +2915,18 @@ export default class RemediationCommandToolkit {
       return;
     }
 
-    const watch: AiRemediationRevertWatch | null =
-      await GitOpsInspector.safely(
-        "reading a kubectl change's object after it ran",
-        () => {
-          return GitOpsInspector.captureRevertWatch({
-            projectId: this.options.projectId,
-            aiRunId: this.options.aiRunId,
-            cluster,
-            inspection,
-            stepId: `ai-gitops-${command.sequence}-after`,
-          });
-        },
-      );
+    const watch: AiRemediationRevertWatch | null = await GitOpsInspector.safely(
+      "reading a kubectl change's object after it ran",
+      () => {
+        return GitOpsInspector.captureRevertWatch({
+          projectId: this.options.projectId,
+          aiRunId: this.options.aiRunId,
+          cluster,
+          inspection,
+          stepId: `ai-gitops-${command.sequence}-after`,
+        });
+      },
+    );
 
     if (watch) {
       command.revertWatch = watch;
@@ -3665,7 +3670,9 @@ export default class RemediationCommandToolkit {
       await this.inspectGitOps(command);
 
       if (command.gitOps) {
-        gitOpsNotes.push(`Command ${command.sequence}: ${command.gitOps.summary}`);
+        gitOpsNotes.push(
+          `Command ${command.sequence}: ${command.gitOps.summary}`,
+        );
       }
     }
 

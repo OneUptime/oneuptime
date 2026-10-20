@@ -59,6 +59,9 @@ const READ_TIMEOUT_MS: number = 30_000;
  */
 const MAX_READ_OUTPUT_CHARS: number = 1_000_000;
 
+// kubectl's answer for an object that does not exist.
+const NOT_FOUND_PATTERN: RegExp = /\(NotFound\)|not found/i;
+
 const STDOUT_HEADER: string = "[stdout]\n";
 const STDERR_SECTION: string = "\n[stderr]\n";
 
@@ -273,9 +276,7 @@ export default class GitOpsInspector {
 
     if (
       outcome.runState === KubectlRunState.Ran &&
-      /\(NotFound\)|not found/i.test(
-        `${outcome.output}\n${outcome.errorMessage || ""}`,
-      )
+      NOT_FOUND_PATTERN.test(`${outcome.output}\n${outcome.errorMessage || ""}`)
     ) {
       return { found: false, notFound: true };
     }

@@ -598,8 +598,7 @@ export default class CommandPlanExecutor {
        * part is left for a human, with what is still applied.
        */
       for (const command of plan.commands) {
-        const watch: AiRemediationRevertWatch | undefined =
-          command.revertWatch;
+        const watch: AiRemediationRevertWatch | undefined = command.revertWatch;
 
         if (
           !watch?.putBackAt ||
@@ -1879,8 +1878,9 @@ export default class CommandPlanExecutor {
     const mutex: SemaphoreMutex | null = await this.lockPlan(data.suggestionId);
 
     try {
-      const stored: AiRemediationCommandPlan | null =
-        await this.readStoredPlan(data.suggestionId);
+      const stored: AiRemediationCommandPlan | null = await this.readStoredPlan(
+        data.suggestionId,
+      );
 
       if (!stored) {
         return;
@@ -1974,19 +1974,18 @@ export default class CommandPlanExecutor {
 
     const projectId: ObjectID = suggestion.projectId;
 
-    const watch: AiRemediationRevertWatch | null =
-      await GitOpsInspector.safely(
-        "reading an approved kubectl change's object after it ran",
-        () => {
-          return GitOpsInspector.captureRevertWatchOnCluster({
-            projectId,
-            aiRunId,
-            kubernetesClusterId: command.kubernetesClusterId,
-            inspection: data.inspection,
-            stepId: `ai-gitops-approved-${command.sequence}-after`,
-          });
-        },
-      );
+    const watch: AiRemediationRevertWatch | null = await GitOpsInspector.safely(
+      "reading an approved kubectl change's object after it ran",
+      () => {
+        return GitOpsInspector.captureRevertWatchOnCluster({
+          projectId,
+          aiRunId,
+          kubernetesClusterId: command.kubernetesClusterId,
+          inspection: data.inspection,
+          stepId: `ai-gitops-approved-${command.sequence}-after`,
+        });
+      },
+    );
 
     if (watch) {
       command.revertWatch = watch;
