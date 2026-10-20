@@ -70,6 +70,26 @@ vapid:
 expo:
   accessToken:
 ```
+
+:::details निजी कुंजी को Secret में रखें
+`vapid.privateKey` निजी कुंजी को रिलीज़ के मानों में रखता है, जिन्हें Helm हर रिविज़न के साथ सहेजता है। निजी कुंजी को उनसे बाहर रखने के लिए उसे OneUptime के नेमस्पेस में किसी Kubernetes Secret में, `privateKey` के अंतर्गत, रखें, और इसके बजाय उस Secret का नाम दें:
+
+```bash
+kubectl create secret generic oneuptime-vapid \
+  --namespace oneuptime \
+  --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+`vapid.privateKey` या `vapid.existingSecret.name` सेट करें, दोनों नहीं: चार्ट दोनों को एक साथ अस्वीकार करता है। अगर आपका Secret निजी कुंजी को किसी दूसरी कुंजी के अंतर्गत रखता है, तो उस कुंजी का नाम `vapid.existingSecret.privateKeyKey` में दें। सार्वजनिक कुंजी `vapid.publicKey` में ही रहती है: हर ब्राउज़र को यह दी जाती है।
+:::
 :::
 
 ## नेटवर्क पहुँच
