@@ -619,7 +619,8 @@ export default class RecentChangesContext {
     return `${head}. ${RecentChangesContext.describeImpact(change)}`;
   }
 
-  private static describeImpact(change: RecentChange): string {
+  // What its impact check found, in a sentence (recent_deploys reads it too).
+  public static describeImpact(change: RecentChange): string {
     const impact: ChangeImpact | undefined = change.impact;
 
     if (!impact) {
@@ -810,7 +811,14 @@ export default class RecentChangesContext {
     }
   }
 
-  private static async readImpact(data: {
+  /*
+   * Whether one change hurt its service: the service's spans and exceptions
+   * in the IMPACT_WINDOW_MINUTES on either side of it, and the exception
+   * types first seen in the version it shipped, judged by ChangeImpact. The
+   * code agent's recent_deploys tool asks the same of a repository's
+   * deploys (CodeAgentTelemetryTools).
+   */
+  public static async readImpact(data: {
     projectId: ObjectID;
     serviceId: ObjectID;
     time: Date;
