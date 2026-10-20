@@ -750,6 +750,44 @@ describe("the search", () => {
     expect(listed()).toEqual(RECOMMENDED);
   });
 
+  /*
+   * Found in the UI review: the box kept the clear button's room on its
+   * right while empty too, and cut the longest prompts short - German
+   * "Vorlagen durchsuchen.." and French "Rechercher des modèl..". The
+   * browser suite measures every language's prompt against the box
+   * (packages/E2E/DashboardTemplates).
+   */
+  test("keeps room on its right for the clear button only while the button is there", () => {
+    renderPicker();
+
+    expect(getSearch()).toHaveClass("pl-8", "pr-3");
+    expect(getSearch()).not.toHaveClass("pr-8");
+    expect(screen.queryByTestId("dashboard-template-search-clear")).toBeNull();
+
+    typeSearch("hosts");
+
+    expect(getSearch()).toHaveClass("pl-8", "pr-8");
+    expect(getSearch()).not.toHaveClass("pr-3");
+    expect(
+      screen.getByTestId("dashboard-template-search-clear"),
+    ).toBeInTheDocument();
+  });
+
+  test("the Enter an input method commits a search's characters with uses no template", () => {
+    const harness: Harness = renderPicker();
+    typeSearch("k8s");
+
+    // Chrome marks it composing; Safari sends keyCode 229 once it has ended.
+    fireEvent.keyDown(getSearch(), { key: "Enter", isComposing: true });
+    fireEvent.keyDown(getSearch(), { key: "Enter", keyCode: 229 });
+
+    expect(harness.onUseTemplate).not.toHaveBeenCalled();
+    expect(picked()).toBe(DashboardTemplateType.Kubernetes);
+
+    expect(press(getSearch(), "Enter")).toBe(true);
+    expect(harness.onUseTemplate).toHaveBeenCalledTimes(1);
+  });
+
   describe("when nothing matches", () => {
     test("it says so, offers to clear the search, and picks nothing", () => {
       renderPicker();

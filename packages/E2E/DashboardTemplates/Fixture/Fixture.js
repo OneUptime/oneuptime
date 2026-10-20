@@ -23,7 +23,8 @@
  *                      a name someone took meanwhile
  *   lang=de            the Dashboard's words in that language: any of its
  *                      locales (Dashboard/src/Locales), fetched from the
- *                      fixture server as the page opens
+ *                      fixture server as the page opens. Once open,
+ *                      window.__fixture.setLanguage("fr") switches it
  *   theme=dark         dark mode
  */
 import "Common/UI/Styles/Theme.css";
@@ -188,20 +189,25 @@ ModelAPI.create = async (data) => {
 };
 
 /*
- * The language's words, as the Dashboard ships them. Fetched rather than
+ * A language's words, as the Dashboard ships them. Fetched rather than
  * bundled: seventeen locales of thirty thousand strings each would make the
  * bundle the suite waits for many times larger.
  */
-const translation =
-  language === "en"
-    ? {}
-    : await fetch(`/locales/${language}.json`).then((response) => {
-        if (!response.ok) {
-          throw new Error(`The ${language} locale could not be loaded.`);
-        }
+async function loadTranslation(lang) {
+  if (lang === "en") {
+    return {};
+  }
 
-        return response.json();
-      });
+  const response = await fetch(`/locales/${lang}.json`);
+
+  if (!response.ok) {
+    throw new Error(`The ${lang} locale could not be loaded.`);
+  }
+
+  return response.json();
+}
+
+const translation = await loadTranslation(language);
 
 /*
  * The Dashboard looks every string up by its English text, so the separators
@@ -219,6 +225,27 @@ await i18next.use(initReactI18next).init({
   nsSeparator: false,
 });
 document.documentElement.lang = language;
+
+/*
+ * Switches the page to another language, as the Dashboard does when its
+ * language is changed: the spec reads the dialogs in every language on one
+ * page, rather than loading the page seventeen times over.
+ */
+window.__fixture.setLanguage = async (lang) => {
+  if (lang !== "en" && !LANGUAGES.includes(lang)) {
+    throw new Error(`The Dashboard has no ${lang} locale.`);
+  }
+
+  i18next.addResourceBundle(
+    lang,
+    "translation",
+    await loadTranslation(lang),
+    true,
+    true,
+  );
+  await i18next.changeLanguage(lang);
+  document.documentElement.lang = lang;
+};
 
 // ---- the pages ----------------------------------------------------------------
 

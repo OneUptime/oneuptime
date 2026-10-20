@@ -143,6 +143,24 @@ describe.each(
     expect(picker.wizard).toContain("ModalWidth.Medium");
     expect(picker.wizard).toContain('title="Back"');
   });
+
+  /*
+   * Enter in the name goes on, as the footer's button does, read the same
+   * way in both wizards - never on an input method's Enter or a held key's
+   * repeats - and a second press while the first create is on its way
+   * writes nothing.
+   */
+  test("its Name step goes on with Enter through the shared key rule, and never creates twice", () => {
+    expect(picker.wizard).toContain(
+      'from "../../Utils/TemplatePicker/WizardKeys"',
+    );
+    expect(picker.wizard).toContain("if (isEnterToSubmit(event)) {");
+    expect(picker.wizard).toContain("if (isCreatingRef.current) {");
+    expect(picker.wizard).toContain("isCreatingRef.current = true;");
+    expect(picker.wizard).toContain("isCreatingRef.current = false;");
+    // No Enter of its own: the shared rule is the one that knows the exceptions.
+    expect(picker.wizard).not.toContain('event.key === "Enter"');
+  });
 });
 
 describe("the shared step", () => {
@@ -153,6 +171,14 @@ describe("the shared step", () => {
         named: false,
       });
     }
+  });
+
+  test("leaves an input method's keys to it, by the same rule the wizards read Enter with", () => {
+    expect(SHARED_PICKER).toContain(
+      'from "../../Utils/TemplatePicker/WizardKeys"',
+    );
+    expect(SHARED_PICKER).toContain("if (isComposingKey(event)) {");
+    expect(SHARED_PICKER).not.toContain("nativeEvent.isComposing");
   });
 
   test("is the one place the step's words are drawn", () => {

@@ -209,6 +209,60 @@ function widthName(page: Page): string {
   return (page.viewportSize()?.width || 0) < 640 ? "390" : "1280";
 }
 
+// The heading's line, text-sm: a box this tall, or a little more, is one line.
+const LINE_HEIGHT: number = 20;
+
+// Every language the Dashboard speaks (Dashboard/src/Locales), English first.
+const LANGUAGES: Array<string> = [
+  "en",
+  "da",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "hi",
+  "it",
+  "ja",
+  "ko",
+  "nl",
+  "no",
+  "pt",
+  "ru",
+  "sv",
+  "zh-CN",
+  "zh-TW",
+];
+
+interface PromptFit {
+  prompt: string;
+  // How wide the prompt is drawn, in the box's own font.
+  promptWidth: number;
+  // The room the box leaves for it, between its paddings.
+  room: number;
+}
+
+// How wide a search box's prompt is, and how much room the box gives it.
+async function promptFit(search: Locator): Promise<PromptFit> {
+  return await search.evaluate((element: Element): PromptFit => {
+    const input: HTMLInputElement = element as HTMLInputElement;
+    const style: CSSStyleDeclaration = window.getComputedStyle(input);
+    const context: CanvasRenderingContext2D = document
+      .createElement("canvas")
+      .getContext("2d") as CanvasRenderingContext2D;
+
+    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+
+    return {
+      prompt: input.placeholder,
+      promptWidth: context.measureText(input.placeholder).width,
+      room:
+        input.clientWidth -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight),
+    };
+  });
+}
+
 test.describe("Create a dashboard", () => {
   test("opens on Start from scratch: first, focused, and the six recommended templates as one-line rows", async ({
     page,
@@ -370,6 +424,71 @@ test.describe("Create a dashboard", () => {
         description: null,
         projectId: PROJECT_ID,
         templateType: null,
+      },
+    ]);
+  });
+
+  /*
+   * Found in the UI review: Enter in the name did nothing, so the keyboard
+   * that picks a template in the picker had to give way to the mouse on the
+   * last step. Enter there now creates, as Create Dashboard does.
+   */
+  test("without the mouse: Enter on Start from scratch, a name, and Enter make an empty dashboard", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDashboardDialog(page);
+
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByTestId("dashboard-name-input")).toBeFocused();
+    await page.keyboard.type("Checkout on-call");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("created-dashboard")).toHaveText(
+      "Opened the new dashboard: Checkout on-call",
+    );
+    expect(await created(page)).toEqual([
+      {
+        kind: "dashboard",
+        name: "Checkout on-call",
+        description: null,
+        projectId: PROJECT_ID,
+        templateType: null,
+      },
+    ]);
+  });
+
+  test("without the mouse: '/', a search and Enter take a template, and Enter in its numbered name creates it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDashboardDialog(
+      page,
+      "&names=Hosts Dashboard",
+    );
+
+    await page.keyboard.press("/");
+    await page.keyboard.type("servers");
+    await page.keyboard.press("Enter");
+
+    const name: Locator = dialog.getByTestId("dashboard-name-input");
+
+    await expect(name).toBeFocused();
+    await expect(name).toHaveValue("Hosts Dashboard 2");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("created-dashboard")).toHaveText(
+      "Opened the new dashboard: Hosts Dashboard 2",
+    );
+    expect(await created(page)).toEqual([
+      {
+        kind: "dashboard",
+        name: "Hosts Dashboard 2",
+        description: null,
+        projectId: PROJECT_ID,
+        templateType: "Host",
       },
     ]);
   });
@@ -622,16 +741,22 @@ test.describe("Create a dashboard", () => {
       return box.y + box.height / 2;
     };
 
-    if (viewport.width >= 640) {
+    if (viewport.width >= 1024) {
       // One row: the heading, the search and the select.
       expect(Math.abs(center(search) - center(heading))).toBeLessThan(12);
       expect(Math.abs(center(select) - center(heading))).toBeLessThan(12);
       expect(search.x).toBeGreaterThan(heading.x + heading.width);
     } else {
-      // A phone: the select beside the heading, the search on a row of its own.
+      /*
+       * A phone: one under the other, each as wide as the list. Beside the
+       * heading, the select - as wide as its longest category - pushed the
+       * heading into two lines, three in Russian.
+       */
       expect(search.y).toBeGreaterThanOrEqual(heading.y + heading.height - 1);
+      expect(select.y).toBeGreaterThanOrEqual(search.y + search.height - 1);
       expect(search.width).toBeGreaterThan(viewport.width * 0.7);
-      expect(select.y + select.height).toBeLessThanOrEqual(search.y + 1);
+      expect(Math.abs(select.width - search.width)).toBeLessThanOrEqual(1);
+      expect(heading.height).toBeLessThanOrEqual(LINE_HEIGHT * 1.5);
     }
 
     // The widget chips wrap inside the row, never past it.
@@ -646,6 +771,40 @@ test.describe("Create a dashboard", () => {
         row.x + row.width + 1,
       );
     }
+  });
+
+  test("between a phone and a laptop (768px), the select sits beside the heading and the search has a row of its own", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "Laid out once, at a tablet's width.");
+
+    await page.setViewportSize({ width: 768, height: 900 });
+
+    const dialog: Locator = await openDashboardDialog(page, "&lang=de");
+    const heading: Box = await boxOf(
+      dialog.locator("#dashboard-template-list-heading"),
+    );
+    const search: Box = await boxOf(
+      dialog.getByTestId("dashboard-template-search"),
+    );
+    const select: Box = await boxOf(
+      dialog.getByTestId("dashboard-template-view-select"),
+    );
+    const list: Box = await boxOf(dialog.getByRole("listbox"));
+
+    // German's heading on one line, the select beside it.
+    expect(heading.height).toBeLessThanOrEqual(LINE_HEIGHT * 1.5);
+    expect(
+      Math.abs(heading.y + heading.height / 2 - (select.y + select.height / 2)),
+    ).toBeLessThan(12);
+    expect(select.x).toBeGreaterThan(heading.x + heading.width);
+    // The search under them, as wide as the list.
+    expect(search.y).toBeGreaterThanOrEqual(select.y + select.height - 1);
+    expect(Math.abs(search.width - list.width)).toBeLessThanOrEqual(1);
   });
 
   test("in the dark theme, nothing in it is left white", async ({
@@ -720,6 +879,120 @@ test.describe("Create a dashboard", () => {
 
     await screenshot(page, `dashboard-picked-${widthName(page)}-de`);
   });
+});
+
+/*
+ * Found in the UI review: in German and French the search box cut its own
+ * prompt short ("Vorlagen durchsuchen.."), and wherever the heading, the
+ * search and the select did not fit one row - a tablet, a phone, a long
+ * language - the heading broke into two or three lines. Both dialogs draw
+ * the step, so both are read in every language the Dashboard speaks.
+ */
+test.describe("in every language", () => {
+  const DIALOGS: Array<{ name: string; prefix: string; page: string }> = [
+    {
+      name: "Create a dashboard",
+      prefix: "dashboard",
+      page: "create-dashboard",
+    },
+    { name: "Create a workflow", prefix: "workflow", page: "create-workflow" },
+  ];
+
+  for (const which of DIALOGS) {
+    test(`${which.name}: the heading keeps one line, the search's prompt fits its box, and nothing scrolls sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.goto(`/?page=${which.page}`);
+      await page.evaluate(async (): Promise<void> => {
+        await document.fonts.ready;
+      });
+
+      for (const language of LANGUAGES) {
+        // The page switches language as the Dashboard does, then opens the dialog.
+        await page.evaluate(async (lang: string): Promise<void> => {
+          await (
+            window as unknown as {
+              __fixture: { setLanguage: (lang: string) => Promise<void> };
+            }
+          ).__fixture.setLanguage(lang);
+        }, language);
+        await page.getByTestId(which.page).click();
+
+        const dialog: Locator = page.getByRole("dialog");
+        const search: Locator = dialog.getByTestId(
+          `${which.prefix}-template-search`,
+        );
+
+        await expect(search).toBeVisible();
+        await expect(page.locator("html")).toHaveAttribute("lang", language);
+
+        const where: string = `${which.prefix}, ${language}`;
+        const heading: Box = await boxOf(
+          dialog.locator(`#${which.prefix}-template-list-heading`),
+        );
+        const searchBox: Box = await boxOf(search);
+        const select: Box = await boxOf(
+          dialog.getByTestId(`${which.prefix}-template-view-select`),
+        );
+        const dialogBox: Box = await boxOf(dialog);
+        const fit: PromptFit = await promptFit(search);
+
+        // Soft: one language that does not fit leaves the others still read.
+        expect
+          .soft({ where, lines: heading.height <= LINE_HEIGHT * 1.5 })
+          .toEqual({ where, lines: true });
+        expect
+          .soft({
+            where,
+            prompt: fit.prompt,
+            fits: fit.promptWidth <= fit.room,
+          })
+          .toEqual({ where, prompt: fit.prompt, fits: true });
+        expect
+          .soft({
+            where,
+            inside: select.x + select.width <= dialogBox.x + dialogBox.width,
+          })
+          .toEqual({ where, inside: true });
+        expect
+          .soft({
+            where,
+            sideways: await page.evaluate((): number => {
+              return (
+                document.documentElement.scrollWidth -
+                document.documentElement.clientWidth
+              );
+            }),
+          })
+          .toEqual({ where, sideways: 0 });
+
+        if ((page.viewportSize()?.width || 0) >= 1024) {
+          // One row at a laptop's width, in every language.
+          expect
+            .soft({
+              where,
+              oneRow:
+                Math.abs(
+                  searchBox.y +
+                    searchBox.height / 2 -
+                    (heading.y + heading.height / 2),
+                ) < 12 &&
+                Math.abs(
+                  select.y +
+                    select.height / 2 -
+                    (heading.y + heading.height / 2),
+                ) < 12,
+            })
+            .toEqual({ where, oneRow: true });
+        }
+
+        await page.keyboard.press("Escape");
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+      }
+    });
+  }
 });
 
 test.describe("Create a dashboard, beside Create a workflow", () => {

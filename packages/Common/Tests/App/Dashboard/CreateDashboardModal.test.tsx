@@ -748,6 +748,166 @@ describe("Create Dashboard", () => {
   );
 });
 
+/*
+ * Enter in the name goes on, as Create Dashboard does, so a dashboard is
+ * made without reaching for the mouse: Start from scratch (focused when
+ * the dialog opens, so Enter takes it), a name, Enter. Found in the UI
+ * review: Enter there did nothing at all. These hold the Enter that must
+ * not create - one an input method commits characters with, a held key's
+ * repeats, a second one while the first is still on its way - and the
+ * Enter that belongs to the description's own lines.
+ */
+describe("Enter in the name", () => {
+  type PressEnterFunction = (
+    element: HTMLElement,
+    init?: KeyboardEventInit & { keyCode?: number },
+  ) => Promise<void>;
+
+  const pressEnter: PressEnterFunction = async (
+    element: HTMLElement,
+    init: KeyboardEventInit & { keyCode?: number } = {},
+  ): Promise<void> => {
+    await act(async (): Promise<void> => {
+      fireEvent.keyDown(element, { key: "Enter", keyCode: 13, ...init });
+      await Promise.resolve();
+    });
+  };
+
+  test("creates the dashboard from the template, with the name filled in", async () => {
+    const harness: ModalHarness = await renderModal();
+    useTemplate(DashboardTemplateType.Kubernetes);
+
+    await pressEnter(getNameInput());
+
+    expect(creates()).toHaveLength(1);
+    expect(creates()[0]!.model.name).toBe("Kubernetes Dashboard");
+    expect(creates()[0]!.miscDataProps).toEqual({
+      [DASHBOARD_TEMPLATE_MISC_DATA_KEY]: DashboardTemplateType.Kubernetes,
+    });
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("Start from scratch, a name and Enter: an empty dashboard, all from the keyboard", async () => {
+    await renderModal();
+
+    // The dialog opens with the focus on Start from scratch.
+    expect(getScratch()).toHaveFocus();
+    fireEvent.click(getScratch());
+    typeInto(getNameInput(), "Checkout on-call");
+    await pressEnter(getNameInput());
+
+    expect(creates()).toHaveLength(1);
+    expect(creates()[0]!.model.name).toBe("Checkout on-call");
+    expect(creates()[0]!.miscDataProps).toEqual({});
+  });
+
+  test("a name under two letters is refused, saying why, as the button refuses it", async () => {
+    await renderModal();
+    fireEvent.click(getScratch());
+    typeInto(getNameInput(), "x");
+
+    await pressEnter(getNameInput());
+
+    expect(
+      screen.getByText(
+        "Please give this dashboard a name of at least 2 letters.",
+      ),
+    ).toBeInTheDocument();
+    expect(creates()).toHaveLength(0);
+  });
+
+  test("the Enter an input method commits its characters with creates nothing", async () => {
+    await renderModal();
+    useTemplate(DashboardTemplateType.Alert);
+
+    // Chrome marks it composing; Safari sends keyCode 229 once it has ended.
+    await pressEnter(getNameInput(), { isComposing: true });
+    await pressEnter(getNameInput(), { keyCode: 229 });
+
+    expect(creates()).toHaveLength(0);
+    expect(currentStep()).toBe("name");
+
+    await pressEnter(getNameInput());
+
+    expect(creates()).toHaveLength(1);
+  });
+
+  test("a held Enter creates one dashboard: its repeats create nothing", async () => {
+    await renderModal();
+    useTemplate(DashboardTemplateType.Host);
+
+    await pressEnter(getNameInput(), { repeat: true });
+
+    expect(creates()).toHaveLength(0);
+  });
+
+  test("a second Enter while the first create is on its way makes no second dashboard", async () => {
+    let answer: ((value: unknown) => void) | null = null;
+    mockCreate.mockImplementation((): Promise<unknown> => {
+      return new Promise((resolve: (value: unknown) => void): void => {
+        answer = resolve;
+      });
+    });
+    const harness: ModalHarness = await renderModal();
+    useTemplate(DashboardTemplateType.Monitor);
+
+    await pressEnter(getNameInput());
+    await pressEnter(getNameInput());
+    // Nor does the button, greyed out meanwhile.
+    expect(queryCreate()).toBeDisabled();
+
+    expect(creates()).toHaveLength(1);
+
+    await act(async (): Promise<void> => {
+      answer?.({ data: createdDashboard("Monitor Dashboard") });
+    });
+
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledTimes(1);
+    });
+    expect(creates()).toHaveLength(1);
+  });
+
+  test("once a create is refused, Enter tries again with the name as it now stands", async () => {
+    mockCreate.mockImplementationOnce((): Promise<unknown> => {
+      return Promise.reject(
+        new BadDataException("Dashboard with the same name already exists."),
+      );
+    });
+    await renderModal();
+    useTemplate(DashboardTemplateType.Ceph);
+
+    await pressEnter(getNameInput());
+    expect(
+      await screen.findByText("Dashboard with the same name already exists."),
+    ).toBeVisible();
+
+    typeInto(getNameInput(), "Ceph Dashboard (EU)");
+    await pressEnter(getNameInput());
+
+    expect(creates()).toHaveLength(2);
+    expect(creates()[1]!.model.name).toBe("Ceph Dashboard (EU)");
+    expect(creates()[1]!.miscDataProps[DASHBOARD_TEMPLATE_MISC_DATA_KEY]).toBe(
+      DashboardTemplateType.Ceph,
+    );
+  });
+
+  test("Enter in the description starts a new line of it: it creates nothing", async () => {
+    await renderModal();
+    useTemplate(DashboardTemplateType.Incident);
+    fireEvent.click(
+      within(getStepContent()).getByRole("button", { name: /More fields/ }),
+    );
+
+    await pressEnter(screen.getByTestId("dashboard-description-input"));
+
+    expect(creates()).toHaveLength(0);
+    expect(currentStep()).toBe("name");
+  });
+});
+
 describe("the names the project has", () => {
   test("are looked up once, as the dialog opens", async () => {
     await renderModal();
