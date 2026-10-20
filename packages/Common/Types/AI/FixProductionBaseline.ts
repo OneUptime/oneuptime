@@ -47,6 +47,12 @@ export interface RecurrenceFixBaseline {
   // ISO-8601: the window counted, before the merge.
   from: string;
   to: string;
+  /*
+   * ISO-8601: the last check that found one of their incidents (or alerts)
+   * open after the deploy. A monitor raises no other while one is open, so
+   * the deployed fix's quiet time counts from then.
+   */
+  openSeenAt?: string | undefined;
 }
 
 // The telemetry a telemetry improvement adds to.
