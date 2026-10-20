@@ -27,12 +27,21 @@ const COMPONENTS_DIR: string = path.join(
   "Workflow",
 );
 
+const SHARED_PICKER_PATH: string = path.join(
+  COMPONENTS_DIR,
+  "..",
+  "TemplatePicker",
+  "TemplatePicker.tsx",
+);
+
 /*
- * Every file the picker draws with: the picker, and the wizard that holds it.
- * The util module only builds data, but it is read too, so a class that ever
- * moves into it is still checked.
+ * Every file the picker draws with: the shared template picker it draws its
+ * step with (Create a dashboard draws it too), the workflow's own details,
+ * and the wizard that holds it. The util modules only build data, but they
+ * are read too, so a class that ever moves into one is still checked.
  */
 const SOURCE_PATHS: Array<string> = [
+  SHARED_PICKER_PATH,
   path.join(COMPONENTS_DIR, "WorkflowTemplatePicker.tsx"),
   path.join(COMPONENTS_DIR, "CreateWorkflowModal.tsx"),
   path.join(
@@ -45,6 +54,17 @@ const SOURCE_PATHS: Array<string> = [
     "Utils",
     "Workflow",
     "WorkflowTemplatePickerUtil.ts",
+  ),
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Utils",
+    "TemplatePicker",
+    "TemplatePickerUtil.ts",
   ),
 ];
 
@@ -75,7 +95,8 @@ const SOURCES: Array<{ path: string; code: string }> = SOURCE_PATHS.map(
   },
 );
 
-const PICKER_CODE: string = SOURCES[0]!.code;
+// The step and the workflow's details: what the picker draws.
+const PICKER_CODE: string = `${SOURCES[0]!.code}\n${SOURCES[1]!.code}`;
 
 // Block comments only: prose in Theme.css must not count as a rule.
 const THEME_CSS: string = fs
