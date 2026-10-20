@@ -12,7 +12,6 @@ import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediati
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../Models/DatabaseModels/Project";
-import Runner from "../../../../Models/DatabaseModels/Runner";
 import { AlertFeedEventType } from "../../../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -20,6 +19,12 @@ import AutoRemediationExecutionMode from "../../../../Types/AutoRemediation/Auto
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import {
+  AutoRemediationFixKind,
+  doesRuleRunCommandsOnRunners,
+  getAutoRemediationFixKind,
+  getRuleCommandRunnerIds,
+} from "../../../../Types/AutoRemediation/AutoRemediationFix";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
@@ -1117,23 +1122,32 @@ export default class RemediationExecutionRunner {
                   _id: true,
                   isEnabled: true,
                   executionMode: true,
+                  remediationAction: true,
                   aiComposesCommands: true,
+                  aiSelectsRunbook: true,
                   commandAllowlist: true,
                   commandRunners: { _id: true },
+                  runnerId: true,
                 },
                 props: { isRoot: true },
               })
             : null;
 
+        /*
+         * A rule's commands run on Runners while it still runs commands on
+         * them (AutoRemediationFix.doesRuleRunCommandsOnRunners): a
+         * OneUptime AI rule that picks a Runner, or a rule saved before
+         * rules were simplified that composes commands.
+         */
         if (
           !rule ||
           rule.isEnabled === false ||
-          rule.aiComposesCommands !== true
+          !doesRuleRunCommandsOnRunners(rule)
         ) {
           await this.settleNoneApplicable({
             suggestion,
             rationaleMarkdown:
-              "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer composes commands — nothing was run or proposed.",
+              "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer runs commands on a Runner — nothing was run or proposed.",
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -1150,16 +1164,13 @@ export default class RemediationExecutionRunner {
           rule.commandAllowlist,
         );
 
-        const allowedRunnerIds: Array<string> | null =
-          rule.commandRunners && rule.commandRunners.length > 0
-            ? rule.commandRunners
-                .map((runner: Runner) => {
-                  return runner.id?.toString() || "";
-                })
-                .filter((id: string) => {
-                  return id !== "";
-                })
-            : null;
+        /*
+         * The Runners the rule names - its Runner, and for a rule saved
+         * before rules were simplified its Command Runners too - and no
+         * others: no Runner named is no host target at all, never "any
+         * Runner that runs AI commands".
+         */
+        const allowedRunnerIds: Array<string> = getRuleCommandRunnerIds(rule);
 
         mode = await this.resolveMode({
           rule,
@@ -1167,24 +1178,32 @@ export default class RemediationExecutionRunner {
         });
 
         /*
-         * Rule-driven runs may also reach the signal's clusters when their
-         * AI pages allow it — the cluster mode, not the rule, decides
-         * whether a kubectl change may auto-execute. These clusters are
-         * real command targets (a FullAuto rule run changes them inline on
-         * an Automatic or BypassApproval cluster), so the cluster's own
-         * guards apply to them below.
+         * A rule saved before rules were simplified may also reach the
+         * signal's clusters when their AI pages allow it — the cluster mode,
+         * not the rule, decides whether a kubectl change may auto-execute.
+         * These clusters are real command targets (a FullAuto rule run
+         * changes them inline on an Automatic or BypassApproval cluster), so
+         * the cluster's own guards apply to them below. A OneUptime AI rule
+         * that picks a Runner runs commands there only: the signal's
+         * clusters are fixed by their own rounds, which the rule turns on.
          */
+        const reachesClusters: boolean =
+          getAutoRemediationFixKind(rule) ===
+          AutoRemediationFixKind.CommandsOnRunners;
+
         let ruleClusterTargets: Array<KubernetesClusterAiAccessStatus> = [];
         try {
-          ruleClusterTargets = (
-            await KubernetesClusterAiAccessService.getStatusesForSubject({
-              projectId,
-              incidentId: suggestion.incidentId,
-              alertId: suggestion.alertId,
-            })
-          ).filter((status: KubernetesClusterAiAccessStatus) => {
-            return status.isRemediationReady;
-          });
+          ruleClusterTargets = reachesClusters
+            ? (
+                await KubernetesClusterAiAccessService.getStatusesForSubject({
+                  projectId,
+                  incidentId: suggestion.incidentId,
+                  alertId: suggestion.alertId,
+                })
+              ).filter((status: KubernetesClusterAiAccessStatus) => {
+                return status.isRemediationReady;
+              })
+            : [];
         } catch (error) {
           logger.error(
             `AI remediation execution: could not resolve cluster targets for suggestion ${suggestionId.toString()}; continuing with host targets only: ${error}`,
@@ -2040,9 +2059,10 @@ export default class RemediationExecutionRunner {
    * Enable AI is the project's only AI switch and the kill switch for
    * every round: rule rounds (Bash/SSH on Runners, and kubectl a rule
    * composes), cluster rounds and resource rounds alike. Past it, a
-   * round's consent is its own: the rule's mode and allowlist and a
-   * Runner's Runs AI Remediation Commands, or the cluster's or resource's
-   * Fixes mode and its agent's write access.
+   * round's consent is its own: the rule's mode and allowlist and the
+   * Runner it picks (picking it is what lets it run OneUptime AI's
+   * commands), or the cluster's or resource's Fixes mode and its agent's
+   * write access.
    */
   public static async checkProjectGates(data: {
     projectId: ObjectID;

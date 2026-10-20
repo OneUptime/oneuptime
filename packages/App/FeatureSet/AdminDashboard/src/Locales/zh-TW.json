@@ -1011,7 +1011,7 @@
   "Docker Compose guide": "Docker Compose 指南",
   "Kubernetes guide": "Kubernetes 指南",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話從此號碼撥出；除非在「更多欄位」中新增了簡訊電話號碼，否則簡訊也從此號碼傳送。",
-  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "如果您的 Twilio 號碼無法傳送簡訊（在新加坡，國內號碼僅支援語音），請新增可以傳送簡訊的號碼。之後每則簡訊都從收件人所在國家/地區的號碼傳送，沒有則從第一個號碼傳送。",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "當您的號碼無法傳送簡訊時，用於傳送簡訊的號碼（在新加坡，國內號碼僅支援語音）。每則簡訊從收件人所在國家/地區的號碼傳送，沒有則從第一個號碼傳送。",
   "Twilio SMS Phone Numbers": "Twilio 簡訊電話號碼",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是電話號碼。請輸入含國碼的每個號碼，並以逗號分隔，例如 +6581234567, +447700900123。",
   "Twilio Primary Phone Number": "Twilio 主要電話號碼",

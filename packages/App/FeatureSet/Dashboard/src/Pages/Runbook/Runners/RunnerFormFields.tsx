@@ -2,16 +2,18 @@ import { isKubernetesAgentRunnerRow } from "../../Kubernetes/Utils/KubernetesAge
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import { KUBERNETES_AGENT_RUNNER_NAME_PREFIX } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 
 /*
  * The Runner create / edit form, shared by the Runner list and the Runner
- * detail page - both walk the same two steps - and what it leaves out on
- * a Runner the Kubernetes agent chart installed.
+ * detail page - one page, the same on both - and what it leaves out on a
+ * Runner the Kubernetes agent chart installed.
  *
  * RunnerService refuses, for any non-root write:
  * - renaming a row whose name carries the "kubernetes-agent/" marker, and
@@ -20,13 +22,20 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
  *   OR agent posture (RunnerService.isKubernetesAgentRunnerRow).
  * A form that posted those fields would only ever be refused, so on such a
  * row they are not in the form at all — nothing is posted for them — and
- * the form says why in one line. The rest (description, "Runs AI
- * Remediation Commands", labels) stays editable. Import-clean: no RouteMap
- * or Navigation, so it can be tested without a browser.
+ * the form says why in one line. The rest (description, labels) stays
+ * editable. Import-clean: no RouteMap or Navigation, so it can be tested
+ * without a browser.
  *
- * AI code fixes are not a switch here: a code repository picks the Runner
- * AI works in it on, in its settings in Code (CodeRepository.runnerId), and
- * a Runner's own page lists the repositories that pick it.
+ * Neither AI's code fixes nor its remediation commands are a switch here:
+ * a code repository picks the Runner AI works in it on, in its settings in
+ * Code (CodeRepository.runnerId), and an auto remediation rule - or a
+ * Kubernetes cluster's AI settings - picks the Runner OneUptime AI runs its
+ * commands on (AutoRemediationRule.runnerId, RunnerAiCommandsPick). A
+ * Runner's own page lists the repositories that pick it.
+ *
+ * With the switches gone the form is three rows - Name, Description, and
+ * More fields - so it is one page: "Runs Runbooks", on for almost every
+ * Runner, is folded under More fields with the labels.
  */
 
 // What the form reads off the row it edits.
@@ -113,22 +122,16 @@ export function getReservedRunnerNameError(name: unknown): string | null {
   return `Runner names starting with "${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/" are reserved for the in-cluster Runners the Kubernetes agent chart registers. Choose another name.`;
 }
 
-/*
- * The form's steps, on the list and on the detail page. Every one of them
- * keeps a field on an agent row too: the description and the labels (folded
- * under Advanced on Runner), and Runs AI Remediation Commands, are never
- * left out.
- */
-export const RUNNER_FORM_STEPS: Array<FormStep<Runner>> = [
-  { title: "Runner", id: "runner" },
-  { title: "Capabilities", id: "capabilities" },
-];
-
 export interface RunnerFormFieldOptions {
-  // Put the fields on RUNNER_FORM_STEPS (runner, capabilities).
-  withSteps: boolean;
   restrictions: RunnerFormRestrictions;
 }
+
+/*
+ * The form's More fields, at its end: "Runs Runbooks" (left out on an agent
+ * row) and the labels. Built once, so the form's fields name one section.
+ */
+const MORE_FIELDS: FormFieldCollapsibleSection<Runner> =
+  getAdvancedFormSection<Runner>();
 
 export function getRunnerFormFields(
   options: RunnerFormFieldOptions,
@@ -137,10 +140,6 @@ export function getRunnerFormFields(
     options.restrictions,
   );
 
-  function onStep(stepId: string): { stepId?: string | undefined } {
-    return options.withSteps ? { stepId } : {};
-  }
-
   const fields: Fields<Runner> = [];
 
   if (!options.restrictions.isNameLocked) {
@@ -148,7 +147,6 @@ export function getRunnerFormFields(
       field: { name: true },
       title: "Name",
       description: "A name to recognize this Runner by.",
-      ...onStep("runner"),
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "prod-eu-runner",
@@ -162,7 +160,6 @@ export function getRunnerFormFields(
   const description: Field<Runner> = {
     field: { description: true },
     title: "Description",
-    ...onStep("runner"),
     fieldType: FormFieldSchemaType.LongText,
     required: false,
     placeholder:
@@ -180,7 +177,7 @@ export function getRunnerFormFields(
     fields.push({
       field: { canRunRunbooks: true },
       title: "Runs Runbooks",
-      ...onStep("capabilities"),
+      collapsibleSection: MORE_FIELDS,
       description:
         "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
       fieldType: FormFieldSchemaType.Toggle,
@@ -189,24 +186,8 @@ export function getRunnerFormFields(
     });
   }
 
-  fields.push(
-    {
-      field: { canRunAiCommands: true },
-      title: "Runs AI Remediation Commands",
-      ...onStep("capabilities"),
-      description:
-        "Let auto-remediation run policy-checked commands on this Runner. Destructive commands are always refused.",
-      fieldType: FormFieldSchemaType.Toggle,
-      required: false,
-      defaultValue: false,
-    },
-    /*
-     * On the Runner step, folded under Advanced after the description: the
-     * last of that step's fields, as the capabilities follow on a step of
-     * their own.
-     */
-    getLabelsFormField<Runner>(onStep("runner")),
-  );
+  // The last of More fields, after the switch.
+  fields.push(getLabelsFormField<Runner>({ collapsibleSection: MORE_FIELDS }));
 
   return fields;
 }
@@ -220,7 +201,6 @@ export function getRunnerFormFields(
  */
 export function getRunnerCreateFormFields(): Fields<Runner> {
   return getRunnerFormFields({
-    withSteps: true,
     restrictions: NO_RUNNER_FORM_RESTRICTIONS,
   });
 }
