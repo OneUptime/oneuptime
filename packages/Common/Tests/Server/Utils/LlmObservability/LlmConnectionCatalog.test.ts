@@ -131,7 +131,9 @@ describe("LlmConnectionCatalog", () => {
       }
 
       expect(definition.docsPath).toMatch(
-        /^\/docs\/telemetry\/ai-connect-[a-z0-9-]+$/,
+        definition.kind === LlmConnectionKind.CompanyTool
+          ? /^\/docs\/telemetry\/ai-company-tools#[a-z0-9-]+$/
+          : /^\/docs\/telemetry\/ai-provider-accounts#[a-z0-9-]+$/,
       );
       expect(definition.genAiProviderName).toMatch(/^[a-z0-9._]+$/);
       expect(definition.defaultServiceName.length).toBeGreaterThan(0);

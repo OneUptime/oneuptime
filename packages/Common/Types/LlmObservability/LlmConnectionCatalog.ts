@@ -71,7 +71,11 @@ export interface LlmConnectionDefinition {
   genAiProviderName: string;
   // The telemetry service a new connection's data belongs to.
   defaultServiceName: string;
-  // Docs path under /docs, e.g. "/docs/telemetry/ai-connect-openai".
+  /*
+   * The guide: a section of the provider accounts or company AI tools page,
+   * e.g. "/docs/telemetry/ai-provider-accounts#openai". The anchor is the
+   * English heading's (DocsLinksResolve holds it to the page).
+   */
   docsPath: string;
   configFields: Array<LlmConnectionField>;
   secretFields: Array<LlmConnectionField>;
@@ -141,7 +145,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     icon: IconProp.Sparkles,
     genAiProviderName: "openai",
     defaultServiceName: "OpenAI",
-    docsPath: "/docs/telemetry/ai-connect-openai",
+    docsPath: "/docs/telemetry/ai-provider-accounts#openai",
     configFields: [],
     secretFields: [
       {
@@ -168,7 +172,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     icon: IconProp.ChatBubbleOvalLeftEllipsis,
     genAiProviderName: "anthropic",
     defaultServiceName: "Anthropic",
-    docsPath: "/docs/telemetry/ai-connect-anthropic",
+    docsPath: "/docs/telemetry/ai-provider-accounts#anthropic",
     configFields: [],
     secretFields: [
       {
@@ -197,7 +201,8 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     icon: IconProp.Cloud,
     genAiProviderName: "azure.ai.openai",
     defaultServiceName: "Azure OpenAI",
-    docsPath: "/docs/telemetry/ai-connect-azure-openai",
+    docsPath:
+      "/docs/telemetry/ai-provider-accounts#azure-openai-and-microsoft-foundry",
     configFields: [
       AZURE_TENANT_FIELD,
       AZURE_CLIENT_FIELD,
@@ -228,7 +233,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     icon: IconProp.CPUChip,
     genAiProviderName: "aws.bedrock",
     defaultServiceName: "Amazon Bedrock",
-    docsPath: "/docs/telemetry/ai-connect-aws-bedrock",
+    docsPath: "/docs/telemetry/ai-provider-accounts#amazon-bedrock",
     configFields: [
       {
         key: "accessKeyId",
@@ -274,7 +279,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     icon: IconProp.Globe,
     genAiProviderName: "gcp.vertex_ai",
     defaultServiceName: "Google Vertex AI",
-    docsPath: "/docs/telemetry/ai-connect-google-vertex-ai",
+    docsPath: "/docs/telemetry/ai-provider-accounts#google-vertex-ai",
     configFields: [
       {
         key: "projectId",
@@ -311,7 +316,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     icon: IconProp.ChatBubbleLeftRight,
     genAiProviderName: "anthropic",
     defaultServiceName: "Claude Enterprise",
-    docsPath: "/docs/telemetry/ai-connect-claude-enterprise",
+    docsPath: "/docs/telemetry/ai-company-tools#claude-enterprise",
     configFields: [],
     secretFields: [
       {
@@ -340,7 +345,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
     icon: IconProp.ChatBubbleLeft,
     genAiProviderName: "microsoft.copilot",
     defaultServiceName: "Microsoft 365 Copilot",
-    docsPath: "/docs/telemetry/ai-connect-microsoft-365-copilot",
+    docsPath: "/docs/telemetry/ai-company-tools#microsoft-365-copilot",
     configFields: [
       AZURE_TENANT_FIELD,
       AZURE_CLIENT_FIELD,

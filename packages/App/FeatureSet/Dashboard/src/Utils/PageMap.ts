@@ -1346,7 +1346,9 @@ enum PageMap {
   LLM_CALLS = "LLM_CALLS",
   LLM_BUDGETS = "LLM_BUDGETS",
   LLM_PRICING = "LLM_PRICING",
+  // Kept so old links to the retired Setup page land on Connect.
   LLM_DOCUMENTATION = "LLM_DOCUMENTATION",
+  LLM_CONNECT = "LLM_CONNECT",
 
   // AI Copilot (full-page chat over observability data)
   AI_COPILOT = "AI_COPILOT",
