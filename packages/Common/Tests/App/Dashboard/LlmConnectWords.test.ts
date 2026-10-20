@@ -21,6 +21,7 @@ import {
   getLlmConnectionLastReadSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionHealth";
 import {
+  getLlmConnectionReadFailureWords,
   getLlmConnectionTestFigures,
   getLlmConnectionTestWords,
   getLlmProviderGroupingLabel,
@@ -391,6 +392,64 @@ describe("what a test says", () => {
 
     expect(words.headline).toBe("The provider refused the test.");
     expect(words.details).toBe(undefined);
+  });
+});
+
+describe("why a saved connection's last read failed", () => {
+  test("a known failure says what went wrong and what to do, as a test would", () => {
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.AzureOpenAI),
+        lastPullResult: { status: "failed", failureKind: "permission" },
+      }),
+    ).toEqual({
+      headline:
+        "The credential works, but it may not read what this connection needs.",
+      advice:
+        "Give it the role or scope the setup guide names, then test again.",
+    });
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.OpenAI),
+        lastPullResult: { status: "failed", failureKind: "authentication" },
+      })?.headline,
+    ).toBe("The key or secret was not accepted.");
+  });
+
+  test("the provider's own answer is not repeated in the words", () => {
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: definitionOf(LlmConnectionProvider.OpenAI),
+        lastPullResult: { status: "failed", failureKind: "rate-limited" },
+      }),
+    ).not.toHaveProperty("details");
+  });
+
+  test.each([
+    // "The provider refused the test" is a test's words, not a read's.
+    [{ status: "failed", failureKind: "other" }],
+    [{ status: "failed", failureKind: "something-new" }],
+    [{ status: "failed" }],
+    [undefined],
+  ] as Array<[JSONObject | undefined]>)(
+    "anything else (%p) leaves the provider's answer to speak alone",
+    (lastPullResult: JSONObject | undefined) => {
+      expect(
+        getLlmConnectionReadFailureWords({
+          definition: definitionOf(LlmConnectionProvider.OpenAI),
+          lastPullResult,
+        }),
+      ).toBe(undefined);
+    },
+  );
+
+  test("a provider the catalog does not know has no words", () => {
+    expect(
+      getLlmConnectionReadFailureWords({
+        definition: undefined,
+        lastPullResult: { status: "failed", failureKind: "permission" },
+      }),
+    ).toBe(undefined);
   });
 });
 

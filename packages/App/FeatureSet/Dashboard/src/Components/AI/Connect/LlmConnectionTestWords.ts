@@ -8,6 +8,7 @@ import {
   LlmConnectionTestCounts,
   LlmConnectionTestResult,
 } from "Common/Types/LlmObservability/LlmConnectionTest";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { formatLlmCost } from "../../LlmConversations/LlmConversationFormat";
 
@@ -125,6 +126,44 @@ export function getLlmConnectionTestWords(data: {
     advice: words.advice,
     details: data.result.message || undefined,
   };
+}
+
+/*
+ * Why a saved connection's last read failed, in the words a test uses for
+ * the same failure: what went wrong and what to do. Only a failure of a
+ * known kind has words of its own - anything else ("the provider refused
+ * the test") is left to the provider's answer, shown on its own.
+ */
+export function getLlmConnectionReadFailureWords(data: {
+  definition: LlmConnectionDefinition | undefined;
+  lastPullResult: JSONObject | undefined;
+}): LlmConnectionTestWords | undefined {
+  const failureKind: JSONValue | undefined =
+    data.lastPullResult?.["failureKind"];
+
+  if (
+    !data.definition ||
+    typeof failureKind !== "string" ||
+    failureKind === LlmConnectionFailureKind.Other ||
+    !(Object.values(LlmConnectionFailureKind) as Array<string>).includes(
+      failureKind,
+    )
+  ) {
+    return undefined;
+  }
+
+  const words: LlmConnectionTestWords = getLlmConnectionTestWords({
+    definition: data.definition,
+    result: {
+      provider: data.definition.provider,
+      status: "fail",
+      message: "",
+      failureKind: failureKind as LlmConnectionFailureKind,
+      durationMs: 0,
+    },
+  });
+
+  return { headline: words.headline, advice: words.advice };
 }
 
 function formatWhole(value: number): string {

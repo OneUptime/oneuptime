@@ -44,6 +44,7 @@ import UserUtil from "Common/UI/Utils/User";
  *               | connected (two provider accounts, one working and one
  *               failing, and a company AI tool waiting for its first read)
  *               | done (all of that, AI calls and a budget too)
+ *               | off (one Bedrock account, turned off)
  *   ?role=      owner (default) | member | loading
  *   ?verdict=   pass (default) | warn | auth | permission | settings | slow
  *   ?source=    providers (the Usage page's provider accounts)
@@ -142,46 +143,64 @@ function connection(id, fields) {
   return item;
 }
 
+const TURNED_OFF = connection("20000000-0000-4000-8000-000000000005", {
+  name: "Bedrock us-east-1",
+  provider: "aws-bedrock",
+  isEnabled: false,
+  config: { accessKeyId: "AKIAEXAMPLE", regions: "us-east-1" },
+  lastPulledAt: new Date("2026-10-18T09:00:00.000Z"),
+  lastSuccessfulPullAt: new Date("2026-10-18T09:00:00.000Z"),
+  lastPullResult: {
+    status: "success",
+    kind: "usage",
+    days: 3,
+    inputTokens: 4200000,
+    outputTokens: 800000,
+  },
+});
+
 const connections =
   dataState === "empty"
     ? []
-    : [
-        connection("20000000-0000-4000-8000-000000000001", {
-          name: "OpenAI production",
-          provider: "openai",
-          config: {},
-          lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
-          lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
-          lastPullResult: {
-            status: "success",
-            kind: "usage",
-            days: 3,
-            costUsd: 182.4,
-            inputTokens: 1200000,
-            outputTokens: 240000,
-          },
-        }),
-        connection("20000000-0000-4000-8000-000000000002", {
-          name: "Foundry East",
-          provider: "azure-openai",
-          config: {
-            tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
-            clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
-            subscriptionId: "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0",
-            cloud: "public",
-          },
-          lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
-          lastError:
-            'Azure OpenAI and Microsoft Foundry accounts request failed with HTTP 403: {"error":{"code":"AuthorizationFailed","message":"The client does not have authorization to perform action \'Microsoft.CognitiveServices/accounts/read\'."}}',
-          lastPullResult: { status: "failed", failureKind: "permission" },
-        }),
-        connection("20000000-0000-4000-8000-000000000003", {
-          name: "Claude at Sysnetix",
-          provider: "claude-enterprise",
-          config: {},
-          serviceId: new ObjectID(SERVICE_ID),
-        }),
-      ];
+    : dataState === "off"
+      ? [TURNED_OFF]
+      : [
+          connection("20000000-0000-4000-8000-000000000001", {
+            name: "OpenAI production",
+            provider: "openai",
+            config: {},
+            lastPulledAt: new Date("2026-10-19T11:45:00.000Z"),
+            lastSuccessfulPullAt: new Date("2026-10-19T11:45:00.000Z"),
+            lastPullResult: {
+              status: "success",
+              kind: "usage",
+              days: 3,
+              costUsd: 182.4,
+              inputTokens: 1200000,
+              outputTokens: 240000,
+            },
+          }),
+          connection("20000000-0000-4000-8000-000000000002", {
+            name: "Foundry East",
+            provider: "azure-openai",
+            config: {
+              tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+              clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+              subscriptionId: "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0",
+              cloud: "public",
+            },
+            lastPulledAt: new Date("2026-10-19T11:50:00.000Z"),
+            lastError:
+              'Azure OpenAI and Microsoft Foundry accounts request failed with HTTP 403: {"error":{"code":"AuthorizationFailed","message":"The client does not have authorization to perform action \'Microsoft.CognitiveServices/accounts/read\'."}}',
+            lastPullResult: { status: "failed", failureKind: "permission" },
+          }),
+          connection("20000000-0000-4000-8000-000000000003", {
+            name: "Claude at Sysnetix",
+            provider: "claude-enterprise",
+            config: {},
+            serviceId: new ObjectID(SERVICE_ID),
+          }),
+        ];
 
 const state = {
   // Every connection a form created, as the model it sent.

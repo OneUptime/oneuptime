@@ -11,10 +11,7 @@ import {
   getLlmConnectionDefinitionsOfKind,
 } from "Common/Types/LlmObservability/LlmConnectionCatalog";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
-import {
-  LlmConnectionFailureKind,
-  LlmConnectionTestResult,
-} from "Common/Types/LlmObservability/LlmConnectionTest";
+import { LlmConnectionTestResult } from "Common/Types/LlmObservability/LlmConnectionTest";
 import LlmConversationReaders from "Common/Types/LlmObservability/LlmConversationReaders";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -50,7 +47,7 @@ import LlmConnectionLogo from "./LlmConnectionLogo";
 import LlmConnectionTestPanel from "./LlmConnectionTestPanel";
 import {
   LlmConnectionTestWords,
-  getLlmConnectionTestWords,
+  getLlmConnectionReadFailureWords,
 } from "./LlmConnectionTestWords";
 
 /*
@@ -140,30 +137,11 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const definition: LlmConnectionDefinition | undefined =
       getLlmConnectionDefinition(item.provider);
-    const failureKind: unknown = item.lastPullResult?.["failureKind"];
-    /*
-     * Only a failure of a known kind has words of its own: anything else
-     * ("the provider refused the test") is the provider's answer alone.
-     */
-    const isKnownKind: boolean =
-      typeof failureKind === "string" &&
-      failureKind !== LlmConnectionFailureKind.Other &&
-      (Object.values(LlmConnectionFailureKind) as Array<string>).includes(
-        failureKind,
-      );
     const words: LlmConnectionTestWords | undefined =
-      definition && isKnownKind
-        ? getLlmConnectionTestWords({
-            definition,
-            result: {
-              provider: definition.provider,
-              status: "fail",
-              message: "",
-              failureKind: failureKind as LlmConnectionFailureKind,
-              durationMs: 0,
-            },
-          })
-        : undefined;
+      getLlmConnectionReadFailureWords({
+        definition,
+        lastPullResult: item.lastPullResult,
+      });
 
     return (
       <div className="space-y-4">

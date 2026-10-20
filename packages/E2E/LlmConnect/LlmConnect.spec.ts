@@ -185,10 +185,14 @@ test.describe("the Connect page", () => {
     await expect(way(page, "tools")).toHaveAttribute("aria-selected", "true");
 
     for (const tool of COMPANY_TOOLS) {
-      await expect(page.getByTestId(`llm-connection-tile-${tool}`)).toBeVisible();
+      await expect(
+        page.getByTestId(`llm-connection-tile-${tool}`),
+      ).toBeVisible();
     }
 
-    await expect(panel(page, "tools").getByTestId("llm-tell-your-people")).toBeVisible();
+    await expect(
+      panel(page, "tools").getByTestId("llm-tell-your-people"),
+    ).toBeVisible();
 
     // The tools with no connector say what to do instead, a click away.
     const others: Locator = page.getByTestId("llm-other-ai-tools");
@@ -222,9 +226,9 @@ test.describe("the Connect page", () => {
     await expect(
       page.getByTestId("llm-connect-way-providers-failing"),
     ).toHaveText("Not working");
-    await expect(page.getByTestId("llm-connect-way-tools-connected")).toHaveText(
-      "Connected",
-    );
+    await expect(
+      page.getByTestId("llm-connect-way-tools-connected"),
+    ).toHaveText("Connected");
 
     // An app's AI calls: the company tool's own service is left out.
     const state: FixtureState = await fixture(page);
@@ -565,9 +569,7 @@ test.describe("the list of connections", () => {
       "AuthorizationFailed",
     );
     // A permission failure, in the words a test uses for it.
-    await expect(
-      page.getByTestId("llm-connection-error-words"),
-    ).toContainText(
+    await expect(page.getByTestId("llm-connection-error-words")).toContainText(
       "The credential works, but it may not read what this connection needs.",
     );
     await shoot(page, "connect-last-error");
@@ -626,6 +628,41 @@ test.describe("the list of connections", () => {
     const state: FixtureState = await fixture(page);
     expect(state.updates).toHaveLength(1);
     expect(state.updates[0]!.data["secrets"]).toBeUndefined();
+  });
+});
+
+test.describe("a connection that is off", () => {
+  test("is turned on before anything else, and is not read now", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=off&way=providers");
+
+    await expect(page.getByText("Bedrock us-east-1")).toBeVisible();
+    await expect(
+      panel(page, "providers").getByText("Off", { exact: true }),
+    ).toBeVisible();
+    // The row's own button is Turn on; Read now is not offered.
+    await expect(page.getByRole("button", { name: "Turn on" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Read now" })).toHaveCount(0);
+    // An account that is off is still connected - it is just not read.
+    await expect(
+      page.getByTestId("llm-connect-way-providers-connected"),
+    ).toHaveText("Connected");
+    await expect(
+      page.getByTestId("llm-connect-way-providers-failing"),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Turn on" }).click();
+
+    const state: FixtureState = await fixture(page);
+    expect(state.updates).toEqual([
+      {
+        id: "20000000-0000-4000-8000-000000000005",
+        data: { isEnabled: true },
+      },
+    ]);
   });
 });
 

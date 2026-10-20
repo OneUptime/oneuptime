@@ -64,15 +64,15 @@ test.describe("Usage, from the provider accounts", () => {
       "aria-pressed",
       "true",
     );
-    await expect(
-      page.getByTestId("llm-usage-source-description"),
-    ).toHaveText("What your apps and coding tools send");
+    await expect(page.getByTestId("llm-usage-source-description")).toHaveText(
+      "What your apps and coding tools send",
+    );
 
     await page.getByTestId("llm-usage-source-providers").click();
     await expect(page.getByTestId("llm-provider-usage")).toBeVisible();
-    await expect(
-      page.getByTestId("llm-usage-source-description"),
-    ).toHaveText("What your connected accounts were billed");
+    await expect(page.getByTestId("llm-usage-source-description")).toHaveText(
+      "What your connected accounts were billed",
+    );
     expect(new URL(page.url()).searchParams.get("source")).toBe("providers");
   });
 
