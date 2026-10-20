@@ -1,20 +1,23 @@
 /*
- * Whether a merged AI fix pull request fixed the exception it was opened for
- * in production (FixProductionVerifier). Merging is not fixing: the fix
- * counts once a recorded deploy that contains its commit has run long enough
- * to show the exception gone.
+ * Whether a merged AI fix pull request did, in production, what it was
+ * opened for (FixProductionVerifier, with the check FixProductionCheck
+ * names). Merging is not fixing: the fix counts once a recorded deploy that
+ * contains its commit has run long enough to show it - an exception gone,
+ * an operation faster, a monitor quiet, the telemetry it adds arriving.
  *
- *   - AwaitingDeploy: merged; no recorded deploy of the exception's service
+ *   - AwaitingDeploy: merged; no recorded deploy of the fix's service
  *     contains the fix's commit yet.
  *   - Watching: a deploy that contains the fix is running; OneUptime is
- *     waiting long enough to tell, given how often the exception happened
- *     before the fix.
- *   - Verified: the exception has not happened since the deploy, for long
- *     enough that it would have been seen several times without the fix.
- *   - Regressed: the exception happened again in the deployed fix.
+ *     waiting long enough to tell.
+ *   - Verified: production shows the fix worked - for an exception, it has
+ *     not happened since the deploy, for long enough that it would have
+ *     been seen several times without the fix.
+ *   - Regressed: production shows it did not - the exception happened again,
+ *     the operation is no faster, the monitor raised it again, the service's
+ *     telemetry stopped.
  *   - Unverifiable: it cannot be told - no deploy that contains the fix was
- *     recorded in time, or the exception was too rare before the fix for
- *     its absence to mean anything.
+ *     recorded in time, or what it was for was too rare, too quiet or too
+ *     little changed for production to show it.
  *
  * Stored on AIAgentTaskPullRequest.productionStatus; a wire contract - do
  * not rename.
