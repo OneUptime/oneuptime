@@ -15,8 +15,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * here, where an UPDATE of every row would hold ADD COLUMN's lock on these
  * tables for as long as it ran.
  */
-export class AddFirstPagedAt1804760000000 implements MigrationInterface {
-  public name: string = "AddFirstPagedAt1804760000000";
+export class AddFirstPagedAt1804900000000 implements MigrationInterface {
+  public name: string = "AddFirstPagedAt1804900000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

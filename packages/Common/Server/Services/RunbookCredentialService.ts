@@ -21,7 +21,9 @@ import AiCommandCredentialReach, {
 
 /*
  * An SSH credential assigned to a Runner that runs OneUptime AI's commands
- * ("Runs AI Remediation Commands") is one OneUptime AI may pick for the SSH
+ * (picked by an auto remediation rule or a Kubernetes cluster's AI
+ * settings, which turned canRunAiCommands on) is one OneUptime AI may pick
+ * for the SSH
  * commands it runs there - with nobody approving them, for a rule that runs
  * its commands without asking. Letting it is held to whoever may read
  * runbook credentials (RunbookCredentialReaders), from this side as much as

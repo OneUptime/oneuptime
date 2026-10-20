@@ -43,7 +43,9 @@ const NOTE_LEAD: string = `**${LEAD}**`;
 // The note before it (VisitorAddressesUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**Visitors keep their own address in more setups.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (AutoRemediationRunnerUpgradeDocs).
+const NEXT_LEAD: string =
+  "**OneUptime AI fixes with any runbook, or only the ones a rule allows, and a rule picks its Runner.**";
 
 const CODE_PAGE: string = "ai/ai-agent";
 const SECTION_HEADING: string = "### Pick the repository's Runner";
@@ -89,7 +91,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on a code repository's Runner", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on visitor addresses and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on visitor addresses and before the note on auto remediation rules' Runners", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -101,7 +103,9 @@ describe("the English upgrade note on a code repository's Runner", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says where a repository picks its Runner, what the upgrade carries over, and what a Runner now takes", () => {

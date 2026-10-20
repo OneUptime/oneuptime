@@ -17,7 +17,7 @@ import logger from "Common/Server/Utils/Logger";
  * records are filled.
  *
  * Not in the schema migration that added the columns
- * (1804760000000-AddFirstPagedAt): it runs in one transaction, and an
+ * (1804900000000-AddFirstPagedAt): it runs in one transaction, and an
  * UPDATE of every row there would hold ADD COLUMN's lock on the incident and
  * alert tables - stopping every new incident and alert - for as long as it
  * took. Here each table is walked in primary key order, a batch at a time.

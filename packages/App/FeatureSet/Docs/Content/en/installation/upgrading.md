@@ -1553,6 +1553,25 @@ API, SSO, or the Slack and Microsoft Teams apps.
   the repositories that pick it, and only it is given a token for them; one no
   repository picks takes none. See
   [Pick the repository's Runner](/docs/ai/ai-agent#pick-the-repositorys-runner).
+- **OneUptime AI fixes with any runbook, or only the ones a rule allows, and a
+  rule picks its Runner.** An auto remediation rule no longer asks
+  **Fix With**: OneUptime AI fixes what it matches through the AI agent on the
+  affected cluster or host, may run the project's runbook that fits - any of
+  them, or only the **Runbooks** the rule names under **More fields** - and
+  runs commands of its own on the **Runner** the rule picks there. With no
+  rule, OneUptime AI also proposes the runbook that fits each new incident or
+  alert, for your approval. A rule saved with **Fix With** set to
+  **Runbooks** keeps starting its runbooks for every match
+  (**Run them every time**). Runners lose their
+  **Runs AI Remediation Commands** switch: picking a Runner for a rule, or for
+  a Kubernetes cluster's AI access, is what lets OneUptime AI's commands run
+  on it, and picking one that holds SSH credentials takes permission to read
+  runbook credentials. The upgrade keeps every rule doing what it did: a rule
+  that has AI compose commands and named no Runner names the Runners of its
+  project it ran on, and picks the Runner it ran on as its Runner when there
+  was just one. No Runner's switch changes, so a cluster bound to a Runner
+  with it off asks you to choose the Runner again on its AI agent page. See
+  [Which incidents are investigated and fixed](/docs/ai/ai-sre#which-incidents-are-investigated-and-fixed).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

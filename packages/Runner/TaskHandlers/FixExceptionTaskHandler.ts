@@ -1,11 +1,14 @@
 import ExceptionPullRequestTaskHandler from "./ExceptionPullRequestTaskHandler";
 import { ExceptionDetails } from "../Utils/BackendAPI";
 import PullRequestCreator from "../Utils/PullRequestCreator";
+import ProductionTelemetryPrompt from "../Utils/ProductionTelemetryPrompt";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 
 /*
  * Fixes an exception: the code agent analyzes the stack trace, patches the
- * root cause, and the shared pipeline opens a pull request with the fix.
+ * root cause, and the shared pipeline opens a pull request with the fix. It
+ * reads production while it works - how often the exception is thrown, the
+ * logs and the trace of an occurrence (ProductionTelemetryPrompt).
  */
 export default class FixExceptionTaskHandler extends ExceptionPullRequestTaskHandler {
   public readonly taskType: string = CodeFixTaskType.FixException;
@@ -14,6 +17,8 @@ export default class FixExceptionTaskHandler extends ExceptionPullRequestTaskHan
   protected readonly branchPrefix: string = "oneuptime-fix-exception-";
   protected readonly noActionMessage: string =
     "No fixes could be applied to any repository";
+
+  protected override readonly usesProductionTelemetry: boolean = true;
 
   // Build the prompt for the code agent
   protected buildPrompt(
@@ -72,6 +77,8 @@ Please analyze the stack trace and fix the exception. Here are the steps to foll
   move the dynamic values into structured attributes/fields. This keeps
   user data out of error messages and stops the same root cause from
   splintering into many separate exception groups.
+
+${ProductionTelemetryPrompt.forFix("exception")}
 
 Please proceed with analyzing and fixing this exception.`;
 

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import DashboardThemeCard from "../../../Components/Dashboard/Branding/DashboardThemeCard";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -7,6 +8,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+/*
+ * Dashboards -> a dashboard -> Branding: how the dashboard's public link
+ * looks - its page title and description, its logo, its theme (light, dark,
+ * or as each visitor's device is set: DashboardThemeCard, right under the
+ * logo, as on a status page's Branding page) and its favicon.
+ */
 const DashboardBranding: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -107,6 +114,8 @@ const DashboardBranding: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      <DashboardThemeCard dashboardId={modelId} />
 
       <CardModelDetail<Dashboard>
         name="Dashboard > Branding > Favicon"

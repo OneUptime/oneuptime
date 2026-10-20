@@ -96,7 +96,7 @@ What it cannot do is reach the OneUptime page around it. It has no access to the
 Two consequences worth knowing before you paste something in:
 
 - A `fetch` from the widget is a cross-origin request from an opaque origin, so the server you call has to allow it with CORS. Calling the OneUptime API from here is not supported.
-- The widget starts transparent. Set a background on `body` in your CSS if you want it to fill the card.
+- The widget starts transparent. Set a background on `body` in your CSS if you want it to fill the card. In the dark theme its text starts light, and its `<html>` element has the `dark` class: start a CSS rule with `html.dark` to style only the dark theme.
 
 #### Using dashboard variables
 

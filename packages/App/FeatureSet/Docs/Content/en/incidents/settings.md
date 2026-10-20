@@ -562,7 +562,7 @@ Grouping, SLA, reminder, investigation and auto remediation rules act on the new
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
-- **Auto Remediation Rules**, under **AI** → **Settings** — which new incidents are fixed while **Fix new incidents automatically** is on, and how: by OneUptime AI or with the rule's runbooks, asking before fixing or not. With no rule, every new incident is fixed. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand.
+- **Auto Remediation Rules**, under **AI** → **Settings** — which new incidents are fixed while **Fix new incidents automatically** is on, and how: asking before fixing or not, and the runbooks OneUptime AI may run. With no rule, every new incident is fixed. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand.
 - **Investigation Rules**, under **AI** → **Settings** — which new incidents OneUptime AI investigates. With no rule, every one is. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.

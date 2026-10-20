@@ -1596,7 +1596,9 @@ html.dark .uptime-bar-no-data {
  * LogoPlate). That one logo is also the light page's and the emails', so it
  * is made for a light background - dark lettering on nothing, as often as
  * not - and on the dark page it sits on a small light backdrop, where it
- * reads as it does on the light page.
+ * reads as it does on the light page. A public dashboard's logo does the
+ * same (PublicDashboard/src/Components/LogoPlate): any visitor can turn a
+ * public dashboard dark from its toolbar.
  */
 html.dark [data-ou-logo-plate] {
   background-color: #f8fafc;

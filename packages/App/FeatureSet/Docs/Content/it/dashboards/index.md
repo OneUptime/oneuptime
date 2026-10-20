@@ -59,7 +59,7 @@ Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne
 | **Panoramica** | Il suo nome, la descrizione e le etichette. |
 | **Condivisione** | Chi può vederla, il suo link pubblico e una lista di IP consentiti in Altre impostazioni. |
 | **Proprietari** | Gli utenti e i team a cui appartiene. |
-| **Branding** | Titolo della pagina, descrizione, logo e favicon della dashboard pubblica. |
+| **Branding** | Titolo della pagina, descrizione, logo, tema e favicon della dashboard pubblica. |
 | **Domini personalizzati** | Ospitare la dashboard pubblica sul tuo dominio. |
 | **Impostazioni** | Duplicare, esportare o archiviare la dashboard. |
 | **Registri di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |
@@ -68,7 +68,7 @@ Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne
 ## Creare la tua prima dashboard
 
 :::steps
-1. **Crea** — scegli un modello, oppure **Blank Dashboard**. Un modello compila il nome e si apre con i suoi widget; una dashboard vuota si apre senza nulla, con **Aggiungi widget** sul suo canvas.
+1. **Crea** — scegli un modello, oppure **Parti da zero**. Un modello compila il nome e si apre con i suoi widget; una dashboard creata da zero si apre senza nulla, con **Aggiungi widget** sul suo canvas.
 2. **Aggiungi i widget** — scegli un widget dal catalogo, imposta nelle sue impostazioni che cosa legge, poi trascinalo in posizione e ridimensionalo.
 3. **Aggiungi le variabili, se ti servono** — una variabile `service`, per esempio, permette a una sola dashboard di mostrare qualsiasi servizio.
 4. **Salva** — fai clic su **Salva modifiche**. Niente di ciò che cambi durante la modifica viene conservato finché non lo fai.
@@ -81,7 +81,7 @@ Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne
 
 L'obiettivo: una pagina per il servizio di checkout, con la sua latenza, il tasso di errori, gli incidenti aperti e gli ultimi log, che funzioni anche per ogni altro servizio.
 
-1. Crea una **Blank Dashboard** chiamata "Reperibilità checkout".
+1. Fai clic su **Crea dashboard**, scegli **Parti da zero** e chiama la dashboard "Reperibilità checkout".
 2. Fai clic su **Aggiungi widget** e aggiungi un **Grafico** della tua metrica di latenza delle richieste, aggregata come P95.
 3. Accanto, aggiungi un **Valore** del tuo tasso di errori, con una soglia di avviso di 1 e una soglia critica di 5.
 4. Sotto, aggiungi un **Elenco incidenti** filtrato sugli incidenti non risolti, e un **Flusso di log** con i log del servizio.

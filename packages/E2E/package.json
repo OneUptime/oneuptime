@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.78",
+  "version": "14.0.79",
   "description": "",
   "repository": {
     "type": "git",
@@ -11,6 +11,7 @@
     "test-alerts-ui": "playwright test --config playwright.alerts.config.ts",
     "test-status-page-search-ui": "playwright test --config playwright.status-page-search.config.ts",
     "test-status-page-theme-ui": "playwright test --config playwright.status-page-theme-ui.config.ts",
+    "test-public-dashboard-theme-ui": "playwright test --config playwright.public-dashboard-theme-ui.config.ts",
     "test-navigation-search-ui": "playwright test --config playwright.navigation-search.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",
     "test": "playwright test || (curl $E2E_TESTS_FAILED_WEBHOOK_URL && exit 1)",
@@ -67,8 +68,10 @@
     "test-model-tables-ui": "playwright test --config playwright.model-tables-ui.config.ts",
     "test-public-addresses-ui": "playwright test --config playwright.public-addresses-ui.config.ts",
     "test-rules-menu-section-ui": "playwright test --config playwright.rules-menu-section-ui.config.ts",
+    "test-auto-remediation-rules-ui": "playwright test --config playwright.auto-remediation-rules-ui.config.ts",
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
-    "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts"
+    "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",
+    "test-dashboard-templates-ui": "playwright test --config playwright.dashboard-templates-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

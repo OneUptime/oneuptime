@@ -1,5 +1,6 @@
 import SubjectPullRequestTaskHandler from "./SubjectPullRequestTaskHandler";
 import { SubjectTaskDetails } from "../Utils/BackendAPI";
+import ProductionTelemetryPrompt from "../Utils/ProductionTelemetryPrompt";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 
 /*
@@ -14,7 +15,8 @@ import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
  * by /ai-agent-data/get-instrumentation-task-details keyed by the run id —
  * the shared SubjectPullRequestTaskHandler pipeline with subjectType
  * "trace". The evidence is the recipe's contract: the agent fixes ONLY the
- * evidenced pattern, never speculative optimizations.
+ * evidenced pattern, never speculative optimizations - and checks in
+ * production that the pattern still holds (ProductionTelemetryPrompt).
  */
 export default class FixPerformanceTaskHandler extends SubjectPullRequestTaskHandler {
   public readonly taskType: string = CodeFixTaskType.FixPerformance;
@@ -25,6 +27,8 @@ export default class FixPerformanceTaskHandler extends SubjectPullRequestTaskHan
     "No performance fix could be applied to any repository";
   protected readonly noRepositoryMessage: string =
     "Could not resolve a repository for this performance fix task. Connect the right repository through the GitHub App.";
+
+  protected override readonly usesProductionTelemetry: boolean = true;
 
   // Build the prompt for the code agent
   protected buildPrompt(
@@ -64,6 +68,8 @@ Steps:
 - Do NOT add unrelated refactors, drive-by cleanups, or new dependencies
 - If the fix belongs in configuration or infrastructure outside this repository (e.g. a database index migration lives elsewhere), fix what IS in this repository and explain the rest
 - If none of the implicated operations are emitted from this repository, explain why and make no changes
+
+${ProductionTelemetryPrompt.forFix("performance")}
 
 Please proceed with fixing the evidenced performance pattern.`;
 

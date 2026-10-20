@@ -38,6 +38,8 @@ The line at the top names the most urgent thing that is open, in a matching colo
 
 Beside it, Home says when it last read the project, and **Refresh** reads it again. When you come back to a Home tab after a minute or more, it refreshes by itself.
 
+While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the form that creates one. Only people who are allowed to create monitors see it.
+
 ### The five numbers
 
 Each number counts something, says whether that needs you, and opens the list behind it.

@@ -778,7 +778,7 @@ const DataMigrations: Array<DataMigrationBase> = [
    * paged before the upgrade - what "Time to acknowledge after paging"
    * counts from - from the steps of its on-call runs, then every measurement
    * that starts or ends at it worked out again. After AddFirstPagedAt
-   * 1804760000000; Postgres-only and idempotent; no other ordering
+   * 1804900000000; Postgres-only and idempotent; no other ordering
    * requirement. It sits above MoveRunbookSecretsAndCredentialsToVariables,
    * which keeps its place right before the last slot
    * AddAuditLogMcpClientColumns asserts for itself.

@@ -204,9 +204,9 @@ describe("the English sharing guide", () => {
     );
   });
 
-  it("says the password prompt shows the name, page title and favicon, and the rest waits for the password", () => {
+  it("says the password prompt shows the name, page title and favicon, in the dashboard's theme, and the rest waits for the password", () => {
     expect(sectionOf(page, "Sharing with a password")).toContain(
-      "The prompt shows the dashboard's name, page title and favicon, and nothing else: its description, logo and widgets appear once the password is entered.",
+      "The prompt shows the dashboard's name, page title and favicon, in the dashboard's theme, and nothing else: its description, logo and widgets appear once the password is entered.",
     );
   });
 
@@ -223,7 +223,7 @@ describe("the English sharing guide", () => {
       "Visitors see the branding only once they may view the dashboard.",
     );
     expect(branding).toContain(
-      "a dashboard shared with a password shows only its page title and favicon, and search engines and link previews see its page title but not its page description.",
+      "a dashboard shared with a password shows only its page title, favicon and theme, and search engines and link previews see its page title but not its page description.",
     );
     expect(branding).toContain(
       "A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.",

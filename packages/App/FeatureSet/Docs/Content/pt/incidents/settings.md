@@ -562,7 +562,7 @@ As regras de agrupamento, de SLA, de lembrete, de investigação e de remediaç�
 - **Regras de Plantão** — executam políticas de plantão para os incidentes que correspondem. Tratadas em detalhe abaixo.
 - **Regras de proprietário** — atribuem proprietários automaticamente.
 - **Regras de runbook** — iniciam um [runbook](/docs/runbooks/index) quando um incidente corresponde.
-- **Regras de remediação automática**, em **IA** → **Configurações** — quais incidentes novos são corrigidos enquanto **Corrigir novos incidentes automaticamente** está ativado, e como: pelo OneUptime AI ou com os runbooks da regra, perguntando antes de corrigir ou não. Sem nenhuma regra, todo incidente novo é corrigido. Se uma investigação de IA estiver na fila para o incidente, elas são executadas quando ela termina, com a análise dela em mãos.
+- **Regras de remediação automática**, em **IA** → **Configurações** — quais incidentes novos são corrigidos enquanto **Corrigir novos incidentes automaticamente** está ativado, e como: perguntando antes de corrigir ou não, e os runbooks que o OneUptime AI pode executar. Sem nenhuma regra, todo incidente novo é corrigido. Se uma investigação de IA estiver na fila para o incidente, elas são executadas quando ela termina, com a análise dela em mãos.
 - **Regras de investigação**, em **IA** → **Configurações** — quais incidentes novos o OneUptime AI investiga. Sem nenhuma regra, todos. Veja [AI SRE](/docs/ai/ai-sre).
 - **Regras de privacidade** — decidem se um incidente que corresponde é privado.
 - **Regras de Rótulos** — aplicam rótulos automaticamente.

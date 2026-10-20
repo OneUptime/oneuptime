@@ -562,7 +562,7 @@ Grupperings-, SLA-, påmindelses-, undersøgelses- og afhjælpningsregler virker
 - **Vagtregler** — udfører vagtpolitikker for matchende hændelser. Gennemgås i detaljer nedenfor.
 - **Ejerregler** — tildeler ejere automatisk.
 - **Runbook-regler** — starter et [runbook](/docs/runbooks/index), når en hændelse matcher.
-- **Regler for automatisk afhjælpning**, under **AI** → **Indstillinger** — hvilke nye hændelser der rettes, mens **Ret nye hændelser automatisk** er slået til, og hvordan: af OneUptime AI eller med reglens runbooks, med eller uden at spørge først. Uden nogen regel rettes hver ny hændelse. Står en AI-undersøgelse i kø for hændelsen, kører de, når den er færdig, med dens analyse ved hånden.
+- **Regler for automatisk afhjælpning**, under **AI** → **Indstillinger** — hvilke nye hændelser der rettes, mens **Ret nye hændelser automatisk** er slået til, og hvordan: med eller uden at spørge først, og de runbooks, OneUptime AI må køre. Uden nogen regel rettes hver ny hændelse. Står en AI-undersøgelse i kø for hændelsen, kører de, når den er færdig, med dens analyse ved hånden.
 - **Undersøgelsesregler**, under **AI** → **Indstillinger** — hvilke nye hændelser OneUptime AI undersøger. Uden nogen regel undersøges hver enkelt. Se [AI SRE](/docs/ai/ai-sre).
 - **Privatlivsregler** — afgør, om en matchende hændelse er privat.
 - **Etiketregler** — sætter etiketter automatisk.

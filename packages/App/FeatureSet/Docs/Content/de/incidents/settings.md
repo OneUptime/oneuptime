@@ -562,7 +562,7 @@ Gruppierungs-, SLA-, Erinnerungs-, Untersuchungs- und Auto-Behebungsregeln wirke
 - **Bereitschaftsregeln** – führen Bereitschaftsrichtlinien für passende Vorfälle aus. Ausführlich weiter unten.
 - **Eigentümerregeln** – weisen Eigentümer automatisch zu.
 - **Runbook-Regeln** – starten ein [Runbook](/docs/runbooks/index), wenn ein Vorfall passt.
-- **Auto-Behebungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle behoben werden, solange **Neue Vorfälle automatisch beheben** an ist, und wie: durch OneUptime AI oder mit den Runbooks der Regel, mit oder ohne Rückfrage vor dem Beheben. Ohne Regel wird jeder neue Vorfall behoben. Ist für den Vorfall eine KI-Untersuchung eingereiht, laufen sie, sobald sie fertig ist, mit ihrer Analyse in der Hand.
+- **Auto-Behebungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle behoben werden, solange **Neue Vorfälle automatisch beheben** an ist, und wie: mit oder ohne Rückfrage vor dem Beheben, und welche Runbooks OneUptime AI ausführen darf. Ohne Regel wird jeder neue Vorfall behoben. Ist für den Vorfall eine KI-Untersuchung eingereiht, laufen sie, sobald sie fertig ist, mit ihrer Analyse in der Hand.
 - **Untersuchungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle OneUptime AI untersucht. Ohne Regel jeder. Siehe [AI SRE](/docs/ai/ai-sre).
 - **Datenschutzregeln** – entscheiden, ob ein passender Vorfall privat ist.
 - **Beschriftungsregeln** – vergeben Beschriftungen automatisch.

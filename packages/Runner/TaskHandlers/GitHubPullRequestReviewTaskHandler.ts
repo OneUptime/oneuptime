@@ -10,6 +10,7 @@ import RepositoryManager, {
   CloneResult,
 } from "../Utils/RepositoryManager";
 import { CodeAgent, CodeAgentResult } from "../CodeAgents/Index";
+import ProductionTelemetryPrompt from "../Utils/ProductionTelemetryPrompt";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 
 /*
@@ -30,6 +31,12 @@ import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
  *
  * If the agent modifies a file anyway, the change is DISCARDED: nothing here
  * commits, stages or pushes, and the clone is deleted when the run ends.
+ *
+ * It also reads production: the repository's services' exceptions, traces,
+ * incidents and deploys, through the server's read-only telemetry tools
+ * (CodeAgentTask.productionTelemetry). A review that knows the function it
+ * reads threw 1,240 times this week says something no diff can - and says
+ * nothing about production when the data shows nothing.
  */
 export default class GitHubPullRequestReviewTaskHandler extends GitHubTaskHandlerBase {
   public readonly taskType: string = CodeFixTaskType.GitHubPullRequestReview;
@@ -86,6 +93,7 @@ export default class GitHubPullRequestReviewTaskHandler extends GitHubTaskHandle
       agent: agent,
       repositoryPath: cloneResult.repositoryPath,
       prompt: this.buildPrompt(details),
+      productionTelemetry: true,
     });
 
     if (agentResult.filesModified.length > 0) {
@@ -264,6 +272,8 @@ ${this.buildRequestSection(details)}
 3. **Security.** Injection, missing authorization checks, secrets in code, unsafe deserialization, user input reaching a dangerous sink.
 4. **Tests.** Is the new behaviour covered, in this repository's existing style? Say what is missing, specifically.
 5. **Fit.** Does it follow the conventions already in this repository?
+
+${ProductionTelemetryPrompt.forReview()}
 
 ## How to write it
 

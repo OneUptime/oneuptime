@@ -800,14 +800,24 @@ test.describe("a Runner and AI code fixes", () => {
       .getByRole("textbox", { name: /Name/ })
       .first()
       .fill("db-runner");
-    await modal.getByRole("button", { name: "Next", exact: true }).click();
 
-    // The Capabilities step: what the Runner may run, and nothing about code.
-    await expect(modal).toContainText("Runs Runbooks");
-    await expect(modal).toContainText("Runs AI Remediation Commands");
+    /*
+     * One page: what the Runner may run is folded under More fields, and
+     * nothing is about AI - a code repository picks its Runner in Code, and
+     * an auto remediation rule picks the Runner OneUptime AI runs its
+     * commands on.
+     */
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(0);
+    await modal
+      .getByRole("button", { name: "More fields", exact: true })
+      .click();
+    await expect(
+      modal.getByRole("switch", { name: /^Runs Runbooks/ }),
+    ).toBeChecked();
+    await expect(modal).not.toContainText("Runs AI Remediation Commands");
     await expect(modal).not.toContainText("Runs AI Code Fixes");
     await expect(modal).not.toContainText("pull requests");
-    await screenshot(page, "create-runner-capabilities");
+    await screenshot(page, "create-runner-more-fields");
 
     await modal.getByTestId("modal-footer-submit-button").click();
     await expect
@@ -822,6 +832,8 @@ test.describe("a Runner and AI code fixes", () => {
     expect(created.data["name"]).toBe("db-runner");
     expect(created.data["canRunRunbooks"]).toBe(true);
     expect(Object.keys(created.data)).not.toContain("canRunCodeFixTasks");
+    // OneUptime sets it when a rule or a cluster picks the Runner.
+    expect(Object.keys(created.data)).not.toContain("canRunAiCommands");
   });
 
   test("the Runners list shows no AI code fix capability", async ({
@@ -870,14 +882,14 @@ test.describe("a Runner and AI code fixes", () => {
       WHITE_SPACE_RUNS,
       " ",
     );
-    const runsRemediation: number = text.indexOf(
-      "Runs AI Remediation Commands",
-    );
+    const runsRunbooks: number = text.indexOf("Runs Runbooks");
     const row: number = text.indexOf("Code Repositories");
     const labels: number = text.indexOf("Labels");
-    expect(runsRemediation).toBeGreaterThan(-1);
-    expect(row).toBeGreaterThan(runsRemediation);
+    expect(runsRunbooks).toBeGreaterThan(-1);
+    expect(row).toBeGreaterThan(runsRunbooks);
     expect(labels).toBeGreaterThan(row);
+    // No switch for OneUptime AI's commands: a rule picks the Runner.
+    expect(text).not.toContain("Runs AI Remediation Commands");
 
     // Not a card of its own any more.
     await expect(card(page, "Code Repositories")).toHaveCount(0);

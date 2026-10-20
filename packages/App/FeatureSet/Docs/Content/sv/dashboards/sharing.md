@@ -47,7 +47,8 @@ En offentlig instrumentpanel:
 
 - Öppnas alltid för läsning. Besökare kan inte redigera den och ser aldrig dess redigeringskontroller.
 - Innehåller variablerna som du har lagt till. Besökare väljer i samma väljare som ditt team använder, och kan ändra tidsintervallet, zooma, slå på automatisk uppdatering och gå till helskärm.
-- Använder varumärket som du anger på instrumentpanelens sida **Varumärke**: sidtitel, beskrivning, logotyp, favicon.
+- Använder varumärket som du anger på instrumentpanelens sida **Varumärke**: sidtitel, beskrivning, logotyp, tema, favicon.
+- Låter varje besökare växla mellan den ljusa och den mörka instrumentpanelen med en sol- eller månknapp i dess verktygsfält; [Tema](#tema) förklarar hur.
 
 Behandla delning av en instrumentpanel som publicering av en webbsida. Varje widget på den blir läsbar för alla med länken. Titta på vad som finns på arbetsytan innan du delar den.
 
@@ -55,7 +56,7 @@ Varje widget publicerar bara det den ritar, och bara för resurserna den har rik
 
 ## Dela med ett lösenord
 
-Välj **Alla med länken och ett lösenord** och ange lösenordet i dialogrutan. Besökare ser en fråga om lösenordet innan instrumentpanelen visas. Frågan visar instrumentpanelens namn, sidtitel och favicon, och inget annat: dess beskrivning, logotyp och widgetar visas när lösenordet har angetts. Lösenordet lagras som en hash: ingen kan läsa tillbaka det. Ett nytt lösenord fungerar direkt; de som angav det gamla kan fortsätta se instrumentpanelen i upp till 7 dagar.
+Välj **Alla med länken och ett lösenord** och ange lösenordet i dialogrutan. Besökare ser en fråga om lösenordet innan instrumentpanelen visas. Frågan visar instrumentpanelens namn, sidtitel och favicon, i instrumentpanelens tema, och inget annat: dess beskrivning, logotyp och widgetar visas när lösenordet har angetts. Lösenordet lagras som en hash: ingen kan läsa tillbaka det. Ett nytt lösenord fungerar direkt; de som angav det gamla kan fortsätta se instrumentpanelen i upp till 7 dagar.
 
 Använd ett lösenord när:
 
@@ -152,13 +153,30 @@ På instrumentpanelens sida **Varumärke** kan du konfigurera:
 - **Sidtitel**: det som visas i webbläsarfliken och högst upp på sidan.
 - **Sidbeskrivning**: beskrivningen som sökmotorer och förhandsvisningar i sociala medier använder.
 - **Logotyp**: en bild som visas i den offentliga instrumentpanelens sidhuvud.
+- **Tema**: ljust, mörkt eller som varje besökares enhet är inställd; se [Tema](#tema).
 - **Favicon**: den lilla ikonen i webbläsarfliken.
 
 Logotypen och faviconen är filer som har laddats upp i instrumentpanelens eget projekt, och det kontrolleras varje gång någon av dem sparas: från instrumentpanelen, API:et, Terraform eller ett arbetsflöde. En fil som har laddats upp i ett annat projekt avvisas med samma ord som en fil som inte längre finns får: "The logo's file could not be found. Upload the logo again." eller "The favicon's file could not be found. Upload the favicon again." Den offentliga instrumentpanelen visar bara bilder från sitt eget projekt.
 
-Sidtiteln och beskrivningen står också överst i instrumentpanelens verktygsfält för ditt team, i stället för dess namn och beskrivning. Logotypen och faviconen visas bara på den offentliga instrumentpanelen.
+Sidtiteln och beskrivningen står också överst i instrumentpanelens verktygsfält för ditt team, i stället för dess namn och beskrivning. Logotypen, temat och faviconen gäller bara för den offentliga instrumentpanelen.
 
-Besökare ser varumärket först när de får se instrumentpanelen. Innan lösenordet har angetts visar en instrumentpanel som delas med lösenord bara sin sidtitel och favicon, och sökmotorer och länkförhandsvisningar ser sidtiteln men inte sidbeskrivningen. En instrumentpanel med en IP-tillåtelselista visar sitt varumärke bara för adresserna i listan, och sökmotorer och länkförhandsvisningar ser inget av det.
+Besökare ser varumärket först när de får se instrumentpanelen. Innan lösenordet har angetts visar en instrumentpanel som delas med lösenord bara sin sidtitel, favicon och sitt tema, och sökmotorer och länkförhandsvisningar ser sidtiteln men inte sidbeskrivningen. En instrumentpanel med en IP-tillåtelselista visar sitt varumärke bara för adresserna i listan, och sökmotorer och länkförhandsvisningar ser inget av det.
+
+### Tema
+
+Kortet **Tema**, direkt under logotypen, bestämmer hur den offentliga instrumentpanelen ser ut för sina besökare. Välj ett av dess tre val så sparas det direkt; det finns ingen knapp **Redigera**.
+
+| Val | Vad besökarna ser |
+| ------ | ----------------- |
+| **Ljust** | Den ljusa instrumentpanelen, hur deras enhet än är inställd. Instrumentpaneler som skapades innan inställningen fanns är **Ljust**, så de ser ut som de alltid har gjort. |
+| **Mörkt** | Den mörka instrumentpanelen, hur deras enhet än är inställd. |
+| **Som varje besökares enhet** | Ljust eller mörkt, som deras enhet är inställd, och instrumentpanelen växlar med enheten medan den är öppen. |
+
+Vad du än väljer låter en sol- eller månknapp i instrumentpanelens verktygsfält varje besökare växla till den ljusa eller den mörka instrumentpanelen, eller tillbaka till det tema du har angett, och deras webbläsare kommer ihåg valet för varje offentlig instrumentpanel på den adressen. På den mörka instrumentpanelen står logotypen på en ljus bakgrund, så en logotyp som är gjord för en vit sida syns fortfarande tydligt.
+
+En instrumentpanel som skapas från och med nu börjar med **Som varje besökares enhet**. Via API:et och Terraform heter fältet `theme`, med ett av värdena `Light`, `Dark` eller `System` (**Som varje besökares enhet**), skrivet exakt så; alla andra värden avvisas. En Terraform-konfiguration som inte anger något `theme` får `Light`, så en konfiguration som skrevs före inställningen planerar aldrig en ändring på en instrumentpanel den hanterar.
+
+Temat finns i instrumentpanelens HTML, så instrumentpanelen ritas i det från början: en mörk instrumentpanel blinkar inte vitt medan den laddas, och dess fråga om lösenordet ritas också i det. Alla widgetar följer det; en HTML-widgets egen kod kan styla det mörka temat, som [HTML](/docs/dashboards/widgets#html) beskriver. Sidorna **Access Denied** och "hittades inte" visar ingenting av en instrumentpanel, så de följer besökaren: deras eget val, annars deras enhet.
 
 ## Inbäddning
 
@@ -175,9 +193,11 @@ Du kan bädda in en offentlig instrumentpanel på din egen webbplats med en ifra
 
 Om instrumentpanelen delas med ett lösenord ser besökarna frågan om lösenordet inuti iframen.
 
+För att ge en inbäddad instrumentpanel din webbplats utseende lägger du till `?theme=light` eller `?theme=dark` i dess adress, som i `https://dashboard.acme.com/?theme=dark`: instrumentpanelen ritas då i det temat för alla som öppnar den adressen, oavsett dess eget tema och besökarens val, och dess verktygsfält har ingen temaknapp. `?theme=system` följer varje besökares enhet. Temat behålls genom frågan om lösenordet.
+
 ## Skicka en länk
 
-Den offentliga länken öppnar instrumentpanelen med dess sparade standardvärden. För att skicka en länk som öppnas på ett visst värde lägger du till variabeln i den som `?var-<name>=<value>`, på samma sätt som adressfältet gör när en besökare väljer ett värde; flera värden åtskiljs med kommatecken. Tidsintervallet är inte en del av länken: varje besök börjar på den senaste timmen.
+Den offentliga länken öppnar instrumentpanelen med dess sparade standardvärden. För att skicka en länk som öppnas på ett visst värde lägger du till variabeln i den som `?var-<name>=<value>`, på samma sätt som adressfältet gör när en besökare väljer ett värde; flera värden åtskiljs med kommatecken. Tidsintervallet är inte en del av länken: varje besök börjar på den senaste timmen. För att öppna instrumentpanelen i ett tema lägger du till `theme=light`, `theme=dark` eller `theme=system`, som [Inbäddning](#inbäddning) beskriver.
 
 ## Nästa steg
 

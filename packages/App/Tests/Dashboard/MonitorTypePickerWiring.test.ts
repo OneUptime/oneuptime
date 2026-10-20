@@ -249,16 +249,14 @@ describe("monitor type picker wiring", () => {
 
   describe("callers that did not ask for a search box", () => {
     /*
-     * CardSelect is shared. These two pickers hold a handful of cards each and
-     * read fine as a plain grid; turning search or the catalog layout on there
-     * would add chrome for nothing, and the opt-in default is what keeps them
-     * as they were.
+     * CardSelect is shared. This picker holds a handful of cards and reads
+     * fine as a plain grid; turning search or the catalog layout on there
+     * would add chrome for nothing, and the opt-in default is what keeps it
+     * as it was. (A team's Add Role was the other one: its forty role cards
+     * became the role picker - the whole project or one area, then a level,
+     * Components/Permission/RolePicker - pinned by RolePickerWiring.)
      */
     test.each([
-      [
-        "team permission table",
-        ["Components", "Team", "TeamPermissionTable.tsx"],
-      ],
       [
         "metrics pipeline rules",
         ["Pages", "Metrics", "Settings", "PipelineRules.tsx"],

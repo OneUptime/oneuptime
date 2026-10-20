@@ -34,6 +34,15 @@ export const GLOBAL_RUNNER_CHOICE_VALUE: string = "";
 export enum RunnerPickerWork {
   RunbookStep = "runbook-step",
   CodeRepository = "code-repository",
+  /*
+   * An auto remediation rule's Runner (AutoRemediationRule.runnerId): the
+   * Runner OneUptime AI runs the rule's commands of its own on. The global
+   * Runners never run them (they run JavaScript steps in a sandbox every
+   * project shares), so the first choice is no Runner at all: OneUptime AI
+   * fixes through the AI agent on the affected cluster or host
+   * (Common/Types/AutoRemediation/AutoRemediationFix).
+   */
+  AutoRemediation = "auto-remediation",
 }
 
 export const GLOBAL_RUNNER_CHOICE_LABEL: string =
@@ -108,6 +117,44 @@ export const CODE_NO_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
   "This server runs no global Runner: pick one of your Runners for this repository.",
 );
 
+/*
+ * An auto remediation rule's first choice, what a rule that picked none
+ * shows: no Runner of the project's own. Not "Global Runner": a global
+ * Runner never runs OneUptime AI's commands, and the AI agent already on the
+ * affected cluster or host is where OneUptime AI fixes by default.
+ */
+export const REMEDIATION_NO_RUNNER_CHOICE_LABEL: string = translationKey(
+  "AI agent on the cluster or host",
+);
+
+export const REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
+  "No Runner of yours: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
+);
+
+/*
+ * Under a rule's picker that picked none, in a project with no Runner of its
+ * own to pick ({{location}}: a link to Runbooks › Runners). With Runners to
+ * pick from, nothing is said under it: the choice and the field's own line
+ * say it.
+ */
+export const REMEDIATION_ADD_RUNNER_TEMPLATE: string = translationKey(
+  "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.",
+);
+
+// Under a rule's picker on one of the project's own Runners.
+export const REMEDIATION_OWN_RUNNER_HELPER_TEXT: string = translationKey(
+  "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.",
+);
+
+/*
+ * A rule's pick that is not among the Runners the reader was shown. A rule
+ * can only pick one of its project's own Runners, and one that is deleted
+ * leaves the rule with none (SET NULL), so it is one the reader may not see.
+ */
+export const REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT: string = translationKey(
+  "This rule picks a Runner you do not have access to. Pick another Runner to change it.",
+);
+
 export interface RunnerPickerRunner {
   id: string;
   name: string;
@@ -144,6 +191,11 @@ export enum RunnerPickerOptionKind {
   Global = "global",
   Project = "project",
   /*
+   * An auto remediation rule's first choice: no Runner of the project's own
+   * (REMEDIATION_NO_RUNNER_CHOICE_LABEL).
+   */
+  NoRunner = "no-runner",
+  /*
    * A Runner the step names that is not one of the project's any more - or,
    * for a repository, one the reader may not see (CODE_HIDDEN_RUNNER_LABEL).
    */
@@ -164,6 +216,8 @@ export enum RunnerPickerOutcome {
   GlobalRunner = "global",
   ProjectRunner = "project",
   UnknownRunner = "unknown",
+  // An auto remediation rule that picked no Runner: the AI agents fix.
+  NoRunner = "no-runner",
   // Picked none, and global Runners never run this step type (steps only).
   NeedsOwnRunner = "needs-own-runner",
   // Picked none, and the project turned global Runners off.
@@ -207,10 +261,17 @@ export function getGlobalRunnersLiveStatus(
   return RunnerLiveStatus.NeverConnected;
 }
 
-// Whether global Runners run this work at all: every repository, a step by its type.
+/*
+ * Whether global Runners run this work at all: every repository, a step by
+ * its type, and never an auto remediation rule's commands.
+ */
 export function canGlobalRunnersRunWork(
   facts: Pick<RunnerPickerFacts, "work" | "stepType">,
 ): boolean {
+  if (facts.work === RunnerPickerWork.AutoRemediation) {
+    return false;
+  }
+
   return (
     facts.work === RunnerPickerWork.CodeRepository ||
     canGlobalRunnersRunStepType(facts.stepType)
@@ -236,15 +297,28 @@ export function buildRunnerPickerModel(
 ): RunnerPickerModel {
   const currentRunnerId: string = getChosenRunnerId(facts.currentRunnerId);
   const isGlobalOffered: boolean = offersGlobalRunner(facts);
+  const isForRemediation: boolean =
+    facts.work === RunnerPickerWork.AutoRemediation;
 
-  const globalOption: RunnerPickerOption | undefined = isGlobalOffered
+  /*
+   * The first choice: the global Runners where they run the work; for an
+   * auto remediation rule, always no Runner of the project's own - the AI
+   * agents fix - whatever the server's global Runners are.
+   */
+  const globalOption: RunnerPickerOption | undefined = isForRemediation
     ? {
         value: GLOBAL_RUNNER_CHOICE_VALUE,
-        kind: RunnerPickerOptionKind.Global,
-        name: GLOBAL_RUNNER_CHOICE_LABEL,
-        liveStatus: getGlobalRunnersLiveStatus(facts.globalRunners),
+        kind: RunnerPickerOptionKind.NoRunner,
+        name: REMEDIATION_NO_RUNNER_CHOICE_LABEL,
       }
-    : undefined;
+    : isGlobalOffered
+      ? {
+          value: GLOBAL_RUNNER_CHOICE_VALUE,
+          kind: RunnerPickerOptionKind.Global,
+          name: GLOBAL_RUNNER_CHOICE_LABEL,
+          liveStatus: getGlobalRunnersLiveStatus(facts.globalRunners),
+        }
+      : undefined;
 
   const projectOptions: Array<RunnerPickerOption> = facts.projectRunners.map(
     (runner: RunnerPickerRunner): RunnerPickerOption => {
@@ -307,7 +381,10 @@ export function buildRunnerPickerModel(
     return {
       options,
       selected: globalOption,
-      outcome: RunnerPickerOutcome.GlobalRunner,
+      outcome:
+        globalOption.kind === RunnerPickerOptionKind.NoRunner
+          ? RunnerPickerOutcome.NoRunner
+          : RunnerPickerOutcome.GlobalRunner,
       willRun: true,
     };
   }

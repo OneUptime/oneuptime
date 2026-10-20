@@ -562,7 +562,7 @@ Grupperings-, SLA-, påminnelses-, undersøkelses- og utbedringsregler virker og
 - **Vaktregler** — kjører vaktpolicyer for samsvarende hendelser. Gjennomgås i detalj nedenfor.
 - **Eierregler** — tildeler eiere automatisk.
 - **Runbook-regler** — starter et [runbook](/docs/runbooks/index) når en hendelse samsvarer.
-- **Regler for automatisk utbedring**, under **KI** → **Innstillinger** — hvilke nye hendelser som rettes mens **Rett nye hendelser automatisk** er slått på, og hvordan: av OneUptime AI eller med regelens runbooks, med eller uten å spørre først. Uten noen regel rettes hver ny hendelse. Står en KI-undersøkelse i kø for hendelsen, kjører de når den er ferdig, med analysen for hånden.
+- **Regler for automatisk utbedring**, under **KI** → **Innstillinger** — hvilke nye hendelser som rettes mens **Rett nye hendelser automatisk** er slått på, og hvordan: med eller uten å spørre først, og runbookene OneUptime AI kan kjøre. Uten noen regel rettes hver ny hendelse. Står en KI-undersøkelse i kø for hendelsen, kjører de når den er ferdig, med analysen for hånden.
 - **Undersøkelsesregler**, under **KI** → **Innstillinger** — hvilke nye hendelser OneUptime AI undersøker. Uten noen regel undersøkes alle. Se [AI SRE](/docs/ai/ai-sre).
 - **Personvernregler** — avgjør om en samsvarende hendelse er privat.
 - **Etikettregler** — setter etiketter automatisk.

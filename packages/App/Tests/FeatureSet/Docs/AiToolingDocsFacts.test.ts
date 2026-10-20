@@ -93,7 +93,8 @@ const SOURCES: Record<string, string> = {
   workflowViewSideMenu: `${DASHBOARD}/Pages/Workflow/View/SideMenu.tsx`,
   workflowBuilder: `${DASHBOARD}/Pages/Workflow/View/Builder.tsx`,
   createWorkflowModal: `${DASHBOARD}/Components/Workflow/CreateWorkflowModal.tsx`,
-  templatePicker: `${DASHBOARD}/Components/Workflow/WorkflowTemplatePicker.tsx`,
+  // The step Create a workflow (and Create a dashboard) opens on, shared.
+  templatePicker: `${DASHBOARD}/Components/TemplatePicker/TemplatePicker.tsx`,
   variableUtil: `${DASHBOARD}/Utils/Workflow/WorkflowVariableUtil.ts`,
   variableView: `${DASHBOARD}/Components/Workflow/WorkflowVariableView.tsx`,
   workflowCanvas: "packages/Common/UI/Components/Workflow/Workflow.tsx",
