@@ -50,33 +50,6 @@ export interface ExternalMcpServerConnectionCheck {
   durationInMs: number;
 }
 
-/*
- * What the Dashboard says to do about each failure, after the server's own
- * message.
- */
-export const EXTERNAL_MCP_SERVER_FAILURE_HINTS: Record<
-  ExternalMcpServerFailureKind,
-  string
-> = {
-  [ExternalMcpServerFailureKind.AddressNotAllowed]:
-    "Use the server's public address. On a self-hosted OneUptime, the server administrator can allow addresses on private networks.",
-  [ExternalMcpServerFailureKind.Unreachable]:
-    "Check the URL, and that the server is running and can be reached from OneUptime.",
-  [ExternalMcpServerFailureKind.SignInRefused]:
-    "Check the token or headers under Authentication, and what they may do on the server.",
-  [ExternalMcpServerFailureKind.TokenRequestFailed]:
-    "Check the token URL, client ID, client secret and scope under Authentication.",
-  [ExternalMcpServerFailureKind.NotAnMcpServer]:
-    "Check that the URL is the server's MCP address, such as https://mcp.example.com/mcp or https://mcp.example.com/sse.",
-  [ExternalMcpServerFailureKind.TimedOut]:
-    "Check that the server is running, then test again.",
-  [ExternalMcpServerFailureKind.TooLarge]:
-    "The server sent more than OneUptime reads in one answer.",
-  [ExternalMcpServerFailureKind.ServerError]:
-    "Check the server's own logs for the error.",
-  [ExternalMcpServerFailureKind.Other]: "Test again, or check the server.",
-};
-
 export function isExternalMcpServerFailureKind(
   value: unknown,
 ): value is ExternalMcpServerFailureKind {

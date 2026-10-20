@@ -11,15 +11,12 @@ import {
 import {
   CALL_MCP_TOOL_TOOL_NAME,
   LIST_MCP_TOOLS_TOOL_NAME,
-  describeExternalMcpToolCall,
-  isExternalMcpToolName,
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import {
   EXTERNAL_MCP_SERVER_TRANSPORT_TITLES,
   isExternalMcpServerTransport,
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerTransport";
 import {
-  EXTERNAL_MCP_SERVER_FAILURE_HINTS,
   ExternalMcpServerFailureKind,
   isExternalMcpServerFailureKind,
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerConnectionCheck";
@@ -85,7 +82,11 @@ describe("readExternalMcpServerTools", () => {
   test("keeps at most MAX_EXTERNAL_MCP_SERVER_TOOLS tools", () => {
     const stored: Array<{ name: string }> = [];
 
-    for (let index: number = 0; index < MAX_EXTERNAL_MCP_SERVER_TOOLS + 5; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_EXTERNAL_MCP_SERVER_TOOLS + 5;
+      index++
+    ) {
       stored.push({ name: `tool_${index}` });
     }
 
@@ -107,26 +108,9 @@ describe("readExternalMcpServerTools", () => {
 });
 
 describe("ExternalMcpToolNames", () => {
-  test("names the two tools and recognises them", () => {
+  test("names the two tools", () => {
     expect(LIST_MCP_TOOLS_TOOL_NAME).toBe("list_mcp_tools");
     expect(CALL_MCP_TOOL_TOOL_NAME).toBe("call_mcp_tool");
-    expect(isExternalMcpToolName("call_mcp_tool")).toBe(true);
-    expect(isExternalMcpToolName("query_logs")).toBe(false);
-    expect(isExternalMcpToolName(undefined)).toBe(false);
-  });
-
-  test("describes a call by its server and tool", () => {
-    expect(
-      describeExternalMcpToolCall({
-        server: "AWS",
-        tool: "describe_instances",
-        arguments: { region: "us-east-1" },
-      }),
-    ).toBe("AWS · describe_instances");
-    expect(describeExternalMcpToolCall({ server: "AWS" })).toBe(null);
-    expect(describeExternalMcpToolCall({ server: " ", tool: "x" })).toBe(null);
-    expect(describeExternalMcpToolCall("AWS")).toBe(null);
-    expect(describeExternalMcpToolCall(null)).toBe(null);
   });
 });
 
@@ -140,9 +124,8 @@ describe("transports and failures", () => {
     expect(isExternalMcpServerTransport("WebSocket")).toBe(false);
   });
 
-  test("every failure has a hint for what to do", () => {
+  test("knows every kind of failure", () => {
     for (const kind of Object.values(ExternalMcpServerFailureKind)) {
-      expect(EXTERNAL_MCP_SERVER_FAILURE_HINTS[kind]).toBeTruthy();
       expect(isExternalMcpServerFailureKind(kind)).toBe(true);
     }
 

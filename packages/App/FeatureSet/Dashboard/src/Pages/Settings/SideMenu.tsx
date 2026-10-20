@@ -156,6 +156,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Brain,
         },
+        {
+          link: {
+            title: "External MCP Servers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS] as Route,
+            ),
+          },
+          icon: IconProp.PuzzlePiece,
+        },
         ...(BILLING_ENABLED
           ? [
               {
