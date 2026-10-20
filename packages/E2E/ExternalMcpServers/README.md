@@ -35,7 +35,8 @@ The suite drives the pages the way a person does:
   locked, and say who may;
 - a server's page has its details (the names of its headers, never their
   values), the switch that lets OneUptime AI use it - turning it off asks
-  first - and its tools with Test connection;
+  first - and its tools with Test connection; an edit starts the secrets
+  empty, and leaving them empty keeps them;
 - an empty project, OneUptime AI turned off, a phone, dark mode
   (`?theme=dark`) and German (`?lang=de`).
 

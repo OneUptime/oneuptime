@@ -642,6 +642,51 @@ test.describe("A server's own page", () => {
     await shoot(page, "view");
   });
 
+  test("an edit starts the secrets empty, and leaving them empty keeps them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=view&server=aws");
+
+    await page
+      .getByRole("button", { name: "Edit External MCP Server" })
+      .click();
+    await expect(dialog(page)).toBeVisible();
+    const name: Locator = dialog(page).getByTestId("external-mcp-server-name");
+    await expect(name).toHaveValue("AWS");
+    await name.fill("AWS production");
+    await next(page).click();
+
+    // The way it signs in is picked; the token it holds is never shown.
+    await expect(card(page, "BearerToken")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(
+      dialog(page).getByTestId("external-mcp-server-token"),
+    ).toHaveValue("");
+    await shoot(page, "edit-authentication-step");
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const edits: Recorded["edits"] = (await recorded(page)).edits;
+    expect(edits).toHaveLength(1);
+    expect(edits[0]!.id).toBe(SERVER_IDS["aws"]);
+    expect(edits[0]!.data).toMatchObject({
+      name: "AWS production",
+      authType: "BearerToken",
+    });
+    // Nothing typed, nothing sent: the stored token stays.
+    expect(secretSent(edits[0]!.data["bearerToken"]) || undefined).toBe(
+      undefined,
+    );
+    await expect(
+      page.locator("#model-detail-external-mcp-server"),
+    ).toContainText("AWS production");
+  });
+
   test("turning a server off asks first, then saves at once", async ({
     page,
   }: {
