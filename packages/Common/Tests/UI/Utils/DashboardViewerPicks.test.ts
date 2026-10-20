@@ -17,8 +17,11 @@ import DashboardViewerPicks, {
   DASHBOARD_AUTO_REFRESH_PICK,
   DASHBOARD_TIME_RANGE_PICK,
   DASHBOARD_VIEWER_PICK_KEY_PREFIX,
+  DASHBOARD_WIDGET_SORT_PICK_PREFIX,
   getDashboardViewerPickKey,
+  getDashboardWidgetSortPickName,
 } from "../../../UI/Utils/DashboardViewerPicks";
+import { DashboardWidgetSortDirection } from "../../../Types/Dashboard/DashboardWidgetSort";
 import RememberedChoice from "../../../UI/Utils/RememberedChoice";
 import { AutoRefreshInterval } from "../../../Types/Dashboard/DashboardViewConfig";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -237,5 +240,152 @@ describe("a later setting kept the same way", () => {
         getDashboardViewerPickKey(DASHBOARD_A, "widget-sort-1"),
       ),
     ).toBeNull();
+  });
+});
+
+describe("a viewer's sort of a list or table widget (issue #5082)", () => {
+  const WIDGET_1: string = "c0000000-0000-4000-8000-000000000001";
+  const WIDGET_2: string = "c0000000-0000-4000-8000-000000000002";
+
+  const sortKey: (dashboardId: string, componentId: string) => string = (
+    dashboardId: string,
+    componentId: string,
+  ): string => {
+    return `oneuptime-dashboard-widget-sort-${componentId}:${dashboardId}`;
+  };
+
+  test("is kept per widget, per dashboard, as the column and direction it names", () => {
+    expect(DASHBOARD_WIDGET_SORT_PICK_PREFIX).toBe("widget-sort-");
+    expect(getDashboardWidgetSortPickName(` ${WIDGET_1.toUpperCase()} `)).toBe(
+      `widget-sort-${WIDGET_1}`,
+    );
+
+    DashboardViewerPicks.setWidgetSort({
+      dashboardId: DASHBOARD_A,
+      componentId: WIDGET_1,
+      sort: {
+        column: "status",
+        direction: DashboardWidgetSortDirection.Descending,
+      },
+    });
+
+    expect(window.localStorage.getItem(sortKey(DASHBOARD_A, WIDGET_1))).toBe(
+      "status:desc",
+    );
+    expect(
+      DashboardViewerPicks.getWidgetSort({
+        dashboardId: DASHBOARD_A,
+        componentId: WIDGET_1,
+      }),
+    ).toEqual({
+      column: "status",
+      direction: DashboardWidgetSortDirection.Descending,
+    });
+  });
+
+  test("never reaches another widget, nor the same widget on another dashboard", () => {
+    DashboardViewerPicks.setWidgetSort({
+      dashboardId: DASHBOARD_A,
+      componentId: WIDGET_1,
+      sort: {
+        column: "name",
+        direction: DashboardWidgetSortDirection.Ascending,
+      },
+    });
+
+    expect(
+      DashboardViewerPicks.getWidgetSort({
+        dashboardId: DASHBOARD_A,
+        componentId: WIDGET_2,
+      }),
+    ).toBeNull();
+    expect(
+      DashboardViewerPicks.getWidgetSort({
+        dashboardId: DASHBOARD_B,
+        componentId: WIDGET_1,
+      }),
+    ).toBeNull();
+  });
+
+  test("is forgotten with null - the third click's way back - and only for that widget", () => {
+    for (const componentId of [WIDGET_1, WIDGET_2]) {
+      DashboardViewerPicks.setWidgetSort({
+        dashboardId: DASHBOARD_A,
+        componentId,
+        sort: {
+          column: "cpu",
+          direction: DashboardWidgetSortDirection.Descending,
+        },
+      });
+    }
+
+    DashboardViewerPicks.setWidgetSort({
+      dashboardId: DASHBOARD_A,
+      componentId: WIDGET_1,
+      sort: null,
+    });
+
+    expect(
+      window.localStorage.getItem(sortKey(DASHBOARD_A, WIDGET_1)),
+    ).toBeNull();
+    expect(window.localStorage.getItem(sortKey(DASHBOARD_A, WIDGET_2))).toBe(
+      "cpu:desc",
+    );
+  });
+
+  test.each([
+    ["a direction it does not know", "status:sideways"],
+    ["no direction", "status"],
+    ["JSON", '{"column":"status","direction":"desc"}'],
+    ["nothing", ""],
+  ])("an entry with %s is read as no pick", (_what: string, kept: string) => {
+    window.localStorage.setItem(sortKey(DASHBOARD_A, WIDGET_1), kept);
+
+    expect(
+      DashboardViewerPicks.getWidgetSort({
+        dashboardId: DASHBOARD_A,
+        componentId: WIDGET_1,
+      }),
+    ).toBeNull();
+  });
+
+  test("a widget or dashboard with no id keeps nothing and reads nothing", () => {
+    DashboardViewerPicks.setWidgetSort({
+      dashboardId: "",
+      componentId: WIDGET_1,
+      sort: {
+        column: "name",
+        direction: DashboardWidgetSortDirection.Ascending,
+      },
+    });
+    DashboardViewerPicks.setWidgetSort({
+      dashboardId: DASHBOARD_A,
+      componentId: "",
+      sort: {
+        column: "name",
+        direction: DashboardWidgetSortDirection.Ascending,
+      },
+    });
+
+    expect(window.localStorage.length).toBe(0);
+    expect(
+      DashboardViewerPicks.getWidgetSort({
+        dashboardId: DASHBOARD_A,
+        componentId: "",
+      }),
+    ).toBeNull();
+  });
+
+  test("is kept apart from the dashboard's time range", () => {
+    DashboardViewerPicks.setTimeRange(DASHBOARD_A, TimeRange.PAST_ONE_DAY);
+    DashboardViewerPicks.setWidgetSort({
+      dashboardId: DASHBOARD_A,
+      componentId: WIDGET_1,
+      sort: null,
+    });
+
+    expect(DashboardViewerPicks.getTimeRange(DASHBOARD_A)).toBe(
+      TimeRange.PAST_ONE_DAY,
+    );
   });
 });

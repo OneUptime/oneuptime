@@ -1118,11 +1118,15 @@ describe("DashboardAPI public resource-list", () => {
         });
         expect(findBy["limit"]).toBe(6);
         expect(findBy["sort"]).toEqual({ name: SortOrder.Ascending });
+        /*
+         * The status's place in the project's list is read too: a viewer
+         * may sort the list worst first by it (issue #5082).
+         */
         expect(findBy["select"]).toEqual({
           _id: true,
           name: true,
           monitorType: true,
-          currentMonitorStatus: { name: true, color: true },
+          currentMonitorStatus: { name: true, color: true, priority: true },
         });
       });
 
