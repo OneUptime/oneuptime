@@ -851,18 +851,21 @@ describe("Code's first page: the question, one box, and every task", () => {
       ) as never,
     );
     listTasksMock.mockResolvedValue(tasksAnswer([]) as never);
-    const getSpy: SpyInstance<typeof API.get> = jest
-      .spyOn(API, "get")
-      .mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          {
-            installUrl:
-              "https://github.com/apps/oneuptime-app/installations/new?state=x",
-          },
-          {},
-        ) as never,
+    // What the page asked the server for, in order.
+    const gets: Array<string> = [];
+    jest.spyOn(API, "get").mockImplementation((async (options: {
+      url: URL;
+    }) => {
+      gets.push(options.url.toString());
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          installUrl:
+            "https://github.com/apps/oneuptime-app/installations/new?state=x",
+        },
+        {},
       );
+    }) as never);
 
     draw(<CodePage {...PAGE_PROPS} />);
 
@@ -880,9 +883,7 @@ describe("Code's first page: the question, one box, and every task", () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalled();
     });
-    expect(String(getSpy.mock.calls[0]?.[0]?.url)).toContain(
-      "/github/install-url",
-    );
+    expect(gets[0]?.endsWith("/github/install-url")).toBe(true);
     expect((navigateMock.mock.calls[0]?.[0] as URL).toString()).toBe(
       "https://github.com/apps/oneuptime-app/installations/new?state=x",
     );
@@ -1304,18 +1305,20 @@ describe("Code's Repositories", () => {
       ],
       tasksWithoutRepositoryCount: 0,
     } as never);
-    const getSpy: SpyInstance<typeof API.get> = jest
-      .spyOn(API, "get")
-      .mockResolvedValue(
-        new HTTPResponse<JSONObject>(
-          200,
-          {
-            installUrl:
-              "https://github.com/apps/oneuptime-app/installations/new",
-          },
-          {},
-        ) as never,
+    // What the page asked the server for, in order.
+    const gets: Array<string> = [];
+    jest.spyOn(API, "get").mockImplementation((async (options: {
+      url: URL;
+    }) => {
+      gets.push(options.url.toString());
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          installUrl: "https://github.com/apps/oneuptime-app/installations/new",
+        },
+        {},
       );
+    }) as never);
 
     draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
 
@@ -1334,9 +1337,7 @@ describe("Code's Repositories", () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalled();
     });
-    expect(String(getSpy.mock.calls[0]?.[0]?.url)).toContain(
-      "/github/install-url",
-    );
+    expect(gets[0]?.endsWith("/github/install-url")).toBe(true);
   });
 
   test("someone who may not connect GitHub reads why, with no button", async () => {
