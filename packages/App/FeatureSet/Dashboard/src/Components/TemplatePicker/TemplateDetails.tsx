@@ -8,6 +8,11 @@
  * on a phone. What it holds is either chips - an icon and a name each, the
  * way the product names the thing elsewhere (a block on the workflow
  * canvas, a widget in Add Widget) - or a few words.
+ *
+ * The labels share one column, as wide as the longest of them up to 9rem
+ * (a longer one wraps): a fixed 9rem left a wide gap after a dashboard's
+ * short Widgets and Variables, and pushed its last widget onto a line of
+ * its own.
  */
 
 import React, { ReactElement, ReactNode } from "react";
@@ -24,7 +29,10 @@ export const TemplateDetails: (props: TemplateDetailsProps) => ReactElement = (
   props: TemplateDetailsProps,
 ): ReactElement => {
   return (
-    <dl className="mt-3 space-y-2.5" data-testid={props.dataTestId}>
+    <dl
+      className="mt-3 space-y-2.5 sm:grid sm:grid-cols-[fit-content(9rem)_minmax(0,1fr)] sm:gap-x-3 sm:gap-y-2.5 sm:space-y-0"
+      data-testid={props.dataTestId}
+    >
       {props.children}
     </dl>
   );
@@ -48,9 +56,10 @@ export const TemplateDetailsRow: (
   props: TemplateDetailsRowProps,
 ) => ReactElement = (props: TemplateDetailsRowProps): ReactElement => {
   return (
-    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
+    // Where there is room the row lends its label and content to the list's columns.
+    <div className="flex flex-col gap-1.5 sm:contents">
       <dt
-        className={`text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-36 sm:flex-shrink-0 ${
+        className={`text-xs font-semibold uppercase tracking-wide text-gray-500 ${
           // The label lines up with the middle of the first line beside it.
           props.holds === TemplateDetailsRowHolds.Chips
             ? "sm:pt-1"
@@ -59,7 +68,7 @@ export const TemplateDetailsRow: (
       >
         {props.label}
       </dt>
-      <dd className="min-w-0 flex-1 space-y-1">{props.children}</dd>
+      <dd className="min-w-0 space-y-1">{props.children}</dd>
     </div>
   );
 };

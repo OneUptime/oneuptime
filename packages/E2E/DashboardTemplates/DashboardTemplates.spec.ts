@@ -344,6 +344,61 @@ test.describe("Create a dashboard", () => {
     await screenshot(page, `dashboard-picked-${widthName(page)}-light`);
   });
 
+  /*
+   * Found in the UI review: the details' labels had a column of 9rem, wide
+   * enough for a workflow's What you'll need, which left a gap after a
+   * dashboard's short Widgets and Variables and pushed Kubernetes' last
+   * widget, Log Stream, onto a line of its own. The column is now as wide
+   * as its longest label.
+   */
+  test("a picked template's labels take only the room they need, so its widgets share one line", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "On a phone the labels sit above what they name.");
+
+    const dialog: Locator = await openDashboardDialog(page);
+
+    await templateRow(dialog, "Kubernetes Dashboard").click();
+
+    const details: Locator = dialog.getByTestId("dashboard-template-details");
+    const labels: Array<Box> = [];
+
+    for (const label of await details.locator("dt").all()) {
+      labels.push(await boxOf(label));
+    }
+
+    const chips: Array<Box> = [];
+
+    for (const chip of await details
+      .getByTestId("dashboard-template-details-widget")
+      .all()) {
+      chips.push(await boxOf(chip));
+    }
+
+    const firstChip: Box = chips[0] as Box;
+    const variable: Box = await boxOf(
+      details.getByTestId("dashboard-template-details-variable").first(),
+    );
+
+    // The labels' column ends at its longest label, well short of 9rem.
+    expect(labels).toHaveLength(2);
+    expect(firstChip.x - (labels[0] as Box).x).toBeLessThan(144 - 24);
+    for (const label of labels) {
+      expect(firstChip.x).toBeGreaterThanOrEqual(label.x + label.width);
+    }
+    // The widgets and the variables start in one column.
+    expect(Math.abs(variable.x - firstChip.x)).toBeLessThanOrEqual(1);
+    // All six widgets on one line.
+    expect(chips).toHaveLength(6);
+    for (const chip of chips) {
+      expect(Math.abs(chip.y - firstChip.y)).toBeLessThanOrEqual(1);
+    }
+  });
+
   test("Use this template: the name filled in and numbered, Create builds the template, and the new dashboard opens", async ({
     page,
   }: {
