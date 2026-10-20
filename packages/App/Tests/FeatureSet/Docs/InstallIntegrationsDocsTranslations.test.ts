@@ -555,6 +555,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     "**OneUptime is up!**",
     '"permission denied"',
     '"Maximum retries reached"',
+    '"Page not found"',
     "`CoreSSL:EnsurePrimaryHostCertificate`",
   ],
   [TEAMS]: [

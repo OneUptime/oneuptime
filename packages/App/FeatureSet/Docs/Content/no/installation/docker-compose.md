@@ -499,6 +499,13 @@ Når hver container kjører, kjører du sjekken på nytt med `npm run status-che
 Åpne OneUptime på adressen i `HOST`. Ingressen ruter forespørsler etter vertsnavn: Bare `HOST` og `localhost` når hele applikasjonen, og ethvert annet navn, som serverens IP-adresse, behandles som domenet til en statusside. Sett `HOST` til navnet folk bruker, og kjør deretter `npm start`.
 :::
 
+:::details Registrering eller innlogging feiler med "Page not found"
+Registreringssiden lastes, men registrering feiler med `Page not found - /identity/signup`, og innlogging med `Page not found - /identity/login`. Forespørselen nådde OneUptime under et annet vertsnavn enn `HOST`, så ingressen rutet den som en statussides eget domene, der OneUptimes egen registrering og innlogging ikke tilbys. Sjekk begge deler:
+
+- `HOST` er adressen folk åpner, med porten hvis de bruker en, som `oneuptime.example.com:8080`. Kjør `npm start` etter at du har endret den.
+- En proxy foran OneUptime sender videre vertsnavnet nettleseren ba om. Caddy gjør det som standard, Nginx med `proxy_set_header Host $host;` som i [Bruk din egen reverse proxy](#bruk-din-egen-reverse-proxy), og Apache med `ProxyPreserveHost On`.
+:::
+
 :::details Nettleseren advarer om sertifikatet etter at du satte PROVISION_SSL
 Til Let's Encrypt utsteder sertifikatet, leverer ingressen et midlertidig selvsignert sertifikat. Hvis advarselen varer i mer enn noen minutter, sjekker du at:
 
