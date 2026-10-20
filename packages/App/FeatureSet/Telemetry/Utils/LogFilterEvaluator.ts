@@ -1,8 +1,13 @@
 import { JSONObject } from "Common/Types/JSON";
 import escapeRegExp from "Common/Utils/RegExpEscape";
-import LinearRegExp from "Common/Utils/LinearRegExp/LinearRegExp";
-import { getLinearRegExp } from "Common/Utils/LinearRegExp/PatternCache";
-import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
+import {
+  getLinearRegExp,
+  LinearRegExpHandle,
+} from "Common/Utils/LinearRegExp/PatternCache";
+import {
+  PatternProblemError,
+  PatternWorkLimitError,
+} from "Common/Utils/LinearRegExp/PatternProblem";
 
 /*
  * Filter evaluator for log / span rows used by pipelines, drop
@@ -224,9 +229,11 @@ interface ComparisonExpr extends FilterExpression {
    * SQL wildcards (`%`, `_`). null otherwise. Run on the linear-time
    * matcher: every `%` is a run of any text, and a filter a project
    * writes with many of them must cost time in line with the record,
-   * not a power of its length (Utils/LinearRegExp).
+   * not a power of its length (Utils/LinearRegExp). Kept as a handle:
+   * the compiled pattern stays in the matcher's bounded cache, not in
+   * the minute-long cache of the project's filters.
    */
-  likeRegex?: LinearRegExp | null;
+  likePattern?: LinearRegExpHandle | null;
   /*
    * Populated when operator === "LIKE" and the pattern contains
    * no `%`. Lowercase form for case-insensitive substring match.
@@ -396,16 +403,35 @@ class Parser {
 }
 
 /*
- * Whether a LIKE pattern's regex matches the value. One that would take more
- * steps than the value's length allows (PatternWorkLimitError, a pattern
- * built to) does not match: the filter does not apply to that record.
+ * A LIKE condition with no answer: its pattern needed more work than the
+ * value - or what is left of the batch's work allowance
+ * (Common/Utils/LinearRegExp/PatternWork.ts) - allows, or could not be
+ * compiled. A filter with one does not apply to the record, whatever the
+ * rest of it says: "no answer" read as "does not match" would make NOT
+ * LIKE hold on a value nobody read to the end.
  */
-function likeMatches(regex: LinearRegExp, value: string): boolean {
+class UnansweredConditionError extends Error {
+  public constructor() {
+    super("A LIKE condition of the filter has no answer for this record.");
+    this.name = "UnansweredConditionError";
+  }
+}
+
+function isUnansweredPatternError(error: unknown): boolean {
+  return (
+    error instanceof PatternWorkLimitError ||
+    error instanceof PatternProblemError ||
+    error instanceof SyntaxError
+  );
+}
+
+// Whether a LIKE pattern matches the value; throws when there is no answer.
+function likeMatches(pattern: LinearRegExpHandle, value: string): boolean {
   try {
-    return regex.test(value);
+    return pattern.get().test(value);
   } catch (error: unknown) {
-    if (error instanceof PatternWorkLimitError) {
-      return false;
+    if (isUnansweredPatternError(error)) {
+      throw new UnansweredConditionError();
     }
 
     throw error;
@@ -432,13 +458,31 @@ function compileExpr(expr: FilterExpression): void {
          */
         if (!raw.includes("%")) {
           comp.likeSubstring = raw.toLowerCase();
-          comp.likeRegex = null;
+          comp.likePattern = null;
         } else {
           const pattern: string = escapeRegExp(raw)
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
-          // Too large to run: compileFilter's catch makes the filter match nothing.
-          comp.likeRegex = getLinearRegExp(`^${pattern}$`, "i");
+          // Too long to run: compileFilter's catch makes the filter match nothing.
+          const likePattern: LinearRegExpHandle = new LinearRegExpHandle(
+            `^${pattern}$`,
+            "i",
+          );
+
+          try {
+            // Too large to run: compileFilter's catch makes the filter match nothing.
+            likePattern.get();
+          } catch (error: unknown) {
+            /*
+             * Not compiled only because the batch's work allowance is spent:
+             * the pattern is compiled when a record is asked about.
+             */
+            if (!(error instanceof PatternWorkLimitError)) {
+              throw error;
+            }
+          }
+
+          comp.likePattern = likePattern;
         }
       } else if (comp.operator === "IN") {
         const values: Array<string> = comp.value as Array<string>;
@@ -489,8 +533,8 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
           if (comp.likeSubstring !== undefined) {
             return fieldVal.toLowerCase().includes(comp.likeSubstring);
           }
-          if (comp.likeRegex) {
-            return likeMatches(comp.likeRegex, fieldVal);
+          if (comp.likePattern) {
+            return likeMatches(comp.likePattern, fieldVal);
           }
 
           /*
@@ -509,8 +553,12 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
           try {
-            return likeMatches(getLinearRegExp(`^${pattern}$`, "i"), fieldVal);
-          } catch {
+            return getLinearRegExp(`^${pattern}$`, "i").test(fieldVal);
+          } catch (error: unknown) {
+            if (error instanceof PatternWorkLimitError) {
+              throw new UnansweredConditionError();
+            }
+
             // A LIKE pattern too large to run matches nothing.
             return false;
           }
@@ -622,7 +670,16 @@ export function evaluateCompiledFilter(
     case "always-false":
       return false;
     case "expr":
-      return evaluateExpr(logRow, compiled.expr);
+      try {
+        return evaluateExpr(logRow, compiled.expr);
+      } catch (error: unknown) {
+        if (error instanceof UnansweredConditionError) {
+          // A condition with no answer: the filter does not apply.
+          return false;
+        }
+
+        throw error;
+      }
     default:
       return false;
   }

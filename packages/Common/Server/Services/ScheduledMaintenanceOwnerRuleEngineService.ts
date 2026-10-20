@@ -67,6 +67,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /*
  * Whether any owner that was actually added came from one inherited source.
@@ -222,6 +223,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     scheduledMaintenance: ScheduledMaintenance;
     rules: Array<ScheduledMaintenanceOwnerRule>;

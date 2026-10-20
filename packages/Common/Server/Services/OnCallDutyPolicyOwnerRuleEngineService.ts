@@ -24,6 +24,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class OnCallDutyPolicyOwnerRuleEngineServiceClass
   implements RuleRunEngine<OnCallDutyPolicy, OnCallDutyPolicyOwnerRule>
@@ -117,6 +118,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     onCallDutyPolicy: OnCallDutyPolicy;
     rules: Array<OnCallDutyPolicyOwnerRule>;

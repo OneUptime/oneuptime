@@ -23,6 +23,7 @@ import RuleCriteriaMatcher, {
   LegacyFilterCorrelation,
 } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 type EnqueueExecutionFn = (data: {
   runbookExecutionId: ObjectID;
@@ -140,6 +141,7 @@ class RunbookRuleEngineServiceClass {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   private async applyRules(data: {
     projectId: ObjectID;
     triggerEntityType: RunbookRuleTriggerEntity;

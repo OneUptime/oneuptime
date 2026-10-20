@@ -3,6 +3,12 @@ import { ParsedPattern } from "./Syntax";
 import { PatternProblemError, PatternProblemReason } from "./PatternProblem";
 import { CompiledPattern, compilePattern, DEFAULT_MAX_STEPS } from "./Program";
 import {
+  COMPILE_WORK,
+  COMPILE_WORK_PER_STEP,
+  getPatternWorkAllowance,
+  PatternWorkAllowance,
+} from "./PatternWork";
+import {
   AnchoredOutcome,
   computeLookaroundTables,
   computeMatchStarts,
@@ -40,7 +46,11 @@ import {
  * Every question - test, exec, replace, matchAll - may take a number of
  * steps in line with the text's length (Matcher.ts, WorkMeter): a pattern
  * built to take more throws PatternWorkLimitError instead of holding the
- * process, and the caller decides what that means.
+ * process, and the caller decides what that means. Inside a piece of work
+ * with an allowance of its own - one evaluation of a project's rules, one
+ * batch of telemetry (PatternWork.ts) - every question and every compile
+ * counts against that allowance too, and stops the same way once it is
+ * spent.
  *
  * Flags: i, m, s and g - and no u or v (no caller has needed them).
  */
@@ -120,11 +130,17 @@ export default class LinearRegExp {
     refusePatternTooLong(source);
 
     /*
-     * The running engine decides what is a regular expression, and says what
-     * is wrong with what is not: the message people saw before. Building a
-     * RegExp only parses the pattern; it is never run.
+     * The allowance of the piece of work under way, if any: nothing is
+     * compiled once it is spent, and what a compile took is counted after
+     * it, refused or not.
      */
-    LinearRegExp.checkSyntax(source, flags);
+    const allowance: PatternWorkAllowance | undefined =
+      getPatternWorkAllowance();
+    const maxSteps: number = options?.maxSteps ?? DEFAULT_MAX_STEPS;
+
+    if (allowance !== undefined) {
+      allowance.beforeCompile();
+    }
 
     this.source = source;
     this.flags = flags;
@@ -139,10 +155,53 @@ export default class LinearRegExp {
       multiline: this.multiline,
       dotAll: this.dotAll,
     };
-    this.compiled = LinearRegExp.compile(source, patternFlags, {
-      captures: this.capturesGroups,
-      maxSteps: options?.maxSteps ?? DEFAULT_MAX_STEPS,
-    });
+
+    try {
+      /*
+       * The running engine decides what is a regular expression, and says
+       * what is wrong with what is not: the message people saw before.
+       * Building a RegExp only parses the pattern; it is never run.
+       */
+      LinearRegExp.checkSyntax(source, flags);
+
+      this.compiled = LinearRegExp.compile(source, patternFlags, {
+        captures: this.capturesGroups,
+        maxSteps: maxSteps,
+      });
+    } catch (error: unknown) {
+      if (allowance !== undefined) {
+        allowance.charge(LinearRegExp.refusedCompileWork(source, maxSteps, error));
+      }
+
+      throw error;
+    }
+
+    if (allowance !== undefined) {
+      allowance.charge(
+        COMPILE_WORK +
+          source.length +
+          COMPILE_WORK_PER_STEP * this.compiled.totalSteps,
+      );
+    }
+  }
+
+  /*
+   * What a compile that was refused took: one refused as too large may have
+   * compiled as many steps as a pattern may have, twice (the pattern and its
+   * copy read backwards); one refused while it was read, only the reading.
+   */
+  private static refusedCompileWork(
+    source: string,
+    maxSteps: number,
+    error: unknown,
+  ): number {
+    const compiledSteps: number =
+      error instanceof PatternProblemError &&
+      error.reason === PatternProblemReason.TooLarge
+        ? 2 * maxSteps
+        : 0;
+
+    return COMPILE_WORK + source.length + COMPILE_WORK_PER_STEP * compiledSteps;
   }
 
   private static compile(
@@ -362,9 +421,21 @@ export default class LinearRegExp {
     return null;
   }
 
-  // The work one question about this text may take (Matcher.ts, WorkMeter).
+  /*
+   * The work one question about this text may take (Matcher.ts, WorkMeter),
+   * counted against the allowance of the piece of work under way, if any:
+   * the text adds its share to it the first time it is asked about, and the
+   * question pays what any question costs before it reads anything.
+   */
   private meterFor(text: string): WorkMeter {
-    return WorkMeter.forText(text.length, this.compiled.totalSteps);
+    const allowance: PatternWorkAllowance | undefined =
+      getPatternWorkAllowance();
+
+    if (allowance !== undefined) {
+      allowance.beforeQuestion(text);
+    }
+
+    return WorkMeter.forText(text.length, this.compiled.totalSteps, allowance);
   }
 
   private tablesFor(text: string, meter: WorkMeter): Array<Uint8Array> {

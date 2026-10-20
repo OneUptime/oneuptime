@@ -24,6 +24,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class NetworkDeviceOwnerRuleEngineServiceClass
   implements RuleRunEngine<NetworkDevice, NetworkDeviceOwnerRule>
@@ -123,6 +124,7 @@ class NetworkDeviceOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     networkDevice: NetworkDevice;
     rules: Array<NetworkDeviceOwnerRule>;

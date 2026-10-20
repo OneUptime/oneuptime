@@ -22,6 +22,14 @@ import {
   Program,
 } from "./Program";
 import { PatternWorkLimitError } from "./PatternProblem";
+import {
+  AUTOMATON_WORK,
+  AUTOMATON_WORK_PER_STEP,
+  noteQuestionStoppedOutsideAllowance,
+  PatternWorkAllowance,
+  STATE_WORK,
+  STATE_WORK_PER_EIGHT_MOVES,
+} from "./PatternWork";
 
 /*
  * RUNS A COMPILED PATTERN OVER A TEXT, READING EACH CODE UNIT A BOUNDED
@@ -161,21 +169,34 @@ function readsCodeUnit(
 export const WORK_PER_CODE_UNIT: number = 128;
 export const WORK_PER_STEP: number = 64;
 
+/*
+ * The question's own limit is checked first, then the allowance it shares
+ * with the other questions of its piece of work, if any (PatternWork.ts).
+ * That allowance also counts what the limit does not: every code unit each
+ * reading reads, and building automata and states.
+ */
 export class WorkMeter {
   private used: number = 0;
   private readonly limit: number;
+  private readonly allowance: PatternWorkAllowance | undefined;
 
-  public constructor(limit: number) {
+  public constructor(limit: number, allowance?: PatternWorkAllowance) {
     this.limit = limit;
+    this.allowance = allowance;
   }
 
   /*
    * The meter for one question about a text of this length, asked of a
    * pattern of this many steps (CompiledPattern.totalSteps).
    */
-  public static forText(length: number, patternSteps: number): WorkMeter {
+  public static forText(
+    length: number,
+    patternSteps: number,
+    allowance?: PatternWorkAllowance,
+  ): WorkMeter {
     return new WorkMeter(
       WORK_PER_CODE_UNIT * (length + 1) + WORK_PER_STEP * patternSteps,
+      allowance,
     );
   }
 
@@ -183,10 +204,38 @@ export class WorkMeter {
     this.used += visits;
 
     if (this.used > this.limit) {
+      if (this.allowance === undefined) {
+        noteQuestionStoppedOutsideAllowance();
+      } else {
+        this.allowance.noteStopped();
+      }
+
       throw new PatternWorkLimitError();
+    }
+
+    if (this.allowance !== undefined) {
+      this.allowance.spend(visits);
+    }
+  }
+
+  /*
+   * Code units a reading read, or memory a reading set up (an automaton, a
+   * state): work for the shared allowance only. The question's own limit
+   * counts steps visited, as it always has.
+   */
+  public spendShared(work: number): void {
+    if (this.allowance !== undefined && work > 0) {
+      this.allowance.spend(work);
     }
   }
 }
+
+/*
+ * How many code units a reading may read before they are counted: counting
+ * every one would slow the reading down, and counting only at the end would
+ * let a reading of megabytes run past the allowance before it is stopped.
+ */
+const READ_COUNT_INTERVAL: number = 65_536;
 
 /*
  * ---------------------------------------------------------------------------
@@ -534,6 +583,8 @@ class LazyDfa {
   private reachedEnd: boolean = false;
   // The meter of the scan under way.
   private meter: WorkMeter = new WorkMeter(Infinity);
+  // Whether building the automaton was counted, by the reading that built it.
+  private buildCounted: boolean = false;
 
   public constructor(
     program: Program,
@@ -586,6 +637,14 @@ class LazyDfa {
   ): boolean {
     this.meter = meter;
 
+    if (!this.buildCounted) {
+      // Building the automaton, counted by the first reading that uses it.
+      meter.spendShared(
+        AUTOMATON_WORK + AUTOMATON_WORK_PER_STEP * this.program.ops.length,
+      );
+      this.buildCounted = true;
+    }
+
     if (this.isFull()) {
       /*
        * Full from earlier texts: start this one afresh rather than read it
@@ -598,9 +657,16 @@ class LazyDfa {
     const firstCodeUnits: CharacterSet | null = this.program.firstCodeUnits;
     const idleStates: Array<DfaState | undefined> = [];
     let position: number = forwards ? 0 : text.length;
+    // The code units read up to here are counted (READ_COUNT_INTERVAL).
+    let countedTo: number = position;
     let state: DfaState = this.stateFor([], BEHIND_NOTHING);
 
     for (;;) {
+      if (Math.abs(position - countedTo) >= READ_COUNT_INTERVAL) {
+        meter.spendShared(Math.abs(position - countedTo));
+        countedTo = position;
+      }
+
       const hasAhead: boolean = forwards
         ? position < text.length
         : position > 0;
@@ -636,6 +702,9 @@ class LazyDfa {
       const combination: number = this.combinationAt(tables, position);
 
       if (!hasAhead) {
+        // The end of the reading: what it read since last counted.
+        meter.spendShared(Math.abs(position - countedTo) + 1);
+
         if (this.endMatches(state, combination) && onMatch(position)) {
           return true;
         }
@@ -674,6 +743,8 @@ class LazyDfa {
       }
 
       if ((move & 1) === 1 && onMatch(position)) {
+        // Stopped at a match: what it read since last counted.
+        meter.spendShared(Math.abs(position - countedTo) + 1);
         return true;
       }
 
@@ -995,6 +1066,11 @@ class LazyDfa {
       4 * pcs.length +
       key.length;
 
+    // Setting up a state to keep, counted before anything is kept.
+    this.meter.spendShared(
+      STATE_WORK + STATE_WORK_PER_EIGHT_MOVES * (moveCount >>> 3),
+    );
+
     if (!this.store.reserve(this, bytes)) {
       return {
         pcs: Int32Array.from(pcs),
@@ -1143,6 +1219,9 @@ function scanByWays(
   meter: WorkMeter,
   onMatch: (position: number) => boolean,
 ): boolean {
+  // Setting up the reading's lists, as building an automaton is counted.
+  meter.spendShared(AUTOMATON_WORK + AUTOMATON_WORK_PER_STEP * program.ops.length);
+
   const walker: StepWalker = new StepWalker(program, text, tables, meter);
   const size: number = program.ops.length;
   let current: Int32Array = new Int32Array(size);
@@ -1182,10 +1261,18 @@ function scanByWays(
     current,
     walker.addSteps(current, 0, 0, position),
   );
+  // Code units read and not counted yet (READ_COUNT_INTERVAL).
+  let uncounted: number = 1;
 
   while (currentLength !== null) {
     if (forwards ? position >= text.length : position <= 0) {
+      meter.spendShared(uncounted);
       return false;
+    }
+
+    if (++uncounted >= READ_COUNT_INTERVAL) {
+      meter.spendShared(uncounted);
+      uncounted = 0;
     }
 
     const codeUnit: number = text.charCodeAt(
@@ -1211,6 +1298,9 @@ function scanByWays(
     next = swap;
     currentLength = keepReading(current, nextLength);
   }
+
+  // Stopped at a match: what it read since last counted.
+  meter.spendShared(uncounted);
 
   return stopped;
 }

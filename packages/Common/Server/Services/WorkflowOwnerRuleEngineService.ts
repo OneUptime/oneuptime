@@ -24,6 +24,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class WorkflowOwnerRuleEngineServiceClass
   implements RuleRunEngine<Workflow, WorkflowOwnerRule>
@@ -118,6 +119,7 @@ class WorkflowOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     workflow: Workflow;
     rules: Array<WorkflowOwnerRule>;

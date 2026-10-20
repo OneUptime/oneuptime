@@ -24,6 +24,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class RumApplicationOwnerRuleEngineServiceClass
   implements RuleRunEngine<RumApplication, RumApplicationOwnerRule>
@@ -122,6 +123,7 @@ class RumApplicationOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     rumApplication: RumApplication;
     rules: Array<RumApplicationOwnerRule>;

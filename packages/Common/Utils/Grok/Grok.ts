@@ -296,6 +296,15 @@ export function compileGrokPattern(
       maxSteps: MAX_GROK_STEPS,
     });
   } catch (err) {
+    if (err instanceof PatternWorkLimitError) {
+      /*
+       * Not compiled because the work allowance of the batch under way is
+       * spent (LinearRegExp/PatternWork.ts): nothing wrong with the pattern,
+       * and nothing to tell the person who wrote it.
+       */
+      throw err;
+    }
+
     if (err instanceof PatternProblemError) {
       throw new BadDataException(
         `This grok pattern ${describePatternProblemReason(err.reason)}`,
@@ -471,6 +480,11 @@ export function compileGrokPatternCached(pattern: string): CompiledGrokPattern {
   try {
     result = compileGrokPattern(pattern);
   } catch (err) {
+    if (err instanceof PatternWorkLimitError) {
+      // The allowance of the batch under way is spent: nothing to keep.
+      throw err;
+    }
+
     result =
       err instanceof BadDataException ? err : new BadDataException(String(err));
   }

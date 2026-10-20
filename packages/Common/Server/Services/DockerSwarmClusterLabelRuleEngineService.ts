@@ -23,6 +23,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class DockerSwarmClusterLabelRuleEngineServiceClass
   implements RuleRunEngine<DockerSwarmCluster, DockerSwarmClusterLabelRule>
@@ -117,6 +118,7 @@ class DockerSwarmClusterLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     dockerSwarmCluster: DockerSwarmCluster;
     rules: Array<DockerSwarmClusterLabelRule>;

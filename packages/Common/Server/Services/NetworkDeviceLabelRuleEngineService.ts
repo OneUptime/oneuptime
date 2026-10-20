@@ -21,6 +21,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /*
  * Bounds on one manual "Run now" of a label rule. The automatic path only
@@ -136,6 +137,7 @@ class NetworkDeviceLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     networkDevice: NetworkDevice;
     rules: Array<NetworkDeviceLabelRule>;
@@ -260,6 +262,7 @@ class NetworkDeviceLabelRuleEngineServiceClass
    * a second run reports devicesMatched with devicesLabeled at zero.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRuleToExistingNetworkDevices(data: {
     ruleId: ObjectID;
     projectId: ObjectID;

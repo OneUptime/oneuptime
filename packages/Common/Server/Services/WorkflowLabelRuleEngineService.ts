@@ -18,6 +18,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class WorkflowLabelRuleEngineServiceClass
   implements RuleRunEngine<Workflow, WorkflowLabelRule>
@@ -104,6 +105,7 @@ class WorkflowLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     workflow: Workflow;
     rules: Array<WorkflowLabelRule>;
