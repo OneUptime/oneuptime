@@ -70,6 +70,13 @@ export enum CheckOn {
 
   // Profile monitors.
   ProfileCount = "Profile Count",
+  /*
+   * The share of the window's time (or memory) spent in code whose frame
+   * matches the monitor's function (MonitorStepProfileMonitor.functionName):
+   * a function's share of CPU that jumps after a deploy. Stored in monitor
+   * criteria; never rename it.
+   */
+  ProfileFunctionShare = "Function Share (in %)",
 
   // Metric Monitors.
   MetricValue = "Metric Value",

@@ -47,6 +47,7 @@ const {
   getLocationBlocks,
   getServerBlocks,
   ingressListenEnvironment,
+  primaryServerNameEnvironment,
   readNginxConf,
   readTemplate,
   resolveLocation,
@@ -59,8 +60,8 @@ const template = readTemplate();
 const nginxConf = readNginxConf();
 const serverBlocks = getServerBlocks(template);
 
-// The primary ingress ("localhost ingress $HOST"); the other two server
-// blocks are the status-page servers.
+// The primary ingress ("localhost ingress", then HOST without its port); the
+// other two server blocks are the status-page servers.
 const primaryServerBlock = serverBlocks.find((block) => {
   return /server_name\s+localhost\s+ingress/.test(block.body);
 });
@@ -603,7 +604,8 @@ const INGRESS_HOST = "oneuptime.example.com";
  * A full container environment, so a render is representative of a real
  * deployment, with `overrides` on top. The listen directives are the ones
  * envsubst-on-templates.sh exports for the NGINX_LISTEN_ADDRESS it ends up
- * with, on a kernel with IPv6; an override names them to differ.
+ * with, on a kernel with IPv6, and the primary server's name the one it
+ * exports for HOST; an override names them to differ.
  */
 function baseEnvironment(overrides = {}) {
   const environment = {};
@@ -636,10 +638,12 @@ function baseEnvironment(overrides = {}) {
     overrides.NGINX_LISTEN_ADDRESS === undefined
       ? environment.NGINX_LISTEN_ADDRESS
       : overrides.NGINX_LISTEN_ADDRESS;
+  const host = overrides.HOST === undefined ? environment.HOST : overrides.HOST;
 
   return {
     ...environment,
     ...ingressListenEnvironment({ listenAddress }),
+    ...primaryServerNameEnvironment(host),
     ...overrides,
   };
 }
@@ -1019,10 +1023,10 @@ test(
 
 /*
  * nginx picks the server block by Host. The primary ingress only answers to
- * "localhost ingress $HOST"; anything else -- the ingress's IP, an in-cluster
- * Service name, a second DNS name, or any name at all while HOST is left at
- * its "localhost" default -- lands in the default server of the port, which
- * is a status-page server on both 7849 and 7850. Each of those forwards
+ * "localhost", "ingress" and HOST; anything else -- the ingress's IP, an
+ * in-cluster Service name, a second DNS name, or any name at all while HOST is
+ * left at its "localhost" default -- lands in the default server of the port,
+ * which is a status-page server on both 7849 and 7850. Each of those forwards
  * OTLP to the same App, which serves it under "/" and "/telemetry" whatever
  * the Host, so before they carried their own /otlp and /telemetry the batch
  * went through their `location /` on nginx's 1M default and still got
@@ -1057,7 +1061,7 @@ test("the unnamed hosts are not names the primary ingress answers to", () => {
     .replace(/;$/, "")
     .split(/\s+/)
     .map((name) => {
-      return name === "${HOST}" ? INGRESS_HOST : name;
+      return name === "${HOST_WITHOUT_PORT}" ? INGRESS_HOST : name;
     });
 
   assert.deepEqual(names, ["localhost", "ingress", INGRESS_HOST]);

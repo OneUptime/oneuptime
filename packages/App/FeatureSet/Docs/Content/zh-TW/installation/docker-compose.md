@@ -499,6 +499,13 @@ npm run logs
 請透過 `HOST` 中的位址開啟 OneUptime。ingress 依主機名稱轉送請求：只有 `HOST` 和 `localhost` 能連到整個應用程式，其他任何名稱（例如伺服器的 IP 位址）都會被當作狀態頁面的網域。把 `HOST` 設為大家實際使用的名稱，然後執行 `npm start`。
 :::
 
+:::details 註冊或登入失敗，顯示 "Page not found"
+註冊頁面能載入，但註冊失敗並顯示 `Page not found - /identity/signup`，登入失敗並顯示 `Page not found - /identity/login`。請求以 `HOST` 以外的主機名稱到達 OneUptime，所以 ingress 把它當作狀態頁面的自訂網域來轉送，而那裡不提供 OneUptime 本身的註冊和登入。請檢查以下兩項：
+
+- `HOST` 是大家開啟的位址；如果使用連接埠，就要帶上連接埠，例如 `oneuptime.example.com:8080`。修改後執行 `npm start`。
+- OneUptime 前面的代理伺服器原樣傳遞瀏覽器要求的主機名稱。Caddy 預設就會這樣做，Nginx 要用 `proxy_set_header Host $host;`（見[使用你自己的反向代理](#使用你自己的反向代理)），Apache 要用 `ProxyPreserveHost On`。
+:::
+
 :::details 設定 PROVISION_SSL 後瀏覽器對憑證發出警告
 在 Let's Encrypt 簽發憑證之前，ingress 會提供一張暫時的自我簽署憑證。如果警告持續超過幾分鐘，請檢查：
 

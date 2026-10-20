@@ -99,7 +99,7 @@ Um critério só dispara quando a condição vale em cada minuto da sua janela -
 | Low Battery | Power | Warning | `iot_battery_percent`, Avg por `device.id`, últimos 5 minutos | Abaixo de 20 % | Em 22 % ou mais |
 | Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, Avg por `device.id`, últimos 5 minutos | Abaixo de -100 dBm | Em -90 dBm ou mais |
 | High Temperature | Ambiente | Crítico | `iot_temperature_celsius`, Max por `device.id`, últimos 5 minutos | Acima de 70 °C | Em 63 °C ou menos |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg por `device.id`, últimos 5 minutos | Acima de 0.9 (90 % da sua CPU) | Em 0.81 ou menos |
+| High CPU Usage | Sistema | Warning | `iot_cpu_usage_ratio`, Avg por `device.id`, últimos 5 minutos | Acima de 0.9 (90 % da sua CPU) | Em 0.81 ou menos |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam na gravidade de incidente e de alerta mais alta do seu projeto; altere-as no critério.
 

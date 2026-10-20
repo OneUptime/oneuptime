@@ -99,7 +99,7 @@ flowchart TB
 | Low Battery | Power | Warning | `iot_battery_percent`, Avg по `device.id`, последние 5 минут | Ниже 20 % | 22 % или выше |
 | Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, Avg по `device.id`, последние 5 минут | Ниже -100 dBm | -90 dBm или выше |
 | High Temperature | Окружение | Критический | `iot_temperature_celsius`, Max по `device.id`, последние 5 минут | Выше 70 °C | 63 °C или ниже |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg по `device.id`, последние 5 минут | Выше 0.9 (90 % его CPU) | 0.81 или ниже |
+| High CPU Usage | Система | Warning | `iot_cpu_usage_ratio`, Avg по `device.id`, последние 5 минут | Выше 0.9 (90 % его CPU) | 0.81 или ниже |
 
 **Серьёзность** — это метка, которую показывает список выбора. Инцидент и оповещение, которые создаёт шаблон, начинаются с самой высокой серьёзности инцидентов и оповещений вашего проекта; измените их в критерии.
 

@@ -875,9 +875,9 @@ describe("the fields a template can keep out of a sync", () => {
       [...withFields].sort(),
     );
 
-    // Profiles has fields, but the picker does not offer the type.
-    expect(fieldPaths(MonitorType.Profiles).length).toBeGreaterThan(0);
-    expect(OFFERED_TYPES).not.toContain(MonitorType.Profiles);
+    // Profiles is offered (its form sets the function, kind and window) and has a field.
+    expect(fieldPaths(MonitorType.Profiles)).toEqual(["profileMonitor"]);
+    expect(OFFERED_TYPES).toContain(MonitorType.Profiles);
   });
 
   it("says what an infrastructure type can keep: every type its selector, queries and window, all but Host its filters", () => {

@@ -286,7 +286,9 @@ jobs:
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
           # Feed from group 4. All Chromium. Postmortem Rules (about 2
           # minutes) joined it at 15.3 to 20.5 minutes on 2026-10-19's runs,
-          # the lightest of the groups that hold several suites.
+          # the lightest of the groups that hold several suites. The
+          # Profiler (about 2 minutes with its bundle: a laptop and a phone,
+          # Chromium only) joined it on 2026-10-20.
           - group: 6
             browsers: chromium
             suites: >-
@@ -300,6 +302,7 @@ jobs:
               test-model-tables-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
+              test-profiles-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -460,4 +463,6 @@ jobs:
             output/playwright/public-addresses-ui/test-results
             output/playwright/rules-menu-section-ui/*.png
             output/playwright/rules-menu-section-ui/test-results
+            output/playwright/profiles-ui/*.png
+            output/playwright/profiles-ui/test-results
           retention-days: 7

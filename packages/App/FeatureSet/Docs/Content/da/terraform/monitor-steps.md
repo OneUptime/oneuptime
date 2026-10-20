@@ -309,7 +309,7 @@ De `check_on`-værdier, hver monitortype bruger mest. Dashboardets kriterieedito
 | Logs | `Log Count` |
 | Traces | `Span Count` |
 | Undtagelser | `Exception Count` |
-| Profiler | `Profile Count` |
+| Profiler | `Profile Count`, `Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Metrikker | `Metric Value` (metrikfiltre kan tage JSON i `metric_monitor_options`) |
 | Brugerdefineret kode / Synthetic | `Result Value` (kan sammenligne ét felt i de returnerede data, angivet i JSON'en i `custom_code_monitor_options`, f.eks. `jsonencode({ resultValuePath = "status" })` — se nedenfor), `Error`, `Execution Time (in ms)` |

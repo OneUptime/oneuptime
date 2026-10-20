@@ -21,6 +21,7 @@
     "Filter: {{expression}}",
     "Find",
     "Gateway",
+    "Goroutines",
     "Hardware",
     "ICMP (ping)",
     "Information",
@@ -45,12 +46,15 @@
     "Start import",
     "Status",
     "Stratum",
+    "System",
     "Team",
     "Tip",
+    "Total",
     "Tunnel",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",
+    "samples",
     "syslog",
     "teams",
     "{{count}} B",
@@ -59,6 +63,7 @@
     "{{count}} alarm",
     "{{count}} match",
     "{{count}} rotation",
+    "{{count}} samples",
     "{{tokens}} tokens"
   ]
 }

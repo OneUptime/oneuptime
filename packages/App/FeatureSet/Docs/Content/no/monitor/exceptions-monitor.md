@@ -65,7 +65,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Environments** | Unntak fra et av disse miljøene, atskilt med komma (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Overvåk unntak i (tid)** | Unntak fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 1 minutt** |
 | **Filtrer etter telemetritjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
-| **Filter by Infrastructure Entity** (under **Flere felt**) | Unntak fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
+| **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Unntak fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Inkluder løste unntak** (under **Flere felt**) | Tell også unntak som er merket som løst. | Av |
 | **Inkluder arkiverte unntak** (under **Flere felt**) | Tell også arkiverte unntak. | Av |
 

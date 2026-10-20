@@ -66,7 +66,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Monitorar Traços por (tempo)** | Spans que começaram nos últimos 5 segundos até as últimas 24 horas. | **Último 1 minuto** |
 | **Filtrar por status do span** | Spans com qualquer um dos status escolhidos: **Não definido**, **Ok** ou **Erro**. | Vazio: todos os status |
 | **Filtrar por serviço de telemetria** (em **Mais campos**) | Spans de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
-| **Filter by Infrastructure Entity** (em **Mais campos**) | Spans de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
+| **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Spans de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Filtrar por atributos** (em **Mais campos**) | Spans cujos atributos atendem a todas as condições. Cada condição tem seu próprio operador, como "igual a" ou "contém". | Vazio: nenhuma condição |
 
 Todos os filtros que você definir precisam corresponder para que um span seja contado.

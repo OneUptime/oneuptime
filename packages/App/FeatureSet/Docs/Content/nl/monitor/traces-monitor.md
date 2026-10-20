@@ -66,7 +66,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Bewaak traces gedurende (time)** | Spans die zijn begonnen in de laatste 5 seconden tot de laatste 24 uur. | **Laatste 1 minuut** |
 | **Filteren op span-status** | Spans met een van de gekozen statussen: **Niet ingesteld**, **Ok** of **Fout**. | Leeg: elke status |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Spans van een van de gekozen services. | Leeg: elke service |
-| **Filter by Infrastructure Entity** (onder **Meer velden**) | Spans van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
+| **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Spans van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Spans waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
 
 Alle filters die u instelt, moeten overeenkomen voordat een span wordt geteld.

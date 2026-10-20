@@ -65,7 +65,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Group by Attributes** | Não é um filtro: conta separadamente cada combinação de valores desses atributos. | Vazio: uma só contagem |
 | **Resolvido por atributos** | Não é um filtro: o log que resolve um grupo. Aparece assim que **Group by Attributes** tem um atributo; veja [Resolvido por um log](#resolvido-por-um-log). | Vazio: um grupo se resolve quando os logs dele param |
 | **Filtrar por serviço de telemetria** (em **Mais campos**) | Logs de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
-| **Filter by Infrastructure Entity** (em **Mais campos**) | Logs de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
+| **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Logs de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Filtrar por atributos** (em **Mais campos**) | Logs cujos atributos atendem a todas as condições. Cada condição tem seu próprio operador, como "igual a" ou "contém". | Vazio: nenhuma condição |
 
 Todos os filtros que você definir precisam corresponder para que um log seja contado.

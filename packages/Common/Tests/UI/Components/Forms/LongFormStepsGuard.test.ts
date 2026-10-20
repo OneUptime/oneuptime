@@ -106,6 +106,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     };
   }),
   {
+    file: `${DASHBOARD}/Components/Form/Monitor/ProfileMonitor/ProfileMonitorStepForm.tsx`,
+    form: "BasicForm: profile-monitor-form",
+    reason:
+      "The Profiles monitor's settings, embedded in one step of the monitor form like the other monitors' filters; a stepper inside a step would nest one wizard in another. On screen are the three questions a profile alert answers (which function, which kind of profile, how far back); the service and entity filters fold under More fields, and the preview of what the monitor reads now sits under them.",
+  },
+  {
     file: `${DASHBOARD}/Components/Form/Monitor/LlmMonitor/LlmMonitorStepForm.tsx`,
     form: "BasicForm: llm-monitor-filter",
     reason:

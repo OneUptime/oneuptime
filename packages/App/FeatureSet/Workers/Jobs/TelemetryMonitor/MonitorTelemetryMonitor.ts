@@ -115,7 +115,10 @@ import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import ProfileMonitorResponse from "Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
+import ProfileMonitorResponse, {
+  ProfileFunctionShareReading,
+} from "Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
+import ProfileMonitorShare from "Common/Server/Utils/Profile/ProfileMonitorShare";
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepProfileMonitor";
@@ -2061,16 +2064,30 @@ const monitorProfile: MonitorProfileFunction = async (data: {
 
   analyticsQuery.projectId = data.projectId;
 
-  const profileCount: PositiveNumber = await ProfileService.countBy({
-    query: analyticsQuery,
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  });
+  const [profileCount, functionShare]: [
+    PositiveNumber,
+    ProfileFunctionShareReading | null,
+  ] = await Promise.all([
+    ProfileService.countBy({
+      query: analyticsQuery,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    }),
+    /*
+     * The "Function Share" criteria's reading: only for a monitor that
+     * names a function, over the same profiles the count reads.
+     */
+    ProfileMonitorShare.measure({
+      projectId: data.projectId,
+      monitorStepProfileMonitor: profileMonitorConfig,
+      evaluateUntil: data.evaluateUntil,
+    }),
+  ]);
 
-  return {
+  const response: ProfileMonitorResponse = {
     projectId: data.projectId,
     profileCount: profileCount.toNumber(),
     profileQuery: JSONFunctions.anyObjectToJSONObject(
@@ -2078,6 +2095,12 @@ const monitorProfile: MonitorProfileFunction = async (data: {
     ) as Query<Profile>,
     monitorId: data.monitorId,
   };
+
+  if (functionShare) {
+    response.functionShare = functionShare;
+  }
+
+  return response;
 };
 
 type MonitorKubernetesFunction = (data: {

@@ -161,6 +161,7 @@ var monitorStepsCheckOnValues = []string{
 	"AI Answers",
 	"Exception Count",
 	"Profile Count",
+	"Function Share (in %)",
 	"Metric Value",
 	"Email Subject",
 	"Email From Address",

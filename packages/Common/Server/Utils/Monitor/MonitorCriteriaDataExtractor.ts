@@ -19,6 +19,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ProfileMonitorResponse from "../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 
 export default class MonitorCriteriaDataExtractor {
   public static getProbeMonitorResponse(
@@ -117,6 +118,19 @@ export default class MonitorCriteriaDataExtractor {
       (dataToProcess as ExceptionMonitorResponse).exceptionCount !== undefined
     ) {
       return dataToProcess as ExceptionMonitorResponse;
+    }
+
+    return null;
+  }
+
+  public static getProfileMonitorResponse(
+    dataToProcess: DataToProcess,
+  ): ProfileMonitorResponse | null {
+    if (
+      dataToProcess &&
+      typeof (dataToProcess as ProfileMonitorResponse).profileCount === "number"
+    ) {
+      return dataToProcess as ProfileMonitorResponse;
     }
 
     return null;

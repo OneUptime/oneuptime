@@ -66,7 +66,7 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | **Övervakningsspår för (tid)** | Spans som startade de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 1 minuten** |
 | **Filtrera efter spannstatus** | Spans med någon av de valda statusarna: **Ej angiven**, **Ok** eller **Fel**. | Tomt: alla statusar |
 | **Filtrera efter telemetritjänst** (under **Fler fält**) | Spans från någon av de valda tjänsterna. | Tomt: alla tjänster |
-| **Filter by Infrastructure Entity** (under **Fler fält**) | Spans från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
+| **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Spans från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Filtrera efter attribut** (under **Fler fält**) | Spans vars attribut uppfyller alla villkor. Varje villkor har en egen operator, som "är lika med" eller "innehåller". | Tomt: inga villkor |
 
 Alla filter som du anger måste matcha för att en span ska räknas.
