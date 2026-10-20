@@ -246,9 +246,7 @@ describe("the page is reachable", () => {
     expect(menu.split(`RouteMap[PageMap.${PAGE_ID}]`)).toHaveLength(2);
     // Advanced folds by its title (SideMenuSectionState), and opens by itself on its pages.
     expect(
-      between(menu, 'title: "Advanced"', "items:").includes(
-        "defaultCollapsed",
-      ),
+      between(menu, 'title: "Advanced"', "items:").includes("defaultCollapsed"),
     ).toBe(false);
   });
 

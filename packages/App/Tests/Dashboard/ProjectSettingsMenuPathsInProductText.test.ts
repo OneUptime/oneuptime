@@ -360,9 +360,7 @@ describe("a written Project Settings path, as a reader follows it", () => {
     [
       "Import from another tool under Basic, where it was",
       "the Grafana OnCall API URL an import reads from (Project Settings > Basic > Import from another tool)",
-      [
-        'names no page of its Basic section: "Import from another tool)',
-      ],
+      ['names no page of its Basic section: "Import from another tool)'],
     ],
     [
       "a page by its breadcrumb, not its menu entry",

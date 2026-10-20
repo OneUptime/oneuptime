@@ -237,7 +237,10 @@ describe("the checks themselves", () => {
       "de",
       "**Projekteinstellungen → Aus einem anderen Tool importieren** liest Ihre Einrichtung.",
     ],
-    ["ja", "OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き"],
+    [
+      "ja",
+      "OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き",
+    ],
     ["ko", "**프로젝트 설정 → 다른 도구에서 가져오기**는 다른 도구의 설정을"],
   ])(
     "flags a %s path that leaves the folded section out: %s",
@@ -269,7 +272,10 @@ describe("the checks themselves", () => {
       "ja",
       "OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き",
     ],
-    ["ko", "**프로젝트 설정 → 고급 → 다른 도구에서 가져오기**는 다른 도구의 설정을"],
+    [
+      "ko",
+      "**프로젝트 설정 → 고급 → 다른 도구에서 가져오기**는 다른 도구의 설정을",
+    ],
   ])(
     "follows a %s path that names it: %s",
     (language: string, text: string) => {

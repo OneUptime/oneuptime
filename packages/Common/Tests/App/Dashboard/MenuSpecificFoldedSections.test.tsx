@@ -205,11 +205,7 @@ describe("project Settings: only Basic starts open", () => {
     ],
     [PageMap.SETTINGS_AI_FEATURES, "AI", "AI Features"],
     [PageMap.SETTINGS_APIKEYS, "Advanced", "API Keys"],
-    [
-      PageMap.SETTINGS_IMPORT_FROM_TOOL,
-      "Advanced",
-      "Import from another tool",
-    ],
+    [PageMap.SETTINGS_IMPORT_FROM_TOOL, "Advanced", "Import from another tool"],
     [PageMap.SETTINGS_SSO, "Security", "SSO"],
     [PageMap.SETTINGS_AUDIT_LOGS, "Audit Logs", "Audit Logs"],
     [PageMap.SETTINGS_DANGERZONE, "Danger Zone", "Danger Zone"],
