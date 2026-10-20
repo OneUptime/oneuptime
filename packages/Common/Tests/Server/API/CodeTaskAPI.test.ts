@@ -454,6 +454,8 @@ describe("every route acts as a signed-in person", () => {
       "/code-task/reply/:taskId",
       "/code-task/retry/:taskId",
       "/code-task/stop/:taskId",
+      // Where a profile's frames live in the repositories (the Profiler).
+      "/code-task/source-links",
     ]);
 
     for (const route of routes) {

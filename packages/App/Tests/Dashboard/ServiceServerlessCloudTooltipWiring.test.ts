@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import {
   SERVICE_METRIC_DESCRIPTIONS,
-  SERVICE_PROFILE_METRIC_DESCRIPTIONS,
   SERVICE_RUNTIME_METRIC_DESCRIPTIONS,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/ServiceMetricDescriptions";
 import { SERVERLESS_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/ServerlessMetricDescriptions";
@@ -841,99 +840,46 @@ describe("Cloud Instances tab tooltips", () => {
   });
 });
 
-describe("Service Profiles flame graph tooltip", () => {
+/*
+ * The Service's Profiles tab carried a flame graph with an (i) of its own -
+ * and a type picker whose Everything added nanoseconds to bytes. It is now
+ * the Profiler's overview locked to the service: its flame graph card says
+ * how to read it in its own description, and it only offers kinds the
+ * service has data for, each read in one unit.
+ */
+describe("Service Profiles tab", () => {
   const code: string = readCode("Pages/Service/View/Profiles.tsx");
-  const text: string = SERVICE_PROFILE_METRIC_DESCRIPTIONS.flamegraph;
 
-  test("imports the text and the (i)", () => {
+  test("is the Profiler's overview, locked to the service, over its profiles", () => {
     expect(code).toContain(
-      'import { SERVICE_PROFILE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServiceMetricDescriptions";',
+      "<ProfilesOverview lockedEntityId={modelId.toString()} />",
     );
-    expect(code).toContain(
-      'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
-    );
+    expect(code).toContain("<ProfileTable");
+    expect(code).toContain("modelId={modelId}");
+    // No (i) and no type picker of its own any more.
+    expect(code).not.toContain("InfoTooltip");
+    expect(code).not.toContain("ProfileTypeSelector");
   });
 
-  test("the heading above the flame graph carries an (i) with its own text", () => {
-    expect(code).toContain(
-      'const FLAMEGRAPH_TITLE: string = "Where the time is going";',
+  test("the flame graph card says how to read it, and children sit one row down", () => {
+    const copy: string = readCode("Components/Profiles/ProfileCopy.ts");
+
+    expect(copy).toContain(
+      "Every profile in the window, merged into one graph. The wider a frame, the bigger its share. Click a frame to zoom in.",
     );
 
-    const heading: string = between(
-      code,
-      '<div className="flex items-center gap-1">',
-      "</div>",
-    );
-
-    expect(heading).toContain(
-      '<h3 className="text-sm font-semibold text-gray-900"> {FLAMEGRAPH_TITLE} </h3>',
-    );
-    expect(heading).toContain(
-      "<InfoTooltip label={FLAMEGRAPH_TITLE} text={SERVICE_PROFILE_METRIC_DESCRIPTIONS.flamegraph} />",
-    );
-    // The (i) is a button: never inside another control.
-    expect(heading).not.toContain("<button");
-    expect(heading).not.toContain("<a ");
-    expect(countOf(code, "<InfoTooltip")).toBe(1);
-    // The heading is not hand-typed a second time.
-    expect(countOf(code, "Where the time is going")).toBe(1);
-  });
-
-  test("uses every profile description and no key that does not exist", () => {
-    expect(
-      [
-        ...new Set(referencedKeys(code, "SERVICE_PROFILE_METRIC_DESCRIPTIONS")),
-      ].sort(),
-    ).toEqual(Object.keys(SERVICE_PROFILE_METRIC_DESCRIPTIONS).sort());
-  });
-
-  test("'the time window picked beside it': the flame graph reads the tab's own chips", () => {
-    expect(code).toContain('{ label: "15m", minutes: 15 }');
-    expect(code).toContain('{ label: "7d", minutes: 60 * 24 * 7 }');
-    expect(code).toContain(
-      "OneUptimeDate.addRemoveMinutes(now, -rangeMinutes)",
-    );
-    expect(code).toContain("startTime={startTime} endTime={endTime}");
-    expect(text).toContain("in the time window picked beside it");
-  });
-
-  test("'CPU time by default', and 'every type added together for Everything'", () => {
-    expect(code).toContain('const DEFAULT_PROFILE_TYPE: string = "cpu";');
-    expect(text).toContain("CPU time by default");
-
-    // Everything sends no type, and the server then filters on none.
-    const selector: string = readCode(
-      "Components/Profiles/ProfileTypeSelector.tsx",
-    );
-
-    expect(selector).toContain(
-      'label: "Everything", description: "All profile types", value: undefined,',
-    );
-
-    const util: string = readCode("Utils/ProfileUtil.ts");
-
-    expect(
-      between(util, "public static getQueryProfileTypes(", "switch"),
-    ).toContain("if (!selection) { return undefined; }");
-
-    const server: string = readPackageCode(
-      "Common/Server/Services/ProfileAggregationService.ts",
-    );
-
-    expect(server).toContain(
-      "if (request.profileTypes && request.profileTypes.length > 0) {",
-    );
-    expect(server).toContain("toFloat64(sum(value)) AS totalValue");
-    expect(text).toContain("every type added together for Everything");
-  });
-
-  test("'The functions a bar calls sit below it': children are drawn one row down", () => {
     const view: string = readCode("Components/Profiles/FlamegraphView.tsx");
 
     expect(view).toContain("top: `${depth * FRAME_HEIGHT}px`");
     expect(view).toContain(
       "renderNode(child, depth + 1, currentOffset, childWidth)",
     );
-    expect(text).toContain("The functions a bar calls sit below it.");
+  });
+
+  test("never adds one unit to another: the kinds offered are the scope's, one unit each", () => {
+    const bar: string = readCode("Components/Profiles/ProfileScopeBar.tsx");
+
+    expect(bar).not.toContain("Everything");
+    expect(bar).toContain("props.choices.kinds.map(");
   });
 });

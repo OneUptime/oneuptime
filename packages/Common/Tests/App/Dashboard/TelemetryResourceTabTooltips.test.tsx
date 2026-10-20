@@ -26,25 +26,25 @@ import {
 import { expectReadableDescriptionRecord } from "./MetricDescriptionRules";
 
 /*
- * The (i) tooltips on two telemetry-resource tabs that are not overviews:
+ * The (i) tooltips on a telemetry-resource tab that is not an overview -
+ * Cloud environment > Instances, whose CPU and Memory columns show the one
+ * reading ingest mirrors onto each instance row. The table is replaced by a
+ * recorder so the columns the page builds - header tooltip and cell
+ * renderer - can be read, run, and fed to the real table header.
  *
- *   - Cloud environment > Instances, whose CPU and Memory columns show the
- *     one reading ingest mirrors onto each instance row. The table is
- *     replaced by a recorder so the columns the page builds - header
- *     tooltip and cell renderer - can be read, run, and fed to the real
- *     table header;
- *   - Service > Profiles, whose flame graph has no title of its own - the
- *     heading above it, "Where the time is going", carries the (i). The
- *     page is rendered for real with the flame graph and the profile list
- *     replaced by recorders, so the window and type the text promises can
- *     be read off the props the flame graph receives.
+ * And Service > Profiles, which carried a flame graph with an (i) of its
+ * own until the Profiler's overview replaced it: the tab is now that
+ * overview, locked to the service, whose cards say what they show in
+ * their own descriptions - over the service's profiles one by one. The
+ * overview and the list are replaced by recorders here.
  *
  * jest.mock is hoisted above the imports, so the factories only close over
  * names that start with "mock".
  */
 
 const mockModelTable: MockFunction = getJestMockFunction();
-const mockFlamegraph: MockFunction = getJestMockFunction();
+const mockOverview: MockFunction = getJestMockFunction();
+const mockProfileTable: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -84,13 +84,13 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/AggregatedFlamegraph",
+  "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/ProfilesOverview",
   () => {
     return {
       __esModule: true,
       default: (props: unknown) => {
-        mockFlamegraph(props);
-        return <div data-testid="aggregated-flamegraph" />;
+        mockOverview(props);
+        return <div data-testid="profiles-overview" />;
       },
     };
   },
@@ -101,7 +101,8 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: () => {
+      default: (props: unknown) => {
+        mockProfileTable(props);
         return <div data-testid="profile-table" />;
       },
     };
@@ -115,10 +116,6 @@ import {
   CLOUD_INSTANCE_METRIC_DESCRIPTIONS,
   CloudInstanceMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/CloudMetricDescriptions";
-import {
-  SERVICE_PROFILE_METRIC_DESCRIPTIONS,
-  ServiceProfileMetric,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/ServiceMetricDescriptions";
 import TableHeader from "../../../UI/Components/Table/TableHeader";
 import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
@@ -126,22 +123,19 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 
 const CLOUD: Record<CloudInstanceMetric, string> =
   CLOUD_INSTANCE_METRIC_DESCRIPTIONS;
-const PROFILES: Record<ServiceProfileMetric, string> =
-  SERVICE_PROFILE_METRIC_DESCRIPTIONS;
 
 // The pages read their ids from the route, not from these props.
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
 const MIB: number = 1024 * 1024;
 const MINUTE_MS: number = 60 * 1000;
-const FLAMEGRAPH_TITLE: string = "Where the time is going";
-// The pill's name also carries its icon.
-const EVERYTHING_PILL: RegExp = /Everything/;
+const SERVICE_ID: string = "0193c0de-4444-4aaa-8bbb-000000000004";
 
 beforeEach(() => {
   jest.useFakeTimers();
   mockModelTable.mockReset();
-  mockFlamegraph.mockReset();
+  mockOverview.mockReset();
+  mockProfileTable.mockReset();
 });
 
 afterEach(() => {
@@ -352,86 +346,22 @@ describe("Cloud Instances tab", () => {
 
 // ------------------------------------------------------ Service Profiles
 
-type FlamegraphProps = {
-  startTime: Date;
-  endTime: Date;
-  profileType?: string | undefined;
-};
-
-function lastFlamegraphProps(): FlamegraphProps {
-  expect(mockFlamegraph).toHaveBeenCalled();
-
-  return mockFlamegraph.mock.calls[
-    mockFlamegraph.mock.calls.length - 1
-  ]![0] as FlamegraphProps;
-}
-
-function windowMinutes(props: FlamegraphProps): number {
-  return (props.endTime.getTime() - props.startTime.getTime()) / MINUTE_MS;
-}
-
 describe("Service Profiles tab", () => {
-  test("the text reads as a short, finished sentence", () => {
-    expectReadableDescriptionRecord(
-      SERVICE_PROFILE_METRIC_DESCRIPTIONS,
-      "SERVICE_PROFILE_METRIC_DESCRIPTIONS",
-    );
-  });
-
-  test("the heading above the flame graph carries the page's only (i)", async () => {
+  test("is the Profiler's overview, locked to the service, over its profiles one by one", () => {
     render(<ServiceProfiles {...PAGE_PROPS} />);
 
-    expect(
-      screen.getByRole("heading", { name: FLAMEGRAPH_TITLE }),
-    ).toBeInTheDocument();
-    expect(infoLabels()).toEqual([FLAMEGRAPH_TITLE]);
+    expect(screen.getByTestId("profiles-overview")).toBeInTheDocument();
+    expect(mockOverview).toHaveBeenCalledWith({
+      lockedEntityId: SERVICE_ID,
+    });
 
-    const info: HTMLElement = infoButtonsFor(FLAMEGRAPH_TITLE)[0]!;
+    // The list below reads the same service's profiles.
+    expect(screen.getByTestId("profile-table")).toBeInTheDocument();
+    const tableProps: { modelId: { toString: () => string } } = mockProfileTable
+      .mock.calls[0]![0] as { modelId: { toString: () => string } };
+    expect(tableProps.modelId.toString()).toBe(SERVICE_ID);
 
-    expect(await explanationOnHover(info)).toBe(PROFILES.flamegraph);
-    expect(await explanationOnFocus(info)).toBe(PROFILES.flamegraph);
-    expectNotNestedInControl(info);
-  });
-
-  test("clicking the (i) changes neither the window nor the type", () => {
-    render(<ServiceProfiles {...PAGE_PROPS} />);
-
-    const before: FlamegraphProps = lastFlamegraphProps();
-
-    fireEvent.click(infoButtonsFor(FLAMEGRAPH_TITLE)[0]!);
-
-    const after: FlamegraphProps = lastFlamegraphProps();
-
-    expect(windowMinutes(after)).toBe(windowMinutes(before));
-    expect(after.profileType).toBe(before.profileType);
-  });
-
-  test("'the time window picked beside it': the flame graph follows the tab's chips", () => {
-    render(<ServiceProfiles {...PAGE_PROPS} />);
-
-    expect(windowMinutes(lastFlamegraphProps())).toBe(60);
-
-    fireEvent.click(screen.getByRole("button", { name: "15m" }));
-    expect(windowMinutes(lastFlamegraphProps())).toBe(15);
-
-    fireEvent.click(screen.getByRole("button", { name: "7d" }));
-    expect(windowMinutes(lastFlamegraphProps())).toBe(7 * 24 * 60);
-
-    expect(PROFILES.flamegraph).toContain(
-      "in the time window picked beside it",
-    );
-  });
-
-  test("'CPU time by default', and Everything sends no type at all", () => {
-    render(<ServiceProfiles {...PAGE_PROPS} />);
-
-    expect(lastFlamegraphProps().profileType).toBe("cpu");
-    expect(PROFILES.flamegraph).toContain("CPU time by default");
-
-    fireEvent.click(screen.getByRole("button", { name: EVERYTHING_PILL }));
-    expect(lastFlamegraphProps().profileType).toBeUndefined();
-    expect(PROFILES.flamegraph).toContain(
-      "every type added together for Everything",
-    );
+    // No (i) of its own: the overview's cards say what they show.
+    expect(infoLabels()).toEqual([]);
   });
 });

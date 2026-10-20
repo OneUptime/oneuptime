@@ -99,12 +99,18 @@ describe("frames merge by function and file", () => {
     const root: ProfileFlamegraphNode =
       ProfileAggregationService.buildFlamegraphTree([
         {
-          stacktrace: ["parse@/app/src/parser.ts:40", "main@/app/src/main.ts:5"],
+          stacktrace: [
+            "parse@/app/src/parser.ts:40",
+            "main@/app/src/main.ts:5",
+          ],
           frameTypes: ["v8js", "v8js"],
           totalValue: 70,
         },
         {
-          stacktrace: ["parse@/app/src/parser.ts:12", "main@/app/src/main.ts:5"],
+          stacktrace: [
+            "parse@/app/src/parser.ts:12",
+            "main@/app/src/main.ts:5",
+          ],
           frameTypes: ["v8js", "v8js"],
           totalValue: 30,
         },
@@ -155,7 +161,10 @@ describe("frames merge by function and file", () => {
           sampleCount: 8,
         },
         {
-          stacktrace: ["parse@/app/src/parser.ts:12", "main@/app/src/main.ts:5"],
+          stacktrace: [
+            "parse@/app/src/parser.ts:12",
+            "main@/app/src/main.ts:5",
+          ],
           frameTypes: ["v8js", "v8js"],
           totalValue: 20,
           sampleCount: 2,
@@ -177,7 +186,106 @@ describe("frames merge by function and file", () => {
       totalValue: 100,
       sampleCount: 10,
       frameType: "v8js",
+      // The application's own code nearest each stack's leaf.
+      ownValue: 100,
     });
+  });
+});
+
+describe("own-code time", () => {
+  /*
+   * checkout's handler calls the order parser, whose time all goes to
+   * JSON.parse, and a database driver. Each stack's time counts toward the
+   * application's own function nearest its leaf: the parser (with
+   * JSON.parse), the handler (with the driver) - never main, whose own code
+   * is only the call into the handler.
+   */
+  const rows: Array<JSONObject> = [
+    {
+      stacktrace: [
+        "JSON.parse@node:internal/json:1",
+        "parseOrder@src/orders/parse.ts:88",
+        "handleCheckout@src/routes/checkout.ts:40",
+        "main@src/server.ts:12",
+      ],
+      frameTypes: [],
+      totalValue: 600,
+      sampleCount: 60,
+    },
+    {
+      stacktrace: [
+        "Socket.write@node:net:900",
+        "Pool.query@node_modules/pg/lib/pool.js:210",
+        "handleCheckout@src/routes/checkout.ts:40",
+        "main@src/server.ts:12",
+      ],
+      frameTypes: [],
+      totalValue: 300,
+      sampleCount: 30,
+    },
+    {
+      stacktrace: [
+        "validateCart@src/cart/validate.ts:31",
+        "main@src/server.ts:12",
+      ],
+      frameTypes: [],
+      totalValue: 100,
+      sampleCount: 10,
+    },
+  ];
+
+  const byName: (
+    items: Array<FunctionListItem>,
+    name: string,
+  ) => FunctionListItem = (
+    items: Array<FunctionListItem>,
+    name: string,
+  ): FunctionListItem => {
+    return items.find((item: FunctionListItem) => {
+      return item.functionName === name;
+    })!;
+  };
+
+  test("each stack's time goes to the own function nearest its leaf", () => {
+    const items: Array<FunctionListItem> =
+      ProfileAggregationService.buildFunctionList(rows);
+
+    expect(byName(items, "parseOrder").selfValue).toBe(0);
+    expect(byName(items, "parseOrder").ownValue).toBe(600);
+    expect(byName(items, "handleCheckout").ownValue).toBe(300);
+    expect(byName(items, "validateCart").ownValue).toBe(100);
+    expect(byName(items, "main").ownValue).toBe(0);
+    // Code that is not the application's own has none.
+    expect(byName(items, "JSON.parse").ownValue).toBe(0);
+    expect(byName(items, "Pool.query").ownValue).toBe(0);
+  });
+
+  test("a list cut by its limit keeps the own-code leaders after it", () => {
+    const items: Array<FunctionListItem> =
+      ProfileAggregationService.buildFunctionList(rows).sort(
+        (a: FunctionListItem, b: FunctionListItem): number => {
+          return b.selfValue - a.selfValue;
+        },
+      );
+
+    const shown: Array<FunctionListItem> =
+      ProfileAggregationService.withOwnCodeLeaders(items, 1);
+
+    // JSON.parse leads by self time; the parser and the handler follow it.
+    expect(
+      shown.map((item: FunctionListItem): string => {
+        return item.functionName;
+      }),
+    ).toEqual(["JSON.parse", "parseOrder", "handleCheckout", "validateCart"]);
+  });
+
+  test("a list that already holds them adds nothing", () => {
+    const items: Array<FunctionListItem> =
+      ProfileAggregationService.buildFunctionList(rows);
+
+    expect(
+      ProfileAggregationService.withOwnCodeLeaders(items, items.length),
+    ).toHaveLength(items.length);
   });
 });
 
@@ -327,7 +435,7 @@ describe("ProfileAggregationService.getFunctionComparison", () => {
     }
   });
 
-  test("keeps at most the asked number of changes", async () => {
+  test("keeps the asked number of changes, then the own-code movers the limit left out", async () => {
     stubWindows(windows);
 
     const result: FunctionComparisonResult =
@@ -340,7 +448,14 @@ describe("ProfileAggregationService.getFunctionComparison", () => {
         limit: 1,
       });
 
-    expect(result.changes.length).toBe(1);
+    expect(
+      result.changes.map((change: ProfileFunctionChange): string => {
+        return change.functionName;
+      }),
+    ).toEqual(["parseOrder", "queryDb"]);
+    // Both are the application's own: their own-code shares moved.
+    expect(result.changes[0]!.ownShareChange).toBeCloseTo(35, 6);
+    expect(result.changes[1]!.ownShareChange).toBeCloseTo(-35, 6);
   });
 
   test("a window with too few samples is not footed", async () => {
@@ -551,11 +666,15 @@ describe("ProfileAggregationService.getStackShare", () => {
     const values: Array<unknown> = Object.values(statement.query_params);
 
     // The text is a bound value, matched in any case inside each frame.
-    expect(statement.query).toMatch(/positionCaseInsensitiveUTF8\(x, \{p\d+:String\}\)/);
+    expect(statement.query).toMatch(
+      /positionCaseInsensitiveUTF8\(x, \{p\d+:String\}\)/,
+    );
     expect(values).toContain("parseOrder");
 
     // The profiles are the monitor's, read from the Profile table.
-    expect(statement.query).toMatch(/profileId GLOBAL IN \(SELECT profileId FROM/);
+    expect(statement.query).toMatch(
+      /profileId GLOBAL IN \(SELECT profileId FROM/,
+    );
     expect(values).toContain(AnalyticsTableName.Profile);
     expect(values).toContainEqual([serviceId.toString()]);
     expect(values).toContainEqual(["cpu"]);

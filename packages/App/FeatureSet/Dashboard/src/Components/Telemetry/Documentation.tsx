@@ -28,6 +28,15 @@ import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "./IngestionKeySelector";
 import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
 import SetupGuideTopics from "../SetupGuide/SetupGuideTopics";
+import { getKubernetesAgentUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+
+/*
+ * The Kubernetes agent's own eBPF profiler (kubernetes-agent values
+ * profiling.enabled): every container on every Linux node, in any
+ * language, through the agent the cluster already runs.
+ */
+export const KUBERNETES_AGENT_PROFILING_COMMAND: string =
+  getKubernetesAgentUpgradeCommand(["--set profiling.enabled=true"]);
 
 export type TelemetryType =
   | "logs"
@@ -90,7 +99,12 @@ const languages: Array<LanguageOption> = [
   { key: "angular", label: "Angular (Browser)", shortLabel: "Angular" },
 ];
 
-type IntegrationMethod = "opentelemetry" | "fluentbit" | "fluentd" | "alloy";
+type IntegrationMethod =
+  | "opentelemetry"
+  | "fluentbit"
+  | "fluentd"
+  | "alloy"
+  | "kubernetes";
 
 interface IntegrationOption {
   key: IntegrationMethod;
@@ -1264,6 +1278,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             "Recommended. Zero-code profiling for all languages on Linux using eBPF.",
         },
         {
+          key: "kubernetes" as IntegrationMethod,
+          label: "Kubernetes agent (eBPF)",
+          description:
+            "Already run the OneUptime Kubernetes agent? Turn on its profiler: every pod, no code changes.",
+        },
+        {
           key: "opentelemetry" as IntegrationMethod,
           label: "Language SDK",
           description:
@@ -1933,6 +1953,48 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // The Kubernetes agent's eBPF profiler (for profiles)
+  const renderKubernetesAgentProfilesContent: () => ReactElement =
+    (): ReactElement => {
+      return (
+        <div data-testid="profiles-setup-kubernetes-agent">
+          <div className="mt-2">
+            {renderStep(
+              1,
+              "Turn On the Agent's Profiler",
+              "The agent's eBPF profiler runs on every Linux node and profiles every container, in any language, with no code changes. It sends with the agent's own key. It needs privileged pods, so GKE Autopilot and EKS Fargate leave it off.",
+              <CodeBlock
+                code={KUBERNETES_AGENT_PROFILING_COMMAND}
+                language="bash"
+              />,
+            )}
+
+            {renderStep(
+              2,
+              "No Agent Yet?",
+              "Install the OneUptime Kubernetes agent first. Its setup guide walks through it, cluster by cluster.",
+              <AppLink
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route,
+                )}
+              >
+                Open the Kubernetes setup guide
+              </AppLink>,
+            )}
+
+            {renderStep(
+              3,
+              "Verify It Is Working",
+              "Leave this page open while the profiler pods start - incoming profiles are detected automatically.",
+              renderProfileVerifyContent(),
+              true,
+            )}
+          </div>
+        </div>
+      );
+    };
+
   const renderActiveContent: () => ReactElement = (): ReactElement => {
     switch (selectedMethod) {
       case "fluentbit":
@@ -1941,6 +2003,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         return renderFluentdContent();
       case "alloy":
         return renderAlloyContent();
+      case "kubernetes":
+        return renderKubernetesAgentProfilesContent();
       default:
         return renderOpenTelemetryContent();
     }

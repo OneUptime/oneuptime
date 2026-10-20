@@ -1989,6 +1989,11 @@ export default class CriteriaFilterUtil {
       return "0";
     }
 
+    // A share of the window, in percent.
+    if (checkOn === CheckOn.ProfileFunctionShare) {
+      return "30";
+    }
+
     if (checkOn === CheckOn.DisconnectedProbes) {
       return "0";
     }

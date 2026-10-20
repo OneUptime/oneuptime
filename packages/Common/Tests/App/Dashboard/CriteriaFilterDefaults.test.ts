@@ -490,9 +490,29 @@ describe("Criteria filter defaults", () => {
       expect(checkOnOptionsFor(MonitorType.Manual)).toEqual([]);
     });
 
-    test("Profiles monitors offer the profile count and nothing else", () => {
+    /*
+     * ProfileMonitorCriteria judges these two and nothing else: whether
+     * profiles arrive, and a function's share of the window.
+     */
+    test("Profiles monitors offer the profile count and a function's share", () => {
       expect(checkOnOptionsFor(MonitorType.Profiles)).toEqual([
         CheckOn.ProfileCount,
+        CheckOn.ProfileFunctionShare,
+      ]);
+    });
+
+    test("a function's share is compared above or below, Greater Than first", () => {
+      expect(
+        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
+          CheckOn.ProfileFunctionShare,
+        ).map((option: DropdownOption): unknown => {
+          return option.value;
+        }),
+      ).toEqual([
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
       ]);
     });
 

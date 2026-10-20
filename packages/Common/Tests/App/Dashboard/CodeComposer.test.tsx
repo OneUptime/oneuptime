@@ -511,7 +511,68 @@ describe("adding context", () => {
       "Monitor",
       "Trace",
       "Logs",
+      "Profile",
     ]);
+  });
+
+  /*
+   * A function of a service's profile: the function and the service are
+   * needed; the kind of profile (CPU time unless picked) and the window
+   * (the last hour unless picked) go with it, and the chip names the
+   * function.
+   */
+  test("a profile needs a function and a service, and carries its kind and window", async () => {
+    renderComposer();
+    const dialog: HTMLElement = await openContextDialog(
+      CodeTaskContextType.Profile,
+    );
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "AI reads where the function's time goes in the service's profiles: who calls it, what it calls and its hottest lines.",
+    );
+    expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+
+    await userEvent.type(
+      within(dialog).getByTestId("code-context-profile-function"),
+      "parseOrder",
+    );
+    // A function with no service: still nothing to add.
+    expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+
+    fireEvent.change(
+      within(dialog).getByTestId("code-context-profile-service"),
+      { target: { value: "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d" } },
+    );
+    expect(
+      within(dialog).getByTestId("code-context-profile-kind-cpu"),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(dialog).getByTestId("code-context-profile-window-1"),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(
+      within(dialog).getByTestId("code-context-profile-kind-memory"),
+    );
+    await userEvent.click(
+      within(dialog).getByTestId("code-context-profile-window-24"),
+    );
+    await submitDialog();
+
+    expect(chips()[0]).toHaveTextContent("Profile of parseOrder");
+
+    await userEvent.type(input(), "Make it lighter{Enter}");
+    expect(onSend).toHaveBeenCalledWith({
+      message: "Make it lighter",
+      context: [
+        {
+          type: "Profile",
+          serviceId: "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+          functionName: "parseOrder",
+          profileType: "memory",
+          hours: 24,
+        },
+      ],
+    });
   });
 
   test("a file: a path that leaves the repository is refused in the dialog; a good one is added as git writes it", async () => {

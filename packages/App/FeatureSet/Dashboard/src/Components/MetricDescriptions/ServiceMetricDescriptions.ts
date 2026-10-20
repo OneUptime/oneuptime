@@ -136,23 +136,3 @@ export const SERVICE_RUNTIME_METRIC_DESCRIPTIONS: Record<
     "Physical memory (RAM) the process occupies, also called resident memory. Averaged across instances in each interval; as a tile it shows the average over the selected range.",
   ),
 };
-
-/*
- * The aggregate flame graph on a Service's Profiles tab (Pages/Service/View/
- * Profiles.tsx, "Where the time is going"). The server sums every stored
- * sample value per stack for this service in the tab's own window - the
- * 15m / 1h / 24h / 7d chips, not a page-wide time range - filtered to the
- * picked type's raw types (ProfileUtil.getQueryProfileTypes). "Everything"
- * sends no type, so every type is summed together, whatever its unit.
- * The tree is drawn root first, so the functions a frame calls sit below it.
- */
-export type ServiceProfileMetric = "flamegraph";
-
-export const SERVICE_PROFILE_METRIC_DESCRIPTIONS: Record<
-  ServiceProfileMetric,
-  string
-> = {
-  flamegraph: translationKey(
-    "Each bar is a function, and its width is its share of everything profiled for this service in the time window picked beside it - CPU time by default, bytes for Memory, lock contention for Locks, and every type added together for Everything. The functions a bar calls sit below it.",
-  ),
-};
