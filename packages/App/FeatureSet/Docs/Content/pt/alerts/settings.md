@@ -134,6 +134,8 @@ Os proprietários recebem cada lembrete como **Alert reminder**, que fica ativad
 
 **Alertas → Configurações → Medições** mede quanto tempo as coisas levam em cada alerta. Escolha **Tempo até a confirmação** ou **Tempo até a resolução**, ou dois momentos seus, como quando **O alerta é criado** e quando ele entra em um estado que você escolher. Cada medição aparece na página do alerta e nos gráficos como `oneuptime.alert.measurement.<key>`. Veja [Medições](/docs/incidents/settings#medições), que funciona da mesma forma para alertas.
 
+O **Tempo até a confirmação após o acionamento** conta a partir de **Alguém é acionado pela primeira vez**, quando uma política de plantão ou um acionamento direto notificou alguém sobre o alerta pela primeira vez, e não de quando ele foi criado: um alerta gerado à noite cujo primeiro acionamento só sai de manhã não tem a noite contada. Um alerta sobre o qual ninguém foi acionado não tem valor. Veja [Tempo até a confirmação após o acionamento](/docs/incidents/settings#tempo-até-a-confirmação-após-o-acionamento).
+
 ### Participação em episódios
 
 **Alertas → Configurações → Participação em episódios** decide se um alerta pode estar em mais de um episódio. Ative **Um alerta só pode estar em um episódio** e um alerta que está em um episódio não é adicionado a nenhum outro, nem pelo painel, nem pela API, por um fluxo de trabalho ou por uma regra de agrupamento, até ser tirado desse episódio. Ele fica desativado até você ativá-lo, e só Project Owners e Project Admins podem alterá-lo. Ativá-lo não tira nenhum alerta de um episódio. Veja [Um só episódio por incidente](/docs/incidents/episodes#um-só-episódio-por-incidente), que funciona da mesma forma para alertas.

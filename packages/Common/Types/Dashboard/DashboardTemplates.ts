@@ -1627,6 +1627,14 @@ function createIncidentDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legend: "MTTR",
       },
+      // The title promises both: MTTA is drawn on the same axes.
+      additionalMetricConfigs: [
+        {
+          metricName: IncidentMetricType.TimeToAcknowledge,
+          aggregationType: MetricsAggregationType.Avg,
+          legend: "MTTA",
+        },
+      ],
     }),
 
     // Row 9: Section header
@@ -1873,6 +1881,14 @@ function createAlertDashboardConfig(): DashboardViewConfig {
         aggregationType: MetricsAggregationType.Avg,
         legend: "MTTR",
       },
+      // The title promises both: MTTA is drawn on the same axes.
+      additionalMetricConfigs: [
+        {
+          metricName: AlertMetricType.TimeToAcknowledge,
+          aggregationType: MetricsAggregationType.Avg,
+          legend: "MTTA",
+        },
+      ],
     }),
 
     // Row 9: Section header

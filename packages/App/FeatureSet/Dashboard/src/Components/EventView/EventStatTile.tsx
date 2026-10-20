@@ -14,6 +14,14 @@ export interface ComponentProps {
   id?: string | undefined;
   label: string;
   value: string | ReactElement;
+  /*
+   * A second reading of the value, under it: "4 minutes after paging" under
+   * the time to acknowledge. Quieter than the value and above the
+   * description, so the three read value, note, date. In a narrow cell it
+   * wraps into even lines ("4 minutes / after paging"), never leaving one
+   * word on a line of its own.
+   */
+  note?: string | undefined;
   description?: string | undefined;
   icon?: IconProp | undefined;
   className?: string | undefined;
@@ -41,6 +49,11 @@ const EventStatTile: FunctionComponent<ComponentProps> = (
         <div className="mt-1 break-words text-lg font-semibold text-gray-900">
           {props.value}
         </div>
+        {props.note && (
+          <div className="mt-0.5 text-balance break-words text-sm text-gray-600">
+            {props.note}
+          </div>
+        )}
         {props.description && (
           <div className="mt-0.5 text-xs text-gray-500">
             {props.description}
@@ -66,6 +79,11 @@ const EventStatTile: FunctionComponent<ComponentProps> = (
       <div className="mt-1.5 truncate text-lg font-semibold text-gray-900">
         {props.value}
       </div>
+      {props.note && (
+        <div className="mt-0.5 truncate text-sm text-gray-600">
+          {props.note}
+        </div>
+      )}
       {props.description && (
         <div className="mt-0.5 text-xs text-gray-500">{props.description}</div>
       )}

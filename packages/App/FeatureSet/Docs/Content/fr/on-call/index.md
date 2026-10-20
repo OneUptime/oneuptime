@@ -30,6 +30,8 @@ flowchart TB
 
 Prendre en compte ou résoudre l'incident, l'alerte ou l'épisode arrête toute politique qui alerte encore pour lui. OneUptime fait avancer les politiques en cours chaque minute et consigne chaque exécution, règle par règle, dans les **Journaux d'exécution**.
 
+La première fois qu'une alerte joint quelqu'un, OneUptime l'enregistre sur l'incident, l'alerte ou l'épisode sous `First Paged At`. Une mesure peut compter à partir de ce moment : **Délai de prise en compte après l'alerte** chronomètre le temps que les personnes ont mis à répondre une fois alertées, et non le temps d'attente avant que quiconque le soit. Voir [Délai de prise en compte après l'alerte](/docs/incidents/settings#délai-de-prise-en-compte-après-lalerte).
+
 > [!NOTE]
 > Un incident, une alerte ou un épisode créé déjà pris en compte ou résolu n'exécute aucune de ses politiques, et son fil d'activité l'indique. Voir [Créée déjà prise en compte ou résolue](/docs/alerts/index#créée-déjà-prise-en-compte-ou-résolue).
 

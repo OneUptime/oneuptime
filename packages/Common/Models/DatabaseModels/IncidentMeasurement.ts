@@ -323,7 +323,7 @@ export default class IncidentMeasurement extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Start Anchor Type",
     description:
-      "Where this measurement starts. One of: Impact Started At, Declared At, Created At, Timeline Start, State Entered, State Role Entered, Postmortem Posted At.",
+      "Where this measurement starts. One of: Impact Started At, Declared At, Created At, Timeline Start, State Entered, State Role Entered, Postmortem Posted At, First Paged At.",
     example: "Impact Started At",
   })
   @Column({
@@ -360,7 +360,7 @@ export default class IncidentMeasurement extends BaseModel {
     type: TableColumnType.ShortText,
     title: "End Anchor Type",
     description:
-      "Where this measurement ends. One of: Impact Started At, Declared At, Created At, Timeline Start, State Entered, State Role Entered, Postmortem Posted At.",
+      "Where this measurement ends. One of: Impact Started At, Declared At, Created At, Timeline Start, State Entered, State Role Entered, Postmortem Posted At, First Paged At.",
     example: "State Role Entered",
   })
   @Column({

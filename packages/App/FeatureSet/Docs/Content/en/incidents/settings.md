@@ -344,16 +344,18 @@ Alerts and scheduled maintenance events have the same feature, at **Alerts → S
 
 The form opens on **What do you want to measure?**. Pick one of these and its name, description and both moments are filled in: **Next** shows the moments, and the measurement is created from that last step.
 
-| Where                 | Measurement              | Starts when                           | Ends when                         |
-| --------------------- | ------------------------ | ------------------------------------- | --------------------------------- |
-| Incidents             | **Time to acknowledge**  | The incident is declared              | The incident is acknowledged      |
-| Incidents             | **Time to resolve**      | The incident is declared              | The incident is resolved          |
-| Incidents             | **Time to postmortem**   | The incident is resolved              | The postmortem is published       |
-| Alerts                | **Time to acknowledge**  | The alert is created                  | The alert is acknowledged         |
-| Alerts                | **Time to resolve**      | The alert is created                  | The alert is resolved             |
-| Scheduled maintenance | **Start delay**          | The maintenance is scheduled to start | The maintenance starts            |
-| Scheduled maintenance | **Overrun**              | The maintenance is scheduled to end   | The maintenance ends              |
-| Scheduled maintenance | **Maintenance duration** | The maintenance starts                | The maintenance ends              |
+| Where                 | Measurement                          | Starts when                           | Ends when                    |
+| --------------------- | ------------------------------------ | ------------------------------------- | ---------------------------- |
+| Incidents             | **Time to acknowledge**              | The incident is declared              | The incident is acknowledged |
+| Incidents             | **Time to acknowledge after paging** | Someone is first paged                | The incident is acknowledged |
+| Incidents             | **Time to resolve**                  | The incident is declared              | The incident is resolved     |
+| Incidents             | **Time to postmortem**               | The incident is resolved              | The postmortem is published  |
+| Alerts                | **Time to acknowledge**              | The alert is created                  | The alert is acknowledged    |
+| Alerts                | **Time to acknowledge after paging** | Someone is first paged                | The alert is acknowledged    |
+| Alerts                | **Time to resolve**                  | The alert is created                  | The alert is resolved        |
+| Scheduled maintenance | **Start delay**                      | The maintenance is scheduled to start | The maintenance starts       |
+| Scheduled maintenance | **Overrun**                          | The maintenance is scheduled to end   | The maintenance ends         |
+| Scheduled maintenance | **Maintenance duration**             | The maintenance starts                | The maintenance ends         |
 
 Choose **Something else** to pick the two moments yourself. A name you typed is kept when you pick one of these.
 
@@ -364,6 +366,7 @@ The second step, **Start and End**, has **Starts when** and **Ends when**. Each 
 | Moment                                  | When it happens                                                              | Stored in the API as                                  |
 | --------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **The incident is declared**            | When the incident started in OneUptime: when it was created, unless someone set an earlier time. | `Declared At` (`Timeline Start` is the same instant)  |
+| **Someone is first paged**              | When an on-call policy or a direct page first notifies someone about the incident — see below. | `First Paged At`                                      |
 | **The incident is acknowledged**        | When it reaches your acknowledged state, or any state after it (a resolve straight from the start counts too). | `State Role Entered`, role `Acknowledged`             |
 | **The incident is resolved**            | When it reaches your resolved state.                                         | `State Role Entered`, role `Resolved`                 |
 | **The postmortem is published**         | When the incident's postmortem is published.                                 | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ Each incident's page shows its own measurements in a **Measurements** card, righ
 | A duration, like **4 minutes** | Both moments happened (**Recorded**). It is in the measurement's unit: **Automatic** reads like the page's other timings, **1 hour, 5 minutes**, and **Hours** reads **1.5 hours**. |
 | **Running for 12 minutes**    | The clock has started and the end has not happened yet. It counts up while the page is open.                                    |
 | **Not started yet**           | The start has not happened yet, or is a time still ahead, like a maintenance event's scheduled start.                           |
-| **Not reached**               | The incident is resolved, and the moment the measurement waited for never came — an incident resolved without being acknowledged. |
+| **Not reached**               | The incident is resolved, and the moment the measurement waited for never came — an incident resolved without being acknowledged, or without anyone being paged. |
 | **Not measured**              | A moment can never happen (**Not Applicable**), with the reason, like a skipped state.                                          |
 | **Ends before it starts**     | The recorded times disagree (**Invalid**), with how far apart they are.                                                         |
 | **Not worked out yet**        | OneUptime has not worked it out for this incident yet, as just after the measurement was created. |
@@ -424,9 +427,17 @@ Alerts and scheduled maintenance events have the same card on their pages. For a
 
 That is the point. `Declared At` records when OneUptime found out, which for a monitor-triggered incident is when the criteria were processed — not when impact began. If "Time to Detect" defaulted its start to the same timestamp its end uses, every incident would report zero and the chart would read "we detect instantly". A blank field and a **Not Applicable** measurement say the true thing: nobody has recorded when this started.
 
+### Time to acknowledge after paging
+
+**Time to acknowledge** counts from when the incident is declared, so an incident nobody is paged about until the morning reads as hours of waiting that no one on call saw. **Time to acknowledge after paging** counts instead from when **Someone is first paged**: the first time an on-call policy or a direct page notified someone about the incident. It ends when the incident is acknowledged, by the same rule as time to acknowledge.
+
+OneUptime records that moment on the incident, and on the alert, as `First Paged At`, once, and never moves it. Only a page that went out counts: on the **Execution Timeline** of an on-call policy or a direct page, a person whose page was sent, acknowledged or passed on. A step that was **Skipped** or ended in **Error** does not count, and neither does a policy that started but paged nobody, such as one whose schedule had nobody on call. Incidents paged before `First Paged At` existed get theirs from their on-call runs.
+
+An incident nobody was paged about has no value: **Not started yet** while it is open, and **Not reached** once it is resolved. The chart can be split by severity, so you can see how fast each severity is answered once someone is paged. The incident's page says it too: under its time to acknowledge it adds how long after the first page it was acknowledged, such as **4 minutes after paging**. The time to acknowledge metric and the MTTA in Slack and Microsoft Teams summaries still count from when the incident was declared.
+
 ### Correcting a wrong timestamp
 
-Every measurement is worked out again from scratch whenever the data underneath it changes — a state timeline entry created, edited or deleted, or `Impact Started At`, `Declared At` or `Postmortem Posted At` corrected on the incident. Nothing is patched incrementally, so there is no stale value to repair.
+Every measurement is worked out again from scratch whenever the data underneath it changes — a state timeline entry created, edited or deleted, `Impact Started At`, `Declared At` or `Postmortem Posted At` corrected on the incident, or its first page going out. Nothing is patched incrementally, so there is no stale value to repair.
 
 The **Starts At** field on a state timeline entry is editable. If an incident was acknowledged at 09:12 but the entry says 09:29, correct the entry and every measurement derived from it moves with it.
 
