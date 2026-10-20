@@ -97,6 +97,8 @@ Runbookvariabelen namen de plaats in van runbookgeheimen, en van de inloggegeven
 - alle inloggegevens die een stap noemde, werden geheime globale variabelen met dezelfde Runners, naar ze vernoemd: `<name>-ssh-key` (en `<name>-ssh-key-passphrase`, voor een sleutel die er een had), `<name>-ssh-password` of `<name>-kubeconfig`;
 - elke SSH-stap die inloggegevens noemde, meldt zich ermee aan op zijn machine en voert zijn opdracht uit als zijn script, en elke Kubernetes-stap werd een kubectl-stap die de `kubectl patch` uitvoert die zijn actie deed, zonder meer toegang nodig te hebben dan de stap had.
 
+Een Runner die ouder is dan deze release, kan geen kubectl-script uitvoeren. Daarom heeft elke Kubernetes-stap die zo is omgezet ook zijn inloggegevens en zijn actie behouden, en een oudere Runner voert de stap daarmee uit, zoals hij deed. Zodra u het script of de kubeconfig van de stap wijzigt, behoudt hij ze niet meer: zoals elke nieuwe kubectl-stap heeft hij dan een Runner van deze release nodig, en een oudere laat hem mislukken en zegt dat de Runner moet worden bijgewerkt.
+
 Een stap die via de API met inloggegevens is geschreven, loopt er nog steeds mee, en zijn pagina met stappen biedt **Omzetten in een scriptstap** aan. Ook de inloggegevens blijven, voor wat de eigen opdrachten van OneUptime AI bereiken: zie [AI-toegang](/docs/runbooks/credentials).
 
 ## Volgende stappen

@@ -11,10 +11,16 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import Project from "Common/Models/DatabaseModels/Project";
 import {
+  KubernetesAction,
   KubernetesStepConfig,
+  KubernetesWorkloadKind,
   RunbookStep,
   SSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
+import {
+  LEGACY_KUBERNETES_STEP_JOB_KEY,
+  getKubectlScriptForLegacyKubernetesStep,
+} from "Common/Types/Runbook/RunbookLegacySteps";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   getVariableRefusal,
@@ -364,6 +370,145 @@ describe("a kubectl step that takes a script", () => {
       "This Kubernetes step has no Runner.",
     );
     expect(enqueueSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A kubectl step the data migration moved from a Kubernetes action kept
+ * that action and its credential (RunbookLegacySteps). Its job carries them
+ * beside the script, as what a Runner older than kubectl scripts is handed
+ * (RunnerIngress) - only while the script is the one the action became.
+ */
+describe("a kubectl step moved from a Kubernetes action", () => {
+  const CREDENTIAL_ID: string = "a9e10000-0000-4000-8000-0000000000c1";
+
+  const SHAPES: Array<[string, RawConfig]> = [
+    [
+      "a restart",
+      {
+        credentialId: CREDENTIAL_ID,
+        action: KubernetesAction.RestartWorkload,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        namespace: "web",
+        workloadName: "api",
+      },
+    ],
+    [
+      "a restart with no action named",
+      {
+        credentialId: CREDENTIAL_ID,
+        workloadKind: KubernetesWorkloadKind.DaemonSet,
+        namespace: "monitoring",
+        workloadName: "node-exporter",
+      },
+    ],
+    [
+      "a scale",
+      {
+        credentialId: CREDENTIAL_ID,
+        action: KubernetesAction.ScaleWorkload,
+        workloadKind: KubernetesWorkloadKind.StatefulSet,
+        namespace: "jobs",
+        workloadName: "workers",
+        replicas: 0,
+      },
+    ],
+  ];
+
+  function movedConfig(
+    legacy: RawConfig,
+    overrides: RawConfig = {},
+  ): RawConfig {
+    return kubectlConfig({
+      script: getKubectlScriptForLegacyKubernetesStep(legacy as never),
+      ...legacy,
+      timeoutInMs: 45_000,
+      ...overrides,
+    });
+  }
+
+  test.each(SHAPES)(
+    "%s: its job carries the script and the kubeconfig, and beside them the action and its credential, as such a step was always dispatched",
+    async (_label: string, legacy: RawConfig) => {
+      const result: StepRunResult = await runKubernetesStep(
+        kubectlStep(movedConfig(legacy)),
+        makeCtx(),
+      );
+
+      expect(result.success).toBe(true);
+
+      const job: Record<string, unknown> = enqueued();
+      expect(job["stepType"]).toBe(RunbookStepType.Kubernetes);
+      expect(job["script"]).toBe("");
+      expect(job["payload"]).toEqual({
+        kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+        script: getKubectlScriptForLegacyKubernetesStep(legacy as never),
+        [LEGACY_KUBERNETES_STEP_JOB_KEY]: legacy,
+      });
+      // Its own timeout, as the step says.
+      expect(job["timeoutInMs"]).toBe(45_000);
+      expect((job["targetAgentId"] as ObjectID).toString()).toBe(AGENT_ID);
+    },
+  );
+
+  test("what an older Runner will be handed is the very payload a step written with a credential is dispatched with", async () => {
+    const legacy: RawConfig = SHAPES[2]![1];
+
+    await runKubernetesStep(kubectlStep(movedConfig(legacy)), makeCtx());
+    const moved: Record<string, unknown> = (
+      enqueued()["payload"] as Record<string, unknown>
+    )[LEGACY_KUBERNETES_STEP_JOB_KEY] as Record<string, unknown>;
+
+    enqueueSpy.mockClear();
+
+    // The same step as it was written before kubectl scripts.
+    await runKubernetesStep(
+      kubectlStep({ ...legacy, agentId: AGENT_ID } as RawConfig),
+      makeCtx(),
+    );
+
+    expect(moved).toEqual(enqueued()["payload"]);
+  });
+
+  test.each([
+    [
+      "its script was changed",
+      movedConfig(SHAPES[0]![1], {
+        script: "kubectl rollout restart deployment/api --namespace web",
+      }),
+    ],
+    [
+      "its action no longer matches its script",
+      movedConfig(SHAPES[2]![1], { replicas: 3 }),
+    ],
+    ["it kept no credential", movedConfig(SHAPES[0]![1], { credentialId: "" })],
+    [
+      "it scales to no replica count",
+      movedConfig({ ...SHAPES[2]![1], replicas: undefined }),
+    ],
+    ["it was written as a script", kubectlConfig()],
+  ])(
+    "no action is carried when %s: an older Runner is told to update",
+    async (_label: string, config: RawConfig) => {
+      await runKubernetesStep(kubectlStep(config), makeCtx());
+
+      const payload: Record<string, unknown> = enqueued()["payload"] as Record<
+        string,
+        unknown
+      >;
+      expect(payload).not.toHaveProperty(LEGACY_KUBERNETES_STEP_JOB_KEY);
+      expect(payload).not.toHaveProperty("credentialId");
+      expect(payload["script"]).toBe(config["script"]);
+    },
+  );
+
+  test("the job holds references and ids, never a value", async () => {
+    await runKubernetesStep(kubectlStep(movedConfig(SHAPES[0]![1])), makeCtx());
+
+    const stored: string = JSON.stringify(enqueued());
+    expect(stored).toContain("{{global.variables.PROD_KUBECONFIG}}");
+    expect(stored).not.toContain("apiVersion");
+    expect(stored).not.toContain("token");
   });
 });
 

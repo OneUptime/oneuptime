@@ -8,6 +8,7 @@ import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import { LEGACY_KUBERNETES_STEP_JOB_KEY } from "Common/Types/Runbook/RunbookLegacySteps";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -278,6 +279,38 @@ describe("a kubectl step that takes a script", () => {
       script: "",
       payload: { script: "kubectl get nodes" },
       secretValues: [],
+    });
+  });
+
+  test("a step moved from a Kubernetes action: the script and the kubeconfig, never the action it kept for older Runners", async () => {
+    const claimed: RunnerJob = job(RunbookStepType.Kubernetes, {
+      payload: {
+        kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+        script: "kubectl patch deployment api --namespace web --patch '{}'",
+        [LEGACY_KUBERNETES_STEP_JOB_KEY]: {
+          credentialId: "33333333-3333-4333-8333-333333333333",
+          action: "RestartWorkload",
+          workloadKind: "Deployment",
+          namespace: "web",
+          workloadName: "api",
+        },
+      },
+    });
+
+    // It takes variables: the action it kept is not a credential of its own.
+    expect(RunbookJobVariables.usesVariables(claimed)).toBe(true);
+
+    const result: Extract<PreparedJobVariables, { isRefused: false }> =
+      prepared(await prepare(claimed));
+
+    expect(result).toEqual({
+      isRefused: false,
+      script: "",
+      payload: {
+        script: "kubectl patch deployment api --namespace web --patch '{}'",
+      },
+      credential: { credentialType: "Kubeconfig", kubeconfig: KUBECONFIG },
+      secretValues: [KUBECONFIG],
     });
   });
 

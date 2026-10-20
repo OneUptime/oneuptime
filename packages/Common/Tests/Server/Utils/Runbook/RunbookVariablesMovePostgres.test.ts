@@ -15,6 +15,7 @@ import {
   KubernetesWorkloadKind,
 } from "../../../../Types/Runbook/RunbookStep";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
+import { getLegacyKubernetesStepForOlderRunner } from "../../../../Types/Runbook/RunbookLegacySteps";
 import { DataSource } from "typeorm";
 
 /*
@@ -364,6 +365,16 @@ describePostgres(
       expect(
         String((written.steps[2]!["config"] as JSONObject)["script"]),
       ).toContain("kubectl patch deployment api --namespace web --patch");
+      // ... and keeps its credential and action, for a Runner older than kubectl scripts.
+      expect(
+        getLegacyKubernetesStepForOlderRunner(written.steps[2]!["config"]),
+      ).toEqual({
+        credentialId: K8S_CREDENTIAL_ID,
+        action: KubernetesAction.RestartWorkload,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        namespace: "web",
+        workloadName: "api",
+      });
       // Titles and order are as they were.
       expect(
         written.steps.map((step: JSONObject): unknown => {
@@ -382,6 +393,8 @@ describePostgres(
       expect(summary).toMatchObject({
         secretsMoved: 0,
         secretsAlreadyMoved: 1,
+        // The moved Kubernetes step still names its credential: it is not read again.
+        credentialsMoved: 0,
         stepsMoved: 0,
         runbooksRewritten: 0,
       });

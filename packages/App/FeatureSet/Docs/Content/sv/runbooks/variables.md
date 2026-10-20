@@ -97,6 +97,8 @@ Runbook-variabler tog platsen för runbook-hemligheter och för de autentisering
 - varje autentiseringsuppgift som ett steg nämnde blev hemliga globala variabler med samma Runners, namngivna efter den: `<name>-ssh-key` (och `<name>-ssh-key-passphrase`, för en nyckel som hade en), `<name>-ssh-password` eller `<name>-kubeconfig`;
 - varje SSH-steg som nämnde en autentiseringsuppgift loggar in på sin maskin med dem och kör sitt kommando som sitt skript, och varje Kubernetes-steg blev ett kubectl-steg som kör den `kubectl patch` som dess åtgärd gjorde, utan att behöva mer åtkomst än steget hade.
 
+En Runner som är äldre än den här versionen kan inte köra ett kubectl-skript. Därför behöll varje Kubernetes-steg som flyttades så också sin autentiseringsuppgift och sin åtgärd, och en äldre Runner kör steget med dem, som den gjorde. Så snart du ändrar stegets skript eller kubeconfig behåller det dem inte längre: som varje nytt kubectl-steg behöver det då en Runner från den här versionen, och en äldre får det att misslyckas och säger att Runnern behöver uppdateras.
+
 Ett steg som skrivits via API:t med en autentiseringsuppgift körs fortfarande med den, och dess sida med steg erbjuder **Gör om till ett skriptsteg**. Autentiseringsuppgifterna finns också kvar, för det som OneUptime AI:s egna kommandon når: se [AI-åtkomst](/docs/runbooks/credentials).
 
 ## Nästa steg

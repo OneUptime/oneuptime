@@ -311,7 +311,7 @@ The step names a secret variable that does not let its Runner use it, so the Run
 :::
 
 :::details A kubectl step fails because its Runner is too old
-The step failed with "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." A Runner older than kubectl scripts cannot run one. Update the Runner, as [Keep the agent up to date](#5-keep-the-agent-up-to-date) shows, then run the runbook again.
+The step failed with "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." A Runner older than kubectl scripts cannot run one. A Kubernetes step moved to a kubectl script when you upgraded still runs on it, as the action it was written as, until its script or kubeconfig is changed. Update the Runner, as [Keep the agent up to date](#5-keep-the-agent-up-to-date) shows, then run the runbook again.
 :::
 
 ## Next steps

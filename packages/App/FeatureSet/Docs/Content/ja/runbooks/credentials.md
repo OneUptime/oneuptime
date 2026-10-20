@@ -1,6 +1,6 @@
 # AI のアクセス
 
-AI のアクセスは、OneUptime AI 自身のコマンドが Runner 自身のホスト **以外** のもの、つまり SSH でアクセスするサーバーや、Kubernetes エージェントのチャートを実行していない Kubernetes クラスターの API サーバーに到達するための手段です。それぞれが認証情報です。保存時に暗号化され、特定の Runner に割り当てられた管理対象のアクセス権で、コマンドに書き込まれるのではなく OneUptime AI が選びます。Runbook のステップはこれを使いません。SSH や kubectl のステップは、シークレットの [Runbook の変数](/docs/runbooks/variables) でサインインします。
+AI のアクセスは、OneUptime AI 自身のコマンドが Runner 自身のホスト **以外** のもの、つまり SSH でアクセスするサーバーや、Kubernetes エージェントのチャートを実行していない Kubernetes クラスターの API サーバーに到達するための手段です。それぞれが認証情報です。保存時に暗号化され、特定の Runner に割り当てられた管理対象のアクセス権で、コマンドに書き込まれるのではなく OneUptime AI が選びます。Runbook のステップはこれを使いません。SSH や kubectl のステップは、シークレットの [Runbook の変数](/docs/runbooks/variables) でサインインします。このリリースより古い Runner は例外です。アクションから移された Kubernetes ステップを、ステップのスクリプトまたは kubeconfig が変更されるまで、そのステップが指定していた認証情報で実行します。
 
 **Runbook → Runner → AI のアクセス** で管理します。
 

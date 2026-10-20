@@ -43,6 +43,8 @@ import {
   RUNNER_FEATURE_KUBECTL_SCRIPT,
   readRunnerFeatures,
 } from "Common/Types/Runbook/RunnerFeatures";
+import { readLegacyKubernetesStepOfJob } from "Common/Types/Runbook/RunbookLegacySteps";
+import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import {
   RunbookVariableReference,
   RunbookVariableScope,
@@ -72,10 +74,22 @@ export default class RunnerIngressAPI {
   /*
    * Why a kubectl step that takes a script was not run on a Runner that
    * did not say it can run one (RunnerFeatures): a Runner older than
-   * kubectl scripts would fail it with a confusing error of its own.
+   * kubectl scripts would fail it with a confusing error of its own. A step
+   * moved from a Kubernetes action that still keeps it is handed to such a
+   * Runner as that action instead (claimLegacyKubernetesStep).
    */
   public static readonly KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER: string =
     "This kubectl step runs a script, and this Runner is too old to run one, so it was not run. Update the Runner to your server's version (pull its image again and restart it), then run the runbook again.";
+
+  /*
+   * Why a step that runs with a runbook credential was not handed to the
+   * Runner that took it: the credential is gone, is another project's, is
+   * not assigned to that Runner, or - for the Kubernetes action a moved
+   * kubectl step kept - is not a Kubernetes credential
+   * (RunbookCredentialsUtil.resolveForJob).
+   */
+  public static readonly CREDENTIAL_NOT_AVAILABLE: string =
+    "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.";
 
   // Why a job naming a credential is failed for a global Runner.
   public static readonly GLOBAL_RUNNER_CREDENTIAL_REFUSAL: string =
@@ -563,6 +577,33 @@ export default class RunnerIngressAPI {
             RUNNER_FEATURE_KUBECTL_SCRIPT,
           )
         ) {
+          /*
+           * A Runner older than kubectl scripts. A step the data migration
+           * moved from a Kubernetes action still carries that action and
+           * its credential while its script and kubeconfig are the ones it
+           * was moved with (RunbookLegacySteps): the Runner is handed the
+           * step that way, as such a step always was, and nothing of the
+           * script's (claimLegacyKubernetesStep). A step written as a
+           * script, or changed since it was moved, has no action to fall
+           * back on: it is failed, saying to update the Runner.
+           */
+          const legacyStep: JSONObject | null = readLegacyKubernetesStepOfJob(
+            job.payload,
+          );
+
+          if (legacyStep) {
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              await RunnerIngressAPI.claimLegacyKubernetesStep({
+                job,
+                agentId: agent.id,
+                projectId: agent.projectId,
+                legacyStep,
+              }),
+            );
+          }
+
           await RunnerJobService.submitResult({
             jobId: job.id!,
             agentId: agent.id,
@@ -683,8 +724,7 @@ export default class RunnerIngressAPI {
             jobId: job.id!,
             agentId: agent.id,
             success: false,
-            errorMessage:
-              "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.",
+            errorMessage: RunnerIngressAPI.CREDENTIAL_NOT_AVAILABLE,
           });
 
           return Response.sendJsonObjectResponse(req, res, { job: null });
@@ -781,6 +821,60 @@ export default class RunnerIngressAPI {
       runbookId,
       access: data.access,
     });
+  }
+
+  /*
+   * A kubectl step moved from a Kubernetes action, taken by a project's
+   * Runner older than kubectl scripts: handed over as the step it was
+   * written as, exactly as the server handed such a step over before
+   * kubectl scripts - its action (`legacyStep`, the payload such a step was
+   * dispatched with) and the Kubernetes credential it names, resolved for
+   * this Runner (RunbookCredentialsUtil: only one of the project's, assigned
+   * to this Runner). Nothing more: no script, no variable is read for it -
+   * not its kubeconfig - no secret values and no run inputs. A credential
+   * this Runner may not have fails the step with the reason, as before.
+   */
+  public static async claimLegacyKubernetesStep(data: {
+    job: RunnerJob;
+    agentId: ObjectID;
+    projectId: ObjectID;
+    legacyStep: JSONObject;
+  }): Promise<JSONObject> {
+    const credential: JSONObject | null =
+      await RunbookCredentialsUtil.resolveForJob({
+        credentialId: String(data.legacyStep["credentialId"] || ""),
+        agentId: data.agentId,
+        projectId: data.projectId,
+        credentialType: RunbookCredentialType.Kubernetes,
+      });
+
+    if (!credential) {
+      await RunnerJobService.submitResult({
+        jobId: data.job.id!,
+        agentId: data.agentId,
+        success: false,
+        errorMessage: RunnerIngressAPI.CREDENTIAL_NOT_AVAILABLE,
+      });
+
+      return { job: null };
+    }
+
+    return {
+      job: {
+        jobId: data.job.id?.toString(),
+        ...(data.job.runbookExecutionId
+          ? { runbookExecutionId: data.job.runbookExecutionId.toString() }
+          : {}),
+        origin: data.job.origin || RunnerJobOrigin.Runbook,
+        stepId: data.job.stepId,
+        stepType: data.job.stepType,
+        script: "",
+        timeoutInMs: data.job.timeoutInMs,
+        leaseExpiresAt: data.job.leaseExpiresAt?.toISOString(),
+        payload: data.legacyStep,
+        credential,
+      },
+    };
   }
 
   /*

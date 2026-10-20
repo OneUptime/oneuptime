@@ -42,7 +42,10 @@ import RunbookVariableResolver, {
  *     key's passphrase, in the shape an SSH credential was always sent in;
  *   - a kubectl step (Kubernetes, with a script): its script, and its
  *     kubeconfig as `credential` - none when it uses the Runner's own
- *     access.
+ *     access. The action a step moved from a Kubernetes action keeps for a
+ *     Runner older than kubectl scripts (RunbookLegacySteps) is not handed
+ *     over with it: only such a Runner gets that, and none of this
+ *     (RunnerIngress.claimLegacyKubernetesStep).
  *
  * What it may have is RunbookVariableResolver's one rule. A step that names
  * a variable it may not have is refused with the reason, never handed over
