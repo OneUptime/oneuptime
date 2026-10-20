@@ -50,7 +50,9 @@ function event(
     start: start,
     end: end,
     allDay: options?.allDay === true,
-    ...(options?.overlay ? { appearance: CalendarEventAppearance.Overlay } : {}),
+    ...(options?.overlay
+      ? { appearance: CalendarEventAppearance.Overlay }
+      : {}),
   };
 }
 

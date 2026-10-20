@@ -427,6 +427,12 @@ export type CalendarEventWrapperProps = EventWrapperProps<CalendarEvent> & {
   children?: React.ReactNode;
 };
 
+// What the wrapper changes on the block it is handed.
+interface CalendarEventBlockProps {
+  tabIndex?: number | undefined;
+  role?: string | undefined;
+}
+
 export const CalendarEventWrapper: FunctionComponent<
   CalendarEventWrapperProps
 > = (props: CalendarEventWrapperProps): ReactElement => {
@@ -436,8 +442,8 @@ export const CalendarEventWrapper: FunctionComponent<
     props.event?.appearance === CalendarEventAppearance.Overlay &&
     React.isValidElement(child)
   ) {
-    const block: ReactElement<{ tabIndex?: number; role?: string }> =
-      child as ReactElement<{ tabIndex?: number; role?: string }>;
+    const block: ReactElement<CalendarEventBlockProps> =
+      child as ReactElement<CalendarEventBlockProps>;
 
     return React.cloneElement(block, {
       ...(block.props.tabIndex !== undefined ? { tabIndex: -1 } : {}),

@@ -856,7 +856,11 @@ describe("opened from the Maintenance Calendar's Add External Calendar", () => {
   });
 
   test("the rest of the address is kept", () => {
-    window.history.replaceState({}, "", `${SETTINGS_PATH}?${ASK}&name=holidays`);
+    window.history.replaceState(
+      {},
+      "",
+      `${SETTINGS_PATH}?${ASK}&name=holidays`,
+    );
 
     renderPage();
 

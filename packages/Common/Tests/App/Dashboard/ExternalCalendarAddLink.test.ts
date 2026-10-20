@@ -27,9 +27,7 @@ describe("the ask Add External Calendar puts in Calendar Settings' address", () 
     expect(isAddExternalCalendarAsked("?open=add-external-calendar")).toBe(
       true,
     );
-    expect(isAddExternalCalendarAsked("open=add-external-calendar")).toBe(
-      true,
-    );
+    expect(isAddExternalCalendarAsked("open=add-external-calendar")).toBe(true);
     expect(
       isAddExternalCalendarAsked("?name=holidays&open=add-external-calendar"),
     ).toBe(true);
