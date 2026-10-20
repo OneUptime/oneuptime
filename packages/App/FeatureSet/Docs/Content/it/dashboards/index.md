@@ -59,7 +59,7 @@ Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne
 | **Panoramica** | Il suo nome, la descrizione e le etichette. |
 | **Condivisione** | Chi può vederla, il suo link pubblico e una lista di IP consentiti in Altre impostazioni. |
 | **Proprietari** | Gli utenti e i team a cui appartiene. |
-| **Branding** | Titolo della pagina, descrizione, logo e favicon della dashboard pubblica. |
+| **Branding** | Titolo della pagina, descrizione, logo, tema e favicon della dashboard pubblica. |
 | **Domini personalizzati** | Ospitare la dashboard pubblica sul tuo dominio. |
 | **Impostazioni** | Duplicare, esportare o archiviare la dashboard. |
 | **Registri di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |

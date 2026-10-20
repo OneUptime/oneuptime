@@ -309,12 +309,15 @@ jobs:
           # same day: the lightest group by far. Custom Roles (about 3
           # minutes with its bundle, Chromium only) moved here from group 6
           # the same day too, when its Add a Role spec added about a minute
-          # to a group already at 16 to 23 minutes. Dashboard Templates
-          # (about 2.5 minutes with its bundle locally: Create a dashboard
-          # beside Create a workflow, at a laptop's and a phone's width, both
-          # read in all 17 languages, Chromium only) joined them on
-          # 2026-10-20 too: five suites of 2 to 3 minutes each, still the
-          # lightest group.
+          # to a group already at 16 to 23 minutes. Public Dashboard Theme
+          # (about five minutes with its bundle locally: a laptop and a
+          # phone, both Chromium) joined them on 2026-10-20 as well: about
+          # 14 minutes for the five, the group still the lightest. Dashboard
+          # Templates (about 2.5 minutes with its bundle locally: Create a
+          # dashboard beside Create a workflow, at a laptop's and a phone's
+          # width, both read in all 17 languages, Chromium only) joined them
+          # the same day: about 17 minutes for the six, still under the 22 the
+          # groups are kept to.
           - group: 7
             browsers: chromium
             suites: >-
@@ -322,6 +325,7 @@ jobs:
               test-llm-connect-ui
               test-auto-remediation-rules-ui
               test-custom-roles-ui
+              test-public-dashboard-theme-ui
               test-dashboard-templates-ui
     steps:
       - uses: actions/checkout@v4
@@ -487,6 +491,8 @@ jobs:
             output/playwright/rules-menu-section-ui/test-results
             output/playwright/llm-connect-ui/*.png
             output/playwright/llm-connect-ui/test-results
+            output/playwright/public-dashboard-theme-ui/*.png
+            output/playwright/public-dashboard-theme-ui/test-results
             output/playwright/profiles-ui/*.png
             output/playwright/profiles-ui/test-results
             output/playwright/dashboard-templates-ui/*.png

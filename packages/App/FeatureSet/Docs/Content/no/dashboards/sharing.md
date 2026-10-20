@@ -47,7 +47,8 @@ Et offentlig dashbord:
 
 - Åpnes alltid for lesing. Besøkende kan ikke redigere det og ser aldri redigeringskontrollene.
 - Inneholder variablene du har lagt til. Besøkende velger i de samme velgerne som teamet ditt bruker, og kan endre tidsintervallet, zoome, slå på automatisk oppdatering og gå til fullskjerm.
-- Bruker merkevaren du angir på dashbordets side **Merkevare**: sidetittel, beskrivelse, logo, favicon.
+- Bruker merkevaren du angir på dashbordets side **Merkevare**: sidetittel, beskrivelse, logo, tema, favicon.
+- Lar hver besøkende bytte mellom det lyse og det mørke dashbordet med en sol- eller måneknapp i verktøylinjen; [Tema](#tema) forklarer hvordan.
 
 Behandle deling av et dashbord som publisering av en nettside. Alle widgets på det blir lesbare for alle med lenken. Se hva som er på lerretet før du deler det.
 
@@ -55,7 +56,7 @@ Hver widget publiserer bare det den tegner, og bare for ressursene den er rettet
 
 ## Deling med passord
 
-Velg **Alle med lenken og et passord**, og skriv inn passordet i dialogen. Besøkende ser et spørsmål om passordet før dashbordet vises. Spørsmålet viser dashbordets navn, sidetittel og favicon, og ingenting annet: beskrivelsen, logoen og widgetene vises når passordet er skrevet inn. Passordet lagres som en hash: ingen kan lese det tilbake. Et nytt passord fungerer umiddelbart; de som skrev inn det gamle, kan fortsette å se dashbordet i opptil 7 dager.
+Velg **Alle med lenken og et passord**, og skriv inn passordet i dialogen. Besøkende ser et spørsmål om passordet før dashbordet vises. Spørsmålet viser dashbordets navn, sidetittel og favicon, i dashbordets tema, og ingenting annet: beskrivelsen, logoen og widgetene vises når passordet er skrevet inn. Passordet lagres som en hash: ingen kan lese det tilbake. Et nytt passord fungerer umiddelbart; de som skrev inn det gamle, kan fortsette å se dashbordet i opptil 7 dager.
 
 Bruk et passord når:
 
@@ -152,13 +153,30 @@ På dashbordets side **Merkevare** kan du konfigurere:
 - **Sidetittel**: det som vises i nettleserfanen og øverst på siden.
 - **Sidebeskrivelse**: beskrivelsen som brukes av søkemotorer og forhåndsvisninger i sosiale medier.
 - **Logo**: et bilde som vises i toppen av det offentlige dashbordet.
+- **Tema**: lyst, mørkt eller slik hver besøkendes enhet er innstilt; se [Tema](#tema).
 - **Favicon**: det lille ikonet i nettleserfanen.
 
 Logoen og faviconet er filer som er lastet opp i dashbordets eget prosjekt, og det sjekkes hver gang et av dem lagres: fra dashbordet, API-et, Terraform eller en arbeidsflyt. En fil som er lastet opp i et annet prosjekt, avvises med de ordene en fil som ikke lenger finnes, får: "The logo's file could not be found. Upload the logo again." eller "The favicon's file could not be found. Upload the favicon again." Det offentlige dashbordet viser bare bilder fra sitt eget prosjekt.
 
-Sidetittelen og beskrivelsen står også øverst i dashbordets verktøylinje for teamet ditt, i stedet for navnet og beskrivelsen. Logoen og faviconet vises bare på det offentlige dashbordet.
+Sidetittelen og beskrivelsen står også øverst i dashbordets verktøylinje for teamet ditt, i stedet for navnet og beskrivelsen. Logoen, temaet og faviconet gjelder bare for det offentlige dashbordet.
 
-Besøkende ser merkevaren først når de har lov til å se dashbordet. Før passordet er skrevet inn, viser et dashbord som er delt med passord, bare sidetittelen og faviconet, og søkemotorer og lenkeforhåndsvisninger ser sidetittelen, men ikke sidebeskrivelsen. Et dashbord med en IP-tillatelsesliste viser merkevaren bare til adressene på listen, og søkemotorer og lenkeforhåndsvisninger ser ingenting av den.
+Besøkende ser merkevaren først når de har lov til å se dashbordet. Før passordet er skrevet inn, viser et dashbord som er delt med passord, bare sidetittelen, faviconet og temaet, og søkemotorer og lenkeforhåndsvisninger ser sidetittelen, men ikke sidebeskrivelsen. Et dashbord med en IP-tillatelsesliste viser merkevaren bare til adressene på listen, og søkemotorer og lenkeforhåndsvisninger ser ingenting av den.
+
+### Tema
+
+Kortet **Tema**, rett under logoen, bestemmer hvordan det offentlige dashbordet ser ut for de besøkende. Velg ett av de tre valgene, så lagres det med en gang; det finnes ingen knapp **Rediger**.
+
+| Valg | Hva de besøkende ser |
+| ------ | ----------------- |
+| **Lyst** | Det lyse dashbordet, uansett hvordan enheten deres er innstilt. Dashbord som ble laget før innstillingen fantes, er **Lyst**, så de ser ut som de alltid har gjort. |
+| **Mørkt** | Det mørke dashbordet, uansett hvordan enheten deres er innstilt. |
+| **Som hver besøkendes enhet** | Lyst eller mørkt, slik enheten deres er innstilt, og dashbordet skifter med enheten mens det er åpent. |
+
+Uansett hva du velger, lar en sol- eller måneknapp i dashbordets verktøylinje hver besøkende bytte til det lyse eller det mørke dashbordet eller tilbake til temaet du har angitt, og nettleseren deres husker valget for hvert offentlige dashbord på den adressen. På det mørke dashbordet står logoen på en lys bakgrunn, så en logo som er laget for en hvit side, fortsatt synes godt.
+
+Et dashbord som lages fra nå av, starter med **Som hver besøkendes enhet**. Gjennom API-et og Terraform heter feltet `theme`, med en av verdiene `Light`, `Dark` eller `System` (**Som hver besøkendes enhet**), skrevet nøyaktig slik; enhver annen verdi avvises. En Terraform-konfigurasjon som ikke angir noe `theme`, får `Light`, så en konfigurasjon som ble skrevet før innstillingen, planlegger aldri en endring på et dashbord den styrer.
+
+Temaet ligger i dashbordets HTML, så dashbordet tegnes i det fra starten: et mørkt dashbord blinker ikke hvitt mens det lastes, og spørsmålet om passordet tegnes også i det. Alle widgeter følger det; en HTML-widgets egen kode kan style det mørke temaet, slik [HTML](/docs/dashboards/widgets#html) beskriver. Sidene **Access Denied** og "ikke funnet" viser ingenting av et dashbord, så de følger den besøkende: det egne valget deres, ellers enheten deres.
 
 ## Innbygging
 
@@ -175,9 +193,11 @@ Du kan bygge inn et offentlig dashbord på ditt eget nettsted med en iframe, på
 
 Hvis dashbordet er delt med et passord, ser besøkende spørsmålet om passordet inne i iframen.
 
+For å gi et innebygd dashbord nettstedets utseende legger du til `?theme=light` eller `?theme=dark` i adressen, som i `https://dashboard.acme.com/?theme=dark`: dashbordet tegnes da i det temaet for alle som åpner den adressen, uansett dashbordets eget tema og den besøkendes valg, og verktøylinjen har ingen temaknapp. `?theme=system` følger hver besøkendes enhet. Temaet beholdes gjennom spørsmålet om passordet.
+
 ## Send en lenke
 
-Den offentlige lenken åpner dashbordet på de lagrede standardverdiene. For å sende en lenke som åpnes på en bestemt verdi, legger du variabelen til i den som `?var-<name>=<value>`, slik adresselinjen gjør når en besøkende velger en verdi; flere verdier atskilles med komma. Tidsintervallet er ikke en del av lenken: hvert besøk starter på den siste timen.
+Den offentlige lenken åpner dashbordet på de lagrede standardverdiene. For å sende en lenke som åpnes på en bestemt verdi, legger du variabelen til i den som `?var-<name>=<value>`, slik adresselinjen gjør når en besøkende velger en verdi; flere verdier atskilles med komma. Tidsintervallet er ikke en del av lenken: hvert besøk starter på den siste timen. For å åpne dashbordet i et tema legger du til `theme=light`, `theme=dark` eller `theme=system`, slik [Innbygging](#innbygging) beskriver.
 
 ## Neste steg
 

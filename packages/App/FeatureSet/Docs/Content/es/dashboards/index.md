@@ -59,7 +59,7 @@ Al abrir un panel, su propio menú lateral tiene estas páginas. Todas las secci
 | **Vista general** | Su nombre, su descripción y sus etiquetas. |
 | **Uso compartido** | Quién puede verlo, su enlace público y una lista de IP permitidas en Más ajustes. |
 | **Propietarios** | Los usuarios y equipos a los que pertenece. |
-| **Marca** | Título de la página, descripción, logotipo y favicon del panel público. |
+| **Marca** | Título de la página, descripción, logotipo, tema y favicon del panel público. |
 | **Dominios personalizados** | Alojar el panel público en tu propio dominio. |
 | **Ajustes** | Duplicar, exportar o archivar el panel. |
 | **Registros de auditoría** | Cada cambio hecho en el panel, y quién lo hizo. |

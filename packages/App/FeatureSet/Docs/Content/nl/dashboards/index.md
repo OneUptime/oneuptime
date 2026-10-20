@@ -59,7 +59,7 @@ Open een dashboard, en het eigen zijmenu ervan heeft deze pagina's. Elke sectie 
 | **Overzicht** | De naam, de beschrijving en de labels. |
 | **Delen** | Wie het kan zien, de openbare link, en een IP-toelatingslijst onder Meer instellingen. |
 | **Eigenaren** | De gebruikers en teams die eigenaar zijn. |
-| **Huisstijl** | Paginatitel, beschrijving, logo en favicon van het openbare dashboard. |
+| **Huisstijl** | Paginatitel, beschrijving, logo, thema en favicon van het openbare dashboard. |
 | **Aangepaste domeinen** | Het openbare dashboard op je eigen domein hosten. |
 | **Instellingen** | Het dashboard dupliceren, exporteren of archiveren. |
 | **Auditlogboeken** | Elke wijziging aan het dashboard, en wie die heeft gemaakt. |

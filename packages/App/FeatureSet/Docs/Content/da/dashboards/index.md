@@ -59,7 +59,7 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 | **Oversigt** | Dets navn, beskrivelse og etiketter. |
 | **Deling** | Hvem der kan se det, dets offentlige link og en IP-tilladelsesliste under Yderligere indstillinger. |
 | **Ejere** | De brugere og teams, der ejer det. |
-| **Branding** | Sidetitel, beskrivelse, logo og favicon for det offentlige dashboard. |
+| **Branding** | Sidetitel, beskrivelse, logo, tema og favicon for det offentlige dashboard. |
 | **Brugerdefinerede domæner** | Host det offentlige dashboard på dit eget domæne. |
 | **Indstillinger** | Duplikér, eksportér eller arkivér dashboardet. |
 | **Auditlogs** | Hver ændring, der er foretaget på dashboardet, og hvem der foretog den. |
