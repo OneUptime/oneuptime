@@ -285,14 +285,26 @@ flowchart TB
 | Value that means recovered | `resolved` | Den nøyaktige verdien som markerer at problemet er over |
 | Max incidents per request | `100` (standard) | Sikkerhetstak slik at et felt med mange verdier ikke kan åpne et ubegrenset antall hendelser |
 
+Grupperingen hører til kriteriet den er slått på i. Monitorens andre kriterier grupperer ikke: når ett av dem samsvarer med en forespørsel, åpner det hendelsen og varselet sitt slik det ville gjort på en monitor der ingen kriterier grupperer.
+
 ### Syntaks for stier
 
-Stier må starte med det bokstavelige prefikset `requestBody.`. En sti uten det — `alerts[*].labels.alertname` — samsvarer ikke med noe, uten å si fra. Innpakningen `{{ }}` er valgfri: `requestBody.status` og `{{requestBody.status}}` oppfører seg likt.
+Stier må starte med det bokstavelige prefikset `requestBody.`. En sti uten det — `alerts[*].labels.alertname` — finner ingen verdi i noen forespørsel. Innpakningen `{{ }}` er valgfri: `requestBody.status` og `{{requestBody.status}}` oppfører seg likt.
 
 - `[*]` brer seg ut over en matrise — én hendelse per **særskilt** verdi. To elementer som gir samme verdi, slås sammen til én hendelse, og den hendelsens tilstand (aktiv/løst) hentes fra det **første** samsvarende elementet. **Bare den første `[*]` i en sti er et jokertegn**; `requestBody.groups[*].alerts[*].name` samsvarer ikke med noe.
 - `[0]` og `[last]` velger ett enkelt element og kan komme etter en `[*]`.
 - Objekt- og matriseverdier, tomme strenger og null-verdier hoppes over. `0` og `false` er gyldige nøkler.
 - Teksten må være et JSON-objekt; en nyttelast der øverste nivå er en matrise, grupperes ikke.
+
+### Forespørsler uten feltet
+
+En forespørsel som samsvarer med et gruppert kriterium, men som ikke har noen verdi på stien — feltet mangler eller er tomt, inneholder et objekt eller en liste, eller teksten er ikke et JSON-objekt — åpner likevel hendelsen og varselet til kriteriet: én for hele monitoren, slik kriteriet ville gjort uten gruppering. Det samme gjør et gruppert kriterium som samsvarer fordi forespørslene sluttet å komme. En tittel som nevner grupperingsvariabelen, som `{{alertname}}`, viser den slik den er skrevet, siden det ikke finnes noen verdi å sette inn.
+
+Den hendelsen løses, hvis **Løs hendelse automatisk** er slått på, når en senere forespørsel uten feltet melder at problemet er over, eller når en senere forespørsel samsvarer med et annet kriterium. En slik melding åpner ikke noe nytt.
+
+Når noen elementer i en matrise har en verdi og andre ikke, åpner hver verdi sin egen hendelse, og elementene uten verdi åpner ingenting selv.
+
+Kortet **Monitor-sammendrag** på monitorens **Oversikt** viser hva hver forespørsel gjorde, også når et kriterium håndterte den for hele monitoren eller ikke åpnet noe nytt.
 
 ### Løsning skjer ut fra hendelser
 
@@ -306,8 +318,11 @@ En webhook beskriver bare det som står i den nyttelasten, så OneUptime løser 
 > [!NOTE]
 > Når én monitor mottar forespørsler raskere enn OneUptime evaluerer dem, evaluerer OneUptime den nyeste og hopper over dem imellom, så en bølge av webhooks kan etterlate et aktivt eller et løst varsel uevaluert. På en selvhostet server får `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i miljøet til OneUptime-appen hver forespørsel til å bli evaluert for seg.
 
+> [!NOTE]
+> Hvis **Field that signals recovery** inneholder `[*]`, men **Open a separate incident for each…** ikke gjør det, er en forespørsel over først når hvert element i matrisen sier det. Med `requestBody.alerts[*].status` og `resolved` løses en hendelse gruppert etter `requestBody.groupLabels.alertname` når alle varslene i en forespørsel er løst, og den forblir åpen så lenge ett fortsatt er aktivt.
+
 > [!WARNING]
-> Hvis **Field that signals recovery** inneholder `[*]`, men **Open a separate incident for each…** ikke gjør det, blir ingenting noen gang løst. Bruk enten `[*]` i begge, eller i ingen av dem. En sti for løsning uten `[*]` evalueres mot hele nyttelasten, så en `status: resolved` på nyttelastnivå løser hver nøkkel i den nyttelasten — også varsler der egen status fortsatt er aktiv.
+> En sti for løsning uten `[*]` evalueres mot hele nyttelasten, så en `status: resolved` på nyttelastnivå løser hver nøkkel i den nyttelasten — også varsler der egen status fortsatt er aktiv.
 
 ### Navngi hendelsene
 

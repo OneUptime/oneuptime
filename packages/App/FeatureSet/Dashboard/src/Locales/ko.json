@@ -31950,5 +31950,16 @@
   "One area": "특정 영역",
   "Pick an area": "영역 선택",
   "Then choose Admin, Member or Viewer.": "그런 다음 관리자, 구성원, 뷰어 중에서 선택하세요.",
-  "Whole project": "프로젝트 전체"
+  "Whole project": "프로젝트 전체",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "이 요청의 {{path}} 값이 모두 복구를 보고했으므로 {{criteria}} 기준은 새로 아무것도 열지 않았습니다.",
+  "No request to group by": "그룹화할 요청이 없음",
+  "No value to group by": "그룹화할 값이 없음",
+  "Not every item has a value to group by": "그룹화할 값이 없는 항목이 있음",
+  "Nothing new to open": "새로 열 항목 없음",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "백그라운드 검사가 마지막 요청을 다시 읽었습니다. {{criteria}} 기준은 요청이 도착할 때만 값마다 하나씩 엽니다.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "이 요청에는 {{path}} 값이 없고 복구를 보고했으므로 {{criteria}} 기준은 새로 아무것도 열지 않았습니다.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "이 요청에는 {{path}} 값이 없어서 {{criteria}} 기준은 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "이 요청의 항목 {{count}}개에 {{path}} 값이 없어서, 해당 항목은 따로 아무것도 열지 않았습니다.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "이 요청의 항목 {{count}}개에 {{path}} 값이 없어서, 해당 항목은 따로 아무것도 열지 않았습니다.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "요청이 더 이상 오지 않아 {{criteria}} 기준이 일치했으므로, 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다."
 }

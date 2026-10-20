@@ -31950,5 +31950,16 @@
   "One area": "One area",
   "Pick an area": "Pick an area",
   "Then choose Admin, Member or Viewer.": "Then choose Admin, Member or Viewer.",
-  "Whole project": "Whole project"
+  "Whole project": "Whole project",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.",
+  "No request to group by": "No request to group by",
+  "No value to group by": "No value to group by",
+  "Not every item has a value to group by": "Not every item has a value to group by",
+  "Nothing new to open": "Nothing new to open",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} item in this request has no value at {{path}}, so it opened nothing of its own.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor."
 }

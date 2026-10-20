@@ -31950,5 +31950,16 @@
   "One area": "Ett område",
   "Pick an area": "Välj ett område",
   "Then choose Admin, Member or Viewer.": "Välj sedan Administratör, Medlem eller Tittare.",
-  "Whole project": "Hela projektet"
+  "Whole project": "Hela projektet",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Varje värde vid {{path}} i den här begäran rapporterade återställning, så kriteriet {{criteria}} öppnade inget nytt.",
+  "No request to group by": "Ingen begäran att gruppera efter",
+  "No value to group by": "Inget värde att gruppera efter",
+  "Not every item has a value to group by": "Alla objekt har inte ett värde att gruppera efter",
+  "Nothing new to open": "Inget nytt att öppna",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Bakgrundskontrollen läste om den senaste begäran. Kriteriet {{criteria}} öppnar bara en per värde när en begäran kommer in.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Den här begäran har inget värde vid {{path}} och rapporterade återställning, så kriteriet {{criteria}} öppnade inget nytt.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Den här begäran har inget värde vid {{path}}, så kriteriet {{criteria}} hanterade den utan gruppering, en gång för hela monitorn.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} objekt i den här begäran har inget värde vid {{path}}, så de öppnade inget eget.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} objekt i den här begäran har inget värde vid {{path}}, så det öppnade inget eget.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} matchade eftersom begäranden slutade komma, så det hanterade detta utan gruppering, en gång för hela monitorn."
 }
