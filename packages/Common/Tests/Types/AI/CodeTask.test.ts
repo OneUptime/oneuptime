@@ -680,16 +680,19 @@ describe("a Profile in a request", () => {
       },
       "That kind of profile is not one we know.",
     ],
-  ])("%s is refused", (_name: string, entry: object, message: string) => {
-    expect(
-      refusal(() => {
-        return CodeTaskContextInputUtil.readItem({
-          type: "Profile",
-          ...entry,
-        });
-      }),
-    ).toBe(message);
-  });
+  ])(
+    "%s is refused",
+    (_name: string, entry: Record<string, unknown>, message: string) => {
+      expect(
+        refusal(() => {
+          return CodeTaskContextInputUtil.readItem({
+            type: "Profile",
+            ...entry,
+          });
+        }),
+      ).toBe(message);
+    },
+  );
 
   test("a function with no name is refused", () => {
     expect(
