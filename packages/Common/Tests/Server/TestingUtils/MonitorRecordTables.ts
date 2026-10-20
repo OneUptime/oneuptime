@@ -187,7 +187,8 @@ export function mockMonitorRecordTables(input: {
     .mockImplementation((async (createBy: {
       data: MonitorStatusTimeline;
     }): Promise<MonitorStatusTimeline> => {
-      input.getMonitor().currentMonitorStatusId = createBy.data.monitorStatusId!;
+      input.getMonitor().currentMonitorStatusId =
+        createBy.data.monitorStatusId!;
       tables.statusSetBy.push(DEFAULT_STATUS);
       return createBy.data;
     }) as never);
@@ -262,8 +263,11 @@ export function mockMonitorRecordTables(input: {
     query: JSONObject;
   }): Promise<PositiveNumber> => {
     return new PositiveNumber(
-      readByState(tables.incidents, "currentIncidentStateId", countBy.query)
-        .length,
+      readByState(
+        tables.incidents,
+        "currentIncidentStateId",
+        countBy.query,
+      ).length,
     );
   }) as never);
   jest.spyOn(IncidentService, "create").mockImplementation((async (createBy: {

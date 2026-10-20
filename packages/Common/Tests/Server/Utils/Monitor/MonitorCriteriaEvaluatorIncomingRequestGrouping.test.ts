@@ -289,9 +289,11 @@ describe("a grouped criteria that matches", () => {
 
     const events: Array<MonitorEvaluationEvent> = groupingEvents(summary);
 
-    expect(events.map((event: MonitorEvaluationEvent) => event.title)).toEqual(
-      [GROUPING_NOTE_TITLES.noValue],
-    );
+    expect(
+      events.map((event: MonitorEvaluationEvent) => {
+        return event.title;
+      }),
+    ).toEqual([GROUPING_NOTE_TITLES.noValue]);
     expect(events[0]!.message).toBe(
       'This request has no value at requestBody.alerts[*].labels.alertname. Criteria "Firing" handles it for the whole monitor, as it would without grouping.',
     );

@@ -1855,9 +1855,7 @@ describe("Incoming Request Monitor", () => {
           grouping: undefined,
         }).perKeyMatches,
       ).toBeUndefined();
-      expect(
-        section(page, "### Turning on incident grouping"),
-      ).toContain(
+      expect(section(page, "### Turning on incident grouping")).toContain(
         "Grouping belongs to the criteria it is turned on in. The monitor's other criteria do not group: when one of them matches a request, it opens its incident and alert as it would on a monitor where no criteria groups.",
       );
     });
@@ -1941,8 +1939,8 @@ describe("Incoming Request Monitor", () => {
 
     it("leaves the grouping variable as written in a title, since it has no value", () => {
       // What the incident creator renders for an incident with no value.
-      const storageMap: JSONObject = MonitorTemplateUtil.buildTemplateStorageMap(
-        {
+      const storageMap: JSONObject =
+        MonitorTemplateUtil.buildTemplateStorageMap({
           monitorType: MonitorType.IncomingRequest,
           dataToProcess: {
             projectId: ObjectID.generate(),
@@ -1954,8 +1952,7 @@ describe("Incoming Request Monitor", () => {
             typeof MonitorTemplateUtil.buildTemplateStorageMap
           >[0]["dataToProcess"],
           seriesLabels: undefined,
-        },
-      );
+        });
 
       expect(
         MonitorTemplateUtil.processTemplateString({

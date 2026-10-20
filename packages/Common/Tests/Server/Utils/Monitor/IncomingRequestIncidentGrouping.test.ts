@@ -664,14 +664,12 @@ describe("IncomingRequestIncidentGrouping", () => {
        * The resolved fingerprint must equal the firing fingerprint for the
        * same key — otherwise resolution would target the wrong incident.
        */
-      const firingForRecovered: Array<PerSeriesCriteriaMatch> = firingMatches(
-        {
-          dataToProcess: makeRequest({
-            alerts: [{ status: "firing", labels: { alertname: "Recovered" } }],
-          }),
-          criteriaInstance: makeCriteria(PER_ALERT),
-        },
-      );
+      const firingForRecovered: Array<PerSeriesCriteriaMatch> = firingMatches({
+        dataToProcess: makeRequest({
+          alerts: [{ status: "firing", labels: { alertname: "Recovered" } }],
+        }),
+        criteriaInstance: makeCriteria(PER_ALERT),
+      });
 
       expect(resolved[0]).toBe(firingForRecovered[0]!.fingerprint);
     });

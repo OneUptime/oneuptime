@@ -118,9 +118,11 @@ let tables: MonitorRecordTables;
 let lastRequest: IncomingMonitorRequest | null = null;
 
 function openIncidentTitles(): Array<string> {
-  return tables.incidents.filter(isOpenIncident).map((incident: Incident): string => {
-    return incident.title || "";
-  });
+  return tables.incidents
+    .filter(isOpenIncident)
+    .map((incident: Incident): string => {
+      return incident.title || "";
+    });
 }
 
 function openAlertTitles(): Array<string> {
@@ -288,7 +290,9 @@ function allClear(): MonitorCriteriaInstance {
   });
 }
 
-function monitorWith(criteriaInstances: Array<MonitorCriteriaInstance>): Monitor {
+function monitorWith(
+  criteriaInstances: Array<MonitorCriteriaInstance>,
+): Monitor {
   const step: MonitorStep = new MonitorStep();
   const monitorCriteria: MonitorCriteria = new MonitorCriteria();
   monitorCriteria.data = {
@@ -316,7 +320,9 @@ function monitorWith(criteriaInstances: Array<MonitorCriteriaInstance>): Monitor
 let monitorUnderTest: Monitor = monitorWith([]);
 
 // A request as the ingest worker hands it over (ProcessIncomingRequestIngest).
-function request(body: JSONObject | string | undefined): IncomingMonitorRequest {
+function request(
+  body: JSONObject | string | undefined,
+): IncomingMonitorRequest {
   const now: Date = OneUptimeDate.getCurrentDate();
 
   return {
@@ -563,7 +569,10 @@ describe("The customer's monitor: criteria 1 groups, criteria 2 does not", () =>
     await send({ test: "test" });
     await send({ kind: "x", groupLabels: { alertname: "HighCPU" } });
 
-    expect(openAlertTitles()).toEqual(["A request without x", "Alert: HighCPU"]);
+    expect(openAlertTitles()).toEqual([
+      "A request without x",
+      "Alert: HighCPU",
+    ]);
   });
 });
 
@@ -589,7 +598,9 @@ describe("A grouped criteria that matches a request without its field", () => {
     expect(tables.incidents[0]!.createdCriteriaId).toBe(CONTAINS_X_ID);
 
     // The rest of the template still reads the request.
-    expect(tables.incidents[0]!.description).toContain("A payload of another shape");
+    expect(tables.incidents[0]!.description).toContain(
+      "A payload of another shape",
+    );
 
     const notes: Array<MonitorEvaluationEvent> = groupingNotes(summary);
 
@@ -611,7 +622,10 @@ describe("A grouped criteria that matches a request without its field", () => {
   it("says so in the root cause of what it opened", async () => {
     await send({ kind: "x" });
 
-    for (const rootCause of [tables.incidents[0]!.rootCause, tables.alerts[0]!.rootCause]) {
+    for (const rootCause of [
+      tables.incidents[0]!.rootCause,
+      tables.alerts[0]!.rootCause,
+    ]) {
       expect(rootCause).toContain("**Criteria Name**: Contains x");
       expect(rootCause).toContain(
         "**Grouping**: The request had no value at `requestBody.groupLabels.alertname`, so it counts for the whole monitor rather than for one value.",
@@ -745,9 +759,11 @@ describe("Recovery, with and without the field", () => {
 
     const notes: Array<MonitorEvaluationEvent> = groupingNotes(summary);
 
-    expect(notes.map((note: MonitorEvaluationEvent) => note.title)).toEqual([
-      "Nothing new to open",
-    ]);
+    expect(
+      notes.map((note: MonitorEvaluationEvent) => {
+        return note.title;
+      }),
+    ).toEqual(["Nothing new to open"]);
     expect(notes[0]!.message).toBe(
       'Every value this request has at requestBody.alerts[*].labels.alertname reported recovered, so criteria "Firing" opens nothing new.',
     );
@@ -825,9 +841,11 @@ describe("Recovery, with and without the field", () => {
 
     const notes: Array<MonitorEvaluationEvent> = groupingNotes(summary);
 
-    expect(notes.map((note: MonitorEvaluationEvent) => note.title)).toEqual([
-      "Some items have no value to group by",
-    ]);
+    expect(
+      notes.map((note: MonitorEvaluationEvent) => {
+        return note.title;
+      }),
+    ).toEqual(["Some items have no value to group by"]);
     expect(notes[0]!.message).toBe(
       "2 items in this request have no value at requestBody.alerts[*].labels.alertname, so they open nothing of their own.",
     );
@@ -986,7 +1004,11 @@ describe("The background check", () => {
     expect(metCriteria(summary)).toEqual(["No request in 10 minutes"]);
     expect(openIncidentTitles()).toEqual(["Requests stopped"]);
     expect(openAlertTitles()).toEqual(["Requests stopped"]);
-    expect(groupingNotes(summary).map((note: MonitorEvaluationEvent) => note.message)).toEqual([
+    expect(
+      groupingNotes(summary).map((note: MonitorEvaluationEvent) => {
+        return note.message;
+      }),
+    ).toEqual([
       'Criteria "No request in 10 minutes" matched because requests stopped arriving. It handles that for the whole monitor, as it would without grouping.',
     ]);
   });
@@ -1002,11 +1024,7 @@ describe("The background check", () => {
   });
 
   it("re-reading the last request opens no value again, even one resolved by hand", async () => {
-    monitorUnderTest = monitorWith([
-      silence(undefined),
-      firing(),
-      allClear(),
-    ]);
+    monitorUnderTest = monitorWith([silence(undefined), firing(), allClear()]);
 
     await send(notification("firing", [["HighCPU", "firing"]]));
     expect(openIncidentTitles()).toEqual(["HighCPU"]);
@@ -1019,7 +1037,11 @@ describe("The background check", () => {
     expect(metCriteria(summary)).toEqual(["Firing"]);
     expect(openIncidentTitles()).toEqual([]);
     expect(tables.incidents).toHaveLength(1);
-    expect(groupingNotes(summary).map((note: MonitorEvaluationEvent) => note.message)).toEqual([
+    expect(
+      groupingNotes(summary).map((note: MonitorEvaluationEvent) => {
+        return note.message;
+      }),
+    ).toEqual([
       'The background check re-read the last request. Criteria "Firing" opens one per value as a request arrives, not when it is re-read.',
     ]);
   });
@@ -1081,9 +1103,10 @@ describe("A recovery field with [*] when the grouping field has none", () => {
     expect(
       IncomingRequestIncidentGrouping.collectResolvedFingerprints({
         dataToProcess: request(grafana("HighCPU", ["resolved"])),
-        criteriaInstances: [monitorUnderTest.monitorSteps!.data!
-          .monitorStepsInstanceArray[0]!.data!.monitorCriteria.data!
-          .monitorCriteriaInstanceArray[0]!],
+        criteriaInstances: [
+          monitorUnderTest.monitorSteps!.data!.monitorStepsInstanceArray[0]!
+            .data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!,
+        ],
       }),
     ).toEqual([tables.incidents[0]!.seriesFingerprint]);
   });

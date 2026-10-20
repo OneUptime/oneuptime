@@ -375,16 +375,16 @@ describe("EvaluationLogList grouping notes", () => {
     );
 
     expect(
-      note.compareDocumentPosition(opened) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      note.compareDocumentPosition(opened) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
   it("offers no button of its own: it names no incident or alert", () => {
     renderGroupedMatch();
 
-    const noteRow: HTMLElement = screen.getByText("No value to group by")
-      .parentElement!;
+    const noteRow: HTMLElement = screen.getByText(
+      "No value to group by",
+    ).parentElement!;
 
     expect(within(noteRow).queryByRole("button")).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "View Alert" })).toHaveLength(

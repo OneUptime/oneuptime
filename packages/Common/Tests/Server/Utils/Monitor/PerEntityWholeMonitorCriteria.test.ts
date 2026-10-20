@@ -399,12 +399,10 @@ describe("PerEntityCriteriaFanOut: which criteria judge the whole monitor", () =
     const judged: Record<string, boolean> = {};
 
     for (const instance of pack) {
-      judged[instance.data!.name] = PerEntityCriteriaFanOut.judgesWholeMonitor(
-        {
-          monitorType: MonitorType.NetworkDevice,
-          criteriaInstance: instance,
-        },
-      );
+      judged[instance.data!.name] = PerEntityCriteriaFanOut.judgesWholeMonitor({
+        monitorType: MonitorType.NetworkDevice,
+        criteriaInstance: instance,
+      });
     }
 
     expect(judged).toEqual({
@@ -727,12 +725,20 @@ describe("end to end: a Server monitor with a '*' disk criteria", () => {
     return response.evaluationSummary!;
   }
 
+  // A disk's alert by its disk ("disk /data"), the others by their title.
   function openAlerts(): Array<string> {
     return tables.alerts.filter(isOpenAlert).map((alert: Alert): string => {
-      const disk: unknown = (alert.seriesLabels as JSONObject | undefined)?.[
-        "diskPath"
-      ];
-      return disk ? `${alert.createdCriteriaId === DISKS_ID ? "disk" : "?"} ${String(disk)}` : alert.title || "";
+      if (alert.createdCriteriaId === DISKS_ID) {
+        return `disk ${String((alert.seriesLabels as JSONObject)["diskPath"])}`;
+      }
+
+      // Every other criteria judges the whole monitor: no series labels.
+      expect(alert.seriesLabels).toBeUndefined();
+      expect(alert.seriesFingerprint).toBe(
+        MetricSeriesFingerprint.WholeMonitorFingerprint,
+      );
+
+      return alert.title || "";
     });
   }
 
