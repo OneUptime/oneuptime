@@ -311,7 +311,7 @@ A etapa nomeia uma variável secreta que não permite o uso pelo seu Runner, ent
 :::
 
 :::details Uma etapa kubectl falha porque seu Runner é antigo demais
-A etapa falhou com "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Um Runner anterior aos scripts kubectl não consegue executar um. Atualize o Runner, como mostra [Manter o agente atualizado](#5-manter-o-agente-atualizado), e execute o runbook de novo.
+A etapa falhou com "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Um Runner anterior aos scripts kubectl não consegue executar um. Uma etapa Kubernetes levada a um script kubectl na atualização ainda é executada nele como a ação com que foi escrita, até que seu script ou seu kubeconfig mude. Atualize o Runner, como mostra [Manter o agente atualizado](#5-manter-o-agente-atualizado), e execute o runbook de novo.
 :::
 
 ## Próximos passos

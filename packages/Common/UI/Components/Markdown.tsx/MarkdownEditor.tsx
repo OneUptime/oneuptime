@@ -14,6 +14,8 @@ import MimeType from "../../../Types/File/MimeType";
 import FileModel from "../../../Models/DatabaseModels/File";
 import DOMPurify from "dompurify";
 import { htmlToMarkdown, markdownToHtml } from "./MarkdownConverters";
+import { findAddressAtEnd } from "./MarkdownLinkSpans";
+import { withoutTrailingRun } from "../../../Utils/TrailingRuns";
 import {
   indentMarkdownLines,
   isInFencedCodeBlock,
@@ -180,8 +182,12 @@ const sanitizeHtml: (html: string) => string = (html: string): string => {
 const RE_SINGLE_PARAGRAPH: RegExp = /^<p>([\s\S]*)<\/p>$/;
 const RE_LINE_BREAKS: RegExp = /\r\n?/g;
 const RE_SHOWN_CHARACTER: RegExp = /\S/;
-const RE_BLANKS_AT_END: RegExp = /[ \t]*$/;
 const RE_BLANKS_AT_START: RegExp = /^[ \t]*/;
+
+// A space or a tab: what /[ \t]*$/ took off the end of a line.
+const isBlankCode: (code: number) => boolean = (code: number): boolean => {
+  return code === 0x20 || code === 0x09;
+};
 // A list item's line, up to its marker: its indentation is group 1.
 const RE_LIST_ITEM_LINE: RegExp = /^([ \t]*)(?:[-*+]|\d{1,9}[.)])(?=[ \t]|$)/;
 // A list item's line holding nothing but its marker (and a task's box).
@@ -239,8 +245,13 @@ const onLinesOfItsOwn: (
   if (!textBefore && !textAfter) {
     return markdown;
   }
+  /*
+   * The spaces and tabs that end the text before the caret, counted back
+   * from its end: as /[ \t]*$/ they were looked for from each character of
+   * each run of them, in time that grew with the square of a long run.
+   */
   const spacesBefore: number = textBefore
-    ? (before.match(RE_BLANKS_AT_END)?.[0] || "").length
+    ? before.length - withoutTrailingRun(before, isBlankCode).length
     : 0;
   const spacesAfter: number = textAfter
     ? (after.match(RE_BLANKS_AT_START)?.[0] || "").length
@@ -842,10 +853,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     if (mode === "wysiwyg") {
       const editable: HTMLDivElement | null = editableRef.current;
       if (editable) {
-        const placeholderUrl: RegExpMatchArray | null =
-          needle.match(/\(([^)]+)\)\s*$/);
-        if (placeholderUrl && placeholderUrl[1]) {
-          const url: string = placeholderUrl[1];
+        const url: string | null = findAddressAtEnd(needle);
+        if (url) {
           const imgs: NodeListOf<HTMLImageElement> = editable.querySelectorAll(
             `img[src="${url}"]`,
           );

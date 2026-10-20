@@ -52,7 +52,12 @@ import path from "path";
  *  - the frame viewer reads a stack trace's lines (a Python header, a
  *    frame's "at", call and location, a Go module's path) with
  *    StackTraceLineText, and every pattern left in it reads the traces that
- *    were slow quickly.
+ *    were slow quickly;
+ *  - the markdown editor reads a heading line with readHeadingLine, images
+ *    and links with findImageSpans / findLinkSpans, a run that ends a text
+ *    with withoutTrailingRun, and takes each run of white space whole: every
+ *    pattern of its converters and of the helpers that read its lines reads
+ *    the notes that were slow quickly.
  *
  * And every pattern of these shapes, wherever it is, reads the texts that
  * were slow in well under two seconds.
@@ -155,6 +160,43 @@ const STACK_TRACE_PRESENTATION_FILE: string =
   "packages/App/FeatureSet/Dashboard/src/Utils/StackTracePresentation.ts";
 const STACK_TRACE_LINE_TEXT_FILE: string =
   "packages/App/FeatureSet/Dashboard/src/Utils/StackTraceLineText.ts";
+
+// The markdown editor: its converters and the helpers that read its lines.
+const MARKDOWN_EDITOR_FOLDER: string =
+  "packages/Common/UI/Components/Markdown.tsx/";
+const MARKDOWN_CONVERTERS_FILE: string =
+  MARKDOWN_EDITOR_FOLDER + "MarkdownConverters.ts";
+const MARKDOWN_EDITOR_FILES: ReadonlyArray<string> = [
+  MARKDOWN_CONVERTERS_FILE,
+  MARKDOWN_EDITOR_FOLDER + "MarkdownEditor.tsx",
+  MARKDOWN_EDITOR_FOLDER + "MarkdownPaste.ts",
+  MARKDOWN_EDITOR_FOLDER + "MarkdownListEditing.ts",
+  MARKDOWN_EDITOR_FOLDER + "MarkdownVisualEditing.ts",
+  MARKDOWN_EDITOR_FOLDER + "MarkdownHeadingLine.ts",
+  MARKDOWN_EDITOR_FOLDER + "MarkdownLinkSpans.ts",
+];
+
+// What the editor read a note's lines, spans and runs with before.
+const MARKDOWN_EDITOR_SHAPES_BEFORE: ReadonlyArray<string> = [
+  "^\\s{0,3}(#{1,6})\\s+(.*?)\\s*#*\\s*$",
+  "^\\s*\\|?\\s*:?-+:?\\s*(\\|\\s*:?-+:?\\s*)*\\|?\\s*$",
+  "^\\s*```\\s*([\\w-]*)\\s*$",
+  "^(\\s*)([-*+]|\\d+\\.)\\s+(.*)$",
+  "^(\\s*)([-*+]|\\d+\\.)(?:\\s+(.*)|\\s*)$",
+  "^\\[([ xX])\\]\\s+(.*)$",
+  "<\\/?(?:u|sub|sup|kbd|br)(?:\\s[^>]*)?\\/?>",
+  '!\\[([^\\]]*)\\]\\(([^)\\s]+)(?:\\s+"([^"]*)")?\\)',
+  '\\[([^\\]]+)\\]\\(([^)\\s]+)(?:\\s+"([^"]*)")?\\)',
+  "\\*\\*\\*(?=\\S)([\\s\\S]*?\\S)\\*\\*\\*",
+  "\\n+$",
+  "\\n*$",
+  "[ \\t]*$",
+  "\\s+$",
+  "[ \\t\\n\\r\\f]+$",
+  "\\(([^)]+)\\)\\s*$",
+  "^([ \\t]*)([-*+]|\\d{1,9}[.)])([ \\t]+|$)(.*)$",
+  "^([ \\t]*)(\\d{1,9})\\)[ \\t]+(.*)$",
+];
 
 // What the frame viewer read a trace's lines with before StackTraceLineText.
 const FRAME_VIEWER_SHAPES_BEFORE: ReadonlyArray<string> = [
@@ -453,6 +495,47 @@ const FAMILIES: ReadonlyArray<Family> = [
       repeat("/pkg/mod/", LENGTH),
     ],
   },
+  {
+    name: "a note's lines, images, links, tags and runs in the markdown editor",
+    exampleFile: MARKDOWN_CONVERTERS_FILE,
+    isMember: (pattern: SourcePattern): boolean => {
+      return MARKDOWN_EDITOR_FILES.includes(pattern.file);
+    },
+    breaksRule: (pattern: SourcePattern): string | null => {
+      return MARKDOWN_EDITOR_SHAPES_BEFORE.includes(pattern.source)
+        ? "read a heading with readHeadingLine, images and links with findImageSpans / findLinkSpans, a run that ends a text with withoutTrailingRun, and take each run of white space whole"
+        : null;
+    },
+    mustFind: MARKDOWN_EDITOR_FILES.filter((file: string): boolean => {
+      // The two readers read by hand: no pattern of their own to find.
+      return (
+        !file.endsWith("MarkdownHeadingLine.ts") &&
+        !file.endsWith("MarkdownLinkSpans.ts")
+      );
+    }),
+    oldShapes: MARKDOWN_EDITOR_SHAPES_BEFORE,
+    slowTexts: [
+      "# a" + repeat(" ", LENGTH) + "x",
+      "#\t" +
+        repeat("\t", LENGTH) +
+        "x" +
+        repeat("\t", LENGTH) +
+        LINE_SEPARATOR +
+        "\tx",
+      repeat(" ", LENGTH) + "-" + repeat(" ", LENGTH) + "x|",
+      "```" + repeat("\t", LENGTH) + "```",
+      "-\t" + repeat("\t", LENGTH) + "x" + LINE_SEPARATOR + "y",
+      "1)" + repeat("\t", LENGTH) + "x" + LINE_SEPARATOR,
+      repeat("<U\t", LENGTH),
+      repeat("![](\u0000", LENGTH),
+      repeat("[(](((", LENGTH) + "][\t](\u0000)",
+      repeat(" ***a", LENGTH),
+      repeat("(", LENGTH) + "a",
+      repeat("\n", LENGTH) + "\u0000\n",
+      repeat("\t", LENGTH) + "\u0000\t",
+      repeat(" ", LENGTH) + "\u0000 ",
+    ],
+  },
 ];
 
 const PRODUCT_PATTERNS: Array<SourcePattern> = listProductFiles()
@@ -627,6 +710,10 @@ const TRAILING_RUN_READERS: ReadonlyArray<[string, string]> = [
     "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData.ts",
     "withoutTrailingRun(",
   ],
+  [MARKDOWN_CONVERTERS_FILE, "withoutTrailingRun("],
+  [MARKDOWN_EDITOR_FOLDER + "MarkdownEditor.tsx", "withoutTrailingRun("],
+  [MARKDOWN_EDITOR_FOLDER + "MarkdownPaste.ts", "withoutTrailingRun("],
+  [MARKDOWN_EDITOR_FOLDER + "MarkdownVisualEditing.ts", "withoutTrailingRun("],
 ];
 
 // One atom - an escape, a bracket class or a plain character.
@@ -661,6 +748,7 @@ const FROM_EVERY_OPENER: ReadonlyArray<string> = [
 const OPENER_READERS: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportData.ts",
   "packages/Common/Server/Utils/Monitor/IncomingRequestIncidentGrouping.ts",
+  MARKDOWN_CONVERTERS_FILE,
 ];
 
 describe("the files that read outside text take a run that ends it off from its end", () => {
@@ -870,6 +958,21 @@ describe("the readers each family is held to are the ones the product uses", () 
         "endsWithFileLocation(",
         "readGoModulePath(",
       ],
+    ],
+    [
+      MARKDOWN_CONVERTERS_FILE,
+      [
+        "readHeadingLine(",
+        "findImageSpans(",
+        "findLinkSpans(",
+        "withoutTrailingRun(",
+        "RE_ALLOWED_TAG_OR_UNCLOSED",
+        "RE_BOLD_ITALIC_OR_UNCLOSED",
+      ],
+    ],
+    [
+      MARKDOWN_EDITOR_FOLDER + "MarkdownEditor.tsx",
+      ["findAddressAtEnd(", "withoutTrailingRun("],
     ],
   ])("%s", (file: string, calls: Array<string>) => {
     const text: string = fs.readFileSync(

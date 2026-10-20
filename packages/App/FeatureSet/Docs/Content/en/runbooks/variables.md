@@ -97,6 +97,8 @@ Runbook variables took the place of runbook secrets, and of the credentials SSH 
 - every credential a step named became secret global variables with the same Runners, named after it: `<name>-ssh-key` (and `<name>-ssh-key-passphrase`, for a key that had one), `<name>-ssh-password` or `<name>-kubeconfig`;
 - every SSH step that named a credential signs in to its machine with them and runs its command as its script, and every Kubernetes step became a kubectl step that runs the `kubectl patch` its action made, which needs no more access than the step had.
 
+A Runner older than this release cannot run a kubectl script. So every Kubernetes step moved this way also kept its credential and action, and an older Runner runs the step with them, as it did. Once you change the step's script or kubeconfig, it keeps them no longer: like every new kubectl step, it then needs a Runner of this release, and an older one fails it and says to update the Runner.
+
 A step written through the API with a credential still runs with it, and its Steps page offers **Turn into a script step**. The credentials stay too, for what OneUptime AI's own commands reach: see [AI Access](/docs/runbooks/credentials).
 
 ## Next steps

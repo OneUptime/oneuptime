@@ -199,6 +199,151 @@ describe("getKubectlScriptForLegacyKubernetesStep", () => {
   });
 });
 
+/*
+ * Stored steps hold this text: a step the migration moved keeps its
+ * credential and action for a Runner older than kubectl scripts only while
+ * its script is the text its action becomes (getLegacyKubernetesStepForOlderRunner,
+ * mayKeepLegacyKubernetesFields). Changing a word here takes every moved
+ * step's action away from older Runners, so the text is held word for word.
+ */
+describe("getKubectlScriptForLegacyKubernetesStep, word for word", () => {
+  function restart(resource: string, name: string, namespace: string): string {
+    return [
+      `# Restart ${resource}/${name} in namespace ${namespace}: a new pod template annotation makes the controller replace its pods, as kubectl rollout restart does.`,
+      `patch=$(printf '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}' "$(date -u +%Y-%m-%dT%H:%M:%SZ)")`,
+      `kubectl patch ${resource} ${name} --namespace ${namespace} --patch "$patch"`,
+      "",
+    ].join("\n");
+  }
+
+  function failing(message: string): string {
+    return [`# ${message}`, `echo '${message}' >&2`, "exit 1", ""].join("\n");
+  }
+
+  test.each([
+    [
+      "a Deployment restarted",
+      {
+        action: KubernetesAction.RestartWorkload,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        namespace: "checkout",
+        workloadName: "checkout-api",
+      },
+      restart("deployment", "checkout-api", "checkout"),
+    ],
+    [
+      "a StatefulSet restarted with no action named",
+      {
+        workloadKind: KubernetesWorkloadKind.StatefulSet,
+        namespace: "db",
+        workloadName: "postgres",
+      },
+      restart("statefulset", "postgres", "db"),
+    ],
+    [
+      "a DaemonSet restarted",
+      {
+        action: KubernetesAction.RestartWorkload,
+        workloadKind: KubernetesWorkloadKind.DaemonSet,
+        namespace: "monitoring",
+        workloadName: "node-exporter",
+      },
+      restart("daemonset", "node-exporter", "monitoring"),
+    ],
+    [
+      "a Deployment scaled",
+      {
+        action: KubernetesAction.ScaleWorkload,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        namespace: "web",
+        workloadName: "api",
+        replicas: 3,
+      },
+      [
+        "# Scale deployment/api in namespace web to 3 replica(s).",
+        `kubectl patch deployment api --namespace web --subresource scale --patch '{"spec":{"replicas":3}}'`,
+        "",
+      ].join("\n"),
+    ],
+    [
+      "a StatefulSet scaled to zero",
+      {
+        action: KubernetesAction.ScaleWorkload,
+        workloadKind: KubernetesWorkloadKind.StatefulSet,
+        namespace: "jobs",
+        workloadName: "workers",
+        replicas: 0,
+      },
+      [
+        "# Scale statefulset/workers in namespace jobs to 0 replica(s).",
+        `kubectl patch statefulset workers --namespace jobs --subresource scale --patch '{"spec":{"replicas":0}}'`,
+        "",
+      ].join("\n"),
+    ],
+    [
+      "a DaemonSet scaled",
+      {
+        action: KubernetesAction.ScaleWorkload,
+        workloadKind: KubernetesWorkloadKind.DaemonSet,
+        namespace: "n",
+        workloadName: "w",
+        replicas: 2,
+      },
+      failing(
+        "A DaemonSet cannot be scaled - it runs one pod per node. Restart it instead.",
+      ),
+    ],
+    [
+      "a scale with no replica count",
+      {
+        action: KubernetesAction.ScaleWorkload,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        namespace: "n",
+        workloadName: "w",
+      },
+      failing("Scale step needs a replica count."),
+    ],
+    [
+      "no namespace",
+      {
+        action: KubernetesAction.RestartWorkload,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        workloadName: "w",
+      },
+      failing(
+        "This step needs a namespace and a workload name. Write the kubectl commands it should run.",
+      ),
+    ],
+    [
+      "a workload kind it never had",
+      {
+        action: KubernetesAction.RestartWorkload,
+        workloadKind: "CronJob" as KubernetesWorkloadKind,
+        namespace: "n",
+        workloadName: "w",
+      },
+      failing("Unsupported workload kind: CronJob"),
+    ],
+    [
+      "an action it never had",
+      {
+        action: "delete-workload" as KubernetesAction,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        namespace: "n",
+        workloadName: "w",
+      },
+      failing("Unsupported Kubernetes action: delete-workload"),
+    ],
+  ])(
+    "%s",
+    (_label: string, config: Record<string, unknown>, expected: string) => {
+      expect(getKubectlScriptForLegacyKubernetesStep(config as never)).toBe(
+        expected,
+      );
+    },
+  );
+});
+
 describe("isSshPrivateKey: a key or a password, by its value", () => {
   test.each([
     "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXk=\n-----END OPENSSH PRIVATE KEY-----",

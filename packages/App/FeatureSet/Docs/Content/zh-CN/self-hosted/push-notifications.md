@@ -70,6 +70,26 @@ vapid:
 expo:
   accessToken:
 ```
+
+:::details 将私钥保存在 Secret 中
+`vapid.privateKey` 会把私钥保存在发布的值中，而 Helm 会随每个修订版本存储这些值。若要让私钥不出现在这些值中，请将私钥以 `privateKey` 为键存入 OneUptime 所在命名空间中的一个 Kubernetes Secret，并改为指定该 Secret 的名称：
+
+```bash
+kubectl create secret generic oneuptime-vapid \
+  --namespace oneuptime \
+  --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+请设置 `vapid.privateKey` 或 `vapid.existingSecret.name`，而不要同时设置两者：chart 会拒绝同时设置这两项。如果你的 Secret 用其他键保存私钥，请在 `vapid.existingSecret.privateKeyKey` 中指定该键。公钥仍保留在 `vapid.publicKey` 中：每个浏览器都会拿到它。
+:::
 :::
 
 ## 网络访问

@@ -47,6 +47,7 @@ import {
   SSH_SIGN_IN_TITLE,
   ScriptExample,
   SshTarget,
+  applyStepConfigChange,
   convertLegacyCredentialStep,
   formatSshTarget,
   getFirstCommand,
@@ -768,14 +769,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   ): void => {
     setSteps((prev: RunbookStep[]) => {
       const copy: RunbookStep[] = [...prev];
-      const current: RunbookStep = copy[idx]!;
-      copy[idx] = {
-        ...current,
-        config: {
-          ...(current.config as Record<string, unknown>),
-          ...patch,
-        } as never,
-      };
+      /*
+       * A moved kubectl step whose script or kubeconfig changes loses the
+       * action it kept for older Runners (applyStepConfigChange).
+       */
+      copy[idx] = applyStepConfigChange(copy[idx]!, patch);
       return copy;
     });
     markDirty();

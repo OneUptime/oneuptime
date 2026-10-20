@@ -47,21 +47,26 @@ AWS에서 OneUptime은 EKS가 Kubernetes 서비스 계정에 부여하는 IAM �
 
 :::steps
 1. AWS Marketplace에서 OneUptime Enterprise를 구독한 다음, **Continue to Configuration**을 선택하고 버전을 고른 뒤 **Continue to Launch**를 선택합니다.
-2. 클러스터에 아직 IAM OIDC 공급자가 없다면 연결합니다. 그러면 `oneuptime` 서비스 계정을 IAM 역할과 함께 만드는 `eksctl` 명령이 시작 페이지에 표시되니, 이 명령을 실행합니다.
-3. 시작 페이지의 명령으로 Helm을 리스팅의 레지스트리에 로그인시키고, 값 파일을 전달해 차트를 설치합니다.
+2. 클러스터에 아직 IAM OIDC 공급자가 없다면 연결하고, 아래 명령으로 `AWSMarketplaceMeteringFullAccess` 정책이 있는 IAM 역할과 함께 `oneuptime` 서비스 계정을 만듭니다. 이 명령들은 시작 페이지의 **General launch instructions** 1단계에 있는 `eksctl` 명령 대신 실행합니다. 그 명령은 먼저 직접 만들어 두어야 하는 역할을 연결합니다.
+3. **General launch instructions** 2단계의 명령으로 Helm을 리스팅의 레지스트리에 로그인시키고 차트를 설치합니다. `helm install` 명령에서 `serviceAccount.name`은 `oneuptime`으로, `host`는 도메인 이름으로, OneUptime 앞에 인증서가 있다면 `httpProtocol`은 `https`로 설정합니다.
 4. [OneUptime을 엽니다](#oneuptime-열기).
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+3단계의 값은 파일에 보관해 두고, `helm upgrade`를 실행할 때마다 전달합니다.
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-이 파일은 보관해 두세요. `helm upgrade`를 실행할 때마다 전달합니다.
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ OneUptime은 새 릴리스가 시작될 때 데이터베이스를 마이그레�
 :::details 에디션 라벨에 Enterprise Edition (Marketplace Reports Failing)이 표시됩니다
 OneUptime이 마켓플레이스에 보고하지 못하고 있습니다. 이에 관해 OneUptime이 남기는 로그 줄은 모두 `OneUptime Enterprise marketplace billing`으로 시작하며, 사용량을 "cannot be reported"라고 하는 줄에 무엇이 빠졌는지가 나옵니다. 흔한 원인은 다음과 같습니다.
 
-- **AWS:** `oneuptime` 서비스 계정에 IAM 역할이 없거나, 역할에 `AWSMarketplaceMeteringFullAccess` 정책이 없습니다. 시작 페이지의 `eksctl` 명령으로 만드세요.
+- **AWS:** `oneuptime` 서비스 계정에 IAM 역할이 없거나, 역할에 `AWSMarketplaceMeteringFullAccess` 정책이 없습니다(`AWSMarketplaceMeteringRegisterUsage`만으로는 부족합니다). 역할에 정책을 연결하거나, [AWS Marketplace](#aws-marketplace)의 `eksctl` 명령으로 역할을 만든 뒤 `kubectl rollout restart deployment --namespace oneuptime`으로 OneUptime의 파드를 다시 시작하세요.
 - **Azure:** 설치가 Microsoft Marketplace 애플리케이션이 아니어서(예를 들어 Helm으로 설치한 경우) 보고에 쓸 ID도 플랜도 없습니다. Azure portal에서 설치하세요.
 - **Google Cloud:** 배포의 보고용 시크릿이 삭제되었거나 교체되었습니다.
 - **모든 마켓플레이스:** 방화벽이나 프록시가 나가는 HTTPS([시작하기 전에](#시작하기-전에) 참고)를 차단하고 있습니다.

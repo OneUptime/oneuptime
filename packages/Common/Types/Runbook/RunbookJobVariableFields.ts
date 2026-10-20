@@ -14,7 +14,9 @@ import {
  *   - an SSH step that takes a script in its payload's host, username,
  *     signIn (the key or password), passphrase and script;
  *   - a kubectl step (Kubernetes, with a script) in its payload's
- *     kubeconfig and script.
+ *     kubeconfig and script. The action a step moved from a Kubernetes
+ *     action keeps beside them for an older Runner (its payload's
+ *     legacyStep, RunbookLegacySteps) names none.
  *
  * An SSH or Kubernetes job that names a credential (a step written before
  * runbook variables, or a command OneUptime AI composed) names none: its

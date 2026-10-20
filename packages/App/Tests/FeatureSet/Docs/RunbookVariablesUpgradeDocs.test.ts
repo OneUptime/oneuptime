@@ -10,6 +10,21 @@ import {
   readRunbookVariableReference,
 } from "Common/Types/Runbook/RunbookVariableReference";
 import { RUNNER_FEATURE_KUBECTL_SCRIPT } from "Common/Types/Runbook/RunnerFeatures";
+import {
+  MovedCredential,
+  moveStep,
+} from "Common/Server/Utils/Runbook/RunbookVariablesMove";
+import {
+  getLegacyKubernetesStepForOlderRunner,
+  mayKeepLegacyKubernetesFields,
+} from "Common/Types/Runbook/RunbookLegacySteps";
+import {
+  KubernetesAction,
+  KubernetesWorkloadKind,
+} from "Common/Types/Runbook/RunbookStep";
+import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
+import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -30,7 +45,10 @@ import path from "path";
  *     into variables runs once on every install (Workers' DataMigrations);
  *   - {{runbookSecrets.NAME}} still reads the global variable NAME;
  *   - a kubectl step that runs a script goes only to a Runner that says it
- *     can run one, and an older Runner fails it saying so.
+ *     can run one, and an older Runner fails it saying so;
+ *   - a moved Kubernetes step keeps its credential and action, which an
+ *     older Runner is handed instead, until its script or kubeconfig is
+ *     changed.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
@@ -85,7 +103,8 @@ describe("the English upgrade note on runbook variables", () => {
       "Every runbook secret is now a secret global variable of the same name, with its value, its Runners and its switch for global Runners, now called **Global Runners can use it**, and `{{runbookSecrets.NAME}}` still reads it.",
       "An SSH step now runs a bash script and signs in with a secret variable, and a Kubernetes step is now a kubectl step that runs a script of kubectl commands with a kubeconfig variable.",
       "The credentials stay, under **Runbooks → Runners → AI Access**, for OneUptime AI's own commands.",
-      "A kubectl step that runs a script needs a Runner of this release: an older one fails such a step and says so, so update your Runners.",
+      "A moved Kubernetes step also keeps its credential and action, so a Runner older than this release still runs it as it did.",
+      "A new kubectl step, and a moved one once its script or kubeconfig is changed, needs a Runner of this release: an older one fails such a step and says so, so update your Runners.",
     ]) {
       expect({ claim, said: ENGLISH_NOTE.includes(claim) }).toEqual({
         claim,
@@ -131,6 +150,60 @@ describe("the note is true to the upgrade", () => {
     expect(ingress).toContain(
       "This kubectl step runs a script, and this Runner is too old to run one, so it was not run.",
     );
+  });
+
+  it("keeps a moved Kubernetes step's credential and action for an older Runner, until its script or kubeconfig changes", () => {
+    const legacy: JSONObject = {
+      credentialId: "11111111-1111-4111-8111-111111111111",
+      action: KubernetesAction.RestartWorkload,
+      workloadKind: KubernetesWorkloadKind.Deployment,
+      namespace: "web",
+      workloadName: "api",
+    };
+
+    const moved: JSONObject | null = moveStep({
+      step: {
+        id: "k1",
+        type: RunbookStepType.Kubernetes,
+        config: { ...legacy, agentId: "runner" },
+      },
+      credentials: new Map<string, MovedCredential>([
+        [
+          "11111111-1111-4111-8111-111111111111",
+          {
+            credentialType: RunbookCredentialType.Kubernetes,
+            kubeconfigVariable: "prod-kubeconfig",
+          },
+        ],
+      ]),
+      secretNames: new Map<string, string>(),
+    });
+    const config: JSONObject = moved!["config"] as JSONObject;
+
+    // An older Runner is handed the action, as the step was written ...
+    expect(getLegacyKubernetesStepForOlderRunner(config)).toEqual(legacy);
+
+    // ... while the step is unchanged; a changed script or kubeconfig drops it.
+    expect(mayKeepLegacyKubernetesFields({ config, heldConfig: config })).toBe(
+      true,
+    );
+    expect(
+      mayKeepLegacyKubernetesFields({
+        config: { ...config, script: "kubectl get pods" },
+        heldConfig: config,
+      }),
+    ).toBe(false);
+    expect(
+      mayKeepLegacyKubernetesFields({
+        config: { ...config, kubeconfig: "" },
+        heldConfig: config,
+      }),
+    ).toBe(false);
+
+    const ingress: string = source(
+      "App/FeatureSet/Runbook/API/RunnerIngress.ts",
+    );
+    expect(ingress).toContain("RunnerIngressAPI.claimLegacyKubernetesStep(");
   });
 });
 

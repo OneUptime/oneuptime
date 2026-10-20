@@ -26,6 +26,10 @@ import RunbookVariableResolver, {
   ResolvedRunbookVariable,
   RunbookVariableResolution,
 } from "Common/Server/Utils/Runbook/RunbookVariableResolver";
+import {
+  LEGACY_KUBERNETES_STEP_JOB_KEY,
+  getLegacyKubernetesStepForOlderRunner,
+} from "Common/Types/Runbook/RunbookLegacySteps";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -652,6 +656,13 @@ async function runLegacySshStep(
  * Runner's own access when it names none. Its job carries the references;
  * the Runner that takes it is handed the script and the kubeconfig, filled
  * in for it.
+ *
+ * A step the data migration moved from a Kubernetes action kept that action
+ * and its credential (RunbookLegacySteps), and its job carries them too,
+ * beside the script: a Runner older than kubectl scripts is handed the step
+ * that way and runs it as it always did (RunnerIngress), as a moved SSH
+ * step's script is also its command. Only while the script is still the
+ * one the action became.
  */
 export async function runKubernetesStep(
   step: RunbookStep,
@@ -683,6 +694,9 @@ export async function runKubernetesStep(
     };
   }
 
+  const legacyStep: JSONObject | null =
+    getLegacyKubernetesStepForOlderRunner(config);
+
   return dispatchToAgent({
     stepType: RunbookStepType.Kubernetes,
     step,
@@ -693,6 +707,7 @@ export async function runKubernetesStep(
         ? { kubeconfig: config.kubeconfig.trim() }
         : {}),
       script,
+      ...(legacyStep ? { [LEGACY_KUBERNETES_STEP_JOB_KEY]: legacyStep } : {}),
     },
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),

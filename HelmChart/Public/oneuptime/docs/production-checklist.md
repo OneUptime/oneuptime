@@ -185,6 +185,10 @@ Work through this list to make your OneUptime installation production-ready.
   A chart-generated identity key is re-randomised on every render, which silently
   re-registers the probe and leaves its monitors pointing at an orphan. See
   [Configuration](configuration.md#probe-and-runner-identity-keys).
+- [ ] **Keep the VAPID private key in a Secret you manage** if you use web push
+  and keep your values in Git: point `vapid.existingSecret.name` at it instead
+  of setting `vapid.privateKey`. See
+  [Configuration](configuration.md#web-push-notifications).
 
 ## Stay current
 

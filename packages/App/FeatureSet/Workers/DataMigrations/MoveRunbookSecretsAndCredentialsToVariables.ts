@@ -14,9 +14,11 @@ import logger from "Common/Server/Utils/Logger";
  * the secret variables its key, password or kubeconfig went into; and every
  * step is rewritten to use them - an SSH step signs in with the variable and
  * runs its command as its script, a Kubernetes step runs the kubectl command
- * its action made - so every runbook keeps running as it did. What the move
- * does, and why, is in Common/Server/Utils/Runbook/RunbookVariablesMove,
- * where it is tested against a migrated Postgres.
+ * its action made and keeps its credential and action for a Runner older
+ * than kubectl scripts - so every runbook keeps running as it did, on every
+ * Runner. What the move does, and why, is in
+ * Common/Server/Utils/Runbook/RunbookVariablesMove, where it is tested
+ * against a migrated Postgres.
  *
  * Never throws for one project: its failure is logged, the others go on,
  * and the summary says how much moved.

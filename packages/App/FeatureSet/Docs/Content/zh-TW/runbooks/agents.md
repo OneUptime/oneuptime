@@ -311,7 +311,7 @@ Runner 認領了工作，然後停止續約：它當機了、重新啟動了或�
 :::
 
 :::details kubectl 步驟失敗，因為其 Runner 太舊
-步驟失敗並顯示 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." 早於 kubectl 指令碼的 Runner 無法執行指令碼。按 [讓代理程式保持最新](#5-讓代理程式保持最新) 中的說明更新 Runner，然後再次執行 Runbook。
+步驟失敗並顯示 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." 早於 kubectl 指令碼的 Runner 無法執行指令碼。升級時遷移為 kubectl 指令碼的 Kubernetes 步驟，在其指令碼或 kubeconfig 被變更之前，仍會以撰寫時的操作在這樣的 Runner 上執行。按 [讓代理程式保持最新](#5-讓代理程式保持最新) 中的說明更新 Runner，然後再次執行 Runbook。
 :::
 
 ## 後續步驟

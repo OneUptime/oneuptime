@@ -311,7 +311,7 @@ Trinnet nævner en hemmelig variabel, der ikke lader dets Runner bruge den, så 
 :::
 
 :::details Et kubectl-trin fejler, fordi dets Runner er for gammel
-Trinnet fejlede med "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." En Runner, der er ældre end kubectl-scripts, kan ikke køre et. Opdater Runneren, som [Hold agenten opdateret](#5-hold-agenten-opdateret) viser, og kør derefter runbooket igen.
+Trinnet fejlede med "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." En Runner, der er ældre end kubectl-scripts, kan ikke køre et. Et Kubernetes-trin, der blev flyttet til et kubectl-script ved opgraderingen, kører stadig på den som den handling, det blev skrevet som, indtil dets script eller kubeconfig ændres. Opdater Runneren, som [Hold agenten opdateret](#5-hold-agenten-opdateret) viser, og kør derefter runbooket igen.
 :::
 
 ## Næste skridt

@@ -70,6 +70,26 @@ vapid:
 expo:
   accessToken:
 ```
+
+:::details Хранение закрытого ключа в Secret
+`vapid.privateKey` хранит закрытый ключ в значениях релиза, которые Helm сохраняет с каждой ревизией. Чтобы закрытого ключа в них не было, поместите его в Secret Kubernetes в пространстве имён OneUptime под ключом `privateKey` и укажите вместо ключа имя этого Secret:
+
+```bash
+kubectl create secret generic oneuptime-vapid \
+  --namespace oneuptime \
+  --from-literal=privateKey=your-private-key
+```
+
+```yaml title="values.yaml"
+vapid:
+  publicKey: your-public-key
+  existingSecret:
+    name: oneuptime-vapid
+  subject: mailto:oncall@example.com
+```
+
+Задайте `vapid.privateKey` или `vapid.existingSecret.name`, но не оба: вместе чарт их не принимает. Если ваш Secret хранит закрытый ключ под другим ключом, укажите этот ключ в `vapid.existingSecret.privateKeyKey`. Открытый ключ остаётся в `vapid.publicKey`: его получает каждый браузер.
+:::
 :::
 
 ## Сетевой доступ
