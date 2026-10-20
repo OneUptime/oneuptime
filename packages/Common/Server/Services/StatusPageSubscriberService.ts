@@ -20,6 +20,7 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
+import { PROJECT_TWILIO_CONFIG_SELECT } from "../Utils/TwilioConfigSelect";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
@@ -2778,13 +2779,8 @@ export class Service extends ProjectReferencesService<Model> {
           _id: createdItem.statusPageId.toString(),
         },
         select: {
-          callSmsConfig: {
-            _id: true,
-            twilioAccountSID: true,
-            twilioAuthToken: true,
-            twilioPrimaryPhoneNumber: true,
-            twilioSecondaryPhoneNumbers: true,
-          },
+          // Every number it sends from, its SMS numbers included.
+          callSmsConfig: PROJECT_TWILIO_CONFIG_SELECT,
         },
         props: {
           isRoot: true,
@@ -4383,13 +4379,11 @@ Stay informed about service availability! 🚀`.toString();
           scope: true,
           oauthProviderType: true,
         },
-        callSmsConfig: {
-          _id: true,
-          twilioAccountSID: true,
-          twilioAuthToken: true,
-          twilioPrimaryPhoneNumber: true,
-          twilioSecondaryPhoneNumbers: true,
-        },
+        /*
+         * The page's Twilio config, with every number it sends from - its SMS
+         * numbers included, which subscriber SMS go out from when it has them.
+         */
+        callSmsConfig: PROJECT_TWILIO_CONFIG_SELECT,
         subscriberTimezones: true,
         reportDataInDays: true,
         reportPeriodType: true,

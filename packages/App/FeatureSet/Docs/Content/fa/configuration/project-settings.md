@@ -30,12 +30,12 @@ flowchart LR
 
 | بخش | صفحه‌ها | کجا بیشتر بخوانید |
 | --- | --- | --- |
-| **پایه** | **پروژه**، **برچسب‌ها**، **درون‌ریزی از ابزاری دیگر** | [جزئیات پروژه](#جزئیات-پروژه)، [برچسب‌ها](#برچسبها)، [انتقال از Opsgenie](/docs/moving-to-oneuptime/opsgenie) و دیگر راهنماهای انتقال |
+| **پایه** | **پروژه**، **برچسب‌ها** | [جزئیات پروژه](#جزئیات-پروژه)، [برچسب‌ها](#برچسبها) |
 | **فضای کاری** | **Slack**، **Microsoft Teams**، **Video Calls** | [Slack](/docs/workspace-connections/slack)، [Microsoft Teams](/docs/workspace-connections/microsoft-teams)، [تماس‌های تصویری](/docs/workspace-connections/video-calls) |
 | **تله‌متری و APM** | **کلیدهای دریافت داده**، **نگهداری داده** | [کلیدهای دریافت داده](/docs/telemetry/ingestion-keys)، [نگهداری داده](/docs/telemetry/data-retention) |
 | **اعلان‌ها** | **تنظیمات اعلان**، **گزارش‌های اعلان**، **اپلیکیشن‌های موبایل** | [اعلان‌ها](#اعلانها) |
 | **هوش مصنوعی** | **AI Features**، **ارائه‌دهندگان LLM**، **اعتبار هوش مصنوعی**، **گزارش‌های هوش مصنوعی**، **سرور MCP** | [ارائه‌دهندگان LLM](/docs/ai/llm-provider)، [سرور MCP](/docs/ai/mcp-server)، [AI SRE](/docs/ai/ai-sre#کنترلهای-هزینه) |
-| **پیشرفته** | **دامنه‌ها**، **کلیدهای API**، **پرچم‌های قابلیت** | [دامنه‌های سفارشی](/docs/status-pages/branding-and-domains#دامنههای-سفارشی)، [کلیدهای API](/docs/permissions/index#کلیدهای-api)، [پرچم‌های قابلیت](#پرچمهای-قابلیت) |
+| **پیشرفته** | **دامنه‌ها**، **کلیدهای API**، **پرچم‌های قابلیت**، **درون‌ریزی از ابزاری دیگر** | [دامنه‌های سفارشی](/docs/status-pages/branding-and-domains#دامنههای-سفارشی)، [کلیدهای API](/docs/permissions/index#کلیدهای-api)، [پرچم‌های قابلیت](#پرچمهای-قابلیت)، [انتقال از Opsgenie](/docs/moving-to-oneuptime/opsgenie) و دیگر راهنماهای انتقال |
 | **امنیت** | **SSO**، **SCIM** | [SSO](/docs/identity/sso)، [SCIM](/docs/identity/scim) |
 | **صورت‌حساب و فاکتورها** | **صورت‌حساب**، **تاریخچه مصرف**، **فاکتورها** | [صورت‌حساب و مصرف](/docs/configuration/billing) |
 | **گزارش‌های ممیزی** | **گزارش‌های ممیزی**، **تنظیمات** | [گزارش‌های ممیزی](/docs/configuration/audit-logs) |

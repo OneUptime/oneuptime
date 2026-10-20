@@ -36,7 +36,7 @@ flowchart TB
 在 Statuspage 中选择左下角的头像，然后选择 **API info**。选择 **Create key**，将它命名为 `OneUptime import`，然后复制。
 
 ### 打开导入页面
-在 OneUptime 中，进入 **项目设置** > **从其他工具导入**，然后选择 **Atlassian Statuspage**。
+在 OneUptime 中，进入 **项目设置** > **高级** > **从其他工具导入**，然后选择 **Atlassian Statuspage**。
 
 ### 连接 Atlassian Statuspage
 将密钥粘贴到 **Atlassian Statuspage API 密钥** 中，然后选择 **读取我的 Atlassian Statuspage 账户**。大型账户需要几分钟，读取期间你可以离开页面。

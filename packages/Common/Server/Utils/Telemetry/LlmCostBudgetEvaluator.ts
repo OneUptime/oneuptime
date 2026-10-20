@@ -20,6 +20,8 @@ import SpanService from "../../Services/SpanService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import LlmMetricSpend, { LlmMetricScope } from "./LlmMetricSpend";
+import LlmBudgetSpendSource from "../../../Types/LlmObservability/LlmBudgetSpendSource";
+import LlmProviderSpend from "../LlmObservability/LlmProviderSpend";
 import TelemetryUtil from "./Telemetry";
 
 /*
@@ -74,10 +76,12 @@ export const LLM_BUDGET_SERVICE_ID_ATTRIBUTE: string =
 const BUDGET_METRIC_RETENTION_IN_DAYS: number = 15;
 
 /*
- * Which telemetry signal a budget's spend figure came from. "none" means both
- * sources were empty — a genuinely idle scope, not a failure.
+ * Which signal a budget's spend figure came from. "none" means every source
+ * it counts was empty — a genuinely idle scope, not a failure. "providers"
+ * is what the connected AI provider accounts report, for a budget that
+ * counts them (LlmCostBudget.spendSource).
  */
-export type LlmSpendSource = "spans" | "metrics" | "none";
+export type LlmSpendSource = "spans" | "metrics" | "providers" | "none";
 
 export interface LlmResolvedSpend {
   spendInUSD: number;
@@ -232,6 +236,7 @@ export default class LlmCostBudgetEvaluator {
         serviceId: true,
         llmSystem: true,
         llmModel: true,
+        spendSource: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -373,6 +378,26 @@ export default class LlmCostBudgetEvaluator {
     dayStart: Date;
     now: Date;
   }): Promise<LlmResolvedSpend> {
+    /*
+     * A budget on the provider accounts counts their bill and nothing else:
+     * the bill already holds every call the spans and metrics would count.
+     * The service scope does not apply (a bill names no service); the
+     * provider and model scopes do.
+     */
+    if (data.budget.spendSource === LlmBudgetSpendSource.Providers) {
+      const providerSpend: number = await LlmProviderSpend.getCostInUSD({
+        projectId: data.budget.projectId!,
+        startTime: data.dayStart,
+        endTime: data.now,
+        provider: data.budget.llmSystem,
+        model: data.budget.llmModel,
+      });
+
+      return providerSpend > 0
+        ? { spendInUSD: providerSpend, source: "providers" }
+        : { spendInUSD: 0, source: "none" };
+    }
+
     const spanSpend: number = await this.getSpanSpendInUSD(data);
 
     if (spanSpend > 0) {

@@ -597,7 +597,11 @@ const NUMBERS: Record<string, Array<string>> = {
   [SIZING]: ["25", "95", "50", "500", "16", "15", "30", "90", "2", "8"],
   [SLACK]: ["443", "15"],
   [TEAMS]: ["405", "404", "58", "24", "443", "15"],
-  [TWILIO]: ["443", "164"],
+  /*
+   * Twilio's error for an SMS from a number that cannot send SMS, and the
+   * Singapore number ranges the separate-numbers section names.
+   */
+  [TWILIO]: ["443", "164", "21606", "65"],
   [GITHUB]: ["15", "443"],
 };
 

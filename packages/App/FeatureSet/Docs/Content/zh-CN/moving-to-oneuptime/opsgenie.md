@@ -36,7 +36,7 @@ flowchart TB
 在 Opsgenie 中依次打开 **Settings** > **API key management**，然后选择 **Add new API key**。将它命名为 `OneUptime import`，只授予 **Read** 和 **Configuration access**，然后复制密钥。
 
 ### 打开导入页面
-在 OneUptime 中依次打开 **项目设置** > **从其他工具导入**，然后选择 **Opsgenie**。
+在 OneUptime 中依次打开 **项目设置** > **高级** > **从其他工具导入**，然后选择 **Opsgenie**。
 
 ### 连接 Opsgenie
 在 **你的 Opsgenie 账户在哪里？** 下选择 **美国** 或 **欧洲**。将密钥粘贴到 **Opsgenie API 密钥** 中，然后选择 **读取我的 Opsgenie 账户**。较大的账户需要几分钟，读取期间你可以离开页面。

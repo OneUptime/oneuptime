@@ -2,7 +2,7 @@
 
 Dine udviklere bruger Claude Code, Cursor, Codex, Gemini CLI og Copilot, og fakturaerne bliver ved med at vokse. Denne side besvarer de spørgsmål, en leder har: **hvem bruger hvilket værktøj, med hvilke modeller, og hvad bruger hver person og hvert team**.
 
-De fleste kodeassistenter eksporterer selv OpenTelemetry, så der er intet at installere på udviklernes maskiner: peg eksporten på OneUptime, så lander tokens, omkostninger og værktøjsbrug ved siden af dine egne apps' AI-kald. Alt her ankommer via OpenTelemetry; OneUptime spørger ikke nogen leverandørs administrations- eller fakturerings-API.
+De fleste kodeassistenter eksporterer selv OpenTelemetry, så der er intet at installere på udviklernes maskiner: peg eksporten på OneUptime, så lander tokens, omkostninger og værktøjsbrug ved siden af dine egne apps' AI-kald. Alt her ankommer via OpenTelemetry. Regningen for modelkontiene bag værktøjerne, som din Anthropic- eller OpenAI-organisations, kan også læses, uden kode: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts).
 
 :::cards
 - [Supportmatrix](#supportmatrix): Hvad hvert værktøj sender, og om det nævner en person.
@@ -50,7 +50,7 @@ Tre ting afgør, hvad du får fra et værktøj: om det overhovedet sender OpenTe
 | Cline | Metrikker og logs | Konfigureret centralt, i Clines organisationsdashboard | Et anonymiseret `user_id` | — |
 | LiteLLM og Portkey | Traces af hvert kald gennem gatewayen | Fra gatewayprocessen | Med LiteLLM ejeren af den virtuelle nøgle | [AI-gateways](/docs/telemetry/ai-gateways) |
 | Dine egne apps | Det, din GenAI-instrumentering sender | Fra din app | Den, du sætter som `user.id` | [AI- / LLM-observability](/docs/telemetry/ai-llm-observability) |
-| Windsurf, JetBrains AI, Amazon Bedrock, Azure OpenAI | Ingen egen OpenTelemetry | Kun gennem en gateway, du sætter foran | Den, gatewayen nævner | [AI-gateways](/docs/telemetry/ai-gateways) |
+| Windsurf, JetBrains AI, Amazon Bedrock, Azure OpenAI | Ingen egen OpenTelemetry | Kun gennem en gateway, du sætter foran; forbrug og omkostninger for Bedrock og Azure også som [udbyderkonto](/docs/telemetry/ai-provider-accounts) | Den, gatewayen nævner | [AI-gateways](/docs/telemetry/ai-gateways) |
 
 En tankestreg betyder, at OneUptime endnu ikke har en vejledning til værktøjet. Dets telemetri modtages alligevel som al anden OpenTelemetry.
 
@@ -59,8 +59,8 @@ Copilot eksporterer kun OpenTelemetry fra sine agentflader: chat og agenttilstan
 :::
 
 :::details Amazon Bedrock, Azure OpenAI, Windsurf og JetBrains AI
-- **Amazon Bedrock**: API'erne `InvokeModel` og `Converse` sender ingen OpenTelemetry. Bedrock AgentCore er anderledes: AWS dokumenterer metrikker, spans og logs for det, sendt til CloudWatch som standard. Med `DISABLE_ADOT_OBSERVABILITY=true` slår du runtimens standard-ADOT-konfiguration fra, så du kan pege ADOT-SDK'et på OneUptime i stedet.
-- **Azure OpenAI**: tjenesten sender intet, og dens Azure Monitor-metrikker har ingen brugerdimension. Instrumentér klienten, eller sæt API Management eller en anden gateway foran.
+- **Amazon Bedrock**: API'erne `InvokeModel` og `Converse` sender ingen OpenTelemetry. Bedrock AgentCore er anderledes: AWS dokumenterer metrikker, spans og logs for det, sendt til CloudWatch som standard. Med `DISABLE_ADOT_OBSERVABILITY=true` slår du runtimens standard-ADOT-konfiguration fra, så du kan pege ADOT-SDK'et på OneUptime i stedet. Modellernes forbrug pr. region og model kan læses fra CloudWatch som [udbyderkonto](/docs/telemetry/ai-provider-accounts#amazon-bedrock).
+- **Azure OpenAI**: tjenesten sender intet, og dens Azure Monitor-metrikker har ingen brugerdimension. Instrumentér klienten, eller sæt API Management eller en anden gateway foran. Dens forbrug pr. ressource og model kan læses som [udbyderkonto](/docs/telemetry/ai-provider-accounts#azure-openai-og-microsoft-foundry).
 - **Windsurf**: dokumenterer ingen telemetrieksport. Data pr. bruger ligger i Windsurfs Enterprise-API, som OneUptime ikke spørger.
 - **JetBrains AI Assistant og Junie**: eksporterer intet forbrug. JetBrains' OpenTelemetry-plugin modtager din egen apps telemetri inde i IDE'en; det sender intet ud.
 :::
@@ -188,7 +188,7 @@ Codex sender også sine metrikker til OpenAI som standard: se [OpenAI Codex](/do
 
 ## Hvad OneUptime endnu ikke gør
 
-- **Ingen administrations- eller faktureringsforbindelser til leverandører.** OneUptime spørger ikke Anthropics Admin API, Cursors Admin API, OpenAIs endpoints for forbrug og omkostninger, GitHubs Copilot-fakturering eller Windsurfs og JetBrains' API'er. Hent tal på fakturaniveau hos leverandøren.
+- **Ingen administrationsforbindelser til kodeværktøjer.** OneUptime læser konti hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI bag værktøjerne ([AI-udbyderkonti](/docs/telemetry/ai-provider-accounts)), men ikke Cursors Admin API, GitHubs Copilot-fakturering eller Windsurfs og JetBrains' API'er.
 - **Omkostninger er et overslag, medmindre et værktøj rapporterer dem.** En rapporteret omkostning bruges, som den er; ellers prissætter OneUptime tokens til listepriser. Cursors `cursor.cost.usage` er selv et overslag.
 - **Identitet på logposter læses ikke.** Codex' `user.email`, som det kun sender på logs, knyttes ikke til forbruget.
 - **Cursors `cursor.user.email` læses endnu ikke**, så Cursor-brugere vises som deres heltal `cursor.user.id`.

@@ -946,8 +946,9 @@ describe("the AI SRE page's cluster-access section", () => {
 
     for (const expected of [
       "**Runbooks → Runners → AI Access**",
-      "**Runs AI Remediation Commands**",
       "**AI Access Runner** and **AI Access Credential**",
+      // A Runner has no switch for it: binding it is the consent.
+      "binding the Runner is what lets OneUptime AI run kubectl on it.",
       "**Switch to the AI agent**",
       "`ONEUPTIME_KUBECTL_WRITE_NAMESPACES`",
     ]) {
@@ -956,6 +957,8 @@ describe("the AI SRE page's cluster-access section", () => {
         named: true,
       });
     }
+
+    expect(runner).not.toContain("**Runs AI Remediation Commands**");
   });
 
   it("sends clusters still on the previous in-cluster Runner to the upgrade notes", () => {

@@ -98,7 +98,7 @@ flowchart TB
 
 ## آمدن از ابزاری دیگر
 
-برای کنار گذاشتن یک ابزار دیگر آنکال، پایش دسترس‌پذیری یا صفحه وضعیت، به جای وصل کردن این دو، تیم خود را به اینجا بیاورید. **تنظیمات پروژه** > **درون‌ریزی از ابزاری دیگر** حساب شما را با یک کلید API می‌خواند، آنچه را یافته نشان می‌دهد، و هر چه را تیک بزنید می‌سازد. هر ابزار یک راهنما دارد:
+برای کنار گذاشتن یک ابزار دیگر آنکال، پایش دسترس‌پذیری یا صفحه وضعیت، به جای وصل کردن این دو، تیم خود را به اینجا بیاورید. **تنظیمات پروژه** > **پیشرفته** > **درون‌ریزی از ابزاری دیگر** حساب شما را با یک کلید API می‌خواند، آنچه را یافته نشان می‌دهد، و هر چه را تیک بزنید می‌سازد. هر ابزار یک راهنما دارد:
 
 - ابزارهای آنکال و حادثه: [Opsgenie](/docs/moving-to-oneuptime/opsgenie)، [PagerDuty](/docs/moving-to-oneuptime/pagerduty)، [incident.io](/docs/moving-to-oneuptime/incident-io)، [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) و [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - ابزارهای پایش دسترس‌پذیری و صفحه وضعیت: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot)، [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage)، [Better Stack](/docs/moving-to-oneuptime/better-stack)، [Pingdom](/docs/moving-to-oneuptime/pingdom)، [StatusCake](/docs/moving-to-oneuptime/statuscake) و [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

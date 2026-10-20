@@ -36,7 +36,7 @@ flowchart TB
 Dans Statuspage, sélectionnez votre avatar en bas à gauche, puis **API info**. Sélectionnez **Create key**, nommez-la `OneUptime import`, puis copiez-la.
 
 ### Ouvrir la page d'import
-Dans OneUptime, ouvrez **Paramètres du projet** > **Importer depuis un autre outil** et sélectionnez **Atlassian Statuspage**.
+Dans OneUptime, ouvrez **Paramètres du projet** > **Avancé** > **Importer depuis un autre outil** et sélectionnez **Atlassian Statuspage**.
 
 ### Connecter Atlassian Statuspage
 Collez la clé dans **Clé API Atlassian Statuspage** et sélectionnez **Lire mon compte Atlassian Statuspage**. Un compte volumineux prend quelques minutes, et vous pouvez quitter la page pendant la lecture.

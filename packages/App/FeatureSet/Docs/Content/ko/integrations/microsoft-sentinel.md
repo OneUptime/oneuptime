@@ -37,7 +37,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 1. [Azure portal](https://portal.azure.com)에 로그인하고 **Microsoft Entra ID**를 엽니다.
 2. **App registrations → New registration**으로 이동합니다. 이름을 `OneUptime Sentinel connector`로 정하고, **Supported account types**는 **Accounts in this organizational directory only**로 두고, 리디렉션 URI는 비워 둔 채 **Register**를 선택합니다.
-3. 앱의 **Overview** 페이지에서 **Application (client) ID**와 **Directory (tenant) ID**를 복사합니다.
+3. 앱의 **Overview** 페이지에서 **애플리케이션(클라이언트) ID**와 **디렉터리(테넌트) ID**를 복사합니다.
 4. **Certificates & secrets → Client secrets → New client secret**으로 이동해 만료 시점을 고르고 **Add**를 선택합니다. 페이지를 떠나기 전에 시크릿의 **Secret ID**가 아니라 **Value**를 복사하세요. 다시는 표시되지 않습니다.
 
 ### 인시던트를 읽도록 허용
@@ -52,7 +52,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### 워크스페이스 세부 정보 찾기
 
-Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview** 페이지에 **Subscription ID**, **Resource group**, 워크스페이스 이름이 표시됩니다. 워크스페이스의 리소스 ID에도 같은 세 가지가 들어 있습니다:
+Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview** 페이지에 **구독 ID**, **Resource group**, 워크스페이스 이름이 표시됩니다. 워크스페이스의 리소스 ID에도 같은 세 가지가 들어 있습니다:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview
 
 | 설정 | 찾는 위치 |
 | --- | --- |
-| **Directory (tenant) ID** | 앱의 **Overview** 페이지. 테넌트의 GUID 또는 `contoso.onmicrosoft.com` 같은 확인된 도메인. |
-| **Application (client) ID** | 앱의 **Overview** 페이지. GUID. |
-| **Subscription ID** | 워크스페이스의 **Overview** 페이지. GUID. |
+| **디렉터리(테넌트) ID** | 앱의 **Overview** 페이지. 테넌트의 GUID 또는 `contoso.onmicrosoft.com` 같은 확인된 도메인. |
+| **애플리케이션(클라이언트) ID** | 앱의 **Overview** 페이지. GUID. |
+| **구독 ID** | 워크스페이스의 **Overview** 페이지. GUID. |
 | **Resource group** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 밑줄, 하이픈, 마침표, 괄호로 된 1~90자이며, 마침표로 끝나지 않습니다. |
 | **Workspace name** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 하이픈으로 된 3~90자이며, 영문자나 숫자로 시작하고 끝납니다. |
-| **클라우드** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) 또는 **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
+| **클라우드** | **Azure 퍼블릭 클라우드** (`login.microsoftonline.com`, `management.azure.com`) 또는 **Azure Government(미국)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Client secret** | 시크릿의 **Value**. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **Update credentials**로 교체합니다. |
 
 **Polling** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **Poll Interval (Minutes)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
@@ -166,8 +166,8 @@ Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 �
 :::details Last Error가 `Microsoft Sentinel token request`로 시작함
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID가 토큰 발급을 거부했으므로 Azure에는 연결하지 않았습니다. 메시지에 Entra의 코드가 인용됩니다:
   - `AADSTS7000215` 또는 `invalid_client`: **Client secret**이 틀렸거나 만료되었거나, 시크릿의 값이 아니라 ID입니다. 새 시크릿을 만들고 **Update credentials**로 저장합니다.
-  - `AADSTS700016` 또는 `unauthorized_client`: **Application (client) ID**가 지정한 **Directory (tenant) ID**에 없습니다. 둘 다 앱의 **Overview** 페이지와 비교합니다.
-  - `AADSTS90002` 또는 `HTTP 404`: 그런 테넌트가 없습니다. **Directory (tenant) ID**가 틀렸거나 다른 클라우드에 있습니다. **클라우드**를 확인합니다.
+  - `AADSTS700016` 또는 `unauthorized_client`: **애플리케이션(클라이언트) ID**가 지정한 **디렉터리(테넌트) ID**에 없습니다. 둘 다 앱의 **Overview** 페이지와 비교합니다.
+  - `AADSTS90002` 또는 `HTTP 404`: 그런 테넌트가 없습니다. **디렉터리(테넌트) ID**가 틀렸거나 다른 클라우드에 있습니다. **클라우드**를 확인합니다.
   - `HTTP 429` 또는 `HTTP 5xx`: Microsoft Entra ID가 요청을 제한하고 있거나 사용할 수 없습니다. 다음 폴링이 다시 시도합니다.
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID가 JSON이 아니거나 `access_token`이 없는 본문처럼 쓸 수 없는 응답을 보냈습니다. 대개 중간에 있는 프록시나 게이트웨이 때문입니다.
 - 상태 없이 `Microsoft Sentinel token request failed:`, 또는 `Microsoft Sentinel token request timed out after ... seconds with no response`: 요청에 응답이 없었습니다. OneUptime 앱과 워커에서 `login.microsoftonline.com`으로의 DNS, TLS, 아웃바운드 HTTPS를 확인합니다.
@@ -177,7 +177,7 @@ Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 �
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager가 요청을 거부했습니다.
   - `HTTP 401`: 토큰을 받아들이지 않았습니다. 거의 항상 **클라우드**가 테넌트와 맞지 않거나 앱 등록이 삭제된 경우입니다. 두 페이지 사이에 만료된 토큰은 자동으로 갱신되어 한 번 다시 시도됩니다.
   - `HTTP 403` 또는 `AuthorizationFailed`: 앱이 아직 리소스 그룹에 대한 **Microsoft Sentinel Reader**를 갖고 있지 않습니다. 역할을 할당하고 몇 분 기다립니다.
-  - `HTTP 404`: 그 **Subscription ID**, **Resource group**, **Workspace name**을 가진 워크스페이스가 없거나, 거기에 Microsoft Sentinel이 활성화되어 있지 않습니다. 워크스페이스의 **Overview** 페이지에서 복사합니다.
+  - `HTTP 404`: 그 **구독 ID**, **Resource group**, **Workspace name**을 가진 워크스페이스가 없거나, 거기에 Microsoft Sentinel이 활성화되어 있지 않습니다. 워크스페이스의 **Overview** 페이지에서 복사합니다.
   - `HTTP 429` 또는 `HTTP 5xx`: Azure Resource Manager가 요청을 제한하고 있거나 사용할 수 없습니다. 다음 폴링이 다시 시도합니다.
   - `HTTP 400`: Azure Resource Manager가 쿼리를 거부했습니다. 그 쿼리는 설정이 아니라 OneUptime이 만듭니다. 메시지를 OneUptime 지원팀에 보내세요.
 - `Microsoft Sentinel incidents list returned ...`: Azure가 `200`으로 응답했지만 읽을 수 있는 인시던트 페이지가 없거나, 다른 호스트로 가는 `nextLink`가 있었습니다. 커넥터는 토큰이 Azure Resource Manager를 벗어나지 않도록 그런 링크를 거부합니다. 이는 빈 구간으로 간주되지 않고 보고되므로, 커서가 아무도 읽지 않은 인시던트를 건너뛰는 일은 없습니다.
@@ -200,7 +200,7 @@ Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 �
 
 ## Azure Government
 
-**클라우드**를 **Azure Government (US)** 로 설정합니다. 그러면 연결은 `login.microsoftonline.us`에서 `https://management.usgovcloudapi.net/.default` 범위로 로그인하고, `management.usgovcloudapi.net`에서 인시던트를 읽습니다. 역할 할당을 포함한 나머지는 모두 같습니다.
+**클라우드**를 **Azure Government(미국)** 로 설정합니다. 그러면 연결은 `login.microsoftonline.us`에서 `https://management.usgovcloudapi.net/.default` 범위로 로그인하고, `management.usgovcloudapi.net`에서 인시던트를 읽습니다. 역할 할당을 포함한 나머지는 모두 같습니다.
 
 ## 얻을 수 있는 것
 

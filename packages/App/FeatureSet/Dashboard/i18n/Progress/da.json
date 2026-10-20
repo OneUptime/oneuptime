@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16698
+    "keys": 31872,
+    "untranslated": 16637
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -35,6 +35,7 @@
     "PR #{{number}}",
     "Pause",
     "Peer",
+    "Person",
     "Plan",
     "Problem",
     "Pull request #{{number}}",
@@ -48,9 +49,13 @@
     "Stratum",
     "System",
     "Team",
+    "Test",
+    "Test {{name}}",
     "Tip",
+    "Tokens",
     "Total",
     "Tunnel",
+    "Workspaces",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",

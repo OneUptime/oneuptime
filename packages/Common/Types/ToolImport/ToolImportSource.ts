@@ -1,6 +1,6 @@
 /*
  * The tools a project can bring its setup over from (Project Settings >
- * Import from another tool). The value is stored on ToolImportRun.source and
+ * Advanced > Import from another tool). The value is stored on ToolImportRun.source and
  * ToolImportRecord.source, so a value never changes once shipped.
  *
  * Adding a tool is one adapter on the server (Server/Utils/ToolImport/

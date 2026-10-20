@@ -89,6 +89,20 @@ const CREDENTIAL_ID: ObjectID = new ObjectID(
 );
 const JOB_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
+/*
+ * The Runners the rule under test names: every Runner these tests use, the
+ * in-cluster agents' included, so what keeps a Runner out of a test is the
+ * rule that test is about, never this list. There is no "any Runner": a
+ * Runner runs a rule's commands only when the rule names it
+ * (AutoRemediationFix.getRuleCommandRunnerIds).
+ */
+const RULE_RUNNER_IDS: Array<string> = [
+  RUNNER_ID.toString(),
+  OTHER_RUNNER_ID.toString(),
+  "abababab-abab-4bab-8bab-abababababab",
+  "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+];
+
 function buildToolkit(
   overrides: Partial<RemediationCommandToolkitOptions> = {},
 ): RemediationCommandToolkit {
@@ -98,7 +112,7 @@ function buildToolkit(
     suggestionId: SUGGESTION_ID,
     mode: "FullAuto",
     allowlistPatterns: ["systemctl restart *"],
-    allowedRunnerIds: null,
+    allowedRunnerIds: RULE_RUNNER_IDS,
     ...overrides,
   });
 }
@@ -615,8 +629,44 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
     ).execute(bashArgs());
 
     expect(outcome.success).toBe(false);
-    expect(outcome.textForLlm).toContain("restricts which Runners");
+    expect(outcome.textForLlm).toContain(
+      "This rule names the Runners its commands may run on",
+    );
     expect(findRunner).not.toHaveBeenCalled();
+  });
+
+  it("rejects every Runner when the rule names none - there is no 'any Runner'", async () => {
+    const findRunner: jest.SpyInstance = jest.spyOn(RunnerService, "findOneBy");
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit({ allowedRunnerIds: [] }),
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain(
+      "This rule names the Runners its commands may run on",
+    );
+    expect(findRunner).not.toHaveBeenCalled();
+  });
+
+  it("matches the rule's Runner whatever the case of its id", async () => {
+    jest
+      .spyOn(RunnerService, "findOneBy")
+      .mockResolvedValue(fakeRunner(RUNNER_ID));
+
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      allowedRunnerIds: [RUNNER_ID.toString().toUpperCase()],
+    });
+
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.textForLlm).not.toContain(
+      "This rule names the Runners its commands may run on",
+    );
   });
 
   it("rejects a Runner that is missing or has not opted into AI commands", async () => {

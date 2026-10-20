@@ -98,7 +98,7 @@ flowchart TB
 
 ## 从其他工具迁移
 
-如果要离开其他值班、正常运行时间监控或状态页工具，请把团队迁移过来，而不是把两者连接起来。**项目设置 → 从其他工具导入** 会用 API 密钥读取你的账户，显示它找到的内容，并创建你勾选的项目。每个工具都有一份指南：
+如果要离开其他值班、正常运行时间监控或状态页工具，请把团队迁移过来，而不是把两者连接起来。**项目设置 → 高级 → 从其他工具导入** 会用 API 密钥读取你的账户，显示它找到的内容，并创建你勾选的项目。每个工具都有一份指南：
 
 - 值班和事件工具：[Opsgenie](/docs/moving-to-oneuptime/opsgenie)、[PagerDuty](/docs/moving-to-oneuptime/pagerduty)、[incident.io](/docs/moving-to-oneuptime/incident-io)、[Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) 和 [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall)。
 - 正常运行时间和状态页工具：[UptimeRobot](/docs/moving-to-oneuptime/uptimerobot)、[Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage)、[Better Stack](/docs/moving-to-oneuptime/better-stack)、[Pingdom](/docs/moving-to-oneuptime/pingdom)、[StatusCake](/docs/moving-to-oneuptime/statuscake) 和 [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)。

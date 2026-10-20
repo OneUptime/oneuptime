@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16673
+    "keys": 31872,
+    "untranslated": 16614
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -26,6 +26,7 @@
     "Offline",
     "PR #{{number}}",
     "Peer",
+    "Person",
     "Plan",
     "Precision",
     "Problem",
@@ -37,6 +38,7 @@
     "System",
     "Team",
     "Text",
+    "Tokens",
     "Tunnel",
     "VMware vCenter",
     "agent {{version}}",

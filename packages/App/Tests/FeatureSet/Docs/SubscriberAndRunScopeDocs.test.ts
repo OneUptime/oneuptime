@@ -189,7 +189,7 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
     expectSentences(paragraph, [
       "Approving a plan with an SSH command confirms that pick, so it takes permission to read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin); without it the approval is refused, saying who may approve the plan, and nothing runs.",
       "Letting such a rule run its commands without asking - **Fix without asking**, with a command allowlist - takes the same permission when a save turns that on - switching such a rule on included - or adds allowlist patterns or Runners, however the allowlist is written; narrowing the rule, or turning that off, does not.",
-      "Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission, since a rule that names no Runners reaches every Runner that runs OneUptime AI's commands.",
+      "Picking a Runner that holds SSH credentials - as a rule's **Runner**, or for a cluster's AI access - takes the same permission the first time it is picked, since picking it is what lets OneUptime AI's commands run on it.",
       "A kubectl command runs with the credential bound to its cluster on the **AI agent** page, which only someone who may read runbook credentials can bind (see [Who may change it](#who-may-change-it)), so approving it asks nothing more.",
     ]);
 
@@ -245,7 +245,7 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
     // The close names one more way in (CredentialsReachAiRunnersDocs).
     expect(
       credentials.includes(
-        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials, ",
+        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, picking a Runner that holds SSH credentials for OneUptime AI's commands, ",
       ),
     ).toBe(true);
   });

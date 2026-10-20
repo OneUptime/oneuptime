@@ -35,7 +35,7 @@ flowchart TB
 Splunk On-Call で **Integrations** > **API** を開きます。API ID は API キーの上に表示されています。`OneUptime import` という名前で新しい API キーを作成し、**Read-only** にチェックを入れて、API ID とキーをコピーします。
 
 ### インポートページを開く
-OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き、**Splunk On-Call** を選択します。
+OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き、**Splunk On-Call** を選択します。
 
 ### Splunk On-Call を接続する
 API ID を **Splunk On-Call の API ID** に、キーを **Splunk On-Call の API キー** に貼り付け、**Splunk On-Call アカウントを読み取る** を選択します。大きなアカウントでは数分かかり、読み取り中はページを離れてもかまいません。

@@ -56,11 +56,11 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 1. **Users → Create user**를 열고 사용자 이름을 지정한 뒤(예: `oneuptime-security-hub`), 콘솔 접근은 끈 채로 정책을 연결합니다. 다른 계정의 검색 결과를 읽으려면 위임 관리자 계정에서 이 작업을 합니다.
 2. 사용자를 연 다음 **Security credentials → Access keys → Create access key**를 열고 **Third-party service**를 고릅니다.
-3. **Access key ID**와 **Secret access key**를 복사합니다. AWS는 시크릿을 한 번만 보여 줍니다.
+3. **액세스 키 ID**와 **비밀 액세스 키**를 복사합니다. AWS는 시크릿을 한 번만 보여 줍니다.
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → Connections**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **AWS Security Hub**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿을 **Secret access key**에 붙여 넣습니다.
+**제품 → Security Events → Connections**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **AWS Security Hub**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿을 **비밀 액세스 키**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
@@ -70,8 +70,8 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | 설정 | 입력할 값 |
 | --- | --- |
 | **지역** | 리전 코드. 예: `us-east-1`, `eu-central-1`, `us-gov-west-1`. 다른 계정의 검색 결과를 읽을 때는 관리자 계정의 홈 리전입니다. |
-| **Access key ID** | 키의 ID. 16~128자의 영문자나 숫자로, 보통 `AKIA`로 시작하는 20자이며, 임시 자격 증명이면 `ASIA`로 시작합니다. |
-| **Secret access key** | 키의 시크릿. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. |
+| **액세스 키 ID** | 키의 ID. 16~128자의 영문자나 숫자로, 보통 `AKIA`로 시작하는 20자이며, 임시 자격 증명이면 `ASIA`로 시작합니다. |
+| **비밀 액세스 키** | 키의 시크릿. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. |
 | **Session token** | 임시 자격 증명에만 필요합니다. `ASIA` 키는 이것이 없으면 거부되고, `AKIA` 키는 이것이 있으면 거부됩니다. |
 
 `aws sts assume-role`이나 `aws sts get-session-token`에서 받은 임시 자격 증명은 만료되며(수임한 역할은 최대 12시간), 만료되면 **Update credentials**로 새 값을 붙여 넣을 때까지 폴링이 멈춥니다. 이 좁은 정책을 가진 장기 키를 자체 일정에 따라 교체하면 사람이 지켜보지 않아도 폴링이 계속됩니다. 임시 자격 증명에서 장기 키로 바꾸려면 **Update credentials**에 새 키를 입력하고 **Remove the stored Session token**을 켭니다.
@@ -167,8 +167,8 @@ AWS가 요청을 거부했습니다. 메시지에는 AWS의 오류 코드가 인
 
 - `AccessDeniedException` 또는 `is not authorized to perform`: 키는 올바르지만 그 자격 증명이 `securityhub:GetFindings`를 호출할 수 없습니다. [연결 설정](#연결-설정)의 정책을 연결하세요. 권한 경계나 서비스 제어 정책이 거부할 수도 있습니다.
 - `InvalidAccessException` 또는 `is not subscribed to AWS Security Hub`: **지역**에 지정한 리전에서 이 계정에 대해 Security Hub가 활성화되어 있지 않거나, 그곳에서 이 계정이 관리자가 아닙니다.
-- `InvalidSignatureException` 또는 `SignatureDoesNotMatch`, 또는 `The request signature we calculated does not match`: **Secret access key**가 **Access key ID**에 속하지 않습니다. 새 액세스 키를 만들어 **Update credentials**로 저장하세요.
-- `UnrecognizedClientException` 또는 `InvalidClientTokenId`, 또는 `The security token included in the request is invalid`: AWS가 **Access key ID**를 알지 못합니다. 잘못 입력했거나, 삭제되었거나, 비활성화되었거나, 다른 파티션의 것이거나, **Session token** 없는 임시 키입니다.
+- `InvalidSignatureException` 또는 `SignatureDoesNotMatch`, 또는 `The request signature we calculated does not match`: **비밀 액세스 키**가 **액세스 키 ID**에 속하지 않습니다. 새 액세스 키를 만들어 **Update credentials**로 저장하세요.
+- `UnrecognizedClientException` 또는 `InvalidClientTokenId`, 또는 `The security token included in the request is invalid`: AWS가 **액세스 키 ID**를 알지 못합니다. 잘못 입력했거나, 삭제되었거나, 비활성화되었거나, 다른 파티션의 것이거나, **Session token** 없는 임시 키입니다.
 - `ExpiredTokenException` 또는 `The security token included in the request is expired`: 임시 자격 증명이 만료되었습니다. 새로 발급하거나 장기 키로 바꾸세요.
 - `RequestTimeTooSkewed` 또는 `RequestExpired`, 또는 `Signature expired`: OneUptime 호스트의 시계가 5분 넘게 어긋나 있습니다. 앱과 워커 호스트의 NTP를 바로잡으세요.
 - 코드가 전혀 없음: AWS가 키와 정책 중 무엇이 거부했는지 알려 주지 않았습니다. 먼저 키를, 그다음 정책을 확인하세요.

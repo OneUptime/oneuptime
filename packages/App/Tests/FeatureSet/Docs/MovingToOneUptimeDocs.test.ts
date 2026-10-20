@@ -27,8 +27,8 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The "Moving to OneUptime" pages - one per tool Project Settings > Import
- * from another tool brings a team, monitors or status pages over from -
+ * The "Moving to OneUptime" pages - one per tool Project Settings > Advanced
+ * > Import from another tool brings a team, monitors or status pages over from -
  * against the product they describe. Markdown is not compiled, so nothing else notices a tool added
  * without its page, a page that names a host the import never calls, a
  * limit that changed in code but not in the docs, or a button the page
@@ -297,6 +297,8 @@ describe.each(AllToolImportSources)(
       const copy: ToolImportToolCopy = TOOL_IMPORT_TOOL_COPY[source];
       const names: Array<string> = [
         "Project Settings",
+        // The side menu's folded section the import page is in.
+        "Advanced",
         "Import from another tool",
         "Start import",
         "Earlier imports",

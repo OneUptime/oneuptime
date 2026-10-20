@@ -35,7 +35,7 @@ flowchart TB
 In Splunk On-Call, vai su **Integrations** > **API**. Il tuo API ID è mostrato sopra le tue chiavi API. Crea una nuova chiave API chiamata `OneUptime import`, spunta **Read-only** e copia l'API ID e la chiave.
 
 ### Apri la pagina di importazione
-In OneUptime, vai su **Impostazioni del progetto** > **Importa da un altro strumento** e seleziona **Splunk On-Call**.
+In OneUptime, vai su **Impostazioni del progetto** > **Avanzato** > **Importa da un altro strumento** e seleziona **Splunk On-Call**.
 
 ### Collega Splunk On-Call
 Incolla l'API ID in **API ID di Splunk On-Call** e la chiave in **Chiave API di Splunk On-Call**, poi seleziona **Leggi il mio account Splunk On-Call**. Un account grande richiede qualche minuto, e puoi lasciare la pagina durante la lettura.

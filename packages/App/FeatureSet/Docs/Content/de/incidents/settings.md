@@ -516,7 +516,7 @@ Der Dialog sagt vor dem Speichern, was falsch ist, und gespeichert werden nur di
 
 Project Owners, Project Admins und jeder mit **Edit Project** können die nächsten Nummern ändern, so wie die Präfixe. Alle anderen sehen sie, mit gesperrter Schaltfläche **Aktualisieren**.
 
-Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten **Nummerierung**: **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode** sowie **Nächste Nummer der geplanten Wartung**. [Aus einem anderen Tool importieren](/docs/moving-to-oneuptime/incident-io) übernimmt Ihre Einrichtung, nicht Ihre vergangenen Vorfälle, und lässt die Nummern daher, wie sie sind: Legen Sie die nächsten Nummern fest, bevor in OneUptime der erste Vorfall gemeldet wird.
+Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten **Nummerierung**: **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode** sowie **Nächste Nummer der geplanten Wartung**. [Import aus anderem Tool](/docs/moving-to-oneuptime/incident-io) übernimmt Ihre Einrichtung, nicht Ihre vergangenen Vorfälle, und lässt die Nummern daher, wie sie sind: Legen Sie die nächsten Nummern fest, bevor in OneUptime der erste Vorfall gemeldet wird.
 
 ## Schalter für verknüpfte Warnungen
 
@@ -551,7 +551,7 @@ Gruppierungs-, SLA-, Erinnerungs-, Untersuchungs- und Auto-Behebungsregeln wirke
 - **Bereitschaftsregeln** – führen Bereitschaftsrichtlinien für passende Vorfälle aus. Ausführlich weiter unten.
 - **Eigentümerregeln** – weisen Eigentümer automatisch zu.
 - **Runbook-Regeln** – starten ein [Runbook](/docs/runbooks/index), wenn ein Vorfall passt.
-- **Auto-Behebungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle behoben werden, solange **Neue Vorfälle automatisch beheben** an ist, und wie: durch OneUptime AI oder mit den Runbooks der Regel, mit oder ohne Rückfrage vor dem Beheben. Ohne Regel wird jeder neue Vorfall behoben. Ist für den Vorfall eine KI-Untersuchung eingereiht, laufen sie, sobald sie fertig ist, mit ihrer Analyse in der Hand.
+- **Auto-Behebungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle behoben werden, solange **Neue Vorfälle automatisch beheben** an ist, und wie: mit oder ohne Rückfrage vor dem Beheben, und welche Runbooks OneUptime AI ausführen darf. Ohne Regel wird jeder neue Vorfall behoben. Ist für den Vorfall eine KI-Untersuchung eingereiht, laufen sie, sobald sie fertig ist, mit ihrer Analyse in der Hand.
 - **Untersuchungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle OneUptime AI untersucht. Ohne Regel jeder. Siehe [AI SRE](/docs/ai/ai-sre).
 - **Datenschutzregeln** – entscheiden, ob ein passender Vorfall privat ist.
 - **Beschriftungsregeln** – vergeben Beschriftungen automatisch.

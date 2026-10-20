@@ -6,6 +6,7 @@ import TelemetryReadScopeUtil, {
   TelemetryReadScope,
   TelemetryServiceFilter,
 } from "../../Telemetry/TelemetryReadScope";
+import LlmConversationPrivacy from "../../LlmObservability/LlmConversationPrivacy";
 import OneUptimeDate from "../../../../Types/Date";
 import Permission from "../../../../Types/Permission";
 import {
@@ -176,6 +177,30 @@ export class ToolArgs {
       scope,
       requested ? [requested] : undefined,
     );
+  }
+
+  /*
+   * The scope a tool reads spans in, from the one TelemetryReadAccess gave
+   * it. A person's run (Ask AI, Slack, Teams) reads with that person's
+   * props, which the permission layer already holds to the company AI
+   * tools' privacy setting. A system run - an automatic AI investigation,
+   * which reads as OneUptime and writes what it finds onto the incident or
+   * alert - is root, which that layer leaves alone: its span reads leave
+   * out here the services whose chats only owners and admins may read
+   * (LlmConversationPrivacy).
+   */
+  public static async spanScope(
+    ctx: ToolContext,
+    scope: TelemetryReadScope,
+  ): Promise<TelemetryReadScope> {
+    if (!ctx.props.isRoot) {
+      return scope;
+    }
+
+    return await LlmConversationPrivacy.restrictSystemScope({
+      scope: scope,
+      projectId: ctx.projectId,
+    });
   }
 
   /*

@@ -155,7 +155,8 @@ import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwner
  *
  * Targets come in two shapes:
  *   - Runners (Bash on the Runner's host, SSH over an assigned credential),
- *     from the rule's pinned Runners or any online canRunAiCommands Runner;
+ *     from the Runners the rule names (its Runner) that are online and run
+ *     AI commands - never any other;
  *   - Kubernetes clusters (Kubectl through the cluster's bound Runner), from
  *     the clusters the signal is about whose AI page allows remediation.
  *
@@ -371,11 +372,15 @@ export interface RemediationCommandToolkitOptions {
   mode: RemediationCommandMode;
   allowlistPatterns: Array<string>;
   /*
-   * Runner ids the rule pinned as targets; null means any Runner in the
-   * project with canRunAiCommands. The capability is required either way.
-   * An empty array means "no host targets at all" (cluster-only runs).
+   * Runner ids the rule names as targets (AutoRemediationFix
+   * .getRuleCommandRunnerIds): its Runner, and a rule saved before rules
+   * were simplified its Command Runners too. Each must still run AI
+   * commands (canRunAiCommands, turned on when it was picked). An empty
+   * array means "no host targets at all" (cluster-only runs) - there is no
+   * "any Runner": a Runner runs a rule's commands only when the rule names
+   * it.
    */
-  allowedRunnerIds: Array<string> | null;
+  allowedRunnerIds: Array<string>;
   /*
    * Clusters the run may target with kubectl: only ones whose AI page
    * allows remediation and whose access is ready. Empty for rule-based
@@ -749,14 +754,23 @@ export default class RemediationCommandToolkit {
     };
   }
 
+  // Whether the rule names this Runner for its commands (ids compared case-insensitively).
+  private isAllowedRunner(runnerId: string): boolean {
+    const wanted: string = runnerId.trim().toLowerCase();
+
+    return (
+      Boolean(wanted) &&
+      this.options.allowedRunnerIds.some((id: string): boolean => {
+        return id.trim().toLowerCase() === wanted;
+      })
+    );
+  }
+
   private async listTargets(): Promise<ToolCallOutcome> {
     const rows: Array<JSONObject> = [];
 
     // Host targets: skipped entirely for cluster-only runs (allowedRunnerIds = []).
-    if (
-      this.options.allowedRunnerIds === null ||
-      this.options.allowedRunnerIds.length > 0
-    ) {
+    if (this.options.allowedRunnerIds.length > 0) {
       const runners: Array<Runner> =
         await RunnerService.getOnlineAiCommandRunnersForProject({
           projectId: this.options.projectId,
@@ -772,12 +786,7 @@ export default class RemediationCommandToolkit {
         if (RemediationCommandToolkit.isKubernetesAgentRunner(runner)) {
           return false;
         }
-        if (!this.options.allowedRunnerIds) {
-          return true;
-        }
-        return this.options.allowedRunnerIds.includes(
-          runner.id?.toString() || "",
-        );
+        return this.isAllowedRunner(runner.id?.toString() || "");
       });
 
       for (const runner of allowedRunners) {
@@ -901,7 +910,7 @@ export default class RemediationCommandToolkit {
       return {
         success: true,
         textForLlm:
-          "No online Runner is available for AI commands and no linked Kubernetes cluster allows AI remediation. Either no Runner in this project has the 'Runs AI Remediation Commands' capability enabled and is currently connected, or the rule restricts targets to Runners that are offline. You cannot run or propose commands — say so in your analysis.",
+          "No online Runner is available for AI commands and no linked Kubernetes cluster allows AI remediation. Either the rule picks no Runner, or the Runner it picks is not connected right now. You cannot run or propose commands — say so in your analysis.",
         result: {
           dataForLlm: "(no command targets available)",
           rowCount: 0,
@@ -3861,13 +3870,10 @@ export default class RemediationCommandToolkit {
       };
     }
 
-    if (
-      this.options.allowedRunnerIds &&
-      !this.options.allowedRunnerIds.includes(runnerId.toString())
-    ) {
+    if (!this.isAllowedRunner(runnerId.toString())) {
       return {
         errorText:
-          "This rule restricts which Runners may be targeted, and this runnerId is not one of them. Use list_command_targets.",
+          "This rule names the Runners its commands may run on, and this runnerId is not one of them. Use list_command_targets.",
       };
     }
 

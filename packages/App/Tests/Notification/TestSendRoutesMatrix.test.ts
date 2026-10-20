@@ -303,6 +303,7 @@ const sendTest: (
   recordId?: ObjectID,
 ): Promise<Answer> => {
   (Response.sendEmptySuccessResponse as jest.Mock).mockClear();
+  (Response.sendJsonObjectResponse as jest.Mock).mockClear();
   (Response.sendErrorResponse as jest.Mock).mockClear();
 
   let failure: Error | undefined = undefined;
@@ -335,7 +336,14 @@ const sendTest: (
     return failure;
   }
 
-  expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+  /*
+   * One answer of success: empty, or - Send Test SMS and Send Test Call -
+   * the number the test went out from, which the Dashboard's dialog names.
+   */
+  expect(
+    (Response.sendEmptySuccessResponse as jest.Mock).mock.calls.length +
+      (Response.sendJsonObjectResponse as jest.Mock).mock.calls.length,
+  ).toBe(1);
 
   return "sent";
 };

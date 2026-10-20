@@ -36,7 +36,7 @@ flowchart TB
 En StatusCake, abre el panel de tu cuenta y ve a **API Keys**. Crea una clave llamada `OneUptime import` y cópiala.
 
 ### Abre la página de importación
-En OneUptime, ve a **Ajustes del proyecto** > **Importar desde otra herramienta** y selecciona **StatusCake**.
+En OneUptime, ve a **Ajustes del proyecto** > **Avanzado** > **Importar desde otra herramienta** y selecciona **StatusCake**.
 
 ### Conecta StatusCake
 Pega la clave en **Clave de API de StatusCake** y selecciona **Leer mi cuenta de StatusCake**. Una cuenta grande tarda unos minutos, y puedes salir de la página mientras se lee.

@@ -56,11 +56,11 @@ flowchart TB
 
 1. Откройте **Users → Create user**, задайте имя пользователя, например `oneuptime-security-hub`, оставьте доступ к консоли выключенным и прикрепите политику. Для находок других учётных записей сделайте это в учётной записи делегированного администратора.
 2. Откройте пользователя, затем **Security credentials → Access keys → Create access key**, и выберите **Third-party service**.
-3. Скопируйте **Access key ID** и **Secret access key**. AWS показывает секрет только один раз.
+3. Скопируйте **Идентификатор ключа доступа** и **Секретный ключ доступа**. AWS показывает секрет только один раз.
 
 ### Добавьте подключение в OneUptime
 
-Откройте **Продукты → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), нажмите **Добавить подключение**, выберите **AWS Security Hub** и нажмите **Далее**. Заполните настройки из таблицы ниже, нажмите **Далее** и вставьте секрет в **Secret access key**.
+Откройте **Продукты → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), нажмите **Добавить подключение**, выберите **AWS Security Hub** и нажмите **Далее**. Заполните настройки из таблицы ниже, нажмите **Далее** и вставьте секрет в **Секретный ключ доступа**.
 
 ### Проверьте его перед сохранением
 
@@ -70,8 +70,8 @@ flowchart TB
 | Параметр | Что ввести |
 | --- | --- |
 | **Регион** | Код региона, например `us-east-1`, `eu-central-1` или `us-gov-west-1`: для находок других учётных записей — домашний регион учётной записи администратора. |
-| **Access key ID** | Идентификатор ключа: от 16 до 128 букв или цифр, обычно 20, начиная с `AKIA` или с `ASIA` для временных учётных данных. |
-| **Secret access key** | Секрет ключа. Он шифруется, никогда не возвращается API и больше не показывается. Замените его с помощью **Update credentials** в подключении. |
+| **Идентификатор ключа доступа** | Идентификатор ключа: от 16 до 128 букв или цифр, обычно 20, начиная с `AKIA` или с `ASIA` для временных учётных данных. |
+| **Секретный ключ доступа** | Секрет ключа. Он шифруется, никогда не возвращается API и больше не показывается. Замените его с помощью **Update credentials** в подключении. |
 | **Session token** | Только для временных учётных данных, которым он нужен: ключ `ASIA` без него отклоняется, а ключ `AKIA` с ним отклоняется. |
 
 Временные учётные данные из `aws sts assume-role` или `aws sts get-session-token` истекают — для принятой роли самое позднее через 12 часов, — и опрос останавливается, пока вы не вставите новые с помощью **Update credentials**. Долгоживущий ключ с этой узкой политикой, сменяемый по вашему собственному графику, продолжает опрос без присмотра. Чтобы перейти с временных учётных данных на долгоживущий ключ, введите новый ключ в **Update credentials** и включите **Remove the stored Session token**.
@@ -167,8 +167,8 @@ AWS отклонил запрос. Сообщение цитирует код о
 
 - `AccessDeniedException` или `is not authorized to perform`: ключ верный, но его удостоверение не может вызывать `securityhub:GetFindings`. Прикрепите политику из раздела [Настройка подключения](#настройка-подключения). Её также может запретить граница разрешений или политика управления сервисами.
 - `InvalidAccessException` или `is not subscribed to AWS Security Hub`: Security Hub не включён для этой учётной записи в регионе из поля **Регион**, или учётная запись не является там его администратором.
-- `InvalidSignatureException` или `SignatureDoesNotMatch`, или `The request signature we calculated does not match`: **Secret access key** не относится к **Access key ID**. Создайте новый ключ доступа и сохраните его с помощью **Update credentials**.
-- `UnrecognizedClientException` или `InvalidClientTokenId`, или `The security token included in the request is invalid`: AWS не знает **Access key ID**. Он введён с ошибкой, удалён, деактивирован или относится к другому разделу, либо это временный ключ без своего **Session token**.
+- `InvalidSignatureException` или `SignatureDoesNotMatch`, или `The request signature we calculated does not match`: **Секретный ключ доступа** не относится к **Идентификатор ключа доступа**. Создайте новый ключ доступа и сохраните его с помощью **Update credentials**.
+- `UnrecognizedClientException` или `InvalidClientTokenId`, или `The security token included in the request is invalid`: AWS не знает **Идентификатор ключа доступа**. Он введён с ошибкой, удалён, деактивирован или относится к другому разделу, либо это временный ключ без своего **Session token**.
 - `ExpiredTokenException` или `The security token included in the request is expired`: срок временных учётных данных истёк. Выпустите новые или перейдите на долгоживущий ключ.
 - `RequestTimeTooSkewed` или `RequestExpired`, или `Signature expired`: часы на хостах OneUptime расходятся больше чем на 5 минут. Исправьте NTP на хостах приложения и worker.
 - Кода нет вовсе: AWS не сообщил, отклонил ли запрос ключ или политика. Сначала проверьте ключ, затем политику.

@@ -113,7 +113,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 
 ### Bring your setup with you
 
-**Project Settings → Import from another tool** reads your setup in another tool, with an API key or, for Uptime Kuma, a file. It shows you what it found, and creates what you tick. Nothing in the other tool changes, and running the import again never creates anything twice.
+**Project Settings → Advanced → Import from another tool** reads your setup in another tool, with an API key or, for Uptime Kuma, a file. It shows you what it found, and creates what you tick. Nothing in the other tool changes, and running the import again never creates anything twice.
 
 | Coming from | What OneUptime reads |
 | --- | --- |

@@ -3,6 +3,7 @@
 閱讀 AI 進行過的每一段對話，依當時的節奏重新播放，並在 AI 回答不佳時收到通知。OneUptime 完全以標準 OpenTelemetry 建構這一切：只要你的應用程式傳送遵循 **GenAI 語意慣例** （`gen_ai.*`）的 span，就能取得對話、警示、使用量和成本，不需要專有 SDK。
 
 :::cards
+- [三種接入方式](#三種接入方式): 你的應用程式、你的 AI 提供者帳戶和公司的 AI 工具。
 - [開始設定](#五個步驟完成設定): 五個步驟，從第一個 span 到被標記的回答。
 - [重新播放對話](#閱讀和重新播放對話): 依對方看到的樣子、依當時的節奏閱讀一段聊天。
 - [接收警示](#ai-回答不佳時收到通知): 針對失敗、遭拒絕、被截斷、被標記或過慢的回答的現成警示。
@@ -28,13 +29,23 @@ flowchart TB
 | --- | --- |
 | **對話** | AI 進行過的每一段對話，需要注意的排在最前面。清單上方會顯示：對話數、AI 回答數、需要注意的數量、成本和一般的回答時間。 |
 | **呼叫** | 每一次模型、內嵌、代理程式和工具呼叫。可依服務、提供者、模型、作業、人員、團隊或對話篩選；按一下呼叫即可在追蹤檢視器中開啟。 |
-| **使用量** | 某個時間範圍內的呼叫、token 和成本，依員工、團隊、模型、提供者或應用程式排名。 |
+| **使用量** | 某個時間範圍內的呼叫、token 和成本，依員工、團隊、模型、提供者或應用程式排名；在 **提供者帳戶** 下顯示已連線帳戶的帳單金額。 |
 | **警示** | 針對 AI 回答不佳的現成警示，以及你的 AI / LLM 監測器。 |
 | **預算** | 每日成本上限，以可設定警示的指標形式發布。 |
 | **定價** | 為內建價目表中沒有的模型設定你自己的價格。 |
-| **設定** | 下方的五個步驟，以及你專案的端點。 |
+| **連線** | 三種接入方式並排顯示，每種方式開始運作時自動打勾。 |
 
 在追蹤檢視器中，每次 AI 呼叫的 span 還有一個 **LLM** 分頁：提供者、模型、token、成本、要求參數，以及提示和回答。
+
+## 三種接入方式
+
+三種方式都在 **產品 → AI / LLM → 連線** 中。可以使用一種、兩種或全部三種：所有內容都會進入相同的 **對話** 、 **使用量** 、 **警示** 和 **預算** 。
+
+| 接入方式 | 你會得到什麼 | 方法 |
+| --- | --- | --- |
+| **你的應用程式** | 即時記錄每次 AI 呼叫：對話、人員、提示詞和回答、token、成本和錯誤 | 來自程式碼或閘道的 OpenTelemetry，分五個步驟完成 |
+| **你的 AI 提供者帳戶** | 每個 OpenAI、Anthropic、Azure、Bedrock 或 Vertex AI 帳戶每天的使用量和成本 | 只需一個唯讀憑證，不需要程式碼： [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts) |
+| **公司的 AI 工具** | 員工向 Claude Enterprise 或 Microsoft 365 Copilot 問的問題，依人員劃分 | 只需一個唯讀憑證，不需要程式碼： [公司的 AI 工具](/docs/telemetry/ai-company-tools) |
 
 ## 開始之前
 
@@ -51,7 +62,7 @@ flowchart TB
 :::steps
 ### 傳送你的 AI 呼叫
 
-在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立擷取金鑰（ [OpenTelemetry 快速入門](/docs/telemetry/open-telemetry#建立擷取金鑰) 會逐步說明）。接著把你的檢測指向 OneUptime：
+在 **連線** 的 **你的應用程式** 中選擇或建立一個擷取金鑰，然後複製適合你語言的程式碼片段，其中已經填好你的端點和金鑰。或者在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立擷取金鑰（ [OpenTelemetry 快速入門](/docs/telemetry/open-telemetry#建立擷取金鑰) 會逐步說明），接著把你的檢測指向 OneUptime：
 
 :::tabs
 @tab Python
@@ -192,6 +203,8 @@ trace.get_current_span().add_event(
 
 **使用量** 分頁會顯示某個時間範圍（除非你另外選擇，否則為最近 7 天）內的呼叫、token 和成本，以及依五種細分之一列出的前 25 名表格： **員工** 、 **團隊** 、 **模型** 、 **提供者** 和 **應用程式 / 服務** 。沒有指明任何人的呼叫會計入 **未歸屬** ，絕不捨棄。
 
+這些是 **你的 AI 呼叫** 。如果想查看已連線的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶的帳單金額，請改選 **提供者帳戶** ：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#查看使用量)。兩者絕不會相加。
+
 人員和團隊來自呼叫上的身分屬性：請參閱 [員工和團隊歸屬](/docs/telemetry/ai-coding-assistants#員工和團隊歸屬)。
 
 ### span 優先，指標補充
@@ -230,7 +243,7 @@ span 回報為從供應商的提示快取讀取或寫入其中的 token，依供
 
 ## 每日成本預算
 
-預算會依 UTC 日以 USD 追蹤一天的支出。OneUptime 每 15 分鐘彙總當天的 AI 支出（來自 span，或在沒有 span 回報支出時來自 GenAI 成本指標），顯示在預算上，並發布兩個指標：
+預算會依 UTC 日以 USD 追蹤一天的支出。OneUptime 每 15 分鐘彙總當天的 AI 支出（來自 span，或在沒有 span 回報支出時來自 GenAI 成本指標），顯示在預算上，並發布兩個指標。 **支出統計來源** 為 **提供者帳戶** 的預算則改為統計已連線帳戶的帳單金額：請參閱 [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts#預算與警示)。
 
 | 指標 | 意義 |
 | --- | --- |
@@ -263,7 +276,7 @@ span 回報為從供應商的提示快取讀取或寫入其中的 token，依供
 
 AI 呼叫以追蹤 span 的形式儲存，因此追蹤的 **清理規則** 和 **捨棄過濾器** 也適用於它們：在儲存之前遮罩某個屬性或捨棄某個 span。兩者都在 **追蹤 → 設定** 下。員工電子郵件欄會與其來源屬性一起被清理，因此遮罩電子郵件的規則也會涵蓋這一欄。
 
-讀取對話所需的權限與追蹤相同：能讀取專案追蹤的人才能讀取其對話，其他人都不能。
+讀取對話所需的權限與追蹤相同：能讀取專案追蹤的人才能讀取其對話，其他人都不能。公司 AI 工具的對話是例外：除非其連線另有設定，否則只有專案擁有者和管理員可以閱讀（ [公司的 AI 工具](/docs/telemetry/ai-company-tools#隱私) ）。
 
 ## OneUptime 讀取的屬性
 
@@ -328,6 +341,8 @@ OneUptime 會讀取 OpenTelemetry GenAI 慣例，以及 OpenLLMetry、OpenInfere
 ## 後續步驟
 
 :::cards
+- [AI 提供者帳戶](/docs/telemetry/ai-provider-accounts): 不需要程式碼，查看你的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 帳戶的使用量和成本。
+- [公司的 AI 工具](/docs/telemetry/ai-company-tools): 你的員工向 Claude Enterprise 和 Microsoft 365 Copilot 問了什麼問題。
 - [AI 程式設計助理](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI 和 Copilot 依工程師劃分的支出。
 - [AI 閘道](/docs/telemetry/ai-gateways): 透過一個 LiteLLM 或 Portkey 閘道追蹤每個應用程式的模型呼叫。
 - [AI 代理程式斷路器](/docs/telemetry/ai-agent-circuit-breaker): 預算警示觸發時阻止失控的代理程式。

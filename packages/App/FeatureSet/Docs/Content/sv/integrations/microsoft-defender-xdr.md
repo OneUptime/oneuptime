@@ -37,7 +37,7 @@ Anslutningen loggar in med [OAuth 2.0-flödet för klientautentiseringsuppgifter
 
 1. Logga in på [Azure-portalen](https://portal.azure.com) och öppna **Microsoft Entra ID**.
 2. Gå till **App registrations → New registration**. Ge den namnet `OneUptime Security Events`, låt **Supported account types** stå på **Accounts in this organizational directory only**, lämna omdirigerings-URI:n tom och välj **Register**.
-3. Kopiera **Application (client) ID** och **Directory (tenant) ID** från appens sida **Overview**.
+3. Kopiera **Program-ID (klient)** och **Katalog-ID (tenant)** från appens sida **Overview**.
 
 ### Låt den läsa larm
 
@@ -61,9 +61,9 @@ Klicka på **Test these settings** under **Testa innan du sparar**. Testet logga
 
 | Inställning | Var du hittar den |
 | --- | --- |
-| **Directory (tenant) ID** | Appens sida **Overview**. Klientorganisationens GUID, eller en verifierad domän som `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | Appens sida **Overview**. GUID:t för den app som har `SecurityAlert.Read.All`. |
-| **Moln** | **Azure public cloud**, som också betjänar Microsoft 365 GCC, eller **Azure Government (US)** för GCC High (`login.microsoftonline.us` och `graph.microsoft.us`). Microsoft 365 DoD och 21Vianet-molnet i Kina stöds inte. |
+| **Katalog-ID (tenant)** | Appens sida **Overview**. Klientorganisationens GUID, eller en verifierad domän som `contoso.onmicrosoft.com`. |
+| **Program-ID (klient)** | Appens sida **Overview**. GUID:t för den app som har `SecurityAlert.Read.All`. |
+| **Moln** | **Offentligt Azure-moln**, som också betjänar Microsoft 365 GCC, eller **Azure Government (USA)** för GCC High (`login.microsoftonline.us` och `graph.microsoft.us`). Microsoft 365 DoD och 21Vianet-molnet i Kina stöds inte. |
 | **Client secret** | Hemlighetens **Value**. Den krypteras, returneras aldrig av API:et och visas aldrig igen. Ersätt den med **Update credentials** på anslutningen. |
 
 Steget **Polling** har också en valfri **Beskrivning**, **Poll Interval (Minutes)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
@@ -151,7 +151,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 :::details Last Error börjar med `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID vägrade att utfärda en token, så Graph kontaktades aldrig. Meddelandet slutar med en ledtråd utifrån Entras `error`-kod:
   - `invalid_client` (`AADSTS7000215`): hemligheten är felaktig, har upphört att gälla eller tillhör en annan app. Skapa en ny under **Certificates & secrets** och spara den med **Update credentials**.
-  - `unauthorized_client` (`AADSTS700016`): **Application (client) ID** finns inte i det **Directory (tenant) ID**, eller så är **Moln** felaktigt.
+  - `unauthorized_client` (`AADSTS700016`): **Program-ID (klient)** finns inte i det **Katalog-ID (tenant)**, eller så är **Moln** felaktigt.
   - `AADSTS90002`: den klientorganisationen finns inte.
   - `invalid_scope`: Graph-omfånget finns inte i det moln som du valde. Kontrollera **Moln**.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID svarade med något oanvändbart, en kropp som inte är JSON eller som saknar `access_token`. Det är oftast en proxy eller gateway emellan, inte autentiseringsuppgifterna.

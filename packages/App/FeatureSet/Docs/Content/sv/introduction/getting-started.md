@@ -113,7 +113,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 
 ### Ta med dig din konfiguration
 
-**Projektinställningar → Importera från ett annat verktyg** läser din konfiguration i ett annat verktyg, med en API-nyckel eller, för Uptime Kuma, en fil. Den visar vad den hittade och skapar det du kryssar i. Inget ändras i det andra verktyget, och en ny import skapar aldrig något två gånger.
+**Projektinställningar → Avancerad → Importera från ett annat verktyg** läser din konfiguration i ett annat verktyg, med en API-nyckel eller, för Uptime Kuma, en fil. Den visar vad den hittade och skapar det du kryssar i. Inget ändras i det andra verktyget, och en ny import skapar aldrig något två gånger.
 
 | Du kommer från | Vad OneUptime läser |
 | --- | --- |

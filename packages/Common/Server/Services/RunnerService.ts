@@ -75,7 +75,7 @@ export const BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE: string =
   "This global Runner comes with this server, which sets it up again on its next start. To turn it off, set globalRunner.enabled to false in the Helm chart, or GLOBAL_RUNNER_REPLICAS=0 in Docker Compose's config.env.";
 
 export const GLOBAL_RUNNER_CAPABILITY_MESSAGE: string =
-  "A global Runner runs runbook steps only. \"Runs AI Remediation Commands\" stays off for it: AI remediation commands act in a project's own systems, so they run on a Runner of that project's own.";
+  "A global Runner runs runbook steps only, never OneUptime AI's commands: they act in a project's own systems, so they run on a Runner of that project's own that an auto remediation rule or a Kubernetes cluster's AI settings pick.";
 
 // The global Runner columns anyone signed in may read (RunnerAPI's listing).
 export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {
@@ -603,19 +603,21 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Refuses an update, by a caller who may not read runbook credentials, that
-   * turns "Runs AI Remediation Commands" on for one of `turnedOn` - the
-   * Runners it turns it on for - holding an SSH credential. OneUptime AI picks among
-   * a Runner's SSH credentials for the SSH commands it runs there, unattended
-   * for a rule that runs its commands without asking and names no Runners,
-   * so letting it take them is held to whoever may read the credentials, as
-   * approving such a plan and saving such a rule are (RunbookCredentialReaders).
-   * Only the Runners it turns on are asked about: a Runner already on keeps
-   * what it has, as the Runner form posts every field. Read under the
-   * project's lock (AiCommandCredentialReach), so a credential assigned to
-   * one of them at the same moment is read here or refused there.
+   * Refuses a write, by a caller who may not read runbook credentials, that
+   * lets OneUptime AI's commands run on one of `turnedOn` - the Runners it
+   * turns canRunAiCommands on for: a master admin's update of the column, or
+   * an auto remediation rule or a Kubernetes cluster that picks the Runner
+   * (RunnerAiCommandsPick) - holding an SSH credential. OneUptime AI picks
+   * among a Runner's SSH credentials for the SSH commands it runs there,
+   * unattended for a rule that runs its commands without asking, so letting
+   * it take them is held to whoever may read the credentials, as approving
+   * such a plan and saving such a rule are (RunbookCredentialReaders). Only
+   * the Runners it turns on are asked about: a Runner already on keeps what
+   * it has. Read under the project's lock (AiCommandCredentialReach), so a
+   * credential assigned to one of them at the same moment is read here or
+   * refused there.
    */
-  private async assertNoCredentialsForAiCommands(
+  public async assertNoCredentialsForAiCommands(
     turnedOn: Array<Model>,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
@@ -666,7 +668,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (holding) {
       throw new NotAuthorizedException(
-        `Runner "${holding.name || holding._id!.toString()}" holds SSH credentials that OneUptime AI picks from for the commands it runs there, so turning on "Runs AI Remediation Commands" for it takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${RunbookCredentialReaders.getWorkflowNote(props)}`,
+        `Runner "${holding.name || holding._id!.toString()}" holds SSH credentials that OneUptime AI picks from for the commands it runs there, so letting it run OneUptime AI's commands takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${RunbookCredentialReaders.getWorkflowNote(props)}`,
       );
     }
   }
@@ -706,10 +708,15 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A Runner is a project's own (projectId set) or global (isGlobalRunner,
    * no project) - never both, never neither. A global one runs runbook
-   * steps only, so its other capabilities are written off. Whoever creates
-   * it: a project's create always carries its project (the tenant), and only
-   * OneUptime or a master admin may write isGlobalRunner at all (the column
-   * takes no one's create permission).
+   * steps only: one created to run OneUptime AI's commands is refused, and
+   * otherwise canRunAiCommands is left to its default, off. It is not
+   * written here: the column takes no one's create permission any more (a
+   * Runner is picked for those commands, RunnerAiCommandsPick), and a value
+   * a create hook writes is asked of the caller as if they had sent it
+   * (HookWritesCallersMayMake). Whoever creates it: a project's create
+   * always carries its project (the tenant), and only OneUptime or a master
+   * admin may write isGlobalRunner at all (the column takes no one's create
+   * permission).
    */
   public static holdToGlobalRunnerShape(
     data: Model,
@@ -724,8 +731,6 @@ export class Service extends ProjectReferencesService<Model> {
       if (data.canRunAiCommands === true) {
         throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
       }
-
-      data.canRunAiCommands = false;
 
       if (data.canRunRunbooks === undefined || data.canRunRunbooks === null) {
         data.canRunRunbooks = true;

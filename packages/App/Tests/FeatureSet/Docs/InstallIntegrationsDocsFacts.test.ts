@@ -3,6 +3,10 @@ import { boldSpans, escapeRegExp } from "./DocsTranslationChecks";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
+import Phone from "Common/Types/Phone";
+import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
 import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
 import WorkspaceCommands from "Common/Server/Utils/Workspace/WorkspaceCommands";
 import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDatabase/RetentionTtl";
@@ -18,6 +22,10 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  SMS_NUMBER_HINT,
+  TWILIO_FROM_NUMBER_CANNOT_SEND_SMS_CODE,
+} from "../../../FeatureSet/Notification/Utils/TwilioSendError";
 
 /*
  * Docs overhaul task 15: what the Local Development, Docker Compose, Sizing &
@@ -2520,6 +2528,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
       "twilioAccountSID",
       "twilioPrimaryPhoneNumber",
       "twilioSecondaryPhoneNumbers",
+      "twilioSmsPhoneNumbers",
       "isProjectDefault",
     ]) {
       expect({
@@ -2540,6 +2549,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
       "Twilio Auth Token",
       "Twilio Primary Phone Number",
       "Twilio Secondary Phone Numbers",
+      "Twilio SMS Phone Numbers",
     ]) {
       expect({
         field,
@@ -2565,11 +2575,163 @@ describe("Twilio Integration, against the notification server and the forms", ()
       "twilioAuthToken",
       "twilioPrimaryPhoneNumber",
       "twilioSecondaryPhoneNumbers",
+      "twilioSmsPhoneNumbers",
     ]) {
       expect(callSms).toContain(`${field}: true`);
     }
 
     expect(page).toContain("**Admin Dashboard > Settings > Call and SMS**");
+  });
+
+  /*
+   * Separate numbers for calls and SMS: Twilio lists Singapore's national
+   * numbers as voice-only, so a configuration - a project's and the
+   * installation's - lists numbers for SMS. The section's table and its
+   * sentences are held to the forms that draw the fields and to the rule
+   * every sender picks a number by (Types/CallAndSMS/TwilioPhoneNumbers).
+   */
+  describe("Separate numbers for calls and SMS", () => {
+    const section: string = sectionOf(
+      page,
+      "### Separate numbers for calls and SMS",
+    );
+    const SG_NATIONAL: string = "+6561234567";
+    const SG_MOBILE: string = "+6581234567";
+    const UK_MOBILE: string = "+447700900123";
+
+    function config(sms: Array<string>): TwilioConfig {
+      const built: TwilioConfig = {
+        accountSid: "AC00000000000000000000000000000001",
+        authToken: "token",
+        primaryPhoneNumber: new Phone(SG_NATIONAL),
+        secondaryPhoneNumbers: [],
+      };
+
+      if (sms.length > 0) {
+        built.smsPhoneNumbers = sms.map((number: string): Phone => {
+          return new Phone(number);
+        });
+      }
+
+      return built;
+    }
+
+    function from(
+      twilioConfig: TwilioConfig,
+      kind: TwilioMessageKind,
+      to: string,
+    ): string {
+      return TwilioPhoneNumbers.pickSenderNumber({
+        config: twilioConfig,
+        kind: kind,
+        to: to,
+      }).toString();
+    }
+
+    it("its table names the three number fields, as the project form and the Admin form fold them", () => {
+      const fields: Array<string> = tableRows(section)
+        .slice(1)
+        .map((cells: Array<string>): string => {
+          return unwrap(cells[0] as string);
+        });
+
+      expect(fields).toEqual([
+        "Twilio Primary Phone Number",
+        "Twilio Secondary Phone Numbers",
+        "Twilio SMS Phone Numbers",
+      ]);
+
+      const table: string = readSource("callSmsConfigTable");
+      const admin: string = readSource("adminCallSms");
+
+      // The SMS numbers are a folded, one-line list on both forms.
+      for (const source of [table, admin]) {
+        const field: string = blockFrom(
+          source,
+          'twilioSmsPhoneNumbers: true,\n            },\n            title: "Twilio SMS Phone Numbers",',
+          "\n          },",
+        );
+
+        expect(field).toContain('title: "Twilio SMS Phone Numbers",');
+        expect(field).toContain("FormFieldSchemaType.Text,");
+        expect(field).toContain("collapsibleSection:");
+        expect(field).toContain("required: false,");
+      }
+
+      expect(section).toContain("under **More fields**");
+    });
+
+    it("says what Twilio documents of Singapore, with Twilio's number ranges", () => {
+      expect(section).toContain(
+        "national numbers (+65 3 or +65 6) are voice-only, and SMS need a mobile number (+65 8)",
+      );
+      expect(section).toContain(
+        "enter the national number as **Twilio Primary Phone Number** and the mobile number in **Twilio SMS Phone Numbers**",
+      );
+    });
+
+    it("the SMS row is the rule the senders pick by: the recipient's country, or else the first", () => {
+      expect(rowOf(section, "**Twilio SMS Phone Numbers**")[1]).toBe(
+        "Every SMS once listed: from the number in the recipient's country, or else from the first",
+      );
+
+      const listed: TwilioConfig = config([SG_MOBILE, UK_MOBILE]);
+
+      expect(from(listed, TwilioMessageKind.SMS, "+447911123456")).toBe(
+        UK_MOBILE,
+      );
+      expect(from(listed, TwilioMessageKind.SMS, "+33612345678")).toBe(
+        SG_MOBILE,
+      );
+      // Calls keep the call numbers.
+      expect(from(listed, TwilioMessageKind.Call, "+447911123456")).toBe(
+        SG_NATIONAL,
+      );
+    });
+
+    it("once listed, no SMS goes out from the other numbers; without any, SMS go out as calls do", () => {
+      expect(section).toContain(
+        "Once a configuration lists SMS numbers, no SMS goes out from its other numbers",
+      );
+      expect(rowOf(section, "**Twilio Primary Phone Number**")[1]).toBe(
+        "Calls, and SMS while no SMS numbers are listed",
+      );
+
+      for (const recipient of ["+6590665484", "+447911123456"]) {
+        expect(
+          from(config([SG_MOBILE]), TwilioMessageKind.SMS, recipient),
+        ).toBe(SG_MOBILE);
+        expect(from(config([]), TwilioMessageKind.SMS, recipient)).toBe(
+          SG_NATIONAL,
+        );
+      }
+
+      expect(section).toContain(
+        "A configuration without SMS numbers sends SMS from the same numbers as calls, as before.",
+      );
+    });
+
+    it("error 21606 is the refusal the Notification service answers by naming the field", () => {
+      expect(TWILIO_FROM_NUMBER_CANNOT_SEND_SMS_CODE).toBe(21606);
+      expect(SMS_NUMBER_HINT).toContain("Twilio SMS Phone Numbers");
+      expect(section).toContain(
+        "If Twilio refuses an SMS with error 21606, the number cannot send SMS: add one that can to **Twilio SMS Phone Numbers**.",
+      );
+      expect(rowOf(page, "Twilio refuses SMS with error 21606")[1]).toContain(
+        "Add one that can to **Twilio SMS Phone Numbers**",
+      );
+    });
+
+    it("links Twilio's own Singapore SMS guidelines by their address", () => {
+      const at: number = section.indexOf("](https://");
+
+      expect(at).toBeGreaterThan(-1);
+
+      const url: URL = new URL(section.slice(at + 2, section.indexOf(")", at)));
+
+      expect(url.origin).toBe("https://www.twilio.com");
+      expect(url.pathname).toBe("/en-us/guidelines/sg/sms");
+    });
   });
 });
 
