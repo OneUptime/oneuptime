@@ -242,6 +242,7 @@ const ADMIN_KEYS: Record<string, string> = {
 // The page's bold paths through the Admin Dashboard.
 const ADMIN_PATHS: Array<string> = [
   "Admin Dashboard → OneUptime Health → Valkey",
+  "Admin Dashboard → OneUptime Health",
 ];
 
 // Bold words that are Dashboard labels by coincidence: words of the page.
@@ -328,6 +329,7 @@ const PROSE_LEADS: Array<string> = [
   "Every role's description says what the role does.",
   "Connecting Slack, Microsoft Teams or GitHub that does not finish says why, on the page it started from.",
   "A server admin is held to no plan inside a project.",
+  "Visitors keep their own address in more setups.",
   "Changing a state takes the state timeline's permission, and nothing more.",
   "Acknowledging alerts as you declare an incident takes what acknowledging them takes anywhere else.",
   "An incoming call policy's phone numbers follow the policy's roles.",
@@ -354,6 +356,7 @@ const PROSE_LEADS: Array<string> = [
   "The bundled Runner registers with its own key, and holds no `ONEUPTIME_SECRET`.",
   "Wrong probe and Runner keys are counted.",
   "Every install runs a global Runner of its own.",
+  "Runbook secrets and the credentials runbook steps used are runbook variables.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

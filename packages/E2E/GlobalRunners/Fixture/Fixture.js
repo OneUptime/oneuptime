@@ -7,15 +7,16 @@
  *     Runners switch;
  *   - a runbook's Steps (Pages/Runbook/View/Steps): each step's Runner
  *     picker (Components/Runner/RunnerPicker);
- *   - Runbooks -> Settings -> Secrets (Pages/Runbook/Secrets): whether
- *     global Runners may use a secret.
+ *   - Runbooks -> Settings -> Global Variables (Pages/Runbook/Variables):
+ *     whether global Runners may use a secret variable.
  *
  * Only the ModelAPI / API data boundary and the synthetic user's
  * permissions are replaced. The pages, their tables, cards, switches,
  * dialogs and the picker are the production ones from this branch.
  *
  * Steered by the query string:
- *   - page=steps | secrets   the runbook's Steps page or the Secrets page;
+ *   - page=steps | variables the runbook's Steps page or the Global
+ *                            Variables page;
  *                            the default is Runbooks -> Runners
  *   - global=<n>             how many global Runners the server has: 0, 1
  *                            (the default: the bundled one) or 2
@@ -52,10 +53,10 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import RunnersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners";
 import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
-import SecretsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Secrets";
+import VariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import Label from "Common/Models/DatabaseModels/Label";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -274,20 +275,22 @@ const runbook = record(Runbook, {
   steps: STEPS,
 });
 
-const SECRETS = [
-  record(RunbookSecret, {
+const VARIABLES = [
+  record(RunbookVariable, {
     _id: "80000000-0000-4000-8000-000000000b01",
     projectId: new ObjectID(PROJECT_ID),
     name: "STATUSPAGE_TOKEN",
     description: "Read-only token for the public status API.",
+    isSecret: true,
     isAvailableToGlobalRunners: true,
     runners: [],
   }),
-  record(RunbookSecret, {
+  record(RunbookVariable, {
     _id: "80000000-0000-4000-8000-000000000b02",
     projectId: new ObjectID(PROJECT_ID),
     name: "DB_PASSWORD",
     description: "The replica's admin password.",
+    isSecret: true,
     isAvailableToGlobalRunners: false,
     runners: CUSTOM_RUNNERS.slice(0, 1),
   }),
@@ -297,7 +300,7 @@ const TABLES = {
   Project: [project],
   Runbook: [runbook],
   Runner: CUSTOM_RUNNERS,
-  RunbookSecret: SECRETS,
+  RunbookVariable: VARIABLES,
   RunbookCredential: [],
   Label: [PRODUCTION],
 };
@@ -446,7 +449,7 @@ function Shell(props) {
 const target = {
   runners: `/dashboard/${PROJECT_ID}/runbooks/runners`,
   steps: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`,
-  secrets: `/dashboard/${PROJECT_ID}/runbooks/settings/secrets`,
+  variables: `/dashboard/${PROJECT_ID}/runbooks/settings/variables`,
 }[page];
 
 if (target && window.location.pathname !== target) {
@@ -461,8 +464,13 @@ createRoot(document.getElementById("root")).render(
         element={<Shell component={RunnersPage} trail="Runners" />}
       />
       <PageRoute
-        path="/dashboard/:projectId/runbooks/settings/secrets"
-        element={<Shell component={SecretsPage} trail="Settings / Secrets" />}
+        path="/dashboard/:projectId/runbooks/settings/variables"
+        element={
+          <Shell
+            component={VariablesPage}
+            trail="Settings / Global Variables"
+          />
+        }
       />
       <PageRoute
         path="/dashboard/:projectId/runbooks/:id/steps"

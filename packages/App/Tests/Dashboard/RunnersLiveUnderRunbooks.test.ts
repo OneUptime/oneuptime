@@ -289,7 +289,7 @@ describe("the Runner pages are Runbooks pages", () => {
     expect(settingsRoutes.match(/<MovedRunnerPageRedirect/g)).toHaveLength(3);
   });
 
-  test("the credentials table is named for where it is", () => {
+  test("the credentials table is named for where it is: AI Access", () => {
     const page: string = read(
       "App",
       "FeatureSet",
@@ -301,12 +301,16 @@ describe("the Runner pages are Runbooks pages", () => {
       "RunnerCredentials.tsx",
     );
 
-    expect(page).toContain('name="Runbooks > Runner Credentials"');
+    /*
+     * What OneUptime AI's commands reach through a Runner. Runbook steps
+     * sign in with runbook variables now.
+     */
+    expect(page).toContain('name="Runbooks > AI Access"');
   });
 });
 
 describe("the messages people act on name Runbooks", () => {
-  test("a runbook step with no Runner or credential says where to pick one", () => {
+  test("a runbook step with no Runner, machine or secret says what to fill in", () => {
     const executors: string = read(
       "App",
       "FeatureSet",
@@ -316,11 +320,16 @@ describe("the messages people act on name Runbooks", () => {
     );
 
     for (const message of [
-      "SSH step is missing a credential. Pick one under Runbooks → Runner Credentials.",
-      "Kubernetes step is missing a credential. Pick one under Runbooks → Runner Credentials.",
+      "This SSH step has no machine to sign in to. Open the step and fill in SSH to, as user@host.",
+      "Open the step and pick the secret variable that holds it.",
     ]) {
       expect(executors).toContain(message);
     }
+
+    // A variable a step names that is not there says where variables live.
+    expect(
+      read("Common", "Types", "Runbook", "RunbookVariableProblems.ts"),
+    ).toContain("(Runbooks → Settings → Global Variables)");
 
     /*
      * Where a step with no Runner of its own runs - the global Runners, or
@@ -369,7 +378,7 @@ describe("the messages people act on name Runbooks", () => {
     expect(flat).toContain("openInNewTab={true}");
   });
 
-  test("the step editor's empty credential picker points at the Credentials page under Runners", () => {
+  test("the step editor's empty variable picker points at Runbooks › Settings › Global Variables", () => {
     const steps: string = read(
       "App",
       "FeatureSet",
@@ -381,14 +390,30 @@ describe("the messages people act on name Runbooks", () => {
       "Steps.tsx",
     ).replace(/\s+/g, " ");
 
+    const picker: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "Runbook",
+      "Steps",
+      "RunbookVariablePicker.tsx",
+    ).replace(/\s+/g, " ");
+
     /*
-     * Credentials moved under Runners in the Runbooks menu; the picker
-     * still sent people to a Settings page that no longer lists them.
+     * SSH and kubectl steps sign in with a secret variable; the picker sends
+     * people to where variables are made, not to the credentials OneUptime
+     * AI uses.
      */
-    expect(steps).toContain(
-      'translator.translateText( "Runbooks › Runners › Credentials", )',
+    expect(picker).toContain(
+      'translator.translateText("Runbooks › Settings › Global Variables")',
+    );
+    expect(picker).toContain(
+      'template="No secret variables yet. Add one under {{location}}, then pick it here."',
     );
     expect(steps).not.toContain("Settings › Credentials");
+    expect(steps).not.toContain("Runbooks › Runners › Credentials");
   });
 
   test("the step editor calls a Runner a Runner, never an agent", () => {
@@ -488,15 +513,11 @@ describe("the messages people act on name Runbooks", () => {
       "KubernetesAiAccessSettings.ts",
     );
 
-    expect(settings).toContain(
-      "Assign one under Runbooks → Runner Credentials.",
-    );
+    expect(settings).toContain("Assign one under Runbooks → AI Access.");
     expect(settings).toContain(
       "choose a Runner created under Runbooks → Runners.",
     );
-    expect(settings).toContain(
-      "Assign it under Runbooks → Runner Credentials,",
-    );
+    expect(settings).toContain("Assign it under Runbooks → AI Access,");
   });
 });
 
@@ -515,13 +536,19 @@ describe("the side menu labels are translated in every locale", () => {
   });
 
   test.each(LOCALE_FILES)(
-    "%s has the Runbooks menu's Runners section and both its entries",
+    "%s has the Runbooks menu's Runners section, both its entries and the variables pages",
     (file: string) => {
       const locale: Record<string, unknown> = JSON.parse(
         fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
       ) as Record<string, unknown>;
 
-      for (const key of ["Runners", "Credentials", "Runbooks"]) {
+      for (const key of [
+        "Runners",
+        "AI Access",
+        "Runbooks",
+        "Global Variables",
+        "Variables",
+      ]) {
         expect(typeof locale[key]).toBe("string");
         expect((locale[key] as string).trim().length).toBeGreaterThan(0);
       }

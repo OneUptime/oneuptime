@@ -1000,5 +1000,16 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "每次請求都會傳送給提供者的額外 JSON 參數，例如 {\"temperature\": 0.2}。除非模型需要，否則留空。",
   "Never put keys here.": "切勿在此填寫金鑰。",
   "Your deployment's name, exactly as Foundry shows it.": "你的部署名稱，須與 Foundry 中顯示的完全一致。",
-  "{{name}} (default)": "{{name}}（預設）"
+  "{{name}} (default)": "{{name}}（預設）",
+  "Visitors share an address": "訪客共用一個位址",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "在過去 30 天內，有多人從同一個私人網路位址登入。OneUptime 會把他們算作同一個訪客，因此一個人的登入失敗可能會把其他人鎖在外面。",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "通常是 OneUptime 前面的某個元件用它自己的位址把每個訪客轉交過來：",
+  "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.": "Docker Compose：如果有人透過 IPv6 存取，請在 {{file}} 中為 OneUptime 的網路開啟 IPv6。",
+  "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.": "在自己的代理之後執行 Docker Compose：先讓代理成為唯一的入口，再設定 {{hops}}。如果代理在同一台伺服器上，請只在 {{loopback}} 上發布 OneUptime 的連接埠。",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes：在 Helm chart 的 values 中設定 {{setting}}。",
+  "Nothing needs to change if these people share one computer or one VPN.": "如果這些人共用一台電腦或同一個 VPN，則不需要變更任何內容。",
+  "{{count}} people": "{{count}} 人",
+  "{{count}} people_one": "{{count}} 人",
+  "Docker Compose guide": "Docker Compose 指南",
+  "Kubernetes guide": "Kubernetes 指南"
 }

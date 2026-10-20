@@ -7,7 +7,11 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
-import { RunbookStep } from "../../../../Types/Runbook/RunbookStep";
+import {
+  RunbookStep,
+  isLegacyKubernetesStepConfig,
+  isLegacySSHStepConfig,
+} from "../../../../Types/Runbook/RunbookStep";
 import RunbookService from "../../../Services/RunbookService";
 import RunbookExecutionService from "../../../Services/RunbookExecutionService";
 import logger from "../../Logger";
@@ -77,17 +81,42 @@ function describeStepInstructions(step: RunbookStep): string {
       return `AI step with prompt: ${configString(config, "prompt")}`;
     }
     case RunbookStepType.SSH: {
-      return `Runs over SSH: ${configString(config, "command")}`;
+      // A step written before runbook variables runs one command.
+      if (isLegacySSHStepConfig(config)) {
+        return `Runs over SSH: ${configString(config, "command")}`;
+      }
+
+      /*
+       * It signs in to user@host (either may name a runbook variable) and
+       * runs a bash script there. The sign-in names a secret variable,
+       * never a value.
+       */
+      const username: string = configString(config, "username");
+      const host: string = configString(config, "host");
+      const target: string = username ? `${username}@${host}` : host;
+
+      return `Runs a bash script over SSH on ${target}: ${configString(
+        config,
+        "script",
+      )}`;
     }
     case RunbookStepType.Kubernetes: {
-      const replicas: unknown = config["replicas"];
-      return `Kubernetes ${configString(config, "action")} on ${configString(
+      // A step written before kubectl scripts restarts or scales a workload.
+      if (isLegacyKubernetesStepConfig(config)) {
+        const replicas: unknown = config["replicas"];
+        return `Kubernetes ${configString(config, "action")} on ${configString(
+          config,
+          "workloadKind",
+        )} ${configString(config, "namespace")}/${configString(
+          config,
+          "workloadName",
+        )}${typeof replicas === "number" ? ` (replicas: ${replicas})` : ""}`;
+      }
+
+      return `Runs kubectl commands on a runner: ${configString(
         config,
-        "workloadKind",
-      )} ${configString(config, "namespace")}/${configString(
-        config,
-        "workloadName",
-      )}${typeof replicas === "number" ? ` (replicas: ${replicas})` : ""}`;
+        "script",
+      )}`;
     }
     default: {
       // Unknown step type (newer schema than this build) — show the raw config.

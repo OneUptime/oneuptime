@@ -9,7 +9,10 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Runbooks from "../Pages/Runbook/Runbooks";
 import RunbooksExecutions from "../Pages/Runbook/Executions";
-import RunbookSecrets from "../Pages/Runbook/Secrets";
+import RunbookGlobalVariables from "../Pages/Runbook/Variables";
+import RunbookVariables from "../Pages/Runbook/View/Variables";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import { MOVED_RUNBOOK_SECRETS_PATH } from "./MovedPagePaths";
 import RunbookRunners from "../Pages/Runbook/Runners/Runners";
 import RunbookRunnerView from "../Pages/Runbook/Runners/RunnerView";
 import RunbookRunnerCredentials from "../Pages/Runbook/Runners/RunnerCredentials";
@@ -35,6 +38,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
+      {/*
+       * Runbook secrets were merged into variables. The old address
+       * forwards - outside the layout, so the menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_RUNBOOK_SECRETS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.RUNBOOKS_VARIABLES} />}
+      />
+
       <PageRoute path="/" element={<RunbooksLayout {...props} />}>
         <PageRoute
           index
@@ -55,11 +67,11 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_SECRETS] || ""}
+          path={RunbookRoutePath[PageMap.RUNBOOKS_VARIABLES] || ""}
           element={
-            <RunbookSecrets
+            <RunbookGlobalVariables
               {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_SECRETS] as Route}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_VARIABLES] as Route}
             />
           }
         />
@@ -213,6 +225,15 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookAuditLogs
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_AUDIT_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.RUNBOOK_VIEW_VARIABLES)}
+          element={
+            <RunbookVariables
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOK_VIEW_VARIABLES] as Route}
             />
           }
         />

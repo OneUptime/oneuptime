@@ -72,6 +72,17 @@ import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCo
 import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { redactResourceCommandOutput } from "../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
 import QueryHelper from "../Types/Database/QueryHelper";
+import RunbookExecutionService from "./RunbookExecutionService";
+import RunbookExecution from "../../Models/DatabaseModels/RunbookExecution";
+import RunbookVariableResolver, {
+  RunbookVariableResolution,
+} from "../Utils/Runbook/RunbookVariableResolver";
+import { getRunbookJobVariableReferences } from "../../Types/Runbook/RunbookJobVariableFields";
+import {
+  RunbookVariableReference,
+  RunbookVariableScope,
+} from "../../Types/Runbook/RunbookVariableReference";
+import { redactSecretValues } from "../../Types/Runbook/SecretOutputRedaction";
 import {
   GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS,
   GLOBAL_RUNNER_STEP_TYPES,
@@ -2309,6 +2320,15 @@ export class Service extends DatabaseService<Model> {
     resourceCommand?:
       | { resourceType: AiResourceType; program: string }
       | undefined;
+    /*
+     * The secret runbook variables the step was handed
+     * (getSecretValuesGivenToJob), hidden in its output and error message
+     * before anything stores them - whatever the Runner sent: a Runner hides
+     * them too, but one older than runbook variables does not know to. Set
+     * by the Runner's result route only; every other caller writes text the
+     * server composed, which holds no secret.
+     */
+    secretValues?: Array<string> | undefined;
   }): Promise<boolean> {
     const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
       PostgresAppInstance.getDataSource();
@@ -2320,6 +2340,8 @@ export class Service extends DatabaseService<Model> {
       ? RunnerJobStatus.Succeeded
       : RunnerJobStatus.Failed;
 
+    const secretValues: Array<string> = data.secretValues || [];
+
     /*
      * Made storable first: every text parameter below is bound whichever
      * branch of the CASE the row takes, so one unstorable character in any
@@ -2327,11 +2349,14 @@ export class Service extends DatabaseService<Model> {
      */
     const rawOutput: string | null =
       typeof data.output === "string"
-        ? Service.toStorableText(data.output)
+        ? redactSecretValues(Service.toStorableText(data.output), secretValues)
         : null;
     const rawErrorMessage: string | null =
       typeof data.errorMessage === "string"
-        ? Service.toStorableText(data.errorMessage)
+        ? redactSecretValues(
+            Service.toStorableText(data.errorMessage),
+            secretValues,
+          )
         : null;
 
     /*
@@ -2407,6 +2432,89 @@ export class Service extends DatabaseService<Model> {
     }
 
     return rows.length > 0;
+  }
+
+  /*
+   * The secret runbook variables a runbook step's job names - and so was
+   * handed when a Runner took it - read again for hiding them in what the
+   * step printed (Types/Runbook/SecretOutputRedaction). Only for the Runner
+   * that holds the job: a result for a job that is not its own is never
+   * stored, so nothing is read for it. None for a job that names none, nor
+   * for a command OneUptime AI composed, which is never filled in. A
+   * runbook's own variables are read from the run's runbook.
+   */
+  public async getSecretValuesGivenToJob(data: {
+    jobId: ObjectID;
+    agentId: ObjectID;
+  }): Promise<Array<string>> {
+    const job: Model | null = await this.findOneBy({
+      query: {
+        _id: data.jobId,
+        assignedAgentId: data.agentId,
+      },
+      select: {
+        projectId: true,
+        runbookExecutionId: true,
+        origin: true,
+        stepType: true,
+        script: true,
+        payload: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (
+      !job ||
+      !job.projectId ||
+      AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
+    ) {
+      return [];
+    }
+
+    const references: Array<RunbookVariableReference> =
+      getRunbookJobVariableReferences({
+        stepType: job.stepType,
+        script: job.script || "",
+        payload: (job.payload as JSONObject | undefined) || {},
+      });
+
+    if (references.length === 0) {
+      return [];
+    }
+
+    let runbookId: ObjectID | null = null;
+
+    if (
+      job.runbookExecutionId &&
+      references.some((reference: RunbookVariableReference): boolean => {
+        return reference.scope === RunbookVariableScope.Local;
+      })
+    ) {
+      const execution: RunbookExecution | null =
+        await RunbookExecutionService.findOneById({
+          id: job.runbookExecutionId,
+          select: { projectId: true, runbookId: true },
+          props: { isRoot: true },
+        });
+
+      if (
+        execution?.runbookId &&
+        execution.projectId?.toString() === job.projectId.toString()
+      ) {
+        runbookId = execution.runbookId;
+      }
+    }
+
+    const resolution: RunbookVariableResolution =
+      await RunbookVariableResolver.resolve({
+        projectId: job.projectId,
+        runbookId,
+        references,
+        access: { kind: "server" },
+        includeValues: true,
+      });
+
+    return resolution.secretValues;
   }
 
   /*

@@ -132,8 +132,12 @@ Runbook 执行有五种创建方式：
 Runbook 的 **运行此 Runbook** 开关在其 **设置** 页面上被关闭了，或者它没有已保存的步骤。请打开开关或添加步骤，然后点击 **Save Steps** 。Runbook 的 **概览** 会说明是哪一种，并提供 **开启运行手册** 或 **添加步骤** 。
 :::
 
-:::details 步骤因缺少 Runner 或凭据而失败
-消息类似于“This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** ，或者 SSH 或 Kubernetes 步骤在保存时没有选择 **Credential** 。只有当没有 [全局 Runner](/docs/runbooks/agents#全局-runner) 可以运行 JavaScript 步骤时，它才需要你自己的 Runner。打开 Runbook 的 **步骤** ，选择缺少的内容，点击 **Save Steps** ，然后再次运行 Runbook。
+:::details 步骤因缺少 Runner 而失败
+消息类似于“This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** 。只有当没有 [全局 Runner](/docs/runbooks/agents#全局-runner) 可以运行 JavaScript 步骤时，它才需要你自己的 Runner。打开 Runbook 的 **步骤** ，选择步骤的 Runner，点击 **Save Steps** ，然后再次运行 Runbook。
+:::
+
+:::details 步骤因引用了无法使用的变量而失败
+消息以 "This step names variables it cannot use, so it was not run:" 开头，并逐个说明每个变量的问题以及在哪里修复：没有这个名称的变量、机密没有值，或者步骤的 Runner 不能使用它。创建该变量或修正步骤中的名称，或者让 Runner 可以使用该机密，然后再次运行 Runbook。参见 [Runbook 变量](/docs/runbooks/variables)。
 :::
 
 :::details 步骤因没有 Runbook 代理领取而失败

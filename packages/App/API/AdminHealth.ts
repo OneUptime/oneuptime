@@ -11,6 +11,11 @@ import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "Common/Server/Enterprise/EnterpriseFeature";
 import { EnterpriseLicenseSnapshot } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import PostgresSchemaMigrations from "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index";
+import {
+  getSharedVisitorAddresses,
+  SharedVisitorAddress,
+  SharedVisitorAddressesReport,
+} from "Common/Server/Utils/InstanceHealth/SharedVisitorAddresses";
 import DataMigrationsList from "../FeatureSet/Workers/DataMigrations/Index";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
 import Express, {
@@ -861,6 +866,49 @@ router.get(
     try {
       const data: JSONObject = await getMigrationStatus();
       return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Whether OneUptime tells the people who sign in apart: the private network
+ * addresses several different people signed in from in the last 30 days
+ * (Common/Server/Utils/InstanceHealth/SharedVisitorAddresses). The Health
+ * page shows them when there are any, with what the operator can change -
+ * every per-address limit and IP allowlist counts those people as one.
+ * Available on every edition. A master admin's session only, like the
+ * query console: it lists addresses inside the operator's network.
+ */
+router.get(
+  "/visitor-addresses",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const report: SharedVisitorAddressesReport =
+        await getSharedVisitorAddresses();
+
+      return Response.sendJsonObjectResponse(req, res, {
+        checked: report.checked,
+        windowDays: report.windowDays,
+        minimumPeople: report.minimumPeople,
+        trustedProxyHops: report.trustedProxyHops,
+        addressCount: report.addressCount,
+        addresses: report.addresses.map(
+          (shared: SharedVisitorAddress): JSONObject => {
+            return {
+              address: shared.address,
+              people: shared.people,
+              lastSeenAt: shared.lastSeenAt,
+            };
+          },
+        ),
+      });
     } catch (err) {
       return next(err);
     }

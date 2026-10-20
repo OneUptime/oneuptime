@@ -132,8 +132,12 @@ Rollen din leser runbooks, men kjører dem ikke: knappen sier "Du har ikke tilla
 Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstillinger**, eller det har ingen lagrede trinn. Slå bryteren på, eller legg til trinn, og klikk **Save Steps**. **Oversikt** sier hvilken, med **Slå på runbook** eller **Legg til trinn**.
 :::
 
-:::details Et trinn feilet fordi det mangler en Runner eller påloggingsinformasjon
-Meldingen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Trinnet ble lagret uten **Runner**, eller et SSH- eller Kubernetes-trinn uten **Credential**. Et JavaScript-trinn trenger bare sin egen Runner når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan kjøre det. Åpne runbookets **Trinn**, velg det trinnet mangler, klikk **Save Steps**, og kjør runbooket på nytt.
+:::details Et trinn feilet fordi det mangler en Runner
+Meldingen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Trinnet ble lagret uten **Runner**. Et JavaScript-trinn trenger bare sin egen Runner når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan kjøre det. Åpne runbookets **Trinn**, velg trinnets Runner, klikk **Save Steps**, og kjør runbooket på nytt.
+:::
+
+:::details Et trinn feilet fordi det nevner variabler det ikke kan bruke
+Meldingen begynner med "This step names variables it cannot use, so it was not run:" og forteller for hver variabel hva som er galt og hvor det rettes: det finnes ingen variabel med det navnet, hemmeligheten har ingen verdi, eller trinnets Runner får ikke bruke den. Opprett variabelen eller rett navnet i trinnet, eller la Runneren bruke hemmeligheten, og kjør så runbooken på nytt. Se [Runbook-variabler](/docs/runbooks/variables).
 :::
 
 :::details Et trinn feilet fordi ingen runbook-agent tok det

@@ -23,8 +23,9 @@ import {
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * The seven Runbooks pages - the overview, authoring, rules, running, the
- * Runner (agents) guide, credentials and configuration & safety - are
+ * The Runbooks pages - the overview, authoring, rules, running, triggers,
+ * variables, the Runner (agents) guide, AI Access (credentials) and
+ * configuration & safety - are
  * translated into every docs language, and each translation says what the
  * English page says: the same sections, tables, lists, code and diagrams,
  * links that land on a heading in the reader's language, a title that is
@@ -59,8 +60,9 @@ const PAGES: ReadonlyArray<RunbookPage> = [
   { page: "runbooks/rules", navTitle: "Runbook Rules" },
   { page: "runbooks/running", navTitle: "Running a Runbook" },
   { page: "runbooks/triggers", navTitle: "Runbook Triggers" },
+  { page: "runbooks/variables", navTitle: "Runbook Variables" },
   { page: "runbooks/agents", navTitle: "Runbook Agents" },
-  { page: "runbooks/credentials", navTitle: "Runbook Credentials" },
+  { page: "runbooks/credentials", navTitle: "AI Access" },
   {
     page: "runbooks/configuration",
     navTitle: "Runbook Configuration & Safety",
@@ -74,7 +76,8 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: RunbookPage): string => {
 /*
  * The step types, as the Steps editor's picker and the execution page draw
  * them: in English, whatever the reader's language (STEP_TYPE_META and
- * STEP_TYPE_LABEL render them untranslated).
+ * STEP_TYPE_LABEL render them untranslated). "kubectl" is a command's name,
+ * which the Dashboard's locale has no key for.
  */
 const STEP_TYPE_NAMES: Array<string> = [
   "Manual",
@@ -82,9 +85,16 @@ const STEP_TYPE_NAMES: Array<string> = [
   "HTTP request",
   "Bash",
   "SSH",
-  "Kubernetes",
+  "kubectl",
   "AI",
 ];
+
+// The step types that are words of the Dashboard's locale as well.
+const STEP_TYPE_LABELS: Array<string> = STEP_TYPE_NAMES.filter(
+  (name: string): boolean => {
+    return isDashboardLabel(name);
+  },
+);
 
 /*
  * Bold names the translations keep in English, on purpose, by page: the
@@ -92,7 +102,15 @@ const STEP_TYPE_NAMES: Array<string> = [
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   // The step types table: the editor and the execution page name them in English.
-  "runbooks/index": STEP_TYPE_NAMES,
+  "runbooks/index": STEP_TYPE_LABELS,
+  "runbooks/credentials": [
+    // A permission's name, as a custom role's permission list shows it.
+    "Create Runbook Credential",
+  ],
+  "runbooks/variables": [
+    // A permission's name, as a custom role's permission list shows it.
+    "Create Runbook Variable",
+  ],
   "runbooks/running": [
     // A permission's name, as a custom role's permission list shows it.
     "Create Runbook Execution",
@@ -117,7 +135,7 @@ const PROSE: Record<string, Array<string>> = {
     "Execution",
     "Snapshot",
     "Runner",
-    "Credential",
+    "Variable",
     "Secret",
     // "Monitors open incidents and alerts": the product, in a sentence.
     "Monitors",
@@ -140,6 +158,7 @@ const PROSE: Record<string, Array<string>> = {
 const SERVER_MESSAGES: Record<string, Array<string>> = {
   "runbooks/running": [
     "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+    "This step names variables it cannot use, so it was not run:",
     "No runbook agent picked up this step before the wait window expired.",
     "No global Runner picked up this step before the wait window expired.",
   ],
@@ -148,6 +167,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     "No global Runner picked up this step before the wait window expired.",
     "The runbook agent stopped responding while this step was running.",
     "No capability is enabled",
+    "This kubectl step runs a script, and this Runner is too old to run one, so it was not run.",
   ],
   "runbooks/rules": [
     "Alert Severities can only be used by alert runbook rules.",
@@ -428,6 +448,16 @@ describe.each(LANGUAGES)("%s runbook pages", (language: string) => {
           name: name,
           kept: translated.includes(`**${name}**`),
         }).toEqual({ name: name, kept: true });
+      }
+
+      // Every step type of the overview's table, kubectl included.
+      if (entry.page === "runbooks/index") {
+        for (const name of STEP_TYPE_NAMES) {
+          expect({
+            name: name,
+            kept: translated.includes(`| **${name}** |`),
+          }).toEqual({ name: name, kept: true });
+        }
       }
     });
 

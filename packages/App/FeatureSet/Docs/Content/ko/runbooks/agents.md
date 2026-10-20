@@ -1,6 +1,6 @@
 # Runbook 에이전트
 
-대시보드에서 **Runner**라고 부르는 **Runbook 에이전트**는 Runbook의 JavaScript, Bash, SSH, Kubernetes 단계를 **자체 인프라에서** 실행하는 작은 자체 호스팅 프로세스입니다. OneUptime Worker는 스크립트를 실행하지 않습니다. Worker는 스크립트를 큐에 넣고, 단계 작성자가 고른 Runner가 각 작업을 가져가 실행한 뒤 결과를 돌려보냅니다. 이 페이지는 Runner를 설치하고 운영하는 사람을 위한 것입니다. Runner를 고르지 않은 JavaScript 단계는 대신 [글로벌 Runner](#글로벌-runner)에서 실행됩니다. 글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다.
+대시보드에서 **Runner**라고 부르는 **Runbook 에이전트**는 Runbook의 JavaScript, Bash, SSH, kubectl 단계를 **자체 인프라에서** 실행하는 작은 자체 호스팅 프로세스입니다. OneUptime Worker는 스크립트를 실행하지 않습니다. Worker는 스크립트를 큐에 넣고, 단계 작성자가 고른 Runner가 각 작업을 가져가 실행한 뒤 결과를 돌려보냅니다. 이 페이지는 Runner를 설치하고 운영하는 사람을 위한 것입니다. Runner를 고르지 않은 JavaScript 단계는 대신 [글로벌 Runner](#글로벌-runner)에서 실행됩니다. 글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다.
 
 :::cards
 - [Runner 설치](#runner-설치): 대시보드에서 연결된 컨테이너까지 다섯 단계.
@@ -33,13 +33,13 @@ flowchart TB
 1. OneUptime에서 Runner를 만듭니다. OneUptime이 Runner의 ID와 비밀 키를 생성합니다.
 2. 자체 인프라의 호스트에서 그 ID, 키, OneUptime URL로 Runner 컨테이너를 실행합니다.
 3. Runner는 5초마다 OneUptime에 작업을 요청하고, 60초마다 살아 있다고 보고합니다.
-4. JavaScript, Bash, SSH 또는 Kubernetes 단계를 작성할 때 드롭다운에서 Runner를 고릅니다. 단계는 그 Runner에 연결됩니다. JavaScript 단계는 드롭다운이 골라 두는 **글로벌 Runner**를 그대로 둘 수 있습니다.
+4. JavaScript, Bash, SSH 또는 kubectl 단계를 작성할 때 드롭다운에서 Runner를 고릅니다. 단계는 그 Runner에 연결됩니다. JavaScript 단계는 드롭다운이 골라 두는 **글로벌 Runner**를 그대로 둘 수 있습니다.
 5. 단계가 실행되면 Worker는 `targetAgentId`를 그 Runner로 설정한 작업을 큐에 넣습니다. 그 Runner만 작업을 가져갈 수 있습니다.
-6. Runner는 작업을 로컬에서 실행하고(Bash는 `bash -c <script>`, JavaScript는 `isolated-vm` 샌드박스, SSH와 Kubernetes는 단계의 자격 증명으로 SSH 연결 또는 클러스터 API 서버 호출), 결과를 기록해 돌려보냅니다. Worker는 그 결과로 Runbook을 재개합니다.
+6. Runner는 작업을 로컬에서 실행하고(Bash와 kubectl은 `bash -c <script>`, JavaScript는 `isolated-vm` 샌드박스, SSH는 머신에서 bash로 스크립트를 실행하는 SSH 연결), 결과를 기록하고, 그 안의 단계 시크릿을 가린 뒤 돌려보냅니다. Worker는 그 결과로 Runbook을 이어서 진행합니다.
 
 Runner에는 OneUptime 인스턴스로 가는 **아웃바운드 HTTPS**만 있으면 됩니다. 인바운드 연결은 받지 않습니다.
 
-Runner가 가진 것은 자신의 ID와 키뿐입니다. 나머지는 모두 가져간 작업과 함께 받습니다. 할당된 [Runbook 시크릿](/docs/runbooks/credentials#스크립트용-시크릿)이 채워진 스크립트, 또는 SSH나 Kubernetes 단계가 지정한 [자격 증명](/docs/runbooks/credentials)입니다. 그래서 Runner의 키를 가진 사람은 누구나 그 Runner로 행동할 수 있습니다. 키는 그 Runner에 할당된 자격 증명과 똑같이 다루세요.
+Runner가 가진 것은 자신의 ID와 키뿐입니다. 나머지는 모두 가져간 작업과 함께 받습니다. 지정된 [Runbook 변수](/docs/runbooks/variables)가 채워진 스크립트와, SSH 단계의 키나 비밀번호 또는 kubectl 단계의 kubeconfig입니다. 시크릿은 그 시크릿이 허용할 때만 받습니다. 그래서 Runner의 키를 가진 사람은 누구나 그 Runner로 행동할 수 있습니다. 키를 그 Runner가 사용할 수 있는 시크릿처럼 다루세요.
 
 ## 스크립트를 Runner에서 실행하는 이유
 
@@ -56,17 +56,17 @@ Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실�
 
 | | 글로벌 Runner | 내 Runner |
 | --- | --- | --- |
-| 실행하는 단계 | JavaScript | JavaScript, Bash, SSH, Kubernetes |
+| 실행하는 단계 | JavaScript | JavaScript, Bash, SSH, kubectl |
 | 단계가 접근할 수 있는 곳 | 공용 인터넷 주소 | 호스트가 접근할 수 있는 곳 |
 | 단계의 최대 실행 시간 | 5분 | 1시간 |
-| Runbook 시크릿 | 글로벌 Runner에 사용을 허용한 것 | 그 Runner에 할당한 것 |
+| 시크릿 변수 | 글로벌 Runner에 사용을 허용한 것 | 그 Runner를 지정한 것 |
 | 자격 증명 | 없음 | 그 Runner에 할당한 것 |
 
 글로벌 Runner는 여러 프로젝트의 단계를 실행하므로, 각 단계는 다른 모든 단계와 분리됩니다.
 
 - 각 단계는 그 단계를 위해 만들어지고 끝나면 버려지는 자체 `isolated-vm` 샌드박스에서 실행됩니다. 파일도, 프로세스도, 환경 변수도 없으며, 한 단계에서 다음 단계로 아무것도 남지 않습니다.
 - HTTP 요청은 공용 인터넷 주소에만 닿으며, 사설, 루프백, 링크 로컬 주소나 클라우드 메타데이터 엔드포인트에는 절대 닿지 않습니다. 그래서 글로벌 Runner는 여러분의 네트워크에 절대 닿지 않습니다.
-- Runbook 시크릿은 시크릿의 **글로벌 Runner가 이 시크릿을 사용할 수 있음** 스위치가 켜져 있을 때만, 그리고 시크릿이 속한 프로젝트의 단계에 대해서만 전달됩니다. 자격 증명은 절대 전달되지 않습니다.
+- 시크릿 변수는 그 변수의 **글로벌 Runner가 사용할 수 있음** 스위치가 켜져 있을 때만, 그리고 변수가 속한 프로젝트의 단계에 대해서만 받습니다. 자격 증명은 절대 받지 않습니다.
 - 한 프로젝트가 글로벌 Runner에서 동시에 실행하는 단계는 최대 세 개이므로, 어떤 프로젝트도 글로벌 Runner를 독차지하지 못합니다.
 
 여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다.
@@ -140,7 +140,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Runner에서 실행되는 단계 추가
 
-Runbook의 **단계**에 JavaScript, Bash, SSH 또는 Kubernetes 단계를 추가합니다.
+Runbook의 **단계**에 JavaScript, Bash, SSH 또는 kubectl 단계를 추가합니다.
 
 ### Runner 선택
 
@@ -151,7 +151,7 @@ Runbook의 **단계**에 JavaScript, Bash, SSH 또는 Kubernetes 단계를 추�
 **Save Steps**를 클릭합니다. 실행이 그 단계에 도달하면 Worker는 그 Runner의 ID로 작업을 큐에 넣고, 그 Runner만 작업을 가져갈 수 있습니다. **글로벌 Runner**로 지정된 단계는 비어 있는 글로벌 Runner를 기다립니다.
 :::
 
-Bash는 `bash -c`로 실행됩니다. JavaScript는 Runner의 `isolated-vm` 샌드박스에서 파일 시스템이나 프로세스에 접근하지 않고 실행됩니다. `axios`로 공개 HTTP API를 호출할 수 있지만 사설 네트워크의 주소는 호출할 수 없습니다. SSH와 Kubernetes 단계는 단계가 지정한 [자격 증명](/docs/runbooks/credentials)을 사용하며, 그 자격 증명은 같은 Runner에 할당되어 있어야 합니다.
+Bash는 `bash -c`로 실행됩니다. JavaScript는 Runner의 `isolated-vm` 샌드박스에서 파일 시스템이나 프로세스에 접근하지 않고 실행됩니다. `axios`로 공개 HTTP API를 호출할 수 있지만 사설 네트워크의 주소는 호출할 수 없습니다. SSH와 kubectl 단계는 시크릿 [Runbook 변수](/docs/runbooks/variables)로 로그인하며, 그 변수의 **사용할 수 있는 Runner**에 단계의 Runner가 있어야 합니다.
 
 Runner가 둘 이상 필요한가요? 각각 만들고 각 단계에 알맞은 Runner를 지정하세요. 이중화를 위해서는 Runner를 하나 더 실행해 단계를 나누거나, 단계가 다른 Runner를 가리키는 예비 Runbook을 마련하세요.
 
@@ -166,7 +166,7 @@ Runner에서 실행되는 모든 단계에는 두 가지 타임아웃이 적용�
 | **가져가기 제한 시간** | 2분 | Worker가 선택한 Runner가 작업을 가져가기를 기다리는 시간입니다. Runner가 제시간에 가져가지 않으면 단계는 시간 초과로 실패하고, Runbook은 계속 진행합니다(**실패 시 계속**에 따라 멈출 수도 있습니다). |
 | **실행 제한 시간** | 30초 | Runner가 단계를 멈추기 전까지 실행하게 두는 시간입니다. Bash에는 `SIGKILL`이 보내지고, JavaScript 샌드박스는 정리됩니다. |
 
-둘 다 단계마다 설정할 수 있습니다. **Runbooks › 해당 Runbook › 단계**를 열고 단계를 펼친 다음, 설정에서 **실행 제한 시간**과 **가져가기 제한 시간**(초 단위)을 지정하세요. 기본값을 쓰려면 비워 둡니다. 각각 1초에서 1시간까지 받으며, 범위를 벗어난 값은 단계가 실행될 때 범위 안으로 조정됩니다.
+둘 다 단계마다 설정할 수 있습니다. **Runbooks › 해당 Runbook › 단계**를 열고 단계를 펼친 다음, **추가 필드**에서 **실행 제한 시간**과 **가져가기 제한 시간**(초 단위)을 지정하세요. 기본값을 쓰려면 비워 둡니다. 각각 1초에서 1시간까지 받으며, 범위를 벗어난 값은 단계가 실행될 때 범위 안으로 조정됩니다.
 
 Worker의 전체 대기 시간은 `claim timeout + execution timeout + a few seconds`입니다. 단계에 맞는 값을 고르세요.
 
@@ -307,14 +307,18 @@ Runner가 작업을 가져간 뒤 리스 갱신을 멈췄습니다. 충돌했거
 이 Runner의 모든 기능이 꺼져 있습니다. OneUptime의 Runner 페이지에서 **런북 실행**을 켜세요. Runner는 다음 하트비트 때 변경을 반영합니다.
 :::
 
-:::details 글로벌 Runner가 Runbook 시크릿을 사용할 수 없어 글로벌 Runner의 단계가 실패함
-단계가 **글로벌 Runner가 이 시크릿을 사용할 수 있음** 스위치가 꺼진 Runbook 시크릿을 지정하므로, 글로벌 Runner는 그 시크릿을 받지 못했고 단계는 실행되지 않았습니다. 오류에 시크릿 이름이 표시됩니다. **런북 → 설정 → 시크릿**에서 그 시크릿의 스위치를 켜거나, 단계에 내 Runner 중 하나를 고르세요.
+:::details Runner가 시크릿 변수를 사용할 수 없어 단계가 실패하는 경우
+단계가 그 Runner의 사용을 허용하지 않는 시크릿 변수를 지정했기 때문에 Runner에 전달되지 않았고 단계는 실행되지 않았습니다. 오류에는 시크릿과 바꿔야 할 점이 나옵니다. **런북 → 설정 → 전역 변수** 또는 Runbook의 **설정 → 변수**에서 **사용할 수 있는 Runner**에 그 Runner를 추가하거나, 글로벌 Runner의 단계라면 **글로벌 Runner가 사용할 수 있음**을 켜세요. 또는 시크릿이 허용하는 Runner를 고르세요.
+:::
+
+:::details Runner가 너무 오래되어 kubectl 단계가 실패하는 경우
+단계가 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run."로 실패했습니다. kubectl 스크립트보다 오래된 Runner는 스크립트를 실행할 수 없습니다. [에이전트를 최신 상태로 유지](#5-에이전트-최신-상태-유지)에 나온 대로 Runner를 업데이트한 다음 Runbook을 다시 실행하세요.
 :::
 
 ## 다음 단계
 
 :::cards
 - [Runbook 작성](/docs/runbooks/authoring): Runner에서 실행되는 단계를 작성합니다.
-- [Runbook 자격 증명](/docs/runbooks/credentials): SSH와 Kubernetes 단계에 관리되는 접근 권한을 줍니다.
+- [Runbook 변수](/docs/runbooks/variables): 단계가 사용하는 값과 시크릿, 그리고 그것을 받는 Runner.
 - [Runbook 설정과 안전성](/docs/runbooks/configuration): 한도, 권한, 보안 강화.
 :::

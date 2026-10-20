@@ -4,7 +4,7 @@ Vous écrivez un runbook sous forme de liste ordonnée d'étapes, sur sa page **
 
 :::cards
 - [Créer un runbook](#créer-un-runbook): D'un runbook vide à des étapes enregistrées.
-- [Types d'étapes](#types-détapes): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes et AI.
+- [Types d'étapes](#types-détapes): Manual, JavaScript, HTTP request, Bash, SSH, kubectl et AI.
 - [Gestion des échecs et approbations](#gestion-des-échecs-et-approbations): Ce qui se passe après l'échec ou la réussite d'une étape.
 - [Un exemple complet](#un-exemple-complet): Une bascule de base de données en cinq étapes.
 :::
@@ -12,8 +12,8 @@ Vous écrivez un runbook sous forme de liste ordonnée d'étapes, sur sa page **
 ## Avant de commencer
 
 - **Un rôle qui rédige des runbooks.** Project Owner, Project Admin et Runbook Admin créent des runbooks et enregistrent leurs étapes. Avec des autorisations granulaires, il vous faut **Create Runbook** et **Edit Runbook**. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
-- **Un agent Runbook, pour les étapes Bash, SSH et Kubernetes.** Ces étapes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, jamais sur le Worker OneUptime. Installez-en un d'abord. Une étape JavaScript s'exécute sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), sauf si vous choisissez l'un des vôtres.
-- **Un identifiant, pour les étapes SSH et Kubernetes, et l'autorisation de le lire.** Voir [Identifiants de runbook](/docs/runbooks/credentials). Une étape ne peut désigner un identifiant que si vous pouvez lire les identifiants de runbook : Project Owner, Project Admin, ou **Read Runbook Credential**. Runbook Admin ne l'inclut pas.
+- **Un agent Runbook, pour les étapes Bash, SSH et kubectl.** Ces étapes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, jamais sur le Worker OneUptime. Installez-en un d'abord. Une étape JavaScript s'exécute sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), sauf si vous choisissez l'un des vôtres.
+- **Une variable secrète, pour les étapes SSH et kubectl.** La clé, le mot de passe ou le kubeconfig avec lequel une étape se connecte est une [variable de runbook](/docs/runbooks/variables) secrète. Project Owner et Project Admin créent les variables, et Runbook Admin les choisit dans les étapes qu'il écrit. Une étape kubectl peut utiliser à la place l'accès propre de l'agent Runbook.
 - **Un fournisseur LLM, pour les étapes IA.** Voir [Fournisseurs LLM](/docs/ai/llm-provider).
 
 ## Créer un runbook
@@ -29,7 +29,7 @@ Cliquez sur **Créer : Runbook**, saisissez un **Nom** et, si vous le souhaitez,
 
 ### Ajouter des étapes
 
-Sous **Start your runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre**, sa **Description** (en Markdown, affichée à la personne qui intervient) et les réglages de son type. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
+Sous **Start your runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre** et ce dont son type a besoin ; le reste, comme sa **Description** et ses délais, est replié sous **Plus de champs**. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
 
 ### Ordonner les étapes
 
@@ -42,15 +42,15 @@ Cliquez sur **Save Steps**. Tant que vous ne l'avez pas fait, l'éditeur affiche
 
 ## Anatomie d'une étape
 
-Chaque étape comporte ces champs :
+Chaque étape comporte ces champs. Une étape automatisée affiche son **Titre** et les réglages de son type, et replie le reste sous **Plus de champs**, qui indique ce qui en est défini :
 
 | Champ | Rôle |
 | --- | --- |
 | **Titre** | Un libellé court, affiché dans la liste des étapes et dans chaque exécution. |
-| **Description** | Contexte facultatif pour la personne qui intervient, en Markdown. Pour une étape Manual, c'est la consigne qu'elle lit. |
+| **Description** | Contexte facultatif pour la personne qui intervient, en Markdown, sous **Plus de champs**. Pour une étape Manual, c'est la consigne qu'elle lit, affichée sous le titre. |
 | **Continuer en cas d'échec** | Étapes automatisées uniquement. Si activé, une étape en échec n'arrête pas l'exécution : l'étape suivante s'exécute quand même. |
 | **Exiger une approbation** | Étapes automatisées uniquement. Si activé, le runbook se met en pause après cette étape et attend qu'une personne approuve avant d'exécuter l'étape suivante. L'interrupteur s'intitule **Exiger une approbation avant d'exécuter l'étape suivante**. |
-| Réglages propres au type | Le script, l'URL, l'agent Runbook, l'identifiant ou le prompt. Voir [Types d'étapes](#types-détapes). |
+| Réglages propres au type | Le script, l'URL, l'agent Runbook, une variable secrète ou le prompt. Voir [Types d'étapes](#types-détapes). |
 
 ## Types d'étapes
 
@@ -60,9 +60,11 @@ Chaque étape comporte ces champs :
 | [JavaScript](#javascript) | Un agent Runbook | Un agent Runbook |
 | [HTTP request](#http-request) | Le Worker OneUptime | Rien |
 | [Bash](#bash) | Un agent Runbook | Un agent Runbook |
-| [SSH](#ssh) | Un agent Runbook | Un agent Runbook et un identifiant SSH |
-| [Kubernetes](#kubernetes) | Un agent Runbook | Un agent Runbook et un identifiant Kubernetes |
+| [SSH](#ssh) | Un agent Runbook | Un agent Runbook et une variable secrète pour se connecter |
+| [kubectl](#kubectl) | Un agent Runbook | Un agent Runbook, et une variable kubeconfig ou l'accès propre de l'agent Runbook |
 | [AI](#ai) | Le Worker OneUptime | Un fournisseur LLM |
+
+Dans chaque étape ci-dessous, les délais, la **Description**, **Continuer en cas d'échec** et **Exiger une approbation** se trouvent sous **Plus de champs** de l'étape, tout comme le fournisseur et les interrupteurs de contexte d'une étape d'IA.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 Si l'agent Runbook choisi est hors ligne quand l'exécution atteint cette étape, l'étape attend jusqu'au **délai de prise en charge** (2 minutes par défaut) puis échoue pour dépassement de délai. Ajoutez un agent sous **Runbooks → Agents de runbook** avant de compter sur une étape Bash.
 
 > [!TIP]
-> Gardez les mots de passe et les jetons hors du script. Stockez-les comme secrets de runbook et écrivez `{{runbookSecrets.NAME}}` dans un script Bash ou JavaScript : l'agent Runbook reçoit le script avec la valeur insérée. Voir [Secrets pour les scripts](/docs/runbooks/credentials#secrets-pour-les-scripts).
+> Gardez les mots de passe et les jetons hors du script. Stockez-les comme [variables de runbook](/docs/runbooks/variables) secrètes et écrivez `{{global.variables.NAME}}` là où va la valeur : l'agent Runbook reçoit le script avec la valeur insérée, et la sortie de l'étape affiche `[REDACTED]` à sa place.
 
 ### SSH
 
-Exécuter une commande sur un hôte que l'agent Runbook peut joindre en SSH. Contrairement à `ssh host cmd` dans une étape Bash, l'accès est un [identifiant](/docs/runbooks/credentials) géré plutôt qu'une clé privée posée sur le disque de l'agent : chiffré au repos, attribué à des agents précis et jamais relisible via l'API.
+Se connecter à une machine en SSH et y exécuter un script bash. L'agent Runbook ouvre la connexion, donc la machine doit seulement être joignable depuis l'agent Runbook, et la clé ou le mot de passe avec lequel l'étape se connecte est une [variable de runbook](/docs/runbooks/variables) secrète, jamais écrite dans l'étape.
 
 | Champ | Ce qu'il fait |
 | --- | --- |
-| **Agent Runbook** | L'agent Runbook qui ouvre la connexion. Il doit pouvoir joindre l'hôte sur le réseau. |
-| **Identifiant** | Un identifiant SSH contenant l'hôte, le port, l'utilisateur et la clé ou le mot de passe. Il doit être attribué à l'agent Runbook choisi, sinon l'étape échoue au lieu de s'exécuter avec le mauvais accès. |
-| **Commande** | Exécutée sur l'hôte distant sous l'utilisateur de l'identifiant. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. |
-| **Délai d'exécution** | Couvre ensemble la connexion, l'authentification et l'exécution de la commande, pour qu'une commande bloquée ne puisse pas tenir l'étape ouverte. 30 secondes par défaut. |
+| **Agent Runbook** | L'agent Runbook qui ouvre la connexion. Il doit pouvoir joindre la machine sur le réseau. |
+| **SSH vers** | L'utilisateur et la machine, comme vous les écririez après `ssh` : `deploy@10.0.4.21`. |
+| **Se connecter avec** | La variable secrète qui contient la clé privée ou le mot de passe ; la valeur indique de quoi il s'agit. Seules les variables secrètes sont proposées, et l'étape signale quand son agent Runbook n'a pas le droit d'utiliser celle choisie. |
+| **Script Bash** | S'exécute avec `bash` sur la machine, sous l'utilisateur avec lequel l'étape se connecte. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. |
+| **Port** | Sous **Plus de champs**. 22 s'il est laissé vide. |
+| **Phrase secrète de la clé** | Sous **Plus de champs**. La variable secrète qui contient la phrase secrète d'une clé qui en a une. |
+| **Délai d'exécution** | Couvre ensemble la connexion, l'authentification et l'exécution du script, de sorte qu'un script bloqué ne peut pas maintenir l'étape ouverte. 30 secondes par défaut. |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. 2 minutes par défaut. |
 
-### Kubernetes
+Par exemple, pour redémarrer un service et montrer qu'il est revenu :
 
-Redémarrer ou mettre à l'échelle une charge de travail dans un cluster. Les actions forment volontairement un ensemble fermé : une étape capable de modifier n'importe quel objet serait un shell d'administrateur de cluster, et ce type d'étape existe pour rendre les remédiations courantes assez sûres pour la remédiation automatique.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Exécuter des commandes kubectl sur un cluster. Le script s'exécute avec bash sur l'agent Runbook, qui embarque `kubectl`, avec `KUBECONFIG` pointant vers le cluster : n'importe quelle commande kubectl fonctionne, ainsi que n'importe quel bash autour.
 
 | Champ | Ce qu'il fait |
 | --- | --- |
-| **Agent Runbook** | L'agent Runbook qui appelle le serveur API du cluster. Il doit pouvoir le joindre. |
-| **Identifiant** | Un identifiant Kubernetes : l'URL du serveur API, un jeton de compte de service et l'autorité de certification du cluster. Liez ce compte de service à un rôle qui n'autorise que ce dont vos runbooks ont besoin. |
-| **Action** | **Restart workload** modifie le modèle de pod pour que le contrôleur recrée les pods, comme le fait `kubectl rollout restart`. **Scale workload** fixe le nombre de réplicas. |
-| **Workload kind** | **Déploiement**, **StatefulSet** ou **DaemonSet**. |
-| **Espace de noms** et **Workload name** | La charge de travail visée. |
-| **Réplicas** | Mise à l'échelle uniquement. Zéro est autorisé : vider une charge de travail est une remédiation légitime. Un DaemonSet tourne avec un pod par nœud et ne peut pas être mis à l'échelle ; redémarrez-le plutôt. |
-| **Délai d'exécution** | Combien de temps l'agent Runbook attend que le serveur API accepte la modification. 30 secondes par défaut. |
+| **Agent Runbook** | L'agent Runbook qui exécute kubectl. Il doit pouvoir joindre le serveur d'API du cluster. |
+| **Kubeconfig** | La variable secrète qui contient le kubeconfig du cluster, ou **L'accès propre de l'agent Runbook** : le kubeconfig propre de l'agent Runbook, ou son compte de service quand il s'exécute dans le cluster. L'agent Runbook écrit un kubeconfig dans un fichier que lui seul peut lire, et le supprime quand le script se termine. |
+| **Script** | Les commandes kubectl. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. |
+| **Délai d'exécution** | Le temps pendant lequel l'agent Runbook laisse le script s'exécuter avant de l'arrêter avec `SIGKILL`. 30 secondes par défaut. |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. 2 minutes par défaut. |
 
-Si le serveur API refuse la modification, son propre message s'affiche sur l'étape, si bien qu'un échec d'autorisation vous indique quelle liaison de rôle élargir.
+Par exemple, pour redémarrer un deployment et attendre que ses nouveaux pods soient prêts :
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Exemples — cliquez pour insérer**, sous chaque script, insère des scripts courants comme ceux-ci. Ne donnez à l'utilisateur du kubeconfig que ce que vos scripts font : un Role dans les namespaces où ils agissent, avec les verbes qu'ils utilisent. Si le serveur d'API refuse une commande, le message de kubectl figure dans la sortie de l'étape, de sorte qu'un échec d'autorisation vous indique quel role binding élargir.
 
 ### AI
 
@@ -224,5 +240,5 @@ La personne qui intervient regarde l'étape 1 s'exécuter, coche l'étape 2, reg
 - [Exécuter un runbook](/docs/runbooks/running): Lancer une exécution, et terminer, approuver ou ignorer ses étapes.
 - [Règles de runbook](/docs/runbooks/rules): Lancer ce runbook automatiquement sur les incidents correspondants.
 - [Agents de runbook](/docs/runbooks/agents): Installer l'agent Runbook dont vos étapes de script ont besoin.
-- [Identifiants de runbook](/docs/runbooks/credentials): Donner aux étapes SSH et Kubernetes un accès géré.
+- [Variables de runbook](/docs/runbooks/variables): Garder les hôtes, clés, mots de passe et kubeconfigs hors de vos étapes.
 :::

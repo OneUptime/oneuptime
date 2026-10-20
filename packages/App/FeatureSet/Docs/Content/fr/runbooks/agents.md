@@ -1,6 +1,6 @@
 # Agents de runbook
 
-Un **agent de runbook**, que le tableau de bord appelle **Agent Runbook** (le Runner), est un petit processus auto-hébergé qui exécute les étapes JavaScript, Bash, SSH et Kubernetes de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts : il les met en file, et l'agent Runbook choisi par l'auteur de l'étape prend chacun en charge, l'exécute et renvoie le résultat. Cette page s'adresse à qui installe et exploite les agents Runbook. Une étape JavaScript qui ne choisit aucun agent s'exécute plutôt sur un [agent Runbook global](#agents-runbook-globaux), l'un de ceux qu'OneUptime fait tourner pour chaque projet.
+Un **agent de runbook**, que le tableau de bord appelle **Agent Runbook** (le Runner), est un petit processus auto-hébergé qui exécute les étapes JavaScript, Bash, SSH et kubectl de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts : il les met en file, et l'agent Runbook choisi par l'auteur de l'étape prend chacun en charge, l'exécute et renvoie le résultat. Cette page s'adresse à qui installe et exploite les agents Runbook. Une étape JavaScript qui ne choisit aucun agent s'exécute plutôt sur un [agent Runbook global](#agents-runbook-globaux), l'un de ceux qu'OneUptime fait tourner pour chaque projet.
 
 :::cards
 - [Installer un agent Runbook](#installer-un-agent-runbook): Du tableau de bord à un conteneur connecté, en cinq étapes.
@@ -33,13 +33,13 @@ flowchart TB
 1. Vous créez un agent Runbook dans OneUptime. OneUptime génère pour lui un ID et une clé secrète.
 2. Vous lancez le conteneur de l'agent sur un hôte de votre infrastructure, avec cet ID, cette clé et l'URL de votre OneUptime.
 3. L'agent demande du travail à OneUptime toutes les 5 secondes, et signale qu'il est vivant toutes les 60 secondes.
-4. Quand vous écrivez une étape JavaScript, Bash, SSH ou Kubernetes, vous choisissez l'agent Runbook dans une liste déroulante. L'étape est liée à cet agent. Une étape JavaScript peut garder **Agent Runbook global**, que la liste déroulante choisit pour elle.
+4. Quand vous écrivez une étape JavaScript, Bash, SSH ou kubectl, vous choisissez l'agent Runbook dans une liste déroulante. L'étape est liée à cet agent. Une étape JavaScript peut garder **Agent Runbook global**, que la liste déroulante choisit pour elle.
 5. Quand l'étape s'exécute, le Worker met en file une tâche dont `targetAgentId` désigne cet agent. Seul cet agent peut la prendre en charge.
-6. L'agent exécute la tâche localement — `bash -c <script>` pour Bash, un bac à sable `isolated-vm` pour JavaScript, une connexion SSH ou un appel au serveur API du cluster avec l'identifiant de l'étape —, capture le résultat et le renvoie. Le Worker reprend le runbook avec ce résultat.
+6. L'agent exécute la tâche localement — `bash -c <script>` pour Bash et kubectl, un bac à sable `isolated-vm` pour JavaScript, une connexion SSH qui exécute le script avec bash sur la machine —, capture le résultat, y masque les secrets de l'étape et le renvoie. Le Worker reprend le runbook avec ce résultat.
 
 L'agent n'a besoin que de **HTTPS sortant** vers votre instance OneUptime. Il n'accepte aucune connexion entrante.
 
-Un agent Runbook ne détient que son ID et sa clé. Il reçoit tout le reste avec la tâche qu'il prend en charge : un script, dans lequel sont insérés les [secrets de runbook](/docs/runbooks/credentials#secrets-pour-les-scripts) qui lui sont attribués, ou l'[identifiant](/docs/runbooks/credentials) que désigne une étape SSH ou Kubernetes. C'est pourquoi quiconque détient la clé d'un agent peut agir en son nom : traitez la clé comme les identifiants qui lui sont attribués.
+Un agent Runbook ne détient que son ID et sa clé. Il reçoit tout le reste avec la tâche qu'il prend en charge : un script, dans lequel sont insérées les [variables de runbook](/docs/runbooks/variables) qu'il nomme, et la clé ou le mot de passe d'une étape SSH ou le kubeconfig d'une étape kubectl. Il ne reçoit un secret que si ce secret l'y autorise. C'est pourquoi quiconque détient la clé d'un agent peut agir en son nom : traitez la clé comme les secrets qu'il peut utiliser.
 
 ## Pourquoi les scripts s'exécutent sur un agent Runbook
 
@@ -56,17 +56,17 @@ Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque
 
 | | Agent Runbook global | Votre propre agent |
 | --- | --- | --- |
-| Étapes qu'il exécute | JavaScript | JavaScript, Bash, SSH et Kubernetes |
+| Étapes qu'il exécute | JavaScript | JavaScript, Bash, SSH et kubectl |
 | Ce qu'une étape peut atteindre | Les adresses publiques d'Internet | Ce que son hôte peut atteindre |
 | Durée maximale d'une étape | 5 minutes | 1 heure |
-| Secrets de runbook | Ceux que vous autorisez pour les agents globaux | Ceux que vous lui attribuez |
+| Variables secrètes | Celles que vous laissez utiliser aux agents globaux | Celles qui le listent |
 | Identifiants | Aucun | Ceux que vous lui attribuez |
 
 Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi chaque étape est tenue à l'écart de toutes les autres :
 
 - Chaque étape s'exécute dans son propre bac à sable `isolated-vm`, créé pour cette étape et jeté après elle : pas de fichiers, pas de processus, pas de variables d'environnement, et rien de conservé d'une étape à l'autre.
 - Ses requêtes HTTP n'atteignent que les adresses publiques d'Internet, jamais une adresse privée, de bouclage ou de lien local ni un point de terminaison de métadonnées cloud, si bien qu'un agent global n'atteint jamais votre réseau.
-- Il ne reçoit un secret de runbook que lorsque l'interrupteur **Les agents Runbook globaux peuvent utiliser ce secret** du secret est activé, et seulement pour une étape du projet propre au secret. Il ne reçoit jamais d'identifiant.
+- Il ne reçoit une variable secrète que lorsque son réglage **Les agents Runbook globaux peuvent l'utiliser** est activé, et seulement pour une étape du propre projet de la variable. Il ne reçoit jamais d'identifiant.
 - Un projet exécute au plus trois étapes à la fois sur les agents globaux, si bien qu'aucun projet ne les garde pour lui seul.
 
 Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent échoue alors, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas.
@@ -140,7 +140,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Ajouter une étape qui s'exécute sur un agent Runbook
 
-Dans les **Étapes** de votre runbook, ajoutez une étape JavaScript, Bash, SSH ou Kubernetes.
+Dans les **Étapes** de votre runbook, ajoutez une étape JavaScript, Bash, SSH ou kubectl.
 
 ### Choisir l'agent Runbook
 
@@ -151,7 +151,7 @@ La liste déroulante **Agent Runbook** de l'étape affiche chaque agent du proje
 Cliquez sur **Save Steps**. Quand une exécution atteint l'étape, le Worker met en file une tâche pour l'ID de cet agent, et seul cet agent peut la prendre en charge. Une étape sur **Agent Runbook global** attend l'agent global qui se libère.
 :::
 
-Bash est exécuté avec `bash -c`. JavaScript s'exécute dans un bac à sable `isolated-vm` sur l'agent, sans accès au système de fichiers ni aux processus ; il peut appeler des API HTTP publiques avec `axios`, mais pas des adresses d'un réseau privé. Les étapes SSH et Kubernetes utilisent l'[identifiant](/docs/runbooks/credentials) que l'étape désigne, qui doit être attribué au même agent.
+Bash est exécuté avec `bash -c`. JavaScript s'exécute dans un bac à sable `isolated-vm` sur l'agent, sans accès au système de fichiers ni aux processus ; il peut appeler des API HTTP publiques avec `axios`, mais pas des adresses d'un réseau privé. Une étape SSH ou kubectl se connecte avec une [variable de runbook](/docs/runbooks/variables) secrète, qui doit lister l'agent Runbook de l'étape sous **Vos agents Runbook qui peuvent l'utiliser**.
 
 Besoin de plus d'un agent ? Créez-les, puis dirigez chaque étape vers celui qui convient. Pour la redondance, faites tourner un second agent et répartissez vos étapes entre les deux, ou gardez un runbook de secours dont les étapes visent l'autre agent.
 
@@ -166,7 +166,7 @@ Deux délais s'appliquent à chaque étape qui s'exécute sur un agent Runbook :
 | **Délai de prise en charge** | 2 minutes | Combien de temps le Worker attend que l'agent choisi prenne la tâche en charge. Si l'agent ne la prend pas à temps, l'étape échoue pour dépassement de délai et le runbook continue (ou s'arrête, selon **Continuer en cas d'échec**). |
 | **Délai d'exécution** | 30 secondes | Combien de temps l'agent laisse l'étape tourner avant de l'arrêter. Bash reçoit `SIGKILL` ; le bac à sable de JavaScript est détruit. |
 
-Les deux se configurent par étape. Ouvrez **Runbooks › votre runbook › Étapes**, dépliez l'étape et réglez **Délai d'exécution** et **Délai de prise en charge** (en secondes) dans ses réglages. Laissez un champ vide pour garder la valeur par défaut. Chacun accepte de 1 seconde à 1 heure ; les valeurs hors de cette plage sont ramenées dans la plage à l'exécution de l'étape.
+Les deux se configurent par étape. Ouvrez **Runbooks › votre runbook › Étapes**, dépliez l'étape et réglez **Délai d'exécution** et **Délai de prise en charge** (en secondes) sous ses **Plus de champs**. Laissez un champ vide pour garder la valeur par défaut. Chacun accepte de 1 seconde à 1 heure ; les valeurs hors de cette plage sont ramenées dans la plage à l'exécution de l'étape.
 
 La fenêtre d'attente globale du Worker est `claim timeout + execution timeout + a few seconds`. Choisissez des valeurs adaptées à l'étape.
 
@@ -307,14 +307,18 @@ L'agent a pris la tâche en charge, puis a cessé de renouveler son bail : il a 
 Toutes les capacités sont désactivées pour cet agent. Activez **Exécute les runbooks** sur la page de l'agent dans OneUptime. Il prend en compte le changement à son prochain heartbeat.
 :::
 
-:::details Une étape sur un agent Runbook global échoue parce que les agents globaux ne peuvent pas utiliser un secret de runbook
-L'étape nomme un secret de runbook dont l'interrupteur **Les agents Runbook globaux peuvent utiliser ce secret** est désactivé, si bien que l'agent global ne l'a pas reçu et que l'étape n'a pas été exécutée. L'erreur nomme le secret. Activez l'interrupteur pour lui sous **Runbooks → Paramètres → Secrets**, ou choisissez l'un de vos propres agents pour l'étape.
+:::details Une étape échoue parce que son agent Runbook n'a pas le droit d'utiliser une variable secrète
+L'étape nomme une variable secrète qui n'autorise pas son agent Runbook, donc l'agent ne l'a pas reçue et l'étape n'a pas été exécutée. L'erreur nomme le secret et ce qu'il faut changer. Sous **Runbooks → Paramètres → Variables globales**, ou sous **Paramètres → Variables** du runbook, ajoutez l'agent sous **Vos agents Runbook qui peuvent l'utiliser**, ou activez **Les agents Runbook globaux peuvent l'utiliser** pour une étape sur un agent Runbook global. Ou choisissez un agent que le secret autorise.
+:::
+
+:::details Une étape kubectl échoue parce que son agent Runbook est trop ancien
+L'étape a échoué avec "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Un agent Runbook plus ancien que les scripts kubectl ne peut pas en exécuter. Mettez l'agent à jour, comme le montre [Garder l'agent à jour](#5-garder-lagent-à-jour), puis relancez le runbook.
 :::
 
 ## Prochaines étapes
 
 :::cards
 - [Rédiger un runbook](/docs/runbooks/authoring): Écrire les étapes qui s'exécutent sur votre agent Runbook.
-- [Identifiants de runbook](/docs/runbooks/credentials): Donner aux étapes SSH et Kubernetes un accès géré.
+- [Variables de runbook](/docs/runbooks/variables): Les valeurs et secrets que vos étapes utilisent, et les agents Runbook qui les reçoivent.
 - [Configuration & sécurité des runbooks](/docs/runbooks/configuration): Limites, autorisations et durcissement.
 :::

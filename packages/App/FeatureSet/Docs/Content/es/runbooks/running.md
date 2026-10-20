@@ -132,8 +132,12 @@ Tu rol lee runbooks pero no los ejecuta: el botón dice «No tienes permiso para
 El interruptor **Ejecutar este runbook** del runbook está desactivado, en su página **Ajustes**, o no tiene pasos guardados. Activa el interruptor, o añade pasos y haz clic en **Guardar pasos**. Su **Vista general** dice cuál, con **Activar el runbook** o **Añadir pasos**.
 :::
 
-:::details Un paso falló porque le falta un Runner o una credencial
-El mensaje dice, por ejemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." El paso se guardó sin **Runner**, o un paso SSH o Kubernetes sin **Credencial**. Un paso JavaScript necesita un Runner propio solo cuando ningún [Runner global](/docs/runbooks/agents#runners-globales) puede ejecutarlo. Abre los **Pasos** del runbook, elige lo que le falta al paso, haz clic en **Guardar pasos** y vuelve a ejecutar el runbook.
+:::details Un paso falló porque le falta un Runner
+El mensaje dice, por ejemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." El paso se guardó sin **Runner**. Un paso JavaScript necesita un Runner propio solo cuando ningún [Runner global](/docs/runbooks/agents#runners-globales) puede ejecutarlo. Abre los **Pasos** del runbook, elige el Runner del paso, haz clic en **Guardar pasos** y vuelve a ejecutar el runbook.
+:::
+
+:::details Un paso falló porque nombra variables que no puede usar
+El mensaje empieza por "This step names variables it cannot use, so it was not run:" y dice, para cada variable, qué falla y dónde corregirlo: no hay ninguna variable con ese nombre, el secreto no tiene valor o el Runner del paso no puede usarlo. Crea la variable o corrige su nombre en el paso, o deja que el Runner use el secreto, y vuelve a ejecutar el runbook. Consulta [Variables de runbook](/docs/runbooks/variables).
 :::
 
 :::details Un paso falló porque ningún agente de runbook lo tomó

@@ -136,9 +136,9 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Secrets",
+  "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables",
   () => {
-    return mockPageModule("Secrets");
+    return mockPageModule("GlobalVariables");
   },
 );
 jest.mock(
@@ -220,6 +220,12 @@ jest.mock(
   },
 );
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Variables",
+  () => {
+    return mockPageModule("RunbookVariables");
+  },
+);
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Delete",
   () => {
     return mockPageModule("RunbookDelete");
@@ -267,6 +273,8 @@ const EXECUTIONS_PATH: string = `${RUNBOOK_PATH}/executions`;
 // One run's own page, under the runbook's Executions.
 const RUN_PATH: string = `${EXECUTIONS_PATH}/${RUN_ID}`;
 const TRIGGERS_PATH: string = `${RUNBOOK_PATH}/triggers`;
+// The runbook's own variables, beside the project's global ones.
+const VARIABLES_PATH: string = `${RUNBOOK_PATH}/variables`;
 const SETTINGS_PATH: string = `${RUNBOOK_PATH}/settings`;
 
 const SECTIONS_IN_ORDER: Array<string> = [
@@ -310,6 +318,7 @@ const RUNBOOK_MENU: ReadonlyArray<MenuPage> = [
   { title: "Executions", section: "Logs", path: EXECUTIONS_PATH },
   { title: "Owners", section: "Owners", path: `${RUNBOOK_PATH}/owners` },
   { title: "Triggers", section: "Settings", path: TRIGGERS_PATH },
+  { title: "Variables", section: "Settings", path: VARIABLES_PATH },
   { title: "Settings", section: "Settings", path: SETTINGS_PATH },
   {
     title: "Terraform",
@@ -445,14 +454,16 @@ describe("a runbook's side menu", () => {
     expect(EXECUTIONS_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_EXECUTIONS));
   });
 
-  test("Settings holds Triggers, then the runbook's Settings page", async () => {
+  test("Settings holds Triggers, the runbook's Variables, then the runbook's Settings page", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     expect(linksIn("Settings")).toEqual([
       { title: "Triggers", href: TRIGGERS_PATH },
+      { title: "Variables", href: VARIABLES_PATH },
       { title: "Settings", href: SETTINGS_PATH },
     ]);
     expect(TRIGGERS_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_TRIGGERS));
+    expect(VARIABLES_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_VARIABLES));
     expect(SETTINGS_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_SETTINGS));
   });
 
@@ -481,13 +492,13 @@ describe("a runbook's side menu", () => {
     expect(linksIn("Developer")).toEqual(linksOf("Developer"));
   });
 
-  test("lists all eleven pages once, in order", async () => {
+  test("lists all twelve pages once, in order", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    expect(hrefs).toHaveLength(11);
-    expect(new Set(hrefs).size).toBe(11);
+    expect(hrefs).toHaveLength(12);
+    expect(new Set(hrefs).size).toBe(12);
     expect(hrefs).toEqual(
       RUNBOOK_MENU.map((page: MenuPage): string => {
         return page.path;
@@ -637,7 +648,7 @@ describe("opening a folded section", () => {
     expectFolded("Logs");
   });
 
-  test("a click on Settings shows Triggers and Settings, and leaves the others folded", async () => {
+  test("a click on Settings shows Triggers, Variables and Settings, and leaves the others folded", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     await act(async () => {
@@ -685,6 +696,12 @@ describe("on a phone", () => {
     await renderRunbookMenuAt(TRIGGERS_PATH);
 
     expect(mobileSummaryText()).toContain("Settings / Triggers");
+  });
+
+  test("the menu button names Settings / Variables on the runbook's Variables page", async () => {
+    await renderRunbookMenuAt(VARIABLES_PATH);
+
+    expect(mobileSummaryText()).toContain("Settings / Variables");
   });
 
   test("the menu button names Settings, once, on the Settings page", async () => {
@@ -785,6 +802,10 @@ describe("the pages kept their addresses", () => {
     [
       PageMap.RUNBOOK_VIEW_SETTINGS,
       "/dashboard/:projectId/runbooks/:id/settings",
+    ],
+    [
+      PageMap.RUNBOOK_VIEW_VARIABLES,
+      "/dashboard/:projectId/runbooks/:id/variables",
     ],
   ])("%s is still %s", (key: PageMap, pattern: string) => {
     expect(RouteMap[key]!.toString()).toBe(pattern);
@@ -941,6 +962,21 @@ describe("moving around a runbook, with the real layout and routes", () => {
       "View Runbook",
       "Executions",
       "Execution",
+    ]);
+  });
+
+  test("a bookmarked Variables page opens with Settings unfolded and Variables marked", async () => {
+    await openRunbookAt(VARIABLES_PATH);
+
+    expect(shownPage()).toBe("RunbookVariables");
+    expectOpen("Settings");
+    expectFolded("Logs");
+    expect(activeLinkTitles()).toEqual(["Variables"]);
+    expect(crumbTexts()).toEqual([
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Variables",
     ]);
   });
 

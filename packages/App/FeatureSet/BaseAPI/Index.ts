@@ -1219,9 +1219,9 @@ import RunnerOwnerTeamService, {
 import RunnerOwnerUserService, {
   Service as RunnerOwnerUserServiceType,
 } from "Common/Server/Services/RunnerOwnerUserService";
-import RunbookSecretService, {
-  Service as RunbookSecretServiceType,
-} from "Common/Server/Services/RunbookSecretService";
+import RunbookVariableService, {
+  Service as RunbookVariableServiceType,
+} from "Common/Server/Services/RunbookVariableService";
 import RunbookCredentialService, {
   Service as RunbookCredentialServiceType,
 } from "Common/Server/Services/RunbookCredentialService";
@@ -1570,7 +1570,7 @@ import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
@@ -4232,9 +4232,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookSecret, RunbookSecretServiceType>(
-        RunbookSecret,
-        RunbookSecretService,
+      new BaseAPI<RunbookVariable, RunbookVariableServiceType>(
+        RunbookVariable,
+        RunbookVariableService,
       ).getRouter(),
     );
 

@@ -25,8 +25,15 @@ import {
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
- * Credentials are what let a runbook act on something other than the Runner's
- * own host — an SSH target, or a Kubernetes cluster.
+ * AI ACCESS: what OneUptime AI's own commands reach through a Runner - an
+ * SSH host it may run a command on, or a cluster's API server it reaches
+ * through a Runner outside the cluster (RunbookCredential).
+ *
+ * Runbook steps used these too, as "Runbook Credentials", until runbook
+ * variables: an SSH or kubectl step now takes its key, password or
+ * kubeconfig from a secret variable, and every credential a step named was
+ * copied into variables. What stays here is OneUptime AI's, so the page says
+ * so, and points runbook authors at variables.
  *
  * Secret fields are write-only: they are encrypted at rest and the API never
  * returns them, so the table can show what a credential IS without ever
@@ -48,7 +55,9 @@ const RunbookCredentials: FunctionComponent<
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="runbook-credential-table"
-        name="Runbooks > Runner Credentials"
+        name="Runbooks > AI Access"
+        singularName="Credential"
+        pluralName="Credentials"
         saveFilterProps={{
           tableId: "runbook-credentials-table",
         }}
@@ -56,12 +65,12 @@ const RunbookCredentials: FunctionComponent<
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: "Runbook Credentials",
+          title: "OneUptime AI Access",
           description:
-            "Access an SSH or Kubernetes step uses to act on your infrastructure. Secret values are encrypted and can never be read back — re-enter one to rotate it.",
+            "SSH hosts and Kubernetes clusters OneUptime AI's commands reach through your Runners. Runbook steps use runbook variables instead.",
         }}
         noItemsMessage={
-          "No credentials yet. Create one, assign it to the Runner that will use it, then reference it from an SSH or Kubernetes step."
+          "OneUptime AI reaches no host or cluster through your Runners. Add one only if its commands need it."
         }
         /*
          * A new credential starts as SSH, the first answer of its Type
@@ -310,7 +319,7 @@ const RunbookCredentials: FunctionComponent<
             title: "Runners",
             stepId: "runners",
             description:
-              "Only these Runners may use this credential. A step referencing it must target one of them.",
+              "Only these Runners may use this credential. OneUptime AI's commands that use it run on one of them.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Runner,

@@ -159,6 +159,32 @@ external database or a check that cannot tell, and that it never stops
 recording `docker` on PATH: the step runs before `docker compose up` with
 `ignore-scripts` on or off, which a `prestart` hook would not.
 
+### `CheckIngressPorts.test.js`
+
+`Scripts/Install/CheckIngressPorts.js`, a step of `npm start` before
+`docker compose up`. With `TRUSTED_PROXY_HOPS` counting a proxy (2 or more),
+OneUptime reads each visitor's address from what that proxy writes, which
+holds only while the proxy is the one way in. An install whose ingress was
+moved off ports 80 and 443 for a proxy on the same server but is still
+published on every address (`ONEUPTIME_HTTP_PORT=8080`, as the Docker Compose
+guide had it before) is warned, with the `127.0.0.1:` values that publish it on
+the loopback address. The guide's own blocks, read from the page, a port
+written with an address, ports 80 and 443 and a hop count of 1 say nothing,
+and the step never stops `npm start`; npm itself runs the start script in a
+throwaway copy to show the warning comes before Compose starts.
+
+### `ComposeVisitorAddresses.test.js`
+
+The compose files keep OneUptime's network exactly as installs created it
+(a driver and nothing else), so an upgrade never recreates it; IPv6 for it is
+the operator's `docker-compose.override.yml`, which `npm start` and
+`npm run update` read because they name no compose file. With docker's
+compose plugin on PATH, the Docker Compose guide's override is merged with
+copies of the shipped files the way `npm start` reads them: IPv6 on for the
+one network every service off the host network joins, no service changed.
+The guide's `127.0.0.1:` port form publishes the ingress on the loopback
+address only.
+
 ### `ReadmeQuickStart.test.js`
 
 The README's Docker Compose quick start, in English and the 16 translations,
