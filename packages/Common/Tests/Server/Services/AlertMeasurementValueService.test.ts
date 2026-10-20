@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -455,10 +456,9 @@ describe("AlertMeasurementValueService.recomputeForAlert", () => {
     });
 
     test("reads First Paged At with the alert it works out", async () => {
-      const findOneById: jest.SpiedFunction<typeof AlertService.findOneById> =
-        jest
-          .spyOn(AlertService, "findOneById")
-          .mockResolvedValue(buildAlert() as never);
+      const findOneById: SpyInstance<typeof AlertService.findOneById> = jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(buildAlert() as never);
       mockDefinitions([timeToAcknowledgeAfterPaging()]);
 
       await recompute();

@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -618,9 +619,7 @@ describe("IncidentMeasurementValueService.recomputeForIncident", () => {
     });
 
     test("reads First Paged At with the incident it works out", async () => {
-      const findOneById: jest.SpiedFunction<
-        typeof IncidentService.findOneById
-      > = jest
+      const findOneById: SpyInstance<typeof IncidentService.findOneById> = jest
         .spyOn(IncidentService, "findOneById")
         .mockResolvedValue(buildIncident() as never);
       mockDefinitions([timeToAcknowledgeAfterPaging()]);
