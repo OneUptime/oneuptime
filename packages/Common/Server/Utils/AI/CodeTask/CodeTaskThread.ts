@@ -1,3 +1,4 @@
+import { FIX_PRODUCTION_REPORT_SELECT } from "../CodeFix/FixProductionReportUtil";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../Services/AIRunService";
 import UserService from "../../../Services/UserService";
@@ -191,6 +192,8 @@ export default class CodeTaskThread {
         headRefName: true,
         baseRefName: true,
         createdAt: true,
+        // What production showed once the fix merged.
+        ...FIX_PRODUCTION_REPORT_SELECT,
       },
       sort: { createdAt: SortOrder.Descending },
       limit: LIMIT_PER_PROJECT,

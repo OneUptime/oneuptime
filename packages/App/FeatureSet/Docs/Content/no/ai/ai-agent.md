@@ -162,6 +162,19 @@ En endring som fortsatt ikke består kontrollen, kastes ikke: pull requesten åp
 
 Kommandoene er repositoriuminnstillinger som teamet ditt skriver, og de kjører på din egen Runner: samme tillitsmodell som Bash-stegene i en runbook. AI-en skriver eller endrer dem aldri. En global Runner, som OneUptime kjører for alle prosjekter, kjører dem aldri: på en global Runner skrives rettingen og åpnes for gjennomgang, kontrollen rapporteres som hoppet over, og repositoriets egen CI sjekker endringen. [Kjør din egen Runner](#kjør-din-egen-runner) for å få rettinger bygget og testet før pull requesten åpnes.
 
+## Etter at en rettelse er slått sammen
+
+Å slå sammen en rettelse retter ingenting før den kjører. Når en pull-forespørsel med en rettelse er slått sammen, venter OneUptime på en registrert utrulling som inneholder den (se [Utrullinger og endringer](/docs/telemetry/change-events)), og følger med i den utrullingen på det rettelsen var til. Oppgavens pull-forespørsel i Code sier hvordan det gikk, og det gjør også unntakets side **AI Assistance**, hendelsens AI-logger og AI-innsikten rettelsen kom fra:
+
+| En rettelse av | Det som følges med på | Det virket | Det virket ikke |
+| --- | --- | --- | --- |
+| Et unntak | Om unntaket skjer igjen | **Rettet i produksjon** | **Skjer fortsatt etter rettelsen** |
+| En treg trace eller en latens-innsikt | p99 for operasjonen rettelsen nevner | **Raskere i produksjon** | **Fortsatt treg etter rettelsen** |
+| Rotårsaken til en hendelse eller et varsel | Om monitoren utløser en til | **Rettet i produksjon** | **Skjedde igjen etter rettelsen** |
+| Manglende telemetri, logging eller tracing | Det rettelsen legger til, og resten av tjenestens telemetri | **Kommer frem i produksjon** | **Telemetri stoppet etter rettelsen** |
+
+Til en utrulling leverer den, står det **Merget, venter på et deploy** ved rettelsen, deretter **Deployet, overvåkes i produksjon** mens det følges med på den. En rettelse som ingen registrert utrulling inneholder innen 14 dager, eller som produksjonen ikke kan si noe om, står som **Ikke verifisert i produksjon**. [Automatiske koderettelser](/docs/ai/ai-sre#automatiske-koderettelser) har reglene. En regresjonstest, bedre feilhåndtering, en gjennomgang og en forespørsel i Code følges det ikke med på: produksjonen kan ikke vise hva de endrer.
+
 ## Før du begynner
 
 En oppgave trenger tre ting. Siden til et repositorium i Kode og unntakets side **AI Assistance** kontrollerer alle tre før de tilbyr å starte, og sier hva som mangler.

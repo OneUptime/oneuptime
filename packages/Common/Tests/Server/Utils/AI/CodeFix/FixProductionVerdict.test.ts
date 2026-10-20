@@ -1,15 +1,26 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CHECK_EVERY_MINUTES,
   FIX_PRODUCTION_THRESHOLDS,
   FixMergedFields,
   FixProductionVerdict,
+  MAX_PRODUCTION_SUMMARY_LENGTH,
+  MAX_SUMMARY_NAME_LENGTH,
+  MEASURE_EVERY_MINUTES,
   decideDeployWait,
   decideWatchVerdict,
   deployContainsFix,
+  describeCount,
   describeDeploy,
   describeDuration,
   fieldsWhenMerged,
+  fitVerdict,
+  formatCount,
+  isMeasureDue,
+  quoteName,
+  watchedMilliseconds,
 } from "../../../../../Server/Utils/AI/CodeFix/FixProductionVerdict";
+import FixProductionCheck from "../../../../../Types/AI/FixProductionCheck";
 import FixProductionStatus, {
   FixProductionStatusHelper,
 } from "../../../../../Types/AI/FixProductionStatus";
@@ -292,17 +303,18 @@ describe("what a merged fix records", () => {
   const NOW: Date = new Date("2026-10-20T10:00:00.000Z");
   const MERGED_AT: Date = new Date("2026-10-20T09:58:00.000Z");
 
-  test("a fix of an exception: its merge, and the start of its watch", () => {
+  test("a fix of an exception: its merge, the start of its watch, and its check", () => {
     expect(
       fieldsWhenMerged({
         mergeCommitSha: FIX_SHA,
         mergedAt: MERGED_AT,
-        isExceptionFix: true,
+        productionCheck: FixProductionCheck.Exception,
         now: NOW,
       }),
     ).toEqual({
       mergedAt: MERGED_AT,
       mergeCommitSha: FIX_SHA,
+      productionCheck: FixProductionCheck.Exception,
       productionStatus: FixProductionStatus.AwaitingDeploy,
       productionStatusAt: NOW,
       productionSummary:
@@ -310,11 +322,37 @@ describe("what a merged fix records", () => {
     });
   });
 
+  test.each([
+    FixProductionCheck.Performance,
+    FixProductionCheck.Recurrence,
+    FixProductionCheck.Telemetry,
+  ])(
+    "a fix watched with the %s check starts the same watch",
+    (check: FixProductionCheck) => {
+      expect(
+        fieldsWhenMerged({
+          mergeCommitSha: FIX_SHA,
+          mergedAt: MERGED_AT,
+          productionCheck: check,
+          now: NOW,
+        }),
+      ).toEqual({
+        mergedAt: MERGED_AT,
+        mergeCommitSha: FIX_SHA,
+        productionCheck: check,
+        productionStatus: FixProductionStatus.AwaitingDeploy,
+        productionStatusAt: NOW,
+        productionSummary:
+          "Merged. Waiting for a recorded deploy of the service that contains the fix.",
+      });
+    },
+  );
+
   test("any other fix: only its merge, which production says nothing about", () => {
     const fields: FixMergedFields = fieldsWhenMerged({
       mergeCommitSha: FIX_SHA,
       mergedAt: MERGED_AT,
-      isExceptionFix: false,
+      productionCheck: null,
       now: NOW,
     });
 
@@ -322,8 +360,104 @@ describe("what a merged fix records", () => {
   });
 
   test("without GitHub's time or commit: now, and no commit", () => {
-    expect(fieldsWhenMerged({ isExceptionFix: false, now: NOW })).toEqual({
+    expect(fieldsWhenMerged({ productionCheck: null, now: NOW })).toEqual({
       mergedAt: NOW,
+    });
+  });
+});
+
+describe("what every check shares", () => {
+  test("a name is quoted on one line, and cut short past 80 characters", () => {
+    expect(quoteName("GET /orders")).toBe('"GET /orders"');
+    expect(quoteName("SELECT *\n  FROM   users")).toBe('"SELECT * FROM users"');
+
+    const long: string = quoteName(`SELECT ${"x, ".repeat(60)}FROM t`);
+
+    expect(long.length).toBe(MAX_SUMMARY_NAME_LENGTH + 2);
+    expect(long.endsWith('…"')).toBe(true);
+  });
+
+  test("a verdict is held to its column, cut short with an ellipsis", () => {
+    const short: FixProductionVerdict = {
+      status: FixProductionStatus.Verified,
+      summary: "Fixed.",
+    };
+
+    expect(fitVerdict(short)).toBe(short);
+
+    const fitted: FixProductionVerdict = fitVerdict({
+      status: FixProductionStatus.Regressed,
+      summary: "a".repeat(MAX_PRODUCTION_SUMMARY_LENGTH + 40),
+    });
+
+    expect(fitted.status).toBe(FixProductionStatus.Regressed);
+    expect(fitted.summary).toHaveLength(MAX_PRODUCTION_SUMMARY_LENGTH);
+    expect(fitted.summary.endsWith("…")).toBe(true);
+    expect(MAX_PRODUCTION_SUMMARY_LENGTH).toBe(500);
+  });
+
+  test("watched time starts after the rollout grace, never below none", () => {
+    expect(
+      watchedMilliseconds({
+        deployedAt: DEPLOYED_AT,
+        now: new Date(DEPLOYED_AT.getTime() + 5 * 60 * 1000),
+        rolloutGraceMinutes: 10,
+      }),
+    ).toBe(0);
+    expect(
+      watchedMilliseconds({
+        deployedAt: DEPLOYED_AT,
+        now: watched(3),
+        rolloutGraceMinutes: 10,
+      }),
+    ).toBe(3 * HOUR);
+  });
+
+  test("counts read with thousands grouped", () => {
+    expect(formatCount(1204)).toBe("1,204");
+    expect(formatCount(7)).toBe("7");
+    expect(describeCount(1)).toBe("once");
+    expect(describeCount(52000)).toBe("52,000 times");
+  });
+
+  describe("telemetry is measured once a fix has run a day, then about hourly", () => {
+    const limits: { minWatchHours: number; maxWatchDays: number } = {
+      minWatchHours: 24,
+      maxWatchDays: 7,
+    };
+
+    function due(watchedMinutes: number): boolean {
+      return isMeasureDue({ watchedMs: watchedMinutes * 60 * 1000, ...limits });
+    }
+
+    test("not before the first day", () => {
+      expect(due(0)).toBe(false);
+      expect(due(24 * 60 - 1)).toBe(false);
+    });
+
+    test("at the first check of the day, and the first check of every hour after", () => {
+      expect(due(24 * 60)).toBe(true);
+      expect(due(24 * 60 + 14)).toBe(true);
+      expect(due(24 * 60 + 15)).toBe(false);
+      expect(due(24 * 60 + 59)).toBe(false);
+      expect(due(25 * 60 + 3)).toBe(true);
+      expect(CHECK_EVERY_MINUTES).toBe(15);
+      expect(MEASURE_EVERY_MINUTES).toBe(60);
+    });
+
+    test("one check in four is measured over a day of checks every 15 minutes", () => {
+      let measured: number = 0;
+
+      for (let minute: number = 24 * 60; minute < 48 * 60; minute += 15) {
+        measured += due(minute) ? 1 : 0;
+      }
+
+      expect(measured).toBe(24);
+    });
+
+    test("every check once the watch is over, so it is decided", () => {
+      expect(due(7 * 24 * 60 + 20)).toBe(true);
+      expect(due(7 * 24 * 60 + 35)).toBe(true);
     });
   });
 });

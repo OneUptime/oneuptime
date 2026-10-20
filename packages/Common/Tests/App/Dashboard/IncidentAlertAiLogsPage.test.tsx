@@ -30,6 +30,8 @@ import AIRunAutoGrade from "../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import FixProductionCheck from "../../../Types/AI/FixProductionCheck";
+import FixProductionStatus from "../../../Types/AI/FixProductionStatus";
 import {
   IncidentAlertAiLogKind,
   IncidentAlertAiSubjectKind,
@@ -499,6 +501,49 @@ describe.each(
       expect(hrefOf(within(task).getByText("Task #12"))).toBe(
         pathOf(PageMap.CODE_TASK_VIEW, TASK_ID),
       );
+    });
+
+    /*
+     * Merged is not fixed: once a fix's pull request merged, its entry says
+     * what production showed - the monitor quiet, or raising it again.
+     */
+    test("a merged fix pull request says what production showed", async () => {
+      serve(
+        ok(
+          logs(product, [
+            {
+              kind: IncidentAlertAiLogKind.FixTask,
+              id: TASK_ID,
+              at: "2026-10-05T09:58:00.000Z",
+              subject: subject(product),
+              status: AIRunStatus.Completed,
+              taskNumber: 12,
+              codeFixTaskType: CodeFixTaskType.FixFromIncident,
+              production: {
+                status: FixProductionStatus.Regressed,
+                check: FixProductionCheck.Recurrence,
+                summary: `Monitor "API health" raised ${product.subjectKind} ${product.numberWithPrefix} after version 2.3.2 shipped the fix, so the fix did not stop it.`,
+              },
+            },
+          ]),
+        ),
+      );
+      openPage(product);
+
+      const verdict: HTMLElement = await findTestId("ai-log-entry-production");
+
+      expect(verdict).toHaveTextContent("Happened again after the fix");
+      expect(verdict).toHaveTextContent("so the fix did not stop it.");
+      expect(verdict.className).toContain("bg-red-50");
+    });
+
+    test("a fix pull request production has said nothing about shows no verdict", async () => {
+      serve(ok(logs(product, everyKind(product))));
+      openPage(product);
+
+      await findTestId("ai-logs-entries");
+
+      expect(screen.queryByTestId("ai-log-entry-production")).toBeNull();
     });
 
     test("a command shows what ran, why, and how it ended", async () => {

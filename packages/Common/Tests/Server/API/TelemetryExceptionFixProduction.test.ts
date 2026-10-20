@@ -143,6 +143,8 @@ describe("GET get-ai-agent-task: the production verdict of a fix", () => {
 
     expect(tasks[0]!["production"]).toEqual({
       status: FixProductionStatus.Verified,
+      // A row from before the checks were told apart is an exception fix.
+      check: "Exception",
       summary:
         "No occurrence in the 24 hours since version 2.3.2 shipped the fix; before the fix it happened 21 times in 7 days.",
       statusAt: new Date("2026-10-20T10:00:00.000Z"),
