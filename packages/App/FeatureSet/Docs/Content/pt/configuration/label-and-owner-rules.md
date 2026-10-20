@@ -121,7 +121,7 @@ Dois tipos de padrão não podem ser executados assim. Uma regra com um deles é
 
 Uma regra salva antes com um deles não corresponde a nada até que você mude o padrão dela. Isso vale para todo tipo de regra que tem padrões, não só para as regras de rótulos e de proprietários.
 
-As regras de um mesmo tipo de um projeto também dividem uma cota de trabalho para cada recurso que verificam. Ela é muito maior do que regras reais precisam: cabem dez mil padrões simples, e cada regra pode ler uma descrição longa. Uma regra cujos padrões precisem de mais do que resta não corresponde a esse recurso, nem quando sua condição é que um texto não corresponda. Uma regra de privacidade que não pode ser verificada por inteiro conta, em vez disso, como correspondente: o incidente, o alerta ou o episódio fica privado, e o feed dele nomeia as regras que não puderam ser verificadas.
+As regras de um mesmo tipo de um projeto também dividem uma cota de trabalho para cada recurso que verificam. Ela é muito maior do que regras reais precisam: cabem dez mil padrões simples, e cada texto que as regras leem, como uma descrição longa, a aumenta na proporção do seu tamanho. Uma regra cujos padrões precisem de mais do que resta não corresponde a esse recurso, nem quando sua condição é que um texto não corresponda. Uma regra de privacidade que não pode ser verificada por inteiro conta, em vez disso, como correspondente: o incidente, o alerta ou o episódio fica privado, e o feed dele nomeia as regras que não puderam ser verificadas.
 
 ## Próximos passos
 

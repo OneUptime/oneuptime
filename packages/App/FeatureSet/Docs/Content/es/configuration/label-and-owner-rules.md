@@ -121,7 +121,7 @@ Dos clases de patrones no pueden ejecutarse así. Una regla que tenga uno se rec
 
 Una regla guardada antes con uno de ellos no coincide con nada hasta que cambie su patrón. Esto vale para toda clase de regla que tenga patrones, no solo para las reglas de etiquetas y de propietarios.
 
-Las reglas de un mismo tipo de un proyecto también comparten un cupo de trabajo para cada recurso que comprueban. Es mucho más de lo que necesitan las reglas reales: caben diez mil patrones sencillos, y cada regla puede leer una descripción larga. Una regla cuyos patrones necesiten más de lo que queda no coincide con ese recurso, ni siquiera cuando su condición es que un texto no coincida. Una regla de privacidad que no se puede comprobar del todo cuenta en cambio como coincidente: el incidente, la alerta o el episodio se vuelve privado, y su feed nombra las reglas que no se pudieron comprobar.
+Las reglas de un mismo tipo de un proyecto también comparten un cupo de trabajo para cada recurso que comprueban. Es mucho más de lo que necesitan las reglas reales: caben diez mil patrones sencillos, y cada texto que leen las reglas, como una descripción larga, lo amplía en proporción a su longitud. Una regla cuyos patrones necesiten más de lo que queda no coincide con ese recurso, ni siquiera cuando su condición es que un texto no coincida. Una regla de privacidad que no se puede comprobar del todo cuenta en cambio como coincidente: el incidente, la alerta o el episodio se vuelve privado, y su feed nombra las reglas que no se pudieron comprobar.
 
 ## Próximos pasos
 

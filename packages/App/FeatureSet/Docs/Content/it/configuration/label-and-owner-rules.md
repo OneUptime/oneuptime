@@ -121,7 +121,7 @@ Due tipi di pattern non possono essere eseguiti così. Una regola che ne contien
 
 Una regola salvata prima con uno di questi non corrisponde a nulla finché non cambiate il suo pattern. Vale per ogni tipo di regola che ha pattern, non solo per le regole di etichette e di proprietari.
 
-Le regole di uno stesso tipo di un progetto condividono anche una quota di lavoro per ogni risorsa che controllano. È molto più di quanto servano a regole reali: ci stanno diecimila pattern semplici, e ogni regola può leggere una descrizione lunga. Una regola i cui pattern richiedono più di quanto resta non corrisponde a quella risorsa, nemmeno quando la sua condizione è che un testo non corrisponda. Una regola di privacy che non si può controllare del tutto conta invece come corrispondente: l'incidente, l'avviso o l'episodio diventa privato, e il suo feed nomina le regole che non è stato possibile controllare.
+Le regole di uno stesso tipo di un progetto condividono anche una quota di lavoro per ogni risorsa che controllano. È molto più di quanto servano a regole reali: ci stanno diecimila pattern semplici, e ogni testo che le regole leggono, come una descrizione lunga, la fa crescere in proporzione alla sua lunghezza. Una regola i cui pattern richiedono più di quanto resta non corrisponde a quella risorsa, nemmeno quando la sua condizione è che un testo non corrisponda. Una regola di privacy che non si può controllare del tutto conta invece come corrispondente: l'incidente, l'avviso o l'episodio diventa privato, e il suo feed nomina le regole che non è stato possibile controllare.
 
 ## Passaggi successivi
 

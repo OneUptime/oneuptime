@@ -121,7 +121,7 @@ Zwei Arten von Mustern können so nicht laufen. Eine Regel mit einem davon wird 
 
 Eine Regel, die schon früher mit einem davon gespeichert wurde, trifft auf nichts zu, bis Sie ihr Muster ändern. Das gilt für jede Art von Regel mit Mustern, nicht nur für Beschriftungs- und Besitzerregeln.
 
-Die Regeln einer Art in einem Projekt teilen sich außerdem ein Arbeitskontingent für jede Ressource, die sie prüfen. Es ist weit größer, als echte Regeln es brauchen: Zehntausend einfache Muster passen hinein, und jede Regel darf eine lange Beschreibung lesen. Eine Regel, deren Muster mehr brauchen, als übrig ist, trifft auf diese Ressource nicht zu, auch wenn ihre Bedingung lautet, dass ein Text nicht passt. Eine Datenschutzregel, die sich nicht vollständig prüfen lässt, zählt stattdessen als zutreffend: Der Vorfall, die Warnung oder die Episode wird privat, und ihr Feed nennt die Regeln, die nicht geprüft werden konnten.
+Die Regeln einer Art in einem Projekt teilen sich außerdem ein Arbeitskontingent für jede Ressource, die sie prüfen. Es ist weit größer, als echte Regeln es brauchen: Zehntausend einfache Muster passen hinein, und jeder Text, den die Regeln lesen, etwa eine lange Beschreibung, vergrößert es im Verhältnis zu seiner Länge. Eine Regel, deren Muster mehr brauchen, als übrig ist, trifft auf diese Ressource nicht zu, auch wenn ihre Bedingung lautet, dass ein Text nicht passt. Eine Datenschutzregel, die sich nicht vollständig prüfen lässt, zählt stattdessen als zutreffend: Der Vorfall, die Warnung oder die Episode wird privat, und ihr Feed nennt die Regeln, die nicht geprüft werden konnten.
 
 ## Nächste Schritte
 

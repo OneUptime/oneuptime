@@ -121,7 +121,7 @@ Twee soorten patronen kunnen zo niet worden uitgevoerd. Een regel met een daarva
 
 Een regel die eerder met een daarvan is opgeslagen, komt nergens mee overeen tot u het patroon verandert. Dit geldt voor elke soort regel met patronen, niet alleen voor label- en eigenaarregels.
 
-De regels van één soort in een project delen ook een werktegoed voor elke resource die ze controleren. Het is veel groter dan echte regels nodig hebben: tienduizend eenvoudige patronen passen erin, en elke regel mag een lange beschrijving lezen. Een regel waarvan de patronen meer nodig hebben dan er over is, komt niet overeen met die resource, ook niet wanneer de voorwaarde is dat een tekst niet overeenkomt. Een privacyregel die niet volledig kan worden gecontroleerd, telt in plaats daarvan als overeenkomend: het incident, de waarschuwing of de episode wordt privé, en de feed ervan noemt de regels die niet konden worden gecontroleerd.
+De regels van één soort in een project delen ook een werktegoed voor elke resource die ze controleren. Het is veel groter dan echte regels nodig hebben: tienduizend eenvoudige patronen passen erin, en elke tekst die de regels lezen, zoals een lange beschrijving, vergroot het naar verhouding van zijn lengte. Een regel waarvan de patronen meer nodig hebben dan er over is, komt niet overeen met die resource, ook niet wanneer de voorwaarde is dat een tekst niet overeenkomt. Een privacyregel die niet volledig kan worden gecontroleerd, telt in plaats daarvan als overeenkomend: het incident, de waarschuwing of de episode wordt privé, en de feed ervan noemt de regels die niet konden worden gecontroleerd.
 
 ## Volgende stappen
 
