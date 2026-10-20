@@ -312,7 +312,12 @@ jobs:
           # to a group already at 16 to 23 minutes. Public Dashboard Theme
           # (about five minutes with its bundle locally: a laptop and a
           # phone, both Chromium) joined them on 2026-10-20 as well: about
-          # 14 minutes for the five, the group still the lightest.
+          # 14 minutes for the five, the group still the lightest. Dashboard
+          # Templates (about 2.5 minutes with its bundle locally: Create a
+          # dashboard beside Create a workflow, at a laptop's and a phone's
+          # width, both read in all 17 languages, Chromium only) joined them
+          # the same day: about 17 minutes for the six, still under the 22 the
+          # groups are kept to.
           - group: 7
             browsers: chromium
             suites: >-
@@ -321,6 +326,7 @@ jobs:
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
+              test-dashboard-templates-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -489,4 +495,6 @@ jobs:
             output/playwright/public-dashboard-theme-ui/test-results
             output/playwright/profiles-ui/*.png
             output/playwright/profiles-ui/test-results
+            output/playwright/dashboard-templates-ui/*.png
+            output/playwright/dashboard-templates-ui/test-results
           retention-days: 7

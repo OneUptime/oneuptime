@@ -1,9 +1,9 @@
 # 建立儀表板
 
-要建立儀表板，請開啟 **產品 → 儀表板** ，點選 **建立儀表板** 並選擇一個範本，或選擇 **Blank Dashboard** 從頭開始。範本會為你填好儀表板的名稱（如果專案中已有同名的儀表板，則會加上編號，例如「Kubernetes Dashboard 2」）；空白儀表板則需要你輸入名稱。點選 **建立儀表板** ，新的儀表板隨即開啟。空白儀表板會在空白畫布上開啟，並提供一個 **新增小工具** 按鈕，用來加入第一個小工具。
+要建立儀表板，請開啟 **產品 → 儀表板** ，點選 **建立儀表板** 。 **建立儀表板** 對話方塊會先問你要如何開始，再問名稱。 **從零開始** 會給你一個空白儀表板；範本會為你建立它的小工具，通常還有變數，並填好它的名稱（如果專案中已有同名的儀表板，則會加上編號，例如「Kubernetes Dashboard 2」）。點選 **建立儀表板** ，新的儀表板隨即開啟。空白儀表板會在畫布上開啟，並提供一個 **新增小工具** 按鈕，用來加入第一個小工具。
 
 :::cards
-- [新建儀表板](#新建儀表板): 從範本或空白畫布開始。
+- [新建儀表板](#新建儀表板): 從零開始，或從範本開始。
 - [編輯與儲存](#編輯與儲存): 在你點選「儲存變更」之前，任何人看到的都不會改變。
 - [新增小工具](#新增小工具): 從目錄中選擇、進行設定，然後擺到定位。
 - [放大高峰](#放大高峰): 在圖表上拖曳，讀取那一刻的整個儀表板。
@@ -16,33 +16,32 @@
 ## 新建儀表板
 
 :::steps
-### 開啟範本選擇器
+### 選擇開始方式
 
-開啟 **產品 → 儀表板** ，點選 **建立儀表板** 。 **從範本建立** 對話方塊會顯示 **Blank Dashboard** 和十五個範本，依它們監控的對象分組。
+開啟 **產品 → 儀表板** ，點選 **建立儀表板** 。 **建立儀表板** 對話方塊從 **從零開始** 開始，這是一個可以加入你自己的小工具的空白儀表板。下方的 **或從範本開始** 列出六個 **推薦** 範本。
 
 ### 選擇範本
 
-點選一張卡片。範本會為你建立它的小工具，通常還有變數； **Blank Dashboard** 從空白畫布開始。
+點選一個範本，查看它會加入什麼：它的小工具（名稱與 **新增小工具** 中一致），以及你在工具列中用來縮小範圍的變數。其他範本可以在搜尋框旁選擇一個類別或 **所有範本** ，或在 **搜尋範本…** 中輸入來尋找：你輸入的每個詞都必須相符。然後點選 **使用此範本** ，或按兩下該範本。在搜尋框中，方向鍵選擇範本， **Enter** 使用它。
 
 ### 為儀表板命名
 
-範本的名稱已經填好，並依專案中已有的名稱往後編號。空白儀表板的名稱是空的：請輸入一個。描述為選填，收合在 **更多欄位** 底下，你也可以稍後在儀表板的 **概覽** 頁面加入。
+範本的名稱已經填好，並依專案中已有的名稱往後編號。 **從零開始** 時名稱是空的：請輸入一個。描述為選填，收合在 **更多欄位** 底下，你也可以稍後在儀表板的 **概覽** 頁面加入。 **返回** 會帶你回到離開時的範本選擇。
 
 ### 建立
 
-點選 **建立儀表板** 。新的儀表板隨即開啟：如果是範本，會立即顯示它的小工具；如果是空白儀表板，則顯示帶有 **新增小工具** 的空白畫布。
+點選 **建立儀表板** 。新的儀表板隨即開啟：如果是範本，會立即顯示它的小工具；否則顯示帶有 **新增小工具** 的空白畫布。
 :::
 
-範本依選擇器中的分組列出：
+範本依選擇器中的類別列出：
 
-| 分組 | 範本 |
+| 類別 | 範本 |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| 監控與 APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| 事件應變 | Incident Dashboard, Alert Dashboard |
+| 基礎設施 | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-範本只是起點，而不是連動：儀表板建立後，你可以隨意修改。之後範本不會再更新它。
+**推薦** 包含 Monitor Dashboard、Incident Dashboard、Alert Dashboard、Kubernetes Dashboard、Hosts Dashboard 和 Metrics Dashboard。範本只是起點，而不是連動：儀表板建立後，你可以隨意修改。之後範本不會再更新它。
 
 ## 編輯與儲存
 

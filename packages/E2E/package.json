@@ -70,7 +70,8 @@
     "test-rules-menu-section-ui": "playwright test --config playwright.rules-menu-section-ui.config.ts",
     "test-auto-remediation-rules-ui": "playwright test --config playwright.auto-remediation-rules-ui.config.ts",
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
-    "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts"
+    "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",
+    "test-dashboard-templates-ui": "playwright test --config playwright.dashboard-templates-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
