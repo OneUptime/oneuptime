@@ -81,12 +81,12 @@ export const RESTORE_COMMAND_RUNNER_ROWS: string = `INSERT INTO "AutoRemediation
  * added without a rewrite. Its index and its foreign key to "Runner" are on
  * a table projects already have rules in, so they are built online, in the
  * migration registered right after this one:
- * AddAutoRemediationRuleRunnerIndexAndKey1804550000000.
+ * AddAutoRemediationRuleRunnerIndexAndKey1804800000000.
  */
-export class AddAutoRemediationRuleRunner1804500000000
+export class AddAutoRemediationRuleRunner1804750000000
   implements MigrationInterface
 {
-  public name: string = "AddAutoRemediationRuleRunner1804500000000";
+  public name: string = "AddAutoRemediationRuleRunner1804750000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
