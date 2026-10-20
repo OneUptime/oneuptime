@@ -31632,7 +31632,6 @@
   "Only count spend from this provider: openai, anthropic, azure.ai.openai, aws.bedrock or gcp.vertex_ai. Leave empty to count every provider.": "이 공급자의 지출만 집계합니다: openai, anthropic, azure.ai.openai, aws.bedrock 또는 gcp.vertex_ai. 비워 두면 모든 공급자를 집계합니다.",
   "Only people in this group": "이 그룹의 사람만",
   "Open WebUI and LibreChat": "Open WebUI 및 LibreChat",
-  "OpenAI opens its Compliance API to a workspace on request. Until then, connect your OpenAI organization for usage and cost.": "OpenAI는 요청 시 워크스페이스에 Compliance API를 열어 줍니다. 그때까지는 사용량과 비용을 위해 OpenAI 조직을 연결하세요.",
   "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.": "OpenLLMetry는 기본적으로 프롬프트와 답변을 기록합니다. OpenTelemetry 계측은 OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true일 때 기록합니다.",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI and LangChain calls, prompts and answers included.": "OpenLLMetry는 OpenAI, Anthropic, Bedrock, Vertex AI, LangChain 호출을 프롬프트와 답변을 포함해 추적합니다.",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI, LangChain and LlamaIndex calls, prompts and answers included.": "OpenLLMetry는 OpenAI, Anthropic, Bedrock, Vertex AI, LangChain, LlamaIndex 호출을 프롬프트와 답변을 포함해 추적합니다.",
@@ -31758,5 +31757,6 @@
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }": "{ \"client_email\": \"...\", \"private_key\": \"...\" }",
   "{{tokens}} tokens over the last {{days}} days": "최근 {{days}}일간 {{tokens}}토큰",
   "{{turns}} answers in {{conversations}} conversations": "대화 {{conversations}}개에서 답변 {{turns}}개",
-  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "자체 호스팅 채팅 앱: LiteLLM 프록시 뒤에 두면 그 트레이스에 모든 채팅이 담깁니다."
+  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "자체 호스팅 채팅 앱: LiteLLM 프록시 뒤에 두면 그 트레이스에 모든 채팅이 담깁니다.",
+  "OpenAI opens its Compliance API only on request, so ChatGPT chats cannot be read yet. Your OpenAI organization shows API usage, not ChatGPT's.": "OpenAI는 요청이 있을 때만 Compliance API를 열어 주므로 아직 ChatGPT 채팅을 읽을 수 없습니다. OpenAI 조직에는 ChatGPT가 아닌 API 사용량이 표시됩니다."
 }

@@ -26,7 +26,7 @@ export const LLM_OTHER_AI_TOOLS: Array<OtherTool> = [
     key: "chatgpt-enterprise",
     title: translationKey("ChatGPT Enterprise"),
     body: translationKey(
-      "OpenAI opens its Compliance API to a workspace on request. Until then, connect your OpenAI organization for usage and cost.",
+      "OpenAI opens its Compliance API only on request, so ChatGPT chats cannot be read yet. Your OpenAI organization shows API usage, not ChatGPT's.",
     ),
     docsPath: `${LLM_COMPANY_TOOLS_DOCS_PATH}#chatgpt-enterprise`,
   },

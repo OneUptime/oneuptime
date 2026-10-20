@@ -31632,7 +31632,6 @@
   "Only count spend from this provider: openai, anthropic, azure.ai.openai, aws.bedrock or gcp.vertex_ai. Leave empty to count every provider.": "Contar só os gastos deste provedor: openai, anthropic, azure.ai.openai, aws.bedrock ou gcp.vertex_ai. Deixe em branco para contar todos os provedores.",
   "Only people in this group": "Somente pessoas deste grupo",
   "Open WebUI and LibreChat": "Open WebUI e LibreChat",
-  "OpenAI opens its Compliance API to a workspace on request. Until then, connect your OpenAI organization for usage and cost.": "A OpenAI abre sua API de conformidade para um workspace mediante solicitação. Até lá, conecte sua organização da OpenAI para uso e custo.",
   "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.": "O OpenLLMetry registra prompts e respostas por padrão. As instrumentações do OpenTelemetry os registram com OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI and LangChain calls, prompts and answers included.": "O OpenLLMetry rastreia chamadas para OpenAI, Anthropic, Bedrock, Vertex AI e LangChain, com prompts e respostas incluídos.",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI, LangChain and LlamaIndex calls, prompts and answers included.": "O OpenLLMetry rastreia chamadas para OpenAI, Anthropic, Bedrock, Vertex AI, LangChain e LlamaIndex, com prompts e respostas incluídos.",
@@ -31758,5 +31757,6 @@
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }": "{ \"client_email\": \"...\", \"private_key\": \"...\" }",
   "{{tokens}} tokens over the last {{days}} days": "{{tokens}} tokens nos últimos {{days}} dias",
   "{{turns}} answers in {{conversations}} conversations": "{{turns}} respostas em {{conversations}} conversas",
-  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "Apps de chat auto-hospedados: coloque-os atrás de um proxy do LiteLLM, cujos traces trazem cada chat."
+  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "Apps de chat auto-hospedados: coloque-os atrás de um proxy do LiteLLM, cujos traces trazem cada chat.",
+  "OpenAI opens its Compliance API only on request, so ChatGPT chats cannot be read yet. Your OpenAI organization shows API usage, not ChatGPT's.": "A OpenAI só abre a Compliance API mediante pedido, então os chats do ChatGPT ainda não podem ser lidos. Sua organização da OpenAI mostra o uso da API, não o do ChatGPT."
 }

@@ -31632,7 +31632,6 @@
   "Only count spend from this provider: openai, anthropic, azure.ai.openai, aws.bedrock or gcp.vertex_ai. Leave empty to count every provider.": "只统计此提供商的支出：openai、anthropic、azure.ai.openai、aws.bedrock 或 gcp.vertex_ai。留空则统计所有提供商。",
   "Only people in this group": "仅限此组中的人员",
   "Open WebUI and LibreChat": "Open WebUI 和 LibreChat",
-  "OpenAI opens its Compliance API to a workspace on request. Until then, connect your OpenAI organization for usage and cost.": "OpenAI 会应要求为工作区开放其合规 API。在此之前，请连接你的 OpenAI 组织以获取用量和费用。",
   "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.": "OpenLLMetry 默认记录提示和回答。OpenTelemetry 插桩在设置 OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true 后记录。",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI and LangChain calls, prompts and answers included.": "OpenLLMetry 追踪对 OpenAI、Anthropic、Bedrock、Vertex AI 和 LangChain 的调用，包括提示和回答。",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI, LangChain and LlamaIndex calls, prompts and answers included.": "OpenLLMetry 追踪对 OpenAI、Anthropic、Bedrock、Vertex AI、LangChain 和 LlamaIndex 的调用，包括提示和回答。",
@@ -31758,5 +31757,6 @@
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }": "{ \"client_email\": \"...\", \"private_key\": \"...\" }",
   "{{tokens}} tokens over the last {{days}} days": "过去 {{days}} 天 {{tokens}} 个 token",
   "{{turns}} answers in {{conversations}} conversations": "{{conversations}} 个对话中的 {{turns}} 个回答",
-  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "自托管聊天应用：把它们放在 LiteLLM 代理后面，其跟踪包含每次聊天。"
+  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "自托管聊天应用：把它们放在 LiteLLM 代理后面，其跟踪包含每次聊天。",
+  "OpenAI opens its Compliance API only on request, so ChatGPT chats cannot be read yet. Your OpenAI organization shows API usage, not ChatGPT's.": "OpenAI 只会应要求开放 Compliance API，因此目前还无法读取 ChatGPT 聊天。你的 OpenAI 组织显示的是 API 用量，而不是 ChatGPT 的用量。"
 }

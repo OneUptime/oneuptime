@@ -31632,7 +31632,6 @@
   "Only count spend from this provider: openai, anthropic, azure.ai.openai, aws.bedrock or gcp.vertex_ai. Leave empty to count every provider.": "只統計此提供者的支出：openai、anthropic、azure.ai.openai、aws.bedrock 或 gcp.vertex_ai。留空則統計所有提供者。",
   "Only people in this group": "僅限此群組中的人員",
   "Open WebUI and LibreChat": "Open WebUI 與 LibreChat",
-  "OpenAI opens its Compliance API to a workspace on request. Until then, connect your OpenAI organization for usage and cost.": "OpenAI 會依申請為工作區開放其合規 API。在此之前，請連線你的 OpenAI 組織以取得使用量與成本。",
   "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.": "OpenLLMetry 預設會記錄提示與回答。OpenTelemetry 檢測在設定 OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true 後記錄。",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI and LangChain calls, prompts and answers included.": "OpenLLMetry 追蹤對 OpenAI、Anthropic、Bedrock、Vertex AI 和 LangChain 的呼叫，包含提示與回答。",
   "OpenLLMetry traces OpenAI, Anthropic, Bedrock, Vertex AI, LangChain and LlamaIndex calls, prompts and answers included.": "OpenLLMetry 追蹤對 OpenAI、Anthropic、Bedrock、Vertex AI、LangChain 和 LlamaIndex 的呼叫，包含提示與回答。",
@@ -31758,5 +31757,6 @@
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }": "{ \"client_email\": \"...\", \"private_key\": \"...\" }",
   "{{tokens}} tokens over the last {{days}} days": "過去 {{days}} 天 {{tokens}} 個 token",
   "{{turns}} answers in {{conversations}} conversations": "{{conversations}} 個對話中的 {{turns}} 個回答",
-  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "自行託管的聊天應用程式：把它們放在 LiteLLM 代理伺服器後面，其追蹤包含每次聊天。"
+  "Self-hosted chat apps: put them behind a LiteLLM proxy, whose traces carry every chat.": "自行託管的聊天應用程式：把它們放在 LiteLLM 代理伺服器後面，其追蹤包含每次聊天。",
+  "OpenAI opens its Compliance API only on request, so ChatGPT chats cannot be read yet. Your OpenAI organization shows API usage, not ChatGPT's.": "OpenAI 只會應要求開放 Compliance API，因此目前還無法讀取 ChatGPT 聊天。你的 OpenAI 組織顯示的是 API 使用量，而不是 ChatGPT 的使用量。"
 }
