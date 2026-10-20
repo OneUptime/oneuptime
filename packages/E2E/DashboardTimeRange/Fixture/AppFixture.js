@@ -188,9 +188,7 @@ ModelAPI.updateById = async (options) => {
   const id = idOf(options.id);
 
   if (table === "Dashboard" && getScenario(id)) {
-    const config = JSON.parse(
-      JSON.stringify(options.data.dashboardViewConfig),
-    );
+    const config = JSON.parse(JSON.stringify(options.data.dashboardViewConfig));
 
     record.saves.push({ id, dashboardViewConfig: config });
     storeConfig(id, config);
