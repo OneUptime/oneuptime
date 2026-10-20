@@ -44,6 +44,7 @@ Clique em **Iniciar tarefa** ou pressione Enter. A página da tarefa abre, e o t
 | **Monitor** | O tipo, o status e a descrição dele. |
 | **Traço** | Os spans dele: nomes, tempos e erros. |
 | **Registros** | As 20 linhas de log mais recentes que contêm a sua busca, da última hora, do último dia ou da última semana. |
+| **Perfil de desempenho** | Para onde vai o tempo de uma função nos perfis do serviço dela: quem a chama, o que ela chama e as linhas mais quentes dela. |
 
 Um pedido leva no máximo 10 itens de contexto. Tokens, chaves, senhas e endereços de e-mail no que o OneUptime lê são ocultados antes que a IA os veja, como em todo lugar em que a OneUptime AI lê os seus dados.
 
@@ -78,7 +79,7 @@ flowchart TB
     P --> H["Uma pessoa o revisa<br/>e faz o merge"]
 ```
 
-1. Você clica em **Iniciar tarefa** em um repositório, ou em **Fix with AI** em uma exceção não resolvida, ou outro botão ou gatilho inicia uma tarefa (veja [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam)).
+1. Você clica em **Iniciar tarefa** em um repositório, ou em **Corrigir com IA** em uma exceção não resolvida, ou outro botão ou gatilho inicia uma tarefa (veja [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam)).
 2. A tarefa entra na fila, e um Runner disponível com **Executa correções de código por IA** ativado a assume.
 3. O Runner busca o contexto da tarefa. Para um pedido, são as palavras dele, o contexto adicionado e a conversa até ali; para uma exceção, o tipo, a mensagem e o stack trace dela.
 4. Ele clona o repositório em um espaço de trabalho próprio e cria um branch. Uma correção de uma exceção se chama `oneuptime-fix-exception-` seguido dos primeiros caracteres do id da execução. Uma resposta trabalha, em vez disso, no branch do pull request aberto da tarefa.
@@ -94,15 +95,16 @@ Cada execução fica dentro de orçamentos que o servidor impõe: no máximo **4
 
 | Onde | Clique | O pull request |
 | --- | --- | --- |
-| A página **AI Assistance** de uma exceção | **Fix with AI** | Corrige o bug por trás da exceção. |
+| A página **AI Assistance** de uma exceção | **Corrigir com IA** | Corrige o bug por trás da exceção. |
 | A página **AI Assistance** de uma exceção | **Generate Regression Test** | Adiciona um teste que reproduz a exceção e falha até o bug ser corrigido. |
 | A página **AI Assistance** de uma exceção | **Melhorar o tratamento de erros** | Para um erro esperado, como uma entrada inválida: tira os dados do usuário da mensagem, valida a entrada mais cedo e marca o erro como tratado, sem mudar o comportamento. |
 | O cartão **AI Investigation** de um incidente ou de um alerta | **Open Fix PR from this analysis** | Corrige a causa raiz que a investigação publicou (veja [Correções de código automáticas a partir de investigações](#correções-de-código-automáticas-a-partir-de-investigações)). |
 | Um trace que vale a pena corrigir | **Acelerar com IA** | Corrige o padrão lento que o botão indica, como uma consulta N+1 ou chamadas que poderiam rodar em paralelo. |
 | A página **Registros** de um serviço | **Melhorar os registros** | Torna os logs do serviço estruturados, com a severidade certa e ligados aos traces dele, sem mudar o comportamento. |
 | A página **Traços** de um serviço | **Melhorar o rastreamento** | Adiciona spans e atributos onde falta tracing no serviço, sem mudar o comportamento. |
+| Uma função em **Perfis de desempenho** | **Corrigir com IA** | Faz a função realizar o mesmo trabalho com menos tempo ou memória, com o perfil dela como evidência. |
 
-Esses botões só aparecem onde podem iniciar uma tarefa. Com a IA desativada para o projeto, nenhum deles aparece e o menu lateral de uma exceção não tem **AI Assistance**. **Melhorar os registros** e **Melhorar o rastreamento** aparecem assim que um repositório é conectado, e **Acelerar com IA** só em um trace que vale a pena corrigir (veja [Explorador de traços](/docs/telemetry/traces-explorer)).
+Esses botões só aparecem onde podem iniciar uma tarefa. Com a IA desativada para o projeto, nenhum deles aparece e o menu lateral de uma exceção não tem **AI Assistance**. **Melhorar os registros** e **Melhorar o rastreamento** aparecem assim que um repositório é conectado, e **Acelerar com IA** só em um trace que vale a pena corrigir (veja [Explorador de traços](/docs/telemetry/traces-explorer)). O botão **Corrigir com IA** de uma função só aparece no código próprio da aplicação que ocupa pelo menos 5% do tempo ou da memória do perfil, ou cuja participação cresceu 3 pontos ou mais desde a janela com que é comparada (veja [Profiling contínuo](/docs/telemetry/profiles)).
 
 Para abrir a página **AI Assistance** de uma exceção, abra a exceção em **Produtos → Observabilidade → Exceções** e escolha **AI Assistance** no menu lateral. Uma exceção resolvida ou arquivada precisa primeiro ser marcada como não resolvida.
 

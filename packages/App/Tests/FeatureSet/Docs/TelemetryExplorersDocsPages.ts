@@ -90,7 +90,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Critical path",
       "Errors only",
     ],
-    [EXCEPTIONS]: ["Fix with AI"],
   };
 
 /*

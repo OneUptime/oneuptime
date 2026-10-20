@@ -6,7 +6,7 @@ Le profilage continu montre comment votre application dépense son temps CPU et 
 - [Envoyer des profils](#envoyer-des-profils): Grafana Alloy avec eBPF, ou un SDK Pyroscope dans votre application.
 - [Point de terminaison d'ingestion](#point-de-terminaison-dingestion): L'URL de base et les trois façons de transmettre la clé.
 - [Vérifier que tout fonctionne](#vérifier-que-tout-fonctionne): Contrôler la clé, la page et le statut d'envoi.
-- [Explorer les profils](#explorer-les-profils-dans-oneuptime): Graphiques en flammes, fonctions principales, comparaisons et liens vers les traces.
+- [Explorer les profils](#explorer-les-profils-dans-oneuptime): Le Profiler : où va le temps, ce qui a changé, et la correction avec l'IA.
 :::
 
 ## Fonctionnement
@@ -283,9 +283,27 @@ Pour le profileur .NET, définissez `DD_TRACE_DEBUG=1` sur l'application pendant
 
 ## Explorer les profils dans OneUptime
 
-**Produits → Profils de performance** ouvre une vue d'ensemble de l'endroit où passe le temps dans vos services, et **Tous les profils** liste chaque envoi. Choisissez ce que vous analysez : **Tout**, **Temps CPU**, **Mémoire** ou **Verrous**, ou un type précis comme **Temps réel écoulé** ou **Goroutines**.
+**Produits → Profils de performance** ouvre le Profiler sur sa **Vue d'ensemble**. Il répond en mots avant tout graphique : où va le temps (« Pour checkout, JSON.parse représente 42% du total en temps CPU. ») et, quand la fonction la plus occupée appartient à une bibliothèque ou à l'environnement d'exécution, la fonction de votre propre code qui prend le plus, avec le code de bibliothèque et d'exécution qu'elle appelle. En haut, choisissez un service, un type de profil pour lequel il a des données (**Temps CPU**, **Temps réel écoulé**, **Mémoire**, **Allocations mémoire**, **Verrous** ou **Goroutines**, ou un type sous **Autres types de profils**) et une période.
 
-La page d'un profil propose trois vues :
+| Carte | Ce qu'elle montre |
+| --- | --- |
+| **Où va le temps CPU** | Tous les profils de la période, fusionnés en un seul graphique en flammes. Plus un cadre est large, plus sa part est grande. Cliquez sur un cadre pour zoomer. |
+| **Fonctions** | Les fonctions qui prennent le plus, classées par **Propre** (le temps dans le propre code de la fonction), **Total** (avec tout ce qu'elle appelle) ou **Votre code** (vos propres fonctions, chacune avec le code de bibliothèque et d'exécution qu'elle appelle : le temps qu'une modification peut faire regagner). |
+| **Services profilés** | Chaque service profilé, les plus actifs d'abord. Les threads du noyau que le profileur eBPF échantillonne sont masqués. |
+
+### Comparer deux périodes
+
+**Comparer avec** définit ce à quoi la période est comparée : **La période précédente**, **La même heure hier**, **La même heure la semaine dernière**, ou un déploiement sous **Avant et après un déploiement**. Ce sont les parts qui sont comparées, pas les totaux : un trafic plus élevé ne change donc rien à lui seul. Le titre nomme la fonction dont la part a le plus augmenté, et votre propre code qui a augmenté ; le graphique en flammes devient **Ce qui a changé**, où les cadres rouges prennent une plus grande part après et les verts une plus petite ; et **Fonctions qui ont changé** liste la part de chaque fonction avant et après.
+
+### Une fonction
+
+Cliquez sur une fonction pour ouvrir son panneau : sa part en **Propre**, **Total** et **Votre code**, **Qui l'appelle** et **Ce qu'elle appelle**, un lien vers son fichier et sa ligne dans votre dépôt quand un dépôt est connecté, et **Mettre en évidence dans le graphique en flammes**. Pour une fonction d'une bibliothèque ou de l'environnement d'exécution, le panneau nomme la fonction de votre propre code qui l'appelle, là où une modification peut la rendre moins coûteuse. Un lien sous les parts crée une alerte sur la part de la fonction, au-dessus de ce qu'elle prend aujourd'hui : voir [Surveillance des profils](/docs/monitor/profiles-monitor).
+
+Quand une fonction de votre propre code prend au moins 5 % du temps ou de la mémoire du profil, ou que sa part a augmenté de 3 points ou plus depuis la période à laquelle on la compare, le panneau propose **Corriger avec l'IA** : OneUptime AI lance une tâche dans le dépôt qui contient la fonction, avec le profil comme preuve, et ouvre une pull request à relire (voir [Code](/docs/ai/ai-agent)). OneUptime AI lit aussi les profils dans ses réponses et ses investigations : vous pouvez donc lui demander quelles fonctions utilisent le plus de temps CPU.
+
+### Un seul profil
+
+**Tous les profils** liste chaque envoi. La page d'un profil propose trois vues :
 
 | Vue | Ce qu'elle montre |
 | --- | --- |
@@ -300,6 +318,8 @@ La page d'un profil propose trois vues :
 Quand un profil porte des ID de trace et de span (par exemple sous forme d'étiquettes d'échantillon `trace_id` / `span_id`), vous passez directement d'un span de trace lent au profil CPU ou mémoire correspondant pour comprendre exactement quel code s'exécutait, et **Open linked trace** fait le chemin inverse.
 
 L'onglet **Profil** d'un span inclut aussi les échantillons liés aux spans imbriqués sous lui, car les profileurs attribuent souvent le temps CPU d'une requête à un span enfant plutôt qu'au span de la requête lui-même.
+
+La page d'une trace renvoie aussi vers le Profiler sur le service de la trace, pour les 15 minutes avant et après, quand ce service était profilé à ce moment-là, et la page **Profils de performance** d'un service ou d'un hôte ouvre le Profiler sur ce service ou cet hôte.
 
 ## Rétention des données
 

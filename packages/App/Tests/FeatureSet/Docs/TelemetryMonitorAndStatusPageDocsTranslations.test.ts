@@ -184,7 +184,11 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     ...ANOMALY_CONDITIONS,
   ],
   [EXCEPTIONS_MONITOR]: ["Exception Count"],
-  [PROFILES_MONITOR]: ["Profile Count"],
+  /*
+   * Profiles has none: its criteria's labels (Profile Count, Function Share
+   * (in %)) are spelled out for the locales (PROFILE_CHECK_ON_LABELS), so
+   * every language's criteria form draws them in its own words.
+   */
   [RESOURCES_AND_GROUPS]: [
     // Titles built from a template literal, which no lookup can find.
     "Add a monitor to {group}",
@@ -465,8 +469,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   ],
   [PROFILES_MONITOR]: [
     "Every minute.",
-    "One number per evaluation.",
-    "No profiles is a count of 0.",
+    "Two numbers per evaluation.",
+    "One unit at a time.",
+    "No profiles is a count of 0, and no share.",
     "OneUptime's own downtime is not silence.",
     "Criteria from top to bottom.",
   ],

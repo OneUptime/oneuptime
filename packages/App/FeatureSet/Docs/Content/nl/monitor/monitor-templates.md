@@ -156,7 +156,7 @@ Laat de array weg of zet hem op `[]` om elke ondersteunde stapinstelling te sync
 | SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
 | Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Logboeken, Security Events, Traces, AI / LLM, Metrieken, Uitzonderingen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor` (de hele configuratie van de monitor) |
+| Logboeken, Security Events, Traces, AI / LLM, Metrieken, Uitzonderingen, Profielen | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (de hele configuratie van de monitor) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
 Infrastructuurmonitoren (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Opslagarray, IoT Device) bieden hun resourceselector, filters (alle behalve Host), metriekquery's en het tijdvenster van de query. Hun namen staan onder **Template sync settings** op een sjabloon van dat type.

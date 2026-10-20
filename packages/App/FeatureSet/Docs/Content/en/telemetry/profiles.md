@@ -6,7 +6,7 @@ Continuous profiling shows how your application spends CPU time and memory, func
 - [Send profiles](#send-profiles): Grafana Alloy with eBPF, or a Pyroscope SDK in your app.
 - [Ingest endpoint](#ingest-endpoint): The base URL and the three ways to pass the key.
 - [Verify it is working](#verify-it-is-working): Check the key, the page and the upload status.
-- [Explore profiles](#explore-profiles-in-oneuptime): Flame graphs, top functions, diffs and trace links.
+- [Explore profiles](#explore-profiles-in-oneuptime): The Profiler: where the time goes, what changed, and Fix with AI.
 :::
 
 ## How it works
@@ -283,9 +283,27 @@ For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: i
 
 ## Explore profiles in OneUptime
 
-**Products → Performance Profiles** opens an overview of where the time is going across your services, with **All profiles** listing every upload. Pick what to analyze — **Everything**, **CPU time**, **Memory** or **Locks**, or a specific type such as **Wall time** or **Goroutines**.
+**Products → Performance Profiles** opens the Profiler on its **Overview**. It answers in words before any chart: where the time goes ("checkout spent 42% of its CPU time in JSON.parse") and, when the busiest function is a library's or the runtime's, the function of your own code that takes the most, with the library and runtime code it calls. At the top, pick a service, a kind of profile it has data for (**CPU time**, **Wall time**, **Memory**, **Allocations**, **Locks** or **Goroutines**, or one type under **More profile types**) and a window.
 
-A profile's page has three views:
+| Card | What it shows |
+| --- | --- |
+| **Where the CPU time goes** | Every profile in the window, merged into one flame graph. The wider a frame, the bigger its share. Click a frame to zoom in. |
+| **Functions** | The functions that take the most, ranked by **Self** (time in the function's own code), **Total** (with everything it calls) or **Your code** (your own functions, each with the library and runtime code it calls: the time a change to them can win back). |
+| **Services being profiled** | Every profiled service, busiest first. Kernel threads the eBPF profiler samples are folded away. |
+
+### Compare two windows
+
+**Compare with** sets what the window is compared with: **The period before**, **The same time yesterday**, **The same time last week**, or a deploy under **Before and after a deploy**. Shares are compared rather than totals, so busier traffic alone moves nothing. The headline names the function whose share grew the most, and the code of your own that grew; the flame graph becomes **What changed**, where red frames take a bigger share after and green frames a smaller one; and **Functions that changed** lists each function's share before and after.
+
+### One function
+
+Click a function to open its panel: its share as **Self**, **Total** and **Your code**, **Who calls it** and **What it calls**, a link to its file and line in your repository when one is connected, and **Highlight in the flame graph**. For a library's or the runtime's function, the panel names the function of your own code that calls it, where a change can make it cheaper. A link under the shares sets up an alert on the function's share, above what it takes today: see [Profiles Monitor](/docs/monitor/profiles-monitor).
+
+When a function of your own code takes at least 5% of the profile's time or memory, or its share grew by 3 points or more since the window it is compared with, the panel offers **Fix with AI**: OneUptime AI starts a task in the repository that holds the function, with the profile as its evidence, and opens a pull request for you to review (see [Code](/docs/ai/ai-agent)). OneUptime AI reads profiles in its answers and investigations too, so you can ask it which functions use the most CPU time.
+
+### A single profile
+
+**All profiles** lists every upload. A profile's page has three views:
 
 | View | What it shows |
 | --- | --- |
@@ -300,6 +318,8 @@ A profile's page has three views:
 When a profile carries trace and span IDs (for example as `trace_id` / `span_id` sample labels), you can navigate directly from a slow trace span to the corresponding CPU or memory profile to understand exactly what code was executing, and **Open linked trace** goes the other way.
 
 A span's **Profile** tab also includes the samples linked to the spans nested under it, since profilers often attach a request's CPU time to a child span rather than to the request span itself.
+
+A trace's page also links to the Profiler on the trace's service for the 15 minutes either side of it, when that service was profiled then, and a service's or a host's **Performance Profiles** page opens the Profiler on that service or host.
 
 ## Data Retention
 

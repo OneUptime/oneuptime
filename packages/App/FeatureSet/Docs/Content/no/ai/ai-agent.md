@@ -44,6 +44,7 @@ Klikk på **Start oppgave**, eller trykk Enter. Oppgavens side åpnes, og arbeid
 | **Overvåking** | Typen, statusen og beskrivelsen. |
 | **Spor** | Spanene: navnene, tidene og feilene deres. |
 | **Logger** | De siste 20 logglinjene som inneholder søket ditt, fra den siste timen, dagen eller uken. |
+| **Ytelsesprofil** | Hvor tiden til en funksjon går i profilene til tjenesten dens: hvem som kaller den, hva den kaller og de varmeste linjene. |
 
 En forespørsel bærer høyst 10 kontekstelementer. Tokener, nøkler, passord og e-postadresser i det OneUptime leser, sladdes før AI ser dem, som overalt der OneUptime AI leser dataene dine.
 
@@ -78,7 +79,7 @@ flowchart TB
     P --> H["En person gjennomgår<br/>og merger den"]
 ```
 
-1. Du klikker **Start oppgave** i et repositorium, eller **Fix with AI** på et uløst unntak, eller en annen knapp eller utløser starter en oppgave (se [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter)).
+1. Du klikker **Start oppgave** i et repositorium, eller **Fiks med AI** på et uløst unntak, eller en annen knapp eller utløser starter en oppgave (se [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter)).
 2. Oppgaven settes i kø, og en ledig Runner med **Kjører AI-koderettelser** slått på plukker den opp.
 3. Runneren henter oppgavens kontekst. For en forespørsel er det ordene, konteksten som ble lagt til, og samtalen så langt; for et unntak typen, meldingen og stack tracen.
 4. Den kloner repositoriet til et eget arbeidsområde og lager en branch. En retting av et unntak heter `oneuptime-fix-exception-` etterfulgt av de første tegnene i kjøringens id. Et svar jobber i stedet på branchen til oppgavens åpne pull request.
@@ -94,15 +95,16 @@ Hver kjøring holdes innenfor budsjetter som serveren håndhever: høyst **40 LL
 
 | Hvor | Klikk | Pull requesten |
 | --- | --- | --- |
-| Et unntaks side **AI Assistance** | **Fix with AI** | Retter feilen bak unntaket. |
+| Et unntaks side **AI Assistance** | **Fiks med AI** | Retter feilen bak unntaket. |
 | Et unntaks side **AI Assistance** | **Generate Regression Test** | Legger til en test som gjenskaper unntaket og feiler til feilen er rettet. |
 | Et unntaks side **AI Assistance** | **Forbedre feilhåndtering** | For en forventet feil, som ugyldig inndata: tar brukerdata ut av meldingen, validerer inndataene tidligere og merker feilen som håndtert, uten å endre oppførselen. |
 | En hendelses eller et varsels kort **AI Investigation** | **Open Fix PR from this analysis** | Retter rotårsaken undersøkelsen publiserte (se [Automatiske koderettinger fra undersøkelser](#automatiske-koderettinger-fra-undersøkelser)). |
 | Et spor som er verdt å rette | **Fiks ytelsen med AI** | Retter det trege mønsteret som knappen nevner, som en N+1-spørring eller kall som kunne kjørt parallelt. |
 | En tjenestes side **Logger** | **Forbedre logging** | Gjør tjenestens logger strukturerte, med riktig alvorlighetsgrad og knyttet til sporene, uten å endre oppførselen. |
 | En tjenestes side **Spor** | **Forbedre sporing** | Legger til spans og attributter der tjenestens tracing mangler, uten å endre oppførselen. |
+| En funksjon i **Ytelsesprofiler** | **Fiks med AI** | Får funksjonen til å gjøre det samme arbeidet med mindre tid eller minne, med profilen som bevis. |
 
-Disse knappene vises bare der de kan starte en oppgave. Med AI slått av for prosjektet vises ingen av dem, og sidemenyen til et unntak har ingen **AI Assistance**. **Forbedre logging** og **Forbedre sporing** vises så snart et repository er koblet til, og **Fiks ytelsen med AI** bare på et spor som er verdt å rette (se [Sporutforsker](/docs/telemetry/traces-explorer)).
+Disse knappene vises bare der de kan starte en oppgave. Med AI slått av for prosjektet vises ingen av dem, og sidemenyen til et unntak har ingen **AI Assistance**. **Forbedre logging** og **Forbedre sporing** vises så snart et repository er koblet til, og **Fiks ytelsen med AI** bare på et spor som er verdt å rette (se [Sporutforsker](/docs/telemetry/traces-explorer)). **Fiks med AI** for en funksjon vises bare for applikasjonens egen kode som tar minst 5 % av profilens tid eller minne, eller der andelen har vokst med 3 poeng eller mer siden vinduet den sammenlignes med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
 
 For å åpne et unntaks side **AI Assistance**, åpne unntaket under **Produkter → Observerbarhet → Unntak** og velg **AI Assistance** i sidemenyen. Et løst eller arkivert unntak må først merkes som uløst.
 

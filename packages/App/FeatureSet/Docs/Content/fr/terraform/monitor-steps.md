@@ -309,7 +309,7 @@ Les valeurs de `check_on` que chaque type de moniteur utilise le plus. L'éditeu
 | Logs | `Log Count` |
 | Traces | `Span Count` |
 | Exceptions | `Exception Count` |
-| Profils | `Profile Count` |
+| Profils | `Profile Count`, `Function Share (in %)` |
 | IA / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Métriques | `Metric Value` (les filtres de métriques peuvent prendre du JSON dans `metric_monitor_options`) |
 | Code personnalisé / Synthetic | `Result Value` (peut comparer un champ des données renvoyées, nommé dans le JSON de `custom_code_monitor_options`, par ex. `jsonencode({ resultValuePath = "status" })` — voir plus bas), `Error`, `Execution Time (in ms)` |

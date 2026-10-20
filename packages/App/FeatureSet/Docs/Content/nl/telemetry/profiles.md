@@ -6,7 +6,7 @@ Continue profilering laat zien waaraan uw applicatie CPU-tijd en geheugen bestee
 - [Profielen versturen](#profielen-versturen): Grafana Alloy met eBPF, of een Pyroscope-SDK in uw app.
 - [Ingest-endpoint](#ingest-endpoint): De basis-URL en de drie manieren om de sleutel mee te geven.
 - [Controleren of het werkt](#controleren-of-het-werkt): De sleutel, de pagina en de uploadstatus nakijken.
-- [Profielen verkennen](#profielen-verkennen-in-oneuptime): Flame graphs, topfuncties, vergelijkingen en tracelinks.
+- [Profielen verkennen](#profielen-verkennen-in-oneuptime): De Profiler: waar de tijd heen gaat, wat er veranderde en oplossen met AI.
 :::
 
 ## Hoe het werkt
@@ -283,9 +283,27 @@ Zet bij de .NET-profiler een minuut lang `DD_TRACE_DEBUG=1` op de applicatie: da
 
 ## Profielen verkennen in OneUptime
 
-**Producten → Prestatieprofielen** opent een overzicht van waar de tijd in uw services heen gaat, en **Alle profielen** toont elke upload. Kies wat u wilt analyseren: **Alles**, **CPU-tijd**, **Geheugen** of **Locks**, of een specifiek type zoals **Kloktijd** of **Goroutines**.
+**Producten → Prestatieprofielen** opent de Profiler op zijn **Overzicht**. Die antwoordt in woorden voordat er een grafiek komt: waar de tijd heen gaat ("checkout besteedde 42% van de CPU-tijd aan JSON.parse.") en, wanneer de drukste functie van een bibliotheek of de runtime is, welke functie van uw eigen code het meest inneemt, met de bibliotheek- en runtimecode die ze aanroept. Kies bovenaan een service, een soort profiel waarvoor ze gegevens heeft (**CPU-tijd**, **Kloktijd**, **Geheugen**, **Allocaties**, **Locks** of **Goroutines**, of één type onder **Meer profieltypen**) en een tijdvenster.
 
-De pagina van een profiel heeft drie weergaven:
+| Kaart | Wat die toont |
+| --- | --- |
+| **Waar de CPU-tijd heen gaat** | Alle profielen in het tijdvenster, samengevoegd tot één flame graph. Hoe breder een frame, hoe groter het aandeel. Klik op een frame om in te zoomen. |
+| **Functies** | De functies die het meest innemen, gerangschikt op **Eigen** (de tijd in de eigen code van de functie), **Totaal** (met alles wat ze aanroept) of **Uw code** (uw eigen functies, elk met de bibliotheek- en runtimecode die ze aanroept: de tijd die een wijziging eraan kan terugwinnen). |
+| **Geprofileerde services** | Elke geprofileerde service, de drukste eerst. Kernelthreads die de eBPF-profiler samplet, worden verborgen. |
+
+### Twee tijdvensters vergelijken
+
+**Vergelijken met** bepaalt waarmee het tijdvenster wordt vergeleken: **De periode ervoor**, **Hetzelfde tijdstip gisteren**, **Hetzelfde tijdstip vorige week**, of een deploy onder **Voor en na een deploy**. Aandelen worden vergeleken, geen totalen, dus alleen meer verkeer verschuift niets. De kop noemt de functie waarvan het aandeel het meest groeide, en de eigen code die groeide; de flame graph wordt **Wat er veranderde**, waar rode frames daarna een groter aandeel innemen en groene een kleiner; en **Gewijzigde functies** toont het aandeel van elke functie voor en na.
+
+### Eén functie
+
+Klik op een functie om haar paneel te openen: haar aandeel als **Eigen**, **Totaal** en **Uw code**, **Wie haar aanroept** en **Wat ze aanroept**, een link naar haar bestand en regel in uw repository wanneer er een is gekoppeld, en **Markeren in de flame graph**. Bij een functie van een bibliotheek of de runtime noemt het paneel de functie van uw eigen code die haar aanroept, waar een wijziging haar goedkoper kan maken. Een link onder de aandelen stelt een waarschuwing in op het aandeel van de functie, boven wat ze vandaag inneemt: zie [Profielen-monitor](/docs/monitor/profiles-monitor).
+
+Wanneer een functie van uw eigen code minstens 5% van de tijd of het geheugen van het profiel inneemt, of haar aandeel met 3 punten of meer is gegroeid sinds het tijdvenster waarmee het wordt vergeleken, biedt het paneel **Oplossen met AI** aan: OneUptime AI start een taak in de repository die de functie bevat, met het profiel als bewijs, en opent een pull request die u beoordeelt (zie [Code](/docs/ai/ai-agent)). OneUptime AI leest profielen ook in zijn antwoorden en onderzoeken, dus u kunt vragen welke functies de meeste CPU-tijd gebruiken.
+
+### Eén profiel
+
+**Alle profielen** toont elke upload. De pagina van een profiel heeft drie weergaven:
 
 | Weergave | Wat die toont |
 | --- | --- |
@@ -300,6 +318,8 @@ De pagina van een profiel heeft drie weergaven:
 Wanneer een profiel trace- en span-ID's draagt (bijvoorbeeld als samplelabels `trace_id` / `span_id`), gaat u rechtstreeks van een trage tracespan naar het bijbehorende CPU- of geheugenprofiel om precies te begrijpen welke code draaide, en **Open linked trace** gaat de andere kant op.
 
 Het tabblad **Profiel** van een span bevat ook de samples die gekoppeld zijn aan de spans die eronder zijn genest, omdat profilers de CPU-tijd van een verzoek vaak aan een kindspan toekennen in plaats van aan de span van het verzoek zelf.
+
+De pagina van een trace linkt ook naar de Profiler op de service van de trace, voor de 15 minuten ervoor en erna, wanneer die service toen werd geprofileerd, en de pagina **Prestatieprofielen** van een service of host opent de Profiler op die service of host.
 
 ## Gegevensbewaring
 

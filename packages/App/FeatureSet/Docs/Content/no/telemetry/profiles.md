@@ -6,7 +6,7 @@ Kontinuerlig profilering viser hva applikasjonen din bruker CPU-tid og minne på
 - [Send profiler](#send-profiler): Grafana Alloy med eBPF, eller et Pyroscope-SDK i appen din.
 - [Inntaksendepunkt](#inntaksendepunkt): Basis-URL-en og de tre måtene å gi nøkkelen på.
 - [Kontroller at det virker](#kontroller-at-det-virker): Sjekk nøkkelen, siden og opplastingsstatusen.
-- [Utforsk profiler](#utforsk-profiler-i-oneuptime): Flammegrafer, toppfunksjoner, sammenligninger og lenker til spor.
+- [Utforsk profiler](#utforsk-profiler-i-oneuptime): Profilereren: hvor tiden går, hva som endret seg, og retting med AI.
 :::
 
 ## Slik fungerer det
@@ -283,9 +283,27 @@ For .NET-profileren setter du `DD_TRACE_DEBUG=1` på applikasjonen i ett minutt:
 
 ## Utforsk profiler i OneUptime
 
-**Produkter → Ytelsesprofiler** åpner en oversikt over hvor tiden går i tjenestene dine, og **Alle profiler** viser hver opplasting. Velg hva du vil analysere: **Alt**, **CPU-tid**, **Minne** eller **Låser**, eller en bestemt type som **Veggklokketid** eller **Goroutines**.
+**Produkter → Ytelsesprofiler** åpner profilereren på **Oversikt**. Den svarer med ord før noe diagram: hvor tiden går ("I checkout gikk 42% av CPU-tid til JSON.parse.") og, når den travleste funksjonen hører til et bibliotek eller kjøretiden, funksjonen i din egen kode som tar mest, med biblioteks- og kjøretidskoden den kaller. Øverst velger du en tjeneste, en profiltype den har data for (**CPU-tid**, **Veggklokketid**, **Minne**, **Allokeringer**, **Låser** eller **Goroutines**, eller én type under **Flere profiltyper**), og et tidsvindu.
 
-Siden for en profil har tre visninger:
+| Kort | Hva det viser |
+| --- | --- |
+| **Hvor CPU-tiden går** | Alle profiler i tidsvinduet, slått sammen til én flammegraf. Jo bredere en ramme er, desto større andel har den. Klikk på en ramme for å zoome inn. |
+| **Funksjoner** | Funksjonene som tar mest, sortert etter **Egen** (tiden i funksjonens egen kode), **Totalt** (med alt den kaller) eller **Koden din** (dine egne funksjoner, hver med biblioteks- og kjøretidskoden den kaller: tiden en endring i dem kan vinne tilbake). |
+| **Profilerte tjenester** | Alle profilerte tjenester, travleste først. Kjernetråder som eBPF-profilereren sampler, skjules. |
+
+### Sammenlign to tidsvinduer
+
+**Sammenlign med** angir hva tidsvinduet sammenlignes med: **Perioden før**, **Samme tid i går**, **Samme tid forrige uke** eller en utrulling under **Før og etter en utrulling**. Andeler sammenlignes i stedet for summer, så mer trafikk alene flytter ingenting. Overskriften nevner funksjonen der andelen vokste mest, og den egne koden som vokste; flammegrafen blir **Hva som endret seg**, der røde rammer tar en større andel etterpå og grønne en mindre; og **Funksjoner som endret seg** viser hver funksjons andel før og etter.
+
+### Én funksjon
+
+Klikk på en funksjon for å åpne panelet: andelen som **Egen**, **Totalt** og **Koden din**, **Hvem kaller den** og **Hva den kaller**, en lenke til filen og linjen i repositoryet ditt når et er koblet til, og **Uthev i flammegrafen**. For en funksjon fra et bibliotek eller kjøretiden nevner panelet funksjonen i din egen kode som kaller den, der en endring kan gjøre den billigere. En lenke under andelene setter opp et varsel om funksjonens andel, over det den tar i dag: se [Profil-overvåking](/docs/monitor/profiles-monitor).
+
+Når en funksjon i din egen kode tar minst 5 % av profilens tid eller minne, eller andelen har vokst med 3 poeng eller mer siden tidsvinduet den sammenlignes med, tilbyr panelet **Fiks med AI**: OneUptime AI starter en oppgave i repositoryet som inneholder funksjonen, med profilen som bevis, og åpner en pull request som du går gjennom (se [Code](/docs/ai/ai-agent)). OneUptime AI leser også profiler i svarene og undersøkelsene sine, så du kan spørre hvilke funksjoner som bruker mest CPU-tid.
+
+### Én profil
+
+**Alle profiler** viser hver opplasting. Siden for en profil har tre visninger:
 
 | Visning | Hva den viser |
 | --- | --- |
@@ -300,6 +318,8 @@ Siden for en profil har tre visninger:
 Når en profil har trace- og span-ID-er (for eksempel som sample-etiketter `trace_id` / `span_id`), kan du gå rett fra et tregt span i et spor til den tilsvarende CPU- eller minneprofilen for å forstå nøyaktig hvilken kode som kjørte, og **Open linked trace** går den andre veien.
 
 Fanen **Profil** for et span inneholder også samplene som er knyttet til spans som ligger under det, fordi profilere ofte tilskriver en forespørsels CPU-tid et underordnet span i stedet for selve forespørselsspanet.
+
+Siden for et spor lenker også til profilereren for sporets tjeneste i de 15 minuttene før og etter, når tjenesten ble profilert da, og siden **Ytelsesprofiler** for en tjeneste eller en vert åpner profilereren for den tjenesten eller verten.
 
 ## Dataoppbevaring
 

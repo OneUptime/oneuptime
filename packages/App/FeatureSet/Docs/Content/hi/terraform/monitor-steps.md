@@ -309,7 +309,7 @@ criteria = [
 | लॉग | `Log Count` |
 | ट्रेस | `Span Count` |
 | अपवाद | `Exception Count` |
-| प्रोफ़ाइल | `Profile Count` |
+| प्रोफ़ाइल | `Profile Count`, `Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | मेट्रिक्स | `Metric Value` (मेट्रिक फ़िल्टर `metric_monitor_options` JSON ले सकते हैं) |
 | कस्टम कोड / Synthetic | `Result Value` (लौटाए गए डेटा के किसी एक फ़ील्ड की तुलना कर सकता है, जिसका नाम `custom_code_monitor_options` JSON में होता है, जैसे `jsonencode({ resultValuePath = "status" })` — नीचे देखें), `Error`, `Execution Time (in ms)` |

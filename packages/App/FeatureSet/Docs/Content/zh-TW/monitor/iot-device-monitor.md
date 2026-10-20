@@ -99,7 +99,7 @@ flowchart TB
 | Low Battery | Power | Warning | `iot_battery_percent`，依 `device.id` 取 Avg，過去 5 分鐘 | 低於 20% | 達到或高於 22% |
 | Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`，依 `device.id` 取 Avg，過去 5 分鐘 | 低於 -100 dBm | 達到或高於 -90 dBm |
 | High Temperature | 環境 | 嚴重 | `iot_temperature_celsius`，依 `device.id` 取 Max，過去 5 分鐘 | 高於 70 °C | 達到或低於 63 °C |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`，依 `device.id` 取 Avg，過去 5 分鐘 | 高於 0.9(其 CPU 的 90%) | 達到或低於 0.81 |
+| High CPU Usage | 系統 | Warning | `iot_cpu_usage_ratio`，依 `device.id` 取 Avg，過去 5 分鐘 | 高於 0.9(其 CPU 的 90%) | 達到或低於 0.81 |
 
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。
 

@@ -65,7 +65,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Environments** | Undtagelser fra et af disse miljøer, adskilt af kommaer (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Overvåg undtagelser i (time)** | Undtagelser fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 1 minut** |
 | **Filtrér efter telemetritjeneste** (under **Flere felter**) | Undtagelser fra en af de valgte tjenester. | Tom: alle tjenester |
-| **Filter by Infrastructure Entity** (under **Flere felter**) | Undtagelser fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
+| **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Undtagelser fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Inkluder løste undtagelser** (under **Flere felter**) | Tæl også undtagelser, der er markeret som løst. | Fra |
 | **Inkluder arkiverede undtagelser** (under **Flere felter**) | Tæl også arkiverede undtagelser. | Fra |
 

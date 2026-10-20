@@ -103,7 +103,6 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  * keeps them as written:
  *
  *   - the ⋯ menu, a symbol in every language;
- *   - Fix with AI, the exception page's button, which no locale words;
  *   - OpenAI Compatible, an option of the LLM Provider field, drawn as
  *     the field's options write it;
  *   - text the server writes in English: a refused Base URL's message,
@@ -129,7 +128,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Checked again",
     ],
     [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
-    [CODE_PAGE]: ["Fix with AI"],
     [LLM_PROVIDERS]: [
       "OpenAI Compatible",
       '"…points to an address OneUptime is not allowed to connect to"',
