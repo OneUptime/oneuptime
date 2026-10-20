@@ -55,7 +55,7 @@ De første omkostninger vises, når den første hele time er afsluttet, og OpenC
 - På en klynge viser **Costs** udviklingen i dens forbrug, **Spend by Namespace** med fordelingen på CPU, hukommelse og lager, **Spend by Workload**, tomgangsforbrug, effektivitet og kortet **Right-Sizing**.
 :::
 
-Omkostningsmetrikkerne (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er almindelige metrikker: de findes i metrik-explorer, på brugerdefinerede dashboards og i metrikmonitorer. For et færdigt dashboard skal du gå til **Produkter → Dashboards**, vælge **Opret Dashboard** og vælge **Kubernetes Cost Dashboard**: udvikling i nodernes timeomkostninger, enhedsomkostninger for CPU og hukommelse samt forbrug på volumener og load balancere.
+Omkostningsmetrikkerne (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er almindelige metrikker: de findes i metrik-explorer, på brugerdefinerede dashboards og i metrikmonitorer. For et færdigt dashboard skal du gå til **Produkter → Dashboards**, vælge **Opret dashboard** og vælge **Kubernetes Cost Dashboard**: udvikling i nodernes timeomkostninger, enhedsomkostninger for CPU og hukommelse samt forbrug på volumener og load balancere.
 
 ## Kører du allerede Kubecost eller OpenCost?
 

@@ -14,6 +14,7 @@ import InsightFactsList, {
   InsightFact,
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
+import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -38,6 +39,12 @@ import {
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import AIAgentTaskPullRequest from "Common/Models/DatabaseModels/AIAgentTaskPullRequest";
+import FixProductionReport, {
+  parseFixProductionReport,
+} from "Common/Types/AI/FixProductionReport";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
@@ -148,6 +155,14 @@ const AIInsightViewPage: FunctionComponent<
   const [status, setStatus] = useState<AIInsightStatus | null>(null);
   const [humanVerdict, setHumanVerdict] =
     useState<AIInsightHumanVerdict | null>(null);
+
+  /*
+   * Merged is not fixed: what production showed once the fix task's pull
+   * request merged (FixProductionVerifier) - it is what resolves the
+   * insight, or puts it back in front of people.
+   */
+  const [fixProduction, setFixProduction] =
+    useState<FixProductionReport | null>(null);
 
   const [triageRun, setTriageRun] = useState<AIRun | null>(null);
   const [triageEvents, setTriageEvents] = useState<Array<AIRunEvent>>([]);
@@ -282,6 +297,59 @@ const AIInsightViewPage: FunctionComponent<
       return clearInterval(interval);
     };
   }, [isTriageActive, fetchTriage]);
+
+  // The fix task's pull request verdict, read once per fix task.
+  const fixAiRunId: string | undefined = insight?.fixAiRunId?.toString();
+
+  useEffect(() => {
+    setFixProduction(null);
+
+    if (!fixAiRunId) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    const readVerdict: () => Promise<void> = async (): Promise<void> => {
+      const result: ListResult<AIAgentTaskPullRequest> =
+        await ModelAPI.getList<AIAgentTaskPullRequest>({
+          modelType: AIAgentTaskPullRequest,
+          query: { aiRunId: new ObjectID(fixAiRunId) },
+          limit: 5,
+          skip: 0,
+          select: {
+            _id: true,
+            productionStatus: true,
+            productionCheck: true,
+            productionSummary: true,
+            productionStatusAt: true,
+          },
+          sort: { productionStatusAt: SortOrder.Descending },
+        });
+
+      for (const pullRequest of result.data) {
+        const report: FixProductionReport | undefined =
+          parseFixProductionReport({
+            status: pullRequest.productionStatus,
+            check: pullRequest.productionCheck,
+            summary: pullRequest.productionSummary,
+          });
+
+        if (report && isCurrent) {
+          setFixProduction(report);
+          return;
+        }
+      }
+    };
+
+    readVerdict().catch(() => {
+      // The verdict adds to the fix task's link; the link stands without it.
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [fixAiRunId]);
 
   /*
    * When the triage run lands, refetch the insight once — the runner posts
@@ -1025,6 +1093,15 @@ const AIInsightViewPage: FunctionComponent<
                 </span>
                 <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
               </Link>
+              {fixProduction ? (
+                <FixProductionVerdict
+                  production={fixProduction}
+                  testId="ai-insight-fix-production"
+                  className="mt-3"
+                />
+              ) : (
+                <></>
+              )}
             </InsightPanel>
           ) : (
             <></>

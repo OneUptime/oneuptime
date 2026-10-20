@@ -38,6 +38,8 @@ La ligne du haut nomme ce qui est ouvert de plus urgent, dans une couleur assort
 
 À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
 
+Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Créez votre premier moniteur**, qui ouvre le formulaire de création d'un moniteur. Seules les personnes autorisées à créer des moniteurs le voient.
+
 ### Les cinq nombres
 
 Chaque nombre compte quelque chose, dit si cela demande votre attention, et ouvre la liste qui se cache derrière lui.

@@ -59,7 +59,7 @@ Al abrir un panel, su propio menú lateral tiene estas páginas. Todas las secci
 | **Vista general** | Su nombre, su descripción y sus etiquetas. |
 | **Uso compartido** | Quién puede verlo, su enlace público y una lista de IP permitidas en Más ajustes. |
 | **Propietarios** | Los usuarios y equipos a los que pertenece. |
-| **Marca** | Título de la página, descripción, logotipo y favicon del panel público. |
+| **Marca** | Título de la página, descripción, logotipo, tema y favicon del panel público. |
 | **Dominios personalizados** | Alojar el panel público en tu propio dominio. |
 | **Ajustes** | Duplicar, exportar o archivar el panel. |
 | **Registros de auditoría** | Cada cambio hecho en el panel, y quién lo hizo. |
@@ -68,7 +68,7 @@ Al abrir un panel, su propio menú lateral tiene estas páginas. Todas las secci
 ## Crear tu primer panel
 
 :::steps
-1. **Crear** — elige una plantilla, o **Blank Dashboard**. Una plantilla rellena el nombre y se abre con sus widgets; un panel en blanco se abre vacío, con **Añadir widget** en su lienzo.
+1. **Crear** — elige una plantilla, o **Empezar desde cero**. Una plantilla rellena el nombre y se abre con sus widgets; un panel empezado desde cero se abre vacío, con **Añadir widget** en su lienzo.
 2. **Añadir widgets** — elige un widget del catálogo, define en sus ajustes lo que lee, y luego arrástralo a su sitio y ajusta su tamaño.
 3. **Añadir variables, si las necesitas** — una variable `service`, por ejemplo, permite que un solo panel muestre cualquier servicio.
 4. **Guardar** — haz clic en **Guardar cambios**. Nada de lo que cambias al editar se conserva hasta que lo haces.
@@ -81,7 +81,7 @@ Al abrir un panel, su propio menú lateral tiene estas páginas. Todas las secci
 
 El objetivo: una página para el servicio de checkout, con su latencia, su tasa de errores, sus incidentes abiertos y sus últimos registros, que sirva también para cualquier otro servicio.
 
-1. Crea un **Blank Dashboard** llamado "Checkout de guardia".
+1. Haz clic en **Crear panel**, elige **Empezar desde cero** y llama al panel "Checkout de guardia".
 2. Haz clic en **Añadir widget** y añade un **Gráfico** de tu métrica de latencia de las peticiones, agregada como P95.
 3. Junto a él, añade un **Valor** de tu tasa de errores, con un umbral de advertencia de 1 y un umbral crítico de 5.
 4. Debajo, añade una **Lista de incidentes** filtrada a los incidentes sin resolver, y un **Flujo de registros** con los registros del servicio.

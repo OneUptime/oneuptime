@@ -31,8 +31,22 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
       ? `/public-dashboard/${PublicDashboardUtil.getDashboardId()?.toString()}`
       : "/";
 
-    Navigation.navigate(new Route(path), { forceNavigate: true });
+    // The link's own theme holds on the dashboard too.
+    Navigation.navigate(new Route(PublicDashboardUtil.withLinkTheme(path)), {
+      forceNavigate: true,
+    });
   };
+
+  /*
+   * Once, as the prompt opens (and if it is for another dashboard): a
+   * visitor with nothing to enter goes straight to the dashboard. Keyed by
+   * the id's value - getDashboardId() hands back a new ObjectID each
+   * render, and keyed by that, this ran again on the render after a
+   * successful unlock and sent the visitor to the bare dashboard address
+   * instead of the one they came from, losing its query (a link's own
+   * theme, its variables).
+   */
+  const dashboardIdKey: string = dashboardId?.toString() || "";
 
   useEffect(() => {
     if (!PublicDashboardUtil.requiresMasterPassword()) {
@@ -44,7 +58,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
       redirectToOverview();
       return;
     }
-  }, [dashboardId]);
+  }, [dashboardIdKey]);
 
   if (!dashboardId || !PublicDashboardUtil.requiresMasterPassword()) {
     return <PageLoader isVisible={true} />;

@@ -1,3 +1,5 @@
+import FixProductionReport from "./FixProductionReport";
+
 /*
  * Everything OneUptime AI did for a project's incidents, or for its alerts,
  * newest first: the response of the AI Logs page of the Incidents and Alerts
@@ -117,6 +119,12 @@ export interface IncidentAlertAiLogEntry {
   // FixTask: the task's number and its recipe (CodeFixTaskType).
   taskNumber?: number | undefined;
   codeFixTaskType?: string | undefined;
+  /*
+   * FixTask: once its pull request merged, what production showed - the
+   * incident's monitor quiet or raising it again, the telemetry it adds
+   * arriving or not (FixProductionVerifier).
+   */
+  production?: FixProductionReport | undefined;
 
   // Command: what ran, why (RunnerJobOrigin), and how it ended.
   command?: string | undefined;

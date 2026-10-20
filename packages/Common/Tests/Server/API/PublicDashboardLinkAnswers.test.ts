@@ -54,6 +54,7 @@ import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
 import File from "../../../Models/DatabaseModels/File";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import DashboardTheme from "../../../Types/Dashboard/DashboardTheme";
 import MimeType from "../../../Types/File/MimeType";
 import { DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER } from "../../../Types/Dashboard/MasterPassword";
 import Dictionary from "../../../Types/Dictionary";
@@ -101,10 +102,13 @@ if (
  *   - The metadata the public dashboard app loads first answers a dashboard
  *     anyone with the link may view in full; one shared with a password with
  *     only what its password prompt shows (the name, the page title, the
- *     favicon) until the visitor enters it; a visitor its IP allowlist
- *     refuses with 403; and a dashboard shared only with its project, an
- *     archived one and a malformed id exactly like an id no dashboard has.
- *   - The page head (SEO) holds only what every visitor sees, whoever asks.
+ *     favicon, the theme) until the visitor enters it; a visitor its IP
+ *     allowlist refuses with 403; and a dashboard shared only with its
+ *     project, an archived one and a malformed id exactly like an id no
+ *     dashboard has.
+ *   - The page head (SEO) holds only what every visitor sees, whoever asks:
+ *     the theme too, except behind an IP allowlist, whose refusal shows
+ *     nothing of the dashboard.
  *   - The password route answers a private dashboard like a missing one, and
  *     tries no password from an address the IP allowlist refuses.
  *   - Every public dashboard route, including ones added later, answers a
@@ -178,6 +182,7 @@ const CONTENT_COLUMNS: Array<string> = [
   "logoFile",
   "faviconFile",
   "dashboardViewConfig",
+  "theme",
 ];
 
 // Every dashboard here is of one project, and so is every image it shows.
@@ -207,6 +212,8 @@ type StoredOptions = {
   isArchived?: boolean | undefined;
   ipWhitelist?: string | undefined;
   withoutPageBranding?: boolean | undefined;
+  // Left out, the dashboard has none: one made before the setting.
+  theme?: DashboardTheme | undefined;
 };
 
 const storedDashboard: (options: StoredOptions) => Dashboard = (
@@ -243,19 +250,29 @@ const storedDashboard: (options: StoredOptions) => Dashboard = (
     dashboard.ipWhitelist = options.ipWhitelist;
   }
 
+  if (options.theme) {
+    dashboard.theme = options.theme;
+  }
+
   return dashboard;
 };
 
 const DASHBOARDS: Dictionary<Dashboard> = {};
 
 for (const options of [
-  { id: PUBLIC_ID, label: "Public", isPublicDashboard: true },
+  {
+    id: PUBLIC_ID,
+    label: "Public",
+    isPublicDashboard: true,
+    theme: DashboardTheme.Dark,
+  },
   {
     id: PROTECTED_ID,
     label: "Protected",
     isPublicDashboard: true,
     enableMasterPassword: true,
     hasMasterPassword: true,
+    theme: DashboardTheme.System,
   },
   {
     id: LOCKED_ID,
@@ -263,7 +280,12 @@ for (const options of [
     isPublicDashboard: true,
     enableMasterPassword: true,
   },
-  { id: PRIVATE_ID, label: "Private", isPublicDashboard: false },
+  {
+    id: PRIVATE_ID,
+    label: "Private",
+    isPublicDashboard: false,
+    theme: DashboardTheme.Dark,
+  },
   {
     id: PRIVATE_WITH_PASSWORD_ID,
     label: "Private with password",
@@ -276,6 +298,7 @@ for (const options of [
     label: "Archived",
     isPublicDashboard: true,
     isArchived: true,
+    theme: DashboardTheme.Dark,
   },
   {
     id: ARCHIVED_PROTECTED_ID,
@@ -290,6 +313,7 @@ for (const options of [
     label: "Allowlisted",
     isPublicDashboard: true,
     ipWhitelist: `10.0.0.0/8\n${ALLOWED_IP}`,
+    theme: DashboardTheme.Dark,
   },
   {
     id: ALLOWLISTED_PROTECTED_ID,
@@ -298,6 +322,7 @@ for (const options of [
     enableMasterPassword: true,
     hasMasterPassword: true,
     ipWhitelist: ALLOWED_IP,
+    theme: DashboardTheme.System,
   },
   {
     id: PLAIN_ID,
@@ -317,6 +342,16 @@ const DOMAINS: Dictionary<ObjectID> = {
   [ARCHIVED_DOMAIN]: ARCHIVED_ID,
 };
 
+/*
+ * The theme a dashboard's answers carry: its own, and Light for one that has
+ * none (made before the setting).
+ */
+const themeOf: (id: ObjectID) => DashboardTheme = (
+  id: ObjectID,
+): DashboardTheme => {
+  return DASHBOARDS[id.toString()]?.theme || DashboardTheme.Light;
+};
+
 // The whole metadata answer, for a visitor the link lets in.
 const fullMetadata: (
   id: ObjectID,
@@ -334,6 +369,7 @@ const fullMetadata: (
     enableMasterPassword,
     pageTitle: `${label} page title`,
     faviconFile: { file: base64Of(`${label} favicon`), fileType: "image/png" },
+    theme: themeOf(id),
     description: `${label} description`,
     pageDescription: `${label} page description`,
     logoFile: { file: base64Of(`${label} logo`), fileType: "image/png" },
@@ -713,7 +749,23 @@ describe("a dashboard's public link answers only what its visitor may see", () =
         await metadata(PROTECTED_ID);
 
         expect(contentColumnsRead(PROTECTED_ID)).toEqual(
-          ["faviconFile", "name", "pageTitle"].sort(),
+          ["faviconFile", "name", "pageTitle", "theme"].sort(),
+        );
+      });
+
+      it("carries the dashboard's theme, which its password prompt is drawn in too", async () => {
+        expect((await metadata(PUBLIC_ID)).body?.["theme"]).toBe(
+          DashboardTheme.Dark,
+        );
+        expect((await metadata(PROTECTED_ID)).body?.["theme"]).toBe(
+          DashboardTheme.System,
+        );
+        // A dashboard made before the setting has the light page it had.
+        expect((await metadata(LOCKED_ID)).body?.["theme"]).toBe(
+          DashboardTheme.Light,
+        );
+        expect((await metadata(PLAIN_ID)).body?.["theme"]).toBe(
+          DashboardTheme.Light,
         );
       });
 
@@ -866,7 +918,7 @@ describe("a dashboard's public link answers only what its visitor may see", () =
     });
 
     describe("the page head (SEO), rendered for whoever loads the page", () => {
-      it("holds the title and description of a dashboard anyone with the link may view", async () => {
+      it("holds the title, description and theme of a dashboard anyone with the link may view", async () => {
         const result: HttpResult = await seo(PUBLIC_ID);
 
         expect(result.status).toBe(200);
@@ -874,22 +926,26 @@ describe("a dashboard's public link answers only what its visitor may see", () =
           _id: PUBLIC_ID.toString(),
           title: "Public page title",
           description: "Public page description",
+          theme: DashboardTheme.Dark,
         });
       });
 
-      it("falls back to the name and description when no page title or description is set", async () => {
+      it("falls back to the name and description when no page title or description is set, and to Light with no theme", async () => {
         expect((await seo(PLAIN_ID)).body).toEqual({
           _id: PLAIN_ID.toString(),
           title: "Plain name",
           description: "Plain description",
+          theme: DashboardTheme.Light,
         });
       });
 
-      it("holds only the title of a password-protected dashboard, even for a visitor holding its unlock cookie", async () => {
+      it("holds only the title and theme of a password-protected dashboard, even for a visitor holding its unlock cookie", async () => {
         const expected: JSONObject = {
           _id: PROTECTED_ID.toString(),
           title: "Protected page title",
           description: DEFAULT_SEO_DESCRIPTION,
+          // Its password prompt is drawn in it, before the first paint.
+          theme: DashboardTheme.System,
         };
 
         expect((await seo(PROTECTED_ID)).body).toEqual(expected);
@@ -898,15 +954,16 @@ describe("a dashboard's public link answers only what its visitor may see", () =
             .body,
         ).toEqual(expected);
         expect(contentColumnsRead(PROTECTED_ID)).toEqual(
-          ["name", "pageTitle"].sort(),
+          ["name", "pageTitle", "theme"].sort(),
         );
       });
 
-      it("holds only the title of a locked dashboard", async () => {
+      it("holds only the title and theme of a locked dashboard", async () => {
         expect((await seo(LOCKED_ID)).body).toEqual({
           _id: LOCKED_ID.toString(),
           title: "Locked page title",
           description: DEFAULT_SEO_DESCRIPTION,
+          theme: DashboardTheme.Light,
         });
       });
 
@@ -946,6 +1003,11 @@ describe("a dashboard's public link answers only what its visitor may see", () =
             const result: HttpResult = await seo(id, { forwardedFor });
 
             expect(result.status).toBe(200);
+            /*
+             * No theme either: the page is sent for whoever loads it, and
+             * Access Denied shows nothing of the dashboard - it follows the
+             * visitor until the app knows whether they may see it.
+             */
             expect(result.body).toEqual({
               _id: id.toString(),
               title: "Dashboard",

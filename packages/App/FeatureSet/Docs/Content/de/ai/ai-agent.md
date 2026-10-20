@@ -162,6 +162,19 @@ Eine Änderung, die die Prüfung weiterhin nicht besteht, wird nicht verworfen: 
 
 Die Befehle sind Repository-Einstellungen, die Ihr Team schreibt und die auf Ihrem eigenen Runner laufen: dasselbe Vertrauensmodell wie die Bash-Schritte eines Runbooks. Die KI schreibt oder ändert sie nie. Ein globaler Runner, den OneUptime für jedes Projekt betreibt, führt sie nie aus: Auf einem globalen Runner wird die Korrektur geschrieben und zur Durchsicht geöffnet, die Prüfung wird als übersprungen gemeldet, und das eigene CI Ihres Repositorys prüft die Änderung. [Betreiben Sie einen eigenen Runner](#einen-eigenen-runner-betreiben), damit Korrekturen gebaut und getestet werden, bevor sich der Pull Request öffnet.
 
+## Nach dem Zusammenführen einer Korrektur
+
+Das Zusammenführen einer Korrektur behebt nichts, bis sie läuft. Sobald ein Korrektur-Pull-Request zusammengeführt ist, wartet OneUptime auf einen aufgezeichneten Deploy, der ihn enthält (siehe [Deploys und Änderungen](/docs/telemetry/change-events)), und beobachtet in diesem Deploy, wofür die Korrektur gedacht war. Der Pull-Request der Aufgabe in Code zeigt, wie es ausging, ebenso die Seite **KI-Unterstützung** der Ausnahme, die KI-Protokolle des Vorfalls und der KI-Insight, aus dem die Korrektur kam:
+
+| Eine Korrektur für | Was beobachtet wird | Sie hat gewirkt | Sie hat nicht gewirkt |
+| --- | --- | --- | --- |
+| Eine Ausnahme | Ob die Ausnahme erneut auftritt | **In Produktion behoben** | **Tritt nach der Korrektur weiterhin auf** |
+| Einen langsamen Trace oder einen Latenz-Insight | Der p99 der Operation, die die Korrektur nennt | **In Produktion schneller** | **Nach der Korrektur weiterhin langsam** |
+| Die Grundursache eines Vorfalls oder einer Warnung | Ob ihr Monitor einen weiteren auslöst | **In Produktion behoben** | **Nach der Korrektur erneut aufgetreten** |
+| Fehlende Telemetrie, Logging oder Tracing | Was die Korrektur hinzufügt, und die übrige Telemetrie des Dienstes | **Kommt in Produktion an** | **Telemetrie nach der Korrektur ausgeblieben** |
+
+Bis ein Deploy sie ausliefert, steht bei der Korrektur **Gemergt, wartet auf ein Deploy**, danach **Deployt, wird in Produktion beobachtet**, solange sie beobachtet wird. Eine, die innerhalb von 14 Tagen in keinem aufgezeichneten Deploy enthalten ist oder über die die Produktion nichts sagen kann, steht auf **In Produktion nicht verifiziert**. [Automatische Code-Korrekturen](/docs/ai/ai-sre#automatische-code-korrekturen) enthält die Regeln. Ein Regressionstest, eine bessere Fehlerbehandlung, ein Review und eine Anfrage in Code werden nicht beobachtet: Die Produktion kann nicht zeigen, was sie ändern.
+
 ## Bevor Sie beginnen
 
 Eine Aufgabe braucht drei Dinge. Die Seite eines Repositorys in Code und die Seite **KI-Unterstützung** der Ausnahme prüfen alle drei, bevor sie den Start anbieten, und sagen, was fehlt.

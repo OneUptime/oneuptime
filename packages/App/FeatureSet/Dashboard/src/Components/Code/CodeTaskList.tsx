@@ -1,3 +1,4 @@
+import FixProductionVerdict from "../AI/FixProductionVerdict";
 import CodeApi, { CodeTaskListResponse } from "./CodeApi";
 import CodeMetaList from "./CodeMetaList";
 import { CODE_TASK_ASKED_BY, getRecipeLabel } from "./CodeTaskCopy";
@@ -257,6 +258,18 @@ export const CodeTaskRow: FunctionComponent<{
           number: task.pullRequest.number.toString(),
         })}
       </span>,
+    );
+  }
+
+  // Merged is not fixed: what production showed once the fix shipped.
+  if (task.pullRequest?.production) {
+    meta.push(
+      <FixProductionVerdict
+        key="production"
+        production={task.pullRequest.production}
+        isCompact={true}
+        testId="code-task-row-production"
+      />,
     );
   }
 

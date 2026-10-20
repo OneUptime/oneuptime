@@ -38,6 +38,8 @@ La línea superior nombra lo más urgente que hay abierto, en un color acorde:
 
 Al lado, Inicio indica cuándo cargó el proyecto por última vez, y **Actualizar** lo vuelve a cargar. Cuando vuelves a una pestaña de Inicio después de un minuto o más, se actualiza sola.
 
+Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre el formulario para crear uno. Solo lo ven las personas que pueden crear monitores.
+
 ### Los cinco números
 
 Cada número cuenta algo, dice si eso te necesita y abre la lista que hay detrás.

@@ -111,7 +111,15 @@ const Page: FunctionComponent<ComponentProps> = (
       breadcrumbLinks && breadcrumbLinks.length > 0
         ? breadcrumbLinks
             .map((link: Link) => {
-              // A record's name reads as typed (Link.isRecordName).
+              /*
+               * The record's name where the trail has one (Link.recordName),
+               * so a tab says which monitor it is, not "View Monitor". A
+               * record's name reads as typed (Link.isRecordName).
+               */
+              if (link.recordName) {
+                return link.recordName;
+              }
+
               return link.isRecordName
                 ? link.title
                 : translateString(link.title);

@@ -9,6 +9,7 @@ import RouteMap, {
   DatabaseRoutePath,
   IncidentsRoutePath,
   MonitorsRoutePath,
+  OnCallDutyRoutePath,
   ScheduledMaintenanceEventsRoutePath,
   SettingsRoutePath,
   SloRoutePath,
@@ -20,6 +21,10 @@ import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/U
 import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
 import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/IncidentBreadcrumbs";
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
+import {
+  getIncomingCallPolicyBreadcrumbs,
+  getOnCallDutyBreadcrumbs,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OnCallDutyBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
 import { getSettingsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SettingsBreadcrumbs";
 import { getWorkflowsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/WorkflowsBreadcrumbs";
@@ -61,6 +66,21 @@ const products: Array<Product> = [
     landing: PageMap.MONITORS,
     routes: MonitorsRoutePath,
     getBreadcrumbs: getMonitorBreadcrumbs,
+  },
+  {
+    /*
+     * OnCallDutyRoutePath holds policies, schedules and incoming call
+     * policies under one /on-call-duty prefix; the incoming call policy
+     * pages have a getter of their own, as their layout does.
+     */
+    name: "On-call duty",
+    landing: PageMap.ON_CALL_DUTY,
+    routes: OnCallDutyRoutePath,
+    getBreadcrumbs: (path: string): Array<Link> | undefined => {
+      return (
+        getOnCallDutyBreadcrumbs(path) || getIncomingCallPolicyBreadcrumbs(path)
+      );
+    },
   },
   {
     name: "Scheduled maintenance",
@@ -232,6 +252,122 @@ describe("restored breadcrumb hierarchy", () => {
       getWorkflowsBreadcrumbs,
       ["Project", "Workflows", "View Workflow", "Audit Logs"],
       PageMap.WORKFLOW_VIEW,
+    ],
+    /*
+     * An on-call policy's and schedule's pages sit one segment deeper than
+     * their trails used to have crumbs for (/on-call-duty/policies/:id/...),
+     * so "View On-Call Policy" opened the list of policies, not the policy.
+     * Their trails now name the list, as Incoming Call Policies' do, and the
+     * crumb before the page opens the policy.
+     */
+    [
+      PageMap.ON_CALL_DUTY_POLICY_VIEW,
+      getOnCallDutyBreadcrumbs,
+      ["Project", "On-Call Duty", "Policies", "View On-Call Policy"],
+      PageMap.ON_CALL_DUTY_POLICIES,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
+      getOnCallDutyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Escalation Rules",
+      ],
+      PageMap.ON_CALL_DUTY_POLICY_VIEW,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS,
+      getOnCallDutyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Notification Logs",
+      ],
+      PageMap.ON_CALL_DUTY_POLICY_VIEW,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_AUDIT_LOGS,
+      getOnCallDutyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Audit Logs",
+      ],
+      PageMap.ON_CALL_DUTY_POLICY_VIEW,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW,
+      getOnCallDutyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Policies",
+        "View On-Call Policy",
+        "Logs",
+        "Timeline",
+      ],
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+      getOnCallDutyBreadcrumbs,
+      ["Project", "On-Call Duty", "Schedules", "View On-Call Schedule"],
+      PageMap.ON_CALL_DUTY_SCHEDULES,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS,
+      getOnCallDutyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Schedules",
+        "View On-Call Schedule",
+        "Layers",
+      ],
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS,
+      getOnCallDutyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Schedules",
+        "View On-Call Schedule",
+        "Notification Logs",
+      ],
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS,
+      getOnCallDutyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Schedules",
+        "View On-Call Schedule",
+        "Audit Logs",
+      ],
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+    ],
+    [
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS,
+      getIncomingCallPolicyBreadcrumbs,
+      [
+        "Project",
+        "On-Call Duty",
+        "Incoming Call Policies",
+        "View Policy",
+        "Audit Logs",
+      ],
+      PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW,
     ],
   ] as Array<[PageMap, BreadcrumbGetter, Array<string>, PageMap]>)(
     "%s preserves its parent link and leaf title",

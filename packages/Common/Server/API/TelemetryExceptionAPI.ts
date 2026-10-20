@@ -11,6 +11,9 @@ import TelemetryExceptionService, {
 import { AIFixReadiness } from "../../Types/AI/AIFixReadiness";
 import AIRunService from "../Services/AIRunService";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import FixProductionCheck, {
+  FixProductionCheckHelper,
+} from "../../Types/AI/FixProductionCheck";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -354,6 +357,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
             aiRunId: true,
             pullRequestUrl: true,
             productionStatus: true,
+            productionCheck: true,
             productionStatusAt: true,
             productionSummary: true,
             deployedAt: true,
@@ -375,6 +379,11 @@ export default class TelemetryExceptionAPI extends BaseAPI<
 
         byRunId.set(runId, {
           status: pullRequest.productionStatus || null,
+          // An exception's fixes are watched for the exception.
+          check:
+            FixProductionCheckHelper.fromDatabaseValue(
+              pullRequest.productionCheck,
+            ) || FixProductionCheck.Exception,
           summary: pullRequest.productionSummary || null,
           statusAt: pullRequest.productionStatusAt || null,
           deployedAt: pullRequest.deployedAt || null,

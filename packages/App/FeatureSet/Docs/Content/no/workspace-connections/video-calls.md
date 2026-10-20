@@ -76,7 +76,7 @@ En Microsoft Teams-tilkobling som ble logget inn mens **Ta opp og transkriber he
 
 ### Forbli pålogget
 
-OneUptime lagrer påloggingens oppdateringstoken, kryptert, og fornyer det minst én gang i uken, så det aldri utløper på grunn av manglende bruk, uansett hvor lenge prosjektet går uten en hendelse. Hvis påloggingen slutter å fungere (kontoen fjernet OneUptime, ble slettet eller suspendert, eller organisasjonens policy ber den logge på igjen), viser tilkoblingens rad **Not working** med begrunnelsen den dagen OneUptime oppdager det, ikke ved neste hendelse. **Reconnect** i raden logger på igjen.
+OneUptime lagrer påloggingens oppdateringstoken, kryptert, og fornyer det minst én gang i uken, så det aldri utløper på grunn av manglende bruk, uansett hvor lenge prosjektet går uten en hendelse. Hvis påloggingen slutter å fungere (kontoen fjernet OneUptime, ble slettet eller suspendert, eller organisasjonens policy ber den logge på igjen), viser tilkoblingens rad **Fungerer ikke** med begrunnelsen den dagen OneUptime oppdager det, ikke ved neste hendelse. **Reconnect** i raden logger på igjen.
 
 Tilkoblinger som er pålogget som samme konto, deler én pålogging, i alle prosjekter: Zoom beholder bare én pålogging per konto, så å koble til den samme Zoom-brukeren igjen erstatter den for alle.
 
@@ -84,7 +84,7 @@ Tilkoblinger som er pålogget som samme konto, deler én pålogging, i alle pros
 
 **Reconnect** i en tilkoblings rad logger på igjen, som samme konto eller en annen. Bruk den etter at kontoen har fjernet OneUptime, eller for å flytte hendelsesmøter til en annen konto.
 
-Å slette en tilkobling trekker tilbake OneUptimes tilgang hos Zoom og Google så snart ingen annen tilkobling bruker påloggingen. For Microsoft fjerner du OneUptime under kontoens **My Apps** (myapps.microsoft.com). Å fjerne OneUptime fra Zoom-kontoen din i Zoom App Marketplace sletter påloggingen fra alle tilkoblinger som er pålogget som den kontoen, og de viser **Not working** til de kobles til på nytt.
+Å slette en tilkobling trekker tilbake OneUptimes tilgang hos Zoom og Google så snart ingen annen tilkobling bruker påloggingen. For Microsoft fjerner du OneUptime under kontoens **My Apps** (myapps.microsoft.com). Å fjerne OneUptime fra Zoom-kontoen din i Zoom App Marketplace sletter påloggingen fra alle tilkoblinger som er pålogget som den kontoen, og de viser **Fungerer ikke** til de kobles til på nytt.
 
 ### Hvis Microsoft ber om en administrator
 
@@ -288,7 +288,7 @@ Sjekk at regelen passet på hendelsen (**Testregel**), at trinnet **Video Call**
 Leverandøren avviste, og feeden gir begrunnelsen. Start en samtale fra hendelsens side i mellomtiden. Kjør deretter **Test** i tilkoblingens rad: den viser samme begrunnelse mens du retter oppsettet hos leverandøren, for eksempel en utløpt klienthemmelighet eller en manglende tillatelse.
 :::
 
-:::details En tilkobling viser Not working
+:::details En tilkobling viser Fungerer ikke
 Påloggingen sluttet å fungere: kontoen fjernet OneUptime, ble slettet eller suspendert, eller må logge på igjen. Klikk på **Reconnect** i raden. Inntil da kan samtalene den skulle starte, ikke starte.
 :::
 

@@ -80,6 +80,7 @@ export class Service extends DatabaseService<Model> {
         declaredAt: true,
         impactStartedAt: true,
         postmortemPostedAt: true,
+        firstPagedAt: true,
         labels: { _id: true, name: true, color: true },
         customFields: true,
         monitors: { _id: true, name: true },
@@ -347,6 +348,22 @@ export class Service extends DatabaseService<Model> {
           label: "Postmortem Posted At",
           timestamp: incident.postmortemPostedAt,
           // Postmortems are posted after resolution; resolution is not the end.
+          canResolveAfterTerminalState: true,
+        };
+
+      case IncidentMeasurementAnchorType.FirstPagedAt:
+        return {
+          kind: MeasurementAnchorKind.Timestamp,
+          label: "First Paged At",
+          timestamp: incident.firstPagedAt,
+          /*
+           * Written by OneUptime when an on-call policy or a direct page
+           * first notifies somebody about the incident (FirstPagedAt), which
+           * can be long after it was declared - a page held until working
+           * hours goes out in the morning. Blank, it is still to come rather
+           * than never coming: an incident nobody was paged about has no
+           * value, and stays Pending as a state it never reached does.
+           */
           canResolveAfterTerminalState: true,
         };
 

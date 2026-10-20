@@ -10,6 +10,7 @@ import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "Common/Types/AI/CodeFixTaskType";
+import { FixProductionCheckHelper } from "Common/Types/AI/FixProductionCheck";
 import FixPullRequestCiStatus, {
   FixPullRequestCiStatusHelper,
 } from "Common/Types/AI/FixPullRequestCiStatus";
@@ -335,9 +336,11 @@ RunCron(
         }
 
         /*
-         * Merged is not fixed: a fix of an exception is watched in
-         * production from here on (FixProductionVerifier), which needs the
-         * commit GitHub merged it as.
+         * Merged is not fixed: a fix whose effect production shows - an
+         * exception's, a slow operation's, an incident's root cause, a
+         * telemetry improvement - is watched in production from here on
+         * (FixProductionVerifier), with the check its recipe calls for,
+         * which needs the commit GitHub merged it as.
          */
         if (currentState === PullRequestState.Merged) {
           Object.assign(
@@ -345,12 +348,14 @@ RunCron(
             fieldsWhenMerged({
               mergeCommitSha: merge.mergeCommitSha,
               mergedAt: merge.mergedAt,
-              isExceptionFix: pullRequest.aiRunId
-                ? (await getTaskTypeForRun(
-                    pullRequest.aiRunId,
-                    taskTypeByRunId,
-                  )) === CodeFixTaskType.FixException
-                : false,
+              productionCheck: pullRequest.aiRunId
+                ? FixProductionCheckHelper.forTaskType(
+                    await getTaskTypeForRun(
+                      pullRequest.aiRunId,
+                      taskTypeByRunId,
+                    ),
+                  )
+                : null,
               now: OneUptimeDate.getCurrentDate(),
             }),
           );

@@ -76,7 +76,7 @@ Uma conexão do Microsoft Teams feita enquanto a opção **Gravar e transcrever 
 
 ### Permanecer conectado
 
-O OneUptime guarda o token de atualização do login, criptografado, e o renova pelo menos uma vez por semana, então ele nunca expira por falta de uso, por mais tempo que o projeto passe sem um incidente. Se o login parar de funcionar (a conta removeu o OneUptime, foi excluída ou suspensa, ou a política da sua organização pede um novo login), a linha da conexão mostra **Not working** com o motivo no dia em que o OneUptime percebe, não no próximo incidente. **Reconnect** na linha faz o login de novo.
+O OneUptime guarda o token de atualização do login, criptografado, e o renova pelo menos uma vez por semana, então ele nunca expira por falta de uso, por mais tempo que o projeto passe sem um incidente. Se o login parar de funcionar (a conta removeu o OneUptime, foi excluída ou suspensa, ou a política da sua organização pede um novo login), a linha da conexão mostra **Não funciona** com o motivo no dia em que o OneUptime percebe, não no próximo incidente. **Reconnect** na linha faz o login de novo.
 
 Conexões feitas com a mesma conta compartilham um único login, em todos os projetos: o Zoom guarda só um login por conta, então conectar de novo o mesmo usuário do Zoom o substitui para todas elas.
 
@@ -84,7 +84,7 @@ Conexões feitas com a mesma conta compartilham um único login, em todos os pro
 
 **Reconnect** na linha de uma conexão faz o login de novo, com a mesma conta ou com outra. Use-o depois que a conta tiver removido o OneUptime, ou para mover as reuniões de incidentes para outra conta.
 
-Excluir uma conexão retira o acesso do OneUptime no Zoom e no Google assim que nenhuma outra conexão usa aquele login. Na Microsoft, remova o OneUptime em **My Apps** (myapps.microsoft.com) da conta. Remover o OneUptime da sua conta do Zoom no Zoom App Marketplace exclui o login dele de todas as conexões feitas com essa conta, e elas mostram **Not working** até serem reconectadas.
+Excluir uma conexão retira o acesso do OneUptime no Zoom e no Google assim que nenhuma outra conexão usa aquele login. Na Microsoft, remova o OneUptime em **My Apps** (myapps.microsoft.com) da conta. Remover o OneUptime da sua conta do Zoom no Zoom App Marketplace exclui o login dele de todas as conexões feitas com essa conta, e elas mostram **Não funciona** até serem reconectadas.
 
 ### Se a Microsoft pedir um administrador
 
@@ -288,7 +288,7 @@ Verifique se a regra correspondeu ao incidente (**Regra de teste**), se a etapa 
 O provedor recusou, e o feed dá o motivo. Enquanto isso, inicie uma chamada a partir da página do incidente. Depois execute **Testar** na linha da conexão: ele mostra o mesmo motivo enquanto você corrige a configuração no provedor, como um segredo do cliente expirado ou uma permissão ausente.
 :::
 
-:::details Uma conexão mostra Not working
+:::details Uma conexão mostra Não funciona
 O login dela parou de funcionar: a conta removeu o OneUptime, foi excluída ou suspensa, ou precisa fazer login de novo. Clique em **Reconnect** na linha dela. Até lá, as chamadas que ela deveria iniciar não podem começar.
 :::
 
