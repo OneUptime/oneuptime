@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-A new run is **Scheduled** until a Worker picks it up and marks it **Running**. It pauses as **Waiting for you** on a Manual step, or after a step that needs approval, and goes back to the queue once someone acts. A run that waits for a person never times out. It ends **Completed**, **Failed** or **Cancelled**.
+A new run is **Scheduled** until a Worker picks it up and marks it **Running**. It pauses as **Waiting for you** on a Manual step, or before a step that needs approval, and goes back to the queue once someone acts. A run that waits for a person never times out. It ends **Completed**, **Failed** or **Cancelled**.
 
 ## Start a run
 
@@ -64,18 +64,19 @@ Starting a run takes Project Owner, Project Admin, Project Member, Runbook Admin
 
 Open any execution to see its checklist UI. The top of the page shows the run's **Status**, its **Progress** (steps done out of all steps), when it **Started**, and what **Triggered by** it. Each step shows:
 
-- **Status pill** — Pending, Running, Waiting for you, Done, Skipped, Failed or Cancelled.
+- **Status pill** — Pending, Running, Waiting for you, Waiting for approval, Done, Skipped, Failed or Cancelled.
 - **Title and description** — copied from the runbook at execution time.
 - **Output** (collapsible) — stdout, return values, HTTP responses, or the AI's answer.
 - **Error message** if the step failed.
-- On the step the run is waiting on: **Mark complete** (a Manual step) or **Approve & continue** (a step with **Require approval**), and **Skip**.
+- On the step the run is waiting on: **Mark complete** (a Manual step) or **Approve and run** (a step with **Require approval**, which has not run yet), and **Skip**.
+- **Approved by** on a step that waited for approval, once it has run.
 - While the run is paused, **Skip** on later automated steps that don't require approval.
 
 While the run is in progress, the page refreshes itself every 30 seconds. Click **Refresh** to see the latest state at once.
 
 ## Completing, approving and skipping steps
 
-Only the step the run is waiting on can be marked complete, approved, or skipped to continue the run. A Manual step or a step with **Require approval** can't be ticked off or skipped before the run reaches it — its job is to stop the run, so it only takes a decision once the run is there (for an approval, once the step has run and you can see its output).
+Only the step the run is waiting on can be marked complete, approved, or skipped to continue the run. A Manual step or a step with **Require approval** can't be ticked off or skipped before the run reaches it — its job is to stop the run, so it only takes a decision once the run is there. A step with **Require approval** waits before it runs, so read what the steps before it found first: **Approve and run** runs it, **Skip** keeps it from running, and either way the run goes on. A run started before approvals moved to the step they guard waits after such a step instead, once it has run: **Approve & continue** lets that run go on.
 
 While the run is paused, you can also skip a later automated step that doesn't require approval, so it won't run when the run continues. The run stays paused on the step that is waiting for you. Skipping isn't available while steps are running — wait for the run to pause, or cancel it. Each step records who completed or skipped it.
 
@@ -145,7 +146,7 @@ The message reads "No runbook agent picked up this step before the wait window e
 :::
 
 :::details The run has been waiting for hours
-A run that waits for a person never times out. Open it and act on the step marked **Waiting for you**, or click **Cancel Execution**.
+A run that waits for a person never times out. Open it and act on the step marked **Waiting for you** or **Waiting for approval**, or click **Cancel Execution**.
 :::
 
 :::details A step says it may have partially run

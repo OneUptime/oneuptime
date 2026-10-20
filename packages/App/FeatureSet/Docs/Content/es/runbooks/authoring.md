@@ -5,7 +5,7 @@ Un runbook se escribe como una lista ordenada de pasos en su página **Pasos**. 
 :::cards
 - [Crear un runbook nuevo](#crear-un-runbook-nuevo): De un runbook vacío a pasos guardados.
 - [Tipos de paso](#tipos-de-paso): Manual, JavaScript, HTTP request, Bash, SSH, kubectl y AI.
-- [Gestión de fallos y aprobaciones](#gestión-de-fallos-y-aprobaciones): Qué pasa después de que un paso falla o tiene éxito.
+- [Gestión de fallos y aprobaciones](#gestión-de-fallos-y-aprobaciones): Qué pasa cuando un paso falla o espera una aprobación.
 - [Un ejemplo completo](#un-ejemplo-completo): Un failover de base de datos en cinco pasos.
 :::
 
@@ -47,9 +47,9 @@ Cada paso tiene estos campos. Un paso automatizado muestra su **Título** y los 
 | Campo | Para qué sirve |
 | --- | --- |
 | **Título** | Una etiqueta corta, visible en la lista de pasos y en cada ejecución. |
-| **Descripción** | Contexto opcional para quien responde, en Markdown, en **Más campos**. En un paso Manual es la instrucción que esa persona lee, y se muestra bajo el título. |
+| **Descripción** | Contexto opcional para quien responde, en Markdown, en **Más campos**. En un paso Manual son las **Instrucciones** que esa persona lee y sigue, y se muestran bajo el título. |
 | **Continuar en caso de error** | Solo pasos automatizados. Si está activado, un paso que falla no detiene la ejecución: el siguiente paso se ejecuta igualmente. |
-| **Requerir aprobación** | Solo pasos automatizados. Si está activado, el runbook se pausa después de este paso y espera a que una persona apruebe antes de ejecutar el siguiente. El interruptor dice **Requerir aprobación antes de ejecutar el siguiente paso**. |
+| **Requerir aprobación** | Solo pasos automatizados. Si está activado, la ejecución se detiene antes de este paso hasta que alguien lo aprueba, y solo entonces lo ejecuta. El interruptor dice **Requerir aprobación antes de ejecutar este paso**, y la cabecera del paso muestra **Requiere aprobación**. |
 | Ajustes propios del tipo | El script, la URL, el Runner, una variable secreta o la indicación. Consulta [Tipos de paso](#tipos-de-paso). |
 
 ## Tipos de paso
@@ -64,11 +64,11 @@ Cada paso tiene estos campos. Un paso automatizado muestra su **Título** y los 
 | [kubectl](#kubectl) | Un Runner | Un Runner, y una variable de kubeconfig o el acceso propio del Runner |
 | [AI](#ai) | El Worker de OneUptime | Un proveedor de LLM |
 
-En cada paso de abajo, los tiempos de espera, la **Descripción**, **Continuar en caso de error** y **Requerir aprobación** están en **Más campos** del paso, igual que el proveedor y los interruptores de contexto de un paso de IA.
+En cada paso automatizado de abajo, **Más campos** del paso contiene primero **Requerir aprobación** y **Continuar en caso de error**, luego los ajustes propios del paso - los encabezados de una llamada HTTP, el puerto y la frase de contraseña de la clave de un paso SSH, el proveedor y los interruptores de contexto de un paso de IA - y por último la **Descripción** y los tiempos de espera.
 
 ### Manual
 
-Un elemento de lista de comprobación para una persona. La ejecución se pausa al llegar a un paso Manual y se queda en `WaitingForManualStep` (**Esperándote**) hasta que alguien hace clic en **Marcar como completado** u **Omitir**. Una ejecución que espera a una persona nunca caduca.
+Un elemento de lista de comprobación para una persona: sus **Instrucciones** dicen qué hacer o comprobar. La ejecución se pausa al llegar a un paso Manual y se queda en `WaitingForManualStep` (**Esperándote**) hasta que alguien hace clic en **Marcar como completado** u **Omitir**. Una ejecución que espera a una persona nunca caduca. Un paso Manual no tiene interruptor de aprobación: ya detiene la ejecución para una persona.
 
 Úsalo para lo que solo una persona puede comprobar o hacer: «Confirmar en el panel del balanceador de carga que el tráfico se ha movido a la región secundaria».
 
@@ -100,8 +100,8 @@ Una llamada HTTP saliente, hecha por el Worker de OneUptime. No hace falta ning�
 | --- | --- | --- |
 | **Método** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` o `HEAD`. | `GET` |
 | **URL** | El endpoint al que se llama. | Vacío |
-| **Encabezados (JSON)** | Un objeto JSON, como `{ "Authorization": "Bearer ..." }`. Unos encabezados que no son JSON válido hacen fallar el paso. | Ninguno |
-| **Cuerpo** | Se envía como JSON si se puede interpretar como JSON, y como texto en caso contrario. | Ninguno |
+| **Encabezados (JSON)** | En **Más campos**. Un objeto JSON, como `{ "Authorization": "Bearer ..." }`. Unos encabezados que no son JSON válido hacen fallar el paso. | Ninguno |
+| **Cuerpo** | Se muestra para `POST`, `PUT`, `PATCH` y `DELETE`. Se envía como JSON si se puede interpretar como JSON, y como texto en caso contrario. | Ninguno |
 | **Tiempo de espera de la solicitud** | Cuánto se espera la respuesta del endpoint antes de hacer fallar el paso. | 30 segundos |
 
 El paso tiene éxito con una respuesta `2xx` o `3xx` y falla con cualquier otra, con `HTTP <status>` como error. Las redirecciones no se siguen. Se capturan el estado, los encabezados y el cuerpo de la respuesta, hasta 50 KB.
@@ -194,7 +194,7 @@ Pide a la IA que analice, resuma o decida algo a mitad de la ejecución. La resp
 | **Incluir el contexto del paso anterior** | Si está activado, la IA ve todo sobre los pasos que se ejecutaron antes que este: título, tipo, estado, salida y mensajes de error. Recibe hasta 4.000 caracteres de la salida de cada paso. |
 | **Incluir el contexto del desencadenante** | Si está activado, la IA ve qué inició la ejecución: el incidente, la alerta o el evento de mantenimiento programado vinculado (su descripción, gravedad, estado actual, monitores afectados, causa raíz, historial de estados y notas públicas), o quién ejecutó el runbook a mano. |
 
-Combina un paso de IA con **Requerir aprobación** para mantener a una persona en el circuito: la IA analiza, alguien lee su respuesta y aprueba, y solo entonces se ejecuta el siguiente paso (de remediación).
+Para mantener a una persona en el circuito, activa **Requerir aprobación** en el paso que sigue a un paso de IA: la IA analiza, alguien lee su respuesta y el paso de remediación solo se ejecuta cuando esa persona lo aprueba.
 
 **Lo que la IA nunca ve.** La respuesta de un paso de IA se guarda como salida del paso en la ejecución, y las ejecuciones las puede leer cualquiera con permiso de lectura de runbooks, un público más amplio que el del incidente. Por eso el contexto del desencadenante deja fuera las **notas internas privadas** y los **mensajes de canales de Slack y Microsoft Teams**. La salida de los pasos anteriores se analiza en busca de secretos (tokens, claves, credenciales), que se ocultan antes de enviarla al modelo. Las imágenes incrustadas y los datos codificados largos, como una captura de pantalla pegada en la descripción de un incidente, también se dejan fuera, con una nota breve en su lugar.
 
@@ -202,19 +202,27 @@ Los pasos de IA se miden y se facturan como cualquier otra función de IA. El pa
 
 ## Gestión de fallos y aprobaciones
 
-```mermaid title="Qué pasa después de un paso automatizado"
+```mermaid title="Qué pasa en un paso automatizado"
 flowchart TB
-    run["Se ejecuta un<br/>paso automatizado"] --> ok{"¿Ha tenido éxito?"}
-    ok -->|"sí"| approval{"¿Requerir<br/>aprobación activado?"}
+    reach["La ejecución llega a<br/>un paso automatizado"] --> approval{"¿Requerir<br/>aprobación activado?"}
     approval -->|"sí"| wait["La ejecución espera<br/>la aprobación<br/>de una persona"]
-    approval -->|"no"| next["Se ejecuta el<br/>siguiente paso"]
-    wait --> next
+    approval -->|"no"| run["Se ejecuta el paso"]
+    wait -->|"aprobado"| run
+    wait -->|"omitido"| next["Siguiente paso"]
+    run --> ok{"¿Ha tenido éxito?"}
+    ok -->|"sí"| next
     ok -->|"no"| cont{"¿Continuar en caso<br/>de error activado?"}
     cont -->|"sí"| next
     cont -->|"no"| failed["La ejecución se<br/>detiene como fallida"]
 ```
 
-Por defecto, un paso que falla detiene la ejecución y la marca como `Failed`, con el error del paso como motivo. Con **Continuar en caso de error** activado, el fallo se registra y se ejecuta el siguiente paso, lo que encaja con runbooks del tipo «prueba estas tres cosas y luego avisa». **Requerir aprobación** se aplica después de que un paso tenga éxito: la ejecución espera en ese paso hasta que alguien hace clic en **Aprobar y continuar** u **Omitir**.
+Por defecto, un paso que falla detiene la ejecución y la marca como `Failed`, con el error del paso como motivo. Con **Continuar en caso de error** activado, el fallo se registra y se ejecuta el siguiente paso, lo que encaja con runbooks del tipo «prueba estas tres cosas y luego avisa».
+
+**Requerir aprobación** se aplica antes de que un paso se ejecute, pase lo que pase antes: la ejecución espera hasta que alguien hace clic en **Aprobar y ejecutar**, y el paso se ejecuta, o en **Omitir**, y nunca se ejecuta. Actívalo en el paso que cambia algo - el reinicio, la conmutación por error, la reducción de escala - para que una persona revise primero lo que encontraron los pasos anteriores. La aprobación pertenece al paso, así que mover el paso también la mueve.
+
+:::note
+En la API y Terraform, el interruptor es el campo `requireApprovalBeforeRunning` de un paso. El campo `requireApproval` de un paso, que los runbooks escribían antes de que las aprobaciones pasaran al paso que protegen, sigue funcionando y significa lo que significaba: una aprobación después de ese paso. OneUptime lo lee como una aprobación antes del siguiente paso o, después del último paso, como un paso Manual al final, titulado **Approve the result**.
+:::
 
 ## Guardar y editar
 

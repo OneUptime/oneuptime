@@ -5,7 +5,7 @@ U schrijft een runbook als een geordende lijst stappen op de pagina **Stappen** 
 :::cards
 - [Een runbook maken](#een-runbook-maken): Van een leeg runbook naar opgeslagen stappen.
 - [Staptypen](#staptypen): Manual, JavaScript, HTTP request, Bash, SSH, kubectl en AI.
-- [Foutafhandeling en goedkeuringen](#foutafhandeling-en-goedkeuringen): Wat er gebeurt nadat een stap mislukt of slaagt.
+- [Foutafhandeling en goedkeuringen](#foutafhandeling-en-goedkeuringen): Wat er gebeurt wanneer een stap mislukt of op goedkeuring wacht.
 - [Een uitgewerkt voorbeeld](#een-uitgewerkt-voorbeeld): Een database-failover in vijf stappen.
 :::
 
@@ -47,9 +47,9 @@ Elke stap heeft deze velden. Een geautomatiseerde stap toont zijn **Titel** en d
 | Veld | Doel |
 | --- | --- |
 | **Titel** | Een kort label, zichtbaar in de stappenlijst en in elke uitvoering. |
-| **Beschrijving** | Optionele context voor wie reageert, in Markdown, onder **Meer velden**. Bij een Manual-stap is dit de instructie die die persoon leest, getoond onder de titel. |
+| **Beschrijving** | Optionele context voor wie reageert, in Markdown, onder **Meer velden**. Bij een Manual-stap zijn dit de **Instructies** die die persoon leest en volgt, getoond onder de titel. |
 | **Doorgaan bij fout** | Alleen geautomatiseerde stappen. Als dit aan staat, stopt een mislukte stap de uitvoering niet: de volgende stap loopt toch. |
-| **Goedkeuring vereisen** | Alleen geautomatiseerde stappen. Als dit aan staat, pauzeert het runbook na deze stap en wacht het tot iemand goedkeurt voordat de volgende stap loopt. De schakelaar heet **Goedkeuring vereisen voordat de volgende stap wordt uitgevoerd**. |
+| **Goedkeuring vereisen** | Alleen geautomatiseerde stappen. Als dit aan staat, stopt de uitvoering vóór deze stap tot iemand hem goedkeurt, en voert hem pas dan uit. De schakelaar heet **Goedkeuring vereisen voordat deze stap wordt uitgevoerd**, en de kop van de stap toont **Goedkeuring nodig**. |
 | Typespecifieke instellingen | Het script, de URL, de Runner, een geheime variabele of de prompt. Zie [Staptypen](#staptypen). |
 
 ## Staptypen
@@ -64,11 +64,11 @@ Elke stap heeft deze velden. Een geautomatiseerde stap toont zijn **Titel** en d
 | [kubectl](#kubectl) | Een Runner | Een Runner, en een kubeconfig-variabele of de eigen toegang van de Runner |
 | [AI](#ai) | De OneUptime Worker | Een LLM-provider |
 
-In elke stap hieronder staan de time-outs, de **Beschrijving**, **Doorgaan bij fout** en **Goedkeuring vereisen** onder **Meer velden** van de stap, net als de provider en de contextschakelaars van een AI-stap.
+In elke geautomatiseerde stap hieronder bevat **Meer velden** van de stap eerst **Goedkeuring vereisen** en **Doorgaan bij fout**, dan de eigen instellingen van de stap - de headers van een HTTP-aanroep, de poort en de wachtwoordzin van de sleutel van een SSH-stap, de provider en de contextschakelaars van een AI-stap - en als laatste de **Beschrijving** en de time-outs.
 
 ### Manual
 
-Een checklistpunt voor een persoon. De uitvoering pauzeert wanneer ze een Manual-stap bereikt en blijft in `WaitingForManualStep` (**Wacht op u**) tot iemand op **Mark complete** of **Overslaan** klikt. Een uitvoering die op een persoon wacht, verloopt nooit.
+Een checklistpunt voor een persoon: de **Instructies** zeggen wat er gedaan of gecontroleerd moet worden. De uitvoering pauzeert wanneer ze een Manual-stap bereikt en blijft in `WaitingForManualStep` (**Wacht op u**) tot iemand op **Markeer als voltooid** of **Overslaan** klikt. Een uitvoering die op een persoon wacht, verloopt nooit. Een Manual-stap heeft geen goedkeuringsschakelaar: hij stopt de uitvoering al voor een persoon.
 
 Gebruik dit voor wat alleen een mens kan controleren of doen: "Bevestig in het dashboard van de load balancer dat het verkeer naar de secundaire regio is verplaatst."
 
@@ -100,8 +100,8 @@ Een uitgaande HTTP-aanroep, gedaan door de OneUptime Worker. Er is geen Runner n
 | --- | --- | --- |
 | **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` of `HEAD`. | `GET` |
 | **URL** | Het endpoint dat wordt aangeroepen. | Leeg |
-| **Headers (JSON)** | Een JSON-object, zoals `{ "Authorization": "Bearer ..." }`. Headers die geen geldige JSON zijn, laten de stap mislukken. | Geen |
-| **Body** | Verzonden als JSON wanneer het als JSON te lezen is, anders als tekst. | Geen |
+| **Headers (JSON)** | Onder **Meer velden**. Een JSON-object, zoals `{ "Authorization": "Bearer ..." }`. Headers die geen geldige JSON zijn, laten de stap mislukken. | Geen |
+| **Body** | Getoond voor `POST`, `PUT`, `PATCH` en `DELETE`. Verzonden als JSON wanneer het als JSON te lezen is, anders als tekst. | Geen |
 | **Request timeout** | Hoe lang op het antwoord van het endpoint wordt gewacht voordat de stap mislukt. | 30 seconden |
 
 De stap slaagt bij een `2xx`- of `3xx`-antwoord en mislukt bij al het andere, met `HTTP <status>` als fout. Doorverwijzingen worden niet gevolgd. De status, headers en body van het antwoord worden vastgelegd, tot 50 KB.
@@ -194,7 +194,7 @@ Laat AI halverwege de uitvoering iets analyseren, samenvatten of beslissen. Het 
 | **Include previous step context** | Als dit aan staat, ziet de AI alles over de stappen die vóór deze stap liepen: titel, type, status, uitvoer en foutmeldingen. Hij krijgt tot 4.000 tekens van de uitvoer van elke stap. |
 | **Include trigger context** | Als dit aan staat, ziet de AI wat de uitvoering startte: het gekoppelde incident, de waarschuwing of het geplande onderhoudsevenement (beschrijving, ernst, huidige status, getroffen monitoren, grondoorzaak, statustijdlijn en openbare notities), of wie het runbook met de hand startte. |
 
-Combineer een AI-stap met **Goedkeuring vereisen** om een mens erbij te houden: de AI analyseert, iemand leest het antwoord en keurt goed, en pas dan loopt de volgende (herstel)stap.
+Om een mens erbij te houden, zet u **Goedkeuring vereisen** aan op de stap na een AI-stap: de AI analyseert, iemand leest het antwoord, en de herstelstap loopt pas zodra die persoon hem goedkeurt.
 
 **Wat de AI nooit ziet.** Het antwoord van een AI-stap wordt als stapuitvoer op de uitvoering opgeslagen, en uitvoeringen zijn leesbaar voor iedereen met leesrechten op runbooks, een breder publiek dan dat van het incident. Daarom laat de triggercontext **privé interne notities** en **kanaalberichten uit Slack en Microsoft Teams** weg. De uitvoer van eerdere stappen wordt doorzocht op geheimen (tokens, sleutels, inloggegevens), die worden afgeschermd voordat ze naar het model gaan. Ingesloten afbeeldingen en lange gecodeerde gegevens, zoals een schermafbeelding die in de beschrijving van een incident is geplakt, worden ook weggelaten, met een korte notitie op hun plaats.
 
@@ -202,19 +202,27 @@ AI-stappen worden gemeten en gefactureerd zoals elke andere AI-functie. De stap 
 
 ## Foutafhandeling en goedkeuringen
 
-```mermaid title="Wat er gebeurt na een geautomatiseerde stap"
+```mermaid title="Wat er gebeurt bij een geautomatiseerde stap"
 flowchart TB
-    run["Een geautomatiseerde<br/>stap loopt"] --> ok{"Geslaagd?"}
-    ok -->|"ja"| approval{"Goedkeuring vereisen aan?"}
+    reach["De uitvoering bereikt<br/>een geautomatiseerde stap"] --> approval{"Goedkeuring vereisen aan?"}
     approval -->|"ja"| wait["De uitvoering wacht<br/>op goedkeuring<br/>van een persoon"]
-    approval -->|"nee"| next["De volgende stap loopt"]
-    wait --> next
+    approval -->|"nee"| run["De stap loopt"]
+    wait -->|"goedgekeurd"| run
+    wait -->|"overgeslagen"| next["Volgende stap"]
+    run --> ok{"Geslaagd?"}
+    ok -->|"ja"| next
     ok -->|"nee"| cont{"Doorgaan bij fout aan?"}
     cont -->|"ja"| next
     cont -->|"nee"| failed["De uitvoering<br/>stopt als mislukt"]
 ```
 
-Standaard stopt een mislukte stap de uitvoering en markeert die als `Failed`, met de fout van de stap als reden. Met **Doorgaan bij fout** aan wordt de fout vastgelegd en loopt de volgende stap, wat past bij runbooks van het type "probeer deze drie dingen en waarschuw dan". **Goedkeuring vereisen** geldt nadat een stap slaagt: de uitvoering wacht op die stap tot iemand op **Approve & continue** of **Overslaan** klikt.
+Standaard stopt een mislukte stap de uitvoering en markeert die als `Failed`, met de fout van de stap als reden. Met **Doorgaan bij fout** aan wordt de fout vastgelegd en loopt de volgende stap, wat past bij runbooks van het type "probeer deze drie dingen en waarschuw dan".
+
+**Goedkeuring vereisen** geldt voordat een stap loopt, wat er ook eerder gebeurde: de uitvoering wacht tot iemand op **Goedkeuren en uitvoeren** klikt, en de stap loopt, of op **Overslaan**, en hij loopt nooit. Zet het aan voor de stap die iets verandert - de herstart, de failover, het afschalen - zodat een persoon eerst bekijkt wat de stappen ervoor hebben gevonden. De goedkeuring hoort bij de stap, dus wie de stap verplaatst, verplaatst haar mee.
+
+:::note
+Via de API en Terraform is de schakelaar het veld `requireApprovalBeforeRunning` van een stap. Het veld `requireApproval` van een stap, dat runbooks schreven voordat goedkeuringen naar de stap verhuisden die ze bewaken, werkt nog steeds en betekent wat het betekende: een goedkeuring na die stap. OneUptime leest het als een goedkeuring vóór de volgende stap of, na de laatste stap, als een Manual-stap aan het eind, met de titel **Approve the result**.
+:::
 
 ## Opslaan en bewerken
 

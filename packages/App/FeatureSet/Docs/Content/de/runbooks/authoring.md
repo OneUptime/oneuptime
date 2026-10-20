@@ -5,7 +5,7 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 :::cards
 - [Ein Runbook erstellen](#ein-runbook-erstellen): Vom leeren Runbook zu gespeicherten Schritten.
 - [Schritttypen](#schritttypen): Manual, JavaScript, HTTP request, Bash, SSH, kubectl und AI.
-- [Fehlerbehandlung und Freigaben](#fehlerbehandlung-und-freigaben): Was passiert, nachdem ein Schritt fehlschlägt oder gelingt.
+- [Fehlerbehandlung und Freigaben](#fehlerbehandlung-und-freigaben): Was passiert, wenn ein Schritt fehlschlägt oder auf eine Freigabe wartet.
 - [Ein durchgespieltes Beispiel](#ein-durchgespieltes-beispiel): Ein Datenbank-Failover in fünf Schritten.
 :::
 
@@ -47,9 +47,9 @@ Jeder Schritt hat diese Felder. Ein automatisierter Schritt zeigt seinen **Titel
 | Feld | Zweck |
 | --- | --- |
 | **Titel** | Eine kurze Bezeichnung, in der Schrittliste und in jedem Lauf angezeigt. |
-| **Beschreibung** | Optionaler Kontext für die reagierende Person, in Markdown, unter **Weitere Felder**. Bei einem Manual-Schritt ist sie die Anweisung, die die Person liest, und steht unter dem Titel. |
+| **Beschreibung** | Optionaler Kontext für die reagierende Person, in Markdown, unter **Weitere Felder**. Bei einem Manual-Schritt sind es die **Anweisungen**, die die Person liest und befolgt, und sie stehen unter dem Titel. |
 | **Bei Fehler fortfahren** | Nur automatisierte Schritte. Ist es an, stoppt ein fehlschlagender Schritt den Lauf nicht: Der nächste Schritt läuft trotzdem. |
-| **Genehmigung erforderlich** | Nur automatisierte Schritte. Ist es an, pausiert das Runbook nach diesem Schritt und wartet auf die Zustimmung einer Person, bevor der nächste Schritt läuft. Der Schalter heißt **Genehmigung erforderlich, bevor der nächste Schritt ausgeführt wird**. |
+| **Genehmigung erforderlich** | Nur automatisierte Schritte. Ist es an, hält der Lauf vor diesem Schritt an, bis jemand ihn genehmigt, und führt ihn erst dann aus. Der Schalter heißt **Genehmigung erforderlich, bevor dieser Schritt ausgeführt wird**, und der Kopf des Schritts zeigt **Genehmigung nötig**. |
 | Typspezifische Einstellungen | Das Skript, die URL, der Runner, eine geheime Variable oder der Prompt. Siehe [Schritttypen](#schritttypen). |
 
 ## Schritttypen
@@ -64,11 +64,11 @@ Jeder Schritt hat diese Felder. Ein automatisierter Schritt zeigt seinen **Titel
 | [kubectl](#kubectl) | Einem Runner | Einen Runner und eine kubeconfig-Variable oder den eigenen Zugriff des Runners |
 | [AI](#ai) | Dem OneUptime Worker | Einen LLM-Anbieter |
 
-In jedem der folgenden Schritte stehen die Timeouts, die **Beschreibung**, **Bei Fehler fortfahren** und **Genehmigung erforderlich** unter **Weitere Felder** des Schritts, ebenso der Anbieter und die Kontextschalter eines KI-Schritts.
+In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port und Passphrase des Schlüssels eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts.
 
 ### Manual
 
-Ein Checklistenpunkt für eine Person. Der Lauf pausiert, wenn er einen Manual-Schritt erreicht, und bleibt in `WaitingForManualStep` (**Wartet auf Sie**), bis jemand auf **Als abgeschlossen markieren** oder **Überspringen** klickt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout.
+Ein Checklistenpunkt für eine Person: Seine **Anweisungen** sagen, was zu tun oder zu prüfen ist. Der Lauf pausiert, wenn er einen Manual-Schritt erreicht, und bleibt in `WaitingForManualStep` (**Wartet auf Sie**), bis jemand auf **Als abgeschlossen markieren** oder **Überspringen** klickt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Ein Manual-Schritt hat keinen Genehmigungsschalter: Er hält den Lauf ohnehin für eine Person an.
 
 Nutzen Sie ihn für das, was nur ein Mensch prüfen oder tun kann: „Bestätigen, dass der Verkehr im Dashboard des Load Balancers in die sekundäre Region verlagert wurde.“
 
@@ -100,8 +100,8 @@ Ein ausgehender HTTP-Aufruf, ausgeführt vom OneUptime Worker. Es wird kein Runn
 | --- | --- | --- |
 | **Methode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` oder `HEAD`. | `GET` |
 | **URL** | Der aufzurufende Endpunkt. | Leer |
-| **Header (JSON)** | Ein JSON-Objekt, etwa `{ "Authorization": "Bearer ..." }`. Header, die kein gültiges JSON sind, lassen den Schritt fehlschlagen. | Keine |
-| **Body** | Wird als JSON gesendet, wenn er sich als JSON parsen lässt, sonst als Text. | Keiner |
+| **Header (JSON)** | Unter **Weitere Felder**. Ein JSON-Objekt, etwa `{ "Authorization": "Bearer ..." }`. Header, die kein gültiges JSON sind, lassen den Schritt fehlschlagen. | Keine |
+| **Body** | Wird bei `POST`, `PUT`, `PATCH` und `DELETE` angezeigt. Wird als JSON gesendet, wenn er sich als JSON parsen lässt, sonst als Text. | Keiner |
 | **Anfrage-Timeout** | Wie lange auf die Antwort des Endpunkts gewartet wird, bevor der Schritt fehlschlägt. | 30 Sekunden |
 
 Der Schritt gelingt bei einer `2xx`- oder `3xx`-Antwort und schlägt bei allem anderen fehl, mit `HTTP <status>` als Fehler. Weiterleitungen werden nicht verfolgt. Status, Header und Body der Antwort werden erfasst, bis zu 50 KB.
@@ -194,7 +194,7 @@ Lassen Sie die KI mitten im Lauf etwas analysieren, zusammenfassen oder entschei
 | **Kontext vorheriger Schritte einbeziehen** | Ist es an, sieht die KI alles über die Schritte, die vor diesem liefen: Titel, Typ, Status, Ausgabe und Fehlermeldungen. Sie erhält bis zu 4.000 Zeichen der Ausgabe jedes Schritts. |
 | **Auslöserkontext einbeziehen** | Ist es an, sieht die KI, was den Lauf gestartet hat: den verknüpften Vorfall, die Warnung oder das geplante Wartungsereignis (Beschreibung, Schweregrad, aktueller Zustand, betroffene Monitore, Grundursache, Zustandsverlauf und öffentliche Notizen) oder wer das Runbook von Hand gestartet hat. |
 
-Kombinieren Sie einen KI-Schritt mit **Genehmigung erforderlich**, damit ein Mensch eingebunden bleibt: Die KI analysiert, eine reagierende Person liest die Antwort und stimmt zu, und erst dann läuft der nächste (behebende) Schritt.
+Damit ein Mensch eingebunden bleibt, schalten Sie **Genehmigung erforderlich** an dem Schritt nach einem KI-Schritt ein: Die KI analysiert, eine reagierende Person liest ihre Antwort, und der behebende Schritt läuft erst, wenn sie ihn genehmigt.
 
 **Was die KI nie sieht.** Die Antwort eines KI-Schritts wird als Schrittausgabe auf der Ausführung gespeichert, und Ausführungen kann jeder mit Leseberechtigung für Runbooks lesen, ein größerer Kreis als beim Vorfall. Deshalb lässt der Auslöserkontext **private interne Notizen** und **Kanalnachrichten aus Slack und Microsoft Teams** weg. Die Ausgabe früherer Schritte wird nach Geheimnissen (Tokens, Schlüssel, Anmeldedaten) durchsucht, die geschwärzt werden, bevor sie an das Modell geht. Eingebettete Bilder und lange kodierte Daten, etwa ein Screenshot in der Beschreibung eines Vorfalls, werden ebenfalls weggelassen, mit einem kurzen Hinweis an ihrer Stelle.
 
@@ -202,19 +202,27 @@ KI-Schritte werden wie jede andere KI-Funktion gemessen und abgerechnet. Der Sch
 
 ## Fehlerbehandlung und Freigaben
 
-```mermaid title="Was nach einem automatisierten Schritt passiert"
+```mermaid title="Was an einem automatisierten Schritt passiert"
 flowchart TB
-    run["Automatisierter<br/>Schritt läuft"] --> ok{"Erfolgreich?"}
-    ok -->|"ja"| approval{"Genehmigung<br/>erforderlich an?"}
+    reach["Der Lauf erreicht einen<br/>automatisierten Schritt"] --> approval{"Genehmigung<br/>erforderlich an?"}
     approval -->|"ja"| wait["Lauf wartet auf<br/>die Zustimmung<br/>einer Person"]
-    approval -->|"nein"| next["Nächster Schritt läuft"]
-    wait --> next
+    approval -->|"nein"| run["Der Schritt läuft"]
+    wait -->|"genehmigt"| run
+    wait -->|"übersprungen"| next["Nächster Schritt"]
+    run --> ok{"Erfolgreich?"}
+    ok -->|"ja"| next
     ok -->|"nein"| cont{"Bei Fehler<br/>fortfahren an?"}
     cont -->|"ja"| next
     cont -->|"nein"| failed["Lauf stoppt und<br/>ist fehlgeschlagen"]
 ```
 
-Standardmäßig hält ein fehlschlagender Schritt den Lauf an und markiert die Ausführung als `Failed`, mit dem Fehler des Schritts als Grund. Mit **Bei Fehler fortfahren** wird der Fehler aufgezeichnet und der nächste Schritt läuft, was zu Runbooks nach dem Muster „diese drei Dinge versuchen, dann benachrichtigen“ passt. **Genehmigung erforderlich** greift, nachdem ein Schritt gelungen ist: Der Lauf wartet an diesem Schritt, bis jemand auf **Genehmigen & fortfahren** oder **Überspringen** klickt.
+Standardmäßig hält ein fehlschlagender Schritt den Lauf an und markiert die Ausführung als `Failed`, mit dem Fehler des Schritts als Grund. Mit **Bei Fehler fortfahren** wird der Fehler aufgezeichnet und der nächste Schritt läuft, was zu Runbooks nach dem Muster „diese drei Dinge versuchen, dann benachrichtigen“ passt.
+
+**Genehmigung erforderlich** greift, bevor ein Schritt läuft, egal was davor geschah: Der Lauf wartet, bis jemand auf **Genehmigen und ausführen** klickt, und der Schritt läuft, oder auf **Überspringen**, und er läuft nie. Schalten Sie es für den Schritt ein, der etwas verändert - den Neustart, das Failover, das Herunterskalieren -, damit eine Person sich zuerst ansieht, was die Schritte davor gefunden haben. Die Genehmigung gehört zum Schritt: Wird der Schritt verschoben, wandert sie mit.
+
+:::note
+Über die API und Terraform ist der Schalter das Feld `requireApprovalBeforeRunning` eines Schritts. Das Feld `requireApproval` eines Schritts, das Runbooks schrieben, bevor Genehmigungen an den Schritt wanderten, den sie schützen, funktioniert weiter und bedeutet, was es bedeutete: eine Genehmigung nach diesem Schritt. OneUptime liest es als Genehmigung vor dem nächsten Schritt oder, nach dem letzten Schritt, als Manual-Schritt am Ende mit dem Titel **Approve the result**.
+:::
 
 ## Speichern und bearbeiten
 

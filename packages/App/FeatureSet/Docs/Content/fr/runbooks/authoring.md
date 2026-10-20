@@ -5,7 +5,7 @@ Vous écrivez un runbook sous forme de liste ordonnée d'étapes, sur sa page **
 :::cards
 - [Créer un runbook](#créer-un-runbook): D'un runbook vide à des étapes enregistrées.
 - [Types d'étapes](#types-détapes): Manual, JavaScript, HTTP request, Bash, SSH, kubectl et AI.
-- [Gestion des échecs et approbations](#gestion-des-échecs-et-approbations): Ce qui se passe après l'échec ou la réussite d'une étape.
+- [Gestion des échecs et approbations](#gestion-des-échecs-et-approbations): Ce qui se passe quand une étape échoue ou attend une approbation.
 - [Un exemple complet](#un-exemple-complet): Une bascule de base de données en cinq étapes.
 :::
 
@@ -47,9 +47,9 @@ Chaque étape comporte ces champs. Une étape automatisée affiche son **Titre**
 | Champ | Rôle |
 | --- | --- |
 | **Titre** | Un libellé court, affiché dans la liste des étapes et dans chaque exécution. |
-| **Description** | Contexte facultatif pour la personne qui intervient, en Markdown, sous **Plus de champs**. Pour une étape Manual, c'est la consigne qu'elle lit, affichée sous le titre. |
+| **Description** | Contexte facultatif pour la personne qui intervient, en Markdown, sous **Plus de champs**. Pour une étape Manual, ce sont les **Instructions** qu'elle lit et suit, affichées sous le titre. |
 | **Continuer en cas d'échec** | Étapes automatisées uniquement. Si activé, une étape en échec n'arrête pas l'exécution : l'étape suivante s'exécute quand même. |
-| **Exiger une approbation** | Étapes automatisées uniquement. Si activé, le runbook se met en pause après cette étape et attend qu'une personne approuve avant d'exécuter l'étape suivante. L'interrupteur s'intitule **Exiger une approbation avant d'exécuter l'étape suivante**. |
+| **Exiger une approbation** | Étapes automatisées uniquement. Si activé, l'exécution s'arrête avant cette étape jusqu'à ce que quelqu'un l'approuve, et seulement alors l'exécute. L'interrupteur s'intitule **Exiger une approbation avant d'exécuter cette étape**, et l'en-tête de l'étape indique **Approbation requise**. |
 | Réglages propres au type | Le script, l'URL, l'agent Runbook, une variable secrète ou le prompt. Voir [Types d'étapes](#types-détapes). |
 
 ## Types d'étapes
@@ -64,11 +64,11 @@ Chaque étape comporte ces champs. Une étape automatisée affiche son **Titre**
 | [kubectl](#kubectl) | Un agent Runbook | Un agent Runbook, et une variable kubeconfig ou l'accès propre de l'agent Runbook |
 | [AI](#ai) | Le Worker OneUptime | Un fournisseur LLM |
 
-Dans chaque étape ci-dessous, les délais, la **Description**, **Continuer en cas d'échec** et **Exiger une approbation** se trouvent sous **Plus de champs** de l'étape, tout comme le fournisseur et les interrupteurs de contexte d'une étape d'IA.
+Dans chaque étape automatisée ci-dessous, **Plus de champs** de l'étape contient d'abord **Exiger une approbation** et **Continuer en cas d'échec**, puis les réglages propres à l'étape - les en-têtes d'un appel HTTP, le port et la phrase secrète de la clé d'une étape SSH, le fournisseur et les interrupteurs de contexte d'une étape d'IA - et enfin la **Description** et les délais.
 
 ### Manual
 
-Un élément de checklist pour une personne. L'exécution se met en pause quand elle atteint une étape Manual et reste en `WaitingForManualStep` (**En attente de votre part**) jusqu'à ce que quelqu'un clique sur **Marquer comme terminé** ou **Ignorer**. Une exécution qui attend une personne n'expire jamais.
+Un élément de checklist pour une personne : ses **Instructions** disent quoi faire ou vérifier. L'exécution se met en pause quand elle atteint une étape Manual et reste en `WaitingForManualStep` (**En attente de votre part**) jusqu'à ce que quelqu'un clique sur **Marquer comme terminé** ou **Ignorer**. Une exécution qui attend une personne n'expire jamais. Une étape Manual n'a pas d'interrupteur d'approbation : elle arrête déjà l'exécution pour une personne.
 
 Utilisez-la pour ce que seul un humain peut vérifier ou faire : « Confirmer dans le tableau de bord du répartiteur de charge que le trafic est passé dans la région secondaire. »
 
@@ -100,8 +100,8 @@ Un appel HTTP sortant, fait par le Worker OneUptime. Aucun agent Runbook n'est n
 | --- | --- | --- |
 | **Méthode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` ou `HEAD`. | `GET` |
 | **URL** | Le point de terminaison à appeler. | Vide |
-| **En-têtes (JSON)** | Un objet JSON, par exemple `{ "Authorization": "Bearer ..." }`. Des en-têtes qui ne sont pas du JSON valide font échouer l'étape. | Aucun |
-| **Corps** | Envoyé en JSON s'il s'analyse comme du JSON, sinon en texte. | Aucun |
+| **En-têtes (JSON)** | Sous **Plus de champs**. Un objet JSON, par exemple `{ "Authorization": "Bearer ..." }`. Des en-têtes qui ne sont pas du JSON valide font échouer l'étape. | Aucun |
+| **Corps** | Affiché pour `POST`, `PUT`, `PATCH` et `DELETE`. Envoyé en JSON s'il s'analyse comme du JSON, sinon en texte. | Aucun |
 | **Request timeout** | Combien de temps attendre la réponse du point de terminaison avant de faire échouer l'étape. | 30 secondes |
 
 L'étape réussit sur une réponse `2xx` ou `3xx` et échoue sur tout le reste, avec `HTTP <status>` comme erreur. Les redirections ne sont pas suivies. Le statut, les en-têtes et le corps de la réponse sont capturés, jusqu'à 50 Ko.
@@ -194,7 +194,7 @@ Demandez à l'IA d'analyser, de résumer ou de décider quelque chose en cours d
 | **Inclure le contexte des étapes précédentes** | Si activé, l'IA voit tout des étapes exécutées avant celle-ci : titre, type, statut, sortie et messages d'erreur. Elle reçoit jusqu'à 4 000 caractères de la sortie de chaque étape. |
 | **Inclure le contexte du déclencheur** | Si activé, l'IA voit ce qui a lancé l'exécution : l'incident, l'alerte ou l'événement de maintenance planifiée lié (sa description, sa gravité, son état actuel, les moniteurs touchés, la cause racine, la chronologie des états et les notes publiques), ou la personne qui a lancé le runbook à la main. |
 
-Associez une étape IA à **Exiger une approbation** pour garder une personne dans la boucle : l'IA analyse, une personne lit sa réponse et approuve, et seulement alors l'étape suivante (de remédiation) s'exécute.
+Pour garder une personne dans la boucle, activez **Exiger une approbation** sur l'étape qui suit une étape IA : l'IA analyse, une personne lit sa réponse, et l'étape de remédiation ne s'exécute qu'une fois que cette personne l'a approuvée.
 
 **Ce que l'IA ne voit jamais.** La réponse d'une étape IA est stockée comme sortie d'étape sur l'exécution, et les exécutions sont lisibles par toute personne ayant le droit de lire les runbooks, un public plus large que celui de l'incident. Le contexte du déclencheur laisse donc de côté les **notes internes privées** et les **messages des canaux Slack et Microsoft Teams**. La sortie des étapes précédentes est analysée à la recherche de secrets (jetons, clés, identifiants), qui sont masqués avant l'envoi au modèle. Les images intégrées et les longues données encodées, comme une capture d'écran collée dans la description d'un incident, sont aussi laissées de côté, avec une courte note à leur place.
 
@@ -202,19 +202,27 @@ Les étapes IA sont mesurées et facturées comme toute autre fonctionnalité d'
 
 ## Gestion des échecs et approbations
 
-```mermaid title="Ce qui se passe après une étape automatisée"
+```mermaid title="Ce qui se passe à une étape automatisée"
 flowchart TB
-    run["Une étape<br/>automatisée s'exécute"] --> ok{"Réussie ?"}
-    ok -->|"oui"| approval{"Exiger une<br/>approbation activé ?"}
+    reach["L'exécution atteint<br/>une étape automatisée"] --> approval{"Exiger une<br/>approbation activé ?"}
     approval -->|"oui"| wait["L'exécution attend<br/>l'approbation<br/>d'une personne"]
-    approval -->|"non"| next["L'étape suivante s'exécute"]
-    wait --> next
+    approval -->|"non"| run["L'étape s'exécute"]
+    wait -->|"approuvée"| run
+    wait -->|"ignorée"| next["Étape suivante"]
+    run --> ok{"Réussie ?"}
+    ok -->|"oui"| next
     ok -->|"non"| cont{"Continuer en cas<br/>d'échec activé ?"}
     cont -->|"oui"| next
     cont -->|"non"| failed["L'exécution<br/>s'arrête en échec"]
 ```
 
-Par défaut, une étape en échec arrête l'exécution et la marque `Failed`, avec l'erreur de l'étape comme motif. Avec **Continuer en cas d'échec**, l'échec est enregistré et l'étape suivante s'exécute, ce qui convient aux runbooks du type « essayer ces trois choses, puis prévenir ». **Exiger une approbation** s'applique après la réussite d'une étape : l'exécution attend sur cette étape jusqu'à ce que quelqu'un clique sur **Approuver et continuer** ou **Ignorer**.
+Par défaut, une étape en échec arrête l'exécution et la marque `Failed`, avec l'erreur de l'étape comme motif. Avec **Continuer en cas d'échec**, l'échec est enregistré et l'étape suivante s'exécute, ce qui convient aux runbooks du type « essayer ces trois choses, puis prévenir ».
+
+**Exiger une approbation** s'applique avant qu'une étape s'exécute, quoi qu'il se soit passé avant : l'exécution attend que quelqu'un clique sur **Approuver et exécuter**, et l'étape s'exécute, ou sur **Ignorer**, et elle ne s'exécute jamais. Activez-le pour l'étape qui change quelque chose - le redémarrage, le basculement, la réduction d'échelle - afin qu'une personne regarde d'abord ce que les étapes précédentes ont trouvé. L'approbation appartient à l'étape : déplacer l'étape la déplace aussi.
+
+:::note
+Via l'API et Terraform, l'interrupteur est le champ `requireApprovalBeforeRunning` d'une étape. Le champ `requireApproval` d'une étape, que les runbooks écrivaient avant que les approbations passent sur l'étape qu'elles protègent, fonctionne toujours et garde son sens : une approbation après cette étape. OneUptime le lit comme une approbation avant l'étape suivante ou, après la dernière étape, comme une étape Manual à la fin, intitulée **Approve the result**.
+:::
 
 ## Enregistrer et modifier
 

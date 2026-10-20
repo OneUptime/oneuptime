@@ -158,7 +158,7 @@ Die Ausführung bleibt auf der Seite **Runbooks** des Vorfalls. Wenn Sie das Pos
 - **Cache leeren**: eine HTTP-Anfrage, dann ein Manual-Schritt „Bestätigen, dass sich die Cache-Trefferquote erholt“.
 - **Vorfall mit Kundenauswirkung**: Manual „Ein Statusseiten-Update posten“, eine HTTP-Anfrage, um das Support-Team zu benachrichtigen, JavaScript, um die Liste betroffener Konten abzurufen.
 - **Vorabprüfung einer geplanten Wartung**: Metriken festhalten, das Wartungsfenster mit den Beteiligten bestätigen (Manual), den Wartungsmodus am Load Balancer einschalten (HTTP request).
-- **Erst diagnostizieren, dann beheben**: Ein Bash-Schritt sammelt Diagnosedaten, ein KI-Schritt mit **Genehmigung erforderlich** liest sie und empfiehlt eine Behebung, und ein kubectl-Schritt startet die Workload erst neu, wenn eine Person zugestimmt hat.
+- **Erst diagnostizieren, dann beheben**: Ein Bash-Schritt sammelt Diagnosedaten, ein KI-Schritt liest sie und empfiehlt eine Behebung, und ein kubectl-Schritt mit **Genehmigung erforderlich** startet die Workload erst neu, wenn eine Person ihn genehmigt hat.
 - **Pflicht-Routine**: eine Regel ohne Bedingungen, die bei jedem Vorfall den Systemzustand für das Postmortem festhält.
 
 ## Wie Runbooks zum Rest von OneUptime passen

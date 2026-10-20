@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 Um monitor abre o incidente `INC-4821 · db-primary connection timeout`. A regra corresponde e uma execução começa:
 
 - A etapa 1 (JavaScript) é executada no Runner que você escolheu para ela. Seu valor de retorno, como `{ lagMs: 412 }`, é capturado. Uma etapa que não escolhe nenhum Runner roda em um Runner global.
-- A etapa 2 (Manual) pausa a execução, que mostra **Aguardando você**. A pessoa de plantão confere o painel e clica em **Mark complete**.
+- A etapa 2 (Manual) pausa a execução, que mostra **Aguardando você**. A pessoa de plantão confere o painel e clica em **Marcar como concluído**.
 - A etapa 3 (HTTP request) é executada, e a resposta ao `POST` é capturada.
 - A etapa 4 (Manual) pausa a execução de novo até que alguém a conclua.
 - A etapa 5 (HTTP request) é executada, e a execução fica **Concluído**.
@@ -158,7 +158,7 @@ A execução fica na página **Runbooks** do incidente. Quando você escrever o 
 - **Limpeza de cache**: uma requisição HTTP e depois uma etapa Manual "confirmar que a taxa de acertos do cache está se recuperando".
 - **Incidente com impacto em clientes**: Manual "publicar uma atualização na página de status", uma requisição HTTP para avisar a equipe de suporte, JavaScript para obter a lista de contas afetadas.
 - **Verificação prévia de uma manutenção programada**: registrar métricas, confirmar a janela de mudança com as partes interessadas (Manual), ativar o modo de manutenção no balanceador de carga (HTTP request).
-- **Diagnosticar e depois corrigir**: uma etapa Bash coleta diagnósticos, uma etapa de IA com **Exigir aprovação** os lê e recomenda uma correção, e uma etapa kubectl só reinicia a carga de trabalho depois que uma pessoa aprova.
+- **Diagnosticar e depois corrigir**: uma etapa Bash coleta diagnósticos, uma etapa de IA os lê e recomenda uma correção, e uma etapa kubectl com **Exigir aprovação** só reinicia a carga de trabalho depois que uma pessoa a aprova.
 - **Higiene que sempre roda**: uma regra sem condições que captura o estado do sistema em todo incidente, para o postmortem.
 
 ## Como os runbooks se encaixam no resto do OneUptime

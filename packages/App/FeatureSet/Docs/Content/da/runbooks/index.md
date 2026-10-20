@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 En monitor åbner hændelsen `INC-4821 · db-primary connection timeout`. Reglen matcher, og en udførelse starter:
 
 - Trin 1 (JavaScript) kører på den Runner, du valgte til det. Returværdien, f.eks. `{ lagMs: 412 }`, registreres. Et trin, der ikke vælger nogen Runner, kører på en global Runner.
-- Trin 2 (Manual) sætter kørslen på pause, som viser **Venter på dig**. Den vagthavende tjekker dashboardet og klikker på **Mark complete**.
+- Trin 2 (Manual) sætter kørslen på pause, som viser **Venter på dig**. Den vagthavende tjekker dashboardet og klikker på **Marker som færdig**.
 - Trin 3 (HTTP request) kører, og svaret på `POST` registreres.
 - Trin 4 (Manual) sætter kørslen på pause igen, indtil nogen fuldfører det.
 - Trin 5 (HTTP request) kører, og udførelsen er **Fuldført**.
@@ -158,7 +158,7 @@ Udførelsen bliver på hændelsens side **Runbooks**. Når du skriver postmortem
 - **Tømning af cache**: én HTTP-anmodning, og derefter et Manual-trin "bekræft, at cache-hitraten er ved at komme sig".
 - **Hændelse med kundepåvirkning**: Manual "send en opdatering på statussiden", en HTTP-anmodning for at give supportteamet besked, JavaScript for at hente listen over berørte konti.
 - **Forhåndstjek før planlagt vedligeholdelse**: tag et øjebliksbillede af metrikker, bekræft ændringsvinduet med interessenterne (Manual), slå vedligeholdelsestilstand til på load balanceren (HTTP request).
-- **Diagnosticer, og ret så**: et Bash-trin indsamler diagnosticering, et AI-trin med **Kræv godkendelse** læser den og anbefaler en rettelse, og et kubectl-trin genstarter arbejdsbelastningen, først når en person har godkendt.
+- **Diagnosticer, og ret så**: et Bash-trin indsamler diagnosticering, et AI-trin læser den og anbefaler en rettelse, og et kubectl-trin med **Kræv godkendelse** genstarter arbejdsbelastningen, først når en person har godkendt det.
 - **Hygiejne, der altid kører**: en regel uden betingelser, der registrerer systemets tilstand ved hver hændelse til postmortem.
 
 ## Sådan passer runbooks ind i resten af OneUptime

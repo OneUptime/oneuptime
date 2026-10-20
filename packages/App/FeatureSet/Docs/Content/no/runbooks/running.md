@@ -33,7 +33,7 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-En ny kjøring er **Planlagt** til en Worker tar den og markerer den som **Kjører**. Den tar pause som **Venter på deg** ved et Manual-trinn, eller etter et trinn som krever godkjenning, og går tilbake i køen så snart noen handler. En kjøring som venter på en person, utløper aldri. Den avsluttes som **Fullført**, **Mislyktes** eller **Avbrutt**.
+En ny kjøring er **Planlagt** til en Worker tar den og markerer den som **Kjører**. Den tar pause som **Venter på deg** ved et Manual-trinn, eller før et trinn som krever godkjenning, og går tilbake i køen så snart noen handler. En kjøring som venter på en person, utløper aldri. Den avsluttes som **Fullført**, **Mislyktes** eller **Avbrutt**.
 
 ## Start en kjøring
 
@@ -64,18 +64,19 @@ For å starte en kjøring trenger du Project Owner, Project Admin, Project Membe
 
 Åpne en kjøring for å se sjekklisten. Øverst på siden vises kjøringens **Status**, **Progress** (ferdige trinn av alle trinn), **Startet** (når den begynte) og **Utløst av** (hva som startet den). Hvert trinn viser:
 
-- **Statusmerke** — Venter, Kjører, Venter på deg, Ferdig, Hoppet over, Mislyktes eller Avbrutt.
+- **Statusmerke** — Venter, Kjører, Venter på deg, Venter på godkjenning, Ferdig, Hoppet over, Mislyktes eller Avbrutt.
 - **Tittel og beskrivelse** — kopiert fra runbooket da kjøringen startet.
 - **Output** (kan felles sammen) — stdout, returverdier, HTTP-svar eller svaret fra AI-en.
 - **Feilmelding**, hvis trinnet feilet.
-- På trinnet kjøringen venter på: **Mark complete** (et Manual-trinn) eller **Approve & continue** (et trinn med **Krev godkjenning**) og **Hopp over**.
+- På trinnet kjøringen venter på: **Marker som ferdig** (et Manual-trinn) eller **Godkjenn og kjør** (et trinn med **Krev godkjenning**, som ikke har kjørt ennå) og **Hopp over**.
+- **Godkjent av** på et trinn som ventet på godkjenning, når det har kjørt.
 - Mens kjøringen har pause, **Hopp over** på senere automatiserte trinn som ikke krever godkjenning.
 
 Mens kjøringen pågår, oppdaterer siden seg selv hvert 30. sekund. Klikk **Oppdater** for å se den nyeste tilstanden med en gang.
 
 ## Fullfør, godkjenn og hopp over trinn
 
-Bare trinnet kjøringen venter på, kan fullføres, godkjennes eller hoppes over slik at kjøringen fortsetter. Et Manual-trinn eller et trinn med **Krev godkjenning** kan ikke krysses av eller hoppes over før kjøringen når det: jobben deres er å stoppe kjøringen, så de tar først imot en beslutning når kjøringen er der (for en godkjenning: når trinnet har kjørt og du kan se outputen).
+Bare trinnet kjøringen venter på, kan fullføres, godkjennes eller hoppes over slik at kjøringen fortsetter. Et Manual-trinn eller et trinn med **Krev godkjenning** kan ikke krysses av eller hoppes over før kjøringen når det: jobben deres er å stoppe kjøringen, så de tar først imot en beslutning når kjøringen er der. Et trinn med **Krev godkjenning** venter før det kjører, så les først hva trinnene før det fant: **Godkjenn og kjør** kjører det, **Hopp over** hindrer at det kjører, og uansett fortsetter kjøringen. En kjøring som startet før godkjenninger flyttet til trinnet de vokter, venter i stedet etter et slikt trinn, når det har kjørt: **Godkjenn og fortsett** lar den kjøringen fortsette.
 
 Mens kjøringen har pause, kan du også hoppe over et senere automatisert trinn som ikke krever godkjenning, slik at det ikke kjører når kjøringen fortsetter. Kjøringen har fortsatt pause ved trinnet som venter på deg. Du kan ikke hoppe over mens trinn kjører: vent til kjøringen tar pause, eller avbryt den. Hvert trinn registrerer hvem som fullførte det eller hoppet over det.
 
@@ -95,7 +96,7 @@ Det klassiske forløpet:
 | # | Trinn | Hva som skjer |
 | --- | --- | --- |
 | 1 | Bash: registrer systemets tilstand | Kjører på sin Runner så snart kjøringen starter. |
-| 2 | Manual: "Varsle kundene med banneret på statussiden." | Kjøringen tar pause til noen klikker **Mark complete**. |
+| 2 | Manual: "Varsle kundene med banneret på statussiden." | Kjøringen tar pause til noen klikker **Marker som ferdig**. |
 | 3 | HTTP request: tilkall DBA-en via PagerDuty | Kjører på Workeren. |
 | 4 | Manual: "Bekreft at den sekundære databasen nå er primær." | Kjøringen tar pause igjen. |
 | 5 | HTTP request: send avblåsningen til en Slack-webhook | Kjører, og kjøringen er **Fullført**. |
@@ -145,7 +146,7 @@ Meldingen lyder "No runbook agent picked up this step before the wait window exp
 :::
 
 :::details Kjøringen har ventet i timevis
-En kjøring som venter på en person, utløper aldri. Åpne den, og handle på trinnet som viser **Venter på deg**, eller klikk **Avbryt kjøring**.
+En kjøring som venter på en person, utløper aldri. Åpne den, og handle på trinnet som viser **Venter på deg** eller **Venter på godkjenning**, eller klikk **Avbryt kjøring**.
 :::
 
 :::details Et trinn sier at det kanskje har kjørt delvis

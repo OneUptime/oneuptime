@@ -5,7 +5,7 @@ Você escreve um runbook como uma lista ordenada de etapas na página **Etapas**
 :::cards
 - [Criar um runbook](#criar-um-runbook): De um runbook vazio a etapas salvas.
 - [Tipos de etapa](#tipos-de-etapa): Manual, JavaScript, HTTP request, Bash, SSH, kubectl e AI.
-- [Tratamento de falhas e aprovações](#tratamento-de-falhas-e-aprovações): O que acontece depois que uma etapa falha ou dá certo.
+- [Tratamento de falhas e aprovações](#tratamento-de-falhas-e-aprovações): O que acontece quando uma etapa falha ou espera uma aprovação.
 - [Um exemplo completo](#um-exemplo-completo): Um failover de banco de dados em cinco etapas.
 :::
 
@@ -47,9 +47,9 @@ Toda etapa tem estes campos. Uma etapa automatizada mostra seu **Título** e as 
 | Campo | Finalidade |
 | --- | --- |
 | **Título** | Um rótulo curto, mostrado na lista de etapas e em cada execução. |
-| **Descrição** | Contexto opcional para quem responde, em Markdown, em **Mais campos**. Em uma etapa Manual, é a instrução que essa pessoa lê, mostrada abaixo do título. |
+| **Descrição** | Contexto opcional para quem responde, em Markdown, em **Mais campos**. Em uma etapa Manual, são as **Instruções** que essa pessoa lê e segue, mostradas abaixo do título. |
 | **Continuar em caso de falha** | Só etapas automatizadas. Se ligado, uma etapa que falha não interrompe a execução: a próxima etapa roda mesmo assim. |
-| **Exigir aprovação** | Só etapas automatizadas. Se ligado, o runbook pausa depois desta etapa e espera que uma pessoa aprove antes de executar a próxima. O interruptor diz **Exigir aprovação antes de executar a próxima etapa**. |
+| **Exigir aprovação** | Só etapas automatizadas. Se ligado, a execução para antes desta etapa até que alguém a aprove, e só então a executa. O interruptor diz **Exigir aprovação antes de executar esta etapa**, e o cabeçalho da etapa mostra **Requer aprovação**. |
 | Configurações específicas do tipo | O script, a URL, o Runner, uma variável secreta ou o prompt. Consulte [Tipos de etapa](#tipos-de-etapa). |
 
 ## Tipos de etapa
@@ -64,11 +64,11 @@ Toda etapa tem estes campos. Uma etapa automatizada mostra seu **Título** e as 
 | [kubectl](#kubectl) | Um Runner | Um Runner, e uma variável de kubeconfig ou o acesso próprio do Runner |
 | [AI](#ai) | O Worker do OneUptime | Um provedor de LLM |
 
-Em cada etapa abaixo, os tempos limite, a **Descrição**, **Continuar em caso de falha** e **Exigir aprovação** ficam em **Mais campos** da etapa, assim como o provedor e os interruptores de contexto de uma etapa de IA.
+Em cada etapa automatizada abaixo, **Mais campos** da etapa traz primeiro **Exigir aprovação** e **Continuar em caso de falha**, depois as configurações próprias da etapa - os headers de uma chamada HTTP, a porta e a frase secreta da chave de uma etapa SSH, o provedor e os interruptores de contexto de uma etapa de IA - e por último a **Descrição** e os tempos limite.
 
 ### Manual
 
-Um item de checklist para uma pessoa. A execução pausa ao chegar a uma etapa Manual e fica em `WaitingForManualStep` (**Aguardando você**) até que alguém clique em **Mark complete** ou **Pular**. Uma execução que espera por uma pessoa nunca expira.
+Um item de checklist para uma pessoa: suas **Instruções** dizem o que fazer ou verificar. A execução pausa ao chegar a uma etapa Manual e fica em `WaitingForManualStep` (**Aguardando você**) até que alguém clique em **Marcar como concluído** ou **Pular**. Uma execução que espera por uma pessoa nunca expira. Uma etapa Manual não tem interruptor de aprovação: ela já para a execução por uma pessoa.
 
 Use-a para o que só uma pessoa pode verificar ou fazer: "Confirmar no painel do balanceador de carga que o tráfego foi para a região secundária."
 
@@ -100,8 +100,8 @@ Uma chamada HTTP de saída, feita pelo Worker do OneUptime. Nenhum Runner é nec
 | --- | --- | --- |
 | **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` ou `HEAD`. | `GET` |
 | **URL** | O endpoint a chamar. | Vazio |
-| **Headers (JSON)** | Um objeto JSON, como `{ "Authorization": "Bearer ..." }`. Headers que não são JSON válido fazem a etapa falhar. | Nenhum |
-| **Body** | Enviado como JSON quando puder ser interpretado como JSON, e como texto caso contrário. | Nenhum |
+| **Headers (JSON)** | Em **Mais campos**. Um objeto JSON, como `{ "Authorization": "Bearer ..." }`. Headers que não são JSON válido fazem a etapa falhar. | Nenhum |
+| **Body** | Mostrado para `POST`, `PUT`, `PATCH` e `DELETE`. Enviado como JSON quando puder ser interpretado como JSON, e como texto caso contrário. | Nenhum |
 | **Request timeout** | Por quanto tempo esperar a resposta do endpoint antes de fazer a etapa falhar. | 30 segundos |
 
 A etapa dá certo com uma resposta `2xx` ou `3xx` e falha com qualquer outra, com `HTTP <status>` como erro. Redirecionamentos não são seguidos. O status, os headers e o corpo da resposta são capturados, até 50 KB.
@@ -194,7 +194,7 @@ Peça à IA para analisar, resumir ou decidir algo no meio da execução. A resp
 | **Include previous step context** | Se ligado, a IA vê tudo sobre as etapas que rodaram antes desta: título, tipo, status, saída e mensagens de erro. Ela recebe até 4.000 caracteres da saída de cada etapa. |
 | **Include trigger context** | Se ligado, a IA vê o que iniciou a execução: o incidente, alerta ou evento de manutenção programada vinculado (descrição, severidade, estado atual, monitores afetados, causa raiz, histórico de estados e notas públicas), ou quem executou o runbook manualmente. |
 
-Combine uma etapa de IA com **Exigir aprovação** para manter uma pessoa no circuito: a IA analisa, alguém lê a resposta e aprova, e só então a próxima etapa (de remediação) roda.
+Para manter uma pessoa no circuito, ligue **Exigir aprovação** na etapa que vem depois de uma etapa de IA: a IA analisa, alguém lê a resposta, e a etapa de remediação só roda depois que essa pessoa a aprova.
 
 **O que a IA nunca vê.** A resposta de uma etapa de IA fica guardada como saída da etapa na execução, e as execuções podem ser lidas por qualquer pessoa com permissão de leitura de runbooks, um público maior que o do incidente. Por isso o contexto do gatilho deixa de fora as **notas internas privadas** e as **mensagens de canais do Slack e do Microsoft Teams**. A saída das etapas anteriores é analisada em busca de segredos (tokens, chaves, credenciais), que são ocultados antes do envio ao modelo. Imagens incorporadas e dados codificados longos, como uma captura de tela colada na descrição de um incidente, também ficam de fora, com uma nota curta no lugar.
 
@@ -202,19 +202,27 @@ As etapas de IA são medidas e cobradas como qualquer outro recurso de IA. A eta
 
 ## Tratamento de falhas e aprovações
 
-```mermaid title="O que acontece depois de uma etapa automatizada"
+```mermaid title="O que acontece em uma etapa automatizada"
 flowchart TB
-    run["Uma etapa<br/>automatizada roda"] --> ok{"Deu certo?"}
-    ok -->|"sim"| approval{"Exigir aprovação<br/>ligado?"}
+    reach["A execução chega a<br/>uma etapa automatizada"] --> approval{"Exigir aprovação<br/>ligado?"}
     approval -->|"sim"| wait["A execução espera<br/>a aprovação<br/>de uma pessoa"]
-    approval -->|"não"| next["A próxima etapa roda"]
-    wait --> next
+    approval -->|"não"| run["A etapa roda"]
+    wait -->|"aprovada"| run
+    wait -->|"pulada"| next["Próxima etapa"]
+    run --> ok{"Deu certo?"}
+    ok -->|"sim"| next
     ok -->|"não"| cont{"Continuar em caso<br/>de falha ligado?"}
     cont -->|"sim"| next
     cont -->|"não"| failed["A execução<br/>para como falha"]
 ```
 
-Por padrão, uma etapa que falha interrompe a execução e a marca como `Failed`, com o erro da etapa como motivo. Com **Continuar em caso de falha** ligado, a falha é registrada e a próxima etapa roda, o que combina com runbooks do tipo "tente estas três coisas e depois avise". **Exigir aprovação** vale depois que uma etapa dá certo: a execução espera nessa etapa até alguém clicar em **Approve & continue** ou **Pular**.
+Por padrão, uma etapa que falha interrompe a execução e a marca como `Failed`, com o erro da etapa como motivo. Com **Continuar em caso de falha** ligado, a falha é registrada e a próxima etapa roda, o que combina com runbooks do tipo "tente estas três coisas e depois avise".
+
+**Exigir aprovação** vale antes de uma etapa rodar, aconteça o que acontecer antes: a execução espera até alguém clicar em **Aprovar e executar**, e a etapa roda, ou em **Pular**, e ela nunca roda. Ligue-o na etapa que muda alguma coisa - o reinício, o failover, a redução de escala - para que uma pessoa veja primeiro o que as etapas anteriores encontraram. A aprovação pertence à etapa, então mover a etapa também a move.
+
+:::note
+Pela API e pelo Terraform, o interruptor é o campo `requireApprovalBeforeRunning` de uma etapa. O campo `requireApproval` de uma etapa, que os runbooks gravavam antes de as aprovações passarem para a etapa que protegem, continua funcionando e significa o que significava: uma aprovação depois dessa etapa. O OneUptime o lê como uma aprovação antes da próxima etapa ou, depois da última etapa, como uma etapa Manual no fim, chamada **Approve the result**.
+:::
 
 ## Salvar e editar
 

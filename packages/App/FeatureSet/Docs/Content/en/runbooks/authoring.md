@@ -5,7 +5,7 @@ You write a runbook as an ordered list of steps on its **Steps** page. This page
 :::cards
 - [Create a runbook](#create-a-runbook): From an empty runbook to saved steps.
 - [Step types](#step-types): Manual, JavaScript, HTTP request, Bash, SSH, kubectl and AI.
-- [Failure handling and approvals](#failure-handling-and-approvals): What happens after a step fails, or succeeds.
+- [Failure handling and approvals](#failure-handling-and-approvals): What happens when a step fails, or waits for approval.
 - [A worked example](#a-worked-example): A five-step database failover.
 :::
 
@@ -47,9 +47,9 @@ Every step has these fields. An automated step shows its **Title** and its type'
 | Field | Purpose |
 | --- | --- |
 | **Title** | A short label, shown in the step list and on every run. |
-| **Description** | Optional context for the responder, in Markdown, under **More fields**. On a Manual step it is the instruction the responder reads, shown below the title. |
+| **Description** | Optional context for the responder, in Markdown, under **More fields**. On a Manual step it is the **Instructions** the responder reads and follows, shown below the title. |
 | **Continue on failure** | Automated steps only. If on, a failing step does not stop the run: the next step still runs. |
-| **Require approval** | Automated steps only. If on, the runbook pauses after this step and waits for a user to approve before running the next step. The switch reads **Require approval before running the next step**. |
+| **Require approval** | Automated steps only. If on, the run stops before this step until someone approves it, and only then runs it. The switch reads **Require approval before running this step**, and the step's header says **Needs approval**. |
 | Type-specific settings | The script, URL, Runner, secret variable or prompt. See [Step types](#step-types). |
 
 ## Step types
@@ -64,11 +64,11 @@ Every step has these fields. An automated step shows its **Title** and its type'
 | [kubectl](#kubectl) | A Runner | A Runner, and a kubeconfig variable or the Runner's own access |
 | [AI](#ai) | The OneUptime Worker | An LLM provider |
 
-In every step below, the timeouts, the **Description**, **Continue on failure** and **Require approval** are under the step's **More fields**, and so are an AI step's provider and context switches.
+In every automated step below, the step's **More fields** holds **Require approval** and **Continue on failure** first, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts.
 
 ### Manual
 
-A checklist item for a person. The run pauses when it reaches a Manual step and stays in `WaitingForManualStep` (**Waiting for you**) until someone clicks **Mark complete** or **Skip**. A run that waits for a person never times out.
+A checklist item for a person: its **Instructions** say what to do or check. The run pauses when it reaches a Manual step and stays in `WaitingForManualStep` (**Waiting for you**) until someone clicks **Mark complete** or **Skip**. A run that waits for a person never times out. A Manual step has no approval switch: it stops the run for a person already.
 
 Use it for what only a human can check or do: "Confirm traffic has moved to the secondary region in the load balancer dashboard."
 
@@ -100,8 +100,8 @@ An outbound HTTP call, made by the OneUptime Worker. No Runner is needed.
 | --- | --- | --- |
 | **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` or `HEAD`. | `GET` |
 | **URL** | The endpoint to call. | Empty |
-| **Headers (JSON)** | A JSON object, such as `{ "Authorization": "Bearer ..." }`. Headers that are not valid JSON fail the step. | None |
-| **Body** | Sent as JSON when it parses as JSON, and as text otherwise. | None |
+| **Headers (JSON)** | Under **More fields**. A JSON object, such as `{ "Authorization": "Bearer ..." }`. Headers that are not valid JSON fail the step. | None |
+| **Body** | Shown for `POST`, `PUT`, `PATCH` and `DELETE`. Sent as JSON when it parses as JSON, and as text otherwise. | None |
 | **Request timeout** | How long to wait for the endpoint to respond before failing the step. | 30 seconds |
 
 The step succeeds on a `2xx` or `3xx` response and fails on anything else, with `HTTP <status>` as its error. Redirects are not followed. The response's status, headers and body are captured, up to 50 KB.
@@ -194,7 +194,7 @@ Ask AI to analyze, summarize or decide something mid-run. The response becomes t
 | **Include previous step context** | If on, the AI sees everything about the steps that ran before this one: title, type, status, output and error messages. It gets up to 4,000 characters of each step's output. |
 | **Include trigger context** | If on, the AI sees what started the run: the linked incident, alert or scheduled maintenance event (its description, severity, current state, affected monitors, root cause, state timeline and public notes), or who ran the runbook by hand. |
 
-Pair an AI step with **Require approval** to keep a person in the loop: the AI analyzes, a responder reads its answer and approves, and only then does the next (remediation) step run.
+To keep a person in the loop, turn on **Require approval** on the step after an AI step: the AI analyzes, a responder reads its answer, and the remediation step runs only once they approve it.
 
 **What the AI never sees.** An AI step's answer is stored as step output on the execution, and executions are readable by anyone with runbook-read permission, a wider audience than the incident's. So the trigger context leaves out **private internal notes** and **Slack and Microsoft Teams channel messages**. The output of earlier steps is scanned for secrets (tokens, keys, credentials), which are redacted before it is sent to the model. Embedded images and long encoded data, such as a screenshot pasted into an incident's description, are left out too, with a short note in their place.
 
@@ -202,19 +202,27 @@ AI steps are metered and billed like any other AI feature. The step fails, with 
 
 ## Failure handling and approvals
 
-```mermaid title="What happens after an automated step"
+```mermaid title="What happens at an automated step"
 flowchart TB
-    run["Automated step runs"] --> ok{"Succeeded?"}
-    ok -->|yes| approval{"Require approval on?"}
+    reach["The run reaches<br/>an automated step"] --> approval{"Require approval on?"}
     approval -->|yes| wait["Run waits for a<br/>person to approve"]
-    approval -->|no| next["Next step runs"]
-    wait --> next
+    approval -->|no| run["The step runs"]
+    wait -->|approved| run
+    wait -->|skipped| next["Next step"]
+    run --> ok{"Succeeded?"}
+    ok -->|yes| next
     ok -->|no| cont{"Continue on failure on?"}
     cont -->|yes| next
     cont -->|no| failed["Run stops and is Failed"]
 ```
 
-By default, a failing step halts the run and marks the execution `Failed`, with the step's error as the reason. With **Continue on failure** on, the failure is recorded and the next step runs, which suits "try these three things, then notify" runbooks. **Require approval** applies after a step succeeds: the run waits on that step until someone clicks **Approve & continue** or **Skip**.
+By default, a failing step halts the run and marks the execution `Failed`, with the step's error as the reason. With **Continue on failure** on, the failure is recorded and the next step runs, which suits "try these three things, then notify" runbooks.
+
+**Require approval** applies before a step runs, whatever happened before it: the run waits until someone clicks **Approve and run**, and the step runs, or **Skip**, and it never runs. Turn it on for the step that changes something - the restart, the failover, the scale-down - so a person looks at what the steps before it found first. The approval belongs to the step, so moving the step moves it too.
+
+:::note
+Through the API and Terraform, the switch is a step's `requireApprovalBeforeRunning`. A step's `requireApproval`, which runbooks wrote before approvals moved to the step they guard, still works and means what it meant: an approval after that step. OneUptime reads it as an approval before the next step, or, after the last step, as a Manual step at the end, **Approve the result**.
+:::
 
 ## Saving and editing
 
