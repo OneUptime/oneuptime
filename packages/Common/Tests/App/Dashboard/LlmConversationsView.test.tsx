@@ -467,7 +467,7 @@ describe("pages", () => {
 });
 
 describe("when there is nothing to show", () => {
-  test("the first time: no numbers, no chips - how to send conversations", async () => {
+  test("the first time: no numbers, no chips - the ways conversations arrive", async () => {
     server.summary = summary({
       conversationCount: 0,
       problemConversationCount: 0,
@@ -480,16 +480,23 @@ describe("when there is nothing to show", () => {
     const empty: HTMLElement = screen.getByTestId("llm-conversations-empty");
 
     expect(empty).toHaveTextContent("No AI conversations here yet");
-    expect(empty).toHaveTextContent("OpenLLMetry");
+    // Both ways in: your own apps, and the company's AI tools by name.
+    expect(empty).toHaveTextContent("from your own apps");
+    expect(empty).toHaveTextContent("Claude Enterprise");
+    expect(empty).toHaveTextContent("Microsoft 365 Copilot");
     expect(screen.queryByTestId("llm-summary-tiles")).not.toBeInTheDocument();
     expect(
       screen.getByTestId("llm-conversations-chips").parentElement,
     ).toHaveClass("hidden");
 
-    fireEvent.click(screen.getByTestId("llm-conversations-setup"));
+    const connect: HTMLElement = screen.getByTestId("llm-conversations-setup");
+
+    // The way in is named for what it does, and opens Connect.
+    expect(connect).toHaveTextContent("Connect AI");
+    fireEvent.click(connect);
 
     expect(String(navigateSpy.mock.calls[0]![0])).toBe(
-      `/dashboard/${PROJECT_ID}/llm/documentation`,
+      `/dashboard/${PROJECT_ID}/llm/connect`,
     );
     expect(within(empty).getByText("Usage tab").closest("a")).toHaveAttribute(
       "href",

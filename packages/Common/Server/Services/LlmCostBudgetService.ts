@@ -1,5 +1,6 @@
 import Model from "../../Models/DatabaseModels/LlmCostBudget";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { isLlmBudgetSpendSource } from "../../Types/LlmObservability/LlmBudgetSpendSource";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -38,6 +39,8 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.dailyBudgetInUSD,
     );
 
+    this.validateSpendSource(createBy.data.spendSource);
+
     return {
       createBy,
       carryForward: null,
@@ -56,6 +59,8 @@ export class Service extends ProjectReferencesService<Model> {
     if (newBudget !== undefined && newBudget !== null) {
       updateBy.data.dailyBudgetInUSD = this.validateDailyBudget(newBudget);
     }
+
+    this.validateSpendSource(updateBy.data.spendSource as unknown);
 
     return {
       updateBy,
@@ -81,6 +86,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return Number.NaN;
+  }
+
+  // Unset keeps the default (the project's AI calls); anything else must be one.
+  private validateSpendSource(value: unknown): void {
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (!isLlmBudgetSpendSource(value)) {
+      throw new BadDataException(
+        "Count spend from must be 'calls' (your AI calls) or 'providers' (your connected AI provider accounts).",
+      );
+    }
   }
 
   private validateDailyBudget(value: unknown): number {

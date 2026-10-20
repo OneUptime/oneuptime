@@ -115,6 +115,12 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/SecurityCase", kind: "ui" },
   { directory: "packages/Common/Types/SecurityPlaybook", kind: "ui" },
+  /*
+   * The AI connections' catalog: each provider's title, description, what
+   * arrives, where its credential comes from, and its fields - the Connect
+   * page and the connection form show them as written there.
+   */
+  { directory: "packages/Common/Types/LlmObservability", kind: "ui" },
 ];
 
 /*

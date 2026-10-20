@@ -35,7 +35,7 @@ flowchart TB
 No incident.io, vá em **Settings** > **API keys** e selecione **Add new**. Dê a ela o nome `OneUptime import`, conceda apenas permissões para ver dados, nenhuma para criar, editar ou gerenciar, e copie a chave.
 
 ### Abra a página de importação
-No OneUptime, vá em **Configurações do projeto** > **Importar de outra ferramenta** e selecione **incident.io**.
+No OneUptime, vá em **Configurações do projeto** > **Avançado** > **Importar de outra ferramenta** e selecione **incident.io**.
 
 ### Conecte o incident.io
 Cole a chave em **Chave de API do incident.io** e selecione **Ler minha conta do incident.io**. Uma conta grande leva alguns minutos, e você pode sair da página durante a leitura.

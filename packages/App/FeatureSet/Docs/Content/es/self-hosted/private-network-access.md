@@ -115,7 +115,7 @@ Una segunda protección cubre las conexiones salientes cuyo destino elige un mie
 - el descubrimiento OIDC para el inicio de sesión único
 - la verificación de dominios personalizados de páginas de estado y paneles
 - los pasos HTTP de runbooks
-- la URL de la API de Grafana OnCall de la que lee una importación (**Ajustes del proyecto** > **Básico** > **Importar desde otra herramienta**)
+- la URL de la API de Grafana OnCall de la que lee una importación (**Ajustes del proyecto** > **Avanzado** > **Importar desde otra herramienta**)
 
 Esta protección funciona al revés que los ajustes de webhooks. En una instalación autoalojada **permite** el nivel privado por defecto, porque la base de datos, el servidor de correo o el servidor de modelos a los que se conectan suelen estar en tu propia red. El nivel prohibido – loopback, link-local y el endpoint de metadatos de la nube – se rechaza en cualquier caso, y no existe lista de permitidos para él.
 

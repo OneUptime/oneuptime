@@ -86,8 +86,8 @@ const DocsNav: NavGroup[] = [
     ],
   },
   /*
-   * One page per tool that Project Settings > Import from another tool
-   * brings a team, monitors or status pages over from
+   * One page per tool that Project Settings > Advanced > Import from
+   * another tool brings a team, monitors or status pages over from
    * (Common/Types/ToolImport/ToolImportCatalog's docsPath).
    */
   {
@@ -842,6 +842,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",
+      },
+      {
+        title: "AI Provider Accounts",
+        url: "/docs/telemetry/ai-provider-accounts",
+      },
+      {
+        title: "Company AI Tools",
+        url: "/docs/telemetry/ai-company-tools",
       },
       {
         title: "AI Coding Assistants",

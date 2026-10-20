@@ -6,6 +6,7 @@ En AI-gateway sidder mellem dine apps og modeludbyderne, så hvert modelkald gå
 - [LiteLLM Proxy](#litellm-proxy): Indbygget eksport, sat op med tre variabler.
 - [Hvem brugte hvad](#én-virtuel-nøgle-pr-medarbejder): Én virtuel LiteLLM-nøgle pr. medarbejder navngiver hver person.
 - [Portkey](#portkey): Indbygget eksport på selvhostede gateways; andre steder instrumenterer du appen.
+- [OpenRouter](#openrouter): Broadcast sender hver forespørgsels trace, sat op én gang i OpenRouter.
 - [Tjek, at kaldene ankommer](#tjek-at-kaldene-ankommer): Hvad du bør se, og hvad du gør, hvis du ikke ser det.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | Endpoint, der skal angives | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | Appens egen eksportør |
 | Navngiver hver person | Ja, med én virtuel nøgle pr. medarbejder | Nej | Kun det, appen sender |
 | Prompts og svar | Sendes, medmindre du slår dem fra | Sendes altid | Afhænger af instrumenteringen |
+
+OneUptime har ingen egen gateway: den ville holde dine udbydernøgler og tilføje et ekstra led til hvert modelkald, dine apps laver. Det læser den gateway, du allerede kører, og dine udbyderkontis forbrug og omkostninger helt uden kode: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts).
 
 ## Før du begynder
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 Disse spans beskriver kaldet, som din app foretog det: den model, den bad om, den tid, den ventede, de tokens, den fik tilbage. Det, gatewayen besluttede undervejs, som en fallback, et genforsøg eller et cachehit, bliver i Portkey. For at se det i OneUptime bruger du den selvhostede gateways eksport.
 
+## OpenRouter
+
+OpenRouters Broadcast sender en trace af hver forespørgsel fra din OpenRouter-konto til et OpenTelemetry-endpoint: modellen, tokens, den pris, OpenRouter tog, og, medmindre du slår dem fra, prompten og svaret. Du sætter det op én gang i OpenRouter uden at ændre dine apps.
+
+:::steps
+### Slå Broadcast til
+
+Åbn Settings, Observability i OpenRouter, og slå Enable Broadcast til.
+
+### Tilføj OneUptime som collector
+
+Redigér destinationen OpenTelemetry Collector. Sæt dens endpoint til den fulde trace-sti, `https://oneuptime.com/otlp/v1/traces`, og dens headers til `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Test derefter forbindelsen: OpenRouter gemmer kun destinationen, når testen lykkes.
+
+### Kald en model gennem den
+
+Kald en model gennem OpenRouter, og tjek derefter AI / LLM som beskrevet i [Tjek, at kaldene ankommer](#tjek-at-kaldene-ankommer).
+:::
+
+- OpenRouter sender OTLP over HTTP som JSON, hvilket OneUptime tager imod uden en collector imellem.
+- En forespørgsels `user` kommer ind som `user.id`, som OneUptime læser som den person, der lavede kaldet, og dens `session_id` som `session.id`, der grupperer kald i en samtale. Send en medarbejders id i `user`, aldrig en kundes.
+- Prompten og svaret ligger på generation-spannet som `gen_ai.prompt` og `gen_ai.completion`. Slå destinationens privacy mode til for at udelade dem.
+
 ## Tjek, at kaldene ankommer
 
 :::steps
@@ -259,6 +284,10 @@ Kaldene navngiver ingen person. Giv hver medarbejder sin egen virtuelle nøgle, 
 Siden LiteLLM 1.81 deler en anmodnings modelkald ét span. Angiv `USE_OTEL_LITELLM_REQUEST_SPAN=true` for at få et span for hvert kald.
 :::
 
+:::details OpenRouter gemmer ikke destinationen
+Dens forbindelsestest fejlede. Tjek, at endpointet slutter på `/v1/traces`, og at headeren indeholder en server-indtagelsesnøgle.
+:::
+
 ## Næste trin
 
 :::cards
@@ -266,4 +295,5 @@ Siden LiteLLM 1.81 deler en anmodnings modelkald ét span. Angiv `USE_OTEL_LITEL
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Sæt en gateway foran værktøjer, der ikke selv sender telemetri.
 - [Circuit breakers til AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stop en løbsk agent, når dens advarsel går i gang.
 - [Trace-monitor](/docs/monitor/traces-monitor): Advar ved span-mønstre, som et værktøj, der kaldes i en løkke.
+- [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts): Regningen for kontiene bag gatewayen, uden kode.
 :::

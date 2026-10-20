@@ -6,6 +6,7 @@ An AI gateway sits between your apps and the model providers, so every model cal
 - [LiteLLM Proxy](#litellm-proxy): Built-in export, set with three variables.
 - [Who spent what](#one-virtual-key-per-employee): One LiteLLM virtual key per employee names each person.
 - [Portkey](#portkey): Built-in export on self-hosted gateways; instrument the app elsewhere.
+- [OpenRouter](#openrouter): Broadcast sends every request's trace, set up once in OpenRouter.
 - [Check that calls arrive](#check-that-calls-arrive): What you should see, and what to do if you don't.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | Endpoint to set | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | The app's own exporter |
 | Names each person | Yes, with one virtual key per employee | No | Only what the app sends |
 | Prompts and answers | Sent unless you turn them off | Always sent | Depends on the instrumentation |
+
+OneUptime has no gateway of its own: one would hold your provider keys and add a hop to every model call your apps make. It reads the gateway you already run, and your provider accounts' usage and cost with no code at all: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts).
 
 ## Before you begin
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 These spans describe the call as your app made it: the model it asked for, the time it waited, the tokens it got back. What the gateway decided along the way, such as a fallback, a retry or a cache hit, stays in Portkey. To see that in OneUptime, use the self-hosted gateway's export.
 
+## OpenRouter
+
+OpenRouter's Broadcast sends a trace of every request your OpenRouter account makes to an OpenTelemetry endpoint: the model, the tokens, the cost OpenRouter charged and, unless you turn them off, the prompt and the answer. You set it up once, in OpenRouter, with no change to your apps.
+
+:::steps
+### Turn on Broadcast
+
+In OpenRouter, open Settings, Observability, and turn on Enable Broadcast.
+
+### Add OneUptime as the collector
+
+Edit the OpenTelemetry Collector destination. Set its endpoint to the full traces path, `https://oneuptime.com/otlp/v1/traces`, and its headers to `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Then test the connection: OpenRouter saves the destination only when the test passes.
+
+### Call a model through it
+
+Call a model through OpenRouter, then check AI / LLM as described in [Check that calls arrive](#check-that-calls-arrive).
+:::
+
+- OpenRouter sends OTLP over HTTP in JSON, which OneUptime accepts without a collector in between.
+- A request's `user` arrives as `user.id`, which OneUptime reads as the person who made the call, and its `session_id` as `session.id`, which groups calls into a conversation. Send an employee's id in `user`, never a customer's.
+- The prompt and the answer are on the generation span, as `gen_ai.prompt` and `gen_ai.completion`. Turn on the destination's privacy mode to leave them out.
+
 ## Check that calls arrive
 
 :::steps
@@ -259,6 +284,10 @@ The calls carry no person. Give each employee their own virtual key, as in [One 
 Since LiteLLM 1.81, a request's model calls share one span. Set `USE_OTEL_LITELLM_REQUEST_SPAN=true` to get a span for each call.
 :::
 
+:::details OpenRouter does not save the destination
+Its connection test failed. Check that the endpoint ends in `/v1/traces` and that the header holds a server ingestion key.
+:::
+
 ## Next steps
 
 :::cards
@@ -266,4 +295,5 @@ Since LiteLLM 1.81, a request's model calls share one span. Set `USE_OTEL_LITELL
 - [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): Put a gateway in front of tools that send no telemetry of their own.
 - [AI Agent Circuit Breakers](/docs/telemetry/ai-agent-circuit-breaker): Stop a runaway agent when its alert fires.
 - [Traces Monitor](/docs/monitor/traces-monitor): Alert on span patterns, such as a tool called in a loop.
+- [AI Provider Accounts](/docs/telemetry/ai-provider-accounts): The bill of the accounts behind the gateway, with no code.
 :::

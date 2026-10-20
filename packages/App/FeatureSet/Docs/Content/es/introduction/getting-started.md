@@ -113,7 +113,7 @@ La documentación está organizada como la barra lateral, en nueve secciones. El
 
 ### Trae tu configuración contigo
 
-**Ajustes del proyecto → Importar desde otra herramienta** lee tu configuración en otra herramienta, con una clave de API o, en el caso de Uptime Kuma, un archivo. Te muestra lo que ha encontrado y crea lo que marques. Nada cambia en la otra herramienta, y volver a ejecutar la importación nunca crea nada dos veces.
+**Ajustes del proyecto → Avanzado → Importar desde otra herramienta** lee tu configuración en otra herramienta, con una clave de API o, en el caso de Uptime Kuma, un archivo. Te muestra lo que ha encontrado y crea lo que marques. Nada cambia en la otra herramienta, y volver a ejecutar la importación nunca crea nada dos veces.
 
 | Si vienes de | Lo que OneUptime lee |
 | --- | --- |

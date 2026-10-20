@@ -1,6 +1,6 @@
 # Wechsel von UptimeRobot
 
-**Aus einem anderen Tool importieren** holt Ihre Monitore und Statusseiten aus UptimeRobot in wenigen Minuten in OneUptime. Mit einem schreibgeschützten UptimeRobot-API-Schlüssel liest OneUptime Ihre Monitore und öffentlichen Statusseiten ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In UptimeRobot ändert sich nichts.
+**Import aus anderem Tool** holt Ihre Monitore und Statusseiten aus UptimeRobot in wenigen Minuten in OneUptime. Mit einem schreibgeschützten UptimeRobot-API-Schlüssel liest OneUptime Ihre Monitore und öffentlichen Statusseiten ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In UptimeRobot ändert sich nichts.
 
 :::cards
 - [Konto importieren](#ihr-uptimerobot-konto-importieren): Schlüssel erstellen, Konto einlesen und auswählen, was übernommen wird.
@@ -36,7 +36,7 @@ flowchart TB
 Öffnen Sie in UptimeRobot **Integrations & API** > **API**. Erstellen Sie einen **Read-only API key** oder kopieren Sie den vorhandenen.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Aus einem anderen Tool importieren** und wählen Sie **UptimeRobot**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Import aus anderem Tool** und wählen Sie **UptimeRobot**.
 
 ### UptimeRobot verbinden
 Fügen Sie den Schlüssel in **UptimeRobot-API-Schlüssel** ein und wählen Sie **Mein UptimeRobot-Konto einlesen**. Ein großes Konto dauert einige Minuten, und Sie können die Seite währenddessen verlassen.

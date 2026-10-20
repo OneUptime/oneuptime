@@ -37,7 +37,7 @@ flowchart TB
 
 1. [Azure portal](https://portal.azure.com) में साइन इन करें और **Microsoft Entra ID** खोलें।
 2. **App registrations → New registration** पर जाएं। इसका नाम `OneUptime Sentinel connector` रखें, **Supported account types** को **Accounts in this organizational directory only** पर रहने दें, रीडायरेक्ट URI खाली छोड़ें, और **Register** चुनें।
-3. ऐप के **Overview** पेज से **Application (client) ID** और **Directory (tenant) ID** कॉपी करें।
+3. ऐप के **Overview** पेज से **एप्लिकेशन (क्लाइंट) ID** और **डायरेक्टरी (टेनेंट) ID** कॉपी करें।
 4. **Certificates & secrets → Client secrets → New client secret** पर जाएं, चुनें कि यह कब एक्सपायर हो, और **Add** चुनें। पेज छोड़ने से पहले सीक्रेट का **Value** कॉपी करें, उसकी **Secret ID** नहीं: यह फिर कभी नहीं दिखता।
 
 ### इसे घटनाएं पढ़ने दें
@@ -52,7 +52,7 @@ flowchart TB
 
 ### वर्कस्पेस का विवरण पाएं
 
-Azure portal में Log Analytics वर्कस्पेस खोलें। उसका **Overview** पेज **Subscription ID**, **Resource group** और वर्कस्पेस का नाम दिखाता है। वर्कस्पेस की रिसोर्स ID में भी यही तीनों होते हैं:
+Azure portal में Log Analytics वर्कस्पेस खोलें। उसका **Overview** पेज **सदस्यता ID**, **Resource group** और वर्कस्पेस का नाम दिखाता है। वर्कस्पेस की रिसोर्स ID में भी यही तीनों होते हैं:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Azure portal में Log Analytics वर्कस्पेस खोलें
 
 | सेटिंग | कहां मिलेगी |
 | --- | --- |
-| **Directory (tenant) ID** | ऐप का **Overview** पेज। टेनेंट का GUID, या `contoso.onmicrosoft.com` जैसा कोई सत्यापित डोमेन। |
-| **Application (client) ID** | ऐप का **Overview** पेज। एक GUID। |
-| **Subscription ID** | वर्कस्पेस का **Overview** पेज। एक GUID। |
+| **डायरेक्टरी (टेनेंट) ID** | ऐप का **Overview** पेज। टेनेंट का GUID, या `contoso.onmicrosoft.com` जैसा कोई सत्यापित डोमेन। |
+| **एप्लिकेशन (क्लाइंट) ID** | ऐप का **Overview** पेज। एक GUID। |
+| **सदस्यता ID** | वर्कस्पेस का **Overview** पेज। एक GUID। |
 | **Resource group** | वर्कस्पेस का **Overview** पेज। 1 से 90 अक्षर, अंक, अंडरस्कोर, हाइफ़न, पीरियड या कोष्ठक, जो पीरियड पर खत्म न हो। |
 | **Workspace name** | वर्कस्पेस का **Overview** पेज। 3 से 90 अक्षर, अंक या हाइफ़न, जो किसी अक्षर या अंक से शुरू और खत्म हो। |
-| **क्लाउड** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) या **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`)। |
+| **क्लाउड** | **Azure सार्वजनिक क्लाउड** (`login.microsoftonline.com`, `management.azure.com`) या **Azure Government (अमेरिका)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`)। |
 | **Client secret** | सीक्रेट का **Value**। यह एन्क्रिप्ट किया जाता है, API इसे कभी नहीं लौटाता और यह फिर कभी नहीं दिखता। इसे कनेक्शन पर **Update credentials** से बदलें। |
 
 **Polling** चरण में एक वैकल्पिक **विवरण**, **Poll Interval (Minutes)**, जो `1` से `1440` तक की पूर्ण संख्या है और `5` से शुरू होती है, और **सक्षम** भी है, जो शुरू में चालू रहता है।
@@ -166,8 +166,8 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 :::details Last Error `Microsoft Sentinel token request` से शुरू होता है
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID ने टोकन जारी करने से मना कर दिया, इसलिए Azure से कभी संपर्क नहीं हुआ। संदेश में Entra का कोड होता है:
   - `AADSTS7000215` या `invalid_client`: **Client secret** गलत है या एक्सपायर हो गया है, या यह सीक्रेट के मान के बजाय उसकी ID है। नया सीक्रेट बनाएं, और उसे **Update credentials** से सहेजें।
-  - `AADSTS700016` या `unauthorized_client`: **Application (client) ID** दी गई **Directory (tenant) ID** में नहीं है। दोनों को ऐप के **Overview** पेज से मिलाएं।
-  - `AADSTS90002` या `HTTP 404`: ऐसा कोई टेनेंट नहीं है। **Directory (tenant) ID** गलत है, या यह दूसरे क्लाउड में है: **क्लाउड** जांचें।
+  - `AADSTS700016` या `unauthorized_client`: **एप्लिकेशन (क्लाइंट) ID** दी गई **डायरेक्टरी (टेनेंट) ID** में नहीं है। दोनों को ऐप के **Overview** पेज से मिलाएं।
+  - `AADSTS90002` या `HTTP 404`: ऐसा कोई टेनेंट नहीं है। **डायरेक्टरी (टेनेंट) ID** गलत है, या यह दूसरे क्लाउड में है: **क्लाउड** जांचें।
   - `HTTP 429` या `HTTP 5xx`: Microsoft Entra ID थ्रॉटल कर रहा है या उपलब्ध नहीं है। अगला पोल फिर से कोशिश करता है।
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID ने कुछ अनुपयोगी लौटाया, जैसे ऐसी बॉडी जो JSON नहीं है या जिसमें `access_token` नहीं है। आमतौर पर यह बीच में मौजूद कोई प्रॉक्सी या गेटवे होता है।
 - बिना स्टेटस के `Microsoft Sentinel token request failed:`, या `Microsoft Sentinel token request timed out after ... seconds with no response`: अनुरोध को कोई जवाब नहीं मिला। OneUptime ऐप और वर्कर से `login.microsoftonline.com` तक DNS, TLS और आउटबाउंड HTTPS जांचें।
@@ -177,7 +177,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager ने अनुरोध अस्वीकार कर दिया।
   - `HTTP 401`: इसने टोकन स्वीकार नहीं किया। लगभग हमेशा **क्लाउड** टेनेंट से मेल नहीं खाता, या ऐप रजिस्ट्रेशन मिटा दिया गया। दो पेज के बीच एक्सपायर होने वाला टोकन अपने आप नया होकर एक बार फिर कोशिश करता है।
   - `HTTP 403` या `AuthorizationFailed`: ऐप के पास अभी रिसोर्स ग्रुप पर **Microsoft Sentinel Reader** नहीं है। इसे असाइन करें, और कुछ मिनट इंतज़ार करें।
-  - `HTTP 404`: उस **Subscription ID**, **Resource group** और **Workspace name** वाला कोई वर्कस्पेस नहीं है, या उस पर Microsoft Sentinel सक्षम नहीं है। उन्हें वर्कस्पेस के **Overview** पेज से कॉपी करें।
+  - `HTTP 404`: उस **सदस्यता ID**, **Resource group** और **Workspace name** वाला कोई वर्कस्पेस नहीं है, या उस पर Microsoft Sentinel सक्षम नहीं है। उन्हें वर्कस्पेस के **Overview** पेज से कॉपी करें।
   - `HTTP 429` या `HTTP 5xx`: Azure Resource Manager थ्रॉटल कर रहा है या उपलब्ध नहीं है। अगला पोल फिर से कोशिश करता है।
   - `HTTP 400`: Azure Resource Manager ने क्वेरी अस्वीकार की, जिसे OneUptime बनाता है, आपकी सेटिंग्स नहीं। संदेश OneUptime सपोर्ट को भेजें।
 - `Microsoft Sentinel incidents list returned ...`: Azure ने `200` लौटाया, पर घटनाओं का कोई पढ़ने योग्य पेज नहीं, या किसी दूसरे होस्ट का `nextLink`, जिसे कनेक्टर अस्वीकार करता है ताकि टोकन कभी Azure Resource Manager से बाहर न जाए। इसे खाली विंडो मानने के बजाय रिपोर्ट किया जाता है, ताकि कर्सर कभी उन घटनाओं से आगे न बढ़े जिन्हें किसी ने नहीं पढ़ा।
@@ -200,7 +200,7 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 ## Azure Government
 
-**क्लाउड** को **Azure Government (US)** पर सेट करें। इसके बाद कनेक्शन `login.microsoftonline.us` पर `https://management.usgovcloudapi.net/.default` स्कोप के साथ साइन इन करता है, और `management.usgovcloudapi.net` से घटनाएं पढ़ता है। बाकी सब कुछ, रोल असाइनमेंट समेत, वैसा ही है।
+**क्लाउड** को **Azure Government (अमेरिका)** पर सेट करें। इसके बाद कनेक्शन `login.microsoftonline.us` पर `https://management.usgovcloudapi.net/.default` स्कोप के साथ साइन इन करता है, और `management.usgovcloudapi.net` से घटनाएं पढ़ता है। बाकी सब कुछ, रोल असाइनमेंट समेत, वैसा ही है।
 
 ## आपको क्या मिलता है
 

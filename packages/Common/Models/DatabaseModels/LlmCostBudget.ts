@@ -17,6 +17,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
+import LlmBudgetSpendSource from "../../Types/LlmObservability/LlmBudgetSpendSource";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -475,6 +476,51 @@ export default class LlmCostBudget extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public llmModel?: string = undefined;
+
+  /*
+   * Which spend the budget counts: the project's AI calls (the default, and
+   * every budget made before provider accounts could be connected), or what
+   * the connected AI provider accounts report. Never both: they count the
+   * same calls.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectLlmCostBudget,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadProjectLlmCostBudget,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectLlmCostBudget,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Count Spend From",
+    description:
+      "'calls' counts the cost of your AI calls; 'providers' counts what your connected AI provider accounts report.",
+    defaultValue: LlmBudgetSpendSource.Calls,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: LlmBudgetSpendSource.Calls,
+  })
+  public spendSource?: LlmBudgetSpendSource = undefined;
 
   @ColumnAccessControl({
     create: [],

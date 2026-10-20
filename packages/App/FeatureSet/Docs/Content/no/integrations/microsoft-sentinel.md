@@ -37,7 +37,7 @@ Tilkoblingen logger på med OAuth 2.0-flyten for klientlegitimasjon: som et prog
 
 1. Logg på [Azure-portalen](https://portal.azure.com), og åpne **Microsoft Entra ID**.
 2. Gå til **App registrations → New registration**. Gi den navnet `OneUptime Sentinel connector`, la **Supported account types** stå på **Accounts in this organizational directory only**, la omdirigerings-URI-en være tom, og velg **Register**.
-3. Kopier **Application (client) ID** og **Directory (tenant) ID** fra appens side **Overview**.
+3. Kopier **Program-ID (klient)** og **Katalog-ID (tenant)** fra appens side **Overview**.
 4. Gå til **Certificates & secrets → Client secrets → New client secret**, velg når den utløper, og velg **Add**. Kopier hemmelighetens **Value**, ikke **Secret ID**, før du forlater siden: den vises aldri igjen.
 
 ### La den lese hendelser
@@ -52,7 +52,7 @@ Rollen lar appen lese hendelser (`Microsoft.SecurityInsights/incidents/read`) og
 
 ### Finn opplysningene om arbeidsområdet
 
-Åpne Log Analytics-arbeidsområdet i Azure-portalen. Siden **Overview** viser **Subscription ID**, **Resource group** og navnet på arbeidsområdet. Ressurs-ID-en til arbeidsområdet inneholder de samme tre:
+Åpne Log Analytics-arbeidsområdet i Azure-portalen. Siden **Overview** viser **Abonnements-ID**, **Resource group** og navnet på arbeidsområdet. Ressurs-ID-en til arbeidsområdet inneholder de samme tre:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Klikk på **Test these settings** under **Test før du lagrer**. Testen logger p
 
 | Innstilling | Hvor du finner den |
 | --- | --- |
-| **Directory (tenant) ID** | Appens side **Overview**. GUID-en til leieren, eller et verifisert domene som `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | Appens side **Overview**. En GUID. |
-| **Subscription ID** | Arbeidsområdets side **Overview**. En GUID. |
+| **Katalog-ID (tenant)** | Appens side **Overview**. GUID-en til leieren, eller et verifisert domene som `contoso.onmicrosoft.com`. |
+| **Program-ID (klient)** | Appens side **Overview**. En GUID. |
+| **Abonnements-ID** | Arbeidsområdets side **Overview**. En GUID. |
 | **Resource group** | Arbeidsområdets side **Overview**. 1 til 90 bokstaver, sifre, understreker, bindestreker, punktum eller parenteser, ikke avsluttet med punktum. |
 | **Workspace name** | Arbeidsområdets side **Overview**. 3 til 90 bokstaver, sifre eller bindestreker, som starter og slutter med en bokstav eller et siffer. |
-| **Sky** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) eller **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
+| **Sky** | **Offentlig Azure-sky** (`login.microsoftonline.com`, `management.azure.com`) eller **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Client secret** | Hemmelighetens **Value**. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Update credentials** på tilkoblingen. |
 
 Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltall fra `1` til `1440` som starter på `5`, og **Aktivert**, som starter slått på.
@@ -166,8 +166,8 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 :::details Last Error starter med `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID nektet å utstede et token, så Azure ble aldri kontaktet. Meldingen siterer koden fra Entra:
   - `AADSTS7000215` eller `invalid_client`: **Client secret** er feil eller utløpt, eller det er ID-en til hemmeligheten i stedet for verdien. Opprett en ny hemmelighet, og lagre den med **Update credentials**.
-  - `AADSTS700016` eller `unauthorized_client`: **Application (client) ID** finnes ikke i den angitte **Directory (tenant) ID**. Sammenlign begge med appens side **Overview**.
-  - `AADSTS90002` eller `HTTP 404`: den leieren finnes ikke. **Directory (tenant) ID** er feil, eller den ligger i den andre skyen: sjekk **Sky**.
+  - `AADSTS700016` eller `unauthorized_client`: **Program-ID (klient)** finnes ikke i den angitte **Katalog-ID (tenant)**. Sammenlign begge med appens side **Overview**.
+  - `AADSTS90002` eller `HTTP 404`: den leieren finnes ikke. **Katalog-ID (tenant)** er feil, eller den ligger i den andre skyen: sjekk **Sky**.
   - `HTTP 429` eller `HTTP 5xx`: Microsoft Entra ID begrenser forespørsler eller er utilgjengelig. Den neste pollen prøver igjen.
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID svarte med noe ubrukelig, for eksempel et innhold som ikke er JSON, eller uten `access_token`. Det er vanligvis en proxy eller gateway imellom.
 - `Microsoft Sentinel token request failed:`, uten status, eller `Microsoft Sentinel token request timed out after ... seconds with no response`: forespørselen fikk ikke noe svar. Sjekk DNS, TLS og utgående HTTPS fra OneUptime-appen og -workerne til `login.microsoftonline.com`.
@@ -177,7 +177,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager avviste forespørselen.
   - `HTTP 401`: den godtok ikke tokenet. Nesten alltid passer **Sky** ikke til leieren, eller appregistreringen er slettet. Et token som utløper mellom to sider, fornyes og prøves på nytt én gang av seg selv.
   - `HTTP 403` eller `AuthorizationFailed`: appen har ennå ikke **Microsoft Sentinel Reader** på ressursgruppen. Tildel den, og vent noen minutter.
-  - `HTTP 404`: ingen arbeidsområder har den **Subscription ID**, den **Resource group** og det **Workspace name**, eller Microsoft Sentinel er ikke aktivert der. Kopier dem fra arbeidsområdets side **Overview**.
+  - `HTTP 404`: ingen arbeidsområder har den **Abonnements-ID**, den **Resource group** og det **Workspace name**, eller Microsoft Sentinel er ikke aktivert der. Kopier dem fra arbeidsområdets side **Overview**.
   - `HTTP 429` eller `HTTP 5xx`: Azure Resource Manager begrenser forespørsler eller er utilgjengelig. Den neste pollen prøver igjen.
   - `HTTP 400`: Azure Resource Manager avviste forespørselen, som OneUptime bygger, ikke innstillingene dine. Send meldingen til OneUptimes brukerstøtte.
 - `Microsoft Sentinel incidents list returned ...`: Azure svarte `200`, men uten en lesbar side med hendelser, eller med en `nextLink` til en annen vert, som tilkoblingen avviser, slik at tokenet aldri forlater Azure Resource Manager. Det rapporteres i stedet for å bli tatt som et tomt vindu, slik at markøren aldri går forbi hendelser som ingen har lest.
@@ -200,7 +200,7 @@ Les **Incidents available to import** i testens rapport. `0` de siste 7 dagene b
 
 ## Azure Government
 
-Sett **Sky** til **Azure Government (US)**. Tilkoblingen logger da på `login.microsoftonline.us` med omfanget `https://management.usgovcloudapi.net/.default`, og leser hendelser fra `management.usgovcloudapi.net`. Alt annet, også rolletildelingen, er det samme.
+Sett **Sky** til **Azure Government (USA)**. Tilkoblingen logger da på `login.microsoftonline.us` med omfanget `https://management.usgovcloudapi.net/.default`, og leser hendelser fra `management.usgovcloudapi.net`. Alt annet, også rolletildelingen, er det samme.
 
 ## Hva du får
 

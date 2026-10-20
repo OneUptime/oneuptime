@@ -36,7 +36,7 @@ flowchart TB
 Statuspage で左下のアバターを選択し、**API info** を開きます。**Create key** を選択し、名前を `OneUptime import` としてキーをコピーします。
 
 ### インポートページを開く
-OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き、**Atlassian Statuspage** を選択します。
+OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き、**Atlassian Statuspage** を選択します。
 
 ### Atlassian Statuspage を接続する
 キーを **Atlassian Statuspage の API キー** に貼り付け、**Atlassian Statuspage アカウントを読み取る** を選択します。大きなアカウントでは数分かかります。読み取りの間はページを離れてもかまいません。

@@ -6,6 +6,7 @@ Une passerelle IA se place entre vos applications et les fournisseurs de modèle
 - [LiteLLM Proxy](#litellm-proxy): Export intégré, réglé avec trois variables.
 - [Qui a dépensé quoi](#une-clé-virtuelle-par-employé): Une clé virtuelle LiteLLM par employé nomme chaque personne.
 - [Portkey](#portkey): Export intégré sur les passerelles auto-hébergées ; ailleurs, instrumentez l'application.
+- [OpenRouter](#openrouter): Broadcast envoie la trace de chaque requête, configuré une fois dans OpenRouter.
 - [Vérifier que les appels arrivent](#vérifier-que-les-appels-arrivent): Ce que vous devriez voir, et que faire sinon.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | Endpoint à régler | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | L'exporteur propre de l'application |
 | Nomme chaque personne | Oui, avec une clé virtuelle par employé | Non | Seulement ce que l'application envoie |
 | Prompts et réponses | Envoyés sauf si vous les désactivez | Toujours envoyés | Dépend de l'instrumentation |
+
+OneUptime n'a pas de passerelle à lui : elle détiendrait vos clés de fournisseur et ajouterait un saut à chaque appel de modèle que font vos applications. Il lit la passerelle que vous faites déjà tourner, et l'utilisation et le coût de vos comptes de fournisseurs sans aucun code : voir [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts).
 
 ## Avant de commencer
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 Ces spans décrivent l'appel tel que votre application l'a fait : le modèle demandé, le temps d'attente, les tokens reçus. Ce que la passerelle a décidé en route, comme un repli, une nouvelle tentative ou un succès de cache, reste dans Portkey. Pour le voir dans OneUptime, utilisez l'export de la passerelle auto-hébergée.
 
+## OpenRouter
+
+Broadcast d'OpenRouter envoie une trace de chaque requête de votre compte OpenRouter à un point de terminaison OpenTelemetry : le modèle, les jetons, le coût facturé par OpenRouter et, sauf si vous les désactivez, le prompt et la réponse. Vous le configurez une fois, dans OpenRouter, sans rien changer à vos applications.
+
+:::steps
+### Activer Broadcast
+
+Dans OpenRouter, ouvrez Settings, Observability et activez Enable Broadcast.
+
+### Ajouter OneUptime comme collecteur
+
+Modifiez la destination OpenTelemetry Collector. Donnez-lui comme point de terminaison le chemin complet des traces, `https://oneuptime.com/otlp/v1/traces`, et comme en-têtes `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Testez ensuite la connexion : OpenRouter n'enregistre la destination que si le test réussit.
+
+### Appeler un modèle par son intermédiaire
+
+Appelez un modèle via OpenRouter, puis vérifiez IA / LLM comme décrit dans [Vérifier que les appels arrivent](#vérifier-que-les-appels-arrivent).
+:::
+
+- OpenRouter envoie de l'OTLP sur HTTP en JSON, que OneUptime accepte sans collecteur intermédiaire.
+- Le `user` d'une requête arrive comme `user.id`, que OneUptime lit comme la personne qui a fait l'appel, et son `session_id` comme `session.id`, qui regroupe les appels en une conversation. Envoyez dans `user` l'identifiant d'un employé, jamais celui d'un client.
+- Le prompt et la réponse se trouvent sur le span de génération, comme `gen_ai.prompt` et `gen_ai.completion`. Activez le mode confidentialité de la destination pour les exclure.
+
 ## Vérifier que les appels arrivent
 
 :::steps
@@ -259,6 +284,10 @@ Les appels ne nomment personne. Donnez à chaque employé sa propre clé virtuel
 Depuis LiteLLM 1.81, les appels au modèle d'une requête partagent un span. Définissez `USE_OTEL_LITELLM_REQUEST_SPAN=true` pour obtenir un span par appel.
 :::
 
+:::details OpenRouter n'enregistre pas la destination
+Son test de connexion a échoué. Vérifiez que le point de terminaison se termine par `/v1/traces` et que l'en-tête contient une clé d'ingestion serveur.
+:::
+
 ## Étapes suivantes
 
 :::cards
@@ -266,4 +295,5 @@ Depuis LiteLLM 1.81, les appels au modèle d'une requête partagent un span. Dé
 - [Assistants de code IA](/docs/telemetry/ai-coding-assistants): Placer une passerelle devant les outils qui n'envoient aucune télémétrie propre.
 - [Disjoncteurs pour agents IA](/docs/telemetry/ai-agent-circuit-breaker): Arrêter un agent emballé quand son alerte se déclenche.
 - [Moniteur de traces](/docs/monitor/traces-monitor): Alerter sur des motifs de spans, comme un outil appelé en boucle.
+- [Comptes de fournisseurs d'IA](/docs/telemetry/ai-provider-accounts): La facture des comptes derrière la passerelle, sans code.
 :::

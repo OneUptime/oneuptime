@@ -36,7 +36,7 @@ flowchart TB
 Better Stack で **API tokens** > **Team-based tokens** を開き、チームを選択します。**Uptime API tokens** で `OneUptime import` という名前のトークンを作成してコピーします。
 
 ### インポートページを開く
-OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き、**Better Stack** を選択します。
+OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き、**Better Stack** を選択します。
 
 ### Better Stack を接続する
 トークンを **Better Stack の API キー** に貼り付け、**Better Stack アカウントを読み取る** を選択します。大きなアカウントでは数分かかります。読み取りの間はページを離れてもかまいません。

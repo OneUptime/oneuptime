@@ -115,7 +115,7 @@ Una seconda protezione copre le connessioni in uscita la cui destinazione è sce
 - la discovery OIDC per il single sign-on
 - la verifica dei domini personalizzati di pagine di stato e dashboard
 - i passaggi HTTP dei runbook
-- l'URL dell'API di Grafana OnCall da cui legge un'importazione (**Impostazioni del progetto** > **Base** > **Importa da un altro strumento**)
+- l'URL dell'API di Grafana OnCall da cui legge un'importazione (**Impostazioni del progetto** > **Avanzato** > **Importa da un altro strumento**)
 
 Questa protezione funziona al contrario rispetto alle impostazioni dei webhook. Su un'installazione self-hosted **consente** il livello privato per impostazione predefinita, perché il database, il server di posta o il server dei modelli a cui si collegano di solito si trovano nella tua rete. Il livello vietato – loopback, link-local e l'endpoint dei metadati del cloud – viene rifiutato in ogni caso, e non esiste una allowlist per esso.
 
