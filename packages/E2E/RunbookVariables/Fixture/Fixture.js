@@ -249,6 +249,15 @@ const VARIABLES = noVariables
         isSecret: true,
         isAvailableToGlobalRunners: true,
       }),
+      // A long plain value, as a URL often is: it must not widen the list.
+      variable({
+        _id: "80000000-0000-4000-8000-000000000b06",
+        name: "STATUS_API_URL",
+        description: "The internal status API the runbooks post to.",
+        isSecret: false,
+        value:
+          "https://internal-api.eu-west-1.prod.acme-corp.example.com/v2/admin/maintenance?region=eu-west-1",
+      }),
       variable({
         _id: "80000000-0000-4000-8000-000000000b05",
         runbookId: new ObjectID(RUNBOOK_ID),
