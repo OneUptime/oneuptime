@@ -1,10 +1,14 @@
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import {
+  CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE,
   CODE_TASK_LIMITS,
   CODE_TASK_LOG_WINDOWS_IN_HOURS,
+  CodeTaskBranchName,
+  CodeTaskChangeStats,
   CodeTaskContextInput,
   CodeTaskContextInputUtil,
   CodeTaskContextType,
+  CodeTaskFileStatus,
   CodeTaskState,
   CodeTaskStateUtil,
   CodeTaskTitle,
@@ -517,6 +521,202 @@ describe("the CodeRequest recipe", () => {
         },
       }),
     ).toEqual({ message: "Add a retry", context: [] });
+  });
+
+  test("the branch a request was picked to start from is read back only when git would take it", () => {
+    expect(
+      getCodeTaskRequest({
+        request: {
+          message: "Backport it",
+          context: [],
+          baseBranch: "release/2026-10",
+        },
+      }),
+    ).toEqual({
+      message: "Backport it",
+      context: [],
+      baseBranch: "release/2026-10",
+    });
+
+    for (const stored of ["", "a..b", "-x", "has space", 7, null]) {
+      const request: ReturnType<typeof getCodeTaskRequest> =
+        getCodeTaskRequest({
+          request: {
+            message: "Backport it",
+            context: [],
+            baseBranch: stored as unknown as string,
+          },
+        });
+
+      expect(request).toEqual({ message: "Backport it", context: [] });
+      expect(request).not.toHaveProperty("baseBranch");
+    }
+  });
+});
+
+/*
+ * The branch a person picks in Code's request box, read the way git reads a
+ * branch name (git check-ref-format for refs/heads/<name>): what a Runner
+ * will check out, so nothing git would refuse - or read as an option - is
+ * ever passed on.
+ */
+describe("CodeTaskBranchName", () => {
+  test.each([
+    ["main"],
+    ["release/2026-10"],
+    ["feature/JIRA-123_retry"],
+    ["v1.2.3"],
+    ["dependabot/npm_and_yarn/express-5.0.0"],
+    ["a".repeat(CODE_TASK_LIMITS.maxBranchNameLength)],
+    ["déjà-vu"],
+  ])("%s is a branch name", (name: string) => {
+    expect(CodeTaskBranchName.isValid(name)).toBe(true);
+    expect(CodeTaskBranchName.read(name)).toBe(name);
+  });
+
+  test.each([
+    ["", "empty"],
+    ["@", "the lone @"],
+    ["-x", "starting with -, read as an option"],
+    ["--upload-pack=evil", "an option"],
+    ["/x", "starting with /"],
+    ["x/", "ending with /"],
+    ["x.", "ending with ."],
+    ["a..b", "two dots"],
+    ["a@{1}", "@{"],
+    ["a//b", "an empty part"],
+    ["has space", "a space"],
+    ["a~1", "~"],
+    ["a^2", "^"],
+    ["a:b", ":"],
+    ["a?", "?"],
+    ["a*", "*"],
+    ["a[0]", "["],
+    ["a\\b", "a backslash"],
+    ["a\tb", "a tab"],
+    ["a\u0000b", "a NUL"],
+    ["a\u007fb", "DEL"],
+    [".hidden", "a part starting with ."],
+    ["x/.hidden", "a later part starting with ."],
+    ["x.lock", "ending with .lock"],
+    ["x.lock/y", "a part ending with .lock"],
+    ["a".repeat(CODE_TASK_LIMITS.maxBranchNameLength + 1), "too long"],
+  ])("%p is not (%s)", (name: string) => {
+    expect(CodeTaskBranchName.isValid(name)).toBe(false);
+    expect(() => {
+      return CodeTaskBranchName.read(name.trim() ? name : `${name}x y`);
+    }).toThrow(CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE);
+  });
+
+  test("nothing picked - absent, null or blank - is no branch: the main one", () => {
+    expect(CodeTaskBranchName.read(undefined)).toBeNull();
+    expect(CodeTaskBranchName.read(null)).toBeNull();
+    expect(CodeTaskBranchName.read("")).toBeNull();
+    expect(CodeTaskBranchName.read("   ")).toBeNull();
+  });
+
+  test("a name is read trimmed; anything but text is refused", () => {
+    expect(CodeTaskBranchName.read("  dev  ")).toBe("dev");
+    for (const raw of [7, true, {}, ["main"]]) {
+      expect(
+        refusal(() => {
+          return CodeTaskBranchName.read(raw);
+        }),
+      ).toBe(CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE);
+    }
+  });
+
+  test("a name of 400,000 characters is read in time in line with its length", () => {
+    for (const name of [
+      `${"a/".repeat(200_000)}x`,
+      `${".".repeat(400_000)}`,
+      `${"a".repeat(400_000)}.lock`,
+    ]) {
+      const start: number = Date.now();
+      CodeTaskBranchName.isValid(name);
+      expect(Date.now() - start).toBeLessThan(2000);
+    }
+  });
+});
+
+/*
+ * How much a task changed, as its list row says it ("+23 −1"): what AI
+ * wrote over its turns - each file it touched counted once, and the lines
+ * each turn added and took out.
+ */
+describe("CodeTaskChangeStats.fromOutcomes", () => {
+  test("every turn's lines, each file once", () => {
+    expect(
+      CodeTaskChangeStats.fromOutcomes([
+        {
+          summary: "Retries.",
+          filesChanged: [
+            {
+              path: "src/client.ts",
+              status: CodeTaskFileStatus.Modified,
+              additions: 9,
+              deletions: 1,
+            },
+            {
+              path: "test/retries.test.ts",
+              status: CodeTaskFileStatus.Added,
+              additions: 14,
+              deletions: 0,
+            },
+          ],
+        },
+        undefined,
+        null,
+        { summary: "A question.", filesChanged: [] },
+        {
+          summary: "Logged.",
+          filesChanged: [
+            {
+              path: "src/client.ts",
+              status: CodeTaskFileStatus.Modified,
+              additions: 4,
+              deletions: 2,
+            },
+          ],
+        },
+      ]),
+    ).toEqual({ files: 2, additions: 27, deletions: 3 });
+  });
+
+  test("no file changed: nothing to say", () => {
+    expect(CodeTaskChangeStats.fromOutcomes([])).toBeNull();
+    expect(
+      CodeTaskChangeStats.fromOutcomes([
+        { summary: "Explained.", filesChanged: [] },
+        undefined,
+      ]),
+    ).toBeNull();
+  });
+
+  test("counts that are not counts add nothing; a file with no path is not a file", () => {
+    expect(
+      CodeTaskChangeStats.fromOutcomes([
+        {
+          summary: "",
+          filesChanged: [
+            {
+              path: "a.ts",
+              status: CodeTaskFileStatus.Modified,
+              additions: -5,
+              deletions: Number.NaN,
+            },
+            {
+              path: "b.ts",
+              status: CodeTaskFileStatus.Modified,
+              additions: 2.9,
+              deletions: "3" as unknown as number,
+            },
+            { status: CodeTaskFileStatus.Added } as never,
+            null as never,
+          ],
+        },
+      ]),
+    ).toEqual({ files: 2, additions: 2, deletions: 0 });
   });
 });
 

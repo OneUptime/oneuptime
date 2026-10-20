@@ -21,7 +21,16 @@ import {
   CODE_TASK_NOT_FOUND_MESSAGE,
   CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE,
 } from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
-import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import {
+  CODE_TASK_PLAN_REQUIRED_MESSAGE,
+  CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
+} from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import {
+  CODE_TASK_BRANCH_NOT_FOUND_MESSAGE,
+  CODE_TASK_BRANCHES_UNREADABLE_MESSAGE,
+} from "../../../Server/API/CodeTaskAPI";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeTaskPresenter from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import { CODE_TASK_BUSY_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../../../Server/Utils/AI/CodeTask/CodeTaskStats";
@@ -41,6 +50,7 @@ import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import {
+  CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE,
   CodeTaskBlockerType,
   CodeTaskContextType,
   CodeTaskState,
@@ -194,6 +204,7 @@ function repository(): CodeRepository {
   value.repositoryName = "users-api";
   value.repositoryHostedAt = CodeRepositoryType.GitHub;
   value.gitHubAppInstallationId = INSTALLATION_ID;
+  value.mainBranchName = "main";
   value.labels = [];
   return value;
 }
@@ -387,6 +398,10 @@ describe("every route is for a member of the project", () => {
       { repositoryId: REPOSITORY_ID.toString() },
     ],
     ["/code-task/get/:taskId", { taskId: TASK_ID.toString() }],
+    [
+      "/code-task/branches/:repositoryId",
+      { repositoryId: REPOSITORY_ID.toString() },
+    ],
     ["/code-task/create", {}],
     ["/code-task/reply/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/stop/:taskId", { taskId: TASK_ID.toString() }],
@@ -452,6 +467,8 @@ describe("every route acts as a signed-in person", () => {
       "/code-task/repositories",
       "/code-task/repository/:repositoryId",
       "/code-task/list",
+      // A repository's branches, for the branch a task starts from.
+      "/code-task/branches/:repositoryId",
       "/code-task/get/:taskId",
       "/code-task/create",
       "/code-task/reply/:taskId",
@@ -610,6 +627,286 @@ describe("asking AI in a repository (create)", () => {
     }
 
     expect(created).toHaveLength(0);
+  });
+});
+
+describe("asking from a branch the person picked (create with branch)", () => {
+  const route: string = "/code-task/create";
+
+  function ask(branch: unknown): Promise<{
+    next: jest.Mock;
+    result: JSONObject | null;
+  }> {
+    return call(route, {
+      body: {
+        repositoryId: REPOSITORY_ID.toString(),
+        message: "Backport the retry fix",
+        branch: branch as JSONObject,
+      },
+    });
+  }
+
+  test("a branch on GitHub is kept on the task's first turn, and checked where AI reaches the repository", async () => {
+    const getBranch: jest.Mock = jest
+      .spyOn(GitHubUtil, "getBranch")
+      .mockResolvedValue({
+        name: "release/2026-10",
+        headSha: "abc1234",
+        isProtected: false,
+      }) as unknown as jest.Mock;
+
+    const { next, result } = await ask(" release/2026-10 ");
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result).toEqual({ taskId: created[0]!.id!.toString() });
+    expect(created[0]!.taskContext?.request?.baseBranch).toBe(
+      "release/2026-10",
+    );
+    expect(getBranch).toHaveBeenCalledWith({
+      installationId: INSTALLATION_ID,
+      organizationName: "acme",
+      repositoryName: "users-api",
+      branchName: "release/2026-10",
+    });
+  });
+
+  test("the main branch - where a task starts anyway - is not kept, and GitHub is not asked", async () => {
+    const getBranch: jest.Mock = jest.spyOn(
+      GitHubUtil,
+      "getBranch",
+    ) as unknown as jest.Mock;
+
+    const { next } = await ask("main");
+
+    expect(next).not.toHaveBeenCalled();
+    expect(created).toHaveLength(1);
+    expect(created[0]!.taskContext?.request).not.toHaveProperty("baseBranch");
+    expect(getBranch).not.toHaveBeenCalled();
+  });
+
+  test.each([[undefined], [null], [""], ["   "]])(
+    "no branch (%p): the main branch, nothing kept",
+    async (branch: unknown) => {
+      const { next } = await ask(branch);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(created[0]!.taskContext?.request).not.toHaveProperty(
+        "baseBranch",
+      );
+    },
+  );
+
+  test("a branch no longer on GitHub is refused, and nothing starts", async () => {
+    jest.spyOn(GitHubUtil, "getBranch").mockResolvedValue(null);
+
+    const { next } = await ask("deleted/branch");
+
+    const error: Error = refusal(next);
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe(CODE_TASK_BRANCH_NOT_FOUND_MESSAGE);
+    expect(created).toHaveLength(0);
+  });
+
+  test("GitHub not answering is said as such, and nothing starts", async () => {
+    jest
+      .spyOn(GitHubUtil, "getBranch")
+      .mockRejectedValue(new Error("GitHub is down"));
+
+    const { next } = await ask("release/2026-10");
+
+    expect(refusal(next).message).toBe(CODE_TASK_BRANCHES_UNREADABLE_MESSAGE);
+    expect(created).toHaveLength(0);
+  });
+
+  test.each([["a..b"], ["has space"], ["-flag"], ["refs/x.lock"], [42]])(
+    "what git would not take as a branch (%p) is refused before GitHub is asked",
+    async (branch: unknown) => {
+      const getBranch: jest.Mock = jest.spyOn(
+        GitHubUtil,
+        "getBranch",
+      ) as unknown as jest.Mock;
+
+      const { next } = await ask(branch);
+
+      const error: Error = refusal(next);
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE);
+      expect(getBranch).not.toHaveBeenCalled();
+      expect(created).toHaveLength(0);
+    },
+  );
+
+  test("a repository the project's GitHub App no longer reaches cannot be asked from any branch", async () => {
+    jest
+      .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+      .mockResolvedValue("99999999");
+    const getBranch: jest.Mock = jest.spyOn(
+      GitHubUtil,
+      "getBranch",
+    ) as unknown as jest.Mock;
+
+    const { next } = await ask("release/2026-10");
+
+    expect(refusal(next).message).toBe(
+      CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
+    );
+    expect(getBranch).not.toHaveBeenCalled();
+    expect(created).toHaveLength(0);
+  });
+});
+
+describe("a repository's branches (for the branch picker)", () => {
+  const route: string = "/code-task/branches/:repositoryId";
+
+  function read(body: JSONObject = {}): Promise<{
+    next: jest.Mock;
+    result: JSONObject | null;
+  }> {
+    return call(route, {
+      params: { repositoryId: REPOSITORY_ID.toString() },
+      body,
+    });
+  }
+
+  test("the main branch first, then GitHub's - what git would not take left out - and whether that is all of them", async () => {
+    const listBranchNames: jest.Mock = jest
+      .spyOn(GitHubUtil, "listBranchNames")
+      .mockResolvedValue({
+        names: ["feature/x", "main", "fix/timeout"],
+        isComplete: false,
+      }) as unknown as jest.Mock;
+
+    const { next, result } = await read();
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      branches: ["main", "feature/x", "fix/timeout"],
+      defaultBranch: "main",
+      isComplete: false,
+    });
+    expect(listBranchNames).toHaveBeenCalledWith({
+      installationId: INSTALLATION_ID,
+      organizationName: "acme",
+      repositoryName: "users-api",
+      search: "",
+      limit: 100,
+    });
+  });
+
+  test("searched: the branches that start with what was typed - the main branch only when it does too", async () => {
+    const listBranchNames: jest.Mock = jest
+      .spyOn(GitHubUtil, "listBranchNames")
+      .mockResolvedValue({
+        names: ["feature/a", "feature/b"],
+        isComplete: true,
+      }) as unknown as jest.Mock;
+
+    const { result } = await read({ search: " feature/ " });
+
+    expect(result).toEqual({
+      branches: ["feature/a", "feature/b"],
+      defaultBranch: "main",
+      isComplete: true,
+    });
+    expect(
+      (listBranchNames.mock.calls[0]![0] as { search: string }).search,
+    ).toBe("feature/");
+
+    listBranchNames.mockResolvedValue({ names: ["maintenance"], isComplete: true });
+    const { result: second } = await read({ search: "ma" });
+    expect(second?.["branches"]).toEqual(["main", "maintenance"]);
+  });
+
+  test("someone who may only read the repository may not list its branches: nothing is asked of GitHub", async () => {
+    world.props = VIEWER;
+    const listBranchNames: jest.Mock = jest.spyOn(
+      GitHubUtil,
+      "listBranchNames",
+    ) as unknown as jest.Mock;
+
+    const { next } = await read();
+
+    const error: Error = refusal(next);
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(CODE_TASK_ASK_REFUSED_MESSAGE);
+    expect(listBranchNames).not.toHaveBeenCalled();
+  });
+
+  test("a repository the caller may not read is not found", async () => {
+    world.repositoryReadable = false;
+
+    const { next } = await read();
+
+    expect(refusal(next)).toBeInstanceOf(NotFoundException);
+  });
+
+  test("a repository the project's GitHub App no longer reaches says so", async () => {
+    jest
+      .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+      .mockResolvedValue(null);
+
+    const { next } = await read();
+
+    expect(refusal(next).message).toBe(
+      CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
+    );
+  });
+
+  test("GitHub not answering is said as such", async () => {
+    jest
+      .spyOn(GitHubUtil, "listBranchNames")
+      .mockRejectedValue(new Error("rate limited"));
+
+    const { next } = await read();
+
+    const error: Error = refusal(next);
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe(CODE_TASK_BRANCHES_UNREADABLE_MESSAGE);
+  });
+
+  test.each([["a b"], ["x..y"], ["~1"], ["what?"], ["a".repeat(256)]])(
+    "a search no branch could start with (%p) is refused before GitHub is asked",
+    async (search: string) => {
+      const listBranchNames: jest.Mock = jest.spyOn(
+        GitHubUtil,
+        "listBranchNames",
+      ) as unknown as jest.Mock;
+
+      const { next } = await read({ search });
+
+      const error: Error = refusal(next);
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(
+        "A branch search can only hold what a branch's name can.",
+      );
+      expect(listBranchNames).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a prefix that ends where a whole name could not ('release/', 'v1.') is a search", async () => {
+    jest
+      .spyOn(GitHubUtil, "listBranchNames")
+      .mockResolvedValue({ names: [], isComplete: true });
+
+    for (const search of ["release/", "v1."]) {
+      const { next } = await read({ search });
+      expect(next).not.toHaveBeenCalled();
+    }
+  });
+
+  test("a search that is not text is refused", async () => {
+    const { next } = await read({ search: 7 as unknown as JSONObject });
+
+    expect(refusal(next).message).toBe("A branch search must be text.");
+  });
+
+  test("a repository id that is not one is refused before anything is read", async () => {
+    const { next } = await call(route, {
+      params: { repositoryId: "not-an-id" },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(BadDataException);
+    expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
   });
 });
 
@@ -806,6 +1103,99 @@ describe("listing a repository's tasks", () => {
   });
 });
 
+describe("listing every task the caller may read (Code's first page)", () => {
+  const route: string = "/code-task/list";
+
+  beforeEach(() => {
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([task()]);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(3));
+    jest.spyOn(CodeTaskPresenter, "summarize").mockResolvedValue([]);
+    // What each filter was built from, read off the query.
+    jest
+      .spyOn(QueryHelper, "inOrNull")
+      .mockImplementation((values: Array<string | ObjectID>) => {
+        return {
+          inOrNull: values.map((value: string | ObjectID) => {
+            return value.toString();
+          }),
+        } as never;
+      });
+    jest
+      .spyOn(QueryHelper, "any")
+      .mockImplementation((values: Array<string | ObjectID | number>) => {
+        return {
+          any: values.map((value: string | ObjectID | number) => {
+            return value.toString();
+          }),
+        } as never;
+      });
+  });
+
+  function readQuery(): Record<string, unknown> {
+    return (
+      (AIRunService.findBy as unknown as jest.Mock).mock.calls[0]![0] as {
+        query: Record<string, unknown>;
+      }
+    ).query;
+  }
+
+  test("the tasks of every repository the caller may read, and those with no repository for who may read AI runs", async () => {
+    const { result } = await call(route, {
+      body: { allRepositories: true, skip: 0, limit: 20 },
+    });
+
+    expect(result).toEqual({ tasks: [], totalCount: 3, skip: 0, limit: 20 });
+    expect(readQuery()["codeRepositoryId"]).toEqual({
+      inOrNull: [REPOSITORY_ID.toString()],
+    });
+    expect((readQuery()["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    // Tasks, not their replies.
+    expect(readQuery()).toHaveProperty("codeTaskId");
+    // The repositories are read as the caller.
+    expect(
+      (
+        (CodeRepositoryService.findBy as unknown as jest.Mock).mock
+          .calls[0]![0] as { props: unknown }
+      ).props,
+    ).toBe(MEMBER);
+  });
+
+  test("someone who may not read AI runs lists only their repositories' tasks", async () => {
+    world.props = caller([Permission.ReadCodeRepository]);
+
+    await call(route, { body: { allRepositories: true } });
+
+    expect(readQuery()["codeRepositoryId"]).toEqual({
+      any: [REPOSITORY_ID.toString()],
+    });
+    expect(QueryHelper.inOrNull).not.toHaveBeenCalled();
+  });
+
+  test("no repository to read and no AI runs to read: nothing, and nothing is asked of the database", async () => {
+    world.props = caller([Permission.ReadCodeRepository]);
+    world.repositoryReadable = false;
+
+    const { result } = await call(route, {
+      body: { allRepositories: true, skip: 5, limit: 10 },
+    });
+
+    expect(result).toEqual({ tasks: [], totalCount: 0, skip: 5, limit: 10 });
+    expect(AIRunService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("a page at a time, never more than fifty, here too", async () => {
+    const { result } = await call(route, {
+      body: { allRepositories: true, skip: -4, limit: 900 },
+    });
+
+    expect(result).toEqual({ tasks: [], totalCount: 3, skip: 0, limit: 50 });
+  });
+});
+
 describe("stopping a task", () => {
   const route: string = "/code-task/stop/:taskId";
 
@@ -880,6 +1270,7 @@ describe("the repositories, at a glance", () => {
           name: "users-api",
           organizationName: "acme",
           repositoryName: "users-api",
+          mainBranchName: "main",
           isConnected: true,
           stats: {
             working: 1,

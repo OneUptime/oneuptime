@@ -176,6 +176,42 @@ describe("CodeTaskRuns.start", () => {
     ).toMatchObject({ props: { isRoot: true } });
   });
 
+  test("the branch the person picked is kept on the first turn's request, where every turn reads it", async () => {
+    await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Backport the retry fix",
+      context: [],
+      baseBranch: "release/2026-10",
+    });
+
+    expect(created[0]!.taskContext).toEqual({
+      request: {
+        message: "Backport the retry fix",
+        context: [],
+        baseBranch: "release/2026-10",
+      },
+    });
+  });
+
+  test("none picked (null, or left out): no branch is kept - the repository's main branch is the task's", async () => {
+    for (const baseBranch of [null, undefined]) {
+      await CodeTaskRuns.start({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        repository: repository(),
+        message: "Add retries",
+        context: [],
+        baseBranch,
+      });
+    }
+
+    for (const run of created) {
+      expect(run.taskContext?.request).not.toHaveProperty("baseBranch");
+    }
+  });
+
   test("the project's AI run budget is asked first", async () => {
     (
       FixRunBudget.assertWithinBudget as unknown as jest.Mock
@@ -345,6 +381,32 @@ describe("CodeTaskRuns.retry", () => {
         request: { message: "Use exponential backoff", context: CONTEXT },
       });
     }
+  });
+
+  test("a first turn asked from a picked branch is asked again with the same words - the branch stays where it is, on the first turn", async () => {
+    // The task's own turn failed: no reply yet.
+    latestReply = null;
+    const failed: AIRun = task();
+    failed.status = AIRunStatus.Error;
+    failed.taskContext = {
+      request: {
+        message: "Backport the retry fix",
+        context: CONTEXT,
+        baseBranch: "release/2026-10",
+      },
+    };
+
+    await CodeTaskRuns.retry({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      task: failed,
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]!.codeTaskId?.toString()).toBe(TASK_ID.toString());
+    expect(created[0]!.taskContext).toEqual({
+      request: { message: "Backport the retry fix", context: CONTEXT },
+    });
   });
 
   test("only a turn that failed or was stopped is tried again", async () => {

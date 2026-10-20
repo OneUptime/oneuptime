@@ -185,7 +185,7 @@ export default class CodeTaskAgentBrief {
      * branches from - one older than the pick works from it all the same.
      */
     const baseBranch: string | null =
-      getCodeTaskRequest(allTurns[0]?.taskContext)?.baseBranch || null;
+      getCodeTaskRequest(task.taskContext)?.baseBranch || null;
 
     return {
       taskType: CodeFixTaskType.CodeRequest,
