@@ -200,14 +200,24 @@ const ExternalMcpServersPage: FunctionComponent<PageComponentProps> = (
             title: "URL",
             type: FieldType.Text,
             /*
-             * The address is cut short sooner than a name (the table's
-             * 20rem): the name says which server a row is, and the whole
-             * address shows under the pointer and on the server's page.
+             * The address takes less room than a name: the name says which
+             * server a row is. The column is capped through the table's
+             * wrapping cap (a cap in contentClassName is the #3585 overlap
+             * TableWrapContentInvariants forbids), and the address itself
+             * stays one line, cut short with an ellipsis - whole under the
+             * pointer, and on the server's page. 20rem let a long one push
+             * the German table past its card at 1280px.
              */
-            contentClassName: "max-w-[16rem] 2xl:max-w-[24rem]",
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-[16rem] 2xl:max-w-[24rem]",
             getElement: (item: ExternalMcpServer): ReactElement => {
               return (
-                <span className="break-all font-mono text-xs text-gray-700">
+                <span
+                  // On the row's 24px line, level with the name beside it.
+                  className="block truncate font-mono text-xs leading-6 text-gray-700"
+                  title={item.url || undefined}
+                  data-testid="external-mcp-server-url-cell"
+                >
                   {item.url || ""}
                 </span>
               );

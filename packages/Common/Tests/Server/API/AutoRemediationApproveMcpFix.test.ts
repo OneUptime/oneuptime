@@ -391,9 +391,14 @@ describe("approving and dismissing a fix through MCP servers", () => {
   test("refused when a server a change goes to was turned off or removed, naming it", async () => {
     serversSpy.mockResolvedValue([] as never);
 
+    const result: RouteCallResult = await callRoute(APPROVE_ROUTE);
     expectRefused(
-      await callRoute(APPROVE_ROUTE),
+      result,
       'The MCP server "AWS" this fix uses was turned off or removed',
+    );
+    // Where to turn it on, by the menu's own path (ProjectSettingsMenuPathsInProductText).
+    expect((result.thrownToNext as BadDataException).message).toContain(
+      "Turn the server on again under Project Settings → AI → External MCP Servers",
     );
   });
 

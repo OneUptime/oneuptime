@@ -940,7 +940,7 @@ async function approveMcpToolCalls(data: {
 
     if (!isAvailable) {
       throw new BadDataException(
-        `The MCP server "${call.serverNameSnapshot}" this fix uses was turned off or removed, so the fix cannot be made. Turn the server on again under Settings → AI → External MCP Servers, or dismiss the suggestion.`,
+        `The MCP server "${call.serverNameSnapshot}" this fix uses was turned off or removed, so the fix cannot be made. Turn the server on again under Project Settings → AI → External MCP Servers, or dismiss the suggestion.`,
       );
     }
   }

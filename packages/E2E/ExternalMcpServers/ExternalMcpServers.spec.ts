@@ -803,46 +803,68 @@ test.describe("A server's own page", () => {
  * side menu and the breadcrumbs beside the page, so the table has the
  * product's width - a 938px card at 1280px - not the fixture's.
  */
+
+/*
+ * The list fits its card - nothing scrolls sideways - and every row's
+ * status ends before the row's buttons begin; the row's one button is
+ * the short View. The address is one line, cut short, whole on hover.
+ */
+async function expectEveryRowToFit(page: Page, view: string): Promise<void> {
+  const table: Locator = page.locator("table").first();
+  await expect(table).toBeVisible();
+
+  const scroll: { scrollWidth: number; clientWidth: number } =
+    await table.evaluate((element: Element) => {
+      const box: HTMLElement = element.parentElement as HTMLElement;
+      return { scrollWidth: box.scrollWidth, clientWidth: box.clientWidth };
+    });
+  expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth + 1);
+
+  const rows: Locator = table.locator("tbody tr");
+  await expect(rows).toHaveCount(6);
+
+  for (let index: number = 0; index < 6; index++) {
+    const tableRow: Locator = rows.nth(index);
+    await expect(
+      tableRow.getByRole("button", { name: view, exact: true }),
+    ).toBeVisible();
+
+    const statusBox: { x: number; width: number } =
+      (await status(tableRow).boundingBox())!;
+    const actionsBox: { x: number } = (await tableRow
+      .locator("td")
+      .last()
+      .boundingBox())!;
+    expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(actionsBox.x + 1);
+
+    const url: Locator = tableRow.getByTestId("external-mcp-server-url-cell");
+    const urlLines: number = await url.evaluate((element: Element): number => {
+      return Math.round(
+        element.getBoundingClientRect().height /
+          parseFloat(getComputedStyle(element).lineHeight),
+      );
+    });
+    expect(urlLines).toBe(1);
+    expect(await url.getAttribute("title")).toBe(
+      (await url.textContent())?.trim(),
+    );
+  }
+}
 test.describe("In the Project Settings layout", () => {
   test("at 1280px, a long name and a long address leave every row's status in sight", async ({
     page,
   }: {
     page: Page;
   }) => {
+    // German's longer words first: "Verbunden 14 Werkzeuge", "Ansehen".
+    await open(page, "layout=page&servers=many&lang=de");
+    await expectEveryRowToFit(page, "Ansehen");
+    await shoot(page, "list-in-settings-de");
+
     await open(page, "layout=page&servers=many");
+    await expectEveryRowToFit(page, "View");
 
-    const table: Locator = page.locator("table").first();
-    await expect(table).toBeVisible();
-
-    // The rows fit their card: nothing scrolls sideways.
-    const scroll: { scrollWidth: number; clientWidth: number } =
-      await table.evaluate((element: Element) => {
-        const box: HTMLElement = element.parentElement as HTMLElement;
-        return { scrollWidth: box.scrollWidth, clientWidth: box.clientWidth };
-      });
-    expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth + 1);
-
-    const rows: Locator = table.locator("tbody tr");
-    await expect(rows).toHaveCount(6);
-
-    for (let index: number = 0; index < 6; index++) {
-      const tableRow: Locator = rows.nth(index);
-      // The row's one button says View: the name is the row's own.
-      await expect(
-        tableRow.getByRole("button", { name: "View", exact: true }),
-      ).toBeVisible();
-
-      // Its status ends before the row's buttons begin.
-      const statusBox: { x: number; width: number } =
-        (await status(tableRow).boundingBox())!;
-      const actionsBox: { x: number } = (await tableRow
-        .locator("td")
-        .last()
-        .boundingBox())!;
-      expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(
-        actionsBox.x + 1,
-      );
-    }
+    const rows: Locator = page.locator("table").first().locator("tbody tr");
 
     // A long server shows in one line each, cut short; whole on its page.
     const platform: Locator = rows.filter({ hasText: "Kubernetes platform" });

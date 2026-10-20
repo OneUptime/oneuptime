@@ -842,15 +842,48 @@ describe("the list", () => {
      * Beside the real side menu (a 938px card at 1280px), "View External
      * MCP Server" took 200px of every row and a long address pushed Status
      * out of sight under the row's buttons: the row says View, and the
-     * address is cut short sooner than a name.
+     * address takes less room than a name - capped through the table's
+     * wrapping cap, never contentClassName (TableWrapContentInvariants).
      */
     expect(table["viewButtonText"]).toBe("View");
-    const urlColumn: { contentClassName?: string } = (
-      table["columns"] as Array<{ title: string; contentClassName?: string }>
+    const urlColumn: {
+      contentClassName?: string;
+      wrapContent?: boolean;
+      wrapMaxWidthClassName?: string;
+      getElement: (item: ExternalMcpServer) => ReactElement;
+    } = (
+      table["columns"] as Array<{
+        title: string;
+        contentClassName?: string;
+        wrapContent?: boolean;
+        wrapMaxWidthClassName?: string;
+        getElement: (item: ExternalMcpServer) => ReactElement;
+      }>
     ).find((column: { title: string }) => {
       return column.title === "URL";
     })!;
-    expect(urlColumn.contentClassName).toBe("max-w-[16rem] 2xl:max-w-[24rem]");
+    expect(urlColumn.contentClassName).toBeUndefined();
+    expect(urlColumn.wrapContent).toBe(true);
+    expect(urlColumn.wrapMaxWidthClassName).toBe(
+      "max-w-[16rem] 2xl:max-w-[24rem]",
+    );
+
+    // The address itself stays one line, cut short, and whole on hover.
+    const longUrl: string =
+      "https://mcp.platform-tools.eu-central-1.internal-enterprise-example.com/v1/mcp";
+    render(
+      urlColumn.getElement(
+        Object.assign(new ExternalMcpServer(new ObjectID(SERVER_ID)), {
+          url: longUrl,
+        }),
+      ),
+    );
+    const urlCell: HTMLElement = screen.getByTestId(
+      "external-mcp-server-url-cell",
+    );
+    expect(urlCell).toHaveTextContent(longUrl);
+    expect(urlCell).toHaveAttribute("title", longUrl);
+    expect(urlCell).toHaveClass("block", "truncate", "leading-6");
 
     // The card says what the page is not: OneUptime's own server.
     render((table["cardProps"] as { description: ReactElement }).description);
