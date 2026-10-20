@@ -44,7 +44,7 @@ Slik legger du til en prosjektkonfigurasjon:
 :::steps
 1. Gå til **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 2. Velg **Opprett Twilio-konfigurasjon** i **Twilio-konfigurasjon**.
-3. Skriv inn et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og et **Twilio SMS-telefonnummer** hvis det primære nummeret ikke kan sende SMS.
+3. Skriv inn et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og **Twilio SMS-telefonnumre** hvis numrene dine ikke kan sende SMS.
 4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS og anrop til prosjektets medlemmer, også vaktvarsler, går gjennom den med en gang du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. En senere konfigurasjon starter med bryteren av: Slå den på, eller velg **Angi som prosjektstandard** i konfigurasjonens radmeny for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte.
 5. Lagre. Bare én konfigurasjon kan være prosjektstandarden. Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
@@ -56,16 +56,17 @@ For en standard for hele installasjonen kan en administrator i stedet åpne **Ad
 
 ### Egne numre for anrop og SMS
 
-Et Twilio-nummer kan ringe og sende SMS, eller bare én av delene, og i noen land kan ingen nummer begge deler. I Singapore krever for eksempel anrop et nasjonalt nummer (+65 3 eller +65 6) og SMS et mobilnummer (+65 8). En konfigurasjon, et prosjekts eller installasjonens, kan sende SMS fra egne numre, under **Flere felt**:
+Et Twilio-nummer kan ringe og sende SMS, eller bare én av delene, og i noen land kan ingen nummer begge deler. I Singapore er for eksempel nasjonale numre (+65 3 eller +65 6) bare for tale, og SMS krever et mobilnummer (+65 8). En konfigurasjon, et prosjekts eller installasjonens, kan angi numre for SMS under **Flere felt**:
 
 | Felt | Hva som går ut fra det |
 | --- | --- |
-| **Twilio primært telefonnummer** | Anrop, og SMS også så lenge det ikke er angitt et SMS-nummer |
-| **Twilio SMS-telefonnummer** | SMS, i stedet for det primære nummeret |
-| **Twilio sekundære telefonnumre** | Anrop og SMS til mottakere i landet til hvert nummer |
-| **Twilio sekundære SMS-telefonnumre** | SMS til mottakere i landet til hvert nummer, i stedet for de sekundære numrene |
+| **Twilio primært telefonnummer** | Anrop, og SMS så lenge det ikke er angitt SMS-numre |
+| **Twilio sekundære telefonnumre** | Anrop, og SMS så lenge det ikke er angitt SMS-numre, til mottakere i landet til hvert nummer |
+| **Twilio SMS-telefonnumre** | Hver SMS når de er angitt: fra nummeret i mottakerens land, ellers fra det første |
 
-En konfigurasjon uten SMS-numre sender SMS fra de samme numrene som anrop. **Send test-SMS** og **Send testanrop** går ut fra nummeret en ekte SMS eller et ekte anrop til samme mottaker ville gått ut fra. Hvis Twilio avviser en SMS med feil 21606, kan ikke nummeret sende SMS: angi et **Twilio SMS-telefonnummer**.
+For Singapore skriver du inn det nasjonale nummeret som **Twilio primært telefonnummer** og mobilnummeret under **Twilio SMS-telefonnumre**. Så snart en konfigurasjon angir SMS-numre, går ingen SMS ut fra de andre numrene dens, så angi hvert nummer som skal sende SMS.
+
+En konfigurasjon uten SMS-numre sender SMS fra de samme numrene som anrop, som før. **Send test-SMS** og **Send testanrop** går ut fra nummeret en ekte SMS eller et ekte anrop til samme mottaker ville gått ut fra. Hvis Twilio avviser en SMS med feil 21606, kan ikke nummeret sende SMS: legg til et som kan, under **Twilio SMS-telefonnumre**.
 
 > [!NOTE]
 > I Singapore kommer en SMS fra et nummer som ikke er registrert hos SGNIC, eller fra et nummer utenfor Singapore, fram med avsenderen `Likely-SCAM`. Registrer mobilnummeret hos SGNIC og hos Twilio før du stoler på det; se [Twilios SMS-retningslinjer for Singapore](https://www.twilio.com/en-us/guidelines/sg/sms).
@@ -143,7 +144,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 | Symptom | Hvor du ser |
 | --- | --- |
 | Ingenting blir sendt | Påloggingsinformasjon, nummerets funksjoner, kontoens begrensninger og den utgående tilkoblingen. |
-| Twilio avviser SMS med feil 21606 | Nummeret kan ikke sende SMS. Angi et **Twilio SMS-telefonnummer**: se [Egne numre for anrop og SMS](#egne-numre-for-anrop-og-sms). |
+| Twilio avviser SMS med feil 21606 | Nummeret kan ikke sende SMS. Legg til et som kan, under **Twilio SMS-telefonnumre**: se [Egne numre for anrop og SMS](#egne-numre-for-anrop-og-sms). |
 | SMS-en eller anropet kommer fram, men statusen eller bekreftelsen oppdateres ikke | URL-en for tilbakekall og loggene fra den offentlige ingressen. Twilios [veiledning om feil ved HTTP-henting](https://www.twilio.com/docs/api/errors/11200) hjelper med tilbakekall som ikke kan nås, TLS-problemer og HTTP-feil. |
 
 Et vellykket testanrop alene beviser ikke at tilbakekall kan nås.

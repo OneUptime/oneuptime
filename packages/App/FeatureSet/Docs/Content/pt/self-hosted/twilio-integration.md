@@ -44,7 +44,7 @@ Para adicionar uma configuração de projeto:
 :::steps
 1. Vá para **Configurações do projeto > Notificações > Configurações de notificação**.
 2. Em **Configuração do Twilio**, selecione **Criar: Configuração do Twilio**.
-3. Informe um nome, **SID da Conta Twilio**, **Token de Autenticação Twilio** e **Número de Telefone Principal do Twilio**. Em **Mais campos**, se quiser, informe **Números de Telefone Secundários do Twilio** separados por vírgulas para outros países, e um **Número de Telefone SMS do Twilio** se o número principal não puder enviar SMS.
+3. Informe um nome, **SID da Conta Twilio**, **Token de Autenticação Twilio** e **Número de Telefone Principal do Twilio**. Em **Mais campos**, se quiser, informe **Números de Telefone Secundários do Twilio** separados por vírgulas para outros países, e **Números de Telefone SMS do Twilio** se os seus números não puderem enviar SMS.
 4. **Definir como padrão do projeto** começa ligado na primeira configuração do projeto, então os SMS e as chamadas aos membros do projeto, inclusive as notificações de plantão, passam por ela assim que você salva. Desligue se essa conta for só para páginas de status ou chamadas recebidas. Uma configuração posterior começa com a chave desligada: ligue-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para levar essas mensagens para ela. Uma requisição à API que omite `isProjectDefault` é tratada da mesma forma.
 5. Salve. Só uma configuração pode ser a padrão do projeto. As páginas de status usam a configuração atribuída explicitamente a cada uma.
 
@@ -56,16 +56,17 @@ Para um padrão que valha para a instalação inteira, um administrador pode abr
 
 ### Números separados para chamadas e SMS
 
-Um número do Twilio pode fazer chamadas e enviar SMS, ou só uma das duas coisas, e em alguns países nenhum número faz as duas. Em Singapura, por exemplo, as chamadas precisam de um número nacional (+65 3 ou +65 6) e os SMS de um número móvel (+65 8). Uma configuração, a de um projeto ou a da instalação, pode enviar os SMS de números próprios, em **Mais campos**:
+Um número do Twilio pode fazer chamadas e enviar SMS, ou só uma das duas coisas, e em alguns países nenhum número faz as duas. Em Singapura, por exemplo, os números nacionais (+65 3 ou +65 6) são só de voz, e os SMS precisam de um número móvel (+65 8). Uma configuração, a de um projeto ou a da instalação, pode listar números para SMS em **Mais campos**:
 
 | Campo | O que sai dele |
 | --- | --- |
-| **Número de Telefone Principal do Twilio** | As chamadas, e também os SMS enquanto nenhum número de SMS estiver definido |
-| **Número de Telefone SMS do Twilio** | Os SMS, no lugar do número principal |
-| **Números de Telefone Secundários do Twilio** | Chamadas e SMS para destinatários no país de cada número |
-| **Números de Telefone SMS Secundários do Twilio** | Os SMS para destinatários no país de cada número, no lugar dos números secundários |
+| **Número de Telefone Principal do Twilio** | As chamadas, e os SMS enquanto nenhum número de SMS estiver listado |
+| **Números de Telefone Secundários do Twilio** | As chamadas, e os SMS enquanto nenhum número de SMS estiver listado, para destinatários no país de cada número |
+| **Números de Telefone SMS do Twilio** | Cada SMS, depois de listados: do número do país do destinatário ou, se não houver, do primeiro |
 
-Uma configuração sem números de SMS envia os SMS dos mesmos números que as chamadas. **Enviar SMS de teste** e **Enviar chamada de teste** saem do número de que sairia um SMS ou uma chamada real para o mesmo destinatário. Se o Twilio recusar um SMS com o erro 21606, o número não pode enviar SMS: defina um **Número de Telefone SMS do Twilio**.
+Para Singapura, informe o número nacional como **Número de Telefone Principal do Twilio** e o número móvel em **Números de Telefone SMS do Twilio**. Assim que uma configuração lista números de SMS, nenhum SMS sai dos seus outros números; por isso, liste todos os números que devem enviar SMS.
+
+Uma configuração sem números de SMS envia os SMS dos mesmos números que as chamadas, como antes. **Enviar SMS de teste** e **Enviar chamada de teste** saem do número de que sairia um SMS ou uma chamada real para o mesmo destinatário. Se o Twilio recusar um SMS com o erro 21606, o número não pode enviar SMS: adicione um que possa em **Números de Telefone SMS do Twilio**.
 
 > [!NOTE]
 > Em Singapura, um SMS de um número que não está registrado no SGNIC, ou de um número de fora de Singapura, chega com o remetente `Likely-SCAM`. Registre o número móvel no SGNIC e no Twilio antes de contar com ele; veja [as diretrizes de SMS do Twilio para Singapura](https://www.twilio.com/en-us/guidelines/sg/sms).
@@ -143,7 +144,7 @@ Para desenvolvimento, o [guia de testes de webhooks](https://www.twilio.com/docs
 | Sintoma | Onde olhar |
 | --- | --- |
 | Nada é enviado | As credenciais, os recursos do número, as restrições da conta e a conectividade de saída. |
-| O Twilio recusa SMS com o erro 21606 | O número não pode enviar SMS. Defina um **Número de Telefone SMS do Twilio**: veja [Números separados para chamadas e SMS](#números-separados-para-chamadas-e-sms). |
+| O Twilio recusa SMS com o erro 21606 | O número não pode enviar SMS. Adicione um que possa em **Números de Telefone SMS do Twilio**: veja [Números separados para chamadas e SMS](#números-separados-para-chamadas-e-sms). |
 | O SMS ou a chamada chega, mas o status ou a confirmação não é atualizado | A URL do callback e os logs do ingress público. O [guia do Twilio sobre falhas de obtenção HTTP](https://www.twilio.com/docs/api/errors/11200) ajuda a diagnosticar callbacks inacessíveis, problemas de TLS e erros HTTP. |
 
 Uma chamada de teste bem-sucedida, sozinha, não prova que os callbacks são acessíveis.

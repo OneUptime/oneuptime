@@ -43,7 +43,7 @@ Vai in **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche*
 - **Nome** e **Descrizione**: a che cosa serve l'account, ad esempio «Linea di supporto».
 - **Twilio Account SID**: dalla console di Twilio. Inizia con `AC`.
 - **Twilio Auth Token**: dalla console di Twilio.
-- **Numero di telefono principale Twilio**: un numero di quell'account, per gli SMS e le chiamate che invia. In **Altri campi**, facoltativi: numeri per i destinatari di altri paesi e un numero per gli SMS se il numero principale può solo effettuare chiamate (vedi [Numeri separati per chiamate e SMS](/docs/self-hosted/twilio-integration#numeri-separati-per-chiamate-e-sms)).
+- **Numero di telefono principale Twilio**: un numero di quell'account, per gli SMS e le chiamate che invia. In **Altri campi**, facoltativi: numeri per i destinatari di altri paesi e numeri per gli SMS se i numeri dell'account possono solo effettuare chiamate (vedi [Numeri separati per chiamate e SMS](/docs/self-hosted/twilio-integration#numeri-separati-per-chiamate-e-sms)).
 - **Imposta come predefinito del progetto**: attivo per la prima configurazione Twilio del progetto, così anche gli SMS e le chiamate ai membri del progetto passano da questo account. Disattivalo se l'account serve solo per le chiamate in entrata.
 
 ### Crea la policy

@@ -43,7 +43,7 @@ Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstilli
 - **Navn** og **Beskrivelse**: hvad kontoen bruges til, fx "Supportlinje".
 - **Twilio Account SID**: fra Twilio Console. Den starter med `AC`.
 - **Twilio Auth Token**: fra Twilio Console.
-- **Twilio primært telefonnummer**: et nummer på den konto, til de SMS'er og opkald, den sender. Under **Flere felter**, valgfrit: numre til modtagere i andre lande og et SMS-nummer til et primært nummer, der kun kan foretage opkald (se [Separate numre til opkald og SMS](/docs/self-hosted/twilio-integration#separate-numre-til-opkald-og-sms)).
+- **Twilio primært telefonnummer**: et nummer på den konto, til de SMS'er og opkald, den sender. Under **Flere felter**, valgfrit: numre til modtagere i andre lande og numre til SMS, når kontoens numre kun kan foretage opkald (se [Separate numre til opkald og SMS](/docs/self-hosted/twilio-integration#separate-numre-til-opkald-og-sms)).
 - **Indstil som projektstandard**: slået til for projektets første Twilio-konfiguration, så SMS'er og opkald til projektets medlemmer også går gennem denne konto. Slå det fra, hvis kontoen kun er til indgående opkald.
 
 ### Opret politikken
