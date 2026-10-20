@@ -119,7 +119,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
       "HTTP request rate, latency, error rate, CPU utilization gauge, memory usage, disk and network I/O, and runtime metrics.",
     icon: IconProp.ChartBar,
     category: DashboardTemplateCategory.Monitoring,
-    keywords: ["apm", "opentelemetry", "otel", "services"],
+    keywords: ["opentelemetry", "otel", "services"],
   },
   {
     type: DashboardTemplateType.Rum,
