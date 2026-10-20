@@ -491,8 +491,7 @@
         "cardTitle": "Конфигурация Twilio",
         "cardDescription": "Это будет использоваться для звонков и отправки SMS.",
         "editButton": "Изменить конфигурацию Twilio",
-        "smsSameAsPrimary": "Как основной номер",
-        "smsSameAsSecondary": "Как дополнительные номера"
+        "smsSameAsCalls": "Те же номера, что и для звонков"
       },
       "whatsapp": {
         "metaCardTitle": "Настройки Meta WhatsApp",
@@ -1014,10 +1013,8 @@
   "{{count}} people_one": "{{count}} человек",
   "Docker Compose guide": "Руководство по Docker Compose",
   "Kubernetes guide": "Руководство по Kubernetes",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "Звонки идут с этого номера, и SMS тоже, если в разделе «Дополнительные поля» не задан номер телефона для SMS.",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Номера, с которых отправляются SMS вместо дополнительных номеров, если совпадает код страны получателя.",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Отправлять SMS с этого номера вместо основного, если основной номер может только звонить. Например, в Сингапуре для звонков нужен национальный номер, а для SMS — мобильный.",
-  "Twilio SMS Phone Number": "Номер телефона Twilio для SMS",
-  "Twilio SMS Secondary Phone Numbers": "Дополнительные номера телефонов Twilio для SMS",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Звонки идут с этого номера, и SMS тоже, если в разделе «Дополнительные поля» не добавлены номера телефонов для SMS.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Если ваши номера Twilio не могут отправлять SMS (в Сингапуре национальные номера только голосовые), добавьте номера, которые могут. Тогда каждое SMS уходит с номера страны получателя, а если такого нет — с первого.",
+  "Twilio SMS Phone Numbers": "Номера телефонов Twilio для SMS",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} — не номер телефона. Укажите каждый номер с кодом страны и разделите номера запятыми, например +6581234567, +447700900123."
 }

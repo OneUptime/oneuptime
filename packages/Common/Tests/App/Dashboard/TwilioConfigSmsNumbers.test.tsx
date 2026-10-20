@@ -42,20 +42,23 @@ import {
  * stand-ins.
  *
  * A Twilio number can make calls and send SMS, or only one of the two, and
- * in Singapore calls need a national number and SMS a mobile one. So:
+ * Singapore's national numbers are voice-only - SMS there need a mobile
+ * number. So:
  *
  *   - the Twilio step asks for what most configs need - the account, its
  *     token, the primary number and the default switch - and folds the
- *     numbers few need under More fields: the SMS phone number, the
- *     secondary numbers and the SMS secondary numbers;
- *   - the primary number says that SMS go out from it too unless an SMS
- *     number is set, and the SMS number says when to set one;
+ *     numbers few need under More fields: the SMS phone numbers and the
+ *     secondary numbers;
+ *   - the primary number says that SMS go out from it too unless SMS
+ *     numbers are added, and the SMS numbers say when to add them and what
+ *     they change;
  *   - a Singapore config - a national primary number and a mobile SMS
  *     number - is saved with both;
  *   - a list of numbers holding something that is not one is refused under
  *     its field, by the server's rule, and nothing is saved;
  *   - the table shows a config's primary number as before, and beside it
- *     its SMS number, each saying what it sends, when SMS have their own.
+ *     its first SMS number, each saying what it sends, when SMS have their
+ *     own.
  */
 
 jest.setTimeout(60000);
@@ -252,9 +255,8 @@ import Phone from "../../../Types/Phone";
 import Column from "../../../UI/Components/ModelTable/Column";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
 
-const SMS_NUMBER: string = "Twilio SMS Phone Number";
+const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
 const SECONDARY_NUMBERS: string = "Twilio Secondary Phone Numbers";
-const SMS_SECONDARY_NUMBERS: string = "Twilio SMS Secondary Phone Numbers";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -412,20 +414,16 @@ describe("the Twilio step of a Twilio config's form", () => {
     const header: HTMLElement = moreFieldsHeader();
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    // Folded, the line names what is under it: the SMS number first.
-    expect(listedNames(header)).toEqual([
-      SMS_NUMBER,
-      SECONDARY_NUMBERS,
-      SMS_SECONDARY_NUMBERS,
-    ]);
+    // Folded, the line names what is under it: the SMS numbers first.
+    expect(listedNames(header)).toEqual([SMS_NUMBERS, SECONDARY_NUMBERS]);
     expect(hasSetChip(header)).toBe(false);
 
-    for (const folded of [SMS_NUMBER, SECONDARY_NUMBERS, SMS_SECONDARY_NUMBERS]) {
+    for (const folded of [SMS_NUMBERS, SECONDARY_NUMBERS]) {
       expect(label(folded)).not.toBeVisible();
     }
   });
 
-  test("the primary number says SMS go out from it too unless an SMS number is set", async () => {
+  test("the primary number says SMS go out from it too unless SMS numbers are added", async () => {
     await renderCard();
     await openForm("create");
     await walkToTwilioStep();
@@ -437,7 +435,7 @@ describe("the Twilio step of a Twilio config's form", () => {
     ).toBeVisible();
   });
 
-  test("More fields opens on the three numbers, each optional, each saying what it is for", async () => {
+  test("More fields opens on the two lists of numbers, each optional, each saying what it is for", async () => {
     await renderCard();
     await openForm("create");
     await walkToTwilioStep();
@@ -445,22 +443,24 @@ describe("the Twilio step of a Twilio config's form", () => {
 
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "true");
 
-    for (const folded of [SMS_NUMBER, SECONDARY_NUMBERS, SMS_SECONDARY_NUMBERS]) {
+    for (const folded of [SMS_NUMBERS, SECONDARY_NUMBERS]) {
       expect(label(folded)).toBeVisible();
       expect(label(folded)).toHaveTextContent("(Optional)");
     }
 
     for (const help of [
-      TwilioConfigNumbersCopy.smsPhoneNumberDescription,
+      TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
       TwilioConfigNumbersCopy.secondaryPhoneNumbersDescription,
-      TwilioConfigNumbersCopy.smsSecondaryPhoneNumbersDescription,
     ]) {
       expect(within(dialog()).getByText(help)).toBeVisible();
     }
 
-    // The SMS number's help names the case it is for.
-    expect(TwilioConfigNumbersCopy.smsPhoneNumberDescription).toContain(
+    // The SMS numbers' help names the case they are for, and what they change.
+    expect(TwilioConfigNumbersCopy.smsPhoneNumbersDescription).toContain(
       "Singapore",
+    );
+    expect(TwilioConfigNumbersCopy.smsPhoneNumbersDescription).toContain(
+      "Every SMS then goes out from the one in the recipient's country, or else the first.",
     );
   });
 
@@ -470,7 +470,7 @@ describe("the Twilio step of a Twilio config's form", () => {
     await walkToTwilioStep();
     await fillAccount(SG_NATIONAL);
     await openMoreFields();
-    await type(SMS_NUMBER, SG_MOBILE);
+    await type(SMS_NUMBERS, SG_MOBILE);
     await clickFooter();
 
     await waitFor(() => {
@@ -480,8 +480,8 @@ describe("the Twilio step of a Twilio config's form", () => {
     const model: Record<string, unknown> = capturedModels[0]!;
 
     expect(textOf(model["twilioPrimaryPhoneNumber"])).toBe(SG_NATIONAL);
-    expect(textOf(model["twilioSmsPhoneNumber"])).toBe(SG_MOBILE);
-    expect(textOf(model["twilioSmsSecondaryPhoneNumbers"])).toBe("");
+    expect(textOf(model["twilioSmsPhoneNumbers"])).toBe(SG_MOBILE);
+    expect(textOf(model["twilioSecondaryPhoneNumbers"])).toBe("");
   });
 
   test("a config saved without SMS numbers sends none, as every config did", async () => {
@@ -495,14 +495,11 @@ describe("the Twilio step of a Twilio config's form", () => {
       expect(capturedModels).toHaveLength(1);
     });
 
-    expect(textOf(capturedModels[0]!["twilioSmsPhoneNumber"])).toBe("");
-    expect(textOf(capturedModels[0]!["twilioSmsSecondaryPhoneNumbers"])).toBe(
-      "",
-    );
+    expect(textOf(capturedModels[0]!["twilioSmsPhoneNumbers"])).toBe("");
   });
 
   test.each([
-    [SMS_SECONDARY_NUMBERS, "twilioSmsSecondaryPhoneNumbers"],
+    [SMS_NUMBERS, "twilioSmsPhoneNumbers"],
     [SECONDARY_NUMBERS, "twilioSecondaryPhoneNumbers"],
   ])(
     "a list in %s that holds something that is not a number is refused under it, naming it, and nothing is saved",
@@ -532,26 +529,25 @@ describe("the Twilio step of a Twilio config's form", () => {
     await walkToTwilioStep();
     await fillAccount(SG_NATIONAL);
     await openMoreFields();
-    await type(SMS_NUMBER, SG_MOBILE);
-    await type(SMS_SECONDARY_NUMBERS, `${UK}, ${SG_MOBILE}`);
+    await type(SMS_NUMBERS, `${SG_MOBILE}, ${UK}`);
     await clickFooter();
 
     await waitFor(() => {
       expect(capturedModels).toHaveLength(1);
     });
 
-    expect(capturedModels[0]!["twilioSmsSecondaryPhoneNumbers"]).toBe(
-      `${UK}, ${SG_MOBILE}`,
+    expect(capturedModels[0]!["twilioSmsPhoneNumbers"]).toBe(
+      `${SG_MOBILE}, ${UK}`,
     );
   });
 
-  test("editing a config with an SMS number shows it as set on the folded line", async () => {
+  test("editing a config with SMS numbers shows them as set on the folded line", async () => {
     stored = {
       name: "Singapore",
       twilioAccountSID: "AC00000000000000000000000000000001",
       twilioAuthToken: "00000000000000000000000000000001",
       twilioPrimaryPhoneNumber: SG_NATIONAL,
-      twilioSmsPhoneNumber: SG_MOBILE,
+      twilioSmsPhoneNumbers: SG_MOBILE,
       isProjectDefault: true,
     };
 
@@ -567,16 +563,16 @@ describe("the Twilio step of a Twilio config's form", () => {
 
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(hasSetChip(header)).toBe(true);
-    expect(header).toHaveTextContent(SMS_NUMBER);
+    expect(header).toHaveTextContent(SMS_NUMBERS);
   });
 });
 
 describe("the Twilio Config table", () => {
-  test("reads each config's SMS number, and can filter by it", async () => {
+  test("reads each config's SMS numbers, and can filter by them", async () => {
     await renderCard();
 
     expect(lastTableProps()["selectMoreFields"]).toEqual({
-      twilioSmsPhoneNumber: true,
+      twilioSmsPhoneNumbers: true,
     });
 
     const filters: Array<Filter<ProjectCallSMSConfig>> = lastTableProps()[
@@ -586,8 +582,8 @@ describe("the Twilio Config table", () => {
     expect(
       filters.some((filter: Filter<ProjectCallSMSConfig>): boolean => {
         return (
-          filter.title === SMS_NUMBER &&
-          Object.keys(filter.field || {})[0] === "twilioSmsPhoneNumber"
+          filter.title === SMS_NUMBERS &&
+          Object.keys(filter.field || {})[0] === "twilioSmsPhoneNumbers"
         );
       }),
     ).toBe(true);
@@ -611,7 +607,7 @@ describe("the Twilio Config table", () => {
 
     const singapore: ProjectCallSMSConfig = new ProjectCallSMSConfig();
     singapore.twilioPrimaryPhoneNumber = new Phone(SG_NATIONAL);
-    singapore.twilioSmsPhoneNumber = new Phone(SG_MOBILE);
+    singapore.twilioSmsPhoneNumbers = `${SG_MOBILE}, ${UK}`;
 
     render(numbersColumn!.getElement!(singapore));
 
@@ -619,13 +615,15 @@ describe("the Twilio Config table", () => {
 
     expect(cell).toHaveTextContent(SG_NATIONAL);
     expect(cell).toHaveTextContent(SG_MOBILE);
+    // The rest of the list is in the config's Edit dialog.
+    expect(cell).not.toHaveTextContent(UK);
     expect(within(cell).getByText("Phone Calls")).toBeVisible();
     expect(within(cell).getByText("SMS")).toBeVisible();
   });
 });
 
 describe("a config's numbers in its row", () => {
-  test("a config without an SMS number shows its primary number alone, as before", () => {
+  test("a config without SMS numbers shows its primary number alone, as before", () => {
     render(
       <TwilioConfigPhoneNumbers
         config={{ twilioPrimaryPhoneNumber: new Phone(SG_MOBILE) }}
@@ -639,16 +637,27 @@ describe("a config's numbers in its row", () => {
     expect(within(cell).queryByText("SMS")).toBeNull();
   });
 
-  test("one with an SMS number shows each, calls first, each saying what it sends", () => {
+  test("one with SMS numbers shows its primary and its first SMS number, calls first, each saying what it sends", () => {
     expect(
       getTwilioConfigNumberLines({
-        twilioPrimaryPhoneNumber: SG_NATIONAL,
-        twilioSmsPhoneNumber: new Phone(SG_MOBILE),
+        twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        twilioSmsPhoneNumbers: ` ${SG_MOBILE} ;${UK}`,
       }),
     ).toEqual([
       { phoneNumber: SG_NATIONAL, label: "Phone Calls" },
       { phoneNumber: SG_MOBILE, label: "SMS" },
     ]);
+  });
+
+  test("an emptied list of SMS numbers is none: the primary number alone", () => {
+    for (const emptied of ["", " , ", null, undefined]) {
+      expect(
+        getTwilioConfigNumberLines({
+          twilioPrimaryPhoneNumber: SG_NATIONAL,
+          twilioSmsPhoneNumbers: emptied,
+        }),
+      ).toEqual([{ phoneNumber: SG_NATIONAL, label: null }]);
+    }
   });
 
   test("one with no number yet shows a dash", () => {
@@ -660,7 +669,7 @@ describe("a config's numbers in its row", () => {
 
   test("an SMS number alone, without a primary number, is still shown, as the SMS one", () => {
     expect(
-      getTwilioConfigNumberLines({ twilioSmsPhoneNumber: SG_MOBILE }),
+      getTwilioConfigNumberLines({ twilioSmsPhoneNumbers: SG_MOBILE }),
     ).toEqual([{ phoneNumber: SG_MOBILE, label: "SMS" }]);
   });
 
@@ -684,7 +693,7 @@ describe("a config's numbers in its row", () => {
           <TwilioConfigPhoneNumbers
             config={{
               twilioPrimaryPhoneNumber: SG_NATIONAL,
-              twilioSmsPhoneNumber: SG_MOBILE,
+              twilioSmsPhoneNumbers: SG_MOBILE,
             }}
           />
         </I18nextProvider>,
@@ -708,12 +717,10 @@ describe("the strings the form adds", () => {
     const english: Record<string, string> = readLocale("en");
 
     for (const key of [
-      SMS_NUMBER,
-      SMS_SECONDARY_NUMBERS,
+      SMS_NUMBERS,
       TwilioConfigNumbersCopy.primaryPhoneNumberDescription,
-      TwilioConfigNumbersCopy.smsPhoneNumberDescription,
+      TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
       TwilioConfigNumbersCopy.secondaryPhoneNumbersDescription,
-      TwilioConfigNumbersCopy.smsSecondaryPhoneNumbersDescription,
       TwilioConfigNumbersCopy.callsLabel,
       TwilioConfigNumbersCopy.smsLabel,
       "Phone Numbers",
@@ -745,11 +752,9 @@ describe("the strings the form adds", () => {
       const words: Record<string, string> = readLocale(language);
 
       for (const key of [
-        SMS_NUMBER,
-        SMS_SECONDARY_NUMBERS,
+        SMS_NUMBERS,
         TwilioConfigNumbersCopy.primaryPhoneNumberDescription,
-        TwilioConfigNumbersCopy.smsPhoneNumberDescription,
-        TwilioConfigNumbersCopy.smsSecondaryPhoneNumbersDescription,
+        TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
       ]) {
         expect({
           language,
@@ -757,11 +762,24 @@ describe("the strings the form adds", () => {
           translated: Boolean(words[key]) && words[key] !== key,
         }).toEqual({ language, key, translated: true });
       }
+    }
+  });
 
-      // The SMS help keeps its example in every language.
-      expect(
-        words[TwilioConfigNumbersCopy.smsPhoneNumberDescription],
-      ).toBeDefined();
+  test("leave none of the keys of the earlier two-field design behind", () => {
+    for (const language of ["en", "de", "ja", "fa"]) {
+      const words: Record<string, string> = readLocale(language);
+
+      for (const retired of [
+        "Twilio SMS Phone Number",
+        "Twilio SMS Secondary Phone Numbers",
+        "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
+      ]) {
+        expect({ language, retired, kept: retired in words }).toEqual({
+          language,
+          retired,
+          kept: false,
+        });
+      }
     }
   });
 

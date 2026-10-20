@@ -9,25 +9,28 @@ import { refusedValue } from "../../Utils/RefusedValue";
  *
  * Each Twilio number has capabilities of its own: Twilio sells numbers that
  * make calls and send SMS, numbers that only send SMS and numbers that only
- * make calls. In some countries no one number does both - in Singapore,
- * calls need a national number (+65 3 or 6) and SMS a mobile number (+65 8),
- * and a customer in Poland needed a local number for calls and a mobile one
- * for SMS (#3020). A config that sent SMS from a number that can only make
- * calls had every SMS refused by Twilio (error 21606).
+ * make calls. In some countries no one number does both - Twilio lists
+ * Singapore's national numbers (+65 3 or 6) as voice-only, and SMS there
+ * need a mobile number (+65 8); a customer in Poland needed a local number
+ * for calls and a mobile one for SMS (#3020). A config that sent SMS from a
+ * number that can only make calls had every SMS refused by Twilio (error
+ * 21606).
  *
  * So a config - a project's (ProjectCallSMSConfig) or the OneUptime
- * server's own (GlobalConfig) - can name numbers for SMS:
+ * server's own (GlobalConfig) - can list numbers for SMS:
  *
  *   - calls go out from the primary number, or from a secondary number in
  *     the recipient's country;
- *   - SMS go out from the same numbers, except that the SMS phone number,
- *     when set, takes the primary number's place, and the SMS secondary
- *     numbers, when set, take the secondary numbers' place.
+ *   - SMS go out from the same numbers while the config lists no SMS
+ *     numbers - every config there was before them sends exactly as it did;
+ *   - once it lists SMS numbers, every SMS goes out from one of them: the
+ *     one in the recipient's country, or else the first. Never from a
+ *     number kept for calls, so a voice-only number sends no SMS at all.
  *
- * A config without SMS numbers - every config there was before - sends
- * exactly as it did. Every sender (the Notification service's SmsService and
- * CallService) picks through pickSenderNumber, so no SMS can go out from a
- * number set aside for calls once the config names one for SMS.
+ * One list rather than an SMS twin of each call field: one rule to read
+ * ("SMS go out from these"), and no SMS falling back to a call number the
+ * person did not think to replace. Every sender (the Notification service's
+ * SmsService and CallService) picks through pickSenderNumber.
  *
  * Kept free of server and React code: the server, the dashboards and the
  * tests read the same rules.
@@ -44,7 +47,7 @@ const PHONE_NUMBER_LIST_SEPARATOR: RegExp = /[,;\n]/;
 export const PHONE_NUMBER_LIST_EXAMPLE: string = "+6581234567, +447700900123";
 
 export interface TwilioSenderNumbers {
-  // Sends to every recipient no secondary number is for.
+  // Sends to every recipient no other number of the list is for.
   primaryPhoneNumber: Phone;
   // Each sends to the recipients in its own country.
   secondaryPhoneNumbers: Array<Phone>;
@@ -93,10 +96,10 @@ export default class TwilioPhoneNumbers {
   }
 
   /*
-   * Refuses a list a config is about to store - "Twilio SMS Secondary Phone
-   * Numbers: "x" is not a phone number. ..." - so a number that could never
-   * send is turned away when it is typed, not when an alert goes out. An
-   * absent or emptied list passes.
+   * Refuses a list a config is about to store - "Twilio SMS Phone Numbers:
+   * "x" is not a phone number. ..." - so a number that could never send is
+   * turned away when it is typed, not when an alert goes out. An absent or
+   * emptied list passes.
    */
   public static assertListIsValid(data: { title: string; text: unknown }): void {
     if (data.text === undefined || data.text === null) {
@@ -136,46 +139,38 @@ export default class TwilioPhoneNumbers {
 
   // Whether a config sends SMS from numbers of their own.
   public static hasSmsNumbers(config: TwilioConfig): boolean {
-    return (
-      Boolean(config.smsPhoneNumber) ||
-      (config.smsSecondaryPhoneNumbers || []).length > 0
-    );
+    return (config.smsPhoneNumbers || []).length > 0;
   }
 
   /*
    * The numbers a config sends this kind of message from. Calls: the
-   * primary and secondary numbers. SMS: the same, each list replaced by its
-   * SMS counterpart when the config has one.
+   * primary and secondary numbers. SMS: the same while the config lists no
+   * SMS numbers, and its SMS numbers alone once it does - the first in the
+   * primary number's place.
    */
   public static getSenderNumbers(
     config: TwilioConfig,
     kind: TwilioMessageKind,
   ): TwilioSenderNumbers {
-    const secondaryPhoneNumbers: Array<Phone> =
-      config.secondaryPhoneNumbers || [];
+    const smsPhoneNumbers: Array<Phone> = config.smsPhoneNumbers || [];
+    const firstSmsPhoneNumber: Phone | undefined = smsPhoneNumbers[0];
 
-    if (kind === TwilioMessageKind.Call) {
+    if (kind === TwilioMessageKind.SMS && firstSmsPhoneNumber) {
       return {
-        primaryPhoneNumber: config.primaryPhoneNumber,
-        secondaryPhoneNumbers: secondaryPhoneNumbers,
+        primaryPhoneNumber: firstSmsPhoneNumber,
+        secondaryPhoneNumbers: smsPhoneNumbers.slice(1),
       };
     }
 
-    const smsSecondaryPhoneNumbers: Array<Phone> =
-      config.smsSecondaryPhoneNumbers || [];
-
     return {
-      primaryPhoneNumber: config.smsPhoneNumber || config.primaryPhoneNumber,
-      secondaryPhoneNumbers:
-        smsSecondaryPhoneNumbers.length > 0
-          ? smsSecondaryPhoneNumbers
-          : secondaryPhoneNumbers,
+      primaryPhoneNumber: config.primaryPhoneNumber,
+      secondaryPhoneNumbers: config.secondaryPhoneNumbers || [],
     };
   }
 
   /*
    * The number this message goes out from: the one of its kind's numbers
-   * in the recipient's country, or else its kind's primary number.
+   * in the recipient's country, or else its kind's first number.
    */
   public static pickSenderNumber(data: {
     config: TwilioConfig;

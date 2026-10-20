@@ -13,14 +13,14 @@ import path from "path";
  * EVERY READ OF A TWILIO CONFIG TO SEND THROUGH IT READS EVERY NUMBER IT
  * SENDS FROM.
  *
- * A config's SMS numbers take the place of its primary and secondary
- * numbers for SMS - for a primary number that can only make calls, such as
- * a Singapore national number. A reader that listed the config's columns by
- * hand, as every reader did, and left the SMS columns out would hand the
- * sender a config without them: every SMS would go out from the number set
- * aside for calls, and Twilio would refuse each one. So the server reads a
- * config only through TwilioConfigSelect's two column lists, and this holds
- * every server file to it:
+ * Once a config lists SMS numbers, every SMS goes out from one of them
+ * instead of its primary and secondary numbers - for numbers that can only
+ * make calls, such as a Singapore national number. A reader that listed the
+ * config's columns by hand, as every reader did, and left the SMS column out
+ * would hand the sender a config without them: every SMS would go out from
+ * the number set aside for calls, and Twilio would refuse each one. So the
+ * server reads a config only through TwilioConfigSelect's two column lists,
+ * and this holds every server file to it:
  *
  *   - no file but TwilioConfigSelect selects a Twilio number column by hand;
  *   - each list names every Twilio column its model has, so a number column
@@ -43,8 +43,7 @@ const SELECT_FILE: string = "Common/Server/Utils/TwilioConfigSelect.ts";
 const NUMBER_COLUMNS: Array<string> = [
   "twilioPrimaryPhoneNumber",
   "twilioSecondaryPhoneNumbers",
-  "twilioSmsPhoneNumber",
-  "twilioSmsSecondaryPhoneNumbers",
+  "twilioSmsPhoneNumbers",
 ];
 
 function listTypeScriptFiles(directory: string): Array<string> {

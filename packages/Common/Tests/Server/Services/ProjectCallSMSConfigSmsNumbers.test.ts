@@ -32,15 +32,16 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
- * A PROJECT'S TWILIO CONFIG, AND THE SERVER'S OWN, KEEP NUMBERS FOR SMS.
+ * A PROJECT'S TWILIO CONFIG, AND THE SERVER'S OWN, LIST NUMBERS FOR SMS.
  *
- * A Twilio number can make calls and send SMS, or only one of the two (in
- * Singapore calls need a national number and SMS a mobile one), so a config
- * holds a Twilio SMS Phone Number and Twilio SMS Secondary Phone Numbers
- * (Types/CallAndSMS/TwilioPhoneNumbers says how they are picked). These pin
- * the server's side of that:
+ * A Twilio number can make calls and send SMS, or only one of the two
+ * (Singapore's national numbers are voice-only; SMS there need a mobile
+ * number), so a config holds Twilio SMS Phone Numbers - once listed, every
+ * SMS goes out from one of them (Types/CallAndSMS/TwilioPhoneNumbers says
+ * which). These pin the server's side of that:
  *
  *   - toTwilioConfig hands every sender the SMS numbers with the rest, and a
  *     config without them exactly as before;
@@ -49,8 +50,8 @@ import {
  *   - a list of SMS numbers that holds something that is not a phone number
  *     is refused when it is written - on create and on update, through the
  *     real create() path for a member - and so is the server's own;
- *   - who may write and read the new columns is who may write and read the
- *     numbers beside them.
+ *   - who may write and read the new column is who may write and read the
+ *     numbers beside it.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -66,13 +67,12 @@ const SG_MOBILE: string = "+6581234567";
 const UK: string = "+447700900123";
 const SE: string = "+46701234567";
 
-const SMS_SECONDARY_TITLE: string = "Twilio SMS Secondary Phone Numbers";
+const SMS_NUMBERS_TITLE: string = "Twilio SMS Phone Numbers";
 
 function buildConfig(
   numbers: {
     secondary?: string | undefined;
     sms?: string | undefined;
-    smsSecondary?: string | undefined;
   } = {},
 ): ProjectCallSMSConfig {
   const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
@@ -88,11 +88,7 @@ function buildConfig(
   }
 
   if (numbers.sms !== undefined) {
-    config.twilioSmsPhoneNumber = new Phone(numbers.sms);
-  }
-
-  if (numbers.smsSecondary !== undefined) {
-    config.twilioSmsSecondaryPhoneNumbers = numbers.smsSecondary;
+    config.twilioSmsPhoneNumbers = numbers.sms;
   }
 
   return config;
@@ -102,8 +98,7 @@ function asText(config: TwilioConfig | undefined): Record<string, unknown> {
   return {
     primary: config?.primaryPhoneNumber.toString(),
     secondary: config?.secondaryPhoneNumbers.map(String),
-    sms: config?.smsPhoneNumber?.toString(),
-    smsSecondary: config?.smsSecondaryPhoneNumbers?.map(String),
+    sms: config?.smsPhoneNumbers?.map(String),
   };
 }
 
@@ -140,22 +135,20 @@ afterEach(() => {
 });
 
 describe("ProjectCallSMSConfigService.toTwilioConfig", () => {
-  test("hands every sender the SMS numbers with the rest", () => {
+  test("hands every sender the SMS numbers with the rest, in the order they were typed", () => {
     expect(
       asText(
         ProjectCallSMSConfigService.toTwilioConfig(
           buildConfig({
             secondary: UK,
-            sms: SG_MOBILE,
-            smsSecondary: `${SE}, ${UK}`,
+            sms: `${SG_MOBILE}, ${SE}, ${UK}`,
           }),
         ),
       ),
     ).toEqual({
       primary: SG_NATIONAL,
       secondary: [UK],
-      sms: SG_MOBILE,
-      smsSecondary: [SE, UK],
+      sms: [SG_MOBILE, SE, UK],
     });
   });
 
@@ -164,22 +157,21 @@ describe("ProjectCallSMSConfigService.toTwilioConfig", () => {
       ProjectCallSMSConfigService.toTwilioConfig(buildConfig({ secondary: UK }));
 
     expect(twilioConfig).toBeDefined();
-    expect("smsPhoneNumber" in twilioConfig!).toBe(false);
-    expect("smsSecondaryPhoneNumbers" in twilioConfig!).toBe(false);
+    expect("smsPhoneNumbers" in twilioConfig!).toBe(false);
     expect(asText(twilioConfig)).toEqual({
       primary: SG_NATIONAL,
       secondary: [UK],
       sms: undefined,
-      smsSecondary: undefined,
     });
   });
 
-  test("an emptied list of SMS secondary numbers is none", () => {
-    expect(
-      ProjectCallSMSConfigService.toTwilioConfig(
-        buildConfig({ smsSecondary: " , " }),
-      )?.smsSecondaryPhoneNumbers,
-    ).toBeUndefined();
+  test("an emptied list of SMS numbers is none", () => {
+    for (const emptied of ["", " , ", ";\n"]) {
+      expect(
+        ProjectCallSMSConfigService.toTwilioConfig(buildConfig({ sms: emptied }))
+          ?.smsPhoneNumbers,
+      ).toBeUndefined();
+    }
   });
 
   test("reads the secondary numbers past a stray comma, which used to fail the whole config", () => {
@@ -200,7 +192,7 @@ describe("ProjectCallSMSConfigService.toTwilioConfig", () => {
     }).toThrow('"nope" is not a phone number.');
   });
 
-  test("still needs the account, the token and the primary number", () => {
+  test("still needs the account, the token and the primary number - SMS numbers are no stand-in for it", () => {
     const noPrimary: ProjectCallSMSConfig = buildConfig({ sms: SG_MOBILE });
     delete (noPrimary as unknown as Record<string, unknown>)[
       "twilioPrimaryPhoneNumber"
@@ -217,13 +209,10 @@ describe("ProjectCallSMSConfigService.toTwilioConfig", () => {
 
 describe("the project's default Twilio config", () => {
   test("is read with every number it sends from, its SMS numbers included", async () => {
-    const findOneBy: jest.SpiedFunction<
-      typeof ProjectCallSMSConfigService.findOneBy
-    > = jest
-      .spyOn(ProjectCallSMSConfigService, "findOneBy")
-      .mockResolvedValue(
-        buildConfig({ sms: SG_MOBILE, smsSecondary: SE }) as never,
-      );
+    const findOneBy: SpyInstance<typeof ProjectCallSMSConfigService.findOneBy> =
+      jest
+        .spyOn(ProjectCallSMSConfigService, "findOneBy")
+        .mockResolvedValue(buildConfig({ sms: `${SG_MOBILE},${SE}` }) as never);
 
     const twilioConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
@@ -241,12 +230,24 @@ describe("the project's default Twilio config", () => {
     expect(asText(twilioConfig)).toEqual({
       primary: SG_NATIONAL,
       secondary: [],
-      sms: SG_MOBILE,
-      smsSecondary: [SE],
+      sms: [SG_MOBILE, SE],
     });
   });
 
-  test("the select names both SMS columns, and every other column a send needs", () => {
+  test("a project without a default config has none: the server's own account sends", async () => {
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneBy")
+      .mockResolvedValue(null as never);
+
+    await expect(
+      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(PROJECT_ID),
+    ).resolves.toBeUndefined();
+    await expect(
+      ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(undefined),
+    ).resolves.toBeUndefined();
+  });
+
+  test("the select names the SMS column, and every other column a send needs", () => {
     expect(Object.keys(PROJECT_TWILIO_CONFIG_SELECT).sort()).toEqual(
       [
         "_id",
@@ -254,8 +255,7 @@ describe("the project's default Twilio config", () => {
         "twilioAuthToken",
         "twilioPrimaryPhoneNumber",
         "twilioSecondaryPhoneNumbers",
-        "twilioSmsPhoneNumber",
-        "twilioSmsSecondaryPhoneNumbers",
+        "twilioSmsPhoneNumbers",
       ].sort(),
     );
     expect(Object.keys(GLOBAL_TWILIO_CONFIG_SELECT).sort()).toEqual(
@@ -264,8 +264,7 @@ describe("the project's default Twilio config", () => {
         "twilioAuthToken",
         "twilioPrimaryPhoneNumber",
         "twilioSecondaryPhoneNumbers",
-        "twilioSmsPhoneNumber",
-        "twilioSmsSecondaryPhoneNumbers",
+        "twilioSmsPhoneNumbers",
       ].sort(),
     );
   });
@@ -308,8 +307,7 @@ describe("a list of SMS numbers that holds something that is not a phone number"
 
   test("is refused when a member creates the config, before anything is saved", async () => {
     const config: ProjectCallSMSConfig = buildConfig({
-      sms: SG_MOBILE,
-      smsSecondary: `${SE}, call the office`,
+      sms: `${SG_MOBILE}, call the office`,
     });
     delete (config as unknown as Record<string, unknown>)["_id"];
 
@@ -319,15 +317,14 @@ describe("a list of SMS numbers that holds something that is not a phone number"
         props: memberProps([Permission.CreateProjectCallSMSConfig]),
       }),
     ).rejects.toThrow(
-      `${SMS_SECONDARY_TITLE}: "call the office" is not a phone number.`,
+      `${SMS_NUMBERS_TITLE}: "call the office" is not a phone number.`,
     );
     expect(save).not.toHaveBeenCalled();
   });
 
   test("a config with good SMS numbers is saved with them, by a member who may only create Twilio configs", async () => {
     const config: ProjectCallSMSConfig = buildConfig({
-      sms: SG_MOBILE,
-      smsSecondary: `${SE}, ${UK}`,
+      sms: `${SG_MOBILE}, ${UK}`,
     });
     delete (config as unknown as Record<string, unknown>)["_id"];
 
@@ -338,8 +335,7 @@ describe("a list of SMS numbers that holds something that is not a phone number"
       });
 
     expect(save).toHaveBeenCalledTimes(1);
-    expect(saved.twilioSmsPhoneNumber?.toString()).toBe(SG_MOBILE);
-    expect(saved.twilioSmsSecondaryPhoneNumbers).toBe(`${SE}, ${UK}`);
+    expect(saved.twilioSmsPhoneNumbers).toBe(`${SG_MOBILE}, ${UK}`);
   });
 
   test("is refused when the config is updated", async () => {
@@ -352,13 +348,35 @@ describe("a list of SMS numbers that holds something that is not a phone number"
         }
       ).onBeforeUpdate({
         query: { _id: CONFIG_ID.toString() },
-        data: { twilioSmsSecondaryPhoneNumbers: "+44 7700 900123" },
+        data: { twilioSmsPhoneNumbers: "+65 8123 4567" },
         limit: 1,
         skip: 0,
         props: { isRoot: true },
       }),
     ).rejects.toThrow(
-      `${SMS_SECONDARY_TITLE}: "+44 7700 900123" is not a phone number.`,
+      `${SMS_NUMBERS_TITLE}: "+65 8123 4567" is not a phone number.`,
+    );
+  });
+
+  test("a list that is not text at all is refused", async () => {
+    await expect(
+      (
+        ProjectCallSMSConfigService as unknown as {
+          onBeforeUpdate: (
+            updateBy: UpdateBy<ProjectCallSMSConfig>,
+          ) => Promise<OnUpdate<ProjectCallSMSConfig>>;
+        }
+      ).onBeforeUpdate({
+        query: { _id: CONFIG_ID.toString() },
+        data: {
+          twilioSmsPhoneNumbers: [SG_MOBILE],
+        } as unknown as UpdateBy<ProjectCallSMSConfig>["data"],
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(
+      `${SMS_NUMBERS_TITLE} must be phone numbers separated by commas.`,
     );
   });
 
@@ -375,9 +393,9 @@ describe("a list of SMS numbers that holds something that is not a phone number"
 
     for (const data of [
       { name: "Renamed" },
-      { twilioSmsSecondaryPhoneNumbers: "" },
-      { twilioSmsSecondaryPhoneNumbers: null },
-      { twilioSmsSecondaryPhoneNumbers: `${SE},${UK}` },
+      { twilioSmsPhoneNumbers: "" },
+      { twilioSmsPhoneNumbers: null },
+      { twilioSmsPhoneNumbers: `${SG_MOBILE},${UK}` },
     ]) {
       const updateBy: UpdateBy<ProjectCallSMSConfig> = {
         query: { _id: CONFIG_ID.toString() },
@@ -440,22 +458,22 @@ describe("the server's own Twilio account", () => {
   test("refuses a list of SMS numbers that is not one, as a project's is refused", async () => {
     await expect(
       runBeforeUpdate({
-        twilioSmsSecondaryPhoneNumbers: `${SE}; mobile`,
+        twilioSmsPhoneNumbers: `${SG_MOBILE}; mobile`,
       }),
-    ).rejects.toThrow(
-      `${SMS_SECONDARY_TITLE}: "mobile" is not a phone number.`,
-    );
+    ).rejects.toThrow(`${SMS_NUMBERS_TITLE}: "mobile" is not a phone number.`);
   });
 
-  test("takes a good list, an emptied one, and an SMS phone number", async () => {
+  test("takes a good list, and an emptied one", async () => {
     await expect(
       runBeforeUpdate({
-        twilioSmsPhoneNumber: new Phone(SG_MOBILE),
-        twilioSmsSecondaryPhoneNumbers: `${SE}, ${UK}`,
+        twilioSmsPhoneNumbers: `${SG_MOBILE}, ${UK}`,
       }),
     ).resolves.toBeDefined();
     await expect(
-      runBeforeUpdate({ twilioSmsSecondaryPhoneNumbers: "" }),
+      runBeforeUpdate({ twilioSmsPhoneNumbers: "" }),
+    ).resolves.toBeDefined();
+    await expect(
+      runBeforeUpdate({ twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL) }),
     ).resolves.toBeDefined();
   });
 
@@ -470,11 +488,11 @@ describe("the server's own Twilio account", () => {
         }
       ).onBeforeCreate({
         data: Object.assign(new GlobalConfig(), {
-          twilioSmsSecondaryPhoneNumbers: "nope",
+          twilioSmsPhoneNumbers: "nope",
         }),
         props: { isRoot: true },
       }),
-    ).rejects.toThrow(`${SMS_SECONDARY_TITLE}: "nope" is not a phone number.`);
+    ).rejects.toThrow(`${SMS_NUMBERS_TITLE}: "nope" is not a phone number.`);
   });
 });
 
@@ -485,19 +503,19 @@ describe("who may write and read the SMS numbers", () => {
    * everyone who may see a config reads them - they are numbers, not
    * credentials. The server's own are the master admin's alone.
    */
-  test("on a project's config, the primary number's", () => {
+  test("on a project's config, the primary and secondary numbers'", () => {
     const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
 
-    for (const column of [
-      "twilioSmsPhoneNumber",
-      "twilioSmsSecondaryPhoneNumbers",
+    for (const beside of [
+      "twilioPrimaryPhoneNumber",
+      "twilioSecondaryPhoneNumbers",
     ]) {
       expect({
-        column,
-        access: config.getColumnAccessControlFor(column),
+        beside,
+        access: config.getColumnAccessControlFor("twilioSmsPhoneNumbers"),
       }).toEqual({
-        column,
-        access: config.getColumnAccessControlFor("twilioPrimaryPhoneNumber"),
+        beside,
+        access: config.getColumnAccessControlFor(beside),
       });
     }
   });
@@ -505,15 +523,10 @@ describe("who may write and read the SMS numbers", () => {
   test("on the server's, nobody's but a master admin's", () => {
     const config: GlobalConfig = new GlobalConfig();
 
-    for (const column of [
-      "twilioSmsPhoneNumber",
-      "twilioSmsSecondaryPhoneNumbers",
-    ]) {
-      expect(config.getColumnAccessControlFor(column)).toEqual({
-        create: [],
-        read: [],
-        update: [],
-      });
-    }
+    expect(config.getColumnAccessControlFor("twilioSmsPhoneNumbers")).toEqual({
+      create: [],
+      read: [],
+      update: [],
+    });
   });
 });

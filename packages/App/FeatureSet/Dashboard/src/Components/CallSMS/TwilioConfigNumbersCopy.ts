@@ -1,4 +1,5 @@
 import Phone from "Common/Types/Phone";
+import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -6,13 +7,13 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Project Settings > Notifications > Notification Settings > Twilio Config.
  *
  * A Twilio number can make calls and send SMS, or only one of the two, and
- * in some countries no one number does both: in Singapore, calls need a
- * national number and SMS a mobile number. So a config can send SMS from
- * numbers of their own - the Twilio SMS Phone Number in place of the
- * primary number, and the Twilio SMS Secondary Phone Numbers in place of
- * the secondary ones (Common/Types/CallAndSMS/TwilioPhoneNumbers). Most
- * configs need neither, so both are under More fields, with the secondary
- * numbers they stand beside.
+ * in some countries no one number does both: in Singapore, national numbers
+ * are voice-only and SMS need a mobile number. So a config can list Twilio
+ * SMS Phone Numbers: once it does, every SMS goes out from one of them - the
+ * one in the recipient's country, or else the first - and calls keep going
+ * out from the primary and secondary numbers
+ * (Common/Types/CallAndSMS/TwilioPhoneNumbers). Most configs need none, so
+ * the list is under More fields, with the secondary numbers.
  *
  * Kept free of React, so App/Tests can read these exact strings. Every
  * sentence is wrapped in translationKey() so npm run i18n:extract finds it;
@@ -22,30 +23,26 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const TwilioConfigNumbersCopy: {
   // The primary number's help: what goes out from it.
   primaryPhoneNumberDescription: string;
-  // The SMS number's help: when to set one, and what it changes.
-  smsPhoneNumberDescription: string;
+  // The SMS numbers' help: when to list them, and what they change.
+  smsPhoneNumbersDescription: string;
   // The secondary numbers' help.
   secondaryPhoneNumbersDescription: string;
-  // The SMS secondary numbers' help.
-  smsSecondaryPhoneNumbersDescription: string;
   /*
-   * What a number in that column is for, when calls and SMS have their own:
-   * "Phone Calls", not "Calls", which the locales word as calls of code.
+   * What a number in the Phone Numbers column is for, when calls and SMS go
+   * out from different numbers: "Phone Calls", not "Calls", which the
+   * locales word as calls of code.
    */
   callsLabel: string;
   smsLabel: string;
 } = {
   primaryPhoneNumberDescription: translationKey(
-    "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
+    "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.",
   ),
-  smsPhoneNumberDescription: translationKey(
-    "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.",
+  smsPhoneNumbersDescription: translationKey(
+    "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.",
   ),
   secondaryPhoneNumbersDescription: translationKey(
     "Numbers to use instead of the primary one when they match the recipient's country code.",
-  ),
-  smsSecondaryPhoneNumbersDescription: translationKey(
-    "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.",
   ),
   callsLabel: translationKey("Phone Calls"),
   smsLabel: translationKey("SMS"),
@@ -60,22 +57,24 @@ export interface TwilioConfigNumberLine {
 
 /*
  * The numbers a config's row shows: its primary number, alone when calls
- * and SMS go out from it, or with its SMS number when SMS have their own -
- * each then saying which it sends. English labels; the cell translates them.
+ * and SMS go out from it, or with its first SMS number when SMS have their
+ * own - each then saying which it sends. The rest of either list is in the
+ * config's Edit dialog. English labels; the cell translates them.
  */
 export const getTwilioConfigNumberLines: (config: {
   twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
-  twilioSmsPhoneNumber?: Phone | string | null | undefined;
+  twilioSmsPhoneNumbers?: string | null | undefined;
 }) => Array<TwilioConfigNumberLine> = (config: {
   twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
-  twilioSmsPhoneNumber?: Phone | string | null | undefined;
+  twilioSmsPhoneNumbers?: string | null | undefined;
 }): Array<TwilioConfigNumberLine> => {
   const primary: string = config.twilioPrimaryPhoneNumber
     ? config.twilioPrimaryPhoneNumber.toString()
     : "";
-  const sms: string = config.twilioSmsPhoneNumber
-    ? config.twilioSmsPhoneNumber.toString()
-    : "";
+
+  // The first entry as it was typed: the server checked it when it was saved.
+  const sms: string =
+    TwilioPhoneNumbers.getListEntries(config.twilioSmsPhoneNumbers)[0] || "";
 
   if (!sms) {
     return primary ? [{ phoneNumber: primary, label: null }] : [];

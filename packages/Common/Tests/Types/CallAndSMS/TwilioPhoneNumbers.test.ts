@@ -13,22 +13,23 @@ import { describe, expect, test } from "@jest/globals";
  * WHICH OF A TWILIO CONFIG'S NUMBERS AN SMS OR A CALL GOES OUT FROM.
  *
  * A Twilio number can make calls and send SMS, or only one of the two:
- * Twilio sells "Voice Enabled Only" and "SMS Enabled Only" numbers, and in
- * Singapore calls need a national number (+65 3 or 6) and SMS a mobile one
- * (+65 8). A customer there could not use OneUptime: every SMS went out
- * from the config's one primary number, which could only make calls.
+ * Twilio sells "Voice Enabled Only" and "SMS Enabled Only" numbers, and
+ * lists Singapore's national numbers (+65 3 or 6) as voice-only - SMS there
+ * need a mobile number (+65 8). A customer there could not use OneUptime:
+ * every SMS went out from the config's one primary number, which could only
+ * make calls.
  *
- * Now a config can name numbers for SMS. These pin the rules every sender
+ * Now a config can list numbers for SMS. These pin the rules every sender
  * follows (the Notification service's SmsService and CallService pick
  * through pickSenderNumber):
  *
  *   - calls: the primary number, or a secondary one in the recipient's
- *     country - whatever SMS numbers the config has;
- *   - SMS: the same, except that the SMS phone number takes the primary
- *     number's place and the SMS secondary numbers the secondary numbers'
- *     place, each when it is set;
- *   - a config without SMS numbers - every config made before them - sends
- *     every message exactly as it did.
+ *     country - whatever SMS numbers the config lists;
+ *   - SMS, while the config lists no SMS numbers: exactly the numbers calls
+ *     go out from - every config made before them sends as it did;
+ *   - SMS, once it lists some: one of them alone - the one in the
+ *     recipient's country, or else the first - and never a number kept for
+ *     calls.
  *
  * And the lists of numbers a config keeps, read and refused the same way on
  * the server and in the forms.
@@ -42,6 +43,7 @@ const SG_RECIPIENT: string = "+6590665484";
 // An installation that sends to several countries.
 const US_DUAL: string = "+14155550100";
 const UK_DUAL: string = "+447700900123";
+const UK_LANDLINE: string = "+442071234567";
 const SE_DUAL: string = "+46701234567";
 const US_RECIPIENT: string = "+12025550199";
 const UK_RECIPIENT: string = "+447911123456";
@@ -50,8 +52,7 @@ const FR_RECIPIENT: string = "+33612345678";
 type ConfigOptions = {
   primary?: string;
   secondary?: Array<string>;
-  sms?: string | undefined;
-  smsSecondary?: Array<string> | undefined;
+  sms?: Array<string> | undefined;
 };
 
 function config(options: ConfigOptions = {}): TwilioConfig {
@@ -67,15 +68,9 @@ function config(options: ConfigOptions = {}): TwilioConfig {
   };
 
   if (options.sms) {
-    built.smsPhoneNumber = new Phone(options.sms);
-  }
-
-  if (options.smsSecondary) {
-    built.smsSecondaryPhoneNumbers = options.smsSecondary.map(
-      (phone: string): Phone => {
-        return new Phone(phone);
-      },
-    );
+    built.smsPhoneNumbers = options.sms.map((phone: string): Phone => {
+      return new Phone(phone);
+    });
   }
 
   return built;
@@ -108,13 +103,20 @@ function from(
 const SMS: TwilioMessageKind = TwilioMessageKind.SMS;
 const CALL: TwilioMessageKind = TwilioMessageKind.Call;
 
+const RECIPIENTS: Array<string> = [
+  SG_RECIPIENT,
+  SG_NATIONAL,
+  US_RECIPIENT,
+  UK_RECIPIENT,
+  FR_RECIPIENT,
+];
+
 describe("the numbers a config sends each kind of message from", () => {
-  test("calls go out from the primary and secondary numbers, whatever SMS numbers the config has", () => {
+  test("calls go out from the primary and secondary numbers, whatever SMS numbers the config lists", () => {
     const withSmsNumbers: TwilioConfig = config({
       primary: SG_NATIONAL,
       secondary: [UK_DUAL],
-      sms: SG_MOBILE,
-      smsSecondary: [SE_DUAL],
+      sms: [SG_MOBILE, SE_DUAL],
     });
 
     expect(
@@ -137,64 +139,48 @@ describe("the numbers a config sends each kind of message from", () => {
     });
   });
 
-  test("the SMS phone number takes the primary number's place for SMS", () => {
+  test("one SMS number sends every SMS", () => {
     expect(
       numbers(
         TwilioPhoneNumbers.getSenderNumbers(
-          config({ primary: SG_NATIONAL, sms: SG_MOBILE }),
+          config({ primary: SG_NATIONAL, sms: [SG_MOBILE] }),
           SMS,
         ),
       ),
     ).toEqual({ primary: SG_MOBILE, secondary: [] });
   });
 
-  test("the SMS phone number leaves the secondary numbers to SMS while the config has no SMS secondary numbers", () => {
+  test("several SMS numbers: the first is the default, the rest are picked by country", () => {
     expect(
       numbers(
         TwilioPhoneNumbers.getSenderNumbers(
-          config({ primary: SG_NATIONAL, secondary: [UK_DUAL], sms: SG_MOBILE }),
+          config({ primary: SG_NATIONAL, sms: [SG_MOBILE, UK_DUAL, SE_DUAL] }),
           SMS,
         ),
       ),
-    ).toEqual({ primary: SG_MOBILE, secondary: [UK_DUAL] });
+    ).toEqual({ primary: SG_MOBILE, secondary: [UK_DUAL, SE_DUAL] });
   });
 
-  test("the SMS secondary numbers take the secondary numbers' place for SMS, and the primary number stays", () => {
+  test("once a config lists SMS numbers, its secondary numbers send no SMS either", () => {
     expect(
       numbers(
         TwilioPhoneNumbers.getSenderNumbers(
           config({
             primary: US_DUAL,
-            secondary: [SG_NATIONAL],
-            smsSecondary: [SG_MOBILE],
+            secondary: [UK_LANDLINE, SG_NATIONAL],
+            sms: [SG_MOBILE],
           }),
           SMS,
         ),
       ),
-    ).toEqual({ primary: US_DUAL, secondary: [SG_MOBILE] });
+    ).toEqual({ primary: SG_MOBILE, secondary: [] });
   });
 
-  test("a config with both sends SMS from its SMS numbers alone", () => {
+  test("an empty list of SMS numbers is no list at all", () => {
     expect(
       numbers(
         TwilioPhoneNumbers.getSenderNumbers(
-          config({
-            primary: SG_NATIONAL,
-            secondary: [UK_DUAL],
-            sms: SG_MOBILE,
-            smsSecondary: [SE_DUAL],
-          }),
-          SMS,
-        ),
-      ),
-    ).toEqual({ primary: SG_MOBILE, secondary: [SE_DUAL] });
-  });
-
-  test("an empty list of SMS secondary numbers is no list at all", () => {
-    expect(
-      numbers(
-        TwilioPhoneNumbers.getSenderNumbers(
-          config({ primary: US_DUAL, secondary: [UK_DUAL], smsSecondary: [] }),
+          config({ primary: US_DUAL, secondary: [UK_DUAL], sms: [] }),
           SMS,
         ),
       ),
@@ -216,16 +202,14 @@ describe("the numbers a config sends each kind of message from", () => {
     });
   });
 
-  test("hasSmsNumbers is whether the config names any number for SMS", () => {
+  test("hasSmsNumbers is whether the config lists any number for SMS", () => {
     expect(TwilioPhoneNumbers.hasSmsNumbers(config())).toBe(false);
-    expect(
-      TwilioPhoneNumbers.hasSmsNumbers(config({ smsSecondary: [] })),
-    ).toBe(false);
-    expect(TwilioPhoneNumbers.hasSmsNumbers(config({ sms: SG_MOBILE }))).toBe(
+    expect(TwilioPhoneNumbers.hasSmsNumbers(config({ sms: [] }))).toBe(false);
+    expect(TwilioPhoneNumbers.hasSmsNumbers(config({ sms: [SG_MOBILE] }))).toBe(
       true,
     );
     expect(
-      TwilioPhoneNumbers.hasSmsNumbers(config({ smsSecondary: [SG_MOBILE] })),
+      TwilioPhoneNumbers.hasSmsNumbers(config({ sms: [SG_MOBILE, UK_DUAL] })),
     ).toBe(true);
   });
 });
@@ -239,7 +223,7 @@ describe("the number each message goes out from", () => {
   test("Singapore: calls from the national number, SMS from the mobile one", () => {
     const singapore: TwilioConfig = config({
       primary: SG_NATIONAL,
-      sms: SG_MOBILE,
+      sms: [SG_MOBILE],
     });
 
     expect(from(singapore, CALL, SG_RECIPIENT)).toBe(SG_NATIONAL);
@@ -249,44 +233,69 @@ describe("the number each message goes out from", () => {
     expect(from(singapore, CALL, UK_RECIPIENT)).toBe(SG_NATIONAL);
   });
 
-  test("once a config has an SMS phone number, no SMS goes out from its primary number, to any recipient", () => {
-    const singapore: TwilioConfig = config({
+  test("once a config lists SMS numbers, no SMS goes out from a number kept for calls, to any recipient", () => {
+    const callNumbers: Array<string> = [SG_NATIONAL, UK_LANDLINE];
+    const mixed: TwilioConfig = config({
       primary: SG_NATIONAL,
-      sms: SG_MOBILE,
+      secondary: [UK_LANDLINE],
+      sms: [SG_MOBILE],
     });
 
-    for (const recipient of [
-      SG_RECIPIENT,
-      SG_NATIONAL,
-      US_RECIPIENT,
-      UK_RECIPIENT,
-      FR_RECIPIENT,
-    ]) {
-      expect({ recipient, from: from(singapore, SMS, recipient) }).toEqual({
-        recipient,
-        from: SG_MOBILE,
-      });
+    for (const recipient of RECIPIENTS) {
+      const sender: string = from(mixed, SMS, recipient);
+
+      expect({ recipient, fromACallNumber: callNumbers.includes(sender) }).toEqual(
+        { recipient, fromACallNumber: false },
+      );
+      expect({ recipient, sender }).toEqual({ recipient, sender: SG_MOBILE });
     }
+  });
+
+  test("and every call still goes out from a call number, never from an SMS one", () => {
+    const mixed: TwilioConfig = config({
+      primary: SG_NATIONAL,
+      secondary: [UK_LANDLINE],
+      sms: [SG_MOBILE, UK_DUAL],
+    });
+
+    expect(from(mixed, CALL, SG_RECIPIENT)).toBe(SG_NATIONAL);
+    expect(from(mixed, CALL, UK_RECIPIENT)).toBe(UK_LANDLINE);
+    expect(from(mixed, CALL, US_RECIPIENT)).toBe(SG_NATIONAL);
+    expect(from(mixed, CALL, FR_RECIPIENT)).toBe(SG_NATIONAL);
   });
 
   /*
    * An installation that sends to several countries (OneUptime Cloud's own
-   * account, say): a US number for both, Singapore's national number for
-   * calls to Singapore and its mobile number for SMS there.
+   * account, say): a US number for both, a UK landline for calls to the UK,
+   * Singapore's national number for calls to Singapore - and, for SMS, the
+   * US number, a UK mobile and Singapore's mobile number.
    */
-  test("several countries: each kind of message to Singapore from its own number, everything else from the primary", () => {
+  test("several countries: each kind of message from the number of its recipient's country, or else its first", () => {
     const cloud: TwilioConfig = config({
       primary: US_DUAL,
-      secondary: [SG_NATIONAL],
-      smsSecondary: [SG_MOBILE],
+      secondary: [UK_LANDLINE, SG_NATIONAL],
+      sms: [US_DUAL, UK_DUAL, SG_MOBILE],
     });
 
     expect(from(cloud, CALL, SG_RECIPIENT)).toBe(SG_NATIONAL);
     expect(from(cloud, SMS, SG_RECIPIENT)).toBe(SG_MOBILE);
+    expect(from(cloud, CALL, UK_RECIPIENT)).toBe(UK_LANDLINE);
+    expect(from(cloud, SMS, UK_RECIPIENT)).toBe(UK_DUAL);
     expect(from(cloud, CALL, US_RECIPIENT)).toBe(US_DUAL);
     expect(from(cloud, SMS, US_RECIPIENT)).toBe(US_DUAL);
     expect(from(cloud, CALL, FR_RECIPIENT)).toBe(US_DUAL);
     expect(from(cloud, SMS, FR_RECIPIENT)).toBe(US_DUAL);
+  });
+
+  test("a recipient in no SMS number's country gets their SMS from the first SMS number", () => {
+    const listed: TwilioConfig = config({
+      primary: SG_NATIONAL,
+      sms: [SG_MOBILE, UK_DUAL],
+    });
+
+    expect(from(listed, SMS, FR_RECIPIENT)).toBe(SG_MOBILE);
+    expect(from(listed, SMS, US_RECIPIENT)).toBe(SG_MOBILE);
+    expect(from(listed, SMS, UK_RECIPIENT)).toBe(UK_DUAL);
   });
 
   test("a config without SMS numbers picks exactly what it picked before, for both kinds", () => {
@@ -295,12 +304,7 @@ describe("the number each message goes out from", () => {
       secondary: [UK_DUAL, SG_MOBILE],
     });
 
-    for (const recipient of [
-      SG_RECIPIENT,
-      US_RECIPIENT,
-      UK_RECIPIENT,
-      FR_RECIPIENT,
-    ]) {
+    for (const recipient of RECIPIENTS) {
       const before: string = Phone.pickPhoneNumberToSendSMSOrCallFrom({
         to: recipient,
         primaryPhoneNumberToPickFrom: US_DUAL,
@@ -318,24 +322,10 @@ describe("the number each message goes out from", () => {
     }
   });
 
-  test("a number of the recipient's country is picked over the default, for SMS as for calls", () => {
-    const twoCountries: TwilioConfig = config({
-      primary: US_DUAL,
-      secondary: [UK_DUAL],
-      sms: SG_MOBILE,
-      smsSecondary: [UK_DUAL],
-    });
-
-    expect(from(twoCountries, SMS, UK_RECIPIENT)).toBe(UK_DUAL);
-    expect(from(twoCountries, CALL, UK_RECIPIENT)).toBe(UK_DUAL);
-    expect(from(twoCountries, SMS, SG_RECIPIENT)).toBe(SG_MOBILE);
-    expect(from(twoCountries, SMS, US_RECIPIENT)).toBe(SG_MOBILE);
-  });
-
   test("the recipient can be given as text or as a Phone", () => {
     const singapore: TwilioConfig = config({
       primary: SG_NATIONAL,
-      sms: SG_MOBILE,
+      sms: [SG_MOBILE],
     });
 
     expect(
@@ -450,7 +440,7 @@ describe("a list of numbers, as a config keeps it", () => {
 });
 
 describe("refusing a list a config is about to store", () => {
-  const TITLE: string = "Twilio SMS Secondary Phone Numbers";
+  const TITLE: string = "Twilio SMS Phone Numbers";
 
   test("lets an absent, emptied or good list through", () => {
     expect(() => {

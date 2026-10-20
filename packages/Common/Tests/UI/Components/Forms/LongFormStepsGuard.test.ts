@@ -210,7 +210,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/CallSMS/Index.tsx",
     form: "CardModelDetail: Call and SMS Settings",
     reason:
-      "The installation's Twilio account: its account SID, auth token and the number calls and SMS go out from - three values the Twilio console shows together and that only work together - and one folded Advanced header with the numbers few installations need: the extra numbers bought for other countries, and the numbers SMS go out from when the primary number can only make calls. It walked the account, then the numbers, which split one copy-and-paste across a Next.",
+      "The installation's Twilio account: its account SID, auth token and the number calls and SMS go out from - three values the Twilio console shows together and that only work together - and one folded Advanced header with the numbers few installations need: the numbers SMS go out from when the others can only make calls, and the extra numbers bought for other countries. It walked the account, then the numbers, which split one copy-and-paste across a Next.",
   },
   {
     file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",

@@ -491,8 +491,7 @@
         "cardTitle": "Configurazione Twilio",
         "cardDescription": "Verrà utilizzata per effettuare chiamate e inviare SMS.",
         "editButton": "Modifica config Twilio",
-        "smsSameAsPrimary": "Uguale al numero principale",
-        "smsSameAsSecondary": "Uguali ai numeri secondari"
+        "smsSameAsCalls": "Gli stessi numeri delle chiamate"
       },
       "whatsapp": {
         "metaCardTitle": "Impostazioni Meta WhatsApp",
@@ -1014,10 +1013,8 @@
   "{{count}} people_one": "{{count}} persona",
   "Docker Compose guide": "Guida Docker Compose",
   "Kubernetes guide": "Guida Kubernetes",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "Le chiamate partono da questo numero, e anche gli SMS, a meno che tu non imposti un numero di telefono SMS in Altri campi.",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Numeri da cui inviare gli SMS al posto di quelli secondari quando corrispondono al prefisso internazionale del destinatario.",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Invia gli SMS da questo numero invece che da quello principale, se il numero principale può solo effettuare chiamate. A Singapore, per esempio, le chiamate richiedono un numero nazionale e gli SMS un numero mobile.",
-  "Twilio SMS Phone Number": "Numero di telefono SMS Twilio",
-  "Twilio SMS Secondary Phone Numbers": "Numeri di telefono SMS Twilio secondari",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Le chiamate partono da questo numero, e anche gli SMS, a meno che tu non aggiunga numeri di telefono SMS in Altri campi.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Se i tuoi numeri Twilio non possono inviare SMS (a Singapore i numeri nazionali sono solo vocali), aggiungi numeri che possono farlo. Ogni SMS parte allora dal numero del paese del destinatario, altrimenti dal primo.",
+  "Twilio SMS Phone Numbers": "Numeri di telefono SMS Twilio",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} non è un numero di telefono. Scrivi ogni numero con il suo prefisso internazionale e separali con virgole, come +6581234567, +447700900123."
 }

@@ -540,13 +540,16 @@ describe("Settings > Call & SMS", () => {
   /*
    * The server's numbers for SMS, as a project's Twilio config has them: a
    * Twilio number can make calls and send SMS, or only one of the two, and
-   * in Singapore calls need a national number and SMS a mobile one. Folded
-   * with the extra numbers, as few installations need them.
+   * Singapore's national numbers are voice-only - SMS there need a mobile
+   * number. Folded with the extra numbers, as few installations need them.
    */
   describe("numbers for SMS", () => {
-    const SMS_NUMBER: string = "Twilio SMS Phone Number";
+    const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
     const SECONDARY: string = "Secondary Twilio Phone Numbers";
-    const SMS_SECONDARY: string = "Twilio SMS Secondary Phone Numbers";
+    const PRIMARY_HELP: string =
+      "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.";
+    const SMS_HELP: string =
+      "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.";
 
     async function openDialog(): Promise<HTMLElement> {
       const dialog: HTMLElement = await openEditDialog(editButton);
@@ -575,32 +578,26 @@ describe("Settings > Call & SMS", () => {
       });
     }
 
-    test("are folded with the extra numbers, the SMS number first, each optional", async () => {
+    test("are folded with the extra numbers, the SMS numbers first, each optional", async () => {
       await renderWithLocale(<CallSmsSettings />);
 
       const dialog: HTMLElement = await openDialog();
       const header: HTMLElement = advancedHeader(dialog, "More fields");
 
-      expect(listedNames(header)).toEqual([
-        SMS_NUMBER,
-        SECONDARY,
-        SMS_SECONDARY,
-      ]);
-      expect(label(dialog, SMS_NUMBER)).not.toBeVisible();
+      expect(listedNames(header)).toEqual([SMS_NUMBERS, SECONDARY]);
+      expect(label(dialog, SMS_NUMBERS)).not.toBeVisible();
 
       fireEvent.click(header);
 
-      for (const title of [SMS_NUMBER, SECONDARY, SMS_SECONDARY]) {
+      for (const title of [SMS_NUMBERS, SECONDARY]) {
         expect(label(dialog, title)).toBeVisible();
         expect(label(dialog, title)).toHaveTextContent("(Optional)");
       }
 
       // The primary number says what goes out from it, and where the rest is.
-      expect(
-        within(dialog).getByText(
-          "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
-        ),
-      ).toBeVisible();
+      expect(within(dialog).getByText(PRIMARY_HELP)).toBeVisible();
+      // The SMS numbers say when they are needed, and what they change.
+      expect(within(dialog).getByText(SMS_HELP)).toBeVisible();
     });
 
     test("a Singapore setup is saved: SMS from the mobile number, calls from the national one", async () => {
@@ -612,7 +609,7 @@ describe("Settings > Call & SMS", () => {
       const dialog: HTMLElement = await openDialog();
 
       fireEvent.click(advancedHeader(dialog, "More fields"));
-      await fill(dialog, SMS_NUMBER, "+6581234567");
+      await fill(dialog, SMS_NUMBERS, "+6581234567");
 
       fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
 
@@ -626,7 +623,7 @@ describe("Settings > Call & SMS", () => {
       const saved: Record<string, unknown> = savedValues(mockCreateOrUpdate);
 
       expect(String(saved["twilioPrimaryPhoneNumber"])).toBe("+6561234567");
-      expect(String(saved["twilioSmsPhoneNumber"])).toBe("+6581234567");
+      expect(String(saved["twilioSmsPhoneNumbers"])).toBe("+6581234567");
     });
 
     test("a list of SMS numbers that is not one is refused under the field, and nothing is saved", async () => {
@@ -635,7 +632,7 @@ describe("Settings > Call & SMS", () => {
       const dialog: HTMLElement = await openDialog();
 
       fireEvent.click(advancedHeader(dialog, "More fields"));
-      await fill(dialog, SMS_SECONDARY, "+6581234567, mobile");
+      await fill(dialog, SMS_NUMBERS, "+6581234567, mobile");
 
       fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
 
@@ -652,46 +649,52 @@ describe("Settings > Call & SMS", () => {
       expect(mockCreateOrUpdate).not.toHaveBeenCalled();
     });
 
-    test("the details say SMS go out from the primary number while no SMS number is set", async () => {
+    test("the details say SMS go out from the same numbers as calls while no SMS numbers are listed", async () => {
       await renderWithLocale(<CallSmsSettings />);
 
       await waitFor(
         () => {
           expect(
             screen.getByText(
-              text(ENGLISH, "pages.settings.callSms.smsSameAsPrimary"),
+              text(ENGLISH, "pages.settings.callSms.smsSameAsCalls"),
             ),
           ).toBeVisible();
         },
         { timeout: WAIT_FOR_TIMEOUT },
       );
-      expect(
-        screen.getByText(
-          text(ENGLISH, "pages.settings.callSms.smsSameAsSecondary"),
-        ),
-      ).toBeVisible();
-      expect(text(ENGLISH, "pages.settings.callSms.smsSameAsPrimary")).toBe(
-        "Same as the primary number",
+      expect(text(ENGLISH, "pages.settings.callSms.smsSameAsCalls")).toBe(
+        "Same numbers as calls",
       );
+      // Right below the primary number, as in the form.
+      const page: string = document.body.textContent || "";
+      const primaryAt: number = page.indexOf("Primary Twilio Phone Number");
+      const smsAt: number = page.indexOf(SMS_NUMBERS);
+      const secondaryAt: number = page.indexOf(SECONDARY);
+
+      expect(primaryAt).toBeGreaterThan(-1);
+      expect(smsAt).toBeGreaterThan(primaryAt);
+      expect(secondaryAt).toBeGreaterThan(smsAt);
     });
 
-    test("and show the SMS number once it is set, in the reader's language", async () => {
-      stored[new GlobalConfig().tableName || ""]!["twilioSmsPhoneNumber"] =
-        "+6581234567";
+    test("and show the SMS numbers once they are listed, in the reader's language", async () => {
+      stored[new GlobalConfig().tableName || ""]!["twilioSmsPhoneNumbers"] =
+        "+6581234567, +447700900123";
 
       await renderWithLocale(<CallSmsSettings />, "de");
 
       await waitFor(
         () => {
-          expect(screen.getByText("+6581234567")).toBeVisible();
+          expect(
+            screen.getByText("+6581234567, +447700900123"),
+          ).toBeVisible();
         },
         { timeout: WAIT_FOR_TIMEOUT },
       );
-      expect(screen.getByText(text(GERMAN, SMS_NUMBER))).toBeVisible();
-      expect(text(GERMAN, SMS_NUMBER)).toBe("Twilio-SMS-Telefonnummer");
+      expect(screen.getByText(text(GERMAN, SMS_NUMBERS))).toBeVisible();
+      expect(text(GERMAN, SMS_NUMBERS)).toBe("Twilio-SMS-Telefonnummern");
       expect(
         screen.queryByText(
-          text(GERMAN, "pages.settings.callSms.smsSameAsPrimary"),
+          text(GERMAN, "pages.settings.callSms.smsSameAsCalls"),
         ),
       ).toBeNull();
     });
@@ -718,14 +721,11 @@ describe("Settings > Call & SMS", () => {
         const words: Locale = readLocale(language);
 
         for (const key of [
-          SMS_NUMBER,
-          SMS_SECONDARY,
-          "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
-          "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.",
-          "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.",
+          SMS_NUMBERS,
+          PRIMARY_HELP,
+          SMS_HELP,
           "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.",
-          "pages.settings.callSms.smsSameAsPrimary",
-          "pages.settings.callSms.smsSameAsSecondary",
+          "pages.settings.callSms.smsSameAsCalls",
         ]) {
           const english: string = text(ENGLISH, key);
           const translated: string = text(words, key);

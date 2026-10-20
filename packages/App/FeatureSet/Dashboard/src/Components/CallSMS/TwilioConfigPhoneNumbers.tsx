@@ -10,14 +10,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   config: {
     twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
-    twilioSmsPhoneNumber?: Phone | string | null | undefined;
+    twilioSmsPhoneNumbers?: string | null | undefined;
   };
 }
 
 /*
  * The numbers a Twilio config sends from, in its row of the Twilio Config
- * table: its primary number alone, as before, or - when SMS have a number
- * of their own - each number with what it sends (TwilioConfigNumbersCopy).
+ * table: its primary number alone, as before, or - when SMS have numbers of
+ * their own - the number calls go out from and the first SMS goes out from,
+ * each saying which it sends (TwilioConfigNumbersCopy).
  */
 const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

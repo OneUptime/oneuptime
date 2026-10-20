@@ -22,8 +22,7 @@ export const PROJECT_TWILIO_CONFIG_SELECT: Select<ProjectCallSMSConfig> = {
   twilioAuthToken: true,
   twilioPrimaryPhoneNumber: true,
   twilioSecondaryPhoneNumbers: true,
-  twilioSmsPhoneNumber: true,
-  twilioSmsSecondaryPhoneNumbers: true,
+  twilioSmsPhoneNumbers: true,
 };
 
 // The OneUptime server's own account (Admin Dashboard > Settings > Call and SMS).
@@ -32,6 +31,5 @@ export const GLOBAL_TWILIO_CONFIG_SELECT: Select<GlobalConfig> = {
   twilioAuthToken: true,
   twilioPrimaryPhoneNumber: true,
   twilioSecondaryPhoneNumbers: true,
-  twilioSmsPhoneNumber: true,
-  twilioSmsSecondaryPhoneNumbers: true,
+  twilioSmsPhoneNumbers: true,
 };

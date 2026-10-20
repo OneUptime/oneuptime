@@ -31515,10 +31515,8 @@
   "None. A repository picks its Runner in its settings in Code.": "なし。リポジトリの Runner は、コードでそのリポジトリの設定から選択します。",
   "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.": "この Runner に許可する操作はコンテナではなく OneUptime で設定し、Runner は次回のハートビートで変更を反映します。この Runner を選択したコードリポジトリごとに、AI のためにリポジトリをクローンし、レビュー用のプルリクエストを作成します — デフォルトブランチや保護されたブランチに書き込むことはなく、マージすることもありません。",
   "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.": "このリポジトリが選択している Runner（{{runner}}）はオンラインではありません。コンテナが動いているか確認するか、別の Runner を選択してください。",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "通話はこの番号から発信されます。「その他の項目」で SMS 電話番号を設定しない限り、SMS もこの番号から送信されます。",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "受信者の国番号と一致するときに、セカンダリ番号の代わりに SMS の送信に使う番号。",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "プライマリ番号が通話しかできない場合は、プライマリ番号の代わりにこの番号から SMS を送信します。たとえばシンガポールでは、通話には国内番号、SMS には携帯番号が必要です。",
-  "Twilio SMS Phone Number": "Twilio SMS 電話番号",
-  "Twilio SMS Secondary Phone Numbers": "Twilio SMS セカンダリ電話番号",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話はこの番号から発信されます。「その他の項目」で SMS 電話番号を追加しない限り、SMS もこの番号から送信されます。",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Twilio の番号から SMS を送信できない場合（シンガポールの国内番号は音声専用です）は、SMS を送信できる番号を追加してください。SMS は受信者の国の番号から、なければ最初の番号から送信されます。",
+  "Twilio SMS Phone Numbers": "Twilio SMS 電話番号",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} は電話番号ではありません。各番号を国番号付きで入力し、+6581234567, +447700900123 のようにカンマで区切ってください。"
 }

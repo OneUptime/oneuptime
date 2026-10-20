@@ -51,8 +51,7 @@ function singaporeConfig(): TwilioConfig {
     authToken: "auth-token",
     primaryPhoneNumber: new Phone(SG_NATIONAL),
     secondaryPhoneNumbers: [new Phone(UK), new Phone(SE)],
-    smsPhoneNumber: new Phone(SG_MOBILE),
-    smsSecondaryPhoneNumbers: [new Phone(SE)],
+    smsPhoneNumbers: [new Phone(SG_MOBILE), new Phone(SE)],
   };
 }
 
@@ -106,13 +105,13 @@ describe("an SMS through a project's own Twilio config", () => {
       authToken: "auth-token",
       primaryPhoneNumber: SG_NATIONAL,
       secondaryPhoneNumbers: [UK, SE],
-      smsPhoneNumber: SG_MOBILE,
-      smsSecondaryPhoneNumbers: [SE],
+      smsPhoneNumbers: [SG_MOBILE, SE],
     });
     expect(Array.isArray(postedConfig()["secondaryPhoneNumbers"])).toBe(true);
+    expect(Array.isArray(postedConfig()["smsPhoneNumbers"])).toBe(true);
   });
 
-  test("goes out, on the other side, from the config's SMS number", () => {
+  test("goes out, on the other side, from the config's SMS numbers", () => {
     const received: TwilioConfig | undefined = receivedConfig();
 
     expect(
@@ -120,6 +119,22 @@ describe("an SMS through a project's own Twilio config", () => {
         config: received!,
         kind: TwilioMessageKind.SMS,
         to: SG_RECIPIENT,
+      }).toString(),
+    ).toBe(SG_MOBILE);
+    // A Swedish recipient's from the Swedish SMS number.
+    expect(
+      TwilioPhoneNumbers.pickSenderNumber({
+        config: received!,
+        kind: TwilioMessageKind.SMS,
+        to: "+46709876543",
+      }).toString(),
+    ).toBe(SE);
+    // A British one's from the first SMS number, not the UK number kept for calls.
+    expect(
+      TwilioPhoneNumbers.pickSenderNumber({
+        config: received!,
+        kind: TwilioMessageKind.SMS,
+        to: "+447911123456",
       }).toString(),
     ).toBe(SG_MOBILE);
   });

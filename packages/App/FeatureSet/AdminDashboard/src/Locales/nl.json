@@ -491,8 +491,7 @@
         "cardTitle": "Twilio-configuratie",
         "cardDescription": "Dit wordt gebruikt voor het bellen en verzenden van sms.",
         "editButton": "Twilio-config bewerken",
-        "smsSameAsPrimary": "Zelfde als het primaire nummer",
-        "smsSameAsSecondary": "Zelfde als de secundaire nummers"
+        "smsSameAsCalls": "Dezelfde nummers als voor oproepen"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-instellingen",
@@ -1014,10 +1013,8 @@
   "{{count}} people_one": "{{count}} persoon",
   "Docker Compose guide": "Docker Compose-handleiding",
   "Kubernetes guide": "Kubernetes-handleiding",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "Oproepen gaan uit van dit nummer, en sms-berichten ook, tenzij u onder Meer velden een sms-telefoonnummer instelt.",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Nummers waarvandaan sms-berichten worden verzonden in plaats van de secundaire nummers, als ze overeenkomen met de landcode van de ontvanger.",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Verzend sms-berichten vanaf dit nummer in plaats van het primaire nummer, als het primaire nummer alleen kan bellen. In Singapore bijvoorbeeld hebben oproepen een nationaal nummer nodig en sms-berichten een mobiel nummer.",
-  "Twilio SMS Phone Number": "Twilio-sms-telefoonnummer",
-  "Twilio SMS Secondary Phone Numbers": "Secundaire Twilio-sms-telefoonnummers",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Oproepen gaan uit van dit nummer, en sms-berichten ook, tenzij u onder Meer velden sms-telefoonnummers toevoegt.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Als uw Twilio-nummers geen sms kunnen verzenden (in Singapore zijn nationale nummers alleen voor spraak), voeg dan nummers toe die dat wel kunnen. Elke sms gaat dan uit van het nummer in het land van de ontvanger, anders van het eerste.",
+  "Twilio SMS Phone Numbers": "Twilio-sms-telefoonnummers",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} is geen telefoonnummer. Schrijf elk nummer met de landcode en scheid de nummers met komma's, zoals +6581234567, +447700900123."
 }

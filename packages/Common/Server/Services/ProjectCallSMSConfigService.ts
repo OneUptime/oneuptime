@@ -28,8 +28,7 @@ import { PROJECT_TWILIO_CONFIG_SELECT } from "../Utils/TwilioConfigSelect";
  * secondary numbers is read as tolerantly as ever and is not refused here:
  * the API and Terraform keep accepting what they always did.
  */
-const SMS_SECONDARY_PHONE_NUMBERS_TITLE: string =
-  "Twilio SMS Secondary Phone Numbers";
+const SMS_PHONE_NUMBERS_TITLE: string = "Twilio SMS Phone Numbers";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -41,8 +40,8 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     TwilioPhoneNumbers.assertListIsValid({
-      title: SMS_SECONDARY_PHONE_NUMBERS_TITLE,
-      text: createBy.data.twilioSmsSecondaryPhoneNumbers,
+      title: SMS_PHONE_NUMBERS_TITLE,
+      text: createBy.data.twilioSmsPhoneNumbers,
     });
 
     const projectId: ObjectID | undefined = createBy.data.projectId;
@@ -116,8 +115,8 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     TwilioPhoneNumbers.assertListIsValid({
-      title: SMS_SECONDARY_PHONE_NUMBERS_TITLE,
-      text: updateBy.data.twilioSmsSecondaryPhoneNumbers,
+      title: SMS_PHONE_NUMBERS_TITLE,
+      text: updateBy.data.twilioSmsPhoneNumbers,
     });
 
     return { updateBy, carryForward: null };
@@ -396,11 +395,6 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    /*
-     * The numbers SMS go out from instead, when the config has them: read
-     * with the rest (PROJECT_TWILIO_CONFIG_SELECT), and left out when it
-     * has none, so SMS go out from the numbers calls do.
-     */
     const twilioConfig: TwilioConfig = {
       accountSid: projectCallSmsConfig.twilioAccountSID.toString(),
       authToken: projectCallSmsConfig.twilioAuthToken.toString(),
@@ -410,16 +404,17 @@ export class Service extends DatabaseService<Model> {
       ),
     };
 
-    if (projectCallSmsConfig.twilioSmsPhoneNumber) {
-      twilioConfig.smsPhoneNumber = projectCallSmsConfig.twilioSmsPhoneNumber;
-    }
-
-    const smsSecondaryPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
-      projectCallSmsConfig.twilioSmsSecondaryPhoneNumbers,
+    /*
+     * The numbers every SMS goes out from, when the config lists them: read
+     * with the rest (PROJECT_TWILIO_CONFIG_SELECT), and left out when it
+     * lists none, so SMS go out from the numbers calls do.
+     */
+    const smsPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
+      projectCallSmsConfig.twilioSmsPhoneNumbers,
     );
 
-    if (smsSecondaryPhoneNumbers.length > 0) {
-      twilioConfig.smsSecondaryPhoneNumbers = smsSecondaryPhoneNumbers;
+    if (smsPhoneNumbers.length > 0) {
+      twilioConfig.smsPhoneNumbers = smsPhoneNumbers;
     }
 
     return twilioConfig;

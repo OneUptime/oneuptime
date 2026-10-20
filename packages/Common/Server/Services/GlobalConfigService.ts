@@ -424,9 +424,9 @@ export class Service extends DatabaseService<Model> {
     data: CreateBy<Model>["data"] | UpdateBy<Model>["data"],
   ): void {
     TwilioPhoneNumbers.assertListIsValid({
-      title: "Twilio SMS Secondary Phone Numbers",
-      text: (data as { twilioSmsSecondaryPhoneNumbers?: unknown })
-        .twilioSmsSecondaryPhoneNumbers,
+      title: "Twilio SMS Phone Numbers",
+      text: (data as { twilioSmsPhoneNumbers?: unknown })
+        .twilioSmsPhoneNumbers,
     });
   }
 

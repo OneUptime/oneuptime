@@ -202,13 +202,12 @@ describe("Admin Dashboard > Settings > Call & SMS", () => {
     ]);
     /*
      * Folded with the extra numbers: the numbers SMS go out from instead,
-     * for a primary number that can only make calls (Singapore's national
-     * numbers) - each beside the list it stands in for.
+     * for numbers that can only make calls (Singapore's national numbers
+     * are voice-only).
      */
     expect(keysOf(foldedFields(form))).toEqual([
-      "twilioSmsPhoneNumber",
+      "twilioSmsPhoneNumbers",
       "twilioSecondaryPhoneNumbers",
-      "twilioSmsSecondaryPhoneNumbers",
     ]);
     expectOneAdvancedSection(form);
     expect(countFormRows(form)).toBe(4);

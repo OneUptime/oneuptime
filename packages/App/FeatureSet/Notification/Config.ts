@@ -287,16 +287,13 @@ export const getTwilioConfig: GetTwilioConfigFunction =
       ),
     };
 
-    if (globalConfig.twilioSmsPhoneNumber) {
-      twilioConfig.smsPhoneNumber = globalConfig.twilioSmsPhoneNumber;
-    }
-
-    const smsSecondaryPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
-      globalConfig.twilioSmsSecondaryPhoneNumbers,
+    // Every SMS goes out from one of these, when the server lists them.
+    const smsPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
+      globalConfig.twilioSmsPhoneNumbers,
     );
 
-    if (smsSecondaryPhoneNumbers.length > 0) {
-      twilioConfig.smsSecondaryPhoneNumbers = smsSecondaryPhoneNumbers;
+    if (smsPhoneNumbers.length > 0) {
+      twilioConfig.smsPhoneNumbers = smsPhoneNumbers;
     }
 
     return twilioConfig;

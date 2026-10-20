@@ -34,8 +34,7 @@ function fullConfig(): TwilioConfig {
     authToken: "auth-token",
     primaryPhoneNumber: new Phone(SG_NATIONAL),
     secondaryPhoneNumbers: [new Phone(UK)],
-    smsPhoneNumber: new Phone(SG_MOBILE),
-    smsSecondaryPhoneNumbers: [new Phone(SE), new Phone(UK)],
+    smsPhoneNumbers: [new Phone(SG_MOBILE), new Phone(SE), new Phone(UK)],
   };
 }
 
@@ -62,44 +61,46 @@ function asText(config: TwilioConfig | undefined): Record<string, unknown> {
         return phone.toString();
       },
     ),
-    smsPhoneNumber: config.smsPhoneNumber?.toString(),
-    smsSecondaryPhoneNumbers: config.smsSecondaryPhoneNumbers?.map(
-      (phone: Phone): string => {
-        return phone.toString();
-      },
-    ),
+    smsPhoneNumbers: config.smsPhoneNumbers?.map((phone: Phone): string => {
+      return phone.toString();
+    }),
   };
 }
 
 describe("a Twilio config, sent", () => {
-  test("carries its lists of numbers as arrays", () => {
+  test("carries its lists of numbers as arrays, the SMS numbers in their order", () => {
     expect(TwilioConfigJSON.toJSON(fullConfig())).toEqual({
       accountSid: "AC00000000000000000000000000000001",
       authToken: "auth-token",
       primaryPhoneNumber: SG_NATIONAL,
       secondaryPhoneNumbers: [UK],
-      smsPhoneNumber: SG_MOBILE,
-      smsSecondaryPhoneNumbers: [SE, UK],
+      smsPhoneNumbers: [SG_MOBILE, SE, UK],
     });
   });
 
   test("leaves out the SMS numbers a config does not have", () => {
-    const json: JSONObject = TwilioConfigJSON.toJSON({
-      accountSid: "AC1",
-      authToken: "token",
-      primaryPhoneNumber: new Phone(SG_NATIONAL),
-      secondaryPhoneNumbers: [],
-      smsSecondaryPhoneNumbers: [],
-    });
+    for (const smsPhoneNumbers of [undefined, [] as Array<Phone>]) {
+      const config: TwilioConfig = {
+        accountSid: "AC1",
+        authToken: "token",
+        primaryPhoneNumber: new Phone(SG_NATIONAL),
+        secondaryPhoneNumbers: [],
+      };
 
-    expect(json).toEqual({
-      accountSid: "AC1",
-      authToken: "token",
-      primaryPhoneNumber: SG_NATIONAL,
-      secondaryPhoneNumbers: [],
-    });
-    expect("smsPhoneNumber" in json).toBe(false);
-    expect("smsSecondaryPhoneNumbers" in json).toBe(false);
+      if (smsPhoneNumbers) {
+        config.smsPhoneNumbers = smsPhoneNumbers;
+      }
+
+      const json: JSONObject = TwilioConfigJSON.toJSON(config);
+
+      expect(json).toEqual({
+        accountSid: "AC1",
+        authToken: "token",
+        primaryPhoneNumber: SG_NATIONAL,
+        secondaryPhoneNumbers: [],
+      });
+      expect("smsPhoneNumbers" in json).toBe(false);
+    }
   });
 
   test("comes back, over the wire, as the config that was sent", () => {
@@ -111,8 +112,8 @@ describe("a Twilio config, sent", () => {
     expect(asText(received)).toEqual(asText(sent));
     expect(received!.primaryPhoneNumber).toBeInstanceOf(Phone);
     expect(received!.secondaryPhoneNumbers[0]).toBeInstanceOf(Phone);
-    expect(received!.smsPhoneNumber).toBeInstanceOf(Phone);
-    expect(received!.smsSecondaryPhoneNumbers![1]).toBeInstanceOf(Phone);
+    expect(received!.smsPhoneNumbers![0]).toBeInstanceOf(Phone);
+    expect(received!.smsPhoneNumbers![2]).toBeInstanceOf(Phone);
   });
 
   test("a config without SMS numbers comes back without them", () => {
@@ -127,8 +128,8 @@ describe("a Twilio config, sent", () => {
       ),
     );
 
-    expect(received!.smsPhoneNumber).toBeUndefined();
-    expect(received!.smsSecondaryPhoneNumbers).toBeUndefined();
+    expect(received!.smsPhoneNumbers).toBeUndefined();
+    expect("smsPhoneNumbers" in received!).toBe(false);
     expect(received!.secondaryPhoneNumbers.map(String)).toEqual([UK]);
   });
 });
@@ -146,11 +147,13 @@ describe("a Twilio config, received", () => {
         authToken: "token",
         primaryPhoneNumber: SG_NATIONAL,
         secondaryPhoneNumbers: [new Phone(UK), new Phone(SE)].toString(),
+        smsPhoneNumbers: [new Phone(SG_MOBILE), new Phone(UK)].toString(),
       }),
     );
 
     expect(Array.isArray(received!.secondaryPhoneNumbers)).toBe(true);
     expect(received!.secondaryPhoneNumbers.map(String)).toEqual([UK, SE]);
+    expect(received!.smsPhoneNumbers!.map(String)).toEqual([SG_MOBILE, UK]);
   });
 
   test("reads an empty string, as an older sender posted no numbers, as no numbers", () => {
@@ -160,10 +163,12 @@ describe("a Twilio config, received", () => {
         authToken: "token",
         primaryPhoneNumber: SG_NATIONAL,
         secondaryPhoneNumbers: ([] as Array<Phone>).toString(),
+        smsPhoneNumbers: "",
       }),
     );
 
     expect(received!.secondaryPhoneNumbers).toEqual([]);
+    expect(received!.smsPhoneNumbers).toBeUndefined();
   });
 
   test("reads a list with no numbers at all as an empty one", () => {
@@ -174,6 +179,7 @@ describe("a Twilio config, received", () => {
     });
 
     expect(received!.secondaryPhoneNumbers).toEqual([]);
+    expect(received!.smsPhoneNumbers).toBeUndefined();
   });
 
   test("reads numbers given as Phones, or as serialized Phones", () => {
@@ -182,12 +188,12 @@ describe("a Twilio config, received", () => {
       authToken: "token",
       primaryPhoneNumber: new Phone(SG_NATIONAL) as unknown as string,
       secondaryPhoneNumbers: [new Phone(UK).toJSON()],
-      smsPhoneNumber: new Phone(SG_MOBILE).toJSON(),
+      smsPhoneNumbers: [new Phone(SG_MOBILE).toJSON()],
     });
 
     expect(received!.primaryPhoneNumber.toString()).toBe(SG_NATIONAL);
     expect(received!.secondaryPhoneNumbers.map(String)).toEqual([UK]);
-    expect(received!.smsPhoneNumber!.toString()).toBe(SG_MOBILE);
+    expect(received!.smsPhoneNumbers!.map(String)).toEqual([SG_MOBILE]);
   });
 
   test("carries none when the request carries none: the server's own account is used", () => {
@@ -238,7 +244,7 @@ describe("a Twilio config, received", () => {
         accountSid: "AC1",
         authToken: "token",
         primaryPhoneNumber: SG_NATIONAL,
-        smsSecondaryPhoneNumbers: [UK, "not-a-number"],
+        smsPhoneNumbers: [UK, "not-a-number"],
       });
     }).toThrow('"not-a-number" is not a phone number.');
     expect(() => {
@@ -246,7 +252,7 @@ describe("a Twilio config, received", () => {
         accountSid: "AC1",
         authToken: "token",
         primaryPhoneNumber: SG_NATIONAL,
-        smsPhoneNumber: "letters",
+        smsPhoneNumbers: "letters",
       });
     }).toThrow(BadDataException);
   });

@@ -31515,10 +31515,8 @@
   "None. A repository picks its Runner in its settings in Code.": "無。儲存庫在程式碼中它的設定裡選擇自己的 Runner。",
   "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.": "此 Runner 可以做什麼在 OneUptime 中設定，而不是在容器中：它會在下一次心跳時採用變更。對於每個選擇此 Runner 的程式碼儲存庫，它會為 AI 複製儲存庫並開啟供審查的 Pull Request——它從不寫入您的預設分支或受保護分支，也從不合併。",
   "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.": "此儲存庫選擇的 Runner（{{runner}}）不在線。請檢查它的容器是否在執行，或選擇其他 Runner。",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "通話從此號碼撥出；除非在「更多欄位」中設定了簡訊電話號碼，否則簡訊也從此號碼傳送。",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "當與收件人的國碼相符時，用來取代次要號碼傳送簡訊的號碼。",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "如果主要號碼只能撥打電話，就改用此號碼傳送簡訊。例如在新加坡，通話需要國內號碼，簡訊需要手機號碼。",
-  "Twilio SMS Phone Number": "Twilio 簡訊電話號碼",
-  "Twilio SMS Secondary Phone Numbers": "Twilio 簡訊次要電話號碼",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話從此號碼撥出；除非在「更多欄位」中新增了簡訊電話號碼，否則簡訊也從此號碼傳送。",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "如果您的 Twilio 號碼無法傳送簡訊（在新加坡，國內號碼僅支援語音），請新增可以傳送簡訊的號碼。之後每則簡訊都從收件人所在國家/地區的號碼傳送，沒有則從第一個號碼傳送。",
+  "Twilio SMS Phone Numbers": "Twilio 簡訊電話號碼",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是電話號碼。請輸入含國碼的每個號碼，並以逗號分隔，例如 +6581234567, +447700900123。"
 }

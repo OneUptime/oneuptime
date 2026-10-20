@@ -491,8 +491,7 @@
         "cardTitle": "Twilio Config",
         "cardDescription": "This will be used to make Call and send SMS.",
         "editButton": "Edit Twilio Config",
-        "smsSameAsPrimary": "Same as the primary number",
-        "smsSameAsSecondary": "Same as the secondary numbers"
+        "smsSameAsCalls": "Same numbers as calls"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp Settings",
@@ -1014,10 +1013,8 @@
   "{{count}} people_one": "{{count}} person",
   "Docker Compose guide": "Docker Compose guide",
   "Kubernetes guide": "Kubernetes guide",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.",
-  "Twilio SMS Phone Number": "Twilio SMS Phone Number",
-  "Twilio SMS Secondary Phone Numbers": "Twilio SMS Secondary Phone Numbers",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.",
+  "Twilio SMS Phone Numbers": "Twilio SMS Phone Numbers",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123."
 }

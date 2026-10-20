@@ -31515,10 +31515,8 @@
   "None. A repository picks its Runner in its settings in Code.": "없음. 저장소는 코드의 저장소 설정에서 Runner를 선택합니다.",
   "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.": "이 Runner가 할 수 있는 일은 컨테이너가 아니라 OneUptime에서 설정하며, 다음 하트비트에 변경 사항을 반영합니다. 이 Runner를 선택한 코드 저장소마다 AI를 위해 저장소를 복제하고 검토용 풀 리퀘스트를 엽니다 — 기본 브랜치나 보호된 브랜치에 쓰지 않으며 병합하지도 않습니다.",
   "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.": "이 저장소가 선택한 Runner({{runner}})가 온라인 상태가 아닙니다. 컨테이너가 실행 중인지 확인하거나 다른 Runner를 선택하세요.",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "통화는 이 번호로 걸립니다. 추가 필드에서 SMS 전화번호를 설정하지 않으면 SMS도 이 번호로 보냅니다.",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "수신자의 국가 코드와 일치할 때 보조 번호 대신 SMS를 보낼 번호입니다.",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "기본 번호가 통화만 할 수 있다면 기본 번호 대신 이 번호로 SMS를 보냅니다. 예를 들어 싱가포르에서는 통화에 국내 번호가, SMS에 휴대전화 번호가 필요합니다.",
-  "Twilio SMS Phone Number": "Twilio SMS 전화번호",
-  "Twilio SMS Secondary Phone Numbers": "Twilio SMS 보조 전화번호",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "통화는 이 번호로 걸립니다. 추가 필드에서 SMS 전화번호를 추가하지 않으면 SMS도 이 번호로 보냅니다.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Twilio 번호로 SMS를 보낼 수 없다면(싱가포르의 국내 번호는 음성 전용입니다) SMS를 보낼 수 있는 번호를 추가하세요. 그러면 모든 SMS는 수신자 국가의 번호로, 없으면 첫 번째 번호로 보냅니다.",
+  "Twilio SMS Phone Numbers": "Twilio SMS 전화번호",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}}은(는) 전화번호가 아닙니다. 각 번호를 국가 코드와 함께 입력하고 +6581234567, +447700900123처럼 쉼표로 구분하세요."
 }

@@ -27,16 +27,13 @@ export default class TwilioConfigJSON {
       ),
     };
 
-    if (config.smsPhoneNumber) {
-      json["smsPhoneNumber"] = config.smsPhoneNumber.toString();
-    }
-
-    const smsSecondaryPhoneNumbers: Array<string> = TwilioConfigJSON.listToJSON(
-      config.smsSecondaryPhoneNumbers,
+    const smsPhoneNumbers: Array<string> = TwilioConfigJSON.listToJSON(
+      config.smsPhoneNumbers,
     );
 
-    if (smsSecondaryPhoneNumbers.length > 0) {
-      json["smsSecondaryPhoneNumbers"] = smsSecondaryPhoneNumbers;
+    // Left out when there are none, as an older receiver expects.
+    if (smsPhoneNumbers.length > 0) {
+      json["smsPhoneNumbers"] = smsPhoneNumbers;
     }
 
     return json;
@@ -81,19 +78,12 @@ export default class TwilioConfigJSON {
       ),
     };
 
-    const smsPhoneNumber: string = TwilioConfigJSON.textOf(
-      json["smsPhoneNumber"],
+    const smsPhoneNumbers: Array<Phone> = TwilioConfigJSON.listFromJSON(
+      json["smsPhoneNumbers"],
     );
 
-    if (smsPhoneNumber) {
-      config.smsPhoneNumber = new Phone(smsPhoneNumber);
-    }
-
-    const smsSecondaryPhoneNumbers: Array<Phone> =
-      TwilioConfigJSON.listFromJSON(json["smsSecondaryPhoneNumbers"]);
-
-    if (smsSecondaryPhoneNumbers.length > 0) {
-      config.smsSecondaryPhoneNumbers = smsSecondaryPhoneNumbers;
+    if (smsPhoneNumbers.length > 0) {
+      config.smsPhoneNumbers = smsPhoneNumbers;
     }
 
     return config;

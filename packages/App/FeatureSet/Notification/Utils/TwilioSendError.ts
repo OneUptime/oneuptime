@@ -1,6 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
 import ErrorClass, {
+  DeclaredErrorClass,
   declaredErrorClass,
 } from "Common/Types/Telemetry/ErrorClass";
 
@@ -39,14 +40,14 @@ const WHAT_TWILIO_COULD_NOT_DO: Readonly<Record<TwilioSendKind, string>> = {
  * Twilio's error for an SMS from a number it will not send SMS from
  * ("'From' number is not a valid message-capable Twilio number for this
  * account"): most often a number that can only make calls - in Singapore,
- * for example, a national number, where SMS need a mobile one. A config
- * can send SMS from a number of their own (Twilio SMS Phone Number), and
- * the refusal says so.
+ * for example, a national number, which is voice-only, where SMS need a
+ * mobile one. A config can send SMS from numbers of their own (Twilio SMS
+ * Phone Numbers), and the refusal says so.
  */
 export const TWILIO_FROM_NUMBER_CANNOT_SEND_SMS_CODE: number = 21606;
 
 export const SMS_NUMBER_HINT: string =
-  "If this number can only make calls, set a Twilio SMS Phone Number on its Twilio config to send SMS from another number.";
+  "If this number can only make calls, add a number that can send SMS to Twilio SMS Phone Numbers in its Twilio config.";
 
 interface TwilioRestError {
   status: number;
@@ -101,11 +102,23 @@ export default class TwilioSendError {
    * it can act on - Twilio's refusal, kept in Twilio's words by
    * toSendError, or the project's own settings - rather than a failure of
    * ours or an outage. A test send answers with such a reason as it is.
+   *
+   * Only a refusal declared as the user's at the place it was thrown
+   * (asUserError) counts: every BadDataException is a user error by its
+   * class's default, which says nothing about this one - a bad value of our
+   * own making would be passed on as if it were the config's fault.
    */
   public static isActionableRefusal(error: unknown): boolean {
+    if (!(error instanceof BadDataException)) {
+      return false;
+    }
+
+    const declared: DeclaredErrorClass | null = declaredErrorClass(error);
+
     return (
-      error instanceof BadDataException &&
-      declaredErrorClass(error)?.errorClass === ErrorClass.UserError
+      declared !== null &&
+      declared.authoritative &&
+      declared.errorClass === ErrorClass.UserError
     );
   }
 }

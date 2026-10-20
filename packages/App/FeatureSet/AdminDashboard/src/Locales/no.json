@@ -491,8 +491,7 @@
         "cardTitle": "Twilio-konfigurasjon",
         "cardDescription": "Dette vil bli brukt til å ringe og sende SMS.",
         "editButton": "Rediger Twilio-konfig",
-        "smsSameAsPrimary": "Samme som det primære nummeret",
-        "smsSameAsSecondary": "Samme som de sekundære numrene"
+        "smsSameAsCalls": "Samme numre som anrop"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-innstillinger",
@@ -1014,10 +1013,8 @@
   "{{count}} people_one": "{{count}} person",
   "Docker Compose guide": "Docker Compose-veiledning",
   "Kubernetes guide": "Kubernetes-veiledning",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "Anrop går ut fra dette nummeret, og SMS-er også, med mindre du angir et SMS-telefonnummer under Flere felt.",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Numre som SMS-er sendes fra i stedet for de sekundære numrene når de samsvarer med mottakerens landskode.",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Send SMS-er fra dette nummeret i stedet for det primære hvis det primære nummeret bare kan ringe. I Singapore krever for eksempel anrop et nasjonalt nummer og SMS-er et mobilnummer.",
-  "Twilio SMS Phone Number": "Twilio-SMS-telefonnummer",
-  "Twilio SMS Secondary Phone Numbers": "Sekundære Twilio-SMS-telefonnumre",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Anrop går ut fra dette nummeret, og SMS-er også, med mindre du legger til SMS-telefonnumre under Flere felt.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Hvis Twilio-numrene dine ikke kan sende SMS (i Singapore er nasjonale numre bare for tale), legg til numre som kan. Hver SMS går da ut fra nummeret i mottakerens land, ellers fra det første.",
+  "Twilio SMS Phone Numbers": "Twilio-SMS-telefonnumre",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} er ikke et telefonnummer. Skriv hvert nummer med landskode, og skill numrene med komma, som +6581234567, +447700900123."
 }

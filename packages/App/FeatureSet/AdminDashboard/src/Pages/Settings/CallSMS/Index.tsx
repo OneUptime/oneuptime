@@ -17,12 +17,12 @@ import { useTranslation } from "react-i18next";
 
 /*
  * The numbers few installations need, folded under More fields below the
- * three values the Twilio console shows together: an SMS number, for a
- * primary number that can only make calls (in Singapore, calls need a
- * national number and SMS a mobile number), and the numbers bought for
- * other countries. Each SMS list takes the place of its counterpart for SMS
- * (Common/Types/CallAndSMS/TwilioPhoneNumbers), as on a project's own
- * Twilio config.
+ * three values the Twilio console shows together: numbers to send SMS from,
+ * for numbers that can only make calls (in Singapore, national numbers are
+ * voice-only and SMS need a mobile number), and the numbers bought for
+ * other countries. Once SMS numbers are listed, every SMS goes out from one
+ * of them (Common/Types/CallAndSMS/TwilioPhoneNumbers), as on a project's
+ * own Twilio config.
  */
 const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
   getAdvancedFormSection<GlobalConfig>();
@@ -103,7 +103,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Phone,
             required: true,
             description:
-              "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.",
+              "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.",
             placeholder: "+14155550100",
             validation: {
               minLength: 2,
@@ -111,16 +111,22 @@ const Settings: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
-              twilioSmsPhoneNumber: true,
+              twilioSmsPhoneNumbers: true,
             },
-            title: "Twilio SMS Phone Number",
-            fieldType: FormFieldSchemaType.Phone,
-            // Optional: without it, SMS go out from the primary number.
+            title: "Twilio SMS Phone Numbers",
+            fieldType: FormFieldSchemaType.LongText,
+            // Optional: without them, SMS go out from the numbers calls do.
             required: false,
             collapsibleSection: advancedSection,
             description:
-              "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.",
+              "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.",
             placeholder: "+6581234567",
+            customValidation: (
+              values: FormValues<GlobalConfig>,
+            ): string | null => {
+              // Refused under the field, by the server's rule.
+              return getPhoneNumberListError(values.twilioSmsPhoneNumbers);
+            },
           },
           {
             field: {
@@ -146,25 +152,6 @@ const Settings: FunctionComponent = (): ReactElement => {
               );
             },
           },
-          {
-            field: {
-              twilioSmsSecondaryPhoneNumbers: true,
-            },
-            title: "Twilio SMS Secondary Phone Numbers",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            collapsibleSection: advancedSection,
-            description:
-              "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.",
-            placeholder: "+447700900123, +46701234567",
-            customValidation: (
-              values: FormValues<GlobalConfig>,
-            ): string | null => {
-              return getPhoneNumberListError(
-                values.twilioSmsSecondaryPhoneNumbers,
-              );
-            },
-          },
         ]}
         modelDetailProps={{
           modelType: GlobalConfig,
@@ -187,12 +174,12 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
-                twilioSmsPhoneNumber: true,
+                twilioSmsPhoneNumbers: true,
               },
-              title: "Twilio SMS Phone Number",
-              fieldType: FieldType.Phone,
-              // Without one, SMS go out from the primary number.
-              placeholder: t("pages.settings.callSms.smsSameAsPrimary"),
+              title: "Twilio SMS Phone Numbers",
+              fieldType: FieldType.LongText,
+              // Without them, SMS go out from the numbers calls do.
+              placeholder: t("pages.settings.callSms.smsSameAsCalls"),
             },
             {
               field: {
@@ -201,15 +188,6 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Secondary Twilio Phone Numbers",
               fieldType: FieldType.LongText,
               placeholder: t("common.none"),
-            },
-            {
-              field: {
-                twilioSmsSecondaryPhoneNumbers: true,
-              },
-              title: "Twilio SMS Secondary Phone Numbers",
-              fieldType: FieldType.LongText,
-              // Without them, SMS go out from the secondary numbers.
-              placeholder: t("pages.settings.callSms.smsSameAsSecondary"),
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

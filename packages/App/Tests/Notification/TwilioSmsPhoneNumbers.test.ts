@@ -37,7 +37,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import Twilio from "twilio";
 import RestException from "twilio/lib/base/RestException";
 
@@ -48,11 +48,13 @@ import RestException from "twilio/lib/base/RestException";
  * Call), with the Twilio client faked at its boundary.
  *
  * A Twilio number can make calls and send SMS, or only one of the two, and
- * in Singapore calls need a national number and SMS a mobile one. A config,
- * a project's or the OneUptime server's own, can name numbers for SMS:
+ * Singapore's national numbers are voice-only - SMS there need a mobile
+ * number. A config, a project's or the OneUptime server's own, can list
+ * numbers for SMS:
  *
- *   - an SMS goes out from the config's SMS number, a call from its primary
- *     number - through a project's config and through the server's own;
+ *   - an SMS goes out from one of the config's SMS numbers, a call from its
+ *     primary or secondary numbers - through a project's config and
+ *     through the server's own;
  *   - a config without SMS numbers sends both from its primary number, as
  *     every config did;
  *   - what the server's senders post reaches Twilio as the right number,
@@ -63,6 +65,8 @@ import RestException from "twilio/lib/base/RestException";
  *     primary one, and Twilio's refusal of a test is answered in Twilio's
  *     words - for an SMS from a number that can only make calls (error
  *     21606), with what to do about it.
+ *
+ * Nothing here reaches Twilio: the client is faked at its boundary.
  */
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -251,7 +255,7 @@ function singaporeConfig(): TwilioConfig {
     authToken: "auth-token",
     primaryPhoneNumber: new Phone(SG_NATIONAL),
     secondaryPhoneNumbers: [],
-    smsPhoneNumber: new Phone(SG_MOBILE),
+    smsPhoneNumbers: [new Phone(SG_MOBILE)],
   };
 }
 
@@ -357,6 +361,32 @@ describe("the Notification service sending through a project's own Twilio config
     expect(callLogs[0]!.fromNumber?.toString()).toBe(SG_NATIONAL);
   });
 
+  test("with several SMS numbers, each SMS goes out from the one in its recipient's country, and no call from any of them", async () => {
+    const twoCountries: TwilioConfig = {
+      ...singaporeConfig(),
+      // A UK landline for calls to the UK: it cannot send SMS.
+      secondaryPhoneNumbers: [new Phone("+442071234567")],
+      smsPhoneNumbers: [new Phone(SG_MOBILE), new Phone(UK_NUMBER)],
+    };
+
+    for (const recipient of [SG_RECIPIENT, UK_RECIPIENT, "+33612345678"]) {
+      await SmsService.sendSms(new Phone(recipient), "Incident created", {
+        projectId: PROJECT_ID,
+        customTwilioConfig: twoCountries,
+      });
+      await CallService.makeCall(
+        {
+          to: new Phone(recipient),
+          data: [{ sayMessage: "Incident created" }],
+        } as unknown as CallRequest,
+        { projectId: PROJECT_ID, customTwilioConfig: twoCountries },
+      );
+    }
+
+    expect(sentFrom()).toEqual([SG_MOBILE, UK_NUMBER, SG_MOBILE]);
+    expect(calledFrom()).toEqual([SG_NATIONAL, "+442071234567", SG_NATIONAL]);
+  });
+
   test("a config without SMS numbers sends both from its primary number, as every config did", async () => {
     const plain: TwilioConfig = {
       accountSid: "AC1",
@@ -394,7 +424,7 @@ describe("the Notification service sending through the OneUptime server's own ac
       globalConfig.twilioAuthToken = "server-token";
       globalConfig.twilioPrimaryPhoneNumber = new Phone(SG_NATIONAL);
       globalConfig.twilioSecondaryPhoneNumbers = `${UK_NUMBER},`;
-      globalConfig.twilioSmsPhoneNumber = new Phone(SG_MOBILE);
+      globalConfig.twilioSmsPhoneNumbers = SG_MOBILE;
       return Promise.resolve(globalConfig);
     }) as never);
 
@@ -415,15 +445,15 @@ describe("the Notification service sending through the OneUptime server's own ac
   });
 
   test("its settings are read with every number it sends from, and a stray comma no longer fails them", async () => {
-    const findOneBy: jest.SpiedFunction<typeof GlobalConfigService.findOneBy> =
-      jest.spyOn(GlobalConfigService, "findOneBy").mockImplementation((() => {
+    const findOneBy: SpyInstance<typeof GlobalConfigService.findOneBy> = jest
+      .spyOn(GlobalConfigService, "findOneBy")
+      .mockImplementation((() => {
         const globalConfig: GlobalConfig = new GlobalConfig();
         globalConfig.twilioAccountSID = "AC2";
         globalConfig.twilioAuthToken = "server-token";
         globalConfig.twilioPrimaryPhoneNumber = new Phone(US_NUMBER);
         globalConfig.twilioSecondaryPhoneNumbers = `${UK_NUMBER}, `;
-        globalConfig.twilioSmsPhoneNumber = new Phone(SG_MOBILE);
-        globalConfig.twilioSmsSecondaryPhoneNumbers = `${UK_NUMBER},${SG_MOBILE}`;
+        globalConfig.twilioSmsPhoneNumbers = `${SG_MOBILE}, ${UK_NUMBER},`;
         return Promise.resolve(globalConfig);
       }) as never);
 
@@ -436,10 +466,9 @@ describe("the Notification service sending through the OneUptime server's own ac
     expect(twilioConfig!.secondaryPhoneNumbers.map(String)).toEqual([
       UK_NUMBER,
     ]);
-    expect(twilioConfig!.smsPhoneNumber!.toString()).toBe(SG_MOBILE);
-    expect(twilioConfig!.smsSecondaryPhoneNumbers!.map(String)).toEqual([
-      UK_NUMBER,
+    expect(twilioConfig!.smsPhoneNumbers!.map(String)).toEqual([
       SG_MOBILE,
+      UK_NUMBER,
     ]);
   });
 
@@ -454,8 +483,8 @@ describe("the Notification service sending through the OneUptime server's own ac
 
     const twilioConfig: TwilioConfig | null = await getTwilioConfig();
 
-    expect(twilioConfig!.smsPhoneNumber).toBeUndefined();
-    expect(twilioConfig!.smsSecondaryPhoneNumbers).toBeUndefined();
+    expect(twilioConfig!.smsPhoneNumbers).toBeUndefined();
+    expect("smsPhoneNumbers" in twilioConfig!).toBe(false);
     expect(twilioConfig!.secondaryPhoneNumbers).toEqual([]);
   });
 });
@@ -551,9 +580,8 @@ describe("what the server's senders post, as the Notification service's routes r
   });
 
   test("a config it cannot read is refused, not sent through the server's account", async () => {
-    const getServerConfig: jest.SpiedFunction<
-      typeof GlobalConfigService.findOneBy
-    > = jest.spyOn(GlobalConfigService, "findOneBy");
+    const getServerConfig: SpyInstance<typeof GlobalConfigService.findOneBy> =
+      jest.spyOn(GlobalConfigService, "findOneBy");
 
     const error: unknown = await callRoute(sendSmsRoute(), {
       to: SG_RECIPIENT,
@@ -576,13 +604,11 @@ describe("Send Test SMS and Send Test Call", () => {
     config.twilioAccountSID = "AC00000000000000000000000000000001";
     config.twilioAuthToken = "auth-token";
     config.twilioPrimaryPhoneNumber = new Phone(SG_NATIONAL);
-    config.twilioSmsPhoneNumber = new Phone(SG_MOBILE);
+    config.twilioSmsPhoneNumbers = SG_MOBILE;
     return config;
   }
 
-  let findOneById: jest.SpiedFunction<
-    typeof ProjectCallSMSConfigService.findOneById
-  >;
+  let findOneById: SpyInstance<typeof ProjectCallSMSConfigService.findOneById>;
 
   beforeEach(() => {
     findOneById = jest
@@ -604,8 +630,7 @@ describe("Send Test SMS and Send Test Call", () => {
       findOneById.mock.calls[0]![0] as { select: Record<string, unknown> }
     ).select;
 
-    expect(select["twilioSmsPhoneNumber"]).toBe(true);
-    expect(select["twilioSmsSecondaryPhoneNumbers"]).toBe(true);
+    expect(select["twilioSmsPhoneNumbers"]).toBe(true);
     expect(select["projectId"]).toBe(true);
   });
 
@@ -622,13 +647,13 @@ describe("Send Test SMS and Send Test Call", () => {
 
   /*
    * Testing SMS through a primary number that can only make calls - the
-   * Singapore case before an SMS number is set: Twilio refuses it, and the
+   * Singapore case before SMS numbers are added: Twilio refuses it, and the
    * person testing is told Twilio's words and what to do, not "please check
    * the twilio logs".
    */
   test("Twilio refusing the test SMS is answered in Twilio's words, with what to do about it", async () => {
     findOneById.mockResolvedValue(
-      Object.assign(storedConfig(), { twilioSmsPhoneNumber: undefined }) as never,
+      Object.assign(storedConfig(), { twilioSmsPhoneNumbers: "" }) as never,
     );
     createMessage.mockRejectedValue(
       twilioRefusal(
@@ -685,7 +710,7 @@ describe("Twilio's refusal of an SMS from a number that cannot send SMS", () => 
   // Twilio's sentence loses its full stop, so its code can follow it.
   const FULL_STOP: RegExp = /\.$/;
 
-  test("says to set an SMS number, after Twilio's words and its code", () => {
+  test("says to add an SMS number, after Twilio's words and its code", () => {
     const error: unknown = TwilioSendError.toSendError(
       twilioRefusal(21606, MESSAGE),
       TwilioSendKind.SMS,
@@ -694,7 +719,8 @@ describe("Twilio's refusal of an SMS from a number that cannot send SMS", () => 
     expect((error as Error).message).toBe(
       `Twilio could not send this SMS: ${MESSAGE.replace(FULL_STOP, "")} (Twilio error 21606). ${SMS_NUMBER_HINT}`,
     );
-    expect(SMS_NUMBER_HINT).toContain("Twilio SMS Phone Number");
+    // Names the field by its label, as the forms draw it.
+    expect(SMS_NUMBER_HINT).toContain("Twilio SMS Phone Numbers");
     expect(declaredErrorClass(error)).toEqual({
       errorClass: ErrorClass.UserError,
       authoritative: true,
@@ -729,10 +755,28 @@ describe("Twilio's refusal of an SMS from a number that cannot send SMS", () => 
         ),
       ),
     ).toBe(true);
+    // A user error by its class's default only: not declared where thrown.
     expect(
       TwilioSendError.isActionableRefusal(new BadDataException("Bad input")),
     ).toBe(false);
     expect(TwilioSendError.isActionableRefusal(new Error("boom"))).toBe(false);
     expect(TwilioSendError.isActionableRefusal("text")).toBe(false);
+    expect(TwilioSendError.isActionableRefusal(null)).toBe(false);
+    // Declared as the user's where it was thrown: the project's own settings.
+    expect(
+      TwilioSendError.isActionableRefusal(
+        new BadDataException("No Twilio account is set up.").asUserError(),
+      ),
+    ).toBe(true);
+    // Twilio failing (5xx) is not a refusal: it is passed on untouched.
+    const outage: RestException = new RestException({
+      statusCode: 503,
+      body: { code: 20503, message: "Service unavailable" },
+    });
+
+    expect(TwilioSendError.toSendError(outage, TwilioSendKind.SMS)).toBe(
+      outage,
+    );
+    expect(TwilioSendError.isActionableRefusal(outage)).toBe(false);
   });
 });

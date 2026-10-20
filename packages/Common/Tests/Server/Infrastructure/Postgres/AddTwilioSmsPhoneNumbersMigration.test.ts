@@ -17,16 +17,16 @@ import { AddTwilioSmsPhoneNumbers1804700000000 } from "../../../../Server/Infras
 /*
  * THE MIGRATION THAT GIVES TWILIO CONFIGS NUMBERS FOR SMS.
  *
- * Four nullable columns - the SMS phone number and the SMS secondary
- * numbers, on a project's Twilio config and on the server's own - and
- * nothing else. NULL is what every existing config holds afterwards, and it
- * means "SMS go out from the numbers calls do", which is exactly what every
- * config did before: so no backfill, no default and no NOT NULL, and every
- * existing project and installation sends as it did the moment it upgrades.
+ * Two nullable columns - the list of SMS numbers, on a project's Twilio
+ * config and on the server's own - and nothing else. NULL is what every
+ * existing config holds afterwards, and it means "SMS go out from the
+ * numbers calls do", which is exactly what every config did before: so no
+ * backfill, no default and no NOT NULL, and every existing project and
+ * installation sends as it did the moment it upgrades.
  *
  * The SQL was generated (npm run generate-postgres-migration) and the
  * schema drift job proves it matches the models. Pinned here: that up()
- * adds only those four columns, that down() takes back exactly them, that
+ * adds only those two columns, that down() takes back exactly them, that
  * the migration and the models describe the same columns, and that it is
  * registered after every migration before it.
  */
@@ -44,17 +44,13 @@ const MIGRATION_DIRECTORY: string = path.join(
 const CLASS_TIMESTAMP: RegExp = /(\d{13})$/;
 
 const ADD_STATEMENTS: Array<string> = [
-  `ALTER TABLE "ProjectCallSMSConfig" ADD "twilioSmsPhoneNumber" character varying(${ColumnLength.Phone})`,
-  `ALTER TABLE "ProjectCallSMSConfig" ADD "twilioSmsSecondaryPhoneNumbers" character varying(${ColumnLength.LongText})`,
-  `ALTER TABLE "GlobalConfig" ADD "twilioSmsPhoneNumber" character varying(${ColumnLength.Phone})`,
-  `ALTER TABLE "GlobalConfig" ADD "twilioSmsSecondaryPhoneNumbers" character varying(${ColumnLength.LongText})`,
+  `ALTER TABLE "ProjectCallSMSConfig" ADD "twilioSmsPhoneNumbers" character varying(${ColumnLength.LongText})`,
+  `ALTER TABLE "GlobalConfig" ADD "twilioSmsPhoneNumbers" character varying(${ColumnLength.LongText})`,
 ];
 
 const DROP_STATEMENTS: Array<string> = [
-  `ALTER TABLE "GlobalConfig" DROP COLUMN "twilioSmsSecondaryPhoneNumbers"`,
-  `ALTER TABLE "GlobalConfig" DROP COLUMN "twilioSmsPhoneNumber"`,
-  `ALTER TABLE "ProjectCallSMSConfig" DROP COLUMN "twilioSmsSecondaryPhoneNumbers"`,
-  `ALTER TABLE "ProjectCallSMSConfig" DROP COLUMN "twilioSmsPhoneNumber"`,
+  `ALTER TABLE "GlobalConfig" DROP COLUMN "twilioSmsPhoneNumbers"`,
+  `ALTER TABLE "ProjectCallSMSConfig" DROP COLUMN "twilioSmsPhoneNumbers"`,
 ];
 
 type RecordingRunner = {
@@ -87,7 +83,7 @@ function typeOrmColumn(
 }
 
 describe("running it", () => {
-  test("up() adds the four columns, and does nothing else", async () => {
+  test("up() adds the two columns, and does nothing else", async () => {
     const { runner, statements } = recordingRunner();
 
     await new AddTwilioSmsPhoneNumbers1804700000000().up(runner);
@@ -136,26 +132,19 @@ describe("running it", () => {
 
 describe("the migration and the models", () => {
   /*
-   * ColumnType.Phone and ColumnType.LongText are both varchar: the length
-   * tells them apart, and is what the migration writes.
+   * ColumnType.LongText is a varchar: its length is what the migration
+   * writes.
    */
   test.each([
     [
       ProjectCallSMSConfig,
-      "twilioSmsPhoneNumber",
-      ColumnType.Phone,
-      ColumnLength.Phone,
-    ],
-    [
-      ProjectCallSMSConfig,
-      "twilioSmsSecondaryPhoneNumbers",
+      "twilioSmsPhoneNumbers",
       ColumnType.LongText,
       ColumnLength.LongText,
     ],
-    [GlobalConfig, "twilioSmsPhoneNumber", ColumnType.Phone, ColumnLength.Phone],
     [
       GlobalConfig,
-      "twilioSmsSecondaryPhoneNumbers",
+      "twilioSmsPhoneNumbers",
       ColumnType.LongText,
       ColumnLength.LongText,
     ],
@@ -176,16 +165,22 @@ describe("the migration and the models", () => {
     },
   );
 
-  test("each SMS column is the same kind as the column it stands in for", () => {
+  test("the list of SMS numbers is kept as the list of secondary numbers is", () => {
     for (const target of [ProjectCallSMSConfig, GlobalConfig]) {
-      expect(
-        typeOrmColumn(target, "twilioSmsPhoneNumber")?.options.type,
-      ).toBe(typeOrmColumn(target, "twilioPrimaryPhoneNumber")?.options.type);
-      expect(
-        typeOrmColumn(target, "twilioSmsSecondaryPhoneNumbers")?.options.length,
-      ).toBe(
-        typeOrmColumn(target, "twilioSecondaryPhoneNumbers")?.options.length,
-      );
+      for (const option of ["type", "length", "nullable", "unique"] as const) {
+        expect({
+          target: (target as { name: string }).name,
+          option,
+          value: typeOrmColumn(target, "twilioSmsPhoneNumbers")?.options[
+            option
+          ],
+        }).toEqual({
+          target: (target as { name: string }).name,
+          option,
+          value: typeOrmColumn(target, "twilioSecondaryPhoneNumbers")
+            ?.options[option],
+        });
+      }
     }
   });
 });

@@ -491,8 +491,7 @@
         "cardTitle": "Twilio設定",
         "cardDescription": "これは通話とSMS送信に使用されます。",
         "editButton": "Twilio設定を編集",
-        "smsSameAsPrimary": "プライマリ番号と同じ",
-        "smsSameAsSecondary": "セカンダリ番号と同じ"
+        "smsSameAsCalls": "通話と同じ番号"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp設定",
@@ -1014,10 +1013,8 @@
   "{{count}} people_one": "{{count}} 人",
   "Docker Compose guide": "Docker Compose ガイド",
   "Kubernetes guide": "Kubernetes ガイド",
-  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "通話はこの番号から発信されます。「その他の項目」で SMS 電話番号を設定しない限り、SMS もこの番号から送信されます。",
-  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "受信者の国番号と一致するときに、セカンダリ番号の代わりに SMS の送信に使う番号。",
-  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "プライマリ番号が通話しかできない場合は、プライマリ番号の代わりにこの番号から SMS を送信します。たとえばシンガポールでは、通話には国内番号、SMS には携帯番号が必要です。",
-  "Twilio SMS Phone Number": "Twilio SMS 電話番号",
-  "Twilio SMS Secondary Phone Numbers": "セカンダリ Twilio SMS 電話番号",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話はこの番号から発信されます。「その他の項目」で SMS 電話番号を追加しない限り、SMS もこの番号から送信されます。",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Twilio の番号から SMS を送信できない場合（シンガポールの国内番号は音声専用です）は、SMS を送信できる番号を追加してください。SMS は受信者の国の番号から、なければ最初の番号から送信されます。",
+  "Twilio SMS Phone Numbers": "Twilio SMS 電話番号",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} は電話番号ではありません。各番号を国番号付きで入力し、+6581234567, +447700900123 のようにカンマで区切ってください。"
 }
