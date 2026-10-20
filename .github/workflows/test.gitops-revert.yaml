@@ -8,7 +8,12 @@ name: GitOps Revert Suite
 # not in the helm-test job: it runs when the suite, what it runs on, or what
 # it measures for changes, and on demand. Its results table is the job's
 # summary.
-#
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 # Path-filtered, so it must not be a required check: a pull request that does
 # not touch these files never runs it.
 on:

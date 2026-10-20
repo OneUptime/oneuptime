@@ -57,6 +57,7 @@ jobs:
           - Compile
           - Dependency Audit
           - Enterprise Edition Test
+          - GitOps Revert Suite
           - Infrastructure Agent MSI Test
           - Infrastructure Agent Release Status
           - Infrastructure Agent Test
