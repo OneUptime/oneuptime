@@ -3,7 +3,18 @@ import Model from "../../Models/DatabaseModels/LlmLog";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
+import AiTokenCount from "../../Types/AI/AiTokenCount";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+
+/*
+ * The cached part of the tokens a usage aggregate adds up: read from and
+ * written to the provider's prompt cache. AiTokenCount weighs the sums, so a
+ * limit counts AI work by what it cost, as the AI Logs show each call. Both
+ * columns are NOT NULL DEFAULT 0, so a row written before they existed counts
+ * every one of its tokens as a fresh one, as it always did.
+ */
+const CACHE_TOKEN_SUMS: string =
+  'COALESCE(SUM("log"."cachedInputTokens"), 0) AS "cacheRead", COALESCE(SUM("log"."cacheCreationTokens"), 0) AS "cacheWrite"';
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -14,9 +25,10 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Sum of totalTokens this project has consumed for the given features since
-   * the given time — one SQL aggregate, used on the hot path of the daily
-   * autonomous-budget check (G4).
+   * The tokens this project has used for the given features since the given
+   * time, as OneUptime counts them (AiTokenCount: a token read from the
+   * provider's prompt cache counts as a tenth) — one SQL aggregate, used on
+   * the hot path of the daily autonomous-budget check (G4).
    */
   @CaptureSpan()
   public async getTotalTokensUsedSince(data: {
@@ -87,21 +99,31 @@ export class Service extends DatabaseService<Model> {
       subjectClause = `AND "log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND NOT ("log"."feature" = ANY($4)) AND NOT ("log"."feature" = ANY($5)) AND NOT (${incidentRunMembership}) AND NOT (${alertRunMembership})`;
     }
 
-    const rows: Array<{ total: string | number | null }> =
-      await this.getRepository().manager.query(
-        `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "total" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."feature" = ANY($3) ${subjectClause} AND "log"."deletedAt" IS NULL`,
-        params,
-      );
+    const rows: Array<{
+      total: string | number | null;
+      cacheRead?: string | number | null | undefined;
+      cacheWrite?: string | number | null | undefined;
+    }> = await this.getRepository().manager.query(
+      `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "total", ${CACHE_TOKEN_SUMS} FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."feature" = ANY($3) ${subjectClause} AND "log"."deletedAt" IS NULL`,
+      params,
+    );
 
-    return Number(rows[0]?.total || 0);
+    return AiTokenCount.count({
+      totalTokens: AiTokenCount.toTokenCount(rows[0]?.total),
+      cachedInputTokens: AiTokenCount.toTokenCount(rows[0]?.cacheRead),
+      cacheCreationTokens: AiTokenCount.toTokenCount(rows[0]?.cacheWrite),
+    });
   }
 
   /*
    * Everything this project's AI has used since the given time, whatever
    * it was doing: every token of every call (any feature, any provider,
-   * Ask AI included), and what was billed to the project's AI credits. One
-   * SQL aggregate, read on the hot path of the project's own daily limits
-   * (Project Settings → AI → AI Features) - only when the project has set one.
+   * Ask AI included), counted as OneUptime counts them (AiTokenCount: a
+   * token read from the provider's prompt cache counts as a tenth, one
+   * written to it as one and a quarter), and what was billed to the
+   * project's AI credits. One SQL aggregate, read on the hot path of the
+   * project's own daily limits (Project Settings → AI → AI Features) - only
+   * when the project has set one.
    *
    * Spend is the cost of the calls that were billed (wasBilled): only a
    * call through the OneUptime-hosted provider, with billing on, is. A call
@@ -117,14 +139,21 @@ export class Service extends DatabaseService<Model> {
   }): Promise<{ totalTokens: number; billedCostInUSDCents: number }> {
     const rows: Array<{
       totalTokens: string | number | null;
+      cacheRead?: string | number | null | undefined;
+      cacheWrite?: string | number | null | undefined;
       billedCostInUSDCents: string | number | null;
     }> = await this.getRepository().manager.query(
-      `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "totalTokens", COALESCE(SUM(CASE WHEN "log"."wasBilled" = true THEN "log"."costInUSDCents" ELSE 0 END), 0) AS "billedCostInUSDCents" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."deletedAt" IS NULL`,
+      `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "totalTokens", ${CACHE_TOKEN_SUMS}, COALESCE(SUM(CASE WHEN "log"."wasBilled" = true THEN "log"."costInUSDCents" ELSE 0 END), 0) AS "billedCostInUSDCents" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."deletedAt" IS NULL`,
       [data.projectId.toString(), data.since],
     );
 
     return {
-      totalTokens: Number(rows[0]?.totalTokens || 0),
+      // The day's tokens as OneUptime counts them, not their raw sum.
+      totalTokens: AiTokenCount.count({
+        totalTokens: AiTokenCount.toTokenCount(rows[0]?.totalTokens),
+        cachedInputTokens: AiTokenCount.toTokenCount(rows[0]?.cacheRead),
+        cacheCreationTokens: AiTokenCount.toTokenCount(rows[0]?.cacheWrite),
+      }),
       billedCostInUSDCents: Number(rows[0]?.billedCostInUSDCents || 0),
     };
   }

@@ -32,6 +32,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitValues,
   ProjectAiDailyUsage,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import AiTokenCount from "../../Types/AI/AiTokenCount";
 import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
 import AiCreditsUsedUpOwnerNotice from "../Utils/AI/AiCreditsUsedUpOwnerNotice";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
@@ -48,9 +49,10 @@ import logger, { LogAttributes } from "../Utils/Logger";
  * and the G4 daily autonomous token budget reads it back by matching those
  * PERSISTED STRINGS against AUTONOMOUS_AI_FEATURES:
  *
- *   SELECT SUM("totalTokens") FROM "LlmLog"
+ *   SELECT SUM("totalTokens"), SUM("cachedInputTokens"), ... FROM "LlmLog"
  *    WHERE "projectId" = $1 AND "createdAt" >= $2 AND "feature" = ANY($3)
- *   -- LlmLogService.getTotalTokensUsedSince, $3 = AUTONOMOUS_AI_FEATURES
+ *   -- LlmLogService.getTotalTokensUsedSince, $3 = AUTONOMOUS_AI_FEATURES,
+ *   -- the sums counted by AiTokenCount
  *
  * So a label is a piece of the budget's ledger. Renaming one rewrites history:
  * rows written under the old label stop matching, usedTokensToday collapses
@@ -1456,10 +1458,15 @@ export class Service extends BaseService {
       logEntry.requestCompletedAt = endTime;
       logEntry.durationMs = endTime.getTime() - startTime.getTime();
 
-      // Calculate and apply costs if using global provider with billing enabled
+      /*
+       * Calculate and apply costs if using global provider with billing
+       * enabled. A call is charged for its tokens as OneUptime counts them
+       * (AiTokenCount): a token the provider served from its prompt cache
+       * costs a tenth of a fresh one, and is charged a tenth.
+       */
       if (shouldBill && response.usage) {
         const totalCost: number = Math.ceil(
-          (response.usage.totalTokens / 1_000_000) *
+          (AiTokenCount.count(response.usage) / 1_000_000) *
             (llmProvider.costPerMillionTokensInUSDCents || 0),
         );
 
