@@ -111,6 +111,8 @@ Quando la modifica sospetta è un rollout Kubernetes su un cluster le cui [corre
 
 OneUptime controlla anche ogni deploy da solo, che qualcuno venga avvisato o no. Trascorsi i 30 minuti dopo un deploy, li confronta con i 30 minuti prima secondo le stesse soglie e, quando il servizio è peggiorato, un [AI Insight](/docs/ai/ai-sre#insight-rilevamento-proattivo) indica il deploy su quel servizio.
 
+Una pull request di correzione che OneUptime AI ha aperto per un'eccezione viene verificata allo stesso modo: appena un deploy registrato contiene il suo commit, OneUptime osserva lì l'eccezione e indica sull'eccezione se la correzione ha funzionato (vedi [Correzioni automatiche del codice](/docs/ai/ai-sre#correzioni-automatiche-del-codice)).
+
 In un'indagine e in [Chiedi all'IA](/docs/ai/ask-ai), `recent_changes` elenca le modifiche in qualsiasi finestra di tempo, e `get_change_details` mostra che cosa ha rilasciato un deploy: i commit dal deploy precedente del servizio, i loro autori, le pull request e i file che hanno toccato. Per questo servono il commit sulla modifica e un repository collegato tramite la [GitHub App](/docs/ai/github-app).
 
 ## Riferimento
