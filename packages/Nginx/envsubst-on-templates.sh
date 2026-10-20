@@ -179,9 +179,10 @@ auto_envsubst() {
 # so a name that keeps HOST's port never matches. HOST keeps one when people
 # reach OneUptime on it (HOST=oneuptime.example.com:8080): the app builds its
 # links with the port and drops it when it tells its own address from a status
-# page's. Named by HOST itself, the primary server answered no request at all:
-# every one fell to the status-page default_server, which does not route
-# /identity, and signing up or in answered "Page not found - /identity/signup".
+# page's. Named by HOST itself, the primary server answered none of the
+# requests people sent to HOST: they fell to the status-page default_server,
+# which does not route /identity, and signing up or in answered
+# "Page not found - /identity/signup".
 # Everything up to the first ":", the rule run.sh's PRIMARY_DOMAIN and the
 # app's own host check use.
 export HOST_WITHOUT_PORT="${HOST%%:*}"

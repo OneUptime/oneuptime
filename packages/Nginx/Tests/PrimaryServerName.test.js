@@ -10,9 +10,9 @@
  * which envsubst-on-templates.sh exports as HOST_WITHOUT_PORT.
  *
  * Named by HOST itself, it never matched a HOST with a port, and every request
- * fell to the status-page default server, which forwards /identity as it is
- * instead of as /api/identity: the sign-up page loaded, and signing up or in
- * answered "Page not found - /identity/signup".
+ * people sent to that HOST fell to the status-page default server, which
+ * forwards /identity as it is instead of as /api/identity: the sign-up page
+ * loaded, and signing up or in answered "Page not found - /identity/signup".
  *
  * These tests run the real script (sh and envsubst), and a real nginx where
  * there is one at least as new as the shipped image's.
