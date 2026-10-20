@@ -143,11 +143,7 @@ describe("VAPID_PRIVATE_KEY, as the server reads it", () => {
 describe("web-push, with the key from a Secret created from a file", () => {
   it("refuses the key with the file's newline still on it", () => {
     expect(() => {
-      webpush.setVapidDetails(
-        SUBJECT,
-        KEYS.publicKey,
-        `${KEYS.privateKey}\n`,
-      );
+      webpush.setVapidDetails(SUBJECT, KEYS.publicKey, `${KEYS.privateKey}\n`);
     }).toThrow("Vapid private key must be a URL safe Base 64");
   });
 
