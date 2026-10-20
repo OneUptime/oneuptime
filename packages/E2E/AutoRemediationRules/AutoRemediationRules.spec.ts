@@ -725,7 +725,7 @@ test.describe("MCP servers", () => {
     await expect(mcpServersPicker(dialog)).toHaveCount(0);
   });
 
-  test("an investigation rule asks the same on its Rule step: folded, none picked is all of them", async ({
+  test("an investigation rule asks the same on its Investigate step: folded, none picked is all of them", async ({
     page,
   }: {
     page: Page;
@@ -749,11 +749,13 @@ test.describe("MCP servers", () => {
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
+    // Match first (all incidents), then what the rule does.
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
     await dialog
       .getByRole("textbox", { name: /^Name/ })
       .fill("Investigate with AWS");
 
-    // On the Rule step, folded, with what the default does.
+    // On the Investigate step, folded, with what the default does.
     await expect(mcpServersPicker(dialog)).toBeHidden();
     await expect(dialog).toContainText(ALL_MCP_SERVERS_SUMMARY);
 
@@ -767,7 +769,7 @@ test.describe("MCP servers", () => {
     await page.keyboard.press("Escape");
     await screenshot(page, "investigation-rule-mcp-servers");
 
-    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+    // The Investigate step is the last: it creates the rule.
     await dialog
       .getByRole("button", { name: "Create Investigation Rule" })
       .click();

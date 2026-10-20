@@ -91,7 +91,7 @@ Knapparna ovanför diagrammen arbetar med tidsintervallet du tittar på:
 | --- | --- |
 | **Loggar** | Öppnar [Loggutforskare](/docs/telemetry/logs-explorer) för det här tidsintervallet och dina filter. |
 | **Spår** | Öppnar [Spårutforskare](/docs/telemetry/traces-explorer) för det här tidsintervallet och dina filter. |
-| **Investigate** | Öppnar en sidopanel med loggarna, spåren och undantagen från det här tidsintervallet. |
+| **Utreda** | Öppnar en sidopanel med loggarna, spåren och undantagen från det här tidsintervallet. |
 | **Händelser** | Markerar incidenterna och varningarna från det här tidsintervallet i diagrammen. |
 | **Compare** | Ritar den föregående perioden i varje diagram som en streckad linje, så att du ser vad som har ändrats. |
 

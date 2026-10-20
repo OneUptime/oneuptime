@@ -91,7 +91,7 @@ Knapperne over diagrammerne arbejder med det tidsinterval, du kigger på:
 | --- | --- |
 | **Protokoller** | Åbner [Protokoludforsker](/docs/telemetry/logs-explorer) for dette tidsinterval og dine filtre. |
 | **Spor** | Åbner [Sporudforsker](/docs/telemetry/traces-explorer) for dette tidsinterval og dine filtre. |
-| **Investigate** | Åbner et sidepanel med protokollerne, sporene og undtagelserne fra dette tidsinterval. |
+| **Undersøge** | Åbner et sidepanel med protokollerne, sporene og undtagelserne fra dette tidsinterval. |
 | **Begivenheder** | Markerer hændelserne og advarslerne fra dette tidsinterval i diagrammerne. |
 | **Compare** | Tegner den forrige periode som en stiplet linje i hvert diagram, så du kan se, hvad der ændrede sig. |
 

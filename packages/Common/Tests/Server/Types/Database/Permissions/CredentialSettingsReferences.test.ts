@@ -5,11 +5,14 @@ import RelationListPermission, {
 } from "../../../../../Server/Types/Database/Permissions/RelationListPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import { UnreadableReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import AIInvestigationRule from "../../../../../Models/DatabaseModels/AIInvestigationRule";
 import AlertVideoCall from "../../../../../Models/DatabaseModels/AlertVideoCall";
 import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
+import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Domain from "../../../../../Models/DatabaseModels/Domain";
+import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentVideoCall from "../../../../../Models/DatabaseModels/IncidentVideoCall";
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
@@ -67,6 +70,7 @@ const CREDENTIAL_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000c1";
 const SNMP_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000d1";
 const VIDEO_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000e1";
 const API_KEY_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000f1";
+const MCP_SERVER_A: string = "0193c0de-cccc-4aaa-8bbb-000000000101";
 
 const row: (
   permission: Permission,
@@ -666,6 +670,92 @@ describe("the API key a permission is granted to", () => {
           modelType: ApiKeyPermission,
           data: { apiKey: { _id: API_KEY_A } },
           props: props,
+        }),
+      ).toBeUndefined();
+    }
+  });
+});
+
+/*
+ * An outside MCP server holds a sign-in to a system outside OneUptime (an
+ * AWS or Azure account, a GitHub organization). An investigation or auto
+ * remediation rule that names one lets OneUptime AI use that server's
+ * tools for what the rule matches, so the servers a rule names are held to
+ * the read of External MCP Servers - the first setting that holds
+ * credentials a write names in a list rather than in a field of its own.
+ */
+describe("the outside MCP servers a rule lets OneUptime AI use", () => {
+  test("are checked in both rules' MCP Servers lists", () => {
+    for (const modelType of [AutoRemediationRule, AIInvestigationRule]) {
+      expect(
+        RelationListPermission.getCheckedLists(modelType).some(
+          (list: CheckedRelationList): boolean => {
+            return (
+              list.column === "externalMcpServers" &&
+              list.listedModelType === ExternalMcpServer
+            );
+          },
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("are refused to a role that edits auto remediation rules but reads no MCP servers, and nothing is looked up", async () => {
+    for (const permission of [
+      Permission.CreateAutoRemediationRule,
+      Permission.EditAutoRemediationRule,
+    ]) {
+      const found: Lookups = lookups();
+
+      const refusal: unknown = await check({
+        modelType: AutoRemediationRule,
+        data: { externalMcpServers: [{ _id: MCP_SERVER_A }] },
+        props: member([permission]),
+        lookups: found,
+      });
+
+      expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+      expect((refusal as Error).message).toMatch(
+        refusedFor("MCP Servers", MCP_SERVER_A),
+      );
+      expect(found.calls).toEqual([]);
+    }
+  });
+
+  test("are named by one who reads them", async () => {
+    for (const props of [
+      member([Permission.ProjectAdmin]),
+      member([Permission.EditAutoRemediationRule, Permission.ProjectMember]),
+    ]) {
+      expect(
+        await check({
+          modelType: AutoRemediationRule,
+          data: { externalMcpServers: [{ _id: MCP_SERVER_A }] },
+          props: props,
+        }),
+      ).toBeUndefined();
+    }
+
+    expect(
+      await check({
+        modelType: AIInvestigationRule,
+        data: { externalMcpServers: [{ _id: MCP_SERVER_A }] },
+        props: member([Permission.ProjectAdmin]),
+      }),
+    ).toBeUndefined();
+  });
+
+  test("a rule that names none of them asks nothing", async () => {
+    for (const data of [
+      { externalMcpServers: [] },
+      { externalMcpServers: null },
+      { name: "Restart the checkout pods" },
+    ]) {
+      expect(
+        await check({
+          modelType: AutoRemediationRule,
+          data: data,
+          props: member([Permission.EditAutoRemediationRule]),
         }),
       ).toBeUndefined();
     }

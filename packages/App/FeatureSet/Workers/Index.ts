@@ -257,6 +257,7 @@ import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 import "./Jobs/AIChat/InvestigateAfterDailyLimitReset";
+import "./Jobs/AIChat/InvestigateAfterRuleWait";
 
 // Auto-remediation — settle Planning suggestions whose plan run died.
 import "./Jobs/AutoRemediation/SettleStrandedSuggestions";
