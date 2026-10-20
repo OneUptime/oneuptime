@@ -81,6 +81,10 @@ const TIME_TO_DETECT_ID: ObjectID = new ObjectID(
   "cccccccc-0005-4000-8000-000000000005",
 );
 
+const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID: ObjectID = new ObjectID(
+  "cccccccc-0006-4000-8000-000000000006",
+);
+
 const METRIC_NAME_PREFIX: string = "oneuptime.incident.measurement.";
 
 /*
@@ -510,6 +514,125 @@ describe("IncidentMeasurementValueService.recomputeForIncident", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * Time to acknowledge counts from the declaration: an incident paged hours
+   * after it was declared - one held until the morning - reads as hours.
+   * "Time to acknowledge after paging" counts from First Paged At, when an
+   * on-call policy or a direct page first notified somebody, to the same
+   * acknowledged moment.
+   */
+  describe("the first page (First Paged At)", () => {
+    function timeToAcknowledgeAfterPaging(): IncidentMeasurement {
+      return buildMeasurement({
+        id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+        key: "time-to-acknowledge-after-paging",
+        name: "Time to acknowledge after paging",
+        startAnchorType: IncidentMeasurementAnchorType.FirstPagedAt,
+        endAnchorType: IncidentMeasurementAnchorType.StateRoleEntered,
+        endStateRole: IncidentStateRole.Acknowledged,
+      });
+    }
+
+    function mockIncident(firstPagedAt: Date | undefined): void {
+      const incident: Incident = buildIncident();
+
+      if (firstPagedAt) {
+        incident.firstPagedAt = firstPagedAt;
+      }
+
+      jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(incident as never);
+    }
+
+    test("counts from the first page to the acknowledgement, where time to acknowledge counts from the declaration", async () => {
+      mockIncident(at(2));
+      mockDefinitions([timeToAcknowledge(), timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(createdRowFor(TIME_TO_ACKNOWLEDGE_ID).valueInSeconds).toBe(5 * 60);
+
+      const afterPaging: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+      );
+
+      expect(afterPaging.status).toBe(MeasurementStatus.Recorded);
+      expect(afterPaging.startedAt).toEqual(at(2));
+      expect(afterPaging.endedAt).toEqual(at(5));
+      expect(afterPaging.valueInSeconds).toBe(3 * 60);
+      expect(afterPaging.endIncidentStateTimelineId?.toString()).toBe(
+        ACKNOWLEDGED_TIMELINE_ID.toString(),
+      );
+    });
+
+    test("is charted with the incident's severity, so it can be read per severity", async () => {
+      mockIncident(at(2));
+      mockDefinitions([timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(emittedMetricNames()).toEqual([
+        "oneuptime.incident.measurement.time-to-acknowledge-after-paging",
+      ]);
+
+      const attributes: JSONObject = emittedMetrics()[0]!
+        .attributes as JSONObject;
+
+      expect(attributes["incidentSeverityName"]).toBe("Critical");
+      expect(attributes["incidentSeverityId"]).toBe(SEVERITY_ID.toString());
+    });
+
+    test("an incident nobody was paged about has no value and no chart point", async () => {
+      mockIncident(undefined);
+      mockDefinitions([timeToAcknowledge(), timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const afterPaging: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_AFTER_PAGING_ID,
+      );
+
+      /*
+       * Still to come rather than never coming - a page held until the
+       * morning goes out later - so Pending, as an unreached state is.
+       */
+      expect(afterPaging.status).toBe(MeasurementStatus.Pending);
+      expect(afterPaging.statusMessage).toBe(
+        "First Paged At has not been recorded yet",
+      );
+      expect(afterPaging.valueInSeconds).toBeNull();
+      expect(afterPaging.startedAt).toBeNull();
+      expect(afterPaging.endedAt).toEqual(at(5));
+      expect(emittedMetricNames()).toEqual([
+        "oneuptime.incident.measurement.time-to-acknowledge",
+      ]);
+    });
+
+    test("reads First Paged At with the incident it works out", async () => {
+      const findOneById: jest.SpiedFunction<
+        typeof IncidentService.findOneById
+      > = jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(buildIncident() as never);
+      mockDefinitions([timeToAcknowledgeAfterPaging()]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(findOneById.mock.calls[0]![0].select).toMatchObject({
+        firstPagedAt: true,
+      });
+    });
   });
 
   test("computes one value row per definition, each with its own duration", async () => {

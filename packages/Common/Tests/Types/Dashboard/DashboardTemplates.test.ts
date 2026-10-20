@@ -8,7 +8,10 @@ import {
   getTemplateConfig,
 } from "../../../Types/Dashboard/DashboardTemplates";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
-import { ObjectType } from "../../../Types/JSON";
+import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import AlertMetricType from "../../../Types/Alerts/AlertMetricType";
+import IncidentMetricType from "../../../Types/Incident/IncidentMetricType";
+import { JSONObject, ObjectType } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 describe("DashboardTemplates", () => {
@@ -108,4 +111,67 @@ describe("DashboardTemplates", () => {
       }
     });
   });
+
+  /*
+   * "MTTR and MTTA Over Time" used to plot time to resolve alone. Each series
+   * is the metric it reads and the legend it is drawn under.
+   */
+  describe.each([
+    {
+      type: DashboardTemplateType.Incident,
+      timeToResolve: IncidentMetricType.TimeToResolve as string,
+      timeToAcknowledge: IncidentMetricType.TimeToAcknowledge as string,
+    },
+    {
+      type: DashboardTemplateType.Alert,
+      timeToResolve: AlertMetricType.TimeToResolve as string,
+      timeToAcknowledge: AlertMetricType.TimeToAcknowledge as string,
+    },
+  ])(
+    "the $type template's MTTR and MTTA Over Time chart",
+    (entry: {
+      type: DashboardTemplateType;
+      timeToResolve: string;
+      timeToAcknowledge: string;
+    }) => {
+      test("plots both, as its title says", () => {
+        const chart: DashboardBaseComponent | undefined = getTemplateConfig(
+          entry.type,
+        )!.components.find((component: DashboardBaseComponent): boolean => {
+          return (
+            (component.arguments as JSONObject)["chartTitle"] ===
+            "MTTR and MTTA Over Time"
+          );
+        });
+
+        expect(chart).toBeDefined();
+
+        const args: JSONObject = chart!.arguments as JSONObject;
+        const queries: Array<JSONObject> = [
+          args["metricQueryConfig"] as JSONObject,
+          ...((args["metricQueryConfigs"] as Array<JSONObject>) || []),
+        ];
+
+        expect(
+          queries.map((query: JSONObject) => {
+            const data: JSONObject = query["metricQueryData"] as JSONObject;
+            const alias: JSONObject = query["metricAliasData"] as JSONObject;
+
+            return {
+              metricName: (data["filterData"] as JSONObject)["metricName"],
+              legend: alias["legend"],
+              variable: alias["metricVariable"],
+            };
+          }),
+        ).toEqual([
+          { metricName: entry.timeToResolve, legend: "MTTR", variable: "a" },
+          {
+            metricName: entry.timeToAcknowledge,
+            legend: "MTTA",
+            variable: "b",
+          },
+        ]);
+      });
+    },
+  );
 });
