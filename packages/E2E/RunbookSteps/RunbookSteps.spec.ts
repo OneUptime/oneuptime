@@ -762,6 +762,23 @@ test.describe("on every screen", () => {
       expect(approve.width).toBeLessThan(words.width / 2);
     }
 
+    /*
+     * A Manual step that has started: when it started is with its words, so
+     * the buttons come last - read, then act.
+     */
+    await openRun(page, "wait=manual");
+
+    const manualCard: Locator = waitingCard(
+      page,
+      "Confirm writes reach the new primary",
+    );
+    const started: Box = await boxOf(manualCard.getByText(/^Started /));
+    const markComplete: Box = await boxOf(
+      manualCard.getByRole("button", { name: "Mark complete" }),
+    );
+
+    expect(markComplete.y).toBeGreaterThanOrEqual(started.y + started.height);
+
     // Wide enough, they sit beside the words, level with their top.
     await page.setViewportSize({ width: 1280, height: 900 });
     await openRun(page, "wait=approval");

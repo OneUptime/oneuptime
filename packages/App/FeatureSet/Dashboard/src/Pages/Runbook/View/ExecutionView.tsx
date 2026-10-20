@@ -980,6 +980,114 @@ const ExecutionView: FunctionComponent<
                                   </span>
                                 </div>
                               )}
+                              {/*
+                               * When the step ran, and who approved it or
+                               * ticked it off - with its words, so where the
+                               * buttons wrap under the words they come last,
+                               * after everything there is to read.
+                               */}
+                              {(stepExec.startedAt ||
+                                stepExec.completedAt ||
+                                stepExec.completedByUserId ||
+                                stepExec.approvedByUserId) && (
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
+                                  {/*
+                                   * Who approved a step that asked for approval
+                                   * before it ran, first: it is why the step ran.
+                                   */}
+                                  {stepExec.approvedByUserId && (
+                                    <span
+                                      className="inline-flex items-center gap-1"
+                                      data-testid={`runbook-execution-step-${idx}-approved-by`}
+                                    >
+                                      {/* Kept on one line beside the person, as a phone narrows it. */}
+                                      <span className="whitespace-nowrap">
+                                        {translator.translateText(
+                                          APPROVED_BY_LABEL,
+                                        )}
+                                      </span>
+                                      {stepUsers.get(
+                                        stepExec.approvedByUserId,
+                                      ) ? (
+                                        <UserElement
+                                          user={
+                                            stepUsers.get(
+                                              stepExec.approvedByUserId,
+                                            ) as User
+                                          }
+                                        />
+                                      ) : (
+                                        <span className="font-mono text-gray-400">
+                                          {stepExec.approvedByUserId.slice(
+                                            0,
+                                            8,
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.startedAt && (
+                                    <span>
+                                      {translator.translateTemplate(
+                                        "Started {{date}}",
+                                        {
+                                          date: OneUptimeDate.getDateAsLocalFormattedString(
+                                            new Date(stepExec.startedAt),
+                                          ),
+                                        },
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.completedAt && (
+                                    <span>
+                                      {translator.translateTemplate(
+                                        "Finished {{date}}",
+                                        {
+                                          date: OneUptimeDate.getDateAsLocalFormattedString(
+                                            new Date(stepExec.completedAt),
+                                          ),
+                                        },
+                                      )}
+                                    </span>
+                                  )}
+                                  {stepExec.completedByUserId &&
+                                    (stepExec.status ===
+                                      RunbookStepExecutionStatus.Completed ||
+                                      stepExec.status ===
+                                        RunbookStepExecutionStatus.Skipped) && (
+                                      <span className="inline-flex items-center gap-1">
+                                        <span className="whitespace-nowrap">
+                                          {stepExec.status ===
+                                          RunbookStepExecutionStatus.Skipped
+                                            ? translator.translateText(
+                                                "Skipped by",
+                                              )
+                                            : translator.translateText(
+                                                "Completed by",
+                                              )}
+                                        </span>
+                                        {stepUsers.get(
+                                          stepExec.completedByUserId,
+                                        ) ? (
+                                          <UserElement
+                                            user={
+                                              stepUsers.get(
+                                                stepExec.completedByUserId,
+                                              ) as User
+                                            }
+                                          />
+                                        ) : (
+                                          <span className="font-mono text-gray-400">
+                                            {stepExec.completedByUserId.slice(
+                                              0,
+                                              8,
+                                            )}
+                                          </span>
+                                        )}
+                                      </span>
+                                    )}
+                                </div>
+                              )}
                             </div>
                             {/*
                              * On a phone the waiting step's buttons take the
@@ -1027,99 +1135,6 @@ const ExecutionView: FunctionComponent<
                               )}
                             </div>
                           </div>
-
-                          {(stepExec.startedAt ||
-                            stepExec.completedAt ||
-                            stepExec.completedByUserId ||
-                            stepExec.approvedByUserId) && (
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
-                              {/*
-                               * Who approved a step that asked for approval
-                               * before it ran, first: it is why the step ran.
-                               */}
-                              {stepExec.approvedByUserId && (
-                                <span
-                                  className="inline-flex items-center gap-1"
-                                  data-testid={`runbook-execution-step-${idx}-approved-by`}
-                                >
-                                  {/* Kept on one line beside the person, as a phone narrows it. */}
-                                  <span className="whitespace-nowrap">
-                                    {translator.translateText(
-                                      APPROVED_BY_LABEL,
-                                    )}
-                                  </span>
-                                  {stepUsers.get(stepExec.approvedByUserId) ? (
-                                    <UserElement
-                                      user={
-                                        stepUsers.get(
-                                          stepExec.approvedByUserId,
-                                        ) as User
-                                      }
-                                    />
-                                  ) : (
-                                    <span className="font-mono text-gray-400">
-                                      {stepExec.approvedByUserId.slice(0, 8)}
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                              {stepExec.startedAt && (
-                                <span>
-                                  {translator.translateTemplate(
-                                    "Started {{date}}",
-                                    {
-                                      date: OneUptimeDate.getDateAsLocalFormattedString(
-                                        new Date(stepExec.startedAt),
-                                      ),
-                                    },
-                                  )}
-                                </span>
-                              )}
-                              {stepExec.completedAt && (
-                                <span>
-                                  {translator.translateTemplate(
-                                    "Finished {{date}}",
-                                    {
-                                      date: OneUptimeDate.getDateAsLocalFormattedString(
-                                        new Date(stepExec.completedAt),
-                                      ),
-                                    },
-                                  )}
-                                </span>
-                              )}
-                              {stepExec.completedByUserId &&
-                                (stepExec.status ===
-                                  RunbookStepExecutionStatus.Completed ||
-                                  stepExec.status ===
-                                    RunbookStepExecutionStatus.Skipped) && (
-                                  <span className="inline-flex items-center gap-1">
-                                    <span className="whitespace-nowrap">
-                                      {stepExec.status ===
-                                      RunbookStepExecutionStatus.Skipped
-                                        ? translator.translateText("Skipped by")
-                                        : translator.translateText(
-                                            "Completed by",
-                                          )}
-                                    </span>
-                                    {stepUsers.get(
-                                      stepExec.completedByUserId,
-                                    ) ? (
-                                      <UserElement
-                                        user={
-                                          stepUsers.get(
-                                            stepExec.completedByUserId,
-                                          ) as User
-                                        }
-                                      />
-                                    ) : (
-                                      <span className="font-mono text-gray-400">
-                                        {stepExec.completedByUserId.slice(0, 8)}
-                                      </span>
-                                    )}
-                                  </span>
-                                )}
-                            </div>
-                          )}
 
                           {stepExec.errorMessage && (
                             <div className="mt-3 rounded-md bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 text-xs flex items-start gap-2">
