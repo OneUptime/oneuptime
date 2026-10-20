@@ -31940,7 +31940,9 @@
   "Create Dashboard": "Dashboard aanmaken",
   "Create a dashboard": "Een dashboard aanmaken",
   "Dashboard names are unique within a project.": "Dashboardnamen zijn uniek binnen een project.",
+  "First paged": "Eerste oproep",
   "Please give this dashboard a name of at least 2 letters.": "Geef dit dashboard een naam van minstens 2 tekens.",
+  "Time to acknowledge after paging": "Tijd tot bevestiging na de oproep",
   "What is this dashboard for?": "Waarvoor is dit dashboard?",
   "What should this dashboard be called?": "Hoe moet dit dashboard heten?",
   "Incident Response": "Incidentrespons",
@@ -31955,6 +31957,8 @@
   "Then choose Admin, Member or Viewer.": "Kies daarna Beheerder, Lid of Kijker.",
   "Visitors see the dark dashboard.": "Bezoekers zien het donkere dashboard.",
   "Visitors see the light dashboard.": "Bezoekers zien het lichte dashboard.",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Wanneer een bereikbaarheidsbeleid of een directe oproep voor het eerst iemand waarschuwt. Zolang niemand is opgeroepen, heeft de meting geen waarde.",
+  "First Paged At": "Eerste oproep op",
   "Whole project": "Hele project",
   "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Elke waarde op {{path}} in dit verzoek meldde herstel, dus criterium {{criteria}} heeft niets nieuws geopend.",
   "No request to group by": "Geen verzoek om op te groeperen",
@@ -31966,5 +31970,8 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Dit verzoek heeft geen waarde op {{path}}, dus criterium {{criteria}} heeft het zonder groeperen afgehandeld, één keer voor de hele monitor.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} items in dit verzoek hebben geen waarde op {{path}}, dus ze hebben niets eigens geopend.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} item in dit verzoek heeft geen waarde op {{path}}, dus het heeft niets eigens geopend.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Criterium {{criteria}} kwam overeen omdat er geen verzoeken meer binnenkwamen, dus het heeft dit zonder groeperen afgehandeld, één keer voor de hele monitor."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Criterium {{criteria}} kwam overeen omdat er geen verzoeken meer binnenkwamen, dus het heeft dit zonder groeperen afgehandeld, één keer voor de hele monitor.",
+  "{{duration}} after paging": "{{duration}} na de oproep",
+  "Someone is first paged": "Iemand wordt voor het eerst opgeroepen",
+  "From when someone is first paged until someone acknowledges it.": "Vanaf het moment dat iemand voor het eerst wordt opgeroepen tot de bevestiging."
 }

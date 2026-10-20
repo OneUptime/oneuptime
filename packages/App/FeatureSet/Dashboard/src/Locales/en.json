@@ -31940,7 +31940,9 @@
   "Create Dashboard": "Create Dashboard",
   "Create a dashboard": "Create a dashboard",
   "Dashboard names are unique within a project.": "Dashboard names are unique within a project.",
+  "First paged": "First paged",
   "Please give this dashboard a name of at least 2 letters.": "Please give this dashboard a name of at least 2 letters.",
+  "Time to acknowledge after paging": "Time to acknowledge after paging",
   "What is this dashboard for?": "What is this dashboard for?",
   "What should this dashboard be called?": "What should this dashboard be called?",
   "Incident Response": "Incident Response",
@@ -31955,6 +31957,8 @@
   "Then choose Admin, Member or Viewer.": "Then choose Admin, Member or Viewer.",
   "Visitors see the dark dashboard.": "Visitors see the dark dashboard.",
   "Visitors see the light dashboard.": "Visitors see the light dashboard.",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.",
+  "First Paged At": "First Paged At",
   "Whole project": "Whole project",
   "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.",
   "No request to group by": "No request to group by",
@@ -31966,5 +31970,8 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} item in this request has no value at {{path}}, so it opened nothing of its own.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.",
+  "{{duration}} after paging": "{{duration}} after paging",
+  "Someone is first paged": "Someone is first paged",
+  "From when someone is first paged until someone acknowledges it.": "From when someone is first paged until someone acknowledges it."
 }

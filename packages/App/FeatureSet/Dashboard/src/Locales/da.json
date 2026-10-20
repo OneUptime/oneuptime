@@ -31940,7 +31940,9 @@
   "Create Dashboard": "Opret dashboard",
   "Create a dashboard": "Opret et dashboard",
   "Dashboard names are unique within a project.": "Navne på dashboards er unikke i et projekt.",
+  "First paged": "Først tilkaldt",
   "Please give this dashboard a name of at least 2 letters.": "Giv dashboardet et navn på mindst 2 tegn.",
+  "Time to acknowledge after paging": "Tid til bekræftelse efter tilkald",
   "What is this dashboard for?": "Hvad skal dashboardet bruges til?",
   "What should this dashboard be called?": "Hvad skal dashboardet hedde?",
   "Incident Response": "Hændelseshåndtering",
@@ -31955,6 +31957,8 @@
   "Then choose Admin, Member or Viewer.": "Vælg derefter Administrator, Medlem eller Seer.",
   "Visitors see the dark dashboard.": "Besøgende ser det mørke dashboard.",
   "Visitors see the light dashboard.": "Besøgende ser det lyse dashboard.",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Når en vagtpolitik eller et direkte tilkald første gang giver nogen besked. Indtil nogen bliver tilkaldt, har målingen ingen værdi.",
+  "First Paged At": "Første tilkald",
   "Whole project": "Hele projektet",
   "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Hver værdi ved {{path}} i denne anmodning meldte sig gendannet, så kriteriet {{criteria}} åbnede intet nyt.",
   "No request to group by": "Ingen anmodning at gruppere efter",
@@ -31966,5 +31970,8 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Denne anmodning har ingen værdi ved {{path}}, så kriteriet {{criteria}} håndterede den uden gruppering, én gang for hele monitoren.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} elementer i denne anmodning har ingen værdi ved {{path}}, så de åbnede intet eget.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} element i denne anmodning har ingen værdi ved {{path}}, så det åbnede intet eget.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} blev opfyldt, fordi der ikke længere kom anmodninger, så det håndterede dette uden gruppering, én gang for hele monitoren."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} blev opfyldt, fordi der ikke længere kom anmodninger, så det håndterede dette uden gruppering, én gang for hele monitoren.",
+  "{{duration}} after paging": "{{duration}} efter tilkald",
+  "Someone is first paged": "Nogen bliver tilkaldt første gang",
+  "From when someone is first paged until someone acknowledges it.": "Fra nogen bliver tilkaldt første gang, til nogen bekræfter den."
 }

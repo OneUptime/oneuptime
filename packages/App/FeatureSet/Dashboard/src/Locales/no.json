@@ -31940,7 +31940,9 @@
   "Create Dashboard": "Opprett dashbord",
   "Create a dashboard": "Opprett et dashbord",
   "Dashboard names are unique within a project.": "Navn på dashbord er unike i et prosjekt.",
+  "First paged": "Først tilkalt",
   "Please give this dashboard a name of at least 2 letters.": "Gi dashbordet et navn på minst 2 tegn.",
+  "Time to acknowledge after paging": "Tid til bekreftelse etter tilkalling",
   "What is this dashboard for?": "Hva skal dashbordet brukes til?",
   "What should this dashboard be called?": "Hva skal dashbordet hete?",
   "Incident Response": "Hendelseshåndtering",
@@ -31955,6 +31957,8 @@
   "Then choose Admin, Member or Viewer.": "Velg deretter Administrator, Medlem eller Viser.",
   "Visitors see the dark dashboard.": "Besøkende ser det mørke dashbordet.",
   "Visitors see the light dashboard.": "Besøkende ser det lyse dashbordet.",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Når en vaktpolicy eller en direkte tilkalling varsler noen for første gang. Inntil noen blir tilkalt, har målingen ingen verdi.",
+  "First Paged At": "Første tilkalling",
   "Whole project": "Hele prosjektet",
   "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Hver verdi i {{path}} i denne forespørselen meldte seg gjenopprettet, så kriteriet {{criteria}} åpnet ingenting nytt.",
   "No request to group by": "Ingen forespørsel å gruppere etter",
@@ -31966,5 +31970,8 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Denne forespørselen har ingen verdi i {{path}}, så kriteriet {{criteria}} behandlet den uten gruppering, én gang for hele monitoren.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} elementer i denne forespørselen har ingen verdi i {{path}}, så de åpnet ingenting eget.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} element i denne forespørselen har ingen verdi i {{path}}, så det åpnet ingenting eget.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} slo til fordi forespørslene sluttet å komme, så det behandlet dette uten gruppering, én gang for hele monitoren."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} slo til fordi forespørslene sluttet å komme, så det behandlet dette uten gruppering, én gang for hele monitoren.",
+  "{{duration}} after paging": "{{duration}} etter tilkalling",
+  "Someone is first paged": "Noen blir tilkalt for første gang",
+  "From when someone is first paged until someone acknowledges it.": "Fra noen blir tilkalt for første gang til bekreftelsen."
 }

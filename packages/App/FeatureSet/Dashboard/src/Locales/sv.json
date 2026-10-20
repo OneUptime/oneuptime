@@ -31940,7 +31940,9 @@
   "Create Dashboard": "Skapa instrumentpanel",
   "Create a dashboard": "Skapa en instrumentpanel",
   "Dashboard names are unique within a project.": "Namn på instrumentpaneler är unika inom ett projekt.",
+  "First paged": "Först larmad",
   "Please give this dashboard a name of at least 2 letters.": "Ge instrumentpanelen ett namn på minst 2 tecken.",
+  "Time to acknowledge after paging": "Tid till bekräftelse efter utlarmning",
   "What is this dashboard for?": "Vad är instrumentpanelen till för?",
   "What should this dashboard be called?": "Vad ska instrumentpanelen heta?",
   "Incident Response": "Incidenthantering",
@@ -31955,6 +31957,8 @@
   "Then choose Admin, Member or Viewer.": "Välj sedan Administratör, Medlem eller Tittare.",
   "Visitors see the dark dashboard.": "Besökare ser den mörka instrumentpanelen.",
   "Visitors see the light dashboard.": "Besökare ser den ljusa instrumentpanelen.",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "När en jourpolicy eller en direkt utlarmning meddelar någon för första gången. Tills någon larmas har mätningen inget värde.",
+  "First Paged At": "Första utlarmning",
   "Whole project": "Hela projektet",
   "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Varje värde vid {{path}} i den här begäran rapporterade återställning, så kriteriet {{criteria}} öppnade inget nytt.",
   "No request to group by": "Ingen begäran att gruppera efter",
@@ -31966,5 +31970,8 @@
   "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Den här begäran har inget värde vid {{path}}, så kriteriet {{criteria}} hanterade den utan gruppering, en gång för hela monitorn.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} objekt i den här begäran har inget värde vid {{path}}, så de öppnade inget eget.",
   "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} objekt i den här begäran har inget värde vid {{path}}, så det öppnade inget eget.",
-  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} matchade eftersom begäranden slutade komma, så det hanterade detta utan gruppering, en gång för hela monitorn."
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} matchade eftersom begäranden slutade komma, så det hanterade detta utan gruppering, en gång för hela monitorn.",
+  "{{duration}} after paging": "{{duration}} efter utlarmning",
+  "Someone is first paged": "Någon larmas för första gången",
+  "From when someone is first paged until someone acknowledges it.": "Från att någon larmas för första gången till bekräftelsen."
 }

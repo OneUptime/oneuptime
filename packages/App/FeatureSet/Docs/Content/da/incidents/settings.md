@@ -344,16 +344,18 @@ Advarsler og planlagte vedligeholdelseshændelser har den samme funktion under *
 
 Formularen åbner på **Hvad vil du måle?**. Vælg en af disse, og dens navn, beskrivelse og begge øjeblikke udfyldes: **Næste** viser øjeblikkene, og målingen oprettes fra det sidste trin.
 
-| Hvor                      | Måling                                 | Starter, når                                      | Slutter, når                           |
-| ------------------------- | -------------------------------------- | ------------------------------------------------- | -------------------------------------- |
-| Hændelser                 | **Tid til bekræftelse**                | Hændelsen bliver erklæret                         | Hændelsen bliver bekræftet             |
-| Hændelser                 | **Tid til løsning**                    | Hændelsen bliver erklæret                         | Hændelsen bliver løst                  |
-| Hændelser                 | **Tid til postmortem**                 | Hændelsen bliver løst                             | Postmortem bliver offentliggjort       |
-| Advarsler                 | **Tid til bekræftelse**                | Advarslen bliver oprettet                         | Advarslen bliver bekræftet             |
-| Advarsler                 | **Tid til løsning**                    | Advarslen bliver oprettet                         | Advarslen bliver løst                  |
-| Planlagt vedligeholdelse  | **Startforsinkelse**                   | Vedligeholdelsen skal efter planen starte         | Vedligeholdelsen starter               |
-| Planlagt vedligeholdelse  | **Overskridelse**                      | Vedligeholdelsen skal efter planen slutte         | Vedligeholdelsen slutter               |
-| Planlagt vedligeholdelse  | **Vedligeholdelsens varighed**         | Vedligeholdelsen starter                          | Vedligeholdelsen slutter               |
+| Hvor                     | Måling                                | Starter, når                              | Slutter, når                     |
+| ------------------------ | ------------------------------------- | ----------------------------------------- | -------------------------------- |
+| Hændelser                | **Tid til bekræftelse**               | Hændelsen bliver erklæret                 | Hændelsen bliver bekræftet       |
+| Hændelser                | **Tid til bekræftelse efter tilkald** | Nogen bliver tilkaldt første gang                 | Hændelsen bliver bekræftet       |
+| Hændelser                | **Tid til løsning**                   | Hændelsen bliver erklæret                 | Hændelsen bliver løst            |
+| Hændelser                | **Tid til postmortem**                | Hændelsen bliver løst                     | Postmortem bliver offentliggjort |
+| Advarsler                | **Tid til bekræftelse**               | Advarslen bliver oprettet                 | Advarslen bliver bekræftet       |
+| Advarsler                | **Tid til bekræftelse efter tilkald** | Nogen bliver tilkaldt første gang                 | Advarslen bliver bekræftet       |
+| Advarsler                | **Tid til løsning**                   | Advarslen bliver oprettet                 | Advarslen bliver løst            |
+| Planlagt vedligeholdelse | **Startforsinkelse**                  | Vedligeholdelsen skal efter planen starte | Vedligeholdelsen starter         |
+| Planlagt vedligeholdelse | **Overskridelse**                     | Vedligeholdelsen skal efter planen slutte | Vedligeholdelsen slutter         |
+| Planlagt vedligeholdelse | **Vedligeholdelsens varighed**        | Vedligeholdelsen starter                  | Vedligeholdelsen slutter         |
 
 Vælg **Noget andet** for selv at vælge de to øjeblikke. Et navn, du har skrevet, bevares, når du vælger en af disse.
 
@@ -364,6 +366,7 @@ Det andet trin, **Start og slut**, har **Starter, når** og **Slutter, når**. H
 | Øjeblik                                           | Hvornår det sker                                                             | Gemt i API'et som                                     |
 | ------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Hændelsen bliver erklæret**                     | Hvornår hændelsen startede i OneUptime: hvornår den blev oprettet, medmindre nogen satte et tidligere tidspunkt. | `Declared At` (`Timeline Start` er det samme øjeblik) |
+| **Nogen bliver tilkaldt første gang**                     | Når en vagtpolitik eller et direkte tilkald første gang giver nogen besked om hændelsen — se nedenfor. | `First Paged At`                                      |
 | **Hændelsen bliver bekræftet**                    | Når den når din bekræftede tilstand, eller en tilstand efter den (en løsning direkte fra starten tæller også). | `State Role Entered`, rolle `Acknowledged`  |
 | **Hændelsen bliver løst**                         | Når den når din løste tilstand.                                              | `State Role Entered`, rolle `Resolved`                |
 | **Postmortem bliver offentliggjort**              | Når hændelsens postmortem offentliggøres.                                    | `Postmortem Posted At`                                |
@@ -409,7 +412,7 @@ Hver hændelses side viser sine egne målinger på et kort **Målinger** lige un
 | En varighed, som **4 minutter**       | Begge øjeblikke er sket (**Recorded**). Den står i målingens enhed: **Automatisk** læses som sidens andre tider, **1 time og 5 minutter**, og **Timer** læses **1,5 time**. |
 | **Har kørt i 12 minutter**            | Uret er startet, og slutningen er ikke sket endnu. Den tæller op, mens siden er åben.                                            |
 | **Ikke startet endnu**                | Starten er ikke sket endnu, eller er et tidspunkt, der stadig ligger forude, som en vedligeholdelseshændelses planlagte start.    |
-| **Ikke nået**                         | Hændelsen er løst, og det øjeblik, målingen ventede på, kom aldrig — en hændelse, der blev løst uden at blive bekræftet.          |
+| **Ikke nået**                         | Hændelsen er løst, og det øjeblik, målingen ventede på, kom aldrig — en hændelse, der blev løst uden at blive bekræftet, eller uden at nogen blev tilkaldt. |
 | **Ikke målt**                         | Et øjeblik kan aldrig ske (**Not Applicable**), med årsagen, som en tilstand, der blev sprunget over.                            |
 | **Slutter før den starter**           | De registrerede tider modsiger hinanden (**Invalid**), med hvor langt fra hinanden de ligger.                                    |
 | **Ikke beregnet endnu**               | OneUptime har ikke beregnet den for denne hændelse endnu, som lige efter at målingen blev oprettet.                              |
@@ -424,9 +427,17 @@ Advarsler og planlagte vedligeholdelseshændelser har det samme kort på deres s
 
 Det er netop pointen. `Declared At` registrerer, hvornår OneUptime fandt ud af det, hvilket for en hændelse, der udløses af en monitor, er, når kriterierne blev behandlet — ikke når påvirkningen begyndte. Hvis "Time to Detect" som standard lod starten være det samme tidspunkt, som slutningen bruger, ville hver hændelse rapportere nul, og diagrammet ville sige "vi opdager med det samme". Et tomt felt og en måling **Not Applicable** siger det sande: ingen har registreret, hvornår det begyndte.
 
+### Tid til bekræftelse efter tilkald
+
+**Tid til bekræftelse** tæller fra, at hændelsen erklæres, så en hændelse, hvor ingen bliver tilkaldt før om morgenen, viser timers ventetid, som ingen vagthavende så. **Tid til bekræftelse efter tilkald** tæller i stedet fra **Nogen bliver tilkaldt første gang**: første gang en vagtpolitik eller et direkte tilkald gav nogen besked om hændelsen. Den slutter, når hændelsen bliver bekræftet, efter samme regel som tid til bekræftelse.
+
+OneUptime registrerer det øjeblik på hændelsen, og på advarslen, som `First Paged At`, én gang, og flytter det aldrig. Kun et tilkald, der faktisk blev sendt, tæller: på **Tidslinje for udførelsen** for en vagtpolitik eller et direkte tilkald, en person, hvis tilkald blev sendt, bekræftet eller sendt videre. Et trin, der blev **Sprunget over** eller endte med **Fejl**, tæller ikke, og det gør en politik, der startede, men ikke tilkaldte nogen, heller ikke, for eksempel en, hvor ingen havde vagt i vagtplanen. Hændelser, hvor nogen blev tilkaldt, før `First Paged At` fandtes, får tidspunktet fra deres vagtudførelser.
+
+En hændelse, hvor ingen blev tilkaldt, har ingen værdi: **Ikke startet endnu**, mens den er åben, og **Ikke nået**, når den er løst. Diagrammet kan opdeles efter alvorsgrad, så du kan se, hvor hurtigt der bliver svaret for hver alvorsgrad, når nogen er tilkaldt. Hændelsens side siger det også: under dens tid til bekræftelse tilføjer den, hvor længe efter det første tilkald den blev bekræftet, for eksempel **4 minutter efter tilkald**. Metrikken for tid til bekræftelse og MTTA i opsummeringerne i Slack og Microsoft Teams tæller stadig fra, at hændelsen blev erklæret.
+
 ### Ret et forkert tidsstempel
 
-Hver måling beregnes forfra, hver gang dataene under den ændres — en post i tilstandstidslinjen, der oprettes, redigeres eller slettes, eller `Impact Started At`, `Declared At` eller `Postmortem Posted At`, der rettes på hændelsen. Intet lappes trinvis, så der er ingen forældet værdi at reparere.
+Hver måling beregnes forfra, hver gang dataene under den ændres — en post i tilstandstidslinjen, der oprettes, redigeres eller slettes, `Impact Started At`, `Declared At` eller `Postmortem Posted At`, der rettes på hændelsen, eller at dens første tilkald sendes. Intet lappes trinvis, så der er ingen forældet værdi at reparere.
 
 Feltet **Begynder den** på en post i tilstandstidslinjen kan redigeres. Blev en hændelse bekræftet klokken 09:12, men posten siger 09:29, så ret posten, og hver måling, der er afledt af den, flytter sig med.
 
