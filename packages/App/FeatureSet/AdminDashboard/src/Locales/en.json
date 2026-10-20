@@ -489,8 +489,9 @@
       },
       "callSms": {
         "cardTitle": "Twilio Config",
-        "cardDescription": "This will be used to make Call and send SMS.",
-        "editButton": "Edit Twilio Config"
+        "cardDescription": "The Twilio account OneUptime sends SMS and calls through, unless a project uses a Twilio config of its own.",
+        "editButton": "Edit Twilio Config",
+        "smsSameAsCalls": "Same numbers as calls"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp Settings",
@@ -726,7 +727,6 @@
   "Hostname": "Hostname",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.",
   "If you have a coupon code, enter it here.": "If you have a coupon code, enter it here.",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "If you have bought more phone numbers from Twilio for specific countries, you can add them here.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "If you use port 465, please enable this. Do not enable this if you use port 587.",
   "Instance footprint": "Instance footprint",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.",
@@ -772,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "Please create a new OneUptime project to get started.",
   "Please select a plan.": "Please select a plan.",
   "Port": "Port",
-  "Primary Twilio Phone Number": "Primary Twilio Phone Number",
   "Probe Logo": "Probe Logo",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "Probes that run monitoring checks for this instance, and whether they are currently reporting in.",
   "Project ID": "Project ID",
@@ -789,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Required for Username and Password authentication. Not used for OAuth.",
   "Sample Description": "Sample Description",
   "Sample Title": "Sample Title",
-  "Secondary Twilio Phone Numbers": "Secondary Twilio Phone Numbers",
   "Secret token configured in Meta to validate webhook subscription requests.": "Secret token configured in Meta to validate webhook subscription requests.",
   "Select a team": "Select a team",
   "Select LLM Provider": "Select LLM Provider",
@@ -1011,5 +1009,12 @@
   "{{count}} people": "{{count}} people",
   "{{count}} people_one": "{{count}} person",
   "Docker Compose guide": "Docker Compose guide",
-  "Kubernetes guide": "Kubernetes guide"
+  "Kubernetes guide": "Kubernetes guide",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.",
+  "Twilio SMS Phone Numbers": "Twilio SMS Phone Numbers",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.",
+  "Twilio Primary Phone Number": "Twilio Primary Phone Number",
+  "Twilio Secondary Phone Numbers": "Twilio Secondary Phone Numbers",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "Numbers to use instead of the primary one when they match the recipient's country code."
 }

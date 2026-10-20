@@ -36,7 +36,7 @@ flowchart TB
 No My Pingdom, abra **Settings** > **Pingdom API** e selecione **Add API token**. Dê a ele o nome `OneUptime import`, escolha **Read access** e copie o token.
 
 ### Abra a página de importação
-No OneUptime, vá em **Configurações do projeto** > **Importar de outra ferramenta** e selecione **Pingdom**.
+No OneUptime, vá em **Configurações do projeto** > **Avançado** > **Importar de outra ferramenta** e selecione **Pingdom**.
 
 ### Conecte o Pingdom
 Cole o token em **Chave de API do Pingdom** e selecione **Ler minha conta do Pingdom**. Uma conta grande leva alguns minutos, e você pode sair da página enquanto ela é lida.

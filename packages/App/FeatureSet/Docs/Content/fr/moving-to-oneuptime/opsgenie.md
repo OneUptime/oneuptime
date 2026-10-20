@@ -36,7 +36,7 @@ flowchart TB
 Dans Opsgenie, ouvrez **Settings** > **API key management** et sélectionnez **Add new API key**. Nommez-la `OneUptime import`, donnez-lui uniquement **Read** et **Configuration access**, puis copiez la clé.
 
 ### Ouvrir la page d'import
-Dans OneUptime, ouvrez **Paramètres du projet** > **Importer depuis un autre outil** et sélectionnez **Opsgenie**.
+Dans OneUptime, ouvrez **Paramètres du projet** > **Avancé** > **Importer depuis un autre outil** et sélectionnez **Opsgenie**.
 
 ### Connecter Opsgenie
 Sous **Où se trouve votre compte Opsgenie ?**, choisissez **États-Unis** ou **Europe**. Collez la clé dans **Clé API Opsgenie** et sélectionnez **Lire mon compte Opsgenie**. Un compte volumineux prend quelques minutes, et vous pouvez quitter la page pendant la lecture.

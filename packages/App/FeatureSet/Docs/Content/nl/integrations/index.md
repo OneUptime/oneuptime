@@ -98,7 +98,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 
 ## Overstappen van een andere tool
 
-Om een andere tool voor diensten, uptime of statuspagina's te verlaten, haal je je team over in plaats van de twee te koppelen. **Projectinstellingen → Importeren uit een andere tool** leest je account met een API-sleutel, laat zien wat het vond en maakt aan wat je aanvinkt. Elke tool heeft een handleiding:
+Om een andere tool voor diensten, uptime of statuspagina's te verlaten, haal je je team over in plaats van de twee te koppelen. **Projectinstellingen → Geavanceerd → Importeren uit een andere tool** leest je account met een API-sleutel, laat zien wat het vond en maakt aan wat je aanvinkt. Elke tool heeft een handleiding:
 
 - Tools voor diensten en incidenten: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) en [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Tools voor uptime en statuspagina's: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) en [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

@@ -489,8 +489,9 @@
       },
       "callSms": {
         "cardTitle": "Twilio-konfiguration",
-        "cardDescription": "Detta kommer att användas för att ringa och skicka SMS.",
-        "editButton": "Redigera Twilio-konfig"
+        "cardDescription": "Twilio-kontot som OneUptime skickar SMS och ringer via, om inte ett projekt använder en egen Twilio-konfiguration.",
+        "editButton": "Redigera Twilio-konfig",
+        "smsSameAsCalls": "Samma nummer som för samtal"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-inställningar",
@@ -726,7 +727,6 @@
   "Hostname": "Värdnamn",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "Hur OneUptime levererar e-post med den globala SMTP-konfigurationen. Välj 'SMTP' för de flesta servrar. Välj 'Microsoft Graph' om din Microsoft 365-klientorganisation har SMTP AUTH inaktiverat — Graph använder programbehörigheten Mail.Send och kringgår SMTP helt.",
   "If you have a coupon code, enter it here.": "Om du har en kupongkod, ange den här.",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "Om du har köpt fler telefonnummer från Twilio för specifika länder kan du lägga till dem här.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "Om du använder port 465, aktivera detta. Aktivera inte detta om du använder port 587.",
   "Instance footprint": "Instansfotavtryck",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "Jobbeftersläpning över köarbetarna. En växande eftersläpning eller fel indikerar att arbetarna inte är friska.",
@@ -772,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "Skapa ett nytt OneUptime-projekt för att komma igång.",
   "Please select a plan.": "Välj en plan.",
   "Port": "Port",
-  "Primary Twilio Phone Number": "Primärt Twilio-telefonnummer",
   "Probe Logo": "Sondlogotyp",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "Sonder som kör övervakningskontroller för denna instans, och huruvida de för närvarande rapporterar in.",
   "Project ID": "Projekt-ID",
@@ -789,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Krävs för autentisering med användarnamn och lösenord. Används inte för OAuth.",
   "Sample Description": "Exempelbeskrivning",
   "Sample Title": "Exempeltitel",
-  "Secondary Twilio Phone Numbers": "Sekundära Twilio-telefonnummer",
   "Secret token configured in Meta to validate webhook subscription requests.": "Hemlig token konfigurerad i Meta för att validera prenumerationsförfrågningar för webhook.",
   "Select a team": "Välj ett team",
   "Select LLM Provider": "Välj LLM-leverantör",
@@ -1011,5 +1009,12 @@
   "{{count}} people": "{{count}} personer",
   "{{count}} people_one": "{{count}} person",
   "Docker Compose guide": "Docker Compose-guide",
-  "Kubernetes guide": "Kubernetes-guide"
+  "Kubernetes guide": "Kubernetes-guide",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Samtal rings från det här numret, och SMS skickas också härifrån, om du inte lägger till SMS-telefonnummer under Fler fält.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Om dina Twilio-nummer inte kan skicka SMS (i Singapore är nationella nummer endast för röst), lägg till nummer som kan. Varje SMS skickas då från numret i mottagarens land, annars från det första.",
+  "Twilio SMS Phone Numbers": "Twilio SMS-telefonnummer",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} är inte ett telefonnummer. Skriv varje nummer med landskod och separera numren med kommatecken, som +6581234567, +447700900123.",
+  "Twilio Primary Phone Number": "Twilio primärt telefonnummer",
+  "Twilio Secondary Phone Numbers": "Twilio sekundära telefonnummer",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "Nummer som används i stället för huvudnumret när de matchar mottagarens landskod."
 }

@@ -1,8 +1,24 @@
 import Phone from "../Phone";
 
+/*
+ * A Twilio account and the numbers SMS and calls go out from: a project's
+ * Twilio config (ProjectCallSMSConfig) or the OneUptime server's own
+ * (GlobalConfig, Admin Dashboard > Settings > Call and SMS).
+ *
+ * Calls go out from the primary number, or from a secondary number in the
+ * recipient's country. So do SMS, unless the config has SMS numbers: a
+ * Twilio number can make calls and send SMS, or only one of the two (Twilio
+ * sells "Voice Enabled Only" and "SMS Enabled Only" numbers), and in some
+ * countries no one number does both - in Singapore, national numbers are
+ * voice-only and SMS need a mobile number. Once a config has SMS numbers,
+ * every SMS goes out from one of them: the one in the recipient's country,
+ * or else the first (TwilioPhoneNumbers.getSenderNumbers).
+ */
 export default interface TwilioConfig {
   accountSid: string;
   authToken: string;
   primaryPhoneNumber: Phone;
   secondaryPhoneNumbers: Phone[];
+  // The numbers every SMS goes out from, when there are any.
+  smsPhoneNumbers?: Phone[] | undefined;
 }

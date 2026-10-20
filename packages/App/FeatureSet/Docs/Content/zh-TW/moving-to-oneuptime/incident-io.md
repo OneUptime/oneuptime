@@ -35,7 +35,7 @@ flowchart TB
 在 incident.io 中依序開啟 **Settings** > **API keys**，然後選擇 **Add new**。將它命名為 `OneUptime import`，只授予檢視資料的權限，不授予建立、編輯或管理權限，然後複製金鑰。
 
 ### 開啟匯入頁面
-在 OneUptime 中依序開啟 **專案設定** > **從其他工具匯入**，然後選擇 **incident.io**。
+在 OneUptime 中依序開啟 **專案設定** > **進階** > **從其他工具匯入**，然後選擇 **incident.io**。
 
 ### 連線 incident.io
 將金鑰貼到 **incident.io API 金鑰** 中，然後選擇 **讀取我的 incident.io 帳戶**。較大的帳戶需要幾分鐘，讀取期間你可以離開頁面。

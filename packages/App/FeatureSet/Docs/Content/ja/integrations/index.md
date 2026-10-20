@@ -98,7 +98,7 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 
 ## 別のツールから移行する
 
-別のオンコール、稼働監視、ステータスページのツールから移行するには、2 つを接続するのではなく、チームを移行します。**プロジェクト設定 → 別のツールからインポート** は API キーでアカウントを読み取り、見つかったものを表示し、チェックを入れたものを作成します。ツールごとにガイドがあります:
+別のオンコール、稼働監視、ステータスページのツールから移行するには、2 つを接続するのではなく、チームを移行します。**プロジェクト設定 → 詳細 → 別のツールからインポート** は API キーでアカウントを読み取り、見つかったものを表示し、チェックを入れたものを作成します。ツールごとにガイドがあります:
 
 - オンコールとインシデントのツール: [Opsgenie](/docs/moving-to-oneuptime/opsgenie)、[PagerDuty](/docs/moving-to-oneuptime/pagerduty)、[incident.io](/docs/moving-to-oneuptime/incident-io)、[Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call)、[Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall)。
 - 稼働監視とステータスページのツール: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot)、[Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage)、[Better Stack](/docs/moving-to-oneuptime/better-stack)、[Pingdom](/docs/moving-to-oneuptime/pingdom)、[StatusCake](/docs/moving-to-oneuptime/statuscake)、[Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)。

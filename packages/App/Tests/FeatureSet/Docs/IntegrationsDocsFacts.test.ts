@@ -678,11 +678,23 @@ describe("Integrations Overview", () => {
     expect(linked(onCall)).toEqual(guides(ToolImportCategory.OnCall));
     expect(linked(monitoring)).toEqual(guides(ToolImportCategory.Monitoring));
 
-    // The page they open: Project Settings > Import from another tool.
-    expect(dashboardSource("Pages/Settings/SideMenu.tsx")).toContain(
+    /*
+     * The page they open: Project Settings > Advanced > Import from another
+     * tool, the last entry of the folded Advanced section.
+     */
+    const settingsMenu: string = dashboardSource("Pages/Settings/SideMenu.tsx");
+    const advancedAt: number = settingsMenu.indexOf('title: "Advanced"');
+    const securityAt: number = settingsMenu.indexOf('title: "Security"');
+
+    expect(advancedAt).toBeGreaterThan(-1);
+    expect(securityAt).toBeGreaterThan(advancedAt);
+    expect(settingsMenu.slice(advancedAt, securityAt)).toContain(
       'title: "Import from another tool"',
     );
     expect(section).toContain(
+      bold("Project Settings → Advanced → Import from another tool"),
+    );
+    expect(section).not.toContain(
       bold("Project Settings → Import from another tool"),
     );
   });

@@ -14,6 +14,8 @@ import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
 import Phone from "Common/Types/Phone";
+import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
+import { GLOBAL_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
@@ -260,12 +262,8 @@ export const getTwilioConfig: GetTwilioConfigFunction =
         props: {
           isRoot: true,
         },
-        select: {
-          twilioAccountSID: true,
-          twilioAuthToken: true,
-          twilioPrimaryPhoneNumber: true,
-          twilioSecondaryPhoneNumbers: true,
-        },
+        // Its SMS numbers too: SMS go out from them when they are set.
+        select: GLOBAL_TWILIO_CONFIG_SELECT,
       });
 
     if (!globalConfig) {
@@ -280,20 +278,25 @@ export const getTwilioConfig: GetTwilioConfigFunction =
       return null;
     }
 
-    return {
+    const twilioConfig: TwilioConfig = {
       accountSid: globalConfig.twilioAccountSID,
       authToken: globalConfig.twilioAuthToken,
       primaryPhoneNumber: globalConfig.twilioPrimaryPhoneNumber,
-      secondaryPhoneNumbers:
-        globalConfig.twilioSecondaryPhoneNumbers &&
-        globalConfig.twilioSecondaryPhoneNumbers.length > 0
-          ? globalConfig.twilioSecondaryPhoneNumbers
-              .split(",")
-              .map((phoneNumber: string) => {
-                return new Phone(phoneNumber.trim());
-              })
-          : [],
+      secondaryPhoneNumbers: TwilioPhoneNumbers.parseList(
+        globalConfig.twilioSecondaryPhoneNumbers,
+      ),
     };
+
+    // Every SMS goes out from one of these, when the server lists them.
+    const smsPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
+      globalConfig.twilioSmsPhoneNumbers,
+    );
+
+    if (smsPhoneNumbers.length > 0) {
+      twilioConfig.smsPhoneNumbers = smsPhoneNumbers;
+    }
+
+    return twilioConfig;
   };
 
 export const SMSDefaultCostInCents: number = process.env[

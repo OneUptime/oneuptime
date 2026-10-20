@@ -36,7 +36,7 @@ flowchart TB
 在 UptimeRobot 中，依次进入 **Integrations & API** > **API**。创建一个 **Read-only API key**，或复制已有的密钥。
 
 ### 打开导入页面
-在 OneUptime 中，进入 **项目设置** > **从其他工具导入**，然后选择 **UptimeRobot**。
+在 OneUptime 中，进入 **项目设置** > **高级** > **从其他工具导入**，然后选择 **UptimeRobot**。
 
 ### 连接 UptimeRobot
 将密钥粘贴到 **UptimeRobot API 密钥** 中，然后选择 **读取我的 UptimeRobot 账户**。大型账户需要几分钟，读取期间你可以离开页面。

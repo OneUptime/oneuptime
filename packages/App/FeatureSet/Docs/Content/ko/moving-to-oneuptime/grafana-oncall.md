@@ -37,7 +37,7 @@ flowchart TB
 Grafana에서 **OnCall** > **Settings**를 엽니다. Grafana Cloud에서는 **IRM** > **Settings** > **Admin & API**를 엽니다. 그곳에 표시된 OnCall API URL을 복사합니다. **API tokens**에서 이름이 `OneUptime import`인 토큰을 만들고 복사합니다.
 
 ### 가져오기 페이지 열기
-OneUptime에서 **프로젝트 설정** > **다른 도구에서 가져오기**로 이동해 **Grafana OnCall**을 선택합니다.
+OneUptime에서 **프로젝트 설정** > **고급** > **다른 도구에서 가져오기**로 이동해 **Grafana OnCall**을 선택합니다.
 
 ### Grafana OnCall 연결하기
 주소를 **Grafana OnCall API URL**에, 토큰을 **Grafana OnCall API 키**에 붙여 넣고 **내 Grafana OnCall 계정 읽기**를 선택합니다. 계정이 크면 몇 분 걸리며, 읽는 동안 페이지를 떠나도 됩니다.
