@@ -8,7 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -30,6 +30,12 @@ import * as React from "react";
  * (what a rule saved with Fix With set to Runbooks keeps doing), and the
  * Runner OneUptime AI runs the rule's commands on (none: the AI agent on the
  * affected cluster or host). The same for alerts.
+ *
+ * The table names a rule's fix in one Fix column: whether it asks first
+ * and, in a quiet line, how it fixes - only for a rule that does not fix
+ * the way every new rule does. A rule saved before rules were simplified
+ * says what it still does at the top of its Fix step, hides what does
+ * nothing for it, and offers "Fix like a new rule".
  *
  * Only the props the table hands to ModelTable are under test, so the table
  * is captured instead of rendered.
@@ -68,13 +74,22 @@ import AutoRemediationRulesTable, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRulesTable";
 import {
   AUTO_REMEDIATION_APPROVAL_FIELD_COPY,
+  AUTO_REMEDIATION_FIX_WITH_TEXT,
   AUTO_REMEDIATION_MORE_FIELDS_COPY,
   AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES,
+  AUTO_REMEDIATION_OLDER_RULE_COPY,
+  getAutoRemediationFixWithText,
   getAutoRemediationMoreFieldsSummary,
+  getEditedRuleFixKind,
+  getOlderAutoRemediationRuleText,
+  getValuesFixingLikeANewRule,
   hasRuleRunbooks,
   hasRuleRunner,
+  isOlderAutoRemediationRule,
   isRunbooksEveryTime,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
+import { AUTO_REMEDIATION_OLDER_RULE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields";
+import { AutoRemediationFixKind } from "../../../Types/AutoRemediation/AutoRemediationFix";
 import {
   AI_LANE_REMEDIATION_RULES_TABLE_ID,
   AI_LANE_RULES_COPY,
@@ -87,7 +102,10 @@ import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRem
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import ObjectID from "../../../Types/ObjectID";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
-import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import {
@@ -107,6 +125,9 @@ type Values = FormValues<AutoRemediationRule>;
 
 interface CapturedField {
   field?: Record<string, unknown>;
+  overrideField?: Record<string, unknown>;
+  overrideFieldKey?: string;
+  formOnly?: boolean;
   title?: string;
   description?: string;
   stepId?: string;
@@ -123,6 +144,15 @@ interface CapturedField {
   cardSelectSingleColumn?: boolean;
   collapsibleSection?: FormFieldCollapsibleSection<AutoRemediationRule>;
   getFoldedValue?: (values: Values) => string | null;
+  onChange?: (
+    value: unknown,
+    currentValues: Values,
+    setNewFormValues: (values: Values) => void,
+  ) => void;
+  getCustomElement?: (
+    values: Values,
+    props: CustomElementProps,
+  ) => React.ReactElement;
 }
 
 interface CapturedColumn {
@@ -144,8 +174,9 @@ function fieldsOf(props: Record<string, unknown>): Array<CapturedField> {
   return (props["formFields"] || []) as Array<CapturedField>;
 }
 
+// The form value a field holds: its own key, or its column's.
 function keyOf(field: CapturedField): string {
-  return Object.keys(field.field || {})[0] || "";
+  return field.overrideFieldKey || Object.keys(field.field || {})[0] || "";
 }
 
 function fieldNamed(
@@ -192,6 +223,22 @@ function values(fields: Record<string, unknown>): Values {
 
 const EVERY_TIME: Values = values({
   remediationAction: AutoRemediationAction.Runbooks,
+});
+
+// Rules saved before rules were simplified, as an edit form loads them.
+const OLDER_COMMANDS: Values = values({
+  remediationAction: AutoRemediationAction.OneUptimeAI,
+  aiComposesCommands: true,
+  aiSelectsRunbook: false,
+  executionMode: AutoRemediationExecutionMode.FullAuto,
+  runnerId: RUNNER_ID,
+});
+
+const OLDER_PICKS: Values = values({
+  remediationAction: AutoRemediationAction.OneUptimeAI,
+  aiComposesCommands: false,
+  aiSelectsRunbook: true,
+  executionMode: AutoRemediationExecutionMode.FullAuto,
 });
 
 // A runbook as the dropdown holds it while the form is open.
@@ -307,6 +354,10 @@ describe.each([
         ["monitorLabels", "match-criteria", ""],
         ["titlePattern", "match-criteria", ""],
         ["descriptionPattern", "match-criteria", ""],
+        // An older rule's two flags, never drawn, and its note.
+        ["aiComposesCommands", "remediation", ""],
+        ["aiSelectsRunbook", "remediation", ""],
+        ["olderRuleNote", "remediation", ""],
         // The Fix step's one question, then More fields, folded.
         ["executionMode", "remediation", ""],
         ["runbooks", "remediation", MORE_FIELDS_SECTION_TITLE],
@@ -341,14 +392,26 @@ describe.each([
 
       for (const retired of [
         "description",
-        "aiSelectsRunbook",
-        "aiComposesCommands",
         "commandAllowlist",
         "commandRunners",
         "verificationWindowMinutes",
         "autoResolveOnVerifiedRecovery",
       ]) {
         expect(keys).not.toContain(retired);
+      }
+
+      /*
+       * The older rules' two flags are registered only so an edit reads
+       * them: never drawn, never asked.
+       */
+      for (const flag of ["aiComposesCommands", "aiSelectsRunbook"]) {
+        const registered: CapturedField = fieldNamed(props, flag);
+
+        expect(registered.showIf!(values({}))).toBe(false);
+        expect(registered.showIf!(OLDER_COMMANDS)).toBe(false);
+        expect(registered.showIf!(OLDER_PICKS)).toBe(false);
+        expect(registered.required).toBe(false);
+        expect(registered.collapsibleSection).toBeUndefined();
       }
 
       // remediationAction is a folded switch now, never a choice of two cards.
@@ -391,6 +454,12 @@ describe.each([
       expect(approval.cardSelectOptions).toBe(
         AUTO_REMEDIATION_APPROVAL_OPTIONS,
       );
+
+      // Asked of every rule but an older one that picks a runbook: it always asks.
+      expect(approval.showIf!(values({}))).toBe(true);
+      expect(approval.showIf!(EVERY_TIME)).toBe(true);
+      expect(approval.showIf!(OLDER_COMMANDS)).toBe(true);
+      expect(approval.showIf!(OLDER_PICKS)).toBe(false);
     });
 
     test("Runbooks: none picked is any runbook, and some are needed only to run them every time", () => {
@@ -408,8 +477,14 @@ describe.each([
       expect(runbooks.hideOptionalLabel).toBe(true);
       expect(runbooks.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
       expect(runbooks.dropdownModal?.type).toBe(Runbook);
-      // Always there to pick from, once More fields is open.
-      expect(runbooks.showIf).toBeUndefined();
+      /*
+       * There to pick from once More fields is open - but for an older rule
+       * that composes commands, which runs no runbook.
+       */
+      expect(runbooks.showIf!(values({}))).toBe(true);
+      expect(runbooks.showIf!(EVERY_TIME)).toBe(true);
+      expect(runbooks.showIf!(OLDER_PICKS)).toBe(true);
+      expect(runbooks.showIf!(OLDER_COMMANDS)).toBe(false);
 
       expect(required(EVERY_TIME)).toBe(true);
       for (const other of [
@@ -439,6 +514,15 @@ describe.each([
       );
       // A rule saved running its runbooks keeps the switch that says so.
       expect(everyTime.showIf!(EVERY_TIME)).toBe(true);
+      // An older rule does what its note says until it fixes like a new one.
+      expect(
+        everyTime.showIf!(
+          values({
+            ...(OLDER_PICKS as Record<string, unknown>),
+            runbooks: PICKED_RUNBOOKS,
+          }),
+        ),
+      ).toBe(false);
 
       // Folded, the line says it is on; off is the default and says nothing.
       expect(everyTime.getFoldedValue!(EVERY_TIME)).toBe("On");
@@ -463,6 +547,101 @@ describe.each([
       expect(runner.showIf!(values({}))).toBe(true);
       expect(runner.showIf!(values({ runbooks: PICKED_RUNBOOKS }))).toBe(true);
       expect(runner.showIf!(EVERY_TIME)).toBe(false);
+      // An older rule's commands run on its Runner; one that picks a runbook has none.
+      expect(runner.showIf!(OLDER_COMMANDS)).toBe(true);
+      expect(runner.showIf!(OLDER_PICKS)).toBe(false);
+    });
+
+    test("an older rule's note: first on the Fix step, only for an older rule", () => {
+      const note: CapturedField = fieldNamed(tableFor(lane), "olderRuleNote");
+
+      // Drives the form, sends nothing, and is offered to who may change the flags.
+      expect(note.formOnly).toBe(true);
+      expect(note.overrideField).toEqual({ aiComposesCommands: true });
+      expect(note.stepId).toBe("remediation");
+      expect(note.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(note.customElementDrawsOwnLabel).toBe(true);
+      expect(note.required).toBe(false);
+      expect(note.collapsibleSection).toBeUndefined();
+
+      expect(note.showIf!(OLDER_COMMANDS)).toBe(true);
+      expect(note.showIf!(OLDER_PICKS)).toBe(true);
+      for (const other of [
+        values({}),
+        EVERY_TIME,
+        values({ runbooks: PICKED_RUNBOOKS, runnerId: RUNNER_ID }),
+        // Running its runbooks every time wins over an older flag.
+        values({
+          remediationAction: AutoRemediationAction.Runbooks,
+          aiSelectsRunbook: true,
+        }),
+      ]) {
+        expect(note.showIf!(other)).toBe(false);
+      }
+    });
+
+    test.each([
+      [OLDER_COMMANDS, AUTO_REMEDIATION_OLDER_RULE_COPY.commandsOnRunners],
+      [OLDER_PICKS, AUTO_REMEDIATION_OLDER_RULE_COPY.picksRunbook],
+    ])(
+      "the note says what the rule still does, and Fix like a new rule asks the form to switch it (%#)",
+      (rule: Values, text: string) => {
+        const note: CapturedField = fieldNamed(tableFor(lane), "olderRuleNote");
+        const changes: Array<unknown> = [];
+
+        cleanup();
+        render(
+          note.getCustomElement!(rule, {
+            onChange: (value: unknown): void => {
+              changes.push(value);
+            },
+          }),
+        );
+
+        expect(
+          screen.getByTestId(AUTO_REMEDIATION_OLDER_RULE_TEST_ID),
+        ).toHaveTextContent(text);
+        fireEvent.click(
+          screen.getByRole("button", {
+            name: AUTO_REMEDIATION_OLDER_RULE_COPY.fixLikeANewRule,
+          }),
+        );
+        expect(changes).toEqual([true]);
+      },
+    );
+
+    test("Fix like a new rule clears the older flags and asks first, keeping the rest", () => {
+      const note: CapturedField = fieldNamed(tableFor(lane), "olderRuleNote");
+      const written: Array<Values> = [];
+      const current: Values = values({
+        ...(OLDER_COMMANDS as Record<string, unknown>),
+        name: "Commands on the bastion",
+        runbooks: PICKED_RUNBOOKS,
+      });
+
+      note.onChange!(true, current, (next: Values): void => {
+        written.push(next);
+      });
+
+      expect(written).toEqual([
+        values({
+          ...(current as Record<string, unknown>),
+          aiComposesCommands: false,
+          aiSelectsRunbook: false,
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ]);
+      // And the form then reads as a new rule's: every field back.
+      expect(isOlderAutoRemediationRule(written[0]!)).toBe(false);
+    });
+
+    test("a new rule's Fix step draws no note", () => {
+      const note: CapturedField = fieldNamed(tableFor(lane), "olderRuleNote");
+
+      cleanup();
+      const { container } = render(note.getCustomElement!(values({}), {}));
+
+      expect(container).toBeEmptyDOMElement();
     });
 
     test("reads what it needs to name each rule's fix", () => {
@@ -535,63 +714,84 @@ describe.each([
       expect(reported).toEqual([]);
     });
 
+    test("names each rule's fix in one Fix column, between its conditions and its status", () => {
+      const columns: Array<CapturedColumn> = (tableFor(lane)["columns"] ||
+        []) as Array<CapturedColumn>;
+
+      expect(
+        columns.map((column: CapturedColumn): string => {
+          return column.title || "";
+        }),
+      ).toEqual(["Name", "Fix", "Status"]);
+      expect(columnTitled(tableFor(lane), "Fix").field).toEqual({
+        executionMode: true,
+      });
+    });
+
     test.each([
       [
-        { remediationAction: AutoRemediationAction.OneUptimeAI },
-        "OneUptime AI",
+        { executionMode: AutoRemediationExecutionMode.Suggest },
+        "Asks first",
+        null,
       ],
       [
-        { remediationAction: AutoRemediationAction.Runbooks },
+        { executionMode: AutoRemediationExecutionMode.FullAuto },
+        "Without asking",
+        null,
+      ],
+      [
+        {
+          remediationAction: AutoRemediationAction.Runbooks,
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+        },
+        "Without asking",
         "Its runbooks, every time",
       ],
       [
         {
           remediationAction: AutoRemediationAction.OneUptimeAI,
+          executionMode: AutoRemediationExecutionMode.Suggest,
           aiComposesCommands: true,
         },
+        "Asks first",
         "OneUptime AI: commands on Runners",
       ],
       [
+        // A runbook such a rule picks is always proposed, whatever it says.
         {
           remediationAction: AutoRemediationAction.OneUptimeAI,
-          aiSelectsRunbook: true,
-        },
-        "OneUptime AI: picks a runbook",
-      ],
-    ])(
-      "the Fixed by column names %j as %s",
-      (fields: Partial<AutoRemediationRule>, text: string) => {
-        const column: CapturedColumn = columnTitled(tableFor(lane), "Fixed by");
-
-        cleanup();
-        render(column.getElement!(rule(fields)));
-
-        expect(screen.getByText(text)).toBeInTheDocument();
-      },
-    );
-
-    test.each([
-      [{ executionMode: AutoRemediationExecutionMode.Suggest }, "Asks first"],
-      [
-        { executionMode: AutoRemediationExecutionMode.FullAuto },
-        "Without asking",
-      ],
-      [
-        {
           executionMode: AutoRemediationExecutionMode.FullAuto,
           aiSelectsRunbook: true,
         },
         "Asks first",
+        "OneUptime AI: picks a runbook",
       ],
     ])(
-      "the Approval column names %j as %s",
-      (fields: Partial<AutoRemediationRule>, text: string) => {
-        const column: CapturedColumn = columnTitled(tableFor(lane), "Approval");
+      "the Fix column names %j as %s, and how it fixes only when it is not OneUptime AI's way",
+      (
+        fields: Partial<AutoRemediationRule>,
+        approval: string,
+        fixedWith: string | null,
+      ) => {
+        const column: CapturedColumn = columnTitled(tableFor(lane), "Fix");
 
         cleanup();
         render(column.getElement!(rule(fields)));
 
-        expect(screen.getByText(text)).toBeInTheDocument();
+        expect(screen.getByText(approval)).toBeInTheDocument();
+
+        const line: HTMLElement | null = screen.queryByTestId(
+          "auto-remediation-rule-fixed-with",
+        );
+
+        if (fixedWith) {
+          expect(line).toHaveTextContent(fixedWith);
+          // A quiet line that wraps, never a second pill that widens the table.
+          expect(line).toHaveClass("whitespace-normal");
+        } else {
+          expect(line).toBeNull();
+          expect(screen.queryByText("OneUptime AI")).toBeNull();
+        }
       },
     );
   },
@@ -734,6 +934,11 @@ describe("the line under More fields, folded", () => {
     ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook]);
   });
 
+  test("says nothing for an older rule: none of its defaults are the ones the line describes", () => {
+    expect(getAutoRemediationMoreFieldsSummary(OLDER_COMMANDS)).toBeUndefined();
+    expect(getAutoRemediationMoreFieldsSummary(OLDER_PICKS)).toBeUndefined();
+  });
+
   test("says nothing once both are set - the line names them - or for a rule that runs its runbooks", () => {
     expect(
       getAutoRemediationMoreFieldsSummary(
@@ -764,9 +969,17 @@ describe("the choices", () => {
     expect(AUTO_REMEDIATION_APPROVAL_OPTIONS[0]!.description).toBe(
       "Nothing runs until someone approves the fix with one click.",
     );
-    // An AI agent set to ask still asks: the rule never overrides it.
+    /*
+     * An AI agent set to ask still asks: the rule never overrides it. And a
+     * runbook starts on its own only when the rule names it - said whatever
+     * More fields holds, so a rule that names none is not read as starting
+     * any runbook.
+     */
     expect(AUTO_REMEDIATION_APPROVAL_OPTIONS[1]!.description).toBe(
-      "OneUptime AI fixes right away where the AI agent's settings allow it, and starts the runbooks you picked.",
+      "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.",
+    );
+    expect(AUTO_REMEDIATION_APPROVAL_OPTIONS[1]!.description).not.toContain(
+      "the runbooks you picked",
     );
   });
 
@@ -794,5 +1007,82 @@ describe("the choices", () => {
       runnerDescription:
         "Where OneUptime AI runs commands of its own for this rule, inside your network.",
     });
+  });
+});
+
+describe("an older rule, read from the form", () => {
+  test("reads a rule's fix from the form the way the engine reads a saved one", () => {
+    expect(getEditedRuleFixKind(values({}))).toBe(
+      AutoRemediationFixKind.OneUptimeAi,
+    );
+    expect(getEditedRuleFixKind(EVERY_TIME)).toBe(
+      AutoRemediationFixKind.RunbooksEveryTime,
+    );
+    expect(getEditedRuleFixKind(OLDER_COMMANDS)).toBe(
+      AutoRemediationFixKind.CommandsOnRunners,
+    );
+    expect(getEditedRuleFixKind(OLDER_PICKS)).toBe(
+      AutoRemediationFixKind.AiPicksRunbook,
+    );
+    // Both flags: composing commands wins, as it always has.
+    expect(
+      getEditedRuleFixKind(
+        values({ aiComposesCommands: true, aiSelectsRunbook: true }),
+      ),
+    ).toBe(AutoRemediationFixKind.CommandsOnRunners);
+    // A flag that is not a real true is no older rule.
+    expect(
+      getEditedRuleFixKind(
+        values({ aiComposesCommands: "true", aiSelectsRunbook: 1 }),
+      ),
+    ).toBe(AutoRemediationFixKind.OneUptimeAi);
+  });
+
+  test("says what an older rule does, and nothing for any other", () => {
+    expect(getOlderAutoRemediationRuleText(OLDER_COMMANDS)).toBe(
+      "This older rule only has OneUptime AI run commands on its Runners.",
+    );
+    expect(getOlderAutoRemediationRuleText(OLDER_PICKS)).toBe(
+      "This older rule only has OneUptime AI pick one of its runbooks, and always asks first.",
+    );
+    expect(getOlderAutoRemediationRuleText(values({}))).toBeNull();
+    expect(getOlderAutoRemediationRuleText(EVERY_TIME)).toBeNull();
+    expect(AUTO_REMEDIATION_OLDER_RULE_COPY.fixLikeANewRule).toBe(
+      "Fix like a new rule",
+    );
+  });
+
+  test("fixing like a new rule asks first even for a rule that fixed without asking", () => {
+    const next: Record<string, unknown> = getValuesFixingLikeANewRule(
+      OLDER_COMMANDS,
+    ) as Record<string, unknown>;
+
+    expect(next["aiComposesCommands"]).toBe(false);
+    expect(next["aiSelectsRunbook"]).toBe(false);
+    expect(next["executionMode"]).toBe(AutoRemediationExecutionMode.Suggest);
+    // Its Runner stays: commands run there now as for any new rule.
+    expect(next["runnerId"]).toBe(RUNNER_ID);
+    expect(getEditedRuleFixKind(next as Values)).toBe(
+      AutoRemediationFixKind.OneUptimeAi,
+    );
+  });
+
+  test("the Fix column's line names only the rules that do not fix OneUptime AI's way", () => {
+    expect(getAutoRemediationFixWithText({})).toBeNull();
+    expect(
+      getAutoRemediationFixWithText({
+        remediationAction: AutoRemediationAction.Runbooks,
+      }),
+    ).toBe(AUTO_REMEDIATION_FIX_WITH_TEXT.runbooks);
+    expect(getAutoRemediationFixWithText({ aiComposesCommands: true })).toBe(
+      AUTO_REMEDIATION_FIX_WITH_TEXT.runnerCommands,
+    );
+    expect(getAutoRemediationFixWithText({ aiSelectsRunbook: true })).toBe(
+      AUTO_REMEDIATION_FIX_WITH_TEXT.aiPickedRunbook,
+    );
+    // No "OneUptime AI" for a rule that fixes the way every new rule does.
+    expect(Object.values(AUTO_REMEDIATION_FIX_WITH_TEXT)).not.toContain(
+      "OneUptime AI",
+    );
   });
 });

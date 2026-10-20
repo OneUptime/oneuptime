@@ -12,7 +12,7 @@ edit dialogs, the rule's More fields
 Runner picker (`Components/Runner/RunnerPicker.tsx`) are the production ones.
 It bundles them with esbuild, replaces only the `ModelAPI` / `API` data
 boundary and the synthetic user's permissions, and serves them on
-`127.0.0.1:4391` (`AUTO_REMEDIATION_RULES_FIXTURE_PORT`). No Docker, no
+`127.0.0.1:4395` (`AUTO_REMEDIATION_RULES_FIXTURE_PORT`). No Docker, no
 database, no sign-in.
 
 ```sh

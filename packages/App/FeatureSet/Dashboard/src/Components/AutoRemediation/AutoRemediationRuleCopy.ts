@@ -26,14 +26,18 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * time instead, and the Runner OneUptime AI runs the rule's commands on.
  */
 
-// What the table says a rule is fixed by.
+/*
+ * What the table's Fix column says of a rule beside whether it asks first,
+ * for a rule that does not fix the way every new rule does: one that runs
+ * its runbooks every time, or one saved before rules were simplified. A
+ * rule OneUptime AI fixes says nothing more - "OneUptime AI" on every row
+ * would tell a reader nothing.
+ */
 export const AUTO_REMEDIATION_FIX_WITH_TEXT: {
-  oneUptimeAi: string;
   runbooks: string;
   runnerCommands: string;
   aiPickedRunbook: string;
 } = {
-  oneUptimeAi: translationKey("OneUptime AI"),
   // A rule that runs its runbooks every time, without OneUptime AI deciding.
   runbooks: translationKey("Its runbooks, every time"),
   // Rules saved before rules were simplified.
@@ -79,6 +83,28 @@ export function getAutoRemediationFixWith(
   >,
 ): AutoRemediationFixWith {
   return FIX_WITH_BY_KIND[getAutoRemediationFixKind(rule)];
+}
+
+const FIX_WITH_TEXT: Record<AutoRemediationFixWith, string | null> = {
+  [AutoRemediationFixWith.OneUptimeAi]: null,
+  [AutoRemediationFixWith.Runbooks]: AUTO_REMEDIATION_FIX_WITH_TEXT.runbooks,
+  [AutoRemediationFixWith.RunnerCommands]:
+    AUTO_REMEDIATION_FIX_WITH_TEXT.runnerCommands,
+  [AutoRemediationFixWith.AiPickedRunbook]:
+    AUTO_REMEDIATION_FIX_WITH_TEXT.aiPickedRunbook,
+};
+
+/*
+ * What the Fix column says after whether a rule asks first: how it fixes,
+ * for a rule that does not fix the way every new rule does - or null.
+ */
+export function getAutoRemediationFixWithText(
+  rule: Pick<
+    AutoRemediationRule,
+    "remediationAction" | "aiComposesCommands" | "aiSelectsRunbook"
+  >,
+): string | null {
+  return FIX_WITH_TEXT[getAutoRemediationFixWith(rule)];
 }
 
 /*
@@ -127,8 +153,13 @@ export const AUTO_REMEDIATION_APPROVAL_OPTIONS: Array<CardSelectOption> = [
   {
     value: AutoRemediationExecutionMode.FullAuto,
     title: translationKey("Fix without asking"),
+    /*
+     * Said whatever More fields holds: with no runbook picked, a runbook
+     * OneUptime AI picks from any of them still waits for approval
+     * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking).
+     */
     description: translationKey(
-      "OneUptime AI fixes right away where the AI agent's settings allow it, and starts the runbooks you picked.",
+      "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.",
     ),
     icon: IconProp.Bolt,
   },
@@ -191,6 +222,103 @@ export function isRunbooksEveryTime(
 }
 
 /*
+ * How the rule being edited fixes, read from the form the way the engine
+ * reads a saved rule (getAutoRemediationFixKind). The form keeps the two
+ * flags a rule saved before rules were simplified holds (they are never
+ * drawn), so an edit knows such a rule; a new rule holds neither.
+ */
+export function getEditedRuleFixKind(
+  values: FormValues<AutoRemediationRule>,
+): AutoRemediationFixKind {
+  const facts: {
+    remediationAction?: unknown;
+    aiComposesCommands?: unknown;
+    aiSelectsRunbook?: unknown;
+  } = values as {
+    remediationAction?: unknown;
+    aiComposesCommands?: unknown;
+    aiSelectsRunbook?: unknown;
+  };
+
+  return getAutoRemediationFixKind({
+    remediationAction:
+      typeof facts.remediationAction === "string"
+        ? facts.remediationAction
+        : undefined,
+    aiComposesCommands: facts.aiComposesCommands === true,
+    aiSelectsRunbook: facts.aiSelectsRunbook === true,
+  });
+}
+
+/*
+ * Whether the rule being edited was saved before rules were simplified, and
+ * still has OneUptime AI do only what it did then: compose commands on its
+ * Runners, or pick one of its runbooks.
+ */
+export function isOlderAutoRemediationRule(
+  values: FormValues<AutoRemediationRule>,
+): boolean {
+  const kind: AutoRemediationFixKind = getEditedRuleFixKind(values);
+
+  return (
+    kind === AutoRemediationFixKind.CommandsOnRunners ||
+    kind === AutoRemediationFixKind.AiPicksRunbook
+  );
+}
+
+/*
+ * The note at the top of an older rule's Fix step: what the rule does, in
+ * place of the fields that do nothing for it, and the one way to make it fix
+ * like a new rule (getValuesFixingLikeANewRule).
+ */
+export const AUTO_REMEDIATION_OLDER_RULE_COPY: {
+  commandsOnRunners: string;
+  picksRunbook: string;
+  fixLikeANewRule: string;
+} = {
+  commandsOnRunners: translationKey(
+    "This older rule only has OneUptime AI run commands on its Runners.",
+  ),
+  picksRunbook: translationKey(
+    "This older rule only has OneUptime AI pick one of its runbooks, and always asks first.",
+  ),
+  fixLikeANewRule: translationKey("Fix like a new rule"),
+};
+
+// What the older rule being edited does, as its note says it; null for any other.
+export function getOlderAutoRemediationRuleText(
+  values: FormValues<AutoRemediationRule>,
+): string | null {
+  switch (getEditedRuleFixKind(values)) {
+    case AutoRemediationFixKind.CommandsOnRunners:
+      return AUTO_REMEDIATION_OLDER_RULE_COPY.commandsOnRunners;
+    case AutoRemediationFixKind.AiPicksRunbook:
+      return AUTO_REMEDIATION_OLDER_RULE_COPY.picksRunbook;
+    default:
+      return null;
+  }
+}
+
+/*
+ * "Fix like a new rule": the older rule's two flags off, so OneUptime AI
+ * fixes what it matches the way every new rule does - through the AI agent,
+ * with a runbook, and with commands on the rule's Runner. It asks before
+ * fixing until someone says otherwise: it does more than it did, so nothing
+ * of that runs without approval because of this switch alone (and a rule
+ * that picks a runbook always asked).
+ */
+export function getValuesFixingLikeANewRule(
+  values: FormValues<AutoRemediationRule>,
+): FormValues<AutoRemediationRule> {
+  return {
+    ...values,
+    aiComposesCommands: false,
+    aiSelectsRunbook: false,
+    executionMode: AutoRemediationExecutionMode.Suggest,
+  } as FormValues<AutoRemediationRule>;
+}
+
+/*
  * Whether the rule being edited names runbooks: rows, ids, or the
  * { value, label } options the dropdown holds them as.
  */
@@ -216,7 +344,8 @@ export function hasRuleRunner(
 export function getAutoRemediationMoreFieldsSummary(
   values: FormValues<AutoRemediationRule>,
 ): Array<string> | undefined {
-  if (isRunbooksEveryTime(values)) {
+  // Neither has the defaults the line describes: their fields say what is set.
+  if (isRunbooksEveryTime(values) || isOlderAutoRemediationRule(values)) {
     return undefined;
   }
 

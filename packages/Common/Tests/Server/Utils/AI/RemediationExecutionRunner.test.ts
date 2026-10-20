@@ -2844,7 +2844,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
               description:
                 'Runner "ops-runner" does not run OneUptime AI\'s commands yet, so it will not be served kubectl work.',
               nextStep:
-                "Unbind the Runner and bind it again on the cluster's AI agent page (AI → Agent): binding a Runner lets OneUptime AI run kubectl on it.",
+                "Choose the Runner again on the cluster's AI agent page (AI → Agent) to let OneUptime AI run kubectl on it.",
               blocks: "both",
             },
           ],

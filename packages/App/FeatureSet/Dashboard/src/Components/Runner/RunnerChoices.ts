@@ -40,6 +40,13 @@ export interface RunnerChoices {
   // The global Runners that run runbook steps.
   globalRunners: Array<GlobalRunnerRow>;
   projectUsesGlobalRunners: boolean;
+  /*
+   * The project's own Runners could not be read - the reader may not read
+   * Runners, or the read failed - so projectRunners is empty without the
+   * project being known to have none. A picker then says nothing about
+   * adding one.
+   */
+  areProjectRunnersUnread?: boolean | undefined;
 }
 
 export const GLOBAL_RUNNERS_ROUTE: string = "/runner/global-runners";
@@ -135,10 +142,13 @@ export default class RunnerChoicesLoader {
   public static async loadForRemediation(
     projectId: ObjectID,
   ): Promise<RunnerChoices> {
+    let areProjectRunnersUnread: boolean = false;
+
     const projectRunners: Array<RunnerPickerRunner> =
       await RunnerChoicesLoader.loadProjectRunners(projectId, {
         forCodeRepository: true,
       }).catch((): Array<RunnerPickerRunner> => {
+        areProjectRunnersUnread = true;
         return [];
       });
 
@@ -146,6 +156,7 @@ export default class RunnerChoicesLoader {
       projectRunners,
       globalRunners: [],
       projectUsesGlobalRunners: true,
+      areProjectRunnersUnread,
     };
   }
 

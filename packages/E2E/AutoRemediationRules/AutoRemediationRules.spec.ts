@@ -24,6 +24,12 @@ import path from "path";
  * on the affected cluster or host - a global Runner never runs them). The
  * fixture records every create and update the page sends, so the tests
  * check what was sent as well as what was drawn.
+ *
+ * The table names each rule's fix in one Fix column - whether it asks
+ * first, and how it fixes only for a rule that does not fix the way every
+ * new rule does - so it fits its card beside the row actions. A rule saved
+ * before rules were simplified says what it still does at the top of its
+ * Fix step and offers "Fix like a new rule".
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";
@@ -42,6 +48,8 @@ const RUNNER_IDS: Record<string, string> = {
 const SAVED_RULE_IDS: Record<string, string> = {
   everyTime: "90000000-0000-4000-8000-000000000d01",
   aiWithRunner: "90000000-0000-4000-8000-000000000d02",
+  commands: "90000000-0000-4000-8000-000000000d03",
+  picks: "90000000-0000-4000-8000-000000000d04",
 };
 
 const SCREENSHOTS: string = path.resolve(
@@ -65,7 +73,7 @@ const CREATE: string = "Create Auto Remediation Rule";
 const APPROVAL_DESCRIPTION: string =
   "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.";
 const FIX_WITHOUT_ASKING_DESCRIPTION: string =
-  "OneUptime AI fixes right away where the AI agent's settings allow it, and starts the runbooks you picked.";
+  "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.";
 const DEFAULTS_SUMMARY: string =
   "OneUptime AI may run any of your runbooks, and fixes through the AI agent on the affected cluster or host.";
 const RUNBOOKS_DESCRIPTION: string =
@@ -73,11 +81,19 @@ const RUNBOOKS_DESCRIPTION: string =
 const RUNNER_DESCRIPTION: string =
   "Where OneUptime AI runs commands of its own for this rule, inside your network.";
 const NO_RUNNER: string = "AI agent on the cluster or host";
-const NO_RUNNER_HELP: string =
-  "OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host. Pick one of your Runners to let it run commands there too.";
+// Under the picker only in a project with no Runner of its own.
+const ADD_RUNNER_HELP: string =
+  "Add a Runner under Runbooks › Runners for OneUptime AI to run commands on, then pick it here.";
+const RUNNER_HELP_TEST_ID: string = "auto-remediation-runner-picker-help";
 const OWN_RUNNER_HELP: string =
   "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.";
 const EVERY_TIME: string = "Run them every time";
+const OLDER_COMMANDS_NOTE: string =
+  "This older rule only has OneUptime AI run commands on its Runners.";
+const OLDER_PICKS_NOTE: string =
+  "This older rule only has OneUptime AI pick one of its runbooks, and always asks first.";
+const FIX_LIKE_A_NEW_RULE: string = "Fix like a new rule";
+const OLDER_RULE_TEST_ID: string = "auto-remediation-older-rule";
 
 interface Recorded {
   creates: Array<{ model: string; data: Record<string, unknown> }>;
@@ -294,6 +310,24 @@ const cellOf: (
   return ((await row.locator("td").nth(index).innerText()) || "").trim();
 };
 
+// An id as a save sends it: a string, or an ObjectID left as the form read it.
+const idOfValue: (value: unknown) => string = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  const row: Record<string, unknown> = (value || {}) as Record<string, unknown>;
+  return String(row["value"] || row["_id"] || "");
+};
+
+// The Fix cell of a row, its pill and its line read as one sentence.
+const fixOf: (card: Locator, rowName: string) => Promise<string> = async (
+  card: Locator,
+  rowName: string,
+): Promise<string> => {
+  return (await cellOf(card, rowName, "Fix")).replace(/\s+/g, " ");
+};
+
 const editRule: (
   page: Page,
   card: Locator,
@@ -312,7 +346,8 @@ const editRule: (
   await expect(dialog).toBeVisible();
   // An edit dialog opens any step from its list.
   await dialog.getByText("Fix", { exact: true }).click();
-  await expect(dialog).toContainText(APPROVAL_DESCRIPTION);
+  // Every rule's Fix step ends with More fields (an older one may ask nothing).
+  await expect(moreFieldsButton(dialog)).toBeVisible();
   return dialog;
 };
 
@@ -377,11 +412,15 @@ test.describe("the Fix step", () => {
     // Run them every time waits for a runbook to run.
     await expect(everyTimeSwitch(dialog)).toHaveCount(0);
 
-    // Runner: the AI agent, said in plain words, and what picking one does.
+    /*
+     * Runner: the AI agent, said in plain words. With Runners to pick from,
+     * no line under it repeats what the choice and the field's line say.
+     */
     await expect(dialog).toContainText(RUNNER_DESCRIPTION);
     await expect(runnerPicker(dialog)).toBeVisible();
     await expect(dialog).toContainText(NO_RUNNER);
-    await expect(dialog).toContainText(NO_RUNNER_HELP);
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
+    await expect(dialog).not.toContainText(ADD_RUNNER_HELP);
     await expect(dialog).not.toContainText("Global Runner");
 
     await screenshot(page, "fix-step-more-fields");
@@ -434,9 +473,8 @@ test.describe("the Fix step", () => {
     expect(idsOf(sent.creates[0]!.data["runbooks"])).toEqual([]);
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
 
-    // Listed as fixed by OneUptime AI, asking first.
-    expect(await cellOf(card, "Fix checkout", "Fixed by")).toBe("OneUptime AI");
-    expect(await cellOf(card, "Fix checkout", "Approval")).toBe("Asks first");
+    // Listed as asking first - and nothing more: OneUptime AI fixes every rule.
+    expect(await fixOf(card, "Fix checkout")).toBe("Asks first");
   });
 
   test("the runbooks and the Runner picked are sent, and the folded line names them", async ({
@@ -507,11 +545,8 @@ test.describe("the Fix step", () => {
     // The Runner picked before the switch went on is not kept.
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
 
-    expect(await cellOf(card, "Fix checkout", "Fixed by")).toBe(
-      "Its runbooks, every time",
-    );
-    expect(await cellOf(card, "Fix checkout", "Approval")).toBe(
-      "Without asking",
+    expect(await fixOf(card, "Fix checkout")).toBe(
+      "Without asking Its runbooks, every time",
     );
   });
 
@@ -548,6 +583,14 @@ test.describe("the Fix step", () => {
     const dialog: Locator = await openFixStep(page, card);
     await openMoreFields(dialog);
 
+    // Where a Runner is added, in a new tab, so the rule being made stays.
+    const help: Locator = dialog.getByTestId(RUNNER_HELP_TEST_ID);
+    await expect(help).toHaveText(ADD_RUNNER_HELP);
+    await expect(
+      help.getByRole("link", { name: "Runbooks › Runners" }),
+    ).toHaveAttribute("target", "_blank");
+    await screenshot(page, "no-runners");
+
     await runnerPicker(dialog).click();
 
     const options: Array<string> = await page
@@ -568,27 +611,72 @@ test.describe("rules saved before", () => {
     const card: Locator = await openRulesCard(page, { query: "rules=saved" });
     await expect(card.locator("tbody tr")).toHaveCount(4);
 
-    expect(await cellOf(card, "Restart checkout every time", "Fixed by")).toBe(
-      "Its runbooks, every time",
+    // One Fix column: no "Fixed by" saying OneUptime AI on every row.
+    const headers: Array<string> = (
+      await card.locator("thead th").allInnerTexts()
+    ).map((text: string): string => {
+      return text.trim();
+    });
+    expect(headers).toContain("Fix");
+    expect(headers).not.toContain("Fixed by");
+    expect(headers).not.toContain("Approval");
+
+    expect(await fixOf(card, "Fix database incidents")).toBe("Asks first");
+    expect(await fixOf(card, "Restart checkout every time")).toBe(
+      "Without asking Its runbooks, every time",
     );
-    expect(await cellOf(card, "Fix database incidents", "Fixed by")).toBe(
-      "OneUptime AI",
-    );
-    expect(await cellOf(card, "Commands on the bastion", "Fixed by")).toBe(
-      "OneUptime AI: commands on Runners",
-    );
-    expect(await cellOf(card, "AI picks a runbook", "Fixed by")).toBe(
-      "OneUptime AI: picks a runbook",
+    expect(await fixOf(card, "Commands on the bastion")).toBe(
+      "Asks first OneUptime AI: commands on Runners",
     );
     // A runbook AI picks for such a rule is always proposed.
-    expect(await cellOf(card, "AI picks a runbook", "Approval")).toBe(
-      "Asks first",
-    );
-    expect(await cellOf(card, "Restart checkout every time", "Approval")).toBe(
-      "Without asking",
+    expect(await fixOf(card, "AI picks a runbook")).toBe(
+      "Asks first OneUptime AI: picks a runbook",
     );
 
     await screenshot(page, "rules-saved");
+  });
+
+  test("the table fits its card beside the side menu at 1280px: Status never sits under the row actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * The Dashboard's side menu and gaps leave the page about 940px at a
+     * 1280px window; this fixture has no side menu, so a 1000px window
+     * gives its card the same width.
+     */
+    await page.setViewportSize({ width: 1000, height: 900 });
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    await expect(card.locator("tbody tr")).toHaveCount(4);
+
+    const layout: {
+      scroll: number;
+      client: number;
+      statusRight: number;
+      actionsLeft: number;
+    } = await card.evaluate((element: Element) => {
+      const table: HTMLTableElement = element.querySelector("table")!;
+      const scroller: HTMLElement = table.parentElement!;
+      const headers: Array<HTMLElement> = Array.from(
+        element.querySelectorAll("thead th"),
+      ) as Array<HTMLElement>;
+      const status: HTMLElement = headers.find((th: HTMLElement) => {
+        return (th.innerText || "").trim() === "Status";
+      })!;
+      const actions: HTMLElement = headers[headers.length - 1]!;
+
+      return {
+        scroll: scroller.scrollWidth,
+        client: scroller.clientWidth,
+        statusRight: status.getBoundingClientRect().right,
+        actionsLeft: actions.getBoundingClientRect().left,
+      };
+    });
+
+    expect(layout.scroll).toBeLessThanOrEqual(layout.client + 1);
+    expect(layout.statusRight).toBeLessThanOrEqual(layout.actionsLeft + 1);
+    await screenshot(page, "rules-saved-1280");
   });
 
   test("a rule that runs its runbooks every time opens with them, the switch on and no Runner, and keeps doing so", async ({
@@ -648,7 +736,7 @@ test.describe("rules saved before", () => {
     await screenshot(page, "edit-ai-with-runner");
 
     await pickOption(page, runnerPicker(dialog), new RegExp(`^${NO_RUNNER}`));
-    await expect(dialog).toContainText(NO_RUNNER_HELP);
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
 
     await dialog.getByRole("button", { name: "Save Changes" }).click();
     await expect(dialog).toBeHidden();
@@ -664,6 +752,122 @@ test.describe("rules saved before", () => {
     expect(update!.data["runnerId"] || null).toBeNull();
     expect(idsOf(update!.data["runbooks"])).toEqual(
       [RUNBOOK_IDS["failoverDatabase"]!, RUNBOOK_IDS["clearCache"]!].sort(),
+    );
+  });
+
+  test("an older rule that composes commands says so first, keeps its Runner, and saves as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Commands on the bastion",
+    );
+
+    // What it still does, first on the step.
+    const note: Locator = dialog.getByTestId(OLDER_RULE_TEST_ID);
+    await expect(note).toContainText(OLDER_COMMANDS_NOTE);
+    await expect(
+      note.getByRole("button", { name: FIX_LIKE_A_NEW_RULE }),
+    ).toBeVisible();
+    // Asking first still applies to its commands; its runbooks never do.
+    await expect(
+      dialog.getByRole("radio", { name: /^Ask before fixing/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    await openMoreFields(dialog);
+    await expect(runbooksPicker(dialog)).toHaveCount(0);
+    await expect(everyTimeSwitch(dialog)).toHaveCount(0);
+    await expect(dialog).toContainText("office-runner · Never connected");
+    await screenshot(page, "edit-older-commands");
+
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const update: Recorded["updates"][number] | undefined = sent.updates.find(
+      (candidate: Recorded["updates"][number]): boolean => {
+        return candidate.id === SAVED_RULE_IDS["commands"];
+      },
+    );
+    expect(update).toBeDefined();
+    // Saved as it was: still an older rule that composes commands.
+    expect(update!.data["aiComposesCommands"]).toBe(true);
+    expect(update!.data["aiSelectsRunbook"]).toBe(false);
+    expect(idOfValue(update!.data["runnerId"])).toBe(RUNNER_IDS["office"]);
+    expect(await fixOf(card, "Commands on the bastion")).toBe(
+      "Asks first OneUptime AI: commands on Runners",
+    );
+  });
+
+  test("an older rule that picks a runbook: no Approval or Runner that would do nothing, and Fix like a new rule makes it a new rule that asks first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(page, card, "AI picks a runbook");
+
+    const note: Locator = dialog.getByTestId(OLDER_RULE_TEST_ID);
+    await expect(note).toContainText(OLDER_PICKS_NOTE);
+    // It always asks: the question would only contradict the table.
+    await expect(
+      dialog.getByRole("radio", { name: /^Fix without asking/ }),
+    ).toHaveCount(0);
+    await expect(moreFieldsButton(dialog)).toContainText("Runbooks");
+    await expect(moreFieldsButton(dialog)).not.toContainText("Runner");
+    await screenshot(page, "edit-older-picks");
+
+    await note.getByRole("button", { name: FIX_LIKE_A_NEW_RULE }).click();
+
+    // Now a rule like any new one: the note gone, every field back, asking first.
+    await expect(note).toHaveCount(0);
+    await expect(
+      dialog.getByRole("radio", { name: /^Ask before fixing/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(dialog).toContainText(DEFAULTS_SUMMARY);
+    await openMoreFields(dialog);
+    await expect(runnerPicker(dialog)).toBeVisible();
+    await screenshot(page, "edit-older-picks-fixed");
+
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const update: Recorded["updates"][number] | undefined = sent.updates.find(
+      (candidate: Recorded["updates"][number]): boolean => {
+        return candidate.id === SAVED_RULE_IDS["picks"];
+      },
+    );
+    expect(update).toBeDefined();
+    expect(update!.data["aiSelectsRunbook"]).toBe(false);
+    expect(update!.data["aiComposesCommands"]).toBe(false);
+    expect(update!.data["remediationAction"]).toBe("OneUptimeAI");
+    // It fixed without asking on paper; made new, it asks until told not to.
+    expect(update!.data["executionMode"]).toBe("Suggest");
+    expect(await fixOf(card, "AI picks a runbook")).toBe("Asks first");
+  });
+
+  test("Cancel leaves an older rule as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(page, card, "AI picks a runbook");
+
+    await dialog
+      .getByTestId(OLDER_RULE_TEST_ID)
+      .getByRole("button", { name: FIX_LIKE_A_NEW_RULE })
+      .click();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+
+    expect((await recorded(page)).updates).toEqual([]);
+    expect(await fixOf(card, "AI picks a runbook")).toBe(
+      "Asks first OneUptime AI: picks a runbook",
     );
   });
 });

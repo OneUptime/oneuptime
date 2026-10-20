@@ -1240,7 +1240,7 @@ class KubernetesClusterAiAccessServiceClass {
         code: "runner_ai_commands_disabled",
         title: "The Runner does not accept AI commands",
         description: `Runner "${runner.name}" does not run OneUptime AI's commands yet, so it will not be served kubectl work.`,
-        nextStep: `Unbind the Runner and bind it again on ${CLUSTER_AI_AGENT_PAGE}: binding a Runner lets OneUptime AI run kubectl on it.`,
+        nextStep: `Choose the Runner again on ${CLUSTER_AI_AGENT_PAGE} to let OneUptime AI run kubectl on it.`,
         blocks: "both",
       });
     }

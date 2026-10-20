@@ -6,7 +6,10 @@ import {
   RunnerPickerWork,
 } from "../Runner/RunnerPickerModel";
 import useRefreshRunnerChoicesOnFocus from "../Runner/useRefreshRunnerChoicesOnFocus";
-import { AUTO_REMEDIATION_MORE_FIELDS_COPY } from "./AutoRemediationRuleCopy";
+import {
+  AUTO_REMEDIATION_MORE_FIELDS_COPY,
+  AUTO_REMEDIATION_OLDER_RULE_COPY,
+} from "./AutoRemediationRuleCopy";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import { getRuleRunnerId } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import ObjectID from "Common/Types/ObjectID";
@@ -34,6 +37,10 @@ import React, {
  *   - RunbooksEveryTimeSwitch: "Run them every time", the one older choice
  *     kept, folded away: the rule starts every runbook it names for every
  *     match, without OneUptime AI deciding (remediationAction Runbooks).
+ *
+ * And, at the top of the Fix step of a rule saved before rules were
+ * simplified, OlderAutoRemediationRuleNote: what the rule still does, and
+ * "Fix like a new rule".
  */
 
 export const AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID: string =
@@ -44,6 +51,9 @@ export const AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID: string =
 
 export const AUTO_REMEDIATION_EVERY_TIME_TEST_ID: string =
   "auto-remediation-every-time";
+
+export const AUTO_REMEDIATION_OLDER_RULE_TEST_ID: string =
+  "auto-remediation-older-rule";
 
 // The choices of a rule's Runner picker, read now and when the tab is back.
 export function useAutoRemediationRunnerChoices(): RunnerChoices | null {
@@ -71,6 +81,7 @@ export function useAutoRemediationRunnerChoices(): RunnerChoices | null {
             projectRunners: [],
             globalRunners: [],
             projectUsesGlobalRunners: true,
+            areProjectRunnersUnread: true,
           });
         }
       });
@@ -172,5 +183,46 @@ export const RunbooksEveryTimeSwitch: FunctionComponent<
       }}
       dataTestId={AUTO_REMEDIATION_EVERY_TIME_TEST_ID}
     />
+  );
+};
+
+export interface OlderAutoRemediationRuleNoteProps {
+  // What the rule does, as AUTO_REMEDIATION_OLDER_RULE_COPY says it.
+  text: string;
+  onFixLikeANewRule: () => void;
+}
+
+/*
+ * A rule saved before rules were simplified still has OneUptime AI do only
+ * what it did then - compose commands on its Runners, or pick one of its
+ * runbooks and ask first - so its Fix step says so where the question it
+ * does not answer would be, and offers to make it fix like a new rule. The
+ * rule changes only when the dialog is saved.
+ */
+export const OlderAutoRemediationRuleNote: FunctionComponent<
+  OlderAutoRemediationRuleNoteProps
+> = (props: OlderAutoRemediationRuleNoteProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div
+      role="group"
+      className="flex flex-col items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+      data-testid={AUTO_REMEDIATION_OLDER_RULE_TEST_ID}
+    >
+      <p className="text-sm text-gray-700">
+        {translator.translateText(props.text)}
+      </p>
+      <button
+        type="button"
+        onClick={props.onFixLikeANewRule}
+        className="flex-none rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        data-testid={`${AUTO_REMEDIATION_OLDER_RULE_TEST_ID}-fix-like-new`}
+      >
+        {translator.translateText(
+          AUTO_REMEDIATION_OLDER_RULE_COPY.fixLikeANewRule,
+        )}
+      </button>
+    </div>
   );
 };

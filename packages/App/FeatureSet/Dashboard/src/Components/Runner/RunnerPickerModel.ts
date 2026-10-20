@@ -131,9 +131,14 @@ export const REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
   "No Runner of yours: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
 );
 
-// Under a rule's picker that picked none.
-export const REMEDIATION_NO_RUNNER_HELPER_TEXT: string = translationKey(
-  "OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host. Pick one of your Runners to let it run commands there too.",
+/*
+ * Under a rule's picker that picked none, in a project with no Runner of its
+ * own to pick ({{location}}: a link to Runbooks › Runners). With Runners to
+ * pick from, nothing is said under it: the choice and the field's own line
+ * say it.
+ */
+export const REMEDIATION_ADD_RUNNER_TEMPLATE: string = translationKey(
+  "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.",
 );
 
 // Under a rule's picker on one of the project's own Runners.

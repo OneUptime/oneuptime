@@ -9,7 +9,7 @@ const output = path.join(
   repository,
   "output/playwright/auto-remediation-rules-ui/fixture",
 );
-const port = Number(process.env.AUTO_REMEDIATION_RULES_FIXTURE_PORT || 4391);
+const port = Number(process.env.AUTO_REMEDIATION_RULES_FIXTURE_PORT || 4395);
 const config = createConfig({
   serviceName: "auto-remediation-rules-fixture",
   publicPath: "/dist/",

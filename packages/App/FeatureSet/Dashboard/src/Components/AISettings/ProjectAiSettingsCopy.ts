@@ -166,12 +166,13 @@ const GITHUB_APP_NOTE: string = translationKey(
  * Fixing starts off: it changes infrastructure, so a project turns it on
  * itself (ProjectService leaves it, and the pull requests under it, out of
  * the new project's AI defaults). Rules under More settings narrow it. Who
- * approves what: the AI agent's settings decide for its own fixes, and a
- * runbook OneUptime AI picks is proposed unless a rule that fixes without
- * asking names it (Common/Types/AutoRemediation/AutoRemediationFix).
+ * approves what, in one sentence: the AI agent's settings decide for its own
+ * fixes, and a runbook OneUptime AI picks is proposed unless a rule that
+ * fixes without asking names it - or runs it every time
+ * (Common/Types/AutoRemediation/AutoRemediationFix).
  */
 const REMEDIATION_NOTE: string = translationKey(
-  "The AI agent's settings decide if its fixes wait for approval. A runbook OneUptime AI picks waits for yours unless a rule allows it.",
+  "Nothing runs without approval unless the AI agent's settings or a rule allow it.",
 );
 
 // What each pull request's switch says: the same for incidents and alerts.

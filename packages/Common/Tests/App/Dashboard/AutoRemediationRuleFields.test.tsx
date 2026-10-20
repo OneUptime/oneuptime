@@ -32,11 +32,14 @@ jest.mock("react-i18next", () => {
 
 import {
   AUTO_REMEDIATION_EVERY_TIME_TEST_ID,
+  AUTO_REMEDIATION_OLDER_RULE_TEST_ID,
   AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID,
   AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID,
   AutoRemediationRunnerPicker,
+  OlderAutoRemediationRuleNote,
   RunbooksEveryTimeSwitch,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields";
+import { AUTO_REMEDIATION_OLDER_RULE_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
@@ -45,8 +48,8 @@ import {
   GLOBAL_RUNNER_CHOICE_LABEL,
   REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT,
   REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
+  REMEDIATION_ADD_RUNNER_TEMPLATE,
   REMEDIATION_NO_RUNNER_CHOICE_LABEL,
-  REMEDIATION_NO_RUNNER_HELPER_TEXT,
   REMEDIATION_OWN_RUNNER_HELPER_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -67,8 +70,17 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * never the in-cluster ones the Kubernetes agent chart installed. Picking
  * one is what lets OneUptime AI run commands on it.
  *
+ * Under the picker, a line only where it says something the choice does
+ * not: what OneUptime AI may do on a Runner picked, that the reader may not
+ * see the Runner a rule picks - and, in a project with no Runner of its
+ * own, where one is added. With Runners to pick from, a rule that picks
+ * none needs no line: its choice and the field's own line say it.
+ *
  * Run them every time: the switch that keeps a rule starting every runbook
  * it names for every match, without OneUptime AI deciding.
+ *
+ * An older rule's note: what a rule saved before rules were simplified
+ * still does, and "Fix like a new rule".
  */
 
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-000000000001";
@@ -142,6 +154,12 @@ function help(): HTMLElement {
   return screen.getByTestId(`${AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID}-help`);
 }
 
+function noHelp(): void {
+  expect(
+    screen.queryByTestId(`${AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID}-help`),
+  ).toBeNull();
+}
+
 let loadSpy: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
@@ -187,14 +205,34 @@ describe("a rule's Runner", () => {
     expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
   });
 
-  test("a rule that picked none shows the AI agent, picked, and says what it means", async () => {
+  test("a rule that picked none shows the AI agent, picked, with no line repeating what the choice says", async () => {
     await renderRunnerField(null);
 
     expect(shown()).toBe("AI agent on the cluster or host");
-    expect(help()).toHaveTextContent(REMEDIATION_NO_RUNNER_HELPER_TEXT);
-    expect(help()).toHaveTextContent(
-      "OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host. Pick one of your Runners to let it run commands there too.",
+    noHelp();
+  });
+
+  test("a project with no Runner of its own is told where to add one, opened in a new tab", async () => {
+    loadSpy.mockResolvedValue({
+      ...choices(),
+      projectRunners: [],
+    } as never);
+
+    await renderRunnerField(null);
+
+    expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    expect(REMEDIATION_ADD_RUNNER_TEMPLATE).toBe(
+      "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.",
     );
+    expect(help()).toHaveTextContent(
+      "Add a Runner under Runbooks › Runners for OneUptime AI to run commands on, then pick it here.",
+    );
+
+    const link: HTMLElement = within(help()).getByTestId(
+      `${AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID}-runners-link`,
+    );
+    expect(link).toHaveTextContent("Runbooks › Runners");
+    expect(link).toHaveAttribute("target", "_blank");
   });
 
   test("offers the AI agent first, never Global Runner, then the project's own Runners with how each is doing", async () => {
@@ -255,13 +293,27 @@ describe("a rule's Runner", () => {
     );
   });
 
-  test("without the Runners, it still shows the rule's choice: none", async () => {
+  test("without the Runners, it still shows the rule's choice: none - and never says to add a Runner the project may have", async () => {
     loadSpy.mockRejectedValue(new Error("offline") as never);
 
     await renderRunnerField(null);
 
     expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    noHelp();
     expect(openMenu()).toHaveLength(1);
+  });
+
+  test("a reader who may not read Runners is not told to add one either", async () => {
+    loadSpy.mockResolvedValue({
+      ...choices(),
+      projectRunners: [],
+      areProjectRunnersUnread: true,
+    } as never);
+
+    await renderRunnerField(null);
+
+    expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    noHelp();
   });
 
   test("reads the choices again when the tab comes back, so a Runner just added can be picked", async () => {
@@ -328,6 +380,7 @@ describe("the choices a rule is offered", () => {
       }),
     ).toEqual(["prod-eu-runner"]);
     expect(loaded.globalRunners).toEqual([]);
+    expect(loaded.areProjectRunnersUnread).toBe(false);
     // One read, of the project's Runners: never the global Runners' route.
     expect(getList).toHaveBeenCalledTimes(1);
     expect(
@@ -353,6 +406,8 @@ describe("the choices a rule is offered", () => {
 
     expect(loaded.projectRunners).toEqual([]);
     expect(loaded.globalRunners).toEqual([]);
+    // Not known to have none: the picker does not say to add one.
+    expect(loaded.areProjectRunnersUnread).toBe(true);
   });
 });
 
@@ -411,5 +466,36 @@ describe("Run them every time", () => {
     render(<EveryTimeHarness initialValue={AutoRemediationAction.Runbooks} />);
 
     expect(toggle()).toHaveAttribute("aria-checked", "true");
+  });
+});
+
+describe("an older rule's note", () => {
+  test("says what the rule still does, with one button to make it fix like a new rule", () => {
+    const fixLikeANewRule: Array<string> = [];
+
+    render(
+      <OlderAutoRemediationRuleNote
+        text={AUTO_REMEDIATION_OLDER_RULE_COPY.commandsOnRunners}
+        onFixLikeANewRule={(): void => {
+          fixLikeANewRule.push("clicked");
+        }}
+      />,
+    );
+
+    const note: HTMLElement = screen.getByTestId(
+      AUTO_REMEDIATION_OLDER_RULE_TEST_ID,
+    );
+    expect(note).toHaveTextContent(
+      "This older rule only has OneUptime AI run commands on its Runners.",
+    );
+
+    const button: HTMLElement = within(note).getByRole("button", {
+      name: "Fix like a new rule",
+    });
+    // A button of its own, never one that submits the rule's form.
+    expect(button).toHaveAttribute("type", "button");
+
+    fireEvent.click(button);
+    expect(fixLikeANewRule).toEqual(["clicked"]);
   });
 });

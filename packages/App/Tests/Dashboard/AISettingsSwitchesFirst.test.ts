@@ -279,13 +279,13 @@ describe("every AI behaviour is a switch", () => {
       expect(fix.description).toContain("through the AI agent");
       expect(fix.description).toContain("or with one of your runbooks");
       /*
-       * Who decides whether a fix waits: that agent's settings, and for a
-       * runbook OneUptime AI picks, a rule that fixes without asking.
+       * Who decides whether a fix waits, in one sentence: that agent's
+       * settings, or a rule (one that fixes without asking and names a
+       * runbook, or runs its runbooks every time).
        */
-      expect(fix.note).toContain(
-        "The AI agent's settings decide if its fixes wait for approval.",
+      expect(fix.note).toBe(
+        "Nothing runs without approval unless the AI agent's settings or a rule allow it.",
       );
-      expect(fix.note).toContain("unless a rule allows it");
     }
   });
 

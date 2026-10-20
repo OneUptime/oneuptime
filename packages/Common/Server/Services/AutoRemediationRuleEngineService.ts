@@ -18,6 +18,7 @@ import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoR
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import AutoRemediationAction from "../../Types/AutoRemediation/AutoRemediationAction";
 import {
+  DEFAULT_RUNBOOK_PICK_NAME,
   getRuleRunbookIds,
   getRuleRunnerId,
   isOneUptimeAiFixRule,
@@ -398,13 +399,6 @@ function isRoundOrderedBefore(
 
   return (row.id?.toString() || "") < (reference.suggestionId.toString() || "");
 }
-
-/*
- * What a runbook pick made for no rule - the project's default, when no
- * rule is set up - carries as its rule name, where a rule's pick carries
- * the rule's: the Remediation card and the feed name OneUptime AI.
- */
-export const DEFAULT_RUNBOOK_PICK_NAME: string = "OneUptime AI";
 
 /*
  * Is this the project's default runbook pick (no rule set up)? The one

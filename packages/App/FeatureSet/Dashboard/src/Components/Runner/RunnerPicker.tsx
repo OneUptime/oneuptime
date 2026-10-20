@@ -31,8 +31,8 @@ import {
   GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
   REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT,
   REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
+  REMEDIATION_ADD_RUNNER_TEMPLATE,
   REMEDIATION_NO_RUNNER_CHOICE_LABEL,
-  REMEDIATION_NO_RUNNER_HELPER_TEXT,
   RunnerPickerModel,
   RunnerPickerOption,
   RunnerPickerOptionKind,
@@ -253,8 +253,26 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   };
 
   const renderHelperText: () => ReactNode = (): ReactNode => {
+    /*
+     * A rule that picked no Runner: the choice and the field's line say what
+     * that does. With no Runner to pick, where one is added.
+     */
     if (model.outcome === RunnerPickerOutcome.NoRunner) {
-      return translator.translateText(REMEDIATION_NO_RUNNER_HELPER_TEXT);
+      if (
+        props.choices.projectRunners.length > 0 ||
+        props.choices.areProjectRunnersUnread
+      ) {
+        return null;
+      }
+
+      return (
+        <TranslatedSentence
+          template={REMEDIATION_ADD_RUNNER_TEMPLATE}
+          slots={{
+            location: runnersLocation,
+          }}
+        />
+      );
     }
 
     if (
@@ -320,6 +338,8 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   // A form's lines are its descriptions' size; a step's are smaller.
   const lineClassName: string = props.isFormField ? "text-sm" : "text-xs";
 
+  const helperText: ReactNode = renderHelperText();
+
   return (
     <div data-testid={dataTestId}>
       {props.isFormField ? (
@@ -358,14 +378,18 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
               props.onChange(id);
             }}
           />
-          <p
-            className={`${lineClassName} text-gray-500 ${
-              props.isFormField ? "mt-2" : "mt-1.5"
-            }`}
-            data-testid={`${dataTestId}-help`}
-          >
-            {renderHelperText()}
-          </p>
+          {helperText ? (
+            <p
+              className={`${lineClassName} text-gray-500 ${
+                props.isFormField ? "mt-2" : "mt-1.5"
+              }`}
+              data-testid={`${dataTestId}-help`}
+            >
+              {helperText}
+            </p>
+          ) : (
+            <></>
+          )}
           {isGlobalRunnerChoiceWaiting(model) ? (
             <p
               className={`${lineClassName} text-amber-700 mt-1`}

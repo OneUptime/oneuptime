@@ -365,7 +365,7 @@ cd packages/E2E
 CI=1 npm run test-auto-remediation-rules-ui
 ```
 
-The fixture (`AutoRemediationRules/Fixture`, port 4391) renders the real AI
+The fixture (`AutoRemediationRules/Fixture`, port 4395) renders the real AI
 settings pages, the rules table, its create and edit dialogs and the Runner
 picker, and records what the page sends. It covers the Fix step asking only
 whether a fix waits for approval, More fields folded with the runbooks

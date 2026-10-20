@@ -1825,8 +1825,8 @@ describe("Needs attention, from the server's own statuses", () => {
         [
           [
             "runner_ai_commands_disabled",
-            "With Change below, clear the Runner and choose it again: choosing a Runner is what lets OneUptime AI run kubectl on it.",
-            "view_runner",
+            "Choose the Runner again to let OneUptime AI run kubectl on it.",
+            "choose_runner_again",
           ],
         ],
       ],

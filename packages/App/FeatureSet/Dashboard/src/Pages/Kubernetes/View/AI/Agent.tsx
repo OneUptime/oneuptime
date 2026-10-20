@@ -1560,6 +1560,39 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         ) : (
           renderAsk()
         );
+      case "choose_runner_again":
+        return status.runner && settingsGate.isAllowed ? (
+          <Button
+            title="Choose it again"
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            isLoading={isActing}
+            disabled={isActing}
+            dataTestId="ai-agent-gap-choose-runner-again"
+            onClick={() => {
+              const runnerId: string = status.runner!.id;
+
+              runPageAction({
+                run: async (): Promise<void> => {
+                  /*
+                   * The Runner the cluster is bound to, chosen again: what
+                   * lets OneUptime AI run kubectl on it now, with the same
+                   * check a new choice gets (RunnerAiCommandsPick).
+                   */
+                  await updateCluster({ aiAccessRunnerId: runnerId });
+                },
+                notice: translationKey(
+                  "OneUptime AI may now run kubectl on this Runner.",
+                ),
+                isConfirmed: false,
+              }).catch(() => {
+                // handled inside runPageAction
+              });
+            }}
+          />
+        ) : (
+          renderAsk()
+        );
       case "test_connection":
         return testGate.isAllowed ? (
           <Button

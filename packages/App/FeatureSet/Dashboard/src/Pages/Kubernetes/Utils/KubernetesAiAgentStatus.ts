@@ -677,6 +677,11 @@ export type AiAgentGapAction =
   | "open_llm_providers"
   | "open_ai_credits"
   | "view_runner"
+  /*
+   * A bound Runner chosen before choosing one was what lets OneUptime AI
+   * run kubectl on it: one click chooses it again (RunnerAiCommandsPick).
+   */
+  | "choose_runner_again"
   | "test_connection";
 
 export function getAiAgentGapAction(
@@ -703,8 +708,10 @@ export function getAiAgentGapAction(
       return "open_ai_credits";
     case "last_access_check_failed":
       return status.runner ? "test_connection" : null;
-    case "runner_offline":
     case "runner_ai_commands_disabled":
+      // The Runner has no switch for it: choosing it here is the consent.
+      return isAdvancedRunnerTarget(status) ? "choose_runner_again" : null;
+    case "runner_offline":
     case "runner_cluster_mismatch":
     case "credential_missing":
     case "credential_on_agent_runner":
@@ -810,7 +817,7 @@ function getRunnerStepText(
       );
     case "runner_ai_commands_disabled":
       return translateTemplate(
-        "With Change below, clear the Runner and choose it again: choosing a Runner is what lets OneUptime AI run kubectl on it.",
+        "Choose the Runner again to let OneUptime AI run kubectl on it.",
       );
     case "credential_on_agent_runner":
       return translateTemplate(

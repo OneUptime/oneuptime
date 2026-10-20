@@ -11,7 +11,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import { translateText } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
 import { FOLDED_SECTION_ON } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -22,7 +22,9 @@ import Runbook from "Common/Models/DatabaseModels/Runbook";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
-import { Blue, Green, Purple, Red, Yellow } from "Common/Types/BrandColors";
+import { AutoRemediationFixKind } from "Common/Types/AutoRemediation/AutoRemediationFix";
+import { Blue, Green, Red, Yellow } from "Common/Types/BrandColors";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
@@ -42,12 +44,18 @@ import {
   AutoRemediationFixWith,
   doesAutoRemediationRuleAskFirst,
   getAutoRemediationFixWith,
+  getAutoRemediationFixWithText,
   getAutoRemediationMoreFieldsSummary,
+  getEditedRuleFixKind,
+  getOlderAutoRemediationRuleText,
+  getValuesFixingLikeANewRule,
   hasRuleRunbooks,
+  isOlderAutoRemediationRule,
   isRunbooksEveryTime,
 } from "./AutoRemediationRuleCopy";
 import {
   AutoRemediationRunnerPicker,
+  OlderAutoRemediationRuleNote,
   RunbooksEveryTimeSwitch,
 } from "./AutoRemediationRuleFields";
 
@@ -95,30 +103,59 @@ export const AI_LANE_REMEDIATION_RULE_TRIGGER: Record<
  * What the old fields hold on a rule saved before rules were simplified is
  * kept and still used (AutoRemediationRuleEngineService): the form never
  * sends them, so editing a rule's name or conditions does not change how it
- * fixes. The table names those rules for what they still do.
+ * fixes. The table names those rules for what they still do, and such a
+ * rule's Fix step says what it does - in place of the fields that do
+ * nothing for it - with "Fix like a new rule" (OlderAutoRemediationRuleNote).
  */
 
-const FIX_WITH_PILLS: Record<
-  AutoRemediationFixWith,
-  { text: string; color: typeof Blue }
-> = {
-  [AutoRemediationFixWith.OneUptimeAi]: {
-    text: AUTO_REMEDIATION_FIX_WITH_TEXT.oneUptimeAi,
-    color: Purple,
-  },
-  [AutoRemediationFixWith.Runbooks]: {
-    text: AUTO_REMEDIATION_FIX_WITH_TEXT.runbooks,
-    color: Blue,
-  },
-  [AutoRemediationFixWith.RunnerCommands]: {
-    text: AUTO_REMEDIATION_FIX_WITH_TEXT.runnerCommands,
-    color: Purple,
-  },
-  [AutoRemediationFixWith.AiPickedRunbook]: {
-    text: AUTO_REMEDIATION_FIX_WITH_TEXT.aiPickedRunbook,
-    color: Purple,
-  },
+export interface AutoRemediationRuleFixCellProps {
+  rule: AutoRemediationRule;
+}
+
+/*
+ * The table's Fix column: whether the rule asks first and, in a quiet line
+ * under it, how it fixes - only for a rule that does not fix the way every
+ * new rule does (its runbooks every time, or an older rule's one thing).
+ * One column, so the table fits the card beside its row actions, with no
+ * "OneUptime AI" on every row; the line wraps rather than widen the table.
+ */
+export const AutoRemediationRuleFixCell: FunctionComponent<
+  AutoRemediationRuleFixCellProps
+> = (props: AutoRemediationRuleFixCellProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const fixWith: string | null = getAutoRemediationFixWithText(props.rule);
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      {doesAutoRemediationRuleAskFirst(props.rule) ? (
+        <Pill color={Blue} text={AUTO_REMEDIATION_APPROVAL_TEXT.asksFirst} />
+      ) : (
+        <Pill
+          color={Yellow}
+          text={AUTO_REMEDIATION_APPROVAL_TEXT.withoutAsking}
+        />
+      )}
+      {fixWith ? (
+        <span
+          className="whitespace-normal text-xs text-gray-500"
+          data-testid="auto-remediation-rule-fixed-with"
+        >
+          {translator.translateText(fixWith)}
+        </span>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
 };
+
+// The older rule being edited does nothing with this field.
+function isUnusedByOlderRule(
+  values: FormValues<AutoRemediationRule>,
+  kind: AutoRemediationFixKind,
+): boolean {
+  return getEditedRuleFixKind(values) === kind;
+}
 
 /*
  * The Fix step's More fields: one section, built once, for the fields that
@@ -216,31 +253,11 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
       columns={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
-          field: { remediationAction: true },
-          title: "Fixed by",
-          type: FieldType.Text,
-          getElement: (item: AutoRemediationRule): ReactElement => {
-            const pill: { text: string; color: typeof Blue } =
-              FIX_WITH_PILLS[getAutoRemediationFixWith(item)];
-            return <Pill color={pill.color} text={pill.text} />;
-          },
-        },
-        {
           field: { executionMode: true },
-          title: "Approval",
+          title: "Fix",
           type: FieldType.Text,
           getElement: (item: AutoRemediationRule): ReactElement => {
-            return doesAutoRemediationRuleAskFirst(item) ? (
-              <Pill
-                color={Blue}
-                text={AUTO_REMEDIATION_APPROVAL_TEXT.asksFirst}
-              />
-            ) : (
-              <Pill
-                color={Yellow}
-                text={AUTO_REMEDIATION_APPROVAL_TEXT.withoutAsking}
-              />
-            );
+            return <AutoRemediationRuleFixCell rule={item} />;
           },
         },
         {
@@ -375,6 +392,69 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           required: false,
           placeholder: "timeout|connection refused",
         },
+        /*
+         * The two flags a rule saved before rules were simplified holds,
+         * never drawn: registered so an older rule's edit reads them, says
+         * what the rule does, and can clear them (Fix like a new rule).
+         */
+        {
+          field: { aiComposesCommands: true },
+          title: "Let AI Compose Commands",
+          stepId: "remediation",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          showIf: (): boolean => {
+            return false;
+          },
+        },
+        {
+          field: { aiSelectsRunbook: true },
+          title: "Let AI Pick the Runbook",
+          stepId: "remediation",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          showIf: (): boolean => {
+            return false;
+          },
+        },
+        {
+          // An older rule says what it still does, first on the step.
+          overrideField: { aiComposesCommands: true },
+          overrideFieldKey: "olderRuleNote",
+          formOnly: true,
+          stepId: "remediation",
+          fieldType: FormFieldSchemaType.CustomComponent,
+          customElementDrawsOwnLabel: true,
+          required: false,
+          dataTestId: "auto-remediation-older-rule-field",
+          showIf: isOlderAutoRemediationRule,
+          onChange: (
+            _value: unknown,
+            currentValues: FormValues<AutoRemediationRule>,
+            setNewFormValues: (values: FormValues<AutoRemediationRule>) => void,
+          ): void => {
+            setNewFormValues(getValuesFixingLikeANewRule(currentValues));
+          },
+          getCustomElement: (
+            values: FormValues<AutoRemediationRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            const text: string | null = getOlderAutoRemediationRuleText(values);
+
+            if (!text) {
+              return <></>;
+            }
+
+            return (
+              <OlderAutoRemediationRuleNote
+                text={text}
+                onFixLikeANewRule={(): void => {
+                  elementProps.onChange?.(true);
+                }}
+              />
+            );
+          },
+        },
         {
           // Ask first: the one question the Fix step asks up front.
           field: { executionMode: true },
@@ -387,6 +467,13 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           required: true,
           defaultValue: AutoRemediationExecutionMode.Suggest,
           dataTestId: "auto-remediation-approval-field",
+          // An older rule that picks a runbook always asks first: not a choice.
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return !isUnusedByOlderRule(
+              values,
+              AutoRemediationFixKind.AiPicksRunbook,
+            );
+          },
         },
         {
           // The runbooks OneUptime AI may run: none picked is any runbook.
@@ -407,6 +494,13 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           hideOptionalLabel: true,
           placeholder: AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksPlaceholder,
           dataTestId: "auto-remediation-runbooks-field",
+          // An older rule that composes commands runs no runbook.
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return !isUnusedByOlderRule(
+              values,
+              AutoRemediationFixKind.CommandsOnRunners,
+            );
+          },
         },
         {
           // "Run them every time": the rule's Fix With, Runbooks when on.
@@ -421,9 +515,16 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           required: false,
           defaultValue: AutoRemediationAction.OneUptimeAI,
           dataTestId: "auto-remediation-every-time-field",
-          // Shown once there are runbooks to run - or for a rule that runs them.
+          /*
+           * Shown once there are runbooks to run - or for a rule that runs
+           * them; an older rule does what its note says until it is made
+           * to fix like a new rule.
+           */
           showIf: (values: FormValues<AutoRemediationRule>): boolean => {
-            return hasRuleRunbooks(values) || isRunbooksEveryTime(values);
+            return (
+              (hasRuleRunbooks(values) || isRunbooksEveryTime(values)) &&
+              !isOlderAutoRemediationRule(values)
+            );
           },
           getFoldedValue: (
             values: FormValues<AutoRemediationRule>,
@@ -461,9 +562,18 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           // Empty is an answer of its own - the AI agents - not "(Optional)".
           hideOptionalLabel: true,
           dataTestId: "auto-remediation-runner-field",
-          // A rule that runs its runbooks every time composes no commands.
+          /*
+           * A rule that runs its runbooks every time composes no commands,
+           * nor does an older rule that picks a runbook.
+           */
           showIf: (values: FormValues<AutoRemediationRule>): boolean => {
-            return !isRunbooksEveryTime(values);
+            return (
+              !isRunbooksEveryTime(values) &&
+              !isUnusedByOlderRule(
+                values,
+                AutoRemediationFixKind.AiPicksRunbook,
+              )
+            );
           },
           getCustomElement: (
             values: FormValues<AutoRemediationRule>,

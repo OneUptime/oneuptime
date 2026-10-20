@@ -214,6 +214,33 @@ export function doesRuleRunCommandsOnRunners(
 }
 
 /*
+ * What a runbook pick made for no rule - the project's default, when no
+ * rule is set up - carries as its rule name, where a rule's pick carries
+ * the rule's. The feed names OneUptime AI, and the Remediation card names
+ * it as it is, not as a rule (isProjectRunbookPick).
+ */
+export const DEFAULT_RUNBOOK_PICK_NAME: string = "OneUptime AI";
+
+/*
+ * Whether a suggestion is the project's own runbook pick, for a reader that
+ * names it: no rule, no cluster and no resource, and the name the project's
+ * pick carries - a pick whose rule was deleted since keeps its rule's name.
+ */
+export function isProjectRunbookPick(suggestion: {
+  autoRemediationRuleId?: unknown;
+  kubernetesClusterId?: unknown;
+  resourceId?: unknown;
+  ruleNameSnapshot?: unknown;
+}): boolean {
+  return (
+    !suggestion.autoRemediationRuleId &&
+    !suggestion.kubernetesClusterId &&
+    !suggestion.resourceId &&
+    suggestion.ruleNameSnapshot === DEFAULT_RUNBOOK_PICK_NAME
+  );
+}
+
+/*
  * Whether a runbook OneUptime AI picks for a OneUptime AI rule starts right
  * away, or is proposed for one-click approval. It starts only when all of
  * these hold:

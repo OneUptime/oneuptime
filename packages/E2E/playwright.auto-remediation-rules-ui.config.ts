@@ -14,7 +14,7 @@ import path from "path";
  * dark mode and German.
  */
 const port: string =
-  process.env["AUTO_REMEDIATION_RULES_FIXTURE_PORT"] || "4391";
+  process.env["AUTO_REMEDIATION_RULES_FIXTURE_PORT"] || "4395";
 
 export default defineConfig({
   testDir: "./AutoRemediationRules",
