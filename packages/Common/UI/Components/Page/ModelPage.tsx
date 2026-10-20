@@ -2,6 +2,7 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Page from "./Page";
 import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
+import { nameRecordInTrail } from "./RecordNameInTrail";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -45,6 +46,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 interface LoadedModelHeader {
   modelId: string;
   title: string | undefined;
+  // The record's own name, for the crumb that stands for it.
+  recordName?: string | undefined;
   labels: Array<Label>;
   error: string;
 }
@@ -194,12 +197,13 @@ const ModelPage: <TBaseModel extends BaseModel>(
             columnValue || ((item as any)[labelsColumn] as Array<Label>) || [];
         }
 
+        const recordName: unknown = (item as any)[props.modelNameField];
+
         header = {
           ...header,
           labels: loadedLabels,
-          title: `${props.title || ""} - ${
-            (item as any)[props.modelNameField] as string
-          }`,
+          title: `${props.title || ""} - ${recordName as string}`,
+          recordName: typeof recordName === "string" ? recordName : undefined,
         };
       }
     } catch (err) {
@@ -259,9 +263,24 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
   const labels: Array<Label> = isCurrentModelLoaded ? loadedHeader!.labels : [];
 
+  /*
+   * "Project > Monitors > Website: acme.com", not "> View Monitor": the crumb
+   * that stands for this record, and the browser tab, name it once it is
+   * read (RecordNameInTrail).
+   */
+  const breadcrumbLinks: Array<Link> | undefined = nameRecordInTrail({
+    links: props.breadcrumbLinks,
+    recordId: modelIdString,
+    recordName:
+      isCurrentModelLoaded && !loadedHeader!.error
+        ? loadedHeader!.recordName
+        : undefined,
+  });
+
   return (
     <Page
       {...props}
+      breadcrumbLinks={breadcrumbLinks}
       labels={labels.length > 0 ? labels : undefined}
       isLoading={!isCurrentModelLoaded}
       error={isCurrentModelLoaded ? loadedHeader!.error : ""}

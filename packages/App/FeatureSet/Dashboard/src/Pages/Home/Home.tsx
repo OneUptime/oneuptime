@@ -149,6 +149,7 @@ const Home: FunctionComponent<ComponentProps> = (
         loadedAt={overview.loadedAt}
         now={now}
         onRefresh={refresh}
+        canCreateMonitor={gates.canCreateMonitor}
       />
 
       <GettingStarted projectId={currentProjectId} className="!mb-0" />

@@ -132,19 +132,24 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
+// The probes the project can pick from; one global probe unless a test says.
+const ONE_GLOBAL_PROBE: Array<Record<string, unknown>> = [
+  {
+    _id: "0c000000-0000-4000-8000-0000000000a1",
+    name: "Global probe",
+    isGlobalProbe: true,
+    shouldAutoEnableProbeOnNewMonitors: true,
+  },
+];
+
+let probesForTest: Array<Record<string, unknown>> = ONE_GLOBAL_PROBE;
+
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
   return {
     __esModule: true,
     default: {
       getAllProbes: (): Promise<Array<Record<string, unknown>>> => {
-        return Promise.resolve([
-          {
-            _id: "0c000000-0000-4000-8000-0000000000a1",
-            name: "Global probe",
-            isGlobalProbe: true,
-            shouldAutoEnableProbeOnNewMonitors: true,
-          },
-        ]);
+        return Promise.resolve(probesForTest);
       },
     },
   };
@@ -351,6 +356,7 @@ function sentMonitor(): Monitor {
 
 beforeEach(() => {
   permissionsForTest = [Permission.ProjectAdmin];
+  probesForTest = ONE_GLOBAL_PROBE;
   navigateCalls = [];
   criteriaEditorProps.length = 0;
   PermissionGate.clearPermissionPropsCache();
@@ -701,6 +707,185 @@ describe("the criteria and the last step", () => {
     fireEvent.click(screen.getByTestId("card-select-option-API"));
 
     expect(nameInput()).toHaveValue("Marketing site");
+  });
+});
+
+/*
+ * A monitor with no probes is never checked, and the form used to create one
+ * without a word: a project whose default probe set is empty (global probes
+ * kept off new monitors, and no probe of its own picked for them) opened the
+ * Probes picker empty, and Create Monitor saved the monitor as it was - as it
+ * did for a picker someone had cleared. The help said so; the form let it
+ * happen. While there are probes to pick, it now asks for one.
+ */
+describe("Probes: the form never creates a monitor that nothing checks", () => {
+  const LAST_STEP_HELP: string =
+    "How often to check. Every 5 minutes suits most monitors.";
+
+  // Global probes are kept off new monitors, and no other probe is picked.
+  function projectWithNoDefaultProbes(): void {
+    getItemMock.mockImplementation(async (): Promise<any> => {
+      return { doNotAddGlobalProbesByDefaultOnNewMonitors: true };
+    });
+  }
+
+  async function walkToProbesAndInterval(): Promise<void> {
+    fireEvent.click(screen.getByTestId("card-select-option-Website"));
+    typeName("Marketing site");
+    await pressNext();
+    await screen.findByTestId("criteria-editor");
+    await pressNext();
+    await screen.findByText(LAST_STEP_HELP);
+  }
+
+  // The Probes picker, named by its field's label.
+  function probesPicker(): HTMLElement {
+    return screen.getByRole("combobox", { name: /^Probes/ });
+  }
+
+  async function pickProbe(name: string): Promise<void> {
+    await act(async () => {
+      fireEvent.keyDown(probesPicker(), {
+        key: "ArrowDown",
+        code: "ArrowDown",
+      });
+    });
+    const option: HTMLElement = await screen.findByText(name, {
+      selector: ".ou-select__option, .ou-select__option *",
+    });
+    await act(async () => {
+      fireEvent.click(option);
+    });
+  }
+
+  function sentProbes(): unknown {
+    return (
+      createOrUpdateMock.mock.calls[0]![0] as {
+        miscDataProps: Record<string, unknown>;
+      }
+    ).miscDataProps["probes"];
+  }
+
+  test("Probes no longer reads as optional", async () => {
+    await renderPage();
+    await walkToProbesAndInterval();
+
+    // Its label, which names the picker, has no "(Optional)" after it.
+    expect(probesPicker()).toHaveAccessibleName("Probes");
+  });
+
+  test("with no default probes, Create Monitor asks for one and creates nothing", async () => {
+    projectWithNoDefaultProbes();
+    await renderPage();
+    await walkToProbesAndInterval();
+
+    // Nothing starts selected: the picker shows its placeholder.
+    expect(screen.getByText("Select Probes")).toBeInTheDocument();
+
+    await pressCreate();
+
+    expect(await screen.findByText("Probes is required.")).toBeVisible();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+    expect(navigateCalls).toEqual([]);
+  });
+
+  test("picking a probe then creates the monitor, checked by that probe", async () => {
+    projectWithNoDefaultProbes();
+    await renderPage();
+    await walkToProbesAndInterval();
+
+    await pressCreate();
+    expect(await screen.findByText("Probes is required.")).toBeVisible();
+
+    await pickProbe("Global probe");
+
+    await waitFor(() => {
+      expect(screen.queryByText("Probes is required.")).not.toBeInTheDocument();
+    });
+
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalled();
+    });
+    expect(sentProbes()).toEqual([GLOBAL_PROBE_ID]);
+  });
+
+  test("clearing the default probes is caught the same way", async () => {
+    await renderPage();
+    await walkToProbesAndInterval();
+
+    // The project's default probe starts selected; take it away.
+    const remove: HTMLElement = screen.getByRole("button", {
+      name: "Remove Global probe",
+    });
+    await act(async () => {
+      fireEvent.click(remove);
+    });
+    expect(screen.queryByText("Global probe")).not.toBeInTheDocument();
+
+    await pressCreate();
+
+    expect(await screen.findByText("Probes is required.")).toBeVisible();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("the default probes, left as they are, still create the monitor in one go", async () => {
+    await renderPage();
+    await walkToProbesAndInterval();
+
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalled();
+    });
+    expect(screen.queryByText("Probes is required.")).not.toBeInTheDocument();
+    expect(sentProbes()).toEqual([GLOBAL_PROBE_ID]);
+  });
+
+  test("a type no probe checks is still created from its one step, with no probe", async () => {
+    projectWithNoDefaultProbes();
+    await renderPage();
+
+    fireEvent.click(screen.getByTestId("card-select-more"));
+    fireEvent.click(screen.getByTestId("card-select-option-Manual"));
+    typeName("Payment provider");
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("navigation", { name: "Progress" }),
+      ).not.toBeInTheDocument();
+    });
+
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalled();
+    });
+    expect(sentMonitor().monitorType).toBe(MonitorType.Manual);
+    expect(screen.queryByText("Probes is required.")).not.toBeInTheDocument();
+  });
+
+  /*
+   * The list always holds the global probes, so it is empty only on an
+   * installation with no probe at all: there is nothing to ask for, and the
+   * form does not stand in the way.
+   */
+  test("with no probe to pick at all, the picker stays away and Create goes through", async () => {
+    probesForTest = [];
+    await renderPage();
+    await walkToProbesAndInterval();
+
+    expect(
+      screen.queryByRole("combobox", { name: /^Probes/ }),
+    ).not.toBeInTheDocument();
+
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalled();
+    });
+    expect(screen.queryByText("Probes is required.")).not.toBeInTheDocument();
   });
 });
 

@@ -19,6 +19,11 @@ export interface ComponentProps {
   id?: string | undefined;
   title?: string | undefined;
   dataTestId?: string | undefined;
+  /*
+   * The link is to the page (or the section) the user is on, as the nav
+   * bar's lit item is: announced as "current page" (aria-current).
+   */
+  isCurrentPage?: boolean | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -97,6 +102,7 @@ const Link: FunctionComponent<ComponentProps> = (
       style={props.style}
       title={title}
       aria-label={title}
+      aria-current={props.isCurrentPage ? "page" : undefined}
       onKeyDown={(event: React.KeyboardEvent<HTMLAnchorElement>) => {
         /*
          * For onClick-only links (no href) we render role="button"; activate them
