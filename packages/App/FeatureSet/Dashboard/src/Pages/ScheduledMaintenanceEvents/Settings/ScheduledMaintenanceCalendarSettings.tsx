@@ -35,7 +35,11 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { getGlobalTranslator, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -193,8 +197,7 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
               name: true,
             },
             title: "Name",
-            description:
-              "What the calendar holds, as the Maintenance Calendar names it.",
+            description: "The name the Maintenance Calendar shows for it.",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Public holidays",
@@ -208,11 +211,14 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
               calendarUrl: true,
             },
             title: "Calendar Link",
-            description:
+            // translationKey: the extractor skips copy with a link scheme in it.
+            description: translationKey(
               "The calendar's iCal (.ics) link, starting with https:// or webcal://. It can be a private link: it is stored encrypted and never shown again.",
+            ),
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "https://calendar.google.com/calendar/ical/.../basic.ics",
+            placeholder:
+              "https://calendar.google.com/calendar/ical/.../basic.ics",
             // Never read back, so an edit could only blank it: Change link replaces it.
             doNotShowWhenEditing: true,
             customValidation: (
@@ -226,7 +232,7 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
               color: true,
             },
             title: "Color",
-            description: "The colour its events are drawn in on the calendar.",
+            description: "The color its events are drawn in on the calendar.",
             fieldType: FormFieldSchemaType.Color,
             required: true,
             collapsibleSection: moreFields,
@@ -259,7 +265,9 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
             icon: IconProp.Refresh,
             buttonStyleType: ButtonStyleType.OUTLINE,
             placement: ActionButtonPlacement.MoreMenu,
-            isVisible: (item: ScheduledMaintenanceExternalCalendar): boolean => {
+            isVisible: (
+              item: ScheduledMaintenanceExternalCalendar,
+            ): boolean => {
               return item.isEnabled !== false;
             },
             disabled: !updateGate.isAllowed,
@@ -302,7 +310,9 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
             icon: IconProp.Play,
             buttonStyleType: ButtonStyleType.OUTLINE,
             placement: ActionButtonPlacement.MoreMenu,
-            isVisible: (item: ScheduledMaintenanceExternalCalendar): boolean => {
+            isVisible: (
+              item: ScheduledMaintenanceExternalCalendar,
+            ): boolean => {
               return item.isEnabled === false;
             },
             disabled: !updateGate.isAllowed,
@@ -322,7 +332,9 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
             icon: IconProp.Stop,
             buttonStyleType: ButtonStyleType.OUTLINE,
             placement: ActionButtonPlacement.MoreMenu,
-            isVisible: (item: ScheduledMaintenanceExternalCalendar): boolean => {
+            isVisible: (
+              item: ScheduledMaintenanceExternalCalendar,
+            ): boolean => {
               return item.isEnabled !== false;
             },
             disabled: !updateGate.isAllowed,
@@ -408,7 +420,11 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
                   className="min-w-0 max-w-xs space-y-1"
                   data-testid="external-calendar-status"
                 >
-                  <Pill color={health.color} text={health.label} tooltip={reason} />
+                  <Pill
+                    color={health.color}
+                    text={health.label}
+                    tooltip={reason}
+                  />
                   {health.key === "failing" ? (
                     <p
                       className="whitespace-normal text-xs text-gray-600"
@@ -447,7 +463,10 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
               }
 
               return (
-                <div className="min-w-0" data-testid="external-calendar-last-read">
+                <div
+                  className="min-w-0"
+                  data-testid="external-calendar-last-read"
+                >
                   <div className="text-sm text-gray-900">
                     {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                       item.lastReadAt,
@@ -519,12 +538,15 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
                   calendarUrl: true,
                 },
                 title: "New Calendar Link",
-                description:
+                description: translationKey(
                   "Starting with https:// or webcal://. It is stored encrypted and never shown again.",
+                ),
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "https://",
-                customValidation: (values: FormValues<JSONObject>): string | null => {
+                customValidation: (
+                  values: FormValues<JSONObject>,
+                ): string | null => {
                   return getCalendarLinkProblem(values["calendarUrl"]);
                 },
               },

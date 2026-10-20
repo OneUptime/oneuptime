@@ -55,7 +55,7 @@ export const EXTERNAL_CALENDAR_READ_ERROR_TEXT: Record<
     "The calendar is larger than 5 MB.",
   ),
   [ExternalCalendarReadError.TooManyRedirects]: translationKey(
-    "The link sends readers on too many times.",
+    "The link redirects too many times.",
   ),
   [ExternalCalendarReadError.NotACalendar]: translationKey(
     "The link did not answer with a calendar. Copy the calendar's iCal (.ics) link, not its web page.",
@@ -101,7 +101,8 @@ export function getRefreshIntervalOptions(): Array<{
   return EXTERNAL_CALENDAR_REFRESH_INTERVALS_IN_MINUTES.map(
     (minutes: number): { label: string; value: number } => {
       return {
-        label: EXTERNAL_CALENDAR_REFRESH_INTERVAL_LABELS[minutes] || `${minutes}`,
+        label:
+          EXTERNAL_CALENDAR_REFRESH_INTERVAL_LABELS[minutes] || `${minutes}`,
         value: minutes,
       };
     },
