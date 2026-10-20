@@ -6,17 +6,18 @@ A Runner runs **inside your infrastructure**, holds **your** credentials, and
 talks to OneUptime over a single outbound HTTPS connection. It accepts no
 inbound connections and never exposes a port to OneUptime.
 
-It serves three kinds of work, each independently switchable:
+It serves three kinds of work:
 
-| Capability | Default | What it does |
+| Work | Default | What it does |
 | --- | --- | --- |
 | Runs Runbooks | on | Claims Bash and JavaScript runbook steps and executes them here, so the systems being operated on never need to be reachable from OneUptime. |
-| Runs AI Code Fixes | off | Claims AI code-fix runs, works in your connected code repositories and opens pull requests **ready for review**. Never writes to the default or protected branches, and never merges. |
+| AI code fixes | when a code repository picks it | Claims the AI code-fix runs of the code repositories that pick this Runner in their settings in Code, works in them and opens pull requests **ready for review**. Never writes to the default or protected branches, and never merges. |
 | Runs AI Remediation Commands | off | AI auto-remediation may execute policy-checked Bash and SSH commands on this host (or over its assigned SSH credentials). Suggest-mode commands run only after one-click human approval; FullAuto runs only commands matching the rule's operator allowlist. A built-in denylist refuses destructive commands regardless. |
 
-Capabilities are set **in the dashboard**, on the Runner itself. The Runner
-adopts a change on its next heartbeat — within a minute by default — so turning
-one on or off takes effect without restarting or redeploying the container.
+The two capabilities are set **in the dashboard**, on the Runner itself; AI
+code fixes follow the code repositories that pick the Runner, in Code. The
+Runner adopts a change on its next heartbeat — within a minute by default — so
+either takes effect without restarting or redeploying the container.
 
 ## The Kubernetes agent mode is deprecated
 
@@ -31,8 +32,8 @@ and carries its settings over.
 Until its chart is upgraded, a legacy in-cluster Runner keeps working, with
 the limits it always had (see [AI kubectl access](#ai-kubectl-access)). It
 only runs kubectl for its own cluster, so its row cannot be renamed, **Runs
-Runbooks** and **Runs AI Code Fixes** cannot be turned on for it (its page in
-the dashboard leaves the name and those two switches out), and it is never
+Runbooks** cannot be turned on for it and no code repository can pick it (its
+page in the dashboard leaves the name and that switch out), and it is never
 accepted as an auto-remediation rule's command Runner. While the cluster's
 Kubernetes AI agent is online, the server refuses the legacy Runner's
 registration; the Runner keeps retrying, so a `helm rollback` of the chart
@@ -56,9 +57,9 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-To let this Runner open AI fix pull requests as well, turn on **Runs AI Code
-Fixes** on the Runner in the dashboard. It starts claiming that work on its next
-heartbeat.
+To have AI work in a code repository on this Runner as well, pick the Runner
+in the repository's settings in Code (**Settings → Edit Settings → Runner**). It
+starts claiming that repository's work on its next heartbeat.
 
 ## Configuration
 
@@ -70,7 +71,7 @@ heartbeat.
 | `ONEUPTIME_RUNNER_NAME` | — | Optional friendly name. |
 | `ONEUPTIME_RUNNER_SHARED` | unset | Set only on the installation's shared Runner (the `runner` service that OneUptime's Docker Compose file and Helm chart start), which needs no `ONEUPTIME_RUNNER_ID`. Only `true` (any case) turns it on. Never set it on a Runner of your own. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | unset | Local override. Only `false` has an effect: it refuses runbook work on this host even when the dashboard grants it. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule: `false` refuses code-fix work even for a code repository that picks this Runner. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | unset | Local override. Only `false` has an effect: it refuses AI remediation command work on this host even when the dashboard grants it. |
 | `ONEUPTIME_KUBECTL_ALLOW_WRITES` | unset | Whether OneUptime AI may run kubectl **writes** (remediations) from this host. When set it fails closed: only `true` (any case) allows them; `false` and any other value refuse every non-read kubectl before it starts. Unset allows writes on an ordinary Runner (the Kubernetes credential's RBAC bounds them) and refuses them on the legacy in-cluster Runner, whose chart always sets it from `aiAccess.remediation.enabled`. Reads are unaffected. |
 | `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` | unset | Whether OneUptime AI may run kubectl **node operations** from this host: cordon, uncordon, drain, taint, and label, annotate or patch on a Node. Parsed like `ONEUPTIME_KUBECTL_ALLOW_WRITES`: when set, only `true` (any case) allows them and any other value refuses them before kubectl starts; unset allows them on an ordinary Runner and refuses them on the legacy in-cluster Runner, whose chart sets it from `aiAccess.remediation.nodeOperations`. Nodes are cluster-scoped, so this switch — not the namespace list below — is what bounds them. Needs writes allowed; reads are unaffected. |

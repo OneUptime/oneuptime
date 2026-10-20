@@ -282,6 +282,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **프로브와 Runner의 잘못된 키를 셉니다.** 한 주소는 15분 동안 하나의 프로브, Runner 또는 AI 에이전트에 대해 서로 다른 잘못된 키를 10개까지만, 그리고 `REGISTER_PROBE_KEY` 또는 번들 Runner의 `ONEUPTIME_RUNNER_KEY`에 대해 서로 다른 잘못된 값을 10개까지만 보낼 수 있습니다. 그 뒤에는 그 프로브, Runner 또는 에이전트에 대한 요청이나 등록에, 15분이 끝날 때까지 올바른 키라도 `429`로 응답합니다. 재설정 전의 키를 아직 보내는 프로브나 Runner는 아무리 자주 호출해도 잘못된 키 하나만 보내므로, 그 때문에 거부되는 일은 없습니다. 사설 네트워크 주소, 즉 번들 프로브와 Runner가 호출하는 곳에서 보낸 키는 전혀 세지 않으므로, 그 옆에서 보낸 것 때문에 이들이 거부되는 일은 없습니다.
 - **모든 설치가 자체 글로벌 Runner를 실행합니다.** Docker Compose의 새 `global-runner` 서비스와 Helm 차트의 `globalRunner` 배포가, 자체 Runner를 고르지 않은 모든 프로젝트의 JavaScript 단계를 각각 인터넷에만 접근할 수 있는 샌드박스에서 실행합니다. 이 Runner는 자체 키인 `GLOBAL_RUNNER_KEY`를 가지며(`npm start`와 `npm run update`가 무작위 값을 주고 차트가 생성합니다), 서버의 다른 것은 아무것도 갖지 않습니다. Runner를 고른 단계는 그 Runner를 유지하며, 기존 Runbook 시크릿은 그 **글로벌 Runner가 이 시크릿을 사용할 수 있음** 스위치를 켜야만 글로벌 Runner에 전달됩니다. 끄려면 `config.env`에서 `GLOBAL_RUNNER_REPLICAS=0`을 설정하거나, 차트에서 `globalRunner.enabled`를 `false`로 설정합니다. [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)를 참조하세요.
 - **Runbook 시크릿과 Runbook 단계가 쓰던 자격 증명은 Runbook 변수가 되었습니다.** Runbook에는 워크플로처럼 변수가 있습니다. 모든 Runbook이 사용할 수 있는 전역 변수는 **런북 → 설정 → 전역 변수**에, Runbook 자체 변수는 그 Runbook의 **설정 → 변수**에 있습니다. 변수는 일반 값이거나 시크릿이며, 시크릿은 암호화되고 다시 읽을 수 없으며 단계 출력에서 가려집니다. 각 Runbook 시크릿은 이제 같은 이름의 시크릿 전역 변수이며, 값과 Runner, 그리고 이제 **글로벌 Runner가 사용할 수 있음**이라고 불리는 글로벌 Runner 스위치를 그대로 가지고, `{{runbookSecrets.NAME}}`도 여전히 그 변수를 읽습니다. SSH 단계는 이제 bash 스크립트를 실행하고 시크릿 변수로 로그인하며, Kubernetes 단계는 이제 kubeconfig 변수로 kubectl 명령 스크립트를 실행하는 kubectl 단계입니다. 저장된 모든 단계는 이 형태로 옮겨졌고, 자격 증명이 담고 있던 내용은 시크릿 전역 변수로 복사되었으며, 하던 일을 그대로 합니다. 자격 증명은 OneUptime AI 자체 명령을 위해 **런북 → Runbook 에이전트 → AI 액세스**에 남습니다. 스크립트를 실행하는 kubectl 단계에는 이 릴리스의 Runner가 필요합니다. 더 오래된 Runner는 그런 단계를 실패시키고 그 사실을 알리므로 Runner를 업데이트하세요. [Runbook 변수](/docs/runbooks/variables)를 참고하세요.
+- **코드 저장소가 Runner를 선택하고, Runner에서 AI 코드 수정 스위치가 사라집니다.** 코드의 저장소 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, 아무것도 선택하지 않은 저장소는 프로젝트가 글로벌 Runner를 사용하는 동안 글로벌 Runner에서 작업합니다. 업그레이드는 각 프로젝트의 선택을 이어받습니다. 프로젝트의 저장소들은 **Runs AI Code Fixes** 가 켜져 있던 Runner(가장 최근에 응답한 Runner)를 선택하고, 스위치는 제거됩니다. 이제 Runner는 자신을 선택한 저장소의 코드 작업만 가져가며, 그 저장소의 토큰도 그 Runner만 받습니다. 어떤 저장소도 선택하지 않은 Runner는 아무것도 가져가지 않습니다. [저장소의 Runner 선택하기](/docs/ai/ai-agent#저장소의-runner-선택하기)를 참조하세요.
 - 옮겨지거나 엄격해진 엔드포인트(`GET /api/global-config/license` 와 자체 호스팅 설치가 더 이상 제공하지 않는 라이선스 서버 엔드포인트 포함)는 위의 [API와 엔드포인트 변경](#api와-엔드포인트-변경) 을 참조하십시오.
 :::
 
@@ -557,7 +558,7 @@ OneUptime이 운영하지 않는 캐시를 쓰게 하는 것은 여전히 완전
 
 OneUptime 12는 두 구성 요소를 하나로 합칩니다. **Runbook Agent** (런북 단계를 실행하려고 자신의 호스트에 설치하던 컨테이너)와 **AI Agent** (AI 코드 수정을 하던 서비스)는 이제 하나의 구성 요소인 **OneUptime Runner** 가 되었으며, Docker 이미지 `oneuptime/runner` 로 제공됩니다. 기존 이미지 `oneuptime/runbook-agent` 와 `oneuptime/ai-agent` 는 더 이상 빌드하거나 게시하지 않습니다. 기존 태그는 계속 가져올 수 있지만, 앞으로 업데이트되지 않습니다.
 
-Runner는 대시보드에서 Runner마다 켜고 끄는 여러 **기능** 을 가질 수 있는 설치된 컨테이너 하나입니다. **런북 실행** (기본으로 켜짐), **AI 코드 수정 실행** (기본으로 꺼짐), **AI 해결 명령 실행** (기본으로 꺼짐)입니다. 기능 변경은 Runner의 다음 하트비트에서 반영되며, 다시 시작할 필요가 없습니다. 이 구성 요소가 평소 어떻게 동작하는지는 [Runner](/docs/runbooks/agents) 를 참조하십시오.
+Runner는 대시보드에서 Runner마다 켜고 끄는 여러 **기능** 을 가질 수 있는 설치된 컨테이너 하나입니다. **런북 실행** (기본으로 켜짐), **Runs AI Code Fixes** (기본으로 꺼짐), **AI 해결 명령 실행** (기본으로 꺼짐)입니다. 기능 변경은 Runner의 다음 하트비트에서 반영되며, 다시 시작할 필요가 없습니다. 이 구성 요소가 평소 어떻게 동작하는지는 [Runner](/docs/runbooks/agents) 를 참조하십시오.
 
 해야 할 일은 배포 방식에 따라 다릅니다.
 
@@ -617,7 +618,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 :::steps
 1. **런북 → Runbook 에이전트** 에서 Runner를 만들고, **설정 지침 표시** 의 명령으로 설치하십시오.
-2. 그 Runner에서 **AI 코드 수정 실행** 을 켜십시오. 변경은 다음 하트비트에서 반영됩니다.
+2. 그 Runner에서 **Runs AI Code Fixes** 을 켜십시오. 변경은 다음 하트비트에서 반영됩니다.
 :::
 
 기존 AI Agent 자격 증명으로도 기존 방식의 대체 경로(코드 수정만 가능하며, 실제 Runner를 만들라는 경고가 로그에 기록됩니다)를 통해 새 `oneuptime/runner` 이미지가 시작됩니다. 이는 마이그레이션 동안의 다리로 여기고, 최종 형태로 삼지 마십시오.
@@ -661,7 +662,7 @@ Compose 서비스 `ai-agent` 는 이제 `runner` 입니다. 일반적인 `npm ru
 | --- | --- | --- |
 | Runner (이전 이름 "Agents") | 런북 → 설정 → Agents (`…/runbooks/settings/agents`) | 설정 → Runner (`…/settings/runners`) |
 | Runner 자격 증명 | 런북 → 설정 → 자격 증명 (`…/runbooks/settings/credentials`) | 설정 → Runner 자격 증명 (`…/settings/runner-credentials`) |
-| AI 에이전트 | 설정 → AI → AI 에이전트 (`…/settings/ai-agents`) | 제거됨 – **AI 코드 수정 실행** 기능을 가진 Runner가 대체 |
+| AI 에이전트 | 설정 → AI → AI 에이전트 (`…/settings/ai-agents`) | 제거됨 – **Runs AI Code Fixes** 기능을 가진 Runner가 대체 |
 
 런북 비밀은 원래 자리인 런북 → 설정 → 비밀에 그대로 있습니다.
 

@@ -34,7 +34,7 @@ C'est le même agent et le même Runner que dans [Code](/docs/ai/ai-agent), avec
 ## Avant de commencer
 
 - Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App : connectez-le dans **Produits → Code**. Une instance auto-hébergée a d'abord besoin de sa propre GitHub App : voir [Intégration GitHub](/docs/self-hosted/github-integration). Si l'app est déjà installée sur le compte GitHub, cliquez à cet endroit sur **Connecter une installation existante** au lieu de la réinstaller.
-- Un Runner avec **Exécute les corrections de code IA** doit être en ligne : le même Runner que celui qui mène les tâches de [Code](/docs/ai/ai-agent). Sans lui, les commandes sont acceptées puis échouent au bout de 30 minutes, avec un message indiquant qu'aucun agent ne les a prises.
+- Le Runner que le dépôt choisit dans ses paramètres dans Code doit être en ligne, ou un Runner global pour un dépôt qui n'en choisit aucun : le même Runner que celui qui mène les tâches de [Code](/docs/ai/ai-agent). Sans lui, les commandes sont acceptées puis échouent au bout de 30 minutes, avec un message indiquant qu'aucun Runner ne les a prises.
 - La GitHub App a besoin de l'autorisation **Issues** en **Read & write**, et doit être abonnée aux événements de webhook listés sous [À quoi s'abonner](#à-quoi-sabonner).
 
 ## Les commandes
@@ -160,7 +160,7 @@ Une exécution de ce type est déjà active sur cette issue ou cette pull reques
 :::
 
 :::details Elle a accusé réception, puis s'est tue longtemps
-Vérifiez qu'un Runner avec **Exécute les corrections de code IA** est en ligne sous **Runbooks → Agents de runbook**. Sans lui, l'exécution échoue au bout de 30 minutes et le fil en est informé.
+Vérifiez que le Runner que le dépôt choisit est en ligne sous **Runbooks → Agents de runbook**. Un dépôt qui n'en choisit aucun travaille sur un Runner global, et ses paramètres dans Code indiquent si l'un d'eux est connecté. Sans Runner en ligne, l'exécution échoue au bout de 30 minutes et le fil en est informé.
 :::
 
 :::details Elle dit que la pull request vient d'un fork

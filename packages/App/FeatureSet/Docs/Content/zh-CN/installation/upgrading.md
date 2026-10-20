@@ -282,6 +282,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **探针和 Runner 的错误密钥会被计数。** 一个地址在一刻钟内，针对同一个探针、Runner 或 AI 代理最多只能发送十个不同的错误密钥，针对 `REGISTER_PROBE_KEY` 或内置 Runner 的 `ONEUPTIME_RUNNER_KEY` 最多只能发送十个不同的错误值。超过之后，在这一刻钟结束前，它对该探针、Runner 或代理的请求以及它的注册都会收到 `429`，即使密钥正确也一样。仍在发送重置前旧密钥的探针或 Runner，无论调用多少次，都只算一个错误密钥，因此永远不会因此被拒绝。从私有网络地址（也就是内置探针和 Runner 发起调用的地方）发送的密钥完全不计数，因此在它们旁边发送的任何内容都无法让它们被拒绝。
 - **每个安装都运行自己的全局 Runner。** Docker Compose 中新的 `global-runner` 服务，以及 Helm chart 中的 `globalRunner` 部署，会运行所有未选择自己 Runner 的项目的 JavaScript 步骤，每个步骤都在只能访问互联网的沙箱中运行。它持有自己的密钥 `GLOBAL_RUNNER_KEY`（`npm start` 和 `npm run update` 会为它设置随机值，chart 也会生成它），不持有服务器的任何其他东西。选择了 Runner 的步骤会保留它，而现有的 Runbook 密钥只有在你打开其 **全局 Runner 可以使用此密钥** 开关后才会交给它。要关闭它，请在 `config.env` 中设置 `GLOBAL_RUNNER_REPLICAS=0`，或在 chart 中将 `globalRunner.enabled` 设为 `false`。参见 [全局 Runner](/docs/runbooks/agents#全局-runner)。
 - **Runbook 机密和 Runbook 步骤使用的凭据已成为 Runbook 变量。** Runbook 像工作流一样拥有变量：每个 Runbook 都能使用的全局变量位于 **运行手册 → 设置 → 全局变量** ，Runbook 自己的变量位于其 **设置 → 变量** 。变量是普通值或机密，机密会被加密、无法读回，并在步骤输出中被隐藏。每个 Runbook 机密现在都是同名的机密全局变量，保留其值、Runner 和全局 Runner 开关（现在称为 **全局 Runner 可以使用** ），`{{runbookSecrets.NAME}}` 仍会读取它。SSH 步骤现在运行 bash 脚本并用机密变量登录，Kubernetes 步骤现在是 kubectl 步骤，使用 kubeconfig 变量运行由 kubectl 命令组成的脚本。每个已保存的步骤都已迁移到这种形式，其凭据保存的内容已复制到机密全局变量中，并且行为保持不变。凭据仍保留在 **运行手册 → Runbook 代理 → AI 访问** 下，供 OneUptime AI 自己的命令使用。运行脚本的 kubectl 步骤需要此版本的 Runner：较旧的 Runner 会让这样的步骤失败并说明原因，因此请更新你的 Runner。参见 [Runbook 变量](/docs/runbooks/variables)。
+- **代码存储库会选择自己的 Runner，Runner 不再有 AI 代码修复开关。** 存储库在代码中的设置会选择 AI 在其中工作所用的 Runner，没有选择的存储库在其项目使用全局 Runner 时在全局 Runner 上工作。升级会沿用每个项目的选择：它的存储库会选择它曾开启 **Runs AI Code Fixes** 的那个 Runner（最近一次有响应的那个），该开关随即移除。现在 Runner 只领取选择了它的存储库的代码工作，也只有它会获得这些存储库的令牌；没有被任何存储库选择的 Runner 不领取任何工作。参见 [选择存储库的 Runner](/docs/ai/ai-agent#选择存储库的-runner)。
 - 有关移动或收紧的端点，包括 `GET /api/global-config/license` 以及自托管安装不再提供的许可证服务器端点，请参阅上面的 [API 和端点的变更](#api-和端点的变更)。
 :::
 
@@ -557,7 +558,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 OneUptime 12 把两个组件合并为一个。**Runbook Agent**（你安装在自己的主机上、用于执行运行手册步骤的容器）和 **AI Agent**（负责 AI 代码修复的服务）现在是同一个组件：**OneUptime Runner**，以 Docker 镜像 `oneuptime/runner` 交付。旧镜像 `oneuptime/runbook-agent` 和 `oneuptime/ai-agent` 不再构建或发布——现有标签仍可拉取，但永远不会再收到更新。
 
-Runner 是一个已安装的容器，可以拥有多项 **能力**，在仪表板中按 Runner 开关：**执行运行手册**（默认开启）、**执行 AI 代码修复**（默认关闭）和 **执行 AI 补救命令**（默认关闭）。能力的更改会在 Runner 的下一次心跳时生效——无需重启。该组件的日常工作方式请参阅 [Runner](/docs/runbooks/agents)。
+Runner 是一个已安装的容器，可以拥有多项 **能力**，在仪表板中按 Runner 开关：**执行运行手册**（默认开启）、**Runs AI Code Fixes**（默认关闭）和 **执行 AI 补救命令**（默认关闭）。能力的更改会在 Runner 的下一次心跳时生效——无需重启。该组件的日常工作方式请参阅 [Runner](/docs/runbooks/agents)。
 
 你需要做什么取决于你的部署方式：
 
@@ -617,7 +618,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 :::steps
 1. 在 **运行手册 → Runbook 代理** 下创建一个 Runner，并使用 **显示设置说明** 提供的命令安装它。
-2. 在该 Runner 上开启 **执行 AI 代码修复**。更改会在下一次心跳时生效。
+2. 在该 Runner 上开启 **Runs AI Code Fixes**。更改会在下一次心跳时生效。
 :::
 
 旧的 AI Agent 凭据仍然可以通过旧版回退机制启动新的 `oneuptime/runner` 镜像（仅限代码修复，并会记录一条提示你创建真正 Runner 的警告）——请把它当作迁移期间的过渡，而不是最终形态。
@@ -661,7 +662,7 @@ compose 服务 `ai-agent` 现在是 `runner`。如果你使用标准的 `npm run
 | --- | --- | --- |
 | Runner（原“Agents”） | 运行手册 → 设置 → Agents（`…/runbooks/settings/agents`） | 设置 → Runner（`…/settings/runners`） |
 | Runner 凭据 | 运行手册 → 设置 → 凭据（`…/runbooks/settings/credentials`） | 设置 → Runner 凭据（`…/settings/runner-credentials`） |
-| AI 代理 | 设置 → 人工智能 → AI 代理（`…/settings/ai-agents`） | 已移除——由具备 **执行 AI 代码修复** 能力的 Runner 取代 |
+| AI 代理 | 设置 → 人工智能 → AI 代理（`…/settings/ai-agents`） | 已移除——由具备 **Runs AI Code Fixes** 能力的 Runner 取代 |
 
 运行手册机密仍在原处，位于运行手册 → 设置 → 机密下。
 

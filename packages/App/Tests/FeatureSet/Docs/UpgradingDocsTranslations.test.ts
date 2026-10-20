@@ -156,6 +156,8 @@ const REMOVED_SETTINGS: Array<string> = [
   "Enable AI Command Execution (for Runners)",
   "Enable AI Command Execution",
   "AI command execution",
+  // A code repository picks its Runner in Code instead.
+  "Runs AI Code Fixes",
 ];
 
 // The names the upgrade gives the rules it adds.
@@ -355,6 +357,7 @@ const PROSE_LEADS: Array<string> = [
   "Wrong probe and Runner keys are counted.",
   "Every install runs a global Runner of its own.",
   "Runbook secrets and the credentials runbook steps used are runbook variables.",
+  "A code repository picks its Runner, and Runners lose their AI code fix switch.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

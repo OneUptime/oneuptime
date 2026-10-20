@@ -21,7 +21,8 @@ import path from "path";
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
  * note on the bundled global Runner (GlobalRunnerUpgradeDocs) and before the
- * endpoint pointer, and every translation carries it in the English note's
+ * note that a code repository picks its Runner (CodeRepositoryRunnerUpgradeDocs),
+ * and every translation carries it in the English note's
  * place, with the English note's code and its link to Runbook Variables.
  * What it claims is what the upgrade does:
  *
@@ -39,7 +40,9 @@ const NOTE_LEAD: string =
 // The note before it (GlobalRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**Every install runs a global Runner of its own.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (CodeRepositoryRunnerUpgradeDocs).
+const NEXT_LEAD: string =
+  "**A code repository picks its Runner, and Runners lose their AI code fix switch.**";
 
 const VARIABLES_LINK: string = "(/docs/runbooks/variables)";
 
@@ -60,7 +63,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on runbook variables", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on the bundled global Runner and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the bundled global Runner and before the note that a code repository picks its Runner", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -72,7 +75,9 @@ describe("the English upgrade note on runbook variables", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says where variables live, what became of secrets and steps, and what needs a newer Runner", () => {

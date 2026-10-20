@@ -34,7 +34,7 @@ Es el mismo agente y el mismo Runner que en [Código](/docs/ai/ai-agent), con lo
 ## Antes de empezar
 
 - El repositorio tiene que estar **conectado a un proyecto de OneUptime** mediante la GitHub App: conéctalo en **Productos → Código**. Una instancia autoalojada necesita primero su propia GitHub App: consulta [Integración con GitHub](/docs/self-hosted/github-integration). Si la app ya está instalada en la cuenta de GitHub, haz clic allí en **Conectar una instalación existente** en lugar de volver a instalarla.
-- Tiene que haber en línea un Runner con **Ejecuta correcciones de código con IA**: el mismo Runner que lleva a cabo las tareas de [Código](/docs/ai/ai-agent). Sin él, los comandos se aceptan y fallan a los 30 minutos, con un mensaje de que ningún agente los tomó.
+- Tiene que estar en línea el Runner que el repositorio elige en sus ajustes en Código, o un Runner global para un repositorio que no elige ninguno: el mismo Runner que lleva a cabo las tareas de [Código](/docs/ai/ai-agent). Sin él, los comandos se aceptan y fallan a los 30 minutos, con un mensaje de que ningún Runner los tomó.
 - La GitHub App necesita el permiso **Issues** con **Read & write** y tiene que estar suscrita a los eventos de webhook de [A qué suscribirse](#a-qué-suscribirse).
 
 ## Los comandos
@@ -160,7 +160,7 @@ Ya hay una ejecución de ese tipo activa en este issue o pull request. `@oneupti
 :::
 
 :::details Confirmó y luego se quedó callada mucho tiempo
-Comprueba que hay en línea un Runner con **Ejecuta correcciones de código con IA** en **Runbooks → Agentes de runbook**. Sin él, la ejecución falla a los 30 minutos y se avisa en el hilo.
+Comprueba que el Runner que elige el repositorio está en línea en **Runbooks → Agentes de runbook**. Un repositorio que no elige ninguno trabaja en un Runner global, y sus ajustes en Código indican si hay uno conectado. Sin un Runner en línea, la ejecución falla a los 30 minutos y se avisa en el hilo.
 :::
 
 :::details Dice que el pull request viene de un fork

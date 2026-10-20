@@ -34,7 +34,7 @@ Es ist derselbe Agent und derselbe Runner wie in [Code](/docs/ai/ai-agent), mit 
 ## Bevor Sie beginnen
 
 - Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein: Verbinden Sie es unter **Produkte → Code**. Eine selbst gehostete Instanz braucht zuerst eine eigene GitHub App: siehe [GitHub-Integration](/docs/self-hosted/github-integration). Ist die App auf dem GitHub-Konto bereits installiert, klicken Sie dort auf **Vorhandene Installation verbinden**, statt sie erneut zu installieren.
-- Ein Runner mit **Führt KI-Codekorrekturen aus** muss online sein: derselbe Runner, der die Aufgaben in [Code](/docs/ai/ai-agent) ausführt. Ohne ihn werden Befehle angenommen und schlagen nach 30 Minuten fehl, mit dem Hinweis, dass kein Agent sie übernommen hat.
+- Der Runner, den das Repository in seinen Einstellungen in Code auswählt, muss online sein, oder ein globaler Runner für ein Repository, das keinen auswählt: derselbe Runner, der die Aufgaben in [Code](/docs/ai/ai-agent) ausführt. Ohne ihn werden Befehle angenommen und schlagen nach 30 Minuten fehl, mit dem Hinweis, dass kein Runner sie übernommen hat.
 - Die GitHub App braucht die Berechtigung **Issues** mit **Read & write** und muss die Webhook-Ereignisse unter [Was abonniert werden muss](#was-abonniert-werden-muss) abonniert haben.
 
 ## Die Befehle
@@ -160,7 +160,7 @@ Ein Lauf dieser Art ist in diesem Issue oder Pull Request bereits aktiv. `@oneup
 :::
 
 :::details Sie hat bestätigt und ist dann lange still geworden
-Prüfen Sie, ob ein Runner mit **Führt KI-Codekorrekturen aus** unter **Runbooks → Runbook-Agents** online ist. Ohne ihn schlägt der Lauf nach 30 Minuten fehl, und der Thread erfährt es.
+Prüfen Sie, ob der Runner, den das Repository auswählt, unter **Runbooks → Runbook-Agents** online ist. Ein Repository, das keinen auswählt, arbeitet auf einem globalen Runner, und seine Einstellungen in Code zeigen, ob einer verbunden ist. Ohne einen Runner, der online ist, schlägt der Lauf nach 30 Minuten fehl, und der Thread erfährt es.
 :::
 
 :::details Sie sagt, der Pull Request stamme aus einem Fork

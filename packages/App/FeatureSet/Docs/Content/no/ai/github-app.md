@@ -34,7 +34,7 @@ Det er den samme agenten og den samme Runneren som i [Kode](/docs/ai/ai-agent), 
 ## Før du starter
 
 - Repositoriet må være **koblet til et OneUptime-prosjekt** via GitHub App: koble det til i **Produkter → Kode**. En selvhostet instans trenger først sin egen GitHub App: se [GitHub-integrasjon](/docs/self-hosted/github-integration). Hvis appen allerede er installert på GitHub-kontoen, klikker du på **Koble til en eksisterende installasjon** der i stedet for å installere den på nytt.
-- En Runner med **Kjører AI-koderettelser** må være tilkoblet: den samme Runneren som utfører oppgavene i [Kode](/docs/ai/ai-agent). Uten en blir kommandoer godtatt og feiler så etter 30 minutter, med en melding om at ingen agent plukket dem opp.
+- Runneren som repositoriet velger i innstillingene sine i Kode, må være tilkoblet, eller en global Runner for et repositorium som ikke velger noen: den samme Runneren som utfører oppgavene i [Kode](/docs/ai/ai-agent). Uten en blir kommandoer godtatt og feiler så etter 30 minutter, med en melding om at ingen Runner plukket dem opp.
 - GitHub App trenger tillatelsen **Issues** med **Read & write**, og må abonnere på webhook-hendelsene under [Hva du skal abonnere på](#hva-du-skal-abonnere-på).
 
 ## Kommandoene
@@ -160,7 +160,7 @@ En kjøring av den typen er allerede aktiv på denne issuen eller pull requesten
 :::
 
 :::details Den bekreftet og ble så stille lenge
-Sjekk at en Runner med **Kjører AI-koderettelser** er tilkoblet under **Runbooks → Runbook-agenter**. Uten en feiler kjøringen etter 30 minutter, og tråden får beskjed.
+Sjekk at Runneren som repositoriet velger, er tilkoblet under **Runbooks → Runbook-agenter**. Et repositorium som ikke velger noen, jobber på en global Runner, og innstillingene i Kode viser om en er tilkoblet. Uten en tilkoblet Runner feiler kjøringen etter 30 minutter, og tråden får beskjed.
 :::
 
 :::details Den sier at pull requesten kommer fra en fork
