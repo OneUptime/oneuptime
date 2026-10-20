@@ -1,6 +1,6 @@
 # Wechsel von incident.io
 
-**Aus einem anderen Tool importieren** holt Ihre incident.io-Einrichtung in wenigen Minuten in OneUptime. Mit einem schreibgeschützten incident.io-API-Schlüssel liest OneUptime Ihre Benutzer, Teams, Pläne, Eskalationspfade, Dienste und Vorfalleinstellungen ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In incident.io ändert sich nichts.
+**Import aus anderem Tool** holt Ihre incident.io-Einrichtung in wenigen Minuten in OneUptime. Mit einem schreibgeschützten incident.io-API-Schlüssel liest OneUptime Ihre Benutzer, Teams, Pläne, Eskalationspfade, Dienste und Vorfalleinstellungen ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In incident.io ändert sich nichts.
 
 :::cards
 - [Konto importieren](#ihr-incidentio-konto-importieren): Schlüssel erstellen, Konto einlesen und auswählen, was übernommen wird.
@@ -35,7 +35,7 @@ flowchart TB
 Öffnen Sie in incident.io **Settings** > **API keys** und wählen Sie **Add new**. Nennen Sie ihn `OneUptime import`, geben Sie ihm nur Berechtigungen zum Ansehen von Daten, keine zum Erstellen, Bearbeiten oder Verwalten, und kopieren Sie den Schlüssel.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Aus einem anderen Tool importieren** und wählen Sie **incident.io**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Import aus anderem Tool** und wählen Sie **incident.io**.
 
 ### incident.io verbinden
 Fügen Sie den Schlüssel in **incident.io-API-Schlüssel** ein und wählen Sie **Mein incident.io-Konto einlesen**. Ein großes Konto dauert einige Minuten, und Sie können die Seite währenddessen verlassen.

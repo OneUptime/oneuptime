@@ -1,6 +1,6 @@
 # Wechsel von Better Stack
 
-**Aus einem anderen Tool importieren** holt Ihre Uptime-Monitore, Heartbeats und Statusseiten aus Better Stack in wenigen Minuten in OneUptime. Mit einem Uptime-API-Token von Better Stack liest OneUptime Ihre Monitore, Heartbeats, Statusseiten und deren E-Mail-Abonnenten ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Better Stack ändert sich nichts.
+**Import aus anderem Tool** holt Ihre Uptime-Monitore, Heartbeats und Statusseiten aus Better Stack in wenigen Minuten in OneUptime. Mit einem Uptime-API-Token von Better Stack liest OneUptime Ihre Monitore, Heartbeats, Statusseiten und deren E-Mail-Abonnenten ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Better Stack ändert sich nichts.
 
 :::cards
 - [Konto importieren](#ihr-better-stack-konto-importieren): Token erstellen, Konto einlesen und auswählen, was übernommen wird.
@@ -36,7 +36,7 @@ flowchart TB
 Öffnen Sie in Better Stack **API tokens** > **Team-based tokens** und wählen Sie Ihr Team. Erstellen Sie unter **Uptime API tokens** ein Token namens `OneUptime import` und kopieren Sie es.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Aus einem anderen Tool importieren** und wählen Sie **Better Stack**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Import aus anderem Tool** und wählen Sie **Better Stack**.
 
 ### Better Stack verbinden
 Fügen Sie das Token in **Better-Stack-API-Schlüssel** ein und wählen Sie **Mein Better Stack-Konto einlesen**. Ein großes Konto dauert einige Minuten, und Sie können die Seite währenddessen verlassen.

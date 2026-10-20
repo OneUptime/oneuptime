@@ -235,7 +235,7 @@ describe("the checks themselves", () => {
     ],
     [
       "de",
-      "**Projekteinstellungen → Aus einem anderen Tool importieren** liest Ihre Einrichtung.",
+      "**Projekteinstellungen → Import aus anderem Tool** liest Ihre Einrichtung.",
     ],
     [
       "ja",
@@ -267,6 +267,10 @@ describe("the checks themselves", () => {
     [
       "en",
       "In OneUptime, go to **Project Settings** > **Advanced** > **Import from another tool** and select **Opsgenie**.",
+    ],
+    [
+      "de",
+      "**Projekteinstellungen → Erweitert → Import aus anderem Tool** liest Ihre Einrichtung.",
     ],
     [
       "ja",

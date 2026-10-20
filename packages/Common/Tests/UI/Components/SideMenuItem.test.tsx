@@ -5,7 +5,14 @@ import SideMenuItem, {
   ComponentProps,
 } from "../../../UI/Components/SideMenu/SideMenuItem";
 import * as Navigation from "../../../UI/Utils/Navigation";
-import { describe, expect, it, afterEach, jest } from "@jest/globals";
+import {
+  describe,
+  expect,
+  it,
+  afterEach,
+  beforeEach,
+  jest,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 // Types
@@ -412,6 +419,164 @@ describe("Side Menu Item", () => {
       expect(mainLink.textContent?.trim()).toBe(defaultProps.link.title);
       // Row icon plus both indicators, all drawn as inline <svg>.
       expect(mainLink.querySelectorAll("svg")).toHaveLength(3);
+    });
+  });
+
+  /*
+   * The menu draws a title on one line and ends what does not fit with an
+   * ellipsis: "Importer depuis un autre outil" in the 192px a desktop
+   * leaves it, or "Import from another tool" in a tablet's 160px. The
+   * pointer shows such a title whole; a title that fits gets no tooltip
+   * repeating it. jsdom lays nothing out, so each test says how wide the
+   * title is and how much room it has.
+   */
+  describe("A title the menu cuts short", () => {
+    const LONG_TITLE: string = "Importer depuis un autre outil";
+
+    type SetWidthsFunction = (
+      element: HTMLElement,
+      widths: { scrollWidth: number; clientWidth: number },
+    ) => void;
+
+    const setWidths: SetWidthsFunction = (
+      element: HTMLElement,
+      widths: { scrollWidth: number; clientWidth: number },
+    ): void => {
+      Object.defineProperty(element, "scrollWidth", {
+        configurable: true,
+        value: widths.scrollWidth,
+      });
+      Object.defineProperty(element, "clientWidth", {
+        configurable: true,
+        value: widths.clientWidth,
+      });
+    };
+
+    type TitleSpanFunction = (title: string) => HTMLSpanElement;
+
+    // The span the title is drawn in, the one that ellipsizes.
+    const titleSpan: TitleSpanFunction = (title: string): HTMLSpanElement => {
+      const span: HTMLElement = screen.getByText(title);
+
+      expect(span.tagName).toBe("SPAN");
+      expect(span).toHaveClass("truncate");
+
+      return span as HTMLSpanElement;
+    };
+
+    // Each test says which page is open; none inherits the last one's.
+    beforeEach(() => {
+      Navigation.default.isOnThisPage =
+        getJestMockFunction().mockReturnValue(false);
+    });
+
+    it("shows the whole title on hover when it is cut short", () => {
+      render(
+        <SideMenuItem
+          link={{ title: LONG_TITLE, to: new Route("/settings/import") }}
+          icon={IconProp.InboxArrowDown}
+        />,
+      );
+      setWidths(titleSpan(LONG_TITLE), { scrollWidth: 211, clientWidth: 192 });
+
+      fireEvent.mouseEnter(titleSpan(LONG_TITLE));
+
+      expect(titleSpan(LONG_TITLE)).toHaveAttribute("title", LONG_TITLE);
+    });
+
+    // The active row draws its title in semibold, wider than the rest.
+    it("shows it on the row of the page you are on too", () => {
+      const to: Route = new Route("/settings/import");
+      Navigation.default.isOnThisPage =
+        getJestMockFunction().mockImplementation((route: Route): boolean => {
+          return route === to;
+        });
+
+      render(
+        <SideMenuItem
+          link={{ title: LONG_TITLE, to }}
+          icon={IconProp.InboxArrowDown}
+        />,
+      );
+      const span: HTMLSpanElement = titleSpan(LONG_TITLE);
+
+      expect(span.closest("a")).toHaveClass(highlightClassList);
+
+      setWidths(span, { scrollWidth: 214, clientWidth: 192 });
+      fireEvent.mouseEnter(span);
+
+      expect(span).toHaveAttribute("title", LONG_TITLE);
+    });
+
+    it("adds no hover text when the title fits", () => {
+      render(<SideMenuItem {...defaultProps} icon={IconProp.Home} />);
+      setWidths(titleSpan(defaultProps.link.title), {
+        scrollWidth: 40,
+        clientWidth: 192,
+      });
+
+      fireEvent.mouseEnter(titleSpan(defaultProps.link.title));
+
+      expect(titleSpan(defaultProps.link.title)).not.toHaveAttribute("title");
+    });
+
+    // A wider window (or a language switch) gives the title its room back.
+    it("drops the hover text once the title fits again", () => {
+      render(
+        <SideMenuItem
+          link={{ title: LONG_TITLE, to: new Route("/settings/import") }}
+        />,
+      );
+      const span: HTMLSpanElement = titleSpan(LONG_TITLE);
+
+      setWidths(span, { scrollWidth: 211, clientWidth: 160 });
+      fireEvent.mouseEnter(span);
+      expect(span).toHaveAttribute("title", LONG_TITLE);
+
+      setWidths(span, { scrollWidth: 211, clientWidth: 211 });
+      fireEvent.mouseEnter(span);
+      expect(span).not.toHaveAttribute("title");
+    });
+
+    /*
+     * The badge is drawn in the same anchor. Hover text read off the whole
+     * row would say "Importer depuis un autre outil12" - so it is read off
+     * the title alone, and the anchor gets none.
+     */
+    it("never puts the badge's digits in the hover text", () => {
+      render(
+        <SideMenuItem
+          link={{ title: LONG_TITLE, to: new Route("/settings/import") }}
+          icon={IconProp.InboxArrowDown}
+          badge={12}
+          badgeType={BadgeType.DANGER}
+        />,
+      );
+      const span: HTMLSpanElement = titleSpan(LONG_TITLE);
+
+      setWidths(span, { scrollWidth: 211, clientWidth: 150 });
+      fireEvent.mouseEnter(span);
+
+      expect(span).toHaveAttribute("title", LONG_TITLE);
+      expect(span.closest("a")?.textContent).toContain("12");
+      expect(span.closest("a")).not.toHaveAttribute("title");
+    });
+
+    it("shows a cut-short sub item whole on hover as well", () => {
+      const subTitle: string = "Benachrichtigungsprotokolle";
+
+      render(
+        <SideMenuItem
+          {...defaultProps}
+          subItemLink={{ title: subTitle, to: new Route("/notification-logs") }}
+        />,
+      );
+      const span: HTMLSpanElement = titleSpan(subTitle);
+
+      setWidths(span, { scrollWidth: 203, clientWidth: 170 });
+      fireEvent.mouseEnter(span);
+
+      expect(span).toHaveAttribute("title", subTitle);
     });
   });
 });

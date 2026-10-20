@@ -1,6 +1,6 @@
 # Wechsel von Splunk On-Call
 
-**Aus einem anderen Tool importieren** holt Ihre Splunk-On-Call-Einrichtung (früher VictorOps) in wenigen Minuten in OneUptime. Mit Ihrer API-ID und einem schreibgeschützten API-Schlüssel liest OneUptime Ihre Benutzer, Teams, Rotationen und Eskalationsrichtlinien ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Splunk On-Call ändert sich nichts.
+**Import aus anderem Tool** holt Ihre Splunk-On-Call-Einrichtung (früher VictorOps) in wenigen Minuten in OneUptime. Mit Ihrer API-ID und einem schreibgeschützten API-Schlüssel liest OneUptime Ihre Benutzer, Teams, Rotationen und Eskalationsrichtlinien ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Splunk On-Call ändert sich nichts.
 
 :::cards
 - [Konto importieren](#ihr-splunk-on-call-konto-importieren): Schlüssel erstellen, Konto einlesen und auswählen, was übernommen wird.
@@ -35,7 +35,7 @@ flowchart TB
 Öffnen Sie in Splunk On-Call **Integrations** > **API**. Ihre API-ID steht über Ihren API-Schlüsseln. Erstellen Sie einen neuen API-Schlüssel namens `OneUptime import`, wählen Sie **Read-only** und kopieren Sie die API-ID und den Schlüssel.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Aus einem anderen Tool importieren** und wählen Sie **Splunk On-Call**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Import aus anderem Tool** und wählen Sie **Splunk On-Call**.
 
 ### Splunk On-Call verbinden
 Fügen Sie die API-ID in **Splunk-On-Call-API-ID** und den Schlüssel in **Splunk-On-Call-API-Schlüssel** ein und wählen Sie **Mein Splunk On-Call-Konto einlesen**. Ein großes Konto dauert einige Minuten, und Sie können die Seite währenddessen verlassen.

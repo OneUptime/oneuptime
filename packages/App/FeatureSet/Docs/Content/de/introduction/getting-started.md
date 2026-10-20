@@ -113,7 +113,7 @@ Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen 
 
 ### Ihre Einrichtung mitnehmen
 
-**Projekteinstellungen → Erweitert → Aus einem anderen Tool importieren** liest Ihre Einrichtung in einem anderen Werkzeug, mit einem API-Schlüssel oder, bei Uptime Kuma, einer Datei. Es zeigt Ihnen, was es gefunden hat, und legt an, was Sie ankreuzen. Im anderen Werkzeug ändert sich nichts, und ein erneuter Import legt nie etwas doppelt an.
+**Projekteinstellungen → Erweitert → Import aus anderem Tool** liest Ihre Einrichtung in einem anderen Werkzeug, mit einem API-Schlüssel oder, bei Uptime Kuma, einer Datei. Es zeigt Ihnen, was es gefunden hat, und legt an, was Sie ankreuzen. Im anderen Werkzeug ändert sich nichts, und ein erneuter Import legt nie etwas doppelt an.
 
 | Sie kommen von | Was OneUptime liest |
 | --- | --- |

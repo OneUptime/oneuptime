@@ -516,7 +516,7 @@ Der Dialog sagt vor dem Speichern, was falsch ist, und gespeichert werden nur di
 
 Project Owners, Project Admins und jeder mit **Edit Project** können die nächsten Nummern ändern, so wie die Präfixe. Alle anderen sehen sie, mit gesperrter Schaltfläche **Aktualisieren**.
 
-Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten **Nummerierung**: **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode** sowie **Nächste Nummer der geplanten Wartung**. [Aus einem anderen Tool importieren](/docs/moving-to-oneuptime/incident-io) übernimmt Ihre Einrichtung, nicht Ihre vergangenen Vorfälle, und lässt die Nummern daher, wie sie sind: Legen Sie die nächsten Nummern fest, bevor in OneUptime der erste Vorfall gemeldet wird.
+Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten **Nummerierung**: **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode** sowie **Nächste Nummer der geplanten Wartung**. [Import aus anderem Tool](/docs/moving-to-oneuptime/incident-io) übernimmt Ihre Einrichtung, nicht Ihre vergangenen Vorfälle, und lässt die Nummern daher, wie sie sind: Legen Sie die nächsten Nummern fest, bevor in OneUptime der erste Vorfall gemeldet wird.
 
 ## Schalter für verknüpfte Warnungen
 

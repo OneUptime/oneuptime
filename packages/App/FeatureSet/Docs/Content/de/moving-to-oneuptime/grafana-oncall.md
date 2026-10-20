@@ -1,6 +1,6 @@
 # Wechsel von Grafana OnCall
 
-Grafana Labs hat das quelloffene Grafana OnCall im März 2026 archiviert, und in Grafana Cloud lebt es als Teil von Grafana Cloud IRM weiter. Wo auch immer Ihres läuft: **Aus einem anderen Tool importieren** holt Ihre Bereitschaftseinrichtung in wenigen Minuten in OneUptime. Mit Ihrer OnCall-API-URL und einem API-Token liest OneUptime Ihre Benutzer, Teams, Pläne und Eskalationsketten ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Grafana OnCall ändert sich nichts.
+Grafana Labs hat das quelloffene Grafana OnCall im März 2026 archiviert, und in Grafana Cloud lebt es als Teil von Grafana Cloud IRM weiter. Wo auch immer Ihres läuft: **Import aus anderem Tool** holt Ihre Bereitschaftseinrichtung in wenigen Minuten in OneUptime. Mit Ihrer OnCall-API-URL und einem API-Token liest OneUptime Ihre Benutzer, Teams, Pläne und Eskalationsketten ein, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Grafana OnCall ändert sich nichts.
 
 :::cards
 - [Konto importieren](#ihr-grafana-oncall-konto-importieren): Token erstellen, Konto einlesen und auswählen, was übernommen wird.
@@ -37,7 +37,7 @@ flowchart TB
 Öffnen Sie in Grafana **OnCall** > **Settings**. Öffnen Sie in Grafana Cloud **IRM** > **Settings** > **Admin & API**. Kopieren Sie die dort angezeigte OnCall-API-URL. Erstellen Sie unter **API tokens** ein Token namens `OneUptime import` und kopieren Sie es.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Aus einem anderen Tool importieren** und wählen Sie **Grafana OnCall**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Import aus anderem Tool** und wählen Sie **Grafana OnCall**.
 
 ### Grafana OnCall verbinden
 Fügen Sie die Adresse in **Grafana-OnCall-API-URL** und das Token in **Grafana-OnCall-API-Schlüssel** ein und wählen Sie **Mein Grafana OnCall-Konto einlesen**. Ein großes Konto dauert einige Minuten, und Sie können die Seite währenddessen verlassen.

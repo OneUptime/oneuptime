@@ -240,6 +240,28 @@ describe("the page is reachable", () => {
     expect(entry.endsWith("icon: IconProp.InboxArrowDown, }, ")).toBe(true);
   });
 
+  /*
+   * The menu draws a title on one line and ends what does not fit with an
+   * ellipsis (192px beside the icon on a desktop). German puts the verb
+   * last, so "Aus einem anderen Tool importieren" (258px in the marked row)
+   * lost the verb: "Aus einem anderen Tool ...", the only language whose cut
+   * took the action away. German names the page with the noun instead, as
+   * the import's own German text does ("Der Import aus {{tool}} ist
+   * abgeschlossen"), and fits; its docs write the label the same way
+   * (ProjectSettingsMenuPathsDocs holds each language's docs to its
+   * Dashboard's words).
+   */
+  test("German names the page so the menu shows it whole: 'Import aus anderem Tool'", () => {
+    const german: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", "de.json"), "utf8"),
+    ) as Record<string, unknown>;
+
+    expect(german[PAGE_TITLE]).toBe("Import aus anderem Tool");
+    expect(german["The import from {{tool}} is done"]).toBe(
+      "Der Import aus {{tool}} ist abgeschlossen",
+    );
+  });
+
   test("the page is linked from one place in the menu, and Advanced is not told to stay open for it", () => {
     const menu: string = readDashboard("Pages/Settings/SideMenu.tsx");
 
