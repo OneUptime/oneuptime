@@ -1904,7 +1904,6 @@
   "Choose a name for this saved log view.": "Choisissez un nom pour cette vue de journal enregistrée.",
   "Choose a postmortem template to populate the note.": "Choisissez un modèle de post-mortem pour remplir la note.",
   "Choose a repository...": "Choisissez un dépôt...",
-  "Choose a template to quickly get started with a pre-configured dashboard.": "Choisissez un modèle pour démarrer rapidement avec un tableau de bord préconfiguré.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Choisissez comment les données sont saisies pour ce champ. Les types de liste déroulante nécessitent également une liste d'options ci-dessous.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Choisissez la fréquence à laquelle ce résumé doit être publié (par exemple, tous les 1 jour, toutes les 1 semaine).",
   "Choose what this processor does": "Choisissez ce que fait ce processeur",
@@ -31921,5 +31920,14 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio a accepté le SMS de test depuis le {{phoneNumber}}. Il devrait arriver d'ici quelques minutes.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio a accepté le SMS de test. Il devrait arriver d'ici quelques minutes.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio appelle depuis le {{phoneNumber}}. Votre téléphone devrait sonner d'ici une minute.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio lance l'appel de test. Votre téléphone devrait sonner d'ici une minute."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio lance l'appel de test. Votre téléphone devrait sonner d'ici une minute.",
+  "Begin with an empty dashboard and add your own widgets.": "Commencez avec un tableau de bord vide et ajoutez vos propres widgets.",
+  "Create Dashboard": "Créer un tableau de bord",
+  "Create a dashboard": "Créer un tableau de bord",
+  "Dashboard names are unique within a project.": "Les noms des tableaux de bord sont uniques au sein d'un projet.",
+  "Please give this dashboard a name of at least 2 letters.": "Donnez à ce tableau de bord un nom d'au moins 2 caractères.",
+  "What is this dashboard for?": "À quoi sert ce tableau de bord ?",
+  "What should this dashboard be called?": "Comment ce tableau de bord doit-il s'appeler ?",
+  "Incident Response": "Réponse aux incidents",
+  "Monitoring & APM": "Surveillance et APM"
 }

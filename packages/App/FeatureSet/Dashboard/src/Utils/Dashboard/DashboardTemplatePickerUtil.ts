@@ -33,6 +33,7 @@ import {
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   WIDGET_CATALOG,
   WidgetCatalogCategory,
@@ -107,6 +108,31 @@ export const getDashboardPickerTemplate: GetDashboardPickerTemplateFunction = (
 };
 
 /*
+ * The name the picker shows for each category: in its select, and over the
+ * category's rows in All templates. The enum's values are the names, but a
+ * map the i18n extractor can read (translationKey) is what puts them in
+ * every locale; and a Record, so a category added without a name fails to
+ * compile rather than showing up untranslated.
+ */
+const DASHBOARD_CATEGORY_LABELS: Record<DashboardTemplateCategory, string> = {
+  [DashboardTemplateCategory.GetStarted]: translationKey("Get Started"),
+  [DashboardTemplateCategory.Monitoring]: translationKey("Monitoring & APM"),
+  [DashboardTemplateCategory.IncidentResponse]:
+    translationKey("Incident Response"),
+  [DashboardTemplateCategory.Infrastructure]: translationKey("Infrastructure"),
+};
+
+export type GetDashboardTemplateCategoryLabelFunction = (
+  category: DashboardTemplateCategory,
+) => string;
+
+/** A category's name, in English: the picker looks it up as it draws it. */
+export const getDashboardTemplateCategoryLabel: GetDashboardTemplateCategoryLabelFunction =
+  (category: DashboardTemplateCategory): string => {
+    return DASHBOARD_CATEGORY_LABELS[category];
+  };
+
+/*
  * What a search reads, and how much a match in each place is worth: the
  * name, then the category, then the description, as in Create a workflow.
  * The words people search a template by that neither says ("k8s",
@@ -127,10 +153,7 @@ export const DASHBOARD_TEMPLATE_CATALOG: TemplateCatalog<
     return getRecommendedDashboardTemplates().map(toPickerTemplate);
   },
   categories: DASHBOARD_PICKER_CATEGORIES,
-  // The category is its own name ("Monitoring & APM").
-  getCategoryLabel: (category: DashboardTemplateCategory): string => {
-    return category;
-  },
+  getCategoryLabel: getDashboardTemplateCategoryLabel,
   getCategory: (
     template: DashboardPickerTemplate,
   ): DashboardTemplateCategory => {

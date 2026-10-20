@@ -1904,7 +1904,6 @@
   "Choose a name for this saved log view.": "Escolha um nome para esta visualização de log salva.",
   "Choose a postmortem template to populate the note.": "Escolha um modelo de retrospectiva para preencher a nota.",
   "Choose a repository...": "Escolha um repositório...",
-  "Choose a template to quickly get started with a pre-configured dashboard.": "Escolha um modelo para começar rapidamente com um painel pré-configurado.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Escolha como os dados são inseridos para este campo. Os tipos de menu suspenso também precisam de uma lista de opções abaixo.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Escolha com que frequência este resumo deve ser publicado (por exemplo, a cada 1 dia, a cada 1 semana).",
   "Choose what this processor does": "Escolha o que este processador faz",
@@ -31921,5 +31920,14 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "O Twilio aceitou o SMS de teste de {{phoneNumber}}. Ele deve chegar em alguns minutos.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "O Twilio aceitou o SMS de teste. Ele deve chegar em alguns minutos.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "O Twilio está ligando de {{phoneNumber}}. Seu telefone deve tocar em até um minuto.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "O Twilio está fazendo a chamada de teste. Seu telefone deve tocar em até um minuto."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "O Twilio está fazendo a chamada de teste. Seu telefone deve tocar em até um minuto.",
+  "Begin with an empty dashboard and add your own widgets.": "Comece com um painel vazio e adicione seus próprios widgets.",
+  "Create Dashboard": "Criar painel",
+  "Create a dashboard": "Criar um painel",
+  "Dashboard names are unique within a project.": "Os nomes dos painéis são únicos dentro de um projeto.",
+  "Please give this dashboard a name of at least 2 letters.": "Dê a este painel um nome com pelo menos 2 caracteres.",
+  "What is this dashboard for?": "Para que serve este painel?",
+  "What should this dashboard be called?": "Como este painel deve se chamar?",
+  "Incident Response": "Resposta a incidentes",
+  "Monitoring & APM": "Monitoramento e APM"
 }

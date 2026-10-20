@@ -1904,7 +1904,6 @@
   "Choose a name for this saved log view.": "この保存されたログビューの名前を選択してください。",
   "Choose a postmortem template to populate the note.": "メモに入力するポストモーテムテンプレートを選択してください。",
   "Choose a repository...": "リポジトリを選択...",
-  "Choose a template to quickly get started with a pre-configured dashboard.": "事前構成されたダッシュボードですぐに始められるテンプレートを選択してください。",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "このフィールドのデータ入力方法を選択してください。ドロップダウン型では下記のオプション一覧も必要です。",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "このサマリーを投稿する頻度を選択してください（例: 1 日ごと、1 週間ごと）。",
   "Choose what this processor does": "このプロセッサの動作を選択してください",
@@ -31921,5 +31920,14 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio が {{phoneNumber}} からのテスト SMS を受け付けました。数分以内に届くはずです。",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio がテスト SMS を受け付けました。数分以内に届くはずです。",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio が {{phoneNumber}} から発信しています。1 分以内に電話が鳴るはずです。",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio がテスト通話を発信しています。1 分以内に電話が鳴るはずです。"
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio がテスト通話を発信しています。1 分以内に電話が鳴るはずです。",
+  "Begin with an empty dashboard and add your own widgets.": "空のダッシュボードから始めて、ウィジェットを自分で追加します。",
+  "Create Dashboard": "ダッシュボードを作成",
+  "Create a dashboard": "ダッシュボードを作成",
+  "Dashboard names are unique within a project.": "ダッシュボード名はプロジェクト内で一意です。",
+  "Please give this dashboard a name of at least 2 letters.": "ダッシュボードの名前は 2 文字以上で入力してください。",
+  "What is this dashboard for?": "このダッシュボードの用途は？",
+  "What should this dashboard be called?": "このダッシュボードの名前は何にしますか？",
+  "Incident Response": "インシデント対応",
+  "Monitoring & APM": "監視と APM"
 }

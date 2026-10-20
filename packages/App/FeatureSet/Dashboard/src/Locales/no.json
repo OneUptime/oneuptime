@@ -1904,7 +1904,6 @@
   "Choose a name for this saved log view.": "Velg et navn for denne lagrede loggvisningen.",
   "Choose a postmortem template to populate the note.": "Velg en postmortem-mal for å fylle ut notatet.",
   "Choose a repository...": "Velg et repository ...",
-  "Choose a template to quickly get started with a pre-configured dashboard.": "Velg en mal for raskt å komme i gang med et forhåndskonfigurert dashbord.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Velg hvordan data skrives inn for dette feltet. Nedtrekkstyper trenger også en liste over alternativer nedenfor.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Velg hvor ofte dette sammendraget skal publiseres (f.eks. hver 1. dag, hver 1. uke).",
   "Choose what this processor does": "Velg hva denne prosessoren gjør",
@@ -31921,5 +31920,14 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio har godtatt test-SMS-en fra {{phoneNumber}}. Den bør komme frem i løpet av noen få minutter.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio har godtatt test-SMS-en. Den bør komme frem i løpet av noen få minutter.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ringer fra {{phoneNumber}}. Telefonen din bør ringe innen ett minutt.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testanropet. Telefonen din bør ringe innen ett minutt."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testanropet. Telefonen din bør ringe innen ett minutt.",
+  "Begin with an empty dashboard and add your own widgets.": "Begynn med et tomt dashbord, og legg til dine egne widgets.",
+  "Create Dashboard": "Opprett dashbord",
+  "Create a dashboard": "Opprett et dashbord",
+  "Dashboard names are unique within a project.": "Navn på dashbord er unike i et prosjekt.",
+  "Please give this dashboard a name of at least 2 letters.": "Gi dashbordet et navn på minst 2 tegn.",
+  "What is this dashboard for?": "Hva skal dashbordet brukes til?",
+  "What should this dashboard be called?": "Hva skal dashbordet hete?",
+  "Incident Response": "Hendelseshåndtering",
+  "Monitoring & APM": "Overvåking og APM"
 }

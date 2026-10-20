@@ -1904,7 +1904,6 @@
   "Choose a name for this saved log view.": "Scegli un nome per questa vista di log salvata.",
   "Choose a postmortem template to populate the note.": "Scegli un modello di analisi post-incidente per popolare la nota.",
   "Choose a repository...": "Scegli un repository...",
-  "Choose a template to quickly get started with a pre-configured dashboard.": "Scegli un modello per iniziare rapidamente con una dashboard preconfigurata.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Scegli come inserire i dati per questo campo. I tipi a tendina richiedono anche un elenco di opzioni qui sotto.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Scegli con quale frequenza pubblicare questo riepilogo (ad es. ogni 1 giorno, ogni 1 settimana).",
   "Choose what this processor does": "Scegli cosa fa questo processore",
@@ -18717,7 +18716,7 @@
   "Wide layout": "Wide layout",
   "Widen the time range above to see who was recorded earlier, or check the recording health strip if you expected sessions here.": "Widen the time range above to see who was recorded earlier, or check the recording health strip if you expected sessions here.",
   "Widget categories": "Widget categories",
-  "Widgets": "Widgets",
+  "Widgets": "Widget",
   "Width": "Width",
   "Wildcard — * is any text, ? is one character": "Wildcard — * is any text, ? is one character",
   "Will be picked up by this probe soon.": "Will be picked up by this probe soon.",
@@ -31921,5 +31920,14 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova da {{phoneNumber}}. Dovrebbe arrivare entro pochi minuti.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova. Dovrebbe arrivare entro pochi minuti.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio sta chiamando da {{phoneNumber}}. Il tuo telefono dovrebbe squillare entro un minuto.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto.",
+  "Begin with an empty dashboard and add your own widgets.": "Inizia da una dashboard vuota e aggiungi i tuoi widget.",
+  "Create Dashboard": "Crea dashboard",
+  "Create a dashboard": "Crea una dashboard",
+  "Dashboard names are unique within a project.": "I nomi delle dashboard sono univoci all'interno di un progetto.",
+  "Please give this dashboard a name of at least 2 letters.": "Dai a questa dashboard un nome di almeno 2 caratteri.",
+  "What is this dashboard for?": "A cosa serve questa dashboard?",
+  "What should this dashboard be called?": "Come vuoi chiamare questa dashboard?",
+  "Incident Response": "Risposta agli incidenti",
+  "Monitoring & APM": "Monitoraggio e APM"
 }

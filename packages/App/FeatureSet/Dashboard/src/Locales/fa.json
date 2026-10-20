@@ -1904,7 +1904,6 @@
   "Choose a name for this saved log view.": "برای این نمای ذخیره‌شده لاگ یک نام انتخاب کنید.",
   "Choose a postmortem template to populate the note.": "یک قالب گزارش پس از حادثه انتخاب کنید تا یادداشت پر شود.",
   "Choose a repository...": "یک مخزن انتخاب کنید...",
-  "Choose a template to quickly get started with a pre-configured dashboard.": "یک قالب انتخاب کنید تا سریع با یک داشبورد از پیش پیکربندی‌شده شروع کنید.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "انتخاب کنید داده این فیلد چگونه وارد شود. نوع‌های کشویی به فهرست گزینه‌ها در پایین هم نیاز دارند.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "انتخاب کنید این خلاصه هر چند وقت یک بار منتشر شود (برای نمونه هر ۱ روز، هر ۱ هفته).",
   "Choose what this processor does": "انتخاب کنید این پردازشگر چه کاری انجام دهد",
@@ -18717,7 +18716,7 @@
   "Wide layout": "Wide layout",
   "Widen the time range above to see who was recorded earlier, or check the recording health strip if you expected sessions here.": "Widen the time range above to see who was recorded earlier, or check the recording health strip if you expected sessions here.",
   "Widget categories": "Widget categories",
-  "Widgets": "Widgets",
+  "Widgets": "ویجت‌ها",
   "Width": "Width",
   "Wildcard — * is any text, ? is one character": "Wildcard — * is any text, ? is one character",
   "Will be picked up by this probe soon.": "Will be picked up by this probe soon.",
@@ -31921,5 +31920,14 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را از {{phoneNumber}} پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio از {{phoneNumber}} تماس می‌گیرد. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
+  "Begin with an empty dashboard and add your own widgets.": "با یک داشبورد خالی شروع کنید و ویجت‌های خودتان را اضافه کنید.",
+  "Create Dashboard": "ساخت داشبورد",
+  "Create a dashboard": "ساخت یک داشبورد",
+  "Dashboard names are unique within a project.": "نام داشبوردها در هر پروژه یکتاست.",
+  "Please give this dashboard a name of at least 2 letters.": "لطفاً برای این داشبورد نامی با دست‌کم 2 نویسه بنویسید.",
+  "What is this dashboard for?": "این داشبورد برای چیست؟",
+  "What should this dashboard be called?": "نام این داشبورد چه باشد؟",
+  "Incident Response": "واکنش به حوادث",
+  "Monitoring & APM": "پایش و APM"
 }
