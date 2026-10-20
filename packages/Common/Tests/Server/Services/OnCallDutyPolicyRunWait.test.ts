@@ -1,18 +1,23 @@
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
+import AlertMeasurementValueService from "../../../Server/Services/AlertMeasurementValueService";
+import AlertService from "../../../Server/Services/AlertService";
 import IncidentEpisodeFeedService from "../../../Server/Services/IncidentEpisodeFeedService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import OnCallPolicyRunMessage from "../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import URL from "../../../Types/API/URL";
 import { Blue500, Yellow500 } from "../../../Types/BrandColors";
 import ObjectID from "../../../Types/ObjectID";
+import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import {
   ON_CALL_POLICY_RUN_WAITING_MESSAGE_START,
@@ -637,5 +642,133 @@ describe("ending a run that waited, before it paged", () => {
 
     expect(stubs.alertFeed).not.toHaveBeenCalled();
     expect(stubs.refresh).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * THE RECORD'S FIRST PAGE (FirstPagedAt): "Time to acknowledge after paging"
+ * counts from the first page that went out about the record - the first
+ * step of a run that names who it paged and says the page went out. A run
+ * that waits pages nobody until its hours begin, so an alert raised at night
+ * is first paged in the morning: the step its first escalation rule writes
+ * when the worker starts the run, not the moment the alert was raised.
+ */
+describe("a run that waited, and its record's first page", () => {
+  // An alert raised at 02:00 in London, paged at 09:00.
+  const NIGHT: Date = new Date("2026-10-20T01:00:00.000Z");
+  const MORNING: Date = new Date("2026-10-20T08:00:00.000Z");
+
+  interface FirstPageWrite {
+    id: ObjectID;
+    data: Record<string, unknown>;
+    expectedData: Record<string, unknown>;
+    skipUpdateDateColumn?: boolean;
+  }
+
+  type TimelineHook = (...args: Array<unknown>) => Promise<unknown>;
+
+  const timelineOnCreateSuccess: TimelineHook = (
+    OnCallDutyPolicyExecutionLogTimelineService as unknown as Record<
+      string,
+      TimelineHook
+    >
+  )["onCreateSuccess"]!.bind(OnCallDutyPolicyExecutionLogTimelineService);
+
+  function watchFirstPages(): Array<FirstPageWrite> {
+    const writes: Array<FirstPageWrite> = [];
+
+    jest
+      .spyOn(AlertService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockImplementation((async (write: FirstPageWrite): Promise<boolean> => {
+        writes.push(write);
+        return true;
+      }) as never);
+    jest
+      .spyOn(AlertMeasurementValueService, "recomputeForAlert")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(
+        OnCallDutyPolicyExecutionLogTimelineService,
+        "addToIncidentOrAlertFeed",
+      )
+      .mockResolvedValue(undefined as never);
+
+    return writes;
+  }
+
+  // The step the first escalation rule writes when it pages somebody.
+  function pageThatWentOut(at: Date): OnCallDutyPolicyExecutionLogTimeline {
+    const step: OnCallDutyPolicyExecutionLogTimeline =
+      new OnCallDutyPolicyExecutionLogTimeline();
+    step.id = ObjectID.generate();
+    step.projectId = PROJECT_ID;
+    step.onCallDutyPolicyExecutionLogId = RUN_ID;
+    step.alertSentToUserId = ObjectID.generate();
+    step.triggeredByAlertId = ALERT_ID;
+    step.status = OnCallDutyExecutionLogTimelineStatus.NotificationSent;
+    step.createdAt = at;
+    return step;
+  }
+
+  test("pages nobody at night, so the night records no first page", async () => {
+    const stubs: Stubs = stub();
+    const firstPages: Array<FirstPageWrite> = watchFirstPages();
+
+    await hooks.onCreateSuccess(
+      { carryForward: { isPolicyArchived: false } },
+      run({
+        status: OnCallDutyPolicyStatus.Waiting,
+        statusMessage: WORKING_HOURS_MESSAGE,
+        pagingStartsAt: MORNING,
+      }),
+    );
+
+    expect(stubs.startRuleExecution).not.toHaveBeenCalled();
+    expect(firstPages).toEqual([]);
+  });
+
+  test("the morning page is the alert's first, at the moment it went out", async () => {
+    const stubs: Stubs = stub();
+    const firstPages: Array<FirstPageWrite> = watchFirstPages();
+
+    // Its first escalation rule pages somebody, and writes the step that says so.
+    stubs.startRuleExecution.mockImplementation((async (): Promise<unknown> => {
+      const step: OnCallDutyPolicyExecutionLogTimeline =
+        pageThatWentOut(MORNING);
+
+      await timelineOnCreateSuccess(
+        { createBy: { data: step, props: { isRoot: true } } },
+        step,
+      );
+
+      return {
+        paged: [],
+        notPaged: [],
+        hadScheduleGap: false,
+        movesOnAtOnce: false,
+      };
+    }) as never);
+
+    await expect(
+      OnCallDutyPolicyExecutionLogService.startWaitingRun({
+        run: run({
+          status: OnCallDutyPolicyStatus.Waiting,
+          statusMessage: WORKING_HOURS_MESSAGE,
+          pagingStartsAt: MORNING,
+        }),
+        now: MORNING,
+      }),
+    ).resolves.toBe(true);
+
+    expect(firstPages).toEqual([
+      {
+        id: ALERT_ID,
+        data: { firstPagedAt: MORNING },
+        expectedData: { firstPagedAt: null },
+        skipUpdateDateColumn: true,
+      },
+    ]);
+    // Not when the alert was raised.
+    expect(firstPages[0]!.data["firstPagedAt"]).not.toEqual(NIGHT);
   });
 });
