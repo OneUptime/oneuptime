@@ -2,7 +2,7 @@
 
 आपके इंजीनियर Claude Code, Cursor, Codex, Gemini CLI और Copilot चलाते हैं, और बिल बढ़ते जा रहे हैं। यह पेज एक मैनेजर के सवालों का जवाब देता है: **कौन कौन-सा टूल, किन मॉडलों पर इस्तेमाल करता है, और हर व्यक्ति और हर टीम कितना खर्च करती है** ।
 
-ज़्यादातर कोडिंग असिस्टेंट खुद OpenTelemetry एक्सपोर्ट करते हैं, इसलिए डेवलपर मशीनों पर कुछ इंस्टॉल नहीं करना पड़ता: एक्सपोर्ट को OneUptime की ओर करें, और टोकन, लागत और टूल उपयोग आपके अपने ऐप की AI कॉल के साथ आ जाते हैं। यहाँ सब कुछ OpenTelemetry से आता है; OneUptime किसी विक्रेता के एडमिन या बिलिंग API को पोल नहीं करता।
+ज़्यादातर कोडिंग असिस्टेंट खुद OpenTelemetry एक्सपोर्ट करते हैं, इसलिए डेवलपर मशीनों पर कुछ इंस्टॉल नहीं करना पड़ता: एक्सपोर्ट को OneUptime की ओर करें, और टोकन, लागत और टूल उपयोग आपके अपने ऐप की AI कॉल के साथ आ जाते हैं। यहाँ सब कुछ OpenTelemetry से आता है। टूल के पीछे के मॉडल खातों का बिल भी, जैसे आपके Anthropic या OpenAI संगठन का, बिना कोड के पढ़ा जा सकता है: [AI प्रदाता खाते](/docs/telemetry/ai-provider-accounts) देखें।
 
 :::cards
 - [सपोर्ट मैट्रिक्स](#सपोर्ट-मैट्रिक्स): हर टूल क्या भेजता है, और क्या वह किसी व्यक्ति का नाम बताता है।
@@ -50,7 +50,7 @@ flowchart TB
 | Cline | मेट्रिक्स और लॉग | Cline के संगठन डैशबोर्ड में केंद्रीय रूप से कॉन्फ़िगर | एक गुमनाम `user_id` | — |
 | LiteLLM और Portkey | गेटवे से गुज़रने वाली हर कॉल के ट्रेस | गेटवे प्रोसेस से | LiteLLM में, वर्चुअल कुंजी का मालिक | [AI गेटवे](/docs/telemetry/ai-gateways) |
 | आपके अपने ऐप | आपका GenAI इंस्ट्रुमेंटेशन जो भेजता है | आपके ऐप से | जिसे भी आप `user.id` के रूप में सेट करें | [AI / LLM ऑब्ज़र्वेबिलिटी](/docs/telemetry/ai-llm-observability) |
-| Windsurf, JetBrains AI, Amazon Bedrock, Azure OpenAI | अपना कोई OpenTelemetry नहीं | सिर्फ़ आगे लगाए गए गेटवे के ज़रिए | जिसका नाम गेटवे बताए | [AI गेटवे](/docs/telemetry/ai-gateways) |
+| Windsurf, JetBrains AI, Amazon Bedrock, Azure OpenAI | अपना कोई OpenTelemetry नहीं | सिर्फ़ आगे लगाए गए गेटवे के ज़रिए; Bedrock और Azure का उपयोग और लागत [प्रदाता खाते](/docs/telemetry/ai-provider-accounts) के रूप में भी | जिसका नाम गेटवे बताए | [AI गेटवे](/docs/telemetry/ai-gateways) |
 
 डैश का मतलब है कि OneUptime के पास अभी उस टूल की कोई गाइड नहीं है। उसकी टेलीमेट्री फिर भी किसी भी दूसरे OpenTelemetry की तरह इंजेस्ट होती है।
 
@@ -59,8 +59,8 @@ Copilot सिर्फ़ अपनी एजेंट सुविधाओं
 :::
 
 :::details Amazon Bedrock, Azure OpenAI, Windsurf और JetBrains AI
-- **Amazon Bedrock**: `InvokeModel` और `Converse` API कोई OpenTelemetry नहीं भेजते। Bedrock AgentCore अलग है: AWS इसके लिए मेट्रिक्स, स्पैन और लॉग दर्ज करता है, जो डिफ़ॉल्ट रूप से CloudWatch को भेजे जाते हैं। `DISABLE_ADOT_OBSERVABILITY=true` सेट करने से रनटाइम का डिफ़ॉल्ट ADOT कॉन्फ़िगरेशन बंद हो जाता है, ताकि आप ADOT SDK को OneUptime की ओर कर सकें।
-- **Azure OpenAI**: सेवा कुछ नहीं भेजती, और इसके Azure Monitor मेट्रिक्स में कोई उपयोगकर्ता आयाम नहीं होता। क्लाइंट को इंस्ट्रुमेंट करें, या आगे API Management या कोई दूसरा गेटवे लगाएँ।
+- **Amazon Bedrock**: `InvokeModel` और `Converse` API कोई OpenTelemetry नहीं भेजते। Bedrock AgentCore अलग है: AWS इसके लिए मेट्रिक्स, स्पैन और लॉग दर्ज करता है, जो डिफ़ॉल्ट रूप से CloudWatch को भेजे जाते हैं। `DISABLE_ADOT_OBSERVABILITY=true` सेट करने से रनटाइम का डिफ़ॉल्ट ADOT कॉन्फ़िगरेशन बंद हो जाता है, ताकि आप ADOT SDK को OneUptime की ओर कर सकें। मॉडलों का क्षेत्र और मॉडल के हिसाब से उपयोग CloudWatch से [प्रदाता खाते](/docs/telemetry/ai-provider-accounts#amazon-bedrock) के रूप में पढ़ा जा सकता है।
+- **Azure OpenAI**: सेवा कुछ नहीं भेजती, और इसके Azure Monitor मेट्रिक्स में कोई उपयोगकर्ता आयाम नहीं होता। क्लाइंट को इंस्ट्रुमेंट करें, या आगे API Management या कोई दूसरा गेटवे लगाएँ। इसका संसाधन और मॉडल के हिसाब से उपयोग [प्रदाता खाते](/docs/telemetry/ai-provider-accounts#azure-openai-और-microsoft-foundry) के रूप में पढ़ा जा सकता है।
 - **Windsurf**: कोई टेलीमेट्री एक्सपोर्ट दर्ज नहीं करता। प्रति-उपयोगकर्ता डेटा Windsurf के Enterprise API में है, जिसे OneUptime पोल नहीं करता।
 - **JetBrains AI Assistant और Junie**: कोई उपयोग एक्सपोर्ट नहीं करते। JetBrains का OpenTelemetry प्लगइन IDE के अंदर आपके अपने ऐप की टेलीमेट्री लेता है; वह बाहर कुछ नहीं भेजता।
 :::
@@ -188,7 +188,7 @@ Codex डिफ़ॉल्ट रूप से अपने मेट्रि�
 
 ## OneUptime अभी क्या नहीं करता
 
-- **कोई विक्रेता एडमिन या बिलिंग कनेक्टर नहीं।** OneUptime Anthropic का Admin API, Cursor का Admin API, OpenAI के उपयोग और लागत एंडपॉइंट, GitHub की Copilot बिलिंग, या Windsurf या JetBrains के API पोल नहीं करता। इनवॉइस जैसे आंकड़ों के लिए उन्हें विक्रेता से लें।
+- **कोडिंग टूल के लिए कोई एडमिन कनेक्टर नहीं।** OneUptime टूल के पीछे के OpenAI, Anthropic, Azure, Bedrock और Vertex AI खाते पढ़ता है ([AI प्रदाता खाते](/docs/telemetry/ai-provider-accounts)), पर Cursor का Admin API, GitHub की Copilot बिलिंग, या Windsurf या JetBrains के API नहीं।
 - **लागत एक अनुमान है, जब तक कोई टूल उसे खुद न बताए।** बताई गई लागत जैसी है वैसी इस्तेमाल होती है; वरना OneUptime टोकन की कीमत सूची-मूल्यों पर लगाता है। Cursor का `cursor.cost.usage` खुद एक अनुमान है।
 - **लॉग रिकॉर्ड पर मौजूद पहचान नहीं पढ़ी जाती।** Codex का `user.email`, जिसे वह सिर्फ़ लॉग पर भेजता है, खर्च से नहीं जुड़ता।
 - **Cursor का `cursor.user.email` अभी नहीं पढ़ा जाता**, इसलिए Cursor उपयोगकर्ता अपने `cursor.user.id` पूर्णांक के रूप में दिखते हैं।

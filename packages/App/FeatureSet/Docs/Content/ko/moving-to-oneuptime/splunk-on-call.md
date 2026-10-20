@@ -35,7 +35,7 @@ flowchart TB
 Splunk On-Call에서 **Integrations** > **API**로 이동합니다. API ID는 API 키 위에 표시됩니다. 이름이 `OneUptime import`인 새 API 키를 만들고 **Read-only**를 선택한 뒤 API ID와 키를 복사합니다.
 
 ### 가져오기 페이지 열기
-OneUptime에서 **프로젝트 설정** > **다른 도구에서 가져오기**로 이동해 **Splunk On-Call**을 선택합니다.
+OneUptime에서 **프로젝트 설정** > **고급** > **다른 도구에서 가져오기**로 이동해 **Splunk On-Call**을 선택합니다.
 
 ### Splunk On-Call 연결하기
 API ID를 **Splunk On-Call API ID**에, 키를 **Splunk On-Call API 키**에 붙여 넣고 **내 Splunk On-Call 계정 읽기**를 선택합니다. 계정이 크면 몇 분 걸리며, 읽는 동안 페이지를 떠나도 됩니다.

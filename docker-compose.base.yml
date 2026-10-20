@@ -56,6 +56,10 @@ x-common-variables: &common-variables
   # included in a frontend env.js response.
   OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
   OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+  # Record OneUptime AI's prompts and answers in that telemetry (see
+  # config.example.env). Defaulted off so a config.env without the key keeps
+  # them out.
+  OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: ${OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT:-false}
   # Browser RUM is a separate, deliberately public channel. This key must be
   # a Browser ingestion key with an origin allowlist, never a Server key.
   PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT:-}

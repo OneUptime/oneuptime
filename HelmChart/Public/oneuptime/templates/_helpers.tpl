@@ -372,6 +372,10 @@ here would override the image's own marker.
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
   value: {{ $.Values.openTelemetryExporter.headers }}
 {{- end }}
+{{- if $.Values.openTelemetryExporter.captureAiMessageContent }}
+- name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+  value: "true"
+{{- end }}
 {{- if $.Values.browserOpenTelemetryExporter.endpoint }}
 - name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
   value: {{ $.Values.browserOpenTelemetryExporter.endpoint }}

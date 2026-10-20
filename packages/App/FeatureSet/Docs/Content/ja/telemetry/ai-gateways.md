@@ -6,6 +6,7 @@ AI ゲートウェイはアプリとモデルプロバイダーのあいだに�
 - [LiteLLM Proxy](#litellm-proxy): 組み込みのエクスポートを 3 つの変数で設定します。
 - [誰が何に使ったか](#従業員ごとに仮想キーをひとつ): 従業員ごとの LiteLLM 仮想キーで、一人ひとりを特定します。
 - [Portkey](#portkey): セルフホストのゲートウェイでは組み込みのエクスポート、それ以外ではアプリをインストルメントします。
+- [OpenRouter](#openrouter): Broadcast がすべてのリクエストのトレースを送ります。OpenRouter で一度設定するだけです。
 - [呼び出しが届くか確認する](#呼び出しが届くか確認する): 何が見えるべきか、見えないときにどうするか。
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | 設定するエンドポイント | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | アプリ自身のエクスポーター |
 | 一人ひとりを特定 | はい、従業員ごとの仮想キーで | いいえ | アプリが送るものだけ |
 | プロンプトと回答 | オフにしない限り送信 | 常に送信 | インストルメンテーションによる |
+
+OneUptime は独自のゲートウェイを持ちません。ゲートウェイを置けば、プロバイダーのキーを預かり、アプリのすべてのモデル呼び出しに経由点が 1 つ増えるためです。OneUptime はすでに運用しているゲートウェイを読み取り、プロバイダー アカウントの使用量とコストはコードなしで読み取ります。[AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts) を参照してください。
 
 ## 始める前に
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 これらのスパンは、アプリが行ったとおりの呼び出しを表します。要求したモデル、待った時間、受け取ったトークンです。フォールバック、再試行、キャッシュヒットなど、ゲートウェイが途中で決めたことは Portkey の中に残ります。それを OneUptime で見るには、セルフホストのゲートウェイのエクスポートを使ってください。
 
+## OpenRouter
+
+OpenRouter の Broadcast は、OpenRouter アカウントのすべてのリクエストのトレースを OpenTelemetry のエンドポイントに送ります。モデル、トークン、OpenRouter が請求したコスト、そしてオフにしない限りプロンプトと回答も送られます。設定は OpenRouter で一度行うだけで、アプリの変更は不要です。
+
+:::steps
+### Broadcast を有効にする
+
+OpenRouter で Settings、Observability を開き、Enable Broadcast を有効にします。
+
+### OneUptime をコレクターとして追加する
+
+OpenTelemetry Collector の送信先を編集します。エンドポイントにはトレースの完全なパス `https://oneuptime.com/otlp/v1/traces` を、ヘッダーには `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}` を設定します。次に接続をテストします。OpenRouter はテストが成功したときだけ送信先を保存します。
+
+### それを経由してモデルを呼び出す
+
+OpenRouter 経由でモデルを呼び出し、[呼び出しが届くか確認する](#呼び出しが届くか確認する) の説明に従って AI / LLM を確認します。
+:::
+
+- OpenRouter は OTLP を HTTP の JSON で送ります。OneUptime は間にコレクターを置かずに受け付けます。
+- リクエストの `user` は `user.id` として届き、OneUptime はこれを呼び出したユーザーとして読み取ります。`session_id` は `session.id` として届き、呼び出しを 1 つの会話にまとめます。`user` には顧客ではなく、必ず社員の ID を送ってください。
+- プロンプトと回答は生成スパンに `gen_ai.prompt` と `gen_ai.completion` として含まれます。除外するには、送信先のプライバシー モードを有効にします。
+
 ## 呼び出しが届くか確認する
 
 :::steps
@@ -259,6 +284,10 @@ LiteLLM には完全なパス `https://oneuptime.com/otlp/v1/traces` を指定�
 LiteLLM 1.81 以降、ひとつのリクエスト内のモデル呼び出しはひとつのスパンを共有します。呼び出しごとにスパンを得るには `USE_OTEL_LITELLM_REQUEST_SPAN=true` を設定してください。
 :::
 
+:::details OpenRouter が送信先を保存しない
+接続テストが失敗しています。エンドポイントが `/v1/traces` で終わっていること、ヘッダーにサーバー用の取り込みキーが入っていることを確認してください。
+:::
+
 ## 次のステップ
 
 :::cards
@@ -266,4 +295,5 @@ LiteLLM 1.81 以降、ひとつのリクエスト内のモデル呼び出しは�
 - [AI コーディングアシスタント](/docs/telemetry/ai-coding-assistants): 自分でテレメトリを送らないツールの前にゲートウェイを置きます。
 - [AI エージェントのサーキットブレーカー](/docs/telemetry/ai-agent-circuit-breaker): アラートが発生したら暴走したエージェントを止めます。
 - [トレース モニター](/docs/monitor/traces-monitor): ループで呼ばれるツールなど、スパンのパターンでアラートを出します。
+- [AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts): ゲートウェイの背後にあるアカウントの請求額を、コードなしで。
 :::

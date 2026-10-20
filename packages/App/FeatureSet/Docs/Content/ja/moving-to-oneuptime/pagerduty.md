@@ -36,7 +36,7 @@ flowchart TB
 PagerDuty で **Integrations** > **Developer Tools** > **API Access Keys** を開き、**Create New API Key** を選択します。説明を `OneUptime import` とし、**Read-only API Key** にチェックを入れて **Create Key** を選択し、キーをコピーします。
 
 ### インポートページを開く
-OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き、**PagerDuty** を選択します。
+OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き、**PagerDuty** を選択します。
 
 ### PagerDuty を接続する
 **PagerDuty アカウントはどこにありますか？** で **アメリカ合衆国** または **ヨーロッパ** を選びます。キーを **PagerDuty の API キー** に貼り付け、**PagerDuty アカウントを読み取る** を選択します。大きなアカウントでは数分かかり、読み取り中はページを離れてもかまいません。

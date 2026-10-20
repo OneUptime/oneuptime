@@ -113,7 +113,7 @@ La documentation est organisée comme la barre latérale, en neuf sections. Choi
 
 ### Apporter votre configuration
 
-**Paramètres du projet → Importer depuis un autre outil** lit votre configuration dans un autre outil, avec une clé d'API ou, pour Uptime Kuma, un fichier. Il vous montre ce qu'il a trouvé et crée ce que vous cochez. Rien ne change dans l'autre outil, et relancer l'import ne crée jamais rien en double.
+**Paramètres du projet → Avancé → Importer depuis un autre outil** lit votre configuration dans un autre outil, avec une clé d'API ou, pour Uptime Kuma, un fichier. Il vous montre ce qu'il a trouvé et crée ce que vous cochez. Rien ne change dans l'autre outil, et relancer l'import ne crée jamais rien en double.
 
 | Vous venez de | Ce que OneUptime lit |
 | --- | --- |

@@ -37,7 +37,7 @@ Tilkoblingen logger på med [OAuth 2.0-flyten for klientlegitimasjon](https://le
 
 1. Logg på [Azure-portalen](https://portal.azure.com), og åpne **Microsoft Entra ID**.
 2. Gå til **App registrations → New registration**. Gi den navnet `OneUptime Security Events`, la **Supported account types** stå på **Accounts in this organizational directory only**, la omdirigerings-URI-en være tom, og velg **Register**.
-3. Kopier **Application (client) ID** og **Directory (tenant) ID** fra appens side **Overview**.
+3. Kopier **Program-ID (klient)** og **Katalog-ID (tenant)** fra appens side **Overview**.
 
 ### La den lese varsler
 
@@ -61,9 +61,9 @@ Klikk på **Test these settings** under **Test før du lagrer**. Testen logger p
 
 | Innstilling | Hvor du finner den |
 | --- | --- |
-| **Directory (tenant) ID** | Appens side **Overview**. GUID-en til leieren, eller et verifisert domene som `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | Appens side **Overview**. GUID-en til appen som har `SecurityAlert.Read.All`. |
-| **Sky** | **Azure public cloud**, som også betjener Microsoft 365 GCC, eller **Azure Government (US)** for GCC High (`login.microsoftonline.us` og `graph.microsoft.us`). Microsoft 365 DoD og 21Vianet-skyen i Kina støttes ikke. |
+| **Katalog-ID (tenant)** | Appens side **Overview**. GUID-en til leieren, eller et verifisert domene som `contoso.onmicrosoft.com`. |
+| **Program-ID (klient)** | Appens side **Overview**. GUID-en til appen som har `SecurityAlert.Read.All`. |
+| **Sky** | **Offentlig Azure-sky**, som også betjener Microsoft 365 GCC, eller **Azure Government (USA)** for GCC High (`login.microsoftonline.us` og `graph.microsoft.us`). Microsoft 365 DoD og 21Vianet-skyen i Kina støttes ikke. |
 | **Client secret** | Hemmelighetens **Value**. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Update credentials** på tilkoblingen. |
 
 Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltall fra `1` til `1440` som starter på `5`, og **Aktivert**, som starter slått på.
@@ -151,7 +151,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 :::details Last Error starter med `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID nektet å utstede et token, så Graph ble aldri kontaktet. Meldingen slutter med et hint ut fra `error`-koden fra Entra:
   - `invalid_client` (`AADSTS7000215`): hemmeligheten er feil, utløpt eller tilhører en annen app. Opprett en ny under **Certificates & secrets**, og lagre den med **Update credentials**.
-  - `unauthorized_client` (`AADSTS700016`): **Application (client) ID** finnes ikke i den **Directory (tenant) ID**, eller **Sky** er feil.
+  - `unauthorized_client` (`AADSTS700016`): **Program-ID (klient)** finnes ikke i den **Katalog-ID (tenant)**, eller **Sky** er feil.
   - `AADSTS90002`: den leieren finnes ikke.
   - `invalid_scope`: Graph-omfanget finnes ikke i skyen du valgte. Sjekk **Sky**.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID svarte med noe ubrukelig, et innhold som ikke er JSON, eller uten `access_token`. Det er vanligvis en proxy eller gateway imellom, ikke legitimasjonen.

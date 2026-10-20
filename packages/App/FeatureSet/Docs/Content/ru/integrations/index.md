@@ -98,7 +98,7 @@ flowchart TB
 
 ## Переход с другого инструмента
 
-Чтобы уйти с другого инструмента дежурств, мониторинга доступности или страниц статуса, перенесите свою команду, а не связывайте два инструмента. **Настройки проекта → Импорт из другого инструмента** читает вашу учётную запись по ключу API, показывает найденное и создаёт то, что вы отметите. Для каждого инструмента есть руководство:
+Чтобы уйти с другого инструмента дежурств, мониторинга доступности или страниц статуса, перенесите свою команду, а не связывайте два инструмента. **Настройки проекта → Расширенный → Импорт из другого инструмента** читает вашу учётную запись по ключу API, показывает найденное и создаёт то, что вы отметите. Для каждого инструмента есть руководство:
 
 - Инструменты дежурств и инцидентов: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) и [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Инструменты мониторинга доступности и страниц статуса: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) и [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

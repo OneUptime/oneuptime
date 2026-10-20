@@ -1,6 +1,6 @@
 # Wechsel von Uptime Kuma
 
-Uptime Kuma läuft auf Ihren eigenen Rechnern, daher liest **Aus einem anderen Tool importieren** es aus einer Datei statt mit einem Schlüssel: aus der Sicherung, die Uptime Kuma 1 exportiert, oder aus der Metrikseite, die jede Version bereitstellt. OneUptime liest Ihre Monitore daraus, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Uptime Kuma ändert sich nichts.
+Uptime Kuma läuft auf Ihren eigenen Rechnern, daher liest **Import aus anderem Tool** es aus einer Datei statt mit einem Schlüssel: aus der Sicherung, die Uptime Kuma 1 exportiert, oder aus der Metrikseite, die jede Version bereitstellt. OneUptime liest Ihre Monitore daraus, zeigt Ihnen, was es gefunden hat, und erstellt, was Sie auswählen. In Uptime Kuma ändert sich nichts.
 
 :::cards
 - [Monitore importieren](#ihre-uptime-kuma-monitore-importieren): Datei speichern, einlesen und auswählen, was übernommen wird.
@@ -36,7 +36,7 @@ flowchart TB
 Öffnen Sie in Uptime Kuma 1 **Settings** > **Backup** und wählen Sie **Export**. Fügen Sie in Uptime Kuma 2 unter **Settings** > **API Keys** einen Schlüssel hinzu, öffnen Sie `/metrics` auf Ihrem Uptime Kuma, melden Sie sich ohne Benutzernamen mit dem Schlüssel als Passwort an und speichern Sie die Seite als Textdatei.
 
 ### Die Importseite öffnen
-Öffnen Sie in OneUptime **Projekteinstellungen** > **Aus einem anderen Tool importieren** und wählen Sie **Uptime Kuma**.
+Öffnen Sie in OneUptime **Projekteinstellungen** > **Erweitert** > **Import aus anderem Tool** und wählen Sie **Uptime Kuma**.
 
 ### Die Datei einlesen
 Wählen Sie unter **Sicherungs- oder Metrikdatei von Uptime Kuma** **Datei auswählen**, wählen Sie die gespeicherte Datei und dann **Datei lesen**. OneUptime liest sie sofort und zeigt, was es gefunden hat.

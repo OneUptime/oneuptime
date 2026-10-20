@@ -199,8 +199,10 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-// What a fix pull request's row records when GitHub says it merged.
-// Only the fields that are set: written straight into the row's update.
+/*
+ * What a fix pull request's row records when GitHub says it merged.
+ * Only the fields that are set: written straight into the row's update.
+ */
 export interface FixMergedFields {
   mergedAt: Date;
   mergeCommitSha?: string;

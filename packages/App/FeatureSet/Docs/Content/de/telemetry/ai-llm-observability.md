@@ -3,6 +3,7 @@
 Lesen Sie jede Unterhaltung, die Ihre KI geführt hat, spielen Sie sie so ab, wie sie geschehen ist, und erfahren Sie, wenn sie schlecht antwortet. OneUptime baut all das aus Standard-OpenTelemetry: Wenn Ihre App Spans mit den **GenAI-Semantikkonventionen** (`gen_ai.*`) sendet, bekommen Sie Unterhaltungen, Warnungen, Nutzung und Kosten, ohne proprietäres SDK.
 
 :::cards
+- [Drei Wege hinein](#drei-wege-hinein): Ihre Apps, Ihre KI-Anbieterkonten und die KI-Tools Ihres Unternehmens.
 - [Einrichten](#in-fünf-schritten-einrichten): Fünf Schritte, vom ersten Span bis zu markierten Antworten.
 - [Eine Unterhaltung abspielen](#eine-unterhaltung-lesen-und-abspielen): Einen Chat so lesen, wie die Person ihn gesehen hat, im Tempo, in dem er geschah.
 - [Gewarnt werden](#erfahren-wenn-die-ki-schlecht-antwortet): Fertige Warnungen für Antworten, die fehlschlagen, verweigert, abgeschnitten, markiert oder langsam sind.
@@ -28,13 +29,23 @@ flowchart TB
 | --- | --- |
 | **Unterhaltungen** | Jede Unterhaltung, die Ihre KI geführt hat, die mit Handlungsbedarf zuerst. Über der Liste: Unterhaltungen, KI-Antworten, wie viele Aufmerksamkeit brauchen, Kosten und die typische Antwortzeit. |
 | **Aufrufe** | Jeder Modell-, Embedding-, Agenten- und Tool-Aufruf. Filtern Sie nach Dienst, Anbieter, Modell, Operation, Person, Team oder Unterhaltung; ein Klick öffnet den Aufruf im Trace-Viewer. |
-| **Nutzung** | Aufrufe, Tokens und Kosten eines Zeitraums, gereiht nach Mitarbeiter, Team, Modell, Anbieter oder App. |
+| **Nutzung** | Aufrufe, Tokens und Kosten eines Zeitraums, gereiht nach Mitarbeiter, Team, Modell, Anbieter oder App; unter **Anbieterkonten**, was Ihren verbundenen Konten berechnet wurde. |
 | **Warnungen** | Fertige Warnungen für den Fall, dass die KI schlecht antwortet, und Ihre KI- / LLM-Monitore. |
 | **Budgets** | Tägliche Kostenlimits, als Metriken veröffentlicht, auf die Sie Warnungen setzen können. |
 | **Preise** | Ihre eigenen Preise für Modelle, die die integrierte Preisliste nicht kennt. |
-| **Einrichtung** | Die fünf Schritte unten, mit dem Endpunkt Ihres Projekts. |
+| **Verbinden** | Die drei Wege hinein, nebeneinander, jeder abgehakt, sobald er funktioniert. |
 
 Im Trace-Viewer hat der Span jedes KI-Aufrufs außerdem einen Tab **LLM**: Anbieter, Modell, Tokens, Kosten, Anfrageparameter sowie den Prompt und die Antwort.
+
+## Drei Wege hinein
+
+Alle drei liegen unter **Produkte → KI / LLM → Verbinden**. Nutzen Sie einen, zwei oder alle: Alles landet in denselben **Unterhaltungen**, **Nutzung**, **Warnungen** und **Budgets**.
+
+| Weg hinein | Was Sie bekommen | Wie |
+| --- | --- | --- |
+| **Deine Apps** | Jeder KI-Aufruf, während er passiert: die Unterhaltung, die Person, der Prompt und die Antwort, Tokens, Kosten und Fehler | OpenTelemetry aus Ihrem Code oder einem Gateway, in fünf Schritten |
+| **Deine KI-Anbieterkonten** | Was jedes Konto bei OpenAI, Anthropic, Azure, Bedrock oder Vertex AI verbraucht und gekostet hat, pro Tag | Zugangsdaten, die nur lesen, und kein Code: [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts) |
+| **Die KI-Tools deines Unternehmens** | Was Ihre Leute Claude Enterprise oder Microsoft 365 Copilot fragen, pro Person | Zugangsdaten, die nur lesen, und kein Code: [KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools) |
 
 ## Bevor Sie beginnen
 
@@ -51,7 +62,7 @@ Der erste Schritt genügt, um Aufrufe zu sehen. Jeder weitere Schritt zeigt mehr
 :::steps
 ### Ihre KI-Aufrufe senden
 
-Erstellen Sie einen Ingestion-Schlüssel unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** (der [OpenTelemetry-Schnellstart](/docs/telemetry/open-telemetry#einen-ingestion-schlüssel-erstellen) zeigt den Weg). Richten Sie dann Ihre Instrumentierung auf OneUptime:
+Wählen Sie unter **Deine Apps** auf **Verbinden** einen Ingestion-Schlüssel oder erstellen Sie einen, und kopieren Sie das Snippet für Ihre Sprache mit Ihrem Endpunkt und Schlüssel darin. Oder erstellen Sie einen Schlüssel unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** (der [OpenTelemetry-Schnellstart](/docs/telemetry/open-telemetry#einen-ingestion-schlüssel-erstellen) zeigt den Weg) und richten Sie Ihre Instrumentierung auf OneUptime:
 
 :::tabs
 @tab Python
@@ -192,6 +203,8 @@ Eine fertige Warnung löst eine Warnung aus, die sich selbst auflöst, und zeigt
 
 Der Tab **Nutzung** zeigt die Aufrufe, Tokens und Kosten eines Zeitraums (die letzten 7 Tage, wenn Sie keinen anderen wählen) und eine Tabelle der Top 25 nach einer von fünf Aufschlüsselungen: **Mitarbeiter**, **Team**, **Modell**, **Anbieter** und **Anwendung / Dienst**. Aufrufe, die niemanden nennen, werden unter **Nicht zugeordnet** gezählt, nie verworfen.
 
+Das sind **Deine KI-Aufrufe**. Wählen Sie stattdessen **Anbieterkonten**, um zu sehen, was Ihren verbundenen Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#die-nutzung-ansehen). Beides wird nie addiert.
+
 Personen und Teams kommen aus Identitätsattributen des Aufrufs: siehe [Zuordnung zu Mitarbeitern und Teams](/docs/telemetry/ai-coding-assistants#zuordnung-zu-mitarbeitern-und-teams).
 
 ### Spans zuerst, Metriken springen ein
@@ -230,7 +243,7 @@ Um ein Modell selbst zu bepreisen (ein ausgehandelter Tarif, ein Fine-Tune oder 
 
 ## Tägliche Kostenbudgets
 
-Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (aus Spans oder, wenn kein Span welche gemeldet hat, aus GenAI-Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken:
+Ein Budget verfolgt die Ausgaben eines Tages in USD, über den UTC-Tag. Alle 15 Minuten addiert OneUptime die KI-Ausgaben des Tages (aus Spans oder, wenn kein Span welche gemeldet hat, aus GenAI-Kostenmetriken), zeigt sie am Budget und veröffentlicht zwei Metriken. Ein Budget, dessen **Ausgaben zählen aus** auf **Anbieterkonten** steht, zählt stattdessen, was Ihren verbundenen Konten berechnet wurde: siehe [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts#budgets-und-alarme).
 
 | Metrik | Was sie ist |
 | --- | --- |
@@ -263,7 +276,7 @@ GenAI-Metriken wie `gen_ai.client.token.usage` und `gen_ai.client.operation.dura
 
 KI-Aufrufe werden als Trace-Spans gespeichert, daher gelten die **Scrub-Regeln** und **Drop-Filter** der Traces für sie: Maskieren Sie ein Attribut oder verwerfen Sie einen Span, bevor er gespeichert wird. Beides finden Sie unter **Traces → Einstellungen**. Die Spalte mit der E-Mail des Mitarbeiters wird mit dem Attribut bereinigt, aus dem sie gelesen wurde, sodass eine Regel, die E-Mails maskiert, sie ebenfalls erfasst.
 
-Unterhaltungen werden mit derselben Berechtigung gelesen wie Traces: Wer die Traces des Projekts lesen darf, darf seine Unterhaltungen lesen, und niemand sonst.
+Unterhaltungen werden mit derselben Berechtigung gelesen wie Traces: Wer die Traces des Projekts lesen darf, darf seine Unterhaltungen lesen, und niemand sonst. Die Unterhaltungen eines KI-Tools des Unternehmens sind die Ausnahme: Nur Projektinhaber und Admins können sie lesen, es sei denn, seine Verbindung sagt etwas anderes ([KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools#datenschutz)).
 
 ## Attribute, die OneUptime liest
 
@@ -328,6 +341,8 @@ Das rollierende Fenster des Monitors ist kürzer als 15 Minuten, daher findet er
 ## Nächste Schritte
 
 :::cards
+- [KI-Anbieterkonten](/docs/telemetry/ai-provider-accounts): Nutzung und Kosten Ihrer Konten bei OpenAI, Anthropic, Azure, Bedrock und Vertex AI, ohne Code.
+- [KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools): Was Ihre Leute Claude Enterprise und Microsoft 365 Copilot fragen.
 - [KI-Coding-Assistenten](/docs/telemetry/ai-coding-assistants): Ausgaben pro Entwickler für Claude Code, Cursor, Codex, Gemini CLI und Copilot.
 - [KI-Gateways](/docs/telemetry/ai-gateways): Die Modellaufrufe jeder App über ein LiteLLM- oder Portkey-Gateway tracen.
 - [Schutzschalter für KI-Agenten](/docs/telemetry/ai-agent-circuit-breaker): Einen außer Kontrolle geratenen Agenten stoppen, wenn eine Budgetwarnung auslöst.

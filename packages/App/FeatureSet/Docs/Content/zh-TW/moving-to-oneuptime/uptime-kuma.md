@@ -36,7 +36,7 @@ flowchart TB
 在 Uptime Kuma 1 中，依序進入 **Settings** > **Backup**，然後選擇 **Export**。在 Uptime Kuma 2 中，在 **Settings** > **API Keys** 下新增一個金鑰，開啟你的 Uptime Kuma 的 `/metrics`，使用者名稱留空、以該金鑰作為密碼登入，然後將頁面另存為文字檔。
 
 ### 開啟匯入頁面
-在 OneUptime 中，前往 **專案設定** > **從其他工具匯入**，然後選擇 **Uptime Kuma**。
+在 OneUptime 中，前往 **專案設定** > **進階** > **從其他工具匯入**，然後選擇 **Uptime Kuma**。
 
 ### 讀取檔案
 在 **Uptime Kuma 備份或指標檔案** 下選擇 **選擇檔案**，選取你儲存的檔案，然後選擇 **讀取檔案**。OneUptime 會立即讀取並顯示找到的內容。

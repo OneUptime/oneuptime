@@ -37,7 +37,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 1. [Azure portal](https://portal.azure.com)에 로그인하고 **Microsoft Entra ID**를 엽니다.
 2. **App registrations → New registration**으로 이동합니다. 이름을 `OneUptime Security Events`로 정하고, **Supported account types**는 **Accounts in this organizational directory only**로 두고, 리디렉션 URI는 비워 둔 채 **Register**를 선택합니다.
-3. 앱의 **Overview** 페이지에서 **Application (client) ID**와 **Directory (tenant) ID**를 복사합니다.
+3. 앱의 **Overview** 페이지에서 **애플리케이션(클라이언트) ID**와 **디렉터리(테넌트) ID**를 복사합니다.
 
 ### 알림을 읽도록 허용
 
@@ -61,9 +61,9 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 | 설정 | 찾는 위치 |
 | --- | --- |
-| **Directory (tenant) ID** | 앱의 **Overview** 페이지. 테넌트의 GUID 또는 `contoso.onmicrosoft.com` 같은 확인된 도메인. |
-| **Application (client) ID** | 앱의 **Overview** 페이지. `SecurityAlert.Read.All`을 가진 앱의 GUID. |
-| **클라우드** | Microsoft 365 GCC도 제공하는 **Azure public cloud**, 또는 GCC High용 **Azure Government (US)** (`login.microsoftonline.us`와 `graph.microsoft.us`). Microsoft 365 DoD와 중국의 21Vianet 클라우드는 지원되지 않습니다. |
+| **디렉터리(테넌트) ID** | 앱의 **Overview** 페이지. 테넌트의 GUID 또는 `contoso.onmicrosoft.com` 같은 확인된 도메인. |
+| **애플리케이션(클라이언트) ID** | 앱의 **Overview** 페이지. `SecurityAlert.Read.All`을 가진 앱의 GUID. |
+| **클라우드** | Microsoft 365 GCC도 제공하는 **Azure 퍼블릭 클라우드**, 또는 GCC High용 **Azure Government(미국)** (`login.microsoftonline.us`와 `graph.microsoft.us`). Microsoft 365 DoD와 중국의 21Vianet 클라우드는 지원되지 않습니다. |
 | **Client secret** | 시크릿의 **Value**. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **Update credentials**로 교체합니다. |
 
 **Polling** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **Poll Interval (Minutes)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
@@ -151,7 +151,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::details Last Error가 `Microsoft Defender XDR token request`로 시작함
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID가 토큰 발급을 거부했으므로 Graph에는 연결하지 않았습니다. 메시지는 Entra의 `error` 코드에 따른 힌트로 끝납니다:
   - `invalid_client` (`AADSTS7000215`): 시크릿이 틀렸거나 만료되었거나 다른 앱의 것입니다. **Certificates & secrets** 아래에서 새로 만들고 **Update credentials**로 저장합니다.
-  - `unauthorized_client` (`AADSTS700016`): **Application (client) ID**가 그 **Directory (tenant) ID**에 없거나, **클라우드**가 잘못되었습니다.
+  - `unauthorized_client` (`AADSTS700016`): **애플리케이션(클라이언트) ID**가 그 **디렉터리(테넌트) ID**에 없거나, **클라우드**가 잘못되었습니다.
   - `AADSTS90002`: 그런 테넌트가 없습니다.
   - `invalid_scope`: 고른 클라우드에 Graph 범위가 없습니다. **클라우드**를 확인합니다.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID가 JSON이 아니거나 `access_token`이 없는 본문처럼 쓸 수 없는 응답을 보냈습니다. 대개 자격 증명이 아니라 중간에 있는 프록시나 게이트웨이 때문입니다.

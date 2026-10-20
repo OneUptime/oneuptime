@@ -37,7 +37,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 1. [Azure portal](https://portal.azure.com) にサインインし、**Microsoft Entra ID** を開きます。
 2. **App registrations → New registration** に移動します。名前を `OneUptime Sentinel connector` にし、**Supported account types** は **Accounts in this organizational directory only** のまま、リダイレクト URI は空のままにして、**Register** を選びます。
-3. アプリの **Overview** ページで、**Application (client) ID** と **Directory (tenant) ID** をコピーします。
+3. アプリの **Overview** ページで、**アプリケーション (クライアント) ID** と **ディレクトリ (テナント) ID** をコピーします。
 4. **Certificates & secrets → Client secrets → New client secret** に移動し、有効期限を選んで **Add** を選びます。ページを離れる前に、シークレットの **Secret ID** ではなく **Value** をコピーします。この値は二度と表示されません。
 
 ### インシデントの読み取りを許可する
@@ -52,7 +52,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ### ワークスペースの詳細を確認する
 
-Azure portal で Log Analytics ワークスペースを開きます。その **Overview** ページに、**Subscription ID**、**Resource group**、ワークスペースの名前が表示されます。ワークスペースのリソース ID にも同じ 3 つが含まれます。
+Azure portal で Log Analytics ワークスペースを開きます。その **Overview** ページに、**サブスクリプション ID**、**Resource group**、ワークスペースの名前が表示されます。ワークスペースのリソース ID にも同じ 3 つが含まれます。
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Azure portal で Log Analytics ワークスペースを開きます。その **O
 
 | 設定 | 確認場所 |
 | --- | --- |
-| **Directory (tenant) ID** | アプリの **Overview** ページ。テナントの GUID、または `contoso.onmicrosoft.com` のような検証済みドメイン。 |
-| **Application (client) ID** | アプリの **Overview** ページ。GUID。 |
-| **Subscription ID** | ワークスペースの **Overview** ページ。GUID。 |
+| **ディレクトリ (テナント) ID** | アプリの **Overview** ページ。テナントの GUID、または `contoso.onmicrosoft.com` のような検証済みドメイン。 |
+| **アプリケーション (クライアント) ID** | アプリの **Overview** ページ。GUID。 |
+| **サブスクリプション ID** | ワークスペースの **Overview** ページ。GUID。 |
 | **Resource group** | ワークスペースの **Overview** ページ。1～90 文字の英字、数字、アンダースコア、ハイフン、ピリオド、かっこで、末尾はピリオド以外。 |
 | **Workspace name** | ワークスペースの **Overview** ページ。3～90 文字の英字、数字、ハイフンで、先頭と末尾は英字または数字。 |
-| **クラウド** | **Azure public cloud**（`login.microsoftonline.com`、`management.azure.com`）または **Azure Government (US)**（`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
+| **クラウド** | **Azure パブリック クラウド**（`login.microsoftonline.com`、`management.azure.com`）または **Azure Government (米国)**（`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
 | **クライアントシークレット** | シークレットの **Value**。暗号化され、API から返されることはなく、二度と表示されません。接続の **認証情報を更新** で置き換えます。 |
 
 **ポーリング** ステップには、任意の **説明**、`1`～`1440` の整数で初期値 `5` の **ポーリング間隔（分）**、初期状態でオンの **有効** もあります。
@@ -166,8 +166,8 @@ Microsoft Entra ID や Azure Resource Manager のエラーで完全に失敗し�
 :::details 最終エラーが `Microsoft Sentinel token request` で始まる
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID がトークンの発行を拒否したため、Azure には一切接続していません。メッセージには Entra のコードが含まれます。
   - `AADSTS7000215` または `invalid_client`: **クライアントシークレット** が誤っているか期限切れ、または値ではなくシークレットの ID です。新しいシークレットを作成し、**認証情報を更新** で保存します。
-  - `AADSTS700016` または `unauthorized_client`: **Application (client) ID** が指定された **Directory (tenant) ID** に存在しません。両方をアプリの **Overview** ページと照合します。
-  - `AADSTS90002` または `HTTP 404`: そのテナントは存在しません。**Directory (tenant) ID** が誤っているか、もう一方のクラウドにあります。**クラウド** を確認します。
+  - `AADSTS700016` または `unauthorized_client`: **アプリケーション (クライアント) ID** が指定された **ディレクトリ (テナント) ID** に存在しません。両方をアプリの **Overview** ページと照合します。
+  - `AADSTS90002` または `HTTP 404`: そのテナントは存在しません。**ディレクトリ (テナント) ID** が誤っているか、もう一方のクラウドにあります。**クラウド** を確認します。
   - `HTTP 429` または `HTTP 5xx`: Microsoft Entra ID がリクエストを制限しているか、利用できません。次のポーリングで再試行されます。
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID が、JSON でない本文や `access_token` のない本文など、使えない応答を返しました。通常は間にあるプロキシやゲートウェイが原因です。
 - ステータスのない `Microsoft Sentinel token request failed:`、または `Microsoft Sentinel token request timed out after ... seconds with no response`: リクエストに応答がありませんでした。OneUptime のアプリと worker から `login.microsoftonline.com` への DNS、TLS、送信 HTTPS を確認します。
@@ -177,7 +177,7 @@ Microsoft Entra ID や Azure Resource Manager のエラーで完全に失敗し�
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager がリクエストを拒否しました。
   - `HTTP 401`: トークンが受け入れられませんでした。ほとんどの場合、**クラウド** がテナントと一致していないか、アプリの登録が削除されています。2 つのページの間で期限切れになったトークンは、自動的に更新され 1 回だけ再試行されます。
   - `HTTP 403` または `AuthorizationFailed`: アプリにまだリソースグループの **Microsoft Sentinel Reader** がありません。割り当ててから数分待ちます。
-  - `HTTP 404`: その **Subscription ID**、**Resource group**、**Workspace name** を持つワークスペースがないか、そこで Microsoft Sentinel が有効になっていません。ワークスペースの **Overview** ページからコピーします。
+  - `HTTP 404`: その **サブスクリプション ID**、**Resource group**、**Workspace name** を持つワークスペースがないか、そこで Microsoft Sentinel が有効になっていません。ワークスペースの **Overview** ページからコピーします。
   - `HTTP 429` または `HTTP 5xx`: Azure Resource Manager がリクエストを制限しているか、利用できません。次のポーリングで再試行されます。
   - `HTTP 400`: Azure Resource Manager がリクエストを拒否しました。リクエストを組み立てているのはあなたの設定ではなく OneUptime です。メッセージを OneUptime サポートに送ってください。
 - `Microsoft Sentinel incidents list returned ...`: Azure は `200` を返しましたが、読み取れるインシデントのページがないか、別のホストへの `nextLink` が含まれていました。接続はこのリンクを拒否し、トークンが Azure Resource Manager の外に出ないようにします。誰も読んでいないインシデントをカーソルが飛び越えないよう、空の時間枠とは見なさずに報告します。
@@ -200,7 +200,7 @@ Microsoft Entra ID や Azure Resource Manager のエラーで完全に失敗し�
 
 ## Azure Government
 
-**クラウド** を **Azure Government (US)** に設定します。すると接続はスコープ `https://management.usgovcloudapi.net/.default` で `login.microsoftonline.us` にサインインし、`management.usgovcloudapi.net` からインシデントを読み取ります。ロールの割り当てを含め、それ以外はすべて同じです。
+**クラウド** を **Azure Government (米国)** に設定します。すると接続はスコープ `https://management.usgovcloudapi.net/.default` で `login.microsoftonline.us` にサインインし、`management.usgovcloudapi.net` からインシデントを読み取ります。ロールの割り当てを含め、それ以外はすべて同じです。
 
 ## 得られるもの
 

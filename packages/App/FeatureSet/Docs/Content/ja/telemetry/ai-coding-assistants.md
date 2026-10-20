@@ -2,7 +2,7 @@
 
 エンジニアは Claude Code、Cursor、Codex、Gemini CLI、Copilot を使い、請求額は増え続けています。このページは、マネージャーが抱く疑問に答えます。 **誰がどのツールを、どのモデルで使い、各個人と各チームがいくら使っているか** です。
 
-ほとんどのコーディングアシスタントは自分で OpenTelemetry をエクスポートするため、開発者のマシンに何かをインストールする必要はありません。エクスポート先を OneUptime に向ければ、トークン、コスト、ツールの使用状況が、自社アプリの AI 呼び出しと並んで届きます。ここで扱うものはすべて OpenTelemetry で届きます。OneUptime がベンダーの管理 API や請求 API をポーリングすることはありません。
+ほとんどのコーディングアシスタントは自分で OpenTelemetry をエクスポートするため、開発者のマシンに何かをインストールする必要はありません。エクスポート先を OneUptime に向ければ、トークン、コスト、ツールの使用状況が、自社アプリの AI 呼び出しと並んで届きます。ここで扱うものはすべて OpenTelemetry で届きます。ツールの背後にあるモデルのアカウント (Anthropic や OpenAI の組織など) の請求額も、コードなしで読み取れます。[AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts) を参照してください。
 
 :::cards
 - [サポート状況](#サポート状況): 各ツールが何を送り、人を特定できるか。
@@ -50,7 +50,7 @@ flowchart TB
 | Cline | メトリクスとログ | Cline の組織ダッシュボードで一元的に設定 | 匿名化された `user_id` | — |
 | LiteLLM と Portkey | ゲートウェイを通るすべての呼び出しのトレース | ゲートウェイのプロセスから | LiteLLM では仮想キーの所有者 | [AI ゲートウェイ](/docs/telemetry/ai-gateways) |
 | 自社のアプリ | GenAI インストルメンテーションが送るもの | アプリから | `user.id` に設定した人 | [AI / LLM オブザーバビリティ](/docs/telemetry/ai-llm-observability) |
-| Windsurf、JetBrains AI、Amazon Bedrock、Azure OpenAI | 独自の OpenTelemetry はない | 前段に置いたゲートウェイ経由のみ | ゲートウェイが特定する人 | [AI ゲートウェイ](/docs/telemetry/ai-gateways) |
+| Windsurf、JetBrains AI、Amazon Bedrock、Azure OpenAI | 独自の OpenTelemetry はない | 前段に置いたゲートウェイ経由のみ。Bedrock と Azure の使用量とコストは [プロバイダー アカウント](/docs/telemetry/ai-provider-accounts) としても取得可能 | ゲートウェイが特定する人 | [AI ゲートウェイ](/docs/telemetry/ai-gateways) |
 
 ダッシュは、OneUptime にそのツールのガイドがまだないことを示します。そのツールのテレメトリも、ほかの OpenTelemetry と同様に取り込まれます。
 
@@ -59,8 +59,8 @@ Copilot が OpenTelemetry をエクスポートするのはエージェント機
 :::
 
 :::details Amazon Bedrock、Azure OpenAI、Windsurf、JetBrains AI
-- **Amazon Bedrock**: `InvokeModel` と `Converse` の API は OpenTelemetry を送りません。Bedrock AgentCore は異なり、AWS はメトリクス、スパン、ログを文書化しており、既定では CloudWatch に送られます。`DISABLE_ADOT_OBSERVABILITY=true` を設定するとランタイムの既定の ADOT 構成がオフになり、ADOT SDK を OneUptime に向けられます。
-- **Azure OpenAI**: サービスは何も送らず、Azure Monitor のメトリクスにはユーザーのディメンションがありません。クライアントをインストルメントするか、前段に API Management などのゲートウェイを置いてください。
+- **Amazon Bedrock**: `InvokeModel` と `Converse` の API は OpenTelemetry を送りません。Bedrock AgentCore は異なり、AWS はメトリクス、スパン、ログを文書化しており、既定では CloudWatch に送られます。`DISABLE_ADOT_OBSERVABILITY=true` を設定するとランタイムの既定の ADOT 構成がオフになり、ADOT SDK を OneUptime に向けられます。リージョンとモデルごとのモデルの使用量は、CloudWatch から [プロバイダー アカウント](/docs/telemetry/ai-provider-accounts#amazon-bedrock) として読み取れます。
+- **Azure OpenAI**: サービスは何も送らず、Azure Monitor のメトリクスにはユーザーのディメンションがありません。クライアントをインストルメントするか、前段に API Management などのゲートウェイを置いてください。リソースとモデルごとの使用量は [プロバイダー アカウント](/docs/telemetry/ai-provider-accounts#azure-openai-と-microsoft-foundry) として読み取れます。
 - **Windsurf**: テレメトリのエクスポートは文書化されていません。ユーザーごとのデータは Windsurf の Enterprise API にありますが、OneUptime はポーリングしません。
 - **JetBrains AI Assistant と Junie**: 使用状況をエクスポートしません。JetBrains の OpenTelemetry プラグインは IDE 内で自社アプリのテレメトリを受け取るもので、外部には何も送りません。
 :::
@@ -188,7 +188,7 @@ Codex は既定でメトリクスを OpenAI にも送ります。[OpenAI Codex](
 
 ## OneUptime がまだ行わないこと
 
-- **ベンダーの管理 API や請求 API とのコネクターはありません。** OneUptime は、Anthropic の Admin API、Cursor の Admin API、OpenAI の使用量とコストのエンドポイント、GitHub の Copilot の請求、Windsurf や JetBrains の API をポーリングしません。請求書レベルの数値はベンダーから取得してください。
+- **コーディングツールの管理 API とのコネクターはありません。** OneUptime はツールの背後にある OpenAI、Anthropic、Azure、Bedrock、Vertex AI のアカウントを読み取りますが ([AI プロバイダーアカウント](/docs/telemetry/ai-provider-accounts))、Cursor の Admin API、GitHub の Copilot の請求、Windsurf や JetBrains の API は読み取りません。
 - **ツールが報告しない限り、コストは見積もりです。** 報告されたコストはそのまま使い、それ以外は OneUptime が定価でトークンの料金を算出します。Cursor の `cursor.cost.usage` 自体も見積もりです。
 - **ログレコード上の ID は読み取りません。** Codex がログにだけ送る `user.email` は、支出に結び付けられません。
 - **Cursor の `cursor.user.email` はまだ読み取りません。** そのため Cursor のユーザーは整数の `cursor.user.id` で表示されます。

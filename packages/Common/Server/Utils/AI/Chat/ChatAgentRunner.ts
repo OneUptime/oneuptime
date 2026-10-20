@@ -837,6 +837,8 @@ export default class ChatAgentRunner {
         projectId: request.projectId,
         userId: request.userId,
         aiRunId: request.aiRunId,
+        // Every turn of the chat is one conversation in OneUptime's telemetry.
+        conversationId: request.conversationId,
         llmProviderId: request.llmProviderId,
         feature: request.feature || OBSERVABILITY_CHAT_FEATURE,
         messages: messages,
@@ -1771,6 +1773,7 @@ export default class ChatAgentRunner {
       projectId: request.projectId,
       userId: request.userId,
       aiRunId: request.aiRunId,
+      conversationId: request.conversationId,
       llmProviderId: request.llmProviderId,
       feature: CHAT_TITLE_FEATURE,
       messages: [

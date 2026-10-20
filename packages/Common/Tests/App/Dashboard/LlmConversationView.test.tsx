@@ -324,7 +324,7 @@ describe("what the page says about the conversation it shows", () => {
     );
     expect(
       within(note).getByText("Group calls into conversations").closest("a"),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/llm/documentation`);
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/llm/connect`);
   });
 
   test("prompts and answers that were not recorded", async () => {

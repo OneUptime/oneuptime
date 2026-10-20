@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 4901
+    "keys": 31872,
+    "untranslated": 4910
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -341,6 +341,7 @@
     "Performance & Tracing",
     "Persistent Volume Claims",
     "Persistent Volumes",
+    "Person",
     "Peru",
     "Phase",
     "Ping",
@@ -450,6 +451,7 @@
     "Togo",
     "Tokelau",
     "Token",
+    "Tokens",
     "Tonga",
     "Tool",
     "Tooltip",

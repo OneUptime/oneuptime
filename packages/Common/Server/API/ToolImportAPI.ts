@@ -39,8 +39,8 @@ import CommonAPI from "./CommonAPI";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 
 /*
- * IMPORT FROM ANOTHER TOOL, OVER HTTP (Project Settings > Import from another
- * tool).
+ * IMPORT FROM ANOTHER TOOL, OVER HTTP (Project Settings > Advanced > Import
+ * from another tool).
  *
  *   GET  /tool-import/runs                  the project's imports, newest first
  *   POST /tool-import/read                  read a tool: { source, region, apiKey },
