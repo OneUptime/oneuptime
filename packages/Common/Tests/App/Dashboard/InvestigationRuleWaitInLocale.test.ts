@@ -71,6 +71,8 @@ const ENGLISH: Record<string, string> = readLocale("en");
 
 // Every sentence this change adds, by the key the code looks it up with.
 const SENTENCES: Array<string> = [
+  // The rule form's second step, after Match.
+  "Investigate",
   INVESTIGATION_RULE_TIMING_FIELD_TITLE,
   INVESTIGATION_RULE_WAIT_FIELD_TITLE,
   INVESTIGATION_RULE_WAIT_FIELD_DESCRIPTION[AiLane.Incident],

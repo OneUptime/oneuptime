@@ -11677,7 +11677,7 @@
   "Inventory is the catalog behind every other product here. When a trace mentions a pod, when a monitor watches a switch, when you register a vendor API by hand — they all end up as one item in this list, with a stable identity OneUptime can join telemetry against.": "Inventory is the catalog behind every other product here. When a trace mentions a pod, when a monitor watches a switch, when you register a vendor API by hand — they all end up as one item in this list, with a stable identity OneUptime can join telemetry against.",
   "Inventory of nodes, services, tasks and stacks, cluster counts, container metrics and logs.": "Inventory of nodes, services, tasks and stacks, cluster counts, container metrics and logs.",
   "Inventory uses the same navigation and filtering patterns as the rest of OneUptime.": "Inventory uses the same navigation and filtering patterns as the rest of OneUptime.",
-  "Investigate": "Investigate",
+  "Investigate": "調查",
   "Investigate & act": "Investigate & act",
   "Investigate every new alert and post a cited root cause analysis to the alert timeline.": "Investigate every new alert and post a cited root cause analysis to the alert timeline.",
   "Investigate every new incident and post a cited root cause analysis to the incident timeline.": "Investigate every new incident and post a cited root cause analysis to the incident timeline.",
