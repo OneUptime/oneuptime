@@ -708,10 +708,15 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A Runner is a project's own (projectId set) or global (isGlobalRunner,
    * no project) - never both, never neither. A global one runs runbook
-   * steps only, so its other capabilities are written off. Whoever creates
-   * it: a project's create always carries its project (the tenant), and only
-   * OneUptime or a master admin may write isGlobalRunner at all (the column
-   * takes no one's create permission).
+   * steps only: one created to run OneUptime AI's commands is refused, and
+   * otherwise canRunAiCommands is left to its default, off. It is not
+   * written here: the column takes no one's create permission any more (a
+   * Runner is picked for those commands, RunnerAiCommandsPick), and a value
+   * a create hook writes is asked of the caller as if they had sent it
+   * (HookWritesCallersMayMake). Whoever creates it: a project's create
+   * always carries its project (the tenant), and only OneUptime or a master
+   * admin may write isGlobalRunner at all (the column takes no one's create
+   * permission).
    */
   public static holdToGlobalRunnerShape(
     data: Model,
@@ -726,8 +731,6 @@ export class Service extends ProjectReferencesService<Model> {
       if (data.canRunAiCommands === true) {
         throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
       }
-
-      data.canRunAiCommands = false;
 
       if (data.canRunRunbooks === undefined || data.canRunRunbooks === null) {
         data.canRunRunbooks = true;

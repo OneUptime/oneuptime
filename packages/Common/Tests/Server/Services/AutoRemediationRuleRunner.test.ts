@@ -294,6 +294,43 @@ describe("an auto remediation rule's Runner", () => {
       ]);
     });
 
+    /*
+     * A master admin's write reaches any rule its query names, whatever
+     * project the request is made in, so the Runner is allowed in the
+     * project of the rule it writes - never the project the request names.
+     */
+    it("a master admin's write, made in another project, picks it in the project of the rule it writes", async () => {
+      storedRules = [
+        { id: RULE_ID, _id: RULE_ID.toString(), projectId: OTHER_PROJECT_ID },
+      ];
+
+      expect(
+        await update(
+          { runnerId: HOST_RUNNER_ID.toString() },
+          { isMasterAdmin: true, tenantId: PROJECT_ID },
+        ),
+      ).toBeNull();
+
+      expect(picked()).toEqual([
+        {
+          projectId: OTHER_PROJECT_ID.toString(),
+          runnerIds: [HOST_RUNNER_ID.toString()],
+        },
+      ]);
+    });
+
+    it("OneUptime's write that picks no Runner reads no rule for it", async () => {
+      const reads: jest.SpyInstance = jest.spyOn(
+        AutoRemediationRuleService,
+        "findProjectsToCheckUpdateIn",
+      );
+
+      expect(await update({ name: "renamed" }, { isRoot: true })).toBeNull();
+
+      expect(reads).not.toHaveBeenCalled();
+      expect(picked()).toEqual([]);
+    });
+
     it("clearing the Runner, or a write that does not touch it, picks nothing", async () => {
       expect(await update({ runnerId: null })).toBeNull();
       expect(await update({ name: "renamed" })).toBeNull();

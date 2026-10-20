@@ -173,7 +173,14 @@ export class Service extends ProjectReferencesService<Model> {
       ]);
 
     if (!asksAboutCommandsWithoutAsking && agentRunners.length === 0) {
-      await this.allowPickedRunners(updateBy, writtenRunnerIds);
+      await this.allowPickedRunners({
+        updateBy,
+        runnerIds: writtenRunnerIds,
+        projectIds:
+          writtenRunnerIds.length > 0
+            ? await this.findProjectsToCheckUpdateIn(updateBy)
+            : [],
+      });
 
       return { updateBy, carryForward: null };
     }
@@ -215,56 +222,38 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    await this.allowPickedRunners(updateBy, writtenRunnerIds);
+    await this.allowPickedRunners({
+      updateBy,
+      runnerIds: writtenRunnerIds,
+      projectIds: this.getProjectsToCheckRowsIn(updateBy.props, rules),
+    });
 
     return { updateBy, carryForward: null };
   }
 
   /*
-   * Lets the Runner an update picks run OneUptime AI's commands, in the
-   * project the update writes in: the tenant of a teammate's update, or -
-   * for OneUptime's own - the project of the rules it writes.
+   * Lets the Runner an update picks run OneUptime AI's commands, in each
+   * project the update writes rules in: a teammate's request's project, or -
+   * for OneUptime's own update, or a master admin's - the project of each
+   * rule it writes. The caller works those out with the update path's own
+   * readers (findProjectsToCheckUpdateIn, getProjectsToCheckRowsIn), which
+   * hold the update to the rules read, so a rule in a project the Runner
+   * was not allowed in is never written.
    */
-  private async allowPickedRunners(
-    updateBy: UpdateBy<Model>,
-    runnerIds: Array<ObjectID>,
-  ): Promise<void> {
-    if (runnerIds.length === 0) {
+  private async allowPickedRunners(data: {
+    updateBy: UpdateBy<Model>;
+    runnerIds: Array<ObjectID>;
+    projectIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (data.runnerIds.length === 0) {
       return;
     }
 
-    if (updateBy.props.tenantId) {
+    for (const projectId of data.projectIds) {
       await RunnerAiCommandsPick.allowPickedRunners({
-        projectId: updateBy.props.tenantId,
-        runnerIds,
-        props: updateBy.props,
-      });
-      return;
-    }
-
-    const rules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: { _id: true, projectId: true },
-      limit: updateBy.limit || 100,
-      skip: updateBy.skip || 0,
-      props: { isRoot: true },
-    });
-
-    const projectIds: Set<string> = new Set<string>(
-      rules
-        .map((rule: Model): string => {
-          return rule.projectId?.toString() || "";
-        })
-        .filter((id: string): boolean => {
-          return Boolean(id);
-        }),
-    );
-
-    for (const projectId of projectIds) {
-      await RunnerAiCommandsPick.allowPickedRunners({
-        projectId: new ObjectID(projectId),
-        runnerIds,
-        props: updateBy.props,
+        projectId,
+        runnerIds: data.runnerIds,
+        props: data.updateBy.props,
       });
     }
   }
