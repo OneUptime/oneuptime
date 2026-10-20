@@ -46,6 +46,19 @@ The suite drives the pages the way a person does:
 - a viewer reads the rules but cannot add or edit one; a phone, dark mode
   (`?theme=dark`) and German (`?lang=de`).
 
+`InvestigationRules.spec.ts` drives the investigation rules beside them on the
+same page (issue #5074, `?investigationRules=saved` seeds one rule that
+investigates right away and one that waits 10 minutes):
+
+- the table's Investigates column says when each rule investigates;
+- a new rule asks Match, then Investigate, and starts on Right away, which
+  sends no wait; Only if still open after a wait asks the minutes, from 10,
+  and sends the ones chosen; a wait the server would refuse (0, 1441, 2.5) is
+  stopped in the form;
+- a rule that waits opens on its minutes, and Right away clears them (sent as
+  null);
+- an alert rule asks the same, about alerts; a phone, dark mode and German.
+
 `Fixture/Fixture.js` records every created record (`creates`), every update
 (`updates`, with the model, the id and the data) and every delete
 (`deletes`) on `window.__fixture`, so the assertions check what the pages

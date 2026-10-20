@@ -63,17 +63,23 @@ const InvestigationWaiting: FunctionComponent<ComponentProps> = (
 
       {props.waiting.canStartNow ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <Button
-            title={INVESTIGATE_NOW}
-            icon={IconProp.Play}
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            isLoading={props.isStarting}
-            disabled={props.isStarting}
-            onClick={props.onStartNow}
-            dataTestId="investigate-now"
-            className="!ml-0"
-          />
+          {/*
+           * The bordered default style reads as a button, as Open Fix PR's
+           * does. Its side-by-side margin would only indent it here, and its
+           * phone-sized text would wrap the label.
+           */}
+          <div className="flex-shrink-0 [&>button]:ml-0 [&>button]:text-sm [&>button]:md:ml-0">
+            <Button
+              title={INVESTIGATE_NOW}
+              icon={IconProp.Play}
+              buttonSize={ButtonSize.Normal}
+              buttonStyle={ButtonStyleType.NORMAL}
+              isLoading={props.isStarting}
+              disabled={props.isStarting}
+              onClick={props.onStartNow}
+              dataTestId="investigate-now"
+            />
+          </div>
           {props.startError ? (
             <p
               role="alert"

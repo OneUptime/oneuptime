@@ -18,6 +18,11 @@
  *                     from before rules were simplified (AI composes
  *                     commands on Runners, AI picks a runbook); none by
  *                     default
+ *   - investigationRules=saved
+ *                     the lane's investigation rules (issue #5074): one
+ *                     that investigates right away, and one that
+ *                     investigates only the records still open after 10
+ *                     minutes; none by default
  *   - runners=0       the project has no Runner of its own (two by default,
  *                     prod-eu-runner connected and office-runner never
  *                     connected, beside the in-cluster Runner the Kubernetes
@@ -48,6 +53,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import IncidentAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
 import AlertAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertAISettings";
+import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -76,6 +82,7 @@ const USER_ID = "30000000-0000-4000-8000-0000000000c1";
 const params = new URLSearchParams(window.location.search);
 const lane = params.get("lane") === "alert" ? "alert" : "incident";
 const hasSavedRules = params.get("rules") === "saved";
+const hasSavedInvestigationRules = params.get("investigationRules") === "saved";
 const runnerCount = params.get("runners") === "0" ? 0 : 2;
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
@@ -338,6 +345,36 @@ const SAVED_RULES = [
   }),
 ];
 
+/*
+ * The lane's investigation rules (issue #5074): one that investigates right
+ * away (no wait stored, as every rule saved before rules could wait), and one
+ * that investigates only the records still open after 10 minutes.
+ */
+const SAVED_INVESTIGATION_RULE_IDS = {
+  rightAway: "91000000-0000-4000-8000-000000000e01",
+  waits: "91000000-0000-4000-8000-000000000e02",
+};
+
+const SAVED_INVESTIGATION_RULES = [
+  record(AIInvestigationRule, {
+    _id: SAVED_INVESTIGATION_RULE_IDS.rightAway,
+    projectId: new ObjectID(PROJECT_ID),
+    name: lane === "alert" ? "Production alerts" : "Production incidents",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    criteria: null,
+  }),
+  record(AIInvestigationRule, {
+    _id: SAVED_INVESTIGATION_RULE_IDS.waits,
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Flapping checks",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 10,
+    criteria: null,
+  }),
+];
+
 const TABLES = {
   Project: [project],
   AutoRemediationRule: hasSavedRules ? SAVED_RULES : [],
@@ -347,7 +384,9 @@ const TABLES = {
   AlertSeverity: ALERT_SEVERITIES,
   Label: LABELS,
   Monitor: MONITORS,
-  AIInvestigationRule: [],
+  AIInvestigationRule: hasSavedInvestigationRules
+    ? SAVED_INVESTIGATION_RULES
+    : [],
   AIPostmortemRule: [],
   IncidentPostmortemTemplate: [],
 };

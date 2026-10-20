@@ -18,11 +18,18 @@
  *            Incident #1042, Alert #311 and both episodes. "ongoing" stops
  *            them at Acknowledged, "created" before it.
  *   ?ai=     report (default) | none | queued | running | failed | pending
- *            | legacy
+ *            | legacy | waiting | waiting-viewer
  *            What POST /ai-investigation/{incident,alert} returns for
  *            Incident #1042 and Alert #311. Other incidents/alerts have no run.
  *            "legacy" is a completed report from an API replica that predates
  *            structured evidence: no `evidence` or `references` keys.
+ *            "waiting" is an investigation rule's wait (issue #5074): no run
+ *            yet, and OneUptime AI investigates 8 minutes from NOW if the
+ *            record is still open (a 10-minute wait). It is answered for
+ *            someone who may change the record, so the card offers
+ *            Investigate now; "waiting-viewer" for someone who may not.
+ *            Investigate now (POST /ai-investigation/investigate-now) starts
+ *            it: the record's next read answers a queued run.
  *   ?tldr=   default | long
  *            "long" gives Incident #1042 a TL;DR at the server's
  *            320-character cap (InvestigationTldr.MAX_TLDR_CHARS), long
@@ -41,7 +48,7 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, conversation, conversation-send, resend,
+ *            investigation, investigate-now, conversation, conversation-send, resend,
  *            channel-links, channel-members (the channel card's read),
  *            channel-add (its Join channel and Add people), pass-on-read
  *            (whether the viewer is paged, for Pass it on), pass-on (passing
@@ -296,6 +303,13 @@ const stateMode = ["ongoing", "created"].includes(params.get("state"))
   ? params.get("state")
   : "resolved";
 const aiMode = params.get("ai") || "report";
+/*
+ * ?ai=waiting / waiting-viewer: an investigation rule makes OneUptime AI wait
+ * before it investigates Incident #1042 and Alert #311 (issue #5074). The
+ * records someone started with Investigate now, by id: they read as queued.
+ */
+const isWaitingMode = aiMode === "waiting" || aiMode === "waiting-viewer";
+const startedNow = new Set();
 const tldrMode = params.get("tldr") === "long" ? "long" : "default";
 const titleMode = params.get("title") === "long" ? "long" : "default";
 /*
@@ -3965,6 +3979,27 @@ function investigationPayload(investigation) {
     };
   }
 
+  /*
+   * An investigation rule's wait, as AIInvestigationAPI answers it: no run,
+   * no reason it was not investigated (it will be), and the wait - when it
+   * ends, how long it is, and whether this reader may start it now.
+   */
+  if (isWaitingMode && !startedNow.has(String(investigation.subjectId))) {
+    return {
+      run: null,
+      notInvestigatedReason: null,
+      waitingInvestigation: {
+        waitUntil: iso(new Date(NOW.getTime() + 8 * 60 * 1000)),
+        waitMinutes: 10,
+        canStartNow: aiMode === "waiting",
+      },
+      events: [],
+      analysisMarkdown: null,
+      analysisTldr: null,
+      isAnalysisPending: false,
+    };
+  }
+
   const run = make(AIRun, {
     _id: investigation.runId,
     createdAt: investigation.createdAt,
@@ -3979,7 +4014,8 @@ function investigationPayload(investigation) {
   let isAnalysisPending = false;
   const toolCount = investigation.citations.length;
 
-  if (aiMode === "queued") {
+  // A waiting record someone started with Investigate now is queued.
+  if (aiMode === "queued" || isWaitingMode) {
     run.status = AIRunStatus.Queued;
   } else if (aiMode === "running") {
     run.status = AIRunStatus.Running;
@@ -5840,6 +5876,36 @@ async function handleApi(method, options) {
       });
     }
     return ok(investigationPayload(investigation));
+  }
+
+  /*
+   * Investigate now on a waiting record (issue #5074): started, as
+   * InvestigationRuleWait.startNow answers, or refused with the server's
+   * words - the project's daily AI limit, for ?fail=investigate-now.
+   */
+  if (url.endsWith("/ai-investigation/investigate-now")) {
+    if (failures.has("investigate-now")) {
+      throw fail(
+        400,
+        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+      );
+    }
+    const investigation =
+      body.subjectType === "alert"
+        ? investigations.alert
+        : investigations.incident;
+    if (
+      !isWaitingMode ||
+      String(body.subjectId) !== String(investigation.subjectId) ||
+      startedNow.has(String(investigation.subjectId))
+    ) {
+      throw fail(
+        400,
+        "OneUptime AI is no longer waiting to investigate this. Refresh to see where it stands.",
+      );
+    }
+    startedNow.add(String(investigation.subjectId));
+    return ok({ runId: investigation.runId });
   }
 
   if (url.includes("/ai-investigation/evidence")) {
