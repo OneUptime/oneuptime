@@ -126,6 +126,7 @@ import {
 import {
   EventResponseTimes,
   VisibleItems,
+  getAcknowledgedAfterPagingText,
   getEventCreatorName,
   getEventResponseTimes,
   getTimeToStateText,
@@ -287,6 +288,10 @@ const IncidentView: FunctionComponent<
   const [incidentStartedAt, setIncidentStartedAt] = useState<Date | undefined>(
     undefined,
   );
+  // When somebody was first paged about the incident, if anybody was.
+  const [incidentFirstPagedAt, setIncidentFirstPagedAt] = useState<
+    Date | undefined
+  >(undefined);
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
   >(undefined);
@@ -526,6 +531,8 @@ const IncidentView: FunctionComponent<
             shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
             title: true,
             declaredAt: true,
+            // "Acknowledged in" also says how long after paging.
+            firstPagedAt: true,
             incidentNumber: true,
             incidentNumberWithPrefix: true,
             incidentSeverity: {
@@ -607,6 +614,7 @@ const IncidentView: FunctionComponent<
 
       setIncidentTitle(incident?.title || undefined);
       setIncidentStartedAt(incident?.declaredAt || undefined);
+      setIncidentFirstPagedAt(incident?.firstPagedAt || undefined);
 
       setEventNumber(
         incident?.incidentNumberWithPrefix ||
@@ -1043,6 +1051,13 @@ const IncidentView: FunctionComponent<
             stateName: acknowledgeState?.name,
             fallbackStateName: "acknowledged",
           })}
+          note={getAcknowledgedAfterPagingText(
+            {
+              firstPagedAt: incidentFirstPagedAt,
+              acknowledgedAt: responseTimes.acknowledgedAt,
+            },
+            translator,
+          )}
           description={formatDate(responseTimes.acknowledgedAt)}
         />
         <EventStatTile

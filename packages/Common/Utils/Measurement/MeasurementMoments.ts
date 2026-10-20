@@ -82,6 +82,15 @@ export const MEASUREMENT_MOMENT_ROLE_SEPARATOR: string = ":";
 const STATE_ROLE_ENTERED: string =
   IncidentMeasurementAnchorType.StateRoleEntered;
 
+/*
+ * When someone is first paged about an incident or an alert
+ * (FirstPagedAt): the same words in both lists.
+ */
+const FIRST_PAGE_MOMENT_LABEL: string = "The first page goes out";
+const FIRST_PAGE_MOMENT_SHORT_LABEL: string = "First paged";
+const FIRST_PAGE_MOMENT_DESCRIPTION: string =
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.";
+
 type RoleMomentValueFunction = (role: string) => string;
 
 const roleMomentValue: RoleMomentValueFunction = (role: string): string => {
@@ -97,6 +106,13 @@ const INCIDENT_MOMENTS: Array<MeasurementMoment> = [
     description:
       "When the incident started in OneUptime: when it was created, unless someone set an earlier time.",
     aliasAnchorTypes: [IncidentMeasurementAnchorType.TimelineStart],
+  },
+  {
+    value: IncidentMeasurementAnchorType.FirstPagedAt,
+    anchorType: IncidentMeasurementAnchorType.FirstPagedAt,
+    label: FIRST_PAGE_MOMENT_LABEL,
+    shortLabel: FIRST_PAGE_MOMENT_SHORT_LABEL,
+    description: FIRST_PAGE_MOMENT_DESCRIPTION,
   },
   {
     value: roleMomentValue(IncidentStateRole.Acknowledged),
@@ -163,6 +179,13 @@ const ALERT_MOMENTS: Array<MeasurementMoment> = [
     shortLabel: "Created",
     description: "When the alert was raised.",
     aliasAnchorTypes: [AlertMeasurementAnchorType.TimelineStart],
+  },
+  {
+    value: AlertMeasurementAnchorType.FirstPagedAt,
+    anchorType: AlertMeasurementAnchorType.FirstPagedAt,
+    label: FIRST_PAGE_MOMENT_LABEL,
+    shortLabel: FIRST_PAGE_MOMENT_SHORT_LABEL,
+    description: FIRST_PAGE_MOMENT_DESCRIPTION,
   },
   {
     value: roleMomentValue(AlertStateRole.Acknowledged),
@@ -550,6 +573,12 @@ export interface MeasurementPreset {
 
 export const CUSTOM_MEASUREMENT_PRESET_ID: string = "custom";
 
+export const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID: string =
+  "time-to-acknowledge-after-paging";
+
+const TIME_TO_ACKNOWLEDGE_AFTER_PAGING_NAME: string =
+  "Time to acknowledge after paging";
+
 const CUSTOM_PRESET: MeasurementPreset = {
   id: CUSTOM_MEASUREMENT_PRESET_ID,
   name: "Something else",
@@ -566,6 +595,20 @@ const PRESETS_BY_DOMAIN: Record<MeasurementDomain, Array<MeasurementPreset>> = {
         "From when an incident is declared until someone acknowledges it.",
       icon: IconProp.HandRaised,
       startMoment: IncidentMeasurementAnchorType.DeclaredAt,
+      endMoment: roleMomentValue(IncidentStateRole.Acknowledged),
+    },
+    {
+      /*
+       * Time to acknowledge counts from the declaration, so an incident
+       * nobody is paged about until the morning reads as hours. This
+       * counts from the page, by the same acknowledged rule.
+       */
+      id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID,
+      name: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_NAME,
+      description:
+        "From the first page about an incident until someone acknowledges it.",
+      icon: IconProp.BellRinging,
+      startMoment: IncidentMeasurementAnchorType.FirstPagedAt,
       endMoment: roleMomentValue(IncidentStateRole.Acknowledged),
     },
     {
@@ -595,6 +638,16 @@ const PRESETS_BY_DOMAIN: Record<MeasurementDomain, Array<MeasurementPreset>> = {
         "From when an alert is created until someone acknowledges it.",
       icon: IconProp.HandRaised,
       startMoment: AlertMeasurementAnchorType.CreatedAt,
+      endMoment: roleMomentValue(AlertStateRole.Acknowledged),
+    },
+    {
+      // As for incidents: from the page, not from the alert's creation.
+      id: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_PRESET_ID,
+      name: TIME_TO_ACKNOWLEDGE_AFTER_PAGING_NAME,
+      description:
+        "From the first page about an alert until someone acknowledges it.",
+      icon: IconProp.BellRinging,
+      startMoment: AlertMeasurementAnchorType.FirstPagedAt,
       endMoment: roleMomentValue(AlertStateRole.Acknowledged),
     },
     {

@@ -31921,5 +31921,13 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را از {{phoneNumber}} پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio از {{phoneNumber}} تماس می‌گیرد. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
+  "First paged": "نخستین فراخوانی",
+  "From the first page about an alert until someone acknowledges it.": "از نخستین فراخوانی دربارهٔ هشدار تا زمانی که کسی آن را تأیید کند.",
+  "From the first page about an incident until someone acknowledges it.": "از نخستین فراخوانی دربارهٔ حادثه تا زمانی که کسی آن را تأیید کند.",
+  "The first page goes out": "نخستین فراخوانی فرستاده می‌شود",
+  "Time to acknowledge after paging": "زمان تا تأیید پس از فراخوانی",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "زمانی که یک سیاست آنکال یا فراخوانی مستقیم برای نخستین بار به کسی خبر می‌دهد. تا زمانی که کسی فراخوانده نشود، این اندازه‌گیری مقداری ندارد.",
+  "First Paged At": "زمان نخستین فراخوانی",
+  "{{duration}} after paging": "{{duration}} پس از فراخوانی"
 }

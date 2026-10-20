@@ -31921,5 +31921,13 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio принял тестовое SMS с номера {{phoneNumber}}. Оно должно прийти в течение нескольких минут.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio принял тестовое SMS. Оно должно прийти в течение нескольких минут.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio звонит с номера {{phoneNumber}}. Ваш телефон должен зазвонить в течение минуты.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio совершает тестовый звонок. Ваш телефон должен зазвонить в течение минуты."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio совершает тестовый звонок. Ваш телефон должен зазвонить в течение минуты.",
+  "First paged": "Первый вызов",
+  "From the first page about an alert until someone acknowledges it.": "С первого вызова по оповещению до того, как его кто-то подтвердит.",
+  "From the first page about an incident until someone acknowledges it.": "С первого вызова по инциденту до того, как его кто-то подтвердит.",
+  "The first page goes out": "Отправлен первый вызов",
+  "Time to acknowledge after paging": "Время до подтверждения после вызова",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Когда политика дежурства или прямой вызов впервые уведомляет кого-то. Пока никого не вызвали, у измерения нет значения.",
+  "First Paged At": "Первый вызов",
+  "{{duration}} after paging": "{{duration}} после вызова"
 }

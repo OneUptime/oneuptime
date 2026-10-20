@@ -1,4 +1,16 @@
-import { EventStateTimelineDate, getEventDurationText } from "./EventDuration";
+import {
+  EventDurationPart,
+  EventStateTimelineDate,
+  LESS_THAN_A_MINUTE,
+  formatEventDurationParts,
+  getEventDurationParts,
+  getEventDurationText,
+} from "./EventDuration";
+import {
+  Translator,
+  composedValue,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure helpers shared by the incident and alert overview pages: the response
@@ -195,6 +207,80 @@ export const getTimeToStateText: (input: TimeToStateTextInput) => string = (
       : input.reachedAt;
 
   return getEventDurationText(input.startedAt, endDate);
+};
+
+export interface AcknowledgedAfterPagingInput {
+  /*
+   * When somebody was first paged about the record (firstPagedAt), or
+   * undefined when nobody was.
+   */
+  firstPagedAt?: Date | undefined;
+  /*
+   * When it was first acknowledged - or resolved, which answers it too
+   * (getEventResponseTimes).
+   */
+  acknowledgedAt?: Date | undefined;
+}
+
+/*
+ * How long after the first page a record was acknowledged, as the units of
+ * the duration (getEventDurationParts): none under a minute. Null when there
+ * is nothing to say: nobody was paged, nobody has acknowledged it yet, or it
+ * was acknowledged before anybody was paged.
+ *
+ * "Acknowledged in" counts from when the record started, so an alert raised
+ * at night and paged in the morning reads as hours; this is the part of it
+ * that the people paged took.
+ */
+export const getAcknowledgedAfterPagingParts: (
+  input: AcknowledgedAfterPagingInput,
+) => Array<EventDurationPart> | null = (
+  input: AcknowledgedAfterPagingInput,
+): Array<EventDurationPart> | null => {
+  if (!input.firstPagedAt || !input.acknowledgedAt) {
+    return null;
+  }
+
+  if (input.acknowledgedAt.getTime() < input.firstPagedAt.getTime()) {
+    return null;
+  }
+
+  return getEventDurationParts(input.firstPagedAt, input.acknowledgedAt);
+};
+
+// The line the "Acknowledged in" tile adds for a record somebody was paged about.
+export const ACKNOWLEDGED_AFTER_PAGING_TEMPLATE: string = translationKey(
+  "{{duration}} after paging",
+);
+
+/*
+ * "4 minutes after paging", in the reader's language, or undefined when
+ * there is nothing to say (getAcknowledgedAfterPagingParts).
+ */
+export const getAcknowledgedAfterPagingText: (
+  input: AcknowledgedAfterPagingInput,
+  translator: Translator,
+) => string | undefined = (
+  input: AcknowledgedAfterPagingInput,
+  translator: Translator,
+): string | undefined => {
+  const parts: Array<EventDurationPart> | null =
+    getAcknowledgedAfterPagingParts(input);
+
+  if (!parts) {
+    return undefined;
+  }
+
+  return translator.translateTemplate(ACKNOWLEDGED_AFTER_PAGING_TEMPLATE, {
+    // The duration in the sentence's own language, as LiveDuration says it.
+    duration: composedValue((sentence: Translator): string => {
+      if (parts.length === 0) {
+        return sentence.translateText(LESS_THAN_A_MINUTE) || LESS_THAN_A_MINUTE;
+      }
+
+      return formatEventDurationParts(parts, sentence.language);
+    }),
+  });
 };
 
 export interface EventCreatorInput {

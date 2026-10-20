@@ -31921,5 +31921,13 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio ने {{phoneNumber}} से टेस्ट SMS स्वीकार कर लिया। यह कुछ ही मिनटों में पहुँच जाना चाहिए।",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio ने टेस्ट SMS स्वीकार कर लिया। यह कुछ ही मिनटों में पहुँच जाना चाहिए।",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio {{phoneNumber}} से कॉल कर रहा है। आपका फ़ोन एक मिनट के भीतर बजना चाहिए।",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio टेस्ट कॉल कर रहा है। आपका फ़ोन एक मिनट के भीतर बजना चाहिए।"
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio टेस्ट कॉल कर रहा है। आपका फ़ोन एक मिनट के भीतर बजना चाहिए।",
+  "First paged": "पहली बार बुलाया गया",
+  "From the first page about an alert until someone acknowledges it.": "किसी अलर्ट के बारे में पहले बुलावे से लेकर किसी के उसे स्वीकार करने तक।",
+  "From the first page about an incident until someone acknowledges it.": "किसी घटना के बारे में पहले बुलावे से लेकर किसी के उसे स्वीकार करने तक।",
+  "The first page goes out": "पहला बुलावा भेजा जाता है",
+  "Time to acknowledge after paging": "बुलावे के बाद स्वीकार करने में लगा समय",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "जब कोई ऑन-कॉल नीति या सीधा बुलावा पहली बार किसी को सूचित करता है। जब तक किसी को बुलाया न जाए, माप का कोई मान नहीं होता।",
+  "First Paged At": "पहला बुलावा",
+  "{{duration}} after paging": "बुलावे के {{duration}} बाद"
 }

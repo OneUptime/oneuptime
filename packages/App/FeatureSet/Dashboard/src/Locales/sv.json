@@ -31921,5 +31921,13 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio har tagit emot test-SMS:et från {{phoneNumber}}. Det bör komma fram inom några minuter.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio har tagit emot test-SMS:et. Det bör komma fram inom några minuter.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ringer från {{phoneNumber}}. Din telefon bör ringa inom en minut.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testsamtalet. Din telefon bör ringa inom en minut."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio ringer testsamtalet. Din telefon bör ringa inom en minut.",
+  "First paged": "Först larmad",
+  "From the first page about an alert until someone acknowledges it.": "Från den första utlarmningen om ett larm tills någon bekräftar det.",
+  "From the first page about an incident until someone acknowledges it.": "Från den första utlarmningen om en incident tills någon bekräftar den.",
+  "The first page goes out": "Den första utlarmningen skickas",
+  "Time to acknowledge after paging": "Tid till bekräftelse efter utlarmning",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "När en jourpolicy eller en direkt utlarmning meddelar någon för första gången. Tills någon larmas har mätningen inget värde.",
+  "First Paged At": "Första utlarmning",
+  "{{duration}} after paging": "{{duration}} efter utlarmning"
 }

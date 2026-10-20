@@ -31921,5 +31921,13 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova da {{phoneNumber}}. Dovrebbe arrivare entro pochi minuti.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio ha accettato l'SMS di prova. Dovrebbe arrivare entro pochi minuti.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio sta chiamando da {{phoneNumber}}. Il tuo telefono dovrebbe squillare entro un minuto.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto.",
+  "First paged": "Prima chiamata",
+  "From the first page about an alert until someone acknowledges it.": "Dalla prima chiamata per un avviso finché qualcuno non lo riconosce.",
+  "From the first page about an incident until someone acknowledges it.": "Dalla prima chiamata per un incidente finché qualcuno non lo riconosce.",
+  "The first page goes out": "Parte la prima chiamata",
+  "Time to acknowledge after paging": "Tempo di riconoscimento dopo la chiamata",
+  "When an on-call policy or a direct page first notifies someone. Until someone is paged, the measurement has no value.": "Quando una policy di reperibilità o una chiamata diretta avvisa qualcuno per la prima volta. Finché nessuno viene chiamato, la misurazione non ha valore.",
+  "First Paged At": "Prima chiamata il",
+  "{{duration}} after paging": "{{duration}} dopo la chiamata"
 }

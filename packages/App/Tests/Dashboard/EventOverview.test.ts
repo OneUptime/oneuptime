@@ -1,8 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import { EventStateTimelineDate } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 import {
+  ACKNOWLEDGED_AFTER_PAGING_TEMPLATE,
   EventResponseTimes,
   VisibleItems,
+  getAcknowledgedAfterPagingParts,
+  getAcknowledgedAfterPagingText,
   getEarliestTimelineDate,
   getEventCreatorName,
   getEventResponseTimes,
@@ -11,6 +14,10 @@ import {
   getTimeToStateText,
   splitVisibleItems,
 } from "../../FeatureSet/Dashboard/src/Utils/EventOverview";
+import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The incident and alert overview pages both read their stat bar from these
@@ -488,5 +495,166 @@ describe("splitVisibleItems", () => {
     splitVisibleItems(items, 1);
 
     expect(items).toEqual([1, 2, 3]);
+  });
+});
+
+/*
+ * "Acknowledged in" counts from when the record started, so an alert raised
+ * at night and paged in the morning reads as hours. The tile keeps that
+ * number and adds how long the people paged took: "4 minutes after paging".
+ */
+describe("the time to acknowledge after paging", () => {
+  const ENGLISH: Translator = createTranslator(undefined, "en");
+
+  // A German Dashboard that words the sentence and the "less than" phrase.
+  const GERMAN: Translator = createTranslator((text: string) => {
+    return (
+      {
+        [ACKNOWLEDGED_AFTER_PAGING_TEMPLATE]:
+          "{{duration}} nach der Alarmierung",
+        "less than a minute": "weniger als eine Minute",
+      } as Record<string, string>
+    )[text];
+  }, "de");
+
+  // Raised at night (+0), paged in the morning (+600), acknowledged at +604.
+  const pagedInTheMorning: EventResponseTimes = getEventResponseTimes({
+    timelines: [entry(CREATED, 0), entry(ACKNOWLEDGED, 604)],
+    startedAt: START,
+    acknowledgedStateIds: [ACKNOWLEDGED],
+    resolvedStateIds: [RESOLVED],
+  });
+
+  test("keeps the time from the start, and adds the time from the first page", () => {
+    expect(
+      getTimeToStateText({
+        startedAt: pagedInTheMorning.startedAt,
+        reachedAt: pagedInTheMorning.acknowledgedAt,
+        fallbackStateName: "acknowledged",
+      }),
+    ).toBe("10 hours, 4 minutes");
+
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: pagedInTheMorning.acknowledgedAt,
+        },
+        ENGLISH,
+      ),
+    ).toBe("4 minutes after paging");
+  });
+
+  test("says nothing for a record nobody was paged about", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: undefined,
+          acknowledgedAt: pagedInTheMorning.acknowledgedAt,
+        },
+        ENGLISH,
+      ),
+    ).toBeUndefined();
+    expect(
+      getAcknowledgedAfterPagingParts({
+        acknowledgedAt: minutesAfterStart(4),
+      }),
+    ).toBeNull();
+  });
+
+  test("says nothing until somebody acknowledges", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        { firstPagedAt: minutesAfterStart(600), acknowledgedAt: undefined },
+        ENGLISH,
+      ),
+    ).toBeUndefined();
+  });
+
+  test("says nothing for a record acknowledged before anybody was paged", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(30),
+          acknowledgedAt: minutesAfterStart(10),
+        },
+        ENGLISH,
+      ),
+    ).toBeUndefined();
+  });
+
+  test("counts a resolve that came first as the acknowledgement, by the same rule as the tile", () => {
+    const resolvedFirst: EventResponseTimes = getEventResponseTimes({
+      timelines: [entry(CREATED, 0), entry(RESOLVED, 75)],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(resolvedFirst.isAcknowledgedByResolution).toBe(true);
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(15),
+          acknowledgedAt: resolvedFirst.acknowledgedAt,
+        },
+        ENGLISH,
+      ),
+    ).toBe("1 hour after paging");
+  });
+
+  test("says less than a minute for an answer within the minute, and an answer at the page itself", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(60),
+          acknowledgedAt: new Date(minutesAfterStart(60).getTime() + 40_000),
+        },
+        ENGLISH,
+      ),
+    ).toBe("less than a minute after paging");
+    expect(
+      getAcknowledgedAfterPagingParts({
+        firstPagedAt: minutesAfterStart(60),
+        acknowledgedAt: minutesAfterStart(60),
+      }),
+    ).toEqual([]);
+  });
+
+  test("reads in the reader's language when the Dashboard words the sentence", () => {
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: minutesAfterStart(604),
+        },
+        GERMAN,
+      ),
+    ).toBe("4 Minuten nach der Alarmierung");
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: minutesAfterStart(600),
+        },
+        GERMAN,
+      ),
+    ).toBe("weniger als eine Minute nach der Alarmierung");
+  });
+
+  test("is wholly English when the reader's language does not word the sentence", () => {
+    const untranslated: Translator = createTranslator(() => {
+      return undefined;
+    }, "de");
+
+    expect(
+      getAcknowledgedAfterPagingText(
+        {
+          firstPagedAt: minutesAfterStart(600),
+          acknowledgedAt: minutesAfterStart(604),
+        },
+        untranslated,
+      ),
+    ).toBe("4 minutes after paging");
   });
 });

@@ -124,6 +124,7 @@ import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkf
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
@@ -784,6 +785,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new MoveRunbookSecretsAndCredentialsToVariables(),
+  /*
+   * When somebody was first paged about each incident, alert and episode
+   * paged before the upgrade - what "Time to acknowledge after paging"
+   * counts from - from the steps of its on-call runs, then every measurement
+   * that starts or ends at it worked out again. After AddFirstPagedAt
+   * 1804760000000; Postgres-only and idempotent; no other ordering
+   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new BackfillFirstPagedAt(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
