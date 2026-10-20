@@ -1179,6 +1179,30 @@ test.describe("a repository's page: ask AI", () => {
     if ((await picker.getAttribute("aria-expanded")) !== "true") {
       await picker.click();
     }
+    /*
+     * The UI review: the list was placed while the dialog scaled in (or
+     * before its width was styled) and ran out past it. It lies under its
+     * field, as wide as the field, once the dialog has opened.
+     */
+    await expect(page.getByTestId("entity-dropdown-menu")).toBeVisible();
+    await expect
+      .poll(async (): Promise<number> => {
+        const field: { x: number; width: number } | null = await page
+          .getByTestId("code-context-record")
+          .evaluate((element: Element): { x: number; width: number } => {
+            const box: DOMRect =
+              element.parentElement!.parentElement!.getBoundingClientRect();
+            return { x: box.x, width: box.width };
+          });
+        const list: { x: number; width: number } | null = await page
+          .getByTestId("entity-dropdown-menu")
+          .boundingBox();
+        return Math.max(
+          Math.abs(field!.x - list!.x),
+          Math.abs(field!.width - list!.width),
+        );
+      })
+      .toBeLessThan(3);
     await page
       .getByRole("option", { name: "Checkout fails for some customers" })
       .click();
