@@ -778,21 +778,20 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
               {translator.translateText("Legend:")}
             </span>
             {(
-              [
-                { key: "own" as ModuleCategory, label: "Your code" },
-                { key: "vendor" as ModuleCategory, label: "Dependencies" },
-                { key: "runtime" as ModuleCategory, label: "Runtime" },
-                { key: "native" as ModuleCategory, label: "Native / kernel" },
-              ] as Array<{ key: ModuleCategory; label: string }>
-            ).map((item: { key: ModuleCategory; label: string }) => {
+              ["own", "vendor", "runtime", "native"] as Array<ModuleCategory>
+            ).map((key: ModuleCategory) => {
               const s: { bg: string } = ProfileUtil.getModuleFrameStyle(
-                item.key,
+                key,
                 0.8,
               );
               return (
-                <span key={item.key} className="flex items-center gap-1.5">
+                <span key={key} className="flex items-center gap-1.5">
                   <span className={`inline-block w-3 h-3 rounded-sm ${s.bg}`} />
-                  <span>{translator.translateText(item.label)}</span>
+                  <span>
+                    {translator.translateText(
+                      ProfileUtil.getModuleCategoryLabel(key),
+                    )}
+                  </span>
                 </span>
               );
             })}

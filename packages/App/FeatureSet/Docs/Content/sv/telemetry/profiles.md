@@ -293,7 +293,7 @@ För .NET-profileraren sätter du `DD_TRACE_DEBUG=1` på applikationen i en minu
 
 ### Jämför två tidsfönster
 
-**Jämför med** anger vad tidsfönstret jämförs med: **Perioden innan**, **Samma tid i går**, **Samma tid förra veckan** eller en driftsättning under **Före och efter en driftsättning**. Andelar jämförs i stället för summor, så mer trafik ensamt flyttar ingenting. Rubriken nämner funktionen vars andel växte mest, och den egna kod som växte; flamdiagrammet blir **Vad som ändrades**, där röda ramar tar en större andel efteråt och gröna en mindre; och **Funktioner som ändrades** listar varje funktions andel före och efter.
+**Jämför med** anger vad tidsfönstret jämförs med: **Perioden innan**, **Samma tid i går**, **Samma tid förra veckan** eller en driftsättning under **Före och efter en ändring**. Andelar jämförs i stället för summor, så mer trafik ensamt flyttar ingenting. Rubriken nämner funktionen vars andel växte mest, och den egna kod som växte; flamdiagrammet blir **Vad som ändrades**, där röda ramar tar en större andel efteråt och gröna en mindre; och **Funktioner som ändrades** listar varje funktions andel före och efter.
 
 ### En funktion
 

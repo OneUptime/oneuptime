@@ -293,7 +293,7 @@ Zet bij de .NET-profiler een minuut lang `DD_TRACE_DEBUG=1` op de applicatie: da
 
 ### Twee tijdvensters vergelijken
 
-**Vergelijken met** bepaalt waarmee het tijdvenster wordt vergeleken: **De periode ervoor**, **Hetzelfde tijdstip gisteren**, **Hetzelfde tijdstip vorige week**, of een deploy onder **Voor en na een deploy**. Aandelen worden vergeleken, geen totalen, dus alleen meer verkeer verschuift niets. De kop noemt de functie waarvan het aandeel het meest groeide, en de eigen code die groeide; de flame graph wordt **Wat er veranderde**, waar rode frames daarna een groter aandeel innemen en groene een kleiner; en **Gewijzigde functies** toont het aandeel van elke functie voor en na.
+**Vergelijken met** bepaalt waarmee het tijdvenster wordt vergeleken: **De periode ervoor**, **Hetzelfde tijdstip gisteren**, **Hetzelfde tijdstip vorige week**, of een deploy onder **Voor en na een wijziging**. Aandelen worden vergeleken, geen totalen, dus alleen meer verkeer verschuift niets. De kop noemt de functie waarvan het aandeel het meest groeide, en de eigen code die groeide; de flame graph wordt **Wat er veranderde**, waar rode frames daarna een groter aandeel innemen en groene een kleiner; en **Gewijzigde functies** toont het aandeel van elke functie voor en na.
 
 ### Eén functie
 

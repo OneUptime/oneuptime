@@ -17,6 +17,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "Gateway",
+    "Goroutines",
     "ICMP (ping)",
     "Incident",
     "Incident {{number}}: {{title}}",

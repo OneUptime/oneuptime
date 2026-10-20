@@ -20,15 +20,18 @@ export const PROFILE_ORIGIN_LABELS: Record<ProfileFrameOrigin, string> = {
   [ProfileFrameOrigin.Unknown]: translationKey("Unknown"),
 };
 
-// Self and total, explained where they are shown.
+/*
+ * Self and total, explained where they are shown - in words that fit every
+ * kind of profile (CPU time, memory, allocations, locks), not time alone.
+ */
 export const SELF_EXPLAINED: string = translationKey(
-  "Time in the function's own code.",
+  "Only the function's own code.",
 );
 export const TOTAL_EXPLAINED: string = translationKey(
   "The function and everything it calls.",
 );
 export const SELF_AND_TOTAL_SENTENCE: string = translationKey(
-  "{{self}} is time spent in the function's own code. {{total}} adds everything it calls.",
+  "{{self}} counts only the function's own code. {{total}} adds everything it calls.",
 );
 
 // The compare menu.
@@ -40,6 +43,17 @@ export const COMPARE_LABELS: Record<ProfilesCompareMode, string> = {
 };
 
 export const COMPARE_OFF: string = translationKey("Don't compare");
+
+/*
+ * The compare menu's group of recorded changes: deploys, and the config
+ * changes, rollbacks and feature flags recorded beside them.
+ */
+export const COMPARE_CHANGES_HEADING: string = translationKey(
+  "Before and after a change",
+);
+
+// The kinds' own row ends with the raw types they leave out.
+export const MORE_PROFILE_TYPES: string = translationKey("More profile types");
 
 // A raw profile type in the type picker: "samples (CPU time)".
 export const RAW_TYPE_LABEL: string = translationKey("{{type}} ({{kind}})");
@@ -63,6 +77,15 @@ export const COMPARED_WITH: Record<ProfilesCompareMode, string> = {
     "Compared with before the change at {{time}}.",
   ),
 };
+
+/*
+ * A change the page lists (the last week's) is named, and its time said the
+ * way the compare menu says it: "Compared with before the change 40 minutes
+ * ago (Deploy: v2.4.0)."
+ */
+export const COMPARED_WITH_NAMED_CHANGE: string = translationKey(
+  "Compared with before the change {{when}} ({{change}}).",
+);
 
 // The headline.
 export const HEADLINE_LEADER: string = translationKey(
@@ -109,10 +132,8 @@ export const FLAME_TITLES: Record<ProfileCategory, string> = {
 export const FLAME_DESCRIPTION: string = translationKey(
   "Every profile in the window, merged into one graph. The wider a frame, the bigger its share. Click a frame to zoom in.",
 );
+// Its legend says what the colours mean, so the card adds no sentence.
 export const FLAME_COMPARE_TITLE: string = translationKey("What changed");
-export const FLAME_COMPARE_DESCRIPTION: string = translationKey(
-  "Red frames take a bigger share after, green frames a smaller one. Gray frames did not change.",
-);
 
 // The functions card.
 export const FUNCTIONS_TITLE: string = translationKey("Functions");
@@ -130,7 +151,7 @@ export const SORT_BY_TOTAL: string = translationKey("Total");
 export const VIEW_YOUR_CODE: string = translationKey("Your code");
 export const VIEW_ALL_FUNCTIONS: string = translationKey("All functions");
 export const OWN_CODE_SENTENCE: string = translationKey(
-  "Your own functions, each with the library and runtime code it calls: the time a change to it can win back.",
+  "Your own functions, each with the library and runtime code it calls: what a change to it can win back.",
 );
 export const OWN_CODE_COMPARE_DESCRIPTION: string = translationKey(
   "Your own functions, each with the library and runtime code it calls, as a share of the window before and after.",

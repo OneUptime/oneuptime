@@ -35,8 +35,10 @@ import { expectReadableDescriptionRecord } from "./MetricDescriptionRules";
  * And Service > Profiles, which carried a flame graph with an (i) of its
  * own until the Profiler's overview replaced it: the tab is now that
  * overview, locked to the service, whose cards say what they show in
- * their own descriptions - over the service's profiles one by one. The
- * overview and the list are replaced by recorders here.
+ * their own descriptions - over the service's profiles one by one, once
+ * the overview says the service has any. The overview and the list are
+ * replaced by recorders here; the overview's recorder answers whether the
+ * service has profiles as mockReportedProfiles says (null: not yet).
  *
  * jest.mock is hoisted above the imports, so the factories only close over
  * names that start with "mock".
@@ -45,6 +47,7 @@ import { expectReadableDescriptionRecord } from "./MetricDescriptionRules";
 const mockModelTable: MockFunction = getJestMockFunction();
 const mockOverview: MockFunction = getJestMockFunction();
 const mockProfileTable: MockFunction = getJestMockFunction();
+let mockReportedProfiles: boolean | null = true;
 
 jest.mock("react-i18next", () => {
   return {
@@ -88,8 +91,18 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: unknown) => {
+      default: (props: {
+        onHasProfiles?: ((hasProfiles: boolean) => void) | undefined;
+      }) => {
         mockOverview(props);
+        const { useEffect } = jest.requireActual("react") as {
+          useEffect: (effect: () => void, deps: Array<unknown>) => void;
+        };
+        useEffect(() => {
+          if (mockReportedProfiles !== null) {
+            props.onHasProfiles?.(mockReportedProfiles);
+          }
+        }, []);
         return <div data-testid="profiles-overview" />;
       },
     };
@@ -136,6 +149,7 @@ beforeEach(() => {
   mockModelTable.mockReset();
   mockOverview.mockReset();
   mockProfileTable.mockReset();
+  mockReportedProfiles = true;
 });
 
 afterEach(() => {
@@ -353,6 +367,7 @@ describe("Service Profiles tab", () => {
     expect(screen.getByTestId("profiles-overview")).toBeInTheDocument();
     expect(mockOverview).toHaveBeenCalledWith({
       lockedEntityId: SERVICE_ID,
+      onHasProfiles: expect.any(Function),
     });
 
     // The list below reads the same service's profiles.
@@ -363,5 +378,22 @@ describe("Service Profiles tab", () => {
 
     // No (i) of its own: the overview's cards say what they show.
     expect(infoLabels()).toEqual([]);
+  });
+
+  test("a service with no profile in 30 days is the overview's first steps alone: no empty list under them", () => {
+    mockReportedProfiles = false;
+    render(<ServiceProfiles {...PAGE_PROPS} />);
+
+    expect(screen.getByTestId("profiles-overview")).toBeInTheDocument();
+    expect(screen.queryByTestId("profile-table")).toBeNull();
+    expect(mockProfileTable).not.toHaveBeenCalled();
+  });
+
+  test("the list waits for the overview, so no empty list flashes while it reads", () => {
+    mockReportedProfiles = null;
+    render(<ServiceProfiles {...PAGE_PROPS} />);
+
+    expect(screen.getByTestId("profiles-overview")).toBeInTheDocument();
+    expect(screen.queryByTestId("profile-table")).toBeNull();
   });
 });

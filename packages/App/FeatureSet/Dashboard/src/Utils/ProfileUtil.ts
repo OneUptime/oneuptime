@@ -1,3 +1,5 @@
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export interface ParsedStackFrame {
   functionName: string;
   fileName: string;
@@ -418,21 +420,24 @@ export default class ProfileUtil {
   }
 
   /**
-   * Human-friendly label for a module category. Used in the flame graph
-   * legend.
+   * Human-friendly label for a module category: the flame graph's legend
+   * and tooltip, and a profile's top functions. The Profiler's function
+   * list and panel name whose code a frame is in the same words
+   * (ProfileCopy.PROFILE_ORIGIN_LABELS), so one page never says Library in
+   * one place and Dependencies in another.
    */
   public static getModuleCategoryLabel(category: ModuleCategory): string {
     switch (category) {
       case "own":
-        return "Your code";
+        return translationKey("Your code");
       case "vendor":
-        return "Dependencies";
+        return translationKey("Library");
       case "runtime":
-        return "Runtime";
+        return translationKey("Runtime");
       case "native":
-        return "Native / kernel";
+        return translationKey("System");
       default:
-        return "Unknown";
+        return translationKey("Unknown");
     }
   }
 

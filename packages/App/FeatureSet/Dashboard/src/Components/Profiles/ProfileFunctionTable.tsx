@@ -52,7 +52,9 @@ import { ProfileSourceLink } from "./ProfilesApi";
  *
  * What the ranking means is said above the list, where a person who has
  * never used a profiler reads it first. In Self and Total the bar draws
- * both: the dark part is Self, the light part what it calls.
+ * both: the dark part is Self, the light part what it calls. Your code
+ * lists the application's own code only, so its rows leave out whose code
+ * each one is.
  *
  * Comparing two windows, each row says the function's self share before
  * and after, and how many points it moved; Your code keeps the
@@ -145,6 +147,8 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
     row: FrameRow,
   ): ReactElement => {
     const origin: ProfileFrameOrigin = getProfileOrigin(row);
+    // Every row of Your code is the application's own: said once, above.
+    const isOriginShown: boolean = !isOwnView;
     const link: ProfileSourceLink | undefined = row.fileName
       ? findSourceLink(props.sourceLinks, row.fileName, row.lineNumber)
       : undefined;
@@ -181,16 +185,20 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        <span
-          className={
-            origin === ProfileFrameOrigin.Own
-              ? "font-medium text-orange-700"
-              : "text-gray-500"
-          }
-          data-testid="profiles-function-origin"
-        >
-          {translator.translateText(PROFILE_ORIGIN_LABELS[origin])}
-        </span>
+        {isOriginShown ? (
+          <span
+            className={
+              origin === ProfileFrameOrigin.Own
+                ? "font-medium text-orange-700"
+                : "text-gray-500"
+            }
+            data-testid="profiles-function-origin"
+          >
+            {translator.translateText(PROFILE_ORIGIN_LABELS[origin])}
+          </span>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
@@ -232,7 +240,7 @@ const ProfileFunctionTable: FunctionComponent<ComponentProps> = (
           className={`flex-none rounded p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             isHighlighted
               ? "text-indigo-600"
-              : "text-gray-300 hover:text-gray-600"
+              : "text-gray-400 hover:text-gray-700"
           }`}
           aria-pressed={isHighlighted}
           title={highlightLabel}

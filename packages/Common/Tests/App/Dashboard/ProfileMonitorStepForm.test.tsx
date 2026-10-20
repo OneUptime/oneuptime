@@ -257,3 +257,35 @@ describe("what the monitor would read now", () => {
     );
   });
 });
+
+describe("short words", () => {
+  test("the Function field and the preview each say what they need in one short sentence", async () => {
+    await act(async (): Promise<void> => {
+      render(
+        <ProfileMonitorStepForm
+          monitorStepProfileMonitor={monitor()}
+          onMonitorStepProfileMonitorChanged={() => {}}
+          telemetryServices={[]}
+        />,
+      );
+    });
+
+    expect(
+      screen.getByText(
+        "Its name, or part of its file or package path, as the Profiler shows it.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Set the threshold above what the function takes today.",
+      ),
+    ).toBeInTheDocument();
+    // The long two-sentence wordings they replaced are gone.
+    expect(document.body.textContent).not.toContain(
+      "Function Share criteria judge how much of the window runs through it.",
+    );
+    expect(document.body.textContent).not.toContain(
+      "Read with the monitor's own query",
+    );
+  });
+});

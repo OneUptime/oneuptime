@@ -293,7 +293,7 @@ Pour le profileur .NET, définissez `DD_TRACE_DEBUG=1` sur l'application pendant
 
 ### Comparer deux périodes
 
-**Comparer avec** définit ce à quoi la période est comparée : **La période précédente**, **La même heure hier**, **La même heure la semaine dernière**, ou un déploiement sous **Avant et après un déploiement**. Ce sont les parts qui sont comparées, pas les totaux : un trafic plus élevé ne change donc rien à lui seul. Le titre nomme la fonction dont la part a le plus augmenté, et votre propre code qui a augmenté ; le graphique en flammes devient **Ce qui a changé**, où les cadres rouges prennent une plus grande part après et les verts une plus petite ; et **Fonctions qui ont changé** liste la part de chaque fonction avant et après.
+**Comparer avec** définit ce à quoi la période est comparée : **La période précédente**, **La même heure hier**, **La même heure la semaine dernière**, ou un déploiement sous **Avant et après un changement**. Ce sont les parts qui sont comparées, pas les totaux : un trafic plus élevé ne change donc rien à lui seul. Le titre nomme la fonction dont la part a le plus augmenté, et votre propre code qui a augmenté ; le graphique en flammes devient **Ce qui a changé**, où les cadres rouges prennent une plus grande part après et les verts une plus petite ; et **Fonctions qui ont changé** liste la part de chaque fonction avant et après.
 
 ### Une fonction
 

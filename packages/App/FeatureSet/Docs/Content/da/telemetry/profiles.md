@@ -293,7 +293,7 @@ For .NET-profileren skal du sætte `DD_TRACE_DEBUG=1` på applikationen i et min
 
 ### Sammenlign to tidsvinduer
 
-**Sammenlign med** angiver, hvad tidsvinduet sammenlignes med: **Perioden før**, **Samme tid i går**, **Samme tid i sidste uge** eller en udrulning under **Før og efter en udrulning**. Andele sammenlignes frem for summer, så mere trafik alene flytter intet. Overskriften nævner den funktion, hvis andel voksede mest, og den egne kode, der voksede; flammegrafen bliver til **Hvad der ændrede sig**, hvor røde rammer tager en større andel bagefter og grønne en mindre; og **Funktioner, der ændrede sig** viser hver funktions andel før og efter.
+**Sammenlign med** angiver, hvad tidsvinduet sammenlignes med: **Perioden før**, **Samme tid i går**, **Samme tid i sidste uge** eller en udrulning under **Før og efter en ændring**. Andele sammenlignes frem for summer, så mere trafik alene flytter intet. Overskriften nævner den funktion, hvis andel voksede mest, og den egne kode, der voksede; flammegrafen bliver til **Hvad der ændrede sig**, hvor røde rammer tager en større andel bagefter og grønne en mindre; og **Funktioner, der ændrede sig** viser hver funktions andel før og efter.
 
 ### Én funktion
 

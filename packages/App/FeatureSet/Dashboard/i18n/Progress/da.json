@@ -21,6 +21,7 @@
     "Filter: {{expression}}",
     "Find",
     "Gateway",
+    "Goroutines",
     "Hardware",
     "ICMP (ping)",
     "Information",

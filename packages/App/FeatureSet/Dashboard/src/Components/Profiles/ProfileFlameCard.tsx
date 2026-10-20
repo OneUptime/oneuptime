@@ -9,7 +9,6 @@ import {
 import AggregatedFlamegraph from "./AggregatedFlamegraph";
 import DiffFlamegraph from "./DiffFlamegraph";
 import {
-  FLAME_COMPARE_DESCRIPTION,
   FLAME_COMPARE_TITLE,
   FLAME_DESCRIPTION,
   FLAME_TITLES,
@@ -21,8 +20,10 @@ import {
  * One window: every profile of the scope merged into one graph - the wider
  * a frame, the more of the kind it takes; a click zooms in. Two windows:
  * the same graph coloured by what changed, red for a bigger share after,
- * green for a smaller one. Both read the kind as the scope's own raw types,
- * in one unit, so the graph and the function list add up the same samples.
+ * green for a smaller one - which the graph's own legend says, right above
+ * it, so that card has a title and no sentence. Both read the kind as the
+ * scope's own raw types, in one unit, so the graph and the function list
+ * add up the same samples.
  */
 
 export interface ComponentProps {
@@ -46,7 +47,7 @@ const ProfileFlameCard: FunctionComponent<ComponentProps> = (
 
   if (props.comparison) {
     return (
-      <Card title={FLAME_COMPARE_TITLE} description={FLAME_COMPARE_DESCRIPTION}>
+      <Card title={FLAME_COMPARE_TITLE}>
         <div data-testid="profiles-flame-compare">
           <DiffFlamegraph
             key={props.refreshCount}

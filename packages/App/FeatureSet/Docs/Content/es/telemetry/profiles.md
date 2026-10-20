@@ -293,7 +293,7 @@ Para el perfilador .NET, defina `DD_TRACE_DEBUG=1` en la aplicación durante un 
 
 ### Comparar dos intervalos
 
-**Comparar con** define con qué se compara el intervalo: **El periodo anterior**, **La misma hora de ayer**, **La misma hora de la semana pasada**, o un despliegue en **Antes y después de un despliegue**. Se comparan proporciones, no totales, así que más tráfico por sí solo no mueve nada. El titular nombra la función cuya proporción más creció, y el código propio que creció; el gráfico de llamas pasa a ser **Qué cambió**, donde los marcos rojos ocupan una proporción mayor después y los verdes una menor; y **Funciones que cambiaron** lista la proporción de cada función antes y después.
+**Comparar con** define con qué se compara el intervalo: **El periodo anterior**, **La misma hora de ayer**, **La misma hora de la semana pasada**, o un despliegue en **Antes y después de un cambio**. Se comparan proporciones, no totales, así que más tráfico por sí solo no mueve nada. El titular nombra la función cuya proporción más creció, y el código propio que creció; el gráfico de llamas pasa a ser **Qué cambió**, donde los marcos rojos ocupan una proporción mayor después y los verdes una menor; y **Funciones que cambiaron** lista la proporción de cada función antes y después.
 
 ### Una función
 

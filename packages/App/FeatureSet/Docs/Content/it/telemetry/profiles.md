@@ -293,7 +293,7 @@ Per il profiler .NET, impostate `DD_TRACE_DEBUG=1` sull'applicazione per un minu
 
 ### Confrontare due intervalli
 
-**Confronta con** stabilisce con cosa viene confrontato l'intervallo: **Il periodo precedente**, **La stessa ora di ieri**, **La stessa ora della settimana scorsa**, oppure un deploy in **Prima e dopo un deploy**. Si confrontano le quote, non i totali, quindi più traffico da solo non sposta nulla. Il titolo nomina la funzione la cui quota è cresciuta di più, e il vostro codice che è cresciuto; il flame graph diventa **Cosa è cambiato**, dove i frame rossi occupano una quota maggiore dopo e quelli verdi una minore; e **Funzioni cambiate** elenca la quota di ogni funzione prima e dopo.
+**Confronta con** stabilisce con cosa viene confrontato l'intervallo: **Il periodo precedente**, **La stessa ora di ieri**, **La stessa ora della settimana scorsa**, oppure un deploy in **Prima e dopo una modifica**. Si confrontano le quote, non i totali, quindi più traffico da solo non sposta nulla. Il titolo nomina la funzione la cui quota è cresciuta di più, e il vostro codice che è cresciuto; il flame graph diventa **Cosa è cambiato**, dove i frame rossi occupano una quota maggiore dopo e quelli verdi una minore; e **Funzioni cambiate** elenca la quota di ogni funzione prima e dopo.
 
 ### Una funzione
 

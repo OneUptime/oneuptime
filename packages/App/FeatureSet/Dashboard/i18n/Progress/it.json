@@ -12,6 +12,7 @@
     "Embedding",
     "Failover",
     "Gateway",
+    "Goroutines",
     "Hardware",
     "ICMP (ping)",
     "Marketplace",

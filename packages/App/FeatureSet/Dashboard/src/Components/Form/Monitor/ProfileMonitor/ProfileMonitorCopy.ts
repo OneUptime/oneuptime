@@ -18,7 +18,7 @@ export const PROFILE_MONITOR_PREVIEW_TITLE: string = translationKey(
 );
 
 export const PROFILE_MONITOR_PREVIEW_DESCRIPTION: string = translationKey(
-  "Read with the monitor's own query, so a threshold can be picked from what the function takes today.",
+  "Set the threshold above what the function takes today.",
 );
 
 export const PROFILE_MONITOR_PREVIEW_COUNT: PluralTemplate = {

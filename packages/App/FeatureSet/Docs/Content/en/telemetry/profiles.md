@@ -293,7 +293,7 @@ For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: i
 
 ### Compare two windows
 
-**Compare with** sets what the window is compared with: **The period before**, **The same time yesterday**, **The same time last week**, or a deploy under **Before and after a deploy**. Shares are compared rather than totals, so busier traffic alone moves nothing. The headline names the function whose share grew the most, and the code of your own that grew; the flame graph becomes **What changed**, where red frames take a bigger share after and green frames a smaller one; and **Functions that changed** lists each function's share before and after.
+**Compare with** sets what the window is compared with: **The period before**, **The same time yesterday**, **The same time last week**, or a deploy under **Before and after a change**. Shares are compared rather than totals, so busier traffic alone moves nothing. The headline names the function whose share grew the most, and the code of your own that grew; the flame graph becomes **What changed**, where red frames take a bigger share after and green frames a smaller one; and **Functions that changed** lists each function's share before and after.
 
 ### One function
 

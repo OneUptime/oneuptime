@@ -851,9 +851,11 @@ describe("Service Profiles tab", () => {
   const code: string = readCode("Pages/Service/View/Profiles.tsx");
 
   test("is the Profiler's overview, locked to the service, over its profiles", () => {
-    expect(code).toContain(
-      "<ProfilesOverview lockedEntityId={modelId.toString()} />",
-    );
+    expect(code).toContain("<ProfilesOverview");
+    expect(code).toContain("lockedEntityId={modelId.toString()}");
+    // The list waits for the overview to say the service has profiles.
+    expect(code).toContain("onHasProfiles={setHasProfiles}");
+    expect(code).toContain("{hasProfiles ? (");
     expect(code).toContain("<ProfileTable");
     expect(code).toContain("modelId={modelId}");
     // No (i) and no type picker of its own any more.

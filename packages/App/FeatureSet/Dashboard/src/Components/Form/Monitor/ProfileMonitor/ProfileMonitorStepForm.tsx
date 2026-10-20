@@ -362,7 +362,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             title: "Function",
             description:
-              "The function to watch: its name, or part of its file or package path. Function Share criteria judge how much of the window runs through it.",
+              "Its name, or part of its file or package path, as the Profiler shows it.",
             placeholder: "parseOrder",
             hideOptionalLabel: true,
           },

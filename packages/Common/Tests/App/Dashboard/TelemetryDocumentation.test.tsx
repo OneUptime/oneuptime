@@ -235,6 +235,41 @@ describe("TelemetryDocumentation", () => {
       expect(container.textContent).toContain("alloy run alloy-config.alloy");
     });
 
+    test("the Kubernetes agent: turn its profiler on, then verify; a cluster without the agent is pointed at its guide under the command", () => {
+      const container: HTMLElement = renderGuide("profiles");
+      pickMethod("Kubernetes agent (eBPF)");
+
+      // Two real steps: installing the agent is not a numbered step of its own.
+      expect(stepTitles()).toEqual([
+        "Turn On the Agent's Profiler",
+        "Verify It Is Working",
+      ]);
+      expect(container.textContent).toContain("--set profiling.enabled=true");
+
+      const install: HTMLElement = screen.getByTestId(
+        "profiles-setup-kubernetes-agent-install",
+      );
+      expect(install).toHaveTextContent(
+        "No agent in the cluster yet? Install it with the Kubernetes setup guide",
+      );
+      expect(
+        within(install)
+          .getByRole("link", {
+            name: "Install it with the Kubernetes setup guide",
+          })
+          .getAttribute("href"),
+      ).toContain("/kubernetes/documentation");
+      expect(container.textContent).not.toContain("No Agent Yet?");
+    });
+
+    test("the guide names all three ways in", () => {
+      const container: HTMLElement = renderGuide("profiles");
+
+      expect(container.textContent).toContain(
+        "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF), the OneUptime Kubernetes agent or Pyroscope language SDKs.",
+      );
+    });
+
     test("the SDK path keeps its verify step and has no Advanced section", () => {
       renderGuide("profiles");
       pickMethod("Language SDK");

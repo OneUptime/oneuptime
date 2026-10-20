@@ -293,7 +293,7 @@ No profiler .NET, defina `DD_TRACE_DEBUG=1` na aplicação por um minuto: ele pa
 
 ### Comparar dois intervalos
 
-**Comparar com** define com o que o intervalo é comparado: **O período anterior**, **O mesmo horário de ontem**, **O mesmo horário da semana passada**, ou um deploy em **Antes e depois de um deploy**. São comparadas participações, não totais, então mais tráfego sozinho não muda nada. O título nomeia a função cuja participação mais cresceu, e o seu próprio código que cresceu; o gráfico de chama vira **O que mudou**, onde quadros vermelhos ocupam uma participação maior depois e verdes uma menor; e **Funções que mudaram** lista a participação de cada função antes e depois.
+**Comparar com** define com o que o intervalo é comparado: **O período anterior**, **O mesmo horário de ontem**, **O mesmo horário da semana passada**, ou um deploy em **Antes e depois de uma mudança**. São comparadas participações, não totais, então mais tráfego sozinho não muda nada. O título nomeia a função cuja participação mais cresceu, e o seu próprio código que cresceu; o gráfico de chama vira **O que mudou**, onde quadros vermelhos ocupam uma participação maior depois e verdes uma menor; e **Funções que mudaram** lista a participação de cada função antes e depois.
 
 ### Uma função
 

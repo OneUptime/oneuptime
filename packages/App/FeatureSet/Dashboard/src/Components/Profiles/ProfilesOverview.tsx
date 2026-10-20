@@ -69,6 +69,7 @@ import {
 import {
   ALL_PROFILES_LINK,
   COMPARED_WITH,
+  COMPARED_WITH_NAMED_CHANGE,
   EMPTY_WINDOW_DESCRIPTION,
   EMPTY_WINDOW_TITLE,
   FUNCTIONS_COMPARE_TITLE,
@@ -127,7 +128,9 @@ import useProfileRequest, { ProfileRequestState } from "./UseProfileRequest";
  * The view lives in the address (Utils/ProfilesUrlState), so it survives a
  * reload and can be opened from anywhere already pointed at the right
  * thing. On a service's (or host's) own Profiles tab the scope is locked
- * to it and the address leaves the service out.
+ * to it and the address leaves the service out. A locked page whose
+ * resource sent no profile in 30 days shows the first steps alone: there
+ * is no service, kind or window to pick yet.
  */
 
 export interface ComponentProps {
@@ -135,6 +138,18 @@ export interface ComponentProps {
   lockedEntityId?: string | undefined;
   // How the headline names it, when the page knows.
   lockedEntityName?: string | undefined;
+  /*
+   * Told, once the overview knows, whether the scope has any profile in
+   * the last 30 days - so the page around it can leave out what would
+   * only repeat "nothing yet" (a service's list of profiles).
+   */
+  onHasProfiles?: ((hasProfiles: boolean) => void) | undefined;
+  /*
+   * Draw nothing at all when the scope sent no profile in 30 days, for a
+   * page that says so itself (a host's list also holds the profiles of
+   * the services running on it).
+   */
+  isEmptyHidden?: boolean | undefined;
 }
 
 // How far back "is there any profile at all?" looks.
@@ -443,6 +458,32 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
     },
   );
 
+  // The change compared across, when the menu lists it.
+  const comparedChange: ProfileDeployOption | undefined =
+    urlState.compare === ProfilesCompareMode.Change && urlState.changeTime
+      ? deploys.find((deploy: ProfileDeployOption): boolean => {
+          return deploy.time.getTime() === urlState.changeTime!.getTime();
+        })
+      : undefined;
+
+  /*
+   * Whether the scope has any profile in the last 30 days: known once the
+   * window's kinds are read and, with none, the 30 days' too.
+   */
+  const hasAnyProfiles: boolean | null = hasData
+    ? true
+    : types.data && ever.data
+      ? ever.data.length > 0
+      : null;
+  const onHasProfiles: ((hasProfiles: boolean) => void) | undefined =
+    props.onHasProfiles;
+
+  useEffect(() => {
+    if (hasAnyProfiles !== null && onHasProfiles) {
+      onHasProfiles(hasAnyProfiles);
+    }
+  }, [hasAnyProfiles, onHasProfiles]);
+
   const serviceName: string | null = serviceId
     ? props.lockedEntityName ||
       names[serviceId]?.name ||
@@ -498,14 +539,19 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
           againstText:
             urlState.compare === ProfilesCompareMode.Change &&
             urlState.changeTime
-              ? translator.translateTemplate(
-                  COMPARED_WITH[ProfilesCompareMode.Change],
-                  {
-                    time: OneUptimeDate.getDateAsLocalFormattedString(
-                      urlState.changeTime,
-                    ),
-                  },
-                )
+              ? comparedChange
+                ? translator.translateTemplate(COMPARED_WITH_NAMED_CHANGE, {
+                    when: comparedChange.whenText,
+                    change: comparedChange.label,
+                  })
+                : translator.translateTemplate(
+                    COMPARED_WITH[ProfilesCompareMode.Change],
+                    {
+                      time: OneUptimeDate.getDateAsLocalFormattedString(
+                        urlState.changeTime,
+                      ),
+                    },
+                  )
               : translator.translateText(
                   COMPARED_WITH[
                     urlState.compare || ProfilesCompareMode.Previous
@@ -647,8 +693,16 @@ const ProfilesOverview: FunctionComponent<ComponentProps> = (
   if (!hasData) {
     const hadProfiles: boolean = Boolean(ever.data && ever.data.length > 0);
 
-    // No profile anywhere: the Profiler's first steps, and nothing else.
-    if (!hadProfiles && !serviceId) {
+    if (!hadProfiles && props.isEmptyHidden) {
+      return <></>;
+    }
+
+    /*
+     * No profile anywhere - or none for the resource a page is about: the
+     * Profiler's first steps, and nothing else. A service picked in the
+     * Profiler keeps the bar, to pick another.
+     */
+    if (!hadProfiles && (!serviceId || isLocked)) {
       return (
         <div className="rounded-xl border border-gray-200 bg-white">
           <TelemetryFirstStepsEmptyState

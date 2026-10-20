@@ -116,12 +116,16 @@ const HostProfiles: FunctionComponent<
        * to the Host row at ingest, so their primaryEntityId is this host's
        * id - what the overview reads by (OtelIngestBaseService.
        * selectPrimaryEntity). The list below also holds the profiles of
-       * services running on the host.
+       * services running on the host, so with no host-level profile the
+       * overview steps aside (isEmptyHidden) instead of saying "no profiles
+       * yet" above a list that may have some - the list says it when it is
+       * empty too.
        */}
-      <div className="mb-6">
+      <div className="mb-6 empty:mb-0">
         <ProfilesOverview
           lockedEntityId={modelId.toString()}
           lockedEntityName={host.name || host.hostIdentifier}
+          isEmptyHidden={true}
         />
       </div>
       <ProfileTable

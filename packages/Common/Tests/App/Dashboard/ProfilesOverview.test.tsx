@@ -154,6 +154,10 @@ interface Scenario {
   everTypes: Array<{ profileType: string; unit: string; sampleCount: number }>;
   fixOffer: SuggestionOffer;
   fixFails: boolean;
+  // What a SetUp answer says stands in the way.
+  fixBlockerType: string;
+  // Act with no repository found for certain: these to pick from.
+  fixRepositories: Array<{ id: string; name: string }>;
 }
 
 let scenario: Scenario;
@@ -378,7 +382,7 @@ function answer(url: string, body: Record<string, any>): Record<string, any> {
       blocker:
         scenario.fixOffer === SuggestionOffer.SetUp
           ? {
-              type: "RepositoryNotConnected",
+              type: scenario.fixBlockerType,
               message: "Connect the GitHub repository that holds this code.",
             }
           : null,
@@ -390,13 +394,14 @@ function answer(url: string, body: Record<string, any>): Record<string, any> {
         windowSampleCount: 10000,
       },
       repository:
-        scenario.fixOffer === SuggestionOffer.Act
+        scenario.fixOffer === SuggestionOffer.Act &&
+        scenario.fixRepositories.length === 0
           ? {
               id: "90000000-0000-4000-8000-0000000000c1",
               name: "acme/checkout",
             }
           : null,
-      repositories: [],
+      repositories: scenario.fixRepositories,
       taskId: scenario.fixOffer === SuggestionOffer.InProgress ? TASK_ID : null,
     };
   }
@@ -456,6 +461,8 @@ beforeEach(() => {
     everTypes: [{ profileType: "cpu", unit: "nanoseconds", sampleCount: 10 }],
     fixOffer: SuggestionOffer.Act,
     fixFails: false,
+    fixBlockerType: "RepositoryNotConnected",
+    fixRepositories: [],
   };
 
   postMock.mockReset();
@@ -583,7 +590,7 @@ describe("the functions, ranked three ways", () => {
     expect(
       screen.getByTestId("profiles-functions-explained"),
     ).toHaveTextContent(
-      "Self is time spent in the function's own code. Total adds everything it calls.",
+      "Self counts only the function's own code. Total adds everything it calls.",
     );
     expect(
       within(list)
@@ -899,5 +906,371 @@ describe("an empty window", () => {
     });
 
     expect(lastQuery()["rangeMinutes"]).toBe("10080");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The UI review's rules
+ * ---------------------------------------------------------------------------
+ */
+
+describe("the scope bar: what, then when", () => {
+  test("the raw types a kind leaves out sit at the end of the kinds, behind More profile types", async () => {
+    scenario.types = [
+      { profileType: "cpu", unit: "nanoseconds", sampleCount: 10000 },
+      { profileType: "samples", unit: "count", sampleCount: 500 },
+    ];
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    const kinds: HTMLElement = await screen.findByTestId(
+      "profiles-kind-picker",
+    );
+    // The kinds wrap on a phone rather than scroll out of sight.
+    expect(kinds.className).toContain("flex-wrap");
+    expect(kinds.className).not.toContain("overflow-x-auto");
+
+    const more: HTMLElement = within(kinds).getByTestId(
+      "profiles-raw-type-picker",
+    );
+    expect(more).toHaveTextContent("More profile types");
+    expect(more).toHaveAttribute("aria-haspopup", "menu");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(more);
+    });
+
+    const item: HTMLElement = await screen.findByTestId(
+      "profiles-raw-type-samples",
+    );
+    expect(item).toHaveTextContent("samples (CPU time)");
+    expect(item).toHaveAttribute("role", "menuitemradio");
+    expect(item).toHaveAttribute("aria-checked", "false");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(item);
+    });
+
+    expect(lastQuery()["profileType"]).toBe("samples");
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("profiles-kind-picker")).getByTestId(
+          "profiles-raw-type-picker",
+        ),
+      ).toHaveTextContent("samples (CPU time)");
+    });
+    expect(screen.getByTestId("profiles-kind-cpu")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await waitFor(() => {
+      const lists: Array<Posted> = requests("/function-list");
+      expect(lists[lists.length - 1]!.body["profileTypes"]).toEqual([
+        "samples",
+      ]);
+    });
+  });
+
+  test("a type of no known kind reads as Other in the menu, never as a word to translate", async () => {
+    scenario.types = [
+      { profileType: "cpu", unit: "nanoseconds", sampleCount: 10000 },
+      { profileType: "custom_metric", unit: "count", sampleCount: 50 },
+    ];
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    const more: HTMLElement = await screen.findByTestId(
+      "profiles-raw-type-picker",
+    );
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(more);
+    });
+
+    expect(
+      await screen.findByTestId("profiles-raw-type-custom_metric"),
+    ).toHaveTextContent("custom_metric (Other)");
+  });
+
+  test("no More profile types when every type has its kind", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    await screen.findByTestId("profiles-kind-picker");
+    expect(screen.queryByTestId("profiles-raw-type-picker")).toBeNull();
+  });
+
+  test("a page about one resource with no kind to pick draws no first row, and no rule above the window", async () => {
+    // Profiles in the last 30 days, none in this window.
+    scenario.types = [];
+    await renderOverview("", { lockedEntityId: SERVICE_ID });
+
+    await screen.findByTestId("profiles-empty-window");
+    expect(screen.getByTestId("profiles-scope-bar")).toBeInTheDocument();
+    expect(screen.queryByTestId("profiles-scope-what")).toBeNull();
+    expect(screen.getByTestId("profiles-scope-when").className).not.toContain(
+      "border-t",
+    );
+  });
+
+  test("with a service picker or kinds, the window sits under a rule", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    await screen.findByTestId("profiles-kind-picker");
+    expect(screen.getByTestId("profiles-scope-what")).toBeInTheDocument();
+    expect(screen.getByTestId("profiles-scope-when").className).toContain(
+      "border-t",
+    );
+  });
+});
+
+describe("a page about one resource, with nothing profiled", () => {
+  test("the first steps alone - no bar to pick from - and the page is told there are none", async () => {
+    scenario.types = [];
+    scenario.everTypes = [];
+    const told: MockFunction = getJestMockFunction();
+
+    await renderOverview("", {
+      lockedEntityId: SERVICE_ID,
+      onHasProfiles: (hasProfiles: boolean): void => {
+        told(hasProfiles);
+      },
+    });
+
+    expect(
+      await screen.findByTestId("profiles-first-steps"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("profiles-scope-bar")).toBeNull();
+    await waitFor(() => {
+      expect(told).toHaveBeenLastCalledWith(false);
+    });
+  });
+
+  test("isEmptyHidden: nothing at all, for a page that says it itself", async () => {
+    scenario.types = [];
+    scenario.everTypes = [];
+
+    await renderOverview("", {
+      lockedEntityId: SERVICE_ID,
+      isEmptyHidden: true,
+    });
+
+    await waitFor(() => {
+      expect(requests("/profile-types")).toHaveLength(2);
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("profiles-headline")).toBeNull();
+    });
+    expect(screen.queryByTestId("profiles-first-steps")).toBeNull();
+    expect(screen.queryByTestId("profiles-scope-bar")).toBeNull();
+  });
+
+  test("a resource with profiles tells the page so", async () => {
+    const told: MockFunction = getJestMockFunction();
+
+    await renderOverview("", {
+      lockedEntityId: SERVICE_ID,
+      onHasProfiles: (hasProfiles: boolean): void => {
+        told(hasProfiles);
+      },
+    });
+
+    await screen.findByTestId("profiles-headline");
+    await waitFor(() => {
+      expect(told).toHaveBeenLastCalledWith(true);
+    });
+  });
+
+  test("a service picked in the Profiler with nothing profiled keeps the bar, to pick another", async () => {
+    scenario.types = [];
+    scenario.everTypes = [];
+
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    expect(
+      await screen.findByTestId("profiles-first-steps"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("profiles-scope-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("profiles-service-picker")).toBeInTheDocument();
+  });
+});
+
+describe("compared across a change", () => {
+  test("a change the menu lists is named in the headline, with when it happened", async () => {
+    const changeTime: Date = new Date(Date.now() - 40 * 60 * 1000);
+    analyticsListMock.mockImplementation(async () => {
+      return {
+        data: [{ time: changeTime, title: "v2.4.0", eventType: "deployment" }],
+        count: 1,
+      };
+    });
+
+    await renderOverview(
+      `?serviceId=${SERVICE_ID}&compare=change&changeTime=${encodeURIComponent(
+        changeTime.toISOString(),
+      )}`,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("profiles-headline-text")).toHaveTextContent(
+        "Compared with before the change 40 minutes ago (Deploy: v2.4.0).",
+      );
+    });
+  });
+
+  test("a change older than the menu's week is said by its time", async () => {
+    const changeTime: Date = new Date(Date.now() - 9 * 24 * 60 * 60 * 1000);
+
+    await renderOverview(
+      `?serviceId=${SERVICE_ID}&compare=change&changeTime=${encodeURIComponent(
+        changeTime.toISOString(),
+      )}`,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("profiles-headline-text")).toHaveTextContent(
+        "Compared with before the change at",
+      );
+    });
+    expect(screen.getByTestId("profiles-headline-text")).not.toHaveTextContent(
+      "Deploy:",
+    );
+  });
+});
+
+describe("the words fit every kind of profile", () => {
+  test("Self and Total are explained without 'time', for memory as for CPU", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}&profileType=memory`);
+
+    const explained: HTMLElement = await screen.findByTestId(
+      "profiles-functions-explained",
+    );
+
+    expect(explained).toHaveTextContent(
+      "Self counts only the function's own code. Total adds everything it calls.",
+    );
+    expect(explained.textContent).not.toContain("time");
+  });
+
+  test("Your code says what a change can win back, not the time", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+    await screen.findByTestId("profiles-functions");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("profiles-functions-view-own"));
+    });
+
+    expect(
+      await screen.findByTestId("profiles-functions-explained"),
+    ).toHaveTextContent(
+      "Your own functions, each with the library and runtime code it calls: what a change to it can win back.",
+    );
+  });
+});
+
+describe("the function list's rows", () => {
+  test("Your code lists only the application's own code, so its rows leave out whose code each is", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    const list: HTMLElement = await screen.findByTestId("profiles-functions");
+    expect(
+      within(list).getAllByTestId("profiles-function-origin").length,
+    ).toBeGreaterThan(0);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("profiles-functions-view-own"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("profiles-functions")).toHaveAttribute(
+        "data-view",
+        "own",
+      );
+    });
+    expect(
+      within(screen.getByTestId("profiles-functions")).queryAllByTestId(
+        "profiles-function-origin",
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("a row's highlight button is quiet but visible, in both themes' grays", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}`);
+
+    const highlight: HTMLElement = (
+      await screen.findAllByTestId("profiles-function-highlight")
+    )[0]!;
+
+    expect(highlight.className).toContain("text-gray-400");
+    expect(highlight.className).not.toContain("text-gray-300");
+    expect(highlight).toHaveAttribute("aria-label");
+  });
+});
+
+describe("the function panel's figures and the fix strip", () => {
+  const PARSE_ORDER: string = `?serviceId=${SERVICE_ID}&function=parseOrder&file=src%2Forders%2Fparse.ts`;
+
+  test("each share sits at the bottom of its box, so long hints never push one figure lower than the others", async () => {
+    await renderOverview(PARSE_ORDER);
+
+    const panel: HTMLElement = await screen.findByTestId("profiles-panel");
+    await within(panel).findByTestId("profiles-panel-own");
+
+    for (const testId of [
+      "profiles-panel-self",
+      "profiles-panel-total",
+      "profiles-panel-own",
+    ]) {
+      const figure: HTMLElement = within(panel).getByTestId(testId);
+      expect(figure.className).toContain("mt-auto");
+      expect(figure.parentElement!.className).toContain("flex-col");
+    }
+  });
+
+  test("what stands in the way is said in the strip's own amber, not in a box inside it", async () => {
+    scenario.fixOffer = SuggestionOffer.SetUp;
+    scenario.fixBlockerType = "NoAiCredits";
+    await renderOverview(PARSE_ORDER);
+
+    const strip: HTMLElement = await screen.findByTestId("profiles-fix");
+    const blocker: HTMLElement =
+      await within(strip).findByTestId("code-blocker");
+
+    expect(blocker).toHaveAttribute("data-blocker", "NoAiCredits");
+    expect(blocker.className).not.toContain("rounded-lg");
+    expect(blocker.className).not.toContain("px-4");
+    expect(blocker.className).not.toContain("bg-amber-50");
+  });
+
+  test("waiting for a repository to be picked, Fix with AI looks it", async () => {
+    scenario.fixRepositories = [
+      { id: "90000000-0000-4000-8000-0000000000c1", name: "acme/checkout" },
+      { id: "90000000-0000-4000-8000-0000000000c2", name: "acme/platform" },
+    ];
+    await renderOverview(PARSE_ORDER);
+
+    const strip: HTMLElement = await screen.findByTestId("profiles-fix");
+    const button: HTMLElement = await within(strip).findByTestId(
+      "profiles-fix-with-ai",
+    );
+
+    expect(button).toBeDisabled();
+    expect(button.className).toContain("disabled:opacity-50");
+    expect(button.className).toContain("disabled:cursor-not-allowed");
+    expect(
+      within(strip).getByTestId("profiles-fix-repository"),
+    ).toHaveTextContent("Which repository holds this code?");
+  });
+});
+
+describe("the flame graph cards", () => {
+  test("comparing, the card is titled What changed and leaves the colours to the graph's legend", async () => {
+    await renderOverview(`?serviceId=${SERVICE_ID}&compare=previous`);
+
+    await screen.findByTestId("profiles-flame-compare");
+    await waitFor(() => {
+      expect(diffMock).toHaveBeenCalled();
+    });
+
+    expect(screen.getByText("What changed")).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("Red frames take");
   });
 });

@@ -5,6 +5,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -12,7 +14,6 @@ import {
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
-import { ProfileCategory } from "Common/Utils/Profiles/ProfileTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   PROFILE_KIND_DESCRIPTIONS,
@@ -24,19 +25,33 @@ import {
   PROFILES_RANGE_MINUTES,
   ProfilesCompareMode,
 } from "../../Utils/ProfilesUrlState";
-import { COMPARE_LABELS, COMPARE_OFF, RAW_TYPE_LABEL } from "./ProfileCopy";
+import {
+  COMPARE_CHANGES_HEADING,
+  COMPARE_LABELS,
+  COMPARE_OFF,
+  MORE_PROFILE_TYPES,
+  RAW_TYPE_LABEL,
+} from "./ProfileCopy";
 
 /*
  * WHAT THE PROFILER IS LOOKING AT, IN ONE BAR.
  *
- *   [ Service ▾ ]  [ CPU time | Memory | … ]            [15m 1h 6h 1d 7d] [↻]
- *   Compare with: [ Don't compare ▾ ]
+ *   [ Service ▾ ]  [ CPU time | Memory | … | More profile types ▾ ]
+ *   ──────────────────────────────────────────────────────────────
+ *   [15m 1h 6h 1d 7d] [↻]   Compare with [ Don't compare ▾ ]
  *
  * The service picker lists what sent profiles in the window, busiest first.
  * The kinds are only those the scope has data for: no button leads to an
- * empty page. The compare picker offers the period before, the same time a
- * day or a week ago, and - for one service - its recent deploys, which is
- * how "what got slower after this deploy?" is asked.
+ * empty page. The raw types a kind leaves out (the eBPF profiler's sample
+ * counts beside CPU time in nanoseconds) sit in the kinds' own row, behind
+ * More profile types, so the bar keeps two rows. The kinds wrap rather than
+ * scroll on a phone, so none hides off the edge. The compare picker offers
+ * the period before, the same time a day or a week ago, and - for one
+ * service - its recent deploys and other changes, which is how "what got
+ * slower after this deploy?" is asked.
+ *
+ * A page about one resource with no kind to pick (nothing profiled yet)
+ * draws no first row, and no rule above the second.
  */
 
 export interface ProfileScopeService {
@@ -140,7 +155,7 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
 
   if (props.deploys.length > 0) {
     compareGroups.push({
-      label: heading(translationKey("Before and after a deploy")),
+      label: heading(COMPARE_CHANGES_HEADING),
       options: props.deploys.map(
         (deploy: ProfileDeployOption): DropdownOption => {
           return {
@@ -195,90 +210,161 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
 
   /*
    * A raw type by its own name, and the kind it is of: "samples (CPU
-   * time)" is the eBPF profiler's CPU samples, counted rather than timed.
+   * time)" is the eBPF profiler's CPU samples, counted rather than timed,
+   * and a type of no known kind reads "custom (Other)". Composed here, so
+   * the menu never looks a raw name up as a word to translate.
    */
-  const rawTypeOptions: Array<DropdownOption> = props.choices.rawTypes.map(
-    (choice: ProfileKindChoice): DropdownOption => {
-      return {
-        value: choice.selection,
-        label:
-          choice.category === ProfileCategory.Other
-            ? choice.selection
-            : translator.translateTemplate(RAW_TYPE_LABEL, {
-                type: choice.selection,
-                kind: translatableTerm(PROFILE_KIND_LABELS[choice.category]),
-              }),
-        isUserContent: true,
-      };
-    },
-  );
+  const rawTypeOptions: Array<{ value: string; label: string }> =
+    props.choices.rawTypes.map(
+      (choice: ProfileKindChoice): { value: string; label: string } => {
+        return {
+          value: choice.selection,
+          label: translator.translateTemplate(RAW_TYPE_LABEL, {
+            type: choice.selection,
+            kind: translatableTerm(PROFILE_KIND_LABELS[choice.category]),
+          }),
+        };
+      },
+    );
+
+  const activeRawType: { value: string; label: string } | undefined = props
+    .selectedKind.isRawType
+    ? rawTypeOptions.find((option: { value: string; label: string }) => {
+        return option.value === props.selectedKind.selection;
+      })
+    : undefined;
+
+  const hasKindRow: boolean =
+    props.choices.kinds.length > 0 || rawTypeOptions.length > 0;
+  const hasFirstRow: boolean = Boolean(props.services) || hasKindRow;
 
   return (
     <div
       className="mb-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4"
       data-testid="profiles-scope-bar"
     >
-      <div className="flex flex-wrap items-center gap-3">
-        {props.services ? (
-          <div className="w-full sm:w-64" data-testid="profiles-service-picker">
-            <Dropdown
-              options={serviceOptions}
-              value={selectedServiceOption}
-              ariaLabel={translator.translateText("Service")}
-              isClearable={false}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const id: string = value ? value.toString() : "";
-                props.onSelectService(
-                  !id || id === ALL_SERVICES_VALUE ? null : id,
+      {hasFirstRow ? (
+        <div
+          className="flex flex-wrap items-center gap-3"
+          data-testid="profiles-scope-what"
+        >
+          {props.services ? (
+            <div
+              className="w-full sm:w-60"
+              data-testid="profiles-service-picker"
+            >
+              <Dropdown
+                options={serviceOptions}
+                value={selectedServiceOption}
+                ariaLabel={translator.translateText("Service")}
+                isClearable={false}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  const id: string = value ? value.toString() : "";
+                  props.onSelectService(
+                    !id || id === ALL_SERVICES_VALUE ? null : id,
+                  );
+                }}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {hasKindRow ? (
+            <div
+              className="flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
+              role="group"
+              aria-label={translator.translateText("What to analyze")}
+              data-testid="profiles-kind-picker"
+            >
+              {props.choices.kinds.map((choice: ProfileKindChoice) => {
+                const isActive: boolean =
+                  !props.selectedKind.isRawType &&
+                  props.selectedKind.selection === choice.selection;
+
+                return (
+                  <button
+                    key={choice.selection}
+                    type="button"
+                    aria-pressed={isActive}
+                    title={translator.translateText(
+                      PROFILE_KIND_DESCRIPTIONS[choice.category],
+                    )}
+                    className={segmentClass(isActive)}
+                    data-testid={`profiles-kind-${choice.selection}`}
+                    onClick={() => {
+                      props.onSelectKind(choice.selection);
+                    }}
+                  >
+                    {translator.translateText(
+                      PROFILE_KIND_LABELS[choice.category],
+                    )}
+                  </button>
                 );
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {props.choices.kinds.length > 0 ? (
-          <div
-            className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-1"
-            role="group"
-            aria-label={translator.translateText("What to analyze")}
-            data-testid="profiles-kind-picker"
-          >
-            {props.choices.kinds.map((choice: ProfileKindChoice) => {
-              const isActive: boolean =
-                !props.selectedKind.isRawType &&
-                props.selectedKind.selection === choice.selection;
-
-              return (
-                <button
-                  key={choice.selection}
-                  type="button"
-                  aria-pressed={isActive}
-                  title={translator.translateText(
-                    PROFILE_KIND_DESCRIPTIONS[choice.category],
-                  )}
-                  className={segmentClass(isActive)}
-                  data-testid={`profiles-kind-${choice.selection}`}
-                  onClick={() => {
-                    props.onSelectKind(choice.selection);
-                  }}
+              })}
+              {rawTypeOptions.length > 0 ? (
+                <MoreMenu
+                  ariaLabel={MORE_PROFILE_TYPES}
+                  isMenuPortaled={true}
+                  elementToBeShownInsteadOfButton={
+                    <button
+                      type="button"
+                      className={`${segmentClass(Boolean(activeRawType))} inline-flex max-w-full items-center gap-1`}
+                      data-testid="profiles-raw-type-picker"
+                    >
+                      <span className="truncate">
+                        {activeRawType
+                          ? activeRawType.label
+                          : translator.translateText(MORE_PROFILE_TYPES)}
+                      </span>
+                      <Icon
+                        icon={IconProp.ChevronDown}
+                        className="h-3.5 w-3.5 flex-none text-gray-400"
+                      />
+                    </button>
+                  }
                 >
-                  {translator.translateText(
-                    PROFILE_KIND_LABELS[choice.category],
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
+                  {rawTypeOptions.map(
+                    (option: { value: string; label: string }) => {
+                      const isPicked: boolean =
+                        activeRawType?.value === option.value;
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-gray-100 pt-3">
+                      return (
+                        <MoreMenuItem
+                          key={option.value}
+                          text={option.label}
+                          icon={isPicked ? IconProp.Check : undefined}
+                          isIconSpaceReserved={true}
+                          isChecked={isPicked}
+                          dataTestId={`profiles-raw-type-${option.value}`}
+                          onClick={() => {
+                            props.onSelectKind(option.value);
+                          }}
+                        />
+                      );
+                    },
+                  )}
+                </MoreMenu>
+              ) : (
+                <></>
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      <div
+        className={`flex flex-wrap items-center gap-x-4 gap-y-3 ${
+          hasFirstRow ? "mt-3 border-t border-gray-100 pt-3" : ""
+        }`}
+        data-testid="profiles-scope-when"
+      >
         <div className="flex max-w-full flex-wrap items-center gap-2">
           <div
             className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
@@ -374,35 +460,6 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
-
-        {rawTypeOptions.length > 0 ? (
-          <div
-            className="w-full sm:ml-auto sm:w-56"
-            data-testid="profiles-raw-type-picker"
-          >
-            <Dropdown
-              options={rawTypeOptions}
-              value={rawTypeOptions.find((option: DropdownOption): boolean => {
-                return (
-                  props.selectedKind.isRawType &&
-                  option.value === props.selectedKind.selection
-                );
-              })}
-              placeholder={translator.translateText("More profile types")}
-              ariaLabel={translator.translateText("More profile types")}
-              isClearable={false}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (value) {
-                  props.onSelectKind(value.toString());
-                }
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
       </div>
     </div>
   );

@@ -1333,7 +1333,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     exceptions:
       "Capture and track exceptions from your application using OpenTelemetry SDKs.",
     profiles:
-      "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF) or Pyroscope language SDKs.",
+      "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF), the OneUptime Kubernetes agent or Pyroscope language SDKs.",
   };
 
   const installSnippet: { code: string; language: string } = useMemo(() => {
@@ -1953,7 +1953,11 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // The Kubernetes agent's eBPF profiler (for profiles)
+  /*
+   * The Kubernetes agent's eBPF profiler (for profiles): two steps - turn it
+   * on, see it work. A cluster without the agent is pointed at the agent's
+   * own guide under the command, not given a numbered step of its own.
+   */
   const renderKubernetesAgentProfilesContent: () => ReactElement =
     (): ReactElement => {
       return (
@@ -1962,31 +1966,33 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             {renderStep(
               1,
               "Turn On the Agent's Profiler",
-              "The agent's eBPF profiler runs on every Linux node and profiles every container, in any language, with no code changes. It sends with the agent's own key. It needs privileged pods, so GKE Autopilot and EKS Fargate leave it off.",
-              <CodeBlock
-                code={KUBERNETES_AGENT_PROFILING_COMMAND}
-                language="bash"
-              />,
+              "It profiles every container on every Linux node, in any language, with no code changes. It needs privileged pods, so it is not available on GKE Autopilot or EKS Fargate.",
+              <div>
+                <CodeBlock
+                  code={KUBERNETES_AGENT_PROFILING_COMMAND}
+                  language="bash"
+                />
+                <p
+                  className="mt-3 text-sm text-gray-500"
+                  data-testid="profiles-setup-kubernetes-agent-install"
+                >
+                  No agent in the cluster yet?{" "}
+                  <AppLink
+                    className="font-medium text-indigo-600 hover:text-indigo-500"
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route,
+                    )}
+                  >
+                    Install it with the Kubernetes setup guide
+                  </AppLink>
+                </p>
+              </div>,
             )}
 
             {renderStep(
               2,
-              "No Agent Yet?",
-              "Install the OneUptime Kubernetes agent first. Its setup guide walks through it, cluster by cluster.",
-              <AppLink
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route,
-                )}
-              >
-                Open the Kubernetes setup guide
-              </AppLink>,
-            )}
-
-            {renderStep(
-              3,
               "Verify It Is Working",
-              "Leave this page open while the profiler pods start - incoming profiles are detected automatically.",
+              "Leave this page open while the profiler pods start — incoming profiles are detected automatically.",
               renderProfileVerifyContent(),
               true,
             )}

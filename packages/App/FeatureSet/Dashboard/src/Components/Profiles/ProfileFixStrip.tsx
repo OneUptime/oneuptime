@@ -302,7 +302,8 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
         );
       }
 
-      return <CodeBlockerNotice blocker={suggestion.blocker} />;
+      // In the strip's own amber, not a box of its own inside it.
+      return <CodeBlockerNotice blocker={suggestion.blocker} isInline={true} />;
     }
 
     const repositoryOptions: Array<DropdownOption> =
@@ -357,7 +358,11 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
           disabled={needsRepositoryPick && !pickedRepositoryId}
           tooltip={FIX_WITH_AI_TOOLTIP}
           dataTestId="profiles-fix-with-ai"
-          className="md:!ml-0"
+          /*
+           * Waiting for a repository to be picked, it looks it: the shared
+           * Button draws no disabled state of its own.
+           */
+          className="md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => {
             void startFix();
           }}

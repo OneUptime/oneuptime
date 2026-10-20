@@ -293,7 +293,7 @@ Setzen Sie beim .NET-Profiler für eine Minute `DD_TRACE_DEBUG=1` in der Anwendu
 
 ### Zwei Zeitfenster vergleichen
 
-**Vergleichen mit** legt fest, womit das Zeitfenster verglichen wird: **Der Zeitraum davor**, **Dieselbe Zeit gestern**, **Dieselbe Zeit letzte Woche** oder ein Deployment unter **Vor und nach einem Deployment**. Verglichen werden Anteile statt Summen, sodass mehr Traffic allein nichts verschiebt. Die Überschrift nennt die Funktion, deren Anteil am stärksten gewachsen ist, und den eigenen Code, der gewachsen ist; der Flame-Graph wird zu **Was sich geändert hat**, wo rote Frames danach einen größeren Anteil haben und grüne einen kleineren; und **Veränderte Funktionen** listet den Anteil jeder Funktion vorher und nachher.
+**Vergleichen mit** legt fest, womit das Zeitfenster verglichen wird: **Der Zeitraum davor**, **Dieselbe Zeit gestern**, **Dieselbe Zeit letzte Woche** oder ein Deployment unter **Vor und nach einer Änderung**. Verglichen werden Anteile statt Summen, sodass mehr Traffic allein nichts verschiebt. Die Überschrift nennt die Funktion, deren Anteil am stärksten gewachsen ist, und den eigenen Code, der gewachsen ist; der Flame-Graph wird zu **Was sich geändert hat**, wo rote Frames danach einen größeren Anteil haben und grüne einen kleineren; und **Veränderte Funktionen** listet den Anteil jeder Funktion vorher und nachher.
 
 ### Eine Funktion
 

@@ -528,7 +528,7 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
               <legend className="block text-sm font-medium text-gray-700">
                 {translator.translateText("What to analyze")}
               </legend>
-              <div className="mt-2 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-0.5">
+              <div className="mt-2 inline-flex max-w-full flex-wrap rounded-lg bg-gray-100 p-0.5">
                 {CODE_CONTEXT_PROFILE_KINDS.map((category: ProfileCategory) => {
                   const isPicked: boolean = category === profileKind;
 

@@ -117,7 +117,11 @@ const ProfileHeadline: FunctionComponent<ComponentProps> = (
     );
   }
 
-  let icon: IconProp = IconProp.Bolt;
+  /*
+   * The Profiler's own flame for where the time goes (the bolt is the AI
+   * fix's), a clock for what changed over time.
+   */
+  let icon: IconProp = IconProp.Fire;
   let tone: string = "bg-indigo-50 text-indigo-600";
   let body: ReactNode = null;
 

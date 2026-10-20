@@ -318,6 +318,11 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
 
     const data: ProfileFunctionFocus = focus.data;
 
+    /*
+     * Each share under its name and what it counts. The hints wrap to
+     * different lengths (German's run to three lines), so the figures sit
+     * at the bottom of their boxes (mt-auto) and line up side by side.
+     */
     return (
       <div className="space-y-6">
         <dl
@@ -328,7 +333,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
           }`}
           data-testid="profiles-panel-stats"
         >
-          <div className="rounded-lg border border-gray-200 px-3 py-2">
+          <div className="flex flex-col rounded-lg border border-gray-200 px-3 py-2">
             <dt className="text-xs font-medium text-gray-500">
               {translator.translateText(SORT_BY_SELF)}{" "}
               <span className="font-normal text-gray-400">
@@ -336,7 +341,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
               </span>
             </dt>
             <dd
-              className="mt-0.5 font-mono text-lg font-semibold text-gray-900"
+              className="mt-auto pt-0.5 font-mono text-lg font-semibold text-gray-900"
               data-testid="profiles-panel-self"
             >
               {formatProfileShare(selfShare)}
@@ -345,7 +350,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
               {formatProfileValue(data.selfValue, props.kind.unit)}
             </dd>
           </div>
-          <div className="rounded-lg border border-gray-200 px-3 py-2">
+          <div className="flex flex-col rounded-lg border border-gray-200 px-3 py-2">
             <dt className="text-xs font-medium text-gray-500">
               {translator.translateText(SORT_BY_TOTAL)}{" "}
               <span className="font-normal text-gray-400">
@@ -353,7 +358,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
               </span>
             </dt>
             <dd
-              className="mt-0.5 font-mono text-lg font-semibold text-gray-900"
+              className="mt-auto pt-0.5 font-mono text-lg font-semibold text-gray-900"
               data-testid="profiles-panel-total"
             >
               {formatProfileShare(totalShare)}
@@ -363,7 +368,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
             </dd>
           </div>
           {origin === ProfileFrameOrigin.Own ? (
-            <div className="rounded-lg border border-orange-100 bg-orange-50 px-3 py-2">
+            <div className="flex flex-col rounded-lg border border-orange-100 bg-orange-50 px-3 py-2">
               <dt className="text-xs font-medium text-gray-500">
                 {translator.translateText(VIEW_YOUR_CODE)}{" "}
                 <span className="font-normal text-gray-400">
@@ -371,7 +376,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
                 </span>
               </dt>
               <dd
-                className="mt-0.5 font-mono text-lg font-semibold text-gray-900"
+                className="mt-auto pt-0.5 font-mono text-lg font-semibold text-gray-900"
                 data-testid="profiles-panel-own"
               >
                 {formatProfileShare(ownShare)}

@@ -151,6 +151,13 @@ test.describe("where the time goes", () => {
     await expect(page.getByTestId("profiles-flame")).toBeVisible();
     await expect(page.getByTestId("profiles-functions")).toBeVisible();
 
+    // The flame graph names whose code a frame is as the list beside it does.
+    const flame: Locator = page.getByTestId("profiles-flame");
+    for (const word of ["Your code", "Library", "Runtime", "System"]) {
+      await expect(flame).toContainText(word);
+    }
+    await expect(flame).not.toContainText("Dependencies");
+
     // The kernel thread the eBPF profiler profiled is folded away.
     const services: Locator = page.getByTestId("profiles-service-row");
     await expect(services.first()).toContainText("checkout");
@@ -189,15 +196,79 @@ test.describe("where the time goes", () => {
 
     // The deploy is in the compare menu, with when it shipped.
     await page.getByTestId("profiles-compare-picker").click();
+    await expect(page.getByText("Before and after a change")).toBeVisible();
     await page.getByText("Deploy: v2.4.0 · 40 minutes ago").click();
 
     await expect(page).toHaveURL(/compare=change/);
     await expect(page.getByTestId("profiles-headline-text")).toContainText(
       "JSON.parse went from 21% to 47% of the CPU time.",
     );
+    // The headline names the change it compares across, and when it was.
+    await expect(page.getByTestId("profiles-headline-text")).toContainText(
+      "Compared with before the change 40 minutes ago (Deploy: v2.4.0).",
+    );
     await expect(page.getByTestId("profiles-headline-own")).toContainText(
       "In your own code, parseOrder grew the most",
     );
+  });
+});
+
+test.describe("the scope bar", () => {
+  test("every kind stays in reach - wrapped, never scrolled out of sight - and the raw types sit at their end", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openLoaded(page);
+
+    const bar: Locator = page.getByTestId("profiles-scope-bar");
+    const kinds: Locator = page.getByTestId("profiles-kind-picker");
+    const barBox: { x: number; width: number } | null = await bar.boundingBox();
+    expect(barBox).not.toBeNull();
+
+    for (const kind of [
+      "cpu",
+      "memory",
+      "allocations",
+      "locks",
+      "goroutines",
+    ]) {
+      const button: Locator = page.getByTestId(`profiles-kind-${kind}`);
+      await expect(button).toBeVisible();
+      const box: { x: number; width: number } | null =
+        await button.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(barBox!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(
+        barBox!.x + barBox!.width,
+      );
+    }
+
+    // The eBPF profiler's CPU sample counts: at the end of the kinds.
+    const more: Locator = kinds.getByTestId("profiles-raw-type-picker");
+    await expect(more).toHaveText("More profile types");
+    await more.click();
+    await page
+      .getByRole("menuitemradio", { name: "samples (CPU time)" })
+      .click();
+
+    await expect(page).toHaveURL(/profileType=samples/);
+    await expect(more).toHaveText("samples (CPU time)");
+    await expect(page.getByTestId("profiles-kind-cpu")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(page.getByTestId("profiles-headline-text")).toBeVisible();
+    const lists: Array<RecordedRequest> = await requestsTo(
+      page,
+      "/telemetry/profiles/function-list",
+    );
+    expect(lists[lists.length - 1]!.body["profileTypes"]).toEqual(["samples"]);
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+    await screenshot(page, testInfo, "scope-raw-type");
   });
 });
 
@@ -273,6 +344,25 @@ test.describe("one function", () => {
 
     if (isPhone(testInfo)) {
       await expectNoSidewaysScroll(page);
+    } else {
+      /*
+       * Side by side, the three figures line up whatever the length of
+       * the hint above each ("Your code with the library code it calls"
+       * wraps where "Self in its own code" does not).
+       */
+      const tops: Array<number> = [];
+      for (const testId of [
+        "profiles-panel-self",
+        "profiles-panel-total",
+        "profiles-panel-own",
+      ]) {
+        const box: { y: number } | null = await panel
+          .getByTestId(testId)
+          .boundingBox();
+        expect(box).not.toBeNull();
+        tops.push(box!.y);
+      }
+      expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1);
     }
     await screenshot(page, testInfo, "function-panel");
 
@@ -355,6 +445,11 @@ test.describe("Fix with AI", () => {
 
     const strip: Locator = page.getByTestId("profiles-fix");
     await expect(strip.getByTestId("profiles-fix-with-ai")).toBeDisabled();
+    // It looks it, until a repository is picked.
+    await expect(strip.getByTestId("profiles-fix-with-ai")).toHaveCSS(
+      "opacity",
+      "0.5",
+    );
 
     await strip.getByTestId("profiles-fix-repository").click();
     await page.getByText("acme/platform", { exact: true }).click();
@@ -394,7 +489,16 @@ test.describe("Fix with AI", () => {
       page: Page;
     }) => {
       await openLoaded(page, `${PARSE_ORDER}&blocker=credits`);
-      await expect(page.getByTestId("code-blocker")).toBeVisible();
+      const blocker: Locator = page.getByTestId("code-blocker");
+      await expect(blocker).toBeVisible();
+
+      // In the strip's own amber, lined up with its words: no box inside it.
+      const words: { x: number } | null = await page
+        .getByTestId("profiles-fix-finding")
+        .boundingBox();
+      const notice: { x: number } | null = await blocker.boundingBox();
+      expect(Math.abs(notice!.x - words!.x)).toBeLessThanOrEqual(1);
+      await expect(blocker).toHaveCSS("padding-left", "0px");
     });
 
     test("AI off: nothing is asked, nothing is drawn", async ({
@@ -483,6 +587,32 @@ test.describe("a service's own Profiles tab", () => {
       await expectNoSidewaysScroll(page);
     }
     await screenshot(page, testInfo, "service-tab");
+  });
+
+  test("a service with nothing profiled: the first steps alone - no bar, no empty list under them", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(
+      `/dashboard/${PROJECT_ID}/service/${CHECKOUT}/profiles?data=empty`,
+    );
+
+    await expect(page.getByTestId("profiles-first-steps")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByTestId("profiles-scope-bar")).toHaveCount(0);
+    await expect(page.getByText("All profiles", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByText("No profiles found for this service."),
+    ).toHaveCount(0);
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+    await screenshot(page, testInfo, "service-tab-empty");
   });
 });
 
