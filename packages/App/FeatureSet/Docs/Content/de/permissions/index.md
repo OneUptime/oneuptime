@@ -117,6 +117,8 @@ Eine Rolle bündelt einen ganzen Produktbereich auf einer von drei Stufen:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` und so weiter. Rollen sind fast immer die richtige Wahl — sie bleiben korrekt, wenn OneUptime Funktionen ergänzt, weil eine neue monitorbezogene Tabelle den bestehenden Monitor-Rollen zugeordnet wird, statt eine neue Zuweisung von Ihnen zu verlangen.
 
+**Rolle hinzufügen** fragt zuerst, wie weit die Rolle reicht. **Ganzes Projekt** listet die vier Rollen, die das ganze Projekt erreichen — Project Owner, Projektadministrator, Projektmitglied und Betrachter —, jede mit einer Zeile dazu, wofür sie da ist. **Ein Bereich** listet die Bereiche, jeden mit dem Symbol seines Produkts: Wählen Sie einen, dann seine Stufe. **Rollen durchsuchen** findet jede Rolle nach ihrem Namen, ihrem Bereich oder dem, was sie tut.
+
 Workflows und Runbooks sind die Ausnahme. Beide führen Code in Ihrem Projekt aus — ein Workflow seine Schritte, ein Runbook seine Skripte auf Ihren Runnern —, deshalb öffnet `WorkflowMember` Workflows und ihre Ausführungen und führt sie von Hand aus, und `RunbookMember` öffnet Runbooks und ihre Ausführungen und führt sie aus: Es startet eine Ausführung, schließt ihre Schritte ab oder überspringt sie und bricht sie ab. Keine der beiden Rollen erstellt, ändert oder löscht, was sie ausführt; `WorkflowAdmin` und `RunbookAdmin` bauen es. Eine Rolle führt nur die Runbooks aus, die ihr Geltungsbereich erreicht: Ein auf einige Labels beschränkter `RunbookMember` führt die Runbooks aus, die sie tragen. Siehe [Workflow-Berechtigungen](/docs/workflows/configuration#berechtigungen) und [Runbook-Berechtigungen](/docs/runbooks/configuration#berechtigungen).
 
 Die Regeln eines Bereichs (Label-, Eigentümer-, Bereitschafts-, Gruppierungs- und Erinnerungsregeln), benutzerdefinierte Felder, SLAs und Geheimnisse sind Projektkonfiguration: Sie erfordern `ProjectAdmin`, gleich welche Bereichsrolle jemand hat. Das gilt auch für API-Schlüssel, Teams und ihre Berechtigungen, Labels, SSO und Domains — die Settings-Rollen betreuen die Dienste, Probes, Infrastruktur und Integrationen des Projekts, nicht, wer was darf.
@@ -188,7 +190,7 @@ Nur der Status wird für Sie geschrieben. Eine Notiz, die mit einem Statuswechse
 
 ## Geltungsbereich: wie weit eine Erlaubt-Berechtigung reicht
 
-Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben, den Sie beim Hinzufügen unter **Geltungsbereich** wählen:
+Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben: Beim Hinzufügen steht **Geltungsbereich** unter **Weitere Felder** und beginnt mit der ersten dieser Antworten:
 
 | Geltungsbereich | Bedeutung |
 | --- | --- |

@@ -117,6 +117,8 @@ A role bundles a whole product area at one of three levels:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` and so on. Roles are what you want almost all of the time — they stay correct as OneUptime adds features, because a new monitor-related table is added to the existing monitor roles rather than needing a new grant from you.
 
+**Add Role** asks first how far the role reaches. **Whole project** lists the four roles that reach all of it — Project Owner, Project Admin, Project Member and Viewer — each with a line on what it is for. **One area** lists the areas, each with its product's icon: pick one, then its level. **Search roles** finds any role by its name, its area or what it does.
+
 Workflows and runbooks are the exception. Both run code in your project — a workflow its steps, a runbook its scripts on your Runners — so `WorkflowMember` opens workflows and their runs and runs them by hand, and `RunbookMember` opens runbooks and their runs and runs them: it starts a run, completes or skips its steps and cancels it. Neither creates, changes or deletes what it runs; `WorkflowAdmin` and `RunbookAdmin` build them. A role runs only the runbooks its scope reaches, so a `RunbookMember` limited to some labels runs the runbooks that carry them. See [Workflow permissions](/docs/workflows/configuration#permissions) and [Runbook permissions](/docs/runbooks/configuration#permissions).
 
 An area's rules (label, owner, on-call, grouping and reminder rules), custom fields, SLAs and secrets are project configuration: they take `ProjectAdmin`, whatever area role someone holds. So do API keys, teams and their permissions, labels, SSO and domains — the Settings roles look after the project's services, probes, infrastructure and integrations, not who may do what.
@@ -188,7 +190,7 @@ Only the state is written for you. A note posted with a change is posted as you 
 
 ## Scope: how far an allow permission reaches
 
-Every allow permission is granted with a scope, chosen under **Scope** when you add it:
+Every allow permission is granted with a scope: when you add it, **Scope** is under **More fields**, and starts on the first of these:
 
 | Scope | Meaning |
 | --- | --- |

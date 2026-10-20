@@ -117,6 +117,8 @@ Uma função agrupa uma área inteira do produto em um de três níveis:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` e assim por diante. As funções são o que você quer quase sempre — elas continuam corretas à medida que o OneUptime adiciona recursos, porque uma nova tabela ligada a monitores é adicionada às funções de monitor existentes em vez de exigir uma nova concessão sua.
 
+**Adicionar função** pergunta primeiro até onde a função chega. **Todo o projeto** lista as quatro funções que alcançam o projeto inteiro — Project Owner, Administrador do projeto, Membro do projeto e Visualizador — cada uma com uma linha sobre para que serve. **Uma área** lista as áreas, cada uma com o ícone do seu produto: escolha uma e depois o nível. **Pesquisar funções** encontra qualquer função pelo nome, pela área ou pelo que ela faz.
+
 Fluxos de trabalho e runbooks são a exceção. Ambos executam código no seu projeto — um fluxo de trabalho as suas etapas, um runbook os seus scripts nos seus Runners —, então `WorkflowMember` abre os fluxos de trabalho e suas execuções e os executa manualmente, e `RunbookMember` abre os runbooks e suas execuções e os executa: inicia uma execução, conclui ou pula suas etapas e a cancela. Nenhum dos dois cria, altera ou exclui o que executa; `WorkflowAdmin` e `RunbookAdmin` os constroem. Uma função só executa os runbooks que o seu escopo alcança, então um `RunbookMember` limitado a alguns rótulos executa os runbooks que os carregam. Veja [Permissões dos fluxos de trabalho](/docs/workflows/configuration#permissões) e [Permissões dos runbooks](/docs/runbooks/configuration#permissões).
 
 As regras de uma área (regras de rótulos, de proprietários, de plantão, de agrupamento e de lembretes), os campos personalizados, os SLAs e os segredos são configuração do projeto: exigem `ProjectAdmin`, qualquer que seja a função de área da pessoa. O mesmo vale para chaves de API, equipes e suas permissões, rótulos, SSO e domínios — as funções Settings cuidam dos serviços, probes, infraestrutura e integrações do projeto, não de quem pode fazer o quê.
@@ -188,7 +190,7 @@ Só o estado é escrito por você. Uma nota publicada com uma mudança é public
 
 ## Escopo: até onde vai uma permissão concedida
 
-Toda permissão concedida tem um escopo, escolhido em **Escopo** quando você a adiciona:
+Toda permissão concedida tem um escopo: quando você a adiciona, **Escopo** fica em **Mais campos** e começa na primeira destas opções:
 
 | Escopo | Significado |
 | --- | --- |
