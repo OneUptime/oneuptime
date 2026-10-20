@@ -513,6 +513,7 @@ export default class LlmCostBudget extends BaseModel {
     description:
       "'calls' counts the cost of your AI calls; 'providers' counts what your connected AI provider accounts report.",
     defaultValue: LlmBudgetSpendSource.Calls,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
