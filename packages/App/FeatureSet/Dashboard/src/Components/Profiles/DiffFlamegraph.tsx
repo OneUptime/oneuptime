@@ -30,6 +30,13 @@ export interface DiffFlamegraphProps {
   comparisonEndTime: Date;
   serviceIds?: Array<ObjectID> | undefined;
   profileType?: string | undefined;
+  /*
+   * The raw types to read, when the page already knows them (one unit);
+   * left out, they are worked out from profileType.
+   */
+  profileTypes?: Array<string> | undefined;
+  // The unit those types are in; left out, worked out from them.
+  unit?: string | undefined;
   /**
    * Invoked after each successful load with the merged diff tree (the
    * same line-agnostic merge this graph renders — analysing the raw
@@ -186,7 +193,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
    * that would miss rows.
    */
   const queryProfileTypes: Array<string> | undefined =
-    ProfileUtil.getQueryProfileTypes(props.profileType);
+    props.profileTypes && props.profileTypes.length > 0
+      ? props.profileTypes
+      : ProfileUtil.getQueryProfileTypes(props.profileType);
+  const queryProfileTypesKey: string = (queryProfileTypes || []).join(",");
 
   /*
    * Values are not always nanoseconds — memory profiles are bytes,
@@ -194,9 +204,10 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
    * queried so the tooltip doesn't mislabel a 4 GB allocation as time.
    */
   const unit: string =
-    queryProfileTypes && queryProfileTypes.length > 0
+    props.unit ||
+    (queryProfileTypes && queryProfileTypes.length > 0
       ? ProfileUtil.getProfileTypeUnit(queryProfileTypes[0]!)
-      : "nanoseconds";
+      : "nanoseconds");
 
   const loadDiffFlamegraph: (
     isCancelled: () => boolean,
@@ -292,6 +303,7 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
           .join(",")
       : "all",
     props.profileType,
+    queryProfileTypesKey,
   ]);
 
   const mergedRoot: DiffFlamegraphNode | null = useMemo(() => {

@@ -1,5 +1,6 @@
 import {
   CODE_TASK_CONTEXT_KINDS,
+  CODE_TASK_PROFILE_CHIP_LABEL,
   CodeTaskContextKindCopy,
 } from "./CodeTaskCopy";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -15,6 +16,7 @@ import {
   CodeTaskContextInputUtil,
   CodeTaskContextType,
   DEFAULT_CODE_TASK_LOG_WINDOW_IN_HOURS,
+  DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS,
 } from "Common/Types/AI/CodeTask";
 import Exception from "Common/Types/Exception/Exception";
 import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
@@ -24,7 +26,10 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { ProfileCategory } from "Common/Utils/Profiles/ProfileTypes";
+import { PROFILE_FIX_CATEGORIES } from "Common/Utils/Suggestions/ProfileFixSuggestion";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { PROFILE_KIND_LABELS } from "../../Utils/ProfilesView";
 
 /*
  * A piece of context a person is adding to a request, before it is sent:
@@ -94,6 +99,9 @@ const KIND_DESCRIPTIONS: Record<CodeTaskContextType, string> = {
   [CodeTaskContextType.Logs]: translationKey(
     "AI reads the latest log lines that contain your search.",
   ),
+  [CodeTaskContextType.Profile]: translationKey(
+    "AI reads where the function's time goes in the service's profiles: who calls it, what it calls and its hottest lines.",
+  ),
 };
 
 // How much of a note its chip shows, cut at a word.
@@ -117,6 +125,10 @@ export const getNoteChipLabel: (text: string) => string = (
 
   return `${(lastSpace > NOTE_CHIP_LENGTH / 2 ? cut.substring(0, lastSpace) : cut).trimEnd()}…`;
 };
+
+// The kinds of profile a Code request can be given: those a fix acts on.
+export const CODE_CONTEXT_PROFILE_KINDS: ReadonlyArray<ProfileCategory> =
+  PROFILE_FIX_CATEGORIES;
 
 const LOG_WINDOW_LABELS: Record<number, string> = {
   1: translationKey("Last hour"),
@@ -153,7 +165,12 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
   const [recordLabel, setRecordLabel] = useState<string>("");
   const [serviceId, setServiceId] = useState<string>("");
   const [hours, setHours] = useState<number>(
-    DEFAULT_CODE_TASK_LOG_WINDOW_IN_HOURS,
+    props.kind === CodeTaskContextType.Profile
+      ? DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS
+      : DEFAULT_CODE_TASK_LOG_WINDOW_IN_HOURS,
+  );
+  const [profileKind, setProfileKind] = useState<ProfileCategory>(
+    ProfileCategory.Cpu,
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -176,6 +193,14 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
           search: text,
           hours: hours,
           ...(serviceId ? { serviceId: serviceId } : {}),
+        };
+      case CodeTaskContextType.Profile:
+        return {
+          type: props.kind,
+          functionName: text.trim(),
+          serviceId: serviceId,
+          profileType: profileKind,
+          hours: hours,
         };
       default:
         return { type: props.kind, id: recordId };
@@ -200,6 +225,10 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
         return translator.translateTemplate('Logs matching "{{search}}"', {
           search: input.search || "",
         });
+      case CodeTaskContextType.Profile:
+        return translator.translateTemplate(CODE_TASK_PROFILE_CHIP_LABEL, {
+          function: input.functionName || "",
+        });
       default:
         return recordLabel || translator.translateTemplate(kind.label);
     }
@@ -220,7 +249,10 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const isEmpty: boolean = picker ? !recordId : !text.trim();
+  const isEmpty: boolean = picker
+    ? !recordId
+    : !text.trim() ||
+      (props.kind === CodeTaskContextType.Profile && !serviceId);
 
   return (
     <Modal
@@ -428,6 +460,113 @@ const CodeContextModal: FunctionComponent<ComponentProps> = (
                       type="button"
                       aria-pressed={isPicked}
                       data-testid={`code-context-logs-window-${windowInHours}`}
+                      onClick={() => {
+                        setHours(windowInHours);
+                      }}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                        isPicked
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {translator.translateText(
+                        LOG_WINDOW_LABELS[windowInHours] || "",
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </>
+        ) : (
+          <></>
+        )}
+
+        {props.kind === CodeTaskContextType.Profile ? (
+          <>
+            <div>
+              <FieldLabelElement
+                htmlFor="code-context-profile-function"
+                title="Function"
+                required={true}
+              />
+              <input
+                id="code-context-profile-function"
+                data-testid="code-context-profile-function"
+                autoFocus={true}
+                className={`${INPUT_CLASS_NAME} mt-1 font-mono`}
+                placeholder="parseOrder"
+                maxLength={CODE_TASK_LIMITS.maxFunctionNameLength}
+                value={text}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  setError(null);
+                  setText(event.target.value);
+                }}
+              />
+            </div>
+            <div>
+              <FieldLabelElement title="Service" required={true} />
+              <div className="mt-1">
+                <EntityDropdown
+                  modelType={Service}
+                  labelField="name"
+                  valueField="_id"
+                  placeholder={translator.translateText("Pick a service")}
+                  ariaLabel={translator.translateText("Service")}
+                  dataTestId="code-context-profile-service"
+                  value={serviceId || null}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    setError(null);
+                    setServiceId(value ? value.toString() : "");
+                  }}
+                />
+              </div>
+            </div>
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700">
+                {translator.translateText("What to analyze")}
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-0.5">
+                {CODE_CONTEXT_PROFILE_KINDS.map((category: ProfileCategory) => {
+                  const isPicked: boolean = category === profileKind;
+
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      aria-pressed={isPicked}
+                      data-testid={`code-context-profile-kind-${category}`}
+                      onClick={() => {
+                        setProfileKind(category);
+                      }}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                        isPicked
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {translator.translateText(PROFILE_KIND_LABELS[category])}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700">
+                {translator.translateText("Time range")}
+              </legend>
+              <div className="mt-2 inline-flex rounded-lg bg-gray-100 p-0.5">
+                {CODE_TASK_LOG_WINDOWS_IN_HOURS.map((windowInHours: number) => {
+                  const isPicked: boolean = windowInHours === hours;
+
+                  return (
+                    <button
+                      key={windowInHours}
+                      type="button"
+                      aria-pressed={isPicked}
+                      data-testid={`code-context-profile-window-${windowInHours}`}
                       onClick={() => {
                         setHours(windowInHours);
                       }}

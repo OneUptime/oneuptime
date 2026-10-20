@@ -3604,6 +3604,7 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         functions: result.functions as unknown as JSONObject,
         windowTotal: result.windowTotal,
+        windowSampleCount: result.windowSampleCount,
         truncated: result.truncated,
       });
     } catch (err: unknown) {
@@ -4070,10 +4071,12 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         functionName: result.functionName,
         fileName: result.fileName,
+        lineNumber: result.lineNumber,
         totalValue: result.totalValue,
         selfValue: result.selfValue,
         sampleCount: result.sampleCount,
         windowTotal: result.windowTotal,
+        windowSampleCount: result.windowSampleCount,
         callers: result.callers as unknown as JSONObject,
         callees: result.callees as unknown as JSONObject,
         truncated: result.truncated,
