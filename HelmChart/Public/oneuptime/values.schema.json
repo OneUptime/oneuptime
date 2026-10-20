@@ -2012,6 +2012,24 @@
                         "string",
                         "null"
                     ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "privateKeyKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
