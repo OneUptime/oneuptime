@@ -32,7 +32,9 @@ export interface FakeMcpTool {
   readOnly?: boolean | undefined;
   inputSchema?: JSONObject | undefined;
   // The tools/call result; a throw answers with a JSON-RPC error.
-  handler?: ((args: JSONObject) => Promise<JSONObject> | JSONObject) | undefined;
+  handler?:
+    | ((args: JSONObject) => Promise<JSONObject> | JSONObject)
+    | undefined;
 }
 
 export interface FakeMcpOAuth {
@@ -140,9 +142,8 @@ export default class FakeMcpServer {
   private tokenCounter: number = 0;
   private streamableSessions: Map<string, number> = new Map<string, number>();
   private sseSessions: Map<string, SseSession> = new Map<string, SseSession>();
-  private openResponses: Set<http.ServerResponse> = new Set<
-    http.ServerResponse
-  >();
+  private openResponses: Set<http.ServerResponse> =
+    new Set<http.ServerResponse>();
 
   private constructor(options: FakeMcpServerOptions) {
     this.options = options;
@@ -283,8 +284,7 @@ export default class FakeMcpServer {
   }
 
   private isSignedIn(request: http.IncomingMessage): boolean {
-    const required: Record<string, string> =
-      this.options.requiredHeaders || {};
+    const required: Record<string, string> = this.options.requiredHeaders || {};
 
     for (const [name, value] of Object.entries(required)) {
       if (request.headers[name.toLowerCase()] !== value) {

@@ -11,7 +11,10 @@ import { describe, expect, test } from "@jest/globals";
  * anywhere across chunks reads the same as one sent whole.
  */
 
-function parseAll(chunks: Array<string>, maxEventChars?: number): Array<McpSseEvent> {
+function parseAll(
+  chunks: Array<string>,
+  maxEventChars?: number,
+): Array<McpSseEvent> {
   const parser: McpSseParser = new McpSseParser({
     maxEventChars: maxEventChars ?? 1_000_000,
   });
@@ -29,7 +32,7 @@ function parseAll(chunks: Array<string>, maxEventChars?: number): Array<McpSseEv
 describe("McpSseParser", () => {
   test("reads an event with its type, data and id", () => {
     expect(
-      parseAll(['event: endpoint\nid: 7\ndata: /messages?sessionId=1\n\n']),
+      parseAll(["event: endpoint\nid: 7\ndata: /messages?sessionId=1\n\n"]),
     ).toEqual([{ event: "endpoint", data: "/messages?sessionId=1", id: "7" }]);
   });
 
@@ -57,9 +60,9 @@ describe("McpSseParser", () => {
   });
 
   test("skips comments, keep-alives and blank events", () => {
-    expect(
-      parseAll([": keep-alive\n\n:another\n\n\n\ndata: x\n\n"]),
-    ).toEqual([{ event: "message", data: "x" }]);
+    expect(parseAll([": keep-alive\n\n:another\n\n\n\ndata: x\n\n"])).toEqual([
+      { event: "message", data: "x" },
+    ]);
   });
 
   test("ignores retry and unknown fields, and a field with no colon", () => {
@@ -88,7 +91,7 @@ describe("McpSseParser", () => {
 
   test("reads the same events however the stream is split", () => {
     const stream: string =
-      "event: endpoint\r\ndata: /messages\r\n\r\n: ping\n\nid: 2\ndata: {\"jsonrpc\":\"2.0\"}\r\rdata: tail\n\n";
+      'event: endpoint\r\ndata: /messages\r\n\r\n: ping\n\nid: 2\ndata: {"jsonrpc":"2.0"}\r\rdata: tail\n\n';
     const whole: Array<McpSseEvent> = parseAll([stream]);
 
     expect(whole).toHaveLength(3);

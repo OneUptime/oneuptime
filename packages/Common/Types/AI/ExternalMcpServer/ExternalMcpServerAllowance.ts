@@ -76,7 +76,7 @@ export function readExternalMcpServerIds(value: unknown): Array<string> {
 
   for (const item of values) {
     const id: string = readId(
-      item && typeof item === "object" && "value" in (item as object)
+      item && typeof item === "object" && "value" in item
         ? (item as { value?: unknown }).value
         : item,
     );

@@ -107,14 +107,18 @@ export class AddExternalMcpServers1804900000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_fc6ab7e1992276460b4f1fea97"`,
     );
-    await queryRunner.query(`DROP TABLE "AIInvestigationRuleExternalMcpServer"`);
+    await queryRunner.query(
+      `DROP TABLE "AIInvestigationRuleExternalMcpServer"`,
+    );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_8e9a74805bf73f651588f878e6"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_392a1e5f0dcf0fed9f2995c71f"`,
     );
-    await queryRunner.query(`DROP TABLE "AutoRemediationRuleExternalMcpServer"`);
+    await queryRunner.query(
+      `DROP TABLE "AutoRemediationRuleExternalMcpServer"`,
+    );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_f718387ef4879a36881f0293cf"`,
     );

@@ -475,7 +475,9 @@ export default class McpRunToolkit {
       }
     }
 
-    if (JSON.stringify(toolArguments).length > MAX_EXTERNAL_MCP_ARGUMENTS_CHARS) {
+    if (
+      JSON.stringify(toolArguments).length > MAX_EXTERNAL_MCP_ARGUMENTS_CHARS
+    ) {
       return this.failure(
         `Error: the arguments are longer than ${MAX_EXTERNAL_MCP_ARGUMENTS_CHARS} characters. Send less.`,
       );
@@ -517,9 +519,8 @@ export default class McpRunToolkit {
       arguments: toolArguments,
     };
 
-    let onFinished:
-      | ((outcome: McpChangeOutcome) => Promise<void>)
-      | undefined = undefined;
+    let onFinished: ((outcome: McpChangeOutcome) => Promise<void>) | undefined =
+      undefined;
 
     if (!tool.readsOnly) {
       if (
@@ -536,8 +537,7 @@ export default class McpRunToolkit {
 
       if (!decision.run) {
         const text: string =
-          decision.textForLlm ||
-          `${tool.name} on ${state.label} was not run.`;
+          decision.textForLlm || `${tool.name} on ${state.label} was not run.`;
 
         return {
           success: true,

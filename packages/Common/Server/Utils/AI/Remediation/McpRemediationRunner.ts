@@ -154,7 +154,9 @@ function getAiName(): string {
 }
 
 function capText(text: string, maxChars: number): string {
-  return text.length > maxChars ? `${text.slice(0, maxChars)}\n… [truncated]` : text;
+  return text.length > maxChars
+    ? `${text.slice(0, maxChars)}\n… [truncated]`
+    : text;
 }
 
 export default class McpRemediationRunner {
@@ -225,7 +227,8 @@ export default class McpRemediationRunner {
       ) {
         await this.settleInterruptedFix({
           suggestion,
-          reason: "an earlier attempt of the run made changes and was interrupted",
+          reason:
+            "an earlier attempt of the run made changes and was interrupted",
         });
         await this.completeRunQuietly(aiRunId);
         return;
@@ -319,10 +322,7 @@ export default class McpRemediationRunner {
             target.mode === "MakeChanges"
               ? "A new signal has been declared and the rule fixes it without asking. Diagnose it and fix it through the MCP servers now."
               : "A new signal has been declared. Diagnose it and propose the fix through the MCP servers for a person's approval.",
-          extraTools: [
-            ...runToolkit.buildTools(),
-            outputPager.buildReadTool(),
-          ],
+          extraTools: [...runToolkit.buildTools(), outputPager.buildReadTool()],
           maxLlmCalls: AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
           maxToolCalls: AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
           maxWallClockMs: undefined,
@@ -395,11 +395,12 @@ export default class McpRemediationRunner {
     const namesServers: boolean =
       readExternalMcpServerIds(rule.externalMcpServers).length > 0;
 
-    const allowance: ExternalMcpServerAllowance =
-      getExternalMcpServerAllowance({
+    const allowance: ExternalMcpServerAllowance = getExternalMcpServerAllowance(
+      {
         rulesSetUp: true,
         matchingRules: [rule],
-      });
+      },
+    );
 
     const mayMakeChanges: boolean =
       suggestion.executionMode === AutoRemediationExecutionMode.FullAuto &&
@@ -426,7 +427,9 @@ export default class McpRemediationRunner {
             autoRemediationRuleId: ruleId,
             suggestionType: AutoRemediationSuggestionType.McpToolCalls,
             status: AutoRemediationSuggestionStatus.AutoExecuted,
-            createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
+            createdAt: QueryHelper.greaterThan(
+              OneUptimeDate.getSomeHoursAgo(1),
+            ),
           },
           props: { isRoot: true },
         })
@@ -546,7 +549,12 @@ export default class McpRemediationRunner {
     if (suggestion.incidentId) {
       const incident: Incident | null = await IncidentService.findOneById({
         id: suggestion.incidentId,
-        select: { _id: true, title: true, description: true, incidentNumber: true },
+        select: {
+          _id: true,
+          title: true,
+          description: true,
+          incidentNumber: true,
+        },
         props: { isRoot: true },
       });
 
@@ -571,7 +579,12 @@ export default class McpRemediationRunner {
     } else if (suggestion.alertId) {
       const alert: Alert | null = await AlertService.findOneById({
         id: suggestion.alertId,
-        select: { _id: true, title: true, description: true, alertNumber: true },
+        select: {
+          _id: true,
+          title: true,
+          description: true,
+          alertNumber: true,
+        },
         props: { isRoot: true },
       });
 
@@ -998,7 +1011,9 @@ export default class McpRemediationRunner {
     }
   }
 
-  private static async isStillPlanning(suggestionId: ObjectID): Promise<boolean> {
+  private static async isStillPlanning(
+    suggestionId: ObjectID,
+  ): Promise<boolean> {
     const current: AutoRemediationSuggestion | null =
       await AutoRemediationSuggestionService.findOneById({
         id: suggestionId,
@@ -1086,7 +1101,9 @@ export default class McpRemediationRunner {
         });
       }
     } catch (error) {
-      logger.error(`McpRemediationRunner: failed to create feed item: ${error}`);
+      logger.error(
+        `McpRemediationRunner: failed to create feed item: ${error}`,
+      );
     }
   }
 
@@ -1122,4 +1139,3 @@ export interface McpFixTarget {
   allowance: ExternalMcpServerAllowance;
   mode: McpFixMode;
 }
-

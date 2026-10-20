@@ -65,7 +65,9 @@ const TOOLS: Array<FakeMcpTool> = [
 let fake: FakeMcpServer | null = null;
 let client: McpClient | null = null;
 
-async function startFake(options: FakeMcpServerOptions): Promise<FakeMcpServer> {
+async function startFake(
+  options: FakeMcpServerOptions,
+): Promise<FakeMcpServer> {
   fake = await FakeMcpServer.start({ tools: TOOLS, ...options });
   return fake;
 }
@@ -82,7 +84,11 @@ function createClient(
     getSecretValues: (): Array<string> => {
       return [SECRET_TOKEN];
     },
-    clientInfo: { name: "oneuptime-ai", title: "OneUptime AI", version: "9.9.9" },
+    clientInfo: {
+      name: "oneuptime-ai",
+      title: "OneUptime AI",
+      version: "9.9.9",
+    },
     userAgent: "OneUptime/9.9.9 (+https://oneuptime.com)",
     transport: new LocalMcpHttpTransport(),
     ...overrides,
@@ -262,7 +268,11 @@ describe("McpClient over Streamable HTTP", () => {
   test("reads at most MAX_EXTERNAL_MCP_SERVER_TOOLS tools and says how many were left out", async () => {
     const tools: Array<FakeMcpTool> = [];
 
-    for (let index: number = 0; index < MAX_EXTERNAL_MCP_SERVER_TOOLS + 7; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_EXTERNAL_MCP_SERVER_TOOLS + 7;
+      index++
+    ) {
       tools.push({ name: `tool_${index}` });
     }
 
@@ -306,9 +316,7 @@ describe("McpClient over Streamable HTTP", () => {
 
   test("calls a tool with its arguments and hands back the server's result", async () => {
     const server: FakeMcpServer = await startFake({ sse: false });
-    const result: JSONObject = await createClient(
-      server.url("/mcp"),
-    ).callTool({
+    const result: JSONObject = await createClient(server.url("/mcp")).callTool({
       name: "describe_instances",
       arguments: { region: "us-east-1" },
     });
@@ -467,7 +475,9 @@ describe("McpClient over HTTP+SSE", () => {
         name: "describe_instances",
         arguments: { region: "us-west-2" },
       }),
-    ).toEqual({ content: [{ type: "text", text: "2 instances in us-west-2" }] });
+    ).toEqual({
+      content: [{ type: "text", text: "2 instances in us-west-2" }],
+    });
 
     // The POST of the InitializeRequest, refused, then the GET and its messages.
     expect(server.requests[0]!.method).toBe("POST");
@@ -573,7 +583,9 @@ describe("McpClient failures", () => {
     );
 
     expect(error.status).toBe(401);
-    expect(error.message).toContain("The server refused the sign-in (HTTP 401)");
+    expect(error.message).toContain(
+      "The server refused the sign-in (HTTP 401)",
+    );
     expect(server.requests).toHaveLength(1);
   });
 
@@ -859,8 +871,10 @@ describe("readMcpToolDescription", () => {
 
   test("only readOnlyHint true marks a tool read-only", () => {
     expect(
-      readMcpToolDescription({ name: "x", annotations: { readOnlyHint: "true" } })
-        ?.readsOnly,
+      readMcpToolDescription({
+        name: "x",
+        annotations: { readOnlyHint: "true" },
+      })?.readsOnly,
     ).toBe(false);
     expect(
       readMcpToolDescription({

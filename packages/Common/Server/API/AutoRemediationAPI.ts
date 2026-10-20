@@ -971,9 +971,7 @@ async function approveMcpToolCalls(data: {
   McpRemediationRunner.executeApprovedCalls({
     suggestionId: suggestion.id!,
   }).catch((error: unknown) => {
-    logger.error(
-      `AutoRemediationAPI: detached MCP fix failed: ${error}`,
-    );
+    logger.error(`AutoRemediationAPI: detached MCP fix failed: ${error}`);
   });
 
   await postFeedItem({
@@ -1478,8 +1476,7 @@ router.post(
        * changes too (each recorded before it is sent).
        */
       const dismissedMcpPlan: ExternalMcpToolCallPlan | null =
-        suggestion.suggestionType ===
-        AutoRemediationSuggestionType.McpToolCalls
+        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
           ? ExternalMcpToolCallPlanUtil.parse(suggestion.mcpToolCallPlan)
           : null;
 
@@ -1498,8 +1495,7 @@ router.post(
         dismissMarkdown =
           mdText`⚠️ **Auto-remediation suggestion dismissed — but ${alreadyExecutedCount} change(s) through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
       } else if (
-        suggestion.suggestionType ===
-        AutoRemediationSuggestionType.McpToolCalls
+        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
       ) {
         dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — the fix through MCP servers will not be made.`;
       } else if (alreadyExecutedCount > 0) {

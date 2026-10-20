@@ -129,7 +129,10 @@ export class ExternalMcpToolCallPlanUtil {
             : {},
         status: status as ExternalMcpToolCallStatus,
         wasMadeWithoutAsking: entry["wasMadeWithoutAsking"] === true,
-        resultText: readString(entry["resultText"], MAX_STORED_MCP_RESULT_CHARS),
+        resultText: readString(
+          entry["resultText"],
+          MAX_STORED_MCP_RESULT_CHARS,
+        ),
         errorMessage: readString(entry["errorMessage"], 2000),
         startedAt: readString(entry["startedAt"], 40),
         completedAt: readString(entry["completedAt"], 40),

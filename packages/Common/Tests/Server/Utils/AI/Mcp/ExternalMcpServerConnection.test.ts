@@ -179,7 +179,9 @@ describe("ExternalMcpServerConnection", () => {
       arguments: {},
     });
 
-    expect(result["content"]).toEqual([{ type: "text", text: "ping_tool ran" }]);
+    expect(result["content"]).toEqual([
+      { type: "text", text: "ping_tool ran" },
+    ]);
     expect(server.issuedTokens).toEqual(["token-2"]);
   });
 

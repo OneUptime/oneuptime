@@ -81,16 +81,15 @@ const CONNECTION_COLUMNS: Array<string> = [
 ];
 
 // The columns each Authentication uses; the others are cleared when it is chosen.
-const COLUMNS_OF_AUTH_TYPE: Record<ExternalMcpServerAuthType, Array<string>> =
-  {
-    [ExternalMcpServerAuthType.None]: [],
-    [ExternalMcpServerAuthType.BearerToken]: ["bearerToken"],
-    [ExternalMcpServerAuthType.Headers]: ["headers"],
-    [ExternalMcpServerAuthType.OAuthClientCredentials]: [
-      "oauthClientSecret",
-      ...OAUTH_SETTING_COLUMNS,
-    ],
-  };
+const COLUMNS_OF_AUTH_TYPE: Record<ExternalMcpServerAuthType, Array<string>> = {
+  [ExternalMcpServerAuthType.None]: [],
+  [ExternalMcpServerAuthType.BearerToken]: ["bearerToken"],
+  [ExternalMcpServerAuthType.Headers]: ["headers"],
+  [ExternalMcpServerAuthType.OAuthClientCredentials]: [
+    "oauthClientSecret",
+    ...OAUTH_SETTING_COLUMNS,
+  ],
+};
 
 const ALL_AUTH_COLUMNS: Array<string> = [
   ...SECRET_COLUMNS,
@@ -354,7 +353,10 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     allowance: ExternalMcpServerAllowance;
   }): Promise<Array<Model>> {
-    if (!data.allowance.isEveryServer && data.allowance.serverIds.length === 0) {
+    if (
+      !data.allowance.isEveryServer &&
+      data.allowance.serverIds.length === 0
+    ) {
       return [];
     }
 
@@ -399,7 +401,10 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     allowance: ExternalMcpServerAllowance;
   }): Promise<boolean> {
-    if (!data.allowance.isEveryServer && data.allowance.serverIds.length === 0) {
+    if (
+      !data.allowance.isEveryServer &&
+      data.allowance.serverIds.length === 0
+    ) {
       return false;
     }
 

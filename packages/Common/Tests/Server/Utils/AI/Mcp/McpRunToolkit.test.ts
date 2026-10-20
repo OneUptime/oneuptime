@@ -56,7 +56,9 @@ const TOOLS: Array<FakeMcpTool> = [
     },
     handler: (args: JSONObject): JSONObject => {
       return {
-        content: [{ type: "text", text: `instances in ${String(args["region"])}` }],
+        content: [
+          { type: "text", text: `instances in ${String(args["region"])}` },
+        ],
       };
     },
   },
@@ -66,7 +68,9 @@ const TOOLS: Array<FakeMcpTool> = [
     readOnly: false,
     handler: (args: JSONObject): JSONObject => {
       return {
-        content: [{ type: "text", text: `restarted ${String(args["service"])}` }],
+        content: [
+          { type: "text", text: `restarted ${String(args["service"])}` },
+        ],
       };
     },
   },
@@ -74,7 +78,10 @@ const TOOLS: Array<FakeMcpTool> = [
     name: "failing_read",
     readOnly: true,
     handler: (): JSONObject => {
-      return { content: [{ type: "text", text: "AccessDenied" }], isError: true };
+      return {
+        content: [{ type: "text", text: "AccessDenied" }],
+        isError: true,
+      };
     },
   },
   {
@@ -95,7 +102,7 @@ const TOOLS: Array<FakeMcpTool> = [
   },
 ];
 
-let fakes: Array<FakeMcpServer> = [];
+const fakes: Array<FakeMcpServer> = [];
 let recordSpy: SpyInstance<typeof ExternalMcpServerCheck.recordConnection>;
 
 beforeEach(() => {
@@ -139,7 +146,9 @@ function stored(
 function toolkit(data: {
   servers: Array<ExternalMcpServer>;
   purpose?: "investigation" | "remediation";
-  decide?: ((call: McpToolCallRequest) => Promise<McpChangeDecision>) | undefined;
+  decide?:
+    | ((call: McpToolCallRequest) => Promise<McpChangeDecision>)
+    | undefined;
   maxCalls?: number;
   pager?: ToolOutputPager;
 }): McpRunToolkit {
@@ -176,11 +185,17 @@ function getTool(
   return tool;
 }
 
-async function call(kit: McpRunToolkit, args: JSONObject): Promise<ToolCallOutcome> {
+async function call(
+  kit: McpRunToolkit,
+  args: JSONObject,
+): Promise<ToolCallOutcome> {
   return await getTool(kit, CALL_MCP_TOOL_TOOL_NAME).execute(args);
 }
 
-async function list(kit: McpRunToolkit, args: JSONObject = {}): Promise<ToolCallOutcome> {
+async function list(
+  kit: McpRunToolkit,
+  args: JSONObject = {},
+): Promise<ToolCallOutcome> {
   return await getTool(kit, LIST_MCP_TOOLS_TOOL_NAME).execute(args);
 }
 
@@ -235,7 +250,10 @@ describe("McpRunToolkit: which servers a run has", () => {
 
   test("the instructions name each server with what it is for, and an investigation reads only", () => {
     const addendum: string = toolkit({
-      servers: [stored(null), stored(null, { name: "GitHub", description: "" })],
+      servers: [
+        stored(null),
+        stored(null, { name: "GitHub", description: "" }),
+      ],
     }).buildPersonaAddendum();
 
     expect(addendum).toContain("# External MCP servers");
@@ -400,7 +418,9 @@ describe("McpRunToolkit: call_mcp_tool", () => {
     await kit.close();
 
     expect(outcome.success).toBe(true);
-    expect(outcome.textForLlm).toContain("failing_read on AWS reported an error");
+    expect(outcome.textForLlm).toContain(
+      "failing_read on AWS reported an error",
+    );
     expect(outcome.result?.rowCount).toBe(0);
   });
 
@@ -532,7 +552,10 @@ describe("McpRunToolkit: call_mcp_tool", () => {
 
   test("stops at the run's cap on calls", async () => {
     const fake: FakeMcpServer = await startServer();
-    const kit: McpRunToolkit = toolkit({ servers: [stored(fake)], maxCalls: 2 });
+    const kit: McpRunToolkit = toolkit({
+      servers: [stored(fake)],
+      maxCalls: 2,
+    });
 
     for (let index: number = 0; index < 2; index++) {
       expect(

@@ -152,7 +152,11 @@ describe("getExternalMcpServerHeadersProblem", () => {
   test("takes at most the limit", () => {
     const headers: Record<string, string> = {};
 
-    for (let index: number = 0; index <= MAX_EXTERNAL_MCP_SERVER_HEADERS; index++) {
+    for (
+      let index: number = 0;
+      index <= MAX_EXTERNAL_MCP_SERVER_HEADERS;
+      index++
+    ) {
       headers[`X-Header-${index}`] = "v";
     }
 
@@ -285,7 +289,9 @@ describe("getExternalMcpServerSignInProblem", () => {
         },
         isEdit: true,
       }),
-    ).toBe("OneUptime sets the Host header itself. Remove it from the headers.");
+    ).toBe(
+      "OneUptime sets the Host header itself. Remove it from the headers.",
+    );
   });
 
   test("OAuth client credentials need a token URL, a client ID and a secret", () => {

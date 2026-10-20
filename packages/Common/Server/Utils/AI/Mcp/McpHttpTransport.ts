@@ -161,7 +161,8 @@ export function describeConnectionError(error: unknown): McpClientError {
     error && typeof error === "object" && "code" in error
       ? String((error as { code?: unknown }).code)
       : "";
-  const message: string = error instanceof Error ? error.message : String(error);
+  const message: string =
+    error instanceof Error ? error.message : String(error);
 
   if (code === "ABORT_ERR" || (error as Error)?.name === "AbortError") {
     return new McpClientError({
@@ -242,86 +243,82 @@ export async function sendNodeHttpRequest(data: {
   };
 
   return await new Promise<McpHttpResponse>(
-      (
-        resolve: (response: McpHttpResponse) => void,
-        reject: (error: Error) => void,
-      ) => {
-        let isSettled: boolean = false;
+    (
+      resolve: (response: McpHttpResponse) => void,
+      reject: (error: Error) => void,
+    ) => {
+      let isSettled: boolean = false;
 
-        const fail: (error: unknown) => void = (error: unknown): void => {
-          if (isSettled) {
-            return;
-          }
-
-          isSettled = true;
-          destroyAgents();
-          reject(describeConnectionError(error));
-        };
-
-        const options: http.RequestOptions = {
-          method: request.method,
-          headers: {
-            ...request.headers,
-            ...(request.body !== undefined
-              ? {
-                  "Content-Length": String(
-                    Buffer.byteLength(request.body, "utf8"),
-                  ),
-                }
-              : {}),
-          },
-          agent: isHttps ? pinned.httpsAgent : pinned.httpAgent,
-          signal: request.signal,
-        };
-
-        const clientRequest: http.ClientRequest = (
-          isHttps ? https : http
-        ).request(
-          pinned.url,
-          options,
-          (response: http.IncomingMessage): void => {
-            if (isSettled) {
-              response.destroy();
-              return;
-            }
-
-            isSettled = true;
-
-            const status: number = response.statusCode || 0;
-
-            // A redirect is never followed: the server must answer itself.
-            if (status >= 300 && status < 400) {
-              response.destroy();
-              destroyAgents();
-              reject(
-                new McpClientError({
-                  kind: ExternalMcpServerFailureKind.NotAnMcpServer,
-                  message: `The server answered with a redirect (HTTP ${status}). Use the address it redirects to as the URL.`,
-                  status,
-                }),
-              );
-              return;
-            }
-
-            resolve(
-              toMcpHttpResponse({
-                response,
-                maxResponseBytes: request.maxResponseBytes,
-                onClose: destroyAgents,
-              }),
-            );
-          },
-        );
-
-        clientRequest.on("error", fail);
-
-        if (request.body !== undefined) {
-          clientRequest.write(request.body, "utf8");
+      const fail: (error: unknown) => void = (error: unknown): void => {
+        if (isSettled) {
+          return;
         }
 
-        clientRequest.end();
-      },
-    );
+        isSettled = true;
+        destroyAgents();
+        reject(describeConnectionError(error));
+      };
+
+      const options: http.RequestOptions = {
+        method: request.method,
+        headers: {
+          ...request.headers,
+          ...(request.body !== undefined
+            ? {
+                "Content-Length": String(
+                  Buffer.byteLength(request.body, "utf8"),
+                ),
+              }
+            : {}),
+        },
+        agent: isHttps ? pinned.httpsAgent : pinned.httpAgent,
+        signal: request.signal,
+      };
+
+      const clientRequest: http.ClientRequest = (
+        isHttps ? https : http
+      ).request(pinned.url, options, (response: http.IncomingMessage): void => {
+        if (isSettled) {
+          response.destroy();
+          return;
+        }
+
+        isSettled = true;
+
+        const status: number = response.statusCode || 0;
+
+        // A redirect is never followed: the server must answer itself.
+        if (status >= 300 && status < 400) {
+          response.destroy();
+          destroyAgents();
+          reject(
+            new McpClientError({
+              kind: ExternalMcpServerFailureKind.NotAnMcpServer,
+              message: `The server answered with a redirect (HTTP ${status}). Use the address it redirects to as the URL.`,
+              status,
+            }),
+          );
+          return;
+        }
+
+        resolve(
+          toMcpHttpResponse({
+            response,
+            maxResponseBytes: request.maxResponseBytes,
+            onClose: destroyAgents,
+          }),
+        );
+      });
+
+      clientRequest.on("error", fail);
+
+      if (request.body !== undefined) {
+        clientRequest.write(request.body, "utf8");
+      }
+
+      clientRequest.end();
+    },
+  );
 }
 
 export default class GuardedMcpHttpTransport implements McpHttpTransport {

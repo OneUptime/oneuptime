@@ -119,7 +119,11 @@ describe("getRuleExternalMcpServersProblem", () => {
 
     const ids: Array<string> = [];
 
-    for (let index: number = 0; index <= MAX_EXTERNAL_MCP_SERVERS_PER_RULE; index++) {
+    for (
+      let index: number = 0;
+      index <= MAX_EXTERNAL_MCP_SERVERS_PER_RULE;
+      index++
+    ) {
       ids.push(`a0000000-0000-4000-8000-${String(index).padStart(12, "0")}`);
     }
 
