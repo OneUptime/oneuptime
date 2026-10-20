@@ -68,7 +68,7 @@ Open een dashboard, en het eigen zijmenu ervan heeft deze pagina's. Elke sectie 
 ## Je eerste dashboard bouwen
 
 :::steps
-1. **Maken** — kies een sjabloon, of **Blank Dashboard**. Een sjabloon vult de naam in en opent met zijn widgets; een leeg dashboard opent zonder inhoud, met **Widget toevoegen** op het canvas.
+1. **Maken** — kies een sjabloon, of **Vanaf nul beginnen**. Een sjabloon vult de naam in en opent met zijn widgets; een dashboard vanaf nul opent zonder inhoud, met **Widget toevoegen** op het canvas.
 2. **Widgets toevoegen** — kies een widget uit de catalogus, stel in de instellingen in wat hij leest, sleep hem daarna op zijn plek en pas het formaat aan.
 3. **Variabelen toevoegen, als je ze nodig hebt** — met een variabele `service` kan één dashboard bijvoorbeeld elke service tonen.
 4. **Opslaan** — klik op **Wijzigingen opslaan**. Niets wat je tijdens het bewerken verandert, blijft bewaard totdat je dat doet.
@@ -81,7 +81,7 @@ Open een dashboard, en het eigen zijmenu ervan heeft deze pagina's. Elke sectie 
 
 Het doel: één pagina voor de checkout-service, met de latentie, het foutpercentage, de open incidenten en de nieuwste logs, die ook voor elke andere service werkt.
 
-1. Maak een **Blank Dashboard** met de naam "Checkout on-call".
+1. Klik op **Dashboard aanmaken**, kies **Vanaf nul beginnen** en noem het dashboard "Checkout on-call".
 2. Klik op **Widget toevoegen** en voeg een **Grafiek** toe van je metric voor de latentie van verzoeken, geaggregeerd als P95.
 3. Voeg ernaast een **Waarde** toe van je foutpercentage, met een waarschuwingsdrempel van 1 en een kritieke drempel van 5.
 4. Voeg eronder een **Incidentenlijst** toe, gefilterd op onopgeloste incidenten, en een **Logstroom** van de logs van de service.

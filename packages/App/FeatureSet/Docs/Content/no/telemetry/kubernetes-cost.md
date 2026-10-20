@@ -55,7 +55,7 @@ De første kostnadene vises etter at den første hele timen er avsluttet, og Ope
 - På en klynge viser **Costs** forbrukstrenden, **Spend by Namespace** med fordelingen på CPU, minne og lagring, **Spend by Workload**, forbruk på ledig kapasitet, effektivitet og kortet **Right-Sizing**.
 :::
 
-Kostnadsmetrikkene (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er vanlige metrikker: de finnes i metrikkutforskeren, på egendefinerte dashbord og i metrikkmonitorer. For et ferdig dashbord, gå til **Produkter → Dashbord**, velg **Opprett Dashbord** og velg **Kubernetes Cost Dashboard**: trender for nodenes timekostnad, enhetskostnader for CPU og minne, og forbruk på volumer og lastbalanserere.
+Kostnadsmetrikkene (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er vanlige metrikker: de finnes i metrikkutforskeren, på egendefinerte dashbord og i metrikkmonitorer. For et ferdig dashbord, gå til **Produkter → Dashbord**, velg **Opprett dashbord** og velg **Kubernetes Cost Dashboard**: trender for nodenes timekostnad, enhetskostnader for CPU og minne, og forbruk på volumer og lastbalanserere.
 
 ## Kjører du allerede Kubecost eller OpenCost?
 

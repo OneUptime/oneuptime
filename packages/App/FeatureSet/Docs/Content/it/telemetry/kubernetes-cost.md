@@ -55,7 +55,7 @@ I primi costi compaiono dopo la chiusura della prima ora completa, e OpenCost ha
 - Su un cluster, **Costs** mostra l'andamento della sua spesa, **Spend by Namespace** con la ripartizione tra CPU, memoria e storage, **Spend by Workload**, la spesa inutilizzata, l'efficienza e la scheda **Right-Sizing**.
 :::
 
-Le metriche dei costi (`node_total_hourly_cost`, `pv_hourly_cost` e le altre) sono metriche normali: si trovano nell'esploratore delle metriche, nei dashboard personalizzati e nei monitor delle metriche. Per un dashboard già pronto, vai in **Prodotti → Dashboard**, seleziona **Crea: Dashboard** e scegli **Kubernetes Cost Dashboard**: l'andamento del costo orario dei nodi, i costi unitari di CPU e memoria, e la spesa per volumi e load balancer.
+Le metriche dei costi (`node_total_hourly_cost`, `pv_hourly_cost` e le altre) sono metriche normali: si trovano nell'esploratore delle metriche, nei dashboard personalizzati e nei monitor delle metriche. Per un dashboard già pronto, vai in **Prodotti → Dashboard**, seleziona **Crea dashboard** e scegli **Kubernetes Cost Dashboard**: l'andamento del costo orario dei nodi, i costi unitari di CPU e memoria, e la spesa per volumi e load balancer.
 
 ## Usi già Kubecost o OpenCost?
 

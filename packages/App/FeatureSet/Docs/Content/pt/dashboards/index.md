@@ -68,7 +68,7 @@ Abra um painel, e o menu lateral dele tem estas páginas. Toda seção, exceto *
 ## Crie seu primeiro painel
 
 :::steps
-1. **Crie** — escolha um modelo, ou **Blank Dashboard**. Um modelo preenche o nome e abre com os widgets dele; um painel em branco abre vazio, com **Adicionar widget** na tela.
+1. **Crie** — escolha um modelo, ou **Começar do zero**. Um modelo preenche o nome e abre com os widgets dele; um painel começado do zero abre vazio, com **Adicionar widget** na tela.
 2. **Adicione widgets** — escolha um widget no catálogo, defina nas configurações dele o que ele lê, depois arraste-o para o lugar e redimensione-o.
 3. **Adicione variáveis, se precisar** — uma variável `service`, por exemplo, permite que um só painel mostre qualquer serviço.
 4. **Salve** — clique em **Salvar alterações**. Nada do que você muda durante a edição é mantido até você fazer isso.
@@ -81,7 +81,7 @@ Abra um painel, e o menu lateral dele tem estas páginas. Toda seção, exceto *
 
 O objetivo: uma página para o serviço de checkout, com a latência, a taxa de erros, os incidentes abertos e os logs mais recentes dele, que funcione também para qualquer outro serviço.
 
-1. Crie um **Blank Dashboard** chamado "Plantão do checkout".
+1. Clique em **Criar painel**, escolha **Começar do zero** e chame o painel de "Plantão do checkout".
 2. Clique em **Adicionar widget** e adicione um **Gráfico** da sua métrica de latência de requisições, agregada como P95.
 3. Ao lado, adicione um **Valor** da sua taxa de erros, com um limite de aviso de 1 e um limite crítico de 5.
 4. Abaixo, adicione uma **Lista de incidentes** filtrada para incidentes não resolvidos, e um **Fluxo de registros** com os logs do serviço.
