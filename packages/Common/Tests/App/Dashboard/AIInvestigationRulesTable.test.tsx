@@ -44,8 +44,11 @@ import {
   AiLane,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
+import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
 import AIInvestigationRuleTriggerEntity from "../../../Types/AI/AIInvestigationRuleTriggerEntity";
+import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 
 // ModelAPI.count spied on, as jest-mock's spyOn types it.
@@ -63,6 +66,9 @@ interface CapturedField {
   required?: boolean;
   doNotShowWhenCreating?: boolean;
   dropdownModal?: { type?: unknown };
+  hideOptionalLabel?: boolean;
+  placeholder?: string;
+  collapsibleSection?: FormFieldCollapsibleSection<AIInvestigationRule>;
 }
 
 function captured(element: React.ReactElement): Record<string, unknown> {
@@ -148,7 +154,7 @@ describe.each([
       );
     });
 
-    test("a rule is a name and its conditions", () => {
+    test("a rule is a name and its conditions, with its MCP servers folded under More fields", () => {
       const props: Record<string, unknown> = tableFor(lane);
 
       expect(props["formSteps"]).toEqual([
@@ -162,6 +168,7 @@ describe.each([
       ).toEqual([
         ["name", "basic-info"],
         ["isEnabled", "basic-info"],
+        ["externalMcpServers", "basic-info"],
         ["monitors", "match-criteria"],
         [
           lane === AiLane.Incident ? "incidentSeverities" : "alertSeverities",
@@ -172,6 +179,32 @@ describe.each([
         ["titlePattern", "match-criteria"],
         ["descriptionPattern", "match-criteria"],
       ]);
+    });
+
+    test("its MCP servers: folded under More fields, none picked is all of them", () => {
+      const field: CapturedField = fieldsOf(tableFor(lane)).find(
+        (candidate: CapturedField): boolean => {
+          return keyOf(candidate) === "externalMcpServers";
+        },
+      )!;
+
+      expect(field.collapsibleSection?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+      expect(field.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+      expect(field.dropdownModal?.type).toBe(ExternalMcpServer);
+      expect(field.required).toBe(false);
+      expect(field.hideOptionalLabel).toBe(true);
+      expect(field.placeholder).toBe("All MCP servers");
+      expect(field.title).toBe("MCP Servers");
+
+      // Folded, its line says what the default does - until some are picked.
+      expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
+        "OneUptime AI may use all of your MCP servers.",
+      ]);
+      expect(
+        field.collapsibleSection?.getSummary?.({
+          externalMcpServers: [{ value: "a", label: "AWS" }],
+        } as never),
+      ).toBeUndefined();
     });
 
     test("its name is required, and a new rule starts on", () => {
