@@ -1011,7 +1011,7 @@
   "Docker Compose guide": "Guide Docker Compose",
   "Kubernetes guide": "Guide Kubernetes",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Les appels partent de ce numéro, et les SMS aussi, sauf si vous ajoutez des numéros de téléphone SMS dans Plus de champs.",
-  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Si vos numéros Twilio ne peuvent pas envoyer de SMS (à Singapour, les numéros nationaux sont réservés à la voix), ajoutez des numéros qui le peuvent. Chaque SMS part alors de celui du pays du destinataire, sinon du premier.",
+  "Numbers to send SMS from if yours can't (Singapore's national ones are voice-only). Each SMS uses the one in the recipient's country, or the first.": "Numéros d'envoi des SMS si les vôtres ne le peuvent pas (à Singapour, les numéros nationaux sont réservés à la voix). Chaque SMS part de celui du pays du destinataire, sinon du premier.",
   "Twilio SMS Phone Numbers": "Numéros de téléphone SMS Twilio",
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} n'est pas un numéro de téléphone. Saisissez chaque numéro avec son indicatif pays et séparez-les par des virgules, comme +6581234567, +447700900123.",
   "Twilio Primary Phone Number": "Numéro de téléphone principal Twilio",

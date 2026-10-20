@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.78",
+  "version": "14.0.79",
   "description": "",
   "repository": {
     "type": "git",
@@ -68,6 +68,7 @@
     "test-model-tables-ui": "playwright test --config playwright.model-tables-ui.config.ts",
     "test-public-addresses-ui": "playwright test --config playwright.public-addresses-ui.config.ts",
     "test-rules-menu-section-ui": "playwright test --config playwright.rules-menu-section-ui.config.ts",
+    "test-auto-remediation-rules-ui": "playwright test --config playwright.auto-remediation-rules-ui.config.ts",
     "test-llm-connect-ui": "playwright test --config playwright.llm-connect-ui.config.ts",
     "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts"
   },

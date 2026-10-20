@@ -61,6 +61,13 @@ export enum AutoRemediationDecisionReason {
   SuggestionLimitReached = "SuggestionLimitReached",
   // The evaluation stopped on an error; the entries before it still hold.
   EvaluationFailed = "EvaluationFailed",
+  /*
+   * No rule is set up: OneUptime AI is picking the runbook of the project's
+   * that fits the signal, to propose it for approval.
+   */
+  AiPickingRunbook = "AiPickingRunbook",
+  // The same, but its AI run could not be queued (the daily AI budget, most often).
+  AiRunbookPickNotStarted = "AiRunbookPickNotStarted",
 
   /*
    * --- Kubernetes cluster ---
@@ -378,6 +385,7 @@ export class AutoRemediationDecisionHelper {
 }
 
 const ACTED_REASONS: Array<AutoRemediationDecisionReason> = [
+  AutoRemediationDecisionReason.AiPickingRunbook,
   AutoRemediationDecisionReason.ClusterRoundStarted,
   AutoRemediationDecisionReason.ResourceRoundStarted,
   AutoRemediationDecisionReason.RuleAiComposingCommands,
@@ -390,6 +398,7 @@ const ACTED_REASONS: Array<AutoRemediationDecisionReason> = [
 const ATTENTION_REASONS: Array<AutoRemediationDecisionReason> = [
   AutoRemediationDecisionReason.EnableAiOff,
   AutoRemediationDecisionReason.EvaluationFailed,
+  AutoRemediationDecisionReason.AiRunbookPickNotStarted,
   AutoRemediationDecisionReason.ClusterLookupFailed,
   AutoRemediationDecisionReason.ClusterNotReady,
   AutoRemediationDecisionReason.ClusterRoundNotStarted,

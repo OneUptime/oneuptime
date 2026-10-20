@@ -112,7 +112,7 @@ const RUNNER_LOADS: RegExp =
 // Every Dashboard and Admin Dashboard file that loads Runners, and why.
 const LOADS_RUNNERS: Record<string, string> = {
   "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts":
-    "the one picker's choices: the project's own Runners, the global ones, the switch",
+    "the one picker's choices: the project's own Runners, the global ones, the switch; and the Runners a cluster's AI settings may bind",
   "App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersTable.tsx":
     "Runbooks -> Runners: the global Runners, read-only",
   "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners.tsx":
@@ -123,8 +123,6 @@ const LOADS_RUNNERS: Record<string, string> = {
     "which of the project's Runners may use a credential; a global Runner never gets one",
   "App/FeatureSet/Dashboard/src/Components/Runbook/RunbookVariablesTable.tsx":
     "which of the project's own Runners may use a secret variable; the global Runners have their own switch",
-  "App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx":
-    "the Runner that runs a cluster's AI commands, which global Runners never run",
   "App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index.tsx":
     "a master admin's global Runners",
 };
@@ -259,5 +257,74 @@ describe("a Runner is picked with one picker", () => {
     expect(steps).toContain("RunnerChoicesLoader.load(");
     expect(steps).toMatch(/<RunnerPicker\b/);
     expect(RUNNER_LOADS.test(steps)).toBe(false);
+  });
+
+  /*
+   * An auto remediation rule picks the Runner OneUptime AI runs its commands
+   * on with the same picker, fed by the loader's choices for a rule
+   * (RunnerChoicesLoader.loadForRemediation): no Runner first - the AI
+   * agent on the affected cluster or host - then the project's own Runners,
+   * never a global one, which never runs OneUptime AI's commands. The
+   * choices are read again when the tab comes back into focus.
+   */
+  test("an auto remediation rule picks its Runner with the picker", () => {
+    const fields: string = read(
+      "App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields.tsx",
+    );
+    const table: string = read(
+      "App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRulesTable.tsx",
+    );
+    const loader: string = read(
+      "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts",
+    );
+
+    expect(fields).toContain(
+      'import RunnerPicker from "../Runner/RunnerPicker";',
+    );
+    expect(fields).toContain("RunnerChoicesLoader.loadForRemediation(");
+    expect(fields).toContain("useRefreshRunnerChoicesOnFocus(");
+    expect(fields).toMatch(
+      /<RunnerPicker\s+work=\{RunnerPickerWork\.AutoRemediation\}/,
+    );
+    expect(table).toMatch(/<AutoRemediationRunnerPicker\b/);
+
+    // The rule's choices hold no global Runner.
+    const remediationChoices: string = loader.slice(
+      loader.indexOf("public static async loadForRemediation("),
+      loader.indexOf("public static async loadForKubernetesCluster("),
+    );
+    expect(remediationChoices).toContain("globalRunners: [],");
+    expect(remediationChoices).not.toContain("loadGlobalRunners");
+
+    for (const source of [fields, table]) {
+      expect(RUNNER_LOADS.test(source)).toBe(false);
+    }
+  });
+
+  /*
+   * A Kubernetes cluster's AI settings bind a Runner through the same
+   * loader (RunnerChoicesLoader.loadForKubernetesCluster): the project's own
+   * Runners only - a global Runner never runs OneUptime AI's commands.
+   */
+  test("a Kubernetes cluster's AI settings read the project's own Runners through the loader", () => {
+    const page: string = read(
+      "App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx",
+    );
+    const loader: string = read(
+      "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts",
+    );
+
+    expect(page).toContain("RunnerChoicesLoader.loadForKubernetesCluster(");
+    expect(RUNNER_LOADS.test(page)).toBe(false);
+
+    const clusterChoices: string = loader.slice(
+      loader.indexOf("public static async loadForKubernetesCluster("),
+    );
+    const body: string = clusterChoices.slice(
+      0,
+      clusterChoices.indexOf("\n  }\n"),
+    );
+    expect(body).toMatch(/query:\s*\{\s*projectId: projectId,?\s*\}/);
+    expect(body).not.toContain("global");
   });
 });

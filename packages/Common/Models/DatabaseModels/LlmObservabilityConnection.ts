@@ -226,6 +226,7 @@ export default class LlmObservabilityConnection extends BaseModel {
     title: "Enabled",
     description: "Whether this connection is read on its schedule.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -251,6 +252,7 @@ export default class LlmObservabilityConnection extends BaseModel {
     description:
       "For a company AI tool: keep what people asked and what the AI answered. When off, only who used it, when and how much is kept.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -271,6 +273,7 @@ export default class LlmObservabilityConnection extends BaseModel {
     description:
       "For a company AI tool: 'admins' lets only project owners and admins read its conversations; 'everyone' lets everyone who reads the project's AI conversations read them.",
     defaultValue: LlmConversationReaders.Admins,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

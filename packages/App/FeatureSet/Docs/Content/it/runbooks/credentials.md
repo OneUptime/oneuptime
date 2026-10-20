@@ -54,7 +54,7 @@ Nel passaggio **Agenti di runbook**, scegli i Runner che possono usare la creden
 
 ### Lasciare che OneUptime AI la usi
 
-OneUptime AI esegue i suoi comandi SSH su un Runner con **Esegue i comandi di rimedio AI** attivo, con una delle credenziali SSH assegnate a esso. Una credenziale Kubernetes viene usata non appena è associata, con uno dei suoi Runner, a un cluster: vedi [SRE con IA](/docs/ai/ai-sre).
+OneUptime AI esegue i suoi comandi SSH sul Runner che una regola di rimedio automatico sceglie per essi, con una delle credenziali SSH assegnate a esso. Una credenziale Kubernetes viene usata non appena è associata, con uno dei suoi Runner, a un cluster: vedi [SRE con IA](/docs/ai/ai-sre).
 :::
 
 ## Cosa viene salvato
@@ -78,12 +78,12 @@ L'assegnazione è il confine di accesso, quindi tienila stretta: un Runner che r
 
 ### Runner che eseguono i comandi di OneUptime AI
 
-Su un Runner con **Esegue i comandi di rimedio AI** attivo, OneUptime AI sceglie tra le credenziali SSH assegnate al Runner per i comandi che vi esegue. Per questo una credenziale SSH raggiunge un Runner del genere solo tramite qualcuno che può leggere le credenziali dei runbook (**Read Runbook Credential**, oppure un Project Owner o un Project Admin), qualunque cosa venga salvata per prima:
+Un Runner esegue i comandi di OneUptime AI non appena viene scelto per essi: come Runner di una regola di rimedio automatico, o per l'accesso IA di un cluster Kubernetes. Su un Runner del genere, OneUptime AI sceglie tra le credenziali SSH assegnate al Runner per i comandi che vi esegue. Per questo una credenziale SSH raggiunge un Runner del genere solo tramite qualcuno che può leggere le credenziali dei runbook (**Read Runbook Credential**, oppure un Project Owner o un Project Admin), qualunque cosa venga salvata per prima:
 
 - **Assegnare la credenziale.** Creare una credenziale SSH con un Runner del genere, o aggiungere un Runner del genere a una credenziale, richiede quell'autorizzazione. Senza, il salvataggio viene rifiutato e indica il Runner: assegna la credenziale a Runner che non eseguono comandi di rimedio con IA, oppure chiedi a qualcuno che ha l'autorizzazione di assegnarla.
-- **Attivare l'interruttore.** Attivare **Esegue i comandi di rimedio AI** su un Runner che ha credenziali SSH richiede la stessa autorizzazione.
+- **Scegliere il Runner.** Scegliere un Runner che ha credenziali SSH per i comandi di OneUptime AI - come Runner di una regola, o per un cluster - richiede la stessa autorizzazione, la prima volta che viene scelto.
 
-Rimuovere Runner da una credenziale, salvare una credenziale con i Runner che ha già e le credenziali Kubernetes non chiedono altro: i comandi kubectl di OneUptime AI vengono eseguiti con la credenziale associata al loro cluster. Le assegnazioni di credenziali e l'attivazione dell'interruttore da parte di chi non ha quell'autorizzazione vengono salvate una alla volta in un progetto, così le due non possono superare insieme i loro controlli; un salvataggio che arriva mentre un altro è in corso lo attende, e se ci vuole troppo viene rifiutato con *Try again in a moment*. Salva di nuovo.
+Rimuovere Runner da una credenziale, salvare una credenziale con i Runner che ha già e le credenziali Kubernetes non chiedono altro: i comandi kubectl di OneUptime AI vengono eseguiti con la credenziale associata al loro cluster. Le assegnazioni di credenziali e la scelta di un Runner da parte di chi non ha quell'autorizzazione vengono salvate una alla volta in un progetto, così le due non possono superare insieme i loro controlli; un salvataggio che arriva mentre un altro è in corso lo attende, e se ci vuole troppo viene rifiutato con *Try again in a moment*. Salva di nuovo. Salvare un Runner, ad esempio per modificarne la descrizione, non attende mai.
 
 I passaggi di un workflow agiscono come Project Admin, ma non ricevono in prestito la lettura delle credenziali dei runbook di un Project Admin: un passaggio la ha solo se ce l'ha la persona che ha salvato per ultima i passaggi del workflow. Vedi [Cosa possono fare i passaggi di un workflow](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-workflow).
 

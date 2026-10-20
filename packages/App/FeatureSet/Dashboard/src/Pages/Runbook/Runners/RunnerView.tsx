@@ -13,7 +13,6 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
-  RUNNER_FORM_STEPS,
   RunnerFormRestrictions,
   getKubernetesAgentRunnerFormNote,
   getRunnerFormFields,
@@ -135,10 +134,8 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         onBeforeEdit={(): boolean => {
           return isRunnerLoaded;
         }}
-        // The list's steps, so the two forms read alike.
-        formSteps={RUNNER_FORM_STEPS}
+        // The list's form, so the two read alike: one page.
         formFields={getRunnerFormFields({
-          withSteps: true,
           restrictions: formRestrictions,
         })}
         modelDetailProps={{
@@ -184,11 +181,6 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
               title: "Runs Runbooks",
               fieldType: FieldType.Boolean,
             },
-            {
-              field: { canRunAiCommands: true },
-              title: "Runs AI Remediation Commands",
-              fieldType: FieldType.Boolean,
-            },
             /*
              * What replaced the "Runs AI Code Fixes" switch, where it was:
              * the code repositories that pick this Runner, each linked to
@@ -196,7 +188,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
              * or, with none, where that is done. Not on an in-cluster
              * Runner the Kubernetes agent chart installed, which no
              * repository may pick, nor for someone who cannot read the
-             * repositories.
+             * repositories. "Runs AI Remediation Commands" is gone the same
+             * way: an auto remediation rule, or a Kubernetes cluster's AI
+             * settings, picks the Runner OneUptime AI runs its commands on.
              */
             {
               field: { _id: true },

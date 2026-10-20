@@ -1165,7 +1165,6 @@ describe("the Needs attention card", () => {
   test("Runner gaps link to the Runner only for an advanced binding", () => {
     for (const code of [
       "runner_offline",
-      "runner_ai_commands_disabled",
       "runner_cluster_mismatch",
       "credential_missing",
       "credential_on_agent_runner",
@@ -1176,6 +1175,20 @@ describe("the Needs attention card", () => {
       // The previous in-cluster Runner is replaced by upgrading the chart.
       expect(getAiAgentGapAction(gap(code), legacyStatus())).toBeNull();
     }
+  });
+
+  /*
+   * A Runner bound before choosing one was what let OneUptime AI run
+   * kubectl on it: nothing on the Runner's page turns that on any more, so
+   * the step chooses it again in one click, not a link to the Runner.
+   */
+  test("a bound Runner that does not run AI commands yet is chosen again in one click", () => {
+    expect(
+      getAiAgentGapAction(gap("runner_ai_commands_disabled"), advancedStatus()),
+    ).toBe("choose_runner_again");
+    expect(
+      getAiAgentGapAction(gap("runner_ai_commands_disabled"), legacyStatus()),
+    ).toBeNull();
   });
 
   test("nothing to test before anything can reach the cluster", () => {
@@ -1363,7 +1376,7 @@ describe("Needs attention, as one item", () => {
       attention?.steps.map((step: AiAgentAttentionStep): string | null => {
         return step.action;
       }),
-    ).toEqual(["view_runner", "view_runner", "view_runner"]);
+    ).toEqual(["view_runner", "choose_runner_again", "view_runner"]);
   });
 
   test("one gap is one step", () => {
@@ -1690,14 +1703,19 @@ describe("Needs attention's steps", () => {
       ).toBe("Start the Runner and make sure it can reach your OneUptime URL.");
     });
 
-    test("not accepting AI commands: turn them on, on the Runner", () => {
+    /*
+     * A Runner has no switch for OneUptime AI's commands any more: choosing
+     * it on this page is what lets OneUptime AI run kubectl on it, and the
+     * step's own button does that (choose_runner_again).
+     */
+    test("not accepting AI commands: choose the Runner again", () => {
       expect(
         getAiAgentAttentionStepText(
           serverGap("runner_ai_commands_disabled"),
           advancedStatus(),
           NOW,
         ),
-      ).toBe('Turn on "Runs AI Remediation Commands" on the Runner.');
+      ).toBe("Choose the Runner again to let OneUptime AI run kubectl on it.");
     });
 
     test("without a credential, or not saying which cluster it is in: choose a credential or clear it", () => {
