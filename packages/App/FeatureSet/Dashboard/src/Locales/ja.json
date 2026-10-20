@@ -31975,10 +31975,8 @@
   "Someone is first paged": "最初に誰かが呼び出されたとき",
   "From when someone is first paged until someone acknowledges it.": "誰かが最初に呼び出されてから、誰かが確認するまで。",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "プロジェクトの 1 日あたりの AI 上限に数えられる量です。プロバイダーがプロンプトキャッシュから読んだトークンは 10 分の 1 トークン、そのキャッシュに書き込まれたトークンは 1.25 トークンとして数えます。",
-  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
-  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} トークン（うちキャッシュから {{cacheRead}}）",
-  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
-  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} トークン（うちキャッシュへの書き込み {{cacheWrite}}）",
-  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}",
-  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} トークン: キャッシュから {{cacheRead}}、キャッシュへの書き込み {{cacheWrite}}"
+  "{{count}} from cache": "キャッシュから {{count}}",
+  "{{count}} from cache_one": "キャッシュから {{count}}",
+  "{{count}} written to cache": "キャッシュへの書き込み {{count}}",
+  "{{count}} written to cache_one": "キャッシュへの書き込み {{count}}"
 }

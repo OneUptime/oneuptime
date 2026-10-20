@@ -31975,10 +31975,8 @@
   "Someone is first paged": "Someone is first paged",
   "From when someone is first paged until someone acknowledges it.": "From when someone is first paged until someone acknowledges it.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
-  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} tokens, {{cacheRead}} from cache",
-  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} token, {{cacheRead}} from cache",
-  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} tokens, {{cacheWrite}} written to cache",
-  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} token, {{cacheWrite}} written to cache",
-  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it",
-  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} from cache, {{cacheWrite}} written to it"
+  "{{count}} from cache": "{{count}} from cache",
+  "{{count}} from cache_one": "{{count}} from cache",
+  "{{count}} written to cache": "{{count}} written to cache",
+  "{{count}} written to cache_one": "{{count}} written to cache"
 }

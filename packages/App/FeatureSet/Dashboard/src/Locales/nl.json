@@ -21751,7 +21751,7 @@
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} phone numbers route calls to this policy.",
   "{{count}} phone numbers route calls to this policy._one": "{{count}} phone number routes calls to this policy.",
-  "{{count}} queries": "{{count}} queries",
+  "{{count}} queries": "{{count}} query's",
   "{{count}} queries_one": "{{count}} query",
   "{{count}} required fields still empty": "{{count}} required fields still empty",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
@@ -31975,10 +31975,8 @@
   "Someone is first paged": "Iemand wordt voor het eerst opgeroepen",
   "From when someone is first paged until someone acknowledges it.": "Vanaf het moment dat iemand voor het eerst wordt opgeroepen tot de bevestiging.",
   "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Zoals ze meetellen voor de dagelijkse AI-limieten van het project: een token dat de provider uit zijn promptcache las, telt als een tiende token, en een token dat in die cache werd geschreven als één en een kwart.",
-  "{{count}} tokens, {{cacheRead}} from cache": "{{count}} tokens, waarvan {{cacheRead}} uit de cache",
-  "{{count}} tokens, {{cacheRead}} from cache_one": "{{count}} token, waarvan {{cacheRead}} uit de cache",
-  "{{count}} tokens, {{cacheWrite}} written to cache": "{{count}} tokens, waarvan {{cacheWrite}} in de cache geschreven",
-  "{{count}} tokens, {{cacheWrite}} written to cache_one": "{{count}} token, waarvan {{cacheWrite}} in de cache geschreven",
-  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it": "{{count}} tokens: {{cacheRead}} uit de cache, {{cacheWrite}} erin geschreven",
-  "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it_one": "{{count}} token: {{cacheRead}} uit de cache, {{cacheWrite}} erin geschreven"
+  "{{count}} from cache": "{{count}} uit de cache",
+  "{{count}} from cache_one": "{{count}} uit de cache",
+  "{{count}} written to cache": "{{count}} in de cache geschreven",
+  "{{count}} written to cache_one": "{{count}} in de cache geschreven"
 }

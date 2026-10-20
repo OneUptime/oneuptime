@@ -1,59 +1,71 @@
 import { AiTokenCountBreakdown } from "Common/Types/AI/AiTokenCount";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * The line under an AI Logs row's "Tokens Used" when the call used the
- * provider's prompt cache: how many tokens the call sent and received in
- * all, and how many of them the cache served or took - the numbers the
+ * The facts under an AI Logs row's "Tokens Used" when the call used the
+ * provider's prompt cache: how many tokens the call used in all, how many of
+ * them the cache served, and how many went into it - the numbers the
  * provider's own console shows, and the reason the count above them is
  * smaller (or, for a call that only wrote to the cache, a little larger).
- * Empty for a call that did not use the cache, whose count is its tokens.
+ * "28,496 tokens · 20,654 from cache · 4,216 written to cache".
+ *
+ * Each fact is a phrase of its own, translated whole, so the line can wrap
+ * between facts and never inside one ("20,654 from" / "cache" read badly).
+ * A call that did not use the cache has none: its count is its tokens.
  *
  * Kept free of React, so the wording is tested on its own.
  */
-export const getLlmLogCacheText: (
-  translator: Translator,
-  tokens: AiTokenCountBreakdown,
-) => string = (
-  translator: Translator,
-  tokens: AiTokenCountBreakdown,
-): string => {
-  const cacheRead: string = translator.formatNumber(tokens.cacheReadTokens);
-  const cacheWrite: string = translator.formatNumber(tokens.cacheWriteTokens);
+export const LLM_LOG_TOTAL_TOKENS: PluralTemplate = {
+  one: "{{count}} token",
+  other: "{{count}} tokens",
+};
 
-  if (tokens.cacheReadTokens > 0 && tokens.cacheWriteTokens > 0) {
-    return translator.translatePlural(
-      {
-        one: "{{count}} token: {{cacheRead}} from cache, {{cacheWrite}} written to it",
-        other:
-          "{{count}} tokens: {{cacheRead}} from cache, {{cacheWrite}} written to it",
-      },
-      tokens.totalTokens,
-      { cacheRead, cacheWrite },
-    );
+/*
+ * English says both alike for any count; a language whose words agree with
+ * the count ("1 escrito", "2 escritos") has its own "one" form.
+ */
+export const LLM_LOG_TOKENS_FROM_CACHE: PluralTemplate = {
+  one: "{{count}} from cache",
+  other: "{{count}} from cache",
+};
+
+export const LLM_LOG_TOKENS_WRITTEN_TO_CACHE: PluralTemplate = {
+  one: "{{count}} written to cache",
+  other: "{{count}} written to cache",
+};
+
+export const getLlmLogCacheFacts: (
+  translator: Translator,
+  tokens: AiTokenCountBreakdown,
+) => Array<string> = (
+  translator: Translator,
+  tokens: AiTokenCountBreakdown,
+): Array<string> => {
+  if (tokens.cacheReadTokens <= 0 && tokens.cacheWriteTokens <= 0) {
+    return [];
   }
 
+  const facts: Array<string> = [
+    translator.translatePlural(LLM_LOG_TOTAL_TOKENS, tokens.totalTokens),
+  ];
+
   if (tokens.cacheReadTokens > 0) {
-    return translator.translatePlural(
-      {
-        one: "{{count}} token, {{cacheRead}} from cache",
-        other: "{{count}} tokens, {{cacheRead}} from cache",
-      },
-      tokens.totalTokens,
-      { cacheRead },
+    facts.push(
+      translator.translatePlural(
+        LLM_LOG_TOKENS_FROM_CACHE,
+        tokens.cacheReadTokens,
+      ),
     );
   }
 
   if (tokens.cacheWriteTokens > 0) {
-    return translator.translatePlural(
-      {
-        one: "{{count}} token, {{cacheWrite}} written to cache",
-        other: "{{count}} tokens, {{cacheWrite}} written to cache",
-      },
-      tokens.totalTokens,
-      { cacheWrite },
+    facts.push(
+      translator.translatePlural(
+        LLM_LOG_TOKENS_WRITTEN_TO_CACHE,
+        tokens.cacheWriteTokens,
+      ),
     );
   }
 
-  return "";
+  return facts;
 };

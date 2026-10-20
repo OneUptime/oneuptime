@@ -25,7 +25,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import AiTokenCount, {
   AiTokenCountBreakdown,
 } from "Common/Types/AI/AiTokenCount";
-import { getLlmLogCacheText } from "./LlmLogTokens";
+import { getLlmLogCacheFacts } from "./LlmLogTokens";
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
@@ -99,18 +99,49 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       disableSort: true,
       getElement: (item: LlmLog): ReactElement => {
         const tokens: AiTokenCountBreakdown = AiTokenCount.getBreakdown(item);
-        const cacheText: string = getLlmLogCacheText(translator, tokens);
+        const cacheFacts: Array<string> = getLlmLogCacheFacts(
+          translator,
+          tokens,
+        );
 
         return (
           <div data-testid="llm-log-tokens">
             <p>{translator.formatNumber(tokens.countedTokens)}</p>
-            {cacheText ? (
-              <p
-                className="text-xs text-gray-500 text-balance"
+            {cacheFacts.length > 0 ? (
+              /*
+               * The facts with a dot between them, wrapping between facts
+               * and never inside one. The line is pulled back by one gap in
+               * a box that clips, so a fact that starts a line - the first,
+               * or one a narrow column wrapped - has its dot clipped away
+               * (as Code's meta lines do).
+               */
+              <div
+                className="overflow-hidden"
                 data-testid="llm-log-cache-tokens"
               >
-                {cacheText}
-              </p>
+                <p className="-ml-3 flex flex-wrap text-xs leading-5 text-gray-500">
+                  {cacheFacts.map((fact: string, index: number) => {
+                    return (
+                      <span
+                        key={index}
+                        className="relative ml-3 whitespace-nowrap"
+                      >
+                        {index > 0 ? (
+                          <span
+                            aria-hidden="true"
+                            className="absolute -left-2 text-gray-300"
+                          >
+                            ·
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        {fact}
+                      </span>
+                    );
+                  })}
+                </p>
+              </div>
             ) : (
               <></>
             )}
