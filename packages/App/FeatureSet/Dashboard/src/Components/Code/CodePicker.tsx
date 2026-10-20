@@ -63,8 +63,13 @@ export interface ComponentProps {
 // React's ids hold colons, which an element id may hold but a selector may not.
 const ID_COLONS: RegExp = /:/g;
 
-// The longest a picker's button grows before its name is cut with "…".
-const TRIGGER_MAX_WIDTH_CLASS_NAME: string = "max-w-[11rem] sm:max-w-[16rem]";
+/*
+ * The widest a picker grows before its name is cut with "…" - narrower
+ * still where the row it sits in has less room (the picker shrinks, and its
+ * button with it).
+ */
+export const PICKER_MAX_WIDTH_CLASS_NAME: string =
+  "max-w-[11rem] sm:max-w-[16rem]";
 
 // The list's width, and the room it keeps from the edges of the window.
 export const PICKER_MENU_WIDTH_PX: number = 288;
@@ -330,7 +335,7 @@ const CodePicker: FunctionComponent<ComponentProps> = (
     <div
       ref={containerRef}
       data-testid={props.dataTestId}
-      className="relative min-w-0"
+      className={`relative min-w-0 ${PICKER_MAX_WIDTH_CLASS_NAME}`}
     >
       <button
         ref={buttonRef}
@@ -351,7 +356,7 @@ const CodePicker: FunctionComponent<ComponentProps> = (
             open();
           }
         }}
-        className={`inline-flex h-8 ${TRIGGER_MAX_WIDTH_CLASS_NAME} items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+        className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
           props.isDisabled
             ? "cursor-not-allowed text-gray-400"
             : `text-gray-700 hover:bg-gray-100 hover:text-gray-900 ${
@@ -362,7 +367,10 @@ const CodePicker: FunctionComponent<ComponentProps> = (
         <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
           {props.icon}
         </span>
-        <span className={`truncate ${props.isMonospace ? "font-mono" : ""}`}>
+        <span
+          data-testid={`${props.dataTestId}-value`}
+          className={`truncate ${props.isMonospace ? "font-mono" : ""}`}
+        >
           {props.valueText}
         </span>
         {props.isDisabled ? (

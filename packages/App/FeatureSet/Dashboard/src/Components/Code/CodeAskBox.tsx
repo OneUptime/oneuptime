@@ -179,6 +179,8 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
   });
   const [branch, setBranch] = useState<string | null>(null);
   const [access, setAccess] = useState<CodeRepositoryResponse | null>(null);
+  // The repository whose read failed: the box stops waiting for it.
+  const [unreadId, setUnreadId] = useState<string | null>(null);
   const [prefill, setPrefill] = useState<
     { text: string; token: number } | undefined
   >(undefined);
@@ -208,8 +210,9 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
 
   /*
    * Whether the reader may ask AI in the repository picked, and what stops
-   * AI there - read when it is picked. A failed read leaves the box as it
-   * is: the server says what stops a request when it is sent.
+   * AI there - read when it is picked. A failed read stops the waiting
+   * rather than hold the box shut with nothing said: the box sends, and the
+   * server says what stops a request, as it would anyway.
    */
   useEffect(() => {
     if (!isPicking || !pickedId) {
@@ -225,6 +228,7 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
     }
 
     setAccess(null);
+    setUnreadId(null);
     let isCurrent: boolean = true;
 
     CodeApi.getRepository(pickedId)
@@ -236,7 +240,9 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
         }
       })
       .catch(() => {
-        // Said by the server on send, as it would be anyway.
+        if (isCurrent) {
+          setUnreadId(pickedId);
+        }
       });
 
     return () => {
@@ -254,8 +260,12 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
   const blocker: CodeTaskBlocker | null = current?.blocker || null;
   const canAsk: boolean = current ? current.canAsk : true;
   const isBlocked: boolean = Boolean(blocker) || !canAsk;
-  // The repository is being read: the box takes words, and sends once it is known.
-  const isWaiting: boolean = Boolean(pickedId) && !current;
+  /*
+   * The repository is being read: the box takes words, and sends once it is
+   * known - or once its read failed.
+   */
+  const isWaiting: boolean =
+    Boolean(pickedId) && !current && unreadId !== pickedId;
   const isConnected: boolean = current
     ? current.repository.isConnected
     : Boolean(pickedListItem?.isConnected);

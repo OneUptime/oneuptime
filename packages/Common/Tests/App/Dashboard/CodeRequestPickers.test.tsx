@@ -62,6 +62,7 @@ jest.mock(
 import CodePicker, {
   CodePickerOption,
   getPickerMenuShift,
+  PICKER_MAX_WIDTH_CLASS_NAME,
   PICKER_MENU_WIDTH_PX,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodePicker";
 import CodeBranchPicker, {
@@ -189,6 +190,30 @@ describe("a picker in the request box", () => {
     expect(button()).toHaveAttribute("aria-expanded", "false");
     expect(button()).toHaveAttribute("title", "apple");
     expect(screen.queryByTestId("fruit-menu")).toBeNull();
+  });
+
+  /*
+   * The UI review: a long name wrapped the request box's bottom row onto
+   * four lines on a phone. The picker now holds its widest on itself and
+   * shrinks with the row; its button follows it, cutting the name with "…"
+   * (the whole name on hover and in the list).
+   */
+  test("the picker holds its widest and can shrink; its button follows it and cuts the name with …", () => {
+    draw(<Fruit />);
+
+    const picker: HTMLElement = screen.getByTestId("fruit");
+    expect(picker.className).toContain("min-w-0");
+    for (const width of PICKER_MAX_WIDTH_CLASS_NAME.split(" ")) {
+      expect(picker.className).toContain(width);
+    }
+    expect(PICKER_MAX_WIDTH_CLASS_NAME).toBe("max-w-[11rem] sm:max-w-[16rem]");
+    expect(button().className).toContain("max-w-full");
+    expect(button().className).not.toContain("max-w-[11rem]");
+
+    const value: HTMLElement = screen.getByTestId("fruit-value");
+    expect(value).toHaveTextContent("apple");
+    expect(value.className).toContain("truncate");
+    expect(button()).toContainElement(value);
   });
 
   test("opens on a list with a search box that takes the focus; the picked one is checked", async () => {

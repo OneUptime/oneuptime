@@ -25,6 +25,9 @@
  *   - connected=none    GitHub reaches none of the repositories (the
  *                       project's GitHub connection is gone)
  *   - tasks=none        no task yet in any repository
+ *   - names=long        checkout-api goes by a long name (and a long
+ *                       organization), and has a long branch, for the
+ *                       request box's pickers and the rows to cut short
  *   - branches=many     checkout-api has more branches than one read of
  *                       them holds (140), so the branch picker searches the
  *                       server by what is typed
@@ -170,6 +173,7 @@ const reposParam = params.get("repos") || "some";
 const isGitHubGone = params.get("connected") === "none";
 const hasNoTasks = params.get("tasks") === "none";
 const hasManyBranches = params.get("branches") === "many";
+const hasLongNames = params.get("names") === "long";
 const blockerParam = params.get("blocker");
 const aiParam = params.get("ai") || "done";
 const refuseParam = params.get("refuse");
@@ -272,6 +276,16 @@ const repositories =
       : BASE_REPOSITORIES;
 
 // GitHub's connection to the project is gone: no repository is reached.
+// Names long enough that the request box and the rows must cut them short.
+const LONG_REPOSITORY_NAME = "checkout-and-payments-platform-api-service";
+const LONG_BRANCH_NAME =
+  "feature/very-long-branch-name-for-the-new-checkout-flow-with-apple-pay";
+if (hasLongNames && repositories[0]) {
+  repositories[0].name = LONG_REPOSITORY_NAME;
+  repositories[0].organizationName = "acme-commerce-engineering";
+  repositories[0].repositoryName = LONG_REPOSITORY_NAME;
+}
+
 if (isGitHubGone) {
   for (const repository of repositories) {
     repository.isConnected = false;
@@ -291,6 +305,7 @@ const BRANCHES_BY_REPOSITORY = {
         }),
       ]
     : [
+        ...(hasLongNames ? [LONG_BRANCH_NAME] : []),
         "chore/node-22",
         "feature/coupon-tests",
         "fix/gateway-timeout",

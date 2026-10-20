@@ -453,6 +453,35 @@ describe("the box", () => {
     expect(sendButton().querySelector("svg")).not.toBeNull();
   });
 
+  /*
+   * The UI review: a long repository name wrapped the bottom row onto four
+   * lines on a phone, and when the pickers shrank, "main" was cut to "m"
+   * beside a long name. The row never wraps now; the pickers sit in
+   * columns that share its room fairly - each grows toward its whole name
+   * in turn (minmax(0, max-content)), so a short one stays whole.
+   */
+  test("the bottom row never wraps: the pickers share what room it has, a short name staying whole", () => {
+    renderComposer({
+      tools: (
+        <>
+          <div data-testid="picker-a">checkout-and-payments-platform-api</div>
+          <div data-testid="picker-b">main</div>
+        </>
+      ),
+    });
+
+    const toolbar: HTMLElement = screen.getByTestId("code-composer-toolbar");
+    expect(toolbar.className).toContain("flex");
+    expect(toolbar.className).not.toContain("flex-wrap");
+
+    const tools: HTMLElement = screen.getByTestId("code-composer-tools");
+    expect(tools.className).toContain("grid");
+    expect(tools.className).toContain("grid-flow-col");
+    expect(tools.className).toContain("auto-cols-[minmax(0,max-content)]");
+    expect(tools.className).toContain("min-w-0");
+    expect(tools.className).not.toContain("flex-wrap");
+  });
+
   test("with nothing to pick, Send keeps its word on every screen", () => {
     renderComposer({ sendLabel: "Send" });
 

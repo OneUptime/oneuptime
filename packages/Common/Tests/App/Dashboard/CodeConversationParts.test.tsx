@@ -1234,6 +1234,40 @@ describe("a task row", () => {
   });
 
   /*
+   * The UI review: on a phone a long repository name ran past the row and
+   * was clipped mid-word. A fact may now shrink to the line (never past it,
+   * the gap before it counted), and the name cuts itself short with "…",
+   * the whole of it on hover.
+   */
+  test("a long repository name ends in … within the row, the whole of it on hover", () => {
+    draw(
+      <ul>
+        <CodeTaskRow
+          task={summary({})}
+          repositoryName="checkout-and-payments-platform-api-service"
+        />
+      </ul>,
+    );
+
+    const repository: HTMLElement = screen.getByTestId(
+      "code-task-row-repository",
+    );
+    expect(repository).toHaveAttribute(
+      "title",
+      "checkout-and-payments-platform-api-service",
+    );
+    expect(repository.className).toContain("min-w-0");
+    const name: Element | null = repository.querySelector("span.truncate");
+    expect(name).toHaveTextContent(
+      "checkout-and-payments-platform-api-service",
+    );
+
+    const fact: HTMLElement = repository.parentElement!;
+    expect(fact.className).toContain("min-w-0");
+    expect(fact.className).toContain("max-w-[calc(100%_-_0.75rem)]");
+  });
+
+  /*
    * The UI review: a row across repositories drew GitHub's mark twice -
    * before its repository and before its pull request. The pull request
    * now has the pull request mark, as GitHub draws one.

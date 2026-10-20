@@ -297,10 +297,11 @@ export const CodeTaskRow: FunctionComponent<{
       <span
         key="repository"
         data-testid="code-task-row-repository"
+        title={props.repositoryName}
         className="inline-flex min-w-0 items-center gap-1 text-gray-600"
       >
         <GitHubMark className="h-3 w-3 flex-shrink-0 text-gray-400" />
-        {props.repositoryName}
+        <span className="truncate">{props.repositoryName}</span>
       </span>,
     );
   }

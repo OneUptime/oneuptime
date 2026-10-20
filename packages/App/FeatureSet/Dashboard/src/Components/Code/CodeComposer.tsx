@@ -335,11 +335,13 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
 
         {/*
          * Add context and what the request goes to on the left, Send on the
-         * right. Names too long for one line wrap, Send still at the right.
+         * right - one line on any screen: names too long for it are cut
+         * short with "…" (each picker says its whole name on hover and in
+         * its list) rather than pushing Send onto a line of its own.
          */}
         <div
           data-testid="code-composer-toolbar"
-          className="flex flex-wrap items-center gap-1 px-2 pb-2 pt-1"
+          className="flex items-center gap-1 px-2 pb-2 pt-1"
         >
           <MoreMenu
             isDisabled={isContextLocked}
@@ -378,9 +380,14 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
           </MoreMenu>
 
           {props.tools ? (
+            /*
+             * Columns that share a short row fairly: each grows toward its
+             * whole name in turn, so a short one ("main") stays whole while
+             * a long one gives up the room.
+             */
             <div
               data-testid="code-composer-tools"
-              className="flex min-w-0 flex-wrap items-center gap-1"
+              className="grid min-w-0 auto-cols-[minmax(0,max-content)] grid-flow-col items-center gap-1"
             >
               {props.tools}
             </div>

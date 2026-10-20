@@ -2,16 +2,17 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 /*
- * Code - the repositories first, a repository's page where AI is asked, and
- * a task's conversation - in real Chromium, with no backend:
+ * Code - its first page (the request box, the repository and branch picked
+ * in it, every task under it), Repositories, a repository's page where AI
+ * is asked, and a task's conversation - in real Chromium, with no backend:
  * Code/Fixture/server.js bundles the production route group (its layouts,
  * side menus and breadcrumbs) over an in-memory Code server whose AI takes
  * each new turn through Queued, Running and Done as the page polls. What
  * jsdom cannot show is checked here: asking with context through the real
- * dialogs and pickers, a task's conversation filling in as the AI works,
- * replying and stopping, the old Tasks and Code Repositories addresses
- * forwarding, a phone (no sideways scroll, the composer within reach),
- * dark mode and German.
+ * dialogs and pickers, the box's bottom row staying one line, a task's
+ * conversation filling in as the AI works, replying and stopping, the old
+ * Tasks and Code Repositories addresses forwarding, a phone (no sideways
+ * scroll, the composer within reach), dark mode and German.
  */
 const port: string = process.env["CODE_FIXTURE_PORT"] || "4366";
 

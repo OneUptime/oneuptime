@@ -964,6 +964,86 @@ describe("Code's first page: the question, one box, and every task", () => {
     expect(createTaskMock).not.toHaveBeenCalled();
   });
 
+  /*
+   * Found in the UI review: a read of the repository picked that failed
+   * (a dropped connection) left the box waiting for good - Start task and
+   * the branch shut, and nothing said why. A failed read now ends the
+   * waiting: the box sends, and the server says what stops a request.
+   */
+  test("a repository whose read fails does not hold the box shut: it sends, and the server answers", async () => {
+    repositoriesAre([CHECKOUT]);
+    getRepositoryMock.mockRejectedValue(
+      new HTTPErrorResponse(
+        500,
+        { message: "The repository could not be read right now." },
+        {},
+      ) as never,
+    );
+    listTasksMock.mockResolvedValue(tasksAnswer([summary()]) as never);
+    createTaskMock.mockResolvedValue(NEW_TASK_ID as never);
+
+    draw(<CodePage {...PAGE_PROPS} />);
+
+    const input: HTMLElement = await screen.findByTestId("code-composer-input");
+    await waitFor(() => {
+      expect(getRepositoryMock).toHaveBeenCalledWith(REPOSITORY_ID);
+    });
+    // The branch can be picked again, where GitHub reaches the repository.
+    await waitFor(() => {
+      expect(screen.getByTestId("code-branch-picker-button")).toBeEnabled();
+    });
+    // Nothing stops it as far as the page knows: no notice is made up.
+    expect(screen.queryByTestId("code-composer-notice")).toBeNull();
+
+    await userEvent.type(input, "Add retries{Enter}");
+
+    await waitFor(() => {
+      expect(createTaskMock).toHaveBeenCalledTimes(1);
+    });
+    expect(createTaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        repositoryId: REPOSITORY_ID,
+        message: "Add retries",
+      }),
+    );
+  });
+
+  test("a read that fails for one repository does not open the box for the next one still being read", async () => {
+    repositoriesAre([CHECKOUT, STOREFRONT]);
+    getRepositoryMock.mockImplementation(((id: string) => {
+      return id === REPOSITORY_ID
+        ? Promise.reject(
+            new HTTPErrorResponse(500, { message: "Unavailable." }, {}),
+          )
+        : new Promise(() => {});
+    }) as never);
+    listTasksMock.mockResolvedValue(tasksAnswer([summary()]) as never);
+
+    draw(<CodePage {...PAGE_PROPS} />);
+
+    await userEvent.type(
+      await screen.findByTestId("code-composer-input"),
+      "Add retries",
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("code-composer-send")).toBeEnabled();
+    });
+
+    // Another repository, still being read: the box waits for it.
+    await userEvent.click(screen.getByTestId("code-repository-picker-button"));
+    await userEvent.click(
+      within(screen.getByTestId("code-repository-picker-menu"))
+        .getAllByTestId("code-repository-picker-option")
+        .find((option: HTMLElement) => {
+          return option.textContent?.includes("storefront-web");
+        })!,
+    );
+    await waitFor(() => {
+      expect(getRepositoryMock).toHaveBeenCalledWith(OTHER_REPOSITORY_ID);
+    });
+    expect(screen.getByTestId("code-composer-send")).toBeDisabled();
+  });
+
   test("no repository yet: what Code is for, and the one thing to do", async () => {
     repositoriesAre([]);
 

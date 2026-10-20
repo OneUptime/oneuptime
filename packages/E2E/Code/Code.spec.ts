@@ -264,6 +264,12 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
     await expect(retries.getByTestId("code-task-row-changes")).toHaveText(
       "+27−1",
     );
+    // Its pull request beside the pull request mark - GitHub's is the repository's.
+    await expect(
+      retries
+        .getByTestId("code-task-row-pull-request")
+        .getByTestId("code-pull-request-mark"),
+    ).toBeVisible();
     await expect(page.getByTestId("code-tasks-count")).toHaveText("6");
 
     // The box sits above the fold, the first thing on the page.
@@ -278,6 +284,169 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
 
     await retries.getByRole("link").click();
     await expect(page).toHaveURL(taskPath(TASK.retries));
+  });
+
+  /*
+   * The UI review: in German at 1280 the Enter hint took the room Start
+   * task needed and pushed it onto a second line; on a phone, Start task
+   * always sat on a line of its own under the pickers. The row is now one
+   * line: the hint shows only where it fits, and beside the pickers a
+   * phone's Send is its arrow.
+   */
+  test("the box's bottom row stays one line - in German too - and says how to send only where it fits", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // Add context, the pickers and Start task share one line.
+    const expectOneLine: () => Promise<void> = async (): Promise<void> => {
+      const addContext: { y: number; height: number } | null = await page
+        .getByTestId("code-add-context")
+        .boundingBox();
+      const send: { y: number; height: number } | null =
+        await sendButton(page).boundingBox();
+      expect(
+        Math.abs(
+          addContext!.y + addContext!.height / 2 - (send!.y + send!.height / 2),
+        ),
+      ).toBeLessThan(4);
+    };
+    // The hint lies wholly in its room: shown, not wrapped out of sight.
+    const isHintShown: () => Promise<boolean> = async (): Promise<boolean> => {
+      return await page
+        .getByTestId("code-composer-keys")
+        .evaluate((element: Element): boolean => {
+          const room: DOMRect =
+            element.parentElement!.parentElement!.getBoundingClientRect();
+          const hint: DOMRect = element.getBoundingClientRect();
+          return (
+            hint.width > 0 &&
+            hint.top >= room.top - 1 &&
+            hint.bottom <= room.bottom + 1
+          );
+        });
+    };
+
+    await openCode(page);
+    await expect(page.getByTestId("code-task-row").first()).toBeVisible();
+    await expectOneLine();
+    if (isPhone(testInfo)) {
+      // Beside the pickers, Send is its arrow - still named for a screen reader.
+      await expect(sendButton(page)).toHaveAccessibleName("Start task");
+      const send: { width: number } | null =
+        await sendButton(page).boundingBox();
+      expect(send!.width).toBeLessThanOrEqual(34);
+      // A phone has no Enter to tell about.
+      await expect(page.getByTestId("code-composer-keys")).toBeHidden();
+    } else {
+      expect(await isHintShown()).toBe(true);
+    }
+
+    await openCode(page, "lang=de");
+    await expect(sendButton(page)).toHaveAccessibleName("Aufgabe starten");
+    await expectOneLine();
+    if (!isPhone(testInfo)) {
+      // German's hint has no room beside Aufgabe starten: it hides, never wraps it.
+      expect(await isHintShown()).toBe(false);
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-home-german");
+  });
+
+  /*
+   * The UI review: a long repository name (or branch) wrapped the box's
+   * bottom row onto four lines on a phone, and when it shrank, "main" was
+   * cut to "m" alongside it; in a task's row the name was clipped mid-word.
+   * The row stays one line, the room is shared fairly (a short name stays
+   * whole), and a long name ends in "…".
+   */
+  test("long names are cut short with … - a short branch stays whole - and the bottom row stays one line", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const isCutShort: (locator: Locator) => Promise<boolean> = async (
+      locator: Locator,
+    ): Promise<boolean> => {
+      return await locator.evaluate((element: Element): boolean => {
+        return (
+          element.scrollWidth > element.clientWidth &&
+          window.getComputedStyle(element).textOverflow === "ellipsis"
+        );
+      });
+    };
+    const isWhole: (locator: Locator) => Promise<boolean> = async (
+      locator: Locator,
+    ): Promise<boolean> => {
+      return await locator.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      });
+    };
+    const expectOneLine: () => Promise<void> = async (): Promise<void> => {
+      const centre: (testId: string) => Promise<number> = async (
+        testId: string,
+      ): Promise<number> => {
+        const box: { y: number; height: number } | null = await page
+          .getByTestId(testId)
+          .boundingBox();
+        return box!.y + box!.height / 2;
+      };
+      const addContext: number = await centre("code-add-context");
+      for (const testId of [
+        "code-repository-picker-button",
+        "code-branch-picker-button",
+        "code-composer-send",
+      ]) {
+        expect(Math.abs((await centre(testId)) - addContext)).toBeLessThan(4);
+      }
+    };
+
+    await openCode(page, "names=long");
+    const repository: Locator = page.getByTestId(
+      "code-repository-picker-value",
+    );
+    await expect(repository).toHaveText(
+      "checkout-and-payments-platform-api-service",
+    );
+    // The whole name on hover; the button holds it cut short.
+    await expect(
+      page.getByTestId("code-repository-picker-button"),
+    ).toHaveAttribute("title", "checkout-and-payments-platform-api-service");
+    expect(await isCutShort(repository)).toBe(true);
+    await expect(page.getByTestId("code-branch-picker-value")).toHaveText(
+      "main",
+    );
+    expect(await isWhole(page.getByTestId("code-branch-picker-value"))).toBe(
+      true,
+    );
+    await expectOneLine();
+
+    // A long branch too: both cut short, the row still one line.
+    await page.getByTestId("code-branch-picker-button").click();
+    await page
+      .getByTestId("code-branch-picker-option")
+      .filter({ hasText: "feature/very-long-branch-name" })
+      .click();
+    await expect(page.getByTestId("code-branch-picker-value")).toHaveText(
+      "feature/very-long-branch-name-for-the-new-checkout-flow-with-apple-pay",
+    );
+    expect(await isCutShort(page.getByTestId("code-branch-picker-value"))).toBe(
+      true,
+    );
+    await expectOneLine();
+
+    // A task's row: its repository's name ends in … where the row is narrow.
+    const name: Locator = page
+      .getByTestId("code-task-row")
+      .first()
+      .getByTestId("code-task-row-repository")
+      .locator("span.truncate");
+    await expect(name).toHaveText("checkout-and-payments-platform-api-service");
+    if (isPhone(testInfo)) {
+      expect(await isCutShort(name)).toBe(true);
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-home-long-names");
   });
 
   test("picking a repository and a branch, then asking, starts the task there - from that branch", async ({
@@ -710,6 +879,68 @@ test.describe("Code's Repositories", () => {
     await expect(page.getByTestId("code-ask")).toBeVisible();
   });
 
+  /*
+   * The UI review: from sm up a row's chips and facts sat beside its name
+   * and took its room - in German "checkout-api" was cut to "checkout-…".
+   * The name now has its line, its facts under it, and what needs someone
+   * sits at the row's end (on a phone, between the name and the facts).
+   */
+  test("in German a repository keeps its whole name, its facts under it and what needs someone at the row's end", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "lang=de");
+
+    const checkout: Locator = page.getByTestId("code-repository-row").first();
+    const name: Locator = checkout.getByTestId("code-repository-name");
+    await expect(name).toHaveText("checkout-api");
+    expect(
+      await name.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      }),
+    ).toBe(true);
+
+    const nameBox: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = await name.boundingBox();
+    const statsBox: { y: number } | null = await checkout
+      .getByTestId("code-repository-stats")
+      .boundingBox();
+    const chipsBox: { x: number; y: number } | null = await checkout
+      .getByTestId("code-repository-attention")
+      .boundingBox();
+    // The facts sit under the name.
+    expect(statsBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+    if (isPhone(testInfo)) {
+      // What needs someone first: between the name and the facts.
+      expect(chipsBox!.y).toBeGreaterThan(nameBox!.y);
+      expect(chipsBox!.y).toBeLessThan(statsBox!.y);
+    } else {
+      // At the row's end, past the name - and the description reads whole.
+      expect(chipsBox!.x).toBeGreaterThan(nameBox!.x + nameBox!.width);
+      expect(
+        await checkout
+          .getByTestId("code-repository-row-description")
+          .evaluate((element: Element): boolean => {
+            return element.scrollWidth <= element.clientWidth;
+          }),
+      ).toBe(true);
+    }
+    // Its open pull requests beside the pull request mark.
+    await expect(
+      checkout
+        .getByTestId("code-repository-stats")
+        .getByTestId("code-pull-request-mark"),
+    ).toBeVisible();
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-german");
+  });
+
   test("Connect repositories starts GitHub's install", async ({
     page,
   }: {
@@ -843,6 +1074,45 @@ test.describe("a repository's page: ask AI", () => {
 
     await rows.nth(1).getByRole("link").click();
     await expect(page).toHaveURL(taskPath(TASK.retries));
+  });
+
+  /*
+   * The UI review: Repositories became a page, and a repository's trail -
+   * Project > Code > Repository > Settings - sent its "Repository" crumb to
+   * that list, unnamed. The trail now runs through Repositories, each
+   * crumb opening the page above.
+   */
+  test("a repository's trail runs through Repositories and names the repository", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${repositoryPath(REPOSITORY.checkout)}/settings`);
+
+    const trail: Locator = page.locator("nav[aria-label='Breadcrumb']");
+    const crumbs: Locator = trail.locator("li.breadcrumb-item");
+    await expect(crumbs).toHaveText([
+      "Project",
+      "Code",
+      "Repositories",
+      "checkout-api",
+      "Settings",
+    ]);
+
+    await trail.getByRole("link", { name: "checkout-api" }).click();
+    await expect(page).toHaveURL(repositoryPath(REPOSITORY.checkout));
+    await expect(crumbs).toHaveText([
+      "Project",
+      "Code",
+      "Repositories",
+      "checkout-api",
+    ]);
+
+    await trail.getByRole("link", { name: "Repositories" }).click();
+    await expect(page).toHaveURL(`${CODE}/repositories`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Repositories",
+    );
   });
 
   test("a repository with no task yet offers examples, and one fills the request box", async ({
@@ -2022,6 +2292,39 @@ test.describe("dark mode and other languages", () => {
     };
     expect(await lightSurfaces()).toEqual([]);
 
+    /*
+     * The UI review: Theme.css re-coloured a spinner's track with
+     * border-color, which painted its arc too - the Working mark was one
+     * colour all round and did not look like it turned. Its arc now keeps a
+     * colour of its own.
+     */
+    const ringColours: (spinner: Locator) => Promise<{
+      top: string;
+      left: string;
+    }> = async (spinner: Locator): Promise<{ top: string; left: string }> => {
+      return await spinner.evaluate(
+        (element: Element): { top: string; left: string } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
+          return { top: style.borderTopColor, left: style.borderLeftColor };
+        },
+      );
+    };
+    const workingMark: { top: string; left: string } = await ringColours(
+      page
+        .getByTestId("code-task-row")
+        .first()
+        .getByTestId("code-task-state")
+        .locator("span")
+        .first(),
+    );
+    expect(workingMark.top).not.toBe(workingMark.left);
+
+    await openTask(page, TASK.working, "theme=dark");
+    const liveStep: { top: string; left: string } = await ringColours(
+      page.getByTestId("code-task-steps-working").locator("span").first(),
+    );
+    expect(liveStep.top).not.toBe(liveStep.left);
+
     await page.goto(`${CODE}/repositories?theme=dark`);
     await expect(page.getByTestId("code-repository-row").first()).toBeVisible();
     expect(await lightSurfaces()).toEqual([]);
@@ -2085,6 +2388,15 @@ test.describe("dark mode and other languages", () => {
     await expect(page.getByTestId("code-task-steps-toggle").first()).toHaveText(
       "7 Schritte · 2 Dateien gelesen · 2 Dateien bearbeitet · 1 Befehl ausgeführt",
     );
+    // A summary that wraps on a phone reads on from the left, not centred.
+    expect(
+      await page
+        .getByTestId("code-task-steps-toggle")
+        .first()
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).textAlign;
+        }),
+    ).toBe("left");
     await expect(
       page.getByTestId("code-turn-pull-request").first(),
     ).toContainText("Pull Request #418 geöffnet");
