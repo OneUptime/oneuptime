@@ -214,10 +214,27 @@ export default class LLMCallTelemetry {
     }
 
     if (data.usage) {
+      /*
+       * As the conventions count them: the input count is every input token,
+       * the cached ones included (LLMUsage.promptTokens), and the cache
+       * counts say how many of them the provider's prompt cache served or
+       * took - so OneUptime's AI / LLM observability prices them at the
+       * provider's cache rates, not as fresh input.
+       */
       attributes["gen_ai.usage.input_tokens"] = data.usage.promptTokens || 0;
       attributes["gen_ai.usage.output_tokens"] =
         data.usage.completionTokens || 0;
       attributes["gen_ai.usage.total_tokens"] = data.usage.totalTokens || 0;
+
+      if (data.usage.cachedInputTokens) {
+        attributes["gen_ai.usage.cache_read.input_tokens"] =
+          data.usage.cachedInputTokens;
+      }
+
+      if (data.usage.cacheCreationTokens) {
+        attributes["gen_ai.usage.cache_creation.input_tokens"] =
+          data.usage.cacheCreationTokens;
+      }
     }
 
     if (data.costInUSDCents) {

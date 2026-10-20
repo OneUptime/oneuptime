@@ -861,6 +861,85 @@ describe("ChatAgentRunner.runTurn — conversation titles", () => {
   });
 });
 
+/*
+ * Issue #5073: a turn's tokens - the "N tokens" under an Ask AI answer and
+ * the AIRun row - count each call as OneUptime counts it (AiTokenCount): a
+ * token read from the provider's prompt cache is a tenth of a token, a token
+ * written to it one and a quarter, as in the AI Logs and the daily limits.
+ */
+describe("ChatAgentRunner.runTurn — a turn's tokens are counted by what they cost", () => {
+  function cachedResponse(data: {
+    content: string;
+    stopReason?: string;
+    llmLog: JSONObject;
+  }): AILogResponse {
+    return {
+      content: data.content,
+      toolCalls: undefined,
+      stopReason: data.stopReason,
+      llmLog: data.llmLog,
+    } as unknown as AILogResponse;
+  }
+
+  test("an answer finished in a second call counts both calls as counted, and their cost as billed", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        cachedResponse({
+          content: "Checkout is failing because",
+          stopReason: "length",
+          // 28,496 tokens, 20,654 of them read from the cache: 9,908 counted.
+          llmLog: {
+            totalTokens: 28_496,
+            cachedInputTokens: 20_654,
+            cacheCreationTokens: 0,
+            costInUSDCents: 5,
+          },
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        cachedResponse({
+          content: " the payments database refuses connections.",
+          stopReason: "stop",
+          // 1,000 tokens, 800 of them written to the cache: 1,200 counted.
+          llmLog: {
+            totalTokens: 1_000,
+            cachedInputTokens: 0,
+            cacheCreationTokens: 800,
+            costInUSDCents: 1,
+          },
+        }) as never,
+      );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    expect(spies.executeWithLogging).toHaveBeenCalledTimes(2);
+
+    const completed: JSONObject | undefined = findCallWithDataKey(
+      spies.runUpdateOneBy,
+      "totalTokens",
+    );
+
+    expect(completed).toBeDefined();
+    expect(completed!["totalTokens"]).toBe(9_908 + 1_200);
+    expect(completed!["totalCostInUSDCents"]).toBe(6);
+  });
+
+  test("calls that used no cache count every token, as before", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    expect(spies.executeWithLogging).toHaveBeenCalledTimes(1);
+    expect(
+      findCallWithDataKey(spies.runUpdateOneBy, "totalTokens")!["totalTokens"],
+    ).toBe(10);
+  });
+});
+
 describe("ChatAgentRunner.runTurn — one chat is one conversation in OneUptime's own telemetry", () => {
   test("every call of a turn, the title's included, names the chat's conversation", async () => {
     const firstUserMessage: AIConversationMessage = buildHistoryMessage({

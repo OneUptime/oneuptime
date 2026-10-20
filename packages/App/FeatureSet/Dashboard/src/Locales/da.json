@@ -21751,8 +21751,8 @@
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} phone numbers route calls to this policy.",
   "{{count}} phone numbers route calls to this policy._one": "{{count}} phone number routes calls to this policy.",
-  "{{count}} queries": "{{count}} queries",
-  "{{count}} queries_one": "{{count}} query",
+  "{{count}} queries": "{{count}} forespørgsler",
+  "{{count}} queries_one": "{{count}} forespørgsel",
   "{{count}} required fields still empty": "{{count}} required fields still empty",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
   "{{count}} resources are not on the grid": "{{count}} resources are not on the grid",
@@ -31987,5 +31987,10 @@
   "Production Check": "Produktionstjek",
   "Still happening after the fix": "Sker stadig efter rettelsen",
   "Still slow after the fix": "Stadig langsom efter rettelsen",
-  "Telemetry stopped after the fix": "Telemetri stoppede efter rettelsen"
+  "Telemetry stopped after the fix": "Telemetri stoppede efter rettelsen",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Som de tæller med i projektets daglige AI-grænser: et token, som udbyderen læste fra sin prompt-cache, tæller som en tiendedel token, og et token, der blev skrevet til den cache, som en og en kvart.",
+  "{{count}} from cache": "{{count}} fra cachen",
+  "{{count}} from cache_one": "{{count}} fra cachen",
+  "{{count}} written to cache": "{{count}} skrevet til cachen",
+  "{{count}} written to cache_one": "{{count}} skrevet til cachen"
 }

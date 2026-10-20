@@ -27,6 +27,7 @@ import {
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
 import AIAgentRunLimitsHelper from "../../../../Types/AI/AIAgentRunLimits";
+import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -326,11 +327,14 @@ export default class ObservabilityAssistant {
       });
 
       llmCallCount++;
-      totalTokens += response.llmLog.totalTokens || 0;
+
+      // As OneUptime counts them: cached tokens weigh what they cost.
+      const callTokens: number = AiTokenCount.count(response.llmLog);
+      totalTokens += callTokens;
 
       await emitStep({
         type: "llm_completed",
-        totalTokens: response.llmLog.totalTokens || 0,
+        totalTokens: callTokens,
       });
 
       if (!providerName) {

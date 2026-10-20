@@ -21751,7 +21751,7 @@
   "{{count}} people have asked in this conversation_one": "{{count}} person has asked in this conversation",
   "{{count}} phone numbers route calls to this policy.": "{{count}} phone numbers route calls to this policy.",
   "{{count}} phone numbers route calls to this policy._one": "{{count}} phone number routes calls to this policy.",
-  "{{count}} queries": "{{count}} queries",
+  "{{count}} queries": "{{count}} query's",
   "{{count}} queries_one": "{{count}} query",
   "{{count}} required fields still empty": "{{count}} required fields still empty",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
@@ -31987,5 +31987,10 @@
   "Production Check": "Productiecontrole",
   "Still happening after the fix": "Komt nog steeds voor na de fix",
   "Still slow after the fix": "Nog steeds traag na de fix",
-  "Telemetry stopped after the fix": "Telemetrie gestopt na de fix"
+  "Telemetry stopped after the fix": "Telemetrie gestopt na de fix",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "Zoals ze meetellen voor de dagelijkse AI-limieten van het project: een token dat de provider uit zijn promptcache las, telt als een tiende token, en een token dat in die cache werd geschreven als één en een kwart.",
+  "{{count}} from cache": "{{count}} uit de cache",
+  "{{count}} from cache_one": "{{count}} uit de cache",
+  "{{count}} written to cache": "{{count}} in de cache geschreven",
+  "{{count}} written to cache_one": "{{count}} in de cache geschreven"
 }

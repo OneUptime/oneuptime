@@ -31987,5 +31987,10 @@
   "Production Check": "本番環境チェック",
   "Still happening after the fix": "修正後も発生している",
   "Still slow after the fix": "修正後も遅いまま",
-  "Telemetry stopped after the fix": "修正後にテレメトリが途絶"
+  "Telemetry stopped after the fix": "修正後にテレメトリが途絶",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "プロジェクトの 1 日あたりの AI 上限に数えられる量です。プロバイダーがプロンプトキャッシュから読んだトークンは 10 分の 1 トークン、そのキャッシュに書き込まれたトークンは 1.25 トークンとして数えます。",
+  "{{count}} from cache": "キャッシュから {{count}}",
+  "{{count}} from cache_one": "キャッシュから {{count}}",
+  "{{count}} written to cache": "キャッシュへの書き込み {{count}}",
+  "{{count}} written to cache_one": "キャッシュへの書き込み {{count}}"
 }

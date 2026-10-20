@@ -31987,5 +31987,10 @@
   "Production Check": "Production Check",
   "Still happening after the fix": "Still happening after the fix",
   "Still slow after the fix": "Still slow after the fix",
-  "Telemetry stopped after the fix": "Telemetry stopped after the fix"
+  "Telemetry stopped after the fix": "Telemetry stopped after the fix",
+  "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.": "As counted toward the project's daily AI limits: a token the provider read from its prompt cache counts as a tenth of a token, and a token written to that cache as one and a quarter.",
+  "{{count}} from cache": "{{count}} from cache",
+  "{{count}} from cache_one": "{{count}} from cache",
+  "{{count}} written to cache": "{{count}} written to cache",
+  "{{count}} written to cache_one": "{{count}} written to cache"
 }

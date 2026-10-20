@@ -153,6 +153,8 @@ Claude Opus 4.7과 그 이후의 모든 Claude 모델은 샘플링을 스스로 
 
 Claude 5 모델은 답하기 전에 생각하며, 그 생각은 답변의 토큰 한도에 포함되므로 OneUptime은 그만큼 여유를 남깁니다. 생각을 줄여 더 빠르고 저렴하게 답하게 하려면 공급자의 **추가 매개변수** 에 `{"output_config": {"effort": "low"}}` 를 설정하세요. OneUptime은 그곳에 추가한 설정을 모든 요청과 함께 Anthropic에 보내지만, `model`, `messages`, `system`, `tools`, `tool_choice`, `stream` 은 OneUptime이 직접 설정하므로 제외합니다.
 
+OneUptime은 Anthropic의 프롬프트 캐싱을 사용합니다. 조사나 AI에게 질문 답변의 각 호출은 시스템 프롬프트, 도구, 지금까지의 대화를 다시 보내고, OneUptime은 이를 캐시 대상으로 표시합니다: 호출은 이전 호출이 보낸 부분에 대해 가격의 10분의 1 이하를, 새로운 부분에 대해서는 가격보다 4분의 1 더 많이 내며, 새로운 부분은 캐시에 기록됩니다. Claude 앞의 게이트웨이가 캐시 표시를 거부하면, OneUptime은 표시 없이 요청을 다시 보내고 그 사실을 공급자별로 기억합니다. [토큰을 세는 방법](/docs/ai/ai-sre#토큰을-세는-방법)에서 캐시된 토큰이 한도에 어떻게 계산되는지 설명합니다.
+
 ### Azure OpenAI와 Microsoft Foundry
 
 Microsoft Foundry나 Azure OpenAI에 배포한 모델(OpenAI 모델, 그 밖의 Foundry Models, Claude)에는 **Azure OpenAI / Microsoft Foundry** 를 사용합니다. 리소스의 키 중 하나를 **API 키** 로, 배포 이름을 **모델 이름** 으로, 리소스의 엔드포인트를 **기본 URL** 로 입력합니다. 예: `https://contoso-ai.openai.azure.com/openai/v1`. [Microsoft Foundry와 Azure OpenAI](/docs/ai/microsoft-foundry)에서 리소스, 권한, 모델 배포, 네트워크 요구 사항, 문제 해결 등 Azure 쪽 설정을 안내합니다.

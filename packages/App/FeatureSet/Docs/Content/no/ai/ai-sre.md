@@ -382,6 +382,12 @@ De er slått sammen under **Flere innstillinger** nederst på hver signaltypes s
 
 KI-arbeid utenfor hendelser og varsler (triage av innsikt, og rettingsoppgaver for unntak, innsikt og ytelsesregresjoner) har ingen egen innstilling og ingen av grensene i tabellen; bare prosjektets egne daglige grenser (nedenfor) gjelder for det. Pull-forespørslene teller mot et repositorys **Max Open Fix Pull Requests** (på repositoryets side **Innstillinger**) så snart du setter en; ikke satt betyr ikke noe tak, og 0 blokkerer KI-pull-forespørsler med rettelser for det repositoryet.
 
+### Slik telles tokener
+
+Hver tokengrense på denne siden teller tokenene i et kall etter hva de koster, og det samme gjør AI-loggene og, på OneUptime Cloud, AI-kredittene. En token modellen leser for første gang, og hver token den skriver, teller som én. En undersøkelse eller et svar fra Spør AI består av mange kall, og hvert kall sender hele samtalen på nytt: leverandøren leverer den delen den allerede har sett, fra sin prompt-cache, til en brøkdel av prisen. En token som leses fra den cachen, teller som en tidel token, og en token som skrives til den, som en og en kvart.
+
+AI-loggene (**Prosjektinnstillinger → KI → AI-logger**) viser hvert kall med tokenene som teller og, under dem, hvor mange tokener det brukte totalt og hvor mange av dem som kom fra cachen eller ble skrevet til den. Med Anthropic, Claude i Microsoft Foundry inkludert, merker OneUptime systemprompten, verktøyene og samtalen for cachen, slik at hvert kall i en undersøkelse leser alt før sine nyeste verktøyresultater fra den. OpenAI og Azure OpenAI cacher en gjentatt prompt på egen hånd.
+
 ### Prosjektets egne daglige grenser
 
 Over alle grensene i tabellen kan et prosjekt sette et tak på hva OneUptime AI bruker på et døgn, uansett hva den gjør: Spør AI, undersøkelser, utkast til etteranalyser, pull-forespørsler med rettelser, triage av innsikt, workflows, runbooks og spørsmål i Slack eller Microsoft Teams, alt sammen. Grensene ligger på **Prosjektinnstillinger → KI → AI Features**, slått sammen under **Flere innstillinger**, i delen **Daglige grenser**:

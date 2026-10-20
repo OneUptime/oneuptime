@@ -153,6 +153,8 @@ Claude Opus 4.7 以降のすべての Claude モデルは、サンプリング�
 
 Claude 5 のモデルは回答の前に思考し、その思考は回答のトークン上限に数えられるため、OneUptime はその分の余裕を残します。思考を減らして、より速く安く回答させるには、プロバイダーの **追加パラメーター** に `{"output_config": {"effort": "low"}}` を設定します。OneUptime はそこに追加した設定をリクエストのたびに Anthropic へ送りますが、`model`、`messages`、`system`、`tools`、`tool_choice`、`stream` は OneUptime 自身が設定するため除きます。
 
+OneUptime は Anthropic のプロンプトキャッシュを使います。調査や AI に質問の回答の各呼び出しは、システムプロンプト、ツール、それまでの会話を送り直し、OneUptime はそれらをキャッシュの対象として示します: 呼び出しは、それより前の呼び出しが送った部分には 10 分の 1 以下の料金を、新しい部分には料金の 4 分の 1 増しを支払い、新しい部分はキャッシュに書き込まれます。 Claude の前にあるゲートウェイがキャッシュの印を拒否した場合、OneUptime は印を付けずにリクエストを送り直し、そのことをプロバイダーごとに記憶します。[トークンの数え方](/docs/ai/ai-sre#トークンの数え方) では、キャッシュされたトークンが上限にどう数えられるかを説明しています。
+
 ### Azure OpenAI と Microsoft Foundry
 
 Microsoft Foundry または Azure OpenAI にデプロイしたモデル(OpenAI モデル、その他の Foundry Models、Claude)には **Azure OpenAI / Microsoft Foundry** を使います。リソースのキーの一つを **API キー** に、デプロイの名前を **モデル名** に、リソースのエンドポイントを **ベース URL** に入力します。たとえば `https://contoso-ai.openai.azure.com/openai/v1` です。[Microsoft Foundry と Azure OpenAI](/docs/ai/microsoft-foundry) では、リソース、権限、モデルのデプロイ、ネットワーク要件、トラブルシューティングなど、Azure 側の手順を説明しています。

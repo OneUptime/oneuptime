@@ -382,6 +382,12 @@ De är hopfällda under **Fler inställningar** längst ned på varje signaltyps
 
 AI-arbete utanför incidenter och larm (triage av insikter, och åtgärdsuppgifter för undantag, insikter och prestandaregressioner) har ingen egen inställning och ingen av gränserna i tabellen; bara projektets egna dagliga gränser (nedan) gäller för det. Dess pull-förfrågningar räknas mot ett repositorys **Max Open Fix Pull Requests** (på repositoryts sida **Inställningar**) så snart du anger ett; inte angivet betyder inget tak, och 0 blockerar AI-pull-förfrågningar med korrigeringar för det repositoryt.
 
+### Så räknas tokens
+
+Varje tokengräns på den här sidan räknar ett anrops tokens efter vad de kostar, och det gör även AI-loggarna och, på OneUptime Cloud, AI-krediterna. En token som modellen läser för första gången, och varje token den skriver, räknas som en. En utredning eller ett svar från Fråga AI består av många anrop, och varje anrop skickar hela konversationen igen: leverantören levererar den del den redan har sett från sin promptcache, till en bråkdel av priset. En token som läses från den cachen räknas som en tiondels token, och en token som skrivs till den som en och en kvarts.
+
+AI-loggarna (**Projektinställningar → AI → AI-loggar**) visar varje anrop med de tokens som räknas och, under dem, hur många tokens det använde totalt och hur många av dem som kom från cachen eller skrevs till den. Med Anthropic, Claude i Microsoft Foundry inräknat, markerar OneUptime systemprompten, verktygen och konversationen för cachen, så att varje anrop i en utredning läser allt före sina senaste verktygsresultat från den. OpenAI och Azure OpenAI cachar en upprepad prompt på egen hand.
+
 ### Projektets egna dagliga gränser
 
 Över varje gräns i tabellen kan ett projekt sätta ett tak för vad OneUptime AI förbrukar under ett dygn, oavsett vad den gör: Fråga AI, utredningar, utkast till efteranalyser, pull-förfrågningar med korrigeringar, triage av insikter, workflows, runbooks och frågor i Slack eller Microsoft Teams, allt lika. Gränserna finns på **Projektinställningar → AI → AI Features**, hopfällda under **Fler inställningar**, i dess avsnitt **Dagliga gränser**:
