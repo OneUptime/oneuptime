@@ -75,7 +75,7 @@ Você precisa de permissão para criar regras de taxa de consumo de SLO.
 :::steps
 ### Abrir Burn Rate Rules
 
-Abra o SLO, vá para **Burn Rate Rules** e clique em **Criar: SLO Burn Rate Rule**, ou edite uma das regras padrão.
+Abra o SLO, vá para **Burn Rate Rules** na seção **Regras** do menu lateral e clique em **Criar: SLO Burn Rate Rule**, ou edite uma das regras padrão.
 
 ### Dar um nome à regra
 

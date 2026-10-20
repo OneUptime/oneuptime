@@ -75,7 +75,7 @@ You need permission to create SLO burn rate rules.
 :::steps
 ### Open Burn Rate Rules
 
-Open the SLO, go to **Burn Rate Rules** and click **Create SLO Burn Rate Rule**, or edit one of the default rules.
+Open the SLO, go to **Burn Rate Rules** in the **Rules** section of its side menu, and click **Create SLO Burn Rate Rule**, or edit one of the default rules.
 
 ### Name the rule
 

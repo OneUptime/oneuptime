@@ -75,7 +75,7 @@ flowchart TB
 :::steps
 ### 打开 Burn Rate Rules
 
-打开 SLO，进入 **Burn Rate Rules**，点击 **创建SLO Burn Rate Rule**，或编辑一条默认规则。
+打开 SLO，在其侧边菜单的 **规则** 区块中进入 **Burn Rate Rules**，点击 **创建SLO Burn Rate Rule**，或编辑一条默认规则。
 
 ### 为规则命名
 

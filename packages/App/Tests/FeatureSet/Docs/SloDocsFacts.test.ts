@@ -624,7 +624,7 @@ describe("SLOs Overview, against the product", () => {
     );
   });
 
-  it("says where the Monitors and Monitor Rules pages sit in the side menu", () => {
+  it("says where the Monitors, Monitor Rules and Burn Rate Rules pages sit in the side menu", () => {
     const menu: string = readSource("sloViewSideMenu");
     const sections: Record<string, Array<string>> = {};
 
@@ -639,6 +639,16 @@ describe("SLOs Overview, against the product", () => {
     expect(sections["Rules"]).toContain("Monitor Rules");
     expect(englishPage(MONITOR_RULES)).toContain(
       "This page covers an SLO's **Monitors** page, under **Configuration** in its side menu, and its **Monitor Rules** page, under **Rules**.",
+    );
+
+    /*
+     * The rule form's first step sends the reader to Burn Rate Rules, which
+     * is folded away under Rules until opened: the step names the section,
+     * so the reader knows which title to click.
+     */
+    expect(sections["Rules"]).toContain("Burn Rate Rules");
+    expect(section(englishPage(BURN_RATE), "Open Burn Rate Rules")).toContain(
+      "go to **Burn Rate Rules** in the **Rules** section of its side menu",
     );
   });
 

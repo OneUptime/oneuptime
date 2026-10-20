@@ -75,7 +75,7 @@ Du behöver behörighet att skapa SLO-regler för förbrukningstakt.
 :::steps
 ### Öppna Burn Rate Rules
 
-Öppna SLO:et, gå till **Burn Rate Rules** och klicka på **Skapa SLO Burn Rate Rule**, eller redigera en av standardreglerna.
+Öppna SLO:et, gå till **Burn Rate Rules** i sektionen **Regler** i dess sidomeny och klicka på **Skapa SLO Burn Rate Rule**, eller redigera en av standardreglerna.
 
 ### Ge regeln ett namn
 
