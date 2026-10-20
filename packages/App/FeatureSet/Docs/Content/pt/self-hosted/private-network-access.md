@@ -115,7 +115,7 @@ Uma segunda proteção cobre as conexões de saída cujo destino um membro do pr
 - a descoberta OIDC para o login único
 - a verificação de domínios personalizados de páginas de status e dashboards
 - os passos HTTP de runbooks
-- a URL da API do Grafana OnCall da qual uma importação lê (**Configurações do projeto** > **Básico** > **Importar de outra ferramenta**)
+- a URL da API do Grafana OnCall da qual uma importação lê (**Configurações do projeto** > **Avançado** > **Importar de outra ferramenta**)
 
 Essa proteção funciona ao contrário das configurações de webhook. Numa instalação auto-hospedada, ela **permite** o nível privado por padrão, porque o banco de dados, o servidor de e-mail ou o servidor de modelos a que essas conexões se ligam costumam ficar na sua própria rede. O nível proibido – loopback, link-local e o endpoint de metadados da nuvem – é recusado de qualquer forma, e não há lista de permissões para ele.
 

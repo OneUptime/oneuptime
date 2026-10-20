@@ -37,7 +37,7 @@ La conexión inicia sesión con el [flujo de credenciales de cliente de OAuth 2.
 
 1. Inicia sesión en el [portal de Azure](https://portal.azure.com) y abre **Microsoft Entra ID**.
 2. Ve a **App registrations → New registration**. Llámala `OneUptime Security Events`, deja **Supported account types** en **Accounts in this organizational directory only**, deja vacío el URI de redirección y selecciona **Register**.
-3. En la página **Overview** de la aplicación, copia el **Application (client) ID** y el **Directory (tenant) ID**.
+3. En la página **Overview** de la aplicación, copia el **ID de aplicación (cliente)** y el **ID de directorio (tenant)**.
 
 ### Permitirle leer alertas
 
@@ -61,9 +61,9 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 
 | Ajuste | Dónde encontrarlo |
 | --- | --- |
-| **Directory (tenant) ID** | La página **Overview** de la aplicación. El GUID del inquilino, o un dominio verificado como `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | La página **Overview** de la aplicación. El GUID de la aplicación que tiene `SecurityAlert.Read.All`. |
-| **Nube** | **Azure public cloud**, que también sirve a Microsoft 365 GCC, o **Azure Government (US)** para GCC High (`login.microsoftonline.us` y `graph.microsoft.us`). Microsoft 365 DoD y la nube de 21Vianet en China no son compatibles. |
+| **ID de directorio (tenant)** | La página **Overview** de la aplicación. El GUID del inquilino, o un dominio verificado como `contoso.onmicrosoft.com`. |
+| **ID de aplicación (cliente)** | La página **Overview** de la aplicación. El GUID de la aplicación que tiene `SecurityAlert.Read.All`. |
+| **Nube** | **Nube pública de Azure**, que también sirve a Microsoft 365 GCC, o **Azure Government (EE. UU.)** para GCC High (`login.microsoftonline.us` y `graph.microsoft.us`). Microsoft 365 DoD y la nube de 21Vianet en China no son compatibles. |
 | **Secreto del cliente** | El **Value** del secreto. Se cifra, la API nunca lo devuelve y no se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado.
@@ -151,7 +151,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 :::details Último error empieza por `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID se negó a emitir un token, así que nunca se contactó con Graph. El mensaje termina con una pista, según el código `error` de Entra:
   - `invalid_client` (`AADSTS7000215`): el secreto es erróneo, ha caducado o pertenece a otra aplicación. Crea uno nuevo en **Certificates & secrets** y guárdalo con **Actualizar credenciales**.
-  - `unauthorized_client` (`AADSTS700016`): el **Application (client) ID** no está en ese **Directory (tenant) ID**, o **Nube** es errónea.
+  - `unauthorized_client` (`AADSTS700016`): el **ID de aplicación (cliente)** no está en ese **ID de directorio (tenant)**, o **Nube** es errónea.
   - `AADSTS90002`: ese inquilino no existe.
   - `invalid_scope`: el ámbito de Graph no existe en la nube que elegiste. Revisa **Nube**.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID respondió con algo inutilizable, un cuerpo que no es JSON o sin `access_token`. Suele ser un proxy o una pasarela en medio, no las credenciales.

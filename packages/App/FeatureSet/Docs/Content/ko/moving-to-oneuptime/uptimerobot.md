@@ -36,7 +36,7 @@ flowchart TB
 UptimeRobot에서 **Integrations & API** > **API**로 이동합니다. **Read-only API key**를 만들거나 이미 있는 키를 복사하세요.
 
 ### 가져오기 페이지 열기
-OneUptime에서 **프로젝트 설정** > **다른 도구에서 가져오기**로 이동해 **UptimeRobot**을(를) 선택합니다.
+OneUptime에서 **프로젝트 설정** > **고급** > **다른 도구에서 가져오기**로 이동해 **UptimeRobot**을(를) 선택합니다.
 
 ### UptimeRobot 연결하기
 키을(를) **UptimeRobot API 키**에 붙여 넣고 **내 UptimeRobot 계정 읽기**를 선택합니다. 큰 계정은 몇 분이 걸리며, 읽는 동안 페이지를 떠나도 됩니다.

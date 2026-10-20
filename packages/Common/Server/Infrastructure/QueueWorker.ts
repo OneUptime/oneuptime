@@ -2,6 +2,7 @@ import { QueueJob, QueueName } from "./Queue";
 import TimeoutException from "../../Types/Exception/TimeoutException";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { Worker } from "bullmq";
+import { ROOT_CONTEXT, context } from "@opentelemetry/api";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AppMetrics from "../Utils/Telemetry/AppMetrics";
 import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
@@ -75,9 +76,16 @@ export default class QueueWorker {
              * Wrap the job in an explicit root span so every background job has
              * a consistent, named trace root that carries the seeded context —
              * the @CaptureSpan service calls it makes become children of this.
+             *
+             * `root: true` makes it a new trace whatever context the job
+             * handler happens to run in. Without it the job joined the trace
+             * of whatever span was active when the worker was built (see
+             * below): every job the worker ran, for the life of the process,
+             * became one endless trace.
              */
             return Telemetry.startActiveSpan<Promise<void>>({
               name: `worker.job ${queueName}/${job.name || "unknown"}`,
+              options: { root: true },
               fn: async (span: Span): Promise<void> => {
                 try {
                   await onJobInQueue(job);
@@ -137,14 +145,24 @@ export default class QueueWorker {
       }
     };
 
-    const worker: Worker = new Worker(queueName, instrumentedJobHandler, {
-      connection: Redis.getRedisOptions(),
-      concurrency: options.concurrency,
-      // Only set these values if provided so we do not override BullMQ defaults
-      ...(options.lockDuration ? { lockDuration: options.lockDuration } : {}),
-      ...(options.maxStalledCount !== undefined
-        ? { maxStalledCount: options.maxStalledCount }
-        : {}),
+    /*
+     * Built outside every span. BullMQ starts its fetch loop in this
+     * constructor, so the loop - every job handler call, every "failed"
+     * listener and the log lines they write - runs in the context it was
+     * built in for the life of the process. That context holds this
+     * method's own span (and a caller's, when one starts a worker), so every
+     * job used to join the trace of a span that ended at startup.
+     */
+    const worker: Worker = context.with(ROOT_CONTEXT, () => {
+      return new Worker(queueName, instrumentedJobHandler, {
+        connection: Redis.getRedisOptions(),
+        concurrency: options.concurrency,
+        // Only set these values if provided so we do not override BullMQ defaults
+        ...(options.lockDuration ? { lockDuration: options.lockDuration } : {}),
+        ...(options.maxStalledCount !== undefined
+          ? { maxStalledCount: options.maxStalledCount }
+          : {}),
+      });
     });
 
     /*

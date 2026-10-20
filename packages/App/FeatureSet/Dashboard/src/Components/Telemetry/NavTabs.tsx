@@ -11,6 +11,8 @@ import Route from "Common/Types/API/Route";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   readTelemetryTabScopeParams,
   withTelemetryTabScopeParams,
@@ -91,6 +93,7 @@ function useCurrentQueryString(): string {
 const TelemetryNavTabs: FunctionComponent<Props> = (
   props: Props,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const search: string = useCurrentQueryString();
 
   const scopeParams: Dictionary<string> = useMemo(() => {
@@ -119,7 +122,8 @@ const TelemetryNavTabs: FunctionComponent<Props> = (
               }`}
             >
               <Icon icon={tab.icon} className="h-3.5 w-3.5" />
-              <span>{tab.label}</span>
+              {/* Each tab in the reader's language. */}
+              <span>{translator.translateText(tab.label)}</span>
               {tab.badge ? (
                 <span
                   className={`ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${badgeTone}`}

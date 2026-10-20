@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 31337,
-    "untranslated": 16755
+    "keys": 31872,
+    "untranslated": 16692
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -16,6 +16,7 @@
     "Capture",
     "Chats",
     "Client",
+    "Cloud",
     "CloudWatch Metric Streams",
     "Component",
     "Context",
@@ -43,6 +44,7 @@
     "Offline",
     "PR #{{number}}",
     "Peer",
+    "Privacy",
     "Protocol",
     "Provider",
     "Pull request #{{number}}",
@@ -58,6 +60,7 @@
     "Tag",
     "Team",
     "Tip",
+    "Tokens",
     "Tool",
     "Trace",
     "Trace {{traceId}}",
@@ -66,6 +69,7 @@
     "VMware vCenter",
     "Website",
     "Week",
+    "Workspaces",
     "agent {{version}}",
     "cluster",
     "goroutines",

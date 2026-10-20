@@ -6,6 +6,7 @@ En AI-gateway sitter mellan dina appar och modelleverantörerna, så varje model
 - [LiteLLM Proxy](#litellm-proxy): Inbyggd export, konfigurerad med tre variabler.
 - [Vem som använde vad](#en-virtuell-nyckel-per-anställd): En virtuell LiteLLM-nyckel per anställd namnger varje person.
 - [Portkey](#portkey): Inbyggd export på självhostade gatewayer; på andra ställen instrumenterar du appen.
+- [OpenRouter](#openrouter): Broadcast skickar varje förfrågans trace, inställt en gång i OpenRouter.
 - [Kontrollera att anropen kommer fram](#kontrollera-att-anropen-kommer-fram): Vad du ska se, och vad du gör om du inte ser det.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | Slutpunkt att ange | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | Appens egen exportör |
 | Namnger varje person | Ja, med en virtuell nyckel per anställd | Nej | Bara det som appen skickar |
 | Prompter och svar | Skickas, om du inte stänger av dem | Skickas alltid | Beror på instrumenteringen |
+
+OneUptime har ingen egen gateway: den skulle hålla dina leverantörsnycklar och lägga till ett extra steg i varje modellanrop som dina appar gör. Det läser den gateway du redan kör, och dina leverantörskontons användning och kostnad helt utan kod: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts).
 
 ## Innan du börjar
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 De här spannen beskriver anropet som din app gjorde det: modellen den bad om, tiden den väntade, de tokens den fick tillbaka. Det som gatewayen bestämde längs vägen, som en reservlösning, ett nytt försök eller en cacheträff, stannar i Portkey. För att se det i OneUptime använder du den självhostade gatewayens export.
 
+## OpenRouter
+
+OpenRouters Broadcast skickar en trace av varje förfrågan från ditt OpenRouter-konto till en OpenTelemetry-endpoint: modellen, tokens, kostnaden som OpenRouter tog och, om du inte stänger av dem, prompten och svaret. Du ställer in det en gång, i OpenRouter, utan att ändra dina appar.
+
+:::steps
+### Slå på Broadcast
+
+Öppna Settings, Observability i OpenRouter och slå på Enable Broadcast.
+
+### Lägg till OneUptime som collector
+
+Redigera destinationen OpenTelemetry Collector. Sätt dess endpoint till hela trace-sökvägen, `https://oneuptime.com/otlp/v1/traces`, och dess headers till `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`. Testa sedan anslutningen: OpenRouter sparar destinationen bara när testet lyckas.
+
+### Anropa en modell genom den
+
+Anropa en modell via OpenRouter och kontrollera sedan AI / LLM som beskrivs i [Kontrollera att anropen kommer fram](#kontrollera-att-anropen-kommer-fram).
+:::
+
+- OpenRouter skickar OTLP över HTTP som JSON, vilket OneUptime tar emot utan en collector emellan.
+- En förfrågans `user` kommer in som `user.id`, som OneUptime läser som den person som gjorde anropet, och dess `session_id` som `session.id`, som grupperar anrop till en konversation. Skicka en anställds id i `user`, aldrig en kunds.
+- Prompten och svaret finns på generation-spannet, som `gen_ai.prompt` och `gen_ai.completion`. Slå på destinationens privacy mode för att utelämna dem.
+
 ## Kontrollera att anropen kommer fram
 
 :::steps
@@ -259,6 +284,10 @@ Anropen namnger ingen person. Ge varje anställd en egen virtuell nyckel, som i 
 Sedan LiteLLM 1.81 delar en begärans modellanrop ett enda span. Ange `USE_OTEL_LITELLM_REQUEST_SPAN=true` för att få ett span för varje anrop.
 :::
 
+:::details OpenRouter sparar inte destinationen
+Dess anslutningstest misslyckades. Kontrollera att endpointen slutar på `/v1/traces` och att headern innehåller en serverintagningsnyckel.
+:::
+
 ## Nästa steg
 
 :::cards
@@ -266,4 +295,5 @@ Sedan LiteLLM 1.81 delar en begärans modellanrop ett enda span. Ange `USE_OTEL_
 - [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Sätt en gateway framför verktyg som inte skickar telemetri själva.
 - [Circuit breakers för AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stoppa en skenande agent när dess larm utlöses.
 - [Spårningsövervakning](/docs/monitor/traces-monitor): Larma på spanmönster, som ett verktyg som anropas i en slinga.
+- [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts): Fakturan för kontona bakom gatewayen, utan kod.
 :::

@@ -37,7 +37,7 @@ Die Verbindung meldet sich mit dem [OAuth-2.0-Fluss für Clientanmeldeinformatio
 
 1. Melden Sie sich im [Azure-Portal](https://portal.azure.com) an und öffnen Sie **Microsoft Entra ID**.
 2. Gehen Sie zu **App registrations → New registration**. Nennen Sie sie `OneUptime Security Events`, lassen Sie **Supported account types** auf **Accounts in this organizational directory only**, lassen Sie die Umleitungs-URI leer und wählen Sie **Register**.
-3. Kopieren Sie auf der Seite **Overview** der App die **Application (client) ID** und die **Directory (tenant) ID**.
+3. Kopieren Sie auf der Seite **Overview** der App die **Anwendungs-ID (Client)** und die **Verzeichnis-ID (Tenant)**.
 
 ### Ihr das Lesen von Warnungen erlauben
 
@@ -61,9 +61,9 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 
 | Einstellung | Wo Sie sie finden |
 | --- | --- |
-| **Directory (tenant) ID** | Die Seite **Overview** der App. Die GUID des Mandanten oder eine verifizierte Domäne wie `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | Die Seite **Overview** der App. Die GUID der App, die `SecurityAlert.Read.All` hat. |
-| **Cloud** | **Azure public cloud**, die auch Microsoft 365 GCC bedient, oder **Azure Government (US)** für GCC High (`login.microsoftonline.us` und `graph.microsoft.us`). Microsoft 365 DoD und die 21Vianet-Cloud in China werden nicht unterstützt. |
+| **Verzeichnis-ID (Tenant)** | Die Seite **Overview** der App. Die GUID des Mandanten oder eine verifizierte Domäne wie `contoso.onmicrosoft.com`. |
+| **Anwendungs-ID (Client)** | Die Seite **Overview** der App. Die GUID der App, die `SecurityAlert.Read.All` hat. |
+| **Cloud** | **Öffentliche Azure-Cloud**, die auch Microsoft 365 GCC bedient, oder **Azure Government (USA)** für GCC High (`login.microsoftonline.us` und `graph.microsoft.us`). Microsoft 365 DoD und die 21Vianet-Cloud in China werden nicht unterstützt. |
 | **Client-Secret** | Der **Value** des Geheimnisses. Es wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie es mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
@@ -151,7 +151,7 @@ Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, m
 :::details Letzter Fehler beginnt mit `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID hat sich geweigert, ein Token auszustellen, Graph wurde also nie kontaktiert. Die Meldung endet mit einem Hinweis, der sich nach dem `error`-Code von Entra richtet:
   - `invalid_client` (`AADSTS7000215`): Das Geheimnis ist falsch, abgelaufen oder gehört zu einer anderen App. Legen Sie unter **Certificates & secrets** ein neues an und speichern Sie es mit **Anmeldedaten aktualisieren**.
-  - `unauthorized_client` (`AADSTS700016`): Die **Application (client) ID** ist nicht in dieser **Directory (tenant) ID**, oder **Cloud** ist falsch.
+  - `unauthorized_client` (`AADSTS700016`): Die **Anwendungs-ID (Client)** ist nicht in dieser **Verzeichnis-ID (Tenant)**, oder **Cloud** ist falsch.
   - `AADSTS90002`: Diesen Mandanten gibt es nicht.
   - `invalid_scope`: Den Graph-Bereich gibt es in der gewählten Cloud nicht. Prüfen Sie **Cloud**.
 - `Microsoft Defender XDR token request returned ...`: Microsoft Entra ID hat mit etwas Unbrauchbarem geantwortet, einem Text, der kein JSON ist oder kein `access_token` hat. Das ist meist ein Proxy oder Gateway dazwischen, nicht die Anmeldedaten.

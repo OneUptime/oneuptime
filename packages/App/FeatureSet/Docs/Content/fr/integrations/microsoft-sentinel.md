@@ -37,7 +37,7 @@ La connexion s'authentifie avec le flux d'informations d'identification du clien
 
 1. Connectez-vous au [portail Azure](https://portal.azure.com) et ouvrez **Microsoft Entra ID**.
 2. Allez dans **App registrations → New registration**. Nommez-la `OneUptime Sentinel connector`, laissez **Supported account types** sur **Accounts in this organizational directory only**, laissez l'URI de redirection vide, et sélectionnez **Register**.
-3. Sur la page **Overview** de l'application, copiez l'**Application (client) ID** et le **Directory (tenant) ID**.
+3. Sur la page **Overview** de l'application, copiez l'**ID d'application (client)** et le **ID de l'annuaire (tenant)**.
 4. Allez dans **Certificates & secrets → Client secrets → New client secret**, choisissez quand il expire, et sélectionnez **Add**. Copiez la **Value** du secret, et non son **Secret ID**, avant de quitter la page : elle n'est plus jamais affichée.
 
 ### L'autoriser à lire les incidents
@@ -52,7 +52,7 @@ Le rôle permet à l'application de lire les incidents (`Microsoft.SecurityInsig
 
 ### Trouver les détails de l'espace de travail
 
-Ouvrez l'espace de travail Log Analytics dans le portail Azure. Sa page **Overview** affiche le **Subscription ID**, le **Resource group** et le nom de l'espace de travail. L'ID de ressource de l'espace de travail contient les trois :
+Ouvrez l'espace de travail Log Analytics dans le portail Azure. Sa page **Overview** affiche le **ID d'abonnement**, le **Resource group** et le nom de l'espace de travail. L'ID de ressource de l'espace de travail contient les trois :
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test
 
 | Réglage | Où le trouver |
 | --- | --- |
-| **Directory (tenant) ID** | La page **Overview** de l'application. Le GUID du locataire, ou un domaine vérifié comme `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | La page **Overview** de l'application. Un GUID. |
-| **Subscription ID** | La page **Overview** de l'espace de travail. Un GUID. |
+| **ID de l'annuaire (tenant)** | La page **Overview** de l'application. Le GUID du locataire, ou un domaine vérifié comme `contoso.onmicrosoft.com`. |
+| **ID d'application (client)** | La page **Overview** de l'application. Un GUID. |
+| **ID d'abonnement** | La page **Overview** de l'espace de travail. Un GUID. |
 | **Resource group** | La page **Overview** de l'espace de travail. De 1 à 90 lettres, chiffres, traits de soulignement, tirets, points ou parenthèses, sans point à la fin. |
 | **Workspace name** | La page **Overview** de l'espace de travail. De 3 à 90 lettres, chiffres ou tirets, commençant et finissant par une lettre ou un chiffre. |
-| **Cloud** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) ou **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
+| **Cloud** | **Cloud public Azure** (`login.microsoftonline.com`, `management.azure.com`) ou **Azure Government (États-Unis)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Secret client** | La **Value** du secret. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Update credentials** sur la connexion. |
 
 L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
@@ -166,8 +166,8 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 :::details Dernière erreur commence par `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)` : Microsoft Entra ID a refusé de délivrer un jeton, Azure n'a donc jamais été contacté. Le message cite le code d'Entra :
   - `AADSTS7000215` ou `invalid_client` : le **Secret client** est erroné ou expiré, ou c'est l'ID du secret au lieu de sa valeur. Créez un nouveau secret, et enregistrez-le avec **Update credentials**.
-  - `AADSTS700016` ou `unauthorized_client` : l'**Application (client) ID** n'est pas dans le **Directory (tenant) ID** indiqué. Comparez les deux avec la page **Overview** de l'application.
-  - `AADSTS90002` ou `HTTP 404` : ce locataire n'existe pas. Le **Directory (tenant) ID** est erroné, ou il est dans l'autre cloud : vérifiez **Cloud**.
+  - `AADSTS700016` ou `unauthorized_client` : l'**ID d'application (client)** n'est pas dans le **ID de l'annuaire (tenant)** indiqué. Comparez les deux avec la page **Overview** de l'application.
+  - `AADSTS90002` ou `HTTP 404` : ce locataire n'existe pas. Le **ID de l'annuaire (tenant)** est erroné, ou il est dans l'autre cloud : vérifiez **Cloud**.
   - `HTTP 429` ou `HTTP 5xx` : Microsoft Entra ID limite les requêtes ou est indisponible. L'interrogation suivante réessaie.
 - `Microsoft Sentinel token request returned ...` : Microsoft Entra ID a répondu par quelque chose d'inutilisable, par exemple un corps qui n'est pas du JSON ou sans `access_token`. C'est généralement un proxy ou une passerelle entre les deux.
 - `Microsoft Sentinel token request failed:`, sans statut, ou `Microsoft Sentinel token request timed out after ... seconds with no response` : la requête n'a reçu aucune réponse. Vérifiez le DNS, le TLS et le HTTPS sortant de l'application et des workers OneUptime vers `login.microsoftonline.com`.
@@ -177,7 +177,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 - `Microsoft Sentinel incidents list failed (HTTP ...)` : Azure Resource Manager a refusé la requête.
   - `HTTP 401` : il n'a pas accepté le jeton. Presque toujours, **Cloud** ne correspond pas au locataire, ou l'inscription d'application a été supprimée. Un jeton qui expire entre deux pages est renouvelé et réessayé une fois de lui-même.
   - `HTTP 403` ou `AuthorizationFailed` : l'application n'a pas encore **Microsoft Sentinel Reader** sur le groupe de ressources. Attribuez-le, et attendez quelques minutes.
-  - `HTTP 404` : aucun espace de travail n'a ce **Subscription ID**, ce **Resource group** et ce **Workspace name**, ou Microsoft Sentinel n'y est pas activé. Copiez-les depuis la page **Overview** de l'espace de travail.
+  - `HTTP 404` : aucun espace de travail n'a ce **ID d'abonnement**, ce **Resource group** et ce **Workspace name**, ou Microsoft Sentinel n'y est pas activé. Copiez-les depuis la page **Overview** de l'espace de travail.
   - `HTTP 429` ou `HTTP 5xx` : Azure Resource Manager limite les requêtes ou est indisponible. L'interrogation suivante réessaie.
   - `HTTP 400` : Azure Resource Manager a refusé la requête, que construit OneUptime et non vos réglages. Envoyez le message au support de OneUptime.
 - `Microsoft Sentinel incidents list returned ...` : Azure a répondu `200`, mais sans page d'incidents lisible, ou avec un `nextLink` vers un autre hôte, que la connexion refuse pour que le jeton ne quitte jamais Azure Resource Manager. C'est signalé plutôt que pris pour une fenêtre vide, pour que le curseur ne dépasse jamais des incidents que personne n'a lus.
@@ -200,7 +200,7 @@ Lisez **Incidents available to import** dans le rapport du test. `0` sur les 7 d
 
 ## Azure Government
 
-Réglez **Cloud** sur **Azure Government (US)**. La connexion se connecte alors à `login.microsoftonline.us` avec l'étendue `https://management.usgovcloudapi.net/.default`, et lit les incidents depuis `management.usgovcloudapi.net`. Tout le reste, y compris l'attribution du rôle, est identique.
+Réglez **Cloud** sur **Azure Government (États-Unis)**. La connexion se connecte alors à `login.microsoftonline.us` avec l'étendue `https://management.usgovcloudapi.net/.default`, et lit les incidents depuis `management.usgovcloudapi.net`. Tout le reste, y compris l'attribution du rôle, est identique.
 
 ## Ce que vous obtenez
 

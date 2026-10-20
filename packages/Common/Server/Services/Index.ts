@@ -425,6 +425,7 @@ import IncidentSlaService from "./IncidentSlaService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
 import LlmCostBudgetService from "./LlmCostBudgetService";
+import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -916,6 +917,7 @@ const services: Array<BaseService> = [
   ServiceLevelObjectiveService,
   ServiceLevelObjectiveBurnRateRuleService,
   LlmCostBudgetService,
+  LlmObservabilityConnectionService,
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,

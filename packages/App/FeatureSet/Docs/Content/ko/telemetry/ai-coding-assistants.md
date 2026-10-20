@@ -2,7 +2,7 @@
 
 엔지니어들은 Claude Code, Cursor, Codex, Gemini CLI, Copilot을 사용하고, 청구서는 계속 늘어납니다. 이 페이지는 관리자가 궁금해하는 질문에 답합니다. **누가 어떤 도구를 어떤 모델로 사용하며, 각 사람과 각 팀이 얼마를 쓰는지**입니다.
 
-대부분의 코딩 어시스턴트는 OpenTelemetry를 직접 내보내므로, 개발자 머신에 아무것도 설치할 필요가 없습니다. 내보내기 대상을 OneUptime으로 지정하면 토큰, 비용, 도구 사용이 자체 앱의 AI 호출과 나란히 들어옵니다. 여기의 모든 데이터는 OpenTelemetry로 들어오며, OneUptime은 공급업체의 관리 API나 청구 API를 폴링하지 않습니다.
+대부분의 코딩 어시스턴트는 OpenTelemetry를 직접 내보내므로, 개발자 머신에 아무것도 설치할 필요가 없습니다. 내보내기 대상을 OneUptime으로 지정하면 토큰, 비용, 도구 사용이 자체 앱의 AI 호출과 나란히 들어옵니다. 여기의 모든 데이터는 OpenTelemetry로 들어옵니다. 도구 뒤에 있는 모델 계정(Anthropic이나 OpenAI 조직 등)의 청구 금액도 코드 없이 읽을 수 있습니다. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts)을 참고하세요.
 
 :::cards
 - [지원 현황](#지원-현황): 각 도구가 무엇을 보내고, 사람을 지목하는지.
@@ -50,7 +50,7 @@ flowchart TB
 | Cline | 메트릭과 로그 | Cline의 조직 대시보드에서 중앙 설정 | 익명화된 `user_id` | — |
 | LiteLLM과 Portkey | 게이트웨이를 거치는 모든 호출의 트레이스 | 게이트웨이 프로세스에서 | LiteLLM에서는 가상 키의 소유자 | [AI 게이트웨이](/docs/telemetry/ai-gateways) |
 | 자체 앱 | GenAI 계측이 보내는 것 | 앱에서 | `user.id`로 설정한 사람 | [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability) |
-| Windsurf, JetBrains AI, Amazon Bedrock, Azure OpenAI | 자체 OpenTelemetry 없음 | 앞에 둔 게이트웨이를 통해서만 | 게이트웨이가 지목하는 사람 | [AI 게이트웨이](/docs/telemetry/ai-gateways) |
+| Windsurf, JetBrains AI, Amazon Bedrock, Azure OpenAI | 자체 OpenTelemetry 없음 | 앞에 둔 게이트웨이를 통해서만. Bedrock과 Azure의 사용량과 비용은 [공급자 계정](/docs/telemetry/ai-provider-accounts)으로도 가능 | 게이트웨이가 지목하는 사람 | [AI 게이트웨이](/docs/telemetry/ai-gateways) |
 
 대시는 OneUptime에 아직 해당 도구의 가이드가 없다는 뜻입니다. 그 도구의 텔레메트리도 다른 OpenTelemetry처럼 수집됩니다.
 
@@ -59,8 +59,8 @@ Copilot은 에이전트 기능에서만 OpenTelemetry를 내보냅니다. VS Cod
 :::
 
 :::details Amazon Bedrock, Azure OpenAI, Windsurf, JetBrains AI
-- **Amazon Bedrock**: `InvokeModel`과 `Converse` API는 OpenTelemetry를 보내지 않습니다. Bedrock AgentCore는 다릅니다. AWS는 이에 대한 메트릭, 스팬, 로그를 문서화하며, 기본적으로 CloudWatch로 보냅니다. `DISABLE_ADOT_OBSERVABILITY=true`를 설정하면 런타임의 기본 ADOT 구성이 꺼지므로, ADOT SDK가 대신 OneUptime을 향하게 할 수 있습니다.
-- **Azure OpenAI**: 서비스는 아무것도 보내지 않으며, Azure Monitor 메트릭에는 사용자 차원이 없습니다. 클라이언트를 계측하거나, 앞에 API Management 또는 다른 게이트웨이를 두세요.
+- **Amazon Bedrock**: `InvokeModel`과 `Converse` API는 OpenTelemetry를 보내지 않습니다. Bedrock AgentCore는 다릅니다. AWS는 이에 대한 메트릭, 스팬, 로그를 문서화하며, 기본적으로 CloudWatch로 보냅니다. `DISABLE_ADOT_OBSERVABILITY=true`를 설정하면 런타임의 기본 ADOT 구성이 꺼지므로, ADOT SDK가 대신 OneUptime을 향하게 할 수 있습니다. 리전과 모델별 모델 사용량은 CloudWatch에서 [공급자 계정](/docs/telemetry/ai-provider-accounts#amazon-bedrock)으로 읽을 수 있습니다.
+- **Azure OpenAI**: 서비스는 아무것도 보내지 않으며, Azure Monitor 메트릭에는 사용자 차원이 없습니다. 클라이언트를 계측하거나, 앞에 API Management 또는 다른 게이트웨이를 두세요. 리소스와 모델별 사용량은 [공급자 계정](/docs/telemetry/ai-provider-accounts#azure-openai-및-microsoft-foundry)으로 읽을 수 있습니다.
 - **Windsurf**: 텔레메트리 내보내기를 문서화하지 않았습니다. 사용자별 데이터는 Windsurf의 Enterprise API에 있으며, OneUptime은 이를 폴링하지 않습니다.
 - **JetBrains AI Assistant와 Junie**: 사용량을 내보내지 않습니다. JetBrains의 OpenTelemetry 플러그인은 IDE 안에서 자체 앱의 텔레메트리를 받을 뿐, 밖으로는 아무것도 보내지 않습니다.
 :::
@@ -188,7 +188,7 @@ Codex는 기본적으로 메트릭을 OpenAI에도 보냅니다. [OpenAI Codex](
 
 ## OneUptime이 아직 하지 않는 것
 
-- **공급업체의 관리 또는 청구 커넥터가 없습니다.** OneUptime은 Anthropic의 Admin API, Cursor의 Admin API, OpenAI의 사용량 및 비용 엔드포인트, GitHub의 Copilot 청구, Windsurf나 JetBrains의 API를 폴링하지 않습니다. 청구서 수준의 수치는 공급업체에서 가져오세요.
+- **코딩 도구의 관리 API 커넥터는 없습니다.** OneUptime은 도구 뒤에 있는 OpenAI, Anthropic, Azure, Bedrock, Vertex AI 계정을 읽지만([AI 공급자 계정](/docs/telemetry/ai-provider-accounts)), Cursor의 Admin API, GitHub의 Copilot 청구, Windsurf나 JetBrains의 API는 읽지 않습니다.
 - **도구가 보고하지 않으면 비용은 추정치입니다.** 보고된 비용은 그대로 쓰고, 그렇지 않으면 OneUptime이 정가로 토큰 가격을 계산합니다. Cursor의 `cursor.cost.usage`도 그 자체가 추정치입니다.
 - **로그 레코드의 신원은 읽지 않습니다.** Codex가 로그에만 보내는 `user.email`은 지출에 연결되지 않습니다.
 - **Cursor의 `cursor.user.email`은 아직 읽지 않으므로**, Cursor 사용자는 정수 `cursor.user.id`로 표시됩니다.

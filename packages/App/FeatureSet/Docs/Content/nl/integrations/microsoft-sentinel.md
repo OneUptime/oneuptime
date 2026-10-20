@@ -37,7 +37,7 @@ De verbinding meldt zich aan met de OAuth 2.0-flow voor clientreferenties: als t
 
 1. Meld je aan bij de [Azure-portal](https://portal.azure.com) en open **Microsoft Entra ID**.
 2. Ga naar **App registrations → New registration**. Noem hem `OneUptime Sentinel connector`, laat **Supported account types** op **Accounts in this organizational directory only** staan, laat de omleidings-URI leeg en selecteer **Register**.
-3. Kopieer op de pagina **Overview** van de app de **Application (client) ID** en de **Directory (tenant) ID**.
+3. Kopieer op de pagina **Overview** van de app de **Applicatie-ID (client)** en de **Directory-ID (tenant)**.
 4. Ga naar **Certificates & secrets → Client secrets → New client secret**, kies wanneer het verloopt en selecteer **Add**. Kopieer de **Value** van het geheim, niet de **Secret ID**, voordat je de pagina verlaat: die wordt nooit meer getoond.
 
 ### Hem incidenten laten lezen
@@ -52,7 +52,7 @@ Met de rol kan de app incidenten lezen (`Microsoft.SecurityInsights/incidents/re
 
 ### De gegevens van de werkruimte vinden
 
-Open de Log Analytics-werkruimte in de Azure-portal. De pagina **Overview** toont de **Subscription ID**, de **Resource group** en de naam van de werkruimte. De resource-ID van de werkruimte bevat dezelfde drie:
+Open de Log Analytics-werkruimte in de Azure-portal. De pagina **Overview** toont de **Abonnements-ID**, de **Resource group** en de naam van de werkruimte. De resource-ID van de werkruimte bevat dezelfde drie:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -69,12 +69,12 @@ Klik op **Test these settings** onder **Testen voor het opslaan**. De test meldt
 
 | Instelling | Waar je haar vindt |
 | --- | --- |
-| **Directory (tenant) ID** | De pagina **Overview** van de app. De GUID van de tenant, of een geverifieerd domein zoals `contoso.onmicrosoft.com`. |
-| **Application (client) ID** | De pagina **Overview** van de app. Een GUID. |
-| **Subscription ID** | De pagina **Overview** van de werkruimte. Een GUID. |
+| **Directory-ID (tenant)** | De pagina **Overview** van de app. De GUID van de tenant, of een geverifieerd domein zoals `contoso.onmicrosoft.com`. |
+| **Applicatie-ID (client)** | De pagina **Overview** van de app. Een GUID. |
+| **Abonnements-ID** | De pagina **Overview** van de werkruimte. Een GUID. |
 | **Resource group** | De pagina **Overview** van de werkruimte. 1 tot 90 letters, cijfers, underscores, koppeltekens, punten of haakjes, niet eindigend op een punt. |
 | **Workspace name** | De pagina **Overview** van de werkruimte. 3 tot 90 letters, cijfers of koppeltekens, beginnend en eindigend met een letter of cijfer. |
-| **Cloud** | **Azure public cloud** (`login.microsoftonline.com`, `management.azure.com`) of **Azure Government (US)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
+| **Cloud** | **Openbare Azure-cloud** (`login.microsoftonline.com`, `management.azure.com`) of **Azure Government (VS)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Client secret** | De **Value** van het geheim. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Update credentials** op de verbinding. |
 
 De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
@@ -166,8 +166,8 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 :::details Last Error begint met `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID weigerde een token uit te geven, dus Azure is nooit benaderd. Het bericht citeert de code van Entra:
   - `AADSTS7000215` of `invalid_client`: het **Client secret** is verkeerd of verlopen, of het is de ID van het geheim in plaats van de waarde. Maak een nieuw geheim en sla het op met **Update credentials**.
-  - `AADSTS700016` of `unauthorized_client`: de **Application (client) ID** staat niet in de opgegeven **Directory (tenant) ID**. Vergelijk beide met de pagina **Overview** van de app.
-  - `AADSTS90002` of `HTTP 404`: die tenant bestaat niet. De **Directory (tenant) ID** is verkeerd, of hij staat in de andere cloud: controleer **Cloud**.
+  - `AADSTS700016` of `unauthorized_client`: de **Applicatie-ID (client)** staat niet in de opgegeven **Directory-ID (tenant)**. Vergelijk beide met de pagina **Overview** van de app.
+  - `AADSTS90002` of `HTTP 404`: die tenant bestaat niet. De **Directory-ID (tenant)** is verkeerd, of hij staat in de andere cloud: controleer **Cloud**.
   - `HTTP 429` of `HTTP 5xx`: Microsoft Entra ID beperkt verzoeken of is niet beschikbaar. De volgende poll probeert het opnieuw.
 - `Microsoft Sentinel token request returned ...`: Microsoft Entra ID antwoordde met iets onbruikbaars, bijvoorbeeld een body die geen JSON is of geen `access_token` heeft. Dat is meestal een proxy of gateway ertussen.
 - `Microsoft Sentinel token request failed:`, zonder status, of `Microsoft Sentinel token request timed out after ... seconds with no response`: het verzoek kreeg geen antwoord. Controleer DNS, TLS en uitgaand HTTPS van de OneUptime-app en -workers naar `login.microsoftonline.com`.
@@ -177,7 +177,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager weigerde het verzoek.
   - `HTTP 401`: hij accepteerde het token niet. Bijna altijd past **Cloud** niet bij de tenant, of is de app-registratie verwijderd. Een token dat tussen twee pagina's verloopt, wordt vanzelf vernieuwd en één keer opnieuw geprobeerd.
   - `HTTP 403` of `AuthorizationFailed`: de app heeft nog geen **Microsoft Sentinel Reader** op de resourcegroep. Wijs die toe en wacht een paar minuten.
-  - `HTTP 404`: geen enkele werkruimte heeft die **Subscription ID**, **Resource group** en **Workspace name**, of Microsoft Sentinel is daar niet ingeschakeld. Kopieer ze van de pagina **Overview** van de werkruimte.
+  - `HTTP 404`: geen enkele werkruimte heeft die **Abonnements-ID**, **Resource group** en **Workspace name**, of Microsoft Sentinel is daar niet ingeschakeld. Kopieer ze van de pagina **Overview** van de werkruimte.
   - `HTTP 429` of `HTTP 5xx`: Azure Resource Manager beperkt verzoeken of is niet beschikbaar. De volgende poll probeert het opnieuw.
   - `HTTP 400`: Azure Resource Manager weigerde het verzoek, dat OneUptime opbouwt en niet je instellingen. Stuur het bericht naar de support van OneUptime.
 - `Microsoft Sentinel incidents list returned ...`: Azure antwoordde `200`, maar zonder leesbare pagina met incidenten, of met een `nextLink` naar een andere host, die de verbinding weigert zodat het token Azure Resource Manager nooit verlaat. Dit wordt gemeld in plaats van als een leeg venster te worden opgevat, zodat de cursor nooit voorbij incidenten gaat die niemand heeft gelezen.
@@ -200,7 +200,7 @@ Lees **Incidents available to import** in het rapport van de test. `0` in de afg
 
 ## Azure Government
 
-Zet **Cloud** op **Azure Government (US)**. De verbinding meldt zich dan aan bij `login.microsoftonline.us` met het bereik `https://management.usgovcloudapi.net/.default`, en leest incidenten uit `management.usgovcloudapi.net`. Al het andere, ook de roltoewijzing, is hetzelfde.
+Zet **Cloud** op **Azure Government (VS)**. De verbinding meldt zich dan aan bij `login.microsoftonline.us` met het bereik `https://management.usgovcloudapi.net/.default`, en leest incidenten uit `management.usgovcloudapi.net`. Al het andere, ook de roltoewijzing, is hetzelfde.
 
 ## Wat je krijgt
 

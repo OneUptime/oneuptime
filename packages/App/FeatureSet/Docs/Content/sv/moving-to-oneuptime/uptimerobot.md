@@ -36,7 +36,7 @@ flowchart TB
 Gå till **Integrations & API** > **API** i UptimeRobot. Skapa en **Read-only API key**, eller kopiera den du har.
 
 ### Öppna importsidan
-Gå till **Projektinställningar** > **Importera från ett annat verktyg** i OneUptime och välj **UptimeRobot**.
+Gå till **Projektinställningar** > **Avancerad** > **Importera från ett annat verktyg** i OneUptime och välj **UptimeRobot**.
 
 ### Anslut UptimeRobot
 Klistra in nyckeln i **UptimeRobot-API-nyckel** och välj **Läs mitt UptimeRobot-konto**. Ett stort konto tar några minuter, och du kan lämna sidan medan det läses.

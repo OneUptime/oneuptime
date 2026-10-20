@@ -98,7 +98,7 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 
 ## Migrare da un altro strumento
 
-Per lasciare un altro strumento di reperibilità, di uptime o di pagine di stato, porta qui il tuo team invece di collegare i due. **Impostazioni del progetto → Importa da un altro strumento** legge il tuo account con una chiave API, ti mostra cosa ha trovato e crea ciò che spunti. Ogni strumento ha una guida:
+Per lasciare un altro strumento di reperibilità, di uptime o di pagine di stato, porta qui il tuo team invece di collegare i due. **Impostazioni del progetto → Avanzato → Importa da un altro strumento** legge il tuo account con una chiave API, ti mostra cosa ha trovato e crea ciò che spunti. Ogni strumento ha una guida:
 
 - Strumenti di reperibilità e di incidenti: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) e [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Strumenti di uptime e di pagine di stato: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) e [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

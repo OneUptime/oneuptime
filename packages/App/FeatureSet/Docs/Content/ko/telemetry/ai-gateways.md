@@ -6,6 +6,7 @@ AI 게이트웨이는 앱과 모델 공급자 사이에 있어서, 모든 모델
 - [LiteLLM Proxy](#litellm-proxy): 변수 세 개로 설정하는 기본 제공 내보내기.
 - [누가 무엇을 썼는지](#직원별-가상-키-하나): 직원별 LiteLLM 가상 키 하나로 각 사람을 식별합니다.
 - [Portkey](#portkey): 자체 호스팅 게이트웨이에서는 기본 제공 내보내기, 그 밖에서는 앱을 계측합니다.
+- [OpenRouter](#openrouter): Broadcast가 모든 요청의 트레이스를 보냅니다. OpenRouter에서 한 번만 설정합니다.
 - [호출이 도착하는지 확인하기](#호출이-도착하는지-확인하기): 무엇이 보여야 하는지, 보이지 않으면 무엇을 할지.
 :::
 
@@ -25,6 +26,8 @@ flowchart TB
 | 설정할 엔드포인트 | `https://oneuptime.com/otlp/v1/traces` | `https://oneuptime.com/otlp` | 앱 자체의 익스포터 |
 | 각 사람을 식별 | 예, 직원별 가상 키로 | 아니요 | 앱이 보내는 것만 |
 | 프롬프트와 답변 | 끄지 않는 한 전송 | 항상 전송 | 계측에 따라 다름 |
+
+OneUptime에는 자체 게이트웨이가 없습니다. 게이트웨이를 두면 공급자 키를 맡아야 하고, 앱의 모든 모델 호출에 경유 단계가 하나 더 생기기 때문입니다. OneUptime은 이미 운영 중인 게이트웨이를 읽고, 공급자 계정의 사용량과 비용은 코드 없이 읽습니다. [AI 공급자 계정](/docs/telemetry/ai-provider-accounts)을 참고하세요.
 
 ## 시작하기 전에
 
@@ -224,6 +227,28 @@ client = OpenAI(
 
 이 스팬들은 앱이 한 그대로의 호출을 나타냅니다. 요청한 모델, 기다린 시간, 돌려받은 토큰입니다. 대체 경로, 재시도, 캐시 적중처럼 게이트웨이가 도중에 결정한 것은 Portkey 안에 남습니다. 그것을 OneUptime에서 보려면 자체 호스팅 게이트웨이의 내보내기를 사용하세요.
 
+## OpenRouter
+
+OpenRouter의 Broadcast는 OpenRouter 계정의 모든 요청에 대한 트레이스를 OpenTelemetry 엔드포인트로 보냅니다. 모델, 토큰, OpenRouter가 청구한 비용, 그리고 끄지 않는 한 프롬프트와 답변도 보냅니다. 앱을 바꾸지 않고 OpenRouter에서 한 번만 설정하면 됩니다.
+
+:::steps
+### Broadcast 켜기
+
+OpenRouter에서 Settings, Observability를 열고 Enable Broadcast를 켭니다.
+
+### OneUptime을 수집기로 추가하기
+
+OpenTelemetry Collector 대상을 편집합니다. 엔드포인트에는 트레이스 전체 경로 `https://oneuptime.com/otlp/v1/traces`를, 헤더에는 `{"x-oneuptime-token": "YOUR_INGESTION_TOKEN"}`을 넣습니다. 그런 다음 연결을 테스트합니다. OpenRouter는 테스트가 통과해야만 대상을 저장합니다.
+
+### 이를 통해 모델 호출하기
+
+OpenRouter를 통해 모델을 호출한 다음, [호출이 도착하는지 확인하기](#호출이-도착하는지-확인하기)의 설명대로 AI / LLM을 확인합니다.
+:::
+
+- OpenRouter는 OTLP를 HTTP 위의 JSON으로 보내며, OneUptime은 중간에 수집기 없이 이를 받습니다.
+- 요청의 `user`는 `user.id`로 들어오고 OneUptime은 이를 호출한 사람으로 읽으며, `session_id`는 `session.id`로 들어와 호출을 대화 하나로 묶습니다. `user`에는 고객이 아니라 반드시 직원의 ID를 보내세요.
+- 프롬프트와 답변은 생성 스팬에 `gen_ai.prompt`와 `gen_ai.completion`으로 담깁니다. 빼려면 대상의 개인정보 보호 모드를 켜세요.
+
 ## 호출이 도착하는지 확인하기
 
 :::steps
@@ -259,6 +284,10 @@ LiteLLM에는 전체 경로 `https://oneuptime.com/otlp/v1/traces` 를 지정합
 LiteLLM 1.81부터 한 요청 안의 모델 호출은 스팬 하나를 공유합니다. 호출마다 스팬을 받으려면 `USE_OTEL_LITELLM_REQUEST_SPAN=true` 를 설정하세요.
 :::
 
+:::details OpenRouter가 대상을 저장하지 않습니다
+연결 테스트가 실패했습니다. 엔드포인트가 `/v1/traces`로 끝나는지, 헤더에 서버용 수집 키가 들어 있는지 확인하세요.
+:::
+
 ## 다음 단계
 
 :::cards
@@ -266,4 +295,5 @@ LiteLLM 1.81부터 한 요청 안의 모델 호출은 스팬 하나를 공유합
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): 텔레메트리를 직접 보내지 않는 도구 앞에 게이트웨이를 둡니다.
 - [AI 에이전트 서킷 브레이커](/docs/telemetry/ai-agent-circuit-breaker): 알림이 발생하면 폭주하는 에이전트를 멈춥니다.
 - [트레이스 모니터](/docs/monitor/traces-monitor): 루프 안에서 호출되는 도구처럼 스팬 패턴에 대해 알림을 받습니다.
+- [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): 게이트웨이 뒤에 있는 계정의 청구 금액을 코드 없이.
 :::

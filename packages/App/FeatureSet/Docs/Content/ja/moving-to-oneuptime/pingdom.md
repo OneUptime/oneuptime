@@ -36,7 +36,7 @@ flowchart TB
 My Pingdom で **Settings** > **Pingdom API** を開き、**Add API token** を選択します。名前を `OneUptime import` とし、**Read access** を選んでトークンをコピーします。
 
 ### インポートページを開く
-OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き、**Pingdom** を選択します。
+OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き、**Pingdom** を選択します。
 
 ### Pingdom を接続する
 トークンを **Pingdom の API キー** に貼り付け、**Pingdom アカウントを読み取る** を選択します。大きなアカウントでは数分かかります。読み取りの間はページを離れてもかまいません。

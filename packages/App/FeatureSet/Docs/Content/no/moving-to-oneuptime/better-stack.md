@@ -36,7 +36,7 @@ flowchart TB
 Gå til **API tokens** > **Team-based tokens** i Better Stack, og velg teamet ditt. Opprett et token med navnet `OneUptime import` under **Uptime API tokens**, og kopier det.
 
 ### Åpne importsiden
-Gå til **Prosjektinnstillinger** > **Importer fra et annet verktøy** i OneUptime, og velg **Better Stack**.
+Gå til **Prosjektinnstillinger** > **Avansert** > **Importer fra et annet verktøy** i OneUptime, og velg **Better Stack**.
 
 ### Koble til Better Stack
 Lim inn tokenet i **Better Stack-API-nøkkel**, og velg **Les Better Stack-kontoen min**. En stor konto tar noen minutter, og du kan forlate siden mens den leses.

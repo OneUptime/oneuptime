@@ -113,7 +113,7 @@ De documentatie is net als de zijbalk ingedeeld in negen secties. Kies het deel 
 
 ### Neem uw inrichting mee
 
-**Projectinstellingen → Importeren uit een andere tool** leest uw inrichting in een andere tool, met een API-sleutel of, voor Uptime Kuma, een bestand. Het laat zien wat het heeft gevonden en maakt aan wat u aanvinkt. In de andere tool verandert niets, en de import opnieuw uitvoeren maakt nooit iets dubbel aan.
+**Projectinstellingen → Geavanceerd → Importeren uit een andere tool** leest uw inrichting in een andere tool, met een API-sleutel of, voor Uptime Kuma, een bestand. Het laat zien wat het heeft gevonden en maakt aan wat u aanvinkt. In de andere tool verandert niets, en de import opnieuw uitvoeren maakt nooit iets dubbel aan.
 
 | U komt van | Wat OneUptime leest |
 | --- | --- |

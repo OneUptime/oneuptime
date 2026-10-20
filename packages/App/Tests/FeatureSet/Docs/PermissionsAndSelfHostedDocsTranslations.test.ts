@@ -1368,18 +1368,18 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 describe("the helpers, on these pages' shapes", () => {
   it("find a path written in one bold span, and one written a span per segment", () => {
     const markdown: string =
-      "Open **Project Settings > Basic > Labels**, or **Project Settings** > **Basic** > **Import from another tool**, and click **Add Role**.";
+      "Open **Project Settings > Basic > Labels**, or **Project Settings** > **Advanced** > **Import from another tool**, and click **Add Role**.";
 
     expect(menuPaths(markdown)).toEqual([
       {
-        segments: ["Project Settings", "Basic", "Import from another tool"],
+        segments: ["Project Settings", "Advanced", "Import from another tool"],
         segmented: true,
       },
       { segments: ["Project Settings", "Basic", "Labels"], segmented: false },
     ]);
     expect(boldLabels(markdown)).toEqual([
       "Project Settings",
-      "Basic",
+      "Advanced",
       "Import from another tool",
       "Add Role",
     ]);

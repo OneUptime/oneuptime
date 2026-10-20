@@ -35,7 +35,7 @@ flowchart TB
 在 Splunk On-Call 中依次打开 **Integrations** > **API**。你的 API ID 显示在 API 密钥上方。新建一个名为 `OneUptime import` 的 API 密钥，勾选 **Read-only**，然后复制 API ID 和密钥。
 
 ### 打开导入页面
-在 OneUptime 中依次打开 **项目设置** > **从其他工具导入**，然后选择 **Splunk On-Call**。
+在 OneUptime 中依次打开 **项目设置** > **高级** > **从其他工具导入**，然后选择 **Splunk On-Call**。
 
 ### 连接 Splunk On-Call
 将 API ID 粘贴到 **Splunk On-Call 的 API ID** 中，将密钥粘贴到 **Splunk On-Call API 密钥** 中，然后选择 **读取我的 Splunk On-Call 账户**。较大的账户需要几分钟，读取期间你可以离开页面。

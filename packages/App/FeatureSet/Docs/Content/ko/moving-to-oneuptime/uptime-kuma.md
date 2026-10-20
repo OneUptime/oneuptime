@@ -36,7 +36,7 @@ flowchart TB
 Uptime Kuma 1에서는 **Settings** > **Backup**으로 이동해 **Export**를 선택하세요. Uptime Kuma 2에서는 **Settings** > **API Keys**에서 키를 추가하고, Uptime Kuma의 `/metrics`를 열어 사용자 이름 없이 키를 비밀번호로 사용해 로그인한 뒤 페이지를 텍스트 파일로 저장하세요.
 
 ### 가져오기 페이지 열기
-OneUptime에서 **프로젝트 설정** > **다른 도구에서 가져오기**로 이동해 **Uptime Kuma**을(를) 선택합니다.
+OneUptime에서 **프로젝트 설정** > **고급** > **다른 도구에서 가져오기**로 이동해 **Uptime Kuma**을(를) 선택합니다.
 
 ### 파일 읽기
 **Uptime Kuma 백업 또는 메트릭 파일**에서 **파일 선택**을 선택하고 저장한 파일을 고른 뒤 **파일 읽기**를 선택하세요. OneUptime이 바로 읽고 찾은 내용을 보여 줍니다.
