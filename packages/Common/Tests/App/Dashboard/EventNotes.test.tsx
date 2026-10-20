@@ -100,6 +100,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The selected project, as the dashboard keeps it: not loaded (read as AI
+ * on) unless a test switches AI off.
+ */
+let mockCurrentProject: { enableAi?: boolean } | null = null;
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
@@ -112,8 +118,8 @@ jest.mock("../../../UI/Utils/Project", () => {
           "10000000-0000-4000-8000-000000000001",
         );
       },
-      getCurrentProject: (): null => {
-        return null;
+      getCurrentProject: (): { enableAi?: boolean } | null => {
+        return mockCurrentProject;
       },
     },
   };
@@ -2243,6 +2249,35 @@ describe("event notes: drafting with AI", () => {
     await renderPrivate();
 
     expect(screen.queryByTestId("note-ai-button")).toBeNull();
+  });
+
+  test("a project with AI switched off offers no AI button, whatever the feed supports", async () => {
+    mockCurrentProject = { enableAi: false };
+
+    try {
+      await renderPublic();
+
+      // The page is drawn as usual, only without the AI action.
+      expect(screen.getByTestId("notes-header")).toBeInTheDocument();
+      expect(screen.queryByTestId("note-ai-button")).toBeNull();
+      expect(screen.queryByText("Draft with AI")).toBeNull();
+    } finally {
+      mockCurrentProject = null;
+    }
+  });
+
+  test("a project with AI on, read from the selected project, offers it", async () => {
+    mockCurrentProject = { enableAi: true };
+
+    try {
+      await renderPublic();
+
+      expect(screen.getByTestId("note-ai-button")).toHaveTextContent(
+        "Draft with AI",
+      );
+    } finally {
+      mockCurrentProject = null;
+    }
   });
 });
 

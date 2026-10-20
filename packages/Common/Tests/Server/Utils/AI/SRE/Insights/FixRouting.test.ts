@@ -3,6 +3,10 @@ import AIRun from "../../../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../../../Models/DatabaseModels/Project";
 import AIInsightType from "../../../../../../Types/AI/AIInsightType";
 import CodeFixTaskType from "../../../../../../Types/AI/CodeFixTaskType";
+import {
+  PerformanceFinding,
+  PerformanceFindingType,
+} from "../../../../../../Types/AI/CodeFixTaskContext";
 import ObjectID from "../../../../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../../../../MockType";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -101,6 +105,30 @@ function setEvidence(
   (insight as unknown as Record<string, unknown>)["evidence"] = evidence;
 }
 
+/*
+ * A finding as the latency detector stores it: 42 near-identical queries
+ * taking 1.4 s of a 2.4 s request - worth a fix by the trace page's rule
+ * (Common/Utils/Suggestions/TracePerformanceFixSuggestion).
+ */
+function makeFinding(
+  overrides?: Partial<PerformanceFinding>,
+): PerformanceFinding {
+  return {
+    findingType: PerformanceFindingType.NPlusOneQuery,
+    headline: 'N+1: 42× "SELECT cart_items"',
+    evidence: "42 identical queries",
+    spanCount: 42,
+    combinedDurationMs: 1400,
+    traceDurationMs: 2400,
+    percentOfTrace: 58.3,
+    normalizedSpanName: "SELECT cart_items",
+    implicatedSpans: [
+      { spanId: "q1", name: "SELECT cart_items", durationMs: 33 },
+    ],
+    ...overrides,
+  };
+}
+
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const EXCEPTION_ID: ObjectID = ObjectID.generate();
 
@@ -135,9 +163,7 @@ function makeLatencyInsight(overrides?: Partial<AIInsight>): AIInsight {
   insight.serviceName = "checkout";
   setEvidence(insight, {
     latency: {
-      performanceFindings: [
-        { kind: "n-plus-one", detail: "42 identical queries" },
-      ],
+      performanceFindings: [makeFinding()],
       codeLocations: [{ filePath: "src/checkout.ts", lineNumber: 88 }],
     },
   });
@@ -331,13 +357,60 @@ describe("InsightFixRouting - latency evidence", () => {
     expect(createPerformanceRunMock).not.toHaveBeenCalled();
   });
 
+  test("findings that cost the request too little are not worth a fix, by the trace page's rule", async () => {
+    const insight: AIInsight = makeLatencyInsight();
+
+    setEvidence(insight, {
+      latency: {
+        performanceFindings: [
+          // Five 3 ms queries: an N+1, but 15 ms of the request.
+          makeFinding({ spanCount: 5, combinedDurationMs: 15 }),
+          // One call taking most of a request, but only 300 ms of it.
+          makeFinding({
+            findingType: PerformanceFindingType.DominantSpan,
+            spanCount: 1,
+            combinedDurationMs: 300,
+            percentOfTrace: 85,
+          }),
+        ],
+        codeLocations: [],
+      },
+    });
+
+    expect((await route(insight, makeProject())).fixAiRunId).toBeUndefined();
+    expect(createPerformanceRunMock).not.toHaveBeenCalled();
+    expect(budgetStatusMock).not.toHaveBeenCalled();
+  });
+
+  test("only the findings worth fixing ground the pull request", async () => {
+    const insight: AIInsight = makeLatencyInsight();
+    const worthFixing: PerformanceFinding = makeFinding();
+
+    setEvidence(insight, {
+      latency: {
+        performanceFindings: [
+          worthFixing,
+          makeFinding({ spanCount: 5, combinedDurationMs: 15 }),
+        ],
+        codeLocations: [],
+      },
+    });
+
+    expect((await route(insight, makeProject())).fixAiRunId).toBeDefined();
+
+    const args: Record<string, unknown> = createPerformanceRunMock.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(args["findings"]).toEqual([worthFixing]);
+  });
+
   test("no trace id anywhere means nothing is queued", async () => {
     const insight: AIInsight = makeLatencyInsight();
 
     delete (insight as unknown as Record<string, unknown>)["traceId"];
     setEvidence(insight, {
       latency: {
-        performanceFindings: [{ kind: "n-plus-one" }],
+        performanceFindings: [makeFinding()],
         codeLocations: [],
       },
     });
@@ -351,7 +424,7 @@ describe("InsightFixRouting - latency evidence", () => {
     delete (insight as unknown as Record<string, unknown>)["traceId"];
     setEvidence(insight, {
       latency: {
-        performanceFindings: [{ kind: "n-plus-one" }],
+        performanceFindings: [makeFinding()],
         codeLocations: [],
         sampleTraceId: "0af7651916cd43dd8448eb211c80319c",
       },

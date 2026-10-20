@@ -143,6 +143,8 @@ import InvestigationPanel, {
   VERDICT_QUESTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
+import Project from "../../../Models/DatabaseModels/Project";
+import ProjectUtil from "../../../UI/Utils/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import AIRunCodeFixRecommendation from "../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
@@ -2046,6 +2048,26 @@ describe("InvestigationPanel code-fix recommendation", () => {
     expect(fixButton()).toBeEnabled();
     expect(screen.getByText("Act on this investigation")).toBeVisible();
     expect(screen.getByText("Was this analysis correct?")).toBeVisible();
+  });
+
+  test("with the project's AI switched off, offers no fix action, and keeps the rating", async () => {
+    const projectSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue(
+        Object.assign(new Project(), { enableAi: false }) as Project,
+      );
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    try {
+      renderPanel();
+      await flush();
+
+      expect(fixButton()).toBeNull();
+      expect(screen.queryByText("Act on this investigation")).toBeNull();
+      expect(screen.getByText("Was this analysis correct?")).toBeVisible();
+    } finally {
+      projectSpy.mockRestore();
+    }
   });
 
   test("hides every fix-task element for NotRecommended but retains verdict controls", async () => {

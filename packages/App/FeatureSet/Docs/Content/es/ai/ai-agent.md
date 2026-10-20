@@ -98,9 +98,11 @@ Cada ejecución está sujeta a presupuestos que impone el servidor: como máximo
 | La página **Asistencia de IA** de una excepción | **Generar prueba de regresión** | Añade una prueba que reproduce la excepción y falla hasta que se corrige el error. |
 | La página **Asistencia de IA** de una excepción | **Mejorar el manejo de errores** | Para un error esperado, como una entrada no válida: saca los datos de usuario del mensaje, valida la entrada antes y marca el error como gestionado, sin cambiar el comportamiento. |
 | La tarjeta **Investigación de IA** de un incidente o una alerta | **Abrir PR de corrección a partir de este análisis** | Corrige la causa raíz que publicó la investigación (consulta [Correcciones de código automáticas a partir de investigaciones](#correcciones-de-código-automáticas-a-partir-de-investigaciones)). |
-| Una traza | **Corregir el rendimiento con IA** | Corrige el patrón lento encontrado en la traza, como consultas N+1 o un único span lento dominante. |
+| Una traza que vale la pena corregir | **Acelerar con IA** | Corrige el patrón lento que nombra el botón, como una consulta N+1 o llamadas que podrían ir en paralelo. |
 | La página **Registros** de un servicio | **Mejorar los registros** | Hace que los logs del servicio sean estructurados, con la severidad correcta y vinculados a sus trazas, sin cambiar el comportamiento. |
 | La página **Trazas** de un servicio | **Mejorar el trazado** | Añade spans y atributos donde falta el tracing del servicio, sin cambiar el comportamiento. |
+
+Estos botones solo aparecen donde pueden iniciar una tarea. Con la IA desactivada para el proyecto, no aparece ninguno y el menú lateral de una excepción no tiene **Asistencia de IA**. **Mejorar los registros** y **Mejorar el trazado** aparecen en cuanto hay un repositorio conectado, y **Acelerar con IA** solo en una traza que vale la pena corregir (consulte [Explorador de trazas](/docs/telemetry/traces-explorer)).
 
 Para abrir la página **Asistencia de IA** de una excepción, abre la excepción en **Productos → Observabilidad → Excepciones** y elige **Asistencia de IA** en su menú lateral. Una excepción resuelta o archivada tiene que marcarse primero como no resuelta.
 

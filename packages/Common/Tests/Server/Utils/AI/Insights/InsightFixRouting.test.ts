@@ -5,12 +5,13 @@ import FixPerformanceTaskTrigger from "../../../../../Server/Utils/AI/SRE/FixPer
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
-} from "../../../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+} from "../../../../../Utils/Traces/SpanTreeAnalyzer";
 import FixRunBudget, {
   FixRunBudgetDecision,
 } from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
+import AIService from "../../../../../Server/Services/AIService";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
@@ -21,7 +22,7 @@ import {
   PerformanceFinding,
   PerformanceFindingType,
 } from "../../../../../Types/AI/CodeFixTaskContext";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * Deterministic fix routing for newly created AI insights (the
@@ -42,7 +43,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  *   (e) routeInsightFix NEVER throws — creation-path rejections resolve
  *       to an empty result;
  * plus the FixPerformanceTaskTrigger refactor invariance: the spans path
- * still refuses traces with no deterministic finding BEFORE any other
+ * still refuses traces with no finding worth fixing BEFORE the repository
  * gate, and the findings entry point enforces the repo + dedupe gates.
  */
 
@@ -449,6 +450,11 @@ describe("InsightFixRouting.routeInsightFix", () => {
 describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)", () => {
   const userId: ObjectID = ObjectID.generate();
 
+  beforeEach(() => {
+    // AI on: the switch's own refusals have their suites.
+    jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
+  });
+
   function makeSpan(): AnalyzableSpan {
     return {
       spanId: "s1",
@@ -461,7 +467,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
     jest.restoreAllMocks();
   });
 
-  test("the no-deterministic-finding refusal is still thrown from the spans entry, before any other gate", async () => {
+  test("the nothing-worth-fixing refusal is still thrown from the spans entry, before the repository gate", async () => {
     jest.spyOn(SpanTreeAnalyzer, "analyzeTrace").mockReturnValue([]);
     const repoGate: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
@@ -475,7 +481,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         spans: [makeSpan()],
         userId,
       }),
-    ).rejects.toThrow(/No deterministic performance pattern/);
+    ).rejects.toThrow(/Nothing in this trace is worth an AI performance fix/);
 
     expect(repoGate).not.toHaveBeenCalled();
   });

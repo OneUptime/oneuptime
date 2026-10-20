@@ -13,6 +13,7 @@ import CodeFixTaskType, {
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIRunService from "./AIRunService";
 import FixRunBudget from "../Utils/AI/CodeFix/FixRunBudget";
+import AIService from "./AIService";
 import CodeFixReadiness from "../Utils/AI/CodeFix/CodeFixReadiness";
 import ServiceService from "./ServiceService";
 import CodeRepositoryService from "./CodeRepositoryService";
@@ -500,6 +501,13 @@ export class Service extends ProjectReferencesService<Model> {
     if (!telemetryException || !telemetryException.projectId) {
       throw new BadDataException("Telemetry Exception not found");
     }
+
+    /*
+     * The project's one AI switch. The Dashboard does not offer AI
+     * Assistance with AI off, and the server refuses it the same way rather
+     * than queueing a run whose every model call would be refused.
+     */
+    await AIService.assertProjectAIEnabled(telemetryException.projectId);
 
     /*
      * Server-side lifecycle gate (the dashboard hides the button for

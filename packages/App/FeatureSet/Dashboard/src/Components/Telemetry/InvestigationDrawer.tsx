@@ -63,6 +63,7 @@ import {
 } from "../../Utils/InvestigationFindings";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import EventName from "../../Utils/EventName";
+import useAiOffered from "../../Utils/UseAiOffered";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -127,6 +128,8 @@ interface DrawerQueries {
 const InvestigationDrawer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // "Explain with AI" opens Ask AI, so it is drawn only where AI can run.
+  const isAiOffered: boolean = useAiOffered();
   const pinnedStartMs: number = props.window.startValue.getTime();
   const pinnedEndMs: number = props.window.endValue.getTime();
 
@@ -708,15 +711,18 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
             description="What stands out in this window, from the evidence below."
             rightElement={
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                  title="Open Ask AI with this evidence as an editable prompt"
-                  onClick={explainWithAi}
-                >
-                  <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-                  Explain with AI
-                </button>
+                {isAiOffered && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    title="Open Ask AI with this evidence as an editable prompt"
+                    data-testid="investigation-explain-with-ai"
+                    onClick={explainWithAi}
+                  >
+                    <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+                    Explain with AI
+                  </button>
+                )}
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"

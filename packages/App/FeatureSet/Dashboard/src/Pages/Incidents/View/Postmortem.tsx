@@ -39,6 +39,7 @@ import {
   toAITemplates,
 } from "../../../Components/Postmortem/PostmortemTemplates";
 import { getPostmortemCardButtons } from "../../../Components/Postmortem/PostmortemCardButtons";
+import useAiOffered from "../../../Utils/UseAiOffered";
 import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
 
 // Whether the postmortem is on the status page, and so what it says there.
@@ -51,6 +52,7 @@ const IncidentPostmortem: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const isAiOffered: boolean = useAiOffered();
 
   const postmortemTemplates: PostmortemTemplatesState =
     usePostmortemTemplates();
@@ -154,6 +156,7 @@ const IncidentPostmortem: FunctionComponent<
           buttons: getPostmortemCardButtons({
             model: new Incident(),
             hasTemplates: postmortemTemplates.templates.length > 0,
+            isAiOffered: isAiOffered,
             onGenerateWithAI: () => {
               setShowAIGenerateModal(true);
             },
