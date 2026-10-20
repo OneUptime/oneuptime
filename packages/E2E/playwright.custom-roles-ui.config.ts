@@ -9,13 +9,14 @@ import path from "path";
  * in-memory project whose writes it records and answers as the services do.
  * What jsdom cannot show is checked here: the dialogs and pickers as they
  * are drawn, long names wrapping inside their cards, a phone's width, dark
- * mode.
+ * mode. AddRoleDialog.spec.ts holds the Add a Role dialog itself - its role
+ * picker under the keyboard, on a phone, dark and in German.
  */
 const port: string = process.env["CUSTOM_ROLES_FIXTURE_PORT"] || "4313";
 
 export default defineConfig({
   testDir: "./CustomRoles",
-  testMatch: "CustomRoles.spec.ts",
+  testMatch: ["CustomRoles.spec.ts", "AddRoleDialog.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

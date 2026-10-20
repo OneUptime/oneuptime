@@ -4,22 +4,22 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE TWO WAYS A PERMISSION GOES INTO A CUSTOM ROLE, on the role's page
- * (CustomRolePermissionTable): Add Role picks a built-in role from cards,
- * Add Permission one permission from the full list. Each dialog is named for
- * the button that opened it, and Edit opens the picker a row was added with,
- * so its current pick is the one shown. React-free, so tests read it without
- * rendering a page.
+ * (CustomRolePermissionTable): Add Role picks a built-in role from the role
+ * picker (Permission/RolePicker), Add Permission one permission from the
+ * full list. Each dialog is named for the button that opened it, and Edit
+ * opens the picker a row was added with, so its current pick is the one
+ * shown. React-free, so tests read it without rendering a page.
  */
 
 export enum CustomRolePermissionPickerType {
-  // The built-in role cards, behind Add Role.
+  // The role picker, behind Add Role.
   Role = "Role",
   // The full list of permissions, behind Add Permission.
   SinglePermission = "SinglePermission",
 }
 
 /*
- * The picker a permission is edited with: the role cards for a built-in
+ * The picker a permission is edited with: the role picker for a built-in
  * role, the full list for anything else - the one it was added with.
  */
 export const getCustomRolePermissionPickerType: (

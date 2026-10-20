@@ -117,6 +117,8 @@ Een rol bundelt een heel productgebied op een van drie niveaus:
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` enzovoort. Rollen zijn bijna altijd wat u wilt — ze blijven kloppen naarmate OneUptime functies toevoegt, omdat een nieuwe monitorgerelateerde tabel aan de bestaande monitorrollen wordt toegevoegd in plaats van een nieuwe toekenning van u te vragen.
 
+**Rol toevoegen** vraagt eerst hoe ver de rol reikt. **Hele project** toont de vier rollen die het hele project bereiken — Project Owner, Projectbeheerder, Projectlid en Kijker — elk met een regel over waarvoor hij dient. **Eén onderdeel** toont de onderdelen, elk met het pictogram van zijn product: kies er een, en dan het niveau. **Rollen zoeken** vindt elke rol op naam, onderdeel of wat hij doet.
+
 Workflows en runbooks zijn de uitzondering. Beide voeren code uit in uw project — een workflow zijn stappen, een runbook zijn scripts op uw Runners —, dus `WorkflowMember` opent workflows en hun uitvoeringen en voert ze met de hand uit, en `RunbookMember` opent runbooks en hun uitvoeringen en voert ze uit: het start een uitvoering, voltooit of slaat de stappen ervan over en annuleert haar. Geen van beide maakt, wijzigt of verwijdert wat het uitvoert; `WorkflowAdmin` en `RunbookAdmin` bouwen ze. Een rol voert alleen de runbooks uit die zijn bereik bereikt, dus een `RunbookMember` die tot enkele labels is beperkt, voert de runbooks uit die ze dragen. Zie [Workflowmachtigingen](/docs/workflows/configuration#machtigingen) en [Runbookmachtigingen](/docs/runbooks/configuration#machtigingen).
 
 De regels van een gebied (label-, eigenaar-, piket-, groeperings- en herinneringsregels), aangepaste velden, SLA's en geheimen zijn projectconfiguratie: ze vragen `ProjectAdmin`, welke gebiedsrol iemand ook heeft. Hetzelfde geldt voor API-sleutels, teams en hun machtigingen, labels, SSO en domeinen — de Settings-rollen zorgen voor de diensten, probes, infrastructuur en integraties van het project, niet voor wie wat mag.
@@ -188,7 +190,7 @@ Alleen de status wordt voor u geschreven. Een notitie die met een wijziging word
 
 ## Bereik: hoe ver een toegestane machtiging reikt
 
-Elke toegestane machtiging wordt toegekend met een bereik, gekozen onder **Bereik** wanneer u haar toevoegt:
+Elke toegestane machtiging wordt toegekend met een bereik: wanneer u haar toevoegt, staat **Bereik** onder **Meer velden** en begint het op het eerste van deze antwoorden:
 
 | Bereik | Betekenis |
 | --- | --- |

@@ -1,5 +1,9 @@
-import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
-import { getPermissionScopeFields } from "../Permission/PermissionScopeChoice";
+import { RoleReach } from "../Permission/RoleCatalog";
+import { getRolePickerFormField } from "../Permission/RolePickerFormField";
+import {
+  getPermissionScopeFields,
+  isScopeShownFor,
+} from "../Permission/PermissionScopeChoice";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import {
   CUSTOM_ROLE_PERMISSION_DIALOG_WORDS,
@@ -21,10 +25,6 @@ import {
 } from "Common/Types/Team/CustomRole";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import {
-  CardSelectOption,
-  CardSelectOptionGroup,
-} from "Common/UI/Components/CardSelect/CardSelect";
 import { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import PermissionPicker from "Common/UI/Components/Forms/Fields/PermissionPicker";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -50,8 +50,10 @@ import React, {
  * THE PERMISSIONS IN A CUSTOM ROLE, on the role's page.
  *
  * Added the way a team's own are (Components/Team/TeamPermissionTable): Add
- * Role picks a built-in role from the same cards, Add Permission one
- * permission from the full list, each with a scope - every resource in the
+ * Role picks a built-in role from the same role picker (Permission/
+ * RolePicker) - opening on One area, as a custom role is most often a few
+ * areas' roles - and Add Permission one permission from the full list, each
+ * with a scope folded under More fields - every resource in the
  * project, the resources the person acting (or one of their teams) owns, or
  * the resources carrying some labels, the three plain answers of
  * Components/Permission/PermissionScopeChoice. What a custom role cannot hold is not
@@ -65,8 +67,8 @@ import React, {
  * Each dialog is named for the button that opened it - "Add a Role to
  * Incident Responder" behind Add Role, "Add a Permission to Incident
  * Responder" behind Add Permission - and Edit opens the picker the row was
- * made with: the role cards for a built-in role, the full list for a single
- * permission, its current pick shown either way.
+ * made with: the role picker for a built-in role, the full list for a
+ * single permission, its current pick shown either way.
  */
 
 export interface ComponentProps {
@@ -93,12 +95,6 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
   );
 
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
-
-  // The cards a team's Add Role shows, without Project Owner.
-  const roleCardSelectOptions: Array<CardSelectOption | CardSelectOptionGroup> =
-    getRoleCardSelectOptions({
-      excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
-    });
 
   type OpenCreateFormFunction = (type: CustomRolePermissionPickerType) => void;
 
@@ -177,10 +173,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
   const isScopeShown: (values: FormValues<CustomRolePermission>) => boolean = (
     values: FormValues<CustomRolePermission>,
   ): boolean => {
-    return (
-      Boolean(values["permission"]) &&
-      PermissionHelper.isScopeApplicable(values["permission"] as Permission)
-    );
+    return isScopeShownFor(values["permission"]);
   };
 
   /*
@@ -207,7 +200,11 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       createFormTitle={createFormTitle}
       createFormSubmitButtonText={dialogWords.submitButtonText}
       name="Teams > Role > Permissions"
-      createEditModalWidth={ModalWidth.Large}
+      /*
+       * The role picker reads best in a dialog of its own size; the full
+       * list of permissions keeps the wide one.
+       */
+      createEditModalWidth={isRoleBased ? ModalWidth.Medium : ModalWidth.Large}
       isViewable={false}
       createEditFromRef={formRef}
       onBeforeEdit={(
@@ -256,19 +253,17 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       formFields={
         isRoleBased
           ? [
-              {
-                field: {
-                  permission: true,
-                },
+              /*
+               * The role picker a team's Add Role shows, without Project
+               * Owner, opening on One area.
+               */
+              getRolePickerFormField<CustomRolePermission>({
+                excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
+                startOn: RoleReach.OneArea,
                 onChange: onPermissionPicked,
-                title: "Role",
-                description:
-                  "A built-in role to bundle into this one. Every team with this role gets what it can do.",
-                fieldType: FormFieldSchemaType.CardSelect,
-                cardSelectOptions: roleCardSelectOptions,
-                required: true,
-                placeholder: "Select a role",
-              },
+                // The Scope below shows for a role that takes one.
+                isMoreFieldsShownFor: isScopeShownFor,
+              }),
               ...scopeAndLabelsFields,
             ]
           : [

@@ -25,12 +25,24 @@ export interface ViewSwitchOption<T extends string> {
 
 export interface ComponentProps<T extends string> {
   options: ReadonlyArray<ViewSwitchOption<T>>;
-  value: T;
+  /*
+   * The view on screen, or null while none of them is: the role picker's
+   * Whole project | One area while its search lists roles from both. Every
+   * option is then plain, and pressing one shows it.
+   */
+  value: T | null;
   onChange: (value: T) => void;
   // What the group is, for a screen reader: "Show the events as".
   ariaLabel: string;
   // The group's test id; each option's is `<dataTestId>-<value>`.
   dataTestId: string;
+  /*
+   * On a phone, the switch fills its row and its options share it equally,
+   * as a phone's own segmented controls do; from sm up it is as wide as its
+   * options. For a switch that heads a form's content (the role picker's
+   * Whole project | One area), not one squeezed into a toolbar.
+   */
+  fillWidthOnPhone?: boolean | undefined;
 }
 
 export const VIEW_SWITCH_CLASS_NAME: string =
@@ -45,6 +57,14 @@ export const VIEW_SWITCH_ACTIVE_CLASS_NAME: string =
 export const VIEW_SWITCH_IDLE_CLASS_NAME: string =
   "text-gray-600 hover:text-gray-900";
 
+// fillWidthOnPhone: the track fills the row, then hugs its options from sm up.
+export const VIEW_SWITCH_FILL_CLASS_NAME: string =
+  "flex w-full items-center rounded-lg bg-gray-100 p-0.5 sm:inline-flex sm:w-auto";
+
+// fillWidthOnPhone: each option an equal share of the row, then its own width.
+export const VIEW_SWITCH_FILL_OPTION_CLASS_NAME: string =
+  "flex-1 justify-center sm:flex-none";
+
 function ViewSwitch<T extends string>(props: ComponentProps<T>): ReactElement {
   const translator: Translator = useTranslator();
 
@@ -52,7 +72,11 @@ function ViewSwitch<T extends string>(props: ComponentProps<T>): ReactElement {
     <div
       role="group"
       aria-label={translator.translateText(props.ariaLabel)}
-      className={VIEW_SWITCH_CLASS_NAME}
+      className={
+        props.fillWidthOnPhone
+          ? VIEW_SWITCH_FILL_CLASS_NAME
+          : VIEW_SWITCH_CLASS_NAME
+      }
       data-testid={props.dataTestId}
     >
       {props.options.map((option: ViewSwitchOption<T>): ReactElement => {
@@ -65,6 +89,8 @@ function ViewSwitch<T extends string>(props: ComponentProps<T>): ReactElement {
             aria-pressed={isActive}
             data-testid={`${props.dataTestId}-${option.value}`}
             className={`${VIEW_SWITCH_OPTION_CLASS_NAME} ${
+              props.fillWidthOnPhone ? VIEW_SWITCH_FILL_OPTION_CLASS_NAME : ""
+            } ${
               isActive
                 ? VIEW_SWITCH_ACTIVE_CLASS_NAME
                 : VIEW_SWITCH_IDLE_CLASS_NAME
