@@ -8,6 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import React, { act } from "react";
+import type { Mock } from "jest-mock";
 import { ObjectType } from "../../../Types/JSON";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -85,6 +86,15 @@ function makeConfig(data: {
 function noop(): void {
   return undefined;
 }
+
+type OnDefaultsChange = (defaults: {
+  timeRange?: TimeRange | undefined;
+  refreshInterval?: AutoRefreshInterval | undefined;
+}) => void;
+
+type OnIntervalChange = (interval: AutoRefreshInterval) => void;
+
+type OnDefaultSelect = () => void;
 
 interface ToolbarOptions {
   mode: DashboardMode;
@@ -325,12 +335,8 @@ describe("the editing row", () => {
   });
 
   test("a choice made from the keyboard is the one set, and the focus goes back to the button", async () => {
-    const onDashboardDefaultsChange: jest.Mock<
-      (defaults: {
-        timeRange?: TimeRange | undefined;
-        refreshInterval?: AutoRefreshInterval | undefined;
-      }) => void
-    > = jest.fn();
+    const onDashboardDefaultsChange: Mock<OnDefaultsChange> =
+      jest.fn<OnDefaultsChange>();
 
     render(
       toolbar({
@@ -464,10 +470,10 @@ describe("the auto-refresh menu while viewing", () => {
   });
 
   test("a choice made hands the focus back to the button", async () => {
-    const onAutoRefreshIntervalChange: jest.Mock<
-      (interval: AutoRefreshInterval) => void
-    > = jest.fn();
-    const onDefaultAutoRefreshSelect: jest.Mock<() => void> = jest.fn();
+    const onAutoRefreshIntervalChange: Mock<OnIntervalChange> =
+      jest.fn<OnIntervalChange>();
+    const onDefaultAutoRefreshSelect: Mock<OnDefaultSelect> =
+      jest.fn<OnDefaultSelect>();
 
     render(
       toolbar({
