@@ -27,6 +27,9 @@ import {
 } from "./ProjectAiSettingsCopy";
 import { reportEnabledAiLaneRuleCount } from "./AiLaneRuleCount";
 import {
+  INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
+  INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME,
+  INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME,
   INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
   INVESTIGATION_RULE_TIMING_COPY,
   INVESTIGATION_RULE_TIMING_FIELD_KEY,
@@ -153,12 +156,34 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
         },
       ]}
       columns={[
-        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { name: true },
+          title: "Name",
+          type: FieldType.Text,
+          /*
+           * A rule's name on as many lines as it needs, as the postmortem
+           * rules' names below it: cut short on one line, beside Match
+           * Criteria, Investigates and Status, the part that tells two
+           * rules apart was the part cut off. Its floor leaves Investigates
+           * its line (INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME).
+           */
+          wrapContent: true,
+          contentClassName: INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
+        },
         {
           field: { onlyIfOpenAfterMinutes: true },
           title: INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
           type: FieldType.Element,
           disableSort: true,
+          /*
+           * "If still open after 10 minutes" on one line in English; a
+           * longer language ("Falls nach 1.440 Minuten noch offen") takes
+           * two rather than pushing Status under the row's buttons at
+           * 1280px beside the side menu (InvestigationRuleTiming).
+           */
+          wrapContent: true,
+          wrapMaxWidthClassName: INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME,
+          contentClassName: INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME,
           getElement: (item: AIInvestigationRule): ReactElement => {
             return (
               <span data-testid="investigation-rule-timing">

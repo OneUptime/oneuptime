@@ -49,6 +49,9 @@ import AIInvestigationRuleTriggerEntity from "../../../Types/AI/AIInvestigationR
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import {
+  INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
+  INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME,
+  INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME,
   INVESTIGATION_RULE_TIMING_FIELD_KEY,
   InvestigationRuleTiming,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
@@ -100,6 +103,9 @@ interface CapturedColumn {
   field?: Record<string, unknown>;
   title?: string;
   disableSort?: boolean;
+  wrapContent?: boolean;
+  wrapMaxWidthClassName?: string;
+  contentClassName?: string;
   getElement?: (item: AIInvestigationRule) => React.ReactElement;
   getExportValue?: (item: AIInvestigationRule) => string;
 }
@@ -491,6 +497,55 @@ describe.each([
           return candidate.title;
         }),
       ).toEqual(["Name", "Investigates", "Status"]);
+    });
+
+    test("its columns fit a 1280px screen beside the side menu, in a long language too", () => {
+      const props: Record<string, unknown> = tableFor(lane);
+      const columns: Array<CapturedColumn> = columnsOf(props);
+      const name: CapturedColumn = columns.find(
+        (candidate: CapturedColumn): boolean => {
+          return candidate.title === "Name";
+        },
+      )!;
+      const investigates: CapturedColumn = columns.find(
+        (candidate: CapturedColumn): boolean => {
+          return candidate.title === "Investigates";
+        },
+      )!;
+
+      /*
+       * A rule's name wraps rather than being cut short, on a floor below a
+       * table's 10rem: that is what leaves German's table (wider pills and
+       * buttons) inside its 938px card with Status in sight. Measured in
+       * the AI settings page's offline suite (InvestigationRules.spec.ts).
+       */
+      expect(name.wrapContent).toBe(true);
+      expect(name.contentClassName).toBe(
+        INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
+      );
+      expect(INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME).toBe("min-w-[8rem]");
+
+      /*
+       * When to investigate wraps too, between a floor that keeps "If
+       * still open after 120 minutes" on one line and a cap with room for
+       * "If still open after 1,440 minutes" - the cap where a wrapping
+       * column takes it, never in contentClassName.
+       */
+      expect(investigates.wrapContent).toBe(true);
+      expect(investigates.wrapMaxWidthClassName).toBe(
+        INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME,
+      );
+      expect(INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME).toBe("max-w-[14rem]");
+      expect(investigates.contentClassName).toBe(
+        INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME,
+      );
+      expect(INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME).toBe(
+        "min-w-[12rem]",
+      );
+
+      for (const column of columns) {
+        expect(column.contentClassName || "").not.toContain("max-w-");
+      }
     });
 
     test("after every read, reports how many of its rules are enabled", async () => {

@@ -106,6 +106,24 @@ export const INVESTIGATION_RULE_WAIT_NOT_WHOLE: string = translationKey(
 export const INVESTIGATION_RULE_TIMING_COLUMN_TITLE: string =
   translationKey("Investigates");
 
+/*
+ * The rules table's widths, measured at 1280px beside the side menu (a
+ * 938px card, in Inter). Investigates is capped at room for "If still open
+ * after 1,440 minutes" (200px) and never narrower than "If still open after
+ * 120 minutes", so a wait reads on one line in English however the table is
+ * squeezed; a longer language ("Falls nach 1.440 Minuten noch offen") takes
+ * two. Name's floor is lower than a table's 10rem, which is what keeps
+ * German's table (wider pills and "Bearbeiten") inside its card with Status
+ * in sight rather than under the row's buttons.
+ */
+export const INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME: string =
+  "max-w-[14rem]";
+
+export const INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME: string =
+  "min-w-[12rem]";
+
+export const INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME: string = "min-w-[8rem]";
+
 export const INVESTIGATION_RULE_RIGHT_AWAY: string =
   translationKey("Right away");
 

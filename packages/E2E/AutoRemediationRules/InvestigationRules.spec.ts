@@ -48,6 +48,15 @@ const INCIDENT_WAIT_HELP: string =
 const ALERT_RIGHT_AWAY_HELP: string =
   "OneUptime AI starts as soon as the alert is created.";
 
+// How the full table sits in its card, measured in the page.
+interface TableFit {
+  cardWidth: number;
+  scrollWidth: number;
+  clientWidth: number;
+  statusRight: number;
+  actionsLeft: number;
+}
+
 interface Recorded {
   creates: Array<{ model: string; data: Record<string, unknown> }>;
   updates: Array<{ model: string; id: string; data: Record<string, unknown> }>;
@@ -71,18 +80,26 @@ test.afterEach(({ page }: { page: Page }) => {
   expect(pageErrors.get(page) || []).toEqual([]);
 });
 
+interface OpenOptions {
+  lane?: Lane;
+  query?: string;
+  isGerman?: boolean;
+  // The fixture's rules: two (saved, the default), or a full table (many).
+  rules?: "saved" | "many";
+}
+
 // The page, its More settings unfolded, and the investigation rules card.
 const openRulesCard: (
   page: Page,
-  options?: { lane?: Lane; query?: string; isGerman?: boolean },
+  options?: OpenOptions,
 ) => Promise<Locator> = async (
   page: Page,
-  options: { lane?: Lane; query?: string; isGerman?: boolean } = {},
+  options: OpenOptions = {},
 ): Promise<Locator> => {
   const lane: Lane = options.lane || "incident";
   const query: string = [
     lane === "alert" ? "lane=alert" : "",
-    "investigationRules=saved",
+    `investigationRules=${options.rules || "saved"}`,
     options.query,
   ]
     .filter(Boolean)
@@ -223,6 +240,89 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
     );
     await screenshot(page, "investigation-rules-table");
   });
+
+  /*
+   * At 1280px the card beside the Dashboard's side menu is about 940px. The
+   * full table - a long name, three conditions, waits of up to a day - keeps
+   * every column in sight there: nothing scrolls sideways and Status ends
+   * before the row's buttons, in English and in German, whose pills and
+   * buttons are wider. In English a wait of up to 120 minutes reads on one
+   * line.
+   */
+  for (const isGerman of [false, true]) {
+    test(`at 1280px beside the side menu, the full table fits its card${isGerman ? ", in German too" : ""}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const card: Locator = await openRulesCard(page, {
+        rules: "many",
+        query: `layout=page${isGerman ? "&lang=de" : ""}`,
+        isGerman,
+      });
+      await expect(card.locator("tbody tr")).toHaveCount(5);
+
+      const fit: TableFit = await card
+        .locator("table")
+        .evaluate((table: HTMLElement): TableFit => {
+          const headers: Array<DOMRect> = Array.from(
+            table.querySelectorAll("thead th"),
+          ).map((header: Element): DOMRect => {
+            return header.getBoundingClientRect();
+          });
+          const statusIndex: number = headers.length - 2;
+
+          return {
+            cardWidth: table
+              .closest("[data-card-surface='section']")!
+              .getBoundingClientRect().width,
+            scrollWidth: table.parentElement!.scrollWidth,
+            clientWidth: table.parentElement!.clientWidth,
+            statusRight: headers[statusIndex]!.right,
+            actionsLeft: headers[headers.length - 1]!.left,
+          };
+        });
+
+      // The Dashboard's frame: a card of about 940px.
+      expect(fit.cardWidth).toBeGreaterThan(900);
+      expect(fit.cardWidth).toBeLessThan(980);
+      expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth + 1);
+      expect(fit.statusRight).toBeLessThanOrEqual(fit.actionsLeft + 1);
+
+      const headers: Array<string> = (
+        await card.locator("thead th").allInnerTexts()
+      ).map((text: string): string => {
+        return text.trim();
+      });
+      expect(headers[headers.length - 2]).toBe("Status");
+
+      if (!isGerman) {
+        for (const [rowName, text] of [
+          ["Flapping checks", "If still open after 10 minutes"],
+          ["Payments and checkout", "If still open after 90 minutes"],
+          ["Batch jobs", "If still open after 120 minutes"],
+        ] as const) {
+          const cell: Locator = card
+            .locator("tbody tr")
+            .filter({ hasText: rowName })
+            .getByTestId("investigation-rule-timing");
+
+          await expect(cell).toHaveText(text);
+          // One line box: the sentence is not broken in two.
+          expect(
+            await cell.evaluate((element: HTMLElement): number => {
+              return element.getClientRects().length;
+            }),
+          ).toBe(1);
+        }
+      }
+
+      await screenshot(
+        page,
+        `investigation-rules-table-1280${isGerman ? "-de" : ""}`,
+      );
+    });
+  }
 
   test("a new rule asks Match, then Investigate, and starts on Right away, with no minutes asked", async ({
     page,

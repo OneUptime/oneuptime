@@ -57,7 +57,11 @@ investigates right away and one that waits 10 minutes):
   stopped in the form;
 - a rule that waits opens on its minutes, and Right away clears them (sent as
   null);
-- an alert rule asks the same, about alerts; a phone, dark mode and German.
+- an alert rule asks the same, about alerts; a phone, dark mode and German;
+- at 1280px beside the side menu (`?layout=page`, the Dashboard's own frame,
+  a card of about 940px), a full table (`?investigationRules=many`: a long
+  name, three conditions, waits of up to a day) keeps every column in sight
+  in English and in German, and a wait reads on one line in English.
 
 `Fixture/Fixture.js` records every created record (`creates`), every update
 (`updates`, with the model, the id and the data) and every delete

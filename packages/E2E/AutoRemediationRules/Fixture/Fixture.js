@@ -23,6 +23,15 @@
  *                     that investigates right away, and one that
  *                     investigates only the records still open after 10
  *                     minutes; none by default
+ *   - investigationRules=many
+ *                     those two and three more, as a full table looks: a
+ *                     long name with three conditions that waits 90
+ *                     minutes, one that waits 120, and a disabled one that
+ *                     waits a day (1440)
+ *   - layout=page     the page in the Dashboard's own frame, beside a side
+ *                     menu (Common's Page and SideMenu), so the cards are as
+ *                     wide as a person sees them (about 940px of a 1280px
+ *                     screen); the default is the page alone
  *   - runners=0       the project has no Runner of its own (two by default,
  *                     prod-eu-runner connected and office-runner never
  *                     connected, beside the in-cluster Runner the Kubernetes
@@ -64,6 +73,10 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
+import Page from "Common/UI/Components/Page/Page";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
@@ -82,7 +95,12 @@ const USER_ID = "30000000-0000-4000-8000-0000000000c1";
 const params = new URLSearchParams(window.location.search);
 const lane = params.get("lane") === "alert" ? "alert" : "incident";
 const hasSavedRules = params.get("rules") === "saved";
-const hasSavedInvestigationRules = params.get("investigationRules") === "saved";
+const investigationRuleSet = ["saved", "many"].includes(
+  params.get("investigationRules"),
+)
+  ? params.get("investigationRules")
+  : "none";
+const layout = params.get("layout") === "page" ? "page" : "alone";
 const runnerCount = params.get("runners") === "0" ? 0 : 2;
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
@@ -375,6 +393,59 @@ const SAVED_INVESTIGATION_RULES = [
   }),
 ];
 
+/*
+ * A full table (investigationRules=many): a long name with three
+ * conditions, the waits a project picks most beyond a few minutes, and the
+ * longest a rule may wait, on a disabled rule.
+ */
+const MORE_INVESTIGATION_RULES = [
+  record(AIInvestigationRule, {
+    _id: "91000000-0000-4000-8000-000000000e03",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Payments and checkout incidents on the eu-west-1 cluster after a deploy",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 90,
+    criteria: {
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [
+        {
+          field: lane === "alert" ? "alertSeverities" : "incidentSeverities",
+          operator: "HasAnyOf",
+          value: [
+            (lane === "alert" ? ALERT_SEVERITIES : INCIDENT_SEVERITIES)[0]._id,
+          ],
+        },
+        { field: "labels", operator: "HasAnyOf", value: [LABELS[0]._id] },
+        {
+          field: "titlePattern",
+          operator: "MatchesPattern",
+          value: "payments|checkout",
+        },
+      ],
+    },
+  }),
+  record(AIInvestigationRule, {
+    _id: "91000000-0000-4000-8000-000000000e04",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Batch jobs",
+    isEnabled: true,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 120,
+    criteria: null,
+  }),
+  record(AIInvestigationRule, {
+    _id: "91000000-0000-4000-8000-000000000e05",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Nightly backups",
+    isEnabled: false,
+    triggerEntityType: trigger,
+    onlyIfOpenAfterMinutes: 1440,
+    criteria: null,
+  }),
+];
+
 const TABLES = {
   Project: [project],
   AutoRemediationRule: hasSavedRules ? SAVED_RULES : [],
@@ -384,9 +455,12 @@ const TABLES = {
   AlertSeverity: ALERT_SEVERITIES,
   Label: LABELS,
   Monitor: MONITORS,
-  AIInvestigationRule: hasSavedInvestigationRules
-    ? SAVED_INVESTIGATION_RULES
-    : [],
+  AIInvestigationRule:
+    investigationRuleSet === "many"
+      ? [...SAVED_INVESTIGATION_RULES, ...MORE_INVESTIGATION_RULES]
+      : investigationRuleSet === "saved"
+        ? SAVED_INVESTIGATION_RULES
+        : [],
   AIPostmortemRule: [],
   IncidentPostmortemTemplate: [],
 };
@@ -618,6 +692,43 @@ function Shell() {
   Navigation.setParams(useParams());
 
   const SettingsPage = lane === "alert" ? AlertAISettings : IncidentAISettings;
+
+  /*
+   * The Dashboard's frame: the page beside its side menu, which is what
+   * leaves a card about 940px of a 1280px screen.
+   */
+  if (layout === "page") {
+    return (
+      <Page
+        title={lane === "alert" ? "Alerts" : "Incidents"}
+        breadcrumbLinks={[]}
+        sideMenu={
+          <SideMenu
+            sections={[
+              {
+                title: "AI",
+                items: [
+                  {
+                    link: {
+                      title: "Settings",
+                      to: new Route(window.location.pathname),
+                    },
+                    icon: IconProp.Settings,
+                  },
+                ],
+              },
+            ]}
+          />
+        }
+      >
+        <SettingsPage
+          pageRoute={Navigation.getCurrentRoute()}
+          currentProject={project}
+          hasPaymentMethod={true}
+        />
+      </Page>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-[1100px] px-4 py-8 sm:px-8">
