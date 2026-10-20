@@ -96,6 +96,16 @@ export interface GitHubCommitResult {
   htmlUrl: string;
 }
 
+// The commit a pull request merged as: a full or abbreviated SHA.
+const MERGE_COMMIT_SHA: RegExp = /^[0-9a-f]{7,64}$/i;
+
+// A pull request's state, with its merge commit and time once merged.
+export interface GitHubPullRequestMerge {
+  state: PullRequestState;
+  mergeCommitSha?: string | undefined;
+  mergedAt?: Date | undefined;
+}
+
 export default class GitHubUtil extends HostedCodeRepository {
   private getPullRequestFromJSONObject(data: {
     pullRequest: JSONObject;
@@ -505,6 +515,39 @@ export default class GitHubUtil extends HostedCodeRepository {
     return PullRequestState.Open;
   }
 
+  /*
+   * A pull request's state, and - once merged - the commit GitHub merged it
+   * as and when. The commit is what a deploy must contain for the fix to be
+   * in production (FixProductionVerifier).
+   */
+  public static readPullRequestMerge(
+    pullRequest: JSONObject,
+  ): GitHubPullRequestMerge {
+    const state: PullRequestState =
+      GitHubUtil.mapGitHubPullRequestToState(pullRequest);
+
+    if (state !== PullRequestState.Merged) {
+      return { state };
+    }
+
+    const mergeCommitSha: unknown = pullRequest["merge_commit_sha"];
+    const mergedAtText: unknown = pullRequest["merged_at"];
+    const mergedAt: Date | undefined =
+      typeof mergedAtText === "string" &&
+      !Number.isNaN(new Date(mergedAtText).getTime())
+        ? new Date(mergedAtText)
+        : undefined;
+
+    return {
+      state,
+      ...(typeof mergeCommitSha === "string" &&
+      MERGE_COMMIT_SHA.test(mergeCommitSha)
+        ? { mergeCommitSha }
+        : {}),
+      ...(mergedAt ? { mergedAt } : {}),
+    };
+  }
+
   // Fetches the current state of one pull request via the GitHub App installation.
   @CaptureSpan()
   public static async getPullRequestState(data: {
@@ -558,6 +601,34 @@ export default class GitHubUtil extends HostedCodeRepository {
     }
 
     return GitHubUtil.mapGitHubPullRequestToState(result.data);
+  }
+
+  // getPullRequestStateWithToken, with the merge commit and time once merged.
+  @CaptureSpan()
+  public static async getPullRequestMergeWithToken(data: {
+    token: string;
+    organizationName: string;
+    repositoryName: string;
+    pullRequestNumber: number;
+  }): Promise<GitHubPullRequestMerge> {
+    const url: URL = URL.fromString(
+      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls/${data.pullRequestNumber}`,
+    );
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: url,
+      headers: {
+        Authorization: `Bearer ${data.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    return GitHubUtil.readPullRequestMerge(result.data);
   }
 
   /*

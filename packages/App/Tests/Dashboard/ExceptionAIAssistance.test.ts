@@ -7,6 +7,7 @@ import {
 } from "Common/Types/AI/AIFixReadiness";
 import {
   AIAgentTaskInfo,
+  AIFixProductionInfo,
   AITaskCardState,
   AI_TASKS_LOADING_REASON,
   AI_TASKS_PAUSED_REASON,
@@ -14,9 +15,11 @@ import {
   AI_TASK_PRESENTATION,
   EXCEPTION_AI_TASK_TYPES,
   ExceptionAITaskType,
+  FIX_PRODUCTION_LABELS,
   findLatestAITask,
   getAIReadinessProgress,
   getAITaskCardState,
+  getFixProductionTone,
   getReadinessCheckLink,
   isAITaskActive,
   isAITaskCompleted,
@@ -26,7 +29,9 @@ import {
   parseAIAgentTask,
   parseAIAgentTasksResponse,
   parseAIFixReadinessResponse,
+  parseFixProduction,
 } from "../../FeatureSet/Dashboard/src/Utils/ExceptionAIAssistance";
+import FixProductionStatus from "Common/Types/AI/FixProductionStatus";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 
 function task(
@@ -154,6 +159,98 @@ describe("parseAIAgentTask", () => {
       parseAIAgentTask({ _id: "t", status: "Queued", statusMessage: "" })
         .statusMessage,
     ).toBeUndefined();
+  });
+});
+
+/*
+ * Merged is not fixed: a fix task carries what production showed once the
+ * fix shipped (FixProductionVerifier on the server).
+ */
+describe("a fix's production verdict", () => {
+  test("is read from the task", () => {
+    expect(
+      parseAIAgentTask({
+        _id: "t",
+        status: "Completed",
+        production: {
+          status: "Verified",
+          summary:
+            "No occurrence in the 24 hours since version 2.3.2 shipped the fix; before the fix it happened 21 times in 7 days.",
+          statusAt: "2026-10-20T10:00:00.000Z",
+          deployedAt: "2026-10-19T09:00:00.000Z",
+          deployedVersion: "2.3.2",
+          deployedCommitSha: "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+          pullRequestUrl: "https://github.com/acme/checkout/pull/482",
+        },
+      }).production,
+    ).toEqual({
+      status: FixProductionStatus.Verified,
+      summary:
+        "No occurrence in the 24 hours since version 2.3.2 shipped the fix; before the fix it happened 21 times in 7 days.",
+      statusAt: new Date("2026-10-20T10:00:00.000Z"),
+      deployedAt: new Date("2026-10-19T09:00:00.000Z"),
+      deployedVersion: "2.3.2",
+      deployedCommitSha: "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+    });
+  });
+
+  test("a task without one, from an older server, has none", () => {
+    expect(
+      parseAIAgentTask({ _id: "t", status: "Completed" }).production,
+    ).toBeUndefined();
+  });
+
+  test("a status this dashboard does not know, or no object, is none", () => {
+    for (const value of [
+      { status: "Shipped" },
+      { status: null },
+      "Verified",
+      null,
+      42,
+    ]) {
+      expect(parseFixProduction(value)).toBeUndefined();
+    }
+  });
+
+  test("empty text and dates that are not dates are left out", () => {
+    const production: AIFixProductionInfo | undefined = parseFixProduction({
+      status: "Watching",
+      summary: "",
+      deployedVersion: "",
+      deployedCommitSha: 42,
+      deployedAt: "yesterday",
+      statusAt: 12,
+    });
+
+    expect(production).toStrictEqual({
+      status: FixProductionStatus.Watching,
+      summary: undefined,
+      deployedVersion: undefined,
+      deployedCommitSha: undefined,
+      deployedAt: undefined,
+      statusAt: undefined,
+    });
+  });
+
+  test("every status has a label, and fixed or not is told by tone", () => {
+    expect(Object.keys(FIX_PRODUCTION_LABELS).sort()).toEqual(
+      Object.values(FixProductionStatus).sort(),
+    );
+    expect(FIX_PRODUCTION_LABELS[FixProductionStatus.Verified]).toBe(
+      "Fixed in production",
+    );
+    expect(FIX_PRODUCTION_LABELS[FixProductionStatus.Regressed]).toBe(
+      "Still happening after the fix",
+    );
+    expect(getFixProductionTone(FixProductionStatus.Verified)).toBe("success");
+    expect(getFixProductionTone(FixProductionStatus.Regressed)).toBe("danger");
+    expect(getFixProductionTone(FixProductionStatus.Unverifiable)).toBe(
+      "neutral",
+    );
+    expect(getFixProductionTone(FixProductionStatus.AwaitingDeploy)).toBe(
+      "info",
+    );
+    expect(getFixProductionTone(FixProductionStatus.Watching)).toBe("info");
   });
 });
 
