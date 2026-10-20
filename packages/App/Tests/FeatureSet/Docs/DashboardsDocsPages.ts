@@ -41,6 +41,7 @@ export const DASHBOARDS_PAGES: ReadonlyArray<DashboardsDocsPageEntry> = [
  * same.
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [DASHBOARDS_INDEX]: ["Create Dashboard"],
   [AUTHORING]: ["Create Dashboard"],
   [DATA_SOURCES]: ["Create Data Source"],
   [SHARING]: ["Create Dashboard Domain"],
@@ -60,19 +61,15 @@ export const MENU_ITEM_LABELS: ReadonlyArray<string> = [
 ];
 
 /*
- * The cards of the Create from Template picker. A card draws its title as
- * the catalog (Common/Types/Dashboard/DashboardTemplates) writes it, with no
- * translation lookup, so every language's Dashboard shows them in English.
+ * The categories of Create a dashboard's template picker, in its category
+ * select's order: the authoring page's table files the templates under them.
+ * The old Create from Template dialog drew them as headings with no
+ * translation lookup, so in English everywhere; the category select looks
+ * them up, so every language names them as its Dashboard draws them. (Its
+ * Get Started group held only Blank Dashboard, which is now the picker's
+ * Start from scratch, a label of its own.)
  */
-export const TEMPLATE_CARD_NAMES: ReadonlyArray<string> = ["Blank Dashboard"];
-
-/*
- * The headings the template picker files its cards under: the template
- * catalog's categories, drawn as JSX text with no translation lookup, so
- * in English in every language. The authoring page's table names them.
- */
-export const TEMPLATE_GROUPS: ReadonlyArray<string> = [
-  "Get Started",
+export const TEMPLATE_CATEGORIES: ReadonlyArray<string> = [
   "Monitoring & APM",
   "Incident Response",
   "Infrastructure",
@@ -93,7 +90,6 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
  * keeps them as written:
  *
  *   - the toolbar's ⋯ menu, a symbol in every language;
- *   - the template picker's cards;
  *   - widget settings and options with no locale key, which the settings
  *     form and its dropdowns draw as the widget's code writes them;
  *   - the variable sources, the Source dropdown's options, which no locale
@@ -102,8 +98,8 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [DASHBOARDS_INDEX]: ["⋯", ...TEMPLATE_CARD_NAMES],
-    [AUTHORING]: ["⋯", ...TEMPLATE_CARD_NAMES],
+    [DASHBOARDS_INDEX]: ["⋯"],
+    [AUTHORING]: ["⋯"],
     [WIDGETS]: [
       "Chart Type",
       "Additional Queries",
@@ -187,9 +183,9 @@ export const NAME_TABS: ReadonlyArray<string> = [
 
 /*
  * Names a translation writes as the English does, in prose and tables too:
- * products, systems, the template cards and their picker's groups, and the
- * query languages. A line made of them alone is not a line left
- * untranslated.
+ * products, systems, the templates (catalog content, written in English in
+ * every language's picker), and the query languages. A line made of them
+ * alone is not a line left untranslated.
  */
 export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "OneUptime",
@@ -224,7 +220,6 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "LogQL",
   "T-SQL",
   "Let's Encrypt",
-  ...TEMPLATE_GROUPS,
   "Monitor Dashboard",
   "Metrics Dashboard",
   "Real User Monitoring Dashboard",
@@ -240,5 +235,4 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "Storage Array Dashboard",
   "Docker Swarm Dashboard",
   "Network Dashboard",
-  "Blank Dashboard",
 ];

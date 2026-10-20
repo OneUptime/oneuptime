@@ -8,15 +8,16 @@ import {
 } from "@jest/globals";
 
 /*
- * Creating a dashboard from a template: the create form's fields, the name
- * it starts with, what it tells the server, and where it goes once created
- * (Dashboard Components/Dashboard/DashboardCreateForm.ts).
+ * Creating a dashboard from a template: the name it starts with, what the
+ * create request tells the server, the names it is compared with, and
+ * where it goes once created (Dashboard Components/Dashboard/
+ * DashboardCreateForm.ts). Create a dashboard (CreateDashboardModal) reads
+ * these; its own tests are CreateDashboardModal.test.tsx.
  *
  *   - Picking "Kubernetes Dashboard" fills the Name in with "Kubernetes
  *     Dashboard", or "Kubernetes Dashboard 2" when the project has one: a
  *     dashboard's name is unique in its project, and the server refuses a
- *     copy. Blank Dashboard leaves the Name to its creator.
- *   - The Description waits under the folded More fields section.
+ *     copy. Start from scratch leaves the Name to its creator.
  *   - The create request names the template in the misc data the server
  *     reads, and the new dashboard opens.
  */
@@ -63,17 +64,10 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { ModelField } from "../../../UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-import {
-  ADVANCED_FORM_SECTION_ID,
-  MORE_FIELDS_SECTION_TITLE,
-} from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import * as DashboardCreateForm from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/DashboardCreateForm";
 import {
   addDashboardTemplateToMiscData,
   fetchDashboardNames,
-  getDashboardCreateFormFields,
-  getDashboardCreateInitialValues,
   getDashboardNameForTemplate,
   getDashboardViewRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/DashboardCreateForm";
@@ -85,10 +79,6 @@ const TEMPLATES_WITH_WIDGETS: Array<DashboardTemplate> =
     return template.type !== DashboardTemplateType.Blank;
   });
 
-function fieldKey(field: ModelField<Dashboard>): string {
-  return Object.keys(field.field || {})[0] || "";
-}
-
 beforeEach(() => {
   getListMock.mockReset();
 });
@@ -97,46 +87,19 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("the create form", () => {
-  test("is a Name, then the Description folded under More fields", () => {
-    const fields: Array<ModelField<Dashboard>> = getDashboardCreateFormFields();
-
-    expect(fields.map(fieldKey)).toEqual(["name", "description"]);
-
-    const name: ModelField<Dashboard> = fields[0]!;
-    expect(name.title).toBe("Name");
-    expect(name.fieldType).toBe(FormFieldSchemaType.Text);
-    expect(name.required).toBe(true);
-    // The server's rule for a name: at least two characters.
-    expect(name.validation?.minLength).toBe(2);
-    expect(name.collapsibleSection).toBeUndefined();
-    // An example of a good name, not the field's title again.
-    expect(name.placeholder).toBe("Production API Health");
-
-    const description: ModelField<Dashboard> = fields[1]!;
-    expect(description.title).toBe("Description");
-    expect(description.required).toBe(false);
-    expect(description.collapsibleSection?.id).toBe(ADVANCED_FORM_SECTION_ID);
-    expect(description.collapsibleSection?.title).toBe(
-      MORE_FIELDS_SECTION_TITLE,
-    );
-    // Lists what it holds while folded, and never opens by itself.
-    expect(description.collapsibleSection?.listFieldsWhileFolded).toBe(true);
-    expect(description.collapsibleSection?.openWhenConfigured).toBe(false);
-  });
-
-  test("walks no steps", () => {
-    for (const field of getDashboardCreateFormFields()) {
-      expect(field.stepId).toBeUndefined();
-    }
-  });
-
-  test("every field is a column the create request may carry", () => {
-    const dashboard: Dashboard = new Dashboard();
-
-    for (const field of getDashboardCreateFormFields()) {
-      expect(dashboard.getTableColumnMetadata(fieldKey(field))).toBeDefined();
-    }
+/*
+ * The table's own create form - a Name, and the Description under More
+ * fields - and the values it opened with are gone with it: Create a
+ * dashboard asks for the name on its own Name step.
+ */
+describe("the module", () => {
+  test("no longer builds the table's create form", () => {
+    expect(Object.keys(DashboardCreateForm).sort()).toEqual([
+      "addDashboardTemplateToMiscData",
+      "fetchDashboardNames",
+      "getDashboardNameForTemplate",
+      "getDashboardViewRoute",
+    ]);
   });
 });
 
@@ -199,26 +162,6 @@ describe("the name a template starts the dashboard with", () => {
         existingNames: ["Kubernetes Cost Dashboard", "Hosts Dashboard"],
       }),
     ).toBe("Kubernetes Dashboard");
-  });
-});
-
-describe("what the create form starts with", () => {
-  test("a template's name, made unique", () => {
-    expect(
-      getDashboardCreateInitialValues({
-        templateType: DashboardTemplateType.Incident,
-        existingNames: ["Incident Dashboard"],
-      }),
-    ).toEqual({ name: "Incident Dashboard 2" });
-  });
-
-  test("nothing for Blank Dashboard, so the Name shows its placeholder", () => {
-    expect(
-      getDashboardCreateInitialValues({
-        templateType: DashboardTemplateType.Blank,
-        existingNames: ["Incident Dashboard"],
-      }),
-    ).toEqual({});
   });
 });
 
@@ -339,7 +282,7 @@ describe("where a new dashboard opens", () => {
 });
 
 describe("the template catalog, as names", () => {
-  test("every template type has its card", () => {
+  test("every template type has its catalog entry", () => {
     for (const type of Object.values(DashboardTemplateType)) {
       expect(getDashboardTemplate(type)?.type).toBe(type);
     }
@@ -355,13 +298,13 @@ describe("the template catalog, as names", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  test("every template's name is a name the form accepts as it is", () => {
+  test("every template's name is a name the Name step accepts as it is", () => {
     for (const template of TEMPLATES_WITH_WIDGETS) {
       const name: string = getDashboardTemplateStartingName(template.type);
 
       expect(name).toBe(template.name);
       expect(name.trim()).toBe(name);
-      // The Name field's minLength, with room for " 99" in a busy project.
+      // The Name step's two letters, with room for " 99" in a busy project.
       expect(name.length).toBeGreaterThanOrEqual(2);
       expect(name.length + 3).toBeLessThanOrEqual(ColumnLength.ShortText);
     }

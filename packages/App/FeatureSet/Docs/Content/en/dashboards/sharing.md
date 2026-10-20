@@ -47,7 +47,8 @@ A public dashboard:
 
 - Always opens for reading. Visitors can't edit it, and never see its edit controls.
 - Includes the variables you've added. Visitors pick from the same pickers your team uses, and can change the time range, zoom, turn on auto-refresh and go full screen.
-- Uses the branding you set on the dashboard's **Branding** page: page title, description, logo, favicon.
+- Uses the branding you set on the dashboard's **Branding** page: page title, description, logo, theme, favicon.
+- Lets each visitor switch between the light and the dark dashboard, with a sun or moon button in its toolbar; [Theme](#theme) says how.
 
 Treat sharing a dashboard like publishing a webpage. Every widget on it becomes readable by anyone with the link. Look at what's on the canvas before you share it.
 
@@ -55,7 +56,7 @@ Each widget publishes only what it draws, and only for the resources it was poin
 
 ## Sharing with a password
 
-Pick **Anyone with the link and a password** and enter the password in the dialog. Visitors see a password prompt before the dashboard appears. The prompt shows the dashboard's name, page title and favicon, and nothing else: its description, logo and widgets appear once the password is entered. The password is stored as a hash — nobody can read it back. A new password works at once; people who entered the old one can keep viewing the dashboard for up to 7 days.
+Pick **Anyone with the link and a password** and enter the password in the dialog. Visitors see a password prompt before the dashboard appears. The prompt shows the dashboard's name, page title and favicon, in the dashboard's theme, and nothing else: its description, logo and widgets appear once the password is entered. The password is stored as a hash — nobody can read it back. A new password works at once; people who entered the old one can keep viewing the dashboard for up to 7 days.
 
 Use a password when:
 
@@ -152,13 +153,30 @@ On the dashboard's **Branding** page, you can configure:
 - **Page Title** — what shows in the browser tab and at the top of the page.
 - **Page Description** — the description used by search engines and social previews.
 - **Logo** — an image shown in the public dashboard's header.
+- **Theme** — light, dark, or as each visitor's device is set; see [Theme](#theme).
 - **Favicon** — the small icon in the browser tab.
 
 The logo and the favicon are files uploaded in the dashboard's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again." or "The favicon's file could not be found. Upload the favicon again." The public dashboard shows only images of its own project.
 
-The page title and description also head the dashboard's toolbar for your team, in place of its name and description. The logo and the favicon appear only on the public dashboard.
+The page title and description also head the dashboard's toolbar for your team, in place of its name and description. The logo, the theme and the favicon apply only to the public dashboard.
 
-Visitors see the branding only once they may view the dashboard. Before the password is entered, a dashboard shared with a password shows only its page title and favicon, and search engines and link previews see its page title but not its page description. A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.
+Visitors see the branding only once they may view the dashboard. Before the password is entered, a dashboard shared with a password shows only its page title, favicon and theme, and search engines and link previews see its page title but not its page description. A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.
+
+### Theme
+
+The **Theme** card, right under the logo, sets how the public dashboard looks to its visitors. Pick one of its three choices and it is saved at once; there is no **Edit** button.
+
+| Choice | What visitors see |
+| ------ | ----------------- |
+| **Light** | The light dashboard, whatever their device is set to. Dashboards made before the setting existed are **Light**, so they look as they always have. |
+| **Dark** | The dark dashboard, whatever their device is set to. |
+| **Match each visitor's device** | Light or dark, as their device is set, changing with it while the dashboard is open. |
+
+Whichever you pick, a sun or moon button in the dashboard's toolbar lets each visitor switch to the light or the dark dashboard, or back to the theme you set, and their browser remembers the pick for every public dashboard at that address. On the dark dashboard the logo sits on a light backdrop, so a logo made for a white page still reads.
+
+A dashboard made from now on starts with **Match each visitor's device**. Through the API and Terraform the field is `theme`, one of `Light`, `Dark` or `System` (**Match each visitor's device**), written exactly so; any other value is refused. A Terraform configuration that sets no `theme` gets `Light`, so a configuration written before the setting never plans a change on a dashboard it manages.
+
+The theme is in the dashboard's HTML, so the dashboard is drawn in it from the start: a dark dashboard does not flash white while it loads, and its password prompt is drawn in it too. Every widget follows it; an HTML widget's own code can style the dark one, as [HTML](/docs/dashboards/widgets#html) says. The **Access Denied** and not-found pages show nothing of a dashboard, so they follow the visitor: their own pick, else their device.
 
 ## Embedding
 
@@ -175,9 +193,11 @@ You can embed a public dashboard in your own site with an iframe, at its public 
 
 If the dashboard is shared with a password, visitors will see the password prompt inside the iframe.
 
+To give an embedded dashboard your site's look, add `?theme=light` or `?theme=dark` to its address, as in `https://dashboard.acme.com/?theme=dark`: the dashboard is drawn in that theme for everyone who opens that address, whatever its own theme and the visitor's pick, and its toolbar has no theme button. `?theme=system` follows each visitor's device. The theme stays through the password prompt.
+
 ## Sending a link
 
-The public link opens the dashboard on its saved defaults. To send a link that opens on a particular value, add the variable to it as `?var-<name>=<value>`, as the address bar does when a visitor picks a value; several values are separated by commas. The time range is not part of the link: every visit starts at the past hour.
+The public link opens the dashboard on its saved defaults. To send a link that opens on a particular value, add the variable to it as `?var-<name>=<value>`, as the address bar does when a visitor picks a value; several values are separated by commas. The time range is not part of the link: every visit starts at the past hour. To open the dashboard in a theme, add `theme=light`, `theme=dark` or `theme=system`, as [Embedding](#embedding) describes.
 
 ## Next steps
 

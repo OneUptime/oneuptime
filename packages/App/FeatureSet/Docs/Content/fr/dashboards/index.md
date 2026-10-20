@@ -59,7 +59,7 @@ Ouvrez un tableau de bord : son propre menu latéral contient ces pages. Chaque 
 | **Vue d'ensemble** | Son nom, sa description et ses étiquettes. |
 | **Partage** | Qui peut le voir, son lien public, et une liste d'autorisation IP sous Plus de paramètres. |
 | **Propriétaires** | Les utilisateurs et équipes à qui il appartient. |
-| **Image de marque** | Titre de page, description, logo et favicon du tableau de bord public. |
+| **Image de marque** | Titre de page, description, logo, thème et favicon du tableau de bord public. |
 | **Domaines personnalisés** | Héberger le tableau de bord public sur votre propre domaine. |
 | **Paramètres** | Dupliquer, exporter ou archiver le tableau de bord. |
 | **Journaux d'audit** | Chaque modification apportée au tableau de bord, et qui l'a faite. |
@@ -68,7 +68,7 @@ Ouvrez un tableau de bord : son propre menu latéral contient ces pages. Chaque 
 ## Créer votre premier tableau de bord
 
 :::steps
-1. **Créer** — Choisissez un modèle, ou **Blank Dashboard**. Un modèle remplit le nom et s'ouvre avec ses widgets ; un tableau de bord vide s'ouvre vide, avec **Ajouter un widget** sur son canevas.
+1. **Créer** — Choisissez un modèle, ou **Partir de zéro**. Un modèle remplit le nom et s'ouvre avec ses widgets ; un tableau de bord parti de zéro s'ouvre vide, avec **Ajouter un widget** sur son canevas.
 2. **Ajouter des widgets** — Choisissez un widget dans le catalogue, indiquez dans ses paramètres ce qu'il lit, puis faites-le glisser à sa place et redimensionnez-le.
 3. **Ajouter des variables si besoin** — Une variable `service`, par exemple, permet à un seul tableau de bord d'afficher n'importe quel service.
 4. **Enregistrer** — Cliquez sur **Enregistrer les modifications**. Rien de ce que vous changez pendant la modification n'est conservé avant cela.
@@ -81,7 +81,7 @@ Ouvrez un tableau de bord : son propre menu latéral contient ces pages. Chaque 
 
 L'objectif : une page pour le service checkout, avec sa latence, son taux d'erreur, ses incidents ouverts et ses derniers journaux, qui fonctionne aussi pour tous les autres services.
 
-1. Créez un **Blank Dashboard** nommé « Checkout on-call ».
+1. Cliquez sur **Créer un tableau de bord**, choisissez **Partir de zéro** et nommez le tableau de bord « Checkout on-call ».
 2. Cliquez sur **Ajouter un widget** et ajoutez un **Graphique** de votre métrique de latence des requêtes, agrégée en P95.
 3. À côté, ajoutez une **Valeur** de votre taux d'erreur, avec un seuil d'avertissement de 1 et un seuil critique de 5.
 4. En dessous, ajoutez une **Liste des incidents** filtrée sur les incidents non résolus, et un **Flux de journaux** des journaux du service.

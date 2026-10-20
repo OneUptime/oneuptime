@@ -1,9 +1,9 @@
 # Criar um painel
 
-Para criar um painel, abra **Produtos → Painéis**, clique em **Criar: Painel** e escolha um modelo, ou **Blank Dashboard** para começar do zero. Um modelo preenche o nome do painel para você (numerado, como "Kubernetes Dashboard 2", quando o projeto já tem um); um painel em branco pede um nome. Clique em **Criar: Painel** e o novo painel se abre. Um painel em branco abre na tela vazia, com um botão **Adicionar widget** para o primeiro widget.
+Para criar um painel, abra **Produtos → Painéis** e clique em **Criar painel**. A caixa de diálogo **Criar um painel** pergunta como você quer começar e depois um nome. **Começar do zero** dá a você um painel vazio; um modelo cria os widgets dele, e muitas vezes as variáveis, para você, e preenche o nome (numerado, como "Kubernetes Dashboard 2", quando o projeto já tem um). Clique em **Criar painel** e o novo painel se abre. Um painel vazio abre na tela dele, com um botão **Adicionar widget** para o primeiro widget.
 
 :::cards
-- [Criar o painel](#criar-o-painel): Comece de um modelo ou de uma tela em branco.
+- [Criar o painel](#criar-o-painel): Começar do zero ou a partir de um modelo.
 - [Editar e salvar](#editar-e-salvar): Nada muda para ninguém até você clicar em Salvar alterações.
 - [Adicionar um widget](#adicionar-um-widget): Escolha-o no catálogo, configure-o e coloque-o no lugar.
 - [Aplicar zoom em um pico](#aplicar-zoom-em-um-pico): Arraste sobre um gráfico para ler o painel inteiro naquele momento.
@@ -16,33 +16,32 @@ Os proprietários e administradores do projeto podem criar e editar todos os pai
 ## Criar o painel
 
 :::steps
-### Abra o seletor de modelos
+### Escolha como começar
 
-Abra **Produtos → Painéis** e clique em **Criar: Painel**. A caixa de diálogo **Criar a partir de modelo** mostra **Blank Dashboard** e quinze modelos, agrupados pelo que eles observam.
+Abra **Produtos → Painéis** e clique em **Criar painel**. A caixa de diálogo **Criar um painel** abre em **Começar do zero**, um painel vazio para os seus próprios widgets. Abaixo, **Ou começar a partir de um modelo** lista seis modelos **Recomendados**.
 
 ### Escolha um modelo
 
-Clique em um cartão. Um modelo cria os widgets dele, e muitas vezes as variáveis, para você; **Blank Dashboard** começa com uma tela vazia.
+Clique em um modelo para ver o que ele adiciona: os widgets dele, com os nomes de **Adicionar widget**, e as variáveis com que você o restringe na barra de ferramentas dele. Para os outros, escolha uma categoria ao lado da caixa de pesquisa, ou **Todos os modelos**, ou digite em **Pesquisar modelos…**: cada palavra que você digita tem de corresponder. Depois clique em **Usar este modelo**, ou clique duas vezes no modelo. Na caixa de pesquisa, as setas escolhem um modelo e **Enter** o usa.
 
 ### Dê um nome ao painel
 
-O nome de um modelo já vem preenchido, numerado depois dos nomes que o projeto já tem. O nome de um painel em branco fica vazio: digite um. A descrição é opcional, fica recolhida em **Mais campos**, e você pode adicioná-la depois na página **Visão geral** do painel.
+O nome de um modelo já vem preenchido, numerado depois dos nomes que o projeto já tem. **Começar do zero** o deixa vazio: digite um. A descrição é opcional, fica recolhida em **Mais campos**, e você pode adicioná-la depois na página **Visão geral** do painel. **Voltar** leva você de volta aos modelos como você os deixou.
 
 ### Crie-o
 
-Clique em **Criar: Painel**. O novo painel se abre: com os widgets de um modelo na hora, ou com a tela vazia de um painel em branco, com **Adicionar widget** nela.
+Clique em **Criar painel**. O novo painel se abre: com os widgets de um modelo na hora, ou com uma tela vazia com **Adicionar widget** nela.
 :::
 
-Os modelos, pelo grupo em que o seletor os lista:
+Os modelos, pela categoria em que o seletor os lista:
 
-| Grupo | Modelos |
+| Categoria | Modelos |
 | --- | --- |
-| Get Started | Blank Dashboard |
-| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
-| Incident Response | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Monitoramento e APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Resposta a incidentes | Incident Dashboard, Alert Dashboard |
+| Infraestrutura | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-Um modelo é um ponto de partida, não um vínculo: depois de criar o painel, mude-o como quiser. O modelo não o atualiza mais depois.
+**Recomendados** reúne Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard e Metrics Dashboard. Um modelo é um ponto de partida, não um vínculo: depois de criado o painel, mude-o como quiser. O modelo não o atualiza mais depois.
 
 ## Editar e salvar
 

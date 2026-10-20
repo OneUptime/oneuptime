@@ -47,7 +47,8 @@ Um painel público:
 
 - Sempre abre para leitura. Os visitantes não podem editá-lo, e nunca veem os controles de edição dele.
 - Inclui as variáveis que você adicionou. Os visitantes escolhem nos mesmos seletores que a sua equipe usa, e podem mudar o intervalo de tempo, aplicar zoom, ligar a atualização automática e entrar em tela cheia.
-- Usa a marca que você define na página **Marca** do painel: título da página, descrição, logotipo, favicon.
+- Usa a marca que você define na página **Marca** do painel: título da página, descrição, logotipo, tema, favicon.
+- Permite que cada visitante alterne entre o painel claro e o escuro com um botão de sol ou de lua na barra de ferramentas; [Tema](#tema) explica como.
 
 Trate compartilhar um painel como publicar uma página na web. Todo widget nele passa a ser legível por qualquer pessoa com o link. Veja o que está na tela antes de compartilhá-lo.
 
@@ -55,7 +56,7 @@ Cada widget publica só o que desenha, e só para os recursos para os quais foi 
 
 ## Compartilhar com uma senha
 
-Escolha **Qualquer pessoa com o link e uma senha** e digite a senha na caixa de diálogo. Os visitantes veem um pedido de senha antes de o painel aparecer. O pedido mostra o nome, o título da página e o favicon do painel, e nada mais: a descrição, o logotipo e os widgets aparecem depois que a senha é digitada. A senha é guardada como hash: ninguém consegue lê-la de volta. Uma senha nova funciona na hora; quem digitou a antiga pode continuar vendo o painel por até 7 dias.
+Escolha **Qualquer pessoa com o link e uma senha** e digite a senha na caixa de diálogo. Os visitantes veem um pedido de senha antes de o painel aparecer. O pedido mostra o nome, o título da página e o favicon do painel, no tema do painel, e nada mais: a descrição, o logotipo e os widgets aparecem depois que a senha é digitada. A senha é guardada como hash: ninguém consegue lê-la de volta. Uma senha nova funciona na hora; quem digitou a antiga pode continuar vendo o painel por até 7 dias.
 
 Use uma senha quando:
 
@@ -152,13 +153,30 @@ Na página **Marca** do painel, você pode configurar:
 - **Título da página**: o que aparece na aba do navegador e no topo da página.
 - **Descrição da página**: a descrição usada pelos mecanismos de busca e pelas prévias em redes sociais.
 - **Logotipo**: uma imagem mostrada no cabeçalho do painel público.
+- **Tema**: claro, escuro ou conforme o dispositivo de cada visitante está configurado; veja [Tema](#tema).
 - **Favicon**: o pequeno ícone na aba do navegador.
 
 O logotipo e o favicon são arquivos carregados no próprio projeto do painel, e isso é verificado sempre que um deles é salvo, seja pelo painel, pela API, pelo Terraform ou por um workflow. Um arquivo carregado em outro projeto é recusado com as mesmas palavras que recebe um arquivo que não existe mais: "The logo's file could not be found. Upload the logo again." ou "The favicon's file could not be found. Upload the favicon again." O painel público só mostra imagens do próprio projeto.
 
-O título e a descrição da página também ficam no alto da barra de ferramentas do painel para a sua equipe, no lugar do nome e da descrição dele. O logotipo e o favicon aparecem só no painel público.
+O título e a descrição da página também ficam no alto da barra de ferramentas do painel para a sua equipe, no lugar do nome e da descrição dele. O logotipo, o tema e o favicon valem só para o painel público.
 
-Os visitantes só veem a marca depois que podem ver o painel. Antes de a senha ser digitada, um painel compartilhado com senha mostra só o título da página e o favicon, e os mecanismos de busca e as prévias de links veem o título da página, mas não a descrição da página. Um painel com uma lista de IPs permitidos só mostra a marca para os endereços da lista, e os mecanismos de busca e as prévias de links não veem nada dela.
+Os visitantes só veem a marca depois que podem ver o painel. Antes de a senha ser digitada, um painel compartilhado com senha mostra só o título da página, o favicon e o tema, e os mecanismos de busca e as prévias de links veem o título da página, mas não a descrição da página. Um painel com uma lista de IPs permitidos só mostra a marca para os endereços da lista, e os mecanismos de busca e as prévias de links não veem nada dela.
+
+### Tema
+
+O cartão **Tema**, logo abaixo do logotipo, define como o painel público aparece para os visitantes. Escolha uma das três opções e ela é salva na hora; não há botão **Editar**.
+
+| Opção | O que os visitantes veem |
+| ------ | ----------------- |
+| **Claro** | O painel claro, seja qual for a configuração do dispositivo deles. Os painéis criados antes de existir essa opção estão em **Claro**, então continuam com a aparência de sempre. |
+| **Escuro** | O painel escuro, seja qual for a configuração do dispositivo deles. |
+| **Conforme o dispositivo de cada visitante** | Claro ou escuro, conforme o dispositivo deles está configurado, e muda junto com ele enquanto o painel está aberto. |
+
+Seja qual for a sua escolha, um botão de sol ou de lua na barra de ferramentas do painel permite que cada visitante passe para o painel claro ou para o escuro, ou volte ao tema que você definiu, e o navegador dele lembra a escolha para todos os painéis públicos desse endereço. No painel escuro, o logotipo fica sobre um fundo claro, então um logotipo feito para uma página branca continua bem visível.
+
+Um painel criado de agora em diante começa com **Conforme o dispositivo de cada visitante**. Pela API e pelo Terraform, o campo é `theme`, com um dos valores `Light`, `Dark` ou `System` (**Conforme o dispositivo de cada visitante**), escritos exatamente assim; qualquer outro valor é recusado. Uma configuração do Terraform que não define nenhum `theme` recebe `Light`, então uma configuração escrita antes dessa opção nunca planeja uma mudança em um painel que gerencia.
+
+O tema vai no HTML do painel, então o painel é desenhado nele desde o início: um painel escuro não pisca em branco enquanto carrega, e o pedido de senha dele também é desenhado nele. Todos os widgets o seguem; o próprio código de um widget HTML pode estilizar o tema escuro, como explica [HTML](/docs/dashboards/widgets#html). As páginas **Access Denied** e de não encontrado não mostram nada de um painel, então seguem o visitante: a escolha dele ou, se não houver, o dispositivo dele.
 
 ## Incorporar
 
@@ -175,9 +193,11 @@ Você pode incorporar um painel público no seu próprio site com um iframe, no 
 
 Se o painel for compartilhado com uma senha, os visitantes verão o pedido de senha dentro do iframe.
 
+Para dar a um painel incorporado a aparência do seu site, adicione `?theme=light` ou `?theme=dark` ao endereço dele, como em `https://dashboard.acme.com/?theme=dark`: o painel é desenhado nesse tema para todos que abrirem esse endereço, seja qual for o tema dele e a escolha do visitante, e a barra de ferramentas dele não tem botão de tema. `?theme=system` segue o dispositivo de cada visitante. O tema se mantém ao passar pelo pedido de senha.
+
 ## Enviar um link
 
-O link público abre o painel com os valores padrão salvos. Para enviar um link que abra num valor específico, adicione a variável a ele como `?var-<name>=<value>`, como a barra de endereços faz quando um visitante escolhe um valor; vários valores são separados por vírgulas. O intervalo de tempo não faz parte do link: toda visita começa na última hora.
+O link público abre o painel com os valores padrão salvos. Para enviar um link que abra num valor específico, adicione a variável a ele como `?var-<name>=<value>`, como a barra de endereços faz quando um visitante escolhe um valor; vários valores são separados por vírgulas. O intervalo de tempo não faz parte do link: toda visita começa na última hora. Para abrir o painel em um tema, adicione `theme=light`, `theme=dark` ou `theme=system`, como descreve [Incorporar](#incorporar).
 
 ## Próximos passos
 

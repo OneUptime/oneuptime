@@ -16,6 +16,7 @@ import applyPublicPageNotFound, {
   PUBLIC_PAGE_NOT_FOUND,
   PublicPageNotFound,
 } from "Common/Server/Utils/PublicPageNotFound";
+import { getDashboardThemeHead } from "Common/Types/Dashboard/DashboardTheme";
 
 export const APP_NAME: string = "public-dashboard";
 
@@ -56,6 +57,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             title: "Dashboard",
             description: "View dashboard metrics and insights.",
             isSearchEngineIndexingEnabled: false,
+            // No dashboard to read a theme from: the page follows the visitor.
+            dashboardTheme: getDashboardThemeHead(null),
           };
         }
 
@@ -63,11 +66,18 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           return {
             title: dashboardData.title,
             description: dashboardData.description,
+            // The dashboard's theme, applied before its first paint.
+            dashboardTheme: getDashboardThemeHead(dashboardData.theme),
           };
         }
         return {
           title: "Dashboard",
           description: "View dashboard metrics and insights.",
+          /*
+           * No dashboard to read a theme from: the page follows the
+           * visitor until the app reads the dashboard's own.
+           */
+          dashboardTheme: getDashboardThemeHead(null),
         };
       },
     });

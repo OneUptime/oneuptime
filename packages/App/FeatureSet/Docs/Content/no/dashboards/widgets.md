@@ -96,7 +96,7 @@ Det den ikke kan, er å nå OneUptime-siden rundt seg. Den har ingen tilgang til
 To konsekvenser som er verdt å kjenne til før du limer inn noe:
 
 - En `fetch` fra widgeten er en forespørsel på tvers av opprinnelser fra en ugjennomsiktig opprinnelse, så serveren du kaller, må tillate den med CORS. Det støttes ikke å kalle OneUptime-API-et herfra.
-- Widgeten starter gjennomsiktig. Angi en bakgrunn på `body` i CSS-en din hvis du vil at den skal fylle kortet.
+- Widgeten starter gjennomsiktig. Angi en bakgrunn på `body` i CSS-en din hvis du vil at den skal fylle kortet. I det mørke temaet starter teksten lys, og elementet `<html>` har klassen `dark`: start en CSS-regel med `html.dark` for å style bare det mørke temaet.
 
 #### Bruke dashbordvariabler
 

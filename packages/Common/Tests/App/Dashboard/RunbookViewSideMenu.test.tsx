@@ -864,6 +864,12 @@ function shownPage(): string {
   return screen.getByTestId("page").getAttribute("data-page") || "";
 }
 
+/*
+ * The rendered trail names the runbook itself where the trail's own title
+ * says "View Runbook" (ModelPage hands it the record's name).
+ */
+const RUNBOOK_NAME: string = "Restart the web tier";
+
 function crumbTexts(): Array<string> {
   return within(screen.getByRole("navigation", { name: "Breadcrumb" }))
     .getAllByRole("listitem")
@@ -893,7 +899,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
-      "View Runbook",
+      RUNBOOK_NAME,
       "Executions",
     ]);
 
@@ -922,7 +928,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
-      "View Runbook",
+      RUNBOOK_NAME,
       "Triggers",
     ]);
     expectFolded("Logs");
@@ -937,7 +943,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
-      "View Runbook",
+      RUNBOOK_NAME,
       "Settings",
     ]);
   });
@@ -959,7 +965,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
-      "View Runbook",
+      RUNBOOK_NAME,
       "Executions",
       "Execution",
     ]);
@@ -975,7 +981,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
-      "View Runbook",
+      RUNBOOK_NAME,
       "Variables",
     ]);
   });
@@ -996,7 +1002,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
-      "View Runbook",
+      RUNBOOK_NAME,
       "Owners",
     ]);
 
@@ -1008,7 +1014,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
-      "View Runbook",
+      RUNBOOK_NAME,
       "Audit Logs",
     ]);
   });

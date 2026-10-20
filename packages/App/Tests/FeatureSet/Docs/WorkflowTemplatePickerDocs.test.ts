@@ -89,11 +89,12 @@ describe("docs for the Create a workflow dialog", () => {
   });
 
   test("the labels the docs quote are ones the dialog draws", () => {
+    /*
+     * The step is the shared template picker, which Create a dashboard
+     * draws too, so its labels and its rules' view names are read there.
+     */
     const picker: string = fs.readFileSync(
-      path.join(
-        DASHBOARD_SRC,
-        "Components/Workflow/WorkflowTemplatePicker.tsx",
-      ),
+      path.join(DASHBOARD_SRC, "Components/TemplatePicker/TemplatePicker.tsx"),
       "utf8",
     );
     const wizard: string = fs.readFileSync(
@@ -101,7 +102,7 @@ describe("docs for the Create a workflow dialog", () => {
       "utf8",
     );
     const util: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Utils/Workflow/WorkflowTemplatePickerUtil.ts"),
+      path.join(DASHBOARD_SRC, "Utils/TemplatePicker/TemplatePickerUtil.ts"),
       "utf8",
     );
 

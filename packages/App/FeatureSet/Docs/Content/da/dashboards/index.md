@@ -59,7 +59,7 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 | **Oversigt** | Dets navn, beskrivelse og etiketter. |
 | **Deling** | Hvem der kan se det, dets offentlige link og en IP-tilladelsesliste under Yderligere indstillinger. |
 | **Ejere** | De brugere og teams, der ejer det. |
-| **Branding** | Sidetitel, beskrivelse, logo og favicon for det offentlige dashboard. |
+| **Branding** | Sidetitel, beskrivelse, logo, tema og favicon for det offentlige dashboard. |
 | **Brugerdefinerede domæner** | Host det offentlige dashboard på dit eget domæne. |
 | **Indstillinger** | Duplikér, eksportér eller arkivér dashboardet. |
 | **Auditlogs** | Hver ændring, der er foretaget på dashboardet, og hvem der foretog den. |
@@ -68,7 +68,7 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 ## Byg dit første dashboard
 
 :::steps
-1. **Opret** — vælg en skabelon, eller **Blank Dashboard**. En skabelon udfylder navnet og åbner med sine widgets; et tomt dashboard åbner uden indhold, med **Tilføj widget** på lærredet.
+1. **Opret** — vælg en skabelon, eller **Start fra bunden**. En skabelon udfylder navnet og åbner med sine widgets; et dashboard fra bunden åbner uden indhold, med **Tilføj widget** på lærredet.
 2. **Tilføj widgets** — vælg en widget i kataloget, angiv i dens indstillinger, hvad den læser, og træk den så på plads og tilpas størrelsen.
 3. **Tilføj variabler, hvis du har brug for dem** — en variabel `service` lader for eksempel ét dashboard vise en hvilken som helst tjeneste.
 4. **Gem** — klik på **Gem ændringer**. Intet, du ændrer under redigeringen, bevares, før du gør det.
@@ -81,7 +81,7 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 
 Målet: én side for checkout-tjenesten med dens latenstid, fejlrate, åbne hændelser og nyeste logs, som også virker for alle andre tjenester.
 
-1. Opret et **Blank Dashboard** med navnet "Checkout-vagt".
+1. Klik på **Opret dashboard**, vælg **Start fra bunden**, og giv dashboardet navnet "Checkout-vagt".
 2. Klik på **Tilføj widget**, og tilføj et **Diagram** over din metrik for anmodningernes latenstid, aggregeret som P95.
 3. Ved siden af tilføjer du en **Værdi** for din fejlrate, med en advarselstærskel på 1 og en kritisk tærskel på 5.
 4. Nedenunder tilføjer du en **Hændelsesliste** filtreret på uløste hændelser, og en **Logstrøm** med tjenestens logs.

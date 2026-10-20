@@ -191,38 +191,52 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     useState<Dictionary<boolean> | null>(null);
 
   const fetchTaskCompletion: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      const results: Array<boolean> = await Promise.all(
+    /*
+     * Each step is checked on its own. One count that failed - a role that
+     * may not read on-call policies, a request that did not come back - used
+     * to hide the whole checklist, and every step that could be checked with
+     * it. A step whose check failed is left out of this visit (it would only
+     * lead somewhere the user may not go), and the checklist is a
+     * progressive enhancement: it goes only when no step could be checked.
+     */
+    const results: Array<PromiseSettledResult<boolean>> =
+      await Promise.allSettled(
         gettingStartedTasks.map((task: GettingStartedTask) => {
           return task.isComplete(props.projectId);
         }),
       );
 
-      const completion: Dictionary<boolean> = {};
+    const completion: Dictionary<boolean> = {};
 
-      gettingStartedTasks.forEach((task: GettingStartedTask, i: number) => {
-        completion[task.key] = results[i] || false;
-      });
+    gettingStartedTasks.forEach((task: GettingStartedTask, i: number) => {
+      const result: PromiseSettledResult<boolean> | undefined = results[i];
 
-      const isEveryTaskComplete: boolean = gettingStartedTasks.every(
-        (task: GettingStartedTask) => {
-          return completion[task.key];
-        },
-      );
-
-      if (isEveryTaskComplete) {
-        /*
-         * A finished checklist never renders again — remember that, so
-         * future Home visits skip these count requests entirely.
-         */
-        LocalStorage.setItem(getCompleteKey(props.projectId), true);
+      if (result && result.status === "fulfilled") {
+        completion[task.key] = Boolean(result.value);
       }
+    });
 
-      setTaskCompletion(completion);
-    } catch {
-      // the checklist is a progressive enhancement — hide it if we cannot load it.
+    if (Object.keys(completion).length === 0) {
       setTaskCompletion(null);
+      return;
     }
+
+    const isEveryTaskComplete: boolean = gettingStartedTasks.every(
+      (task: GettingStartedTask) => {
+        return completion[task.key] === true;
+      },
+    );
+
+    if (isEveryTaskComplete) {
+      /*
+       * A finished checklist never renders again — remember that, so
+       * future Home visits skip these count requests entirely. Only when
+       * every step was checked: a step that could not be is not done.
+       */
+      LocalStorage.setItem(getCompleteKey(props.projectId), true);
+    }
+
+    setTaskCompletion(completion);
   };
 
   useEffect(() => {
@@ -258,13 +272,20 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const completedCount: number = gettingStartedTasks.filter(
+  // The steps that could be checked this visit (fetchTaskCompletion).
+  const shownTasks: Array<GettingStartedTask> = gettingStartedTasks.filter(
+    (task: GettingStartedTask) => {
+      return task.key in taskCompletion;
+    },
+  );
+
+  const completedCount: number = shownTasks.filter(
     (task: GettingStartedTask) => {
       return taskCompletion[task.key];
     },
   ).length;
 
-  if (completedCount === gettingStartedTasks.length) {
+  if (completedCount === shownTasks.length) {
     return <></>;
   }
 
@@ -295,43 +316,19 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         <div className="mb-6 max-w-md">
           <ProgressBar
             count={completedCount}
-            totalCount={gettingStartedTasks.length}
+            totalCount={shownTasks.length}
             suffix={tx("steps completed")}
             size={ProgressBarSize.Small}
           />
         </div>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {gettingStartedTasks.map((task: GettingStartedTask) => {
+          {shownTasks.map((task: GettingStartedTask) => {
             const isComplete: boolean = taskCompletion[task.key] || false;
 
-            const goToTask: () => void = (): void => {
-              if (isComplete) {
-                return;
-              }
-              UiAnalytics.capture("dashboard/home/getting-started-task", {
-                projectId: props.projectId.toString(),
-                task: task.key,
-              });
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[getTaskPageMap(task)] as Route,
-                ),
-              );
-            };
-
-            return (
-              <div
-                key={task.key}
-                onClick={goToTask}
-                role={isComplete ? undefined : "button"}
-                data-testid={`getting-started-task-${task.key}`}
-                className={`group flex items-start gap-4 rounded-lg border p-4 transition ${
-                  isComplete
-                    ? "border-gray-200 bg-gray-50"
-                    : "cursor-pointer border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md"
-                }`}
-              >
-                <div
+            // Spans, not divs: a button may only hold phrasing content.
+            const tileContent: ReactElement = (
+              <>
+                <span
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
                     isComplete ? "bg-emerald-100" : task.iconBackgroundClassName
                   }`}
@@ -342,19 +339,19 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                       isComplete ? "text-emerald-600" : "text-white"
                     }`}
                   />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className={`text-sm font-medium ${
+                </span>
+                <span className="block min-w-0 flex-1">
+                  <span
+                    className={`block text-sm font-medium ${
                       isComplete ? "text-gray-500" : "text-gray-900"
                     }`}
                   >
                     {tx(task.title)}
-                  </div>
-                  <div className="mt-1 text-sm text-gray-500">
+                  </span>
+                  <span className="mt-1 block text-sm text-gray-500">
                     {tx(task.description)}
-                  </div>
-                </div>
+                  </span>
+                </span>
                 {isComplete ? (
                   <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-emerald-600">
                     {tx("Done")}
@@ -373,7 +370,54 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                     />
                   </span>
                 )}
-              </div>
+              </>
+            );
+
+            // A done step is a record, not a way anywhere.
+            if (isComplete) {
+              return (
+                <div
+                  key={task.key}
+                  data-testid={`getting-started-task-${task.key}`}
+                  className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 transition"
+                >
+                  {tileContent}
+                </div>
+              );
+            }
+
+            const goToTask: () => void = (): void => {
+              UiAnalytics.capture("dashboard/home/getting-started-task", {
+                projectId: props.projectId.toString(),
+                task: task.key,
+              });
+              /*
+               * Where to go is decided at the click, not at the first paint:
+               * the permission snapshot that says whether the create form is
+               * open to this user can arrive after it (getTaskPageMap).
+               */
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[getTaskPageMap(task)] as Route,
+                ),
+              );
+            };
+
+            /*
+             * A step to do is a button: Tab reaches it, and Enter or Space
+             * opens it. It was a clickable box with role="button" that the
+             * keyboard could neither reach nor press.
+             */
+            return (
+              <button
+                key={task.key}
+                type="button"
+                onClick={goToTask}
+                data-testid={`getting-started-task-${task.key}`}
+                className="group flex w-full items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {tileContent}
+              </button>
             );
           })}
         </div>

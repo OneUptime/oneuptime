@@ -27,14 +27,35 @@ const COMPONENTS_DIR: string = path.join(
   "Workflow",
 );
 
+const SHARED_PICKER_PATH: string = path.join(
+  COMPONENTS_DIR,
+  "..",
+  "TemplatePicker",
+  "TemplatePicker.tsx",
+);
+
+// The rows and chips a picked template's details are drawn with, shared too.
+const SHARED_DETAILS_PATH: string = path.join(
+  COMPONENTS_DIR,
+  "..",
+  "TemplatePicker",
+  "TemplateDetails.tsx",
+);
+
 /*
- * Every file the picker draws with: the picker, and the wizard that holds it.
- * The util module only builds data, but it is read too, so a class that ever
- * moves into it is still checked.
+ * Every file the picker draws with: the shared template picker it draws its
+ * step with and the shared rows and chips of a picked template's details
+ * (Create a dashboard draws both too), the workflow's own details, and the
+ * wizard that holds it. The util modules only build data, but they are read
+ * too, so a class that ever moves into one is still checked.
  */
 const SOURCE_PATHS: Array<string> = [
+  SHARED_PICKER_PATH,
+  SHARED_DETAILS_PATH,
   path.join(COMPONENTS_DIR, "WorkflowTemplatePicker.tsx"),
   path.join(COMPONENTS_DIR, "CreateWorkflowModal.tsx"),
+  // The chosen template at the top of the Name step, shared too.
+  path.join(COMPONENTS_DIR, "..", "TemplatePicker", "ChosenTemplate.tsx"),
   path.join(
     __dirname,
     "..",
@@ -45,6 +66,17 @@ const SOURCE_PATHS: Array<string> = [
     "Utils",
     "Workflow",
     "WorkflowTemplatePickerUtil.ts",
+  ),
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Utils",
+    "TemplatePicker",
+    "TemplatePickerUtil.ts",
   ),
 ];
 
@@ -75,7 +107,12 @@ const SOURCES: Array<{ path: string; code: string }> = SOURCE_PATHS.map(
   },
 );
 
-const PICKER_CODE: string = SOURCES[0]!.code;
+// The step, the details' rows and chips, and the workflow's details: what the picker draws.
+const PICKER_CODE: string = SOURCES.slice(0, 3)
+  .map((source: { code: string }): string => {
+    return source.code;
+  })
+  .join("\n");
 
 // Block comments only: prose in Theme.css must not count as a rule.
 const THEME_CSS: string = fs
