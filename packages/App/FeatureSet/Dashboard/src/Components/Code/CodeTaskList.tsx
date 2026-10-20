@@ -1,6 +1,7 @@
 import FixProductionVerdict from "../AI/FixProductionVerdict";
 import CodeApi, { CodeTaskListResponse, CodeTaskListScope } from "./CodeApi";
 import CodeDiffStat from "./CodeDiffStat";
+import { GitPullRequestMark } from "./CodeMarks";
 import CodeMetaList from "./CodeMetaList";
 import { getTaskRoute } from "./CodePaths";
 import {
@@ -19,9 +20,7 @@ import {
   CodeTaskState,
   CodeTaskSummaryJSON,
 } from "Common/Types/AI/CodeTask";
-import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -314,8 +313,12 @@ export const CodeTaskRow: FunctionComponent<{
 
   if (task.pullRequest?.number) {
     meta.push(
-      <span key="pull-request" className="inline-flex items-center gap-1">
-        <Icon icon={IconProp.GitHub} className="h-3 w-3" />
+      <span
+        key="pull-request"
+        data-testid="code-task-row-pull-request"
+        className="inline-flex items-center gap-1"
+      >
+        <GitPullRequestMark className="h-3 w-3 flex-shrink-0" />
         {translator.translateTemplate("PR #{{number}}", {
           number: task.pullRequest.number.toString(),
         })}

@@ -392,7 +392,9 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Sparkles}
                     className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500"
                   />
-                  <span>{translator.translateTemplate(example)}</span>
+                  <span className="text-pretty">
+                    {translator.translateTemplate(example)}
+                  </span>
                 </button>
               );
             })}

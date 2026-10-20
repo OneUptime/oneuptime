@@ -948,6 +948,45 @@ describe("steps", () => {
     draw(<CodeTaskSteps isLive={false} steps={[]} />);
     expect(screen.queryByTestId("code-task-steps")).toBeNull();
   });
+
+  /*
+   * The UI review: in German on a phone the summary wraps, and a button
+   * centres its text - the second line sat in the middle, under nothing.
+   * It now wraps from the left, its chevron on the first line.
+   */
+  test("a summary too long for one line wraps under itself, from the left", () => {
+    drawInGerman(
+      <CodeTaskSteps
+        isLive={false}
+        steps={[
+          ...steps(2, CodeTaskStepKind.Read),
+          {
+            sequence: 3,
+            kind: CodeTaskStepKind.Edited,
+            subject: "a.ts",
+            isError: false,
+          },
+          {
+            sequence: 4,
+            kind: CodeTaskStepKind.Ran,
+            subject: "npm test",
+            isError: false,
+          },
+        ]}
+      />,
+    );
+
+    const toggle: HTMLElement = screen.getByTestId("code-task-steps-toggle");
+    expect(toggle.className).toContain("text-left");
+    expect(toggle.className).toContain("items-start");
+    expect(screen.getByTestId("code-task-steps-summary")).toHaveTextContent(
+      "4 Schritte · 2 Dateien gelesen · 1 Datei bearbeitet · 1 Befehl ausgeführt",
+    );
+    // The chevron keeps its size beside two lines.
+    expect(toggle.querySelector("svg")?.getAttribute("class")).toContain(
+      "flex-shrink-0",
+    );
+  });
 });
 
 describe("changes", () => {
@@ -1192,6 +1231,47 @@ describe("a task row", () => {
       expect(dot).toHaveAttribute("aria-hidden", "true");
     }
     expect(meta.textContent).toMatch(/^Asked by Ada Lovelace·.+·PR #418$/);
+  });
+
+  /*
+   * The UI review: a row across repositories drew GitHub's mark twice -
+   * before its repository and before its pull request. The pull request
+   * now has the pull request mark, as GitHub draws one.
+   */
+  test("its pull request is drawn with the pull request mark, its repository with GitHub's", () => {
+    draw(
+      <ul>
+        <CodeTaskRow task={summary({})} repositoryName="checkout-api" />
+      </ul>,
+    );
+
+    const pullRequest: HTMLElement = screen.getByTestId(
+      "code-task-row-pull-request",
+    );
+    expect(pullRequest).toHaveTextContent("PR #418");
+    // One mark, the pull request's, hidden from screen readers.
+    const pullRequestMarks: Array<Element> = Array.from(
+      pullRequest.querySelectorAll("svg"),
+    );
+    expect(pullRequestMarks).toHaveLength(1);
+    expect(pullRequestMarks[0]).toHaveAttribute(
+      "data-testid",
+      "code-pull-request-mark",
+    );
+    expect(pullRequestMarks[0]).toHaveAttribute("aria-hidden", "true");
+
+    // The repository keeps GitHub's mark.
+    const repository: HTMLElement = screen.getByTestId(
+      "code-task-row-repository",
+    );
+    const repositoryMarks: Array<Element> = Array.from(
+      repository.querySelectorAll("svg"),
+    );
+    expect(repositoryMarks).toHaveLength(1);
+    expect(repositoryMarks[0]).not.toHaveAttribute(
+      "data-testid",
+      "code-pull-request-mark",
+    );
   });
 
   test.each([
@@ -1439,6 +1519,110 @@ describe("a repository's row", () => {
       within(row).getByTestId("code-repository-link").firstElementChild
         ?.className,
     ).toContain("bg-gray-900");
+    // Its open pull requests beside the pull request mark, not GitHub's.
+    const marks: Array<Element> = Array.from(stats.querySelectorAll("svg"));
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveAttribute("data-testid", "code-pull-request-mark");
+  });
+
+  /*
+   * The UI review: from sm up the facts and the chips sat beside the name
+   * and took its room - in German, "checkout-api" was cut to "checkout-…".
+   * The name now has its line to itself, its description and facts under
+   * it, and what needs someone at the row's end; on a phone the chips come
+   * between the name and the facts, what needs someone first.
+   */
+  test("the name keeps its line: the facts under it, what needs someone at the row's end", () => {
+    draw(
+      <ul>
+        <CodeRepositoryRow
+          repository={{
+            id: REPOSITORY_ID,
+            name: "checkout-api",
+            organizationName: "acme",
+            repositoryName: "checkout-api",
+            description: "The checkout API.",
+            isConnected: true,
+            stats: {
+              working: 1,
+              waitingForYou: 1,
+              openPullRequests: 1,
+              taskCount: 6,
+              lastActivityAt: new Date(Date.now() - 2 * 60000).toISOString(),
+            },
+          }}
+        />
+      </ul>,
+    );
+
+    const name: HTMLElement = screen.getByTestId("code-repository-name");
+    const description: HTMLElement = screen.getByTestId(
+      "code-repository-row-description",
+    );
+    const attention: HTMLElement = screen.getByTestId(
+      "code-repository-attention",
+    );
+    const stats: HTMLElement = screen.getByTestId("code-repository-stats");
+    const grid: HTMLElement = attention.parentElement!;
+
+    // One grid holds the three: the name's block, the chips, the facts.
+    expect(grid.className).toContain("grid");
+    expect(grid).toContainElement(name);
+    expect(grid).toContainElement(description);
+    expect(stats.parentElement).toBe(grid);
+    expect(
+      Array.from(grid.children).map((child: Element) => {
+        return child.contains(name)
+          ? "name"
+          : child === attention
+            ? "attention"
+            : child === stats
+              ? "facts"
+              : "other";
+      }),
+    ).toEqual(["name", "attention", "facts"]);
+
+    // From sm up: a second column, the chips in it across both lines.
+    expect(grid.className).toContain("sm:grid-cols-[minmax(0,1fr)_auto]");
+    expect(attention.className).toContain("sm:col-start-2");
+    expect(attention.className).toContain("sm:row-start-1");
+    expect(attention.className).toContain("sm:row-span-2");
+    expect(attention.className).toContain("sm:justify-end");
+    expect(stats.className).toContain("sm:col-start-1");
+    // A chip never breaks inside itself.
+    for (const chip of [
+      screen.getByTestId("code-repository-working"),
+      screen.getByTestId("code-repository-waiting"),
+    ]) {
+      expect(chip.className).toContain("whitespace-nowrap");
+    }
+  });
+
+  test("with nothing that needs someone, the row keeps one column", () => {
+    draw(
+      <ul>
+        <CodeRepositoryRow
+          repository={{
+            id: REPOSITORY_ID,
+            name: "storefront-web",
+            isConnected: true,
+            stats: {
+              working: 0,
+              waitingForYou: 0,
+              openPullRequests: 0,
+              taskCount: 0,
+            },
+          }}
+        />
+      </ul>,
+    );
+
+    const grid: HTMLElement = screen.getByTestId(
+      "code-repository-stats",
+    ).parentElement!;
+    expect(grid.className).toContain("grid");
+    expect(grid.className).not.toContain("sm:grid-cols");
+    expect(screen.queryByTestId("code-repository-attention")).toBeNull();
   });
 
   test("a quiet repository says it has no tasks yet and nothing more; one AI cannot reach says so, its mark greyed", () => {

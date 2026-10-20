@@ -357,6 +357,29 @@ describe("Code opens on the request box; the repositories are a page of their ow
     );
   });
 
+  /*
+   * The UI review: Repositories became a page, so a trail of Project >
+   * Code > Repository > Settings sent its "Repository" crumb to the list
+   * (the first real page past /code) and never named the repository. A
+   * repository's pages sit under Repositories in the trail, as in the
+   * address.
+   */
+  test("a repository's pages sit under Repositories in the trail, as in their address", () => {
+    const crumbs: string = dense(
+      readSource("Utils", "Breadcrumbs", "CodeBreadcrumbs.ts"),
+    );
+
+    expect(crumbs).toContain(
+      'BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW,["Project","Code","Repositories","Repository",])',
+    );
+    expect(crumbs).toContain(
+      'BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW_SETTINGS,["Project","Code","Repositories","Repository","Settings",])',
+    );
+    expect(crumbs).toContain(
+      'BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW_DELETE,["Project","Code","Repositories","Repository","DeleteRepository",])',
+    );
+  });
+
   test("the old Code Repositories list forwards to Repositories; the old Tasks list to Code's first page", () => {
     const repositories: string = dense(
       stripComments(readSource("Routes", "MovedRepositoryRoutes.tsx")),

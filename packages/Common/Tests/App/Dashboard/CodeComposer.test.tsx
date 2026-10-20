@@ -429,6 +429,72 @@ describe("the box", () => {
     expect(screen.queryByTestId("code-composer-tools")).toBeNull();
   });
 
+  /*
+   * The UI review: on a phone, Start task wrapped onto a line of its own
+   * under the pickers. Beside them, Send is now its arrow alone - and its
+   * word is still there for a screen reader.
+   */
+  test("beside the pickers, a phone shows Send as its arrow, still named Start task", () => {
+    renderComposer({
+      tools: (
+        <button type="button" data-testid="picker-a">
+          checkout-api
+        </button>
+      ),
+    });
+
+    expect(sendButton()).toHaveAccessibleName("Start task");
+    expect(screen.getByTestId("code-composer-send-label").className).toContain(
+      "max-sm:sr-only",
+    );
+    // A square the size of the other buttons in the row.
+    expect(sendButton().className).toContain("max-sm:w-8");
+    expect(sendButton().className).toContain("max-sm:px-0");
+    expect(sendButton().querySelector("svg")).not.toBeNull();
+  });
+
+  test("with nothing to pick, Send keeps its word on every screen", () => {
+    renderComposer({ sendLabel: "Send" });
+
+    expect(sendButton()).toHaveAccessibleName("Send");
+    expect(
+      screen.getByTestId("code-composer-send-label").className,
+    ).not.toContain("sr-only");
+    expect(sendButton().className).not.toContain("max-sm:w-8");
+  });
+
+  /*
+   * The UI review: in German at 1280 the hint took so much of the row that
+   * Start task wrapped onto a second line. The hint now lies over the room
+   * the row has left (an absolutely placed layer adds nothing to the row's
+   * width), wrapping under itself - where the row's fixed height hides it -
+   * when that room is too small. The browser suite measures it.
+   */
+  test("the hint takes no room of its own: it lies over what the row has left, and hides where it does not fit", () => {
+    renderComposer();
+
+    const keys: HTMLElement = screen.getByTestId("code-composer-keys");
+    const layer: HTMLElement = keys.parentElement!;
+    const room: HTMLElement = layer.parentElement!;
+
+    expect(keys.className).toContain("whitespace-nowrap");
+    expect(layer.className).toContain("absolute");
+    expect(layer.className).toContain("inset-0");
+    expect(layer.className).toContain("flex-wrap");
+    expect(room.className).toContain("relative");
+    expect(room.className).toContain("overflow-hidden");
+    expect(room.className).toContain("h-8");
+    expect(room.className).toContain("flex-1");
+
+    // Send and the hint's room share one group, as wide as Send at least.
+    const row: HTMLElement = screen.getByTestId("code-composer-send-row");
+    expect(row).toContainElement(room);
+    expect(row).toContainElement(sendButton());
+    expect(row.className).toContain("min-w-min");
+    expect(row.className).toContain("basis-0");
+    expect(sendButton().className).toContain("flex-shrink-0");
+  });
+
   test("what stops AI is said at the top of the box, over the words", () => {
     renderComposer({
       isDisabled: true,

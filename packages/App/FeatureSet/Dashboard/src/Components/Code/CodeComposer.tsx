@@ -335,7 +335,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
 
         {/*
          * Add context and what the request goes to on the left, Send on the
-         * right. A phone wraps Send under them, still at the right.
+         * right. Names too long for one line wrap, Send still at the right.
          */}
         <div
           data-testid="code-composer-toolbar"
@@ -388,32 +388,51 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <div className="ml-auto flex items-center gap-3">
-            {/* How to send, for a box that can send: none on a phone. */}
+          {/*
+           * How to send, and Send, at the end of the row. The hint shows
+           * only where the row has room for it: it lies over what is left
+           * of the line (taking no room of its own) and, given too little -
+           * a long language, a narrow window - wraps under itself, where the
+           * row's height hides it. It never pushes Send onto a line of its
+           * own. A phone or a tablet has no Enter to tell about.
+           */}
+          <div
+            data-testid="code-composer-send-row"
+            className="ml-auto flex min-w-min flex-1 basis-0 items-center justify-end gap-3"
+          >
             {props.isDisabled ? (
               <></>
             ) : (
-              <span
-                data-testid="code-composer-keys"
-                className="text-[11px] text-gray-500 max-lg:hidden"
-              >
-                <TranslatedSentence
-                  template="{{enter}} to send · {{shiftEnter}} for a new line"
-                  slots={{
-                    enter: (
-                      <kbd className="font-sans font-medium text-gray-600">
-                        Enter
-                      </kbd>
-                    ),
-                    shiftEnter: (
-                      <kbd className="font-sans font-medium text-gray-600">
-                        Shift + Enter
-                      </kbd>
-                    ),
-                  }}
-                />
-              </span>
+              <div className="relative h-8 min-w-0 flex-1 overflow-hidden max-lg:hidden">
+                <div className="absolute inset-0 flex flex-wrap items-center justify-end">
+                  <span aria-hidden="true" className="h-8 w-0" />
+                  <span
+                    data-testid="code-composer-keys"
+                    className="whitespace-nowrap text-[11px] text-gray-500 max-lg:hidden"
+                  >
+                    <TranslatedSentence
+                      template="{{enter}} to send · {{shiftEnter}} for a new line"
+                      slots={{
+                        enter: (
+                          <kbd className="font-sans font-medium text-gray-600">
+                            Enter
+                          </kbd>
+                        ),
+                        shiftEnter: (
+                          <kbd className="font-sans font-medium text-gray-600">
+                            Shift + Enter
+                          </kbd>
+                        ),
+                      }}
+                    />
+                  </span>
+                </div>
+              </div>
             )}
+            {/*
+             * Beside the pickers on a phone, Send is its arrow alone - its
+             * word is still read out - so the row stays one line.
+             */}
             <button
               type="button"
               data-testid="code-composer-send"
@@ -421,7 +440,9 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 void send();
               }}
-              className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+              className={`inline-flex h-8 flex-shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                props.tools ? "max-sm:w-8 max-sm:px-0" : ""
+              } ${
                 canSend
                   ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500"
                   : "cursor-not-allowed bg-gray-100 text-gray-400"
@@ -432,7 +453,12 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               ) : (
                 <Icon icon={IconProp.ArrowUp} className="h-4 w-4" />
               )}
-              {props.sendLabel}
+              <span
+                data-testid="code-composer-send-label"
+                className={props.tools ? "max-sm:sr-only" : ""}
+              >
+                {props.sendLabel}
+              </span>
             </button>
           </div>
         </div>
