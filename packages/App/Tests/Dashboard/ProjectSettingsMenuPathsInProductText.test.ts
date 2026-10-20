@@ -710,10 +710,6 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
       ["Project Settings > Security > SCIM"],
     ],
     [
-      "App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps.tsx",
-      ["Project Settings > AI > LLM Providers"],
-    ],
-    [
       "App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx",
       [
         "Project Settings > Workspace > Microsoft Teams",
