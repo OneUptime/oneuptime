@@ -89,7 +89,7 @@ Cliquez sur un span dans n'importe quelle vue pour ouvrir son panneau, avec des 
 Une grande trace charge 500 spans à la fois. Cliquez sur le bouton en bas de la trace pour en charger davantage, ou tous.
 
 > [!TIP]
-> **Corriger les performances avec l'IA** cherche dans la trace un schéma de performance connu : une requête N+1, un span qui prend l'essentiel du temps, ou des appels faits les uns après les autres qui pourraient s'exécuter en parallèle. S'il en trouve un, il lance une tâche IA qui ouvre une pull request pour le corriger. Voir [Code](/docs/ai/ai-agent).
+> **Corriger les performances avec l'IA** n'apparaît que sur une trace qui vaut d'être corrigée : une trace avec une requête N+1, des appels faits les uns après les autres qui pourraient s'exécuter en parallèle, ou un appel qui prend l'essentiel de la requête, quand cela coûte un temps réel (100 ms ou plus pour les appels ensemble, 500 ms ou plus pour un seul appel, et au moins un dixième de la requête). Il indique ce qu'il a trouvé, par exemple « La même requête de base de données s'est exécutée 40 fois dans ReportService.build », et lance une tâche IA qui ouvre une pull request pour le corriger. Voir [Code](/docs/ai/ai-agent).
 
 ## Représenter vos spans en graphiques
 

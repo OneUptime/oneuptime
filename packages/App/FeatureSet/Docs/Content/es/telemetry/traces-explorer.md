@@ -89,7 +89,7 @@ Haga clic en un span en cualquier vista para abrir su panel, con pestañas para 
 Una traza grande carga 500 spans cada vez. Haga clic en el botón al final de la traza para cargar más, o todos.
 
 > [!TIP]
-> **Corregir el rendimiento con IA** busca en la traza un patrón de rendimiento conocido: una consulta N+1, un span que ocupa casi todo el tiempo, o llamadas hechas una tras otra que podrían ir en paralelo. Si encuentra uno, inicia una tarea de IA que abre un pull request para corregirlo. Consulte [Código](/docs/ai/ai-agent).
+> **Corregir el rendimiento con IA** solo aparece en una traza que vale la pena corregir: una con una consulta N+1, llamadas hechas una tras otra que podrían ir en paralelo, o una llamada que ocupa casi toda la solicitud, cuando eso cuesta tiempo real (100 ms o más entre todas las llamadas, 500 ms o más para una sola llamada, y al menos una décima parte de la solicitud). Indica lo que encontró, por ejemplo «La misma consulta a la base de datos se ejecutó 40 veces en ReportService.build», e inicia una tarea de IA que abre un pull request para corregirlo. Consulte [Código](/docs/ai/ai-agent).
 
 ## Representar sus spans en gráficos
 

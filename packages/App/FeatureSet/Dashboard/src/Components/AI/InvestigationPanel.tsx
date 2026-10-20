@@ -61,6 +61,7 @@ import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useAiOffered from "../../Utils/UseAiOffered";
 import {
   ParsedInvestigationReport,
   parseInvestigationReport,
@@ -206,6 +207,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * "Open Fix PR from this analysis" is an AI action: with the project's AI
+   * switched off the server refuses it, so it is not offered
+   * (Common/Utils/Suggestions/AiSuggestion).
+   */
+  const isAiOffered: boolean = useAiOffered();
   const subjectType: InvestigationSubjectType = props.subjectType;
   const subjectIdString: string = props.subjectId.toString();
   const subjectKey: string = `${subjectType}:${subjectIdString}`;
@@ -1143,6 +1150,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const isCodeFixRecommended: boolean =
     codeFixRecommendation === AIRunCodeFixRecommendation.Recommended;
   /*
+   * The fix row: offered while AI is on, and kept after a fix was started
+   * here so its link stays (with AI off, nothing new can start).
+   */
+  const isFixRowShown: boolean =
+    isCodeFixRecommended && (isAiOffered || Boolean(fixTaskRunId));
+  /*
    * A verdict judges the report on screen, so the rating row only exists
    * beside one. While the report is still being prepared, or when the run
    * finished without one, there is nothing to rate; the row used to stay
@@ -1160,7 +1173,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   const hasCompletedActions: boolean =
     runStatus === AIRunStatus.Completed &&
-    (isCodeFixRecommended || canRateInvestigation);
+    (isFixRowShown || canRateInvestigation);
   /*
    * Ask the feed whether it will draw anything rather than counting events:
    * several event types only close a step an earlier event opened, so a run
@@ -1444,7 +1457,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             data-testid="investigation-actions"
             className="divide-y divide-gray-200 border-t border-gray-200"
           >
-            {isCodeFixRecommended ? (
+            {isFixRowShown ? (
               <div className="py-5 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                   <div className="min-w-[12rem] flex-1">

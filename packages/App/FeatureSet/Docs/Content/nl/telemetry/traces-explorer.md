@@ -89,7 +89,7 @@ Klik in een willekeurige weergave op een span om het paneel ervan te openen, met
 Een grote trace laadt 500 spans tegelijk. Klik op de knop onderaan de trace om meer of alle spans te laden.
 
 > [!TIP]
-> **Fix performance with AI** zoekt in de trace naar een bekend prestatiepatroon: een N+1-query, één span die het grootste deel van de tijd neemt, of aanroepen na elkaar die parallel zouden kunnen lopen. Als het er een vindt, start het een AI-taak die een pull request opent om het te verhelpen. Zie [Code](/docs/ai/ai-agent).
+> **Fix performance with AI** verschijnt alleen bij een trace die het verhelpen waard is: een met een N+1-query, aanroepen na elkaar die parallel zouden kunnen lopen, of één aanroep die het grootste deel van de aanvraag neemt, als dat echt tijd kost (samen 100 ms of meer voor de aanroepen, 500 ms of meer voor één aanroep, en minstens een tiende van de aanvraag). Het noemt wat het vond, zoals "Dezelfde databasequery werd 40 keer uitgevoerd in ReportService.build", en start een AI-taak die een pull request opent om het te verhelpen. Zie [Code](/docs/ai/ai-agent).
 
 ## Uw spans in grafieken zetten
 

@@ -89,7 +89,7 @@ Klicken Sie in einer beliebigen Ansicht auf einen Span, um sein Fenster zu öffn
 Ein großer Trace lädt 500 Spans auf einmal. Klicken Sie auf die Schaltfläche unten im Trace, um weitere oder alle zu laden.
 
 > [!TIP]
-> **Performance mit KI verbessern** sucht im Trace nach einem bekannten Performance-Muster: einer N+1-Abfrage, einem Span, der den Großteil der Zeit beansprucht, oder Aufrufen nacheinander, die parallel laufen könnten. Findet es eines, startet es eine KI-Aufgabe, die einen Pull Request mit der Korrektur öffnet. Siehe [Code](/docs/ai/ai-agent).
+> **Performance mit KI verbessern** erscheint nur bei einem Trace, der eine Korrektur lohnt: mit einer N+1-Abfrage, mit Aufrufen nacheinander, die parallel laufen könnten, oder mit einem Aufruf, der den Großteil der Anfrage beansprucht, wenn das spürbar Zeit kostet (zusammen 100 ms oder mehr für die Aufrufe, 500 ms oder mehr für einen einzelnen Aufruf und mindestens ein Zehntel der Anfrage). Es nennt, was es gefunden hat, etwa „Dieselbe Datenbankabfrage lief 40-mal in ReportService.build“, und startet eine KI-Aufgabe, die einen Pull Request mit der Korrektur öffnet. Siehe [Code](/docs/ai/ai-agent).
 
 ## Ihre Spans in Diagrammen darstellen
 

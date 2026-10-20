@@ -38,6 +38,10 @@ import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { PerformanceFindingType } from "Common/Types/AI/CodeFixTaskContext";
+import {
+  WORTH_FIXING_MIN_MS,
+  WORTH_FIXING_MIN_PERCENT_OF_TRACE,
+} from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import ErrorClass, {
@@ -1201,13 +1205,40 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
     expect(page).toContain("A large trace loads 500 spans at a time.");
   });
 
-  it("names the three performance patterns Fix performance with AI acts on", () => {
+  it("names the three performance patterns Fix performance with AI acts on, and when a trace is worth fixing", () => {
+    const suggestionCopy: string = readDashboardSource(
+      "Components/Traces/TraceDetail/TracePerformanceSuggestionCopy.ts",
+    );
+
     expect(Object.values(PerformanceFindingType).sort()).toEqual(
       ["DominantSpan", "NPlusOneQuery", "SequentialSiblings"].sort(),
     );
-    expect(header).toContain('title="Fix performance with AI"');
+    // The button is drawn by the finding strip, no longer by the header.
+    expect(suggestionCopy).toContain('"Fix performance with AI"');
+    expect(header).not.toContain('title="Fix performance with AI"');
+
+    // The rule the tip states, number for number.
+    expect(WORTH_FIXING_MIN_MS).toEqual({
+      [PerformanceFindingType.NPlusOneQuery]: 100,
+      [PerformanceFindingType.SequentialSiblings]: 100,
+      [PerformanceFindingType.DominantSpan]: 500,
+    });
+    expect(WORTH_FIXING_MIN_PERCENT_OF_TRACE).toBe(10);
     expect(page).toContain(
-      "**Fix performance with AI** looks for a known performance pattern in the trace: an N+1 query, one span that takes most of the time, or calls made one after another that could run in parallel.",
+      "**Fix performance with AI** shows only on a trace worth fixing: one with an N+1 query, calls made one after another that could run in parallel, or one call that takes most of the request, when it costs real time (100 ms or more for the calls together, 500 ms or more for a single call, and at least a tenth of the request).",
+    );
+  });
+
+  it("quotes the finding as the strip words it", () => {
+    const suggestionCopy: string = readDashboardSource(
+      "Components/Traces/TraceDetail/TracePerformanceSuggestionCopy.ts",
+    );
+
+    expect(suggestionCopy).toContain(
+      'other: "The same database query ran {{count}} times in {{parent}}",',
+    );
+    expect(page).toContain(
+      'It names what it found, such as "The same database query ran 40 times in ReportService.build", and starts an AI task that opens a pull request to fix it.',
     );
   });
 
