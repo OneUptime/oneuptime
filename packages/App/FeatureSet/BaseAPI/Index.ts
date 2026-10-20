@@ -48,6 +48,7 @@ import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestA
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
+import AIAgentTelemetryAPI from "Common/Server/API/AIAgentTelemetryAPI";
 import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
@@ -5718,6 +5719,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new AIAgentCodeTaskAPI().getRouter(),
+    );
+
+    // The code agent's production telemetry tools, run by the server.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentTelemetryAPI().getRouter(),
     );
 
     // Code: repositories, their tasks, and asking AI in them.

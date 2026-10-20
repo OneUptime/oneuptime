@@ -728,8 +728,10 @@ export default class RecentChangesContext {
   /*
    * Checks the first MAX_CHECKED_CHANGES changes that name a service, all at
    * once and within IMPACT_CHECK_BUDGET_IN_MS; says why the others were not.
+   * The code agent's recent_deploys tool checks a repository's deploys the
+   * same way.
    */
-  private static async checkImpact(data: {
+  public static async checkImpact(data: {
     projectId: ObjectID;
     changes: Array<RecentChange>;
     lookahead: Date;
