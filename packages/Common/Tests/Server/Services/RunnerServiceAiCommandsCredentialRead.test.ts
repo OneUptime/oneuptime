@@ -283,7 +283,9 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
     );
 
     expect(message).toContain('Runner "office-runner" holds SSH credentials');
-    expect(message).toContain('"Runs AI Remediation Commands"');
+    // The switch is gone from every page: the message names what it lets happen.
+    expect(message).toContain("letting it run OneUptime AI's commands");
+    expect(message).not.toContain("Runs AI Remediation Commands");
     // Who may, named as approving such a plan names them.
     expect(message).toContain(
       `takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.`,

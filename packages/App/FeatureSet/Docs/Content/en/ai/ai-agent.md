@@ -7,6 +7,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 - [A task's conversation](#a-tasks-conversation): What AI did, what it changed, and your reply.
 - [How a fix run works](#how-a-fix-run-works): From a click to a pull request, step by step.
 - [Where fix tasks start](#where-fix-tasks-start): The tasks OneUptime starts, and what each pull request does.
+- [Production telemetry in a fix](#production-telemetry-in-a-fix): What a fix reads of production while it writes the change.
 - [Before you begin](#before-you-begin): A model, a connected repository and a Runner.
 - [When a fix fails](#when-a-fix-fails): What happens to a run that errors, stalls or waits.
 :::
@@ -83,13 +84,13 @@ flowchart TB
 2. The task is queued on its repository, and the Runner the repository picks takes it: one of your Runners, or a global Runner when it picks none (see [Pick the repository's Runner](#pick-the-repositorys-runner)).
 3. The Runner fetches the task's context. For a request, that is its words, the context added and the conversation so far; for an exception, its type, its message and its stack trace.
 4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A reply works on the branch of the task's open pull request instead.
-5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs.
+5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs. A fix of an exception, a slow trace or an incident also reads production while it works: the exceptions, traces, logs and metrics of the repository's services (see [Production telemetry in a fix](#production-telemetry-in-a-fix)).
 6. If the repository has verification commands, a Runner of your own builds and tests the change before committing anything, and hands a failure back to the code agent to repair (see [Verification before the pull request](#verification-before-the-pull-request)).
 7. The Runner commits, pushes the branch, opens the pull request (for a request, only when it changed code), and deletes the workspace.
 
 The page the task was started from shows its live status. Every task is listed in its repository under **Products → Code**: its page is its conversation, and each turn's **Log** has a line for every file the Runner read or wrote and every command it ran.
 
-Each run is held to budgets the server enforces: at most **40 LLM calls** and **100,000 output tokens**. A run that reaches one finishes with a summary of the work so far instead of looping. Fix runs also count toward the project's daily AI limits, when the project sets them.
+Each run is held to budgets the server enforces: at most **40 LLM calls** and **100,000 output tokens**. A run's production telemetry queries count against the same 40 calls. A run that reaches one finishes with a summary of the work so far instead of looping. Fix runs also count toward the project's daily AI limits, when the project sets them.
 
 ## Where fix tasks start
 
@@ -109,6 +110,37 @@ These buttons show only where they can start a task. With AI switched off for th
 To open an exception's **AI Assistance** page, open the exception under **Products → Observability → Exceptions** and choose **AI Assistance** in its side menu. A resolved or archived exception has to be marked unresolved first.
 
 OneUptime AI also starts fix tasks on its own: from an investigation that finds a code change, from one that ends inconclusive because telemetry was missing, and from AI Insights about exceptions and slow traces. Each has its own switch; see [Automatic code fixes](/docs/ai/ai-sre#automatic-code-fixes).
+
+## Production telemetry in a fix
+
+OneUptime holds what your code does in production, so a fix does not have to work from a stack trace alone. While the code agent works, it can query the production telemetry of the services the repository serves:
+
+| It reads | What for |
+| --- | --- |
+| **Exceptions** | The exception groups thrown in given files or a function: how often in the last days, since which release, and the trace of a recent occurrence. |
+| **Traces** | The latency and error profile of an endpoint or operation, and the spans of one trace. |
+| **Logs** | A service's log lines, by time, severity, text or trace. |
+| **Metrics** | A metric a service reports, over time; without a name, the metrics it reports. |
+| **Incidents** | Incidents that affected the services, or that a OneUptime fix in this repository was opened for, with their root cause and postmortem. |
+| **Deploys** | Recent deploys and other changes of the services, each with OneUptime's verdict on whether it hurt its service. |
+
+| Task | What it checks |
+| --- | --- |
+| **Fix with AI** on an exception | How often it is thrown now and since which release, the logs and the trace of an occurrence. |
+| **Fix performance with AI** | How busy and how slow the operation is across all of its traces, not only the one analyzed. It changes nothing when the operation is no longer slow. |
+| **Open Fix PR from this analysis**, and fixes opened automatically from investigations | The deploys before the incident, its errors, logs and slow operations, and whether the cause struck before. |
+| `@oneuptime review` from GitHub | What production says about the changed code (see [Reviews with production context](/docs/ai/github-app#reviews-with-production-context)). |
+
+The pull request's description says what the agent queried and what it showed. Other tasks, such as regression tests and logging or tracing improvements, do not query production.
+
+What the agent can read is decided by the OneUptime server, from the task itself:
+
+- **Read only.** The queries run on the OneUptime server, never on the Runner, which holds no credential that reads telemetry. Nothing they do can change your project.
+- **This project, and only the services this repository serves.** You do not map them: they are the services OneUptime finds this repository for, the way it finds the repository of a fix - their exceptions' stack traces run through its files, they are named like it, or it is the project's only repository. Another service's telemetry cannot be read.
+- **No private incidents**, and tokens, keys, passwords and email addresses are redacted before the agent sees a result, as everywhere OneUptime AI reads your data.
+- **Bounded.** At most **12** queries per run, each counted against the run's 40 calls.
+
+When no service maps to the repository, the task runs without production telemetry, as before.
 
 ## Verification before the pull request
 
@@ -244,14 +276,13 @@ A task that waits more than 30 minutes while the Runner that should take it is n
 
 ## Privacy
 
-The clone of your repository lives in a workspace inside the Runner's container and is deleted when the run ends, whether it succeeded or not. The Runner never holds your LLM provider's API key: the OneUptime server makes the LLM calls for it. OneUptime does not keep your repository and does not train on your code. The task's log keeps the first 300 characters of each step's output, so you can check what the Runner did, and that can include pieces of code. Run a self-hosted Runner with your own LLM provider (local Ollama included), and your code never leaves your infrastructure.
+The clone of your repository lives in a workspace inside the Runner's container and is deleted when the run ends, whether it succeeded or not. The Runner never holds your LLM provider's API key: the OneUptime server makes the LLM calls for it, and runs the production telemetry queries too. OneUptime does not keep your repository and does not train on your code. The task's log keeps the first 300 characters of each step's output, so you can check what the Runner did, and that can include pieces of code. Run a self-hosted Runner with your own LLM provider (local Ollama included), and your code never leaves your infrastructure.
 
 ## On the roadmap
 
 Planned, and **not available today**:
 
 - **GitLab support.** Repositories connect through the GitHub App only.
-- **More telemetry in a fix.** Feeding the traces, logs and metrics around an exception into its fix, beyond the stack trace.
 
 ## Next steps
 

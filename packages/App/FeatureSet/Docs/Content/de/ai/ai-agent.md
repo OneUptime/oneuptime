@@ -7,6 +7,7 @@ Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeit
 - [Die Unterhaltung einer Aufgabe](#die-unterhaltung-einer-aufgabe): Was die KI getan und geändert hat, und Ihre Antwort.
 - [Wie ein Korrekturlauf abläuft](#wie-ein-korrekturlauf-abläuft): Vom Klick bis zum Pull Request, Schritt für Schritt.
 - [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten): Die Aufgaben, die OneUptime startet, und was jeder Pull Request tut.
+- [Produktionstelemetrie in einer Korrektur](#produktionstelemetrie-in-einer-korrektur): Was eine Korrektur aus der Produktion liest, während sie die Änderung schreibt.
 - [Bevor Sie beginnen](#bevor-sie-beginnen): Ein Modell, ein verbundenes Repository und ein Runner.
 - [Wenn eine Korrektur fehlschlägt](#wenn-eine-korrektur-fehlschlägt): Was mit einem Lauf passiert, der fehlschlägt, hängen bleibt oder wartet.
 :::
@@ -83,13 +84,13 @@ flowchart TB
 2. Die Aufgabe wird für ihr Repository eingereiht, und der Runner, den das Repository auswählt, übernimmt sie: einer Ihrer Runner oder ein globaler Runner, wenn es keinen auswählt (siehe [Den Runner des Repositorys auswählen](#den-runner-des-repositorys-auswählen)).
 3. Der Runner holt den Kontext der Aufgabe. Bei einer Anfrage sind das ihre Worte, der hinzugefügte Kontext und die bisherige Unterhaltung; bei einer Ausnahme ihr Typ, ihre Meldung und ihr Stack-Trace.
 4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs. Eine Antwort arbeitet stattdessen im Branch des offenen Pull Requests der Aufgabe.
-5. Ein Code-Agent, angetrieben vom LLM-Anbieter Ihres Projekts, liest den Code und schreibt die Änderung. Der OneUptime-Server führt die LLM-Aufrufe aus, sodass der Runner den API-Schlüssel Ihres Anbieters nie besitzt, und jeder Aufruf wird gemessen und in den KI-Protokollen aufgeführt.
+5. Ein Code-Agent, angetrieben vom LLM-Anbieter Ihres Projekts, liest den Code und schreibt die Änderung. Der OneUptime-Server führt die LLM-Aufrufe aus, sodass der Runner den API-Schlüssel Ihres Anbieters nie besitzt, und jeder Aufruf wird gemessen und in den KI-Protokollen aufgeführt. Eine Korrektur einer Ausnahme, eines langsamen Traces oder eines Vorfalls liest während der Arbeit auch Daten aus der Produktion: die Ausnahmen, Traces, Logs und Metriken der Dienste des Repositorys (siehe [Produktionstelemetrie in einer Korrektur](#produktionstelemetrie-in-einer-korrektur)).
 6. Hat das Repository Prüfbefehle, baut und testet ein eigener Runner die Änderung, bevor er etwas committet, und gibt einen Fehler zur Reparatur an den Code-Agenten zurück (siehe [Prüfung vor dem Pull Request](#prüfung-vor-dem-pull-request)).
 7. Der Runner committet, pusht den Branch, öffnet den Pull Request (bei einer Anfrage nur, wenn sie Code geändert hat) und löscht den Arbeitsbereich.
 
 Die Seite, auf der die Aufgabe gestartet wurde, zeigt ihren Live-Status. Jede Aufgabe steht in ihrem Repository unter **Produkte → Code**: Ihre Seite ist ihre Unterhaltung, und das **Protokoll** jedes Durchgangs hat eine Zeile für jede Datei, die der Runner gelesen oder geschrieben hat, und jeden Befehl, den er ausgeführt hat.
 
-Jeder Lauf unterliegt Budgets, die der Server durchsetzt: höchstens **40 LLM-Aufrufe** und **100.000 Ausgabe-Tokens**. Ein Lauf, der eines davon erreicht, endet mit einer Zusammenfassung der bisherigen Arbeit, statt in einer Schleife zu laufen. Korrekturläufe zählen auch zu den täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt.
+Jeder Lauf unterliegt Budgets, die der Server durchsetzt: höchstens **40 LLM-Aufrufe** und **100.000 Ausgabe-Tokens**. Die Abfragen der Produktionstelemetrie eines Laufs zählen zu denselben 40 Aufrufen. Ein Lauf, der eines davon erreicht, endet mit einer Zusammenfassung der bisherigen Arbeit, statt in einer Schleife zu laufen. Korrekturläufe zählen auch zu den täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt.
 
 ## Wo Korrekturaufgaben starten
 
@@ -109,6 +110,37 @@ Diese Schaltflächen erscheinen nur dort, wo sie eine Aufgabe starten können. I
 Um die Seite **KI-Unterstützung** einer Ausnahme zu öffnen, öffnen Sie die Ausnahme unter **Produkte → Observability → Ausnahmen** und wählen im Seitenmenü **KI-Unterstützung**. Eine gelöste oder archivierte Ausnahme muss zuerst als ungelöst markiert werden.
 
 OneUptime AI startet Korrekturaufgaben auch selbst: aus einer Untersuchung, die eine Codeänderung findet, aus einer, die ergebnislos endet, weil Telemetrie fehlte, und aus KI-Einblicken zu Ausnahmen und langsamen Traces. Jede davon hat einen eigenen Schalter; siehe [Automatische Codekorrekturen](/docs/ai/ai-sre#automatische-code-korrekturen).
+
+## Produktionstelemetrie in einer Korrektur
+
+OneUptime weiß, was Ihr Code in der Produktion tut, sodass eine Korrektur nicht allein von einem Stack-Trace ausgehen muss. Während der Code-Agent arbeitet, kann er die Produktionstelemetrie der Dienste abfragen, die zum Repository gehören:
+
+| Er liest | Wofür |
+| --- | --- |
+| **Ausnahmen** | Die Ausnahmegruppen, die in bestimmten Dateien oder einer Funktion geworfen werden: wie oft in den letzten Tagen, seit welchem Release, und der Trace eines Vorkommens aus jüngster Zeit. |
+| **Traces** | Das Latenz- und Fehlerprofil eines Endpunkts oder einer Operation, und die Spans eines einzelnen Traces. |
+| **Protokolle** | Die Protokollzeilen eines Dienstes, nach Zeit, Schweregrad, Text oder Trace. |
+| **Metriken** | Eine Metrik, die ein Dienst meldet, im Zeitverlauf; ohne Namen die Metriken, die er meldet. |
+| **Vorfälle** | Vorfälle, die die Dienste betroffen haben oder für die eine OneUptime-Korrektur in diesem Repository geöffnet wurde, mit ihrer Grundursache und ihrem Postmortem. |
+| **Deploys** | Die jüngsten Deploys und anderen Änderungen der Dienste, jeweils mit dem Urteil von OneUptime, ob die Änderung ihrem Dienst geschadet hat. |
+
+| Aufgabe | Was sie prüft |
+| --- | --- |
+| **Mit KI beheben** bei einer Ausnahme | Wie oft sie jetzt geworfen wird und seit welchem Release, die Logs und der Trace eines Vorkommens. |
+| **Mit KI beschleunigen** | Wie stark ausgelastet und wie langsam die Operation über alle ihre Traces hinweg ist, nicht nur im analysierten Trace. Die Aufgabe ändert nichts, wenn die Operation nicht mehr langsam ist. |
+| **Korrektur-PR aus dieser Analyse öffnen** sowie automatisch aus Untersuchungen geöffnete Korrekturen | Die Deploys vor dem Vorfall, seine Fehler, Logs und langsamen Operationen, und ob die Ursache schon früher zugeschlagen hat. |
+| `@oneuptime review` aus GitHub | Was die Produktion über den geänderten Code sagt (siehe [Reviews mit Produktionskontext](/docs/ai/github-app#reviews-mit-produktionskontext)). |
+
+Die Beschreibung des Pull Requests sagt, was der Agent abgefragt hat und was sich dabei gezeigt hat. Andere Aufgaben, etwa Regressionstests und Verbesserungen am Logging oder Tracing, fragen die Produktion nicht ab.
+
+Was der Agent lesen darf, entscheidet der OneUptime-Server anhand der Aufgabe selbst:
+
+- **Nur lesend.** Die Abfragen laufen auf dem OneUptime-Server, nie auf dem Runner, der keine Zugangsdaten besitzt, mit denen sich Telemetrie lesen lässt. Nichts, was sie tun, kann Ihr Projekt ändern.
+- **Dieses Projekt, und nur die Dienste, die zu diesem Repository gehören.** Sie müssen sie nicht zuordnen: Es sind die Dienste, für die OneUptime dieses Repository findet, so wie es das Repository einer Korrektur findet - die Stack-Traces ihrer Ausnahmen laufen durch seine Dateien, sie heißen wie das Repository, oder es ist das einzige Repository des Projekts. Die Telemetrie eines anderen Dienstes lässt sich nicht lesen.
+- **Keine privaten Vorfälle**, und Token, Schlüssel, Passwörter und E-Mail-Adressen werden geschwärzt, bevor der Agent ein Ergebnis sieht, wie überall, wo OneUptime AI Ihre Daten liest.
+- **Begrenzt.** Höchstens **12** Abfragen pro Lauf, von denen jede zu den 40 Aufrufen des Laufs zählt.
+
+Wenn kein Dienst zum Repository gehört, läuft die Aufgabe wie bisher ohne Produktionstelemetrie.
 
 ## Prüfung vor dem Pull Request
 
@@ -244,14 +276,13 @@ Eine Aufgabe, die länger als 30 Minuten wartet, während der Runner, der sie ü
 
 ## Datenschutz
 
-Der Klon Ihres Repositorys liegt in einem Arbeitsbereich im Container des Runners und wird gelöscht, wenn der Lauf endet, ob erfolgreich oder nicht. Der Runner besitzt nie den API-Schlüssel Ihres LLM-Anbieters: Der OneUptime-Server führt die LLM-Aufrufe für ihn aus. OneUptime behält Ihr Repository nicht und trainiert nicht mit Ihrem Code. Das Protokoll der Aufgabe behält die ersten 300 Zeichen der Ausgabe jedes Schritts, damit Sie prüfen können, was der Runner getan hat, und das kann Codeausschnitte enthalten. Betreiben Sie einen selbst gehosteten Runner mit Ihrem eigenen LLM-Anbieter (lokales Ollama eingeschlossen), verlässt Ihr Code Ihre Infrastruktur nie.
+Der Klon Ihres Repositorys liegt in einem Arbeitsbereich im Container des Runners und wird gelöscht, wenn der Lauf endet, ob erfolgreich oder nicht. Der Runner besitzt nie den API-Schlüssel Ihres LLM-Anbieters: Der OneUptime-Server führt die LLM-Aufrufe für ihn aus, und auch die Abfragen der Produktionstelemetrie. OneUptime behält Ihr Repository nicht und trainiert nicht mit Ihrem Code. Das Protokoll der Aufgabe behält die ersten 300 Zeichen der Ausgabe jedes Schritts, damit Sie prüfen können, was der Runner getan hat, und das kann Codeausschnitte enthalten. Betreiben Sie einen selbst gehosteten Runner mit Ihrem eigenen LLM-Anbieter (lokales Ollama eingeschlossen), verlässt Ihr Code Ihre Infrastruktur nie.
 
 ## Geplant
 
 Geplant, und **heute noch nicht verfügbar**:
 
 - **Unterstützung für GitLab.** Repositories werden nur über die GitHub App verbunden.
-- **Mehr Telemetrie in einer Korrektur.** Die Traces, Logs und Metriken rund um eine Ausnahme in ihre Korrektur einfließen lassen, über den Stack-Trace hinaus.
 
 ## Nächste Schritte
 

@@ -12,10 +12,13 @@ import {
   ProjectAiSwitchDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import {
+  AUTO_REMEDIATION_APPROVAL_FIELD_COPY,
   AUTO_REMEDIATION_APPROVAL_OPTIONS,
-  AUTO_REMEDIATION_FIX_WITH_OPTIONS,
   AUTO_REMEDIATION_FIX_WITH_TEXT,
+  AUTO_REMEDIATION_MORE_FIELDS_COPY,
 } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
+import { REMEDIATION_NO_RUNNER_CHOICE_LABEL } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { CATCH_ALL_RULE_NAMES } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1799400000000-AddAutomaticRemediationSwitchesAndInvestigationRules";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import { describe, expect, it } from "@jest/globals";
@@ -119,20 +122,61 @@ describe("the AI SRE page", () => {
     );
   });
 
-  it("asks the rule form's three questions, with its choices as the form names them", () => {
-    for (const option of [
-      ...AUTO_REMEDIATION_FIX_WITH_OPTIONS,
-      ...AUTO_REMEDIATION_APPROVAL_OPTIONS,
-    ]) {
+  /*
+   * The maintainer: "Why should I pick between oneuptime AI and Runbook?"
+   * A rule asks two questions - its conditions, and whether a fix waits for
+   * approval - and folds the rest under More fields, named as the form
+   * names them.
+   */
+  it("asks the rule form's two questions, with its choices as the form names them, and no Fix With", () => {
+    for (const option of AUTO_REMEDIATION_APPROVAL_OPTIONS) {
       expect({
         option: option.title,
         named: rules.includes(`**${option.title}**`),
       }).toEqual({ option: option.title, named: true });
     }
 
-    for (const question of ["**Conditions**", "**Fix With**", "**Approval**"]) {
+    for (const question of [
+      "**Conditions**",
+      `**${AUTO_REMEDIATION_APPROVAL_FIELD_COPY.title}**`,
+    ]) {
       expect(rules).toContain(question);
     }
+
+    expect(rules).toContain(
+      "An auto remediation rule asks two questions, and OneUptime AI fixes what it matches:",
+    );
+    expect(rules).not.toContain("**Fix With**");
+  });
+
+  it("says what More fields holds, as the form names it: the runbooks OneUptime AI may run, Run them every time, and the Runner", () => {
+    expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
+    expect(rules).toContain(`folded under **${MORE_FIELDS_SECTION_TITLE}**`);
+
+    for (const title of [
+      AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksTitle,
+      AUTO_REMEDIATION_MORE_FIELDS_COPY.everyTimeTitle,
+      AUTO_REMEDIATION_MORE_FIELDS_COPY.runnerTitle,
+    ]) {
+      expect({ title, named: rules.includes(`- **${title}** — `) }).toEqual({
+        title,
+        named: true,
+      });
+    }
+
+    // What none picked means, as the form draws it.
+    expect(rules).toContain(
+      `With none picked (**${AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksPlaceholder}**) it may pick any of the project's enabled runbooks; pick some to let it run only those.`,
+    );
+    expect(rules).toContain(
+      `With none (**${REMEDIATION_NO_RUNNER_CHOICE_LABEL}**), OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host only; a global Runner never runs OneUptime AI's commands.`,
+    );
+    expect(rules).toContain(
+      "A runbook it picks from any of them is always proposed for approval.",
+    );
+    expect(rules).toContain(
+      "Picking one of your Runners is what lets OneUptime AI run commands on it: a Runner has no switch for that.",
+    );
   });
 
   it("says an agent that asks still asks, and that one rule that asks makes the AI fixes ask", () => {

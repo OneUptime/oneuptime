@@ -209,10 +209,49 @@ const RECORD_PULL_REQUEST_RETRIES: number = 3;
  * budgets — the worker never holds a provider secret.
  */
 export interface LlmCompletionBudget {
+  /*
+   * The run's calls so far: its LLM completions and, from servers that serve
+   * production telemetry, its telemetry tool calls, which share
+   * maxCompletionCalls.
+   */
   completionCallsUsed: number;
   maxCompletionCalls: number;
   outputTokensUsed: number;
   maxOutputTokens: number;
+  // Of completionCallsUsed, the production telemetry tool calls.
+  toolCallsUsed?: number | undefined;
+  maxToolCalls?: number | undefined;
+}
+
+/*
+ * Production telemetry: the code agent's read-only queries of the traces,
+ * logs, metrics, exceptions, incidents and deploys of the services its
+ * repository serves. The server executes every call and decides what the
+ * run may read; the worker names only the run.
+ */
+export interface TelemetryToolService {
+  id: string;
+  name: string;
+  // Where its code is in the repository, when OneUptime can tell.
+  pathInRepository: string | null;
+}
+
+export interface TelemetryTools {
+  // Empty when the run is offered none (reason says why).
+  tools: Array<LLMToolDefinition>;
+  repository: string | null;
+  services: Array<TelemetryToolService>;
+  reason: string | null;
+  budget: LlmCompletionBudget | null;
+}
+
+export interface TelemetryToolCallResult {
+  output: string;
+  rowCount: number;
+  citationLabel: string;
+  isTruncated: boolean;
+  // After the call.
+  budget: LlmCompletionBudget | null;
 }
 
 export interface LlmCompletionResult {
@@ -671,6 +710,180 @@ export default class BackendAPI {
         outputTokensUsed: 0,
         maxOutputTokens: Number.MAX_SAFE_INTEGER,
       },
+    };
+  }
+
+  /*
+   * The production telemetry tools the server offers this run, with the
+   * repository and services they read - or none, and why. Throws when the
+   * server cannot say (an older server has no such route), which the agent
+   * reads as none.
+   */
+  public async getTelemetryTools(taskId: string): Promise<TelemetryTools> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/get-telemetry-tools",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...RunnerAPIRequest.getDefaultRequestBody(),
+        taskId: taskId,
+      },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
+    });
+
+    if (!response.isSuccess()) {
+      throw new Error(
+        (response.data as JSONObject)?.["message"]?.toString() ||
+          "Failed to get the production telemetry tools",
+      );
+    }
+
+    const data: JSONObject = response.data || {};
+
+    return {
+      tools: BackendAPI.readToolDefinitions(data["tools"]),
+      repository:
+        typeof data["repository"] === "string" ? data["repository"] : null,
+      services: BackendAPI.readTelemetryServices(data["services"]),
+      reason: typeof data["reason"] === "string" ? data["reason"] : null,
+      budget: BackendAPI.readBudget(data["budget"]),
+    };
+  }
+
+  /*
+   * One production telemetry tool call, executed by the server. A refusal
+   * (the arguments, the run's scope, its budget) is thrown as an Error whose
+   * message the agent hands the model.
+   */
+  public async runTelemetryTool(data: {
+    taskId: string;
+    toolName: string;
+    arguments: JSONObject;
+  }): Promise<TelemetryToolCallResult> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/run-telemetry-tool",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...RunnerAPIRequest.getDefaultRequestBody(),
+        taskId: data.taskId,
+        toolName: data.toolName,
+        arguments: data.arguments,
+      },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
+    });
+
+    if (!response.isSuccess()) {
+      throw new Error(
+        (response.data as JSONObject)?.["message"]?.toString() ||
+          `The production telemetry tool ${data.toolName} failed`,
+      );
+    }
+
+    const result: JSONObject = response.data || {};
+
+    return {
+      output: typeof result["output"] === "string" ? result["output"] : "",
+      rowCount: typeof result["rowCount"] === "number" ? result["rowCount"] : 0,
+      citationLabel:
+        typeof result["citationLabel"] === "string"
+          ? result["citationLabel"]
+          : data.toolName,
+      isTruncated: Boolean(result["isTruncated"]),
+      budget: BackendAPI.readBudget(result["budget"]),
+    };
+  }
+
+  // Tool definitions as the server sent them, malformed ones left out.
+  private static readToolDefinitions(raw: unknown): Array<LLMToolDefinition> {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    const tools: Array<LLMToolDefinition> = [];
+
+    for (const entry of raw) {
+      const tool: JSONObject = (entry || {}) as JSONObject;
+
+      if (
+        typeof tool["name"] === "string" &&
+        tool["name"] &&
+        typeof tool["description"] === "string" &&
+        tool["inputSchema"] &&
+        typeof tool["inputSchema"] === "object" &&
+        !Array.isArray(tool["inputSchema"])
+      ) {
+        tools.push({
+          name: tool["name"],
+          description: tool["description"],
+          inputSchema: tool["inputSchema"] as JSONObject,
+        });
+      }
+    }
+
+    return tools;
+  }
+
+  private static readTelemetryServices(
+    raw: unknown,
+  ): Array<TelemetryToolService> {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    const services: Array<TelemetryToolService> = [];
+
+    for (const entry of raw) {
+      const service: JSONObject = (entry || {}) as JSONObject;
+
+      if (typeof service["id"] === "string" && service["id"]) {
+        services.push({
+          id: service["id"],
+          name: typeof service["name"] === "string" ? service["name"] : "",
+          pathInRepository:
+            typeof service["pathInRepository"] === "string"
+              ? service["pathInRepository"]
+              : null,
+        });
+      }
+    }
+
+    return services;
+  }
+
+  private static readBudget(raw: unknown): LlmCompletionBudget | null {
+    const budget: JSONObject = (raw || {}) as JSONObject;
+
+    if (
+      typeof budget["completionCallsUsed"] !== "number" ||
+      typeof budget["maxCompletionCalls"] !== "number"
+    ) {
+      return null;
+    }
+
+    return {
+      completionCallsUsed: budget["completionCallsUsed"],
+      maxCompletionCalls: budget["maxCompletionCalls"],
+      outputTokensUsed:
+        typeof budget["outputTokensUsed"] === "number"
+          ? budget["outputTokensUsed"]
+          : 0,
+      maxOutputTokens:
+        typeof budget["maxOutputTokens"] === "number"
+          ? budget["maxOutputTokens"]
+          : Number.MAX_SAFE_INTEGER,
+      toolCallsUsed:
+        typeof budget["toolCallsUsed"] === "number"
+          ? budget["toolCallsUsed"]
+          : undefined,
+      maxToolCalls:
+        typeof budget["maxToolCalls"] === "number"
+          ? budget["maxToolCalls"]
+          : undefined,
     };
   }
 

@@ -8,6 +8,7 @@ import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMS
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
 import Encryption from "../../../Server/Utils/Encryption";
+import { PROJECT_TWILIO_CONFIG_SELECT } from "../../../Server/Utils/TwilioConfigSelect";
 import Search from "../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
@@ -59,6 +60,9 @@ import { DataSource } from "typeorm";
  *   - A status page's subscriber SMS read the page's Twilio config THROUGH
  *     the page (a relation), and get the token decrypted - the token itself,
  *     never the ciphertext the database holds, which Twilio would refuse.
+ *     And the numbers its SMS go out from: a config's Twilio SMS Phone
+ *     Numbers (a column of its own) come back through the page with the
+ *     rest, so a Singapore page's SMS go out from its mobile number.
  *   - A caller who may read a status page but not a credential of the
  *     config it names cannot filter the page by that credential: neither
  *     the Twilio token nor the SMTP password (stored as written) answers a
@@ -470,6 +474,67 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
         );
       expect(twilioConfig?.authToken).toBe(TOKEN);
       expect(twilioConfig?.accountSid).toBe(SID);
+      // A config without SMS numbers sends SMS from the numbers calls do.
+      expect(twilioConfig?.smsPhoneNumbers).toBeUndefined();
+    });
+
+    test("a config's SMS numbers are stored, and read back through the page with the rest", async () => {
+      const configId: ObjectID = await createSendingConfig();
+
+      await ProjectCallSMSConfigService.updateOneById({
+        id: configId,
+        data: {
+          twilioPrimaryPhoneNumber: new Phone("+6561234567"),
+          twilioSmsPhoneNumbers: "+6581234567, +447700900123",
+        },
+        props: { isRoot: true },
+      });
+
+      const statusPageId: ObjectID = await createStatusPage({
+        callSmsConfigId: configId,
+      });
+
+      const statusPages: Array<StatusPage> =
+        await StatusPageSubscriberService.getStatusPagesToSendNotification([
+          statusPageId,
+        ]);
+
+      expect(statusPages[0]!.callSmsConfig?.twilioSmsPhoneNumbers).toBe(
+        "+6581234567, +447700900123",
+      );
+
+      const twilioConfig: TwilioConfig | undefined =
+        ProjectCallSMSConfigService.toTwilioConfig(
+          statusPages[0]!.callSmsConfig,
+        );
+
+      expect(twilioConfig?.primaryPhoneNumber.toString()).toBe("+6561234567");
+      expect(
+        (twilioConfig?.smsPhoneNumbers || []).map((phone: Phone): string => {
+          return phone.toString();
+        }),
+      ).toEqual(["+6581234567", "+447700900123"]);
+      expect(twilioConfig?.authToken).toBe(TOKEN);
+    });
+
+    test("a list of SMS numbers that is not one is refused on real Postgres, and nothing changes", async () => {
+      const configId: ObjectID = await createSendingConfig();
+
+      await expect(
+        ProjectCallSMSConfigService.updateOneById({
+          id: configId,
+          data: { twilioSmsPhoneNumbers: "+6581234567, mobile" },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow('"mobile" is not a phone number.');
+
+      const rows: Array<{ twilioSmsPhoneNumbers: string | null }> =
+        (await database.query(
+          `SELECT "twilioSmsPhoneNumbers" FROM "${schema}"."ProjectCallSMSConfig" WHERE "_id" = $1`,
+          [configId.toString()],
+        )) as Array<{ twilioSmsPhoneNumbers: string | null }>;
+
+      expect(rows[0]!.twilioSmsPhoneNumbers).toBeNull();
     });
 
     test("the confirmation SMS a new subscriber gets reads the token decrypted too", async () => {
@@ -482,13 +547,7 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
       const statusPage: StatusPage | null = await StatusPageService.findOneBy({
         query: { _id: statusPageId.toString() },
         select: {
-          callSmsConfig: {
-            _id: true,
-            twilioAccountSID: true,
-            twilioAuthToken: true,
-            twilioPrimaryPhoneNumber: true,
-            twilioSecondaryPhoneNumbers: true,
-          },
+          callSmsConfig: PROJECT_TWILIO_CONFIG_SELECT,
         },
         props: { isRoot: true, ignoreHooks: true },
       });

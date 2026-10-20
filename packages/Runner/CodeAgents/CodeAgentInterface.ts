@@ -26,6 +26,16 @@ export interface CodeAgentTask {
    * question ends its turn with needsInput set.
    */
   allowQuestions?: boolean;
+  /*
+   * The task may query production: the agent asks the server for the
+   * production telemetry tools of its run (the traces, logs, metrics,
+   * exceptions, incidents and deploys of the services its repository
+   * serves) and offers them alongside the file tools. The server decides
+   * whether there are any and what they read; the worker names only the
+   * run. A review and the fixes of an exception, a slow trace or an
+   * incident ask.
+   */
+  productionTelemetry?: boolean;
 }
 
 // Result from the code agent execution

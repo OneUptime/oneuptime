@@ -195,9 +195,12 @@ const NEW_STRINGS: Array<string> = [
   "Never",
   "None",
   "Capabilities",
+  /*
+   * "Runs Runbooks" is the Runner's one switch: an auto remediation rule,
+   * or a Kubernetes cluster's AI settings, picks the Runner OneUptime AI
+   * runs its commands on, so "Runs AI Remediation Commands" is gone.
+   */
   "Runs Runbooks",
-  "Runs AI Remediation Commands",
-  "AI remediation commands",
   "You do not have permission to view this Runner's key",
   /*
    * A Runner has no "Runs AI Code Fixes" switch any more: a code repository
@@ -362,7 +365,7 @@ describe("no page decides liveness from connectionStatus", () => {
   test("the Last Seen column exports the relative time it displays", () => {
     const source: string = readCode(...RUNNERS_PAGE);
     const start: number = source.indexOf('title: "Last Seen"');
-    /* "Capabilities" is also a formStep title earlier in the file. */
+    // The column after it.
     const end: number = source.indexOf('title: "Capabilities"', start);
 
     expect(start).toBeGreaterThan(-1);

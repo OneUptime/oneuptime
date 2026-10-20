@@ -1,3 +1,4 @@
+import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { JSONObject } from "../../Types/JSON";
@@ -23,6 +24,12 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
  */
 export interface SuggestionTransitionSet {
   status: AutoRemediationSuggestionStatus;
+  /*
+   * How the suggestion acts, when the transition decides it: a runbook
+   * OneUptime AI picked to start right away that is proposed instead says
+   * so (Suggest), so the row never claims a start that did not happen.
+   */
+  executionMode?: AutoRemediationExecutionMode | undefined;
   runbookId?: string | undefined;
   runbookNameSnapshot?: string | undefined;
   rationaleMarkdown?: string | undefined;

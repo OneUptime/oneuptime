@@ -5,6 +5,7 @@ La GitHub App di OneUptime è più di una connessione al tuo codice: puoi parlar
 :::cards
 - [I comandi](#i-comandi): Cosa scrivere, in una issue o in una pull request.
 - [Come appare nel thread](#come-appare-nel-thread): Un solo commento che segue il lavoro.
+- [Review con contesto di produzione](#review-con-contesto-di-produzione): Cosa dice la produzione sul codice modificato.
 - [Chi può darle comandi](#chi-può-darle-comandi): Le persone con accesso in scrittura, e nessun altro.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando una menzione non fa nulla.
 :::
@@ -45,7 +46,7 @@ Ogni comando inizia con una menzione dell'app. La menzione può stare in qualsia
 
 | Comando | Cosa succede | Capito anche come |
 | --- | --- | --- |
-| `@oneuptime review` | Clona il branch, legge il codice modificato e quello circostante, e pubblica una review come commento. Non cambia nulla. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime review` | Clona il branch, legge il codice modificato e quello circostante, controlla cosa ne dice la produzione, e pubblica una review come commento. Non cambia nulla. | `code review`, `please review`, `can you review`, `review this` |
 | `@oneuptime revise this — <what you want changed>` | Clona il branch della pull request stessa, fa la modifica e fa il push di nuovi commit su quel branch. Non apre mai una seconda pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Tutto ciò che scrivi dopo la menzione e che non è un comando noto viene letto come una richiesta di revisione, perché è quasi sempre di questo che si tratta:
@@ -86,6 +87,19 @@ Un comando produce **un solo commento**, che l'app modifica man mano che il lavo
 
 Se non trova niente che valga la pena cambiare, lo dice invece di aprire una pull request speculativa. È un esito normale, non un errore: dalle più indicazioni e chiedi di nuovo.
 
+## Review con contesto di produzione
+
+OneUptime possiede la telemetria del codice che revisiona, quindi una review può dire ciò che nessun revisore che legge il diff può sapere. Per i servizi del repository, controlla:
+
+- le eccezioni sollevate nei file e nelle funzioni modificati negli ultimi 7 giorni;
+- quanto traffico ricevono e quanto sono lenti gli endpoint e le operazioni toccati dal diff;
+- gli incidenti collegati ai file modificati;
+- i deploy recenti dei servizi che OneUptime ha contrassegnato come regressioni.
+
+Ciò che trova va sotto un titolo **Production context** della review, ogni punto con i numeri e la finestra temporale da cui proviene, per esempio: "`chargeCard` ha sollevato `TypeError: Cannot read properties of undefined` 1.240 volte negli ultimi 7 giorni; questa modifica aggiunge il controllo su null che lo impedisce." Quando la produzione non mostra nulla che riguardi il diff, la review omette il titolo invece di dire che va tutto bene.
+
+Non c'è nulla da configurare: i servizi sono quelli per cui OneUptime trova questo repository, come fa per una correzione (vedi [Telemetria di produzione in una correzione](/docs/ai/ai-agent#telemetria-di-produzione-in-una-correzione)). Le query sono in sola lettura, vengono eseguite sul server OneUptime e non leggono nulla di un altro servizio, progetto o incidente privato. Un repository i cui servizi non inviano telemetria al progetto viene revisionato solo in base al suo codice.
+
 ## Chi può darle comandi
 
 **Solo le persone con accesso write, maintain o admin al repository.** OneUptime chiede ogni volta a GitHub il permesso di chi commenta su quel repository; non si fida del badge "contributor" che GitHub mostra accanto a un commento, che descrive l'attività passata e non l'accesso attuale.
@@ -104,7 +118,7 @@ Ignora anche ogni commento scritto da un bot, compresi i propri, e le menzioni d
 
 ## Quanto costa e come limitarlo
 
-Ogni comando che avvia lavoro è un'esecuzione completa dell'agente: un clone, fino a 40 chiamate al LLM e 100.000 token di output, più i comandi di build e di test del tuo repository quando li hai impostati.
+Ogni comando che avvia lavoro è un'esecuzione completa dell'agente: un clone, fino a 40 chiamate al LLM e 100.000 token di output, più i comandi di build e di test del tuo repository quando li hai impostati. Le query sulla produzione di una review, al massimo 12, rientrano nelle stesse 40 chiamate.
 
 I comandi GitHub sono lavoro di IA al di fuori di incidenti e avvisi, quindi a loro non si applica alcun limite giornaliero di attività di correzione; si applicano i limiti giornalieri di IA del progetto, quando il progetto li imposta. L'unico altro limite è quello che già governa le attività di [Codice](/docs/ai/ai-agent):
 

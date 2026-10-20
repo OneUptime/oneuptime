@@ -54,7 +54,7 @@ OneUptime AI는 SSH 명령을 실행되는 Runner에 할당된 SSH 자격 증명
 
 ### OneUptime AI가 사용하게 하기
 
-OneUptime AI는 **AI 해결 명령 실행**이 켜진 Runner에서, 그 Runner에 할당된 SSH 자격 증명 중 하나로 SSH 명령을 실행합니다. Kubernetes 자격 증명은 자신의 Runner 하나와 함께 클러스터에 연결되면 사용됩니다. [AI SRE](/docs/ai/ai-sre)를 참고하세요.
+OneUptime AI는 자동 해결 규칙이 그 명령을 위해 고른 Runner에서, 그 Runner에 할당된 SSH 자격 증명 중 하나로 SSH 명령을 실행합니다. Kubernetes 자격 증명은 자신의 Runner 하나와 함께 클러스터에 연결되면 사용됩니다. [AI SRE](/docs/ai/ai-sre)를 참고하세요.
 :::
 
 ## 저장되는 내용
@@ -78,12 +78,12 @@ OneUptime AI는 **AI 해결 명령 실행**이 켜진 Runner에서, 그 Runner�
 
 ### OneUptime AI의 명령을 실행하는 Runner
 
-**AI 해결 명령 실행**이 켜진 Runner에서는 OneUptime AI가 그 Runner에서 실행하는 명령을 위해 Runner에 할당된 SSH 자격 증명 중에서 고릅니다. 그래서 무엇을 먼저 저장하든, SSH 자격 증명은 Runbook 자격 증명을 읽을 수 있는 사람(**Read Runbook Credential**, 또는 Project Owner나 Project Admin)을 통해서만 그런 Runner에 닿습니다.
+Runner는 OneUptime AI의 명령을 위해 선택되면 그 명령을 실행합니다. 자동 해결 규칙의 Runner로 선택되거나 Kubernetes 클러스터의 AI 액세스를 위해 선택될 때입니다. 그런 Runner에서는 OneUptime AI가 그 Runner에서 실행하는 명령을 위해 Runner에 할당된 SSH 자격 증명 중에서 고릅니다. 그래서 무엇을 먼저 저장하든, SSH 자격 증명은 Runbook 자격 증명을 읽을 수 있는 사람(**Read Runbook Credential**, 또는 Project Owner나 Project Admin)을 통해서만 그런 Runner에 닿습니다.
 
 - **자격 증명 할당.** 그런 Runner와 함께 SSH 자격 증명을 만들거나, 자격 증명에 그런 Runner를 추가하려면 그 권한이 필요합니다. 권한이 없으면 저장이 거부되고 Runner 이름이 표시됩니다. AI 해결 명령을 실행하지 않는 Runner에 자격 증명을 할당하거나, 권한이 있는 사람에게 할당을 요청하세요.
-- **스위치 켜기.** SSH 자격 증명이 있는 Runner에서 **AI 해결 명령 실행**을 켜려면 같은 권한이 필요합니다.
+- **Runner 선택.** SSH 자격 증명이 있는 Runner를 OneUptime AI의 명령을 위해 선택하려면(규칙의 Runner로, 또는 클러스터를 위해) 처음 선택할 때 같은 권한이 필요합니다.
 
-자격 증명에서 Runner를 빼는 것, 자격 증명을 이미 가진 Runner 그대로 저장하는 것, Kubernetes 자격 증명에는 그 이상의 권한이 필요 없습니다. OneUptime AI의 kubectl 명령은 해당 클러스터에 묶인 자격 증명으로 실행되기 때문입니다. 그 권한이 없는 사람의 자격 증명 할당과 스위치 켜기는 프로젝트에서 한 번에 하나씩 저장되므로, 두 저장이 함께 검사를 통과할 수 없습니다. 다른 저장이 진행 중일 때 들어온 저장은 그것을 기다리며, 너무 오래 걸리면 *Try again in a moment*와 함께 거부됩니다. 다시 저장하세요.
+자격 증명에서 Runner를 빼는 것, 자격 증명을 이미 가진 Runner 그대로 저장하는 것, Kubernetes 자격 증명에는 그 이상의 권한이 필요 없습니다. OneUptime AI의 kubectl 명령은 해당 클러스터에 묶인 자격 증명으로 실행되기 때문입니다. 그 권한이 없는 사람의 자격 증명 할당과 Runner 선택은 프로젝트에서 한 번에 하나씩 저장되므로, 두 저장이 함께 검사를 통과할 수 없습니다. 다른 저장이 진행 중일 때 들어온 저장은 그것을 기다리며, 너무 오래 걸리면 *Try again in a moment*와 함께 거부됩니다. 다시 저장하세요. 설명을 편집하는 것처럼 Runner를 저장할 때는 기다리지 않습니다.
 
 워크플로의 단계는 Project Admin으로 동작하지만, Project Admin의 Runbook 자격 증명 읽기 권한을 빌리지는 않습니다. 단계는 워크플로의 단계를 마지막으로 저장한 사람이 그 권한을 가진 경우에만 그 권한을 가집니다. [워크플로 단계가 할 수 있는 일](/docs/workflows/configuration#워크플로-단계가-할-수-있는-일)을 참조하세요.
 

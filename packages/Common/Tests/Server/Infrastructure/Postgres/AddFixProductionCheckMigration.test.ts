@@ -1,4 +1,4 @@
-import { AddFixProductionCheck1804500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804500000000-AddFixProductionCheck";
+import { AddFixProductionCheck1804850000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804850000000-AddFixProductionCheck";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -17,7 +17,7 @@ import { describe, expect, test } from "@jest/globals";
  * names and log bodies, so nobody but the server reads it.
  */
 
-const MIGRATION_NAME: string = "AddFixProductionCheck1804500000000";
+const MIGRATION_NAME: string = "AddFixProductionCheck1804850000000";
 
 // A migration's timestamp: the 13 digits its name ends in.
 function timestampOf(name: string): number {
@@ -36,7 +36,7 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddFixProductionCheck1804500000000();
+    new AddFixProductionCheck1804850000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -47,7 +47,7 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddFixProductionCheck1804500000000", () => {
+describe("AddFixProductionCheck1804850000000", () => {
   test("is registered once, after every older migration", () => {
     const names: Array<string> = SchemaMigrations.map(
       (migration: new () => MigrationInterface) => {
@@ -68,7 +68,7 @@ describe("AddFixProductionCheck1804500000000", () => {
     for (const name of names.slice(0, at)) {
       expect(timestampOf(name)).toBeLessThan(timestampOf(MIGRATION_NAME));
     }
-    expect(new AddFixProductionCheck1804500000000().name).toBe(MIGRATION_NAME);
+    expect(new AddFixProductionCheck1804850000000().name).toBe(MIGRATION_NAME);
   });
 
   test("adds the two columns, each nullable, with nothing else", async () => {

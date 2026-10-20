@@ -7,6 +7,7 @@ Kode er der du ber OneUptime AI om å jobbe i repositoriene dine, slik du ville 
 - [Samtalen til en oppgave](#samtalen-til-en-oppgave): Hva AI gjorde, hva den endret, og svaret ditt.
 - [Slik går en rettingskjøring](#slik-går-en-rettingskjøring): Fra et klikk til en pull request, steg for steg.
 - [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter): Oppgavene OneUptime starter, og hva hver pull request gjør.
+- [Produksjonstelemetri i en retting](#produksjonstelemetri-i-en-retting): Hva en retting leser fra produksjonen mens den skriver endringen.
 - [Før du begynner](#før-du-begynner): En modell, et tilkoblet repositorium og en Runner.
 - [Når en retting mislykkes](#når-en-retting-mislykkes): Hva som skjer med en kjøring som feiler, stopper opp eller venter.
 :::
@@ -83,13 +84,13 @@ flowchart TB
 2. Oppgaven settes i kø på repositoriet sitt, og Runneren som repositoriet velger, tar den: en av dine Runnere, eller en global Runner når det ikke velger noen (se [Velg repositoriets Runner](#velg-repositoriets-runner)).
 3. Runneren henter oppgavens kontekst. For en forespørsel er det ordene, konteksten som ble lagt til, og samtalen så langt; for et unntak typen, meldingen og stack tracen.
 4. Den kloner repositoriet til et eget arbeidsområde og lager en branch. En retting av et unntak heter `oneuptime-fix-exception-` etterfulgt av de første tegnene i kjøringens id. Et svar jobber i stedet på branchen til oppgavens åpne pull request.
-5. En kodeagent, drevet av prosjektets LLM-leverandør, leser koden og skriver endringen. OneUptime-serveren gjør LLM-kallene, slik at Runneren aldri har leverandørens API-nøkkel, og hvert kall måles og vises i AI-loggene.
+5. En kodeagent, drevet av prosjektets LLM-leverandør, leser koden og skriver endringen. OneUptime-serveren gjør LLM-kallene, slik at Runneren aldri har leverandørens API-nøkkel, og hvert kall måles og vises i AI-loggene. En retting av et unntak, et tregt spor eller en hendelse leser også fra produksjonen mens den jobber: unntakene, sporene, loggene og målingene til repositoriets tjenester (se [Produksjonstelemetri i en retting](#produksjonstelemetri-i-en-retting)).
 6. Har repositoriet kontrollkommandoer, bygger og tester din egen Runner endringen før den committer noe, og gir en feil tilbake til kodeagenten for å reparere den (se [Kontroll før pull requesten](#kontroll-før-pull-requesten)).
 7. Runneren committer, pusher branchen, åpner pull requesten (for en forespørsel bare når den endret kode) og sletter arbeidsområdet.
 
 Siden oppgaven ble startet fra, viser statusen live. Hver oppgave står i repositoriet sitt under **Produkter → Kode**: siden er samtalen, og **Logg** for hver tur har en linje for hver fil Runneren leste eller skrev og hver kommando den kjørte.
 
-Hver kjøring holdes innenfor budsjetter som serveren håndhever: høyst **40 LLM-kall** og **100 000 utdata-tokens**. En kjøring som når ett av dem, avslutter med et sammendrag av arbeidet så langt i stedet for å gå i ring. Rettingskjøringer teller også mot prosjektets daglige AI-grenser, når prosjektet setter dem.
+Hver kjøring holdes innenfor budsjetter som serveren håndhever: høyst **40 LLM-kall** og **100 000 utdata-tokens**. Kjøringens spørringer mot produksjonstelemetrien teller mot de samme 40 kallene. En kjøring som når ett av dem, avslutter med et sammendrag av arbeidet så langt i stedet for å gå i ring. Rettingskjøringer teller også mot prosjektets daglige AI-grenser, når prosjektet setter dem.
 
 ## Hvor rettingsoppgaver starter
 
@@ -109,6 +110,37 @@ Disse knappene vises bare der de kan starte en oppgave. Med AI slått av for pro
 For å åpne et unntaks side **AI Assistance**, åpne unntaket under **Produkter → Observerbarhet → Unntak** og velg **AI Assistance** i sidemenyen. Et løst eller arkivert unntak må først merkes som uløst.
 
 OneUptime AI starter også rettingsoppgaver på egen hånd: fra en undersøkelse som finner en kodeendring, fra en som ender uten konklusjon fordi telemetri manglet, og fra AI Insights om unntak og trege spor. Hver har sin egen bryter; se [Automatiske koderettinger](/docs/ai/ai-sre#automatiske-koderettelser).
+
+## Produksjonstelemetri i en retting
+
+OneUptime har oversikt over hva koden din gjør i produksjon, så en retting trenger ikke å jobbe ut fra en stack trace alene. Mens kodeagenten jobber, kan den gjøre spørringer mot produksjonstelemetrien til tjenestene repositoriet hører til:
+
+| Den leser | Til hva |
+| --- | --- |
+| **Unntak** | Unntaksgruppene som kastes i bestemte filer eller en funksjon: hvor ofte de siste dagene, siden hvilken release, og sporet til en nylig forekomst. |
+| **Spor** | Latens- og feilprofilen til et endepunkt eller en operasjon, og spanene i ett spor. |
+| **Logger** | Logglinjene til en tjeneste, etter tid, alvorlighetsgrad, tekst eller spor. |
+| **Målinger** | En måling som en tjeneste rapporterer, over tid; uten navn, målingene den rapporterer. |
+| **Hendelser** | Hendelser som rammet tjenestene, eller som en OneUptime-retting i dette repositoriet ble åpnet for, med rotårsaken og etteranalysen deres. |
+| **Utrullinger** | Nylige utrullinger og andre endringer i tjenestene, hver med OneUptimes vurdering av om den skadet tjenesten sin. |
+
+| Oppgave | Hva den sjekker |
+| --- | --- |
+| **Fiks med AI** på et unntak | Hvor ofte det kastes nå og siden hvilken release, loggene og sporet til en forekomst. |
+| **Fiks ytelsen med AI** | Hvor travel og hvor treg operasjonen er på tvers av alle sporene sine, ikke bare det som ble analysert. Den endrer ingenting når operasjonen ikke lenger er treg. |
+| **Open Fix PR from this analysis**, og rettinger som åpnes automatisk fra undersøkelser | Utrullingene før hendelsen, feilene, loggene og de trege operasjonene i den, og om årsaken har slått til før. |
+| `@oneuptime review` fra GitHub | Hva produksjonen sier om den endrede koden (se [Gjennomganger med produksjonskontekst](/docs/ai/github-app#gjennomganger-med-produksjonskontekst)). |
+
+Beskrivelsen av pull requesten sier hva agenten spurte etter, og hva det viste. Andre oppgaver, som regresjonstester og forbedringer av logging eller sporing, gjør ingen spørringer mot produksjonen.
+
+Hva agenten kan lese, bestemmes av OneUptime-serveren, ut fra selve oppgaven:
+
+- **Bare lesing.** Spørringene kjører på OneUptime-serveren, aldri på Runneren, som ikke har noen påloggingsdetaljer som kan lese telemetri. Ingenting de gjør, kan endre prosjektet ditt.
+- **Dette prosjektet, og bare tjenestene dette repositoriet hører til.** Du knytter dem ikke til repositoriet selv: det er tjenestene OneUptime finner dette repositoriet for, slik den finner repositoriet til en retting - stack tracene til unntakene deres går gjennom filene i det, de heter det samme som det, eller det er prosjektets eneste repositorium. Telemetrien til en annen tjeneste kan ikke leses.
+- **Ingen private hendelser**, og tokener, nøkler, passord og e-postadresser sladdes før agenten ser et resultat, som overalt der OneUptime AI leser dataene dine.
+- **Avgrenset.** Høyst **12** spørringer per kjøring, og hver av dem teller mot kjøringens 40 kall.
+
+Når ingen tjeneste kan knyttes til repositoriet, kjører oppgaven uten produksjonstelemetri, som før.
 
 ## Kontroll før pull requesten
 
@@ -244,14 +276,13 @@ En oppgave som venter i mer enn 30 minutter mens Runneren som skal ta den, ikke 
 
 ## Personvern
 
-Klonen av repositoriet ditt ligger i et arbeidsområde inne i Runnerens container og slettes når kjøringen slutter, enten den lyktes eller ikke. Runneren har aldri LLM-leverandørens API-nøkkel: OneUptime-serveren gjør LLM-kallene for den. OneUptime beholder ikke repositoriet ditt og trener ikke på koden din. Oppgavens logg beholder de første 300 tegnene av utdataene fra hvert steg, slik at du kan sjekke hva Runneren gjorde, og det kan inneholde kodebiter. Kjør en selvhostet Runner med din egen LLM-leverandør (lokal Ollama inkludert), og koden din forlater aldri infrastrukturen din.
+Klonen av repositoriet ditt ligger i et arbeidsområde inne i Runnerens container og slettes når kjøringen slutter, enten den lyktes eller ikke. Runneren har aldri LLM-leverandørens API-nøkkel: OneUptime-serveren gjør LLM-kallene for den, og kjører også spørringene mot produksjonstelemetrien. OneUptime beholder ikke repositoriet ditt og trener ikke på koden din. Oppgavens logg beholder de første 300 tegnene av utdataene fra hvert steg, slik at du kan sjekke hva Runneren gjorde, og det kan inneholde kodebiter. Kjør en selvhostet Runner med din egen LLM-leverandør (lokal Ollama inkludert), og koden din forlater aldri infrastrukturen din.
 
 ## På veikartet
 
 Planlagt, og **ikke tilgjengelig i dag**:
 
 - **Støtte for GitLab.** Repositorier kobles bare til via GitHub App.
-- **Mer telemetri i en retting.** Å gi rettingen sporene, loggene og målingene rundt et unntak, utover stack tracen.
 
 ## Neste steg
 
