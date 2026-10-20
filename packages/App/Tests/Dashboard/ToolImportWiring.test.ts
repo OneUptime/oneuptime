@@ -78,43 +78,69 @@ const SEARCH_AREAS: Array<PageSearchArea> = getPageSearchAreas();
 const SEARCH_ENTRIES: Array<PageSearchIndexEntry> =
   getPageSearchIndexEntries(SEARCH_AREAS);
 
-// Search's pages, as Cmd+K lists them (DashboardCommandPalette).
-const SEARCH_PAGES: Array<PaletteCommand> = buildPageSearchCommandDescriptors({
-  areas: SEARCH_AREAS,
-  availability: {
-    isBillingEnabled: true,
-    isMonitorGroupsEnabled: true,
-    canDeleteProject: true,
-  },
-  getRouteTemplate: (key: string): string => {
-    return `/dashboard/:projectId/${key.toLowerCase()}`;
-  },
-  getRoutePath: (key: string): string => {
-    return `/dashboard/project/${key.toLowerCase()}`;
-  },
-  getProductTitle: (): undefined => {
-    return undefined;
-  },
-  translate: (text: string): string => {
+// The Dashboard's German words, keyed by the English text, as Search reads them.
+const GERMAN: Record<string, unknown> = JSON.parse(
+  fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", "de.json"), "utf8"),
+) as Record<string, unknown>;
+
+type TranslateFunction = (text: string) => string;
+
+// Search's pages, as Cmd+K lists them (DashboardCommandPalette) in a language.
+function searchPagesIn(translate: TranslateFunction): Array<PaletteCommand> {
+  return buildPageSearchCommandDescriptors({
+    areas: SEARCH_AREAS,
+    availability: {
+      isBillingEnabled: true,
+      isMonitorGroupsEnabled: true,
+      canDeleteProject: true,
+    },
+    getRouteTemplate: (key: string): string => {
+      return `/dashboard/:projectId/${key.toLowerCase()}`;
+    },
+    getRoutePath: (key: string): string => {
+      return `/dashboard/project/${key.toLowerCase()}`;
+    },
+    getProductTitle: (): undefined => {
+      return undefined;
+    },
+    translate,
+    catalog: [],
+  }).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
+    return {
+      id: descriptor.id,
+      title: descriptor.title,
+      titleAliases: descriptor.titleAliases,
+      keywords: descriptor.keywords,
+      breadcrumb: descriptor.breadcrumb,
+      breadcrumbKeywords: descriptor.breadcrumbKeywords,
+      category: "Pages",
+      onSelect: (): void => {},
+    };
+  });
+}
+
+const SEARCH_PAGES: Array<PaletteCommand> = searchPagesIn(
+  (text: string): string => {
     return text;
   },
-  catalog: [],
-}).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
-  return {
-    id: descriptor.id,
-    title: descriptor.title,
-    keywords: descriptor.keywords,
-    breadcrumb: descriptor.breadcrumb,
-    breadcrumbKeywords: descriptor.breadcrumbKeywords,
-    category: "Pages",
-    onSelect: (): void => {},
-  };
-});
+);
+
+// The same pages for a reader who has the Dashboard in German.
+const GERMAN_SEARCH_PAGES: Array<PaletteCommand> = searchPagesIn(
+  (text: string): string => {
+    const german: unknown = GERMAN[text];
+
+    return typeof german === "string" && german ? german : text;
+  },
+);
 
 // The first page Search lists for the query, with where it lives.
-function firstFound(query: string): string {
+function firstFound(
+  query: string,
+  pages: Array<PaletteCommand> = SEARCH_PAGES,
+): string {
   const match: PaletteCommandMatch | undefined = filterPaletteCommands(
-    SEARCH_PAGES,
+    pages,
     query,
   )[0];
 
@@ -252,14 +278,34 @@ describe("the page is reachable", () => {
    * Dashboard's words).
    */
   test("German names the page so the menu shows it whole: 'Import aus anderem Tool'", () => {
-    const german: Record<string, unknown> = JSON.parse(
-      fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", "de.json"), "utf8"),
-    ) as Record<string, unknown>;
-
-    expect(german[PAGE_TITLE]).toBe("Import aus anderem Tool");
-    expect(german["The import from {{tool}} is done"]).toBe(
+    expect(GERMAN[PAGE_TITLE]).toBe("Import aus anderem Tool");
+    expect(GERMAN["The import from {{tool}} is done"]).toBe(
       "Der Import aus {{tool}} ist abgeschlossen",
     );
+  });
+
+  /*
+   * Search reads a page by its title in the reader's language, its English
+   * title and its (English) keywords. With the Dashboard in German, the
+   * words someone moving over types still open the page first: the noun on
+   * the menu, "import" (German and English alike), a tool's name.
+   */
+  test("with the Dashboard in German, Search still opens it first for the words someone moving over types", () => {
+    for (const query of [
+      "import",
+      "import aus anderem tool",
+      "anderem tool",
+      "import from another tool",
+      "migration",
+      "opsgenie",
+      "pagerduty",
+      "uptime kuma",
+    ]) {
+      expect({ query, first: firstFound(query, GERMAN_SEARCH_PAGES) }).toEqual({
+        query,
+        first: "Import aus anderem Tool — Projekteinstellungen › Erweitert",
+      });
+    }
   });
 
   test("the page is linked from one place in the menu, and Advanced is not told to stay open for it", () => {
