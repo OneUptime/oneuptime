@@ -14,10 +14,10 @@ import { isWhiteSpaceCode } from "../../../Utils/RegExpCharacterClasses";
  * first ")" or white space, an optional title in double quotes after white
  * space, and ")". Each was looked for again from every opener, and each try
  * read on to the "]" that ends the words and to the end of the address
- * after it - so a run of openers that close nothing ("![](![](![](...") was
- * read once for each of them: time that grew with the square of the text's
- * length. The editor reads every line of a note, description or postmortem
- * it opens, written by whoever wrote it.
+ * after it - so a run of openers that close nothing was read once for each
+ * of them: time that grew with the square of the text's length. The editor
+ * reads every line of a note, description or postmortem it opens, written
+ * by whoever wrote it.
  *
  * findImageSpans and findLinkSpans find exactly what those patterns found,
  * in the same order: the same starts and ends, words, address and title.

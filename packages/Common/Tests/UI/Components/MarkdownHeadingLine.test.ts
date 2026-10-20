@@ -16,13 +16,12 @@ import { describe, expect, test } from "@jest/globals";
  * /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/ to see whether it is a heading. Each
  * length of the heading's text was tried in turn, and each try read the
  * white space after it again for every way the two runs of white space
- * around the closing hashes could share it: "# a", two thousand spaces and
- * an "x" took seconds, and with a line separator in the line a heading of
- * 1,200 characters took over a minute - in the browser of everyone who
- * opened the note. readHeadingLine reads the line once from each end, and
- * these tests hold it to the pattern: on hundreds of thousands of drawn
- * lines, on the lines the pattern was slow on, and on the headings people
- * write.
+ * around the closing hashes could share it: a heading line built for it
+ * took seconds, and one of 1,200 characters with a line terminator in it
+ * over a minute - in the browser of everyone who opened the note.
+ * readHeadingLine reads the line once from each end, and these tests hold
+ * it to the pattern: on hundreds of thousands of drawn lines, on the lines
+ * the pattern was slow on, and on the headings people write.
  * ---------------------------------------------------------------------------
  */
 

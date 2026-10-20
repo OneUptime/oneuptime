@@ -13,12 +13,11 @@ import {
  * fewest characters of text after which the line ends in white space,
  * closing hashes and white space. Each length of the text was tried in
  * turn, and each try read the white space after it again for every way the
- * two runs of white space around the closing hashes could share it: time
- * that grew with the cube of a run of white space inside a heading - "# a",
- * two thousand spaces and an "x" took seconds - and faster still with a line
- * separator after it, which the text cannot hold: a heading line of 1,200
- * characters took over a minute. The editor reads every line of a note,
- * description or postmortem it opens, written by whoever wrote it.
+ * two runs of white space around the closing hashes could share it: on a
+ * line built for it the time grew with the cube of its length, and faster
+ * still with a line terminator in it (a line of 1,200 characters took over
+ * a minute). The editor reads every line of a note, description or
+ * postmortem it opens, written by whoever wrote it.
  *
  * readHeadingLine reads the line once from its start and once from its end,
  * and gives exactly what the pattern gave: how many hashes open the line and

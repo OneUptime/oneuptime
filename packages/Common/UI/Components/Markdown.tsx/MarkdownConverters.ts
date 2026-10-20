@@ -489,10 +489,9 @@ const tryParseTable: (
    * A row with fewer cells than the heading row is filled out with empty
    * cells, so that the table is a grid in the editor - unless that takes
    * more than eight times the cells the table holds and more than
-   * TABLE_FILL_IN_ALLOWANCE: then each row shows the cells it holds. A
-   * heading row of thousands of cells over thousands of one-cell rows is a
-   * few kilobytes of text, and filled out it was millions of cells - more
-   * than the editor could open.
+   * TABLE_FILL_IN_ALLOWANCE: then each row shows the cells it holds. Filled
+   * out whatever it took, a table of a few kilobytes could be millions of
+   * cells - more than the editor could open.
    */
   const columns: number = header.cells.length;
   let heldCells: number = columns;
@@ -1326,12 +1325,11 @@ const tableToMarkdown: (table: HTMLTableElement) => string = (
   }
 
   /*
-   * Lined up, every row is padded out to every column's widest cell: a
-   * table of a few thousand rows with one long cell, or a heading row of
-   * thousands of columns over thousands of short rows, came out hundreds of
-   * megabytes long - written again for every keystroke - and past the
-   * longest string a browser holds, the editor could not save at all. Such
-   * a table is written plainly; any other is lined up as it always was.
+   * Lined up, every row is padded out to every column's widest cell, and a
+   * table could come out many times longer than what it holds - written
+   * again for every keystroke, and past the longest string a browser holds
+   * the editor could not save at all. A table lined up within the limits
+   * above is lined up as it always was; a longer one is written plainly.
    */
   const lengths: TableLengths = tableLengths(header, body, widths);
   if (
