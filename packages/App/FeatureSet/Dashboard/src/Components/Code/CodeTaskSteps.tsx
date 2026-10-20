@@ -122,13 +122,16 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
           onClick={() => {
             setIsOpen(!isOpen);
           }}
-          className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="-ml-1.5 inline-flex items-start gap-1 rounded-md px-1.5 py-0.5 text-left text-xs font-medium leading-5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
+          {/* A summary too long for one line wraps under itself, from the left. */}
           <Icon
             icon={isOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
-            className="h-3.5 w-3.5"
+            className="mt-[3px] h-3.5 w-3.5 flex-shrink-0"
           />
-          {summaryParts.join(" · ")}
+          <span data-testid="code-task-steps-summary">
+            {summaryParts.join(" · ")}
+          </span>
         </button>
       )}
 

@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
-import { CodeTaskContextType, CodeTaskState } from "../../../Types/AI/CodeTask";
+import {
+  CodeRepositoryBranchesJSON,
+  CodeTaskContextType,
+  CodeTaskState,
+} from "../../../Types/AI/CodeTask";
 import { APP_API_URL } from "../../../UI/Config";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -49,6 +53,7 @@ import CodeApi, {
   CodeRepositoryResponse,
   CodeTaskListResponse,
   CodeTaskResponse,
+  getTaskListScopeBody,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 
 const TASK_ID: string = "4c1d2e3f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -115,7 +120,7 @@ describe("a repository's tasks", () => {
     postMock.mockResolvedValue(response as never);
 
     const list: CodeTaskListResponse = await CodeApi.listTasks({
-      repositoryId: REPOSITORY_ID,
+      scope: { repositoryId: REPOSITORY_ID },
       skip: 0,
       limit: 20,
     });
@@ -146,7 +151,7 @@ describe("a repository's tasks", () => {
     );
 
     const list: CodeTaskListResponse = await CodeApi.listTasks({
-      repositoryId: null,
+      scope: { withoutRepository: true },
       skip: 20,
       limit: 20,
     });
@@ -157,6 +162,122 @@ describe("a repository's tasks", () => {
       skip: 20,
       limit: 20,
     });
+  });
+
+  test("Code's first page asks for every task the reader may read, in one list", async () => {
+    postMock.mockResolvedValue(
+      answer({ tasks: [], totalCount: 7, skip: 0, limit: 20 }) as never,
+    );
+
+    const list: CodeTaskListResponse = await CodeApi.listTasks({
+      scope: { allRepositories: true },
+      skip: 0,
+      limit: 20,
+    });
+
+    expect(list.count).toBe(7);
+    expect(lastCall().data).toEqual({
+      allRepositories: true,
+      skip: 0,
+      limit: 20,
+    });
+  });
+
+  test("each scope is one body, with nothing of the others", () => {
+    expect(getTaskListScopeBody({ repositoryId: REPOSITORY_ID })).toEqual({
+      repositoryId: REPOSITORY_ID,
+    });
+    expect(getTaskListScopeBody({ withoutRepository: true })).toEqual({
+      withoutRepository: true,
+    });
+    expect(getTaskListScopeBody({ allRepositories: true })).toEqual({
+      allRepositories: true,
+    });
+  });
+});
+
+describe("a repository's branches", () => {
+  test("read for the picker: the main branch first, as the server lists them", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        branches: ["main", "release/2026-10", "fix/timeout"],
+        defaultBranch: "main",
+        isComplete: true,
+      }) as never,
+    );
+
+    const listing: CodeRepositoryBranchesJSON = await CodeApi.getBranches({
+      repositoryId: REPOSITORY_ID,
+    });
+
+    expect(listing).toEqual({
+      branches: ["main", "release/2026-10", "fix/timeout"],
+      defaultBranch: "main",
+      isComplete: true,
+    });
+    expect(lastCall().url).toBe(apiUrl(`/branches/${REPOSITORY_ID}`));
+    // Nothing typed: nothing searched.
+    expect(lastCall().data).toEqual({});
+  });
+
+  test("searched by what the person typed, when the list was not all of them", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        branches: ["feature/a", "feature/b"],
+        defaultBranch: "main",
+        isComplete: false,
+      }) as never,
+    );
+
+    const listing: CodeRepositoryBranchesJSON = await CodeApi.getBranches({
+      repositoryId: REPOSITORY_ID,
+      search: "feature/",
+    });
+
+    expect(listing.isComplete).toBe(false);
+    expect(lastCall().data).toEqual({ search: "feature/" });
+  });
+
+  test("anything that is not a branch name is dropped; a missing answer reads as none, and complete", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        branches: ["main", "", 7, null, "dev"] as unknown as Array<string>,
+      }) as never,
+    );
+
+    const listing: CodeRepositoryBranchesJSON = await CodeApi.getBranches({
+      repositoryId: REPOSITORY_ID,
+    });
+
+    expect(listing).toEqual({
+      branches: ["main", "dev"],
+      defaultBranch: "",
+      isComplete: true,
+    });
+
+    postMock.mockResolvedValue(answer({}) as never);
+
+    expect(await CodeApi.getBranches({ repositoryId: REPOSITORY_ID })).toEqual({
+      branches: [],
+      defaultBranch: "",
+      isComplete: true,
+    });
+  });
+
+  test("a refusal is thrown, for the picker to say it could not read them", async () => {
+    const refusal: HTTPErrorResponse = new HTTPErrorResponse(
+      400,
+      {
+        message:
+          "OneUptime could not read this repository's branches from GitHub. Try again in a moment.",
+      },
+      {},
+    );
+    postMock.mockResolvedValue(refusal as never);
+
+    await expect(
+      CodeApi.getBranches({ repositoryId: REPOSITORY_ID }),
+    ).rejects.toBe(refusal);
   });
 });
 
@@ -275,6 +396,33 @@ describe("every Code route", () => {
         { type: "Note", text: "p95 is 1.2 s" },
       ],
     });
+  });
+
+  test("asking from a branch the person picked sends it; none picked sends no branch at all", async () => {
+    postMock.mockResolvedValue(answer({ taskId: TASK_ID }) as never);
+
+    await CodeApi.createTask({
+      repositoryId: REPOSITORY_ID,
+      message: "Add retries",
+      context: [],
+      branch: "release/2026-10",
+    });
+
+    expect(lastCall().data).toEqual({
+      repositoryId: REPOSITORY_ID,
+      message: "Add retries",
+      context: [],
+      branch: "release/2026-10",
+    });
+
+    await CodeApi.createTask({
+      repositoryId: REPOSITORY_ID,
+      message: "Add retries",
+      context: [],
+      branch: undefined,
+    });
+
+    expect(lastCall().data).not.toHaveProperty("branch");
   });
 
   test("reply, retry and stop name the task in the address", async () => {

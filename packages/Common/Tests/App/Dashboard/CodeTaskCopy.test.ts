@@ -12,6 +12,9 @@ import {
 } from "../../../Types/AI/CodeTask";
 import {
   CODE_CONTEXT_REFUSALS,
+  CODE_GITHUB_NOT_CONNECTED,
+  CODE_PICKER_COPY,
+  CODE_PICKER_VALUE_LABEL,
   CODE_TASK_ADD_AI_CREDITS,
   CODE_TASK_ASKED_BY,
   CODE_TASK_BLOCKER_FIXES,
@@ -23,12 +26,15 @@ import {
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_MENU_ORDER,
   CODE_TASK_CONTEXT_RECORD_PAGES,
+  CODE_TASK_DIFF_STAT_LABEL,
   CODE_TASK_EXAMPLE_REQUESTS,
   CODE_TASK_FILE_STATUS_LABELS,
   CODE_TASK_FILE_STATUS_MARKS,
   CODE_TASK_ORIGIN_SENTENCES,
   CODE_TASK_RECIPE_LABELS,
+  CODE_TASK_START_FOOTER,
   CODE_TASK_STATE_COPY,
+  CODE_TASK_STATE_TEXT_CLASS_NAMES,
   CODE_TASK_STEP_ICONS,
   CODE_TASK_STEP_SENTENCES,
   QUEUED_LABEL,
@@ -126,11 +132,16 @@ const SENTENCES: Array<string> = Array.from(
     ...CODE_CONTEXT_REFUSALS,
     CODE_TURN_FAILED,
     ...CODE_TASK_EXAMPLE_REQUESTS,
+    // The request box's pickers, and what it says around them.
+    ...Object.values(CODE_PICKER_COPY),
+    CODE_TASK_DIFF_STAT_LABEL,
+    CODE_TASK_START_FOOTER,
+    CODE_GITHUB_NOT_CONNECTED,
   ]),
 ).sort();
 
 describe("Code's words are complete", () => {
-  test("every task state has a label, a badge, a dot and an icon", () => {
+  test("every task state has a label, a badge, a dot, an icon and a mark", () => {
     for (const state of Object.values(CodeTaskState)) {
       const copy: (typeof CODE_TASK_STATE_COPY)[CodeTaskState] =
         CODE_TASK_STATE_COPY[state];
@@ -138,7 +149,52 @@ describe("Code's words are complete", () => {
       expect(copy.badgeClassName).toContain("bg-");
       expect(copy.dotClassName).toContain("bg-");
       expect(copy.icon).toBeTruthy();
+      expect(copy.markClassName).toMatch(/^text-[a-z]+-\d00$/);
+      expect(CODE_TASK_STATE_TEXT_CLASS_NAMES[state]).toMatch(
+        /^text-[a-z]+-\d00$/,
+      );
     }
+  });
+
+  test("a task list says in words only the states that move or ask something of someone", () => {
+    const said: Array<CodeTaskState> = Object.values(CodeTaskState).filter(
+      (state: CodeTaskState): boolean => {
+        return CODE_TASK_STATE_COPY[state].isSaidInRow;
+      },
+    );
+
+    expect(said.sort()).toEqual(
+      [
+        CodeTaskState.Working,
+        CodeTaskState.WaitingForYou,
+        CodeTaskState.Failed,
+      ].sort(),
+    );
+  });
+
+  test("the pickers' words: what each picks, how it searches, and every empty or failed list", () => {
+    expect(CODE_PICKER_COPY).toEqual({
+      repositoryLabel: "Repository",
+      repositoryNone: "Pick a repository",
+      repositorySearch: "Find a repository",
+      repositoryNoMatch: "No repository matches your search.",
+      branchLabel: "Branch",
+      branchSearch: "Find a branch",
+      branchNoMatch: "No branch matches your search.",
+      branchLoading: "Loading branches…",
+      branchUnknownDefault: "Default branch",
+      branchDefaultBadge: "Default",
+      branchesUnreadable:
+        "OneUptime could not read this repository's branches from GitHub.",
+      branchesSearchToFindMore:
+        "Type a branch's name to find one that is not listed.",
+    });
+    // A picker's button reads out its name and what it holds.
+    expect(placeholdersOf(CODE_PICKER_VALUE_LABEL)).toEqual(["label", "value"]);
+    expect(placeholdersOf(CODE_TASK_DIFF_STAT_LABEL)).toEqual([
+      "additions",
+      "deletions",
+    ]);
   });
 
   test("the AI at work says Working…, never the Dashboard's Working (a monitor that works)", () => {
@@ -255,11 +311,14 @@ describe("Code's words are complete", () => {
       expect(fix!.title).toBeTruthy();
       expect(type).not.toBe(CodeTaskBlockerType.NoPermission);
     }
-    // A repository that is not connected is fixed where repositories connect: Code.
+    /*
+     * A repository that is not connected is fixed where repositories
+     * connect: Code's Repositories (Code's first page connects GitHub from
+     * the box itself).
+     */
     expect(
-      CODE_TASK_BLOCKER_FIXES[CodeTaskBlockerType.RepositoryNotConnected]
-        ?.pageMap,
-    ).toBe(PageMap.CODE);
+      CODE_TASK_BLOCKER_FIXES[CodeTaskBlockerType.RepositoryNotConnected],
+    ).toEqual({ pageMap: PageMap.CODE_REPOSITORIES, title: "Connect GitHub" });
   });
 
   test("a fix only some may make says who can instead, for each blocker that has one", () => {

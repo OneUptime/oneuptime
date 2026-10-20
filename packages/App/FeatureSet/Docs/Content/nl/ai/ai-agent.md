@@ -1,6 +1,6 @@
 # Code
 
-Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je een codeeragent zou vragen: een bug oplossen, tests schrijven, de code uitleggen, een wijziging maken. Code opent op je gekoppelde repository's; de pagina van een repository bevat zijn taken en het vak waarin je vraagt; de pagina van een taak is een gesprek waarin je kunt antwoorden. OneUptime start ook zelf taken, vanuit uitzonderingen, traces en onderzoeken. Een [Runner](/docs/runbooks/agents) kloont de repository, schrijft de wijziging op een nieuwe branch, bouwt en test die, en opent een pull request. Een mens beoordeelt en merget elke pull request: de Runner kan branches pushen en pull requests openen, meer niet.
+Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je een codeeragent zou vragen: een bug oplossen, tests schrijven, de code uitleggen, een wijziging maken. Code opent op het vak waarin je vraagt, met de repository en de branch daarin gekozen en alle taken eronder; de pagina van een taak is een gesprek waarin je kunt antwoorden. OneUptime start ook zelf taken, vanuit uitzonderingen, traces en onderzoeken. Een [Runner](/docs/runbooks/agents) kloont de repository, schrijft de wijziging op een nieuwe branch, bouwt en test die, en opent een pull request. Een mens beoordeelt en merget elke pull request: de Runner kan branches pushen en pull requests openen, meer niet.
 
 :::cards
 - [AI vragen in een repository](#ai-vragen-in-een-repository): Een verzoek in je eigen woorden, met de context die het nodig heeft.
@@ -18,13 +18,17 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 ## AI vragen in een repository
 
 :::steps
-### Open een repository
+### Open Code
 
-Open **Producten → Code**. Daar staan de repository's van het project, elk met de taken waaraan AI werkt, de taken die op jou wachten en zijn open pull requests. Is er nog geen, dan biedt Code **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)).
+Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)). **Repository's**, in het zijmenu, toont de gekoppelde repository's, en de pagina van elke repository heeft hetzelfde vak voor die repository.
+
+### Kies de repository en de branch
+
+Het vak begint bij de repository die je het laatst koos. Kies een andere in de onderste rij ervan en, ernaast, de branch waarvan de taak uitgaat: de hoofdbranch van de repository, gemarkeerd als **Standaard**, totdat je een andere kiest. AI maakt zijn branch vanaf de branch die je kiest en opent zijn pull request daarnaartoe.
 
 ### Zeg wat je wilt
 
-Schrijf op de pagina van de repository de wijziging, de bug of de vraag in je eigen woorden. Een repository zonder taken stelt er onder **Probeer te vragen** een paar voor.
+Schrijf de wijziging, de bug of de vraag in je eigen woorden. Zolang er nog niets gevraagd is, stelt Code er onder **Probeer te vragen** een paar voor.
 
 ### Voeg context toe
 
@@ -51,7 +55,7 @@ Een verzoek bevat hooguit 10 stukken context. Tokens, sleutels, wachtwoorden en 
 
 ## Het gesprek van een taak
 
-De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde context, dan de beurt van AI – de stappen die het zet terwijl het ze zet (de bestanden die het las en bewerkte, waarnaar het zocht, de opdrachten die het uitvoerde), zijn antwoord, de bestanden die het wijzigde met hun diff, en de pull request. Bovenaan de pagina staat hoe de taak ervoor staat:
+De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde context, dan de beurt van AI – de stappen die het zet terwijl het ze zet (de bestanden die het las en bewerkte, waarnaar het zocht, de opdrachten die het uitvoerde), zijn antwoord, de bestanden die het wijzigde met hun diff, en de pull request. Bovenaan de pagina staat waar de taak werkt (de repository en de branch waarvan die uitging), hoeveel regels die wijzigde, met een knop naar de pull request, en hoe de taak ervoor staat:
 
 | Status | Wat het betekent |
 | --- | --- |
@@ -62,7 +66,7 @@ De pagina van een taak is een gesprek: wat er gevraagd is en de toegevoegde cont
 | **Mislukt** | De beurt kon niet worden afgerond, en zegt waarom. **Opnieuw proberen** vraagt hetzelfde nog eens. |
 | **Gestopt** | Iemand heeft hem gestopt. **Opnieuw proberen** vraagt hetzelfde nog eens. |
 
-Om verder te gaan, schrijf je in het vak onderaan: antwoord AI, voeg context toe of vraag om wijzigingen. Elk antwoord is de volgende beurt van dezelfde taak: die werkt op dezelfde branch en pusht naar dezelfde pull request zolang die open is. Een taak doet één beurt tegelijk, dus het vak wacht terwijl AI werkt. Het **Logboek** van elke beurt is het letterlijke verslag van wat die deed.
+Om verder te gaan, schrijf je in het vak onderaan, dat in beeld blijft terwijl het gesprek scrolt: antwoord AI, voeg context toe of vraag om wijzigingen. Elk antwoord is de volgende beurt van dezelfde taak: die werkt op dezelfde branch en pusht naar dezelfde pull request zolang die open is. Een taak doet één beurt tegelijk, dus het vak wacht terwijl AI werkt. Het **Logboek** van elke beurt is het letterlijke verslag van wat die deed.
 
 Wie een repository kan lezen, leest zijn taken. AI iets vragen, antwoorden en een taak stoppen vereisen het recht om de repository te bewerken, en dat geldt ook voor de diff van een wijziging bekijken: alle anderen zien welke bestanden er veranderd zijn. De taken die OneUptime zelf start (hieronder) staan ook in hun repository, als gesprekken waarin je kunt antwoorden.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["Een mens beoordeelt<br/>en merget de pull request"]
 ```
 
-1. Je klikt op **Taak starten** in een repository, of op **Oplossen met AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
+1. Je klikt op **Taak starten** in Code, of op **Oplossen met AI** bij een onopgeloste uitzondering, of een andere knop of trigger start een taak (zie [Waar hersteltaken starten](#waar-hersteltaken-starten)).
 2. De taak komt in de wachtrij van zijn repository, en de Runner die de repository kiest pakt hem op: een van je Runners, of een globale Runner als hij er geen kiest (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)).
 3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
-4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
+4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een vraag gaat uit van de branch die gekozen was toen die gesteld werd, en de pull request opent daarnaartoe. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
 5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs. Een herstel van een uitzondering, een trage trace of een incident leest tijdens het werk ook uit productie: de uitzonderingen, traces, logs en metrieken van de services van de repository (zie [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel)).
 6. Heeft de repository controleopdrachten, dan bouwt en test een eigen Runner de wijziging voordat hij iets commit, en geeft hij een fout terug aan de code-agent om te herstellen (zie [Controle vóór de pull request](#controle-vóór-de-pull-request)).
 7. De Runner commit, pusht de branch, opent de pull request (bij een verzoek alleen als er code is gewijzigd) en verwijdert de werkruimte.
@@ -177,7 +181,7 @@ Totdat een deploy hem uitlevert, staat bij de fix **Gemerged, wacht op een deplo
 
 ## Voordat je begint
 
-Een taak heeft drie dingen nodig. De pagina van een repository in Code en de pagina **AI Assistance** van de uitzondering controleren alle drie voordat ze aanbieden te starten, en zeggen wat er ontbreekt.
+Een taak heeft drie dingen nodig. Het vraagvak van Code en de pagina **AI Assistance** van de uitzondering controleren alle drie voordat ze aanbieden te starten, en zeggen wat er ontbreekt.
 
 | Wat | OneUptime Cloud | Zelf gehost |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Al het andere is gelijk aan de knop:
 ## Als een herstel mislukt
 
 :::details De run geeft een fout
-Het herstel kon niet worden toegepast, de repository was niet bereikbaar of de LLM-aanroep mislukte. Het gesprek van de taak, en de pagina waarop die is gestart, tonen de reden en bieden aan het opnieuw te proberen. Het **Logboek** van de beurt bevat het volledige runlog.
+Het herstel kon niet worden toegepast, de repository of de branch waarvan een vraag uitging was niet bereikbaar, of de LLM-aanroep mislukte. Het gesprek van de taak, en de pagina waarop die is gestart, tonen de reden en bieden aan het opnieuw te proberen. Het **Logboek** van de beurt bevat het volledige runlog.
 :::
 
 :::details De Runner stopt midden in een run

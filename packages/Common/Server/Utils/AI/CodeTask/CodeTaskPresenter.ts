@@ -17,9 +17,12 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../../../Types/AI/CodeFixTaskType";
 import {
+  CodeTaskChangeStats,
+  CodeTaskChangeStatsJSON,
   CodeTaskContextItem,
   CodeTaskContextItemJSON,
   CodeTaskOriginJSON,
+  CodeTaskOutcome,
   CodeTaskPersonJSON,
   CodeTaskPullRequestJSON,
   CodeTaskRequest,
@@ -37,8 +40,8 @@ import ObjectID from "../../../../Types/ObjectID";
  * WHAT THE CODE PAGES ARE SENT OF A TASK.
  *
  * A list row (summarize): the task's title, its state - read from its latest
- * turn - its number, who asked or what started it, its pull request and when
- * anything last happened. A conversation (getConversation): every turn, with
+ * turn - its number, who asked or what started it, its pull request, how
+ * much it changed and when anything last happened. A conversation (getConversation): every turn, with
  * what was asked and the context added (never the snapshots the AI read),
  * the steps the AI took in plain words, its reply, the files it changed, the
  * diff for people who may change the code, the pull requests, and why a turn
@@ -83,11 +86,12 @@ export default class CodeTaskPresenter {
       }
     }
 
-    const [pullRequests, subjects, contexts, people]: [
+    const [pullRequests, subjects, contexts, people, outcomes]: [
       Array<AIAgentTaskPullRequest>,
       CodeTaskOriginSubjects,
       Map<string, AIRun>,
       Map<string, CodeTaskPersonJSON>,
+      Map<string, CodeTaskOutcome>,
     ] = await Promise.all([
       CodeTaskThread.getPullRequests({
         projectId: data.projectId,
@@ -108,6 +112,7 @@ export default class CodeTaskPresenter {
             return task.userId!;
           }),
       ),
+      CodeTaskPresenter.loadOutcomes(allRunIds),
     ]);
 
     return data.tasks.map((task: AIRun): CodeTaskSummaryJSON => {
@@ -119,6 +124,9 @@ export default class CodeTaskPresenter {
       return CodeTaskPresenter.toSummary({
         task,
         turns,
+        outcomes: turns.map((turn: AIRun): CodeTaskOutcome | undefined => {
+          return outcomes.get(turn.id!.toString());
+        }),
         pullRequests: CodeTaskPresenter.pullRequestsOf(pullRequests, turns),
         origin: CodeTaskOrigin.describe({
           run: task,
@@ -239,6 +247,11 @@ export default class CodeTaskPresenter {
     pullRequests: Array<AIAgentTaskPullRequest>;
     origin: CodeTaskOriginJSON;
     requestedBy?: CodeTaskPersonJSON | undefined;
+    /*
+     * What each turn ended with, when the turns were read without it (a
+     * list); otherwise each turn's own taskOutcome is read.
+     */
+    outcomes?: Array<CodeTaskOutcome | null | undefined> | undefined;
   }): CodeTaskSummaryJSON {
     const latest: AIRun = data.turns[data.turns.length - 1] || data.task;
     const state: CodeTaskState = CodeTaskStateUtil.fromRun(latest);
@@ -289,6 +302,18 @@ export default class CodeTaskPresenter {
 
     if (data.task.codeRepositoryId) {
       summary.codeRepositoryId = data.task.codeRepositoryId.toString();
+    }
+
+    const changes: CodeTaskChangeStatsJSON | null =
+      CodeTaskChangeStats.fromOutcomes(
+        data.outcomes ||
+          data.turns.map((turn: AIRun): CodeTaskOutcome | undefined => {
+            return turn.taskOutcome;
+          }),
+      );
+
+    if (changes) {
+      summary.changes = changes;
     }
 
     return summary;
@@ -344,6 +369,11 @@ export default class CodeTaskPresenter {
         message: request.message,
         context: request.context.map(CodeTaskPresenter.toContextItem),
       };
+
+      // The branch the person picked for the task to start from.
+      if (data.isFirst && request.baseBranch) {
+        json.request.baseBranch = request.baseBranch;
+      }
     } else if (data.isFirst) {
       json.origin = data.origin;
     }
@@ -486,6 +516,39 @@ export default class CodeTaskPresenter {
     }
 
     return contexts;
+  }
+
+  /*
+   * What each run ended with, by run id: a list's runs are read without it,
+   * and a row adds up the lines its turns changed (CodeTaskChangeStats).
+   */
+  private static async loadOutcomes(
+    runIds: Array<ObjectID>,
+  ): Promise<Map<string, CodeTaskOutcome>> {
+    const outcomes: Map<string, CodeTaskOutcome> = new Map<
+      string,
+      CodeTaskOutcome
+    >();
+
+    if (runIds.length === 0) {
+      return outcomes;
+    }
+
+    const runs: Array<AIRun> = await AIRunService.findBy({
+      query: { _id: QueryHelper.any(runIds) },
+      select: { _id: true, taskOutcome: true },
+      limit: runIds.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    for (const run of runs) {
+      if (run.id && run.taskOutcome) {
+        outcomes.set(run.id.toString(), run.taskOutcome);
+      }
+    }
+
+    return outcomes;
   }
 
   private static async loadEvents(

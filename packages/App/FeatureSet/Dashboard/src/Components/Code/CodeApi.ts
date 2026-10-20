@@ -1,4 +1,5 @@
 import {
+  CodeRepositoryBranchesJSON,
   CodeRepositoryTaskStatsJSON,
   CodeTaskBlocker,
   CodeTaskContextInput,
@@ -55,6 +56,30 @@ export interface CodeTaskResponse {
 
 export const CODE_TASK_API_PATH: string = "/code-task";
 
+/*
+ * Which tasks a list reads: one repository's, the ones with no repository,
+ * or every task the reader may read (Code's first page).
+ */
+export type CodeTaskListScope =
+  | { repositoryId: string }
+  | { withoutRepository: true }
+  | { allRepositories: true };
+
+// The body /code-task/list reads for a scope.
+export const getTaskListScopeBody: (scope: CodeTaskListScope) => JSONObject = (
+  scope: CodeTaskListScope,
+): JSONObject => {
+  if ("repositoryId" in scope) {
+    return { repositoryId: scope.repositoryId };
+  }
+
+  if ("allRepositories" in scope) {
+    return { allRepositories: true };
+  }
+
+  return { withoutRepository: true };
+};
+
 export default class CodeApi {
   public static async getRepositories(): Promise<CodeRepositoriesResponse> {
     const data: JSONObject = await CodeApi.post("/repositories", {});
@@ -85,16 +110,17 @@ export default class CodeApi {
     };
   }
 
-  // A repository's tasks, or (repositoryId null) the tasks with none.
+  /*
+   * A repository's tasks, the tasks with none, or every task the reader may
+   * read - newest first.
+   */
   public static async listTasks(data: {
-    repositoryId: string | null;
+    scope: CodeTaskListScope;
     skip: number;
     limit: number;
   }): Promise<CodeTaskListResponse> {
     const response: JSONObject = await CodeApi.post("/list", {
-      ...(data.repositoryId
-        ? { repositoryId: data.repositoryId }
-        : { withoutRepository: true }),
+      ...getTaskListScopeBody(data.scope),
       skip: data.skip,
       limit: data.limit,
     });
@@ -124,16 +150,51 @@ export default class CodeApi {
     };
   }
 
-  // Ask AI something in a repository. Answers with the new task's id.
+  /*
+   * A repository's branches for the branch picker: its main branch first,
+   * then what GitHub lists - or, with a search, the branches whose names
+   * start with it.
+   */
+  public static async getBranches(data: {
+    repositoryId: string;
+    search?: string | undefined;
+  }): Promise<CodeRepositoryBranchesJSON> {
+    const response: JSONObject = await CodeApi.post(
+      `/branches/${data.repositoryId}`,
+      data.search ? { search: data.search } : {},
+    );
+
+    return {
+      branches: Array.isArray(response["branches"])
+        ? (response["branches"] as Array<unknown>).filter(
+            (name: unknown): name is string => {
+              return typeof name === "string" && name.length > 0;
+            },
+          )
+        : [],
+      defaultBranch:
+        typeof response["defaultBranch"] === "string"
+          ? response["defaultBranch"]
+          : "",
+      isComplete: response["isComplete"] !== false,
+    };
+  }
+
+  /*
+   * Ask AI something in a repository, from the branch picked (none: its
+   * main branch). Answers with the new task's id.
+   */
   public static async createTask(data: {
     repositoryId: string;
     message: string;
     context: Array<CodeTaskContextInput>;
+    branch?: string | undefined;
   }): Promise<string> {
     const response: JSONObject = await CodeApi.post("/create", {
       repositoryId: data.repositoryId,
       message: data.message,
       context: data.context as unknown as Array<JSONObject>,
+      ...(data.branch ? { branch: data.branch } : {}),
     });
 
     return response["taskId"] as string;
