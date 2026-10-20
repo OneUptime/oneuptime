@@ -151,9 +151,12 @@ describe("the theme a link names", () => {
     ["LIGHT", "light"],
     [" System ", "system"],
     ["dark\n", "dark"],
-  ])("%p reads as %p: links are typed by people", (value: string, theme) => {
-    expect(parseDashboardLinkTheme(value)).toBe(theme);
-  });
+  ])(
+    "%p reads as %p: links are typed by people",
+    (value: string, theme: string) => {
+      expect(parseDashboardLinkTheme(value)).toBe(theme);
+    },
+  );
 
   test.each([
     ["nothing", undefined],
