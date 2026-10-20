@@ -322,6 +322,24 @@ git_commit_and_push() {
     git -C "${WORK_DIR}/repo" rev-parse HEAD
 }
 
+# What the cluster looks like when something it waits for never happens:
+# every pod outside kube-system, and for each one that is not ready its
+# description's tail, its events and its containers' last log lines.
+dump_diagnostics() {
+    echo "--- pods"
+    kubectl get pods -A -o wide 2>&1 | grep -v "^kube-system" || true
+    local ns pod
+    kubectl get pods -A --no-headers 2>/dev/null |
+        awk '$1 != "kube-system" { split($3, r, "/"); if ($4 != "Completed" && (r[1] != r[2] || $4 != "Running")) print $1, $2 }' |
+        while read -r ns pod; do
+            echo "--- ${ns}/${pod}"
+            kubectl -n "$ns" describe pod "$pod" 2>&1 | tail -40 || true
+            kubectl -n "$ns" logs "$pod" --all-containers --tail=30 2>&1 | tail -60 || true
+        done
+    echo "--- recent events"
+    kubectl get events -A --sort-by=.lastTimestamp 2>&1 | grep -v "^kube-system" | tail -40 || true
+}
+
 wait_for() {
     # wait_for <description> <timeout seconds> <command...>
     local desc="$1" timeout="$2" start
@@ -330,6 +348,7 @@ wait_for() {
     until "$@" >/dev/null 2>&1; do
         if [ $(($(date +%s) - start)) -ge "$timeout" ]; then
             log "timed out after ${timeout}s waiting for: ${desc}"
+            dump_diagnostics
             return 1
         fi
         sleep 2
@@ -443,6 +462,16 @@ retry 5 kubectl apply -n argocd --server-side --force-conflicts --request-timeou
     -f "https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/core-install.yaml" >/dev/null
 retry 5 kubectl apply --server-side --force-conflicts --request-timeout=120s \
     -f "https://github.com/fluxcd/flux2/releases/download/${FLUX_VERSION}/install.yaml" >/dev/null
+
+# Argo CD's redis comes from public.ecr.aws with imagePullPolicy Always,
+# and ECR Public throttles anonymous pulls from shared CI addresses: a run
+# on GitHub's runners spent its whole wait on it. The same official image,
+# same tag, from Docker Hub, pulled once.
+redis_image="$(kubectl -n argocd get deployment argocd-redis -o jsonpath='{.spec.template.spec.containers[0].image}')"
+kubectl -n argocd patch deployment argocd-redis --type=json -p "[
+    {\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/image\", \"value\": \"${redis_image#public.ecr.aws/docker/library/}\"},
+    {\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/0/imagePullPolicy\", \"value\": \"IfNotPresent\"}
+]" >/dev/null
 
 # Only Flux's source, kustomize and helm controllers and Argo CD's
 # application controller, repo server and redis take part; the rest would
