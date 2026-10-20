@@ -226,18 +226,14 @@ const renderInline: (raw: string, tokens?: Array<InlineToken>) => string = (
   });
 
   // Images.
-  s = replaceLinkSpans(
-    s,
-    findImageSpans(s),
-    (image: LinkSpan): string => {
-      const titleAttr: string = image.title
-        ? ` title="${escapeAttr(image.title)}"`
-        : "";
-      return stash(
-        `<img alt="${escapeAttr(image.words)}" src="${escapeAttr(image.address)}"${titleAttr}>`,
-      );
-    },
-  );
+  s = replaceLinkSpans(s, findImageSpans(s), (image: LinkSpan): string => {
+    const titleAttr: string = image.title
+      ? ` title="${escapeAttr(image.title)}"`
+      : "";
+    return stash(
+      `<img alt="${escapeAttr(image.words)}" src="${escapeAttr(image.address)}"${titleAttr}>`,
+    );
+  });
 
   // Links.
   s = replaceLinkSpans(s, findLinkSpans(s), (link: LinkSpan): string => {
@@ -1210,8 +1206,7 @@ const tableLengths: (
   }
 
   // The line feed before the table and the one after it, and its dashes.
-  let linedUp: number =
-    2 + tableRowFrameLength(columns) + (widthsFrom[0] || 0);
+  let linedUp: number = 2 + tableRowFrameLength(columns) + (widthsFrom[0] || 0);
   let plain: number = 2 + tableRowFrameLength(columns) + 3 * columns;
 
   // The heading row, which plainTable writes with a cell for every column.
@@ -1532,7 +1527,11 @@ export const htmlToMarkdown: (html: string) => string = (
 export const __testing: {
   renderInline: (raw: string) => string;
   serializeNode: (node: Node) => string;
+  serializeChildren: (node: Node) => string;
+  serializeListItemChildren: (li: HTMLElement) => string;
 } = {
   renderInline,
   serializeNode: serializeInline,
+  serializeChildren,
+  serializeListItemChildren,
 };
