@@ -36,7 +36,7 @@ flowchart TB
 In Opsgenie, go to **Settings** > **API key management** and select **Add new API key**. Name it `OneUptime import`, give it **Read** and **Configuration access** only, and copy the key.
 
 ### Open the import page
-In OneUptime, go to **Project Settings** > **Import from another tool** and select **Opsgenie**.
+In OneUptime, go to **Project Settings** > **Advanced** > **Import from another tool** and select **Opsgenie**.
 
 ### Connect Opsgenie
 Under **Where is your Opsgenie account?**, choose **United States** or **Europe**. Paste the key into **Opsgenie API key** and select **Read my Opsgenie account**. A large account takes a few minutes, and you can leave the page while it reads.

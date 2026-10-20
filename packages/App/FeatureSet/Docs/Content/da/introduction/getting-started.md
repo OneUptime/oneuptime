@@ -113,7 +113,7 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 
 ### Tag din opsætning med
 
-**Projektindstillinger → Importér fra et andet værktøj** læser din opsætning i et andet værktøj, med en API-nøgle eller, for Uptime Kuma, en fil. Den viser dig, hvad den fandt, og opretter det, du sætter flueben ved. Intet ændres i det andet værktøj, og en ny import opretter aldrig noget to gange.
+**Projektindstillinger → Avanceret → Importér fra et andet værktøj** læser din opsætning i et andet værktøj, med en API-nøgle eller, for Uptime Kuma, en fil. Den viser dig, hvad den fandt, og opretter det, du sætter flueben ved. Intet ændres i det andet værktøj, og en ny import opretter aldrig noget to gange.
 
 | Du kommer fra | Hvad OneUptime læser |
 | --- | --- |

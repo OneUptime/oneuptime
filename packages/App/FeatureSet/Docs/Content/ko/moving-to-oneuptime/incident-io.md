@@ -35,7 +35,7 @@ flowchart TB
 incident.io에서 **Settings** > **API keys**로 이동해 **Add new**를 선택합니다. 이름을 `OneUptime import`로 지정하고, 데이터를 보는 권한만 부여한 뒤(만들기, 편집, 관리 권한은 부여하지 않음) 키를 복사합니다.
 
 ### 가져오기 페이지 열기
-OneUptime에서 **프로젝트 설정** > **다른 도구에서 가져오기**로 이동해 **incident.io**를 선택합니다.
+OneUptime에서 **프로젝트 설정** > **고급** > **다른 도구에서 가져오기**로 이동해 **incident.io**를 선택합니다.
 
 ### incident.io 연결하기
 키를 **incident.io API 키**에 붙여 넣고 **내 incident.io 계정 읽기**를 선택합니다. 계정이 크면 몇 분 걸리며, 읽는 동안 페이지를 떠나도 됩니다.

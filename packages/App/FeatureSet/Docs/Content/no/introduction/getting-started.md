@@ -113,7 +113,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 
 ### Ta med deg oppsettet ditt
 
-**Prosjektinnstillinger → Importer fra et annet verktøy** leser oppsettet ditt i et annet verktøy, med en API-nøkkel eller, for Uptime Kuma, en fil. Den viser deg hva den fant, og oppretter det du krysser av for. Ingenting endres i det andre verktøyet, og en ny import oppretter aldri noe to ganger.
+**Prosjektinnstillinger → Avansert → Importer fra et annet verktøy** leser oppsettet ditt i et annet verktøy, med en API-nøkkel eller, for Uptime Kuma, en fil. Den viser deg hva den fant, og oppretter det du krysser av for. Ingenting endres i det andre verktøyet, og en ny import oppretter aldri noe to ganger.
 
 | Du kommer fra | Hva OneUptime leser |
 | --- | --- |

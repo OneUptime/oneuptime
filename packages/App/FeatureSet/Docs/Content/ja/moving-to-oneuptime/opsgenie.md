@@ -36,7 +36,7 @@ flowchart TB
 Opsgenie で **Settings** > **API key management** を開き、**Add new API key** を選択します。名前を `OneUptime import` とし、**Read** と **Configuration access** だけを付与して、キーをコピーします。
 
 ### インポートページを開く
-OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き、**Opsgenie** を選択します。
+OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き、**Opsgenie** を選択します。
 
 ### Opsgenie を接続する
 **Opsgenie アカウントはどこにありますか？** で **アメリカ合衆国** または **ヨーロッパ** を選びます。キーを **Opsgenie の API キー** に貼り付け、**Opsgenie アカウントを読み取る** を選択します。大きなアカウントでは数分かかり、読み取り中はページを離れてもかまいません。

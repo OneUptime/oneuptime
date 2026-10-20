@@ -8,8 +8,8 @@ import ToolImportRunExecutor, {
 } from "Common/Server/Utils/ToolImport/ToolImportRunExecutor";
 
 /*
- * One step of an import from another tool (Project Settings > Import from
- * another tool): reading the tool, or importing what the person ticked. The
+ * One step of an import from another tool (Project Settings > Advanced >
+ * Import from another tool): reading the tool, or importing what the person ticked. The
  * job carries the run's id only; the run itself says which step is due
  * (ToolImportRunExecutor.executeRun). Queued once, never retried by the
  * queue: a read failed is read again by the person (with the key again), and

@@ -98,7 +98,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 
 ## Byt från ett annat verktyg
 
-För att lämna ett annat verktyg för jour, drifttid eller statussidor tar du över ditt team i stället för att ansluta de två. **Projektinställningar → Importera från ett annat verktyg** läser ditt konto med en API-nyckel, visar vad det hittade och skapar det du kryssar i. Varje verktyg har en guide:
+För att lämna ett annat verktyg för jour, drifttid eller statussidor tar du över ditt team i stället för att ansluta de två. **Projektinställningar → Avancerad → Importera från ett annat verktyg** läser ditt konto med en API-nyckel, visar vad det hittade och skapar det du kryssar i. Varje verktyg har en guide:
 
 - Verktyg för jour och incidenter: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) och [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Verktyg för drifttid och statussidor: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) och [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

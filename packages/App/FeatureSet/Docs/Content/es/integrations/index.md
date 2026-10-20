@@ -98,7 +98,7 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 
 ## Migrar desde otra herramienta
 
-Para dejar otra herramienta de guardias, de disponibilidad o de páginas de estado, trae a tu equipo en lugar de conectar las dos. **Ajustes del proyecto → Importar desde otra herramienta** lee tu cuenta con una clave de API, te muestra lo que encontró y crea lo que marques. Cada herramienta tiene una guía:
+Para dejar otra herramienta de guardias, de disponibilidad o de páginas de estado, trae a tu equipo en lugar de conectar las dos. **Ajustes del proyecto → Avanzado → Importar desde otra herramienta** lee tu cuenta con una clave de API, te muestra lo que encontró y crea lo que marques. Cada herramienta tiene una guía:
 
 - Herramientas de guardias e incidentes: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) y [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
 - Herramientas de disponibilidad y de páginas de estado: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) y [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).

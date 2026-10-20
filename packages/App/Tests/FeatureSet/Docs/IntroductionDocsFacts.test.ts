@@ -391,15 +391,29 @@ describe("Getting Started", () => {
     expect(moving).toContain("with an API key or, for Uptime Kuma, a file");
   });
 
-  it("finds the import where Project Settings lists it", () => {
-    expect(moving).toContain("**Project Settings → Import from another tool**");
+  /*
+   * "This should be in the advanced section in the side menu." (the
+   * maintainer): the import waits in Advanced, which starts folded, so the
+   * path names Advanced on the way.
+   */
+  it("finds the import where Project Settings lists it: in Advanced, which the path names", () => {
+    const settingsMenu: string = dashboard("Pages/Settings/SideMenu.tsx");
+
+    expect(moving).toContain(
+      "**Project Settings → Advanced → Import from another tool**",
+    );
+    expect(moving).not.toContain(
+      "**Project Settings → Import from another tool**",
+    );
+    expect(menuSection(settingsMenu, "Advanced").items).toContain(
+      "Import from another tool",
+    );
     expect(
-      sideMenuSections(dashboard("Pages/Settings/SideMenu.tsx")).some(
-        (section: MenuSection): boolean => {
-          return section.items.includes("Import from another tool");
-        },
-      ),
-    ).toBe(true);
+      sideMenuSections(settingsMenu).filter((section: MenuSection): boolean => {
+        return section.items.includes("Import from another tool");
+      }),
+    ).toHaveLength(1);
+    expect(isCollapsedByDefault("Advanced")).toBe(true);
   });
 
   it("tells an alert from an incident the way the Alerts list does", () => {

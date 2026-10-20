@@ -113,7 +113,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 
 ### Porta con te la tua configurazione
 
-**Impostazioni del progetto → Importa da un altro strumento** legge la tua configurazione in un altro strumento, con una chiave API oppure, per Uptime Kuma, un file. Ti mostra cosa ha trovato e crea ciò che selezioni. Nell'altro strumento non cambia nulla, e ripetere l'importazione non crea mai nulla due volte.
+**Impostazioni del progetto → Avanzato → Importa da un altro strumento** legge la tua configurazione in un altro strumento, con una chiave API oppure, per Uptime Kuma, un file. Ti mostra cosa ha trovato e crea ciò che selezioni. Nell'altro strumento non cambia nulla, e ripetere l'importazione non crea mai nulla due volte.
 
 | Arrivi da | Cosa legge OneUptime |
 | --- | --- |

@@ -36,7 +36,7 @@ flowchart TB
 Gå till **Integrations** > **Developer Tools** > **API Access Keys** i PagerDuty och välj **Create New API Key**. Beskriv den som `OneUptime import`, markera **Read-only API Key**, välj **Create Key** och kopiera nyckeln.
 
 ### Öppna importsidan
-Gå till **Projektinställningar** > **Importera från ett annat verktyg** i OneUptime och välj **PagerDuty**.
+Gå till **Projektinställningar** > **Avancerad** > **Importera från ett annat verktyg** i OneUptime och välj **PagerDuty**.
 
 ### Anslut PagerDuty
 Under **Var finns ditt PagerDuty-konto?** väljer du **USA** eller **Europa**. Klistra in nyckeln i **API-nyckel för PagerDuty** och välj **Läs mitt PagerDuty-konto**. Ett stort konto tar några minuter, och du kan lämna sidan medan det läses.
