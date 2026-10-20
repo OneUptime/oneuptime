@@ -27,6 +27,10 @@ export default class PublicPermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): void {
+    if (props.isRoot) {
+      return;
+    }
+
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
 
     if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
