@@ -47,7 +47,8 @@ Et offentligt dashboard:
 
 - Åbner altid til læsning. Besøgende kan ikke redigere det og ser aldrig dets redigeringskontroller.
 - Indeholder de variabler, du har tilføjet. Besøgende vælger i de samme vælgere, som dit team bruger, og kan ændre tidsintervallet, zoome, slå automatisk opdatering til og gå i fuld skærm.
-- Bruger den branding, du angiver på dashboardets side **Branding**: sidetitel, beskrivelse, logo, favicon.
+- Bruger den branding, du angiver på dashboardets side **Branding**: sidetitel, beskrivelse, logo, tema, favicon.
+- Lader hver besøgende skifte mellem det lyse og det mørke dashboard med en sol- eller måneknap i dets værktøjslinje; [Tema](#tema) forklarer hvordan.
 
 Behandl deling af et dashboard som udgivelse af en webside. Alle widgets på det bliver læsbare for alle med linket. Se, hvad der er på lærredet, før du deler det.
 
@@ -55,7 +56,7 @@ Hver widget offentliggør kun det, den tegner, og kun for de ressourcer, den er 
 
 ## Deling med en adgangskode
 
-Vælg **Alle med linket og en adgangskode**, og indtast adgangskoden i dialogen. Besøgende ser et spørgsmål om adgangskoden, før dashboardet vises. Spørgsmålet viser dashboardets navn, sidetitel og favicon og intet andet: dets beskrivelse, logo og widgets vises, når adgangskoden er indtastet. Adgangskoden gemmes som en hash: ingen kan læse den tilbage. En ny adgangskode virker med det samme; de, der har indtastet den gamle, kan blive ved med at se dashboardet i op til 7 dage.
+Vælg **Alle med linket og en adgangskode**, og indtast adgangskoden i dialogen. Besøgende ser et spørgsmål om adgangskoden, før dashboardet vises. Spørgsmålet viser dashboardets navn, sidetitel og favicon, i dashboardets tema, og intet andet: dets beskrivelse, logo og widgets vises, når adgangskoden er indtastet. Adgangskoden gemmes som en hash: ingen kan læse den tilbage. En ny adgangskode virker med det samme; de, der har indtastet den gamle, kan blive ved med at se dashboardet i op til 7 dage.
 
 Brug en adgangskode, når:
 
@@ -152,13 +153,30 @@ På dashboardets side **Branding** kan du konfigurere:
 - **Sidetitel**: det, der vises i browserfanen og øverst på siden.
 - **Sidebeskrivelse**: den beskrivelse, som søgemaskiner og forhåndsvisninger på sociale medier bruger.
 - **Logo**: et billede, der vises i det offentlige dashboards header.
+- **Tema**: lyst, mørkt eller som hver besøgendes enhed er indstillet; se [Tema](#tema).
 - **Favicon**: det lille ikon i browserfanen.
 
 Logoet og faviconet er filer, der er uploadet i dashboardets eget projekt, og det kontrolleres, hver gang et af dem gemmes: fra dashboardet, API'et, Terraform eller et workflow. En fil, der er uploadet i et andet projekt, afvises med de ord, som en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again." eller "The favicon's file could not be found. Upload the favicon again." Det offentlige dashboard viser kun billeder fra sit eget projekt.
 
-Sidetitlen og beskrivelsen står også øverst i dashboardets værktøjslinje for dit team, i stedet for dets navn og beskrivelse. Logoet og faviconet vises kun på det offentlige dashboard.
+Sidetitlen og beskrivelsen står også øverst i dashboardets værktøjslinje for dit team, i stedet for dets navn og beskrivelse. Logoet, temaet og faviconet gælder kun for det offentlige dashboard.
 
-Besøgende ser først brandingen, når de må se dashboardet. Før adgangskoden er indtastet, viser et dashboard, der er delt med en adgangskode, kun sin sidetitel og sit favicon, og søgemaskiner og link-forhåndsvisninger ser sidetitlen, men ikke sidebeskrivelsen. Et dashboard med en IP-tilladelsesliste viser kun sin branding for adresserne på listen, og søgemaskiner og link-forhåndsvisninger ser intet af den.
+Besøgende ser først brandingen, når de må se dashboardet. Før adgangskoden er indtastet, viser et dashboard, der er delt med en adgangskode, kun sin sidetitel, sit favicon og sit tema, og søgemaskiner og link-forhåndsvisninger ser sidetitlen, men ikke sidebeskrivelsen. Et dashboard med en IP-tilladelsesliste viser kun sin branding for adresserne på listen, og søgemaskiner og link-forhåndsvisninger ser intet af den.
+
+### Tema
+
+Kortet **Tema**, lige under logoet, bestemmer, hvordan det offentlige dashboard ser ud for dets besøgende. Vælg et af dets tre valg, så gemmes det med det samme; der er ingen knap **Rediger**.
+
+| Valg | Hvad de besøgende ser |
+| ------ | ----------------- |
+| **Lyst** | Det lyse dashboard, uanset hvordan deres enhed er indstillet. Dashboards, der blev oprettet, før indstillingen fandtes, er **Lyst**, så de ser ud, som de altid har gjort. |
+| **Mørkt** | Det mørke dashboard, uanset hvordan deres enhed er indstillet. |
+| **Som hver besøgendes enhed** | Lyst eller mørkt, som deres enhed er indstillet, og dashboardet skifter med enheden, mens det er åbent. |
+
+Uanset hvad du vælger, lader en sol- eller måneknap i dashboardets værktøjslinje hver besøgende skifte til det lyse eller det mørke dashboard eller tilbage til det tema, du har angivet, og deres browser husker valget for hvert offentligt dashboard på den adresse. På det mørke dashboard står logoet på en lys baggrund, så et logo, der er lavet til en hvid side, stadig kan ses.
+
+Et dashboard, der oprettes fra nu af, starter med **Som hver besøgendes enhed**. Gennem API'et og Terraform hedder feltet `theme`, en af `Light`, `Dark` eller `System` (**Som hver besøgendes enhed**), skrevet præcis sådan; enhver anden værdi afvises. En Terraform-konfiguration, der ikke angiver noget `theme`, får `Light`, så en konfiguration, der er skrevet før indstillingen, aldrig planlægger en ændring på et dashboard, den styrer.
+
+Temaet står i dashboardets HTML, så dashboardet tegnes i det fra starten: et mørkt dashboard blinker ikke hvidt, mens det indlæses, og dets spørgsmål om adgangskoden tegnes også i det. Alle widgets følger det; et HTML-widgets egen kode kan style det mørke tema, som [HTML](/docs/dashboards/widgets#html) beskriver. Siderne **Access Denied** og "ikke fundet" viser intet af et dashboard, så de følger den besøgende: deres eget valg, ellers deres enhed.
 
 ## Indlejring
 
@@ -175,9 +193,11 @@ Du kan indlejre et offentligt dashboard på dit eget site med en iframe, på det
 
 Hvis dashboardet er delt med en adgangskode, ser besøgende spørgsmålet om adgangskoden inde i iframen.
 
+For at give et indlejret dashboard dit websteds udseende tilføjer du `?theme=light` eller `?theme=dark` til dets adresse, som i `https://dashboard.acme.com/?theme=dark`: dashboardet tegnes så i det tema for alle, der åbner den adresse, uanset dets eget tema og den besøgendes valg, og dets værktøjslinje har ingen temaknap. `?theme=system` følger hver besøgendes enhed. Temaet bevares gennem spørgsmålet om adgangskoden.
+
 ## Send et link
 
-Det offentlige link åbner dashboardet med dets gemte standardværdier. For at sende et link, der åbner på en bestemt værdi, føjer du variablen til det som `?var-<name>=<value>`, som adresselinjen gør, når en besøgende vælger en værdi; flere værdier adskilles af kommaer. Tidsintervallet er ikke en del af linket: hvert besøg starter ved den seneste time.
+Det offentlige link åbner dashboardet med dets gemte standardværdier. For at sende et link, der åbner på en bestemt værdi, føjer du variablen til det som `?var-<name>=<value>`, som adresselinjen gør, når en besøgende vælger en værdi; flere værdier adskilles af kommaer. Tidsintervallet er ikke en del af linket: hvert besøg starter ved den seneste time. For at åbne dashboardet i et tema tilføjer du `theme=light`, `theme=dark` eller `theme=system`, som [Indlejring](#indlejring) beskriver.
 
 ## Næste trin
 

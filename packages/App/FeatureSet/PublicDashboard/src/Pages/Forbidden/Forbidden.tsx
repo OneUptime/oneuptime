@@ -1,10 +1,14 @@
+import { ERROR_CODE_COLOR } from "../NotFound/NotFound";
 import React, { FunctionComponent, ReactElement } from "react";
 
+// Drawn as the not-found page is (NotFound.tsx).
 const ForbiddenPage: FunctionComponent = (): ReactElement => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
-        <h1 className="text-6xl font-bold text-gray-300">403</h1>
+        <h1 className="text-6xl font-bold" style={{ color: ERROR_CODE_COLOR }}>
+          403
+        </h1>
         <h2 className="mt-4 text-xl font-semibold text-gray-700">
           Access Denied
         </h2>

@@ -42,6 +42,8 @@ import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metri
 import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import PoweredByFooter from "../../Components/PoweredByFooter";
+import ThemeMenu from "../../Components/ThemeMenu";
+import LogoPlate from "../../Components/LogoPlate";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -265,20 +267,25 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * The page and the canvas take the dashboard's own grounds
+   * (Common/UI/Styles/Theme.css), the ones the dashboard your team sees is
+   * drawn on, so each is right in the light theme and the dark one.
+   */
   return (
     <div
       ref={dashboardViewRef}
       className="min-h-screen"
       style={{
         minWidth: "1000px",
-        background: "#fafbfc",
+        background: "var(--ou-background-primary, #f8f9fb)",
       }}
     >
       {/* Header */}
       <div
         className="bg-white border-b border-gray-200"
         style={{
-          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+          boxShadow: "var(--ou-shadow-sm, 0 1px 3px 0 rgba(0, 0, 0, 0.05))",
         }}
       >
         <div className="max-w-7xl mx-auto px-5 py-4">
@@ -286,11 +293,13 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
             {/* Logo + Title + Description */}
             <div className="flex items-center gap-4 min-w-0">
               {logoUrl && (
-                <img
-                  src={logoUrl}
-                  alt={dashboardName}
-                  className="h-8 w-auto object-contain flex-shrink-0"
-                />
+                <LogoPlate className="flex-shrink-0">
+                  <img
+                    src={logoUrl}
+                    alt={dashboardName}
+                    className="h-8 w-auto object-contain"
+                  />
+                </LogoPlate>
               )}
               <div className="min-w-0">
                 <h1 className="text-lg font-semibold text-gray-900 truncate">
@@ -362,6 +371,12 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                   )}
                 </MoreMenu>
               )}
+
+              {/*
+               * Light, Dark or Auto - the dashboard's own - for this visitor,
+               * on every public dashboard, unless its link names a theme.
+               */}
+              <ThemeMenu />
 
               <Button
                 icon={IconProp.Expand}
@@ -443,7 +458,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       <div
         ref={dashboardCanvasRef}
         className="mt-3"
-        style={{ background: "#ffffff" }}
+        style={{ background: "var(--ou-surface-primary, #ffffff)" }}
       >
         <DashboardCanvas
           dashboardViewConfig={dashboardViewConfig}

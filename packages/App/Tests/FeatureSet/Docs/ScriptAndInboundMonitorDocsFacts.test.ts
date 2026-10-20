@@ -12,8 +12,10 @@ import {
   MaxCapturedMetricAttributes,
 } from "Common/Server/Utils/Monitor/CapturedMetricAttributeUtil";
 import IncomingRequestIncidentGrouping, {
+  IncomingRequestGroupingDecision,
   IncomingRequestGroupingItem,
 } from "Common/Server/Utils/Monitor/IncomingRequestIncidentGrouping";
+import MonitorTemplateUtil from "Common/Server/Utils/Monitor/MonitorTemplateUtil";
 import { AllResourceIdentityLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
 import BrowserType from "Common/Types/BrowserType";
 import { JSONObject } from "Common/Types/JSON";
@@ -27,6 +29,7 @@ import CustomCodeMonitorResponse, {
   CustomCodeMonitorResult,
 } from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
+import IncidentGroupingConfig from "Common/Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -1678,13 +1681,13 @@ describe("Incoming Request Monitor", () => {
       );
     });
 
-    it("matches nothing without the requestBody. prefix, with or without the braces", () => {
+    it("finds no value without the requestBody. prefix, with or without the braces", () => {
       expect(groupingKeys(payload, "alerts[*].labels.alertname")).toEqual([]);
       expect(
         groupingKeys(payload, "{{requestBody.alerts[*].fingerprint}}"),
       ).toEqual(groupingKeys(payload, "requestBody.alerts[*].fingerprint"));
       expect(page).toContain(
-        "A path without it — `alerts[*].labels.alertname` — matches nothing, silently.",
+        "A path without it — `alerts[*].labels.alertname` — finds no value in any request.",
       );
     });
 
@@ -1790,6 +1793,253 @@ describe("Incoming Request Monitor", () => {
         "The body must be a JSON object; a payload whose top level is an array is not grouped.",
       );
     });
+  });
+
+  describe("a request without the field, run against what the server decides", () => {
+    const withoutField: string = section(
+      page,
+      "### Requests without the field",
+    );
+
+    const GROUPING: IncidentGroupingConfig = {
+      groupByJSONPath: "requestBody.groupLabels.alertname",
+      resolvedWhenJSONPath: "requestBody.state",
+      resolvedWhenValue: "ok",
+    };
+
+    function grouped(
+      grouping: IncidentGroupingConfig | undefined,
+    ): MonitorCriteriaInstance {
+      const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+      instance.data!.id = ObjectID.generate().toString();
+      instance.data!.name = "Firing";
+      instance.data!.incidentGrouping = grouping;
+      return instance;
+    }
+
+    function decide(input: {
+      requestBody: JSONObject | string;
+      grouping: IncidentGroupingConfig | undefined;
+      background?: { stoppedArriving: boolean } | undefined;
+    }): IncomingRequestGroupingDecision {
+      return IncomingRequestIncidentGrouping.decideForMatchedCriteria({
+        dataToProcess: {
+          projectId: ObjectID.generate(),
+          monitorId: ObjectID.generate(),
+          requestBody: input.requestBody,
+          incomingRequestReceivedAt: new Date(),
+          checkedAt: new Date(),
+          onlyCheckForIncomingRequestReceivedAt: Boolean(input.background),
+        } as unknown as Parameters<
+          typeof IncomingRequestIncidentGrouping.decideForMatchedCriteria
+        >[0]["dataToProcess"],
+        criteriaInstance: grouped(input.grouping),
+        filterResults: input.background?.stoppedArriving
+          ? [
+              {
+                checkOn: CheckOn.IncomingRequest,
+                filterType: FilterType.NotRecievedInMinutes,
+                value: 10,
+                message: "No request in 10 minutes.",
+                met: true,
+              },
+            ]
+          : [],
+      });
+    }
+
+    it("leaves the monitor's other criteria ungrouped", () => {
+      expect(
+        decide({
+          requestBody: { groupLabels: { alertname: "HighCPU" } },
+          grouping: undefined,
+        }).perKeyMatches,
+      ).toBeUndefined();
+      expect(section(page, "### Turning on incident grouping")).toContain(
+        "Grouping belongs to the criteria it is turned on in. The monitor's other criteria do not group: when one of them matches a request, it opens its incident and alert as it would on a monitor where no criteria groups.",
+      );
+    });
+
+    it("opens one for the whole monitor when the request has no value, whatever is missing", () => {
+      for (const requestBody of [
+        { message: "another shape" },
+        { groupLabels: { alertname: "" } },
+        { groupLabels: { alertname: { nested: true } } },
+        { groupLabels: { alertname: ["a", "b"] } },
+        "not a JSON object",
+      ]) {
+        expect({
+          requestBody,
+          perKeyMatches: decide({
+            requestBody: requestBody as JSONObject | string,
+            grouping: GROUPING,
+          }).perKeyMatches,
+        }).toEqual({ requestBody, perKeyMatches: undefined });
+      }
+
+      expect(withoutField).toContain(
+        "the field is missing or empty, holds an object or a list, or the body is not a JSON object — still opens that criteria's incident and alert: one for the whole monitor, as the criteria would without grouping.",
+      );
+    });
+
+    it("does the same for a grouped criteria that matched because requests stopped arriving", () => {
+      expect(
+        decide({
+          requestBody: { groupLabels: { alertname: "HighCPU" } },
+          grouping: GROUPING,
+          background: { stoppedArriving: true },
+        }).perKeyMatches,
+      ).toBeUndefined();
+      // Re-reading the last request opens no value again.
+      expect(
+        decide({
+          requestBody: { groupLabels: { alertname: "HighCPU" } },
+          grouping: GROUPING,
+          background: { stoppedArriving: false },
+        }).perKeyMatches,
+      ).toEqual([]);
+      expect(withoutField).toContain(
+        "So does a grouped criteria that matches because requests stopped arriving.",
+      );
+    });
+
+    it("resolves that incident when a request without the field reports it recovered, which opens nothing new", () => {
+      const criteriaInstance: MonitorCriteriaInstance = grouped(GROUPING);
+
+      // A request the criteria matches resolves its whole-monitor record.
+      expect(
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: {
+            projectId: ObjectID.generate(),
+            monitorId: ObjectID.generate(),
+            requestBody: { state: "ok" },
+            incomingRequestReceivedAt: new Date(),
+            checkedAt: new Date(),
+          } as unknown as Parameters<
+            typeof IncomingRequestIncidentGrouping.collectRecoveries
+          >[0]["dataToProcess"],
+          criteriaInstances: [criteriaInstance],
+          matchedCriteriaId: criteriaInstance.data!.id,
+        }).wholeMonitorCriteriaIds,
+      ).toEqual([criteriaInstance.data!.id]);
+      // And opens nothing new for the criteria it matches.
+      expect(
+        decide({ requestBody: { state: "ok" }, grouping: GROUPING })
+          .perKeyMatches,
+      ).toEqual([]);
+      // The resolve itself runs with every other recovery, in one pass.
+      expect(
+        readRepoFile("Common/Server/Utils/Monitor/MonitorResource.ts"),
+      ).toContain("matchedCriteriaId: response.criteriaMetId?.toString(),");
+      expect(
+        readRepoFile("Common/Server/Utils/Monitor/MonitorIncident.ts"),
+      ).toContain(
+        '"Incident auto-resolved because a request with no value to group by reported recovered."',
+      );
+      expect(withoutField).toContain(
+        "That incident resolves, if **Auto Resolve Incident** is on, when a later request without the field reports it recovered, or when a later request matches another criteria. Such a recovery opens nothing new.",
+      );
+    });
+
+    it("opens one per value beside elements without one, which open nothing", () => {
+      const decision: IncomingRequestGroupingDecision = decide({
+        requestBody: {
+          alerts: [
+            { labels: { alertname: "HighCPU" } },
+            { labels: {} },
+            { labels: { alertname: "HighRAM" } },
+          ],
+        },
+        grouping: { groupByJSONPath: "requestBody.alerts[*].labels.alertname" },
+      });
+
+      expect(
+        (decision.perKeyMatches || []).map(
+          (match: { labels: JSONObject }): unknown => {
+            return match.labels["alertname"];
+          },
+        ),
+      ).toEqual(["HighCPU", "HighRAM"]);
+      expect(withoutField).toContain(
+        "When some elements of an array have a value and others do not, each value opens its own incident, and the elements without one open nothing of their own.",
+      );
+    });
+
+    it("leaves the grouping variable as written in a title, since it has no value", () => {
+      // What the incident creator renders for an incident with no value.
+      const storageMap: JSONObject =
+        MonitorTemplateUtil.buildTemplateStorageMap({
+          monitorType: MonitorType.IncomingRequest,
+          dataToProcess: {
+            projectId: ObjectID.generate(),
+            monitorId: ObjectID.generate(),
+            requestBody: { message: "another shape" },
+            incomingRequestReceivedAt: new Date(),
+            checkedAt: new Date(),
+          } as unknown as Parameters<
+            typeof MonitorTemplateUtil.buildTemplateStorageMap
+          >[0]["dataToProcess"],
+          seriesLabels: undefined,
+        });
+
+      expect(
+        MonitorTemplateUtil.processTemplateString({
+          value: "Grafana: {{alertname}}",
+          storageMap: MonitorTemplateUtil.buildTitleStorageMap({
+            monitorType: MonitorType.IncomingRequest,
+            storageMap,
+          }),
+        }),
+      ).toBe("Grafana: {{alertname}}");
+      expect(withoutField).toContain(
+        "A title that names the grouping variable, such as `{{alertname}}`, shows it as written, since there is no value to put in.",
+      );
+    });
+
+    it("names the Monitor Summary as where the request's outcome shows", () => {
+      const evaluator: string = readRepoFile(
+        "Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
+      );
+      const logList: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/EvaluationLogList.tsx",
+      );
+
+      expect(evaluator).toContain('type: "grouping",');
+      // Every event but the criteria verdicts is listed among the Actions.
+      expect(logList).toContain(
+        'return event.type !== "criteria-met" && event.type !== "criteria-not-met";',
+      );
+      expect(withoutField).toContain(
+        "The **Monitor Summary** card on the monitor's **Overview** shows what each request did",
+      );
+    });
+  });
+
+  it("resolves a single-value grouping once every element of a [*] recovery path recovered", () => {
+    const grouping: IncidentGroupingConfig = {
+      groupByJSONPath: "requestBody.groupLabels.alertname",
+      resolvedWhenJSONPath: "requestBody.alerts[*].status",
+      resolvedWhenValue: "resolved",
+    };
+
+    function isResolved(statuses: Array<string>): boolean | undefined {
+      return IncomingRequestIncidentGrouping.extractItems({
+        requestBody: {
+          groupLabels: { alertname: "HighCPU" },
+          alerts: statuses.map((status: string) => {
+            return { status: status };
+          }),
+        } as unknown as JSONObject,
+        grouping: grouping,
+      })[0]?.isResolved;
+    }
+
+    expect(isResolved(["resolved", "resolved"])).toBe(true);
+    expect(isResolved(["resolved", "firing"])).toBe(false);
+    expect(isResolved([])).toBe(false);
+    expect(page).toContain(
+      "If **Field that signals recovery** contains `[*]` but **Open a separate incident for each…** does not, a request has recovered only when every element of that array says so. With `requestBody.alerts[*].status` and `resolved`, an incident grouped by `requestBody.groupLabels.alertname` resolves once every alert of a request is resolved, and stays open while one still fires.",
+    );
   });
 
   it("names the switch that evaluates every request on its own", () => {

@@ -2,6 +2,7 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
@@ -25,6 +26,14 @@ export default class PerSeriesResolutionRootCause {
     seriesLabels: JSONObject | undefined;
     createdCriteriaId: string | undefined;
     criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
+    /*
+     * The record's fingerprint. The whole monitor's own one
+     * (MetricSeriesFingerprint.WholeMonitorFingerprint) belongs to a
+     * criteria that judges the whole monitor beside per-entity ones - "Device
+     * unreachable" next to "*" ports - and is named as the monitor, not as
+     * a series.
+     */
+    seriesFingerprint?: string | undefined;
   }): string {
     const seriesSummary: string = SeriesLabelDisplay.buildInlineSummary(
       input.seriesLabels,
@@ -36,9 +45,15 @@ export default class PerSeriesResolutionRootCause {
         ]?.data?.name?.trim() || ""
       : "";
 
-    const series: MarkdownText = seriesSummary
-      ? mdText`Series "${seriesSummary}"`
-      : mdText`This series`;
+    const isWholeMonitor: boolean =
+      input.seriesFingerprint ===
+      MetricSeriesFingerprint.WholeMonitorFingerprint;
+
+    const series: MarkdownText = isWholeMonitor
+      ? mdText`The monitor`
+      : seriesSummary
+        ? mdText`Series "${seriesSummary}"`
+        : mdText`This series`;
 
     const criteria: MarkdownText = criteriaName
       ? mdText`criteria "${criteriaName}"`

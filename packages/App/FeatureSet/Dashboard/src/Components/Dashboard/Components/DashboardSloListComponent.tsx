@@ -1,3 +1,4 @@
+import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -368,7 +369,13 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                 className="inline-block w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: statusColor }}
               ></span>
-              <span style={{ color: statusColor }}>{display.statusText}</span>
+              {/*
+               * The status's colour, and on the dark theme the nearest
+               * lighter shade of it that reads on the dark card.
+               */}
+              <span {...getStatusTextProps(statusColor)}>
+                {display.statusText}
+              </span>
             </span>
           </td>
           <td className="px-3 py-2 text-right">

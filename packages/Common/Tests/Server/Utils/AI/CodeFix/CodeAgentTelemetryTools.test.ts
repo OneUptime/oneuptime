@@ -667,7 +667,7 @@ describe("recent_deploys", () => {
 
   test("reads the changes of the scope's services in the run's project, and checks their impact there", async () => {
     const change: ChangeEvent = new ChangeEvent();
-    change._id = ObjectID.generate().toString();
+    change._id = ObjectID.generate();
     change.time = new Date("2026-10-19T08:00:00Z");
     change.eventType = "deployment";
     change.title = "Deploy 2.3.1";
