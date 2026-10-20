@@ -33,7 +33,7 @@ flowchart TB
 - **Alle med linket**: dashboardet er offentligt. Alle, der har linket, kan se det uden at logge ind.
 - **Alle med linket og en adgangskode**: besøgende åbner linket og indtaster derefter én adgangskode, som du deler med dem. Ingen behøver en konto.
 
-Når du vælger en mulighed, bliver du bedt om at bekræfte med en forklaring af, hvad der ændrer sig for besøgende, og derefter træder den i kraft med det samme. Vælger du **Alle med linket og en adgangskode**, beder den samme dialog om adgangskoden, når dashboardet ikke har nogen; så længe det er valget, erstatter **Skift adgangskode** den. Så længe dashboardet er offentligt, står dets **Offentligt link** under valget med en knap, der kopierer det.
+Når du vælger en mulighed, bliver du bedt om at bekræfte med en forklaring af, hvad der ændrer sig for besøgende, og derefter træder den i kraft med det samme. Vælger du **Alle med linket og en adgangskode**, beder den samme dialog om adgangskoden, når dashboardet ikke har nogen; så længe det er valget, erstatter **Skift adgangskode** den. Så længe dashboardet er offentligt, står de adresser, besøgende åbner det på, under valget: først dets brugerdefinerede domæner, derefter dets offentlige link, hver med **Kopiér link**. Et brugerdefineret domæne, der ikke er live endnu, er markeret med **Ikke live endnu**, med årsagen.
 
 Inden for projektet styrer ejere og etiketter, hvem der ser hvad: se [Dashboard-konfiguration & tilladelser](/docs/dashboards/configuration). Den, der kan se dashboardet, men ikke redigere det, ser valget og kan kopiere det offentlige link, men kan ikke ændre det.
 

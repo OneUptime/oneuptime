@@ -35,7 +35,7 @@ Von da an zeigt **Übersicht** zuerst, was jemanden braucht: Ihre offenen Fälle
 
 ```mermaid title="Von Ihren Daten zu einem Fall"
 flowchart LR
-    sources["Quellen: Ihre<br/>Logs und Ihre<br/>Sicherheitstools"] --> rules["Erkennungen:<br/>Regeln und<br/>Threat Intelligence"]
+    sources["Quellen: Ihre<br/>Logs und Ihre<br/>Sicherheits-<br/>tools"] --> rules["Erkennungen:<br/>Regeln und<br/>Threat<br/>Intelligence"]
     rules --> cases["Sicherheits-<br/>fälle"]
     cases --> playbooks["Playbooks"]
     rules --> siem["Ihr SIEM"]

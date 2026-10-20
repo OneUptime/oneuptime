@@ -16,6 +16,13 @@ import {
   DeveloperDocsPageDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
 import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
+import PublicAddressCopy, {
+  getPublicAddresses,
+  isDnsSetupOffered,
+  PublicAddress,
+  PublicAddressDomainInput,
+  PublicAddressKind,
+} from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import { SubscriberFormCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberFormChoices";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
@@ -451,9 +458,10 @@ describe("the Status Pages Overview: creating a status page", () => {
     );
     expect(StatusPageOverviewCopy.firstStepButton).toBe("Add Monitors");
 
-    // The link card: the page's own address, with Copy link beside it.
+    // The link card: the page's addresses, each with Copy link beside it.
     expect(link).toContain("title={StatusPageOverviewCopy.linkCardTitle}");
-    expect(link).toContain('label="Copy link"');
+    expect(link).toContain("<PublicAddresses");
+    expect(PublicAddressCopy.copyLink).toBe("Copy link");
     expect(StatusPageOverviewCopy.linkCardTitle).toBe("Status Page Link");
 
     expect(overview).toContain("formFields={getStatusPageDetailsFormFields()}");
@@ -463,6 +471,52 @@ describe("the Status Pages Overview: creating a status page", () => {
     expect(overview).toContain("<OverviewCustomFields");
     expect(page).toContain(
       "The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens its **Resources** screen. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.",
+    );
+  });
+});
+
+describe("the Status Pages Overview: previewing before you go live", () => {
+  const page: string = englishPage(OVERVIEW);
+
+  it("says the link card lists every address - custom domains first, then OneUptime's - each to copy, and why a domain is not live yet", () => {
+    const link: string = readSource(STATUS_PAGE_PREVIEW_LINK);
+
+    expect(page).toContain(
+      "The **Overview** screen of every status page carries a **Status Page Link** card with every address the page answers at: its custom domains first, then its address on OneUptime, each with **Copy link** beside it. A custom domain that is not live yet is marked **Not live yet**, with why, and with **DNS Setup** when something is left to do. When visitors have to sign in or enter a password, the card says so. Use the OneUptime address while you're still adding resources and before any custom domain is live.",
+    );
+
+    // The card lists the page's own custom domains.
+    expect(link).toContain("<PublicAddresses");
+    expect(link).toContain("kind={STATUS_PAGE_CUSTOM_DOMAINS}");
+
+    // Custom domains first, then the OneUptime address.
+    const addresses: Array<PublicAddress<PublicAddressDomainInput>> =
+      getPublicAddresses<PublicAddressDomainInput>({
+        domains: [{ fullDomain: "status.acme.com", isCnameVerified: false }],
+        oneUptimeUrl: "https://oneuptime.com/status-page/abc",
+      });
+
+    expect(
+      addresses.map(
+        (
+          address: PublicAddress<PublicAddressDomainInput>,
+        ): PublicAddressKind => {
+          return address.kind;
+        },
+      ),
+    ).toEqual([PublicAddressKind.CustomDomain, PublicAddressKind.OneUptime]);
+
+    // A domain waiting for its record is not live, and offers DNS Setup.
+    expect(addresses[0]!.isLive).toBe(false);
+    expect(isDnsSetupOffered(addresses[0]!)).toBe(true);
+
+    expect(PublicAddressCopy.copyLink).toBe("Copy link");
+    expect(PublicAddressCopy.notLiveYet).toBe("Not live yet");
+    expect(StatusPageOverviewCopy.linkCardSignInRequired).toBe(
+      "Visitors sign in to see this status page.",
+    );
+    expect(StatusPageOverviewCopy.linkCardPasswordRequired).toBe(
+      "Visitors enter the password to see this status page.",
     );
   });
 });

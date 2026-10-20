@@ -33,7 +33,7 @@ Open the dashboard and pick **⋯ → Share**, or open **Sharing** in the dashbo
 - **Anyone with the link**: the dashboard is public. Anyone who has its link can see it, without signing in.
 - **Anyone with the link and a password**: visitors open the link, then enter one password that you share with them. Nobody needs an account.
 
-Picking a choice asks you to confirm, saying what changes for visitors, then applies at once. Picking **Anyone with the link and a password** asks for the password in the same dialog when the dashboard has none; while it is the choice, **Change Password** replaces it. While the dashboard is public, its **Public link** sits under the choice, with a button that copies it.
+Picking a choice asks you to confirm, saying what changes for visitors, then applies at once. Picking **Anyone with the link and a password** asks for the password in the same dialog when the dashboard has none; while it is the choice, **Change Password** replaces it. While the dashboard is public, the addresses visitors open it at sit under the choice: its custom domains first, then its public link, each with **Copy link**. A custom domain that is not live yet is marked **Not live yet**, with why.
 
 Within the project, owners and labels control who sees what — see [Dashboard Configuration & Permissions](/docs/dashboards/configuration). Someone who can see the dashboard but not edit it sees the choice, and can copy the public link, but can't change it.
 

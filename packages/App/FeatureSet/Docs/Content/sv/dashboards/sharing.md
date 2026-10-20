@@ -33,7 +33,7 @@ flowchart TB
 - **Alla med länken**: instrumentpanelen är offentlig. Alla som har länken kan se den, utan att logga in.
 - **Alla med länken och ett lösenord**: besökare öppnar länken och anger sedan ett lösenord som du delar med dem. Ingen behöver ett konto.
 
-När du gör ett val ombeds du bekräfta, med en förklaring av vad som ändras för besökarna, och sedan gäller det direkt. Väljer du **Alla med länken och ett lösenord** frågar samma dialogruta efter lösenordet när instrumentpanelen inte har något; så länge det är valet ersätter **Ändra lösenord** det. Så länge instrumentpanelen är offentlig står dess **Offentlig länk** under valet, med en knapp som kopierar den.
+När du gör ett val ombeds du bekräfta, med en förklaring av vad som ändras för besökarna, och sedan gäller det direkt. Väljer du **Alla med länken och ett lösenord** frågar samma dialogruta efter lösenordet när instrumentpanelen inte har något; så länge det är valet ersätter **Ändra lösenord** det. Så länge instrumentpanelen är offentlig står adresserna som besökare öppnar den på under valet: först dess anpassade domäner, sedan dess offentliga länk, var och en med **Kopiera länk**. En anpassad domän som inte är live än är markerad med **Inte live än**, med orsaken.
 
 Inom projektet styr ägare och etiketter vem som ser vad: se [Instrumentpanelskonfiguration & behörigheter](/docs/dashboards/configuration). Den som kan se instrumentpanelen men inte redigera den ser valet och kan kopiera den offentliga länken, men kan inte ändra valet.
 
