@@ -139,20 +139,48 @@ describe("holdToGlobalRunnerShape: a Runner is a project's own, or global", () =
     }).toThrow(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
   });
 
-  it("writes a global Runner's capabilities off, and runbook steps on unless said", () => {
+  it("leaves a global Runner's AI commands to their default, off, and writes runbook steps on unless said", () => {
     const runner: Runner = globalRunner();
 
     RunnerServiceClass.holdToGlobalRunnerShape(runner);
 
-    expect(runner.canRunAiCommands).toBe(false);
+    /*
+     * Not written: no caller may write the column, and a value a create
+     * hook writes is asked of the caller as if they had sent it
+     * (HookWritesCallersMayMake). The row takes the column's default.
+     */
+    expect(runner.canRunAiCommands).toBeUndefined();
+    expect(
+      new Runner().getTableColumnMetadata("canRunAiCommands").defaultValue,
+    ).toBe(false);
     expect(runner.canRunRunbooks).toBe(true);
     // No code work: no repository may pick a global Runner (it has no project).
     expect(Object.keys(runner)).not.toContain("canRunCodeFixTasks");
   });
 
-  it("the capability message names only the switch a Runner still has", () => {
+  it("keeps a global Runner created with AI commands off as it was sent", () => {
+    const runner: Runner = globalRunner({ canRunAiCommands: false });
+
+    RunnerServiceClass.holdToGlobalRunnerShape(runner);
+
+    expect(runner.canRunAiCommands).toBe(false);
+  });
+
+  /*
+   * A Runner has no AI switch left: a code repository picks its Runner, and
+   * an auto remediation rule or a cluster's AI settings pick the one that
+   * runs OneUptime AI's commands - so the message names where they are
+   * picked, never a switch.
+   */
+  it("the capability message names where OneUptime AI's Runner is picked, and no switch", () => {
     expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).toContain(
-      '"Runs AI Remediation Commands"',
+      "never OneUptime AI's commands",
+    );
+    expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).toContain(
+      "an auto remediation rule or a Kubernetes cluster's AI settings pick",
+    );
+    expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).not.toContain(
+      "Runs AI Remediation Commands",
     );
     expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).not.toContain("Code Fixes");
   });
@@ -228,7 +256,8 @@ describe("RunnerService's create hook", () => {
     expect(data.projectId).toBeUndefined();
     expect(typeof data.key).toBe("string");
     expect((data.key as string).length).toBeGreaterThan(20);
-    expect(data.canRunAiCommands).toBe(false);
+    // Left to the column's default, off: no caller may write it, so no hook does.
+    expect(data.canRunAiCommands).toBeUndefined();
     expect(data.canRunRunbooks).toBe(true);
   });
 

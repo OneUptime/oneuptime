@@ -4,6 +4,7 @@ import KubernetesClusterService, {
 } from "../../../Server/Services/KubernetesClusterService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import RunnerService from "../../../Server/Services/RunnerService";
+import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
@@ -232,6 +233,15 @@ beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
+  /*
+   * Binding a Runner lets it run OneUptime AI's commands
+   * (RunnerAiCommandsPick): a write of the Runner, read from the database,
+   * which these unit tests do not have.
+   */
+  jest
+    .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
+    .mockResolvedValue(undefined);
+
   clusterLookup = jest
     .spyOn(KubernetesClusterService, "findBy")
     .mockResolvedValue([cluster()]);

@@ -489,8 +489,9 @@
       },
       "callSms": {
         "cardTitle": "Twilio कॉन्फ़िगरेशन",
-        "cardDescription": "इसका उपयोग कॉल करने और एसएमएस भेजने के लिए किया जाएगा।",
-        "editButton": "Twilio कॉन्फ़िगरेशन संपादित करें"
+        "cardDescription": "वह Twilio खाता जिससे OneUptime SMS भेजता है और कॉल करता है, जब तक कोई प्रोजेक्ट अपना Twilio कॉन्फ़िगरेशन इस्तेमाल न करे।",
+        "editButton": "Twilio कॉन्फ़िगरेशन संपादित करें",
+        "smsSameAsCalls": "कॉल वाले ही नंबर"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp सेटिंग्स",
@@ -726,7 +727,6 @@
   "Hostname": "होस्टनाम",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "ग्लोबल SMTP कॉन्फ़िग का उपयोग करके OneUptime मेल कैसे डिलीवर करता है। अधिकांश सर्वरों के लिए 'SMTP' चुनें। यदि आपके Microsoft 365 टेनेंट में SMTP AUTH अक्षम है तो 'Microsoft Graph' चुनें — Graph, Mail.Send एप्लिकेशन अनुमति का उपयोग करता है और SMTP को पूरी तरह बायपास कर देता है।",
   "If you have a coupon code, enter it here.": "यदि आपके पास कूपन कोड है, तो उसे यहाँ दर्ज करें।",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "यदि आपने विशिष्ट देशों के लिए Twilio से अधिक फ़ोन नंबर खरीदे हैं, तो आप उन्हें यहाँ जोड़ सकते हैं।",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "यदि आप पोर्ट 465 का उपयोग करते हैं, तो कृपया इसे सक्षम करें। यदि आप पोर्ट 587 का उपयोग करते हैं तो इसे सक्षम न करें।",
   "Instance footprint": "इंस्टेंस फुटप्रिंट",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "क्यू वर्कर्स में जॉब बैकलॉग। बढ़ता हुआ बैकलॉग या विफलताएं यह दर्शाती हैं कि वर्कर्स अस्वस्थ हैं।",
@@ -772,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "आरंभ करने के लिए कृपया एक नया OneUptime प्रोजेक्ट बनाएँ।",
   "Please select a plan.": "कृपया एक योजना चुनें।",
   "Port": "पोर्ट",
-  "Primary Twilio Phone Number": "प्राथमिक Twilio फ़ोन नंबर",
   "Probe Logo": "प्रोब लोगो",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "इस इंस्टेंस के लिए मॉनिटरिंग जाँच चलाने वाले प्रोब, और क्या वे वर्तमान में रिपोर्ट कर रहे हैं।",
   "Project ID": "प्रोजेक्ट ID",
@@ -789,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "उपयोगकर्ता नाम और पासवर्ड प्रमाणीकरण के लिए आवश्यक। OAuth के लिए उपयोग नहीं किया जाता।",
   "Sample Description": "नमूना विवरण",
   "Sample Title": "नमूना शीर्षक",
-  "Secondary Twilio Phone Numbers": "द्वितीयक Twilio फ़ोन नंबर",
   "Secret token configured in Meta to validate webhook subscription requests.": "वेबहुक सब्सक्रिप्शन अनुरोधों को मान्य करने के लिए Meta में कॉन्फ़िगर किया गया सीक्रेट टोकन।",
   "Select a team": "एक टीम चुनें",
   "Select LLM Provider": "LLM प्रदाता चुनें",
@@ -1011,5 +1009,12 @@
   "{{count}} people": "{{count}} लोग",
   "{{count}} people_one": "{{count}} व्यक्ति",
   "Docker Compose guide": "Docker Compose गाइड",
-  "Kubernetes guide": "Kubernetes गाइड"
+  "Kubernetes guide": "Kubernetes गाइड",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "कॉल इसी नंबर से जाती हैं, और SMS भी, जब तक आप और फ़ील्ड में SMS फ़ोन नंबर न जोड़ें।",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "अगर आपके Twilio नंबर SMS नहीं भेज सकते (सिंगापुर में राष्ट्रीय नंबर केवल वॉइस के लिए होते हैं), तो ऐसे नंबर जोड़ें जो भेज सकें। तब हर SMS प्राप्तकर्ता के देश वाले नंबर से जाता है, नहीं तो पहले नंबर से।",
+  "Twilio SMS Phone Numbers": "Twilio SMS फ़ोन नंबर",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} फ़ोन नंबर नहीं है। हर नंबर को उसके देश कोड के साथ लिखें और नंबरों को कॉमा से अलग करें, जैसे +6581234567, +447700900123।",
+  "Twilio Primary Phone Number": "Twilio प्राथमिक फ़ोन नंबर",
+  "Twilio Secondary Phone Numbers": "Twilio द्वितीयक फ़ोन नंबर",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "प्राप्तकर्ता के देश कोड से मेल खाने पर मुख्य नंबर की जगह इस्तेमाल होने वाले नंबर।"
 }

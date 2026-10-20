@@ -21,7 +21,6 @@ import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/R
 import RunnersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
-  RUNNER_FORM_STEPS,
   RunnerFormRestrictions,
   getKubernetesAgentRunnerFormNote,
   getReservedRunnerNameError,
@@ -39,7 +38,6 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
-import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -152,14 +150,15 @@ function nameField(fields: Fields<Runner>): Field<Runner> {
 }
 
 /*
- * No AI code fix switch: a code repository picks the Runner AI works in it
- * on, in its settings in Code.
+ * No AI switch of any kind: a code repository picks the Runner AI works in
+ * it on, in its settings in Code, and an auto remediation rule or a
+ * Kubernetes cluster's AI settings pick the Runner OneUptime AI runs its
+ * commands on.
  */
 const FULL_FORM: Array<string> = [
   "name",
   "description",
   "canRunRunbooks",
-  "canRunAiCommands",
   "labels",
 ];
 
@@ -239,7 +238,6 @@ describe("the Runner form's fields", () => {
     expect(
       fieldKeys(
         getRunnerFormFields({
-          withSteps: false,
           restrictions: NO_RUNNER_FORM_RESTRICTIONS,
         }),
       ),
@@ -250,15 +248,10 @@ describe("the Runner form's fields", () => {
     const restrictions: RunnerFormRestrictions =
       getRunnerFormRestrictions(agentRow());
     const fields: Fields<Runner> = getRunnerFormFields({
-      withSteps: false,
       restrictions,
     });
 
-    expect(fieldKeys(fields)).toEqual([
-      "description",
-      "canRunAiCommands",
-      "labels",
-    ]);
+    expect(fieldKeys(fields)).toEqual(["description", "labels"]);
     expect(fields[0]!.sectionDescription).toBe(
       getKubernetesAgentRunnerFormNote(restrictions),
     );
@@ -268,49 +261,45 @@ describe("the Runner form's fields", () => {
     expect(
       fieldKeys(
         getRunnerFormFields({
-          withSteps: false,
           restrictions: getRunnerFormRestrictions(renamedAgentRow()),
         }),
       ),
-    ).toEqual(["name", "description", "canRunAiCommands", "labels"]);
+    ).toEqual(["name", "description", "labels"]);
   });
 
-  test("the wizard puts every field on its step", () => {
-    const steps: Array<string | undefined> = getRunnerFormFields({
-      withSteps: true,
+  /*
+   * With "Runs AI Remediation Commands" gone, the Capabilities step had one
+   * switch left, on for almost every Runner: the form is one page, and
+   * "Runs Runbooks" folds under More fields with the labels, at its end.
+   */
+  test("one page: Runs Runbooks and the labels fold under More fields, at the end", () => {
+    const fields: Fields<Runner> = getRunnerFormFields({
       restrictions: NO_RUNNER_FORM_RESTRICTIONS,
-    }).map((field: Field<Runner>): string | undefined => {
-      return field.stepId;
     });
-    /*
-     * Two steps: the labels fold under Advanced at the end of the Runner
-     * step (listed last, so the one-page form ends with Advanced too).
-     */
-    expect(steps).toEqual([
-      "runner",
-      "runner",
-      "capabilities",
-      "capabilities",
-      "runner",
-    ]);
-    expect(
-      RUNNER_FORM_STEPS.map((step: FormStep<Runner>): string => {
-        return step.id;
-      }),
-    ).toEqual(["runner", "capabilities"]);
-    // Without withSteps the fields carry no step.
-    for (const field of getRunnerFormFields({
-      withSteps: false,
-      restrictions: NO_RUNNER_FORM_RESTRICTIONS,
-    })) {
-      expect(field.stepId).toBeUndefined();
+
+    for (const field of fields) {
+      expect({ key: fieldKeys([field])[0], stepId: field.stepId }).toEqual({
+        key: fieldKeys([field])[0],
+        stepId: undefined,
+      });
     }
+
+    const folded: Array<string> = fields
+      .filter((field: Field<Runner>): boolean => {
+        return Boolean(field.collapsibleSection);
+      })
+      .map((field: Field<Runner>): string => {
+        return fieldKeys([field])[0]!;
+      });
+    expect(folded).toEqual(["canRunRunbooks", "labels"]);
+    // One section: both name the same one.
+    expect(fields[2]!.collapsibleSection).toBe(fields[3]!.collapsibleSection);
+    expect(fields[2]!.defaultValue).toBe(true);
   });
 
   test("the name refuses the reserved prefix, in any case, as the server does", () => {
     const validate: (values: FormValues<Runner>) => string | null = nameField(
       getRunnerFormFields({
-        withSteps: false,
         restrictions: NO_RUNNER_FORM_RESTRICTIONS,
       }),
     ).customValidation!;
@@ -479,7 +468,14 @@ describe("the Runner pages, rendered", () => {
     return within(dialog).queryAllByText(title, { exact: true }).length > 0;
   }
 
-  test("the detail page's form on an agent row leaves out the name and the two switches, and says why", async () => {
+  // The fold at the end of the form, opened: "More fields" and what it holds.
+  function openMoreFields(dialog: HTMLElement): void {
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /More fields/ }),
+    );
+  }
+
+  test("the detail page's form on an agent row leaves out the name and Runs Runbooks, and says why", async () => {
     openRunnerView(AGENT_RUNNER_ID);
 
     const note: HTMLElement = await screen.findByTestId(
@@ -493,23 +489,23 @@ describe("the Runner pages, rendered", () => {
       "kubernetes-agent/prod-east",
     );
 
-    // The Runner step: the description and the note, and no name.
+    // One page: the description and the note, and no name.
     expect(
       within(dialog).getByText("In-cluster Runner (Kubernetes agent)"),
     ).toBeInTheDocument();
     expect(dialog).toHaveTextContent(AGENT_NOTE_START);
     expect(hasFieldTitled(dialog, "Name")).toBe(false);
+    expect(
+      within(dialog).queryByTestId("modal-footer-next-button"),
+    ).not.toBeInTheDocument();
 
-    // The Capabilities step: only the switch the server lets it change.
-    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
-    await within(dialog).findByText(
-      "Runs AI Remediation Commands",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
+    // More fields holds the labels only: no switch the server refuses.
+    openMoreFields(dialog);
+    await within(dialog).findByText("Labels", {}, { timeout: WAIT_TIMEOUT });
     expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(false);
+    expect(dialog).not.toHaveTextContent("Runs AI Remediation Commands");
 
-    // Saving - from any step of an edit form - posts none of the fields the server refuses.
+    // Saving posts none of the fields the server refuses, nor one it owns.
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
     await waitFor(
       () => {
@@ -522,30 +518,55 @@ describe("the Runner pages, rendered", () => {
     ).model;
     expect(posted.name).toBeUndefined();
     expect(posted.canRunRunbooks).toBeUndefined();
-    expect(posted.canRunAiCommands).toBe(true);
+    expect(posted.canRunAiCommands).toBeUndefined();
   });
 
-  test("the detail page's form on an ordinary Runner is whole, with no note", async () => {
+  test("the detail page's form on an ordinary Runner is whole, on one page, with no note", async () => {
     openRunnerView(HOST_RUNNER_ID);
 
     const dialog: HTMLElement = await openRunnerEditModal("bash-runner");
     expect(hasFieldTitled(dialog, "Name")).toBe(true);
     expect(dialog).not.toHaveTextContent(AGENT_NOTE_START);
+    expect(
+      within(dialog).queryByTestId("modal-footer-next-button"),
+    ).not.toBeInTheDocument();
 
-    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
-    await within(dialog).findByText(
-      "Runs AI Remediation Commands",
-      {},
+    // "Runs Runbooks" is folded under More fields, which names it.
+    const RUNS_RUNBOOKS_HELP: RegExp =
+      /Let this Runner execute runbook Bash and JavaScript steps/;
+    const moreFields: HTMLElement = within(dialog).getByRole("button", {
+      name: /More fields/,
+    });
+    expect(moreFields).toHaveTextContent("Runs Runbooks");
+    expect(moreFields).toHaveAttribute("aria-expanded", "false");
+    expect(within(dialog).getByText(RUNS_RUNBOOKS_HELP)).not.toBeVisible();
+    openMoreFields(dialog);
+    await waitFor(
+      () => {
+        expect(within(dialog).getByText(RUNS_RUNBOOKS_HELP)).toBeVisible();
+      },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(true);
-    // No AI code fix switch: a repository picks its Runner in Code.
+    // No AI switch: rules and clusters pick the Runner, repositories in Code.
+    expect(dialog).not.toHaveTextContent("Runs AI Remediation Commands");
     expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(false);
     expect(dialog).not.toHaveTextContent("AI Code Fixes");
-    expect(dialog).not.toHaveTextContent(AGENT_NOTE_START);
     expect(
       screen.queryByTestId("kubernetes-agent-runner-note"),
     ).not.toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    await waitFor(
+      () => {
+        expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    const posted: Runner = (
+      createOrUpdateSpy.mock.calls[0]![0] as { model: Runner }
+    ).model;
+    expect(posted.name).toBe("bash-runner");
+    expect(posted.canRunAiCommands).toBeUndefined();
   });
 
   function openRunnersPage(): void {

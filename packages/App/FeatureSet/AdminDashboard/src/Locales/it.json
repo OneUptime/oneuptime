@@ -489,8 +489,9 @@
       },
       "callSms": {
         "cardTitle": "Configurazione Twilio",
-        "cardDescription": "Verrà utilizzata per effettuare chiamate e inviare SMS.",
-        "editButton": "Modifica config Twilio"
+        "cardDescription": "L'account Twilio con cui OneUptime invia SMS ed effettua chiamate, a meno che un progetto non usi una propria configurazione Twilio.",
+        "editButton": "Modifica config Twilio",
+        "smsSameAsCalls": "Gli stessi numeri delle chiamate"
       },
       "whatsapp": {
         "metaCardTitle": "Impostazioni Meta WhatsApp",
@@ -726,7 +727,6 @@
   "Hostname": "Hostname",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "Come OneUptime invia le email utilizzando la configurazione SMTP globale. Scegli 'SMTP' per la maggior parte dei server. Scegli 'Microsoft Graph' se il tuo tenant Microsoft 365 ha SMTP AUTH disabilitato — Graph utilizza l'autorizzazione applicativa Mail.Send e ignora completamente SMTP.",
   "If you have a coupon code, enter it here.": "Se hai un codice coupon, inseriscilo qui.",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "Se hai acquistato più numeri di telefono da Twilio per paesi specifici, puoi aggiungerli qui.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "Se utilizzi la porta 465, abilita questa opzione. Non abilitarla se utilizzi la porta 587.",
   "Instance footprint": "Impronta dell'istanza",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "Backlog dei job tra i worker della coda. Un backlog in crescita o i fallimenti indicano che i worker non sono integri.",
@@ -772,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "Crea un nuovo progetto OneUptime per iniziare.",
   "Please select a plan.": "Seleziona un piano.",
   "Port": "Porta",
-  "Primary Twilio Phone Number": "Numero di telefono Twilio principale",
   "Probe Logo": "Logo della sonda",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "Sonde che eseguono i controlli di monitoraggio per questa istanza e se al momento stanno comunicando.",
   "Project ID": "ID Progetto",
@@ -789,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Richiesto per l'autenticazione con nome utente e password. Non utilizzato per OAuth.",
   "Sample Description": "Descrizione di esempio",
   "Sample Title": "Titolo di esempio",
-  "Secondary Twilio Phone Numbers": "Numeri di telefono Twilio secondari",
   "Secret token configured in Meta to validate webhook subscription requests.": "Token segreto configurato in Meta per convalidare le richieste di sottoscrizione webhook.",
   "Select a team": "Seleziona un team",
   "Select LLM Provider": "Seleziona provider LLM",
@@ -1011,5 +1009,12 @@
   "{{count}} people": "{{count}} persone",
   "{{count}} people_one": "{{count}} persona",
   "Docker Compose guide": "Guida Docker Compose",
-  "Kubernetes guide": "Guida Kubernetes"
+  "Kubernetes guide": "Guida Kubernetes",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Le chiamate partono da questo numero, e anche gli SMS, a meno che tu non aggiunga numeri di telefono SMS in Altri campi.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Se i tuoi numeri Twilio non possono inviare SMS (a Singapore i numeri nazionali sono solo vocali), aggiungi numeri che possono farlo. Ogni SMS parte allora dal numero del paese del destinatario, altrimenti dal primo.",
+  "Twilio SMS Phone Numbers": "Numeri di telefono SMS Twilio",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} non è un numero di telefono. Scrivi ogni numero con il suo prefisso internazionale e separali con virgole, come +6581234567, +447700900123.",
+  "Twilio Primary Phone Number": "Numero di telefono principale Twilio",
+  "Twilio Secondary Phone Numbers": "Numeri di telefono secondari Twilio",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "Numeri da usare al posto di quello principale quando corrispondono al prefisso internazionale del destinatario."
 }
