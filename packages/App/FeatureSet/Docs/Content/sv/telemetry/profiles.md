@@ -308,7 +308,7 @@ När en funktion i din egen kod tar minst 5 % av profilens tid eller minne, elle
 | Vy | Vad den visar |
 | --- | --- |
 | **Flamdiagram** | Varje stapel är en funktion i anropsstacken, och dess bredd är proportionell mot tiden eller resurserna den förbrukade. Klicka på en funktion för att zooma in och se vilka som anropar den och vilka den anropar. |
-| **Top functions** | Profilens funktioner, sorterade efter egen eller total tid. **Only my code** döljer biblioteksramar. |
+| **Top functions** | Profilens funktioner, sorterade efter egen eller total tid. **Bara min kod** döljer biblioteksramar. |
 | **Diff vs. baseline** | Profilen jämförd med en tidigare period (**jämfört med för 1 timme sedan**, **jämfört med igår** eller **jämfört med förra veckan**), med funktionerna under **Most regressed** och **Most improved**. |
 
 **Download pprof** sparar profilen för lokala verktyg som `go tool pprof`.

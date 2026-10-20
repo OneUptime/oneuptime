@@ -308,7 +308,7 @@ Quand une fonction de votre propre code prend au moins 5 % du temps ou de la mé
 | Vue | Ce qu'elle montre |
 | --- | --- |
 | **Graphique en flammes** | Chaque barre est une fonction de la pile d'appels, et sa largeur est proportionnelle au temps ou aux ressources consommés. Cliquez sur une fonction pour zoomer et voir ses appelants et ses appelés. |
-| **Top functions** | Les fonctions du profil, classées par temps propre ou total. **Only my code** masque les frames des bibliothèques. |
+| **Top functions** | Les fonctions du profil, classées par temps propre ou total. **Seulement mon code** masque les frames des bibliothèques. |
 | **Diff vs. baseline** | Le profil comparé à une période antérieure (**vs il y a 1 heure**, **vs hier** ou **vs la semaine dernière**), avec les fonctions **Les plus dégradées** et **Les plus améliorées**. |
 
 **Download pprof** enregistre le profil pour des outils locaux comme `go tool pprof`.

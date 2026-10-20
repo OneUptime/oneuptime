@@ -308,7 +308,7 @@ curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN" \
 | 檢視 | 顯示內容 |
 | --- | --- |
 | **火焰圖** | 每個長條代表呼叫堆疊中的一個函式，其寬度與它消耗的時間或資源成正比。點選函式即可放大，並查看它的呼叫者與被呼叫者。 |
-| **Top functions** | 剖析資料中的函式，依自身時間或總時間排序。**Only my code** 會隱藏程式庫的堆疊框架。 |
+| **Top functions** | 剖析資料中的函式，依自身時間或總時間排序。**僅我的程式碼** 會隱藏程式庫的堆疊框架。 |
 | **Diff vs. baseline** | 與較早的時段（**與 1 小時前相比**、**與昨天相比** 或 **與上週相比**）比較，並列出 **Most regressed** 與 **Most improved** 的函式。 |
 
 **Download pprof** 會儲存這份資料，供 `go tool pprof` 等本機工具使用。

@@ -308,7 +308,7 @@ curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_TOKEN" \
 | 视图 | 显示内容 |
 | --- | --- |
 | **火焰图** | 每个条形代表调用栈中的一个函数，其宽度与它消耗的时间或资源成正比。点击函数可放大并查看它的调用者和被调用者。 |
-| **Top functions** | 性能分析数据中的函数，按自身时间或总时间排序。**Only my code** 会隐藏库的栈帧。 |
+| **Top functions** | 性能分析数据中的函数，按自身时间或总时间排序。**仅我的代码** 会隐藏库的栈帧。 |
 | **Diff vs. baseline** | 与更早的时段（**对比 1 小时前**、**对比昨天** 或 **对比上周**）比较，并列出 **Most regressed** 和 **Most improved** 的函数。 |
 
 **Download pprof** 会保存这份数据，供 `go tool pprof` 等本地工具使用。

@@ -308,7 +308,7 @@ Wenn eine Funktion Ihres eigenen Codes mindestens 5 % der Zeit oder des Speicher
 | Ansicht | Was sie zeigt |
 | --- | --- |
 | **Flame-Graph** | Jeder Balken ist eine Funktion im Aufrufstapel, und seine Breite entspricht der verbrauchten Zeit oder den Ressourcen. Klicken Sie auf eine Funktion, um hineinzuzoomen und ihre Aufrufer und Aufgerufenen zu sehen. |
-| **Top-Funktionen** | Die Funktionen des Profils, sortiert nach eigener oder gesamter Zeit. **Only my code** blendet Bibliotheks-Frames aus. |
+| **Top-Funktionen** | Die Funktionen des Profils, sortiert nach eigener oder gesamter Zeit. **Nur mein Code** blendet Bibliotheks-Frames aus. |
 | **Diff vs. baseline** | Das Profil im Vergleich mit einem früheren Zeitraum – **vs. vor 1 Stunde**, **vs. gestern** oder **vs. letzte Woche** – mit den Funktionen unter **Am stärksten verschlechtert** und **Am stärksten verbessert**. |
 
 **Download pprof** speichert das Profil für lokale Werkzeuge wie `go tool pprof`.

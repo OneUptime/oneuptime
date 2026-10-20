@@ -31657,5 +31657,8 @@
   "Only the function's own code.": "Nur der eigene Code der Funktion.",
   "Set the threshold above what the function takes today.": "Setzen Sie den Schwellenwert über das, was die Funktion heute beansprucht.",
   "Your own functions, each with the library and runtime code it calls: what a change to it can win back.": "Ihre eigenen Funktionen, jeweils mit dem Bibliotheks- und Laufzeitcode, den sie aufrufen: was eine Änderung an ihnen zurückgewinnen kann.",
-  "{{self}} counts only the function's own code. {{total}} adds everything it calls.": "{{self}} zählt nur den eigenen Code der Funktion. {{total}} rechnet alles hinzu, was sie aufruft."
+  "{{self}} counts only the function's own code. {{total}} adds everything it calls.": "{{self}} zählt nur den eigenen Code der Funktion. {{total}} rechnet alles hinzu, was sie aufruft.",
+  "Profiler — All profiles": "Profiler — Alle Profile",
+  "Profiler — Overview": "Profiler — Übersicht",
+  "Profiler — Setup guide": "Profiler — Einrichtungsanleitung"
 }

@@ -308,7 +308,7 @@ Wanneer een functie van uw eigen code minstens 5% van de tijd of het geheugen va
 | Weergave | Wat die toont |
 | --- | --- |
 | **Flame graph** | Elke balk is een functie in de aanroepstack, en de breedte is evenredig aan de verbruikte tijd of resources. Klik op een functie om in te zoomen en de aanroepers en aangeroepen functies te zien. |
-| **Top functions** | De functies in het profiel, gerangschikt op eigen of totale tijd. **Only my code** verbergt bibliotheekframes. |
+| **Top functions** | De functies in het profiel, gerangschikt op eigen of totale tijd. **Alleen mijn code** verbergt bibliotheekframes. |
 | **Diff vs. baseline** | Het profiel vergeleken met een eerdere periode (**t.o.v. 1 uur geleden**, **t.o.v. gisteren** of **t.o.v. vorige week**), met de functies onder **Most regressed** en **Most improved**. |
 
 **Download pprof** slaat het profiel op voor lokale tools zoals `go tool pprof`.

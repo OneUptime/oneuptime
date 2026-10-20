@@ -31657,5 +31657,8 @@
   "Only the function's own code.": "Only the function's own code.",
   "Set the threshold above what the function takes today.": "Set the threshold above what the function takes today.",
   "Your own functions, each with the library and runtime code it calls: what a change to it can win back.": "Your own functions, each with the library and runtime code it calls: what a change to it can win back.",
-  "{{self}} counts only the function's own code. {{total}} adds everything it calls.": "{{self}} counts only the function's own code. {{total}} adds everything it calls."
+  "{{self}} counts only the function's own code. {{total}} adds everything it calls.": "{{self}} counts only the function's own code. {{total}} adds everything it calls.",
+  "Profiler — All profiles": "Profiler — All profiles",
+  "Profiler — Overview": "Profiler — Overview",
+  "Profiler — Setup guide": "Profiler — Setup guide"
 }

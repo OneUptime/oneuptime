@@ -308,7 +308,7 @@ Når en funktion i din egen kode tager mindst 5 % af profilens tid eller hukomme
 | Visning | Hvad den viser |
 | --- | --- |
 | **Flammegraf** | Hver bjælke er en funktion i kaldstakken, og dens bredde er proportional med den tid eller de ressourcer, den brugte. Klik på en funktion for at zoome ind og se dens kaldere og kaldte funktioner. |
-| **Top functions** | Profilens funktioner, sorteret efter egen eller samlet tid. **Only my code** skjuler biblioteksframes. |
+| **Top functions** | Profilens funktioner, sorteret efter egen eller samlet tid. **Kun min kode** skjuler biblioteksframes. |
 | **Diff vs. baseline** | Profilen sammenlignet med en tidligere periode (**vs. for 1 time siden**, **vs. i går** eller **vs. sidste uge**), med funktionerne under **Most regressed** og **Most improved**. |
 
 **Download pprof** gemmer profilen til lokale værktøjer som `go tool pprof`.

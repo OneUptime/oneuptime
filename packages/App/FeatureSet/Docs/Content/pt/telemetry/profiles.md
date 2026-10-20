@@ -308,7 +308,7 @@ Quando uma função do seu próprio código ocupa pelo menos 5% do tempo ou da m
 | Visão | O que mostra |
 | --- | --- |
 | **Gráfico de chama** | Cada barra é uma função da pilha de chamadas, e a largura dela é proporcional ao tempo ou aos recursos consumidos. Clique em uma função para aplicar zoom e ver quem a chama e quem ela chama. |
-| **Top functions** | As funções do perfil, ordenadas por tempo próprio ou total. **Only my code** oculta os frames de bibliotecas. |
+| **Top functions** | As funções do perfil, ordenadas por tempo próprio ou total. **Somente meu código** oculta os frames de bibliotecas. |
 | **Diff vs. baseline** | O perfil comparado com um período anterior (**vs. 1 hora atrás**, **vs. ontem** ou **vs. semana passada**), com as funções **Most regressed** e **Most improved**. |
 
 **Download pprof** salva o perfil para ferramentas locais como `go tool pprof`.

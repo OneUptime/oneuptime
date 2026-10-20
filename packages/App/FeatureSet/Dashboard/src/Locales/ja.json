@@ -31657,5 +31657,8 @@
   "Only the function's own code.": "関数自身のコードのみ。",
   "Set the threshold above what the function takes today.": "しきい値は、関数が現在占めている割合より上に設定します。",
   "Your own functions, each with the library and runtime code it calls: what a change to it can win back.": "自分の関数（それぞれが呼び出すライブラリとランタイムのコードを含む）：変更によって取り戻せる分です。",
-  "{{self}} counts only the function's own code. {{total}} adds everything it calls.": "{{self}} は関数自身のコードだけを数えます。{{total}} はそれが呼び出すすべてを加えます。"
+  "{{self}} counts only the function's own code. {{total}} adds everything it calls.": "{{self}} は関数自身のコードだけを数えます。{{total}} はそれが呼び出すすべてを加えます。",
+  "Profiler — All profiles": "プロファイラー — すべてのプロファイル",
+  "Profiler — Overview": "プロファイラー — 概要",
+  "Profiler — Setup guide": "プロファイラー — セットアップガイド"
 }
