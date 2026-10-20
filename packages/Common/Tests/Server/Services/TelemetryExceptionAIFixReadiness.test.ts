@@ -390,6 +390,11 @@ describe("TelemetryExceptionService.getAIFixReadiness — AI balance gate", () =
 });
 
 describe("TelemetryExceptionService.createCodeFixRunForException fail-early", () => {
+  beforeEach(() => {
+    // AI on: the switch's own refusal has its suite (TelemetryExceptionCodeFixRun).
+    jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

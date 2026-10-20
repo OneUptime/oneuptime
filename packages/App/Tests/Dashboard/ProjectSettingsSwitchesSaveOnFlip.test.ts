@@ -336,8 +336,15 @@ describe("the menus follow Monitor Groups without a reload", () => {
       ),
     );
 
-    expect(helper).toContain("> = [MONITOR_GROUPS_SWITCH_COLUMN];");
+    /*
+     * Monitor Groups for the menus, and Enable AI for whether the dashboard
+     * draws any AI action (Utils/UseAiOffered).
+     */
+    expect(helper).toContain(
+      "> = [MONITOR_GROUPS_SWITCH_COLUMN, ENABLE_AI_COLUMN];",
+    );
     expect(projectApi).toContain("isFeatureFlagMonitorGroupsEnabled: true,");
+    expect(projectApi).toContain("enableAi: true,");
   });
 
   test("the menus read Monitor Groups off the selected project", () => {

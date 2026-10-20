@@ -231,12 +231,14 @@ describe("the Postmortem card's buttons", () => {
     const withTemplates: Array<CardButtonSchema> = getPostmortemCardButtons({
       model: new Incident(),
       hasTemplates: true,
+      isAiOffered: true,
       onGenerateWithAI: () => {},
       onApplyTemplate: () => {},
     });
     const withoutTemplates: Array<CardButtonSchema> = getPostmortemCardButtons({
       model: new Incident(),
       hasTemplates: false,
+      isAiOffered: true,
       onGenerateWithAI: () => {},
       onApplyTemplate: () => {},
     });
@@ -248,6 +250,28 @@ describe("the Postmortem card's buttons", () => {
     expect(titles(withoutTemplates)).toEqual(["Generate with AI"]);
   });
 
+  test("offer Generate with AI only while the project has AI on", () => {
+    const withAiOff: Array<CardButtonSchema> = getPostmortemCardButtons({
+      model: new Incident(),
+      hasTemplates: true,
+      isAiOffered: false,
+      onGenerateWithAI: () => {},
+      onApplyTemplate: () => {},
+    });
+    const withAiOffAndNoTemplate: Array<CardButtonSchema> =
+      getPostmortemCardButtons({
+        model: new IncidentEpisode(),
+        hasTemplates: false,
+        isAiOffered: false,
+        onGenerateWithAI: () => {},
+        onApplyTemplate: () => {},
+      });
+
+    expect(titles(withAiOff)).toEqual(["Apply Template"]);
+    // Nothing left to offer: the card keeps its Edit button only.
+    expect(withAiOffAndNoTemplate).toEqual([]);
+  });
+
   test("open what they say", () => {
     const onGenerateWithAI: MockFunction = getJestMockFunction();
     const onApplyTemplate: MockFunction = getJestMockFunction();
@@ -255,6 +279,7 @@ describe("the Postmortem card's buttons", () => {
     const buttons: Array<CardButtonSchema> = getPostmortemCardButtons({
       model: new IncidentEpisode(),
       hasTemplates: true,
+      isAiOffered: true,
       onGenerateWithAI: () => {
         onGenerateWithAI();
       },
@@ -279,6 +304,7 @@ describe("the Postmortem card's buttons", () => {
     const buttons: Array<CardButtonSchema> = getPostmortemCardButtons({
       model: new Incident(),
       hasTemplates: true,
+      isAiOffered: true,
       onGenerateWithAI: () => {},
       onApplyTemplate: () => {
         onApplyTemplate();
@@ -303,6 +329,7 @@ describe("the Postmortem card's buttons", () => {
       getPostmortemCardButtons({
         model: new Incident(),
         hasTemplates: true,
+        isAiOffered: true,
         onGenerateWithAI: () => {},
         onApplyTemplate: () => {},
       }),

@@ -98,9 +98,11 @@ Each run is held to budgets the server enforces: at most **40 LLM calls** and **
 | An exception's **AI Assistance** page | **Generate Regression Test** | Adds a test that reproduces the exception and fails until the bug is fixed. |
 | An exception's **AI Assistance** page | **Improve Error Handling** | For an expected error, such as invalid input: takes user data out of the message, validates the input earlier and marks the error as handled, without changing behaviour. |
 | An incident's or alert's **AI Investigation** card | **Open Fix PR from this analysis** | Fixes the root cause the investigation posted (see [Automatic code fixes from investigations](#automatic-code-fixes-from-investigations)). |
-| A trace | **Fix performance with AI** | Fixes the slow pattern found in the trace, such as N+1 queries or one dominant slow span. |
+| A trace worth fixing | **Fix performance with AI** | Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel. |
 | A service's **Logs** page | **Improve Logging** | Makes the service's logs structured, at the right severity and tied to its traces, without changing behaviour. |
 | A service's **Traces** page | **Improve Tracing** | Adds spans and attributes where the service's tracing is missing, without changing behaviour. |
+
+These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no **AI Assistance**. **Improve Logging** and **Improve Tracing** show once a repository is connected, and **Fix performance with AI** only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)).
 
 To open an exception's **AI Assistance** page, open the exception under **Products → Observability → Exceptions** and choose **AI Assistance** in its side menu. A resolved or archived exception has to be marked unresolved first.
 

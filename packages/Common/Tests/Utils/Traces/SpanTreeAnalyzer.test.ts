@@ -1,10 +1,10 @@
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
-} from "../../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+} from "../../../Utils/Traces/SpanTreeAnalyzer";
 import {
   PerformanceFinding,
   PerformanceFindingType,
-} from "../../../../Types/AI/CodeFixTaskContext";
+} from "../../../Types/AI/CodeFixTaskContext";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -99,6 +99,40 @@ describe("SpanTreeAnalyzer.normalizeDbStatement", () => {
     ).toBe(
       SpanTreeAnalyzer.normalizeDbStatement("SELECT * FROM t WHERE id IN (5)"),
     );
+  });
+
+  test("positional placeholders are kept as written, numbers still become ?", () => {
+    expect(
+      SpanTreeAnalyzer.normalizeDbStatement(
+        "SELECT * FROM line_items WHERE invoice_id = $1 LIMIT 50",
+      ),
+    ).toBe("SELECT * FROM line_items WHERE invoice_id = $1 LIMIT ?");
+    expect(
+      SpanTreeAnalyzer.normalizeDbStatement(
+        "UPDATE stock SET quantity = $12 WHERE sku = $2 AND version = 7",
+      ),
+    ).toBe("UPDATE stock SET quantity = $12 WHERE sku = $2 AND version = ?");
+  });
+
+  test("a parameterized statement compares equal to itself across calls", () => {
+    const statement: string =
+      "SELECT id, sku, price FROM products WHERE id = $1";
+
+    expect(SpanTreeAnalyzer.normalizeDbStatement(statement)).toBe(statement);
+  });
+
+  test("normalizes 400,000 characters of digits and placeholders in linear time", () => {
+    const digits: string = "1".repeat(400_000);
+    const placeholders: string = "$1".repeat(200_000);
+    const mixed: string = "$12a".repeat(100_000);
+
+    const startedAt: number = Date.now();
+    expect(SpanTreeAnalyzer.normalizeDbStatement(digits)).toBe("?");
+    expect(SpanTreeAnalyzer.normalizeDbStatement(placeholders)).toBe(
+      placeholders,
+    );
+    expect(SpanTreeAnalyzer.normalizeDbStatement(mixed)).toBe(mixed);
+    expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 });
 

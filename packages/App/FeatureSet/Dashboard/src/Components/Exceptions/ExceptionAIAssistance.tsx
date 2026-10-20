@@ -52,6 +52,9 @@ import {
 import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import useAiOffered from "../../Utils/UseAiOffered";
+import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import { CodeTaskBlockerType } from "Common/Types/AI/CodeTask";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -84,6 +87,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isAiOffered: boolean = useAiOffered();
   const exceptionId: string = props.telemetryExceptionId.toString();
   const [tasks, setTasks] = useState<Array<AIAgentTaskInfo>>([]);
   const [hasLoadedTasks, setHasLoadedTasks] = useState<boolean>(false);
@@ -258,6 +262,28 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   const isPaused: boolean = props.isResolved || props.isArchived;
   const isBlockedBySetup: boolean = Boolean(readiness && !readiness.ready);
   const progress: AIReadinessProgress = getAIReadinessProgress(readiness);
+
+  /*
+   * AI switched off for the project: nothing here can be started (the menu
+   * does not offer this page then), so a link that still leads here says
+   * so in Code's own words - the tasks this page starts are Code's - with
+   * the one step that changes it: Turn AI on, for whoever may change Enable
+   * AI, and who can for everyone else. Nothing else.
+   */
+  if (!isAiOffered) {
+    return (
+      <div className="space-y-4" data-testid="exception-ai-assistance">
+        <div data-testid="exception-ai-off">
+          <CodeBlockerNotice
+            blocker={{
+              type: CodeTaskBlockerType.AiDisabled,
+              message: "AI is turned off for this project.",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (!hasLoadedTasks || !hasLoadedReadiness) {
     return (

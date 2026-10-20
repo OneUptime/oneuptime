@@ -594,8 +594,9 @@ describe("Code", () => {
     const investigation: string = dashboardSource(
       "Components/AI/InvestigationPanel.tsx",
     );
+    // The trace's button is drawn by its finding strip, beside the finding.
     const trace: string = dashboardSource(
-      "Components/Traces/TraceDetail/TraceHeader.tsx",
+      "Components/Traces/TraceDetail/TracePerformanceSuggestionCopy.ts",
     );
     const telemetry: string = dashboardSource(
       "Components/AI/TelemetryImprovementCard.tsx",
@@ -610,7 +611,7 @@ describe("Code", () => {
     }
 
     expect(investigation).toContain('title="Open Fix PR from this analysis"');
-    expect(trace).toContain('title="Fix performance with AI"');
+    expect(trace).toContain('"Fix performance with AI"');
     expect(telemetry).toContain('translationKey("Improve Logging")');
     expect(telemetry).toContain('translationKey("Improve Tracing")');
 
@@ -644,6 +645,52 @@ describe("Code", () => {
     expect(
       rowStartingWith(starts, `A service's ${bold("Traces")} page`),
     ).toBeDefined();
+  });
+
+  it("says the buttons show only where they can start a task, as the Dashboard decides it", () => {
+    const section: string = flat(
+      englishSection(CODE_PAGE, "## Where fix tasks start"),
+    );
+    const menu: string = flat(
+      dashboardSource("Pages/Exceptions/View/SideMenu.tsx"),
+    );
+    const assistance: string = flat(
+      dashboardSource("Components/Exceptions/ExceptionAIAssistance.tsx"),
+    );
+    const telemetry: string = flat(
+      dashboardSource("Components/AI/TelemetryImprovementCard.tsx"),
+    );
+    const investigation: string = flat(
+      dashboardSource("Components/AI/InvestigationPanel.tsx"),
+    );
+    const traceExplorer: string = flat(
+      dashboardSource("Components/Traces/TraceExplorer.tsx"),
+    );
+    const telemetryRule: string = readRepoFile(
+      "Common/Utils/Suggestions/TelemetryImprovementSuggestion.ts",
+    );
+
+    // AI off: the exception menu leaves AI Assistance out, and its page says so.
+    expect(menu).toContain("const isAiOffered: boolean = useAiOffered();");
+    expect(menu).toContain(
+      '{isAiOffered ? ( <SideMenuSection title="Resolve">',
+    );
+    expect(assistance).toContain("if (!isAiOffered) {");
+    // AI off: the investigation's fix action and the trace's suggestion too.
+    expect(investigation).toContain(
+      "isCodeFixRecommended && (isAiOffered || Boolean(fixTaskRunId));",
+    );
+    expect(traceExplorer).toContain("if (!isAiOfferedForSelectedProject()) {");
+    // Improve Logging / Tracing: AI on and a repository, never a setup link.
+    expect(telemetry).toContain("if (!isAiOffered) { return; }");
+    expect(telemetryRule).toContain("isBackedByEvidence: false,");
+
+    expect(section).toContain(
+      `These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no ${bold("AI Assistance")}. ${bold("Improve Logging")} and ${bold("Improve Tracing")} show once a repository is connected, and ${bold("Fix performance with AI")} only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)).`,
+    );
+    expect(rowStartingWith(starts, "A trace worth fixing")?.[2]).toBe(
+      "Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel.",
+    );
   });
 
   it("opens an exception's AI Assistance from its side menu, under Resolve", () => {
