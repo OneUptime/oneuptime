@@ -19,14 +19,7 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import { Red500 } from "../../../../Types/BrandColors";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
 
 /*

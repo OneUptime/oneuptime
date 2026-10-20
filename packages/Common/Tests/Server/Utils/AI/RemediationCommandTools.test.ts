@@ -34,14 +34,7 @@ import {
   fakeRunnerJobCountBy,
   fakeRunnerJobRows,
 } from "../../TestingUtils/Services/FakeRunnerJobCount";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
 
 /*

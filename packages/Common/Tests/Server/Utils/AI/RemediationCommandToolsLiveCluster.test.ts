@@ -33,14 +33,7 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
 
 /*
