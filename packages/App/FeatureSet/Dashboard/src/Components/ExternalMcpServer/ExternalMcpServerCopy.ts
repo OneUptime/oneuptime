@@ -185,8 +185,8 @@ export function getExternalMcpServerStatus(server: {
 }
 
 export const EXTERNAL_MCP_SERVER_TOOL_COUNT: PluralTemplate = {
-  one: translationKey("{{count}} tool"),
-  other: translationKey("{{count}} tools"),
+  one: "{{count}} tool",
+  other: "{{count}} tools",
 };
 
 export const EXTERNAL_MCP_SERVER_TOOL_BADGES: {
