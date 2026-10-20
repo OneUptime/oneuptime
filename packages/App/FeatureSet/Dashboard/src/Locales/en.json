@@ -32121,5 +32121,19 @@
   "Custom headers": "Custom headers",
   "Show all {{count}} tools": "Show all {{count}} tools",
   "Show all {{count}} tools_one": "Show all {{count}} tool",
-  "The changes of this fix could not be shown.": "The changes of this fix could not be shown."
+  "The changes of this fix could not be shown.": "The changes of this fix could not be shown.",
+  "A to Z": "A to Z",
+  "Best first": "Best first",
+  "Default ({{order}})": "Default ({{order}})",
+  "Highest first": "Highest first",
+  "Lowest first": "Lowest first",
+  "Showing the first {{count}}": "Showing the first {{count}}",
+  "Showing the first {{count}}_one": "Showing the first {{count}}",
+  "Sort: {{direction}}": "Sort: {{direction}}",
+  "Sorted: {{direction}}": "Sorted: {{direction}}",
+  "The order everyone sees the rows in. Viewers can still click a column header to sort it their own way.": "The order everyone sees the rows in. Viewers can still click a column header to sort it their own way.",
+  "The query's order": "The query's order",
+  "Worst first": "Worst first",
+  "You can also click a column header in the preview.": "You can also click a column header in the preview.",
+  "Z to A": "Z to A"
 }
