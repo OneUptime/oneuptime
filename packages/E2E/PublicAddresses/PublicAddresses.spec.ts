@@ -528,9 +528,7 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
      */
     const phoneRow: Box = await box(live);
 
-    for (const tile of await page
-      .getByTestId("public-address-tile")
-      .all()) {
+    for (const tile of await page.getByTestId("public-address-tile").all()) {
       await expect(tile).toBeHidden();
     }
     expect(address.x - phoneRow.x).toBeLessThanOrEqual(17);
@@ -582,10 +580,7 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
 
     expect(
       await page.evaluate((point: { x: number; y: number }): boolean => {
-        const hit: Element | null = document.elementFromPoint(
-          point.x,
-          point.y,
-        );
+        const hit: Element | null = document.elementFromPoint(point.x, point.y);
         return Boolean(hit && hit.closest("a"));
       }, beside),
     ).toBe(false);
