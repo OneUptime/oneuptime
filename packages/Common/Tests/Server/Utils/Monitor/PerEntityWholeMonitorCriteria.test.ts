@@ -764,6 +764,19 @@ describe("end to end: a Server monitor with a '*' disk criteria", () => {
     await report({ cpu: 20, disks: { "/": 95, "/data": 40 } });
     expect(openAlerts()).toEqual(["disk /"]);
 
+    // Its resolution names the monitor, not a series.
+    const cpuAlert: Alert = tables.alerts.find((alert: Alert): boolean => {
+      return alert.createdCriteriaId === CPU_ID;
+    })!;
+
+    expect(
+      tables.stateChanges.find(
+        (change: { record: string; id: string }): boolean => {
+          return change.id === cpuAlert.id!.toString();
+        },
+      )?.rootCause,
+    ).toContain('The monitor no longer satisfies criteria "CPU high".');
+
     // A second disk fills up: an alert of its own.
     await report({ cpu: 20, disks: { "/": 95, "/data": 97 } });
     expect(openAlerts()).toEqual(["disk /", "disk /data"]);

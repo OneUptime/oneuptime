@@ -159,6 +159,7 @@ export default class MonitorAlert {
               createdCriteriaId:
                 openAlert.createdCriteriaId?.toString() || undefined,
               criteriaInstancesById: input.criteriaInstancesById,
+              seriesFingerprint: openAlert.seriesFingerprint || undefined,
             })
           : input.rootCause;
 
@@ -288,6 +289,97 @@ export default class MonitorAlert {
         relatedAlertId: openAlert.id?.toString(),
         relatedAlertNumber: openAlert.alertNumber,
         relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
+  }
+
+  /**
+   * Event-driven resolution of a grouped incoming-request criteria's alert
+   * for the whole monitor, when a request that names no value reports it
+   * recovered. Mirrors MonitorIncident.resolveWholeMonitorIncidentsOfCriteria:
+   * only the open alerts of those criteria that carry no fingerprint, and
+   * only when the criteria opted into auto-resolve.
+   */
+  @CaptureSpan()
+  public static async resolveWholeMonitorAlertsOfCriteria(input: {
+    monitor: Monitor;
+    criteriaIds: Array<string>;
+    rootCause: string;
+    dataToProcess: DataToProcess;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+  }): Promise<void> {
+    if (!input.criteriaIds || input.criteriaIds.length === 0) {
+      return;
+    }
+
+    const criteriaIds: Set<string> = new Set<string>(input.criteriaIds);
+
+    const openAlerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        monitor: input.monitor.id!,
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(
+            input.monitor.projectId!,
+          ),
+        ),
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      select: {
+        _id: true,
+        title: true,
+        createdCriteriaId: true,
+        projectId: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        seriesFingerprint: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const openAlert of openAlerts) {
+      const createdCriteriaId: string = openAlert.createdCriteriaId
+        ? openAlert.createdCriteriaId.toString()
+        : "";
+
+      if (
+        openAlert.seriesFingerprint ||
+        !createdCriteriaId ||
+        !criteriaIds.has(createdCriteriaId)
+      ) {
+        continue;
+      }
+
+      // Only auto-resolve when the creating criteria opted into it.
+      if (
+        !this.isAutoResolveConfiguredForAlert({
+          openAlert: openAlert,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+        })
+      ) {
+        continue;
+      }
+
+      await this.resolveOpenAlert({
+        openAlert: openAlert,
+        rootCause: input.rootCause,
+        dataToProcess: input.dataToProcess,
+      });
+
+      input.evaluationSummary?.events.push({
+        type: "alert-resolved",
+        title: `Alert resolved: ${openAlert.id?.toString()}`,
+        message:
+          "Alert auto-resolved because a request with no value to group by reported recovered.",
+        relatedAlertId: openAlert.id?.toString(),
+        relatedAlertNumber: openAlert.alertNumber,
+        relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
+        relatedCriteriaId: createdCriteriaId,
         at: OneUptimeDate.getCurrentDate(),
       });
     }

@@ -300,7 +300,7 @@ Las rutas deben empezar por el prefijo literal `requestBody.`. Una ruta sin él 
 
 Una solicitud que coincide con un criterio agrupado pero no tiene valor en su ruta —el campo falta o está vacío, contiene un objeto o una lista, o el cuerpo no es un objeto JSON— sigue abriendo el incidente y la alerta de ese criterio: uno para todo el monitor, como lo haría el criterio sin agrupación. Lo mismo hace un criterio agrupado que coincide porque las solicitudes dejaron de llegar. Un título que nombra la variable de agrupación, como `{{alertname}}`, la muestra tal como está escrita, porque no hay ningún valor que poner.
 
-Ese incidente se resuelve como el de un criterio sin agrupación: cuando una solicitud posterior coincide con otro criterio, si **Resolver incidente automáticamente** está activado. Una solicitud sin el campo que informa de que se ha recuperado no abre nada.
+Ese incidente se resuelve, si **Resolver incidente automáticamente** está activado, cuando una solicitud posterior sin el campo informa de que se ha recuperado, o cuando una solicitud posterior coincide con otro criterio. Esa recuperación no abre nada nuevo.
 
 Cuando algunos elementos de un array tienen un valor y otros no, cada valor abre su propio incidente, y los elementos sin valor no abren nada propio.
 

@@ -300,7 +300,7 @@ Os caminhos precisam começar com o prefixo literal `requestBody.`. Um caminho s
 
 Uma solicitação que corresponde a um critério agrupado, mas não tem valor no caminho dele (o campo está ausente ou vazio, contém um objeto ou uma lista, ou o corpo não é um objeto JSON), ainda abre o incidente e o alerta desse critério: um só para o monitor inteiro, como o critério faria sem agrupamento. O mesmo vale para um critério agrupado que corresponde porque as solicitações pararam de chegar. Um título que cita a variável de agrupamento, como `{{alertname}}`, mostra-a como está escrita, pois não há valor para pôr no lugar.
 
-Esse incidente é resolvido como o de um critério sem agrupamento: quando uma solicitação posterior corresponde a outro critério, se **Resolver incidente automaticamente** estiver ligado. Uma solicitação sem o campo que informa que se recuperou não abre nada.
+Esse incidente é resolvido, se **Resolver incidente automaticamente** estiver ligado, quando uma solicitação posterior sem o campo informa que se recuperou, ou quando uma solicitação posterior corresponde a outro critério. Essa recuperação não abre nada novo.
 
 Quando alguns elementos de um array têm valor e outros não, cada valor abre o seu próprio incidente, e os elementos sem valor não abrem nada por conta própria.
 

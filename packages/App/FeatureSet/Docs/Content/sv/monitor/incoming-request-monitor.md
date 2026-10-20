@@ -300,7 +300,7 @@ Sökvägar måste börja med det bokstavliga prefixet `requestBody.`. En sökvä
 
 En förfrågan som matchar ett grupperat kriterium men saknar värde på dess sökväg — fältet saknas eller är tomt, innehåller ett objekt eller en lista, eller kroppen är inte ett JSON-objekt — öppnar ändå kriteriets incident och larm: en för hela monitorn, som kriteriet skulle göra utan gruppering. Detsamma gör ett grupperat kriterium som matchar för att förfrågningarna slutade komma. En titel som nämner grupperingsvariabeln, som `{{alertname}}`, visar den som den är skriven, eftersom det inte finns något värde att sätta in.
 
-Den incidenten löses som incidenten från ett kriterium utan gruppering: när en senare förfrågan matchar ett annat kriterium, om **Lös incident automatiskt** är påslaget. En förfrågan utan fältet som meddelar att problemet är över öppnar ingenting.
+Den incidenten löses, om **Lös incident automatiskt** är påslaget, när en senare förfrågan utan fältet meddelar att problemet är över, eller när en senare förfrågan matchar ett annat kriterium. Ett sådant meddelande öppnar inget nytt.
 
 När vissa element i en matris har ett värde och andra inte, öppnar varje värde sin egen incident, och elementen utan värde öppnar ingenting själva.
 

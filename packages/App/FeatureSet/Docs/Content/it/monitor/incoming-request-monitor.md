@@ -300,7 +300,7 @@ I percorsi devono iniziare con il prefisso letterale `requestBody.`. Un percorso
 
 Una richiesta che corrisponde a un criterio raggruppato ma non ha alcun valore nel suo percorso (il campo manca o è vuoto, contiene un oggetto o un elenco, oppure il corpo non è un oggetto JSON) apre comunque l'incidente e l'avviso di quel criterio: uno solo per l'intero monitor, come farebbe il criterio senza raggruppamento. Lo stesso fa un criterio raggruppato che corrisponde perché le richieste hanno smesso di arrivare. Un titolo che nomina la variabile di raggruppamento, come `{{alertname}}`, la mostra così come è scritta, perché non c'è alcun valore da inserire.
 
-Quell'incidente si risolve come quello di un criterio senza raggruppamento: quando una richiesta successiva corrisponde a un altro criterio, se **Risoluzione automatica dell'incidente** è attiva. Una richiesta senza il campo che segnala il proprio ripristino non apre nulla.
+Quell'incidente si risolve, se **Risoluzione automatica dell'incidente** è attiva, quando una richiesta successiva senza il campo segnala il proprio ripristino, o quando una richiesta successiva corrisponde a un altro criterio. Un ripristino del genere non apre nulla di nuovo.
 
 Quando alcuni elementi di un array hanno un valore e altri no, ogni valore apre il proprio incidente, e gli elementi senza valore non aprono nulla di proprio.
 

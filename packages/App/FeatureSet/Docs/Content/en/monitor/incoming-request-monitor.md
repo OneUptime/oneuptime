@@ -300,7 +300,7 @@ Paths must start with the literal prefix `requestBody.`. A path without it — `
 
 A request that matches a grouped criteria but has no value at its path — the field is missing or empty, holds an object or a list, or the body is not a JSON object — still opens that criteria's incident and alert: one for the whole monitor, as the criteria would without grouping. So does a grouped criteria that matches because requests stopped arriving. A title that names the grouping variable, such as `{{alertname}}`, shows it as written, since there is no value to put in.
 
-That incident resolves like the incident of a criteria without grouping: when a later request matches another criteria, if **Auto Resolve Incident** is on. A request without the field that reports it recovered opens nothing.
+That incident resolves, if **Auto Resolve Incident** is on, when a later request without the field reports it recovered, or when a later request matches another criteria. Such a recovery opens nothing new.
 
 When some elements of an array have a value and others do not, each value opens its own incident, and the elements without one open nothing of their own.
 

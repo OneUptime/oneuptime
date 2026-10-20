@@ -528,22 +528,6 @@ export default class MonitorCriteriaEvaluator {
       }
 
       /*
-       * When this is a monitor with per-series results, compute the
-       * per-series match list so MonitorResource can fan out one
-       * incident + one alert per affected series.
-       */
-      const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
-        incomingRequestGrouping
-          ? incomingRequestGrouping.perKeyMatches || []
-          : await MonitorCriteriaEvaluator.collectPerSeriesMatches({
-              dataToProcess: input.dataToProcess,
-              monitor: input.monitor,
-              monitorStep: input.monitorStep,
-              criteriaInstance,
-              criteriaInEffect: criteriaInEffect,
-            });
-
-      /*
        * On a Server or Network Device monitor where some criteria names "*"
        * for every disk, port or row, a criteria that names none - Device
        * unreachable, Is Online, CPU above 90% - has no entity to fan out
@@ -556,6 +540,25 @@ export default class MonitorCriteriaEvaluator {
           monitorType: input.monitor.monitorType,
           criteriaInstance: criteriaInstance,
         });
+
+      /*
+       * When this is a monitor with per-series results, compute the
+       * per-series match list so MonitorResource can fan out one
+       * incident + one alert per affected series. A criteria that judges
+       * the whole monitor has no series to compute.
+       */
+      const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
+        incomingRequestGrouping
+          ? incomingRequestGrouping.perKeyMatches || []
+          : judgesWholeMonitor
+            ? []
+            : await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+                dataToProcess: input.dataToProcess,
+                monitor: input.monitor,
+                monitorStep: input.monitorStep,
+                criteriaInstance,
+                criteriaInEffect: criteriaInEffect,
+              });
 
       /*
        * A grouped monitor whose scalar verdict says "met" but which
@@ -934,27 +937,16 @@ ${incomingRequestGrouping.rootCauseNote}
      * entity each. They opt into per-entity alerting by naming "*"
      * instead of a specific disk / interface.
      */
-    if (monitorType === MonitorType.Server) {
+    if (
+      monitorType === MonitorType.Server ||
+      monitorType === MonitorType.NetworkDevice
+    ) {
       return input.criteriaInstances.some(
         (criteriaInstance: MonitorCriteriaInstance) => {
-          return PerEntityCriteriaFanOut.isServerDiskFanOutConfigured(
-            criteriaInstance,
-          );
-        },
-      );
-    }
-
-    if (monitorType === MonitorType.NetworkDevice) {
-      return input.criteriaInstances.some(
-        (criteriaInstance: MonitorCriteriaInstance) => {
-          return (
-            PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
-              criteriaInstance,
-            ) ||
-            PerEntityCriteriaFanOut.isSnmpTableFanOutConfigured(
-              criteriaInstance,
-            )
-          );
+          return PerEntityCriteriaFanOut.isFanOutConfigured({
+            monitorType: monitorType,
+            criteriaInstance: criteriaInstance,
+          });
         },
       );
     }

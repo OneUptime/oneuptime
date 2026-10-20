@@ -1903,13 +1903,35 @@ describe("Incoming Request Monitor", () => {
       );
     });
 
-    it("opens nothing for a request without the field that reports it recovered", () => {
+    it("resolves that incident when a request without the field reports it recovered, which opens nothing new", () => {
+      const criteriaInstance: MonitorCriteriaInstance = grouped(GROUPING);
+
+      // The request is read for recoveries, whichever criteria it matched.
+      expect(
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: {
+            projectId: ObjectID.generate(),
+            monitorId: ObjectID.generate(),
+            requestBody: { state: "ok" },
+            incomingRequestReceivedAt: new Date(),
+            checkedAt: new Date(),
+          } as unknown as Parameters<
+            typeof IncomingRequestIncidentGrouping.collectRecoveries
+          >[0]["dataToProcess"],
+          criteriaInstances: [criteriaInstance],
+        }).wholeMonitorCriteriaIds,
+      ).toEqual([criteriaInstance.data!.id]);
+      // And opens nothing new for the criteria it matches.
       expect(
         decide({ requestBody: { state: "ok" }, grouping: GROUPING })
           .perKeyMatches,
       ).toEqual([]);
+      // The resolve itself runs where every other recovery does.
+      expect(
+        readRepoFile("Common/Server/Utils/Monitor/MonitorResource.ts"),
+      ).toContain("MonitorIncident.resolveWholeMonitorIncidentsOfCriteria({");
       expect(withoutField).toContain(
-        "A request without the field that reports it recovered opens nothing.",
+        "That incident resolves, if **Auto Resolve Incident** is on, when a later request without the field reports it recovered, or when a later request matches another criteria. Such a recovery opens nothing new.",
       );
     });
 

@@ -876,6 +876,139 @@ describe("Recovery, with and without the field", () => {
 
     expect(openIncidentTitles()).toEqual(["{{alertname}}"]);
   });
+
+  it("an item with no value beside recovered named ones opens nothing, whatever its siblings' state", async () => {
+    await send(notification("firing", [["HighCPU", "firing"]]));
+
+    const summary: MonitorEvaluationSummary = await send({
+      status: "firing",
+      alerts: [
+        { status: "resolved", labels: { alertname: "HighCPU" } },
+        { status: "firing" },
+      ],
+    });
+
+    // HighCPU recovered; the unnamed item opens nothing of its own.
+    expect(openIncidentTitles()).toEqual([]);
+    expect(tables.incidents).toHaveLength(1);
+    expect(groupingNotes(summary)[0]!.message).toContain(
+      "1 item in this request has no value at requestBody.alerts[*].labels.alertname, so it opens nothing of its own.",
+    );
+  });
+});
+
+/*
+ * The counterpart of a request with no value that is firing: one with no
+ * value that reports recovered resolves what the first opened - even on a
+ * monitor where every request matches the same grouped criteria, and so no
+ * other criteria ever comes along to resolve it.
+ */
+describe("A request without the field that reports it recovered", () => {
+  function onlyCriteria(autoResolve: boolean): MonitorCriteriaInstance {
+    return criteria({
+      id: FIRING_ID,
+      name: "Grafana",
+      statusId: OFFLINE_STATUS_ID,
+      filters: [bodyFilter(FilterType.Contains, '"alerts"')],
+      grouping: PER_ALERT_GROUPING,
+      incident: { title: "Grafana: {{alertname}}", autoResolve },
+      alert: { title: "Grafana: {{alertname}}", autoResolve },
+    });
+  }
+
+  it("resolves the incident and alert a request with no value opened for the whole monitor", async () => {
+    monitorUnderTest = monitorWith([onlyCriteria(true)]);
+
+    await send({ alerts: [{ status: "firing" }] });
+    expect(openIncidentTitles()).toEqual(["Grafana: {{alertname}}"]);
+    expect(openAlertTitles()).toEqual(["Grafana: {{alertname}}"]);
+
+    const summary: MonitorEvaluationSummary = await send({
+      alerts: [{ status: "resolved" }],
+    });
+
+    expect(openIncidentTitles()).toEqual([]);
+    expect(openAlertTitles()).toEqual([]);
+    // Nothing new opened in its place.
+    expect(tables.incidents).toHaveLength(1);
+    expect(tables.alerts).toHaveLength(1);
+
+    expect(actions(summary)).toEqual([
+      "grouping: Nothing new to open",
+      `incident-resolved: Incident resolved: ${tables.incidents[0]!.id!.toString()}`,
+      `alert-resolved: Alert resolved: ${tables.alerts[0]!.id!.toString()}`,
+    ]);
+    expect(
+      summary.events.find((event: MonitorEvaluationEvent): boolean => {
+        return event.type === "incident-resolved";
+      })?.message,
+    ).toBe(
+      "Incident auto-resolved because a request with no value to group by reported recovered.",
+    );
+
+    for (const change of tables.stateChanges) {
+      expect(change.rootCause).toContain(
+        "Incoming request with no value to group by reported recovered.",
+      );
+    }
+  });
+
+  it("leaves it to the named values otherwise: a recovered value does not resolve it", async () => {
+    monitorUnderTest = monitorWith([onlyCriteria(true)]);
+
+    await send({ alerts: [{ status: "firing" }] });
+    await send({
+      alerts: [{ status: "firing", labels: { alertname: "HighCPU" } }],
+    });
+    await send({
+      alerts: [{ status: "resolved", labels: { alertname: "HighCPU" } }],
+    });
+
+    expect(openIncidentTitles()).toEqual(["Grafana: {{alertname}}"]);
+    expect(
+      tables.incidents.map((incident: Incident): string => {
+        return incident.title || "";
+      }),
+    ).toEqual(["Grafana: {{alertname}}", "Grafana: HighCPU"]);
+  });
+
+  it("and a firing request with no value keeps it open, one at a time", async () => {
+    monitorUnderTest = monitorWith([onlyCriteria(true)]);
+
+    await send({ alerts: [{ status: "firing" }] });
+    await send({ alerts: [{ status: "firing" }, { status: "resolved" }] });
+
+    expect(openIncidentTitles()).toEqual(["Grafana: {{alertname}}"]);
+    expect(tables.incidents).toHaveLength(1);
+  });
+
+  it("only with Auto Resolve on", async () => {
+    monitorUnderTest = monitorWith([onlyCriteria(false)]);
+
+    await send({ alerts: [{ status: "firing" }] });
+    await send({ alerts: [{ status: "resolved" }] });
+
+    expect(openIncidentTitles()).toEqual(["Grafana: {{alertname}}"]);
+    expect(openAlertTitles()).toEqual(["Grafana: {{alertname}}"]);
+  });
+
+  it("never touches a criteria without grouping's incident", async () => {
+    monitorUnderTest = monitorWith([
+      onlyCriteria(true),
+      criteria({
+        id: WARNING_ID,
+        name: "Anything else",
+        statusId: DEGRADED_STATUS_ID,
+        filters: [bodyFilter(FilterType.NotContains, '"alerts"')],
+        incident: { title: "Something else", autoResolve: false },
+      }),
+    ]);
+
+    await send({ other: "payload" });
+    await send({ alerts: [{ status: "resolved" }] });
+
+    expect(openIncidentTitles()).toEqual(["Something else"]);
+  });
 });
 
 describe("Three criteria, in different orders", () => {

@@ -300,7 +300,7 @@ Pfade müssen mit dem wörtlichen Präfix `requestBody.` beginnen. Ein Pfad ohne
 
 Eine Anfrage, die auf ein gruppiertes Kriterium zutrifft, an dessen Pfad aber keinen Wert hat — das Feld fehlt oder ist leer, enthält ein Objekt oder eine Liste, oder der Body ist kein JSON-Objekt —, eröffnet trotzdem den Vorfall und die Warnung dieses Kriteriums: einen für den ganzen Monitor, wie das Kriterium es ohne Gruppierung täte. Ebenso ein gruppiertes Kriterium, das zutrifft, weil keine Anfragen mehr ankommen. Ein Titel, der die Gruppierungsvariable nennt, etwa `{{alertname}}`, zeigt sie wörtlich, da es keinen Wert zum Einsetzen gibt.
 
-Dieser Vorfall wird behoben wie der Vorfall eines Kriteriums ohne Gruppierung: wenn eine spätere Anfrage auf ein anderes Kriterium zutrifft und **Vorfall automatisch beheben** eingeschaltet ist. Eine Anfrage ohne das Feld, die meldet, dass sie sich erholt hat, eröffnet nichts.
+Dieser Vorfall wird behoben, wenn **Vorfall automatisch beheben** eingeschaltet ist und eine spätere Anfrage ohne das Feld meldet, dass sie sich erholt hat, oder eine spätere Anfrage auf ein anderes Kriterium zutrifft. Eine solche Erholung eröffnet nichts Neues.
 
 Haben manche Elemente eines Arrays einen Wert und andere nicht, eröffnet jeder Wert seinen eigenen Vorfall, und die Elemente ohne Wert eröffnen selbst nichts.
 

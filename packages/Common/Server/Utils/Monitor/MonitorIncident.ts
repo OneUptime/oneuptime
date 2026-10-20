@@ -177,6 +177,7 @@ export default class MonitorIncident {
               createdCriteriaId:
                 openIncident.createdCriteriaId?.toString() || undefined,
               criteriaInstancesById: input.criteriaInstancesById,
+              seriesFingerprint: openIncident.seriesFingerprint || undefined,
             })
           : input.rootCause;
 
@@ -308,6 +309,96 @@ export default class MonitorIncident {
         relatedIncidentId: openIncident.id?.toString(),
         relatedIncidentNumber: openIncident.incidentNumber,
         relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
+  }
+
+  /**
+   * Event-driven resolution of a grouped incoming-request criteria's
+   * incident for the whole monitor - the one it opens for a request that
+   * names no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria)
+   * - when a request that names no value either reports it recovered
+   * (IncomingRequestIncidentGrouping.collectRecoveries). Only the open
+   * incidents of those criteria that carry no fingerprint, and only when the
+   * criteria opted into auto-resolve; values' incidents are left alone.
+   */
+  @CaptureSpan()
+  public static async resolveWholeMonitorIncidentsOfCriteria(input: {
+    monitor: Monitor;
+    criteriaIds: Array<string>;
+    rootCause: string;
+    dataToProcess: DataToProcess;
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+  }): Promise<void> {
+    if (!input.criteriaIds || input.criteriaIds.length === 0) {
+      return;
+    }
+
+    const criteriaIds: Set<string> = new Set<string>(input.criteriaIds);
+
+    const openIncidents: Array<Incident> = await IncidentService.findBy({
+      query: {
+        monitors: [input.monitor.id!],
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            input.monitor.projectId!,
+          ),
+        ),
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      select: {
+        _id: true,
+        title: true,
+        createdCriteriaId: true,
+        createdIncidentTemplateId: true,
+        projectId: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+        seriesFingerprint: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const openIncident of openIncidents) {
+      if (
+        openIncident.seriesFingerprint ||
+        !criteriaIds.has(openIncident.createdCriteriaId?.toString() || "")
+      ) {
+        continue;
+      }
+
+      if (
+        !this.isAutoResolveConfiguredForIncident({
+          openIncident: openIncident,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        })
+      ) {
+        continue;
+      }
+
+      await this.resolveOpenIncident({
+        openIncident: openIncident,
+        rootCause: input.rootCause,
+        dataToProcess: input.dataToProcess,
+      });
+
+      input.evaluationSummary?.events.push({
+        type: "incident-resolved",
+        title: `Incident resolved: ${openIncident.id?.toString()}`,
+        message:
+          "Incident auto-resolved because a request with no value to group by reported recovered.",
+        relatedIncidentId: openIncident.id?.toString(),
+        relatedIncidentNumber: openIncident.incidentNumber,
+        relatedIncidentNumberWithPrefix: openIncident.incidentNumberWithPrefix,
+        relatedCriteriaId: openIncident.createdCriteriaId?.toString(),
         at: OneUptimeDate.getCurrentDate(),
       });
     }

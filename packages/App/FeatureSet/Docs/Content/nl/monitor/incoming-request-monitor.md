@@ -300,7 +300,7 @@ Paden moeten beginnen met het letterlijke voorvoegsel `requestBody.`. Een pad zo
 
 Een verzoek dat overeenkomt met een gegroepeerd criterium maar geen waarde heeft op het pad ervan (het veld ontbreekt of is leeg, bevat een object of een lijst, of de body is geen JSON-object) opent toch het incident en de waarschuwing van dat criterium: één voor de hele monitor, zoals het criterium zonder groepering zou doen. Dat doet ook een gegroepeerd criterium dat overeenkomt omdat er geen verzoeken meer binnenkomen. Een titel die de groeperingsvariabele noemt, zoals `{{alertname}}`, toont die zoals hij geschreven is, omdat er geen waarde is om in te vullen.
 
-Dat incident wordt opgelost zoals het incident van een criterium zonder groepering: wanneer een later verzoek overeenkomt met een ander criterium, als **Incident automatisch oplossen** aanstaat. Een verzoek zonder het veld dat meldt dat het hersteld is, opent niets.
+Dat incident wordt opgelost, als **Incident automatisch oplossen** aanstaat, wanneer een later verzoek zonder het veld meldt dat het hersteld is, of wanneer een later verzoek overeenkomt met een ander criterium. Zo'n herstel opent niets nieuws.
 
 Als sommige elementen van een array een waarde hebben en andere niet, opent elke waarde een eigen incident, en openen de elementen zonder waarde zelf niets.
 

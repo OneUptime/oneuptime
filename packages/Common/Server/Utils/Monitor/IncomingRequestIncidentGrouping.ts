@@ -240,9 +240,18 @@ export default class IncomingRequestIncidentGrouping {
       },
     );
 
-    if (firingItems.length > 0) {
-      const withoutValue: number = scan.firingWithoutValue;
+    /*
+     * Items with no value beside named ones open nothing of their own: the
+     * request names values, so it is grouped, and only a request that names
+     * none at all is handled for the whole monitor. They are counted in the
+     * monitor log instead.
+     */
+    const itemsWithoutValue: string =
+      scan.firingWithoutValue === 1
+        ? `1 item in this request has no value at ${groupByPath}, so it opens nothing of its own.`
+        : `${scan.firingWithoutValue} items in this request have no value at ${groupByPath}, so they open nothing of their own.`;
 
+    if (firingItems.length > 0) {
       return {
         perKeyMatches: firingItems.map(
           (item: IncomingRequestGroupingItem): PerSeriesCriteriaMatch => {
@@ -250,15 +259,24 @@ export default class IncomingRequestIncidentGrouping {
           },
         ),
         note:
-          withoutValue > 0
+          scan.firingWithoutValue > 0
             ? {
                 title: GROUPING_NOTE_TITLES.someItemsWithoutValue,
-                message:
-                  withoutValue === 1
-                    ? `1 item in this request has no value at ${groupByPath}, so it opens nothing of its own.`
-                    : `${withoutValue} items in this request have no value at ${groupByPath}, so they open nothing of their own.`,
+                message: itemsWithoutValue,
               }
             : undefined,
+      };
+    }
+
+    if (scan.items.length > 0) {
+      return {
+        perKeyMatches: [],
+        note: {
+          title: GROUPING_NOTE_TITLES.nothingNew,
+          message:
+            `Every value this request has at ${groupByPath} reported recovered, so criteria "${criteriaName}" opens nothing new.` +
+            (scan.firingWithoutValue > 0 ? ` ${itemsWithoutValue}` : ""),
+        },
       };
     }
 
@@ -277,16 +295,7 @@ export default class IncomingRequestIncidentGrouping {
       };
     }
 
-    if (scan.items.length > 0) {
-      return {
-        perKeyMatches: [],
-        note: {
-          title: GROUPING_NOTE_TITLES.nothingNew,
-          message: `Every value this request has at ${groupByPath} reported recovered, so criteria "${criteriaName}" opens nothing new.`,
-        },
-      };
-    }
-
+    // No value anywhere, and every part reports recovered.
     return {
       perKeyMatches: [],
       note: {
@@ -306,21 +315,43 @@ export default class IncomingRequestIncidentGrouping {
     dataToProcess: DataToProcess;
     criteriaInstances: Array<MonitorCriteriaInstance>;
   }): Array<string> {
+    return this.collectRecoveries(input).fingerprints;
+  }
+
+  /**
+   * What a request reports recovered, across every grouping-enabled
+   * criteria on the monitor's step, whichever criteria it matched - read in
+   * one pass over each grouping:
+   *
+   *   - fingerprints: the values it reports recovered. Their incidents and
+   *     alerts resolve.
+   *   - wholeMonitorCriteriaIds: the grouped criteria for which it names no
+   *     value at all and reports recovered. Such a request is the
+   *     counterpart of one with no value that is firing, which opened the
+   *     criteria's incident and alert for the whole monitor
+   *     (decideForMatchedCriteria), so those - the criteria's records
+   *     with no value - resolve.
+   *
+   * Never by absence, and never on the background check, which carries no
+   * fresh request.
+   */
+  public static collectRecoveries(input: {
+    dataToProcess: DataToProcess;
+    criteriaInstances: Array<MonitorCriteriaInstance>;
+  }): { fingerprints: Array<string>; wholeMonitorCriteriaIds: Array<string> } {
+    const fingerprints: Set<string> = new Set<string>();
+    const wholeMonitorCriteriaIds: Set<string> = new Set<string>();
+
     if (
       (input.dataToProcess as IncomingMonitorRequest)
         .onlyCheckForIncomingRequestReceivedAt
     ) {
-      return [];
+      return { fingerprints: [], wholeMonitorCriteriaIds: [] };
     }
 
     const body: JSONObject | null = this.getRequestBodyObject(
       input.dataToProcess,
     );
-    if (!body) {
-      return [];
-    }
-
-    const fingerprints: Set<string> = new Set<string>();
 
     for (const criteriaInstance of input.criteriaInstances) {
       const grouping: IncidentGroupingConfig | undefined =
@@ -330,14 +361,33 @@ export default class IncomingRequestIncidentGrouping {
         continue;
       }
 
-      for (const item of this.extractItems({ requestBody: body, grouping })) {
+      const scan: IncomingRequestGroupingScan = this.scanRequestBody({
+        requestBody: body,
+        grouping: grouping,
+      });
+
+      for (const item of scan.items) {
         if (item.isResolved) {
           fingerprints.add(item.fingerprint);
         }
       }
+
+      const criteriaId: string | undefined = criteriaInstance.data?.id;
+
+      if (
+        criteriaId &&
+        scan.items.length === 0 &&
+        scan.firingWithoutValue === 0 &&
+        scan.recoveredWithoutValue > 0
+      ) {
+        wholeMonitorCriteriaIds.add(criteriaId.toString());
+      }
     }
 
-    return Array.from(fingerprints);
+    return {
+      fingerprints: Array.from(fingerprints),
+      wholeMonitorCriteriaIds: Array.from(wholeMonitorCriteriaIds),
+    };
   }
 
   /**

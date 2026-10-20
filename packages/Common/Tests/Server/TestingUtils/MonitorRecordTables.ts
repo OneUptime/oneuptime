@@ -68,6 +68,14 @@ export interface MonitorRecordTables {
    * DEFAULT_STATUS for a check that matched none and moved it back.
    */
   statusSetBy: Array<string>;
+  // Every incident and alert state change, with the root cause it recorded.
+  stateChanges: Array<MonitorRecordStateChange>;
+}
+
+export interface MonitorRecordStateChange {
+  record: "incident" | "alert";
+  id: string;
+  rootCause: string | undefined;
 }
 
 export const DEFAULT_STATUS: string = "(back to the default status)";
@@ -131,6 +139,7 @@ export function mockMonitorRecordTables(input: {
     incidents: [],
     alerts: [],
     statusSetBy: [],
+    stateChanges: [],
   };
 
   let nextIncidentNumber: number = 1;
@@ -298,6 +307,11 @@ export function mockMonitorRecordTables(input: {
       );
 
       incident!.currentIncidentStateId = createBy.data.incidentStateId!;
+      tables.stateChanges.push({
+        record: "incident",
+        id: incident!.id!.toString(),
+        rootCause: createBy.data.rootCause || undefined,
+      });
       return createBy.data;
     }) as never);
 
@@ -340,6 +354,11 @@ export function mockMonitorRecordTables(input: {
       );
 
       alert!.currentAlertStateId = createBy.data.alertStateId!;
+      tables.stateChanges.push({
+        record: "alert",
+        id: alert!.id!.toString(),
+        rootCause: createBy.data.rootCause || undefined,
+      });
       return createBy.data;
     }) as never);
 

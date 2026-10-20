@@ -300,7 +300,7 @@ Stier må starte med det bokstavelige prefikset `requestBody.`. En sti uten det 
 
 En forespørsel som samsvarer med et gruppert kriterium, men som ikke har noen verdi på stien — feltet mangler eller er tomt, inneholder et objekt eller en liste, eller teksten er ikke et JSON-objekt — åpner likevel hendelsen og varselet til kriteriet: én for hele monitoren, slik kriteriet ville gjort uten gruppering. Det samme gjør et gruppert kriterium som samsvarer fordi forespørslene sluttet å komme. En tittel som nevner grupperingsvariabelen, som `{{alertname}}`, viser den slik den er skrevet, siden det ikke finnes noen verdi å sette inn.
 
-Den hendelsen løses som hendelsen til et kriterium uten gruppering: når en senere forespørsel samsvarer med et annet kriterium, hvis **Løs hendelse automatisk** er slått på. En forespørsel uten feltet som melder at problemet er over, åpner ingenting.
+Den hendelsen løses, hvis **Løs hendelse automatisk** er slått på, når en senere forespørsel uten feltet melder at problemet er over, eller når en senere forespørsel samsvarer med et annet kriterium. En slik melding åpner ikke noe nytt.
 
 Når noen elementer i en matrise har en verdi og andre ikke, åpner hver verdi sin egen hendelse, og elementene uten verdi åpner ingenting selv.
 

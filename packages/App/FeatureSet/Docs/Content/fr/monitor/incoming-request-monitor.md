@@ -300,7 +300,7 @@ Les chemins doivent commencer par le préfixe littéral `requestBody.`. Un chemi
 
 Une requête qui correspond à un critère regroupé mais n'a pas de valeur à son chemin — le champ est absent ou vide, contient un objet ou une liste, ou le corps n'est pas un objet JSON — ouvre quand même l'incident et l'alerte de ce critère : un seul pour tout le moniteur, comme le ferait le critère sans regroupement. Il en va de même d'un critère regroupé qui correspond parce que les requêtes ont cessé d'arriver. Un titre qui nomme la variable de regroupement, comme `{{alertname}}`, l'affiche telle qu'elle est écrite, puisqu'il n'y a aucune valeur à y mettre.
 
-Cet incident se résout comme celui d'un critère sans regroupement : quand une requête suivante correspond à un autre critère, si **Résoudre automatiquement l'incident** est activé. Une requête sans le champ qui signale son rétablissement n'ouvre rien.
+Cet incident se résout, si **Résoudre automatiquement l'incident** est activé, quand une requête suivante sans le champ signale son rétablissement, ou quand une requête suivante correspond à un autre critère. Un tel rétablissement n'ouvre rien de nouveau.
 
 Quand certains éléments d'un tableau ont une valeur et d'autres non, chaque valeur ouvre son propre incident, et les éléments sans valeur n'ouvrent rien d'eux-mêmes.
 
