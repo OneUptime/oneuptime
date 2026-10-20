@@ -1,3 +1,4 @@
+import FixProductionVerdict from "../AI/FixProductionVerdict";
 import PageComponentProps from "../../Pages/PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -273,6 +274,21 @@ function EntryRow(props: {
         <p className="mt-1 max-w-2xl break-words text-xs text-rose-600">
           {entry.errorMessage}
         </p>
+      ) : (
+        <></>
+      )}
+
+      {/*
+        Merged is not fixed: once the fix's pull request merged, what
+        production showed - the monitor quiet or raising it again, the
+        telemetry it adds arriving or not.
+      */}
+      {entry.kind === IncidentAlertAiLogKind.FixTask && entry.production ? (
+        <FixProductionVerdict
+          production={entry.production}
+          testId="ai-log-entry-production"
+          className="mt-2"
+        />
       ) : (
         <></>
       )}

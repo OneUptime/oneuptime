@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "معیار {{criteria}} تطبیق یافت چون درخواست‌ها دیگر نمی‌رسند، پس آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",
   "{{duration}} after paging": "{{duration}} پس از فراخوانی",
   "Someone is first paged": "نخستین بار کسی فراخوانده می‌شود",
-  "From when someone is first paged until someone acknowledges it.": "از نخستین باری که کسی فراخوانده می‌شود تا زمانی که کسی آن را تأیید کند."
+  "From when someone is first paged until someone acknowledges it.": "از نخستین باری که کسی فراخوانده می‌شود تا زمانی که کسی آن را تأیید کند.",
+  "Arriving in production": "در محیط عملیاتی دریافت می‌شود",
+  "Deployed, watching in production": "مستقرشده، در حال پایش در محیط عملیاتی",
+  "Faster in production": "در محیط عملیاتی سریع‌تر شد",
+  "Fixed in production": "در محیط عملیاتی برطرف شد",
+  "Happened again after the fix": "پس از اصلاح دوباره رخ داد",
+  "Merged, waiting for a deploy": "ادغام‌شده، در انتظار استقرار",
+  "Not verified in production": "در محیط عملیاتی راستی‌آزمایی نشد",
+  "Production Baseline": "خط پایه محیط عملیاتی",
+  "Production Check": "بررسی محیط عملیاتی",
+  "Still happening after the fix": "پس از اصلاح همچنان رخ می‌دهد",
+  "Still slow after the fix": "پس از اصلاح همچنان کند است",
+  "Telemetry stopped after the fix": "پس از اصلاح تله‌متری متوقف شد"
 }

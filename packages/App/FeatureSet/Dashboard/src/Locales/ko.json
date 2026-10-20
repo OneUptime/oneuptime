@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "요청이 더 이상 오지 않아 {{criteria}} 기준이 일치했으므로, 그룹화하지 않고 모니터 전체에 대해 한 번 처리했습니다.",
   "{{duration}} after paging": "호출 후 {{duration}}",
   "Someone is first paged": "누군가 처음 호출될 때",
-  "From when someone is first paged until someone acknowledges it.": "누군가 처음 호출된 때부터 누군가 인지할 때까지."
+  "From when someone is first paged until someone acknowledges it.": "누군가 처음 호출된 때부터 누군가 인지할 때까지.",
+  "Arriving in production": "프로덕션에서 수신 중",
+  "Deployed, watching in production": "배포됨, 프로덕션에서 관찰 중",
+  "Faster in production": "프로덕션에서 빨라짐",
+  "Fixed in production": "프로덕션에서 수정됨",
+  "Happened again after the fix": "수정 후 다시 발생",
+  "Merged, waiting for a deploy": "병합됨, 배포 대기 중",
+  "Not verified in production": "프로덕션에서 검증되지 않음",
+  "Production Baseline": "프로덕션 기준선",
+  "Production Check": "프로덕션 점검",
+  "Still happening after the fix": "수정 후에도 계속 발생",
+  "Still slow after the fix": "수정 후에도 여전히 느림",
+  "Telemetry stopped after the fix": "수정 후 텔레메트리 중단"
 }

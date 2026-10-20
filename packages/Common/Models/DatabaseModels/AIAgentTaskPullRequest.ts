@@ -24,6 +24,8 @@ import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import FixPullRequestCiStatus from "../../Types/AI/FixPullRequestCiStatus";
 import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
 import FixProductionStatus from "../../Types/AI/FixProductionStatus";
+import FixProductionCheck from "../../Types/AI/FixProductionCheck";
+import FixProductionBaseline from "../../Types/AI/FixProductionBaseline";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 
@@ -696,7 +698,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Production Status",
     description:
-      "Whether the merged fix fixed its exception in production: AwaitingDeploy, Watching, Verified, Regressed or Unverifiable. Written by the server, which watches the exception once a recorded deploy contains the fix.",
+      "Whether the merged fix worked in production: AwaitingDeploy, Watching, Verified, Regressed or Unverifiable. Written by the server, which watches what the fix was for (Production Check) once a recorded deploy contains the fix.",
   })
   @Column({
     nullable: true,
@@ -819,7 +821,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     type: TableColumnType.LongText,
     title: "Production Summary",
     description:
-      "What the production check found, in a sentence: the deploy that shipped the fix and how often the exception happened before and since. Written by the server.",
+      "What the production check found, in a sentence: the deploy that shipped the fix and what it measured before and since. Written by the server.",
   })
   @Column({
     nullable: true,
@@ -827,6 +829,55 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     length: ColumnLength.LongText,
   })
   public productionSummary?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Production Check",
+    description:
+      "What production is watched for once the fix merges: Exception (the exception stops), Performance (the operation it names gets faster), Recurrence (the monitor stops raising incidents or alerts) or Telemetry (the spans and log fields it adds arrive). Empty on a watched fix of an exception from before the column existed. Written by the server when the pull request merges.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public productionCheck?: FixProductionCheck = undefined;
+
+  /*
+   * What the production check measured before the merge
+   * (Types/AI/FixProductionBaseline). Server-only like AIRun.taskContext:
+   * it holds span names, attribute keys and log bodies, whose telemetry
+   * read permissions are narrower than this table's.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Production Baseline",
+    description:
+      "Internal: what the production check measured in the time before the merge - the p99 of the operation a performance fix names, how often the monitor raised incidents or alerts, or what a telemetry improvement adds that was not there yet. Written by the server on the fix's first check.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public productionBaseline?: FixProductionBaseline = undefined;
 
   @ColumnAccessControl({
     create: [

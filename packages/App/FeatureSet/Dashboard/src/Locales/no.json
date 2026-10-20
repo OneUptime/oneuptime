@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} slo til fordi forespørslene sluttet å komme, så det behandlet dette uten gruppering, én gang for hele monitoren.",
   "{{duration}} after paging": "{{duration}} etter tilkalling",
   "Someone is first paged": "Noen blir tilkalt for første gang",
-  "From when someone is first paged until someone acknowledges it.": "Fra noen blir tilkalt for første gang til bekreftelsen."
+  "From when someone is first paged until someone acknowledges it.": "Fra noen blir tilkalt for første gang til bekreftelsen.",
+  "Arriving in production": "Kommer frem i produksjon",
+  "Deployed, watching in production": "Deployet, overvåkes i produksjon",
+  "Faster in production": "Raskere i produksjon",
+  "Fixed in production": "Rettet i produksjon",
+  "Happened again after the fix": "Skjedde igjen etter rettelsen",
+  "Merged, waiting for a deploy": "Merget, venter på et deploy",
+  "Not verified in production": "Ikke verifisert i produksjon",
+  "Production Baseline": "Produksjonsgrunnlinje",
+  "Production Check": "Produksjonssjekk",
+  "Still happening after the fix": "Skjer fortsatt etter rettelsen",
+  "Still slow after the fix": "Fortsatt treg etter rettelsen",
+  "Telemetry stopped after the fix": "Telemetri stoppet etter rettelsen"
 }

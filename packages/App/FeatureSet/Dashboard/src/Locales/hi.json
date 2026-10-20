@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "अनुरोध आना बंद हो गए, इसलिए मानदंड {{criteria}} मेल खाया और उसने इसे बिना समूह बनाए, पूरे मॉनिटर के लिए एक बार संभाला।",
   "{{duration}} after paging": "बुलावे के {{duration}} बाद",
   "Someone is first paged": "किसी को पहली बार बुलाया जाता है",
-  "From when someone is first paged until someone acknowledges it.": "किसी को पहली बार बुलाए जाने से लेकर किसी के उसे स्वीकार करने तक।"
+  "From when someone is first paged until someone acknowledges it.": "किसी को पहली बार बुलाए जाने से लेकर किसी के उसे स्वीकार करने तक।",
+  "Arriving in production": "प्रोडक्शन में पहुँच रहा है",
+  "Deployed, watching in production": "डिप्लॉय हुआ, प्रोडक्शन में निगरानी जारी",
+  "Faster in production": "प्रोडक्शन में तेज़",
+  "Fixed in production": "प्रोडक्शन में ठीक हुआ",
+  "Happened again after the fix": "सुधार के बाद फिर हुआ",
+  "Merged, waiting for a deploy": "मर्ज हुआ, डिप्लॉय की प्रतीक्षा",
+  "Not verified in production": "प्रोडक्शन में सत्यापित नहीं",
+  "Production Baseline": "प्रोडक्शन बेसलाइन",
+  "Production Check": "प्रोडक्शन जाँच",
+  "Still happening after the fix": "सुधार के बाद भी हो रहा है",
+  "Still slow after the fix": "सुधार के बाद भी धीमा",
+  "Telemetry stopped after the fix": "सुधार के बाद टेलीमेट्री रुकी"
 }

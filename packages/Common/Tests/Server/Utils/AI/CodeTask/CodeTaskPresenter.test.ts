@@ -1,3 +1,5 @@
+import FixProductionCheck from "../../../../../Types/AI/FixProductionCheck";
+import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunEventService from "../../../../../Server/Services/AIRunEventService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
@@ -269,6 +271,115 @@ describe("CodeTaskPresenter.summarize", () => {
       }),
     ).toEqual([]);
     expect(findRuns).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Merged is not fixed: a fix's pull request carries what production showed
+ * once a deploy shipped it (FixProductionVerifier), wherever Code shows it -
+ * the task list's row and the conversation's turn.
+ */
+describe("CodeTaskPresenter.toPullRequest: what production showed", () => {
+  function mergedFix(
+    overrides: Partial<AIAgentTaskPullRequest>,
+  ): AIAgentTaskPullRequest {
+    const value: AIAgentTaskPullRequest = openPullRequest(
+      TASK_ID,
+      PullRequestState.Merged,
+    );
+
+    Object.assign(value, overrides);
+    return value;
+  }
+
+  test("a merged fix production decided says so, with its check and its words", () => {
+    expect(
+      CodeTaskPresenter.toPullRequest(
+        mergedFix({
+          productionStatus: FixProductionStatus.Verified,
+          productionCheck: FixProductionCheck.Performance,
+          productionSummary:
+            'The p99 of "GET /users" fell from 2.4 s to 310 ms in the 26 hours since version 2.3.2 shipped the fix (1,204 spans).',
+          productionStatusAt: new Date("2026-10-20T10:00:00.000Z"),
+          deployedAt: new Date("2026-10-19T08:00:00.000Z"),
+          deployedVersion: "2.3.2",
+        }),
+      ),
+    ).toEqual({
+      number: 17,
+      url: "https://github.com/acme/api/pull/17",
+      title: "Add retries to the users API",
+      state: PullRequestState.Merged,
+      branch: "oneuptime-task-42-5e1f4b3a",
+      production: {
+        status: FixProductionStatus.Verified,
+        check: FixProductionCheck.Performance,
+        summary:
+          'The p99 of "GET /users" fell from 2.4 s to 310 ms in the 26 hours since version 2.3.2 shipped the fix (1,204 spans).',
+        statusAt: "2026-10-20T10:00:00.000Z",
+        deployedAt: "2026-10-19T08:00:00.000Z",
+        deployedVersion: "2.3.2",
+      },
+    });
+  });
+
+  test("a watched exception fix from before the checks were told apart is an exception's", () => {
+    expect(
+      CodeTaskPresenter.toPullRequest(
+        mergedFix({ productionStatus: FixProductionStatus.Watching }),
+      ).production,
+    ).toEqual({
+      status: FixProductionStatus.Watching,
+      check: FixProductionCheck.Exception,
+    });
+  });
+
+  test("a pull request production says nothing about, or says something this server does not know, carries none", () => {
+    expect(CodeTaskPresenter.toPullRequest(mergedFix({}))).not.toHaveProperty(
+      "production",
+    );
+    expect(
+      CodeTaskPresenter.toPullRequest(
+        mergedFix({ productionStatus: "Shipped" as FixProductionStatus }),
+      ),
+    ).not.toHaveProperty("production");
+    expect(
+      CodeTaskPresenter.toPullRequest(
+        mergedFix({
+          productionStatus: FixProductionStatus.Verified,
+          productionCheck: "FasterQueries" as FixProductionCheck,
+        }),
+      ),
+    ).not.toHaveProperty("production");
+  });
+
+  test("the pull requests are read with the columns the report is made of", async () => {
+    const findPullRequests: jest.SpiedFunction<
+      typeof AIAgentTaskPullRequestService.findBy
+    > = jest
+      .spyOn(AIAgentTaskPullRequestService, "findBy")
+      .mockResolvedValue([]);
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+
+    await CodeTaskPresenter.summarize({
+      projectId: PROJECT_ID,
+      tasks: [
+        requestTurn({
+          id: TASK_ID,
+          status: AIRunStatus.Completed,
+          createdAt: "2026-10-19T08:00:00.000Z",
+          message: "Add retries",
+        }),
+      ],
+      props: READER,
+    });
+
+    expect(findPullRequests.mock.calls[0]![0].select).toMatchObject({
+      productionStatus: true,
+      productionCheck: true,
+      productionSummary: true,
+      productionStatusAt: true,
+    });
   });
 });
 

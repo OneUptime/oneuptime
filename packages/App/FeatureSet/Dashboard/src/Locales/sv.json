@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Kriteriet {{criteria}} matchade eftersom begäranden slutade komma, så det hanterade detta utan gruppering, en gång för hela monitorn.",
   "{{duration}} after paging": "{{duration}} efter utlarmning",
   "Someone is first paged": "Någon larmas för första gången",
-  "From when someone is first paged until someone acknowledges it.": "Från att någon larmas för första gången till bekräftelsen."
+  "From when someone is first paged until someone acknowledges it.": "Från att någon larmas för första gången till bekräftelsen.",
+  "Arriving in production": "Kommer fram i produktion",
+  "Deployed, watching in production": "Deployad, bevakas i produktion",
+  "Faster in production": "Snabbare i produktion",
+  "Fixed in production": "Åtgärdad i produktion",
+  "Happened again after the fix": "Inträffade igen efter korrigeringen",
+  "Merged, waiting for a deploy": "Mergad, väntar på en deploy",
+  "Not verified in production": "Inte verifierad i produktion",
+  "Production Baseline": "Produktionsbaslinje",
+  "Production Check": "Produktionskontroll",
+  "Still happening after the fix": "Inträffar fortfarande efter korrigeringen",
+  "Still slow after the fix": "Fortfarande långsam efter korrigeringen",
+  "Telemetry stopped after the fix": "Telemetrin upphörde efter korrigeringen"
 }

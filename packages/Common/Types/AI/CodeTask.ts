@@ -1,3 +1,4 @@
+import FixProductionReport from "./FixProductionReport";
 import AIRunStatus from "./AIRunStatus";
 import BadDataException from "../Exception/BadDataException";
 import ObjectID from "../ObjectID";
@@ -323,6 +324,11 @@ export interface CodeTaskPullRequestJSON {
   // PullRequestState: "open", "closed" or "merged".
   state: string;
   branch?: string | undefined;
+  /*
+   * Merged is not fixed: what production showed once the deploy that ships
+   * it ran (FixProductionVerifier), for a fix production can show.
+   */
+  production?: FixProductionReport | undefined;
 }
 
 // What started a task that nobody asked for in Code.

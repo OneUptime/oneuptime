@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Критерий {{criteria}} сработал, потому что запросы перестали поступать, поэтому он обработал это без группировки — один раз для всего монитора.",
   "{{duration}} after paging": "{{duration}} после вызова",
   "Someone is first paged": "Кого-то впервые вызвали",
-  "From when someone is first paged until someone acknowledges it.": "С первого вызова до того, как кто-то его подтвердит."
+  "From when someone is first paged until someone acknowledges it.": "С первого вызова до того, как кто-то его подтвердит.",
+  "Arriving in production": "Поступает в продакшене",
+  "Deployed, watching in production": "Развёрнуто, наблюдение в продакшене",
+  "Faster in production": "Быстрее в продакшене",
+  "Fixed in production": "Исправлено в продакшене",
+  "Happened again after the fix": "Повторилось после исправления",
+  "Merged, waiting for a deploy": "Слито, ожидается деплой",
+  "Not verified in production": "Не проверено в продакшене",
+  "Production Baseline": "Исходные показатели продакшена",
+  "Production Check": "Проверка в продакшене",
+  "Still happening after the fix": "Всё ещё происходит после исправления",
+  "Still slow after the fix": "Всё ещё медленно после исправления",
+  "Telemetry stopped after the fix": "Телеметрия пропала после исправления"
 }

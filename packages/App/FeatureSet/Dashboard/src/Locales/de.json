@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Das Kriterium {{criteria}} hat zugetroffen, weil keine Anfragen mehr eingehen, daher hat es dies ohne Gruppierung behandelt, einmal für den ganzen Monitor.",
   "{{duration}} after paging": "{{duration}} nach der Alarmierung",
   "Someone is first paged": "Jemand wird zum ersten Mal alarmiert",
-  "From when someone is first paged until someone acknowledges it.": "Von dem Moment, in dem jemand zum ersten Mal alarmiert wird, bis zur Bestätigung."
+  "From when someone is first paged until someone acknowledges it.": "Von dem Moment, in dem jemand zum ersten Mal alarmiert wird, bis zur Bestätigung.",
+  "Arriving in production": "Kommt in Produktion an",
+  "Deployed, watching in production": "Deployt, wird in Produktion beobachtet",
+  "Faster in production": "In Produktion schneller",
+  "Fixed in production": "In Produktion behoben",
+  "Happened again after the fix": "Nach der Korrektur erneut aufgetreten",
+  "Merged, waiting for a deploy": "Gemergt, wartet auf ein Deploy",
+  "Not verified in production": "In Produktion nicht verifiziert",
+  "Production Baseline": "Produktions-Ausgangswert",
+  "Production Check": "Produktionsprüfung",
+  "Still happening after the fix": "Tritt nach der Korrektur weiterhin auf",
+  "Still slow after the fix": "Nach der Korrektur weiterhin langsam",
+  "Telemetry stopped after the fix": "Telemetrie nach der Korrektur ausgeblieben"
 }

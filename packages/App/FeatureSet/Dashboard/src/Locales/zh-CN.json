@@ -31973,5 +31973,17 @@
   "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "由于请求不再到达，条件 {{criteria}} 已匹配，因此它未进行分组，而是对整个监控器处理了一次。",
   "{{duration}} after paging": "呼叫后 {{duration}}",
   "Someone is first paged": "首次有人被呼叫时",
-  "From when someone is first paged until someone acknowledges it.": "从首次有人被呼叫到有人确认为止。"
+  "From when someone is first paged until someone acknowledges it.": "从首次有人被呼叫到有人确认为止。",
+  "Arriving in production": "已在生产环境中上报",
+  "Deployed, watching in production": "已部署，正在生产环境中观察",
+  "Faster in production": "在生产环境中变快",
+  "Fixed in production": "已在生产环境中修复",
+  "Happened again after the fix": "修复后再次发生",
+  "Merged, waiting for a deploy": "已合并，等待部署",
+  "Not verified in production": "未在生产环境中验证",
+  "Production Baseline": "生产环境基线",
+  "Production Check": "生产环境检查",
+  "Still happening after the fix": "修复后仍在发生",
+  "Still slow after the fix": "修复后仍然缓慢",
+  "Telemetry stopped after the fix": "修复后遥测中断"
 }
