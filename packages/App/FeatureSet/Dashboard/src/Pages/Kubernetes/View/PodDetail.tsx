@@ -172,9 +172,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       },
     },
     getSeries: getContainerSeries,
-    transformValue: allocatable
-      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
-      : undefined,
+    transformValue: KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
   };
 
   const memoryQuery: MetricQueryConfigData = {
@@ -231,9 +229,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: true,
       },
     },
-    transformValue: allocatable
-      ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
-      : undefined,
+    transformValue: KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
   };
 
   const podMemoryQuery: MetricQueryConfigData = {

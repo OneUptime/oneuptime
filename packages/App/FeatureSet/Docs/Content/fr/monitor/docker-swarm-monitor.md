@@ -116,7 +116,7 @@ Le collecteur de l'agent utilise le récepteur OpenTelemetry `docker_stats` ; le
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | Utilisation du CPU du conteneur d'une tâche, où 100 % correspond à un cœur de CPU complet. |
+| `container.cpu.utilization` | % | CPU utilisé par le conteneur d'une tâche sur chaque intervalle de 30 secondes, où 100 % correspond à un cœur de CPU complet. |
 
 ### Mémoire
 

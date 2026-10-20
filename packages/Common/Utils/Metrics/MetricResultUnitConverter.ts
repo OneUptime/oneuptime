@@ -38,6 +38,21 @@ export default class MetricResultUnitConverter {
         continue;
       }
 
+      /*
+       * A query with its own transformValue turns the stored value into the
+       * legend unit itself - the Kubernetes pages divide CPU cores by the
+       * node's allocatable cores and multiply by 100 to draw "% of the
+       * node", Proxmox multiplies its 0-1 ratio by 100. Converting the
+       * native unit to the legend unit first did it twice: the Kubernetes
+       * agent declares its cores "1", "1" to "%" is times 100, and a pod
+       * using 1.25% of its node was drawn at 125%. Such a query gets its
+       * values as stored.
+       */
+      if (queryConfig.transformValue) {
+        converted.push(rawResult);
+        continue;
+      }
+
       const metricName: string | undefined =
         queryConfig.metricQueryData?.filterData?.metricName?.toString();
       const nativeUnit: string | undefined = metricName

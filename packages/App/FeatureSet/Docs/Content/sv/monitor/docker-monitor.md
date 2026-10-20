@@ -100,7 +100,7 @@ Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och varningen som en mall skapar börjar på projektets allvarligaste incident- och varningsgrad; ändra dem i kriterierna.
 
 > [!NOTE]
-> `container.cpu.utilization` är talet som `docker stats` skriver ut: 100 % är en hel CPU-kärna, inte hela värden, så en container som använder två kärnor visar 200. På en värd med flera kärnor är tröskeln 80 en CPU-budget, inte en andel av maskinen.
+> `container.cpu.utilization` är talet som `docker stats` skriver ut, i genomsnitt över agentens intervall på 30 sekunder: 100 % är en hel CPU-kärna, inte hela värden, så en container som använder två kärnor visar 200. På en värd med flera kärnor är tröskeln 80 en CPU-budget, inte en andel av maskinen.
 
 > [!NOTE]
 > `container.memory.percent` delar med containerns minnesgräns när en sådan är satt, och annars med **värdens** totala minne. Kontrollera om containern startades med `--memory` innan du behandlar en överskridning som ett nära förestående avslut på grund av minnesbrist.
@@ -119,7 +119,7 @@ Agenten använder OpenTelemetry-mottagaren `docker_stats` mot Docker-socketen va
 
 | Mätvärde | Beskrivning |
 | --- | --- |
-| `container.cpu.utilization` | CPU-utnyttjande, där 100 % är en hel CPU-kärna (kolumnen CPU% i `docker stats`). |
+| `container.cpu.utilization` | CPU som använts under varje intervall på 30 sekunder, där 100 % är en hel CPU-kärna (kolumnen CPU% i `docker stats`). |
 | `container.cpu.usage.total` | Använd CPU-tid sedan containern startade, i nanosekunder. En räknare över hela livstiden. |
 | `container.cpu.throttling_data.throttled_time` | Nanosekunder som containern har strypts av sin CPU-gräns sedan den startade. En räknare över hela livstiden. |
 | `container.cpu.throttling_data.throttled_periods` | Strypningsperioder sedan containern startade. En räknare över hela livstiden. |
@@ -282,7 +282,7 @@ OneUptime identifierar en värd med `resource.host.name`, som agenten tar från 
 :::
 
 :::details En CPU-varning utlöses aldrig
-Gruppera frågan efter `resource.container.name` och aggregera med **Maximum**, som mallen **High Container CPU Usage** gör. Ett genomsnitt över alla containrar på en upptagen värd dras ned av de inaktiva. Kom ihåg att 100 % betyder en hel kärna, så en container som får använda flera kärnor behöver en högre tröskel.
+Gruppera frågan efter `resource.container.name` och aggregera med **Maximum**, som mallen **High Container CPU Usage** gör. Ett genomsnitt över alla containrar på en upptagen värd dras ned av de inaktiva. Kom ihåg att 100 % betyder en hel kärna, så en container som får använda flera kärnor behöver en högre tröskel. Om en containers CPU är en platt linje oavsett belastning kör värden en äldre agent: [uppgradera den](/docs/telemetry/docker-host#uppgradera-agenten).
 :::
 
 :::details Mallen för omstartsloop eller strypning slutade varna

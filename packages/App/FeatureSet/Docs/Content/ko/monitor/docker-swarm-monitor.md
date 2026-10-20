@@ -116,7 +116,7 @@ flowchart TB
 
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | 작업 컨테이너의 CPU 사용률. 100%가 CPU 코어 하나입니다. |
+| `container.cpu.utilization` | % | 30초 간격마다의 작업 컨테이너 CPU 사용률. 100%가 CPU 코어 하나입니다. |
 
 ### 메모리
 

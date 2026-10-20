@@ -116,7 +116,7 @@ flowchart TB
 
 | 指标 | 单位 | 说明 |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | 任务容器的 CPU 利用率，100% 表示一个完整的 CPU 核心。 |
+| `container.cpu.utilization` | % | 任务容器在每个 30 秒间隔内的 CPU 利用率，100% 表示一个完整的 CPU 核心。 |
 
 ### 内存
 

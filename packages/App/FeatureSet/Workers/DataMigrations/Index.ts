@@ -121,6 +121,7 @@ import MaterializeAttributeValuesIndex from "./MaterializeAttributeValuesIndex";
 import RemoveChatAccountLinksNotMadeBySignIn from "./RemoveChatAccountLinksNotMadeBySignIn";
 import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettingsOfNonMembers";
 import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
+import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
@@ -748,6 +749,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new RemoveNotificationSettingsOfNonMembers(),
+  /*
+   * The metric catalog's unit for the Docker / Podman container percents
+   * (container.memory.percent, docker_stats' container.cpu.utilization,
+   * podman_stats' container.cpu.percent): "%" where the rows said "1", the
+   * unit those receivers declare for a 0-100 value, which every chart read
+   * 100 times too high. The Kubernetes agent's container.cpu.utilization
+   * (cores, "1") is left alone. Postgres-only, idempotent; no ordering
+   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RecordContainerPercentMetricUnits(),
   /*
    * Huntress became a workflow trigger: each Huntress connection becomes
    * the workflow that does what it did - same id, same address Huntress

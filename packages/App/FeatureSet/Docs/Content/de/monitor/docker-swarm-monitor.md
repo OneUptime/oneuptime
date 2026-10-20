@@ -116,7 +116,7 @@ Der Collector des Agents verwendet den OpenTelemetry-Receiver `docker_stats`, di
 
 | Metrik | Einheit | Beschreibung |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | CPU-Auslastung des Containers eines Tasks, wobei 100 % ein voller CPU-Kern ist. |
+| `container.cpu.utilization` | % | CPU-Nutzung des Containers eines Tasks in jedem 30-Sekunden-Intervall, wobei 100 % ein voller CPU-Kern ist. |
 
 ### Arbeitsspeicher
 
