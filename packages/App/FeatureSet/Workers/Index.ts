@@ -135,6 +135,7 @@ import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
 import "./Jobs/ScheduledMaintenance/KeepCurrentStateConsistent";
+import "./Jobs/ScheduledMaintenance/RefreshExternalCalendars";
 
 // Scheduled Event Owners
 import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
