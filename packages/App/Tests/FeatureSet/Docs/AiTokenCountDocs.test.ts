@@ -57,6 +57,11 @@ const LLM_LOGS_TABLE: string = path.join(
   PACKAGES_ROOT,
   "App/FeatureSet/Dashboard/src/Components/AILogs/LlmLogsTable.tsx",
 );
+// The words of the facts under the count, read as source (it is React-free).
+const LLM_LOG_TOKENS: string = path.join(
+  PACKAGES_ROOT,
+  "App/FeatureSet/Dashboard/src/Components/AILogs/LlmLogTokens.ts",
+);
 
 const HEADING: string = "### How tokens are counted";
 const ANCHOR: string = "/docs/ai/ai-sre#how-tokens-are-counted";
@@ -133,11 +138,22 @@ describe("AI SRE: how tokens are counted", () => {
   it("sends readers to the AI Logs, where the count and the cache line are shown", () => {
     const text: string = section();
     const table: string = read(LLM_LOGS_TABLE);
+    const facts: string = read(LLM_LOG_TOKENS);
 
     expect(text).toContain("**Project Settings → AI → AI Logs**");
     expect(table).toContain('title: "Tokens Used"');
     expect(table).toContain("AiTokenCount.getBreakdown(item)");
-    expect(table).toContain("getLlmLogCacheText");
+    expect(table).toContain("getLlmLogCacheFacts(");
+
+    /*
+     * "under them, how many tokens it used in all and how many of them came
+     * from the cache or went into it": the facts the column states.
+     */
+    expect(text).toContain("how many tokens it used in all");
+    expect(text).toContain("came from the cache or went into it");
+    expect(facts).toContain('other: "{{count}} tokens"');
+    expect(facts).toContain('other: "{{count}} from cache"');
+    expect(facts).toContain('other: "{{count}} written to cache"');
   });
 
   it("is what the provider guide's Anthropic section links to", () => {
