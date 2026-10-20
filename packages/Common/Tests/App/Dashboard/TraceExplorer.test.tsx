@@ -129,12 +129,21 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * The selected project, as the dashboard keeps it: null (not loaded, read
+ * as AI on) unless a test sets it.
+ */
+let mockCurrentProject: { enableAi?: boolean } | null = null;
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
       getCurrentProjectId: () => {
         return new ObjectID("10000000-0000-4000-8000-000000000001");
+      },
+      getCurrentProject: () => {
+        return mockCurrentProject;
       },
     },
   };
@@ -2018,69 +2027,332 @@ describe("operations", () => {
   });
 });
 
-describe("performance fix with AI", () => {
-  test("creates the task for this trace and links to it", async () => {
-    postMock.mockImplementation(async (args: PostArgs) => {
-      if (
-        args.url
-          .toString()
-          .includes("/ai-investigation/create-performance-fix-task")
-      ) {
-        return new HTTPResponse(
-          200,
-          { aiRunId: "70000000-0000-4000-8000-000000000009" },
-          {},
-        );
+/*
+ * "Fix performance with AI" shows only on a trace worth fixing. The page
+ * asks the server (POST /ai-investigation/performance-fix-suggestion), which
+ * runs the span-tree analysis with the spans' attributes and the same gates
+ * the create route enforces, and draws exactly what it answers: the finding
+ * in plain words with the fix (Act), a quiet link to connect GitHub
+ * (SetUp), a link to the fix already on its way (InProgress) - or nothing
+ * at all (None).
+ */
+const SUGGESTION_PATH: string = "/ai-investigation/performance-fix-suggestion";
+const CREATE_PATH: string = "/ai-investigation/create-performance-fix-task";
+const RUN_ID: string = "70000000-0000-4000-8000-000000000009";
+
+function nPlusOneFinding(overrides: JSONObject = {}): JSONObject {
+  return {
+    findingType: "NPlusOneQuery",
+    headline: 'N+1: 12x "SELECT products"',
+    evidence: "12 sibling spans ...",
+    spanCount: 12,
+    combinedDurationMs: 840,
+    traceDurationMs: 1600,
+    percentOfTrace: 52.5,
+    normalizedSpanName: "SELECT products WHERE id = {n}",
+    parentSpanName: "OrderService.validateCart",
+    normalizedDbStatement: "SELECT * FROM products WHERE id = ?",
+    dbSystem: "postgresql",
+    implicatedSpans: [
+      { spanId: "query-0", name: "SELECT products WHERE id = $1", durationMs: 70 },
+      { spanId: "query-1", name: "SELECT products WHERE id = $1", durationMs: 70 },
+    ],
+    ...overrides,
+  };
+}
+
+function answerSuggestion(
+  suggestion: JSONObject | Error,
+  onCreate?: () => Promise<unknown>,
+): void {
+  postMock.mockImplementation(async (args: PostArgs) => {
+    const url: string = args.url.toString();
+    if (url.includes(SUGGESTION_PATH)) {
+      if (suggestion instanceof Error) {
+        throw suggestion;
       }
-      return new HTTPResponse(200, { sampleCount: 0 }, {});
-    });
-    await renderTrace();
+      return new HTTPResponse(200, suggestion, {});
+    }
+    if (url.includes(CREATE_PATH)) {
+      if (onCreate) {
+        return onCreate();
+      }
+      return new HTTPResponse(200, { aiRunId: RUN_ID }, {});
+    }
+    return new HTTPResponse(200, { sampleCount: 0, items: [] }, {});
+  });
+}
 
-    fireEvent.click(screen.getByTestId("trace-fix-performance"));
+async function suggestionStrip(): Promise<HTMLElement> {
+  return screen.findByTestId("trace-performance-suggestion");
+}
 
-    expect(
-      await screen.findByText("Performance fix task created"),
-    ).toBeInTheDocument();
-    expect(
-      postsTo("/ai-investigation/create-performance-fix-task")[0]!.data,
-    ).toEqual({ traceId: TRACE_ID });
-    expect(
-      screen.getByText("View task progress").closest("a")!.getAttribute("href"),
-    ).toContain("70000000-0000-4000-8000-000000000009");
-    expect(screen.getByTestId("trace-fix-performance")).toBeDisabled();
+describe("performance fix with AI", () => {
+  afterEach(() => {
+    mockCurrentProject = null;
   });
 
-  test("a refusal is shown, not swallowed", async () => {
-    postMock.mockImplementation(async (args: PostArgs) => {
-      if (
-        args.url
-          .toString()
-          .includes("/ai-investigation/create-performance-fix-task")
-      ) {
-        throw new HTTPErrorResponse(
-          400,
-          {
-            message:
-              "No deterministic performance pattern was found in this trace.",
-          },
-          {},
-        );
-      }
-      return new HTTPResponse(200, { sampleCount: 0 }, {});
+  test("asks the server what to offer for this trace when the page loads", async () => {
+    answerSuggestion({ offer: "None", finding: null });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(postsTo(SUGGESTION_PATH)[0]!.data).toEqual({ traceId: TRACE_ID });
+  });
+
+  test("a trace with nothing worth fixing shows nothing: no button, no note", async () => {
+    answerSuggestion({ offer: "None", finding: null });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("trace-fix-performance")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fix performance with AI")).not.toBeInTheDocument();
+  });
+
+  test("a trace worth fixing names what was found, what it costs, and offers the fix", async () => {
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding(), findingCount: 1 });
+    await renderTrace();
+
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(strip).toHaveAttribute("data-offer", "Act");
+    expect(within(strip).getByTestId("trace-performance-finding")).toHaveTextContent(
+      "The same database query ran 12 times in OrderService.validateCart",
+    );
+    expect(within(strip).getByTestId("trace-performance-query")).toHaveTextContent(
+      "SELECT * FROM products WHERE id = ?",
+    );
+    expect(within(strip).getByTestId("trace-performance-detail")).toHaveTextContent(
+      "Together they take 840 ms of this 1.6 s request.",
+    );
+    expect(within(strip).getByTestId("trace-fix-performance")).toHaveTextContent(
+      "Fix performance with AI",
+    );
+    expect(within(strip).getByTestId("trace-fix-performance")).not.toBeDisabled();
+    // The header's own actions no longer carry the AI button.
+    expect(
+      within(screen.getByTestId("trace-header")).getAllByTestId(
+        "trace-fix-performance",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("calls one after another that are not database work are named by their operation", async () => {
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding({
+        findingType: "SequentialSiblings",
+        spanCount: 4,
+        combinedDurationMs: 600,
+        traceDurationMs: 900,
+        percentOfTrace: 66.7,
+        normalizedSpanName: "GET /inventory/{n}",
+        parentSpanName: "reserve stock",
+        normalizedDbStatement: undefined,
+        dbSystem: undefined,
+        implicatedSpans: [
+          { spanId: "reserve", name: "GET /inventory/41", durationMs: 150 },
+          { spanId: "update", name: "GET /inventory/42", durationMs: 150 },
+        ],
+      }),
     });
     await renderTrace();
 
-    fireEvent.click(screen.getByTestId("trace-fix-performance"));
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(within(strip).getByTestId("trace-performance-finding")).toHaveTextContent(
+      "4 calls to GET /inventory/{n} ran one after another in reserve stock",
+    );
+    expect(within(strip).queryByTestId("trace-performance-query")).toBeNull();
+    expect(within(strip).getByTestId("trace-performance-detail")).toHaveTextContent(
+      "Together they take 600 ms of this 900 ms request, and they could run at the same time.",
+    );
+  });
+
+  test("clicking the fix creates the task for this trace and links to it", async () => {
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
 
     expect(
-      await screen.findByText("Could not create the performance fix task"),
-    ).toBeInTheDocument();
+      await within(strip).findByTestId("trace-fix-performance-progress"),
+    ).toHaveTextContent("OneUptime AI is working on a fix. View task progress");
+    expect(postsTo(CREATE_PATH)).toHaveLength(1);
+    expect(postsTo(CREATE_PATH)[0]!.data).toEqual({ traceId: TRACE_ID });
     expect(
-      screen.getByText(
-        "No deterministic performance pattern was found in this trace.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("trace-fix-performance")).not.toBeDisabled();
+      within(strip)
+        .getByText("View task progress")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    // One fix per click: the button gives way to the link.
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("a refusal is shown beside the finding, and the fix can be tried again", async () => {
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() }, async () => {
+      throw new HTTPErrorResponse(
+        400,
+        {
+          message:
+            "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+        },
+        {},
+      );
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-error"),
+    ).toHaveTextContent(
+      "Could not start the fix: No GitHub-App-connected repository exists for this project",
+    );
+    expect(within(strip).getByTestId("trace-fix-performance")).not.toBeDisabled();
+  });
+
+  test("no repository connected: a quiet link to connect GitHub instead of the fix", async () => {
+    answerSuggestion({ offer: "SetUp", finding: nPlusOneFinding() });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(strip).toHaveAttribute("data-offer", "SetUp");
+    expect(within(strip).getByTestId("trace-performance-finding")).toHaveTextContent(
+      "The same database query ran 12 times",
+    );
+    const connect: HTMLElement = within(strip).getByTestId(
+      "trace-fix-performance-connect",
+    );
+    expect(connect).toHaveTextContent("Connect GitHub to fix this with AI");
+    expect(connect.closest("a")!.getAttribute("href")).toContain(
+      `/dashboard/${PROJECT_ID}/code`,
+    );
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("a fix already on its way: links to it instead of offering another", async () => {
+    answerSuggestion({
+      offer: "InProgress",
+      finding: nPlusOneFinding(),
+      aiRunId: RUN_ID,
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(
+      within(strip).getByTestId("trace-fix-performance-progress"),
+    ).toHaveTextContent("OneUptime AI is working on a fix.");
+    expect(
+      within(strip)
+        .getByText("View task progress")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("AI switched off for the project: the server is not even asked, and nothing is drawn", async () => {
+    mockCurrentProject = { enableAi: false };
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo("/telemetry/profiles/trace-presence").length).toBeGreaterThan(0);
+    });
+    expect(postsTo(SUGGESTION_PATH)).toHaveLength(0);
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a failed suggestion read shows nothing and leaves the page working", async () => {
+    answerSuggestion(new Error("network down"));
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("trace-title")).toHaveTextContent(
+      "POST /api/v1/checkout",
+    );
+  });
+
+  test.each([
+    ["an offer with no finding", { offer: "Act" }],
+    ["a finding too small to fix", { offer: "Act", finding: nPlusOneFinding({ combinedDurationMs: 12 }) }],
+    ["in progress with no run", { offer: "InProgress", finding: nPlusOneFinding() }],
+    ["an offer this build does not know", { offer: "Later", finding: nPlusOneFinding() }],
+  ])("%s shows nothing", async (_label: string, answer: JSONObject) => {
+    answerSuggestion(answer);
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("trace-performance-suggestion"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("'Show them' keeps the finding's spans in view in the waterfall and selects the first", async () => {
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-performance-show-spans"));
+
+    expect(within(strip).getByTestId("trace-performance-show-spans")).toHaveTextContent(
+      "Show them",
+    );
+    expect((screen.getByTestId("trace-search") as HTMLInputElement).value).toBe(
+      "SELECT products WHERE id = $1",
+    );
+    await waitFor(() => {
+      expect(row("query-0")).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  test("no 'Show them' when none of the finding's spans is loaded", async () => {
+    answerSuggestion({
+      offer: "Act",
+      finding: nPlusOneFinding({
+        implicatedSpans: [
+          { spanId: "not-loaded", name: "SELECT 1", durationMs: 70 },
+        ],
+      }),
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(within(strip).queryByTestId("trace-performance-show-spans")).toBeNull();
+  });
+
+  test("Refresh asks again, so the offer follows the trace", async () => {
+    answerSuggestion({ offer: "None", finding: null });
+    await renderTrace();
+    await waitFor(() => {
+      expect(postsTo(SUGGESTION_PATH)).toHaveLength(1);
+    });
+
+    answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
+    fireEvent.click(screen.getByTestId("trace-refresh"));
+
+    expect(await suggestionStrip()).toHaveAttribute("data-offer", "Act");
+    expect(postsTo(SUGGESTION_PATH)).toHaveLength(2);
   });
 });
 

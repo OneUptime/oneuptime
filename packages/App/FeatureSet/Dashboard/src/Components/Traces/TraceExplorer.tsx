@@ -224,12 +224,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const loadPerfFixSuggestion: (generation: number) => Promise<void> =
     useCallback(
       async (generation: number): Promise<void> => {
-        if (!isAiOffered(ProjectUtil.getCurrentProject())) {
-          setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
-          return;
-        }
-
         try {
+          if (!isAiOffered(ProjectUtil.getCurrentProject())) {
+            setPerfFixSuggestion(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
+            return;
+          }
+
           const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
             await API.post<JSONObject>({
               url: URL.fromString(
@@ -974,7 +974,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               <TracePerformanceSuggestion
                 suggestion={perfFixSuggestion}
                 taskRoute={perfFixTaskRoute}
-                connectRepositoryRoute={RouteMap[PageMap.CODE] as Route}
+                connectRepositoryRoute={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.CODE] as Route,
+                )}
                 isCreating={isCreatingPerfFixTask}
                 error={perfFixError}
                 onFix={() => {
