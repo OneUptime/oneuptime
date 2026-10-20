@@ -1581,19 +1581,22 @@ export function getDashboardWidgetListReadSteps(data: {
  * Reads a widget's list step by step until it has `limit` rows - one read
  * for most sorts, and for a status read by rank, ranks until the list is
  * full. `read` runs one step for at most the rows still wanted: the
- * browser's list call or the server's.
+ * browser's list call or the server's. `shouldStop` ends the reading
+ * between steps: a browser read a viewer's next click has replaced reads
+ * no further ranks.
  */
 export async function readDashboardWidgetListInSteps<T>(data: {
   steps: Array<DashboardWidgetListReadStep>;
   limit: number;
   read: (step: DashboardWidgetListReadStep, limit: number) => Promise<Array<T>>;
+  shouldStop?: (() => boolean) | undefined;
 }): Promise<Array<T>> {
   const rows: Array<T> = [];
 
   for (const step of data.steps) {
     const wanted: number = data.limit - rows.length;
 
-    if (wanted <= 0) {
+    if (wanted <= 0 || data.shouldStop?.()) {
       break;
     }
 

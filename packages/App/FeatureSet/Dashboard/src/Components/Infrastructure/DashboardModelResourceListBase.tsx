@@ -215,6 +215,8 @@ const DashboardModelResourceListBase: <TBaseModel extends BaseModel>(
         steps,
         limit: props.maxRows,
         read,
+        // A read the viewer's next click replaced reads no further ranks.
+        shouldStop: isStale,
       });
 
       if (isStale()) {

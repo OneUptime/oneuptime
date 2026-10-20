@@ -11,7 +11,6 @@ import {
 } from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import {
-  DASHBOARD_WIDGET_TYPES_SORTED_BY_OWN_COLUMNS,
   DashboardWidgetListSortColumn,
   DashboardWidgetListSortSpec,
   getDashboardWidgetSortSpec,
@@ -53,8 +52,9 @@ export const SORT_SETTING_SECTION_NAME: string = "Display Options";
  * or null for a widget that does not sort: the registry's for a list
  * widget; for a widget whose columns are its own, what its preview
  * reported (a trace table's group column takes its dimension's name) -
- * until it does, the metric columns of a trace table, and nothing yet for
- * a metric or Data Source table.
+ * until it does, the metric columns of a trace table, only the query's
+ * order for a Data Source table (its columns come with its rows), and no
+ * setting yet for a metric table (its preview reports them as it draws).
  */
 export function getWidgetSortSettingColumns(
   componentType: DashboardComponentType,
@@ -82,7 +82,7 @@ export function getWidgetSortSettingColumns(
     };
   }
 
-  if (DASHBOARD_WIDGET_TYPES_SORTED_BY_OWN_COLUMNS.includes(componentType)) {
+  if (componentType === DashboardComponentType.DataSourceTable) {
     return { columns: [], builtInSort: null };
   }
 

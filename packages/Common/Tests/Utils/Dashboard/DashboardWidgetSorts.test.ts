@@ -1234,6 +1234,47 @@ describe("reading a list step by step", () => {
 
     expect(rows).toEqual([1, 2]);
   });
+
+  test("reads no further ranks once it is told to stop - a viewer's next click replaced it", async () => {
+    const asked: Array<number> = [];
+    let isReplaced: boolean = false;
+
+    const rows: Array<string> = await readDashboardWidgetListInSteps<string>({
+      steps,
+      limit: 25,
+      read: async (step: DashboardWidgetListReadStep): Promise<Array<string>> => {
+        const rank: number = step.query["rank"] as number;
+        asked.push(rank);
+        // The click comes while the first rank is being read.
+        isReplaced = true;
+        return [`${rank}`];
+      },
+      shouldStop: (): boolean => {
+        return isReplaced;
+      },
+    });
+
+    expect(asked).toEqual([1]);
+    expect(rows).toEqual(["1"]);
+  });
+
+  test("a read never stopped reads every rank it needs", async () => {
+    const asked: Array<number> = [];
+
+    await readDashboardWidgetListInSteps<string>({
+      steps,
+      limit: 25,
+      read: async (step: DashboardWidgetListReadStep): Promise<Array<string>> => {
+        asked.push(step.query["rank"] as number);
+        return [];
+      },
+      shouldStop: (): boolean => {
+        return false;
+      },
+    });
+
+    expect(asked).toEqual([1, 2, 3]);
+  });
 });
 
 describe("a dashboard write's widget sorts", () => {
