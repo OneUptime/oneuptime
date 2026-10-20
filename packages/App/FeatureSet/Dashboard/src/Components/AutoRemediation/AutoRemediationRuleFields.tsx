@@ -206,7 +206,6 @@ export const OlderAutoRemediationRuleNote: FunctionComponent<
 
   return (
     <div
-      role="group"
       className="flex flex-col items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between"
       data-testid={AUTO_REMEDIATION_OLDER_RULE_TEST_ID}
     >

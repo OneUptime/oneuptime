@@ -310,6 +310,13 @@ export default interface Field<TEntity> {
    */
   getFoldedValue?: ((values: FormValues<TEntity>) => string | null) | undefined;
   /*
+   * Whether a folded section's header names this field now. Left out, it is
+   * always named, set or not. For a field whose title reads as a statement -
+   * "Run them every time" - and would read as in force when named unset
+   * beside the set ones (getFoldedFormFieldItems).
+   */
+  isListedWhileFolded?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
    * The default of the column the field writes, as its model declares it -
    * filled in by ModelForm, on Create and Edit alike, for a field that names
    * no default of its own (Utils/CreateFormDefaults). Not a value the field

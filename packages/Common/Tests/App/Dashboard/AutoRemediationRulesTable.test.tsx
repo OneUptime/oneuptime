@@ -144,6 +144,7 @@ interface CapturedField {
   cardSelectSingleColumn?: boolean;
   collapsibleSection?: FormFieldCollapsibleSection<AutoRemediationRule>;
   getFoldedValue?: (values: Values) => string | null;
+  isListedWhileFolded?: (values: Values) => boolean;
   onChange?: (
     value: unknown,
     currentValues: Values,
@@ -531,6 +532,16 @@ describe.each([
           values({ remediationAction: AutoRemediationAction.OneUptimeAI }),
         ),
       ).toBeNull();
+      // And off, the line does not name it: named unset, it read as on.
+      expect(everyTime.isListedWhileFolded!(EVERY_TIME)).toBe(true);
+      expect(
+        everyTime.isListedWhileFolded!(
+          values({
+            remediationAction: AutoRemediationAction.OneUptimeAI,
+            runbooks: PICKED_RUNBOOKS,
+          }),
+        ),
+      ).toBe(false);
     });
 
     test("Runner: none is the AI agent, and a rule that runs its runbooks every time has none", () => {

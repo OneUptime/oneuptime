@@ -368,6 +368,11 @@ export const getFoldedFormFieldItems: GetFoldedFormFieldItemsFunction = <
       continue;
     }
 
+    // A field that says when the header names it (Field.isListedWhileFolded).
+    if (field.isListedWhileFolded && !field.isListedWhileFolded(values)) {
+      continue;
+    }
+
     seenTitles.add(title.toLowerCase());
 
     const isSet: boolean =

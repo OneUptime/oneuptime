@@ -521,6 +521,54 @@ describe("getFoldedFormFieldItems", () => {
     ]);
   });
 
+  test("leaves out a field while it says it is not to be named, and names it once it is", () => {
+    const everyTime: Field<JSONObject> = field(
+      "remediationAction",
+      FormFieldSchemaType.CustomComponent,
+      {
+        title: "Run them every time",
+        getFoldedValue: (values: Values): string | null => {
+          return values["remediationAction"] === "Runbooks" ? "On" : null;
+        },
+        isListedWhileFolded: (values: Values): boolean => {
+          return values["remediationAction"] === "Runbooks";
+        },
+      },
+    );
+    const fields: Array<Field<JSONObject>> = [
+      field("runbooks", FormFieldSchemaType.MultiSelectDropdown, {
+        title: "Runbooks",
+      }),
+      everyTime,
+    ];
+
+    // Off: not named, so it is never read as in force.
+    expect(
+      getFoldedFormFieldItems(fields, {
+        runbooks: ["a", "b"],
+        remediationAction: "OneUptimeAI",
+      }),
+    ).toEqual([
+      { key: "runbooks", title: "Runbooks", isSet: true, value: "2" },
+    ]);
+
+    // On: named with what it is.
+    expect(
+      getFoldedFormFieldItems(fields, {
+        runbooks: ["a"],
+        remediationAction: "Runbooks",
+      }),
+    ).toEqual([
+      { key: "runbooks", title: "Runbooks", isSet: true, value: "1" },
+      {
+        key: "remediationAction",
+        title: "Run them every time",
+        isSet: true,
+        value: "On",
+      },
+    ]);
+  });
+
   test("skips a field without a title, lists a title once, and trims it", () => {
     const items: Array<FoldedSectionItem> = getFoldedFormFieldItems(
       [

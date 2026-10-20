@@ -533,6 +533,11 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
               ? translateText(FOLDED_SECTION_ON) || FOLDED_SECTION_ON
               : null;
           },
+          /*
+           * Named on the folded line only while on ("Run them every time:
+           * On"): named while off, beside the set fields, it read as on.
+           */
+          isListedWhileFolded: isRunbooksEveryTime,
           getCustomElement: (
             values: FormValues<AutoRemediationRule>,
             elementProps: CustomElementProps,

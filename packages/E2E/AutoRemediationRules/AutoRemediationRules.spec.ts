@@ -502,6 +502,12 @@ test.describe("the Fix step", () => {
     await moreFieldsButton(dialog).click();
     await expect(dialog).toContainText("Runbooks: 2");
     await expect(dialog).not.toContainText(DEFAULTS_SUMMARY);
+    // "Run them every time" is off, so the line does not name it: named, it read as on.
+    const folded: Array<string> = await dialog
+      .getByTestId("folded-section-item")
+      .allInnerTexts();
+    expect(folded.join(" ")).toContain("Runbooks: 2");
+    expect(folded.join(" ")).not.toContain(EVERY_TIME);
 
     await create(page, dialog);
 
