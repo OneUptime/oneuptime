@@ -43,6 +43,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IncidentLabelRuleEngineServiceClass
   implements RuleRunEngine<Incident, IncidentLabelRule>
@@ -163,6 +164,7 @@ class IncidentLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     incident: Incident;
     rules: Array<IncidentLabelRule>;

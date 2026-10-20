@@ -178,7 +178,7 @@ Haalt gestructureerde velden uit een regel met een vaste vorm. Een grok-patroon 
 
 Een vangst wordt als tekst opgeslagen, tenzij u er een type aan geeft: `%{NUMBER:status:int}` slaat hem op als getal. De typen zijn `int`, `long`, `float`, `double`, `boolean` en `string`. Controleer een patroon met een voorbeeldregel in **Test Your Pattern** voordat u het opslaat.
 
-Een grok-patroon wordt uitgevoerd in een tijd die alleen meegroeit met de regel die het leest, hoe het ook geschreven is, en behoudt de syntaxis van JavaScript: lookaheads en lookbehinds werken. Een patroon dat zo niet kan worden uitgevoerd, bijvoorbeeld een met een terugverwijzing zoals `\1`, wordt bij het opslaan geweigerd, met een melding die zegt wat u moet veranderen.
+Een grok-patroon wordt uitgevoerd in een tijd die alleen meegroeit met de regel die het leest, hoe het ook geschreven is, en behoudt de syntaxis van JavaScript: lookaheads en lookbehinds werken. Een patroon dat zo niet kan worden uitgevoerd, bijvoorbeeld een met een terugverwijzing zoals `\1`, wordt bij het opslaan geweigerd, met een melding die zegt wat u moet veranderen. Een grok-patroon deelt het werktegoed van elke batch ook met de andere patronen van het project: als ze meer nodig hebben, blijft de regel ongeparseerd.
 
 | Logtekst | Patroon | Toegevoegde attributen |
 | --- | --- | --- |

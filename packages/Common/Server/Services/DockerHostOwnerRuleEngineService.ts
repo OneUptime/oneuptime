@@ -29,6 +29,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class DockerHostOwnerRuleEngineServiceClass
   implements RuleRunEngine<DockerHost, DockerHostOwnerRule>
@@ -123,6 +124,7 @@ class DockerHostOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     dockerHost: DockerHost;
     rules: Array<DockerHostOwnerRule>;

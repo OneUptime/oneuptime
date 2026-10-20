@@ -7,6 +7,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import crypto from "crypto";
 import LogScrubRuleService from "./LogScrubRuleService";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -494,6 +495,13 @@ export default class SessionReplayScrubService {
       state.skippedOversizedStrings++;
       return value;
     }
+
+    /*
+     * The text adds its share to the batch's work allowance when the first
+     * rule is asked about it (Common/Server/Utils/PatternWorkScope.ts); the
+     * rules after it read what the ones before left, which adds nothing.
+     */
+    PatternWorkScope.handOverRecord(value);
 
     let result: string = value;
 

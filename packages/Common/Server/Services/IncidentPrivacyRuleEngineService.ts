@@ -24,6 +24,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import PatternWorkScope, { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IncidentPrivacyRuleEngineServiceClass
   implements RuleRunEngine<Incident, IncidentPrivacyRule>
@@ -138,6 +139,7 @@ class IncidentPrivacyRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     incident: Incident;
     rules: Array<IncidentPrivacyRule>;
@@ -149,14 +151,27 @@ class IncidentPrivacyRuleEngineServiceClass
     }
 
     const matchedRules: Array<IncidentPrivacyRule> = [];
+    const uncheckedRules: Array<IncidentPrivacyRule> = [];
+
     for (const rule of rules) {
+      const stoppedBefore: number = PatternWorkScope.stoppedQuestions();
       const matches: boolean = await this.doesIncidentMatchRule(incident, rule);
+
       if (matches) {
         matchedRules.push(rule);
+      } else if (PatternWorkScope.stoppedQuestions() > stoppedBefore) {
+        /*
+         * Its patterns could not all be answered: together with the other
+         * rules' they needed more work than one evaluation may take
+         * (Utils/LinearRegExp/PatternWork.ts). The rule may have matched,
+         * so it counts as one that did: a record is never shown to the whole
+         * project because a pattern was not read to the end.
+         */
+        uncheckedRules.push(rule);
       }
     }
 
-    if (matchedRules.length === 0) {
+    if (matchedRules.length === 0 && uncheckedRules.length === 0) {
       return RuleApplicationResultUtil.noMatch();
     }
 
@@ -182,7 +197,11 @@ class IncidentPrivacyRuleEngineServiceClass
       { projectId: incident.projectId.toString() } as LogAttributes,
     );
 
-    await this.createRuleExecutedFeedItem({ incident, matchedRules });
+    await this.createRuleExecutedFeedItem({
+      incident,
+      matchedRules,
+      uncheckedRules,
+    });
 
     return RuleApplicationResultUtil.updated(1);
   }
@@ -191,14 +210,25 @@ class IncidentPrivacyRuleEngineServiceClass
   private async createRuleExecutedFeedItem(data: {
     incident: Incident;
     matchedRules: Array<IncidentPrivacyRule>;
+    uncheckedRules: Array<IncidentPrivacyRule>;
   }): Promise<void> {
-    const { incident, matchedRules } = data;
-    if (!incident.id || !incident.projectId || matchedRules.length === 0) {
+    const { incident, matchedRules, uncheckedRules } = data;
+    if (
+      !incident.id ||
+      !incident.projectId ||
+      (matchedRules.length === 0 && uncheckedRules.length === 0)
+    ) {
       return;
     }
 
     try {
-      const ruleNames: Array<string> = matchedRules
+      /*
+       * The rules that matched; or, when none did, the ones that could not
+       * be checked in full and so counted as matching.
+       */
+      const ruleNames: Array<string> = (
+        matchedRules.length > 0 ? matchedRules : uncheckedRules
+      )
         .map((r: IncidentPrivacyRule) => {
           return r.name?.toString() || "Unnamed Rule";
         })
@@ -206,13 +236,20 @@ class IncidentPrivacyRuleEngineServiceClass
           return n !== "";
         });
 
-      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
-        {
-          emoji: "🔒",
-          ruleKind: "Incident Privacy Rule",
-          ruleNames: ruleNames,
-        },
-      )}\n\nIncident has been marked **private** — visible only to its owners, project admins, and project owners.`;
+      const headline: MarkdownText =
+        matchedRules.length > 0
+          ? RuleFeedMarkdown.executedLine({
+              emoji: "🔒",
+              ruleKind: "Incident Privacy Rule",
+              ruleNames: ruleNames,
+            })
+          : RuleFeedMarkdown.notCheckedInFullLine({
+              emoji: "🔒",
+              ruleKind: "Incident Privacy Rule",
+              ruleNames: ruleNames,
+            });
+
+      const feedInfoInMarkdown: MarkdownText = mdText`${headline}\n\nIncident has been marked **private** — visible only to its owners, project admins, and project owners.`;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id,

@@ -1,4 +1,6 @@
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
+import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
+import { PatternWorkAllowance } from "Common/Utils/LinearRegExp/PatternWork";
 import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "./LogDropFilterService";
@@ -98,6 +100,13 @@ interface LogProcessingContext {
   pipelines: Array<LoadedPipeline>;
   dropFilters: Array<LoadedLogDropFilter>;
   scrubRules: Awaited<ReturnType<typeof LogScrubRuleService.loadScrubRules>>;
+  /*
+   * The work allowance of this project's patterns for the batch
+   * (Common/Utils/LinearRegExp/PatternWork.ts): a probe's batch carries
+   * messages of devices of many projects, and one project's patterns must
+   * not spend what another's may take.
+   */
+  patternWork: PatternWorkAllowance;
 }
 
 // A message as it is read: the header's fields, and the text after them.
@@ -624,26 +633,42 @@ export default class ProbeSyslogIngestService {
         data.processingContextCache,
       );
 
-    if (
-      processingContext.dropFilters.length > 0 &&
-      LogDropFilterService.shouldDropLog(logRow, processingContext.dropFilters)
-    ) {
+    const processed: JSONObject | null = PatternWorkScope.run(
+      processingContext.patternWork,
+      (): JSONObject | null => {
+        if (
+          processingContext.dropFilters.length > 0 &&
+          LogDropFilterService.shouldDropLog(
+            logRow,
+            processingContext.dropFilters,
+          )
+        ) {
+          return null;
+        }
+
+        if (processingContext.scrubRules.length > 0) {
+          logRow = LogScrubRuleService.scrubLog(
+            logRow,
+            processingContext.scrubRules,
+          );
+        }
+
+        if (processingContext.pipelines.length > 0) {
+          logRow = LogPipelineService.processLog(
+            logRow,
+            processingContext.pipelines,
+          );
+        }
+
+        return logRow;
+      },
+    );
+
+    if (processed === null) {
       return null;
     }
 
-    if (processingContext.scrubRules.length > 0) {
-      logRow = LogScrubRuleService.scrubLog(
-        logRow,
-        processingContext.scrubRules,
-      );
-    }
-
-    if (processingContext.pipelines.length > 0) {
-      logRow = LogPipelineService.processLog(
-        logRow,
-        processingContext.pipelines,
-      );
-    }
+    logRow = processed;
 
     // An event a pipeline named is a network event like a built-in one.
     const finalAttributes: JSONObject | undefined = logRow["attributes"] as
@@ -790,18 +815,29 @@ export default class ProbeSyslogIngestService {
       return cache[cacheKey]!;
     }
 
+    // Compiling the project's patterns counts against its allowance too.
+    const patternWork: PatternWorkAllowance =
+      PatternWorkAllowance.forTelemetryBatch();
+
     let context: LogProcessingContext = {
       pipelines: [],
       dropFilters: [],
       scrubRules: [],
+      patternWork: patternWork,
     };
 
     try {
-      context = {
-        pipelines: await LogPipelineService.loadPipelines(projectId),
-        dropFilters: await LogDropFilterService.loadDropFilters(projectId),
-        scrubRules: await LogScrubRuleService.loadScrubRules(projectId),
-      };
+      context = await PatternWorkScope.run(
+        patternWork,
+        async (): Promise<LogProcessingContext> => {
+          return {
+            pipelines: await LogPipelineService.loadPipelines(projectId),
+            dropFilters: await LogDropFilterService.loadDropFilters(projectId),
+            scrubRules: await LogScrubRuleService.loadScrubRules(projectId),
+            patternWork: patternWork,
+          };
+        },
+      );
     } catch (loadError) {
       // A config lookup error must never fail ingest.
       logger.error(

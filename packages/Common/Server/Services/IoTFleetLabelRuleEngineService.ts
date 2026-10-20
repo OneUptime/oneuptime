@@ -18,6 +18,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IoTFleetLabelRuleEngineServiceClass
   implements RuleRunEngine<IoTFleet, IoTFleetLabelRule>
@@ -104,6 +105,7 @@ class IoTFleetLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     iotFleet: IoTFleet;
     rules: Array<IoTFleetLabelRule>;

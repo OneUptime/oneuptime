@@ -62,6 +62,7 @@ import {
   parseDeviceHealthGroup,
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /**
  * The fleet-wide numbers the device summary strip and the network overview
@@ -2605,6 +2606,7 @@ export class Service extends ProjectReferencesService<Model> {
    * both the old and the new site.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applySiteAssignmentRulesToDevice(
     deviceId: ObjectID,
     /*
@@ -2738,6 +2740,7 @@ export class Service extends ProjectReferencesService<Model> {
    *     has no site at all.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applySiteAssignmentRuleToExistingDevices(data: {
     ruleId: ObjectID;
     projectId: ObjectID;

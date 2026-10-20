@@ -9,6 +9,7 @@ import {
 } from "../../Types/Rules/RuleCriteria";
 import { isPingOnlyDiscoveredHost } from "./DiscoveryImportEligibility";
 import ScanTargetUtil from "./ScanTargetUtil";
+import { getStoppedPatternQuestions } from "../LinearRegExp/PatternWork";
 
 /*
  * Matching for network device auto-import rules: which discovered hosts a
@@ -329,8 +330,24 @@ export class AutoImportRuleMatcher {
         return actualLower.endsWith(expectedLower);
       case RuleCriteriaOperator.MatchesPattern:
         return data.matchesPattern(data.actual, data.expected);
-      case RuleCriteriaOperator.DoesNotMatchPattern:
-        return !data.matchesPattern(data.actual, data.expected);
+      case RuleCriteriaOperator.DoesNotMatchPattern: {
+        const stoppedBefore: number = getStoppedPatternQuestions();
+        const matches: boolean = data.matchesPattern(
+          data.actual,
+          data.expected,
+        );
+
+        /*
+         * A pattern question with no answer - it needed more work than the
+         * evaluation may take (LinearRegExp/PatternWork.ts) - reads as "does
+         * not match": the negated condition does not hold on it.
+         */
+        if (!matches && getStoppedPatternQuestions() > stoppedBefore) {
+          return false;
+        }
+
+        return !matches;
+      }
       default:
         return false;
     }

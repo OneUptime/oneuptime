@@ -167,14 +167,24 @@ export const fastestRun: FastestRunFunction = <T>(
     }
   }
 
-  const run: FastestRun<T> = fastest as FastestRun<T>;
+  return adjustedForSlowRunner(fastest as FastestRun<T>, options, now);
+};
 
-  /*
-   * Every attempt overran: on a slow runner, linear work does. Count the
-   * fastest as it would have run on a usual runner. Not for timings of two
-   * versions against each other (limit 0), nor on a test's own clock, where
-   * the reference work cannot be timed.
-   */
+/*
+ * Every attempt overran: on a slow runner, linear work does. Count the
+ * fastest as it would have run on a usual runner. Not for timings of two
+ * versions against each other (limit 0), nor on a test's own clock, where
+ * the reference work cannot be timed.
+ */
+function adjustedForSlowRunner<T>(
+  run: FastestRun<T>,
+  options: {
+    limitInMs: number;
+    now?: (() => number) | undefined;
+    slowdown?: (() => number) | undefined;
+  },
+  now: () => number,
+): FastestRun<T> {
   const asksSlowdown: boolean = Boolean(options.slowdown) || !options.now;
 
   if (options.limitInMs > 0 && run.inMs >= options.limitInMs && asksSlowdown) {
@@ -188,4 +198,61 @@ export const fastestRun: FastestRunFunction = <T>(
   }
 
   return run;
+}
+
+export interface FastestRunAsyncOptions<T> {
+  run: () => Promise<T>;
+  limitInMs: number;
+  attempts?: number | undefined;
+  now?: (() => number) | undefined;
+  slowdown?: (() => number) | undefined;
+}
+
+export type FastestRunAsyncFunction = <T>(
+  options: FastestRunAsyncOptions<T>,
+) => Promise<FastestRun<T>>;
+
+/*
+ * fastestRun for work that awaits - a rule engine's evaluation, which reads
+ * its resource before it matches: the same attempts, the same leeway on a
+ * slow runner.
+ */
+export const fastestRunAsync: FastestRunAsyncFunction = async <T>(
+  options: FastestRunAsyncOptions<T>,
+): Promise<FastestRun<T>> => {
+  const attempts: number =
+    options.attempts === undefined
+      ? FASTEST_RUN_ATTEMPTS
+      : Math.max(1, Math.floor(options.attempts));
+  const now: () => number =
+    options.now ||
+    ((): number => {
+      return performance.now();
+    });
+
+  let fastest: FastestRun<T> | null = null;
+
+  for (let attempt: number = 1; attempt <= attempts; attempt++) {
+    const started: number = now();
+    const result: T = await options.run();
+    const inMs: number = now() - started;
+
+    if (fastest === null || inMs < fastest.inMs) {
+      fastest = {
+        result: result,
+        inMs: inMs,
+        measuredInMs: inMs,
+        slowdown: 1,
+        attempts: attempt,
+      };
+    }
+
+    fastest.attempts = attempt;
+
+    if (inMs < options.limitInMs) {
+      break;
+    }
+  }
+
+  return adjustedForSlowRunner(fastest as FastestRun<T>, options, now);
 };

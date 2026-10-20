@@ -1,4 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import {
   OtelAggregationTemporality,
   TelemetryServiceMetadata,
@@ -815,6 +816,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
+  @TelemetryBatch()
   private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
     /*
      * Durability acks from the fan-in writer, one per submitted batch. The

@@ -178,7 +178,7 @@ Zieht strukturierte Felder aus einer Zeile mit festem Aufbau. Ein Grok-Muster is
 
 Ein Treffer wird als Text gespeichert, sofern Sie ihm keinen Typ geben: `%{NUMBER:status:int}` speichert ihn als Zahl. Die Typen sind `int`, `long`, `float`, `double`, `boolean` und `string`. Prüfen Sie ein Muster vor dem Speichern in **Ihr Muster testen** an einer Beispielzeile.
 
-Ein Grok-Muster läuft in einer Zeit, die nur mit der gelesenen Zeile wächst, wie auch immer es geschrieben ist, und behält die Syntax von JavaScript: Lookaheads und Lookbehinds funktionieren. Ein Muster, das so nicht laufen kann, etwa eines mit einem Rückverweis wie `\1`, wird beim Speichern abgelehnt, mit einer Meldung, die sagt, was zu ändern ist.
+Ein Grok-Muster läuft in einer Zeit, die nur mit der gelesenen Zeile wächst, wie auch immer es geschrieben ist, und behält die Syntax von JavaScript: Lookaheads und Lookbehinds funktionieren. Ein Muster, das so nicht laufen kann, etwa eines mit einem Rückverweis wie `\1`, wird beim Speichern abgelehnt, mit einer Meldung, die sagt, was zu ändern ist. Ein Grok-Muster teilt sich außerdem das Arbeitskontingent jedes Stapels mit den anderen Mustern des Projekts: Brauchen sie mehr, bleibt die Zeile ungeparst.
 
 | Protokolltext | Muster | Hinzugefügte Attribute |
 | --- | --- | --- |
