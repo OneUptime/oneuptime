@@ -105,7 +105,7 @@ The page's link carries each variable's pick as `?var-<name>=<value>`, several v
 https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
 
-The link carries only the variables. The time range starts at the past hour on every visit, so tell the people you send it to which stretch to look at, or zoom in once they open it.
+The link carries the time range and auto-refresh you picked as well, as `range` and `refresh`, so the people you send it to see what you see. [Sending a link](/docs/dashboards/sharing#sending-a-link) lists their values.
 
 ## An example: one dashboard for every service
 

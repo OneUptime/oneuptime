@@ -46,7 +46,7 @@ A escolha é guardada em três colunas, que a API e o Terraform leem e gravam co
 Um painel público:
 
 - Sempre abre para leitura. Os visitantes não podem editá-lo, e nunca veem os controles de edição dele.
-- Inclui as variáveis que você adicionou. Os visitantes escolhem nos mesmos seletores que a sua equipe usa, e podem mudar o intervalo de tempo, aplicar zoom, ligar a atualização automática e entrar em tela cheia.
+- Inclui as variáveis que você adicionou. Os visitantes escolhem nos mesmos seletores que a sua equipe usa, e podem mudar o intervalo de tempo, aplicar zoom, ligar a atualização automática e entrar em tela cheia. Ele abre com o período e a atualização automática padrão do painel, e o navegador de cada visitante lembra as escolhas dele.
 - Usa a marca que você define na página **Marca** do painel: título da página, descrição, logotipo, tema, favicon.
 - Permite que cada visitante alterne entre o painel claro e o escuro com um botão de sol ou de lua na barra de ferramentas; [Tema](#tema) explica como.
 
@@ -197,7 +197,7 @@ Para dar a um painel incorporado a aparência do seu site, adicione `?theme=ligh
 
 ## Enviar um link
 
-O link público abre o painel com os valores padrão salvos. Para enviar um link que abra num valor específico, adicione a variável a ele como `?var-<name>=<value>`, como a barra de endereços faz quando um visitante escolhe um valor; vários valores são separados por vírgulas. O intervalo de tempo não faz parte do link: toda visita começa na última hora. Para abrir o painel em um tema, adicione `theme=light`, `theme=dark` ou `theme=system`, como descreve [Incorporar](#incorporar).
+O link público abre o painel com os valores padrão salvos. Para enviar um link que abra num valor específico, adicione a variável a ele como `?var-<name>=<value>`, como a barra de endereços faz quando um visitante escolhe um valor; vários valores são separados por vírgulas. Para abri-lo com um intervalo de tempo ou uma atualização automática próprios, adicione `range` e `refresh` do mesmo jeito: `?range=1d&refresh=1m` abre no último dia, atualizando a cada minuto, como uma tela de parede faria. `range` aceita `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` ou `3mo`, e `refresh` aceita `off`, `5s`, `10s`, `30s`, `1m`, `5m` ou `15m`. Eles prevalecem sobre os padrões do painel e sobre as escolhas do visitante, que ainda pode mudá-los. Para abrir o painel em um tema, adicione `theme=light`, `theme=dark` ou `theme=system`, como descreve [Incorporar](#incorporar).
 
 ## Próximos passos
 

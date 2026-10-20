@@ -46,7 +46,7 @@ Die Wahl wird in drei Spalten gespeichert, die die API und Terraform wie bisher 
 Ein öffentliches Dashboard:
 
 - Öffnet sich immer zum Lesen. Besucher können es nicht bearbeiten und sehen nie seine Bearbeitungselemente.
-- Enthält die Variablen, die Sie hinzugefügt haben. Besucher wählen aus denselben Auswahlen wie Ihr Team und können den Zeitbereich ändern, zoomen, die automatische Aktualisierung einschalten und in den Vollbildmodus wechseln.
+- Enthält die Variablen, die Sie hinzugefügt haben. Besucher wählen aus denselben Auswahlen wie Ihr Team und können den Zeitbereich ändern, zoomen, die automatische Aktualisierung einschalten und in den Vollbildmodus wechseln. Es öffnet sich mit dem Standardzeitraum und der standardmäßigen automatischen Aktualisierung des Dashboards, und der Browser jedes Besuchers merkt sich seine eigene Auswahl.
 - Verwendet das Branding, das Sie auf der Seite **Branding** des Dashboards festlegen: Seitentitel, Beschreibung, Logo, Design, Favicon.
 - Lässt jeden Besucher mit einer Schaltfläche mit Sonne oder Mond in seiner Werkzeugleiste zwischen dem hellen und dem dunklen Dashboard wechseln; [Design](#design) erklärt, wie.
 
@@ -197,7 +197,7 @@ Um einem eingebetteten Dashboard das Aussehen Ihrer Website zu geben, hängen Si
 
 ## Einen Link senden
 
-Der öffentliche Link öffnet das Dashboard mit seinen gespeicherten Standardwerten. Um einen Link zu senden, der mit einem bestimmten Wert öffnet, hängen Sie die Variable als `?var-<name>=<value>` an, wie es die Adressleiste tut, wenn ein Besucher einen Wert wählt; mehrere Werte werden durch Kommas getrennt. Der Zeitbereich ist nicht Teil des Links: Jeder Besuch beginnt mit der letzten Stunde. Um das Dashboard in einem Design zu öffnen, hängen Sie `theme=light`, `theme=dark` oder `theme=system` an, wie [Einbetten](#einbetten) beschreibt.
+Der öffentliche Link öffnet das Dashboard mit seinen gespeicherten Standardwerten. Um einen Link zu senden, der mit einem bestimmten Wert öffnet, hängen Sie die Variable als `?var-<name>=<value>` an, wie es die Adressleiste tut, wenn ein Besucher einen Wert wählt; mehrere Werte werden durch Kommas getrennt. Um es mit einem eigenen Zeitbereich oder einer eigenen automatischen Aktualisierung zu öffnen, hängen Sie auf dieselbe Weise `range` und `refresh` an: `?range=1d&refresh=1m` öffnet es mit dem letzten Tag und aktualisiert es jede Minute, wie es ein Wandbildschirm braucht. `range` nimmt `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` oder `3mo`, und `refresh` nimmt `off`, `5s`, `10s`, `30s`, `1m`, `5m` oder `15m`. Sie haben Vorrang vor den Standardwerten des Dashboards und der eigenen Auswahl des Besuchers, und Besucher können sie trotzdem ändern. Um das Dashboard in einem Design zu öffnen, hängen Sie `theme=light`, `theme=dark` oder `theme=system` an, wie [Einbetten](#einbetten) beschreibt.
 
 ## Nächste Schritte
 

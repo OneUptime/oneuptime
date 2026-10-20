@@ -25,6 +25,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * product now shows something there; for a list of choices that is a tick on
  * the one in use, as the private dashboard's own auto-refresh picker shows
  * it, with the other labels lined up beside the tick's space.
+ *
+ * Since issue #5080 the first choice is the dashboard's own interval,
+ * "Default (1m)": the tick is on it while the visitor has no interval of
+ * their own, and picking it forgets the one they had. Each item is a
+ * menuitemradio whose aria-checked says what the tick shows.
  */
 
 const publicPostMock: MockFunction = getJestMockFunction();
@@ -60,7 +65,6 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   getGlyphOfIcon,
   getGlyphOfMenuItem,
-  getMenuItem,
 } from "../../UI/Components/MenuItemIcons";
 
 const DASHBOARD_ID: ObjectID = new ObjectID(
@@ -76,6 +80,9 @@ const INTERVAL_LABELS: Array<string> = [
   "5m",
   "15m",
 ];
+
+// Where the visitor's own interval is kept for this dashboard.
+const PICK_KEY: string = `oneuptime-dashboard-auto-refresh:${DASHBOARD_ID.toString()}`;
 
 function buildBoard(
   refreshInterval?: AutoRefreshInterval,
@@ -122,20 +129,50 @@ function answerWithBoard(board: DashboardViewConfig): void {
   });
 }
 
-// The picker's trigger: "More options" while off, the interval's label after.
-async function openPicker(triggerName: string): Promise<HTMLElement> {
+/*
+ * The picker's trigger, named "Auto-refresh settings" whatever it shows (it
+ * used to be "More options" while off), with the interval it refreshes at
+ * drawn beside its icon.
+ */
+async function openPicker(shownInterval: string): Promise<HTMLElement> {
   const trigger: HTMLElement = await waitFor(() => {
-    return screen.getByRole("button", { name: triggerName });
+    return screen.getByRole("button", { name: "Auto-refresh settings" });
   });
+
+  expect((trigger.textContent || "").trim()).toBe(shownInterval);
 
   fireEvent.click(trigger);
 
   return screen.getByRole("menu");
 }
 
+// The menu's choices, each a menuitemradio.
+function choicesOf(menu: HTMLElement): Array<HTMLElement> {
+  return within(menu).getAllByRole("menuitemradio");
+}
+
+function labelsOf(menu: HTMLElement): Array<string> {
+  return choicesOf(menu).map((item: HTMLElement) => {
+    return (item.textContent || "").trim();
+  });
+}
+
+function choiceOf(menu: HTMLElement, label: string): HTMLElement {
+  const item: HTMLElement | undefined = choicesOf(menu).find(
+    (candidate: HTMLElement) => {
+      return (candidate.textContent || "").trim() === label;
+    },
+  );
+
+  if (!item) {
+    throw new Error(`The menu has no "${label}" choice.`);
+  }
+
+  return item;
+}
+
 function tickedLabels(menu: HTMLElement): Array<string> {
-  return within(menu)
-    .getAllByRole("menuitem")
+  return choicesOf(menu)
     .filter((item: HTMLElement) => {
       return Boolean(item.querySelector("svg"));
     })
@@ -144,30 +181,41 @@ function tickedLabels(menu: HTMLElement): Array<string> {
     });
 }
 
+// The choices a screen reader hears as checked.
+function checkedLabels(menu: HTMLElement): Array<string> {
+  return choicesOf(menu)
+    .filter((item: HTMLElement) => {
+      return item.getAttribute("aria-checked") === "true";
+    })
+    .map((item: HTMLElement) => {
+      return (item.textContent || "").trim();
+    });
+}
+
 describe("the public dashboard's auto-refresh picker", () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    window.history.replaceState(null, "", "/public-dashboard/board");
     answerWithBoard(buildBoard());
   });
 
   afterEach(() => {
     cleanup();
     jest.clearAllMocks();
+    window.localStorage.clear();
+    window.history.replaceState(null, "", "/");
   });
 
-  test("lists every interval, with a tick on the one in use", async () => {
+  test("lists the dashboard's own interval first, then every interval, with a tick on the one in use", async () => {
     render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
 
-    const menu: HTMLElement = await openPicker("More options");
+    const menu: HTMLElement = await openPicker("");
 
-    expect(
-      within(menu)
-        .getAllByRole("menuitem")
-        .map((item: HTMLElement) => {
-          return (item.textContent || "").trim();
-        }),
-    ).toEqual(INTERVAL_LABELS);
-    expect(tickedLabels(menu)).toEqual(["Off"]);
-    expect(getGlyphOfMenuItem(getMenuItem(menu, "Off"))).toBe(
+    expect(labelsOf(menu)).toEqual(["Default (Off)", ...INTERVAL_LABELS]);
+    // A visitor with no interval of their own is on the default.
+    expect(tickedLabels(menu)).toEqual(["Default (Off)"]);
+    expect(checkedLabels(menu)).toEqual(["Default (Off)"]);
+    expect(getGlyphOfMenuItem(choiceOf(menu, "Default (Off)"))).toBe(
       getGlyphOfIcon(IconProp.Check),
     );
   });
@@ -175,10 +223,10 @@ describe("the public dashboard's auto-refresh picker", () => {
   test("the choices not in use keep the tick's space, so every label lines up", async () => {
     render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
 
-    const menu: HTMLElement = await openPicker("More options");
+    const menu: HTMLElement = await openPicker("");
 
-    for (const label of INTERVAL_LABELS.slice(1)) {
-      const item: HTMLElement = getMenuItem(menu, label);
+    for (const label of INTERVAL_LABELS) {
+      const item: HTMLElement = choiceOf(menu, label);
       const gutter: Element | null = item.querySelector(
         'span[aria-hidden="true"]',
       );
@@ -188,22 +236,68 @@ describe("the public dashboard's auto-refresh picker", () => {
     }
   });
 
-  test("picking an interval moves the tick to it", async () => {
+  test("picking an interval moves the tick to it, off the default", async () => {
     render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
 
-    fireEvent.click(getMenuItem(await openPicker("More options"), "30s"));
+    fireEvent.click(choiceOf(await openPicker(""), "30s"));
 
     // The trigger now reads the interval it refreshes at.
     const menu: HTMLElement = await openPicker("30s");
 
     expect(tickedLabels(menu)).toEqual(["30s"]);
+    expect(checkedLabels(menu)).toEqual(["30s"]);
+    // Remembered for this dashboard, and written into the address.
+    expect(window.localStorage.getItem(PICK_KEY)).toBe("30s");
+    expect(new URLSearchParams(window.location.search).get("refresh")).toBe(
+      "30s",
+    );
   });
 
-  test("a board saved with an interval opens with the tick on it", async () => {
+  test("a board saved with an interval opens on it, the tick on its Default", async () => {
     answerWithBoard(buildBoard(AutoRefreshInterval.ONE_MINUTE));
 
     render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
 
-    expect(tickedLabels(await openPicker("1m"))).toEqual(["1m"]);
+    const menu: HTMLElement = await openPicker("1m");
+
+    expect(labelsOf(menu)[0]).toBe("Default (1m)");
+    expect(tickedLabels(menu)).toEqual(["Default (1m)"]);
+    // The interval the default names is not ticked twice.
+    expect(choiceOf(menu, "1m").querySelector("svg")).toBeNull();
+  });
+
+  test("the visitor's own interval wins over the dashboard's, and Default goes back to it", async () => {
+    window.localStorage.setItem(PICK_KEY, "5m");
+    answerWithBoard(buildBoard(AutoRefreshInterval.ONE_MINUTE));
+
+    render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
+
+    const menu: HTMLElement = await openPicker("5m");
+
+    expect(tickedLabels(menu)).toEqual(["5m"]);
+
+    fireEvent.click(choiceOf(menu, "Default (1m)"));
+
+    // Back on the dashboard's own interval, and nothing of the pick kept.
+    expect(tickedLabels(await openPicker("1m"))).toEqual(["Default (1m)"]);
+    expect(window.localStorage.getItem(PICK_KEY)).toBeNull();
+    expect(new URLSearchParams(window.location.search).has("refresh")).toBe(
+      false,
+    );
+  });
+
+  test("a link's ?refresh= wins over both, and is not kept as the visitor's own", async () => {
+    window.localStorage.setItem(PICK_KEY, "5m");
+    window.history.replaceState(
+      null,
+      "",
+      "/public-dashboard/board?refresh=10s",
+    );
+    answerWithBoard(buildBoard(AutoRefreshInterval.ONE_MINUTE));
+
+    render(<DashboardViewPage dashboardId={DASHBOARD_ID} />);
+
+    expect(tickedLabels(await openPicker("10s"))).toEqual(["10s"]);
+    expect(window.localStorage.getItem(PICK_KEY)).toBe("5m");
   });
 });

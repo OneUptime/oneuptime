@@ -26,7 +26,7 @@ flowchart TB
 | Panel | Una página: un nombre, una cuadrícula de widgets, un intervalo de tiempo, variables y un ajuste de actualización automática. |
 | Widget | Una casilla de la cuadrícula: un gráfico, un número, una lista, un mapa, un reloj o un bloque de texto. |
 | Variable | Un selector en la barra de herramientas que limita cada widget compatible a un servicio, host o cliente. |
-| Intervalo de tiempo | La ventana que leen todos los gráficos y números. Empieza en la última hora cada vez que se abre el panel. |
+| Intervalo de tiempo | La ventana que leen todos los gráficos y números. Un panel se abre en su valor predeterminado, la última hora salvo que alguien que lo edite elija otro, y cada lector puede elegir el suyo. |
 | Actualización automática | Con qué frecuencia los widgets vuelven a leer sus datos: desactivada, o de cada 5 segundos a cada 15 minutos. |
 | Lectura y edición | Un panel se abre para leerlo. Editarlo es un paso aparte que termina guardando o descartando tus cambios. |
 

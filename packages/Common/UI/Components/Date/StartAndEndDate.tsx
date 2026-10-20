@@ -16,6 +16,12 @@ export interface ComponentProps {
   onValueChanged: (value: InBetween<Date> | null) => void;
   type: StartAndEndDateType;
   hideTimeButtons?: boolean | undefined;
+  /*
+   * From above To at every width, for a narrow column - the time range
+   * picker's, beside its quick ranges - where two date and time fields side
+   * by side ran past the edge of the dialog.
+   */
+  isStacked?: boolean | undefined;
 }
 
 type DateFilterFunction = (props: ComponentProps) => ReactElement;
@@ -129,8 +135,14 @@ const StartAndEndDate: DateFilterFunction = (
   ) {
     return (
       <div>
-        <div className="flex flex-col md:flex-row md:space-x-3 space-y-3 md:space-y-0 mt-1">
-          <div className="w-full md:w-1/2">
+        <div
+          className={
+            props.isStacked
+              ? "mt-3 flex flex-col space-y-3"
+              : "flex flex-col md:flex-row md:space-x-3 space-y-3 md:space-y-0 mt-1"
+          }
+        >
+          <div className={props.isStacked ? "w-full" : "w-full md:w-1/2"}>
             <div className="text-xs text-gray-500">
               {translator.translateText("From:")}
             </div>
@@ -169,7 +181,7 @@ const StartAndEndDate: DateFilterFunction = (
               />
             </div>
           </div>
-          <div className="w-full md:w-1/2">
+          <div className={props.isStacked ? "w-full" : "w-full md:w-1/2"}>
             <div className="text-xs text-gray-500">
               {translator.translateText("To:")}
             </div>

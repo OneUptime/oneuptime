@@ -334,6 +334,16 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
+          # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
+          # dashboard's default time range and auto-refresh inside OneUptime
+          # and on its public page, at a laptop's width and, for what a phone
+          # changes, a phone's, Chromium only) would have taken group 7 to
+          # about 21.5 minutes on 2026-10-20, so it opened a group of its own,
+          # with room for the next suites.
+          - group: 8
+            browsers: chromium
+            suites: >-
+              test-dashboard-time-range-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -506,4 +516,6 @@ jobs:
             output/playwright/profiles-ui/test-results
             output/playwright/dashboard-templates-ui/*.png
             output/playwright/dashboard-templates-ui/test-results
+            output/playwright/dashboard-time-range-ui/*.png
+            output/playwright/dashboard-time-range-ui/test-results
           retention-days: 7

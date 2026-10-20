@@ -24,6 +24,7 @@ import Email from "../../../Types/Email";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
+import TimeRange from "../../../Types/Time/TimeRange";
 import DashboardVariableUrlState from "../../../Utils/Dashboard/VariableUrlState";
 import GridLayoutUtil from "../../../Utils/Dashboard/GridLayout";
 import DashboardViewConfigUtil from "../../../Utils/Dashboard/DashboardViewConfig";
@@ -916,6 +917,69 @@ describe("the board", () => {
     },
   );
 
+  /*
+   * The dashboard's default time range (issue #5080): a preset is what it
+   * opens on; anything else - Custom, another spelling, a value from
+   * another version - is read as none, so it opens on the past hour.
+   */
+  test.each(
+    Object.values(TimeRange).filter((range: TimeRange): boolean => {
+      return range !== TimeRange.CUSTOM;
+    }),
+  )("the default time range %s is kept", (range: TimeRange) => {
+    expect(
+      StoredDashboardViewConfig.read({
+        components: [],
+        timeRange: range,
+      }).timeRange,
+    ).toBe(range);
+  });
+
+  test.each([
+    [TimeRange.CUSTOM],
+    ["past 1 day"],
+    ["1d"],
+    [24],
+    [null],
+    [{ range: "Past 1 Day" }],
+  ])(
+    "a default time range of %p is dropped, so the board opens on the past hour",
+    (timeRange: unknown) => {
+      const config: DashboardViewConfig = StoredDashboardViewConfig.read({
+        components: [],
+        timeRange,
+      });
+
+      expect(config.timeRange).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(config, "timeRange")).toBe(
+        false,
+      );
+    },
+  );
+
+  test("the defaults are read where the widgets are: in the API reference's envelope, or JSON text", () => {
+    const inEnvelope: DashboardViewConfig = StoredDashboardViewConfig.read({
+      _type: "DashboardViewConfig",
+      value: {
+        components: [],
+        timeRange: TimeRange.PAST_ONE_WEEK,
+        refreshInterval: AutoRefreshInterval.ONE_MINUTE,
+      },
+    });
+
+    expect(inEnvelope.timeRange).toBe(TimeRange.PAST_ONE_WEEK);
+    expect(inEnvelope.refreshInterval).toBe(AutoRefreshInterval.ONE_MINUTE);
+
+    const asText: DashboardViewConfig = StoredDashboardViewConfig.read(
+      JSON.stringify({
+        components: [],
+        timeRange: TimeRange.PAST_TWO_DAYS,
+      }),
+    );
+
+    expect(asText.timeRange).toBe(TimeRange.PAST_TWO_DAYS);
+  });
+
   test("keys this version does not know are kept on the board", () => {
     const config: DashboardViewConfig = StoredDashboardViewConfig.read({
       components: [],
@@ -1134,6 +1198,7 @@ describe("canonical configs read back exactly as they are", () => {
 
     config = {
       ...config,
+      timeRange: TimeRange.PAST_ONE_DAY,
       refreshInterval: AutoRefreshInterval.FIVE_MINUTES,
       variables: [
         {
