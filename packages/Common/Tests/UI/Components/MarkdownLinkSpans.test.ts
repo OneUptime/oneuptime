@@ -353,6 +353,19 @@ describe("a line built to be slow is read quickly", () => {
     ["titles closed by no parenthesis", repeat('![a](b "c" ', LENGTH)],
     ["a run of opening brackets", repeat("[", LENGTH)],
     ["a run of image openers", repeat("![", LENGTH) + "]("],
+    /*
+     * The "]" every opener reaches is found once: looked for again from
+     * each opener, the search is fast enough per character that it takes
+     * four times the length, and a character only two bytes hold, to show.
+     */
+    [
+      "a long run of image openers before one bracket",
+      repeat("![", 4 * LENGTH) + LINE_SEPARATOR + "](",
+    ],
+    [
+      "a long run of link openers before one bracket",
+      repeat("[", 4 * LENGTH) + LINE_SEPARATOR + "](",
+    ],
     ["words that run to the end", "![" + repeat("a", LENGTH)],
   ])("%s", (_label: string, text: string) => {
     expect(
