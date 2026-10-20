@@ -20,7 +20,9 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * OneUptime AI runs an SSH command with one of the SSH credentials assigned
  * to the Runner it runs on, and only on a Runner that runs its commands
- * ("Runs AI Remediation Commands"). A credential comes within its reach from
+ * (canRunAiCommands, which OneUptime turns on when an auto remediation rule
+ * or a Kubernetes cluster's AI settings pick the Runner, and a master admin
+ * may still write). A credential comes within its reach from
  * either side:
  *
  *   - turning that switch on for a Runner that holds SSH credentials

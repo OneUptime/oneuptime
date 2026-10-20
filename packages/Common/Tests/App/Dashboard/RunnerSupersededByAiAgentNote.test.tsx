@@ -175,7 +175,6 @@ describe("the superseded sentence", () => {
         getRunnerFormRestrictions(row);
 
       const detailForm: Fields<Runner> = getRunnerFormFields({
-        withSteps: false,
         restrictions,
       });
 

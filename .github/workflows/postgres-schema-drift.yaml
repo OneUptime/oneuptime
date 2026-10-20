@@ -1817,6 +1817,31 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddCodeRepositoryRunnerPostgres.test.ts --forceExit
 
+      # An auto remediation rule picks the Runner OneUptime AI runs its
+      # commands on, and a Runner has no "Runs AI Remediation Commands"
+      # switch. Clones the migrated Runner, AutoRemediationRule and
+      # AutoRemediationRuleRunner tables into an isolated schema as they were
+      # before the AddAutoRemediationRuleRunner migration and runs up() on
+      # seeded rows: a rule that composes commands and named no Runner gets
+      # the Runners of its project it ran on (never one with the switch off,
+      # a deleted, a global or a Kubernetes agent Runner, by the server's own
+      # rule), one with a single such Runner picks it as its Runner, other
+      # rules are not touched, and no Runner's switch changes; down()'s data
+      # step hands each rule's Runner back. Then
+      # AddAutoRemediationRuleRunnerIndexAndKey builds the column's index and
+      # its key to Runner online, outside a transaction, and again as a
+      # stopped run would.
+      - name: Test carrying command rules' Runners over to the rule's Runner on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AUTO_REMEDIATION_RULE_RUNNER_TESTS: "true"
+          AUTO_REMEDIATION_RULE_RUNNER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AUTO_REMEDIATION_RULE_RUNNER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AUTO_REMEDIATION_RULE_RUNNER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddAutoRemediationRuleRunnerPostgres.test.ts --forceExit
+
       # App installs serve the suites below: the probe ones (App) and the
       # Enterprise one, whose jest resolves Common and App from their own
       # installs.
