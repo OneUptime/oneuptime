@@ -104,7 +104,13 @@ server {
     gzip_vary on;
     gzip_min_length 1000;
    
+    # Every listen on 7849 and 7850 has an IPv6 twin, so a visitor who comes
+    # over IPv6 reaches this ingress with their own address
+    # (envsubst-on-templates.sh). NGINX_LISTEN_OPTIONS are socket options,
+    # which nginx takes once per address and port: they are written on the
+    # default_server listens only.
     listen ${NGINX_LISTEN_ADDRESS}7849 default_server ${NGINX_LISTEN_OPTIONS};
+${NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE}
 
     server_name  _; # All domains. 
 
@@ -424,6 +430,7 @@ server {
     gzip_min_length 1000;
 
     listen ${NGINX_LISTEN_ADDRESS}7850 ssl default_server ${NGINX_LISTEN_OPTIONS}; # Port HTTPS
+${NGINX_IPV6_LISTEN_SSL_DEFAULT_DIRECTIVE}
 
 
     ssl_certificate /etc/nginx/certs/StatusPageCerts/$ssl_server_name.crt; 
@@ -690,8 +697,10 @@ server {
     gzip_vary on;
     gzip_min_length 1000;
 
-    listen ${NGINX_LISTEN_ADDRESS}7849 ${NGINX_LISTEN_OPTIONS};
+    listen ${NGINX_LISTEN_ADDRESS}7849;
+${NGINX_IPV6_LISTEN_DIRECTIVE}
 ${PROVISION_SSL_LISTEN_DIRECTIVE}
+${PROVISION_SSL_IPV6_LISTEN_DIRECTIVE}
 ${PROVISION_SSL_CERTIFICATE_DIRECTIVE}
 ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     http2  on;

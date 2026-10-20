@@ -200,12 +200,17 @@ const ENTERPRISE_ROUTES: Array<string> = [
   "/postgres-activity",
 ];
 
-// Available on every edition.
+/*
+ * Available on every edition. /visitor-addresses (where people sign in
+ * from) takes a master admin's session only, never the master API key, so
+ * the API reference does not list it (VisitorAddressesRoute.test.ts).
+ */
 const COMMUNITY_ROUTES: Array<string> = [
   "/clickhouse-capacity",
   "/instance-health-logs",
   "/migrations",
   "/support-bundle",
+  "/visitor-addresses",
 ];
 
 interface HttpResult {
@@ -798,6 +803,15 @@ describe("the Community routes answer on every edition", () => {
     expect(result.status).toBe(200);
     expect(result.body["logs"]).toEqual([]);
     expect(InstanceHealthLogService.findBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("where people sign in from is reported on the Community Edition, and claims nothing while Postgres is away", async () => {
+    const result: HttpResult = await get("/visitor-addresses");
+
+    expect(result.status).toBe(200);
+    expect(result.body["checked"]).toBe(false);
+    expect(result.body["addresses"]).toEqual([]);
+    expect(result.body["windowDays"]).toBe(30);
   });
 });
 

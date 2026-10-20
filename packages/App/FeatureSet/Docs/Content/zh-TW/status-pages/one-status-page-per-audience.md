@@ -70,7 +70,7 @@ flowchart TB
 
 ### 把共用監測器放到每個頁面上
 
-把共用監測器作為資源新增到每個頁面（請參閱 [狀態頁資源與群組](/docs/status-pages/resources-and-groups)）。**資源 → Monitor Rules** 下的規則可以根據監測器的標籤替你完成這件事。
+把共用監測器作為資源新增到每個頁面（請參閱 [狀態頁資源與群組](/docs/status-pages/resources-and-groups)）。**規則 → Monitor Rules** 下的規則可以根據監測器的標籤替你完成這件事。
 
 ### 開啟「僅顯示限定到此頁面的事件」
 

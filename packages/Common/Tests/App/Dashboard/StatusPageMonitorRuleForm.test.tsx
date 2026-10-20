@@ -30,7 +30,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * A status page's Monitor Rules (Status Pages -> a page -> Resources ->
+ * A status page's Monitor Rules (Status Pages -> a page -> Rules ->
  * Monitor Rules), drawn for real: the page's own fields in the
  * ModelFormModal, ModelForm and BasicForm its table opens, with only the
  * table around them, the network and the permissions stubbed.

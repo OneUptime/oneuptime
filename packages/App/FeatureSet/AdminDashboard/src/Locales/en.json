@@ -1000,5 +1000,16 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.",
   "Never put keys here.": "Never put keys here.",
   "Your deployment's name, exactly as Foundry shows it.": "Your deployment's name, exactly as Foundry shows it.",
-  "{{name}} (default)": "{{name}} (default)"
+  "{{name}} (default)": "{{name}} (default)",
+  "Visitors share an address": "Visitors share an address",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Usually something in front of OneUptime hands it every visitor from an address of its own:",
+  "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.": "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.",
+  "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.": "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: set {{setting}} in the Helm chart's values.",
+  "Nothing needs to change if these people share one computer or one VPN.": "Nothing needs to change if these people share one computer or one VPN.",
+  "{{count}} people": "{{count}} people",
+  "{{count}} people_one": "{{count}} person",
+  "Docker Compose guide": "Docker Compose guide",
+  "Kubernetes guide": "Kubernetes guide"
 }

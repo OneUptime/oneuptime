@@ -75,7 +75,7 @@ Necesitas permiso para crear reglas de tasa de consumo de SLO.
 :::steps
 ### Abrir Reglas de tasa de consumo
 
-Abre el SLO, ve a **Reglas de tasa de consumo** y haz clic en **Crear Regla de tasa de consumo del SLO**, o edita una de las reglas predeterminadas.
+Abre el SLO, ve a **Reglas de tasa de consumo** en la sección **Reglas** de su menú lateral y haz clic en **Crear Regla de tasa de consumo del SLO**, o edita una de las reglas predeterminadas.
 
 ### Ponerle nombre a la regla
 

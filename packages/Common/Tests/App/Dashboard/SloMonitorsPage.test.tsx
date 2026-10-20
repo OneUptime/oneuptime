@@ -24,6 +24,8 @@ import { ComponentProps as ConfirmModalProps } from "../../../UI/Components/Moda
 import { ComponentProps as BasicFormModalProps } from "../../../UI/Components/FormModal/BasicFormModal";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import type { TableEmptyStateAction } from "../../../UI/Components/Table/TableEmptyState";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * The SLO Monitors page, rendered for real against a stubbed API.
@@ -401,6 +403,68 @@ describe("SLO Monitors page", () => {
     expect(
       screen.getByRole("button", { name: "Add Monitors" }),
     ).not.toBeDisabled();
+  });
+
+  /*
+   * The empty list says "Add monitors by hand, or create a monitor rule".
+   * Monitor Rules sits folded away under the side menu's Rules section, so
+   * the second way is a button of its own, beside the Add Monitors the
+   * empty list repeats from the card: it opens the SLO's Monitor Rules page.
+   */
+  test("with no rule enabled, the empty list offers Create a monitor rule, which opens the SLO's Monitor Rules page", async () => {
+    const navigateMock: MockFunction = getJestMockFunction();
+
+    jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((...args: Array<unknown>): void => {
+        navigateMock(...args);
+      });
+    mockGetItem.mockResolvedValue(sloWith([], []));
+    mockCount.mockResolvedValue(0);
+
+    await renderPage();
+
+    expect(mockTableProps!.noItemsMessage).toBe(
+      "No monitors attached. Add monitors by hand, or create a monitor rule to attach matching monitors automatically.",
+    );
+
+    const actions: Array<TableEmptyStateAction> =
+      mockTableProps!.emptyState?.actions || [];
+
+    expect(
+      actions.map((action: TableEmptyStateAction): string => {
+        return action.title;
+      }),
+    ).toEqual(["Create a monitor rule"]);
+    expect(actions[0]!.icon).toBe(IconProp.Filter);
+    expect(actions[0]!.dataTestId).toBe("slo-monitors-create-monitor-rule");
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    actions[0]!.onClick();
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const target: Route = navigateMock.mock.calls[0]![0] as Route;
+
+    expect(target).toBeInstanceOf(Route);
+    expect(target.toString()).toBe(
+      `/dashboard/${PROJECT_ID.toString()}/slos/${SLO_ID.toString()}/monitor-rules`,
+    );
+  });
+
+  test("while a rule is enabled, the empty list adds no rule button: the banner links to the rules", async () => {
+    mockGetItem.mockResolvedValue(sloWith([], []));
+    mockCount.mockResolvedValue(1);
+
+    await renderPage();
+
+    expect(mockTableProps!.noItemsMessage).toBe(
+      "No monitors match this SLO's enabled monitor rules yet. Monitors are attached as soon as one matches.",
+    );
+    expect(mockTableProps!.emptyState).toBeUndefined();
+    expect(
+      screen.getByTestId("slo-monitors-managed-by-rules"),
+    ).toBeInTheDocument();
   });
 
   test("a hand-attached row can be removed while rules are enabled; a rule-attached row keeps a locked Remove", async () => {

@@ -15,11 +15,11 @@ import path from "path";
  * makes it true.
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
- * note on runbook variables (RunbookVariablesUpgradeDocs) and before the
- * endpoint pointer, and every translation carries it in the English note's
- * place, with the switch named as it was and a link to the Code page's
- * section on the repository's Runner in the reader's language. What it
- * claims is what the upgrade does:
+ * note that visitors keep their own address (VisitorAddressesUpgradeDocs)
+ * and before the endpoint pointer, and every translation carries it in the
+ * English note's place, with the switch named as it was and a link to the
+ * Code page's section on the repository's Runner in the reader's language.
+ * What it claims is what the upgrade does:
  *
  *   - a repository's settings in Code hold its Runner
  *     (CodeRepository.runnerId), and one that picks none works on a global
@@ -40,9 +40,9 @@ const CONTENT_DIR: string = path.resolve(
 const LEAD: string =
   "A code repository picks its Runner, and Runners lose their AI code fix switch.";
 const NOTE_LEAD: string = `**${LEAD}**`;
-// The note before it (RunbookVariablesUpgradeDocs).
+// The note before it (VisitorAddressesUpgradeDocs).
 const PREVIOUS_LEAD: string =
-  "**Runbook secrets and the credentials runbook steps used are runbook variables.**";
+  "**Visitors keep their own address in more setups.**";
 const POINTER_START: string = "- See [API and endpoint changes]";
 
 const CODE_PAGE: string = "ai/ai-agent";
@@ -89,7 +89,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on a code repository's Runner", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on runbook variables and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on visitor addresses and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

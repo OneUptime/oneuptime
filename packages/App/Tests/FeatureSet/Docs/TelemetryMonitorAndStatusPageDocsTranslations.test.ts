@@ -1486,9 +1486,9 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 describe("the helpers, on these pages' shapes", () => {
   it("tell a menu path from a label, and a path with a placeholder from one without", () => {
     const markdown: string =
-      "**Resources → Monitor Rules**, **Status Pages → your page → Branding → Branding** and **Show Uptime %**";
+      "**Rules → Monitor Rules**, **Status Pages → your page → Branding → Branding** and **Show Uptime %**";
 
-    expect(menuPaths(markdown)).toEqual([["Resources", "Monitor Rules"]]);
+    expect(menuPaths(markdown)).toEqual([["Rules", "Monitor Rules"]]);
     expect(placeholderPaths(markdown)).toEqual([
       ["Status Pages", "your page", "Branding", "Branding"],
     ]);

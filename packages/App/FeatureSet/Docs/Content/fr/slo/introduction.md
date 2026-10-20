@@ -164,7 +164,7 @@ Ouvrez un SLO pour voir ses pages dans le menu latéral :
 | **Journaux d'audit** | Qui a modifié le SLO, ses règles et ses propriétaires, et quand. |
 | **Supprimer le SLO** | Supprime définitivement le SLO et résout les alertes et incidents de taux de consommation qu'il avait ouverts. |
 
-**Moniteurs**, **Règles de moniteurs** et **Règles de taux de consommation** se trouvent dans une section **Configuration**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les deux sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
+**Moniteurs** se trouve dans une section **Configuration**, **Règles de moniteurs** et **Règles de taux de consommation** dans une section **Règles**, et **Propriétaires**, **Paramètres**, **Journaux d'audit** et **Supprimer le SLO** dans une section **Gestion**. Les trois sont repliées au départ, tout comme une section **Développeurs** pour gérer le SLO par le code : cliquez sur le titre d'une section pour l'ouvrir.
 
 Quand quelque chose empêche un SLO de mesurer, un bandeau en haut de chacune de ses pages dit ce qui ne va pas et renvoie vers la page qui permet de le corriger : voir [Dépannage](#dépannage).
 

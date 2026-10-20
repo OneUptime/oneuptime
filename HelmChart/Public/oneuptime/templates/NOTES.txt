@@ -157,6 +157,39 @@ longer before the pod can try again. Lower migrate.runtimeWaitTimeoutSeconds, or
 raise startupProbe.failureThreshold.
 {{- end }}
 {{- end }}
+{{- /*
+  The gateway's Service is one visitors reach from outside the cluster, and
+  nothing says whether kube-proxy hands them to the gateway from their own
+  address (externalTrafficPolicy Local) or from a node's (Cluster, Kubernetes'
+  default). Under Cluster OneUptime counts every visitor that came through one
+  node as one visitor. The chart cannot switch an existing Service safely by
+  itself: under Local a node without a gateway pod refuses visitors until the
+  load balancer's health check stops sending them there. So it says so, until
+  nginx.service.externalTrafficPolicy names a choice.
+*/}}
+{{- $gatewayServiceType := default "ClusterIP" .Values.nginx.service.type }}
+{{- if and (or (has $gatewayServiceType (list "LoadBalancer" "NodePort")) .Values.nginx.service.externalIPs) (not .Values.nginx.service.externalTrafficPolicy) }}
+
+ACTION RECOMMENDED -- OneUptime sees visitors at a node's address.
+
+The {{ .Release.Name }}-nginx Service hands every visitor to OneUptime's gateway
+from the address of the node they came through (Kubernetes' default
+externalTrafficPolicy, Cluster). OneUptime counts visitors by that address, so
+everyone who comes through one node is one visitor to it: one visitor's failed
+sign-ins can lock the others out, and IP allowlists see the node.
+
+If your load balancer passes visitors' addresses through (MetalLB, and the
+network load balancers of most clouds), set
+nginx.service.externalTrafficPolicy=Local and run helm upgrade. Each visitor
+then keeps their own address, and is sent only to nodes that run a gateway pod;
+until the load balancer's health check catches up, from seconds to about a
+minute depending on its interval, a node without one refuses visitors, so
+switch at a quiet time. A load balancer that ends the connection itself hides
+the address from the cluster either way: docs/configuration.md in the chart,
+"Visitor addresses", says what to do then.
+
+To keep things as they are, set nginx.service.externalTrafficPolicy=Cluster.
+{{- end }}
 {{- if .Values.vllm.enabled }}
 
 vLLM (local LLM server) is enabled. Its OpenAI-compatible endpoint inside the cluster is:

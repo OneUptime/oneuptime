@@ -204,12 +204,12 @@ Setzen Sie Ihren meistgefragten Dienst nach oben. Besucher, die während eines A
 
 ## Monitore automatisch mit Monitor-Regeln hinzufügen
 
-Eine Monitor-Regel fügt der Seite Monitore für Sie hinzu: Beschreiben Sie die Monitore einmal, und jeder passende Monitor landet in der Gruppe, die Sie gewählt haben. Regeln stehen unter **Ressourcen → Monitor-Regeln**, neben dem Bildschirm Ressourcen.
+Eine Monitor-Regel fügt der Seite Monitore für Sie hinzu: Beschreiben Sie die Monitore einmal, und jeder passende Monitor landet in der Gruppe, die Sie gewählt haben. Sie finden sie unter **Regeln → Monitor-Regeln**, direkt unter Ressourcen im Seitenmenü der Seite.
 
 :::steps
 ### Monitor-Regeln öffnen
 
-Öffnen Sie die Statusseite, wählen Sie **Monitor-Regeln** im Abschnitt **Ressourcen** ihres Seitenmenüs und klicken Sie auf **Monitor-Regel erstellen**.
+Öffnen Sie die Statusseite, wählen Sie **Monitor-Regeln** im Abschnitt **Regeln** ihres Seitenmenüs (klicken Sie auf den Titel des Abschnitts, falls er eingeklappt ist) und klicken Sie auf **Monitor-Regel erstellen**.
 
 ### Sagen, auf welche Monitore sie passt
 

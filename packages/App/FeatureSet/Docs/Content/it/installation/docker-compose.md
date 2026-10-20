@@ -186,7 +186,7 @@ Con `HTTP_PROTOCOL=https`, OneUptime costruisce link HTTPS, mantiene i cookie di
 :::steps
 #### Punta il tuo dominio al server
 
-Crea un record DNS `A` (o `AAAA` per IPv6) per il tuo dominio, con l'indirizzo IP pubblico del server come valore.
+Crea un record DNS `A` (o `AAAA` per IPv6) per il tuo dominio, con l'indirizzo IP pubblico del server come valore. Con un record `AAAA`, attiva anche IPv6 per OneUptime: vedi [Indirizzi dei visitatori](#indirizzi-dei-visitatori).
 
 #### Attiva l'ottenimento dei certificati
 
@@ -213,16 +213,16 @@ Apri `https://oneuptime.example.com`. OneUptime ordina il certificato all'avvio 
 
 ### Usare il tuo reverse proxy
 
-Questi passi eseguono il proxy sullo stesso server di OneUptime. Se il tuo proxy gira su un'altra macchina, salta il primo passo e punta il proxy alla porta 80 di questo server.
+Questi passi eseguono il proxy sullo stesso server di OneUptime. Se il tuo proxy gira su un'altra macchina, salta il primo passo, punta il proxy alla porta 80 di questo server e, con il firewall del tuo provider cloud, lascia che solo il proxy raggiunga le porte 80 e 443: un visitatore che raggiunge OneUptime aggirando il proxy può scegliere l'indirizzo con cui OneUptime lo conta.
 
 :::steps
 #### Sposta l'ingress dalle porte 80 e 443
 
-Il proxy ha bisogno delle porte 80 e 443, quindi sposta l'ingress su altre porte. La sonda e il Runner usano la rete dell'host e raggiungono OneUptime tramite `http://localhost`, quindi si spostano con lui:
+Il proxy ha bisogno delle porte 80 e 443, quindi sposta l'ingress su altre porte, pubblicate solo sull'indirizzo di loopback `127.0.0.1` di questo server, così i visitatori raggiungono OneUptime soltanto attraverso il tuo proxy. La sonda e il Runner usano la rete dell'host e raggiungono OneUptime tramite `http://localhost`, quindi si spostano con lui:
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,48 @@ Apri `https://oneuptime.example.com`. Dovresti vedere la pagina di accesso di On
 > [!NOTE]
 > Dietro il tuo proxy, invia la telemetria tramite OTLP/HTTP (`/otlp`). OTLP su gRPC raggiunge OneUptime solo quando è il suo ingress a terminare TLS (`PROVISION_SSL=true`).
 
+## Indirizzi dei visitatori
+
+OneUptime conta ogni visitatore in base all'indirizzo da cui si collega: i limiti di accesso, gli altri limiti per indirizzo e le allowlist IP delle pagine di stato e delle dashboard lo leggono tutti. Due configurazioni richiedono un'impostazione perché quell'indirizzo sia proprio quello del visitatore:
+
+| Configurazione | Impostazione |
+| --- | --- |
+| Le persone raggiungono OneUptime via IPv6, ad esempio tramite un record `AAAA` | IPv6 sulla rete di OneUptime, in `docker-compose.override.yml` |
+| Il tuo reverse proxy sta davanti a OneUptime | `TRUSTED_PROXY_HOPS=2`, con l'ingress pubblicato su `127.0.0.1` (vedi [Usare il tuo reverse proxy](#usare-il-tuo-reverse-proxy)) |
+
+Senza IPv6 sulla rete di OneUptime, Docker passa a OneUptime ogni visitatore che arriva via IPv6 da un indirizzo proprio, e OneUptime li conta tutti come un solo visitatore: gli accessi non riusciti di una persona possono bloccare le altre. Attivare IPv6 richiede Docker Engine 27 o successivo (`docker version` mostra la tua).
+
+:::steps
+### Attiva IPv6
+
+Crea `docker-compose.override.yml` accanto a `docker-compose.yml`, oppure aggiungi questo a quello che hai già; `npm start` e `npm run update` lo leggono:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
+```
+
+### Riavvia OneUptime
+
+```bash
+npm stop
+npm start
+```
+
+OneUptime si ferma e riparte con IPv6 sulla sua rete. I tuoi dati restano. Docker non può rimuovere una rete a cui è ancora collegato un tuo container, come un reverse proxy: scollegalo prima dalla rete di OneUptime e ricollegalo dopo. Se `npm start` si ferma con `has active endpoints`, scollegalo ed esegui di nuovo `npm stop` e `npm start`.
+
+### Controlla la rete
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+Stampa `"EnableIPv6": true,`.
+:::
+
+Quando più persone accedono da uno stesso indirizzo di rete privata, la pagina **Integrità di OneUptime** dell'Admin Dashboard lo segnala, con l'impostazione che lo cambia.
+
 ## Checklist per la produzione
 
 Docker Compose esegue una sola copia di ogni servizio su un unico server, il che si adatta a team piccoli e homelab. Prima di affidartici, ripassa questa lista.
@@ -325,6 +367,7 @@ Docker Compose esegue una sola copia di ogni servizio su un unico server, il che
 | **HTTPS** | OneUptime si raggiunge in HTTPS e `HTTP_PROTOCOL=https` è impostato. Vedi [Configurare HTTPS](#configurare-https). |
 | **Registrazioni** | Quando il tuo team ha i suoi account, disattiva **Consenti la registrazione** in **Impostazioni > Autenticazione** nell'Admin Dashboard. |
 | **Firewall** | Solo le porte 80 e 443 (e SSH) sono aperte verso Internet. OneUptime pubblica la porta 5400 di PostgreSQL solo su `127.0.0.1`. Chiudi ogni altra porta che pubblichi con il firewall del tuo provider cloud: le regole di `ufw` non si applicano alle porte che Docker pubblica. |
+| **Indirizzi dei visitatori** | La pagina **Integrità di OneUptime** dell'Admin Dashboard non segnala che più persone accedono da uno stesso indirizzo. Vedi [Indirizzi dei visitatori](#indirizzi-dei-visitatori). |
 | **Backup** | PostgreSQL viene salvato ogni giorno e le copie lasciano il server. Vedi [Backup e ripristino](#backup-e-ripristino). |
 | **E-mail** | Un server di posta è configurato in **Impostazioni > Notifiche > E-mail** nell'Admin Dashboard, così OneUptime può inviare inviti e notifiche. Vedi [SMTP](/docs/emails/smtp). |
 | **Disco** | Lo spazio libero è tenuto d'occhio. ClickHouse cresce con la telemetria che conservi (vedi [Dimensionamento e pianificazione della capacità](/docs/installation/sizing)); il log di ogni container è limitato a 1000 MB. |

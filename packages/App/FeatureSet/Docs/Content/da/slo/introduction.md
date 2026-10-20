@@ -164,7 +164,7 @@ Siden **SLOs** viser hvert SLO, der ikke er arkiveret, med status, SLI, resteren
 | **Auditlogs** | Hvem der har ændret SLO'et, dets regler og dets ejere, og hvornår. |
 | **Delete SLO** | Sletter SLO'et permanent og løser de forbrugsrateadvarsler og -hændelser, det havde åbne. |
 
-**Monitorer**, **Monitor Rules** og **Burn Rate Rules** ligger i en sektion **Konfiguration**, og **Ejere**, **Indstillinger**, **Auditlogs** og **Delete SLO** i en sektion **Management**. Begge starter foldet sammen, ligesom en sektion **Udvikler** til at styre SLO'et fra kode: klik på en sektions titel for at åbne den.
+**Monitorer** ligger i en sektion **Konfiguration**, **Monitor Rules** og **Burn Rate Rules** i en sektion **Regler**, og **Ejere**, **Indstillinger**, **Auditlogs** og **Delete SLO** i en sektion **Management**. Alle tre starter foldet sammen, ligesom en sektion **Udvikler** til at styre SLO'et fra kode: klik på en sektions titel for at åbne den.
 
 Når noget forhindrer et SLO i at måle, fortæller et banner øverst på hver af dets sider, hvad der er galt, og linker til den side, der løser det: se [Fejlfinding](#fejlfinding).
 

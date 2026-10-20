@@ -75,7 +75,7 @@ Il vous faut la permission de créer des règles de taux de consommation de SLO.
 :::steps
 ### Ouvrir Règles de taux de consommation
 
-Ouvrez le SLO, allez dans **Règles de taux de consommation** et cliquez sur **Créer : Règle de taux de consommation du SLO**, ou modifiez l'une des règles par défaut.
+Ouvrez le SLO, allez dans **Règles de taux de consommation**, dans la section **Règles** de son menu latéral, et cliquez sur **Créer : Règle de taux de consommation du SLO**, ou modifiez l'une des règles par défaut.
 
 ### Nommer la règle
 
