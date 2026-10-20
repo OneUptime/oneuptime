@@ -238,6 +238,10 @@ Définissez `DOCKER_API_VERSION` sur cette valeur dans `.env`, puis exécutez `d
 Le nom du cluster vient de `DOCKER_SWARM_CLUSTER_NAME`. Modifiez-le dans `.env` et exécutez `docker compose up -d` : un nouveau nom enregistre un nouveau cluster au lieu de renommer l'ancien.
 :::
 
+:::details Le CPU des tâches est une ligne plate
+Un ancien `otel-collector-config.yaml` envoie le chiffre de CPU calculé par le récepteur `docker_stats` lui-même. Depuis le collecteur 0.150.0, le récepteur le calcule à partir d'une seule lecture des statistiques : tout le CPU qu'un conteneur a utilisé depuis son démarrage, divisé par tout le CPU que le nœud a utilisé depuis son amorçage. La ligne bouge à peine et ne suit pas la charge, contrairement à `container.cpu.usage.total`. La version du collecteur n'a pas changé, donc aucun signe d'avertissement n'apparaît : téléchargez de nouveau les fichiers de l'agent, comme le montre [Mettre à jour l'agent](#mettre-à-jour-lagent). À partir de sa deuxième lecture, le collecteur envoie alors le CPU que chaque conteneur a utilisé sur chaque intervalle de 30 secondes. Les lectures déjà enregistrées restent telles quelles.
+:::
+
 ## Étapes suivantes
 
 :::cards

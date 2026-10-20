@@ -45,8 +45,9 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
      * Folded down to that title until opened, like every rarely used section:
      * a Runner is installed once and checked now and then, while the
      * runbooks and their executions above are what this menu is opened for.
-     * It opens by itself on the Runners and Credentials pages, and on a
-     * Runner's own page.
+     * It opens by itself on the Runners and AI Access pages, and on a
+     * Runner's own page. AI Access is what OneUptime AI's commands reach
+     * through a Runner (the credentials runbook steps no longer use).
      */
     {
       title: "Runners",
@@ -63,7 +64,7 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
         },
         {
           link: {
-            title: "Credentials",
+            title: "AI Access",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] as Route,
             ),
@@ -78,12 +79,12 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Secrets",
+            title: "Global Variables",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOKS_SECRETS] as Route,
+              RouteMap[PageMap.RUNBOOKS_VARIABLES] as Route,
             ),
           },
-          icon: IconProp.Lock,
+          icon: IconProp.Variable,
         },
         {
           link: {

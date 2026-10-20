@@ -5,8 +5,15 @@ import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/Dat
 import Model from "../../Models/DatabaseModels/Runbook";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import {
+  isMovedKubernetesStepConfig,
+  mayKeepLegacyKubernetesFields,
+  withoutLegacyKubernetesFields,
+} from "../../Types/Runbook/RunbookLegacySteps";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
+import { parseSingleRunbookVariableReference } from "../../Types/Runbook/RunbookVariableReference";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -46,6 +53,20 @@ const CREDENTIAL_STEP_TYPES: Array<string> = [
   RunbookStepType.SSH,
   RunbookStepType.Kubernetes,
 ];
+
+/*
+ * The fields of a step that take a secret - an SSH step's key or password
+ * and passphrase, a kubectl step's kubeconfig - by step type. Each holds
+ * one reference to a secret runbook variable, never the secret itself:
+ * everyone who may read the runbook reads its steps.
+ */
+const SECRET_FIELDS_BY_STEP_TYPE: Record<string, Array<string>> = {
+  [RunbookStepType.SSH]: ["signIn", "passphrase"],
+  [RunbookStepType.Kubernetes]: ["kubeconfig"],
+};
+
+export const STEP_SECRET_IN_STEP_MESSAGE: string =
+  "keeps a key, a password or a kubeconfig in the step itself, where everyone who may read this runbook could read it. Keep it in a secret runbook variable and pick that variable in the step.";
 
 /*
  * The columns whose change moves when the schedule next runs: the schedule
@@ -88,6 +109,20 @@ export const RUNBOOK_SCHEDULE_NEEDS_CRON_MESSAGE: string =
  *
  * The Runner still checks, every time the step runs, that the credential is
  * the project's and assigned to it.
+ *
+ * A MOVED KUBERNETES STEP KEEPS ITS ACTION ONLY WHILE IT IS THE MOVED STEP.
+ *
+ * The data migration that moved Kubernetes steps to kubectl scripts kept
+ * each step's credential and action beside its script and kubeconfig, for a
+ * Runner older than kubectl scripts, which is handed the step that way
+ * (RunbookLegacySteps). Every save - the Steps page, the API, Terraform -
+ * keeps them only on a step that is still the one the runbook holds: the
+ * same credential and action, kubeconfig and script, its script the one
+ * its action became (getStepsWithoutChangedLegacyKubernetesFields). A step
+ * whose script or kubeconfig changed loses them - before the credentials the
+ * steps name are asked about, so the credential it no longer names is not -
+ * and an older Runner fails it, saying to update, rather than run the old
+ * action for a step that now says something else.
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -148,6 +183,158 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return ids;
+  }
+
+  /*
+   * Why `steps` may not be saved because one of them holds a secret where it
+   * should name a secret variable, or null. A field that takes a secret is
+   * empty or one reference ({{global.variables.NAME}} or
+   * {{local.variables.NAME}}); whether that variable exists, and is a
+   * secret, is asked when the step runs - a runbook may be written before
+   * its variables, by the API or Terraform.
+   */
+  public static getStepSecretFieldRefusal(steps: unknown): string | null {
+    for (const step of Array.isArray(steps) ? steps : []) {
+      if (!step || typeof step !== "object") {
+        continue;
+      }
+
+      const type: unknown = (step as Record<string, unknown>)["type"];
+      const config: unknown = (step as Record<string, unknown>)["config"];
+
+      if (typeof type !== "string" || !config || typeof config !== "object") {
+        continue;
+      }
+
+      for (const field of SECRET_FIELDS_BY_STEP_TYPE[type] || []) {
+        const value: unknown = (config as Record<string, unknown>)[field];
+
+        if (value === undefined || value === null) {
+          continue;
+        }
+
+        if (
+          typeof value !== "string" ||
+          (value.trim() !== "" && !parseSingleRunbookVariableReference(value))
+        ) {
+          const title: unknown = (step as Record<string, unknown>)["title"];
+          const name: string =
+            typeof title === "string" && title.trim()
+              ? `"${title.trim().slice(0, 80)}"`
+              : `of type ${type}`;
+
+          return `The step ${name} ${STEP_SECRET_IN_STEP_MESSAGE}`;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Whether `steps` hold a Kubernetes step moved from an action, which
+   * keeps its legacy fields beside its script (RunbookLegacySteps). Only a
+   * write of such steps reads the runbooks it writes for them.
+   */
+  public static hasMovedKubernetesSteps(steps: unknown): boolean {
+    return (Array.isArray(steps) ? steps : []).some(
+      (step: unknown): boolean => {
+        return (
+          Boolean(step) &&
+          typeof step === "object" &&
+          (step as Record<string, unknown>)["type"] ===
+            RunbookStepType.Kubernetes &&
+          isMovedKubernetesStepConfig(
+            (step as Record<string, unknown>)["config"],
+          )
+        );
+      },
+    );
+  }
+
+  /*
+   * `steps` as they are saved: each Kubernetes step moved from an action
+   * keeps the credential and action it kept for an older Runner only when
+   * every runbook the write writes holds it, under its id, as it is now -
+   * the same legacy fields, kubeconfig and script, its script the one its
+   * action became (mayKeepLegacyKubernetesFields). Any other loses them: one
+   * whose script or kubeconfig was changed, and one no runbook holds yet - a
+   * new runbook's (`heldStepsOfEachRunbook` empty) or a new step. Null when
+   * no step loses them.
+   */
+  public static getStepsWithoutChangedLegacyKubernetesFields(data: {
+    steps: unknown;
+    heldStepsOfEachRunbook: Array<unknown>;
+  }): Array<unknown> | null {
+    if (!Array.isArray(data.steps)) {
+      return null;
+    }
+
+    let isChanged: boolean = false;
+
+    const steps: Array<unknown> = data.steps.map((step: unknown): unknown => {
+      if (!step || typeof step !== "object") {
+        return step;
+      }
+
+      const values: Record<string, unknown> = step as Record<string, unknown>;
+
+      if (
+        values["type"] !== RunbookStepType.Kubernetes ||
+        !isMovedKubernetesStepConfig(values["config"])
+      ) {
+        return step;
+      }
+
+      const isHeldAsItIs: boolean =
+        data.heldStepsOfEachRunbook.length > 0 &&
+        data.heldStepsOfEachRunbook.every((heldSteps: unknown): boolean => {
+          const held: Record<string, unknown> | undefined =
+            Service.findStepById(heldSteps, values["id"]);
+
+          return (
+            held !== undefined &&
+            held["type"] === RunbookStepType.Kubernetes &&
+            mayKeepLegacyKubernetesFields({
+              config: values["config"],
+              heldConfig: held["config"],
+            })
+          );
+        });
+
+      if (isHeldAsItIs) {
+        return step;
+      }
+
+      isChanged = true;
+
+      return {
+        ...values,
+        config: withoutLegacyKubernetesFields(
+          values["config"] as Record<string, unknown>,
+        ),
+      };
+    });
+
+    return isChanged ? steps : null;
+  }
+
+  // The step of `steps` (a runbook's, as stored) with the id `id`.
+  private static findStepById(
+    steps: unknown,
+    id: unknown,
+  ): Record<string, unknown> | undefined {
+    if (typeof id !== "string" || !id || !Array.isArray(steps)) {
+      return undefined;
+    }
+
+    return steps.find((step: unknown): boolean => {
+      return (
+        Boolean(step) &&
+        typeof step === "object" &&
+        (step as Record<string, unknown>)["id"] === id
+      );
+    }) as Record<string, unknown> | undefined;
   }
 
   // The credentials `steps` name, as references the project check looks up.
@@ -217,6 +404,28 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
+    const secretRefusal: string | null = Service.getStepSecretFieldRefusal(
+      createBy.data.steps,
+    );
+
+    if (secretRefusal) {
+      throw new BadDataException(secretRefusal);
+    }
+
+    /*
+     * A new runbook holds no step yet, so none of its steps keeps the
+     * action a moved Kubernetes step keeps for an older Runner.
+     */
+    const createdSteps: Array<unknown> | null =
+      Service.getStepsWithoutChangedLegacyKubernetesFields({
+        steps: createBy.data.steps,
+        heldStepsOfEachRunbook: [],
+      });
+
+    if (createdSteps) {
+      createBy.data.steps = createdSteps as JSONArray;
+    }
+
     if (!Service.mayNameCredentials(createBy.props)) {
       Service.refuseCredentialsNamed(
         Service.getStepCredentialIds(createBy.data.steps),
@@ -256,6 +465,16 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async checkUpdateBeforeReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    const secretRefusal: string | null = Service.getStepSecretFieldRefusal(
+      (updateBy.data as unknown as Record<string, unknown>)["steps"],
+    );
+
+    if (secretRefusal) {
+      throw new BadDataException(secretRefusal);
+    }
+
+    await this.dropChangedLegacyKubernetesFields(updateBy);
+
     const named: Array<string> = Service.getStepCredentialIds(
       (updateBy.data as unknown as Record<string, unknown>)["steps"],
     );
@@ -569,6 +788,49 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return result;
+  }
+
+  /*
+   * An update's steps without the legacy fields of a moved Kubernetes step
+   * it changed (getStepsWithoutChangedLegacyKubernetesFields), judged
+   * against the runbooks it writes - those its caller may write, the update
+   * held to them (findRowsAndHoldUpdateToThem). Reads nothing for steps
+   * that hold no moved Kubernetes step, or for an update that writes none.
+   */
+  private async dropChangedLegacyKubernetesFields(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      data["steps"] === undefined ||
+      !Service.hasMovedKubernetesSteps(data["steps"])
+    ) {
+      return;
+    }
+
+    const runbooks: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        steps: true,
+      },
+    );
+
+    const steps: Array<unknown> | null =
+      Service.getStepsWithoutChangedLegacyKubernetesFields({
+        steps: data["steps"],
+        heldStepsOfEachRunbook: runbooks.map((runbook: Model): unknown => {
+          return runbook.steps;
+        }),
+      });
+
+    if (steps) {
+      data["steps"] = steps;
+    }
   }
 
   /*

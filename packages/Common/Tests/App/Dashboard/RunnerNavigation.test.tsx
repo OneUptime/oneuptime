@@ -147,12 +147,16 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     ]);
   });
 
-  test("the section holds Runners and Credentials, at their Runbooks URLs", async () => {
+  test("the section holds Runners and AI Access, at their Runbooks URLs", async () => {
+    /*
+     * AI Access is the page Runner Credentials was: what OneUptime AI's
+     * commands reach through a Runner. Runbook steps use variables now.
+     */
     await renderMenu(<RunbookSideMenu />);
 
     expect(linksIn("Runners")).toEqual([
       { title: "Runners", href: RUNNERS_PATH },
-      { title: "Credentials", href: CREDENTIALS_PATH },
+      { title: "AI Access", href: CREDENTIALS_PATH },
     ]);
   });
 
@@ -162,7 +166,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     expect(linksIn("Runners")).toEqual([
       { title: "Runners", href: routeFor(PageMap.RUNBOOKS_RUNNERS) },
       {
-        title: "Credentials",
+        title: "AI Access",
         href: routeFor(PageMap.RUNBOOKS_RUNNER_CREDENTIALS),
       },
     ]);
@@ -182,7 +186,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
       { title: "Executions", href: `${RUNBOOKS}/executions` },
     ]);
     expect(linksIn("Settings")).toEqual([
-      { title: "Secrets", href: `${RUNBOOKS}/settings/secrets` },
+      { title: "Global Variables", href: `${RUNBOOKS}/settings/variables` },
       { title: "Owner Rules", href: `${RUNBOOKS}/settings/owner-rules` },
       { title: "Label Rules", href: `${RUNBOOKS}/settings/label-rules` },
     ]);
@@ -220,7 +224,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
   test.each([
     ["the Runners list", RUNNERS_PATH],
     ["a Runner's page", RUNNER_VIEW_PATH],
-    ["Runner Credentials", CREDENTIALS_PATH],
+    ["AI Access", CREDENTIALS_PATH],
   ])(
     "Runners opens by itself on %s",
     async (_name: string, pagePath: string) => {
@@ -234,7 +238,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
 
   test.each([
     ["Runners", RUNNERS_PATH],
-    ["Credentials", CREDENTIALS_PATH],
+    ["AI Access", CREDENTIALS_PATH],
   ])(
     "%s is the highlighted entry on its own page, and the only one",
     async (title: string, pagePath: string) => {
@@ -276,7 +280,7 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     await renderMenu(<RunbookSideMenu />);
 
     expect(mobileSummaryText()).toContain("Runners");
-    expect(mobileSummaryText()).toContain("Credentials");
+    expect(mobileSummaryText()).toContain("AI Access");
   });
 });
 
@@ -346,11 +350,7 @@ describe("the Runner pages' breadcrumbs lead back through Runbooks", () => {
       "Runners",
       "View Runner",
     ],
-    [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: [
-      "Project",
-      "Runbooks",
-      "Runner Credentials",
-    ],
+    [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: ["Project", "Runbooks", "AI Access"],
   };
 
   const RUNNER_PAGES: Array<string> = Object.keys(RunbookRoutePath).filter(
@@ -424,15 +424,15 @@ describe("the Runner pages' breadcrumbs lead back through Runbooks", () => {
   });
 
   test("the Runbooks pages that were already there kept their trails", () => {
-    visit(PageMap.RUNBOOKS_SECRETS);
+    visit(PageMap.RUNBOOKS_VARIABLES);
 
     expect(
       getRunbooksBreadcrumbs(
-        RouteUtil.getRouteString(PageMap.RUNBOOKS_SECRETS),
+        RouteUtil.getRouteString(PageMap.RUNBOOKS_VARIABLES),
       )!.map((link: Link): string => {
         return link.title;
       }),
-    ).toEqual(["Project", "Runbooks", "Secrets"]);
+    ).toEqual(["Project", "Runbooks", "Global Variables"]);
     expect(
       getRunbooksBreadcrumbs(
         RouteUtil.getRouteString(PageMap.RUNBOOK_VIEW_STEPS),
@@ -526,15 +526,19 @@ describe("links elsewhere in the dashboard arrive at the Runbooks pages", () => 
 
   /*
    * Code says, above a repository's request box, when no Runner is online to
-   * do the work - with the one link that fixes it, offered to whoever may
-   * set a Runner up (everyone else is told who can).
+   * do the work - with the one link that fixes it: the repository's own
+   * settings, where its Runner is picked, offered to whoever may change the
+   * repository (everyone else is told who can).
    */
   describe("Code's notice that no Runner is online", () => {
-    // The reader may create Runners, as the permission snapshot says.
-    function grantCreateRunner(): void {
+    const REPOSITORY_ID: string = "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+    const REPOSITORY_SETTINGS_PATH: string = `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`;
+
+    // The reader may change the repository, as the permission snapshot says.
+    function grantEditRepository(): void {
       const permissions: Array<Permission> = [
         Permission.ProjectUser,
-        Permission.CreateRunner,
+        Permission.EditCodeRepository,
       ];
 
       jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
@@ -556,35 +560,58 @@ describe("links elsewhere in the dashboard arrive at the Runbooks pages", () => 
       });
     }
 
-    function renderNoAgentNotice(): void {
+    function renderNoAgentNotice(
+      type: CodeTaskBlockerType = CodeTaskBlockerType.NoAgent,
+      // Null for a notice with no repository to open.
+      repositoryId: string | null = REPOSITORY_ID,
+    ): void {
       render(
         <CodeBlockerNotice
           blocker={{
-            type: CodeTaskBlockerType.NoAgent,
+            type: type,
             message: "No agent is available for this project.",
           }}
+          repositoryId={repositoryId || undefined}
         />,
       );
     }
 
-    test("its fix sends people to Runbooks → Runners", () => {
-      grantCreateRunner();
-      renderNoAgentNotice();
+    test.each([
+      CodeTaskBlockerType.NoAgent,
+      CodeTaskBlockerType.RunnerNotOnline,
+      CodeTaskBlockerType.GlobalRunnersOff,
+    ])(
+      "%s: its fix opens the repository's settings, where its Runner is picked",
+      (type: CodeTaskBlockerType) => {
+        grantEditRepository();
+        renderNoAgentNotice(type);
 
-      const fix: HTMLElement = screen.getByTestId("code-blocker-fix");
+        const fix: HTMLElement = screen.getByTestId("code-blocker-fix");
 
-      expect(fix).toHaveTextContent("Set up a Runner");
-      expect(fix).toHaveAttribute("href", RUNNERS_PATH);
+        expect(fix).toHaveTextContent("Pick a Runner");
+        expect(fix).toHaveAttribute("href", REPOSITORY_SETTINGS_PATH);
+        expect(fix).not.toHaveAttribute("href", RUNNERS_PATH);
+      },
+    );
+
+    test("with no repository to open, the fix is not linked", () => {
+      grantEditRepository();
+      renderNoAgentNotice(CodeTaskBlockerType.NoAgent, null);
+
+      expect(screen.queryByTestId("code-blocker-fix")).not.toBeInTheDocument();
     });
 
     test("it says why in the reader's words, not the server's", () => {
       renderNoAgentNotice();
 
       expect(screen.getByTestId("code-blocker")).toHaveTextContent(
-        "No Runner is online to do the work. AI works in your code through a Runner with Runs AI Code Fixes turned on.",
+        "No global Runner is online to work in this repository. Pick one of your Runners for it, or try again once the global Runner is back.",
       );
       expect(screen.getByTestId("code-blocker")).not.toHaveTextContent(
         "No agent is available for this project.",
+      );
+      expect(screen.getByTestId("code-blocker")).not.toHaveTextContent(
+        "Code Fixes",
       );
     });
   });

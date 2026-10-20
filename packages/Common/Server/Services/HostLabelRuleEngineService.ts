@@ -23,6 +23,7 @@ import {
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class HostLabelRuleEngineServiceClass
   implements RuleRunEngine<Host, HostLabelRule>
@@ -108,6 +109,7 @@ class HostLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     host: Host;
     rules: Array<HostLabelRule>;

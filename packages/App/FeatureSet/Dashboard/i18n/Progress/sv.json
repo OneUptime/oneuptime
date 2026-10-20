@@ -17,6 +17,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "Gateway",
+    "Goroutines",
     "ICMP (ping)",
     "Incident",
     "Incident {{number}}: {{title}}",
@@ -33,6 +34,7 @@
     "Runner",
     "Status",
     "Stratum",
+    "System",
     "Team",
     "Text",
     "Tunnel",
@@ -40,6 +42,7 @@
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",
+    "samples",
     "syslog",
     "{{count}} B",
     "{{count}} KB",
@@ -47,6 +50,7 @@
     "{{count}} incident",
     "{{count}} process",
     "{{count}} rotation",
+    "{{count}} samples",
     "{{tokens}} tokens"
   ]
 }

@@ -99,7 +99,7 @@ flowchart TB
 | Low Battery | Power | Warning | `iot_battery_percent`, `device.id` 별 Avg, 최근 5분 | 20% 미만 | 22% 이상 |
 | Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, `device.id` 별 Avg, 최근 5분 | -100 dBm 미만 | -90 dBm 이상 |
 | High Temperature | 환경 | 심각 | `iot_temperature_celsius`, `device.id` 별 Max, 최근 5분 | 70 °C 초과 | 63 °C 이하 |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, `device.id` 별 Avg, 최근 5분 | 0.9 초과(CPU의 90%) | 0.81 이하 |
+| High CPU Usage | 시스템 | Warning | `iot_cpu_usage_ratio`, `device.id` 별 Avg, 최근 5분 | 0.9 초과(CPU의 90%) | 0.81 이하 |
 
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 

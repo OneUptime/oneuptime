@@ -22,6 +22,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class StatusPageOwnerRuleEngineServiceClass
   implements RuleRunEngine<StatusPage, StatusPageOwnerRule>
@@ -116,6 +117,7 @@ class StatusPageOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     statusPage: StatusPage;
     rules: Array<StatusPageOwnerRule>;

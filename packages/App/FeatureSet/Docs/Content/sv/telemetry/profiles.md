@@ -6,7 +6,7 @@ Kontinuerlig profilering visar vad din applikation lägger CPU-tid och minne på
 - [Skicka profiler](#skicka-profiler): Grafana Alloy med eBPF, eller ett Pyroscope-SDK i din app.
 - [Intagsslutpunkt](#intagsslutpunkt): Bas-URL:en och de tre sätten att skicka med nyckeln.
 - [Kontrollera att det fungerar](#kontrollera-att-det-fungerar): Kontrollera nyckeln, sidan och uppladdningsstatusen.
-- [Utforska profiler](#utforska-profiler-i-oneuptime): Flamdiagram, toppfunktioner, jämförelser och länkar till spår.
+- [Utforska profiler](#utforska-profiler-i-oneuptime): Profileraren: vart tiden går, vad som ändrades och åtgärder med AI.
 :::
 
 ## Så fungerar det
@@ -283,14 +283,32 @@ För .NET-profileraren sätter du `DD_TRACE_DEBUG=1` på applikationen i en minu
 
 ## Utforska profiler i OneUptime
 
-**Produkter → Prestandaprofiler** öppnar en översikt över var tiden går i dina tjänster, och **Alla profiler** listar varje uppladdning. Välj vad du vill analysera: **Allt**, **CPU-tid**, **Minne** eller **Lås**, eller en viss typ som **Faktisk tid** eller **Goroutines**.
+**Produkter → Prestandaprofiler** öppnar profileraren på dess **Översikt**. Den svarar i ord före något diagram: vart tiden går ("I checkout gick 42% av CPU-tid till JSON.parse.") och, när den mest belastade funktionen hör till ett bibliotek eller körtiden, den funktion i din egen kod som tar mest, med biblioteks- och körtidskoden den anropar. Högst upp väljer du en tjänst, en profiltyp som den har data för (**CPU-tid**, **Faktisk tid**, **Minne**, **Allokeringar**, **Lås** eller **Goroutines**, eller en typ under **Fler profiltyper**), och ett tidsfönster.
 
-En profils sida har tre vyer:
+| Kort | Vad det visar |
+| --- | --- |
+| **Vart CPU-tiden går** | Alla profiler i tidsfönstret, sammanslagna till ett flamdiagram. Ju bredare en ram är, desto större andel har den. Klicka på en ram för att zooma in. |
+| **Funktioner** | Funktionerna som tar mest, sorterade efter **Egen** (tiden i funktionens egen kod), **Totalt** (med allt den anropar) eller **Din kod** (dina egna funktioner, var och en med biblioteks- och körtidskoden den anropar: den tid en ändring i dem kan vinna tillbaka). |
+| **Profilerade tjänster** | Varje profilerad tjänst, mest belastade först. Kärntrådar som eBPF-profileraren samplar döljs. |
+
+### Jämför två tidsfönster
+
+**Jämför med** anger vad tidsfönstret jämförs med: **Perioden innan**, **Samma tid i går**, **Samma tid förra veckan** eller en driftsättning under **Före och efter en ändring**. Andelar jämförs i stället för summor, så mer trafik ensamt flyttar ingenting. Rubriken nämner funktionen vars andel växte mest, och den egna kod som växte; flamdiagrammet blir **Vad som ändrades**, där röda ramar tar en större andel efteråt och gröna en mindre; och **Funktioner som ändrades** listar varje funktions andel före och efter.
+
+### En funktion
+
+Klicka på en funktion för att öppna dess panel: dess andel som **Egen**, **Totalt** och **Din kod**, **Vem anropar den** och **Vad den anropar**, en länk till dess fil och rad i ditt repository när ett är anslutet, och **Markera i flamdiagrammet**. För en funktion från ett bibliotek eller körtiden nämner panelen den funktion i din egen kod som anropar den, där en ändring kan göra den billigare. En länk under andelarna skapar en varning för funktionens andel, över det den tar i dag: se [Profilövervakning](/docs/monitor/profiles-monitor).
+
+När en funktion i din egen kod tar minst 5 % av profilens tid eller minne, eller dess andel har vuxit med 3 enheter eller mer sedan tidsfönstret den jämförs med, erbjuder panelen **Åtgärda med AI**: OneUptime AI startar en uppgift i det repository som innehåller funktionen, med profilen som underlag, och öppnar en pull request som du granskar (se [Code](/docs/ai/ai-agent)). OneUptime AI läser också profiler i sina svar och undersökningar, så du kan fråga vilka funktioner som använder mest CPU-tid.
+
+### En enskild profil
+
+**Alla profiler** listar varje uppladdning. En profils sida har tre vyer:
 
 | Vy | Vad den visar |
 | --- | --- |
 | **Flamdiagram** | Varje stapel är en funktion i anropsstacken, och dess bredd är proportionell mot tiden eller resurserna den förbrukade. Klicka på en funktion för att zooma in och se vilka som anropar den och vilka den anropar. |
-| **Top functions** | Profilens funktioner, sorterade efter egen eller total tid. **Only my code** döljer biblioteksramar. |
+| **Top functions** | Profilens funktioner, sorterade efter egen eller total tid. **Bara min kod** döljer biblioteksramar. |
 | **Diff vs. baseline** | Profilen jämförd med en tidigare period (**jämfört med för 1 timme sedan**, **jämfört med igår** eller **jämfört med förra veckan**), med funktionerna under **Most regressed** och **Most improved**. |
 
 **Download pprof** sparar profilen för lokala verktyg som `go tool pprof`.
@@ -300,6 +318,8 @@ En profils sida har tre vyer:
 När en profil bär trace- och span-ID:n (till exempel som sampeletiketter `trace_id` / `span_id`) kan du gå direkt från ett långsamt span i ett spår till motsvarande CPU- eller minnesprofil för att förstå exakt vilken kod som kördes, och **Open linked trace** går åt andra hållet.
 
 Ett spans flik **Profil** innehåller även de sampel som är kopplade till spans som ligger under det, eftersom profilerare ofta tillskriver en begärans CPU-tid ett underordnat span i stället för själva begärans span.
+
+Ett spårs sida länkar också till profileraren för spårets tjänst under de 15 minuterna före och efter, när tjänsten profilerades då, och sidan **Prestandaprofiler** för en tjänst eller en värd öppnar profileraren för den tjänsten eller värden.
 
 ## Datalagring
 

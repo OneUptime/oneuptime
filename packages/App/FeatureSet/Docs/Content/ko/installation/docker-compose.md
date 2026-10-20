@@ -186,7 +186,7 @@ HTTPS를 추가하는 두 가지 방법 중 하나를 고르기 전까지 OneUpt
 :::steps
 #### 도메인이 서버를 가리키게 하기
 
-도메인에 DNS `A` 레코드(IPv6라면 `AAAA`)를 만들고, 값으로 서버의 공개 IP 주소를 넣습니다.
+도메인에 DNS `A` 레코드(IPv6라면 `AAAA`)를 만들고, 값으로 서버의 공개 IP 주소를 넣습니다. `AAAA` 레코드를 만든다면 OneUptime의 IPv6도 켜세요. [방문자 주소](#방문자-주소)를 참고하세요.
 
 #### 인증서 발급 켜기
 
@@ -213,16 +213,16 @@ npm start
 
 ### 직접 운영하는 리버스 프록시 사용
 
-이 단계에서는 OneUptime과 같은 서버에서 프록시를 실행합니다. 프록시가 다른 머신에서 실행된다면 첫 단계를 건너뛰고, 프록시가 이 서버의 포트 80을 가리키게 하세요.
+이 단계에서는 OneUptime과 같은 서버에서 프록시를 실행합니다. 프록시가 다른 머신에서 실행된다면 첫 단계를 건너뛰고, 프록시가 이 서버의 포트 80을 가리키게 한 뒤, 클라우드 제공업체의 방화벽으로 포트 80과 443에는 프록시만 닿게 하세요. 프록시를 거치지 않고 OneUptime에 닿는 방문자는 OneUptime이 자신을 세는 주소를 직접 고를 수 있습니다.
 
 :::steps
 #### ingress를 포트 80과 443에서 옮기기
 
-프록시에 포트 80과 443이 필요하므로 ingress를 다른 포트로 옮깁니다. 프로브와 Runner는 호스트의 네트워크를 사용해 `http://localhost`로 OneUptime에 접근하므로 함께 옮겨집니다.
+프록시에 포트 80과 443이 필요하므로 ingress를 다른 포트로 옮기고, 이 서버의 루프백 주소 `127.0.0.1`에서만 공개해 방문자가 프록시를 통해서만 OneUptime에 닿게 합니다. 프로브와 Runner는 호스트의 네트워크를 사용해 `http://localhost`로 OneUptime에 접근하므로 함께 옮겨집니다.
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,48 @@ server {
 > [!NOTE]
 > 직접 운영하는 프록시 뒤에서는 텔레메트리를 OTLP/HTTP(`/otlp`)로 보내세요. gRPC를 통한 OTLP는 OneUptime 자체의 ingress가 TLS를 종료할 때(`PROVISION_SSL=true`)만 OneUptime에 도달합니다.
 
+## 방문자 주소
+
+OneUptime은 방문자가 접속해 오는 주소로 각 방문자를 셉니다. 로그인 제한, 그 밖의 주소별 제한, 상태 페이지와 대시보드의 IP 허용 목록이 모두 이 주소를 읽습니다. 다음 두 구성에서는 이 주소가 방문자 자신의 주소가 되도록 설정이 필요합니다.
+
+| 구성 | 설정 |
+| --- | --- |
+| 사람들이 IPv6로 OneUptime에 접속함(예: `AAAA` 레코드를 통해) | `docker-compose.override.yml`에서 OneUptime 네트워크의 IPv6 켜기 |
+| OneUptime 앞에 직접 운영하는 리버스 프록시가 있음 | `TRUSTED_PROXY_HOPS=2`, 그리고 `127.0.0.1`에 공개한 ingress([직접 운영하는 리버스 프록시 사용](#직접-운영하는-리버스-프록시-사용) 참고) |
+
+OneUptime 네트워크에 IPv6가 없으면 Docker는 IPv6로 온 방문자를 모두 자신의 주소 하나에서 OneUptime으로 넘기고, OneUptime은 이들을 모두 한 명의 방문자로 셉니다. 그러면 한 사람의 로그인 실패로 다른 사람들이 잠길 수 있습니다. IPv6를 켜려면 Docker Engine 27 이상이 필요합니다(`docker version`으로 확인할 수 있습니다).
+
+:::steps
+### IPv6 켜기
+
+`docker-compose.override.yml`을 `docker-compose.yml` 옆에 만들거나, 이미 있는 파일에 다음을 추가하세요. `npm start`와 `npm run update`가 이 파일을 읽습니다.
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
+```
+
+### OneUptime 다시 시작
+
+```bash
+npm stop
+npm start
+```
+
+OneUptime이 멈췄다가 네트워크에 IPv6가 켜진 상태로 다시 시작합니다. 데이터는 그대로 유지됩니다. 직접 만든 컨테이너(예: 리버스 프록시)가 아직 연결된 네트워크는 Docker가 지울 수 없으니, 먼저 OneUptime 네트워크에서 연결을 끊고 나중에 다시 연결하세요. `npm start`가 `has active endpoints`로 멈추면 연결을 끊고 `npm stop`과 `npm start`를 다시 실행하세요.
+
+### 네트워크 확인
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+`"EnableIPv6": true,`가 출력됩니다.
+:::
+
+여러 사람이 같은 사설 네트워크 주소에서 로그인하면 Admin Dashboard의 **OneUptime 상태** 페이지가 이를 알리고, 이를 바꾸는 설정도 알려 줍니다.
+
 ## 프로덕션 체크리스트
 
 Docker Compose는 서버 한 대에서 각 서비스를 하나씩 실행하므로 작은 팀과 홈랩에 알맞습니다. 이에 의존하기 전에 이 목록을 점검하세요.
@@ -325,6 +367,7 @@ Docker Compose는 서버 한 대에서 각 서비스를 하나씩 실행하므�
 | **HTTPS** | 사람들이 HTTPS로 OneUptime에 접근하고 `HTTP_PROTOCOL=https`가 설정되어 있습니다. [HTTPS 설정](#https-설정)을 참고하세요. |
 | **가입** | 팀의 계정이 갖춰지면 Admin Dashboard의 **설정 > 인증**에서 **가입 허용**을 끕니다. |
 | **방화벽** | 인터넷에는 포트 80과 443(그리고 SSH)만 열려 있습니다. OneUptime은 PostgreSQL의 포트 5400을 `127.0.0.1`에만 게시합니다. 직접 게시하는 다른 포트는 클라우드 공급자의 방화벽으로 닫으세요. `ufw` 규칙은 Docker가 게시하는 포트에 적용되지 않습니다. |
+| **방문자 주소** | Admin Dashboard의 **OneUptime 상태** 페이지가 여러 사람이 한 주소에서 로그인한다고 알리지 않습니다. [방문자 주소](#방문자-주소)를 참고하세요. |
 | **백업** | PostgreSQL을 매일 백업하고 사본을 서버 밖으로 옮깁니다. [백업과 복원](#백업과-복원)을 참고하세요. |
 | **이메일** | OneUptime이 초대와 알림을 보낼 수 있도록 Admin Dashboard의 **설정 > 알림 > 이메일**에 메일 서버가 설정되어 있습니다. [SMTP](/docs/emails/smtp)를 참고하세요. |
 | **디스크** | 여유 공간을 지켜봅니다. ClickHouse는 보관하는 텔레메트리에 따라 커집니다([사이징 및 용량 계획](/docs/installation/sizing) 참고). 각 컨테이너의 로그는 최대 1000 MB로 제한됩니다. |
@@ -454,6 +497,13 @@ npm run logs
 
 :::details 일부 페이지는 열리지만 실시간 업데이트나 업로드가 실패함
 `HOST`의 주소로 OneUptime을 여세요. ingress는 호스트 이름으로 요청을 라우팅합니다. 애플리케이션 전체에 도달하는 것은 `HOST`와 `localhost`뿐이고, 서버의 IP 주소처럼 다른 이름은 상태 페이지 도메인으로 처리됩니다. `HOST`를 사람들이 쓰는 이름으로 설정한 다음 `npm start`를 실행하세요.
+:::
+
+:::details 가입이나 로그인이 "Page not found"로 실패함
+가입 페이지는 열리지만, 가입은 `Page not found - /identity/signup`, 로그인은 `Page not found - /identity/login`으로 실패합니다. 요청이 `HOST`가 아닌 다른 호스트 이름으로 OneUptime에 도달해서 ingress가 이를 상태 페이지의 사용자 지정 도메인으로 라우팅했고, 그곳에서는 OneUptime 자체의 가입과 로그인이 제공되지 않습니다. 다음 두 가지를 모두 확인하세요.
+
+- `HOST`가 사람들이 여는 주소여야 합니다. 포트를 쓴다면 `oneuptime.example.com:8080`처럼 포트까지 포함하세요. 바꾼 다음 `npm start`를 실행하세요.
+- OneUptime 앞의 프록시가 브라우저가 요청한 호스트 이름을 그대로 전달해야 합니다. Caddy는 기본으로 그렇게 하고, Nginx는 [직접 운영하는 리버스 프록시 사용](#직접-운영하는-리버스-프록시-사용)에서처럼 `proxy_set_header Host $host;`로, Apache는 `ProxyPreserveHost On`으로 전달합니다.
 :::
 
 :::details PROVISION_SSL을 설정한 뒤 브라우저가 인증서 경고를 표시함

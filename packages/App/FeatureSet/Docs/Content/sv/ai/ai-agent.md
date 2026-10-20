@@ -44,6 +44,7 @@ Klicka på **Starta uppgift**, eller tryck på Enter. Uppgiftens sida öppnas, o
 | **Övervakning** | Dess typ, status och beskrivning. |
 | **Spår** | Dess spans: deras namn, tider och fel. |
 | **Loggar** | De senaste 20 loggraderna som innehåller din sökning, från den senaste timmen, dagen eller veckan. |
+| **Prestandaprofil** | Vart en funktions tid går i dess tjänsts profiler: vem som anropar den, vad den anropar och dess hetaste rader. |
 
 En begäran bär högst 10 kontextdelar. Token, nycklar, lösenord och e-postadresser i det som OneUptime läser maskeras innan AI ser dem, som överallt där OneUptime AI läser dina data.
 
@@ -78,8 +79,8 @@ flowchart TB
     P --> H["En person granskar<br/>och mergar den"]
 ```
 
-1. Du klickar på **Starta uppgift** i ett repositorium, eller på **Fix with AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
-2. Uppgiften ställs i kö, och en ledig Runner med **Kör AI-kodfixar** påslaget plockar upp den.
+1. Du klickar på **Starta uppgift** i ett repositorium, eller på **Åtgärda med AI** på ett olöst undantag, eller så startar en annan knapp eller utlösare en uppgift (se [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar)).
+2. Uppgiften ställs i kö på sitt repository, och den Runner som repositoryt väljer tar den: en av dina Runners, eller en global Runner när det inte väljer någon (se [Välj repositoryts Runner](#välj-repositoryts-runner)).
 3. Runnern hämtar uppgiftens kontext. För en begäran är det dess ord, kontexten som lades till och konversationen hittills; för ett undantag dess typ, dess meddelande och dess stack trace.
 4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id. Ett svar arbetar i stället på branchen för uppgiftens öppna pull request.
 5. En kodagent, driven av ditt projekts LLM-leverantör, läser koden och skriver ändringen. OneUptime-servern gör LLM-anropen, så Runnern har aldrig din leverantörs API-nyckel, och varje anrop mäts och listas i AI-loggarna.
@@ -94,13 +95,16 @@ Varje körning hålls inom budgetar som servern upprätthåller: högst **40 LLM
 
 | Var | Klick | Pull requesten |
 | --- | --- | --- |
-| Ett undantags sida **AI Assistance** | **Fix with AI** | Åtgärdar buggen bakom undantaget. |
+| Ett undantags sida **AI Assistance** | **Åtgärda med AI** | Åtgärdar buggen bakom undantaget. |
 | Ett undantags sida **AI Assistance** | **Generate Regression Test** | Lägger till ett test som återskapar undantaget och fallerar tills buggen är åtgärdad. |
 | Ett undantags sida **AI Assistance** | **Förbättra felhantering** | För ett förväntat fel, som ogiltig indata: tar bort användardata ur meddelandet, validerar indata tidigare och markerar felet som hanterat, utan att ändra beteendet. |
 | En incidents eller ett larms kort **AI Investigation** | **Open Fix PR from this analysis** | Åtgärdar grundorsaken som utredningen publicerade (se [Automatiska kodåtgärder från utredningar](#automatiska-kodåtgärder-från-utredningar)). |
-| Ett spår | **Fix performance with AI** | Åtgärdar det långsamma mönstret som hittades i spåret, som N+1-frågor eller ett enda dominerande långsamt span. |
+| Ett spår som är värt att åtgärda | **Åtgärda prestandan med AI** | Åtgärdar det långsamma mönster som knappen nämner, som en N+1-fråga eller anrop som kunde köras parallellt. |
 | En tjänsts sida **Loggar** | **Förbättra loggning** | Gör tjänstens loggar strukturerade, med rätt allvarlighetsgrad och kopplade till dess spår, utan att ändra beteendet. |
 | En tjänsts sida **Spår** | **Förbättra spårning** | Lägger till spans och attribut där tjänstens tracing saknas, utan att ändra beteendet. |
+| En funktion i **Prestandaprofiler** | **Åtgärda med AI** | Får funktionen att göra samma arbete med mindre tid eller minne, med dess profil som underlag. |
+
+De här knapparna visas bara där de kan starta en uppgift. Med AI avstängt för projektet visas ingen av dem, och ett undantags sidomeny har ingen **AI Assistance**. **Förbättra loggning** och **Förbättra spårning** visas så snart ett repository är anslutet, och **Åtgärda prestandan med AI** bara på ett spår som är värt att åtgärda (se [Spårutforskare](/docs/telemetry/traces-explorer)). En funktions **Åtgärda med AI** visas bara för programmets egen kod som tar minst 5 % av profilens tid eller minne, eller vars andel har vuxit med 3 enheter eller mer sedan fönstret den jämförs med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
 
 För att öppna ett undantags sida **AI Assistance**, öppna undantaget under **Produkter → Observerbarhet → Undantag** och välj **AI Assistance** i dess sidomeny. Ett löst eller arkiverat undantag måste först markeras som olöst.
 
@@ -120,11 +124,11 @@ När något av dem är satt kontrollerar varje åtgärdskörning sin ändring in
 
 1. När kodagenten är klar körs kommandona i ordning i roten av repositoriet, på Runnern, i den klonade arbetsytan. Vart och ett får upp till 15 minuter och körs med `CI=true`, så att inget väntar på indata; det första felet stoppar omgången.
 2. Vid ett fel går slutet av det fallerande kommandots utdata tillbaka till samma kodagent som en reparationsuppgift, med instruktioner att rätta sin egen ändring i stället för att försvaga eller hoppa över tester, och kommandona körs igen. Den gör högst **2** reparationsförsök. De delar körningens LLM-budget, och deras ändringar hamnar i samma commit som åtgärden.
-3. Utfallet, godkänt, fallerat eller överhoppat (inga kommandon satta, eller en delad Runner), skrivs i ett Verification-avsnitt i pull requestens beskrivning och registreras på uppgiftens pull request.
+3. Utfallet, godkänt, fallerat eller överhoppat (inga kommandon satta, eller en global Runner), skrivs i ett Verification-avsnitt i pull requestens beskrivning och registreras på uppgiftens pull request.
 
 En ändring som fortfarande inte klarar kontrollen kastas inte: pull requesten öppnas ändå, med ett tydligt markerat avsnitt "Verification failed" som namnger det fallerande kommandot och slutar med dess utdata. Arbetet behålls, och den som granskar bestämmer. Ett repository utan satta kommandon rapporteras som överhoppat, i stället för att antyda ett grönt bygge.
 
-Kommandona är repositoryinställningar som ditt team skriver och som körs på din egen Runner: samma förtroendemodell som en runbooks Bash-steg. AI:n skriver eller ändrar dem aldrig. OneUptimes delade Runners kör dem aldrig: på en delad Runner skrivs korrigeringen och öppnas för granskning, kontrollen rapporteras som överhoppad, och ditt repositorys egen CI kontrollerar ändringen. [Kör en egen Runner](#kör-en-egen-runner) för att få korrigeringar byggda och testade innan pull requesten öppnas.
+Kommandona är repositoryinställningar som ditt team skriver och som körs på din egen Runner: samma förtroendemodell som en runbooks Bash-steg. AI:n skriver eller ändrar dem aldrig. En global Runner, som OneUptime kör för alla projekt, kör dem aldrig: på en global Runner skrivs korrigeringen och öppnas för granskning, kontrollen rapporteras som överhoppad, och ditt repositorys egen CI kontrollerar ändringen. [Kör en egen Runner](#kör-en-egen-runner) för att få korrigeringar byggda och testade innan pull requesten öppnas.
 
 ## Innan du börjar
 
@@ -134,7 +138,7 @@ En uppgift behöver tre saker. Ett repositoriums sida i Kod och undantagets sida
 | --- | --- | --- |
 | En LLM-leverantör | Inget att ställa in: ett projekt utan egen leverantör använder den globala leverantören, betald med projektets AI-krediter. En egen leverantör, under **Projektinställningar → AI → LLM-leverantörer**, går först. | Sätt miljövariablerna `GLOBAL_LLM_PROVIDER_*` en gång på servern, eller lägg till en leverantör i projektet. |
 | Ett repository anslutet via GitHub App | **Produkter → Kod**, sedan **Anslut GitHub**. Om appen redan är installerad på GitHub-kontot klickar du i stället på **Anslut en befintlig installation**: den ansluts inte av att installera den igen. Kräver Growth-planen. | Samma sak, när din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
-| En Runner som kör AI-kodfixar | Inget att drifta: OneUptimes delade Runners gör det. | Docker Compose-tjänsten `runner`, eller Helm-chartets Runner (`runner.enabled`, påslagen som standard), registrerar sig själv och kör AI-kodfixar. |
+| En Runner som kör AI-kodfixar | Inget att drifta: ett repository som inte väljer någon arbetar på OneUptimes globala Runners. | Docker Compose-tjänsten `runner`, eller Helm-chartets Runner (`runner.enabled`, påslagen som standard), registrerar sig själv och kör AI-kodfixar i varje repository som inte väljer någon Runner. |
 
 På en självhostad instans är den globala leverantören ett block i `config.env` (Docker Compose) eller i dina Helm-värden. För en självhostad Ollama:
 
@@ -149,6 +153,17 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 Alla leverantörer som stöds fungerar: se [LLM-leverantörer](/docs/ai/llm-provider) för alla och varje miljövariabel.
 
 Du kopplar inte repositories till tjänster. När en uppgift startar hittar OneUptime repositoriet genom att jämföra filsökvägarna i undantagets stack trace med dina anslutna repositories. När inget matchar faller den tillbaka på ett repository som heter som tjänsten, och sedan på projektets enda repository när det bara finns ett. Sidan **AI Assistance** visar vilket repository den hittade.
+
+### Välj repositoryts Runner
+
+Varje repository väljer den Runner som AI arbetar i det på: klicka på **Redigera inställningar** på dess sida **Inställningar** i Kod och välj en i steget **Runner**. Ett repository som inte väljer någon arbetar på **Global Runner**, som OneUptime kör för alla projekt.
+
+| Runner | Vad den gör med en uppgift |
+| --- | --- |
+| **Global Runner** | Skriver ändringen och öppnar pull requesten, utan dina installations-, bygg- och testkommandon: ditt repositorys egen CI kontrollerar ändringen. |
+| En av dina Runners | Kör också dina installations-, bygg- och testkommandon, på en värd som du kontrollerar. |
+
+Bara den Runner som ett repository väljer får dess uppgifter och en token för det. I ett projekt som stänger av **Använd globala Runners** under **Runbooks → Runbook-agenter** behöver varje repository en av projektets egna Runners. En Runners sida listar de repositoryn som väljer den.
 
 ### Kör en egen Runner
 
@@ -167,9 +182,9 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-### Slå på AI-kodfixar
+### Välj den för repositoryt
 
-Slå på **Kör AI-kodfixar** på Runnern. Det är avslaget som standard, och Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
+Klicka på **Redigera inställningar** på repositoryts sida **Inställningar** i Kod och välj Runnern i steget **Runner**. Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
 
 ### Kontrollera att den ansluter
 
@@ -195,7 +210,7 @@ Medan den är på ställer en utredning som slutar med en säker, belagd grundor
 
 Allt annat är som med knappen:
 
-- Pull requesten öppnas redo för granskning, skriven utifrån den publicerade analysen, och behöver ett repository anslutet via GitHub App och en Runner med **Kör AI-kodfixar** påslaget.
+- Pull requesten öppnas redo för granskning, skriven utifrån den publicerade analysen, och behöver ett repository anslutet via GitHub App och en Runner som är online för att arbeta i det: den som repositoryt väljer, eller en global Runner.
 - Den räknas mot signalens dagliga gräns för åtgärdsuppgifter (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Fler inställningar** på dess AI-inställningssida) och mot repositoriets tak för öppna pull requests, när något av dem är satt. Osatta begränsar ingen av dem något.
 - Varje utlösare letar först efter en åtgärdsuppgift som redan står i kö eller körs för samma incident eller larm, så en automatisk utlösare och ett klick blir normalt en uppgift, inte två pull requests. Kontrollen är en läsning före skrivningen, inte ett lås, så två utlösare i exakt samma ögonblick kan fortfarande båda komma igenom.
 - Körningen skrivs av systemet, tillskrivs ingen, och inget mergas av sig självt.
@@ -211,7 +226,7 @@ En körning vars heartbeat har varit tyst i mer än 12 minuter avslutas med ett 
 :::
 
 :::details Ingen Runner plockar upp uppgiften
-En uppgift som väntar mer än 30 minuter medan ingen Runner med **Kör AI-kodfixar** är ansluten fallerar, med ett meddelande om att kontrollera Runnern, så att den aldrig visas som pågående för alltid. När en Runner är online men upptagen väntar köade uppgifter på sin tur. En Runner som är äldre än Kod får aldrig en begäran från Kod: uppdatera en Runner som du kör själv tillsammans med servern.
+En uppgift som väntar mer än 30 minuter medan den Runner som ska ta den inte är ansluten - den som dess repository väljer, eller en global Runner för ett repository som inte väljer någon - fallerar, med ett meddelande som säger vilken, så att den aldrig visas som pågående för alltid. När en Runner är online men upptagen väntar köade uppgifter på sin tur. En Runner som är äldre än Kod får aldrig en begäran från Kod: uppdatera en Runner som du kör själv tillsammans med servern.
 :::
 
 ## Integritet

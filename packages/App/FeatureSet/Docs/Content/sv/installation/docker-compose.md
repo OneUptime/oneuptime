@@ -186,7 +186,7 @@ Med `HTTP_PROTOCOL=https` bygger OneUptime HTTPS-länkar, håller inloggningscoo
 :::steps
 #### Peka din domän mot servern
 
-Skapa en DNS-post `A` (eller `AAAA` för IPv6) för din domän, med serverns offentliga IP-adress som värde.
+Skapa en DNS-post `A` (eller `AAAA` för IPv6) för din domän, med serverns offentliga IP-adress som värde. Med en `AAAA`-post slår du också på IPv6 för OneUptime: se [Besökarnas adresser](#besökarnas-adresser).
 
 #### Slå på hämtning av certifikat
 
@@ -213,16 +213,16 @@ npm start
 
 ### Använd din egen omvända proxy
 
-De här stegen kör proxyn på samma server som OneUptime. Om din proxy körs på en annan maskin hoppar du över det första steget och pekar proxyn mot port 80 på den här servern.
+De här stegen kör proxyn på samma server som OneUptime. Om din proxy körs på en annan maskin hoppar du över det första steget, pekar proxyn mot port 80 på den här servern och låter med molnleverantörens brandvägg bara proxyn nå portarna 80 och 443: en besökare som når OneUptime förbi proxyn kan välja den adress som OneUptime räknar besökaren efter.
 
 :::steps
 #### Flytta ingressen från portarna 80 och 443
 
-Proxyn behöver portarna 80 och 443, så flytta ingressen till andra portar. Proben och Runnern använder värdens nätverk och når OneUptime via `http://localhost`, så de flyttar med:
+Proxyn behöver portarna 80 och 443, så flytta ingressen till andra portar, publicerade bara på serverns loopback-adress `127.0.0.1`, så att besökare bara når OneUptime genom din proxy. Proben och Runnern använder värdens nätverk och når OneUptime via `http://localhost`, så de flyttar med:
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,48 @@ Båda skickar `X-Forwarded-Proto`, som talar om för OneUptime att en besökare 
 > [!NOTE]
 > Bakom din egen proxy skickar du telemetri över OTLP/HTTP (`/otlp`). OTLP över gRPC når bara OneUptime när dess egen ingress avslutar TLS (`PROVISION_SSL=true`).
 
+## Besökarnas adresser
+
+OneUptime räknar varje besökare efter adressen som besökaren ansluter från: inloggningsgränserna, de andra gränserna per adress och IP-tillåtelselistorna för statussidor och dashboards läser den alla. Två uppsättningar behöver en inställning för att den adressen ska vara besökarens egen:
+
+| Uppsättning | Inställning |
+| --- | --- |
+| Folk når OneUptime över IPv6, till exempel genom en `AAAA`-post | IPv6 på OneUptimes nätverk, i `docker-compose.override.yml` |
+| Din egen omvända proxy står framför OneUptime | `TRUSTED_PROXY_HOPS=2`, med ingressen publicerad på `127.0.0.1` (se [Använd din egen omvända proxy](#använd-din-egen-omvända-proxy)) |
+
+Utan IPv6 på OneUptimes nätverk lämnar Docker vidare varje besökare som kommer över IPv6 till OneUptime från en egen adress, och OneUptime räknar dem alla som en besökare: en persons misslyckade inloggningar kan låsa ute de andra. Att slå på IPv6 kräver Docker Engine 27 eller senare (`docker version` visar din).
+
+:::steps
+### Slå på IPv6
+
+Skapa `docker-compose.override.yml` bredvid `docker-compose.yml`, eller lägg till detta i den du har; `npm start` och `npm run update` läser den:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
+```
+
+### Starta om OneUptime
+
+```bash
+npm stop
+npm start
+```
+
+OneUptime stannar och startar igen med IPv6 på sitt nätverk. Dina data behålls. Docker kan inte ta bort ett nätverk som en egen container fortfarande är ansluten till, till exempel en omvänd proxy: koppla först bort den från OneUptimes nätverk och anslut den igen efteråt. Stannar `npm start` med `has active endpoints` kopplar du bort den och kör `npm stop` och `npm start` igen.
+
+### Kontrollera nätverket
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+Det skriver ut `"EnableIPv6": true,`.
+:::
+
+När flera personer loggar in från samma privata nätverksadress säger sidan **OneUptime-hälsa** i Admin Dashboard det, med inställningen som ändrar det.
+
 ## Checklista för produktion
 
 Docker Compose kör en kopia av varje tjänst på en enda server, vilket passar små team och homelabs. Gå igenom den här listan innan du förlitar dig på det.
@@ -325,6 +367,7 @@ Docker Compose kör en kopia av varje tjänst på en enda server, vilket passar 
 | **HTTPS** | Folk når OneUptime över HTTPS och `HTTP_PROTOCOL=https` är angivet. Se [Konfigurera HTTPS](#konfigurera-https). |
 | **Registreringar** | När ditt team har konton stänger du av **Tillåt registrering** under **Inställningar > Autentisering** i Admin Dashboard. |
 | **Brandvägg** | Bara portarna 80 och 443 (och SSH) är öppna mot internet. OneUptime publicerar PostgreSQLs port 5400 bara på `127.0.0.1`. Stäng varje annan port du publicerar med din molnleverantörs brandvägg: `ufw`-regler gäller inte portar som Docker publicerar. |
+| **Besökarnas adresser** | Sidan **OneUptime-hälsa** i Admin Dashboard säger inte att flera personer loggar in från samma adress. Se [Besökarnas adresser](#besökarnas-adresser). |
 | **Säkerhetskopior** | PostgreSQL säkerhetskopieras varje dag och kopiorna lämnar servern. Se [Säkerhetskopiera och återställ](#säkerhetskopiera-och-återställ). |
 | **E-post** | En e-postserver är konfigurerad under **Inställningar > Notifieringar > E-post** i Admin Dashboard, så att OneUptime kan skicka inbjudningar och aviseringar. Se [SMTP](/docs/emails/smtp). |
 | **Disk** | Det lediga utrymmet övervakas. ClickHouse växer med den telemetri du behåller (se [Dimensionering och kapacitetsplanering](/docs/installation/sizing)); varje containers logg är begränsad till 1000 MB. |
@@ -454,6 +497,13 @@ När varje container körs kör du kontrollen igen med `npm run status-check`. O
 
 :::details Vissa sidor läses in, men liveuppdateringar eller uppladdningar misslyckas
 Öppna OneUptime på adressen i `HOST`. Ingressen dirigerar begäranden efter värdnamn: bara `HOST` och `localhost` når hela applikationen, och alla andra namn, som serverns IP-adress, behandlas som en statussidas domän. Sätt `HOST` till det namn folk använder och kör sedan `npm start`.
+:::
+
+:::details Registrering eller inloggning misslyckas med "Page not found"
+Registreringssidan läses in, men registreringen misslyckas med `Page not found - /identity/signup` och inloggningen med `Page not found - /identity/login`. Begäran nådde OneUptime under ett annat värdnamn än `HOST`, så ingressen dirigerade den som en statussidas egen domän, där OneUptimes egen registrering och inloggning inte finns. Kontrollera båda:
+
+- `HOST` är adressen folk öppnar, med porten om de använder en, som `oneuptime.example.com:8080`. Kör `npm start` när du har ändrat den.
+- En proxy framför OneUptime skickar vidare värdnamnet som webbläsaren bad om. Caddy gör det som standard, Nginx med `proxy_set_header Host $host;` som i [Använd din egen omvända proxy](#använd-din-egen-omvända-proxy), och Apache med `ProxyPreserveHost On`.
 :::
 
 :::details Webbläsaren varnar för certifikatet efter att du har satt PROVISION_SSL

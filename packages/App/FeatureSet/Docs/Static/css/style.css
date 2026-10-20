@@ -5110,11 +5110,20 @@ html.docs-js .docs-tabs__panel:not(.is-active) {
   transform: rotate(-45deg);
   transition: transform 0.15s ease;
 }
-[dir="rtl"] .docs-details__summary::before {
-  transform: rotate(45deg);
-}
 .docs-details[open] > .docs-details__summary::before {
   transform: rotate(45deg);
+}
+/*
+ * Right to left, the marker is drawn on the left and bottom borders: closed,
+ * it points left, into the page, and open it points down, as it does left to
+ * right. Keyed on the fold's own direction, so the English copy of a page on
+ * a Persian address keeps the left-to-right marker.
+ */
+.docs-details__summary:dir(rtl)::before {
+  transform: rotate(45deg);
+}
+.docs-details[open] > .docs-details__summary:dir(rtl)::before {
+  transform: rotate(-45deg);
 }
 /*
  * The title is the summary's one flex item beside the marker, so its words

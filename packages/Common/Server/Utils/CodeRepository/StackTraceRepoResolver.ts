@@ -452,6 +452,63 @@ const matchCandidateAgainstRepository: MatchCandidateAgainstRepositoryFunction =
     return null;
   };
 
+/*
+ * Where one candidate path (already normalized: relative, forward slashes)
+ * sits in a repository's tree: the tree paths that end with its longest
+ * matching suffix, and how many segments matched. Null when not even its
+ * file name is in the tree. Exported for the profile frames' source links
+ * (SourceLocator), which match one file at a time.
+ */
+export type MatchPathInTreeFunction = (
+  candidatePath: string,
+  treePaths: Array<string>,
+) => {
+  matchedTreePaths: Array<string>;
+  matchedSegmentCount: number;
+  isStrongMatch: boolean;
+  isUniqueBasename: boolean;
+} | null;
+
+export const matchPathInTree: MatchPathInTreeFunction = (
+  candidatePath: string,
+  treePaths: Array<string>,
+): {
+  matchedTreePaths: Array<string>;
+  matchedSegmentCount: number;
+  isStrongMatch: boolean;
+  isUniqueBasename: boolean;
+} | null => {
+  const state: RepositoryMatchState = buildRepositoryMatchState(
+    {
+      id: "",
+      name: "",
+      organizationName: "",
+      repositoryName: "",
+      mainBranchName: "",
+      gitHubAppInstallationId: null,
+    },
+    treePaths,
+  );
+  const match: CandidateSuffixMatch | null = matchCandidateAgainstRepository(
+    candidatePath,
+    state,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const segments: Array<string> = candidatePath.split("/");
+  const basename: string = segments[segments.length - 1] || "";
+
+  return {
+    matchedTreePaths: match.matchedTreePaths,
+    matchedSegmentCount: match.matchedSegmentCount,
+    isStrongMatch: match.isStrongMatch,
+    isUniqueBasename: (state.basenameCounts.get(basename) || 0) === 1,
+  };
+};
+
 type TotalMatchedSegmentDepthFunction = (state: RepositoryMatchState) => number;
 
 const totalMatchedSegmentDepth: TotalMatchedSegmentDepthFunction = (

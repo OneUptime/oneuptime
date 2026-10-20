@@ -61,6 +61,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import { isShippedSecretValue } from "../EnvironmentConfig";
 import AIService from "./AIService";
 import AlertService from "./AlertService";
+import CodeRepositoryService from "./CodeRepositoryService";
 import IncidentService from "./IncidentService";
 import KubernetesAiAgentService from "./KubernetesAiAgentService";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
@@ -73,7 +74,7 @@ import LlmProviderService from "./LlmProviderService";
 import MonitorService from "./MonitorService";
 import ProjectService from "./ProjectService";
 import RunbookCredentialService from "./RunbookCredentialService";
-import RunbookSecretService from "./RunbookSecretService";
+import RunbookVariableService from "./RunbookVariableService";
 import RunnerService, {
   Service as RunnerServiceClass,
   getKubernetesAgentRunnerNameForCluster,
@@ -412,7 +413,6 @@ const BOUND_RUNNER_SELECT: Record<string, boolean> = {
   connectionStatus: true,
   canRunAiCommands: true,
   canRunRunbooks: true,
-  canRunCodeFixTasks: true,
   hostInfo: true,
 };
 
@@ -1305,7 +1305,7 @@ class KubernetesClusterAiAccessServiceClass {
             : credential.credentialType !== RunbookCredentialType.Kubernetes
               ? `"${credential.name}" is not a Kubernetes credential.`
               : `"${credential.name}" is not assigned to Runner "${runner.name}".`,
-          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → Runner Credentials, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
+          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → AI Access, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
           blocks: "both",
         });
       } else {
@@ -1721,8 +1721,9 @@ class KubernetesClusterAiAccessServiceClass {
    * - Without that proof it can re-key only a row that holds NOTHING beyond
    *   the agent defaults. An offline window is predictable (every helm
    *   upgrade opens one), so a row an operator gave more — a credential or
-   *   secret assigned to it, runbooks or code fixes turned on, or another
-   *   cluster bound to it — is refused: re-keying it would hand all of that
+   *   secret assigned to it, runbooks turned on, a code repository that
+   *   picks it, or another cluster bound to it — is refused: re-keying it
+   *   would hand all of that
    *   to whoever holds the ingestion key. The operator removes the extras
    *   (the Runner then comes back still bound), or upgrades the chart to
    *   the Kubernetes AI agent, which needs no Runner at all.
@@ -1849,7 +1850,6 @@ class KubernetesClusterAiAccessServiceClass {
       connectionStatus: true,
       key: true,
       canRunRunbooks: true,
-      canRunCodeFixTasks: true,
     };
 
     /*
@@ -1938,7 +1938,6 @@ class KubernetesClusterAiAccessServiceClass {
       newRunner.description = `In-cluster Runner installed by the OneUptime Kubernetes agent chart (aiAccess.enabled=true). Gives OneUptime AI kubectl access to cluster "${clusterIdentifier}". It never runs runbooks or code fixes.`;
       newRunner.key = runnerKey;
       newRunner.canRunRunbooks = false;
-      newRunner.canRunCodeFixTasks = false;
       newRunner.canRunAiCommands = true;
       newRunner.hostInfo = { kubernetes: posture as unknown as JSONObject };
       newRunner.lastAlive = OneUptimeDate.getCurrentDate();
@@ -2177,7 +2176,8 @@ class KubernetesClusterAiAccessServiceClass {
    *   ingestion key looks exactly like a restarted pod, and the offline
    *   window is predictable (every helm upgrade opens one), so a row an
    *   operator gave more — credentials or secrets assigned to it, runbooks
-   *   or code fixes turned on, another cluster bound to it — must not be
+   *   turned on, a code repository that picks it, another cluster bound to
+   *   it — must not be
    *   handed to a registration that cannot prove it is the same Runner.
    *
    * Refused otherwise — WITHOUT rotating anything — so an ingestion key
@@ -2281,7 +2281,7 @@ class KubernetesClusterAiAccessServiceClass {
   /*
    * What an agent Runner row holds beyond what registration gave it, one
    * entry per kind with what removes it. Registration creates the row with
-   * kubectl access only (no runbooks, no code fixes, nothing assigned) bound
+   * kubectl access only (no runbooks, no code repository, nothing assigned) bound
    * to its own cluster; anything else was entrusted to the row by an
    * operator. "Runs Runbooks" is read the way the claim path reads it: on
    * unless explicitly false. Also what decides whether an unused previous
@@ -2301,10 +2301,25 @@ class KubernetesClusterAiAccessServiceClass {
       });
     }
 
-    if (data.runner.canRunCodeFixTasks === true) {
+    /*
+     * A code repository picks it (its Runner setting in Code). The
+     * repository's own hook refuses an agent row, but one picked before the
+     * row was an agent row stays picked.
+     */
+    const pickingRepositories: number = (
+      await CodeRepositoryService.countBy({
+        query: {
+          projectId: data.projectId,
+          runnerId: data.runner.id!,
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    if (pickingRepositories > 0) {
       holdings.push({
-        description: '"Runs AI Code Fixes" is on',
-        remedy: 'turn off "Runs AI Code Fixes"',
+        description: `the Runner of ${pickingRepositories} code repository(ies)`,
+        remedy: `pick another Runner in the settings of its ${pickingRepositories} code repository(ies) in Code`,
       });
     }
 
@@ -2325,10 +2340,12 @@ class KubernetesClusterAiAccessServiceClass {
       });
     }
 
+    // Only a secret runbook variable lists the Runners it reaches.
     const assignedSecrets: number = (
-      await RunbookSecretService.countBy({
+      await RunbookVariableService.countBy({
         query: {
           projectId: data.projectId,
+          isSecret: true,
           runners: QueryHelper.inRelationArray([data.runner.id!]),
         },
         props: { isRoot: true },
@@ -2337,8 +2354,8 @@ class KubernetesClusterAiAccessServiceClass {
 
     if (assignedSecrets > 0) {
       holdings.push({
-        description: `${assignedSecrets} runbook secret(s) assigned`,
-        remedy: `unassign its ${assignedSecrets} runbook secret(s)`,
+        description: `${assignedSecrets} secret runbook variable(s) assigned`,
+        remedy: `unassign its ${assignedSecrets} secret runbook variable(s)`,
       });
     }
 

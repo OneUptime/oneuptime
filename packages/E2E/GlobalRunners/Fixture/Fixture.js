@@ -7,16 +7,24 @@
  *     Runners switch;
  *   - a runbook's Steps (Pages/Runbook/View/Steps): each step's Runner
  *     picker (Components/Runner/RunnerPicker);
- *   - Runbooks -> Settings -> Secrets (Pages/Runbook/Secrets): whether
- *     global Runners may use a secret.
+ *   - Runbooks -> Settings -> Global Variables (Pages/Runbook/Variables):
+ *     whether global Runners may use a secret variable;
+ *   - a Runner's own page (Pages/Runbook/Runners/RunnerView): its
+ *     capabilities, and the code repositories that pick it (a repository
+ *     picks its Runner in Code; a Runner has no AI code fix switch).
  *
  * Only the ModelAPI / API data boundary and the synthetic user's
  * permissions are replaced. The pages, their tables, cards, switches,
  * dialogs and the picker are the production ones from this branch.
  *
  * Steered by the query string:
- *   - page=steps | secrets   the runbook's Steps page or the Secrets page;
+ *   - page=steps | variables | runner
+ *                            the runbook's Steps page, the Global
+ *                            Variables page or the first Runner of the
+ *                            project's own (custom=1 or more);
  *                            the default is Runbooks -> Runners
+ *   - picks=0                no code repository picks that Runner
+ *                            (by default one does: checkout-service)
  *   - global=<n>             how many global Runners the server has: 0, 1
  *                            (the default: the bundled one) or 2
  *   - gstatus=disconnected   the global Runners last heard from hours ago;
@@ -52,10 +60,12 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import RunnersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners";
 import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
-import SecretsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Secrets";
+import VariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables";
+import RunnerViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView";
+import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import Label from "Common/Models/DatabaseModels/Label";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -96,6 +106,7 @@ const isMasterAdmin = params.get("admin") === "1";
 const role = params.get("role") || "owner";
 const delay = Math.max(0, Number(params.get("delay") || 0));
 const language = params.get("lang") === "de" ? "de" : "en";
+const repositoryPicksRunner = params.get("picks") !== "0";
 
 const wait = (ms) => {
   return new Promise((resolve) => {
@@ -221,7 +232,6 @@ const CUSTOM_RUNNERS = [
     key: "a-key-only-admins-read-0123456789",
     isGlobalRunner: false,
     canRunRunbooks: true,
-    canRunCodeFixTasks: false,
     canRunAiCommands: false,
     lastAlive: lastAliveFor("connected"),
     labels: [PRODUCTION],
@@ -234,7 +244,6 @@ const CUSTOM_RUNNERS = [
     key: "another-key-only-admins-read-0123",
     isGlobalRunner: false,
     canRunRunbooks: true,
-    canRunCodeFixTasks: false,
     canRunAiCommands: false,
     lastAlive: lastAliveFor("disconnected"),
     labels: [],
@@ -274,22 +283,45 @@ const runbook = record(Runbook, {
   steps: STEPS,
 });
 
-const SECRETS = [
-  record(RunbookSecret, {
+const VARIABLES = [
+  record(RunbookVariable, {
     _id: "80000000-0000-4000-8000-000000000b01",
     projectId: new ObjectID(PROJECT_ID),
     name: "STATUSPAGE_TOKEN",
     description: "Read-only token for the public status API.",
+    isSecret: true,
     isAvailableToGlobalRunners: true,
     runners: [],
   }),
-  record(RunbookSecret, {
+  record(RunbookVariable, {
     _id: "80000000-0000-4000-8000-000000000b02",
     projectId: new ObjectID(PROJECT_ID),
     name: "DB_PASSWORD",
     description: "The replica's admin password.",
+    isSecret: true,
     isAvailableToGlobalRunners: false,
     runners: CUSTOM_RUNNERS.slice(0, 1),
+  }),
+];
+
+/*
+ * The project's code repositories, and the Runner each picks in Code
+ * (CodeRepository.runnerId): checkout-service picks prod-eu-west-1, and
+ * web-app picks none (a global Runner).
+ */
+const CODE_REPOSITORIES = [
+  record(CodeRepository, {
+    _id: "90000000-0000-4000-8000-000000000c01",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "checkout-service",
+    runnerId: repositoryPicksRunner
+      ? new ObjectID(CUSTOM_RUNNER_IDS[0])
+      : undefined,
+  }),
+  record(CodeRepository, {
+    _id: "90000000-0000-4000-8000-000000000c02",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "web-app",
   }),
 ];
 
@@ -297,9 +329,10 @@ const TABLES = {
   Project: [project],
   Runbook: [runbook],
   Runner: CUSTOM_RUNNERS,
-  RunbookSecret: SECRETS,
+  RunbookVariable: VARIABLES,
   RunbookCredential: [],
   Label: [PRODUCTION],
+  CodeRepository: CODE_REPOSITORIES,
 };
 
 window.__fixture.addCustomRunner = () => {
@@ -311,7 +344,6 @@ window.__fixture.addCustomRunner = () => {
       description: "Added in another tab.",
       isGlobalRunner: false,
       canRunRunbooks: true,
-      canRunCodeFixTasks: false,
       canRunAiCommands: false,
       lastAlive: lastAliveFor("connected"),
       labels: [],
@@ -349,6 +381,17 @@ ModelAPI.getList = async (options) => {
   // The global Runners, from their own endpoint: no project owns them.
   if (name === "Runner" && overrideUrl.includes("/runner/global-runners")) {
     return list(GLOBAL_RUNNERS, options.limit);
+  }
+
+  // The repositories that pick a Runner, as a Runner's page asks.
+  if (name === "CodeRepository") {
+    const runnerId = idOf(options.query && options.query.runnerId);
+    return list(
+      TABLES.CodeRepository.filter((repository) => {
+        return !runnerId || idOf(repository.runnerId) === runnerId;
+      }),
+      options.limit,
+    );
   }
 
   return list(TABLES[name] || [], options.limit);
@@ -446,7 +489,8 @@ function Shell(props) {
 const target = {
   runners: `/dashboard/${PROJECT_ID}/runbooks/runners`,
   steps: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`,
-  secrets: `/dashboard/${PROJECT_ID}/runbooks/settings/secrets`,
+  variables: `/dashboard/${PROJECT_ID}/runbooks/settings/variables`,
+  runner: `/dashboard/${PROJECT_ID}/runbooks/runners/${CUSTOM_RUNNER_IDS[0]}`,
 }[page];
 
 if (target && window.location.pathname !== target) {
@@ -461,8 +505,17 @@ createRoot(document.getElementById("root")).render(
         element={<Shell component={RunnersPage} trail="Runners" />}
       />
       <PageRoute
-        path="/dashboard/:projectId/runbooks/settings/secrets"
-        element={<Shell component={SecretsPage} trail="Settings / Secrets" />}
+        path="/dashboard/:projectId/runbooks/runners/:id"
+        element={<Shell component={RunnerViewPage} trail="Runners / Runner" />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/runbooks/settings/variables"
+        element={
+          <Shell
+            component={VariablesPage}
+            trail="Settings / Global Variables"
+          />
+        }
       />
       <PageRoute
         path="/dashboard/:projectId/runbooks/:id/steps"

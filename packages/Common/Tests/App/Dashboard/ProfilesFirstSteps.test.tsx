@@ -96,7 +96,7 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
-import ProfilesDashboard from "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/ProfilesDashboard";
+import ProfilesOverview from "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/ProfilesOverview";
 import ProfileTable from "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/ProfileTable";
 import {
   TELEMETRY_FIRST_STEPS_COPY,
@@ -170,7 +170,7 @@ describe("the Profiler's Overview with no profile anywhere", () => {
     await act(async (): Promise<void> => {
       render(
         <MemoryRouter>
-          <ProfilesDashboard />
+          <ProfilesOverview />
         </MemoryRouter>,
       );
     });

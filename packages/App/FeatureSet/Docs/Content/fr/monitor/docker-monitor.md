@@ -100,7 +100,7 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
 > [!NOTE]
-> `container.cpu.utilization` est le nombre qu'affiche `docker stats` : 100 % correspond à un cœur de CPU complet, et non à l'hôte entier, si bien qu'un conteneur utilisant deux cœurs affiche 200. Sur un hôte multicœur, le seuil de 80 est un budget de CPU, pas une part de la machine.
+> `container.cpu.utilization` est le nombre qu'affiche `docker stats`, en moyenne sur l'intervalle de 30 secondes de l'agent : 100 % correspond à un cœur de CPU complet, et non à l'hôte entier, si bien qu'un conteneur utilisant deux cœurs affiche 200. Sur un hôte multicœur, le seuil de 80 est un budget de CPU, pas une part de la machine.
 
 > [!NOTE]
 > `container.memory.percent` divise par la limite de mémoire du conteneur quand elle est définie, et sinon par la mémoire totale **de l'hôte**. Vérifiez si le conteneur a été démarré avec `--memory` avant de traiter un dépassement comme un arrêt imminent pour manque de mémoire.
@@ -119,7 +119,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` sur le socket Docker,
 
 | Métrique | Description |
 | --- | --- |
-| `container.cpu.utilization` | Utilisation du CPU, où 100 % correspond à un cœur de CPU complet (la colonne CPU% de `docker stats`). |
+| `container.cpu.utilization` | CPU utilisé sur chaque intervalle de 30 secondes, où 100 % correspond à un cœur de CPU complet (la colonne CPU% de `docker stats`). |
 | `container.cpu.usage.total` | Temps CPU utilisé depuis le démarrage du conteneur, en nanosecondes. Un compteur sur toute la durée de vie. |
 | `container.cpu.throttling_data.throttled_time` | Nanosecondes pendant lesquelles le conteneur a été bridé par sa limite de CPU depuis son démarrage. Un compteur sur toute la durée de vie. |
 | `container.cpu.throttling_data.throttled_periods` | Périodes de bridage depuis le démarrage du conteneur. Un compteur sur toute la durée de vie. |
@@ -282,7 +282,7 @@ OneUptime identifie un hôte par `resource.host.name`, que l'agent tire de `DOCK
 :::
 
 :::details Une alerte CPU ne se déclenche jamais
-Regroupez la requête par `resource.container.name` et agrégez avec **Maximum**, comme le fait le modèle **High Container CPU Usage**. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé.
+Regroupez la requête par `resource.container.name` et agrégez avec **Maximum**, comme le fait le modèle **High Container CPU Usage**. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé. Si le CPU d'un conteneur reste une ligne plate quelle que soit sa charge, l'hôte exécute un agent plus ancien : [mettez-le à jour](/docs/telemetry/docker-host#mettre-à-jour-lagent).
 :::
 
 :::details Le modèle de boucle de redémarrage ou de bridage a cessé d'alerter

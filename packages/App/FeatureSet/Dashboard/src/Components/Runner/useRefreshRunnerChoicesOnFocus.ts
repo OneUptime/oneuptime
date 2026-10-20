@@ -16,10 +16,22 @@ import RunnerChoicesLoader, { RunnerChoices } from "./RunnerChoices";
 export default function useRefreshRunnerChoicesOnFocus(
   projectId: ObjectID | null,
   onChoices: (choices: RunnerChoices) => void,
+  /*
+   * How the page reads its choices: a runbook step's (the default), or a
+   * code repository's (RunnerChoicesLoader.loadForCodeRepository).
+   */
+  load?: ((projectId: ObjectID) => Promise<RunnerChoices>) | undefined,
 ): void {
   const onChoicesRef: MutableRefObject<(choices: RunnerChoices) => void> =
     useRef<(choices: RunnerChoices) => void>(onChoices);
   onChoicesRef.current = onChoices;
+
+  const loadRef: MutableRefObject<
+    (projectId: ObjectID) => Promise<RunnerChoices>
+  > = useRef<(projectId: ObjectID) => Promise<RunnerChoices>>(
+    load || RunnerChoicesLoader.load,
+  );
+  loadRef.current = load || RunnerChoicesLoader.load;
 
   const projectIdText: string = projectId?.toString() || "";
 
@@ -35,7 +47,8 @@ export default function useRefreshRunnerChoicesOnFocus(
       latestRead++;
       const thisRead: number = latestRead;
 
-      RunnerChoicesLoader.load(new ObjectID(projectIdText))
+      loadRef
+        .current(new ObjectID(projectIdText))
         .then((choices: RunnerChoices) => {
           if (isMounted && thisRead === latestRead) {
             onChoicesRef.current(choices);

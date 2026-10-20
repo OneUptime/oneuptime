@@ -4,8 +4,8 @@ import { PUBLIC_DASHBOARD_URL } from "Common/UI/Config";
 
 /*
  * A dashboard's public link: the address its public viewer answers on for
- * any dashboard, custom domain or not. Shown, with a copy button, under the
- * public choice on the dashboard's Sharing page.
+ * any dashboard, custom domain or not. Listed last, after its custom
+ * domains, under the public choice on the dashboard's Sharing page.
  *
  * Apart from DashboardSharingCopy because it reads the browser's config,
  * which App/Tests (no browser) cannot load.

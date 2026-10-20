@@ -32,6 +32,7 @@ import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerU
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 // What adding one owner row did.
 enum OwnerWriteOutcome {
@@ -140,6 +141,7 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     serviceLevelObjective: ServiceLevelObjective;
     rules: Array<ServiceLevelObjectiveOwnerRule>;

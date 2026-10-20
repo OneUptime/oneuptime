@@ -3,19 +3,24 @@ import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
 import AIAgentService from "../../../../../Server/Services/AIAgentService";
+import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import RunnerService from "../../../../../Server/Services/RunnerService";
+import CodeRepositoryRunnerChoice from "../../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
 import Runner from "../../../../../Models/DatabaseModels/Runner";
 import ObjectID from "../../../../../Types/ObjectID";
+import PositiveNumber from "../../../../../Types/PositiveNumber";
+import { CodeWorkerKind } from "../../../../../Types/Runner/CodeRepositoryRunner";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * CodeFixAgentAuth resolves the aiAgentId/aiAgentKey pair carried by every
  * code-fix protocol request. It checks the AIAgent registry first, then falls
  * back to the Runner registry (the unified OneUptime Runner) — but the
- * Runner path only authenticates when canRunCodeFixTasks === true. These
- * tests lock in that server-side capability enforcement plus the
- * project-scoping rules of deniesAccessToProject.
+ * Runner path only authenticates while a code repository of the Runner's
+ * project picks it (its Runner setting in Code): a Runner has no "Runs AI
+ * Code Fixes" switch any more. These tests lock in that server-side
+ * enforcement plus the project-scoping rules of deniesAccessToProject.
  */
 
 type AIAgentFindSpy = jest.SpiedFunction<typeof AIAgentService.findOneBy>;
@@ -33,6 +38,13 @@ function mockRunnerLookup(result: Runner | null): RunnerFindSpy {
   return jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(result);
 }
 
+// Whether a code repository of the Runner's project picks it.
+function mockPicked(isPicked: boolean): jest.SpyInstance {
+  return jest
+    .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+    .mockResolvedValue(isPicked);
+}
+
 function fakeAIAgent(): AIAgent {
   return {
     id: agentId,
@@ -42,7 +54,6 @@ function fakeAIAgent(): AIAgent {
 
 function fakeRunner(
   overrides: {
-    canRunCodeFixTasks?: boolean | undefined;
     name?: string | undefined;
     hostInfo?: unknown;
   } = {},
@@ -50,7 +61,6 @@ function fakeRunner(
   return {
     id: agentId,
     projectId: projectId,
-    canRunCodeFixTasks: true,
     ...overrides,
   } as unknown as Runner;
 }
@@ -129,9 +139,10 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     expect(runnerSpy).not.toHaveBeenCalled();
   });
 
-  test("falls back to a Runner with canRunCodeFixTasks true and selects the capability column", async () => {
+  test("falls back to a Runner a code repository picks", async () => {
     mockAIAgentLookup(null);
     const runnerSpy: RunnerFindSpy = mockRunnerLookup(fakeRunner());
+    const picked: jest.SpyInstance = mockPicked(true);
 
     const identity: CodeFixAgentIdentity | null =
       await CodeFixAgentAuth.resolveAgentIdentity({
@@ -151,17 +162,19 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
           _id: agentId.toString(),
           key: agentKey,
         },
-        select: expect.objectContaining({
-          canRunCodeFixTasks: true,
-        }),
         props: { isRoot: true },
       }),
     );
+    // Asked of the Runner row found by its id and key, with its project.
+    expect(picked).toHaveBeenCalledWith(
+      expect.objectContaining({ id: agentId, projectId: projectId }),
+    );
   });
 
-  test("SERVER-SIDE CAPABILITY ENFORCEMENT: a Runner with canRunCodeFixTasks false is rejected", async () => {
+  test("SERVER-SIDE ENFORCEMENT: a Runner no code repository picks is rejected", async () => {
     mockAIAgentLookup(null);
-    mockRunnerLookup(fakeRunner({ canRunCodeFixTasks: false }));
+    mockRunnerLookup(fakeRunner());
+    mockPicked(false);
 
     const identity: CodeFixAgentIdentity | null =
       await CodeFixAgentAuth.resolveAgentIdentity({
@@ -172,9 +185,12 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     expect(identity).toBeNull();
   });
 
-  test("SERVER-SIDE CAPABILITY ENFORCEMENT: a Runner with canRunCodeFixTasks undefined is rejected", async () => {
+  test("the pick is read from the Runner's own project's repositories, as OneUptime", async () => {
     mockAIAgentLookup(null);
-    mockRunnerLookup(fakeRunner({ canRunCodeFixTasks: undefined }));
+    mockRunnerLookup(fakeRunner());
+    const count: jest.SpyInstance = jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
 
     const identity: CodeFixAgentIdentity | null =
       await CodeFixAgentAuth.resolveAgentIdentity({
@@ -182,17 +198,37 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
         aiAgentKey: agentKey,
       });
 
-    expect(identity).toBeNull();
+    expect(identity?.source).toBe(CodeFixAgentSource.Runner);
+    expect(count).toHaveBeenCalledWith({
+      query: { projectId: projectId, runnerId: agentId },
+      props: { isRoot: true },
+    });
+  });
+
+  test("the capability is no column of the Runner: the lookup never selects one", async () => {
+    mockAIAgentLookup(null);
+    const runnerSpy: RunnerFindSpy = mockRunnerLookup(fakeRunner());
+    mockPicked(true);
+
+    await CodeFixAgentAuth.resolveAgentIdentity({
+      aiAgentId: agentId.toString(),
+      aiAgentKey: agentKey,
+    });
+
+    const select: Record<string, unknown> = (
+      runnerSpy.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+    expect(Object.keys(select)).not.toContain("canRunCodeFixTasks");
   });
 
   /*
    * A kubernetes-agent Runner row is minted and re-keyed with the project's
-   * telemetry ingestion key. RunnerService refuses to turn "Runs AI Code
-   * Fixes" on for one, but a row whose flag was set before that guard keeps
-   * it, so the protocol must refuse the identity itself: otherwise anyone
-   * holding the ingestion key could claim code-fix work and mint repository
-   * tokens. "Agent row" is RunnerService's one rule (name marker OR agent
-   * posture).
+   * telemetry ingestion key. CodeRepositoryService refuses to let a
+   * repository pick one, but a row picked before it became an agent row
+   * stays picked, so the protocol must refuse the identity itself:
+   * otherwise anyone holding the ingestion key could claim code-fix work
+   * and mint repository tokens. "Agent row" is RunnerService's one rule
+   * (name marker OR agent posture).
    */
   describe("a kubernetes-agent Runner row never authenticates", () => {
     const agentRows: Array<{
@@ -224,7 +260,7 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     ];
 
     test.each(agentRows)(
-      "refuses an agent row $label even with canRunCodeFixTasks true and a matching key",
+      "refuses an agent row $label even when a code repository picks it and the key matches",
       async (row: {
         label: string;
         name?: string | undefined;
@@ -233,11 +269,11 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
         mockAIAgentLookup(null);
         mockRunnerLookup(
           fakeRunner({
-            canRunCodeFixTasks: true,
             name: row.name,
             hostInfo: row.hostInfo,
           }),
         );
+        const picked: jest.SpyInstance = mockPicked(true);
 
         const identity: CodeFixAgentIdentity | null =
           await CodeFixAgentAuth.resolveAgentIdentity({
@@ -246,6 +282,8 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
           });
 
         expect(identity).toBeNull();
+        // Refused on the row alone, before any repository is read.
+        expect(picked).not.toHaveBeenCalled();
       },
     );
 
@@ -284,11 +322,11 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
         mockAIAgentLookup(null);
         mockRunnerLookup(
           fakeRunner({
-            canRunCodeFixTasks: true,
             name: row.name,
             hostInfo: row.hostInfo,
           }),
         );
+        mockPicked(true);
 
         const identity: CodeFixAgentIdentity | null =
           await CodeFixAgentAuth.resolveAgentIdentity({
@@ -305,6 +343,7 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     test("selects the columns the agent-row rule reads", async () => {
       mockAIAgentLookup(null);
       const runnerSpy: RunnerFindSpy = mockRunnerLookup(fakeRunner());
+      mockPicked(true);
 
       await CodeFixAgentAuth.resolveAgentIdentity({
         aiAgentId: agentId.toString(),
@@ -314,7 +353,7 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
       expect(runnerSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           select: expect.objectContaining({
-            canRunCodeFixTasks: true,
+            projectId: true,
             name: true,
             hostInfo: true,
           }),
@@ -352,6 +391,37 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     expect(identity).toBeNull();
     expect(aiAgentSpy).toHaveBeenCalledTimes(1);
     expect(runnerSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("CodeFixAgentAuth.getCodeWorker", () => {
+  test("a Runner row is one of its project's Runners", () => {
+    expect(
+      CodeFixAgentAuth.getCodeWorker({
+        id: agentId,
+        projectId: projectId,
+        source: CodeFixAgentSource.Runner,
+      }),
+    ).toEqual({ kind: CodeWorkerKind.ProjectRunner, id: agentId });
+  });
+
+  test("an AI agent with no project is a global Runner for code", () => {
+    expect(
+      CodeFixAgentAuth.getCodeWorker({
+        id: agentId,
+        source: CodeFixAgentSource.AIAgent,
+      }),
+    ).toEqual({ kind: CodeWorkerKind.GlobalRunner, id: agentId });
+  });
+
+  test("an AI agent of a project is that project's own, from before Runners", () => {
+    expect(
+      CodeFixAgentAuth.getCodeWorker({
+        id: agentId,
+        projectId: projectId,
+        source: CodeFixAgentSource.AIAgent,
+      }),
+    ).toEqual({ kind: CodeWorkerKind.ProjectAgent, id: agentId });
   });
 });
 

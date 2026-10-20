@@ -114,9 +114,7 @@ function getNodeQueries(
         legendUnit: "%",
         metricName: "k8s.node.cpu.utilization",
         aggregation: AggregationType.Avg,
-        transformValue: allocatable
-          ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
-          : undefined,
+        transformValue: KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
       },
       cluster,
     ),
@@ -166,9 +164,7 @@ function getPodQueries(
         legendUnit: "%",
         metricName: "k8s.pod.cpu.utilization",
         aggregation: AggregationType.Avg,
-        transformValue: allocatable
-          ? KubernetesCpuUtils.makeCpuPercentTransform(allocatable)
-          : undefined,
+        transformValue: KubernetesCpuUtils.makeCpuPercentTransform(allocatable),
       },
       cluster,
     ),

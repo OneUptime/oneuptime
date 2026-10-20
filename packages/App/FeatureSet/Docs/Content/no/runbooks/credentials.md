@@ -1,26 +1,26 @@
-# Runbook-påloggingsinformasjon
+# AI-tilgang
 
-Påloggingsinformasjon er måten et runbook når noe som **ikke** er Runnerens egen vert: en server via SSH eller en Kubernetes-klynge. Uten den betyr "start tjenesten på nytt" at du skriver et skallskript og legger en nøkkel eller en kubeconfig manuelt på Runnerens vert, der den ligger på disken utenfor OneUptimes kontroll. Påloggingsinformasjon er den samme tilgangen som et administrert objekt: kryptert i hvile, tildelt bestemte Runnere og referert ved navn fra et trinn.
+AI-tilgang er måten OneUptime AIs egne kommandoer når noe som **ikke** er en Runners egen vert — en server over SSH, eller API-serveren til en Kubernetes-klynge som ikke kjører Kubernetes-agentens chart. Hver tilgang er påloggingsinformasjon: den tilgangen som et administrert objekt, kryptert i hvile, tildelt bestemte Runnere og valgt av OneUptime AI i stedet for å skrives inn i en kommando. Runbook-trinn bruker dem ikke: et SSH- eller kubectl-trinn logger på med en hemmelig [runbook-variabel](/docs/runbooks/variables). En Runner som er eldre enn denne utgivelsen, er unntaket: den kjører et Kubernetes-trinn som er flyttet fra en handling, med påloggingsinformasjonen trinnet nevnte, til trinnets skript eller kubeconfig endres.
 
-Administrer den under **Runbooks → Runbook-agenter → Påloggingsinformasjon**.
+Administrer den under **Runbooks → Runbook-agenter → AI-tilgang**.
 
 :::cards
 - [Opprett påloggingsinformasjon](#opprett-påloggingsinformasjon): Tilgangen og Runnerne som får bruke den.
 - [Minste privilegium på den andre siden](#minste-privilegium-på-den-andre-siden): Begrens hva nøkkelen eller tokenet kan gjøre.
-- [Hemmeligheter for skript](#hemmeligheter-for-skript): Gi et Bash- eller JavaScript-skript et passord eller et token.
+- [Runnere som kjører OneUptime AIs kommandoer](#runnere-som-kjører-kommandoene-til-oneuptime-ai): Hvem som kan gi en slik Runner SSH-påloggingsinformasjon.
 :::
 
 ## Slik brukes påloggingsinformasjon
 
 ```mermaid title="Hvordan påloggingsinformasjon når systemet den åpner"
 flowchart TB
-    step["SSH- eller Kubernetes-trinn"] -->|"peker på"| cred["Påloggingsinformasjon, kryptert i OneUptime"]
-    step -->|"peker mot"| runner["Runner"]
+    step["OneUptime AIs SSH-<br/>eller kubectl-kommando"] -->|"kjører med"| cred["Påloggingsinformasjon, kryptert i OneUptime"]
+    step -->|"kjører på"| runner["Runner"]
     cred -->|"tildelt"| runner
-    runner -->|"tar trinnet og mottar hemmeligheten"| target["SSH-vert eller Kubernetes-API-server"]
+    runner -->|"tar kommandoen og mottar hemmeligheten"| target["SSH-vert eller Kubernetes-API-server"]
 ```
 
-Et SSH- eller Kubernetes-trinn peker på påloggingsinformasjon og en Runner. Når den Runneren tar trinnet, kontrollerer OneUptime at påloggingsinformasjonen er tildelt den, dekrypterer hemmeligheten og leverer den bare ut i svaret på den overtakelsen. Hemmeligheten lagres aldri på jobben og kan aldri leses via API-et.
+OneUptime AI kjører en SSH-kommando med en av SSH-påloggingsinformasjonene som er tildelt Runneren den kjører på, og en kubectl-kommando for en klynge som ikke kjører Kubernetes-agentens chart, med Kubernetes-påloggingsinformasjonen som er knyttet til den klyngen, slik [AI SRE](/docs/ai/ai-sre) viser. Når Runneren tar kommandoen, kontrollerer OneUptime at påloggingsinformasjonen er tildelt den, dekrypterer hemmeligheten og utleverer den bare i svaret på det kravet. Hemmeligheten lagres aldri på jobben og kan aldri leses gjennom API-et.
 
 ## Før du begynner
 
@@ -31,9 +31,9 @@ Et SSH- eller Kubernetes-trinn peker på påloggingsinformasjon og en Runner. N�
 ## Opprett påloggingsinformasjon
 
 :::steps
-### Åpne Påloggingsinformasjon
+### Åpne AI-tilgang
 
-Åpne **Runbooks → Runbook-agenter → Påloggingsinformasjon**, og klikk **Opprett Runbook Credential**.
+Åpne **Runbooks → Runbook-agenter → AI-tilgang**, og klikk **Opprett Credential**.
 
 ### Gi den et navn, og velg typen
 
@@ -50,11 +50,11 @@ Under **Kubernetes** skriver du inn **API Server URL**, for eksempel `https://10
 
 ### Tildel den til Runnere
 
-I trinnet **Runbook-agenter** velger du Runnerne som får bruke påloggingsinformasjonen, og klikker deretter **Opprett Runbook Credential**. Påloggingsinformasjon som ikke er tildelt noen Runner, kan ikke brukes av noe trinn.
+I trinnet **Runbook-agenter** velger du Runnerne som får bruke påloggingsinformasjonen, og klikker deretter **Opprett Credential**. Påloggingsinformasjon som ikke er tildelt noen Runner, kan ikke brukes av noen kommando.
 
-### Bruk den i et trinn
+### La OneUptime AI bruke den
 
-I et [SSH- eller Kubernetes-trinn](/docs/runbooks/authoring#trinntyper) velger du en av disse Runnerne og deretter påloggingsinformasjonen under **Credential**. Et trinn tilbyr bare påloggingsinformasjon av sin egen type, og å lagre et trinn som peker på påloggingsinformasjon, krever tillatelse til å lese runbook-påloggingsinformasjon.
+OneUptime AI kjører SSH-kommandoene sine på en Runner med **Kjører AI-utbedringskommandoer** slått på, med en av SSH-påloggingsinformasjonene som er tildelt den. Kubernetes-påloggingsinformasjon brukes så snart den er knyttet til en klynge sammen med en av Runnerne sine: se [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## Hva som lagres
@@ -72,7 +72,7 @@ Det finnes derfor ingen "vis" for en hemmelig verdi, bare "erstatt": å skrive i
 
 ## Tildel påloggingsinformasjon til Runnere
 
-Påloggingsinformasjon kan bare brukes av Runnerne du tildeler den, og et trinn må peke mot en av dem. Hvis et trinn peker på påloggingsinformasjon som ikke er tildelt Runneren, **feiler trinnet i stedet for å kjøre**: en Runner som i stillhet ikke gjør noe, ser nøyaktig ut som en som virket.
+Påloggingsinformasjon kan bare brukes av Runnerne du tildeler den. En kommando som nevner påloggingsinformasjon som Runneren ikke er tildelt, **feiler i stedet for å kjøre** — en Runner som stille ikke gjør noe, ser akkurat ut som en som fungerte.
 
 Tildelingen er tilgangsgrensen, så hold den smal: en Runner som bare noen gang starter én klynge på nytt, trenger ikke SSH-nøkkelen til databasevertene dine.
 
@@ -92,82 +92,7 @@ Et trinn i en arbeidsflyt handler som Project Admin, men låner ikke lesingen av
 OneUptime kan ikke begrense hva påloggingsinformasjonen din får gjøre på målsystemet: det er målsystemets oppgave, og det er verdt å gjøre:
 
 - **SSH** — foretrekk en nøkkel framfor et passord, gi brukeren bare kommandoene den trenger (en tvungen kommando eller et begrenset skall der det er praktisk), og gjenbruk ikke den personlige nøkkelen til en administrator.
-- **Kubernetes** — bind serviceaccounten til en Role som tillater `patch` på nøyaktig de arbeidsbelastningene runbookene dine rører, i nøyaktig de navnerommene de kjører i. **Restart workload** endrer selve arbeidsbelastningen, og **Scale workload** endrer underressursen `scale`: mer trengs ikke.
-
-For eksempel en serviceaccount som kan starte på nytt og skalere én Deployment og ingenting annet:
-
-```yaml title="oneuptime-runbooks-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-rules:
-  # Restart workload: patches the Deployment's pod template.
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
-  # Scale workload: patches the Deployment's scale subresource.
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-subjects:
-  - kind: ServiceAccount
-    name: oneuptime-runbooks
-    namespace: checkout
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: oneuptime-runbooks
-```
-
-For et StatefulSet eller DaemonSet bruker du `statefulsets` eller `daemonsets` i stedet. Et DaemonSet kan ikke skaleres, så det trenger ingen `scale`-regel.
-
-## Hemmeligheter for skript
-
-Bash- og JavaScript-trinn har ikke noe felt **Credential**. For å gi et skript et passord, et token eller en API-nøkkel uten å skrive den inn i runbooket lagrer du den som en **runbook-hemmelighet**. Hemmeligheter administreres under **Runbooks → Innstillinger → Hemmeligheter** av Project Owners og Project Admins eller med tillatelsen **Create Runbook Secret**.
-
-:::steps
-### Opprett hemmeligheten
-
-Klikk **Opprett Runbook Secret**. I trinnet **Hemmelighet** skriver du inn et **Navn** (bokstaver, tall, bindestreker og understreker), en valgfri **Beskrivelse** og **Verdi for hemmelighet**. I trinnet **Tilgang** velger du dine Runnere under **Dine Runnere som kan bruke denne hemmeligheten**. På en server med [globale Runnere](/docs/runbooks/agents#globale-runnere) lar **Globale Runnere kan bruke denne hemmeligheten** også dette prosjektets trinn som kjører på en global Runner, bruke den. Den er slått på for en ny hemmelighet så lenge prosjektet bruker globale Runnere.
-
-### Bruk den i et skript
-
-Skriv `{{runbookSecrets.NAME}}` der verdien skal stå:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer {{runbookSecrets.CDN_API_TOKEN}}" \
-  "https://api.cdn.example.com/v1/purge"
-```
-
-Når en Runner som hemmeligheten er tildelt, tar trinnet, mottar den skriptet med verdien fylt inn. Det gjør også en global Runner, når hemmeligheten lar globale Runnere bruke den. Et trinn på en global Runner som nevner en hemmelighet globale Runnere ikke kan bruke, feiler og nevner hemmeligheten i stedet for å kjøre uten den.
-:::
-
-I likhet med de hemmelige feltene i påloggingsinformasjon er verdien til en hemmelighet kryptert i hvile og returneres aldri av API-et: **Oppdater hemmelig verdi** erstatter den. På OneUptime Cloud krever runbook-hemmeligheter også abonnementet **Growth** eller høyere.
-
-| | Påloggingsinformasjon | Runbook-hemmelighet |
-| --- | --- | --- |
-| Brukes av | SSH- og Kubernetes-trinn | Bash- og JavaScript-skript |
-| Inneholder | En vert og nøkkelen til den, eller URL-en og tokenet til en klynge | En hvilken som helst enkeltverdi |
-| Administreres under | **Runbooks → Runbook-agenter → Påloggingsinformasjon** | **Runbooks → Innstillinger → Hemmeligheter** |
-| Når Runneren | I svaret på overtakelsen av et trinn som peker på den | Fylt inn i skriptet for trinnet den tar |
-| Kan leses igjen via API-et | Bare de ikke-hemmelige feltene | Aldri verdien |
+- **Kubernetes** — knytt tjenestekontoen til en Role som bare tillater det du lar OneUptime AI gjøre, i namespacene den kan handle i. En tjenestekonto som bare kan lese, lar OneUptime AI undersøke og avviser enhver retting.
 
 ## Hvem kan se dem
 
@@ -178,7 +103,7 @@ Merk at **agentnøkkelen** til en Runner tilsvarer påloggingsinformasjonen som 
 ## Neste steg
 
 :::cards
-- [Skrive et runbook](/docs/runbooks/authoring): Skriv SSH- og Kubernetes-trinnene som bruker påloggingsinformasjon.
+- [Runbook-variabler](/docs/runbooks/variables): Hemmelighetene SSH- og kubectl-trinn logger på med.
 - [Runbook-agenter](/docs/runbooks/agents): Installer Runneren som påloggingsinformasjonen tildeles.
 - [Runbook-konfigurasjon & sikkerhet](/docs/runbooks/configuration): Tillatelser og herding for hele runbook-stakken.
 :::

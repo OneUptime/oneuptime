@@ -81,12 +81,13 @@ Ensuite, à peu près par ordre d'utilité :
 
 ## Où se trouve chaque chose
 
-Une fois une page de statut ouverte, son propre menu latéral gauche est réparti en neuf sections. Servez-vous-en comme d'une carte pour le reste de cette partie de la documentation.
+Une fois une page de statut ouverte, son propre menu latéral gauche est réparti en dix sections. Servez-vous-en comme d'une carte pour le reste de cette partie de la documentation.
 
 | Section | Ce qu'elle contient |
 | --- | --- |
 | **Basique** | **Vue d'ensemble**, **Annonces**, **Propriétaires**. |
-| **Ressources** | Un seul écran **Ressources** — les groupes à gauche, les moniteurs du groupe sélectionné à droite — et **Règles de moniteurs**. |
+| **Ressources** | Un seul écran **Ressources** — les groupes à gauche, les moniteurs du groupe sélectionné à droite. |
+| **Règles** | **Règles de moniteurs** — des règles qui ajoutent à la page chaque moniteur correspondant, maintenant et plus tard. |
 | **Abonnés** | **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams**, **Abonnés au webhook**, **Paramètres des abonnés**. |
 | **Journaux de notification** | **Journaux de notification** — ce qui a été envoyé aux abonnés. |
 | **Image de marque** | **Image de marque** (logo, titre, favicon, liens, pied de page, couleurs et langues, sur une seule page), **Domaines personnalisés**, **HTML, CSS et JavaScript**. |
@@ -167,7 +168,7 @@ Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui tél
 
 ## Prévisualiser avant la mise en ligne
 
-L'écran **Vue d'ensemble** de chaque page de statut porte une carte **Lien de la page de statut** avec un lien direct vers la page, et **Copier le lien** à côté. Utilisez-la pendant que vous ajoutez encore des ressources et avant qu'un domaine personnalisé existe.
+L'écran **Vue d'ensemble** de chaque page de statut porte une carte **Lien de la page de statut** avec chaque adresse à laquelle la page répond : d'abord ses domaines personnalisés, puis son adresse sur OneUptime, chacune avec **Copier le lien** à côté. Un domaine personnalisé qui n'est pas encore en ligne est marqué **Pas encore en ligne**, avec la raison, et avec **Configuration DNS** quand il reste quelque chose à faire. Quand les visiteurs doivent se connecter ou saisir un mot de passe, la carte le dit. Utilisez l'adresse OneUptime pendant que vous ajoutez encore des ressources et avant qu'un domaine personnalisé soit en ligne.
 
 En coulisses, chaque route publique a un jumeau d'aperçu sous `/status-page/{statusPageId}/...` — un aperçu de la vue d'ensemble, un aperçu de la liste des incidents, un aperçu de la page d'abonnement, et ainsi de suite. Une URL ou une capture d'écran prise depuis l'aperçu du tableau de bord ne correspondra donc pas à ce que voit un client une fois un domaine personnalisé rattaché : vérifiez tout lien que vous collez dans un runbook ou un e-mail.
 

@@ -16,6 +16,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -198,6 +199,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   public async findMatchingRule(data: {
     projectId: ObjectID;
     alertSeverityId?: ObjectID | undefined;

@@ -4,7 +4,7 @@ Você escreve um runbook como uma lista ordenada de etapas na página **Etapas**
 
 :::cards
 - [Criar um runbook](#criar-um-runbook): De um runbook vazio a etapas salvas.
-- [Tipos de etapa](#tipos-de-etapa): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes e AI.
+- [Tipos de etapa](#tipos-de-etapa): Manual, JavaScript, HTTP request, Bash, SSH, kubectl e AI.
 - [Tratamento de falhas e aprovações](#tratamento-de-falhas-e-aprovações): O que acontece depois que uma etapa falha ou dá certo.
 - [Um exemplo completo](#um-exemplo-completo): Um failover de banco de dados em cinco etapas.
 :::
@@ -12,8 +12,8 @@ Você escreve um runbook como uma lista ordenada de etapas na página **Etapas**
 ## Antes de começar
 
 - **Uma função que escreve runbooks.** Project Owner, Project Admin e Runbook Admin criam runbooks e salvam suas etapas. Com permissões granulares, você precisa de **Create Runbook** e **Edit Runbook**. Consulte [Permissões](/docs/runbooks/configuration#permissões).
-- **Um Runner, para etapas Bash, SSH e Kubernetes.** Essas etapas são executadas em um [Runner](/docs/runbooks/agents) dentro da sua própria infraestrutura, nunca no Worker do OneUptime. Instale um primeiro. Uma etapa JavaScript roda em um [Runner global](/docs/runbooks/agents#runners-globais), a menos que você escolha um dos seus.
-- **Uma credencial, para etapas SSH e Kubernetes, e permissão para lê-la.** Consulte [Credenciais de runbook](/docs/runbooks/credentials). Uma etapa só pode indicar uma credencial se você puder ler as credenciais de runbook: Project Owner, Project Admin ou **Read Runbook Credential**. Runbook Admin não inclui isso.
+- **Um Runner, para etapas Bash, SSH e kubectl.** Essas etapas são executadas em um [Runner](/docs/runbooks/agents) dentro da sua própria infraestrutura, nunca no Worker do OneUptime. Instale um primeiro. Uma etapa JavaScript roda em um [Runner global](/docs/runbooks/agents#runners-globais), a menos que você escolha um dos seus.
+- **Uma variável secreta, para etapas SSH e kubectl.** A chave, a senha ou o kubeconfig com que uma etapa entra é uma [variável de runbook](/docs/runbooks/variables) secreta. Project Owner e Project Admin criam as variáveis, e Runbook Admin as escolhe nas etapas que escreve. Uma etapa kubectl pode usar, em vez disso, o acesso próprio do Runner.
 - **Um provedor de LLM, para etapas de IA.** Consulte [Provedores de LLM](/docs/ai/llm-provider).
 
 ## Criar um runbook
@@ -29,7 +29,7 @@ Clique em **Criar: Runbook**, informe um **Nome** e, se quiser, uma **Descriçã
 
 ### Adicionar etapas
 
-Em **Start your runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Add another step** oferece os mesmos sete tipos. Cada etapa abre com seu **Título**, sua **Descrição** (em Markdown, mostrada a quem responde) e as configurações do seu tipo. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
+Em **Start your runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Add another step** oferece os mesmos sete tipos. Cada etapa abre com seu **Título** e o que o seu tipo precisa; o resto, como sua **Descrição** e os tempos limite, fica recolhido em **Mais campos**. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
 
 ### Ordenar as etapas
 
@@ -42,15 +42,15 @@ Clique em **Save Steps**. Até fazer isso, o editor mostra **Alterações não g
 
 ## Anatomia de uma etapa
 
-Toda etapa tem estes campos:
+Toda etapa tem estes campos. Uma etapa automatizada mostra seu **Título** e as configurações do seu tipo, e recolhe o resto em **Mais campos**, que diz o que está definido:
 
 | Campo | Finalidade |
 | --- | --- |
 | **Título** | Um rótulo curto, mostrado na lista de etapas e em cada execução. |
-| **Descrição** | Contexto opcional para quem responde, em Markdown. Em uma etapa Manual, é a instrução que essa pessoa lê. |
+| **Descrição** | Contexto opcional para quem responde, em Markdown, em **Mais campos**. Em uma etapa Manual, é a instrução que essa pessoa lê, mostrada abaixo do título. |
 | **Continuar em caso de falha** | Só etapas automatizadas. Se ligado, uma etapa que falha não interrompe a execução: a próxima etapa roda mesmo assim. |
 | **Exigir aprovação** | Só etapas automatizadas. Se ligado, o runbook pausa depois desta etapa e espera que uma pessoa aprove antes de executar a próxima. O interruptor diz **Exigir aprovação antes de executar a próxima etapa**. |
-| Configurações específicas do tipo | O script, a URL, o Runner, a credencial ou o prompt. Consulte [Tipos de etapa](#tipos-de-etapa). |
+| Configurações específicas do tipo | O script, a URL, o Runner, uma variável secreta ou o prompt. Consulte [Tipos de etapa](#tipos-de-etapa). |
 
 ## Tipos de etapa
 
@@ -60,9 +60,11 @@ Toda etapa tem estes campos:
 | [JavaScript](#javascript) | Um Runner | Um Runner |
 | [HTTP request](#http-request) | O Worker do OneUptime | Nada |
 | [Bash](#bash) | Um Runner | Um Runner |
-| [SSH](#ssh) | Um Runner | Um Runner e uma credencial SSH |
-| [Kubernetes](#kubernetes) | Um Runner | Um Runner e uma credencial Kubernetes |
+| [SSH](#ssh) | Um Runner | Um Runner e uma variável secreta para entrar |
+| [kubectl](#kubectl) | Um Runner | Um Runner, e uma variável de kubeconfig ou o acesso próprio do Runner |
 | [AI](#ai) | O Worker do OneUptime | Um provedor de LLM |
+
+Em cada etapa abaixo, os tempos limite, a **Descrição**, **Continuar em caso de falha** e **Exigir aprovação** ficam em **Mais campos** da etapa, assim como o provedor e os interruptores de contexto de uma etapa de IA.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 Se o Runner escolhido estiver offline quando a execução chegar a esta etapa, a etapa espera até o **claim timeout** (2 minutos por padrão) e depois falha por tempo esgotado. Adicione um agente em **Runbooks → Agentes de runbook** antes de contar com uma etapa Bash.
 
 > [!TIP]
-> Mantenha senhas e tokens fora do script. Guarde-os como segredos de runbook e escreva `{{runbookSecrets.NAME}}` em um script Bash ou JavaScript: o Runner recebe o script com o valor já preenchido. Consulte [Segredos para scripts](/docs/runbooks/credentials#segredos-para-scripts).
+> Mantenha senhas e tokens fora do script. Guarde-os como [variáveis de runbook](/docs/runbooks/variables) secretas e escreva `{{global.variables.NAME}}` onde o valor deve ficar: o Runner recebe o script com o valor inserido, e a saída da etapa mostra `[REDACTED]` no lugar dele.
 
 ### SSH
 
-Executar um comando em um host que o Runner alcança por SSH. Diferente de `ssh host cmd` em uma etapa Bash, o acesso é uma [credencial](/docs/runbooks/credentials) gerenciada em vez de uma chave privada no disco do Runner: criptografada em repouso, atribuída a Runners específicos e nunca legível de volta pela API.
+Entrar em uma máquina por SSH e executar um script bash nela. O Runner abre a conexão, então a máquina só precisa ser alcançável a partir do Runner, e a chave ou senha com que a etapa entra é uma [variável de runbook](/docs/runbooks/variables) secreta, nunca escrita na etapa.
 
 | Campo | O que faz |
 | --- | --- |
-| **Runner** | O Runner que abre a conexão. Ele precisa alcançar o host pela rede. |
-| **Credential** | Uma credencial SSH com o host, a porta, o usuário e a chave ou senha. Ela precisa estar atribuída ao Runner escolhido; caso contrário, a etapa falha em vez de rodar com o acesso errado. |
-| **Command** | Executado no host remoto como o usuário da credencial. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
-| **Tempo limite de execução** | Cobre conexão, autenticação e execução do comando juntas, para que um comando travado não mantenha a etapa aberta. 30 segundos por padrão. |
+| **Runner** | O Runner que abre a conexão. Ele precisa alcançar a máquina pela rede. |
+| **SSH para** | O usuário e a máquina, como você os escreveria depois de `ssh`: `deploy@10.0.4.21`. |
+| **Entrar com** | A variável secreta que guarda a chave privada ou a senha; o valor diz qual é. Só variáveis secretas são oferecidas, e a etapa avisa quando seu Runner não pode usar a escolhida. |
+| **Script Bash** | Executa com `bash` na máquina, como o usuário com que entra. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
+| **Porta** | Em **Mais campos**. 22 quando deixada vazia. |
+| **Frase secreta da chave** | Em **Mais campos**. A variável secreta que guarda a frase secreta de uma chave que tenha uma. |
+| **Tempo limite de execução** | Cobre conexão, login e execução do script juntos, para que um script travado não mantenha a etapa aberta. Padrão de 30 segundos. |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
 
-### Kubernetes
+Por exemplo, para reiniciar um serviço e mostrar que ele voltou:
 
-Reiniciar ou escalar uma carga de trabalho em um cluster. As ações são um conjunto fechado de propósito: uma etapa capaz de alterar qualquer objeto seria um shell de administrador do cluster, e este tipo de etapa existe para tornar as remediações comuns seguras o bastante para a remediação automática.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Executar comandos kubectl em um cluster. O script roda com bash no Runner, que traz o `kubectl`, com `KUBECONFIG` apontando para o cluster: qualquer comando kubectl funciona, e também qualquer bash ao redor.
 
 | Campo | O que faz |
 | --- | --- |
-| **Runner** | O Runner que chama o servidor de API do cluster. Ele precisa alcançá-lo. |
-| **Credential** | Uma credencial Kubernetes: a URL do servidor de API, um token de conta de serviço e a CA do cluster. Vincule essa conta de serviço a uma função que permita só o que seus runbooks precisam. |
-| **Ação** | **Restart workload** altera o template do pod para que o controlador recrie os pods, como faz o `kubectl rollout restart`. **Scale workload** define a quantidade de réplicas. |
-| **Workload kind** | **Deployment**, **StatefulSet** ou **DaemonSet**. |
-| **Namespace** e **Workload name** | A carga de trabalho alvo. |
-| **Réplicas** | Só ao escalar. Zero é permitido: esvaziar uma carga de trabalho é uma remediação legítima. Um DaemonSet roda um pod por nó e não pode ser escalado; reinicie-o em vez disso. |
-| **Tempo limite de execução** | Por quanto tempo o Runner espera o servidor de API aceitar a alteração. 30 segundos por padrão. |
+| **Runner** | O Runner que executa o kubectl. Ele precisa alcançar o servidor de API do cluster. |
+| **Kubeconfig** | A variável secreta que guarda o kubeconfig do cluster, ou **O acesso próprio do Runner**: o kubeconfig do próprio Runner, ou a conta de serviço dele quando roda dentro do cluster. O Runner grava um kubeconfig em um arquivo que só ele pode ler, e o remove quando o script termina. |
+| **Script** | Os comandos kubectl. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
+| **Tempo limite de execução** | Por quanto tempo o Runner deixa o script rodar antes de pará-lo com `SIGKILL`. Padrão de 30 segundos. |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
 
-Se o servidor de API recusar a alteração, a própria mensagem dele aparece na etapa, então uma falha de permissão diz qual vínculo de função ampliar.
+Por exemplo, para reiniciar um deployment e esperar até que seus novos pods estejam prontos:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Exemplos — clique para inserir**, abaixo de cada script, insere scripts comuns como estes. Dê ao usuário do kubeconfig só o que seus scripts fazem: um Role nos namespaces em que eles agem, com os verbos que usam. Se o servidor de API recusar um comando, a própria mensagem do kubectl aparece na saída da etapa, então uma falha de permissão diz qual role binding ampliar.
 
 ### AI
 
@@ -224,5 +240,5 @@ Quem responde vê a etapa 1 rodar, marca a etapa 2, vê a etapa 3 rodar, marca a
 - [Executar um runbook](/docs/runbooks/running): Iniciar uma execução e concluir, aprovar ou pular suas etapas.
 - [Regras de runbook](/docs/runbooks/rules): Iniciar este runbook automaticamente nos incidentes que corresponderem.
 - [Agentes de runbook](/docs/runbooks/agents): Instalar o Runner de que suas etapas de script precisam.
-- [Credenciais de runbook](/docs/runbooks/credentials): Dar às etapas SSH e Kubernetes acesso gerenciado.
+- [Variáveis de runbook](/docs/runbooks/variables): Manter hosts, chaves, senhas e kubeconfigs fora das suas etapas.
 :::

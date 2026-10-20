@@ -121,8 +121,8 @@ const LOADS_RUNNERS: Record<string, string> = {
     "one Runner's own page",
   "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials.tsx":
     "which of the project's Runners may use a credential; a global Runner never gets one",
-  "App/FeatureSet/Dashboard/src/Pages/Runbook/Secrets.tsx":
-    "which of the project's own Runners may use a secret; the global Runners have their own switch",
+  "App/FeatureSet/Dashboard/src/Components/Runbook/RunbookVariablesTable.tsx":
+    "which of the project's own Runners may use a secret variable; the global Runners have their own switch",
   "App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx":
     "the Runner that runs a cluster's AI commands, which global Runners never run",
   "App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index.tsx":
@@ -165,6 +165,45 @@ describe("where a step runs is decided by one rule", () => {
   });
 });
 
+/*
+ * Where a code repository's AI work runs is decided by its own one rule
+ * (Types/Runner/CodeRepositoryRunner), read on the server by
+ * CodeRepositoryRunnerChoice, and - for the claim and the queue depth - as
+ * one SQL condition (CodeFixClaimQuery). A second reading would hand a
+ * repository's work, or a token for it, to a Runner it did not pick.
+ */
+// A call of the repository's rule.
+const CALLS_THE_REPOSITORY_RULE: RegExp =
+  /\b(decideCodeRepositoryRunner|mayWorkInCodeRepository)\(/;
+
+describe("where a repository's AI work runs is decided by one rule", () => {
+  test("only the rule and its server reader call the rule", () => {
+    const calling: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        return CALLS_THE_REPOSITORY_RULE.test(read(file));
+      },
+    ).sort();
+
+    expect(calling).toEqual([
+      "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice.ts",
+      "Common/Types/Runner/CodeRepositoryRunner.ts",
+    ]);
+  });
+
+  test("only the claim's condition, and the migration that carried the choice over, read a run's repository's Runner in SQL", () => {
+    const reading: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        return read(file).includes('"repository"."runnerId"');
+      },
+    ).sort();
+
+    expect(reading).toEqual([
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1804300000000-AddCodeRepositoryRunner.ts",
+      "Common/Server/Utils/AI/CodeFix/CodeFixClaimQuery.ts",
+    ]);
+  });
+});
+
 describe("a Runner is picked with one picker", () => {
   const UI_SOURCES: Array<string> = [
     ...sourcesUnder("App/FeatureSet/Dashboard/src"),
@@ -179,6 +218,34 @@ describe("a Runner is picked with one picker", () => {
     ).sort();
 
     expect(loading).toEqual(Object.keys(LOADS_RUNNERS).sort());
+  });
+
+  /*
+   * A code repository's Runner is picked in its settings in Code with the
+   * same picker, fed by the same loader's choices for a repository
+   * (RunnerChoicesLoader.loadForCodeRepository): Global Runner first, then
+   * the project's own Runners.
+   */
+  test("a code repository's settings pick its Runner with the picker", () => {
+    const field: string = read(
+      "App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner.tsx",
+    );
+    const settings: string = read(
+      "App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings.tsx",
+    );
+
+    expect(field).toContain(
+      'import RunnerPicker from "../Runner/RunnerPicker";',
+    );
+    expect(field).toContain("RunnerChoicesLoader.loadForCodeRepository(");
+    expect(field).toMatch(
+      /<RunnerPicker\s+work=\{RunnerPickerWork\.CodeRepository\}/,
+    );
+    expect(settings).toMatch(/<CodeRepositoryRunnerPicker\b/);
+
+    for (const source of [field, settings]) {
+      expect(RUNNER_LOADS.test(source)).toBe(false);
+    }
   });
 
   test("a runbook's Steps page picks each step's Runner with the picker", () => {

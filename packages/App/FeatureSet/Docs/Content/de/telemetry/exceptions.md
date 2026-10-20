@@ -111,7 +111,7 @@ Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe
 
 | Aufgabe | Was der Pull Request tut |
 | --- | --- |
-| **Diese Ausnahme mit KI beheben** | Behebt die Ursache. Starten Sie sie mit **Fix with AI**. |
+| **Diese Ausnahme mit KI beheben** | Behebt die Ursache. Starten Sie sie über **Mit KI beheben**. |
 | **Regressionstest generieren** | Fügt einen Test hinzu, der fehlschlägt, bis der Fehler behoben ist. |
 | **Fehlerbehandlung verbessern** | Für erwartete Fehler: prüft Eingaben früher, hält Benutzerdaten aus Meldungen heraus und markiert den Fehler als behandelt. |
 

@@ -125,6 +125,10 @@ import MonitorStepStorageArrayMonitor, {
 import Link from "Common/UI/Components/Link/Link";
 import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
+import ProfileMonitorStepForm from "./ProfileMonitor/ProfileMonitorStepForm";
+import MonitorStepProfileMonitor, {
+  MonitorStepProfileMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepProfileMonitor";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
@@ -386,7 +390,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           props.monitorType === MonitorType.Logs ||
           props.monitorType === MonitorType.Traces ||
           props.monitorType === MonitorType.Metrics ||
-          props.monitorType === MonitorType.Exceptions
+          props.monitorType === MonitorType.Exceptions ||
+          props.monitorType === MonitorType.Profiles
         ) {
           await fetchTelemetryEntities();
         }
@@ -1955,6 +1960,28 @@ return {
               value: MonitorStepExceptionMonitor,
             ) => {
               monitorStep.setExceptionMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Profiles && (
+        <Card
+          title="Profiles Monitor Configuration"
+          description="Which profiles the monitor reads, and the function its Function Share criteria watch"
+        >
+          <ProfileMonitorStepForm
+            monitorStepProfileMonitor={
+              monitorStep.data?.profileMonitor ||
+              MonitorStepProfileMonitorUtil.getDefault()
+            }
+            telemetryServices={telemetryServices}
+            telemetryEntities={telemetryEntities}
+            onMonitorStepProfileMonitorChanged={(
+              value: MonitorStepProfileMonitor,
+            ) => {
+              monitorStep.setProfileMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

@@ -24,6 +24,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class IncidentEpisodeOnCallRuleEngineServiceClass {
   /**
@@ -33,6 +34,7 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
    * the merged list, so each policy executes at most once per episode.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async applyRulesToEpisode(episode: IncidentEpisode): Promise<void> {
     if (!episode.id || !episode.projectId) {
       return;

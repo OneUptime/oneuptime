@@ -192,6 +192,10 @@ nginx:
   #   maxReplicas: 10
   #   targetCPUUtilizationPercentage: 80
   #   targetMemoryUtilizationPercentage: 80
+  # Where the gateway listens inside its pod. Empty, it listens on every IPv4
+  # and IPv6 address it has; name one address to listen there only
+  # ("0.0.0.0:" for IPv4 only, "[::]:" for IPv6 only). listenOptions are
+  # options of the listening socket, such as "backlog=4096".
   listenAddress: ""
   listenOptions: ""
   # Per-request access logging for the high-volume ingest locations (/otlp,
@@ -213,6 +217,21 @@ nginx:
     loadBalancerClass:
     annotations:
     type: LoadBalancer
+    # Whether visitors keep their own address on the way to the gateway, which
+    # is the address OneUptime counts them by (sign-in limits, IP allowlists).
+    # See "Visitor addresses" in docs/configuration.md.
+    #   ""       Kubernetes' default, Cluster: kube-proxy hands the gateway
+    #            every visitor from a node's own address, so OneUptime sees
+    #            all visitors that came through one node as one visitor.
+    #            helm install and helm upgrade say so.
+    #   Local    each visitor keeps their own address, when the load balancer
+    #            passes it through (MetalLB and the network load balancers of
+    #            most clouds). Visitors are then sent only to nodes that run a
+    #            gateway pod: Kubernetes tells the load balancer which nodes
+    #            those are through a health check.
+    #   Cluster  Kubernetes' default, chosen: nothing is said about it.
+    # For a LoadBalancer or NodePort Service, or one with externalIPs.
+    externalTrafficPolicy: ""
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
   resources: {}
@@ -1232,6 +1251,17 @@ vapid:
   publicKey:
   privateKey:
   subject: mailto:support@oneuptime.com
+  # Read the private key from a Secret you manage instead of privateKey, to
+  # keep it out of these values (Helm stores them with every revision). Create
+  # it in the release's namespace:
+  #   kubectl create secret generic oneuptime-vapid -n <namespace> \
+  #     --from-literal=privateKey=<private key>
+  # Leave privateKey empty then: the chart refuses the two together. The
+  # public key stays in publicKey - every browser is given it.
+  existingSecret:
+    name:
+    # The key of that Secret that holds the private key.
+    privateKeyKey: privateKey
 
 # Expo access token for sending mobile push notifications directly via Expo SDK.
 # If not set, notifications are relayed through the push notification relay URL.

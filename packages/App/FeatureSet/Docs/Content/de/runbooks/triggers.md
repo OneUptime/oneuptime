@@ -134,10 +134,10 @@ Die Werte der obersten Ebene des Texts werden zu den Eingaben des Laufs. Sie err
 
 | Schritttyp | Wie er die Eingaben liest |
 | --- | --- |
-| Bash | Umgebungsvariablen: eine `ONEUPTIME_INPUT_<NAME>` für jeden Wert der obersten Ebene, `ONEUPTIME_INPUTS` mit dem ganzen Objekt als JSON und `ONEUPTIME_TRIGGER` mit dem, was den Lauf gestartet hat, etwa `Webhook` oder `Schedule`. |
+| Bash und kubectl | Umgebungsvariablen: eine `ONEUPTIME_INPUT_<NAME>` für jeden Wert der obersten Ebene, `ONEUPTIME_INPUTS` mit dem ganzen Objekt als JSON und `ONEUPTIME_TRIGGER` mit dem, was den Lauf gestartet hat, etwa `Webhook` oder `Schedule`. |
 | JavaScript | `args.inputs`, das Objekt wie gesendet, und `args.trigger`. |
 | AI | In seinem Prompt, als Daten von außerhalb von OneUptime markiert, wenn **Auslöserkontext einbeziehen** eingeschaltet ist. |
-| HTTP request, SSH und Kubernetes | Gar nicht. Ihre URL, ihr Befehl und ihr Ziel sind das, was im Runbook steht, und nichts, was ein Aufrufer sendet, ändert sie. |
+| HTTP request und SSH | Gar nicht. Ihre URL, ihr Skript und ihr Ziel sind das, was im Runbook steht, und nichts, was ein Aufrufer sendet, ändert sie. |
 
 Der Name einer Variable ist der Name des Werts in Großbuchstaben, wobei jedes Zeichen außer einem Buchstaben oder einer Ziffer als `_` geschrieben wird: Aus `host-name` wird `ONEUPTIME_INPUT_HOST_NAME`. Text wird unverändert übergeben, Zahlen und `true` oder `false` wie geschrieben und Objekte und Listen als JSON. Ein Schritt erhält höchstens 100 dieser Variablen, und aus einem Namen mit mehr als 100 Zeichen wird keine; jeder Wert steht trotzdem in `ONEUPTIME_INPUTS`. Jeder Name beginnt mit `ONEUPTIME_`, sodass ein Aufrufer weder `PATH` noch eine andere Variable setzen kann, die der Runner liest.
 

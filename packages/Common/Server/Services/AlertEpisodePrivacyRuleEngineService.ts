@@ -22,6 +22,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import PatternWorkScope, { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class AlertEpisodePrivacyRuleEngineServiceClass
   implements RuleRunEngine<AlertEpisode, AlertEpisodePrivacyRule>
@@ -128,6 +129,7 @@ class AlertEpisodePrivacyRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     episode: AlertEpisode;
     rules: Array<AlertEpisodePrivacyRule>;
@@ -139,13 +141,26 @@ class AlertEpisodePrivacyRuleEngineServiceClass
     }
 
     const matchedRules: Array<AlertEpisodePrivacyRule> = [];
+    const uncheckedRules: Array<AlertEpisodePrivacyRule> = [];
+
     for (const rule of rules) {
+      const stoppedBefore: number = PatternWorkScope.stoppedQuestions();
+
       if (this.doesEpisodeMatchRule(episode, rule)) {
         matchedRules.push(rule);
+      } else if (PatternWorkScope.stoppedQuestions() > stoppedBefore) {
+        /*
+         * Its patterns could not all be answered: together with the other
+         * rules' they needed more work than one evaluation may take
+         * (Utils/LinearRegExp/PatternWork.ts). The rule may have matched,
+         * so it counts as one that did: a record is never shown to the whole
+         * project because a pattern was not read to the end.
+         */
+        uncheckedRules.push(rule);
       }
     }
 
-    if (matchedRules.length === 0) {
+    if (matchedRules.length === 0 && uncheckedRules.length === 0) {
       return RuleApplicationResultUtil.noMatch();
     }
 
@@ -170,7 +185,11 @@ class AlertEpisodePrivacyRuleEngineServiceClass
       { projectId: episode.projectId.toString() } as LogAttributes,
     );
 
-    await this.createRuleExecutedFeedItem({ episode, matchedRules });
+    await this.createRuleExecutedFeedItem({
+      episode,
+      matchedRules,
+      uncheckedRules,
+    });
 
     return RuleApplicationResultUtil.updated(1);
   }
@@ -179,14 +198,25 @@ class AlertEpisodePrivacyRuleEngineServiceClass
   private async createRuleExecutedFeedItem(data: {
     episode: AlertEpisode;
     matchedRules: Array<AlertEpisodePrivacyRule>;
+    uncheckedRules: Array<AlertEpisodePrivacyRule>;
   }): Promise<void> {
-    const { episode, matchedRules } = data;
-    if (!episode.id || !episode.projectId || matchedRules.length === 0) {
+    const { episode, matchedRules, uncheckedRules } = data;
+    if (
+      !episode.id ||
+      !episode.projectId ||
+      (matchedRules.length === 0 && uncheckedRules.length === 0)
+    ) {
       return;
     }
 
     try {
-      const ruleNames: Array<string> = matchedRules
+      /*
+       * The rules that matched; or, when none did, the ones that could not
+       * be checked in full and so counted as matching.
+       */
+      const ruleNames: Array<string> = (
+        matchedRules.length > 0 ? matchedRules : uncheckedRules
+      )
         .map((r: AlertEpisodePrivacyRule) => {
           return r.name?.toString() || "Unnamed Rule";
         })
@@ -194,13 +224,20 @@ class AlertEpisodePrivacyRuleEngineServiceClass
           return n !== "";
         });
 
-      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
-        {
-          emoji: "🔒",
-          ruleKind: "Alert Episode Privacy Rule",
-          ruleNames: ruleNames,
-        },
-      )}\n\nEpisode has been marked **private** — visible only to its owners, project admins, and project owners.`;
+      const headline: MarkdownText =
+        matchedRules.length > 0
+          ? RuleFeedMarkdown.executedLine({
+              emoji: "🔒",
+              ruleKind: "Alert Episode Privacy Rule",
+              ruleNames: ruleNames,
+            })
+          : RuleFeedMarkdown.notCheckedInFullLine({
+              emoji: "🔒",
+              ruleKind: "Alert Episode Privacy Rule",
+              ruleNames: ruleNames,
+            });
+
+      const feedInfoInMarkdown: MarkdownText = mdText`${headline}\n\nEpisode has been marked **private** — visible only to its owners, project admins, and project owners.`;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id,

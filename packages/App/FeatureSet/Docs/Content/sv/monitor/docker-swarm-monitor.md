@@ -116,7 +116,7 @@ Agentens insamlare använder OpenTelemetry-mottagaren `docker_stats`, så måtte
 
 | Mätvärde | Enhet | Beskrivning |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | CPU-utnyttjande för en uppgifts container, där 100 % är en hel CPU-kärna. |
+| `container.cpu.utilization` | % | CPU som en uppgifts container använde under varje intervall på 30 sekunder, där 100 % är en hel CPU-kärna. |
 
 ### Minne
 

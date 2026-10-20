@@ -48,3 +48,54 @@ describe("GitHubUtil.mapGitHubPullRequestToState", () => {
     ).toBe(PullRequestState.Open);
   });
 });
+
+/*
+ * A merged fix is in production once a recorded deploy contains the commit
+ * GitHub merged it as: merge_commit_sha, the squash or merge commit.
+ */
+describe("GitHubUtil.readPullRequestMerge", () => {
+  const SHA: string = "6dcb09b5b57875f334f61aebed695e2e4193db5e";
+
+  test("a merged pull request's commit and time", () => {
+    expect(
+      GitHubUtil.readPullRequestMerge({
+        state: "closed",
+        merged: true,
+        merged_at: "2026-10-20T09:58:00Z",
+        merge_commit_sha: SHA,
+      }),
+    ).toEqual({
+      state: PullRequestState.Merged,
+      mergeCommitSha: SHA,
+      mergedAt: new Date("2026-10-20T09:58:00Z"),
+    });
+  });
+
+  test("an open or closed pull request has neither, whatever GitHub sends", () => {
+    // GitHub sends a test-merge commit for an open pull request.
+    expect(
+      GitHubUtil.readPullRequestMerge({
+        state: "open",
+        merge_commit_sha: SHA,
+      }),
+    ).toEqual({ state: PullRequestState.Open });
+    expect(
+      GitHubUtil.readPullRequestMerge({
+        state: "closed",
+        merged_at: null,
+        merge_commit_sha: SHA,
+      }),
+    ).toEqual({ state: PullRequestState.Closed });
+  });
+
+  test("a commit that is not a SHA, or a time that is not one, is left out", () => {
+    expect(
+      GitHubUtil.readPullRequestMerge({
+        state: "closed",
+        merged: true,
+        merged_at: "yesterday",
+        merge_commit_sha: "main; rm -rf /",
+      }),
+    ).toEqual({ state: PullRequestState.Merged });
+  });
+});

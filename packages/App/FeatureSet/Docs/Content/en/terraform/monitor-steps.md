@@ -309,7 +309,7 @@ The `check_on` values each monitor type uses most. The dashboard's criteria edit
 | Logs | `Log Count` |
 | Traces | `Span Count` |
 | Exceptions | `Exception Count` |
-| Profiles | `Profile Count` |
+| Profiles | `Profile Count`, `Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Metrics | `Metric Value` (metric filters can take `metric_monitor_options` JSON) |
 | Custom Code / Synthetic | `Result Value` (can compare one field of the returned data, named in `custom_code_monitor_options` JSON, e.g. `jsonencode({ resultValuePath = "status" })` — see below), `Error`, `Execution Time (in ms)` |

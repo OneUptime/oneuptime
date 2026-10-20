@@ -15,9 +15,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * WHAT A CLAIMED STEP IS HANDED BESIDE ITS SCRIPT: the values its run was
  * started with (a webhook call's body) and what started it, read from the
  * run in the claiming Runner's own project - for a runbook's own Bash and
- * JavaScript steps, and nothing else. The Runner turns them into
- * environment variables and `args` (RunbookExecutorInputs, in the Runner's
- * suites); the script itself is never touched.
+ * JavaScript steps, and a kubectl step that takes a script (which runs with
+ * bash on the Runner, as a Bash step does), and nothing else. The Runner
+ * turns them into environment variables and `args` (RunbookExecutorInputs,
+ * in the Runner's suites); the script itself is never touched.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -143,10 +144,51 @@ describe("a runbook's own Bash and JavaScript steps", () => {
   });
 });
 
+describe("a kubectl step that takes a script", () => {
+  test("gets its run's inputs, as a Bash step does: it runs with bash on the Runner", async () => {
+    expect(
+      await inputsFor(
+        job({
+          stepType: RunbookStepType.Kubernetes,
+          script: "",
+          payload: {
+            script:
+              'kubectl rollout restart deployment/"$ONEUPTIME_INPUT_HOST"',
+          },
+        }),
+      ),
+    ).toEqual({
+      inputs: INPUTS,
+      trigger: RunbookTriggerType.Webhook,
+    });
+  });
+
+  test("a Kubernetes step written before scripts - one action with a credential - gets none", async () => {
+    expect(
+      await inputsFor(
+        job({
+          stepType: RunbookStepType.Kubernetes,
+          script: "",
+          payload: {
+            credentialId: ObjectID.generate().toString(),
+            action: "restart-workload",
+            namespace: "web",
+            workloadName: "api",
+          },
+        }),
+      ),
+    ).toBeNull();
+    expect(readRun).not.toHaveBeenCalled();
+  });
+});
+
 describe("nothing for anything else", () => {
+  /*
+   * An SSH step's script runs on another machine, never with the Runner's
+   * environment; Kubectl is OneUptime AI's command lane.
+   */
   test.each([
     [RunbookStepType.SSH],
-    [RunbookStepType.Kubernetes],
     [RunbookStepType.Kubectl],
     [RunbookStepType.HttpRequest],
   ])("a %s step", async (stepType: RunbookStepType) => {

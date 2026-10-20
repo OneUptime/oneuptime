@@ -778,21 +778,20 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
               {translator.translateText("Legend:")}
             </span>
             {(
-              [
-                { key: "own" as ModuleCategory, label: "Your code" },
-                { key: "vendor" as ModuleCategory, label: "Dependencies" },
-                { key: "runtime" as ModuleCategory, label: "Runtime" },
-                { key: "native" as ModuleCategory, label: "Native / kernel" },
-              ] as Array<{ key: ModuleCategory; label: string }>
-            ).map((item: { key: ModuleCategory; label: string }) => {
+              ["own", "vendor", "runtime", "native"] as Array<ModuleCategory>
+            ).map((key: ModuleCategory) => {
               const s: { bg: string } = ProfileUtil.getModuleFrameStyle(
-                item.key,
+                key,
                 0.8,
               );
               return (
-                <span key={item.key} className="flex items-center gap-1.5">
+                <span key={key} className="flex items-center gap-1.5">
                   <span className={`inline-block w-3 h-3 rounded-sm ${s.bg}`} />
-                  <span>{translator.translateText(item.label)}</span>
+                  <span>
+                    {translator.translateText(
+                      ProfileUtil.getModuleCategoryLabel(key),
+                    )}
+                  </span>
                 </span>
               );
             })}
@@ -879,9 +878,17 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         </div>
       )}
 
+      {/*
+       * Frames are placed from the left (style.left), and their labels are
+       * code - function names read left to right in every language. In a
+       * right-to-left page (Persian) the labels would otherwise hug the
+       * right edge and lose their start to the ellipsis ("…alizeLineItems").
+       */}
       <div
+        dir="ltr"
         className="relative w-full overflow-x-auto border border-gray-200 rounded-lg bg-gradient-to-b from-gray-50/50 to-white"
         style={{ height: `${height}px` }}
+        data-testid="flamegraph-frames"
       >
         {treeElements}
         {/*

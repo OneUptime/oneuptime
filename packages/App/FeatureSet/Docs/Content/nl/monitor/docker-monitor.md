@@ -100,7 +100,7 @@ Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 
 > [!NOTE]
-> `container.cpu.utilization` is het getal dat `docker stats` toont: 100% is één volledige CPU-kern, niet de hele host, dus een container die twee kernen gebruikt, staat op 200. Op een host met meerdere kernen is de drempel van 80 een CPU-budget, geen aandeel van de machine.
+> `container.cpu.utilization` is het getal dat `docker stats` toont, gemiddeld over het interval van 30 seconden van de agent: 100% is één volledige CPU-kern, niet de hele host, dus een container die twee kernen gebruikt, staat op 200. Op een host met meerdere kernen is de drempel van 80 een CPU-budget, geen aandeel van de machine.
 
 > [!NOTE]
 > `container.memory.percent` deelt door de geheugenlimiet van de container als die is ingesteld, en anders door het totale geheugen **van de host**. Controleer of de container met `--memory` is gestart voordat u een overschrijding behandelt als een dreigende beëindiging door geheugentekort.
@@ -119,7 +119,7 @@ De agent gebruikt de OpenTelemetry-receiver `docker_stats` tegen de Docker-socke
 
 | Metriek | Beschrijving |
 | --- | --- |
-| `container.cpu.utilization` | CPU-gebruik, waarbij 100% één volledige CPU-kern is (de kolom CPU% van `docker stats`). |
+| `container.cpu.utilization` | CPU-gebruik per interval van 30 seconden, waarbij 100% één volledige CPU-kern is (de kolom CPU% van `docker stats`). |
 | `container.cpu.usage.total` | Gebruikte CPU-tijd sinds de container startte, in nanoseconden. Een teller over de hele levensduur. |
 | `container.cpu.throttling_data.throttled_time` | Nanoseconden dat de container sinds de start door zijn CPU-limiet is afgeknepen. Een teller over de hele levensduur. |
 | `container.cpu.throttling_data.throttled_periods` | Perioden van afknijpen sinds de container startte. Een teller over de hele levensduur. |
@@ -282,7 +282,7 @@ OneUptime herkent een host aan `resource.host.name`, die de agent uit `DOCKER_HO
 :::
 
 :::details Een CPU-waarschuwing gaat nooit af
-Groepeer de query op `resource.container.name` en aggregeer met **Maximum**, zoals het sjabloon **High Container CPU Usage** doet. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig.
+Groepeer de query op `resource.container.name` en aggregeer met **Maximum**, zoals het sjabloon **High Container CPU Usage** doet. Een gemiddelde over alle containers op een drukke host wordt omlaag getrokken door de inactieve. Bedenk dat 100% één volledige kern betekent, dus een container die meerdere kernen mag gebruiken, heeft een hogere drempel nodig. Is de CPU van een container een vlakke lijn, wat de belasting ook is, dan draait er een oudere agent op de host: [upgrade die](/docs/telemetry/docker-host#de-agent-upgraden).
 :::
 
 :::details Het sjabloon voor herstartlussen of afknijpen waarschuwt niet meer

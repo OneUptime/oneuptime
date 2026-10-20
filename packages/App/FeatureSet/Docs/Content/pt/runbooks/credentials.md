@@ -1,26 +1,26 @@
-# Credenciais de runbook
+# Acesso da IA
 
-Uma credencial é a forma como um runbook alcança algo que **não** é o próprio host do Runner: um servidor por SSH ou um cluster Kubernetes. Sem ela, "reiniciar o serviço" significa escrever um script de shell e colocar manualmente uma chave ou um kubeconfig no host do Runner, onde fica no disco fora do controle do OneUptime. Uma credencial é esse mesmo acesso como um objeto gerenciado: criptografada em repouso, atribuída a Runners específicos e referenciada pelo nome a partir de uma etapa.
+O acesso da IA é como os próprios comandos do OneUptime AI alcançam algo que **não** é o host do próprio Runner: um servidor por SSH, ou o servidor de API de um cluster Kubernetes que não roda o chart do agente do Kubernetes. Cada acesso é uma credencial: esse acesso como objeto gerenciado, criptografado em repouso, atribuído a Runners específicos e escolhido pelo OneUptime AI em vez de escrito em um comando. As etapas de runbook não as usam: uma etapa SSH ou kubectl entra com uma [variável de runbook](/docs/runbooks/variables) secreta. Um Runner anterior a esta versão é a exceção: ele executa uma etapa Kubernetes levada a script a partir de uma ação com a credencial que a etapa nomeava, até que o script ou o kubeconfig da etapa mude.
 
-Gerencie-as em **Runbooks → Agentes de runbook → Credenciais**.
+Gerencie-as em **Runbooks → Agentes de runbook → Acesso da IA**.
 
 :::cards
 - [Criar uma credencial](#criar-uma-credencial): O acesso dela e os Runners que podem usá-la.
 - [Privilégio mínimo do outro lado](#privilégio-mínimo-do-outro-lado): Limitar o que a chave ou o token pode fazer.
-- [Segredos para scripts](#segredos-para-scripts): Dar uma senha ou um token a um script Bash ou JavaScript.
+- [Runners que executam os comandos do OneUptime AI](#runners-que-executam-os-comandos-do-oneuptime-ai): Quem pode dar uma credencial SSH a um Runner assim.
 :::
 
 ## Como uma credencial é usada
 
 ```mermaid title="Como uma credencial chega ao sistema que ela abre"
 flowchart TB
-    step["Etapa SSH ou Kubernetes"] -->|"indica"| cred["Credencial, criptografada no OneUptime"]
-    step -->|"aponta para"| runner["Runner"]
+    step["Comando SSH ou kubectl<br/>do OneUptime AI"] -->|"executa com"| cred["Credencial, criptografada no OneUptime"]
+    step -->|"executa em"| runner["Runner"]
     cred -->|"atribuída a"| runner
-    runner -->|"assume a etapa e recebe o segredo"| target["Host SSH ou servidor de API do Kubernetes"]
+    runner -->|"assume o comando e recebe o segredo"| target["Host SSH ou servidor de API do Kubernetes"]
 ```
 
-Uma etapa SSH ou Kubernetes indica uma credencial e um Runner. Quando esse Runner assume a etapa, o OneUptime verifica que a credencial está atribuída a ele, descriptografa o segredo e o entrega somente na resposta a essa assunção. O segredo nunca é guardado no trabalho e nunca pode ser lido pela API.
+O OneUptime AI executa um comando SSH com uma das credenciais SSH atribuídas ao Runner em que roda, e um comando kubectl para um cluster que não roda o chart do agente do Kubernetes com a credencial do Kubernetes vinculada a esse cluster, como mostra [SRE com IA](/docs/ai/ai-sre). Quando o Runner assume o comando, o OneUptime verifica se a credencial está atribuída a ele, descriptografa o segredo e o entrega só na resposta a essa solicitação. O segredo nunca é guardado no job e nunca pode ser lido pela API.
 
 ## Antes de começar
 
@@ -31,9 +31,9 @@ Uma etapa SSH ou Kubernetes indica uma credencial e um Runner. Quando esse Runne
 ## Criar uma credencial
 
 :::steps
-### Abrir Credenciais
+### Abrir o acesso da IA
 
-Abra **Runbooks → Agentes de runbook → Credenciais** e clique em **Criar: Runbook Credential**.
+Abra **Runbooks → Agentes de runbook → Acesso da IA** e clique em **Criar: Credential**.
 
 ### Dar um nome e escolher o tipo
 
@@ -50,11 +50,11 @@ Em **Kubernetes**, informe a **API Server URL**, como `https://10.0.0.1:6443`, o
 
 ### Atribuí-la a Runners
 
-Na etapa **Agentes de runbook**, escolha os Runners que podem usar a credencial e clique em **Criar: Runbook Credential**. Uma credencial não atribuída a nenhum Runner não pode ser usada por nenhuma etapa.
+Na etapa **Agentes de runbook**, escolha os Runners que podem usar a credencial e clique em **Criar: Credential**. Uma credencial não atribuída a nenhum Runner não pode ser usada por nenhum comando.
 
-### Usá-la em uma etapa
+### Deixar o OneUptime AI usá-la
 
-Em uma [etapa SSH ou Kubernetes](/docs/runbooks/authoring#tipos-de-etapa), escolha um desses Runners e depois a credencial em **Credential**. Uma etapa só oferece credenciais do seu próprio tipo, e salvar uma etapa que indica uma credencial exige permissão para ler as credenciais de runbook.
+O OneUptime AI executa seus comandos SSH em um Runner com **Executa comandos de remediação por IA** ligado, com uma das credenciais SSH atribuídas a ele. Uma credencial do Kubernetes é usada assim que é vinculada, com um dos seus Runners, a um cluster: veja [SRE com IA](/docs/ai/ai-sre).
 :::
 
 ## O que é guardado
@@ -72,7 +72,7 @@ Por isso não existe "ver" para um valor secreto, só "substituir": informar o v
 
 ## Atribuir uma credencial a Runners
 
-Uma credencial só pode ser usada pelos Runners aos quais você a atribui, e uma etapa precisa apontar para um desses Runners. Se uma etapa indica uma credencial que não está atribuída ao seu Runner, a etapa **falha em vez de rodar**: um Runner que silenciosamente não faz nada parece exatamente com um que funcionou.
+Uma credencial só pode ser usada pelos Runners aos quais você a atribui. Um comando que indica uma credencial não atribuída ao seu Runner **falha em vez de ser executado** — um Runner que silenciosamente não faz nada parece exatamente um que funcionou.
 
 A atribuição é a fronteira de acesso, então mantenha-a estreita: um Runner que só reinicia um cluster não precisa da chave SSH dos seus hosts de banco de dados.
 
@@ -92,82 +92,7 @@ As etapas de um workflow agem como Project Admin, mas não recebem emprestada a 
 O OneUptime não pode restringir o que sua credencial pode fazer no sistema de destino: isso cabe ao sistema de destino, e vale a pena fazer:
 
 - **SSH** — prefira uma chave a uma senha, dê ao usuário só os comandos de que ele precisa (um comando forçado ou um shell restrito quando for prático) e não reutilize a chave pessoal de um administrador.
-- **Kubernetes** — vincule a conta de serviço a um Role que permita `patch` exatamente nas cargas de trabalho que seus runbooks tocam, exatamente nos namespaces em que rodam. **Restart workload** altera a própria carga de trabalho, e **Scale workload** altera o sub-recurso `scale` dela: nada mais é necessário.
-
-Por exemplo, uma conta de serviço que pode reiniciar e escalar um Deployment, e nada mais:
-
-```yaml title="oneuptime-runbooks-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-rules:
-  # Restart workload: patches the Deployment's pod template.
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
-  # Scale workload: patches the Deployment's scale subresource.
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-subjects:
-  - kind: ServiceAccount
-    name: oneuptime-runbooks
-    namespace: checkout
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: oneuptime-runbooks
-```
-
-Para um StatefulSet ou um DaemonSet, use `statefulsets` ou `daemonsets` em vez disso. Um DaemonSet não pode ser escalado, então não precisa de uma regra `scale`.
-
-## Segredos para scripts
-
-As etapas Bash e JavaScript não têm o campo **Credential**. Para dar a um script uma senha, um token ou uma chave de API sem escrevê-la no runbook, guarde-a como **segredo de runbook**. Os segredos são gerenciados em **Runbooks → Configurações → Segredos**, por Project Owners e Project Admins ou com a permissão **Create Runbook Secret**.
-
-:::steps
-### Criar o segredo
-
-Clique em **Criar: Runbook Secret**. Na etapa **Segredo**, informe um **Nome** (letras, números, hífens e sublinhados), uma **Descrição** opcional e o **Valor do segredo**. Na etapa **Acesso**, escolha os seus Runners em **Seus Runners que podem usar este segredo**. Em um servidor com [Runners globais](/docs/runbooks/agents#runners-globais), **Runners globais podem usar este segredo** também permite que as etapas deste projeto que rodam em um Runner global o usem. Ele começa ligado para um segredo novo enquanto o projeto usa Runners globais.
-
-### Usá-lo em um script
-
-Escreva `{{runbookSecrets.NAME}}` onde o valor deve entrar:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer {{runbookSecrets.CDN_API_TOKEN}}" \
-  "https://api.cdn.example.com/v1/purge"
-```
-
-Quando um Runner ao qual o segredo está atribuído assume a etapa, ele recebe o script com o valor já preenchido. Um Runner global também, quando o segredo permite que Runners globais o usem. Uma etapa em um Runner global que cita um segredo que Runners globais não podem usar falha, citando o segredo, em vez de rodar sem ele.
-:::
-
-Como os campos secretos de uma credencial, o valor de um segredo é criptografado em repouso e nunca devolvido pela API: **Atualizar Valor do Segredo** o substitui. No OneUptime Cloud, os segredos de runbook também exigem o plano **Growth** ou superior.
-
-| | Credencial | Segredo de runbook |
-| --- | --- | --- |
-| Usado por | Etapas SSH e Kubernetes | Scripts Bash e JavaScript |
-| Contém | Um host e sua chave, ou a URL e o token de um cluster | Qualquer valor único |
-| Gerenciado em | **Runbooks → Agentes de runbook → Credenciais** | **Runbooks → Configurações → Segredos** |
-| Chega ao Runner | Na resposta à assunção de uma etapa que o indica | Preenchido no script da etapa que ele assume |
-| Legível de volta pela API | Só os campos não secretos | Nunca o valor |
+- **Kubernetes** — vincule a conta de serviço a um Role que permita só o que você deixa o OneUptime AI fazer, nos namespaces em que ele pode agir. Uma conta de serviço que só pode ler deixa o OneUptime AI investigar e recusa qualquer correção.
 
 ## Quem pode vê-las
 
@@ -178,7 +103,7 @@ Observe que a **chave de agente** de um Runner equivale às credenciais atribuí
 ## Próximos passos
 
 :::cards
-- [Escrever um runbook](/docs/runbooks/authoring): Escrever as etapas SSH e Kubernetes que usam uma credencial.
+- [Variáveis de runbook](/docs/runbooks/variables): Os segredos com que as etapas SSH e kubectl entram.
 - [Agentes de runbook](/docs/runbooks/agents): Instalar o Runner ao qual uma credencial é atribuída.
 - [Configuração e segurança de runbooks](/docs/runbooks/configuration): Permissões e proteção para toda a pilha de runbooks.
 :::

@@ -1,6 +1,6 @@
 # Agentes de runbook
 
-Um **agente de runbook**, chamado de **Runner** no painel, é um pequeno processo auto-hospedado que executa as etapas JavaScript, Bash, SSH e Kubernetes dos seus runbooks **dentro da sua própria infraestrutura**. O Worker do OneUptime nunca executa seus scripts: ele os coloca na fila, e o Runner escolhido por quem escreveu a etapa assume cada um, executa e devolve o resultado. Esta página é para quem instala e opera Runners. Uma etapa JavaScript que não escolhe nenhum Runner roda, em vez disso, em um [Runner global](#runners-globais), um dos que o OneUptime executa para todos os projetos.
+Um **agente de runbook**, chamado de **Runner** no painel, é um pequeno processo auto-hospedado que executa as etapas JavaScript, Bash, SSH e kubectl dos seus runbooks **dentro da sua própria infraestrutura**. O Worker do OneUptime nunca executa seus scripts: ele os coloca na fila, e o Runner escolhido por quem escreveu a etapa assume cada um, executa e devolve o resultado. Esta página é para quem instala e opera Runners. Uma etapa JavaScript que não escolhe nenhum Runner roda, em vez disso, em um [Runner global](#runners-globais), um dos que o OneUptime executa para todos os projetos.
 
 :::cards
 - [Instalar um Runner](#instalar-um-runner): Do painel a um contêiner conectado, em cinco etapas.
@@ -33,13 +33,13 @@ flowchart TB
 1. Você cria um Runner no OneUptime. O OneUptime gera um ID e uma chave secreta para ele.
 2. Você executa o contêiner do Runner em um host dentro da sua infraestrutura, com esse ID, essa chave e a URL do seu OneUptime.
 3. O Runner pede trabalho ao OneUptime a cada 5 segundos e informa que está vivo a cada 60 segundos.
-4. Ao escrever uma etapa JavaScript, Bash, SSH ou Kubernetes, você escolhe o Runner em uma lista suspensa. A etapa fica ligada a esse Runner. Uma etapa JavaScript pode manter **Runner global**, que a lista suspensa escolhe para ela.
+4. Ao escrever uma etapa JavaScript, Bash, SSH ou kubectl, você escolhe o Runner em uma lista suspensa. A etapa fica ligada a esse Runner. Uma etapa JavaScript pode manter **Runner global**, que a lista suspensa escolhe para ela.
 5. Quando a etapa roda, o Worker coloca na fila um trabalho com `targetAgentId` apontando para esse Runner. Só esse Runner pode assumi-lo.
-6. O Runner executa o trabalho localmente — `bash -c <script>` para Bash, um sandbox `isolated-vm` para JavaScript, uma conexão SSH ou uma chamada ao servidor de API do cluster com a credencial da etapa —, captura o resultado e o devolve. O Worker retoma o runbook com o resultado.
+6. O Runner executa o job localmente — `bash -c <script>` para Bash e kubectl, um sandbox `isolated-vm` para JavaScript, uma conexão SSH que executa o script com bash na máquina —, captura o resultado, oculta nele os segredos da etapa e o envia de volta. O Worker retoma o runbook com o resultado.
 
 O Runner só precisa de **HTTPS de saída** para a sua instância do OneUptime. Ele não aceita conexões de entrada.
 
-O que um Runner guarda é seu ID e sua chave. Todo o resto ele recebe com o trabalho que assume: um script, com os [segredos de runbook](/docs/runbooks/credentials#segredos-para-scripts) atribuídos a ele já preenchidos, ou a [credencial](/docs/runbooks/credentials) que uma etapa SSH ou Kubernetes indica. Por isso qualquer pessoa com a chave de um Runner pode agir como esse Runner: trate a chave como as credenciais atribuídas a ele.
+Um Runner guarda só seu ID e sua chave. Todo o resto ele recebe com o job que assume: um script com as [variáveis de runbook](/docs/runbooks/variables) que ele nomeia já inseridas, e a chave ou senha de uma etapa SSH ou o kubeconfig de uma etapa kubectl. Ele só recebe um segredo quando esse segredo permite. Por isso qualquer pessoa com a chave de um Runner pode agir como esse Runner: trate a chave como os segredos que ele pode usar.
 
 ## Por que os scripts rodam em um Runner
 
@@ -56,20 +56,20 @@ Runners globais são os Runners que o OneUptime executa para todos os projetos. 
 
 | | Runner global | Seu próprio Runner |
 | --- | --- | --- |
-| Etapas que executa | JavaScript | JavaScript, Bash, SSH e Kubernetes |
+| Etapas que executa | JavaScript | JavaScript, Bash, SSH e kubectl |
 | O que uma etapa alcança | Endereços públicos da internet | O que o host dele alcança |
 | Tempo máximo de uma etapa | 5 minutos | 1 hora |
-| Segredos de runbook | Os que você permite aos Runners globais | Os que você atribui a ele |
+| Variáveis secretas | As que você deixa os Runners globais usarem | As que o listam |
 | Credenciais | Nenhuma | As que você atribui a ele |
 
 Um Runner global executa as etapas de muitos projetos, então cada etapa fica separada de todas as outras:
 
 - Cada etapa roda em um sandbox `isolated-vm` próprio, criado para essa etapa e descartado depois dela: sem arquivos, sem processos, sem variáveis de ambiente e nada guardado de uma etapa para a seguinte.
 - As requisições HTTP dela alcançam apenas endereços públicos da internet, nunca um endereço privado, de loopback ou link-local nem um endpoint de metadados de nuvem, então um Runner global nunca alcança a sua rede.
-- Ele recebe um segredo de runbook só quando o interruptor **Runners globais podem usar este segredo** do segredo está ligado, e só para uma etapa do próprio projeto do segredo. Ele nunca recebe uma credencial.
+- Ele só recebe uma variável secreta quando o interruptor **Runners globais podem usá-lo** dela está ligado, e só para uma etapa do próprio projeto da variável. Ele nunca recebe uma credencial.
 - Um projeto roda no máximo três etapas por vez nos Runners globais, então nenhum projeto fica com eles só para si.
 
-Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma.
+Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
 
 ### De onde vêm os Runners globais
 
@@ -96,10 +96,9 @@ Vá para **Runbooks → Agentes de runbook** e crie um novo agente. Clique em **
 | **Descrição** | **Runner** | Opcional. Uma frase sobre o que este host alcança. |
 | **Rótulos** | **Runner** (em **Mais campos**) | Opcional. |
 | **Executa runbooks** | **Capacidades** | Ligado por padrão. Permite que este Runner assuma etapas de runbook. |
-| **Executa correções de código por IA** | **Capacidades** | Desligado por padrão. Permite que ele abra pull requests de correção de código por IA; consulte [Código](/docs/ai/ai-agent). |
 | **Executa comandos de remediação por IA** | **Capacidades** | Desligado por padrão. Permite que a remediação automática por IA execute nele comandos verificados por uma política. Ligá-lo em um Runner que tem credenciais SSH exige permissão para ler as credenciais de runbook; consulte [Runners que executam os comandos do OneUptime AI](/docs/runbooks/credentials#runners-que-executam-os-comandos-do-oneuptime-ai). |
 
-Um Runner aplica uma mudança nas suas capacidades no próximo heartbeat; não é preciso reiniciá-lo.
+Um Runner aplica uma mudança nas suas capacidades no próximo heartbeat; não é preciso reiniciá-lo. Correções de código por IA não são uma capacidade: um repositório de código escolhe, nas configurações dele em Código, o Runner em que a IA trabalha nele, e a página do Runner lista os repositórios que o escolhem.
 
 ### 2. Copiar o comando de instalação
 
@@ -140,7 +139,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Adicionar uma etapa que roda em um Runner
 
-Nas **Etapas** do seu runbook, adicione uma etapa JavaScript, Bash, SSH ou Kubernetes.
+Nas **Etapas** do seu runbook, adicione uma etapa JavaScript, Bash, SSH ou kubectl.
 
 ### Escolher o Runner
 
@@ -151,7 +150,7 @@ A lista **Runner** da etapa mostra todos os Runners do projeto e se cada um est�
 Clique em **Save Steps**. Quando uma execução chega à etapa, o Worker coloca na fila um trabalho para o ID desse Runner, e só esse Runner pode assumi-lo. Uma etapa em **Runner global** espera pelo Runner global que estiver livre.
 :::
 
-O Bash é executado com `bash -c`. O JavaScript roda em um sandbox `isolated-vm` no Runner, sem acesso ao sistema de arquivos nem a processos; ele pode chamar APIs HTTP públicas com `axios`, mas não endereços de uma rede privada. As etapas SSH e Kubernetes usam a [credencial](/docs/runbooks/credentials) que a etapa indica, que precisa estar atribuída ao mesmo Runner.
+O Bash é executado com `bash -c`. O JavaScript roda em um sandbox `isolated-vm` no Runner, sem acesso ao sistema de arquivos nem a processos; ele pode chamar APIs HTTP públicas com `axios`, mas não endereços de uma rede privada. Uma etapa SSH ou kubectl entra com uma [variável de runbook](/docs/runbooks/variables) secreta, que precisa listar o Runner da etapa em **Seus Runners que podem usá-lo**.
 
 Precisa de mais de um Runner? Crie-os e aponte cada etapa para o adequado. Para ter redundância, rode um segundo Runner e divida as etapas entre os dois, ou mantenha um runbook de reserva cujas etapas apontem para o outro Runner.
 
@@ -166,7 +165,7 @@ Dois timeouts valem para cada etapa que roda em um Runner:
 | **Tempo limite para assumir** | 2 minutos | Por quanto tempo o Worker espera o Runner escolhido assumir o trabalho. Se o Runner não o assumir a tempo, a etapa falha por tempo esgotado e o runbook segue (ou para, conforme **Continuar em caso de falha**). |
 | **Tempo limite de execução** | 30 segundos | Por quanto tempo o Runner deixa a etapa rodar antes de pará-la. O Bash recebe `SIGKILL`; o sandbox do JavaScript é destruído. |
 
-Os dois são configuráveis por etapa. Abra **Runbooks › seu runbook › Etapas**, expanda a etapa e defina **Tempo limite de execução** e **Tempo limite para assumir** (em segundos) nas configurações dela. Deixe um campo vazio para usar o padrão. Cada um aceita de 1 segundo a 1 hora; valores fora dessa faixa são ajustados ao limite quando a etapa roda.
+Os dois são configuráveis por etapa. Abra **Runbooks › seu runbook › Etapas**, expanda a etapa e defina **Tempo limite de execução** e **Tempo limite para assumir** (em segundos) em **Mais campos**. Deixe um campo vazio para usar o padrão. Cada um aceita de 1 segundo a 1 hora; valores fora dessa faixa são ajustados ao limite quando a etapa roda.
 
 A janela de espera total do Worker é `claim timeout + execution timeout + a few seconds`. Escolha valores adequados à etapa.
 
@@ -234,7 +233,7 @@ O Runner lê estas variáveis ao iniciar:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | não | `10000` | Com que frequência o Runner renova o lease de um trabalho em andamento. Um valor abaixo de `1000` volta ao padrão. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | não | `1` | Número máximo de trabalhos simultâneos neste Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | não | — | Defina como `false` para que este Runner pare de assumir etapas de runbook, diga o que disser o painel. Só pode desligar a capacidade. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | não | — | Defina como `false` para que este Runner pare de assumir correções de código por IA, diga o que disser o painel. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | não | — | Defina como `false` para que este Runner pare de assumir correções de código por IA, mesmo para um repositório de código que o escolhe. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | não | — | Defina como `false` para que este Runner pare de executar comandos de remediação por IA, diga o que disser o painel. |
 
 ## Trocar a chave de um agente
@@ -307,14 +306,18 @@ O Runner assumiu o trabalho e depois parou de renovar o lease: travou, reiniciou
 Todas as capacidades estão desligadas para este Runner. Ligue **Executa runbooks** na página do Runner no OneUptime. Ele aplica a mudança no próximo heartbeat.
 :::
 
-:::details Uma etapa em um Runner global falha porque Runners globais não podem usar um segredo de runbook
-A etapa cita um segredo de runbook cujo interruptor **Runners globais podem usar este segredo** está desligado, então o Runner global não o recebeu e a etapa não foi executada. O erro cita o segredo. Ligue o interruptor dele em **Runbooks → Configurações → Segredos**, ou escolha um dos seus próprios Runners para a etapa.
+:::details Uma etapa falha porque seu Runner não pode usar uma variável secreta
+A etapa nomeia uma variável secreta que não permite o uso pelo seu Runner, então o Runner não a recebeu e a etapa não foi executada. O erro nomeia o segredo e o que mudar. Em **Runbooks → Configurações → Variáveis globais**, ou em **Configurações → Variáveis** do runbook, adicione o Runner em **Seus Runners que podem usá-lo**, ou ligue **Runners globais podem usá-lo** para uma etapa em um Runner global. Ou escolha um Runner que o segredo permita.
+:::
+
+:::details Uma etapa kubectl falha porque seu Runner é antigo demais
+A etapa falhou com "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Um Runner anterior aos scripts kubectl não consegue executar um. Uma etapa Kubernetes levada a um script kubectl na atualização ainda é executada nele como a ação com que foi escrita, até que seu script ou seu kubeconfig mude. Atualize o Runner, como mostra [Manter o agente atualizado](#5-manter-o-agente-atualizado), e execute o runbook de novo.
 :::
 
 ## Próximos passos
 
 :::cards
 - [Escrever um runbook](/docs/runbooks/authoring): Escrever as etapas que rodam no seu Runner.
-- [Credenciais de runbook](/docs/runbooks/credentials): Dar às etapas SSH e Kubernetes acesso gerenciado.
+- [Variáveis de runbook](/docs/runbooks/variables): Os valores e segredos que suas etapas usam, e os Runners que os recebem.
 - [Configuração e segurança de runbooks](/docs/runbooks/configuration): Limites, permissões e proteção.
 :::

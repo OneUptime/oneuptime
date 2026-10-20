@@ -186,7 +186,7 @@ Mit `HTTP_PROTOCOL=https` erzeugt OneUptime HTTPS-Links, hält Anmelde-Cookies a
 :::steps
 #### Ihre Domain auf den Server zeigen lassen
 
-Legen Sie für Ihre Domain einen DNS-Eintrag `A` (oder `AAAA` für IPv6) an, mit der öffentlichen IP-Adresse des Servers als Wert.
+Legen Sie für Ihre Domain einen DNS-Eintrag `A` (oder `AAAA` für IPv6) an, mit der öffentlichen IP-Adresse des Servers als Wert. Mit einem `AAAA`-Eintrag schalten Sie außerdem IPv6 für OneUptime ein: siehe [Besucheradressen](#besucheradressen).
 
 #### Die Zertifikatsbereitstellung einschalten
 
@@ -213,16 +213,16 @@ npm start
 
 ### Einen eigenen Reverse Proxy verwenden
 
-Diese Schritte betreiben den Proxy auf demselben Server wie OneUptime. Läuft Ihr Proxy auf einem anderen Rechner, überspringen Sie den ersten Schritt und richten den Proxy auf Port 80 dieses Servers.
+Diese Schritte betreiben den Proxy auf demselben Server wie OneUptime. Läuft Ihr Proxy auf einem anderen Rechner, überspringen Sie den ersten Schritt, richten den Proxy auf Port 80 dieses Servers und lassen mit der Firewall Ihres Cloud-Anbieters nur den Proxy die Ports 80 und 443 erreichen: Ein Besucher, der OneUptime am Proxy vorbei erreicht, kann die Adresse wählen, nach der OneUptime ihn zählt.
 
 :::steps
 #### Den Ingress von den Ports 80 und 443 wegverlegen
 
-Der Proxy braucht die Ports 80 und 443, also verlegen Sie den Ingress auf andere Ports. Die Probe und der Runner nutzen das Netzwerk des Hosts und erreichen OneUptime über `http://localhost`, daher ziehen sie mit um:
+Der Proxy braucht die Ports 80 und 443, also verlegen Sie den Ingress auf andere Ports, veröffentlicht nur auf der Loopback-Adresse `127.0.0.1` dieses Servers, damit Besucher OneUptime nur über Ihren Proxy erreichen. Die Probe und der Runner nutzen das Netzwerk des Hosts und erreichen OneUptime über `http://localhost`, daher ziehen sie mit um:
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,48 @@ Beide senden `X-Forwarded-Proto`, das OneUptime mitteilt, dass ein Besucher übe
 > [!NOTE]
 > Senden Sie Telemetrie hinter Ihrem eigenen Proxy über OTLP/HTTP (`/otlp`). OTLP über gRPC erreicht OneUptime nur, wenn sein eigener Ingress TLS terminiert (`PROVISION_SSL=true`).
 
+## Besucheradressen
+
+OneUptime zählt jeden Besucher nach der Adresse, von der aus er sich verbindet: Die Anmeldelimits, die übrigen Limits pro Adresse und die IP-Allowlists von Statusseiten und Dashboards lesen sie alle. Zwei Setups brauchen eine Einstellung, damit diese Adresse die eigene des Besuchers ist:
+
+| Setup | Einstellung |
+| --- | --- |
+| Personen erreichen OneUptime über IPv6, zum Beispiel über einen `AAAA`-Eintrag | IPv6 im Netzwerk von OneUptime, in `docker-compose.override.yml` |
+| Ihr eigener Reverse Proxy steht vor OneUptime | `TRUSTED_PROXY_HOPS=2`, mit dem Ingress veröffentlicht auf `127.0.0.1` (siehe [Einen eigenen Reverse Proxy verwenden](#einen-eigenen-reverse-proxy-verwenden)) |
+
+Ohne IPv6 im Netzwerk von OneUptime reicht Docker jeden Besucher, der über IPv6 kommt, von einer eigenen Adresse aus an OneUptime weiter, und OneUptime zählt sie alle als einen Besucher: Die fehlgeschlagenen Anmeldungen einer Person können die anderen aussperren. Um IPv6 einzuschalten, brauchen Sie Docker Engine 27 oder neuer (`docker version` zeigt Ihre).
+
+:::steps
+### IPv6 einschalten
+
+Legen Sie `docker-compose.override.yml` neben `docker-compose.yml` an, oder ergänzen Sie Ihre vorhandene Datei; `npm start` und `npm run update` lesen sie:
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
+```
+
+### OneUptime neu starten
+
+```bash
+npm stop
+npm start
+```
+
+OneUptime hält an und startet wieder, mit IPv6 in seinem Netzwerk. Ihre Daten bleiben erhalten. Docker kann kein Netzwerk entfernen, mit dem ein eigener Container noch verbunden ist, etwa ein Reverse Proxy: Trennen Sie ihn vorher vom Netzwerk von OneUptime und verbinden Sie ihn danach wieder. Bricht `npm start` mit `has active endpoints` ab, trennen Sie ihn und führen dann `npm stop` und `npm start` erneut aus.
+
+### Das Netzwerk prüfen
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+Es gibt `"EnableIPv6": true,` aus.
+:::
+
+Wenn sich mehrere Personen von einer privaten Netzwerkadresse aus anmelden, sagt das die Seite **OneUptime-Zustand** im Admin Dashboard, mit der Einstellung, die das ändert.
+
 ## Checkliste für den Produktivbetrieb
 
 Docker Compose betreibt jeden Dienst einmal auf einem einzigen Server, was zu kleinen Teams und Homelabs passt. Bevor Sie sich darauf verlassen, gehen Sie diese Liste durch.
@@ -325,6 +367,7 @@ Docker Compose betreibt jeden Dienst einmal auf einem einzigen Server, was zu kl
 | **HTTPS** | OneUptime ist über HTTPS erreichbar, und `HTTP_PROTOCOL=https` ist gesetzt. Siehe [HTTPS einrichten](#https-einrichten). |
 | **Registrierungen** | Sobald Ihr Team Konten hat, schalten Sie im Admin Dashboard unter **Einstellungen > Authentifizierung** die Option **Registrierung erlauben** aus. |
 | **Firewall** | Nur die Ports 80 und 443 (und SSH) sind zum Internet hin offen. OneUptime veröffentlicht den PostgreSQL-Port 5400 nur auf `127.0.0.1`. Schließen Sie jeden anderen Port, den Sie veröffentlichen, mit der Firewall Ihres Cloud-Anbieters: `ufw`-Regeln gelten nicht für Ports, die Docker veröffentlicht. |
+| **Besucheradressen** | Die Seite **OneUptime-Zustand** im Admin Dashboard meldet nicht, dass sich mehrere Personen von einer Adresse aus anmelden. Siehe [Besucheradressen](#besucheradressen). |
 | **Backups** | PostgreSQL wird täglich gesichert, und die Kopien verlassen den Server. Siehe [Sichern und wiederherstellen](#sichern-und-wiederherstellen). |
 | **E-Mail** | Im Admin Dashboard ist unter **Einstellungen > Benachrichtigungen > E-Mails** ein Mailserver eingerichtet, damit OneUptime Einladungen und Benachrichtigungen senden kann. Siehe [SMTP](/docs/emails/smtp). |
 | **Festplatte** | Der freie Speicherplatz wird überwacht. ClickHouse wächst mit der Telemetrie, die Sie aufbewahren (siehe [Dimensionierung & Kapazitätsplanung](/docs/installation/sizing)); das Log jedes Containers ist auf 1000 MB begrenzt. |
@@ -454,6 +497,13 @@ Sobald jeder Container läuft, führen Sie die Prüfung mit `npm run status-chec
 
 :::details Manche Seiten laden, aber Live-Updates oder Uploads schlagen fehl
 Öffnen Sie OneUptime unter der Adresse in `HOST`. Der Ingress leitet Anfragen nach Hostnamen weiter: Nur `HOST` und `localhost` erreichen die gesamte Anwendung, und jeder andere Name, etwa die IP-Adresse des Servers, wird als Domain einer Statusseite behandelt. Setzen Sie `HOST` auf den Namen, den die Leute verwenden, und führen Sie dann `npm start` aus.
+:::
+
+:::details Registrierung oder Anmeldung schlägt mit "Page not found" fehl
+Die Registrierungsseite lädt, aber die Registrierung schlägt mit `Page not found - /identity/signup` fehl und die Anmeldung mit `Page not found - /identity/login`. Die Anfrage hat OneUptime unter einem anderen Hostnamen als `HOST` erreicht, deshalb hat der Ingress sie wie die eigene Domain einer Statusseite weitergeleitet, unter der Registrierung und Anmeldung von OneUptime selbst nicht bereitstehen. Prüfen Sie beides:
+
+- `HOST` ist die Adresse, die die Leute öffnen, mit ihrem Port, falls sie einen verwenden, etwa `oneuptime.example.com:8080`. Führen Sie nach der Änderung `npm start` aus.
+- Ein Proxy vor OneUptime gibt den Hostnamen weiter, den der Browser angefragt hat. Caddy tut das standardmäßig, Nginx mit `proxy_set_header Host $host;` wie unter [Einen eigenen Reverse Proxy verwenden](#einen-eigenen-reverse-proxy-verwenden) und Apache mit `ProxyPreserveHost On`.
 :::
 
 :::details Der Browser warnt vor dem Zertifikat, nachdem Sie PROVISION_SSL gesetzt haben

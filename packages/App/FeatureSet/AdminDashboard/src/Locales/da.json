@@ -1000,5 +1000,16 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Ekstra JSON-parametre, der sendes til udbyderen med hver anmodning, fx {\"temperature\": 0.2}. Lad stå tom, medmindre din model har brug for dem.",
   "Never put keys here.": "Angiv aldrig nøgler her.",
   "Your deployment's name, exactly as Foundry shows it.": "Navnet på din udrulning, præcis som Foundry viser det.",
-  "{{name}} (default)": "{{name}} (standard)"
+  "{{name}} (default)": "{{name}} (standard)",
+  "Visitors share an address": "Besøgende deler en adresse",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "I de seneste 30 dage har flere personer logget ind fra den samme private netværksadresse. OneUptime tæller dem som én besøgende, så én persons mislykkede logins kan låse de andre ude.",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Som regel giver noget foran OneUptime hver besøgende videre fra sin egen adresse:",
+  "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.": "Docker Compose: slå IPv6 til for OneUptimes netværk i {{file}}, når folk kommer via IPv6.",
+  "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.": "Docker Compose bag din egen proxy: gør proxyen til den eneste vej ind, og sæt derefter {{hops}}. Kører proxyen på samme server, så udgiv OneUptimes porte kun på {{loopback}}.",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: sæt {{setting}} i Helm-chartets værdier.",
+  "Nothing needs to change if these people share one computer or one VPN.": "Intet skal ændres, hvis disse personer deler én computer eller én VPN.",
+  "{{count}} people": "{{count}} personer",
+  "{{count}} people_one": "{{count}} person",
+  "Docker Compose guide": "Docker Compose-vejledning",
+  "Kubernetes guide": "Kubernetes-vejledning"
 }

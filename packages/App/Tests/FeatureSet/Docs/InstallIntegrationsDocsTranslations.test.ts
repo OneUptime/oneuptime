@@ -299,6 +299,8 @@ const ADMIN_KEYS: Record<string, string> = {
   "Global Probes": "sideMenu.settingsGlobalProbes",
   "Let people sign up": "pages.settings.authentication.signUpSwitchTitle",
   Disconnected: "common.disconnected",
+  // The Health page, which says when several people sign in from one address.
+  "OneUptime Health": "OneUptime Health",
 };
 
 // The bold words of a page that name the Admin Dashboard, paths included.
@@ -308,6 +310,7 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Let people sign up",
     "Settings > Notifications > Emails",
     "Settings > Monitoring > Global Probes",
+    "OneUptime Health",
   ],
   [TWILIO]: ["Admin Dashboard > Settings > Call and SMS"],
 };
@@ -418,6 +421,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "HTTPS",
     "Sign-ups",
     "Firewall",
+    "Visitor addresses",
     "Backups",
     "Updates",
     "High availability",
@@ -551,6 +555,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     "**OneUptime is up!**",
     '"permission denied"',
     '"Maximum retries reached"',
+    '"Page not found"',
     "`CoreSSL:EnsurePrimaryHostCertificate`",
   ],
   [TEAMS]: [
@@ -586,6 +591,8 @@ const NUMBERS: Record<string, Array<string>> = {
     "1000",
     "13",
     "14",
+    // Docker Engine 27, which IPv6 for OneUptime's network needs.
+    "27",
   ],
   [SIZING]: ["25", "95", "50", "500", "16", "15", "30", "90", "2", "8"],
   [SLACK]: ["443", "15"],

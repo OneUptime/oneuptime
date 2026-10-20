@@ -81,12 +81,13 @@ Daarna, ongeveer in volgorde van nut:
 
 ## Waar alles staat
 
-Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in negen secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
+Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in tien secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
 
 | Sectie | Wat erin staat |
 | --- | --- |
 | **Basis** | **Overzicht**, **Aankondigingen**, **Eigenaren**. |
-| **Middelen** | Eén scherm **Middelen** (de groepen links, de monitoren van de geselecteerde groep rechts) en **Monitor Rules**. |
+| **Middelen** | Eén scherm **Middelen** (de groepen links, de monitoren van de geselecteerde groep rechts). |
+| **Regels** | **Monitor Rules**: regels die elke overeenkomende monitor aan de pagina toevoegen, nu en later. |
 | **Abonnees** | **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees**, **Webhook-abonnees**, **Abonneeinstellingen**. |
 | **Meldingslogboeken** | **Meldingslogboeken**: wat er naar abonnees is verzonden. |
 | **Huisstijl** | **Huisstijl** (logo, titel, favicon, links, voettekst, kleuren en talen, op één pagina), **Aangepaste domeinen**, **HTML, CSS & JavaScript**. |
@@ -167,7 +168,7 @@ Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instelli
 
 ## Vooraf bekijken voordat u live gaat
 
-Het scherm **Overzicht** van elke statuspagina heeft een kaart **Link naar de statuspagina** met een directe link naar de pagina en **Link kopiëren** ernaast. Gebruik die terwijl u nog resources toevoegt en voordat er een aangepast domein is.
+Het scherm **Overzicht** van elke statuspagina heeft een kaart **Link naar de statuspagina** met elk adres waarop de pagina bereikbaar is: eerst de aangepaste domeinen, dan het adres bij OneUptime, elk met **Link kopiëren** ernaast. Een aangepast domein dat nog niet live is, is gemarkeerd met **Nog niet live**, met de reden, en met **DNS-instelling** als er nog iets te doen is. Als bezoekers moeten inloggen of een wachtwoord moeten invoeren, zegt de kaart dat. Gebruik het OneUptime-adres terwijl u nog resources toevoegt en voordat een aangepast domein live is.
 
 Achter de schermen heeft elke openbare route een voorbeeldtweeling onder `/status-page/{statusPageId}/...`: een voorbeeldoverzicht, een voorbeeldlijst met incidenten, een voorbeeldabonneerpagina enzovoort. Een URL of schermafbeelding uit het voorbeeld in het dashboard komt daardoor niet overeen met wat een klant ziet zodra er een aangepast domein is gekoppeld, dus controleer elke link die u in een runbook of e-mail plakt.
 

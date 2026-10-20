@@ -81,12 +81,13 @@ Em seguida, mais ou menos em ordem de utilidade:
 
 ## Onde fica cada coisa
 
-Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em nove seções. Use-o como mapa para o resto desta parte da documentação.
+Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em dez seções. Use-o como mapa para o resto desta parte da documentação.
 
 | Seção | O que contém |
 | --- | --- |
 | **Básico** | **Visão geral**, **Anúncios**, **Proprietários**. |
-| **Recursos** | Uma única tela **Recursos** (os grupos à esquerda, os monitores do grupo selecionado à direita) e **Monitor Rules**. |
+| **Recursos** | Uma única tela **Recursos** (os grupos à esquerda, os monitores do grupo selecionado à direita). |
+| **Regras** | **Monitor Rules**: regras que adicionam à página cada monitor que corresponde, agora e depois. |
 | **Assinantes** | **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams**, **Assinantes de webhook**, **Configurações de assinantes**. |
 | **Logs de notificação** | **Logs de notificação**: o que foi enviado aos assinantes. |
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |
@@ -167,7 +168,7 @@ Abaixo do cartão ficam **Exportar como JSON: Página de status**, que baixa as 
 
 ## Ver como ficou antes de publicar
 
-A tela **Visão geral** de cada página de status tem um cartão **Link da página de status** com um link direto para a página e **Copiar link** ao lado. Use-o enquanto ainda estiver adicionando recursos e antes de existir um domínio personalizado.
+A tela **Visão geral** de cada página de status tem um cartão **Link da página de status** com cada endereço em que a página responde: primeiro seus domínios personalizados, depois seu endereço no OneUptime, cada um com **Copiar link** ao lado. Um domínio personalizado que ainda não está ativo aparece marcado como **Ainda não ativo**, com o motivo, e com **Configuração de DNS** quando ainda há algo a fazer. Quando os visitantes precisam entrar ou digitar uma senha, o cartão diz isso. Use o endereço do OneUptime enquanto ainda estiver adicionando recursos e antes de algum domínio personalizado estar ativo.
 
 Nos bastidores, cada rota pública tem uma gêmea de pré-visualização em `/status-page/{statusPageId}/...`: uma visão geral de pré-visualização, uma lista de incidentes de pré-visualização, uma página de inscrição de pré-visualização e assim por diante. Por isso, uma URL ou captura de tela tirada da pré-visualização do painel não vai corresponder ao que um cliente vê depois que um domínio personalizado estiver conectado, então confira qualquer link que você colar em um runbook ou e-mail.
 

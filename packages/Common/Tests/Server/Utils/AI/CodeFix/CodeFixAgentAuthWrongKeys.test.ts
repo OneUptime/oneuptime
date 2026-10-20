@@ -11,6 +11,7 @@ import {
 } from "../../../../../Server/Utils/RateLimit/WrongComponentKeyLimit";
 import AIAgentService from "../../../../../Server/Services/AIAgentService";
 import RunnerService from "../../../../../Server/Services/RunnerService";
+import CodeRepositoryRunnerChoice from "../../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import { ExpressRequest } from "../../../../../Server/Utils/Express";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -64,10 +65,14 @@ interface RegistryRow {
   table: "AIAgent" | "Runner";
   key: string;
   projectId?: string | undefined;
-  canRunCodeFixTasks?: boolean | undefined;
+  // Whether a code repository of its project picks the Runner.
+  isPickedByARepository?: boolean | undefined;
 }
 
-// The shared Runner's global agent, a project Runner, one with code fixes off.
+/*
+ * The shared Runner's global agent, a project Runner a code repository
+ * picks, and one no repository picks (it runs runbooks only).
+ */
 const GLOBAL_AGENT_ID: string = "11111111-2222-4333-8444-555555555555";
 const GLOBAL_AGENT_KEY: string =
   "global-agent-key-5e8b1d4f7a0c3e6b9d2f5a8c1e4b7d0a";
@@ -132,7 +137,6 @@ function standInFor(table: "AIAgent" | "Runner") {
       id: new ObjectID(id!),
       _id: id,
       projectId: row.projectId ? new ObjectID(row.projectId) : undefined,
-      canRunCodeFixTasks: row.canRunCodeFixTasks,
       name: "a Runner",
     };
   };
@@ -203,7 +207,7 @@ beforeEach(() => {
         table: "Runner",
         key: PROJECT_RUNNER_KEY,
         projectId: PROJECT_ID,
-        canRunCodeFixTasks: true,
+        isPickedByARepository: true,
       },
     ],
     [
@@ -212,7 +216,7 @@ beforeEach(() => {
         table: "Runner",
         key: RUNBOOK_RUNNER_KEY,
         projectId: PROJECT_ID,
-        canRunCodeFixTasks: false,
+        isPickedByARepository: false,
       },
     ],
   ]);
@@ -223,6 +227,16 @@ beforeEach(() => {
   jest
     .spyOn(RunnerService, "findOneBy")
     .mockImplementation(standInFor("Runner") as never);
+  jest
+    .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+    .mockImplementation(
+      async (runner: { id?: ObjectID | null | undefined }) => {
+        const row: RegistryRow | undefined = registry.get(
+          runner.id?.toString() || "",
+        );
+        return row?.isPickedByARepository === true;
+      },
+    );
 });
 
 afterEach(() => {
@@ -255,7 +269,7 @@ describe("the right key", () => {
     expect(answered.identity?.projectId?.toString()).toBe(PROJECT_ID);
   });
 
-  test("a Runner whose code fixes are off: refused as ever, but its right key is never counted against it", async () => {
+  test("a Runner no code repository picks: refused as ever, but its right key is never counted against it", async () => {
     for (let call: number = 0; call < 40; call++) {
       expect(
         await authenticate(CLIENT, pair(RUNBOOK_RUNNER_ID, RUNBOOK_RUNNER_KEY)),

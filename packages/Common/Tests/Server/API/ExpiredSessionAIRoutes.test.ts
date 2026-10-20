@@ -200,11 +200,62 @@ const AI_INVESTIGATION_ROUTES: Array<HumanOnlyRoute> = [
     firstRead: "alertRead",
   },
   {
+    /*
+     * What the trace page offers: the project's AI switch is read first, so
+     * a project with AI off pays for no span read.
+     */
+    uri: "/ai-investigation/performance-fix-suggestion",
+    params: {},
+    body: { traceId: "4bf92f3577b34da6a3ce929d0e0e4736" },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "projectRead",
+  },
+  {
     uri: "/ai-investigation/create-performance-fix-task",
     params: {},
     body: { traceId: "4bf92f3577b34da6a3ce929d0e0e4736" },
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "spansRead",
+  },
+  {
+    /*
+     * What the Profiler's function panel offers: the project's AI switch is
+     * read first, so a project with AI off pays for no profile read.
+     */
+    uri: "/ai-investigation/profile-fix-suggestion",
+    params: {},
+    body: {
+      serviceId: SERVICE_ID.toString(),
+      functionName: "checkout.applyDiscounts",
+      startTime: "2026-10-20T10:00:00.000Z",
+      endTime: "2026-10-20T11:00:00.000Z",
+    },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "projectRead",
+  },
+  {
+    // Creating the task asserts the project's AI switch before anything else.
+    uri: "/ai-investigation/create-profile-fix-task",
+    params: {},
+    body: {
+      serviceId: SERVICE_ID.toString(),
+      functionName: "checkout.applyDiscounts",
+      startTime: "2026-10-20T10:00:00.000Z",
+      endTime: "2026-10-20T11:00:00.000Z",
+    },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "projectRead",
+  },
+  {
+    // What a service's Logs or Traces page offers: the service is read first.
+    uri: "/ai-investigation/telemetry-improvement-suggestion",
+    params: {},
+    body: {
+      telemetryServiceId: SERVICE_ID.toString(),
+      taskType: CodeFixTaskType.ImproveTracing,
+    },
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "serviceRead",
   },
   {
     uri: "/ai-investigation/create-telemetry-improvement-task",

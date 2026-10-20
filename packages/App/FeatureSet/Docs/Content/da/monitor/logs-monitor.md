@@ -65,7 +65,7 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Group by Attributes** | Intet filter: tæller hver kombination af disse attributters værdier for sig. | Tom: én optælling |
 | **Løst af attributter** | Intet filter: den log, der løser en gruppe. Vises, så snart **Group by Attributes** har en attribut; se [Løst af en log](#løst-af-en-log). | Tom: en gruppe løses, når dens logs stopper |
 | **Filtrér efter telemetritjeneste** (under **Flere felter**) | Logs fra en af de valgte tjenester. | Tom: alle tjenester |
-| **Filter by Infrastructure Entity** (under **Flere felter**) | Logs fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
+| **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Logs fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
 | **Filtrér efter attributter** (under **Flere felter**) | Logs, hvis attributter opfylder alle betingelser. Hver betingelse har sin egen operator, såsom "er lig med" eller "indeholder". | Tom: ingen betingelse |
 
 Alle de filtre, du angiver, skal matche, før en log tælles.

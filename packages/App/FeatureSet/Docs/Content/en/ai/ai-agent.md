@@ -44,6 +44,7 @@ Click **Start task**, or press Enter. The task's page opens, and AI's work shows
 | **Monitor** | Its type, status and description. |
 | **Trace** | Its spans: their names, timings and errors. |
 | **Logs** | The latest 20 log lines that contain your search, from the last hour, day or week. |
+| **Performance profile** | Where a function's time goes in its service's profiles: who calls it, what it calls and its hottest lines. |
 
 A request carries at most 10 pieces of context. Tokens, keys, passwords and email addresses in what OneUptime reads are redacted before AI sees them, as everywhere OneUptime AI reads your data.
 
@@ -79,7 +80,7 @@ flowchart TB
 ```
 
 1. You click **Start task** in a repository, or **Fix with AI** on an unresolved exception, or another button or trigger starts a task (see [Where fix tasks start](#where-fix-tasks-start)).
-2. The task is queued, and an available Runner with **Runs AI Code Fixes** turned on picks it up.
+2. The task is queued on its repository, and the Runner the repository picks takes it: one of your Runners, or a global Runner when it picks none (see [Pick the repository's Runner](#pick-the-repositorys-runner)).
 3. The Runner fetches the task's context. For a request, that is its words, the context added and the conversation so far; for an exception, its type, its message and its stack trace.
 4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A reply works on the branch of the task's open pull request instead.
 5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs.
@@ -98,9 +99,12 @@ Each run is held to budgets the server enforces: at most **40 LLM calls** and **
 | An exception's **AI Assistance** page | **Generate Regression Test** | Adds a test that reproduces the exception and fails until the bug is fixed. |
 | An exception's **AI Assistance** page | **Improve Error Handling** | For an expected error, such as invalid input: takes user data out of the message, validates the input earlier and marks the error as handled, without changing behaviour. |
 | An incident's or alert's **AI Investigation** card | **Open Fix PR from this analysis** | Fixes the root cause the investigation posted (see [Automatic code fixes from investigations](#automatic-code-fixes-from-investigations)). |
-| A trace | **Fix performance with AI** | Fixes the slow pattern found in the trace, such as N+1 queries or one dominant slow span. |
+| A trace worth fixing | **Fix performance with AI** | Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel. |
 | A service's **Logs** page | **Improve Logging** | Makes the service's logs structured, at the right severity and tied to its traces, without changing behaviour. |
 | A service's **Traces** page | **Improve Tracing** | Adds spans and attributes where the service's tracing is missing, without changing behaviour. |
+| A function in **Performance Profiles** | **Fix with AI** | Makes the function do the same work with less time or memory, with its profile as the evidence. |
+
+These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no **AI Assistance**. **Improve Logging** and **Improve Tracing** show once a repository is connected, and **Fix performance with AI** only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)). A function's **Fix with AI** shows only on the application's own code that takes at least 5% of the profile's time or memory, or whose share grew by 3 points or more since the window it is compared with (see [Continuous Profiling](/docs/telemetry/profiles)).
 
 To open an exception's **AI Assistance** page, open the exception under **Products → Observability → Exceptions** and choose **AI Assistance** in its side menu. A resolved or archived exception has to be marked unresolved first.
 
@@ -120,11 +124,11 @@ When any of them is set, every fix run checks its change before the pull request
 
 1. When the code agent finishes, the commands run in order at the root of the repository, on the Runner, in the cloned workspace. Each one gets up to 15 minutes and runs with `CI=true`, so nothing waits on a prompt; the first failure stops the pass.
 2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They share the run's LLM budget, and their edits land in the same commit as the fix.
-3. The outcome, passed, failed or skipped (no commands set, or a shared Runner), is written in a Verification section of the pull request's description and recorded on the task's pull request.
+3. The outcome, passed, failed or skipped (no commands set, or a global Runner), is written in a Verification section of the pull request's description and recorded on the task's pull request.
 
 A change that still fails verification is not thrown away: the pull request opens anyway, with a clearly marked "Verification failed" section that names the failing command and ends with its output. The work is kept, and the reviewer decides. A repository with no commands set is reported as skipped, rather than implying a green build.
 
-The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. OneUptime's shared Runners never run them: on a shared Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change. [Run a Runner of your own](#run-a-runner-of-your-own) to have fixes built and tested before the pull request opens.
+The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. A global Runner, which OneUptime runs for every project, never runs them: on a global Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change. [Run a Runner of your own](#run-a-runner-of-your-own) to have fixes built and tested before the pull request opens.
 
 ## Before you begin
 
@@ -134,7 +138,7 @@ A task needs three things. A repository's page in Code and the exception's **AI 
 | --- | --- | --- |
 | An LLM provider | Nothing to set up: a project with no provider of its own uses the global provider, paid from the project's AI credits. A provider of your own, under **Project Settings → AI → LLM Providers**, comes first. | Set the `GLOBAL_LLM_PROVIDER_*` environment variables once on the server, or add a provider to the project. |
 | A repository connected through the GitHub App | **Products → Code**, then **Connect GitHub**. If the app is already installed on the GitHub account, click **Connect an existing installation** instead: installing it again does not connect it. Needs the Growth plan. | The same, once your instance has a GitHub App (see [GitHub Integration](/docs/self-hosted/github-integration)). |
-| A Runner that runs AI code fixes | Nothing to run: OneUptime's shared Runners do it. | The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default), registers itself and runs AI code fixes. |
+| A Runner that runs AI code fixes | Nothing to run: a repository that picks none works on OneUptime's global Runners. | The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default), registers itself and runs AI code fixes in every repository that picks no Runner. |
 
 On a self-hosted instance, the global provider is one block of `config.env` (Docker Compose) or of your Helm values. For a self-hosted Ollama:
 
@@ -149,6 +153,17 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 Any supported provider works: see [LLM Providers](/docs/ai/llm-provider) for all of them and every environment variable.
 
 You do not map repositories to services. When a task starts, OneUptime finds the repository by matching the file paths of the exception's stack trace against your connected repositories. When nothing matches, it falls back to a repository named like the service, and then to the project's only repository when there is just one. The **AI Assistance** page shows which repository it found.
+
+### Pick the repository's Runner
+
+Each repository picks the Runner AI works in it on: on its **Settings** page in Code, click **Edit Settings** and pick one on the **Runner** step. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
+
+| Runner | What it does with a task |
+| --- | --- |
+| **Global Runner** | Writes the change and opens the pull request, without your setup, build and test commands: your repository's own CI checks the change. |
+| One of your Runners | Also runs your setup, build and test commands, on a host you control. |
+
+Only the Runner a repository picks is handed its tasks and a token for it. In a project that turns **Use global Runners** off under **Runbooks → Runners**, every repository needs one of the project's own Runners. A Runner's page lists the repositories that pick it.
 
 ### Run a Runner of your own
 
@@ -167,9 +182,9 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-### Turn on Runs AI Code Fixes
+### Pick it for the repository
 
-Turn on **Runs AI Code Fixes** on the Runner. It is off by default, and the Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
+On the repository's **Settings** page in Code, click **Edit Settings** and pick the Runner on the **Runner** step. The Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
 
 ### Check that it connects
 
@@ -195,7 +210,7 @@ While it is on, an investigation that ends with a confident, evidenced root caus
 
 Everything else matches the button:
 
-- The pull request opens ready for review, written from the posted analysis, and needs a repository connected through the GitHub App and a Runner with **Runs AI Code Fixes** turned on.
+- The pull request opens ready for review, written from the posted analysis, and needs a repository connected through the GitHub App and a Runner online to work in it: the one the repository picks, or a global Runner.
 - It counts toward that signal's daily fix-task limit (**Daily Incident AI Fix Task Limit** or **Daily Alert AI Fix Task Limit**, under **More settings** on its AI settings page) and toward the repository's cap on open pull requests, when either is set. Unset, neither limits anything.
 - Every trigger first looks for a fix task already queued or running for the same incident or alert, so an automatic trigger and a click normally become one task, not two pull requests. The check is a read before the write, not a lock, so two triggers at the very same moment can still both get through.
 - The run is written by the system, not credited to anyone, and nothing merges on its own.
@@ -211,7 +226,7 @@ A run whose heartbeat has been silent for more than 12 minutes is failed with an
 :::
 
 :::details No Runner picks the task up
-A task that waits more than 30 minutes while no Runner with **Runs AI Code Fixes** is connected fails, with a message to check the Runner, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
+A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, or a global Runner for a repository that picks none - fails, with a message that says which, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
 :::
 
 ## Privacy

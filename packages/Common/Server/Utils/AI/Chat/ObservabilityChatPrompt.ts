@@ -58,7 +58,7 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
     case AIChatPageContextType.ScheduledMaintenanceEvent:
       return `a scheduled maintenance event${titlePart}. Fetch its full details with query_scheduled_maintenance using scheduledMaintenanceId="${id}" — including its window (startsAt/endsAt) and affected monitors. Use that window to scope log, trace and metric queries, and to judge whether telemetry changes during it were expected maintenance rather than a real problem.`;
     case AIChatPageContextType.TelemetryService:
-      return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names.`;
+      return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names. When it is profiled, get_profile_hotspots, compare_profiles and get_profile_function take the same serviceId and show where its CPU time and memory go and what got slower.`;
     case AIChatPageContextType.RumApplication:
       return `a Real User Monitoring application${titlePart}. Fetch its name and connection health with query_rum_applications using rumApplicationId="${id}". Use query_rum_web_vitals with the same rumApplicationId to compare LCP, INP, CLS, FCP and TTFB in an explicit time window against the preceding equal-length window. It returns measured averages, units, ratings and changes; missing measurements are not zero. For a trend chart, use the returned metric name with query_metrics and entityId="${id}". For slow browser operations or error spans, use query_traces with serviceId="${id}" and metric="p95Duration" or metric="errorCount", grouped by name. Span counts are not page views or unique users. These tools do not read session recordings. Report observed regressions and distinguish them from statistically established anomalies; do not infer a root cause from a change alone.`;
     case AIChatPageContextType.Trace:
@@ -97,6 +97,8 @@ function buildAreaContextGuidance(context: AIChatPageContext): string {
       return `the logs explorer. Questions about logs are answered with log_histogram (volume over time by severity) and search_logs (raw lines); resolve service names to ids with lookup_context first.`;
     case AIChatPageContextType.TracesExplorer:
       return `the traces explorer. Questions about traces and latency are answered with query_traces (aggregations like p95 by endpoint) and get_trace (one trace's span tree).`;
+    case AIChatPageContextType.ProfilesExplorer:
+      return `the Profiler (continuous profiling). Questions about where the CPU time or memory goes are answered with get_profile_hotspots (one service with serviceId, from lookup_context), what got slower - after a deploy or since an hour ago - with compare_profiles (changeTime takes a deploy's time from recent_changes), and one function's callers, callees and own-code time with get_profile_function.`;
     case AIChatPageContextType.MetricsExplorer:
       return `the metrics explorer. Discover metric names with lookup_context, then chart them with query_metrics; baseline_anomaly checks a metric against its learned baseline.`;
     case AIChatPageContextType.ExceptionsList:

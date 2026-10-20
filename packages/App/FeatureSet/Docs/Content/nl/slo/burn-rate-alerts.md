@@ -75,7 +75,7 @@ U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken.
 :::steps
 ### Burn Rate Rules openen
 
-Open de SLO, ga naar **Burn Rate Rules** en klik op **SLO Burn Rate Rule aanmaken**, of bewerk een van de standaardregels.
+Open de SLO, ga naar **Burn Rate Rules** in de sectie **Regels** van het zijmenu en klik op **SLO Burn Rate Rule aanmaken**, of bewerk een van de standaardregels.
 
 ### De regel een naam geven
 

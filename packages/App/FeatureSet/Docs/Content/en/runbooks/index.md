@@ -7,6 +7,7 @@ A runbook is a reusable response procedure: an ordered list of manual and automa
 - [Runbook Rules](/docs/runbooks/rules): Start runbooks on new incidents, alerts and maintenance events.
 - [Running a Runbook](/docs/runbooks/running): Start a run, complete and approve its steps, cancel it.
 - [Runbook Triggers](/docs/runbooks/triggers): Run a runbook on a schedule, or from another tool through its webhook URL.
+- [Runbook Variables](/docs/runbooks/variables): The hosts, keys, passwords and kubeconfigs your steps use by name.
 - [Runbook Agents](/docs/runbooks/agents): Install the Runner that runs your scripts in your own infrastructure.
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     execution --> worker["OneUptime<br/>Worker takes the<br/>steps in order"]
     worker -->|"Manual step<br/>or approval"| person["Waits for<br/>a person"]
     worker -->|"HTTP and<br/>AI steps"| onworker["Runs on<br/>the Worker"]
-    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner in your<br/>infrastructure"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>kubectl"| runner["Runner in your<br/>infrastructure"]
     person --> record["Status, output<br/>and errors<br/>recorded"]
     onworker --> record
     runner --> record
@@ -35,20 +36,20 @@ flowchart TB
 
 Every run is an **execution**. When it starts, the runbook's steps are copied onto it, and OneUptime works through them in order. A Manual step, or a step that needs approval, pauses the run until someone acts on it.
 
-HTTP and AI steps run on the OneUptime Worker. Bash, SSH and Kubernetes steps run on a [Runner](/docs/runbooks/agents) you install in your own infrastructure, so those scripts never run on OneUptime's servers. A JavaScript step runs on one of your Runners too or, if it picks none, on a [global Runner](/docs/runbooks/agents#global-runners), in a sandbox that reaches the internet only. Each step's status, output and error message are recorded on the execution, which stays with the incident, alert or event it ran for.
+HTTP and AI steps run on the OneUptime Worker. Bash, SSH and kubectl steps run on a [Runner](/docs/runbooks/agents) you install in your own infrastructure, so those scripts never run on OneUptime's servers. A JavaScript step runs on one of your Runners too or, if it picks none, on a [global Runner](/docs/runbooks/agents#global-runners), in a sandbox that reaches the internet only. Each step's status, output and error message are recorded on the execution, which stays with the incident, alert or event it ran for.
 
 ## Key concepts
 
 | Term | Meaning |
 | --- | --- |
 | **Runbook** | The template. A named, reusable procedure with an ordered list of steps and a **Run this runbook** switch. |
-| **Step** | One item in a runbook. It has a type (Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes or AI), a title, a description and type-specific settings. |
+| **Step** | One item in a runbook. It has a type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl or AI), a title, a description and type-specific settings. |
 | **Runbook Rule** | A rule that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events that match its conditions: their monitors, severity, labels, monitor labels, title or description. |
 | **Execution** | One run of a runbook. Created when a rule fires, when someone clicks **Run Runbook** on an event, or when someone clicks **Run Now** on the runbook itself. It holds a snapshot of the steps and each step's status and output. |
 | **Snapshot** | The frozen copy of the runbook's steps that lives on each execution. You can edit the runbook later without rewriting the history of past runs. |
-| **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and Kubernetes steps that name it. Also called a Runbook Agent. A global Runner, one OneUptime runs for every project, runs the JavaScript steps that name none. |
-| **Credential** | Managed SSH or Kubernetes access that SSH and Kubernetes steps use. Encrypted at rest and handed only to the Runners you assign it to. |
-| **Secret** | A single value, such as an API token, that a Bash or JavaScript script uses as `{{runbookSecrets.NAME}}`. Encrypted at rest and handed only to the Runners you assign it to. Global Runners get it only if you let them. |
+| **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and kubectl steps that name it. Also called a Runbook Agent. A global Runner, one OneUptime runs for every project, runs the JavaScript steps that name none. |
+| **Variable** | A value steps use by name, such as a host or a URL: `{{global.variables.NAME}}` for one of the project's, which every runbook can use, or `{{local.variables.NAME}}` for one of the runbook's own. |
+| **Secret** | A variable whose value is encrypted at rest, never shown again and hidden in what steps print, such as an SSH key, a password, a kubeconfig or an API token. Handed only to the Runners you let use it; global Runners get it only if you let them. |
 
 ## Step types
 
@@ -59,9 +60,9 @@ Pick the type that fits each step. [Authoring a Runbook](/docs/runbooks/authorin
 | **Manual** | A person | A human has to verify something, make a judgement call, or act where OneUptime can't. | "Confirm traffic has moved to the secondary region." |
 | **JavaScript** | A Runner | You need a small, contained computation, sandboxed. | Compute replica lag and decide whether to proceed. |
 | **HTTP request** | The OneUptime Worker | You're calling an existing API: a cloud provider, PagerDuty, a Slack webhook, your own service. | `POST` to your failover orchestrator. |
-| **Bash** | A Runner | You need shell commands on your own infrastructure. | Run `kubectl rollout restart` or a recovery script. |
-| **SSH** | A Runner | You need one command on a remote host, with a managed SSH credential. | Restart a service on a web server. |
-| **Kubernetes** | A Runner | You need to restart or scale a Deployment, StatefulSet or DaemonSet. | Restart `checkout-api` in `production`. |
+| **Bash** | A Runner | You need shell commands on your own infrastructure. | Run a recovery script, or `curl` a service only your network reaches. |
+| **SSH** | A Runner | You need a bash script on a remote machine, signed in with a secret variable. | Restart a service on a web server. |
+| **kubectl** | A Runner | You need kubectl commands against a cluster. | Restart `checkout-api` in `production`, then wait for its new pods. |
 | **AI** | The OneUptime Worker | You want an analysis, a summary or a judgement call mid-run, from your project's LLM provider. | "Review the diagnostics above. Is it safe to fail over?" |
 
 A runbook can mix all of them. The strength of runbooks is interleaving human checks with automation and AI analysis.
@@ -90,11 +91,12 @@ Runbooks is under **Products**, in the **Dashboards & Automation** group.
 | A runbook's **Overview** | See its last run and outcomes, and click **Run Now**. |
 | A runbook's **Executions** | Every run of this runbook, filtered by status or start date. |
 | A runbook's **Triggers** | Run it on a [schedule](/docs/runbooks/triggers#run-on-a-schedule), or from another tool through its [webhook URL](/docs/runbooks/triggers#call-the-webhook). |
+| A runbook's **Variables** | Manage the [variables](/docs/runbooks/variables) only this runbook's steps use. |
 | A runbook's **Owners** | Add the people and teams responsible for it. |
 | A runbook's **Settings** | Turn **Run this runbook** off without deleting the runbook. |
 | **Runbooks → Executions** | Every run of every runbook in the project. |
-| **Runbooks → Runners** and **Runbooks → Runners → Credentials** | Install [Runners](/docs/runbooks/agents) and manage [credentials](/docs/runbooks/credentials). |
-| **Runbooks → Settings** | Manage [secrets](/docs/runbooks/credentials#secrets-for-scripts) for scripts, and the **Owner Rules** and **Label Rules** that add owners and labels to new runbooks. |
+| **Runbooks → Runners** and **Runbooks → Runners → AI Access** | Install [Runners](/docs/runbooks/agents), and manage the [access](/docs/runbooks/credentials) OneUptime AI's commands have through them. |
+| **Runbooks → Settings** | Manage the **Global Variables** every runbook can [use](/docs/runbooks/variables), and the **Owner Rules** and **Label Rules** that add owners and labels to new runbooks. |
 | **Incidents / Alerts / Scheduled Maintenance → Rules → Runbook Rules** | Create the rules that start runbooks automatically. |
 | An incident, alert or maintenance event → **Runbooks** | See the runs attached to it, and click **Run Runbook** to start one. |
 
@@ -105,7 +107,7 @@ A runbook's own side menu groups its pages like this. Only **Basic** starts open
 | **Basic** | **Overview**, **Steps** |
 | **Logs** | **Executions** |
 | **Owners** | **Owners** |
-| **Settings** | **Triggers**, **Settings** |
+| **Settings** | **Triggers**, **Variables**, **Settings** |
 | **Developer** | **Terraform**, **API**, **AI Assistants** |
 | **Advanced** | **Audit Logs**, **Delete Runbook** |
 
@@ -156,7 +158,7 @@ The execution stays on the incident's **Runbooks** page. When you write the post
 - **Cache flush**: one HTTP request, then a Manual "confirm the cache hit rate is recovering".
 - **Customer-impacting incident**: Manual "post a status page update", HTTP request to notify the support team, JavaScript to pull the list of affected accounts.
 - **Scheduled maintenance pre-flight**: snapshot metrics, confirm the change window with stakeholders (Manual), enable maintenance mode on the load balancer (HTTP request).
-- **Diagnose, then fix**: a Bash step collects diagnostics, an AI step with **Require approval** reads them and recommends a fix, and a Kubernetes step restarts the workload only once a person has approved.
+- **Diagnose, then fix**: a Bash step collects diagnostics, an AI step with **Require approval** reads them and recommends a fix, and a kubectl step restarts the workload only once a person has approved.
 - **Always-run hygiene**: a rule with no conditions that captures system state on every incident, for the postmortem.
 
 ## How runbooks fit with the rest of OneUptime
@@ -170,7 +172,7 @@ The execution stays on the incident's **Runbooks** page. When you write the post
 
 :::cards
 - [Authoring a Runbook](/docs/runbooks/authoring): Create your first runbook and its steps.
-- [Runbook Agents](/docs/runbooks/agents): Install a Runner before you write a Bash, SSH or Kubernetes step.
+- [Runbook Agents](/docs/runbooks/agents): Install a Runner before you write a Bash, SSH or kubectl step.
 - [Runbook Rules](/docs/runbooks/rules): Start runbooks automatically when incidents are created.
 - [Runbook Configuration & Safety](/docs/runbooks/configuration): Limits, timeouts, permissions and hardening.
 :::

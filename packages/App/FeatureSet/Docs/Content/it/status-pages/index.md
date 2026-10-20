@@ -81,12 +81,13 @@ Poi, più o meno in ordine di utilità:
 
 ## Dove si trova ogni cosa
 
-Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppato in nove sezioni. Usatelo come mappa per il resto di questa parte della documentazione.
+Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppato in dieci sezioni. Usatelo come mappa per il resto di questa parte della documentazione.
 
 | Sezione | Che cosa contiene |
 | --- | --- |
 | **Base** | **Panoramica**, **Annunci**, **Proprietari**. |
-| **Risorse** | Un'unica schermata **Risorse** (i gruppi a sinistra, i monitor del gruppo selezionato a destra) e **Monitor Rules**. |
+| **Risorse** | Un'unica schermata **Risorse** (i gruppi a sinistra, i monitor del gruppo selezionato a destra). |
+| **Regole** | **Monitor Rules**: regole che aggiungono alla pagina ogni monitor corrispondente, ora e in seguito. |
 | **Iscritti** | **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams**, **Iscritti webhook**, **Impostazioni iscritti**. |
 | **Registri di notifica** | **Registri di notifica**: ciò che è stato inviato agli iscritti. |
 | **Branding** | **Branding** (logo, titolo, favicon, link, piè di pagina, colori e lingue, in un'unica pagina), **Domini personalizzati**, **HTML, CSS e JavaScript**. |
@@ -167,7 +168,7 @@ Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le i
 
 ## Vedere l'anteprima prima di andare in produzione
 
-La schermata **Panoramica** di ogni pagina di stato ha una scheda **Link della pagina di stato** con un link diretto alla pagina e **Copia link** accanto. Usatela mentre state ancora aggiungendo risorse e prima che esista un dominio personalizzato.
+La schermata **Panoramica** di ogni pagina di stato ha una scheda **Link della pagina di stato** con ogni indirizzo a cui risponde la pagina: prima i suoi domini personalizzati, poi il suo indirizzo su OneUptime, ciascuno con **Copia link** accanto. Un dominio personalizzato non ancora attivo è segnato **Non ancora attivo**, con il motivo, e con **Configurazione DNS** quando resta qualcosa da fare. Quando i visitatori devono accedere o inserire una password, la scheda lo dice. Usate l'indirizzo OneUptime mentre state ancora aggiungendo risorse e prima che un dominio personalizzato sia attivo.
 
 Dietro le quinte, ogni percorso pubblico ha un gemello di anteprima in `/status-page/{statusPageId}/...`: una panoramica di anteprima, un elenco degli incidenti di anteprima, una pagina di iscrizione di anteprima e così via. Per questo un URL o uno screenshot presi dall'anteprima della dashboard non corrisponderanno a ciò che vede un cliente una volta collegato un dominio personalizzato, quindi verificate ogni link che incollate in un runbook o in un'email.
 

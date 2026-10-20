@@ -134,10 +134,10 @@ The body's top-level values become the run's inputs. They reach the steps as dat
 
 | Step type | How it reads the inputs |
 | --- | --- |
-| Bash | Environment variables: one `ONEUPTIME_INPUT_<NAME>` for each top-level value, `ONEUPTIME_INPUTS` with the whole object as JSON, and `ONEUPTIME_TRIGGER` with what started the run, such as `Webhook` or `Schedule`. |
+| Bash and kubectl | Environment variables: one `ONEUPTIME_INPUT_<NAME>` for each top-level value, `ONEUPTIME_INPUTS` with the whole object as JSON, and `ONEUPTIME_TRIGGER` with what started the run, such as `Webhook` or `Schedule`. |
 | JavaScript | `args.inputs`, the object as sent, and `args.trigger`. |
 | AI | In its prompt, marked as data from outside OneUptime, when **Include trigger context** is on. |
-| HTTP request, SSH and Kubernetes | Not at all. Their URL, command and target are what the runbook says, and nothing a caller sends changes them. |
+| HTTP request and SSH | Not at all. Their URL, script and target are what the runbook says, and nothing a caller sends changes them. |
 
 A variable's name is the value's name in capitals, with every character other than a letter or a digit written as `_`: `host-name` becomes `ONEUPTIME_INPUT_HOST_NAME`. Text is passed as it is, numbers and `true` or `false` as written, and objects and lists as JSON. A step gets at most 100 of these variables, and a name longer than 100 characters becomes none; every value is still in `ONEUPTIME_INPUTS`. Every name starts with `ONEUPTIME_`, so a caller cannot set `PATH` or any other variable the Runner reads.
 

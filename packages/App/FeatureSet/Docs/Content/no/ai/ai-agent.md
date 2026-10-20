@@ -44,6 +44,7 @@ Klikk på **Start oppgave**, eller trykk Enter. Oppgavens side åpnes, og arbeid
 | **Overvåking** | Typen, statusen og beskrivelsen. |
 | **Spor** | Spanene: navnene, tidene og feilene deres. |
 | **Logger** | De siste 20 logglinjene som inneholder søket ditt, fra den siste timen, dagen eller uken. |
+| **Ytelsesprofil** | Hvor tiden til en funksjon går i profilene til tjenesten dens: hvem som kaller den, hva den kaller og de varmeste linjene. |
 
 En forespørsel bærer høyst 10 kontekstelementer. Tokener, nøkler, passord og e-postadresser i det OneUptime leser, sladdes før AI ser dem, som overalt der OneUptime AI leser dataene dine.
 
@@ -78,8 +79,8 @@ flowchart TB
     P --> H["En person gjennomgår<br/>og merger den"]
 ```
 
-1. Du klikker **Start oppgave** i et repositorium, eller **Fix with AI** på et uløst unntak, eller en annen knapp eller utløser starter en oppgave (se [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter)).
-2. Oppgaven settes i kø, og en ledig Runner med **Kjører AI-koderettelser** slått på plukker den opp.
+1. Du klikker **Start oppgave** i et repositorium, eller **Fiks med AI** på et uløst unntak, eller en annen knapp eller utløser starter en oppgave (se [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter)).
+2. Oppgaven settes i kø på repositoriet sitt, og Runneren som repositoriet velger, tar den: en av dine Runnere, eller en global Runner når det ikke velger noen (se [Velg repositoriets Runner](#velg-repositoriets-runner)).
 3. Runneren henter oppgavens kontekst. For en forespørsel er det ordene, konteksten som ble lagt til, og samtalen så langt; for et unntak typen, meldingen og stack tracen.
 4. Den kloner repositoriet til et eget arbeidsområde og lager en branch. En retting av et unntak heter `oneuptime-fix-exception-` etterfulgt av de første tegnene i kjøringens id. Et svar jobber i stedet på branchen til oppgavens åpne pull request.
 5. En kodeagent, drevet av prosjektets LLM-leverandør, leser koden og skriver endringen. OneUptime-serveren gjør LLM-kallene, slik at Runneren aldri har leverandørens API-nøkkel, og hvert kall måles og vises i AI-loggene.
@@ -94,13 +95,16 @@ Hver kjøring holdes innenfor budsjetter som serveren håndhever: høyst **40 LL
 
 | Hvor | Klikk | Pull requesten |
 | --- | --- | --- |
-| Et unntaks side **AI Assistance** | **Fix with AI** | Retter feilen bak unntaket. |
+| Et unntaks side **AI Assistance** | **Fiks med AI** | Retter feilen bak unntaket. |
 | Et unntaks side **AI Assistance** | **Generate Regression Test** | Legger til en test som gjenskaper unntaket og feiler til feilen er rettet. |
 | Et unntaks side **AI Assistance** | **Forbedre feilhåndtering** | For en forventet feil, som ugyldig inndata: tar brukerdata ut av meldingen, validerer inndataene tidligere og merker feilen som håndtert, uten å endre oppførselen. |
 | En hendelses eller et varsels kort **AI Investigation** | **Open Fix PR from this analysis** | Retter rotårsaken undersøkelsen publiserte (se [Automatiske koderettinger fra undersøkelser](#automatiske-koderettinger-fra-undersøkelser)). |
-| Et spor | **Fix performance with AI** | Retter det trege mønsteret som ble funnet i sporet, som N+1-spørringer eller ett dominerende tregt span. |
+| Et spor som er verdt å rette | **Fiks ytelsen med AI** | Retter det trege mønsteret som knappen nevner, som en N+1-spørring eller kall som kunne kjørt parallelt. |
 | En tjenestes side **Logger** | **Forbedre logging** | Gjør tjenestens logger strukturerte, med riktig alvorlighetsgrad og knyttet til sporene, uten å endre oppførselen. |
 | En tjenestes side **Spor** | **Forbedre sporing** | Legger til spans og attributter der tjenestens tracing mangler, uten å endre oppførselen. |
+| En funksjon i **Ytelsesprofiler** | **Fiks med AI** | Får funksjonen til å gjøre det samme arbeidet med mindre tid eller minne, med profilen som bevis. |
+
+Disse knappene vises bare der de kan starte en oppgave. Med AI slått av for prosjektet vises ingen av dem, og sidemenyen til et unntak har ingen **AI Assistance**. **Forbedre logging** og **Forbedre sporing** vises så snart et repository er koblet til, og **Fiks ytelsen med AI** bare på et spor som er verdt å rette (se [Sporutforsker](/docs/telemetry/traces-explorer)). **Fiks med AI** for en funksjon vises bare for applikasjonens egen kode som tar minst 5 % av profilens tid eller minne, eller der andelen har vokst med 3 poeng eller mer siden vinduet den sammenlignes med (se [Kontinuerlig profilering](/docs/telemetry/profiles)).
 
 For å åpne et unntaks side **AI Assistance**, åpne unntaket under **Produkter → Observerbarhet → Unntak** og velg **AI Assistance** i sidemenyen. Et løst eller arkivert unntak må først merkes som uløst.
 
@@ -120,11 +124,11 @@ Når en av dem er satt, kontrollerer hver rettingskjøring endringen sin før pu
 
 1. Når kodeagenten er ferdig, kjører kommandoene i rekkefølge i roten av repositoriet, på Runneren, i det klonede arbeidsområdet. Hver får opptil 15 minutter og kjører med `CI=true`, slik at ingenting venter på inndata; den første feilen stopper gjennomkjøringen.
 2. Ved en feil går slutten av utdataene fra den feilende kommandoen tilbake til den samme kodeagenten som en reparasjonsoppgave, med beskjed om å rette sin egen endring i stedet for å svekke eller hoppe over tester, og kommandoene kjører på nytt. Den gjør høyst **2** reparasjonsforsøk. De deler kjøringens LLM-budsjett, og endringene havner i samme commit som rettingen.
-3. Utfallet, bestått, feilet eller hoppet over (ingen kommandoer satt, eller en delt Runner), skrives i en Verification-seksjon i pull requestens beskrivelse og registreres på oppgavens pull request.
+3. Utfallet, bestått, feilet eller hoppet over (ingen kommandoer satt, eller en global Runner), skrives i en Verification-seksjon i pull requestens beskrivelse og registreres på oppgavens pull request.
 
 En endring som fortsatt ikke består kontrollen, kastes ikke: pull requesten åpnes likevel, med en tydelig merket seksjon "Verification failed" som nevner den feilende kommandoen og slutter med utdataene dens. Arbeidet beholdes, og den som gjennomgår, bestemmer. Et repositorium uten kommandoer rapporteres som hoppet over, i stedet for å antyde et grønt bygg.
 
-Kommandoene er repositoriuminnstillinger som teamet ditt skriver, og de kjører på din egen Runner: samme tillitsmodell som Bash-stegene i en runbook. AI-en skriver eller endrer dem aldri. OneUptimes delte Runnere kjører dem aldri: på en delt Runner skrives rettingen og åpnes for gjennomgang, kontrollen rapporteres som hoppet over, og repositoriets egen CI sjekker endringen. [Kjør din egen Runner](#kjør-din-egen-runner) for å få rettinger bygget og testet før pull requesten åpnes.
+Kommandoene er repositoriuminnstillinger som teamet ditt skriver, og de kjører på din egen Runner: samme tillitsmodell som Bash-stegene i en runbook. AI-en skriver eller endrer dem aldri. En global Runner, som OneUptime kjører for alle prosjekter, kjører dem aldri: på en global Runner skrives rettingen og åpnes for gjennomgang, kontrollen rapporteres som hoppet over, og repositoriets egen CI sjekker endringen. [Kjør din egen Runner](#kjør-din-egen-runner) for å få rettinger bygget og testet før pull requesten åpnes.
 
 ## Før du begynner
 
@@ -134,7 +138,7 @@ En oppgave trenger tre ting. Siden til et repositorium i Kode og unntakets side 
 | --- | --- | --- |
 | En LLM-leverandør | Ingenting å sette opp: et prosjekt uten egen leverandør bruker den globale leverandøren, betalt fra prosjektets AI-kreditter. En egen leverandør, under **Prosjektinnstillinger → KI → LLM-leverandører**, går foran. | Sett miljøvariablene `GLOBAL_LLM_PROVIDER_*` én gang på serveren, eller legg til en leverandør i prosjektet. |
 | Et repositorium koblet til via GitHub App | **Produkter → Kode**, deretter **Koble til GitHub**. Hvis appen allerede er installert på GitHub-kontoen, klikker du i stedet på **Koble til en eksisterende installasjon**: den blir ikke koblet til av å installere den på nytt. Krever Growth-planen. | Det samme, når instansen din har en GitHub App (se [GitHub-integrasjon](/docs/self-hosted/github-integration)). |
-| En Runner som kjører AI-koderettelser | Ingenting å drifte: OneUptimes delte Runnere gjør det. | Docker Compose-tjenesten `runner`, eller Helm-chartets Runner (`runner.enabled`, på som standard), registrerer seg selv og kjører AI-koderettelser. |
+| En Runner som kjører AI-koderettelser | Ingenting å drifte: et repositorium som ikke velger noen, jobber på OneUptimes globale Runnere. | Docker Compose-tjenesten `runner`, eller Helm-chartets Runner (`runner.enabled`, på som standard), registrerer seg selv og kjører AI-koderettelser i hvert repositorium som ikke velger noen Runner. |
 
 På en selvhostet instans er den globale leverandøren én blokk i `config.env` (Docker Compose) eller i Helm-verdiene dine. For en selvhostet Ollama:
 
@@ -149,6 +153,17 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 Enhver støttet leverandør fungerer: se [LLM-leverandører](/docs/ai/llm-provider) for alle leverandørene og hver miljøvariabel.
 
 Du knytter ikke repositorier til tjenester. Når en oppgave starter, finner OneUptime repositoriet ved å sammenligne filstiene i unntakets stack trace med de tilkoblede repositoriene dine. Når ingenting passer, faller den tilbake på et repositorium som heter det samme som tjenesten, og deretter på prosjektets eneste repositorium når det bare finnes ett. Siden **AI Assistance** viser hvilket repositorium den fant.
+
+### Velg repositoriets Runner
+
+Hvert repositorium velger Runneren AI jobber i det på: klikk **Rediger innstillinger** på siden **Innstillinger** i Kode, og velg en i steget **Runner**. Et repositorium som ikke velger noen, jobber på **Global Runner**, som OneUptime kjører for alle prosjekter.
+
+| Runner | Hva den gjør med en oppgave |
+| --- | --- |
+| **Global Runner** | Skriver endringen og åpner pull requesten, uten oppsett-, bygg- og testkommandoene dine: repositoriets egen CI sjekker endringen. |
+| En av dine Runnere | Kjører også oppsett-, bygg- og testkommandoene dine, på en vert du kontrollerer. |
+
+Bare Runneren et repositorium velger, får oppgavene og et token for det. I et prosjekt som slår av **Bruk globale Runnere** under **Runbooks → Runbook-agenter**, trenger hvert repositorium en av prosjektets egne Runnere. Siden til en Runner viser repositoriene som velger den.
 
 ### Kjør din egen Runner
 
@@ -167,9 +182,9 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-### Slå på AI-koderettelser
+### Velg den for repositoriet
 
-Slå på **Kjører AI-koderettelser** på Runneren. Den er av som standard, og Runneren fanger opp endringen ved neste heartbeat, innen omtrent ett minutt; det er ingenting å starte på nytt.
+Klikk **Rediger innstillinger** på repositoriets side **Innstillinger** i Kode, og velg Runneren i steget **Runner**. Runneren fanger opp endringen ved neste heartbeat, innen omtrent ett minutt; det er ingenting å starte på nytt.
 
 ### Kontroller at den kobler til
 
@@ -195,7 +210,7 @@ Mens den er på, setter en undersøkelse som ender med en sikker, underbygd rot�
 
 Alt annet er som med knappen:
 
-- Pull requesten åpnes klar for gjennomgang, skrevet ut fra den publiserte analysen, og trenger et repositorium koblet til via GitHub App og en Runner med **Kjører AI-koderettelser** slått på.
+- Pull requesten åpnes klar for gjennomgang, skrevet ut fra den publiserte analysen, og trenger et repositorium koblet til via GitHub App og en Runner som er tilkoblet for å jobbe i det: den repositoriet velger, eller en global Runner.
 - Den teller mot signalets daglige grense for rettingsoppgaver (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Flere innstillinger** på AI-innstillingssiden) og mot repositoriets tak på åpne pull requests, når en av dem er satt. Når de ikke er satt, begrenser ingen av dem noe.
 - Hver utløser ser først etter en rettingsoppgave som allerede står i kø eller kjører for den samme hendelsen eller det samme varselet, slik at en automatisk utløser og et klikk normalt blir én oppgave, ikke to pull requests. Kontrollen er en lesing før skrivingen, ikke en lås, så to utløsere i nøyaktig samme øyeblikk kan fortsatt begge slippe gjennom.
 - Kjøringen skrives av systemet, krediteres ingen, og ingenting merges av seg selv.
@@ -211,7 +226,7 @@ En kjøring der heartbeat har vært stille i mer enn 12 minutter, avsluttes med 
 :::
 
 :::details Ingen Runner plukker opp oppgaven
-En oppgave som venter i mer enn 30 minutter mens ingen Runner med **Kjører AI-koderettelser** er tilkoblet, feiler med en melding om å sjekke Runneren, slik at den aldri vises som pågående for alltid. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
+En oppgave som venter i mer enn 30 minutter mens Runneren som skal ta den, ikke er tilkoblet - den repositoriet velger, eller en global Runner for et repositorium som ikke velger noen - feiler med en melding som sier hvilken, slik at den aldri vises som pågående for alltid. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
 :::
 
 ## Personvern

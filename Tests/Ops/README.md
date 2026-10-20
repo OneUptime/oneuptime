@@ -159,6 +159,32 @@ external database or a check that cannot tell, and that it never stops
 recording `docker` on PATH: the step runs before `docker compose up` with
 `ignore-scripts` on or off, which a `prestart` hook would not.
 
+### `CheckIngressPorts.test.js`
+
+`Scripts/Install/CheckIngressPorts.js`, a step of `npm start` before
+`docker compose up`. With `TRUSTED_PROXY_HOPS` counting a proxy (2 or more),
+OneUptime reads each visitor's address from what that proxy writes, which
+holds only while the proxy is the one way in. An install whose ingress was
+moved off ports 80 and 443 for a proxy on the same server but is still
+published on every address (`ONEUPTIME_HTTP_PORT=8080`, as the Docker Compose
+guide had it before) is warned, with the `127.0.0.1:` values that publish it on
+the loopback address. The guide's own blocks, read from the page, a port
+written with an address, ports 80 and 443 and a hop count of 1 say nothing,
+and the step never stops `npm start`; npm itself runs the start script in a
+throwaway copy to show the warning comes before Compose starts.
+
+### `ComposeVisitorAddresses.test.js`
+
+The compose files keep OneUptime's network exactly as installs created it
+(a driver and nothing else), so an upgrade never recreates it; IPv6 for it is
+the operator's `docker-compose.override.yml`, which `npm start` and
+`npm run update` read because they name no compose file. With docker's
+compose plugin on PATH, the Docker Compose guide's override is merged with
+copies of the shipped files the way `npm start` reads them: IPv6 on for the
+one network every service off the host network joins, no service changed.
+The guide's `127.0.0.1:` port form publishes the ingress on the loopback
+address only.
+
 ### `ReadmeQuickStart.test.js`
 
 The README's Docker Compose quick start, in English and the 16 translations,
@@ -610,6 +636,47 @@ daemon, and any case the daemon cannot demonstrate (for example `1.25` on a
 daemon whose floor is low enough to accept it) is skipped with a reason rather
 than failed. A guard test that always runs reports why the suite is idle, so it
 cannot rot into permanent silence.
+
+### `ContainerAgentCpuUtilization.test.js`
+
+The Docker, Podman and Docker Swarm agents' `container.cpu.utilization` and
+`container.memory.percent`. The `docker_stats` receiver computes its own CPU
+percent from one stats sample: since collector 0.150.0 its Docker client asks
+for a one-shot sample, which carries no previous reading (and Podman's
+Docker-compatible API never sends one), so it divides all the CPU a container
+used since it started by all the CPU the host used since it booted - a flat
+line near zero that never follows the load. So the agents turn it off and build
+`container.cpu.utilization` from `container.cpu.usage.total`: a copy,
+`cumulative_to_delta` (CPU time since the previous scrape), `delta_to_rate` (per
+second) and a scale to percent of one core with the unit `%`. The same last
+processor gives `container.memory.percent` - a 0-100 figure the receiver labels
+`1`, the unit of a 0-1 fraction - the unit `%`, and a description that says
+what it is a percent of (the container's memory limit, or the host's memory
+when the container has none).
+
+The suite holds the three configs to that: the receiver's own figure off and
+the counter it is built from on, the four processors exactly as written and
+identical in all three agents, run in order right after `memory_limiter` in the
+metrics pipeline only, under the names collector 0.161.0 gives them (not the
+deprecated `cumulativetodelta` / `deltatorate` aliases), and the arithmetic:
+10^9 ns of CPU per second is 100%, and a quarter of a core, one and a half
+cores, idle, a restart and a burst read 25, 150, 0, nothing and 30%.
+
+### `container-agent-cpu-utilization-behaviour.sh`
+
+What those processors DO, in the collector the agents are built FROM. For each
+agent it lifts them out of the config as shipped and posts six 30-second scrapes
+of two containers to them, in order (25%, 150%, 0%, a restart that sends
+nothing, 10%; and 1% throughout - the customer's container), then runs the
+agent's whole metrics pipeline against the machine's Docker daemon, with a
+container held to half a core by its CPU quota: `container.cpu.utilization`
+reads 50% (within 15 points), equals the rate of `container.cpu.usage.total`,
+and `container.memory.percent` is usage over limit, in `%`; in both parts each
+percent carries the description the agents set. The Podman agent's
+receiver is pointed at the Docker socket, so that run checks its pipeline, not
+Podman's API. It needs docker; the "Ops Config Test" workflow runs it after
+`agent-cpu-names-behaviour.sh`. `Utils/ContainerAgentCpuBehaviour.js` builds its
+configs and payloads and checks what comes out.
 
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 
@@ -1184,6 +1251,24 @@ pull request open; a branch a stopped run left moved, not made again;
 `WINGET_FORK_OWNER` honoured; no fork, or a fork of something else, and an
 API that keeps failing, each stopping it having written nothing.
 
+The fake's answers about pull requests go through the script's own `--jq`,
+a stand-in for Microsoft's CLA bot ignores an agreement posted before it
+asks, as the real one did on #456419, and a `sleep` that does not wait keeps
+the waits instant. So the suite also holds the script to: the CLA agreement
+posted only once the pull request has the `Needs-CLA` label, on one a run
+opens or a re-run finds with it; nothing posted when the label does not come
+within `WINGET_CLA_WAIT_SECONDS`; success said when the label goes, and a
+warning, not a failure, when it stays past `WINGET_CLA_CLEAR_WAIT_SECONDS`;
+a label read GitHub fails read again at the next poll; the windows and the
+poll interval as set, or 900, 300 and 20 seconds, and refused before anything
+is asked when they are not whole seconds; an agreement GitHub refuses tried
+four times, then stopping the job with what to comment; the account's open
+pull requests for older versions closed with a comment naming the new one,
+on a run or a re-run, and newer versions', other accounts', other packages'
+and closed ones left alone; one it cannot list, close or comment on a
+warning, after asking once more, not a failure; and the winget job's timeout
+outlasting the waits.
+
 ### `InfrastructureAgentMsi.test.js`
 
 The infrastructure agent's MSI
@@ -1286,6 +1371,11 @@ copies of these helpers as written; new image release tests use this module.
 one run, for the suites that work out a concurrency group: context paths and
 `||` only (a missing path reads as null, as on GitHub). It throws on anything
 else rather than misread it.
+
+`Utils/ContainerAgentCpuBehaviour.js` is the node half of
+`container-agent-cpu-utilization-behaviour.sh`: it writes the collector configs
+and OTLP payloads that script runs, reads what the file exporter wrote (a line
+still being written is left for the next read) and checks it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

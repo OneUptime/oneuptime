@@ -361,6 +361,18 @@
                                 "NodePort"
                             ]
                         },
+                        "externalTrafficPolicy": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "",
+                                "Cluster",
+                                "Local",
+                                null
+                            ]
+                        },
                         "externalIPs": {
                             "type": [
                                 "array",
@@ -2000,6 +2012,24 @@
                         "string",
                         "null"
                     ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "privateKeyKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

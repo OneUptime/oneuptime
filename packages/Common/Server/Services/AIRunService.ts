@@ -27,6 +27,11 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import Model from "../../Models/DatabaseModels/AIRun";
 import { applyAIRunPrivacyFilter } from "../Utils/AI/AIRunPrivacyFilter";
+import CodeFixClaimQuery, {
+  CodeFixClaimQueryFacts,
+  CodeFixClaimStatement,
+} from "../Utils/AI/CodeFix/CodeFixClaimQuery";
+import { CodeWorker } from "../../Types/Runner/CodeRepositoryRunner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import { UpdateQueryBuilder, UpdateResult } from "typeorm";
@@ -220,6 +225,13 @@ export class Service extends DatabaseService<Model> {
      */
     projectId?: ObjectID | undefined;
     /*
+     * Who is claiming, for the repositories' Runner choice
+     * (Types/Runner/CodeRepositoryRunner): a project's Runner takes only the
+     * runs of the repositories that pick it, a global Runner only those of
+     * repositories that pick none (CodeFixClaimQuery).
+     */
+    worker: CodeWorker;
+    /*
      * The recipes the claiming Runner has a handler for (its request's
      * supportedTaskTypes). Null for a Runner that does not say: it is only
      * handed the recipes every Runner has had, so a request from Code waits
@@ -235,15 +247,28 @@ export class Service extends DatabaseService<Model> {
       CodeFixTaskTypeHelper.getTaskTypesForRunnersThatDoNotSay();
 
     for (let attempt: number = 0; attempt < maxClaimAttempts; attempt++) {
+      /*
+       * The oldest run this worker may take, by the repository's Runner as
+       * it is now; then read like any other, still Queued (a run another
+       * worker took meanwhile is passed over).
+       */
+      const candidateId: string | null =
+        await this.findNextClaimableCodeFixRunId({
+          worker: data.worker,
+          projectId: data.projectId,
+          claimableTaskTypes,
+        });
+
+      if (!candidateId) {
+        return null;
+      }
+
       const run: Model | null = await this.findOneBy({
         query: {
+          _id: candidateId,
           runType: AIRunType.CodeFix,
           status: AIRunStatus.Queued,
-          codeFixTaskType: QueryHelper.inOrNull(claimableTaskTypes),
           ...(data.projectId ? { projectId: data.projectId } : {}),
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
         },
         select: {
           _id: true,
@@ -262,7 +287,8 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (!run || !run.id) {
-        return null;
+        // Taken, or no longer the worker's, since the candidate was read.
+        continue;
       }
 
       const claimedCount: number = await this.attemptStatusTransition({
@@ -385,6 +411,52 @@ export class Service extends DatabaseService<Model> {
     }
 
     return null;
+  }
+
+  /*
+   * The id of the oldest queued code-fix run this worker may take now, or
+   * null (CodeFixClaimQuery: the repository's Runner choice, read through
+   * the run's repository as it is now).
+   */
+  @CaptureSpan()
+  public async findNextClaimableCodeFixRunId(
+    facts: CodeFixClaimQueryFacts,
+  ): Promise<string | null> {
+    const statement: CodeFixClaimStatement =
+      CodeFixClaimQuery.getNextRunStatement(facts);
+
+    const rows: Array<{ _id?: unknown }> =
+      (await this.getRepository().manager.query(
+        statement.sql,
+        statement.parameters,
+      )) as Array<{ _id?: unknown }>;
+
+    const id: unknown = rows[0]?._id;
+
+    return id ? String(id) : null;
+  }
+
+  /*
+   * How many queued code-fix runs this worker may take now: the queue depth
+   * a Runner autoscales on (get-pending-task-count), read by the same rule
+   * as the claim.
+   */
+  @CaptureSpan()
+  public async countClaimableCodeFixRuns(
+    facts: CodeFixClaimQueryFacts,
+  ): Promise<number> {
+    const statement: CodeFixClaimStatement =
+      CodeFixClaimQuery.getCountStatement(facts);
+
+    const rows: Array<{ count?: unknown }> =
+      (await this.getRepository().manager.query(
+        statement.sql,
+        statement.parameters,
+      )) as Array<{ count?: unknown }>;
+
+    const count: number = Number(rows[0]?.count || 0);
+
+    return Number.isFinite(count) ? count : 0;
   }
 
   /*

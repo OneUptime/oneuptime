@@ -101,7 +101,7 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 De to prosentmalene bruker **Gjennomsnitt**: metrikkene deres er allerede prosenter per container, så gjennomsnittet for et minutt er den vedvarende verdien. Antall omstarter og antall prosesser bruker **Maksimum**, der én måling over terskelen er signalet.
 
 > [!NOTE]
-> `container.cpu.utilization` er tallet `podman stats` skriver ut: 100 % er én hel CPU-kjerne, ikke containerens samlede CPU-tildeling. En container som har fått flere kjerner, ligger godt over 100 mens den er frisk, så hev terskelen for slike.
+> `container.cpu.utilization` er tallet `podman stats` skriver ut, i snitt over agentens intervall på 30 sekunder: 100 % er én hel CPU-kjerne, ikke containerens samlede CPU-tildeling. En container som har fått flere kjerner, ligger godt over 100 mens den er frisk, så hev terskelen for slike.
 
 > [!NOTE]
 > `container.restarts` er en løpende sum som Podman fører, ikke et antall omstarter i vinduet. **High Container Restart Count** forblir derfor åpen til containeren opprettes på nytt, noe som nullstiller tallet.
@@ -119,7 +119,7 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats`, rettet mot Podmans Docke
 
 | Metrikk | Beskrivelse |
 | --- | --- |
-| `container.cpu.utilization` | Containerens CPU-utnyttelse, der 100 % er én hel CPU-kjerne. |
+| `container.cpu.utilization` | CPU containeren brukte i hvert intervall på 30 sekunder, der 100 % er én hel CPU-kjerne. |
 | `container.cpu.usage.total` | Brukt CPU-tid siden containeren startet, i nanosekunder. En teller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_time` | Nanosekunder containeren har blitt strupet av CPU-grensen sin. En teller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_periods` | Struperioder siden containeren startet. En teller over hele levetiden. |
@@ -285,7 +285,7 @@ OneUptime identifiserer en vert etter `resource.host.name`, som agenten tar fra 
 :::
 
 :::details Et CPU-varsel utløses aldri
-Grupper spørringen etter `resource.container.name`, slik malen **High Container CPU Usage** gjør, så hver container vurderes for seg. Et gjennomsnitt over alle containere på en travel vert trekkes ned av de inaktive. Husk at 100 % betyr én hel kjerne, så en container som får bruke flere kjerner, trenger en høyere terskel.
+Grupper spørringen etter `resource.container.name`, slik malen **High Container CPU Usage** gjør, så hver container vurderes for seg. Et gjennomsnitt over alle containere på en travel vert trekkes ned av de inaktive. Husk at 100 % betyr én hel kjerne, så en container som får bruke flere kjerner, trenger en høyere terskel. Er CPU-en til en container en flat linje uansett belastning, kjører verten en eldre agent: [oppgrader den](/docs/telemetry/podman-host#oppgradere-agenten).
 :::
 
 :::details Varselet om antall omstarter opphører aldri

@@ -1,6 +1,6 @@
 # Runbook 代理
 
-**Runbook 代理** 在仪表板中称为 **Runner** ，是一个小型的自托管进程，它 **在你自己的基础设施中** 运行 Runbook 的 JavaScript、Bash、SSH 和 Kubernetes 步骤。OneUptime Worker 从不运行你的脚本：它把脚本放入队列，由步骤作者选择的 Runner 领取每个作业、运行它并发回结果。本页面向安装和运维 Runner 的人员。 未选择 Runner 的 JavaScript 步骤改为在 [全局 Runner](#全局-runner) 上运行，即 OneUptime 为所有项目运行的 Runner。
+**Runbook 代理** 在仪表板中称为 **Runner** ，是一个小型的自托管进程，它 **在你自己的基础设施中** 运行 Runbook 的 JavaScript、Bash、SSH 和 kubectl 步骤。OneUptime Worker 从不运行你的脚本：它把脚本放入队列，由步骤作者选择的 Runner 领取每个作业、运行它并发回结果。本页面向安装和运维 Runner 的人员。 未选择 Runner 的 JavaScript 步骤改为在 [全局 Runner](#全局-runner) 上运行，即 OneUptime 为所有项目运行的 Runner。
 
 :::cards
 - [安装 Runner](#安装-runner): 五步完成，从仪表板到已连接的容器。
@@ -33,13 +33,13 @@ flowchart TB
 1. 你在 OneUptime 中创建一个 Runner。OneUptime 为它生成一个 ID 和一个密钥。
 2. 你在自己基础设施中的一台主机上运行 Runner 容器，并提供该 ID、密钥和你的 OneUptime URL。
 3. Runner 每 5 秒向 OneUptime 请求一次工作，每 60 秒报告一次自己仍在运行。
-4. 编写 JavaScript、Bash、SSH 或 Kubernetes 步骤时，你从下拉列表中选择 Runner。步骤会绑定到该 Runner。 JavaScript 步骤可以保留下拉列表为它选择的 **全局 Runner** 。
+4. 编写 JavaScript、Bash、SSH 或 kubectl 步骤时，你从下拉列表中选择 Runner。步骤会绑定到该 Runner。 JavaScript 步骤可以保留下拉列表为它选择的 **全局 Runner** 。
 5. 步骤运行时，Worker 会把一个 `targetAgentId` 设置为该 Runner 的作业放入队列。只有该 Runner 能领取它。
-6. Runner 在本地运行作业（Bash 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 和 Kubernetes 使用步骤的凭据建立 SSH 连接或调用集群的 API 服务器），记录结果并发回。Worker 用该结果继续执行 Runbook。
+6. Runner 在本地运行该任务（Bash 和 kubectl 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 使用在机器上用 bash 运行脚本的 SSH 连接），记录结果，隐藏其中步骤的机密，然后回传。Worker 用该结果继续运行 Runbook。
 
 Runner 只需要到你的 OneUptime 实例的 **出站 HTTPS** 。它不接受任何入站连接。
 
-Runner 只持有自己的 ID 和密钥。其他一切都随它领取的作业一起到来：填入了分配给它的 [Runbook 密钥](/docs/runbooks/credentials#供脚本使用的密钥) 的脚本，或 SSH、Kubernetes 步骤指定的 [凭据](/docs/runbooks/credentials)。因此，任何持有 Runner 密钥的人都能以该 Runner 的身份行事：请像对待分配给它的凭据一样对待这个密钥。
+Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一起收到：已填入其引用的 [Runbook 变量](/docs/runbooks/variables) 的脚本，以及 SSH 步骤的密钥或密码，或 kubectl 步骤的 kubeconfig。只有当机密允许时，它才会收到该机密。因此任何持有 Runner 密钥的人都能以该 Runner 的身份行事：请像对待它可以使用的机密一样对待这个密钥。
 
 ## 为什么脚本在 Runner 上运行
 
@@ -56,20 +56,20 @@ Runner 只持有自己的 ID 和密钥。其他一切都随它领取的作业一
 
 | | 全局 Runner | 你自己的 Runner |
 | --- | --- | --- |
-| 运行的步骤 | JavaScript | JavaScript、Bash、SSH 和 Kubernetes |
+| 运行的步骤 | JavaScript | JavaScript、Bash、SSH 和 kubectl |
 | 步骤可以访问的地址 | 公共互联网地址 | 其主机可以访问的地址 |
 | 步骤的最长运行时间 | 5 分钟 | 1 小时 |
-| Runbook 密钥 | 你允许全局 Runner 使用的密钥 | 你分配给它的密钥 |
+| 机密变量 | 你允许全局 Runner 使用的那些 | 列出了它的那些 |
 | 凭据 | 无 | 你分配给它的凭据 |
 
 全局 Runner 运行许多项目的步骤，因此每个步骤都与其他所有步骤相互隔离：
 
 - 每个步骤都在自己的 `isolated-vm` 沙箱中运行，该沙箱为这个步骤创建，并在步骤结束后丢弃：没有文件、没有进程、没有环境变量，也不会从一个步骤保留任何东西到下一个步骤。
 - 它的 HTTP 请求只能到达公共互联网地址，绝不会到达私有地址、环回地址、链路本地地址或云元数据端点，因此全局 Runner 永远无法访问你的网络。
-- 只有当密钥的 **全局 Runner 可以使用此密钥** 开关已打开时，它才会获得该 Runbook 密钥，并且只用于该密钥所属项目的步骤。它永远不会获得凭据。
+- 只有当机密变量的 **全局 Runner 可以使用** 开关开启时，它才会收到该变量，而且只用于该变量所属项目的步骤。它永远不会收到凭据。
 - 一个项目在全局 Runner 上同时最多运行三个步骤，因此没有项目能独占它们。
 
-对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。
+对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
 
 ### 全局 Runner 从哪里来
 
@@ -96,10 +96,9 @@ Runner 只持有自己的 ID 和密钥。其他一切都随它领取的作业一
 | **描述** | **Runner** | 可选。用一句话说明这台主机能访问什么。 |
 | **标签** | **Runner** （在 **更多字段** 下） | 可选。 |
 | **执行运行手册** | **功能** | 默认开启。允许此 Runner 领取 Runbook 步骤。 |
-| **执行 AI 代码修复** | **功能** | 默认关闭。允许它为 AI 代码修复打开拉取请求；参见 [代码](/docs/ai/ai-agent)。 |
 | **执行 AI 补救命令** | **功能** | 默认关闭。允许 AI 自动修复在其上运行经过策略检查的命令。为持有 SSH 凭据的 Runner 开启此项需要读取 Runbook 凭据的权限；参见 [运行 OneUptime AI 命令的 Runner](/docs/runbooks/credentials#运行-oneuptime-ai-命令的-runner)。 |
 
-Runner 会在下一次心跳时获取功能的变更，无需重启。
+Runner 会在下一次心跳时获取功能的变更，无需重启。AI 代码修复不是一项功能：代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。
 
 ### 2. 复制安装命令
 
@@ -140,7 +139,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### 添加在 Runner 上运行的步骤
 
-在 Runbook 的 **步骤** 中添加 JavaScript、Bash、SSH 或 Kubernetes 步骤。
+在 Runbook 的 **步骤** 中添加 JavaScript、Bash、SSH 或 kubectl 步骤。
 
 ### 选择 Runner
 
@@ -151,7 +150,7 @@ docker rm -f oneuptime-runner
 点击 **Save Steps** 。执行到达该步骤时，Worker 会为该 Runner 的 ID 放入一个作业，只有该 Runner 能领取它。 选择 **全局 Runner** 的步骤会等待任意一个空闲的全局 Runner。
 :::
 
-Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中运行，无法访问文件系统或进程；它可以用 `axios` 调用公开的 HTTP API，但不能调用私有网络上的地址。SSH 和 Kubernetes 步骤使用步骤指定的 [凭据](/docs/runbooks/credentials)，该凭据必须已分配给同一个 Runner。
+Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中运行，无法访问文件系统或进程；它可以用 `axios` 调用公开的 HTTP API，但不能调用私有网络上的地址。SSH 和 kubectl 步骤使用机密 [Runbook 变量](/docs/runbooks/variables) 登录，该变量必须在 **可以使用它的 Runner** 中列出步骤的 Runner。
 
 需要多个 Runner？分别创建，并为每个步骤指定合适的 Runner。若要冗余，可以再运行一个 Runner 并把步骤分配给两者，或者准备一个步骤指向另一个 Runner 的备用 Runbook。
 
@@ -166,7 +165,7 @@ Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱
 | **领取超时** | 2 分钟 | Worker 等待所选 Runner 领取作业的时长。如果 Runner 没有及时领取，步骤因超时而失败，Runbook 继续（或停止，取决于 **失败时继续** ）。 |
 | **执行超时** | 30 秒 | Runner 在停止步骤之前允许其运行的时长。Bash 会收到 `SIGKILL`；JavaScript 的沙箱会被销毁。 |
 
-两者都可以按步骤设置。打开 **Runbooks › 你的 Runbook › 步骤** ，展开步骤，在其设置中填写 **执行超时** 和 **领取超时** （以秒为单位）。留空则使用默认值。每个超时都接受 1 秒到 1 小时；超出该范围的值会在步骤运行时被限制到范围内。
+两者都可以按步骤设置。打开 **Runbooks › 你的 Runbook › 步骤** ，展开步骤，在其 **更多字段** 中填写 **执行超时** 和 **领取超时** （以秒为单位）。留空则使用默认值。每个超时都接受 1 秒到 1 小时；超出该范围的值会在步骤运行时被限制到范围内。
 
 Worker 的总等待时间是 `claim timeout + execution timeout + a few seconds`。请选择适合该步骤的值。
 
@@ -234,7 +233,7 @@ Runner 在启动时读取以下变量：
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 否 | `10000` | Runner 为正在运行的作业续租的频率。低于 `1000` 的值会回退为默认值。 |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | 否 | `1` | 此 Runner 上同时运行的最大作业数。 |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | 否 | — | 设为 `false` 可让此 Runner 停止领取 Runbook 步骤，无论仪表板如何设置。它只能关闭该功能。 |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 设为 `false` 可让此 Runner 停止领取 AI 代码修复，无论仪表板如何设置。 |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | 否 | — | 设为 `false` 可让此 Runner 停止领取 AI 代码修复，即使是选择了它的代码存储库。 |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | 否 | — | 设为 `false` 可让此 Runner 停止运行 AI 补救命令，无论仪表板如何设置。 |
 
 ## 轮换代理密钥
@@ -307,14 +306,18 @@ Runner 领取了作业，然后停止续租：它崩溃了、重启了或断网�
 此 Runner 的所有功能都已关闭。在 OneUptime 中 Runner 的页面上开启 **执行运行手册** 。它会在下一次心跳时获取该变更。
 :::
 
-:::details 全局 Runner 上的步骤失败，因为全局 Runner 不能使用某个 Runbook 密钥
-该步骤引用的 Runbook 密钥关闭了 **全局 Runner 可以使用此密钥** 开关，因此全局 Runner 没有获得它，步骤也没有运行。错误中会写出该密钥的名称。在 **运行手册 → 设置 → 密钥** 中为它打开该开关，或者为该步骤选择你自己的 Runner。
+:::details 步骤失败，因为其 Runner 不能使用某个机密变量
+该步骤引用的机密变量不允许其 Runner 使用，因此 Runner 没有收到它，步骤也没有运行。错误会指出该机密以及需要修改的内容。在 **运行手册 → 设置 → 全局变量** 或 Runbook 的 **设置 → 变量** 中，把该 Runner 添加到 **可以使用它的 Runner** ，或者对于全局 Runner 上的步骤，开启 **全局 Runner 可以使用** 。也可以选择一个机密允许的 Runner。
+:::
+
+:::details kubectl 步骤失败，因为其 Runner 太旧
+步骤失败并显示 "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." 早于 kubectl 脚本的 Runner 无法运行脚本。升级时迁移为 kubectl 脚本的 Kubernetes 步骤，在其脚本或 kubeconfig 被更改之前，仍会以编写时的操作在这样的 Runner 上运行。按 [保持代理为最新版本](#5-保持代理为最新版本) 中的说明更新 Runner，然后再次运行 Runbook。
 :::
 
 ## 后续步骤
 
 :::cards
 - [编写 Runbook](/docs/runbooks/authoring): 编写在你的 Runner 上运行的步骤。
-- [Runbook 凭据](/docs/runbooks/credentials): 为 SSH 和 Kubernetes 步骤提供受管访问权限。
+- [Runbook 变量](/docs/runbooks/variables): 步骤使用的值和机密，以及接收它们的 Runner。
 - [Runbook 配置与安全](/docs/runbooks/configuration): 限制、权限和加固。
 :::

@@ -132,8 +132,12 @@ Ihre Rolle liest Runbooks, führt sie aber nicht aus: Der Button sagt „Sie hab
 Der Schalter **Dieses Runbook ausführen** des Runbooks ist auf seiner Seite **Einstellungen** aus, oder es hat keine gespeicherten Schritte. Schalten Sie den Schalter ein, oder fügen Sie Schritte hinzu und klicken Sie auf **Schritte speichern**. Seine **Übersicht** zeigt, was fehlt, mit **Runbook einschalten** oder **Schritte hinzufügen**.
 :::
 
-:::details Ein Schritt ist fehlgeschlagen, weil ihm ein Runner oder Anmeldedaten fehlen
-Die Meldung lautet zum Beispiel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Der Schritt wurde ohne **Runner** gespeichert, oder ein SSH- oder Kubernetes-Schritt ohne **Anmeldedaten**. Ein JavaScript-Schritt braucht nur dann einen eigenen Runner, wenn kein [globaler Runner](/docs/runbooks/agents#globale-runner) ihn ausführen kann. Öffnen Sie die **Schritte** des Runbooks, wählen Sie, was dem Schritt fehlt, klicken Sie auf **Schritte speichern** und führen Sie das Runbook erneut aus.
+:::details Ein Schritt ist fehlgeschlagen, weil ihm ein Runner fehlt
+Die Meldung lautet zum Beispiel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Der Schritt wurde ohne **Runner** gespeichert. Ein JavaScript-Schritt braucht nur dann einen eigenen Runner, wenn kein [globaler Runner](/docs/runbooks/agents#globale-runner) ihn ausführen kann. Öffnen Sie die **Schritte** des Runbooks, wählen Sie den Runner des Schritts, klicken Sie auf **Schritte speichern** und führen Sie das Runbook erneut aus.
+:::
+
+:::details Ein Schritt ist fehlgeschlagen, weil er Variablen nennt, die er nicht verwenden kann
+Die Meldung beginnt mit "This step names variables it cannot use, so it was not run:" und sagt für jede Variable, was nicht stimmt und wo es zu beheben ist: Es gibt keine Variable dieses Namens, das Geheimnis hat keinen Wert, oder der Runner des Schritts darf es nicht nutzen. Erstellen Sie die Variable oder korrigieren Sie ihren Namen im Schritt, oder lassen Sie den Runner das Geheimnis nutzen, und führen Sie das Runbook dann erneut aus. Siehe [Runbook-Variablen](/docs/runbooks/variables).
 :::
 
 :::details Ein Schritt ist fehlgeschlagen, weil kein Runbook-Agent ihn übernommen hat

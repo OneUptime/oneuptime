@@ -134,10 +134,10 @@ I valori di primo livello del corpo diventano gli input dell'esecuzione. Raggiun
 
 | Tipo di passaggio | Come legge gli input |
 | --- | --- |
-| Bash | Variabili d'ambiente: una `ONEUPTIME_INPUT_<NAME>` per ogni valore di primo livello, `ONEUPTIME_INPUTS` con l'intero oggetto in JSON e `ONEUPTIME_TRIGGER` con ciò che ha avviato l'esecuzione, come `Webhook` o `Schedule`. |
+| Bash e kubectl | Variabili d'ambiente: una `ONEUPTIME_INPUT_<NAME>` per ogni valore di primo livello, `ONEUPTIME_INPUTS` con l'intero oggetto in JSON e `ONEUPTIME_TRIGGER` con ciò che ha avviato l'esecuzione, come `Webhook` o `Schedule`. |
 | JavaScript | `args.inputs`, l'oggetto così come è stato inviato, e `args.trigger`. |
 | AI | Nel suo prompt, contrassegnati come dati provenienti dall'esterno di OneUptime, quando **Include trigger context** è attivo. |
-| HTTP request, SSH e Kubernetes | Per niente. Il loro URL, il comando e la destinazione sono quelli scritti nel runbook, e nulla di ciò che invia chi chiama li cambia. |
+| HTTP request e SSH | Per niente. Il loro URL, lo script e la destinazione sono quelli scritti nel runbook, e nulla di ciò che invia chi chiama li cambia. |
 
 Il nome di una variabile è il nome del valore in maiuscolo, con ogni carattere diverso da una lettera o una cifra scritto come `_`: `host-name` diventa `ONEUPTIME_INPUT_HOST_NAME`. Il testo viene passato così com'è, i numeri e `true` o `false` come sono scritti, e oggetti ed elenchi in JSON. Un passaggio riceve al massimo 100 di queste variabili, e un nome più lungo di 100 caratteri non ne diventa nessuna; ogni valore resta comunque in `ONEUPTIME_INPUTS`. Ogni nome inizia con `ONEUPTIME_`, così chi chiama non può impostare `PATH` né alcun'altra variabile letta dal Runner.
 

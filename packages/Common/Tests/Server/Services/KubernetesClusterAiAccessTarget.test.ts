@@ -119,7 +119,6 @@ function legacyRunner(overrides: Record<string, unknown> = {}): Runner {
     connectionStatus: RunnerConnectionStatus.Connected,
     canRunAiCommands: true,
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     hostInfo: {
       kubernetes: {
         inCluster: true,

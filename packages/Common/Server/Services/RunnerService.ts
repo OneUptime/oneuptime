@@ -52,8 +52,9 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
  * A global Runner is one the OneUptime server runs for every project: no
  * project owns it (projectId is empty), only OneUptime or a master admin
  * creates it (Admin Dashboard -> Settings -> Global Runners), and it runs
- * runbook steps only - never AI code fixes or AI remediation commands,
- * which act in a project's own repositories and systems.
+ * runbook steps only - never AI remediation commands, which act in a
+ * project's own systems, nor code work: a code repository picks one of its
+ * own project's Runners, or none (Types/Runner/CodeRepositoryRunner).
  */
 export const GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE: string =
   "A global Runner belongs to no project: OneUptime runs it for every project. Create it under Admin Dashboard → Settings → Global Runners, or create a Runner of this project's own under Runbooks → Runners.";
@@ -74,7 +75,7 @@ export const BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE: string =
   "This global Runner comes with this server, which sets it up again on its next start. To turn it off, set globalRunner.enabled to false in the Helm chart, or GLOBAL_RUNNER_REPLICAS=0 in Docker Compose's config.env.";
 
 export const GLOBAL_RUNNER_CAPABILITY_MESSAGE: string =
-  'A global Runner runs runbook steps only. "Runs AI Code Fixes" and "Runs AI Remediation Commands" stay off for it: they act in a project\'s own repositories and systems, so they run on a Runner of that project\'s own.';
+  "A global Runner runs runbook steps only. \"Runs AI Remediation Commands\" stays off for it: AI remediation commands act in a project's own systems, so they run on a Runner of that project's own.";
 
 // The global Runner columns anyone signed in may read (RunnerAPI's listing).
 export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {
@@ -286,10 +287,11 @@ export class Service extends ProjectReferencesService<Model> {
    *   rename any row INTO the prefix (it would be adopted by the next
    *   registration and counted against the agent quotas) — compared
    *   case-insensitively, like the database compares the marker;
-   * - turn on "Runs Runbooks" or "Runs AI Code Fixes" on an agent row. It
-   *   runs kubectl only, and either capability is a holding that refuses
-   *   every registration that cannot present the row's current key — which
-   *   is every pod restart, since the pod keeps its key in memory only.
+   * - turn on "Runs Runbooks" on an agent row. It runs kubectl only, and
+   *   the capability is a holding that refuses every registration that
+   *   cannot present the row's current key — which is every pod restart,
+   *   since the pod keeps its key in memory only. (Nor may a code
+   *   repository pick an agent row: CodeRepositoryService refuses that.)
    *
    * And turning on "Runs AI Remediation Commands" for a Runner that holds SSH
    * credentials takes the read of runbook credentials (see
@@ -358,10 +360,6 @@ export class Service extends ProjectReferencesService<Model> {
       turnsOnCapabilities.push('"Runs Runbooks"');
     }
 
-    if (data["canRunCodeFixTasks"] === true) {
-      turnsOnCapabilities.push('"Runs AI Code Fixes"');
-    }
-
     if (
       !isNameWritten &&
       turnsOnCapabilities.length === 0 &&
@@ -391,14 +389,10 @@ export class Service extends ProjectReferencesService<Model> {
     for (const runner of runners) {
       /*
        * A global Runner runs runbook steps only (a master admin may pause
-       * them with "Runs Runbooks"): code fixes and AI commands act in one
-       * project's repositories and systems.
+       * them with "Runs Runbooks"): AI commands act in one project's own
+       * systems.
        */
-      if (
-        runner.isGlobalRunner &&
-        (data["canRunCodeFixTasks"] === true ||
-          data["canRunAiCommands"] === true)
-      ) {
+      if (runner.isGlobalRunner && data["canRunAiCommands"] === true) {
         throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
       }
 
@@ -428,7 +422,7 @@ export class Service extends ProjectReferencesService<Model> {
         throw new BadDataException(
           `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed: it runs kubectl for its cluster only, so ${turnsOnCapabilities.join(
             " and ",
-          )} cannot be turned on for it — and doing so would stop it re-registering after its pod restarts. Create a Runner under Runbooks → Runners for runbooks or code fixes instead.`,
+          )} cannot be turned on for it — and doing so would stop it re-registering after its pod restarts. Create a Runner under Runbooks → Runners for runbooks instead.`,
         );
       }
     }
@@ -727,11 +721,10 @@ export class Service extends ProjectReferencesService<Model> {
         throw new BadDataException(GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE);
       }
 
-      if (data.canRunCodeFixTasks === true || data.canRunAiCommands === true) {
+      if (data.canRunAiCommands === true) {
         throw new BadDataException(GLOBAL_RUNNER_CAPABILITY_MESSAGE);
       }
 
-      data.canRunCodeFixTasks = false;
       data.canRunAiCommands = false;
 
       if (data.canRunRunbooks === undefined || data.canRunRunbooks === null) {
@@ -861,7 +854,6 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: true,
         name: true,
         canRunRunbooks: true,
-        canRunCodeFixTasks: true,
         canRunAiCommands: true,
         /*
          * The claim path reads the Kubernetes posture (in-cluster or not) to
@@ -991,8 +983,8 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Refuses to assign credential material (a RunbookCredential or a
-   * RunbookSecret) to a kubernetes-agent Runner. Such a Runner row is minted
+   * Refuses to assign credential material (a RunbookCredential or a secret
+   * RunbookVariable) to a kubernetes-agent Runner. Such a Runner row is minted
    * and re-keyed with the project's telemetry ingestion key — a credential
    * every collector and CI job holds — so whatever is assigned to it is
    * reachable by anyone holding that key. It runs kubectl with its own
@@ -1016,58 +1008,6 @@ export class Service extends ProjectReferencesService<Model> {
         `Runner "${agentRunner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl with its own ServiceAccount only and is never given a ${data.assignedWhat}, because its identity is issued with the project's telemetry ingestion key. Assign this ${data.assignedWhat} to a Runner you created under Runbooks → Runners instead.`,
       );
     }
-  }
-
-  /*
-   * A Runner in this project that is allowed to take code-fix work and has
-   * heartbeated recently. Liveness is judged on lastAlive alone: unlike
-   * AIAgent, nothing ever flips a Runner's connectionStatus back to
-   * Disconnected, so a row that once connected would look Connected forever.
-   */
-  @CaptureSpan()
-  public async getOnlineCodeFixRunnerForProject(
-    projectId: ObjectID,
-  ): Promise<Model | null> {
-    /*
-     * The recency window is a QUERY predicate, not a post-filter on a sorted
-     * row: `ORDER BY "lastAlive" DESC` in Postgres puts NULLs FIRST, so a
-     * Runner row that was created but never started would be picked ahead of
-     * one that is heartbeating right now, and the project would read as
-     * having no agent.
-     *
-     * A kubernetes-agent Runner never takes code-fix work (its binary never
-     * starts that loop), so it must not make the project read as having a
-     * code-fix Runner and have runs queued that nothing will ever claim —
-     * even one whose "Runs AI Code Fixes" was turned on before the update
-     * hook refused that. Left out in the query and again on the rows.
-     */
-    const runners: Array<Model> = await this.findBy({
-      query: {
-        projectId: projectId,
-        canRunCodeFixTasks: true,
-        lastAlive: QueryHelper.greaterThan(
-          OneUptimeDate.getSomeMinutesAgo(RUNNER_ALIVE_WINDOW_IN_MINUTES),
-        ),
-        name: QueryHelper.notWildcard(
-          `${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/*`,
-        ),
-      },
-      select: {
-        _id: true,
-        name: true,
-        lastAlive: true,
-        hostInfo: true,
-      },
-      limit: 10,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    return (
-      runners.find((runner: Model) => {
-        return !Service.isKubernetesAgentRunnerRow(runner);
-      }) || null
-    );
   }
 
   @CaptureSpan()

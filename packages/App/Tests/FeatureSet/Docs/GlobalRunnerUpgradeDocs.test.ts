@@ -16,7 +16,8 @@ import path from "path";
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
  * note that wrong probe and Runner keys are counted
- * (SharedRunnerOwnKeyUpgradeDocs) and before the endpoint pointer, and every translation carries it in the
+ * (SharedRunnerOwnKeyUpgradeDocs) and before the note that runbook secrets
+ * became runbook variables (RunbookVariablesUpgradeDocs), and every translation carries it in the
  * English note's place, with the English note's code and a link to the
  * Global Runners section in the reader's language. What it claims is what
  * the install does:
@@ -36,7 +37,9 @@ const REPO_ROOT: string = path.resolve(PACKAGES_DIR, "..");
 const NOTE_LEAD: string = "**Every install runs a global Runner of its own.**";
 // The note before it (SharedRunnerOwnKeyUpgradeDocs).
 const PREVIOUS_LEAD: string = "**Wrong probe and Runner keys are counted.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (RunbookVariablesUpgradeDocs).
+const NEXT_LEAD: string =
+  "**Runbook secrets and the credentials runbook steps used are runbook variables.**";
 
 const SECTION_LINK: string = "(/docs/runbooks/agents#";
 
@@ -57,7 +60,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the bundled global Runner", () => {
-  it("is a note of the 13 → 14 changes, once, after the note that wrong probe and Runner keys are counted and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note that wrong probe and Runner keys are counted and before the note on runbook variables", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -69,7 +72,9 @@ describe("the English upgrade note on the bundled global Runner", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says what runs, what it holds, and how it is turned off", () => {

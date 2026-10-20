@@ -3,6 +3,8 @@ import {
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
+  CODE_TASK_REPOSITORY_SETTINGS_FIXES,
+  CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
   CodeTaskBlockerFix,
 } from "./CodeTaskCopy";
 import {
@@ -12,15 +14,16 @@ import {
 import { WHO_CAN_ADD_AI_CREDITS } from "../ProjectBalance/ProjectBalanceCopy";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import Project from "Common/Models/DatabaseModels/Project";
-import Runner from "Common/Models/DatabaseModels/Runner";
 import Route from "Common/Types/API/Route";
 import { CodeTaskBlocker, CodeTaskBlockerType } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -32,6 +35,18 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   blocker: CodeTaskBlocker;
+  /*
+   * The repository the notice is about, for a fix that opens its settings
+   * (its Runner setting, CODE_TASK_REPOSITORY_SETTINGS_FIXES). Without it
+   * that fix is not linked.
+   */
+  repositoryId?: string | undefined;
+  /*
+   * Drawn inside a strip of the same amber (the Profiler's Fix with AI):
+   * its icon, words and fix without a box of its own, which would only
+   * indent them in the strip.
+   */
+  isInline?: boolean | undefined;
 }
 
 // A gate's answer as yes, no, or not yet known (the snapshot is on its way).
@@ -56,7 +71,8 @@ const toAccess: (gate: PermissionGateResult) => ProjectBalanceAccess = (
  *     (ProjectBalanceAccess, as the AI Credits page asks);
  *   - turning AI on: whoever may change Project.enableAi - the column's own
  *     update permissions, as the AI investigation card asks;
- *   - an LLM provider or a Runner: whoever may create one.
+ *   - an LLM provider: whoever may create one;
+ *   - the repository's Runner setting: whoever may change the repository.
  *
  * The plan, the bill and a disconnected repository are linked for everyone:
  * those pages say themselves who may change them, as the plan banner on
@@ -87,7 +103,11 @@ export const getBlockerFixAccess: (
         PermissionGate.check(new LlmProvider(), ModelAction.Create),
       );
     case CodeTaskBlockerType.NoAgent:
-      return toAccess(PermissionGate.check(new Runner(), ModelAction.Create));
+    case CodeTaskBlockerType.RunnerNotOnline:
+    case CodeTaskBlockerType.GlobalRunnersOff:
+      return toAccess(
+        PermissionGate.check(new CodeRepository(), ModelAction.Update),
+      );
     default:
       return ProjectBalanceAccess.Yes;
   }
@@ -100,9 +120,9 @@ export const getBlockerFixAccess: (
  * never says one thing while sending says another. A read-only member is
  * told what they can do (read), not shown a fix they cannot make. The same
  * goes for a fix only some people may make (AI credits, the AI switch, an
- * LLM provider, a Runner): the link is offered to them, everyone else is
- * told who can, and nobody is told anything while their permissions are
- * on the way.
+ * LLM provider, the repository's Runner): the link is offered to them,
+ * everyone else is told who can, and nobody is told anything while their
+ * permissions are on the way.
  */
 const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -115,7 +135,10 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
           pageMap: PageMap.SETTINGS_AI_CREDITS,
           title: CODE_TASK_ADD_AI_CREDITS,
         }
-      : CODE_TASK_BLOCKER_FIXES[props.blocker.type];
+      : CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type) &&
+          !props.repositoryId
+        ? undefined
+        : CODE_TASK_BLOCKER_FIXES[props.blocker.type];
   const whoCanFix: string | undefined =
     props.blocker.type === CodeTaskBlockerType.NoAiCredits
       ? WHO_CAN_ADD_AI_CREDITS
@@ -129,10 +152,16 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
     <div
       data-testid="code-blocker"
       data-blocker={props.blocker.type}
-      className={`flex items-start gap-3 rounded-lg px-4 py-3 text-sm ${
+      className={`flex items-start text-sm ${
+        props.isInline ? "gap-2" : "gap-3 rounded-lg px-4 py-3"
+      } ${
         isPermission
-          ? "bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200"
-          : "bg-amber-50 text-amber-900"
+          ? props.isInline
+            ? "text-gray-700"
+            : "bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200"
+          : props.isInline
+            ? "text-amber-900"
+            : "bg-amber-50 text-amber-900"
       }`}
     >
       <Icon
@@ -143,13 +172,35 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
       />
       <div className="min-w-0 flex-1">
         <p className="leading-6">
-          {sentence
-            ? translator.translateText(sentence)
-            : props.blocker.message}
+          {props.blocker.type === CodeTaskBlockerType.RunnerNotOnline &&
+          props.blocker.runnerName ? (
+            <TranslatedSentence
+              template={CODE_TASK_RUNNER_NOT_ONLINE_NAMED}
+              slots={{
+                runner: (
+                  <span
+                    className="break-words font-semibold"
+                    data-testid="code-blocker-runner"
+                  >
+                    {props.blocker.runnerName}
+                  </span>
+                ),
+              }}
+            />
+          ) : sentence ? (
+            translator.translateText(sentence)
+          ) : (
+            props.blocker.message
+          )}
         </p>
         {fix && access === ProjectBalanceAccess.Yes ? (
           <Link
-            to={RouteUtil.populateRouteParams(RouteMap[fix.pageMap] as Route)}
+            to={RouteUtil.populateRouteParams(
+              RouteMap[fix.pageMap] as Route,
+              CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type)
+                ? { modelId: props.repositoryId }
+                : undefined,
+            )}
             dataTestId="code-blocker-fix"
             className="mt-1 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
           >

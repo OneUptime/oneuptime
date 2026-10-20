@@ -89,7 +89,7 @@ Click a span in any view to open its panel, with tabs for its attributes, events
 A large trace loads 500 spans at a time. Click the button at the bottom of the trace to load more, or all of them.
 
 > [!TIP]
-> **Fix performance with AI** looks for a known performance pattern in the trace: an N+1 query, one span that takes most of the time, or calls made one after another that could run in parallel. When it finds one, it starts an AI task that opens a pull request to fix it. See [Code](/docs/ai/ai-agent).
+> **Fix performance with AI** shows only on a trace worth fixing: one with an N+1 query, calls made one after another that could run in parallel, or one call that takes most of the request, when it costs real time (100 ms or more for the calls together, 500 ms or more for a single call, and at least a tenth of the request). It names what it found, such as "The same database query ran 40 times in ReportService.build", and starts an AI task that opens a pull request to fix it. See [Code](/docs/ai/ai-agent).
 
 ## Chart your spans
 

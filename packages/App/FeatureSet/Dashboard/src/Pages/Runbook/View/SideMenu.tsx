@@ -105,10 +105,11 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
 
       {/*
        * How the runbook runs, set up once and revisited rarely: its schedule
-       * and webhook (Triggers), and whether it may run at all (Settings).
-       * The Settings page sits in the Settings section, as a resource's own
-       * Settings page does in the other menus that have one (a database's,
-       * a RUM application's), so nobody looks for it under Advanced.
+       * and webhook (Triggers), the values only its steps use (Variables),
+       * and whether it may run at all (Settings). The Settings page sits in
+       * the Settings section, as a resource's own Settings page does in the
+       * other menus that have one (a database's, a RUM application's), so
+       * nobody looks for it under Advanced.
        */}
       <SideMenuSection title="Settings">
         <SideMenuItem
@@ -120,6 +121,16 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Bolt}
+        />
+        <SideMenuItem
+          link={{
+            title: "Variables",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOK_VIEW_VARIABLES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Variable}
         />
         <SideMenuItem
           link={{

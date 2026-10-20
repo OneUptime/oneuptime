@@ -32,6 +32,12 @@ export enum CodeTaskContextType {
   Trace = "Trace",
   // The latest log lines matching a search.
   Logs = "Logs",
+  /*
+   * One function of a service's continuous profile: its share of the time,
+   * who calls it and what it calls - the evidence the Profiler's "Fix with
+   * AI" starts from.
+   */
+  Profile = "Profile",
 }
 
 // The context types that name a OneUptime record by its id.
@@ -51,6 +57,11 @@ export const CODE_TASK_LIMITS: {
   maxLinkTitleLength: number;
   maxPathLength: number;
   maxLogSearchLength: number;
+  // A profile's function name, and its profile kind's name.
+  maxFunctionNameLength: number;
+  maxProfileTypeLength: number;
+  // The longest window a profile's evidence is read over, in days.
+  maxProfileWindowInDays: number;
   // What one record, trace or log search adds to the AI's prompt.
   maxSnapshotLength: number;
   // A task's title, cut from the first line of its request.
@@ -63,6 +74,9 @@ export const CODE_TASK_LIMITS: {
   maxLinkTitleLength: 200,
   maxPathLength: 500,
   maxLogSearchLength: 200,
+  maxFunctionNameLength: 1000,
+  maxProfileTypeLength: 64,
+  maxProfileWindowInDays: 7,
   maxSnapshotLength: 8000,
   maxTitleLength: 120,
 };
@@ -71,6 +85,12 @@ export const CODE_TASK_LIMITS: {
 export const CODE_TASK_LOG_WINDOWS_IN_HOURS: Array<number> = [1, 24, 168];
 
 export const DEFAULT_CODE_TASK_LOG_WINDOW_IN_HOURS: number = 24;
+
+/*
+ * How far back a Profile context looks when it says no window: the last
+ * hour, the Profiler's own default.
+ */
+export const DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS: number = 1;
 
 // One piece of context as the Dashboard sends it.
 export interface CodeTaskContextInput {
@@ -90,6 +110,20 @@ export interface CodeTaskContextInput {
   search?: string | undefined;
   serviceId?: string | undefined;
   hours?: number | undefined;
+  /*
+   * Profile: the service (serviceId), the function and its file, the kind
+   * of profile ("cpu", "memory", ...), and the window - either `hours` back
+   * from now, or the startTime and endTime the Profiler was showing (ISO
+   * timestamps). A window it was compared with (beforeStartTime and
+   * beforeEndTime) adds how the function changed.
+   */
+  functionName?: string | undefined;
+  fileName?: string | undefined;
+  profileType?: string | undefined;
+  startTime?: string | undefined;
+  endTime?: string | undefined;
+  beforeStartTime?: string | undefined;
+  beforeEndTime?: string | undefined;
 }
 
 /*
@@ -109,6 +143,14 @@ export interface CodeTaskContextItem {
   search?: string | undefined;
   serviceId?: string | undefined;
   hours?: number | undefined;
+  // Profile: what CodeTaskContextInput says, as it was read.
+  functionName?: string | undefined;
+  fileName?: string | undefined;
+  profileType?: string | undefined;
+  startTime?: string | undefined;
+  endTime?: string | undefined;
+  beforeStartTime?: string | undefined;
+  beforeEndTime?: string | undefined;
   snapshot?: string | undefined;
 }
 
@@ -205,13 +247,28 @@ export enum CodeTaskBlockerType {
   NoLlmProvider = "NoLlmProvider",
   NoAiCredits = "NoAiCredits",
   DailyLimitReached = "DailyLimitReached",
-  // No Runner with Runs AI Code Fixes is online to do the work.
+  /*
+   * The repository picks no Runner (its Runner setting in Code), so a
+   * global Runner does its work, and none is online.
+   */
   NoAgent = "NoAgent",
+  // The Runner the repository picks is not online.
+  RunnerNotOnline = "RunnerNotOnline",
+  /*
+   * The repository picks no Runner, and its project does not use global
+   * Runners: it needs one of the project's own.
+   */
+  GlobalRunnersOff = "GlobalRunnersOff",
 }
 
 export interface CodeTaskBlocker {
   type: CodeTaskBlockerType;
   message: string;
+  /*
+   * RunnerNotOnline: the name of the Runner the repository picks, so the
+   * page says which one to check. Left out when it is not known.
+   */
+  runnerName?: string | undefined;
 }
 
 export interface CodeTaskStateInput {
@@ -565,6 +622,8 @@ export class CodeTaskContextInputUtil {
         };
       case CodeTaskContextType.Logs:
         return CodeTaskContextInputUtil.readLogs(entry);
+      case CodeTaskContextType.Profile:
+        return CodeTaskContextInputUtil.readProfile(entry);
       default:
         return {
           type: type as CodeTaskContextType,
@@ -585,6 +644,11 @@ export class CodeTaskContextInputUtil {
       item.search || "",
       item.serviceId || "",
       item.hours?.toString() || "",
+      item.functionName || "",
+      item.fileName || "",
+      item.profileType || "",
+      item.startTime || "",
+      item.endTime || "",
     ].join("|");
   }
 
@@ -755,6 +819,135 @@ export class CodeTaskContextInputUtil {
     }
 
     return item;
+  }
+
+  /*
+   * A function of a service's profile: the service and the function are
+   * needed; the file, the kind of profile and the window are optional. The
+   * window is the last hour, day or week (`hours`, the Code dialog's
+   * choice), or the start and end the Profiler was showing - at most
+   * maxProfileWindowInDays long.
+   */
+  private static readProfile(
+    entry: Record<string, unknown>,
+  ): CodeTaskContextInput {
+    const item: CodeTaskContextInput = {
+      type: CodeTaskContextType.Profile,
+      serviceId: CodeTaskContextInputUtil.readId(entry["serviceId"], "service"),
+      functionName: CodeTaskContextInputUtil.readText(
+        entry["functionName"],
+        "A function name",
+        CODE_TASK_LIMITS.maxFunctionNameLength,
+      ),
+    };
+
+    if (typeof entry["fileName"] === "string" && entry["fileName"].trim()) {
+      const fileName: string = entry["fileName"].trim();
+
+      if (fileName.length > CODE_TASK_LIMITS.maxPathLength) {
+        throw new BadDataException(
+          `A file name can be at most ${CODE_TASK_LIMITS.maxPathLength} characters long.`,
+        );
+      }
+
+      item.fileName = fileName;
+    }
+
+    if (
+      typeof entry["profileType"] === "string" &&
+      entry["profileType"].trim()
+    ) {
+      const profileType: string = entry["profileType"].trim();
+
+      if (profileType.length > CODE_TASK_LIMITS.maxProfileTypeLength) {
+        throw new BadDataException("That kind of profile is not one we know.");
+      }
+
+      item.profileType = profileType;
+    }
+
+    const hasWindow: boolean =
+      entry["startTime"] !== undefined || entry["endTime"] !== undefined;
+
+    if (hasWindow) {
+      const window: { startTime: string; endTime: string } =
+        CodeTaskContextInputUtil.readWindow(
+          entry["startTime"],
+          entry["endTime"],
+        );
+      item.startTime = window.startTime;
+      item.endTime = window.endTime;
+    } else {
+      item.hours = DEFAULT_CODE_TASK_PROFILE_WINDOW_IN_HOURS;
+
+      if (entry["hours"] !== undefined && entry["hours"] !== null) {
+        const hours: number = Number(entry["hours"]);
+
+        if (!CODE_TASK_LOG_WINDOWS_IN_HOURS.includes(hours)) {
+          throw new BadDataException(
+            "A profile can look back the last hour, day or week.",
+          );
+        }
+
+        item.hours = hours;
+      }
+    }
+
+    if (
+      entry["beforeStartTime"] !== undefined ||
+      entry["beforeEndTime"] !== undefined
+    ) {
+      const before: { startTime: string; endTime: string } =
+        CodeTaskContextInputUtil.readWindow(
+          entry["beforeStartTime"],
+          entry["beforeEndTime"],
+        );
+      item.beforeStartTime = before.startTime;
+      item.beforeEndTime = before.endTime;
+    }
+
+    return item;
+  }
+
+  private static readWindow(
+    rawStart: unknown,
+    rawEnd: unknown,
+  ): { startTime: string; endTime: string } {
+    const start: Date | null = CodeTaskContextInputUtil.readTime(rawStart);
+    const end: Date | null = CodeTaskContextInputUtil.readTime(rawEnd);
+
+    if (!start || !end) {
+      throw new BadDataException(
+        "A profile's time range needs a start and an end, as ISO timestamps.",
+      );
+    }
+
+    if (start.getTime() >= end.getTime()) {
+      throw new BadDataException(
+        "A profile's time range must start before it ends.",
+      );
+    }
+
+    const maxWindowMs: number =
+      CODE_TASK_LIMITS.maxProfileWindowInDays * 24 * 60 * 60 * 1000;
+
+    if (end.getTime() - start.getTime() > maxWindowMs) {
+      throw new BadDataException(
+        `A profile's time range can be at most ${CODE_TASK_LIMITS.maxProfileWindowInDays} days long.`,
+      );
+    }
+
+    return { startTime: start.toISOString(), endTime: end.toISOString() };
+  }
+
+  private static readTime(raw: unknown): Date | null {
+    if (typeof raw !== "string" || raw.trim().length === 0) {
+      return null;
+    }
+
+    const date: Date = new Date(raw.trim());
+
+    return isNaN(date.getTime()) ? null : date;
   }
 
   private static readId(raw: unknown, what: string): string {

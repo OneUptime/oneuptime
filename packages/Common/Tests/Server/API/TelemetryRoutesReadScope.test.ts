@@ -43,6 +43,7 @@ import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { MockFunction } from "../../MockType";
@@ -761,6 +762,32 @@ const ROUTE_CASES: Array<RouteCase> = [
     true,
   ),
   aggregationCase(
+    "/telemetry/profiles/function-comparison",
+    ProfileAggregationService,
+    "getFunctionComparison",
+    {
+      beforeStartTime: LAST_HOUR["startTime"],
+      beforeEndTime: LAST_HOUR["endTime"],
+      afterStartTime: LAST_HOUR["startTime"],
+      afterEndTime: LAST_HOUR["endTime"],
+    },
+    {
+      changes: [],
+      before: { windowTotal: 0, windowSampleCount: 0, truncated: false },
+      after: { windowTotal: 0, windowSampleCount: 0, truncated: false },
+      isFooted: false,
+    },
+    true,
+  ),
+  aggregationCase(
+    "/telemetry/profiles/profile-types",
+    ProfileAggregationService,
+    "getProfileTypeActivity",
+    { ...LAST_HOUR },
+    [],
+    true,
+  ),
+  aggregationCase(
     "/telemetry/profiles/trace-presence",
     ProfileAggregationService,
     "getTracePresence",
@@ -1077,6 +1104,77 @@ describe("/telemetry/profiles/:profileId/pprof", () => {
       } else {
         expect(operator).toBeUndefined();
       }
+    },
+  );
+});
+
+describe("/telemetry/profiles/monitor-preview", () => {
+  test.each(PRINCIPALS)(
+    "a %s reader's preview counts and measures only the services they may read",
+    async (principalName: PrincipalName) => {
+      currentPrincipal = principalFor(principalName, Permission.ProjectMember);
+      const count: Spy = spyOn(ProfileService, "countBy");
+      count.mockResolvedValue(new PositiveNumber(3));
+      const activity: Spy = spyOn(
+        ProfileAggregationService,
+        "getProfileTypeActivity",
+      );
+      activity.mockResolvedValue([]);
+      const share: Spy = spyOn(ProfileAggregationService, "getStackShare");
+      share.mockResolvedValue({
+        matchedValue: 25,
+        windowTotal: 100,
+        windowSampleCount: 40,
+        sharePercent: 25,
+      });
+
+      await callRoute({
+        uri: "/telemetry/profiles/monitor-preview",
+        principal: currentPrincipal,
+        body: {
+          functionName: "parseOrder",
+          profileTypes: ["cpu"],
+          lastXSecondsOfProfiles: 300,
+          telemetryServiceIds: [],
+          attributes: {},
+          profileType: "",
+        },
+      });
+
+      const expected: ExpectedFilter = EXPECTED[principalName];
+
+      const expectScoped: (query: Record<string, unknown>) => void = (
+        query: Record<string, unknown>,
+      ): void => {
+        const operator: unknown = query["primaryEntityId"];
+
+        if (expected.serviceIds.length > 0) {
+          expect(operator).toBeInstanceOf(Includes);
+          expect(
+            sortedIds(...(operator as Includes).values.map(String)),
+          ).toEqual(expected.serviceIds);
+        } else if (expected.excludedServiceIds.length > 0) {
+          expect(operator).toBeInstanceOf(IncludesNone);
+          expect(
+            sortedIds(...(operator as IncludesNone).values.map(String)),
+          ).toEqual(expected.excludedServiceIds);
+        } else {
+          expect(operator).toBeUndefined();
+        }
+      };
+
+      // The profile count reads the scoped query, in the caller's project.
+      const countQuery: Record<string, unknown> = (
+        count.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+      expect(String(countQuery["projectId"])).toBe(PROJECT_ID.toString());
+      expectScoped(countQuery);
+
+      // The function's share reads the same profiles.
+      expectScoped(
+        (share.mock.calls[0]![0] as { profileQuery: Record<string, unknown> })
+          .profileQuery,
+      );
     },
   );
 });
@@ -1494,6 +1592,8 @@ describe("every /telemetry/* route", () => {
   const TESTED_ON_THEIR_OWN: Record<string, string> = {
     "/telemetry/logs/context": "this file: the lines around one log",
     "/telemetry/profiles/:profileId/pprof": "this file: one profile's download",
+    "/telemetry/profiles/monitor-preview":
+      "this file: a Profiles monitor's preview reads its own profile query",
     "/telemetry/profiles/get-attributes":
       "this file: profiles have no attributes to scope",
     "/telemetry/exceptions/resolve-stack-trace":

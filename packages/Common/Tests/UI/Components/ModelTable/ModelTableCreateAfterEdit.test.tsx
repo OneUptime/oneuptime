@@ -139,14 +139,15 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import TableFilterUrlState from "../../../../UI/Utils/TableFilterUrlState";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import ModelAPI from "../../../../UI/Utils/ModelAPI/ModelAPI";
-import RunbookSecret from "../../../../Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "../../../../Models/DatabaseModels/RunbookVariable";
 import Permission from "../../../../Types/Permission";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 
 /*
- * RunbookSecret rather than a stand-in: it is one of the tables this bug is
- * live on today, and its `secretValue` is a genuine read: [] column, so the
- * field that vanishes here is the same field that vanishes in production.
+ * RunbookVariable rather than a stand-in: it is one of the tables this bug
+ * is live on today (a secret variable's Secret Value is on its Create form
+ * only), and its `secretValue` is a genuine read: [] column, so the field
+ * that vanishes here is the same field that vanishes in production.
  */
 const ROWS: Array<Record<string, string>> = [
   { _id: "secret-1", name: "AirflowToken", description: "Nightly sync" },
@@ -162,9 +163,9 @@ function makeModelAPI(): typeof ModelAPI {
     getList: async (data: {
       skip: number;
       limit: number;
-    }): Promise<ListResult<RunbookSecret>> => {
+    }): Promise<ListResult<RunbookVariable>> => {
       return {
-        data: ROWS as unknown as Array<RunbookSecret>,
+        data: ROWS as unknown as Array<RunbookVariable>,
         count: ROWS.length,
         skip: data.skip,
         limit: data.limit,
@@ -184,8 +185,8 @@ function makeModelAPI(): typeof ModelAPI {
 
 function renderTable(): ReturnType<typeof render> {
   return render(
-    <ModelTable<RunbookSecret>
-      modelType={RunbookSecret}
+    <ModelTable<RunbookVariable>
+      modelType={RunbookVariable}
       modelAPI={makeModelAPI()}
       id="runbook-secrets-create-after-edit"
       name="Runbook Secrets"

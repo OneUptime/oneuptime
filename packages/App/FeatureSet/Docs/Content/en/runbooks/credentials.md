@@ -1,26 +1,26 @@
-# Runbook Credentials
+# AI Access
 
-A credential is how a runbook reaches something that is **not** the Runner's own host — a server over SSH, or a Kubernetes cluster. Without one, "restart the service" means writing a shell script and provisioning a key or a kubeconfig onto the Runner host by hand, where it sits on disk outside OneUptime's control. A credential is that same access as a managed object: encrypted at rest, assigned to specific Runners, and referenced by name from a step.
+AI Access is how OneUptime AI's own commands reach something that is **not** a Runner's own host — a server over SSH, or the API server of a Kubernetes cluster that does not run the Kubernetes agent chart. Each one is a credential: that access as a managed object, encrypted at rest, assigned to specific Runners, and picked by OneUptime AI rather than written into a command. Runbook steps do not use these: an SSH or kubectl step signs in with a secret [runbook variable](/docs/runbooks/variables). A Runner older than this release is the exception: it runs a Kubernetes step moved from an action with the credential that step named, until the step's script or kubeconfig is changed.
 
-Manage them under **Runbooks → Runners → Credentials**.
+Manage them under **Runbooks → Runners → AI Access**.
 
 :::cards
 - [Create a credential](#create-a-credential): Its access, and the Runners that may use it.
 - [Least privilege on the far side](#least-privilege-on-the-far-side): Limit what the key or token can do.
-- [Secrets for scripts](#secrets-for-scripts): Give a Bash or JavaScript script a password or token.
+- [Runners that run OneUptime AI's commands](#runners-that-run-oneuptime-ais-commands): Who may give such a Runner an SSH credential.
 :::
 
 ## How a credential is used
 
 ```mermaid title="How a credential reaches the system it opens"
 flowchart TB
-    step["SSH or Kubernetes step"] -->|names| cred["Credential, encrypted in OneUptime"]
-    step -->|targets| runner["Runner"]
+    step["OneUptime AI's SSH<br/>or kubectl command"] -->|"runs with"| cred["Credential, encrypted in OneUptime"]
+    step -->|"runs on"| runner["Runner"]
     cred -->|"assigned to"| runner
-    runner -->|"claims the step and receives the secret"| target["SSH host or Kubernetes API server"]
+    runner -->|"claims the command and receives the secret"| target["SSH host or Kubernetes API server"]
 ```
 
-An SSH or Kubernetes step names a credential and a Runner. When that Runner claims the step, OneUptime checks that the credential is assigned to it, decrypts the secret and hands it over in the answer to that claim only. The secret is never stored on the job and never readable through the API.
+OneUptime AI runs an SSH command with one of the SSH credentials assigned to the Runner it runs on, and a kubectl command for a cluster that does not run the Kubernetes agent chart with the Kubernetes credential bound to that cluster, as [AI SRE](/docs/ai/ai-sre) shows. When the Runner claims the command, OneUptime checks that the credential is assigned to it, decrypts the secret and hands it over in the answer to that claim only. The secret is never stored on the job and never readable through the API.
 
 ## Before you begin
 
@@ -31,9 +31,9 @@ An SSH or Kubernetes step names a credential and a Runner. When that Runner clai
 ## Create a credential
 
 :::steps
-### Open Credentials
+### Open AI Access
 
-Open **Runbooks → Runners → Credentials** and click **Create Runbook Credential**.
+Open **Runbooks → Runners → AI Access** and click **Create Credential**.
 
 ### Name it and pick its type
 
@@ -50,11 +50,11 @@ On **Kubernetes**, enter the **API Server URL**, such as `https://10.0.0.1:6443`
 
 ### Assign it to Runners
 
-On the **Runners** step, pick the Runners that may use the credential, then click **Create Runbook Credential**. A credential assigned to no Runner can be used by no step.
+On the **Runners** step, pick the Runners that may use the credential, then click **Create Credential**. A credential assigned to no Runner can be used by no command.
 
-### Use it in a step
+### Let OneUptime AI use it
 
-In an [SSH or Kubernetes step](/docs/runbooks/authoring#step-types), pick one of those Runners, then the credential under **Credential**. A step only offers credentials of its own type, and saving a step that names a credential takes permission to read runbook credentials.
+OneUptime AI runs its SSH commands on a Runner with **Runs AI Remediation Commands** on, with one of the SSH credentials assigned to it. A Kubernetes credential is used once it is bound, with one of its Runners, to a cluster: see [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## What is stored
@@ -72,7 +72,7 @@ That means there is no "view" for a secret value, only "replace": re-entering a 
 
 ## Assigning a credential to Runners
 
-A credential is usable only by the Runners you assign it to, and a step must target one of those Runners. If a step names a credential its Runner is not assigned to, the step **fails rather than running** — a Runner that silently does nothing looks exactly like one that worked.
+A credential is usable only by the Runners you assign it to. A command that names a credential its Runner is not assigned to **fails rather than running** — a Runner that silently does nothing looks exactly like one that worked.
 
 The assignment is the access boundary, so keep it narrow: a Runner that only ever restarts one cluster does not need the SSH key for your database hosts.
 
@@ -92,82 +92,7 @@ A workflow's steps act as a Project Admin, but are never lent a Project Admin's 
 OneUptime cannot restrict what your credential is allowed to do on the target system — that is the target system's job, and it is worth doing:
 
 - **SSH** — prefer a key over a password, give the user only the commands it needs (a forced command or a restricted shell where practical), and do not reuse an administrator's personal key.
-- **Kubernetes** — bind the service account to a Role that permits `patch` on exactly the workloads your runbooks touch, in exactly the namespaces they run in. **Restart workload** patches the workload itself, and **Scale workload** patches its `scale` subresource: nothing more is needed.
-
-For example, a service account that may restart and scale one Deployment, and nothing else:
-
-```yaml title="oneuptime-runbooks-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-rules:
-  # Restart workload: patches the Deployment's pod template.
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
-  # Scale workload: patches the Deployment's scale subresource.
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-subjects:
-  - kind: ServiceAccount
-    name: oneuptime-runbooks
-    namespace: checkout
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: oneuptime-runbooks
-```
-
-For a StatefulSet or DaemonSet, use `statefulsets` or `daemonsets` instead. A DaemonSet cannot be scaled, so it needs no `scale` rule.
-
-## Secrets for scripts
-
-Bash and JavaScript steps have no **Credential** field. To give a script a password, a token or an API key without writing it into the runbook, store it as a **runbook secret**. Secrets are managed under **Runbooks → Settings → Secrets**, by Project Owners and Project Admins or with the **Create Runbook Secret** permission.
-
-:::steps
-### Create the secret
-
-Click **Create Runbook Secret**. On the **Secret** step, enter a **Name** (letters, numbers, hyphens and underscores), an optional **Description** and the **Secret Value**. On the **Access** step, pick your Runners under **Your Runners that can use this secret**. On a server with [global Runners](/docs/runbooks/agents#global-runners), **Global Runners can use this secret** also lets this project's steps that run on a global Runner use it. It starts on for a new secret while the project uses global Runners.
-
-### Use it in a script
-
-Write `{{runbookSecrets.NAME}}` where the value goes:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer {{runbookSecrets.CDN_API_TOKEN}}" \
-  "https://api.cdn.example.com/v1/purge"
-```
-
-When a Runner the secret is assigned to claims the step, it receives the script with the value filled in. So does a global Runner, when the secret lets global Runners use it. A step on a global Runner that names a secret global Runners may not use fails, naming the secret, rather than running without it.
-:::
-
-Like a credential's secret fields, a secret's value is encrypted at rest and never returned by the API: **Update Secret Value** replaces it. On OneUptime Cloud, runbook secrets also need the **Growth** plan or above.
-
-| | Credential | Runbook secret |
-| --- | --- | --- |
-| Used by | SSH and Kubernetes steps | Bash and JavaScript scripts |
-| Holds | A host and its key, or a cluster's URL and token | Any single value |
-| Managed under | **Runbooks → Runners → Credentials** | **Runbooks → Settings → Secrets** |
-| Reaches the Runner | In the answer to the claim of a step that names it | Filled into the script of the step it claims |
-| Read back through the API | Its non-secret fields only | Never its value |
+- **Kubernetes** — bind the service account to a Role that permits only what you let OneUptime AI do, in the namespaces it may act in. A service account that may only read lets OneUptime AI investigate, and refuses every fix.
 
 ## Who can see them
 
@@ -178,7 +103,7 @@ Note that a Runner's **agent key** is equivalent to the credentials assigned to 
 ## Next steps
 
 :::cards
-- [Authoring a Runbook](/docs/runbooks/authoring): Write the SSH and Kubernetes steps that use a credential.
+- [Runbook Variables](/docs/runbooks/variables): The secrets SSH and kubectl steps sign in with.
 - [Runbook Agents](/docs/runbooks/agents): Install the Runner a credential is assigned to.
 - [Runbook Configuration & Safety](/docs/runbooks/configuration): Permissions and hardening for the whole runbook stack.
 :::

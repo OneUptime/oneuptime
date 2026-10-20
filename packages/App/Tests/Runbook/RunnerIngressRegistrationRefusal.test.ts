@@ -4,9 +4,10 @@ import KubernetesClusterAiAccessService, {
   getKubernetesAgentRunnerNameForCluster,
 } from "Common/Server/Services/KubernetesClusterAiAccessService";
 import KubernetesAiAgentService from "Common/Server/Services/KubernetesAiAgentService";
+import CodeRepositoryService from "Common/Server/Services/CodeRepositoryService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "Common/Server/Services/RunbookCredentialService";
-import RunbookSecretService from "Common/Server/Services/RunbookSecretService";
+import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import RunnerService from "Common/Server/Services/RunnerService";
 import KubernetesAiAgent from "Common/Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -115,14 +116,6 @@ jest.mock("Common/Server/Utils/Express", () => {
         };
       },
     },
-  };
-});
-
-// VMUtil -> isolated-vm, a native binding not installed for this suite.
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: { loadForAgent: jest.fn(), populateInScript: jest.fn() },
   };
 });
 
@@ -238,7 +231,6 @@ function agentRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
     lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
     connectionStatus: RunnerConnectionStatus.Connected,
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     canRunAiCommands: true,
     hostInfo: {
       kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
@@ -250,6 +242,7 @@ function agentRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
 describe("POST /register-kubernetes-agent refusals on the wire", () => {
   let runnerLookup: jest.SpyInstance;
   let agentLookup: jest.SpyInstance;
+  let pickingRepositories: jest.SpyInstance;
 
   beforeAll(() => {
     mockRoutes.length = 0;
@@ -276,7 +269,11 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
       .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
-      .spyOn(RunbookSecretService, "countBy")
+      .spyOn(RunbookVariableService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    // No code repository picks the Runner unless a test says one does.
+    pickingRepositories = jest
+      .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
@@ -419,12 +416,14 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
     const scenarios: Array<{
       runner: Runner;
       aiAgent: KubernetesAiAgent | null;
+      // How many code repositories pick the Runner (their Runner setting).
+      pickedBy?: number | undefined;
     }> = [
       {
         runner: agentRunner({ lastAlive: OneUptimeDate.getSomeMinutesAgo(1) }),
         aiAgent: null,
       },
-      { runner: agentRunner({ canRunCodeFixTasks: true }), aiAgent: null },
+      { runner: agentRunner(), aiAgent: null, pickedBy: 1 },
       {
         runner: agentRunner({
           hostInfo: {
@@ -447,6 +446,9 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
     for (const scenario of scenarios) {
       runnerLookup.mockResolvedValue(scenario.runner);
       agentLookup.mockResolvedValue(scenario.aiAgent);
+      pickingRepositories.mockResolvedValue(
+        new PositiveNumber(scenario.pickedBy || 0),
+      );
 
       const wire: WireResponse = await register({ clusterName: "prod-us" });
       const reason: string = String(wire.body!["reason"]);

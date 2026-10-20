@@ -1,4 +1,5 @@
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
+import { TelemetryBatch } from "Common/Server/Utils/PatternWorkScope";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
@@ -903,6 +904,7 @@ export default class SessionReplayIngestService {
    * ClickHouse insert failure will not.
    */
   @CaptureSpan()
+  @TelemetryBatch()
   public static async processFromQueue(
     jobData: SessionReplayIngestJobData,
     bodyKey?: string | undefined,

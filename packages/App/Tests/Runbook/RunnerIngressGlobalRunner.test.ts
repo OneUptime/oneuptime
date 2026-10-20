@@ -1,10 +1,12 @@
 import RunnerService from "Common/Server/Services/RunnerService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import CodeRepositoryRunnerChoice from "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
+import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -38,13 +40,13 @@ import {
  *     (claimNextGlobalJob - never the per-Runner claim), for the types
  *     global Runners run, narrowed further by what it asks for;
  *   - everything a claimed step is handed comes from the step's OWN
- *     project: the secrets that project lets global Runners use, and its
- *     run's inputs. A secret the step names that it may not have fails the
- *     step with its name, never its value; a credential is never handed
- *     over.
+ *     project: the runbook variables it names - plain ones, and the secrets
+ *     that project lets global Runners use - and its run's inputs. A
+ *     variable the step names that it may not have fails the step with its
+ *     name, never its value; a credential is never handed over.
  *
  * And a project's own Runner is served as before, its secrets held to its
- * own project.
+ * own project and to the Runners each secret lists.
  * ---------------------------------------------------------------------------
  */
 
@@ -120,22 +122,6 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
-/*
- * The secrets util loads the isolated-vm sandbox, which is not installed for
- * this suite; what it is asked for is the contract here. Which names a
- * script uses is read by the real SecretNames.
- */
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: {
-      loadForAgent: jest.fn(),
-      loadForGlobalRunnerJob: jest.fn(),
-      populateInScript: jest.fn(),
-    },
-  };
-});
-
 jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
   return {
     __esModule: true,
@@ -147,7 +133,6 @@ jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
 
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
-import RunbookSecretsUtil from "../../FeatureSet/Runbook/Utils/Secrets";
 import RunbookCredentialsUtil from "../../FeatureSet/Runbook/Utils/Credentials";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
 
@@ -170,6 +155,9 @@ const EXECUTION_ID: ObjectID = new ObjectID(
   "b1000000-0000-4000-8000-0000000000c1",
 );
 const JOB_ID: string = "b1000000-0000-4000-8000-0000000000d1";
+const RUNBOOK_ID: ObjectID = new ObjectID(
+  "b1000000-0000-4000-8000-0000000000f1",
+);
 
 function matchRoute(uri: string): MockRoute {
   const route: MockRoute | undefined = mockRoutes.find(
@@ -233,7 +221,6 @@ function globalRunner(overrides: Record<string, unknown> = {}): Runner {
     name: "global-runner-eu",
     isGlobalRunner: true,
     canRunRunbooks: true,
-    canRunCodeFixTasks: false,
     canRunAiCommands: false,
     ...overrides,
   } as unknown as Runner;
@@ -259,7 +246,7 @@ function claimedGlobalJob(overrides: Record<string, unknown> = {}): RunnerJob {
   job.stepId = "step-1";
   job.stepType = RunbookStepType.JavaScript;
   job.script =
-    "await axios.post('https://hooks.example.com', { token: '{{runbookSecrets.API_TOKEN}}' });";
+    "await axios.post('https://hooks.example.com', { token: '{{global.variables.API_TOKEN}}' });";
   job.timeoutInMs = 30_000;
   job.status = RunnerJobStatus.Claimed;
   job.runsOnGlobalRunner = true;
@@ -268,11 +255,55 @@ function claimedGlobalJob(overrides: Record<string, unknown> = {}): RunnerJob {
   return job;
 }
 
-function secret(name: string, value: string): RunbookSecret {
-  const row: RunbookSecret = new RunbookSecret();
+// A secret runbook variable, as the claim reads it.
+function secret(
+  name: string,
+  value: string,
+  access: { globalRunners?: boolean; runners?: Array<ObjectID> } = {},
+): RunbookVariable {
+  const row: RunbookVariable = new RunbookVariable();
   row.name = name;
+  row.isSecret = true;
   row.secretValue = value;
+  row.isAvailableToGlobalRunners = access.globalRunners ?? true;
+  row.runners = (access.runners || []).map((id: ObjectID): Runner => {
+    const runner: Runner = new Runner();
+    runner._id = id.toString();
+    return runner;
+  });
   return row;
+}
+
+// A plain one: any Runner that takes the step gets it.
+function plain(name: string, value: string): RunbookVariable {
+  const row: RunbookVariable = new RunbookVariable();
+  row.name = name;
+  row.isSecret = false;
+  row.value = value;
+  return row;
+}
+
+type VariableQuery = {
+  projectId: ObjectID;
+  // A runbook's id for its own variables; IS NULL for the global ones.
+  runbookId: unknown;
+  name: unknown;
+};
+
+// Whether a query reads the global variables: those of no runbook.
+function readsGlobalVariables(query: VariableQuery): boolean {
+  const getSql: unknown = (query.runbookId as { getSql?: unknown })?.getSql;
+
+  return (
+    typeof getSql === "function" &&
+    (getSql as (alias: string) => string)("runbookId") === "(runbookId IS NULL)"
+  );
+}
+
+function variableQueries(spy: jest.SpyInstance): Array<VariableQuery> {
+  return spy.mock.calls.map((call: Array<unknown>): VariableQuery => {
+    return (call[0] as { query: VariableQuery }).query;
+  });
 }
 
 describe("the Runner ingress, for a global Runner", () => {
@@ -280,16 +311,26 @@ describe("the Runner ingress, for a global Runner", () => {
   let claimOwnSpy: jest.SpyInstance;
   let submitSpy: jest.SpyInstance;
   let executionSpy: jest.SpyInstance;
+  let variablesSpy: jest.SpyInstance;
+  // The project's global variables, and the runbook's own.
+  let globalRows: Array<RunbookVariable>;
+  let localRows: Array<RunbookVariable>;
 
   beforeAll(() => {
     mockRoutes.length = 0;
     new RunnerIngressAPI();
   });
 
+  let pickedSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
 
     jest.spyOn(RunnerService, "heartbeat").mockResolvedValue(undefined);
+    // Whether a code repository picks the Runner: none does here.
+    pickedSpy = jest
+      .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+      .mockResolvedValue(false);
     claimGlobalSpy = jest
       .spyOn(RunnerJobService, "claimNextGlobalJob")
       .mockResolvedValue(null);
@@ -305,19 +346,23 @@ describe("the Runner ingress, for a global Runner", () => {
       .mockImplementation(async (): Promise<RunbookExecution> => {
         const execution: RunbookExecution = new RunbookExecution();
         execution.projectId = STEP_PROJECT_ID;
+        execution.runbookId = RUNBOOK_ID;
         execution.inputs = { host: "web-1" };
         execution.triggerType = RunbookTriggerType.Webhook;
         return execution;
       });
 
-    (
-      RunbookSecretsUtil.loadForGlobalRunnerJob as unknown as jest.Mock
-    ).mockResolvedValue([secret("API_TOKEN", "tok-123")]);
-    (
-      RunbookSecretsUtil.populateInScript as unknown as jest.Mock
-    ).mockImplementation((data: unknown): string => {
-      return `${(data as { script: string }).script} /* filled */`;
-    });
+    globalRows = [secret("API_TOKEN", "tok-123")];
+    localRows = [];
+
+    variablesSpy = jest
+      .spyOn(RunbookVariableService, "findBy")
+      .mockImplementation(
+        async (args: unknown): Promise<Array<RunbookVariable>> => {
+          const query: VariableQuery = (args as { query: VariableQuery }).query;
+          return readsGlobalVariables(query) ? globalRows : localRows;
+        },
+      );
   });
 
   afterEach(() => {
@@ -341,13 +386,17 @@ describe("the Runner ingress, for a global Runner", () => {
     });
 
     test("never grants a global Runner code fixes or AI commands, whatever its row says", async () => {
+      // Even were a repository to name it: a global Runner is never asked.
+      pickedSpy.mockResolvedValue(true);
+
       await callRoute({
         uri: HEARTBEAT_ROUTE,
         agent: globalRunner({
-          canRunCodeFixTasks: true,
           canRunAiCommands: true,
         }),
       });
+
+      expect(pickedSpy).not.toHaveBeenCalled();
 
       expect(
         (lastJsonResponse()["capabilities"] as JSONObject)[
@@ -450,25 +499,101 @@ describe("the Runner ingress, for a global Runner", () => {
 
       await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
 
-      expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
-      expect(RunbookSecretsUtil.loadForGlobalRunnerJob).toHaveBeenCalledTimes(
-        1,
-      );
-      expect(
-        (
-          (RunbookSecretsUtil.loadForGlobalRunnerJob as unknown as jest.Mock)
-            .mock.calls[0]![0] as { projectId: ObjectID }
-        ).projectId.toString(),
-      ).toBe(STEP_PROJECT_ID.toString());
+      // Read from the step's own project, its global variables only.
+      const queries: Array<VariableQuery> = variableQueries(variablesSpy);
+      expect(queries).toHaveLength(1);
+      expect(queries[0]!.projectId.toString()).toBe(STEP_PROJECT_ID.toString());
+      expect(readsGlobalVariables(queries[0]!)).toBe(true);
 
       const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
 
       expect(job["jobId"]).toBe(JOB_ID);
       expect(job["runsOnGlobalRunner"]).toBe(true);
       expect(job["stepType"]).toBe(RunbookStepType.JavaScript);
-      expect(job["script"]).toContain("/* filled */");
+      expect(job["script"]).toBe(
+        "await axios.post('https://hooks.example.com', { token: 'tok-123' });",
+      );
+      // The secrets handed over, so the Runner hides them in what it prints.
+      expect(job["secretValues"]).toEqual(["tok-123"]);
       expect(job).not.toHaveProperty("credential");
       expect(submitSpy).not.toHaveBeenCalled();
+    });
+
+    test("a plain variable is handed over whatever its secret switches, and is not hidden", async () => {
+      globalRows = [plain("HOOK_URL", "https://hooks.example.com/run")];
+      claimGlobalSpy.mockResolvedValue(
+        claimedGlobalJob({
+          script: "await axios.post('{{global.variables.HOOK_URL}}');",
+        }),
+      );
+
+      await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
+
+      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+
+      expect(job["script"]).toBe(
+        "await axios.post('https://hooks.example.com/run');",
+      );
+      expect(job).not.toHaveProperty("secretValues");
+    });
+
+    test("a step written with the old {{runbookSecrets.NAME}} reads the global variable of that name", async () => {
+      claimGlobalSpy.mockResolvedValue(
+        claimedGlobalJob({
+          script: "const token = '{{runbookSecrets.API_TOKEN}}';",
+        }),
+      );
+
+      await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
+
+      expect((lastJsonResponse()["job"] as JSONObject)["script"]).toBe(
+        "const token = 'tok-123';",
+      );
+    });
+
+    test("a runbook's own variable is read from the runbook of the step's run, in the step's project", async () => {
+      localRows = [plain("NAMESPACE", "checkout")];
+      claimGlobalSpy.mockResolvedValue(
+        claimedGlobalJob({
+          script: "const ns = '{{local.variables.NAMESPACE}}';",
+        }),
+      );
+
+      await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
+
+      const queries: Array<VariableQuery> = variableQueries(variablesSpy);
+      expect(queries).toHaveLength(1);
+      expect(queries[0]!.projectId.toString()).toBe(STEP_PROJECT_ID.toString());
+      expect(readsGlobalVariables(queries[0]!)).toBe(false);
+      expect(String(queries[0]!.runbookId)).toBe(RUNBOOK_ID.toString());
+      expect((lastJsonResponse()["job"] as JSONObject)["script"]).toBe(
+        "const ns = 'checkout';",
+      );
+    });
+
+    test("a runbook's own variable of a run of another project is never read", async () => {
+      executionSpy.mockImplementation(async (): Promise<RunbookExecution> => {
+        const execution: RunbookExecution = new RunbookExecution();
+        execution.projectId = RUNNER_PROJECT_ID;
+        execution.runbookId = RUNBOOK_ID;
+        return execution;
+      });
+      localRows = [plain("NAMESPACE", "someone-elses")];
+      claimGlobalSpy.mockResolvedValue(
+        claimedGlobalJob({
+          script: "const ns = '{{local.variables.NAMESPACE}}';",
+        }),
+      );
+
+      await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
+
+      expect(variablesSpy).not.toHaveBeenCalled();
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toBe(
+        'This step names variables it cannot use, so it was not run: "NAMESPACE" is a runbook\'s own variable, and this step is not part of a runbook run.',
+      );
     });
 
     test("hands over the run's inputs from the step's own project", async () => {
@@ -502,17 +627,20 @@ describe("the Runner ingress, for a global Runner", () => {
     });
 
     test("a step naming a secret global Runners may not use is failed with its name, never run", async () => {
+      globalRows = [
+        secret("API_TOKEN", "tok-123"),
+        secret("DB_PASSWORD", "db-pass-456", { globalRunners: false }),
+      ];
       claimGlobalSpy.mockResolvedValue(
         claimedGlobalJob({
           script:
-            "const a = '{{runbookSecrets.API_TOKEN}}'; const b = '{{ runbookSecrets.DB_PASSWORD }}';",
+            "const a = '{{global.variables.API_TOKEN}}'; const b = '{{ global.variables.DB_PASSWORD }}';",
         }),
       );
 
       await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
 
       expect(lastJsonResponse()).toEqual({ job: null });
-      expect(RunbookSecretsUtil.populateInScript).not.toHaveBeenCalled();
       expect(submitSpy).toHaveBeenCalledTimes(1);
 
       const result: {
@@ -530,16 +658,15 @@ describe("the Runner ingress, for a global Runner", () => {
       expect(result.success).toBe(false);
       expect(result.agentId.toString()).toBe(GLOBAL_RUNNER_ID.toString());
       expect(result.errorMessage).toBe(
-        'This step uses the runbook secret "DB_PASSWORD", which global Runners may not use, so it was not run. Turn on "Global Runners can use this secret" for it under Runbooks → Settings → Secrets, or pick one of your own Runners for the step.',
+        'This step names variables it cannot use, so it was not run: global Runners may not use the secret "DB_PASSWORD" (turn on "Global Runners can use it" for it, or pick one of your own Runners for the step).',
       );
-      // The value of the secret it may use is never in the message.
+      // No value is ever in the message.
       expect(result.errorMessage).not.toContain("tok-123");
+      expect(result.errorMessage).not.toContain("db-pass-456");
     });
 
     test("a secret with no value counts as one it may not use", async () => {
-      (
-        RunbookSecretsUtil.loadForGlobalRunnerJob as unknown as jest.Mock
-      ).mockResolvedValue([secret("API_TOKEN", "")]);
+      globalRows = [secret("API_TOKEN", "")];
       claimGlobalSpy.mockResolvedValue(claimedGlobalJob());
 
       await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
@@ -547,10 +674,43 @@ describe("the Runner ingress, for a global Runner", () => {
       expect(lastJsonResponse()).toEqual({ job: null });
       expect(
         (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
-      ).toContain('"API_TOKEN"');
+      ).toBe(
+        'This step names variables it cannot use, so it was not run: the secret "API_TOKEN" has no value (replace its value).',
+      );
     });
 
-    test("a step with no secret placeholder is handed over without asking for secrets it cannot use", async () => {
+    test("a variable that is not there fails the step, saying where to add it", async () => {
+      globalRows = [];
+      claimGlobalSpy.mockResolvedValue(claimedGlobalJob());
+
+      await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
+
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toBe(
+        'This step names variables it cannot use, so it was not run: there is no global variable named "API_TOKEN" (Runbooks → Settings → Global Variables).',
+      );
+    });
+
+    test("a secret for a project's own Runners only is never handed to a global Runner, even when it lists the global Runner", async () => {
+      globalRows = [
+        secret("API_TOKEN", "tok-123", {
+          globalRunners: false,
+          runners: [GLOBAL_RUNNER_ID],
+        }),
+      ];
+      claimGlobalSpy.mockResolvedValue(claimedGlobalJob());
+
+      await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
+
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toContain('global Runners may not use the secret "API_TOKEN"');
+    });
+
+    test("a step with no variable placeholder is handed over without reading any", async () => {
       claimGlobalSpy.mockResolvedValue(
         claimedGlobalJob({ script: "return 1 + 1;" }),
       );
@@ -558,6 +718,10 @@ describe("the Runner ingress, for a global Runner", () => {
       await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
 
       expect((lastJsonResponse()["job"] as JSONObject)["jobId"]).toBe(JOB_ID);
+      expect((lastJsonResponse()["job"] as JSONObject)["script"]).toBe(
+        "return 1 + 1;",
+      );
+      expect(variablesSpy).not.toHaveBeenCalled();
       expect(submitSpy).not.toHaveBeenCalled();
     });
 
@@ -579,60 +743,50 @@ describe("the Runner ingress, for a global Runner", () => {
   });
 
   describe("negative control: a project's own Runner", () => {
-    test("claims its own lane, and its secrets are held to its own project", async () => {
-      const job: RunnerJob = claimedGlobalJob({
+    function ownJob(): RunnerJob {
+      return claimedGlobalJob({
         projectId: RUNNER_PROJECT_ID,
         runsOnGlobalRunner: false,
         targetAgentId: PROJECT_RUNNER_ID,
       });
-      claimOwnSpy.mockResolvedValue(job);
-      (
-        RunbookSecretsUtil.loadForAgent as unknown as jest.Mock
-      ).mockResolvedValue([secret("API_TOKEN", "tok-123")]);
+    }
+
+    test("claims its own lane, and its secrets are held to its own project", async () => {
+      globalRows = [
+        secret("API_TOKEN", "tok-123", {
+          globalRunners: false,
+          runners: [PROJECT_RUNNER_ID],
+        }),
+      ];
+      claimOwnSpy.mockResolvedValue(ownJob());
 
       await callRoute({ uri: CLAIM_ROUTE, agent: projectRunner() });
 
       expect(claimGlobalSpy).not.toHaveBeenCalled();
-      expect(RunbookSecretsUtil.loadForGlobalRunnerJob).not.toHaveBeenCalled();
-      expect(RunbookSecretsUtil.loadForAgent).toHaveBeenCalledWith({
-        agentId: PROJECT_RUNNER_ID,
-        projectId: RUNNER_PROJECT_ID,
-      });
+
+      const queries: Array<VariableQuery> = variableQueries(variablesSpy);
+      expect(queries).toHaveLength(1);
+      expect(queries[0]!.projectId.toString()).toBe(
+        RUNNER_PROJECT_ID.toString(),
+      );
+
+      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+      expect(job["script"]).toContain("token: 'tok-123'");
+      expect(job["secretValues"]).toEqual(["tok-123"]);
     });
-  });
-});
 
-describe("describeSecretsNotForGlobalRunners", () => {
-  test("names one secret", () => {
-    expect(
-      RunnerIngressAPI.describeSecretsNotForGlobalRunners(["DB_PASSWORD"]),
-    ).toBe(
-      'This step uses the runbook secret "DB_PASSWORD", which global Runners may not use, so it was not run. Turn on "Global Runners can use this secret" for it under Runbooks → Settings → Secrets, or pick one of your own Runners for the step.',
-    );
-  });
+    test("a secret that does not list the Runner is not handed to it, global switch or not", async () => {
+      globalRows = [secret("API_TOKEN", "tok-123", { globalRunners: true })];
+      claimOwnSpy.mockResolvedValue(ownJob());
 
-  test("names several, and counts the rest past five", () => {
-    expect(
-      RunnerIngressAPI.describeSecretsNotForGlobalRunners([
-        "A",
-        "B",
-        "C",
-        "D",
-        "E",
-        "F",
-        "G",
-      ]),
-    ).toBe(
-      'This step uses the runbook secrets "A", "B", "C", "D", "E" and 2 more, which global Runners may not use, so it was not run. Turn on "Global Runners can use this secret" for them under Runbooks → Settings → Secrets, or pick one of your own Runners for the step.',
-    );
-  });
+      await callRoute({ uri: CLAIM_ROUTE, agent: projectRunner() });
 
-  test("cuts a long name", () => {
-    const message: string = RunnerIngressAPI.describeSecretsNotForGlobalRunners(
-      ["N".repeat(500)],
-    );
-
-    expect(message).toContain(`"${"N".repeat(80)}…"`);
-    expect(message.length).toBeLessThan(400);
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toBe(
+        'This step names variables it cannot use, so it was not run: this Runner may not use the secret "API_TOKEN" (add it to the Runners of that variable, or pick one of its Runners for the step).',
+      );
+    });
   });
 });

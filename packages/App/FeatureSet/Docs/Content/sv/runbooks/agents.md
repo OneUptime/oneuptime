@@ -1,6 +1,6 @@
 # Runbook-agenter
 
-En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten självhostad process som kör JavaScript-, Bash-, SSH- och Kubernetes-stegen i dina runbooks **i din egen infrastruktur**. OneUptime Worker kör aldrig dina skript: den köar dem, och den Runner som stegets författare valde tar varje jobb, kör det och skickar tillbaka resultatet. Den här sidan är till för dem som installerar och driver Runners. Ett JavaScript-steg som inte väljer någon Runner körs i stället på en [global Runner](#globala-runners), en av dem som OneUptime kör för alla projekt.
+En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten självhostad process som kör JavaScript-, Bash-, SSH- och kubectl-stegen i dina runbooks **i din egen infrastruktur**. OneUptime Worker kör aldrig dina skript: den köar dem, och den Runner som stegets författare valde tar varje jobb, kör det och skickar tillbaka resultatet. Den här sidan är till för dem som installerar och driver Runners. Ett JavaScript-steg som inte väljer någon Runner körs i stället på en [global Runner](#globala-runners), en av dem som OneUptime kör för alla projekt.
 
 :::cards
 - [Installera en Runner](#installera-en-runner): Från instrumentpanelen till en ansluten container i fem steg.
@@ -33,13 +33,13 @@ flowchart TB
 1. Du skapar en Runner i OneUptime. OneUptime genererar ett ID och en hemlig nyckel åt den.
 2. Du kör Runner-containern på en värd i din infrastruktur med det ID:t, den nyckeln och din OneUptime-URL.
 3. Runnern ber OneUptime om arbete var 5:e sekund och rapporterar var 60:e sekund att den lever.
-4. När du skriver ett JavaScript-, Bash-, SSH- eller Kubernetes-steg väljer du Runnern i en listruta. Steget binds till den Runnern. Ett JavaScript-steg kan behålla **Global Runner**, som rullgardinsmenyn väljer åt det.
+4. När du skriver ett JavaScript-, Bash-, SSH- eller kubectl-steg väljer du Runnern i en listruta. Steget binds till den Runnern. Ett JavaScript-steg kan behålla **Global Runner**, som rullgardinsmenyn väljer åt det.
 5. När steget körs köar Workern ett jobb med `targetAgentId` satt till den Runnern. Bara den Runnern kan ta det.
-6. Runnern kör jobbet lokalt — `bash -c <script>` för Bash, en `isolated-vm`-sandlåda för JavaScript, en SSH-anslutning eller ett anrop till klustrets API-server med stegets autentiseringsuppgift —, registrerar resultatet och skickar tillbaka det. Workern återupptar runbooket med resultatet.
+6. Runnern kör jobbet lokalt — `bash -c <script>` för Bash och kubectl, en `isolated-vm`-sandlåda för JavaScript, en SSH-anslutning som kör skriptet med bash på maskinen — fångar resultatet, döljer stegets hemligheter i det och skickar tillbaka det. Worker återupptar runbooken med resultatet.
 
 Runnern behöver bara **utgående HTTPS** till din OneUptime-instans. Den tar inte emot några inkommande anslutningar.
 
-En Runner har bara sitt ID och sin nyckel. Allt annat får den med det jobb den tar: ett skript där de [runbook-hemligheter](/docs/runbooks/credentials#hemligheter-för-skript) som är tilldelade den är ifyllda, eller den [autentiseringsuppgift](/docs/runbooks/credentials) som ett SSH- eller Kubernetes-steg pekar på. Därför kan alla som har en Runners nyckel agera som den Runnern: behandla nyckeln som de autentiseringsuppgifter som är tilldelade den.
+En Runner har bara sitt ID och sin nyckel. Allt annat får den med jobbet den tar: ett skript med de [runbook-variabler](/docs/runbooks/variables) det nämner ifyllda, och ett SSH-stegs nyckel eller lösenord eller ett kubectl-stegs kubeconfig. Den får en hemlighet bara när hemligheten tillåter det. Därför kan alla som har en Runners nyckel agera som den Runnern: behandla nyckeln som de hemligheter den får använda.
 
 ## Varför skript körs på en Runner
 
@@ -56,20 +56,20 @@ Globala Runners är de Runners som OneUptime kör för alla projekt. Ett JavaScr
 
 | | Global Runner | Din egen Runner |
 | --- | --- | --- |
-| Steg den kör | JavaScript | JavaScript, Bash, SSH och Kubernetes |
+| Steg den kör | JavaScript | JavaScript, Bash, SSH och kubectl |
 | Vad ett steg kan nå | Offentliga internetadresser | Det som dess värd kan nå |
 | Längsta körning för ett steg | 5 minuter | 1 timme |
-| Runbook-hemligheter | De som du låter globala Runners använda | De som du tilldelar den |
+| Hemliga variabler | De som du låter globala Runners använda | De som listar den |
 | Autentiseringsuppgifter | Inga | De som du tilldelar den |
 
 En global Runner kör stegen från många projekt, så varje steg hålls åtskilt från alla andra:
 
 - Varje steg körs i en egen `isolated-vm`-sandlåda, skapad för det steget och slängd efteråt: inga filer, inga processer, inga miljövariabler och ingenting som sparas från ett steg till nästa.
 - Dess HTTP-förfrågningar når bara offentliga internetadresser, aldrig en privat adress, en loopback- eller link-local-adress eller en slutpunkt för molnmetadata, så en global Runner når aldrig ditt nätverk.
-- Den får en runbook-hemlighet bara när hemlighetens reglage **Globala Runners får använda den här hemligheten** är påslaget, och bara för ett steg från hemlighetens eget projekt. Den får aldrig autentiseringsuppgifter.
+- Den får en hemlig variabel bara när variabelns brytare **Globala Runners får använda den** är påslagen, och bara för ett steg i variabelns eget projekt. Den får aldrig en autentiseringsuppgift.
 - Ett projekt kör högst tre steg åt gången på globala Runners, så inget projekt håller dem för sig själv.
 
-Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner misslyckas då och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst.
+Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner misslyckas då och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst. Ett kodrepository som inte väljer någon Runner i sina inställningar i Kod arbetar också på en global Runner, och behöver en av dina medan reglaget är avstängt; se [Kod](/docs/ai/ai-agent#välj-repositoryts-runner).
 
 ### Var globala Runners kommer ifrån
 
@@ -96,10 +96,9 @@ Gå till **Runbooks → Runbook-agenter** och skapa en ny agent. Klicka på **Sk
 | **Beskrivning** | **Runner** | Valfritt. En mening om vad den här värden kan nå. |
 | **Etiketter** | **Runner** (under **Fler fält**) | Valfritt. |
 | **Kör Runbooks** | **Funktioner** | Påslaget som standard. Låter den här Runnern ta runbook-steg. |
-| **Kör AI-kodfixar** | **Funktioner** | Avstängt som standard. Låter den öppna pull requests med AI-kodfixar; se [Kod](/docs/ai/ai-agent). |
 | **Kör AI-åtgärdskommandon** | **Funktioner** | Avstängt som standard. Låter automatisk AI-åtgärd köra policykontrollerade kommandon på den. Att slå på det för en Runner som har SSH-autentiseringsuppgifter kräver behörighet att läsa runbook-autentiseringsuppgifter; se [Runners som kör OneUptime AI:s kommandon](/docs/runbooks/credentials#runners-som-kör-oneuptime-ais-kommandon). |
 
-En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om.
+En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om. AI-kodfixar är ingen funktion: ett kodrepository väljer i sina inställningar i Kod den Runner som AI arbetar i det på, och Runnerns sida listar de repositoryn som väljer den.
 
 ### 2. Kopiera installationskommandot
 
@@ -140,7 +139,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Lägg till ett steg som körs på en Runner
 
-Lägg till ett JavaScript-, Bash-, SSH- eller Kubernetes-steg i ditt runbooks **Steg**.
+Lägg till ett JavaScript-, Bash-, SSH- eller kubectl-steg i ditt runbooks **Steg**.
 
 ### Välj Runnern
 
@@ -151,7 +150,7 @@ Stegets listruta **Runner** visar alla Runners i projektet och om de är anslutn
 Klicka på **Save Steps**. När en körning når steget köar Workern ett jobb till den Runnerns ID, och bara den Runnern kan ta det. Ett steg på **Global Runner** väntar på den globala Runner som är ledig.
 :::
 
-Bash körs med `bash -c`. JavaScript körs i en `isolated-vm`-sandlåda på Runnern utan åtkomst till filsystemet eller processer; det kan anropa publika HTTP-API:er med `axios`, men inte adresser på ett privat nätverk. SSH- och Kubernetes-steg använder den [autentiseringsuppgift](/docs/runbooks/credentials) som steget pekar på, och den måste vara tilldelad samma Runner.
+Bash körs med `bash -c`. JavaScript körs i en `isolated-vm`-sandlåda på Runnern utan åtkomst till filsystemet eller processer; det kan anropa publika HTTP-API:er med `axios`, men inte adresser på ett privat nätverk. Ett SSH- eller kubectl-steg loggar in med en hemlig [runbook-variabel](/docs/runbooks/variables), som måste lista stegets Runner under **Dina Runners som får använda den**.
 
 Behöver du mer än en Runner? Skapa dem och peka varje steg mot rätt Runner. För redundans kör du en extra Runner och delar upp stegen mellan dem, eller har ett reserv-runbook vars steg pekar mot den andra Runnern.
 
@@ -166,7 +165,7 @@ Två tidsgränser gäller för varje steg som körs på en Runner:
 | **Tidsgräns för övertagande** | 2 minuter | Hur länge Workern väntar på att den valda Runnern tar jobbet. Om Runnern inte tar det i tid misslyckas steget på grund av tidsgräns, och runbooket fortsätter (eller stoppar, beroende på **Fortsätt vid fel**). |
 | **Tidsgräns för körning** | 30 sekunder | Hur länge Runnern låter steget köra innan den stoppar det. Bash får `SIGKILL`; JavaScripts sandlåda rivs. |
 
-Båda kan ställas in per steg. Öppna **Runbooks › ditt runbook › Steg**, fäll ut steget och ange **Tidsgräns för körning** och **Tidsgräns för övertagande** (i sekunder) i dess inställningar. Lämna ett fält tomt för att använda standarden. Var och en accepterar 1 sekund till 1 timme; värden utanför det intervallet begränsas när steget körs.
+Båda kan ställas in per steg. Öppna **Runbooks › ditt runbook › Steg**, fäll ut steget och ange **Tidsgräns för körning** och **Tidsgräns för övertagande** (i sekunder) under dess **Fler fält**. Lämna ett fält tomt för att använda standarden. Var och en accepterar 1 sekund till 1 timme; värden utanför det intervallet begränsas när steget körs.
 
 Workerns sammanlagda väntefönster är `claim timeout + execution timeout + a few seconds`. Välj värden som passar steget.
 
@@ -234,7 +233,7 @@ Runnern läser dessa vid start:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nej | `10000` | Hur ofta Runnern förnyar leasen för ett jobb som körs. Ett värde under `1000` faller tillbaka till standarden. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | nej | `1` | Högsta antal samtidiga jobb på den här Runnern. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | nej | — | Sätt till `false` för att få den här Runnern att sluta ta runbook-steg, oavsett vad instrumentpanelen säger. Den kan bara stänga av funktionen. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nej | — | Sätt till `false` för att få den här Runnern att sluta ta AI-kodfixar, oavsett vad instrumentpanelen säger. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nej | — | Sätt till `false` för att få den här Runnern att sluta ta AI-kodfixar, även för ett kodrepository som väljer den. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | nej | — | Sätt till `false` för att få den här Runnern att sluta köra AI-åtgärdskommandon, oavsett vad instrumentpanelen säger. |
 
 ## Byta en agentnyckel
@@ -307,14 +306,18 @@ Runnern tog jobbet och slutade sedan förnya sin lease: den kraschade, startade 
 Alla funktioner är avstängda för den här Runnern. Slå på **Kör Runbooks** på Runnerns sida i OneUptime. Den hämtar ändringen vid nästa heartbeat.
 :::
 
-:::details Ett steg på en global Runner misslyckas eftersom globala Runners inte får använda en runbook-hemlighet
-Steget nämner en runbook-hemlighet vars reglage **Globala Runners får använda den här hemligheten** är avstängt, så den globala Runnern fick den inte och steget kördes inte. Felet nämner hemligheten. Slå på reglaget för den under **Runbooks → Inställningar → Hemligheter**, eller välj en av dina egna Runners för steget.
+:::details Ett steg misslyckas eftersom dess Runner inte får använda en hemlig variabel
+Steget nämner en hemlig variabel som inte låter dess Runner använda den, så Runnern fick den inte och steget kördes inte. Felet nämner hemligheten och vad som ska ändras. Under **Runbooks → Inställningar → Globala variabler**, eller runbookens **Inställningar → Variabler**, lägger du till Runnern under **Dina Runners som får använda den**, eller slår på **Globala Runners får använda den** för ett steg på en global Runner. Eller välj en Runner som hemligheten tillåter.
+:::
+
+:::details Ett kubectl-steg misslyckas eftersom dess Runner är för gammal
+Steget misslyckades med "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." En Runner som är äldre än kubectl-skript kan inte köra ett. Ett Kubernetes-steg som flyttades till ett kubectl-skript vid uppgraderingen körs fortfarande på den som den åtgärd det skrevs som, tills dess skript eller kubeconfig ändras. Uppdatera Runnern, som [Håll agenten uppdaterad](#5-håll-agenten-uppdaterad) visar, och kör sedan runbooken igen.
 :::
 
 ## Nästa steg
 
 :::cards
 - [Skriva ett runbook](/docs/runbooks/authoring): Skriv de steg som körs på din Runner.
-- [Runbook-autentiseringsuppgifter](/docs/runbooks/credentials): Ge SSH- och Kubernetes-steg hanterad åtkomst.
+- [Runbook-variabler](/docs/runbooks/variables): De värden och hemligheter som dina steg använder, och de Runners som får dem.
 - [Runbook-konfiguration & säkerhet](/docs/runbooks/configuration): Gränser, behörigheter och härdning.
 :::

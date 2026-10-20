@@ -70,7 +70,7 @@ Crea una página por audiencia, por ejemplo de `Site 01` a `Site 10`. Hazlas pri
 
 ### Poner el monitor compartido en cada página
 
-Añade el monitor compartido a cada página como recurso (consulta [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups)). Una regla en **Recursos → Reglas de monitores** puede hacerlo por ti a partir de las etiquetas del monitor.
+Añade el monitor compartido a cada página como recurso (consulta [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups)). Una regla en **Reglas → Reglas de monitores** puede hacerlo por ti a partir de las etiquetas del monitor.
 
 ### Activar Mostrar solo incidentes limitados a esta página
 

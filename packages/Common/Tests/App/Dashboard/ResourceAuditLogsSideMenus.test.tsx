@@ -159,6 +159,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       "Overview",
       "Activity",
       "Configuration",
+      "Rules",
       "Developer",
       "Management",
     ],
@@ -179,6 +180,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     sections: [
       "Basic",
       "Resources",
+      "Rules",
       "Subscribers",
       "Notification Logs",
       "Branding",
@@ -319,8 +321,9 @@ describe.each(RESOURCE_CASES)(
 );
 
 /*
- * SLO performance and activity precede configuration. Charts remains absent:
- * its history lives in Metrics, and its route only survives for bookmarks.
+ * SLO performance and activity precede configuration and the rules. Charts
+ * remains absent: its history lives in Metrics, and its route only survives
+ * for bookmarks.
  */
 const SLO_SECTION_LINKS: Array<ExpectedLink> = [
   { title: "Overview", page: PageMap.SLO_VIEW },
@@ -349,6 +352,7 @@ describe("SLO resource menu", () => {
       ...linksIn("Overview"),
       ...linksIn("Activity"),
       ...linksIn("Configuration"),
+      ...linksIn("Rules"),
     ]).toEqual(
       SLO_SECTION_LINKS.map((link: ExpectedLink): MenuLink => {
         return {

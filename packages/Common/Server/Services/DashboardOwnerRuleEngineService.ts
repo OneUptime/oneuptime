@@ -24,6 +24,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class DashboardOwnerRuleEngineServiceClass
   implements RuleRunEngine<Dashboard, DashboardOwnerRule>
@@ -118,6 +119,7 @@ class DashboardOwnerRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     dashboard: Dashboard;
     rules: Array<DashboardOwnerRule>;

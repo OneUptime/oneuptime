@@ -1,0 +1,550 @@
+import { describe, expect, test } from "@jest/globals";
+import {
+  PerformanceFinding,
+  PerformanceFindingType,
+} from "../../../Types/AI/CodeFixTaskContext";
+import { JSONObject } from "../../../Types/JSON";
+import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
+import {
+  NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
+  TRACE_NOT_WORTH_FIXING_MESSAGE,
+  TracePerformanceFixOffer,
+  TracePerformanceFixSuggestion,
+  WORTH_FIXING_MIN_MS,
+  WORTH_FIXING_MIN_PERCENT_OF_TRACE,
+  getFindingOperationName,
+  getFindingsWorthFixing,
+  getTracePerformanceFixOffer,
+  isDatabaseFinding,
+  isFindingWorthFixing,
+  parsePerformanceFinding,
+  parseTracePerformanceFixSuggestion,
+  tracePerformanceFixSuggestionToJSON,
+} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import SpanTreeAnalyzer from "../../../Utils/Traces/SpanTreeAnalyzer";
+import {
+  FAST_CLEAN_REQUEST,
+  FAST_REQUEST_WITH_N_PLUS_ONE,
+  HEALTH_CHECK,
+  LONG_BATCH_WITH_A_SMALL_N_PLUS_ONE,
+  NOT_WORTH_FIXING_TRACES,
+  ORDINARY_EXTERNAL_CALL,
+  SLOW_CALLS_ONE_AFTER_ANOTHER,
+  SLOW_CHECKOUT_WITH_N_PLUS_ONE,
+  SLOW_REQUEST_WITHOUT_A_PATTERN,
+  SLOW_SINGLE_QUERY,
+  SLOW_SINGLE_SPAN,
+  TraceFixture,
+  WORTH_FIXING_TRACES,
+} from "./TraceFixtures";
+
+/*
+ * "Fix performance with AI" is offered only on a trace worth fixing: the
+ * span-tree analysis must find a known pattern that costs the request real
+ * time. These tests run the real analysis on realistic span trees (a slow
+ * checkout with an N+1, a fast request with the same loop, a health check,
+ * a slow request with no pattern, ...) and hold the rule, its thresholds,
+ * the offer that follows from AI, a repository and a fix in flight, and the
+ * wire format the trace page reads.
+ */
+
+function analyze(trace: TraceFixture): Array<PerformanceFinding> {
+  return SpanTreeAnalyzer.analyzeTrace(trace.spans);
+}
+
+function finding(
+  overrides: Partial<PerformanceFinding> = {},
+): PerformanceFinding {
+  return {
+    findingType: PerformanceFindingType.NPlusOneQuery,
+    headline: 'N+1: 14× "SELECT shop.products"',
+    evidence: "14 sibling spans ...",
+    spanCount: 14,
+    combinedDurationMs: 840,
+    traceDurationMs: 1600,
+    percentOfTrace: 52.5,
+    normalizedSpanName: "SELECT shop.products",
+    parentSpanName: "POST /api/v1/checkout",
+    normalizedDbStatement: "SELECT * FROM products WHERE id = ?",
+    dbSystem: "postgresql",
+    implicatedSpans: [
+      { spanId: "query-0", name: "SELECT shop.products", durationMs: 60 },
+      { spanId: "query-1", name: "SELECT shop.products", durationMs: 60 },
+    ],
+    ...overrides,
+  };
+}
+
+describe("which traces are worth Fix performance with AI", () => {
+  test.each(
+    WORTH_FIXING_TRACES.map((trace: TraceFixture): [string, TraceFixture] => {
+      return [trace.title, trace];
+    }),
+  )("worth fixing: %s", (_title: string, trace: TraceFixture) => {
+    const findings: Array<PerformanceFinding> = analyze(trace);
+
+    expect(getFindingsWorthFixing(findings).length).toBeGreaterThan(0);
+  });
+
+  test.each(
+    NOT_WORTH_FIXING_TRACES.map(
+      (trace: TraceFixture): [string, TraceFixture] => {
+        return [trace.title, trace];
+      },
+    ),
+  )("not worth fixing: %s", (_title: string, trace: TraceFixture) => {
+    expect(getFindingsWorthFixing(analyze(trace))).toEqual([]);
+  });
+
+  test("a slow checkout with an N+1 names the N+1: 14 queries, 840 ms of the 1.6 s request", () => {
+    const worth: Array<PerformanceFinding> = getFindingsWorthFixing(
+      analyze(SLOW_CHECKOUT_WITH_N_PLUS_ONE),
+    );
+
+    expect(worth).toHaveLength(1);
+    expect(worth[0]!.findingType).toBe(PerformanceFindingType.NPlusOneQuery);
+    expect(worth[0]!.spanCount).toBe(14);
+    expect(worth[0]!.combinedDurationMs).toBe(840);
+    expect(worth[0]!.traceDurationMs).toBe(1600);
+    expect(worth[0]!.parentSpanName).toBe("POST /api/v1/checkout");
+    expect(isDatabaseFinding(worth[0]!)).toBe(true);
+    expect(getFindingOperationName(worth[0]!)).toBe(
+      "SELECT products WHERE id = $1",
+    );
+  });
+
+  test("the fast request has the same loop - the analysis sees it, the rule does not offer it", () => {
+    const findings: Array<PerformanceFinding> = analyze(
+      FAST_REQUEST_WITH_N_PLUS_ONE,
+    );
+
+    expect(
+      findings.map((item: PerformanceFinding) => {
+        return item.findingType;
+      }),
+    ).toContain(PerformanceFindingType.NPlusOneQuery);
+    expect(getFindingsWorthFixing(findings)).toEqual([]);
+  });
+
+  test("a health check of one span is 'one span taking all of it' to the analysis, and nothing to fix", () => {
+    const findings: Array<PerformanceFinding> = analyze(HEALTH_CHECK);
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.findingType).toBe(PerformanceFindingType.DominantSpan);
+    expect(findings[0]!.percentOfTrace).toBe(100);
+    expect(isFindingWorthFixing(findings[0]!)).toBe(false);
+  });
+
+  test("a slow request with no known pattern has no finding at all, so nothing is offered", () => {
+    expect(analyze(SLOW_REQUEST_WITHOUT_A_PATTERN)).toEqual([]);
+    expect(analyze(FAST_CLEAN_REQUEST)).toEqual([]);
+  });
+
+  test("calls made one after another are offered with what they cost", () => {
+    const worth: Array<PerformanceFinding> = getFindingsWorthFixing(
+      analyze(SLOW_CALLS_ONE_AFTER_ANOTHER),
+    );
+
+    expect(worth).toHaveLength(1);
+    expect(worth[0]!.findingType).toBe(
+      PerformanceFindingType.SequentialSiblings,
+    );
+    expect(worth[0]!.spanCount).toBe(4);
+    expect(worth[0]!.combinedDurationMs).toBe(600);
+    expect(worth[0]!.parentSpanName).toBe("reserve stock");
+    expect(isDatabaseFinding(worth[0]!)).toBe(false);
+    // Their names differ by an id: the normalized name names them all.
+    expect(getFindingOperationName(worth[0]!)).toBe("GET /inventory/{n}");
+  });
+
+  test("one slow query is offered; an ordinary 300 ms payment call is not", () => {
+    const slowQuery: Array<PerformanceFinding> = getFindingsWorthFixing(
+      analyze(SLOW_SINGLE_QUERY),
+    );
+    expect(slowQuery).toHaveLength(1);
+    expect(slowQuery[0]!.findingType).toBe(PerformanceFindingType.DominantSpan);
+    expect(slowQuery[0]!.combinedDurationMs).toBe(2100);
+
+    const payment: Array<PerformanceFinding> = analyze(ORDINARY_EXTERNAL_CALL);
+    expect(payment).toHaveLength(1);
+    expect(payment[0]!.findingType).toBe(PerformanceFindingType.DominantSpan);
+    expect(isFindingWorthFixing(payment[0]!)).toBe(false);
+  });
+
+  test("a long batch's small N+1 is too small a share of the run", () => {
+    const findings: Array<PerformanceFinding> = analyze(
+      LONG_BATCH_WITH_A_SMALL_N_PLUS_ONE,
+    );
+    const nPlusOne: PerformanceFinding | undefined = findings.find(
+      (item: PerformanceFinding) => {
+        return item.findingType === PerformanceFindingType.NPlusOneQuery;
+      },
+    );
+
+    expect(nPlusOne?.spanCount).toBe(50);
+    expect(nPlusOne?.combinedDurationMs).toBe(150);
+    expect(nPlusOne!.combinedDurationMs).toBeGreaterThanOrEqual(
+      WORTH_FIXING_MIN_MS[PerformanceFindingType.NPlusOneQuery],
+    );
+    expect(nPlusOne!.percentOfTrace).toBeLessThan(
+      WORTH_FIXING_MIN_PERCENT_OF_TRACE,
+    );
+    expect(getFindingsWorthFixing(findings)).toEqual([]);
+  });
+
+  test("a single span that is slow on its own is worth a look", () => {
+    const worth: Array<PerformanceFinding> = getFindingsWorthFixing(
+      analyze(SLOW_SINGLE_SPAN),
+    );
+
+    expect(worth).toHaveLength(1);
+    expect(worth[0]!.findingType).toBe(PerformanceFindingType.DominantSpan);
+    expect(getFindingOperationName(worth[0]!)).toBe("POST /api/v1/import");
+  });
+});
+
+describe("the thresholds", () => {
+  test("are 100 ms for repeated and one-after-another calls, 500 ms for one slow call, and a tenth of the request", () => {
+    expect(WORTH_FIXING_MIN_MS).toEqual({
+      [PerformanceFindingType.NPlusOneQuery]: 100,
+      [PerformanceFindingType.SequentialSiblings]: 100,
+      [PerformanceFindingType.DominantSpan]: 500,
+    });
+    expect(WORTH_FIXING_MIN_PERCENT_OF_TRACE).toBe(10);
+  });
+
+  test.each([
+    [PerformanceFindingType.NPlusOneQuery, 100],
+    [PerformanceFindingType.SequentialSiblings, 100],
+    [PerformanceFindingType.DominantSpan, 500],
+  ])(
+    "%s: exactly the floor is worth fixing, a tenth of a millisecond less is not",
+    (findingType: PerformanceFindingType, floorMs: number) => {
+      expect(
+        isFindingWorthFixing(
+          finding({
+            findingType,
+            combinedDurationMs: floorMs,
+            percentOfTrace: 60,
+          }),
+        ),
+      ).toBe(true);
+      expect(
+        isFindingWorthFixing(
+          finding({
+            findingType,
+            combinedDurationMs: floorMs - 0.1,
+            percentOfTrace: 60,
+          }),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  test("exactly a tenth of the request is worth fixing, less is not", () => {
+    expect(
+      isFindingWorthFixing(
+        finding({ percentOfTrace: 10, combinedDurationMs: 900 }),
+      ),
+    ).toBe(true);
+    expect(
+      isFindingWorthFixing(
+        finding({ percentOfTrace: 9.9, combinedDurationMs: 900 }),
+      ),
+    ).toBe(false);
+  });
+
+  test("a pattern this build does not know, or numbers that are not numbers, are never offered", () => {
+    expect(
+      isFindingWorthFixing(
+        finding({ findingType: "SomethingNew" as PerformanceFindingType }),
+      ),
+    ).toBe(false);
+    expect(
+      isFindingWorthFixing(finding({ combinedDurationMs: Number.NaN })),
+    ).toBe(false);
+    expect(
+      isFindingWorthFixing(
+        finding({ percentOfTrace: Number.POSITIVE_INFINITY }),
+      ),
+    ).toBe(false);
+  });
+
+  test("getFindingsWorthFixing keeps the analysis' order, the costliest first", () => {
+    const big: PerformanceFinding = finding({ combinedDurationMs: 900 });
+    const tooSmall: PerformanceFinding = finding({ combinedDurationMs: 20 });
+    const smaller: PerformanceFinding = finding({
+      findingType: PerformanceFindingType.SequentialSiblings,
+      combinedDurationMs: 300,
+    });
+
+    expect(getFindingsWorthFixing([big, tooSmall, smaller])).toEqual([
+      big,
+      smaller,
+    ]);
+  });
+
+  test("the server's refusal states the same rule, with the same numbers", () => {
+    expect(TRACE_NOT_WORTH_FIXING_MESSAGE).toBe(
+      "Nothing in this trace is worth an AI performance fix. Fix performance with AI acts on a known pattern that costs the request real time: the same call made 5 or more times (100 ms or more together), 3 or more calls made one after another that could run together (100 ms or more together), or one call that takes most of the request on its own (500 ms or more) - in every case at least 10% of the request.",
+    );
+  });
+});
+
+describe("what the trace page offers", () => {
+  const slowFindings: Array<PerformanceFinding> = analyze(
+    SLOW_CHECKOUT_WITH_N_PLUS_ONE,
+  );
+
+  test("a trace worth fixing, AI on, a repository connected: the fix, naming the costliest finding", () => {
+    const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+      findings: slowFindings,
+      isAiEnabled: true,
+      hasActiveFix: false,
+      hasConnectedRepository: true,
+    });
+
+    expect(offer.offer).toBe(SuggestionOffer.Act);
+    expect(offer.finding?.findingType).toBe(
+      PerformanceFindingType.NPlusOneQuery,
+    );
+    expect(offer.findingCount).toBe(1);
+  });
+
+  test("no repository: a quiet way to connect one, still naming what was found", () => {
+    const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+      findings: slowFindings,
+      isAiEnabled: true,
+      hasActiveFix: false,
+      hasConnectedRepository: false,
+    });
+
+    expect(offer.offer).toBe(SuggestionOffer.SetUp);
+    expect(offer.finding?.spanCount).toBe(14);
+  });
+
+  test("a fix already on its way: a link to it, not a second fix", () => {
+    const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+      findings: slowFindings,
+      isAiEnabled: true,
+      hasActiveFix: true,
+      hasConnectedRepository: false,
+    });
+
+    expect(offer.offer).toBe(SuggestionOffer.InProgress);
+    expect(offer.finding).not.toBeNull();
+  });
+
+  test("AI off: nothing at all, whatever the trace", () => {
+    expect(
+      getTracePerformanceFixOffer({
+        findings: slowFindings,
+        isAiEnabled: false,
+        hasActiveFix: true,
+        hasConnectedRepository: true,
+      }),
+    ).toEqual({ offer: SuggestionOffer.None, finding: null, findingCount: 0 });
+  });
+
+  test.each(
+    NOT_WORTH_FIXING_TRACES.map(
+      (trace: TraceFixture): [string, TraceFixture] => {
+        return [trace.title, trace];
+      },
+    ),
+  )(
+    "nothing worth fixing (%s): nothing at all, even with AI on and a repository",
+    (_title: string, trace: TraceFixture) => {
+      expect(
+        getTracePerformanceFixOffer({
+          findings: analyze(trace),
+          isAiEnabled: true,
+          hasActiveFix: false,
+          hasConnectedRepository: true,
+        }),
+      ).toEqual({
+        offer: SuggestionOffer.None,
+        finding: null,
+        findingCount: 0,
+      });
+    },
+  );
+
+  test("only the findings worth fixing are counted, and the first of them is named", () => {
+    const small: PerformanceFinding = finding({
+      findingType: PerformanceFindingType.SequentialSiblings,
+      combinedDurationMs: 40,
+    });
+    const large: PerformanceFinding = finding({ combinedDurationMs: 700 });
+    const medium: PerformanceFinding = finding({
+      findingType: PerformanceFindingType.DominantSpan,
+      combinedDurationMs: 600,
+      percentOfTrace: 70,
+    });
+
+    const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+      findings: [small, large, medium],
+      isAiEnabled: true,
+      hasActiveFix: false,
+      hasConnectedRepository: true,
+    });
+
+    expect(offer.finding).toBe(large);
+    expect(offer.findingCount).toBe(2);
+  });
+});
+
+describe("the operation a finding names", () => {
+  test("the spans' own name when they all share it", () => {
+    expect(getFindingOperationName(finding())).toBe("SELECT shop.products");
+  });
+
+  test("the normalized name when their names differ by an id", () => {
+    expect(
+      getFindingOperationName(
+        finding({
+          normalizedSpanName: "GET /users/{n}",
+          implicatedSpans: [
+            { spanId: "a", name: "GET /users/1", durationMs: 50 },
+            { spanId: "b", name: "GET /users/2", durationMs: 50 },
+          ],
+        }),
+      ),
+    ).toBe("GET /users/{n}");
+  });
+
+  test("the normalized name when no span is listed", () => {
+    expect(
+      getFindingOperationName(
+        finding({ normalizedSpanName: "fetch {id}", implicatedSpans: [] }),
+      ),
+    ).toBe("fetch {id}");
+  });
+
+  test("database work is database work by its system or its statement", () => {
+    expect(isDatabaseFinding(finding())).toBe(true);
+    expect(
+      isDatabaseFinding(
+        finding({ dbSystem: undefined, normalizedDbStatement: "SELECT 1" }),
+      ),
+    ).toBe(true);
+    expect(
+      isDatabaseFinding(
+        finding({ dbSystem: "redis", normalizedDbStatement: undefined }),
+      ),
+    ).toBe(true);
+    expect(
+      isDatabaseFinding(
+        finding({ dbSystem: undefined, normalizedDbStatement: undefined }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("the wire format the trace page reads", () => {
+  const suggestion: TracePerformanceFixSuggestion = {
+    offer: SuggestionOffer.Act,
+    finding: finding(),
+    findingCount: 2,
+    aiRunId: null,
+  };
+
+  test("round-trips through JSON unchanged", () => {
+    const json: JSONObject = JSON.parse(
+      JSON.stringify(tracePerformanceFixSuggestionToJSON(suggestion)),
+    ) as JSONObject;
+
+    expect(parseTracePerformanceFixSuggestion(json)).toEqual(suggestion);
+  });
+
+  test("an in-progress offer carries the run to link to", () => {
+    const inProgress: TracePerformanceFixSuggestion = {
+      ...suggestion,
+      offer: SuggestionOffer.InProgress,
+      aiRunId: "70000000-0000-4000-8000-000000000009",
+    };
+
+    expect(
+      parseTracePerformanceFixSuggestion(
+        tracePerformanceFixSuggestionToJSON(inProgress),
+      ),
+    ).toEqual(inProgress);
+  });
+
+  test.each([
+    ["nothing", undefined],
+    ["null", null],
+    ["a list", []],
+    ["a string", "Act"],
+    ["no offer", { finding: finding() }],
+    ["an unknown offer", { offer: "Maybe", finding: finding() }],
+    ["None", { offer: "None", finding: finding() }],
+    ["an offer with no finding", { offer: "Act" }],
+    [
+      "a finding of a kind this build does not know",
+      { offer: "Act", finding: { ...finding(), findingType: "Other" } },
+    ],
+    [
+      "a finding with no numbers",
+      { offer: "Act", finding: { ...finding(), combinedDurationMs: "840" } },
+    ],
+    [
+      "a finding the rule would not offer",
+      { offer: "Act", finding: finding({ combinedDurationMs: 12 }) },
+    ],
+    [
+      "in progress with no run",
+      { offer: "InProgress", finding: finding(), aiRunId: "" },
+    ],
+  ])("%s reads as no suggestion", (_label: string, value: unknown) => {
+    expect(parseTracePerformanceFixSuggestion(value)).toEqual(
+      NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
+    );
+  });
+
+  test("a run id on an offer that is not in progress is dropped", () => {
+    expect(
+      parseTracePerformanceFixSuggestion({
+        offer: "Act",
+        finding: finding(),
+        findingCount: 1,
+        aiRunId: "70000000-0000-4000-8000-000000000009",
+      }).aiRunId,
+    ).toBeNull();
+  });
+
+  test("a missing or odd count reads as one finding", () => {
+    expect(
+      parseTracePerformanceFixSuggestion({ offer: "SetUp", finding: finding() })
+        .findingCount,
+    ).toBe(1);
+    expect(
+      parseTracePerformanceFixSuggestion({
+        offer: "SetUp",
+        finding: finding(),
+        findingCount: -3,
+      }).findingCount,
+    ).toBe(1);
+  });
+
+  test("a finding keeps only well-formed implicated spans and optional fields", () => {
+    const parsed: PerformanceFinding | null = parsePerformanceFinding({
+      ...finding(),
+      implicatedSpans: [
+        { spanId: "a", name: "SELECT 1", durationMs: 4 },
+        { spanId: "b", name: 7, durationMs: 4 },
+        "not a span",
+      ],
+      parentSpanName: "",
+      httpUrl: "https://inventory.internal/items",
+      percentOfParent: 75,
+    });
+
+    expect(parsed?.implicatedSpans).toEqual([
+      { spanId: "a", name: "SELECT 1", durationMs: 4 },
+    ]);
+    expect(parsed?.parentSpanName).toBeUndefined();
+    expect(parsed?.httpUrl).toBe("https://inventory.internal/items");
+    expect(parsed?.percentOfParent).toBe(75);
+  });
+});

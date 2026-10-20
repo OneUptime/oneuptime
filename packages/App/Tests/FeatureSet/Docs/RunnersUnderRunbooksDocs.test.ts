@@ -409,7 +409,7 @@ describe("the English pages name the new location", () => {
     ],
     [
       "runbooks/credentials.md",
-      "Manage them under **Runbooks → Runners → Credentials**.",
+      "Manage them under **Runbooks → Runners → AI Access**.",
     ],
     ["ai/ai-agent.md", "Create a Runner under **Runbooks → Runners**"],
     ["ai/ai-agent.md", "shows as connected on the **Runbooks → Runners** page"],

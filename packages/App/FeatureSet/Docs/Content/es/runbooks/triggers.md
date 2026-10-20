@@ -134,10 +134,10 @@ Los valores de primer nivel del cuerpo se convierten en las entradas de la ejecu
 
 | Tipo de paso | Cómo lee las entradas |
 | --- | --- |
-| Bash | Variables de entorno: una `ONEUPTIME_INPUT_<NAME>` por cada valor de primer nivel, `ONEUPTIME_INPUTS` con el objeto entero como JSON y `ONEUPTIME_TRIGGER` con lo que inició la ejecución, como `Webhook` o `Schedule`. |
+| Bash y kubectl | Variables de entorno: una `ONEUPTIME_INPUT_<NAME>` por cada valor de primer nivel, `ONEUPTIME_INPUTS` con el objeto entero como JSON y `ONEUPTIME_TRIGGER` con lo que inició la ejecución, como `Webhook` o `Schedule`. |
 | JavaScript | `args.inputs`, el objeto tal como se envió, y `args.trigger`. |
 | AI | En su prompt, marcadas como datos de fuera de OneUptime, cuando **Incluir el contexto del desencadenante** está activado. |
-| HTTP request, SSH y Kubernetes | De ningún modo. Su URL, su comando y su destino son los que dice el runbook, y nada de lo que envíe quien llama los cambia. |
+| HTTP request y SSH | De ningún modo. Su URL, su script y su destino son los que dice el runbook, y nada de lo que envíe quien llama los cambia. |
 
 El nombre de una variable es el nombre del valor en mayúsculas, con cada carácter que no sea una letra o un dígito escrito como `_`: `host-name` se convierte en `ONEUPTIME_INPUT_HOST_NAME`. El texto se pasa tal cual, los números y `true` o `false` como están escritos, y los objetos y listas como JSON. Un paso recibe como mucho 100 de estas variables, y un nombre de más de 100 caracteres no se convierte en ninguna; cada valor sigue estando en `ONEUPTIME_INPUTS`. Cada nombre empieza por `ONEUPTIME_`, así que quien llama no puede definir `PATH` ni ninguna otra variable que lea el Runner.
 

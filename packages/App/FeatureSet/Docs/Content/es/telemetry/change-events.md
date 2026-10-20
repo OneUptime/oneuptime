@@ -111,6 +111,8 @@ Cuando el cambio sospechoso es un rollout de Kubernetes en un clúster cuyas [co
 
 OneUptime también comprueba cada despliegue por su cuenta, se avise a alguien o no. Cuando han pasado los 30 minutos posteriores a un despliegue, los compara con los 30 minutos anteriores según los mismos umbrales y, si el servicio empeoró, un [hallazgo de IA](/docs/ai/ai-sre#hallazgos-detección-proactiva) nombra el despliegue en ese servicio.
 
+Un pull request de corrección que OneUptime AI abrió para una excepción se comprueba de la misma forma: en cuanto un despliegue registrado contiene su commit, OneUptime vigila allí la excepción e indica en la excepción si la corrección funcionó (consulta [Correcciones de código automáticas](/docs/ai/ai-sre#correcciones-de-código-automáticas)).
+
 En una investigación y en [Preguntar a la IA](/docs/ai/ask-ai), `recent_changes` lista los cambios de cualquier intervalo, y `get_change_details` muestra lo que publicó un despliegue: los commits desde el despliegue anterior del servicio, sus autores, los pull requests y los archivos que tocaron. Para eso hacen falta el commit en el cambio y un repositorio conectado a través de la [GitHub App](/docs/ai/github-app).
 
 ## Referencia

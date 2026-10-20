@@ -1,26 +1,26 @@
-# Identifiants de runbook
+# Accès de l'IA
 
-Un identifiant est le moyen pour un runbook d'atteindre quelque chose qui n'est **pas** l'hôte même de l'agent Runbook — un serveur en SSH, ou un cluster Kubernetes. Sans lui, « redémarrer le service » revient à écrire un script shell et à déposer à la main une clé ou un kubeconfig sur l'hôte de l'agent, où il reste sur le disque hors du contrôle d'OneUptime. Un identifiant, c'est ce même accès sous forme d'objet géré : chiffré au repos, attribué à des agents précis et désigné par son nom depuis une étape.
+L'accès de l'IA est la façon dont les commandes de OneUptime AI atteignent ce qui n'est **pas** l'hôte propre d'un agent Runbook — un serveur en SSH, ou le serveur d'API d'un cluster Kubernetes qui n'exécute pas le chart de l'agent Kubernetes. Chaque accès est un identifiant : cet accès sous forme d'objet géré, chiffré au repos, attribué à des agents Runbook précis, et choisi par OneUptime AI plutôt qu'écrit dans une commande. Les étapes de runbook ne les utilisent pas : une étape SSH ou kubectl se connecte avec une [variable de runbook](/docs/runbooks/variables) secrète. Un agent Runbook antérieur à cette version fait exception : il exécute une étape Kubernetes transformée à partir d'une action avec l'identifiant que nommait l'étape, jusqu'à ce que le script ou le kubeconfig de l'étape soit modifié.
 
-Gérez-les sous **Runbooks → Agents de runbook → Identifiants**.
+Gérez-les sous **Runbooks → Agents de runbook → Accès de l'IA**.
 
 :::cards
 - [Créer un identifiant](#créer-un-identifiant): Son accès, et les agents Runbook qui peuvent l'utiliser.
 - [Moindre privilège de l'autre côté](#moindre-privilège-de-lautre-côté): Limiter ce que la clé ou le jeton peut faire.
-- [Secrets pour les scripts](#secrets-pour-les-scripts): Donner un mot de passe ou un jeton à un script Bash ou JavaScript.
+- [Agents Runbook qui exécutent les commandes de OneUptime AI](#agents-runbook-qui-exécutent-les-commandes-doneuptime-ai): Qui peut donner un identifiant SSH à un tel agent.
 :::
 
 ## Comment un identifiant est utilisé
 
 ```mermaid title="Comment un identifiant atteint le système qu'il ouvre"
 flowchart TB
-    step["Étape SSH ou Kubernetes"] -->|"désigne"| cred["Identifiant, chiffré dans OneUptime"]
-    step -->|"vise"| runner["Agent Runbook"]
+    step["Commande SSH ou kubectl<br/>de OneUptime AI"] -->|"s'exécute avec"| cred["Identifiant, chiffré dans OneUptime"]
+    step -->|"s'exécute sur"| runner["Agent Runbook"]
     cred -->|"attribué à"| runner
-    runner -->|"prend l'étape en charge et reçoit le secret"| target["Hôte SSH ou serveur API Kubernetes"]
+    runner -->|"prend la commande en charge et reçoit le secret"| target["Hôte SSH ou serveur API Kubernetes"]
 ```
 
-Une étape SSH ou Kubernetes désigne un identifiant et un agent Runbook. Quand cet agent prend l'étape en charge, OneUptime vérifie que l'identifiant lui est attribué, déchiffre le secret et le remet uniquement dans la réponse à cette prise en charge. Le secret n'est jamais stocké sur la tâche et n'est jamais lisible via l'API.
+OneUptime AI exécute une commande SSH avec l'un des identifiants SSH attribués à l'agent Runbook sur lequel elle s'exécute, et une commande kubectl pour un cluster qui n'exécute pas le chart de l'agent Kubernetes avec l'identifiant Kubernetes lié à ce cluster, comme le montre [IA SRE](/docs/ai/ai-sre). Quand l'agent Runbook prend la commande en charge, OneUptime vérifie que l'identifiant lui est attribué, déchiffre le secret et ne le remet que dans la réponse à cette prise en charge. Le secret n'est jamais stocké sur le job et n'est jamais lisible par l'API.
 
 ## Avant de commencer
 
@@ -31,9 +31,9 @@ Une étape SSH ou Kubernetes désigne un identifiant et un agent Runbook. Quand 
 ## Créer un identifiant
 
 :::steps
-### Ouvrir les identifiants
+### Ouvrir l'accès de l'IA
 
-Ouvrez **Runbooks → Agents de runbook → Identifiants** et cliquez sur **Créer : Identifiant de runbook**.
+Ouvrez **Runbooks → Agents de runbook → Accès de l'IA** et cliquez sur **Créer : Identifiant**.
 
 ### Le nommer et choisir son type
 
@@ -50,11 +50,11 @@ Ouvrez **Runbooks → Agents de runbook → Identifiants** et cliquez sur **Cré
 
 ### L'attribuer à des agents Runbook
 
-À l'étape **Agents de runbook**, choisissez les agents qui peuvent utiliser l'identifiant, puis cliquez sur **Créer : Identifiant de runbook**. Un identifiant attribué à aucun agent ne peut être utilisé par aucune étape.
+À l'étape **Agents de runbook**, choisissez les agents qui peuvent utiliser l'identifiant, puis cliquez sur **Créer : Identifiant**. Un identifiant attribué à aucun agent ne peut être utilisé par aucune commande.
 
-### L'utiliser dans une étape
+### Laisser OneUptime AI l'utiliser
 
-Dans une [étape SSH ou Kubernetes](/docs/runbooks/authoring#types-détapes), choisissez l'un de ces agents, puis l'identifiant sous **Identifiant**. Une étape ne propose que des identifiants de son propre type, et enregistrer une étape qui désigne un identifiant demande l'autorisation de lire les identifiants de runbook.
+OneUptime AI exécute ses commandes SSH sur un agent Runbook où **Exécute les commandes de remédiation IA** est activé, avec l'un des identifiants SSH qui lui sont attribués. Un identifiant Kubernetes est utilisé dès qu'il est lié, avec l'un de ses agents Runbook, à un cluster : voir [IA SRE](/docs/ai/ai-sre).
 :::
 
 ## Ce qui est stocké
@@ -72,7 +72,7 @@ Il n'y a donc pas d'« afficher » pour une valeur secrète, seulement « rempla
 
 ## Attribuer un identifiant à des agents Runbook
 
-Un identifiant n'est utilisable que par les agents Runbook auxquels vous l'attribuez, et une étape doit viser l'un de ces agents. Si une étape désigne un identifiant qui n'est pas attribué à son agent, l'étape **échoue au lieu de s'exécuter** — un agent qui ne fait rien en silence ressemble exactement à un agent qui a réussi.
+Un identifiant n'est utilisable que par les agents Runbook auxquels vous l'attribuez. Une commande qui désigne un identifiant non attribué à son agent Runbook **échoue au lieu de s'exécuter** — un agent qui ne fait rien en silence ressemble exactement à un agent qui a fonctionné.
 
 L'attribution est la frontière d'accès, alors gardez-la étroite : un agent qui ne fait jamais que redémarrer un cluster n'a pas besoin de la clé SSH de vos hôtes de base de données.
 
@@ -92,82 +92,7 @@ Les étapes d'un workflow agissent en tant que Project Admin, mais ne se voient 
 OneUptime ne peut pas restreindre ce que votre identifiant a le droit de faire sur le système cible — c'est le rôle du système cible, et cela vaut la peine :
 
 - **SSH** — préférez une clé à un mot de passe, ne donnez à l'utilisateur que les commandes dont il a besoin (une commande forcée ou un shell restreint quand c'est possible), et ne réutilisez pas la clé personnelle d'un administrateur.
-- **Kubernetes** — liez le compte de service à un Role qui autorise `patch` exactement sur les charges de travail que touchent vos runbooks, exactement dans les espaces de noms où elles tournent. **Restart workload** modifie la charge de travail elle-même, et **Scale workload** modifie sa sous-ressource `scale` : rien de plus n'est nécessaire.
-
-Par exemple, un compte de service qui peut redémarrer et mettre à l'échelle un Deployment, et rien d'autre :
-
-```yaml title="oneuptime-runbooks-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-rules:
-  # Restart workload: patches the Deployment's pod template.
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
-  # Scale workload: patches the Deployment's scale subresource.
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-subjects:
-  - kind: ServiceAccount
-    name: oneuptime-runbooks
-    namespace: checkout
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: oneuptime-runbooks
-```
-
-Pour un StatefulSet ou un DaemonSet, utilisez plutôt `statefulsets` ou `daemonsets`. Un DaemonSet ne peut pas être mis à l'échelle, il n'a donc pas besoin de règle `scale`.
-
-## Secrets pour les scripts
-
-Les étapes Bash et JavaScript n'ont pas de champ **Identifiant**. Pour donner à un script un mot de passe, un jeton ou une clé d'API sans l'écrire dans le runbook, stockez-le comme **secret de runbook**. Les secrets se gèrent sous **Runbooks → Paramètres → Secrets**, par les Project Owners et les Project Admins ou avec l'autorisation **Create Runbook Secret**.
-
-:::steps
-### Créer le secret
-
-Cliquez sur **Créer : Secret de runbook**. À l'étape **Secret**, saisissez un **Nom** (lettres, chiffres, tirets et traits de soulignement), une **Description** facultative et la **Valeur du secret**. À l'étape **Accès**, choisissez vos agents sous **Vos agents Runbook qui peuvent utiliser ce secret**. Sur un serveur doté d'[agents Runbook globaux](/docs/runbooks/agents#agents-runbook-globaux), **Les agents Runbook globaux peuvent utiliser ce secret** permet aussi aux étapes de ce projet qui s'exécutent sur un agent global de l'utiliser. Il est activé pour un nouveau secret tant que le projet utilise les agents globaux.
-
-### L'utiliser dans un script
-
-Écrivez `{{runbookSecrets.NAME}}` là où la valeur doit aller :
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer {{runbookSecrets.CDN_API_TOKEN}}" \
-  "https://api.cdn.example.com/v1/purge"
-```
-
-Quand un agent auquel le secret est attribué prend l'étape en charge, il reçoit le script avec la valeur insérée. Un agent global aussi, quand le secret autorise les agents globaux à l'utiliser. Une étape sur un agent global qui nomme un secret que les agents globaux ne peuvent pas utiliser échoue en nommant le secret, plutôt que de s'exécuter sans lui.
-:::
-
-Comme les champs secrets d'un identifiant, la valeur d'un secret est chiffrée au repos et jamais renvoyée par l'API : **Mettre à jour la valeur secrète** la remplace. Sur OneUptime Cloud, les secrets de runbook demandent aussi l'offre **Growth** ou supérieure.
-
-| | Identifiant | Secret de runbook |
-| --- | --- | --- |
-| Utilisé par | Les étapes SSH et Kubernetes | Les scripts Bash et JavaScript |
-| Contient | Un hôte et sa clé, ou l'URL et le jeton d'un cluster | N'importe quelle valeur unique |
-| Géré sous | **Runbooks → Agents de runbook → Identifiants** | **Runbooks → Paramètres → Secrets** |
-| Atteint l'agent Runbook | Dans la réponse à la prise en charge d'une étape qui le désigne | Inséré dans le script de l'étape qu'il prend en charge |
-| Relisible via l'API | Ses champs non secrets seulement | Jamais sa valeur |
+- **Kubernetes** — liez le compte de service à un Role qui n'autorise que ce que vous laissez faire à OneUptime AI, dans les namespaces où il peut agir. Un compte de service qui ne peut que lire laisse OneUptime AI enquêter et refuse toute correction.
 
 ## Qui peut les voir
 
@@ -178,7 +103,7 @@ Notez que la **clé d'agent** d'un agent Runbook équivaut aux identifiants qui 
 ## Prochaines étapes
 
 :::cards
-- [Rédiger un runbook](/docs/runbooks/authoring): Écrire les étapes SSH et Kubernetes qui utilisent un identifiant.
+- [Variables de runbook](/docs/runbooks/variables): Les secrets avec lesquels les étapes SSH et kubectl se connectent.
 - [Agents de runbook](/docs/runbooks/agents): Installer l'agent Runbook auquel un identifiant est attribué.
 - [Configuration & sécurité des runbooks](/docs/runbooks/configuration): Autorisations et durcissement de toute la pile des runbooks.
 :::

@@ -143,6 +143,9 @@ runner:
 |------------------------------|----------------------------------------------------------------------|----------------|
 | `nginx.service.type`         | Service type for the bundled OneUptime ingress gateway.              | `LoadBalancer` |
 | `nginx.service.loadBalancerIP` | Load balancer IP for the nginx service.                            | `nil`          |
+| `nginx.service.externalTrafficPolicy` | `Local` keeps each visitor's own address on the way to the gateway. Empty keeps Kubernetes' default, `Cluster`. See [Visitor addresses](#visitor-addresses). | `""` |
+| `nginx.listenAddress`        | The one address the gateway listens on inside its pod, such as `0.0.0.0:` (IPv4 only). Empty: every IPv4 and IPv6 address it has. | `""` |
+| `nginx.listenOptions`        | Options of the gateway's listening socket, such as `backlog=4096`.  | `""`           |
 | `statusPage.cnameRecord`     | CNAME record for the status page. See [Custom domains](custom-domains.md). | `nil`    |
 
 ## Images
@@ -554,7 +557,9 @@ allowlists — and IP rate limits — actually check.
 
 The default of `1` is correct for a stock install: the chart's own nginx
 gateway is the only thing that touches the header, and the `LoadBalancer`
-Service in front of it is L4 and does not.
+Service in front of it is L4 and does not. Whether the address the gateway
+writes is the visitor's own is up to that Service: see
+[Visitor addresses](#visitor-addresses).
 
 **Raise it if you put your own HTTP proxy in front.** A CDN or WAF that appends
 to `X-Forwarded-For` — Cloudflare, an AWS ALB, an ingress-nginx of your own —
@@ -567,7 +572,10 @@ they like and the allowlist stops meaning anything.
 
 Note that the allowlists assume the app is reachable only *through* those
 proxies. Keep the app Service internal; a caller who can open a connection to
-it directly is the peer, and no header setting compensates for that.
+it directly is the peer, and no header setting compensates for that. With a
+proxy of your own in front (`trustedProxyHops: 2`), keep the gateway's Service
+internal as well (`nginx.service.type: ClusterIP`): a visitor who reaches the
+gateway around your proxy writes the entry OneUptime would read.
 
 IP rate limits count each client address, and for an IPv6 client its whole
 `/64` as well, with room for ten addresses: one host can send from every
@@ -577,6 +585,55 @@ or servers in one. Both are read from the address `trustedProxyHops` picks.
 | Parameter          | Description                                                                                          | Default |
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
+
+## Visitor addresses
+
+OneUptime counts each visitor by the address its gateway accepted the
+connection from: the sign-in limits, the other limits per address, and the IP
+allowlists of status pages and dashboards all read it. With the chart's
+gateway behind a `LoadBalancer` or `NodePort` Service, Kubernetes decides
+whether that address is the visitor's own:
+
+| `nginx.service.externalTrafficPolicy` | What OneUptime sees |
+|---------------------------------------|---------------------|
+| empty (the default), or `Cluster` | The address of the node a visitor came through. kube-proxy hands the gateway every visitor from it, so everyone who comes through one node is one visitor to OneUptime: one person's failed sign-ins can lock out the others. |
+| `Local` | Each visitor's own address, when your load balancer passes it through. |
+
+While the value is empty, `helm install` and `helm upgrade` say so. Set it to
+`Cluster` to keep Kubernetes' default and stop the note.
+
+**Load balancers that pass the visitor's address through** - MetalLB, and the
+network load balancers of Google Cloud, Azure and AWS (a Network Load
+Balancer) - keep it with `Local`:
+
+```yaml
+nginx:
+  service:
+    externalTrafficPolicy: Local
+```
+
+Under `Local`, Kubernetes sends visitors only to nodes that run a gateway pod,
+and gives the Service a `healthCheckNodePort` that tells the load balancer
+which nodes those are. When you switch a live install, a node without a gateway
+pod refuses visitors until the load balancer's health check catches up, from
+seconds to about a minute depending on its interval, so switch at a quiet time.
+Spreading the gateway's replicas across nodes
+(`nginx.topologySpreadConstraints`) keeps more nodes serving.
+
+**Load balancers that end the connection themselves** - an AWS Classic Load
+Balancer, and the load balancers of DigitalOcean, Hetzner and Linode, among
+others - show the gateway their own address whatever the policy. There, put an
+ingress controller of your own in front that takes the visitor's address from
+the load balancer (most read the PROXY protocol, which these load balancers
+can send), make the gateway's Service internal (`nginx.service.type:
+ClusterIP`), and set `trustedProxyHops: 2`.
+
+Do not raise `trustedProxyHops` to make up for a shared address: past the
+proxies a visitor really passes through, it reads an entry the visitor writes.
+
+The Admin Dashboard's **OneUptime Health** page says when several people sign
+in from one private network address, which is what a hidden visitor address
+looks like.
 
 ## HTTPS
 
@@ -608,6 +665,47 @@ extraEnv:
   - name: HSTS_MAX_AGE_SECONDS
     value: "0"
 ```
+
+## Web push notifications
+
+Browsers receive OneUptime's notifications through Web Push, signed with a
+VAPID key pair. Generate one once with `npx web-push generate-vapid-keys` and
+keep it: browsers that subscribed with one key pair stop receiving pushes when
+it changes. See
+[Push Notifications](https://oneuptime.com/docs/self-hosted/push-notifications).
+
+| Parameter                            | Description                                                                      | Default                        |
+|--------------------------------------|----------------------------------------------------------------------------------|--------------------------------|
+| `vapid.publicKey`                    | The public half of the key pair (`VAPID_PUBLIC_KEY`). Every browser is given it. | `nil`                          |
+| `vapid.privateKey`                   | The private half (`VAPID_PRIVATE_KEY`), which signs every web push. Leave it empty when you use `vapid.existingSecret`. | `nil` |
+| `vapid.subject`                      | A contact address the browser push services can reach you on (`VAPID_SUBJECT`).  | `mailto:support@oneuptime.com` |
+| `vapid.existingSecret.name`          | Read the private key from a Secret you manage instead of `vapid.privateKey`.     | `nil`                          |
+| `vapid.existingSecret.privateKeyKey` | The key of that Secret that holds the private key.                               | `privateKey`                   |
+
+`vapid.privateKey` keeps the key in the release's values, which Helm stores with
+every revision. To keep it out of them, put the key in a Secret in the
+release's namespace and name that Secret instead:
+
+```console
+kubectl create secret generic oneuptime-vapid -n oneuptime --from-literal=privateKey=<private key>
+```
+
+```yaml
+vapid:
+  publicKey: <public key>
+  existingSecret:
+    name: oneuptime-vapid
+```
+
+Every pod that is given `VAPID_PRIVATE_KEY` (app, worker, telemetry writer,
+nginx, home, test server and the migrate Job) then reads it from that Secret,
+and the chart writes no copy of it. Set `vapid.privateKey` or
+`vapid.existingSecret.name`, not both: the chart refuses the two together and
+says which to clear. The public key stays in `vapid.publicKey`.
+
+Pods read the private key when they start: after you change it in the Secret,
+restart them (`kubectl rollout restart deployment -n oneuptime` restarts every
+Deployment in the namespace).
 
 ## On-call calendar feeds
 

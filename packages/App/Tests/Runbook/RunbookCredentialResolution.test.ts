@@ -228,6 +228,74 @@ describe("RunbookCredentialsUtil.resolveForJob", () => {
   });
 
   /*
+   * ----------------------------------------------------------------- (2b)
+   * A caller that knows the kind of credential its job runs with - the
+   * Kubernetes action a moved kubectl step kept for an older Runner - names
+   * it, and a credential of another kind is never read: a Kubernetes action
+   * cannot carry an SSH key out of here.
+   */
+  describe("a caller that names the kind of credential", () => {
+    function resolveKubernetes(): Promise<JSONObject | null> {
+      return RunbookCredentialsUtil.resolveForJob({
+        credentialId: credentialId.toString(),
+        agentId,
+        projectId,
+        credentialType: RunbookCredentialType.Kubernetes,
+      });
+    }
+
+    test("asks for that kind as well as the three clauses", async () => {
+      returns(kubernetesCredential());
+
+      await resolveKubernetes();
+
+      expect(findArgs().query).toEqual({
+        _id: credentialId.toString(),
+        projectId: projectId,
+        runners: [agentId],
+        credentialType: RunbookCredentialType.Kubernetes,
+      });
+    });
+
+    test("the credential found is projected as always", async () => {
+      returns(
+        kubernetesCredential({ kubernetesCaCertificate: "-----BEGIN CA-----" }),
+      );
+
+      await expect(resolveKubernetes()).resolves.toEqual({
+        credentialType: RunbookCredentialType.Kubernetes,
+        apiServerUrl: "https://10.0.0.1:6443",
+        token: "sa-token-value",
+        caCertificate: "-----BEGIN CA-----",
+      });
+    });
+
+    test("a credential of another kind matches nothing: null, and the log says it may be of another kind", async () => {
+      returns(null);
+
+      await expect(resolveKubernetes()).resolves.toBeNull();
+
+      const message: string = (logger.warn as unknown as jest.Mock).mock
+        .calls[0]![0] as string;
+
+      expect(message).toContain("or is not a Kubernetes credential");
+    });
+
+    test("a caller that names none reads as it always did", async () => {
+      returns(null);
+
+      await resolve();
+
+      expect(findArgs().query).not.toHaveProperty("credentialType");
+      expect(
+        (logger.warn as unknown as jest.Mock).mock.calls[0]![0] as string,
+      ).toBe(
+        `Runbook credential ${credentialId.toString()} is not available to Runner ${agentId.toString()} — it does not exist, belongs to another project, or is not assigned to this Runner.`,
+      );
+    });
+  });
+
+  /*
    * ------------------------------------------------------------------ (3)
    * Nothing matched the scoped read: wrong project, deleted, or (the case
    * that matters) simply not assigned to this Runner.

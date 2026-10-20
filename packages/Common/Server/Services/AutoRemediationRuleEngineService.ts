@@ -72,6 +72,7 @@ import AutoRemediationDecisionRecorder from "../Utils/AutoRemediation/AutoRemedi
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -1367,6 +1368,7 @@ class AutoRemediationRuleEngineServiceClass {
   }
 
   @CaptureSpan()
+  @RuleEvaluation()
   private async applyRules(data: {
     projectId: ObjectID;
     triggerEntityType: AutoRemediationTriggerEntity;

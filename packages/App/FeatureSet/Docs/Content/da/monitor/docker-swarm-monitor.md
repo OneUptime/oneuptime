@@ -116,7 +116,7 @@ Agentens collector bruger OpenTelemetry-modtageren `docker_stats`, så metrikker
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | CPU-udnyttelse for en opgaves container, hvor 100 % er én hel CPU-kerne. |
+| `container.cpu.utilization` | % | CPU, som en opgaves container brugte i hvert interval på 30 sekunder, hvor 100 % er én hel CPU-kerne. |
 
 ### Hukommelse
 

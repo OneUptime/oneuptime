@@ -15,6 +15,7 @@ import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
+import CodeRepositoryRunnerChoice from "../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import {
   CODE_TASK_ASK_REFUSED_MESSAGE,
   CODE_TASK_NOT_FOUND_MESSAGE,
@@ -54,6 +55,7 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { CodeRepositoryRunnerChoiceKind } from "../../../Types/Runner/CodeRepositoryRunner";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
@@ -328,12 +330,13 @@ beforeEach(() => {
         detail: world.llmDetail,
       } as never;
     });
-  jest.spyOn(CodeFixReadiness, "getAgentCheck").mockResolvedValue({
-    id: "agentAvailable",
-    ok: true,
-    title: "",
-    detail: "",
-  } as never);
+  // The repository's Runner (a global Runner here) is online.
+  jest
+    .spyOn(CodeRepositoryRunnerChoice, "getStatusForRepository")
+    .mockResolvedValue({
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: true,
+    });
   jest.spyOn(AIService, "getReachedProjectDailyLimit").mockResolvedValue(null);
   jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue(undefined);
   jest
@@ -454,6 +457,8 @@ describe("every route acts as a signed-in person", () => {
       "/code-task/reply/:taskId",
       "/code-task/retry/:taskId",
       "/code-task/stop/:taskId",
+      // Where a profile's frames live in the repositories (the Profiler).
+      "/code-task/source-links",
     ]);
 
     for (const route of routes) {

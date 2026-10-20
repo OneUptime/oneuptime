@@ -1,6 +1,6 @@
 # Moniteurs et règles de moniteurs
 
-Un SLO mesure la disponibilité des moniteurs qui lui sont rattachés. Rattachez-les à la main, laissez des règles de moniteurs rattacher chaque moniteur qui correspond, ou faites les deux. Cette page couvre les pages **Moniteurs** et **Règles de moniteurs** d'un SLO, toutes deux sous **Configuration** dans son menu latéral.
+Un SLO mesure la disponibilité des moniteurs qui lui sont rattachés. Rattachez-les à la main, laissez des règles de moniteurs rattacher chaque moniteur qui correspond, ou faites les deux. Cette page couvre la page **Moniteurs** d'un SLO, sous **Configuration** dans son menu latéral, et sa page **Règles de moniteurs**, sous **Règles**.
 
 :::cards
 - [Choisir les moniteurs à la main](#rattacher-des-moniteurs-à-la-main): Idéal pour un petit ensemble fixe.

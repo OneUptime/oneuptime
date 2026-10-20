@@ -81,12 +81,13 @@ Next, in rough order of usefulness:
 
 ## Where everything lives
 
-Once a status page is open, its own left side menu is grouped into nine sections. Use this as a map for the rest of this documentation group.
+Once a status page is open, its own left side menu is grouped into ten sections. Use this as a map for the rest of this documentation group.
 
 | Section | What's in it |
 | --- | --- |
 | **Basic** | **Overview**, **Announcements**, **Owners**. |
-| **Resources** | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**. |
+| **Resources** | A single **Resources** screen — groups on the left, the selected group's monitors on the right. |
+| **Rules** | **Monitor Rules** — rules that add every monitor that matches to the page, now and later. |
 | **Subscribers** | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **Microsoft Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers. |
 | **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |
@@ -167,7 +168,7 @@ Below the card are **Export Status Page as JSON**, which downloads the status pa
 
 ## Previewing before you go live
 
-The **Overview** screen of every status page carries a **Status Page Link** card with a link straight to the page, and **Copy link** beside it. Use it while you're still adding resources and before any custom domain exists.
+The **Overview** screen of every status page carries a **Status Page Link** card with every address the page answers at: its custom domains first, then its address on OneUptime, each with **Copy link** beside it. A custom domain that is not live yet is marked **Not live yet**, with why, and with **DNS Setup** when something is left to do. When visitors have to sign in or enter a password, the card says so. Use the OneUptime address while you're still adding resources and before any custom domain is live.
 
 Behind the scenes, every public route has a preview twin under `/status-page/{statusPageId}/...` — a preview overview, a preview incident list, a preview subscribe page, and so on. That means a URL or screenshot taken from the dashboard preview will not match what a customer sees once a custom domain is attached, so double-check any link you paste into a runbook or an email.
 

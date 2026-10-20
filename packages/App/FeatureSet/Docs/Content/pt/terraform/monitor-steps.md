@@ -309,7 +309,7 @@ Os valores de `check_on` que cada tipo de monitor mais usa. O editor de critéri
 | Logs | `Log Count` |
 | Traces | `Span Count` |
 | Exceções | `Exception Count` |
-| Perfis | `Profile Count` |
+| Perfis | `Profile Count`, `Function Share (in %)` |
 | IA / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | Métricas | `Metric Value` (os filtros de métricas podem receber JSON em `metric_monitor_options`) |
 | Código personalizado / Synthetic | `Result Value` (pode comparar um campo dos dados retornados, indicado no JSON de `custom_code_monitor_options`, por ex. `jsonencode({ resultValuePath = "status" })` — veja abaixo), `Error`, `Execution Time (in ms)` |

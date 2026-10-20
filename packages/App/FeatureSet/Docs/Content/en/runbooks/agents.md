@@ -1,6 +1,6 @@
 # Runbook Agents
 
-A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hosted process that runs the JavaScript, Bash, SSH and Kubernetes steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts: it queues them, and the Runner the step's author picked claims each one, runs it and posts the result back. This page is for whoever installs and operates Runners. A JavaScript step that picks no Runner runs on a [global Runner](#global-runners) instead, one OneUptime runs for every project.
+A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hosted process that runs the JavaScript, Bash, SSH and kubectl steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts: it queues them, and the Runner the step's author picked claims each one, runs it and posts the result back. This page is for whoever installs and operates Runners. A JavaScript step that picks no Runner runs on a [global Runner](#global-runners) instead, one OneUptime runs for every project.
 
 :::cards
 - [Install a Runner](#install-a-runner): From the dashboard to a connected container, in five steps.
@@ -33,13 +33,13 @@ flowchart TB
 1. You create a Runner in OneUptime. OneUptime generates an ID and a secret key for it.
 2. You run the Runner container on a host inside your infrastructure, with that ID and key and your OneUptime URL.
 3. The Runner asks OneUptime for work every 5 seconds, and reports that it is alive every 60 seconds.
-4. When you write a JavaScript, Bash, SSH or Kubernetes step, you pick the Runner from a dropdown. The step is bound to that Runner. A JavaScript step can keep **Global Runner**, which the dropdown picks for it.
+4. When you write a JavaScript, Bash, SSH or kubectl step, you pick the Runner from a dropdown. The step is bound to that Runner. A JavaScript step can keep **Global Runner**, which the dropdown picks for it.
 5. When the step runs, the Worker queues a job with `targetAgentId` set to that Runner. Only that Runner can claim it.
-6. The Runner runs the job locally — `bash -c <script>` for Bash, an `isolated-vm` sandbox for JavaScript, an SSH connection or a call to the cluster's API server with the step's credential — captures the result, and posts it back. The Worker resumes the runbook with the result.
+6. The Runner runs the job locally — `bash -c <script>` for Bash and kubectl, an `isolated-vm` sandbox for JavaScript, an SSH connection that runs the script with bash on the machine — captures the result, hides the step's secrets in it, and posts it back. The Worker resumes the runbook with the result.
 
 The Runner only needs **outbound HTTPS** to your OneUptime instance. It does not accept any inbound connections.
 
-What a Runner holds is its ID and key. It receives everything else with the job it claims: a script, with the [runbook secrets](/docs/runbooks/credentials#secrets-for-scripts) assigned to it filled in, or the [credential](/docs/runbooks/credentials) an SSH or Kubernetes step names. That is why anyone holding a Runner's key can act as that Runner: treat the key like the credentials assigned to it.
+What a Runner holds is its ID and key. It receives everything else with the job it claims: a script, with the [runbook variables](/docs/runbooks/variables) it names filled in, and an SSH step's key or password or a kubectl step's kubeconfig. It gets a secret only when the secret lets it use it. That is why anyone holding a Runner's key can act as that Runner: treat the key like the secrets it may use.
 
 ## Why scripts run on a Runner
 
@@ -56,20 +56,20 @@ Global Runners are the Runners OneUptime runs for every project. A JavaScript st
 
 | | Global Runner | Your own Runner |
 | --- | --- | --- |
-| Steps it runs | JavaScript | JavaScript, Bash, SSH and Kubernetes |
+| Steps it runs | JavaScript | JavaScript, Bash, SSH and kubectl |
 | What a step can reach | Public internet addresses | What its host can reach |
 | Longest a step runs | 5 minutes | 1 hour |
-| Runbook secrets | The ones you let global Runners use | The ones you assign to it |
+| Secret variables | The ones you let global Runners use | The ones that list it |
 | Credentials | None | The ones you assign to it |
 
 A global Runner runs the steps of many projects, so each step is kept apart from every other:
 
 - Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it: no files, no processes, no environment variables, and nothing kept from one step to the next.
 - Its HTTP requests reach public internet addresses only, never a private, loopback or link-local address or a cloud metadata endpoint, so a global Runner never reaches your network.
-- It gets a runbook secret only when the secret's **Global Runners can use this secret** switch is on, and only for a step of the secret's own project. It never gets a credential.
+- It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project. It never gets a credential.
 - A project runs at most three steps on global Runners at once, so no project keeps them to itself.
 
-Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way.
+Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on a global Runner too, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from
 
@@ -96,10 +96,9 @@ Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** a
 | **Description** | **Runner** | Optional. A sentence on what this host can reach. |
 | **Labels** | **Runner** (under **More fields**) | Optional. |
 | **Runs Runbooks** | **Capabilities** | On by default. Lets this Runner take runbook steps. |
-| **Runs AI Code Fixes** | **Capabilities** | Off by default. Lets it open AI code-fix pull requests; see [Code](/docs/ai/ai-agent). |
 | **Runs AI Remediation Commands** | **Capabilities** | Off by default. Lets AI auto-remediation run policy-checked commands on it. Turning it on for a Runner that holds SSH credentials takes permission to read runbook credentials; see [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands). |
 
-A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it.
+A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI code fixes are not a capability: a code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.
 
 ### 2. Copy the install command
 
@@ -140,7 +139,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Add a step that runs on a Runner
 
-In your runbook's **Steps**, add a JavaScript, Bash, SSH or Kubernetes step.
+In your runbook's **Steps**, add a JavaScript, Bash, SSH or kubectl step.
 
 ### Pick the Runner
 
@@ -151,7 +150,7 @@ The step's **Runner** dropdown lists every Runner in the project, with whether i
 Click **Save Steps**. When a run reaches the step, the Worker queues a job for that Runner's ID, and only that Runner can claim it. A step on **Global Runner** waits for whichever global Runner is free.
 :::
 
-Bash is executed with `bash -c`. JavaScript runs in an `isolated-vm` sandbox on the Runner, with no filesystem or process access; it can call public HTTP APIs with `axios`, but not addresses on a private network. SSH and Kubernetes steps use the [credential](/docs/runbooks/credentials) the step names, which must be assigned to the same Runner.
+Bash is executed with `bash -c`. JavaScript runs in an `isolated-vm` sandbox on the Runner, with no filesystem or process access; it can call public HTTP APIs with `axios`, but not addresses on a private network. An SSH or kubectl step signs in with a secret [runbook variable](/docs/runbooks/variables), which must list the step's Runner under **Your Runners that can use it**.
 
 Need more than one Runner? Create them, then point each step at the one that fits. For redundancy, run a second Runner and split your steps between them, or keep a backup runbook whose steps target the other Runner.
 
@@ -166,7 +165,7 @@ Two timeouts apply to every step that runs on a Runner:
 | **Claim timeout** | 2 minutes | How long the Worker waits for the selected Runner to claim the job. If the Runner doesn't pick it up in time, the step fails as timed out and the runbook moves on (or stops, depending on **Continue on failure**). |
 | **Execution timeout** | 30 seconds | How long the Runner lets the step run before stopping it. Bash gets `SIGKILL`; JavaScript's sandbox is torn down. |
 
-Both are configurable per step. Open **Runbooks › your runbook › Steps**, expand the step, and set **Execution timeout** and **Claim timeout** (in seconds) under its settings. Leave a field blank to use the default. Each accepts 1 second to 1 hour; values outside that range are clamped when the step runs.
+Both are configurable per step. Open **Runbooks › your runbook › Steps**, expand the step, and set **Execution timeout** and **Claim timeout** (in seconds) under its **More fields**. Leave a field blank to use the default. Each accepts 1 second to 1 hour; values outside that range are clamped when the step runs.
 
 The Worker's overall wait window is `claim timeout + execution timeout + a few seconds`. Pick numbers that match the step.
 
@@ -234,7 +233,7 @@ The Runner reads these on startup:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no | `10000` | How often the Runner renews a running job's lease. A value under `1000` falls back to the default. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | no | `1` | Maximum simultaneous jobs on this Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | no | — | Set to `false` to stop this Runner taking runbook steps, whatever the dashboard says. It can only turn the capability off. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Set to `false` to stop this Runner taking AI code-fix runs, whatever the dashboard says. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Set to `false` to stop this Runner taking AI code-fix runs, even for a code repository that picks it. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | no | — | Set to `false` to stop this Runner running AI remediation commands, whatever the dashboard says. |
 
 ## Rotating an agent key
@@ -307,14 +306,18 @@ The Runner claimed the job, then stopped renewing its lease: it crashed, restart
 Every capability is off for this Runner. Turn on **Runs Runbooks** on the Runner's page in OneUptime. It picks the change up on its next heartbeat.
 :::
 
-:::details A step on a global Runner fails because global Runners may not use a runbook secret
-The step names a runbook secret whose **Global Runners can use this secret** switch is off, so the global Runner was not handed it and the step was not run. The error names the secret. Turn the switch on for it under **Runbooks → Settings → Secrets**, or pick one of your own Runners for the step.
+:::details A step fails because its Runner may not use a secret variable
+The step names a secret variable that does not let its Runner use it, so the Runner was not handed it and the step was not run. The error names the secret and what to change. Under **Runbooks → Settings → Global Variables**, or the runbook's **Settings → Variables**, add the Runner under **Your Runners that can use it**, or turn **Global Runners can use it** on for a step on a global Runner. Or pick a Runner the secret lets use it.
+:::
+
+:::details A kubectl step fails because its Runner is too old
+The step failed with "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." A Runner older than kubectl scripts cannot run one. A Kubernetes step moved to a kubectl script when you upgraded still runs on it, as the action it was written as, until its script or kubeconfig is changed. Update the Runner, as [Keep the agent up to date](#5-keep-the-agent-up-to-date) shows, then run the runbook again.
 :::
 
 ## Next steps
 
 :::cards
 - [Authoring a Runbook](/docs/runbooks/authoring): Write the steps that run on your Runner.
-- [Runbook Credentials](/docs/runbooks/credentials): Give SSH and Kubernetes steps managed access.
+- [Runbook Variables](/docs/runbooks/variables): The values and secrets your steps use, and the Runners that get them.
 - [Runbook Configuration & Safety](/docs/runbooks/configuration): Limits, permissions and hardening.
 :::

@@ -1,6 +1,6 @@
 # Agentes de runbook
 
-Un **agente de runbook**, llamado **Runner** en el panel, es un pequeño proceso autoalojado que ejecuta los pasos JavaScript, Bash, SSH y Kubernetes de tus runbooks **dentro de tu propia infraestructura**. El Worker de OneUptime nunca ejecuta tus scripts: los pone en cola, y el Runner que eligió quien escribió el paso reclama cada uno, lo ejecuta y devuelve el resultado. Esta página es para quien instala y opera Runners. Un paso JavaScript que no elige ningún Runner se ejecuta en cambio en un [Runner global](#runners-globales), uno de los que OneUptime ejecuta para todos los proyectos.
+Un **agente de runbook**, llamado **Runner** en el panel, es un pequeño proceso autoalojado que ejecuta los pasos JavaScript, Bash, SSH y kubectl de tus runbooks **dentro de tu propia infraestructura**. El Worker de OneUptime nunca ejecuta tus scripts: los pone en cola, y el Runner que eligió quien escribió el paso reclama cada uno, lo ejecuta y devuelve el resultado. Esta página es para quien instala y opera Runners. Un paso JavaScript que no elige ningún Runner se ejecuta en cambio en un [Runner global](#runners-globales), uno de los que OneUptime ejecuta para todos los proyectos.
 
 :::cards
 - [Instalar un Runner](#instalar-un-runner): Del panel a un contenedor conectado, en cinco pasos.
@@ -33,13 +33,13 @@ flowchart TB
 1. Creas un Runner en OneUptime. OneUptime genera un ID y una clave secreta para él.
 2. Ejecutas el contenedor del Runner en un host de tu infraestructura, con ese ID, esa clave y la URL de tu OneUptime.
 3. El Runner pide trabajo a OneUptime cada 5 segundos e informa de que está vivo cada 60 segundos.
-4. Cuando escribes un paso JavaScript, Bash, SSH o Kubernetes, eliges el Runner en una lista desplegable. El paso queda vinculado a ese Runner. Un paso JavaScript puede quedarse con **Runner global**, que la lista desplegable elige para él.
+4. Cuando escribes un paso JavaScript, Bash, SSH o kubectl, eliges el Runner en una lista desplegable. El paso queda vinculado a ese Runner. Un paso JavaScript puede quedarse con **Runner global**, que la lista desplegable elige para él.
 5. Cuando el paso se ejecuta, el Worker pone en cola un trabajo con `targetAgentId` apuntando a ese Runner. Solo ese Runner puede reclamarlo.
-6. El Runner ejecuta el trabajo localmente — `bash -c <script>` para Bash, un sandbox `isolated-vm` para JavaScript, una conexión SSH o una llamada al servidor de API del clúster con la credencial del paso —, captura el resultado y lo devuelve. El Worker reanuda el runbook con el resultado.
+6. El Runner ejecuta el trabajo localmente (`bash -c <script>` para Bash y kubectl, un sandbox `isolated-vm` para JavaScript, una conexión SSH que ejecuta el script con bash en la máquina), captura el resultado, oculta en él los secretos del paso y lo devuelve. El Worker reanuda el runbook con el resultado.
 
 El Runner solo necesita **HTTPS saliente** hacia tu instancia de OneUptime. No acepta conexiones entrantes.
 
-Lo único que guarda un Runner es su ID y su clave. Todo lo demás lo recibe con el trabajo que reclama: un script, con los [secretos de runbook](/docs/runbooks/credentials#secretos-para-scripts) que tiene asignados ya insertados, o la [credencial](/docs/runbooks/credentials) que nombra un paso SSH o Kubernetes. Por eso cualquiera que tenga la clave de un Runner puede actuar como ese Runner: trata la clave como las credenciales que tiene asignadas.
+Un Runner solo guarda su ID y su clave. Todo lo demás lo recibe con el trabajo que reclama: un script con las [variables de runbook](/docs/runbooks/variables) que nombra ya insertadas, y la clave o contraseña de un paso SSH o el kubeconfig de un paso kubectl. Solo recibe un secreto si ese secreto se lo permite. Por eso cualquiera que tenga la clave de un Runner puede actuar como ese Runner: trata la clave como los secretos que puede usar.
 
 ## Por qué los scripts se ejecutan en un Runner
 
@@ -56,20 +56,20 @@ Los Runners globales son los Runners que OneUptime ejecuta para todos los proyec
 
 | | Runner global | Tu propio Runner |
 | --- | --- | --- |
-| Pasos que ejecuta | JavaScript | JavaScript, Bash, SSH y Kubernetes |
+| Pasos que ejecuta | JavaScript | JavaScript, Bash, SSH y kubectl |
 | Lo que un paso puede alcanzar | Direcciones públicas de internet | Lo que alcanza su host |
 | Lo más que dura un paso | 5 minutos | 1 hora |
-| Secretos de runbook | Los que permites a los Runners globales | Los que le asignas |
+| Variables secretas | Las que dejas usar a los Runners globales | Las que lo incluyen |
 | Credenciales | Ninguna | Las que le asignas |
 
 Un Runner global ejecuta los pasos de muchos proyectos, así que cada paso se mantiene aparte de todos los demás:
 
 - Cada paso se ejecuta en un sandbox `isolated-vm` propio, creado para ese paso y descartado después: sin archivos, sin procesos, sin variables de entorno y sin nada que se conserve de un paso al siguiente.
 - Sus peticiones HTTP solo alcanzan direcciones públicas de internet, nunca una dirección privada, de loopback o de enlace local ni un endpoint de metadatos de la nube, así que un Runner global nunca alcanza tu red.
-- Recibe un secreto de runbook solo cuando el interruptor **Los Runners globales pueden usar este secreto** del secreto está activado, y solo para un paso del propio proyecto del secreto. Nunca recibe una credencial.
+- Recibe una variable secreta solo cuando su interruptor **Los Runners globales pueden usarlo** está activado, y solo para un paso del propio proyecto de la variable. Nunca recibe una credencial.
 - Un proyecto ejecuta como mucho tres pasos a la vez en los Runners globales, así que ningún proyecto los acapara.
 
-Elige uno de tus propios Runners para un paso que deba alcanzar tu red, o para mantener el paso en hosts que controlas. Para mantener todos los pasos en tus propios Runners, desactiva **Usar Runners globales** al final de **Runbooks → Agentes de runbook**. Un paso JavaScript que no elige ningún Runner falla entonces, indicándolo, hasta que elija uno de los tuyos; un paso que elige uno de tus Runners lo conserva en cualquier caso.
+Elige uno de tus propios Runners para un paso que deba alcanzar tu red, o para mantener el paso en hosts que controlas. Para mantener todos los pasos en tus propios Runners, desactiva **Usar Runners globales** al final de **Runbooks → Agentes de runbook**. Un paso JavaScript que no elige ningún Runner falla entonces, indicándolo, hasta que elija uno de los tuyos; un paso que elige uno de tus Runners lo conserva en cualquier caso. Un repositorio de código que no elige ningún Runner en sus ajustes en Código también trabaja en un Runner global, y necesita uno de los tuyos mientras el interruptor está desactivado; consulta [Código](/docs/ai/ai-agent#elige-el-runner-del-repositorio).
 
 ### De dónde vienen los Runners globales
 
@@ -96,10 +96,9 @@ Ve a **Runbooks → Agentes de runbook** y crea un agente nuevo. Haz clic en **C
 | **Descripción** | **Runner** | Opcional. Una frase sobre a qué llega este host. |
 | **Etiquetas** | **Runner** (en **Más campos**) | Opcional. |
 | **Ejecuta runbooks** | **Capacidades** | Activado por defecto. Permite a este Runner tomar pasos de runbook. |
-| **Ejecuta correcciones de código con IA** | **Capacidades** | Desactivado por defecto. Le permite abrir pull requests de corrección de código con IA; consulta [Código](/docs/ai/ai-agent). |
 | **Ejecuta comandos de remediación con IA** | **Capacidades** | Desactivado por defecto. Permite que la remediación automática con IA ejecute en él comandos comprobados por una política. Activarlo en un Runner que tiene credenciales SSH requiere permiso para leer las credenciales de runbook; consulta [Runners que ejecutan los comandos de OneUptime AI](/docs/runbooks/credentials#runners-que-ejecutan-los-comandos-de-oneuptime-ai). |
 
-Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo.
+Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. Las correcciones de código con IA no son una capacidad: un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen.
 
 ### 2. Copiar el comando de instalación
 
@@ -140,7 +139,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Añadir un paso que se ejecute en un Runner
 
-En los **Pasos** de tu runbook, añade un paso JavaScript, Bash, SSH o Kubernetes.
+En los **Pasos** de tu runbook, añade un paso JavaScript, Bash, SSH o kubectl.
 
 ### Elegir el Runner
 
@@ -151,7 +150,7 @@ La lista desplegable **Runner** del paso muestra cada Runner del proyecto y si e
 Haz clic en **Guardar pasos**. Cuando una ejecución llega al paso, el Worker pone en cola un trabajo para el ID de ese Runner, y solo ese Runner puede reclamarlo. Un paso en **Runner global** espera al Runner global que quede libre.
 :::
 
-Bash se ejecuta con `bash -c`. JavaScript se ejecuta en un sandbox `isolated-vm` en el Runner, sin acceso al sistema de archivos ni a los procesos; puede llamar a API HTTP públicas con `axios`, pero no a direcciones de una red privada. Los pasos SSH y Kubernetes usan la [credencial](/docs/runbooks/credentials) que nombra el paso, que debe estar asignada al mismo Runner.
+Bash se ejecuta con `bash -c`. JavaScript se ejecuta en un sandbox `isolated-vm` en el Runner, sin acceso al sistema de archivos ni a los procesos; puede llamar a API HTTP públicas con `axios`, pero no a direcciones de una red privada. Un paso SSH o kubectl inicia sesión con una [variable de runbook](/docs/runbooks/variables) secreta, que debe incluir el Runner del paso en **Tus Runners que pueden usarlo**.
 
 ¿Necesitas más de un Runner? Créalos y apunta cada paso al que corresponda. Para tener redundancia, ejecuta un segundo Runner y reparte los pasos entre ambos, o mantén un runbook de respaldo cuyos pasos apunten al otro Runner.
 
@@ -166,7 +165,7 @@ Dos tiempos de espera se aplican a cada paso que se ejecuta en un Runner:
 | **Tiempo de espera de reclamación** | 2 minutos | Cuánto espera el Worker a que el Runner elegido reclame el trabajo. Si el Runner no lo toma a tiempo, el paso falla por tiempo agotado y el runbook sigue (o se detiene, según **Continuar en caso de error**). |
 | **Tiempo de espera de ejecución** | 30 segundos | Cuánto deja el Runner que se ejecute el paso antes de detenerlo. Bash recibe `SIGKILL`; el sandbox de JavaScript se destruye. |
 
-Ambos se configuran por paso. Abre **Runbooks › tu runbook › Pasos**, despliega el paso y ajusta **Tiempo de espera de ejecución** y **Tiempo de espera de reclamación** (en segundos) en sus ajustes. Deja un campo vacío para usar el predeterminado. Cada uno acepta de 1 segundo a 1 hora; los valores fuera de ese rango se ajustan al límite al ejecutarse el paso.
+Ambos se configuran por paso. Abre **Runbooks › tu runbook › Pasos**, despliega el paso y ajusta **Tiempo de espera de ejecución** y **Tiempo de espera de reclamación** (en segundos) en sus **Más campos**. Deja un campo vacío para usar el predeterminado. Cada uno acepta de 1 segundo a 1 hora; los valores fuera de ese rango se ajustan al límite al ejecutarse el paso.
 
 La ventana de espera total del Worker es `claim timeout + execution timeout + a few seconds`. Elige valores que encajen con el paso.
 
@@ -234,7 +233,7 @@ El Runner lee estas variables al arrancar:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no | `10000` | Con qué frecuencia renueva el Runner la concesión de un trabajo en curso. Un valor inferior a `1000` vuelve al predeterminado. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | no | `1` | Número máximo de trabajos simultáneos en este Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | no | — | Ponlo a `false` para que este Runner deje de tomar pasos de runbook, diga lo que diga el panel. Solo puede desactivar la capacidad. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Ponlo a `false` para que este Runner deje de tomar correcciones de código con IA, diga lo que diga el panel. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | no | — | Ponlo a `false` para que este Runner deje de tomar correcciones de código con IA, incluso para un repositorio de código que lo elige. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | no | — | Ponlo a `false` para que este Runner deje de ejecutar comandos de remediación con IA, diga lo que diga el panel. |
 
 ## Rotar la clave de un agente
@@ -307,14 +306,18 @@ El Runner reclamó el trabajo y luego dejó de renovar su concesión: se cayó, 
 Todas las capacidades están desactivadas para este Runner. Activa **Ejecuta runbooks** en la página del Runner en OneUptime. Lo aplica en su siguiente heartbeat.
 :::
 
-:::details Un paso en un Runner global falla porque los Runners globales no pueden usar un secreto de runbook
-El paso nombra un secreto de runbook cuyo interruptor **Los Runners globales pueden usar este secreto** está desactivado, así que el Runner global no lo recibió y el paso no se ejecutó. El error nombra el secreto. Activa el interruptor para él en **Runbooks → Ajustes → Secretos**, o elige uno de tus propios Runners para el paso.
+:::details Un paso falla porque su Runner no puede usar una variable secreta
+El paso nombra una variable secreta que no permite usarla a su Runner, así que el Runner no la recibió y el paso no se ejecutó. El error nombra el secreto y lo que hay que cambiar. En **Runbooks → Ajustes → Variables globales**, o en **Ajustes → Variables** del runbook, añade el Runner en **Tus Runners que pueden usarlo**, o activa **Los Runners globales pueden usarlo** para un paso en un Runner global. O elige un Runner que el secreto permita.
+:::
+
+:::details Un paso kubectl falla porque su Runner es demasiado antiguo
+El paso falló con "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Un Runner anterior a los scripts kubectl no puede ejecutar uno. Un paso de Kubernetes que pasó a ser un script kubectl al actualizar sigue ejecutándose en él como la acción con la que se escribió, hasta que se cambian su script o su kubeconfig. Actualiza el Runner, como muestra [Mantener el agente actualizado](#5-mantener-el-agente-actualizado), y vuelve a ejecutar el runbook.
 :::
 
 ## Siguientes pasos
 
 :::cards
 - [Crear un runbook](/docs/runbooks/authoring): Escribir los pasos que se ejecutan en tu Runner.
-- [Credenciales de runbook](/docs/runbooks/credentials): Dar a los pasos SSH y Kubernetes acceso gestionado.
+- [Variables de runbook](/docs/runbooks/variables): Los valores y secretos que usan tus pasos, y los Runners que los reciben.
 - [Configuración y seguridad de runbooks](/docs/runbooks/configuration): Límites, permisos y endurecimiento.
 :::

@@ -4,7 +4,7 @@ Un runbook se escribe como una lista ordenada de pasos en su página **Pasos**. 
 
 :::cards
 - [Crear un runbook nuevo](#crear-un-runbook-nuevo): De un runbook vacío a pasos guardados.
-- [Tipos de paso](#tipos-de-paso): Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes y AI.
+- [Tipos de paso](#tipos-de-paso): Manual, JavaScript, HTTP request, Bash, SSH, kubectl y AI.
 - [Gestión de fallos y aprobaciones](#gestión-de-fallos-y-aprobaciones): Qué pasa después de que un paso falla o tiene éxito.
 - [Un ejemplo completo](#un-ejemplo-completo): Un failover de base de datos en cinco pasos.
 :::
@@ -12,8 +12,8 @@ Un runbook se escribe como una lista ordenada de pasos en su página **Pasos**. 
 ## Antes de empezar
 
 - **Un rol que escriba runbooks.** Project Owner, Project Admin y Runbook Admin crean runbooks y guardan sus pasos. Con permisos granulares necesitas **Create Runbook** y **Edit Runbook**. Consulta [Permisos](/docs/runbooks/configuration#permisos).
-- **Un Runner, para los pasos Bash, SSH y Kubernetes.** Estos pasos se ejecutan en un [Runner](/docs/runbooks/agents) dentro de tu propia infraestructura, nunca en el Worker de OneUptime. Instala uno primero. Un paso JavaScript se ejecuta en un [Runner global](/docs/runbooks/agents#runners-globales) salvo que elijas uno de los tuyos.
-- **Una credencial, para los pasos SSH y Kubernetes, y permiso para leerla.** Consulta [Credenciales de runbook](/docs/runbooks/credentials). Un paso solo puede nombrar una credencial si puedes leer las credenciales de runbook: Project Owner, Project Admin o **Read Runbook Credential**. Runbook Admin no lo incluye.
+- **Un Runner, para los pasos Bash, SSH y kubectl.** Estos pasos se ejecutan en un [Runner](/docs/runbooks/agents) dentro de tu propia infraestructura, nunca en el Worker de OneUptime. Instala uno primero. Un paso JavaScript se ejecuta en un [Runner global](/docs/runbooks/agents#runners-globales) salvo que elijas uno de los tuyos.
+- **Una variable secreta, para los pasos SSH y kubectl.** La clave, la contraseña o el kubeconfig con que inicia sesión un paso es una [variable de runbook](/docs/runbooks/variables) secreta. Project Owner y Project Admin crean las variables, y Runbook Admin las elige en los pasos que escribe. Un paso kubectl puede usar en su lugar el acceso propio del Runner.
 - **Un proveedor de LLM, para los pasos de IA.** Consulta [Proveedores de LLM](/docs/ai/llm-provider).
 
 ## Crear un runbook nuevo
@@ -29,7 +29,7 @@ Haz clic en **Crear Runbook**, escribe un **Nombre** y, si quieres, una **Descri
 
 ### Añadir pasos
 
-En **Inicia tu runbook**, elige el tipo del primer paso; debajo del último paso, **Añadir otro paso** ofrece los mismos siete tipos. Cada paso se abre con su **Título**, su **Descripción** (en Markdown, visible para quien responde) y los ajustes de su tipo. En cuanto el runbook tiene un paso, **Añadir paso**, en la parte superior de la tarjeta, añade un paso Manual.
+En **Inicia tu runbook**, elige el tipo del primer paso; debajo del último paso, **Añadir otro paso** ofrece los mismos siete tipos. Cada paso se abre con su **Título** y lo que necesita su tipo; el resto, como su **Descripción** y los tiempos de espera, queda plegado en **Más campos**. En cuanto el runbook tiene un paso, **Añadir paso**, en la parte superior de la tarjeta, añade un paso Manual.
 
 ### Ordenar los pasos
 
@@ -42,15 +42,15 @@ Haz clic en **Guardar pasos**. Hasta entonces, el editor muestra **Cambios sin g
 
 ## Anatomía de un paso
 
-Cada paso tiene estos campos:
+Cada paso tiene estos campos. Un paso automatizado muestra su **Título** y los ajustes de su tipo, y pliega el resto en **Más campos**, que indica qué hay definido:
 
 | Campo | Para qué sirve |
 | --- | --- |
 | **Título** | Una etiqueta corta, visible en la lista de pasos y en cada ejecución. |
-| **Descripción** | Contexto opcional para quien responde, en Markdown. En un paso Manual es la instrucción que esa persona lee. |
+| **Descripción** | Contexto opcional para quien responde, en Markdown, en **Más campos**. En un paso Manual es la instrucción que esa persona lee, y se muestra bajo el título. |
 | **Continuar en caso de error** | Solo pasos automatizados. Si está activado, un paso que falla no detiene la ejecución: el siguiente paso se ejecuta igualmente. |
 | **Requerir aprobación** | Solo pasos automatizados. Si está activado, el runbook se pausa después de este paso y espera a que una persona apruebe antes de ejecutar el siguiente. El interruptor dice **Requerir aprobación antes de ejecutar el siguiente paso**. |
-| Ajustes propios del tipo | El script, la URL, el Runner, la credencial o la indicación. Consulta [Tipos de paso](#tipos-de-paso). |
+| Ajustes propios del tipo | El script, la URL, el Runner, una variable secreta o la indicación. Consulta [Tipos de paso](#tipos-de-paso). |
 
 ## Tipos de paso
 
@@ -60,9 +60,11 @@ Cada paso tiene estos campos:
 | [JavaScript](#javascript) | Un Runner | Un Runner |
 | [HTTP request](#http-request) | El Worker de OneUptime | Nada |
 | [Bash](#bash) | Un Runner | Un Runner |
-| [SSH](#ssh) | Un Runner | Un Runner y una credencial SSH |
-| [Kubernetes](#kubernetes) | Un Runner | Un Runner y una credencial de Kubernetes |
+| [SSH](#ssh) | Un Runner | Un Runner y una variable secreta para iniciar sesión |
+| [kubectl](#kubectl) | Un Runner | Un Runner, y una variable de kubeconfig o el acceso propio del Runner |
 | [AI](#ai) | El Worker de OneUptime | Un proveedor de LLM |
+
+En cada paso de abajo, los tiempos de espera, la **Descripción**, **Continuar en caso de error** y **Requerir aprobación** están en **Más campos** del paso, igual que el proveedor y los interruptores de contexto de un paso de IA.
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 Si el Runner elegido está desconectado cuando la ejecución llega a este paso, el paso espera hasta el **tiempo de espera de reclamación** (2 minutos por defecto) y luego falla por tiempo agotado. Añade un agente en **Runbooks → Agentes de runbook** antes de confiar en un paso Bash.
 
 > [!TIP]
-> Mantén las contraseñas y los tokens fuera del script. Guárdalos como secretos de runbook y escribe `{{runbookSecrets.NAME}}` en un script de Bash o JavaScript: el Runner recibe el script con el valor ya insertado. Consulta [Secretos para scripts](/docs/runbooks/credentials#secretos-para-scripts).
+> Mantén las contraseñas y los tokens fuera del script. Guárdalos como [variables de runbook](/docs/runbooks/variables) secretas y escribe `{{global.variables.NAME}}` donde va el valor: el Runner recibe el script con el valor insertado, y la salida del paso muestra `[REDACTED]` en su lugar.
 
 ### SSH
 
-Ejecutar un comando en un host al que el Runner llega por SSH. A diferencia de `ssh host cmd` en un paso Bash, el acceso es una [credencial](/docs/runbooks/credentials) gestionada en lugar de una clave privada en el disco del Runner: cifrada en reposo, asignada a Runners concretos y nunca legible de nuevo a través de la API.
+Iniciar sesión en una máquina por SSH y ejecutar allí un script de bash. El Runner abre la conexión, así que la máquina solo tiene que ser accesible desde el Runner, y la clave o la contraseña con que inicia sesión el paso es una [variable de runbook](/docs/runbooks/variables) secreta, nunca escrita en el paso.
 
 | Campo | Qué hace |
 | --- | --- |
-| **Runner** | El Runner que abre la conexión. Debe poder llegar al host por la red. |
-| **Credencial** | Una credencial SSH con el host, el puerto, el usuario y la clave o la contraseña. Debe estar asignada al Runner que elegiste; si no, el paso falla en lugar de ejecutarse con el acceso equivocado. |
-| **Comando** | Se ejecuta en el host remoto como el usuario de la credencial. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. |
-| **Tiempo de espera de ejecución** | Cubre la conexión, la autenticación y la ejecución del comando en conjunto, para que un comando que se cuelga no mantenga abierto el paso. 30 segundos por defecto. |
+| **Runner** | El Runner que abre la conexión. Debe poder llegar a la máquina por la red. |
+| **SSH a** | El usuario y la máquina, tal como los escribirías después de `ssh`: `deploy@10.0.4.21`. |
+| **Iniciar sesión con** | La variable secreta que contiene la clave privada o la contraseña; el valor indica cuál es. Solo se ofrecen variables secretas, y el paso avisa cuando su Runner no puede usar la elegida. |
+| **Script de Bash** | Se ejecuta con `bash` en la máquina, como el usuario con que inicia sesión. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. |
+| **Puerto** | En **Más campos**. 22 si se deja vacío. |
+| **Frase de contraseña de la clave** | En **Más campos**. La variable secreta que contiene la frase de contraseña de una clave que la tiene. |
+| **Tiempo de espera de ejecución** | Cubre a la vez la conexión, el inicio de sesión y la ejecución del script, para que un script colgado no pueda mantener abierto el paso. 30 segundos por defecto. |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. 2 minutos por defecto. |
 
-### Kubernetes
+Por ejemplo, para reiniciar un servicio y mostrar que volvió a funcionar:
 
-Reiniciar o escalar una carga de trabajo en un clúster. Las acciones son un conjunto cerrado a propósito: un paso capaz de cambiar cualquier objeto sería una shell de administrador del clúster, y este tipo de paso existe para que las remediaciones habituales sean lo bastante seguras para la remediación automática.
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+Ejecutar comandos kubectl contra un clúster. El script se ejecuta con bash en el Runner, que incluye `kubectl`, con `KUBECONFIG` apuntando al clúster: funciona cualquier comando kubectl, y también cualquier bash alrededor.
 
 | Campo | Qué hace |
 | --- | --- |
-| **Runner** | El Runner que llama al servidor de API del clúster. Debe poder llegar a él. |
-| **Credencial** | Una credencial de Kubernetes: la URL del servidor de API, un token de cuenta de servicio y la CA del clúster. Vincula esa cuenta de servicio a un rol que solo permita lo que tus runbooks necesitan. |
-| **Acción** | **Reiniciar carga de trabajo** cambia la plantilla de pod para que el controlador recree los pods, como hace `kubectl rollout restart`. **Escalar carga de trabajo** fija el número de réplicas. |
-| **Tipo de carga de trabajo** | **Despliegue**, **StatefulSet** o **DaemonSet**. |
-| **Espacio de nombres** y **Nombre de la carga de trabajo** | La carga de trabajo sobre la que se actúa. |
-| **Réplicas** | Solo al escalar. Se permite cero: vaciar una carga de trabajo es una remediación legítima. Un DaemonSet ejecuta un pod por nodo y no se puede escalar; reinícialo en su lugar. |
-| **Tiempo de espera de ejecución** | Cuánto tiempo espera el Runner a que el servidor de API acepte el cambio. 30 segundos por defecto. |
+| **Runner** | El Runner que ejecuta kubectl. Debe poder llegar al servidor de API del clúster. |
+| **Kubeconfig** | La variable secreta que contiene el kubeconfig del clúster, o **El acceso propio del Runner**: el kubeconfig propio del Runner, o su cuenta de servicio cuando se ejecuta en el clúster. El Runner escribe un kubeconfig en un archivo que solo él puede leer, y lo elimina cuando termina el script. |
+| **Script** | Los comandos kubectl. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. |
+| **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el script antes de detenerlo con `SIGKILL`. 30 segundos por defecto. |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. 2 minutos por defecto. |
 
-Si el servidor de API rechaza el cambio, su propio mensaje aparece en el paso, de modo que un fallo de permisos te dice qué vinculación de rol ampliar.
+Por ejemplo, para reiniciar un deployment y esperar a que sus pods nuevos estén listos:
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+**Ejemplos: haz clic para insertar**, bajo cada script, inserta scripts habituales como estos. Dale al usuario del kubeconfig solo lo que hacen tus scripts: un Role en los namespaces donde actúan, con los verbos que usan. Si el servidor de API rechaza un comando, el propio mensaje de kubectl aparece en la salida del paso, así que un fallo de permisos te dice qué role binding ampliar.
 
 ### AI
 
@@ -224,5 +240,5 @@ Quien responde ve ejecutarse el paso 1, marca el paso 2, ve ejecutarse el paso 3
 - [Ejecutar un runbook](/docs/runbooks/running): Iniciar una ejecución y completar, aprobar u omitir sus pasos.
 - [Reglas de runbook](/docs/runbooks/rules): Iniciar este runbook automáticamente en los incidentes que coincidan.
 - [Agentes de runbook](/docs/runbooks/agents): Instalar el Runner que necesitan tus pasos de script.
-- [Credenciales de runbook](/docs/runbooks/credentials): Dar a los pasos SSH y Kubernetes acceso gestionado.
+- [Variables de runbook](/docs/runbooks/variables): Mantener los hosts, claves, contraseñas y kubeconfigs fuera de tus pasos.
 :::

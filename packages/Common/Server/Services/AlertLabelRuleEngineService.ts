@@ -42,6 +42,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class AlertLabelRuleEngineServiceClass
   implements RuleRunEngine<Alert, AlertLabelRule>
@@ -157,6 +158,7 @@ class AlertLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     alert: Alert;
     rules: Array<AlertLabelRule>;

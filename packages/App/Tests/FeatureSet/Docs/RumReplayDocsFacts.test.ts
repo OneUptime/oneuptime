@@ -1060,7 +1060,12 @@ describe("Session Replay: the session list's filters", () => {
     expect(source("listSearchBar")).toContain(
       "options={SORT_DROPDOWN_OPTIONS}",
     );
-    expect(source("dropdown")).toContain("{tx(option.label) ?? option.label}");
+    // A sort option is not something a person named, so it is looked up.
+    expect(source("listSearchBar")).not.toContain("isUserContent");
+    expect(source("dropdown")).toContain("{getOptionLabelText(option)}");
+    expect(source("dropdown")).toContain(
+      "return tx(option.label) ?? option.label;",
+    );
   });
 
   it("names the chips above the list as the facets row draws them, and the button that opens the filter form", () => {

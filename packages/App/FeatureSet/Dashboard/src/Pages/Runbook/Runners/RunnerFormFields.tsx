@@ -16,14 +16,17 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
  * RunnerService refuses, for any non-root write:
  * - renaming a row whose name carries the "kubernetes-agent/" marker, and
  *   naming any row into that prefix (both case-insensitively);
- * - turning on "Runs Runbooks" or "Runs AI Code Fixes" on a kubernetes-
- *   agent row — by name marker OR agent posture
- *   (RunnerService.isKubernetesAgentRunnerRow).
+ * - turning on "Runs Runbooks" on a kubernetes-agent row — by name marker
+ *   OR agent posture (RunnerService.isKubernetesAgentRunnerRow).
  * A form that posted those fields would only ever be refused, so on such a
  * row they are not in the form at all — nothing is posted for them — and
  * the form says why in one line. The rest (description, "Runs AI
  * Remediation Commands", labels) stays editable. Import-clean: no RouteMap
  * or Navigation, so it can be tested without a browser.
+ *
+ * AI code fixes are not a switch here: a code repository picks the Runner
+ * AI works in it on, in its settings in Code (CodeRepository.runnerId), and
+ * a Runner's own page lists the repositories that pick it.
  */
 
 // What the form reads off the row it edits.
@@ -36,7 +39,7 @@ export interface RunnerFormRow {
 export interface RunnerFormRestrictions {
   // The name carries the kubernetes-agent marker: renaming is refused.
   isNameLocked: boolean;
-  // A kubernetes-agent row: "Runs Runbooks" / "Runs AI Code Fixes" are refused.
+  // A kubernetes-agent row: "Runs Runbooks" is refused.
   areShellCapabilitiesLocked: boolean;
 }
 
@@ -83,7 +86,7 @@ export function getKubernetesAgentRunnerFormNote(
   }
 
   if (restrictions.areShellCapabilitiesLocked) {
-    locked.push("given “Runs Runbooks” or “Runs AI Code Fixes”");
+    locked.push("given “Runs Runbooks”");
   }
 
   if (locked.length === 0) {
@@ -174,28 +177,16 @@ export function getRunnerFormFields(
   fields.push(description);
 
   if (!options.restrictions.areShellCapabilitiesLocked) {
-    fields.push(
-      {
-        field: { canRunRunbooks: true },
-        title: "Runs Runbooks",
-        ...onStep("capabilities"),
-        description:
-          "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        defaultValue: true,
-      },
-      {
-        field: { canRunCodeFixTasks: true },
-        title: "Runs AI Code Fixes",
-        ...onStep("capabilities"),
-        description:
-          "Let this Runner work in this project's connected repositories and open pull requests for review.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        defaultValue: false,
-      },
-    );
+    fields.push({
+      field: { canRunRunbooks: true },
+      title: "Runs Runbooks",
+      ...onStep("capabilities"),
+      description:
+        "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      defaultValue: true,
+    });
   }
 
   fields.push(

@@ -1,26 +1,26 @@
-# Runbook-autentiseringsuppgifter
+# AI-åtkomst
 
-En autentiseringsuppgift är hur ett runbook når något som **inte** är Runnerns egen värd: en server via SSH eller ett Kubernetes-kluster. Utan den betyder "starta om tjänsten" att du skriver ett skalskript och manuellt lägger en nyckel eller en kubeconfig på Runnerns värd, där den ligger på disken utanför OneUptimes kontroll. En autentiseringsuppgift är samma åtkomst som ett hanterat objekt: krypterad i vila, tilldelad vissa Runners och refererad med namn från ett steg.
+AI-åtkomst är hur OneUptime AI:s egna kommandon når något som **inte** är en Runners egen värd — en server över SSH, eller API-servern i ett Kubernetes-kluster som inte kör Kubernetes-agentens chart. Varje åtkomst är en autentiseringsuppgift: den åtkomsten som ett hanterat objekt, krypterat i vila, tilldelat vissa Runners och valt av OneUptime AI i stället för att skrivas in i ett kommando. Runbook-steg använder dem inte: ett SSH- eller kubectl-steg loggar in med en hemlig [runbook-variabel](/docs/runbooks/variables). En Runner som är äldre än den här versionen är undantaget: den kör ett Kubernetes-steg som flyttats från en åtgärd med den autentiseringsuppgift som steget nämnde, tills stegets skript eller kubeconfig ändras.
 
-Hantera dem under **Runbooks → Runbook-agenter → Autentiseringsuppgifter**.
+Hantera dem under **Runbooks → Runbook-agenter → AI-åtkomst**.
 
 :::cards
 - [Skapa en autentiseringsuppgift](#skapa-en-autentiseringsuppgift): Dess åtkomst och de Runners som får använda den.
 - [Minsta behörighet på andra sidan](#minsta-behörighet-på-andra-sidan): Begränsa vad nyckeln eller token kan göra.
-- [Hemligheter för skript](#hemligheter-för-skript): Ge ett Bash- eller JavaScript-skript ett lösenord eller en token.
+- [Runners som kör OneUptime AI:s kommandon](#runners-som-kör-oneuptime-ais-kommandon): Vem som får ge en sådan Runner en SSH-autentiseringsuppgift.
 :::
 
 ## Så används en autentiseringsuppgift
 
 ```mermaid title="Hur en autentiseringsuppgift når systemet den öppnar"
 flowchart TB
-    step["SSH- eller Kubernetes-steg"] -->|"pekar på"| cred["Autentiseringsuppgift, krypterad i OneUptime"]
-    step -->|"pekar mot"| runner["Runner"]
+    step["OneUptime AI:s SSH-<br/>eller kubectl-kommando"] -->|"körs med"| cred["Autentiseringsuppgift, krypterad i OneUptime"]
+    step -->|"körs på"| runner["Runner"]
     cred -->|"tilldelad"| runner
-    runner -->|"tar steget och får hemligheten"| target["SSH-värd eller Kubernetes-API-server"]
+    runner -->|"tar kommandot och får hemligheten"| target["SSH-värd eller Kubernetes-API-server"]
 ```
 
-Ett SSH- eller Kubernetes-steg pekar på en autentiseringsuppgift och en Runner. När den Runnern tar steget kontrollerar OneUptime att autentiseringsuppgiften är tilldelad den, dekrypterar hemligheten och lämnar ut den bara i svaret på det övertagandet. Hemligheten sparas aldrig på jobbet och kan aldrig läsas via API:et.
+OneUptime AI kör ett SSH-kommando med en av de SSH-autentiseringsuppgifter som är tilldelade den Runner det körs på, och ett kubectl-kommando för ett kluster som inte kör Kubernetes-agentens chart med den Kubernetes-autentiseringsuppgift som är bunden till klustret, som [AI SRE](/docs/ai/ai-sre) visar. När Runnern tar kommandot kontrollerar OneUptime att autentiseringsuppgiften är tilldelad den, dekrypterar hemligheten och lämnar ut den bara i svaret på det anspråket. Hemligheten lagras aldrig på jobbet och kan aldrig läsas via API:t.
 
 ## Innan du börjar
 
@@ -31,9 +31,9 @@ Ett SSH- eller Kubernetes-steg pekar på en autentiseringsuppgift och en Runner.
 ## Skapa en autentiseringsuppgift
 
 :::steps
-### Öppna Autentiseringsuppgifter
+### Öppna AI-åtkomst
 
-Öppna **Runbooks → Runbook-agenter → Autentiseringsuppgifter** och klicka på **Skapa Runbook Credential**.
+Öppna **Runbooks → Runbook-agenter → AI-åtkomst** och klicka på **Skapa Credential**.
 
 ### Namnge den och välj dess typ
 
@@ -50,11 +50,11 @@ Under **Kubernetes** anger du **API Server URL**, till exempel `https://10.0.0.1
 
 ### Tilldela den till Runners
 
-I steget **Runbook-agenter** väljer du de Runners som får använda autentiseringsuppgiften och klickar sedan på **Skapa Runbook Credential**. En autentiseringsuppgift som inte är tilldelad någon Runner kan inte användas av något steg.
+I steget **Runbook-agenter** väljer du de Runners som får använda autentiseringsuppgiften och klickar sedan på **Skapa Credential**. En autentiseringsuppgift som inte är tilldelad någon Runner kan inte användas av något kommando.
 
-### Använd den i ett steg
+### Låt OneUptime AI använda den
 
-I ett [SSH- eller Kubernetes-steg](/docs/runbooks/authoring#stegtyper) väljer du en av de Runnerna och sedan autentiseringsuppgiften under **Credential**. Ett steg erbjuder bara autentiseringsuppgifter av sin egen typ, och att spara ett steg som pekar på en autentiseringsuppgift kräver behörighet att läsa runbook-autentiseringsuppgifter.
+OneUptime AI kör sina SSH-kommandon på en Runner där **Kör AI-åtgärdskommandon** är påslaget, med en av de SSH-autentiseringsuppgifter som är tilldelade den. En Kubernetes-autentiseringsuppgift används så snart den är bunden till ett kluster tillsammans med en av sina Runners: se [AI SRE](/docs/ai/ai-sre).
 :::
 
 ## Vad som sparas
@@ -72,7 +72,7 @@ Det finns därför ingen "visa" för ett hemligt värde, bara "ersätt": att ang
 
 ## Tilldela en autentiseringsuppgift till Runners
 
-En autentiseringsuppgift kan bara användas av de Runners som du tilldelar den, och ett steg måste peka mot en av dem. Om ett steg pekar på en autentiseringsuppgift som inte är tilldelad dess Runner **misslyckas steget i stället för att köras**: en Runner som tyst inte gör någonting ser exakt ut som en som fungerade.
+En autentiseringsuppgift kan bara användas av de Runners du tilldelar den. Ett kommando som nämner en autentiseringsuppgift som dess Runner inte är tilldelad **misslyckas i stället för att köras** — en Runner som tyst inte gör något ser precis ut som en som fungerade.
 
 Tilldelningen är åtkomstgränsen, så håll den snäv: en Runner som bara någonsin startar om ett kluster behöver inte SSH-nyckeln till dina databasvärdar.
 
@@ -92,82 +92,7 @@ Ett arbetsflödes steg agerar som Project Admin men lånar inte en Project Admin
 OneUptime kan inte begränsa vad din autentiseringsuppgift får göra på målsystemet: det är målsystemets uppgift, och det är värt att göra:
 
 - **SSH** — föredra en nyckel framför ett lösenord, ge användaren bara de kommandon den behöver (ett tvingat kommando eller ett begränsat skal där det är praktiskt) och återanvänd inte en administratörs personliga nyckel.
-- **Kubernetes** — bind serviceaccounten till en Role som tillåter `patch` på exakt de arbetsbelastningar som dina runbooks rör, i exakt de namnrymder där de körs. **Restart workload** ändrar själva arbetsbelastningen och **Scale workload** ändrar dess underresurs `scale`: mer behövs inte.
-
-Till exempel en serviceaccount som kan starta om och skala en Deployment och ingenting annat:
-
-```yaml title="oneuptime-runbooks-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-rules:
-  # Restart workload: patches the Deployment's pod template.
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
-  # Scale workload: patches the Deployment's scale subresource.
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-subjects:
-  - kind: ServiceAccount
-    name: oneuptime-runbooks
-    namespace: checkout
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: oneuptime-runbooks
-```
-
-För ett StatefulSet eller DaemonSet använder du `statefulsets` eller `daemonsets` i stället. Ett DaemonSet kan inte skalas, så det behöver ingen `scale`-regel.
-
-## Hemligheter för skript
-
-Bash- och JavaScript-steg har inget fält **Credential**. För att ge ett skript ett lösenord, en token eller en API-nyckel utan att skriva in den i runbooket sparar du den som en **runbook-hemlighet**. Hemligheter hanteras under **Runbooks → Inställningar → Hemligheter** av Project Owners och Project Admins eller med behörigheten **Create Runbook Secret**.
-
-:::steps
-### Skapa hemligheten
-
-Klicka på **Skapa Runbook Secret**. I steget **Hemlighet** anger du ett **Namn** (bokstäver, siffror, bindestreck och understreck), en valfri **Beskrivning** och **Värde för hemlighet**. I steget **Åtkomst** väljer du dina Runners under **Dina Runners som får använda den här hemligheten**. På en server med [globala Runners](/docs/runbooks/agents#globala-runners) låter **Globala Runners får använda den här hemligheten** även det här projektets steg som körs på en global Runner använda den. Den är påslagen för en ny hemlighet så länge projektet använder globala Runners.
-
-### Använd den i ett skript
-
-Skriv `{{runbookSecrets.NAME}}` där värdet ska stå:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer {{runbookSecrets.CDN_API_TOKEN}}" \
-  "https://api.cdn.example.com/v1/purge"
-```
-
-När en Runner som hemligheten är tilldelad tar steget får den skriptet med värdet ifyllt. Det gör även en global Runner, när hemligheten låter globala Runners använda den. Ett steg på en global Runner som nämner en hemlighet som globala Runners inte får använda misslyckas och nämner hemligheten, i stället för att köra utan den.
-:::
-
-Precis som en autentiseringsuppgifts hemliga fält är en hemlighets värde krypterat i vila och returneras aldrig av API:et: **Uppdatera hemligt värde** ersätter det. På OneUptime Cloud kräver runbook-hemligheter också planen **Growth** eller högre.
-
-| | Autentiseringsuppgift | Runbook-hemlighet |
-| --- | --- | --- |
-| Används av | SSH- och Kubernetes-steg | Bash- och JavaScript-skript |
-| Innehåller | En värd och dess nyckel, eller ett klusters URL och token | Vilket enskilt värde som helst |
-| Hanteras under | **Runbooks → Runbook-agenter → Autentiseringsuppgifter** | **Runbooks → Inställningar → Hemligheter** |
-| Når Runnern | I svaret på övertagandet av ett steg som pekar på den | Ifylld i skriptet för det steg den tar |
-| Kan läsas igen via API:et | Bara dess icke-hemliga fält | Aldrig dess värde |
+- **Kubernetes** — bind tjänstkontot till en Role som bara tillåter det du låter OneUptime AI göra, i de namespaces där det får agera. Ett tjänstkonto som bara får läsa låter OneUptime AI undersöka och nekar varje åtgärd.
 
 ## Vem kan se dem
 
@@ -178,7 +103,7 @@ Observera att en Runners **agentnyckel** motsvarar de autentiseringsuppgifter so
 ## Nästa steg
 
 :::cards
-- [Skriva ett runbook](/docs/runbooks/authoring): Skriv de SSH- och Kubernetes-steg som använder en autentiseringsuppgift.
+- [Runbook-variabler](/docs/runbooks/variables): De hemligheter som SSH- och kubectl-steg loggar in med.
 - [Runbook-agenter](/docs/runbooks/agents): Installera den Runner som en autentiseringsuppgift tilldelas.
 - [Runbook-konfiguration & säkerhet](/docs/runbooks/configuration): Behörigheter och härdning för hela runbook-stacken.
 :::

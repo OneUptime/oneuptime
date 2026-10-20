@@ -81,12 +81,13 @@ Deretter, omtrent i rekkefølge etter nytte:
 
 ## Hvor alt ligger
 
-Når du har åpnet en statusside, er den egne venstremenyen delt inn i ni seksjoner. Bruk den som kart for resten av denne delen av dokumentasjonen.
+Når du har åpnet en statusside, er den egne venstremenyen delt inn i ti seksjoner. Bruk den som kart for resten av denne delen av dokumentasjonen.
 
 | Seksjon | Hva den inneholder |
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Kunngjøringer**, **Eiere**. |
-| **Ressurser** | Én skjerm **Ressurser** (gruppene til venstre, monitorene i den valgte gruppen til høyre) og **Monitor Rules**. |
+| **Ressurser** | Én skjerm **Ressurser** (gruppene til venstre, monitorene i den valgte gruppen til høyre). |
+| **Regler** | **Monitor Rules**: regler som legger til hver monitor som samsvarer på siden, nå og senere. |
 | **Abonnenter** | **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnentsinnstillinger**. |
 | **Varsellogger** | **Varsellogger**: hva som er sendt til abonnentene. |
 | **Merkevare** | **Merkevare** (logo, tittel, favicon, lenker, bunntekst, farger og språk, på én side), **Egendefinerte domener**, **HTML, CSS og JavaScript**. |
@@ -167,7 +168,7 @@ Under kortet står **Eksporter Statusside som JSON**, som laster ned statussiden
 
 ## Å forhåndsvise før du går live
 
-Skjermen **Oversikt** for hver statusside har et kort **Lenke til statussiden** med en direkte lenke til siden og **Kopier lenke** ved siden av. Bruk den mens du fortsatt legger til ressurser, og før det finnes et egendefinert domene.
+Skjermen **Oversikt** for hver statusside har et kort **Lenke til statussiden** med hver adresse siden svarer på: først de egendefinerte domenene, deretter adressen hos OneUptime, hver med **Kopier lenke** ved siden av. Et egendefinert domene som ikke er live ennå, er merket med **Ikke live ennå**, med årsaken, og med **DNS-oppsett** når det fortsatt er noe å gjøre. Når besøkende må logge inn eller skrive inn et passord, sier kortet det. Bruk OneUptime-adressen mens du fortsatt legger til ressurser, og før et egendefinert domene er live.
 
 Bak kulissene har hver offentlig rute en forhåndsvisningstvilling under `/status-page/{statusPageId}/...`: en forhåndsvist oversikt, en forhåndsvist hendelsesliste, en forhåndsvist abonnementsside og så videre. En URL eller et skjermbilde tatt fra dashbordets forhåndsvisning vil derfor ikke samsvare med det en kunde ser når et egendefinert domene er koblet til, så kontroller alle lenker du limer inn i en runbook eller en e-post.
 

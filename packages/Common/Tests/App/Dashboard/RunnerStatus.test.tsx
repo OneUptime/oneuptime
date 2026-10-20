@@ -2,12 +2,15 @@ import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import React from "react";
 import { describe, expect, test } from "@jest/globals";
-import RunnerStatusElement from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerStatus";
+import RunnerStatusElement, {
+  RunnerLiveStatusBubble,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerStatus";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../../Models/DatabaseModels/Runner";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
+import RunnerLiveStatus from "../../../Types/Runner/RunnerLiveStatus";
 
 /*
  * The one component every Runner connection indicator in the dashboard now
@@ -270,5 +273,95 @@ describe("RunnerStatusElement", () => {
       expect(statusText()).toContain("Disconnected");
       expect(statusText()).not.toContain("Invalid");
     });
+  });
+});
+
+/*
+ * A status read some other way than a Runner row's lastAlive - a global
+ * Runner's, which the server reports as a status only, or one a Runner
+ * picker's choices carry - drawn exactly as RunnerStatusElement draws a
+ * Runner's: a code repository's Runner on its settings card looks as it
+ * does on the Runners page.
+ */
+describe("RunnerLiveStatusBubble", () => {
+  // The dot's colour, as the bubble paints it.
+  const dotColour: () => string = (): string => {
+    const dot: HTMLElement | null = screen
+      .getByRole("status")
+      .querySelector("span.relative.inline-flex");
+
+    return dot?.style.backgroundColor || "";
+  };
+
+  test.each([
+    [RunnerLiveStatus.Connected, "Status: Connected"],
+    [RunnerLiveStatus.Disconnected, "Status: Disconnected"],
+    [RunnerLiveStatus.NeverConnected, "Status: Never connected"],
+  ])("%s reads %s", (status: RunnerLiveStatus, text: string) => {
+    render(<RunnerLiveStatusBubble status={status} />);
+
+    expect(statusText()).toBe(text);
+  });
+
+  test("its colours are the Runner status element's: green, red, grey", () => {
+    const colours: Array<string> = [];
+
+    for (const status of [
+      RunnerLiveStatus.Connected,
+      RunnerLiveStatus.Disconnected,
+      RunnerLiveStatus.NeverConnected,
+    ]) {
+      const { unmount } = render(<RunnerLiveStatusBubble status={status} />);
+      colours.push(dotColour());
+      unmount();
+    }
+
+    // Three different colours, matching what a Runner row draws.
+    expect(new Set(colours).size).toBe(3);
+
+    const fromRow: Array<string> = [];
+
+    for (const lastAlive of [
+      OneUptimeDate.getCurrentDate(),
+      minutesAgo(60),
+      null,
+    ]) {
+      const { unmount } = render(
+        <RunnerStatusElement runner={{ lastAlive }} showLastSeen={false} />,
+      );
+      fromRow.push(dotColour());
+      unmount();
+    }
+
+    expect(colours).toEqual(fromRow);
+  });
+
+  test("a connected dot pulses unless asked to stay still, as a settings value does", () => {
+    const pulse: string = ".motion-safe\\:animate-ping";
+
+    const first: { unmount: () => void } = render(
+      <RunnerLiveStatusBubble status={RunnerLiveStatus.Connected} />,
+    );
+    expect(screen.getByRole("status").querySelector(pulse)).not.toBeNull();
+    first.unmount();
+
+    render(
+      <RunnerLiveStatusBubble
+        status={RunnerLiveStatus.Connected}
+        isConnectedAnimated={false}
+      />,
+    );
+    expect(screen.getByRole("status").querySelector(pulse)).toBeNull();
+  });
+
+  test("a suffix is said after the status", () => {
+    render(
+      <RunnerLiveStatusBubble
+        status={RunnerLiveStatus.Disconnected}
+        suffix="2 hours ago"
+      />,
+    );
+
+    expect(statusText()).toBe("Status: Disconnected · 2 hours ago");
   });
 });

@@ -34,7 +34,7 @@ flowchart TB
 ## Prima di iniziare
 
 - Il repository deve essere **collegato a un progetto OneUptime** tramite la GitHub App: collegalo in **Prodotti → Codice**. Un'istanza self-hosted ha prima bisogno di una propria GitHub App: vedi [Integrazione GitHub](/docs/self-hosted/github-integration). Se l'app è già installata sull'account GitHub, fai clic lì su **Collega un'installazione esistente** invece di installarla di nuovo.
-- Un Runner con **Esegue le correzioni di codice AI** deve essere online: lo stesso Runner che svolge le attività di [Codice](/docs/ai/ai-agent). Senza, i comandi vengono accettati e poi falliscono dopo 30 minuti, con un messaggio che dice che nessun agente li ha presi.
+- Il Runner che il repository sceglie nelle sue impostazioni in Codice deve essere online, o un Runner globale per un repository che non ne sceglie nessuno: lo stesso Runner che svolge le attività di [Codice](/docs/ai/ai-agent). Senza, i comandi vengono accettati e poi falliscono dopo 30 minuti, con un messaggio che dice che nessun Runner li ha presi.
 - La GitHub App ha bisogno del permesso **Issues** con **Read & write** e deve essere iscritta agli eventi webhook elencati in [A cosa iscriversi](#a-cosa-iscriversi).
 
 ## I comandi
@@ -160,7 +160,7 @@ Un'esecuzione di quel tipo è già attiva su questa issue o pull request. `@oneu
 :::
 
 :::details Ha confermato, poi è rimasta in silenzio a lungo
-Controlla che un Runner con **Esegue le correzioni di codice AI** sia online in **Runbook → Agenti di runbook**. Senza, l'esecuzione fallisce dopo 30 minuti e il thread viene avvisato.
+Controlla che il Runner scelto dal repository sia online in **Runbook → Agenti di runbook**. Un repository che non ne sceglie nessuno lavora su un Runner globale, e le sue impostazioni in Codice dicono se ce n'è uno collegato. Senza un Runner online, l'esecuzione fallisce dopo 30 minuti e il thread viene avvisato.
 :::
 
 :::details Dice che la pull request viene da un fork

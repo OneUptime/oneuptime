@@ -132,8 +132,12 @@ Uw rol leest runbooks maar voert ze niet uit: de knop zegt "Je hebt geen toestem
 De schakelaar **Dit runbook uitvoeren** van het runbook staat uit, op de pagina **Instellingen** ervan, of het heeft geen opgeslagen stappen. Zet de schakelaar aan, of voeg stappen toe en klik op **Save Steps**. Het **Overzicht** zegt welke, met **Runbook inschakelen** of **Stappen toevoegen**.
 :::
 
-:::details Een stap is mislukt omdat er een Runner of inloggegeven ontbreekt
-De melding luidt bijvoorbeeld "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." De stap is opgeslagen zonder **Runner**, of een SSH- of Kubernetes-stap zonder **Credential**. Een JavaScript-stap heeft alleen een eigen Runner nodig als geen [globale Runner](/docs/runbooks/agents#globale-runners) hem kan uitvoeren. Open de **Stappen** van het runbook, kies wat de stap mist, klik op **Save Steps** en voer het runbook opnieuw uit.
+:::details Een stap is mislukt omdat er een Runner ontbreekt
+De melding luidt bijvoorbeeld "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." De stap is opgeslagen zonder **Runner**. Een JavaScript-stap heeft alleen een eigen Runner nodig als geen [globale Runner](/docs/runbooks/agents#globale-runners) hem kan uitvoeren. Open de **Stappen** van het runbook, kies de Runner van de stap, klik op **Save Steps** en voer het runbook opnieuw uit.
+:::
+
+:::details Een stap is mislukt omdat hij variabelen noemt die hij niet kan gebruiken
+De melding begint met "This step names variables it cannot use, so it was not run:" en zegt per variabele wat er mis is en waar u het oplost: er is geen variabele met die naam, het geheim heeft geen waarde, of de Runner van de stap mag het niet gebruiken. Maak de variabele aan of verbeter haar naam in de stap, of laat de Runner het geheim gebruiken, en voer het runbook dan opnieuw uit. Zie [Runbook-variabelen](/docs/runbooks/variables).
 :::
 
 :::details Een stap is mislukt omdat geen runbook-agent hem oppakte

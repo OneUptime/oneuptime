@@ -1000,5 +1000,16 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Extra JSON-parameters die bij elk verzoek naar de provider gaan, zoals {\"temperature\": 0.2}. Laat leeg tenzij uw model ze nodig heeft.",
   "Never put keys here.": "Zet hier nooit sleutels in.",
   "Your deployment's name, exactly as Foundry shows it.": "De naam van uw implementatie, precies zoals Foundry die toont.",
-  "{{name}} (default)": "{{name}} (standaard)"
+  "{{name}} (default)": "{{name}} (standaard)",
+  "Visitors share an address": "Bezoekers delen een adres",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "In de afgelopen 30 dagen hebben meerdere mensen zich aangemeld vanaf één privénetwerkadres. OneUptime telt hen als één bezoeker, dus de mislukte aanmeldingen van één persoon kunnen de anderen buitensluiten.",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Meestal geeft iets vóór OneUptime elke bezoeker door vanaf een eigen adres:",
+  "Docker Compose: when people come over IPv6, turn IPv6 on for OneUptime's network in {{file}}.": "Docker Compose: zet IPv6 aan voor het netwerk van OneUptime in {{file}} wanneer mensen via IPv6 komen.",
+  "Docker Compose behind a proxy of your own: make the proxy the only way in, then set {{hops}}. With the proxy on the same server, publish OneUptime's ports on {{loopback}} only.": "Docker Compose achter een eigen proxy: maak de proxy de enige ingang en stel daarna {{hops}} in. Draait de proxy op dezelfde server, publiceer de poorten van OneUptime dan alleen op {{loopback}}.",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: stel {{setting}} in bij de waarden van de Helm-chart.",
+  "Nothing needs to change if these people share one computer or one VPN.": "Er hoeft niets te veranderen als deze mensen één computer of één VPN delen.",
+  "{{count}} people": "{{count}} personen",
+  "{{count}} people_one": "{{count}} persoon",
+  "Docker Compose guide": "Docker Compose-handleiding",
+  "Kubernetes guide": "Kubernetes-handleiding"
 }

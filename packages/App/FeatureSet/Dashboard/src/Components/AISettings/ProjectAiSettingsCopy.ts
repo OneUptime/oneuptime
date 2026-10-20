@@ -813,11 +813,11 @@ export const AI_INSIGHTS_SWITCHES_TEST_ID: string = "ai-insights-switches";
 
 /*
  * Project Settings → AI → AI Features: Enable AI, the project's one AI switch.
- * Turning it off stops every AI feature at once, so it asks first.
+ * Turning it off stops every AI feature at once, so it asks first. The column
+ * lives in EnableAiColumn.ts, which the dashboard's first chunk reads.
  */
-export type EnableAiColumn = "enableAi";
-
-export const ENABLE_AI_COLUMN: EnableAiColumn = "enableAi";
+export { ENABLE_AI_COLUMN } from "./EnableAiColumn";
+export type { EnableAiColumn } from "./EnableAiColumn";
 
 export const EnableAiCopy: {
   cardTitle: string;

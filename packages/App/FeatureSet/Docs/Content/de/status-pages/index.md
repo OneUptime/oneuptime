@@ -81,12 +81,13 @@ Als Nächstes, grob nach Nutzen sortiert:
 
 ## Wo alles liegt
 
-Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in neun Abschnitte gegliedert. Nutzen Sie es als Karte für den Rest dieses Dokumentationsbereichs.
+Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in zehn Abschnitte gegliedert. Nutzen Sie es als Karte für den Rest dieses Dokumentationsbereichs.
 
 | Abschnitt | Was er enthält |
 | --- | --- |
 | **Grundlegend** | **Übersicht**, **Ankündigungen**, **Eigentümer**. |
-| **Ressourcen** | Ein einziger Bildschirm **Ressourcen** – links die Gruppen, rechts die Monitore der gewählten Gruppe – und **Monitor-Regeln**. |
+| **Ressourcen** | Ein einziger Bildschirm **Ressourcen** – links die Gruppen, rechts die Monitore der gewählten Gruppe. |
+| **Regeln** | **Monitor-Regeln** – Regeln, die jeden passenden Monitor der Seite hinzufügen, jetzt und später. |
 | **Abonnenten** | **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten**, **Webhook-Abonnenten**, **Abonnenten-Einstellungen**. |
 | **Benachrichtigungsprotokolle** | **Benachrichtigungsprotokolle** – was an Abonnenten gesendet wurde. |
 | **Branding** | **Branding** (Logo, Titel, Favicon, Links, Fußzeile, Farben und Sprachen, auf einer Seite), **Benutzerdefinierte Domains**, **HTML, CSS und JavaScript**. |
@@ -167,7 +168,7 @@ Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Ein
 
 ## Vorschau, bevor Sie live gehen
 
-Der Bildschirm **Übersicht** jeder Statusseite trägt eine Karte **Link zur Statusseite** mit einem Link direkt auf die Seite und **Link kopieren** daneben. Nutzen Sie sie, solange Sie noch Ressourcen hinzufügen und bevor es eine eigene Domain gibt.
+Der Bildschirm **Übersicht** jeder Statusseite trägt eine Karte **Link zur Statusseite** mit jeder Adresse, unter der die Seite erreichbar ist: zuerst ihre eigenen Domains, dann ihre Adresse bei OneUptime, jede mit **Link kopieren** daneben. Eine eigene Domain, die noch nicht erreichbar ist, ist mit **Noch nicht live** markiert, mit dem Grund, und mit **DNS-Einrichtung**, wenn noch etwas zu tun ist. Müssen sich Besucher anmelden oder ein Passwort eingeben, sagt die Karte das. Nutzen Sie die OneUptime-Adresse, solange Sie noch Ressourcen hinzufügen und bevor eine eigene Domain live ist.
 
 Hinter den Kulissen hat jede öffentliche Route einen Vorschau-Zwilling unter `/status-page/{statusPageId}/...` – eine Vorschau der Übersicht, eine Vorschau der Vorfallliste, eine Vorschau der Abonnieren-Seite und so weiter. Eine URL oder ein Screenshot aus der Dashboard-Vorschau stimmt deshalb nicht mit dem überein, was ein Kunde sieht, sobald eine eigene Domain angehängt ist – prüfen Sie also jeden Link, den Sie in ein Runbook oder eine E-Mail einfügen.
 

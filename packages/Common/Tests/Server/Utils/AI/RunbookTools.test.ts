@@ -215,6 +215,143 @@ describe("query_runbooks — detail mode", () => {
   });
 });
 
+/*
+ * Runbook variables gave SSH and Kubernetes steps a script: an SSH step signs
+ * in to user@host and runs a bash script there, and the Kubernetes step is a
+ * kubectl script. What OneUptime AI reads of a step is what it runs - never
+ * an empty "Runs over SSH:" for a step the data migration rewrote - and a
+ * step still written with a credential (through the API) reads as it did.
+ */
+describe("query_runbooks — SSH and kubectl steps", () => {
+  test("an SSH step reads as the machine it signs in to and its script, a kubectl step as its commands", async () => {
+    jest.spyOn(RunbookService, "findOneById").mockResolvedValue(
+      buildRunbook({
+        steps: [
+          {
+            id: "step-ssh",
+            order: 1,
+            type: "SSH",
+            title: "Restart the database proxy",
+            config: {
+              host: "{{global.variables.DB_HOST}}",
+              username: "deploy",
+              signIn: "{{global.variables.PROD_DB_SSH_KEY}}",
+              script: "sudo systemctl restart pgbouncer",
+              agentId: "agent-1",
+            },
+          },
+          {
+            id: "step-kubectl",
+            order: 2,
+            type: "Kubernetes",
+            title: "Restart checkout",
+            config: {
+              kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+              script: "kubectl rollout restart deployment/checkout-api",
+              agentId: "agent-1",
+            },
+          },
+        ] as JSONArray,
+      }) as never,
+    );
+    jest
+      .spyOn(RunbookExecutionService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryRunbooksTool.execute(
+      { runbookId: RUNBOOK_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "Runs a bash script over SSH on deploy@{{global.variables.DB_HOST}}: sudo systemctl restart pgbouncer",
+    );
+    expect(result.dataForLlm).toContain(
+      "Runs kubectl commands on a runner: kubectl rollout restart deployment/checkout-api",
+    );
+    // Not the shapes of steps written before variables, with nothing in them.
+    expect(result.dataForLlm).not.toContain("Runs over SSH:");
+    expect(result.dataForLlm).not.toContain("Kubernetes  on");
+    // A sign-in or a kubeconfig names a secret variable: never read out.
+    expect(result.dataForLlm).not.toContain("PROD_DB_SSH_KEY");
+    expect(result.dataForLlm).not.toContain("PROD_KUBECONFIG");
+  });
+
+  test("an SSH step with no user reads as its host alone", async () => {
+    jest.spyOn(RunbookService, "findOneById").mockResolvedValue(
+      buildRunbook({
+        steps: [
+          {
+            id: "step-ssh",
+            order: 1,
+            type: "SSH",
+            title: "Check the machine",
+            config: { host: "db-1.internal", script: "uptime" },
+          },
+        ] as JSONArray,
+      }) as never,
+    );
+    jest
+      .spyOn(RunbookExecutionService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryRunbooksTool.execute(
+      { runbookId: RUNBOOK_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(
+      "Runs a bash script over SSH on db-1.internal: uptime",
+    );
+  });
+
+  test("steps written with a credential through the API read as they run", async () => {
+    jest.spyOn(RunbookService, "findOneById").mockResolvedValue(
+      buildRunbook({
+        steps: [
+          {
+            id: "step-ssh-legacy",
+            order: 1,
+            type: "SSH",
+            title: "Clear the cache",
+            config: {
+              credentialId: "90000000-0000-4000-8000-000000000c01",
+              command: "redis-cli FLUSHALL",
+            },
+          },
+          {
+            id: "step-kubernetes-legacy",
+            order: 2,
+            type: "Kubernetes",
+            title: "Scale workers",
+            config: {
+              credentialId: "90000000-0000-4000-8000-000000000c01",
+              action: "ScaleWorkload",
+              workloadKind: "Deployment",
+              namespace: "jobs",
+              workloadName: "workers",
+              replicas: 4,
+            },
+          },
+        ] as JSONArray,
+      }) as never,
+    );
+    jest
+      .spyOn(RunbookExecutionService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryRunbooksTool.execute(
+      { runbookId: RUNBOOK_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("Runs over SSH: redis-cli FLUSHALL");
+    expect(result.dataForLlm).toContain(
+      "Kubernetes ScaleWorkload on Deployment jobs/workers (replicas: 4)",
+    );
+  });
+});
+
 describe("query_runbooks — list mode", () => {
   test("lists runbooks with step count and enabled flag", async () => {
     const findBySpy: jest.SpyInstance = jest

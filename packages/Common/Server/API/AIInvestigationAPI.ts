@@ -23,17 +23,24 @@ import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
 import Service from "../../Models/DatabaseModels/Service";
-import Span from "../../Models/AnalyticsModels/Span";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import ServiceService from "../Services/ServiceService";
-import SpanService from "../Services/SpanService";
 import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigger";
-import FixPerformanceTaskTrigger from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
+import FixPerformanceTaskTrigger, {
+  PerformanceTraceSpans,
+} from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
 import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovementTaskTrigger";
+import ProfileFixTaskTrigger, {
+  ProfileFixRequest,
+} from "../Utils/AI/SRE/ProfileFixTaskTrigger";
+import {
+  ProfileFixSuggestion,
+  profileFixSuggestionToJSON,
+} from "../../Utils/Suggestions/ProfileFixSuggestion";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
 import KubernetesClusterAiAccessService, {
   AI_BALANCE_INSUFFICIENT_NEXT_STEP,
@@ -52,7 +59,14 @@ import {
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
-import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import {
+  TracePerformanceFixSuggestion,
+  tracePerformanceFixSuggestionToJSON,
+} from "../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
+  TelemetryImprovementSuggestion,
+  telemetryImprovementSuggestionToJSON,
+} from "../../Utils/Suggestions/TelemetryImprovementSuggestion";
 import {
   InvestigationEventReference,
   InvestigationEvidenceItem,
@@ -77,14 +91,6 @@ import logger from "../Utils/Logger";
 import OneUptimeDate from "../../Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
-
-/*
- * Upper bound on spans analyzed for one performance-fix trigger — mirrors
- * the trace waterfall's own cap (TraceTools.MAX_TRACE_SPANS). Findings are
- * computed over the first 500 spans by start time; a truncated giant trace
- * still yields honest evidence about the loaded portion.
- */
-const MAX_ANALYZED_TRACE_SPANS: number = 500;
 
 const MAX_EVENTS: number = 500;
 
@@ -1416,14 +1422,75 @@ router.post(
 );
 
 /*
+ * What the trace page offers for one trace: "Fix performance with AI" with
+ * the finding it would fix (Act), a quiet link to connect a repository
+ * (SetUp), a link to the fix already on its way (InProgress), or nothing
+ * (None). Decided by FixPerformanceTaskTrigger.getSuggestionForTrace with
+ * the very gates the create route below enforces, so the page never offers
+ * a fix the server then refuses. The spans are read under the USER's
+ * permissions, and only when AI is on. Body: { traceId }. Response: the
+ * TracePerformanceFixSuggestion JSON (offer, finding, findingCount,
+ * aiRunId).
+ */
+router.post(
+  "/ai-investigation/performance-fix-suggestion",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const traceId: string | undefined = req.body["traceId"] as
+        | string
+        | undefined;
+
+      if (!traceId) {
+        throw new BadDataException("traceId is required.");
+      }
+
+      const projectId: ObjectID | undefined = props.tenantId;
+
+      if (!projectId) {
+        throw new BadDataException("A project scope is required.");
+      }
+
+      const suggestion: TracePerformanceFixSuggestion =
+        await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          projectId,
+          traceId,
+          loadTrace: (): Promise<PerformanceTraceSpans> => {
+            return FixPerformanceTaskTrigger.loadTraceSpans({
+              traceId,
+              props,
+            });
+          },
+        });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        tracePerformanceFixSuggestionToJSON(suggestion),
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
  * Human-triggered FixPerformance: from a slow trace, one click opens a
  * performance-fix PR grounded in deterministic span-tree evidence. The
  * spans are loaded under the USER's permissions (the same telemetry-read
  * ACL the trace explorer enforces — a user who cannot read the trace gets
- * "not found"), the SpanTreeAnalyzer gates on a mechanical finding, and
- * the trigger's remaining gates (GitHub-App repository, per-trace dedupe)
- * fail early with a clear message. Body: { traceId }. Response:
- * { aiRunId } — the Queued CodeFix run the agent worker will claim.
+ * "not found"), and the trigger's gates (AI on, a finding worth fixing, a
+ * GitHub-App repository, per-trace dedupe) fail early with a clear
+ * message. Body: { traceId }. Response: { aiRunId } — the Queued CodeFix
+ * run the agent worker will claim.
  */
 router.post(
   "/ai-investigation/create-performance-fix-task",
@@ -1451,100 +1518,31 @@ router.post(
       }
 
       /*
-       * Access check + data load in one: the analytics permission layer
-       * pins this query to the user's tenant and telemetry-read
-       * permissions (the Span model's read ACL — same enforcement the
-       * trace explorer's list API applies). No spans back means the trace
+       * Access check + data load in one: no spans back means the trace
        * does not exist or the user may not see it.
        */
-      const spans: Array<Span> = await SpanService.findBy({
-        query: {
-          traceId: traceId,
-        } as never,
-        select: {
-          spanId: true,
-          parentSpanId: true,
-          name: true,
-          startTimeUnixNano: true,
-          endTimeUnixNano: true,
-          durationUnixNano: true,
-          attributes: true,
-          primaryEntityId: true,
-        } as never,
-        sort: {
-          startTimeUnixNano: SortOrder.Ascending,
-        } as never,
-        limit: MAX_ANALYZED_TRACE_SPANS,
-        skip: 0,
-        props: props,
-      });
+      const trace: PerformanceTraceSpans =
+        await FixPerformanceTaskTrigger.loadTraceSpans({ traceId, props });
 
-      if (spans.length === 0) {
+      if (trace.spans.length === 0) {
         throw new BadDataException(
           "Trace not found (or you do not have access to it).",
         );
       }
 
-      // Nanoseconds -> milliseconds for the analyzer.
-      const analyzableSpans: Array<AnalyzableSpan> = spans.map(
-        (span: Span): AnalyzableSpan => {
-          const attributes: Record<string, string> = {};
-
-          for (const [key, value] of Object.entries(span.attributes || {})) {
-            if (value !== null && value !== undefined) {
-              attributes[key] = String(value);
-            }
-          }
-
-          return {
-            spanId: span.spanId?.toString() || "",
-            parentSpanId: span.parentSpanId?.toString() || undefined,
-            name: span.name || "",
-            startMs: Number(span.startTimeUnixNano) / 1_000_000,
-            endMs: Number(span.endTimeUnixNano) / 1_000_000,
-            durationMs: Number(span.durationUnixNano) / 1_000_000,
-            attributes,
-          };
-        },
-      );
-
       /*
-       * Best-effort service attribution: the trace's most frequent
-       * primaryEntityId, resolved to a Service name when it IS a Service
-       * (findOneById returns null for hosts/clusters/unattributed ids).
-       * Only feeds the repository name-match fallback — null is fine.
+       * Best-effort service attribution - only feeds the repository
+       * name-match fallback, so null is fine.
        */
-      const entityIdCounts: Map<string, number> = new Map();
-      for (const span of spans) {
-        const entityId: string | undefined = span.primaryEntityId?.toString();
-        if (entityId) {
-          entityIdCounts.set(entityId, (entityIdCounts.get(entityId) || 0) + 1);
-        }
-      }
-
-      let dominantEntityId: string | null = null;
-      let dominantEntityCount: number = 0;
-      for (const [entityId, count] of entityIdCounts) {
-        if (count > dominantEntityCount) {
-          dominantEntityId = entityId;
-          dominantEntityCount = count;
-        }
-      }
-
-      const service: Service | null = dominantEntityId
-        ? await ServiceService.findOneById({
-            id: new ObjectID(dominantEntityId),
-            select: { name: true },
-            props: { isRoot: true },
-          })
-        : null;
+      const serviceName: string | undefined =
+        await FixPerformanceTaskTrigger.getServiceName(trace.dominantEntityId);
 
       const run: AIRun =
         await FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
           projectId,
           traceId,
-          spans: analyzableSpans,
-          serviceName: service?.name,
+          spans: trace.spans,
+          serviceName,
           userId: props.userId!,
         });
 
@@ -1559,12 +1557,329 @@ router.post(
   },
 );
 
+// The longest window a profile fix reads, in days (the Profiler's longest).
+const PROFILE_FIX_MAX_WINDOW_DAYS: number = 7;
+
+/*
+ * A profile window off the request: two ISO timestamps, in order, at most
+ * PROFILE_FIX_MAX_WINDOW_DAYS apart.
+ */
+function readProfileWindow(
+  rawStart: unknown,
+  rawEnd: unknown,
+  what: string,
+): { startTime: Date; endTime: Date } {
+  const startTime: Date | null =
+    typeof rawStart === "string" ? new Date(rawStart) : null;
+  const endTime: Date | null =
+    typeof rawEnd === "string" ? new Date(rawEnd) : null;
+
+  if (
+    !startTime ||
+    !endTime ||
+    isNaN(startTime.getTime()) ||
+    isNaN(endTime.getTime())
+  ) {
+    throw new BadDataException(
+      `${what} needs a start and an end, as ISO timestamps.`,
+    );
+  }
+
+  if (startTime.getTime() >= endTime.getTime()) {
+    throw new BadDataException(`${what} must start before it ends.`);
+  }
+
+  if (
+    endTime.getTime() - startTime.getTime() >
+    PROFILE_FIX_MAX_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  ) {
+    throw new BadDataException(
+      `${what} can be at most ${PROFILE_FIX_MAX_WINDOW_DAYS} days long.`,
+    );
+  }
+
+  return { startTime, endTime };
+}
+
+/*
+ * The body both profile-fix routes take, read and checked the same way:
+ * the project scope, the service, the function and its file, the kind of
+ * profile and the window (and the window it was compared with). The
+ * trigger reads the profile under the caller's own read scope.
+ */
+function readProfileFixRequest(
+  req: ExpressRequest,
+  props: DatabaseCommonInteractionProps,
+): ProfileFixRequest {
+  const projectId: ObjectID | undefined = props.tenantId;
+
+  if (!projectId) {
+    throw new BadDataException("A project scope is required.");
+  }
+
+  const body: JSONObject = (req.body as JSONObject) || {};
+  const serviceId: unknown = body["serviceId"];
+
+  if (typeof serviceId !== "string" || !ObjectID.isValidUUID(serviceId)) {
+    throw new BadDataException("A valid serviceId is required.");
+  }
+
+  const functionName: unknown = body["functionName"];
+
+  if (
+    typeof functionName !== "string" ||
+    functionName.length === 0 ||
+    functionName.length > 1000
+  ) {
+    throw new BadDataException("functionName is required.");
+  }
+
+  const fileName: unknown = body["fileName"];
+
+  if (
+    fileName !== undefined &&
+    fileName !== null &&
+    (typeof fileName !== "string" || fileName.length > 1000)
+  ) {
+    throw new BadDataException("fileName must be text.");
+  }
+
+  const profileType: unknown = body["profileType"];
+
+  if (
+    profileType !== undefined &&
+    profileType !== null &&
+    (typeof profileType !== "string" || profileType.length > 64)
+  ) {
+    throw new BadDataException("profileType must be a kind of profile.");
+  }
+
+  const request: ProfileFixRequest = {
+    projectId,
+    props: pinPropsToTenant(props),
+    serviceId: new ObjectID(serviceId),
+    functionName,
+    fileName: typeof fileName === "string" ? fileName : "",
+    window: readProfileWindow(
+      body["startTime"],
+      body["endTime"],
+      "The profile's time range",
+    ),
+  };
+
+  if (typeof profileType === "string" && profileType.trim()) {
+    request.profileType = profileType.trim();
+  }
+
+  if (
+    body["beforeStartTime"] !== undefined ||
+    body["beforeEndTime"] !== undefined
+  ) {
+    request.beforeWindow = readProfileWindow(
+      body["beforeStartTime"],
+      body["beforeEndTime"],
+      "The time range it is compared with",
+    );
+  }
+
+  return request;
+}
+
+/*
+ * What the Profiler's function panel offers for "Fix with AI": the fix
+ * (Act, with the repository the function's file is in, or the ones to pick
+ * from), a set-up step in Code's own words (SetUp), the task already on its
+ * way (InProgress), or nothing (None) - decided by the gates the create
+ * route below enforces (ProfileFixTaskTrigger.getSuggestion), so the panel
+ * never offers a fix the server then refuses.
+ */
+router.post(
+  "/ai-investigation/profile-fix-suggestion",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const request: ProfileFixRequest = readProfileFixRequest(req, props);
+
+      const suggestion: ProfileFixSuggestion =
+        await ProfileFixTaskTrigger.getSuggestion(request);
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        profileFixSuggestionToJSON(suggestion),
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * "Fix with AI" from the Profiler: a Code task in the repository that holds
+ * the function, asking OneUptime AI to make it lighter, with the profile as
+ * its context. Body: the suggestion's, plus the person's own words
+ * (message) and the repository they picked (repositoryId) when none was
+ * found for certain. Response: { taskId } - the task in Code.
+ */
+router.post(
+  "/ai-investigation/create-profile-fix-task",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const request: ProfileFixRequest = readProfileFixRequest(req, props);
+      const body: JSONObject = (req.body as JSONObject) || {};
+
+      const repositoryId: unknown = body["repositoryId"];
+
+      if (
+        repositoryId !== undefined &&
+        repositoryId !== null &&
+        (typeof repositoryId !== "string" ||
+          !ObjectID.isValidUUID(repositoryId))
+      ) {
+        throw new BadDataException("repositoryId must be a repository's ID.");
+      }
+
+      const created: { taskId: string } =
+        await ProfileFixTaskTrigger.createFixTask({
+          ...request,
+          ...(typeof body["message"] === "string"
+            ? { message: body["message"] as string }
+            : {}),
+          ...(typeof repositoryId === "string"
+            ? { repositoryId: new ObjectID(repositoryId) }
+            : {}),
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        taskId: created.taskId,
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * The body both telemetry-improvement routes take, read and checked the
+ * same way: the project scope, the service and the recipe, and the caller's
+ * own read access to the service (the trigger re-reads as root afterwards).
+ */
+interface TelemetryImprovementRequest {
+  projectId: ObjectID;
+  telemetryServiceId: ObjectID;
+  taskType: CodeFixTaskType;
+}
+
+async function readTelemetryImprovementRequest(
+  req: ExpressRequest,
+  props: DatabaseCommonInteractionProps,
+): Promise<TelemetryImprovementRequest> {
+  const projectId: ObjectID | undefined = props.tenantId;
+
+  if (!projectId) {
+    throw new BadDataException("A project scope is required.");
+  }
+
+  const telemetryServiceIdParam: string | undefined = req.body[
+    "telemetryServiceId"
+  ] as string | undefined;
+
+  if (!telemetryServiceIdParam) {
+    throw new BadDataException("telemetryServiceId is required.");
+  }
+
+  const rawTaskType: string | undefined = req.body["taskType"] as
+    | string
+    | undefined;
+
+  if (
+    rawTaskType !== CodeFixTaskType.ImproveLogging &&
+    rawTaskType !== CodeFixTaskType.ImproveTracing
+  ) {
+    throw new BadDataException(
+      `taskType must be ${CodeFixTaskType.ImproveLogging} or ${CodeFixTaskType.ImproveTracing}.`,
+    );
+  }
+
+  const telemetryServiceId: ObjectID = new ObjectID(telemetryServiceIdParam);
+
+  /*
+   * Access check under the USER's permissions: the caller must be able to
+   * read the service they are asking the agent to instrument.
+   */
+  const service: Service | null = await ServiceService.findOneById({
+    id: telemetryServiceId,
+    select: { _id: true },
+    props: props,
+  });
+
+  if (!service) {
+    throw new BadDataException(
+      "Telemetry service not found (or you do not have access to it).",
+    );
+  }
+
+  return { projectId, telemetryServiceId, taskType: rawTaskType };
+}
+
+/*
+ * What a service's Logs or Traces page offers for "Improve logging / tracing
+ * with AI": the card (Act), a link to the improvement already on its way
+ * (InProgress), or nothing (None) - decided by the gates the create route
+ * below enforces (TelemetryImprovementTaskTrigger.getSuggestion), so the
+ * page never offers an improvement the server then refuses. Body:
+ * { telemetryServiceId, taskType }. Response: { offer, aiRunId }.
+ */
+router.post(
+  "/ai-investigation/telemetry-improvement-suggestion",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const request: TelemetryImprovementRequest =
+        await readTelemetryImprovementRequest(req, props);
+
+      const suggestion: TelemetryImprovementSuggestion =
+        await TelemetryImprovementTaskTrigger.getSuggestion(request);
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        telemetryImprovementSuggestionToJSON(suggestion),
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
 /*
  * "Improve logging / tracing with AI" from a telemetry service's Logs or
  * Traces page: gate and enqueue a service-scoped instrumentation-
  * improvement CodeFix run (ImproveLogging / ImproveTracing). Human-
- * triggered — the click is the gate; budget, repository and per-service
- * dedupe are enforced in the trigger. Returns { aiRunId }.
+ * triggered — the click is the gate; the AI switch, budget, repository and
+ * per-service dedupe are enforced in the trigger. Returns { aiRunId }.
  */
 router.post(
   "/ai-investigation/create-telemetry-improvement-task",
@@ -1576,60 +1891,14 @@ router.post(
   ): Promise<void> => {
     try {
       const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
-
-      const projectId: ObjectID | undefined = props.tenantId;
-
-      if (!projectId) {
-        throw new BadDataException("A project scope is required.");
-      }
-
-      const telemetryServiceIdParam: string | undefined = req.body[
-        "telemetryServiceId"
-      ] as string | undefined;
-
-      if (!telemetryServiceIdParam) {
-        throw new BadDataException("telemetryServiceId is required.");
-      }
-
-      const rawTaskType: string | undefined = req.body["taskType"] as
-        | string
-        | undefined;
-
-      if (
-        rawTaskType !== CodeFixTaskType.ImproveLogging &&
-        rawTaskType !== CodeFixTaskType.ImproveTracing
-      ) {
-        throw new BadDataException(
-          `taskType must be ${CodeFixTaskType.ImproveLogging} or ${CodeFixTaskType.ImproveTracing}.`,
-        );
-      }
-
-      const telemetryServiceId: ObjectID = new ObjectID(
-        telemetryServiceIdParam,
-      );
-
-      /*
-       * Access check under the USER's permissions: the caller must be able
-       * to read the service they are asking the agent to instrument. The
-       * trigger re-reads as root afterwards.
-       */
-      const service: Service | null = await ServiceService.findOneById({
-        id: telemetryServiceId,
-        select: { _id: true },
-        props: props,
-      });
-
-      if (!service) {
-        throw new BadDataException(
-          "Telemetry service not found (or you do not have access to it).",
-        );
-      }
+      const request: TelemetryImprovementRequest =
+        await readTelemetryImprovementRequest(req, props);
 
       const run: AIRun =
         await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
-          projectId,
-          telemetryServiceId,
-          taskType: rawTaskType,
+          projectId: request.projectId,
+          telemetryServiceId: request.telemetryServiceId,
+          taskType: request.taskType,
           userId: props.userId!,
         });
 

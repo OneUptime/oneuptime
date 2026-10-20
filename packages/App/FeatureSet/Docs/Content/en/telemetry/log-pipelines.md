@@ -178,7 +178,7 @@ Pulls structured fields out of a line with a fixed shape. A grok pattern is a re
 
 A capture is stored as text unless you give it a type: `%{NUMBER:status:int}` stores it as a number. The types are `int`, `long`, `float`, `double`, `boolean` and `string`. Check a pattern against a sample line in **Test Your Pattern** before you save it.
 
-A grok pattern runs in time that grows only in line with the line it reads, however it is written, and keeps JavaScript's syntax: look-aheads and look-behinds work. A pattern that cannot run that way, such as one with a back-reference like `\1`, is refused when you save it, with a message that says what to change.
+A grok pattern runs in time that grows only in line with the line it reads, however it is written, and keeps JavaScript's syntax: look-aheads and look-behinds work. A pattern that cannot run that way, such as one with a back-reference like `\1`, is refused when you save it, with a message that says what to change. A grok pattern also shares each batch's allowance of work with the project's other patterns: when they need more, the line stays unparsed.
 
 | Log body                     | Pattern                                                                    | Attributes added                |
 | ---------------------------- | -------------------------------------------------------------------------- | ------------------------------- |

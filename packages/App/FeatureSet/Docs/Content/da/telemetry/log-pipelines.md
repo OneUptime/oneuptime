@@ -178,7 +178,7 @@ Trækker strukturerede felter ud af en linje med fast form. Et grok-mønster er 
 
 En fangst gemmes som tekst, medmindre du giver den en type: `%{NUMBER:status:int}` gemmer den som et tal. Typerne er `int`, `long`, `float`, `double`, `boolean` og `string`. Tjek et mønster mod en eksempellinje i **Test Your Pattern**, før du gemmer det.
 
-Et grok-mønster kører på en tid, der kun vokser med den linje, det læser, uanset hvordan det er skrevet, og beholder JavaScripts syntaks: lookaheads og lookbehinds virker. Et mønster, der ikke kan køres på den måde, for eksempel et med en tilbagehenvisning som `\1`, afvises, når du gemmer det, med en besked, der siger, hvad du skal ændre.
+Et grok-mønster kører på en tid, der kun vokser med den linje, det læser, uanset hvordan det er skrevet, og beholder JavaScripts syntaks: lookaheads og lookbehinds virker. Et mønster, der ikke kan køres på den måde, for eksempel et med en tilbagehenvisning som `\1`, afvises, når du gemmer det, med en besked, der siger, hvad du skal ændre. Et grok-mønster deler også hver sendings arbejdskvote med projektets andre mønstre: når de kræver mere, forbliver linjen ufortolket.
 
 | Logindhold | Mønster | Tilføjede attributter |
 | --- | --- | --- |

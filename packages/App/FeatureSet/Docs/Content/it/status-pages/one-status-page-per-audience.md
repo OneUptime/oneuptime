@@ -70,7 +70,7 @@ Create una pagina per pubblico, per esempio da `Site 01` a `Site 10`. Rendetele 
 
 ### Mettere il monitor condiviso su ogni pagina
 
-Aggiungete il monitor condiviso a ogni pagina come risorsa (vedete [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups)). Una regola in **Risorse → Monitor Rules** può farlo per voi a partire dalle etichette del monitor.
+Aggiungete il monitor condiviso a ogni pagina come risorsa (vedete [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups)). Una regola in **Regole → Monitor Rules** può farlo per voi a partire dalle etichette del monitor.
 
 ### Attivare Mostra solo gli incidenti limitati a questa pagina
 

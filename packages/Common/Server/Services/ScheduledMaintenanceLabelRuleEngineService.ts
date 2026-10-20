@@ -42,6 +42,7 @@ import {
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
+import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 class ScheduledMaintenanceLabelRuleEngineServiceClass
   implements RuleRunEngine<ScheduledMaintenance, ScheduledMaintenanceLabelRule>
@@ -170,6 +171,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
     }
   }
 
+  @RuleEvaluation()
   private async applyRules(data: {
     scheduledMaintenance: ScheduledMaintenance;
     rules: Array<ScheduledMaintenanceLabelRule>;

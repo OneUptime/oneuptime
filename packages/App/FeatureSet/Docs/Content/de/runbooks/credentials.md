@@ -1,26 +1,26 @@
-# Runbook-Anmeldedaten
+# KI-Zugriff
 
-Anmeldedaten sind der Weg, auf dem ein Runbook etwas erreicht, das **nicht** der eigene Host des Runners ist — einen Server per SSH oder einen Kubernetes-Cluster. Ohne sie heißt „den Dienst neu starten“, ein Shell-Skript zu schreiben und einen Schlüssel oder eine kubeconfig von Hand auf den Runner-Host zu bringen, wo sie außerhalb der Kontrolle von OneUptime auf der Festplatte liegt. Anmeldedaten sind derselbe Zugang als verwaltetes Objekt: im Ruhezustand verschlüsselt, bestimmten Runnern zugewiesen und von einem Schritt über ihren Namen angesprochen.
+Der KI-Zugriff ist der Weg, auf dem die eigenen Befehle von OneUptime AI etwas erreichen, das **nicht** der eigene Host eines Runners ist — einen Server per SSH oder den API-Server eines Kubernetes-Clusters, der das Kubernetes-Agent-Chart nicht ausführt. Jeder Zugriff sind Anmeldedaten: dieser Zugang als verwaltetes Objekt, im Ruhezustand verschlüsselt, bestimmten Runnern zugewiesen und von OneUptime AI ausgewählt, statt in einen Befehl geschrieben. Runbook-Schritte verwenden sie nicht: Ein SSH- oder kubectl-Schritt meldet sich mit einer geheimen [Runbook-Variable](/docs/runbooks/variables) an. Ein Runner, der älter als dieses Release ist, ist die Ausnahme: Er führt einen aus einer Aktion überführten Kubernetes-Schritt mit den Anmeldedaten aus, die der Schritt nannte, bis das Skript oder die kubeconfig des Schritts geändert wird.
 
-Sie verwalten sie unter **Runbooks → Runbook-Agents → Anmeldedaten**.
+Sie verwalten sie unter **Runbooks → Runbook-Agents → KI-Zugriff**.
 
 :::cards
 - [Anmeldedaten erstellen](#anmeldedaten-erstellen): Ihr Zugang und die Runner, die sie nutzen dürfen.
 - [Minimale Rechte auf der Gegenseite](#minimale-rechte-auf-der-gegenseite): Begrenzen, was der Schlüssel oder das Token tun kann.
-- [Geheimnisse für Skripte](#geheimnisse-für-skripte): Einem Bash- oder JavaScript-Skript ein Passwort oder Token geben.
+- [Runner, die die Befehle von OneUptime AI ausführen](#runner-die-die-befehle-von-oneuptime-ai-ausführen): Wer einem solchen Runner SSH-Anmeldedaten geben darf.
 :::
 
 ## Wie Anmeldedaten genutzt werden
 
 ```mermaid title="Wie Anmeldedaten das System erreichen, das sie öffnen"
 flowchart TB
-    step["SSH- oder Kubernetes-Schritt"] -->|"nennt"| cred["Anmeldedaten, verschlüsselt in OneUptime"]
-    step -->|"zielt auf"| runner["Runner"]
+    step["SSH- oder kubectl-Befehl<br/>von OneUptime AI"] -->|"läuft mit"| cred["Anmeldedaten, verschlüsselt in OneUptime"]
+    step -->|"läuft auf"| runner["Runner"]
     cred -->|"zugewiesen an"| runner
-    runner -->|"übernimmt den Schritt und erhält das Geheimnis"| target["SSH-Host oder Kubernetes-API-Server"]
+    runner -->|"übernimmt den Befehl und erhält das Geheimnis"| target["SSH-Host oder Kubernetes-API-Server"]
 ```
 
-Ein SSH- oder Kubernetes-Schritt nennt Anmeldedaten und einen Runner. Wenn dieser Runner den Schritt übernimmt, prüft OneUptime, dass die Anmeldedaten ihm zugewiesen sind, entschlüsselt das Geheimnis und übergibt es nur in der Antwort auf diese Übernahme. Das Geheimnis wird nie am Job gespeichert und ist über die API nie lesbar.
+OneUptime AI führt einen SSH-Befehl mit einem der SSH-Anmeldedaten aus, die dem Runner zugewiesen sind, auf dem er läuft, und einen kubectl-Befehl für einen Cluster, der das Kubernetes-Agent-Chart nicht ausführt, mit den Kubernetes-Anmeldedaten, die an diesen Cluster gebunden sind, wie [KI-SRE](/docs/ai/ai-sre) zeigt. Wenn der Runner den Befehl übernimmt, prüft OneUptime, dass die Anmeldedaten ihm zugewiesen sind, entschlüsselt das Geheimnis und übergibt es nur in der Antwort auf diese Übernahme. Das Geheimnis wird nie im Job gespeichert und ist über die API nie lesbar.
 
 ## Bevor Sie beginnen
 
@@ -31,9 +31,9 @@ Ein SSH- oder Kubernetes-Schritt nennt Anmeldedaten und einen Runner. Wenn diese
 ## Anmeldedaten erstellen
 
 :::steps
-### Anmeldedaten öffnen
+### KI-Zugriff öffnen
 
-Öffnen Sie **Runbooks → Runbook-Agents → Anmeldedaten** und klicken Sie auf **Runbook-Anmeldedaten erstellen**.
+Öffnen Sie **Runbooks → Runbook-Agents → KI-Zugriff** und klicken Sie auf **Anmeldedaten erstellen**.
 
 ### Benennen und den Typ wählen
 
@@ -50,11 +50,11 @@ Geben Sie unter **Kubernetes** die **API-Server-URL** ein, etwa `https://10.0.0.
 
 ### Runnern zuweisen
 
-Wählen Sie im Schritt **Runbook-Agents** die Runner, die die Anmeldedaten nutzen dürfen, und klicken Sie dann auf **Runbook-Anmeldedaten erstellen**. Anmeldedaten, die keinem Runner zugewiesen sind, kann kein Schritt nutzen.
+Wählen Sie im Schritt **Runbook-Agents** die Runner, die die Anmeldedaten nutzen dürfen, und klicken Sie dann auf **Anmeldedaten erstellen**. Anmeldedaten, die keinem Runner zugewiesen sind, kann kein Befehl nutzen.
 
-### In einem Schritt nutzen
+### OneUptime AI sie nutzen lassen
 
-Wählen Sie in einem [SSH- oder Kubernetes-Schritt](/docs/runbooks/authoring#schritttypen) einen dieser Runner und dann die Anmeldedaten unter **Anmeldedaten**. Ein Schritt bietet nur Anmeldedaten seines eigenen Typs an, und einen Schritt zu speichern, der Anmeldedaten nennt, erfordert die Berechtigung, Runbook-Anmeldedaten zu lesen.
+OneUptime AI führt seine SSH-Befehle auf einem Runner aus, bei dem **Führt KI-Behebungsbefehle aus** eingeschaltet ist, mit einem der SSH-Anmeldedaten, die ihm zugewiesen sind. Kubernetes-Anmeldedaten werden verwendet, sobald sie mit einem ihrer Runner an einen Cluster gebunden sind: siehe [KI-SRE](/docs/ai/ai-sre).
 :::
 
 ## Was gespeichert wird
@@ -72,7 +72,7 @@ Es gibt deshalb kein „Anzeigen“ für einen geheimen Wert, nur „Ersetzen“
 
 ## Anmeldedaten Runnern zuweisen
 
-Anmeldedaten können nur die Runner nutzen, denen Sie sie zuweisen, und ein Schritt muss auf einen dieser Runner zielen. Nennt ein Schritt Anmeldedaten, die seinem Runner nicht zugewiesen sind, **schlägt der Schritt fehl, statt zu laufen** — ein Runner, der stillschweigend nichts tut, sieht genauso aus wie einer, der funktioniert hat.
+Anmeldedaten sind nur für die Runner nutzbar, denen Sie sie zuweisen. Ein Befehl, der Anmeldedaten nennt, die seinem Runner nicht zugewiesen sind, **schlägt fehl, statt zu laufen** — ein Runner, der stillschweigend nichts tut, sieht genauso aus wie einer, der funktioniert hat.
 
 Die Zuweisung ist die Zugriffsgrenze, also halten Sie sie eng: Ein Runner, der immer nur einen Cluster neu startet, braucht nicht den SSH-Schlüssel Ihrer Datenbank-Hosts.
 
@@ -92,82 +92,7 @@ Die Schritte eines Workflows handeln als Project Admin, bekommen aber nicht das 
 OneUptime kann nicht einschränken, was Ihre Anmeldedaten auf dem Zielsystem tun dürfen — das ist Aufgabe des Zielsystems, und es lohnt sich:
 
 - **SSH** — ziehen Sie einen Schlüssel einem Passwort vor, geben Sie dem Benutzer nur die Befehle, die er braucht (ein erzwungener Befehl oder eine eingeschränkte Shell, wo praktikabel), und verwenden Sie nicht den persönlichen Schlüssel einer Administratorin oder eines Administrators wieder.
-- **Kubernetes** — binden Sie das Dienstkonto an eine Role, die `patch` auf genau die Workloads erlaubt, die Ihre Runbooks anfassen, in genau den Namespaces, in denen sie laufen. **Workload neu starten** patcht die Workload selbst, und **Workload skalieren** patcht ihre `scale`-Subressource: Mehr wird nicht gebraucht.
-
-Zum Beispiel ein Dienstkonto, das ein Deployment neu starten und skalieren darf, und sonst nichts:
-
-```yaml title="oneuptime-runbooks-rbac.yaml"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-rules:
-  # Restart workload: patches the Deployment's pod template.
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
-  # Scale workload: patches the Deployment's scale subresource.
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    resourceNames: ["checkout-api"]
-    verbs: ["patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: oneuptime-runbooks
-  namespace: checkout
-subjects:
-  - kind: ServiceAccount
-    name: oneuptime-runbooks
-    namespace: checkout
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: oneuptime-runbooks
-```
-
-Für ein StatefulSet oder DaemonSet verwenden Sie stattdessen `statefulsets` oder `daemonsets`. Ein DaemonSet lässt sich nicht skalieren und braucht deshalb keine `scale`-Regel.
-
-## Geheimnisse für Skripte
-
-Bash- und JavaScript-Schritte haben kein Feld **Anmeldedaten**. Um einem Skript ein Passwort, ein Token oder einen API-Schlüssel zu geben, ohne ihn ins Runbook zu schreiben, speichern Sie ihn als **Runbook-Geheimnis**. Geheimnisse werden unter **Runbooks → Einstellungen → Geheimnisse** verwaltet, von Project Owners und Project Admins oder mit der Berechtigung **Create Runbook Secret**.
-
-:::steps
-### Das Geheimnis erstellen
-
-Klicken Sie auf **Runbook-Secret erstellen**. Geben Sie im Schritt **Geheimnis** einen **Name** ein (Buchstaben, Ziffern, Bindestriche und Unterstriche), eine optionale **Beschreibung** und den **Geheimniswert**. Wählen Sie im Schritt **Zugriff** Ihre Runner unter **Ihre Runner, die dieses Geheimnis nutzen dürfen**. Auf einem Server mit [globalen Runnern](/docs/runbooks/agents#globale-runner) erlaubt **Globale Runner dürfen dieses Geheimnis nutzen** auch den Schritten dieses Projekts, die auf einem globalen Runner laufen, es zu nutzen. Für ein neues Geheimnis ist es an, solange das Projekt globale Runner nutzt.
-
-### In einem Skript nutzen
-
-Schreiben Sie `{{runbookSecrets.NAME}}` dort, wo der Wert hingehört:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer {{runbookSecrets.CDN_API_TOKEN}}" \
-  "https://api.cdn.example.com/v1/purge"
-```
-
-Wenn ein Runner, dem das Geheimnis zugewiesen ist, den Schritt übernimmt, erhält er das Skript mit eingesetztem Wert. Ein globaler Runner ebenso, wenn das Geheimnis globalen Runnern die Nutzung erlaubt. Ein Schritt auf einem globalen Runner, der ein Geheimnis nennt, das globale Runner nicht nutzen dürfen, schlägt fehl und nennt das Geheimnis, statt ohne es zu laufen.
-:::
-
-Wie die geheimen Felder von Anmeldedaten ist der Wert eines Geheimnisses im Ruhezustand verschlüsselt und wird von der API nie zurückgegeben: **Geheimwert aktualisieren** ersetzt ihn. In OneUptime Cloud brauchen auch Runbook-Geheimnisse den Tarif **Growth** oder höher.
-
-| | Anmeldedaten | Runbook-Geheimnis |
-| --- | --- | --- |
-| Genutzt von | SSH- und Kubernetes-Schritten | Bash- und JavaScript-Skripten |
-| Enthält | Einen Host und seinen Schlüssel oder die URL und das Token eines Clusters | Einen beliebigen einzelnen Wert |
-| Verwaltet unter | **Runbooks → Runbook-Agents → Anmeldedaten** | **Runbooks → Einstellungen → Geheimnisse** |
-| Erreicht den Runner | In der Antwort auf die Übernahme eines Schritts, der sie nennt | Eingesetzt in das Skript des Schritts, den er übernimmt |
-| Über die API zurücklesbar | Nur ihre nicht geheimen Felder | Nie sein Wert |
+- **Kubernetes** — binden Sie das Dienstkonto an eine Role, die nur erlaubt, was Sie OneUptime AI tun lassen, in den Namespaces, in denen es handeln darf. Ein Dienstkonto, das nur lesen darf, lässt OneUptime AI untersuchen und verweigert jede Korrektur.
 
 ## Wer sie sehen kann
 
@@ -178,7 +103,7 @@ Beachten Sie, dass der **Agenten-Schlüssel** eines Runners den ihm zugewiesenen
 ## Nächste Schritte
 
 :::cards
-- [Ein Runbook verfassen](/docs/runbooks/authoring): Die SSH- und Kubernetes-Schritte schreiben, die Anmeldedaten nutzen.
+- [Runbook-Variablen](/docs/runbooks/variables): Die Geheimnisse, mit denen sich SSH- und kubectl-Schritte anmelden.
 - [Runbook-Agents](/docs/runbooks/agents): Den Runner installieren, dem Anmeldedaten zugewiesen werden.
 - [Runbook-Konfiguration & Sicherheit](/docs/runbooks/configuration): Berechtigungen und Härtung für den gesamten Runbook-Stack.
 :::

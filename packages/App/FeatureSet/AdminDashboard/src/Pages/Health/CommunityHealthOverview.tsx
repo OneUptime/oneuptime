@@ -1,6 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ClickhouseCapacitySummary from "./ClickhouseCapacitySummary";
+import VisitorAddressesSummary from "./VisitorAddressesSummary";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
@@ -59,11 +60,15 @@ export const EVERY_EDITION_HEALTH_TOOLS: ReadonlyArray<HealthTool> = [
  * The part of the Health landing page every edition gets: ClickHouse capacity
  * at a glance and the tools that need no Enterprise license. On the Community
  * Edition it is the landing page (under a short Enterprise note); on the
- * Enterprise Edition it sits under the live cluster-health overview.
+ * Enterprise Edition it sits under the live cluster-health overview. Above
+ * them, only when OneUptime sees several people at one private address, the
+ * card that says what to set (VisitorAddressesSummary).
  */
 const CommunityHealthOverview: FunctionComponent = (): ReactElement => {
   return (
     <div>
+      <VisitorAddressesSummary />
+
       <ClickhouseCapacitySummary />
 
       <Card

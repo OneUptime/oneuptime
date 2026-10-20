@@ -23,9 +23,37 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import RunnerPicker from "../../../Components/Runner/RunnerPicker";
+import RunbookVariablePicker from "../../../Components/Runbook/Steps/RunbookVariablePicker";
+import RunbookVariableChips from "../../../Components/Runbook/Steps/RunbookVariableChips";
+import SshTargetInput from "../../../Components/Runbook/Steps/SshTargetInput";
+import UnknownVariablesNote from "../../../Components/Runbook/Steps/UnknownVariablesNote";
+import RunbookVariableChoicesLoader, {
+  NO_RUNBOOK_VARIABLE_CHOICES,
+  RunbookVariableChoices,
+  getUnknownVariableReferences,
+} from "../../../Components/Runbook/Steps/RunbookVariableChoices";
+import {
+  KUBECONFIG_TITLE,
+  KUBECTL_EXAMPLES,
+  NO_PASSPHRASE_LABEL,
+  RUNNER_OWN_KUBECONFIG_LABEL,
+  SSH_EXAMPLES,
+  SSH_PASSPHRASE_TITLE,
+  SSH_TARGET_HELP,
+  SSH_PORT_TITLE,
+  SSH_SIGN_IN_TITLE,
+  ScriptExample,
+  SshTarget,
+  applyStepConfigChange,
+  convertLegacyCredentialStep,
+  formatSshTarget,
+  getFirstCommand,
+  getStepMoreFieldsItems,
+  isLegacyCredentialStep,
+} from "../../../Components/Runbook/Steps/RunbookStepEditorModel";
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../Components/Runner/RunnerChoices";
@@ -42,17 +70,13 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   AIStepConfig,
   BashStepConfig,
   HttpRequestMethod,
   HttpRequestStepConfig,
   JavaScriptStepConfig,
-  KubernetesAction,
   KubernetesStepConfig,
-  KubernetesWorkloadKind,
   RunbookStep,
   SSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
@@ -70,6 +94,8 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  ReactNode,
+  useEffect,
   useState,
 } from "react";
 import {
@@ -95,12 +121,6 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 interface RunnerExecutedStepTimeouts {
   timeoutInMs?: number | undefined;
   claimTimeoutInMs?: number | undefined;
-}
-
-interface CredentialOption {
-  id: string;
-  name: string;
-  credentialType: RunbookCredentialType;
 }
 
 /*
@@ -199,10 +219,9 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
   },
   [RunbookStepType.SSH]: {
     type: RunbookStepType.SSH,
-    label: "SSH command",
+    label: "SSH script",
     shortLabel: "SSH",
-    description:
-      "Run a command on a remote host, using a stored SSH credential.",
+    description: "Sign in to a machine and run a bash script there.",
     icon: IconProp.Terminal,
     bg: "bg-emerald-50",
     ring: "ring-emerald-100",
@@ -210,11 +229,16 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     numberBg: "bg-emerald-600",
     borderL: "border-l-emerald-500",
   },
+  /*
+   * A kubectl script: the step type keeps its stored name, Kubernetes. It
+   * used to restart or scale one workload from two dropdowns; it takes the
+   * kubectl commands themselves now.
+   */
   [RunbookStepType.Kubernetes]: {
     type: RunbookStepType.Kubernetes,
-    label: "Kubernetes action",
-    shortLabel: "Kubernetes",
-    description: "Restart or scale a workload in a cluster.",
+    label: "kubectl script",
+    shortLabel: "kubectl",
+    description: "Run kubectl commands against a cluster.",
     icon: IconProp.Cube,
     bg: "bg-blue-50",
     ring: "ring-blue-100",
@@ -287,12 +311,6 @@ const ALL_STEP_TYPES: RunbookStepType[] = [
   RunbookStepType.Kubernetes,
   RunbookStepType.AI,
 ];
-
-interface ScriptExample {
-  label: string;
-  description: string;
-  code: string;
-}
 
 /*
  * JavaScript runs inside an isolated-vm sandbox on the step's Runner.
@@ -433,17 +451,16 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
               } as BashStepConfig)
             : type === RunbookStepType.SSH
               ? ({
-                  credentialId: "",
-                  command: "",
+                  host: "",
+                  username: "",
+                  signIn: "",
+                  script: SSH_EXAMPLES[0]!.code,
                   agentId: "",
                 } as SSHStepConfig)
               : type === RunbookStepType.Kubernetes
                 ? ({
-                    credentialId: "",
-                    action: KubernetesAction.RestartWorkload,
-                    workloadKind: KubernetesWorkloadKind.Deployment,
-                    namespace: "default",
-                    workloadName: "",
+                    kubeconfig: "",
+                    script: KUBECTL_EXAMPLES[0]!.code,
                     agentId: "",
                   } as KubernetesStepConfig)
                 : type === RunbookStepType.AI
@@ -476,11 +493,12 @@ function runnerSummaryValue(runner: RunnerSummary): TemplateValue {
 }
 
 /*
- * The line under a folded step's title. A JavaScript or Bash step says what
- * it runs on - "JavaScript on Global Runner", "Bash script on
- * prod-eu-west-1" - or that it still needs a Runner, so the list reads
- * where every step runs without opening one (`runner` is undefined while
- * the step cannot run as it is: see getRunnerSummary).
+ * The line under a folded step's title. A step that runs on a Runner says
+ * what it runs on - "JavaScript on Global Runner", "Bash script on
+ * prod-eu-west-1", "SSH to deploy@10.0.4.21 from prod-bastion" - or that
+ * it still needs a Runner, so the list reads where every step runs without
+ * opening one (`runner` is undefined while the step cannot run as it is:
+ * see getRunnerSummary).
  */
 function summarizeStep(
   step: RunbookStep,
@@ -508,22 +526,42 @@ function summarizeStep(
   }
   if (step.type === RunbookStepType.SSH) {
     const cfg: SSHStepConfig = step.config as SSHStepConfig;
-    const command: string = (cfg.command || "").split("\n")[0] || "";
-    return command
-      ? translateTemplate("SSH: {{command}}", {
-          command: `${command.slice(0, 80)}${command.length > 80 ? "…" : ""}`,
+
+    if (isLegacyCredentialStep(step)) {
+      return translateTemplate("SSH with a runbook credential");
+    }
+
+    const target: string =
+      formatSshTarget({ username: cfg.username, host: cfg.host }) || "?";
+
+    return runner
+      ? translateTemplate("SSH to {{target}} from {{runner}}", {
+          target,
+          runner: runnerSummaryValue(runner),
         })
-      : translateTemplate("SSH command");
+      : translateTemplate("SSH to {{target}}, needs a Runner", { target });
   }
   if (step.type === RunbookStepType.Kubernetes) {
     const cfg: KubernetesStepConfig = step.config as KubernetesStepConfig;
-    const workload: string = `${cfg.namespace || "?"}/${cfg.workloadName || "?"}`;
-    return cfg.action === KubernetesAction.ScaleWorkload
-      ? translateTemplate("Scale to {{replicas}}: {{workload}}", {
-          replicas: cfg.replicas ?? "?",
-          workload: workload,
+
+    if (isLegacyCredentialStep(step)) {
+      return translateTemplate("Kubernetes action with a runbook credential");
+    }
+
+    const command: string = getFirstCommand(cfg.script);
+
+    if (!runner) {
+      return translateTemplate("kubectl script, needs a Runner");
+    }
+
+    return command
+      ? translateTemplate("{{command}} · on {{runner}}", {
+          command,
+          runner: runnerSummaryValue(runner),
         })
-      : translateTemplate("Restart: {{workload}}", { workload: workload });
+      : translateTemplate("kubectl script on {{runner}}", {
+          runner: runnerSummaryValue(runner),
+        });
   }
   if (step.type === RunbookStepType.AI) {
     const cfg: AIStepConfig = step.config as AIStepConfig;
@@ -565,7 +603,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setRunnerChoices,
   );
 
-  // What a JavaScript or Bash step runs on, as its picker shows it.
+  // What a step that runs on a Runner runs on, as its picker shows it.
   const getStepRunnerModel: (step: RunbookStep) => RunnerPickerModel = (
     step: RunbookStep,
   ): RunnerPickerModel => {
@@ -579,8 +617,44 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
   };
 
-  const [credentials, setCredentials] = useState<CredentialOption[]>([]);
+  /*
+   * The variables the steps can name - the project's global ones and this
+   * runbook's own - for the pickers of an SSH step's sign-in and a kubectl
+   * step's kubeconfig, and the chips under each script. Read again when the
+   * person comes back from a tab where they added one.
+   */
+  const [variableChoices, setVariableChoices] =
+    useState<RunbookVariableChoices>(NO_RUNBOOK_VARIABLE_CHOICES);
   const [llmProviders, setLlmProviders] = useState<LlmProviderOption[]>([]);
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    let isMounted: boolean = true;
+
+    const onWindowFocus: () => void = (): void => {
+      RunbookVariableChoicesLoader.load({ projectId, runbookId: modelId })
+        .then((choices: RunbookVariableChoices) => {
+          if (isMounted) {
+            setVariableChoices(choices);
+          }
+        })
+        .catch(() => {
+          // The choices the page already has stand.
+        });
+    };
+
+    window.addEventListener("focus", onWindowFocus);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", onWindowFocus);
+    };
+  }, [modelId.toString()]);
 
   const translator: Translator = useTranslator();
 
@@ -590,41 +664,22 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   useAsyncEffect(async () => {
     try {
-      const [runbook, loadedRunnerChoices, credentialList] = await Promise.all([
-        ModelAPI.getItem<Runbook>({
-          modelType: Runbook,
-          id: modelId,
-          select: { steps: true },
-          requestOptions: {},
-        }),
-        RunnerChoicesLoader.load(ProjectUtil.getCurrentProjectId()!),
-        ModelAPI.getList<RunbookCredential>({
-          modelType: RunbookCredential,
-          query: {
+      const [runbook, loadedRunnerChoices, loadedVariableChoices] =
+        await Promise.all([
+          ModelAPI.getItem<Runbook>({
+            modelType: Runbook,
+            id: modelId,
+            select: { steps: true },
+            requestOptions: {},
+          }),
+          RunnerChoicesLoader.load(ProjectUtil.getCurrentProjectId()!),
+          RunbookVariableChoicesLoader.load({
             projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            _id: true,
-            name: true,
-            credentialType: true,
-          },
-          sort: { name: SortOrder.Ascending },
-          limit: LIMIT_MAX,
-          skip: 0,
-        }),
-      ]);
+            runbookId: modelId,
+          }),
+        ]);
 
-      setCredentials(
-        credentialList.data.map((c: RunbookCredential): CredentialOption => {
-          return {
-            id: c._id?.toString() || "",
-            name: c.name || "Unnamed credential",
-            credentialType:
-              (c.credentialType as RunbookCredentialType) ||
-              RunbookCredentialType.SSH,
-          };
-        }),
-      );
+      setVariableChoices(loadedVariableChoices);
 
       const loaded: RunbookStep[] =
         (runbook?.steps as unknown as RunbookStep[]) || [];
@@ -714,14 +769,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   ): void => {
     setSteps((prev: RunbookStep[]) => {
       const copy: RunbookStep[] = [...prev];
-      const current: RunbookStep = copy[idx]!;
-      copy[idx] = {
-        ...current,
-        config: {
-          ...(current.config as Record<string, unknown>),
-          ...patch,
-        } as never,
-      };
+      /*
+       * A moved kubectl step whose script or kubeconfig changes loses the
+       * action it kept for older Runners (applyStepConfigChange).
+       */
+      copy[idx] = applyStepConfigChange(copy[idx]!, patch);
       return copy;
     });
     markDirty();
@@ -781,7 +833,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     markDirty();
   };
 
-  const renderScriptExamples: (args: {
+  // The examples under a script or a prompt: a label, then one chip each.
+  const renderScriptExampleChips: (args: {
     examples: Array<ScriptExample>;
     onInsert: (code: string) => void;
   }) => ReactElement = (args: {
@@ -789,7 +842,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     onInsert: (code: string) => void;
   }): ReactElement => {
     return (
-      <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+      <div>
         <div className="flex items-center gap-1.5 mb-2">
           <Icon
             icon={IconProp.LightBulb}
@@ -806,7 +859,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <button
                 key={ex.label}
                 type="button"
-                title={ex.description}
+                title={translator.translateText(ex.description)}
                 onClick={() => {
                   args.onInsert(ex.code);
                 }}
@@ -817,11 +870,38 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   size={SizeProp.Smaller}
                   className="h-3 w-3"
                 />
-                {ex.label}
+                {/* English constants, looked up as they are drawn. */}
+                {translator.translateText(ex.label)}
               </button>
             );
           })}
         </div>
+      </div>
+    );
+  };
+
+  /*
+   * The panel of helpers under a script or a prompt: its examples, and -
+   * under a script - the variables it can use, as a second row of the same
+   * panel, so the two read as one aid rather than two blocks stacked under
+   * the editor.
+   */
+  const renderScriptHelpers: (args: {
+    examples: Array<ScriptExample>;
+    onInsert: (code: string) => void;
+    variables?: ReactElement | undefined;
+  }) => ReactElement = (args: {
+    examples: Array<ScriptExample>;
+    onInsert: (code: string) => void;
+    variables?: ReactElement | undefined;
+  }): ReactElement => {
+    return (
+      <div className="flex flex-col gap-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5">
+        {renderScriptExampleChips({
+          examples: args.examples,
+          onInsert: args.onInsert,
+        })}
+        {args.variables}
       </div>
     );
   };
@@ -877,6 +957,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <RunnerPicker
         stepType={args.stepType}
+        stepTypeName={STEP_TYPE_META[args.stepType].shortLabel}
         value={args.currentAgentId}
         onChange={args.onChange}
         choices={runnerChoices}
@@ -993,98 +1074,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   /*
-   * SSH and Kubernetes steps name a credential rather than embedding one.
-   * Only credentials of the right type are offered — an SSH step pointed at a
-   * Kubernetes credential fails at execution time, in front of an incident.
-   */
-  const renderCredentialPicker: (args: {
-    currentCredentialId: string;
-    credentialType: RunbookCredentialType;
-    onChange: (id: string) => void;
-    helperText: ReactElement;
-  }) => ReactElement = (args: {
-    currentCredentialId: string;
-    credentialType: RunbookCredentialType;
-    onChange: (id: string) => void;
-    helperText: ReactElement;
-  }): ReactElement => {
-    const usable: Array<CredentialOption> = credentials.filter(
-      (c: CredentialOption) => {
-        return c.credentialType === args.credentialType;
-      },
-    );
-
-    const options: Array<DropdownOption> = usable.map(
-      (c: CredentialOption): DropdownOption => {
-        return { value: c.id, label: c.name };
-      },
-    );
-
-    const selectedOption: DropdownOption | undefined =
-      options.find((o: DropdownOption) => {
-        return o.value === args.currentCredentialId;
-      }) ||
-      (args.currentCredentialId
-        ? {
-            value: args.currentCredentialId,
-            label: translator.translateTemplate("Unknown credential ({{id}})", {
-              id: args.currentCredentialId,
-            }),
-          }
-        : undefined);
-
-    return (
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          {translator.translateText("Credential")}
-        </label>
-        {usable.length === 0 ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <TranslatedSentence
-              template="No {{credentialType}} credentials in this project yet. Create one under {{location}}, assign it to the Runner that will use it, then come back and pick it here."
-              values={{ credentialType: args.credentialType }}
-              slots={{
-                location: (
-                  <strong>
-                    {translator.translateText(
-                      "Runbooks › Runners › Credentials",
-                    )}
-                  </strong>
-                ),
-              }}
-            />
-          </div>
-        ) : (
-          <Dropdown
-            options={
-              selectedOption &&
-              !options.find((o: DropdownOption) => {
-                return o.value === selectedOption.value;
-              })
-                ? [selectedOption, ...options]
-                : options
-            }
-            value={selectedOption}
-            placeholder="— Select a credential —"
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ): void => {
-              const id: string =
-                value === null || value === undefined
-                  ? ""
-                  : Array.isArray(value)
-                    ? String(value[0] ?? "")
-                    : String(value);
-              args.onChange(id);
-            }}
-          />
-        )}
-        <p className="text-xs text-gray-500 mt-1.5">{args.helperText}</p>
-      </div>
-    );
-  };
-
-  /*
    * Bash and JavaScript are dispatched to a Runner, so they carry two
    * timeouts: how long the Worker waits for the Runner to pick the job up,
    * and how long the Runner lets the script run once it has.
@@ -1137,6 +1126,842 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             updateConfig(args.idx, { claimTimeoutInMs });
           }}
         />
+      </div>
+    );
+  };
+
+  /*
+   * A step's More fields: what most steps never change, folded under one
+   * quiet line that names what is inside and what of it is set
+   * (RunbookStepEditorModel.getStepMoreFieldsItems) - the maintainer asked
+   * for the steps to "hide advanced options".
+   */
+  const renderMoreFields: (
+    step: RunbookStep,
+    idx: number,
+    children: ReactNode,
+  ) => ReactElement = (
+    step: RunbookStep,
+    idx: number,
+    children: ReactNode,
+  ): ReactElement => {
+    return (
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        items={getStepMoreFieldsItems(step)}
+        dataTestId={`runbook-step-${idx}-more-fields`}
+      >
+        <div className="flex flex-col gap-4">{children}</div>
+      </FoldedSection>
+    );
+  };
+
+  const renderDescriptionField: (
+    step: RunbookStep,
+    idx: number,
+  ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+    return (
+      <div>
+        <label
+          htmlFor={`runbook-step-${idx}-description`}
+          className="block text-xs font-medium text-gray-700 mb-1.5"
+        >
+          {translator.translateText("Description")}
+          <span className="ml-2 text-[10px] font-normal text-gray-400">
+            {translator.translateText("Markdown supported")}
+          </span>
+        </label>
+        <TextArea
+          id={`runbook-step-${idx}-description`}
+          value={step.description || ""}
+          onChange={(v: string) => {
+            return updateStep(idx, {
+              description: v,
+            });
+          }}
+          placeholder={
+            step.type === RunbookStepType.Manual
+              ? "Instructions the responder will see when they reach this step. Markdown is supported."
+              : "Optional notes about what this step does. Markdown is supported."
+          }
+        />
+      </div>
+    );
+  };
+
+  // Continue on failure and Require approval, which every automated step has.
+  const renderFailureToggles: (
+    step: RunbookStep,
+    idx: number,
+  ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+    return (
+      <div className="flex flex-col gap-3">
+        <Toggle
+          title="Continue on failure"
+          description="If this step fails, continue to the next step instead of stopping the runbook."
+          value={Boolean(step.continueOnFailure)}
+          onChange={(v: boolean) => {
+            return updateStep(idx, {
+              continueOnFailure: v,
+            });
+          }}
+        />
+        <Toggle
+          title="Require approval before running the next step"
+          description="After this step completes, pause the runbook and wait for a user to approve before running the next step."
+          value={Boolean(step.requireApproval)}
+          onChange={(v: boolean) => {
+            return updateStep(idx, {
+              requireApproval: v,
+            });
+          }}
+        />
+      </div>
+    );
+  };
+
+  // A script field with its line of help, its examples and the variables.
+  const renderScriptField: (args: {
+    id: string;
+    label: string;
+    type: CodeType;
+    value: string;
+    onChange: (value: string) => void;
+    help: ReactNode;
+    examples: Array<ScriptExample>;
+  }) => ReactElement = (args: {
+    id: string;
+    label: string;
+    type: CodeType;
+    value: string;
+    onChange: (value: string) => void;
+    help: ReactNode;
+    examples: Array<ScriptExample>;
+  }): ReactElement => {
+    return (
+      <div>
+        <label
+          htmlFor={args.id}
+          className="block text-xs font-medium text-gray-700 mb-1.5"
+        >
+          {translator.translateText(args.label)}
+        </label>
+        <CodeEditor
+          id={args.id}
+          type={args.type}
+          value={args.value}
+          onChange={args.onChange}
+        />
+        <p className="text-xs text-gray-500 mt-1.5">{args.help}</p>
+        <UnknownVariablesNote
+          references={getUnknownVariableReferences(variableChoices, [
+            args.value,
+          ])}
+          dataTestId={`${args.id}-unknown-variables`}
+        />
+        <div className="mt-2">
+          {renderScriptHelpers({
+            examples: args.examples,
+            onInsert: args.onChange,
+            variables: (
+              <RunbookVariableChips
+                choices={variableChoices}
+                dataTestId={`${args.id}-variables`}
+              />
+            ),
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  /*
+   * An SSH or Kubernetes step written with a credential, through the API
+   * (every stored one was rewritten when variables came in): shown as it
+   * is - it still runs - with one button that turns it into a script step.
+   */
+  const renderLegacyCredentialStep: (
+    step: RunbookStep,
+    idx: number,
+  ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+    return (
+      <>
+        <div
+          className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          data-testid={`runbook-step-${idx}-legacy`}
+        >
+          <p>
+            {translator.translateText(
+              step.type === RunbookStepType.SSH
+                ? "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead."
+                : "This step restarts or scales one workload with a runbook credential. It still runs as it is. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+            )}
+          </p>
+          <div className="mt-3">
+            <Button
+              title="Turn into a script step"
+              icon={IconProp.Code}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              dataTestId={`runbook-step-${idx}-legacy-convert`}
+              onClick={() => {
+                setSteps((prev: RunbookStep[]) => {
+                  const copy: RunbookStep[] = [...prev];
+                  copy[idx] = convertLegacyCredentialStep(copy[idx]!);
+                  return copy;
+                });
+                markDirty();
+              }}
+            />
+          </div>
+        </div>
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            {renderDescriptionField(step, idx)}
+            {renderAgentTimeouts({
+              idx,
+              config: step.config as SSHStepConfig,
+              executionDescription: (
+                <>
+                  {translator.translateText(
+                    "How long the Runner lets the step run before stopping it.",
+                  )}
+                </>
+              ),
+              executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
+            })}
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
+      </>
+    );
+  };
+
+  const renderJavaScriptBody: (
+    step: RunbookStep,
+    idx: number,
+  ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+    const config: JavaScriptStepConfig = step.config as JavaScriptStepConfig;
+
+    return (
+      <>
+        {renderAgentPicker({
+          stepIndex: idx,
+          stepType: RunbookStepType.JavaScript,
+          currentAgentId: config.agentId || "",
+          onChange: (id: string) => {
+            updateConfig(idx, {
+              agentId: id,
+            });
+          },
+          helperText: (
+            <>
+              {translator.translateText(
+                "JavaScript runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
+              )}
+            </>
+          ),
+        })}
+        {renderScriptField({
+          id: `runbook-step-${idx}-javascript-script`,
+          label: "Script",
+          type: CodeType.JavaScript,
+          value: config.script || "",
+          onChange: (v: string) => {
+            updateConfig(idx, { script: v });
+          },
+          help: (
+            <TranslatedSentence
+              template="Runs in an {{sandbox}} sandbox, with no file or process access. It can call public APIs with {{axios}}. Use {{returnValue}} to hand a result to the next steps."
+              slots={{
+                sandbox: <code>isolated-vm</code>,
+                axios: <code>axios</code>,
+                returnValue: <code>return value</code>,
+              }}
+            />
+          ),
+          examples: JAVASCRIPT_EXAMPLES,
+        })}
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            {renderDescriptionField(step, idx)}
+            {renderAgentTimeouts({
+              idx,
+              config,
+              executionDescription: (
+                <>
+                  {translator.translateText(
+                    "How long the Runner lets the script run before stopping it.",
+                  )}
+                </>
+              ),
+              executionBounds:
+                getStepRunnerModel(step).outcome ===
+                RunnerPickerOutcome.GlobalRunner
+                  ? GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS
+                  : STEP_EXECUTION_TIMEOUT_BOUNDS,
+            })}
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
+      </>
+    );
+  };
+
+  const renderHttpBody: (step: RunbookStep, idx: number) => ReactElement = (
+    step: RunbookStep,
+    idx: number,
+  ): ReactElement => {
+    const config: HttpRequestStepConfig = step.config as HttpRequestStepConfig;
+
+    return (
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="md:col-span-1">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              {translator.translateText("Method")}
+            </label>
+            <Dropdown
+              options={HTTP_METHOD_OPTIONS}
+              value={HTTP_METHOD_OPTIONS.find((o: DropdownOption) => {
+                return o.value === (config.method || "GET");
+              })}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const method: HttpRequestMethod =
+                  (Array.isArray(value)
+                    ? (value[0] as HttpRequestMethod)
+                    : (value as HttpRequestMethod)) || "GET";
+                updateConfig(idx, {
+                  method,
+                });
+              }}
+            />
+          </div>
+          <div className="md:col-span-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              {translator.translateText("URL")}
+            </label>
+            <Input
+              value={config.url || ""}
+              onChange={(v: string) => {
+                return updateConfig(idx, {
+                  url: v,
+                });
+              }}
+              placeholder="https://api.example.com/incident"
+            />
+          </div>
+        </div>
+        <div>
+          <label
+            htmlFor={`runbook-step-${idx}-http-headers`}
+            className="block text-xs font-medium text-gray-700 mb-1.5"
+          >
+            {translator.translateText("Headers (JSON)")}
+          </label>
+          <CodeEditor
+            id={`runbook-step-${idx}-http-headers`}
+            type={CodeType.JSON}
+            value={config.headersJson || ""}
+            onChange={(v: string) => {
+              return updateConfig(idx, {
+                headersJson: v,
+              });
+            }}
+            placeholder={'{ "Authorization": "Bearer ..." }'}
+          />
+        </div>
+        <div>
+          <label
+            htmlFor={`runbook-step-${idx}-http-body`}
+            className="block text-xs font-medium text-gray-700 mb-1.5"
+          >
+            {translator.translateText("Body")}
+          </label>
+          <CodeEditor
+            id={`runbook-step-${idx}-http-body`}
+            type={CodeType.JSON}
+            value={config.body || ""}
+            onChange={(v: string) => {
+              return updateConfig(idx, {
+                body: v,
+              });
+            }}
+            placeholder='{ "message": "..." }'
+          />
+        </div>
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            {renderDescriptionField(step, idx)}
+            <StepTimeoutInput
+              label="Request timeout"
+              value={config.timeoutInMs}
+              bounds={STEP_EXECUTION_TIMEOUT_BOUNDS}
+              description={
+                <>
+                  {translator.translateText(
+                    "How long to wait for the endpoint to respond before failing the step.",
+                  )}
+                </>
+              }
+              onChange={(timeoutInMs: number | undefined) => {
+                updateConfig(idx, {
+                  timeoutInMs,
+                });
+              }}
+            />
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
+      </>
+    );
+  };
+
+  const renderBashBody: (step: RunbookStep, idx: number) => ReactElement = (
+    step: RunbookStep,
+    idx: number,
+  ): ReactElement => {
+    const config: BashStepConfig = step.config as BashStepConfig;
+
+    return (
+      <>
+        {renderAgentPicker({
+          stepIndex: idx,
+          stepType: RunbookStepType.Bash,
+          currentAgentId: config.agentId || "",
+          onChange: (id: string) => {
+            updateConfig(idx, {
+              agentId: id,
+            });
+          },
+          helperText: (
+            <>
+              {translator.translateText(
+                "Bash runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
+              )}
+            </>
+          ),
+        })}
+        {renderScriptField({
+          id: `runbook-step-${idx}-bash-script`,
+          label: "Bash script",
+          type: CodeType.Bash,
+          value: config.script || "",
+          onChange: (v: string) => {
+            updateConfig(idx, { script: v });
+          },
+          help: (
+            <TranslatedSentence
+              template="Runs with {{command}} on the selected Runner. Output is capped at 50 KB, and a non-zero exit code fails the step."
+              slots={{
+                command: <code>bash -c</code>,
+              }}
+            />
+          ),
+          examples: BASH_EXAMPLES,
+        })}
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            {renderDescriptionField(step, idx)}
+            {renderAgentTimeouts({
+              idx,
+              config,
+              executionDescription: (
+                <TranslatedSentence
+                  template="How long the Runner lets the script run before stopping it with {{signal}}."
+                  slots={{
+                    signal: <code>SIGKILL</code>,
+                  }}
+                />
+              ),
+              executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
+            })}
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
+      </>
+    );
+  };
+
+  /*
+   * SSH: the Runner that opens the connection, the machine (user@host), the
+   * secret it signs in with and the bash script to run there. The port and
+   * a key's passphrase wait under More fields.
+   */
+  const renderSshBody: (step: RunbookStep, idx: number) => ReactElement = (
+    step: RunbookStep,
+    idx: number,
+  ): ReactElement => {
+    if (isLegacyCredentialStep(step)) {
+      return renderLegacyCredentialStep(step, idx);
+    }
+
+    const config: SSHStepConfig = step.config as SSHStepConfig;
+
+    return (
+      <>
+        {renderAgentPicker({
+          stepIndex: idx,
+          stepType: RunbookStepType.SSH,
+          currentAgentId: config.agentId || "",
+          onChange: (id: string) => {
+            updateConfig(idx, {
+              agentId: id,
+            });
+          },
+          helperText: (
+            <>
+              {translator.translateText(
+                "This Runner opens the SSH connection, so it must be able to reach the machine.",
+              )}
+            </>
+          ),
+        })}
+        <SshTargetInput
+          host={config.host || ""}
+          username={config.username || ""}
+          helperText={SSH_TARGET_HELP}
+          dataTestId={`runbook-step-${idx}-ssh-target`}
+          onChange={(target: SshTarget) => {
+            updateConfig(idx, {
+              host: target.host,
+              username: target.username,
+            });
+          }}
+        />
+        <UnknownVariablesNote
+          references={getUnknownVariableReferences(variableChoices, [
+            config.host || "",
+            config.username || "",
+          ])}
+          dataTestId={`runbook-step-${idx}-ssh-target-unknown-variables`}
+        />
+        <RunbookVariablePicker
+          label={SSH_SIGN_IN_TITLE}
+          value={config.signIn || ""}
+          choices={variableChoices}
+          runnerId={config.agentId || ""}
+          runbookId={modelId}
+          dataTestId={`runbook-step-${idx}-ssh-sign-in`}
+          helperText={translator.translateText(
+            "The secret variable that holds the private key or the password. The step never holds it itself.",
+          )}
+          onChange={(reference: string) => {
+            updateConfig(idx, { signIn: reference });
+          }}
+        />
+        {renderScriptField({
+          id: `runbook-step-${idx}-ssh-script`,
+          label: "Bash script",
+          type: CodeType.Bash,
+          value: config.script || "",
+          onChange: (v: string) => {
+            updateConfig(idx, { script: v });
+          },
+          help: (
+            <>
+              {translator.translateText(
+                "Runs with bash on the machine, as the user it signs in as. Output is capped at 50 KB, and a non-zero exit code fails the step.",
+              )}
+            </>
+          ),
+          examples: SSH_EXAMPLES,
+        })}
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            <div className="max-w-xs">
+              <label
+                htmlFor={`runbook-step-${idx}-ssh-port`}
+                className="block text-xs font-medium text-gray-700 mb-1.5"
+              >
+                {translator.translateText(SSH_PORT_TITLE)}
+              </label>
+              <Input
+                id={`runbook-step-${idx}-ssh-port`}
+                value={config.port ? String(config.port) : ""}
+                placeholder="22"
+                onChange={(v: string) => {
+                  const parsed: number = parseInt(v, 10);
+                  updateConfig(idx, {
+                    port:
+                      isNaN(parsed) || parsed <= 0
+                        ? undefined
+                        : Math.min(parsed, 65535),
+                  });
+                }}
+              />
+            </div>
+            <RunbookVariablePicker
+              label={SSH_PASSPHRASE_TITLE}
+              value={config.passphrase || ""}
+              choices={variableChoices}
+              runnerId={config.agentId || ""}
+              runbookId={modelId}
+              noneLabel={NO_PASSPHRASE_LABEL}
+              dataTestId={`runbook-step-${idx}-ssh-passphrase`}
+              helperText={translator.translateText(
+                "Only for a private key that has a passphrase.",
+              )}
+              onChange={(reference: string) => {
+                updateConfig(idx, { passphrase: reference });
+              }}
+            />
+            {renderDescriptionField(step, idx)}
+            {renderAgentTimeouts({
+              idx,
+              config,
+              executionDescription: (
+                <>
+                  {translator.translateText(
+                    "Covers connecting, signing in and running the script together.",
+                  )}
+                </>
+              ),
+              executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
+            })}
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
+      </>
+    );
+  };
+
+  /*
+   * kubectl: the Runner that runs it, the cluster's kubeconfig (or the
+   * Runner's own access) and the script of kubectl commands.
+   */
+  const renderKubectlBody: (step: RunbookStep, idx: number) => ReactElement = (
+    step: RunbookStep,
+    idx: number,
+  ): ReactElement => {
+    if (isLegacyCredentialStep(step)) {
+      return renderLegacyCredentialStep(step, idx);
+    }
+
+    const config: KubernetesStepConfig = step.config as KubernetesStepConfig;
+
+    return (
+      <>
+        {renderAgentPicker({
+          stepIndex: idx,
+          stepType: RunbookStepType.Kubernetes,
+          currentAgentId: config.agentId || "",
+          onChange: (id: string) => {
+            updateConfig(idx, {
+              agentId: id,
+            });
+          },
+          helperText: (
+            <>
+              {translator.translateText(
+                "This Runner runs kubectl, so it must be able to reach the cluster's API server.",
+              )}
+            </>
+          ),
+        })}
+        <RunbookVariablePicker
+          label={KUBECONFIG_TITLE}
+          value={config.kubeconfig || ""}
+          choices={variableChoices}
+          runnerId={config.agentId || ""}
+          runbookId={modelId}
+          noneLabel={RUNNER_OWN_KUBECONFIG_LABEL}
+          dataTestId={`runbook-step-${idx}-kubeconfig`}
+          helperText={
+            config.kubeconfig
+              ? translator.translateText(
+                  "The secret variable that holds the cluster's kubeconfig. Give it access to only what your runbooks need.",
+                )
+              : translator.translateText(
+                  "kubectl uses the Runner's own kubeconfig, or its service account when the Runner runs in the cluster.",
+                )
+          }
+          onChange={(reference: string) => {
+            updateConfig(idx, { kubeconfig: reference });
+          }}
+        />
+        {renderScriptField({
+          id: `runbook-step-${idx}-kubectl-script`,
+          label: "Script",
+          type: CodeType.Bash,
+          value: config.script || "",
+          onChange: (v: string) => {
+            updateConfig(idx, { script: v });
+          },
+          help: (
+            <TranslatedSentence
+              template="kubectl commands, run with bash on the Runner with {{kubeconfig}} pointing at the cluster. Output is capped at 50 KB, and a non-zero exit code fails the step."
+              slots={{
+                kubeconfig: <code>KUBECONFIG</code>,
+              }}
+            />
+          ),
+          examples: KUBECTL_EXAMPLES,
+        })}
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            {renderDescriptionField(step, idx)}
+            {renderAgentTimeouts({
+              idx,
+              config,
+              executionDescription: (
+                <TranslatedSentence
+                  template="How long the Runner lets the script run before stopping it with {{signal}}."
+                  slots={{
+                    signal: <code>SIGKILL</code>,
+                  }}
+                />
+              ),
+              executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
+            })}
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
+      </>
+    );
+  };
+
+  const renderAiBody: (step: RunbookStep, idx: number) => ReactElement = (
+    step: RunbookStep,
+    idx: number,
+  ): ReactElement => {
+    const config: AIStepConfig = step.config as AIStepConfig;
+
+    return (
+      <>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">
+            {translator.translateText("Prompt")}
+          </label>
+          <TextArea
+            value={config.prompt || ""}
+            onChange={(v: string) => {
+              return updateConfig(idx, {
+                prompt: v,
+              });
+            }}
+            placeholder="What should the AI analyze, summarize or decide? Its response becomes this step's output."
+          />
+          <p className="text-xs text-gray-500 mt-1.5">
+            {translator.translateText(
+              "Runs on the LLM provider selected below (Project Settings › AI › LLM Providers). Calls are metered like any other AI feature. Pair with “Require approval” below to have a human review the AI’s answer before the next step runs.",
+            )}
+          </p>
+          <div className="mt-2">
+            {renderScriptHelpers({
+              examples: AI_PROMPT_EXAMPLES,
+              onInsert: (code: string) => {
+                updateConfig(idx, {
+                  prompt: code,
+                });
+              },
+            })}
+          </div>
+        </div>
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            {renderLlmProviderPicker({
+              currentProviderId: config.llmProviderId || "",
+              onChange: (id: string): void => {
+                updateConfig(idx, {
+                  llmProviderId: id,
+                });
+              },
+            })}
+            <Toggle
+              title="Include previous step context"
+              description="Give the AI everything about the steps that ran before this one — title, type, status, output and errors."
+              value={Boolean(config.includePreviousStepContext)}
+              onChange={(v: boolean) => {
+                return updateConfig(idx, {
+                  includePreviousStepContext: v,
+                });
+              }}
+            />
+            <Toggle
+              title="Include trigger context"
+              description="Tell the AI what started this run, such as the linked incident. Private notes and chat messages are never included."
+              value={Boolean(config.includeTriggerContext)}
+              onChange={(v: boolean) => {
+                return updateConfig(idx, {
+                  includeTriggerContext: v,
+                });
+              }}
+            />
+            {renderDescriptionField(step, idx)}
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
+      </>
+    );
+  };
+
+  /*
+   * What a step shows when opened: its title, then what its type needs -
+   * the rest of it folded under More fields.
+   */
+  const renderStepBody: (step: RunbookStep, idx: number) => ReactElement = (
+    step: RunbookStep,
+    idx: number,
+  ): ReactElement => {
+    const renderTypeFields: () => ReactNode = (): ReactNode => {
+      switch (step.type) {
+        case RunbookStepType.Manual:
+          return renderDescriptionField(step, idx);
+        case RunbookStepType.JavaScript:
+          return renderJavaScriptBody(step, idx);
+        case RunbookStepType.HttpRequest:
+          return renderHttpBody(step, idx);
+        case RunbookStepType.Bash:
+          return renderBashBody(step, idx);
+        case RunbookStepType.SSH:
+          return renderSshBody(step, idx);
+        case RunbookStepType.Kubernetes:
+          return renderKubectlBody(step, idx);
+        case RunbookStepType.AI:
+          return renderAiBody(step, idx);
+        default:
+          return renderDescriptionField(step, idx);
+      }
+    };
+
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <label
+            htmlFor={`runbook-step-${idx}-title`}
+            className="block text-xs font-medium text-gray-700 mb-1.5"
+          >
+            {translator.translateText("Title")}
+          </label>
+          <Input
+            id={`runbook-step-${idx}-title`}
+            value={step.title}
+            onChange={(v: string) => {
+              return updateStep(idx, {
+                title: v,
+              });
+            }}
+            placeholder="What does this step do?"
+          />
+        </div>
+        {renderTypeFields()}
       </div>
     );
   };
@@ -1258,7 +2083,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         const summary: string = summarizeStep(
                           step,
                           step.type === RunbookStepType.JavaScript ||
-                            step.type === RunbookStepType.Bash
+                            step.type === RunbookStepType.Bash ||
+                            step.type === RunbookStepType.SSH ||
+                            step.type === RunbookStepType.Kubernetes
                             ? getRunnerSummary(getStepRunnerModel(step))
                             : undefined,
                         );
@@ -1372,790 +2199,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                     }`}
                                   >
                                     <div className="border-t border-gray-100 px-5 py-4 bg-white">
-                                      <div className="flex flex-col gap-4">
-                                        <div>
-                                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                            {translator.translateText("Title")}
-                                          </label>
-                                          <Input
-                                            value={step.title}
-                                            onChange={(v: string) => {
-                                              return updateStep(idx, {
-                                                title: v,
-                                              });
-                                            }}
-                                            placeholder="What does this step do?"
-                                          />
-                                        </div>
-
-                                        <div>
-                                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                            {translator.translateText(
-                                              "Description",
-                                            )}
-                                            <span className="ml-2 text-[10px] font-normal text-gray-400">
-                                              {translator.translateText(
-                                                "Markdown supported",
-                                              )}
-                                            </span>
-                                          </label>
-                                          <TextArea
-                                            value={step.description || ""}
-                                            onChange={(v: string) => {
-                                              return updateStep(idx, {
-                                                description: v,
-                                              });
-                                            }}
-                                            placeholder={
-                                              step.type ===
-                                              RunbookStepType.Manual
-                                                ? "Instructions the responder will see when they reach this step. Markdown is supported."
-                                                : "Optional notes about what this step does. Markdown is supported."
-                                            }
-                                          />
-                                        </div>
-
-                                        {step.type ===
-                                          RunbookStepType.JavaScript && (
-                                          <div className="flex flex-col gap-3">
-                                            {renderAgentPicker({
-                                              stepIndex: idx,
-                                              stepType:
-                                                RunbookStepType.JavaScript,
-                                              currentAgentId:
-                                                (
-                                                  step.config as JavaScriptStepConfig
-                                                ).agentId || "",
-                                              onChange: (id: string) => {
-                                                updateConfig(idx, {
-                                                  agentId: id,
-                                                });
-                                              },
-                                              helperText: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "JavaScript runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
-                                                  )}
-                                                </>
-                                              ),
-                                            })}
-                                            <div>
-                                              <label
-                                                htmlFor={`runbook-step-${idx}-javascript-script`}
-                                                className="block text-xs font-medium text-gray-700 mb-1.5"
-                                              >
-                                                {translator.translateText(
-                                                  "Script",
-                                                )}
-                                              </label>
-                                              <CodeEditor
-                                                id={`runbook-step-${idx}-javascript-script`}
-                                                type={CodeType.JavaScript}
-                                                value={
-                                                  (
-                                                    step.config as JavaScriptStepConfig
-                                                  ).script || ""
-                                                }
-                                                onChange={(v: string) => {
-                                                  return updateConfig(idx, {
-                                                    script: v,
-                                                  });
-                                                }}
-                                              />
-                                              <p className="text-xs text-gray-500 mt-1.5">
-                                                <TranslatedSentence
-                                                  template="Runs in an {{sandbox}} sandbox, with no file or process access. It can call public APIs with {{axios}}. Use {{returnValue}} to hand a result to the next steps."
-                                                  slots={{
-                                                    sandbox: (
-                                                      <code>isolated-vm</code>
-                                                    ),
-                                                    axios: <code>axios</code>,
-                                                    returnValue: (
-                                                      <code>return value</code>
-                                                    ),
-                                                  }}
-                                                />
-                                              </p>
-                                              <div className="mt-2">
-                                                {renderScriptExamples({
-                                                  examples: JAVASCRIPT_EXAMPLES,
-                                                  onInsert: (code: string) => {
-                                                    updateConfig(idx, {
-                                                      script: code,
-                                                    });
-                                                  },
-                                                })}
-                                              </div>
-                                            </div>
-                                            {renderAgentTimeouts({
-                                              idx,
-                                              config:
-                                                step.config as JavaScriptStepConfig,
-                                              executionDescription: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "How long the Runner lets the script run before stopping it.",
-                                                  )}
-                                                </>
-                                              ),
-                                              executionBounds:
-                                                getStepRunnerModel(step)
-                                                  .outcome ===
-                                                RunnerPickerOutcome.GlobalRunner
-                                                  ? GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS
-                                                  : STEP_EXECUTION_TIMEOUT_BOUNDS,
-                                            })}
-                                          </div>
-                                        )}
-
-                                        {step.type ===
-                                          RunbookStepType.HttpRequest && (
-                                          <div className="flex flex-col gap-3">
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                              <div className="md:col-span-1">
-                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  {translator.translateText(
-                                                    "Method",
-                                                  )}
-                                                </label>
-                                                <Dropdown
-                                                  options={HTTP_METHOD_OPTIONS}
-                                                  value={HTTP_METHOD_OPTIONS.find(
-                                                    (o: DropdownOption) => {
-                                                      return (
-                                                        o.value ===
-                                                        ((
-                                                          step.config as HttpRequestStepConfig
-                                                        ).method || "GET")
-                                                      );
-                                                    },
-                                                  )}
-                                                  onChange={(
-                                                    value:
-                                                      | DropdownValue
-                                                      | Array<DropdownValue>
-                                                      | null,
-                                                  ): void => {
-                                                    const method: HttpRequestMethod =
-                                                      (Array.isArray(value)
-                                                        ? (value[0] as HttpRequestMethod)
-                                                        : (value as HttpRequestMethod)) ||
-                                                      "GET";
-                                                    updateConfig(idx, {
-                                                      method,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
-                                              <div className="md:col-span-3">
-                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  {translator.translateText(
-                                                    "URL",
-                                                  )}
-                                                </label>
-                                                <Input
-                                                  value={
-                                                    (
-                                                      step.config as HttpRequestStepConfig
-                                                    ).url || ""
-                                                  }
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      url: v,
-                                                    });
-                                                  }}
-                                                  placeholder="https://api.example.com/incident"
-                                                />
-                                              </div>
-                                            </div>
-                                            <div>
-                                              <label
-                                                htmlFor={`runbook-step-${idx}-http-headers`}
-                                                className="block text-xs font-medium text-gray-700 mb-1.5"
-                                              >
-                                                {translator.translateText(
-                                                  "Headers (JSON)",
-                                                )}
-                                              </label>
-                                              <CodeEditor
-                                                id={`runbook-step-${idx}-http-headers`}
-                                                type={CodeType.JSON}
-                                                value={
-                                                  (
-                                                    step.config as HttpRequestStepConfig
-                                                  ).headersJson || ""
-                                                }
-                                                onChange={(v: string) => {
-                                                  return updateConfig(idx, {
-                                                    headersJson: v,
-                                                  });
-                                                }}
-                                                placeholder={
-                                                  '{ "Authorization": "Bearer ..." }'
-                                                }
-                                              />
-                                            </div>
-                                            <div>
-                                              <label
-                                                htmlFor={`runbook-step-${idx}-http-body`}
-                                                className="block text-xs font-medium text-gray-700 mb-1.5"
-                                              >
-                                                {translator.translateText(
-                                                  "Body",
-                                                )}
-                                              </label>
-                                              <CodeEditor
-                                                id={`runbook-step-${idx}-http-body`}
-                                                type={CodeType.JSON}
-                                                value={
-                                                  (
-                                                    step.config as HttpRequestStepConfig
-                                                  ).body || ""
-                                                }
-                                                onChange={(v: string) => {
-                                                  return updateConfig(idx, {
-                                                    body: v,
-                                                  });
-                                                }}
-                                                placeholder='{ "message": "..." }'
-                                              />
-                                            </div>
-                                            <StepTimeoutInput
-                                              label="Request timeout"
-                                              value={
-                                                (
-                                                  step.config as HttpRequestStepConfig
-                                                ).timeoutInMs
-                                              }
-                                              bounds={
-                                                STEP_EXECUTION_TIMEOUT_BOUNDS
-                                              }
-                                              description={
-                                                <>
-                                                  {translator.translateText(
-                                                    "How long to wait for the endpoint to respond before failing the step.",
-                                                  )}
-                                                </>
-                                              }
-                                              onChange={(
-                                                timeoutInMs: number | undefined,
-                                              ) => {
-                                                updateConfig(idx, {
-                                                  timeoutInMs,
-                                                });
-                                              }}
-                                            />
-                                          </div>
-                                        )}
-
-                                        {step.type === RunbookStepType.Bash && (
-                                          <div className="flex flex-col gap-3">
-                                            {renderAgentPicker({
-                                              stepIndex: idx,
-                                              stepType: RunbookStepType.Bash,
-                                              currentAgentId:
-                                                (step.config as BashStepConfig)
-                                                  .agentId || "",
-                                              onChange: (id: string) => {
-                                                updateConfig(idx, {
-                                                  agentId: id,
-                                                });
-                                              },
-                                              helperText: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "Bash runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
-                                                  )}
-                                                </>
-                                              ),
-                                            })}
-                                            <div>
-                                              <label
-                                                htmlFor={`runbook-step-${idx}-bash-script`}
-                                                className="block text-xs font-medium text-gray-700 mb-1.5"
-                                              >
-                                                {translator.translateText(
-                                                  "Bash script",
-                                                )}
-                                              </label>
-                                              <CodeEditor
-                                                id={`runbook-step-${idx}-bash-script`}
-                                                type={CodeType.Bash}
-                                                value={
-                                                  (
-                                                    step.config as BashStepConfig
-                                                  ).script || ""
-                                                }
-                                                onChange={(v: string) => {
-                                                  return updateConfig(idx, {
-                                                    script: v,
-                                                  });
-                                                }}
-                                              />
-                                              <p className="text-xs text-gray-500 mt-1.5">
-                                                <TranslatedSentence
-                                                  template="Runs with {{command}} on the selected Runner. Output is capped at 50 KB, and a non-zero exit code fails the step."
-                                                  slots={{
-                                                    command: (
-                                                      <code>bash -c</code>
-                                                    ),
-                                                  }}
-                                                />
-                                              </p>
-                                              <div className="mt-2">
-                                                {renderScriptExamples({
-                                                  examples: BASH_EXAMPLES,
-                                                  onInsert: (code: string) => {
-                                                    updateConfig(idx, {
-                                                      script: code,
-                                                    });
-                                                  },
-                                                })}
-                                              </div>
-                                            </div>
-                                            {renderAgentTimeouts({
-                                              idx,
-                                              config:
-                                                step.config as BashStepConfig,
-                                              executionDescription: (
-                                                <TranslatedSentence
-                                                  template="How long the Runner lets the script run before stopping it with {{signal}}."
-                                                  slots={{
-                                                    signal: (
-                                                      <code>SIGKILL</code>
-                                                    ),
-                                                  }}
-                                                />
-                                              ),
-                                              executionBounds:
-                                                STEP_EXECUTION_TIMEOUT_BOUNDS,
-                                            })}
-                                          </div>
-                                        )}
-
-                                        {step.type === RunbookStepType.SSH && (
-                                          <div className="flex flex-col gap-3">
-                                            {renderAgentPicker({
-                                              stepIndex: idx,
-                                              stepType: RunbookStepType.SSH,
-                                              currentAgentId:
-                                                (step.config as SSHStepConfig)
-                                                  .agentId || "",
-                                              onChange: (id: string) => {
-                                                updateConfig(idx, {
-                                                  agentId: id,
-                                                });
-                                              },
-                                              helperText: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "This Runner opens the SSH connection, so it must be able to reach the host.",
-                                                  )}
-                                                </>
-                                              ),
-                                            })}
-                                            {renderCredentialPicker({
-                                              currentCredentialId:
-                                                (step.config as SSHStepConfig)
-                                                  .credentialId || "",
-                                              credentialType:
-                                                RunbookCredentialType.SSH,
-                                              onChange: (id: string) => {
-                                                updateConfig(idx, {
-                                                  credentialId: id,
-                                                });
-                                              },
-                                              helperText: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "The host, user and key. It must be assigned to the Runner above, or the step fails.",
-                                                  )}
-                                                </>
-                                              ),
-                                            })}
-                                            <div>
-                                              <label
-                                                htmlFor={`runbook-step-${idx}-ssh-command`}
-                                                className="block text-xs font-medium text-gray-700 mb-1.5"
-                                              >
-                                                {translator.translateText(
-                                                  "Command",
-                                                )}
-                                              </label>
-                                              <CodeEditor
-                                                id={`runbook-step-${idx}-ssh-command`}
-                                                type={CodeType.Bash}
-                                                value={
-                                                  (step.config as SSHStepConfig)
-                                                    .command || ""
-                                                }
-                                                onChange={(v: string) => {
-                                                  return updateConfig(idx, {
-                                                    command: v,
-                                                  });
-                                                }}
-                                              />
-                                              <p className="text-xs text-gray-500 mt-1.5">
-                                                {translator.translateText(
-                                                  "Runs on the remote host as the credential’s user. Output is capped at 50 KB and a non-zero exit code fails the step.",
-                                                )}
-                                              </p>
-                                            </div>
-                                            {renderAgentTimeouts({
-                                              idx,
-                                              config:
-                                                step.config as SSHStepConfig,
-                                              executionDescription: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "Covers connecting, authenticating and running the command together.",
-                                                  )}
-                                                </>
-                                              ),
-                                              executionBounds:
-                                                STEP_EXECUTION_TIMEOUT_BOUNDS,
-                                            })}
-                                          </div>
-                                        )}
-
-                                        {step.type ===
-                                          RunbookStepType.Kubernetes && (
-                                          <div className="flex flex-col gap-3">
-                                            {renderAgentPicker({
-                                              stepIndex: idx,
-                                              stepType:
-                                                RunbookStepType.Kubernetes,
-                                              currentAgentId:
-                                                (
-                                                  step.config as KubernetesStepConfig
-                                                ).agentId || "",
-                                              onChange: (id: string) => {
-                                                updateConfig(idx, {
-                                                  agentId: id,
-                                                });
-                                              },
-                                              helperText: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "This Runner calls the cluster API server, so it must be able to reach it.",
-                                                  )}
-                                                </>
-                                              ),
-                                            })}
-                                            {renderCredentialPicker({
-                                              currentCredentialId:
-                                                (
-                                                  step.config as KubernetesStepConfig
-                                                ).credentialId || "",
-                                              credentialType:
-                                                RunbookCredentialType.Kubernetes,
-                                              onChange: (id: string) => {
-                                                updateConfig(idx, {
-                                                  credentialId: id,
-                                                });
-                                              },
-                                              helperText: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "The API server and service account token. Bind that account to a role allowing only what your runbooks need.",
-                                                  )}
-                                                </>
-                                              ),
-                                            })}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                              <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  {translator.translateText(
-                                                    "Action",
-                                                  )}
-                                                </label>
-                                                <Dropdown
-                                                  options={[
-                                                    {
-                                                      value:
-                                                        KubernetesAction.RestartWorkload,
-                                                      label: "Restart workload",
-                                                    },
-                                                    {
-                                                      value:
-                                                        KubernetesAction.ScaleWorkload,
-                                                      label: "Scale workload",
-                                                    },
-                                                  ]}
-                                                  value={{
-                                                    value:
-                                                      (
-                                                        step.config as KubernetesStepConfig
-                                                      ).action ||
-                                                      KubernetesAction.RestartWorkload,
-                                                    label:
-                                                      (
-                                                        step.config as KubernetesStepConfig
-                                                      ).action ===
-                                                      KubernetesAction.ScaleWorkload
-                                                        ? "Scale workload"
-                                                        : "Restart workload",
-                                                  }}
-                                                  onChange={(
-                                                    value:
-                                                      | DropdownValue
-                                                      | Array<DropdownValue>
-                                                      | null,
-                                                  ): void => {
-                                                    updateConfig(idx, {
-                                                      action: String(
-                                                        value,
-                                                      ) as KubernetesAction,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  {translator.translateText(
-                                                    "Workload kind",
-                                                  )}
-                                                </label>
-                                                <Dropdown
-                                                  options={[
-                                                    {
-                                                      value:
-                                                        KubernetesWorkloadKind.Deployment,
-                                                      label: "Deployment",
-                                                    },
-                                                    {
-                                                      value:
-                                                        KubernetesWorkloadKind.StatefulSet,
-                                                      label: "StatefulSet",
-                                                    },
-                                                    {
-                                                      value:
-                                                        KubernetesWorkloadKind.DaemonSet,
-                                                      label: "DaemonSet",
-                                                    },
-                                                  ]}
-                                                  value={{
-                                                    value:
-                                                      (
-                                                        step.config as KubernetesStepConfig
-                                                      ).workloadKind ||
-                                                      KubernetesWorkloadKind.Deployment,
-                                                    label:
-                                                      (
-                                                        step.config as KubernetesStepConfig
-                                                      ).workloadKind ||
-                                                      KubernetesWorkloadKind.Deployment,
-                                                  }}
-                                                  onChange={(
-                                                    value:
-                                                      | DropdownValue
-                                                      | Array<DropdownValue>
-                                                      | null,
-                                                  ): void => {
-                                                    updateConfig(idx, {
-                                                      workloadKind: String(
-                                                        value,
-                                                      ) as KubernetesWorkloadKind,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  {translator.translateText(
-                                                    "Namespace",
-                                                  )}
-                                                </label>
-                                                <Input
-                                                  value={
-                                                    (
-                                                      step.config as KubernetesStepConfig
-                                                    ).namespace || ""
-                                                  }
-                                                  placeholder="default"
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      namespace: v,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  {translator.translateText(
-                                                    "Workload name",
-                                                  )}
-                                                </label>
-                                                <Input
-                                                  value={
-                                                    (
-                                                      step.config as KubernetesStepConfig
-                                                    ).workloadName || ""
-                                                  }
-                                                  placeholder="checkout-api"
-                                                  onChange={(v: string) => {
-                                                    return updateConfig(idx, {
-                                                      workloadName: v,
-                                                    });
-                                                  }}
-                                                />
-                                              </div>
-                                            </div>
-                                            {(
-                                              step.config as KubernetesStepConfig
-                                            ).action ===
-                                              KubernetesAction.ScaleWorkload && (
-                                              <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  {translator.translateText(
-                                                    "Replicas",
-                                                  )}
-                                                </label>
-                                                <Input
-                                                  value={String(
-                                                    (
-                                                      step.config as KubernetesStepConfig
-                                                    ).replicas ?? "",
-                                                  )}
-                                                  placeholder="3"
-                                                  onChange={(v: string) => {
-                                                    const parsed: number =
-                                                      parseInt(v, 10);
-                                                    return updateConfig(idx, {
-                                                      replicas: isNaN(parsed)
-                                                        ? undefined
-                                                        : Math.max(0, parsed),
-                                                    });
-                                                  }}
-                                                />
-                                                <p className="text-xs text-gray-500 mt-1.5">
-                                                  {translator.translateText(
-                                                    "Zero is allowed — draining a workload is a remediation. DaemonSets cannot be scaled.",
-                                                  )}
-                                                </p>
-                                              </div>
-                                            )}
-                                            {renderAgentTimeouts({
-                                              idx,
-                                              config:
-                                                step.config as KubernetesStepConfig,
-                                              executionDescription: (
-                                                <>
-                                                  {translator.translateText(
-                                                    "How long the Runner waits for the API server to accept the change.",
-                                                  )}
-                                                </>
-                                              ),
-                                              executionBounds:
-                                                STEP_EXECUTION_TIMEOUT_BOUNDS,
-                                            })}
-                                          </div>
-                                        )}
-
-                                        {step.type === RunbookStepType.AI && (
-                                          <div className="flex flex-col gap-3">
-                                            <div>
-                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                {translator.translateText(
-                                                  "Prompt",
-                                                )}
-                                              </label>
-                                              <TextArea
-                                                value={
-                                                  (step.config as AIStepConfig)
-                                                    .prompt || ""
-                                                }
-                                                onChange={(v: string) => {
-                                                  return updateConfig(idx, {
-                                                    prompt: v,
-                                                  });
-                                                }}
-                                                placeholder="What should the AI analyze, summarize or decide? Its response becomes this step's output."
-                                              />
-                                              <p className="text-xs text-gray-500 mt-1.5">
-                                                {translator.translateText(
-                                                  "Runs on the LLM provider selected below (Project Settings › AI › LLM Providers). Calls are metered like any other AI feature. Pair with “Require approval” below to have a human review the AI’s answer before the next step runs.",
-                                                )}
-                                              </p>
-                                              <div className="mt-2">
-                                                {renderScriptExamples({
-                                                  examples: AI_PROMPT_EXAMPLES,
-                                                  onInsert: (code: string) => {
-                                                    updateConfig(idx, {
-                                                      prompt: code,
-                                                    });
-                                                  },
-                                                })}
-                                              </div>
-                                            </div>
-                                            {renderLlmProviderPicker({
-                                              currentProviderId:
-                                                (step.config as AIStepConfig)
-                                                  .llmProviderId || "",
-                                              onChange: (id: string): void => {
-                                                updateConfig(idx, {
-                                                  llmProviderId: id,
-                                                });
-                                              },
-                                            })}
-                                            <Toggle
-                                              title="Include previous step context"
-                                              description="Give the AI everything about the steps that ran before this one — title, type, status, output and errors."
-                                              value={Boolean(
-                                                (step.config as AIStepConfig)
-                                                  .includePreviousStepContext,
-                                              )}
-                                              onChange={(v: boolean) => {
-                                                return updateConfig(idx, {
-                                                  includePreviousStepContext: v,
-                                                });
-                                              }}
-                                            />
-                                            <Toggle
-                                              title="Include trigger context"
-                                              description="Tell the AI what started this run, such as the linked incident. Private notes and chat messages are never included."
-                                              value={Boolean(
-                                                (step.config as AIStepConfig)
-                                                  .includeTriggerContext,
-                                              )}
-                                              onChange={(v: boolean) => {
-                                                return updateConfig(idx, {
-                                                  includeTriggerContext: v,
-                                                });
-                                              }}
-                                            />
-                                          </div>
-                                        )}
-
-                                        {isAutomatedStep(step.type) && (
-                                          <div className="flex flex-col gap-3 pt-1">
-                                            <Toggle
-                                              title="Continue on failure"
-                                              description="If this step fails, continue to the next step instead of stopping the runbook."
-                                              value={Boolean(
-                                                step.continueOnFailure,
-                                              )}
-                                              onChange={(v: boolean) => {
-                                                return updateStep(idx, {
-                                                  continueOnFailure: v,
-                                                });
-                                              }}
-                                            />
-                                            <Toggle
-                                              title="Require approval before running the next step"
-                                              description="After this step completes, pause the runbook and wait for a user to approve before running the next step."
-                                              value={Boolean(
-                                                step.requireApproval,
-                                              )}
-                                              onChange={(v: boolean) => {
-                                                return updateStep(idx, {
-                                                  requireApproval: v,
-                                                });
-                                              }}
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
+                                      {renderStepBody(step, idx)}
                                     </div>
                                   </div>
                                 </div>

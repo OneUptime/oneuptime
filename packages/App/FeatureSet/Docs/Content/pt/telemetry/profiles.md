@@ -6,7 +6,7 @@ O profiling contínuo mostra como sua aplicação gasta tempo de CPU e memória,
 - [Enviar perfis](#enviar-perfis): Grafana Alloy com eBPF, ou um SDK do Pyroscope na sua aplicação.
 - [Endpoint de ingestão](#endpoint-de-ingestão): A URL base e as três formas de passar a chave.
 - [Verificar se está funcionando](#verificar-se-está-funcionando): Conferir a chave, a página e o status dos envios.
-- [Explorar perfis](#explorar-perfis-no-oneuptime): Gráficos de chama, principais funções, comparações e links para traces.
+- [Explorar perfis](#explorar-perfis-no-oneuptime): O Profiler: para onde vai o tempo, o que mudou e a correção com IA.
 :::
 
 ## Como funciona
@@ -283,14 +283,32 @@ No profiler .NET, defina `DD_TRACE_DEBUG=1` na aplicação por um minuto: ele pa
 
 ## Explorar perfis no OneUptime
 
-**Produtos → Perfis de desempenho** abre uma visão geral de para onde vai o tempo nos seus serviços, e **Todos os perfis** lista cada envio. Escolha o que analisar: **Tudo**, **Tempo de CPU**, **Memória** ou **Bloqueios**, ou um tipo específico como **Tempo decorrido** ou **Goroutines**.
+**Produtos → Perfis de desempenho** abre o Profiler na **Visão geral**. Ele responde em palavras antes de qualquer gráfico: para onde vai o tempo («JSON.parse ocupa 42% do total de tempo de CPU em checkout.») e, quando a função mais ocupada é de uma biblioteca ou do runtime, a função do seu próprio código que mais ocupa, com o código de bibliotecas e de runtime que ela chama. No topo, escolha um serviço, um tipo de perfil para o qual ele tem dados (**Tempo de CPU**, **Tempo decorrido**, **Memória**, **Alocações**, **Bloqueios** ou **Goroutines**, ou um tipo em **Mais tipos de perfil**) e um intervalo.
 
-A página de um perfil tem três visões:
+| Cartão | O que mostra |
+| --- | --- |
+| **Para onde vai o tempo de CPU** | Todos os perfis do intervalo, combinados em um único gráfico de chama. Quanto mais largo um quadro, maior a sua participação. Clique em um quadro para ampliar. |
+| **Funções** | As funções que mais ocupam, ordenadas por **Próprio** (o tempo no próprio código da função), **Total** (com tudo o que ela chama) ou **Seu código** (suas próprias funções, cada uma com o código de bibliotecas e de runtime que chama: o tempo que uma mudança nela pode recuperar). |
+| **Serviços perfilados** | Cada serviço perfilado, os mais ocupados primeiro. As threads do kernel que o profiler eBPF amostra ficam ocultas. |
+
+### Comparar dois intervalos
+
+**Comparar com** define com o que o intervalo é comparado: **O período anterior**, **O mesmo horário de ontem**, **O mesmo horário da semana passada**, ou um deploy em **Antes e depois de uma mudança**. São comparadas participações, não totais, então mais tráfego sozinho não muda nada. O título nomeia a função cuja participação mais cresceu, e o seu próprio código que cresceu; o gráfico de chama vira **O que mudou**, onde quadros vermelhos ocupam uma participação maior depois e verdes uma menor; e **Funções que mudaram** lista a participação de cada função antes e depois.
+
+### Uma função
+
+Clique em uma função para abrir o painel dela: a participação como **Próprio**, **Total** e **Seu código**, **Quem a chama** e **O que ela chama**, um link para o arquivo e a linha dela no seu repositório quando há um conectado, e **Destacar no gráfico de chama**. Para uma função de uma biblioteca ou do runtime, o painel nomeia a função do seu próprio código que a chama, onde uma mudança pode deixá-la mais barata. Um link abaixo das participações cria um alerta sobre a participação da função, acima do que ela ocupa hoje: veja [Monitor de perfis](/docs/monitor/profiles-monitor).
+
+Quando uma função do seu próprio código ocupa pelo menos 5% do tempo ou da memória do perfil, ou a participação dela cresceu 3 pontos ou mais desde o intervalo com que é comparada, o painel oferece **Corrigir com IA**: o OneUptime AI inicia uma tarefa no repositório que contém a função, com o perfil como evidência, e abre um pull request para você revisar (veja [Code](/docs/ai/ai-agent)). O OneUptime AI também lê perfis nas respostas e investigações, então você pode perguntar quais funções usam mais tempo de CPU.
+
+### Um único perfil
+
+**Todos os perfis** lista cada envio. A página de um perfil tem três visões:
 
 | Visão | O que mostra |
 | --- | --- |
 | **Gráfico de chama** | Cada barra é uma função da pilha de chamadas, e a largura dela é proporcional ao tempo ou aos recursos consumidos. Clique em uma função para aplicar zoom e ver quem a chama e quem ela chama. |
-| **Top functions** | As funções do perfil, ordenadas por tempo próprio ou total. **Only my code** oculta os frames de bibliotecas. |
+| **Top functions** | As funções do perfil, ordenadas por tempo próprio ou total. **Somente meu código** oculta os frames de bibliotecas. |
 | **Diff vs. baseline** | O perfil comparado com um período anterior (**vs. 1 hora atrás**, **vs. ontem** ou **vs. semana passada**), com as funções **Most regressed** e **Most improved**. |
 
 **Download pprof** salva o perfil para ferramentas locais como `go tool pprof`.
@@ -300,6 +318,8 @@ A página de um perfil tem três visões:
 Quando um perfil traz IDs de trace e de span (por exemplo, como rótulos de amostra `trace_id` / `span_id`), você vai direto de um span lento de um trace ao perfil de CPU ou memória correspondente para entender exatamente que código estava rodando, e **Open linked trace** faz o caminho inverso.
 
 A aba **Perfil** de um span também inclui as amostras vinculadas aos spans aninhados sob ele, porque os profilers costumam atribuir o tempo de CPU de uma requisição a um span filho em vez do próprio span da requisição.
+
+A página de um trace também leva ao Profiler no serviço do trace, para os 15 minutos antes e depois dele, quando esse serviço estava sendo perfilado, e a página **Perfis de desempenho** de um serviço ou de um host abre o Profiler nesse serviço ou host.
 
 ## Retenção de dados
 

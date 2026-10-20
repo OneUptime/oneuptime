@@ -134,10 +134,10 @@ Innehållets värden på översta nivån blir körningens indata. De når stegen
 
 | Stegtyp | Hur det läser indata |
 | --- | --- |
-| Bash | Miljövariabler: en `ONEUPTIME_INPUT_<NAME>` för varje värde på översta nivån, `ONEUPTIME_INPUTS` med hela objektet som JSON och `ONEUPTIME_TRIGGER` med det som startade körningen, som `Webhook` eller `Schedule`. |
+| Bash och kubectl | Miljövariabler: en `ONEUPTIME_INPUT_<NAME>` för varje värde på översta nivån, `ONEUPTIME_INPUTS` med hela objektet som JSON och `ONEUPTIME_TRIGGER` med det som startade körningen, som `Webhook` eller `Schedule`. |
 | JavaScript | `args.inputs`, objektet som det skickades, och `args.trigger`. |
 | AI | I sin prompt, märkt som data utifrån OneUptime, när **Include trigger context** är påslaget. |
-| HTTP request, SSH och Kubernetes | Inte alls. Deras URL, kommando och mål är det som står i runbooket, och ingenting som en anropare skickar ändrar dem. |
+| HTTP request och SSH | Inte alls. Deras URL, skript och mål är det som står i runbooket, och ingenting som en anropare skickar ändrar dem. |
 
 En variabels namn är värdets namn med versaler, där varje tecken som inte är en bokstav eller en siffra skrivs som `_`: `host-name` blir `ONEUPTIME_INPUT_HOST_NAME`. Text skickas som den är, tal och `true` eller `false` som de är skrivna, och objekt och listor som JSON. Ett steg får högst 100 sådana variabler, och ett namn på fler än 100 tecken blir ingen; varje värde finns ändå i `ONEUPTIME_INPUTS`. Varje namn börjar med `ONEUPTIME_`, så en anropare kan inte sätta `PATH` eller någon annan variabel som Runnern läser.
 

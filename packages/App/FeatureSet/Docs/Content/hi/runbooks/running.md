@@ -132,8 +132,12 @@ Runbook निष्पादन पाँच तरीकों से बन�
 Runbook का **इस Runbook को चलाएं** स्विच उसके **सेटिंग्स** पेज पर बंद है, या उसमें कोई सहेजा गया चरण नहीं है। स्विच चालू करें, या चरण जोड़ें, और **Save Steps** पर क्लिक करें। इसका **अवलोकन** बताता है कि कौन सा, **रनबुक चालू करें** या **चरण जोड़ें** के साथ।
 :::
 
-:::details कोई चरण Runner या क्रेडेंशियल न होने से विफल हुआ
-संदेश कुछ ऐसा होता है: "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." चरण बिना **Runner** के सहेजा गया था, या कोई SSH या Kubernetes चरण बिना **Credential** के। JavaScript चरण को अपने Runner की ज़रूरत केवल तब होती है जब कोई [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) उसे नहीं चला सकता। Runbook के **चरण** खोलें, जो चरण में कमी है उसे चुनें, **Save Steps** पर क्लिक करें, और Runbook फिर से चलाएँ।
+:::details कोई चरण Runner न होने से विफल हुआ
+संदेश कुछ ऐसा होता है: "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." चरण बिना **Runner** के सहेजा गया था। JavaScript चरण को अपने Runner की ज़रूरत केवल तब होती है जब कोई [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) उसे नहीं चला सकता। Runbook के **चरण** खोलें, चरण का Runner चुनें, **Save Steps** पर क्लिक करें, और Runbook फिर से चलाएँ।
+:::
+
+:::details कोई चरण विफल हुआ क्योंकि वह ऐसे वेरिएबल का नाम लेता है जिन्हें वह इस्तेमाल नहीं कर सकता
+संदेश "This step names variables it cannot use, so it was not run:" से शुरू होता है और हर वेरिएबल के लिए बताता है कि क्या ग़लत है और उसे कहाँ ठीक करना है: उस नाम का कोई वेरिएबल नहीं है, सीक्रेट का कोई मान नहीं है, या चरण का Runner उसे इस्तेमाल नहीं कर सकता। वेरिएबल बनाएँ या चरण में उसका नाम ठीक करें, या Runner को सीक्रेट इस्तेमाल करने दें, फिर Runbook दोबारा चलाएँ। [Runbook वेरिएबल](/docs/runbooks/variables) देखें।
 :::
 
 :::details कोई चरण इसलिए विफल हुआ क्योंकि किसी Runbook एजेंट ने उसे नहीं उठाया

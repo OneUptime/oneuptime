@@ -134,10 +134,10 @@ Os valores de nível superior do corpo viram as entradas da execução. Eles che
 
 | Tipo de etapa | Como lê as entradas |
 | --- | --- |
-| Bash | Variáveis de ambiente: uma `ONEUPTIME_INPUT_<NAME>` para cada valor de nível superior, `ONEUPTIME_INPUTS` com o objeto inteiro em JSON e `ONEUPTIME_TRIGGER` com o que iniciou a execução, como `Webhook` ou `Schedule`. |
+| Bash e kubectl | Variáveis de ambiente: uma `ONEUPTIME_INPUT_<NAME>` para cada valor de nível superior, `ONEUPTIME_INPUTS` com o objeto inteiro em JSON e `ONEUPTIME_TRIGGER` com o que iniciou a execução, como `Webhook` ou `Schedule`. |
 | JavaScript | `args.inputs`, o objeto como foi enviado, e `args.trigger`. |
 | AI | No prompt, marcadas como dados de fora do OneUptime, quando **Include trigger context** está ativado. |
-| HTTP request, SSH e Kubernetes | De forma alguma. A URL, o comando e o destino deles são o que está escrito no runbook, e nada que quem chama envia os altera. |
+| HTTP request e SSH | De forma alguma. A URL, o script e o destino deles são o que está escrito no runbook, e nada que quem chama envia os altera. |
 
 O nome de uma variável é o nome do valor em maiúsculas, com cada caractere que não seja letra ou dígito escrito como `_`: `host-name` vira `ONEUPTIME_INPUT_HOST_NAME`. Texto é passado como está, números e `true` ou `false` como escritos, e objetos e listas como JSON. Uma etapa recebe no máximo 100 dessas variáveis, e um nome com mais de 100 caracteres não vira nenhuma; todo valor continua em `ONEUPTIME_INPUTS`. Todo nome começa com `ONEUPTIME_`, então quem chama não consegue definir `PATH` nem nenhuma outra variável que o Runner lê.
 

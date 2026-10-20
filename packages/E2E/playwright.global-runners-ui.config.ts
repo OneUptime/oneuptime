@@ -5,7 +5,7 @@ import path from "path";
  * Global Runners - the Runners OneUptime runs for every project - on the
  * pages that show them, in real Chromium, with no backend:
  * GlobalRunners/Fixture/server.js bundles the production Runbooks -> Runners
- * page, a runbook's Steps page and the Secrets page with the app's esbuild
+ * page, a runbook's Steps page and the Global Variables page with the app's esbuild
  * config, Tailwind, theme and font, over in-memory records whose saves it
  * records. What jsdom cannot show is checked here: the cards in the order a
  * person reads them, the Runner dropdown opened and picked by mouse and by

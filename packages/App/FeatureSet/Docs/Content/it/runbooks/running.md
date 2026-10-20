@@ -132,8 +132,12 @@ Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'auto
 L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua pagina **Impostazioni**, oppure il runbook non ha passaggi salvati. Attiva l'interruttore, oppure aggiungi passaggi e fai clic su **Save Steps**. La sua **Panoramica** dice quale, con **Attiva il runbook** o **Aggiungi passaggi**.
 :::
 
-:::details Un passaggio è fallito perché gli manca un Runner o una credenziale
-Il messaggio dice, ad esempio, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**, oppure un passaggio SSH o Kubernetes senza **Credential**. Un passaggio JavaScript ha bisogno di un Runner proprio solo quando nessun [Runner globale](/docs/runbooks/agents#runner-globali) può eseguirlo. Apri i **Passaggi** del runbook, scegli ciò che manca al passaggio, fai clic su **Save Steps** ed esegui di nuovo il runbook.
+:::details Un passaggio è fallito perché gli manca un Runner
+Il messaggio dice, ad esempio, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**. Un passaggio JavaScript ha bisogno di un Runner proprio solo quando nessun [Runner globale](/docs/runbooks/agents#runner-globali) può eseguirlo. Apri i **Passaggi** del runbook, scegli il Runner del passaggio, fai clic su **Save Steps** ed esegui di nuovo il runbook.
+:::
+
+:::details Un passaggio è fallito perché nomina variabili che non può usare
+Il messaggio inizia con "This step names variables it cannot use, so it was not run:" e dice, per ogni variabile, cosa non va e dove correggerlo: non esiste alcuna variabile con quel nome, il segreto non ha un valore, oppure il Runner del passaggio non può usarlo. Crea la variabile o correggi il suo nome nel passaggio, oppure lascia che il Runner usi il segreto, poi esegui di nuovo il runbook. Vedi [Variabili dei runbook](/docs/runbooks/variables).
 :::
 
 :::details Un passaggio è fallito perché nessun agente di runbook l'ha preso in carico

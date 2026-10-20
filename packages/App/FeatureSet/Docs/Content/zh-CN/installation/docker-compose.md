@@ -186,7 +186,7 @@ npm start
 :::steps
 #### 将域名指向服务器
 
-为你的域名创建一条 DNS `A` 记录（IPv6 用 `AAAA`），值为服务器的公网 IP 地址。
+为你的域名创建一条 DNS `A` 记录（IPv6 用 `AAAA`），值为服务器的公网 IP 地址。如果添加了 `AAAA` 记录，还要为 OneUptime 开启 IPv6：参见[访问者地址](#访问者地址)。
 
 #### 开启证书申请
 
@@ -213,16 +213,16 @@ npm start
 
 ### 使用你自己的反向代理
 
-以下步骤在与 OneUptime 相同的服务器上运行代理。如果你的代理运行在另一台机器上，请跳过第一步，并把代理指向这台服务器的端口 80。
+以下步骤在与 OneUptime 相同的服务器上运行代理。如果你的代理运行在另一台机器上，请跳过第一步，把代理指向这台服务器的端口 80，并用云服务商的防火墙只让代理访问端口 80 和 443：绕过代理访问 OneUptime 的访问者，可以自己选择 OneUptime 用来计算他的地址。
 
 :::steps
 #### 将 ingress 移出端口 80 和 443
 
-代理需要端口 80 和 443，所以要把 ingress 移到其他端口。探针和 Runner 使用主机网络，通过 `http://localhost` 访问 OneUptime，因此它们也要一起调整：
+代理需要端口 80 和 443，所以要把 ingress 移到其他端口，并且只发布在这台服务器的回环地址 `127.0.0.1` 上，让访问者只能通过你的代理访问 OneUptime。探针和 Runner 使用主机网络，通过 `http://localhost` 访问 OneUptime，因此它们也要一起调整：
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,48 @@ server {
 > [!NOTE]
 > 在你自己的代理之后，请通过 OTLP/HTTP（`/otlp`）发送遥测数据。只有当 OneUptime 自己的 ingress 终止 TLS 时（`PROVISION_SSL=true`），通过 gRPC 的 OTLP 才能到达 OneUptime。
 
+## 访问者地址
+
+OneUptime 按访问者连接时所用的地址来计算每个访问者：登录限制、其他按地址的限制，以及状态页和仪表板的 IP 允许列表，都读取这个地址。有两种部署需要一项设置，才能让这个地址是访问者自己的地址：
+
+| 部署 | 设置 |
+| --- | --- |
+| 有人通过 IPv6 访问 OneUptime，例如通过 `AAAA` 记录 | 在 `docker-compose.override.yml` 中为 OneUptime 的网络开启 IPv6 |
+| OneUptime 前面有你自己的反向代理 | `TRUSTED_PROXY_HOPS=2`，并且 ingress 发布在 `127.0.0.1` 上（参见[使用你自己的反向代理](#使用你自己的反向代理)） |
+
+OneUptime 的网络没有开启 IPv6 时，Docker 会用它自己的一个地址把每个通过 IPv6 来的访问者转交给 OneUptime，OneUptime 就会把他们全部算作同一个访问者：一个人的登录失败可能会把其他人锁在外面。开启 IPv6 需要 Docker Engine 27 或更高版本（`docker version` 会显示你的版本）。
+
+:::steps
+### 开启 IPv6
+
+创建 `docker-compose.override.yml`（放在 `docker-compose.yml` 旁边），或把以下内容加到你已有的文件中；`npm start` 和 `npm run update` 会读取它：
+
+```yaml title="docker-compose.override.yml"
+networks:
+  oneuptime:
+    enable_ipv6: true
+```
+
+### 重新启动 OneUptime
+
+```bash
+npm stop
+npm start
+```
+
+OneUptime 会先停止，再在网络开启 IPv6 的情况下重新启动。你的数据会保留。如果你自己的容器（例如反向代理）仍连接在 OneUptime 的网络上，Docker 无法删除这个网络：请先把它从 OneUptime 的网络断开，之后再连接回来。如果 `npm start` 因 `has active endpoints` 而停止，请断开它，然后再次运行 `npm stop` 和 `npm start`。
+
+### 检查网络
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+它会输出 `"EnableIPv6": true,`。
+:::
+
+当多人从同一个私有网络地址登录时，Admin Dashboard 的 **OneUptime 健康状况** 页面会指出这一点，并给出可以改变它的设置。
+
 ## 生产环境检查清单
 
 Docker Compose 在一台服务器上为每个服务只运行一个副本，适合小团队和家庭实验室。在依赖它之前，请逐项检查这份清单。
@@ -325,6 +367,7 @@ Docker Compose 在一台服务器上为每个服务只运行一个副本，适�
 | **HTTPS** | 人们通过 HTTPS 访问 OneUptime，并且已设置 `HTTP_PROTOCOL=https`。请参阅 [设置 HTTPS](#设置-https)。 |
 | **注册** | 团队成员都有账号后，在 Admin Dashboard 的 **设置 > 认证** 下关闭 **允许注册**。 |
 | **防火墙** | 只有端口 80 和 443（以及 SSH）对互联网开放。OneUptime 只在 `127.0.0.1` 上发布 PostgreSQL 的端口 5400。你自己发布的其他端口，请用云服务商的防火墙关闭：`ufw` 规则不适用于 Docker 发布的端口。 |
+| **访问者地址** | Admin Dashboard 的 **OneUptime 健康状况** 页面没有提示多人从同一个地址登录。参见[访问者地址](#访问者地址)。 |
 | **备份** | 每天备份 PostgreSQL，并把副本移出服务器。请参阅 [备份与恢复](#备份与恢复)。 |
 | **电子邮件** | 已在 Admin Dashboard 的 **设置 > 通知 > 电子邮件** 下设置邮件服务器，以便 OneUptime 发送邀请和通知。请参阅 [SMTP](/docs/emails/smtp)。 |
 | **磁盘** | 持续关注剩余空间。ClickHouse 会随保留的遥测数据增长（请参阅 [规模与容量规划](/docs/installation/sizing)）；每个容器的日志上限为 1000 MB。 |
@@ -454,6 +497,13 @@ npm run logs
 
 :::details 部分页面能加载，但实时更新或上传失败
 请通过 `HOST` 中的地址打开 OneUptime。ingress 按主机名路由请求：只有 `HOST` 和 `localhost` 能访问整个应用，其他任何名称（例如服务器的 IP 地址）都会被当作状态页面的域名。把 `HOST` 设为人们实际使用的名称，然后运行 `npm start`。
+:::
+
+:::details 注册或登录失败，显示 "Page not found"
+注册页面能加载，但注册失败并显示 `Page not found - /identity/signup`，登录失败并显示 `Page not found - /identity/login`。请求以 `HOST` 以外的主机名到达 OneUptime，所以 ingress 把它当作状态页面的自定义域名来路由，而那里不提供 OneUptime 自身的注册和登录。请检查以下两项：
+
+- `HOST` 是人们打开的地址；如果使用端口，就带上端口，例如 `oneuptime.example.com:8080`。修改后运行 `npm start`。
+- OneUptime 前面的代理原样传递浏览器请求的主机名。Caddy 默认就会这样做，Nginx 要用 `proxy_set_header Host $host;`（见[使用你自己的反向代理](#使用你自己的反向代理)），Apache 要用 `ProxyPreserveHost On`。
 :::
 
 :::details 设置 PROVISION_SSL 后浏览器对证书发出警告

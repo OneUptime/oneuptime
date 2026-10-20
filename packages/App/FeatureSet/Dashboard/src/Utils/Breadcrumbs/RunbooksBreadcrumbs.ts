@@ -52,6 +52,12 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "View Runbook",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_VARIABLES, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Variables",
+    ]),
     // Every page of a runbook's menu has its trail, these two included.
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_OWNERS, [
       "Project",
@@ -71,10 +77,10 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "View Runbook",
       "Delete Runbook",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_SECRETS, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_VARIABLES, [
       "Project",
       "Runbooks",
-      "Secrets",
+      "Global Variables",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_RUNNERS, [
       "Project",
@@ -90,7 +96,7 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_RUNNER_CREDENTIALS, [
       "Project",
       "Runbooks",
-      "Runner Credentials",
+      "AI Access",
     ]),
   };
   return breadcrumpLinksMap[path];

@@ -532,19 +532,29 @@ describe("Health > Overview (the landing page)", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("asks only the Community capacity endpoint on the Community Edition", async () => {
+  test("asks only the every-edition endpoints on the Community Edition", async () => {
     render(<HealthLanding />);
 
     await screen.findByText("Available on every edition");
     await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledTimes(1);
+      expect(apiGet).toHaveBeenCalledTimes(2);
     });
 
-    const url: string = String(
-      (apiGet.mock.calls[0]?.[0] as { url: { toString: () => string } }).url,
-    );
+    // ClickHouse capacity, and where people sign in from (VisitorAddressesSummary).
+    const routes: Array<string> = apiGet.mock.calls
+      .map((call: Array<unknown>): string => {
+        const pathname: string = new URL(
+          String((call[0] as { url: { toString: () => string } }).url),
+        ).pathname;
 
-    expect(url).toContain("/admin/health/clickhouse-capacity");
+        return pathname.slice(pathname.indexOf("/admin/health/"));
+      })
+      .sort();
+
+    expect(routes).toEqual([
+      "/admin/health/clickhouse-capacity",
+      "/admin/health/visitor-addresses",
+    ]);
   });
 
   test("shows the capacity endpoint's error instead of numbers", async () => {

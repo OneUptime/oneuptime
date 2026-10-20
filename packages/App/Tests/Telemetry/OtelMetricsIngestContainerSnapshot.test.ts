@@ -171,7 +171,11 @@ describe("the Docker container snapshot, from the real docker_stats capture", ()
       expect(row.observedAt).toEqual(CAPTURE_OBSERVED_AT);
       expect(row.labels ?? null).toEqual(capturedLabels(container));
       expect(row.startedAt).toEqual(capturedStartedAt(container));
-      expect(row.cpuPercent).toBeCloseTo(container.cpuUtilization * 100, 10);
+      /*
+       * docker_stats sends its CPU percent as a percent (declared "1"):
+       * mirrored as it is, never times 100 (OtelMetricsIngestContainerPercent).
+       */
+      expect(row.cpuPercent).toBeCloseTo(container.cpuUtilization, 10);
       expect(row.memoryBytes).toBe(Number(container.memoryUsageTotal));
     }
 

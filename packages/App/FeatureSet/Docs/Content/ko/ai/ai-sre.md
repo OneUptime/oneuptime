@@ -261,7 +261,7 @@ AI 에이전트 페이지의 **수정** 에는 네 가지 설정이 있습니다
 
 ### 대신 Runner를 통해(고급)
 
-차트를 실행하지 않는 클러스터(다른 방법으로 Kubernetes 텔레메트리를 보내는 클러스터)는 여러분이 운영하는 Runner(런북 → Runbook 에이전트)를 통해 OneUptime AI에 kubectl 액세스를 줄 수 있습니다. API나 Terraform으로 Runner와 Kubernetes 자격 증명(API 서버 URL + ServiceAccount 토큰, **런북 → Runbook 에이전트 → 자격 증명** 에 있음)을 클러스터에 연결하고(클러스터의 **AI Access Runner** 와 **AI Access Credential**), 그 Runner에서 **AI 해결 명령 실행** 을 켭니다. Runner를 통한 수정에는 AI 에이전트를 통한 수정과 같은 프로젝트 스위치가 필요합니다: **AI 활성화** 와 **새 인시던트 자동 수정** (또는 경고용) 입니다. 그런 Runner가 쓸 수 있는 곳을 제한하려면 `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` 와 함께 시작하세요(수정을 노드에서 멀리 두려면 `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` 도 함께). Runner가 이 제한을 보고하므로, OneUptime은 그 범위 밖의 수정을 Runner에 도달하기 전에 제안되거나 승인되는 시점에 거부하고, Runner도 다시 거부합니다. Runner에 연결된 클러스터는 Kubernetes AI 에이전트가 설치되어도 계속 그 Runner를 사용합니다. 그러면 AI 에이전트 페이지에 거쳐 가는 Runner와 자격 증명이 표시되고, AI 에이전트가 연결되면 에이전트 상태 옆의 **⋯** 메뉴에 **AI 에이전트로 전환** 이 표시됩니다.
+차트를 실행하지 않는 클러스터(다른 방법으로 Kubernetes 텔레메트리를 보내는 클러스터)는 여러분이 운영하는 Runner(런북 → Runbook 에이전트)를 통해 OneUptime AI에 kubectl 액세스를 줄 수 있습니다. API나 Terraform으로 Runner와 Kubernetes 자격 증명(API 서버 URL + ServiceAccount 토큰, **런북 → Runbook 에이전트 → AI 액세스** 에 있음)을 클러스터에 연결하고(클러스터의 **AI Access Runner** 와 **AI Access Credential**), 그 Runner에서 **AI 해결 명령 실행** 을 켭니다. Runner를 통한 수정에는 AI 에이전트를 통한 수정과 같은 프로젝트 스위치가 필요합니다: **AI 활성화** 와 **새 인시던트 자동 수정** (또는 경고용) 입니다. 그런 Runner가 쓸 수 있는 곳을 제한하려면 `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` 와 함께 시작하세요(수정을 노드에서 멀리 두려면 `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` 도 함께). Runner가 이 제한을 보고하므로, OneUptime은 그 범위 밖의 수정을 Runner에 도달하기 전에 제안되거나 승인되는 시점에 거부하고, Runner도 다시 거부합니다. Runner에 연결된 클러스터는 Kubernetes AI 에이전트가 설치되어도 계속 그 Runner를 사용합니다. 그러면 AI 에이전트 페이지에 거쳐 가는 Runner와 자격 증명이 표시되고, AI 에이전트가 연결되면 에이전트 상태 옆의 **⋯** 메뉴에 **AI 에이전트로 전환** 이 표시됩니다.
 
 이전 차트(`aiAccess.enabled=true`)로 설정한 클러스터는 차트를 업그레이드할 때까지 이전의 클러스터 내 Runner를 통해 OneUptime AI에 연결됩니다. 업그레이드하면 그 Runner가 Kubernetes AI 에이전트로 바뀌고 설정도 이어받습니다 — [에이전트 업그레이드](/docs/telemetry/kubernetes-agent#에이전트-업그레이드) 를 참고하세요.
 
@@ -286,6 +286,8 @@ AI 에이전트 페이지의 **수정** 에는 네 가지 설정이 있습니다
 API나 Terraform에서는 세 가지가 별도의 프로젝트 필드이며, 서버는 여러분이 쓴 값을 저장합니다: `enableAutomaticIncidentRemediation` 은 수정을 켜고, 풀 리퀘스트는 이것이 켜져 있고 각자의 필드도 켜져 있는 동안에만 열립니다 — `enableAutomaticIncidentCodeFixes` 와 `enableIncidentInstrumentationFixTasks`(경고용은 `enableAutomaticAlertRemediation`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`). 서버는 어느 것도 스스로 켜거나 끄지 않으므로, 풀 리퀘스트와 함께 수정을 켜려면 세 가지를 모두 한 번의 요청으로 설정하세요.
 
 확신도를 결정하는 것과 같은, 서버가 검증하는 제한된 분류가 저장소 변경이 적절한지도 결정합니다. 코드 수정으로 긍정적으로 분류된 경우에만 풀 리퀘스트를 제안하거나 자동으로 엽니다. 서버가 검증한 증거를 모으지 못한 조사, 코드가 아닌 해결책을 권하는 조사, 분류에 실패한 조사는 절대 풀 리퀘스트를 열지 않습니다. PR 생성은 실패하면 항상 아무것도 하지 않는 쪽으로 기웁니다. 나머지는 모두 수동 버튼과 같습니다: 풀 리퀘스트는 검토 준비가 된 상태로 열리고, GitHub App으로 연결된 저장소와 코드 수정 기능이 있는 Runner가 필요하며, 둘 중 하나라도 설정되어 있으면 그 신호 유형의 일일 수정 작업 한도와 저장소의 열린 PR 한도에 포함되고, 인시던트나 경고마다 동시에 활성화될 수 있는 수정 작업은 최대 하나입니다. 조사 자체는 읽기 전용으로 유지되며, 수정은 완전히 기록되는 별도의 에이전트 작업으로 실행됩니다. 각 풀 리퀘스트가 열리기 전에 실행되는 빌드 및 테스트 검증을 포함해 수정 풀 리퀘스트가 작동하는 방식은 [코드](/docs/ai/ai-agent)를 참고하세요.
+
+**프로덕션에서 검증됨.** 수정을 병합한다고 예외가 고쳐지는 것이 아니라, 그 수정이 실행되어야 고쳐집니다. 예외에 대한 AI 수정이 병합되면, OneUptime은 수정의 커밋을 포함한, 예외가 속한 서비스의 기록된 배포를 기다린 뒤([배포 및 변경 사항](/docs/telemetry/change-events) 참조) 그 배포에서 예외를 지켜봅니다. 예외가 다시 발생하면 수정은 **수정 후에도 계속 발생**으로 표시되고 예외는 다시 열립니다. 예외가 적어도 하루 동안, 그리고 수정 전 일주일 동안의 발생률이라면 적어도 3번은 발생했을 만큼 오래 나타나지 않으면, 수정은 **프로덕션에서 수정됨**으로 표시되고 예외는 해결됩니다. 14일 안에 어떤 기록된 배포에도 포함되지 않은 수정이나, 7일 동안 조용해도 아무 의미가 없을 만큼 드문 예외는 **프로덕션에서 검증되지 않음**으로 표시됩니다. 어느 쪽인지는 예외의 수정 작업에 표시됩니다.
 
 ## 조사하고 수정하는 인시던트
 

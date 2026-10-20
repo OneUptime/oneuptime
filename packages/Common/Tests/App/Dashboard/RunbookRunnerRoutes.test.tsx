@@ -47,7 +47,7 @@ const routedPagesMock: MockFunction = getJestMockFunction();
 const PAGE_MODULES: Record<string, string> = {
   Runbooks: "Runbooks",
   Executions: "Executions",
-  Secrets: "Secrets",
+  Variables: "GlobalVariables",
   "Runners/Runners": "Runners",
   "Runners/RunnerView": "RunnerView",
   "Runners/RunnerCredentials": "RunnerCredentials",
@@ -61,6 +61,7 @@ const PAGE_MODULES: Record<string, string> = {
   "View/Owners": "Owners",
   "View/AuditLogs": "AuditLogs",
   "View/Settings": "RunbookSettings",
+  "View/Variables": "RunbookVariables",
   "View/Delete": "Delete",
 };
 
@@ -248,10 +249,10 @@ describe("the rest of the Runbooks route group is where it was", () => {
       PageMap.RUNBOOKS_EXECUTIONS,
     ],
     [
-      `${BASE}/settings/secrets`,
-      "Secrets",
+      `${BASE}/settings/variables`,
+      "GlobalVariables",
       "product-layout",
-      PageMap.RUNBOOKS_SECRETS,
+      PageMap.RUNBOOKS_VARIABLES,
     ],
     [
       `${BASE}/settings/owner-rules`,
@@ -314,6 +315,12 @@ describe("the rest of the Runbooks route group is where it was", () => {
       "RunbookSettings",
       "view-layout",
       PageMap.RUNBOOK_VIEW_SETTINGS,
+    ],
+    [
+      `${BASE}/${ID}/variables`,
+      "RunbookVariables",
+      "view-layout",
+      PageMap.RUNBOOK_VIEW_VARIABLES,
     ],
     [
       `${BASE}/${ID}/delete`,

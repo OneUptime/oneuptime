@@ -11,7 +11,8 @@ import KubernetesClusterService from "../../../Server/Services/KubernetesCluster
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
+import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
@@ -170,7 +171,6 @@ function legacyRunner(overrides: Record<string, unknown> = {}): Runner {
     connectionStatus: RunnerConnectionStatus.Connected,
     canRunAiCommands: true,
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     hostInfo: {
       kubernetes: {
         inCluster: true,
@@ -228,7 +228,11 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
       .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
-      .spyOn(RunbookSecretService, "countBy")
+      .spyOn(RunbookVariableService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    // No code repository picks the Runner.
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(KubernetesClusterService, "countBy")

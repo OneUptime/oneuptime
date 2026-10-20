@@ -1827,8 +1827,14 @@ export const MicrosoftSignInClientSecret: string | null =
 export const VapidPublicKey: string | undefined =
   process.env["VAPID_PUBLIC_KEY"] || undefined;
 
+/*
+ * Read trimmed: on Kubernetes the key can come from a Secret the operator
+ * manages (the chart's vapid.existingSecret), and a Secret created from a file
+ * keeps the file's last newline. web-push refuses a key with anything around
+ * it, which failed every web push.
+ */
 export const VapidPrivateKey: string | undefined =
-  process.env["VAPID_PRIVATE_KEY"] || undefined;
+  process.env["VAPID_PRIVATE_KEY"]?.trim() || undefined;
 
 export const VapidSubject: string =
   process.env["VAPID_SUBJECT"] || "mailto:support@oneuptime.com";

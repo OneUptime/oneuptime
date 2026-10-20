@@ -100,7 +100,7 @@ Unless the table says otherwise, a criteria fires only when the condition holds 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
 > [!NOTE]
-> `container.cpu.utilization` is the number `docker stats` prints: 100% is one full CPU core, not the whole host, so a container using two cores reads 200. On a multi-core host the 80 threshold is a CPU budget, not a share of the machine.
+> `container.cpu.utilization` is the number `docker stats` prints, averaged over the agent's 30-second interval: 100% is one full CPU core, not the whole host, so a container using two cores reads 200. On a multi-core host the 80 threshold is a CPU budget, not a share of the machine.
 
 > [!NOTE]
 > `container.memory.percent` divides by the container's memory limit when one is set, and by the **host's** total memory when it is not. Check whether the container was started with `--memory` before you treat a breach as an imminent out-of-memory kill.
@@ -119,7 +119,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver against the Docker sock
 
 | Metric | Description |
 | --- | --- |
-| `container.cpu.utilization` | CPU utilization, where 100% is one full CPU core (the `docker stats` CPU% column). |
+| `container.cpu.utilization` | CPU used over each 30-second interval, where 100% is one full CPU core (the `docker stats` CPU% column). |
 | `container.cpu.usage.total` | CPU time used since the container started, in nanoseconds. A lifetime counter. |
 | `container.cpu.throttling_data.throttled_time` | Nanoseconds the container has been throttled by its CPU limit since it started. A lifetime counter. |
 | `container.cpu.throttling_data.throttled_periods` | Throttling periods since the container started. A lifetime counter. |
@@ -282,7 +282,7 @@ OneUptime identifies a host by `resource.host.name`, which the agent takes from 
 :::
 
 :::details A CPU alert never fires
-Group the query by `resource.container.name` and aggregate with **Maximum**, as the **High Container CPU Usage** template does. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold.
+Group the query by `resource.container.name` and aggregate with **Maximum**, as the **High Container CPU Usage** template does. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold. If a container's CPU is a flat line whatever its load, the host runs an older agent: [upgrade it](/docs/telemetry/docker-host#upgrading-the-agent).
 :::
 
 :::details The restart-loop or throttling template stopped alerting

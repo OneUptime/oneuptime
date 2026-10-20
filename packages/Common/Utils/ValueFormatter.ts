@@ -712,13 +712,14 @@ export default class ValueFormatter {
    * k8s.container.cpu_request_utilization and friends — still match and
    * still render as percents.
    *
-   * `container.cpu.utilization` is DELIBERATELY not excluded. That exact
-   * metric name is emitted both by kubeletstats (cores) and by
-   * docker_stats, and this repo does not currently agree with itself on
-   * the docker_stats scale — OtelMetricsIngestService.cpuValueToPercent
-   * multiplies the raw value by 100 while Pages/Docker/View/Containers.tsx
-   * renders the same raw value with a "%" suffix and no scaling.
-   * Excluding it here would silently pick a side of that contradiction.
+   * `container.cpu.utilization` and `container.memory.percent` are not
+   * excluded either, and need not be. OneUptime's Kubernetes agent sends
+   * container.cpu.utilization as cores declared "1", and times 100 is a
+   * percent of one core, which is right. The docker_stats receiver sends
+   * both as a percent already (0-100) but declares "1"; ingest records
+   * their unit as "%" (ContainerStatsPercentUnit) and the Docker, Podman and
+   * Swarm agents now send "%" themselves, so they never reach this branch -
+   * which multiplied a container's 4.36% of its memory limit to 436.64%.
    */
   public static isFractionMetric(metricName: string | undefined): boolean {
     if (!metricName) {

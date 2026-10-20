@@ -204,12 +204,12 @@ Coloque no topo o serviço sobre o qual mais perguntam. Os visitantes que chegam
 
 ## Adicionar monitores automaticamente com regras de monitores
 
-Uma regra de monitores adiciona monitores à página por você: descreva os monitores uma vez, e cada monitor que corresponde vai para o grupo que você escolheu. As regras ficam em **Recursos → Monitor Rules**, ao lado da tela Recursos.
+Uma regra de monitores adiciona monitores à página por você: descreva os monitores uma vez, e cada monitor que corresponde vai para o grupo que você escolheu. Você as encontra em **Regras → Monitor Rules**, logo abaixo de Recursos no menu lateral da página.
 
 :::steps
 ### Abrir Monitor Rules
 
-Abra a página de status, escolha **Monitor Rules** na seção **Recursos** do menu lateral dela e clique em **Criar regra de monitores**.
+Abra a página de status, escolha **Monitor Rules** na seção **Regras** do menu lateral dela (clique no título da seção se ela estiver recolhida) e clique em **Criar regra de monitores**.
 
 ### Dizer a quais monitores ela corresponde
 

@@ -101,7 +101,7 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 De to procentskabeloner bruger **Gennemsnit**: deres metrikker er allerede procenter pr. container, så gennemsnittet for et minut er den vedvarende værdi. Antal genstarter og antal processer bruger **Maksimum**, hvor én måling over tærsklen er signalet.
 
 > [!NOTE]
-> `container.cpu.utilization` er det tal, `podman stats` udskriver: 100 % er én hel CPU-kerne, ikke containerens samlede CPU-tildeling. En container, der har fået flere kerner, viser et godt stykke over 100, mens den er sund, så hæv tærsklen for den.
+> `container.cpu.utilization` er det tal, `podman stats` udskriver, i gennemsnit over agentens interval på 30 sekunder: 100 % er én hel CPU-kerne, ikke containerens samlede CPU-tildeling. En container, der har fået flere kerner, viser et godt stykke over 100, mens den er sund, så hæv tærsklen for den.
 
 > [!NOTE]
 > `container.restarts` er en løbende total, som Podman fører, ikke et antal genstarter i vinduet. **High Container Restart Count** forbliver derfor åben, indtil containeren genoprettes, hvilket nulstiller tallet.
@@ -119,7 +119,7 @@ Agenten bruger OpenTelemetry-modtageren `docker_stats`, rettet mod Podmans Docke
 
 | Metrik | Beskrivelse |
 | --- | --- |
-| `container.cpu.utilization` | Containerens CPU-udnyttelse, hvor 100 % er én hel CPU-kerne. |
+| `container.cpu.utilization` | CPU, som containeren brugte i hvert interval på 30 sekunder, hvor 100 % er én hel CPU-kerne. |
 | `container.cpu.usage.total` | Brugt CPU-tid, siden containeren startede, i nanosekunder. En tæller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_time` | Nanosekunder, containeren er blevet droslet af sin CPU-grænse. En tæller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_periods` | Droslingsperioder, siden containeren startede. En tæller over hele levetiden. |
@@ -285,7 +285,7 @@ OneUptime identificerer en vært ud fra `resource.host.name`, som agenten tager 
 :::
 
 :::details En CPU-advarsel udløses aldrig
-Gruppér forespørgslen efter `resource.container.name`, som skabelonen **High Container CPU Usage** gør, så hver container bedømmes for sig. Et gennemsnit over alle containere på en travl vært trækkes ned af de inaktive. Husk, at 100 % betyder én hel kerne, så en container, der må bruge flere kerner, har brug for en højere tærskel.
+Gruppér forespørgslen efter `resource.container.name`, som skabelonen **High Container CPU Usage** gør, så hver container bedømmes for sig. Et gennemsnit over alle containere på en travl vært trækkes ned af de inaktive. Husk, at 100 % betyder én hel kerne, så en container, der må bruge flere kerner, har brug for en højere tærskel. Er en containers CPU en flad linje uanset belastningen, kører værten en ældre agent: [opgradér den](/docs/telemetry/podman-host#opgradering-af-agenten).
 :::
 
 :::details Advarslen om antal genstarter ophører aldrig

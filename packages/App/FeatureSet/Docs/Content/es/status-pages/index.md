@@ -81,12 +81,13 @@ A continuación, más o menos por orden de utilidad:
 
 ## Dónde vive cada cosa
 
-Una vez abierta una página de estado, su propio menú lateral izquierdo se agrupa en nueve secciones. Úsalo como mapa para el resto de esta parte de la documentación.
+Una vez abierta una página de estado, su propio menú lateral izquierdo se agrupa en diez secciones. Úsalo como mapa para el resto de esta parte de la documentación.
 
 | Sección | Qué contiene |
 | --- | --- |
 | **Básico** | **Vista general**, **Anuncios**, **Propietarios**. |
-| **Recursos** | Una sola pantalla **Recursos** (los grupos a la izquierda, los monitores del grupo seleccionado a la derecha) y **Reglas de monitores**. |
+| **Recursos** | Una sola pantalla **Recursos** (los grupos a la izquierda, los monitores del grupo seleccionado a la derecha). |
+| **Reglas** | **Reglas de monitores**: reglas que añaden a la página cada monitor que coincida, ahora y más adelante. |
 | **Suscriptores** | **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams**, **Suscriptores de webhook**, **Ajustes de suscriptores**. |
 | **Registros de notificación** | **Registros de notificación**: lo que se envió a los suscriptores. |
 | **Marca** | **Marca** (logotipo, título, favicon, enlaces, pie de página, colores e idiomas, en una sola página), **Dominios personalizados**, **HTML, CSS y JavaScript**. |
@@ -167,7 +168,7 @@ Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que desca
 
 ## Previsualizar antes de publicar
 
-La pantalla **Vista general** de cada página de estado tiene una tarjeta **Enlace de la página de estado** con un enlace directo a la página y **Copiar enlace** al lado. Úsala mientras sigues añadiendo recursos y antes de que exista un dominio personalizado.
+La pantalla **Vista general** de cada página de estado tiene una tarjeta **Enlace de la página de estado** con todas las direcciones en las que responde la página: primero sus dominios personalizados y después su dirección en OneUptime, cada una con **Copiar enlace** al lado. Un dominio personalizado que aún no está activo aparece marcado como **Aún no activo**, con el motivo, y con **Configuración de DNS** cuando queda algo por hacer. Cuando los visitantes tienen que iniciar sesión o introducir una contraseña, la tarjeta lo dice. Usa la dirección de OneUptime mientras sigues añadiendo recursos y antes de que algún dominio personalizado esté activo.
 
 Por debajo, cada ruta pública tiene una gemela de vista previa en `/status-page/{statusPageId}/...`: un resumen de vista previa, una lista de incidencias de vista previa, una página de suscripción de vista previa, etc. Por eso, una URL o una captura de pantalla tomada de la vista previa del panel no coincidirá con lo que ve un cliente una vez asociado un dominio personalizado, así que comprueba cualquier enlace que pegues en un runbook o un correo electrónico.
 
