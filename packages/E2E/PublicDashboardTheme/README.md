@@ -22,7 +22,8 @@ can look at the page as the browser has it before anything but the template runs
 Desktop (1280px) and phone (Pixel 5, 390px) Chromium cover each theme as a visitor
 first sees it, the theme applied before the first paint (the link's `?theme=` and the
 visitor's kept pick included), a System dashboard following the device live, the
-visitor's Light / Dark / Auto menu and what their browser keeps of it, a link's own
+visitor's Light / Dark / Auto menu (each choice's icon, the tick on the one in use, what
+Auto says it gives) and what their browser keeps of it, a link's own
 theme through the password prompt and back, the password prompt in the dashboard's
 theme, Access Denied and not found following the visitor, and the dark theme on every
 widget kind: no light box but the logo's backdrop, every text at 4.5:1 (3:1 when
