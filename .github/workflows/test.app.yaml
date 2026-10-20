@@ -307,13 +307,16 @@ jobs:
           # took 16 to 23 minutes and every other group 15 to 27: together
           # they would have taken it to 27. Auto Remediation Rules (about two
           # minutes with its bundle locally, Chromium only) joined them the
-          # same day: the lightest group by far.
+          # same day: the lightest group by far. External MCP Servers (about
+          # a minute with its bundle locally, Chromium only: Project Settings
+          # > AI > External MCP Servers and a server's page) joined it too.
           - group: 7
             browsers: chromium
             suites: >-
               test-profiles-ui
               test-llm-connect-ui
               test-auto-remediation-rules-ui
+              test-external-mcp-servers-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -451,6 +454,8 @@ jobs:
             output/playwright/global-runners-ui/test-results
             output/playwright/auto-remediation-rules-ui/*.png
             output/playwright/auto-remediation-rules-ui/test-results
+            output/playwright/external-mcp-servers-ui/*.png
+            output/playwright/external-mcp-servers-ui/test-results
             output/playwright/runbook-variables-ui/*.png
             output/playwright/runbook-variables-ui/test-results
             output/playwright/network-first-run-ui/*.png
