@@ -51,6 +51,7 @@
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",
+    "samples",
     "syslog",
     "teams",
     "{{count}} B",

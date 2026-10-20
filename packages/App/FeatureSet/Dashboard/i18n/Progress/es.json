@@ -376,6 +376,7 @@
     "eth0",
     "finance@yourcompany.com, accounting@yourcompany.com",
     "global",
+    "goroutines",
     "govc",
     "gpt-4o",
     "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",

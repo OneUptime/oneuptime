@@ -28,6 +28,7 @@
     "Status",
     "VMware vCenter",
     "cluster",
+    "goroutines",
     "host",
     "kubectl set image deployment/web * -n web",
     "syslog",

@@ -363,6 +363,7 @@
     "Zone",
     "agent {{version}}",
     "cluster",
+    "goroutines",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",
     "services",
