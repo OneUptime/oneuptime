@@ -86,8 +86,8 @@ const DocsNav: NavGroup[] = [
     ],
   },
   /*
-   * One page per tool that Project Settings > Import from another tool
-   * brings a team, monitors or status pages over from
+   * One page per tool that Project Settings > Advanced > Import from
+   * another tool brings a team, monitors or status pages over from
    * (Common/Types/ToolImport/ToolImportCatalog's docsPath).
    */
   {

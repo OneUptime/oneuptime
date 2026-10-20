@@ -5278,8 +5278,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
 
     /*
-     * Import from another tool (Project Settings > Import from another
-     * tool). A bare router for the same reason as OnCallReadinessAPI: its
+     * Import from another tool (Project Settings > Advanced > Import from
+     * another tool). A bare router for the same reason as OnCallReadinessAPI: its
      * runs are internal rows with no CRUD API, so the router's own checks
      * are the whole gate.
      */

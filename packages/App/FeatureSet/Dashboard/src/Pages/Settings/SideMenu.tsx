@@ -11,8 +11,7 @@ import React, { ReactElement } from "react";
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   /*
    * Every page here is set up once and revisited rarely, so only Basic (the
-   * project itself, its labels, and bringing a team over from another
-   * tool) starts open. The other sections fold down
+   * project itself and its labels) starts open. The other sections fold down
    * to their titles, which read as an index of what can be configured, and
    * each opens by itself on its own pages. Most of them fold by their title
    * (Workspace, Notifications, AI, Advanced, Security, Audit Logs, Danger
@@ -40,15 +39,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Label,
-        },
-        {
-          link: {
-            title: "Import from another tool",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_IMPORT_FROM_TOOL] as Route,
-            ),
-          },
-          icon: IconProp.InboxArrowDown,
         },
       ],
     },
@@ -228,6 +218,22 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Flag,
+        },
+        /*
+         * "This should be in the advanced section in the side menu." (the
+         * maintainer): a project brings its team over from another tool
+         * once, when it starts, so the import waits here, last, after the
+         * settings people come back to. Search (Cmd+K) finds it by "import"
+         * and by each tool's name, and Advanced opens by itself on its page.
+         */
+        {
+          link: {
+            title: "Import from another tool",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_IMPORT_FROM_TOOL] as Route,
+            ),
+          },
+          icon: IconProp.InboxArrowDown,
         },
       ],
     },
