@@ -16,6 +16,7 @@ import MutableMetricService from "../../../Server/Services/MutableMetricService"
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import TelemetryUtil from "../../../Server/Utils/Telemetry/Telemetry";
+import InvestigationRuleWait from "../../../Server/Utils/AI/SRE/InvestigationRuleWait";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
@@ -1093,6 +1094,150 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
       } finally {
         LABEL_NAMES[EU_WEST] = "eu-west";
       }
+    });
+  });
+
+  /*
+   * While an investigation rule makes OneUptime AI wait before it
+   * investigates the record (issue #5074), the wait follows what the rules
+   * read - the severity, the labels, the title and the description - so a
+   * record raised to a severity whose rule waits less is investigated
+   * sooner, and one that no rule matches any more stops waiting. It follows
+   * real changes only, as the feed does: a save that writes back what the
+   * record holds asks nothing of it.
+   */
+  describe("an investigation rule's wait follows the real changes", () => {
+    let onSubjectChanged: jest.SpiedFunction<
+      typeof InvestigationRuleWait.onSubjectChanged
+    >;
+
+    beforeEach(() => {
+      onSubjectChanged = jest
+        .spyOn(InvestigationRuleWait, "onSubjectChanged")
+        .mockResolvedValue(undefined);
+    });
+
+    function expectWaitAskedAboutTheRecord(): void {
+      expect(onSubjectChanged).toHaveBeenCalledTimes(1);
+      expect(onSubjectChanged.mock.calls[0]![0]).toEqual({
+        lane: kind.name === "incident" ? "Incident" : "Alert",
+        projectId: PROJECT_ID,
+        subjectId: new ObjectID(RECORD_ID),
+      });
+    }
+
+    test.each([
+      [
+        "a new severity",
+        (): Dictionary<unknown> => {
+          return { [kind.severityIdColumn]: new ObjectID(CRITICAL) };
+        },
+      ],
+      [
+        "a new label",
+        (): Dictionary<unknown> => {
+          return { labels: [label(CHECKOUT), label(PAYMENTS), label(EU_WEST)] };
+        },
+      ],
+      [
+        "a label taken off",
+        (): Dictionary<unknown> => {
+          return { labels: [label(CHECKOUT)] };
+        },
+      ],
+      [
+        "a new title",
+        (): Dictionary<unknown> => {
+          return { title: "Payments down in every region" };
+        },
+      ],
+      [
+        "a new description",
+        (): Dictionary<unknown> => {
+          return { description: "Every payment fails." };
+        },
+      ],
+      [
+        "the Details card saved with a new severity",
+        (): Dictionary<unknown> => {
+          return detailsCardSave({
+            [kind.severityRelation]: { _id: CRITICAL },
+          });
+        },
+      ],
+    ] as Array<[string, () => Dictionary<unknown>]>)(
+      "%s: the wait is judged again, once, for the record",
+      async (_label: string, payload: () => Dictionary<unknown>) => {
+        await runUpdate(payload());
+
+        expectWaitAskedAboutTheRecord();
+      },
+    );
+
+    test.each([
+      [
+        "the Details card saved unchanged",
+        (): Dictionary<unknown> => {
+          return detailsCardSave();
+        },
+      ],
+      [
+        "the whole record written back",
+        (): Dictionary<unknown> => {
+          return wholeRecordWriteBack();
+        },
+      ],
+      [
+        "the same severity written again",
+        (): Dictionary<unknown> => {
+          return { [kind.severityIdColumn]: new ObjectID(MINOR) };
+        },
+      ],
+      [
+        "a new root cause, which no rule reads",
+        (): Dictionary<unknown> => {
+          return { rootCause: "A bad config push." };
+        },
+      ],
+      [
+        "new remediation notes, which no rule reads",
+        (): Dictionary<unknown> => {
+          return { remediationNotes: "Rolled back." };
+        },
+      ],
+      [
+        "the Send reminders switch, which no rule reads",
+        (): Dictionary<unknown> => {
+          return { enableReminders: false };
+        },
+      ],
+    ] as Array<[string, () => Dictionary<unknown>]>)(
+      "%s: the wait is not asked about",
+      async (_label: string, payload: () => Dictionary<unknown>) => {
+        await runUpdate(payload());
+
+        expect(onSubjectChanged).not.toHaveBeenCalled();
+      },
+    );
+
+    test("one update over two records judges the wait only where something changed", async () => {
+      storedRecords = [
+        storedRecord(),
+        storedRecord({ id: SECOND_RECORD_ID, labelIds: [EU_WEST] }),
+      ];
+
+      await runUpdate(
+        { labels: [label(CHECKOUT), label(PAYMENTS)] },
+        {
+          query: { projectId: PROJECT_ID },
+          updatedIds: [RECORD_ID, SECOND_RECORD_ID],
+        },
+      );
+
+      expect(onSubjectChanged).toHaveBeenCalledTimes(1);
+      expect(onSubjectChanged.mock.calls[0]![0].subjectId.toString()).toBe(
+        SECOND_RECORD_ID,
+      );
     });
   });
 });
