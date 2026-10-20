@@ -451,6 +451,8 @@ describe("the words", () => {
       copyLink: "Copy link",
       copyLinkTo: "Copy link to {{address}}",
       copied: "Copied!",
+      // DNS Setup's name, naming the domain it sets up (UI review).
+      dnsSetupFor: "DNS Setup for {{address}}",
       opensInNewTab: "(opens in a new tab)",
       addCustomDomainSentence: "Use your own domain, such as {{example}}.",
       addCustomDomainLink: "Add a custom domain",
