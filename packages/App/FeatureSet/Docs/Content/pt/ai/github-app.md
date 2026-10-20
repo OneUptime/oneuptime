@@ -34,7 +34,7 @@ flowchart TB
 ## Antes de começar
 
 - O repositório precisa estar **conectado a um projeto do OneUptime** pela GitHub App: conecte-o em **Produtos → Código**. Uma instância auto-hospedada precisa primeiro da sua própria GitHub App: veja [Integração com GitHub](/docs/self-hosted/github-integration). Se a app já estiver instalada na conta do GitHub, clique ali em **Conectar uma instalação existente** em vez de instalá-la de novo.
-- Um Runner com **Executa correções de código por IA** precisa estar online: o mesmo Runner que realiza as tarefas de [Código](/docs/ai/ai-agent). Sem ele, os comandos são aceitos e depois falham após 30 minutos, com uma mensagem dizendo que nenhum agente os assumiu.
+- O Runner que o repositório escolhe nas configurações dele em Código precisa estar online, ou um Runner global para um repositório que não escolhe nenhum: o mesmo Runner que realiza as tarefas de [Código](/docs/ai/ai-agent). Sem ele, os comandos são aceitos e depois falham após 30 minutos, com uma mensagem dizendo que nenhum Runner os assumiu.
 - A GitHub App precisa da permissão **Issues** com **Read & write**, e precisa estar inscrita nos eventos de webhook listados em [Em que se inscrever](#em-que-se-inscrever).
 
 ## Os comandos
@@ -160,7 +160,7 @@ Uma execução desse tipo já está ativa nesta issue ou neste pull request. `@o
 :::
 
 :::details Ela confirmou e depois ficou em silêncio por muito tempo
-Verifique se um Runner com **Executa correções de código por IA** está online em **Runbooks → Agentes de runbook**. Sem ele, a execução falha após 30 minutos e a conversa é avisada.
+Verifique se o Runner que o repositório escolhe está online em **Runbooks → Agentes de runbook**. Um repositório que não escolhe nenhum trabalha em um Runner global, e as configurações dele em Código mostram se há um conectado. Sem um Runner online, a execução falha após 30 minutos e a conversa é avisada.
 :::
 
 :::details Ela diz que o pull request vem de um fork

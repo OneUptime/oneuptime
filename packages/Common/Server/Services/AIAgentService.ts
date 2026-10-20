@@ -554,6 +554,78 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The global Runners for code: the global AI agents, which take the AI
+   * work of every repository that picks no Runner of its own while its
+   * project uses global Runners (Types/Runner/CodeRepositoryRunner) - the
+   * installation's bundled Runner, OneUptime Cloud's fleet. Read as
+   * OneUptime, with what tells whether each is alive and nothing else: no
+   * key, no project.
+   */
+  @CaptureSpan()
+  public async findGlobalCodeRunners(): Promise<Array<Model>> {
+    return await this.findBy({
+      query: {
+        isGlobalAIAgent: true,
+        projectId: QueryHelper.isNull(),
+      },
+      select: {
+        _id: true,
+        name: true,
+        lastAlive: true,
+        connectionStatus: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  // Whether a global Runner for code is alive now (findGlobalCodeRunners).
+  @CaptureSpan()
+  public async hasOnlineGlobalCodeRunner(): Promise<boolean> {
+    const globalRunners: Array<Model> = await this.findGlobalCodeRunners();
+
+    return globalRunners.some((agent: Model): boolean => {
+      return this.isAgentAlive(agent);
+    });
+  }
+
+  /*
+   * An AI agent of the project's own - from before Runners, when a project
+   * created its agent itself - that is alive now, or null. It serves the
+   * project's repositories that pick no Runner, as it always did.
+   */
+  @CaptureSpan()
+  public async getOnlineProjectAIAgent(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const agents: Array<Model> = await this.findBy({
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        lastAlive: true,
+        connectionStatus: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return (
+      agents.find((agent: Model): boolean => {
+        return this.isAgentAlive(agent);
+      }) || null
+    );
+  }
+
+  /*
    * The global AI agent the in-cluster Runner registering under a key no
    * global agent holds takes over (API/AIAgentAPI, /register), or null: the
    * global agent that already holds the key, else the one whose key is a

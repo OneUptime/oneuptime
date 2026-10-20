@@ -1017,13 +1017,21 @@ describe("the Runner the runbook pages describe", () => {
       return [match[1] as string, match[2] === "true"];
     });
 
+    /*
+     * AI code fixes are not a capability: a code repository picks its
+     * Runner in its settings in Code (CodeRepository.runnerId).
+     */
     expect(defaults).toEqual([
       ["Runs Runbooks", true],
-      ["Runs AI Code Fixes", false],
       ["Runs AI Remediation Commands", false],
     ]);
 
     const setup: string = section(AGENTS, "Install a Runner");
+
+    expect(setup).not.toContain("Runs AI Code Fixes");
+    expect(setup).toContain(
+      "AI code fixes are not a capability: a code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.",
+    );
 
     for (const [name, on] of defaults) {
       expect({

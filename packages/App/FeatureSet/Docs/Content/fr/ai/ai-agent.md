@@ -79,7 +79,7 @@ flowchart TB
 ```
 
 1. Vous cliquez sur **Lancer la tâche** dans un dépôt, ou sur **Fix with AI** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
-2. La tâche est mise en file, et un Runner disponible avec **Exécute les corrections de code IA** activé la prend.
+2. La tâche est mise en file sur son dépôt, et le Runner que le dépôt choisit la prend : l'un de vos Runners, ou un Runner global quand il n'en choisit aucun (voir [Choisir le Runner du dépôt](#choisir-le-runner-du-dépôt)).
 3. Le Runner récupère le contexte de la tâche. Pour une demande, ce sont ses mots, le contexte ajouté et la conversation jusque-là ; pour une exception, son type, son message et sa stack trace.
 4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
 5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA.
@@ -122,11 +122,11 @@ Quand l'une d'elles est définie, chaque exécution de correction vérifie sa mo
 
 1. Quand l'agent de code a terminé, les commandes s'exécutent dans l'ordre à la racine du dépôt, sur le Runner, dans l'espace de travail cloné. Chacune dispose de 15 minutes au plus et s'exécute avec `CI=true`, pour que rien n'attende une saisie ; le premier échec arrête la passe.
 2. En cas d'échec, la fin de la sortie de la commande en échec retourne au même agent de code comme tâche de réparation, avec la consigne de corriger sa propre modification plutôt que d'affaiblir ou de sauter des tests, et les commandes s'exécutent à nouveau. Il fait au plus **2** tentatives de réparation. Elles partagent le budget LLM de l'exécution, et leurs modifications vont dans le même commit que la correction.
-3. Le résultat, réussi, en échec ou ignoré (aucune commande définie, ou un Runner partagé), est écrit dans une section Verification de la description de la pull request et enregistré sur la pull request de la tâche.
+3. Le résultat, réussi, en échec ou ignoré (aucune commande définie, ou un Runner global), est écrit dans une section Verification de la description de la pull request et enregistré sur la pull request de la tâche.
 
 Une modification qui échoue toujours à la vérification n'est pas jetée : la pull request s'ouvre quand même, avec une section "Verification failed" clairement signalée qui nomme la commande en échec et se termine par sa sortie. Le travail est conservé, et la personne qui relit décide. Un dépôt sans commande définie est signalé comme ignoré, plutôt que de laisser croire à un build au vert.
 
-Les commandes sont des paramètres du dépôt que votre équipe écrit, exécutés sur votre propre Runner : le même modèle de confiance que les étapes Bash d'un runbook. L'IA ne les écrit ni ne les modifie jamais. Les Runners partagés de OneUptime ne les exécutent jamais : sur un Runner partagé, la correction est écrite et ouverte pour relecture, la vérification est signalée comme ignorée, et la CI de votre dépôt vérifie la modification. [Faites tourner votre propre Runner](#faire-tourner-votre-propre-runner) pour que les corrections soient compilées et testées avant l'ouverture de la pull request.
+Les commandes sont des paramètres du dépôt que votre équipe écrit, exécutés sur votre propre Runner : le même modèle de confiance que les étapes Bash d'un runbook. L'IA ne les écrit ni ne les modifie jamais. Un Runner global, que OneUptime fait tourner pour chaque projet, ne les exécute jamais : sur un Runner global, la correction est écrite et ouverte pour relecture, la vérification est signalée comme ignorée, et la CI de votre dépôt vérifie la modification. [Faites tourner votre propre Runner](#faire-tourner-votre-propre-runner) pour que les corrections soient compilées et testées avant l'ouverture de la pull request.
 
 ## Avant de commencer
 
@@ -136,7 +136,7 @@ Une tâche a besoin de trois choses. La page d'un dépôt dans Code et la page *
 | --- | --- | --- |
 | Un fournisseur LLM | Rien à configurer : un projet sans fournisseur propre utilise le fournisseur global, payé sur les crédits IA du projet. Un fournisseur à vous, sous **Paramètres du projet → IA → Fournisseurs LLM**, passe en premier. | Définissez une fois les variables d'environnement `GLOBAL_LLM_PROVIDER_*` sur le serveur, ou ajoutez un fournisseur au projet. |
 | Un dépôt connecté via la GitHub App | **Produits → Code**, puis **Connecter GitHub**. Si l'application est déjà installée sur le compte GitHub, cliquez plutôt sur **Connecter une installation existante** : l'installer de nouveau ne la connecte pas. Nécessite le plan Growth. | Pareil, une fois que votre instance a une GitHub App (voir [Intégration GitHub](/docs/self-hosted/github-integration)). |
-| Un Runner qui exécute les corrections de code IA | Rien à faire tourner : les Runners partagés de OneUptime s'en chargent. | Le service `runner` de Docker Compose, ou le Runner du chart Helm (`runner.enabled`, activé par défaut), s'enregistre tout seul et exécute les corrections de code IA. |
+| Un Runner qui exécute les corrections de code IA | Rien à faire tourner : un dépôt qui n'en choisit aucun travaille sur les Runners globaux de OneUptime. | Le service `runner` de Docker Compose, ou le Runner du chart Helm (`runner.enabled`, activé par défaut), s'enregistre tout seul et exécute les corrections de code IA dans chaque dépôt qui ne choisit aucun Runner. |
 
 Sur une instance auto-hébergée, le fournisseur global est un bloc de `config.env` (Docker Compose) ou de vos valeurs Helm. Pour un Ollama auto-hébergé :
 
@@ -151,6 +151,17 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 Tout fournisseur pris en charge fonctionne : voir [Fournisseurs LLM](/docs/ai/llm-provider) pour tous les fournisseurs et chaque variable d'environnement.
 
 Vous n'associez pas de dépôts à des services. Quand une tâche démarre, OneUptime trouve le dépôt en comparant les chemins de fichiers de la stack trace de l'exception à vos dépôts connectés. Si rien ne correspond, il se rabat sur un dépôt nommé comme le service, puis sur le seul dépôt du projet quand il n'y en a qu'un. La page **Assistance IA** indique quel dépôt il a trouvé.
+
+### Choisir le Runner du dépôt
+
+Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, cliquez sur **Modifier les paramètres** et choisissez-en un à l'étape **Agent Runbook**. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
+
+| Runner | Ce qu'il fait d'une tâche |
+| --- | --- |
+| **Agent Runbook global** | Écrit la modification et ouvre la pull request, sans vos commandes d'installation, de build et de test : la CI de votre dépôt vérifie la modification. |
+| L'un de vos Runners | Exécute aussi vos commandes d'installation, de build et de test, sur un hôte que vous contrôlez. |
+
+Seul le Runner qu'un dépôt choisit reçoit ses tâches et un jeton pour lui. Dans un projet qui désactive **Utiliser les agents Runbook globaux** sous **Runbooks → Agents de runbook**, chaque dépôt a besoin de l'un des Runners du projet. La page d'un Runner liste les dépôts qui le choisissent.
 
 ### Faire tourner votre propre Runner
 
@@ -169,9 +180,9 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-### Activer les corrections de code IA
+### Le choisir pour le dépôt
 
-Activez **Exécute les corrections de code IA** sur le Runner. C'est désactivé par défaut, et le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
+Sur la page **Paramètres** du dépôt dans Code, cliquez sur **Modifier les paramètres** et choisissez le Runner à l'étape **Agent Runbook**. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
 
 ### Vérifier qu'il se connecte
 
@@ -197,7 +208,7 @@ Tant qu'il est activé, une investigation qui se termine sur une cause racine s�
 
 Tout le reste correspond au bouton :
 
-- La pull request s'ouvre prête à être relue, rédigée à partir de l'analyse publiée, et nécessite un dépôt connecté via la GitHub App et un Runner avec **Exécute les corrections de code IA** activé.
+- La pull request s'ouvre prête à être relue, rédigée à partir de l'analyse publiée, et nécessite un dépôt connecté via la GitHub App et un Runner en ligne pour y travailler : celui que le dépôt choisit, ou un Runner global.
 - Elle compte dans la limite quotidienne de tâches de correction de ce signal (**Limite quotidienne de tâches de correctif IA pour les incidents** ou **Limite quotidienne de tâches de correctif IA pour les alertes**, sous **Plus de paramètres** sur sa page de paramètres IA) et dans le plafond de pull requests ouvertes du dépôt, quand l'un ou l'autre est défini. Non définis, ni l'un ni l'autre ne limite quoi que ce soit.
 - Chaque déclencheur cherche d'abord une tâche de correction déjà en file ou en cours pour le même incident ou la même alerte, si bien qu'un déclencheur automatique et un clic donnent normalement une seule tâche, pas deux pull requests. La vérification est une lecture avant l'écriture, pas un verrou, si bien que deux déclencheurs au même instant peuvent encore passer tous les deux.
 - L'exécution est écrite par le système, n'est attribuée à personne, et rien ne fusionne tout seul.
@@ -213,7 +224,7 @@ Une exécution dont le heartbeat est silencieux depuis plus de 12 minutes est mi
 :::
 
 :::details Aucun Runner ne prend la tâche
-Une tâche qui attend plus de 30 minutes alors qu'aucun Runner avec **Exécute les corrections de code IA** n'est connecté échoue, avec un message invitant à vérifier le Runner, si bien qu'elle n'apparaît jamais en cours indéfiniment. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour. Un Runner antérieur à Code ne reçoit jamais de demande de Code : mettez à jour un Runner que vous faites tourner vous-même en même temps que le serveur.
+Une tâche qui attend plus de 30 minutes alors que le Runner qui doit la prendre n'est pas connecté - celui que son dépôt choisit, ou un Runner global pour un dépôt qui n'en choisit aucun - échoue, avec un message qui dit lequel, si bien qu'elle n'apparaît jamais en cours indéfiniment. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour. Un Runner antérieur à Code ne reçoit jamais de demande de Code : mettez à jour un Runner que vous faites tourner vous-même en même temps que le serveur.
 :::
 
 ## Confidentialité

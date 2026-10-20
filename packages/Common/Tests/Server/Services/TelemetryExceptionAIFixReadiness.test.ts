@@ -10,7 +10,15 @@ import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIAgentService from "../../../Server/Services/AIAgentService";
 import RunnerService from "../../../Server/Services/RunnerService";
+import GlobalRunnerChoice from "../../../Server/Utils/Runner/GlobalRunnerChoice";
+import {
+  GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  NO_GLOBAL_RUNNER_ONLINE_DETAIL,
+  NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
+import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import Runner from "../../../Models/DatabaseModels/Runner";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import TelemetryService from "../../../Models/DatabaseModels/Service";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
@@ -37,6 +45,9 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 const projectId: ObjectID = ObjectID.generate();
 const exceptionId: ObjectID = ObjectID.generate();
 const serviceId: ObjectID = ObjectID.generate();
+// The repository the exception resolves to, and a Runner it may pick.
+const repositoryId: ObjectID = ObjectID.generate();
+const runnerId: ObjectID = ObjectID.generate();
 
 function fakeException(): TelemetryException {
   return {
@@ -49,7 +60,7 @@ function fakeException(): TelemetryException {
 
 function fakeResolution(): RepoResolution {
   return {
-    codeRepositoryId: ObjectID.generate().toString(),
+    codeRepositoryId: repositoryId.toString(),
     organizationName: "acme",
     repositoryName: "checkout",
     servicePathInRepository: null,
@@ -74,7 +85,12 @@ interface ReadinessMocks {
   provider?: LlmProvider | null;
   resolution?: RepoResolution | null;
   resolutionThrows?: Error;
+  // The global Runner for code (a global AI agent); one alive by default.
   agent?: AIAgent | null;
+  // The Runner the resolved repository picks, if it picks one.
+  repositoryRunner?: Runner | null;
+  // Whether the project uses global Runners (on by default).
+  projectUsesGlobalRunners?: boolean;
 }
 
 function mockReadiness(data: ReadinessMocks): void {
@@ -111,27 +127,37 @@ function mockReadiness(data: ReadinessMocks): void {
       : data.agent;
 
   /*
-   * getAgentCheck asks two questions: is anything ONLINE for this project,
-   * and — only when nothing is — is there a registered-but-silent agent to
-   * name in the failure. Liveness runs through the real isAgentAlive so a
-   * stale heartbeat behaves here exactly as it does in production.
+   * The agent check asks whether what the resolved repository works on is
+   * online: the Runner it picks, or - for one that picks none - a global
+   * Runner for code. Liveness runs through the real isAgentAlive and
+   * getRunnerLiveStatus, so a stale heartbeat behaves here exactly as it
+   * does in production.
    */
+  jest.spyOn(CodeRepositoryService, "findOneBy").mockResolvedValue({
+    id: repositoryId,
+    runnerId: data.repositoryRunner?.id,
+  } as unknown as CodeRepository);
+  jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
   jest
-    .spyOn(AIAgentService, "getConnectedAIAgentForProject")
-    .mockResolvedValue(
-      agent && AIAgentService.isAgentAlive(agent) ? agent : null,
-    );
-
-  jest.spyOn(AIAgentService, "getAIAgentForProject").mockResolvedValue(agent);
-
-  /*
-   * A project can also be served by a customer-installed Runner with the
-   * code-fix capability. This suite is about the AIAgent side, so there is
-   * none — without the stub the fallback would reach a real database.
-   */
+    .spyOn(RunnerService, "findOneBy")
+    .mockResolvedValue(data.repositoryRunner || null);
   jest
-    .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
-    .mockResolvedValue(null);
+    .spyOn(GlobalRunnerChoice, "doesProjectUseGlobalRunners")
+    .mockResolvedValue(data.projectUsesGlobalRunners !== false);
+  jest.spyOn(AIAgentService, "getOnlineProjectAIAgent").mockResolvedValue(null);
+  jest
+    .spyOn(AIAgentService, "findGlobalCodeRunners")
+    .mockResolvedValue(agent ? [agent] : []);
+}
+
+function fakeRunner(data: { lastAlive?: Date | undefined }): Runner {
+  return {
+    id: runnerId,
+    _id: runnerId.toString(),
+    name: "prod-eu-runner",
+    lastAlive: data.lastAlive,
+    hostInfo: {},
+  } as unknown as Runner;
 }
 
 function getCheck(readiness: AIFixReadiness, id: string): AIFixReadinessCheck {
@@ -247,7 +273,7 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     expect(check.detail).toContain("GitHub API rate limited");
   });
 
-  test("fails agent check when the only agent has a stale heartbeat", async () => {
+  test("fails agent check when the only global Runner has a stale heartbeat", async () => {
     mockReadiness({
       agent: fakeAgent({
         connectionStatus: AIAgentConnectionStatus.Disconnected,
@@ -264,7 +290,102 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     expect(readiness.ready).toBe(false);
     const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
     expect(check.ok).toBe(false);
-    expect(check.detail).toContain("has not reported in");
+    expect(check.detail).toBe(NO_GLOBAL_RUNNER_ONLINE_DETAIL);
+  });
+
+  test("a repository that picks no Runner is ready on a live global Runner, said so", async () => {
+    mockReadiness({});
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
+    expect(check.ok).toBe(true);
+    expect(check.title).toBe("Global Runner online");
+  });
+
+  test("asks about the Runner the resolved repository picks: online, it is named", async () => {
+    mockReadiness({
+      // No global Runner at all: it is not what this repository runs on.
+      agent: null,
+      repositoryRunner: fakeRunner({
+        lastAlive: OneUptimeDate.getSomeMinutesAgo(1),
+      }),
+    });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(readiness.ready).toBe(true);
+    expect(getCheck(readiness, "agentAvailable").title).toBe(
+      "Runner online: prod-eu-runner",
+    );
+    // Read from the repository the exception resolved to, as OneUptime.
+    expect(CodeRepositoryService.findOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          _id: repositoryId.toString(),
+          projectId: projectId,
+        }),
+        props: expect.objectContaining({ isRoot: true }),
+      }),
+    );
+  });
+
+  test("the Runner the repository picks is offline: not ready, named, with what to do - a live global Runner does not stand in", async () => {
+    mockReadiness({
+      repositoryRunner: fakeRunner({
+        lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
+      }),
+    });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(readiness.ready).toBe(false);
+    const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
+    expect(check.ok).toBe(false);
+    expect(check.detail).toContain('The Runner "prod-eu-runner"');
+    expect(check.detail).toContain("pick another Runner");
+  });
+
+  test("a repository that picks none, in a project that turned global Runners off, needs one of the project's Runners", async () => {
+    mockReadiness({ projectUsesGlobalRunners: false });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(readiness.ready).toBe(false);
+    expect(getCheck(readiness, "agentAvailable").detail).toBe(
+      GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+    );
+  });
+
+  test("with no repository resolved, asks whether anything is online for the project's repositories", async () => {
+    mockReadiness({ resolution: null, agent: null });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(getCheck(readiness, "agentAvailable").detail).toBe(
+      NO_RUNNER_ONLINE_FOR_PROJECT_DETAIL,
+    );
+    expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
   });
 });
 
@@ -412,14 +533,23 @@ describe("TelemetryExceptionService.createCodeFixRunForException fail-early", ()
       }),
     ).rejects.toThrow(BadDataException);
 
-    await expect(
-      TelemetryExceptionService.createCodeFixRunForException({
+    // Both prerequisites are named, whichever comes first.
+    const refusal: Error | null =
+      await TelemetryExceptionService.createCodeFixRunForException({
         telemetryExceptionId: exceptionId,
         props: { isRoot: true },
-      }),
-    ).rejects.toThrow(
-      /LLM provider.*AI agent online|AI agent online.*LLM provider/,
-    );
+      }).then(
+        (): null => {
+          return null;
+        },
+        (error: Error): Error => {
+          return error;
+        },
+      );
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal?.message).toContain("LLM provider");
+    expect(refusal?.message).toContain("Runner online");
   });
 });
 

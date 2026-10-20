@@ -14,6 +14,11 @@ import { JSONObject } from "../../../../Types/JSON";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import Runner from "../../../../Models/DatabaseModels/Runner";
+import {
+  CodeWorker,
+  CodeWorkerKind,
+} from "../../../../Types/Runner/CodeRepositoryRunner";
+import CodeRepositoryRunnerChoice from "./CodeRepositoryRunnerChoice";
 
 // What every code-fix route answers a pair that proves no code-fix identity.
 export const INVALID_CODE_FIX_AGENT_MESSAGE: string =
@@ -58,21 +63,23 @@ export interface CodeFixCredentialCheck {
  *     dashboard issues its id + key from this table, and the Runner presents
  *     them on the code-fix protocol too — so the protocol must accept them.
  *
- * The Runner path is also where the canRunCodeFixTasks capability is
- * enforced: a Runner whose code-fix capability was revoked in the dashboard
- * authenticates like any other invalid credential — it cannot claim work,
- * fetch task data, or mint repository tokens, no matter what its container
- * env vars say.
+ * The Runner path is also where a Runner's code-fix capability is
+ * enforced: a project's Runner takes code-fix work exactly while a code
+ * repository of its project picks it (its Runner setting in Code;
+ * CodeRepositoryRunnerChoice.isRunnerPickedByARepository). One no
+ * repository picks authenticates like any other invalid credential — it
+ * cannot claim work, fetch task data, or mint repository tokens, no matter
+ * what its container env vars say.
  *
- * A kubernetes-agent Runner never authenticates here, whatever its flag
- * says. Its row is minted and re-keyed with the project's telemetry
- * ingestion key, a credential every collector and CI job holds, so a
- * code-fix identity on it would let anyone with that key claim code-fix
- * work and mint repository tokens. RunnerService refuses to turn the flag
- * on for such a row, but a row whose flag was set before that guard (or
- * before the row became an agent row) keeps it; the one agent-row rule
- * (RunnerService's isKubernetesAgentRunnerRow: the server-owned name
- * marker, or an agent posture) is applied here too.
+ * A kubernetes-agent Runner never authenticates here, whatever picks it.
+ * Its row is minted and re-keyed with the project's telemetry ingestion
+ * key, a credential every collector and CI job holds, so a code-fix
+ * identity on it would let anyone with that key claim code-fix work and
+ * mint repository tokens. CodeRepositoryService refuses to let a repository
+ * pick such a row, but a row picked before it became an agent row stays
+ * picked; the one agent-row rule (RunnerService's
+ * isKubernetesAgentRunnerRow: the server-owned name marker, or an agent
+ * posture) is applied here too.
  *
  * Every code-fix route authenticates a request through authenticate, which
  * also counts the different wrong keys a client presents for an agent or a
@@ -232,7 +239,6 @@ export default class CodeFixAgentAuth {
       select: {
         _id: true,
         projectId: true,
-        canRunCodeFixTasks: true,
         // What the agent-row rule reads.
         name: true,
         hostInfo: true,
@@ -245,8 +251,8 @@ export default class CodeFixAgentAuth {
     if (
       runner &&
       runner.id &&
-      runner.canRunCodeFixTasks === true &&
-      !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
+      !RunnerServiceClass.isKubernetesAgentRunnerRow(runner) &&
+      (await CodeRepositoryRunnerChoice.isRunnerPickedByARepository(runner))
     ) {
       return {
         identity: {
@@ -296,6 +302,26 @@ export default class CodeFixAgentAuth {
       (await AIAgentService.hasAIAgentWithId(agentId)) ||
       (await RunnerService.hasRunnerWithId(agentId))
     );
+  }
+
+  /*
+   * Who the identity is, for the repositories' Runner choice
+   * (Types/Runner/CodeRepositoryRunner): a Runner row is one of its
+   * project's Runners; an AI agent with no project is a global Runner for
+   * code (the installation's bundled Runner, OneUptime Cloud's fleet); one
+   * with a project is that project's own, from before Runners.
+   */
+  public static getCodeWorker(identity: CodeFixAgentIdentity): CodeWorker {
+    if (identity.source === CodeFixAgentSource.Runner) {
+      return { kind: CodeWorkerKind.ProjectRunner, id: identity.id };
+    }
+
+    return {
+      kind: identity.projectId
+        ? CodeWorkerKind.ProjectAgent
+        : CodeWorkerKind.GlobalRunner,
+      id: identity.id,
+    };
   }
 
   /*

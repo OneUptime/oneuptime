@@ -89,7 +89,6 @@ function makeRunnerRow(
     description: "",
     key: "runner-key",
     canRunRunbooks: false,
-    canRunCodeFixTasks: false,
     canRunAiCommands: true,
     lastAlive: new Date("2026-09-23T10:00:00Z"),
     ...(hostInfo ? { hostInfo } : {}),

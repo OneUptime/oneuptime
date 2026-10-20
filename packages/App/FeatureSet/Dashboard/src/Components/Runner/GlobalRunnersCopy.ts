@@ -44,7 +44,10 @@ export const GlobalRunnersCopy: {
   /*
    * The card of the project's one switch. Its title and line say what the
    * switch is about and the rule it never changes; the switch's own line
-   * says what each position does - neither repeats the other.
+   * says what each position does - neither repeats the other. It covers
+   * every Global Runner choice: a runbook step's, and a code repository's
+   * (whose AI work runs on the global Runner for code unless the
+   * repository picks one of the project's own Runners).
    */
   switchCardTitle: string;
   switchCardDescription: string;
@@ -61,7 +64,7 @@ export const GlobalRunnersCopy: {
     "Runners OneUptime runs for every project. JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
   ),
   globalCardDescriptionWhenOff: translationKey(
-    "Runners OneUptime runs for every project. This project does not use them, so every step runs on one of your Runners.",
+    "Runners OneUptime runs for every project. This project does not use them, so steps and code repositories run on yours.",
   ),
   globalEmptyMessage: translationKey(
     "Global Runners appear here when OneUptime runs one.",
@@ -88,18 +91,18 @@ export const GlobalRunnersCopy: {
   addGlobalRunnersLink: translationKey("Admin Dashboard → Global Runners"),
   switchCardTitle: translationKey("Global Runners in This Project"),
   switchCardDescription: translationKey(
-    "Steps that pick one of your Runners always run on it.",
+    "Steps and code repositories that pick one of your Runners always run on it.",
   ),
   switchTitle: translationKey("Use global Runners"),
   switchOnDescription: translationKey(
-    "JavaScript steps that pick no Runner run on a global Runner.",
+    "JavaScript steps and code repositories that pick no Runner run on a global Runner.",
   ),
   switchOffDescription: translationKey(
-    "Every step runs on one of your Runners. A JavaScript step that picks none fails.",
+    "Every step and code repository runs on one of your Runners. One that picks none does not run.",
   ),
   turnOffTitle: translationKey("Stop using global Runners?"),
   turnOffDescription: translationKey(
-    "JavaScript steps that pick no Runner will fail until they pick one of yours. Steps waiting for a global Runner now will not run.",
+    "JavaScript steps and code repositories that pick no Runner stop running until they pick one of yours. Work queued for a global Runner will not run.",
   ),
   turnOffButton: translationKey("Stop Using Global Runners"),
 };

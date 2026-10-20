@@ -23,6 +23,56 @@ export interface ComponentProps {
   showLastSeen?: boolean | undefined;
 }
 
+export interface RunnerLiveStatusBubbleProps {
+  status: RunnerLiveStatus;
+  // Said after the status, as " · <suffix>": how long a Runner has been gone.
+  suffix?: string | undefined;
+  // A connected Runner's dot pulses; a settings value's stays still.
+  isConnectedAnimated?: boolean | undefined;
+}
+
+/*
+ * A Runner's status as the dashboard draws it everywhere: a green dot for
+ * Connected, red for Disconnected, grey for Never connected. For a status
+ * read some other way than a Runner row's lastAlive - a global Runner's,
+ * which the server reports as a status only, or one a picker's choices
+ * carry - so a code repository's Runner on its settings card is drawn as
+ * the Runners page draws it.
+ */
+export const RunnerLiveStatusBubble: FunctionComponent<
+  RunnerLiveStatusBubbleProps
+> = (props: RunnerLiveStatusBubbleProps): ReactElement => {
+  const { translateString }: UseTranslateValueResult = useTranslateValue();
+
+  const status: RunnerLiveStatus = props.status;
+  const label: string = getRunnerLiveStatusLabel(status);
+  const translated: string = translateString(label) || label;
+  const text: string = props.suffix
+    ? `${translated} · ${props.suffix}`
+    : translated;
+
+  if (status === RunnerLiveStatus.Connected) {
+    return (
+      <Statusbubble
+        text={text}
+        color={Green}
+        shouldAnimate={props.isConnectedAnimated !== false}
+      />
+    );
+  }
+
+  /*
+   * Grey, not red. A Runner nobody has installed yet has not failed at
+   * anything, and painting it the same colour as a Runner that died in
+   * production teaches people to ignore the colour.
+   */
+  if (status === RunnerLiveStatus.NeverConnected) {
+    return <Statusbubble text={text} color={Gray500} shouldAnimate={false} />;
+  }
+
+  return <Statusbubble text={text} color={Red} shouldAnimate={false} />;
+};
+
 /*
  * Every Runner connection indicator in the dashboard renders through here.
  *
@@ -34,42 +84,15 @@ export interface ComponentProps {
 const RunnerStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString }: UseTranslateValueResult = useTranslateValue();
-
   const lastAlive: Date | string | null | undefined = props.runner[
     "lastAlive"
   ] as Date | string | null | undefined;
 
   const status: RunnerLiveStatus = getRunnerLiveStatus(lastAlive);
 
-  const label: string = getRunnerLiveStatusLabel(status);
-
-  if (status === RunnerLiveStatus.Connected) {
-    return (
-      <Statusbubble
-        text={translateString(label) || label}
-        color={Green}
-        shouldAnimate={true}
-      />
-    );
+  if (status !== RunnerLiveStatus.Disconnected) {
+    return <RunnerLiveStatusBubble status={status} />;
   }
-
-  /*
-   * Grey, not red. A Runner nobody has installed yet has not failed at
-   * anything, and painting it the same colour as a Runner that died in
-   * production teaches people to ignore the colour.
-   */
-  if (status === RunnerLiveStatus.NeverConnected) {
-    return (
-      <Statusbubble
-        text={translateString(label) || label}
-        color={Gray500}
-        shouldAnimate={false}
-      />
-    );
-  }
-
-  const disconnected: string = translateString(label) || label;
 
   /*
    * The relative time is appended rather than interpolated into a translated
@@ -90,12 +113,16 @@ const RunnerStatusElement: FunctionComponent<ComponentProps> = (
     lastAliveDate && !isNaN(lastAliveDate.getTime()),
   );
 
-  const text: string =
-    showLastSeen && hasUsableLastAlive
-      ? `${disconnected} · ${OneUptimeDate.fromNow(lastAliveDate as Date)}`
-      : disconnected;
-
-  return <Statusbubble text={text} color={Red} shouldAnimate={false} />;
+  return (
+    <RunnerLiveStatusBubble
+      status={status}
+      suffix={
+        showLastSeen && hasUsableLastAlive
+          ? OneUptimeDate.fromNow(lastAliveDate as Date)
+          : undefined
+      }
+    />
+  );
 };
 
 export default RunnerStatusElement;

@@ -68,7 +68,6 @@ function runnerRow(key: string): StoredRow {
     name: "Site A Runner",
     key: key,
     canRunRunbooks: true,
-    canRunCodeFixTasks: false,
     canRunAiCommands: false,
   };
 }

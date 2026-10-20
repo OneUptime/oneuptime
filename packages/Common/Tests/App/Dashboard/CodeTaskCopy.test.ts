@@ -17,6 +17,8 @@ import {
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
+  CODE_TASK_REPOSITORY_SETTINGS_FIXES,
+  CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
   CODE_TURN_FAILED,
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_MENU_ORDER,
@@ -113,6 +115,7 @@ const SENTENCES: Array<string> = Array.from(
     ),
     ...Object.values(CODE_TASK_FILE_STATUS_LABELS),
     ...(Object.values(CODE_TASK_BLOCKER_SENTENCES) as Array<string>),
+    CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
     ...Object.values(CODE_TASK_BLOCKER_FIXES).map(
       (fix: { title: string } | undefined): string => {
         return fix!.title;
@@ -264,6 +267,8 @@ describe("Code's words are complete", () => {
       CodeTaskBlockerType.AiDisabled,
       CodeTaskBlockerType.NoLlmProvider,
       CodeTaskBlockerType.NoAgent,
+      CodeTaskBlockerType.RunnerNotOnline,
+      CodeTaskBlockerType.GlobalRunnersOff,
     ];
 
     for (const type of gated) {
@@ -280,9 +285,40 @@ describe("Code's words are complete", () => {
     expect(
       CODE_TASK_BLOCKER_WHO_CAN_FIX[CodeTaskBlockerType.NoLlmProvider],
     ).toContain("Project Settings → AI → LLM Providers");
-    expect(
-      CODE_TASK_BLOCKER_WHO_CAN_FIX[CodeTaskBlockerType.NoAgent],
-    ).toContain("Runbooks → Runners");
+    /*
+     * A missing Runner is picked in the repository's own settings, which
+     * every Runner blocker links to.
+     */
+    for (const type of [
+      CodeTaskBlockerType.NoAgent,
+      CodeTaskBlockerType.RunnerNotOnline,
+      CodeTaskBlockerType.GlobalRunnersOff,
+    ]) {
+      expect(CODE_TASK_BLOCKER_WHO_CAN_FIX[type]).toBe(
+        "A project admin can pick this repository's Runner in its settings.",
+      );
+      expect(CODE_TASK_BLOCKER_FIXES[type]).toEqual({
+        pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+        title: "Pick a Runner",
+      });
+      expect(CODE_TASK_REPOSITORY_SETTINGS_FIXES).toContain(type);
+      // Never the switch Runners no longer have.
+      expect(CODE_TASK_BLOCKER_SENTENCES[type]).not.toContain("Code Fixes");
+    }
+  });
+
+  /*
+   * A Runner the server names (CodeTaskBlocker.runnerName) is said in the
+   * unnamed sentence's own words, with the name where "The Runner this
+   * repository picks" stands - one slot, the same fix.
+   */
+  test("the named Runner sentence is the unnamed one with the Runner's name in it", () => {
+    expect(CODE_TASK_RUNNER_NOT_ONLINE_NAMED).toBe(
+      "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.",
+    );
+    expect(CODE_TASK_RUNNER_NOT_ONLINE_NAMED.replace(", {{runner}},", "")).toBe(
+      CODE_TASK_BLOCKER_SENTENCES[CodeTaskBlockerType.RunnerNotOnline],
+    );
   });
 
   test("a failed turn is said in plain words, and the dialog's refusals are sentences", () => {

@@ -69,7 +69,7 @@ Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Sc
 - Er erhält eine geheime Variable nur, wenn ihr Schalter **Globale Runner dürfen es nutzen** eingeschaltet ist, und nur für einen Schritt aus dem eigenen Projekt der Variable. Er erhält nie Anmeldedaten.
 - Ein Projekt führt höchstens drei Schritte gleichzeitig auf globalen Runnern aus, sodass kein Projekt sie für sich allein belegt.
 
-Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, schlägt dann mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall.
+Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, schlägt dann mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall. Ein Code-Repository, das in seinen Einstellungen in Code keinen Runner auswählt, arbeitet ebenfalls auf einem globalen Runner und braucht einen Ihrer Runner, solange der Schalter aus ist; siehe [Code](/docs/ai/ai-agent#den-runner-des-repositorys-auswählen).
 
 ### Woher globale Runner kommen
 
@@ -96,10 +96,9 @@ Gehen Sie zu **Runbooks → Runbook-Agents** und legen Sie einen neuen Agenten a
 | **Beschreibung** | **Runner** | Optional. Ein Satz dazu, was dieser Host erreicht. |
 | **Beschriftungen** | **Runner** (unter **Weitere Felder**) | Optional. |
 | **Führt Runbooks aus** | **Fähigkeiten** | Standardmäßig an. Lässt diesen Runner Runbook-Schritte übernehmen. |
-| **Führt KI-Codekorrekturen aus** | **Fähigkeiten** | Standardmäßig aus. Lässt ihn Pull Requests mit KI-Codekorrekturen öffnen; siehe [Code](/docs/ai/ai-agent). |
 | **Führt KI-Behebungsbefehle aus** | **Fähigkeiten** | Standardmäßig aus. Lässt die automatische KI-Behebung richtliniengeprüfte Befehle auf ihm ausführen. Es für einen Runner einzuschalten, der SSH-Anmeldedaten hält, erfordert die Berechtigung, Runbook-Anmeldedaten zu lesen; siehe [Runner, die die Befehle von OneUptime AI ausführen](/docs/runbooks/credentials#runner-die-die-befehle-von-oneuptime-ai-ausführen). |
 
-Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig.
+Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig. KI-Codekorrekturen sind keine Fähigkeit: Ein Code-Repository wählt in seinen Einstellungen in Code den Runner aus, auf dem die KI darin arbeitet, und die Seite des Runners listet die Repositorys auf, die ihn auswählen.
 
 ### 2. Den Installationsbefehl kopieren
 
@@ -234,7 +233,7 @@ Der Runner liest diese beim Start:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nein | `10000` | Wie oft der Runner das Lease eines laufenden Jobs erneuert. Ein Wert unter `1000` fällt auf den Standard zurück. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | nein | `1` | Höchstzahl gleichzeitiger Jobs auf diesem Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | nein | — | Auf `false` setzen, damit dieser Runner keine Runbook-Schritte mehr übernimmt, egal was das Dashboard sagt. Damit lässt sich die Fähigkeit nur ausschalten. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nein | — | Auf `false` setzen, damit dieser Runner keine KI-Codekorrekturen mehr übernimmt, egal was das Dashboard sagt. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nein | — | Auf `false` setzen, damit dieser Runner keine KI-Codekorrekturen mehr übernimmt, auch nicht für ein Code-Repository, das ihn auswählt. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | nein | — | Auf `false` setzen, damit dieser Runner keine KI-Behebungsbefehle mehr ausführt, egal was das Dashboard sagt. |
 
 ## Einen Agenten-Schlüssel rotieren

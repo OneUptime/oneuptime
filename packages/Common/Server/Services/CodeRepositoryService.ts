@@ -19,6 +19,16 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
+import Runner from "../../Models/DatabaseModels/Runner";
+import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
+
+/*
+ * Why a repository may not pick an in-cluster Runner the Kubernetes agent
+ * chart installed as its Runner (CodeRepository.runnerId).
+ */
+export const KUBERNETES_AGENT_RUNNER_FOR_CODE_MESSAGE: string =
+  "This Runner is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only and never works in a code repository, so a repository cannot pick it. Pick another of your Runners, or none for a global Runner.";
 
 export interface ImportReposFromInstallationResult {
   imported: number;
@@ -51,6 +61,8 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    await Service.assertRunnerCanWorkInRepositories(createBy.data);
 
     const installationId: string | undefined =
       createBy.data.gitHubAppInstallationId;
@@ -85,6 +97,8 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    await Service.assertRunnerCanWorkInRepositories(updateBy.data);
+
     const installationId: string | undefined = updateBy.data
       .gitHubAppInstallationId as string | undefined;
 
@@ -116,6 +130,65 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * The Runner a write gives repositories (their Runner setting in Code) is
+   * one AI can work in them on. That it is one of the repositories' own
+   * project's Runners - never another project's, never a global Runner,
+   * which belongs to no project - the project check in
+   * super.onBeforeCreate / onBeforeUpdate has decided before this runs.
+   * What is left is an in-cluster Runner the Kubernetes agent chart
+   * installed: it never clones a repository, and its code-fix identity is
+   * refused (CodeFixAgentAuth), so a repository that picked it would never
+   * have its AI work done. Clearing the Runner (a global Runner) is always
+   * allowed.
+   */
+  public static async assertRunnerCanWorkInRepositories(
+    data: Model | Record<string, unknown> | undefined,
+  ): Promise<void> {
+    if (!data) {
+      return;
+    }
+
+    const written: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const runnerIds: Array<string> = Array.from(
+      new Set<string>(
+        [written["runnerId"], written["runner"]]
+          .map((value: unknown): string => {
+            const id: ObjectID | string | undefined = resolveReferenceId(value);
+            return id ? id.toString().trim() : "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
+      ),
+    );
+
+    for (const runnerId of runnerIds) {
+      // An id that is not one was refused before the hooks (UUID checks).
+      if (!ObjectID.isValidUUID(runnerId)) {
+        continue;
+      }
+
+      const runner: Runner | null = await RunnerService.findOneById({
+        id: new ObjectID(runnerId),
+        select: {
+          _id: true,
+          name: true,
+          hostInfo: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (runner && RunnerServiceClass.isKubernetesAgentRunnerRow(runner)) {
+        throw new BadDataException(KUBERNETES_AGENT_RUNNER_FOR_CODE_MESSAGE);
+      }
+    }
   }
 
   /*

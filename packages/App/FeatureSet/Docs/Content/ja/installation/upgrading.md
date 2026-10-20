@@ -283,6 +283,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **すべてのインストールが自身のグローバル Runner を動かします。** Docker Compose の新しい `global-runner` サービスと、Helm チャートの `globalRunner` デプロイメントが、自社の Runner を選ばないすべてのプロジェクトの JavaScript のステップを、それぞれインターネットにしかアクセスできないサンドボックスで実行します。これは専用のキー `GLOBAL_RUNNER_KEY` を持ち（`npm start` と `npm run update` がランダムな値を設定し、チャートが生成します）、サーバーのそれ以外のものは何も持ちません。Runner を選んだステップはその Runner を使い続け、既存の Runbook のシークレットは、その **グローバル Runner がこのシークレットを使用できる** スイッチをオンにして初めてグローバル Runner に渡されます。オフにするには、`config.env` で `GLOBAL_RUNNER_REPLICAS=0` を設定するか、チャートで `globalRunner.enabled` を `false` にします。[グローバル Runner](/docs/runbooks/agents#グローバル-runner) を参照してください。
 - **Runbook のシークレットと、Runbook のステップが使っていた認証情報は Runbook の変数になりました。** Runbook には、ワークフローと同じように変数があります。すべての Runbook が使えるグローバル変数は **Runbook → 設定 → グローバル変数** に、Runbook 自身の変数はその **設定 → 変数** にあります。変数は通常の値かシークレットで、シークレットは暗号化され、読み戻せず、ステップの出力では隠されます。Runbook のシークレットはそれぞれ、同じ名前のシークレットのグローバル変数になり、値、Runner、グローバル Runner のスイッチ (名前は **グローバル Runner が使用できる** になりました) もそのまま引き継ぎ、`{{runbookSecrets.NAME}}` でも引き続き読めます。SSH ステップは bash スクリプトを実行し、シークレット変数でサインインするようになりました。Kubernetes ステップは kubectl ステップになり、kubeconfig の変数を使って kubectl コマンドのスクリプトを実行します。保存されていたステップはすべてこの形に移され、認証情報が持っていた内容はシークレットのグローバル変数にコピーされ、これまでと同じことを行います。認証情報は、OneUptime AI 自身のコマンドのために **Runbook → Runner → AI のアクセス** に残ります。スクリプトを実行する kubectl ステップにはこのリリースの Runner が必要です。古い Runner ではそのようなステップが失敗し、その旨が表示されるので、Runner を更新してください。[Runbook の変数](/docs/runbooks/variables) を参照してください。
 - **より多くの構成で、訪問者が自分のアドレスを保てるようになりました。** OneUptime は、サインインの制限、そのほかのアドレスごとの制限、IP 許可リストのために、訪問者が接続してくるアドレスで訪問者を数えます。ingress は IPv4 に加えて IPv6 でも待ち受けるようになり、Docker Compose のネットワークの IPv6 は `docker-compose.override.yml` でオンにできます (Docker Engine 27 以降)。これで IPv6 で来た訪問者は、Docker が転送に使うアドレスではなく自分のアドレスを保ちます。同じサーバー上の独自のリバースプロキシが入口なら、ingress を `127.0.0.1` だけで公開し (`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`)、訪問者がプロキシを通してしか OneUptime に届かないようにしてください。`npm start` は、ingress がまだすべてのアドレスで公開されている間、そのことを知らせます。Helm では、`nginx.service.externalTrafficPolicy: Local` が、アドレスを引き渡すロードバランサーを通っても各訪問者のアドレスを保ちます。これが未設定の間は、`helm install` と `helm upgrade` がそのことを知らせます。**管理者ダッシュボード → OneUptime の正常性** は、複数の人が同じプライベートネットワークアドレスからサインインしているときに知らせます。これらのどれかを設定するまで、ネットワークと Service はそのままです。どんな値でも nginx に拒否されていた `NGINX_LISTEN_OPTIONS` が使えるようになりました。[訪問者のアドレス](/docs/installation/docker-compose#訪問者のアドレス)を参照してください。
+- **コードリポジトリが Runner を選ぶようになり、Runner から AI コード修正のスイッチがなくなりました。** コードのリポジトリの設定で、AI がそこで作業する Runner を選びます。何も選んでいないリポジトリは、プロジェクトがグローバル Runner を使用している間はグローバル Runner で作業します。アップグレードでは各プロジェクトの選択が引き継がれます。そのリポジトリは、**Runs AI Code Fixes** をオンにしていた Runner (最も最近に応答があったもの) を選び、スイッチは削除されます。Runner がコードの作業を取得するのは、それを選んでいるリポジトリの分だけになり、そのトークンを受け取るのもその Runner だけです。どのリポジトリにも選ばれていない Runner は何も取得しません。[リポジトリの Runner を選ぶ](/docs/ai/ai-agent#リポジトリの-runner-を選ぶ) を参照してください。
 - 移動したり厳しくなったりしたエンドポイント（`GET /api/global-config/license` や、セルフホスト版のインストールが提供しなくなったライセンスサーバーのエンドポイントを含む）については、上の [API とエンドポイントの変更](#api-とエンドポイントの変更) を参照してください。
 :::
 
@@ -558,7 +559,7 @@ OneUptime が運用していないキャッシュを使わせることは引き�
 
 OneUptime 12 は 2 つのコンポーネントを 1 つに統合します。 **Runbook Agent** （Runbook の手順を実行するために自分のホストにインストールしていたコンテナー）と **AI Agent** （AI コード修正を行っていたサービス）は、1 つのコンポーネント **OneUptime Runner** になり、Docker イメージ `oneuptime/runner` として提供されます。古いイメージ `oneuptime/runbook-agent` と `oneuptime/ai-agent` はビルドも公開もされなくなりました。既存のタグは引き続き取得できますが、今後更新されることはありません。
 
-Runner は、ダッシュボードで Runner ごとに切り替える複数の **機能** を持てる、インストール済みの 1 つのコンテナーです。 **Runbook を実行** （既定でオン）、 **AI コード修正を実行** （既定でオフ）、 **AI 修復コマンドを実行** （既定でオフ）です。機能の変更は Runner の次のハートビートで反映され、再起動は不要です。コンポーネントの日常的な動作については [Runner](/docs/runbooks/agents) を参照してください。
+Runner は、ダッシュボードで Runner ごとに切り替える複数の **機能** を持てる、インストール済みの 1 つのコンテナーです。 **Runbook を実行** （既定でオン）、 **Runs AI Code Fixes** （既定でオフ）、 **AI 修復コマンドを実行** （既定でオフ）です。機能の変更は Runner の次のハートビートで反映され、再起動は不要です。コンポーネントの日常的な動作については [Runner](/docs/runbooks/agents) を参照してください。
 
 必要な作業は、デプロイの方法によって異なります。
 
@@ -618,7 +619,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 :::steps
 1. **Runbook → Runner** で Runner を作成し、 **セットアップ手順を表示** のコマンドでインストールします。
-2. その Runner で **AI コード修正を実行** をオンにします。変更は次のハートビートで反映されます。
+2. その Runner で **Runs AI Code Fixes** をオンにします。変更は次のハートビートで反映されます。
 :::
 
 古い AI Agent の認証情報でも、従来のフォールバック（コード修正のみで、本物の Runner を作成するよう求める警告がログに記録されます）によって新しい `oneuptime/runner` イメージは起動します。これは移行中のつなぎとして扱い、最終的な形とはしないでください。
@@ -662,7 +663,7 @@ Compose のサービス `ai-agent` は `runner` になりました。通常の `
 | --- | --- | --- |
 | Runner（旧「Agents」） | Runbook → 設定 → Agents（`…/runbooks/settings/agents`） | 設定 → Runner（`…/settings/runners`） |
 | Runner の認証情報 | Runbook → 設定 → 認証情報（`…/runbooks/settings/credentials`） | 設定 → Runner の認証情報（`…/settings/runner-credentials`） |
-| AI エージェント | 設定 → AI → AI エージェント（`…/settings/ai-agents`） | 削除。 **AI コード修正を実行** の機能を持つ Runner が代わりになる |
+| AI エージェント | 設定 → AI → AI エージェント（`…/settings/ai-agents`） | 削除。 **Runs AI Code Fixes** の機能を持つ Runner が代わりになる |
 
 Runbook のシークレットは、Runbook → 設定 → シークレットのまま変わりません。
 

@@ -386,7 +386,6 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
           name: "office-runner",
           description: "In the office rack",
           canRunRunbooks: false,
-          canRunCodeFixTasks: false,
           canRunAiCommands: true,
         },
         RUNNER_EDITOR,
@@ -399,7 +398,6 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       name: "office-runner",
       description: "In the office rack",
       canRunRunbooks: false,
-      canRunCodeFixTasks: false,
     });
   });
 
