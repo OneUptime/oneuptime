@@ -18,7 +18,6 @@ import {
   INVESTIGATE_NOW,
   INVESTIGATE_NOW_FAILED,
   INVESTIGATION_WAITING_COPY,
-  INVESTIGATION_WAITING_STATUS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationWaitingState";
 import {
   AI_LANE_RULES_COPY,

@@ -564,9 +564,11 @@ describe("run: the rule-wait job's tick", () => {
 
     const results: Array<RuleWaitResult> = await InvestigationRuleWait.run();
 
-    expect(results.map((result: RuleWaitResult) => result.lane)).toEqual([
-      "Alert",
-    ]);
+    expect(
+      results.map((result: RuleWaitResult) => {
+        return result.lane;
+      }),
+    ).toEqual(["Alert"]);
     expect(String(mocks.loggerError.mock.calls[0]![0])).toContain(
       "read again on the next run",
     );
