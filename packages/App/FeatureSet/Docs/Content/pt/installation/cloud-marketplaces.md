@@ -47,21 +47,26 @@ Na AWS, o OneUptime informa o número de usuários com uma função do IAM que o
 
 :::steps
 1. Assine o OneUptime Enterprise no AWS Marketplace; depois escolha **Continue to Configuration**, selecione a versão e escolha **Continue to Launch**.
-2. Dê ao cluster um provedor OIDC do IAM, se ele ainda não tiver um. A página de lançamento mostra o comando `eksctl` que, em seguida, cria a conta de serviço `oneuptime` com a sua função do IAM; execute-o.
-3. Faça o login do Helm no registro da listagem e instale o chart com os comandos da página de lançamento, passando o seu arquivo de valores.
+2. Dê ao cluster um provedor OIDC do IAM, se ele ainda não tiver um, e crie a conta de serviço `oneuptime` com uma função do IAM que tenha a política `AWSMarketplaceMeteringFullAccess`, com os comandos abaixo. Execute-os no lugar do comando `eksctl` da etapa 1 das **General launch instructions** da página de lançamento: esse comando associa uma função que você teria de criar antes.
+3. Faça o login do Helm no registro da listagem e instale o chart com os comandos da etapa 2 das **General launch instructions**. No comando `helm install`, defina `serviceAccount.name` como `oneuptime`, `host` como o seu nome de domínio e `httpProtocol` como `https` se houver um certificado na frente do OneUptime.
 4. [Abra o OneUptime](#abrir-o-oneuptime).
 :::
 
 ```bash
 eksctl utils associate-iam-oidc-provider --cluster <cluster> --approve
+eksctl create iamserviceaccount --name oneuptime --namespace oneuptime --cluster <cluster> \
+  --attach-policy-arn arn:aws:iam::aws:policy/AWSMarketplaceMeteringFullAccess \
+  --approve --override-existing-serviceaccounts
 ```
+
+Guarde os valores da etapa 3 em um arquivo e passe-o em cada `helm upgrade`:
 
 ```yaml title="values.yaml"
 host: oneuptime.example.com
 httpProtocol: https
+serviceAccount:
+  name: oneuptime
 ```
-
-Guarde este arquivo: passe-o em cada `helm upgrade`.
 
 ### Microsoft Marketplace
 
@@ -159,7 +164,7 @@ A cobrança não depende de quantas réplicas estão em execução: só uma exec
 :::details O rótulo da edição mostra Enterprise Edition (Marketplace Reports Failing)
 O OneUptime não consegue enviar os relatórios ao marketplace. Cada linha que ele registra no log sobre isso começa com `OneUptime Enterprise marketplace billing`; uma linha que diz que o uso "cannot be reported" indica o que está faltando. As causas mais comuns:
 
-- **AWS:** a conta de serviço `oneuptime` não tem uma função do IAM, ou a função não tem a política `AWSMarketplaceMeteringFullAccess`. Crie-a com o comando `eksctl` da página de lançamento.
+- **AWS:** a conta de serviço `oneuptime` não tem uma função do IAM, ou a função não tem a política `AWSMarketplaceMeteringFullAccess` (`AWSMarketplaceMeteringRegisterUsage` não basta). Associe a política à função, ou crie a função com o comando `eksctl` da seção [AWS Marketplace](#aws-marketplace) e depois reinicie os pods do OneUptime com `kubectl rollout restart deployment --namespace oneuptime`.
 - **Azure:** a instalação não é o aplicativo do Microsoft Marketplace, por exemplo porque foi instalada com o Helm, então não tem uma identidade nem um plano com que enviar os relatórios. Instale-a pelo portal do Azure.
 - **Google Cloud:** o segredo de relatórios da implantação foi excluído ou substituído.
 - **Todos os marketplaces:** um firewall ou proxy bloqueia o HTTPS de saída descrito em [Antes de começar](#antes-de-começar).
