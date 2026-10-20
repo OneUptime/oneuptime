@@ -415,6 +415,7 @@ describe("The Call and SMS test routes are scoped to the caller's project", () =
         expect(route.send).not.toHaveBeenCalled();
         expect(route.otherSend).not.toHaveBeenCalled();
         expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+        expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
       });
     });
 
@@ -462,6 +463,7 @@ describe("The Call and SMS test routes are scoped to the caller's project", () =
       expect(route.send).not.toHaveBeenCalled();
       expect(route.otherSend).not.toHaveBeenCalled();
       expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
     });
 
     /*
@@ -515,7 +517,14 @@ describe("The Call and SMS test routes are scoped to the caller's project", () =
         expect(result.nextCallCount).toBe(0);
         expect(route.send).toHaveBeenCalledTimes(1);
         expect(route.otherSend).not.toHaveBeenCalled();
-        expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+        /*
+         * Success names the number the test went out from - this config
+         * has no SMS numbers, so its primary one, for an SMS and a call.
+         */
+        expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+        expect(
+          (Response.sendJsonObjectResponse as jest.Mock).mock.calls[0]![2],
+        ).toEqual({ fromPhoneNumber: "+15555550100" });
       });
 
       /*
@@ -600,6 +609,7 @@ describe("The Call and SMS test routes are scoped to the caller's project", () =
       );
       expect(route.send).not.toHaveBeenCalled();
       expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
     });
 
     /*

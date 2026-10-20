@@ -31923,5 +31923,18 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話はこの番号から発信されます。「その他の項目」で SMS 電話番号を追加しない限り、SMS もこの番号から送信されます。",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Twilio の番号から SMS を送信できない場合（シンガポールの国内番号は音声専用です）は、SMS を送信できる番号を追加してください。SMS は受信者の国の番号から、なければ最初の番号から送信されます。",
+  "Twilio SMS Phone Numbers": "Twilio SMS 電話番号",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} は電話番号ではありません。各番号を国番号付きで入力し、+6581234567, +447700900123 のようにカンマで区切ってください。",
+  "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "1 つの設定がプロジェクトのデフォルトになり、オンコールアラートなど、このプロジェクトのメンバーへの SMS と通話はこの設定を経由します。ステータスページは、各ページで選んだ設定を使います。",
+  "Send a test SMS to check this Twilio config.": "この Twilio 設定を確認するため、テスト SMS を送信します。",
+  "Make a test call to check this Twilio config.": "この Twilio 設定を確認するため、テスト通話を発信します。",
+  "Test SMS Sent": "テスト SMS を送信しました",
+  "Test Call Placed": "テスト通話を発信しました",
+  "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio が {{phoneNumber}} からのテスト SMS を受け付けました。数分以内に届くはずです。",
+  "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio がテスト SMS を受け付けました。数分以内に届くはずです。",
+  "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio が {{phoneNumber}} から発信しています。1 分以内に電話が鳴るはずです。",
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio がテスト通話を発信しています。1 分以内に電話が鳴るはずです。"
 }

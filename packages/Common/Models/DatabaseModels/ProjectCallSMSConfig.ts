@@ -558,6 +558,54 @@ export default class ProjectCallSMSConfig extends BaseModel {
   })
   public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers separated by comma
 
+  /*
+   * The numbers SMS go out from. A Twilio number can make calls and send
+   * SMS, or only one of the two, and in some countries no one number does
+   * both - in Singapore, national numbers are voice-only and SMS need a
+   * mobile number. So a config can list numbers for SMS: once it does,
+   * every SMS goes out from one of them - the one in the recipient's
+   * country, or else the first - and never from a number kept for calls,
+   * which keep going out from the primary and secondary numbers
+   * (Types/CallAndSMS/TwilioPhoneNumbers). Empty - as on every config made
+   * before it - SMS go out from the same numbers as calls.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectCallSMSConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectCallSMSConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectCallSMSConfig,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Twilio SMS Phone Numbers",
+    description:
+      "Comma-separated numbers to send SMS from, for phone numbers that can only make calls: in Singapore, for example, national numbers are voice-only and SMS need a mobile number. Once set, every SMS goes out from the one in the recipient's country, or else the first. Leave it empty to send SMS from the same numbers as calls.",
+    example: "+6581234567",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioSmsPhoneNumbers?: string = undefined; // phone numbers separated by comma
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

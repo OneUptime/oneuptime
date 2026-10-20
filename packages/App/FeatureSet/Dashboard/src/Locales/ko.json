@@ -31923,5 +31923,18 @@
   "Merged At": "Merged At",
   "Production Status": "Production Status",
   "Production Status At": "Production Status At",
-  "Production Summary": "Production Summary"
+  "Production Summary": "Production Summary",
+  "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "통화는 이 번호로 걸립니다. 추가 필드에서 SMS 전화번호를 추가하지 않으면 SMS도 이 번호로 보냅니다.",
+  "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Twilio 번호로 SMS를 보낼 수 없다면(싱가포르의 국내 번호는 음성 전용입니다) SMS를 보낼 수 있는 번호를 추가하세요. 그러면 모든 SMS는 수신자 국가의 번호로, 없으면 첫 번째 번호로 보냅니다.",
+  "Twilio SMS Phone Numbers": "Twilio SMS 전화번호",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}}은(는) 전화번호가 아닙니다. 각 번호를 국가 코드와 함께 입력하고 +6581234567, +447700900123처럼 쉼표로 구분하세요.",
+  "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "하나의 구성이 프로젝트 기본값이 되며, 온콜 알림 등 이 프로젝트 구성원에게 보내는 SMS와 통화가 이 구성을 거칩니다. 상태 페이지는 각 페이지에서 선택한 구성을 사용합니다.",
+  "Send a test SMS to check this Twilio config.": "이 Twilio 구성을 확인하려면 테스트 SMS를 보내세요.",
+  "Make a test call to check this Twilio config.": "이 Twilio 구성을 확인하려면 테스트 전화를 거세요.",
+  "Test SMS Sent": "테스트 SMS 전송됨",
+  "Test Call Placed": "테스트 전화 발신됨",
+  "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio가 {{phoneNumber}}에서 보내는 테스트 SMS를 접수했습니다. 몇 분 안에 도착합니다.",
+  "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio가 테스트 SMS를 접수했습니다. 몇 분 안에 도착합니다.",
+  "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio가 {{phoneNumber}}에서 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio가 테스트 전화를 걸고 있습니다. 1분 안에 전화가 울립니다."
 }
