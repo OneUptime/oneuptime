@@ -207,7 +207,7 @@ describe("an empty explorer offers first steps on its product page only", () => 
      * Rendered in Common's ProfilesFirstSteps; here, that both keep reading
      * the shared copy rather than a sentence of their own.
      */
-    expect(readCode("Components/Profiles/ProfilesDashboard.tsx")).toContain(
+    expect(readCode("Components/Profiles/ProfilesOverview.tsx")).toContain(
       "signal={TelemetryFirstStepsSignal.Profiles}",
     );
 
@@ -436,7 +436,7 @@ describe("the descriptions that explained two modes are gone", () => {
       "How downtime is combined when this SLO measures more than one monitor.",
     ],
     // The Profiler's empty states: the first steps, not a setup paragraph.
-    "Components/Profiles/ProfilesDashboard.tsx": [
+    "Components/Profiles/ProfilesOverview.tsx": [
       "Send continuous profiles with Grafana Alloy",
       '"No profiles yet"',
     ],

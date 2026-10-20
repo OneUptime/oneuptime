@@ -309,7 +309,7 @@ criteria = [
 | 로그 | `Log Count` |
 | 트레이스 | `Span Count` |
 | 예외 | `Exception Count` |
-| 프로필 | `Profile Count` |
+| 프로필 | `Profile Count`, `Function Share (in %)` |
 | AI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
 | 메트릭 | `Metric Value`(메트릭 필터는 `metric_monitor_options`에 JSON을 받을 수 있습니다) |
 | 사용자 지정 코드 / Synthetic | `Result Value`(반환된 데이터의 필드 하나를 비교할 수 있으며, `custom_code_monitor_options`의 JSON으로 지정합니다. 예: `jsonencode({ resultValuePath = "status" })` — 아래 참조), `Error`, `Execution Time (in ms)` |

@@ -11,36 +11,47 @@ import ObjectID from "../../../Types/ObjectID";
 
 describe("MonitorStepProfileMonitorUtil", () => {
   describe("getDefault", () => {
-    test("returns an empty monitor scoped to the last 60 seconds", () => {
+    /*
+     * CPU time over five minutes: long enough to hold several uploads of
+     * every profiler, so a function's share does not swing with one upload
+     * more or less.
+     */
+    test("returns a CPU time monitor of every service over the last five minutes", () => {
       const def: MonitorStepProfileMonitor =
         MonitorStepProfileMonitorUtil.getDefault();
 
       expect(def.attributes).toEqual({});
       expect(def.profileType).toBe("");
-      expect(def.profileTypes).toEqual([]);
+      expect(def.profileTypes).toEqual([
+        "cpu",
+        "process_cpu",
+        "cpu_time",
+        "samples",
+      ]);
       expect(def.telemetryServiceIds).toEqual([]);
       expect(def.entityKeys).toEqual([]);
-      expect(def.lastXSecondsOfProfiles).toBe(60);
+      expect(def.lastXSecondsOfProfiles).toBe(300);
+      expect(def.functionName).toBe("");
     });
   });
 
   describe("toQuery", () => {
-    test("builds only the time window for the empty default", () => {
+    test("builds the time window and the CPU types for the default", () => {
       const query: Query<Profile> = MonitorStepProfileMonitorUtil.toQuery(
         MonitorStepProfileMonitorUtil.getDefault(),
       );
 
-      // Only the rolling time window is present.
       expect(query.startTime).toBeInstanceOf(InBetween);
+      expect(query.profileType).toBeInstanceOf(Includes);
       expect(query.primaryEntityId).toBeUndefined();
       expect(query.entityKeys).toBeUndefined();
       expect(query.attributes).toBeUndefined();
-      expect(query.profileType).toBeUndefined();
     });
 
-    test("builds no filters at all when the time window is disabled", () => {
+    test("builds no filters at all when the time window is disabled and no type is picked", () => {
       const query: Query<Profile> = MonitorStepProfileMonitorUtil.toQuery({
         ...MonitorStepProfileMonitorUtil.getDefault(),
+        profileTypes: [],
         lastXSecondsOfProfiles: 0,
       });
 

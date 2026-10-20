@@ -6,7 +6,7 @@ Kontinuierliches Profiling zeigt, wofür Ihre Anwendung CPU-Zeit und Arbeitsspei
 - [Profile senden](#profile-senden): Grafana Alloy mit eBPF oder ein Pyroscope-SDK in Ihrer App.
 - [Ingest-Endpunkt](#ingest-endpunkt): Die Basis-URL und die drei Wege, den Schlüssel zu übergeben.
 - [Prüfen, ob es funktioniert](#prüfen-ob-es-funktioniert): Schlüssel, Seite und Upload-Status prüfen.
-- [Profile erkunden](#profile-in-oneuptime-erkunden): Flame-Graphs, Top-Funktionen, Vergleiche und Trace-Links.
+- [Profile erkunden](#profile-in-oneuptime-erkunden): Der Profiler: wohin die Zeit geht, was sich geändert hat, und Mit KI beheben.
 :::
 
 ## So funktioniert es
@@ -283,14 +283,32 @@ Setzen Sie beim .NET-Profiler für eine Minute `DD_TRACE_DEBUG=1` in der Anwendu
 
 ## Profile in OneUptime erkunden
 
-**Produkte → Performance-Profile** öffnet eine Übersicht darüber, wohin die Zeit in Ihren Diensten geht; **Alle Profile** listet jeden Upload. Wählen Sie, was Sie analysieren wollen – **Alles**, **CPU-Zeit**, **Arbeitsspeicher** oder **Sperren**, oder einen bestimmten Typ wie **Echtzeit** oder **Goroutines**.
+**Produkte → Performance-Profile** öffnet den Profiler auf seiner **Übersicht**. Er antwortet in Worten, bevor ein Diagramm kommt: wohin die Zeit geht („Bei checkout entfielen 42% der CPU-Zeit auf JSON.parse.“) und, wenn die meistbeschäftigte Funktion zu einer Bibliothek oder zur Laufzeit gehört, welche Funktion Ihres eigenen Codes am meisten beansprucht, mit dem Bibliotheks- und Laufzeitcode, den sie aufruft. Wählen Sie oben einen Dienst, eine Profilart, für die er Daten hat (**CPU-Zeit**, **Echtzeit**, **Arbeitsspeicher**, **Allokationen**, **Sperren** oder **Goroutines**, oder einen Typ unter **Weitere Profiltypen**), und ein Zeitfenster.
 
-Die Seite eines Profils hat drei Ansichten:
+| Karte | Was sie zeigt |
+| --- | --- |
+| **Wohin die CPU-Zeit geht** | Alle Profile im Zeitfenster, zu einem Flame-Graph zusammengeführt. Je breiter ein Frame, desto größer sein Anteil. Klicken Sie auf einen Frame, um hineinzuzoomen. |
+| **Funktionen** | Die Funktionen, die am meisten beanspruchen, sortiert nach **Eigen** (die Zeit im eigenen Code der Funktion), **Gesamt** (mit allem, was sie aufruft) oder **Ihr Code** (Ihre eigenen Funktionen, jeweils mit dem Bibliotheks- und Laufzeitcode, den sie aufrufen: die Zeit, die eine Änderung an ihnen zurückgewinnen kann). |
+| **Profilierte Dienste** | Jeder profilierte Dienst, die ausgelastetsten zuerst. Kernel-Threads, die der eBPF-Profiler erfasst, werden ausgeblendet. |
+
+### Zwei Zeitfenster vergleichen
+
+**Vergleichen mit** legt fest, womit das Zeitfenster verglichen wird: **Der Zeitraum davor**, **Dieselbe Zeit gestern**, **Dieselbe Zeit letzte Woche** oder ein Deployment unter **Vor und nach einer Änderung**. Verglichen werden Anteile statt Summen, sodass mehr Traffic allein nichts verschiebt. Die Überschrift nennt die Funktion, deren Anteil am stärksten gewachsen ist, und den eigenen Code, der gewachsen ist; der Flame-Graph wird zu **Was sich geändert hat**, wo rote Frames danach einen größeren Anteil haben und grüne einen kleineren; und **Veränderte Funktionen** listet den Anteil jeder Funktion vorher und nachher.
+
+### Eine Funktion
+
+Klicken Sie auf eine Funktion, um ihr Panel zu öffnen: ihren Anteil als **Eigen**, **Gesamt** und **Ihr Code**, **Wer sie aufruft** und **Was sie aufruft**, einen Link zu ihrer Datei und Zeile in Ihrem Repository, wenn eines verbunden ist, und **Im Flame-Graph hervorheben**. Bei einer Funktion einer Bibliothek oder der Laufzeit nennt das Panel die Funktion Ihres eigenen Codes, die sie aufruft, denn dort kann eine Änderung sie günstiger machen. Ein Link unter den Anteilen richtet eine Warnung zum Anteil der Funktion ein, über dem, was sie heute beansprucht: siehe [Profile-Überwachung](/docs/monitor/profiles-monitor).
+
+Wenn eine Funktion Ihres eigenen Codes mindestens 5 % der Zeit oder des Speichers des Profils beansprucht oder ihr Anteil seit dem Vergleichsfenster um 3 Punkte oder mehr gewachsen ist, bietet das Panel **Mit KI beheben** an: OneUptime AI startet eine Aufgabe in dem Repository, das die Funktion enthält, mit dem Profil als Beleg, und öffnet einen Pull Request, den Sie prüfen (siehe [Code](/docs/ai/ai-agent)). OneUptime AI liest Profile auch in seinen Antworten und Untersuchungen, Sie können also fragen, welche Funktionen die meiste CPU-Zeit verbrauchen.
+
+### Ein einzelnes Profil
+
+**Alle Profile** listet jeden Upload. Die Seite eines Profils hat drei Ansichten:
 
 | Ansicht | Was sie zeigt |
 | --- | --- |
 | **Flame-Graph** | Jeder Balken ist eine Funktion im Aufrufstapel, und seine Breite entspricht der verbrauchten Zeit oder den Ressourcen. Klicken Sie auf eine Funktion, um hineinzuzoomen und ihre Aufrufer und Aufgerufenen zu sehen. |
-| **Top-Funktionen** | Die Funktionen des Profils, sortiert nach eigener oder gesamter Zeit. **Only my code** blendet Bibliotheks-Frames aus. |
+| **Top-Funktionen** | Die Funktionen des Profils, sortiert nach eigener oder gesamter Zeit. **Nur mein Code** blendet Bibliotheks-Frames aus. |
 | **Diff vs. baseline** | Das Profil im Vergleich mit einem früheren Zeitraum – **vs. vor 1 Stunde**, **vs. gestern** oder **vs. letzte Woche** – mit den Funktionen unter **Am stärksten verschlechtert** und **Am stärksten verbessert**. |
 
 **Download pprof** speichert das Profil für lokale Werkzeuge wie `go tool pprof`.
@@ -300,6 +318,8 @@ Die Seite eines Profils hat drei Ansichten:
 Wenn ein Profil Trace- und Span-IDs trägt (zum Beispiel als Sample-Labels `trace_id` / `span_id`), springen Sie direkt von einem langsamen Trace-Span zum passenden CPU- oder Speicherprofil, um genau zu verstehen, welcher Code lief, und **Open linked trace** führt in die andere Richtung.
 
 Der Tab **Profil** eines Spans enthält auch die Samples der darunter verschachtelten Spans, weil Profiler die CPU-Zeit einer Anfrage oft einem Kind-Span statt dem Anfrage-Span selbst zuordnen.
+
+Die Seite eines Traces verlinkt außerdem auf den Profiler für den Dienst des Traces, für die 15 Minuten davor und danach, wenn dieser Dienst in der Zeit profiliert wurde, und die Seite **Leistungsprofile** eines Dienstes oder Hosts öffnet den Profiler für diesen Dienst oder Host.
 
 ## Datenaufbewahrung
 

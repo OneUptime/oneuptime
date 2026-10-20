@@ -1296,6 +1296,65 @@ test.describe("actions and related signals", () => {
     await screenshot(page, "related-signals", false);
   });
 
+  test("the Profiler on the trace's root service, a quarter hour either side - only when it was profiled then", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "checkout", "profiler=on");
+    const signals: Locator = page.getByTestId("trace-signals");
+    const link: Locator = signals.getByTestId("trace-open-profiler");
+
+    await expect(link).toHaveText(
+      "See where api-gateway spent its time around this trace",
+    );
+
+    const asked: Array<{ url: string; body: Record<string, unknown> }> = (
+      await fixture(page)
+    ).apiRequests.filter((request: { url: string }): boolean => {
+      return request.url.includes("/telemetry/profiles/profile-types");
+    });
+    expect(asked[0]!.body["serviceIds"]).toEqual([
+      "60000000-0000-4000-8000-000000000001",
+    ]);
+    const windowMs: number =
+      new Date(asked[0]!.body["endTime"] as string).getTime() -
+      new Date(asked[0]!.body["startTime"] as string).getTime();
+    expect(windowMs).toBeLessThanOrEqual(30 * 60 * 1000);
+
+    const href: URL = new URL(
+      (await link.getAttribute("href")) || "",
+      "http://localhost",
+    );
+    expect(href.pathname).toBe(`/dashboard/${PROJECT_ID}/profiles`);
+    expect(href.searchParams.get("serviceId")).toBe(
+      "60000000-0000-4000-8000-000000000001",
+    );
+    expect(href.searchParams.get("startTime")).toBe(
+      asked[0]!.body["startTime"],
+    );
+    expect(href.searchParams.get("endTime")).toBe(asked[0]!.body["endTime"]);
+  });
+
+  test("no profiles around the trace: no link to an empty Profiler", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "checkout");
+    await expect(page.getByTestId("trace-signals")).toBeVisible();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await fixture(page)).apiRequests.filter(
+          (request: { url: string }): boolean => {
+            return request.url.includes("/telemetry/profiles/profile-types");
+          },
+        ).length;
+      })
+      .toBeGreaterThan(0);
+    await expect(page.getByTestId("trace-open-profiler")).toHaveCount(0);
+  });
+
   test("metrics that fail to load show an error", async ({
     page,
   }: {

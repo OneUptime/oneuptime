@@ -286,10 +286,13 @@ jobs:
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
           # Feed from group 4. All Chromium. Postmortem Rules (about 2
           # minutes) joined it at 15.3 to 20.5 minutes on 2026-10-19's runs,
-          # the lightest of the groups that hold several suites. Auto
-          # Remediation Rules (a minute and a half with its bundle locally,
-          # Chromium only) joined it at 18.4 minutes on 2026-10-20's master
-          # run, the lightest of the six.
+          # the lightest of the groups that hold several suites. The
+          # Profiler (about 2 minutes with its bundle: a laptop and a phone,
+          # Chromium only) and Auto Remediation Rules (a minute and a half
+          # with its bundle locally, Chromium only) joined it on 2026-10-20,
+          # when it took 16.2 to 22.7 minutes on master's runs (18.4 on the
+          # last run every group finished): about 22 with both. If it passes
+          # that, move one of the two to the lightest Chromium group.
           - group: 6
             browsers: chromium
             suites: >-
@@ -303,6 +306,7 @@ jobs:
               test-model-tables-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
+              test-profiles-ui
               test-auto-remediation-rules-ui
     steps:
       - uses: actions/checkout@v4
@@ -466,4 +470,6 @@ jobs:
             output/playwright/public-addresses-ui/test-results
             output/playwright/rules-menu-section-ui/*.png
             output/playwright/rules-menu-section-ui/test-results
+            output/playwright/profiles-ui/*.png
+            output/playwright/profiles-ui/test-results
           retention-days: 7

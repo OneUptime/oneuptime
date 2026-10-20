@@ -309,7 +309,7 @@ criteria = [
 | لاگ‌ها | `Log Count` |
 | تریس‌ها | `Span Count` |
 | استثناها | `Exception Count` |
-| پروفایل‌ها | `Profile Count` |
+| پروفایل‌ها | `Profile Count`، `Function Share (in %)` |
 | هوش مصنوعی / LLM | `Bad AI Answers (in %)`، `Bad AI Answers`، `AI Answers` |
 | متریک‌ها | `Metric Value` (فیلترهای متریک می‌توانند JSON در `metric_monitor_options` بگیرند) |
 | کد سفارشی / Synthetic | `Result Value` (می‌تواند یک فیلد از دادهٔ برگشتی را مقایسه کند که در JSON مربوط به `custom_code_monitor_options` نام برده می‌شود، مثلاً `jsonencode({ resultValuePath = "status" })` — پایین‌تر را ببینید)، `Error`، `Execution Time (in ms)` |

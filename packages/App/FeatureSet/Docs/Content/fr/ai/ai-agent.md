@@ -44,6 +44,7 @@ Cliquez sur **Lancer la tâche**, ou appuyez sur Entrée. La page de la tâche s
 | **Moniteur** | Son type, son statut et sa description. |
 | **Trace** | Ses spans : leurs noms, leurs durées et leurs erreurs. |
 | **Journaux** | Les 20 dernières lignes de log qui contiennent votre recherche, sur la dernière heure, le dernier jour ou la dernière semaine. |
+| **Profil de performance** | Où va le temps d'une fonction dans les profils de son service : qui l'appelle, ce qu'elle appelle et ses lignes les plus chaudes. |
 
 Une demande porte au plus 10 éléments de contexte. Les jetons, clés, mots de passe et adresses e-mail présents dans ce que OneUptime lit sont masqués avant que l'IA ne les voie, comme partout où OneUptime AI lit vos données.
 
@@ -78,7 +79,7 @@ flowchart TB
     P --> H["Une personne la relit<br/>et la fusionne"]
 ```
 
-1. Vous cliquez sur **Lancer la tâche** dans un dépôt, ou sur **Fix with AI** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
+1. Vous cliquez sur **Lancer la tâche** dans un dépôt, ou sur **Corriger avec l'IA** sur une exception non résolue, ou un autre bouton ou déclencheur lance une tâche (voir [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction)).
 2. La tâche est mise en file sur son dépôt, et le Runner que le dépôt choisit la prend : l'un de vos Runners, ou un Runner global quand il n'en choisit aucun (voir [Choisir le Runner du dépôt](#choisir-le-runner-du-dépôt)).
 3. Le Runner récupère le contexte de la tâche. Pour une demande, ce sont ses mots, le contexte ajouté et la conversation jusque-là ; pour une exception, son type, son message et sa stack trace.
 4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution. Une réponse travaille plutôt sur la branche de la pull request ouverte de la tâche.
@@ -94,15 +95,16 @@ Chaque exécution est tenue à des budgets que le serveur impose : au plus **40 
 
 | Où | Clic | La pull request |
 | --- | --- | --- |
-| La page **Assistance IA** d'une exception | **Fix with AI** | Corrige le bug à l'origine de l'exception. |
+| La page **Assistance IA** d'une exception | **Corriger avec l'IA** | Corrige le bug à l'origine de l'exception. |
 | La page **Assistance IA** d'une exception | **Générer un test de régression** | Ajoute un test qui reproduit l'exception et échoue jusqu'à ce que le bug soit corrigé. |
 | La page **Assistance IA** d'une exception | **Améliorer la gestion des erreurs** | Pour une erreur attendue, comme une saisie invalide : retire les données utilisateur du message, valide la saisie plus tôt et marque l'erreur comme gérée, sans changer le comportement. |
 | La carte **Investigation IA** d'un incident ou d'une alerte | **Ouvrir une PR de correctif à partir de cette analyse** | Corrige la cause racine publiée par l'investigation (voir [Corrections de code automatiques à partir des investigations](#corrections-de-code-automatiques-à-partir-des-investigations)). |
 | Une trace qui vaut d'être corrigée | **Accélérer avec l'IA** | Corrige le schéma lent que le bouton indique, comme une requête N+1 ou des appels qui pourraient s'exécuter en parallèle. |
 | La page **Journaux** d'un service | **Améliorer la journalisation** | Rend les logs du service structurés, au bon niveau de gravité et reliés à ses traces, sans changer le comportement. |
 | La page **Traces** d'un service | **Améliorer le traçage** | Ajoute des spans et des attributs là où le tracing du service manque, sans changer le comportement. |
+| Une fonction dans **Profils de performance** | **Corriger avec l'IA** | Fait faire à la fonction le même travail avec moins de temps ou de mémoire, avec son profil comme preuve. |
 
-Ces boutons n'apparaissent que là où ils peuvent lancer une tâche. Quand l'IA est désactivée pour le projet, aucun n'apparaît et le menu latéral d'une exception ne propose pas **Assistance IA**. **Améliorer la journalisation** et **Améliorer le traçage** apparaissent dès qu'un dépôt est connecté, et **Accélérer avec l'IA** seulement sur une trace qui vaut d'être corrigée (voir [Explorateur de traces](/docs/telemetry/traces-explorer)).
+Ces boutons n'apparaissent que là où ils peuvent lancer une tâche. Quand l'IA est désactivée pour le projet, aucun n'apparaît et le menu latéral d'une exception ne propose pas **Assistance IA**. **Améliorer la journalisation** et **Améliorer le traçage** apparaissent dès qu'un dépôt est connecté, et **Accélérer avec l'IA** seulement sur une trace qui vaut d'être corrigée (voir [Explorateur de traces](/docs/telemetry/traces-explorer)). Le bouton **Corriger avec l'IA** d'une fonction n'apparaît que sur le propre code de l'application qui prend au moins 5 % du temps ou de la mémoire du profil, ou dont la part a augmenté de 3 points ou plus depuis la fenêtre à laquelle on la compare (voir [Profilage continu](/docs/telemetry/profiles)).
 
 Pour ouvrir la page **Assistance IA** d'une exception, ouvrez l'exception sous **Produits → Observabilité → Exceptions** et choisissez **Assistance IA** dans son menu latéral. Une exception résolue ou archivée doit d'abord être marquée comme non résolue.
 

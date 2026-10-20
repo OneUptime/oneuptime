@@ -65,7 +65,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Environments** | Exceções de qualquer um destes ambientes, separados por vírgulas (veja [Ambientes](#ambientes)). | Vazio: todos os ambientes |
 | **Monitorar exceções por (tempo)** | Exceções dos últimos 5 segundos até as últimas 24 horas. | **Último 1 minuto** |
 | **Filtrar por serviço de telemetria** (em **Mais campos**) | Exceções de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
-| **Filter by Infrastructure Entity** (em **Mais campos**) | Exceções de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
+| **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Exceções de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Incluir Exceções Resolvidas** (em **Mais campos**) | Contar também as exceções marcadas como resolvidas. | Desativado |
 | **Incluir Exceções Arquivadas** (em **Mais campos**) | Contar também as exceções arquivadas. | Desativado |
 

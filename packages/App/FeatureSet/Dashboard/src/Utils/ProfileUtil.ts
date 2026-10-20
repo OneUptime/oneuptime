@@ -1,3 +1,9 @@
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ProfileValueUnit,
+  formatProfileValue as formatCommonProfileValue,
+} from "Common/Utils/Profiles/ProfileTypes";
+
 export interface ParsedStackFrame {
   functionName: string;
   fileName: string;
@@ -336,6 +342,11 @@ export default class ProfileUtil {
    *
    * The `intensity` parameter (0..1) lets hot frames within a category
    * read as more saturated than cool ones.
+   *
+   * The dark text on the light frames is a 950 shade on purpose: the dark
+   * theme lightens text 600-900 for dark surfaces (Theme.css), and a frame
+   * keeps its light colour in both themes - a lightened label on it could
+   * not be read.
    */
   public static getModuleFrameStyle(
     category: ModuleCategory,
@@ -369,7 +380,7 @@ export default class ProfileUtil {
       }
       return {
         bg: "bg-orange-300",
-        text: "text-orange-900",
+        text: "text-orange-950",
         border: "border-orange-400",
       };
     }
@@ -384,7 +395,7 @@ export default class ProfileUtil {
       }
       return {
         bg: "bg-sky-300",
-        text: "text-sky-900",
+        text: "text-sky-950",
         border: "border-sky-400",
       };
     }
@@ -392,7 +403,7 @@ export default class ProfileUtil {
     if (category === "native") {
       return {
         bg: "bg-purple-300",
-        text: "text-purple-900",
+        text: "text-purple-950",
         border: "border-purple-400",
       };
     }
@@ -413,21 +424,24 @@ export default class ProfileUtil {
   }
 
   /**
-   * Human-friendly label for a module category. Used in the flame graph
-   * legend.
+   * Human-friendly label for a module category: the flame graph's legend
+   * and tooltip, and a profile's top functions. The Profiler's function
+   * list and panel name whose code a frame is in the same words
+   * (ProfileCopy.PROFILE_ORIGIN_LABELS), so one page never says Library in
+   * one place and Dependencies in another.
    */
   public static getModuleCategoryLabel(category: ModuleCategory): string {
     switch (category) {
       case "own":
-        return "Your code";
+        return translationKey("Your code");
       case "vendor":
-        return "Dependencies";
+        return translationKey("Library");
       case "runtime":
-        return "Runtime";
+        return translationKey("Runtime");
       case "native":
-        return "Native / kernel";
+        return translationKey("System");
       default:
-        return "Unknown";
+        return translationKey("Unknown");
     }
   }
 
@@ -503,40 +517,21 @@ export default class ProfileUtil {
   public static formatProfileValue(value: number, unit: string): string {
     const lowerUnit: string = unit.toLowerCase();
 
+    /*
+     * The Profiler's own steps (Common's formatProfileValue), so a flame
+     * graph's total and a function's row read the same: "124 s", never
+     * "124.00 s".
+     */
     if (lowerUnit === "nanoseconds" || lowerUnit === "ns") {
-      if (value >= 1_000_000_000) {
-        return `${(value / 1_000_000_000).toFixed(2)} s`;
-      }
-      if (value >= 1_000_000) {
-        return `${(value / 1_000_000).toFixed(1)} ms`;
-      }
-      if (value >= 1_000) {
-        return `${(value / 1_000).toFixed(1)} µs`;
-      }
-      return `${value} ns`;
+      return formatCommonProfileValue(value, ProfileValueUnit.Nanoseconds);
     }
 
     if (lowerUnit === "bytes" || lowerUnit === "byte") {
-      if (value >= 1_073_741_824) {
-        return `${(value / 1_073_741_824).toFixed(2)} GB`;
-      }
-      if (value >= 1_048_576) {
-        return `${(value / 1_048_576).toFixed(2)} MB`;
-      }
-      if (value >= 1_024) {
-        return `${(value / 1_024).toFixed(1)} KB`;
-      }
-      return `${value} B`;
+      return formatCommonProfileValue(value, ProfileValueUnit.Bytes);
     }
 
     if (lowerUnit === "count" || lowerUnit === "samples") {
-      if (value >= 1_000_000) {
-        return `${(value / 1_000_000).toFixed(1)}M`;
-      }
-      if (value >= 1_000) {
-        return `${(value / 1_000).toFixed(1)}K`;
-      }
-      return `${value}`;
+      return formatCommonProfileValue(value, ProfileValueUnit.Count);
     }
 
     return `${value} ${unit}`;

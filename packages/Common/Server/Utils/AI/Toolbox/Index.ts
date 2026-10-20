@@ -54,6 +54,11 @@ import { RecentChangesTool } from "./RecentChangesTools";
 import { GetChangeDetailsTool } from "./ChangeTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
+import {
+  CompareProfilesTool,
+  GetProfileFunctionTool,
+  GetProfileHotspotsTool,
+} from "./ProfileTools";
 import { LookupContextTool } from "./ContextTools";
 import {
   FindCodeForExceptionTool,
@@ -151,6 +156,14 @@ export default class AIToolbox {
     BaselineAnomalyTool,
     QueryTracesTool,
     GetTraceTool,
+    /*
+     * Continuous profiling: where a service spends its CPU time and memory,
+     * what got slower around a deploy, and one function's callers and
+     * callees.
+     */
+    GetProfileHotspotsTool,
+    CompareProfilesTool,
+    GetProfileFunctionTool,
     RecentChangesTool,
     GetChangeDetailsTool,
     /*

@@ -2063,8 +2063,13 @@ describe("the explorers together", () => {
       "See full trace": "Components/Traces/SpanDetailsPanel.tsx",
       "Critical path": "Components/Traces/TraceExplorer.tsx",
       "Errors only": "Components/Traces/TraceExplorer.tsx",
-      "Fix with AI": "Utils/ExceptionAIAssistance.ts",
     };
+
+    /*
+     * The exception page's start button is a locale key since the
+     * Profiler's Fix with AI spelled it out: every language draws it.
+     */
+    expect("Fix with AI" in DASHBOARD_ENGLISH).toBe(true);
     const kept: Array<string> = Object.values(KEPT_AS_WRITTEN).flat();
 
     expect([...kept].sort()).toEqual(Object.keys(drawnIn).sort());
