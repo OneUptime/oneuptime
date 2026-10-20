@@ -204,11 +204,14 @@ export default abstract class GitHubTaskHandlerBase extends BaseTaskHandler {
     agent: CodeAgent;
     repositoryPath: string;
     prompt: string;
+    // The agent may query the repository's production telemetry.
+    productionTelemetry?: boolean | undefined;
   }): Promise<CodeAgentResult> {
     const codeAgentTask: CodeAgentTask = {
       workingDirectory: data.repositoryPath,
       prompt: data.prompt,
       timeoutMs: GitHubTaskHandlerBase.CODE_AGENT_TIMEOUT_MS,
+      ...(data.productionTelemetry ? { productionTelemetry: true } : {}),
     };
 
     const result: CodeAgentResult = await data.agent.executeTask(codeAgentTask);
