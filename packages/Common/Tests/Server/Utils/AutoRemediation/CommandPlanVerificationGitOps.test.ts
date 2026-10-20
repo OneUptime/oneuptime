@@ -349,8 +349,8 @@ describe("a fix of a workload Argo CD or Flux declares", () => {
         revertWatch: watch({
           fields: [
             {
-              path: "spec.template.metadata.annotations.kubectl.kubernetes.io/restartedAt",
-              after: '"2026-10-20T10:00:00Z"',
+              path: "metadata.annotations.example.com/fix-note",
+              after: '"ai"',
             },
           ],
         }),

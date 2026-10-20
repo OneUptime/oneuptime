@@ -40,6 +40,16 @@ const IGNORED_ANNOTATIONS: Set<string> = new Set<string>([
 ]);
 
 /*
+ * When `kubectl rollout restart` last ran. A restart is done once its pods
+ * are replaced: the annotation going away (Flux removes it) replaces them
+ * once more, it does not undo the restart. So a restart leaves nothing to
+ * watch.
+ */
+const IGNORED_PATHS: Set<string> = new Set<string>([
+  "spec.template.metadata.annotations.kubectl.kubernetes.io/restartedAt",
+]);
+
+/*
  * Deep enough for any pod template (spec.template.spec.containers[app].
  * resources.limits.memory is 7 levels); a deeper path is kept whole.
  */
@@ -134,7 +144,7 @@ function flattenInto(
 /*
  * Every field anyone may have declared, by path: the object minus status,
  * and of its metadata only the labels and annotations (less the ones that
- * change with every rollout).
+ * change with every rollout, and a restart's).
  */
 export function flattenObjectFields(object: JSONObject): Map<string, string> {
   const fields: Map<string, string> = new Map<string, string>();
@@ -145,6 +155,10 @@ export function flattenObjectFields(object: JSONObject): Map<string, string> {
     }
 
     flattenInto(value, key, 1, fields);
+  }
+
+  for (const path of Array.from(IGNORED_PATHS)) {
+    fields.delete(path);
   }
 
   const metadata: JSONObject = isObject(object["metadata"])

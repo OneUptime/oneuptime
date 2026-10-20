@@ -78,7 +78,7 @@ const NEVER_READ_KINDS: Set<string> = new Set<string>([
   "namespace",
 ]);
 
-// How far a pod's owners are followed: pod → ReplicaSet → Deployment.
+// How far owners are followed: a ReplicaSet's Deployment, a Job's CronJob.
 const MAX_OWNER_HOPS: number = 3;
 
 // The built-in kinds a namespaced object read here may be.

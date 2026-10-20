@@ -61,9 +61,10 @@ import type { SpyInstance } from "jest-mock";
  *     mode — Bypass approval included: it is recorded for one-click
  *     approval as a stopgap, and the model is told why and where the
  *     lasting fix goes;
- *   - a change they do not put back (a rollout restart) runs as before,
- *     and what it did to its object is recorded for verification to watch
- *     (GitOpsInspector.captureRevertWatch);
+ *   - a change they do not put back (a scale git leaves to the cluster, a
+ *     restart) runs as before, and what it did to its object is recorded
+ *     for verification to watch (GitOpsInspector.captureRevertWatch) - a
+ *     restart leaves nothing to watch;
  *   - a change a Helm release puts back only at its next upgrade runs as
  *     the cluster's mode says, and says it does not last;
  *   - a proposed plan and a rollback-first proposal carry what was read,
@@ -207,12 +208,7 @@ const WATCH: AiRemediationRevertWatch = {
   kind: "deployment",
   name: "web",
   namespace: "web",
-  fields: [
-    {
-      path: "spec.template.metadata.annotations.kubectl.kubernetes.io/restartedAt",
-      after: '"2026-10-20T10:00:00Z"',
-    },
-  ],
+  fields: [{ path: "spec.replicas", before: "1", after: "3" }],
   capturedAt: "2026-10-20T10:00:05.000Z",
 };
 
@@ -397,16 +393,15 @@ describe("execute_remediation_command on an object Argo CD or Flux declares", ()
   });
 
   it("runs a change they do not put back, records it, and watches what it did", async () => {
-    const RESTART: string = "kubectl rollout restart deployment/web -n web";
     const facts: AiRemediationCommandGitOps = gitOps({
       putsBack: false,
       summary:
-        'Argo CD Application "shop" declares deployment/web (annotation argocd.argoproj.io/tracking-id), but this change edits a restart annotation on its pod template, which is not something git declares, so it stays.',
+        'Argo CD Application "shop" declares deployment/web (annotation argocd.argoproj.io/tracking-id), but this change edits its replica count, which it leaves to the cluster (as with an autoscaler), so it stays.',
     });
-    declares({ [RESTART]: facts });
+    declares({ [SCALE]: facts });
     const toolkit: RemediationCommandToolkit = buildToolkit();
 
-    const outcome: ToolCallOutcome = await execute(toolkit, RESTART);
+    const outcome: ToolCallOutcome = await execute(toolkit, SCALE);
 
     expect(outcome.success).toBe(true);
     expect(outcome.textForLlm).toContain(`GitOps: ${facts.summary}`);
@@ -433,6 +428,31 @@ describe("execute_remediation_command on an object Argo CD or Flux declares", ()
     const stored: JSONObject = (last["commands"] as Array<JSONObject>)[0]!;
     expect(stored["gitOps"]).toEqual(facts);
     expect(stored["revertWatch"]).toEqual(WATCH);
+  });
+
+  it("runs a restart Flux undoes the annotation of, saying the pods restart once more, and leaves nothing to watch", async () => {
+    const RESTART: string = "kubectl rollout restart deployment/web -n web";
+    const facts: AiRemediationCommandGitOps = gitOps({
+      controller: GitOpsController.Flux,
+      ownerKind: "Kustomization",
+      ownerName: "apps",
+      ownerNamespace: "flux-system",
+      evidence: "label kustomize.toolkit.fluxcd.io/name",
+      putsBack: false,
+      summary:
+        'Flux Kustomization "apps" (namespace flux-system) declares deployment/web (label kustomize.toolkit.fluxcd.io/name), and this change edits a restart annotation on its pod template: Flux removes that annotation at its next reconciliation, which restarts the pods once more rather than undoing the restart.',
+    });
+    declares({ [RESTART]: facts });
+    captureWatch.mockResolvedValue(null);
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+
+    const outcome: ToolCallOutcome = await execute(toolkit, RESTART);
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+    expect(outcome.textForLlm).toContain(`GitOps: ${facts.summary}`);
+    expect(toolkit.getExecutedCommands()[0]!.gitOps).toEqual(facts);
+    expect(toolkit.getExecutedCommands()[0]!.revertWatch).toBeUndefined();
   });
 
   it("runs a change a Helm release puts back only at its next upgrade, saying so", async () => {

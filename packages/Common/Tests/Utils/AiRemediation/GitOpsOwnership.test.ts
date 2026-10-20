@@ -461,11 +461,12 @@ describe("classifyGitOpsChange", () => {
   function effectOf(
     command: string,
     object: JSONObject = deployment({}),
+    owner: AiRemediationGitOpsOwner = ARGO_OWNER,
   ): GitOpsChangeEffect {
     return classifyGitOpsChange({
       target: target(command),
       object,
-      owner: ARGO_OWNER,
+      owner,
     });
   }
 
@@ -522,6 +523,83 @@ describe("classifyGitOpsChange", () => {
       ).putsBack,
     ).toBe(false);
   });
+
+  it("with a Flux Kustomization, puts back what kubectl adds as well: a pause, a label, an annotation", () => {
+    for (const command of [
+      "kubectl rollout pause deployment/web -n shop",
+      "kubectl annotate deployment/web example.com/note=ai -n shop",
+      "kubectl label deployment/web example.com/tier=hot -n shop",
+      "kubectl set env deployment/web FIX_FLAG=1 -n shop",
+      "kubectl rollout undo deployment/web -n shop",
+    ]) {
+      expect(effectOf(command, deployment({}), FLUX_OWNER).putsBack).toBe(true);
+    }
+  });
+
+  it("with a Flux Kustomization, does not call a restart put back: the annotation goes and the pods restart once more", () => {
+    expect(
+      effectOf(
+        "kubectl rollout restart deployment/web -n shop",
+        deployment({}),
+        FLUX_OWNER,
+      ),
+    ).toEqual({
+      putsBack: false,
+      edits: "a restart annotation on its pod template",
+      instead:
+        "Flux removes that annotation at its next reconciliation, which restarts the pods once more rather than undoing the restart",
+    });
+  });
+
+  it("with a Flux Kustomization, keeps a scale git leaves to the cluster and a resume", () => {
+    expect(
+      effectOf(
+        "kubectl scale deployment/web --replicas=3 -n shop",
+        deployment({
+          managedFields: [
+            managed("kustomize-controller", {
+              "f:spec": { "f:template": {} },
+            }),
+          ],
+        }),
+        FLUX_OWNER,
+      ).putsBack,
+    ).toBe(false);
+    expect(
+      effectOf(
+        "kubectl rollout resume deployment/web -n shop",
+        deployment({}),
+        FLUX_OWNER,
+      ).putsBack,
+    ).toBe(false);
+  });
+
+  it("reads a Flux HelmRelease as Helm: what kubectl adds stays", () => {
+    const helmRelease: AiRemediationGitOpsOwner = {
+      controller: GitOpsController.Flux,
+      ownerKind: "HelmRelease",
+      ownerName: "web",
+      ownerNamespace: "flux-system",
+      evidence: "label helm.toolkit.fluxcd.io/name",
+    };
+
+    for (const command of [
+      "kubectl rollout restart deployment/web -n shop",
+      "kubectl rollout pause deployment/web -n shop",
+      "kubectl annotate deployment/web example.com/note=ai -n shop",
+    ]) {
+      expect(effectOf(command, deployment({}), helmRelease)).toMatchObject({
+        putsBack: false,
+      });
+    }
+    expect(
+      effectOf(
+        "kubectl rollout restart deployment/web -n shop",
+        deployment({}),
+        helmRelease,
+      ).instead,
+    ).toBeUndefined();
+  });
 });
 
 describe("describeGitOpsChange", () => {
@@ -562,7 +640,7 @@ describe("describeGitOpsChange", () => {
     );
   });
 
-  it("says when Flux puts it back", () => {
+  it("says when Flux puts it back, and that it removes what kubectl added", () => {
     expect(
       describeFor(FLUX_OWNER, "kubectl rollout undo deployment/web -n shop")
         .summary,
@@ -570,9 +648,25 @@ describe("describeGitOpsChange", () => {
       'Flux Kustomization "apps" (namespace flux-system) declares deployment/web',
     );
     expect(
-      describeFor(FLUX_OWNER, "kubectl rollout undo deployment/web -n shop")
-        .summary,
-    ).toContain("at its next reconciliation");
+      describeFor(
+        FLUX_OWNER,
+        "kubectl annotate deployment/web example.com/note=ai -n shop",
+      ).summary,
+    ).toBe(
+      'Flux Kustomization "apps" (namespace flux-system) declares deployment/web (label kustomize.toolkit.fluxcd.io/name), and this change edits an annotation: Flux puts it back to what git declares at its next reconciliation (its interval, often a few minutes), and removes what kubectl added. Treat it as a stopgap - the lasting fix is the same change in git (the manifest, Helm values or Kustomize overlay it is built from).',
+    );
+  });
+
+  it("says a restart Flux removes the annotation of restarts the pods once more, and is not put back", () => {
+    const gitOps: AiRemediationCommandGitOps = describeFor(
+      FLUX_OWNER,
+      "kubectl rollout restart deployment/web -n shop",
+    );
+
+    expect(gitOps.putsBack).toBe(false);
+    expect(gitOps.summary).toBe(
+      'Flux Kustomization "apps" (namespace flux-system) declares deployment/web (label kustomize.toolkit.fluxcd.io/name), and this change edits a restart annotation on its pod template: Flux removes that annotation at its next reconciliation, which restarts the pods once more rather than undoing the restart.',
+    );
   });
 
   it("says a Helm release puts it back at its next upgrade, and does not reconcile on its own", () => {

@@ -199,21 +199,40 @@ describe("buildRevertWatch", () => {
     ]);
   });
 
-  it("watches the restart annotation a rollout restart adds", () => {
+  it("leaves nothing to watch after a restart: its annotation going away (as Flux removes it) replaces the pods once more, it does not undo the restart", () => {
+    const restarted: JSONObject = web({
+      templateAnnotations: {
+        "kubectl.kubernetes.io/restartedAt": "2026-10-20T10:00:00Z",
+      },
+    });
+
     expect(
       watchOf(
         "kubectl rollout restart deployment/web -n shop",
         web(),
-        web({
-          templateAnnotations: {
-            "kubectl.kubernetes.io/restartedAt": "2026-10-20T10:00:00Z",
-          },
-        }),
+        restarted,
+      ),
+    ).toBeNull();
+    expect(
+      Array.from(flattenObjectFields(restarted).keys()).some(
+        (path: string): boolean => {
+          return path.endsWith("restartedAt");
+        },
+      ),
+    ).toBe(false);
+  });
+
+  it("still watches the other annotations of a pod template", () => {
+    expect(
+      watchOf(
+        `kubectl patch deployment/web -n shop -p '{"spec":{"template":{"metadata":{"annotations":{"example.com/config":"v2"}}}}}'`,
+        web(),
+        web({ templateAnnotations: { "example.com/config": "v2" } }),
       )?.fields,
     ).toEqual([
       {
-        path: "spec.template.metadata.annotations.kubectl.kubernetes.io/restartedAt",
-        after: '"2026-10-20T10:00:00Z"',
+        path: "spec.template.metadata.annotations.example.com/config",
+        after: '"v2"',
       },
     ]);
   });

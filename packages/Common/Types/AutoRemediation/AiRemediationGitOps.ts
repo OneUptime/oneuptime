@@ -10,10 +10,13 @@ import { JSONObject } from "../JSON";
  * (HelmChart/Tests/suites/gitops-revert.sh): Argo CD with self-heal puts a
  * `kubectl scale`, `set image`, `rollout undo` or `patch` back within
  * seconds, Flux at its next reconciliation, a Helm release at its next
- * upgrade. A rollout restart or a deleted pod changes nothing git declares,
- * and stays. So OneUptime reads who declares the object before AI changes
- * it (GitOpsOwnership) and records it on the command, and records what the
- * fix changed so verification notices when it is put back
+ * upgrade. Argo CD and Helm leave alone what git does not declare (a
+ * restart's annotation, a pause, an added annotation); a Flux
+ * Kustomization removes that too, and removing a restart's annotation
+ * restarts the pods once more. A deleted pod is replaced whoever declares
+ * its workload. So OneUptime reads who declares the object before AI
+ * changes it (GitOpsOwnership) and records it on the command, and records
+ * what the fix changed so verification notices when it is put back
  * (KubectlRevertWatch).
  */
 

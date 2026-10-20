@@ -444,11 +444,27 @@ export function declaresReplicas(
  * What a kubectl change of an object does to what its owner declares: the
  * owner puts it back, or it stays — as Argo CD, Flux and Helm were seen to
  * treat each change (HelmChart/Tests/suites/gitops-revert.sh). `edits` says
- * what the change touches, for the summary.
+ * what the change touches, for the summary; `instead`, what becomes of a
+ * change that is not put back but does not stay either.
  */
 export interface GitOpsChangeEffect {
   putsBack: boolean;
   edits: string;
+  instead?: string | undefined;
+}
+
+/*
+ * Flux's kustomize-controller takes over the fields kubectl writes and
+ * applies git again, so its next reconciliation removes what kubectl added
+ * as well as what it changed: a restart annotation, a pause, a label.
+ * Argo CD and Helm leave what git does not declare alone. A HelmRelease is
+ * read as Helm: helm-controller applies what the chart renders.
+ */
+function removesWhatKubectlAdds(owner: AiRemediationGitOpsOwner): boolean {
+  return (
+    owner.controller === GitOpsController.Flux &&
+    owner.ownerKind === "Kustomization"
+  );
 }
 
 export function classifyGitOpsChange(data: {
@@ -457,14 +473,31 @@ export function classifyGitOpsChange(data: {
   owner: AiRemediationGitOpsOwner;
 }): GitOpsChangeEffect {
   const { target } = data;
+  const removesAdditions: boolean = removesWhatKubectlAdds(data.owner);
 
   if (target.verb === "rollout") {
     if (target.subcommand === "restart") {
-      return {
-        putsBack: false,
-        edits:
-          "a restart annotation on its pod template, which is not something git declares",
-      };
+      /*
+       * A restart is done once its pods are replaced. Flux removing the
+       * annotation changes the pod template back, which replaces them once
+       * more: it does not bring the old pods back.
+       */
+      return removesAdditions
+        ? {
+            putsBack: false,
+            edits: "a restart annotation on its pod template",
+            instead:
+              "Flux removes that annotation at its next reconciliation, which restarts the pods once more rather than undoing the restart",
+          }
+        : {
+            putsBack: false,
+            edits:
+              "a restart annotation on its pod template, which is not something git declares",
+          };
+    }
+
+    if (target.subcommand === "pause" && removesAdditions) {
+      return { putsBack: true, edits: "its paused flag" };
     }
 
     if (target.subcommand === "pause" || target.subcommand === "resume") {
@@ -516,10 +549,11 @@ export function classifyGitOpsChange(data: {
   }
 
   if (target.verb === "label" || target.verb === "annotate") {
-    return {
-      putsBack: false,
-      edits: `${target.verb === "label" ? "a label" : "an annotation"} it does not declare`,
-    };
+    const what: string = target.verb === "label" ? "a label" : "an annotation";
+
+    return removesAdditions
+      ? { putsBack: true, edits: what }
+      : { putsBack: false, edits: `${what} it does not declare` };
   }
 
   if (target.verb === "create") {
@@ -564,7 +598,7 @@ function describeWhenPutBack(owner: AiRemediationGitOpsOwner): string {
   if (owner.controller === GitOpsController.Flux) {
     return owner.ownerKind === "HelmRelease"
       ? "Flux puts it back at its next reconciliation when the HelmRelease has drift detection on, otherwise at the release's next upgrade"
-      : "Flux puts it back to what git declares at its next reconciliation (its interval, often a few minutes)";
+      : "Flux puts it back to what git declares at its next reconciliation (its interval, often a few minutes), and removes what kubectl added";
   }
 
   return "nothing puts it back on its own, but the release's next helm upgrade does";
@@ -601,13 +635,18 @@ export function describeGitOpsChange(data: {
   const ownerSentenceStart: string =
     ownerText.charAt(0).toUpperCase() + ownerText.slice(1);
 
-  const summary: string = effect.putsBack
-    ? `${ownerSentenceStart} declares ${object} (${owner.evidence}), and this change ${
-        effect.edits.startsWith("deletes")
-          ? effect.edits
-          : `edits ${effect.edits}`
-      }: ${describeWhenPutBack(owner)}. Treat it as a stopgap - ${describeLastingFix(owner)}.`
-    : `${ownerSentenceStart} declares ${object} (${owner.evidence}), but this change edits ${effect.edits}, so it stays.`;
+  const declares: string = `${ownerSentenceStart} declares ${object} (${owner.evidence})`;
+  let summary: string = `${declares}, but this change edits ${effect.edits}, so it stays.`;
+
+  if (effect.putsBack) {
+    summary = `${declares}, and this change ${
+      effect.edits.startsWith("deletes")
+        ? effect.edits
+        : `edits ${effect.edits}`
+    }: ${describeWhenPutBack(owner)}. Treat it as a stopgap - ${describeLastingFix(owner)}.`;
+  } else if (effect.instead) {
+    summary = `${declares}, and this change edits ${effect.edits}: ${effect.instead}.`;
+  }
 
   return {
     ...owner,
