@@ -8,8 +8,13 @@ import {
   projectSettingsMenu,
   readableText,
 } from "../../Dashboard/SettingsMenuPaths";
+import { DocsLink, scanMarkdown } from "./DocsContentSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { escapeRegExp } from "./DocsTranslationChecks";
+import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
+import ToolImportSource, {
+  AllToolImportSources,
+} from "Common/Types/ToolImport/ToolImportSource";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -43,6 +48,20 @@ const CONTENT_DIR: string = path.resolve(
 );
 
 const MENU: SettingsMenu = projectSettingsMenu();
+
+const BASIC: string = "Basic";
+const ADVANCED: string = "Advanced";
+
+/*
+ * Importing from another tool is done once, when a project starts, so it
+ * waits in Advanced ("This should be in the advanced section in the side
+ * menu.", the maintainer), where Basic held it before.
+ */
+const IMPORT_PAGE: string = "Import from another tool";
+
+// The menu map of Project Settings, and where its rows send a reader.
+const PROJECT_SETTINGS_PAGE: string = "configuration/project-settings.md";
+const MOVING_GUIDE: string = "/docs/moving-to-oneuptime/opsgenie";
 
 /*
  * The one path the docs quote that the menu does not have, on purpose: the
@@ -175,17 +194,26 @@ describe("the checks themselves", () => {
         { section: "AI", page: "AI Features" },
         { section: "Advanced", page: "Domains" },
         { section: "Advanced", page: "API Keys" },
+        { section: "Advanced", page: IMPORT_PAGE },
         { section: "Notifications", page: "Notification Settings" },
         { section: "Workspace", page: "Video Calls" },
       ]),
     );
-    expect(
-      FOLDED_PAGES.map((folded: FoldedPage): string => {
+
+    const foldedPages: Array<string> = FOLDED_PAGES.map(
+      (folded: FoldedPage): string => {
         return folded.page;
-      }),
-    ).not.toEqual(
-      expect.arrayContaining(["Project", "Labels", "Import from another tool"]),
+      },
     );
+
+    // Basic starts open, and holds the project itself and its labels only.
+    expect(foldedPages).not.toContain("Project");
+    expect(foldedPages).not.toContain("Labels");
+    expect(
+      MENU.sections.find((menuSection: SettingsMenuSection): boolean => {
+        return menuSection.title === BASIC;
+      }),
+    ).toEqual({ title: BASIC, items: ["Project", "Labels"], folded: false });
   });
 
   it.each([
@@ -200,6 +228,17 @@ describe("the checks themselves", () => {
     // No space before the next word, as Japanese and Chinese often write it.
     ["zh-CN", "请在“项目设置 → 使用历史”中查看"],
     ["fa", "در **تنظیمات پروژه ← دامنه‌ها** تأیید شده"],
+    // The import, as the guides wrote it while it was in Basic.
+    [
+      "en",
+      "In OneUptime, go to **Project Settings** > **Import from another tool** and select **Opsgenie**.",
+    ],
+    [
+      "de",
+      "**Projekteinstellungen → Aus einem anderen Tool importieren** liest Ihre Einrichtung.",
+    ],
+    ["ja", "OneUptime で **プロジェクト設定** > **別のツールからインポート** を開き"],
+    ["ko", "**프로젝트 설정 → 다른 도구에서 가져오기**는 다른 도구의 설정을"],
   ])(
     "flags a %s path that leaves the folded section out: %s",
     (language: string, text: string) => {
@@ -221,7 +260,16 @@ describe("the checks themselves", () => {
     ],
     ["ja", "**プロジェクト設定 → 詳細 → ドメイン** で確認済みのドメイン"],
     // A page of the open Basic section needs nothing in between.
-    ["en", "Open **Project Settings** > **Import from another tool**."],
+    ["en", "Open **Project Settings** > **Labels**."],
+    [
+      "en",
+      "In OneUptime, go to **Project Settings** > **Advanced** > **Import from another tool** and select **Opsgenie**.",
+    ],
+    [
+      "ja",
+      "OneUptime で **プロジェクト設定** > **詳細** > **別のツールからインポート** を開き",
+    ],
+    ["ko", "**프로젝트 설정 → 고급 → 다른 도구에서 가져오기**는 다른 도구의 설정을"],
   ])(
     "follows a %s path that names it: %s",
     (language: string, text: string) => {
@@ -263,7 +311,7 @@ describe("every docs page sends readers down Project Settings' real menu", () =>
         "Project Settings > Advanced > API Keys",
         "Project Settings > Telemetry & APM > Ingestion Keys",
         "Project Settings > Workspace > Slack",
-        "Project Settings > Import from another tool",
+        "Project Settings > Advanced > Import from another tool",
       ]),
     );
   });
@@ -369,6 +417,117 @@ describe("every docs page sends readers down Project Settings' real menu", () =>
       });
 
       expect(page).toContain(steps.join(" > "));
+    },
+  );
+});
+
+describe("the docs find Import from another tool in Advanced, in every language", () => {
+  const languages: Array<[string]> = SUPPORTED_DOCS_LANGUAGE_CODES.map(
+    (language: string): [string] => {
+      return [language];
+    },
+  );
+
+  // Every tool's moving guide, from the catalog: a tool added later is checked too.
+  const GUIDES: Array<string> = AllToolImportSources.map(
+    (source: ToolImportSource): string => {
+      return getToolImportSourceDefinition(source).docsPath.replace(
+        "/docs/",
+        "",
+      );
+    },
+  );
+
+  function readContent(language: string, page: string): string {
+    return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
+  }
+
+  // The row of the map that starts with a section, as the language draws it.
+  function mapRow(language: string, section: string): string {
+    const start: string = `| **${drawnDashboardLabel(language, section)}** |`;
+    const rows: Array<string> = readContent(language, PROJECT_SETTINGS_PAGE)
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith(start);
+      });
+
+    expect({ language, section, rows: rows.length }).toEqual({
+      language,
+      section,
+      rows: 1,
+    });
+
+    return rows[0] as string;
+  }
+
+  function linkTargets(markdown: string): Array<string> {
+    return scanMarkdown(markdown).links.map((link: DocsLink): string => {
+      return link.target;
+    });
+  }
+
+  it("has a guide for every tool to check", () => {
+    expect(GUIDES.length).toBeGreaterThanOrEqual(11);
+    expect(GUIDES).toContain(MOVING_GUIDE.replace("/docs/", ""));
+  });
+
+  it.each(languages)(
+    "%s: every moving guide opens the import page through Advanced, each step as its Dashboard draws it",
+    (language: string) => {
+      const steps: string = [PROJECT_SETTINGS, ADVANCED, IMPORT_PAGE]
+        .map((english: string): string => {
+          return `**${drawnDashboardLabel(language, english)}**`;
+        })
+        .join(" > ");
+
+      for (const guide of GUIDES) {
+        expect({
+          language,
+          guide,
+          opens: readContent(language, `${guide}.md`).includes(steps),
+        }).toEqual({ language, guide, opens: true });
+      }
+    },
+  );
+
+  it.each(languages)(
+    "%s: no page puts Import from another tool under Basic any more",
+    (language: string) => {
+      // Read as the reader sees it: readableText drops the bold markers.
+      const underBasic: RegExp = new RegExp(
+        `${escapeRegExp(drawnDashboardLabel(language, BASIC))}\\s*(?:->|>|→|←|›)\\s*${escapeRegExp(drawnDashboardLabel(language, IMPORT_PAGE))}`,
+        "u",
+      );
+
+      expect(
+        PAGES.filter((page: DocsPage): boolean => {
+          return (
+            page.language === language &&
+            underBasic.test(readableText(page.text))
+          );
+        }).map((page: DocsPage): string => {
+          return page.page;
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  it.each(languages)(
+    "%s: the map of Project Settings lists it, and the moving guides, in Advanced's row and not in Basic's",
+    (language: string) => {
+      const entry: string = `**${drawnDashboardLabel(language, IMPORT_PAGE)}**`;
+      const basic: string = mapRow(language, BASIC);
+      const advanced: string = mapRow(language, ADVANCED);
+
+      expect({
+        language,
+        inBasic: basic.includes(entry),
+        inAdvanced: advanced.includes(entry),
+      }).toEqual({ language, inBasic: false, inAdvanced: true });
+      expect(linkTargets(basic)).not.toContain(MOVING_GUIDE);
+      expect(linkTargets(advanced)).toContain(MOVING_GUIDE);
+      // Last, as the side menu lists it: nothing bold follows it in its cell.
+      expect(advanced.split(" | ")[1]?.endsWith(entry)).toBe(true);
     },
   );
 });

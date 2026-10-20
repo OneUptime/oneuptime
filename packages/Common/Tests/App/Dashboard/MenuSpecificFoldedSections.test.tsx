@@ -75,6 +75,7 @@ import {
   PROJECT_ID,
   activeLinkTitles,
   goTo,
+  iconCountIn,
   isExpanded,
   linksIn,
   mobileSummaryText,
@@ -204,6 +205,11 @@ describe("project Settings: only Basic starts open", () => {
     ],
     [PageMap.SETTINGS_AI_FEATURES, "AI", "AI Features"],
     [PageMap.SETTINGS_APIKEYS, "Advanced", "API Keys"],
+    [
+      PageMap.SETTINGS_IMPORT_FROM_TOOL,
+      "Advanced",
+      "Import from another tool",
+    ],
     [PageMap.SETTINGS_SSO, "Security", "SSO"],
     [PageMap.SETTINGS_AUDIT_LOGS, "Audit Logs", "Audit Logs"],
     [PageMap.SETTINGS_DANGERZONE, "Danger Zone", "Danger Zone"],
@@ -238,6 +244,108 @@ describe("project Settings: only Basic starts open", () => {
     await renderSettingsMenuAt(PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS);
 
     expect(mobileSummaryText()).toContain("Telemetry & APM / Ingestion Keys");
+  });
+
+  /*
+   * "This should be in the advanced section in the side menu." (the
+   * maintainer). A project brings its team over from another tool once,
+   * when it starts, so the import waits last in Advanced, folded with the
+   * settings few people open; Basic keeps the project itself and its labels.
+   */
+  describe("Import from another tool waits in Advanced", () => {
+    test("Basic holds the project and its labels, each with its icon, and nothing else", async () => {
+      await renderSettingsMenuAt(PageMap.SETTINGS);
+
+      expect(linksIn("Basic")).toEqual([
+        { title: "Project", href: routeFor(PageMap.SETTINGS) },
+        { title: "Labels", href: routeFor(PageMap.SETTINGS_LABELS) },
+      ]);
+      expect(iconCountIn("Basic")).toBe(2);
+    });
+
+    test("on the Project page it is folded away in Advanced, and a click on Advanced shows it last", async () => {
+      await renderSettingsMenuAt(PageMap.SETTINGS);
+
+      expect(isExpanded("Advanced")).toBe(false);
+      expect(sectionBody("Advanced")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+
+      fireEvent.click(sectionToggle("Advanced"));
+
+      expect(isExpanded("Advanced")).toBe(true);
+      expect(sectionBody("Advanced")).not.toHaveClass("invisible");
+      expect(linksIn("Advanced")).toEqual([
+        { title: "Domains", href: routeFor(PageMap.SETTINGS_DOMAINS) },
+        { title: "API Keys", href: routeFor(PageMap.SETTINGS_APIKEYS) },
+        {
+          title: "Feature Flags",
+          href: routeFor(PageMap.SETTINGS_FEATURE_FLAGS),
+        },
+        {
+          title: "Import from another tool",
+          href: routeFor(PageMap.SETTINGS_IMPORT_FROM_TOOL),
+        },
+      ]);
+      // Every entry keeps its icon: the import's inbox-with-arrow came along.
+      expect(iconCountIn("Advanced")).toBe(4);
+      // Opening one section leaves the others as they were.
+      expect(isExpanded("Basic")).toBe(true);
+      expect(isExpanded("Security")).toBe(false);
+    });
+
+    test("the menu links the import page once", async () => {
+      await renderSettingsMenuAt(PageMap.SETTINGS);
+
+      expect(
+        hrefsIn("Advanced").filter((href: string): boolean => {
+          return href === routeFor(PageMap.SETTINGS_IMPORT_FROM_TOOL);
+        }),
+      ).toHaveLength(1);
+      expect(hrefsIn("Basic")).not.toContain(
+        routeFor(PageMap.SETTINGS_IMPORT_FROM_TOOL),
+      );
+    });
+
+    test.each([
+      ["off", false],
+      ["on", true],
+    ])(
+      "with billing %s, the import page opens Advanced by itself, marks the import, and opens nothing else that folds",
+      async (_billing: string, billingEnabled: boolean) => {
+        billingEnabledForTest = billingEnabled;
+        await renderSettingsMenuAt(PageMap.SETTINGS_IMPORT_FROM_TOOL);
+
+        expect(sectionStates()).toEqual([
+          { title: "Basic", expanded: true },
+          { title: "Workspace", expanded: false },
+          { title: "Telemetry & APM", expanded: false },
+          { title: "Notifications", expanded: false },
+          { title: "AI", expanded: false },
+          { title: "Advanced", expanded: true },
+          { title: "Security", expanded: false },
+          ...(billingEnabled
+            ? [{ title: "Billing and Invoices", expanded: false }]
+            : []),
+          { title: "Audit Logs", expanded: false },
+          { title: "Danger Zone", expanded: false },
+        ]);
+        expect(activeLinkTitles()).toEqual(["Import from another tool"]);
+        expect(sectionBody("Advanced")).not.toHaveClass("invisible");
+      },
+    );
+
+    test("on a phone, the import page's menu names Advanced and the page", async () => {
+      setViewportWidth(MOBILE_WIDTH);
+      await renderSettingsMenuAt(PageMap.SETTINGS_IMPORT_FROM_TOOL);
+
+      expect(mobileSummaryText()).toContain(
+        "Advanced / Import from another tool",
+      );
+      expect(mobileSummaryText()).not.toContain("Basic");
+    });
   });
 });
 

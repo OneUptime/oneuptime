@@ -21,6 +21,8 @@ import {
 import {
   getPageSearchAreas,
   PageSearchArea,
+  PageSearchPage,
+  PageSearchSection,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex";
 import { TOOL_IMPORT_ROUTES } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportApi";
 import {
@@ -37,8 +39,8 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Project Settings > Import from another tool is one page reached four ways
- * - the Settings side menu, its URL, the breadcrumb and Cmd+K - and it talks
+ * Project Settings > Advanced > Import from another tool is one page reached
+ * four ways - the Settings side menu, its URL, the breadcrumb and Cmd+K - and it talks
  * to one API that a worker finishes the work of. The App suite runs in a
  * plain Node environment with no renderer, so nothing else notices a route
  * never registered, a menu entry that 404s, a search that cannot find the
@@ -60,6 +62,8 @@ const PAGE_TITLE: string = "Import from another tool";
 
 const WHITESPACE: RegExp = /\s+/g;
 const NOT_A_LETTER: RegExp = /[^a-z]+/;
+// 'title: "Labels"' - a section's or a link's title, as a side menu writes it.
+const MENU_TITLE: RegExp = /title: "([^"]+)"/g;
 const RUN_ID: string = "run-id";
 
 /*
@@ -143,6 +147,22 @@ function between(source: string, from: string, to: string): string {
   return end >= 0 ? source.slice(start, end) : source.slice(start);
 }
 
+// The titles a stretch of a side menu's source writes, in order.
+function titlesIn(source: string): Array<string> {
+  return Array.from(source.matchAll(MENU_TITLE)).map(
+    (match: RegExpMatchArray): string => {
+      return match[1] as string;
+    },
+  );
+}
+
+// The titles of a Search section's pages, in order.
+function pageTitlesOf(section: PageSearchSection | undefined): Array<string> {
+  return (section?.pages || []).map((page: PageSearchPage): string => {
+    return page.title;
+  });
+}
+
 describe("the page is reachable", () => {
   test("it has a page id, and its path sits under Project Settings", () => {
     const routeMap: string = readDashboard("Utils/RouteMap.ts");
@@ -183,21 +203,56 @@ describe("the page is reachable", () => {
   });
 
   /*
-   * Moving a team over is a first thing a new project does, so the page
-   * sits in Basic - the section that never folds - not under Advanced.
+   * "This should be in the advanced section in the side menu." (the
+   * maintainer). A project brings its team over once, when it starts, so
+   * the page waits in Advanced - folded until it is opened, and open by
+   * itself on the page - last, after the settings people come back to.
+   * Basic keeps the project itself and its labels.
    */
-  test("the Settings side menu lists it under Basic", () => {
-    const basic: string = between(
-      readDashboard("Pages/Settings/SideMenu.tsx"),
-      'title: "Basic"',
-      'title: "Workspace"',
+  test("the Settings side menu lists it last under Advanced, with its icon, and no longer under Basic", () => {
+    const menu: string = readDashboard("Pages/Settings/SideMenu.tsx");
+    const basic: string = between(menu, 'title: "Basic"', 'title: "Workspace"');
+    const advanced: string = between(
+      menu,
+      'title: "Advanced"',
+      'title: "Security"',
     );
 
-    expect(basic).toContain(`title: "${PAGE_TITLE}"`);
-    expect(basic).toContain(`RouteMap[PageMap.${PAGE_ID}] as Route`);
+    expect(titlesIn(basic)).toEqual(["Basic", "Project", "Labels"]);
+    expect(basic).not.toContain(`PageMap.${PAGE_ID}]`);
+
+    expect(titlesIn(advanced)).toEqual([
+      "Advanced",
+      "Domains",
+      "API Keys",
+      "Feature Flags",
+      PAGE_TITLE,
+    ]);
+
+    /*
+     * Its own entry, up to where the section's items end: the route and the
+     * icon it had in Basic, and nothing after it.
+     */
+    const entry: string = between(advanced, `title: "${PAGE_TITLE}"`, "], },");
+
+    expect(titlesIn(entry)).toEqual([PAGE_TITLE]);
+    expect(entry).toContain(`RouteMap[PageMap.${PAGE_ID}] as Route`);
+    expect(entry.endsWith("icon: IconProp.InboxArrowDown, }, ")).toBe(true);
   });
 
-  test("Cmd+K lists it under Project Settings > Basic", () => {
+  test("the page is linked from one place in the menu, and Advanced is not told to stay open for it", () => {
+    const menu: string = readDashboard("Pages/Settings/SideMenu.tsx");
+
+    expect(menu.split(`RouteMap[PageMap.${PAGE_ID}]`)).toHaveLength(2);
+    // Advanced folds by its title (SideMenuSectionState), and opens by itself on its pages.
+    expect(
+      between(menu, 'title: "Advanced"', "items:").includes(
+        "defaultCollapsed",
+      ),
+    ).toBe(false);
+  });
+
+  test("Cmd+K lists it last under Project Settings > Advanced, as the side menu does, and no longer under Basic", () => {
     const entry: PageSearchIndexEntry | undefined = SEARCH_ENTRIES.find(
       (candidate: PageSearchIndexEntry): boolean => {
         return candidate.page.page === PAGE_ID;
@@ -206,7 +261,50 @@ describe("the page is reachable", () => {
 
     expect(entry?.page.title).toBe(PAGE_TITLE);
     expect(entry?.area.id).toBe("project-settings");
-    expect(entry?.section.title).toBe("Basic");
+    expect(entry?.section.title).toBe("Advanced");
+    expect(pageTitlesOf(entry?.section)).toEqual([
+      "Domains",
+      "API Keys",
+      "Feature Flags",
+      PAGE_TITLE,
+    ]);
+
+    const basic: PageSearchSection | undefined = SEARCH_AREAS.find(
+      (area: PageSearchArea): boolean => {
+        return area.id === "project-settings";
+      },
+    )?.sections.find((section: PageSearchSection): boolean => {
+      return section.title === "Basic";
+    });
+
+    expect(pageTitlesOf(basic)).toEqual(["Project", "Labels"]);
+    expect(
+      SEARCH_ENTRIES.filter((candidate: PageSearchIndexEntry): boolean => {
+        return candidate.page.page === PAGE_ID;
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("its breadcrumb names the page, as every other Advanced page's does", () => {
+    const breadcrumbs: string = readDashboard(
+      "Utils/Breadcrumbs/SettingsBreadcrumbs.ts",
+    );
+
+    for (const [page, title] of [
+      ["SETTINGS_DOMAINS", "Domains"],
+      ["SETTINGS_APIKEYS", "API Keys"],
+      ["SETTINGS_FEATURE_FLAGS", "Feature Flags"],
+      [PAGE_ID, PAGE_TITLE],
+    ] as Array<[string, string]>) {
+      const opening: string = `BuildBreadcrumbLinksByTitles(PageMap.${page}, [`;
+
+      expect({
+        page,
+        titles: between(breadcrumbs, opening, "])")
+          .slice(opening.length)
+          .trim(),
+      }).toEqual({ page, titles: `"Project", "Settings", "${title}",` });
+    }
   });
 
   test("Cmd+K opens it first for the words someone moving over types, and for each tool's name", () => {
@@ -223,7 +321,7 @@ describe("the page is reachable", () => {
     ]) {
       expect({ query, first: firstFound(query) }).toEqual({
         query,
-        first: `${PAGE_TITLE} — Project Settings › Basic`,
+        first: `${PAGE_TITLE} — Project Settings › Advanced`,
       });
     }
   });
