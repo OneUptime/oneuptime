@@ -7,6 +7,7 @@ Un runbook è una procedura di risposta riutilizzabile: un elenco ordinato di pa
 - [Regole di runbook](/docs/runbooks/rules): Avviare i runbook su nuovi incidenti, avvisi ed eventi di manutenzione.
 - [Eseguire un runbook](/docs/runbooks/running): Avviare un'esecuzione, completarne e approvarne i passaggi, annullarla.
 - [Trigger dei runbook](/docs/runbooks/triggers): Eseguire un runbook secondo una pianificazione, o da un altro strumento tramite il suo URL del webhook.
+- [Variabili dei runbook](/docs/runbooks/variables): Gli host, le chiavi, le password e i kubeconfig che i tuoi passaggi usano per nome.
 - [Agenti di runbook](/docs/runbooks/agents): Installare il Runner che esegue i tuoi script nella tua infrastruttura.
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     execution --> worker["Il Worker<br/>di OneUptime<br/>esegue<br/>i passaggi<br/>in ordine"]
     worker -->|"Passaggio<br/>Manual o<br/>approvazione"| person["Attende<br/>una persona"]
     worker -->|"Passaggi<br/>HTTP e IA"| onworker["Viene eseguito<br/>sul Worker"]
-    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner<br/>nella tua<br/>infrastruttura"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>kubectl"| runner["Runner<br/>nella tua<br/>infrastruttura"]
     person --> record["Stato,<br/>output<br/>ed errori<br/>registrati"]
     onworker --> record
     runner --> record
@@ -35,20 +36,20 @@ flowchart TB
 
 Ogni esecuzione di un runbook è un'**esecuzione**. All'avvio, i passaggi del runbook vengono copiati su di essa e OneUptime li esegue in ordine. Un passaggio Manual, o un passaggio che richiede approvazione, mette in pausa l'esecuzione finché qualcuno non agisce.
 
-I passaggi HTTP e IA vengono eseguiti sul Worker di OneUptime. I passaggi Bash, SSH e Kubernetes vengono eseguiti su un [Runner](/docs/runbooks/agents) che installi nella tua infrastruttura, quindi quegli script non girano mai sui server di OneUptime. Un passaggio JavaScript viene eseguito anch'esso su uno dei tuoi Runner oppure, se non ne sceglie nessuno, su un [Runner globale](/docs/runbooks/agents#runner-globali), in una sandbox che raggiunge solo internet. Lo stato, l'output e il messaggio di errore di ogni passaggio vengono registrati sull'esecuzione, che resta legata all'incidente, all'avviso o all'evento per cui è stata eseguita.
+I passaggi HTTP e IA vengono eseguiti sul Worker di OneUptime. I passaggi Bash, SSH e kubectl vengono eseguiti su un [Runner](/docs/runbooks/agents) che installi nella tua infrastruttura, quindi quegli script non girano mai sui server di OneUptime. Un passaggio JavaScript viene eseguito anch'esso su uno dei tuoi Runner oppure, se non ne sceglie nessuno, su un [Runner globale](/docs/runbooks/agents#runner-globali), in una sandbox che raggiunge solo internet. Lo stato, l'output e il messaggio di errore di ogni passaggio vengono registrati sull'esecuzione, che resta legata all'incidente, all'avviso o all'evento per cui è stata eseguita.
 
 ## Concetti chiave
 
 | Termine | Significato |
 | --- | --- |
 | **Runbook** | Il modello. Una procedura con un nome, riutilizzabile, con un elenco ordinato di passaggi e un interruttore **Esegui questo runbook**. |
-| **Passaggio** | Un elemento di un runbook. Ha un tipo (Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes o AI), un titolo, una descrizione e impostazioni specifiche del tipo. |
+| **Passaggio** | Un elemento di un runbook. Ha un tipo (Manual, JavaScript, HTTP request, Bash, SSH, kubectl o AI), un titolo, una descrizione e impostazioni specifiche del tipo. |
 | **Regola di runbook** | Una regola che collega automaticamente uno o più runbook agli incidenti, agli avvisi o agli eventi di manutenzione programmata che soddisfano le sue condizioni: i loro monitor, la gravità, le etichette, le etichette dei monitor, il titolo o la descrizione. |
 | **Esecuzione** | Un'esecuzione di un runbook. Viene creata quando scatta una regola, quando qualcuno fa clic su **Esegui Runbook** su un evento o quando qualcuno fa clic su **Run Now** sul runbook stesso. Contiene un'istantanea dei passaggi e lo stato e l'output di ciascuno. |
 | **Istantanea** | La copia congelata dei passaggi del runbook che vive su ogni esecuzione. Puoi modificare il runbook in seguito senza riscrivere la storia delle esecuzioni passate. |
-| **Runner** | Un piccolo agente che esegui su un host della tua infrastruttura. Esegue i passaggi JavaScript, Bash, SSH e Kubernetes che lo indicano. Detto anche agente di runbook. Un Runner globale, uno di quelli che OneUptime esegue per ogni progetto, esegue i passaggi JavaScript che non ne nominano nessuno. |
-| **Credenziale** | Accesso SSH o Kubernetes gestito, usato dai passaggi SSH e Kubernetes. Cifrata a riposo e consegnata solo ai Runner a cui la assegni. |
-| **Segreto** | Un singolo valore, come un token API, che uno script Bash o JavaScript usa come `{{runbookSecrets.NAME}}`. Cifrato a riposo e consegnato solo ai Runner a cui lo assegni. I Runner globali lo ricevono solo se lo consenti. |
+| **Runner** | Un piccolo agente che esegui su un host della tua infrastruttura. Esegue i passaggi JavaScript, Bash, SSH e kubectl che lo indicano. Detto anche agente di runbook. Un Runner globale, uno di quelli che OneUptime esegue per ogni progetto, esegue i passaggi JavaScript che non ne nominano nessuno. |
+| **Variabile** | Un valore che i passaggi usano per nome, come un host o un URL: `{{global.variables.NAME}}` per uno del progetto, che ogni runbook può usare, oppure `{{local.variables.NAME}}` per uno proprio del runbook. |
+| **Segreto** | Una variabile il cui valore è cifrato a riposo, non viene mai più mostrato ed è nascosto in ciò che i passaggi stampano, come una chiave SSH, una password, un kubeconfig o un token API. Consegnato solo ai Runner a cui consenti di usarlo; i Runner globali lo ricevono solo se lo consenti. |
 
 ## Tipi di passaggio
 
@@ -59,9 +60,9 @@ Scegli il tipo adatto a ogni passaggio. [Scrivere un runbook](/docs/runbooks/aut
 | **Manual** | Una persona | Una persona deve verificare qualcosa, valutare una situazione o agire dove OneUptime non può. | «Conferma che il traffico è passato alla regione secondaria.» |
 | **JavaScript** | Un Runner | Ti serve un piccolo calcolo isolato, in sandbox. | Calcolare il ritardo di replica e decidere se procedere. |
 | **HTTP request** | Il Worker di OneUptime | Chiami un'API esistente: un provider cloud, PagerDuty, un webhook Slack, il tuo servizio. | `POST` al tuo orchestratore di failover. |
-| **Bash** | Un Runner | Ti servono comandi di shell sulla tua infrastruttura. | Eseguire `kubectl rollout restart` o uno script di ripristino. |
-| **SSH** | Un Runner | Ti serve un comando su un host remoto, con una credenziale SSH gestita. | Riavviare un servizio su un server web. |
-| **Kubernetes** | Un Runner | Devi riavviare o scalare un Deployment, uno StatefulSet o un DaemonSet. | Riavviare `checkout-api` in `production`. |
+| **Bash** | Un Runner | Ti servono comandi di shell sulla tua infrastruttura. | Eseguire uno script di ripristino, o chiamare con `curl` un servizio raggiungibile solo dalla tua rete. |
+| **SSH** | Un Runner | Ti serve uno script bash su una macchina remota, con accesso tramite una variabile segreta. | Riavviare un servizio su un server web. |
+| **kubectl** | Un Runner | Ti servono comandi kubectl su un cluster. | Riavviare `checkout-api` in `production`, poi attendere i nuovi pod. |
 | **AI** | Il Worker di OneUptime | Vuoi un'analisi, un riepilogo o una valutazione durante l'esecuzione, dal provider LLM del tuo progetto. | «Esamina la diagnostica qui sopra. Il failover è sicuro?» |
 
 Un runbook può combinarli tutti. La forza dei runbook sta nell'alternare verifiche umane, automazione e analisi dell'IA.
@@ -90,11 +91,12 @@ Runbook si trova in **Prodotti**, nel gruppo **Dashboard e automazione**.
 | La **Panoramica** di un runbook | Vedere l'ultima esecuzione e i risultati, e fare clic su **Run Now**. |
 | Le **Esecuzioni** di un runbook | Tutte le esecuzioni di questo runbook, filtrate per stato o data di inizio. |
 | **Trigger** di un runbook | Eseguirlo secondo una [pianificazione](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione), o da un altro strumento tramite il suo [URL del webhook](/docs/runbooks/triggers#chiamare-il-webhook). |
+| Le **Variabili** di un runbook | Gestire le [variabili](/docs/runbooks/variables) che usano solo i passaggi di quel runbook. |
 | I **Proprietari** di un runbook | Aggiungere le persone e i team che ne sono responsabili. |
 | Le **Impostazioni** di un runbook | Disattivare **Esegui questo runbook** senza eliminare il runbook. |
 | **Runbook → Esecuzioni** | Tutte le esecuzioni di tutti i runbook del progetto. |
-| **Runbook → Agenti di runbook** e **Runbook → Agenti di runbook → Credenziali** | Installare i [Runner](/docs/runbooks/agents) e gestire le [credenziali](/docs/runbooks/credentials). |
-| **Runbook → Impostazioni** | Gestire i [segreti](/docs/runbooks/credentials#segreti-per-gli-script) per gli script, e le **Regole del proprietario** e **Regole etichette** che aggiungono proprietari ed etichette ai nuovi runbook. |
+| **Runbook → Agenti di runbook** e **Runbook → Agenti di runbook → Accesso dell'IA** | Installare i [Runner](/docs/runbooks/agents), e gestire l'[accesso](/docs/runbooks/credentials) che i comandi di OneUptime AI hanno attraverso di essi. |
+| **Runbook → Impostazioni** | Gestire, in **Variabili globali**, le variabili che ogni runbook può [usare](/docs/runbooks/variables), e le **Regole del proprietario** e **Regole etichette** che aggiungono proprietari ed etichette ai nuovi runbook. |
 | **Incidenti / Avvisi / Manutenzione programmata → Regole → Regole di runbook** | Creare le regole che avviano automaticamente i runbook. |
 | Un incidente, un avviso o un evento di manutenzione → **Runbook** | Vedere le esecuzioni collegate e fare clic su **Esegui Runbook** per avviarne una. |
 
@@ -105,7 +107,7 @@ Il menu laterale di un runbook raggruppa le sue pagine così. Solo **Base** è a
 | **Base** | **Panoramica**, **Passaggi** |
 | **Registri** | **Esecuzioni** |
 | **Proprietari** | **Proprietari** |
-| **Impostazioni** | **Trigger**, **Impostazioni** |
+| **Impostazioni** | **Trigger**, **Variabili**, **Impostazioni** |
 | **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
 | **Avanzato** | **Registri di audit**, **Elimina runbook** |
 
@@ -156,7 +158,7 @@ L'esecuzione resta nella pagina **Runbook** dell'incidente. Quando scrivi il pos
 - **Svuotamento della cache**: una richiesta HTTP, poi un passaggio Manual «conferma che l'hit rate della cache si sta riprendendo».
 - **Incidente con impatto sui clienti**: Manual «pubblica un aggiornamento sulla pagina di stato», una richiesta HTTP per avvisare il team di supporto, JavaScript per ottenere l'elenco degli account coinvolti.
 - **Verifiche prima di una manutenzione programmata**: fotografare le metriche, confermare la finestra di modifica con le parti interessate (Manual), attivare la modalità di manutenzione sul bilanciatore di carico (HTTP request).
-- **Diagnosticare, poi correggere**: un passaggio Bash raccoglie la diagnostica, un passaggio IA con **Richiedi approvazione** la legge e propone una correzione, e un passaggio Kubernetes riavvia il carico di lavoro solo dopo l'approvazione di una persona.
+- **Diagnosticare, poi correggere**: un passaggio Bash raccoglie la diagnostica, un passaggio IA con **Richiedi approvazione** la legge e propone una correzione, e un passaggio kubectl riavvia il carico di lavoro solo dopo l'approvazione di una persona.
 - **Igiene da eseguire sempre**: una regola senza condizioni che acquisisce lo stato del sistema a ogni incidente, per il postmortem.
 
 ## Come si inseriscono i runbook nel resto di OneUptime
@@ -170,7 +172,7 @@ L'esecuzione resta nella pagina **Runbook** dell'incidente. Quando scrivi il pos
 
 :::cards
 - [Scrivere un runbook](/docs/runbooks/authoring): Creare il tuo primo runbook e i suoi passaggi.
-- [Agenti di runbook](/docs/runbooks/agents): Installare un Runner prima di scrivere un passaggio Bash, SSH o Kubernetes.
+- [Agenti di runbook](/docs/runbooks/agents): Installare un Runner prima di scrivere un passaggio Bash, SSH o kubectl.
 - [Regole di runbook](/docs/runbooks/rules): Avviare i runbook automaticamente alla creazione degli incidenti.
 - [Configurazione e sicurezza dei runbook](/docs/runbooks/configuration): Limiti, timeout, autorizzazioni e protezione.
 :::

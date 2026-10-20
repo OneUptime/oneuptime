@@ -132,8 +132,12 @@ Din rolle læser runbooks, men kører dem ikke: knappen siger "Du har ikke tilla
 Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstillinger**, eller det har ingen gemte trin. Slå kontakten til, eller tilføj trin, og klik på **Save Steps**. Dets **Oversigt** siger hvilken, med **Slå runbook til** eller **Tilføj trin**.
 :::
 
-:::details Et trin fejlede, fordi det mangler en Runner eller en loginoplysning
-Meddelelsen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Trinnet blev gemt uden **Runner**, eller et SSH- eller Kubernetes-trin uden **Credential**. Et JavaScript-trin har kun brug for sin egen Runner, når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan køre det. Åbn runbookets **Trin**, vælg det, trinnet mangler, klik på **Save Steps**, og kør runbooket igen.
+:::details Et trin fejlede, fordi det mangler en Runner
+Meddelelsen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Trinnet blev gemt uden **Runner**. Et JavaScript-trin har kun brug for sin egen Runner, når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan køre det. Åbn runbookets **Trin**, vælg trinnets Runner, klik på **Save Steps**, og kør runbooket igen.
+:::
+
+:::details Et trin fejlede, fordi det nævner variabler, det ikke kan bruge
+Meddelelsen begynder med "This step names variables it cannot use, so it was not run:" og fortæller for hver variabel, hvad der er galt, og hvor det rettes: der findes ingen variabel med det navn, hemmeligheden har ingen værdi, eller trinnets Runner må ikke bruge den. Opret variablen eller ret dens navn i trinnet, eller lad Runneren bruge hemmeligheden, og kør derefter runbooket igen. Se [Runbook-variabler](/docs/runbooks/variables).
 :::
 
 :::details Et trin fejlede, fordi ingen runbook-agent tog det

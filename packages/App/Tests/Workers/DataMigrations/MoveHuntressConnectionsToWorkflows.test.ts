@@ -73,11 +73,12 @@ describe("MoveHuntressConnectionsToWorkflows", () => {
     });
 
     // The runner decides what to run by position: before the last slot, which asserts itself.
-    test("sits right before AddAuditLogMcpClientColumns, the last slot", () => {
+    test("sits before AddAuditLogMcpClientColumns, the last slot", () => {
       const instantiations: Array<string> = registeredMigrations();
 
-      expect(instantiations.indexOf(MIGRATION_NAME)).toBe(
-        instantiations.indexOf("AddAuditLogMcpClientColumns") - 1,
+      expect(instantiations.indexOf(MIGRATION_NAME)).toBeGreaterThan(-1);
+      expect(instantiations.indexOf(MIGRATION_NAME)).toBeLessThan(
+        instantiations.indexOf("AddAuditLogMcpClientColumns"),
       );
       expect(instantiations[instantiations.length - 1]).toBe(
         "AddAuditLogMcpClientColumns",

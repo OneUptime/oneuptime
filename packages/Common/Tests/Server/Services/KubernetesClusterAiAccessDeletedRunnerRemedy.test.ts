@@ -10,7 +10,7 @@ import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgent
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
+import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
@@ -249,7 +249,7 @@ function installFakeDatabase(database: FakeDatabase): void {
       return new PositiveNumber(count);
     });
   jest
-    .spyOn(RunbookSecretService, "countBy")
+    .spyOn(RunbookVariableService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
 
   jest

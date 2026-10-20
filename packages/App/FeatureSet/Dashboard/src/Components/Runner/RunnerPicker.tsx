@@ -45,6 +45,12 @@ import {
 export interface ComponentProps {
   // The step's type ("JavaScript", "Bash", "SSH", "Kubernetes").
   stepType: string;
+  /*
+   * What the step is called where a sentence names it ("kubectl" for a
+   * Kubernetes step, whose stored type kept its old name). Left out, the
+   * type.
+   */
+  stepTypeName?: string | undefined;
   // The Runner the step picked, as stored: "" for none.
   value: string;
   onChange: (value: string) => void;
@@ -148,7 +154,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
         <TranslatedSentence
           template="{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here."
           slots={{
-            stepType: props.stepType,
+            stepType: props.stepTypeName || props.stepType,
             location: runnersLocation,
           }}
         />

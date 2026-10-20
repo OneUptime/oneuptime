@@ -1018,11 +1018,15 @@ const DocsNav: NavGroup[] = [
         url: "/docs/runbooks/triggers",
       },
       {
+        title: "Runbook Variables",
+        url: "/docs/runbooks/variables",
+      },
+      {
         title: "Runbook Agents",
         url: "/docs/runbooks/agents",
       },
       {
-        title: "Runbook Credentials",
+        title: "AI Access",
         url: "/docs/runbooks/credentials",
       },
       {

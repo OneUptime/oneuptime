@@ -24,6 +24,13 @@ export const MOVED_RUNNER_SETTINGS_PATHS: {
 };
 
 /*
+ * Runbook secrets were merged into runbook variables: Runbooks > Settings >
+ * Secrets is Runbooks > Settings > Global Variables now. Relative to
+ * …/runbooks/.
+ */
+export const MOVED_RUNBOOK_SECRETS_PATH: string = "settings/secrets";
+
+/*
  * Project Settings > Security > OIDC folded into SSO: one page for single
  * sign-on, the OpenID Connect providers under the SAML ones, with one test
  * link and the Require SSO for Login switch both kinds meet. Relative to

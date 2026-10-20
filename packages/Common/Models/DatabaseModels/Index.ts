@@ -364,7 +364,7 @@ import RunnerJob from "./RunnerJob";
 import RunnerOwnerTeam from "./RunnerOwnerTeam";
 import RunnerOwnerUser from "./RunnerOwnerUser";
 import RunbookCredential from "./RunbookCredential";
-import RunbookSecret from "./RunbookSecret";
+import RunbookVariable from "./RunbookVariable";
 import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
 import RunbookOwnerUser from "./RunbookOwnerUser";
@@ -801,7 +801,7 @@ const AllModelTypes: Array<{
   RunnerOwnerTeam,
   RunnerOwnerUser,
   RunbookCredential,
-  RunbookSecret,
+  RunbookVariable,
 
   ProjectSSO,
   ProjectOIDC,

@@ -10,7 +10,7 @@ import { boldSpans } from "./DocsTranslationChecks";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import { getIpv6NetworkRateLimit } from "Common/Server/Utils/ClientIp";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
@@ -32,9 +32,15 @@ import {
   RUNBOOK_RUN_ROLE_PERMISSIONS,
 } from "Common/Types/Runbook/RunbookRunPermissions";
 import {
-  KubernetesAction,
-  KubernetesWorkloadKind,
-} from "Common/Types/Runbook/RunbookStep";
+  MIN_REDACTED_SECRET_LENGTH,
+  REDACTED_SECRET_TEXT,
+} from "Common/Types/Runbook/SecretOutputRedaction";
+import {
+  RUNBOOK_VARIABLE_NAME_MAX_LENGTH,
+  RunbookVariableScope,
+  formatRunbookVariableReference,
+  isValidRunbookVariableName,
+} from "Common/Types/Runbook/RunbookVariableReference";
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import {
   DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
@@ -143,7 +149,9 @@ const AUTHORING: string = readPage("en", "runbooks/authoring");
 const RUNNING: string = readPage("en", "runbooks/running");
 const RULES: string = readPage("en", "runbooks/rules");
 const AGENTS: string = readPage("en", "runbooks/agents");
+// AI Access: the credentials OneUptime AI's commands use (runbooks/credentials).
 const CREDENTIALS: string = readPage("en", "runbooks/credentials");
+const VARIABLES: string = readPage("en", "runbooks/variables");
 const CONFIGURATION: string = readPage("en", "runbooks/configuration");
 const TRIGGERS: string = readPage("en", "runbooks/triggers");
 
@@ -154,6 +162,7 @@ const PAGES: Record<string, string> = {
   rules: RULES,
   agents: AGENTS,
   credentials: CREDENTIALS,
+  variables: VARIABLES,
   configuration: CONFIGURATION,
   triggers: TRIGGERS,
 };
@@ -193,11 +202,15 @@ const RUNNER_RUNBOOK_EXECUTOR: string = readSource(
 const RUNNER_SSH_EXECUTOR: string = readSource(
   "Runner/Services/SSHExecutor.ts",
 );
-const RUNNER_KUBERNETES_EXECUTOR: string = readSource(
-  "Runner/Services/KubernetesExecutor.ts",
+const RUNNER_KUBECTL_SCRIPT_EXECUTOR: string = readSource(
+  "Runner/Services/KubectlScriptExecutor.ts",
 );
 
 const STEPS_PAGE: string = readDashboard("Pages/Runbook/View/Steps.tsx");
+// What a step's editor shows and folds under More fields, and its fields' titles.
+const STEP_EDITOR_MODEL: string = readDashboard(
+  "Components/Runbook/Steps/RunbookStepEditorModel.ts",
+);
 // The Runner picker every Runner-run step draws (its Runner field).
 const RUNNER_PICKER: string = readDashboard(
   "Components/Runner/RunnerPicker.tsx",
@@ -222,7 +235,14 @@ const CREDENTIALS_PAGE: string = readDashboard(
 const SSH_SIGN_IN: string = readDashboard(
   "Components/Runner/RunnerCredentialSignIn.ts",
 );
-const SECRETS_PAGE: string = readDashboard("Pages/Runbook/Secrets.tsx");
+// The Global Variables page and a runbook's own Variables page draw this table.
+const VARIABLES_TABLE: string = readDashboard(
+  "Components/Runbook/RunbookVariablesTable.tsx",
+);
+// The variables pages' words: the form's steps and fields.
+const VARIABLE_COPY: string = readDashboard(
+  "Components/Runbook/RunbookVariableCopy.ts",
+);
 const RULES_TABLE: string = readDashboard(
   "Components/Runbook/RunbookRulesTable.tsx",
 );
@@ -473,7 +493,7 @@ describe("the runbook pages' step timeouts", () => {
   ];
 
   it("find a default in every timeout row of the step tables", () => {
-    // JavaScript, HTTP request, Bash, SSH and Kubernetes, and the agents table.
+    // JavaScript, HTTP request, Bash, SSH and kubectl, and the agents table.
     expect(timeoutRows.length).toBe(6);
     expect(claimRows.length).toBe(5);
 
@@ -501,7 +521,7 @@ describe("the runbook pages' step timeouts", () => {
     const limits: string = section(CONFIGURATION, "Output caps and timeouts");
 
     expect(limits).toContain(
-      "| Execution timeout | **30 seconds** by default | JavaScript, Bash, SSH and Kubernetes steps |",
+      "| Execution timeout | **30 seconds** by default | JavaScript, Bash, SSH and kubectl steps |",
     );
     expect(limits).toContain(
       "| Request timeout | **30 seconds** by default | HTTP request steps |",
@@ -565,6 +585,16 @@ describe("the runbook pages' step timeouts", () => {
     expect(STEPS_PAGE).toContain('"Execution timeout"');
     expect(STEPS_PAGE).toContain('"Claim timeout"');
     expect(STEPS_PAGE).toContain('"Request timeout"');
+    // Folded under a step's More fields, which names them when they are set.
+    expect(STEP_EDITOR_MODEL).toContain(
+      'MORE_FIELDS_TIMEOUTS_TITLE: string = translationKey("Timeouts");',
+    );
+    expect(AGENTS).toContain(
+      "set **Execution timeout** and **Claim timeout** (in seconds) under its **More fields**.",
+    );
+    expect(CONFIGURATION).toContain(
+      "Set the timeouts per step, under its **More fields** on the runbook's **Steps** page;",
+    );
     // The HTTP request step runs with the step timeout too.
     expect(STEP_EXECUTORS).toContain(
       "const timeout: number = resolveStepExecutionTimeoutInMs(config.timeoutInMs);",
@@ -1095,14 +1125,34 @@ describe("the Runner the runbook pages describe", () => {
     expect(AGENTS).toContain('Runner logs "No capability is enabled"');
   });
 
-  it("says a DaemonSet cannot be scaled, as the Runner refuses it", () => {
-    expect(RUNNER_KUBERNETES_EXECUTOR).toContain(
-      '"A DaemonSet cannot be scaled — it runs one pod per node. Restart it instead."',
+  it("says a kubectl step runs with bash, KUBECONFIG pointing at the cluster, and keeps no kubeconfig", () => {
+    expect(RUNNER_KUBECTL_SCRIPT_EXECUTOR).toContain(
+      "on this Runner with KUBECONFIG pointing at the cluster's kubeconfig.",
+    );
+    expect(RUNNER_KUBECTL_SCRIPT_EXECUTOR).toContain(
+      "written to a private file (0600) in a private directory",
+    );
+    expect(RUNNER_DOCKERFILE).toContain(
+      "install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl",
+    );
+
+    expect(AUTHORING).toContain(
+      "The script runs with bash on the Runner, which ships `kubectl`, with `KUBECONFIG` pointing at the cluster",
     );
     expect(AUTHORING).toContain(
-      "A DaemonSet runs one pod per node and cannot be scaled; restart it instead.",
+      "The Runner writes a kubeconfig to a file only it can read, and removes it when the script ends.",
     );
-    expect(CREDENTIALS).toContain("A DaemonSet cannot be scaled");
+    expect(CONFIGURATION).toContain(
+      "| kubectl | A Runner | `bash -c <script>`, with `KUBECONFIG` pointing at the cluster. |",
+    );
+  });
+
+  it("quotes what the server says to a Runner too old for a kubectl script", () => {
+    const message: string =
+      "This kubectl step runs a script, and this Runner is too old to run one, so it was not run.";
+
+    expect(RUNNER_INGRESS).toContain(message);
+    expect(AGENTS).toContain(`The step failed with "${message}"`);
   });
 });
 
@@ -1306,7 +1356,8 @@ describe("authoring a runbook", () => {
     [RunbookStepType.HttpRequest]: "HTTP request",
     [RunbookStepType.Bash]: "Bash",
     [RunbookStepType.SSH]: "SSH",
-    [RunbookStepType.Kubernetes]: "Kubernetes",
+    // A kubectl script: the type keeps its stored name, Kubernetes.
+    [RunbookStepType.Kubernetes]: "kubectl",
     [RunbookStepType.AI]: "AI",
   };
 
@@ -1394,7 +1445,9 @@ describe("authoring a runbook", () => {
 
     /*
      * The Runner field is the Runner picker's, which every step that runs on
-     * a Runner draws (RunnerPicker); every other field is the Steps page's own.
+     * a Runner draws (RunnerPicker); an SSH or kubectl step's own fields are
+     * titled in the editor's model (RunbookStepEditorModel); every other
+     * field is the Steps page's own.
      */
     expect(STEPS_PAGE).toContain("<RunnerPicker");
 
@@ -1403,6 +1456,7 @@ describe("authoring a runbook", () => {
         field,
         drawn:
           STEPS_PAGE.includes(`"${field}"`) ||
+          STEP_EDITOR_MODEL.includes(`translationKey("${field}")`) ||
           RUNNER_PICKER.includes(`translateText("${field}")`),
       }).toEqual({
         field,
@@ -1411,30 +1465,59 @@ describe("authoring a runbook", () => {
     }
   });
 
-  it("names the Kubernetes actions and workload kinds the editor offers", () => {
-    expect(Object.values(KubernetesAction)).toEqual([
-      "RestartWorkload",
-      "ScaleWorkload",
-    ]);
-    expect(Object.values(KubernetesWorkloadKind)).toEqual([
-      "Deployment",
-      "StatefulSet",
-      "DaemonSet",
-    ]);
+  it("names the SSH and kubectl steps' fields, and what they fold under More fields", () => {
+    const stepTypes: string = section(AUTHORING, "Step types");
+    const ssh: string = stepTypes.slice(
+      stepTypes.indexOf("### SSH\n"),
+      stepTypes.indexOf("### kubectl\n"),
+    );
+    // The model as one line: prettier wraps a long translation key.
+    const model: string = STEP_EDITOR_MODEL.replace(/\s+/g, " ");
 
-    for (const kind of Object.values(KubernetesWorkloadKind)) {
-      expect(STEPS_PAGE).toContain(
-        `KubernetesWorkloadKind.${kind},\n                                                      label: "${kind}",`,
-      );
+    for (const [constant, words] of [
+      ["SSH_TARGET_TITLE", "SSH to"],
+      ["SSH_SIGN_IN_TITLE", "Sign in with"],
+      ["SSH_PASSPHRASE_TITLE", "Key passphrase"],
+      ["SSH_PORT_TITLE", "Port"],
+      ["KUBECONFIG_TITLE", "Kubeconfig"],
+      ["RUNNER_OWN_KUBECONFIG_LABEL", "The Runner's own access"],
+    ] as Array<[string, string]>) {
+      expect({
+        constant,
+        drawn:
+          model.includes(`${constant}: string = translationKey("${words}");`) ||
+          model.includes(
+            `${constant}: string = translationKey( "${words}", );`,
+          ),
+      }).toEqual({ constant, drawn: true });
+      expect(AUTHORING).toContain(`**${words}**`);
     }
 
-    expect(AUTHORING).toContain(
-      "| **Workload kind** | **Deployment**, **StatefulSet** or **DaemonSet**. |",
+    // The machine as people write it after ssh, its port folded, 22 by default.
+    expect(STEP_EDITOR_MODEL).toContain(
+      'export const SSH_TARGET_PLACEHOLDER: string = "deploy@10.0.4.21";',
     );
-    expect(AUTHORING).toContain(
-      "**Restart workload** changes the pod template so the controller recreates the pods",
+    expect(ssh).toContain(
+      "| **SSH to** | The user and the machine, as you would write them after `ssh`: `deploy@10.0.4.21`. |",
     );
-    expect(AUTHORING).toContain("**Scale workload** sets the replica count.");
+    expect(STEP_EDITOR_MODEL).toContain('key: "port",');
+    expect(STEP_EDITOR_MODEL).toContain('key: "passphrase",');
+    expect(STEPS_PAGE).toContain('placeholder="22"');
+    expect(ssh).toContain(
+      "| **Port** | Under **More fields**. 22 when left empty. |",
+    );
+    expect(ssh).toContain("| **Key passphrase** | Under **More fields**.");
+
+    // The script runs with bash on the machine.
+    expect(RUNNER_SSH_EXECUTOR).toContain(
+      "return `bash -c ${shellQuote(script)}`;",
+    );
+    expect(ssh).toContain(
+      "| **Bash script** | Runs with `bash` on the machine, as the user it signs in as.",
+    );
+
+    // Only secret variables are offered to sign in with.
+    expect(AUTHORING).toContain("Only secret variables are offered");
   });
 
   it("says who writes runbooks: the roles that both create a runbook and save its steps", () => {
@@ -1460,20 +1543,20 @@ describe("authoring a runbook", () => {
     );
   });
 
-  it("says naming a credential in a step takes reading runbook credentials, which Runbook Admin does not", () => {
-    const readers: Array<Permission> = new RunbookCredential()
-      .readRecordPermissions;
+  it("says Project Owner and Project Admin create variables, and Runbook Admin picks them in its steps", () => {
+    const variable: RunbookVariable = new RunbookVariable();
 
-    expect(readers).not.toContain(Permission.RunbookAdmin);
-    expect(englishList(readers.map(title), "or")).toBe(
-      "Project Owner, Project Admin or Read Runbook Credential",
+    expect(roles(variable.createRecordPermissions).map(title)).toEqual([
+      "Project Owner",
+      "Project Admin",
+    ]);
+    expect(variable.createRecordPermissions).not.toContain(
+      Permission.RunbookAdmin,
     );
+    expect(variable.readRecordPermissions).toContain(Permission.RunbookAdmin);
 
     expect(AUTHORING).toContain(
-      "A step can name a credential only when you may read runbook credentials: Project Owner, Project Admin, or **Read Runbook Credential**. Runbook Admin does not include it.",
-    );
-    expect(CREDENTIALS).toContain(
-      "saving a step that names a credential takes permission to read runbook credentials.",
+      "Project Owner and Project Admin create variables, and Runbook Admin picks them in the steps it writes.",
     );
   });
 });
@@ -1711,8 +1794,14 @@ describe("runbook rules", () => {
   });
 });
 
-describe("credentials and secrets", () => {
-  it("walk Create Runbook Credential through the form's steps", () => {
+describe("AI Access and runbook variables", () => {
+  it("walk Create Credential through the form's steps", () => {
+    // The table names a credential plainly, so its button reads Create Credential.
+    expect(CREDENTIALS_PAGE).toContain('singularName="Credential"');
+    expect(CREDENTIALS).toContain(
+      "Open **Runbooks → Runners → AI Access** and click **Create Credential**.",
+    );
+
     expect(formSteps(CREDENTIALS_PAGE)).toEqual([
       "Credential",
       "SSH Host",
@@ -1769,6 +1858,18 @@ describe("credentials and secrets", () => {
     );
   });
 
+  it("say the credentials are OneUptime AI's, and runbook steps sign in with variables", () => {
+    expect(CREDENTIALS_PAGE).toContain('title: "OneUptime AI Access",');
+    expect(CREDENTIALS_PAGE).toContain(
+      "Runbook steps use runbook variables instead.",
+    );
+    expect(CREDENTIALS.split("\n")[0]).toBe("# AI Access");
+    expect(CREDENTIALS).toContain(
+      "Runbook steps do not use these: an SSH or kubectl step signs in with a secret [runbook variable](/docs/runbooks/variables).",
+    );
+    expect(CREDENTIALS).not.toContain("## Secrets for scripts");
+  });
+
   it("connect to port 22 when the port is left empty", () => {
     expect(RUNBOOK_CREDENTIALS_UTIL).toContain(
       "port: credential.sshPort || 22,",
@@ -1781,19 +1882,23 @@ describe("credentials and secrets", () => {
     expect(CREDENTIALS).toContain("port (defaults to 22)");
   });
 
-  it("say who manages credentials and secrets, which Runbook Admin does not", () => {
-    for (const [model, permission, sentence] of [
+  it("say who manages credentials and variables, which Runbook Admin does not", () => {
+    for (const [model, permission, page, sentence] of [
       [
         new RunbookCredential(),
         Permission.CreateRunbookCredential,
+        CREDENTIALS,
         "Project Owner and Project Admin, or anyone with the **Create Runbook Credential** permission. The Runbook Admin role does not include it.",
       ],
       [
-        new RunbookSecret(),
+        new RunbookVariable(),
         Permission.CreateRunbookSecret,
-        "by Project Owners and Project Admins or with the **Create Runbook Secret** permission.",
+        VARIABLES,
+        `Project Owner and Project Admin, or the **${title(Permission.CreateRunbookSecret)}** permission. Runbook Admin reads variables, to pick them in the steps it writes, but does not change them.`,
       ],
-    ] as Array<[RunbookCredential | RunbookSecret, Permission, string]>) {
+    ] as Array<
+      [RunbookCredential | RunbookVariable, Permission, string, string]
+    >) {
       expect(model.createRecordPermissions).toEqual([
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
@@ -1802,12 +1907,20 @@ describe("credentials and secrets", () => {
       expect(model.createRecordPermissions).not.toContain(
         Permission.RunbookAdmin,
       );
-      expect(CREDENTIALS).toContain(sentence);
+      expect(page).toContain(sentence);
     }
+
+    // The runbook secret permissions kept their names, and say variables now.
+    expect(title(Permission.CreateRunbookSecret)).toBe(
+      "Create Runbook Variable",
+    );
+    expect(new RunbookVariable().readRecordPermissions).toContain(
+      Permission.RunbookAdmin,
+    );
   });
 
   it("say both need the Growth plan on OneUptime Cloud", () => {
-    for (const model of [new RunbookCredential(), new RunbookSecret()]) {
+    for (const model of [new RunbookCredential(), new RunbookVariable()]) {
       expect(model.createBillingPlan).toBe(PlanType.Growth);
       expect(model.readBillingPlan).toBe(PlanType.Growth);
     }
@@ -1815,40 +1928,94 @@ describe("credentials and secrets", () => {
     expect(CREDENTIALS).toContain(
       "On OneUptime Cloud, runbook credentials need the **Growth** plan or above.",
     );
-    expect(CREDENTIALS).toContain(
-      "On OneUptime Cloud, runbook secrets also need the **Growth** plan or above.",
+    expect(VARIABLES).toContain(
+      "On OneUptime Cloud, runbook variables need the **Growth** plan or above.",
     );
   });
 
-  it("walk Create Runbook Secret through the form's steps and fields", () => {
-    expect(formSteps(SECRETS_PAGE)).toEqual(["Secret", "Access"]);
-
-    for (const field of [
-      "Name",
-      "Description",
-      "Secret Value",
-      "Your Runners that can use this secret",
+  it("walk Create Variable through the form's steps and fields", () => {
+    for (const [constant, words] of [
+      ["VARIABLE_STEP_TITLE", "Variable"],
+      ["ACCESS_STEP_TITLE", "Who can use it"],
+      ["SECRET_TITLE", "Secret"],
+      ["VALUE_TITLE", "Value"],
+      ["SECRET_VALUE_TITLE", "Secret Value"],
+      ["YOUR_RUNNERS_TITLE", "Your Runners that can use it"],
       // Asked only on a server with global Runners.
-      "Global Runners can use this secret",
-      "Update Secret Value",
-    ]) {
+      ["GLOBAL_RUNNERS_CAN_USE_TITLE", "Global Runners can use it"],
+      ["REPLACE_VALUE_TITLE", "Replace Value"],
+    ] as Array<[string, string]>) {
+      const copy: string = VARIABLE_COPY.replace(/\s+/g, " ");
+
       expect({
-        field,
-        drawn: SECRETS_PAGE.includes(`title: "${field}",`),
-      }).toEqual({
-        field,
-        drawn: true,
-      });
-      expect(CREDENTIALS).toContain(`**${field}**`);
+        constant,
+        drawn:
+          copy.includes(`${constant}: string = translationKey("${words}");`) ||
+          copy.includes(`${constant}: string = translationKey( "${words}", );`),
+      }).toEqual({ constant, drawn: true });
+      expect(VARIABLES).toContain(`**${words}**`);
     }
 
-    expect(SECRETS_PAGE).toContain(
-      "Letters, numbers, hyphens and underscores.",
+    // The form: what the variable is, then who may use a secret.
+    expect(VARIABLES_TABLE).toContain(
+      '{ title: VARIABLE_STEP_TITLE, id: "variable" },',
     );
-    expect(CREDENTIALS).toContain(
-      "On the **Secret** step, enter a **Name** (letters, numbers, hyphens and underscores)",
+    expect(VARIABLES_TABLE).toContain("title: ACCESS_STEP_TITLE,");
+    expect(VARIABLES_TABLE).toContain('singularName="Variable"');
+    expect(VARIABLES).toContain("click **Create Variable**");
+
+    // A name: letters, numbers, hyphens and underscores, up to 100 characters.
+    expect(RUNBOOK_VARIABLE_NAME_MAX_LENGTH).toBe(100);
+    expect(isValidRunbookVariableName("PROD_DB_SSH_KEY")).toBe(true);
+    expect(isValidRunbookVariableName("prod-db.key")).toBe(false);
+    expect(isValidRunbookVariableName("x".repeat(101))).toBe(false);
+    expect(VARIABLES).toContain(
+      "enter a **Name**: letters, numbers, hyphens and underscores, up to 100 characters, such as `PROD_DB_SSH_KEY`.",
     );
-    expect(CREDENTIALS).toContain("On the **Access** step, pick your Runners");
+
+    // A new variable starts secret, open to global Runners while the project uses them.
+    expect(VARIABLES_TABLE).toContain("isSecret: true,");
+    expect(VARIABLES_TABLE).toContain(
+      "hasGlobalRunners && globalRunnerAccess.projectUsesGlobalRunners,",
+    );
+    expect(VARIABLES).toContain("**Secret** starts on");
+    expect(VARIABLES).toContain(
+      "it starts on while the project uses global Runners.",
+    );
+  });
+
+  it("write a variable the way a step names it", () => {
+    expect(
+      formatRunbookVariableReference({
+        scope: RunbookVariableScope.Global,
+        name: "NAME",
+      }),
+    ).toBe("{{global.variables.NAME}}");
+    expect(
+      formatRunbookVariableReference({
+        scope: RunbookVariableScope.Local,
+        name: "NAME",
+      }),
+    ).toBe("{{local.variables.NAME}}");
+
+    expect(VARIABLES).toContain(
+      "| Written in a step as | `{{global.variables.NAME}}` | `{{local.variables.NAME}}` |",
+    );
+    expect(INDEX).toContain(
+      "`{{global.variables.NAME}}` for one of the project's",
+    );
+  });
+
+  it("hide a step's secrets in its output, as the Runner and the server do", () => {
+    expect(REDACTED_SECRET_TEXT).toBe("[REDACTED]");
+    expect(MIN_REDACTED_SECRET_LENGTH).toBe(4);
+
+    expect(VARIABLES).toContain(
+      "the Runner replaces it with `[REDACTED]` before the output leaves its host, and OneUptime does again before it stores the output.",
+    );
+    expect(VARIABLES).toContain(
+      "A secret shorter than 4 characters is not looked for.",
+    );
   });
 });
 
@@ -1865,8 +2032,11 @@ describe("the runbook pages' configuration reference", () => {
 
     expect(sections.slice(0, 3)).toEqual([
       { title: "Runbooks", items: ["Runbooks", "Executions"] },
-      { title: "Runners", items: ["Runners", "Credentials"] },
-      { title: "Settings", items: ["Secrets", "Owner Rules", "Label Rules"] },
+      { title: "Runners", items: ["Runners", "AI Access"] },
+      {
+        title: "Settings",
+        items: ["Global Variables", "Owner Rules", "Label Rules"],
+      },
     ]);
 
     const paths: Set<string> = new Set();
@@ -1882,9 +2052,9 @@ describe("the runbook pages' configuration reference", () => {
     expect(Array.from(paths).sort()).toEqual([
       "Runbooks → Executions",
       "Runbooks → Runners",
-      "Runbooks → Runners → Credentials",
+      "Runbooks → Runners → AI Access",
       "Runbooks → Settings",
-      "Runbooks → Settings → Secrets",
+      "Runbooks → Settings → Global Variables",
     ]);
 
     for (const menuPath of paths) {
@@ -2289,7 +2459,7 @@ describe("a runbook's own side menu", () => {
       { title: "Basic", items: ["Overview", "Steps"] },
       { title: "Logs", items: ["Executions"] },
       { title: "Owners", items: ["Owners"] },
-      { title: "Settings", items: ["Triggers", "Settings"] },
+      { title: "Settings", items: ["Triggers", "Variables", "Settings"] },
       { title: "Developer", items: ["Terraform", "API", "AI Assistants"] },
       { title: "Advanced", items: ["Audit Logs", "Delete Runbook"] },
     ]);
@@ -2339,7 +2509,11 @@ describe("a runbook's own side menu", () => {
   it("gives every path into it as the menu has it", () => {
     const paths: Array<string> = pathsIntoTheMenu();
 
-    expect(paths).toEqual(["Logs → Executions", "Settings → Triggers"]);
+    expect(paths).toEqual([
+      "Logs → Executions",
+      "Settings → Triggers",
+      "Settings → Variables",
+    ]);
 
     for (const menuPath of paths) {
       const [sectionTitle, page] = menuPath.split(" → ") as [string, string];

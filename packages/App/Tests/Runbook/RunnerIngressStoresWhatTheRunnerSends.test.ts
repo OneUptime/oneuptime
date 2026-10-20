@@ -4,8 +4,9 @@ import KubernetesClusterFeedService from "Common/Server/Services/KubernetesClust
 import KubernetesAiAgentService from "Common/Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "Common/Server/Services/RunbookCredentialService";
-import RunbookSecretService from "Common/Server/Services/RunbookSecretService";
+import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import RunnerService from "Common/Server/Services/RunnerService";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import { getKubernetesAgentRunnerNameForCluster } from "Common/Server/Services/KubernetesClusterAiAccessService";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Runner, {
@@ -98,14 +99,6 @@ jest.mock("Common/Server/Utils/Express", () => {
         };
       },
     },
-  };
-});
-
-// VMUtil -> isolated-vm, a native binding not installed for this suite.
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: { loadForAgent: jest.fn(), populateInScript: jest.fn() },
   };
 });
 
@@ -213,6 +206,14 @@ describe("POST /job/:jobId/result stores a result whose text carries a NUL byte"
   beforeEach(() => {
     silenceLogs();
     queries = [];
+
+    /*
+     * No secret runbook variable was handed to these jobs: which ones a job
+     * was handed, and hiding them, is RunnerIngressResultHidesSecrets.
+     */
+    jest
+      .spyOn(RunnerJobService, "getSecretValuesGivenToJob")
+      .mockResolvedValue([]);
 
     /*
      * The last call before Postgres, refusing a NUL in any text parameter
@@ -383,7 +384,7 @@ describe("POST /register-kubernetes-agent stores the write scope the Runner repo
       .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
-      .spyOn(RunbookSecretService, "countBy")
+      .spyOn(RunbookVariableService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(KubernetesClusterFeedService, "createKubernetesClusterFeedItem")

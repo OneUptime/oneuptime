@@ -4,7 +4,7 @@
 
 :::cards
 - [创建 Runbook](#创建-runbook): 从空白 Runbook 到已保存的步骤。
-- [步骤类型](#步骤类型): Manual、JavaScript、HTTP request、Bash、SSH、Kubernetes 和 AI。
+- [步骤类型](#步骤类型): Manual、JavaScript、HTTP request、Bash、SSH、kubectl 和 AI。
 - [失败处理与审批](#失败处理与审批): 步骤失败或成功时会发生什么。
 - [完整示例](#完整示例): 五个步骤完成一次数据库故障转移。
 :::
@@ -12,8 +12,8 @@
 ## 开始之前
 
 - **能编写 Runbook 的角色。** Project Owner、Project Admin 和 Runbook Admin 可以创建 Runbook 并保存其步骤。使用细粒度权限时，你需要 **Create Runbook** 和 **Edit Runbook** 。参见 [权限](/docs/runbooks/configuration#权限)。
-- **用于 Bash、SSH 和 Kubernetes 步骤的 Runner。** 这些步骤在你自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，从不在 OneUptime Worker 上运行。请先安装一个。除非你选择自己的某个 Runner，否则 JavaScript 步骤会在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上运行。
-- **用于 SSH 和 Kubernetes 步骤的凭据，以及读取凭据的权限。** 参见 [Runbook 凭据](/docs/runbooks/credentials)。只有当你有权读取 Runbook 凭据时，步骤才能指定凭据：需要 Project Owner、Project Admin 或 **Read Runbook Credential** 。Runbook Admin 不包含此权限。
+- **用于 Bash、SSH 和 kubectl 步骤的 Runner。** 这些步骤在你自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，从不在 OneUptime Worker 上运行。请先安装一个。除非你选择自己的某个 Runner，否则 JavaScript 步骤会在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上运行。
+- **用于 SSH 和 kubectl 步骤的机密变量。** 步骤登录所用的密钥、密码或 kubeconfig 是一个机密 [Runbook 变量](/docs/runbooks/variables)。变量由 Project Owner 和 Project Admin 创建，Runbook Admin 在自己编写的步骤中选择它们。kubectl 步骤也可以改用 Runner 自身的访问权限。
 - **用于 AI 步骤的 LLM 提供商。** 参见 [LLM 提供商](/docs/ai/llm-provider)。
 
 ## 创建 Runbook
@@ -29,7 +29,7 @@
 
 ### 添加步骤
 
-在 **Start your runbook** 下选择第一个步骤的类型；在最后一个步骤下方， **Add another step** 提供同样的七种类型。每个步骤打开时都带有 **标题** 、 **描述** （Markdown，向响应人员显示）和该类型的设置。Runbook 有了一个步骤后，卡片顶部的 **添加步骤** 会添加一个 Manual 步骤。
+在 **Start your runbook** 下选择第一个步骤的类型；在最后一个步骤下方， **Add another step** 提供同样的七种类型。每个步骤打开时带有 **标题** 和该类型所需的设置；其余内容，例如 **描述** 和超时，都折叠在 **更多字段** 下。Runbook 有了一个步骤后，卡片顶部的 **添加步骤** 会添加一个 Manual 步骤。
 
 ### 调整步骤顺序
 
@@ -42,15 +42,15 @@
 
 ## 步骤的组成
 
-每个步骤都有以下字段：
+每个步骤都有以下字段。自动步骤会显示 **标题** 和该类型的设置，其余内容折叠在 **更多字段** 下，并注明其中哪些已设置：
 
 | 字段 | 用途 |
 | --- | --- |
 | **标题** | 显示在步骤列表和每次执行中的简短名称。 |
-| **描述** | 给响应人员的可选上下文，使用 Markdown。在 Manual 步骤中，它就是人员阅读的说明。 |
+| **描述** | 给响应人员的可选上下文，使用 Markdown，位于 **更多字段** 下。在 Manual 步骤中，它就是人员阅读的说明，显示在标题下方。 |
 | **失败时继续** | 仅限自动步骤。开启后，步骤失败不会停止执行：下一个步骤照常运行。 |
 | **需要批准** | 仅限自动步骤。开启后，Runbook 会在此步骤之后暂停，等待人员批准，然后才运行下一个步骤。该开关名为 **运行下一步之前需要批准** 。 |
-| 类型相关设置 | 脚本、URL、Runner、凭据或提示词。参见 [步骤类型](#步骤类型)。 |
+| 类型相关设置 | 脚本、URL、Runner、机密变量或提示词。参见 [步骤类型](#步骤类型)。 |
 
 ## 步骤类型
 
@@ -60,9 +60,11 @@
 | [JavaScript](#javascript) | Runner | 一个 Runner |
 | [HTTP request](#http-request) | OneUptime Worker | 无 |
 | [Bash](#bash) | Runner | 一个 Runner |
-| [SSH](#ssh) | Runner | 一个 Runner 和一个 SSH 凭据 |
-| [Kubernetes](#kubernetes) | Runner | 一个 Runner 和一个 Kubernetes 凭据 |
+| [SSH](#ssh) | Runner | 一个 Runner 和一个用于登录的机密变量 |
+| [kubectl](#kubectl) | Runner | 一个 Runner，以及一个 kubeconfig 变量或 Runner 自身的访问权限 |
 | [AI](#ai) | OneUptime Worker | 一个 LLM 提供商 |
+
+在下面的每个步骤中，超时、 **描述** 、 **失败时继续** 和 **需要批准** 都位于步骤的 **更多字段** 下，AI 步骤的提供商和上下文开关也是如此。
 
 ### Manual
 
@@ -136,36 +138,50 @@ fi
 如果执行到达此步骤时所选 Runner 处于离线状态，步骤会等待至 **claim timeout** （默认 2 分钟），然后因超时而失败。在依赖 Bash 步骤之前，请在 **运行手册 → Runbook 代理** 下添加一个代理。
 
 > [!TIP]
-> 不要把密码和令牌写进脚本。把它们保存为 Runbook 密钥，并在 Bash 或 JavaScript 脚本中写 `{{runbookSecrets.NAME}}`：Runner 收到的脚本中会填入该值。参见 [供脚本使用的密钥](/docs/runbooks/credentials#供脚本使用的密钥)。
+> 不要把密码和令牌写进脚本。把它们存为机密 [Runbook 变量](/docs/runbooks/variables)，并在值应出现的位置写 `{{global.variables.NAME}}`：Runner 收到的脚本已填入值，而步骤输出中该位置显示为 `[REDACTED]`。
 
 ### SSH
 
-在 Runner 能通过 SSH 访问的主机上运行一条命令。与在 Bash 步骤中使用 `ssh host cmd` 不同，这里的访问权限是受管的 [凭据](/docs/runbooks/credentials)，而不是 Runner 磁盘上的私钥：它静态加密存储、分配给特定 Runner，并且永远无法通过 API 读回。
+通过 SSH 登录一台机器并在那里运行 bash 脚本。连接由 Runner 打开，因此机器只需能从 Runner 访问；步骤登录所用的密钥或密码是一个机密 [Runbook 变量](/docs/runbooks/variables)，从不写在步骤中。
 
 | 字段 | 作用 |
 | --- | --- |
-| **Runner** | 打开连接的 Runner。它必须能通过网络访问该主机。 |
-| **Credential** | 一个 SSH 凭据，包含主机、端口、用户以及密钥或密码。它必须已分配给你选择的 Runner，否则步骤会失败，而不是以错误的访问权限运行。 |
-| **Command** | 以凭据中的用户身份在远程主机上运行。输出最多记录 50 KB，非零退出码会使步骤失败。 |
-| **执行超时** | 涵盖连接、认证和运行命令的总时长，因此挂起的命令无法让步骤一直保持打开。默认 30 秒。 |
+| **Runner** | 打开连接的 Runner。它必须能通过网络访问该机器。 |
+| **SSH 目标** | 用户和机器，写法与在 `ssh` 之后相同：`deploy@10.0.4.21`。 |
+| **登录方式** | 保存私钥或密码的机密变量；值本身表明是哪一种。只提供机密变量；当步骤的 Runner 不能使用所选变量时，步骤会提示。 |
+| **Bash 脚本** | 以登录的用户身份在机器上用 `bash` 运行。输出最多记录 50 KB，退出码非零会让步骤失败。 |
+| **端口** | 位于 **更多字段** 下。留空时为 22。 |
+| **密钥口令** | 位于 **更多字段** 下。保存密钥口令的机密变量，用于有口令的密钥。 |
+| **执行超时** | 连接、登录和运行脚本合在一起计算，因此卡住的脚本无法让步骤一直开着。默认 30 秒。 |
 | **领取超时** | Worker 等待 Runner 领取作业的时长。默认 2 分钟。 |
 
-### Kubernetes
+例如，重启一个服务并显示它已恢复：
 
-重启或扩缩集群中的工作负载。这些操作有意限定为一个封闭集合：能修改任意对象的步骤就等于一个集群管理员 Shell，而这种步骤类型的存在，是为了让常见的修复操作足够安全，可以用于自动修复。
+```bash
+sudo systemctl restart nginx
+systemctl status nginx --no-pager
+```
+
+### kubectl
+
+对集群运行 kubectl 命令。脚本在自带 `kubectl` 的 Runner 上用 bash 运行，`KUBECONFIG` 指向该集群：任何 kubectl 命令都可以运行，周围的任何 bash 也可以。
 
 | 字段 | 作用 |
 | --- | --- |
-| **Runner** | 调用集群 API 服务器的 Runner。它必须能访问 API 服务器。 |
-| **Credential** | 一个 Kubernetes 凭据：API 服务器的 URL、服务账号令牌和集群的 CA。请将该服务账号绑定到只允许你的 Runbook 所需操作的角色。 |
-| **操作** | **Restart workload** 修改 Pod 模板，让控制器重新创建 Pod，效果与 `kubectl rollout restart` 相同。 **Scale workload** 设置副本数。 |
-| **Workload kind** | **部署** 、 **StatefulSet** 或 **DaemonSet** 。 |
-| **命名空间** 和 **Workload name** | 要操作的工作负载。 |
-| **副本** | 仅在扩缩时使用。允许为零：清空一个工作负载是合理的修复手段。DaemonSet 在每个节点上运行一个 Pod，无法扩缩；请改为重启它。 |
-| **执行超时** | Runner 等待 API 服务器接受更改的时长。默认 30 秒。 |
+| **Runner** | 运行 kubectl 的 Runner。它必须能访问集群的 API 服务器。 |
+| **Kubeconfig** | 保存集群 kubeconfig 的机密变量，或 **Runner 自身的访问权限** ：使用 Runner 自己的 kubeconfig，或在集群内运行时使用其服务账号。Runner 会把 kubeconfig 写入只有它能读取的文件，并在脚本结束时删除。 |
+| **Script** | kubectl 命令。输出最多记录 50 KB，退出码非零会让步骤失败。 |
+| **执行超时** | Runner 在用 `SIGKILL` 停止脚本之前允许它运行的时长。默认 30 秒。 |
 | **领取超时** | Worker 等待 Runner 领取作业的时长。默认 2 分钟。 |
 
-如果 API 服务器拒绝更改，步骤上会显示它自己的消息，因此权限错误会告诉你需要扩大哪个角色绑定。
+例如，重启一个 Deployment 并等待它的新 Pod 就绪：
+
+```bash
+kubectl rollout restart deployment/checkout-api --namespace checkout
+kubectl rollout status deployment/checkout-api --namespace checkout --timeout=120s
+```
+
+每个脚本下方的 **示例 — 点击插入** 可以填入此类常用脚本。只给 kubeconfig 的用户授予脚本所做的事：在脚本操作的 namespace 中授予一个 Role，只包含它们使用的动词。如果 API 服务器拒绝某条命令，kubectl 自己的消息会出现在步骤输出中，因此权限错误会告诉你该扩大哪个 RoleBinding。
 
 ### AI
 
@@ -224,5 +240,5 @@ flowchart TB
 - [运行 Runbook](/docs/runbooks/running): 启动一次执行，并完成、批准或跳过其步骤。
 - [Runbook 规则](/docs/runbooks/rules): 在匹配的事件上自动启动此 Runbook。
 - [Runbook 代理](/docs/runbooks/agents): 安装你的脚本步骤所需的 Runner。
-- [Runbook 凭据](/docs/runbooks/credentials): 为 SSH 和 Kubernetes 步骤提供受管访问权限。
+- [Runbook 变量](/docs/runbooks/variables): 让主机、密钥、密码和 kubeconfig 不出现在步骤中。
 :::

@@ -132,8 +132,12 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 Runbook의 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼져 있거나, 저장된 단계가 없습니다. 스위치를 켜거나 단계를 추가하고 **Save Steps**를 클릭하세요. Runbook의 **개요**에 원인과 함께 **런북 켜기** 또는 **단계 추가**가 표시됩니다.
 :::
 
-:::details Runner나 자격 증명이 없어서 단계가 실패함
-메시지는 예를 들어 "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었거나, SSH 또는 Kubernetes 단계가 **Credential** 없이 저장되었습니다. JavaScript 단계에 자체 Runner가 필요한 것은 그 단계를 실행할 수 있는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)가 없을 때뿐입니다. Runbook의 **단계**를 열어 빠진 것을 고르고 **Save Steps**를 클릭한 뒤 Runbook을 다시 실행하세요.
+:::details Runner가 없어서 단계가 실패함
+메시지는 예를 들어 "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners."입니다. 단계가 **Runner** 없이 저장되었습니다. JavaScript 단계에 자체 Runner가 필요한 것은 그 단계를 실행할 수 있는 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)가 없을 때뿐입니다. Runbook의 **단계**를 열어 단계의 Runner를 고르고 **Save Steps**를 클릭한 뒤 Runbook을 다시 실행하세요.
+:::
+
+:::details 사용할 수 없는 변수를 지정해서 단계가 실패함
+메시지는 "This step names variables it cannot use, so it was not run:"로 시작하며, 변수마다 무엇이 잘못되었고 어디서 고치는지 알려 줍니다. 그 이름의 변수가 없거나, 시크릿에 값이 없거나, 단계의 Runner가 그것을 사용할 수 없는 경우입니다. 변수를 만들거나 단계에서 이름을 고치거나, Runner가 시크릿을 사용하게 한 다음 Runbook을 다시 실행하세요. [Runbook 변수](/docs/runbooks/variables)를 참고하세요.
 :::
 
 :::details 어떤 Runbook 에이전트도 가져가지 않아서 단계가 실패함

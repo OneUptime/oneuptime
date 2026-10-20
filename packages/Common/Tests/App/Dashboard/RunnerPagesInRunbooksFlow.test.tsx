@@ -68,7 +68,7 @@ import {
 /*
  * The Runner pages, walked through the way a person uses them — with the real
  * Runbooks route group, the real Runbooks layout (side menu and breadcrumbs)
- * and the real Runners, Runner and Runner Credentials pages, in a router that
+ * and the real Runners, Runner and AI Access pages, in a router that
  * moves the address bar. Only the model API is stubbed.
  *
  * The other suites pin each piece on its own: the routes, the redirects, the
@@ -92,7 +92,7 @@ const DASHBOARD: string = "../../../../App/FeatureSet/Dashboard/src";
 const MOCKED_RUNBOOK_PAGES: Array<string> = [
   "Runbooks",
   "Executions",
-  "Secrets",
+  "Variables",
   "Settings/OwnerRules",
   "Settings/LabelRules",
   "View/Layout",
@@ -103,6 +103,7 @@ const MOCKED_RUNBOOK_PAGES: Array<string> = [
   "View/Owners",
   "View/AuditLogs",
   "View/Settings",
+  "View/Variables",
   "View/Delete",
 ];
 
@@ -502,8 +503,12 @@ describe("a Runner's page, inside Runbooks", () => {
   });
 });
 
-describe("Runner Credentials, inside Runbooks", () => {
-  test("the menu's Credentials entry opens it", async () => {
+/*
+ * AI Access is the page Runner Credentials was: what OneUptime AI's commands
+ * reach through a Runner. Its address is the one Runner Credentials had.
+ */
+describe("AI Access, inside Runbooks", () => {
+  test("the menu's AI Access entry opens it", async () => {
     open(RUNNERS_PATH);
     await rowOf("prod-bastion");
 
@@ -517,12 +522,8 @@ describe("Runner Credentials, inside Runbooks", () => {
 
     await expectPath(CREDENTIALS_PATH);
     await rowOf("db-host-ssh");
-    expect(breadcrumbs()).toEqual([
-      "Project",
-      "Runbooks",
-      "Runner Credentials",
-    ]);
-    expect(highlightedMenuEntries()).toEqual(["Credentials"]);
+    expect(breadcrumbs()).toEqual(["Project", "Runbooks", "AI Access"]);
+    expect(highlightedMenuEntries()).toEqual(["AI Access"]);
   });
 
   test("a credential's Runner links to that Runner's page, and the link works", async () => {
@@ -569,12 +570,12 @@ describe("arriving on an old Project Settings bookmark", () => {
     ]);
   });
 
-  test("the Runner Credentials bookmark shows the credentials", async () => {
+  test("the Runner Credentials bookmark shows the credentials, on AI Access", async () => {
     open(`${SETTINGS}/runner-credentials`);
 
     await expectPath(CREDENTIALS_PATH);
     await rowOf("db-host-ssh");
-    expect(highlightedMenuEntries()).toEqual(["Credentials"]);
+    expect(highlightedMenuEntries()).toEqual(["AI Access"]);
   });
 
   test("Back does not bounce through the redirect", async () => {

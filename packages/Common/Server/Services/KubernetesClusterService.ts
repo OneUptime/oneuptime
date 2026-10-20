@@ -1313,7 +1313,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (!isAssigned) {
         throw new BadDataException(
-          `The Kubernetes credential is not assigned to Runner "${runner.name}", so that Runner could never use it for this cluster (a credential is handed only to the Runners it is assigned to). Assign it to the Runner under Runbooks → Runner Credentials first, or choose a credential that is assigned to it.`,
+          `The Kubernetes credential is not assigned to Runner "${runner.name}", so that Runner could never use it for this cluster (a credential is handed only to the Runners it is assigned to). Assign it to the Runner under Runbooks → AI Access first, or choose a credential that is assigned to it.`,
         );
       }
     }

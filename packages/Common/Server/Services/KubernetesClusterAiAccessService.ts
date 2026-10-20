@@ -73,7 +73,7 @@ import LlmProviderService from "./LlmProviderService";
 import MonitorService from "./MonitorService";
 import ProjectService from "./ProjectService";
 import RunbookCredentialService from "./RunbookCredentialService";
-import RunbookSecretService from "./RunbookSecretService";
+import RunbookVariableService from "./RunbookVariableService";
 import RunnerService, {
   Service as RunnerServiceClass,
   getKubernetesAgentRunnerNameForCluster,
@@ -1305,7 +1305,7 @@ class KubernetesClusterAiAccessServiceClass {
             : credential.credentialType !== RunbookCredentialType.Kubernetes
               ? `"${credential.name}" is not a Kubernetes credential.`
               : `"${credential.name}" is not assigned to Runner "${runner.name}".`,
-          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → Runner Credentials, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
+          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → AI Access, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
           blocks: "both",
         });
       } else {
@@ -2325,10 +2325,12 @@ class KubernetesClusterAiAccessServiceClass {
       });
     }
 
+    // Only a secret runbook variable lists the Runners it reaches.
     const assignedSecrets: number = (
-      await RunbookSecretService.countBy({
+      await RunbookVariableService.countBy({
         query: {
           projectId: data.projectId,
+          isSecret: true,
           runners: QueryHelper.inRelationArray([data.runner.id!]),
         },
         props: { isRoot: true },
@@ -2337,8 +2339,8 @@ class KubernetesClusterAiAccessServiceClass {
 
     if (assignedSecrets > 0) {
       holdings.push({
-        description: `${assignedSecrets} runbook secret(s) assigned`,
-        remedy: `unassign its ${assignedSecrets} runbook secret(s)`,
+        description: `${assignedSecrets} secret runbook variable(s) assigned`,
+        remedy: `unassign its ${assignedSecrets} secret runbook variable(s)`,
       });
     }
 

@@ -7,6 +7,7 @@ Een runbook is een herbruikbare responsprocedure: een geordende lijst van handma
 - [Runbook-regels](/docs/runbooks/rules): Runbooks starten bij nieuwe incidenten, waarschuwingen en onderhoudsevenementen.
 - [Een runbook uitvoeren](/docs/runbooks/running): Een uitvoering starten, de stappen voltooien en goedkeuren, de uitvoering annuleren.
 - [Runbook-triggers](/docs/runbooks/triggers): Een runbook volgens een schema uitvoeren, of vanuit een ander hulpmiddel via zijn webhook-URL.
+- [Runbook-variabelen](/docs/runbooks/variables): De hosts, sleutels, wachtwoorden en kubeconfigs die uw stappen bij naam gebruiken.
 - [Runbook-agenten](/docs/runbooks/agents): De Runner installeren die uw scripts in uw eigen infrastructuur uitvoert.
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     execution --> worker["De OneUptime<br/>Worker<br/>loopt de<br/>stappen op<br/>volgorde af"]
     worker -->|"Manual-stap<br/>of goedkeuring"| person["Wacht op<br/>een persoon"]
     worker -->|"HTTP- en<br/>AI-stappen"| onworker["Loopt op<br/>de Worker"]
-    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner in uw<br/>infrastructuur"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>kubectl"| runner["Runner in uw<br/>infrastructuur"]
     person --> record["Status,<br/>uitvoer<br/>en fouten<br/>vastgelegd"]
     onworker --> record
     runner --> record
@@ -35,20 +36,20 @@ flowchart TB
 
 Elke run van een runbook is een **uitvoering**. Bij de start worden de stappen van het runbook erop gekopieerd en loopt OneUptime ze op volgorde af. Een Manual-stap, of een stap die goedkeuring nodig heeft, pauzeert de uitvoering tot iemand handelt.
 
-HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en Kubernetes-stappen lopen op een [Runner](/docs/runbooks/agents) die u in uw eigen infrastructuur installeert, zodat die scripts nooit op de servers van OneUptime draaien. Een JavaScript-stap loopt ook op een van uw Runners of, als hij er geen kiest, op een [globale Runner](/docs/runbooks/agents#globale-runners), in een sandbox die alleen het internet bereikt. De status, uitvoer en foutmelding van elke stap worden vastgelegd op de uitvoering, die bij het incident, de waarschuwing of het evenement blijft waarvoor ze liep.
+HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en kubectl-stappen lopen op een [Runner](/docs/runbooks/agents) die u in uw eigen infrastructuur installeert, zodat die scripts nooit op de servers van OneUptime draaien. Een JavaScript-stap loopt ook op een van uw Runners of, als hij er geen kiest, op een [globale Runner](/docs/runbooks/agents#globale-runners), in een sandbox die alleen het internet bereikt. De status, uitvoer en foutmelding van elke stap worden vastgelegd op de uitvoering, die bij het incident, de waarschuwing of het evenement blijft waarvoor ze liep.
 
 ## Kernbegrippen
 
 | Begrip | Betekenis |
 | --- | --- |
 | **Runbook** | Het sjabloon. Een benoemde, herbruikbare procedure met een geordende lijst stappen en een schakelaar **Dit runbook uitvoeren**. |
-| **Stap** | Eén onderdeel van een runbook. Een stap heeft een type (Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes of AI), een titel, een beschrijving en typespecifieke instellingen. |
+| **Stap** | Eén onderdeel van een runbook. Een stap heeft een type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl of AI), een titel, een beschrijving en typespecifieke instellingen. |
 | **Runbook-regel** | Een regel die automatisch een of meer runbooks koppelt aan incidenten, waarschuwingen of geplande onderhoudsevenementen die aan de voorwaarden voldoen: hun monitoren, ernst, labels, monitorlabels, titel of beschrijving. |
 | **Uitvoering** | Eén run van een runbook. Ontstaat wanneer een regel afgaat, wanneer iemand op een evenement op **Runbook uitvoeren** klikt, of wanneer iemand op het runbook zelf op **Run Now** klikt. Bevat een momentopname van de stappen en de status en uitvoer van elke stap. |
 | **Momentopname** | De bevroren kopie van de stappen van het runbook die op elke uitvoering staat. U kunt het runbook later bewerken zonder de geschiedenis van eerdere uitvoeringen te herschrijven. |
-| **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en Kubernetes-stappen uit die hem noemen. Ook wel runbook-agent genoemd. Een globale Runner, een van de Runners die OneUptime voor elk project draait, voert de JavaScript-stappen uit die er geen noemen. |
-| **Inloggegeven** | Beheerde SSH- of Kubernetes-toegang die SSH- en Kubernetes-stappen gebruiken. Versleuteld opgeslagen en alleen overhandigd aan de Runners waaraan u het toewijst. |
-| **Geheim** | Eén waarde, zoals een API-token, die een Bash- of JavaScript-script gebruikt als `{{runbookSecrets.NAME}}`. Versleuteld opgeslagen en alleen overhandigd aan de Runners waaraan u het toewijst. Globale Runners krijgen het alleen als u dat toestaat. |
+| **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en kubectl-stappen uit die hem noemen. Ook wel runbook-agent genoemd. Een globale Runner, een van de Runners die OneUptime voor elk project draait, voert de JavaScript-stappen uit die er geen noemen. |
+| **Variabele** | Een waarde die stappen bij naam gebruiken, zoals een host of een URL: `{{global.variables.NAME}}` voor een van het project, die elk runbook kan gebruiken, of `{{local.variables.NAME}}` voor een van het runbook zelf. |
+| **Geheim** | Een variabele waarvan de waarde versleuteld wordt opgeslagen, nooit meer wordt getoond en verborgen wordt in wat stappen afdrukken, zoals een SSH-sleutel, een wachtwoord, een kubeconfig of een API-token. Alleen overhandigd aan de Runners die het van u mogen gebruiken; globale Runners krijgen het alleen als u dat toestaat. |
 
 ## Staptypen
 
@@ -59,9 +60,9 @@ Kies voor elke stap het type dat past. [Een runbook schrijven](/docs/runbooks/au
 | **Manual** | Een persoon | Iemand iets moet controleren, een afweging moet maken of moet handelen waar OneUptime dat niet kan. | "Bevestig dat het verkeer naar de secundaire regio is verplaatst." |
 | **JavaScript** | Een Runner | U een kleine, afgebakende berekening nodig hebt, in een sandbox. | De replicatievertraging berekenen en beslissen of u doorgaat. |
 | **HTTP request** | De OneUptime Worker | U een bestaande API aanroept: een cloudprovider, PagerDuty, een Slack-webhook, uw eigen dienst. | `POST` naar uw failover-orchestrator. |
-| **Bash** | Een Runner | U shellopdrachten op uw eigen infrastructuur nodig hebt. | `kubectl rollout restart` of een herstelscript uitvoeren. |
-| **SSH** | Een Runner | U één opdracht op een externe host nodig hebt, met een beheerd SSH-inloggegeven. | Een dienst op een webserver herstarten. |
-| **Kubernetes** | Een Runner | U een Deployment, StatefulSet of DaemonSet moet herstarten of schalen. | `checkout-api` in `production` herstarten. |
+| **Bash** | Een Runner | U shellopdrachten op uw eigen infrastructuur nodig hebt. | Een herstelscript uitvoeren, of met `curl` een dienst aanroepen die alleen uw netwerk bereikt. |
+| **SSH** | Een Runner | U een bash-script op een externe machine nodig hebt, aangemeld met een geheime variabele. | Een dienst op een webserver herstarten. |
+| **kubectl** | Een Runner | U kubectl-opdrachten op een cluster nodig hebt. | `checkout-api` in `production` herstarten en dan op de nieuwe pods wachten. |
 | **AI** | De OneUptime Worker | U halverwege de uitvoering een analyse, samenvatting of oordeel wilt van de LLM-provider van uw project. | "Bekijk de diagnose hierboven. Is een failover veilig?" |
 
 Een runbook kan ze allemaal combineren. De kracht van runbooks zit in het afwisselen van menselijke controles met automatisering en AI-analyse.
@@ -90,11 +91,12 @@ Runbooks staat onder **Producten**, in de groep **Dashboards & automatisering**.
 | Het **Overzicht** van een runbook | De laatste uitvoering en de resultaten zien, en op **Run Now** klikken. |
 | De **Uitvoeringen** van een runbook | Elke uitvoering van dit runbook, gefilterd op status of startdatum. |
 | **Triggers** van een runbook | Het volgens een [schema](/docs/runbooks/triggers#uitvoeren-volgens-een-schema) uitvoeren, of vanuit een ander hulpmiddel via zijn [webhook-URL](/docs/runbooks/triggers#de-webhook-aanroepen). |
+| De **Variabelen** van een runbook | De [variabelen](/docs/runbooks/variables) beheren die alleen de stappen van dat runbook gebruiken. |
 | De **Eigenaren** van een runbook | De mensen en teams toevoegen die ervoor verantwoordelijk zijn. |
 | De **Instellingen** van een runbook | **Dit runbook uitvoeren** uitschakelen zonder het runbook te verwijderen. |
 | **Runbooks → Uitvoeringen** | Elke uitvoering van elk runbook in het project. |
-| **Runbooks → Runbook-agenten** en **Runbooks → Runbook-agenten → Inloggegevens** | [Runners](/docs/runbooks/agents) installeren en [inloggegevens](/docs/runbooks/credentials) beheren. |
-| **Runbooks → Instellingen** | [Geheimen](/docs/runbooks/credentials#geheimen-voor-scripts) voor scripts beheren, en de **Eigenaarsregels** en **Labelregels** die eigenaren en labels aan nieuwe runbooks toevoegen. |
+| **Runbooks → Runbook-agenten** en **Runbooks → Runbook-agenten → AI-toegang** | [Runners](/docs/runbooks/agents) installeren, en de [toegang](/docs/runbooks/credentials) beheren die de opdrachten van OneUptime AI via hen hebben. |
+| **Runbooks → Instellingen** | Onder **Globale variabelen** de variabelen beheren die elk runbook kan [gebruiken](/docs/runbooks/variables), en de **Eigenaarsregels** en **Labelregels** die eigenaren en labels aan nieuwe runbooks toevoegen. |
 | **Incidenten / Waarschuwingen / Geplande onderhoud → Regels → Runbook-regels** | De regels maken die runbooks automatisch starten. |
 | Een incident, waarschuwing of onderhoudsevenement → **Runbooks** | De gekoppelde uitvoeringen zien, en op **Runbook uitvoeren** klikken om er een te starten. |
 
@@ -105,7 +107,7 @@ Het zijmenu van een runbook groepeert de pagina's zo. Alleen **Basis** staat ope
 | **Basis** | **Overzicht**, **Stappen** |
 | **Logboeken** | **Uitvoeringen** |
 | **Eigenaren** | **Eigenaren** |
-| **Instellingen** | **Triggers**, **Instellingen** |
+| **Instellingen** | **Triggers**, **Variabelen**, **Instellingen** |
 | **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
 | **Geavanceerd** | **Auditlogboeken**, **Runbook verwijderen** |
 
@@ -156,7 +158,7 @@ De uitvoering blijft op de pagina **Runbooks** van het incident. Wanneer u de po
 - **Cache legen**: één HTTP-verzoek, daarna een Manual-stap "bevestig dat de cache-hitrate herstelt".
 - **Incident met klantimpact**: Manual "plaats een update op de statuspagina", een HTTP-verzoek om het supportteam te waarschuwen, JavaScript om de lijst met getroffen accounts op te halen.
 - **Voorcontrole van gepland onderhoud**: metrics vastleggen, het wijzigingsvenster met belanghebbenden bevestigen (Manual), de onderhoudsmodus op de load balancer inschakelen (HTTP request).
-- **Eerst diagnosticeren, dan oplossen**: een Bash-stap verzamelt diagnosegegevens, een AI-stap met **Goedkeuring vereisen** leest ze en stelt een oplossing voor, en een Kubernetes-stap herstart de workload pas nadat een persoon heeft goedgekeurd.
+- **Eerst diagnosticeren, dan oplossen**: een Bash-stap verzamelt diagnosegegevens, een AI-stap met **Goedkeuring vereisen** leest ze en stelt een oplossing voor, en een kubectl-stap herstart de workload pas nadat een persoon heeft goedgekeurd.
 - **Hygiëne die altijd loopt**: een regel zonder voorwaarden die bij elk incident de systeemtoestand vastlegt, voor de postmortem.
 
 ## Hoe runbooks in de rest van OneUptime passen
@@ -170,7 +172,7 @@ De uitvoering blijft op de pagina **Runbooks** van het incident. Wanneer u de po
 
 :::cards
 - [Een runbook schrijven](/docs/runbooks/authoring): Uw eerste runbook en de stappen maken.
-- [Runbook-agenten](/docs/runbooks/agents): Een Runner installeren voordat u een Bash-, SSH- of Kubernetes-stap schrijft.
+- [Runbook-agenten](/docs/runbooks/agents): Een Runner installeren voordat u een Bash-, SSH- of kubectl-stap schrijft.
 - [Runbook-regels](/docs/runbooks/rules): Runbooks automatisch starten wanneer incidenten ontstaan.
 - [Runbook-configuratie & veiligheid](/docs/runbooks/configuration): Limieten, time-outs, machtigingen en beveiliging.
 :::

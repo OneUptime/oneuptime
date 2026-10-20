@@ -62,8 +62,13 @@ const KEYED_BEFORE: ReadonlyArray<string> = [
   FilterType.False,
 ];
 
-// The criteria form's option for a condition, as a Dropdown draws it.
-const DRAWN_OPTION: string = "{tx(option.label) ?? option.label}";
+/*
+ * The criteria form's option for a condition, as a Dropdown draws it: looked
+ * up in the locale, unless the option is something a person named
+ * (isUserContent), which no condition is.
+ */
+const DRAWN_OPTION: string = "{getOptionLabelText(option)}";
+const TRANSLATED_LABEL: string = "return tx(option.label) ?? option.label;";
 const CONDITION_DROPDOWN: string = "options={filterTypeOptions}";
 
 // A finding, as a failure prints it: where, what, and what the page should say.
@@ -149,12 +154,16 @@ describe("the conditions this suite reads", () => {
     );
 
     // ...in a Dropdown, which draws each option's label through the translator.
-    expect(
-      readDashboardSource("Components/Form/Monitor/CriteriaFilter.tsx"),
-    ).toContain(CONDITION_DROPDOWN);
-    expect(readCommonSource("UI/Components/Dropdown/Dropdown.tsx")).toContain(
-      DRAWN_OPTION,
+    const criteriaFilter: string = readDashboardSource(
+      "Components/Form/Monitor/CriteriaFilter.tsx",
     );
+    const dropdown: string = readCommonSource(
+      "UI/Components/Dropdown/Dropdown.tsx",
+    );
+    expect(criteriaFilter).toContain(CONDITION_DROPDOWN);
+    expect(criteriaFilter).not.toContain("isUserContent");
+    expect(dropdown).toContain(DRAWN_OPTION);
+    expect(dropdown).toContain(TRANSLATED_LABEL);
   });
 
   it("include the ones read in bold only, and longer names that are not a condition", () => {

@@ -6,7 +6,7 @@ import KubernetesClusterAiAccessService, {
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunbookSecretService from "../../../Server/Services/RunbookSecretService";
+import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
@@ -128,7 +128,7 @@ beforeEach(() => {
     .spyOn(RunbookCredentialService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
   jest
-    .spyOn(RunbookSecretService, "countBy")
+    .spyOn(RunbookVariableService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
   jest
     .spyOn(KubernetesClusterService, "countBy")

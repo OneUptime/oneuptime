@@ -7,6 +7,7 @@ import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
+import { parseSingleRunbookVariableReference } from "../../Types/Runbook/RunbookVariableReference";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -46,6 +47,20 @@ const CREDENTIAL_STEP_TYPES: Array<string> = [
   RunbookStepType.SSH,
   RunbookStepType.Kubernetes,
 ];
+
+/*
+ * The fields of a step that take a secret - an SSH step's key or password
+ * and passphrase, a kubectl step's kubeconfig - by step type. Each holds
+ * one reference to a secret runbook variable, never the secret itself:
+ * everyone who may read the runbook reads its steps.
+ */
+const SECRET_FIELDS_BY_STEP_TYPE: Record<string, Array<string>> = {
+  [RunbookStepType.SSH]: ["signIn", "passphrase"],
+  [RunbookStepType.Kubernetes]: ["kubeconfig"],
+};
+
+export const STEP_SECRET_IN_STEP_MESSAGE: string =
+  "keeps a key, a password or a kubeconfig in the step itself, where everyone who may read this runbook could read it. Keep it in a secret runbook variable and pick that variable in the step.";
 
 /*
  * The columns whose change moves when the schedule next runs: the schedule
@@ -150,6 +165,52 @@ export class Service extends ProjectReferencesService<Model> {
     return ids;
   }
 
+  /*
+   * Why `steps` may not be saved because one of them holds a secret where it
+   * should name a secret variable, or null. A field that takes a secret is
+   * empty or one reference ({{global.variables.NAME}} or
+   * {{local.variables.NAME}}); whether that variable exists, and is a
+   * secret, is asked when the step runs - a runbook may be written before
+   * its variables, by the API or Terraform.
+   */
+  public static getStepSecretFieldRefusal(steps: unknown): string | null {
+    for (const step of Array.isArray(steps) ? steps : []) {
+      if (!step || typeof step !== "object") {
+        continue;
+      }
+
+      const type: unknown = (step as Record<string, unknown>)["type"];
+      const config: unknown = (step as Record<string, unknown>)["config"];
+
+      if (typeof type !== "string" || !config || typeof config !== "object") {
+        continue;
+      }
+
+      for (const field of SECRET_FIELDS_BY_STEP_TYPE[type] || []) {
+        const value: unknown = (config as Record<string, unknown>)[field];
+
+        if (value === undefined || value === null) {
+          continue;
+        }
+
+        if (
+          typeof value !== "string" ||
+          (value.trim() !== "" && !parseSingleRunbookVariableReference(value))
+        ) {
+          const title: unknown = (step as Record<string, unknown>)["title"];
+          const name: string =
+            typeof title === "string" && title.trim()
+              ? `"${title.trim().slice(0, 80)}"`
+              : `of type ${type}`;
+
+          return `The step ${name} ${STEP_SECRET_IN_STEP_MESSAGE}`;
+        }
+      }
+    }
+
+    return null;
+  }
+
   // The credentials `steps` name, as references the project check looks up.
   public static getStepCredentialReferences(
     steps: unknown,
@@ -217,6 +278,14 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
+    const secretRefusal: string | null = Service.getStepSecretFieldRefusal(
+      createBy.data.steps,
+    );
+
+    if (secretRefusal) {
+      throw new BadDataException(secretRefusal);
+    }
+
     if (!Service.mayNameCredentials(createBy.props)) {
       Service.refuseCredentialsNamed(
         Service.getStepCredentialIds(createBy.data.steps),
@@ -256,6 +325,14 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async checkUpdateBeforeReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    const secretRefusal: string | null = Service.getStepSecretFieldRefusal(
+      (updateBy.data as unknown as Record<string, unknown>)["steps"],
+    );
+
+    if (secretRefusal) {
+      throw new BadDataException(secretRefusal);
+    }
+
     const named: Array<string> = Service.getStepCredentialIds(
       (updateBy.data as unknown as Record<string, unknown>)["steps"],
     );

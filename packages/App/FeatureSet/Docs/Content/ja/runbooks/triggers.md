@@ -134,10 +134,10 @@ URL が漏れた場合は **URL をリセット** をクリックします。Run
 
 | ステップの種類 | 入力の読み取り方 |
 | --- | --- |
-| Bash | 環境変数: 最上位の値ごとに 1 つの `ONEUPTIME_INPUT_<NAME>`、オブジェクト全体を JSON にした `ONEUPTIME_INPUTS`、実行を開始したものを示す `ONEUPTIME_TRIGGER` ( `Webhook` や `Schedule` など)。 |
+| Bash、kubectl | 環境変数: 最上位の値ごとに 1 つの `ONEUPTIME_INPUT_<NAME>`、オブジェクト全体を JSON にした `ONEUPTIME_INPUTS`、実行を開始したものを示す `ONEUPTIME_TRIGGER` ( `Webhook` や `Schedule` など)。 |
 | JavaScript | 送られたままのオブジェクトである `args.inputs` と `args.trigger`。 |
 | AI | **トリガーのコンテキストを含める** がオンのとき、プロンプトの中で、OneUptime の外部からのデータとして示されます。 |
-| HTTP request、SSH、Kubernetes | 読み取りません。URL、コマンド、対象は Runbook に書かれたとおりで、呼び出し元が送るものによって変わることはありません。 |
+| HTTP request、SSH | 読み取りません。URL、スクリプト、対象は Runbook に書かれたとおりで、呼び出し元が送るものによって変わることはありません。 |
 
 変数名は値の名前を大文字にしたもので、文字と数字以外の文字はすべて `_` になります。 `host-name` は `ONEUPTIME_INPUT_HOST_NAME` になります。テキストはそのまま、数値と `true` または `false` は書かれたとおりに、オブジェクトとリストは JSON で渡されます。ステップが受け取るこれらの変数は最大 100 個で、100 文字を超える名前は変数になりません。どの値も `ONEUPTIME_INPUTS` には含まれます。すべての名前は `ONEUPTIME_` で始まるため、呼び出し元が `PATH` や Runner が読み取るほかの変数を設定することはできません。
 

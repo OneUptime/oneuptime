@@ -19,7 +19,7 @@ flowchart TB
     end
     subgraph yours["Tu infraestructura"]
         runner["Runner"]
-        onrunner["Pasos JavaScript<br/>y Bash<br/>Pasos SSH y Kubernetes"]
+        onrunner["Pasos JavaScript<br/>y Bash<br/>Pasos SSH y kubectl"]
     end
     person["Una persona"]
     worker --> onworker
@@ -34,19 +34,19 @@ flowchart TB
 | JavaScript | Un Runner | En un sandbox `isolated-vm`. |
 | HTTP request | El Worker de OneUptime | Una llamada HTTP saliente. |
 | Bash | Un Runner | `bash -c <script>`. |
-| SSH | Un Runner | Una conexión SSH, con una [credencial](/docs/runbooks/credentials). |
-| Kubernetes | Un Runner | Una llamada al servidor de API del clúster, con una credencial. |
+| SSH | Un Runner | Una conexión SSH que ejecuta el script con bash en la máquina, con inicio de sesión mediante una [variable](/docs/runbooks/variables) secreta. |
+| kubectl | Un Runner | `bash -c <script>`, con `KUBECONFIG` apuntando al clúster. |
 | AI | El Worker de OneUptime | Una llamada al proveedor de LLM del proyecto. |
 
 ## Cómo se envían los pasos de Runner
 
-Los pasos JavaScript, Bash, SSH y Kubernetes **nunca se ejecutan en el Worker de OneUptime**. Se envían como trabajos a un [agente de runbook](/docs/runbooks/agents) concreto: un pequeño proceso que instalas en un host de tu propia infraestructura. Un paso JavaScript que no elige ninguno va a los [Runners globales](/docs/runbooks/agents#runners-globales) que OneUptime ejecuta para todos los proyectos.
+Los pasos JavaScript, Bash, SSH y kubectl **nunca se ejecutan en el Worker de OneUptime**. Se envían como trabajos a un [agente de runbook](/docs/runbooks/agents) concreto: un pequeño proceso que instalas en un host de tu propia infraestructura. Un paso JavaScript que no elige ninguno va a los [Runners globales](/docs/runbooks/agents#runners-globales) que OneUptime ejecuta para todos los proyectos.
 
 El modelo de envío:
 
 1. Quien escribe el paso del runbook elige un Runner en la lista desplegable al escribir el paso.
 2. Cuando el paso se ejecuta, el Worker inserta una fila en `RunnerJob` con `targetAgentId` igual al ID de ese Runner y estado `Pending`. Un paso JavaScript que no eligió ninguno, en un proyecto que usa Runners globales, recibe en cambio `runsOnGlobalRunner`.
-3. Ese Runner concreto (y solo ese Runner) reclama el trabajo de forma atómica, lo ejecuta localmente — Bash mediante `bash -c <script>`, JavaScript dentro de un sandbox `isolated-vm`, SSH y Kubernetes con la credencial del paso — y devuelve el resultado. Cualquier Runner global puede reclamar un trabajo con `runsOnGlobalRunner`.
+3. Ese Runner concreto (y solo ese Runner) reclama el trabajo de forma atómica, lo ejecuta localmente — Bash y kubectl mediante `bash -c <script>`, JavaScript dentro de un sandbox `isolated-vm`, SSH mediante una conexión a la máquina, cada uno con las variables que nombra ya insertadas — y devuelve el resultado. Cualquier Runner global puede reclamar un trabajo con `runsOnGlobalRunner`.
 4. El Worker reanuda el runbook con el resultado.
 
 Ya no existe el indicador de entorno `RUNBOOK_BASH_ENABLED`. Que estos pasos funcionen en un despliegue depende únicamente de que el proyecto tenga un Runner conectado con **Ejecuta runbooks** activado. Un paso JavaScript también funciona en un Runner global.
@@ -56,13 +56,13 @@ Ya no existe el indicador de entorno `RUNBOOK_BASH_ENABLED`. Que estos pasos fun
 | Límite | Valor | Se aplica a |
 | --- | --- | --- |
 | Salida por paso | **50 KB**. La salida más larga se corta con una marca. | Cada paso automatizado |
-| Tiempo de espera de ejecución | **30 segundos** por defecto | Pasos JavaScript, Bash, SSH y Kubernetes |
+| Tiempo de espera de ejecución | **30 segundos** por defecto | Pasos JavaScript, Bash, SSH y kubectl |
 | Tiempo de espera de la solicitud | **30 segundos** por defecto | Pasos de solicitud HTTP |
-| Tiempo de espera de reclamación | **2 minutos** por defecto: cuánto espera el Worker a que el Runner elegido tome el trabajo antes de darlo por fallido | Pasos JavaScript, Bash, SSH y Kubernetes |
+| Tiempo de espera de reclamación | **2 minutos** por defecto: cuánto espera el Worker a que el Runner elegido tome el trabajo antes de darlo por fallido | Pasos JavaScript, Bash, SSH y kubectl |
 | Rango de los tiempos de espera | **1 segundo a 1 hora** | Cada tiempo de espera |
 | Espera de una persona | Sin límite | Pasos Manual y aprobaciones |
 
-Configura los tiempos de espera paso a paso en la página **Pasos** del runbook; deja un campo vacío para mantener el valor predeterminado. Un valor fuera del rango se ajusta al límite al ejecutarse el paso, de modo que una configuración mal escrita no puede ni desactivar el tiempo de espera ni ocupar indefinidamente un hueco del Worker.
+Configura los tiempos de espera paso a paso, en **Más campos** del paso, en la página **Pasos** del runbook; deja un campo vacío para mantener el valor predeterminado. Un valor fuera del rango se ajusta al límite al ejecutarse el paso, de modo que una configuración mal escrita no puede ni desactivar el tiempo de espera ni ocupar indefinidamente un hueco del Worker.
 
 ## Permisos
 
@@ -78,7 +78,7 @@ Un rol ejecuta los runbooks a los que llega su alcance. Una asignación de `Runb
 
 La programación y el webhook de un runbook inician ejecuciones sin nadie presente, así que configurar cualquiera de los dos requiere permiso para editar el runbook y para ejecutarlo, igual que ver su URL de webhook. Desactivarlos solo requiere permiso para editarlo. Consulta [Desencadenantes de runbook](/docs/runbooks/triggers#quién-puede-configurar-desencadenantes).
 
-Las credenciales y los secretos quedan fuera de `RunbookAdmin`. Gestionarlos requiere `ProjectOwner` o `ProjectAdmin`, o los permisos `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` y `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Consulta [Credenciales de runbook](/docs/runbooks/credentials).
+Las variables de runbook y las credenciales quedan fuera de `RunbookAdmin`, que solo lee las variables, para elegirlas en los pasos que escribe. Gestionar variables requiere `ProjectOwner` o `ProjectAdmin`, o los permisos `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` y `ReadRunbookSecret`: los permisos de los secretos de runbook, que conservaron sus nombres cuando los secretos pasaron a ser variables. Gestionar credenciales requiere `ProjectOwner` o `ProjectAdmin`, o `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential` y `ReadRunbookCredential`. Consulta [Variables de runbook](/docs/runbooks/variables) y [Acceso de la IA](/docs/runbooks/credentials).
 
 Las reglas de propietario y de etiquetas de **Runbooks → Ajustes** también quedan fuera de `RunbookAdmin`. Gestionarlas requiere `ProjectOwner` o `ProjectAdmin`, o los permisos `CreateRunbookOwnerRule` y `CreateRunbookLabelRule` con sus equivalentes de edición, eliminación y lectura.
 
@@ -92,12 +92,12 @@ Cuando se marca un paso manual a través de la API, la ejecución se vuelve a po
 
 ## Notas de endurecimiento
 
-- **JavaScript, Bash, SSH y Kubernetes** se ejecutan en un host de Runner que tú controlas, no en el Worker de OneUptime. JavaScript se ejecuta en un aislamiento `isolated-vm` separado con 128 MB de memoria y sin acceso al sistema de archivos ni a los procesos del Runner; puede hacer solicitudes HTTP con `axios`, pero se rechazan las solicitudes a redes privadas y a direcciones de loopback y de enlace local. Bash se ejecuta mediante `bash -c`, con su tiempo de espera aplicado en el Runner. Un paso JavaScript que no elige ninguno se ejecuta en cambio en un Runner global.
+- **JavaScript, Bash, SSH y kubectl** se ejecutan en un host de Runner que tú controlas, no en el Worker de OneUptime. JavaScript se ejecuta en un aislamiento `isolated-vm` separado con 128 MB de memoria y sin acceso al sistema de archivos ni a los procesos del Runner; puede hacer solicitudes HTTP con `axios`, pero se rechazan las solicitudes a redes privadas y a direcciones de loopback y de enlace local. Bash se ejecuta mediante `bash -c`, con su tiempo de espera aplicado en el Runner. Un paso JavaScript que no elige ninguno se ejecuta en cambio en un Runner global.
 - **Los pasos HTTP** usan una validación de estado permisiva, de modo que una respuesta 4xx o 5xx se registra como paso fallido en lugar de lanzar una excepción, y la salida capturada refleja lo que el servicio remoto devolvió de verdad. Las redirecciones no se siguen. El Worker nunca llama a direcciones de loopback ni de enlace local, como un endpoint de metadatos de la nube; en OneUptime Cloud también rechaza las direcciones de red privada, y un OneUptime autoalojado las rechaza con `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **Los pasos de IA** nunca ven las notas privadas de los incidentes ni los mensajes de Slack y Microsoft Teams, y la salida de los pasos anteriores se analiza en busca de secretos, que se ocultan antes de llegar al modelo. Las imágenes incrustadas y los datos codificados largos se dejan fuera de la indicación. Consulta [AI](/docs/runbooks/authoring#ai).
-- **Runners globales**: solo ejecutan pasos JavaScript, cada uno en un sandbox creado para ese paso y descartado después, que solo alcanza direcciones públicas de internet, durante 5 minutos como mucho, y como mucho tres pasos de un mismo proyecto a la vez. Solo reciben los secretos de runbook del propio proyecto del paso que están activados para los Runners globales, y nunca una credencial; el incluido tiene su propia clave y nada más del servidor. Consulta [Runners globales](/docs/runbooks/agents#runners-globales).
+- **Runners globales**: solo ejecutan pasos JavaScript, cada uno en un sandbox creado para ese paso y descartado después, que solo alcanza direcciones públicas de internet, durante 5 minutos como mucho, y como mucho tres pasos de un mismo proyecto a la vez. Solo reciben las variables secretas del propio proyecto del paso que están activadas para los Runners globales, y nunca una credencial; el incluido tiene su propia clave y nada más del servidor. Consulta [Runners globales](/docs/runbooks/agents#runners-globales).
 - **La autenticación de los Runners** se hace con un ID y una clave secreta, definidos en el contenedor del Runner como variables de entorno. En el servidor, la identidad válida del Runner sale de la fila de la base de datos que corresponde al ID y la clave presentados: un cliente no puede hacerse pasar por otro Runner ni siquiera con una clave comprometida.
-- **Las credenciales y los secretos** están cifrados en reposo, la API nunca los devuelve y solo se entregan a los Runners a los que están asignados, cuando estos reclaman un paso. Un secreto de runbook también se entrega a un Runner global que reclama un paso del propio proyecto del secreto, cuando el secreto permite que lo usen los Runners globales.
+- **Las variables secretas y las credenciales** se cifran en reposo, la API nunca las devuelve y solo se entregan a los Runners que incluyen, cuando estos reclaman un paso o un comando que las nombra. Una variable secreta también se entrega a un Runner global que reclama un paso del propio proyecto de la variable, cuando la variable permite usarla a los Runners globales. El Runner reemplaza cada secreto que recibió un paso por `[REDACTED]` en lo que imprime el paso, y OneUptime lo vuelve a hacer antes de guardar la salida.
 
 ## Tablas de la base de datos
 
@@ -108,8 +108,8 @@ Cuando se marca un paso manual a través de la API, la ejecución se vuelve a po
 | `RunbookRule` | Las reglas de activación automática, con un discriminador `triggerEntityType` (Incident, Alert, ScheduledMaintenance), una relación de muchos a muchos con los runbooks que iniciar y aquello con lo que comparan: una columna JSON `criteria` (las condiciones) más vínculos de muchos a muchos con monitores, gravedades de incidente, gravedades de alerta, etiquetas y etiquetas de monitor, y patrones de título, descripción, nombre de monitor y descripción de monitor. |
 | `Runner` | Una fila por Runner instalado: nombre, clave secreta, `lastAlive`, `connectionStatus`, información del host y capacidades. Un Runner global tiene `isGlobalRunner` activado y ningún proyecto. |
 | `RunnerJob` | Una fila por paso enviado a un Runner: `targetAgentId` (el Runner que eligió quien escribió el paso), tipo de paso, script o carga útil, estado (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` o `Cancelled`), plazo de reclamación, concesión, salida y código de salida. `runsOnGlobalRunner` marca un paso que cualquier Runner global puede reclamar. |
-| `RunbookCredential` | Las credenciales SSH y Kubernetes, con sus campos secretos cifrados, y los Runners a los que están asignadas. |
-| `RunbookSecret` | Los secretos de runbook, cifrados, y los Runners que pueden recibirlos. |
+| `RunbookCredential` | Las credenciales SSH y Kubernetes que usan los comandos de OneUptime AI, con sus campos secretos cifrados, y los Runners a los que están asignadas. |
+| `RunbookVariable` | Las variables de runbook: las globales del proyecto y las propias de un runbook, que lo nombran en `runbookId`; el valor de un secreto cifrado, y los Runners que pueden recibir un secreto. |
 
 ## Consejos de operación
 
@@ -121,6 +121,6 @@ Cuando se marca un paso manual a través de la API, la ejecución se vuelve a po
 
 :::cards
 - [Agentes de runbook](/docs/runbooks/agents): Instalar, operar y solucionar problemas de los Runners.
-- [Credenciales de runbook](/docs/runbooks/credentials): Acceso SSH y Kubernetes gestionado, y secretos para scripts.
+- [Variables de runbook](/docs/runbooks/variables): Los valores y secretos que usan los pasos, y los Runners que los reciben.
 - [Usuarios, equipos y permisos](/docs/permissions/index): Cómo deciden los roles, las etiquetas y los equipos quién ejecuta qué.
 :::

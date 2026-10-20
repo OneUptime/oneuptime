@@ -26,9 +26,9 @@ import path from "path";
  * on every address: Scripts/Install/CheckIngressPorts.js), the Helm chart's
  * nginx.service.externalTrafficPolicy (and helm install / helm upgrade saying
  * so while it is unset), the Admin Dashboard's OneUptime Health page, and
- * NGINX_LISTEN_OPTIONS working again. It sits after the note on the global
- * Runner (GlobalRunnerUpgradeDocs) and before the endpoint pointer, and every
- * translation carries it in the English note's place, with the English
+ * NGINX_LISTEN_OPTIONS working again. It sits after the note on runbook
+ * variables (RunbookVariablesUpgradeDocs) and before the endpoint pointer, and
+ * every translation carries it in the English note's place, with the English
  * note's code and a link to the guide's section in the reader's language.
  */
 
@@ -36,8 +36,9 @@ const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 const REPO_ROOT: string = path.resolve(PACKAGES_DIR, "..");
 
 const NOTE_LEAD: string = "Visitors keep their own address in more setups.";
+// The note before it (RunbookVariablesUpgradeDocs).
 const PREVIOUS_LEAD: string =
-  "**Every install runs a global Runner of its own.**";
+  "**Runbook secrets and the credentials runbook steps used are runbook variables.**";
 const POINTER_START: string = "- See [API and endpoint changes]";
 
 const GUIDE: string = "installation/docker-compose";
@@ -77,7 +78,7 @@ function sectionOf(markdown: string, heading: string): string {
 }
 
 describe("the English upgrade note on visitor addresses", () => {
-  it("is a note of the 13 → 14 changes, once, after the global Runner note and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the runbook variables note and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

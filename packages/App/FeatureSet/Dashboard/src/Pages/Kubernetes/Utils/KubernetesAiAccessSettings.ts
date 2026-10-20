@@ -1247,7 +1247,7 @@ export function getKubernetesAiCredentialFieldDescription(
   }
 
   return translateTemplate(
-    'The Kubernetes credentials (API server URL + ServiceAccount token) assigned to "{{runner}}". Assign one under Runbooks → Runner Credentials.',
+    'The Kubernetes credentials (API server URL + ServiceAccount token) assigned to "{{runner}}". Assign one under Runbooks → AI Access.',
     { runner: runner.name || translatableTerm(CHOSEN_RUNNER) },
   );
 }
@@ -1295,8 +1295,8 @@ export function getKubernetesAiCredentialAssignmentError(data: {
   ) {
     return translateTemplate(
       credentialName
-        ? '"{{credential}}" is not assigned to Runner "{{runner}}". Assign it under Runbooks → Runner Credentials, or choose a credential assigned to that Runner.'
-        : 'The Kubernetes credential is not assigned to Runner "{{runner}}". Assign it under Runbooks → Runner Credentials, or choose a credential assigned to that Runner.',
+        ? '"{{credential}}" is not assigned to Runner "{{runner}}". Assign it under Runbooks → AI Access, or choose a credential assigned to that Runner.'
+        : 'The Kubernetes credential is not assigned to Runner "{{runner}}". Assign it under Runbooks → AI Access, or choose a credential assigned to that Runner.',
       {
         credential: credentialName,
         runner: data.runner.name || data.runner.id,

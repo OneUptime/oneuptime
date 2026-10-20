@@ -1,6 +1,6 @@
 # Runbook-Agents
 
-Ein **Runbook-Agent**, im Dashboard **Runner** genannt, ist ein kleiner, selbst gehosteter Prozess, der die JavaScript-, Bash-, SSH- und Kubernetes-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime Worker führt Ihre Skripte nie aus: Er reiht sie ein, und der Runner, den die Autorin oder der Autor des Schritts gewählt hat, übernimmt jedes, führt es aus und meldet das Ergebnis zurück. Diese Seite richtet sich an alle, die Runner installieren und betreiben. Ein JavaScript-Schritt, der keinen Runner wählt, läuft stattdessen auf einem [globalen Runner](#globale-runner), einem, den OneUptime für jedes Projekt betreibt.
+Ein **Runbook-Agent**, im Dashboard **Runner** genannt, ist ein kleiner, selbst gehosteter Prozess, der die JavaScript-, Bash-, SSH- und kubectl-Schritte Ihrer Runbooks **in Ihrer eigenen Infrastruktur** ausführt. Der OneUptime Worker führt Ihre Skripte nie aus: Er reiht sie ein, und der Runner, den die Autorin oder der Autor des Schritts gewählt hat, übernimmt jedes, führt es aus und meldet das Ergebnis zurück. Diese Seite richtet sich an alle, die Runner installieren und betreiben. Ein JavaScript-Schritt, der keinen Runner wählt, läuft stattdessen auf einem [globalen Runner](#globale-runner), einem, den OneUptime für jedes Projekt betreibt.
 
 :::cards
 - [Einen Runner installieren](#einen-runner-installieren): Vom Dashboard zu einem verbundenen Container, in fünf Schritten.
@@ -33,13 +33,13 @@ flowchart TB
 1. Sie erstellen einen Runner in OneUptime. OneUptime erzeugt eine ID und einen geheimen Schlüssel für ihn.
 2. Sie starten den Runner-Container auf einem Host in Ihrer Infrastruktur, mit dieser ID, diesem Schlüssel und Ihrer OneUptime-URL.
 3. Der Runner fragt OneUptime alle 5 Sekunden nach Arbeit und meldet alle 60 Sekunden, dass er lebt.
-4. Wenn Sie einen JavaScript-, Bash-, SSH- oder Kubernetes-Schritt schreiben, wählen Sie den Runner aus einer Dropdown-Liste. Der Schritt ist an diesen Runner gebunden. Ein JavaScript-Schritt kann **Globaler Runner** behalten, den die Dropdown-Liste für ihn wählt.
+4. Wenn Sie einen JavaScript-, Bash-, SSH- oder kubectl-Schritt schreiben, wählen Sie den Runner aus einer Dropdown-Liste. Der Schritt ist an diesen Runner gebunden. Ein JavaScript-Schritt kann **Globaler Runner** behalten, den die Dropdown-Liste für ihn wählt.
 5. Wenn der Schritt läuft, reiht der Worker einen Job ein, dessen `targetAgentId` auf diesen Runner zeigt. Nur dieser Runner kann ihn übernehmen.
-6. Der Runner führt den Job lokal aus — `bash -c <script>` für Bash, eine `isolated-vm`-Sandbox für JavaScript, eine SSH-Verbindung oder ein Aufruf des API-Servers des Clusters mit den Anmeldedaten des Schritts —, erfasst das Ergebnis und meldet es zurück. Der Worker setzt das Runbook mit dem Ergebnis fort.
+6. Der Runner führt den Job lokal aus — `bash -c <script>` für Bash und kubectl, eine `isolated-vm`-Sandbox für JavaScript, eine SSH-Verbindung, die das Skript mit bash auf dem Rechner ausführt —, erfasst das Ergebnis, verbirgt darin die Geheimnisse des Schritts und meldet es zurück. Der Worker setzt das Runbook mit dem Ergebnis fort.
 
 Der Runner braucht nur **ausgehendes HTTPS** zu Ihrer OneUptime-Instanz. Er nimmt keine eingehenden Verbindungen an.
 
-Ein Runner hält nur seine ID und seinen Schlüssel. Alles andere erhält er mit dem Job, den er übernimmt: ein Skript, in das die ihm zugewiesenen [Runbook-Geheimnisse](/docs/runbooks/credentials#geheimnisse-für-skripte) eingesetzt sind, oder die [Anmeldedaten](/docs/runbooks/credentials), die ein SSH- oder Kubernetes-Schritt nennt. Deshalb kann jeder, der den Schlüssel eines Runners hat, als dieser Runner auftreten: Behandeln Sie den Schlüssel wie die ihm zugewiesenen Anmeldedaten.
+Ein Runner hält nur seine ID und seinen Schlüssel. Alles andere erhält er mit dem Job, den er übernimmt: ein Skript, in das die [Runbook-Variablen](/docs/runbooks/variables) eingesetzt sind, die es nennt, und den Schlüssel oder das Passwort eines SSH-Schritts oder die kubeconfig eines kubectl-Schritts. Ein Geheimnis erhält er nur, wenn das Geheimnis es ihm erlaubt. Deshalb kann jeder, der den Schlüssel eines Runners hat, als dieser Runner auftreten: Behandeln Sie den Schlüssel wie die Geheimnisse, die er nutzen darf.
 
 ## Warum Skripte auf einem Runner laufen
 
@@ -56,17 +56,17 @@ Globale Runner sind die Runner, die OneUptime für jedes Projekt betreibt. Ein J
 
 | | Globaler Runner | Ihr eigener Runner |
 | --- | --- | --- |
-| Schritte, die er ausführt | JavaScript | JavaScript, Bash, SSH und Kubernetes |
+| Schritte, die er ausführt | JavaScript | JavaScript, Bash, SSH und kubectl |
 | Was ein Schritt erreicht | Öffentliche Internetadressen | Was sein Host erreicht |
 | Längste Laufzeit eines Schritts | 5 Minuten | 1 Stunde |
-| Runbook-Geheimnisse | Die, die Sie globalen Runnern erlauben | Die, die Sie ihm zuweisen |
+| Geheime Variablen | Die, die Sie globale Runner nutzen lassen | Die, die ihn aufführen |
 | Anmeldedaten | Keine | Die, die Sie ihm zuweisen |
 
 Ein globaler Runner führt die Schritte vieler Projekte aus, daher wird jeder Schritt von allen anderen getrennt gehalten:
 
 - Jeder Schritt läuft in einer eigenen `isolated-vm`-Sandbox, die für diesen Schritt erstellt und danach verworfen wird: keine Dateien, keine Prozesse, keine Umgebungsvariablen und nichts, was von einem Schritt zum nächsten erhalten bleibt.
 - Seine HTTP-Anfragen erreichen nur öffentliche Internetadressen, nie eine private, Loopback- oder Link-Local-Adresse oder einen Cloud-Metadaten-Endpunkt, sodass ein globaler Runner nie Ihr Netzwerk erreicht.
-- Er erhält ein Runbook-Geheimnis nur, wenn dessen Schalter **Globale Runner dürfen dieses Geheimnis nutzen** an ist, und nur für einen Schritt aus dem eigenen Projekt des Geheimnisses. Anmeldedaten erhält er nie.
+- Er erhält eine geheime Variable nur, wenn ihr Schalter **Globale Runner dürfen es nutzen** eingeschaltet ist, und nur für einen Schritt aus dem eigenen Projekt der Variable. Er erhält nie Anmeldedaten.
 - Ein Projekt führt höchstens drei Schritte gleichzeitig auf globalen Runnern aus, sodass kein Projekt sie für sich allein belegt.
 
 Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erreichen muss, oder um den Schritt auf Hosts zu halten, die Sie kontrollieren. Um jeden Schritt auf Ihren eigenen Runnern zu halten, schalten Sie **Globale Runner nutzen** unten auf **Runbooks → Runbook-Agents** aus. Ein JavaScript-Schritt, der keinen Runner wählt, schlägt dann mit einer Meldung fehl, bis er einen Ihrer Runner wählt; ein Schritt, der einen Ihrer Runner wählt, behält ihn in jedem Fall.
@@ -140,7 +140,7 @@ docker rm -f oneuptime-runner
 :::steps
 ### Einen Schritt hinzufügen, der auf einem Runner läuft
 
-Fügen Sie in den **Schritte** Ihres Runbooks einen JavaScript-, Bash-, SSH- oder Kubernetes-Schritt hinzu.
+Fügen Sie in den **Schritte** Ihres Runbooks einen JavaScript-, Bash-, SSH- oder kubectl-Schritt hinzu.
 
 ### Den Runner wählen
 
@@ -151,7 +151,7 @@ Die Dropdown-Liste **Runner** des Schritts zeigt jeden Runner im Projekt und ob 
 Klicken Sie auf **Schritte speichern**. Wenn ein Lauf den Schritt erreicht, reiht der Worker einen Job für die ID dieses Runners ein, und nur dieser Runner kann ihn übernehmen. Ein Schritt auf **Globaler Runner** wartet auf den globalen Runner, der gerade frei ist.
 :::
 
-Bash wird mit `bash -c` ausgeführt. JavaScript läuft in einer `isolated-vm`-Sandbox auf dem Runner, ohne Zugriff auf Dateisystem oder Prozesse; es kann öffentliche HTTP-APIs mit `axios` aufrufen, aber keine Adressen in einem privaten Netz. SSH- und Kubernetes-Schritte nutzen die [Anmeldedaten](/docs/runbooks/credentials), die der Schritt nennt und die demselben Runner zugewiesen sein müssen.
+Bash wird mit `bash -c` ausgeführt. JavaScript läuft in einer `isolated-vm`-Sandbox auf dem Runner, ohne Zugriff auf Dateisystem oder Prozesse; es kann öffentliche HTTP-APIs mit `axios` aufrufen, aber keine Adressen in einem privaten Netz. Ein SSH- oder kubectl-Schritt meldet sich mit einer geheimen [Runbook-Variable](/docs/runbooks/variables) an, die den Runner des Schritts unter **Ihre Runner, die es nutzen dürfen** aufführen muss.
 
 Brauchen Sie mehr als einen Runner? Erstellen Sie sie und richten Sie jeden Schritt auf den passenden. Für Redundanz betreiben Sie einen zweiten Runner und teilen Ihre Schritte zwischen beiden auf, oder Sie halten ein Ersatz-Runbook bereit, dessen Schritte auf den anderen Runner zielen.
 
@@ -166,7 +166,7 @@ Für jeden Schritt, der auf einem Runner läuft, gelten zwei Timeouts:
 | **Übernahme-Timeout** | 2 Minuten | Wie lange der Worker darauf wartet, dass der gewählte Runner den Job übernimmt. Übernimmt der Runner ihn nicht rechtzeitig, schlägt der Schritt wegen Zeitüberschreitung fehl und das Runbook geht weiter (oder stoppt, je nach **Bei Fehler fortfahren**). |
 | **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Runner den Schritt laufen lässt, bevor er ihn stoppt. Bash erhält `SIGKILL`; die Sandbox von JavaScript wird abgebaut. |
 
-Beide lassen sich pro Schritt einstellen. Öffnen Sie **Runbooks › Ihr Runbook › Schritte**, klappen Sie den Schritt auf und setzen Sie **Ausführungs-Timeout** und **Übernahme-Timeout** (in Sekunden) in seinen Einstellungen. Lassen Sie ein Feld leer, um den Standard zu nutzen. Jedes akzeptiert 1 Sekunde bis 1 Stunde; Werte außerhalb dieses Bereichs werden beim Ausführen des Schritts begrenzt.
+Beide lassen sich pro Schritt einstellen. Öffnen Sie **Runbooks › Ihr Runbook › Schritte**, klappen Sie den Schritt auf und setzen Sie **Ausführungs-Timeout** und **Übernahme-Timeout** (in Sekunden) unter **Weitere Felder** des Schritts. Lassen Sie ein Feld leer, um den Standard zu nutzen. Jedes akzeptiert 1 Sekunde bis 1 Stunde; Werte außerhalb dieses Bereichs werden beim Ausführen des Schritts begrenzt.
 
 Das gesamte Wartefenster des Workers ist `claim timeout + execution timeout + a few seconds`. Wählen Sie Werte, die zum Schritt passen.
 
@@ -307,14 +307,18 @@ Der Runner hat den Job übernommen und dann aufgehört, sein Lease zu erneuern: 
 Jede Fähigkeit ist für diesen Runner aus. Schalten Sie **Führt Runbooks aus** auf der Seite des Runners in OneUptime ein. Er übernimmt die Änderung beim nächsten Heartbeat.
 :::
 
-:::details Ein Schritt auf einem globalen Runner schlägt fehl, weil globale Runner ein Runbook-Geheimnis nicht nutzen dürfen
-Der Schritt nennt ein Runbook-Geheimnis, dessen Schalter **Globale Runner dürfen dieses Geheimnis nutzen** aus ist, daher wurde es dem globalen Runner nicht übergeben und der Schritt nicht ausgeführt. Der Fehler nennt das Geheimnis. Schalten Sie den Schalter dafür unter **Runbooks → Einstellungen → Geheimnisse** ein, oder wählen Sie einen Ihrer eigenen Runner für den Schritt.
+:::details Ein Schritt schlägt fehl, weil sein Runner eine geheime Variable nicht nutzen darf
+Der Schritt nennt eine geheime Variable, die seinem Runner die Nutzung nicht erlaubt, daher wurde sie dem Runner nicht übergeben und der Schritt nicht ausgeführt. Der Fehler nennt das Geheimnis und was zu ändern ist. Fügen Sie unter **Runbooks → Einstellungen → Globale Variablen** oder unter **Einstellungen → Variablen** des Runbooks den Runner unter **Ihre Runner, die es nutzen dürfen** hinzu, oder schalten Sie **Globale Runner dürfen es nutzen** für einen Schritt auf einem globalen Runner ein. Oder wählen Sie einen Runner, den das Geheimnis zulässt.
+:::
+
+:::details Ein kubectl-Schritt schlägt fehl, weil sein Runner zu alt ist
+Der Schritt ist fehlgeschlagen mit "This kubectl step runs a script, and this Runner is too old to run one, so it was not run." Ein Runner, der älter ist als kubectl-Skripte, kann keines ausführen. Aktualisieren Sie den Runner, wie [Den Agenten aktuell halten](#5-den-agenten-aktuell-halten) zeigt, und führen Sie das Runbook dann erneut aus.
 :::
 
 ## Nächste Schritte
 
 :::cards
 - [Ein Runbook verfassen](/docs/runbooks/authoring): Die Schritte schreiben, die auf Ihrem Runner laufen.
-- [Runbook-Anmeldedaten](/docs/runbooks/credentials): SSH- und Kubernetes-Schritten verwalteten Zugang geben.
+- [Runbook-Variablen](/docs/runbooks/variables): Die Werte und Geheimnisse, die Ihre Schritte verwenden, und die Runner, die sie erhalten.
 - [Runbook-Konfiguration & Sicherheit](/docs/runbooks/configuration): Limits, Berechtigungen und Härtung.
 :::
