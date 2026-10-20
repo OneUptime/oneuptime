@@ -558,7 +558,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Suggestion Type",
     description:
-      "Runbook suggestions propose starting a pre-authored runbook; CommandPlan suggestions carry an AI-composed command plan.",
+      "Runbook suggestions propose starting a pre-authored runbook; CommandPlan suggestions carry an AI-composed command plan; McpToolCalls suggestions carry the tool calls OneUptime AI makes, or proposes, through the project's external MCP servers.",
     defaultValue: AutoRemediationSuggestionType.Runbook,
   })
   @Column({
@@ -596,6 +596,35 @@ export default class AutoRemediationSuggestion extends BaseModel {
     nullable: true,
   })
   public commandPlan?: JSONObject = undefined;
+
+  /*
+   * The fix OneUptime AI made, or proposes, through the project's external
+   * MCP servers (ExternalMcpToolCallPlan shape) for McpToolCalls
+   * suggestions: each tool call with its server, its arguments and, once
+   * made, what the server answered. Approval makes exactly the calls
+   * recorded here. Never holds a credential: a server is named by its id.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "MCP Tool Call Plan",
+    description:
+      "For McpToolCalls suggestions: the tool calls OneUptime AI made, or proposes, through the project's external MCP servers, with what each server answered once called.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public mcpToolCallPlan?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],

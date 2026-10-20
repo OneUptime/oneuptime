@@ -884,6 +884,11 @@ export enum ProjectAiNoticeContext {
    * Alerts' AI section: what AI found out, which stops growing with AI off.
    */
   ActivityInsights = "ActivityInsights",
+  /*
+   * Project Settings → AI → External MCP Servers: servers OneUptime AI uses
+   * only while it runs.
+   */
+  ExternalMcpServers = "ExternalMcpServers",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1058,6 +1063,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     ),
     providerConsequence: translationKey(
       "Until it has one, nothing new is investigated, so nothing new shows up on this page.",
+    ),
+  },
+  [ProjectAiNoticeContext.ExternalMcpServers]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project, so it uses none of these servers.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, OneUptime AI uses none of these servers.",
     ),
   },
 };

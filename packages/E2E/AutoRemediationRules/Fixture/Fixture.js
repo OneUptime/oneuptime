@@ -50,6 +50,7 @@ import IncidentAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Inci
 import AlertAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertAISettings";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
+import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -261,6 +262,29 @@ const AGENT_RUNNER = record(Runner, {
 const RUNNERS =
   runnerCount > 0 ? [...ALL_RUNNERS.slice(0, runnerCount), AGENT_RUNNER] : [];
 
+// The project's external MCP servers, which both kinds of rule may name.
+const MCP_SERVER_IDS = {
+  aws: "c0000000-0000-4000-8000-000000000e01",
+  github: "c0000000-0000-4000-8000-000000000e02",
+};
+
+const MCP_SERVERS = [
+  record(ExternalMcpServer, {
+    _id: MCP_SERVER_IDS.aws,
+    name: "AWS",
+    projectId: new ObjectID(PROJECT_ID),
+    url: "https://mcp.aws.example.com/mcp",
+    isEnabled: true,
+  }),
+  record(ExternalMcpServer, {
+    _id: MCP_SERVER_IDS.github,
+    name: "GitHub",
+    projectId: new ObjectID(PROJECT_ID),
+    url: "https://mcp.github.example.com/mcp",
+    isEnabled: true,
+  }),
+];
+
 const trigger = lane === "alert" ? "Alert" : "Incident";
 
 function runbooksNamed(ids) {
@@ -348,6 +372,7 @@ const TABLES = {
   Label: LABELS,
   Monitor: MONITORS,
   AIInvestigationRule: [],
+  ExternalMcpServer: MCP_SERVERS,
   AIPostmortemRule: [],
   IncidentPostmortemTemplate: [],
 };
@@ -464,6 +489,8 @@ function applyRuleFields(item, json) {
   for (const [key, value] of Object.entries(json)) {
     if (key === "runbooks") {
       item.runbooks = relationList(value, Runbook);
+    } else if (key === "externalMcpServers") {
+      item.externalMcpServers = relationList(value, ExternalMcpServer);
     } else if (key === "runnerId") {
       item.runnerId = value ? new ObjectID(idOf(value)) : null;
     } else if (key !== "_id") {

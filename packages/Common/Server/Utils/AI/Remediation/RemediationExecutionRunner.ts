@@ -106,6 +106,7 @@ import {
   ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
 } from "../Chat/ObservabilityAssistant";
+import McpRemediationRunner from "./McpRemediationRunner";
 import RemediationCommandToolkit, {
   MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
   ROLL_BACK_CHANGE_TOOL_NAME,
@@ -872,6 +873,23 @@ export default class RemediationExecutionRunner {
           aiRunId,
           "Auto-remediation suggestion does not belong to this run's project.",
         );
+        return;
+      }
+
+      /*
+       * A fix through the project's external MCP servers is a run of its
+       * own kind: its own tools, its own plan and its own approval
+       * (McpRemediationRunner).
+       */
+      if (
+        suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
+      ) {
+        await McpRemediationRunner.executeRun({
+          aiRunId,
+          projectId,
+          suggestionId,
+          attemptCount,
+        });
         return;
       }
 

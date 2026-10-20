@@ -445,7 +445,10 @@ export function describeVerification(status: string | null): string | null {
     : null;
 }
 
-// What kind of fix a suggestion is: a runbook, or a plan of commands.
+/*
+ * What kind of fix a suggestion is: a runbook, a plan of commands, or
+ * changes made through the project's external MCP servers.
+ */
 export function describeFixKind(suggestionType: string | null): string | null {
   if (suggestionType === AutoRemediationSuggestionType.CommandPlan) {
     return translationKey("Command plan");
@@ -453,6 +456,10 @@ export function describeFixKind(suggestionType: string | null): string | null {
 
   if (suggestionType === AutoRemediationSuggestionType.Runbook) {
     return translationKey("Runbook");
+  }
+
+  if (suggestionType === AutoRemediationSuggestionType.McpToolCalls) {
+    return translationKey("MCP server tools");
   }
 
   return null;

@@ -10,9 +10,17 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import AIInvestigationRuleTriggerEntity from "Common/Types/AI/AIInvestigationRuleTriggerEntity";
 import { Green, Red } from "Common/Types/BrandColors";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  RULE_MCP_SERVERS_FIELD_COPY,
+  getInvestigationRuleMoreFieldsSummary,
+} from "../ExternalMcpServer/ExternalMcpServerCopy";
+import RuleMcpServersFieldHint from "../ExternalMcpServer/RuleMcpServersFieldHint";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_INVESTIGATION_RULES_TABLE_ID,
@@ -38,11 +46,22 @@ export const AI_LANE_INVESTIGATION_RULE_TRIGGER: Record<
 };
 
 /*
+ * The Rule step's More fields: the MCP servers OneUptime AI may use while
+ * it investigates what the rule matches (none picked: all of them).
+ */
+const MORE_FIELDS: FormFieldCollapsibleSection<AIInvestigationRule> =
+  getAdvancedFormSection<AIInvestigationRule>({
+    getSummary: getInvestigationRuleMoreFieldsSummary,
+  });
+
+/*
  * Incidents (or Alerts) → Settings → AI → More settings → Investigation
  * rules: which new incidents OneUptime AI investigates on its own, while
  * "Investigate new incidents" is on. With no rule, every one is; with rules,
  * only those that match at least one. A rule is a name and its conditions -
- * the same conditions, read the same way, as an auto remediation rule's.
+ * the same conditions, read the same way, as an auto remediation rule's -
+ * and, under More fields, the MCP servers OneUptime AI may use for what it
+ * matches.
  */
 const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -139,6 +158,29 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
           // A rule starts on: the switch is on its edit form only.
           doNotShowWhenCreating: true,
           required: false,
+        },
+        {
+          // The MCP servers OneUptime AI may use: none picked is all of them.
+          field: { externalMcpServers: true },
+          title: RULE_MCP_SERVERS_FIELD_COPY.title,
+          description: RULE_MCP_SERVERS_FIELD_COPY.investigationDescription,
+          stepId: "basic-info",
+          collapsibleSection: MORE_FIELDS,
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: ExternalMcpServer,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          // Empty is an answer of its own - all of them - not "(Optional)".
+          hideOptionalLabel: true,
+          hideColumnDescription: true,
+          placeholder: RULE_MCP_SERVERS_FIELD_COPY.placeholder,
+          dataTestId: "ai-investigation-rule-mcp-servers-field",
+          getFooterElement: (): ReactElement => {
+            return <RuleMcpServersFieldHint />;
+          },
         },
         {
           field: { monitors: true },

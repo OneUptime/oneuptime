@@ -97,6 +97,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
+import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
@@ -364,6 +365,7 @@ describe.each([
         ["runbooks", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["remediationAction", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["runnerId", "remediation", MORE_FIELDS_SECTION_TITLE],
+        ["externalMcpServers", "remediation", MORE_FIELDS_SECTION_TITLE],
       ]);
     });
 
@@ -373,6 +375,7 @@ describe.each([
         "runbooks",
         "remediationAction",
         "runnerId",
+        "externalMcpServers",
       ].map((key: string): CapturedField => {
         return fieldNamed(props, key);
       });
@@ -561,6 +564,31 @@ describe.each([
       // An older rule's commands run on its Runner; one that picks a runbook has none.
       expect(runner.showIf!(OLDER_COMMANDS)).toBe(true);
       expect(runner.showIf!(OLDER_PICKS)).toBe(false);
+    });
+
+    test("MCP servers: none picked is all of them, and only a rule OneUptime AI fixes for has them", () => {
+      const servers: CapturedField = fieldNamed(
+        tableFor(lane),
+        "externalMcpServers",
+      );
+
+      expect(servers.title).toBe("MCP Servers");
+      // Parallel to Runbooks above it; the Approval card says what picking does.
+      expect(servers.description).toBe(
+        "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those.",
+      );
+      expect(servers.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+      expect(servers.dropdownModal?.type).toBe(ExternalMcpServer);
+      expect(servers.required).toBe(false);
+      expect(servers.hideOptionalLabel).toBe(true);
+      expect(servers.placeholder).toBe("All MCP servers");
+
+      expect(servers.showIf!(values({}))).toBe(true);
+      expect(servers.showIf!(values({ runbooks: PICKED_RUNBOOKS }))).toBe(true);
+      // Fixes that do not go through OneUptime AI's own work use none.
+      expect(servers.showIf!(EVERY_TIME)).toBe(false);
+      expect(servers.showIf!(OLDER_COMMANDS)).toBe(false);
+      expect(servers.showIf!(OLDER_PICKS)).toBe(false);
     });
 
     test("an older rule's note: first on the Fix step, only for an older rule", () => {
@@ -931,18 +959,33 @@ describe("what a rule fixes with", () => {
 });
 
 describe("the line under More fields, folded", () => {
-  test("names the defaults left: any runbook, and the AI agent", () => {
+  const ALL_MCP_SERVERS: string =
+    "OneUptime AI may use all of your MCP servers.";
+  const PICKED_MCP_SERVERS: Array<unknown> = [
+    { value: "bbbbbbbb-0000-4000-8000-000000000001", label: "AWS" },
+  ];
+
+  test("names the defaults left: any runbook, the AI agent, and every MCP server", () => {
     expect(getAutoRemediationMoreFieldsSummary(values({}))).toEqual([
       "OneUptime AI may run any of your runbooks, and fixes through the AI agent on the affected cluster or host.",
+      ALL_MCP_SERVERS,
     ]);
     expect(
       getAutoRemediationMoreFieldsSummary(
         values({ runbooks: PICKED_RUNBOOKS }),
       ),
-    ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.agents]);
+    ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.agents, ALL_MCP_SERVERS]);
     expect(
       getAutoRemediationMoreFieldsSummary(values({ runnerId: RUNNER_ID })),
-    ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook]);
+    ).toEqual([
+      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook,
+      ALL_MCP_SERVERS,
+    ]);
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({ externalMcpServers: PICKED_MCP_SERVERS }),
+      ),
+    ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbookAndAgents]);
   });
 
   test("says nothing for an older rule: none of its defaults are the ones the line describes", () => {
@@ -950,10 +993,19 @@ describe("the line under More fields, folded", () => {
     expect(getAutoRemediationMoreFieldsSummary(OLDER_PICKS)).toBeUndefined();
   });
 
-  test("says nothing once both are set - the line names them - or for a rule that runs its runbooks", () => {
+  test("says nothing once all are set - the line names them - or for a rule that runs its runbooks", () => {
     expect(
       getAutoRemediationMoreFieldsSummary(
         values({ runbooks: PICKED_RUNBOOKS, runnerId: RUNNER_ID }),
+      ),
+    ).toEqual([ALL_MCP_SERVERS]);
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({
+          runbooks: PICKED_RUNBOOKS,
+          runnerId: RUNNER_ID,
+          externalMcpServers: PICKED_MCP_SERVERS,
+        }),
       ),
     ).toBeUndefined();
     expect(
@@ -982,12 +1034,13 @@ describe("the choices", () => {
     );
     /*
      * An AI agent set to ask still asks: the rule never overrides it. And a
-     * runbook starts on its own only when the rule names it - said whatever
-     * More fields holds, so a rule that names none is not read as starting
-     * any runbook.
+     * runbook starts, or a change goes through an MCP server, on its own
+     * only when the rule names it - said whatever More fields holds, so a
+     * rule that names none is not read as starting any runbook or making
+     * any change through an MCP server without asking.
      */
     expect(AUTO_REMEDIATION_APPROVAL_OPTIONS[1]!.description).toBe(
-      "OneUptime AI fixes right away where the AI agent's settings allow it. Runbooks start on their own only if you pick them under More fields.",
+      "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.",
     );
     expect(AUTO_REMEDIATION_APPROVAL_OPTIONS[1]!.description).not.toContain(
       "the runbooks you picked",

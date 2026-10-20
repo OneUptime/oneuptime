@@ -15,6 +15,10 @@ import {
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
 } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import {
+  CALL_MCP_TOOL_TOOL_NAME,
+  LIST_MCP_TOOLS_TOOL_NAME,
+} from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
+import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -382,6 +386,27 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       description: "Read an AI investigation",
       icon: IconProp.Sparkles,
       category: "AI",
+    },
+  ],
+  /*
+   * The project's external MCP servers (Settings → AI → External MCP
+   * Servers): an investigation lists their tools and calls the ones that
+   * only read. call_mcp_tool's arguments name the server and the tool.
+   */
+  [
+    LIST_MCP_TOOLS_TOOL_NAME,
+    {
+      description: "Listed the tools of your MCP servers",
+      icon: IconProp.PuzzlePiece,
+      category: "MCP servers",
+    },
+  ],
+  [
+    CALL_MCP_TOOL_TOOL_NAME,
+    {
+      description: "Used a tool of an MCP server",
+      icon: IconProp.PuzzlePiece,
+      category: "MCP servers",
     },
   ],
   /*
