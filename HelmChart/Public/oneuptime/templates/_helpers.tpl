@@ -675,10 +675,51 @@ runner.existingSecret, or the key this chart generates into
   {{- end }}
 {{- end }}
 
+{{/*
+The Secret the operator keeps the VAPID private key (web push) in,
+vapid.existingSecret.name, or nothing when the key comes from vapid.privateKey
+or is not set. Every pod given VAPID_PRIVATE_KEY (oneuptime.env.runtime) then
+reads it from that Secret, and the chart writes the key nowhere: not as a plain
+value, not into a Secret of its own.
+
+Setting both is refused rather than resolved, as the Kubernetes agent chart
+refuses oneuptime.apiKey next to oneuptime.existingSecretName: a Secret of your
+own is there to keep the key out of the release's values, and a key left in
+privateKey would stay in every revision Helm stores. The name is trimmed, as
+kubectl would have created the Secret, and read through parentheses, so values
+from before vapid.existingSecret (helm upgrade --reuse-values) still render.
+*/}}
+{{- define "oneuptime.vapid.existingSecretName" -}}
+{{- $vapid := .Values.vapid | default dict -}}
+{{- $existing := trim (toString (default "" ($vapid.existingSecret).name)) -}}
+{{- if and $existing (trim (toString (default "" $vapid.privateKey))) -}}
+{{- fail (printf "vapid.privateKey and vapid.existingSecret.name are both set. Set one of them: to read the VAPID private key from the Secret %s, clear privateKey (--set vapid.privateKey=\"\")." $existing) -}}
+{{- end -}}
+{{- $existing -}}
+{{- end }}
+
+{{/*
+The key of that Secret that holds the private key: vapid.existingSecret.privateKeyKey,
+or privateKey - the name `npx web-push generate-vapid-keys --json` gives it - when
+that is empty.
+*/}}
+{{- define "oneuptime.vapid.privateKeyKey" -}}
+{{- $vapid := .Values.vapid | default dict -}}
+{{- trim (toString (default "" ($vapid.existingSecret).privateKeyKey)) | default "privateKey" -}}
+{{- end }}
+
 {{- define "oneuptime.env.runtime" }}
+{{- $vapidPrivateKeySecret := include "oneuptime.vapid.existingSecretName" $ }}
 
 - name: VAPID_PRIVATE_KEY
+  {{- if $vapidPrivateKeySecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $vapidPrivateKeySecret | quote }}
+      key: {{ include "oneuptime.vapid.privateKeyKey" $ | quote }}
+  {{- else }}
   value: {{ $.Values.vapid.privateKey }}
+  {{- end }}
 
 - name: EXPO_ACCESS_TOKEN
   value: {{ default "" $.Values.expo.accessToken | quote }}

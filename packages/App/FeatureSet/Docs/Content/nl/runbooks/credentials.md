@@ -1,6 +1,6 @@
 # AI-toegang
 
-AI-toegang is hoe de eigen opdrachten van OneUptime AI iets bereiken dat **niet** de eigen host van een Runner is — een server via SSH, of de API-server van een Kubernetes-cluster dat het Kubernetes-agentchart niet draait. Elke toegang is een inloggegeven: die toegang als beheerd object, versleuteld opgeslagen, toegewezen aan bepaalde Runners en door OneUptime AI gekozen in plaats van in een opdracht geschreven. Runbookstappen gebruiken ze niet: een SSH- of kubectl-stap meldt zich aan met een geheime [runbookvariabele](/docs/runbooks/variables).
+AI-toegang is hoe de eigen opdrachten van OneUptime AI iets bereiken dat **niet** de eigen host van een Runner is — een server via SSH, of de API-server van een Kubernetes-cluster dat het Kubernetes-agentchart niet draait. Elke toegang is een inloggegeven: die toegang als beheerd object, versleuteld opgeslagen, toegewezen aan bepaalde Runners en door OneUptime AI gekozen in plaats van in een opdracht geschreven. Runbookstappen gebruiken ze niet: een SSH- of kubectl-stap meldt zich aan met een geheime [runbookvariabele](/docs/runbooks/variables). Een Runner die ouder is dan deze release, is de uitzondering: die voert een uit een actie omgezette Kubernetes-stap uit met de inloggegevens die de stap noemde, totdat het script of de kubeconfig van de stap wordt gewijzigd.
 
 Beheer ze onder **Runbooks → Runbook-agenten → AI-toegang**.
 

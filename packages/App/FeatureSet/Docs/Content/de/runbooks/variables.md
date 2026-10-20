@@ -97,6 +97,8 @@ Runbook-Variablen haben den Platz der Runbook-Geheimnisse eingenommen, und den d
 - alle Anmeldedaten, die ein Schritt nannte, wurden zu geheimen globalen Variablen mit denselben Runnern, nach ihnen benannt: `<name>-ssh-key` (und `<name>-ssh-key-passphrase`, für einen Schlüssel, der eine hatte), `<name>-ssh-password` oder `<name>-kubeconfig`;
 - jeder SSH-Schritt, der Anmeldedaten nannte, meldet sich mit ihnen an seinem Rechner an und führt seinen Befehl als sein Skript aus, und jeder Kubernetes-Schritt wurde zu einem kubectl-Schritt, der das `kubectl patch` ausführt, das seine Aktion vornahm, und dafür keinen weitergehenden Zugriff braucht als der Schritt hatte.
 
+Ein Runner, der älter als dieses Release ist, kann kein kubectl-Skript ausführen. Deshalb hat jeder so überführte Kubernetes-Schritt auch seine Anmeldedaten und seine Aktion behalten, und ein älterer Runner führt den Schritt damit aus, wie er es tat. Sobald Sie das Skript oder die kubeconfig des Schritts ändern, behält er sie nicht mehr: Wie jeder neue kubectl-Schritt braucht er dann einen Runner dieses Releases, und ein älterer lässt ihn fehlschlagen und sagt, dass der Runner aktualisiert werden muss.
+
 Ein über die API mit Anmeldedaten geschriebener Schritt läuft weiterhin mit ihnen, und seine Seite der Schritte bietet **In einen Skriptschritt umwandeln** an. Auch die Anmeldedaten bleiben, für das, was die eigenen Befehle von OneUptime AI erreichen: siehe [KI-Zugriff](/docs/runbooks/credentials).
 
 ## Nächste Schritte

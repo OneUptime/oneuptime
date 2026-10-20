@@ -35,6 +35,10 @@ import {
   RunbookStep,
 } from "../../../Types/Runbook/RunbookStep";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
+import {
+  LEGACY_KUBERNETES_STEP_FIELDS,
+  getKubectlScriptForLegacyKubernetesStep,
+} from "../../../Types/Runbook/RunbookLegacySteps";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
@@ -62,11 +66,24 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  *   - a script that names a variable that is not there says so;
  *   - a step written with a runbook credential still runs, and one button
  *     turns it into a script step;
+ *   - a kubectl step moved from a Kubernetes action is saved back with the
+ *     action it kept for older Runners, until its script or kubeconfig
+ *     changes;
  *   - Save stores references, never values.
  */
 
 const RUNBOOK_ID: string = "77777777-0000-4000-8000-0000000000a1";
 const BASTION_ID: string = "aaaaaaaa-0000-4000-8000-000000000001";
+
+// What a moved Kubernetes step kept for Runners older than kubectl scripts.
+const MOVED_LEGACY: Record<string, unknown> = {
+  credentialId: "cccccccc-0000-4000-8000-000000000003",
+  action: KubernetesAction.ScaleWorkload,
+  workloadKind: KubernetesWorkloadKind.Deployment,
+  namespace: "jobs",
+  workloadName: "workers",
+  replicas: 4,
+};
 
 const WAIT: { timeout: number } = { timeout: 20000 };
 
@@ -143,6 +160,19 @@ const STEPS: Array<RunbookStep> = [
       workloadName: "api",
       agentId: BASTION_ID,
     },
+  },
+  {
+    // A Kubernetes step the data migration moved to a kubectl script.
+    id: "step-moved-k8s",
+    order: 6,
+    type: RunbookStepType.Kubernetes,
+    title: "Scale the workers",
+    config: {
+      kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+      script: getKubectlScriptForLegacyKubernetesStep(MOVED_LEGACY as never),
+      agentId: BASTION_ID,
+      ...MOVED_LEGACY,
+    } as never,
   },
 ];
 
@@ -876,5 +906,161 @@ describe("a step written with a runbook credential", () => {
     expect(config["kubeconfig"]).toBe("");
     expect(config).not.toHaveProperty("credentialId");
     expect(config).not.toHaveProperty("action");
+  });
+});
+
+/*
+ * A Kubernetes step the data migration moved to a kubectl script keeps its
+ * credential and action beside the script, so a Runner older than kubectl
+ * scripts still runs it. The page shows it as the kubectl step it is, and
+ * saves it back as it is - until its script or kubeconfig changes, when it
+ * drops them, as the server does on every save.
+ */
+describe("a kubectl step moved from a Kubernetes action", () => {
+  const MOVED_SCRIPT: string = getKubectlScriptForLegacyKubernetesStep(
+    MOVED_LEGACY as never,
+  );
+
+  function savedConfig(steps: Array<RunbookStep>): Record<string, unknown> {
+    return steps[6]!.config as Record<string, unknown>;
+  }
+
+  function legacyFieldsOf(config: Record<string, unknown>): Array<string> {
+    return Object.keys(config).filter((key: string): boolean => {
+      return LEGACY_KUBERNETES_STEP_FIELDS.includes(key);
+    });
+  }
+
+  test("shows as the kubectl step it is: its kubeconfig and its script, no credential notice", async () => {
+    await renderSteps();
+
+    expect(header("Scale the workers")).toHaveTextContent(
+      "kubectl patch deployment workers --namespace jobs",
+    );
+
+    open("Scale the workers");
+    await waitForVariables();
+
+    expect(scriptEditor("runbook-step-6-kubectl-script")).toHaveValue(
+      MOVED_SCRIPT,
+    );
+    expect(
+      within(screen.getByTestId("runbook-step-6-kubeconfig")).getByText(
+        "PROD_KUBECONFIG",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("runbook-step-6-legacy")).toBeNull();
+  });
+
+  test("saved with only its title changed, it keeps its credential and action", async () => {
+    await renderSteps();
+    open("Scale the workers");
+
+    fireEvent.change(document.getElementById("runbook-step-6-title")!, {
+      target: { value: "Scale the workers to four" },
+    });
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect(steps[6]!.title).toBe("Scale the workers to four");
+    expect(savedConfig(steps)).toEqual({
+      kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+      script: MOVED_SCRIPT,
+      agentId: BASTION_ID,
+      ...MOVED_LEGACY,
+    });
+  });
+
+  test("its script edited: saved without them", async () => {
+    await renderSteps();
+    open("Scale the workers");
+
+    fireEvent.change(scriptEditor("runbook-step-6-kubectl-script"), {
+      target: {
+        value: "kubectl scale deployment/workers --replicas=6 --namespace jobs",
+      },
+    });
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect(savedConfig(steps)).toEqual({
+      kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+      script: "kubectl scale deployment/workers --replicas=6 --namespace jobs",
+      agentId: BASTION_ID,
+    });
+  });
+
+  test("an example inserted into its script: saved without them", async () => {
+    await renderSteps();
+    open("Scale the workers");
+
+    fireEvent.click(
+      within(scriptField("runbook-step-6-kubectl-script")).getByRole("button", {
+        name: /List pods/,
+      }),
+    );
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect(legacyFieldsOf(savedConfig(steps))).toEqual([]);
+    expect(savedConfig(steps)["script"]).toBe(
+      "kubectl get pods --all-namespaces",
+    );
+  });
+
+  test("its kubeconfig changed to the Runner's own access: saved without them", async () => {
+    await renderSteps();
+    open("Scale the workers");
+    await waitForVariables();
+
+    const options: Array<HTMLElement> = openMenu("runbook-step-6-kubeconfig");
+    fireEvent.click(
+      options.find((option: HTMLElement): boolean => {
+        return option.textContent === "The Runner's own access";
+      })!,
+    );
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect(legacyFieldsOf(savedConfig(steps))).toEqual([]);
+    expect(savedConfig(steps)["kubeconfig"]).toBe("");
+    expect(savedConfig(steps)["script"]).toBe(MOVED_SCRIPT);
+  });
+
+  test("its kubeconfig changed to another variable: saved without them", async () => {
+    await renderSteps();
+    open("Scale the workers");
+    await waitForVariables();
+
+    const options: Array<HTMLElement> = openMenu("runbook-step-6-kubeconfig");
+    fireEvent.click(
+      options.find((option: HTMLElement): boolean => {
+        return option.textContent === "STAGING_KEY · this runbook";
+      })!,
+    );
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect(savedConfig(steps)).toEqual({
+      kubeconfig: "{{local.variables.STAGING_KEY}}",
+      script: MOVED_SCRIPT,
+      agentId: BASTION_ID,
+    });
+  });
+
+  test("editing another step leaves it as it is", async () => {
+    await renderSteps();
+    open("List the pods");
+
+    fireEvent.change(scriptEditor("runbook-step-2-kubectl-script"), {
+      target: { value: "kubectl get nodes" },
+    });
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect(steps[2]!.config).toMatchObject({ script: "kubectl get nodes" });
+    expect(legacyFieldsOf(savedConfig(steps)).sort()).toEqual(
+      Object.keys(MOVED_LEGACY).sort(),
+    );
   });
 });

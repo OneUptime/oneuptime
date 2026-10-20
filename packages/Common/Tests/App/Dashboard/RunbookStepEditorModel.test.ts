@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  applyStepConfigChange,
   convertLegacyCredentialStep,
   formatSshTarget,
   getFirstCommand,
@@ -17,6 +18,10 @@ import {
 } from "../../../Types/Runbook/RunbookStep";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import {
+  LEGACY_KUBERNETES_STEP_FIELDS,
+  getKubectlScriptForLegacyKubernetesStep,
+} from "../../../Types/Runbook/RunbookLegacySteps";
+import {
   DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
   DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
 } from "../../../Types/Runbook/RunbookStepTimeout";
@@ -32,6 +37,8 @@ import { FoldedSectionItem } from "../../../UI/Components/FoldedSection/FoldedSe
  *     no port and no passphrase, which its credential holds;
  *   - such a step is told apart, and turns into the script step that does
  *     what it did;
+ *   - a kubectl step moved from a Kubernetes action loses the action it kept
+ *     for older Runners once its script or kubeconfig is changed;
  *   - a folded step's line quotes a script's first command, past comments.
  */
 
@@ -337,6 +344,140 @@ describe("a step written with a credential", () => {
     const bash: RunbookStep = step(RunbookStepType.Bash, { script: "df -h" });
 
     expect(convertLegacyCredentialStep(bash)).toBe(bash);
+  });
+});
+
+/*
+ * A kubectl step the data migration moved from a Kubernetes action keeps
+ * that action and its credential, for Runners older than kubectl scripts,
+ * only while its script and kubeconfig are the ones it was moved with. The
+ * editor drops them the moment either changes, as every save does on the
+ * server (RunbookService); nothing else the editor changes touches them.
+ */
+describe("editing a kubectl step moved from a Kubernetes action", () => {
+  const LEGACY: Record<string, unknown> = {
+    credentialId: "90000000-0000-4000-8000-000000000c01",
+    action: KubernetesAction.RestartWorkload,
+    workloadKind: KubernetesWorkloadKind.Deployment,
+    namespace: "web",
+    workloadName: "api",
+  };
+
+  const MOVED: Record<string, unknown> = {
+    kubeconfig: "{{global.variables.prod_cluster-kubeconfig}}",
+    script: getKubectlScriptForLegacyKubernetesStep(LEGACY as never),
+    agentId: "40000000-0000-4000-8000-0000000000d1",
+    ...LEGACY,
+  };
+
+  function movedStep(): RunbookStep {
+    return step(RunbookStepType.Kubernetes, { ...MOVED });
+  }
+
+  function legacyFieldsOf(changed: RunbookStep): Array<string> {
+    return Object.keys(changed.config).filter((key: string): boolean => {
+      return LEGACY_KUBERNETES_STEP_FIELDS.includes(key);
+    });
+  }
+
+  test.each([
+    ["its script", { script: "kubectl get pods --namespace web" }],
+    [
+      "a line of its script",
+      { script: `${String(MOVED["script"])}echo done\n` },
+    ],
+    ["its script, emptied", { script: "" }],
+    ["its kubeconfig", { kubeconfig: "{{global.variables.staging}}" }],
+    ["its kubeconfig, to the Runner's own access", { kubeconfig: "" }],
+  ])(
+    "changing %s drops them, and keeps the change",
+    (_label: string, patch: Record<string, unknown>) => {
+      const changed: RunbookStep = applyStepConfigChange(movedStep(), patch);
+
+      expect(legacyFieldsOf(changed)).toEqual([]);
+      expect(changed.config).toEqual({
+        kubeconfig: MOVED["kubeconfig"],
+        script: MOVED["script"],
+        agentId: MOVED["agentId"],
+        ...patch,
+      });
+      // A script step still, never one written with a credential.
+      expect(isLegacyCredentialStep(changed)).toBe(false);
+    },
+  );
+
+  test.each([
+    ["its Runner", { agentId: "40000000-0000-4000-8000-0000000000d2" }],
+    ["its timeouts", { timeoutInMs: 120000, claimTimeoutInMs: 30000 }],
+    ["its script, to the same text", { script: MOVED["script"] }],
+    [
+      "its kubeconfig, to the same variable",
+      { kubeconfig: MOVED["kubeconfig"] },
+    ],
+  ])(
+    "changing %s keeps them",
+    (_label: string, patch: Record<string, unknown>) => {
+      const changed: RunbookStep = applyStepConfigChange(movedStep(), patch);
+
+      expect(changed.config).toEqual({ ...MOVED, ...patch });
+    },
+  );
+
+  test("once dropped, they do not come back when the script is put back", () => {
+    const edited: RunbookStep = applyStepConfigChange(movedStep(), {
+      script: "kubectl get pods",
+    });
+    const putBack: RunbookStep = applyStepConfigChange(edited, {
+      script: MOVED["script"],
+    });
+
+    expect(legacyFieldsOf(putBack)).toEqual([]);
+  });
+
+  test("the step itself is not changed: the editor's state is replaced, not edited", () => {
+    const before: RunbookStep = movedStep();
+    const changed: RunbookStep = applyStepConfigChange(before, {
+      script: "kubectl get pods",
+    });
+
+    expect(changed).not.toBe(before);
+    expect(before.config).toEqual(MOVED);
+  });
+
+  test("any other step is written over as it always was", () => {
+    const bash: RunbookStep = step(RunbookStepType.Bash, {
+      script: "df -h",
+      credentialId: "x",
+    });
+
+    expect(applyStepConfigChange(bash, { script: "uptime" }).config).toEqual({
+      script: "uptime",
+      credentialId: "x",
+    });
+
+    // A kubectl step written as a script has nothing to drop.
+    const kubectl: RunbookStep = step(RunbookStepType.Kubernetes, {
+      kubeconfig: "",
+      script: "kubectl get pods",
+    });
+
+    expect(
+      applyStepConfigChange(kubectl, { kubeconfig: "{{global.variables.k}}" })
+        .config,
+    ).toEqual({
+      kubeconfig: "{{global.variables.k}}",
+      script: "kubectl get pods",
+    });
+
+    // One written with a credential (no script) is turned into a script step only by its button.
+    const written: RunbookStep = step(
+      RunbookStepType.Kubernetes,
+      LEGACY_KUBERNETES,
+    );
+
+    expect(
+      applyStepConfigChange(written, { timeoutInMs: 1000 }).config,
+    ).toEqual({ ...LEGACY_KUBERNETES, timeoutInMs: 1000 });
   });
 });
 

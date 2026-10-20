@@ -296,6 +296,46 @@ const VIEWS: Array<[string, string]> = listTemplates(VIEWS_ROOT).map(
 // Mirrored on a right-to-left page, or - the menu's chevron - turned.
 const TURNS_ROUND: RegExp = /docs-rtl-mirror|docs-nav__chevron/;
 
+// "rotate(-45deg)": the degrees a transform turns by.
+const ROTATION_IN_DEGREES: RegExp = /^rotate\((-?\d+(?:\.\d+)?)deg\)$/;
+
+/*
+ * Where a fold's marker points: it is the corner of two borders, the inline
+ * end's and the bottom's - right and bottom left to right, left and bottom
+ * right to left - turned by the transform the stylesheet gives it.
+ */
+const foldMarkerPointing: (
+  direction: "ltr" | "rtl",
+  transform: string | undefined,
+) => string = (
+  direction: "ltr" | "rtl",
+  transform: string | undefined,
+): string => {
+  const degrees: number = Number(
+    (transform || "").match(ROTATION_IN_DEGREES)?.[1],
+  );
+  const radians: number = (degrees * Math.PI) / 180;
+  // The corner, on the screen: x to the right, y down.
+  const cornerX: number = direction === "ltr" ? 1 : -1;
+  const cornerY: number = 1;
+  const x: number = cornerX * Math.cos(radians) - cornerY * Math.sin(radians);
+  const y: number = cornerX * Math.sin(radians) + cornerY * Math.cos(radians);
+
+  if (Number.isNaN(x) || Number.isNaN(y)) {
+    return `not turned (${String(transform)})`;
+  }
+
+  if (Math.abs(x) > Math.abs(y) + 0.5) {
+    return x > 0 ? "right" : "left";
+  }
+
+  if (Math.abs(y) > Math.abs(x) + 0.5) {
+    return y > 0 ? "down" : "up";
+  }
+
+  return `askew (${String(transform)})`;
+};
+
 // The shapes that point along the line: a chevron either way, the back arrow.
 const HORIZONTAL_SHAPES: Array<string> = [
   "M9 5l7 7-7 7",
@@ -480,6 +520,80 @@ describe("style.css on a right-to-left page", () => {
   it("wraps a long token in prose rather than widening the page", () => {
     // A phone opens a too-wide right-to-left page at its far end.
     expect(declared(".docs-content", "overflow-wrap")).toBe("break-word");
+  });
+
+  it("points a fold's marker into the page while it is closed, and down once it is open, either way round", () => {
+    // The marker is drawn on the inline end's border, so it changes sides.
+    expect(
+      declared(".docs-details__summary::before", "border-inline-end"),
+    ).toBeDefined();
+    expect(
+      declared(".docs-details__summary::before", "border-bottom"),
+    ).toBeDefined();
+
+    expect({
+      leftToRight: {
+        closed: foldMarkerPointing(
+          "ltr",
+          declared(".docs-details__summary::before", "transform"),
+        ),
+        open: foldMarkerPointing(
+          "ltr",
+          declared(
+            ".docs-details[open] > .docs-details__summary::before",
+            "transform",
+          ),
+        ),
+      },
+      /*
+       * Turned only for a closed fold, a Persian fold's marker kept pointing
+       * left once it opened, so it looked the same open and closed.
+       */
+      rightToLeft: {
+        closed: foldMarkerPointing(
+          "rtl",
+          declared(".docs-details__summary:dir(rtl)::before", "transform"),
+        ),
+        open: foldMarkerPointing(
+          "rtl",
+          declared(
+            ".docs-details[open] > .docs-details__summary:dir(rtl)::before",
+            "transform",
+          ),
+        ),
+      },
+    }).toEqual({
+      leftToRight: { closed: "right", open: "down" },
+      rightToLeft: { closed: "left", open: "down" },
+    });
+  });
+
+  it("turns a fold's marker by the fold's own direction, never by the page's", () => {
+    /*
+     * The English copy of an untranslated page, on a Persian address, is laid
+     * out left to right inside the page's dir="rtl": a rule keyed on that
+     * attribute would turn its markers the right-to-left way.
+     */
+    const byAttribute: Array<string> = RULES.flatMap(
+      (rule: CssRule): Array<string> => {
+        return rule.selectors;
+      },
+    ).filter((selector: string): boolean => {
+      return selector.includes("docs-details") && selector.includes("[dir=");
+    });
+
+    expect(byAttribute).toEqual([]);
+  });
+
+  it("control: a fold's marker is read as pointing where it is drawn", () => {
+    expect(foldMarkerPointing("ltr", "rotate(-45deg)")).toBe("right");
+    expect(foldMarkerPointing("ltr", "rotate(45deg)")).toBe("down");
+    expect(foldMarkerPointing("rtl", "rotate(45deg)")).toBe("left");
+    expect(foldMarkerPointing("rtl", "rotate(-45deg)")).toBe("down");
+    expect(foldMarkerPointing("rtl", "rotate(0deg)")).toBe(
+      "askew (rotate(0deg))",
+    );
+    expect(foldMarkerPointing("rtl", undefined)).toBe("not turned (undefined)");
   });
 
   it("writes no physical left or right in the hand-written layer", () => {

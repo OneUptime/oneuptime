@@ -1,6 +1,6 @@
 # KI-Zugriff
 
-Der KI-Zugriff ist der Weg, auf dem die eigenen Befehle von OneUptime AI etwas erreichen, das **nicht** der eigene Host eines Runners ist — einen Server per SSH oder den API-Server eines Kubernetes-Clusters, der das Kubernetes-Agent-Chart nicht ausführt. Jeder Zugriff sind Anmeldedaten: dieser Zugang als verwaltetes Objekt, im Ruhezustand verschlüsselt, bestimmten Runnern zugewiesen und von OneUptime AI ausgewählt, statt in einen Befehl geschrieben. Runbook-Schritte verwenden sie nicht: Ein SSH- oder kubectl-Schritt meldet sich mit einer geheimen [Runbook-Variable](/docs/runbooks/variables) an.
+Der KI-Zugriff ist der Weg, auf dem die eigenen Befehle von OneUptime AI etwas erreichen, das **nicht** der eigene Host eines Runners ist — einen Server per SSH oder den API-Server eines Kubernetes-Clusters, der das Kubernetes-Agent-Chart nicht ausführt. Jeder Zugriff sind Anmeldedaten: dieser Zugang als verwaltetes Objekt, im Ruhezustand verschlüsselt, bestimmten Runnern zugewiesen und von OneUptime AI ausgewählt, statt in einen Befehl geschrieben. Runbook-Schritte verwenden sie nicht: Ein SSH- oder kubectl-Schritt meldet sich mit einer geheimen [Runbook-Variable](/docs/runbooks/variables) an. Ein Runner, der älter als dieses Release ist, ist die Ausnahme: Er führt einen aus einer Aktion überführten Kubernetes-Schritt mit den Anmeldedaten aus, die der Schritt nannte, bis das Skript oder die kubeconfig des Schritts geändert wird.
 
 Sie verwalten sie unter **Runbooks → Runbook-Agents → KI-Zugriff**.
 

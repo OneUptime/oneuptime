@@ -26,7 +26,14 @@ import RunbookCredentialType from "../../../../Types/Runbook/RunbookCredentialTy
 import {
   KubernetesAction,
   KubernetesWorkloadKind,
+  isLegacyKubernetesStepConfig,
 } from "../../../../Types/Runbook/RunbookStep";
+import {
+  getKubectlScriptForLegacyKubernetesStep,
+  getLegacyKubernetesFields,
+  getLegacyKubernetesStepForOlderRunner,
+  isMovedKubernetesStepConfig,
+} from "../../../../Types/Runbook/RunbookLegacySteps";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -48,6 +55,24 @@ const SSH_CREDENTIAL: string = "cccccccc-0000-4000-8000-000000000001";
 const K8S_CREDENTIAL: string = "cccccccc-0000-4000-8000-000000000002";
 const GONE_CREDENTIAL: string = "cccccccc-0000-4000-8000-000000000003";
 const USER_ID: string = "dddddddd-0000-4000-8000-000000000001";
+
+// The credential ids a read of RunbookCredentialService asks for (QueryHelper.any).
+function idsAskedFor(args: unknown): Array<string> {
+  const condition: unknown = (args as { query: Record<string, unknown> }).query[
+    "_id"
+  ];
+  const parameters: Record<string, unknown> =
+    ((condition as { objectLiteralParameters?: Record<string, unknown> })
+      ?.objectLiteralParameters as Record<string, unknown>) || {};
+
+  return Object.values(parameters).flatMap((value: unknown): Array<string> => {
+    return Array.isArray(value)
+      ? value.map((id: unknown): string => {
+          return String(id).toLowerCase();
+        })
+      : [];
+  });
+}
 
 describe("toVariableName", () => {
   test("a name a variable can have is kept", () => {
@@ -187,8 +212,221 @@ describe("moveStep", () => {
       `kubectl patch deployment api --namespace web --subresource scale --patch '{"spec":{"replicas":3}}'`,
     );
     expect(config["agentId"]).toBe(RUNNER_1);
-    expect(config).not.toHaveProperty("credentialId");
-    expect(config).not.toHaveProperty("action");
+    // A script step now: it is not moved again.
+    expect(isLegacyKubernetesStepConfig(config)).toBe(false);
+    expect(isMovedKubernetesStepConfig(config)).toBe(true);
+  });
+
+  /*
+   * A Runner older than kubectl scripts cannot run the script: the step
+   * keeps what such a Runner runs - its credential and its action, exactly
+   * as it had them - beside it, as a moved SSH step's script is also the
+   * command an older Runner runs.
+   */
+  describe("a Kubernetes step keeps its credential and action beside the script, for an older Runner", () => {
+    const SHAPES: Array<[string, JSONObject]> = [
+      [
+        "a Deployment restarted",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.RestartWorkload,
+          workloadKind: KubernetesWorkloadKind.Deployment,
+          namespace: "web",
+          workloadName: "api",
+        },
+      ],
+      [
+        "a StatefulSet restarted",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.RestartWorkload,
+          workloadKind: KubernetesWorkloadKind.StatefulSet,
+          namespace: "db",
+          workloadName: "postgres",
+        },
+      ],
+      [
+        "a DaemonSet restarted",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.RestartWorkload,
+          workloadKind: KubernetesWorkloadKind.DaemonSet,
+          namespace: "monitoring",
+          workloadName: "node-exporter",
+        },
+      ],
+      [
+        "a restart with no action named",
+        {
+          credentialId: K8S_CREDENTIAL,
+          workloadKind: KubernetesWorkloadKind.Deployment,
+          namespace: "web",
+          workloadName: "api",
+        },
+      ],
+      [
+        "a Deployment scaled",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.ScaleWorkload,
+          workloadKind: KubernetesWorkloadKind.Deployment,
+          namespace: "web",
+          workloadName: "api",
+          replicas: 3,
+        },
+      ],
+      [
+        "a StatefulSet scaled to zero",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.ScaleWorkload,
+          workloadKind: KubernetesWorkloadKind.StatefulSet,
+          namespace: "jobs",
+          workloadName: "workers",
+          replicas: 0,
+        },
+      ],
+      [
+        "a DaemonSet scaled, which never could be",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.ScaleWorkload,
+          workloadKind: KubernetesWorkloadKind.DaemonSet,
+          namespace: "n",
+          workloadName: "w",
+          replicas: 2,
+        },
+      ],
+      [
+        "a scale with no replica count",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.ScaleWorkload,
+          workloadKind: KubernetesWorkloadKind.Deployment,
+          namespace: "n",
+          workloadName: "w",
+        },
+      ],
+      [
+        "a step with no namespace",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: KubernetesAction.RestartWorkload,
+          workloadKind: KubernetesWorkloadKind.Deployment,
+          workloadName: "w",
+        },
+      ],
+      [
+        "an action it never had",
+        {
+          credentialId: K8S_CREDENTIAL,
+          action: "delete-workload",
+          workloadKind: KubernetesWorkloadKind.Deployment,
+          namespace: "n",
+          workloadName: "w",
+        },
+      ],
+    ];
+
+    test.each(SHAPES)(
+      "%s: the script, the kubeconfig and the step as it was written",
+      (_label: string, legacy: JSONObject) => {
+        const moved: JSONObject | null = move({
+          id: "k1",
+          type: RunbookStepType.Kubernetes,
+          title: "Act on the cluster",
+          config: {
+            ...legacy,
+            agentId: RUNNER_1,
+            timeoutInMs: 60_000,
+            claimTimeoutInMs: 90_000,
+          },
+        });
+
+        expect(moved).toEqual({
+          id: "k1",
+          type: RunbookStepType.Kubernetes,
+          title: "Act on the cluster",
+          config: {
+            kubeconfig: "{{global.variables.prod-cluster-kubeconfig}}",
+            script: getKubectlScriptForLegacyKubernetesStep(legacy as never),
+            agentId: RUNNER_1,
+            timeoutInMs: 60_000,
+            claimTimeoutInMs: 90_000,
+            ...legacy,
+          },
+        });
+      },
+    );
+
+    test.each(SHAPES.slice(0, 6))(
+      "%s: an older Runner is handed exactly what the step was always dispatched with",
+      (_label: string, legacy: JSONObject) => {
+        const config: JSONObject = move({
+          type: RunbookStepType.Kubernetes,
+          config: { ...legacy, agentId: RUNNER_1 },
+        })!["config"] as JSONObject;
+
+        expect(getLegacyKubernetesStepForOlderRunner(config)).toEqual(legacy);
+      },
+    );
+
+    test.each([SHAPES[6]!, SHAPES[9]!])(
+      "%s: an older Runner is handed it as before, and fails it as it did",
+      (_label: string, legacy: JSONObject) => {
+        const config: JSONObject = move({
+          type: RunbookStepType.Kubernetes,
+          config: { ...legacy, agentId: RUNNER_1 },
+        })!["config"] as JSONObject;
+
+        expect(getLegacyKubernetesStepForOlderRunner(config)).toEqual(legacy);
+        // A newer Runner runs a script that fails it, saying why.
+        expect(String(config["script"])).toContain("exit 1");
+      },
+    );
+
+    test.each(SHAPES.slice(7, 9))(
+      "%s: the old step was never dispatched, and an older Runner is handed nothing",
+      (_label: string, legacy: JSONObject) => {
+        const config: JSONObject = move({
+          type: RunbookStepType.Kubernetes,
+          config: { ...legacy, agentId: RUNNER_1 },
+        })!["config"] as JSONObject;
+
+        // Kept as it was, but no step to hand over.
+        expect(getLegacyKubernetesFields(config)).toEqual(legacy);
+        expect(getLegacyKubernetesStepForOlderRunner(config)).toBeNull();
+      },
+    );
+
+    test("nothing the old step did not have is added, and nothing it had is changed", () => {
+      const config: JSONObject = move({
+        type: RunbookStepType.Kubernetes,
+        config: {
+          credentialId: K8S_CREDENTIAL.toUpperCase(),
+          action: KubernetesAction.RestartWorkload,
+          namespace: "web",
+          workloadName: "api",
+        },
+      })!["config"] as JSONObject;
+
+      // No workload kind or replica count made up; the credential as it was written.
+      expect(getLegacyKubernetesFields(config)).toEqual({
+        credentialId: K8S_CREDENTIAL.toUpperCase(),
+        action: KubernetesAction.RestartWorkload,
+        namespace: "web",
+        workloadName: "api",
+      });
+    });
+
+    test("a moved step is not moved again", () => {
+      const once: JSONObject = move({
+        type: RunbookStepType.Kubernetes,
+        config: { ...SHAPES[0]![1], agentId: RUNNER_1 },
+      })!;
+
+      expect(move(once)).toBeNull();
+    });
   });
 
   test("a Bash or JavaScript step names variables where it named runbook secrets", () => {
@@ -252,6 +490,34 @@ describe("getCredentialIdsInSteps", () => {
         { type: RunbookStepType.SSH, config: { credentialId: "not-a-uuid" } },
       ]),
     ).toEqual([SSH_CREDENTIAL, K8S_CREDENTIAL]);
+  });
+
+  test("not those of a step moved already, which keeps its credential beside its script", () => {
+    const OTHER: string = "cccccccc-0000-4000-8000-000000000005";
+
+    expect(
+      getCredentialIdsInSteps([
+        {
+          type: RunbookStepType.Kubernetes,
+          config: {
+            kubeconfig: "{{global.variables.prod-cluster-kubeconfig}}",
+            script: "kubectl patch deployment api --namespace web ...",
+            credentialId: K8S_CREDENTIAL,
+            action: KubernetesAction.RestartWorkload,
+            namespace: "web",
+            workloadName: "api",
+          },
+        },
+        {
+          type: RunbookStepType.SSH,
+          config: { credentialId: OTHER, script: "uptime", host: "h" },
+        },
+        {
+          type: RunbookStepType.Kubernetes,
+          config: { credentialId: OTHER, action: "RestartWorkload" },
+        },
+      ]),
+    ).toEqual([OTHER]);
   });
 });
 
@@ -444,29 +710,36 @@ describe("moveAll", () => {
 
     jest
       .spyOn(RunbookCredentialService, "findBy")
-      .mockImplementation(async (): Promise<Array<RunbookCredential>> => {
-        return [
-          Object.assign(new RunbookCredential(), {
-            _id: SSH_CREDENTIAL,
-            name: "prod hosts",
-            credentialType: RunbookCredentialType.SSH,
-            sshHostname: "10.0.4.21",
-            sshPort: 22,
-            sshUsername: "deploy",
-            sshPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\nk\n",
-            sshPassphrase: "open sesame",
-            runners: [Object.assign(new Runner(), { _id: RUNNER_1 })],
-          }),
-          Object.assign(new RunbookCredential(), {
-            _id: K8S_CREDENTIAL,
-            name: "prod cluster",
-            credentialType: RunbookCredentialType.Kubernetes,
-            kubernetesApiServerUrl: "https://prod.example.com:6443",
-            kubernetesServiceAccountToken: "sa-token",
-            runners: [Object.assign(new Runner(), { _id: RUNNER_1 })],
-          }),
-        ];
-      });
+      .mockImplementation(
+        async (args: unknown): Promise<Array<RunbookCredential>> => {
+          const asked: Array<string> = idsAskedFor(args);
+
+          return [
+            Object.assign(new RunbookCredential(), {
+              _id: SSH_CREDENTIAL,
+              name: "prod hosts",
+              credentialType: RunbookCredentialType.SSH,
+              sshHostname: "10.0.4.21",
+              sshPort: 22,
+              sshUsername: "deploy",
+              sshPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\nk\n",
+              sshPassphrase: "open sesame",
+              runners: [Object.assign(new Runner(), { _id: RUNNER_1 })],
+            }),
+            Object.assign(new RunbookCredential(), {
+              _id: K8S_CREDENTIAL,
+              name: "prod cluster",
+              credentialType: RunbookCredentialType.Kubernetes,
+              kubernetesApiServerUrl: "https://prod.example.com:6443",
+              kubernetesServiceAccountToken: "sa-token",
+              runners: [Object.assign(new Runner(), { _id: RUNNER_1 })],
+            }),
+          ].filter((credential: RunbookCredential): boolean => {
+            // As the database answers: only the credentials asked for.
+            return asked.includes(String(credential._id));
+          });
+        },
+      );
   });
 
   afterEach(() => {
@@ -580,9 +853,22 @@ describe("moveAll", () => {
       script: "uptime",
       agentId: RUNNER_1,
     });
-    expect((steps[2]!["config"] as JSONObject)["kubeconfig"]).toBe(
-      "{{global.variables.prod_cluster-kubeconfig}}",
-    );
+    // The kubectl script its action became, and the step as it was written, for an older Runner.
+    expect(steps[2]!["config"]).toEqual({
+      kubeconfig: "{{global.variables.prod_cluster-kubeconfig}}",
+      script: getKubectlScriptForLegacyKubernetesStep({
+        action: KubernetesAction.RestartWorkload,
+        workloadKind: KubernetesWorkloadKind.Deployment,
+        namespace: "web",
+        workloadName: "api",
+      }),
+      agentId: RUNNER_1,
+      credentialId: K8S_CREDENTIAL,
+      action: KubernetesAction.RestartWorkload,
+      workloadKind: KubernetesWorkloadKind.Deployment,
+      namespace: "web",
+      workloadName: "api",
+    });
     // A step whose credential is gone is left as it was: it fails as it would have.
     expect(steps[3]!["config"]).toEqual({
       credentialId: GONE_CREDENTIAL,
@@ -623,6 +909,59 @@ describe("moveAll", () => {
     expect((steps[1]!["config"] as JSONObject)["signIn"]).toBe(
       "{{global.variables.prod_hosts-ssh-key}}",
     );
+  });
+
+  test("run again over the steps it moved, it changes nothing, and reads no credential a moved step kept for older Runners", async () => {
+    await RunbookVariablesMove.moveAll(query);
+
+    const movedSteps: Array<JSONObject> = stepsWritten(
+      "90000000-0000-4000-8000-000000000001",
+    );
+
+    // The moved Kubernetes step still names its credential, beside its script.
+    expect((movedSteps[2]!["config"] as JSONObject)["credentialId"]).toBe(
+      K8S_CREDENTIAL,
+    );
+
+    /*
+     * The secrets' variables are there; the credentials' were deleted since,
+     * by someone who no longer wanted them: a run again makes none of them.
+     */
+    existingNames[PROJECT_A] = ["API_TOKEN", "db_password"];
+    runbooks = [
+      {
+        _id: "90000000-0000-4000-8000-000000000001",
+        projectId: PROJECT_A,
+        steps: JSON.stringify(movedSteps),
+      },
+    ];
+    statements = [];
+    created = [];
+    (RunbookCredentialService.findBy as unknown as jest.Mock).mockClear();
+
+    const summary: RunbookVariablesMoveSummary =
+      await RunbookVariablesMove.moveAll(query);
+
+    expect(created).toEqual([]);
+    expect(
+      statements.filter((statement: Statement): boolean => {
+        return statement.sql === UPDATE_RUNBOOK_STEPS_SQL;
+      }),
+    ).toHaveLength(0);
+    expect(summary).toMatchObject({
+      secretsAlreadyMoved: 2,
+      credentialsMoved: 0,
+      stepsMoved: 0,
+      runbooksRewritten: 0,
+      projectsFailed: 0,
+    });
+
+    // Only the step whose credential is gone still names one the old way.
+    const reads: Array<Array<unknown>> = (
+      RunbookCredentialService.findBy as unknown as jest.Mock
+    ).mock.calls as Array<Array<unknown>>;
+    expect(reads).toHaveLength(1);
+    expect(idsAskedFor(reads[0]![0])).toEqual([GONE_CREDENTIAL]);
   });
 
   test("two things one run moves never share a name: the second takes the next free one", async () => {
