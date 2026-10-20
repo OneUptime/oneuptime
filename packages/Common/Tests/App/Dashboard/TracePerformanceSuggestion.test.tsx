@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, Mock, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { BrowserRouter } from "react-router-dom";
