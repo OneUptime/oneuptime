@@ -103,15 +103,15 @@ export const EXTERNAL_MCP_SERVER_AUTH_OPTIONS: Array<CardSelectOption> = [
   },
   {
     value: ExternalMcpServerAuthType.BearerToken,
-    title: translationKey("API token"),
+    title: translationKey("Bearer token"),
     description: translationKey(
-      "Sent as a bearer token. Most hosted MCP servers hand one out.",
+      "An API token or key from the server. Most hosted MCP servers hand one out.",
     ),
     icon: IconProp.Key,
   },
   {
     value: ExternalMcpServerAuthType.Headers,
-    title: translationKey("Headers"),
+    title: translationKey("Custom headers"),
     description: translationKey(
       "Headers of the server's own, such as X-API-Key.",
     ),

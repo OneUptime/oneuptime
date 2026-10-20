@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio がテスト通話を発信しています。1 分以内に電話が鳴るはずです。",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "Microsoft Entra ID や Amazon Cognito など、ID プロバイダーが発行するトークンです。",
   "AI fix through MCP servers": "MCP サーバー経由の AI による修正",
-  "API token": "API トークン",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "MCP サーバーの追加と管理は {{externalMcpServersLink}} ページで行います。",
   "All MCP servers": "すべての MCP サーバー",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "外部 MCP サーバー",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "このシグナルに対して OneUptime AI が提案または適用した修正です（AI エージェント、Runner、Runbook、または MCP サーバーのツール経由）。承認すると、表示されている内容がそのままあなたの名前で実行されます。",
   "Header Names": "ヘッダー名",
-  "Headers": "ヘッダー",
   "Headers of the server's own, such as X-API-Key.": "X-API-Key など、サーバー独自のヘッダーです。",
   "Hide the server's answer": "サーバーの応答を隠す",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "調査では読み取り専用のツールのみを使います。修正では、自動修復ルールの承認設定に従って、それ以外のツールも使います。",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "プロトコルバージョン",
   "Reads only": "読み取り専用",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "ルール「{{ruleName}}」に一致しました: OneUptime AI が MCP サーバー経由でこの{{signal}}の修正を検討しています。",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "Bearer トークンとして送信されます。ほとんどのホスト型 MCP サーバーが発行しています。",
   "Sent as a bearer token. Stored encrypted and never shown again.": "Bearer トークンとして送信されます。暗号化して保存され、再表示されることはありません。",
   "Sent with every request. Values are stored encrypted and never shown again.": "すべてのリクエストで送信されます。値は暗号化して保存され、再表示されることはありません。",
   "Server Name": "サーバー名",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "この MCP サーバーをテストする権限がありません。",
   "Your identity provider's token endpoint.": "ID プロバイダーのトークンエンドポイントです。",
   "{{count}} tools": "ツール {{count}} 個",
-  "{{count}} tools_one": "ツール {{count}} 個"
+  "{{count}} tools_one": "ツール {{count}} 個",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "サーバーが発行する API トークンまたはキーです。ほとんどのホスト型 MCP サーバーが発行しています。",
+  "Custom headers": "カスタムヘッダー"
 }

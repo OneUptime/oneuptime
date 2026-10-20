@@ -383,8 +383,8 @@ describe("the add / edit form", () => {
       }),
     ).toEqual([
       [ExternalMcpServerAuthType.None, "No sign-in"],
-      [ExternalMcpServerAuthType.BearerToken, "API token"],
-      [ExternalMcpServerAuthType.Headers, "Headers"],
+      [ExternalMcpServerAuthType.BearerToken, "Bearer token"],
+      [ExternalMcpServerAuthType.Headers, "Custom headers"],
       [
         ExternalMcpServerAuthType.OAuthClientCredentials,
         "OAuth client credentials",
@@ -586,7 +586,7 @@ describe("how a server is doing", () => {
   test("names each way of signing in", () => {
     expect(
       getExternalMcpServerAuthTitle(ExternalMcpServerAuthType.Headers),
-    ).toBe("Headers");
+    ).toBe("Custom headers");
     expect(getExternalMcpServerAuthTitle(undefined)).toBe("No sign-in");
   });
 

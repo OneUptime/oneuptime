@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio совершает тестовый звонок. Ваш телефон должен зазвонить в течение минуты.",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "Токен от вашего поставщика удостоверений, например Microsoft Entra ID или Amazon Cognito.",
   "AI fix through MCP servers": "Исправление ИИ через MCP-серверы",
-  "API token": "API-токен",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "Добавляйте MCP-серверы и управляйте ими на странице {{externalMcpServersLink}}.",
   "All MCP servers": "Все MCP-серверы",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "Внешние MCP-серверы",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "Исправления, которые OneUptime AI предложил или применил для этого сигнала, — через ИИ-агента, Runner, runbook или инструменты ваших MCP-серверов. Подтверждение запускает ровно то, что показано, от вашего имени.",
   "Header Names": "Имена заголовков",
-  "Headers": "Заголовки",
   "Headers of the server's own, such as X-API-Key.": "Собственные заголовки сервера, например X-API-Key.",
   "Hide the server's answer": "Скрыть ответ сервера",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "Расследования используют только инструменты, которые читают. Исправления используют и остальные — так, как велит подтверждение в правиле автоисправления.",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "Версия протокола",
   "Reads only": "Только чтение",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "Сработало правило «{{ruleName}}»: OneUptime AI готовит исправление для этого события ({{signal}}) через ваши MCP-серверы.",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "Отправляется как bearer-токен. Большинство размещённых MCP-серверов выдают такой токен.",
   "Sent as a bearer token. Stored encrypted and never shown again.": "Отправляется как bearer-токен. Хранится в зашифрованном виде и больше не показывается.",
   "Sent with every request. Values are stored encrypted and never shown again.": "Отправляются с каждым запросом. Значения хранятся в зашифрованном виде и больше не показываются.",
   "Server Name": "Имя сервера",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "У вас нет прав на проверку этого MCP-сервера.",
   "Your identity provider's token endpoint.": "Конечная точка токенов вашего поставщика удостоверений.",
   "{{count}} tools": "Инструментов: {{count}}",
-  "{{count}} tools_one": "{{count}} инструмент"
+  "{{count}} tools_one": "{{count}} инструмент",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "API-токен или ключ от сервера. Большинство размещённых MCP-серверов выдают такой токен.",
+  "Custom headers": "Пользовательские заголовки"
 }

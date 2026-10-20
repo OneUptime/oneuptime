@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio foretager testopkaldet. Din telefon bør ringe inden for et minut.",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "Et token fra din identitetsudbyder, f.eks. Microsoft Entra ID eller Amazon Cognito.",
   "AI fix through MCP servers": "AI-rettelse via MCP-servere",
-  "API token": "API-nøgle (token)",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "Tilføj og administrer MCP-servere på siden {{externalMcpServersLink}}.",
   "All MCP servers": "Alle MCP-servere",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "Eksterne MCP-servere",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "Rettelser, som OneUptime AI har foreslået eller anvendt for dette signal – via en AI-agent, en Runner, en runbook eller dine MCP-serveres værktøjer. Godkendelse kører præcis det viste i dit navn.",
   "Header Names": "Headernavne",
-  "Headers": "Headere",
   "Headers of the server's own, such as X-API-Key.": "Serverens egne headere, f.eks. X-API-Key.",
   "Hide the server's answer": "Skjul serverens svar",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "Undersøgelser bruger kun de værktøjer, der læser. Rettelser bruger også de andre, sådan som godkendelsen i reglen for automatisk afhjælpning siger.",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "Protokolversion",
   "Reads only": "Kun læsning",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "Reglen »{{ruleName}}« matchede: OneUptime AI udarbejder en rettelse til denne {{signal}} via dine MCP-servere.",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "Sendes som bearer-token. De fleste hostede MCP-servere udsteder et.",
   "Sent as a bearer token. Stored encrypted and never shown again.": "Sendes som bearer-token. Gemmes krypteret og vises aldrig igen.",
   "Sent with every request. Values are stored encrypted and never shown again.": "Sendes med hver anmodning. Værdierne gemmes krypteret og vises aldrig igen.",
   "Server Name": "Servernavn",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "Du har ikke tilladelse til at teste denne MCP-server.",
   "Your identity provider's token endpoint.": "Token-endpointet hos din identitetsudbyder.",
   "{{count}} tools": "{{count}} værktøjer",
-  "{{count}} tools_one": "{{count}} værktøj"
+  "{{count}} tools_one": "{{count}} værktøj",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "Et API-token eller en API-nøgle fra serveren. De fleste hostede MCP-servere udsteder et.",
+  "Custom headers": "Brugerdefinerede headere"
 }

@@ -362,8 +362,7 @@ export default class McpClient {
         : [];
 
       for (const rawTool of rawTools) {
-        const tool: McpToolDescription | null =
-          readMcpToolDescription(rawTool);
+        const tool: McpToolDescription | null = readMcpToolDescription(rawTool);
 
         if (!tool || names.has(tool.name)) {
           continue;
@@ -1338,7 +1337,7 @@ export default class McpClient {
         excerpt ? `: ${excerpt}` : "."
       }${
         asksForOAuth
-          ? " It asks for an OAuth sign-in in a browser, which OneUptime cannot do for an unattended investigation. Use an API token or headers it accepts, or OAuth client credentials."
+          ? " It asks for an OAuth sign-in in a browser, which OneUptime cannot do for an unattended investigation. Use a bearer token or custom headers it accepts, or OAuth client credentials."
           : ""
       }`,
     });

@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "توکنی از ارائه‌دهنده هویت شما، مانند Microsoft Entra ID یا Amazon Cognito.",
   "AI fix through MCP servers": "اصلاح هوش مصنوعی از طریق سرورهای MCP",
-  "API token": "توکن API",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "سرورهای MCP را در صفحه {{externalMcpServersLink}} اضافه و مدیریت کنید.",
   "All MCP servers": "همه سرورهای MCP",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "سرورهای MCP خارجی",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "اصلاح‌هایی که OneUptime AI برای این سیگنال پیشنهاد یا اعمال کرده است — از طریق یک عامل هوش مصنوعی، یک Runner، یک رانبوک یا ابزارهای سرورهای MCP شما. تأیید، دقیقاً همان چیزی را که نشان داده شده، به نام شما اجرا می‌کند.",
   "Header Names": "نام هدرها",
-  "Headers": "هدرها",
   "Headers of the server's own, such as X-API-Key.": "هدرهای خود سرور، مانند X-API-Key.",
   "Hide the server's answer": "پنهان کردن پاسخ سرور",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "بررسی‌ها فقط از ابزارهایی استفاده می‌کنند که فقط می‌خوانند. اصلاح‌ها، همان‌طور که تأییدِ قاعده رفع خودکار مشکل می‌گوید، از بقیه هم استفاده می‌کنند.",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "نسخه پروتکل",
   "Reads only": "فقط خواندن",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "قاعده «{{ruleName}}» مطابقت داشت: OneUptime AI در حال آماده کردن اصلاحی برای این {{signal}} از طریق سرورهای MCP شماست.",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "به‌صورت توکن bearer ارسال می‌شود. بیشتر سرورهای MCP میزبانی‌شده چنین توکنی می‌دهند.",
   "Sent as a bearer token. Stored encrypted and never shown again.": "به‌صورت توکن bearer ارسال می‌شود. رمزگذاری‌شده ذخیره می‌شود و دیگر هرگز نمایش داده نمی‌شود.",
   "Sent with every request. Values are stored encrypted and never shown again.": "با هر درخواست ارسال می‌شوند. مقادیر رمزگذاری‌شده ذخیره می‌شوند و دیگر هرگز نمایش داده نمی‌شوند.",
   "Server Name": "نام سرور",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "شما اجازه آزمایش این سرور MCP را ندارید.",
   "Your identity provider's token endpoint.": "نقطه پایانی توکن ارائه‌دهنده هویت شما.",
   "{{count}} tools": "{{count}} ابزار",
-  "{{count}} tools_one": "{{count}} ابزار"
+  "{{count}} tools_one": "{{count}} ابزار",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "توکن یا کلید API از سرور. بیشتر سرورهای MCP میزبانی‌شده چنین توکنی می‌دهند.",
+  "Custom headers": "هدرهای سفارشی"
 }

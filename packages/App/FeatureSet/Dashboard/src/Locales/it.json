@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio sta effettuando la chiamata di prova. Il tuo telefono dovrebbe squillare entro un minuto.",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "Un token del tuo provider di identità, come Microsoft Entra ID o Amazon Cognito.",
   "AI fix through MCP servers": "Correzione IA tramite server MCP",
-  "API token": "Token API",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "Aggiungi e gestisci i server MCP nella pagina {{externalMcpServersLink}}.",
   "All MCP servers": "Tutti i server MCP",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "Server MCP esterni",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "Correzioni che OneUptime AI ha proposto o applicato per questo segnale: tramite un agente IA, un Runner, un runbook o gli strumenti dei tuoi server MCP. Approvare esegue esattamente ciò che è mostrato, a tuo nome.",
   "Header Names": "Nomi delle intestazioni",
-  "Headers": "Intestazioni",
   "Headers of the server's own, such as X-API-Key.": "Intestazioni specifiche del server, come X-API-Key.",
   "Hide the server's answer": "Nascondi la risposta del server",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "Le indagini usano solo gli strumenti che leggono. Le correzioni usano anche gli altri, come indica l'approvazione della regola di rimedio automatico.",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "Versione del protocollo",
   "Reads only": "Solo lettura",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "La regola «{{ruleName}}» corrisponde: OneUptime AI sta elaborando una correzione per questo {{signal}} tramite i tuoi server MCP.",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "Inviato come token bearer. La maggior parte dei server MCP ospitati ne fornisce uno.",
   "Sent as a bearer token. Stored encrypted and never shown again.": "Inviato come token bearer. Salvato cifrato e mai più mostrato.",
   "Sent with every request. Values are stored encrypted and never shown again.": "Inviate con ogni richiesta. I valori sono salvati cifrati e mai più mostrati.",
   "Server Name": "Nome del server",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "Non hai il permesso di testare questo server MCP.",
   "Your identity provider's token endpoint.": "L'endpoint del token del tuo provider di identità.",
   "{{count}} tools": "{{count}} strumenti",
-  "{{count}} tools_one": "{{count}} strumento"
+  "{{count}} tools_one": "{{count}} strumento",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "Un token o una chiave API del server. La maggior parte dei server MCP ospitati ne fornisce uno.",
+  "Custom headers": "Intestazioni personalizzate"
 }

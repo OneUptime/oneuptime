@@ -139,7 +139,7 @@ const ExternalMcpServerView: FunctionComponent<PageComponentProps> = (
               field: {
                 headerNames: true,
               },
-              title: "Headers",
+              title: "Request Headers",
               description:
                 "The headers OneUptime sends. Their values are never shown.",
               fieldType: FieldType.Element,

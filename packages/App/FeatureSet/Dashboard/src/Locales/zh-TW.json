@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio 正在撥打測試電話，您的電話應在一分鐘內響起。",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "來自您的身分識別提供者（如 Microsoft Entra ID 或 Amazon Cognito）的權杖。",
   "AI fix through MCP servers": "透過 MCP 伺服器的 AI 修正",
-  "API token": "API 權杖",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "在 {{externalMcpServersLink}} 頁面新增和管理 MCP 伺服器。",
   "All MCP servers": "所有 MCP 伺服器",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "外部 MCP 伺服器",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "OneUptime AI 針對此訊號提出或套用的修正——透過 AI 代理、Runner、運行手冊或您的 MCP 伺服器的工具。核准後將以您的名義完全依所示內容執行。",
   "Header Names": "標頭名稱",
-  "Headers": "標頭",
   "Headers of the server's own, such as X-API-Key.": "伺服器自己的標頭，例如 X-API-Key。",
   "Hide the server's answer": "隱藏伺服器的回應",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "調查只使用唯讀工具。修正還會依照自動補救規則的核准設定使用其他工具。",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "通訊協定版本",
   "Reads only": "唯讀",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "規則「{{ruleName}}」已符合：OneUptime AI 正在透過您的 MCP 伺服器為此{{signal}}擬定修正方案。",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "以 Bearer 權杖傳送。大多數託管的 MCP 伺服器都會提供。",
   "Sent as a bearer token. Stored encrypted and never shown again.": "以 Bearer 權杖傳送。加密儲存，且不會再次顯示。",
   "Sent with every request. Values are stored encrypted and never shown again.": "隨每個請求傳送。值會加密儲存，且不會再次顯示。",
   "Server Name": "伺服器名稱",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "您沒有測試此 MCP 伺服器的權限。",
   "Your identity provider's token endpoint.": "您的身分識別提供者的權杖端點。",
   "{{count}} tools": "{{count}} 個工具",
-  "{{count}} tools_one": "{{count}} 個工具"
+  "{{count}} tools_one": "{{count}} 個工具",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "伺服器提供的 API 權杖或金鑰。大多數託管的 MCP 伺服器都會提供。",
+  "Custom headers": "自訂標頭"
 }

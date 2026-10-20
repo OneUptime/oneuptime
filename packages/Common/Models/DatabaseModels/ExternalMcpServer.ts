@@ -270,7 +270,7 @@ export default class ExternalMcpServer extends BaseModel {
     required: false,
     type: TableColumnType.JSON,
     encrypted: true,
-    title: "Headers",
+    title: "Request Headers",
     description:
       "For Headers: the headers sent with every request, as a JSON object of names and values. Each value is encrypted at rest and never returned by the API.",
   })
@@ -514,7 +514,8 @@ export default class ExternalMcpServer extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     title: "Last Connected At",
-    description: "When OneUptime last connected to the server and read its tools.",
+    description:
+      "When OneUptime last connected to the server and read its tools.",
   })
   @Column({
     nullable: true,

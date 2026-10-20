@@ -34,9 +34,9 @@ import React, { ReactElement } from "react";
  *     AI reads to pick a server) under More fields. Whether it speaks
  *     Streamable HTTP or the older SSE is never asked: OneUptime finds out
  *     when it connects.
- *   - Authentication: one card per way of signing in - none, an API token,
- *     headers of the server's own, or OAuth client credentials - then only
- *     what that one needs.
+ *   - Authentication: one card per way of signing in - none, a bearer token,
+ *     custom headers of the server's own, or OAuth client credentials - then
+ *     only what that one needs.
  *   - OAuth: for OAuth client credentials only, the token URL, client ID and
  *     secret, with the scope and audience under More fields.
  *
@@ -286,7 +286,7 @@ export const getExternalMcpServerFormFields: () => Array<
       field: {
         headers: true,
       },
-      title: "Headers",
+      title: "Request Headers",
       description: EXTERNAL_MCP_SERVER_FIELD_COPY.headersHint,
       stepId: "authentication",
       fieldType: FormFieldSchemaType.CustomComponent,

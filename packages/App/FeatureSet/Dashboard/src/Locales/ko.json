@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio가 테스트 전화를 걸고 있습니다. 1분 안에 전화가 울립니다.",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "Microsoft Entra ID나 Amazon Cognito 같은 ID 공급자가 발급한 토큰입니다.",
   "AI fix through MCP servers": "MCP 서버를 통한 AI 수정",
-  "API token": "API 토큰",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "MCP 서버는 {{externalMcpServersLink}} 페이지에서 추가하고 관리합니다.",
   "All MCP servers": "모든 MCP 서버",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "외부 MCP 서버",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "이 신호에 대해 OneUptime AI가 제안하거나 적용한 수정입니다. AI 에이전트, Runner, 런북 또는 MCP 서버의 도구를 통해 이루어집니다. 승인하면 표시된 내용이 그대로 사용자 이름으로 실행됩니다.",
   "Header Names": "헤더 이름",
-  "Headers": "헤더",
   "Headers of the server's own, such as X-API-Key.": "X-API-Key 같은 서버 고유의 헤더입니다.",
   "Hide the server's answer": "서버 응답 숨기기",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "조사에는 읽기 전용 도구만 사용합니다. 수정에는 자동 해결 규칙의 승인 설정에 따라 다른 도구도 사용합니다.",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "프로토콜 버전",
   "Reads only": "읽기 전용",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "규칙 \"{{ruleName}}\"과(와) 일치함: OneUptime AI가 MCP 서버를 통해 이 {{signal}}의 수정 방안을 마련하고 있습니다.",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "Bearer 토큰으로 전송됩니다. 대부분의 호스팅형 MCP 서버가 발급합니다.",
   "Sent as a bearer token. Stored encrypted and never shown again.": "Bearer 토큰으로 전송됩니다. 암호화되어 저장되며 다시 표시되지 않습니다.",
   "Sent with every request. Values are stored encrypted and never shown again.": "모든 요청과 함께 전송됩니다. 값은 암호화되어 저장되며 다시 표시되지 않습니다.",
   "Server Name": "서버 이름",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "이 MCP 서버를 테스트할 권한이 없습니다.",
   "Your identity provider's token endpoint.": "ID 공급자의 토큰 엔드포인트입니다.",
   "{{count}} tools": "도구 {{count}}개",
-  "{{count}} tools_one": "도구 {{count}}개"
+  "{{count}} tools_one": "도구 {{count}}개",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "서버가 발급한 API 토큰 또는 키입니다. 대부분의 호스팅형 MCP 서버가 발급합니다.",
+  "Custom headers": "사용자 지정 헤더"
 }

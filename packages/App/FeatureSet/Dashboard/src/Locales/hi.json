@@ -31939,7 +31939,6 @@
   "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio टेस्ट कॉल कर रहा है। आपका फ़ोन एक मिनट के भीतर बजना चाहिए।",
   "A token from your identity provider, such as Microsoft Entra ID or Amazon Cognito.": "आपके पहचान प्रदाता से मिला टोकन, जैसे Microsoft Entra ID या Amazon Cognito।",
   "AI fix through MCP servers": "MCP सर्वर के ज़रिए AI सुधार",
-  "API token": "API टोकन",
   "AWS": "AWS",
   "Add and manage MCP servers on the {{externalMcpServersLink}} page.": "MCP सर्वर {{externalMcpServersLink}} पेज पर जोड़ें और प्रबंधित करें।",
   "All MCP servers": "सभी MCP सर्वर",
@@ -31959,7 +31958,6 @@
   "External MCP Servers": "बाहरी MCP सर्वर",
   "Fixes OneUptime AI proposed or applied for this signal — through an AI agent, a Runner, a runbook or your MCP servers' tools. Approving runs exactly what is shown, under your name.": "इस सिग्नल के लिए OneUptime AI द्वारा प्रस्तावित या लागू किए गए सुधार — AI एजेंट, Runner, रनबुक या आपके MCP सर्वर के टूल के ज़रिए। अनुमोदन करने पर ठीक वही, जो दिखाया गया है, आपके नाम से चलता है।",
   "Header Names": "हेडर के नाम",
-  "Headers": "हेडर",
   "Headers of the server's own, such as X-API-Key.": "सर्वर के अपने हेडर, जैसे X-API-Key।",
   "Hide the server's answer": "सर्वर का जवाब छिपाएं",
   "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.": "जाँच केवल पढ़ने वाले टूल का उपयोग करती है। सुधार, स्वचालित सुधार नियम के अनुमोदन के अनुसार, दूसरे टूल का भी उपयोग करते हैं।",
@@ -31999,7 +31997,6 @@
   "Protocol Version": "प्रोटोकॉल संस्करण",
   "Reads only": "केवल पढ़ता है",
   "Rule \"{{ruleName}}\" matched: OneUptime AI is working out a fix for this {{signal}} through your MCP servers.": "नियम \"{{ruleName}}\" मेल खाया: OneUptime AI आपके MCP सर्वर के ज़रिए इस {{signal}} के लिए सुधार तैयार कर रहा है।",
-  "Sent as a bearer token. Most hosted MCP servers hand one out.": "बेयरर टोकन के रूप में भेजा जाता है। ज़्यादातर होस्टेड MCP सर्वर एक टोकन देते हैं।",
   "Sent as a bearer token. Stored encrypted and never shown again.": "बेयरर टोकन के रूप में भेजा जाता है। एन्क्रिप्ट करके संग्रहीत, और फिर कभी नहीं दिखाया जाता।",
   "Sent with every request. Values are stored encrypted and never shown again.": "हर अनुरोध के साथ भेजे जाते हैं। मान एन्क्रिप्ट करके संग्रहीत होते हैं और फिर कभी नहीं दिखाए जाते।",
   "Server Name": "सर्वर का नाम",
@@ -32025,5 +32022,7 @@
   "You do not have permission to test this MCP server.": "आपको इस MCP सर्वर का परीक्षण करने की अनुमति नहीं है।",
   "Your identity provider's token endpoint.": "आपके पहचान प्रदाता का टोकन एंडपॉइंट।",
   "{{count}} tools": "{{count}} टूल",
-  "{{count}} tools_one": "{{count}} टूल"
+  "{{count}} tools_one": "{{count}} टूल",
+  "An API token or key from the server. Most hosted MCP servers hand one out.": "सर्वर से मिला API टोकन या कुंजी। ज़्यादातर होस्टेड MCP सर्वर एक टोकन देते हैं।",
+  "Custom headers": "कस्टम हेडर"
 }
