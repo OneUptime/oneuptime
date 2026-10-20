@@ -172,7 +172,7 @@ export default class MonitorAlert {
 
         input.evaluationSummary?.events.push({
           type: "alert-resolved",
-          title: `Alert resolved: ${openAlert.id?.toString()}`,
+          title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
           message:
             "Alert auto-resolved because autoresolve is enabled for this criteria.",
           relatedAlertId: openAlert.id?.toString(),
@@ -305,7 +305,7 @@ export default class MonitorAlert {
 
       input.evaluationSummary?.events.push({
         type: "alert-resolved",
-        title: `Alert resolved: ${openAlert.id?.toString()}`,
+        title: `Alert resolved: ${openAlert.title || openAlert.id?.toString()}`,
         message:
           isRecoveredValue || !input.wholeMonitor
             ? input.resolvedMessage ||

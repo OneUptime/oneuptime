@@ -8,7 +8,10 @@ import { CheckOn, FilterType } from "../../../../Types/Monitor/CriteriaFilter";
 import IncidentGroupingConfig from "../../../../Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import IncomingMonitorRequest from "../../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
-import { MonitorEvaluationFilterResult } from "../../../../Types/Monitor/MonitorEvaluationSummary";
+import {
+  MonitorEvaluationFilterResult,
+  MonitorEvaluationGroupingNote,
+} from "../../../../Types/Monitor/MonitorEvaluationSummary";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
@@ -290,7 +293,12 @@ describe("IncomingRequestIncidentGrouping", () => {
       expect(decision.note).toEqual({
         title: GROUPING_NOTE_TITLES.nothingNew,
         message:
-          'Every value this request has at requestBody.alerts[*].labels.alertname reported recovered, so criteria "Firing" opens nothing new.',
+          'Every value at requestBody.alerts[*].labels.alertname in this request reported recovered, so criteria "Firing" opened nothing new.',
+        details: {
+          outcome: "values-recovered",
+          criteriaName: "Firing",
+          path: "requestBody.alerts[*].labels.alertname",
+        },
       });
       expect(decision.rootCauseNote).toBeUndefined();
     });
@@ -309,7 +317,12 @@ describe("IncomingRequestIncidentGrouping", () => {
       expect(decision.note).toEqual({
         title: GROUPING_NOTE_TITLES.noValue,
         message:
-          'This request has no value at requestBody.groupLabels.alertname. Criteria "Firing" handles it for the whole monitor, as it would without grouping.',
+          'This request has no value at requestBody.groupLabels.alertname, so criteria "Firing" handled it without grouping, once for the whole monitor.',
+        details: {
+          outcome: "no-value",
+          criteriaName: "Firing",
+          path: "requestBody.groupLabels.alertname",
+        },
       });
       expect(decision.rootCauseNote?.toString()).toBe(
         "**Grouping**: The request had no value at `requestBody.groupLabels.alertname`, so it counts for the whole monitor rather than for one value.",
@@ -325,7 +338,11 @@ describe("IncomingRequestIncidentGrouping", () => {
       });
 
       expect(decision.note?.message).toContain(
-        "no value at {{requestBody.groupLabels.alertname}}.",
+        "no value at {{requestBody.groupLabels.alertname}}, so",
+      );
+      // The Dashboard draws the path as written too.
+      expect(decision.note?.details.path).toBe(
+        "{{requestBody.groupLabels.alertname}}",
       );
     });
 
@@ -376,7 +393,7 @@ describe("IncomingRequestIncidentGrouping", () => {
 
       expect(decision.perKeyMatches).toBeUndefined();
       expect(decision.note?.message).toBe(
-        'This request has no value at alerts[*].labels.alertname. Criteria "Firing" handles it for the whole monitor, as it would without grouping.',
+        'This request has no value at alerts[*].labels.alertname, so criteria "Firing" handled it without grouping, once for the whole monitor.',
       );
     });
 
@@ -394,7 +411,12 @@ describe("IncomingRequestIncidentGrouping", () => {
       expect(decision.note).toEqual({
         title: GROUPING_NOTE_TITLES.nothingNew,
         message:
-          'This request has no value at requestBody.commonLabels.alertname and reports recovered, so criteria "Firing" opens nothing new.',
+          'This request has no value at requestBody.commonLabels.alertname and reported recovered, so criteria "Firing" opened nothing new.',
+        details: {
+          outcome: "no-value-recovered",
+          criteriaName: "Firing",
+          path: "requestBody.commonLabels.alertname",
+        },
       });
     });
 
@@ -417,7 +439,13 @@ describe("IncomingRequestIncidentGrouping", () => {
       expect(decision.note).toEqual({
         title: GROUPING_NOTE_TITLES.someItemsWithoutValue,
         message:
-          "1 item in this request has no value at requestBody.alerts[*].labels.alertname, so it opens nothing of its own.",
+          "1 item in this request has no value at requestBody.alerts[*].labels.alertname, so it opened nothing of its own.",
+        details: {
+          outcome: "some-without-value",
+          criteriaName: "Firing",
+          path: "requestBody.alerts[*].labels.alertname",
+          itemsWithoutValue: 1,
+        },
       });
       expect(decision.rootCauseNote).toBeUndefined();
     });
@@ -438,8 +466,9 @@ describe("IncomingRequestIncidentGrouping", () => {
 
       expect(decision.perKeyMatches).toHaveLength(1);
       expect(decision.note?.message).toBe(
-        "3 items in this request have no value at requestBody.alerts[*].labels.alertname, so they open nothing of their own.",
+        "3 items in this request have no value at requestBody.alerts[*].labels.alertname, so they opened nothing of their own.",
       );
+      expect(decision.note?.details.itemsWithoutValue).toBe(3);
     });
 
     it("recovered values beside a firing item with none: the request names values, so nothing new opens, and the item is counted", () => {
@@ -464,7 +493,13 @@ describe("IncomingRequestIncidentGrouping", () => {
       expect(decision.note).toEqual({
         title: GROUPING_NOTE_TITLES.nothingNew,
         message:
-          'Every value this request has at requestBody.alerts[*].labels.alertname reported recovered, so criteria "Firing" opens nothing new. 1 item in this request has no value at requestBody.alerts[*].labels.alertname, so it opens nothing of its own.',
+          'Every value at requestBody.alerts[*].labels.alertname in this request reported recovered, so criteria "Firing" opened nothing new. 1 item in this request has no value at requestBody.alerts[*].labels.alertname, so it opened nothing of its own.',
+        details: {
+          outcome: "values-recovered",
+          criteriaName: "Firing",
+          path: "requestBody.alerts[*].labels.alertname",
+          itemsWithoutValue: 1,
+        },
       });
     });
 
@@ -521,7 +556,8 @@ describe("IncomingRequestIncidentGrouping", () => {
         expect(decision.note).toEqual({
           title: GROUPING_NOTE_TITLES.noRequest,
           message:
-            'Criteria "Firing" matched because requests stopped arriving. It handles that for the whole monitor, as it would without grouping.',
+            'Criteria "Firing" matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.',
+          details: { outcome: "no-request", criteriaName: "Firing" },
         });
         expect(decision.rootCauseNote?.toString()).toBe(
           "**Grouping**: Requests stopped arriving, so there was no value to group by. It counts for the whole monitor rather than for one value.",
@@ -558,7 +594,8 @@ describe("IncomingRequestIncidentGrouping", () => {
           expect(decision.note).toEqual({
             title: GROUPING_NOTE_TITLES.nothingNew,
             message:
-              'The background check re-read the last request. Criteria "Firing" opens one per value as a request arrives, not when it is re-read.',
+              'The background check re-read the last request. Criteria "Firing" opens one per value only when a request arrives.',
+            details: { outcome: "re-read", criteriaName: "Firing" },
           });
         }
       });
@@ -572,6 +609,141 @@ describe("IncomingRequestIncidentGrouping", () => {
           }),
         ).toEqual({ perKeyMatches: undefined });
       });
+    });
+
+    it("a criteria without a name leaves it to the Dashboard to name, and the English calls it unnamed", () => {
+      const criteria: MonitorCriteriaInstance = makeCriteria({
+        groupByJSONPath: "requestBody.groupLabels.alertname",
+      });
+      criteria.data!.name = "";
+
+      const decision: IncomingRequestGroupingDecision = decide({
+        dataToProcess: makeRequest({ test: "test" }),
+        criteriaInstance: criteria,
+      });
+
+      // The Dashboard names it as its criteria list does: "Criteria 2".
+      expect(decision.note?.details).toEqual({
+        outcome: "no-value",
+        criteriaName: undefined,
+        path: "requestBody.groupLabels.alertname",
+      });
+      expect(decision.note?.message).toBe(
+        'This request has no value at requestBody.groupLabels.alertname, so criteria "Unnamed criteria" handled it without grouping, once for the whole monitor.',
+      );
+    });
+  });
+
+  /*
+   * The monitor log stores each grouping note twice: what it says
+   * (details), which the Dashboard words in the reader's language, and the
+   * same note in English (title and message), for anything that reads the
+   * log without the Dashboard. One function writes the English from the
+   * details, so the two never say different things.
+   */
+  describe("describeNote: the English of a grouping note, from what it says", () => {
+    const PATH: string = "requestBody.alerts[*].labels.alertname";
+
+    it.each([
+      {
+        details: {
+          outcome: "no-value",
+          criteriaName: "Firing",
+          path: PATH,
+        },
+        title: "No value to group by",
+        message: `This request has no value at ${PATH}, so criteria "Firing" handled it without grouping, once for the whole monitor.`,
+      },
+      {
+        details: { outcome: "no-request", criteriaName: "Silence" },
+        title: "No request to group by",
+        message:
+          'Criteria "Silence" matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.',
+      },
+      {
+        details: {
+          outcome: "values-recovered",
+          criteriaName: "Firing",
+          path: PATH,
+        },
+        title: "Nothing new to open",
+        message: `Every value at ${PATH} in this request reported recovered, so criteria "Firing" opened nothing new.`,
+      },
+      {
+        details: {
+          outcome: "values-recovered",
+          criteriaName: "Firing",
+          path: PATH,
+          itemsWithoutValue: 2,
+        },
+        title: "Nothing new to open",
+        message: `Every value at ${PATH} in this request reported recovered, so criteria "Firing" opened nothing new. 2 items in this request have no value at ${PATH}, so they opened nothing of their own.`,
+      },
+      {
+        details: {
+          outcome: "no-value-recovered",
+          criteriaName: "Firing",
+          path: PATH,
+        },
+        title: "Nothing new to open",
+        message: `This request has no value at ${PATH} and reported recovered, so criteria "Firing" opened nothing new.`,
+      },
+      {
+        details: { outcome: "re-read", criteriaName: "Firing" },
+        title: "Nothing new to open",
+        message:
+          'The background check re-read the last request. Criteria "Firing" opens one per value only when a request arrives.',
+      },
+      {
+        details: {
+          outcome: "some-without-value",
+          criteriaName: "Firing",
+          path: PATH,
+          itemsWithoutValue: 1,
+        },
+        title: "Not every item has a value to group by",
+        message: `1 item in this request has no value at ${PATH}, so it opened nothing of its own.`,
+      },
+      {
+        details: {
+          outcome: "some-without-value",
+          criteriaName: "Firing",
+          path: PATH,
+          itemsWithoutValue: 4,
+        },
+        title: "Not every item has a value to group by",
+        message: `4 items in this request have no value at ${PATH}, so they opened nothing of their own.`,
+      },
+    ] as Array<{
+      details: MonitorEvaluationGroupingNote;
+      title: string;
+      message: string;
+    }>)(
+      "$details.outcome ($details.itemsWithoutValue items without a value)",
+      (expected: {
+        details: MonitorEvaluationGroupingNote;
+        title: string;
+        message: string;
+      }) => {
+        expect(
+          IncomingRequestIncidentGrouping.describeNote(expected.details),
+        ).toEqual({
+          title: expected.title,
+          message: expected.message,
+          details: expected.details,
+        });
+      },
+    );
+
+    it("every title is one of the monitor log's titles", () => {
+      expect(Object.values(GROUPING_NOTE_TITLES).sort()).toEqual(
+        [
+          "No request to group by",
+          "No value to group by",
+          "Not every item has a value to group by",
+          "Nothing new to open",
+        ].sort(),
+      );
     });
   });
 

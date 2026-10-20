@@ -8,7 +8,9 @@ jest.mock("isolated-vm", () => {
 });
 
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import { GROUPING_NOTE_TITLES } from "../../../../Server/Utils/Monitor/IncomingRequestIncidentGrouping";
+import IncomingRequestIncidentGrouping, {
+  GROUPING_NOTE_TITLES,
+} from "../../../../Server/Utils/Monitor/IncomingRequestIncidentGrouping";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import ReceivingSilence from "../../../../Server/Utils/Monitor/ReceivingSilence";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
@@ -295,8 +297,24 @@ describe("a grouped criteria that matches", () => {
       }),
     ).toEqual([GROUPING_NOTE_TITLES.noValue]);
     expect(events[0]!.message).toBe(
-      'This request has no value at requestBody.alerts[*].labels.alertname. Criteria "Firing" handles it for the whole monitor, as it would without grouping.',
+      'This request has no value at requestBody.alerts[*].labels.alertname, so criteria "Firing" handled it without grouping, once for the whole monitor.',
     );
+    /*
+     * And what the note says, for the Dashboard to word in the reader's
+     * language - the same note as the English above.
+     */
+    expect(events[0]!.grouping).toEqual({
+      outcome: "no-value",
+      criteriaName: "Firing",
+      path: "requestBody.alerts[*].labels.alertname",
+    });
+    expect(
+      IncomingRequestIncidentGrouping.describeNote(events[0]!.grouping!),
+    ).toEqual({
+      title: events[0]!.title,
+      message: events[0]!.message,
+      details: events[0]!.grouping,
+    });
   });
 
   it("says why in the root cause, after the filters it met", async () => {

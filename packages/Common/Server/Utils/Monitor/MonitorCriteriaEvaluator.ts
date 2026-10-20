@@ -522,6 +522,7 @@ export default class MonitorCriteriaEvaluator {
           type: "grouping",
           title: incomingRequestGrouping.note.title,
           message: incomingRequestGrouping.note.message,
+          grouping: incomingRequestGrouping.note.details,
           relatedCriteriaId: criteriaResult.criteriaId,
           at: OneUptimeDate.getCurrentDate(),
         });

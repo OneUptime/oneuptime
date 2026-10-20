@@ -6,6 +6,8 @@ import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
+  MonitorEvaluationEvent,
+  MonitorEvaluationGroupingNote,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import EvaluationLogList from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/EvaluationLogList";
 
@@ -304,32 +306,61 @@ describe("EvaluationLogList criteria results", () => {
 
 /*
  * An Incoming Request criteria that groups by a payload field says, among the
- * Actions, how it handled a request it matched - here, one without the field,
- * which it handled for the whole monitor rather than not at all.
+ * Actions, how it handled a request it matched - one without the field, say,
+ * which it handled for the whole monitor rather than not at all. The server
+ * sends what the note says (event.grouping) with the same note in English;
+ * the list words it, the grouping path drawn as code.
  */
 describe("EvaluationLogList grouping notes", () => {
-  const NOTE_MESSAGE: string =
-    'This request has no value at requestBody.groupLabels.alertname. Criteria "Contains x" handles it for the whole monitor, as it would without grouping.';
+  const CONTAINS_X_ID: string = "contains-x";
+  const PATH: string = "requestBody.groupLabels.alertname";
+  const ALERTS_PATH: string = "requestBody.alerts[*].labels.alertname";
 
-  function renderGroupedMatch(): void {
+  // A grouping event as the server writes it (IncomingRequestIncidentGrouping.describeNote).
+  function groupingEvent(
+    grouping: MonitorEvaluationGroupingNote | undefined,
+    english: { title: string; message: string },
+  ): MonitorEvaluationEvent {
+    return {
+      type: "grouping",
+      title: english.title,
+      message: english.message,
+      ...(grouping ? { grouping } : {}),
+      relatedCriteriaId: CONTAINS_X_ID,
+      at: EVALUATED_AT,
+    };
+  }
+
+  const NO_VALUE_EVENT: MonitorEvaluationEvent = groupingEvent(
+    { outcome: "no-value", criteriaName: "Contains x", path: PATH },
+    {
+      title: "No value to group by",
+      message: `This request has no value at ${PATH}, so criteria "Contains x" handled it without grouping, once for the whole monitor.`,
+    },
+  );
+
+  function renderEvents(
+    events: Array<MonitorEvaluationEvent>,
+    criteriaResults: Array<MonitorEvaluationCriteriaResult> = [
+      criteriaResult({
+        criteriaName: "Contains x",
+        met: true,
+        message: "Request body contains x.",
+        filters: [
+          {
+            checkOn: CheckOn.RequestBody,
+            filterType: FilterType.Contains,
+            value: "x",
+            message: "Request body contains x.",
+            met: true,
+          },
+        ],
+      }),
+    ],
+  ): void {
     const evaluationSummary: MonitorEvaluationSummary = {
       evaluatedAt: EVALUATED_AT,
-      criteriaResults: [
-        criteriaResult({
-          criteriaName: "Contains x",
-          met: true,
-          message: "Request body contains x.",
-          filters: [
-            {
-              checkOn: CheckOn.RequestBody,
-              filterType: FilterType.Contains,
-              value: "x",
-              message: "Request body contains x.",
-              met: true,
-            },
-          ],
-        }),
-      ],
+      criteriaResults: criteriaResults,
       events: [
         {
           type: "criteria-met",
@@ -337,25 +368,34 @@ describe("EvaluationLogList grouping notes", () => {
           message: "Request body contains x.",
           at: EVALUATED_AT,
         },
-        {
-          type: "grouping",
-          title: "No value to group by",
-          message: NOTE_MESSAGE,
-          relatedCriteriaId: "contains-x",
-          at: EVALUATED_AT,
-        },
-        {
-          type: "alert-created",
-          title: "Alert created: Alert: {{alertname}}",
-          message: 'Alert triggered from criteria "Contains x".',
-          relatedAlertId: "11111111-1111-4111-8111-111111111111",
-          relatedAlertNumber: 7,
-          at: EVALUATED_AT,
-        },
+        ...events,
       ],
     };
 
     render(<EvaluationLogList evaluationSummary={evaluationSummary} />);
+  }
+
+  // The row of the note with this title: its title, message and time.
+  function noteRow(title: string): HTMLElement {
+    return screen.getByText(title).parentElement!;
+  }
+
+  function messageOf(title: string): HTMLElement {
+    return noteRow(title).children[1] as HTMLElement;
+  }
+
+  function renderGroupedMatch(): void {
+    renderEvents([
+      NO_VALUE_EVENT,
+      {
+        type: "alert-created",
+        title: "Alert created: Alert: {{alertname}}",
+        message: 'Alert triggered from criteria "Contains x".',
+        relatedAlertId: "11111111-1111-4111-8111-111111111111",
+        relatedAlertNumber: 7,
+        at: EVALUATED_AT,
+      },
+    ]);
   }
 
   it("lists the note among the Actions, with what happened and why", () => {
@@ -363,7 +403,32 @@ describe("EvaluationLogList grouping notes", () => {
 
     expect(screen.getByText("Actions")).toBeVisible();
     expect(screen.getByText("No value to group by")).toBeVisible();
-    expect(screen.getByText(NOTE_MESSAGE)).toBeVisible();
+    expect(messageOf("No value to group by")).toHaveTextContent(
+      `This request has no value at ${PATH}, so “Contains x” handled it without grouping, once for the whole monitor.`,
+    );
+  });
+
+  it("draws the grouping path as code, left to right, breaking it only when it is longer than the line", () => {
+    renderGroupedMatch();
+
+    const path: HTMLElement = within(
+      messageOf("No value to group by"),
+    ).getByTestId("evaluation-grouping-path");
+
+    expect(path.tagName).toBe("CODE");
+    expect(path).toHaveTextContent(PATH);
+    expect(path).toHaveAttribute("dir", "ltr");
+    expect(path).toHaveClass("font-mono", "[overflow-wrap:anywhere]");
+  });
+
+  it("names the criteria as the list above does, in its quotes and weight", () => {
+    renderGroupedMatch();
+
+    const name: HTMLElement = within(
+      messageOf("No value to group by"),
+    ).getByText("“Contains x”");
+
+    expect(name).toHaveClass("font-medium");
   });
 
   it("lists it before what the criteria opened", () => {
@@ -382,13 +447,240 @@ describe("EvaluationLogList grouping notes", () => {
   it("offers no button of its own: it names no incident or alert", () => {
     renderGroupedMatch();
 
-    const noteRow: HTMLElement = screen.getByText(
-      "No value to group by",
-    ).parentElement!;
-
-    expect(within(noteRow).queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      within(noteRow("No value to group by")).queryByRole("button"),
+    ).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "View Alert" })).toHaveLength(
       1,
     );
+  });
+
+  it.each([
+    {
+      name: "requests stopped arriving",
+      grouping: { outcome: "no-request", criteriaName: "Contains x" },
+      title: "No request to group by",
+      sentence:
+        "“Contains x” matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.",
+      hasPath: false,
+    },
+    {
+      name: "every value recovered",
+      grouping: {
+        outcome: "values-recovered",
+        criteriaName: "Contains x",
+        path: ALERTS_PATH,
+      },
+      title: "Nothing new to open",
+      sentence: `Every value at ${ALERTS_PATH} in this request reported recovered, so “Contains x” opened nothing new.`,
+      hasPath: true,
+    },
+    {
+      name: "no value, reported recovered",
+      grouping: {
+        outcome: "no-value-recovered",
+        criteriaName: "Contains x",
+        path: PATH,
+      },
+      title: "Nothing new to open",
+      sentence: `This request has no value at ${PATH} and reported recovered, so “Contains x” opened nothing new.`,
+      hasPath: true,
+    },
+    {
+      name: "the background check re-read the request",
+      grouping: { outcome: "re-read", criteriaName: "Contains x" },
+      title: "Nothing new to open",
+      sentence:
+        "The background check re-read the last request. “Contains x” opens one per value only when a request arrives.",
+      hasPath: false,
+    },
+    {
+      name: "one item without a value",
+      grouping: {
+        outcome: "some-without-value",
+        criteriaName: "Contains x",
+        path: ALERTS_PATH,
+        itemsWithoutValue: 1,
+      },
+      title: "Not every item has a value to group by",
+      sentence: `1 item in this request has no value at ${ALERTS_PATH}, so it opened nothing of its own.`,
+      hasPath: true,
+    },
+    {
+      name: "several items without a value",
+      grouping: {
+        outcome: "some-without-value",
+        criteriaName: "Contains x",
+        path: ALERTS_PATH,
+        itemsWithoutValue: 3,
+      },
+      title: "Not every item has a value to group by",
+      sentence: `3 items in this request have no value at ${ALERTS_PATH}, so they opened nothing of their own.`,
+      hasPath: true,
+    },
+  ] as Array<{
+    name: string;
+    grouping: MonitorEvaluationGroupingNote;
+    title: string;
+    sentence: string;
+    hasPath: boolean;
+  }>)(
+    "words $name",
+    (expected: {
+      grouping: MonitorEvaluationGroupingNote;
+      title: string;
+      sentence: string;
+      hasPath: boolean;
+    }) => {
+      renderEvents([
+        groupingEvent(expected.grouping, {
+          title: "English title as stored",
+          message: "English message as stored.",
+        }),
+      ]);
+
+      const message: HTMLElement = messageOf(expected.title);
+
+      expect(message).toHaveTextContent(expected.sentence);
+      expect(
+        within(message).queryAllByTestId("evaluation-grouping-path"),
+      ).toHaveLength(expected.hasPath ? 1 : 0);
+      // Worded here, so the stored English is not shown as well.
+      expect(
+        screen.queryByText("English message as stored."),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("puts the items without a value on a line of their own when every value recovered", () => {
+    renderEvents([
+      groupingEvent(
+        {
+          outcome: "values-recovered",
+          criteriaName: "Contains x",
+          path: ALERTS_PATH,
+          itemsWithoutValue: 2,
+        },
+        { title: "Nothing new to open", message: "Stored." },
+      ),
+    ]);
+
+    const lines: Array<Element> = Array.from(
+      messageOf("Nothing new to open").querySelectorAll(":scope > span.block"),
+    );
+
+    expect(
+      lines.map((line: Element): string => {
+        return line.textContent || "";
+      }),
+    ).toEqual([
+      `Every value at ${ALERTS_PATH} in this request reported recovered, so “Contains x” opened nothing new.`,
+      `2 items in this request have no value at ${ALERTS_PATH}, so they opened nothing of their own.`,
+    ]);
+  });
+
+  it("names a criteria without a name by its place in the list, as the list does", () => {
+    renderEvents(
+      [
+        groupingEvent(
+          { outcome: "no-value", path: PATH },
+          {
+            title: "No value to group by",
+            message: `This request has no value at ${PATH}, so criteria "Unnamed criteria" handled it without grouping, once for the whole monitor.`,
+          },
+        ),
+      ],
+      [
+        criteriaResult({ criteriaName: "Does not contain x", met: false }),
+        {
+          ...criteriaResult({ criteriaName: "Unnamed", met: true }),
+          criteriaId: CONTAINS_X_ID,
+          criteriaName: undefined,
+        },
+      ],
+    );
+
+    expect(screen.getByLabelText("Criteria 2: Met")).toBeInTheDocument();
+    expect(messageOf("No value to group by")).toHaveTextContent(
+      `This request has no value at ${PATH}, so “Criteria 2” handled it without grouping, once for the whole monitor.`,
+    );
+  });
+
+  it.each([
+    {
+      name: "an event without the note's details",
+      grouping: undefined,
+    },
+    {
+      name: "an outcome this Dashboard does not know",
+      grouping: {
+        outcome: "something-newer",
+        criteriaName: "Contains x",
+        path: PATH,
+      } as unknown as MonitorEvaluationGroupingNote,
+    },
+    {
+      name: "a note that should name its path but does not",
+      grouping: { outcome: "no-value", criteriaName: "Contains x" },
+    },
+    {
+      name: "a count of items without a value that is missing",
+      grouping: {
+        outcome: "some-without-value",
+        criteriaName: "Contains x",
+        path: PATH,
+      },
+    },
+  ] as Array<{
+    name: string;
+    grouping: MonitorEvaluationGroupingNote | undefined;
+  }>)(
+    "shows $name as the server wrote it",
+    (input: { grouping: MonitorEvaluationGroupingNote | undefined }) => {
+      renderEvents([
+        groupingEvent(input.grouping, {
+          title: "Stored title",
+          message: "Stored message, in English.",
+        }),
+      ]);
+
+      expect(screen.getByText("Stored title")).toBeVisible();
+      expect(screen.getByText("Stored message, in English.")).toBeVisible();
+      expect(
+        screen.queryByTestId("evaluation-grouping-path"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("shows the stored note when its criteria cannot be named", () => {
+    renderEvents(
+      [
+        {
+          ...groupingEvent(
+            { outcome: "no-value", path: PATH },
+            { title: "Stored title", message: "Stored message." },
+          ),
+          relatedCriteriaId: "a-criteria-not-in-the-list",
+        },
+      ],
+      [],
+    );
+
+    expect(screen.getByText("Stored title")).toBeVisible();
+    expect(screen.getByText("Stored message.")).toBeVisible();
+  });
+
+  it("wraps a long title, message or path inside its row, and reads each in its own direction", () => {
+    renderGroupedMatch();
+
+    const title: HTMLElement = screen.getByText("No value to group by");
+    const column: HTMLElement = title.parentElement!;
+
+    // A flex child that may shrink below its content, so nothing runs past the card.
+    expect(column).toHaveClass("min-w-0", "flex-1");
+    expect(title).toHaveClass("break-words");
+    expect(title).toHaveAttribute("dir", "auto");
+    expect(messageOf("No value to group by")).toHaveClass("break-words");
+    expect(messageOf("No value to group by")).toHaveAttribute("dir", "auto");
   });
 });

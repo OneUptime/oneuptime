@@ -607,8 +607,14 @@ describe("A grouped criteria that matches a request without its field", () => {
     expect(notes).toHaveLength(1);
     expect(notes[0]!.title).toBe("No value to group by");
     expect(notes[0]!.message).toBe(
-      'This request has no value at requestBody.groupLabels.alertname. Criteria "Contains x" handles it for the whole monitor, as it would without grouping.',
+      'This request has no value at requestBody.groupLabels.alertname, so criteria "Contains x" handled it without grouping, once for the whole monitor.',
     );
+    // What the Dashboard words in the reader's language, the path drawn as code.
+    expect(notes[0]!.grouping).toEqual({
+      outcome: "no-value",
+      criteriaName: "Contains x",
+      path: "requestBody.groupLabels.alertname",
+    });
     expect(notes[0]!.relatedCriteriaId).toBe(CONTAINS_X_ID);
 
     // The note comes before what was opened.
@@ -713,7 +719,10 @@ describe("A grouped criteria that matches a request without its field", () => {
 
     expect(openAlertTitles()).toEqual(["Alert: {{alertname}}"]);
     expect(groupingNotes(summary)[0]!.message).toBe(
-      'This request has no value at groupLabels.alertname. Criteria "Contains x" handles it for the whole monitor, as it would without grouping.',
+      'This request has no value at groupLabels.alertname, so criteria "Contains x" handled it without grouping, once for the whole monitor.',
+    );
+    expect(groupingNotes(summary)[0]!.grouping?.path).toBe(
+      "groupLabels.alertname",
     );
   });
 });
@@ -765,8 +774,13 @@ describe("Recovery, with and without the field", () => {
       }),
     ).toEqual(["Nothing new to open"]);
     expect(notes[0]!.message).toBe(
-      'Every value this request has at requestBody.alerts[*].labels.alertname reported recovered, so criteria "Firing" opens nothing new.',
+      'Every value at requestBody.alerts[*].labels.alertname in this request reported recovered, so criteria "Firing" opened nothing new.',
     );
+    expect(notes[0]!.grouping).toEqual({
+      outcome: "values-recovered",
+      criteriaName: "Firing",
+      path: "requestBody.alerts[*].labels.alertname",
+    });
   });
 
   it("a recovery that the criteria does not match resolves the value all the same", async () => {
@@ -807,7 +821,10 @@ describe("Recovery, with and without the field", () => {
     expect(tables.incidents).toEqual([]);
     expect(tables.alerts).toEqual([]);
     expect(groupingNotes(summary)[0]!.message).toBe(
-      'This request has no value at requestBody.commonLabels.alertname and reports recovered, so criteria "Firing" opens nothing new.',
+      'This request has no value at requestBody.commonLabels.alertname and reported recovered, so criteria "Firing" opened nothing new.',
+    );
+    expect(groupingNotes(summary)[0]!.grouping?.outcome).toBe(
+      "no-value-recovered",
     );
   });
 
@@ -845,10 +862,16 @@ describe("Recovery, with and without the field", () => {
       notes.map((note: MonitorEvaluationEvent) => {
         return note.title;
       }),
-    ).toEqual(["Some items have no value to group by"]);
+    ).toEqual(["Not every item has a value to group by"]);
     expect(notes[0]!.message).toBe(
-      "2 items in this request have no value at requestBody.alerts[*].labels.alertname, so they open nothing of their own.",
+      "2 items in this request have no value at requestBody.alerts[*].labels.alertname, so they opened nothing of their own.",
     );
+    expect(notes[0]!.grouping).toEqual({
+      outcome: "some-without-value",
+      criteriaName: "Firing",
+      path: "requestBody.alerts[*].labels.alertname",
+      itemsWithoutValue: 2,
+    });
   });
 
   it("items with no value and nothing named: one for the whole monitor", async () => {
@@ -892,8 +915,14 @@ describe("Recovery, with and without the field", () => {
     expect(openIncidentTitles()).toEqual([]);
     expect(tables.incidents).toHaveLength(1);
     expect(groupingNotes(summary)[0]!.message).toContain(
-      "1 item in this request has no value at requestBody.alerts[*].labels.alertname, so it opens nothing of its own.",
+      "1 item in this request has no value at requestBody.alerts[*].labels.alertname, so it opened nothing of its own.",
     );
+    expect(groupingNotes(summary)[0]!.grouping).toEqual({
+      outcome: "values-recovered",
+      criteriaName: "Firing",
+      path: "requestBody.alerts[*].labels.alertname",
+      itemsWithoutValue: 1,
+    });
   });
 });
 
@@ -933,10 +962,11 @@ describe("A request without the field that reports it recovered", () => {
     expect(tables.incidents).toHaveLength(1);
     expect(tables.alerts).toHaveLength(1);
 
+    // Named by their titles, as the incident and alert created were.
     expect(actions(summary)).toEqual([
       "grouping: Nothing new to open",
-      `incident-resolved: Incident resolved: ${tables.incidents[0]!.id!.toString()}`,
-      `alert-resolved: Alert resolved: ${tables.alerts[0]!.id!.toString()}`,
+      "incident-resolved: Incident resolved: Grafana: {{alertname}}",
+      "alert-resolved: Alert resolved: Grafana: {{alertname}}",
     ]);
     expect(
       summary.events.find((event: MonitorEvaluationEvent): boolean => {
@@ -1158,7 +1188,7 @@ describe("The background check", () => {
         return note.message;
       }),
     ).toEqual([
-      'Criteria "No request in 10 minutes" matched because requests stopped arriving. It handles that for the whole monitor, as it would without grouping.',
+      'Criteria "No request in 10 minutes" matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.',
     ]);
   });
 
@@ -1191,7 +1221,7 @@ describe("The background check", () => {
         return note.message;
       }),
     ).toEqual([
-      'The background check re-read the last request. Criteria "Firing" opens one per value as a request arrives, not when it is re-read.',
+      'The background check re-read the last request. Criteria "Firing" opens one per value only when a request arrives.',
     ]);
   });
 });

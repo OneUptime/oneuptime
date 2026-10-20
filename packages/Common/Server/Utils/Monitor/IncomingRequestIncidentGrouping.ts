@@ -6,7 +6,10 @@ import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/Incom
 import IncidentGroupingConfig from "../../../Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
-import { MonitorEvaluationFilterResult } from "../../../Types/Monitor/MonitorEvaluationSummary";
+import {
+  MonitorEvaluationFilterResult,
+  MonitorEvaluationGroupingNote,
+} from "../../../Types/Monitor/MonitorEvaluationSummary";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Typeof from "../../../Types/Typeof";
@@ -54,11 +57,14 @@ export interface IncomingRequestRecoveries {
 }
 
 /**
- * What the monitor log says about how a grouped criteria handled a request.
+ * What the monitor log says about how a grouped criteria handled a request:
+ * the note itself (details), which the Dashboard words in the reader's
+ * language, and the same note in English, as stored (title and message).
  */
 export interface IncomingRequestGroupingNote {
   title: string;
   message: string;
+  details: MonitorEvaluationGroupingNote;
 }
 
 /**
@@ -92,7 +98,8 @@ export const GROUPING_NOTE_TITLES: {
   noValue: "No value to group by",
   noRequest: "No request to group by",
   nothingNew: "Nothing new to open",
-  someItemsWithoutValue: "Some items have no value to group by",
+  // Reads right for one item without a value, or many.
+  someItemsWithoutValue: "Not every item has a value to group by",
 };
 
 const DEFAULT_MAX_KEYS_PER_PAYLOAD: number = 100;
@@ -199,8 +206,8 @@ export default class IncomingRequestIncidentGrouping {
       return { perKeyMatches: undefined };
     }
 
-    const criteriaName: string =
-      input.criteriaInstance.data?.name || "Unnamed criteria";
+    const criteriaName: string | undefined =
+      input.criteriaInstance.data?.name || undefined;
 
     // The path as the project wrote it, which is how the monitor log names it.
     const groupByPath: string = grouping.groupByJSONPath.trim();
@@ -222,20 +229,20 @@ export default class IncomingRequestIncidentGrouping {
       if (matchedOnSilence) {
         return {
           perKeyMatches: undefined,
-          note: {
-            title: GROUPING_NOTE_TITLES.noRequest,
-            message: `Criteria "${criteriaName}" matched because requests stopped arriving. It handles that for the whole monitor, as it would without grouping.`,
-          },
+          note: this.describeNote({
+            outcome: "no-request",
+            criteriaName: criteriaName,
+          }),
           rootCauseNote: mdText`**Grouping**: Requests stopped arriving, so there was no value to group by. It counts for the whole monitor rather than for one value.`,
         };
       }
 
       return {
         perKeyMatches: [],
-        note: {
-          title: GROUPING_NOTE_TITLES.nothingNew,
-          message: `The background check re-read the last request. Criteria "${criteriaName}" opens one per value as a request arrives, not when it is re-read.`,
-        },
+        note: this.describeNote({
+          outcome: "re-read",
+          criteriaName: criteriaName,
+        }),
       };
     }
 
@@ -256,12 +263,6 @@ export default class IncomingRequestIncidentGrouping {
      * none at all is handled for the whole monitor. They are counted in the
      * monitor log instead.
      */
-    const itemsWithoutValue: () => string = (): string => {
-      return scan.firingWithoutValue === 1
-        ? `1 item in this request has no value at ${groupByPath}, so it opens nothing of its own.`
-        : `${scan.firingWithoutValue} items in this request have no value at ${groupByPath}, so they open nothing of their own.`;
-    };
-
     if (firingItems.length > 0) {
       return {
         perKeyMatches: firingItems.map(
@@ -271,10 +272,12 @@ export default class IncomingRequestIncidentGrouping {
         ),
         note:
           scan.firingWithoutValue > 0
-            ? {
-                title: GROUPING_NOTE_TITLES.someItemsWithoutValue,
-                message: itemsWithoutValue(),
-              }
+            ? this.describeNote({
+                outcome: "some-without-value",
+                criteriaName: criteriaName,
+                path: groupByPath,
+                itemsWithoutValue: scan.firingWithoutValue,
+              })
             : undefined,
       };
     }
@@ -282,22 +285,25 @@ export default class IncomingRequestIncidentGrouping {
     if (scan.items.length > 0) {
       return {
         perKeyMatches: [],
-        note: {
-          title: GROUPING_NOTE_TITLES.nothingNew,
-          message:
-            `Every value this request has at ${groupByPath} reported recovered, so criteria "${criteriaName}" opens nothing new.` +
-            (scan.firingWithoutValue > 0 ? ` ${itemsWithoutValue()}` : ""),
-        },
+        note: this.describeNote({
+          outcome: "values-recovered",
+          criteriaName: criteriaName,
+          path: groupByPath,
+          ...(scan.firingWithoutValue > 0
+            ? { itemsWithoutValue: scan.firingWithoutValue }
+            : {}),
+        }),
       };
     }
 
     if (scan.firingWithoutValue > 0) {
       return {
         perKeyMatches: undefined,
-        note: {
-          title: GROUPING_NOTE_TITLES.noValue,
-          message: `This request has no value at ${groupByPath}. Criteria "${criteriaName}" handles it for the whole monitor, as it would without grouping.`,
-        },
+        note: this.describeNote({
+          outcome: "no-value",
+          criteriaName: criteriaName,
+          path: groupByPath,
+        }),
         /*
          * The path is what the project wrote: shown as code (mdText writes
          * the span around it), so nothing in it is read as Markdown.
@@ -309,11 +315,72 @@ export default class IncomingRequestIncidentGrouping {
     // No value anywhere, and every part reports recovered.
     return {
       perKeyMatches: [],
-      note: {
-        title: GROUPING_NOTE_TITLES.nothingNew,
-        message: `This request has no value at ${groupByPath} and reports recovered, so criteria "${criteriaName}" opens nothing new.`,
-      },
+      note: this.describeNote({
+        outcome: "no-value-recovered",
+        criteriaName: criteriaName,
+        path: groupByPath,
+      }),
     };
+  }
+
+  /**
+   * A grouping note, from what it says: the details the Dashboard words in
+   * the reader's language (EvaluationLogList), with the same note in English
+   * as the event's title and message - what the monitor log stores, and
+   * what anything reading it without the Dashboard sees.
+   */
+  public static describeNote(
+    details: MonitorEvaluationGroupingNote,
+  ): IncomingRequestGroupingNote {
+    const criteriaName: string = details.criteriaName || "Unnamed criteria";
+    const criteria: string = `criteria "${criteriaName}"`;
+    const path: string = details.path || "";
+    const itemsWithoutValue: number = details.itemsWithoutValue || 0;
+    const itemsSentence: string =
+      itemsWithoutValue === 1
+        ? `1 item in this request has no value at ${path}, so it opened nothing of its own.`
+        : `${itemsWithoutValue} items in this request have no value at ${path}, so they opened nothing of their own.`;
+
+    switch (details.outcome) {
+      case "no-value":
+        return {
+          title: GROUPING_NOTE_TITLES.noValue,
+          message: `This request has no value at ${path}, so ${criteria} handled it without grouping, once for the whole monitor.`,
+          details: details,
+        };
+      case "no-request":
+        return {
+          title: GROUPING_NOTE_TITLES.noRequest,
+          message: `Criteria "${criteriaName}" matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.`,
+          details: details,
+        };
+      case "values-recovered":
+        return {
+          title: GROUPING_NOTE_TITLES.nothingNew,
+          message:
+            `Every value at ${path} in this request reported recovered, so ${criteria} opened nothing new.` +
+            (itemsWithoutValue > 0 ? ` ${itemsSentence}` : ""),
+          details: details,
+        };
+      case "no-value-recovered":
+        return {
+          title: GROUPING_NOTE_TITLES.nothingNew,
+          message: `This request has no value at ${path} and reported recovered, so ${criteria} opened nothing new.`,
+          details: details,
+        };
+      case "re-read":
+        return {
+          title: GROUPING_NOTE_TITLES.nothingNew,
+          message: `The background check re-read the last request. Criteria "${criteriaName}" opens one per value only when a request arrives.`,
+          details: details,
+        };
+      case "some-without-value":
+        return {
+          title: GROUPING_NOTE_TITLES.someItemsWithoutValue,
+          message: itemsSentence,
+          details: details,
+        };
+    }
   }
 
   /**

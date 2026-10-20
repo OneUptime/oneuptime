@@ -31936,5 +31936,16 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio принял тестовое SMS с номера {{phoneNumber}}. Оно должно прийти в течение нескольких минут.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio принял тестовое SMS. Оно должно прийти в течение нескольких минут.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio звонит с номера {{phoneNumber}}. Ваш телефон должен зазвонить в течение минуты.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio совершает тестовый звонок. Ваш телефон должен зазвонить в течение минуты."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio совершает тестовый звонок. Ваш телефон должен зазвонить в течение минуты.",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Каждое значение по пути {{path}} в этом запросе сообщило о восстановлении, поэтому критерий {{criteria}} ничего нового не открыл.",
+  "No request to group by": "Нет запроса для группировки",
+  "No value to group by": "Нет значения для группировки",
+  "Nothing new to open": "Ничего нового не открыто",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Фоновая проверка повторно прочитала последний запрос. Критерий {{criteria}} открывает по одному на значение только при поступлении запроса.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "В этом запросе нет значения по пути {{path}}, и он сообщил о восстановлении, поэтому критерий {{criteria}} ничего нового не открыл.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "В этом запросе нет значения по пути {{path}}, поэтому критерий {{criteria}} обработал его без группировки — один раз для всего монитора.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "Элементов в этом запросе без значения по пути {{path}}: {{count}}. Отдельно для них ничего не открыто.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} элемент в этом запросе не имеет значения по пути {{path}}, поэтому отдельно для него ничего не открыто.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Критерий {{criteria}} сработал, потому что запросы перестали поступать, поэтому он обработал это без группировки — один раз для всего монитора.",
+  "Not every item has a value to group by": "Не у всех элементов есть значение для группировки"
 }

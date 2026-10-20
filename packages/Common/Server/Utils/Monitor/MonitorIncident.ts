@@ -190,7 +190,7 @@ export default class MonitorIncident {
 
         input.evaluationSummary?.events.push({
           type: "incident-resolved",
-          title: `Incident resolved: ${openIncident.id?.toString()}`,
+          title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
           message:
             "Incident auto-resolved because autoresolve is enabled for this criteria.",
           relatedIncidentId: openIncident.id?.toString(),
@@ -331,7 +331,7 @@ export default class MonitorIncident {
 
       input.evaluationSummary?.events.push({
         type: "incident-resolved",
-        title: `Incident resolved: ${openIncident.id?.toString()}`,
+        title: `Incident resolved: ${openIncident.title || openIncident.id?.toString()}`,
         message:
           isRecoveredValue || !input.wholeMonitor
             ? input.resolvedMessage ||

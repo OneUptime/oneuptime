@@ -31936,5 +31936,16 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio hat die Test-SMS von {{phoneNumber}} angenommen. Sie sollte innerhalb weniger Minuten ankommen.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio hat die Test-SMS angenommen. Sie sollte innerhalb weniger Minuten ankommen.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio ruft von {{phoneNumber}} aus an. Ihr Telefon sollte innerhalb einer Minute klingeln.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio startet den Testanruf. Ihr Telefon sollte innerhalb einer Minute klingeln."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio startet den Testanruf. Ihr Telefon sollte innerhalb einer Minute klingeln.",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "Jeder Wert unter {{path}} in dieser Anfrage hat die Erholung gemeldet, daher hat das Kriterium {{criteria}} nichts Neues eröffnet.",
+  "No request to group by": "Keine Anfrage zum Gruppieren",
+  "No value to group by": "Kein Wert zum Gruppieren",
+  "Nothing new to open": "Nichts Neues zu eröffnen",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "Die Hintergrundprüfung hat die letzte Anfrage erneut gelesen. Das Kriterium {{criteria}} eröffnet pro Wert nur dann etwas, wenn eine Anfrage eingeht.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "Diese Anfrage hat keinen Wert unter {{path}} und hat die Erholung gemeldet, daher hat das Kriterium {{criteria}} nichts Neues eröffnet.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "Diese Anfrage hat keinen Wert unter {{path}}, daher hat das Kriterium {{criteria}} sie ohne Gruppierung behandelt, einmal für den ganzen Monitor.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} Elemente in dieser Anfrage haben keinen Wert unter {{path}}, daher haben sie nichts Eigenes eröffnet.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} Element in dieser Anfrage hat keinen Wert unter {{path}}, daher hat es nichts Eigenes eröffnet.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "Das Kriterium {{criteria}} hat zugetroffen, weil keine Anfragen mehr eingehen, daher hat es dies ohne Gruppierung behandelt, einmal für den ganzen Monitor.",
+  "Not every item has a value to group by": "Nicht jedes Element hat einen Wert zum Gruppieren"
 }

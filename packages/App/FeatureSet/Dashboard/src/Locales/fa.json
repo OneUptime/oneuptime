@@ -31936,5 +31936,16 @@
   "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را از {{phoneNumber}} پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio پیامک آزمایشی را پذیرفت. باید ظرف چند دقیقه برسد.",
   "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio از {{phoneNumber}} تماس می‌گیرد. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
-  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد."
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio در حال برقراری تماس آزمایشی است. تلفن شما باید ظرف یک دقیقه زنگ بخورد.",
+  "Every value at {{path}} in this request reported recovered, so {{criteria}} opened nothing new.": "هر مقدار در {{path}} در این درخواست بهبود را گزارش کرد، پس معیار {{criteria}} چیز تازه‌ای باز نکرد.",
+  "No request to group by": "درخواستی برای گروه‌بندی نیست",
+  "No value to group by": "مقداری برای گروه‌بندی نیست",
+  "Nothing new to open": "چیز تازه‌ای برای باز کردن نیست",
+  "The background check re-read the last request. {{criteria}} opens one per value only when a request arrives.": "بررسی پس‌زمینه آخرین درخواست را دوباره خواند. معیار {{criteria}} فقط وقتی درخواستی برسد برای هر مقدار یکی باز می‌کند.",
+  "This request has no value at {{path}} and reported recovered, so {{criteria}} opened nothing new.": "این درخواست در {{path}} مقداری ندارد و بهبود را گزارش کرد، پس معیار {{criteria}} چیز تازه‌ای باز نکرد.",
+  "This request has no value at {{path}}, so {{criteria}} handled it without grouping, once for the whole monitor.": "این درخواست در {{path}} مقداری ندارد، پس معیار {{criteria}} آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own.": "{{count}} مورد در این درخواست در {{path}} مقداری ندارند، پس چیزی برای خودشان باز نکردند.",
+  "{{count}} items in this request have no value at {{path}}, so they opened nothing of their own._one": "{{count}} مورد در این درخواست در {{path}} مقداری ندارد، پس چیزی برای خودش باز نکرد.",
+  "{{criteria}} matched because requests stopped arriving, so it handled this without grouping, once for the whole monitor.": "معیار {{criteria}} تطبیق یافت چون درخواست‌ها دیگر نمی‌رسند، پس آن را بدون گروه‌بندی، یک بار برای کل مانیتور رسیدگی کرد.",
+  "Not every item has a value to group by": "برخی موارد مقداری برای گروه‌بندی ندارند"
 }
