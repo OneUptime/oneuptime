@@ -178,7 +178,11 @@ describe("MetricView fetches again when a query's own transform comes or goes", 
       expect(fetchResultsMock).toHaveBeenCalled();
     });
     await settle();
-    expect(fetchedWithTransform().every((has: boolean) => !has)).toBe(true);
+    expect(
+      fetchedWithTransform().every((has: boolean) => {
+        return !has;
+      }),
+    ).toBe(true);
 
     // The node's allocatable CPU has loaded: the page now has a transform.
     rerenderView(view, buildData(percentOfFourCores));
@@ -200,7 +204,11 @@ describe("MetricView fetches again when a query's own transform comes or goes", 
     });
     await settle();
     const fetchesSoFar: number = fetchResultsMock.mock.calls.length;
-    expect(fetchedWithTransform().every((has: boolean) => has)).toBe(true);
+    expect(
+      fetchedWithTransform().every((has: boolean) => {
+        return has;
+      }),
+    ).toBe(true);
 
     /*
      * The Kubernetes pages build the transform in their render body, so
