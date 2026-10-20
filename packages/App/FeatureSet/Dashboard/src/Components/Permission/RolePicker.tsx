@@ -51,10 +51,12 @@ import React, {
  *   - Whole project | One area, a switch at the top, on Whole project to
  *     start with: Project Owner, Project Admin, Project Member and Viewer,
  *     one row each with what the role is for in one line;
- *   - One area: twelve tiles, one per area, each with its product's icon.
- *     Picking one picks the area's Member role and shows it under the
- *     tiles - its name and its line - with an Admin | Member | Viewer switch
- *     beside it that changes the level in place.
+ *   - One area: twelve tiles, one per area, each with its product's icon,
+ *     and under them a panel with an Admin | Member | Viewer switch. Before
+ *     a tile is picked the panel says what to do (pick an area, then a
+ *     level); picking one picks the area's role at the level on the switch
+ *     - Member to start with - and the panel names it with its line. The
+ *     switch then changes the level in place.
  *
  * What is picked is always on screen, and is what Add Role adds: switching
  * between the two answers keeps each one's own pick, so going back finds

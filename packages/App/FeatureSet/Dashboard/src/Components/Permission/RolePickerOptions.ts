@@ -22,11 +22,12 @@ import {
 /*
  * WHAT THE ROLE PICKER OFFERS, AND HOW ITS SEARCH READS (RolePicker).
  *
- * The picker opens on the four roles that reach the whole project. The
- * other answer, One area, is twelve area tiles; picking one picks its
- * Member role, and a level switch beside the pick makes it Admin or Viewer
- * instead. A search box finds any role by its name, its area, its level or
- * what its one line says, in English or in the reader's language.
+ * The picker opens on the four roles that reach the whole project (a
+ * custom role's and a block's on One area). The other answer, One area, is
+ * twelve area tiles over a level switch; picking a tile picks its role at
+ * the level on the switch, Member to start with. A search box finds any
+ * role by its name, its area, its level or what its one line says, in
+ * English or in the reader's language.
  *
  * React-free, so tests read it without rendering anything.
  */
