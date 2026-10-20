@@ -47,6 +47,7 @@ import TelemetryReadScopeUtil, {
   TelemetryReadScope,
 } from "../../Utils/Telemetry/TelemetryReadScope";
 import PromiseCache from "../../Utils/PromiseCache";
+import LlmConversationPrivacy from "../../Utils/LlmObservability/LlmConversationPrivacy";
 import ArrayUtil from "../../../Utils/Array";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
@@ -992,7 +993,7 @@ export default class ModelPermission {
       return TelemetryReadScopeUtil.getUnrestrictedScope();
     }
 
-    return await this.getReadScopeForPermissions({
+    const scope: TelemetryReadScope = await this.getReadScopeForPermissions({
       props: props,
       permissions: this.getModelPermissions(
         modelType as unknown as AnalyticsBaseModelType,
@@ -1018,6 +1019,22 @@ export default class ModelPermission {
       recordName: model.singularName,
       operation: type,
     });
+
+    /*
+     * What a company's people wrote to its AI tools (Claude Enterprise,
+     * Microsoft 365 Copilot) is read by project owners and admins only,
+     * unless the connection says otherwise: their services are blocked for
+     * everyone else on every read of the spans those chats are kept as
+     * (LlmConversationPrivacy). The tools write spans and nothing else.
+     */
+    if (LlmConversationPrivacy.appliesToTable(model.tableName)) {
+      return await LlmConversationPrivacy.restrictScope({
+        scope: scope,
+        props: props,
+      });
+    }
+
+    return scope;
   }
 
   /*
