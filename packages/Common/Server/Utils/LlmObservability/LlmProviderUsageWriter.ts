@@ -532,12 +532,18 @@ export default class LlmProviderUsageWriter {
       });
 
     if (deltas.length > 0) {
+      /*
+       * Acknowledged once flushed, not once buffered: the next read (a
+       * "Read now", a read that continues a minute later) must find these
+       * points in the stored sums, or it would write them again.
+       */
       await MetricService.insertJsonRows(
         LlmProviderUsageWriter.buildRows({
           target: data.target,
           deltas: deltas,
           now: data.now,
         }),
+        { clickhouseSettings: { wait_for_async_insert: 1 } },
       );
     }
 

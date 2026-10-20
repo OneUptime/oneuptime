@@ -556,11 +556,21 @@ export default class LlmConnectionPullRunner {
         to: new Date(Math.max(...times) + 24 * 60 * 60 * 1000),
       });
 
+    // Each turn once: not imported before, and not twice in this read.
+    const seen: Set<string> = new Set<string>();
     const fresh: Array<LlmChatTurn> = data.turns.filter(
       (turn: LlmChatTurn): boolean => {
-        return !existing.has(
-          LlmChatSpanPayload.spanIdOf(connectionId, turn.turnId),
+        const spanId: string = LlmChatSpanPayload.spanIdOf(
+          connectionId,
+          turn.turnId,
         );
+
+        if (existing.has(spanId) || seen.has(spanId)) {
+          return false;
+        }
+
+        seen.add(spanId);
+        return true;
       },
     );
 

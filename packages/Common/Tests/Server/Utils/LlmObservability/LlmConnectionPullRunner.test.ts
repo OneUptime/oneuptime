@@ -505,6 +505,23 @@ describe("LlmConnectionPullRunner.run - a company AI tool", () => {
     });
   });
 
+  test("a turn read twice in one read is imported once", async () => {
+    connector = chatConnector({ turns: [turn(1), turn(1), turn(2)] });
+
+    await run();
+
+    const spans: Array<JSONObject> = (
+      (imported[0]!.payload["resourceSpans"] as Array<JSONObject>)[0]![
+        "scopeSpans"
+      ] as Array<JSONObject>
+    )[0]!["spans"] as Array<JSONObject>;
+    expect(spans).toHaveLength(2);
+    expect(lastRecord()["lastPullResult"]).toMatchObject({
+      turnsRead: 3,
+      turnsImported: 2,
+    });
+  });
+
   test("a connection that keeps no text imports who, when and which model - and nothing anyone wrote", async () => {
     connection.storeConversationText = false;
     connector = chatConnector({ turns: [turn(1)] });

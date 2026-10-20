@@ -582,6 +582,10 @@ describe("LlmProviderUsageWriter.write keeps storage equal to the provider", () 
     const again: LlmProviderUsageWriteResult = await write(records);
     expect(again.pointsWritten).toBe(0);
     expect(store.inserts).toBe(1);
+    // Acknowledged once flushed, so the next read finds them.
+    expect(
+      (MetricService.insertJsonRows as unknown as jest.Mock).mock.calls[0]![1],
+    ).toEqual({ clickhouseSettings: { wait_for_async_insert: 1 } });
     expect(
       store.sumOf({ day: DAY_2, metricName: LLM_PROVIDER_COST_METRIC_NAME }),
     ).toBe(1.25);
