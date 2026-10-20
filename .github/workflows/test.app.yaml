@@ -226,7 +226,9 @@ jobs:
           # when this group took 23.5 minutes. Global Runners (about a
           # minute, Chromium only) joined it at 15.4 minutes, the lightest
           # group on 2026-10-18's run, and Runbook Variables (about a minute
-          # and a half with its bundle, Chromium only) beside it.
+          # and a half with its bundle, Chromium only) beside it. Rules Menu
+          # Section (about half a minute with its bundle, Chromium only: the
+          # status page's and an SLO's side menus) joined it on 2026-10-20.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -240,6 +242,7 @@ jobs:
               test-list-delete-ui
               test-global-runners-ui
               test-runbook-variables-ui
+              test-rules-menu-section-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -455,4 +458,6 @@ jobs:
             output/playwright/postmortem-rules-ui/test-results
             output/playwright/public-addresses-ui/*.png
             output/playwright/public-addresses-ui/test-results
+            output/playwright/rules-menu-section-ui/*.png
+            output/playwright/rules-menu-section-ui/test-results
           retention-days: 7

@@ -70,7 +70,7 @@ Create one page per audience, for example `Site 01` to `Site 10`. Make them priv
 
 ### Put the shared monitor on each page
 
-Add the shared monitor to each page as a resource (see [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)). A rule under **Resources → Monitor Rules** can do this for you from the monitor's labels.
+Add the shared monitor to each page as a resource (see [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)). A rule under **Rules → Monitor Rules** can do this for you from the monitor's labels.
 
 ### Turn on Only Show Incidents Scoped to This Page
 

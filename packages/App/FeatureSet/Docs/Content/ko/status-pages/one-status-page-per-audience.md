@@ -70,7 +70,7 @@ flowchart TB
 
 ### 공유 모니터를 각 페이지에 올리기
 
-공유 모니터를 각 페이지에 리소스로 추가합니다([상태 페이지 리소스 및 그룹](/docs/status-pages/resources-and-groups) 참고). **리소스 → Monitor Rules**의 규칙을 쓰면 모니터의 레이블에 따라 이를 자동으로 할 수 있습니다.
+공유 모니터를 각 페이지에 리소스로 추가합니다([상태 페이지 리소스 및 그룹](/docs/status-pages/resources-and-groups) 참고). **규칙 → Monitor Rules**의 규칙을 쓰면 모니터의 레이블에 따라 이를 자동으로 할 수 있습니다.
 
 ### 이 페이지로 제한된 인시던트만 표시 켜기
 

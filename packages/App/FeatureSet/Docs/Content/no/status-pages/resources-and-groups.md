@@ -204,12 +204,12 @@ Legg tjenesten folk spør mest om, øverst. Besøkende som kommer til siden unde
 
 ## Legg til monitorer automatisk med monitorregler
 
-En monitorregel legger til monitorer på siden for deg: beskriv monitorene én gang, så havner hver monitor som samsvarer, i gruppen du valgte. Regler finnes under **Ressurser → Monitor Rules**, ved siden av skjermen Ressurser.
+En monitorregel legger til monitorer på siden for deg: beskriv monitorene én gang, så havner hver monitor som samsvarer, i gruppen du valgte. Du finner dem under **Regler → Monitor Rules**, rett under Ressurser i sidemenyen til siden.
 
 :::steps
 ### Åpne Monitor Rules
 
-Åpne statussiden, velg **Monitor Rules** i seksjonen **Ressurser** i sidemenyen, og klikk på **Opprett monitorregel**.
+Åpne statussiden, velg **Monitor Rules** i seksjonen **Regler** i sidemenyen (klikk på tittelen til seksjonen hvis den er slått sammen), og klikk på **Opprett monitorregel**.
 
 ### Angi hvilke monitorer den samsvarer med
 

@@ -81,12 +81,13 @@ A continuación, más o menos por orden de utilidad:
 
 ## Dónde vive cada cosa
 
-Una vez abierta una página de estado, su propio menú lateral izquierdo se agrupa en nueve secciones. Úsalo como mapa para el resto de esta parte de la documentación.
+Una vez abierta una página de estado, su propio menú lateral izquierdo se agrupa en diez secciones. Úsalo como mapa para el resto de esta parte de la documentación.
 
 | Sección | Qué contiene |
 | --- | --- |
 | **Básico** | **Vista general**, **Anuncios**, **Propietarios**. |
-| **Recursos** | Una sola pantalla **Recursos** (los grupos a la izquierda, los monitores del grupo seleccionado a la derecha) y **Reglas de monitores**. |
+| **Recursos** | Una sola pantalla **Recursos** (los grupos a la izquierda, los monitores del grupo seleccionado a la derecha). |
+| **Reglas** | **Reglas de monitores**: reglas que añaden a la página cada monitor que coincida, ahora y más adelante. |
 | **Suscriptores** | **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams**, **Suscriptores de webhook**, **Ajustes de suscriptores**. |
 | **Registros de notificación** | **Registros de notificación**: lo que se envió a los suscriptores. |
 | **Marca** | **Marca** (logotipo, título, favicon, enlaces, pie de página, colores e idiomas, en una sola página), **Dominios personalizados**, **HTML, CSS y JavaScript**. |
