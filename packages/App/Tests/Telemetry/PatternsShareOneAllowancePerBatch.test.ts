@@ -779,6 +779,30 @@ describe("metric pipeline regex filters", () => {
     expect(warnings[0]).toContain(`Invalid regex "(node" (first seen on`);
   });
 
+  test("the memo keeps a long pattern by its length and beginning: two of megabytes that differ only past it are one entry", () => {
+    MetricPipelineRuleService.clearCache();
+
+    const warnings: Array<string> = [];
+
+    jest.spyOn(logger, "warn").mockImplementation((message: unknown) => {
+      warnings.push(String(message));
+      return undefined as never;
+    });
+
+    const beginning: string = `(${"a".repeat(2_000_000)}`;
+
+    for (const pattern of [`${beginning}b`, `${beginning}c`]) {
+      MetricPipelineRuleService.applyRules(
+        { name: "node_cpu_seconds", attributes: {}, attributeKeys: [] },
+        undefined,
+        regexRule(MetricPipelineRuleFilterConditionType.MatchesRegex, pattern),
+      );
+    }
+
+    // Kept whole, the second would be an entry - and a warning - of its own.
+    expect(warnings).toHaveLength(1);
+  });
+
   test("while it holds, filters answer as before", () => {
     MetricPipelineRuleService.clearCache();
 
