@@ -345,7 +345,11 @@ function tallyRecord(value: unknown, depth: number, tally: RecordTally): void {
     return;
   }
 
-  if (value === null || typeof value !== "object" || depth >= MAX_RECORD_DEPTH) {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    depth >= MAX_RECORD_DEPTH
+  ) {
     return;
   }
 
@@ -370,10 +374,11 @@ function tallyRecord(value: unknown, depth: number, tally: RecordTally): void {
  */
 type PatternWorkAllowanceProvider = () => PatternWorkAllowance | undefined;
 
-const NO_ALLOWANCE: PatternWorkAllowanceProvider =
-  (): PatternWorkAllowance | undefined => {
-    return undefined;
-  };
+const NO_ALLOWANCE: PatternWorkAllowanceProvider = ():
+  | PatternWorkAllowance
+  | undefined => {
+  return undefined;
+};
 
 let allowanceProvider: PatternWorkAllowanceProvider = NO_ALLOWANCE;
 

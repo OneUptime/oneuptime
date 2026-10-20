@@ -1243,7 +1243,9 @@ function scanByWays(
   onMatch: (position: number) => boolean,
 ): boolean {
   // Setting up the reading's lists, as building an automaton is counted.
-  meter.spendShared(AUTOMATON_WORK + AUTOMATON_WORK_PER_STEP * program.ops.length);
+  meter.spendShared(
+    AUTOMATON_WORK + AUTOMATON_WORK_PER_STEP * program.ops.length,
+  );
 
   const walker: StepWalker = new StepWalker(program, text, tables, meter);
   const size: number = program.ops.length;

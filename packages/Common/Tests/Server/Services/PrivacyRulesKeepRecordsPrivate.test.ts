@@ -230,7 +230,12 @@ function rule(index: number, fields: RuleFields): RuleFields {
     `77777777-7777-4777-8777-${index.toString().padStart(12, "0")}`,
   );
 
-  return { id: id, _id: id.toString(), name: `Privacy rule ${index}`, ...fields };
+  return {
+    id: id,
+    _id: id.toString(),
+    name: `Privacy rule ${index}`,
+    ...fields,
+  };
 }
 
 function titleRule(

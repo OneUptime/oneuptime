@@ -170,7 +170,9 @@ export default class LinearRegExp {
       });
     } catch (error: unknown) {
       if (allowance !== undefined) {
-        allowance.charge(LinearRegExp.refusedCompileWork(source, maxSteps, error));
+        allowance.charge(
+          LinearRegExp.refusedCompileWork(source, maxSteps, error),
+        );
       }
 
       throw error;

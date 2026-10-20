@@ -79,7 +79,14 @@ import {
 import { clearGrokCompileCache } from "Common/Utils/Grok/Grok";
 import { fastestRun, FastestRun } from "Common/Tests/Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * ---------------------------------------------------------------------------
@@ -271,20 +278,23 @@ describe("custom log scrub rules over a batch", () => {
       workPerRecordText: 2048,
       workPerRecordCharacter: 128,
     });
-    const rows: Array<JSONObject> = asBatch(allowance, (): Array<JSONObject> => {
-      const scrubbed: Array<JSONObject> = [];
+    const rows: Array<JSONObject> = asBatch(
+      allowance,
+      (): Array<JSONObject> => {
+        const scrubbed: Array<JSONObject> = [];
 
-      for (let index: number = 0; index < 500; index++) {
-        scrubbed.push(
-          LogScrubRuleService.scrubLog(
-            logRecord(index, `login token=abc${index} ok`),
-            rules as never,
-          ),
-        );
-      }
+        for (let index: number = 0; index < 500; index++) {
+          scrubbed.push(
+            LogScrubRuleService.scrubLog(
+              logRecord(index, `login token=abc${index} ok`),
+              rules as never,
+            ),
+          );
+        }
 
-      return scrubbed;
-    });
+        return scrubbed;
+      },
+    );
 
     for (const row of rows) {
       expect(row["body"]).toBe("login [REDACTED] ok");
@@ -353,7 +363,7 @@ describe("custom log scrub rules over a batch", () => {
       kept.push(value);
 
       if (depth < 3) {
-        for (const child of Object.values(value as object)) {
+        for (const child of Object.values(value as Record<string, unknown>)) {
           collect(child, depth + 1);
         }
       }
@@ -368,10 +378,9 @@ describe("custom log scrub rules over a batch", () => {
     clearLinearRegExpCache();
 
     expect(
-      LogScrubRuleService.scrubLog(
-        { body: "a token=abc b" },
-        loaded as never,
-      )["body"],
+      LogScrubRuleService.scrubLog({ body: "a token=abc b" }, loaded as never)[
+        "body"
+      ],
     ).toBe("a [REDACTED] b");
   });
 });
@@ -424,9 +433,7 @@ describe("custom trace scrub rules over a batch", () => {
     });
 
     expect(span["name"]).toBe("GET /orders/[REDACTED]");
-    expect((span["attributes"] as JSONObject)["user.id"]).toBe(
-      "id [REDACTED]",
-    );
+    expect((span["attributes"] as JSONObject)["user.id"]).toBe("id [REDACTED]");
     expect(allowance.stoppedQuestions).toBe(0);
   });
 });

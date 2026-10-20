@@ -71,8 +71,8 @@ export default class PatternWorkScope {
   }
 }
 
-type MethodDecorator = (
-  target: object,
+type PieceOfWorkDecorator = (
+  target: unknown,
   propertyKey: string,
   descriptor: TypedPropertyDescriptor<any>,
 ) => TypedPropertyDescriptor<any>;
@@ -98,9 +98,9 @@ function reportStoppedQuestions(
 // A decorator that runs the method with its own allowance.
 function withOwnAllowance(
   newAllowance: () => PatternWorkAllowance,
-): MethodDecorator {
+): PieceOfWorkDecorator {
   return (
-    target: object,
+    target: unknown,
     propertyKey: string,
     descriptor: TypedPropertyDescriptor<any>,
   ): TypedPropertyDescriptor<any> => {
@@ -142,7 +142,7 @@ function withOwnAllowance(
  * questions inside it share one allowance of their own
  * (PatternWorkAllowance.forRuleEvaluation).
  */
-export function RuleEvaluation(): MethodDecorator {
+export function RuleEvaluation(): PieceOfWorkDecorator {
   return withOwnAllowance((): PatternWorkAllowance => {
     return PatternWorkAllowance.forRuleEvaluation();
   });
@@ -155,7 +155,7 @@ export function RuleEvaluation(): MethodDecorator {
  * (PatternWorkAllowance.forTelemetryBatch), which each record handed to
  * them adds its share to (PatternWorkScope.handOverRecord).
  */
-export function TelemetryBatch(): MethodDecorator {
+export function TelemetryBatch(): PieceOfWorkDecorator {
   return withOwnAllowance((): PatternWorkAllowance => {
     return PatternWorkAllowance.forTelemetryBatch();
   });

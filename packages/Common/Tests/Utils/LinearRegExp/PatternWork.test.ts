@@ -415,9 +415,7 @@ describe("refusing a question before looking its pattern up", () => {
 
     allowance.charge(200);
 
-    expect(allowance.refuses("a long description of the incident")).toBe(
-      false,
-    );
+    expect(allowance.refuses("a long description of the incident")).toBe(false);
   });
 });
 

@@ -167,11 +167,11 @@ beforeEach(() => {
       };
     }) as never);
 
-  jest
-    .spyOn(LogService, "insertJsonRows")
-    .mockImplementation((async (rows: Array<JSONObject>): Promise<void> => {
-      insertedRows.push(...rows);
-    }) as never);
+  jest.spyOn(LogService, "insertJsonRows").mockImplementation((async (
+    rows: Array<JSONObject>,
+  ): Promise<void> => {
+    insertedRows.push(...rows);
+  }) as never);
 
   jest
     .spyOn(LogPipelineService, "loadPipelines")
@@ -179,13 +179,13 @@ beforeEach(() => {
   jest
     .spyOn(LogDropFilterService, "loadDropFilters")
     .mockResolvedValue([] as never);
-  jest
-    .spyOn(LogScrubRuleService, "loadScrubRules")
-    .mockImplementation((async (projectId: ObjectID) => {
-      return projectId.toString() === PROJECT.toString()
-        ? [customScrubRule(`${EXPLODING}`)]
-        : [customScrubRule("secret-\\d+")];
-    }) as never);
+  jest.spyOn(LogScrubRuleService, "loadScrubRules").mockImplementation((async (
+    projectId: ObjectID,
+  ) => {
+    return projectId.toString() === PROJECT.toString()
+      ? [customScrubRule(`${EXPLODING}`)]
+      : [customScrubRule("secret-\\d+")];
+  }) as never);
 
   /*
    * Each project's allowance for the batch, with no pool: what a record

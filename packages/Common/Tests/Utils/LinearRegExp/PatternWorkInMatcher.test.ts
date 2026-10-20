@@ -17,6 +17,7 @@ import {
   PatternWorkLimitError,
 } from "../../../Utils/LinearRegExp/PatternProblem";
 import {
+  AUTOMATON_WORK,
   COMPILE_WORK,
   COMPILE_WORK_PER_STEP,
   getStoppedPatternQuestions,
@@ -160,9 +161,7 @@ describe("what a question counts", () => {
       return pattern.test(text);
     });
 
-    expect(allowance.usedWork - before).toBeGreaterThanOrEqual(
-      2 * text.length,
-    );
+    expect(allowance.usedWork - before).toBeGreaterThanOrEqual(2 * text.length);
   });
 
   test("a new automaton counts what building it costs, and keeping its first states", () => {
@@ -185,6 +184,29 @@ describe("what a question counts", () => {
     const warm: number = allowance.usedWork - before;
 
     expect(cold).toBeGreaterThan(warm + 500);
+  });
+
+  test("building a new automaton is counted once, by the first question that uses it", () => {
+    const pattern: LinearRegExp = new LinearRegExp("x");
+    const allowance: PatternWorkAllowance = generous();
+
+    clearKeptAutomata();
+
+    within(allowance, (): boolean => {
+      return pattern.test("");
+    });
+
+    const cold: number = allowance.usedWork;
+
+    within(allowance, (): boolean => {
+      return pattern.test("");
+    });
+
+    const warm: number = allowance.usedWork - cold;
+
+    // Its tables and arrays, besides the question and its one state.
+    expect(cold - warm).toBeGreaterThanOrEqual(AUTOMATON_WORK);
+    expect(warm).toBeLessThan(AUTOMATON_WORK);
   });
 
   test("every question of an exec or a replace is counted, its own and those it asks", () => {
@@ -228,9 +250,11 @@ describe("a long stretch with nothing that can start a match is read in counted 
     expect(pattern.test(text)).toBe(true);
     expect(match?.index).toBe(STRETCH);
     expect(match?.captures).toEqual(["le"]);
-    expect(pattern.replace(text, (): string => "[X]")).toBe(
-      `${"x".repeat(STRETCH)}[X]${"y".repeat(10)}`,
-    );
+    expect(
+      pattern.replace(text, (): string => {
+        return "[X]";
+      }),
+    ).toBe(`${"x".repeat(STRETCH)}[X]${"y".repeat(10)}`);
   });
 
   test("a match before the stretch is found where it starts, read backwards over the stretch", () => {
@@ -259,9 +283,10 @@ describe("a long stretch with nothing that can start a match is read in counted 
       "value(?![^x])",
       "(?<!y)value",
     ]) {
-      expect({ source, answer: new LinearRegExp(source).exec(text)?.index }).toEqual(
-        { source, answer: new RegExp(source).exec(text)?.index },
-      );
+      expect({
+        source,
+        answer: new LinearRegExp(source).exec(text)?.index,
+      }).toEqual({ source, answer: new RegExp(source).exec(text)?.index });
     }
   });
 });
@@ -353,12 +378,12 @@ describe("once the allowance is spent", () => {
     expect(getCachedPatternCount()).toBe(countBefore);
 
     // The next piece of work compiles it.
-    expect(getLinearRegExp("never+compiled+here").test("never compiled here")).toBe(
-      false,
-    );
-    expect(getLinearRegExp("never+compiled+here").test("neverrcompiledhere")).toBe(
-      true,
-    );
+    expect(
+      getLinearRegExp("never+compiled+here").test("never compiled here"),
+    ).toBe(false);
+    expect(
+      getLinearRegExp("never+compiled+here").test("neverrcompiledhere"),
+    ).toBe(true);
   });
 
   test("a grok pattern is not compiled, and not kept as an invalid one", () => {
@@ -523,7 +548,10 @@ describe("a pattern kept by a handle", () => {
   });
 
   test("finds the compiled pattern in the cache: the one getLinearRegExp gives", () => {
-    const handle: LinearRegExpHandle = new LinearRegExpHandle("secret-\\d+", "g");
+    const handle: LinearRegExpHandle = new LinearRegExpHandle(
+      "secret-\\d+",
+      "g",
+    );
 
     expect(handle.get()).toBe(getLinearRegExp("secret-\\d+", "g"));
     expect(handle.source).toBe("secret-\\d+");
@@ -531,7 +559,10 @@ describe("a pattern kept by a handle", () => {
   });
 
   test("keeps no compiled pattern itself: dropped from the cache, it is compiled again and answers the same", () => {
-    const handle: LinearRegExpHandle = new LinearRegExpHandle("token=\\w+", "g");
+    const handle: LinearRegExpHandle = new LinearRegExpHandle(
+      "token=\\w+",
+      "g",
+    );
     const first: LinearRegExp = handle.get();
 
     for (const value of Object.values(handle)) {
@@ -543,13 +574,18 @@ describe("a pattern kept by a handle", () => {
     const second: LinearRegExp = handle.get();
 
     expect(second).not.toBe(first);
-    expect(second.replace("a token=abc b", (): string => "[X]")).toBe(
-      "a [X] b",
-    );
+    expect(
+      second.replace("a token=abc b", (): string => {
+        return "[X]";
+      }),
+    ).toBe("a [X] b");
   });
 
   test("compiling it again counts against the piece of work under way", () => {
-    const handle: LinearRegExpHandle = new LinearRegExpHandle("token=\\w+", "g");
+    const handle: LinearRegExpHandle = new LinearRegExpHandle(
+      "token=\\w+",
+      "g",
+    );
 
     handle.get();
     clearLinearRegExpCache();
@@ -634,12 +670,14 @@ describe("inside an allowance large enough, every answer is the one given withou
           ];
         });
 
-        expect({ pattern: drawn.pattern, flags, text, answer: actual }).toEqual({
-          pattern: drawn.pattern,
-          flags,
-          text,
-          answer: expected,
-        });
+        expect({ pattern: drawn.pattern, flags, text, answer: actual }).toEqual(
+          {
+            pattern: drawn.pattern,
+            flags,
+            text,
+            answer: expected,
+          },
+        );
         compared++;
       }
 

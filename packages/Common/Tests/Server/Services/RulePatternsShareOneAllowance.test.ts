@@ -138,11 +138,11 @@ function mockEngine(data: {
   rules: Array<MonitorLabelRule>;
   monitor: Monitor;
 }): EngineMocks {
-  jest
-    .spyOn(MonitorLabelRuleService, "findBy")
-    .mockImplementation((async (findBy: FindBy<MonitorLabelRule>) => {
-      return data.rules.slice(0, Number(findBy.limit ?? 0));
-    }) as any);
+  jest.spyOn(MonitorLabelRuleService, "findBy").mockImplementation((async (
+    findBy: FindBy<MonitorLabelRule>,
+  ) => {
+    return data.rules.slice(0, Number(findBy.limit ?? 0));
+  }) as any);
   jest.spyOn(MonitorService, "findOneById").mockResolvedValue(data.monitor);
 
   const attached: jest.Mock = jest.fn().mockResolvedValue(undefined);
@@ -238,9 +238,7 @@ describe("a new monitor's label rules", () => {
       WORK_PER_STEP * 40_000;
 
     expect(allowance.usedWork).toBeLessThan(
-      RULE_EVALUATION_WORK +
-        WORK_PER_TEXT_CHARACTER * title.length +
-        onePastIt,
+      RULE_EVALUATION_WORK + WORK_PER_TEXT_CHARACTER * title.length + onePastIt,
     );
     expect(allowance.stoppedQuestions).toBeGreaterThan(0);
   });
