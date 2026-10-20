@@ -31668,5 +31668,14 @@
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "As chamadas saem deste número, e os SMS também, a menos que você adicione números de telefone SMS em Mais campos.",
   "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Se os seus números do Twilio não puderem enviar SMS (em Singapura, os números nacionais são só de voz), adicione números que possam. Cada SMS sai então do número do país do destinatário ou, se não houver, do primeiro.",
   "Twilio SMS Phone Numbers": "Números de Telefone SMS do Twilio",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} não é um número de telefone. Escreva cada número com o código do país e separe-os com vírgulas, como +6581234567, +447700900123."
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} não é um número de telefone. Escreva cada número com o código do país e separe-os com vírgulas, como +6581234567, +447700900123.",
+  "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "Uma configuração é a padrão do projeto: os SMS e as chamadas para as pessoas deste projeto, como alertas de plantão, passam por ela. As páginas de status usam a configuração escolhida em cada página.",
+  "Send a test SMS to check this Twilio config.": "Envie um SMS de teste para verificar esta configuração do Twilio.",
+  "Make a test call to check this Twilio config.": "Faça uma chamada de teste para verificar esta configuração do Twilio.",
+  "Test SMS Sent": "SMS de teste enviado",
+  "Test Call Placed": "Chamada de teste iniciada",
+  "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "O Twilio aceitou o SMS de teste de {{phoneNumber}}. Ele deve chegar em alguns minutos.",
+  "Twilio accepted the test SMS. It should arrive within a few minutes.": "O Twilio aceitou o SMS de teste. Ele deve chegar em alguns minutos.",
+  "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "O Twilio está ligando de {{phoneNumber}}. Seu telefone deve tocar em até um minuto.",
+  "Twilio is placing the test call. Your phone should ring within a minute.": "O Twilio está fazendo a chamada de teste. Seu telefone deve tocar em até um minuto."
 }

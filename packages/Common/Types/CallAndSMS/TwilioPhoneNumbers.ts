@@ -46,6 +46,14 @@ const PHONE_NUMBER_LIST_SEPARATOR: RegExp = /[,;\n]/;
 // What a list of numbers looks like, for the error that refuses one.
 export const PHONE_NUMBER_LIST_EXAMPLE: string = "+6581234567, +447700900123";
 
+/*
+ * The field of the Notification service's answer to Send Test SMS and Send
+ * Test Call that names the number the test went out from (picked by
+ * pickSenderNumber, as a real SMS or call to the same phone would be), so
+ * the dialog can say which of a config's numbers sent it.
+ */
+export const TEST_SEND_FROM_PHONE_NUMBER_FIELD: string = "fromPhoneNumber";
+
 export interface TwilioSenderNumbers {
   // Sends to every recipient no other number of the list is for.
   primaryPhoneNumber: Phone;

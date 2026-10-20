@@ -1,19 +1,16 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import Phone from "Common/Types/Phone";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TwilioConfigNumbersCopy, {
   getTwilioConfigNumberLines,
   TwilioConfigNumberLine,
+  TwilioConfigNumbers,
 } from "./TwilioConfigNumbersCopy";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  config: {
-    twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
-    twilioSmsPhoneNumbers?: string | null | undefined;
-  };
+  config: TwilioConfigNumbers;
 }
 
 /*
@@ -24,6 +21,10 @@ export interface ComponentProps {
  * Send Test Call and Send Test SMS actions use, named for screen readers
  * and on hover (TwilioConfigNumbersCopy). Icons rather than words keep the
  * column as narrow as one number, so the table's other columns stay in view.
+ *
+ * A line with more numbers of its kind - secondary numbers after the
+ * primary one, more SMS numbers after the first - says how many ("+2
+ * more"), and lists them on hover: the config's Edit dialog has them all.
  */
 const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,6 +67,20 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
               <></>
             )}
             <span className="text-gray-900">{line.phoneNumber}</span>
+            {line.otherPhoneNumbers.length > 0 ? (
+              <span
+                className="text-gray-500"
+                title={line.otherPhoneNumbers.join(", ")}
+                data-testid="twilio-config-more-phone-numbers"
+              >
+                {translator.translatePlural(
+                  TwilioConfigNumbersCopy.moreNumbers,
+                  line.otherPhoneNumbers.length,
+                )}
+              </span>
+            ) : (
+              <></>
+            )}
           </div>
         );
       })}

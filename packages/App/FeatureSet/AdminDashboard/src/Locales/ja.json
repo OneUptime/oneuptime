@@ -489,7 +489,7 @@
       },
       "callSms": {
         "cardTitle": "Twilio設定",
-        "cardDescription": "これは通話とSMS送信に使用されます。",
+        "cardDescription": "OneUptime が SMS の送信と通話に使う Twilio アカウントです。プロジェクトが独自の Twilio 設定を使う場合を除きます。",
         "editButton": "Twilio設定を編集",
         "smsSameAsCalls": "通話と同じ番号"
       },
@@ -727,7 +727,6 @@
   "Hostname": "ホスト名",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "OneUptime がグローバル SMTP 設定を使用してメールを配信する方法です。ほとんどのサーバーでは「SMTP」を選択してください。Microsoft 365 テナントで SMTP AUTH が無効になっている場合は「Microsoft Graph」を選択してください。Graph は Mail.Send アプリケーション権限を使用し、SMTP を完全にバイパスします。",
   "If you have a coupon code, enter it here.": "クーポンコードをお持ちの場合は、ここに入力してください。",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "特定の国向けに Twilio から追加の電話番号を購入した場合は、ここに追加できます。",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "ポート 465 を使用する場合は、これを有効にしてください。ポート 587 を使用する場合は、これを有効にしないでください。",
   "Instance footprint": "インスタンスのフットプリント",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "キューワーカー全体のジョブバックログ。バックログの増加や失敗は、ワーカーが正常でないことを示します。",
@@ -773,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "開始するには、新しい OneUptime プロジェクトを作成してください。",
   "Please select a plan.": "プランを選択してください。",
   "Port": "ポート",
-  "Primary Twilio Phone Number": "プライマリTwilio電話番号",
   "Probe Logo": "プローブロゴ",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "このインスタンスの監視チェックを実行するプローブと、それらが現在報告中かどうか。",
   "Project ID": "プロジェクトID",
@@ -790,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "ユーザー名とパスワードによる認証で必須です。OAuth では使用されません。",
   "Sample Description": "サンプルの説明",
   "Sample Title": "サンプルタイトル",
-  "Secondary Twilio Phone Numbers": "セカンダリ Twilio 電話番号",
   "Secret token configured in Meta to validate webhook subscription requests.": "Webhook 購読リクエストを検証するために Meta で設定されたシークレットトークン。",
   "Select a team": "チームを選択",
   "Select LLM Provider": "LLM プロバイダーを選択",
@@ -1016,5 +1013,8 @@
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話はこの番号から発信されます。「その他の項目」で SMS 電話番号を追加しない限り、SMS もこの番号から送信されます。",
   "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Twilio の番号から SMS を送信できない場合（シンガポールの国内番号は音声専用です）は、SMS を送信できる番号を追加してください。SMS は受信者の国の番号から、なければ最初の番号から送信されます。",
   "Twilio SMS Phone Numbers": "Twilio SMS 電話番号",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} は電話番号ではありません。各番号を国番号付きで入力し、+6581234567, +447700900123 のようにカンマで区切ってください。"
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} は電話番号ではありません。各番号を国番号付きで入力し、+6581234567, +447700900123 のようにカンマで区切ってください。",
+  "Twilio Primary Phone Number": "Twilio プライマリ電話番号",
+  "Twilio Secondary Phone Numbers": "Twilio セカンダリ電話番号",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "受信者の国番号と一致するときに、メインの番号の代わりに使う番号。"
 }

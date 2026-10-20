@@ -489,7 +489,7 @@
       },
       "callSms": {
         "cardTitle": "Twilio 設定",
-        "cardDescription": "這將用於撥打電話和傳送簡訊。",
+        "cardDescription": "OneUptime 用來傳送簡訊與撥打電話的 Twilio 帳戶，除非專案使用自己的 Twilio 設定。",
         "editButton": "編輯 Twilio 設定",
         "smsSameAsCalls": "與通話相同的號碼"
       },
@@ -727,7 +727,6 @@
   "Hostname": "主機名稱",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "OneUptime 使用全域 SMTP 設定傳遞郵件的方式。大多數伺服器請選擇「SMTP」。如果您的 Microsoft 365 租用戶已停用 SMTP AUTH，請選擇「Microsoft Graph」——Graph 使用 Mail.Send 應用程式權限並完全略過 SMTP。",
   "If you have a coupon code, enter it here.": "如果您有優惠券代碼，請在此輸入。",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "如果您已從 Twilio 為特定國家／地區購買更多電話號碼，可以在此新增。",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "如果您使用連接埠 465，請啟用此項。如果您使用連接埠 587，請勿啟用此項。",
   "Instance footprint": "執行個體佔用空間",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "佇列工作者的工作積壓。積壓增加或失敗表示工作者健康狀態不佳。",
@@ -773,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "請建立一個新的 OneUptime 專案以開始使用。",
   "Please select a plan.": "請選擇一個方案。",
   "Port": "連接埠",
-  "Primary Twilio Phone Number": "主要 Twilio 電話號碼",
   "Probe Logo": "探測器標誌",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "為此執行個體執行監測檢查的探測器，以及它們目前是否正在回報。",
   "Project ID": "專案 ID",
@@ -790,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "使用者名稱與密碼驗證需要。OAuth 不使用。",
   "Sample Description": "範例描述",
   "Sample Title": "範例標題",
-  "Secondary Twilio Phone Numbers": "次要 Twilio 電話號碼",
   "Secret token configured in Meta to validate webhook subscription requests.": "在 Meta 中設定用於驗證 webhook 訂閱請求的密鑰權杖。",
   "Select a team": "選擇團隊",
   "Select LLM Provider": "選擇 LLM 供應商",
@@ -1016,5 +1013,8 @@
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話從此號碼撥出；除非在「更多欄位」中新增了簡訊電話號碼，否則簡訊也從此號碼傳送。",
   "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "如果您的 Twilio 號碼無法傳送簡訊（在新加坡，國內號碼僅支援語音），請新增可以傳送簡訊的號碼。之後每則簡訊都從收件人所在國家/地區的號碼傳送，沒有則從第一個號碼傳送。",
   "Twilio SMS Phone Numbers": "Twilio 簡訊電話號碼",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是電話號碼。請輸入含國碼的每個號碼，並以逗號分隔，例如 +6581234567, +447700900123。"
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是電話號碼。請輸入含國碼的每個號碼，並以逗號分隔，例如 +6581234567, +447700900123。",
+  "Twilio Primary Phone Number": "Twilio 主要電話號碼",
+  "Twilio Secondary Phone Numbers": "Twilio 次要電話號碼",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "當與收件人的國碼相符時，用來取代主要號碼的號碼。"
 }

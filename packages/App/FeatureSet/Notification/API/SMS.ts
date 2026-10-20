@@ -2,6 +2,10 @@ import SmsService from "../Services/SmsService";
 import crypto from "crypto";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
+import TwilioPhoneNumbers, {
+  TEST_SEND_FROM_PHONE_NUMBER_FIELD,
+} from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
+import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
 import { PROJECT_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
 import TwilioSendError from "../Utils/TwilioSendError";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -368,10 +372,22 @@ router.post(
       const twilioConfig: TwilioConfig | undefined =
         ProjectCallSMSConfigService.toTwilioConfig(config);
 
+      let fromPhoneNumber: Phone | null = null;
+
       try {
         if (!twilioConfig) {
           throw new BadDataException("twilioConfig is undefined");
         }
+
+        /*
+         * The number it goes out from - the one a real SMS to this phone
+         * would go out from (TwilioPhoneNumbers) - which the dialog names.
+         */
+        fromPhoneNumber = TwilioPhoneNumbers.pickSenderNumber({
+          config: twilioConfig,
+          kind: TwilioMessageKind.SMS,
+          to: toPhone,
+        });
 
         await SmsService.sendSms(
           toPhone,
@@ -379,6 +395,11 @@ router.post(
           {
             projectId: config.projectId,
             customTwilioConfig: twilioConfig,
+            /*
+             * A test the project's settings keep from going out - SMS
+             * turned off in the project - says why, rather than "sent".
+             */
+            failIfNotSent: true,
           },
         );
       } catch (err) {
@@ -395,11 +416,15 @@ router.post(
         }
 
         throw new BadDataException(
-          "Failed to send test SMS. Please check the twilio logs for more details.",
+          "Failed to send test SMS. Please check the Twilio logs for more details.",
         );
       }
 
-      return Response.sendEmptySuccessResponse(req, res);
+      return Response.sendJsonObjectResponse(req, res, {
+        [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: fromPhoneNumber
+          ? fromPhoneNumber.toString()
+          : null,
+      });
     } catch (err) {
       return next(err);
     }

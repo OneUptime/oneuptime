@@ -12,6 +12,12 @@ import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSCo
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
 import BlockedProjectNotifications from "Common/Server/Utils/Notification/BlockedProjectNotifications";
+import Response from "Common/Server/Utils/Response";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
+import { TEST_SEND_FROM_PHONE_NUMBER_FIELD } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import { GLOBAL_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
 import {
   ExpressRequest,
@@ -62,9 +68,13 @@ import RestException from "twilio/lib/base/RestException";
  *     string, which made every SMS and call through a config with secondary
  *     numbers fail - is read as lists;
  *   - Send Test SMS goes out from the SMS number and Send Test Call from the
- *     primary one, and Twilio's refusal of a test is answered in Twilio's
- *     words - for an SMS from a number that can only make calls (error
- *     21606), with what to do about it.
+ *     primary one, each answering with the number it went out from (the
+ *     Dashboard's dialog names it), and Twilio's refusal of a test is
+ *     answered in Twilio's words - for an SMS from a number that can only
+ *     make calls (error 21606), with what to do about it;
+ *   - a test the project's settings keep from going out (SMS or calls
+ *     turned off in the project) says why, instead of answering "sent" -
+ *     while every other sender keeps the quiet return.
  *
  * Nothing here reaches Twilio: the client is faked at its boundary.
  */
@@ -703,9 +713,301 @@ describe("Send Test SMS and Send Test Call", () => {
     });
 
     expect((error as Error).message).toBe(
-      "Failed to send test SMS. Please check the twilio logs for more details.",
+      "Failed to send test SMS. Please check the Twilio logs for more details.",
     );
     expect((error as Error).message).not.toContain("socket hang up");
+  });
+
+  test("a failed test call that is not Twilio's refusal keeps the general answer too", async () => {
+    createCall.mockRejectedValue(new Error("socket hang up") as never);
+
+    const error: unknown = await callRoute(testCallRoute(), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: SG_RECIPIENT,
+    });
+
+    expect((error as Error).message).toBe(
+      "Error making test call. Please check the Twilio logs for more details.",
+    );
+  });
+});
+
+/*
+ * What the Dashboard's dialog after a test says: which number it went out
+ * from - the number a real SMS or call to the same phone goes out from, so
+ * a Singapore config shows its mobile number for SMS and its national
+ * number for calls before the phone even rings.
+ */
+describe("Send Test SMS and Send Test Call answer with the number they went out from", () => {
+  function storedConfig(smsPhoneNumbers: string): ProjectCallSMSConfig {
+    const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+    config.id = CONFIG_ID;
+    config.projectId = PROJECT_ID;
+    config.twilioAccountSID = "AC00000000000000000000000000000001";
+    config.twilioAuthToken = "auth-token";
+    config.twilioPrimaryPhoneNumber = new Phone(SG_NATIONAL);
+    config.twilioSmsPhoneNumbers = smsPhoneNumbers;
+    return config;
+  }
+
+  function answered(): Array<unknown> {
+    return (
+      Response.sendJsonObjectResponse as unknown as Mock<
+        (...args: Array<unknown>) => unknown
+      >
+    ).mock.calls.map((call: Array<unknown>): unknown => {
+      return call[2];
+    });
+  }
+
+  beforeEach(() => {
+    (
+      Response.sendJsonObjectResponse as unknown as Mock<
+        (...args: Array<unknown>) => unknown
+      >
+    ).mockClear();
+    (
+      Response.sendEmptySuccessResponse as unknown as Mock<
+        (...args: Array<unknown>) => unknown
+      >
+    ).mockClear();
+  });
+
+  test("the test SMS names its SMS number, the one it went out from", async () => {
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneById")
+      .mockResolvedValue(storedConfig(SG_MOBILE) as never);
+
+    expect(
+      await callRoute(testSmsRoute(), {
+        callSMSConfigId: CONFIG_ID.toString(),
+        toPhone: SG_RECIPIENT,
+      }),
+    ).toBeUndefined();
+
+    expect(sentFrom()).toEqual([SG_MOBILE]);
+    expect(answered()).toEqual([
+      { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_MOBILE },
+    ]);
+    expect(TEST_SEND_FROM_PHONE_NUMBER_FIELD).toBe("fromPhoneNumber");
+    expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+  });
+
+  test("the test call names its primary number, never an SMS one", async () => {
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneById")
+      .mockResolvedValue(storedConfig(SG_MOBILE) as never);
+
+    await callRoute(testCallRoute(), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: SG_RECIPIENT,
+    });
+
+    expect(calledFrom()).toEqual([SG_NATIONAL]);
+    expect(answered()).toEqual([
+      { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_NATIONAL },
+    ]);
+  });
+
+  test("with SMS numbers in several countries, it names the one in the recipient's country", async () => {
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneById")
+      .mockResolvedValue(storedConfig(`${SG_MOBILE}, ${UK_NUMBER}`) as never);
+
+    await callRoute(testSmsRoute(), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: UK_RECIPIENT,
+    });
+
+    expect(sentFrom()).toEqual([UK_NUMBER]);
+    expect(answered()).toEqual([
+      { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: UK_NUMBER },
+    ]);
+  });
+
+  test("a config without SMS numbers names its primary number for the test SMS, as it sends", async () => {
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneById")
+      .mockResolvedValue(storedConfig("") as never);
+
+    await callRoute(testSmsRoute(), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: SG_RECIPIENT,
+    });
+
+    expect(sentFrom()).toEqual([SG_NATIONAL]);
+    expect(answered()).toEqual([
+      { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_NATIONAL },
+    ]);
+  });
+
+  test("a test Twilio refuses answers with the refusal, and names no number", async () => {
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneById")
+      .mockResolvedValue(storedConfig("") as never);
+    createMessage.mockRejectedValue(
+      twilioRefusal(21606, "The From phone number is not SMS-capable.") as never,
+    );
+
+    const error: unknown = await callRoute(testSmsRoute(), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: SG_RECIPIENT,
+    });
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(answered()).toEqual([]);
+    expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A test the project's own settings keep from going out - SMS or calls
+ * turned off in the project - used to answer "sent" while nothing went
+ * out. It says why now, in the words the SMS and call logs use; every
+ * other sender keeps the quiet return it has always had.
+ */
+describe("a test the project's settings keep from going out says why", () => {
+  function projectWith(changes: Partial<Project>): Project {
+    const project: Project = new Project();
+    project._id = PROJECT_ID.toString();
+    project.name = "Singapore Ops";
+    project.enableSmsNotifications = true;
+    project.enableCallNotifications = true;
+    project.smsOrCallCurrentBalanceInUSDCents = 10000;
+    // The owners were told already: no email is sent from these tests.
+    project.notEnabledSmsOrCallNotificationSentToOwners = true;
+    return Object.assign(project, changes);
+  }
+
+  function storedConfig(): ProjectCallSMSConfig {
+    const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+    config.id = CONFIG_ID;
+    config.projectId = PROJECT_ID;
+    config.twilioAccountSID = "AC00000000000000000000000000000001";
+    config.twilioAuthToken = "auth-token";
+    config.twilioPrimaryPhoneNumber = new Phone(SG_NATIONAL);
+    config.twilioSmsPhoneNumbers = SG_MOBILE;
+    return config;
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneById")
+      .mockResolvedValue(storedConfig() as never);
+    (
+      Response.sendJsonObjectResponse as unknown as Mock<
+        (...args: Array<unknown>) => unknown
+      >
+    ).mockClear();
+  });
+
+  test("a test SMS with SMS turned off in the project is not sent, and says so", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWith({ enableSmsNotifications: false }) as never);
+
+    const error: unknown = await callRoute(testSmsRoute(), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: SG_RECIPIENT,
+    });
+
+    expect(createMessage).not.toHaveBeenCalled();
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as Error).message).toBe(
+      `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
+    );
+    // The project's settings, which the person testing can see to: passed on.
+    expect(TwilioSendError.isActionableRefusal(error)).toBe(true);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    // Its SMS log says so too.
+    expect(smsLogs).toHaveLength(1);
+  });
+
+  test("a test call with calls turned off in the project is not placed, and says so", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(
+        projectWith({ enableCallNotifications: false }) as never,
+      );
+
+    const error: unknown = await callRoute(testCallRoute(), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: SG_RECIPIENT,
+    });
+
+    expect(createCall).not.toHaveBeenCalled();
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as Error).message).toBe(
+      `Call not placed: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.Call)}`,
+    );
+    expect(TwilioSendError.isActionableRefusal(error)).toBe(true);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    expect(callLogs).toHaveLength(1);
+  });
+
+  test("any other call the project's settings keep from being placed returns quietly, as it always has", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(
+        projectWith({ enableCallNotifications: false }) as never,
+      );
+
+    await expect(
+      CallService.makeCall(
+        {
+          to: new Phone(SG_RECIPIENT),
+          data: [{ sayMessage: "Incident created" }],
+        } as unknown as CallRequest,
+        { projectId: PROJECT_ID, customTwilioConfig: singaporeConfig() },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(createCall).not.toHaveBeenCalled();
+    expect(callLogs).toHaveLength(1);
+  });
+
+  test("a call asked to fail when it is not placed says why, and a placed one does not fail", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(
+        projectWith({ enableCallNotifications: false }) as never,
+      );
+
+    await expect(
+      CallService.makeCall(
+        {
+          to: new Phone(SG_RECIPIENT),
+          data: [{ sayMessage: "Incident created" }],
+        } as unknown as CallRequest,
+        {
+          projectId: PROJECT_ID,
+          customTwilioConfig: singaporeConfig(),
+          failIfNotSent: true,
+        },
+      ),
+    ).rejects.toThrow(
+      `Call not placed: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.Call)}`,
+    );
+
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWith({}) as never);
+
+    await expect(
+      CallService.makeCall(
+        {
+          to: new Phone(SG_RECIPIENT),
+          data: [{ sayMessage: "Incident created" }],
+        } as unknown as CallRequest,
+        {
+          projectId: PROJECT_ID,
+          customTwilioConfig: singaporeConfig(),
+          failIfNotSent: true,
+        },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(calledFrom()).toEqual([SG_NATIONAL]);
   });
 });
 

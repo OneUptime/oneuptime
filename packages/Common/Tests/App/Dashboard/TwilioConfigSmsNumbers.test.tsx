@@ -58,7 +58,11 @@ import {
  *     its field, by the server's rule, and nothing is saved;
  *   - the table shows a config's primary number as before, and beside it
  *     its first SMS number, each saying what it sends, when SMS have their
- *     own.
+ *     own - and how many more of each kind there are ("+2 more"), listed
+ *     on hover; its columns put the numbers and the default before the
+ *     34-character account SID, which is cut short to fit a laptop screen;
+ *   - Send Test SMS and Send Test Call say what they are for, and the
+ *     dialog after a test names the number it went out from.
  */
 
 jest.setTimeout(60000);
@@ -68,6 +72,7 @@ const CONFIG_ID: string = "1e000000-0000-4000-8000-000000000001";
 const SG_NATIONAL: string = "+6561234567";
 const SG_MOBILE: string = "+6581234567";
 const UK: string = "+447700900123";
+const US_NUMBER: string = "+14155550100";
 
 let configCount: number;
 let stored: JSONObject;
@@ -94,8 +99,40 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         jest.requireActual("../../../Types/ObjectID") as any
       ).default;
 
+      const rowItem: Record<string, unknown> = new props.modelType();
+      Object.assign(rowItem, { _id: CONFIG_ID, ...stored });
+
       return (
         <div>
+          {(props.actionButtons || []).map(
+            (
+              action: {
+                title: string;
+                onClick: (
+                  item: unknown,
+                  onComplete: () => void,
+                  onError: (error: Error) => void,
+                ) => void;
+              },
+              index: number,
+            ): ReactElement => {
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => {
+                    action.onClick(
+                      rowItem,
+                      () => {},
+                      () => {},
+                    );
+                  }}
+                >
+                  {`Row action: ${action.title}`}
+                </button>
+              );
+            },
+          )}
           <button
             type="button"
             onClick={() => {
@@ -245,10 +282,23 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-import CustomCallSMSTable from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/CallSMSConfigTable";
+import CustomCallSMSTable, {
+  TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/CallSMSConfigTable";
 import TwilioConfigNumbersCopy, {
   getTwilioConfigNumberLines,
+  getTwilioConfigNumbersForExport,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigNumbersCopy";
+import TwilioTestSendCopy, {
+  getTestSendFromPhoneNumber,
+  getTestSentMessage,
+  TwilioTestSendKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioTestSendCopy";
+import TwilioConfigDefaultCopy from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
+import API from "../../../UI/Utils/API/API";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { TEST_SEND_FROM_PHONE_NUMBER_FIELD } from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigPhoneNumbers from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigPhoneNumbers";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import Phone from "../../../Types/Phone";
@@ -568,8 +618,10 @@ describe("the Twilio Config table", () => {
   test("reads each config's SMS numbers, and can filter by them", async () => {
     await renderCard();
 
+    // The SMS numbers, and the secondary ones the cell counts.
     expect(lastTableProps()["selectMoreFields"]).toEqual({
       twilioSmsPhoneNumbers: true,
+      twilioSecondaryPhoneNumbers: true,
     });
 
     const filters: Array<Filter<ProjectCallSMSConfig>> = lastTableProps()[
@@ -668,8 +720,12 @@ describe("a config's numbers in its row", () => {
       within(calls).getByRole("img", { name: "Phone Calls" }),
     ).toBeVisible();
     expect(within(sms).getByRole("img", { name: "SMS" })).toBeVisible();
-    // No words beside the numbers: the names are the icons'.
-    expect(cell.textContent).toBe(`${SG_NATIONAL}${SG_MOBILE}`);
+    /*
+     * No words beside the numbers but the count of the SMS numbers after
+     * the first: the names are the icons'.
+     */
+    expect(cell.textContent).toBe(`${SG_NATIONAL}${SG_MOBILE}+1 more`);
+    expect(within(sms).getByText("+1 more")).toHaveAttribute("title", UK);
   });
 
   test("one with SMS numbers shows its primary and its first SMS number, calls first, each saying what it sends", () => {
@@ -679,8 +735,8 @@ describe("a config's numbers in its row", () => {
         twilioSmsPhoneNumbers: ` ${SG_MOBILE} ;${UK}`,
       }),
     ).toEqual([
-      { phoneNumber: SG_NATIONAL, label: "Phone Calls" },
-      { phoneNumber: SG_MOBILE, label: "SMS" },
+      { phoneNumber: SG_NATIONAL, label: "Phone Calls", otherPhoneNumbers: [] },
+      { phoneNumber: SG_MOBILE, label: "SMS", otherPhoneNumbers: [UK] },
     ]);
   });
 
@@ -691,7 +747,9 @@ describe("a config's numbers in its row", () => {
           twilioPrimaryPhoneNumber: SG_NATIONAL,
           twilioSmsPhoneNumbers: emptied,
         }),
-      ).toEqual([{ phoneNumber: SG_NATIONAL, label: null }]);
+      ).toEqual([
+        { phoneNumber: SG_NATIONAL, label: null, otherPhoneNumbers: [] },
+      ]);
     }
   });
 
@@ -705,7 +763,102 @@ describe("a config's numbers in its row", () => {
   test("an SMS number alone, without a primary number, is still shown, as the SMS one", () => {
     expect(
       getTwilioConfigNumberLines({ twilioSmsPhoneNumbers: SG_MOBILE }),
-    ).toEqual([{ phoneNumber: SG_MOBILE, label: "SMS" }]);
+    ).toEqual([{ phoneNumber: SG_MOBILE, label: "SMS", otherPhoneNumbers: [] }]);
+  });
+
+  /*
+   * The rest of each kind's numbers are in the config's Edit dialog: the
+   * row counts them after the number it shows, and lists them on hover.
+   */
+  test("counts a config's secondary numbers after its primary one, whatever the SMS numbers", () => {
+    expect(
+      getTwilioConfigNumberLines({
+        twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        twilioSecondaryPhoneNumbers: `${UK}; +4915112345678`,
+      }),
+    ).toEqual([
+      {
+        phoneNumber: SG_NATIONAL,
+        label: null,
+        otherPhoneNumbers: [UK, "+4915112345678"],
+      },
+    ]);
+    expect(
+      getTwilioConfigNumberLines({
+        twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        twilioSecondaryPhoneNumbers: UK,
+        twilioSmsPhoneNumbers: `${SG_MOBILE}, +6590001111, +447700900124`,
+      }),
+    ).toEqual([
+      { phoneNumber: SG_NATIONAL, label: "Phone Calls", otherPhoneNumbers: [UK] },
+      {
+        phoneNumber: SG_MOBILE,
+        label: "SMS",
+        otherPhoneNumbers: ["+6590001111", "+447700900124"],
+      },
+    ]);
+  });
+
+  test("says how many more numbers each line has, and lists them on hover", () => {
+    render(
+      <TwilioConfigPhoneNumbers
+        config={{
+          twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+          twilioSecondaryPhoneNumbers: UK,
+          twilioSmsPhoneNumbers: `${SG_MOBILE}, +6590001111, +447700900124`,
+        }}
+      />,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("twilio-config-phone-numbers");
+    const counts: Array<HTMLElement> = within(cell).getAllByTestId(
+      "twilio-config-more-phone-numbers",
+    );
+
+    expect(
+      counts.map((count: HTMLElement): string => {
+        return count.textContent || "";
+      }),
+    ).toEqual(["+1 more", "+2 more"]);
+    expect(counts[0]).toHaveAttribute("title", UK);
+    expect(counts[1]).toHaveAttribute("title", "+6590001111, +447700900124");
+    // Each count is on the line of its kind.
+    expect(within(cell).getByTitle("Phone Calls")).toContainElement(counts[0]!);
+    expect(within(cell).getByTitle("SMS")).toContainElement(counts[1]!);
+  });
+
+  test("a config with one number of each kind shows no count", () => {
+    render(
+      <TwilioConfigPhoneNumbers
+        config={{
+          twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+          twilioSmsPhoneNumbers: SG_MOBILE,
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("twilio-config-more-phone-numbers"),
+    ).toBeNull();
+  });
+
+  test("its export lists every number the config sends from, each kind named when SMS have their own", () => {
+    expect(
+      getTwilioConfigNumbersForExport({
+        twilioPrimaryPhoneNumber: new Phone(US_NUMBER),
+        twilioSecondaryPhoneNumbers: UK,
+      }),
+    ).toBe(`${US_NUMBER}, ${UK}`);
+    expect(
+      getTwilioConfigNumbersForExport({
+        twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        twilioSecondaryPhoneNumbers: UK,
+        twilioSmsPhoneNumbers: `${SG_MOBILE}, +447700900124`,
+      }),
+    ).toBe(
+      `Phone Calls: ${SG_NATIONAL}, ${UK}; SMS: ${SG_MOBILE}, +447700900124`,
+    );
+    expect(getTwilioConfigNumbersForExport({})).toBe("");
   });
 
   test.each(["de", "ja", "fa"])(
@@ -752,6 +905,265 @@ describe("a config's numbers in its row", () => {
       ).toBeVisible();
     },
   );
+
+  test.each([
+    ["de", "+2 weitere"],
+    ["ja", "ほか 2 件"],
+  ])(
+    "counts the other numbers in the reader's language (%s)",
+    async (language: string, twoMore: string) => {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: readLocale("en") },
+          [language]: { translation: readLocale(language) },
+        },
+        interpolation: { escapeValue: false },
+      });
+
+      render(
+        <I18nextProvider i18n={instance}>
+          <TwilioConfigPhoneNumbers
+            config={{
+              twilioPrimaryPhoneNumber: SG_NATIONAL,
+              twilioSmsPhoneNumbers: `${SG_MOBILE}, +6590001111, ${UK}`,
+            }}
+          />
+        </I18nextProvider>,
+      );
+
+      expect(readLocale(language)["+{{count}} more"]).toBe(
+        twoMore.replace("2", "{{count}}"),
+      );
+      expect(
+        screen.getByTestId("twilio-config-more-phone-numbers"),
+      ).toHaveTextContent(twoMore);
+    },
+  );
+});
+
+describe("the Twilio Config table's columns", () => {
+  function columns(): Array<Column<ProjectCallSMSConfig>> {
+    return lastTableProps()["columns"] as Array<Column<ProjectCallSMSConfig>>;
+  }
+
+  /*
+   * A SID is 34 characters, the widest value in a row. Drawn whole in the
+   * second column it made the table wider than its card beside the side
+   * menu at 1280px, and the Project Default column ran under the row's
+   * actions. Last and capped, the numbers and the default stay in view,
+   * and a table a long name still widens loses the account first.
+   */
+  test("show the name, the numbers, the default, then the account", async () => {
+    await renderCard();
+
+    expect(
+      columns().map((column: Column<ProjectCallSMSConfig>): string => {
+        return column.title;
+      }),
+    ).toEqual([
+      "Name",
+      "Phone Numbers",
+      "Project Default",
+      "Twilio Account SID",
+    ]);
+  });
+
+  test("cut the account SID short below 1536px, and show it whole from there", async () => {
+    await renderCard();
+
+    const sid: Column<ProjectCallSMSConfig> | undefined = columns().find(
+      (column: Column<ProjectCallSMSConfig>): boolean => {
+        return column.title === "Twilio Account SID";
+      },
+    );
+
+    expect(sid?.contentClassName).toBe(TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME);
+    expect(TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME).toBe(
+      "max-w-[10rem] 2xl:max-w-[17rem]",
+    );
+  });
+
+  test("export every number of a config under Phone Numbers", async () => {
+    await renderCard();
+
+    const numbersColumn: Column<ProjectCallSMSConfig> | undefined =
+      columns().find((column: Column<ProjectCallSMSConfig>): boolean => {
+        return column.title === "Phone Numbers";
+      });
+
+    const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+    config.twilioPrimaryPhoneNumber = new Phone(SG_NATIONAL);
+    config.twilioSmsPhoneNumbers = `${SG_MOBILE}, ${UK}`;
+
+    expect(numbersColumn?.getExportValue?.(config)).toBe(
+      `Phone Calls: ${SG_NATIONAL}; SMS: ${SG_MOBILE}, ${UK}`,
+    );
+  });
+});
+
+describe("Send Test SMS and Send Test Call", () => {
+  let postSpy: ReturnType<typeof jest.spyOn>;
+
+  function answerWith(answer: unknown): void {
+    postSpy = jest.spyOn(API, "post").mockResolvedValue(answer as never);
+  }
+
+  async function runTest(action: string, phone: string): Promise<void> {
+    await renderCard();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: `Row action: ${action}` }),
+      );
+    });
+    await settle();
+
+    await act(async (): Promise<void> => {
+      fireEvent.change(within(dialog()).getByLabelText("Phone Number"), {
+        target: { value: phone },
+      });
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+    });
+    await settle();
+  }
+
+  test("each dialog says what the test is for, and asks only for the phone", async () => {
+    await renderCard();
+
+    for (const [action, description] of [
+      ["Send Test SMS", TwilioTestSendCopy.smsDescription],
+      ["Send Test Call", TwilioTestSendCopy.callDescription],
+    ] as Array<[string, string]>) {
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          screen.getByRole("button", { name: `Row action: ${action}` }),
+        );
+      });
+      await settle();
+
+      expect(within(dialog()).getByTestId("modal-description")).toHaveTextContent(
+        description,
+      );
+      // The phone, and nothing said under it: the dialog says it all.
+      expect(within(dialog()).getByLabelText("Phone Number")).toBeVisible();
+      expect(within(dialog()).queryByText(/test (sms|call) to\./i)).toBeNull();
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+      });
+      await settle();
+    }
+
+    expect(TwilioTestSendCopy.smsDescription).toBe(
+      "Send a test SMS to check this Twilio config.",
+    );
+    expect(TwilioTestSendCopy.callDescription).toBe(
+      "Make a test call to check this Twilio config.",
+    );
+  });
+
+  test("after a test SMS, the dialog names the number it went out from", async () => {
+    stored = { twilioPrimaryPhoneNumber: SG_NATIONAL, twilioSmsPhoneNumbers: SG_MOBILE };
+    answerWith(
+      new HTTPResponse(200, { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_MOBILE }, {}),
+    );
+
+    await runTest("Send Test SMS", "+6598765432");
+
+    const request: { url: { toString: () => string }; data: JSONObject } =
+      postSpy.mock.calls[0]![0] as {
+        url: { toString: () => string };
+        data: JSONObject;
+      };
+
+    expect(request.url.toString()).toContain("/sms/test");
+    expect(request.data["toPhone"]).toBe("+6598765432");
+    expect(screen.getByTestId("modal-title")).toHaveTextContent("Test SMS Sent");
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      `Twilio accepted the test SMS from ${SG_MOBILE}. It should arrive within a few minutes.`,
+    );
+  });
+
+  test("after a test call, the dialog names the number it calls from", async () => {
+    answerWith(
+      new HTTPResponse(200, { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_NATIONAL }, {}),
+    );
+
+    await runTest("Send Test Call", "+6598765432");
+
+    expect(
+      (postSpy.mock.calls[0]![0] as { url: { toString: () => string } }).url.toString(),
+    ).toContain("/call/test");
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Test Call Placed",
+    );
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      `Twilio is calling from ${SG_NATIONAL}. Your phone should ring within a minute.`,
+    );
+    // Never the words a test email says: a call has no spam folder.
+    expect(document.body.textContent).not.toContain("spam");
+  });
+
+  test("an answer that names no number still says the test went out", async () => {
+    answerWith(new HTTPResponse(200, {}, {}));
+
+    await runTest("Send Test SMS", "+6598765432");
+
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      TwilioTestSendCopy.smsSent,
+    );
+  });
+
+  test("a refused test stays in its dialog, saying why, and no success is shown", async () => {
+    answerWith(
+      new HTTPErrorResponse(
+        400,
+        { error: "SMS not sent: SMS is off in this project." },
+        {},
+      ),
+    );
+
+    await runTest("Send Test SMS", "+6598765432");
+
+    expect(within(dialog()).getByText("SMS not sent: SMS is off in this project.")).toBeVisible();
+    expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+  });
+
+  test("says what went out in the reader's language", async () => {
+    const german: Record<string, string> = readLocale("de");
+
+    expect(german[TwilioTestSendCopy.smsSentFrom]).toBe(
+      "Twilio hat die Test-SMS von {{phoneNumber}} angenommen. Sie sollte innerhalb weniger Minuten ankommen.",
+    );
+    expect(german[TwilioTestSendCopy.callPlacedTitle]).toBe(
+      "Testanruf gestartet",
+    );
+  });
+
+  test("reads the number from the answer, and only a number", () => {
+    expect(
+      getTestSendFromPhoneNumber({ [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: ` ${SG_MOBILE} ` }),
+    ).toBe(SG_MOBILE);
+    for (const unread of [null, undefined, "x", [], {}, { fromPhoneNumber: 6581234567 }]) {
+      expect(getTestSendFromPhoneNumber(unread)).toBe("");
+    }
+    expect(
+      getTestSentMessage({ kind: TwilioTestSendKind.Call, fromPhoneNumber: "" }),
+    ).toEqual({ template: TwilioTestSendCopy.callPlaced, phoneNumber: "" });
+    expect(
+      getTestSentMessage({
+        kind: TwilioTestSendKind.SMS,
+        fromPhoneNumber: SG_MOBILE,
+      }),
+    ).toEqual({ template: TwilioTestSendCopy.smsSentFrom, phoneNumber: SG_MOBILE });
+  });
 });
 
 describe("the strings the form adds", () => {
@@ -797,6 +1209,15 @@ describe("the strings the form adds", () => {
         SMS_NUMBERS,
         TwilioConfigNumbersCopy.primaryPhoneNumberDescription,
         TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
+        TwilioConfigDefaultCopy.defaultSwitchDescription,
+        TwilioTestSendCopy.smsDescription,
+        TwilioTestSendCopy.callDescription,
+        TwilioTestSendCopy.smsSentTitle,
+        TwilioTestSendCopy.callPlacedTitle,
+        TwilioTestSendCopy.smsSentFrom,
+        TwilioTestSendCopy.smsSent,
+        TwilioTestSendCopy.callPlacedFrom,
+        TwilioTestSendCopy.callPlaced,
       ]) {
         expect({
           language,
@@ -805,6 +1226,33 @@ describe("the strings the form adds", () => {
         }).toEqual({ language, key, translated: true });
       }
     }
+  });
+
+  test("the strings the review adds are Dashboard keys, with their placeholders in every language", () => {
+    const english: Record<string, string> = readLocale("en");
+
+    for (const key of [
+      TwilioConfigDefaultCopy.defaultSwitchDescription,
+      ...Object.values(TwilioTestSendCopy),
+    ]) {
+      expect({ key, inEnglish: english[key] }).toEqual({ key, inEnglish: key });
+    }
+
+    for (const language of ["de", "ja", "fa", "zh-CN"]) {
+      const words: Record<string, string> = readLocale(language);
+
+      for (const key of [
+        TwilioTestSendCopy.smsSentFrom,
+        TwilioTestSendCopy.callPlacedFrom,
+      ]) {
+        expect(words[key]).toContain("{{phoneNumber}}");
+      }
+    }
+
+    // The switch's help says the rule in two sentences, not five lines.
+    expect(TwilioConfigDefaultCopy.defaultSwitchDescription).toBe(
+      "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.",
+    );
   });
 
   test("leave none of the keys of the earlier two-field design behind", () => {

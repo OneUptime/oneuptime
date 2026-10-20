@@ -1,6 +1,9 @@
 import Phone from "Common/Types/Phone";
 import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Which numbers a project's Twilio config sends SMS and calls from, on
@@ -34,6 +37,12 @@ export const TwilioConfigNumbersCopy: {
    */
   callsLabel: string;
   smsLabel: string;
+  /*
+   * After a number, how many more of its kind the config has: their
+   * numbers are in the config's Edit dialog. The plural the Dashboard
+   * already words ("+2 weitere", "ほか 2 件").
+   */
+  moreNumbers: PluralTemplate;
 } = {
   primaryPhoneNumberDescription: translationKey(
     "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.",
@@ -46,6 +55,10 @@ export const TwilioConfigNumbersCopy: {
   ),
   callsLabel: translationKey("Phone Calls"),
   smsLabel: translationKey("SMS"),
+  moreNumbers: {
+    one: "+{{count}} more",
+    other: "+{{count}} more",
+  },
 };
 
 // A number the table shows for a config, and what it sends.
@@ -53,31 +66,50 @@ export interface TwilioConfigNumberLine {
   phoneNumber: string;
   // Calls or SMS, when the config sends them from different numbers.
   label: string | null;
+  /*
+   * The config's other numbers of the same kind - its secondary numbers
+   * after its primary one, the rest of its SMS numbers after the first -
+   * counted after the number ("+2 more") and listed on hover.
+   */
+  otherPhoneNumbers: Array<string>;
+}
+
+// The columns of a config the Phone Numbers cell and its export read.
+export interface TwilioConfigNumbers {
+  twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
+  twilioSecondaryPhoneNumbers?: string | null | undefined;
+  twilioSmsPhoneNumbers?: string | null | undefined;
 }
 
 /*
  * The numbers a config's row shows: its primary number, alone when calls
  * and SMS go out from it, or with its first SMS number when SMS have their
- * own - each then saying which it sends. The rest of either list is in the
- * config's Edit dialog. English labels; the cell translates them.
+ * own - each then saying which it sends. Each line counts the rest of its
+ * kind, whose numbers are in the config's Edit dialog. English labels; the
+ * cell translates them.
  */
-export const getTwilioConfigNumberLines: (config: {
-  twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
-  twilioSmsPhoneNumbers?: string | null | undefined;
-}) => Array<TwilioConfigNumberLine> = (config: {
-  twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
-  twilioSmsPhoneNumbers?: string | null | undefined;
-}): Array<TwilioConfigNumberLine> => {
+export const getTwilioConfigNumberLines: (
+  config: TwilioConfigNumbers,
+) => Array<TwilioConfigNumberLine> = (
+  config: TwilioConfigNumbers,
+): Array<TwilioConfigNumberLine> => {
   const primary: string = config.twilioPrimaryPhoneNumber
     ? config.twilioPrimaryPhoneNumber.toString()
     : "";
 
-  // The first entry as it was typed: the server checked it when it was saved.
-  const sms: string =
-    TwilioPhoneNumbers.getListEntries(config.twilioSmsPhoneNumbers)[0] || "";
+  // As they were typed: the server checked them when they were saved.
+  const secondary: Array<string> = TwilioPhoneNumbers.getListEntries(
+    config.twilioSecondaryPhoneNumbers,
+  );
+  const sms: Array<string> = TwilioPhoneNumbers.getListEntries(
+    config.twilioSmsPhoneNumbers,
+  );
+  const firstSms: string | undefined = sms[0];
 
-  if (!sms) {
-    return primary ? [{ phoneNumber: primary, label: null }] : [];
+  if (!firstSms) {
+    return primary
+      ? [{ phoneNumber: primary, label: null, otherPhoneNumbers: secondary }]
+      : [];
   }
 
   const lines: Array<TwilioConfigNumberLine> = [];
@@ -86,12 +118,36 @@ export const getTwilioConfigNumberLines: (config: {
     lines.push({
       phoneNumber: primary,
       label: TwilioConfigNumbersCopy.callsLabel,
+      otherPhoneNumbers: secondary,
     });
   }
 
-  lines.push({ phoneNumber: sms, label: TwilioConfigNumbersCopy.smsLabel });
+  lines.push({
+    phoneNumber: firstSms,
+    label: TwilioConfigNumbersCopy.smsLabel,
+    otherPhoneNumbers: sms.slice(1),
+  });
 
   return lines;
+};
+
+/*
+ * The Phone Numbers column in a CSV export: every number the config sends
+ * from, not only the ones its row shows - its call numbers, and its SMS
+ * numbers after them when SMS have their own, each list named.
+ */
+export const getTwilioConfigNumbersForExport: (
+  config: TwilioConfigNumbers,
+) => string = (config: TwilioConfigNumbers): string => {
+  return getTwilioConfigNumberLines(config)
+    .map((line: TwilioConfigNumberLine): string => {
+      const numbers: string = [line.phoneNumber, ...line.otherPhoneNumbers].join(
+        ", ",
+      );
+
+      return line.label ? `${line.label}: ${numbers}` : numbers;
+    })
+    .join("; ");
 };
 
 export default TwilioConfigNumbersCopy;

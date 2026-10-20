@@ -23,6 +23,11 @@ import { useTranslation } from "react-i18next";
  * other countries. Once SMS numbers are listed, every SMS goes out from one
  * of them (Common/Types/CallAndSMS/TwilioPhoneNumbers), as on a project's
  * own Twilio config.
+ *
+ * Its fields carry the titles, help and examples of the Dashboard's Twilio
+ * Config form (CallSMSConfigTable), so the docs' one table of what goes
+ * out from which field reads the same for the server's config as for a
+ * project's.
  */
 const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
   getAdvancedFormSection<GlobalConfig>();
@@ -99,7 +104,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             field: {
               twilioPrimaryPhoneNumber: true,
             },
-            title: "Primary Twilio Phone Number",
+            title: "Twilio Primary Phone Number",
             fieldType: FormFieldSchemaType.Phone,
             required: true,
             description:
@@ -133,7 +138,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             field: {
               twilioSecondaryPhoneNumbers: true,
             },
-            title: "Secondary Twilio Phone Numbers",
+            title: "Twilio Secondary Phone Numbers",
             fieldType: FormFieldSchemaType.Text,
             /*
              * Optional, as the server treats it: without extra numbers every
@@ -142,8 +147,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             required: false,
             collapsibleSection: advancedSection,
             description:
-              "If you have bought more phone numbers from Twilio for specific countries, you can add them here.",
-            placeholder: "+1234567890, +4444444444",
+              "Numbers to use instead of the primary one when they match the recipient's country code.",
+            placeholder: "+441234567890, +461234567890",
             customValidation: (
               values: FormValues<GlobalConfig>,
             ): string | null => {
@@ -169,7 +174,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               field: {
                 twilioPrimaryPhoneNumber: true,
               },
-              title: "Primary Twilio Phone Number",
+              title: "Twilio Primary Phone Number",
               fieldType: FieldType.Phone,
               placeholder: t("common.none"),
             },
@@ -186,7 +191,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               field: {
                 twilioSecondaryPhoneNumbers: true,
               },
-              title: "Secondary Twilio Phone Numbers",
+              title: "Twilio Secondary Phone Numbers",
               fieldType: FieldType.LongText,
               placeholder: t("common.none"),
             },

@@ -1,4 +1,3 @@
-import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -33,9 +32,19 @@ import TwilioConfigDefaultCopy, {
   getTwilioConfigDefaultState,
   isDefaultSwitchOnWhenCreating,
 } from "./TwilioConfigDefaultCopy";
-import TwilioConfigNumbersCopy from "./TwilioConfigNumbersCopy";
+import TwilioConfigNumbersCopy, {
+  getTwilioConfigNumbersForExport,
+} from "./TwilioConfigNumbersCopy";
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
 import TwilioConfigPhoneNumbers from "./TwilioConfigPhoneNumbers";
+import TwilioTestSendCopy, {
+  getTestSendFromPhoneNumber,
+  getTestSentMessage,
+  TwilioTestSendKind,
+  TwilioTestSentMessage,
+} from "./TwilioTestSendCopy";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   getTestSendLock,
   TestSendLock,
@@ -68,6 +77,18 @@ const FIRST_CONFIG_INITIAL_VALUES: FormValues<ProjectCallSMSConfig> = {
  */
 const moreNumbersSection: FormFieldCollapsibleSection<ProjectCallSMSConfig> =
   getAdvancedFormSection<ProjectCallSMSConfig>();
+
+/*
+ * How wide a config's Twilio Account SID may be drawn in its row: cut short
+ * with an ellipsis, whole under the pointer (the table's FullValueTitle) and
+ * in the config's Edit dialog. A SID is 34 characters, the widest value in
+ * the row, and drawn whole it made the table wider than its card: beside the
+ * page's side menu the table has 938px at a 1280px window, and the other
+ * columns of a config with SMS numbers take some 700px of it. Whole from
+ * 1536px on, where the table has 1194px.
+ */
+export const TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME: string =
+  "max-w-[10rem] 2xl:max-w-[17rem]";
 
 const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
   /*
@@ -181,6 +202,29 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
 
   const [isCallSMSTestLoading, setIsCallSMSTestLoading] =
     useState<boolean>(false);
+
+  /*
+   * The number the last test went out from, as the Notification service
+   * answered it: the dialog that says it went out names it.
+   */
+  const [testSentFromPhoneNumber, setTestSentFromPhoneNumber] =
+    useState<string>("");
+
+  const translator: Translator = useTranslator();
+
+  // What the dialog after a test says went out, and from which number.
+  const getTestSentDescription: (kind: TwilioTestSendKind) => string = (
+    kind: TwilioTestSendKind,
+  ): string => {
+    const message: TwilioTestSentMessage = getTestSentMessage({
+      kind: kind,
+      fromPhoneNumber: testSentFromPhoneNumber,
+    });
+
+    return translator.translateTemplate(message.template, {
+      phoneNumber: message.phoneNumber,
+    });
+  };
 
   useEffect(() => {
     setError("");
@@ -308,8 +352,13 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
         name="Settings > Custom CallSMS Config"
         noItemsMessage={"No Twilio config found."}
         selectMoreFields={{
-          // The first SMS number, shown beside the primary one (Phone Numbers).
+          /*
+           * The numbers the Phone Numbers column shows and counts beside
+           * the primary one: the first SMS number, and how many more of
+           * each kind there are.
+           */
           twilioSmsPhoneNumbers: true,
+          twilioSecondaryPhoneNumbers: true,
         }}
         formFields={[
           {
@@ -493,11 +542,16 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
         ]}
         /*
-         * What tells the configs apart at a glance: the name, the Twilio
-         * account, the numbers it sends from - its primary number, and its
-         * first SMS number beside it when SMS have their own - and whether
-         * it is the project's default. Description and the other numbers
-         * are in the config's Edit dialog (and in the filters).
+         * What tells the configs apart at a glance: the name, the numbers
+         * it sends from - its primary number, and its first SMS number
+         * beside it when SMS have their own - whether it is the project's
+         * default, and the Twilio account. Description and the other
+         * numbers are in the config's Edit dialog (and in the filters).
+         *
+         * The account comes last: a SID is 34 characters, the widest value
+         * in the row, and when a long name makes the table wider than its
+         * card it scrolls sideways under the row's actions - the column cut
+         * short is then the account, not the numbers or the default.
          */
         columns={[
           {
@@ -509,13 +563,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
-              twilioAccountSID: true,
-            },
-            title: "Twilio Account SID",
-            type: FieldType.Text,
-          },
-          {
-            field: {
               twilioPrimaryPhoneNumber: true,
             },
             // Its primary number, and its first SMS number when SMS have their own.
@@ -523,6 +570,10 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             type: FieldType.Phone,
             getElement: (item: ProjectCallSMSConfig): ReactElement => {
               return <TwilioConfigPhoneNumbers config={item} />;
+            },
+            // Every number it sends from, not only the ones the row shows.
+            getExportValue: (item: ProjectCallSMSConfig): string => {
+              return getTwilioConfigNumbersForExport(item);
             },
           },
           {
@@ -538,6 +589,14 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               return <span className="text-gray-400">-</span>;
             },
           },
+          {
+            field: {
+              twilioAccountSID: true,
+            },
+            title: "Twilio Account SID",
+            type: FieldType.Text,
+            contentClassName: TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME,
+          },
         ]}
       />
 
@@ -546,7 +605,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
       {showSMSTestModal && currentCallSMSTestConfig ? (
         <BasicFormModal
           title={`Send Test SMS`}
-          description={`Send a test sms to verify your twilio config.`}
+          description={TwilioTestSendCopy.smsDescription}
           formProps={{
             error: error,
             fields: [
@@ -555,7 +614,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                   toPhone: true,
                 },
                 title: "Phone Number",
-                description: "Phone number to send test sms to.",
                 fieldType: FormFieldSchemaType.Phone,
                 required: true,
                 placeholder: "+1234567890",
@@ -572,40 +630,43 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             try {
               setIsCallSMSTestLoading(true);
               setError("");
+              setTestSentFromPhoneNumber("");
 
               // test CallSMS config
-              const response:
-                | HTTPResponse<EmptyResponseData>
-                | HTTPErrorResponse = await API.post({
-                url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-                  `/sms/test`,
-                ),
-                data: {
-                  toPhone: values["toPhone"],
-                  callSMSConfigId: new ObjectID(
-                    currentCallSMSTestConfig["_id"]
-                      ? currentCallSMSTestConfig["_id"].toString()
-                      : "",
-                  ).toString(),
-                },
-                /*
-                 * A custom route, so this is a raw API.post rather than
-                 * ModelAPI - and BaseAPI.getHeaders() does not add a
-                 * `tenantid` header. ModelAPI.getCommonHeaders() is the only
-                 * thing in the codebase that does, so without it the request
-                 * arrives with no project scope at all.
-                 */
-                headers: ModelAPI.getCommonHeaders(),
-              });
-              if (response.isSuccess()) {
-                setIsCallSMSTestLoading(false);
-                setShowSMSTestModal(false);
-                setSMSShowSuccessModal(true);
-              }
+              const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                await API.post<JSONObject>({
+                  url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                    `/sms/test`,
+                  ),
+                  data: {
+                    toPhone: values["toPhone"],
+                    callSMSConfigId: new ObjectID(
+                      currentCallSMSTestConfig["_id"]
+                        ? currentCallSMSTestConfig["_id"].toString()
+                        : "",
+                    ).toString(),
+                  },
+                  /*
+                   * A custom route, so this is a raw API.post rather than
+                   * ModelAPI - and BaseAPI.getHeaders() does not add a
+                   * `tenantid` header. ModelAPI.getCommonHeaders() is the
+                   * only thing in the codebase that does, so without it the
+                   * request arrives with no project scope at all.
+                   */
+                  headers: ModelAPI.getCommonHeaders(),
+                });
 
               if (response instanceof HTTPErrorResponse) {
                 throw response;
               }
+
+              // The number it went out from, which the next dialog names.
+              setTestSentFromPhoneNumber(
+                getTestSendFromPhoneNumber(response.data),
+              );
+              setIsCallSMSTestLoading(false);
+              setShowSMSTestModal(false);
+              setSMSShowSuccessModal(true);
             } catch (err) {
               setError(API.getFriendlyMessage(err));
               setIsCallSMSTestLoading(false);
@@ -618,14 +679,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
 
       {showSMSSuccessModal ? (
         <ConfirmModal
-          title={`SMS Sent`}
-          error={
-            error ===
-            "Error connecting to server. Please try again in few minutes."
-              ? "Request timed out. Please check your twilio credentials and make sure they are correct."
-              : error
-          }
-          description={`SMS sent successfully. It should take couple of minutes to arrive, please don't forget to check spam.`}
+          title={TwilioTestSendCopy.smsSentTitle}
+          description={getTestSentDescription(TwilioTestSendKind.SMS)}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {
@@ -642,7 +697,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
       {showCallTestModal && currentCallSMSTestConfig ? (
         <BasicFormModal
           title={`Send Test Call`}
-          description={`Send a test call to verify your twilio config.`}
+          description={TwilioTestSendCopy.callDescription}
           formProps={{
             error: error,
             fields: [
@@ -651,7 +706,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                   toPhone: true,
                 },
                 title: "Phone Number",
-                description: "Phone number to send test call to.",
                 fieldType: FormFieldSchemaType.Phone,
                 required: true,
                 placeholder: "+1234567890",
@@ -668,40 +722,43 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             try {
               setIsCallSMSTestLoading(true);
               setError("");
+              setTestSentFromPhoneNumber("");
 
               // test CallSMS config
-              const response:
-                | HTTPResponse<EmptyResponseData>
-                | HTTPErrorResponse = await API.post({
-                url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-                  `/call/test`,
-                ),
-                data: {
-                  toPhone: values["toPhone"],
-                  callSMSConfigId: new ObjectID(
-                    currentCallSMSTestConfig["_id"]
-                      ? currentCallSMSTestConfig["_id"].toString()
-                      : "",
-                  ).toString(),
-                },
-                /*
-                 * A custom route, so this is a raw API.post rather than
-                 * ModelAPI - and BaseAPI.getHeaders() does not add a
-                 * `tenantid` header. ModelAPI.getCommonHeaders() is the only
-                 * thing in the codebase that does, so without it the request
-                 * arrives with no project scope at all.
-                 */
-                headers: ModelAPI.getCommonHeaders(),
-              });
-              if (response.isSuccess()) {
-                setIsCallSMSTestLoading(false);
-                setShowCallTestModal(false);
-                setCallShowSuccessModal(true);
-              }
+              const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                await API.post<JSONObject>({
+                  url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                    `/call/test`,
+                  ),
+                  data: {
+                    toPhone: values["toPhone"],
+                    callSMSConfigId: new ObjectID(
+                      currentCallSMSTestConfig["_id"]
+                        ? currentCallSMSTestConfig["_id"].toString()
+                        : "",
+                    ).toString(),
+                  },
+                  /*
+                   * A custom route, so this is a raw API.post rather than
+                   * ModelAPI - and BaseAPI.getHeaders() does not add a
+                   * `tenantid` header. ModelAPI.getCommonHeaders() is the
+                   * only thing in the codebase that does, so without it the
+                   * request arrives with no project scope at all.
+                   */
+                  headers: ModelAPI.getCommonHeaders(),
+                });
 
               if (response instanceof HTTPErrorResponse) {
                 throw response;
               }
+
+              // The number it is calling from, which the next dialog names.
+              setTestSentFromPhoneNumber(
+                getTestSendFromPhoneNumber(response.data),
+              );
+              setIsCallSMSTestLoading(false);
+              setShowCallTestModal(false);
+              setCallShowSuccessModal(true);
             } catch (err) {
               setError(API.getFriendlyMessage(err));
               setIsCallSMSTestLoading(false);
@@ -714,14 +771,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
 
       {showCallSuccessModal ? (
         <ConfirmModal
-          title={`Call Sent`}
-          error={
-            error ===
-            "Error connecting to server. Please try again in few minutes."
-              ? "Request timed out. Please check your twilio credentials and make sure they are correct."
-              : error
-          }
-          description={`Call sent successfully. It should take couple of minutes to arrive, please don't forget to check spam.`}
+          title={TwilioTestSendCopy.callPlacedTitle}
+          description={getTestSentDescription(TwilioTestSendKind.Call)}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {

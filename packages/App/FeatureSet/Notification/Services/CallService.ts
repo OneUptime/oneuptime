@@ -134,17 +134,33 @@ export default class CallService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * Throw when the call is deliberately not placed - the project was
+       * not found, has call notifications turned off, or has too little
+       * balance - instead of returning as if it was, as SmsService does for
+       * an SMS. The call log and the owners' email are written either way.
+       * Send Test Call passes it, so a test that was not placed says why;
+       * everyone else keeps the quiet return.
+       */
+      failIfNotSent?: boolean | undefined;
     },
   ): Promise<void> {
     const startNs: bigint = process.hrtime.bigint();
     let outcome: "success" | "failure" = "success";
 
     try {
-      await this.makeCallInternal(
+      const notPlacedReason: string | null = await this.makeCallInternal(
         // The installation's own name in what the call says, when it goes by one.
         ProductBrandingText.brandCallRequest(callRequest),
         options,
       );
+
+      if (notPlacedReason !== null && options.failIfNotSent) {
+        // The tenant's settings or balance, not a defect: a user error.
+        throw new BadDataException(
+          `Call not placed: ${notPlacedReason}`,
+        ).asUserError();
+      }
     } catch (err) {
       outcome = "failure";
       throw err;
@@ -181,8 +197,14 @@ export default class CallService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      failIfNotSent?: boolean | undefined;
     },
-  ): Promise<void> {
+  ): Promise<string | null> {
+    /*
+     * Returns why the call was deliberately not placed (the project was not
+     * found, has calls turned off, or has too little balance), after logging
+     * it; null when it was handed to Twilio. A failure to place it throws.
+     */
     let callError: Error | null = null;
     const callLog: CallLog = new CallLog();
 
@@ -327,7 +349,7 @@ export default class CallService {
             userOnCallLogTimelineId: options.userOnCallLogTimelineId,
             reason: callLog.statusMessage!,
           });
-          return;
+          return callLog.statusMessage!;
         }
 
         if (!project.enableCallNotifications) {
@@ -369,7 +391,7 @@ export default class CallService {
             userOnCallLogTimelineId: options.userOnCallLogTimelineId,
             reason: callLog.statusMessage!,
           });
-          return;
+          return callLog.statusMessage!;
         }
 
         if (shouldChargeForCall) {
@@ -442,7 +464,7 @@ export default class CallService {
               userOnCallLogTimelineId: options.userOnCallLogTimelineId,
               reason: callLog.statusMessage!,
             });
-            return;
+            return callLog.statusMessage!;
           }
         }
       }
@@ -534,6 +556,8 @@ export default class CallService {
     if (callError) {
       throw callError;
     }
+
+    return null;
   }
 
   /*

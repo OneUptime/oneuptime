@@ -31668,5 +31668,14 @@
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "通話從此號碼撥出；除非在「更多欄位」中新增了簡訊電話號碼，否則簡訊也從此號碼傳送。",
   "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "如果您的 Twilio 號碼無法傳送簡訊（在新加坡，國內號碼僅支援語音），請新增可以傳送簡訊的號碼。之後每則簡訊都從收件人所在國家/地區的號碼傳送，沒有則從第一個號碼傳送。",
   "Twilio SMS Phone Numbers": "Twilio 簡訊電話號碼",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是電話號碼。請輸入含國碼的每個號碼，並以逗號分隔，例如 +6581234567, +447700900123。"
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是電話號碼。請輸入含國碼的每個號碼，並以逗號分隔，例如 +6581234567, +447700900123。",
+  "One config is the project default: the SMS and calls to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.": "一個設定作為專案預設：傳送給此專案成員的簡訊與通話（例如待命警示）都會透過它傳送。狀態頁面使用在各頁面上選擇的設定。",
+  "Send a test SMS to check this Twilio config.": "傳送一則測試簡訊，檢查此 Twilio 設定。",
+  "Make a test call to check this Twilio config.": "撥打一通測試電話，檢查此 Twilio 設定。",
+  "Test SMS Sent": "測試簡訊已傳送",
+  "Test Call Placed": "測試電話已撥出",
+  "Twilio accepted the test SMS from {{phoneNumber}}. It should arrive within a few minutes.": "Twilio 已接受從 {{phoneNumber}} 發出的測試簡訊，幾分鐘內應會送達。",
+  "Twilio accepted the test SMS. It should arrive within a few minutes.": "Twilio 已接受測試簡訊，幾分鐘內應會送達。",
+  "Twilio is calling from {{phoneNumber}}. Your phone should ring within a minute.": "Twilio 正在從 {{phoneNumber}} 撥打電話，您的電話應在一分鐘內響起。",
+  "Twilio is placing the test call. Your phone should ring within a minute.": "Twilio 正在撥打測試電話，您的電話應在一分鐘內響起。"
 }

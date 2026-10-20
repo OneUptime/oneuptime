@@ -489,7 +489,7 @@
       },
       "callSms": {
         "cardTitle": "Twilio-configuratie",
-        "cardDescription": "Dit wordt gebruikt voor het bellen en verzenden van sms.",
+        "cardDescription": "Het Twilio-account waarmee OneUptime sms-berichten verstuurt en belt, tenzij een project een eigen Twilio-configuratie gebruikt.",
         "editButton": "Twilio-config bewerken",
         "smsSameAsCalls": "Dezelfde nummers als voor oproepen"
       },
@@ -727,7 +727,6 @@
   "Hostname": "Hostnaam",
   "How OneUptime delivers mail using the global SMTP config. Choose 'SMTP' for most servers. Choose 'Microsoft Graph' if your Microsoft 365 tenant has SMTP AUTH disabled — Graph uses the Mail.Send application permission and bypasses SMTP entirely.": "Hoe OneUptime e-mail aflevert met de globale SMTP-configuratie. Kies 'SMTP' voor de meeste servers. Kies 'Microsoft Graph' als bij uw Microsoft 365-tenant SMTP AUTH is uitgeschakeld — Graph gebruikt de Mail.Send-toepassingsmachtiging en omzeilt SMTP volledig.",
   "If you have a coupon code, enter it here.": "Als u een kortingscode heeft, voer deze hier in.",
-  "If you have bought more phone numbers from Twilio for specific countries, you can add them here.": "Als u meer telefoonnummers van Twilio heeft gekocht voor specifieke landen, kunt u deze hier toevoegen.",
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "Als u poort 465 gebruikt, schakel dit dan in. Schakel dit niet in als u poort 587 gebruikt.",
   "Instance footprint": "Voetafdruk instantie",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "Achterstand aan taken over de wachtrijworkers. Een groeiende achterstand of fouten wijzen erop dat de workers ongezond zijn.",
@@ -773,7 +772,6 @@
   "Please create a new OneUptime project to get started.": "Maak een nieuw OneUptime-project aan om te beginnen.",
   "Please select a plan.": "Selecteer een plan.",
   "Port": "Poort",
-  "Primary Twilio Phone Number": "Primair Twilio-telefoonnummer",
   "Probe Logo": "Sondelogo",
   "Probes that run monitoring checks for this instance, and whether they are currently reporting in.": "Sondes die monitoringcontroles uitvoeren voor deze instantie en of ze zich momenteel melden.",
   "Project ID": "Project-ID",
@@ -790,7 +788,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Vereist voor authenticatie met gebruikersnaam en wachtwoord. Niet gebruikt voor OAuth.",
   "Sample Description": "Voorbeeldbeschrijving",
   "Sample Title": "Voorbeeldtitel",
-  "Secondary Twilio Phone Numbers": "Secundaire Twilio-telefoonnummers",
   "Secret token configured in Meta to validate webhook subscription requests.": "Geheim token dat in Meta is geconfigureerd om webhook-abonnementsverzoeken te valideren.",
   "Select a team": "Selecteer een team",
   "Select LLM Provider": "Selecteer LLM-provider",
@@ -1015,6 +1012,9 @@
   "Kubernetes guide": "Kubernetes-handleiding",
   "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.": "Oproepen gaan uit van dit nummer, en sms-berichten ook, tenzij u onder Meer velden sms-telefoonnummers toevoegt.",
   "If your Twilio numbers can't send SMS (in Singapore, national numbers are voice-only), add numbers that can. Every SMS then goes out from the one in the recipient's country, or else the first.": "Als uw Twilio-nummers geen sms kunnen verzenden (in Singapore zijn nationale nummers alleen voor spraak), voeg dan nummers toe die dat wel kunnen. Elke sms gaat dan uit van het nummer in het land van de ontvanger, anders van het eerste.",
-  "Twilio SMS Phone Numbers": "Twilio-sms-telefoonnummers",
-  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} is geen telefoonnummer. Schrijf elk nummer met de landcode en scheid de nummers met komma's, zoals +6581234567, +447700900123."
+  "Twilio SMS Phone Numbers": "Twilio sms-telefoonnummers",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} is geen telefoonnummer. Schrijf elk nummer met de landcode en scheid de nummers met komma's, zoals +6581234567, +447700900123.",
+  "Twilio Primary Phone Number": "Twilio primair telefoonnummer",
+  "Twilio Secondary Phone Numbers": "Twilio secundaire telefoonnummers",
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "Nummers die in plaats van het hoofdnummer worden gebruikt als ze overeenkomen met de landcode van de ontvanger."
 }
