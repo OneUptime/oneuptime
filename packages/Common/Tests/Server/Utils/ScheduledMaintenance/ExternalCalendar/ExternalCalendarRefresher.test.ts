@@ -10,6 +10,7 @@ import ExternalCalendarRefresher, {
   EXTERNAL_CALENDAR_READ_BATCH_SIZE,
   EXTERNAL_CALENDAR_READ_LEASE_IN_MINUTES,
   EXTERNAL_CALENDAR_READ_NOW_COOLDOWN_IN_SECONDS,
+  EXTERNAL_CALENDAR_READ_RUN_BUDGET_IN_SECONDS,
   EXTERNAL_CALENDAR_READ_TOO_SOON_MESSAGE,
   EXTERNAL_CALENDAR_TURNED_OFF_MESSAGE,
   ExternalCalendarReadOutcome,
@@ -44,7 +45,8 @@ const CALENDAR_ID: ObjectID = new ObjectID(
 const PROJECT_ID: ObjectID = new ObjectID(
   "60000000-0000-4000-8000-000000000002",
 );
-const LINK: string = "https://calendar.example.com/private-3f8a9c1d7e/basic.ics";
+const LINK: string =
+  "https://calendar.example.com/private-3f8a9c1d7e/basic.ics";
 
 const EVENTS: Array<ExternalCalendarEventRow> = [
   {
@@ -115,11 +117,9 @@ beforeEach(() => {
     });
   }
 
-  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation(
-    (): Date => {
-      return new Date(NOW.getTime());
-    },
-  );
+  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+    return new Date(NOW.getTime());
+  });
 
   let reads: number = 0;
 
@@ -284,7 +284,9 @@ describe("a read that works", () => {
   });
 
   test("a calendar deleted before its read is not read", async () => {
-    arrange({ calendar: null as unknown as ScheduledMaintenanceExternalCalendar });
+    arrange({
+      calendar: null as unknown as ScheduledMaintenanceExternalCalendar,
+    });
 
     expect(await ExternalCalendarRefresher.readCalendar(CALENDAR_ID)).toEqual({
       read: false,
@@ -341,11 +343,13 @@ describe("a read that fails", () => {
         },
       });
 
-      expect(await ExternalCalendarRefresher.readCalendar(CALENDAR_ID)).toEqual({
-        read: true,
-        error: error,
-        eventCount: null,
-      });
+      expect(await ExternalCalendarRefresher.readCalendar(CALENDAR_ID)).toEqual(
+        {
+          read: true,
+          error: error,
+          eventCount: null,
+        },
+      );
       expect(world.replaced).toEqual([]);
       expect(statusWrite()["lastReadError"]).toBe(error);
       expect(statusWrite()["lastReadAt"]).toBeUndefined();
@@ -355,12 +359,16 @@ describe("a read that fails", () => {
 
 describe("the Workers' job", () => {
   test("reads the enabled calendars that are due, oldest first, a batch at a time", async () => {
+    // The second has never been read: it has no next read yet.
+    const neverRead: ScheduledMaintenanceExternalCalendar = calendar({
+      _id: "60000000-0000-4000-8000-000000000012",
+    });
+
+    delete neverRead.nextReadAt;
+
     const due: Array<ScheduledMaintenanceExternalCalendar> = [
       calendar({ _id: "60000000-0000-4000-8000-000000000011" }),
-      calendar({
-        _id: "60000000-0000-4000-8000-000000000012",
-        nextReadAt: undefined,
-      }),
+      neverRead,
     ];
 
     const findBy: jest.SpyInstance = getJestSpyOn(
@@ -487,6 +495,121 @@ describe("the Workers' job", () => {
     expect(readSpy).toHaveBeenCalledTimes(2);
     expect(logger.error).toHaveBeenCalled();
   });
+
+  // Due calendars with ids from `from` on: a backlog's worth.
+  function dueCalendars(
+    from: number,
+    count: number,
+  ): Array<ScheduledMaintenanceExternalCalendar> {
+    return Array.from({ length: count }, (_unused: unknown, index: number) => {
+      return calendar({
+        _id: `60000000-0000-4000-8000-${String(from + index).padStart(12, "0")}`,
+      });
+    });
+  }
+
+  test("a whole batch due is followed by the next in the same run, until one is short", async () => {
+    const findBy: jest.SpyInstance = getJestSpyOn(
+      ScheduledMaintenanceExternalCalendarService,
+      "findBy",
+    )
+      .mockResolvedValueOnce(
+        dueCalendars(100, EXTERNAL_CALENDAR_READ_BATCH_SIZE),
+      )
+      .mockResolvedValueOnce(dueCalendars(200, 3));
+
+    getJestSpyOn(
+      ScheduledMaintenanceExternalCalendarService,
+      "claimForRead",
+    ).mockResolvedValue(true);
+
+    const readSpy: jest.SpyInstance = getJestSpyOn(
+      ExternalCalendarRefresher,
+      "readCalendar",
+    ).mockResolvedValue({ read: true, error: null, eventCount: 1 });
+
+    expect(await ExternalCalendarRefresher.readDueCalendars()).toBe(
+      EXTERNAL_CALENDAR_READ_BATCH_SIZE + 3,
+    );
+    // The short batch was the last: nothing more is asked for.
+    expect(findBy).toHaveBeenCalledTimes(2);
+    expect(readSpy).toHaveBeenCalledTimes(
+      EXTERNAL_CALENDAR_READ_BATCH_SIZE + 3,
+    );
+  });
+
+  test("a calendar still due after its try is not tried again in the run", async () => {
+    // Another reader holds every one: their claims fail, and they stay due.
+    const findBy: jest.SpyInstance = getJestSpyOn(
+      ScheduledMaintenanceExternalCalendarService,
+      "findBy",
+    ).mockResolvedValue(dueCalendars(300, EXTERNAL_CALENDAR_READ_BATCH_SIZE));
+
+    const claimSpy: jest.SpyInstance = getJestSpyOn(
+      ScheduledMaintenanceExternalCalendarService,
+      "claimForRead",
+    ).mockResolvedValue(false);
+
+    const readSpy: jest.SpyInstance = getJestSpyOn(
+      ExternalCalendarRefresher,
+      "readCalendar",
+    );
+
+    expect(await ExternalCalendarRefresher.readDueCalendars()).toBe(0);
+    expect(findBy).toHaveBeenCalledTimes(2);
+    expect(claimSpy).toHaveBeenCalledTimes(EXTERNAL_CALENDAR_READ_BATCH_SIZE);
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  test(`a run stops reading once ${EXTERNAL_CALENDAR_READ_RUN_BUDGET_IN_SECONDS} seconds are up, leaving the rest to the next run`, async () => {
+    // Every read takes ten seconds on the clock, and the backlog never ends.
+    let clock: number = NOW.getTime();
+
+    getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation(
+      (): Date => {
+        return new Date(clock);
+      },
+    );
+
+    let batches: number = 0;
+
+    getJestSpyOn(
+      ScheduledMaintenanceExternalCalendarService,
+      "findBy",
+    ).mockImplementation(async (): Promise<unknown> => {
+      batches++;
+      return dueCalendars(1000 * batches, EXTERNAL_CALENDAR_READ_BATCH_SIZE);
+    });
+
+    const claims: Array<Date> = [];
+
+    getJestSpyOn(
+      ScheduledMaintenanceExternalCalendarService,
+      "claimForRead",
+    ).mockImplementation(async (input: unknown): Promise<boolean> => {
+      claims.push((input as { leaseUntil: Date }).leaseUntil);
+      return true;
+    });
+
+    const readSpy: jest.SpyInstance = getJestSpyOn(
+      ExternalCalendarRefresher,
+      "readCalendar",
+    ).mockImplementation(async (): Promise<ExternalCalendarReadOutcome> => {
+      clock += 10 * 1000;
+      return { read: true, error: null, eventCount: 1 };
+    });
+
+    // Reads begin 0, 10, 20, 30 and 40 seconds in; at 50 the time is up.
+    const expected: number = Math.ceil(
+      EXTERNAL_CALENDAR_READ_RUN_BUDGET_IN_SECONDS / 10,
+    );
+
+    expect(await ExternalCalendarRefresher.readDueCalendars()).toBe(expected);
+    expect(readSpy).toHaveBeenCalledTimes(expected);
+
+    // Each claim's lease runs from when it was made, not from the run's start.
+    expect(claims[1]!.getTime() - claims[0]!.getTime()).toBe(10 * 1000);
+  });
 });
 
 describe("Read now", () => {
@@ -510,7 +633,9 @@ describe("Read now", () => {
   });
 
   test("a calendar that does not exist is not found", async () => {
-    arrange({ calendar: null as unknown as ScheduledMaintenanceExternalCalendar });
+    arrange({
+      calendar: null as unknown as ScheduledMaintenanceExternalCalendar,
+    });
 
     await expect(
       ExternalCalendarRefresher.readNow(CALENDAR_ID),
@@ -521,7 +646,9 @@ describe("Read now", () => {
     arrange({ calendar: calendar({ isEnabled: false }) });
     const claim: jest.SpyInstance = claimed(true);
 
-    await expect(ExternalCalendarRefresher.readNow(CALENDAR_ID)).rejects.toEqual(
+    await expect(
+      ExternalCalendarRefresher.readNow(CALENDAR_ID),
+    ).rejects.toEqual(
       new BadDataException(EXTERNAL_CALENDAR_TURNED_OFF_MESSAGE),
     );
     expect(claim).not.toHaveBeenCalled();
@@ -536,7 +663,9 @@ describe("Read now", () => {
     });
     const claim: jest.SpyInstance = claimed(true);
 
-    await expect(ExternalCalendarRefresher.readNow(CALENDAR_ID)).rejects.toEqual(
+    await expect(
+      ExternalCalendarRefresher.readNow(CALENDAR_ID),
+    ).rejects.toEqual(
       new BadDataException(EXTERNAL_CALENDAR_READ_TOO_SOON_MESSAGE),
     );
     expect(claim).not.toHaveBeenCalled();
@@ -546,7 +675,8 @@ describe("Read now", () => {
     arrange({
       calendar: calendar({
         lastReadAttemptAt: new Date(
-          NOW.getTime() - (EXTERNAL_CALENDAR_READ_NOW_COOLDOWN_IN_SECONDS + 1) * 1000,
+          NOW.getTime() -
+            (EXTERNAL_CALENDAR_READ_NOW_COOLDOWN_IN_SECONDS + 1) * 1000,
         ),
       }),
     });
@@ -560,7 +690,9 @@ describe("Read now", () => {
   test("a calendar another reader is reading is left to it", async () => {
     claimed(false);
 
-    await expect(ExternalCalendarRefresher.readNow(CALENDAR_ID)).rejects.toEqual(
+    await expect(
+      ExternalCalendarRefresher.readNow(CALENDAR_ID),
+    ).rejects.toEqual(
       new BadDataException(EXTERNAL_CALENDAR_READ_TOO_SOON_MESSAGE),
     );
     expect(world.fetchedLinks).toEqual([]);

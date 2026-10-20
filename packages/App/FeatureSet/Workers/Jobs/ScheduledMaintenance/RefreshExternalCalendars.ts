@@ -7,8 +7,10 @@ import ExternalCalendarRefresher from "Common/Server/Utils/ScheduledMaintenance/
  * (Scheduled Maintenance > Settings > Calendar Settings, issue #5084). Every
  * minute, each enabled calendar whose next read is due - a new one at once,
  * the rest every refresh interval - is read through the egress guard,
- * worked out in a worker thread and its events kept; a batch at a time, so
- * a run never grows with the number of calendars (ExternalCalendarRefresher).
+ * worked out in a worker thread and its events kept: one at a time, batch
+ * after batch for at most 45 seconds, so a run's memory never grows with the
+ * number of calendars and a backlog is still worked through
+ * (ExternalCalendarRefresher).
  */
 RunCron(
   "ScheduledMaintenance:RefreshExternalCalendars",

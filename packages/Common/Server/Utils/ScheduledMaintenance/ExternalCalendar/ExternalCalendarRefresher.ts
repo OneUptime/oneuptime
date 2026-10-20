@@ -26,8 +26,9 @@ import crypto from "crypto";
  * they hold (issue #5084).
  *
  * The Workers' job (RefreshExternalCalendars) runs every minute and reads
- * each enabled calendar whose next read is due, a batch at a time; Read now
- * on Calendar Settings reads one at once. Either way, a calendar is first
+ * each enabled calendar whose next read is due, oldest first, batch after
+ * batch until none is left or the run's time is up; Read now on Calendar
+ * Settings reads one at once. Either way, a calendar is first
  * CLAIMED - its next read moved past the read, in one compare-and-set - so
  * of two readers that reach it together, one reads it.
  *
@@ -45,8 +46,19 @@ import crypto from "crypto";
  * often.
  */
 
-// Calendars read per run of the job.
+// Calendars asked for at a time.
 export const EXTERNAL_CALENDAR_READ_BATCH_SIZE: number = 20;
+
+/*
+ * How long one run of the job goes on reading due calendars, batch after
+ * batch, before it leaves the rest to the next run a minute later. A read
+ * takes well under a second, so a run gets through many batches when many
+ * calendars are due at once - one batch a minute would have read at most
+ * 1,200 calendars an hour, and a larger backlog would only have grown. The
+ * read under way when the time is up is finished; reads are one at a time,
+ * so a run's memory never grows with the backlog.
+ */
+export const EXTERNAL_CALENDAR_READ_RUN_BUDGET_IN_SECONDS: number = 45;
 
 // How long a claim holds a calendar: past it, a reader that died lets another read it.
 export const EXTERNAL_CALENDAR_READ_LEASE_IN_MINUTES: number = 5;
@@ -108,58 +120,94 @@ export default class ExternalCalendarRefresher {
       .digest("hex");
   }
 
-  // Reads the calendars that are due, a batch at a time. Returns how many were read.
+  /*
+   * Reads the calendars that are due, batch after batch, until none is left
+   * or the run's time (EXTERNAL_CALENDAR_READ_RUN_BUDGET_IN_SECONDS) is up.
+   * Returns how many were read.
+   */
   @CaptureSpan()
   public static async readDueCalendars(): Promise<number> {
-    const now: Date = OneUptimeDate.getCurrentDate();
+    const startedAt: number = OneUptimeDate.getCurrentDate().getTime();
+    const budgetInMs: number =
+      EXTERNAL_CALENDAR_READ_RUN_BUDGET_IN_SECONDS * 1000;
 
-    const due: Array<ScheduledMaintenanceExternalCalendar> =
-      await ScheduledMaintenanceExternalCalendarService.findBy({
-        query: {
-          isEnabled: true,
-          nextReadAt: QueryHelper.lessThanEqualToOrNull(now),
-        },
-        select: {
-          _id: true,
-          nextReadAt: true,
-        },
-        sort: {
-          nextReadAt: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: EXTERNAL_CALENDAR_READ_BATCH_SIZE,
-        props: {
-          isRoot: true,
-        },
-      });
-
+    /*
+     * Each calendar is tried once a run: one whose claim another reader won,
+     * or that stays due for any other reason, is not tried again and again.
+     */
+    const tried: Set<string> = new Set<string>();
     let readCount: number = 0;
 
-    for (const calendar of due) {
-      if (!calendar.id) {
-        continue;
+    for (;;) {
+      const due: Array<ScheduledMaintenanceExternalCalendar> =
+        await ScheduledMaintenanceExternalCalendarService.findBy({
+          query: {
+            isEnabled: true,
+            nextReadAt: QueryHelper.lessThanEqualToOrNull(
+              OneUptimeDate.getCurrentDate(),
+            ),
+          },
+          select: {
+            _id: true,
+            nextReadAt: true,
+          },
+          sort: {
+            nextReadAt: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: EXTERNAL_CALENDAR_READ_BATCH_SIZE,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const untried: Array<ScheduledMaintenanceExternalCalendar> = due.filter(
+        (calendar: ScheduledMaintenanceExternalCalendar): boolean => {
+          return Boolean(calendar.id) && !tried.has(calendar.id!.toString());
+        },
+      );
+
+      for (const calendar of untried) {
+        if (
+          OneUptimeDate.getCurrentDate().getTime() - startedAt >=
+          budgetInMs
+        ) {
+          // The rest are read by the next run.
+          return readCount;
+        }
+
+        tried.add(calendar.id!.toString());
+
+        const isClaimed: boolean = await this.claim({
+          id: calendar.id!,
+          expectedNextReadAt: calendar.nextReadAt || null,
+          now: OneUptimeDate.getCurrentDate(),
+        });
+
+        if (!isClaimed) {
+          continue;
+        }
+
+        try {
+          await this.readCalendar(calendar.id!);
+          readCount++;
+        } catch (error) {
+          // One calendar that fails to be read never stops the rest.
+          logger.error(error);
+        }
       }
 
-      const isClaimed: boolean = await this.claim({
-        id: calendar.id,
-        expectedNextReadAt: calendar.nextReadAt || null,
-        now: now,
-      });
-
-      if (!isClaimed) {
-        continue;
-      }
-
-      try {
-        await this.readCalendar(calendar.id);
-        readCount++;
-      } catch (error) {
-        // One calendar that fails to be read never stops the rest.
-        logger.error(error);
+      /*
+       * A batch shorter than a whole one held the last calendars due, and
+       * one with nothing new in it holds only calendars this run tried.
+       */
+      if (
+        due.length < EXTERNAL_CALENDAR_READ_BATCH_SIZE ||
+        untried.length === 0
+      ) {
+        return readCount;
       }
     }
-
-    return readCount;
   }
 
   /*
@@ -198,7 +246,8 @@ export default class ExternalCalendarRefresher {
 
     if (
       calendar.lastReadAttemptAt &&
-      now.getTime() - OneUptimeDate.fromString(calendar.lastReadAttemptAt).getTime() <
+      now.getTime() -
+        OneUptimeDate.fromString(calendar.lastReadAttemptAt).getTime() <
         EXTERNAL_CALENDAR_READ_NOW_COOLDOWN_IN_SECONDS * 1000
     ) {
       throw new BadDataException(EXTERNAL_CALENDAR_READ_TOO_SOON_MESSAGE);
