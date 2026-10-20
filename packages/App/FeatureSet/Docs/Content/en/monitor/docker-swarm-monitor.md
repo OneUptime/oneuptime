@@ -116,7 +116,7 @@ The agent's collector uses the OpenTelemetry `docker_stats` receiver, so the met
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | CPU utilization of a task's container, where 100% is one full CPU core. |
+| `container.cpu.utilization` | % | CPU a task's container used over each 30-second interval, where 100% is one full CPU core. |
 
 ### Memory
 

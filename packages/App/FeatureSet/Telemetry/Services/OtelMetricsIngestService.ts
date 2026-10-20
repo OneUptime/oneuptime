@@ -172,6 +172,7 @@ import TelemetryFanInWriter, {
 import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_METRIC_NAME_PREFIX,
 } from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
+import ContainerStatsPercentUnit from "Common/Utils/Metrics/ContainerStatsPercentUnit";
 
 type MetricTimestamp = {
   nano: string;
@@ -276,8 +277,9 @@ const DOCKER_SWARM_TASK_METRIC_NAMES: ReadonlySet<string> = new Set([
  *
  *   cpuPercent      — already a percentage, whatever the unit string says
  *                     (the awsecscontainermetrics receiver's *.cpu.utilized).
- *   cpuRatio        — a [0, 1] ratio unless the unit is "%" (docker_stats
- *                     style container.cpu.utilization; see cpuValueToPercent).
+ *   cpuRatio        — a [0, 1] ratio unless the unit is "%" (docker_stats'
+ *                     container.cpu.utilization is a percent, read as "%"
+ *                     whatever unit it declared; see cpuValueToPercent).
  *   memoryMegabytes — megabytes (awsecscontainermetrics *.memory.utilized).
  *   memoryBytes     — bytes.
  */
@@ -1551,6 +1553,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 scopeMetric["scope"] as JSONObject | undefined,
               );
 
+              /*
+               * The instrumentation scope's name: for a collector receiver,
+               * its Go module path. It tells the container stats receivers'
+               * percents, which they declare "1", from the metrics of the
+               * same name other producers send (see metricUnit below).
+               */
+              const scopeName: string | undefined = this.readScopeName(
+                scopeMetric["scope"],
+              );
+
               let metricCounter: number = 0;
               for (const metric of metrics) {
                 try {
@@ -1588,7 +1600,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   const metricDescription: string = metric[
                     "description"
                   ] as string;
-                  const metricUnit: string = metric["unit"] as string;
+                  /*
+                   * The unit the values are in. The same as declared, except
+                   * for the docker_stats and podman_stats receivers'
+                   * percents (container.cpu.utilization,
+                   * container.memory.percent, ...): they send 0-100 but
+                   * declare "1", a 0-1 fraction, which every chart, monitor
+                   * and container row read as 100 times too much. Recorded as
+                   * "%" in the metric catalog and read as "%" by the
+                   * container snapshots below.
+                   */
+                  const metricUnit: string =
+                    ContainerStatsPercentUnit.getStoredUnit({
+                      scopeName: scopeName,
+                      metricName: metricName,
+                      declaredUnit: metric["unit"] as string | undefined,
+                    }) as string;
 
                   metricCatalog.addMetric({
                     name: metricName,
@@ -2243,10 +2270,28 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Docker-stats CPU → percent. The docker_stats receiver emits
-   * `container.cpu.utilization` as a [0, 1] ratio (unit "1") or a raw
-   * percent (unit "%"); scale accordingly. Kubernetes CPU uses
-   * `cpuCoresToPercent` below, which divides cores by node allocatable.
+   * An OTLP scope's name, or undefined when the scope (or its name) is
+   * missing or not a string.
+   */
+  private static readScopeName(scope: unknown): string | undefined {
+    if (!scope || typeof scope !== "object" || Array.isArray(scope)) {
+      return undefined;
+    }
+    const name: unknown = (scope as JSONObject)["name"];
+    return typeof name === "string" ? name : undefined;
+  }
+
+  /*
+   * Container CPU → percent of one core, for the container rows.
+   *
+   * The docker_stats receiver's container.cpu.utilization is a percent of
+   * one core (100% is one full core) declared "1", and its unit has
+   * already been read as "%" by the time it gets here (the metric loop,
+   * ContainerStatsPercentUnit): it is taken as it is. Multiplying it by 100,
+   * as this did for every "1", put a container using 7% of a core in its
+   * row as 700%. A "1" that is still "1" here came from another producer of
+   * the name, and means a 0-1 fraction of a core: times 100. Kubernetes CPU
+   * uses `cpuCoresToPercent` below, which divides cores by node allocatable.
    */
   private static cpuValueToPercent(
     rawValue: number,

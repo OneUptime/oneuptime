@@ -116,7 +116,7 @@ flowchart TB
 
 | メトリクス | 単位 | 説明 |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | タスクのコンテナの CPU 使用率。100% が CPU 1 コア分です。 |
+| `container.cpu.utilization` | % | 30 秒間隔ごとのタスクのコンテナの CPU 使用率。100% が CPU 1 コア分です。 |
 
 ### メモリ
 

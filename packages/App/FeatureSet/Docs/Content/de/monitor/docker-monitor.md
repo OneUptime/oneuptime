@@ -100,7 +100,7 @@ Sofern die Tabelle nichts anderes sagt, löst ein Kriterium nur aus, wenn die Be
 **Schweregrad** ist die Bezeichnung, die die Auswahl anzeigt. Vorfall und Warnung, die eine Vorlage erstellt, beginnen mit dem schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie in den Kriterien.
 
 > [!NOTE]
-> `container.cpu.utilization` ist die Zahl, die `docker stats` ausgibt: 100 % ist ein voller CPU-Kern, nicht der ganze Host, ein Container mit zwei Kernen liest also 200. Auf einem Host mit mehreren Kernen ist der Schwellenwert 80 ein CPU-Budget, kein Anteil an der Maschine.
+> `container.cpu.utilization` ist die Zahl, die `docker stats` ausgibt, gemittelt über das 30-Sekunden-Intervall des Agenten: 100 % ist ein voller CPU-Kern, nicht der ganze Host, ein Container mit zwei Kernen liest also 200. Auf einem Host mit mehreren Kernen ist der Schwellenwert 80 ein CPU-Budget, kein Anteil an der Maschine.
 
 > [!NOTE]
 > `container.memory.percent` teilt durch das Speicherlimit des Containers, wenn eines gesetzt ist, und sonst durch den gesamten Arbeitsspeicher **des Hosts**. Prüfen Sie, ob der Container mit `--memory` gestartet wurde, bevor Sie eine Überschreitung als bevorstehenden Out-of-Memory-Kill behandeln.
@@ -119,7 +119,7 @@ Der Agent verwendet den OpenTelemetry-Receiver `docker_stats` am Docker-Socket, 
 
 | Metrik | Beschreibung |
 | --- | --- |
-| `container.cpu.utilization` | CPU-Auslastung, wobei 100 % ein voller CPU-Kern ist (die Spalte CPU% von `docker stats`). |
+| `container.cpu.utilization` | CPU-Nutzung in jedem 30-Sekunden-Intervall, wobei 100 % ein voller CPU-Kern ist (die Spalte CPU% von `docker stats`). |
 | `container.cpu.usage.total` | Seit dem Start des Containers verbrauchte CPU-Zeit, in Nanosekunden. Ein Zähler über die gesamte Lebensdauer. |
 | `container.cpu.throttling_data.throttled_time` | Nanosekunden, die der Container seit seinem Start durch sein CPU-Limit gedrosselt wurde. Ein Zähler über die gesamte Lebensdauer. |
 | `container.cpu.throttling_data.throttled_periods` | Drosselungsperioden seit dem Start des Containers. Ein Zähler über die gesamte Lebensdauer. |
@@ -282,7 +282,7 @@ OneUptime erkennt einen Host an `resource.host.name`, den der Agent aus `DOCKER_
 :::
 
 :::details Eine CPU-Warnung löst nie aus
-Gruppieren Sie die Abfrage nach `resource.container.name` und aggregieren Sie mit **Maximum**, wie es die Vorlage **High Container CPU Usage** tut. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert.
+Gruppieren Sie die Abfrage nach `resource.container.name` und aggregieren Sie mit **Maximum**, wie es die Vorlage **High Container CPU Usage** tut. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/docker-host#agent-aktualisieren).
 :::
 
 :::details Die Vorlage für Neustartschleifen oder Drosselung warnt nicht mehr

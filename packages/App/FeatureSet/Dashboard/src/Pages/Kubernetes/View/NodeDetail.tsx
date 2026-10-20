@@ -123,7 +123,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   /*
    * `k8s.node.cpu.utilization` is cores in use (not a ratio). Divide by
    * this node's allocatable CPU (from the node object) to render a true
-   * percentage. Falls back to raw cores until the node object loads.
+   * percentage. Falls back to percent of one core until the node object
+   * loads.
    */
   const nodeAllocatableCores: number = nodeObject
     ? KubernetesCpuUtils.parseCpuToCores(nodeObject.status.allocatable["cpu"])

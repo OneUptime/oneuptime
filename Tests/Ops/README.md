@@ -611,6 +611,47 @@ daemon whose floor is low enough to accept it) is skipped with a reason rather
 than failed. A guard test that always runs reports why the suite is idle, so it
 cannot rot into permanent silence.
 
+### `ContainerAgentCpuUtilization.test.js`
+
+The Docker, Podman and Docker Swarm agents' `container.cpu.utilization` and
+`container.memory.percent`. The `docker_stats` receiver computes its own CPU
+percent from one stats sample: since collector 0.150.0 its Docker client asks
+for a one-shot sample, which carries no previous reading (and Podman's
+Docker-compatible API never sends one), so it divides all the CPU a container
+used since it started by all the CPU the host used since it booted - a flat
+line near zero that never follows the load. So the agents turn it off and build
+`container.cpu.utilization` from `container.cpu.usage.total`: a copy,
+`cumulative_to_delta` (CPU time since the previous scrape), `delta_to_rate` (per
+second) and a scale to percent of one core with the unit `%`. The same last
+processor gives `container.memory.percent` - a 0-100 figure the receiver labels
+`1`, the unit of a 0-1 fraction - the unit `%`, and a description that says
+what it is a percent of (the container's memory limit, or the host's memory
+when the container has none).
+
+The suite holds the three configs to that: the receiver's own figure off and
+the counter it is built from on, the four processors exactly as written and
+identical in all three agents, run in order right after `memory_limiter` in the
+metrics pipeline only, under the names collector 0.161.0 gives them (not the
+deprecated `cumulativetodelta` / `deltatorate` aliases), and the arithmetic:
+10^9 ns of CPU per second is 100%, and a quarter of a core, one and a half
+cores, idle, a restart and a burst read 25, 150, 0, nothing and 30%.
+
+### `container-agent-cpu-utilization-behaviour.sh`
+
+What those processors DO, in the collector the agents are built FROM. For each
+agent it lifts them out of the config as shipped and posts six 30-second scrapes
+of two containers to them, in order (25%, 150%, 0%, a restart that sends
+nothing, 10%; and 1% throughout - the customer's container), then runs the
+agent's whole metrics pipeline against the machine's Docker daemon, with a
+container held to half a core by its CPU quota: `container.cpu.utilization`
+reads 50% (within 15 points), equals the rate of `container.cpu.usage.total`,
+and `container.memory.percent` is usage over limit, in `%`; in both parts each
+percent carries the description the agents set. The Podman agent's
+receiver is pointed at the Docker socket, so that run checks its pipeline, not
+Podman's API. It needs docker; the "Ops Config Test" workflow runs it after
+`agent-cpu-names-behaviour.sh`. `Utils/ContainerAgentCpuBehaviour.js` builds its
+configs and payloads and checks what comes out.
+
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 
 The runtime counterpart of the query-event check above. It runs each query-event
@@ -1286,6 +1327,11 @@ copies of these helpers as written; new image release tests use this module.
 one run, for the suites that work out a concurrency group: context paths and
 `||` only (a missing path reads as null, as on GitHub). It throws on anything
 else rather than misread it.
+
+`Utils/ContainerAgentCpuBehaviour.js` is the node half of
+`container-agent-cpu-utilization-behaviour.sh`: it writes the collector configs
+and OTLP payloads that script runs, reads what the file exporter wrote (a line
+still being written is left for the next read) and checks it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

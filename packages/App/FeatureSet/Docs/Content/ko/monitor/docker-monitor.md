@@ -100,7 +100,7 @@ flowchart TB
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
 
 > [!NOTE]
-> `container.cpu.utilization`은 `docker stats`가 출력하는 수치입니다. 100%는 호스트 전체가 아니라 CPU 코어 하나이므로, 코어 두 개를 쓰는 컨테이너는 200으로 나옵니다. 멀티코어 호스트에서 임계값 80은 머신에 대한 비율이 아니라 CPU 예산입니다.
+> `container.cpu.utilization`은 `docker stats`가 출력하는 수치를 에이전트의 30초 간격으로 평균한 값입니다. 100%는 호스트 전체가 아니라 CPU 코어 하나이므로, 코어 두 개를 쓰는 컨테이너는 200으로 나옵니다. 멀티코어 호스트에서 임계값 80은 머신에 대한 비율이 아니라 CPU 예산입니다.
 
 > [!NOTE]
 > `container.memory.percent`는 컨테이너에 메모리 한도가 있으면 그 한도로, 없으면 **호스트** 의 전체 메모리로 나눕니다. 초과를 곧 닥칠 메모리 부족 종료로 보기 전에, 컨테이너가 `--memory`로 시작되었는지 확인하세요.
@@ -119,7 +119,7 @@ flowchart TB
 
 | 메트릭 | 설명 |
 | --- | --- |
-| `container.cpu.utilization` | CPU 사용률. 100%가 CPU 코어 하나입니다(`docker stats`의 CPU% 열). |
+| `container.cpu.utilization` | 30초 간격마다의 CPU 사용률. 100%가 CPU 코어 하나입니다(`docker stats`의 CPU% 열). |
 | `container.cpu.usage.total` | 컨테이너가 시작된 이후 쓴 CPU 시간(나노초). 수명 전체 카운터. |
 | `container.cpu.throttling_data.throttled_time` | 시작 이후 컨테이너가 CPU 한도로 스로틀링된 나노초. 수명 전체 카운터. |
 | `container.cpu.throttling_data.throttled_periods` | 컨테이너가 시작된 이후의 스로틀링 기간 수. 수명 전체 카운터. |
@@ -282,7 +282,7 @@ OneUptime은 `resource.host.name`으로 호스트를 식별하며, 에이전트�
 :::
 
 :::details CPU 알림이 작동하지 않음
-**High Container CPU Usage** 템플릿처럼 쿼리를 `resource.container.name`으로 그룹화하고 **최대** 로 집계하세요. 바쁜 호스트에서 모든 컨테이너를 평균하면 유휴 컨테이너 때문에 값이 낮아집니다. 100%는 코어 하나를 뜻하므로, 여러 코어를 쓸 수 있는 컨테이너에는 더 높은 임계값이 필요합니다.
+**High Container CPU Usage** 템플릿처럼 쿼리를 `resource.container.name`으로 그룹화하고 **최대** 로 집계하세요. 바쁜 호스트에서 모든 컨테이너를 평균하면 유휴 컨테이너 때문에 값이 낮아집니다. 100%는 코어 하나를 뜻하므로, 여러 코어를 쓸 수 있는 컨테이너에는 더 높은 임계값이 필요합니다. 부하와 관계없이 컨테이너 CPU가 평평한 선이라면 호스트에서 오래된 에이전트가 실행 중입니다. [에이전트를 업그레이드하세요](/docs/telemetry/docker-host#에이전트-업그레이드).
 :::
 
 :::details 재시작 루프나 스로틀링 템플릿이 알림을 멈춤

@@ -84,6 +84,16 @@ const getFetchRelevantState: (data: MetricViewData) => unknown = (
           metricQueryData: queryConfig.metricQueryData,
           metricVariable: queryConfig.metricAliasData?.metricVariable,
           legendUnit: queryConfig.metricAliasData?.legendUnit,
+          /*
+           * Whether the query has its own transformValue, too: such a query
+           * is fetched without that rescaling (MetricResultUnitConverter)
+           * because its transform makes the legend unit itself. A transform
+           * that arrives after the first fetch (a page that builds it from
+           * data it loads) would otherwise run on values already rescaled,
+           * and scale them twice. Only whether there is one: the function is
+           * made anew on every render.
+           */
+          hasTransformValue: Boolean(queryConfig.transformValue),
         };
       },
     ),
