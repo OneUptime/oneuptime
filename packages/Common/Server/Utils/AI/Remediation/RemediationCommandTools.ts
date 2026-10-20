@@ -138,6 +138,12 @@ import ChangeRollback, {
   buildKubernetesRollbackCommand,
   describeKubernetesRollback,
 } from "./ChangeRollback";
+import GitOpsInspector, {
+  GitOpsCommandInspection,
+  GitOpsReadCluster,
+} from "./GitOpsInspector";
+import { AiRemediationRevertWatch } from "../../../../Types/AutoRemediation/AiRemediationGitOps";
+import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwnership";
 
 /*
  * The run-scoped command toolkit for a RemediationExecution AI run.
@@ -699,11 +705,16 @@ export default class RemediationCommandToolkit {
     parsed.command.policyVerdict =
       AiRemediationCommandPolicyVerdict.RequiresApproval;
     parsed.command.rolledBackChangeId = target.change.id;
+    await this.inspectGitOps(parsed.command);
     this.pinnedRollback = parsed.command;
 
     return {
       success: true,
-      textForLlm: `Recorded "${parsed.command.command}" as the first step of the plan for one-click human approval. Add any other fix with propose_remediation_commands — it goes after the rollback; do not repeat the rollback there. Then finish your analysis.`,
+      textForLlm: `Recorded "${parsed.command.command}" as the first step of the plan for one-click human approval. Add any other fix with propose_remediation_commands — it goes after the rollback; do not repeat the rollback there. Then finish your analysis.${
+        parsed.command.gitOps?.putsBack
+          ? ` Note: ${parsed.command.gitOps.summary} The lasting rollback is reverting that deploy where it is declared - say so in your analysis.`
+          : ""
+      }`,
       result: {
         dataForLlm: `Proposed the rollback ${parsed.command.command}.`,
         rowCount: 1,
@@ -1637,6 +1648,17 @@ export default class RemediationCommandToolkit {
 
     const command: AiRemediationCommand = parsed.command;
 
+    /*
+     * Who declares the object this change names (Argo CD, Flux or a Helm
+     * release), read before anything decides whether it runs, so the
+     * command carries it wherever it ends up: run, refused or proposed. The
+     * object as it is now is also what the change is later compared with.
+     */
+    const inspection: GitOpsCommandInspection | null =
+      command.stepType === RunbookStepType.Kubectl
+        ? await this.inspectGitOps(command)
+        : null;
+
     if (command.stepType === RunbookStepType.Kubectl) {
       /*
        * Reads belong to run_kubectl. Sent through this tool a read would be
@@ -1724,10 +1746,12 @@ export default class RemediationCommandToolkit {
      * alternative or leave the action to its final recommendations.
      */
     const gateFailure: FullAutoRefusal | null =
-      this.getFullAutoRefusal(command);
+      this.getFullAutoRefusal(command) || this.getGitOpsRefusal(command);
     if (gateFailure) {
       this.recordNeedingApproval(command, gateFailure);
-      return this.failure(gateFailure.text);
+      return this.failure(
+        `${gateFailure.text}${this.describePutBackForLlm(command, gateFailure)}`,
+      );
     }
 
     command.policyVerdict = AiRemediationCommandPolicyVerdict.AutoApproved;
@@ -1837,7 +1861,11 @@ export default class RemediationCommandToolkit {
       };
 
     try {
-      return await this.recordAndRun(command, releaseClusterSlotLock);
+      return await this.recordAndRun(
+        command,
+        releaseClusterSlotLock,
+        inspection,
+      );
     } finally {
       await releaseClusterSlotLock();
     }
@@ -1850,6 +1878,8 @@ export default class RemediationCommandToolkit {
   private async recordAndRun(
     command: AiRemediationCommand,
     afterEnqueue: () => Promise<void>,
+    // The kubectl change's object as it was read before it ran.
+    inspection: GitOpsCommandInspection | null = null,
   ): Promise<ToolCallOutcome> {
     command.wasAutoExecuted = true;
     command.execution = {
@@ -2004,6 +2034,15 @@ export default class RemediationCommandToolkit {
           )}\n${KUBECTL_UNFINISHED_CHECK_FIRST}`;
         } else {
           outcomeText = KubectlJobRunner.describeForLlm(outcome);
+        }
+
+        if (outcome.succeeded && outcome.runState === KubectlRunState.Ran) {
+          // What the change did to its object, for verification to watch.
+          await this.recordRevertWatch(command, inspection);
+
+          if (command.gitOps) {
+            outcomeText = `${outcomeText}\nGitOps: ${command.gitOps.summary}`;
+          }
         }
       } else if (command.stepType === RunbookStepType.ResourceCommand) {
         /*
@@ -2764,6 +2803,131 @@ export default class RemediationCommandToolkit {
    * approvalReason and are never kept. The same command twice is kept
    * once; at most a plan's worth is kept.
    */
+  /*
+   * ------------------------------------------------------------------
+   * GitOps: who declares what a kubectl change touches
+   * ------------------------------------------------------------------
+   */
+
+  // The read access of the cluster a kubectl command names, as the run sees it.
+  private getReadCluster(
+    command: AiRemediationCommand,
+  ): GitOpsReadCluster | null {
+    const cluster: KubernetesClusterAiAccessStatus | undefined =
+      this.findClusterTarget(command.kubernetesClusterId);
+
+    return cluster ? GitOpsInspector.toReadCluster(cluster) : null;
+  }
+
+  /*
+   * Reads the object a kubectl change names (the workload, for an object a
+   * controller made) and records on the command who declares it and what
+   * that means for this change. Best effort: a read that fails leaves the
+   * command exactly as it was.
+   */
+  private async inspectGitOps(
+    command: AiRemediationCommand,
+  ): Promise<GitOpsCommandInspection | null> {
+    const cluster: GitOpsReadCluster | null = this.getReadCluster(command);
+
+    if (!cluster) {
+      return null;
+    }
+
+    const inspection: GitOpsCommandInspection | null =
+      await GitOpsInspector.safely("reading who declares a kubectl change's object", () => {
+        return GitOpsInspector.inspectCommand({
+          projectId: this.options.projectId,
+          aiRunId: this.options.aiRunId,
+          cluster,
+          command: command.command,
+          stepIdPrefix: `ai-gitops-${command.sequence}`,
+        });
+      });
+
+    if (inspection?.gitOps) {
+      command.gitOps = inspection.gitOps;
+    }
+
+    return inspection;
+  }
+
+  /*
+   * A change Argo CD or Flux puts back never runs on its own, in any mode —
+   * Bypass approval and the allowlist included: run unattended it would be
+   * undone within seconds (Argo CD with self-heal) or at the next
+   * reconciliation (Flux), and verification would judge a fix that is no
+   * longer there. It is kept for one-click approval as a stopgap, with the
+   * lasting fix named. A Helm release puts a change back only at its next
+   * upgrade, so that change runs as the cluster's mode says, and says it
+   * does not last.
+   */
+  private getGitOpsRefusal(
+    command: AiRemediationCommand,
+  ): FullAutoRefusal | null {
+    const gitOps: AiRemediationCommand["gitOps"] = command.gitOps;
+
+    if (!gitOps || !gitOps.putsBack || !gitOps.reconcilesOnItsOwn) {
+      return null;
+    }
+
+    const owner: string = describeGitOpsOwner(gitOps);
+
+    return {
+      text: `${gitOps.summary} So it was NOT executed: a change ${owner} puts back never runs on its own, in any mode — Bypass approval and the cluster's allowlist included. ${this.describeWhereRefusedChangesGo()} Do NOT look for another kubectl change of what git declares for ${gitOps.objectKind}/${gitOps.objectName}: it would be put back just the same. A change git does not declare (a rollout restart, deleting one failing pod) still runs as usual.`,
+      approvalReason: `${owner} declares ${gitOps.objectKind}/${gitOps.objectName} and puts this change back — a stopgap until the same change is made where it is declared`,
+    };
+  }
+
+  /*
+   * The owner's sentence, added to a refusal the GitOps gate did not write:
+   * even approved, the change would be put back.
+   */
+  private describePutBackForLlm(
+    command: AiRemediationCommand,
+    refusal: FullAutoRefusal,
+  ): string {
+    if (!command.gitOps?.putsBack || refusal.text.includes(command.gitOps.summary)) {
+      return "";
+    }
+
+    return ` Note: ${command.gitOps.summary}`;
+  }
+
+  /*
+   * After a kubectl change ran: read its object again and record what the
+   * change did to it (KubectlRevertWatch), so verification notices when it
+   * is put back. Needs the read from before the change; best effort.
+   */
+  private async recordRevertWatch(
+    command: AiRemediationCommand,
+    inspection: GitOpsCommandInspection | null,
+  ): Promise<void> {
+    const cluster: GitOpsReadCluster | null = this.getReadCluster(command);
+
+    if (!cluster || !inspection) {
+      return;
+    }
+
+    const watch: AiRemediationRevertWatch | null =
+      await GitOpsInspector.safely(
+        "reading a kubectl change's object after it ran",
+        () => {
+          return GitOpsInspector.captureRevertWatch({
+            projectId: this.options.projectId,
+            aiRunId: this.options.aiRunId,
+            cluster,
+            inspection,
+            stepId: `ai-gitops-${command.sequence}-after`,
+          });
+        },
+      );
+
+    if (watch) {
+      command.revertWatch = watch;
+    }
+  }
+
   private recordNeedingApproval(
     command: AiRemediationCommand,
     refusal: FullAutoRefusal,
@@ -3487,6 +3651,24 @@ export default class RemediationCommandToolkit {
       );
     }
 
+    /*
+     * Who declares what each kubectl change touches, read now so the card
+     * shows it and the model writes its analysis knowing it.
+     */
+    const gitOpsNotes: Array<string> = [];
+
+    for (const command of commands) {
+      if (command.stepType !== RunbookStepType.Kubectl) {
+        continue;
+      }
+
+      await this.inspectGitOps(command);
+
+      if (command.gitOps) {
+        gitOpsNotes.push(`Command ${command.sequence}: ${command.gitOps.summary}`);
+      }
+    }
+
     this.proposedPlan = { commands };
 
     return {
@@ -3495,7 +3677,13 @@ export default class RemediationCommandToolkit {
         this.pinnedRollback
           ? `, after the rollback recorded with ${ROLL_BACK_CHANGE_TOOL_NAME},`
           : ""
-      } for human approval. Now finish your analysis: explain the diagnosis, why these commands, the risks, and what to verify afterwards.`,
+      } for human approval. Now finish your analysis: explain the diagnosis, why these commands, the risks, and what to verify afterwards.${
+        gitOpsNotes.length > 0
+          ? `\n\nWho declares what these commands change:\n- ${gitOpsNotes.join(
+              "\n- ",
+            )}\nSay so in your analysis: a change its owner puts back is a stopgap, never the fix - name the lasting change (in git, or in the chart's values).`
+          : ""
+      }`,
       result: {
         dataForLlm: `Proposed ${commands.length} command(s) for approval.`,
         rowCount: commands.length,

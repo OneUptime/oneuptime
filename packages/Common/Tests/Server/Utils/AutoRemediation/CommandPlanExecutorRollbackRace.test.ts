@@ -19,7 +19,29 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import { Red500 } from "../../../../Types/BrandColors";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import GitOpsInspector from "../../../../Server/Utils/AI/Remediation/GitOpsInspector";
+
+/*
+ * An approved kubectl change's object is read through the cluster before
+ * and after it runs (GitOpsInspector: CommandPlanExecutorGitOps.test.ts
+ * covers it); these tests count only the changes themselves.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(GitOpsInspector, "inspectCommandOnCluster")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(GitOpsInspector, "captureRevertWatchOnCluster")
+    .mockResolvedValue(null);
+});
 
 /*
  * Contract under test — the approved-plan executor and the rollback arm
