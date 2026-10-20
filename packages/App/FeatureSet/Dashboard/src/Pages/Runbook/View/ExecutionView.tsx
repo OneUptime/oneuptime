@@ -628,6 +628,10 @@ const ExecutionView: FunctionComponent<
   const awaitingWait: RunbookStepWait | undefined =
     getRunbookStepWait(awaitingStep);
 
+  // Before the person who approved a step that waited for approval.
+  const approvedByLabel: string | undefined =
+    translator.translateText(APPROVED_BY_LABEL);
+
   const cardDescription: string =
     awaitingStep && awaitingWait
       ? translator.translateTemplate(getRunWaitingTemplate(awaitingWait), {
@@ -1002,9 +1006,7 @@ const ExecutionView: FunctionComponent<
                                     >
                                       {/* Kept on one line beside the person, as a phone narrows it. */}
                                       <span className="whitespace-nowrap">
-                                        {translator.translateText(
-                                          APPROVED_BY_LABEL,
-                                        )}
+                                        {approvedByLabel}
                                       </span>
                                       {stepUsers.get(
                                         stepExec.approvedByUserId,
