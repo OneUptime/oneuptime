@@ -43,8 +43,7 @@ Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de notificaciones
 - **Nombre** y **Descripción**: para qué es la cuenta, por ejemplo «Línea de soporte».
 - **SID de cuenta de Twilio**: de la consola de Twilio. Empieza por `AC`.
 - **Token de autenticación de Twilio**: de la consola de Twilio.
-- **Número de teléfono principal de Twilio**: un número de esa cuenta, para los SMS y las llamadas que envía.
-- **Números de teléfono secundarios de Twilio**: opcional. Números que envían en lugar del principal a los destinatarios de su país.
+- **Número de teléfono principal de Twilio**: un número de esa cuenta, para los SMS y las llamadas que envía. En **Más campos**, opcionales: números para destinatarios de otros países y un número para SMS si el número principal solo puede hacer llamadas (consulta [Números distintos para llamadas y SMS](/docs/self-hosted/twilio-integration#números-distintos-para-llamadas-y-sms)).
 - **Establecer como predeterminado del proyecto**: activado para la primera configuración de Twilio del proyecto, de modo que los SMS y las llamadas a los miembros del proyecto también pasen por esta cuenta. Desactívalo si esta cuenta es solo para llamadas entrantes.
 
 ### Crea la política

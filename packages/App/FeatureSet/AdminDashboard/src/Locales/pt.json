@@ -490,7 +490,9 @@
       "callSms": {
         "cardTitle": "Configuração do Twilio",
         "cardDescription": "Isso será usado para fazer chamadas e enviar SMS.",
-        "editButton": "Editar config Twilio"
+        "editButton": "Editar config Twilio",
+        "smsSameAsPrimary": "Igual ao número principal",
+        "smsSameAsSecondary": "Iguais aos números secundários"
       },
       "whatsapp": {
         "metaCardTitle": "Configurações Meta WhatsApp",
@@ -1011,5 +1013,11 @@
   "{{count}} people": "{{count}} pessoas",
   "{{count}} people_one": "{{count}} pessoa",
   "Docker Compose guide": "Guia do Docker Compose",
-  "Kubernetes guide": "Guia do Kubernetes"
+  "Kubernetes guide": "Guia do Kubernetes",
+  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "As chamadas saem deste número, e os SMS também, a menos que você defina um número de telefone SMS em Mais campos.",
+  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Números dos quais os SMS são enviados em vez dos secundários quando correspondem ao código de país do destinatário.",
+  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Envie os SMS deste número em vez do principal, se o número principal só puder fazer chamadas. Em Singapura, por exemplo, as chamadas precisam de um número nacional e os SMS de um número móvel.",
+  "Twilio SMS Phone Number": "Número de telefone SMS do Twilio",
+  "Twilio SMS Secondary Phone Numbers": "Números de telefone SMS secundários do Twilio",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} não é um número de telefone. Escreva cada número com o código do país e separe-os com vírgulas, como +6581234567, +447700900123."
 }

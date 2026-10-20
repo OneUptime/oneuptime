@@ -43,8 +43,7 @@ Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställninga
 - **Namn** och **Beskrivning**: vad kontot används till, till exempel "Supportlinje".
 - **Twilio Account SID**: från Twilio Console. Det börjar med `AC`.
 - **Twilio Auth Token**: från Twilio Console.
-- **Twilio primärt telefonnummer**: ett nummer på det kontot, för de SMS och samtal som det skickar.
-- **Twilio sekundära telefonnummer**: valfritt. Nummer som skickar i stället för det primära till mottagare i sitt eget land.
+- **Twilio primärt telefonnummer**: ett nummer på det kontot, för de SMS och samtal som det skickar. Under **Fler fält**, valfritt: nummer för mottagare i andra länder och ett SMS-nummer för ett primärt nummer som bara kan ringa (se [Separata nummer för samtal och SMS](/docs/self-hosted/twilio-integration#separata-nummer-för-samtal-och-sms)).
 - **Ange som projektstandard**: på för projektets första Twilio-konfiguration, så att SMS och samtal till projektets medlemmar också går via det här kontot. Stäng av det om kontot bara är för inkommande samtal.
 
 ### Skapa policyn

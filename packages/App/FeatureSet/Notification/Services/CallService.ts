@@ -10,6 +10,7 @@ import CallRequest, {
 } from "Common/Types/Call/CallRequest";
 import CallStatus from "Common/Types/Call/CallStatus";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -226,11 +227,11 @@ export default class CallService {
 
       callLog.toNumber = callRequest.to;
 
-      const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
+      // One of the numbers the config makes calls from, never an SMS one.
+      const fromNumber: Phone = TwilioPhoneNumbers.pickSenderNumber({
+        config: twilioConfig,
+        kind: TwilioMessageKind.Call,
         to: callRequest.to,
-        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
-        secondaryPhoneNumbersToPickFrom:
-          twilioConfig.secondaryPhoneNumbers || [],
       });
       callLog.fromNumber = fromNumber;
       callLog.callData =

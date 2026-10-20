@@ -21,7 +21,7 @@ Ouvrez la [Twilio Console](https://console.twilio.com/) et copiez votre **Accoun
 
 ### Obtenir un numéro de téléphone
 
-Obtenez un numéro de téléphone Twilio doté des capacités SMS et/ou vocales dont vous avez besoin. Utilisez le format E.164, indicatif du pays compris, pour les numéros d'expéditeur et de destinataire.
+Obtenez un numéro de téléphone Twilio doté des capacités SMS et/ou vocales dont vous avez besoin ; la Twilio Console indique ce que chaque numéro peut faire. Utilisez le format E.164, indicatif du pays compris, pour les numéros d'expéditeur et de destinataire. Là où aucun numéro ne fait les deux, prenez-en un pour les appels et un pour les SMS : voir [Des numéros distincts pour les appels et les SMS](#des-numéros-distincts-pour-les-appels-et-les-sms).
 
 ### Vérifier les limites du compte
 
@@ -44,7 +44,7 @@ Pour ajouter une configuration de projet :
 :::steps
 1. Allez dans **Paramètres du projet > Notifications > Paramètres de notification**.
 2. Dans **Configuration Twilio**, sélectionnez **Créer une configuration Twilio**.
-3. Saisissez un nom, **SID de compte Twilio**, **Jeton d'authentification Twilio** et **Numéro de téléphone principal Twilio**. Saisissez éventuellement des **Numéros de téléphone secondaires Twilio** séparés par des virgules pour d'autres pays.
+3. Saisissez un nom, **SID de compte Twilio**, **Jeton d'authentification Twilio** et **Numéro de téléphone principal Twilio**. Sous **Plus de champs**, saisissez éventuellement des **Numéros de téléphone secondaires Twilio** séparés par des virgules pour d'autres pays, et un **Numéro de téléphone SMS Twilio** si le numéro principal ne peut pas envoyer de SMS.
 4. **Définir par défaut pour le projet** est activé pour la première configuration du projet : les SMS et les appels vers les membres du projet, notifications d'astreinte comprises, passent par elle dès que vous enregistrez. Désactivez-le si ce compte ne sert qu'aux pages de statut ou aux appels entrants. Une configuration ajoutée ensuite commence avec l'interrupteur désactivé : activez-le, ou choisissez **Définir par défaut pour le projet** dans le menu de la ligne de la configuration, pour y faire passer ces messages. Une requête API qui omet `isProjectDefault` est traitée de la même manière.
 5. Enregistrez. Une seule configuration peut être la configuration par défaut du projet. Les pages de statut utilisent la configuration explicitement attribuée à chacune d'elles.
 
@@ -53,6 +53,22 @@ Pour ajouter une configuration de projet :
 :::
 
 Pour une configuration par défaut à l'échelle de l'installation, un administrateur peut plutôt ouvrir **Admin Dashboard > Paramètres > Appel et SMS**, modifier les identifiants et les numéros de téléphone Twilio, puis enregistrer. Les notifications des membres utilisent cette configuration globale quand leur projet n'a pas de configuration par défaut. Gardez l'Auth Token confidentiel.
+
+### Des numéros distincts pour les appels et les SMS
+
+Un numéro Twilio peut passer des appels et envoyer des SMS, ou seulement l'un des deux, et dans certains pays aucun numéro ne fait les deux. À Singapour, par exemple, les appels nécessitent un numéro national (+65 3 ou +65 6) et les SMS un numéro mobile (+65 8). Une configuration, celle d'un projet ou celle de l'installation, peut envoyer les SMS depuis ses propres numéros, sous **Plus de champs** :
+
+| Champ | Ce qui part de ce numéro |
+| --- | --- |
+| **Numéro de téléphone principal Twilio** | Les appels, et les SMS aussi tant qu'aucun numéro SMS n'est défini |
+| **Numéro de téléphone SMS Twilio** | Les SMS, à la place du numéro principal |
+| **Numéros de téléphone secondaires Twilio** | Les appels et les SMS vers les destinataires du pays de chaque numéro |
+| **Numéros de téléphone SMS secondaires Twilio** | Les SMS vers les destinataires du pays de chaque numéro, à la place des numéros secondaires |
+
+Une configuration sans numéros SMS envoie les SMS depuis les mêmes numéros que les appels. **Envoyer un SMS de test** et **Envoyer un appel de test** partent du numéro qu'utiliserait un vrai SMS ou un vrai appel vers le même destinataire. Si Twilio refuse un SMS avec l'erreur 21606, le numéro ne peut pas envoyer de SMS : définissez un **Numéro de téléphone SMS Twilio**.
+
+> [!NOTE]
+> À Singapour, un SMS envoyé depuis un numéro qui n'est pas enregistré auprès du SGNIC, ou depuis un numéro hors de Singapour, arrive avec l'expéditeur `Likely-SCAM`. Enregistrez le numéro mobile auprès du SGNIC et de Twilio avant de compter dessus ; voir [les directives SMS de Twilio pour Singapour](https://www.twilio.com/en-us/guidelines/sg/sms).
 
 ## 3. Configurer l'accès réseau
 
@@ -127,6 +143,7 @@ Pour le développement, le [guide de test des webhooks](https://www.twilio.com/d
 | Symptôme | Où regarder |
 | --- | --- |
 | Rien n'est envoyé | Les identifiants, les capacités du numéro, les restrictions du compte et la connectivité sortante. |
+| Twilio refuse les SMS avec l'erreur 21606 | Le numéro ne peut pas envoyer de SMS. Définissez un **Numéro de téléphone SMS Twilio** : voir [Des numéros distincts pour les appels et les SMS](#des-numéros-distincts-pour-les-appels-et-les-sms). |
 | Le SMS ou l'appel arrive, mais son statut ou l'acquittement ne se met pas à jour | L'URL de callback et les journaux de l'ingress public. Le [guide de Twilio sur les échecs de récupération HTTP](https://www.twilio.com/docs/api/errors/11200) aide à diagnostiquer les callbacks injoignables, les problèmes TLS et les erreurs HTTP. |
 
 Un appel de test réussi ne prouve pas à lui seul que les callbacks sont joignables.

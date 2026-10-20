@@ -43,8 +43,7 @@ Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**. Klikk
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
 - **Twilio Account SID**: fra Twilio Console. Den starter med `AC`.
 - **Twilio Auth Token**: fra Twilio Console.
-- **Twilio primært telefonnummer**: et nummer på den kontoen, for SMS-ene og anropene den sender.
-- **Twilio sekundære telefonnumre**: valgfritt. Numre som sender i stedet for det primære til mottakere i sitt eget land.
+- **Twilio primært telefonnummer**: et nummer på den kontoen, for SMS-ene og anropene den sender. Under **Flere felt**, valgfritt: numre for mottakere i andre land og et SMS-nummer for et primært nummer som bare kan ringe (se [Egne numre for anrop og SMS](/docs/self-hosted/twilio-integration#egne-numre-for-anrop-og-sms)).
 - **Angi som prosjektstandard**: på for prosjektets første Twilio-konfigurasjon, så SMS-er og anrop til prosjektets medlemmer også går gjennom denne kontoen. Slå det av hvis kontoen bare er for innkommende anrop.
 
 ### Opprett policyen

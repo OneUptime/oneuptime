@@ -1,6 +1,9 @@
 import SmsService from "../Services/SmsService";
 import crypto from "crypto";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
+import { PROJECT_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
+import TwilioSendError from "../Utils/TwilioSendError";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -65,7 +68,10 @@ router.post(
         isSensitive: (body["isSensitive"] as boolean) || false,
         userOnCallLogTimelineId:
           (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
-        customTwilioConfig: body["customTwilioConfig"] as any,
+        // Read back with its numbers as lists (TwilioConfigJSON).
+        customTwilioConfig: TwilioConfigJSON.fromJSON(
+          body["customTwilioConfig"],
+        ),
         incidentId: (body["incidentId"] as ObjectID) || undefined,
         alertId: (body["alertId"] as ObjectID) || undefined,
         scheduledMaintenanceId:
@@ -301,12 +307,9 @@ router.post(
           props: {
             isRoot: true,
           },
+          // Its SMS numbers too: the test goes out from the one an SMS would.
           select: {
-            _id: true,
-            twilioAccountSID: true,
-            twilioAuthToken: true,
-            twilioPrimaryPhoneNumber: true,
-            twilioSecondaryPhoneNumbers: true,
+            ...PROJECT_TWILIO_CONFIG_SELECT,
             projectId: true,
           },
         });
@@ -380,6 +383,17 @@ router.post(
         );
       } catch (err) {
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+        /*
+         * Twilio refusing the SMS says what is wrong with the config - a
+         * number that cannot send SMS, a country not enabled - in words the
+         * person testing it can act on (TwilioSendError), so they are passed
+         * on. Anything else is not theirs to fix.
+         */
+        if (TwilioSendError.isActionableRefusal(err)) {
+          throw err;
+        }
+
         throw new BadDataException(
           "Failed to send test SMS. Please check the twilio logs for more details.",
         );

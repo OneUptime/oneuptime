@@ -490,7 +490,9 @@
       "callSms": {
         "cardTitle": "Twilio-konfiguration",
         "cardDescription": "Dette vil blive brugt til at foretage opkald og sende SMS.",
-        "editButton": "Rediger Twilio-konfig"
+        "editButton": "Rediger Twilio-konfig",
+        "smsSameAsPrimary": "Samme som det primære nummer",
+        "smsSameAsSecondary": "Samme som de sekundære numre"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp-indstillinger",
@@ -1011,5 +1013,11 @@
   "{{count}} people": "{{count}} personer",
   "{{count}} people_one": "{{count}} person",
   "Docker Compose guide": "Docker Compose-vejledning",
-  "Kubernetes guide": "Kubernetes-vejledning"
+  "Kubernetes guide": "Kubernetes-vejledning",
+  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "Opkald foretages fra dette nummer, og SMS'er sendes også herfra, medmindre du angiver et SMS-telefonnummer under Flere felter.",
+  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Numre, som SMS'er sendes fra i stedet for de sekundære numre, når de passer til modtagerens landekode.",
+  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Send SMS'er fra dette nummer i stedet for det primære, hvis det primære nummer kun kan foretage opkald. I Singapore kræver opkald for eksempel et nationalt nummer og SMS'er et mobilnummer.",
+  "Twilio SMS Phone Number": "Twilio-SMS-telefonnummer",
+  "Twilio SMS Secondary Phone Numbers": "Sekundære Twilio-SMS-telefonnumre",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} er ikke et telefonnummer. Skriv hvert nummer med landekode, og adskil numrene med kommaer, som +6581234567, +447700900123."
 }

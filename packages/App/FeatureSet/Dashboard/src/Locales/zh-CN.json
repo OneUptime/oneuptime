@@ -31514,5 +31514,11 @@
   "This server runs no global Runner: pick one of your Runners for this repository.": "此服务器未运行全局 Runner：请为此存储库选择您自己的一个 Runner。",
   "None. A repository picks its Runner in its settings in Code.": "无。存储库在代码中它的设置里选择自己的 Runner。",
   "What this Runner may do is set in OneUptime, not in the container: it adopts a change on its next heartbeat. For each code repository that picks this Runner, it clones the repository for AI and opens pull requests for review — it never writes to your default or protected branches, and never merges.": "此 Runner 可以做什么在 OneUptime 中设置，而不是在容器中：它会在下一次心跳时采用更改。对于每个选择此 Runner 的代码存储库，它会为 AI 克隆存储库并打开供审核的拉取请求——它从不写入您的默认分支或受保护分支，也从不合并。",
-  "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.": "此存储库选择的 Runner（{{runner}}）不在线。请检查它的容器是否在运行，或选择其他 Runner。"
+  "The Runner this repository picks, {{runner}}, is not online. Check that its container is running, or pick another Runner.": "此存储库选择的 Runner（{{runner}}）不在线。请检查它的容器是否在运行，或选择其他 Runner。",
+  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "通话从此号码拨出；除非在“更多字段”中设置了短信电话号码，否则短信也从此号码发送。",
+  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "当与收件人的国家代码匹配时，用于替代备用号码发送短信的号码。",
+  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "如果主号码只能拨打电话，则改用此号码发送短信。例如在新加坡，通话需要国内号码，短信需要手机号码。",
+  "Twilio SMS Phone Number": "Twilio 短信电话号码",
+  "Twilio SMS Secondary Phone Numbers": "Twilio 短信备用电话号码",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是电话号码。请输入带国家代码的每个号码，并用逗号分隔，例如 +6581234567, +447700900123。"
 }

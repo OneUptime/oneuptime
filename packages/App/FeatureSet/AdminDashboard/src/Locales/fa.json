@@ -490,7 +490,9 @@
       "callSms": {
         "cardTitle": "پیکربندی Twilio",
         "cardDescription": "از این برای برقراری تماس و ارسال پیامک استفاده می‌شود.",
-        "editButton": "ویرایش پیکربندی Twilio"
+        "editButton": "ویرایش پیکربندی Twilio",
+        "smsSameAsPrimary": "همانند شماره اصلی",
+        "smsSameAsSecondary": "همانند شماره‌های دوم"
       },
       "whatsapp": {
         "metaCardTitle": "تنظیمات Meta WhatsApp",
@@ -1011,5 +1013,11 @@
   "{{count}} people": "{{count}} نفر",
   "{{count}} people_one": "{{count}} نفر",
   "Docker Compose guide": "راهنمای Docker Compose",
-  "Kubernetes guide": "راهنمای Kubernetes"
+  "Kubernetes guide": "راهنمای Kubernetes",
+  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "تماس‌ها از این شماره برقرار می‌شوند و پیامک‌ها هم، مگر اینکه در «فیلدهای بیشتر» یک شماره تلفن پیامک تنظیم کنید.",
+  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "شماره‌هایی که وقتی با کد کشور گیرنده مطابقت داشته باشند، پیامک‌ها به‌جای شماره‌های دوم از آن‌ها فرستاده می‌شوند.",
+  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "اگر شماره اصلی فقط می‌تواند تماس برقرار کند، پیامک‌ها را به‌جای شماره اصلی از این شماره بفرستید. برای نمونه در سنگاپور، تماس‌ها به شماره ملی و پیامک‌ها به شماره همراه نیاز دارند.",
+  "Twilio SMS Phone Number": "شماره تلفن پیامک Twilio",
+  "Twilio SMS Secondary Phone Numbers": "شماره‌های تلفن دوم پیامک Twilio",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} شماره تلفن نیست. هر شماره را با کد کشورش بنویسید و شماره‌ها را با ویرگول جدا کنید، مانند +6581234567, +447700900123."
 }

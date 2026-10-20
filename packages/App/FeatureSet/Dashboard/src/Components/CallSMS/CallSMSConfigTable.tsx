@@ -10,8 +10,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -31,6 +33,9 @@ import TwilioConfigDefaultCopy, {
   getTwilioConfigDefaultState,
   isDefaultSwitchOnWhenCreating,
 } from "./TwilioConfigDefaultCopy";
+import TwilioConfigNumbersCopy from "./TwilioConfigNumbersCopy";
+import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
+import TwilioConfigPhoneNumbers from "./TwilioConfigPhoneNumbers";
 import {
   getTestSendLock,
   TestSendLock,
@@ -54,6 +59,15 @@ import React, {
 const FIRST_CONFIG_INITIAL_VALUES: FormValues<ProjectCallSMSConfig> = {
   isProjectDefault: true,
 };
+
+/*
+ * The numbers few configs need, folded under More fields at the end of the
+ * Twilio step: an SMS number, for a primary number that can only make calls
+ * (in Singapore calls need a national number and SMS a mobile one), and the
+ * numbers for recipients in other countries (TwilioConfigNumbersCopy).
+ */
+const moreNumbersSection: FormFieldCollapsibleSection<ProjectCallSMSConfig> =
+  getAdvancedFormSection<ProjectCallSMSConfig>();
 
 const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
   /*
@@ -293,6 +307,10 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
         ]}
         name="Settings > Custom CallSMS Config"
         noItemsMessage={"No Twilio config found."}
+        selectMoreFields={{
+          // The SMS number, shown beside the primary one (Phone Numbers).
+          twilioSmsPhoneNumber: true,
+        }}
         formFields={[
           {
             field: {
@@ -356,25 +374,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Phone,
             required: true,
-            description: "You can find this in your Twilio console.",
-            placeholder: "",
-            validation: {
-              minLength: 2,
-            },
-          },
-
-          // add twilioSecondaryPhoneNumbers
-          {
-            field: {
-              twilioSecondaryPhoneNumbers: true,
-            },
-            title: "Twilio Secondary Phone Numbers",
-            stepId: "twilio-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            description:
-              "Numbers to use instead of the primary one when they match the recipient's country code.",
-            placeholder: "+441234567890, +461234567890",
+            description: TwilioConfigNumbersCopy.primaryPhoneNumberDescription,
+            placeholder: "+14155550100",
             validation: {
               minLength: 2,
             },
@@ -392,6 +393,61 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
              * help that says why; off, where its column starts, for any other.
              */
             description: getDefaultSwitchDescription(defaultState),
+          },
+          /*
+           * Under More fields: SMS from a number of their own, and numbers
+           * for other countries - each SMS list takes the place of its
+           * counterpart for SMS (Common/Types/CallAndSMS/TwilioPhoneNumbers).
+           */
+          {
+            field: {
+              twilioSmsPhoneNumber: true,
+            },
+            title: "Twilio SMS Phone Number",
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.Phone,
+            required: false,
+            collapsibleSection: moreNumbersSection,
+            description: TwilioConfigNumbersCopy.smsPhoneNumberDescription,
+            placeholder: "+6581234567",
+          },
+          {
+            field: {
+              twilioSecondaryPhoneNumbers: true,
+            },
+            title: "Twilio Secondary Phone Numbers",
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            collapsibleSection: moreNumbersSection,
+            description:
+              TwilioConfigNumbersCopy.secondaryPhoneNumbersDescription,
+            placeholder: "+441234567890, +461234567890",
+            customValidation: (
+              values: FormValues<ProjectCallSMSConfig>,
+            ): string | null => {
+              return getPhoneNumberListError(values.twilioSecondaryPhoneNumbers);
+            },
+          },
+          {
+            field: {
+              twilioSmsSecondaryPhoneNumbers: true,
+            },
+            title: "Twilio SMS Secondary Phone Numbers",
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            collapsibleSection: moreNumbersSection,
+            description:
+              TwilioConfigNumbersCopy.smsSecondaryPhoneNumbersDescription,
+            placeholder: "+447700900123, +46701234567",
+            customValidation: (
+              values: FormValues<ProjectCallSMSConfig>,
+            ): string | null => {
+              return getPhoneNumberListError(
+                values.twilioSmsSecondaryPhoneNumbers,
+              );
+            },
           },
         ]}
         showRefreshButton={true}
@@ -426,6 +482,13 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
           },
           {
+            title: "Twilio SMS Phone Number",
+            type: FieldType.Phone,
+            field: {
+              twilioSmsPhoneNumber: true,
+            },
+          },
+          {
             title: "Twilio Secondary Phone Numbers",
             type: FieldType.LongText,
             field: {
@@ -442,9 +505,10 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
         ]}
         /*
          * What tells the configs apart at a glance: the name, the Twilio
-         * account, the number it sends from and whether it is the
-         * project's default. Description and the secondary numbers are in
-         * the config's Edit dialog (and in the filters).
+         * account, the numbers it sends from - its primary number, and its
+         * SMS number beside it when SMS have their own - and whether it is
+         * the project's default. Description and the secondary numbers are
+         * in the config's Edit dialog (and in the filters).
          */
         columns={[
           {
@@ -465,8 +529,11 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             field: {
               twilioPrimaryPhoneNumber: true,
             },
-            title: "Primary Twilio Phone Number",
+            title: TwilioConfigNumbersCopy.phoneNumbersColumnTitle,
             type: FieldType.Phone,
+            getElement: (item: ProjectCallSMSConfig): ReactElement => {
+              return <TwilioConfigPhoneNumbers config={item} />;
+            },
           },
           {
             field: {

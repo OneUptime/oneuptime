@@ -1,6 +1,9 @@
 import CallService from "../Services/CallService";
 import CallRequest from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
+import { PROJECT_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
+import TwilioSendError from "../Utils/TwilioSendError";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -40,7 +43,10 @@ router.post(
         isSensitive: (body["isSensitive"] as boolean) || false,
         userOnCallLogTimelineId:
           (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
-        customTwilioConfig: body["customTwilioConfig"] as any,
+        // Read back with its numbers as lists (TwilioConfigJSON).
+        customTwilioConfig: TwilioConfigJSON.fromJSON(
+          body["customTwilioConfig"],
+        ),
         incidentId: (body["incidentId"] as ObjectID) || undefined,
         alertId: (body["alertId"] as ObjectID) || undefined,
         scheduledMaintenanceId:
@@ -103,12 +109,9 @@ router.post(
           props: {
             isRoot: true,
           },
+          // Read whole, as every send reads it (PROJECT_TWILIO_CONFIG_SELECT).
           select: {
-            _id: true,
-            twilioAccountSID: true,
-            twilioAuthToken: true,
-            twilioPrimaryPhoneNumber: true,
-            twilioSecondaryPhoneNumbers: true,
+            ...PROJECT_TWILIO_CONFIG_SELECT,
             projectId: true,
           },
         });
@@ -187,6 +190,12 @@ router.post(
         });
       } catch (err) {
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+        // Twilio's refusal, in words the person testing can act on.
+        if (TwilioSendError.isActionableRefusal(err)) {
+          throw err;
+        }
+
         throw new BadDataException(
           "Error making test call. Please check the twilio logs for more details",
         );

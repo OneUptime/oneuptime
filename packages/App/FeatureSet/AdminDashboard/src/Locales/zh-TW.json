@@ -490,7 +490,9 @@
       "callSms": {
         "cardTitle": "Twilio 設定",
         "cardDescription": "這將用於撥打電話和傳送簡訊。",
-        "editButton": "編輯 Twilio 設定"
+        "editButton": "編輯 Twilio 設定",
+        "smsSameAsPrimary": "與主要號碼相同",
+        "smsSameAsSecondary": "與次要號碼相同"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp 設定",
@@ -1011,5 +1013,11 @@
   "{{count}} people": "{{count}} 人",
   "{{count}} people_one": "{{count}} 人",
   "Docker Compose guide": "Docker Compose 指南",
-  "Kubernetes guide": "Kubernetes 指南"
+  "Kubernetes guide": "Kubernetes 指南",
+  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "通話從此號碼撥出；除非在「更多欄位」中設定了簡訊電話號碼，否則簡訊也從此號碼傳送。",
+  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "當與收件人的國碼相符時，用來取代次要號碼傳送簡訊的號碼。",
+  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "如果主要號碼只能撥打電話，就改用此號碼傳送簡訊。例如在新加坡，通話需要國內號碼，簡訊需要手機號碼。",
+  "Twilio SMS Phone Number": "Twilio 簡訊電話號碼",
+  "Twilio SMS Secondary Phone Numbers": "次要 Twilio 簡訊電話號碼",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} 不是電話號碼。請輸入含國碼的每個號碼，並以逗號分隔，例如 +6581234567, +447700900123。"
 }

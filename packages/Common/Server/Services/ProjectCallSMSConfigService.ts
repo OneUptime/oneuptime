@@ -2,9 +2,11 @@ import DatabaseService from "./DatabaseService";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/ProjectCallSMSConfig";
+import TwilioPhoneNumbers from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 import Phone from "../../Types/Phone";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
@@ -17,6 +19,17 @@ import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumbe
 import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import PositiveNumber from "../../Types/PositiveNumber";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import { PROJECT_TWILIO_CONFIG_SELECT } from "../Utils/TwilioConfigSelect";
+
+/*
+ * The list of SMS numbers a config stores, by the name the forms give it.
+ * Checked when it is written, so a number that could never send is refused
+ * as it is typed rather than when an alert goes out. The older list of
+ * secondary numbers is read as tolerantly as ever and is not refused here:
+ * the API and Terraform keep accepting what they always did.
+ */
+const SMS_SECONDARY_PHONE_NUMBERS_TITLE: string =
+  "Twilio SMS Secondary Phone Numbers";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -27,6 +40,11 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    TwilioPhoneNumbers.assertListIsValid({
+      title: SMS_SECONDARY_PHONE_NUMBERS_TITLE,
+      text: createBy.data.twilioSmsSecondaryPhoneNumbers,
+    });
+
     const projectId: ObjectID | undefined = createBy.data.projectId;
 
     /*
@@ -91,6 +109,18 @@ export class Service extends DatabaseService<Model> {
     });
 
     return configCount.toNumber() === 0;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    TwilioPhoneNumbers.assertListIsValid({
+      title: SMS_SECONDARY_PHONE_NUMBERS_TITLE,
+      text: updateBy.data.twilioSmsSecondaryPhoneNumbers,
+    });
+
+    return { updateBy, carryForward: null };
   }
 
   /*
@@ -319,13 +349,7 @@ export class Service extends DatabaseService<Model> {
         projectId: projectId,
         isProjectDefault: true,
       },
-      select: {
-        _id: true,
-        twilioAccountSID: true,
-        twilioAuthToken: true,
-        twilioPrimaryPhoneNumber: true,
-        twilioSecondaryPhoneNumbers: true,
-      },
+      select: PROJECT_TWILIO_CONFIG_SELECT,
       props: {
         isRoot: true,
       },
@@ -372,20 +396,33 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    return {
+    /*
+     * The numbers SMS go out from instead, when the config has them: read
+     * with the rest (PROJECT_TWILIO_CONFIG_SELECT), and left out when it
+     * has none, so SMS go out from the numbers calls do.
+     */
+    const twilioConfig: TwilioConfig = {
       accountSid: projectCallSmsConfig.twilioAccountSID.toString(),
       authToken: projectCallSmsConfig.twilioAuthToken.toString(),
       primaryPhoneNumber: projectCallSmsConfig.twilioPrimaryPhoneNumber,
-      secondaryPhoneNumbers:
-        projectCallSmsConfig.twilioSecondaryPhoneNumbers &&
-        projectCallSmsConfig.twilioSecondaryPhoneNumbers.length > 0
-          ? projectCallSmsConfig.twilioSecondaryPhoneNumbers
-              .split(",")
-              .map((phone: string) => {
-                return new Phone(phone);
-              })
-          : [],
+      secondaryPhoneNumbers: TwilioPhoneNumbers.parseList(
+        projectCallSmsConfig.twilioSecondaryPhoneNumbers,
+      ),
     };
+
+    if (projectCallSmsConfig.twilioSmsPhoneNumber) {
+      twilioConfig.smsPhoneNumber = projectCallSmsConfig.twilioSmsPhoneNumber;
+    }
+
+    const smsSecondaryPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
+      projectCallSmsConfig.twilioSmsSecondaryPhoneNumbers,
+    );
+
+    if (smsSecondaryPhoneNumbers.length > 0) {
+      twilioConfig.smsSecondaryPhoneNumbers = smsSecondaryPhoneNumbers;
+    }
+
+    return twilioConfig;
   }
 }
 export default new Service();

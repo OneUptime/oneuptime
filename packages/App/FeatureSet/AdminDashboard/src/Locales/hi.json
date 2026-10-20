@@ -490,7 +490,9 @@
       "callSms": {
         "cardTitle": "Twilio कॉन्फ़िगरेशन",
         "cardDescription": "इसका उपयोग कॉल करने और एसएमएस भेजने के लिए किया जाएगा।",
-        "editButton": "Twilio कॉन्फ़िगरेशन संपादित करें"
+        "editButton": "Twilio कॉन्फ़िगरेशन संपादित करें",
+        "smsSameAsPrimary": "प्राथमिक नंबर जैसा ही",
+        "smsSameAsSecondary": "द्वितीयक नंबरों जैसे ही"
       },
       "whatsapp": {
         "metaCardTitle": "Meta WhatsApp सेटिंग्स",
@@ -1011,5 +1013,11 @@
   "{{count}} people": "{{count}} लोग",
   "{{count}} people_one": "{{count}} व्यक्ति",
   "Docker Compose guide": "Docker Compose गाइड",
-  "Kubernetes guide": "Kubernetes गाइड"
+  "Kubernetes guide": "Kubernetes गाइड",
+  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "कॉल इसी नंबर से जाती हैं, और SMS भी, जब तक आप और फ़ील्ड में कोई SMS फ़ोन नंबर सेट न करें।",
+  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "प्राप्तकर्ता के देश कोड से मेल खाने पर द्वितीयक नंबरों की जगह SMS भेजने के लिए इस्तेमाल होने वाले नंबर।",
+  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "अगर प्राथमिक नंबर से केवल कॉल की जा सकती हैं, तो प्राथमिक नंबर की जगह इस नंबर से SMS भेजें। उदाहरण के लिए, सिंगापुर में कॉल के लिए राष्ट्रीय नंबर और SMS के लिए मोबाइल नंबर चाहिए।",
+  "Twilio SMS Phone Number": "Twilio SMS फ़ोन नंबर",
+  "Twilio SMS Secondary Phone Numbers": "द्वितीयक Twilio SMS फ़ोन नंबर",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} फ़ोन नंबर नहीं है। हर नंबर को उसके देश कोड के साथ लिखें और नंबरों को कॉमा से अलग करें, जैसे +6581234567, +447700900123।"
 }

@@ -43,8 +43,7 @@ flowchart TB
 - **Name** und **Beschreibung**: wofür das Konto da ist, etwa „Support-Hotline“.
 - **Twilio Account SID**: aus der Twilio-Konsole. Sie beginnt mit `AC`.
 - **Twilio Auth Token**: aus der Twilio-Konsole.
-- **Twilio-Primärrufnummer**: eine Nummer dieses Kontos für die SMS und Anrufe, die es sendet.
-- **Twilio-Sekundärrufnummern**: optional. Nummern, die für Empfänger in ihrem Land statt der Primärnummer senden.
+- **Twilio-Primärrufnummer**: eine Nummer dieses Kontos für die SMS und Anrufe, die es sendet. Unter **Weitere Felder**, optional: Nummern für Empfänger in anderen Ländern und eine SMS-Nummer für eine Primärrufnummer, die nur Anrufe tätigen kann (siehe [Getrennte Nummern für Anrufe und SMS](/docs/self-hosted/twilio-integration#getrennte-nummern-für-anrufe-und-sms)).
 - **Als Projektstandard festlegen**: für die erste Twilio-Konfiguration des Projekts eingeschaltet, sodass auch SMS und Anrufe an die Mitglieder des Projekts über dieses Konto laufen. Schalten Sie es aus, wenn dieses Konto nur für eingehende Anrufe gedacht ist.
 
 ### Die Richtlinie anlegen

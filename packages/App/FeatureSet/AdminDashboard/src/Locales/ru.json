@@ -490,7 +490,9 @@
       "callSms": {
         "cardTitle": "Конфигурация Twilio",
         "cardDescription": "Это будет использоваться для звонков и отправки SMS.",
-        "editButton": "Изменить конфигурацию Twilio"
+        "editButton": "Изменить конфигурацию Twilio",
+        "smsSameAsPrimary": "Как основной номер",
+        "smsSameAsSecondary": "Как дополнительные номера"
       },
       "whatsapp": {
         "metaCardTitle": "Настройки Meta WhatsApp",
@@ -1011,5 +1013,11 @@
   "{{count}} people": "Человек: {{count}}",
   "{{count}} people_one": "{{count}} человек",
   "Docker Compose guide": "Руководство по Docker Compose",
-  "Kubernetes guide": "Руководство по Kubernetes"
+  "Kubernetes guide": "Руководство по Kubernetes",
+  "Calls go out from this number, and SMS too unless you set an SMS phone number under More fields.": "Звонки идут с этого номера, и SMS тоже, если в разделе «Дополнительные поля» не задан номер телефона для SMS.",
+  "Numbers to send SMS from instead of the secondary ones when they match the recipient's country code.": "Номера, с которых отправляются SMS вместо дополнительных номеров, если совпадает код страны получателя.",
+  "Send SMS from this number instead of the primary one, if the primary number can only make calls. In Singapore, for example, calls need a national number and SMS a mobile number.": "Отправлять SMS с этого номера вместо основного, если основной номер может только звонить. Например, в Сингапуре для звонков нужен национальный номер, а для SMS — мобильный.",
+  "Twilio SMS Phone Number": "Номер телефона Twilio для SMS",
+  "Twilio SMS Secondary Phone Numbers": "Дополнительные номера телефонов Twilio для SMS",
+  "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like +6581234567, +447700900123.": "{{entry}} — не номер телефона. Укажите каждый номер с кодом страны и разделите номера запятыми, например +6581234567, +447700900123."
 }

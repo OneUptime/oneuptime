@@ -43,8 +43,7 @@ Go to **Project Settings** > **Notifications** > **Notification Settings**. In t
 - **Name** and **Description**: what the account is for, such as "Support hotline".
 - **Twilio Account SID**: from the Twilio Console. It starts with `AC`.
 - **Twilio Auth Token**: from the Twilio Console.
-- **Twilio Primary Phone Number**: a number of that account, for the SMS and calls it sends.
-- **Twilio Secondary Phone Numbers**: optional. Numbers that send instead of the primary one to recipients in their country.
+- **Twilio Primary Phone Number**: a number of that account, for the SMS and calls it sends. Under **More fields**, optional: numbers for recipients in other countries, and an SMS number for a primary number that can only make calls (see [Separate numbers for calls and SMS](/docs/self-hosted/twilio-integration#separate-numbers-for-calls-and-sms)).
 - **Set as Project Default**: on for the project's first Twilio config, so the SMS and calls to the project's members go through this account too. Turn it off if this account is only for incoming calls.
 
 ### Create the policy

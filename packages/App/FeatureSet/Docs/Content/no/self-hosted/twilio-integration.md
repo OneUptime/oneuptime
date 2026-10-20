@@ -21,7 +21,7 @@ En selvdriftet OneUptime sender SMS- og talevarsler gjennom din egen Twilio-kont
 
 ### Skaff et telefonnummer
 
-Skaff et Twilio-telefonnummer med SMS- og/eller talefunksjonene du trenger. Bruk formatet E.164 med landskode for avsender- og mottakernumre.
+Skaff et Twilio-telefonnummer med SMS- og/eller talefunksjonene du trenger; Twilio Console viser hva hvert nummer kan. Bruk formatet E.164 med landskode for avsender- og mottakernumre. Der ingen nummer kan begge deler, skaffer du ett for anrop og ett for SMS: se [Egne numre for anrop og SMS](#egne-numre-for-anrop-og-sms).
 
 ### Sjekk kontoens grenser
 
@@ -44,7 +44,7 @@ Slik legger du til en prosjektkonfigurasjon:
 :::steps
 1. Gå til **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 2. Velg **Opprett Twilio-konfigurasjon** i **Twilio-konfigurasjon**.
-3. Skriv inn et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Du kan også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land.
+3. Skriv inn et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og et **Twilio SMS-telefonnummer** hvis det primære nummeret ikke kan sende SMS.
 4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS og anrop til prosjektets medlemmer, også vaktvarsler, går gjennom den med en gang du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. En senere konfigurasjon starter med bryteren av: Slå den på, eller velg **Angi som prosjektstandard** i konfigurasjonens radmeny for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte.
 5. Lagre. Bare én konfigurasjon kan være prosjektstandarden. Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
@@ -53,6 +53,22 @@ Slik legger du til en prosjektkonfigurasjon:
 :::
 
 For en standard for hele installasjonen kan en administrator i stedet åpne **Admin Dashboard > Innstillinger > Anrop og SMS**, redigere Twilio-påloggingsinformasjonen og telefonnumrene og lagre. Medlemmenes varsler bruker denne globale konfigurasjonen når prosjektet deres ikke har en standard. Hold Auth Token hemmelig.
+
+### Egne numre for anrop og SMS
+
+Et Twilio-nummer kan ringe og sende SMS, eller bare én av delene, og i noen land kan ingen nummer begge deler. I Singapore krever for eksempel anrop et nasjonalt nummer (+65 3 eller +65 6) og SMS et mobilnummer (+65 8). En konfigurasjon, et prosjekts eller installasjonens, kan sende SMS fra egne numre, under **Flere felt**:
+
+| Felt | Hva som går ut fra det |
+| --- | --- |
+| **Twilio primært telefonnummer** | Anrop, og SMS også så lenge det ikke er angitt et SMS-nummer |
+| **Twilio SMS-telefonnummer** | SMS, i stedet for det primære nummeret |
+| **Twilio sekundære telefonnumre** | Anrop og SMS til mottakere i landet til hvert nummer |
+| **Twilio sekundære SMS-telefonnumre** | SMS til mottakere i landet til hvert nummer, i stedet for de sekundære numrene |
+
+En konfigurasjon uten SMS-numre sender SMS fra de samme numrene som anrop. **Send test-SMS** og **Send testanrop** går ut fra nummeret en ekte SMS eller et ekte anrop til samme mottaker ville gått ut fra. Hvis Twilio avviser en SMS med feil 21606, kan ikke nummeret sende SMS: angi et **Twilio SMS-telefonnummer**.
+
+> [!NOTE]
+> I Singapore kommer en SMS fra et nummer som ikke er registrert hos SGNIC, eller fra et nummer utenfor Singapore, fram med avsenderen `Likely-SCAM`. Registrer mobilnummeret hos SGNIC og hos Twilio før du stoler på det; se [Twilios SMS-retningslinjer for Singapore](https://www.twilio.com/en-us/guidelines/sg/sms).
 
 ## 3. Konfigurer nettverkstilgang
 
@@ -127,6 +143,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 | Symptom | Hvor du ser |
 | --- | --- |
 | Ingenting blir sendt | Påloggingsinformasjon, nummerets funksjoner, kontoens begrensninger og den utgående tilkoblingen. |
+| Twilio avviser SMS med feil 21606 | Nummeret kan ikke sende SMS. Angi et **Twilio SMS-telefonnummer**: se [Egne numre for anrop og SMS](#egne-numre-for-anrop-og-sms). |
 | SMS-en eller anropet kommer fram, men statusen eller bekreftelsen oppdateres ikke | URL-en for tilbakekall og loggene fra den offentlige ingressen. Twilios [veiledning om feil ved HTTP-henting](https://www.twilio.com/docs/api/errors/11200) hjelper med tilbakekall som ikke kan nås, TLS-problemer og HTTP-feil. |
 
 Et vellykket testanrop alene beviser ikke at tilbakekall kan nås.
