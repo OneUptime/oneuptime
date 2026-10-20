@@ -23,6 +23,8 @@ export const CODEX: string = "telemetry/openai-codex";
 export const GEMINI_COPILOT: string = "telemetry/gemini-cli-and-copilot";
 export const AI_GATEWAYS: string = "telemetry/ai-gateways";
 export const CIRCUIT_BREAKER: string = "telemetry/ai-agent-circuit-breaker";
+export const PROVIDER_ACCOUNTS: string = "telemetry/ai-provider-accounts";
+export const COMPANY_TOOLS: string = "telemetry/ai-company-tools";
 export const SECURITY_EVENTS: string = "telemetry/security-events";
 export const THREAT_INTELLIGENCE: string = "telemetry/threat-intelligence";
 export const SECURITY_CASES: string = "telemetry/security-cases";
@@ -38,11 +40,18 @@ export const AI_OBSERVABILITY_PAGES: ReadonlyArray<DocsPageEntry> = [
   { page: CODEX, navTitle: "OpenAI Codex" },
 ];
 
-// The AI tooling pages of task 24b, the rest of the AI Observability group.
+/*
+ * The AI tooling pages of task 24b, the rest of the AI Observability group,
+ * and the two pages that connect AI with no code: provider accounts (usage
+ * and cost) and company AI tools (people's chats). AiConnectionDocsFacts
+ * holds those two to the connections' catalog and the code that reads them.
+ */
 export const AI_TOOLING_PAGES: ReadonlyArray<DocsPageEntry> = [
   { page: GEMINI_COPILOT, navTitle: "Gemini CLI & GitHub Copilot" },
   { page: AI_GATEWAYS, navTitle: "AI Gateways (LiteLLM, Portkey)" },
   { page: CIRCUIT_BREAKER, navTitle: "AI Agent Circuit Breakers" },
+  { page: PROVIDER_ACCOUNTS, navTitle: "AI Provider Accounts" },
+  { page: COMPANY_TOOLS, navTitle: "Company AI Tools" },
 ];
 
 /*

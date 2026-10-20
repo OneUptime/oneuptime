@@ -3,6 +3,7 @@
 阅读 AI 进行过的每一段对话，按当时的节奏重新播放，并在 AI 回答不佳时收到通知。OneUptime 完全基于标准 OpenTelemetry 构建这一切：只要你的应用发送遵循 **GenAI 语义约定** （`gen_ai.*`）的 span，你就能得到对话、警报、用量和成本，无需专有 SDK。
 
 :::cards
+- [三种接入方式](#三种接入方式): 你的应用、你的 AI 提供商账户和公司的 AI 工具。
 - [开始设置](#五步完成设置): 五个步骤，从第一个 span 到被标记的回答。
 - [重新播放对话](#阅读和重新播放对话): 按对方看到的样子、按当时的节奏阅读一段聊天。
 - [接收警报](#ai-回答不佳时收到通知): 针对失败、被拒绝、被截断、被标记或过慢的回答的现成警报。
@@ -28,13 +29,23 @@ flowchart TB
 | --- | --- |
 | **对话** | AI 进行过的每一段对话，需要关注的排在最前。列表上方显示：对话数、AI 回答数、需要关注的数量、成本和典型回答时间。 |
 | **调用** | 每一次模型、嵌入、代理和工具调用。可按服务、提供商、模型、操作、人员、团队或对话筛选；点击某次调用即可在跟踪查看器中打开。 |
-| **用量** | 某个时间范围内的调用、token 和成本，按员工、团队、模型、提供商或应用排名。 |
+| **用量** | 某个时间范围内的调用、token 和成本，按员工、团队、模型、提供商或应用排名；在 **提供商账户** 下显示已连接账户的账单金额。 |
 | **警报** | 针对 AI 回答不佳的现成警报，以及你的 AI / LLM 监视器。 |
 | **预算** | 每日成本上限，以可设置警报的指标形式发布。 |
 | **定价** | 为内置价目表中没有的模型设置你自己的价格。 |
-| **设置** | 下面的五个步骤，以及你项目的端点。 |
+| **连接** | 三种接入方式，以及一份在每种方式开始工作时自动打勾的清单。 |
 
 在跟踪查看器中，每次 AI 调用的 span 还有一个 **LLM** 标签页：提供商、模型、token、成本、请求参数，以及提示词和回答。
+
+## 三种接入方式
+
+三种方式都在 **产品 → AI / LLM → 连接** 中。可以使用一种、两种或全部三种：所有内容都会进入相同的 **对话** 、 **用量** 、 **警报** 和 **预算** 。
+
+| 接入方式 | 你会得到什么 | 方法 |
+| --- | --- | --- |
+| **你的应用** | 实时记录每次 AI 调用：对话、人员、提示词和回答、token、成本和错误 | 来自代码或网关的 OpenTelemetry，分五步完成 |
+| **你的 AI 提供商账户** | 每个 OpenAI、Anthropic、Azure、Bedrock 或 Vertex AI 账户每天的用量和成本 | 只需一个只读凭据，无需代码： [AI 提供商账户](/docs/telemetry/ai-provider-accounts) |
+| **公司的 AI 工具** | 员工向 Claude Enterprise 或 Microsoft 365 Copilot 提的问题，按人员划分 | 只需一个只读凭据，无需代码： [公司的 AI 工具](/docs/telemetry/ai-company-tools) |
 
 ## 开始之前
 
@@ -51,7 +62,7 @@ flowchart TB
 :::steps
 ### 发送你的 AI 调用
 
-在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个摄取密钥（ [OpenTelemetry 快速入门](/docs/telemetry/open-telemetry#创建摄取密钥) 会逐步介绍）。然后把你的插桩指向 OneUptime：
+在 **连接** 的 **你的应用** 中选择或创建一个摄取密钥，然后复制适合你语言的代码片段，其中已经填好你的端点和密钥。或者在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个摄取密钥（ [OpenTelemetry 快速入门](/docs/telemetry/open-telemetry#创建摄取密钥) 会逐步介绍），然后把你的插桩指向 OneUptime：
 
 :::tabs
 @tab Python
@@ -192,6 +203,8 @@ trace.get_current_span().add_event(
 
 **用量** 标签页显示某个时间范围（除非你另选，否则为最近 7 天）内的调用、token 和成本，以及按五种细分之一列出的前 25 名表格： **员工** 、 **团队** 、 **模型** 、 **提供商** 和 **应用 / 服务** 。没有指明任何人的调用计入 **未归属** ，从不丢弃。
 
+这些是 **你的 AI 调用** 。如果想查看已连接的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 账户的账单金额，请改选 **提供商账户** ：参见 [AI 提供商账户](/docs/telemetry/ai-provider-accounts#查看用量)。两者永远不会相加。
+
 人员和团队来自调用上的身份属性：请参阅 [员工和团队归属](/docs/telemetry/ai-coding-assistants#员工和团队归属)。
 
 ### span 优先，指标补充
@@ -230,7 +243,7 @@ span 报告为从提供商的提示缓存读取或写入其中的 token，按提
 
 ## 每日成本预算
 
-预算按 UTC 日以 USD 跟踪一天的支出。OneUptime 每 15 分钟汇总当天的 AI 支出（来自 span，或在没有 span 报告支出时来自 GenAI 成本指标），显示在预算上，并发布两个指标：
+预算按 UTC 日以 USD 跟踪一天的支出。OneUptime 每 15 分钟汇总当天的 AI 支出（来自 span，或在没有 span 报告支出时来自 GenAI 成本指标），显示在预算上，并发布两个指标。 **支出统计来源** 为 **提供商账户** 的预算则改为统计已连接账户的账单金额：参见 [AI 提供商账户](/docs/telemetry/ai-provider-accounts#预算和警报)。
 
 | 指标 | 含义 |
 | --- | --- |
@@ -263,7 +276,7 @@ span 报告为从提供商的提示缓存读取或写入其中的 token，按提
 
 AI 调用以跟踪 span 的形式存储，因此跟踪的 **清理规则** 和 **丢弃过滤器** 也适用于它们：在存储之前屏蔽某个属性或丢弃某个 span。两者都在 **跟踪 → 设置** 下。员工邮箱列会与其来源属性一起被清理，因此屏蔽邮箱的规则也会覆盖这一列。
 
-读取对话所需的权限与跟踪相同：能读取项目跟踪的人才能读取其对话，其他人都不能。
+读取对话所需的权限与跟踪相同：能读取项目跟踪的人才能读取其对话，其他人都不能。公司 AI 工具的对话是例外：除非其连接另有设置，否则只有项目所有者和管理员可以阅读（ [公司的 AI 工具](/docs/telemetry/ai-company-tools#隐私) ）。
 
 ## OneUptime 读取的属性
 
@@ -328,6 +341,8 @@ OneUptime 读取 OpenTelemetry GenAI 约定，以及 OpenLLMetry、OpenInference
 ## 后续步骤
 
 :::cards
+- [AI 提供商账户](/docs/telemetry/ai-provider-accounts): 无需代码，查看你的 OpenAI、Anthropic、Azure、Bedrock 和 Vertex AI 账户的用量和成本。
+- [公司的 AI 工具](/docs/telemetry/ai-company-tools): 你的员工向 Claude Enterprise 和 Microsoft 365 Copilot 提了什么问题。
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): Claude Code、Cursor、Codex、Gemini CLI 和 Copilot 按工程师划分的支出。
 - [AI 网关](/docs/telemetry/ai-gateways): 通过一个 LiteLLM 或 Portkey 网关跟踪每个应用的模型调用。
 - [AI 代理熔断器](/docs/telemetry/ai-agent-circuit-breaker): 预算警报触发时阻止失控的代理。

@@ -6,8 +6,10 @@ import {
   AI_GATEWAYS,
   AI_TOOLING_PAGES,
   CIRCUIT_BREAKER,
+  COMPANY_TOOLS,
   DocsPageEntry,
   GEMINI_COPILOT,
+  PROVIDER_ACCOUNTS,
   SECURITY_CASES,
   SECURITY_EVENTS,
   SECURITY_GETTING_STARTED,
@@ -124,6 +126,8 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [GEMINI_COPILOT]: 28,
   [AI_GATEWAYS]: 25,
   [CIRCUIT_BREAKER]: 26,
+  [PROVIDER_ACCOUNTS]: 26,
+  [COMPANY_TOOLS]: 26,
   [SECURITY_EVENTS]: 29,
   [THREAT_INTELLIGENCE]: 28,
   [SECURITY_CASES]: 26,
@@ -220,6 +224,17 @@ const PRODUCT_NAMES: ReadonlyArray<string> = [
   "LiteLLM Proxy",
   "OneUptime",
   "OpenTelemetry",
+  // The providers and tools the connections pages are about.
+  "Azure OpenAI and Microsoft Foundry",
+  "Amazon Bedrock",
+  "Google Vertex AI",
+  "Claude Enterprise",
+  "Microsoft 365 Copilot",
+  "ChatGPT Enterprise",
+  "Gemini for Google Workspace",
+  "Open WebUI",
+  "LibreChat",
+  "OpenRouter",
 ];
 
 const ONLY_CODE: RegExp = /^`[^`]+`$/;

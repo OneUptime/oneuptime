@@ -3,6 +3,7 @@
 Leggi ogni conversazione avuta dalla tua IA, riproducila così come è avvenuta e vieni avvisato quando risponde male. OneUptime costruisce tutto a partire da OpenTelemetry standard: se la tua app invia span con le **convenzioni semantiche GenAI** (`gen_ai.*`), ottieni conversazioni, avvisi, utilizzo e costi, senza un SDK proprietario.
 
 :::cards
+- [Tre vie d'ingresso](#tre-vie-dingresso): Le tue app, i tuoi account dei provider di IA e gli strumenti di IA della tua azienda.
 - [Configuralo](#configuralo-in-cinque-passaggi): Cinque passaggi, dal primo span alle risposte segnalate.
 - [Riproduci una conversazione](#leggi-e-riproduci-una-conversazione): Leggi una chat come l'ha vista la persona, al ritmo in cui è avvenuta.
 - [Ricevi avvisi](#vieni-avvisato-quando-lia-risponde-male): Avvisi pronti per le risposte che falliscono, vengono rifiutate, troncate, segnalate o sono lente.
@@ -28,13 +29,23 @@ Apri **Prodotti → AI / LLM**, sotto **Osservabilità**. Il prodotto ha sette s
 | --- | --- |
 | **Conversazioni** | Ogni conversazione avuta dalla tua IA, prima quelle che richiedono attenzione. Sopra l'elenco: conversazioni, risposte dell'IA, quante richiedono attenzione, costo e il tempo di risposta tipico. |
 | **Chiamate** | Ogni chiamata di modello, embedding, agente e strumento. Filtra per servizio, provider, modello, operazione, persona, team o conversazione; fai clic su una chiamata per aprirla nel visualizzatore di tracce. |
-| **Utilizzo** | Chiamate, token e costo di un intervallo di tempo, ordinati per dipendente, team, modello, provider o app. |
+| **Utilizzo** | Chiamate, token e costo di un intervallo di tempo, ordinati per dipendente, team, modello, provider o app; in **Account provider**, ciò che è stato addebitato ai tuoi account collegati. |
 | **Avvisi** | Avvisi pronti per quando l'IA risponde male, e i tuoi monitor IA / LLM. |
 | **Budget** | Limiti di costo giornalieri, pubblicati come metriche su cui impostare avvisi. |
 | **Prezzi** | I tuoi prezzi per i modelli che il listino integrato non conosce. |
-| **Configurazione** | I cinque passaggi qui sotto, con l'endpoint del tuo progetto. |
+| **Collega** | Le tre vie d'ingresso, con una checklist che spunta ognuna appena inizia a funzionare. |
 
 Nel visualizzatore di tracce, lo span di ogni chiamata di IA ha anche una scheda **LLM**: provider, modello, token, costo, parametri della richiesta, e il prompt e la risposta.
+
+## Tre vie d'ingresso
+
+Tutte e tre sono in **Prodotti → AI / LLM → Collega**. Usane una, due o tutte: tutto arriva nelle stesse **Conversazioni**, **Utilizzo**, **Avvisi** e **Budget**.
+
+| Via d'ingresso | Cosa ottieni | Come |
+| --- | --- | --- |
+| **Le tue app** | Ogni chiamata di IA mentre avviene: la conversazione, la persona, il prompt e la risposta, token, costo ed errori | OpenTelemetry dal tuo codice o da un gateway, in cinque passaggi |
+| **I tuoi account dei provider di IA** | Cosa ha consumato e quanto è costato ogni account OpenAI, Anthropic, Azure, Bedrock o Vertex AI, per giorno | Una credenziale di sola lettura e nessun codice: [Account dei provider di IA](/docs/telemetry/ai-provider-accounts) |
+| **Gli strumenti di IA della tua azienda** | Cosa chiedono le tue persone a Claude Enterprise o Microsoft 365 Copilot, per persona | Una credenziale di sola lettura e nessun codice: [Strumenti di IA aziendali](/docs/telemetry/ai-company-tools) |
 
 ## Prima di iniziare
 
@@ -51,7 +62,7 @@ Il primo passaggio è tutto ciò che serve per vedere le chiamate. Ogni passaggi
 :::steps
 ### Invia le chiamate di IA
 
-Crea una chiave di acquisizione in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** (l'[avvio rapido di OpenTelemetry](/docs/telemetry/open-telemetry#creare-una-chiave-di-acquisizione) ti guida). Poi punta la tua strumentazione verso OneUptime:
+In **Le tue app**, dentro **Collega**, scegli una chiave di acquisizione o creane una, e copia lo snippet per il tuo linguaggio con il tuo endpoint e la tua chiave già inseriti. Oppure crea una chiave in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** (l'[avvio rapido di OpenTelemetry](/docs/telemetry/open-telemetry#creare-una-chiave-di-acquisizione) ti guida) e punta la tua strumentazione verso OneUptime:
 
 :::tabs
 @tab Python
@@ -192,6 +203,8 @@ Un avviso pronto genera un avviso che si risolve da solo, e mostra il monitor co
 
 La scheda **Utilizzo** mostra le chiamate, i token e il costo di un intervallo di tempo (gli ultimi 7 giorni, se non ne scegli un altro), e una tabella dei primi 25 secondo una di cinque suddivisioni: **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio**. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**, mai scartate.
 
+Queste sono **Le tue chiamate IA**. Scegli invece **Account provider** per vedere cosa è stato addebitato ai tuoi account OpenAI, Anthropic, Azure, Bedrock e Vertex AI collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#vedere-lutilizzo). Le due cose non vengono mai sommate.
+
 Persone e team vengono dagli attributi di identità della chiamata: vedi [Attribuzione a dipendenti e team](/docs/telemetry/ai-coding-assistants#attribuzione-a-dipendenti-e-team).
 
 ### Prima gli span, le metriche colmano i vuoti
@@ -230,7 +243,7 @@ Per dare tu un prezzo a un modello (una tariffa negoziata, un modello con fine-t
 
 ## Budget di costo giornalieri
 
-Un budget segue la spesa di un giorno, in USD, sul giorno UTC. Ogni 15 minuti OneUptime somma la spesa di IA della giornata (dagli span, o dalle metriche di costo GenAI quando nessuno span ne ha riportata), la mostra sul budget e pubblica due metriche:
+Un budget segue la spesa di un giorno, in USD, sul giorno UTC. Ogni 15 minuti OneUptime somma la spesa di IA della giornata (dagli span, o dalle metriche di costo GenAI quando nessuno span ne ha riportata), la mostra sul budget e pubblica due metriche. Un budget il cui **Conta la spesa da** è **Account provider** conta invece ciò che è stato addebitato ai tuoi account collegati: vedi [Account dei provider di IA](/docs/telemetry/ai-provider-accounts#budget-e-avvisi).
 
 | Metrica | Cos'è |
 | --- | --- |
@@ -263,7 +276,7 @@ Le metriche GenAI come `gen_ai.client.token.usage` e `gen_ai.client.operation.du
 
 Le chiamate di IA vengono salvate come span di traccia, quindi le **Regole di mascheramento** e i **Filtri di scarto** delle tracce si applicano anche a loro: maschera un attributo, o scarta uno span, prima che venga salvato. Li trovi entrambi in **Tracce → Impostazioni**. La colonna dell'email del dipendente viene mascherata insieme all'attributo da cui è stata letta, quindi una regola che maschera le email copre anche questa.
 
-Le conversazioni si leggono con lo stesso permesso delle tracce: chi può leggere le tracce del progetto può leggerne le conversazioni, e nessun altro.
+Le conversazioni si leggono con lo stesso permesso delle tracce: chi può leggere le tracce del progetto può leggerne le conversazioni, e nessun altro. Le conversazioni di uno strumento di IA aziendale sono l'eccezione: solo i proprietari e gli amministratori del progetto possono leggerle, a meno che la sua connessione non dica altrimenti ([Strumenti di IA aziendali](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributi che OneUptime legge
 
@@ -328,6 +341,8 @@ La finestra mobile del monitor è più corta di 15 minuti, quindi a volte non tr
 ## Passaggi successivi
 
 :::cards
+- [Account dei provider di IA](/docs/telemetry/ai-provider-accounts): Utilizzo e costo dei tuoi account OpenAI, Anthropic, Azure, Bedrock e Vertex AI, senza codice.
+- [Strumenti di IA aziendali](/docs/telemetry/ai-company-tools): Cosa chiedono le tue persone a Claude Enterprise e Microsoft 365 Copilot.
 - [Assistenti di programmazione IA](/docs/telemetry/ai-coding-assistants): La spesa per ingegnere di Claude Code, Cursor, Codex, Gemini CLI e Copilot.
 - [Gateway IA](/docs/telemetry/ai-gateways): Traccia le chiamate ai modelli di ogni app da un unico gateway LiteLLM o Portkey.
 - [Circuit breaker per agenti IA](/docs/telemetry/ai-agent-circuit-breaker): Ferma un agente fuori controllo quando scatta un avviso di budget.

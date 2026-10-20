@@ -3,6 +3,7 @@
 Read every conversation your AI had, replay it the way it happened, and get told when it answers badly. OneUptime builds all of it from standard OpenTelemetry: if your app sends spans with the **GenAI semantic conventions** (`gen_ai.*`), you get conversations, alerts, usage and cost, with no proprietary SDK.
 
 :::cards
+- [Three ways in](#three-ways-in): Your apps, your AI provider accounts and your company's AI tools.
 - [Set it up](#set-it-up-in-five-steps): Five steps, from the first span to flagged answers.
 - [Replay a conversation](#read-and-replay-a-conversation): Read a chat as the person saw it, at the pace it happened.
 - [Get alerted](#get-told-when-the-ai-answers-badly): Ready-made alerts for answers that fail, get refused, cut off, flagged or slow.
@@ -28,13 +29,23 @@ Open **Products → AI / LLM**, under **Observability**. The product has seven t
 | --- | --- |
 | **Conversations** | Every conversation your AI had, the ones that need attention first. Above the list: conversations, AI answers, how many need attention, cost and the typical answer time. |
 | **Calls** | Every model, embedding, agent and tool call. Filter by service, provider, model, operation, person, team or conversation; click a call to open it in the trace viewer. |
-| **Usage** | Calls, tokens and cost for a time range, ranked by employee, team, model, provider or app. |
+| **Usage** | Calls, tokens and cost for a time range, ranked by employee, team, model, provider or app; under **Provider accounts**, what your connected accounts were billed. |
 | **Alerts** | Ready-made alerts for when the AI answers badly, and your AI / LLM monitors. |
 | **Budgets** | Daily cost limits, published as metrics you can alert on. |
 | **Pricing** | Your own prices for models the built-in price list does not know. |
-| **Setup** | The five steps below, with your project's endpoint. |
+| **Connect** | The three ways in, with a checklist that ticks each one as it starts working. |
 
 In the trace viewer, the span of each AI call also has an **LLM** tab: provider, model, tokens, cost, request parameters, and the prompt and the answer.
+
+## Three ways in
+
+All three are under **Products → AI / LLM → Connect**. Use one, two or all of them: everything lands in the same **Conversations**, **Usage**, **Alerts** and **Budgets**.
+
+| Way in | What you get | How |
+| --- | --- | --- |
+| **Your apps** | Every AI call as it happens: the conversation, the person, the prompt and the answer, tokens, cost and errors | OpenTelemetry from your code or a gateway, in five steps |
+| **Your AI provider accounts** | What each OpenAI, Anthropic, Azure, Bedrock or Vertex AI account used and cost, by day | A read-only credential and no code: [AI Provider Accounts](/docs/telemetry/ai-provider-accounts) |
+| **Your company's AI tools** | What your people ask Claude Enterprise or Microsoft 365 Copilot, by person | A read-only credential and no code: [Company AI Tools](/docs/telemetry/ai-company-tools) |
 
 ## Before you begin
 
@@ -51,7 +62,7 @@ The first step is all you need to see calls. Each step after it shows more.
 :::steps
 ### Send your AI calls
 
-Create an ingestion key under **Project Settings → Telemetry & APM → Ingestion Keys** (the [OpenTelemetry quickstart](/docs/telemetry/open-telemetry#create-an-ingestion-key) walks through it). Then point your instrumentation at OneUptime:
+Under **Your apps** on **Connect**, pick an ingestion key or create one, and copy the snippet for your language with your endpoint and key in it. Or create a key under **Project Settings → Telemetry & APM → Ingestion Keys** (the [OpenTelemetry quickstart](/docs/telemetry/open-telemetry#create-an-ingestion-key) walks through it), and point your instrumentation at OneUptime:
 
 :::tabs
 @tab Python
@@ -192,6 +203,8 @@ A ready-made alert raises an alert that resolves itself, and shows the monitor a
 
 The **Usage** tab shows the calls, tokens and cost of a time range (the last 7 days unless you pick another), and a table of the top 25 under one of five breakdowns: **Employee**, **Team**, **Model**, **Provider** and **Application / Service**. Calls that name nobody are counted under **Unattributed**, never dropped.
 
+These are **Your AI calls**. Pick **Provider accounts** instead to see what your connected OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts were billed: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#see-the-usage). The two are never added together.
+
 People and teams come from identity attributes on the call: see [Employee and team attribution](/docs/telemetry/ai-coding-assistants#employee-and-team-attribution).
 
 ### Spans come first, metrics fill in
@@ -230,7 +243,7 @@ To price a model yourself (a negotiated rate, a fine-tune or a model you host), 
 
 ## Daily cost budgets
 
-A budget tracks one day's spend, in USD, over the UTC day. Every 15 minutes OneUptime adds up the day's AI spend (from spans, or from GenAI cost metrics when no span reported any), shows it on the budget, and publishes two metrics:
+A budget tracks one day's spend, in USD, over the UTC day. Every 15 minutes OneUptime adds up the day's AI spend (from spans, or from GenAI cost metrics when no span reported any), shows it on the budget, and publishes two metrics. A budget whose **Count spend from** is **Provider accounts** counts what your connected accounts were billed instead: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#budgets-and-alerts).
 
 | Metric | What it is |
 | --- | --- |
@@ -263,7 +276,7 @@ GenAI metrics such as `gen_ai.client.token.usage` and `gen_ai.client.operation.d
 
 AI calls are stored as trace spans, so the traces' **Scrub Rules** and **Drop Filters** apply to them: mask an attribute, or drop a span, before it is stored. Find both under **Traces → Settings**. The employee email column is scrubbed with the attribute it was read from, so a rule that masks emails covers it too.
 
-Conversations are read with the same permission as traces: whoever can read the project's traces can read its conversations, and nobody else.
+Conversations are read with the same permission as traces: whoever can read the project's traces can read its conversations, and nobody else. The conversations of a company AI tool are the exception: only project owners and admins can read them unless its connection says otherwise ([Company AI Tools](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributes OneUptime reads
 
@@ -328,6 +341,8 @@ The monitor's rolling window is shorter than 15 minutes, so it sometimes finds n
 ## Next steps
 
 :::cards
+- [AI Provider Accounts](/docs/telemetry/ai-provider-accounts): Usage and cost of your OpenAI, Anthropic, Azure, Bedrock and Vertex AI accounts, with no code.
+- [Company AI Tools](/docs/telemetry/ai-company-tools): What your people ask Claude Enterprise and Microsoft 365 Copilot.
 - [AI Coding Assistants](/docs/telemetry/ai-coding-assistants): Spend by engineer for Claude Code, Cursor, Codex, Gemini CLI and Copilot.
 - [AI Gateways](/docs/telemetry/ai-gateways): Trace every app's model calls from one LiteLLM or Portkey gateway.
 - [AI Agent Circuit Breakers](/docs/telemetry/ai-agent-circuit-breaker): Stop a runaway agent when a budget alert fires.

@@ -3,6 +3,7 @@
 Læs hver samtale, din AI har haft, afspil den, som den skete, og få besked, når den svarer dårligt. OneUptime bygger det hele på standard-OpenTelemetry: Hvis din app sender spans med **GenAI-semantiske konventioner** (`gen_ai.*`), får du samtaler, advarsler, forbrug og omkostninger uden et proprietært SDK.
 
 :::cards
+- [Tre veje ind](#tre-veje-ind): Dine apps, dine konti hos AI-udbydere og din virksomheds AI-værktøjer.
 - [Sæt det op](#sæt-det-op-i-fem-trin): Fem trin, fra det første span til markerede svar.
 - [Afspil en samtale](#læs-og-afspil-en-samtale): Læs en chat, som personen så den, i det tempo, den skete.
 - [Få advarsler](#få-besked-når-aien-svarer-dårligt): Færdige advarsler for svar, der fejler, bliver afvist, afkortet, markeret eller er langsomme.
@@ -28,13 +29,23 @@ flowchart TB
 | --- | --- |
 | **Samtaler** | Hver samtale, din AI har haft, med dem, der kræver opmærksomhed, først. Over listen: samtaler, AI-svar, hvor mange der kræver opmærksomhed, omkostninger og den typiske svartid. |
 | **Kald** | Hvert model-, embedding-, agent- og værktøjskald. Filtrér efter tjeneste, udbyder, model, operation, person, team eller samtale; klik på et kald for at åbne det i trace-fremviseren. |
-| **Forbrug** | Kald, tokens og omkostninger for et tidsrum, rangeret efter medarbejder, team, model, udbyder eller app. |
+| **Forbrug** | Kald, tokens og omkostninger for et tidsrum, rangeret efter medarbejder, team, model, udbyder eller app; under **Udbyderkonti**, hvad dine forbundne konti blev faktureret. |
 | **Advarsler** | Færdige advarsler for, når AI'en svarer dårligt, og dine AI / LLM-monitorer. |
 | **Budgetter** | Daglige omkostningsgrænser, offentliggjort som metrikker, du kan advare på. |
 | **Priser** | Dine egne priser for modeller, som den indbyggede prisliste ikke kender. |
-| **Opsætning** | De fem trin nedenfor, med dit projekts endpoint. |
+| **Forbind** | De tre veje ind, med en tjekliste, der krydser hver af dem af, når den virker. |
 
 I trace-fremviseren har spannet for hvert AI-kald også en **LLM**-fane: udbyder, model, tokens, omkostninger, anmodningsparametre samt prompten og svaret.
+
+## Tre veje ind
+
+Alle tre ligger under **Produkter → AI / LLM → Forbind**. Brug én, to eller alle tre: alt lander i de samme **Samtaler**, **Forbrug**, **Advarsler** og **Budgetter**.
+
+| Vej ind | Hvad du får | Hvordan |
+| --- | --- | --- |
+| **Dine apps** | Hvert AI-kald, mens det sker: samtalen, personen, prompten og svaret, tokens, omkostninger og fejl | OpenTelemetry fra din kode eller en gateway, i fem trin |
+| **Dine konti hos AI-udbydere** | Hvad hver konto hos OpenAI, Anthropic, Azure, Bedrock eller Vertex AI brugte og kostede, pr. dag | Legitimationsoplysninger, der kun læser, og ingen kode: [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts) |
+| **Din virksomheds AI-værktøjer** | Hvad dine folk spørger Claude Enterprise eller Microsoft 365 Copilot om, pr. person | Legitimationsoplysninger, der kun læser, og ingen kode: [Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools) |
 
 ## Før du begynder
 
@@ -51,7 +62,7 @@ Det første trin er alt, hvad du behøver for at se kald. Hvert trin derefter vi
 :::steps
 ### Send dine AI-kald
 
-Opret en indtagelsesnøgle under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** ([OpenTelemetry-hurtigstarten](/docs/telemetry/open-telemetry#opret-en-indtagelsesnøgle) gennemgår det). Peg derefter din instrumentering på OneUptime:
+Under **Dine apps** på **Forbind** vælger du en indtagelsesnøgle eller opretter en og kopierer snippet'et til dit sprog med dit endpoint og din nøgle i. Eller opret en nøgle under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** ([OpenTelemetry-hurtigstarten](/docs/telemetry/open-telemetry#opret-en-indtagelsesnøgle) gennemgår det), og peg din instrumentering på OneUptime:
 
 :::tabs
 @tab Python
@@ -192,6 +203,8 @@ En færdig advarsel opretter en advarsel, der løser sig selv, og viser monitore
 
 Fanen **Forbrug** viser kald, tokens og omkostninger for et tidsrum (de seneste 7 dage, medmindre du vælger et andet) og en tabel over de 25 største i én af fem opdelinger: **Medarbejder**, **Team**, **Model**, **Udbyder** og **Applikation / Tjeneste**. Kald, der ikke nævner nogen, tælles under **Ikke tildelt** og smides aldrig væk.
 
+Det er **Dine AI-kald**. Vælg **Udbyderkonti** i stedet for at se, hvad dine forbundne konti hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI blev faktureret: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts#se-forbruget). De to lægges aldrig sammen.
+
 Personer og teams kommer fra identitetsattributter på kaldet: se [Tildeling til medarbejdere og teams](/docs/telemetry/ai-coding-assistants#tildeling-til-medarbejdere-og-teams).
 
 ### Spans kommer først, metrikker udfylder hullerne
@@ -230,7 +243,7 @@ For selv at prissætte en model (en forhandlet pris, en fine-tune eller en model
 
 ## Daglige omkostningsbudgetter
 
-Et budget følger én dags forbrug i USD over UTC-døgnet. Hvert 15. minut lægger OneUptime dagens AI-forbrug sammen (fra spans, eller fra GenAI-omkostningsmetrikker, når intet span rapporterede noget), viser det på budgettet og udgiver to metrikker:
+Et budget følger én dags forbrug i USD over UTC-døgnet. Hvert 15. minut lægger OneUptime dagens AI-forbrug sammen (fra spans, eller fra GenAI-omkostningsmetrikker, når intet span rapporterede noget), viser det på budgettet og udgiver to metrikker. Et budget, hvis **Tæl udgifter fra** er **Udbyderkonti**, tæller i stedet, hvad dine forbundne konti blev faktureret: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts#budgetter-og-alarmer).
 
 | Metrik | Hvad den er |
 | --- | --- |
@@ -263,7 +276,7 @@ GenAI-metrikker som `gen_ai.client.token.usage` og `gen_ai.client.operation.dura
 
 AI-kald gemmes som trace-spans, så traces' **Scrub-regler** og **Drop-filtre** gælder for dem: maskér en attribut, eller drop et span, før det gemmes. Du finder begge under **Spor → Indstillinger**. Medarbejderens e-mailkolonne maskeres sammen med den attribut, den blev læst fra, så en regel, der maskerer e-mails, dækker også den.
 
-Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre.
+Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre. Samtalerne fra et af virksomhedens AI-værktøjer er undtagelsen: kun projektets ejere og administratorer kan læse dem, medmindre forbindelsen siger andet ([Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools#privatliv)).
 
 ## Attributter, som OneUptime læser
 
@@ -328,6 +341,8 @@ Monitorens rullende vindue er kortere end 15 minutter, så nogle gange finder de
 ## Næste trin
 
 :::cards
+- [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts): Forbrug og omkostninger for dine konti hos OpenAI, Anthropic, Azure, Bedrock og Vertex AI, uden kode.
+- [Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools): Hvad dine folk spørger Claude Enterprise og Microsoft 365 Copilot om.
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Forbrug pr. udvikler for Claude Code, Cursor, Codex, Gemini CLI og Copilot.
 - [AI-gateways](/docs/telemetry/ai-gateways): Trace alle apps' modelkald fra én LiteLLM- eller Portkey-gateway.
 - [Circuit breakers til AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stop en løbsk agent, når en budgetadvarsel udløses.

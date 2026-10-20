@@ -31,8 +31,9 @@ import {
  * its prompt and answer, its tokens and its cost; the conversation and the
  * person come from two attributes the snippets show.
  *
- * What the old Setup page said in five steps is folded under "What to
- * send", and the guide has the rest.
+ * What the old Setup page said in five steps is the snippet (the first
+ * step) and the four folded under "What to send", in the guide's order
+ * (AiObservabilityDocsFacts holds the guide's steps to these titles).
  */
 
 export const LLM_DOCS_PATH: string = "/docs/telemetry/ai-llm-observability";
@@ -46,6 +47,13 @@ interface Hint {
 
 const HINTS: Array<Hint> = [
   {
+    key: "record",
+    title: translationKey("Record what was said"),
+    body: translationKey(
+      "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.",
+    ),
+  },
+  {
     key: "conversations",
     title: translationKey("Group calls into conversations"),
     body: translationKey(
@@ -57,13 +65,6 @@ const HINTS: Array<Hint> = [
     title: translationKey("Say who asked"),
     body: translationKey(
       "Set user.email or user.id on every AI call to see who each conversation was with, and who spends what on Usage.",
-    ),
-  },
-  {
-    key: "record",
-    title: translationKey("Record what was said"),
-    body: translationKey(
-      "OpenLLMetry records prompts and answers by default. The OpenTelemetry instrumentations record them with OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true.",
     ),
   },
   {

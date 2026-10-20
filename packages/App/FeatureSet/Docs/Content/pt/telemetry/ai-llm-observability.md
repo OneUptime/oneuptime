@@ -3,6 +3,7 @@
 Leia cada conversa que sua IA teve, repita-a do jeito que aconteceu e seja avisado quando ela responder mal. O OneUptime constrói tudo isso a partir do OpenTelemetry padrão: se sua aplicação envia spans com as **convenções semânticas GenAI** (`gen_ai.*`), você obtém conversas, alertas, uso e custo, sem nenhum SDK proprietário.
 
 :::cards
+- [Três formas de entrada](#três-formas-de-entrada): Suas aplicações, suas contas de provedores de IA e as ferramentas de IA da sua empresa.
 - [Configure](#configure-em-cinco-passos): Cinco passos, do primeiro span às respostas sinalizadas.
 - [Repita uma conversa](#leia-e-repita-uma-conversa): Leia um chat como a pessoa o viu, no ritmo em que aconteceu.
 - [Receba alertas](#seja-avisado-quando-a-ia-responder-mal): Alertas prontos para respostas que falham, são recusadas, cortadas, sinalizadas ou lentas.
@@ -28,13 +29,23 @@ Abra **Produtos → AI / LLM**, em **Observabilidade**. O produto tem sete abas:
 | --- | --- |
 | **Conversas** | Cada conversa que sua IA teve, primeiro as que precisam de atenção. Acima da lista: conversas, respostas da IA, quantas precisam de atenção, custo e o tempo de resposta típico. |
 | **Chamadas** | Cada chamada de modelo, embedding, agente e ferramenta. Filtre por serviço, provedor, modelo, operação, pessoa, equipe ou conversa; clique em uma chamada para abri-la no visualizador de traces. |
-| **Uso** | Chamadas, tokens e custo de um período, ordenados por funcionário, equipe, modelo, provedor ou aplicação. |
+| **Uso** | Chamadas, tokens e custo de um período, ordenados por funcionário, equipe, modelo, provedor ou aplicação; em **Contas de provedor**, o que foi cobrado das suas contas conectadas. |
 | **Alertas** | Alertas prontos para quando a IA responde mal, e seus monitores de IA / LLM. |
 | **Orçamentos** | Limites de custo diários, publicados como métricas sobre as quais você pode alertar. |
 | **Preços** | Seus próprios preços para modelos que a lista de preços embutida não conhece. |
-| **Configuração** | Os cinco passos abaixo, com o endpoint do seu projeto. |
+| **Conectar** | As três formas de entrada, com uma lista que marca cada uma assim que ela começa a funcionar. |
 
 No visualizador de traces, o span de cada chamada de IA também tem uma aba **LLM**: provedor, modelo, tokens, custo, parâmetros da requisição, e o prompt e a resposta.
+
+## Três formas de entrada
+
+As três ficam em **Produtos → AI / LLM → Conectar**. Use uma, duas ou todas: tudo chega às mesmas **Conversas**, **Uso**, **Alertas** e **Orçamentos**.
+
+| Forma de entrada | O que você recebe | Como |
+| --- | --- | --- |
+| **Seus aplicativos** | Cada chamada de IA enquanto acontece: a conversa, a pessoa, o prompt e a resposta, tokens, custo e erros | OpenTelemetry do seu código ou de um gateway, em cinco passos |
+| **Suas contas de provedores de IA** | O que cada conta da OpenAI, Anthropic, Azure, Bedrock ou Vertex AI usou e custou, por dia | Uma credencial somente leitura e nenhum código: [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts) |
+| **As ferramentas de IA da sua empresa** | O que sua equipe pergunta ao Claude Enterprise ou ao Microsoft 365 Copilot, por pessoa | Uma credencial somente leitura e nenhum código: [Ferramentas de IA da empresa](/docs/telemetry/ai-company-tools) |
 
 ## Antes de começar
 
@@ -51,7 +62,7 @@ O primeiro passo é tudo de que você precisa para ver chamadas. Cada passo segu
 :::steps
 ### Envie suas chamadas de IA
 
-Crie uma chave de ingestão em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** (o [início rápido do OpenTelemetry](/docs/telemetry/open-telemetry#criar-uma-chave-de-ingestão) mostra como). Depois aponte sua instrumentação para o OneUptime:
+Em **Seus aplicativos**, dentro de **Conectar**, escolha uma chave de ingestão ou crie uma, e copie o snippet da sua linguagem com seu endpoint e sua chave já preenchidos. Ou crie uma chave em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** (o [início rápido do OpenTelemetry](/docs/telemetry/open-telemetry#criar-uma-chave-de-ingestão) mostra como) e aponte sua instrumentação para o OneUptime:
 
 :::tabs
 @tab Python
@@ -192,6 +203,8 @@ Um alerta pronto dispara um alerta que se resolve sozinho, e mostra o monitor co
 
 A aba **Uso** mostra as chamadas, os tokens e o custo de um período (os últimos 7 dias, a menos que você escolha outro), e uma tabela dos 25 primeiros em uma de cinco divisões: **Funcionário**, **Equipe**, **Modelo**, **Provedor** e **Aplicação / Serviço**. Chamadas que não citam ninguém são contadas em **Sem atribuição**, nunca descartadas.
 
+Estas são **Suas chamadas de IA**. Escolha **Contas de provedor** para ver o que foi cobrado das suas contas conectadas da OpenAI, Anthropic, Azure, Bedrock e Vertex AI: veja [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts#ver-o-uso). As duas coisas nunca são somadas.
+
 Pessoas e equipes vêm dos atributos de identidade da chamada: veja [Atribuição a funcionários e equipes](/docs/telemetry/ai-coding-assistants#atribuição-a-funcionários-e-equipes).
 
 ### Primeiro os spans, as métricas completam
@@ -230,7 +243,7 @@ Para definir você mesmo o preço de um modelo (uma tarifa negociada, um modelo 
 
 ## Orçamentos de custo diários
 
-Um orçamento acompanha o gasto de um dia, em USD, ao longo do dia UTC. A cada 15 minutos, o OneUptime soma o gasto de IA do dia (dos spans, ou das métricas de custo GenAI quando nenhum span informou gasto), mostra-o no orçamento e publica duas métricas:
+Um orçamento acompanha o gasto de um dia, em USD, ao longo do dia UTC. A cada 15 minutos, o OneUptime soma o gasto de IA do dia (dos spans, ou das métricas de custo GenAI quando nenhum span informou gasto), mostra-o no orçamento e publica duas métricas. Um orçamento cujo **Contar gastos de** é **Contas de provedor** conta, em vez disso, o que foi cobrado das suas contas conectadas: veja [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts#orçamentos-e-alertas).
 
 | Métrica | O que é |
 | --- | --- |
@@ -263,7 +276,7 @@ Métricas GenAI como `gen_ai.client.token.usage` e `gen_ai.client.operation.dura
 
 As chamadas de IA são armazenadas como spans de trace, então as **Regras de mascaramento** e os **Filtros de descarte** dos traces se aplicam a elas: mascare um atributo, ou descarte um span, antes que ele seja armazenado. Você encontra os dois em **Traços → Configurações**. A coluna de e-mail do funcionário é mascarada junto com o atributo de onde foi lida, então uma regra que mascara e-mails também a cobre.
 
-As conversas são lidas com a mesma permissão dos traces: quem pode ler os traces do projeto pode ler suas conversas, e mais ninguém.
+As conversas são lidas com a mesma permissão dos traces: quem pode ler os traces do projeto pode ler suas conversas, e mais ninguém. As conversas de uma ferramenta de IA da empresa são a exceção: só os proprietários e administradores do projeto podem lê-las, a menos que a conexão dela diga outra coisa ([Ferramentas de IA da empresa](/docs/telemetry/ai-company-tools#privacidade)).
 
 ## Atributos que o OneUptime lê
 
@@ -328,6 +341,8 @@ A janela móvel do monitor é menor que 15 minutos, então às vezes ela não en
 ## Próximos passos
 
 :::cards
+- [Contas de provedores de IA](/docs/telemetry/ai-provider-accounts): Uso e custo das suas contas da OpenAI, Anthropic, Azure, Bedrock e Vertex AI, sem código.
+- [Ferramentas de IA da empresa](/docs/telemetry/ai-company-tools): O que sua equipe pergunta ao Claude Enterprise e ao Microsoft 365 Copilot.
 - [Assistentes de programação com IA](/docs/telemetry/ai-coding-assistants): Gasto por engenheiro para Claude Code, Cursor, Codex, Gemini CLI e Copilot.
 - [Gateways de IA](/docs/telemetry/ai-gateways): Faça o trace das chamadas a modelos de todas as aplicações a partir de um único gateway LiteLLM ou Portkey.
 - [Disjuntores para agentes de IA](/docs/telemetry/ai-agent-circuit-breaker): Pare um agente descontrolado quando um alerta de orçamento disparar.
