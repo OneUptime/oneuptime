@@ -1,5 +1,7 @@
 import {
   AIStepConfig,
+  HttpRequestMethod,
+  HttpRequestStepConfig,
   KubernetesStepConfig,
   RunbookStep,
   SSHStepConfig,
@@ -7,6 +9,12 @@ import {
   isLegacySSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import {
+  canStepTypeRequireApproval,
+  moveApprovalsBeforeTheirSteps,
+  stepRequiresApprovalBeforeRunning,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import UUID from "Common/Utils/UUID";
 import {
   getKubectlScriptForLegacyKubernetesStep,
   isMovedKubernetesStepConfig,
@@ -17,6 +25,7 @@ import {
   DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
 } from "Common/Types/Runbook/RunbookStepTimeout";
 import {
+  FOLDED_SECTION_OFF,
   FOLDED_SECTION_ON,
   FoldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
@@ -29,17 +38,29 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * and use, specially kubectl and ssh steps have too many options. Kubectl
  * steps should take in a script like kubectl commands and not have dropdown
  * options ... Please do the same for SSH as well, it should take a bash
- * script (after ssh into a machine) ... hide advanced options."
+ * script (after ssh into a machine) ... hide advanced options." And then:
+ * "Can we please make all the runbook step options simpler, and use the
+ * 'More' thing we have on other forms to hide advanced options."
  *
  * So a step shows what most steps need, and folds the rest under More
  * fields (one quiet line that names what is inside, and what of it is set):
  *
+ *   - Manual: its title and the instructions the responder reads, nothing
+ *     folded;
+ *   - JavaScript and Bash: the Runner and the script;
+ *   - HTTP request: the method, the URL and - for a method that sends one -
+ *     the body; its headers folded;
  *   - SSH: the Runner, the machine (user@host), the secret it signs in
  *     with, and the bash script - its port and key passphrase folded;
  *   - kubectl: the Runner, the cluster's kubeconfig and the script;
- *   - every automated step folds its notes, its timeouts, Continue on
- *     failure and Require approval; an AI step its provider and the context
- *     it reads too.
+ *   - AI: the prompt - its provider and the context it reads folded;
+ *   - every automated step folds, first, Require approval before running
+ *     this step and Continue on failure, then its notes and its timeouts.
+ *
+ * A step that asks for approval says so on its header too ("Needs
+ * approval"), so the list reads where the run stops for a person: the
+ * switch is on the step it holds back (RunbookStepApproval), and moving
+ * the step moves its approval with it.
  *
  * React-free on purpose: App's tests read these without the page.
  */
@@ -206,9 +227,24 @@ export const MORE_FIELDS_TIMEOUTS_TITLE: string = translationKey("Timeouts");
 export const CONTINUE_ON_FAILURE_TITLE: string = translationKey(
   "Continue on failure",
 );
-export const REQUIRE_APPROVAL_TITLE: string = translationKey(
-  "Require approval before running the next step",
+export const CONTINUE_ON_FAILURE_DESCRIPTION: string = translationKey(
+  "If this step fails, the run goes on instead of stopping.",
 );
+/*
+ * The switch on the step it holds back, in the maintainer's words: "require
+ * approval before running this step".
+ */
+export const REQUIRE_APPROVAL_TITLE: string = translationKey(
+  "Require approval before running this step",
+);
+export const REQUIRE_APPROVAL_DESCRIPTION: string = translationKey(
+  "The run stops before this step until someone approves it.",
+);
+// The switch as the folded line names it: "More fields · Require approval: On".
+export const REQUIRE_APPROVAL_FOLDED_TITLE: string =
+  translationKey("Require approval");
+// On the header of a step that asks for approval, as a playbook step says it.
+export const NEEDS_APPROVAL_LABEL: string = translationKey("Needs approval");
 export const LLM_PROVIDER_TITLE: string = translationKey("LLM provider");
 export const INCLUDE_PREVIOUS_STEP_CONTEXT_TITLE: string = translationKey(
   "Include previous step context",
@@ -216,6 +252,9 @@ export const INCLUDE_PREVIOUS_STEP_CONTEXT_TITLE: string = translationKey(
 export const INCLUDE_TRIGGER_CONTEXT_TITLE: string = translationKey(
   "Include trigger context",
 );
+export const HTTP_HEADERS_TITLE: string = translationKey("Headers (JSON)");
+// A Manual step's description is what the responder reads and does.
+export const MANUAL_INSTRUCTIONS_TITLE: string = translationKey("Instructions");
 
 function hasText(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
@@ -227,9 +266,12 @@ function isSetTimeout(value: unknown, defaultValue: number): boolean {
 
 /*
  * What a step's More fields fold holds, in order, and which of it is set -
- * so the folded line says "More fields · Port: 2222, Require approval: On"
- * and nothing in force is hidden. Empty for a Manual step, which folds
- * nothing: its description is what the responder reads.
+ * so the folded line says "More fields · Require approval: On, Port: 2222"
+ * and nothing in force is hidden. The two switches every automated step has
+ * come first: they change how the run goes, and the line names them before
+ * it runs out of room. Empty for a Manual step, which folds nothing: its
+ * instructions are what the responder reads, and it stops the run for a
+ * person already.
  */
 export function getStepMoreFieldsItems(
   step: RunbookStep,
@@ -245,10 +287,43 @@ export function getStepMoreFieldsItems(
 
   const items: Array<FoldedSectionItem> = [];
 
+  const requiresApproval: boolean = stepRequiresApprovalBeforeRunning(step);
+
+  items.push({
+    key: "requireApprovalBeforeRunning",
+    title: REQUIRE_APPROVAL_FOLDED_TITLE,
+    isSet: requiresApproval,
+    ...(requiresApproval
+      ? { value: FOLDED_SECTION_ON, translateValue: true }
+      : {}),
+  });
+  items.push({
+    key: "continueOnFailure",
+    title: CONTINUE_ON_FAILURE_TITLE,
+    isSet: step.continueOnFailure === true,
+    ...(step.continueOnFailure === true
+      ? { value: FOLDED_SECTION_ON, translateValue: true }
+      : {}),
+  });
+
+  // An HTTP request's headers: how many it sends, never their values.
+  if (step.type === RunbookStepType.HttpRequest) {
+    const headerCount: number | undefined = getHttpHeaderCount(
+      (step.config as HttpRequestStepConfig).headersJson,
+    );
+
+    items.push({
+      key: "headersJson",
+      title: HTTP_HEADERS_TITLE,
+      isSet: hasText((step.config as HttpRequestStepConfig).headersJson),
+      ...(headerCount ? { value: String(headerCount) } : {}),
+    });
+  }
+
   /*
    * A step written with a credential folds no port and no passphrase: its
    * credential holds them (the editor shows such a step as it is, and its
-   * fold only its notes, timeouts and switches).
+   * fold only its switches, notes and timeouts).
    */
   if (step.type === RunbookStepType.SSH && !isLegacyCredentialStep(step)) {
     const ssh: SSHStepConfig = step.config as SSHStepConfig;
@@ -276,16 +351,25 @@ export function getStepMoreFieldsItems(
       title: LLM_PROVIDER_TITLE,
       isSet: hasText(ai.llmProviderId),
     });
+    /*
+     * On for every new AI step: said, "Off", when it is not - an AI step
+     * written without the switch runs without that context too.
+     */
     items.push({
       key: "includePreviousStepContext",
       title: INCLUDE_PREVIOUS_STEP_CONTEXT_TITLE,
-      // On by default for a new AI step: set when turned off.
-      isSet: ai.includePreviousStepContext === false,
+      isSet: ai.includePreviousStepContext !== true,
+      ...(ai.includePreviousStepContext !== true
+        ? { value: FOLDED_SECTION_OFF, translateValue: true }
+        : {}),
     });
     items.push({
       key: "includeTriggerContext",
       title: INCLUDE_TRIGGER_CONTEXT_TITLE,
-      isSet: ai.includeTriggerContext === false,
+      isSet: ai.includeTriggerContext !== true,
+      ...(ai.includeTriggerContext !== true
+        ? { value: FOLDED_SECTION_OFF, translateValue: true }
+        : {}),
     });
   }
 
@@ -317,24 +401,105 @@ export function getStepMoreFieldsItems(
     });
   }
 
-  items.push({
-    key: "continueOnFailure",
-    title: CONTINUE_ON_FAILURE_TITLE,
-    isSet: step.continueOnFailure === true,
-    ...(step.continueOnFailure === true
-      ? { value: FOLDED_SECTION_ON, translateValue: true }
-      : {}),
-  });
-  items.push({
-    key: "requireApproval",
-    title: REQUIRE_APPROVAL_TITLE,
-    isSet: step.requireApproval === true,
-    ...(step.requireApproval === true
-      ? { value: FOLDED_SECTION_ON, translateValue: true }
-      : {}),
-  });
-
   return items;
+}
+
+// ------------------------------------------------------- HTTP request
+
+// The methods whose request carries a body; GET and HEAD send none.
+export const HTTP_METHODS_WITH_BODY: Array<HttpRequestMethod> = [
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+];
+
+/*
+ * Whether an HTTP request step shows its Body: for a method that sends one,
+ * and for any step that has one already - a GET with a body sends it, so
+ * the editor never hides what the step does.
+ */
+export function isHttpBodyShown(config: HttpRequestStepConfig): boolean {
+  return (
+    HTTP_METHODS_WITH_BODY.includes(config.method || "GET") ||
+    hasText(config.body)
+  );
+}
+
+/*
+ * How many headers a step's headers JSON names, for the folded line
+ * ("Headers (JSON): 2"); undefined when it is empty or not a JSON object,
+ * which the step says when it runs.
+ */
+export function getHttpHeaderCount(
+  headersJson: string | undefined,
+): number | undefined {
+  if (!hasText(headersJson)) {
+    return undefined;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(headersJson!);
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+
+    const count: number = Object.keys(parsed as Record<string, unknown>)
+      .length;
+
+    return count > 0 ? count : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// ------------------------------------------------------ the step list
+
+/*
+ * A runbook's stored steps as the editor holds them: every approval before
+ * the step it holds back - a runbook an API client wrote with the old
+ * approval after a step reads the way it runs (RunbookStepApproval) - in
+ * the order they run, numbered from 0, each with an id.
+ */
+export function readStepsForEditor(steps: unknown): Array<RunbookStep> {
+  return moveApprovalsBeforeTheirSteps(steps)
+    .map((step: RunbookStep, index: number) => {
+      return { step, index };
+    })
+    .sort(
+      (
+        a: { step: RunbookStep; index: number },
+        b: { step: RunbookStep; index: number },
+      ): number => {
+        return (
+          (Number(a.step.order) || 0) - (Number(b.step.order) || 0) ||
+          a.index - b.index
+        );
+      },
+    )
+    .map((entry: { step: RunbookStep; index: number }, order: number) => {
+      return {
+        ...entry.step,
+        id: entry.step.id || UUID.generate(),
+        order,
+      };
+    });
+}
+
+/*
+ * A step turned on or off for approval. Only an automated step asks for
+ * approval: a Manual step stops the run for a person already.
+ */
+export function setStepRequiresApproval(
+  step: RunbookStep,
+  requiresApproval: boolean,
+): RunbookStep {
+  if (!canStepTypeRequireApproval(step.type)) {
+    return step;
+  }
+
+  return { ...step, requireApprovalBeforeRunning: requiresApproval };
 }
 
 // ----------------------------------------------------- legacy steps

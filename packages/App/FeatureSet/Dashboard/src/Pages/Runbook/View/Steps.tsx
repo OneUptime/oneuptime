@@ -36,9 +36,16 @@ import RunbookVariableChoicesLoader, {
   getUnknownVariableReferences,
 } from "../../../Components/Runbook/Steps/RunbookVariableChoices";
 import {
+  CONTINUE_ON_FAILURE_DESCRIPTION,
+  CONTINUE_ON_FAILURE_TITLE,
+  HTTP_HEADERS_TITLE,
   KUBECONFIG_TITLE,
   KUBECTL_EXAMPLES,
+  MANUAL_INSTRUCTIONS_TITLE,
+  NEEDS_APPROVAL_LABEL,
   NO_PASSPHRASE_LABEL,
+  REQUIRE_APPROVAL_DESCRIPTION,
+  REQUIRE_APPROVAL_TITLE,
   RUNNER_OWN_KUBECONFIG_LABEL,
   SSH_EXAMPLES,
   SSH_PASSPHRASE_TITLE,
@@ -52,8 +59,12 @@ import {
   formatSshTarget,
   getFirstCommand,
   getStepMoreFieldsItems,
+  isHttpBodyShown,
   isLegacyCredentialStep,
+  readStepsForEditor,
+  setStepRequiresApproval,
 } from "../../../Components/Runbook/Steps/RunbookStepEditorModel";
+import { stepRequiresApprovalBeforeRunning } from "Common/Types/Runbook/RunbookStepApproval";
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../Components/Runner/RunnerChoices";
@@ -473,7 +484,7 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
   };
   if (isAutomatedStep(type)) {
     base.continueOnFailure = false;
-    base.requireApproval = false;
+    base.requireApprovalBeforeRunning = false;
   }
   return base;
 }
@@ -681,17 +692,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setVariableChoices(loadedVariableChoices);
 
-      const loaded: RunbookStep[] =
-        (runbook?.steps as unknown as RunbookStep[]) || [];
-      loaded.sort((a: RunbookStep, b: RunbookStep) => {
-        return (a.order ?? 0) - (b.order ?? 0);
-      });
+      /*
+       * In the order they run, each with an id - and every approval on the
+       * step it holds back, so a runbook an API client wrote with the old
+       * "approval after this step" shows the way it runs.
+       */
+      const loaded: RunbookStep[] = readStepsForEditor(runbook?.steps);
       const initialCollapsed: Record<string, boolean> = {};
-      loaded.forEach((s: RunbookStep, idx: number) => {
-        s.order = idx;
-        if (!s.id) {
-          s.id = UUID.generate();
-        }
+      loaded.forEach((s: RunbookStep) => {
         // Default existing steps to collapsed so the page is scannable.
         initialCollapsed[s.id] = true;
       });
@@ -1060,7 +1068,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             </span>
           ) : (
             <TranslatedSentence
-              template="Leave this on {{projectDefault}} unless this step needs a specific model — a cheaper one for routine triage, or a self-hosted one for data that should not leave your network. Changing the project default later moves every step still set to default; a pinned step stays where you put it."
+              template="Leave this on {{projectDefault}} unless this step needs a specific model."
               slots={{
                 projectDefault: (
                   <strong>{translator.translateText("Project default")}</strong>
@@ -1156,17 +1164,26 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
+  /*
+   * A step's description: on a Manual step, the instructions the responder
+   * reads and follows, on the card; on any other step, notes about it,
+   * under More fields.
+   */
   const renderDescriptionField: (
     step: RunbookStep,
     idx: number,
   ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+    const isManual: boolean = step.type === RunbookStepType.Manual;
+
     return (
       <div>
         <label
           htmlFor={`runbook-step-${idx}-description`}
           className="block text-xs font-medium text-gray-700 mb-1.5"
         >
-          {translator.translateText("Description")}
+          {translator.translateText(
+            isManual ? MANUAL_INSTRUCTIONS_TITLE : "Description",
+          )}
           <span className="ml-2 text-[10px] font-normal text-gray-400">
             {translator.translateText("Markdown supported")}
           </span>
@@ -1180,8 +1197,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             });
           }}
           placeholder={
-            step.type === RunbookStepType.Manual
-              ? "Instructions the responder will see when they reach this step. Markdown is supported."
+            isManual
+              ? "What should the responder do or check? Markdown is supported."
               : "Optional notes about what this step does. Markdown is supported."
           }
         />
@@ -1189,30 +1206,39 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
-  // Continue on failure and Require approval, which every automated step has.
-  const renderFailureToggles: (
+  /*
+   * The two switches every automated step has, first under its More fields:
+   * whether the run stops before this step for someone to approve it, and
+   * whether a failure stops the run.
+   */
+  const renderRunSwitches: (step: RunbookStep, idx: number) => ReactElement = (
     step: RunbookStep,
     idx: number,
-  ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
+  ): ReactElement => {
     return (
       <div className="flex flex-col gap-3">
         <Toggle
-          title="Continue on failure"
-          description="If this step fails, continue to the next step instead of stopping the runbook."
-          value={Boolean(step.continueOnFailure)}
+          title={REQUIRE_APPROVAL_TITLE}
+          description={REQUIRE_APPROVAL_DESCRIPTION}
+          value={stepRequiresApprovalBeforeRunning(step)}
+          dataTestId={`runbook-step-${idx}-require-approval`}
           onChange={(v: boolean) => {
-            return updateStep(idx, {
-              continueOnFailure: v,
+            setSteps((prev: RunbookStep[]) => {
+              const copy: RunbookStep[] = [...prev];
+              copy[idx] = setStepRequiresApproval(copy[idx]!, v);
+              return copy;
             });
+            markDirty();
           }}
         />
         <Toggle
-          title="Require approval before running the next step"
-          description="After this step completes, pause the runbook and wait for a user to approve before running the next step."
-          value={Boolean(step.requireApproval)}
+          title={CONTINUE_ON_FAILURE_TITLE}
+          description={CONTINUE_ON_FAILURE_DESCRIPTION}
+          value={Boolean(step.continueOnFailure)}
+          dataTestId={`runbook-step-${idx}-continue-on-failure`}
           onChange={(v: boolean) => {
             return updateStep(idx, {
-              requireApproval: v,
+              continueOnFailure: v,
             });
           }}
         />
@@ -1319,6 +1345,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1332,7 +1359,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1359,7 +1385,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           helperText: (
             <>
               {translator.translateText(
-                "JavaScript runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
+                "Runs on this Runner, in your own infrastructure.",
               )}
             </>
           ),
@@ -1388,6 +1414,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1405,7 +1432,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   ? GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS
                   : STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1458,48 +1484,57 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             />
           </div>
         </div>
-        <div>
-          <label
-            htmlFor={`runbook-step-${idx}-http-headers`}
-            className="block text-xs font-medium text-gray-700 mb-1.5"
-          >
-            {translator.translateText("Headers (JSON)")}
-          </label>
-          <CodeEditor
-            id={`runbook-step-${idx}-http-headers`}
-            type={CodeType.JSON}
-            value={config.headersJson || ""}
-            onChange={(v: string) => {
-              return updateConfig(idx, {
-                headersJson: v,
-              });
-            }}
-            placeholder={'{ "Authorization": "Bearer ..." }'}
-          />
-        </div>
-        <div>
-          <label
-            htmlFor={`runbook-step-${idx}-http-body`}
-            className="block text-xs font-medium text-gray-700 mb-1.5"
-          >
-            {translator.translateText("Body")}
-          </label>
-          <CodeEditor
-            id={`runbook-step-${idx}-http-body`}
-            type={CodeType.JSON}
-            value={config.body || ""}
-            onChange={(v: string) => {
-              return updateConfig(idx, {
-                body: v,
-              });
-            }}
-            placeholder='{ "message": "..." }'
-          />
-        </div>
+        {/*
+         * The body a POST, PUT, PATCH or DELETE sends. A GET or HEAD sends
+         * none, so it shows no Body - unless it has one, which it sends.
+         */}
+        {isHttpBodyShown(config) ? (
+          <div>
+            <label
+              htmlFor={`runbook-step-${idx}-http-body`}
+              className="block text-xs font-medium text-gray-700 mb-1.5"
+            >
+              {translator.translateText("Body")}
+            </label>
+            <CodeEditor
+              id={`runbook-step-${idx}-http-body`}
+              type={CodeType.JSON}
+              value={config.body || ""}
+              onChange={(v: string) => {
+                return updateConfig(idx, {
+                  body: v,
+                });
+              }}
+              placeholder='{ "message": "..." }'
+            />
+          </div>
+        ) : (
+          <></>
+        )}
         {renderMoreFields(
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
+            <div>
+              <label
+                htmlFor={`runbook-step-${idx}-http-headers`}
+                className="block text-xs font-medium text-gray-700 mb-1.5"
+              >
+                {translator.translateText(HTTP_HEADERS_TITLE)}
+              </label>
+              <CodeEditor
+                id={`runbook-step-${idx}-http-headers`}
+                type={CodeType.JSON}
+                value={config.headersJson || ""}
+                onChange={(v: string) => {
+                  return updateConfig(idx, {
+                    headersJson: v,
+                  });
+                }}
+                placeholder={'{ "Authorization": "Bearer ..." }'}
+              />
+            </div>
             {renderDescriptionField(step, idx)}
             <StepTimeoutInput
               label="Request timeout"
@@ -1518,7 +1553,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 });
               }}
             />
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1545,7 +1579,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           helperText: (
             <>
               {translator.translateText(
-                "Bash runs on the selected Runner, in your own infrastructure. The step waits for that Runner to pick it up, or fails after the claim timeout.",
+                "Runs on this Runner, in your own infrastructure.",
               )}
             </>
           ),
@@ -1572,6 +1606,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1586,7 +1621,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1681,6 +1715,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             <div className="max-w-xs">
               <label
                 htmlFor={`runbook-step-${idx}-ssh-port`}
@@ -1731,7 +1766,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1814,6 +1848,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1828,7 +1863,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ),
               executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
             })}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -1858,7 +1892,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
           <p className="text-xs text-gray-500 mt-1.5">
             {translator.translateText(
-              "Runs on the LLM provider selected below (Project Settings › AI › LLM Providers). Calls are metered like any other AI feature. Pair with “Require approval” below to have a human review the AI’s answer before the next step runs.",
+              "The AI's answer becomes this step's output. AI calls are metered like any other AI feature.",
             )}
           </p>
           <div className="mt-2">
@@ -1876,6 +1910,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           step,
           idx,
           <>
+            {renderRunSwitches(step, idx)}
             {renderLlmProviderPicker({
               currentProviderId: config.llmProviderId || "",
               onChange: (id: string): void => {
@@ -1905,7 +1940,6 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
             />
             {renderDescriptionField(step, idx)}
-            {renderFailureToggles(step, idx)}
           </>,
         )}
       </>
@@ -2165,8 +2199,34 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                         {meta.shortLabel}
                                       </span>
                                       <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-semibold text-gray-900 truncate">
-                                          {step.title || meta.label}
+                                        <div className="flex min-w-0 items-center gap-2">
+                                          <div className="text-sm font-semibold text-gray-900 truncate">
+                                            {step.title || meta.label}
+                                          </div>
+                                          {/*
+                                           * Where the run stops for a person
+                                           * to approve: on the step it holds
+                                           * back, open or folded - drawn as a
+                                           * security playbook step says it.
+                                           */}
+                                          {stepRequiresApprovalBeforeRunning(
+                                            step,
+                                          ) ? (
+                                            <span
+                                              className="inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600"
+                                              data-testid={`runbook-step-${idx}-needs-approval`}
+                                            >
+                                              <Icon
+                                                icon={IconProp.Lock}
+                                                className="h-3 w-3"
+                                              />
+                                              {translator.translateText(
+                                                NEEDS_APPROVAL_LABEL,
+                                              )}
+                                            </span>
+                                          ) : (
+                                            <></>
+                                          )}
                                         </div>
                                         {isCollapsed && (
                                           <div className="text-xs text-gray-500 truncate">

@@ -36,8 +36,13 @@ import {
   RunbookStepAction,
   RunbookStepActionDecision,
 } from "Common/Types/Runbook/RunbookStepAction";
+import {
+  RunbookStepWait,
+  getRunbookStepWait,
+} from "Common/Types/Runbook/RunbookStepApproval";
 import RunRunbook from "../Services/RunRunbook";
 import RunbookRunAccess from "Common/Server/Utils/Runbook/RunbookRunAccess";
+import { RunbookStarterClass } from "Common/Server/Utils/Runbook/RunbookStarter";
 
 export default class RunbookAPI {
   public router!: ExpressRouter;
@@ -134,17 +139,13 @@ export default class RunbookAPI {
         throw new BadDataException("Runbook has no steps to run");
       }
 
-      const stepExecutions: RunbookStepExecutionState[] = steps
-        .slice()
-        .sort((a: RunbookStep, b: RunbookStep) => {
-          return a.order - b.order;
-        })
-        .map((step: RunbookStep) => {
-          return {
-            step,
-            status: RunbookStepExecutionStatus.Pending,
-          };
-        });
+      /*
+       * The steps in order, each waiting to run, with every approval before
+       * the step it holds back - as every other start takes them
+       * (RunbookStarter).
+       */
+      const stepExecutions: RunbookStepExecutionState[] =
+        RunbookStarterClass.getStepExecutions(steps);
 
       const execution: RunbookExecution = new RunbookExecution();
       // Asserted equal to runbook.projectId above.
@@ -589,16 +590,34 @@ async function advanceStep(args: {
     JSON.stringify(stepExecutions),
   ) as JSONArray;
 
-  stepExec.status =
-    args.action === RunbookStepAction.Complete
-      ? RunbookStepExecutionStatus.Completed
-      : RunbookStepExecutionStatus.Skipped;
-  stepExec.completedAt = new Date().toISOString();
+  const nowIso: string = new Date().toISOString();
+
+  if (
+    args.action === RunbookStepAction.Complete &&
+    getRunbookStepWait(stepExec) === RunbookStepWait.ApprovalToRun
+  ) {
+    /*
+     * Approving a step that asks for approval before it runs: the step has
+     * not run yet, so it goes back to Pending, approved, and the resumed
+     * run runs it (RunRunbook) - it is not marked done here.
+     */
+    stepExec.status = RunbookStepExecutionStatus.Pending;
+    stepExec.approvedAt = nowIso;
+    if (args.userId) {
+      stepExec.approvedByUserId = args.userId;
+    }
+  } else {
+    stepExec.status =
+      args.action === RunbookStepAction.Complete
+        ? RunbookStepExecutionStatus.Completed
+        : RunbookStepExecutionStatus.Skipped;
+    stepExec.completedAt = nowIso;
+    if (args.userId) {
+      stepExec.completedByUserId = args.userId;
+    }
+  }
   if (args.notes) {
     stepExec.notes = args.notes;
-  }
-  if (args.userId) {
-    stepExec.completedByUserId = args.userId;
   }
 
   const version: number | undefined =

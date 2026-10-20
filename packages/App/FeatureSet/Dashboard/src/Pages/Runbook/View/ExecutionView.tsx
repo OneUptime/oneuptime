@@ -26,8 +26,20 @@ import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import {
   decideRunbookStepAction,
+  getStepAwaitingUser,
   RunbookStepAction,
 } from "Common/Types/Runbook/RunbookStepAction";
+import {
+  RunbookStepWait,
+  getRunbookStepWait,
+} from "Common/Types/Runbook/RunbookStepApproval";
+import {
+  APPROVED_BY_LABEL,
+  APPROVE_TO_RUN_NOTE,
+  getRunWaitingTemplate,
+  getWaitingStepButtonTitle,
+  getWaitingStepStatusLabel,
+} from "../../../Components/Runbook/RunbookExecutionWaitCopy";
 import User from "Common/Models/DatabaseModels/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -329,6 +341,9 @@ const ExecutionView: FunctionComponent<
       if (s.completedByUserId) {
         userIdsToFetch.add(s.completedByUserId);
       }
+      if (s.approvedByUserId) {
+        userIdsToFetch.add(s.approvedByUserId);
+      }
     }
     if (userIdsToFetch.size === 0) {
       return;
@@ -599,10 +614,28 @@ const ExecutionView: FunctionComponent<
     isTerminal(execStatus) && Boolean(execution.runbookId);
 
   const pollSeconds: number = Math.round(POLL_INTERVAL_MS / 1000);
+
+  /*
+   * The step the run waits on, and why: the card names it - the step a
+   * person ticks off, the step that runs once someone approves it, or (in
+   * a run started before approvals moved) the step that ran and waits.
+   */
+  const awaitingStep: RunbookStepExecutionState | undefined =
+    getStepAwaitingUser({
+      executionStatus: execStatus,
+      stepExecutions: steps,
+    });
+  const awaitingWait: RunbookStepWait | undefined =
+    getRunbookStepWait(awaitingStep);
+
   const cardDescription: string =
-    execStatus === RunbookExecutionStatus.WaitingForManualStep
-      ? "Waiting on a manual step. Tick it off below to continue."
-      : execStatus === RunbookExecutionStatus.Running
+    awaitingStep && awaitingWait
+      ? translator.translateTemplate(getRunWaitingTemplate(awaitingWait), {
+          title: awaitingStep.step.title || "",
+        })
+      : execStatus === RunbookExecutionStatus.WaitingForManualStep
+        ? "Waiting on a manual step. Tick it off below to continue."
+        : execStatus === RunbookExecutionStatus.Running
         ? `Steps are running. This page refreshes every ${pollSeconds} seconds — or hit Refresh now.`
         : execStatus === RunbookExecutionStatus.Completed
           ? "All steps completed successfully."
@@ -805,14 +838,21 @@ const ExecutionView: FunctionComponent<
               <ul className="space-y-3">
                 {steps.map(
                   (stepExec: RunbookStepExecutionState, idx: number) => {
-                    const stepVisual: StatusVisual =
-                      STEP_STATUS_VISUAL[stepExec.status];
-                    const isWaiting: boolean =
-                      stepExec.status ===
-                      RunbookStepExecutionStatus.WaitingForUser;
-                    const isWaitingForApproval: boolean =
-                      isWaiting &&
-                      stepExec.step.type !== RunbookStepType.Manual;
+                    /*
+                     * Why the run waits on this step, if it does: a Manual
+                     * step is "Waiting for you", a step that asks for
+                     * approval "Waiting for approval" - before it runs, or
+                     * (a run started before approvals moved) after it ran.
+                     */
+                    const wait: RunbookStepWait | undefined =
+                      getRunbookStepWait(stepExec);
+                    const stepVisual: StatusVisual = wait
+                      ? {
+                          ...STEP_STATUS_VISUAL[stepExec.status],
+                          label: getWaitingStepStatusLabel(wait),
+                        }
+                      : STEP_STATUS_VISUAL[stepExec.status];
+                    const isWaiting: boolean = wait !== undefined;
                     /*
                      * Offer only what the API accepts: completing the step
                      * the run is paused on, skipping it, or skipping a later
@@ -887,15 +927,28 @@ const ExecutionView: FunctionComponent<
                                   />
                                 </div>
                               )}
+                              {wait === RunbookStepWait.ApprovalToRun && (
+                                <p
+                                  className="mt-2 flex items-center gap-1.5 text-sm text-amber-800"
+                                  data-testid={`runbook-execution-step-${idx}-approve-to-run`}
+                                >
+                                  <Icon
+                                    icon={IconProp.Lock}
+                                    size={SizeProp.Smaller}
+                                    className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                                  />
+                                  {translator.translateText(
+                                    APPROVE_TO_RUN_NOTE,
+                                  )}
+                                </p>
+                              )}
                             </div>
                             <div className="flex-shrink-0 flex items-center gap-2">
                               {canComplete && (
                                 <Button
-                                  title={
-                                    isWaitingForApproval
-                                      ? "Approve & continue"
-                                      : "Mark complete"
-                                  }
+                                  title={getWaitingStepButtonTitle(
+                                    wait || RunbookStepWait.Manual,
+                                  )}
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}
@@ -922,8 +975,34 @@ const ExecutionView: FunctionComponent<
 
                           {(stepExec.startedAt ||
                             stepExec.completedAt ||
-                            stepExec.completedByUserId) && (
+                            stepExec.completedByUserId ||
+                            stepExec.approvedByUserId) && (
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
+                              {/*
+                               * Who approved a step that asked for approval
+                               * before it ran, first: it is why the step ran.
+                               */}
+                              {stepExec.approvedByUserId && (
+                                <span
+                                  className="inline-flex items-center gap-1"
+                                  data-testid={`runbook-execution-step-${idx}-approved-by`}
+                                >
+                                  {translator.translateText(APPROVED_BY_LABEL)}
+                                  {stepUsers.get(stepExec.approvedByUserId) ? (
+                                    <UserElement
+                                      user={
+                                        stepUsers.get(
+                                          stepExec.approvedByUserId,
+                                        ) as User
+                                      }
+                                    />
+                                  ) : (
+                                    <span className="font-mono text-gray-400">
+                                      {stepExec.approvedByUserId.slice(0, 8)}
+                                    </span>
+                                  )}
+                                </span>
+                              )}
                               {stepExec.startedAt && (
                                 <span>
                                   {translator.translateTemplate(
