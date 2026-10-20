@@ -302,6 +302,70 @@ describe("Who reads them", () => {
   });
 });
 
+describe("What OneUptime reads on its own", () => {
+  /*
+   * Root reads are not held to the setting (the import and the counts need
+   * every chat), so the system reads whose findings everyone reads - an
+   * automatic AI investigation's tools, the trace latency insight scan -
+   * take the restricted services away themselves
+   * (CompanyAiToolChatsInSystemRuns.test.ts).
+   */
+  test("leaves a project's restricted services out, though root reads them", async () => {
+    const root: TelemetryReadScope = await scopeOf({
+      isRoot: true,
+      tenantId: PROJECT,
+    });
+    expect(root.blockedIds).toEqual([]);
+
+    const scope: TelemetryReadScope =
+      await LlmConversationPrivacy.restrictSystemScope({
+        scope: root,
+        projectId: PROJECT,
+      });
+
+    expect(scope.readableIds).toBeNull();
+    expect([...scope.blockedIds].sort()).toEqual(
+      [CLAUDE_SERVICE, COPILOT_SERVICE].sort(),
+    );
+  });
+
+  test("keeps what the scope it is handed takes away, and narrows what it reads", async () => {
+    const scope: TelemetryReadScope =
+      await LlmConversationPrivacy.restrictSystemScope({
+        scope: {
+          readableIds: [CLAUDE_SERVICE, OPEN_SERVICE],
+          blockedIds: ["x"],
+        },
+        projectId: PROJECT,
+      });
+
+    expect(scope.readableIds).toEqual([OPEN_SERVICE]);
+    expect([...scope.blockedIds].sort()).toEqual(
+      [CLAUDE_SERVICE, COPILOT_SERVICE, "x"].sort(),
+    );
+  });
+
+  test("a project with no company AI tool changes nothing", async () => {
+    expect(
+      await LlmConversationPrivacy.restrictSystemScope({
+        scope: { readableIds: null, blockedIds: [] },
+        projectId: OTHER_PROJECT,
+      }),
+    ).toEqual({ readableIds: null, blockedIds: [] });
+  });
+
+  test("a failed lookup fails the read rather than letting it through", async () => {
+    query.mockRejectedValueOnce(new Error("connection reset") as never);
+
+    await expect(
+      LlmConversationPrivacy.restrictSystemScope({
+        scope: { readableIds: null, blockedIds: [] },
+        projectId: PROJECT,
+      }),
+    ).rejects.toThrow("connection reset");
+  });
+});
+
 describe("LlmConversationPrivacy load order", () => {
   /*
    * Every read of spans reaches this module through the analytics

@@ -24,6 +24,13 @@ import TelemetryReadScopeUtil, {
  * project still never sees one of those chats - not in Conversations, not
  * in Calls, not in the trace explorer, not through OneUptime's AI.
  *
+ * Reads OneUptime makes on its own, as root, are not held to it there: the
+ * jobs that import and count these chats must see them. The two whose
+ * findings land where everyone reads them leave the restricted services out
+ * themselves (restrictSystemScope): an automatic AI investigation's tools,
+ * which write onto the incident or alert (ToolArgs.spanScope), and the
+ * trace latency insight scan.
+ *
  * Decided per project from the connections' rows, deleted ones included: a
  * connection that was deleted leaves its chats behind until the service's
  * retention removes them, and they stay restricted until then.
@@ -222,6 +229,22 @@ export default class LlmConversationPrivacy {
     }
 
     return LlmConversationPrivacy.blockServices(data.scope, blocked);
+  }
+
+  /*
+   * The scope with every restricted service of the project taken away,
+   * whoever reads: for a read OneUptime makes on its own, as root, whose
+   * findings land where people who may not read these conversations read
+   * them. restrictScope leaves root reads alone; this does not.
+   */
+  public static async restrictSystemScope(data: {
+    scope: TelemetryReadScope;
+    projectId: ObjectID;
+  }): Promise<TelemetryReadScope> {
+    return LlmConversationPrivacy.blockServices(
+      data.scope,
+      await LlmConversationPrivacy.getRestrictedServiceIds(data.projectId),
+    );
   }
 
   // A scope with these resources blocked as well. Pure.
