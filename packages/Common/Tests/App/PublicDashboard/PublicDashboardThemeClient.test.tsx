@@ -29,8 +29,8 @@ import Icon from "../../../UI/Components/Icon/Icon";
 import { THEME_CHANGE_EVENT } from "../../../UI/Utils/Theme";
 import DashboardThemeUtil, {
   DASHBOARD_THEME_CHANGE_EVENT,
-  useDashboardTheme,
 } from "../../../../App/FeatureSet/PublicDashboard/src/Utils/DashboardTheme";
+import { useDashboardTheme } from "../../../../App/FeatureSet/PublicDashboard/src/Utils/UseDashboardTheme";
 import ThemeMenu, {
   THEME_MENU_BUTTON_TEST_ID,
   THEME_MENU_CHOICES,

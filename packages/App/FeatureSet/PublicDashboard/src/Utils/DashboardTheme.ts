@@ -1,8 +1,6 @@
 import DashboardTheme, {
   DASHBOARD_DARK_SCHEME,
-  DASHBOARD_LIGHT_SCHEME,
   DASHBOARD_THEME_ATTRIBUTE,
-  DASHBOARD_VISITOR_THEME_AUTO,
   DASHBOARD_VISITOR_THEME_STORAGE_KEY,
   DashboardColorScheme,
   DashboardLinkTheme,
@@ -13,8 +11,7 @@ import DashboardTheme, {
   parseDashboardVisitorColorScheme,
 } from "Common/Types/Dashboard/DashboardTheme";
 import { getPublicPageThemeFromHeadSetting } from "Common/Types/Theme/PublicPageTheme";
-import ThemeUtil, { THEME_CHANGE_EVENT, Theme } from "Common/UI/Utils/Theme";
-import React from "react";
+import ThemeUtil, { Theme } from "Common/UI/Utils/Theme";
 
 /*
  * A public dashboard's theme, in the visitor's browser (Common/Types/
@@ -43,7 +40,9 @@ import React from "react";
  * The scheme is drawn by Common's ThemeUtil.applyTheme (the dark class,
  * data-theme, color-scheme and the theme-color tag), as the dashboard's and
  * a status page's are, so every Common component and dashboard widget that
- * reads useTheme follows it.
+ * reads useTheme follows it. The React hook the toolbar's theme menu reads
+ * is its sibling, UseDashboardTheme.ts: this module stays free of React, so
+ * the app's pure modules and the App tests that reach them can import it.
  */
 
 // Told whenever the dashboard's theme or the visitor's pick changes.
@@ -319,91 +318,3 @@ export default class DashboardThemeUtil {
     });
   }
 }
-
-const subscribeToDashboardTheme: (onChange: () => void) => () => void = (
-  onChange: () => void,
-): (() => void) => {
-  if (typeof window === "undefined") {
-    return (): void => {};
-  }
-
-  window.addEventListener(DASHBOARD_THEME_CHANGE_EVENT, onChange);
-  window.addEventListener(THEME_CHANGE_EVENT, onChange);
-
-  return (): void => {
-    window.removeEventListener(DASHBOARD_THEME_CHANGE_EVENT, onChange);
-    window.removeEventListener(THEME_CHANGE_EVENT, onChange);
-  };
-};
-
-const getDashboardThemeSnapshot: () => DashboardTheme = (): DashboardTheme => {
-  return DashboardThemeUtil.getDashboardTheme();
-};
-
-const getColorSchemeSnapshot: () => DashboardColorScheme =
-  (): DashboardColorScheme => {
-    return ThemeUtil.getAppliedTheme() === Theme.Dark
-      ? DASHBOARD_DARK_SCHEME
-      : DASHBOARD_LIGHT_SCHEME;
-  };
-
-const getVisitorChoiceSnapshot: () => DashboardVisitorThemeChoice =
-  (): DashboardVisitorThemeChoice => {
-    return DashboardThemeUtil.getVisitorChoice();
-  };
-
-const getLightSnapshot: () => DashboardColorScheme =
-  (): DashboardColorScheme => {
-    return DASHBOARD_LIGHT_SCHEME;
-  };
-
-const getFallbackThemeSnapshot: () => DashboardTheme = (): DashboardTheme => {
-  return DashboardTheme.Light;
-};
-
-const getAutoSnapshot: () => DashboardVisitorThemeChoice =
-  (): DashboardVisitorThemeChoice => {
-    return DASHBOARD_VISITOR_THEME_AUTO;
-  };
-
-/*
- * The dashboard's theme, the scheme the page is drawn in and the visitor's
- * pick, kept up to date as any of them changes: the toolbar's theme menu
- * reads all three.
- */
-export const useDashboardTheme: () => {
-  theme: DashboardTheme;
-  colorScheme: DashboardColorScheme;
-  visitorChoice: DashboardVisitorThemeChoice;
-  isVisitorChoiceOffered: boolean;
-} = (): {
-  theme: DashboardTheme;
-  colorScheme: DashboardColorScheme;
-  visitorChoice: DashboardVisitorThemeChoice;
-  isVisitorChoiceOffered: boolean;
-} => {
-  const theme: DashboardTheme = React.useSyncExternalStore(
-    subscribeToDashboardTheme,
-    getDashboardThemeSnapshot,
-    getFallbackThemeSnapshot,
-  );
-
-  const colorScheme: DashboardColorScheme = React.useSyncExternalStore(
-    subscribeToDashboardTheme,
-    getColorSchemeSnapshot,
-    getLightSnapshot,
-  );
-
-  const visitorChoice: DashboardVisitorThemeChoice = React.useSyncExternalStore(
-    subscribeToDashboardTheme,
-    getVisitorChoiceSnapshot,
-    getAutoSnapshot,
-  );
-
-  return {
-    theme,
-    colorScheme,
-    visitorChoice,
-    isVisitorChoiceOffered: DashboardThemeUtil.isVisitorChoiceOffered(),
-  };
-};

@@ -1,8 +1,14 @@
-import DashboardThemeUtil, { useDashboardTheme } from "../Utils/DashboardTheme";
+import DashboardThemeUtil from "../Utils/DashboardTheme";
+import { useDashboardTheme } from "../Utils/UseDashboardTheme";
 import {
-  DASHBOARD_DARK_SCHEME,
-  DashboardVisitorThemeChoice,
-} from "Common/Types/Dashboard/DashboardTheme";
+  THEME_MENU_BUTTON_TEST_ID,
+  THEME_MENU_CHOICES,
+  THEME_MENU_LABEL,
+  THEME_MENU_TEST_ID,
+  ThemeMenuChoice,
+  getThemeMenuChoiceTestId,
+} from "./ThemeMenuCopy";
+import { DASHBOARD_DARK_SCHEME } from "Common/Types/Dashboard/DashboardTheme";
 import IconProp from "Common/Types/Icon/IconProp";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -27,32 +33,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * (?theme=, a wall screen's or an embedding site's) offers no menu.
  */
 
-/*
- * The menu's wrapper, which says what the page is drawn in
- * (data-color-scheme) and what the visitor picked (data-visitor-choice); its
- * button is `${id}-button`.
- */
-export const THEME_MENU_TEST_ID: string = "public-dashboard-theme-menu";
-
-export const THEME_MENU_BUTTON_TEST_ID: string = `${THEME_MENU_TEST_ID}-button`;
-
-// A choice's menu item.
-export const getThemeMenuChoiceTestId: (
-  choice: DashboardVisitorThemeChoice,
-) => string = (choice: DashboardVisitorThemeChoice): string => {
-  return `${THEME_MENU_TEST_ID}-${choice}`;
+// Its words and test ids are ThemeMenuCopy.ts's, re-exported for the app's tests.
+export {
+  THEME_MENU_BUTTON_TEST_ID,
+  THEME_MENU_CHOICES,
+  THEME_MENU_LABEL,
+  THEME_MENU_TEST_ID,
+  getThemeMenuChoiceTestId,
 };
-
-export const THEME_MENU_LABEL: string = "Theme";
-
-export const THEME_MENU_CHOICES: ReadonlyArray<{
-  choice: DashboardVisitorThemeChoice;
-  title: string;
-}> = [
-  { choice: "light", title: "Light" },
-  { choice: "dark", title: "Dark" },
-  { choice: "auto", title: "Auto" },
-];
 
 const ThemeMenu: FunctionComponent = (): ReactElement => {
   const { colorScheme, visitorChoice, isVisitorChoiceOffered } =
@@ -76,28 +64,23 @@ const ThemeMenu: FunctionComponent = (): ReactElement => {
         ariaLabel={THEME_MENU_LABEL}
         dataTestId={THEME_MENU_BUTTON_TEST_ID}
       >
-        {THEME_MENU_CHOICES.map(
-          (item: {
-            choice: DashboardVisitorThemeChoice;
-            title: string;
-          }): ReactElement => {
-            const isInUse: boolean = item.choice === visitorChoice;
+        {THEME_MENU_CHOICES.map((item: ThemeMenuChoice): ReactElement => {
+          const isInUse: boolean = item.choice === visitorChoice;
 
-            return (
-              <MoreMenuItem
-                key={item.choice}
-                text={item.title}
-                icon={isInUse ? IconProp.Check : undefined}
-                isIconSpaceReserved={true}
-                isChecked={isInUse}
-                dataTestId={getThemeMenuChoiceTestId(item.choice)}
-                onClick={() => {
-                  DashboardThemeUtil.setVisitorChoice(item.choice);
-                }}
-              />
-            );
-          },
-        )}
+          return (
+            <MoreMenuItem
+              key={item.choice}
+              text={item.title}
+              icon={isInUse ? IconProp.Check : undefined}
+              isIconSpaceReserved={true}
+              isChecked={isInUse}
+              dataTestId={getThemeMenuChoiceTestId(item.choice)}
+              onClick={() => {
+                DashboardThemeUtil.setVisitorChoice(item.choice);
+              }}
+            />
+          );
+        })}
       </MoreMenu>
     </div>
   );

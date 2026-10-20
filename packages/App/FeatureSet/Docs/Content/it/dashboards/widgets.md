@@ -96,7 +96,7 @@ Quello che non può fare è raggiungere la pagina di OneUptime che lo circonda. 
 Due conseguenze da conoscere prima di incollare qualcosa:
 
 - Un `fetch` dal widget è una richiesta cross-origin da un'origine opaca, quindi il server che chiami deve consentirla con CORS. Chiamare l'API di OneUptime da qui non è supportato.
-- Il widget parte trasparente. Imposta uno sfondo su `body` nel tuo CSS se vuoi che riempia la scheda.
+- Il widget parte trasparente. Imposta uno sfondo su `body` nel tuo CSS se vuoi che riempia la scheda. Nel tema scuro il suo testo parte chiaro e il suo elemento `<html>` ha la classe `dark`: inizia una regola CSS con `html.dark` per dare uno stile solo al tema scuro.
 
 #### Usare le variabili della dashboard
 
