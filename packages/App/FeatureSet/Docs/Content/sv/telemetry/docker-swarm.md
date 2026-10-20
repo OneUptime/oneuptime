@@ -238,6 +238,10 @@ Sätt `DOCKER_API_VERSION` till det värdet i `.env` och kör `docker compose up
 Klustrets namn kommer från `DOCKER_SWARM_CLUSTER_NAME`. Ändra det i `.env` och kör `docker compose up -d`: Ett nytt namn registrerar ett nytt kluster i stället för att byta namn på det gamla.
 :::
 
+:::details Uppgifternas CPU är en platt linje
+En äldre `otel-collector-config.yaml` skickar mottagaren `docker_stats` egen CPU-siffra. Sedan collector 0.150.0 räknar mottagaren ut den från en enda statistikmätning: all CPU som en container har använt sedan den startade, delat med all CPU som noden har använt sedan den senast startades. Linjen rör sig knappt och följer inte belastningen, medan `container.cpu.usage.total` gör det. Collectorversionen har inte ändrats, så ingen varningssymbol visas: ladda ned agentens filer igen så som [Uppgradera agenten](#uppgradera-agenten) visar. Från sin andra mätning skickar collectorn sedan den CPU som varje container använde under varje intervall på 30 sekunder. Mätningar som redan har sparats förblir som de var.
+:::
+
 ## Nästa steg
 
 :::cards

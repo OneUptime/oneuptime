@@ -100,7 +100,7 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
 
 > [!NOTE]
-> `container.cpu.utilization` er tallet `docker stats` skriver ut: 100 % er én hel CPU-kjerne, ikke hele verten, så en container som bruker to kjerner, viser 200. På en vert med flere kjerner er terskelen på 80 et CPU-budsjett, ikke en andel av maskinen.
+> `container.cpu.utilization` er tallet `docker stats` skriver ut, i snitt over agentens intervall på 30 sekunder: 100 % er én hel CPU-kjerne, ikke hele verten, så en container som bruker to kjerner, viser 200. På en vert med flere kjerner er terskelen på 80 et CPU-budsjett, ikke en andel av maskinen.
 
 > [!NOTE]
 > `container.memory.percent` deler på containerens minnegrense når en er satt, og ellers på **vertens** totale minne. Kontroller om containeren ble startet med `--memory` før du behandler en overskridelse som et nært forestående drap på grunn av minnemangel.
@@ -119,7 +119,7 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats` mot Docker-socketen hvert
 
 | Metrikk | Beskrivelse |
 | --- | --- |
-| `container.cpu.utilization` | CPU-utnyttelse, der 100 % er én hel CPU-kjerne (kolonnen CPU% i `docker stats`). |
+| `container.cpu.utilization` | CPU brukt i hvert intervall på 30 sekunder, der 100 % er én hel CPU-kjerne (kolonnen CPU% i `docker stats`). |
 | `container.cpu.usage.total` | Brukt CPU-tid siden containeren startet, i nanosekunder. En teller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_time` | Nanosekunder containeren har blitt strupet av CPU-grensen sin siden den startet. En teller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_periods` | Struperioder siden containeren startet. En teller over hele levetiden. |
@@ -282,7 +282,7 @@ OneUptime identifiserer en vert etter `resource.host.name`, som agenten tar fra 
 :::
 
 :::details Et CPU-varsel utløses aldri
-Grupper spørringen etter `resource.container.name` og aggreger med **Maksimum**, slik malen **High Container CPU Usage** gjør. Et gjennomsnitt over alle containere på en travel vert trekkes ned av de inaktive. Husk at 100 % betyr én hel kjerne, så en container som får bruke flere kjerner, trenger en høyere terskel.
+Grupper spørringen etter `resource.container.name` og aggreger med **Maksimum**, slik malen **High Container CPU Usage** gjør. Et gjennomsnitt over alle containere på en travel vert trekkes ned av de inaktive. Husk at 100 % betyr én hel kjerne, så en container som får bruke flere kjerner, trenger en høyere terskel. Er CPU-en til en container en flat linje uansett belastning, kjører verten en eldre agent: [oppgrader den](/docs/telemetry/docker-host#oppgradere-agenten).
 :::
 
 :::details Malen for omstartsløkker eller struping sluttet å varsle

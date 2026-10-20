@@ -284,6 +284,10 @@ The agent must run as root to read `/run/podman/podman.sock`. Check that `--user
 3. Check that the ingestion key is valid and has not expired.
 :::
 
+:::details Container CPU is a flat line
+An older agent sends the `docker_stats` receiver's own CPU figure, which needs the stats reading before the current one, and Podman's Docker-compatible API never sends it: the receiver divides all the CPU a container used since it started by all the CPU the host used since it booted. The line barely moves and does not follow the load, while `container.cpu.usage.total` does. [Upgrade the agent](#upgrading-the-agent): from its second reading on, it sends the CPU each container used over each 30-second interval. Readings already stored stay as they were.
+:::
+
 :::details Metrics arrive but no container logs
 Your containers most likely use `journald`, Podman's default log driver. Check which files the agent watches, and which driver a container uses:
 
