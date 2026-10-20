@@ -1,6 +1,6 @@
 # Kode
 
-Kode er der du ber OneUptime AI om å jobbe i repositoriene dine, slik du ville bedt en kodeagent: rette en feil, skrive tester, forklare koden, gjøre en endring. Kode åpner på de tilkoblede repositoriene dine; siden til et repositorium har oppgavene og feltet der du spør; siden til en oppgave er en samtale du kan svare i. OneUptime starter også oppgaver på egen hånd, fra unntak, spor og undersøkelser. En [Runner](/docs/runbooks/agents) kloner repositoriet, skriver endringen på en ny branch, bygger og tester den og åpner en pull request. En person gjennomgår og merger hver eneste en: Runneren kan pushe brancher og åpne pull requests, ingenting mer.
+Kode er der du ber OneUptime AI om å jobbe i repositoriene dine, slik du ville bedt en kodeagent: rette en feil, skrive tester, forklare koden, gjøre en endring. Kode åpner på feltet der du spør, med repositoriet og branchen valgt i det og alle oppgavene under det; siden til en oppgave er en samtale du kan svare i. OneUptime starter også oppgaver på egen hånd, fra unntak, spor og undersøkelser. En [Runner](/docs/runbooks/agents) kloner repositoriet, skriver endringen på en ny branch, bygger og tester den og åpner en pull request. En person gjennomgår og merger hver eneste en: Runneren kan pushe brancher og åpne pull requests, ingenting mer.
 
 :::cards
 - [Be AI om noe i et repositorium](#be-ai-om-noe-i-et-repositorium): En forespørsel med dine egne ord, med konteksten den trenger.
@@ -18,13 +18,17 @@ Kode er der du ber OneUptime AI om å jobbe i repositoriene dine, slik du ville 
 ## Be AI om noe i et repositorium
 
 :::steps
-### Åpne et repositorium
+### Åpne Kode
 
-Åpne **Produkter → Kode**. Der står prosjektets repositorier, hvert med oppgavene AI jobber med, de som venter på deg, og de åpne pull requestene. Finnes det ingen ennå, tilbyr Kode **Koble til GitHub** (se [Før du begynner](#før-du-begynner)).
+Åpne **Produkter → Kode**. Kode åpner på **Hva skal AI gjøre?**: feltet der du spør, med alle oppgavene under, de nyeste først. Finnes det ikke noe repositorium ennå, tilbyr Kode i stedet **Koble til GitHub** (se [Før du begynner](#før-du-begynner)). **Repositorier** i sidemenyen viser de tilkoblede repositoriene, og siden til hvert repositorium har det samme feltet for det repositoriet.
+
+### Velg repositoriet og branchen
+
+Feltet starter på repositoriet du valgte sist. Velg et annet i den nederste raden, og ved siden av branchen oppgaven starter fra: repositoriets hovedbranch, merket **Standard**, til du velger en annen. AI lager sin branch fra den du velger, og åpner sin pull request mot den.
 
 ### Si hva du vil
 
-Skriv endringen, feilen eller spørsmålet med dine egne ord på repositoriets side. Et repositorium uten oppgaver foreslår noen under **Prøv å spørre**.
+Skriv endringen, feilen eller spørsmålet med dine egne ord. Inntil noe er spurt om, foreslår Kode noen under **Prøv å spørre**.
 
 ### Legg til kontekst
 
@@ -51,7 +55,7 @@ En forespørsel bærer høyst 10 kontekstelementer. Tokener, nøkler, passord og
 
 ## Samtalen til en oppgave
 
-Siden til en oppgave er en samtale: hva det ble spurt om og konteksten som ble lagt til, deretter turen til AI – stegene den tar mens den tar dem (filene den leste og redigerte, hva den søkte etter, kommandoene den kjørte), svaret, filene den endret med diffen deres, og pull requesten. Øverst på siden står det hvordan det står til med oppgaven:
+Siden til en oppgave er en samtale: hva det ble spurt om og konteksten som ble lagt til, deretter turen til AI – stegene den tar mens den tar dem (filene den leste og redigerte, hva den søkte etter, kommandoene den kjørte), svaret, filene den endret med diffen deres, og pull requesten. Øverst på siden står det hvor oppgaven jobber (repositoriet og branchen den startet fra), hvor mange linjer den endret, med en knapp til pull requesten, og hvordan det står til med oppgaven:
 
 | Tilstand | Hva det betyr |
 | --- | --- |
@@ -62,7 +66,7 @@ Siden til en oppgave er en samtale: hva det ble spurt om og konteksten som ble l
 | **Mislyktes** | Turen kunne ikke fullføres, og sier hvorfor. **Prøv igjen** ber om det samme på nytt. |
 | **Stoppet** | Noen stoppet den. **Prøv igjen** ber om det samme på nytt. |
 
-For å følge opp skriver du i feltet nederst: svar AI, legg til kontekst eller be om endringer. Hvert svar er neste tur i samme oppgave: den jobber på samme branch og pusher til samme pull request så lenge den er åpen. En oppgave tar én tur om gangen, så feltet venter mens AI jobber. **Logg** for hver tur er den ordrette oversikten over hva den gjorde.
+For å følge opp skriver du i feltet nederst, som blir synlig mens samtalen ruller: svar AI, legg til kontekst eller be om endringer. Hvert svar er neste tur i samme oppgave: den jobber på samme branch og pusher til samme pull request så lenge den er åpen. En oppgave tar én tur om gangen, så feltet venter mens AI jobber. **Logg** for hver tur er den ordrette oversikten over hva den gjorde.
 
 Den som kan lese et repositorium, leser oppgavene i det. Å be AI om noe, svare og stoppe en oppgave krever tillatelse til å redigere repositoriet, og det samme gjør det å se diffen til en endring: alle andre ser hvilke filer som er endret. Oppgavene OneUptime starter på egen hånd (nedenfor), står også i repositoriet sitt, som samtaler du kan svare i.
 
@@ -80,10 +84,10 @@ flowchart TB
     P --> H["En person gjennomgår<br/>og merger den"]
 ```
 
-1. Du klikker **Start oppgave** i et repositorium, eller **Fiks med AI** på et uløst unntak, eller en annen knapp eller utløser starter en oppgave (se [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter)).
+1. Du klikker **Start oppgave** i Kode, eller **Fiks med AI** på et uløst unntak, eller en annen knapp eller utløser starter en oppgave (se [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter)).
 2. Oppgaven settes i kø på repositoriet sitt, og Runneren som repositoriet velger, tar den: en av dine Runnere, eller en global Runner når det ikke velger noen (se [Velg repositoriets Runner](#velg-repositoriets-runner)).
 3. Runneren henter oppgavens kontekst. For en forespørsel er det ordene, konteksten som ble lagt til, og samtalen så langt; for et unntak typen, meldingen og stack tracen.
-4. Den kloner repositoriet til et eget arbeidsområde og lager en branch. En retting av et unntak heter `oneuptime-fix-exception-` etterfulgt av de første tegnene i kjøringens id. Et svar jobber i stedet på branchen til oppgavens åpne pull request.
+4. Den kloner repositoriet til et eget arbeidsområde og lager en branch. En retting av et unntak heter `oneuptime-fix-exception-` etterfulgt av de første tegnene i kjøringens id. En forespørsel starter fra branchen som ble valgt da den ble stilt, og pull requesten åpnes mot den. Et svar jobber i stedet på branchen til oppgavens åpne pull request.
 5. En kodeagent, drevet av prosjektets LLM-leverandør, leser koden og skriver endringen. OneUptime-serveren gjør LLM-kallene, slik at Runneren aldri har leverandørens API-nøkkel, og hvert kall måles og vises i AI-loggene. En retting av et unntak, et tregt spor eller en hendelse leser også fra produksjonen mens den jobber: unntakene, sporene, loggene og målingene til repositoriets tjenester (se [Produksjonstelemetri i en retting](#produksjonstelemetri-i-en-retting)).
 6. Har repositoriet kontrollkommandoer, bygger og tester din egen Runner endringen før den committer noe, og gir en feil tilbake til kodeagenten for å reparere den (se [Kontroll før pull requesten](#kontroll-før-pull-requesten)).
 7. Runneren committer, pusher branchen, åpner pull requesten (for en forespørsel bare når den endret kode) og sletter arbeidsområdet.
@@ -177,7 +181,7 @@ Til en utrulling leverer den, står det **Merget, venter på et deploy** ved ret
 
 ## Før du begynner
 
-En oppgave trenger tre ting. Siden til et repositorium i Kode og unntakets side **AI Assistance** kontrollerer alle tre før de tilbyr å starte, og sier hva som mangler.
+En oppgave trenger tre ting. Forespørselsfeltet i Kode og unntakets side **AI Assistance** kontrollerer alle tre før de tilbyr å starte, og sier hva som mangler.
 
 | Hva | OneUptime Cloud | Selvhostet |
 | --- | --- | --- |
@@ -263,7 +267,7 @@ Alt annet er som med knappen:
 ## Når en retting mislykkes
 
 :::details Kjøringen feiler
-Rettingen kunne ikke brukes, repositoriet kunne ikke nås, eller LLM-kallet mislyktes. Oppgavens samtale, og siden den ble startet fra, viser årsaken og tilbyr å prøve igjen. **Logg** for turen har hele kjøringsloggen.
+Rettingen kunne ikke brukes, repositoriet eller branchen en forespørsel startet fra kunne ikke nås, eller LLM-kallet mislyktes. Oppgavens samtale, og siden den ble startet fra, viser årsaken og tilbyr å prøve igjen. **Logg** for turen har hele kjøringsloggen.
 :::
 
 :::details Runneren stopper midt i en kjøring

@@ -420,8 +420,13 @@ describe("Code", () => {
     expect(page).not.toContain("**AI** > **Tasks**");
   });
 
-  it("asks AI in a repository with the words its page draws", () => {
-    const tasks: string = dashboardSource("Pages/Code/Repository/Tasks.tsx");
+  it("asks AI with the words Code's pages draw: the question, the pickers, the examples", () => {
+    const home: string = dashboardSource("Pages/Code/Code.tsx");
+    const askBox: string = dashboardSource("Components/Code/CodeAskBox.tsx");
+    const sideMenu: string = dashboardSource(
+      "Components/Code/CodeSideMenu.tsx",
+    );
+    const copy: string = dashboardSource("Components/Code/CodeTaskCopy.ts");
     const composer: string = dashboardSource(
       "Components/Code/CodeComposer.tsx",
     );
@@ -432,10 +437,20 @@ describe("Code", () => {
       englishSection(CODE_PAGE, "## Ask AI in a repository"),
     );
 
-    expect(tasks).toContain('translator.translateText("Try asking")');
-    expect(tasks).toContain(
+    // Code opens on the question, over the box where it is asked.
+    expect(home).toContain('translator.translateText("What should AI do?")');
+    expect(home).toContain("<CodeAskBox");
+    expect(askBox).toContain('translator.translateTemplate("Try asking")');
+    expect(askBox).toContain(
       'sendLabel={translator.translateTemplate("Start task")}',
     );
+    // The repository picked last is the one the box starts on.
+    expect(askBox).toContain(
+      "getRememberedRepositoryKey(projectId.toString())",
+    );
+    // Repositories is in Code's side menu; the main branch is badged Default.
+    expect(sideMenu).toContain('title: "Repositories"');
+    expect(copy).toContain('branchDefaultBadge: translationKey("Default"),');
     expect(composer).toContain('translator.translateText("Add context")');
     // Enter sends; Shift + Enter starts a new line.
     expect(composer).toContain('event.key === "Enter" &&');
@@ -444,7 +459,10 @@ describe("Code", () => {
 
     for (const label of [
       "Products → Code",
+      "What should AI do?",
       "Connect GitHub",
+      "Repositories",
+      "Default",
       "Try asking",
       "Add context",
       "Start task",
@@ -453,6 +471,7 @@ describe("Code", () => {
     }
 
     expect(ask).toContain(`Click ${bold("Start task")}, or press Enter.`);
+    expect(ask).toContain("The box starts on the repository you picked last.");
   });
 
   it("lists every kind of context as Add context offers it, with the limits the server holds", () => {
