@@ -37,7 +37,10 @@ export const BRANCH_SEARCH_DELAY_MS: number = 250;
 export const filterBranches: (
   branches: Array<string>,
   search: string,
-) => Array<string> = (branches: Array<string>, search: string): Array<string> => {
+) => Array<string> = (
+  branches: Array<string>,
+  search: string,
+): Array<string> => {
   const needle: string = search.trim().toLowerCase();
 
   if (!needle) {
@@ -124,7 +127,9 @@ const CodeBranchPicker: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      setError(translator.translateTemplate(CODE_PICKER_COPY.branchesUnreadable));
+      setError(
+        translator.translateTemplate(CODE_PICKER_COPY.branchesUnreadable),
+      );
     }
 
     setIsLoading(false);
@@ -208,7 +213,9 @@ const CodeBranchPicker: FunctionComponent<ComponentProps> = (
       }}
       note={
         listing && !listing.isComplete && !searchText
-          ? translator.translateTemplate(CODE_PICKER_COPY.branchesSearchToFindMore)
+          ? translator.translateTemplate(
+              CODE_PICKER_COPY.branchesSearchToFindMore,
+            )
           : null
       }
       isDisabled={props.isDisabled}

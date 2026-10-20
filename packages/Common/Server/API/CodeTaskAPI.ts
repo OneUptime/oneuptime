@@ -610,9 +610,7 @@ export default class CodeTaskAPI {
     });
 
     const message: string = CodeTaskRuns.readMessage(body["message"]);
-    const pickedBranch: string | null = CodeTaskBranchName.read(
-      body["branch"],
-    );
+    const pickedBranch: string | null = CodeTaskBranchName.read(body["branch"]);
     const context: Array<CodeTaskContextItem> = await CodeTaskAPI.readContext(
       body["context"],
       props,

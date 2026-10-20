@@ -222,11 +222,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <div className={`${CODE_COLUMN_CLASS_NAME} pt-2 sm:pt-6`}>
           <ConnectGitHubEmptyState connection={connection} />
           {/* Tasks that never found a repository stay readable. */}
-          {data && data.tasksWithoutRepositoryCount > 0 ? (
-            renderTasks()
-          ) : (
-            <></>
-          )}
+          {data && data.tasksWithoutRepositoryCount > 0 ? renderTasks() : <></>}
         </div>
       );
     }

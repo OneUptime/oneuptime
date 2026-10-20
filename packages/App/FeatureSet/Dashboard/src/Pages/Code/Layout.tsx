@@ -48,8 +48,10 @@ const CodeLayout: FunctionComponent<LayoutPageComponentProps> = (
   _props: LayoutPageComponentProps,
 ): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
-  const heading: { title?: string | undefined; description?: string | undefined } =
-    getCodeLayoutTitle(path);
+  const heading: {
+    title?: string | undefined;
+    description?: string | undefined;
+  } = getCodeLayoutTitle(path);
 
   return (
     <Page

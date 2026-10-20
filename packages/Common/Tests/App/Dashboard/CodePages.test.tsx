@@ -1086,7 +1086,10 @@ describe("Code's first page: the question, one box, and every task", () => {
 
   describe("as pure rules", () => {
     test("the box starts on the repository picked last, while it is there; else the most recently active connected one", () => {
-      const quiet: CodeRepositoryListItem = { ...CHECKOUT, stats: { ...CHECKOUT.stats } };
+      const quiet: CodeRepositoryListItem = {
+        ...CHECKOUT,
+        stats: { ...CHECKOUT.stats },
+      };
       delete quiet.stats.lastActivityAt;
 
       expect(
@@ -1306,7 +1309,10 @@ describe("Code's Repositories", () => {
       .mockResolvedValue(
         new HTTPResponse<JSONObject>(
           200,
-          { installUrl: "https://github.com/apps/oneuptime-app/installations/new" },
+          {
+            installUrl:
+              "https://github.com/apps/oneuptime-app/installations/new",
+          },
           {},
         ) as never,
       );
@@ -1472,9 +1478,9 @@ describe("a repository's page: ask AI", () => {
       within(header).getByRole("link", { name: "acme/checkout-api" }),
     ).toHaveAttribute("href", "https://github.com/acme/checkout-api");
     expect(header).toHaveTextContent("main");
-    expect(
-      screen.getByTestId("code-repository-description"),
-    ).toHaveTextContent("The checkout and payment API behind the store.");
+    expect(screen.getByTestId("code-repository-description")).toHaveTextContent(
+      "The checkout and payment API behind the store.",
+    );
 
     const row: HTMLElement = await screen.findByTestId("code-task-row");
     expect(row).toHaveTextContent("Retry charges when the gateway times out");
@@ -1762,15 +1768,13 @@ describe("a task's conversation", () => {
     expect(screen.getByTestId("code-task-title")).toHaveTextContent(
       "Retry charges when the gateway times out",
     );
-    expect(
-      within(header).getByTestId("code-task-repository"),
-    ).toHaveAttribute(
+    expect(within(header).getByTestId("code-task-repository")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
     );
-    expect(within(header).getByTestId("code-task-repository")).toHaveTextContent(
-      "acme/checkout-api",
-    );
+    expect(
+      within(header).getByTestId("code-task-repository"),
+    ).toHaveTextContent("acme/checkout-api");
     // The branch it works from: the repository's main one, none picked.
     expect(within(header).getByTestId("code-task-branch")).toHaveTextContent(
       "main",

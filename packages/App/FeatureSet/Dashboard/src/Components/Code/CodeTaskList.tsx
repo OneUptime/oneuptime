@@ -261,7 +261,8 @@ export const CodeTaskRow: FunctionComponent<{
   const isRequest: boolean = task.recipe === CodeFixTaskType.CodeRequest;
   const title: string =
     task.title || translator.translateTemplate(getRecipeLabel(task.recipe));
-  const isQueued: boolean = task.state === CodeTaskState.Working && task.isQueued;
+  const isQueued: boolean =
+    task.state === CodeTaskState.Working && task.isQueued;
 
   /*
    * Who asked, for a request; for a task OneUptime started, its kind ("Fix

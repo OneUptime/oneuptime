@@ -539,14 +539,15 @@ describe("the CodeRequest recipe", () => {
     });
 
     for (const stored of ["", "a..b", "-x", "has space", 7, null]) {
-      const request: ReturnType<typeof getCodeTaskRequest> =
-        getCodeTaskRequest({
+      const request: ReturnType<typeof getCodeTaskRequest> = getCodeTaskRequest(
+        {
           request: {
             message: "Backport it",
             context: [],
             baseBranch: stored as unknown as string,
           },
-        });
+        },
+      );
 
       expect(request).toEqual({ message: "Backport it", context: [] });
       expect(request).not.toHaveProperty("baseBranch");

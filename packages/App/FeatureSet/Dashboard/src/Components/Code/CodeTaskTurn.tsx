@@ -460,10 +460,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
   const renderAsk: () => ReactElement = (): ReactElement => {
     if (turn.request) {
       return (
-        <li
-          data-testid="code-turn-request"
-          className="flex flex-col items-end"
-        >
+        <li data-testid="code-turn-request" className="flex flex-col items-end">
           <div className="flex max-w-full items-center gap-2">
             <PersonMark
               name={personName}

@@ -80,7 +80,9 @@ const CodeRepositoryPicker: FunctionComponent<ComponentProps> = (
       searchPlaceholder={translator.translateTemplate(
         CODE_PICKER_COPY.repositorySearch,
       )}
-      noMatchText={translator.translateTemplate(CODE_PICKER_COPY.repositoryNoMatch)}
+      noMatchText={translator.translateTemplate(
+        CODE_PICKER_COPY.repositoryNoMatch,
+      )}
       isDisabled={props.isDisabled}
     />
   );

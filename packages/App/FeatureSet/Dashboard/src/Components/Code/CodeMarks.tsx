@@ -4,9 +4,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Marks drawn in place, like GitHubMark (no network font for one icon): a
  * git branch, where Code says which branch AI works from or on.
  */
-export const GitBranchMark: FunctionComponent<{ className?: string }> = (props: {
+export const GitBranchMark: FunctionComponent<{
   className?: string;
-}): ReactElement => {
+}> = (props: { className?: string }): ReactElement => {
   return (
     <svg
       className={props.className || "h-4 w-4"}

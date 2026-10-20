@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
-import { CodeTaskContextType, CodeTaskState } from "../../../Types/AI/CodeTask";
+import {
+  CodeRepositoryBranchesJSON,
+  CodeTaskContextType,
+  CodeTaskState,
+} from "../../../Types/AI/CodeTask";
 import { APP_API_URL } from "../../../UI/Config";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -51,7 +55,6 @@ import CodeApi, {
   CodeTaskResponse,
   getTaskListScopeBody,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
-import { CodeRepositoryBranchesJSON } from "../../../Types/AI/CodeTask";
 
 const TASK_ID: string = "4c1d2e3f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
 const REPOSITORY_ID: string = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
@@ -254,9 +257,11 @@ describe("a repository's branches", () => {
 
     postMock.mockResolvedValue(answer({}) as never);
 
-    expect(
-      await CodeApi.getBranches({ repositoryId: REPOSITORY_ID }),
-    ).toEqual({ branches: [], defaultBranch: "", isComplete: true });
+    expect(await CodeApi.getBranches({ repositoryId: REPOSITORY_ID })).toEqual({
+      branches: [],
+      defaultBranch: "",
+      isComplete: true,
+    });
   });
 
   test("a refusal is thrown, for the picker to say it could not read them", async () => {

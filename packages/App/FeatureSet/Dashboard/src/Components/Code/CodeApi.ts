@@ -66,9 +66,9 @@ export type CodeTaskListScope =
   | { allRepositories: true };
 
 // The body /code-task/list reads for a scope.
-export const getTaskListScopeBody: (
+export const getTaskListScopeBody: (scope: CodeTaskListScope) => JSONObject = (
   scope: CodeTaskListScope,
-) => JSONObject = (scope: CodeTaskListScope): JSONObject => {
+): JSONObject => {
   if ("repositoryId" in scope) {
     return { repositoryId: scope.repositoryId };
   }

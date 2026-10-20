@@ -57,11 +57,11 @@ export const CODE_TASK_POLL_MS: number = 3000;
  */
 export const getTaskBaseBranch: (
   data: Pick<CodeTaskResponse, "turns" | "repository">,
-) => string = (data: Pick<CodeTaskResponse, "turns" | "repository">): string => {
+) => string = (
+  data: Pick<CodeTaskResponse, "turns" | "repository">,
+): string => {
   return (
-    data.turns[0]?.request?.baseBranch ||
-    data.repository?.mainBranchName ||
-    ""
+    data.turns[0]?.request?.baseBranch || data.repository?.mainBranchName || ""
   );
 };
 

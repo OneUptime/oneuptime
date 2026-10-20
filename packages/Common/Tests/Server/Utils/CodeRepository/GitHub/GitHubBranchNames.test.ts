@@ -3,7 +3,14 @@ import API, { APIRequestOptions } from "../../../../../Utils/API";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import { JSONArray } from "../../../../../Types/JSON";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 // API.get as jest.spyOn types it: its type argument at its constraint.

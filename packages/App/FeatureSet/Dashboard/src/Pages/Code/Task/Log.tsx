@@ -211,9 +211,7 @@ const toLlmCallLogs: ToLlmCallLogsFunction = (
       statusMessage: (logJson["statusMessage"] as string) || "",
       totalTokens: logJson["totalTokens"] as number | undefined,
       cachedInputTokens: logJson["cachedInputTokens"] as number | undefined,
-      cacheCreationTokens: logJson["cacheCreationTokens"] as
-        | number
-        | undefined,
+      cacheCreationTokens: logJson["cacheCreationTokens"] as number | undefined,
       completionTokens: logJson["completionTokens"] as number | undefined,
       durationMs: logJson["durationMs"] as number | undefined,
       startedAt: startedAt ? OneUptimeDate.fromString(startedAt) : undefined,

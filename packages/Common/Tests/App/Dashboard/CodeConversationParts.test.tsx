@@ -1080,12 +1080,7 @@ describe("the state mark", () => {
     [CodeTaskState.Stopped, false, "Stopped", "icon"],
   ])(
     "%s (queued: %s) is named %s for a screen reader and on hover",
-    (
-      state: CodeTaskState,
-      isQueued: boolean,
-      words: string,
-      drawn: string,
-    ) => {
+    (state: CodeTaskState, isQueued: boolean, words: string, drawn: string) => {
       draw(<CodeTaskStateMark state={state} isQueued={isQueued} />);
       const mark: HTMLElement = screen.getByTestId("code-task-state");
       expect(mark).toHaveAttribute("role", "img");
@@ -1395,19 +1390,19 @@ describe("a repository's row", () => {
       <ul>
         <CodeRepositoryRow
           repository={{
-          id: REPOSITORY_ID,
-          name: "checkout-api",
-          organizationName: "acme",
-          repositoryName: "checkout-api-service",
-          description: "The checkout API.",
-          isConnected: true,
-          stats: {
-            working: 2,
-            waitingForYou: 1,
-            openPullRequests: 3,
-            taskCount: 7,
-            lastActivityAt: new Date(Date.now() - 5 * 60000).toISOString(),
-          },
+            id: REPOSITORY_ID,
+            name: "checkout-api",
+            organizationName: "acme",
+            repositoryName: "checkout-api-service",
+            description: "The checkout API.",
+            isConnected: true,
+            stats: {
+              working: 2,
+              waitingForYou: 1,
+              openPullRequests: 3,
+              taskCount: 7,
+              lastActivityAt: new Date(Date.now() - 5 * 60000).toISOString(),
+            },
           }}
         />
       </ul>,
@@ -1429,9 +1424,7 @@ describe("a repository's row", () => {
     expect(
       within(row).getByTestId("code-repository-waiting"),
     ).toHaveTextContent("1 waiting for you");
-    const stats: HTMLElement = within(row).getByTestId(
-      "code-repository-stats",
-    );
+    const stats: HTMLElement = within(row).getByTestId("code-repository-stats");
     // The facts read apart, a dot between each, the time last.
     expect(stats.textContent).toBe(
       "7 tasks·3 open pull requests·5 minutes ago",

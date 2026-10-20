@@ -1514,7 +1514,9 @@ export default class GitHubUtil extends HostedCodeRepository {
 
     const result: HTTPErrorResponse | HTTPResponse<JSONArray> =
       await API.get<JSONArray>({
-        url: URL.fromString(`${repositoryUrl}/git/matching-refs/heads/${prefix}`),
+        url: URL.fromString(
+          `${repositoryUrl}/git/matching-refs/heads/${prefix}`,
+        ),
         headers: GitHubUtil.buildApiHeaders(tokenData.token),
       });
 

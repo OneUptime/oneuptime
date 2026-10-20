@@ -690,9 +690,7 @@ describe("asking from a branch the person picked (create with branch)", () => {
       const { next } = await ask(branch);
 
       expect(next).not.toHaveBeenCalled();
-      expect(created[0]!.taskContext?.request).not.toHaveProperty(
-        "baseBranch",
-      );
+      expect(created[0]!.taskContext?.request).not.toHaveProperty("baseBranch");
     },
   );
 
@@ -812,7 +810,10 @@ describe("a repository's branches (for the branch picker)", () => {
       (listBranchNames.mock.calls[0]![0] as { search: string }).search,
     ).toBe("feature/");
 
-    listBranchNames.mockResolvedValue({ names: ["maintenance"], isComplete: true });
+    listBranchNames.mockResolvedValue({
+      names: ["maintenance"],
+      isComplete: true,
+    });
     const { result: second } = await read({ search: "ma" });
     expect(second?.["branches"]).toEqual(["main", "maintenance"]);
   });

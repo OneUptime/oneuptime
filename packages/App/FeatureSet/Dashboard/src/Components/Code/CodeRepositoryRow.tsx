@@ -114,7 +114,9 @@ const CodeRepositoryRow: FunctionComponent<ComponentProps> = (
            * they wrap under the name; from sm up they sit at the end.
            */}
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:flex-none sm:justify-end">
-            {showNotConnected || stats.working > 0 || stats.waitingForYou > 0 ? (
+            {showNotConnected ||
+            stats.working > 0 ||
+            stats.waitingForYou > 0 ? (
               <div
                 data-testid="code-repository-attention"
                 className="flex flex-wrap items-center gap-1.5"

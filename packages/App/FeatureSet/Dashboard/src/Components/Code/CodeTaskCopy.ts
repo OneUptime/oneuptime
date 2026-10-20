@@ -84,14 +84,13 @@ export const CODE_TASK_STATE_COPY: Record<CodeTaskState, CodeTaskStateCopy> = {
 };
 
 // The colour a row says its state in, when it says it in words.
-export const CODE_TASK_STATE_TEXT_CLASS_NAMES: Record<CodeTaskState, string> =
-  {
-    [CodeTaskState.Working]: "text-indigo-600",
-    [CodeTaskState.WaitingForYou]: "text-amber-600",
-    [CodeTaskState.Done]: "text-emerald-600",
-    [CodeTaskState.Failed]: "text-red-600",
-    [CodeTaskState.Stopped]: "text-gray-500",
-  };
+export const CODE_TASK_STATE_TEXT_CLASS_NAMES: Record<CodeTaskState, string> = {
+  [CodeTaskState.Working]: "text-indigo-600",
+  [CodeTaskState.WaitingForYou]: "text-amber-600",
+  [CodeTaskState.Done]: "text-emerald-600",
+  [CodeTaskState.Failed]: "text-red-600",
+  [CodeTaskState.Stopped]: "text-gray-500",
+};
 
 // What a queued task says, instead of "Working": nobody has picked it up.
 export const QUEUED_LABEL: string = translationKey("Queued");

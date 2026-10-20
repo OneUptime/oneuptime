@@ -207,9 +207,9 @@ describe("a picker in the request box", () => {
     // A second line, a badge, and a quieter name where an option has them.
     expect(options()[0]).toHaveTextContent("red/round");
     expect(options()[1]).toHaveTextContent("Default");
-    expect(
-      within(options()[2]!).getByText("cherry").className,
-    ).toContain("text-gray-500");
+    expect(within(options()[2]!).getByText("cherry").className).toContain(
+      "text-gray-500",
+    );
   });
 
   test("typing filters by name or second line; nothing left says so", async () => {
@@ -418,7 +418,12 @@ describe("the repository picker", () => {
       organizationName: "acme",
       repositoryName: "checkout-api",
       isConnected: true,
-      stats: { working: 0, waitingForYou: 0, openPullRequests: 0, taskCount: 0 },
+      stats: {
+        working: 0,
+        waitingForYou: 0,
+        openPullRequests: 0,
+        taskCount: 0,
+      },
     },
     {
       id: OTHER_REPOSITORY_ID,
@@ -426,7 +431,12 @@ describe("the repository picker", () => {
       organizationName: "acme",
       repositoryName: "storefront-web",
       isConnected: false,
-      stats: { working: 0, waitingForYou: 0, openPullRequests: 0, taskCount: 0 },
+      stats: {
+        working: 0,
+        waitingForYou: 0,
+        openPullRequests: 0,
+        taskCount: 0,
+      },
     },
   ];
 
@@ -443,7 +453,11 @@ describe("the repository picker", () => {
 
     expect(getRepositoryOptions(REPOSITORIES, translator)).toEqual([
       // Its own name says it all: no second line.
-      { value: REPOSITORY_ID, label: "checkout-api", description: "acme/checkout-api" },
+      {
+        value: REPOSITORY_ID,
+        label: "checkout-api",
+        description: "acme/checkout-api",
+      },
       {
         value: OTHER_REPOSITORY_ID,
         label: "web",
@@ -715,9 +729,7 @@ describe("the branch picker", () => {
     await waitFor(() => {
       expect(options("code-branch-picker")).toHaveLength(2);
     });
-    const search: HTMLElement = screen.getByTestId(
-      "code-branch-picker-search",
-    );
+    const search: HTMLElement = screen.getByTestId("code-branch-picker-search");
 
     fireEvent.change(search, { target: { value: "old" } });
     await waitFor(() => {

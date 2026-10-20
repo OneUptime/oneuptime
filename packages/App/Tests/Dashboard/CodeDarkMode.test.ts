@@ -290,8 +290,8 @@ describe("Code in the dark theme", () => {
   });
 
   test("a whole class built from a value is caught; a test id's tail is not", () => {
-    expect(TEMPLATE_COLOR_TOKEN.test('className={`text-${tone}`}')).toBe(true);
-    expect(TEMPLATE_COLOR_TOKEN.test('className={`x bg-${tone}`}')).toBe(true);
+    expect(TEMPLATE_COLOR_TOKEN.test("className={`text-${tone}`}")).toBe(true);
+    expect(TEMPLATE_COLOR_TOKEN.test("className={`x bg-${tone}`}")).toBe(true);
     expect(
       TEMPLATE_COLOR_TOKEN.test("dataTestId={`code-add-context-${kind}`}"),
     ).toBe(false);

@@ -209,7 +209,9 @@ const CodePicker: FunctionComponent<ComponentProps> = (
     props.onOpen?.();
   };
 
-  const close: (returnFocus: boolean) => void = (returnFocus: boolean): void => {
+  const close: (returnFocus: boolean) => void = (
+    returnFocus: boolean,
+  ): void => {
     setIsOpen(false);
 
     if (returnFocus) {

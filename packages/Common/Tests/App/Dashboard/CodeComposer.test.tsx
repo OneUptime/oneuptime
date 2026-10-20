@@ -432,7 +432,9 @@ describe("the box", () => {
   test("what stops AI is said at the top of the box, over the words", () => {
     renderComposer({
       isDisabled: true,
-      notice: <p data-testid="the-reason">AI is turned off for this project.</p>,
+      notice: (
+        <p data-testid="the-reason">AI is turned off for this project.</p>
+      ),
     });
 
     const notice: HTMLElement = screen.getByTestId("code-composer-notice");
