@@ -438,18 +438,20 @@ describe("what each offer draws", () => {
    * the words only from lg up.
    */
   test("the next step lines up with the words; only the fix button spans the strip on a phone", () => {
-    const classesOf: (offer: SuggestionOffer, taskRoute?: Route) => string[] =
-      (offer: SuggestionOffer, taskRoute?: Route): string[] => {
-        renderStrip({
-          suggestion: suggestion(offer),
-          taskRoute: taskRoute ?? null,
-        });
-        const classes: string[] = screen
-          .getByTestId("trace-performance-action")
-          .className.split(" ");
-        cleanup();
-        return classes;
-      };
+    const classesOf: (offer: SuggestionOffer, taskRoute?: Route) => string[] = (
+      offer: SuggestionOffer,
+      taskRoute?: Route,
+    ): string[] => {
+      renderStrip({
+        suggestion: suggestion(offer),
+        taskRoute: taskRoute ?? null,
+      });
+      const classes: string[] = screen
+        .getByTestId("trace-performance-action")
+        .className.split(" ");
+      cleanup();
+      return classes;
+    };
 
     const fix: string[] = classesOf(SuggestionOffer.Act);
     expect(fix).toEqual(expect.arrayContaining(["sm:pl-8", "lg:pl-0"]));
@@ -493,14 +495,12 @@ describe("what each offer draws", () => {
     );
     // Said by a screen reader when it takes the pressed button's place.
     expect(progress).toHaveAttribute("role", "status");
-    const dot: Element | null = progress.querySelector(
-      '[aria-hidden="true"]',
-    );
+    const dot: Element | null = progress.querySelector('[aria-hidden="true"]');
     expect(dot).not.toBeNull();
     expect(dot!.querySelector(".motion-safe\\:animate-ping")).not.toBeNull();
-    const link: HTMLElement = screen.getByText("View task progress").closest(
-      "a",
-    )!;
+    const link: HTMLElement = screen
+      .getByText("View task progress")
+      .closest("a")!;
     expect(link).toHaveClass("sm:whitespace-nowrap");
     // A phone may wrap it: its longest translations would run out of the strip.
     expect(link).not.toHaveClass("whitespace-nowrap");

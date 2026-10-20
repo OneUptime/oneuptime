@@ -1091,15 +1091,12 @@ test.describe("fix performance with AI", () => {
   }) => {
     await openLoaded(page, "report");
 
-    const strip: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-performance-suggestion")
-      .boundingBox())!;
-    const finding: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-performance-finding")
-      .boundingBox())!;
-    const button: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-fix-performance")
-      .boundingBox())!;
+    const strip: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-suggestion").boundingBox())!;
+    const finding: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-finding").boundingBox())!;
+    const button: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-fix-performance").boundingBox())!;
 
     expect(button.x).toBeGreaterThan(finding.x + finding.width);
     expect(strip.x + strip.width - (button.x + button.width)).toBeLessThan(24);
@@ -1228,12 +1225,10 @@ test.describe("tablet", () => {
   }) => {
     await openLoaded(page, "report", "repo=none");
 
-    const finding: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-performance-finding")
-      .boundingBox())!;
-    const connect: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-fix-performance-connect")
-      .boundingBox())!;
+    const finding: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-finding").boundingBox())!;
+    const connect: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-fix-performance-connect").boundingBox())!;
 
     expect(Math.abs(connect.x - finding.x)).toBeLessThanOrEqual(1);
     expect(connect.y).toBeGreaterThan(finding.y + finding.height - 1);
@@ -1253,20 +1248,19 @@ test.describe("tablet", () => {
   }) => {
     await openLoaded(page, "report", "fix=running");
 
-    const finding: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-performance-finding")
-      .boundingBox())!;
-    const progress: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-fix-performance-progress")
-      .boundingBox())!;
+    const finding: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-performance-finding").boundingBox())!;
+    const progress: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-fix-performance-progress").boundingBox())!;
 
     expect(Math.abs(progress.x - finding.x)).toBeLessThanOrEqual(1);
     expect(progress.y).toBeGreaterThan(finding.y + finding.height - 1);
     // "View task progress" is one link on one line.
-    const link: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-fix-performance-progress")
-      .getByRole("link", { name: "View task progress" })
-      .boundingBox())!;
+    const link: { x: number; y: number; width: number; height: number } =
+      (await page
+        .getByTestId("trace-fix-performance-progress")
+        .getByRole("link", { name: "View task progress" })
+        .boundingBox())!;
     expect(link.height).toBeLessThan(26);
   });
 });
@@ -1392,10 +1386,10 @@ test.describe("phone", () => {
     ]) {
       await openLoaded(page, "report", query);
 
-      const finding: { x: number; y: number; width: number; height: number } = (await page
-        .getByTestId("trace-performance-finding")
-        .boundingBox())!;
-      const action: { x: number; y: number; width: number; height: number } = (await page.getByTestId(testId!).boundingBox())!;
+      const finding: { x: number; y: number; width: number; height: number } =
+        (await page.getByTestId("trace-performance-finding").boundingBox())!;
+      const action: { x: number; y: number; width: number; height: number } =
+        (await page.getByTestId(testId!).boundingBox())!;
 
       expect(Math.abs(action.x - finding.x)).toBeLessThanOrEqual(1);
       expect(action.y).toBeGreaterThan(finding.y + finding.height - 1);
@@ -1432,24 +1426,18 @@ test.describe("phone", () => {
     await expect(row(page, first)).toBeInViewport();
 
     // The search has the row to itself, its count and arrows inside it.
-    const section: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-spans")
-      .boundingBox())!;
-    const search: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-search")
-      .boundingBox())!;
-    const count: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-search-count")
-      .boundingBox())!;
+    const section: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-spans").boundingBox())!;
+    const search: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-search").boundingBox())!;
+    const count: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-search-count").boundingBox())!;
     expect(search.x).toBeGreaterThanOrEqual(section.x);
     expect(search.width).toBeGreaterThan(section.width - 40);
     expect(count.x).toBeGreaterThan(search.x);
-    expect(count.x + count.width).toBeLessThanOrEqual(
-      search.x + search.width,
-    );
-    const errorsOnly: { x: number; y: number; width: number; height: number } = (await page
-      .getByTestId("trace-errors-only")
-      .boundingBox())!;
+    expect(count.x + count.width).toBeLessThanOrEqual(search.x + search.width);
+    const errorsOnly: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("trace-errors-only").boundingBox())!;
     expect(errorsOnly.y).toBeGreaterThanOrEqual(search.y + search.height);
     await screenshot(page, "phone-show-them", false);
   });

@@ -1049,9 +1049,9 @@ test.describe("AI assistance", () => {
     await expect(
       notice.getByRole("link", { name: "Turn AI on" }),
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/settings/ai-features`);
-    await expect(page.getByTestId("exception-ai-task-FixException")).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByTestId("exception-ai-task-FixException"),
+    ).toHaveCount(0);
     await expect(page.getByTestId("exception-ai-task-start")).toHaveCount(0);
     await screenshot(page, "ai-assistance-ai-off");
   });
